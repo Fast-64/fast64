@@ -271,9 +271,15 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                             else:
                                 commandData = getListFunc(cmdData.pop(0), isPlayer)
 
+                            foundEndCmd = False
                             for d in cmdData:
                                 if not isPlayer and not cmd == "ACTOR_CUE_LIST":
                                     listEntry = getFunc(d)
+                                    if "CAM" in cmd:
+                                        flag = d.removeprefix("CS_CAM_POINT(").split(",")[0]
+                                        if foundEndCmd:
+                                            raise PluginError("ERROR: More camera commands after last one!")
+                                        foundEndCmd = "CS_CAM_STOP" in flag or "-1" in flag or "CS_CMD_STOP" in flag
                                 else:
                                     listEntry = getFunc(d, isPlayer)
                                 commandData.entries.append(listEntry)
