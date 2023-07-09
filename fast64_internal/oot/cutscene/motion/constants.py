@@ -567,8 +567,9 @@ ootCSMotionListCommands = [
     "CS_UNK_DATA_LIST",
 ]
 
-ootCSMotionCSCommands = [
+ootCSMotionListEntryCommands = [
     "CS_ACTOR_CUE",
+    "CS_PLAYER_CUE",
     "CS_CAM_POINT",
     "CS_MISC",
     "CS_LIGHT_SETTING",
@@ -576,13 +577,19 @@ ootCSMotionCSCommands = [
     "CS_TEXT",
     "CS_TEXT_NONE",
     "CS_TEXT_OCARINA_ACTION",
-    "CS_TRANSITION",
     "CS_START_SEQ",
     "CS_STOP_SEQ",
     "CS_FADE_OUT_SEQ",
     "CS_TIME",
-    "CS_DESTINATION",
     "CS_UNK_DATA",
+    "CS_LIGHTING",
 ]
 
-ootCSMotionCSCommands.extend(ootCSMotionListCommands)
+ootCSMotionSingleCommands = [
+    "CS_BEGIN_CUTSCENE",
+    "CS_END",
+    "CS_TRANSITION",
+    "CS_DESTINATION",
+]
+
+ootCSMotionCSCommands = ootCSMotionSingleCommands + ootCSMotionListCommands + ootCSMotionListEntryCommands

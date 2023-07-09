@@ -7,7 +7,13 @@ from mathutils import Vector
 from .....utility import PluginError, indent, yUpToZUp
 from ....oot_utility import ootParseRotation
 from ..utility import initCutscene
-from ..constants import ootCSMotionLegacyToNewCmdNames, ootCSMotionListCommands
+
+from ..constants import (
+    ootCSMotionLegacyToNewCmdNames,
+    ootCSMotionListCommands,
+    ootCSMotionCSCommands,
+    ootCSMotionListEntryCommands,
+)
 
 from ..io_classes import (
     OOTCSMotionActorCueList,
@@ -32,7 +38,7 @@ class ParsedCutscene:
 
 class OOTCSMotionImportCommands:
     def getCmdParams(self, data: str, cmdName: str, paramNumber: int):
-        params = data.strip().removeprefix(f"{cmdName}(").removesuffix(",").replace(" ", "").split(",")
+        params = data.strip().removeprefix(f"{cmdName}(").replace(" ", "").removesuffix(")").split(",")
         if len(params) != paramNumber:
             raise PluginError(
                 f"ERROR: The number of expected parameters for `{cmdName}` "
@@ -62,9 +68,7 @@ class OOTCSMotionImportCommands:
     def getNewActorCueList(self, cmdData: str, isPlayer: bool):
         paramNumber = OOTCSMotionActorCueList.paramNumber
         paramNumber = paramNumber - 1 if isPlayer else paramNumber
-        params = self.getCmdParams(
-            cmdData, f"CS_{'PLAYER' if isPlayer else 'ACTOR'}_CUE_LIST", paramNumber
-        )
+        params = self.getCmdParams(cmdData, f"CS_{'PLAYER' if isPlayer else 'ACTOR'}_CUE_LIST", paramNumber)
 
         if isPlayer:
             actorCueList = OOTCSMotionActorCueList("Player", params[0])
@@ -146,77 +150,91 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
         return yUpToZUp @ Vector(ootParseRotation(rot))
 
     def getParsedCutscenes(self):
-        """Returns a list of cutscenes in the file with commands parsed"""
-
-        # open and read the file
-        fileLines = None
+        fileData = ""
 
         with open(self.filePath, "r") as inputFile:
-            fileLines = inputFile.readlines()
+            fileData = inputFile.read()
 
-        if fileLines is None:
-            raise RuntimeError("Can't read file data!")
-
-        # replace old names and tabs
+        # replace old names
         oldNames = list(ootCSMotionLegacyToNewCmdNames.keys())
-        for i in range(len(fileLines)):
-            fileLines[i] = fileLines[i].replace("\t", indent)
-            for oldName in oldNames:
-                fileLines[i] = fileLines[i].replace(oldName, ootCSMotionLegacyToNewCmdNames[oldName])
+        fileData = fileData.replace("CS_CMD_CONTINUE", "CS_CAM_CONTINUE")
+        fileData = fileData.replace("CS_CMD_STOP", "CS_CAM_STOP")
+        for oldName in oldNames:
+            fileData = fileData.replace(f"{oldName}(", f"{ootCSMotionLegacyToNewCmdNames[oldName]}(")
+
+        # parse cutscenes
+        fileLines = fileData.split("\n")
+        csData = []
+        cutsceneList: list[list[str]] = []
+        foundCutscene = False
+        for line in fileLines:
+            if not line.startswith("//") and not line.startswith("/*"):
+                if "CutsceneData " in line:
+                    foundCutscene = True
+
+                if foundCutscene:
+                    sLine = line.strip()
+                    if not sLine.endswith("),") and sLine.endswith(","):
+                        line += fileLines[fileLines.index(line) + 1].strip()
+
+                    if len(csData) == 0 or "CS_" in line:
+                        csData.append(line)
+
+                    if "};" in line:
+                        foundCutscene = False
+                        cutsceneList.append(csData)
+                        csData = []
+
+        if len(cutsceneList) == 0:
+            raise PluginError("ERROR: Found no cutscenes in this file!")
 
         parsedCutscenes: list[ParsedCutscene] = []
-        parsedCommands = []
-        cmdListLines = ""
-        csName = None
+        for cutscene in cutsceneList:
+            cmdListFound = False
+            curCmdPrefix = None
+            parsedCS = []
+            parsedData = ""
+            csName = None
 
-        # separate commands lists as a list of lines
-        for i, line in enumerate(fileLines):
-            # avoid comments
-            if not line.startswith("//") and not line.startswith("/*"):
-                # get the cutscene's name and reset the commands and the cmd list entries
+            for line in cutscene:
+                curCmd = line.strip().split("(")[0]
+                index = cutscene.index(line) + 1
+                nextCmd = cutscene[index].strip().split("(")[0] if index < len(cutscene) else None
+                line = line.strip()
                 if "CutsceneData" in line:
                     csName = line.split(" ")[1][:-2]
-                    cmdListLines = ""
-                    parsedCommands = []
-                elif csName is not None:
-                    # when the cutscene name is found
-                    if "CS_BEGIN_CUTSCENE" in line:
-                        # save the CS_BEGIN_CUTSCENE line
-                        parsedCommands = [line]
-                    elif "CS_END" in line:
-                        # save the CS_END line
-                        parsedCommands.append(line)
-                        parsedCutscenes.append(ParsedCutscene(csName, parsedCommands))
-                        csName = None
-                    elif "CS_TRANSITION" in line or "CS_DESTINATION" in line:
-                        parsedCommands.append(line)
-                    else:
-                        # checking for commands on two lines
-                        line = line.strip()
-                        if not line.endswith("),\n") and line.endswith(",\n"):
-                            line = line[:-1]
 
-                        # add list entries
-                        cmdListLines += line
+                if csName is not None and not "CS_UNK_DATA" in curCmd:
+                    if curCmd in ootCSMotionCSCommands:
+                        line = line.removesuffix(",") + "\n"
 
-                        # if the current line is a new cmd list declaration, reset the content
-                        for cmd in ootCSMotionListCommands:
-                            if cmd in line:
-                                cmdListLines = line
-                                break
+                        if curCmd == "CS_BEGIN_CUTSCENE":
+                            parsedData += line
 
-                        # once we reach the end of the list, save it to the parsedCommands list
-                        # we're reading next line to see if it's a new list declaration
-                        index = i + 1
-                        if index < len(fileLines):
-                            if not "CS_UNK_DATA" in cmdListLines:
-                                cmdList = ["CS_END", "CS_TRANSITION", "CS_DESTINATION"]
-                                cmdList.extend(ootCSMotionListCommands)
-                                for cmd in cmdList:
-                                    if cmd in fileLines[index]:
-                                        parsedCommands.append(cmdListLines)
-                                        cmdListLines = ""
-                                        break
+                        if not cmdListFound and curCmd in ootCSMotionListCommands:
+                            cmdListFound = True
+                            parsedData = ""
+                            if curCmd.startswith("CS_CAM"):
+                                curCmdPrefix = "CS_CAM"
+                            elif curCmd.startswith("CS_LIGHT"):
+                                curCmdPrefix = "CS_LIGHT"
+                            else:
+                                curCmdPrefix = curCmd[:-5]
+
+                        if curCmdPrefix is not None:
+                            if curCmdPrefix in curCmd:
+                                parsedData += line
+                            elif not cmdListFound and curCmd in ootCSMotionListEntryCommands:
+                                print(f"{csName}, command:\n{line}")
+                                raise PluginError(f"ERROR: Found a list entry outside a list inside ``{csName}``!")
+
+                        if cmdListFound and nextCmd == "CS_END" or nextCmd in ootCSMotionListCommands:
+                            cmdListFound = False
+                            parsedCS.append(parsedData)
+                    elif not "CutsceneData" in curCmd and not "};" in curCmd:
+                        print(f"WARNING: Unknown command found: ``{curCmd}``")
+                        cmdListFound = False
+            parsedCutscenes.append(ParsedCutscene(csName, parsedCS))
 
         return parsedCutscenes
 
@@ -252,7 +270,6 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
         for parsedCS in parsedCutscenes:
             cutscene = None
             for data in parsedCS.csData:
-                data = data.replace("),", ",\n")
                 # create a new cutscene data
                 if "CS_BEGIN_CUTSCENE(" in data:
                     cutscene = self.getNewCutscene(data, parsedCS.csName)
@@ -260,6 +277,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                 # if we have a cutscene, create and add the commands data in it
                 if cutscene is not None:
                     cmdData = data.removesuffix("\n").split("\n")
+                    cmdListData = cmdData.pop(0)
                     for cmd, getListFunc, getFunc, listName in cmdDataList:
                         isPlayer = cmd == "PLAYER_CUE_LIST"
 
@@ -267,9 +285,9 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                             cmdList = getattr(cutscene, f"{listName}List")
 
                             if not isPlayer and not cmd == "ACTOR_CUE_LIST":
-                                commandData = getListFunc(cmdData.pop(0))
+                                commandData = getListFunc(cmdListData)
                             else:
-                                commandData = getListFunc(cmdData.pop(0), isPlayer)
+                                commandData = getListFunc(cmdListData, isPlayer)
 
                             foundEndCmd = False
                             for d in cmdData:
@@ -279,7 +297,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                                         flag = d.removeprefix("CS_CAM_POINT(").split(",")[0]
                                         if foundEndCmd:
                                             raise PluginError("ERROR: More camera commands after last one!")
-                                        foundEndCmd = "CS_CAM_STOP" in flag or "-1" in flag or "CS_CMD_STOP" in flag
+                                        foundEndCmd = "CS_CAM_STOP" in flag or "-1" in flag
                                 else:
                                     listEntry = getFunc(d, isPlayer)
                                 commandData.entries.append(listEntry)
@@ -331,13 +349,15 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
 
         for camType, eyeList, atList in camLists:
             for eyeListEntry, atListEntry in zip(eyeList, atList):
-                if len(eyeListEntry.entries) != len(atListEntry.entries):
-                    raise PluginError(f"ERROR: Found {len(eyeList)} Eye lists but {len(atList)} AT lists in {camType}!")
+                eyeTotal = len(eyeListEntry.entries)
+                atTotal = len(atListEntry.entries)
+                if eyeTotal != atTotal:
+                    raise PluginError(f"ERROR: Found {eyeTotal} Eye lists but {atTotal} AT lists in {camType}!")
 
-                if len(eyeListEntry.entries) < 4:
-                    raise PluginError(f"ERROR: Only {len(eyeList)} cam point in this command!")
+                if eyeTotal < 4:
+                    raise PluginError(f"ERROR: Only {eyeTotal} cam point in this command!")
 
-                if len(eyeListEntry.entries) > 4:
+                if eyeTotal > 4:
                     # NOTE: there is a bug in the game where when incrementing to the next set of key points,
                     # the key point which checked for whether it's the last point or not is the last point
                     # of the next set, not the last point of the old set. This means we need to remove
