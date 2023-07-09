@@ -736,10 +736,193 @@ for each sub element (of <Actor>) mentioned below:
 <!-- ================ CHEST CONTENT ================ -->
 <!-- =============================================== -->
 
-  <!-- TODO -->
   <List Name="Chest Content">
-    <Item Key="item_a" Name="TODO" Value="0x48"/>
-    <Item Key="item_b" Name="TODO" Value="0x49"/>
+    <Item Key="item_00" Value="0x00" Name="[None]" />
+    <Item Key="item_01" Value="0x01" Name="Rupee (1)" />
+    <Item Key="item_02" Value="0x02" Name="Rupees (5)" />
+    <Item Key="item_03" Value="0x03" Name="Rupees (10)" />
+    <Item Key="item_04" Value="0x04" Name="Rupees (20)" />
+    <Item Key="item_05" Value="0x05" Name="Rupees (50)" />
+    <Item Key="item_06" Value="0x06" Name="Rupees (100)" />
+    <Item Key="item_07" Value="0x07" Name="Rupees (200)" />
+    <Item Key="item_08" Value="0x08" Name="Wallet (Adult)" />
+    <Item Key="item_09" Value="0x09" Name="Wallet (Giant)" />
+    <Item Key="item_0A" Value="0x0A" Name="Recovery Heart" />
+    <Item Key="item_0B" Value="0x0B" Name="GI_0B" />
+    <Item Key="item_0C" Value="0x0C" Name="Heart Piece" />
+    <Item Key="item_0D" Value="0x0D" Name="Heart Container" />
+    <Item Key="item_0E" Value="0x0E" Name="Small Magic Jar" />
+    <Item Key="item_0F" Value="0x0F" Name="Large Magic Jar" />
+    <Item Key="item_10" Value="0x10" Name="GI_10" />
+    <Item Key="item_11" Value="0x11" Name="Stray Fairy" />
+    <Item Key="item_12" Value="0x12" Name="GI_12" />
+    <Item Key="item_13" Value="0x13" Name="GI_13" />
+    <Item Key="item_14" Value="0x14" Name="Bombs (1)" />
+    <Item Key="item_15" Value="0x15" Name="Bombs (5)" />
+    <Item Key="item_16" Value="0x16" Name="Bombs (10)" />
+    <Item Key="item_17" Value="0x17" Name="Bombs (20)" />
+    <Item Key="item_18" Value="0x18" Name="Bombs (30)" />
+    <Item Key="item_19" Value="0x19" Name="Deku-Stick" />
+    <Item Key="item_1A" Value="0x1A" Name="Bombchus (10)" />
+    <Item Key="item_1B" Value="0x1B" Name="Bomb-Bag (20)" />
+    <Item Key="item_1C" Value="0x1C" Name="Bomb-Bag (30)" />
+    <Item Key="item_1D" Value="0x1D" Name="Bomb-Bag (40)" />
+    <Item Key="item_1E" Value="0x1E" Name="Arrows (10)" />
+    <Item Key="item_1F" Value="0x1F" Name="Arrows (30)" />
+    <Item Key="item_20" Value="0x20" Name="Arrows (40)" />
+    <Item Key="item_21" Value="0x21" Name="Arrows (50)" />
+    <Item Key="item_22" Value="0x22" Name="Quiver (30)" />
+    <Item Key="item_23" Value="0x23" Name="Quiver (40)" />
+    <Item Key="item_24" Value="0x24" Name="Quiver (50)" />
+    <Item Key="item_25" Value="0x25" Name="Fire-Arrows" />
+    <Item Key="item_26" Value="0x26" Name="Ice-Arrows" />
+    <Item Key="item_27" Value="0x27" Name="Light-Arrows" />
+    <Item Key="item_28" Value="0x28" Name="Deku-Nuts (1)" />
+    <Item Key="item_29" Value="0x29" Name="Deku-Nuts (5)" />
+    <Item Key="item_2A" Value="0x2A" Name="Deku-Nuts (10)" />
+    <Item Key="item_2B" Value="0x2B" Name="GI_2B" />
+    <Item Key="item_2C" Value="0x2C" Name="GI_2C" />
+    <Item Key="item_2D" Value="0x2D" Name="GI_2D" />
+    <Item Key="item_2E" Value="0x2E" Name="Bombchus (20)" />
+    <Item Key="item_2F" Value="0x2F" Name="GI_2F" />
+    <Item Key="item_30" Value="0x30" Name="GI_30" />
+    <Item Key="item_31" Value="0x31" Name="GI_31" />
+    <Item Key="item_32" Value="0x32" Name="Hero-Shield" />
+    <Item Key="item_33" Value="0x33" Name="Mirror-Shield" />
+    <Item Key="item_34" Value="0x34" Name="Powder-Keg" />
+    <Item Key="item_35" Value="0x35" Name="MAgic Beans" />
+    <Item Key="item_36" Value="0x36" Name="Bombchu (1)" />
+    <Item Key="item_37" Value="0x37" Name="Kokiri-Sword" />
+    <Item Key="item_38" Value="0x38" Name="Razow-Sword" />
+    <Item Key="item_39" Value="0x39" Name="Gilded-Sword" />
+    <Item Key="item_3A" Value="0x3A" Name="Bombchus (5)" />
+    <Item Key="item_3B" Value="0x3B" Name="Great-Fairy Sword" />
+    <Item Key="item_3C" Value="0x3C" Name="Small Key" />
+    <Item Key="item_3D" Value="0x3D" Name="Boss-Key" />
+    <Item Key="item_3E" Value="0x3E" Name="Map" />
+    <Item Key="item_3F" Value="0x3F" Name="Compass" />
+    <Item Key="item_40" Value="0x40" Name="GI_40" />
+    <Item Key="item_41" Value="0x41" Name="Hookshor" />
+    <Item Key="item_42" Value="0x42" Name="Lens of Truth" />
+    <Item Key="item_43" Value="0x43" Name="Pictograph Box" />
+    <Item Key="item_44" Value="0x44" Name="GI_44" />
+    <Item Key="item_45" Value="0x45" Name="GI_45" />
+    <Item Key="item_46" Value="0x46" Name="GI_46" />
+    <Item Key="item_47" Value="0x47" Name="GI_47" />
+    <Item Key="item_48" Value="0x48" Name="GI_48" />
+    <Item Key="item_49" Value="0x49" Name="GI_49" />
+    <Item Key="item_4A" Value="0x4A" Name="GI_4A" />
+    <Item Key="item_4B" Value="0x4B" Name="GI_4B" />
+    <Item Key="item_4C" Value="0x4C" Name="Ocarina of time" />
+    <Item Key="item_4D" Value="0x4D" Name="GI_4D" />
+    <Item Key="item_4E" Value="0x4E" Name="GI_4E" />
+    <Item Key="item_4F" Value="0x4F" Name="GI_4F" />
+    <Item Key="item_50" Value="0x50" Name="Bomber's Notebook" />
+    <Item Key="item_51" Value="0x51" Name="GI_51" />
+    <Item Key="item_52" Value="0x52" Name="Golden-Skulltula Token" />
+    <Item Key="item_53" Value="0x53" Name="GI_53" />
+    <Item Key="item_54" Value="0x54" Name="GI_54" />
+    <Item Key="item_55" Value="0x55" Name="Remains (Odolwa)" />
+    <Item Key="item_56" Value="0x56" Name="Remains (Goht)" />
+    <Item Key="item_57" Value="0x57" Name="Remains (Gyorg)" />
+    <Item Key="item_58" Value="0x58" Name="Remains (Twinmold)" />
+    <Item Key="item_59" Value="0x59" Name="Red Potion Bottle" />
+    <Item Key="item_5A" Value="0x5A" Name="Bottle" />
+    <Item Key="item_5B" Value="0x5B" Name="Red Potion" />
+    <Item Key="item_5C" Value="0x5C" Name="Green Potion" />
+    <Item Key="item_5D" Value="0x5D" Name="Blue Potion" />
+    <Item Key="item_5E" Value="0x5E" Name="Fairy" />
+    <Item Key="item_5F" Value="0x5F" Name="Deku Princess" />
+    <Item Key="item_60" Value="0x60" Name="Milk-Bottle (Full)" />
+    <Item Key="item_61" Value="0x61" Name="Milk-Bottle (Half)" />
+    <Item Key="item_62" Value="0x62" Name="Fish" />
+    <Item Key="item_63" Value="0x63" Name="Bug" />
+    <Item Key="item_64" Value="0x64" Name="Blue-Fire" />
+    <Item Key="item_65" Value="0x65" Name="Poe" />
+    <Item Key="item_66" Value="0x66" Name="Big-Poe" />
+    <Item Key="item_67" Value="0x67" Name="Spring-Water (Cold)" />
+    <Item Key="item_68" Value="0x68" Name="Spring-Water (Hot)" />
+    <Item Key="item_69" Value="0x69" Name="Zora-Egg" />
+    <Item Key="item_6A" Value="0x6A" Name="Gold-Dust" />
+    <Item Key="item_6B" Value="0x6B" Name="Mushroom" />
+    <Item Key="item_6C" Value="0x6C" Name="GI_6C" />
+    <Item Key="item_6D" Value="0x6D" Name="GI_6D" />
+    <Item Key="item_6E" Value="0x6E" Name="Seahorse" />
+    <Item Key="item_6F" Value="0x6F" Name="Chateau-Romani Bottle" />
+    <Item Key="item_70" Value="0x70" Name="Hylian Loach" />
+    <Item Key="item_71" Value="0x71" Name="GI_71" />
+    <Item Key="item_72" Value="0x72" Name="GI_72" />
+    <Item Key="item_73" Value="0x73" Name="GI_73" />
+    <Item Key="item_74" Value="0x74" Name="GI_74" />
+    <Item Key="item_75" Value="0x75" Name="GI_75" />
+    <Item Key="item_76" Value="0x76" Name="Ice-Trap" />
+    <Item Key="item_77" Value="0x77" Name="GI_77" />
+    <Item Key="item_78" Value="0x78" Name="Mask (Deku)" />
+    <Item Key="item_79" Value="0x79" Name="Mask (Goron)" />
+    <Item Key="item_7A" Value="0x7A" Name="Mask (Zora)" />
+    <Item Key="item_7B" Value="0x7B" Name="Mask (Fierce-Deity)" />
+    <Item Key="item_7C" Value="0x7C" Name="Mask (Captain)" />
+    <Item Key="item_7D" Value="0x7D" Name="Mask (Giant)" />
+    <Item Key="item_7E" Value="0x7E" Name="Mask (All-Night)" />
+    <Item Key="item_7F" Value="0x7F" Name="Mask (Bunny)" />
+    <Item Key="item_80" Value="0x80" Name="Mask (Keaton)" />
+    <Item Key="item_81" Value="0x81" Name="Mask (Garo)" />
+    <Item Key="item_82" Value="0x82" Name="Mask (Romani)" />
+    <Item Key="item_83" Value="0x83" Name="Mask (Circus leader)" />
+    <Item Key="item_84" Value="0x84" Name="Mask (Postman)" />
+    <Item Key="item_85" Value="0x85" Name="Mask (Couple)" />
+    <Item Key="item_86" Value="0x86" Name="Mask (Great-Fairy)" />
+    <Item Key="item_87" Value="0x87" Name="Mask (Gibdo)" />
+    <Item Key="item_88" Value="0x88" Name="Mask (Don-Gero)" />
+    <Item Key="item_89" Value="0x89" Name="Mask (Kamaro)" />
+    <Item Key="item_8A" Value="0x8A" Name="Mask (Truth)" />
+    <Item Key="item_8B" Value="0x8B" Name="Mask (Stone)" />
+    <Item Key="item_8C" Value="0x8C" Name="Mask (Bremen)" />
+    <Item Key="item_8D" Value="0x8D" Name="Mask (Blast)" />
+    <Item Key="item_8E" Value="0x8E" Name="Mask (Scents)" />
+    <Item Key="item_8F" Value="0x8F" Name="Mask (Kafei)" />
+    <Item Key="item_90" Value="0x90" Name="GI_90" />
+    <Item Key="item_91" Value="0x91" Name="Chateau-Romani Milk" />
+    <Item Key="item_92" Value="0x92" Name="Regular Milk" />
+    <Item Key="item_93" Value="0x93" Name="Gold Dust (0x93)" />
+    <Item Key="item_94" Value="0x94" Name="Hylian Loach (0x94)" />
+    <Item Key="item_95" Value="0x95" Name="Seahorse (Caught)" />
+    <Item Key="item_96" Value="0x96" Name="Moon tear" />
+    <Item Key="item_97" Value="0x97" Name="Land-Deed (Land)" />
+    <Item Key="item_98" Value="0x98" Name="Land-Deed (Swamp)" />
+    <Item Key="item_99" Value="0x99" Name="Land-Deed (Mountain)" />
+    <Item Key="item_9A" Value="0x9A" Name="Land-Deed (Ocean)" />
+    <Item Key="item_9B" Value="0x9B" Name="Stolen Sword (Great-Fairy)" />
+    <Item Key="item_9C" Value="0x9C" Name="Stolen Sword (Kokiri)" />
+    <Item Key="item_9D" Value="0x9D" Name="Stolen Sword (Razor)" />
+    <Item Key="item_9E" Value="0x9E" Name="Stolen Sword (Gilded)" />
+    <Item Key="item_9F" Value="0x9F" Name="Stolen Shield (Hero)" />
+    <Item Key="item_A0" Value="0xA0" Name="Room-Key" />
+    <Item Key="item_A1" Value="0xA1" Name="Letter to Mama" />
+    <Item Key="item_A2" Value="0xA2" Name="GI_A2" />
+    <Item Key="item_A3" Value="0xA3" Name="GI_A3" />
+    <Item Key="item_A4" Value="0xA4" Name="GI_A4" />
+    <Item Key="item_A5" Value="0xA5" Name="GI_A5" />
+    <Item Key="item_A6" Value="0xA6" Name="GI_A6" />
+    <Item Key="item_A7" Value="0xA7" Name="GI_A7" />
+    <Item Key="item_A8" Value="0xA8" Name="GI_A8" />
+    <Item Key="item_A9" Value="0xA9" Name="Stolen Bottle" />
+    <Item Key="item_AA" Value="0xAA" Name="Letter to Kafei" />
+    <Item Key="item_AB" Value="0xAB" Name="Pendant of memories" />
+    <Item Key="item_AC" Value="0xAC" Name="GI_AC" />
+    <Item Key="item_AD" Value="0xAD" Name="GI_AD" />
+    <Item Key="item_AE" Value="0xAE" Name="GI_AE" />
+    <Item Key="item_AF" Value="0xAF" Name="GI_AF" />
+    <Item Key="item_B0" Value="0xB0" Name="GI_B0" />
+    <Item Key="item_B1" Value="0xB1" Name="GI_B1" />
+    <Item Key="item_B2" Value="0xB2" Name="GI_B2" />
+    <Item Key="item_B3" Value="0xB3" Name="GI_B3" />
+    <Item Key="item_B4" Value="0xB4" Name="Tingle-Map (Clock-Town)" />
+    <Item Key="item_B5" Value="0xB5" Name="Tingle-Map (Woodfall)" />
+    <Item Key="item_B6" Value="0xB6" Name="Tingle-Map (Snowhead)" />
+    <Item Key="item_B7" Value="0xB7" Name="Tingle-Map (Romani Ranch)" />
+    <Item Key="item_B8" Value="0xB8" Name="Tingle-Map (Great Bay)" />
+    <Item Key="item_B9" Value="0xB9" Name="Tingle-Map (Stone Tower)" />
   </List>
 
 </Table>
