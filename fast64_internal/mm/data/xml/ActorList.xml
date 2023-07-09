@@ -790,7 +790,7 @@ for each sub element (of <Actor>) mentioned below:
     <Item Key="item_32" Value="0x32" Name="Hero-Shield" />
     <Item Key="item_33" Value="0x33" Name="Mirror-Shield" />
     <Item Key="item_34" Value="0x34" Name="Powder-Keg" />
-    <Item Key="item_35" Value="0x35" Name="MAgic Beans" />
+    <Item Key="item_35" Value="0x35" Name="Magic Beans" />
     <Item Key="item_36" Value="0x36" Name="Bombchu (1)" />
     <Item Key="item_37" Value="0x37" Name="Kokiri-Sword" />
     <Item Key="item_38" Value="0x38" Name="Razow-Sword" />
