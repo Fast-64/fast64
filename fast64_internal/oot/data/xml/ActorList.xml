@@ -932,11 +932,11 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
       <Item Params="0020"> Circle Loop</Item>
     </Type>
     <Property Index="1" Mask="0xF000" Name="Speed" TiedActorTypes="0000,0020"/>
-    <Property Index="6" Mask="0x0F00" Name="Radius"/>
-    <Bool Index="2" Mask="0x0001" Name="Move North"/>
-    <Bool Index="3" Mask="0x0002" Name="Move South"/>
-    <Bool Index="4" Mask="0x0004" Name="Move West"/>
-    <Bool Index="5" Mask="0x0008" Name="Move East"/>
+    <Property Index="2" Mask="0x0F00" Name="Radius"/>
+    <Bool Index="1" Mask="0x0001" Name="Move North"/>
+    <Bool Index="2" Mask="0x0002" Name="Move South"/>
+    <Bool Index="3" Mask="0x0004" Name="Move West"/>
+    <Bool Index="4" Mask="0x0008" Name="Move East"/>
   </Actor>
   <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_AROW_TRAP" Key="en_arow_trap" Name="Beta Arrow Trap" Index="109">
   </Actor>
