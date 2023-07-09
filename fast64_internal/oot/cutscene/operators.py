@@ -105,7 +105,7 @@ class OOT_ImportCutscene(Operator):
             path = abspath(context.scene.ootCutsceneImportPath)
 
             try:
-                context.scene.ootCSNumber = importCutsceneData(path)
+                context.scene.ootCSNumber = importCutsceneData(path, None)
             except:
                 raise PluginError("Something went wrong...")
 

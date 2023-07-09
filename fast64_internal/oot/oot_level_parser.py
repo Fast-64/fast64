@@ -12,6 +12,7 @@ from .scene.exporter.to_c import getDrawConfig
 from .scene.properties import OOTSceneHeaderProperty, OOTLightProperty, OOTImportSceneSettingsProperty
 from .room.properties import OOTRoomHeaderProperty
 from .actor.properties import OOTActorProperty, OOTActorHeaderProperty
+from .cutscene.motion.importer import importCutsceneData
 
 from .oot_utility import (
     getHeaderSettings,
@@ -216,7 +217,8 @@ def parseScene(
         importSubdir = os.path.dirname(getSceneDirFromLevelName(sceneName)) + "/"
 
     sceneFolderPath = ootGetPath(importPath, settings.isCustomDest, importSubdir, sceneName, False, True)
-    sceneData = readFile(os.path.join(sceneFolderPath, f"{sceneName}_scene.c"))
+    filePath = os.path.join(sceneFolderPath, f"{sceneName}_scene.c")
+    sceneData = readFile(filePath)
 
     # roomData = ""
     # sceneFolderFiles = [f for f in listdir(sceneFolderPath) if isfile(join(sceneFolderPath, f))]
@@ -271,6 +273,9 @@ def parseScene(
 
     if bpy.context.scene.fast64.oot.headerTabAffectsVisibility:
         setAllActorsVisibility(sceneObj, bpy.context)
+
+    if settings.includeCutscenes:
+        bpy.context.scene.ootCSNumber = importCutsceneData(None, sceneData)
 
 
 def parseSceneCommands(
@@ -363,12 +368,11 @@ def parseSceneCommands(
             if not (args[1] == "NULL" or args[1] == "0" or args[1] == "0x00"):
                 lightsListName = stripName(args[1])
                 parseLightList(sceneObj, sceneHeader, sceneData, lightsListName, headerIndex)
-        elif command == "SCENE_CMD_CUTSCENE_DATA":
-            cutsceneName = args[0]
-            print("Cutscene command parsing not implemented.")
         elif command == "SCENE_CMD_ALTERNATE_HEADER_LIST":
             # Delay until after rooms are parsed
             altHeadersListName = stripName(args[0])
+        
+        # cutscenes are handled after importing the scene
 
     if altHeadersListName is not None:
         parseAlternateSceneHeaders(sceneObj, roomObjs, sceneData, altHeadersListName, f3dContext, sharedSceneData)

@@ -139,6 +139,7 @@ class OOTCSMotionImportCommands:
 @dataclass
 class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
     filePath: str
+    fileData: str
 
     def getBlenderPosition(self, pos: list[int], scale: int):
         # OoT: +X right, +Y up, -Z forward
@@ -152,8 +153,13 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
     def getParsedCutscenes(self):
         fileData = ""
 
-        with open(self.filePath, "r") as inputFile:
-            fileData = inputFile.read()
+        if self.fileData is not None:
+            fileData = self.fileData
+        elif self.filePath is not None:
+            with open(self.filePath, "r") as inputFile:
+                fileData = inputFile.read()
+        else:
+            raise PluginError("ERROR: File data can't be found!")
 
         # replace old names
         oldNames = list(ootCSMotionLegacyToNewCmdNames.keys())
@@ -186,7 +192,8 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                         csData = []
 
         if len(cutsceneList) == 0:
-            raise PluginError("ERROR: Found no cutscenes in this file!")
+            print("INFO: Found no cutscenes in this file!")
+            return None
 
         parsedCutscenes: list[ParsedCutscene] = []
         for cutscene in cutsceneList:
@@ -242,6 +249,11 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
         """Returns the list of cutscenes with the data processed"""
 
         parsedCutscenes = self.getParsedCutscenes()
+
+        if parsedCutscenes is None:
+            # if it's none then there's no cutscene in the file
+            return None
+
         cutsceneList: list[OOTCSMotionCutscene] = []
         cmdDataList = [
             ("ACTOR_CUE_LIST", self.getNewActorCueList, self.getNewActorCue, "actorCue"),
@@ -410,6 +422,10 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
 
     def setCutsceneData(self, csNumber):
         cutsceneList = self.getCutsceneList()
+
+        if cutsceneList is None:
+            # if it's none then there's no cutscene in the file
+            return csNumber
 
         for i, cutscene in enumerate(cutsceneList, csNumber):
             print(f'Found Cutscene "{cutscene.name}"!')
