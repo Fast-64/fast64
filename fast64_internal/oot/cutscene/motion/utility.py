@@ -166,7 +166,7 @@ def getFakeCSEndFrame(context: Context, csObj: Object):
 
 
 def setupCutscene(csObj: Object):
-    from .io_classes import OOTCSMotionObjectFactory # circular import fix
+    from .io_classes import OOTCSMotionObjectFactory  # circular import fix
 
     objFactory = OOTCSMotionObjectFactory()
     context = bpy.context

@@ -142,7 +142,7 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
             elif self.useDecomp:
                 commandType = ootCSMotionCommandTypeRawToEnum[commandType]
 
-            actorCueList = OOTCSMotionActorCueList(commandType, entryTotal - 1) # ignoring dummy cue
+            actorCueList = OOTCSMotionActorCueList(commandType, entryTotal - 1)  # ignoring dummy cue
             actorCueData += self.getActorCueListCmd(actorCueList, isPlayer)
 
             for i, childObj in enumerate(obj.children, 1):
