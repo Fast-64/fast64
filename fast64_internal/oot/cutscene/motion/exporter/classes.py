@@ -107,9 +107,9 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
 
         scale = bpy.context.scene.ootBlenderScale
 
-        x = int(round(pos[0] * scale))
-        y = int(round(pos[2] * scale))
-        z = int(round(-pos[1] * scale))
+        x = round(pos[0] * scale)
+        y = round(pos[2] * scale)
+        z = round(-pos[1] * scale)
 
         if any(v < -0x8000 or v >= 0x8000 for v in (x, y, z)):
             raise RuntimeError(f"Position(s) too large, out of range: {x}, {y}, {z}")
@@ -142,7 +142,7 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
             elif self.useDecomp:
                 commandType = ootCSMotionCommandTypeRawToEnum[commandType]
 
-            actorCueList = OOTCSMotionActorCueList(commandType, entryTotal)
+            actorCueList = OOTCSMotionActorCueList(commandType, entryTotal - 1) # ignoring dummy cue
             actorCueData += self.getActorCueListCmd(actorCueList, isPlayer)
 
             for i, childObj in enumerate(obj.children, 1):
@@ -173,14 +173,13 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
             if bone.parent is not None:
                 raise RuntimeError("Camera Armature bones are not allowed to have parent bones!")
 
-            posBlend = bone.head if not useAT else bone.tail
             shotPoints.append(
                 OOTCSMotionCamPoint(
                     ("CS_CAM_CONTINUE" if self.useDecomp else "0"),
                     bone.ootCamShotPointProp.shotPointRoll,
                     bone.ootCamShotPointProp.shotPointFrame,
                     bone.ootCamShotPointProp.shotPointViewAngle,
-                    self.getOoTPosition([int(posBlend[0]), int(posBlend[2]), int(posBlend[1])]),
+                    self.getOoTPosition(bone.head if not useAT else bone.tail),
                 )
             )
 
