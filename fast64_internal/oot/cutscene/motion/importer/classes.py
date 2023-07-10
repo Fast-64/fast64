@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from struct import unpack
 from bpy.types import Object, Armature
 from mathutils import Vector
-from .....utility import PluginError, indent, yUpToZUp
+from .....utility import PluginError, yUpToZUp
 from ....oot_utility import ootParseRotation
 from ..utility import initCutscene
 

@@ -75,6 +75,10 @@ class OOTCSMotionExportCommands:
 class OOTCSMotionExport(OOTCSMotionExportCommands):
     csMotionObjects: dict[str, list[Object]]
     useDecomp: bool
+    addBeginEndCmds: bool
+    entryTotal: int = 0
+    frameCount: int = 0
+    camEndFrame: int = 0
 
     def getOoTRotation(self, obj: Object):
         def conv(r):
@@ -109,6 +113,7 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
         actorCueListObjects = self.csMotionObjects[f"CS {playerOrActor} Cue List"]
         actorCueData = ""
 
+        self.entryTotal += len(actorCueListObjects)
         for obj in actorCueListObjects:
             if obj.children is None:
                 raise PluginError("ERROR: The Actor Cue List does not contain any child Actor Cue objects")
@@ -127,9 +132,11 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
 
                 for i, childObj in enumerate(obj.children):
                     if i % 2 == 0:
+                        startFrame = childObj.ootCSMotionProperty.actorCueProp.cueStartFrame
+                        endFrame = childObj.ootCSMotionProperty.actorCueProp.cueEndFrame
                         actorCue = OOTCSMotionActorCue(
-                            childObj.ootCSMotionProperty.actorCueProp.cueStartFrame,
-                            childObj.ootCSMotionProperty.actorCueProp.cueEndFrame,
+                            startFrame,
+                            endFrame,
                             childObj.ootCSMotionProperty.actorCueProp.cueActionID,
                             self.getOoTRotation(childObj),
                             self.getOoTPosition(childObj.location),
@@ -138,18 +145,6 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
                         actorCueData += self.getActorCueCmd(actorCue, isPlayer)
 
         return actorCueData
-
-    def getShotObjectsSort(self, shotObjects: list[Object]):
-        sortedObjects: dict[str, list[Object]] = {
-            "splineEyeOrAT": [],
-            "splineEyeOrATRelPlayer": [],
-            "eyeOrAT": [],
-        }
-
-        for obj in shotObjects:
-            sortedObjects[obj.data.ootCamShotProp.shotCamMode].append(obj)
-
-        return sortedObjects
 
     def getCameraShotPointData(self, bones, useAT: bool):
         shotPoints: list[OOTCSMotionCamPoint] = []
@@ -206,6 +201,7 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
             startFrame + max(2, sum(point.frame for point in splineData)) + (splineData[-1].frame if useAT else 1)
         )
 
+        self.camEndFrame = endFrame
         camData = self.getCamClass(obj.data.ootCamShotProp.shotCamMode, useAT)(startFrame, endFrame)
 
         return self.getCamCmdFunc(obj.data.ootCamShotProp.shotCamMode, useAT)(camData) + "".join(
@@ -216,16 +212,21 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
         shotObjects = self.csMotionObjects["camShot"]
         cameraShotData = ""
 
-        if len(shotObjects) == 0:
-            raise RuntimeError(f"Found no camera commands!")
-
-        shotObjectsSorted = self.getShotObjectsSort(shotObjects)
-
-        for objList in shotObjectsSorted.values():
-            for obj in objList:
+        if len(shotObjects) > 0:
+            frameCount = -1
+            for obj in shotObjects:
                 cameraShotData += self.getCamListData(obj, False) + self.getCamListData(obj, True)
+                endFrame = obj.data.ootCamShotProp.shotStartFrame + self.camEndFrame + 1
+                frameCount = max(frameCount, endFrame)
+            self.frameCount += frameCount
+            self.entryTotal += len(shotObjects) * 2
 
         return cameraShotData
 
     def getExportData(self):
-        return self.getActorCueListData(False) + self.getActorCueListData(True) + self.getCameraShotData()
+        data = self.getActorCueListData(False) + self.getActorCueListData(True) + self.getCameraShotData()
+        if self.addBeginEndCmds:
+            data = (
+                indent + f"CS_BEGIN_CUTSCENE({self.entryTotal}, {self.frameCount}),\n" + data + indent + "CS_END(),\n"
+            )
+        return data
