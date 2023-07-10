@@ -42,6 +42,7 @@ def upgradeRoomHeaders(roomObj: Object, objData: OoT_ObjectData):
 
 
 def upgradeCutsceneMotion(csMotionObj: Object):
+    """Main upgrade logic for Cutscene Motion data from zcamedit"""
     objName = csMotionObj.name
 
     if csMotionObj.type == "EMPTY":
@@ -101,7 +102,9 @@ def upgradeCutsceneMotion(csMotionObj: Object):
                 del bone["camroll"]
 
 
-def postUpgradeCSMotion(cueObj: Object, emptyType: str):
+def postUpgradeCSMotion(emptyType: str):
+    """Sets other data for Actor Cues"""
+
     cueObjects: list[Object] = [
         obj for obj in bpy.data.objects if obj.type == "EMPTY" and obj.ootEmptyType == emptyType
     ]

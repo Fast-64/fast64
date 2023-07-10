@@ -20,6 +20,8 @@ from ..io_classes import (
 
 
 class OOTCSMotionExportCommands:
+    """This class contains functions to create the cutscene commands"""
+
     def getActorCueListCmd(self, actorCueList: OOTCSMotionActorCueList, isPlayerActor: bool):
         return indent + (
             f"CS_{'PLAYER' if isPlayerActor else 'ACTOR'}_CUE_LIST("
@@ -73,6 +75,8 @@ class OOTCSMotionExportCommands:
 
 @dataclass
 class OOTCSMotionExport(OOTCSMotionExportCommands):
+    """This class contains functions to create the new cutscene data"""
+
     csMotionObjects: dict[str, list[Object]]
     useDecomp: bool
     addBeginEndCmds: bool
@@ -81,6 +85,8 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
     camEndFrame: int = 0
 
     def getOoTRotation(self, obj: Object):
+        """Returns the converted Blender rotation"""
+
         def conv(r):
             r /= 2.0 * math.pi
             r -= math.floor(r)
@@ -97,6 +103,8 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
         return [f"DEG_TO_BINANG({(int(rot, base=16) * (180 / 0x8000)):.3f})" for rot in rotXYZ]
 
     def getOoTPosition(self, pos):
+        """Returns the converted Blender position"""
+
         scale = bpy.context.scene.ootBlenderScale
 
         x = int(round(pos[0] * scale))
@@ -109,44 +117,54 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
         return [x, y, z]
 
     def getActorCueListData(self, isPlayer: bool):
+        """Returns the Actor Cue List commands from the corresponding objects"""
+
         playerOrActor = f"{'Player' if isPlayer else 'Actor'}"
         actorCueListObjects = self.csMotionObjects[f"CS {playerOrActor} Cue List"]
         actorCueData = ""
 
         self.entryTotal += len(actorCueListObjects)
         for obj in actorCueListObjects:
-            if obj.children is None:
+            entryTotal = len(obj.children)
+
+            if entryTotal == 0:
                 raise PluginError("ERROR: The Actor Cue List does not contain any child Actor Cue objects")
 
-            entryTotal = len(obj.children)
-            if entryTotal > 0:
-                commandType = obj.ootCSMotionProperty.actorCueListProp.commandType
+            if entryTotal % 2 != 0:
+                # the number of the list empty childrens will always be even since
+                # there's two points per actor cue, the first defines the property and starting position
+                # and the second one defines the end position
+                raise PluginError("ERROR: The Actor Cue List is missing a point!")
 
-                if commandType == "Custom":
-                    commandType = obj.ootCSMotionProperty.actorCueListProp.commandTypeCustom
-                elif self.useDecomp:
-                    commandType = ootCSMotionCommandTypeRawToEnum[commandType]
+            commandType = obj.ootCSMotionProperty.actorCueListProp.commandType
 
-                actorCueList = OOTCSMotionActorCueList(commandType, int(entryTotal / 2))  # 2 points objects per cue
-                actorCueData += self.getActorCueListCmd(actorCueList, isPlayer)
+            if commandType == "Custom":
+                commandType = obj.ootCSMotionProperty.actorCueListProp.commandTypeCustom
+            elif self.useDecomp:
+                commandType = ootCSMotionCommandTypeRawToEnum[commandType]
 
-                for i, childObj in enumerate(obj.children):
-                    if i % 2 == 0:
-                        startFrame = childObj.ootCSMotionProperty.actorCueProp.cueStartFrame
-                        endFrame = childObj.ootCSMotionProperty.actorCueProp.cueEndFrame
-                        actorCue = OOTCSMotionActorCue(
-                            startFrame,
-                            endFrame,
-                            childObj.ootCSMotionProperty.actorCueProp.cueActionID,
-                            self.getOoTRotation(childObj),
-                            self.getOoTPosition(childObj.location),
-                            self.getOoTPosition(obj.children[i + 1].location),
-                        )
-                        actorCueData += self.getActorCueCmd(actorCue, isPlayer)
+            actorCueList = OOTCSMotionActorCueList(commandType, int(entryTotal / 2))
+            actorCueData += self.getActorCueListCmd(actorCueList, isPlayer)
+
+            for i, childObj in enumerate(obj.children):
+                if i % 2 == 0:  # the second point will always be on a odd index
+                    startFrame = childObj.ootCSMotionProperty.actorCueProp.cueStartFrame
+                    endFrame = childObj.ootCSMotionProperty.actorCueProp.cueEndFrame
+                    actorCue = OOTCSMotionActorCue(
+                        startFrame,
+                        endFrame,
+                        childObj.ootCSMotionProperty.actorCueProp.cueActionID,
+                        self.getOoTRotation(childObj),
+                        self.getOoTPosition(childObj.location),
+                        self.getOoTPosition(obj.children[i + 1].location),
+                    )
+                    actorCueData += self.getActorCueCmd(actorCue, isPlayer)
 
         return actorCueData
 
     def getCameraShotPointData(self, bones, useAT: bool):
+        """Returns the Camera Point data from the bone data"""
+
         shotPoints: list[OOTCSMotionCamPoint] = []
 
         if len(bones) < 4:
@@ -172,6 +190,8 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
         return shotPoints
 
     def getCamCmdFunc(self, camMode: str, useAT: bool):
+        """Returns the camera get function depending on the camera mode"""
+
         camCmdFuncMap = {
             "splineEyeOrAT": self.getCamATSplineCmd if useAT else self.getCamEyeSplineCmd,
             "splineEyeOrATRelPlayer": self.getCamATSplineRelToPlayerCmd
@@ -183,7 +203,9 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
         return camCmdFuncMap[camMode]
 
     def getCamClass(self, camMode: str, useAT: bool):
-        camCmdFuncMap = {
+        """Returns the camera dataclass depending on the camera mode"""
+
+        camCmdClassMap = {
             "splineEyeOrAT": OOTCSMotionCamATSpline if useAT else OOTCSMotionCamEyeSpline,
             "splineEyeOrATRelPlayer": OOTCSMotionCamATSplineRelToPlayer
             if useAT
@@ -191,24 +213,29 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
             "eyeOrAT": OOTCSMotionCamAT if useAT else OOTCSMotionCamEye,
         }
 
-        return camCmdFuncMap[camMode]
+        return camCmdClassMap[camMode]
 
     def getCamListData(self, obj: Object, useAT: bool):
-        splineData = self.getCameraShotPointData(obj.data.bones, useAT)
+        """Returns the Camera Shot data from the corresponding Armatures"""
 
+        camPointList = self.getCameraShotPointData(obj.data.bones, useAT)
         startFrame = obj.data.ootCamShotProp.shotStartFrame
+
+        # "fake" end frame
         endFrame = (
-            startFrame + max(2, sum(point.frame for point in splineData)) + (splineData[-1].frame if useAT else 1)
+            startFrame + max(2, sum(point.frame for point in camPointList)) + (camPointList[-1].frame if useAT else 1)
         )
 
         self.camEndFrame = endFrame
         camData = self.getCamClass(obj.data.ootCamShotProp.shotCamMode, useAT)(startFrame, endFrame)
 
         return self.getCamCmdFunc(obj.data.ootCamShotProp.shotCamMode, useAT)(camData) + "".join(
-            self.getCamPointCmd(pointData) for pointData in splineData
+            self.getCamPointCmd(pointData) for pointData in camPointList
         )
 
     def getCameraShotData(self):
+        """Returns every Camera Shot commands"""
+
         shotObjects = self.csMotionObjects["camShot"]
         cameraShotData = ""
 
@@ -224,6 +251,8 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
         return cameraShotData
 
     def getExportData(self):
+        """Returns the cutscene data"""
+
         data = self.getActorCueListData(False) + self.getActorCueListData(True) + self.getCameraShotData()
         if self.addBeginEndCmds:
             data = (

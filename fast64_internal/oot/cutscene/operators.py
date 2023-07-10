@@ -62,6 +62,65 @@ def drawCSListAddOp(layout: UILayout, objName: str, collectionType):
             addButton(row)
 
 
+def insertCutsceneData(filePath: str, csName: str):
+    """Inserts the motion data in the cutscene and returns the new data"""
+    fileLines = []
+
+    # if the file is not found then it's likely a new file that needs to be created
+    try:
+        with open(filePath, "r") as inputFile:
+            fileLines = inputFile.readlines()
+    except FileNotFoundError:
+        fileLines = []
+
+    foundCutscene = False
+    motionExporter = getCutsceneMotionData(csName, False)
+    beginIndex = 0
+
+    for i, line in enumerate(fileLines):
+        # skip commented lines
+        if not line.startswith("//") and not line.startswith("/*"):
+            if f"CutsceneData {csName}" in line:
+                foundCutscene = True
+
+            if foundCutscene:
+                if "CS_BEGIN_CUTSCENE" in line:
+                    # save the index of the line that contains the entry total and the framecount for later use
+                    beginIndex = i
+
+                # looking at next line to see if we reached the end of the cs script
+                index = i + 1
+                if index < len(fileLines) and "CS_END" in fileLines[index]:
+                    # exporting first to get the new framecount and the total of entries values
+                    fileLines.insert(index, motionExporter.getExportData())
+
+                    # update framecount and entry total values
+                    beginLine = fileLines[beginIndex]
+                    reMatch = re.search(r"\b\(([0-9a-fA-F, ]*)\b", beginLine)
+                    if reMatch is not None:
+                        params = reMatch[1].split(", ")
+                        entryTotal = int(params[0], base=0)
+                        frameCount = int(params[1], base=0)
+                        entries = re.sub(r"\b\(([0-9a-fA-F]*)\b", f"({entryTotal + motionExporter.entryTotal}", beginLine)
+                        frames = re.sub(r"\b([0-9a-fA-F]*)\)", f"{frameCount + motionExporter.frameCount})", beginLine)
+                        fileLines[beginIndex] = f"{entries.split(', ')[0]}, {frames.split(', ')[1]}"
+                    else:
+                        raise PluginError("ERROR: Can't find `CS_BEGIN_CUTSCENE()` parameters!")
+                    break
+
+    fileData = CData()
+
+    if not foundCutscene:
+        print(f"WARNING: Can't find Cutscene ``{csName}``, inserting data at the end of the file.")
+        motionExporter.addBeginEndCmds = True
+        csArrayName = f"CutsceneData {csName}[]"
+        fileLines.append("\n" + csArrayName + " = {\n" + motionExporter.getExportData() + "};\n")
+        fileData.header = f"{csArrayName};\n"
+
+    fileData.source = "".join(line for line in fileLines)
+    return fileData
+
+
 class OOTCSTextboxAdd(Operator):
     bl_idname = "object.oot_cstextbox_add"
     bl_label = "Add CS Textbox"
@@ -113,62 +172,6 @@ class OOT_ImportCutscene(Operator):
         except Exception as e:
             raisePluginError(self, e)
             return {"CANCELLED"}
-
-
-def insertCutsceneData(filePath: str, csName: str):
-    fileLines = []
-
-    try:
-        with open(filePath, "r") as inputFile:
-            fileLines = inputFile.readlines()
-    except FileNotFoundError:
-        fileLines = []
-
-    foundCutscene = False
-    motionExporter = getCutsceneMotionData(csName, False)
-    beginIndex = 0
-
-    for i, line in enumerate(fileLines):
-        if not line.startswith("//") and not line.startswith("/*"):
-            if f"CutsceneData {csName}" in line:
-                foundCutscene = True
-            
-            if foundCutscene:
-                if "CS_BEGIN_CUTSCENE" in line:
-                    beginIndex = i
-
-                index = i + 1
-                if index < len(fileLines) and "CS_END" in fileLines[index]:
-                    # exporting first to get the framecount and the total of entries
-                    fileLines.insert(index, motionExporter.getExportData())
-
-                    # update framecount and entry total
-                    beginLine = fileLines[beginIndex]
-                    reMatch = re.search(r"\b\(([0-9a-fA-F, ]*)\b", beginLine)
-                    if reMatch is not None:
-                        params = reMatch[1].split(", ")
-                        entryTotal = int(params[0], base=0)
-                        frameCount = int(params[1], base=0)
-                        entries = re.sub(r"\b\(([0-9a-fA-F]*)\b", f"({entryTotal + motionExporter.entryTotal}", beginLine)
-                        frames = re.sub(r"\b([0-9a-fA-F]*)\)", f"{frameCount + motionExporter.frameCount})", beginLine)
-                        fileLines[beginIndex] = f"{entries.split(', ')[0]}, {frames.split(', ')[1]}"
-                    else:
-                        raise PluginError("ERROR: Can't find `CS_BEGIN_CUTSCENE()` parameters!")
-                    break
-
-    fileData = CData()
-
-    if foundCutscene:
-        foundCutscene = False
-    else:
-        print(f"WARNING: Can't find Cutscene ``{csName}``, inserting data at the end of the file.")
-        motionExporter.addBeginEndCmds = True
-        csArrayName = f"CutsceneData {csName}[]"
-        fileLines.append("\n" + csArrayName + " = {\n" + motionExporter.getExportData() + "};\n")
-        fileData.header = f"{csArrayName};\n"
-
-    fileData.source = "".join(line for line in fileLines)
-    return fileData
 
 
 class OOT_ExportCutscene(Operator):

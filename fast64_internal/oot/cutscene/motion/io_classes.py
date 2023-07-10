@@ -6,14 +6,22 @@ from ...oot_utility import getEnumIndex
 from .constants import ootEnumCSActorCueListCommandType
 
 
+# NOTE: ``paramNumber`` is the expected number of parameters inside the parsed commands,
+# this account for the unused parameters. Every classes are based on the commands arguments from ``z64cutscene_commands.h``
+
+
 @dataclass
 class OOTCSMotionBase:
+    """This class contains common Cutscene data"""
+
     startFrame: int
     endFrame: int
 
 
 @dataclass
 class OOTCSMotionCamPoint:
+    """This class contains a single Camera Point command data"""
+
     continueFlag: str
     camRoll: int
     frame: int
@@ -24,6 +32,8 @@ class OOTCSMotionCamPoint:
 
 @dataclass
 class OOTCSMotionActorCue(OOTCSMotionBase):
+    """This class contains a single Actor Cue command data"""
+
     actionID: str
     rot: list[str, str, str]
     startPos: list[int, int, int]
@@ -33,6 +43,8 @@ class OOTCSMotionActorCue(OOTCSMotionBase):
 
 @dataclass
 class OOTCSMotionActorCueList:
+    """This class contains the Actor Cue List command data"""
+
     commandType: str
     entryTotal: int
     entries: list[OOTCSMotionActorCue] = field(default_factory=list)
@@ -41,30 +53,40 @@ class OOTCSMotionActorCueList:
 
 @dataclass
 class OOTCSMotionCamEyeSpline(OOTCSMotionBase):
+    """This class contains the Camera Eye Spline data"""
+
     entries: list[OOTCSMotionCamPoint] = field(default_factory=list)
     paramNumber: int = 2
 
 
 @dataclass
 class OOTCSMotionCamATSpline(OOTCSMotionBase):
+    """This class contains the Camera AT (look-at) Spline data"""
+
     entries: list[OOTCSMotionCamPoint] = field(default_factory=list)
     paramNumber: int = 2
 
 
 @dataclass
 class OOTCSMotionCamEyeSplineRelToPlayer(OOTCSMotionBase):
+    """This class contains the Camera Eye Spline Relative to the Player data"""
+
     entries: list[OOTCSMotionCamPoint] = field(default_factory=list)
     paramNumber: int = 2
 
 
 @dataclass
 class OOTCSMotionCamATSplineRelToPlayer(OOTCSMotionBase):
+    """This class contains the Camera AT Spline Relative to the Player data"""
+
     entries: list[OOTCSMotionCamPoint] = field(default_factory=list)
     paramNumber: int = 2
 
 
 @dataclass
 class OOTCSMotionCamEye(OOTCSMotionBase):
+    """This class contains a single Camera Eye point"""
+
     # This feature is not used in the final game and lacks polish, it is recommended to use splines in all cases.
     entries: list = field(default_factory=list)
     paramNumber: int = 2
@@ -72,6 +94,8 @@ class OOTCSMotionCamEye(OOTCSMotionBase):
 
 @dataclass
 class OOTCSMotionCamAT(OOTCSMotionBase):
+    """This class contains a single Camera AT point"""
+
     # This feature is not used in the final game and lacks polish, it is recommended to use splines in all cases.
     entries: list = field(default_factory=list)
     paramNumber: int = 2
@@ -79,6 +103,8 @@ class OOTCSMotionCamAT(OOTCSMotionBase):
 
 @dataclass
 class OOTCSMotionCutscene:
+    """This class contains a Cutscene's data, including every commands' data"""
+
     name: str
     totalEntries: int
     frameCount: int
@@ -95,6 +121,8 @@ class OOTCSMotionCutscene:
 
 
 class OOTCSMotionObjectFactory:
+    """This class contains functions to create new Blender objects"""
+
     def getNewObject(self, name: str, data, selectObject: bool, parentObj: Object) -> Object:
         newObj = bpy.data.objects.new(name=name, object_data=data)
         bpy.context.view_layer.active_layer_collection.collection.objects.link(newObj)

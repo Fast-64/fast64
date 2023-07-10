@@ -6,6 +6,8 @@ from .classes import OOTCSMotionExport
 
 
 def getCSMotionObjects(csName: str):
+    """Returns the object list containing every object from the cutscene to export"""
+
     csMotionObjects: dict[str, list[Object]] = {
         "Cutscene": [],
         "CS Actor Cue List": [],
@@ -18,9 +20,12 @@ def getCSMotionObjects(csName: str):
 
     for obj in bpy.data.objects:
         isEmptyObj = obj.type == "EMPTY"
+
+        # look for the cutscene object based on the cutscene name
         parentCheck = obj.parent is not None and csName in obj.parent.name
         csObjCheck = isEmptyObj and obj.ootEmptyType == "Cutscene" and csName in obj.name
         if parentCheck or csObjCheck:
+            # add the relevant objects based on the empty type or if it's an armature
             if isEmptyObj and obj.ootEmptyType in csMotionObjects.keys():
                 csMotionObjects[obj.ootEmptyType].append(obj)
 
@@ -31,6 +36,9 @@ def getCSMotionObjects(csName: str):
 
 
 def getCutsceneMotionData(csName: str, addBeginEndCmds: bool):
+    """Returns the initialised cutscene exporter"""
+
+    # this allows us to change the exporter's variables to get what we need
     return OOTCSMotionExport(
         getCSMotionObjects(csName),
         bpy.context.scene.fast64.oot.hackerFeaturesEnabled or bpy.context.scene.useDecompFeatures,

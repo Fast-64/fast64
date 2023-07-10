@@ -71,7 +71,6 @@ class OOTCSMotionActorCueProperty(PropertyGroup):
 
 
 class OOTCSMotionCameraShotProperty(PropertyGroup):
-    # CS_CAM_EYE_SPLINE, CS_CAM_AT_SPLINE | CS_CAM_EYE_SPLINE_REL_TO_PLAYER, CS_CAM_AT_SPLINE_REL_TO_PLAYER
     shotStartFrame: IntProperty(name="Start Frame", description="Shot start frame", default=0, min=0)
     shotCamMode: EnumProperty(
         items=ootEnumCSMotionCamMode,
@@ -119,7 +118,7 @@ class OOTCutsceneMotionProperty(PropertyGroup):
         upgradeCutsceneMotion(csObj)
 
         if csObj.ootEmptyType == "CS Actor Cue" or csObj.ootEmptyType == "CS Player Cue":
-            postUpgradeCSMotion(csObj, csObj.ootEmptyType)
+            postUpgradeCSMotion(csObj.ootEmptyType)
 
         print("Done!")
 

@@ -32,12 +32,18 @@ from ..io_classes import (
 
 @dataclass
 class ParsedCutscene:
+    """Local class used to order the parsed cutscene properly"""
+
     csName: str
-    csData: list[str]
+    csData: list[str]  # contains every command lists or standalone ones like ``CS_TRANSITION()``
 
 
 class OOTCSMotionImportCommands:
+    """This class contains functions to create the cutscene dataclasses"""
+
     def getCmdParams(self, data: str, cmdName: str, paramNumber: int):
+        """Returns the list of every parameter of the given command"""
+
         params = data.strip().removeprefix(f"{cmdName}(").replace(" ", "").removesuffix(")").split(",")
         if len(params) != paramNumber:
             raise PluginError(
@@ -47,16 +53,24 @@ class OOTCSMotionImportCommands:
         return params
 
     def getRotation(self, data: str):
+        """Returns the rotation converted to hexadecimal"""
+
         if "DEG_TO_BINANG" in data or not "0x" in data:
             angle = float(data.split("(")[1].removesuffix(")") if "DEG_TO_BINANG" in data else data)
-            binang = int(angle * (0x8000 / 180.0))
+            binang = int(angle * (0x8000 / 180.0))  # from ``DEG_TO_BINANG()`` in decomp
+
+            # if the angle value is higher than 0xFFFF it means we're at 360 degrees
             return f"0x{0xFFFF if binang > 0xFFFF else binang:04X}"
         else:
             return data
 
     def getInteger(self, number: str):
+        """Returns an int number (handles properly negative hex numbers)"""
+
         if number.startswith("0x"):
             number = number.removeprefix("0x")
+
+            # ``"0" * (8 - len(number)`` adds the missing zeroes (if necessary) to have a 8 digit hex number
             return unpack("!i", bytes.fromhex("0" * (8 - len(number)) + number))[0]
         else:
             return int(number)
@@ -138,19 +152,27 @@ class OOTCSMotionImportCommands:
 
 @dataclass
 class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
-    filePath: str
-    fileData: str
+    """This class contains functions to create the new cutscene Blender data"""
+
+    filePath: str  # used when importing from the panel
+    fileData: str  # used when importing the cutscenes when importing a scene
 
     def getBlenderPosition(self, pos: list[int], scale: int):
+        """Returns the converted OoT position"""
+
         # OoT: +X right, +Y up, -Z forward
         # Blender: +X right, +Z up, +Y forward
         return [float(pos[0]) / scale, -float(pos[2]) / scale, float(pos[1]) / scale]
 
     def getBlenderRotation(self, rotation: list[str]):
+        """Returns the converted OoT rotation"""
+
         rot = [int(self.getRotation(r), base=16) for r in rotation]
         return yUpToZUp @ Vector(ootParseRotation(rot))
 
     def getParsedCutscenes(self):
+        """Returns the parsed commands read from every cutscene we can find"""
+
         fileData = ""
 
         if self.fileData is not None:
@@ -195,6 +217,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
             print("INFO: Found no cutscenes in this file!")
             return None
 
+        # parse the commands from every cutscene we found
         parsedCutscenes: list[ParsedCutscene] = []
         for cutscene in cutsceneList:
             cmdListFound = False
@@ -211,6 +234,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                 if "CutsceneData" in line:
                     csName = line.split(" ")[1][:-2]
 
+                # NOTE: ``CS_UNK_DATA()`` are commands that are completely useless, so we're ignoring those
                 if csName is not None and not "CS_UNK_DATA" in curCmd:
                     if curCmd in ootCSMotionCSCommands:
                         line = line.removesuffix(",") + "\n"
@@ -221,6 +245,8 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                         if not cmdListFound and curCmd in ootCSMotionListCommands:
                             cmdListFound = True
                             parsedData = ""
+
+                            # camera and lighting have "non-standard" list names
                             if curCmd.startswith("CS_CAM"):
                                 curCmdPrefix = "CS_CAM"
                             elif curCmd.startswith("CS_LIGHT"):
@@ -322,6 +348,8 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
         return cutsceneList
 
     def setActorCueData(self, csObj: Object, actorCueList: list[OOTCSMotionActorCueList], cueName: str, csNbr: int):
+        """Creates the objects from the Actor Cue List data"""
+
         for i, entry in enumerate(actorCueList, 1):
             if len(entry.entries) == 0:
                 raise PluginError("ERROR: Actor Cue List does not have any Actor Cue!")
@@ -339,7 +367,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                     raise PluginError("ERROR: Actor Cues are not spatially continuous!")
 
                 objPos = [actorCue.startPos, actorCue.endPos]
-                for k in range(2):
+                for k in range(2):  # two points per Actor Cue on Blender
                     actorCueObj = self.getNewActorCueObject(
                         f"CS_{csNbr:02}.{cueName} Cue {i}.{j:02} - Point {k + 1:02}",
                         actorCue.startFrame,
@@ -353,6 +381,8 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                 lastPos = actorCue.endPos
 
     def validateCameraData(self, cutscene: OOTCSMotionCutscene):
+        """Safety checks to make sure the camera data is correct"""
+
         camLists: list[tuple[str, list, list]] = [
             ("Eye and AT Spline", cutscene.camEyeSplineList, cutscene.camATSplineList),
             ("Eye and AT Spline Rel to Player", cutscene.camEyeSplineRelPlayerList, cutscene.camATSplineRelPlayerList),
@@ -363,6 +393,8 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
             for eyeListEntry, atListEntry in zip(eyeList, atList):
                 eyeTotal = len(eyeListEntry.entries)
                 atTotal = len(atListEntry.entries)
+
+                # Eye -> bone's head, AT -> bone's tail, that's why both lists requires the same length
                 if eyeTotal != atTotal:
                     raise PluginError(f"ERROR: Found {eyeTotal} Eye lists but {atTotal} AT lists in {camType}!")
 
@@ -370,18 +402,21 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                     raise PluginError(f"ERROR: Only {eyeTotal} cam point in this command!")
 
                 if eyeTotal > 4:
-                    # NOTE: there is a bug in the game where when incrementing to the next set of key points,
+                    # NOTE: There is a bug in the game where when incrementing to the next set of key points,
                     # the key point which checked for whether it's the last point or not is the last point
                     # of the next set, not the last point of the old set. This means we need to remove
-                    # the extra point at the end  that will only tell the game that this camera shot stops
+                    # the extra point at the end  that will only tell the game that this camera shot stops.
                     del eyeListEntry.entries[-1]
                     del atListEntry.entries[-1]
 
     def setBoneData(
         self, cameraShotObj: Object, boneData: list[tuple[OOTCSMotionCamPoint, OOTCSMotionCamPoint]], csNbr: int
     ):
+        """Creates the bones from the Camera Point data"""
+
         scale = bpy.context.scene.ootBlenderScale
         for i, (eyePoint, atPoint) in enumerate(boneData, 1):
+            # we need the edit mode to be able to change the bone's location
             bpy.ops.object.mode_set(mode="EDIT")
             armatureData: Armature = cameraShotObj.data
             boneName = f"CS_{csNbr:02}.Camera Point {i:02}"
@@ -394,6 +429,8 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
             if eyePoint.frame != 0:
                 print("WARNING: Frames must be 0!")
 
+            # using the "AT" (look-at) data since this is what determines where the camera is looking
+            # the "Eye" only sets the location of the camera
             newBone.ootCamShotPointProp.shotPointFrame = atPoint.frame
             newBone.ootCamShotPointProp.shotPointViewAngle = atPoint.viewAngle
             newBone.ootCamShotPointProp.shotPointRoll = atPoint.camRoll
@@ -401,8 +438,11 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
     def setCameraShotData(
         self, csObj: Object, eyePoints: list, atPoints: list, camMode: str, startIndex: int, csNbr: int
     ):
+        """Creates the armatures from the Camera Shot data"""
+
         endIndex = 0
 
+        # this is required to be able to change the object mode
         if bpy.context.mode != "OBJECT":
             bpy.ops.object.mode_set(mode="OBJECT")
 
@@ -421,6 +461,8 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
         return endIndex + 1
 
     def setCutsceneData(self, csNumber):
+        """Creates the cutscene empty objects from the file data"""
+
         cutsceneList = self.getCutsceneList()
 
         if cutsceneList is None:
@@ -465,4 +507,5 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
             print("Done!")
             bpy.ops.object.select_all(action="DESELECT")
 
+        # ``csNumber`` makes sure there's no duplicates
         return csNumber + 1
