@@ -4,7 +4,7 @@ from bpy.types import Operator
 from bpy.props import FloatProperty, StringProperty
 from ...operators import AddWaterBox, addMaterialByName
 from ...utility import parentObject, setOrigin
-from ..cutscene.motion.utility import initCutscene
+from ..cutscene.motion.utility import setupCutscene
 
 
 class OOT_AddWaterBox(AddWaterBox):
@@ -155,7 +155,7 @@ class OOT_AddCutscene(Operator):
         csObj = context.view_layer.objects.active
         csObj.ootEmptyType = "Cutscene"
         csObj.name = "Cutscene.Something"
-        initCutscene(csObj)
+        setupCutscene(csObj)
 
         object.select_all(action="DESELECT")
         csObj.select_set(True)

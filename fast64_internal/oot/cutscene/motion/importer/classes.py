@@ -6,7 +6,7 @@ from bpy.types import Object, Armature
 from mathutils import Vector
 from .....utility import PluginError, yUpToZUp
 from ....oot_utility import ootParseRotation
-from ..utility import initCutscene, getBlenderPosition
+from ..utility import setupCutscene, getBlenderPosition
 
 from ..constants import (
     ootCSMotionLegacyToNewCmdNames,
@@ -523,7 +523,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                 )
 
             # Init camera + preview objects and setup the scene
-            initCutscene(csObj)
+            setupCutscene(csObj)
             print("Done!")
             bpy.ops.object.select_all(action="DESELECT")
 
