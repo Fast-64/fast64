@@ -6,7 +6,7 @@ from bpy.types import Object, Armature
 from mathutils import Vector
 from .....utility import PluginError, yUpToZUp
 from ....oot_utility import ootParseRotation
-from ..utility import initCutscene
+from ..utility import initCutscene, getBlenderPosition
 
 from ..constants import (
     ootCSMotionLegacyToNewCmdNames,
@@ -156,13 +156,6 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
 
     filePath: str  # used when importing from the panel
     fileData: str  # used when importing the cutscenes when importing a scene
-
-    def getBlenderPosition(self, pos: list[int], scale: int):
-        """Returns the converted OoT position"""
-
-        # OoT: +X right, +Y up, -Z forward
-        # Blender: +X right, +Z up, +Y forward
-        return [float(pos[0]) / scale, -float(pos[2]) / scale, float(pos[1]) / scale]
 
     def getBlenderRotation(self, rotation: list[str]):
         """Returns the converted OoT rotation"""
@@ -448,8 +441,8 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
             armatureData: Armature = cameraShotObj.data
             boneName = f"CS_{csNbr:02}.Camera Point {i:02}"
             newEditBone = armatureData.edit_bones.new(boneName)
-            newEditBone.head = self.getBlenderPosition(eyePoint.pos, scale)
-            newEditBone.tail = self.getBlenderPosition(atPoint.pos, scale)
+            newEditBone.head = getBlenderPosition(eyePoint.pos, scale)
+            newEditBone.tail = getBlenderPosition(atPoint.pos, scale)
             bpy.ops.object.mode_set(mode="OBJECT")
             newBone = armatureData.bones[boneName]
 

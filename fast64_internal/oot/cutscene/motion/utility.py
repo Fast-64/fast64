@@ -5,7 +5,13 @@ from struct import pack, unpack
 from bpy.types import Scene, Object, Bone, Context, EditBone, Operator
 from ....utility import indent
 from .constants import ootEnumCSActorCueListCommandType, LISTS_DEF, NONLISTS_DEF, CAM_TYPE_LISTS, ACTION_LISTS
-from .io_classes import OOTCSMotionObjectFactory
+
+
+def getBlenderPosition(pos: list[int], scale: int):
+    """Returns the converted OoT position"""
+    # OoT: +X right, +Y up, -Z forward
+    # Blender: +X right, +Z up, +Y forward
+    return [float(pos[0]) / scale, -float(pos[2]) / scale, float(pos[1]) / scale]
 
 
 class OOTCutsceneMotionIOBase:
@@ -404,6 +410,8 @@ def getFakeCSEndFrame(context: Context, csObj: Object):
 
 
 def initCutscene(csObj: Object):
+    from .io_classes import OOTCSMotionObjectFactory # circular import fix
+
     objFactory = OOTCSMotionObjectFactory()
     context = bpy.context
     camObj = objFactory.getNewCameraObject(

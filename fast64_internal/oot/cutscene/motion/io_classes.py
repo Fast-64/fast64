@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from bpy.types import Object
 from ...oot_utility import getEnumIndex
 from .constants import ootEnumCSActorCueListCommandType
+from .utility import getBlenderPosition
 
 
 # NOTE: ``paramNumber`` is the expected number of parameters inside the parsed commands,
@@ -171,7 +172,7 @@ class OOTCSMotionObjectFactory:
         parentObj: Object,
     ):
         newActorCueObj = self.getNewEmptyObject(name, False, parentObj)
-        newActorCueObj.location = self.getBlenderPosition(location, bpy.context.scene.ootBlenderScale)
+        newActorCueObj.location = getBlenderPosition(location, bpy.context.scene.ootBlenderScale)
         newActorCueObj.empty_display_type = "ARROWS"
         newActorCueObj.rotation_mode = "XZY"
         newActorCueObj.rotation_euler = self.getBlenderRotation(rot)
