@@ -1,3 +1,5 @@
+import bpy
+
 from bpy.types import PropertyGroup, Object, UILayout, Armature, Bone, Scene
 from bpy.props import IntProperty, StringProperty, PointerProperty, EnumProperty, FloatProperty
 from bpy.utils import register_class, unregister_class
@@ -10,6 +12,18 @@ from .operators import (
     OOTCSMotionCreateActorCuePreview,
     OOT_SearchActorCueCmdTypeEnumOperator,
 )
+
+
+def getNextCuesStartFrame(self):
+    curCueObj = bpy.context.view_layer.objects.active
+
+    if curCueObj.parent.ootEmptyType in ["CS Actor Cue List", "CS Player Cue List"]:
+        if curCueObj.ootEmptyType in ["CS Actor Cue", "CS Player Cue"]:
+            actorCueObjList = curCueObj.parent.children
+            for i, obj in enumerate(actorCueObjList):
+                if obj == curCueObj:
+                    return actorCueObjList[i + 1].ootCSMotionProperty.actorCueProp.cueStartFrame
+    return -1
 
 
 class OOTCSMotionActorCueListProperty(PropertyGroup):
@@ -52,22 +66,32 @@ class OOTCSMotionActorCueListProperty(PropertyGroup):
 
 class OOTCSMotionActorCueProperty(PropertyGroup):
     cueStartFrame: IntProperty(name="Start Frame", description="Start frame of the Actor Cue", default=0, min=0)
-    cueEndFrame: IntProperty(name="End Frame", description="End Frame of the Actor Cue", default=0, min=0)
+
+    cueEndFrame: IntProperty(
+        name="End Frame",
+        description="End Frame of the Actor Cue",
+        default=0,
+        min=-1,
+        get=lambda self: getNextCuesStartFrame(self),
+    )
+
     cueActionID: StringProperty(
         name="Action ID", default="0x0001", description="Actor action. Meaning is unique for each different actor."
     )
 
-    def draw_props(self, layout: UILayout, labelPrefix: str):
+    def draw_props(self, layout: UILayout, labelPrefix: str, isDummy: bool):
         box = layout.box()
-        box.box().label(text=f"{labelPrefix} Cue")
+        dummyExtra = " (Sets prev. Actor Cue's end frame/pos.)" if isDummy else ""
+        box.box().label(text=f"{labelPrefix if not isDummy else 'Dummy'} Cue" + dummyExtra)
 
         split = box.split(factor=0.5)
         split.prop(self, "cueStartFrame")
-        split.label(text=f"End Frame: {self.cueEndFrame}")
+        if not isDummy:
+            split.prop(self, "cueEndFrame")
 
-        split = box.split(factor=0.5)
-        split.label(text=f"{labelPrefix} Cue (Action) ID")
-        split.prop(self, "cueActionID", text="")
+            split = box.split(factor=0.5)
+            split.label(text=f"{labelPrefix} Cue (Action) ID")
+            split.prop(self, "cueActionID", text="")
 
 
 class OOTCSMotionCameraShotProperty(PropertyGroup):
@@ -87,7 +111,6 @@ class OOTCSMotionCameraShotProperty(PropertyGroup):
 
 
 class OOTCSMotionCameraShotPointProperty(PropertyGroup):
-    # CS_CAM_POINT
     shotPointFrame: IntProperty(name="Frame", description="Key point frames value", default=1234, min=0)
     shotPointViewAngle: FloatProperty(
         name="FoV", description="Field of view (degrees)", default=179.76, min=0.01, max=179.99

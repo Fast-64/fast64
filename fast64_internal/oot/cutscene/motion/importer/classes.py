@@ -350,6 +350,8 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
     def setActorCueData(self, csObj: Object, actorCueList: list[OOTCSMotionActorCueList], cueName: str, csNbr: int):
         """Creates the objects from the Actor Cue List data"""
 
+        cueObjList = []
+        cueEndFrames = []
         for i, entry in enumerate(actorCueList, 1):
             if len(entry.entries) == 0:
                 raise PluginError("ERROR: Actor Cue List does not have any Actor Cue!")
@@ -366,19 +368,44 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                 if lastPos is not None and lastPos != actorCue.startPos:
                     raise PluginError("ERROR: Actor Cues are not spatially continuous!")
 
-                objPos = [actorCue.startPos, actorCue.endPos]
-                for k in range(2):  # two points per Actor Cue on Blender
-                    actorCueObj = self.getNewActorCueObject(
-                        f"CS_{csNbr:02}.{cueName} Cue {i}.{j:02} - Point {k + 1:02}",
+                cueObjList.append(
+                    self.getNewActorCueObject(
+                        f"CS_{csNbr:02}.{cueName} Cue {i}.{j:02}",
                         actorCue.startFrame,
-                        actorCue.endFrame,
                         actorCue.actionID,
-                        objPos[k],
+                        actorCue.startPos,
                         actorCue.rot,
                         actorCueListObj,
                     )
+                )
                 lastFrame = actorCue.endFrame
                 lastPos = actorCue.endPos
+                cueEndFrames.append(lastFrame)
+
+            # we need a dummy actor cue to get the end position of the last real one
+            if lastFrame is not None:
+                cueObjList.append(
+                    self.getNewActorCueObject(
+                        f"CS_{csNbr:02}.{cueName} Cue 9.99 (D)",
+                        lastFrame,
+                        "DUMMY",
+                        lastPos,
+                        actorCue.rot,
+                        actorCueListObj,
+                    )
+                )
+                cueEndFrames.append(lastFrame + 1)
+
+        # updating the end frames
+        if len(cueEndFrames) != len(cueObjList):
+            raise PluginError("ERROR: Lists lengths do not match!")
+
+        for obj, endFrame in zip(cueObjList, cueEndFrames):
+            # reading this value will trigger the "get" function
+            getEndFrame = obj.ootCSMotionProperty.actorCueProp.cueEndFrame
+
+            if endFrame != getEndFrame and obj.ootEmptyType != "CS Dummy Cue":
+                print(f"WARNING: `{obj.name}`'s end frame do not match the one from the script!")
 
     def validateCameraData(self, cutscene: OOTCSMotionCutscene):
         """Safety checks to make sure the camera data is correct"""

@@ -165,7 +165,6 @@ class OOTCSMotionObjectFactory:
         self,
         name: str,
         startFrame: int,
-        endFrame: int,
         actionID: str,
         location: list[int],
         rot: list[str],
@@ -176,9 +175,9 @@ class OOTCSMotionObjectFactory:
         newActorCueObj.empty_display_type = "ARROWS"
         newActorCueObj.rotation_mode = "XZY"
         newActorCueObj.rotation_euler = self.getBlenderRotation(rot)
-        newActorCueObj.ootEmptyType = f"CS {'Actor' if 'Actor' in name else 'Player'} Cue"
+        emptyType = "Dummy" if "(D)" in name else "Actor" if "Actor" in name else "Player"
+        newActorCueObj.ootEmptyType = f"CS {emptyType} Cue"
         newActorCueObj.ootCSMotionProperty.actorCueProp.cueStartFrame = startFrame
-        newActorCueObj.ootCSMotionProperty.actorCueProp.cueEndFrame = endFrame
         newActorCueObj.ootCSMotionProperty.actorCueProp.cueActionID = actionID
         return newActorCueObj
 

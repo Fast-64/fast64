@@ -130,11 +130,10 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
             if entryTotal == 0:
                 raise PluginError("ERROR: The Actor Cue List does not contain any child Actor Cue objects")
 
-            if entryTotal % 2 != 0:
-                # the number of the list empty childrens will always be even since
-                # there's two points per actor cue, the first defines the property and starting position
-                # and the second one defines the end position
-                raise PluginError("ERROR: The Actor Cue List is missing a point!")
+            if obj.children[-1].ootEmptyType != "CS Dummy Cue":
+                # we need an extra point that won't be exported to get the real last cue's
+                # end frame and end position
+                raise PluginError("ERROR: The Actor Cue List is missing the extra dummy point!")
 
             commandType = obj.ootCSMotionProperty.actorCueListProp.commandType
 
@@ -143,20 +142,20 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
             elif self.useDecomp:
                 commandType = ootCSMotionCommandTypeRawToEnum[commandType]
 
-            actorCueList = OOTCSMotionActorCueList(commandType, int(entryTotal / 2))
+            actorCueList = OOTCSMotionActorCueList(commandType, entryTotal)
             actorCueData += self.getActorCueListCmd(actorCueList, isPlayer)
 
-            for i, childObj in enumerate(obj.children):
-                if i % 2 == 0:  # the second point will always be on a odd index
-                    startFrame = childObj.ootCSMotionProperty.actorCueProp.cueStartFrame
-                    endFrame = childObj.ootCSMotionProperty.actorCueProp.cueEndFrame
+            for i, childObj in enumerate(obj.children, 1):
+                startFrame = childObj.ootCSMotionProperty.actorCueProp.cueStartFrame
+                if i < len(obj.children) and childObj.ootEmptyType != "CS Dummy Cue":
+                    endFrame = obj.children[i].ootCSMotionProperty.actorCueProp.cueStartFrame
                     actorCue = OOTCSMotionActorCue(
                         startFrame,
                         endFrame,
                         childObj.ootCSMotionProperty.actorCueProp.cueActionID,
                         self.getOoTRotation(childObj),
                         self.getOoTPosition(childObj.location),
-                        self.getOoTPosition(obj.children[i + 1].location),
+                        self.getOoTPosition(obj.children[i].location),
                     )
                     actorCueData += self.getActorCueCmd(actorCue, isPlayer)
 
