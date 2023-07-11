@@ -2,7 +2,7 @@ import random
 import bpy
 
 from mathutils import Vector
-from bpy.types import Object, Operator, Context
+from bpy.types import Object, Operator, Context, Armature
 from bpy.utils import register_class, unregister_class
 from bpy.props import StringProperty, EnumProperty
 from ....utility import PluginError
@@ -18,6 +18,7 @@ from .utility import (
     getCutsceneMotionObject,
     createNewActorCueList,
     createNewCameraShot,
+    createNewBone,
 )
 
 
@@ -75,6 +76,34 @@ def createBasicActorCueList(context: Context, actor_id: int, csObj: Object):
 
     for _ in range(2):
         createBasicActorCue(context, actorCueObj, False)
+
+
+class OOTCSMotionAddBone(Operator):
+    """Add a bone to an armature"""
+
+    bl_idname = "object.add_bone"
+    bl_label = "Add Bone"
+
+    def execute(self, context):
+        try:
+            cameraShotObj = getCutsceneMotionObject(False)
+
+            if cameraShotObj is not None:
+                armatureData: Armature = cameraShotObj.data
+
+                if len(armatureData.bones) > 0 and "CS_" in armatureData.bones[-1].name:
+                    splitName = armatureData.bones[-1].name.split(" ")
+                    boneName = f"{splitName[0]} Point {int(splitName[2]) + 1:02}"
+                else:
+                    boneName = f"CS_??.Camera Point ??"
+                
+                blendOne = metersToBlend(context, float(1))
+                createNewBone(cameraShotObj, boneName, [blendOne, blendOne, 0.0], [blendOne, 0.0, 0.0])
+                return {"FINISHED"}
+            else:
+                raise PluginError("You must select an armature object parented to a cutscene empty object!")
+        except:
+            return {"CANCELLED"}
 
 
 class OOTCSMotionAddActorCue(Operator):
@@ -241,6 +270,7 @@ class OOT_SearchActorCueCmdTypeEnumOperator(Operator):
 
 
 classes = (
+    OOTCSMotionAddBone,
     OOTCSMotionAddActorCue,
     OOTCSMotionCreateActorCuePreview,
     OOTCSMotionCreateCameraShot,

@@ -11,6 +11,7 @@ from .operators import (
     OOTCSMotionAddActorCue,
     OOTCSMotionCreateActorCuePreview,
     OOT_SearchActorCueCmdTypeEnumOperator,
+    OOTCSMotionAddBone,
 )
 
 
@@ -108,6 +109,7 @@ class OOTCSMotionCameraShotProperty(PropertyGroup):
         box.label(text=label)
         box.prop(self, "shotStartFrame")
         box.row().prop(self, "shotCamMode", expand=True)
+        box.operator(OOTCSMotionAddBone.bl_idname)
 
 
 class OOTCSMotionCameraShotPointProperty(PropertyGroup):
