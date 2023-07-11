@@ -1,10 +1,9 @@
 import bpy
 
-from bpy.types import Scene, Object, Bone, Context, EditBone, Operator, Armature
+from bpy.types import Scene, Object, Bone, Context, EditBone
 from mathutils import Vector
 from ....utility import yUpToZUp
 from ...oot_utility import ootParseRotation
-from .constants import ootEnumCSActorCueListCommandType
 
 
 def getBlenderPosition(pos: list[int], scale: int):
@@ -88,81 +87,6 @@ def getNameInformations(csObj: Object, target: str):
     return index, csPrefix, csNbr
 
 
-def createNewActorCueList(csObj: Object, isPlayer: bool):
-    """Creates a new Actor or Player Cue List and adds one basic cue and the dummy one"""
-    from .io_classes import OOTCSMotionObjectFactory  # circular import fix
-
-    objFactory = OOTCSMotionObjectFactory()
-    playerOrActor = "Player" if isPlayer else "Actor"
-    newActorCueListObj = objFactory.getNewActorCueListObject(f"New {playerOrActor} Cue List", "0x000F", None)
-    index, csPrefix, csNbr = getNameInformations(csObj, f"{playerOrActor} Cue List")
-
-    # there are other lists
-    if index is not None and csPrefix is not None:
-        newActorCueListObj.name = f"{csPrefix}.{playerOrActor} Cue List {index:02}"
-    else:
-        # it's the first list we're creating
-        csPrefix = f"CS_{csNbr:02}"
-        index = 1
-        newActorCueListObj.name = f"{csPrefix}.{playerOrActor} Cue List {index:02}"
-
-    # add a basic actor cue and the dummy one
-    for i in range(2):
-        nameSuffix = f"{i + 1:02}" if i == 0 else "999 (D)"
-        newActorCueObj = objFactory.getNewActorCueObject(
-            f"{csPrefix}.{playerOrActor} Cue {index:02}.{nameSuffix}",
-            i,
-            "0x0000",
-            [0, 0, 0],
-            ["0x0", "0x0", "0x0"],
-            newActorCueListObj,
-        )
-
-    # finally, parenting the object to the cutscene
-    newActorCueListObj.parent = csObj
-
-
-def createNewBone(cameraShotObj: Object, name: str, headPos: list[float], tailPos: list[float]):
-    if bpy.context.mode != "OBJECT":
-        bpy.ops.object.mode_set(mode="OBJECT")
-    bpy.ops.object.mode_set(mode="EDIT")
-    armatureData: Armature = cameraShotObj.data
-    newEditBone = armatureData.edit_bones.new(name)
-    newEditBone.head = headPos
-    newEditBone.tail = tailPos
-    bpy.ops.object.mode_set(mode="OBJECT")
-    newBone = armatureData.bones[name]
-    newBone.ootCamShotPointProp.shotPointFrame = 30
-    newBone.ootCamShotPointProp.shotPointViewAngle = 60.0
-    newBone.ootCamShotPointProp.shotPointRoll = 0
-    bpy.ops.object.select_all(action="DESELECT")
-
-
-def createNewCameraShot(csObj: Object):
-    from .io_classes import OOTCSMotionObjectFactory  # circular import fix
-
-    index, csPrefix, csNbr = getNameInformations(csObj, "Camera Shot")
-
-    if index is not None and csPrefix is not None:
-        name = f"{csPrefix}.Camera Shot {index:02}"
-    else:
-        csPrefix = f"CS_{csNbr:02}"
-        name = f"{csPrefix}.Camera Shot 01"
-
-    # create a basic armature
-    newCameraShotObj = OOTCSMotionObjectFactory().getNewArmatureObject(name, True, csObj)
-
-    # add 4 bones since it's the minimum required
-    for i in range(1, 5):
-        posX = metersToBlend(bpy.context, float(i))
-        createNewBone(
-            newCameraShotObj,
-            f"{csPrefix}.Camera Point {i:02}",
-            [posX, 0.0, 0.0],
-            [posX, metersToBlend(bpy.context, 1.0), 0.0],
-        )
-
-
 # ---
 
 
@@ -188,23 +112,6 @@ def createNewObject(context: Context, name: str, data, selectObject: bool) -> Ob
         context.view_layer.objects.active = newObj
 
     return newObj
-
-
-def getCSObj(operator: Operator, context: Context):
-    """Check if we are editing a cutscene."""
-    csObj = context.view_layer.objects.active
-
-    if csObj.ootEmptyType != "Cutscene":
-        if operator is not None:
-            operator.report({"WARNING"}, "You need to select the Cutscene Empty Object")
-        return None
-
-    if not csObj.name.startswith("Cutscene."):
-        if operator is not None:
-            operator.report({"WARNING"}, 'Cutscene Empty Object must be named "Cutscene.YourCutsceneName"')
-        return None
-
-    return csObj
 
 
 # action data
@@ -381,28 +288,3 @@ def getActorCueListObjects(scene: Scene, csObj: Object, actorid: int):
         key=lambda o: 1000000 if len(points) < 2 else points[0].ootCSMotionProperty.actorCueProp.cueStartFrame
     )
     return cueObjects
-
-
-def createActorCue(context: Context, actorCueObj: Object, selectObj: bool, pos, startFrame: int, action_id: str):
-    newCue = createNewObject(context, "ActorCue.001", None, selectObj)
-    newCue.parent = actorCueObj
-    newCue.empty_display_type = "ARROWS"
-    newCue.location = pos
-    newCue.rotation_mode = "XZY"
-    newCue.ootCSMotionProperty.actorCueProp.cueStartFrame = startFrame
-    newCue.ootCSMotionProperty.actorCueProp.cueActionID = action_id
-    newCue.ootEmptyType = f"CS {'Player' if 'Player' in actorCueObj.ootEmptyType else 'Actor'} Cue"
-
-    return newCue
-
-
-def createActorCueList(context: Context, actor_id: int, csObj: Object):
-    actorCueObj = createNewObject(context, f"ActorCueList.{getActorName(actor_id)}.001", None, True)
-    actorCueObj.parent = csObj
-    actorCueObj.ootCSMotionProperty.actorCueListProp.actorCueSlot = actor_id
-    actorCueObj.ootEmptyType = f"CS {'Player' if actor_id == -1 else 'Actor'} Cue List"
-
-    if actor_id > -1:
-        actorCueObj.ootCSMotionProperty.actorCueListProp.commandType = ootEnumCSActorCueListCommandType[actor_id][0]
-
-    return actorCueObj

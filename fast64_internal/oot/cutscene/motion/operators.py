@@ -1,7 +1,5 @@
-import random
 import bpy
 
-from mathutils import Vector
 from bpy.types import Object, Operator, Context, Armature
 from bpy.utils import register_class, unregister_class
 from bpy.props import StringProperty, EnumProperty
@@ -10,15 +8,9 @@ from .io_classes import OOTCSMotionObjectFactory
 from .constants import ootEnumCSActorCueListCommandType
 from .utility import (
     createOrInitPreview,
-    createNewObject,
     metersToBlend,
-    createActorCueList,
-    getActorCueObjects,
-    createActorCue,
     getCutsceneMotionObject,
-    createNewActorCueList,
-    createNewCameraShot,
-    createNewBone,
+    getNameInformations,
 )
 
 
@@ -35,47 +27,75 @@ def getActorCueList(operator: Operator, context: Context) -> Object | None:
     return cueListObj
 
 
-def createCameraShot(context: Context, csObj: Object):
-    shotArmature = context.blend_data.armatures.new("Shot")
-    shotArmature.display_type = "STICK"
-    shotArmature.show_names = True
-    shotObj = createNewObject(context, shotArmature.name, shotArmature, True)
-    shotObj.parent = csObj
+def createNewActorCueList(csObj: Object, isPlayer: bool):
+    """Creates a new Actor or Player Cue List and adds one basic cue and the dummy one"""
+    objFactory = OOTCSMotionObjectFactory()
+    playerOrActor = "Player" if isPlayer else "Actor"
+    newActorCueListObj = objFactory.getNewActorCueListObject(f"New {playerOrActor} Cue List", "0x000F", None)
+    index, csPrefix, csNbr = getNameInformations(csObj, f"{playerOrActor} Cue List")
 
-    for i in range(4):
-        bpy.ops.object.mode_set(mode="EDIT")
-        bone = shotArmature.edit_bones.new(f"K{i + 1:02}")
-        boneName = bone.name
-        x = metersToBlend(context, float(i + 1))
-        bone.head = [x, 0.0, 0.0]
-        bone.tail = [x, metersToBlend(context, 1.0), 0.0]
-        bpy.ops.object.mode_set(mode="OBJECT")
-        bone = shotArmature.bones[boneName]
-        bone.ootCamShotPointProp.shotPointFrame = 20
-        bone.ootCamShotPointProp.shotPointViewAngle = 60.0
-        bone.ootCamShotPointProp.shotPointRoll = 0
-
-
-def createBasicActorCue(context: Context, actorCueObj: Object, selectObj: bool):
-    points = getActorCueObjects(context.scene, actorCueObj)
-
-    if len(points) == 0:
-        pos = Vector((random.random() * 40.0 - 20.0, -10.0, 0.0))
-        startFrame = 0
-        action_id = "0x0001"
+    # there are other lists
+    if index is not None and csPrefix is not None:
+        newActorCueListObj.name = f"{csPrefix}.{playerOrActor} Cue List {index:02}"
     else:
-        pos = points[-1].location + Vector((0.0, 10.0, 0.0))
-        startFrame = points[-1].ootCSMotionProperty.actorCueProp.cueStartFrame + 20
-        action_id = points[-1].ootCSMotionProperty.actorCueProp.cueActionID
+        # it's the first list we're creating
+        csPrefix = f"CS_{csNbr:02}"
+        index = 1
+        newActorCueListObj.name = f"{csPrefix}.{playerOrActor} Cue List {index:02}"
 
-    createActorCue(context, actorCueObj, selectObj, pos, startFrame, action_id)
+    # add a basic actor cue and the dummy one
+    for i in range(2):
+        nameSuffix = f"{i + 1:02}" if i == 0 else "999 (D)"
+        newActorCueObj = objFactory.getNewActorCueObject(
+            f"{csPrefix}.{playerOrActor} Cue {index:02}.{nameSuffix}",
+            i,
+            "0x0000",
+            [0, 0, 0],
+            ["0x0", "0x0", "0x0"],
+            newActorCueListObj,
+        )
+
+    # finally, parenting the object to the cutscene
+    newActorCueListObj.parent = csObj
 
 
-def createBasicActorCueList(context: Context, actor_id: int, csObj: Object):
-    actorCueObj = createActorCueList(context, actor_id, csObj)
+def createNewBone(cameraShotObj: Object, name: str, headPos: list[float], tailPos: list[float]):
+    if bpy.context.mode != "OBJECT":
+        bpy.ops.object.mode_set(mode="OBJECT")
+    bpy.ops.object.mode_set(mode="EDIT")
+    armatureData: Armature = cameraShotObj.data
+    newEditBone = armatureData.edit_bones.new(name)
+    newEditBone.head = headPos
+    newEditBone.tail = tailPos
+    bpy.ops.object.mode_set(mode="OBJECT")
+    newBone = armatureData.bones[name]
+    newBone.ootCamShotPointProp.shotPointFrame = 30
+    newBone.ootCamShotPointProp.shotPointViewAngle = 60.0
+    newBone.ootCamShotPointProp.shotPointRoll = 0
+    bpy.ops.object.select_all(action="DESELECT")
 
-    for _ in range(2):
-        createBasicActorCue(context, actorCueObj, False)
+
+def createNewCameraShot(csObj: Object):
+    index, csPrefix, csNbr = getNameInformations(csObj, "Camera Shot")
+
+    if index is not None and csPrefix is not None:
+        name = f"{csPrefix}.Camera Shot {index:02}"
+    else:
+        csPrefix = f"CS_{csNbr:02}"
+        name = f"{csPrefix}.Camera Shot 01"
+
+    # create a basic armature
+    newCameraShotObj = OOTCSMotionObjectFactory().getNewArmatureObject(name, True, csObj)
+
+    # add 4 bones since it's the minimum required
+    for i in range(1, 5):
+        posX = metersToBlend(bpy.context, float(i))
+        createNewBone(
+            newCameraShotObj,
+            f"{csPrefix}.Camera Point {i:02}",
+            [posX, 0.0, 0.0],
+            [posX, metersToBlend(bpy.context, 1.0), 0.0],
+        )
 
 
 class OOTCSMotionAddBone(Operator):
