@@ -7,10 +7,12 @@ from ....utility import PluginError
 from .io_classes import OOTCSMotionObjectFactory
 from .constants import ootEnumCSActorCueListCommandType
 from .utility import (
-    createOrInitPreview,
+    setupActorCuePreview,
     metersToBlend,
-    getCutsceneMotionObject,
+    getCSMotionValidateObj,
     getNameInformations,
+    createNewBone,
+    createNewCameraShot,
 )
 
 
@@ -32,16 +34,8 @@ def createNewActorCueList(csObj: Object, isPlayer: bool):
     objFactory = OOTCSMotionObjectFactory()
     playerOrActor = "Player" if isPlayer else "Actor"
     newActorCueListObj = objFactory.getNewActorCueListObject(f"New {playerOrActor} Cue List", "0x000F", None)
-    index, csPrefix, csNbr = getNameInformations(csObj, f"{playerOrActor} Cue List")
-
-    # there are other lists
-    if index is not None and csPrefix is not None:
-        newActorCueListObj.name = f"{csPrefix}.{playerOrActor} Cue List {index:02}"
-    else:
-        # it's the first list we're creating
-        csPrefix = f"CS_{csNbr:02}"
-        index = 1
-        newActorCueListObj.name = f"{csPrefix}.{playerOrActor} Cue List {index:02}"
+    index, csPrefix = getNameInformations(csObj, f"{playerOrActor} Cue List", None)
+    newActorCueListObj.name = f"{csPrefix}.{playerOrActor} Cue List {index:02}"
 
     # add a basic actor cue and the dummy one
     for i in range(2):
@@ -59,45 +53,6 @@ def createNewActorCueList(csObj: Object, isPlayer: bool):
     newActorCueListObj.parent = csObj
 
 
-def createNewBone(cameraShotObj: Object, name: str, headPos: list[float], tailPos: list[float]):
-    if bpy.context.mode != "OBJECT":
-        bpy.ops.object.mode_set(mode="OBJECT")
-    bpy.ops.object.mode_set(mode="EDIT")
-    armatureData: Armature = cameraShotObj.data
-    newEditBone = armatureData.edit_bones.new(name)
-    newEditBone.head = headPos
-    newEditBone.tail = tailPos
-    bpy.ops.object.mode_set(mode="OBJECT")
-    newBone = armatureData.bones[name]
-    newBone.ootCamShotPointProp.shotPointFrame = 30
-    newBone.ootCamShotPointProp.shotPointViewAngle = 60.0
-    newBone.ootCamShotPointProp.shotPointRoll = 0
-    bpy.ops.object.select_all(action="DESELECT")
-
-
-def createNewCameraShot(csObj: Object):
-    index, csPrefix, csNbr = getNameInformations(csObj, "Camera Shot")
-
-    if index is not None and csPrefix is not None:
-        name = f"{csPrefix}.Camera Shot {index:02}"
-    else:
-        csPrefix = f"CS_{csNbr:02}"
-        name = f"{csPrefix}.Camera Shot 01"
-
-    # create a basic armature
-    newCameraShotObj = OOTCSMotionObjectFactory().getNewArmatureObject(name, True, csObj)
-
-    # add 4 bones since it's the minimum required
-    for i in range(1, 5):
-        posX = metersToBlend(bpy.context, float(i))
-        createNewBone(
-            newCameraShotObj,
-            f"{csPrefix}.Camera Point {i:02}",
-            [posX, 0.0, 0.0],
-            [posX, metersToBlend(bpy.context, 1.0), 0.0],
-        )
-
-
 class OOTCSMotionAddBone(Operator):
     """Add a bone to an armature"""
 
@@ -106,7 +61,7 @@ class OOTCSMotionAddBone(Operator):
 
     def execute(self, context):
         try:
-            cameraShotObj = getCutsceneMotionObject(False)
+            cameraShotObj = getCSMotionValidateObj(None, None, "Camera Shot")
 
             if cameraShotObj is not None:
                 armatureData: Armature = cameraShotObj.data
@@ -133,7 +88,7 @@ class OOTCSMotionAddActorCue(Operator):
     bl_label = "Add Actor Cue"
 
     def execute(self, context):
-        actorCueListObj = getCutsceneMotionObject(False)
+        actorCueListObj = getCSMotionValidateObj(None, None, None)
 
         try:
             if actorCueListObj is not None:
@@ -200,11 +155,11 @@ class OOTCSMotionCreateActorCuePreview(Operator):
     bl_label = "Create Preview Object"
 
     def execute(self, context):
-        actorCueObj = getActorCueList(self, context)
+        cueList = getCSMotionValidateObj(None, None, None)
 
-        if actorCueObj is not None:
-            createOrInitPreview(
-                context, actorCueObj.parent, actorCueObj.ootCSMotionProperty.actorCueListProp.actorCueSlot, True
+        if cueList is not None and cueList.ootEmptyType in ["CS Actor Cue List", "CS Player Cue List"]:
+            setupActorCuePreview(
+                cueList.parent, "Actor" if "Actor" in cueList.ootEmptyType else "Player", True, cueList
             )
             return {"FINISHED"}
         else:
@@ -218,7 +173,7 @@ class OOTCSMotionCreateCameraShot(Operator):
     bl_label = "Create Camera Shot"
 
     def execute(self, context):
-        csObj = getCutsceneMotionObject(False)
+        csObj = getCSMotionValidateObj(None, None, "Camera Shot")
 
         if csObj is not None:
             createNewCameraShot(csObj)
@@ -234,7 +189,7 @@ class OOTCSMotionCreatePlayerCueList(Operator):
     bl_label = "Create Player Cue List"
 
     def execute(self, context):
-        csObj = getCutsceneMotionObject(False)
+        csObj = getCSMotionValidateObj(None, None, None)
 
         try:
             if csObj is not None:
@@ -254,7 +209,7 @@ class OOTCSMotionCreateActorCueList(Operator):
     bl_label = "Create Actor Cue list"
 
     def execute(self, context):
-        csObj = getCutsceneMotionObject(False)
+        csObj = getCSMotionValidateObj(None, None, None)
 
         try:
             if csObj is not None:

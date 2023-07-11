@@ -104,6 +104,7 @@ ootEnumEmptyType = [
     ("CS Player Cue List", "CS Player Cue List", "CS Player Cue List"),
     ("CS Player Cue", "CS Player Cue", "CS Player Cue"),
     ("CS Actor Cue Preview", "CS Actor Cue Preview", "CS Actor Cue Preview"),
+    ("CS Player Cue Preview", "CS Player Cue Preview", "CS Player Cue Preview"),
     ("CS Dummy Cue", "CS Dummy Cue", "CS Dummy Cue"),
     # ('Camera Volume', 'Camera Volume', 'Camera Volume'),
 ]

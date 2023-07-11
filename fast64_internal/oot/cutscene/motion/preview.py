@@ -5,15 +5,16 @@ from mathutils import Vector, Quaternion
 from bpy.app.handlers import persistent
 from bpy.types import Object, Scene
 from .utility import (
-    PropsBone,
-    getShotPropBones,
-    getShotObjects,
-    getActorCueListObjects,
-    getActorCueObjects,
+    BoneData,
+    getCameraShotBoneData,
+    getCSMotionValidateObj,
 )
 
 
-def getUndefinedCamPos():
+# Eye -> Position, AT -> look-at, where the camera is looking
+
+
+def getUndefinedCamPosEye():
     return (Vector((0.0, 0.0, 0.0)), Quaternion(), 45.0)
 
 
@@ -36,21 +37,21 @@ def getSplineCoeffs(t: float):
     return oneminustcube6, spline2, spline3, tcube6
 
 
-def getZ64SplineInterpolate(bones: list[PropsBone], frame: int):
+def getZ64SplineInterpolate(bones: list[BoneData], frame: int):
     # Reverse engineered from func_800BB2B4 in Debug ROM
 
     p = 0  # keyframe
     t = 0.0  # ratioBetweenPoints
 
     # Simulate cutscene for all frames up to present
-    for f in range(frame):
+    for _ in range(frame):
         if p + 2 >= len(bones) - 1:
             # Camera position is uninitialized
             return getUndefinedCamPosAT()
 
-        framesPoint1 = bones[p + 1].frames
+        framesPoint1 = bones[p + 1].frame
         denomPoint1 = 1.0 / framesPoint1 if framesPoint1 != 0 else 0.0
-        framesPoint2 = bones[p + 2].frames
+        framesPoint2 = bones[p + 2].frame
         denomPoint2 = 1.0 / framesPoint2 if framesPoint2 != 0 else 0.0
         dt = max(t * (denomPoint2 - denomPoint1) + denomPoint1, 0.0)
 
@@ -75,10 +76,15 @@ def getZ64SplineInterpolate(bones: list[PropsBone], frame: int):
     s1, s2, s3, s4 = getSplineCoeffs(t)
     eye = s1 * bones[p].head + s2 * bones[p + 1].head + s3 * bones[p + 2].head + s4 * bones[p + 3].head
     at = s1 * bones[p].tail + s2 * bones[p + 1].tail + s3 * bones[p + 2].tail + s4 * bones[p + 3].tail
-    roll = s1 * bones[p].camroll + s2 * bones[p + 1].camroll + s3 * bones[p + 2].camroll + s4 * bones[p + 3].camroll
-    fov = s1 * bones[p].fov + s2 * bones[p + 1].fov + s3 * bones[p + 2].fov + s4 * bones[p + 3].fov
+    roll = s1 * bones[p].roll + s2 * bones[p + 1].roll + s3 * bones[p + 2].roll + s4 * bones[p + 3].roll
+    viewAngle = (
+        s1 * bones[p].viewAngle
+        + s2 * bones[p + 1].viewAngle
+        + s3 * bones[p + 2].viewAngle
+        + s4 * bones[p + 3].viewAngle
+    )
 
-    return (eye, at, roll, fov)
+    return (eye, at, roll, viewAngle)
 
 
 def getCmdCamState(shotObj: Object, frame: int):
@@ -86,19 +92,19 @@ def getCmdCamState(shotObj: Object, frame: int):
 
     if frame < 0:
         print(f"Warning, camera command evaluated for frame {frame}")
-        return getUndefinedCamPos()
+        return getUndefinedCamPosEye()
 
-    bones = getShotPropBones(shotObj)
+    bones = getCameraShotBoneData(shotObj, False)
 
     if bones is None:
-        return getUndefinedCamPos()
+        return getUndefinedCamPosEye()
 
-    eye, at, roll, fov = getZ64SplineInterpolate(bones, frame)
+    eye, at, roll, viewAngle = getZ64SplineInterpolate(bones, frame)
     # TODO handle cam_mode (relativeToLink)
     lookvec = at - eye
 
     if lookvec.length < 1e-6:
-        return getUndefinedCamPos()
+        return getUndefinedCamPosEye()
 
     lookvec.normalize()
     ux = Vector((1.0, 0.0, 0.0))
@@ -108,16 +114,21 @@ def getCmdCamState(shotObj: Object, frame: int):
     qpitch = Quaternion(-ux, math.pi + math.acos(lookvec.dot(uz)))
     qyaw = Quaternion(-uz, math.atan2(lookvec.dot(ux), lookvec.dot(uy)))
 
-    return (eye, qyaw @ qpitch @ qroll, fov)
+    return (eye, qyaw @ qpitch @ qroll, viewAngle)
 
 
-def getCutsceneCamState(scene: Scene, csObj: Object, frame: int):
-    """Returns (pos, rot_quat, fov)"""
+def getCutsceneCamState(csObj: Object, frame: int):
+    """Returns (pos, rot_quat, viewAngle)"""
 
-    shotObjects = getShotObjects(scene, csObj)
+    shotObjects: list[Object] = []
+    for childObj in csObj.children:
+        obj = getCSMotionValidateObj(csObj, childObj, "Camera Shot")
+        if obj is not None:
+            shotObjects.append(obj)
+    shotObjects.sort(key=lambda obj: obj.name)
+    shotObj = None
 
     if len(shotObjects) > 0:
-        shotObj = None
         startFrame = -1
 
         for obj in shotObjects:
@@ -126,52 +137,79 @@ def getCutsceneCamState(scene: Scene, csObj: Object, frame: int):
                 startFrame = obj.data.ootCamShotProp.shotStartFrame
 
     if shotObj is None or len(shotObjects) == 0:
-        return getUndefinedCamPos()
+        return getUndefinedCamPosEye()
 
     return getCmdCamState(shotObj, frame)
 
 
-def getActorCueState(scene: Scene, csObj: Object, actorid: int, frame: int):
-    cueObjects = getActorCueListObjects(scene, csObj, actorid)
+def getActorCueListObjects(csObj: Object, actorOrPlayer: str):
+    cueListObjects: list[Object] = [obj for obj in csObj.children if obj.ootEmptyType == f"CS {actorOrPlayer} Cue List"]
+
+    def getStartFrame(actorCueList: Object):
+        cueList: list[Object] = []
+        for childObj in actorCueList.children:
+            obj = getCSMotionValidateObj(None, childObj, None)
+            if obj is not None:
+                cueList.append(obj)
+        cueList.sort(key=lambda o: o.ootCSMotionProperty.actorCueProp.cueStartFrame)
+        return 1000000 if len(cueList) < 2 else cueList[0].ootCSMotionProperty.actorCueProp.cueStartFrame
+
+    cueListObjects.sort(key=lambda o: getStartFrame(o))
+
+    return cueListObjects
+
+
+def getActorCueState(csObj: Object, actorOrPlayer: str, frame: int):
+    cueListObjects = getActorCueListObjects(csObj, actorOrPlayer)
     pos = Vector((0.0, 0.0, 0.0))
     rot = Vector((0.0, 0.0, 0.0))
 
-    for cueObj in cueObjects:
-        points = getActorCueObjects(scene, cueObj)
+    for cueListObj in cueListObjects:
+        cueList: list[Object] = []
+        for cueObj in cueListObj.children:
+            obj = getCSMotionValidateObj(None, cueObj, None)
+            if obj is not None:
+                cueList.append(obj)
+        cueList.sort(key=lambda o: o.ootCSMotionProperty.actorCueProp.cueStartFrame)
 
-        if len(points) >= 2:
-            for i in range(len(points) - 1):
-                startFrame = points[i].ootCSMotionProperty.actorCueProp.cueStartFrame
-                endFrame = points[i + 1].ootCSMotionProperty.actorCueProp.cueStartFrame
+        if len(cueList) >= 2:
+            for i in range(len(cueList) - 1):
+                startFrame = cueList[i].ootCSMotionProperty.actorCueProp.cueStartFrame
+                endFrame = cueList[i + 1].ootCSMotionProperty.actorCueProp.cueStartFrame
+                print(cueListObj.name, startFrame, endFrame)
 
                 if endFrame > startFrame and frame > startFrame:
                     if frame <= endFrame:
-                        pos = points[i].location * (endFrame - frame) + points[i + 1].location * (frame - startFrame)
+                        pos = cueList[i].location * (endFrame - frame) + cueList[i + 1].location * (frame - startFrame)
                         pos /= endFrame - startFrame
-                        rot = points[i].rotation_euler
+                        rot = cueList[i].rotation_euler
                         return pos, rot
-                    elif i == len(points) - 2:
+                    elif i == len(cueList) - 2:
                         # If went off the end, use last position
-                        pos = points[i + 1].location
-                        rot = points[i].rotation_euler
+                        pos = cueList[i + 1].location
+                        rot = cueList[i].rotation_euler
     return pos, rot
 
 
 @persistent
 def previewFrameHandler(scene: Scene):
-    for obj in scene.objects:
-        if obj.parent is not None and obj.parent.type == "EMPTY" and obj.parent.name.startswith("Cutscene."):
+    for obj in bpy.data.objects:
+        parentObj = obj.parent
+        if parentObj is not None and parentObj.type == "EMPTY" and parentObj.name.startswith("Cutscene."):
             if obj.type == "CAMERA":
-                pos, rot_quat, fov = getCutsceneCamState(scene, obj.parent, scene.frame_current)
+                pos, rot_quat, viewAngle = getCutsceneCamState(parentObj, scene.frame_current)
 
                 if pos is not None:
                     obj.location = pos
                     obj.rotation_mode = "QUATERNION"
                     obj.rotation_quaternion = rot_quat
-                    obj.data.angle = math.pi * fov / 180.0
-            elif obj.ootEmptyType == "CS Actor Cue Preview" and obj.parent.ootEmptyType == "Cutscene":
+                    obj.data.angle = math.pi * viewAngle / 180.0
+            elif (
+                obj.ootEmptyType in ["CS Actor Cue Preview", "CS Player Cue Preview"]
+                and parentObj.ootEmptyType == "Cutscene"
+            ):
                 pos, rot = getActorCueState(
-                    scene, obj.parent, obj.ootCSMotionProperty.actorCueListProp.actorCueSlot, scene.frame_current
+                    parentObj, "Actor" if "Actor" in obj.ootEmptyType else "Player", scene.frame_current
                 )
 
                 if pos is not None:

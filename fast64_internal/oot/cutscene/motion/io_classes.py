@@ -192,3 +192,8 @@ class OOTCSMotionObjectFactory:
         newCameraObj.data.clip_end = clipEnd
         newCameraObj.data.passepartout_alpha = alpha
         return newCameraObj
+
+    def getNewActorCuePreviewObject(self, name: str, selectObject, parentObj: Object):
+        newPreviewObj = self.getNewEmptyObject(name, selectObject, parentObj)
+        newPreviewObj.ootEmptyType = f"CS {'Actor' if 'Actor' in name else 'Player'} Cue Preview"
+        return newPreviewObj

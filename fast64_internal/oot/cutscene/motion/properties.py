@@ -17,10 +17,11 @@ from .operators import (
 
 def getNextCuesStartFrame(self):
     curCueObj = bpy.context.view_layer.objects.active
+    parentObj = curCueObj.parent
 
-    if curCueObj.parent.ootEmptyType in ["CS Actor Cue List", "CS Player Cue List"]:
+    if parentObj is not None and parentObj.ootEmptyType in ["CS Actor Cue List", "CS Player Cue List"]:
         if curCueObj.ootEmptyType in ["CS Actor Cue", "CS Player Cue"]:
-            actorCueObjList = curCueObj.parent.children
+            actorCueObjList = parentObj.children
             for i, obj in enumerate(actorCueObjList):
                 if obj == curCueObj:
                     return actorCueObjList[i + 1].ootCSMotionProperty.actorCueProp.cueStartFrame
@@ -28,14 +29,6 @@ def getNextCuesStartFrame(self):
 
 
 class OOTCSMotionActorCueListProperty(PropertyGroup):
-    # temp, to remove
-    actorCueSlot: IntProperty(
-        name="Actor Cue Slot",
-        description="Slot used for Actor Cues (``CS_CMD_ACTOR_CUE_channelNumber_slotNumber``)",  # legacy: -1 for player
-        default=-1,
-        min=-1,
-    )
-
     commandType: EnumProperty(
         items=ootEnumCSActorCueListCommandType, name="CS Actor Cue Command Type", default="0x000F"
     )
