@@ -1,14 +1,169 @@
 import bpy
 
-from bpy.types import Scene, Object, Bone, Context, EditBone, Operator
+from bpy.types import Scene, Object, Bone, Context, EditBone, Operator, Armature
+from mathutils import Vector
+from ....utility import yUpToZUp
+from ...oot_utility import ootParseRotation
 from .constants import ootEnumCSActorCueListCommandType
 
 
 def getBlenderPosition(pos: list[int], scale: int):
     """Returns the converted OoT position"""
+
     # OoT: +X right, +Y up, -Z forward
     # Blender: +X right, +Z up, +Y forward
     return [float(pos[0]) / scale, -float(pos[2]) / scale, float(pos[1]) / scale]
+
+
+def getRotation(data: str):
+    """Returns the rotation converted to hexadecimal"""
+
+    if "DEG_TO_BINANG" in data or not "0x" in data:
+        angle = float(data.split("(")[1].removesuffix(")") if "DEG_TO_BINANG" in data else data)
+        binang = int(angle * (0x8000 / 180.0))  # from ``DEG_TO_BINANG()`` in decomp
+
+        # if the angle value is higher than 0xFFFF it means we're at 360 degrees
+        return f"0x{0xFFFF if binang > 0xFFFF else binang:04X}"
+    else:
+        return data
+
+
+def getBlenderRotation(rotation: list[str]):
+    """Returns the converted OoT rotation"""
+
+    rot = [int(getRotation(r), base=16) for r in rotation]
+    return yUpToZUp @ Vector(ootParseRotation(rot))
+
+
+def getCutsceneMotionObject(isParent: bool):
+    """Returns the selected motion object or its parent"""
+
+    activeObj = bpy.context.view_layer.objects.active
+    nonListTypes = ["CS Player Cue", "CS Actor Cue", "CS Dummy Cue", "Cutscene"]
+    listTypes = ["CS Player Cue List", "CS Actor Cue List"]
+    parentObj = activeObj.parent
+
+    # get the actor or player cue
+    if isParent:
+        # get the actor or player cue list
+        if parentObj is not None:
+            if parentObj.type == "EMPTY" and parentObj.ootEmptyType in listTypes:
+                return parentObj
+    else:
+        if activeObj.type == "EMPTY" and activeObj.ootEmptyType in nonListTypes or activeObj.ootEmptyType in listTypes:
+            return activeObj
+
+    # get the camera shot
+    if (
+        activeObj.type == "ARMATURE"
+        and parentObj is not None
+        and parentObj.type == "EMPTY"
+        and parentObj.ootEmptyType == "Cutscene"
+    ):
+        return activeObj
+
+    return None
+
+
+def getNameInformations(csObj: Object, target: str):
+    index = csPrefix = None
+    csNbr = 0
+
+    # get the last target objects names
+    if csObj.children is not None:
+        for obj in csObj.children:
+            if obj.type == "EMPTY" and "Cue List" in obj.name or "Camera Shot" in obj.name:
+                csPrefix = obj.name.split(".")[0]
+                if target in obj.name:
+                    index = int(obj.name.split(" ")[-1]) + 1
+
+    # saving the cutscene number if the target objects can't be found
+    for obj in bpy.data.objects:
+        if obj.type == "EMPTY" and obj.ootEmptyType == "Cutscene":
+            csNbr += 1
+
+        if obj.name == csObj.name:
+            break
+
+    return index, csPrefix, csNbr
+
+
+def createNewActorCueList(csObj: Object, isPlayer: bool):
+    """Creates a new Actor or Player Cue List and adds one basic cue and the dummy one"""
+    from .io_classes import OOTCSMotionObjectFactory  # circular import fix
+
+    objFactory = OOTCSMotionObjectFactory()
+    playerOrActor = "Player" if isPlayer else "Actor"
+    newActorCueListObj = objFactory.getNewActorCueListObject(f"New {playerOrActor} Cue List", "0x000F", None)
+    index, csPrefix, csNbr = getNameInformations(csObj, f"{playerOrActor} Cue List")
+
+    # there are other lists
+    if index is not None and csPrefix is not None:
+        newActorCueListObj.name = f"{csPrefix}.{playerOrActor} Cue List {index:02}"
+    else:
+        # it's the first list we're creating
+        csPrefix = f"CS_{csNbr:02}"
+        index = 1
+        newActorCueListObj.name = f"{csPrefix}.{playerOrActor} Cue List {index:02}"
+
+    # add a basic actor cue and the dummy one
+    for i in range(2):
+        nameSuffix = f"{i + 1:02}" if i == 0 else "999 (D)"
+        newActorCueObj = objFactory.getNewActorCueObject(
+            f"{csPrefix}.{playerOrActor} Cue {index:02}.{nameSuffix}",
+            i,
+            "0x0000",
+            [0, 0, 0],
+            ["0x0", "0x0", "0x0"],
+            newActorCueListObj,
+        )
+
+    # finally, parenting the object to the cutscene
+    newActorCueListObj.parent = csObj
+
+
+def createNewBone(cameraShotObj: Object, name: str, headPos: list[float], tailPos: list[float]):
+    if bpy.context.mode != "OBJECT":
+        bpy.ops.object.mode_set(mode="OBJECT")
+    bpy.ops.object.mode_set(mode="EDIT")
+    armatureData: Armature = cameraShotObj.data
+    newEditBone = armatureData.edit_bones.new(name)
+    newEditBone.head = headPos
+    newEditBone.tail = tailPos
+    bpy.ops.object.mode_set(mode="OBJECT")
+    newBone = armatureData.bones[name]
+    newBone.ootCamShotPointProp.shotPointFrame = 30
+    newBone.ootCamShotPointProp.shotPointViewAngle = 60.0
+    newBone.ootCamShotPointProp.shotPointRoll = 0
+    bpy.ops.object.select_all(action="DESELECT")
+
+
+def createNewCameraShot(csObj: Object):
+    from .io_classes import OOTCSMotionObjectFactory  # circular import fix
+
+    index, csPrefix, csNbr = getNameInformations(csObj, "Camera Shot")
+
+    if index is not None and csPrefix is not None:
+        name = f"{csPrefix}.Camera Shot {index:02}"
+    else:
+        csPrefix = f"CS_{csNbr:02}"
+        name = f"{csPrefix}.Camera Shot 01"
+
+    # create a basic armature
+    newCameraShotObj = OOTCSMotionObjectFactory().getNewArmatureObject(name, True, csObj)
+
+    # add 4 bones since it's the minimum required
+    for i in range(1, 5):
+        posX = metersToBlend(bpy.context, float(i))
+        createNewBone(
+            newCameraShotObj,
+            f"{csPrefix}.Camera Point {i:02}",
+            [posX, 0.0, 0.0],
+            [posX, metersToBlend(bpy.context, 1.0), 0.0],
+        )
+
+
+# ---
 
 
 def getEditBoneFromBone(shotObj: Object, bone: Bone) -> EditBone | Bone:

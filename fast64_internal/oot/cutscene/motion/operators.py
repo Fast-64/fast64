@@ -5,15 +5,19 @@ from mathutils import Vector
 from bpy.types import Object, Operator, Context
 from bpy.utils import register_class, unregister_class
 from bpy.props import StringProperty, EnumProperty
+from ....utility import PluginError
+from .io_classes import OOTCSMotionObjectFactory
 from .constants import ootEnumCSActorCueListCommandType
 from .utility import (
-    getCSObj,
     createOrInitPreview,
     createNewObject,
     metersToBlend,
     createActorCueList,
     getActorCueObjects,
     createActorCue,
+    getCutsceneMotionObject,
+    createNewActorCueList,
+    createNewCameraShot,
 )
 
 
@@ -80,12 +84,63 @@ class OOTCSMotionAddActorCue(Operator):
     bl_label = "Add Actor Cue"
 
     def execute(self, context):
-        actorCueObj = getActorCueList(self, context)
+        actorCueListObj = getCutsceneMotionObject(False)
 
-        if actorCueObj is not None:
-            createBasicActorCue(context, actorCueObj, True)
+        try:
+            if actorCueListObj is not None:
+                # start by creating the new object with basic values
+                objFactory = OOTCSMotionObjectFactory()
+                newActorCueObj = objFactory.getNewActorCueObject(
+                    "New Actor Cue",
+                    0,
+                    "0x0000",
+                    [0, 0, 0],
+                    ["0x0", "0x0", "0x0"],
+                    None,
+                )
+
+                # if there's other actor cues, take the information from the last non-dummy one
+                if len(actorCueListObj.children) > 0:
+                    dummyCue = None
+                    for i, obj in enumerate(actorCueListObj.children):
+                        if obj.ootEmptyType == "CS Dummy Cue":
+                            dummyCue = obj
+
+                    if dummyCue is not None:
+                        lastCueObj = actorCueListObj.children[i - 1]
+                        nameSplit = lastCueObj.name.split(".")
+                        index = int(nameSplit[-1]) + 1
+                        startFrame = dummyCue.ootCSMotionProperty.actorCueProp.cueStartFrame
+                        newActorCueObj.name = f"{nameSplit[0]}.{nameSplit[1]}.{index:02}"
+                        newActorCueObj.ootCSMotionProperty.actorCueProp.cueStartFrame = startFrame
+                        dummyCue.ootCSMotionProperty.actorCueProp.cueStartFrame += 1
+                        newActorCueObj.location = lastCueObj.location
+                        newActorCueObj.rotation_euler = lastCueObj.rotation_euler
+                else:
+                    # else create the name from the actor cue list object
+                    nameSplit = actorCueListObj.name.split(".")
+                    index = int(nameSplit[1].split(" ")[3])
+                    newActorCueObj.name = f"{nameSplit[0]}.{nameSplit[1][:-8]} {index}.01"
+
+                    # add the dummy cue since the list is empty
+                    nameSplit = newActorCueObj.name.split(".")
+                    newDummyCueObj = objFactory.getNewActorCueObject(
+                        f"{nameSplit[0]}.{nameSplit[1]}.999 (D)",
+                        1,
+                        "0x0000",
+                        [0, 0, 0],
+                        ["0x0", "0x0", "0x0"],
+                        actorCueListObj,
+                    )
+
+                # update the end frame of the real cue
+                getEndFrame = newActorCueObj.ootCSMotionProperty.actorCueProp.cueEndFrame
+                newActorCueObj.parent = actorCueListObj
+            else:
+                raise PluginError("ERROR: Select the Actor or Player Cue List!")
+
             return {"FINISHED"}
-        else:
+        except:
             return {"CANCELLED"}
 
 
@@ -114,10 +169,10 @@ class OOTCSMotionCreateCameraShot(Operator):
     bl_label = "Create Camera Shot"
 
     def execute(self, context):
-        csObj = getCSObj(self, context)
+        csObj = getCutsceneMotionObject(False)
 
         if csObj is not None:
-            createCameraShot(context, csObj)
+            createNewCameraShot(csObj)
             return {"FINISHED"}
         else:
             return {"CANCELLED"}
@@ -130,12 +185,16 @@ class OOTCSMotionCreatePlayerCueList(Operator):
     bl_label = "Create Player Cue List"
 
     def execute(self, context):
-        csObj = getCSObj(self, context)
+        csObj = getCutsceneMotionObject(False)
 
-        if csObj is not None:
-            createBasicActorCueList(context, -1, csObj)
+        try:
+            if csObj is not None:
+                createNewActorCueList(csObj, True)
+            else:
+                raise PluginError("ERROR: You must select the cutscene object!")
+
             return {"FINISHED"}
-        else:
+        except:
             return {"CANCELLED"}
 
 
@@ -146,12 +205,16 @@ class OOTCSMotionCreateActorCueList(Operator):
     bl_label = "Create Actor Cue list"
 
     def execute(self, context):
-        csObj = getCSObj(self, context)
+        csObj = getCutsceneMotionObject(False)
 
-        if csObj is not None:
-            createBasicActorCueList(context, random.randint(1, 100), csObj)
+        try:
+            if csObj is not None:
+                createNewActorCueList(csObj, False)
+            else:
+                raise PluginError("ERROR: You must select the cutscene object!")
+
             return {"FINISHED"}
-        else:
+        except:
             return {"CANCELLED"}
 
 

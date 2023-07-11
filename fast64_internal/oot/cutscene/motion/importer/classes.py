@@ -3,10 +3,8 @@ import bpy
 from dataclasses import dataclass
 from struct import unpack
 from bpy.types import Object, Armature
-from mathutils import Vector
-from .....utility import PluginError, yUpToZUp
-from ....oot_utility import ootParseRotation
-from ..utility import setupCutscene, getBlenderPosition
+from .....utility import PluginError
+from ..utility import setupCutscene, getBlenderPosition, getRotation
 
 from ..constants import (
     ootCSMotionLegacyToNewCmdNames,
@@ -51,18 +49,6 @@ class OOTCSMotionImportCommands:
                 + "and the number of found ones is not the same!"
             )
         return params
-
-    def getRotation(self, data: str):
-        """Returns the rotation converted to hexadecimal"""
-
-        if "DEG_TO_BINANG" in data or not "0x" in data:
-            angle = float(data.split("(")[1].removesuffix(")") if "DEG_TO_BINANG" in data else data)
-            binang = int(angle * (0x8000 / 180.0))  # from ``DEG_TO_BINANG()`` in decomp
-
-            # if the angle value is higher than 0xFFFF it means we're at 360 degrees
-            return f"0x{0xFFFF if binang > 0xFFFF else binang:04X}"
-        else:
-            return data
 
     def getInteger(self, number: str):
         """Returns an int number (handles properly negative hex numbers)"""
@@ -133,7 +119,7 @@ class OOTCSMotionImportCommands:
             self.getInteger(params[1]),
             self.getInteger(params[2]),
             params[0],
-            [self.getRotation(params[3]), self.getRotation(params[4]), self.getRotation(params[5])],
+            [getRotation(params[3]), getRotation(params[4]), getRotation(params[5])],
             [self.getInteger(params[6]), self.getInteger(params[7]), self.getInteger(params[8])],
             [self.getInteger(params[9]), self.getInteger(params[10]), self.getInteger(params[11])],
         )
@@ -156,12 +142,6 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
 
     filePath: str  # used when importing from the panel
     fileData: str  # used when importing the cutscenes when importing a scene
-
-    def getBlenderRotation(self, rotation: list[str]):
-        """Returns the converted OoT rotation"""
-
-        rot = [int(self.getRotation(r), base=16) for r in rotation]
-        return yUpToZUp @ Vector(ootParseRotation(rot))
 
     def getParsedCutscenes(self):
         """Returns the parsed commands read from every cutscene we can find"""
@@ -379,7 +359,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
             if lastFrame is not None:
                 cueObjList.append(
                     self.getNewActorCueObject(
-                        f"CS_{csNbr:02}.{cueName} Cue 9.99 (D)",
+                        f"CS_{csNbr:02}.{cueName} Cue {i}.999 (D)",
                         lastFrame,
                         "DUMMY",
                         lastPos,

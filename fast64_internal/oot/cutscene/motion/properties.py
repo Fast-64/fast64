@@ -81,7 +81,7 @@ class OOTCSMotionActorCueProperty(PropertyGroup):
 
     def draw_props(self, layout: UILayout, labelPrefix: str, isDummy: bool):
         box = layout.box()
-        dummyExtra = " (Sets prev. Actor Cue's end frame/pos.)" if isDummy else ""
+        dummyExtra = "\n(Sets previous Actor Cue's end frame/pos.)" if isDummy else ""
         box.box().label(text=f"{labelPrefix if not isDummy else 'Dummy'} Cue" + dummyExtra)
 
         split = box.split(factor=0.5)
