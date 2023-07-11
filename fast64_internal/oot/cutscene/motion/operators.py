@@ -96,7 +96,7 @@ class OOTCSMotionAddBone(Operator):
                     boneName = f"{splitName[0]} Point {int(splitName[2]) + 1:02}"
                 else:
                     boneName = f"CS_??.Camera Point ??"
-                
+
                 blendOne = metersToBlend(context, float(1))
                 createNewBone(cameraShotObj, boneName, [blendOne, blendOne, 0.0], [blendOne, 0.0, 0.0])
                 return {"FINISHED"}
