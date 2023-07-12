@@ -33,13 +33,17 @@ class OOTCSMotionActorCueListProperty(PropertyGroup):
         items=ootEnumCSActorCueListCommandType, name="CS Actor Cue Command Type", default="0x000F"
     )
     commandTypeCustom: StringProperty(name="CS Actor Cue Command Type Custom")
+    cueListToPreview: PointerProperty(type=Object, name="", poll=lambda self, object: self.isActorCueListObj(object))
+
+    def isActorCueListObj(self, obj: Object):
+        return obj.type == "EMPTY" and obj.ootEmptyType in ["CS Actor Cue List", "CS Player Cue List"]
 
     def draw_props(self, layout: UILayout, isPreview: bool, labelPrefix: str, objName: str):
         box = layout.box()
         box.box().label(text=f"{labelPrefix} Cue List")
 
         # Player Cue has only one command type
-        if labelPrefix != "Player":
+        if labelPrefix != "Player" and not isPreview:
             searchBox = box.row()
             searchOp = searchBox.operator(
                 OOT_SearchActorCueCmdTypeEnumOperator.bl_idname, icon="VIEWZOOM", text="Command Type:"
@@ -56,6 +60,10 @@ class OOTCSMotionActorCueListProperty(PropertyGroup):
             split = box.split(factor=0.5)
             split.operator(OOTCSMotionAddActorCue.bl_idname)
             split.operator(OOTCSMotionCreateActorCuePreview.bl_idname)
+        else:
+            split = box.split(factor=0.5)
+            split.label(text="Actor Cue List to Preview")
+            split.prop(self, "cueListToPreview")
 
 
 class OOTCSMotionActorCueProperty(PropertyGroup):

@@ -145,10 +145,10 @@ class OOTObjectPanel(bpy.types.Panel):
             csProp: OOTCutsceneProperty = obj.ootCutsceneProperty
             csProp.draw_props(box, obj)
 
-        elif obj.ootEmptyType in ["CS Actor Cue List", "CS Player Cue List", "CS Actor Cue Preview"]:
-            labelPrefix = "Player" if obj.ootEmptyType == "CS Player Cue List" else "Actor"
+        elif obj.ootEmptyType in ["CS Actor Cue List", "CS Player Cue List", "CS Actor Cue Preview", "CS Player Cue Preview"]:
+            labelPrefix = "Player" if "Player" in obj.ootEmptyType else "Actor"
             actorCueListProp: OOTCSMotionActorCueListProperty = obj.ootCSMotionProperty.actorCueListProp
-            actorCueListProp.draw_props(box, obj.ootEmptyType == "CS Actor Cue Preview", labelPrefix, obj.name)
+            actorCueListProp.draw_props(box, obj.ootEmptyType == f"CS {labelPrefix} Cue Preview", labelPrefix, obj.name)
 
         elif obj.ootEmptyType in ["CS Actor Cue", "CS Player Cue", "CS Dummy Cue"]:
             labelPrefix = "Player" if obj.parent.ootEmptyType == "CS Player Cue List" else "Actor"

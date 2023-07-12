@@ -176,9 +176,9 @@ def setupActorCuePreview(csObj: Object, actorOrPlayer: str, selectObject: bool, 
         if curPos != nextPos:
             shouldContinue = True
             break
-    
+
     if shouldContinue:
-        index, csPrefix = getNameInformations(csObj, "Cue Preview", int(cueList.name.split(" ")[-1]))
+        index, csPrefix = getNameInformations(csObj, "Preview", int(cueList.name.split(" ")[-1]))
         name = f"{csPrefix}.{actorOrPlayer} Cue Preview {index:02}"
 
         for obj in csObj.children:
@@ -194,6 +194,7 @@ def setupActorCuePreview(csObj: Object, actorOrPlayer: str, selectObject: bool, 
 
         previewObj.empty_display_type = "SINGLE_ARROW"
         previewObj.empty_display_size = metersToBlend(bpy.context, actorHeight)
+        previewObj.ootCSMotionProperty.actorCueListProp.cueListToPreview = cueList
 
 
 def getCameraShotBoneData(shotObj: Object, runChecks: bool):

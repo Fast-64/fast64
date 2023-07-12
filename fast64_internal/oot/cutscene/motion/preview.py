@@ -142,52 +142,32 @@ def getCutsceneCamState(csObj: Object, frame: int):
     return getCmdCamState(shotObj, frame)
 
 
-def getActorCueListObjects(csObj: Object, actorOrPlayer: str):
-    cueListObjects: list[Object] = [obj for obj in csObj.children if obj.ootEmptyType == f"CS {actorOrPlayer} Cue List"]
-
-    def getStartFrame(actorCueList: Object):
-        cueList: list[Object] = []
-        for childObj in actorCueList.children:
-            obj = getCSMotionValidateObj(None, childObj, None)
-            if obj is not None:
-                cueList.append(obj)
-        cueList.sort(key=lambda o: o.ootCSMotionProperty.actorCueProp.cueStartFrame)
-        return 1000000 if len(cueList) < 2 else cueList[0].ootCSMotionProperty.actorCueProp.cueStartFrame
-
-    cueListObjects.sort(key=lambda o: getStartFrame(o))
-
-    return cueListObjects
-
-
-def getActorCueState(csObj: Object, actorOrPlayer: str, frame: int):
-    cueListObjects = getActorCueListObjects(csObj, actorOrPlayer)
+def getActorCueState(cueListObj: Object, frame: int):
     pos = Vector((0.0, 0.0, 0.0))
     rot = Vector((0.0, 0.0, 0.0))
 
-    for cueListObj in cueListObjects:
-        cueList: list[Object] = []
-        for cueObj in cueListObj.children:
-            obj = getCSMotionValidateObj(None, cueObj, None)
-            if obj is not None:
-                cueList.append(obj)
-        cueList.sort(key=lambda o: o.ootCSMotionProperty.actorCueProp.cueStartFrame)
+    cueList: list[Object] = []
+    for cueObj in cueListObj.children:
+        obj = getCSMotionValidateObj(None, cueObj, None)
+        if obj is not None:
+            cueList.append(obj)
+    cueList.sort(key=lambda o: o.ootCSMotionProperty.actorCueProp.cueStartFrame)
 
-        if len(cueList) >= 2:
-            for i in range(len(cueList) - 1):
-                startFrame = cueList[i].ootCSMotionProperty.actorCueProp.cueStartFrame
-                endFrame = cueList[i + 1].ootCSMotionProperty.actorCueProp.cueStartFrame
-                print(cueListObj.name, startFrame, endFrame)
+    if len(cueList) >= 2:
+        for i in range(len(cueList) - 1):
+            startFrame = cueList[i].ootCSMotionProperty.actorCueProp.cueStartFrame
+            endFrame = cueList[i + 1].ootCSMotionProperty.actorCueProp.cueStartFrame
 
-                if endFrame > startFrame and frame > startFrame:
-                    if frame <= endFrame:
-                        pos = cueList[i].location * (endFrame - frame) + cueList[i + 1].location * (frame - startFrame)
-                        pos /= endFrame - startFrame
-                        rot = cueList[i].rotation_euler
-                        return pos, rot
-                    elif i == len(cueList) - 2:
-                        # If went off the end, use last position
-                        pos = cueList[i + 1].location
-                        rot = cueList[i].rotation_euler
+            if endFrame > startFrame and frame > startFrame:
+                if frame <= endFrame:
+                    pos = cueList[i].location * (endFrame - frame) + cueList[i + 1].location * (frame - startFrame)
+                    pos /= endFrame - startFrame
+                    rot = cueList[i].rotation_euler
+                    return pos, rot
+                elif i == len(cueList) - 2:
+                    # If went off the end, use last position
+                    pos = cueList[i + 1].location
+                    rot = cueList[i].rotation_euler
     return pos, rot
 
 
@@ -209,7 +189,7 @@ def previewFrameHandler(scene: Scene):
                 and parentObj.ootEmptyType == "Cutscene"
             ):
                 pos, rot = getActorCueState(
-                    parentObj, "Actor" if "Actor" in obj.ootEmptyType else "Player", scene.frame_current
+                    obj.ootCSMotionProperty.actorCueListProp.cueListToPreview, scene.frame_current
                 )
 
                 if pos is not None:
