@@ -215,6 +215,25 @@ def getCameraShotBoneData(shotObj: Object, runChecks: bool):
     return boneDataList
 
 
+def getCutsceneEndFrame(csObj: Object):
+    shotObjects: list[Object] = []
+    for childObj in csObj.children:
+        obj = getCSMotionValidateObj(csObj, childObj, "Camera Shot")
+        if obj is not None:
+            shotObjects.append(obj)
+    shotObjects.sort(key=lambda obj: obj.name)
+
+    csEndFrame = -1
+    for shotObj in shotObjects:
+        # Seems to be the algorithm which was used in the canon tool: the at list
+        # counts the extra point (same frames as the last real point), and the pos
+        # list doesn't count the extra point but adds 1. Of course, neither of these
+        # values is actually the number of frames the camera motion lasts for.
+        boneDataList = getCameraShotBoneData(shotObj, True)
+        endFrame = shotObj.data.ootCamShotProp.shotStartFrame + max(2, sum(b.frame for b in boneDataList)) + 2
+        csEndFrame = max(csEndFrame, endFrame)
+    return csEndFrame
+    
 def setupCutscene(csObj: Object):
     from .io_classes import OOTCSMotionObjectFactory  # circular import fix
 
@@ -241,25 +260,8 @@ def setupCutscene(csObj: Object):
             setupActorCuePreview(csObj, "Actor" if "Actor" in obj.ootEmptyType else "Player", False, obj)
 
     # Other setup
-    shotObjects: list[Object] = []
-    for childObj in csObj.children:
-        obj = getCSMotionValidateObj(csObj, childObj, "Camera Shot")
-        if obj is not None:
-            shotObjects.append(obj)
-    shotObjects.sort(key=lambda obj: obj.name)
-    csEndFrame = -1
-
-    for shotObj in shotObjects:
-        # Seems to be the algorithm which was used in the canon tool: the at list
-        # counts the extra point (same frames as the last real point), and the pos
-        # list doesn't count the extra point but adds 1. Of course, neither of these
-        # values is actually the number of frames the camera motion lasts for.
-        boneDataList = getCameraShotBoneData(shotObj, True)
-        endFrame = shotObj.data.ootCamShotProp.shotStartFrame + max(2, sum(b.frame for b in boneDataList)) + 2
-        csEndFrame = max(csEndFrame, endFrame)
-
     context.scene.frame_start = 0
-    context.scene.frame_end = max(csEndFrame, context.scene.frame_end)
+    context.scene.frame_end = max(getCutsceneEndFrame(csObj), context.scene.frame_end)
     context.scene.render.fps = 20
     context.scene.render.resolution_x = 320
     context.scene.render.resolution_y = 240

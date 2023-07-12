@@ -13,6 +13,7 @@ from .utility import (
     getNameInformations,
     createNewBone,
     createNewCameraShot,
+    getCutsceneEndFrame,
 )
 
 
@@ -52,6 +53,46 @@ def createNewActorCueList(csObj: Object, isPlayer: bool):
     # finally, parenting the object to the cutscene
     newActorCueListObj.parent = csObj
 
+
+class OOTCSMotionShowCameraPreview(Operator):
+    """Camera Preview"""
+
+    bl_idname = "object.show_preview_camera"
+    bl_label = "Show Camera Preview"
+
+    def execute(self, context):
+        try:
+            csObj = getCSMotionValidateObj(None, None, None)
+
+            if csObj is not None:
+                # get and set the camera
+                cameraObj = None
+                for childObj in csObj.children:
+                    if childObj.type == "CAMERA":
+                        cameraObj = childObj
+                        break
+                context.scene.camera = cameraObj
+
+                # from https://blender.stackexchange.com/a/259103
+                space = None
+                for area in context.screen.areas:
+                    if (area != context.area) and (area.type == 'VIEW_3D'):
+                        for space in area.spaces:
+                            if space.type == "VIEW_3D":
+                                break
+                if space is not None:
+                    space.region_3d.view_perspective = 'CAMERA'
+
+                # setup frame data and play the animation
+                endFrame = getCutsceneEndFrame(csObj)
+                context.scene.frame_end = endFrame if endFrame > -1 else context.scene.frame_end
+                context.scene.frame_set(context.scene.frame_start)
+                bpy.ops.screen.animation_cancel()
+                bpy.ops.screen.animation_play()
+                return {"FINISHED"}
+        except:
+            return {"CANCELLED"}
+        
 
 class OOTCSMotionAddBone(Operator):
     """Add a bone to an armature"""
@@ -262,6 +303,7 @@ class OOT_SearchActorCueCmdTypeEnumOperator(Operator):
 
 
 classes = (
+    OOTCSMotionShowCameraPreview,
     OOTCSMotionAddBone,
     OOTCSMotionAddActorCue,
     OOTCSMotionCreateActorCuePreview,
