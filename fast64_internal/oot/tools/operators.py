@@ -144,7 +144,7 @@ class OOT_AddRoom(Operator):
 class OOT_AddCutscene(Operator):
     bl_idname = "object.oot_add_cutscene"
     bl_label = "Add Cutscene"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
+    bl_options = {"REGISTER", "UNDO"}
 
     csName: StringProperty(name="", default="Something", description="The Cutscene's Name without `Cutscene.`")
 
