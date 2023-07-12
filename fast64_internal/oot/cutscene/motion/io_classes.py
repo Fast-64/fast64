@@ -131,6 +131,9 @@ class OOTCSMotionObjectFactory:
             newObj.select_set(True)
             bpy.context.view_layer.objects.active = newObj
         newObj.parent = parentObj
+        newObj.location = [0.0, 0.0, 0.0]
+        newObj.rotation_euler = [0.0, 0.0, 0.0]
+        newObj.scale = [1.0, 1.0, 1.0]
         return newObj
 
     def getNewEmptyObject(self, name: str, selectObject: bool, parentObj: Object):

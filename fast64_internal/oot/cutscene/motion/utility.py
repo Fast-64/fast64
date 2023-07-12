@@ -218,6 +218,11 @@ def getCameraShotBoneData(shotObj: Object, runChecks: bool):
 def setupCutscene(csObj: Object):
     from .io_classes import OOTCSMotionObjectFactory  # circular import fix
 
+    # lock cutscene coordinates and reset location/rotation/scale
+    csObj.lock_location = csObj.lock_rotation = csObj.lock_scale = [True, True, True]
+    csObj.location = csObj.rotation_euler = [0.0, 0.0, 0.0]
+    csObj.scale = [1.0, 1.0, 1.0]
+
     objFactory = OOTCSMotionObjectFactory()
     context = bpy.context
     camObj = objFactory.getNewCameraObject(
