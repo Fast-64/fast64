@@ -190,7 +190,7 @@ class OOTCSMotionCreateCameraShot(Operator):
     bl_label = "Create Camera Shot"
 
     def execute(self, context):
-        csObj = getCSMotionValidateObj(None, None, "Camera Shot")
+        csObj = getCSMotionValidateObj(None, None, None)
 
         if csObj is not None:
             createNewCameraShot(csObj)
