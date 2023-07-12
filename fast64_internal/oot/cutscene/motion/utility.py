@@ -163,25 +163,37 @@ def metersToBlend(context: Context, value: float):
     return value * 56.0 / context.scene.ootBlenderScale
 
 
-def setupActorCuePreview(csObj: Object, actorOrPlayer: str, selectObject: bool, parentObj: Object):
+def setupActorCuePreview(csObj: Object, actorOrPlayer: str, selectObject: bool, cueList: Object):
     from .io_classes import OOTCSMotionObjectFactory  # circular import fix
 
-    index, csPrefix = getNameInformations(csObj, "Cue Preview", int(parentObj.name.split(" ")[-1]))
-    name = f"{csPrefix}.{actorOrPlayer} Cue Preview {index:02}"
-
-    for obj in csObj.children:
-        if obj.name == name:
-            previewObj = obj
+    # check if the cue actually moves, if not it's not necessary to create a preview object
+    shouldContinue = False
+    for i in range(len(cueList.children) - 1):
+        actorCue = cueList.children[i]
+        nextCue = cueList.children[i + 1]
+        curPos = [round(pos) for pos in actorCue.location]
+        nextPos = [round(pos) for pos in nextCue.location]
+        if curPos != nextPos:
+            shouldContinue = True
             break
-    else:
-        previewObj = OOTCSMotionObjectFactory().getNewActorCuePreviewObject(name, selectObject, csObj)
+    
+    if shouldContinue:
+        index, csPrefix = getNameInformations(csObj, "Cue Preview", int(cueList.name.split(" ")[-1]))
+        name = f"{csPrefix}.{actorOrPlayer} Cue Preview {index:02}"
 
-    actorHeight = 1.5
-    if actorOrPlayer == "Player":
-        actorHeight = 1.7 if bpy.context.scene.previewPlayerAge == "link_adult" else 1.3
+        for obj in csObj.children:
+            if obj.name == name:
+                previewObj = obj
+                break
+        else:
+            previewObj = OOTCSMotionObjectFactory().getNewActorCuePreviewObject(name, selectObject, csObj)
 
-    previewObj.empty_display_type = "SINGLE_ARROW"
-    previewObj.empty_display_size = metersToBlend(bpy.context, actorHeight)
+        actorHeight = 1.5
+        if actorOrPlayer == "Player":
+            actorHeight = 1.7 if bpy.context.scene.previewPlayerAge == "link_adult" else 1.3
+
+        previewObj.empty_display_type = "SINGLE_ARROW"
+        previewObj.empty_display_size = metersToBlend(bpy.context, actorHeight)
 
 
 def getCameraShotBoneData(shotObj: Object, runChecks: bool):
