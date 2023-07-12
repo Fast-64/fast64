@@ -86,6 +86,7 @@ class OOTCSMotionActorCueProperty(PropertyGroup):
             split = box.split(factor=0.5)
             split.label(text=f"{labelPrefix} Cue (Action) ID")
             split.prop(self, "cueActionID", text="")
+            box.operator(OOTCSMotionAddActorCue.bl_idname)
 
 
 class OOTCSMotionCameraShotProperty(PropertyGroup):
@@ -104,18 +105,21 @@ class OOTCSMotionCameraShotProperty(PropertyGroup):
         box.row().prop(self, "shotCamMode", expand=True)
         box.operator(OOTCSMotionAddBone.bl_idname)
 
+        if bpy.context.mode == "POSE":
+            box.label(text="Warning: You can't be in 'Pose' mode to edit camera bones!")
+
 
 class OOTCSMotionCameraShotPointProperty(PropertyGroup):
-    shotPointFrame: IntProperty(name="Frame", description="Key point frames value", default=1234, min=0)
+    shotPointFrame: IntProperty(name="Frame", description="Key point frames value", default=30, min=0)
     shotPointViewAngle: FloatProperty(
-        name="FoV", description="Field of view (degrees)", default=179.76, min=0.01, max=179.99
+        name="FoV", description="Field of view (degrees)", default=60.0, min=0.01, max=179.99
     )
     shotPointRoll: IntProperty(
         name="Roll",
         description="Camera roll (degrees), positive turns image clockwise",
-        default=-0x7E,
-        min=-0x80,
-        max=0x7F,
+        default=0,
+        min=-128,
+        max=127,
     )
 
     def draw_props(self, layout: UILayout):

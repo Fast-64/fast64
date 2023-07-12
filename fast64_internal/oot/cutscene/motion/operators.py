@@ -65,15 +65,29 @@ class OOTCSMotionAddBone(Operator):
 
             if cameraShotObj is not None:
                 armatureData: Armature = cameraShotObj.data
+                cameraShotObj.select_set(True)
+                lastMode = "EDIT" if "EDIT" in context.mode else context.mode
 
-                if len(armatureData.bones) > 0 and "CS_" in armatureData.bones[-1].name:
-                    splitName = armatureData.bones[-1].name.split(" ")
-                    boneName = f"{splitName[0]} Point {int(splitName[2]) + 1:02}"
-                else:
-                    boneName = f"CS_??.Camera Point ??"
-
+                # create the new bone with standard informations
                 blendOne = metersToBlend(context, float(1))
+                boneName = f"CS_??.Camera Point ??"
                 createNewBone(cameraShotObj, boneName, [blendOne, blendOne, 0.0], [blendOne, 0.0, 0.0])
+
+                # update the name of the new bone and move it to the position of the previous last one
+                bpy.ops.object.mode_set(mode="EDIT")
+                if len(armatureData.edit_bones) > 0 and "CS_" in armatureData.edit_bones[-2].name:
+                    secondToLastBone = armatureData.edit_bones[-2]
+                    newBone = armatureData.edit_bones[-1]
+                    splitName = secondToLastBone.name.split(" ")
+                    newBone.name = f"{splitName[0]} Point {int(splitName[2]) + 1:02}"
+                    newBone.head = secondToLastBone.head
+                    newBone.tail = secondToLastBone.tail
+                bpy.ops.object.mode_set(mode="OBJECT") # going back to object mode to update the bones properly
+
+                if armatureData.bones[-1].name == boneName:
+                    raise PluginError("ERROR: Something went wrong...")
+
+                bpy.ops.object.mode_set(mode=lastMode)
                 return {"FINISHED"}
             else:
                 raise PluginError("You must select an armature object parented to a cutscene empty object!")
@@ -92,6 +106,9 @@ class OOTCSMotionAddActorCue(Operator):
 
         try:
             if actorCueListObj is not None:
+                if actorCueListObj.parent is not None and actorCueListObj.parent.ootEmptyType != "Cutscene":
+                    actorCueListObj = actorCueListObj.parent
+
                 # start by creating the new object with basic values
                 objFactory = OOTCSMotionObjectFactory()
                 newActorCueObj = objFactory.getNewActorCueObject(

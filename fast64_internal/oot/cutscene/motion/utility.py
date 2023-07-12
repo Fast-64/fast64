@@ -53,7 +53,6 @@ def createNewBone(cameraShotObj: Object, name: str, headPos: list[float], tailPo
     newBone.ootCamShotPointProp.shotPointFrame = 30
     newBone.ootCamShotPointProp.shotPointViewAngle = 60.0
     newBone.ootCamShotPointProp.shotPointRoll = 0
-    bpy.ops.object.select_all(action="DESELECT")
 
 
 def createNewCameraShot(csObj: Object):
@@ -137,7 +136,7 @@ def getNameInformations(csObj: Object, target: str, index: int):
         for obj in csObj.children:
             if obj.type == "EMPTY" and "Cue List" in obj.name or "Camera Shot" in obj.name or target in obj.name:
                 csPrefix = obj.name.split(".")[0]
-                if target in obj.name and index is not None:
+                if target in obj.name:
                     idx = int(obj.name.split(" ")[-1]) + 1
 
     # saving the cutscene number if the target objects can't be found
