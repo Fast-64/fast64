@@ -235,6 +235,9 @@ class OOTCutsceneProperty(PropertyGroup):
     csTermEnd: IntProperty(name="End Frm", min=0, default=100)
     csLists: CollectionProperty(type=OOTCSListProperty, name="Cutscene Lists")
 
+    # used for the "stop cutscene" misc command, internal usage only
+    forcedEndFrame: IntProperty(default=-1, min=-1)
+
     def draw_props(self, layout: UILayout, obj: Object):
         split = layout.split(factor=0.5)
         split.label(text="Player Age for Preview")

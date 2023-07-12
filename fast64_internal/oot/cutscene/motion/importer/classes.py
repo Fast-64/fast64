@@ -25,6 +25,8 @@ from ..io_classes import (
     OOTCSMotionCamPoint,
     OOTCSMotionCutscene,
     OOTCSMotionObjectFactory,
+    OOTCSMotionMisc,
+    OOTCSMotionMiscList,
 )
 
 
@@ -134,6 +136,15 @@ class OOTCSMotionImportCommands:
             float(params[3][:-1]),
             [self.getInteger(params[4]), self.getInteger(params[5]), self.getInteger(params[6])],
         )
+    
+    def getNewMisc(self, cmdData: str):
+        params = self.getCmdParams(cmdData, "CS_MISC", OOTCSMotionMisc.paramNumber)
+        miscType = params[0] if not params[0].startswith("0x") else f"0x{self.getInteger(params[0]):04X}"
+        return OOTCSMotionMisc(self.getInteger(params[1]), self.getInteger(params[2]), miscType)
+
+    def getNewMiscList(self, cmdData: str):
+        params = self.getCmdParams(cmdData, "CS_MISC_LIST", OOTCSMotionMiscList.paramNumber)
+        return OOTCSMotionMiscList(params[0])
 
 
 @dataclass
@@ -273,6 +284,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
             ),
             ("CAM_EYE", self.getNewCamEye, self.getNewCamPoint, "camEye"),
             ("CAM_AT", self.getNewCamAT, self.getNewCamPoint, "camAT"),
+            ("MISC_LIST", self.getNewMiscList, self.getNewMisc, "misc"),
         ]
 
         # for each cutscene from the list returned by getParsedCutscenes(),
@@ -501,6 +513,12 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                 lastIndex = self.setCameraShotData(
                     csObj, cutscene.camEyeList, cutscene.camATList, "eyeOrAT", lastIndex, i
                 )
+
+            if len(cutscene.miscList) > 0:
+                for miscList in cutscene.miscList:
+                    for miscCmd in miscList.entries:
+                        if miscCmd.type in ["0x000C", "CS_MISC_STOP_CUTSCENE"]:
+                            csObj.ootCutsceneProperty.forcedEndFrame = miscCmd.startFrame
 
             # Init camera + preview objects and setup the scene
             setupCutscene(csObj)

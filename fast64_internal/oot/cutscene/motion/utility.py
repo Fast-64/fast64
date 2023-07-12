@@ -261,8 +261,9 @@ def setupCutscene(csObj: Object):
             setupActorCuePreview(csObj, "Actor" if "Actor" in obj.ootEmptyType else "Player", False, obj)
 
     # Other setup
+    forcedEnd = csObj.ootCutsceneProperty.forcedEndFrame
     context.scene.frame_start = 0
-    context.scene.frame_end = max(getCutsceneEndFrame(csObj), context.scene.frame_end)
+    context.scene.frame_end = forcedEnd if forcedEnd > -1 else max(getCutsceneEndFrame(csObj), context.scene.frame_end)
     context.scene.render.fps = 20
     context.scene.render.resolution_x = 320
     context.scene.render.resolution_y = 240

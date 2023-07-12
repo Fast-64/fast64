@@ -103,6 +103,23 @@ class OOTCSMotionCamAT(OOTCSMotionBase):
 
 
 @dataclass
+class OOTCSMotionMisc(OOTCSMotionBase):
+    """This class contains a single misc command entry"""
+
+    type: str # see ``CutsceneMiscType`` in decomp
+    paramNumber: int = 14
+
+
+@dataclass
+class OOTCSMotionMiscList:
+    """This class contains Misc command data"""
+
+    entryTotal: int
+    entries: list[OOTCSMotionMisc] = field(default_factory=list)
+    paramNumber: int = 1
+
+
+@dataclass
 class OOTCSMotionCutscene:
     """This class contains a Cutscene's data, including every commands' data"""
 
@@ -119,6 +136,7 @@ class OOTCSMotionCutscene:
     camATSplineRelPlayerList: list[OOTCSMotionCamATSplineRelToPlayer] = field(default_factory=list)
     camEyeList: list[OOTCSMotionCamEye] = field(default_factory=list)
     camATList: list[OOTCSMotionCamAT] = field(default_factory=list)
+    miscList: list[OOTCSMotionMiscList] = field(default_factory=list)
 
 
 class OOTCSMotionObjectFactory:
