@@ -146,6 +146,8 @@ class OOT_AddCutscene(Operator):
     bl_label = "Add Cutscene"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
+    csName: StringProperty(name="", default="Something", description="The Cutscene's Name without `Cutscene.`")
+
     def execute(self, context):
         if context.mode != "OBJECT":
             object.mode_set(mode="OBJECT")
@@ -154,7 +156,7 @@ class OOT_AddCutscene(Operator):
         object.empty_add(type="ARROWS", radius=1, align="WORLD")
         csObj = context.view_layer.objects.active
         csObj.ootEmptyType = "Cutscene"
-        csObj.name = "Cutscene.Something"
+        csObj.name = f"Cutscene.{self.csName}"
         createNewCameraShot(csObj)
         setupCutscene(csObj)
 
@@ -162,6 +164,16 @@ class OOT_AddCutscene(Operator):
         csObj.select_set(True)
         context.view_layer.objects.active = csObj
         return {"FINISHED"}
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self, width=200)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.label(text="Set the Cutscene's Name")
+        split = layout.split(factor=0.30)
+        split.label(text="Cutscene.")
+        split.prop(self, "csName")
 
 
 class OOT_AddPath(Operator):
