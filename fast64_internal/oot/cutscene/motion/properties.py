@@ -3,7 +3,7 @@ import bpy
 from bpy.types import PropertyGroup, Object, UILayout, Armature, Bone, Scene
 from bpy.props import IntProperty, StringProperty, PointerProperty, EnumProperty, FloatProperty
 from bpy.utils import register_class, unregister_class
-from ...oot_upgrade import upgradeCutsceneMotion, postUpgradeCSMotion
+from ...oot_upgrade import upgradeCutsceneMotion
 from ...oot_utility import getEnumName
 from .constants import ootEnumCSMotionCamMode, ootEnumCSActorCueListCommandType
 
@@ -138,10 +138,6 @@ class OOTCutsceneMotionProperty(PropertyGroup):
     def upgrade_object(csObj: Object):
         print(f"Processing '{csObj.name}'...")
         upgradeCutsceneMotion(csObj)
-
-        if csObj.ootEmptyType == "CS Actor Cue" or csObj.ootEmptyType == "CS Player Cue":
-            postUpgradeCSMotion(csObj.ootEmptyType)
-
         print("Done!")
 
 

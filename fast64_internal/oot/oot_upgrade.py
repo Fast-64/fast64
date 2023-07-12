@@ -55,7 +55,10 @@ def upgradeCutsceneMotion(csMotionObj: Object):
             if "actor_id" in legacyData:
                 index = legacyData["actor_id"]
                 if index >= 0:
-                    csMotionProp.actorCueListProp.commandType = ootEnumCSActorCueListCommandType[index][0]
+                    if index < len(ootEnumCSActorCueListCommandType):
+                        csMotionProp.actorCueListProp.commandType = ootEnumCSActorCueListCommandType[index][0]
+                    else:
+                        csMotionProp.actorCueListProp.commandTypeCustom = f"0x{index:04X}"
                 del legacyData["actor_id"]
 
             del csMotionObj["zc_alist"]
@@ -99,20 +102,3 @@ def upgradeCutsceneMotion(csMotionObj: Object):
             if "camroll" in bone:
                 camShotPointProp.shotPointRoll = bone["camroll"]
                 del bone["camroll"]
-
-
-def postUpgradeCSMotion(emptyType: str):
-    """Sets other data for Actor Cues"""
-
-    cueObjects: list[Object] = [
-        obj for obj in bpy.data.objects if obj.type == "EMPTY" and obj.ootEmptyType == emptyType
-    ]
-
-    cueObjects.sort(key=lambda o: o.ootCSMotionProperty.actorCueProp.cueStartFrame)
-    nextObj = None
-    for prevObj, nextObj in zip(cueObjects, cueObjects[1:]):
-        prevObj.ootCSMotionProperty.actorCueProp.cueEndFrame = nextObj.ootCSMotionProperty.actorCueProp.cueStartFrame
-
-    # idk how to get the end frame properly
-    if nextObj is not None:
-        nextObj.ootCSMotionProperty.actorCueProp.cueEndFrame = nextObj.ootCSMotionProperty.actorCueProp.cueStartFrame + 1

@@ -170,6 +170,14 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
                     OOTObjectProperty.upgrade_object(obj)
                 if any(obj.name.startswith(elem) for elem in ["ActionList.", "Point.", "Preview."]):
                     OOTCutsceneMotionProperty.upgrade_object(obj)
+
+                    if "Point." in obj.name:
+                        parentObj = obj.parent
+                        if parentObj is not None:
+                            if parentObj.children[-1] == obj:
+                                obj.ootEmptyType = "CS Dummy Cue"
+                        else:
+                            print("WARNING: An Actor Cue has been detected outside an Actor Cue List: " + obj.name)
             elif obj.type == "ARMATURE":
                 if obj.parent.name.startswith("Cutscene.") or obj.parent.ootEmptyType == "Cutscene":
                     OOTCutsceneMotionProperty.upgrade_object(obj)
