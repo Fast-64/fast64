@@ -105,9 +105,6 @@ class OOTCSMotionCameraShotProperty(PropertyGroup):
         box.row().prop(self, "shotCamMode", expand=True)
         box.operator(OOTCSMotionAddBone.bl_idname)
 
-        if bpy.context.mode == "POSE":
-            box.label(text="Warning: You can't be in 'Pose' mode to edit camera bones!")
-
 
 class OOTCSMotionCameraShotPointProperty(PropertyGroup):
     shotPointFrame: IntProperty(name="Frame", description="Key point frames value", default=30, min=0)

@@ -32,7 +32,10 @@ class OOT_CSMotionCameraShotPanel(Panel):
             camShotProp.draw_props(box, self.bl_label)
 
             activeBone = editBone = None
-            if obj.mode == "OBJECT":
+            if obj.mode == "POSE":
+                box.label(text="Warning: You can't be in 'Pose' mode to edit camera bones!")
+                return
+            elif obj.mode == "OBJECT":
                 activeBone = obj.data.bones.active
 
                 if activeBone is None:
@@ -45,12 +48,13 @@ class OOT_CSMotionCameraShotPanel(Panel):
 
                 activeBone = getBoneFromEditBone(obj, editBone)
 
-            camShotPointProp = activeBone.ootCamShotPointProp
-            if editBone is not None:
-                if "shotPointFrame" in editBone or "shotPointViewAngle" in editBone or "shotPointRoll" in editBone:
-                    camShotPointProp = editBone.ootCamShotPointProp
+            if activeBone is not None:
+                camShotPointProp = activeBone.ootCamShotPointProp
+                if editBone is not None:
+                    if "shotPointFrame" in editBone or "shotPointViewAngle" in editBone or "shotPointRoll" in editBone:
+                        camShotPointProp = editBone.ootCamShotPointProp
 
-            camShotPointProp.draw_props(box)
+                camShotPointProp.draw_props(box)
 
 
 classes = (OOT_CSMotionCameraShotPanel,)
