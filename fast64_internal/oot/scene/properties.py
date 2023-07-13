@@ -264,7 +264,11 @@ class OOTSceneHeaderProperty(PropertyGroup):
     writeCutscene: BoolProperty(name="Write Cutscene")
     csWriteType: EnumProperty(name="Cutscene Data Type", items=ootEnumCSWriteType, default="Embedded")
     csWriteCustom: StringProperty(name="CS hdr var:", default="")
-    csWriteObject: PointerProperty(name="Cutscene Object", type=Object)
+    csWriteObject: PointerProperty(
+        name="Cutscene Object", 
+        type=Object,
+        poll= lambda self, object: object.type == "EMPTY" and object.ootEmptyType == "Cutscene"
+    )
 
     # These properties are for the deprecated "Embedded" cutscene type. They have
     # not been removed as doing so would break any existing scenes made with this
