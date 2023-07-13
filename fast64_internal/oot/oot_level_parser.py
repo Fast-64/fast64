@@ -44,7 +44,7 @@ from .oot_constants import (
 )
 
 
-from .oot_collision_classes import (
+from .collision.constants import (
     ootEnumCameraCrawlspaceSType,
     ootEnumFloorSetting,
     ootEnumWallSetting,

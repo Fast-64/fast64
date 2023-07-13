@@ -1,7 +1,7 @@
 import bpy, os, shutil
 from typing import Optional
 from ..utility import PluginError, toAlnum, indent
-from .oot_collision_classes import OOTCollision
+from .collision.exporter import OOTCollision
 from .oot_model_classes import OOTModel
 from ..f3d.f3d_gbi import (
     SPDisplayList,

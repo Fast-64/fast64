@@ -5,7 +5,7 @@ from bpy.utils import register_class, unregister_class
 from ...utility import prop_split
 from ..oot_utility import drawEnumWithCustom
 from ..oot_constants import ootEnumSceneID
-from ..oot_collision_classes import (
+from .constants import (
     ootEnumFloorSetting,
     ootEnumWallSetting,
     ootEnumFloorProperty,
