@@ -6,6 +6,11 @@ from dataclasses import dataclass, fields
 import bpy, os, enum, copy
 from ..utility import *
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .f3d_material import TextureProperty
+
 
 class ScrollMethod(enum.Enum):
     Vertex = 1
@@ -2209,8 +2214,7 @@ class FImageKey:
         )
 
 
-def getImageKey(texProp, useList) -> FImageKey:
-    # texProp type: TextureProperty
+def getImageKey(texProp: "TextureProperty", useList) -> FImageKey:
     return FImageKey(texProp.tex, texProp.tex_format, texProp.ci_format, useList)
 
 
