@@ -2209,7 +2209,8 @@ class FImageKey:
         )
 
 
-def getImageKey(texProp: "TextureProperty", useList) -> FImageKey:
+def getImageKey(texProp, useList) -> FImageKey:
+    # texProp type: TextureProperty
     return FImageKey(texProp.tex, texProp.tex_format, texProp.ci_format, useList)
 
 

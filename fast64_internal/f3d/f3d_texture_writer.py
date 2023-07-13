@@ -16,6 +16,7 @@ from .f3d_material import (
 )
 from .f3d_gbi import *
 from .f3d_gbi import _DPLoadTextureBlock
+from .flipbook import TextureFlipbook
 
 from ..utility import *
 

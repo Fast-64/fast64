@@ -1305,13 +1305,15 @@ class F3DContext:
 
     def loadTile(self, params):
         tileSettings = self.getTileSettings(params[0])
-        # TODO: Region parsing too hard?
-        # region = [
-        # 	math_eval(params[1], self.f3d) / 4,
-        # 	math_eval(params[2], self.f3d) / 4,
-        # 	math_eval(params[3], self.f3d) / 4,
-        # 	math_eval(params[4], self.f3d) / 4
-        # ]
+        """
+        TODO: Region parsing too hard?
+        region = [
+        	math_eval(params[1], self.f3d) / 4,
+        	math_eval(params[2], self.f3d) / 4,
+        	math_eval(params[3], self.f3d) / 4,
+        	math_eval(params[4], self.f3d) / 4
+        ]
+        """
         region = None
 
         # Defer texture parsing until next set tile.
@@ -1441,7 +1443,7 @@ class F3DContext:
         if textureName in self.textureData:
             return self.textureData[textureName]
 
-        # region ignored?
+        """region ignored?"""
         if isLUT:
             siz = "G_IM_SIZ_16b"
             width = 16
