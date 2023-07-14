@@ -1,6 +1,6 @@
 import os, re, shutil
 from ....oot_utility import ExportInfo, getSceneDirFromLevelName
-from ....oot_level_classes import OOTScene
+from ..classes import OOTScene
 
 
 def modifySceneFiles(outScene: OOTScene, exportInfo: ExportInfo):

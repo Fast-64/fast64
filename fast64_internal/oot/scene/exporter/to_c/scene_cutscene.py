@@ -1,6 +1,6 @@
 from .....utility import CData, PluginError
-from ....oot_level_classes import OOTScene
 from ....cutscene.constants import ootEnumCSTextboxTypeEntryC, ootEnumCSListTypeListC, ootEnumCSListTypeEntryC
+from ..classes import OOTScene
 
 
 def ootCutsceneDataToC(csParent, csName):

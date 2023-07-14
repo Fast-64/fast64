@@ -1,5 +1,5 @@
 from ....oot_collision import ootCollisionToC
-from ....oot_level_classes import OOTScene
+from ..classes import OOTScene
 
 
 # Writes the collision data for a scene

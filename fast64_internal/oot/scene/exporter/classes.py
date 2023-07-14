@@ -1,14 +1,14 @@
-import bpy, os, shutil
+import mathutils
+import bpy
+import os
+import shutil
+
 from typing import Optional
-from ..utility import PluginError, toAlnum, indent
-from .oot_collision_classes import OOTCollision
-from .oot_model_classes import OOTModel
-from ..f3d.f3d_gbi import (
-    SPDisplayList,
-    SPEndDisplayList,
-    GfxListTag,
-    GfxList,
-)
+from bpy.types import Object
+from ....f3d.f3d_gbi import SPDisplayList, SPEndDisplayList, GfxListTag, GfxList
+from ....utility import PluginError, toAlnum, indent
+from ...oot_collision_classes import OOTCollision
+from ...oot_model_classes import OOTModel
 
 
 class OOTCommonCommands:
@@ -451,79 +451,42 @@ class OOTRoom(OOTCommonCommands):
         return f"LENGTH_{self.actorListName(headerIndex).upper()}"
 
 
-def addActor(owner, actor, actorProp, propName, actorObjName):
-    sceneSetup = actorProp.headerSettings
-    if (
-        sceneSetup.sceneSetupPreset == "All Scene Setups"
-        or sceneSetup.sceneSetupPreset == "All Non-Cutscene Scene Setups"
-    ):
-        getattr(owner, propName).add(actor)
-        if owner.childNightHeader is not None:
-            getattr(owner.childNightHeader, propName).add(actor)
-        if owner.adultDayHeader is not None:
-            getattr(owner.adultDayHeader, propName).add(actor)
-        if owner.adultNightHeader is not None:
-            getattr(owner.adultNightHeader, propName).add(actor)
-        if sceneSetup.sceneSetupPreset == "All Scene Setups":
-            for cutsceneHeader in owner.cutsceneHeaders:
-                getattr(cutsceneHeader, propName).add(actor)
-    elif sceneSetup.sceneSetupPreset == "Custom":
-        if sceneSetup.childDayHeader and owner is not None:
-            getattr(owner, propName).add(actor)
-        if sceneSetup.childNightHeader and owner.childNightHeader is not None:
-            getattr(owner.childNightHeader, propName).add(actor)
-        if sceneSetup.adultDayHeader and owner.adultDayHeader is not None:
-            getattr(owner.adultDayHeader, propName).add(actor)
-        if sceneSetup.adultNightHeader and owner.adultNightHeader is not None:
-            getattr(owner.adultNightHeader, propName).add(actor)
-        for cutsceneHeader in sceneSetup.cutsceneHeaders:
-            if cutsceneHeader.headerIndex >= len(owner.cutsceneHeaders) + 4:
-                raise PluginError(
-                    actorObjName
-                    + " uses a cutscene header index that is outside the range of the current number of cutscene headers."
-                )
-            getattr(owner.cutsceneHeaders[cutsceneHeader.headerIndex - 4], propName).add(actor)
-    else:
-        raise PluginError("Unhandled scene setup preset: " + str(sceneSetup.sceneSetupPreset))
+class BoundingBox:
+    def __init__(self):
+        self.minPoint = None
+        self.maxPoint = None
+        self.points = []
 
+    def addPoint(self, point: tuple[float, float, float]):
+        if self.minPoint is None:
+            self.minPoint = list(point[:])
+        else:
+            for i in range(3):
+                if point[i] < self.minPoint[i]:
+                    self.minPoint[i] = point[i]
+        if self.maxPoint is None:
+            self.maxPoint = list(point[:])
+        else:
+            for i in range(3):
+                if point[i] > self.maxPoint[i]:
+                    self.maxPoint[i] = point[i]
+        self.points.append(point)
 
-def addStartPosition(scene, index, actor, actorProp, actorObjName):
-    sceneSetup = actorProp.headerSettings
-    if (
-        sceneSetup.sceneSetupPreset == "All Scene Setups"
-        or sceneSetup.sceneSetupPreset == "All Non-Cutscene Scene Setups"
-    ):
-        addStartPosAtIndex(scene.startPositions, index, actor)
-        if scene.childNightHeader is not None:
-            addStartPosAtIndex(scene.childNightHeader.startPositions, index, actor)
-        if scene.adultDayHeader is not None:
-            addStartPosAtIndex(scene.adultDayHeader.startPositions, index, actor)
-        if scene.adultNightHeader is not None:
-            addStartPosAtIndex(scene.adultNightHeader.startPositions, index, actor)
-        if sceneSetup.sceneSetupPreset == "All Scene Setups":
-            for cutsceneHeader in scene.cutsceneHeaders:
-                addStartPosAtIndex(cutsceneHeader.startPositions, index, actor)
-    elif sceneSetup.sceneSetupPreset == "Custom":
-        if sceneSetup.childDayHeader and scene is not None:
-            addStartPosAtIndex(scene.startPositions, index, actor)
-        if sceneSetup.childNightHeader and scene.childNightHeader is not None:
-            addStartPosAtIndex(scene.childNightHeader.startPositions, index, actor)
-        if sceneSetup.adultDayHeader and scene.adultDayHeader is not None:
-            addStartPosAtIndex(scene.adultDayHeader.startPositions, index, actor)
-        if sceneSetup.adultNightHeader and scene.adultNightHeader is not None:
-            addStartPosAtIndex(scene.adultNightHeader.startPositions, index, actor)
-        for cutsceneHeader in sceneSetup.cutsceneHeaders:
-            if cutsceneHeader.headerIndex >= len(scene.cutsceneHeaders) + 4:
-                raise PluginError(
-                    actorObjName
-                    + " uses a cutscene header index that is outside the range of the current number of cutscene headers."
-                )
-            addStartPosAtIndex(scene.cutsceneHeaders[cutsceneHeader.headerIndex - 4].startPositions, index, actor)
-    else:
-        raise PluginError("Unhandled scene setup preset: " + str(sceneSetup.sceneSetupPreset))
+    def addMeshObj(self, obj: Object, transform: mathutils.Matrix):
+        mesh = obj.data
+        for vertex in mesh.vertices:
+            self.addPoint(transform @ vertex.co)
 
+    def getEnclosingSphere(self) -> tuple[float, float]:
+        centroid = (mathutils.Vector(self.minPoint) + mathutils.Vector(self.maxPoint)) / 2
+        radius = 0
+        for point in self.points:
+            distance = (mathutils.Vector(point) - centroid).length
+            if distance > radius:
+                radius = distance
 
-def addStartPosAtIndex(startPosDict, index, value):
-    if index in startPosDict:
-        raise PluginError("Error: Repeated start position spawn index: " + str(index))
-    startPosDict[index] = value
+        # print(f"Radius: {radius}, Centroid: {centroid}")
+
+        transformedCentroid = [round(value) for value in centroid]
+        transformedRadius = round(radius)
+        return transformedCentroid, transformedRadius

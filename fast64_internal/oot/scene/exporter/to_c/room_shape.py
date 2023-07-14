@@ -2,7 +2,7 @@ from .....utility import CData, indent
 from .....f3d.f3d_gbi import ScrollMethod, TextureExportSettings
 from ....oot_model_classes import OOTGfxFormatter
 from ....oot_constants import ootRoomShapeStructs, ootRoomShapeEntryStructs, ootEnumRoomShapeType
-from ....oot_level_classes import OOTRoom, OOTRoomMeshGroup, OOTRoomMesh
+from ..classes import OOTRoom, OOTRoomMeshGroup, OOTRoomMesh
 
 
 def getRoomShapeDLEntry(meshEntry: OOTRoomMeshGroup, roomShape: str):

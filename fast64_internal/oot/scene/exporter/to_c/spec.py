@@ -1,8 +1,12 @@
 import os, re, bpy
 from .....utility import readFile, writeFile, indent
 from ....oot_utility import ExportInfo, getSceneDirFromLevelName
-from ....oot_level_classes import OOTScene
-from .scene import OOTSceneC
+from ..classes import OOTScene
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .scene import OOTSceneC
 
 
 def getSceneSpecEntries(segmentDefinition: list[str], sceneName: str):
@@ -38,7 +42,7 @@ def getSpecEntries(fileData: str):
     return entries, compressFlag, includes
 
 
-def editSpecFile(scene: OOTScene, exportInfo: ExportInfo, sceneC: OOTSceneC):
+def editSpecFile(scene: OOTScene, exportInfo: ExportInfo, sceneC: "OOTSceneC"):
     """Adds or removes entries for the selected scene"""
     exportPath = exportInfo.exportPath
     sceneName = scene.name if scene is not None else exportInfo.name
