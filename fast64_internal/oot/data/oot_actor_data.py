@@ -28,7 +28,6 @@ class OoT_ActorElement(OoT_BaseElement):
     category: str
     tiedObjects: list[str]
     params: list[OoT_ParameterElement]
-    paramsByType: dict[str, OoT_ParameterElement]
 
 
 class OoT_ActorData:
@@ -112,8 +111,7 @@ class OoT_ActorData:
                     int(actor.attrib["Index"]),
                     actor.attrib["Category"],
                     tiedObjects,
-                    params,
-                    {paramElem.type: paramElem for paramElem in params}
+                    params
                 )
             )
 
