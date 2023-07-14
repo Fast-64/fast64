@@ -861,3 +861,24 @@ def getEvalParams(input: str):
             raise ValueError(f"Unsupported AST node {node}")
 
     return f"0x{_eval(node.body):X}"
+
+
+def getShiftFromMask(mask: int):
+    """Returns the shift value from the mask"""
+
+    # get the shift by subtracting the length of the mask
+    # converted in binary on 16 bits (since the mask can be on 16 bits) with
+    # that length but with the rightmost zeros stripped
+    return int(f"{len(f'{mask:016b}') - len(f'{mask:016b}'.rstrip('0'))}", base=10)
+
+
+def getFormattedParams(mask: int, value: str, isBool: bool):
+    """Returns the parameter with the correct format"""
+    shift = getShiftFromMask(mask) if mask is not None else 0
+
+    if not int(getEvalParams(value), base=16):
+        return None
+    elif not isBool:
+        return f"(({value} << {shift}) & 0x{mask:04X})" if shift > 0 else f"({value} & 0x{mask:04X})"
+    else:
+        return f"({value} << {shift})" if shift > 0 else f"0x{value}"

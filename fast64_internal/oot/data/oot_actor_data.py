@@ -14,7 +14,7 @@ class OoT_ParameterElement:
     target: str
     tiedTypes: list[int]
     items: list[tuple[int, str]] # for <Type> and <Enum>, int is "Value"/"Params" and str is the name
-
+    
 
 @dataclass
 class OoT_ListElement:
@@ -45,6 +45,7 @@ class OoT_ActorData:
         self.chestItems: list[OoT_ListElement] = []
         self.collectibleItems: list[OoT_ListElement] = []
         self.messageItems: list[OoT_ListElement] = []
+
         listNameToList = {
             "Chest Content": self.chestItems,
             "Collectibles": self.collectibleItems,
@@ -90,12 +91,13 @@ class OoT_ActorData:
                     if tiedTypes is not None:
                         tiedTypeList = [int(val, base=16) for val in tiedTypes.split(",")]
 
+                    defaultName = f"{elem.get('Type')} {elemType}"
                     params.append(
                         OoT_ParameterElement(
                             elemType,
-                            int(elem.get("Index", "-1")),
+                            int(elem.get("Index", "1")),
                             int(elem.get("Mask", "0xFFFF"), base=16),
-                            elem.get("Name"),
+                            elem.get("Name", defaultName if not "None" in defaultName else elemType),
                             elem.get("Type"),
                             elem.get("Target", "Params"),
                             tiedTypeList,

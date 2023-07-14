@@ -13,7 +13,56 @@ from ..oot_utility import (
     drawAddButton,
     drawCollectionOps,
     drawEnumWithCustom,
+    getEvalParams,
+    getShiftFromMask,
+    getFormattedParams,
 )
+
+
+def getObjName(actorKey: str, paramType: str, paramSubType: str, paramIndex: int):
+    flagTypeToObjName = {"Chest": "chestFlag", "Collectible": "collectibleFlag", "Switch": "switchFlag"}
+    paramTypeToObjName = {
+        "Type": "type",
+        "Property": "props",
+        "Bool": "bool",
+        "Enum": "enum",
+        "ChestContent": "chestContent",
+        "Collectible": "collectibleDrop",
+        "Message": "naviMsg",
+    }
+    suffix = paramTypeToObjName[paramType] if paramType != "Flag" else flagTypeToObjName[paramSubType]
+    return f"{actorKey}.{suffix}{paramIndex}" # i.e: ``en_test.props1``
+
+
+def initOOTActorProperties():
+    """This function is used to edit the OOTActorProperty class"""
+
+    propAnnotations = getattr(OOTActorProperty, "__annotations__", None)
+    if propAnnotations is None:
+        OOTActorProperty.__annotations__ = propAnnotations = {}
+
+    paramTypeToEnumItems = {
+        "ChestContent": ootData.actorData.ootEnumChestContent,
+        "Collectible": ootData.actorData.ootEnumCollectibleItems,
+        "Message": ootData.actorData.ootEnumNaviMessageData,
+    }
+
+    for actor in ootData.actorData.actorList:
+        for param in actor.params:
+            objName = getObjName(actor.key, param.type, param.subType, param.index)
+            enumItems = None
+
+            if len(param.items) > 0:
+                enumItems = [(f"0x{val:04X}", name, f"0x{val:04X}") for val, name in param.items]
+            elif param.type in ["ChestContent", "Collectible", "Message"]:
+                enumItems = paramTypeToEnumItems[param.type]
+
+            if param.type in ["Property", "Flag"]:
+                propAnnotations[objName] = StringProperty(name="", default="0x0")
+            elif param.type == "Bool":
+                propAnnotations[objName] = BoolProperty(name="", default=False)
+            elif param.type in ["Type", "Enum", "ChestContent", "Collectible", "Message"] and enumItems is not None:
+                propAnnotations[objName] = EnumProperty(name="", items=enumItems, default=enumItems[0][0])
 
 
 class OOTActorHeaderItemProperty(PropertyGroup):
@@ -103,17 +152,137 @@ class OOTActorHeaderProperty(PropertyGroup):
 class OOTActorProperty(PropertyGroup):
     actorID: EnumProperty(name="Actor", items=ootData.actorData.ootEnumActorID, default="ACTOR_PLAYER")
     actorIDCustom: StringProperty(name="Actor ID", default="ACTOR_PLAYER")
-    actorParam: StringProperty(name="Actor Parameter", default="0x0000")
-    rotOverride: BoolProperty(name="Override Rotation", default=False)
-    rotOverrideX: StringProperty(name="Rot X", default="0")
-    rotOverrideY: StringProperty(name="Rot Y", default="0")
-    rotOverrideZ: StringProperty(name="Rot Z", default="0")
+
+    actorParam: StringProperty(
+        name="Actor Parameter",
+        default="0x0000",
+        get=lambda self: self.getParamValue("Params"),
+        set=lambda self, value: self.setParamValue(value, "Params")
+    )
+
+    rotOverride: BoolProperty(name="Override Rotation", default=False, get=lambda self: self.isRotation(None))
+    isRotX: BoolProperty(name="", default=False, get=lambda self: self.isRotation("XRot"))
+    isRotY: BoolProperty(name="", default=False, get=lambda self: self.isRotation("YRot"))
+    isRotZ: BoolProperty(name="", default=False, get=lambda self: self.isRotation("ZRot"))
+    rotOverrideX: StringProperty(
+        name="Rot X",
+        default="0",
+        get=lambda self: self.getParamValue("XRot"),
+        set=lambda self, value: self.setParamValue(value, "XRot")
+    )
+    rotOverrideY: StringProperty(
+        name="Rot Y",
+        default="0",
+        get=lambda self: self.getParamValue("YRot"),
+        set=lambda self, value: self.setParamValue(value, "YRot")
+    )
+    rotOverrideZ: StringProperty(
+        name="Rot Z",
+        default="0",
+        get=lambda self: self.getParamValue("ZRot"),
+        set=lambda self, value: self.setParamValue(value, "ZRot")
+    )
+
     headerSettings: PointerProperty(type=OOTActorHeaderProperty)
 
+    def isRotation(self, target: str):
+        actor = ootData.actorData.actorsByID.get(self.actorID)
+        curType = None
+        if actor is not None:
+            for param in actor.params:
+                if param.type == "Type":
+                    objName = getObjName(actor.key, param.type, param.subType, param.index)
+                    curType = int(getEvalParams(getattr(self, objName)), base=16)
+                
+                if curType is not None and curType in param.tiedTypes or len(param.tiedTypes) == 0:
+                    if param.target != "Params" and target is None or target == param.target:
+                        return True
+        return False
+
+    def setParamValue(self, value: str | bool, target: str):
+        actor = ootData.actorData.actorsByID.get(self.actorID)
+        value = getEvalParams(value if not isinstance(value, bool) else "1" if value else "0")
+        foundType = None
+        if actor is not None:
+            for param in actor.params:
+                if target == param.target:
+                    shift = getShiftFromMask(param.mask)
+                    if param.type != "Type":
+                        shiftedVal = (int(value, base=16) & param.mask) >> shift
+                    else:
+                        shiftedVal = int(value, base=16) & param.mask
+                        foundType = shiftedVal
+
+                    if foundType is not None and foundType in param.tiedTypes or len(param.tiedTypes) == 0:
+                        objName = getObjName(actor.key, param.type, param.subType, param.index)
+                        setattr(self, objName, f"0x{shiftedVal:04X}")
+
+    def getParamValue(self, target: str):
+        actor = ootData.actorData.actorsByID.get(self.actorID)
+        paramList = []
+        typeValue = None
+        if actor is not None:
+            for param in actor.params:
+                if target == param.target:
+                    paramValue = None
+                    curPropValue = getattr(self, getObjName(actor.key, param.type, param.subType, param.index))
+
+                    if not param.type in ["Type", "ChestContent", "Collectible", "Message"]:
+                        value = getEvalParams(curPropValue if not param.type == "Bool" else "1" if curPropValue else "0")
+                        paramValue = f"0x{int(value, base=16):X}"
+                    else:
+                        if param.type == "Type":
+                            typeValue = int(getEvalParams(curPropValue), base=16)
+                        else:
+                            value = 0
+                            if param.type == "ChestContent":
+                                value = ootData.actorData.chestItemByKey[curPropValue].value
+                            elif param.type == "Collectible":
+                                value = ootData.actorData.collectibleItemsByKey[curPropValue].value
+                            elif param.type == "Message":
+                                value = ootData.actorData.messageItemsByKey[curPropValue].value
+                            paramValue = f"0x{value:X}"
+
+                    if typeValue is not None and typeValue in param.tiedTypes or len(param.tiedTypes) == 0:
+                        if param.type != "Type" and paramValue is not None:
+                            value = getFormattedParams(param.mask, getEvalParams(paramValue), param.type == "Bool")
+                            if value is not None:
+                                paramList.append(value)
+
+        if len(paramList) > 0:
+            paramString = " | ".join(val for val in paramList)
+        else:
+            paramString = "0x0"
+
+        evalTypeValue = typeValue if typeValue is not None else 0
+        evalParamValue = int(getEvalParams(paramString), base=16)
+
+        if evalTypeValue and evalParamValue and typeValue is not None:
+            paramString = f"(0x{typeValue:04X} | ({paramString}))"
+        elif evalTypeValue and not evalParamValue and typeValue is not None:
+            paramString = f"0x{typeValue:04X}"
+        elif not evalTypeValue and evalParamValue:
+            paramString = f"({paramString})"
+        else:
+            paramString = "0x0"
+
+        return paramString
+
+    def draw_params(self, layout: UILayout, user: str):
+        actor = ootData.actorData.actorsByID.get(self.actorID)
+        curType = None
+        if actor is not None:
+            for param in actor.params:
+                objName = getObjName(actor.key, param.type, param.subType, param.index)
+
+                if param.type == "Type":
+                    curType = int(getEvalParams(getattr(self, objName)), base=16)
+
+                if curType is not None and curType in param.tiedTypes or param.type == "Type" or len(param.tiedTypes) == 0:
+                    prop_split(layout, self, objName, param.name)
+
     def draw_props(self, layout: UILayout, altRoomProp: OOTAlternateRoomHeaderProperty, objName: str):
-        # prop_split(layout, actorProp, 'actorID', 'Actor')
         actorIDBox = layout.column()
-        # actorIDBox.box().label(text = "Settings")
         searchOp = actorIDBox.operator(OOT_SearchActorIDEnumOperator.bl_idname, icon="VIEWZOOM")
         searchOp.actorUser = "Actor"
         searchOp.objName = objName
@@ -127,18 +296,22 @@ class OOTActorProperty(PropertyGroup):
         split.label(text="Actor ID")
         split.label(text=getEnumName(ootData.actorData.ootEnumActorID, self.actorID))
 
+        self.draw_params(actorIDBox, "Actor")
+        
         if self.actorID == "Custom":
-            # actorIDBox.prop(actorProp, 'actorIDCustom', text = 'Actor ID')
             prop_split(actorIDBox, self, "actorIDCustom", "")
 
-        # layout.box().label(text = 'Actor IDs defined in include/z64actors.h.')
-        prop_split(actorIDBox, self, "actorParam", "Actor Parameter")
+        paramBox = actorIDBox.box()
+        paramBox.label(text="Actor Parameter")
+        paramBox.prop(self, "actorParam", text="")
 
-        actorIDBox.prop(self, "rotOverride", text="Override Rotation (ignore Blender rot)")
         if self.rotOverride:
-            prop_split(actorIDBox, self, "rotOverrideX", "Rot X")
-            prop_split(actorIDBox, self, "rotOverrideY", "Rot Y")
-            prop_split(actorIDBox, self, "rotOverrideZ", "Rot Z")
+            if self.isRotX:
+                prop_split(paramBox, self, "rotOverrideX", "Rot X")
+            if self.isRotY:
+                prop_split(paramBox, self, "rotOverrideY", "Rot Y")
+            if self.isRotZ:
+                prop_split(paramBox, self, "rotOverrideZ", "Rot Z")
 
         headerProp: OOTActorHeaderProperty = self.headerSettings
         headerProp.draw_props(actorIDBox, "Actor", altRoomProp, objName)
@@ -165,6 +338,8 @@ class OOTTransitionActorProperty(PropertyGroup):
         split = actorIDBox.split(factor=0.5)
         split.label(text="Actor ID")
         split.label(text=getEnumName(ootData.actorData.ootEnumActorID, self.actor.actorID))
+
+        self.actor.draw_params(actorIDBox, "Transition")
 
         if self.actor.actorID == "Custom":
             prop_split(actorIDBox, self.actor, "actorIDCustom", "")
@@ -206,6 +381,10 @@ class OOTEntranceProperty(PropertyGroup):
 
         entranceProp = obj.ootEntranceProperty
         prop_split(box, entranceProp, "spawnIndex", "Spawn Index")
+
+        if not self.customActor:
+            self.actor.draw_params(box, "Entrance")
+
         prop_split(box, entranceProp.actor, "actorParam", "Actor Param")
         box.prop(entranceProp, "customActor")
         if entranceProp.customActor:
