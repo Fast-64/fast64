@@ -168,7 +168,6 @@ def writeTextureArraysExistingScene(fModel: OOTModel, exportPath: str, sceneIncl
 def ootExportSceneToC(
     originalSceneObj, transformMatrix, f3dType, isHWv1, sceneName, DLFormat, savePNG, exportInfo, bootToSceneOptions
 ):
-
     checkObjectReference(originalSceneObj, "Scene object")
     isCustomExport = exportInfo.isCustomExportPath
     exportPath = exportInfo.exportPath

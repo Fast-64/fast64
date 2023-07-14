@@ -33,7 +33,6 @@ def getConvertedTransformWithOrientation(transformMatrix, sceneObj, obj, orienta
 
 
 def getConvertedTransform(transformMatrix, sceneObj, obj, handleOrientation):
-
     # Hacky solution to handle Z-up to Y-up conversion
     # We cannot apply rotation to empty, as that modifies scale
     if handleOrientation:
@@ -152,7 +151,6 @@ def readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix):
 
 
 def readCrawlspace(obj, scene, transformMatrix):
-
     splineProp = obj.ootSplineProperty
     index = splineProp.index
 

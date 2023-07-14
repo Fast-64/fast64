@@ -9,13 +9,13 @@ from ...oot_collision_classes import OOTWaterBox
 from .classes import BoundingBox
 
 from .utility import (
-    getConvertedTransform, 
-    readCamPos, 
-    readCrawlspace, 
-    readPathProp, 
+    getConvertedTransform,
+    readCamPos,
+    readCrawlspace,
+    readPathProp,
     readRoomData,
-    readSceneData, 
-    addActor, 
+    readSceneData,
+    addActor,
     addStartPosition,
 )
 
@@ -53,7 +53,6 @@ from .classes import (
 def ootProcessMesh(
     roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertTextureData, LODHierarchyObject, boundingBox: BoundingBox
 ):
-
     relativeTransform = transformMatrix @ sceneObj.matrix_world.inverted() @ obj.matrix_world
     translation, rotation, scale = relativeTransform.decompose()
 
@@ -123,7 +122,6 @@ def ootProcessMesh(
 def ootProcessLOD(
     roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertTextureData, LODHierarchyObject, boundingBox: BoundingBox
 ):
-
     relativeTransform = transformMatrix @ sceneObj.matrix_world.inverted() @ obj.matrix_world
     translation, rotation, scale = relativeTransform.decompose()
     ootTranslation = ootConvertTranslation(translation)
@@ -302,10 +300,9 @@ def ootProcessWaterBox(sceneObj, obj, transformMatrix, scene, roomIndex):
             obj.empty_display_size,
         )
     )
-        
+
 
 def ootConvertScene(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneName, DLFormat, convertTextureData):
-
     if originalSceneObj.data is not None or originalSceneObj.ootEmptyType != "Scene":
         raise PluginError(originalSceneObj.name + ' is not an empty with the "Scene" empty type.')
 
