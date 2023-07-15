@@ -14,7 +14,8 @@ class OoT_ParameterElement:
     target: str
     tiedTypes: list[int]
     items: list[tuple[int, str]] # for <Type> and <Enum>, int is "Value"/"Params" and str is the name
-    
+    valueRange: list[int]
+
 
 @dataclass
 class OoT_ListElement:
@@ -54,7 +55,6 @@ class OoT_ActorData:
 
         for elem in actorRoot.iterfind("List"):
             listName = elem.get("Name")
-
             if listName is not None:
                 for item in elem:
                     listNameToList[listName].append(
@@ -73,15 +73,12 @@ class OoT_ActorData:
             params: list[OoT_ParameterElement] = []
             for elem in actor:
                 elemType = elem.tag
-
                 if elemType != "Notes":
                     items: list[tuple[int, str]] = []
-
                     if elemType == "Type" or elemType == "Enum":
                         for item in elem:
                             key = "Params" if elemType == "Type" else "Value"
                             name = item.text.strip() if elemType == "Type" else item.get("Name")
-
                             if key is not None and name is not None:
                                 items.append((int(item.get(key), base=16), name))
 
@@ -92,6 +89,7 @@ class OoT_ActorData:
                         tiedTypeList = [int(val, base=16) for val in tiedTypes.split(",")]
 
                     defaultName = f"{elem.get('Type')} {elemType}"
+                    valueRange = elem.get("ValueRange")
                     params.append(
                         OoT_ParameterElement(
                             elemType,
@@ -101,7 +99,8 @@ class OoT_ActorData:
                             elem.get("Type"),
                             elem.get("Target", "Params"),
                             tiedTypeList,
-                            items
+                            items,
+                            [int(val) for val in valueRange.split("-")] if valueRange is not None else [None, None]
                         )
                     )
 
@@ -123,6 +122,10 @@ class OoT_ActorData:
         self.chestItemByKey = {elem.key: elem for elem in self.chestItems}
         self.collectibleItemsByKey = {elem.key: elem for elem in self.collectibleItems}
         self.messageItemsByKey = {elem.key: elem for elem in self.messageItems}
+
+        self.chestItemByValue = {elem.value: elem for elem in self.chestItems}
+        self.collectibleItemsByValue = {elem.value: elem for elem in self.collectibleItems}
+        self.messageItemsByValue = {elem.value: elem for elem in self.messageItems}
 
         # list of tuples used by Blender's enum properties
         lastIndex = max(1, *(actor.index for actor in self.actorList))
