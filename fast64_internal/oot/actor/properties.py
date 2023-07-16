@@ -2,11 +2,10 @@ from bpy.types import Object, PropertyGroup, UILayout
 from bpy.utils import register_class, unregister_class
 from bpy.props import EnumProperty, StringProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
 from ...utility import prop_split, label_split
-from ..data.oot_actor_data import OoT_ParameterElement
 from ..oot_constants import ootData, ootEnumSceneSetupPreset, ootEnumCamTransition
 from ..scene.properties import OOTAlternateSceneHeaderProperty
 from ..room.properties import OOTAlternateRoomHeaderProperty
-from .operators import OOT_SearchActorIDEnumOperator
+from .operators import OOT_SearchActorIDEnumOperator, OOT_SearchChestContentEnumOperator, OOT_SearchNaviMsgIDEnumOperator
 
 from ..oot_utility import (
     getRoomObj,
@@ -291,17 +290,35 @@ class OOTActorProperty(PropertyGroup):
 
         return paramString if not self.evalParams else getEvalParams(paramString)
 
-    def draw_params(self, layout: UILayout, user: str):
+    def draw_params(self, layout: UILayout, objName: str):
         actor = ootData.actorData.actorsByID[self.actorID]
         curType = None
         for param in actor.params:
-            objName = getObjName(actor.key, param.type, param.subType, param.index)
+            propName = getObjName(actor.key, param.type, param.subType, param.index)
 
             if param.type == "Type":
-                curType = int(getEvalParams(getattr(self, objName)), base=16)
+                curType = int(getEvalParams(getattr(self, propName)), base=16)
 
             if curType is not None and curType in param.tiedTypes or param.type == "Type" or len(param.tiedTypes) == 0:
-                prop_split(layout, self, objName, param.name)
+                searchOp = itemName = None
+                labelName = ""
+                if param.type == "ChestContent":
+                    searchOp = layout.operator(OOT_SearchChestContentEnumOperator.bl_idname)
+                    labelName = "Chest Content"
+                    itemName = ootData.actorData.chestItemByKey[getattr(self, propName)].name
+                elif param.type == "Message":
+                    searchOp = layout.operator(OOT_SearchNaviMsgIDEnumOperator.bl_idname)
+                    labelName = "Navi Message ID"
+                    itemName = ootData.actorData.messageItemsByKey[getattr(self, propName)].name
+
+                if param.type in ["ChestContent", "Message"] and searchOp is not None and itemName is not None:
+                    searchOp.objName = objName
+                    searchOp.propName = propName
+                    split = layout.split(factor=0.5)
+                    split.label(text=labelName)
+                    split.label(text=itemName)
+                else:
+                    prop_split(layout, self, propName, param.name)
 
     def draw_props(self, layout: UILayout, altRoomProp: OOTAlternateRoomHeaderProperty, objName: str):
         actorIDBox = layout.column()
@@ -319,7 +336,7 @@ class OOTActorProperty(PropertyGroup):
         split.label(text=getEnumName(ootData.actorData.ootEnumActorID, self.actorID))
 
         if self.actorID != "Custom":
-            self.draw_params(actorIDBox, "Actor")
+            self.draw_params(actorIDBox, objName)
         else:
             prop_split(actorIDBox, self, "actorIDCustom", "")
 
@@ -377,7 +394,7 @@ class OOTTransitionActorProperty(PropertyGroup):
         split.label(text="Actor ID")
         split.label(text=getEnumName(ootData.actorData.ootEnumActorID, self.actor.actorID))
 
-        self.actor.draw_params(actorIDBox, "Transition")
+        self.actor.draw_params(actorIDBox, objName)
 
         if self.actor.actorID == "Custom":
             prop_split(actorIDBox, self.actor, "actorIDCustom", "")
@@ -421,7 +438,7 @@ class OOTEntranceProperty(PropertyGroup):
         prop_split(box, entranceProp, "spawnIndex", "Spawn Index")
 
         if not self.customActor:
-            self.actor.draw_params(box, "Entrance")
+            self.actor.draw_params(box, objName)
 
         prop_split(box, entranceProp.actor, "actorParam", "Actor Param")
         box.prop(entranceProp, "customActor")
