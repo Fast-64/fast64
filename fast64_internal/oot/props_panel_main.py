@@ -157,6 +157,8 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
             if obj.data is None:
                 if obj.ootEmptyType == "Room":
                     OOTObjectProperty.upgrade_object(obj)
+                if obj.ootEmptyType in ["Actor", "Transition Actor", "Entrance"]:
+                    OOTActorProperty.upgrade_object(obj)
 
 
 class OOTCullGroupProperty(bpy.types.PropertyGroup):

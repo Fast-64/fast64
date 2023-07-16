@@ -752,8 +752,8 @@ def ootProcessLOD(
 
 def getActorRotation(actorProp: OOTActorProperty, blendRots: list[int]):
     # Figure out which rotation to export, Blender's or the override
-    customSuffix = "Custom" if actorProp.actorID == "Custom" else ""
-    overrideRots = [getattr(actorProp, f"rotOverride{rot}{customSuffix}") for rot in ["X", "Y", "Z"]]
+    override = "Override" if actorProp.actorID == "Custom" else ""
+    overrideRots = [getattr(actorProp, f"rot{override}{rot}") for rot in ["X", "Y", "Z"]]
     exportRots = [f"DEG_TO_BINANG({(rot * (180 / 0x8000)):.3f})" for rot in blendRots]
     if actorProp.actorID == "Custom":
         exportRots = overrideRots if actorProp.rotOverride else exportRots
@@ -791,7 +791,7 @@ def ootProcessEmpties(scene, room, sceneObj, obj: Object, transformMatrix):
                         getCustomProperty(actorProp, "actorID"),
                         translation,
                         ", ".join(getActorRotation(actorProp, rotation)),
-                        actorProp.actorParam if actorProp.actorID != "Custom" else actorProp.actorParamCustom,
+                        actorProp.params if actorProp.actorID != "Custom" else actorProp.actorParam,
                     ),
                     actorProp,
                     "actorList",
@@ -827,7 +827,7 @@ def ootProcessEmpties(scene, room, sceneObj, obj: Object, transformMatrix):
                         back[1],
                         translation,
                         rotation[1],  # TODO: Correct axis?
-                        actorProp.actorParam if actorProp.actorID != "Custom" else actorProp.actorParamCustom,
+                        actorProp.params if actorProp.actorID != "Custom" else actorProp.actorParam,
                     ),
                     transActorProp.actor,
                     "transitionActorList",
@@ -846,7 +846,7 @@ def ootProcessEmpties(scene, room, sceneObj, obj: Object, transformMatrix):
                     "ACTOR_PLAYER" if not entranceProp.customActor else entranceProp.actor.actorIDCustom,
                     translation,
                     ", ".join(f"DEG_TO_BINANG({(rot * (180 / 0x8000)):.3f})" for rot in rotation),
-                    actorProp.actorParam if not entranceProp.customActor else actorProp.actorParamCustom,
+                    actorProp.params if not entranceProp.customActor else actorProp.actorParam,
                 ),
                 entranceProp.actor,
                 obj.name,

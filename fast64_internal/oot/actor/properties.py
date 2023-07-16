@@ -3,6 +3,7 @@ from bpy.utils import register_class, unregister_class
 from bpy.props import EnumProperty, StringProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
 from ...utility import prop_split, label_split
 from ..oot_constants import ootData, ootEnumSceneSetupPreset, ootEnumCamTransition
+from ..oot_upgrade import upgradeActors
 from ..scene.properties import OOTAlternateSceneHeaderProperty
 from ..room.properties import OOTAlternateRoomHeaderProperty
 from .operators import (
@@ -160,34 +161,34 @@ class OOTActorProperty(PropertyGroup):
     )
     actorIDCustom: StringProperty(name="Actor ID", default="ACTOR_PLAYER")
 
-    actorParam: StringProperty(
+    actorParam: StringProperty(name="Actor Parameter", default="0x0000")
+    rotOverride: BoolProperty(name="Override Rotation", default=False)
+    rotOverrideX: StringProperty(name="Rot X", default="0x0000")
+    rotOverrideY: StringProperty(name="Rot Y", default="0x0000")
+    rotOverrideZ: StringProperty(name="Rot Z", default="0x0000")
+
+    params: StringProperty(
         name="Actor Parameter",
         default="0x0000",
         get=lambda self: self.getParamValue("Params"),
         set=lambda self, value: self.setParamValue(value, "Params"),
     )
-    actorParamCustom: StringProperty(name="Actor Parameter", default="0x0000")
-    rotOverrideXCustom: StringProperty(name="Rot X", default="0x0000")
-    rotOverrideYCustom: StringProperty(name="Rot Y", default="0x0000")
-    rotOverrideZCustom: StringProperty(name="Rot Z", default="0x0000")
-
-    rotOverride: BoolProperty(name="Override Rotation", default=False)
     isRotX: BoolProperty(name="", default=False, get=lambda self: self.isRotation("XRot"))
     isRotY: BoolProperty(name="", default=False, get=lambda self: self.isRotation("YRot"))
     isRotZ: BoolProperty(name="", default=False, get=lambda self: self.isRotation("ZRot"))
-    rotOverrideX: StringProperty(
+    rotX: StringProperty(
         name="Rot X",
         default="0",
         get=lambda self: self.getParamValue("XRot"),
         set=lambda self, value: self.setParamValue(value, "XRot"),
     )
-    rotOverrideY: StringProperty(
+    rotY: StringProperty(
         name="Rot Y",
         default="0",
         get=lambda self: self.getParamValue("YRot"),
         set=lambda self, value: self.setParamValue(value, "YRot"),
     )
-    rotOverrideZ: StringProperty(
+    rotZ: StringProperty(
         name="Rot Z",
         default="0",
         get=lambda self: self.getParamValue("ZRot"),
@@ -196,6 +197,11 @@ class OOTActorProperty(PropertyGroup):
 
     headerSettings: PointerProperty(type=OOTActorHeaderProperty)
     evalParams: BoolProperty(name="Eval Params", default=False)
+
+    @staticmethod
+    def upgrade_object(obj: Object):
+        print(f"Processing '{obj.name}'...")
+        upgradeActors(obj)
 
     def isRotation(self, target: str):
         actor = ootData.actorData.actorsByID[self.actorID]
@@ -352,9 +358,9 @@ class OOTActorProperty(PropertyGroup):
 
         if self.actorID != "Custom":
             paramBox.prop(self, "evalParams")
-            paramBox.prop(self, "actorParam", text="")
+            paramBox.prop(self, "params", text="")
         else:
-            paramBox.prop(self, "actorParamCustom", text="")
+            paramBox.prop(self, "actorParam", text="")
 
         allowedRotations = []
         if self.rotOverride:
@@ -371,9 +377,10 @@ class OOTActorProperty(PropertyGroup):
             paramBox.prop(self, "rotOverride", text="Override Rotation (ignore Blender rot)")
 
         for rot in allowedRotations:
+            override = ""
             if self.actorID == "Custom":
-                rot += "Custom"
-            prop_split(paramBox, self, f"rotOverride{rot}", f"Rot {rot.removesuffix('Custom')}")
+                override = "Override"
+            prop_split(paramBox, self, f"rot{override}{rot}", f"Rot {rot}")
 
         headerProp: OOTActorHeaderProperty = self.headerSettings
         headerProp.draw_props(actorIDBox, "Actor", altRoomProp, objName)
@@ -410,9 +417,9 @@ class OOTTransitionActorProperty(PropertyGroup):
         paramBox.label(text="Actor Parameter")
         if self.actor.actorID != "Custom":
             paramBox.prop(self.actor, "evalParams")
-            paramBox.prop(self.actor, "actorParam", text="")
+            paramBox.prop(self.actor, "params", text="")
         else:
-            paramBox.prop(self.actor, "actorParamCustom", text="")
+            paramBox.prop(self.actor, "actorParam", text="")
 
         if roomObj is None:
             actorIDBox.label(text="This must be part of a Room empty's hierarchy.", icon="OUTLINER")
@@ -459,9 +466,9 @@ class OOTEntranceProperty(PropertyGroup):
         paramBox.label(text="Actor Parameter")
         if not self.customActor:
             paramBox.prop(self.actor, "evalParams")
-            paramBox.prop(self.actor, "actorParam", text="")
+            paramBox.prop(self.actor, "params", text="")
         else:
-            paramBox.prop(self.actor, "actorParamCustom", text="")
+            paramBox.prop(self.actor, "actorParam", text="")
 
         headerProps: OOTActorHeaderProperty = entranceProp.actor.headerSettings
         headerProps.draw_props(box, "Entrance", altSceneProp, objName)
