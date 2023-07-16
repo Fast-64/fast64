@@ -54,7 +54,7 @@ class OOT_SearchActorIDEnumOperator(Operator):
     bl_property = "actorID"
     bl_options = {"REGISTER", "UNDO"}
 
-    actorID: EnumProperty(items=ootData.actorData.ootEnumActorID, default="ACTOR_PLAYER")
+    actorID: EnumProperty(items=lambda self, context: ootData.actorData.getItems(self.actorUser))
     actorUser: StringProperty(default="Actor")
     objName: StringProperty()
 
@@ -64,8 +64,6 @@ class OOT_SearchActorIDEnumOperator(Operator):
             obj.ootTransitionActorProperty.actor.actorID = self.actorID
         elif self.actorUser == "Actor":
             obj.ootActorProperty.actorID = self.actorID
-        elif self.actorUser == "Entrance":
-            obj.ootEntranceProperty.actor.actorID = self.actorID
         else:
             raise PluginError("Invalid actor user for search: " + str(self.actorUser))
 

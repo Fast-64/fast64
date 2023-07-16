@@ -128,12 +128,33 @@ class OoT_ActorData:
         self.messageItemsByValue = {elem.value: elem for elem in self.messageItems}
 
         # list of tuples used by Blender's enum properties
+
         lastIndex = max(1, *(actor.index for actor in self.actorList))
         self.ootEnumActorID = [("None", f"{i} (Deleted from the XML)", "None") for i in range(lastIndex)]
         self.ootEnumActorID.insert(0, ("Custom", "Custom Actor", "Custom"))
+
+        doorTotal = 0
+        for actor in self.actorList:
+            if actor.category == "ACTORCAT_DOOR":
+                doorTotal += 1
+        self.ootEnumTransitionActorID = [("None", f"{i} (Deleted from the XML)", "None") for i in range(doorTotal)]
+        self.ootEnumTransitionActorID.insert(0, ("Custom", "Custom Actor", "Custom"))
+
+        i = 1
         for actor in self.actorList:
             self.ootEnumActorID[actor.index] = (actor.id, actor.name, actor.id)
+            if actor.category == "ACTORCAT_DOOR":
+                self.ootEnumTransitionActorID[i] = (actor.id, actor.name, actor.id)
+                i += 1
 
         self.ootEnumChestContent = [(elem.key, elem.name, elem.key) for elem in self.chestItems]
         self.ootEnumCollectibleItems = [(elem.key, elem.name, elem.key) for elem in self.collectibleItems]
         self.ootEnumNaviMessageData = [(elem.key, elem.name, elem.key) for elem in self.messageItems]
+
+    def getItems(self, actorUser: str):
+        if actorUser == "Actor":
+            return self.ootEnumActorID
+        elif actorUser == "Transition Actor":
+            return self.ootEnumTransitionActorID
+        elif actorUser == "Entrance":
+            return [(self.actorsByKey["player"].id, self.actorsByKey["player"].name, self.actorsByKey["player"].id)]

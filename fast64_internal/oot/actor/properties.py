@@ -154,7 +154,10 @@ class OOTActorHeaderProperty(PropertyGroup):
 
 
 class OOTActorProperty(PropertyGroup):
-    actorID: EnumProperty(name="Actor", items=ootData.actorData.ootEnumActorID, default="ACTOR_PLAYER")
+    actorID: EnumProperty(
+        name="Actor", 
+        items=lambda self, context: ootData.actorData.getItems(context.active_object.ootEmptyType)
+    )
     actorIDCustom: StringProperty(name="Actor ID", default="ACTOR_PLAYER")
 
     actorParam: StringProperty(
@@ -398,13 +401,18 @@ class OOTTransitionActorProperty(PropertyGroup):
         split.label(text="Actor ID")
         split.label(text=getEnumName(ootData.actorData.ootEnumActorID, self.actor.actorID))
 
-        self.actor.draw_params(actorIDBox, objName)
-
         if self.actor.actorID == "Custom":
             prop_split(actorIDBox, self.actor, "actorIDCustom", "")
+        else:
+            self.actor.draw_params(actorIDBox, objName)
 
-        # layout.box().label(text = 'Actor IDs defined in include/z64actors.h.')
-        prop_split(actorIDBox, self.actor, "actorParam", "Actor Parameter")
+        paramBox = actorIDBox.box()
+        paramBox.label(text="Actor Parameter")
+        if self.actor.actorID != "Custom":
+            paramBox.prop(self.actor, "evalParams")
+            paramBox.prop(self.actor, "actorParam", text="")
+        else:
+            paramBox.prop(self.actor, "actorParamCustom", text="")
 
         if roomObj is None:
             actorIDBox.label(text="This must be part of a Room empty's hierarchy.", icon="OUTLINER")
@@ -429,7 +437,6 @@ class OOTEntranceProperty(PropertyGroup):
 
     def draw_props(self, layout: UILayout, obj: Object, altSceneProp: OOTAlternateSceneHeaderProperty, objName: str):
         box = layout.column()
-        # box.box().label(text = "Properties")
         roomObj = getRoomObj(obj)
         if roomObj is not None:
             split = box.split(factor=0.5)
@@ -441,13 +448,20 @@ class OOTEntranceProperty(PropertyGroup):
         entranceProp = obj.ootEntranceProperty
         prop_split(box, entranceProp, "spawnIndex", "Spawn Index")
 
-        if not self.customActor:
-            self.actor.draw_params(box, objName)
-
-        prop_split(box, entranceProp.actor, "actorParam", "Actor Param")
         box.prop(entranceProp, "customActor")
         if entranceProp.customActor:
             prop_split(box, entranceProp.actor, "actorIDCustom", "Actor ID Custom")
+
+        if not self.customActor:
+            self.actor.draw_params(box, objName)
+
+        paramBox = box.box()
+        paramBox.label(text="Actor Parameter")
+        if not self.customActor:
+            paramBox.prop(self.actor, "evalParams")
+            paramBox.prop(self.actor, "actorParam", text="")
+        else:
+            paramBox.prop(self.actor, "actorParamCustom", text="")
 
         headerProps: OOTActorHeaderProperty = entranceProp.actor.headerSettings
         headerProps.draw_props(box, "Entrance", altSceneProp, objName)
