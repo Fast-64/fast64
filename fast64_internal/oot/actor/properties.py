@@ -3,6 +3,7 @@ from bpy.utils import register_class, unregister_class
 from bpy.props import EnumProperty, StringProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
 from ...utility import prop_split, label_split
 from ..oot_constants import ootData, ootEnumSceneSetupPreset, ootEnumCamTransition
+from ..oot_upgrade import upgradeActors
 from ..scene.properties import OOTAlternateSceneHeaderProperty
 from ..room.properties import OOTAlternateRoomHeaderProperty
 from .operators import OOT_SearchActorIDEnumOperator
@@ -110,6 +111,11 @@ class OOTActorProperty(PropertyGroup):
     rotOverrideZ: StringProperty(name="Rot Z", default="0")
     headerSettings: PointerProperty(type=OOTActorHeaderProperty)
 
+    @staticmethod
+    def upgrade_object(obj: Object):
+        print(f"Processing '{obj.name}'...")
+        upgradeActors(obj)
+
     def draw_props(self, layout: UILayout, altRoomProp: OOTAlternateRoomHeaderProperty, objName: str):
         # prop_split(layout, actorProp, 'actorID', 'Actor')
         actorIDBox = layout.column()
@@ -145,14 +151,18 @@ class OOTActorProperty(PropertyGroup):
 
 
 class OOTTransitionActorProperty(PropertyGroup):
-    roomIndex: IntProperty(min=0)
+    fromRoom: PointerProperty(type=Object, poll=lambda self, object: self.isRoomEmptyObject(object))
+    toRoom: PointerProperty(type=Object, poll=lambda self, object: self.isRoomEmptyObject(object))
     cameraTransitionFront: EnumProperty(items=ootEnumCamTransition, default="0x00")
     cameraTransitionFrontCustom: StringProperty(default="0x00")
     cameraTransitionBack: EnumProperty(items=ootEnumCamTransition, default="0x00")
     cameraTransitionBackCustom: StringProperty(default="0x00")
-    dontTransition: BoolProperty(default=False)
+    isRoomTransition: BoolProperty(name="Is Room Transition", default=False)
 
     actor: PointerProperty(type=OOTActorProperty)
+
+    def isRoomEmptyObject(self, obj: Object):
+        return obj.type == "EMPTY" and obj.ootEmptyType == "Room"
 
     def draw_props(
         self, layout: UILayout, altSceneProp: OOTAlternateSceneHeaderProperty, roomObj: Object, objName: str
@@ -175,10 +185,15 @@ class OOTTransitionActorProperty(PropertyGroup):
         if roomObj is None:
             actorIDBox.label(text="This must be part of a Room empty's hierarchy.", icon="OUTLINER")
         else:
-            actorIDBox.prop(self, "dontTransition")
-            if not self.dontTransition:
-                label_split(actorIDBox, "Room To Transition From", str(roomObj.ootRoomHeader.roomIndex))
-                prop_split(actorIDBox, self, "roomIndex", "Room To Transition To")
+            actorIDBox.prop(self, "isRoomTransition")
+            if self.isRoomTransition:
+                prop_split(actorIDBox, self, "fromRoom", "Room To Transition From")
+                prop_split(actorIDBox, self, "toRoom", "Room To Transition To")
+                if self.fromRoom == self.toRoom:
+                    actorIDBox.label(
+                        text="Warning: You selected the same room!",
+                        icon="ERROR"
+                    )
         actorIDBox.label(text='Y+ side of door faces toward the "from" room.', icon="ORIENTATION_NORMAL")
         drawEnumWithCustom(actorIDBox, self, "cameraTransitionFront", "Camera Transition Front", "")
         drawEnumWithCustom(actorIDBox, self, "cameraTransitionBack", "Camera Transition Back", "")

@@ -1,3 +1,5 @@
+import bpy
+
 from bpy.types import Object, CollectionProperty
 from .data import OoT_ObjectData
 
@@ -34,3 +36,21 @@ def upgradeRoomHeaders(roomObj: Object, objData: OoT_ObjectData):
             upgradeObjectList(sceneLayer.objectList, objData)
     for i in range(len(altHeaders.cutsceneHeaders)):
         upgradeObjectList(altHeaders.cutsceneHeaders[i].objectList, objData)
+
+
+def upgradeActors(actorObj: Object):
+    if actorObj.ootEmptyType == "Transition Actor":
+        transActorProp = actorObj.ootTransitionActorProperty
+        transActorProp.isRoomTransition = actorObj["ootTransitionActorProperty"]["dontTransition"] == False
+        del actorObj["ootTransitionActorProperty"]["dontTransition"]
+
+        if transActorProp.isRoomTransition:
+            for obj in bpy.data.objects:
+                if obj.type == "EMPTY":
+                    if obj.ootEmptyType == "Room":
+                        if actorObj in obj.children_recursive:
+                            transActorProp.fromRoom = obj
+
+                        if obj.ootRoomHeader.roomIndex == actorObj["ootTransitionActorProperty"]["roomIndex"]:
+                            transActorProp.toRoom = obj
+                            del actorObj["ootTransitionActorProperty"]["roomIndex"]

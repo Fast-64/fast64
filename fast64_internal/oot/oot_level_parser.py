@@ -715,12 +715,15 @@ def parseTransActorList(
 
             sharedSceneData.transDict[actorHash] = actorObj
 
-            if roomIndexFront != 255:
-                parentObject(roomObjs[roomIndexFront], actorObj)
-                transActorProp.roomIndex = roomIndexBack
+            fromRoom = roomObjs[roomIndexFront]
+            toRoom = roomObjs[roomIndexBack]
+            if roomIndexFront != roomIndexBack:
+                parentObject(fromRoom, actorObj)
+                transActorProp.fromRoom = fromRoom
+                transActorProp.toRoom = toRoom
+                transActorProp.isRoomTransition = True
             else:
-                parentObject(roomObjs[roomIndexBack], actorObj)
-                transActorProp.dontTransition = True
+                parentObject(toRoom, actorObj)
 
             setCustomProperty(transActorProp, "cameraTransitionFront", camFront, ootEnumCamTransition)
             setCustomProperty(transActorProp, "cameraTransitionBack", camBack, ootEnumCamTransition)
