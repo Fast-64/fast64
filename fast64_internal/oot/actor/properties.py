@@ -190,10 +190,7 @@ class OOTTransitionActorProperty(PropertyGroup):
                 prop_split(actorIDBox, self, "fromRoom", "Room To Transition From")
                 prop_split(actorIDBox, self, "toRoom", "Room To Transition To")
                 if self.fromRoom == self.toRoom:
-                    actorIDBox.label(
-                        text="Warning: You selected the same room!",
-                        icon="ERROR"
-                    )
+                    actorIDBox.label(text="Warning: You selected the same room!", icon="ERROR")
         actorIDBox.label(text='Y+ side of door faces toward the "from" room.', icon="ORIENTATION_NORMAL")
         drawEnumWithCustom(actorIDBox, self, "cameraTransitionFront", "Camera Transition Front", "")
         drawEnumWithCustom(actorIDBox, self, "cameraTransitionBack", "Camera Transition Back", "")
