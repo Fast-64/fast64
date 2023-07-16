@@ -46,7 +46,7 @@ class OOT_SearchNaviMsgIDEnumOperator(Operator):
     def invoke(self, context, event):
         context.window_manager.invoke_search_popup(self)
         return {"RUNNING_MODAL"}
-    
+
 
 class OOT_SearchActorIDEnumOperator(Operator):
     bl_idname = "object.oot_search_actor_id_enum_operator"
@@ -78,7 +78,11 @@ class OOT_SearchActorIDEnumOperator(Operator):
         return {"RUNNING_MODAL"}
 
 
-classes = (OOT_SearchActorIDEnumOperator, OOT_SearchChestContentEnumOperator, OOT_SearchNaviMsgIDEnumOperator,)
+classes = (
+    OOT_SearchActorIDEnumOperator,
+    OOT_SearchChestContentEnumOperator,
+    OOT_SearchNaviMsgIDEnumOperator,
+)
 
 
 def actor_ops_register():

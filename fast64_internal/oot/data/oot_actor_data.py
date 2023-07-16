@@ -6,14 +6,14 @@ from .oot_data import OoT_BaseElement
 
 @dataclass
 class OoT_ParameterElement:
-    type: str # bool, enum, type, property, etc...
+    type: str  # bool, enum, type, property, etc...
     index: int
     mask: int
     name: str
-    subType: str # used for <Flag> and <Collectible>
+    subType: str  # used for <Flag> and <Collectible>
     target: str
     tiedTypes: list[int]
-    items: list[tuple[int, str]] # for <Type> and <Enum>, int is "Value"/"Params" and str is the name
+    items: list[tuple[int, str]]  # for <Type> and <Enum>, int is "Value"/"Params" and str is the name
     valueRange: list[int]
 
 
@@ -65,7 +65,7 @@ class OoT_ActorData:
             tiedObjects = []
             objKey = actor.get("ObjectKey")
             actorName = f"{actor.attrib['Name']} - {actor.attrib['ID'].removeprefix('ACTOR_')}"
-            
+
             if objKey is not None:  # actors don't always use an object
                 tiedObjects = objKey.split(",")
 
@@ -100,7 +100,7 @@ class OoT_ActorData:
                             elem.get("Target", "Params"),
                             tiedTypeList,
                             items,
-                            [int(val) for val in valueRange.split("-")] if valueRange is not None else [None, None]
+                            [int(val) for val in valueRange.split("-")] if valueRange is not None else [None, None],
                         )
                     )
 
@@ -112,7 +112,7 @@ class OoT_ActorData:
                     int(actor.attrib["Index"]),
                     actor.attrib["Category"],
                     tiedObjects,
-                    params
+                    params,
                 )
             )
 

@@ -5,7 +5,11 @@ from ...utility import prop_split, label_split
 from ..oot_constants import ootData, ootEnumSceneSetupPreset, ootEnumCamTransition
 from ..scene.properties import OOTAlternateSceneHeaderProperty
 from ..room.properties import OOTAlternateRoomHeaderProperty
-from .operators import OOT_SearchActorIDEnumOperator, OOT_SearchChestContentEnumOperator, OOT_SearchNaviMsgIDEnumOperator
+from .operators import (
+    OOT_SearchActorIDEnumOperator,
+    OOT_SearchChestContentEnumOperator,
+    OOT_SearchNaviMsgIDEnumOperator,
+)
 
 from ..oot_utility import (
     getRoomObj,
@@ -31,7 +35,7 @@ def getObjName(actorKey: str, paramType: str, paramSubType: str, paramIndex: int
         "Message": "naviMsg",
     }
     suffix = paramTypeToObjName[paramType] if paramType != "Flag" else flagTypeToObjName[paramSubType]
-    return f"{actorKey}.{suffix}{paramIndex}" # i.e: ``en_test.props1``
+    return f"{actorKey}.{suffix}{paramIndex}"  # i.e: ``en_test.props1``
 
 
 def initOOTActorProperties():
@@ -157,7 +161,7 @@ class OOTActorProperty(PropertyGroup):
         name="Actor Parameter",
         default="0x0000",
         get=lambda self: self.getParamValue("Params"),
-        set=lambda self, value: self.setParamValue(value, "Params")
+        set=lambda self, value: self.setParamValue(value, "Params"),
     )
     actorParamCustom: StringProperty(name="Actor Parameter", default="0x0000")
     rotOverrideXCustom: StringProperty(name="Rot X", default="0x0000")
@@ -172,19 +176,19 @@ class OOTActorProperty(PropertyGroup):
         name="Rot X",
         default="0",
         get=lambda self: self.getParamValue("XRot"),
-        set=lambda self, value: self.setParamValue(value, "XRot")
+        set=lambda self, value: self.setParamValue(value, "XRot"),
     )
     rotOverrideY: StringProperty(
         name="Rot Y",
         default="0",
         get=lambda self: self.getParamValue("YRot"),
-        set=lambda self, value: self.setParamValue(value, "YRot")
+        set=lambda self, value: self.setParamValue(value, "YRot"),
     )
     rotOverrideZ: StringProperty(
         name="Rot Z",
         default="0",
         get=lambda self: self.getParamValue("ZRot"),
-        set=lambda self, value: self.setParamValue(value, "ZRot")
+        set=lambda self, value: self.setParamValue(value, "ZRot"),
     )
 
     headerSettings: PointerProperty(type=OOTActorHeaderProperty)
@@ -202,7 +206,7 @@ class OOTActorProperty(PropertyGroup):
                 if param.target != "Params" and target == param.target:
                     return True
         return False
-    
+
     def isValueInRange(self, value: int, min: int, max: int):
         isInRange = True
         if min is not None and max is not None:
@@ -359,7 +363,7 @@ class OOTActorProperty(PropertyGroup):
                 allowedRotations.append("Y")
             if self.isRotZ:
                 allowedRotations.append("Z")
-        
+
         if self.actorID == "Custom":
             paramBox.prop(self, "rotOverride", text="Override Rotation (ignore Blender rot)")
 
