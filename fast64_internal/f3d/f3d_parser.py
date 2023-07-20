@@ -1750,8 +1750,6 @@ class F3DContext:
         mesh.from_pydata(vertices=verts, edges=[], faces=faces)
         uv_layer_name = mesh.uv_layers.new().name
         # if self.materialContext.f3d_mat.rdp_settings.g_lighting:
-        alpha_layer = mesh.vertex_colors.new(name="Alpha").data
-        color_layer = mesh.vertex_colors.new(name="Col").data
         # else:
 
         if importNormals:
@@ -1774,8 +1772,13 @@ class F3DContext:
             # There will be one loop for every vertex
             uv_layer[i].uv = self.verts[i].uv
 
+        color_layer = mesh.vertex_colors.new(name="Col").data
+        for i in range(len(mesh.loops)):
             # if self.materialContext.f3d_mat.rdp_settings.g_lighting:
             color_layer[i].color = self.verts[i].color
+
+        alpha_layer = mesh.vertex_colors.new(name="Alpha").data
+        for i in range(len(mesh.loops)):
             alpha_layer[i].color = [self.verts[i].color[3]] * 3 + [1]
 
         if bpy.context.mode != "OBJECT":
