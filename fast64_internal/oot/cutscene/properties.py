@@ -271,7 +271,7 @@ class OOTCutsceneProperty(PropertyGroup):
         split = layout.split(factor=0.5)
         split.operator(OOTCSMotionCreatePlayerCueList.bl_idname)
         split.operator(OOTCSMotionCreateActorCueList.bl_idname)
-         
+
         layout.prop(self, "csEndFrame")
         layout.prop(self, "csWriteTerminator")
         if self.csWriteTerminator:

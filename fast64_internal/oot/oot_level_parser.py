@@ -371,7 +371,7 @@ def parseSceneCommands(
         elif command == "SCENE_CMD_ALTERNATE_HEADER_LIST":
             # Delay until after rooms are parsed
             altHeadersListName = stripName(args[0])
-        
+
         # cutscenes are handled after importing the scene
 
     if altHeadersListName is not None:

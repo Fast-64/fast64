@@ -101,7 +101,9 @@ def insertCutsceneData(filePath: str, csName: str):
                         params = reMatch[1].split(", ")
                         entryTotal = int(params[0], base=0)
                         frameCount = int(params[1], base=0)
-                        entries = re.sub(r"\b\(([0-9a-fA-F]*)\b", f"({entryTotal + motionExporter.entryTotal}", beginLine)
+                        entries = re.sub(
+                            r"\b\(([0-9a-fA-F]*)\b", f"({entryTotal + motionExporter.entryTotal}", beginLine
+                        )
                         frames = re.sub(r"\b([0-9a-fA-F]*)\)", f"{frameCount + motionExporter.frameCount})", beginLine)
                         fileLines[beginIndex] = f"{entries.split(', ')[0]}, {frames.split(', ')[1]}"
                     else:

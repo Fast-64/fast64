@@ -44,10 +44,10 @@ def setupCompositorNodes():
     if not bpy.context.scene.use_nodes:
         bpy.context.scene.use_nodes = True
 
-    # sets the compositor render mode to "Camera" 
+    # sets the compositor render mode to "Camera"
     space = None
     for area in bpy.context.screen.areas:
-        if (area != bpy.context.area) and (area.type == 'VIEW_3D'):
+        if (area != bpy.context.area) and (area.type == "VIEW_3D"):
             for space in area.spaces:
                 if space.type == "VIEW_3D":
                     break
@@ -204,6 +204,7 @@ def processCurrentFrame(csObj: Object, curFrame: float, useNodeFeatures: bool, c
                             color[3] -= step
                     bpy.context.scene.node_tree.nodes["CSMisc_RGB"].outputs[0].default_value = color
 
+
 @persistent
 def cutscenePreviewFrameHandler(scene: Scene):
     """Preview frame handler, executes each frame when the cutscene is played"""
@@ -218,7 +219,7 @@ def cutscenePreviewFrameHandler(scene: Scene):
         if obj.type == "CAMERA":
             cameraObjects[1] = obj
             break
-        
+
     foundObj = None
     for obj in bpy.data.objects:
         if obj.type == "CAMERA" and obj.parent is not None and obj.parent.ootEmptyType in ["Scene", "Room"]:
@@ -242,7 +243,7 @@ def cutscenePreviewFrameHandler(scene: Scene):
     # setup nodes
     bpy.context.scene.ootCSPreviewNodesReady = False
     setupCompositorNodes()
-    
+
     # execute the main preview logic
     previewProp = csObj.ootCutsceneProperty.preview
     curFrame = bpy.context.scene.frame_current

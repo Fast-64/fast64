@@ -106,7 +106,7 @@ class OOTCSMotionCamAT(OOTCSMotionBase):
 class OOTCSMotionMisc(OOTCSMotionBase):
     """This class contains a single misc command entry"""
 
-    type: str # see ``CutsceneMiscType`` in decomp
+    type: str  # see ``CutsceneMiscType`` in decomp
     paramNumber: int = 14
 
 

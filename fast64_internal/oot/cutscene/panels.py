@@ -50,7 +50,7 @@ def cutscene_panels_register():
         description=(
             "Export everything or only the camera and actor motion data.\n"
             + "This will insert the data into the cutscene."
-        )
+        ),
     )
 
     for cls in oot_cutscene_panel_classes:

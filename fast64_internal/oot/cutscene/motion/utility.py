@@ -234,7 +234,8 @@ def getCutsceneEndFrame(csObj: Object):
         endFrame = shotObj.data.ootCamShotProp.shotStartFrame + max(2, sum(b.frame for b in boneDataList)) + 2
         csEndFrame = max(csEndFrame, endFrame)
     return csEndFrame
-    
+
+
 def setupCutscene(csObj: Object):
     from .io_classes import OOTCSMotionObjectFactory  # circular import fix
 

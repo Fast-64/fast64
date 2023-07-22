@@ -96,7 +96,7 @@ class OOTCSMotionPlayPreview(Operator):
                 return {"FINISHED"}
         except:
             return {"CANCELLED"}
-        
+
 
 class OOTCSMotionAddBone(Operator):
     """Add a bone to an armature"""
@@ -127,7 +127,7 @@ class OOTCSMotionAddBone(Operator):
                     newBone.name = f"{splitName[0]} Point {int(splitName[2]) + 1:02}"
                     newBone.head = secondToLastBone.head
                     newBone.tail = secondToLastBone.tail
-                bpy.ops.object.mode_set(mode="OBJECT") # going back to object mode to update the bones properly
+                bpy.ops.object.mode_set(mode="OBJECT")  # going back to object mode to update the bones properly
 
                 if armatureData.bones[-1].name == boneName:
                     raise PluginError("ERROR: Something went wrong...")

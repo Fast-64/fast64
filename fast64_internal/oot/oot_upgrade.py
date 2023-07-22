@@ -82,7 +82,7 @@ def upgradeCutsceneMotion(csMotionObj: Object):
         if "start_frame" in csMotionObj.data:
             camShotProp.shotStartFrame = csMotionObj.data["start_frame"]
             del csMotionObj.data["start_frame"]
-        
+
         if "cam_mode" in csMotionObj.data:
             camShotProp.shotCamMode = ootEnumCSMotionCamMode[csMotionObj.data["cam_mode"]][0]
             del csMotionObj.data["cam_mode"]
@@ -93,11 +93,11 @@ def upgradeCutsceneMotion(csMotionObj: Object):
             if "frames" in bone:
                 camShotPointProp.shotPointFrame = bone["frames"]
                 del bone["frames"]
-                
+
             if "fov" in bone:
                 camShotPointProp.shotPointViewAngle = bone["fov"]
                 del bone["fov"]
-                
+
             if "camroll" in bone:
                 camShotPointProp.shotPointRoll = bone["camroll"]
                 del bone["camroll"]

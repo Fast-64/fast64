@@ -13,9 +13,8 @@ def ootCutsceneDataToC(csParent, csName):
     data.source = "CutsceneData " + csName + "[] = {\n"
     nentries = len(csParent.csLists) + (1 if csParent.csWriteTerminator else 0)
     data.source += (
-        (indent + f"CS_BEGIN_CUTSCENE({nentries + motionExporter.entryTotal}, ")
-        + f"{csParent.csEndFrame + motionExporter.frameCount}),\n"
-    )
+        indent + f"CS_BEGIN_CUTSCENE({nentries + motionExporter.entryTotal}, "
+    ) + f"{csParent.csEndFrame + motionExporter.frameCount}),\n"
     if csParent.csWriteTerminator:
         data.source += (
             "\tCS_TERMINATOR("

@@ -141,12 +141,12 @@ class OOTCSMotionImportCommands:
             float(params[3][:-1]),
             [self.getInteger(params[4]), self.getInteger(params[5]), self.getInteger(params[6])],
         )
-    
+
     def getNewMisc(self, cmdData: str):
         params = self.getCmdParams(cmdData, "CS_MISC", OOTCSMotionMisc.paramNumber)
         if params[0].startswith("CS_MISC_"):
-            miscType = params[0] 
-        else: 
+            miscType = params[0]
+        else:
             miscType = ootCSMotionMiscTypeHexToEnum[f"0x{self.getInteger(params[0]):02X}"]
         return OOTCSMotionMisc(self.getInteger(params[1]), self.getInteger(params[2]), miscType)
 
@@ -157,8 +157,8 @@ class OOTCSMotionImportCommands:
     def getNewTransition(self, cmdData: str):
         params = self.getCmdParams(cmdData, "CS_TRANSITION", OOTCSMotionTransition.paramNumber)
         if params[0].startswith("CS_TRANS_"):
-            transType = params[0] 
-        else: 
+            transType = params[0]
+        else:
             transType = ootCSMotionTransTypeHexToEnum[f"0x{self.getInteger(params[0]):02X}"]
         return OOTCSMotionTransition(self.getInteger(params[1]), self.getInteger(params[2]), transType)
 
