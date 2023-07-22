@@ -8,7 +8,6 @@ from .cutscene.motion.constants import ootEnumCSMotionCamMode, ootEnumCSActorCue
 def upgradeObjectList(objList: CollectionProperty, objData: OoT_ObjectData):
     """Transition to the XML object system"""
     for obj in objList:
-
         # In order to check whether the data in the current blend needs to be updated,
         # we look for the ``objectID`` property, which has been removed in the current version.
         # If we find ``objectID`` it means that it's an old blend and needs be updated.
