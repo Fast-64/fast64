@@ -114,7 +114,6 @@ def ootCombineSceneFiles(levelC):
 def ootExportSceneToC(
     originalSceneObj, transformMatrix, f3dType, isHWv1, sceneName, DLFormat, savePNG, exportInfo, bootToSceneOptions
 ):
-
     checkObjectReference(originalSceneObj, "Scene object")
     isCustomExport = exportInfo.isCustomExportPath
     exportPath = exportInfo.exportPath
@@ -322,7 +321,6 @@ def readSceneData(scene, scene_properties, sceneHeader, alternateSceneHeaders):
 
 
 def getConvertedTransform(transformMatrix, sceneObj, obj, handleOrientation):
-
     # Hacky solution to handle Z-up to Y-up conversion
     # We cannot apply rotation to empty, as that modifies scale
     if handleOrientation:
@@ -473,7 +471,6 @@ def readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix):
 
 
 def readCrawlspace(obj, scene, transformMatrix):
-
     splineProp = obj.ootSplineProperty
     index = splineProp.index
 
@@ -503,7 +500,6 @@ def readPathProp(pathProp, obj, scene, sceneObj, sceneName, transformMatrix):
 
 
 def ootConvertScene(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneName, DLFormat, convertTextureData):
-
     if originalSceneObj.data is not None or originalSceneObj.ootEmptyType != "Scene":
         raise PluginError(originalSceneObj.name + ' is not an empty with the "Scene" empty type.')
 
@@ -628,7 +624,6 @@ class BoundingBox:
 def ootProcessMesh(
     roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertTextureData, LODHierarchyObject, boundingBox: BoundingBox
 ):
-
     relativeTransform = transformMatrix @ sceneObj.matrix_world.inverted() @ obj.matrix_world
     translation, rotation, scale = relativeTransform.decompose()
 
@@ -698,7 +693,6 @@ def ootProcessMesh(
 def ootProcessLOD(
     roomMesh, DLGroup, sceneObj, obj, transformMatrix, convertTextureData, LODHierarchyObject, boundingBox: BoundingBox
 ):
-
     relativeTransform = transformMatrix @ sceneObj.matrix_world.inverted() @ obj.matrix_world
     translation, rotation, scale = relativeTransform.decompose()
     ootTranslation = ootConvertTranslation(translation)

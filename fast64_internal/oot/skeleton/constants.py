@@ -9,6 +9,7 @@ from collections import OrderedDict
 #       - list of tuples, first is root position, rest are euler XYZ rotations
 # 5. Add object to ootSkeletonImportDict
 
+
 # Link overlay will be "", since Link texture array data is handled as a special case.
 class OOTSkeletonImportInfo:
     def __init__(
