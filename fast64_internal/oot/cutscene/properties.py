@@ -1,5 +1,5 @@
 import bpy
-from bpy.types import PropertyGroup, Object, UILayout
+from bpy.types import PropertyGroup, Object, UILayout, Scene
 from bpy.props import StringProperty, EnumProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
 from bpy.utils import register_class, unregister_class
 from ...utility import PluginError, prop_split
@@ -8,7 +8,7 @@ from .operators import OOTCSTextboxAdd, drawCSListAddOp
 from .constants import ootEnumCSTextboxType, ootEnumCSListType, ootEnumCSTransitionType, ootEnumCSTextboxTypeIcons
 
 from .motion.operators import (
-    OOTCSMotionShowCameraPreview,
+    OOTCSMotionPlayPreview,
     OOTCSMotionCreateCameraShot,
     OOTCSMotionCreatePlayerCueList,
     OOTCSMotionCreateActorCueList,
@@ -227,6 +227,28 @@ class OOTCSListProperty(PropertyGroup):
             addOp.objName = objName
 
 
+class OOTCutsceneCommandBase:
+    startFrame: IntProperty(min=0)
+    endFrame: IntProperty(min=0)
+
+
+class OOTCutsceneTransitionProperty(OOTCutsceneCommandBase, PropertyGroup):
+    type: StringProperty(default="Unknown")
+
+
+class OOTCutsceneMiscProperty(OOTCutsceneCommandBase, PropertyGroup):
+    type: StringProperty(default="Unknown")
+
+
+class OOTCutscenePreviewProperty(PropertyGroup):
+    transitionList: CollectionProperty(type=OOTCutsceneTransitionProperty)
+    miscList: CollectionProperty(type=OOTCutsceneMiscProperty)
+
+    isFixedCamSet: BoolProperty(default=False)
+    prevFrame: IntProperty(default=-1)
+    nextFrame: IntProperty(default=1)
+
+
 class OOTCutsceneProperty(PropertyGroup):
     csEndFrame: IntProperty(name="End Frame", min=0, default=100)
     csWriteTerminator: BoolProperty(name="Write Terminator (Code Execution)")
@@ -235,8 +257,7 @@ class OOTCutsceneProperty(PropertyGroup):
     csTermEnd: IntProperty(name="End Frm", min=0, default=100)
     csLists: CollectionProperty(type=OOTCSListProperty, name="Cutscene Lists")
 
-    # used for the "stop cutscene" misc command, internal usage only
-    forcedEndFrame: IntProperty(default=-1, min=-1)
+    preview: PointerProperty(type=OOTCutscenePreviewProperty)
 
     def draw_props(self, layout: UILayout, obj: Object):
         split = layout.split(factor=0.5)
@@ -245,7 +266,7 @@ class OOTCutsceneProperty(PropertyGroup):
 
         split = layout.split(factor=0.5)
         split.operator(OOTCSMotionCreateCameraShot.bl_idname, icon="VIEW_CAMERA")
-        split.operator(OOTCSMotionShowCameraPreview.bl_idname, icon="RESTRICT_VIEW_OFF")
+        split.operator(OOTCSMotionPlayPreview.bl_idname, icon="RESTRICT_VIEW_OFF")
 
         split = layout.split(factor=0.5)
         split.operator(OOTCSMotionCreatePlayerCueList.bl_idname)
@@ -273,6 +294,9 @@ classes = (
     OOTCS0x09Property,
     OOTCSUnkProperty,
     OOTCSListProperty,
+    OOTCutsceneTransitionProperty,
+    OOTCutsceneMiscProperty,
+    OOTCutscenePreviewProperty,
     OOTCutsceneProperty,
 )
 
@@ -282,9 +306,13 @@ def cutscene_props_register():
         register_class(cls)
 
     Object.ootCutsceneProperty = PointerProperty(type=OOTCutsceneProperty)
+    Scene.ootCSPreviewNodesReady = BoolProperty(default=False)
+    Scene.ootCSPreviewCSObj = PointerProperty(type=Object)
 
 
 def cutscene_props_unregister():
+    del Scene.ootCSPreviewCSObj
+    del Scene.ootCSPreviewNodesReady
     del Object.ootCutsceneProperty
 
     for cls in reversed(classes):

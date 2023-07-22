@@ -37,6 +37,7 @@ from .animation.properties import (
 from .cutscene.operators import cutscene_ops_register, cutscene_ops_unregister
 from .cutscene.properties import cutscene_props_register, cutscene_props_unregister
 from .cutscene.panels import cutscene_panels_register, cutscene_panels_unregister
+from .cutscene.preview import cutscene_preview_register, cutscene_preview_unregister
 
 from .cutscene.motion.operators import csMotion_ops_register, csMotion_ops_unregister
 from .cutscene.motion.properties import csMotion_props_register, csMotion_props_unregister
@@ -130,6 +131,7 @@ def oot_register(registerPanels):
     csMotion_props_register()
     csMotion_panels_register()
     csMotion_preview_register()
+    cutscene_preview_register()
 
     for cls in oot_classes:
         register_class(cls)
@@ -164,6 +166,7 @@ def oot_unregister(unregisterPanels):
     file_unregister()
     anim_props_unregister()
 
+    cutscene_preview_unregister()
     csMotion_preview_unregister()
     csMotion_panels_unregister()
     csMotion_props_unregister()

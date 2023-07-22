@@ -203,6 +203,61 @@ ootCSMotionCommandTypeRawToEnum = {
     "0x008F": "CS_CMD_ACTOR_CUE_9_0",
 }
 
+ootCSMotionTransTypeHexToEnum = {
+    "0x01": "CS_TRANS_GRAY_FILL_IN",
+    "0x02": "CS_TRANS_BLUE_FILL_IN",
+    "0x03": "CS_TRANS_RED_FILL_OUT",
+    "0x04": "CS_TRANS_GREEN_FILL_OUT",
+    "0x05": "CS_TRANS_GRAY_FILL_OUT",
+    "0x06": "CS_TRANS_BLUE_FILL_OUT",
+    "0x07": "CS_TRANS_RED_FILL_IN",
+    "0x08": "CS_TRANS_GREEN_FILL_IN",
+    "0x09": "CS_TRANS_TRIGGER_INSTANCE",
+    "0x0A": "CS_TRANS_BLACK_FILL_OUT",
+    "0x0B": "CS_TRANS_BLACK_FILL_IN",
+    "0x0C": "CS_TRANS_BLACK_FILL_OUT_TO_HALF",
+    "0x0D": "CS_TRANS_BLACK_FILL_IN_FROM_HALF",
+}
+
+ootCSMotionMiscTypeHexToEnum = {
+    "0x00": "CS_MISC_UNIMPLEMENTED_0",
+    "0x01": "CS_MISC_RAIN",
+    "0x02": "CS_MISC_LIGHTNING",
+    "0x03": "CS_MISC_SET_CSFLAG_0",
+    "0x04": "CS_MISC_UNIMPLEMENTED_4",
+    "0x05": "CS_MISC_UNIMPLEMENTED_5",
+    "0x06": "CS_MISC_LIFT_FOG",
+    "0x07": "CS_MISC_CLOUDY_SKY",
+    "0x08": "CS_MISC_FADE_KOKIRI_GRASS_ENV_ALPHA",
+    "0x09": "CS_MISC_SNOW",
+    "0x0A": "CS_MISC_SET_CSFLAG_1",
+    "0x0B": "CS_MISC_DEKU_TREE_DEATH",
+    "0x0C": "CS_MISC_STOP_CUTSCENE",
+    "0x0D": "CS_MISC_TRIFORCE_FLASH",
+    "0x0E": "CS_MISC_SET_LOCKED_VIEWPOINT",
+    "0x0F": "CS_MISC_SHOW_TITLE_CARD",
+    "0x10": "CS_MISC_QUAKE_START",
+    "0x11": "CS_MISC_QUAKE_STOP",
+    "0x12": "CS_MISC_STOP_STORM_AND_ADVANCE_TO_DAY",
+    "0x13": "CS_MISC_SET_FLAG_FAST_WINDMILL",
+    "0x14": "CS_MISC_SET_FLAG_WELL_DRAINED",
+    "0x15": "CS_MISC_SET_FLAG_LAKE_HYLIA_RESTORED",
+    "0x16": "CS_MISC_VISMONO_BLACK_AND_WHITE",
+    "0x17": "CS_MISC_VISMONO_SEPIA",
+    "0x18": "CS_MISC_HIDE_ROOM",
+    "0x19": "CS_MISC_TIME_ADVANCE_TO_NIGHT",
+    "0x1A": "CS_MISC_SET_TIME_BASED_LIGHT_SETTING",
+    "0x1B": "CS_MISC_RED_PULSATING_LIGHTS",
+    "0x1C": "CS_MISC_HALT_ALL_ACTORS",
+    "0x1D": "CS_MISC_RESUME_ALL_ACTORS",
+    "0x1E": "CS_MISC_SET_CSFLAG_3",
+    "0x1F": "CS_MISC_SET_CSFLAG_4",
+    "0x20": "CS_MISC_SANDSTORM_FILL",
+    "0x21": "CS_MISC_SUNSSONG_START",
+    "0x22": "CS_MISC_FREEZE_TIME",
+    "0x23": "CS_MISC_LONG_SCARECROW_SONG",
+}
+
 ootCSMotionLegacyToNewCmdNames = {
     "CS_CAM_POS_LIST": "CS_CAM_EYE_SPLINE",
     "CS_CAM_FOCUS_POINT_LIST": "CS_CAM_AT_SPLINE",
@@ -276,4 +331,6 @@ ootCSMotionSingleCommands = [
     "CS_DESTINATION",
 ]
 
+ootCSMotionListAndSingleCommands = ootCSMotionSingleCommands + ootCSMotionListCommands
+ootCSMotionListAndSingleCommands.remove("CS_BEGIN_CUTSCENE")
 ootCSMotionCSCommands = ootCSMotionSingleCommands + ootCSMotionListCommands + ootCSMotionListEntryCommands

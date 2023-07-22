@@ -120,6 +120,14 @@ class OOTCSMotionMiscList:
 
 
 @dataclass
+class OOTCSMotionTransition(OOTCSMotionBase):
+    """This class contains Transition command data"""
+
+    type: str
+    paramNumber: int = 3
+
+
+@dataclass
 class OOTCSMotionCutscene:
     """This class contains a Cutscene's data, including every commands' data"""
 
@@ -137,6 +145,7 @@ class OOTCSMotionCutscene:
     camEyeList: list[OOTCSMotionCamEye] = field(default_factory=list)
     camATList: list[OOTCSMotionCamAT] = field(default_factory=list)
     miscList: list[OOTCSMotionMiscList] = field(default_factory=list)
+    transitionList: list[OOTCSMotionTransition] = field(default_factory=list)
 
 
 class OOTCSMotionObjectFactory:

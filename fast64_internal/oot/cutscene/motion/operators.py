@@ -6,6 +6,7 @@ from bpy.props import StringProperty, EnumProperty
 from ....utility import PluginError
 from .io_classes import OOTCSMotionObjectFactory
 from .constants import ootEnumCSActorCueListCommandType
+from ..preview import initFirstFrame, setupCompositorNodes
 from .utility import (
     setupActorCuePreview,
     metersToBlend,
@@ -54,11 +55,11 @@ def createNewActorCueList(csObj: Object, isPlayer: bool):
     newActorCueListObj.parent = csObj
 
 
-class OOTCSMotionShowCameraPreview(Operator):
-    """Camera Preview"""
+class OOTCSMotionPlayPreview(Operator):
+    """Camera Preview Playback"""
 
-    bl_idname = "object.show_preview_camera"
-    bl_label = "Show Camera Preview"
+    bl_idname = "object.play_preview"
+    bl_label = "Preview Playback"
 
     def execute(self, context):
         try:
@@ -71,23 +72,25 @@ class OOTCSMotionShowCameraPreview(Operator):
                     if childObj.type == "CAMERA":
                         cameraObj = childObj
                         break
-                context.scene.camera = cameraObj
 
                 # from https://blender.stackexchange.com/a/259103
                 space = None
                 for area in context.screen.areas:
-                    if (area != context.area) and (area.type == 'VIEW_3D'):
+                    if (area != context.area) and (area.type == "VIEW_3D"):
                         for space in area.spaces:
                             if space.type == "VIEW_3D":
                                 break
                 if space is not None:
-                    space.region_3d.view_perspective = 'CAMERA'
+                    space.region_3d.view_perspective = "CAMERA"
 
                 # setup frame data and play the animation
-                forcedFrame = csObj.ootCutsceneProperty.forcedEndFrame
-                endFrame = forcedFrame if forcedFrame > -1 else getCutsceneEndFrame(csObj)
+                endFrame = getCutsceneEndFrame(csObj)
                 context.scene.frame_end = endFrame if endFrame > -1 else context.scene.frame_end
                 context.scene.frame_set(context.scene.frame_start)
+                bpy.context.scene.ootCSPreviewCSObj = csObj
+                bpy.context.scene.ootCSPreviewNodesReady = False
+                setupCompositorNodes()
+                initFirstFrame(csObj, bpy.context.scene.ootCSPreviewNodesReady, cameraObj)
                 bpy.ops.screen.animation_cancel()
                 bpy.ops.screen.animation_play()
                 return {"FINISHED"}
@@ -304,7 +307,7 @@ class OOT_SearchActorCueCmdTypeEnumOperator(Operator):
 
 
 classes = (
-    OOTCSMotionShowCameraPreview,
+    OOTCSMotionPlayPreview,
     OOTCSMotionAddBone,
     OOTCSMotionAddActorCue,
     OOTCSMotionCreateActorCuePreview,

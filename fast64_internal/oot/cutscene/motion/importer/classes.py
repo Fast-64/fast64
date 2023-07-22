@@ -11,6 +11,10 @@ from ..constants import (
     ootCSMotionListCommands,
     ootCSMotionCSCommands,
     ootCSMotionListEntryCommands,
+    ootCSMotionSingleCommands,
+    ootCSMotionListAndSingleCommands,
+    ootCSMotionTransTypeHexToEnum,
+    ootCSMotionMiscTypeHexToEnum,
 )
 
 from ..io_classes import (
@@ -27,6 +31,7 @@ from ..io_classes import (
     OOTCSMotionObjectFactory,
     OOTCSMotionMisc,
     OOTCSMotionMiscList,
+    OOTCSMotionTransition,
 )
 
 
@@ -139,12 +144,23 @@ class OOTCSMotionImportCommands:
     
     def getNewMisc(self, cmdData: str):
         params = self.getCmdParams(cmdData, "CS_MISC", OOTCSMotionMisc.paramNumber)
-        miscType = params[0] if not params[0].startswith("0x") else f"0x{self.getInteger(params[0]):04X}"
+        if params[0].startswith("CS_MISC_"):
+            miscType = params[0] 
+        else: 
+            miscType = ootCSMotionMiscTypeHexToEnum[f"0x{self.getInteger(params[0]):02X}"]
         return OOTCSMotionMisc(self.getInteger(params[1]), self.getInteger(params[2]), miscType)
 
     def getNewMiscList(self, cmdData: str):
         params = self.getCmdParams(cmdData, "CS_MISC_LIST", OOTCSMotionMiscList.paramNumber)
         return OOTCSMotionMiscList(params[0])
+
+    def getNewTransition(self, cmdData: str):
+        params = self.getCmdParams(cmdData, "CS_TRANSITION", OOTCSMotionTransition.paramNumber)
+        if params[0].startswith("CS_TRANS_"):
+            transType = params[0] 
+        else: 
+            transType = ootCSMotionTransTypeHexToEnum[f"0x{self.getInteger(params[0]):02X}"]
+        return OOTCSMotionTransition(self.getInteger(params[1]), self.getInteger(params[2]), transType)
 
 
 @dataclass
@@ -223,7 +239,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                     if curCmd in ootCSMotionCSCommands:
                         line = line.removesuffix(",") + "\n"
 
-                        if curCmd == "CS_BEGIN_CUTSCENE":
+                        if curCmd in ootCSMotionSingleCommands and curCmd != "CS_END":
                             parsedData += line
 
                         if not cmdListFound and curCmd in ootCSMotionListCommands:
@@ -245,9 +261,10 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                                 print(f"{csName}, command:\n{line}")
                                 raise PluginError(f"ERROR: Found a list entry outside a list inside ``{csName}``!")
 
-                        if cmdListFound and nextCmd == "CS_END" or nextCmd in ootCSMotionListCommands:
+                        if cmdListFound and nextCmd == "CS_END" or nextCmd in ootCSMotionListAndSingleCommands:
                             cmdListFound = False
                             parsedCS.append(parsedData)
+                            parsedData = ""
                     elif not "CutsceneData" in curCmd and not "};" in curCmd:
                         print(f"WARNING: Unknown command found: ``{curCmd}``")
                         cmdListFound = False
@@ -285,6 +302,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
             ("CAM_EYE", self.getNewCamEye, self.getNewCamPoint, "camEye"),
             ("CAM_AT", self.getNewCamAT, self.getNewCamPoint, "camAT"),
             ("MISC_LIST", self.getNewMiscList, self.getNewMisc, "misc"),
+            ("TRANSITION", self.getNewTransition, None, "transition"),
         ]
 
         # for each cutscene from the list returned by getParsedCutscenes(),
@@ -307,23 +325,25 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                         if f"CS_{cmd}(" in data:
                             cmdList = getattr(cutscene, f"{listName}List")
 
-                            if not isPlayer and not cmd == "ACTOR_CUE_LIST":
-                                commandData = getListFunc(cmdListData)
-                            else:
-                                commandData = getListFunc(cmdListData, isPlayer)
-
-                            foundEndCmd = False
-                            for d in cmdData:
+                            if getListFunc is not None:
                                 if not isPlayer and not cmd == "ACTOR_CUE_LIST":
-                                    listEntry = getFunc(d)
-                                    if "CAM" in cmd:
-                                        flag = d.removeprefix("CS_CAM_POINT(").split(",")[0]
-                                        if foundEndCmd:
-                                            raise PluginError("ERROR: More camera commands after last one!")
-                                        foundEndCmd = "CS_CAM_STOP" in flag or "-1" in flag
+                                    commandData = getListFunc(cmdListData)
                                 else:
-                                    listEntry = getFunc(d, isPlayer)
-                                commandData.entries.append(listEntry)
+                                    commandData = getListFunc(cmdListData, isPlayer)
+
+                            if getFunc is not None:
+                                foundEndCmd = False
+                                for d in cmdData:
+                                    if not isPlayer and not cmd == "ACTOR_CUE_LIST":
+                                        listEntry = getFunc(d)
+                                        if "CAM" in cmd:
+                                            flag = d.removeprefix("CS_CAM_POINT(").split(",")[0]
+                                            if foundEndCmd:
+                                                raise PluginError("ERROR: More camera commands after last one!")
+                                            foundEndCmd = "CS_CAM_STOP" in flag or "-1" in flag
+                                    else:
+                                        listEntry = getFunc(d, isPlayer)
+                                    commandData.entries.append(listEntry)
 
                             cmdList.append(commandData)
 
@@ -517,8 +537,17 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
             if len(cutscene.miscList) > 0:
                 for miscList in cutscene.miscList:
                     for miscCmd in miscList.entries:
-                        if miscCmd.type in ["0x000C", "CS_MISC_STOP_CUTSCENE"]:
-                            csObj.ootCutsceneProperty.forcedEndFrame = miscCmd.startFrame
+                        miscProp = csObj.ootCutsceneProperty.preview.miscList.add()
+                        miscProp.startFrame = miscCmd.startFrame
+                        miscProp.endFrame = miscCmd.endFrame
+                        miscProp.type = miscCmd.type
+
+            if len(cutscene.transitionList) > 0:
+                for transition in cutscene.transitionList:
+                    transitionProp = csObj.ootCutsceneProperty.preview.transitionList.add()
+                    transitionProp.startFrame = transition.startFrame
+                    transitionProp.endFrame = transition.endFrame
+                    transitionProp.type = transition.type
 
             # Init camera + preview objects and setup the scene
             setupCutscene(csObj)

@@ -245,6 +245,7 @@ def setupCutscene(csObj: Object):
 
     objFactory = OOTCSMotionObjectFactory()
     context = bpy.context
+    bpy.context.scene.ootCSPreviewCSObj = csObj
     camObj = objFactory.getNewCameraObject(
         f"{csObj.name}.Camera",
         metersToBlend(context, 0.25),
@@ -261,9 +262,8 @@ def setupCutscene(csObj: Object):
             setupActorCuePreview(csObj, "Actor" if "Actor" in obj.ootEmptyType else "Player", False, obj)
 
     # Other setup
-    forcedEnd = csObj.ootCutsceneProperty.forcedEndFrame
     context.scene.frame_start = 0
-    context.scene.frame_end = forcedEnd if forcedEnd > -1 else max(getCutsceneEndFrame(csObj), context.scene.frame_end)
+    context.scene.frame_end = max(getCutsceneEndFrame(csObj), context.scene.frame_end)
     context.scene.render.fps = 20
     context.scene.render.resolution_x = 320
     context.scene.render.resolution_y = 240
