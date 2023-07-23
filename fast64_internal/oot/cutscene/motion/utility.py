@@ -3,7 +3,7 @@ import bpy
 from bpy.types import Object, Bone, Context, EditBone, Armature
 from mathutils import Vector
 from ....utility import yUpToZUp
-from ...oot_utility import ootParseRotation
+from ...oot_utility import ootParseRotation, clearTransform
 
 
 class BoneData:
@@ -239,10 +239,8 @@ def getCutsceneEndFrame(csObj: Object):
 def setupCutscene(csObj: Object):
     from .io_classes import OOTCSMotionObjectFactory  # circular import fix
 
-    # lock cutscene coordinates and reset location/rotation/scale
-    csObj.lock_location = csObj.lock_rotation = csObj.lock_scale = [True, True, True]
-    csObj.location = csObj.rotation_euler = [0.0, 0.0, 0.0]
-    csObj.scale = [1.0, 1.0, 1.0]
+    # lock cutscene coordinates and reset location/rotation/scale/origin
+    clearTransform(csObj, True)
 
     objFactory = OOTCSMotionObjectFactory()
     context = bpy.context

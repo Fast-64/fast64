@@ -1,4 +1,6 @@
 from bpy.utils import register_class, unregister_class
+from bpy.types import Scene
+from bpy.props import BoolProperty
 from ...panels import OOT_Panel
 from .operators import (
     OOT_AddWaterBox,
@@ -16,6 +18,7 @@ class OoT_ToolsPanel(OOT_Panel):
 
     def draw(self, context):
         col = self.layout.column()
+        col.prop(context.scene, "ootClearTransformAndLock", text="Clear Transform & Lock")
         col.operator(OOT_AddWaterBox.bl_idname)
         col.operator(OOT_AddDoor.bl_idname)
         col.operator(OOT_AddScene.bl_idname)
@@ -51,8 +54,14 @@ def oot_operator_panel_unregister():
 def oot_operator_register():
     for cls in toolOpsToRegister:
         register_class(cls)
+    
+    Scene.ootClearTransformAndLock = BoolProperty(
+        default=False, description="Clears and locks location/rotation/scale/origin and applies transform"
+    )
 
 
 def oot_operator_unregister():
+    del Scene.ootClearTransformAndLock
+
     for cls in reversed(toolOpsToRegister):
         unregister_class(cls)

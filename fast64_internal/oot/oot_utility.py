@@ -1,5 +1,6 @@
 import bpy, math, os, re
 from ast import parse, Expression, Num, UnaryOp, USub, Invert, BinOp
+from bpy.types import Object
 from bpy.utils import register_class, unregister_class
 from typing import Callable
 from .oot_constants import ootSceneIDToName
@@ -868,3 +869,15 @@ def getEvalParams(input: str):
             raise ValueError(f"Unsupported AST node {node}")
 
     return f"0x{_eval(node.body):X}"
+
+
+def clearTransform(obj: Object = None, bypass: bool = False):
+    if bpy.context.scene.ootClearTransformAndLock or bypass:
+        bpy.ops.object.location_clear()
+        bpy.ops.object.rotation_clear()
+        bpy.ops.object.scale_clear()
+        bpy.ops.object.origin_clear()
+        bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+
+        if obj is not None:
+            obj.lock_location = obj.lock_rotation = obj.lock_scale = [True, True, True]

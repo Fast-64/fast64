@@ -102,6 +102,7 @@ def initFirstFrame(csObj: Object, useNodeFeatures: bool, defaultCam: Object):
         color = [0.0, 0.0, 0.0, 0.0]
         bpy.context.scene.node_tree.nodes["CSTrans_RGB"].outputs[0].default_value = color
         bpy.context.scene.node_tree.nodes["CSMisc_RGB"].outputs[0].default_value = color
+        csObj.ootCutsceneProperty.preview.trigger = False
     csObj.ootCutsceneProperty.preview.isFixedCamSet = False
     if defaultCam is not None:
         bpy.context.scene.camera = defaultCam
@@ -115,24 +116,33 @@ def processCurrentFrame(csObj: Object, curFrame: float, useNodeFeatures: bool, c
         initFirstFrame(csObj, useNodeFeatures, cameraObjects[1])
 
     if useNodeFeatures:
+        previewProp = csObj.ootCutsceneProperty.preview
         for transitionCmd in csObj.ootCutsceneProperty.preview.transitionList:
             startFrame = transitionCmd.startFrame
             endFrame = transitionCmd.endFrame
             frameCur = curFrame
+            isTriggerInstance = transitionCmd.type == "CS_TRANS_TRIGGER_INSTANCE"
+            linear160 = getColor(160.0)
 
             if transitionCmd.type == "Unknown":
                 print("ERROR: Unknown command!")
 
-            if frameCur == 0:
+            if curFrame == 0:
                 # makes transitions appear a frame earlier if frame 0
                 frameCur += 1
+
+            if isTriggerInstance and not previewProp.trigger:
+                color = [linear160, linear160, linear160, 1.0]
+                bpy.context.scene.node_tree.nodes["CSTrans_RGB"].outputs[0].default_value = color
 
             if frameCur >= startFrame and frameCur <= endFrame:
                 color = [0.0, 0.0, 0.0, 0.0]
                 lerp = getLerp(endFrame, startFrame, frameCur)
                 linear255 = getColor(255.0)
-                linear160 = getColor(160.0)
                 linear155 = getColor(155.0)
+
+                if isTriggerInstance:
+                    previewProp.trigger = True
 
                 if transitionCmd.type.endswith("IN"):
                     alpha = linear255 * lerp
@@ -145,7 +155,7 @@ def processCurrentFrame(csObj: Object, curFrame: float, useNodeFeatures: bool, c
                     else:
                         alpha = linear255 - (linear155 * lerp)
 
-                if "_GRAY_" in transitionCmd.type:
+                if "_GRAY_" in transitionCmd.type or previewProp.trigger:
                     color[0] = color[1] = color[2] = linear160 * alpha
                 elif "_RED_" in transitionCmd.type:
                     color[0] = linear255 * alpha

@@ -2,6 +2,7 @@ from mathutils import Vector
 from bpy.ops import mesh, object, curve
 from bpy.types import Operator
 from bpy.props import FloatProperty, StringProperty
+from ..oot_utility import clearTransform
 from ...operators import AddWaterBox, addMaterialByName
 from ...utility import parentObject, setOrigin
 from ..cutscene.motion.utility import setupCutscene, createNewCameraShot
@@ -42,6 +43,7 @@ class OOT_AddDoor(Operator):
         cubeObj.ignore_render = True
         cubeObj.show_axis = True
         cubeObj.name = "Door Collision"
+        clearTransform()
 
         addMaterialByName(cubeObj, self.matName, self.preset)
 
@@ -52,6 +54,7 @@ class OOT_AddDoor(Operator):
         emptyObj.name = "Door Actor"
         emptyObj.ootTransitionActorProperty.actor.actorID = "ACTOR_DOOR_SHUTTER"
         emptyObj.ootTransitionActorProperty.actor.actorParam = "0x0000"
+        clearTransform()
 
         parentObject(cubeObj, emptyObj)
 
@@ -80,6 +83,7 @@ class OOT_AddScene(Operator):
         planeObj = context.view_layer.objects.active
         planeObj.name = "Floor"
         addMaterialByName(planeObj, self.matName, self.preset)
+        clearTransform()
 
         object.empty_add(type="CONE", radius=1, align="WORLD", location=location[:])
         entranceObj = context.view_layer.objects.active
@@ -87,6 +91,7 @@ class OOT_AddScene(Operator):
         entranceObj.name = "Entrance"
         entranceObj.ootEntranceProperty.actor.actorParam = "0x0FFF"
         parentObject(planeObj, entranceObj)
+        clearTransform()
 
         location += Vector([0, 0, 10])
         object.empty_add(type="SPHERE", radius=1, align="WORLD", location=location[:])
@@ -94,6 +99,7 @@ class OOT_AddScene(Operator):
         roomObj.ootEmptyType = "Room"
         roomObj.name = "Room"
         parentObject(roomObj, planeObj)
+        clearTransform(roomObj)
 
         location += Vector([0, 0, 2])
         object.empty_add(type="SPHERE", radius=1, align="WORLD", location=location[:])
@@ -101,6 +107,7 @@ class OOT_AddScene(Operator):
         sceneObj.ootEmptyType = "Scene"
         sceneObj.name = "Scene"
         parentObject(sceneObj, roomObj)
+        clearTransform(sceneObj)
 
         context.scene.ootSceneExportObj = sceneObj
         context.scene.fast64.renderSettings.ootSceneObject = sceneObj
@@ -123,6 +130,7 @@ class OOT_AddRoom(Operator):
         roomObj = context.view_layer.objects.active
         roomObj.ootEmptyType = "Room"
         roomObj.name = "Room"
+        clearTransform(roomObj)
         sceneObj = context.scene.ootSceneExportObj
         if sceneObj is not None:
             indices = []
@@ -190,6 +198,7 @@ class OOT_AddPath(Operator):
         curve.primitive_nurbs_path_add(radius=1, align="WORLD", location=location[:])
         pathObj = context.view_layer.objects.active
         pathObj.name = "New Path"
+        clearTransform()
 
         object.select_all(action="DESELECT")
         pathObj.select_set(True)

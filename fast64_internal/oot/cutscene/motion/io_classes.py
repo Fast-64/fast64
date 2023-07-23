@@ -2,7 +2,7 @@ import bpy
 
 from dataclasses import dataclass, field
 from bpy.types import Object
-from ...oot_utility import getEnumIndex
+from ...oot_utility import getEnumIndex, clearTransform
 from .constants import ootEnumCSActorCueListCommandType
 from .utility import getBlenderPosition, getBlenderRotation
 
@@ -170,12 +170,15 @@ class OOTCSMotionObjectFactory:
         newArmatureData = bpy.data.armatures.new(name)
         newArmatureData.display_type = "STICK"
         newArmatureData.show_names = True
-        return self.getNewObject(name, newArmatureData, selectObject, parentObj)
+        newArmatureObject = self.getNewObject(name, newArmatureData, selectObject, parentObj)
+        clearTransform(newArmatureObject, True)
+        return newArmatureObject
 
     def getNewCutsceneObject(self, name: str, frameCount: int, parentObj: Object):
         newCSObj = self.getNewEmptyObject(name, True, parentObj)
         newCSObj.ootEmptyType = "Cutscene"
         newCSObj.ootCutsceneProperty.csEndFrame = frameCount
+        clearTransform(newCSObj, True)
         return newCSObj
 
     def getNewActorCueListObject(self, name: str, commandType: str, parentObj: Object):
@@ -221,6 +224,7 @@ class OOTCSMotionObjectFactory:
         newCameraObj.data.clip_start = clipStart
         newCameraObj.data.clip_end = clipEnd
         newCameraObj.data.passepartout_alpha = alpha
+        clearTransform(newCameraObj, True)
         return newCameraObj
 
     def getNewActorCuePreviewObject(self, name: str, selectObject, parentObj: Object):
