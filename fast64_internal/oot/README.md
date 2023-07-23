@@ -150,8 +150,6 @@ For more informations about cutscenes [click here](cutscene_docs.md)
 7. When you're done with your cutscene, exporting the scene will also export the camera shot and actor cue data. If you don't want to re-export the scene everytime, select the cutscene object you want to export and use ``Export Cutscene`` from ``OOT Cutscene Exporter`` in the OOT panel. In the ``File`` field, you can choose the scene of your choice (note that it can export into actors too). You can toggle the usage of decomp's names and macros with the ``Use Decomp for Export`` checkbox, you can also choose to insert the motion data in an existing cutscene (it will create a new array if it can't find it, it's based on the name of the object you selected). This is done by toggling the ``Export Motion Data Only`` checkbox.
 8. Compile the game.
 
-Note: a "cutscene terminator" is a cutscene command that makes a scene transition. For example, this is used in the intro cutscene or in the credits.
-
 <details closed>
 <summary>Armature Data Properties Panel</summary>
 <img src="/images/oot_armature_data_properties.png" width=500/>

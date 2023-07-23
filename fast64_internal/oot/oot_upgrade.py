@@ -2,7 +2,7 @@ import bpy
 
 from bpy.types import Object, CollectionProperty
 from .data import OoT_ObjectData
-from .cutscene.motion.constants import ootEnumCSMotionCamMode, ootEnumCSActorCueListCommandType
+from .cutscene.motion.constants import ootEnumCSMotionCamMode, ootCueCmdTypeToEnumIndex
 
 
 def upgradeObjectList(objList: CollectionProperty, objData: OoT_ObjectData):
@@ -54,10 +54,12 @@ def upgradeCutsceneMotion(csMotionObj: Object):
             if "actor_id" in legacyData:
                 index = legacyData["actor_id"]
                 if index >= 0:
-                    if index < len(ootEnumCSActorCueListCommandType):
-                        csMotionProp.actorCueListProp.commandType = ootEnumCSActorCueListCommandType[index][0]
+                    cmdType = f"0x{index:04X}"
+                    if cmdType in ootCueCmdTypeToEnumIndex:
+                        csMotionProp.actorCueListProp.commandType = cmdType
                     else:
-                        csMotionProp.actorCueListProp.commandTypeCustom = f"0x{index:04X}"
+                        csMotionProp.actorCueListProp.commandType = "Custom"
+                        csMotionProp.actorCueListProp.commandTypeCustom = cmdType
                 del legacyData["actor_id"]
 
             del csMotionObj["zc_alist"]

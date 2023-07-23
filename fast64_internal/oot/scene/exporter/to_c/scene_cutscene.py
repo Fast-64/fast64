@@ -12,9 +12,12 @@ def ootCutsceneDataToC(csParent, csName):
     data.header = "extern CutsceneData " + csName + "[];\n"
     data.source = "CutsceneData " + csName + "[] = {\n"
     nentries = len(csParent.csLists) + (1 if csParent.csWriteTerminator else 0)
+    frameDiff = 0
+    if motionExporter.frameCount > csParent.csEndFrame:
+        frameDiff = motionExporter.frameCount - csParent.csEndFrame
     data.source += (
         indent + f"CS_BEGIN_CUTSCENE({nentries + motionExporter.entryTotal}, "
-    ) + f"{csParent.csEndFrame + motionExporter.frameCount}),\n"
+    ) + f"{csParent.csEndFrame + frameDiff}),\n"
     if csParent.csWriteTerminator:
         data.source += (
             "\tCS_TERMINATOR("

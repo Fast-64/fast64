@@ -176,7 +176,7 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
             shotPoints.append(
                 OOTCSMotionCamPoint(
                     ("CS_CAM_CONTINUE" if self.useDecomp else "0"),
-                    bone.ootCamShotPointProp.shotPointRoll,
+                    bone.ootCamShotPointProp.shotPointRoll if useAT else 0,
                     bone.ootCamShotPointProp.shotPointFrame,
                     bone.ootCamShotPointProp.shotPointViewAngle,
                     self.getOoTPosition(bone.head if not useAT else bone.tail),
@@ -221,10 +221,14 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
 
         # "fake" end frame
         endFrame = (
-            startFrame + max(2, sum(point.frame for point in camPointList)) + (camPointList[-1].frame if useAT else 1)
+            startFrame + max(2, sum(point.frame for point in camPointList)) + (camPointList[-2].frame if useAT else 1)
         )
 
-        self.camEndFrame = endFrame
+        if not useAT:
+            for pointData in camPointList:
+                pointData.frame = 0
+            self.camEndFrame = endFrame
+
         camData = self.getCamClass(obj.data.ootCamShotProp.shotCamMode, useAT)(startFrame, endFrame)
 
         return self.getCamCmdFunc(obj.data.ootCamShotProp.shotCamMode, useAT)(camData) + "".join(

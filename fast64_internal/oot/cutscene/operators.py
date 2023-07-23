@@ -65,11 +65,13 @@ def drawCSListAddOp(layout: UILayout, objName: str, collectionType):
 def insertCutsceneData(filePath: str, csName: str):
     """Inserts the motion data in the cutscene and returns the new data"""
     fileLines = []
+    includes = ootCutsceneIncludes("").source.split("\n")
 
     # if the file is not found then it's likely a new file that needs to be created
     try:
         with open(filePath, "r") as inputFile:
             fileLines = inputFile.readlines()
+        fileLines = fileLines[len(includes) - 1:]
     except FileNotFoundError:
         fileLines = []
 

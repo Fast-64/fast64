@@ -103,6 +103,7 @@ ootEnumCSActorCueListCommandType = [
     ("0x003E", "CS_CMD_ACTOR_CUE_8_0", ""),
     ("0x008F", "CS_CMD_ACTOR_CUE_9_0", ""),
 ]
+ootCueCmdTypeToEnumIndex = [type[0] for type in ootEnumCSActorCueListCommandType]
 
 ootCSMotionCommandTypeRawToEnum = {
     "0x000F": "CS_CMD_ACTOR_CUE_0_0",

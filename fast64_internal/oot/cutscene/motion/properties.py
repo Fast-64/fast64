@@ -33,10 +33,15 @@ class OOTCSMotionActorCueListProperty(PropertyGroup):
         items=ootEnumCSActorCueListCommandType, name="CS Actor Cue Command Type", default="0x000F"
     )
     commandTypeCustom: StringProperty(name="CS Actor Cue Command Type Custom")
-    cueListToPreview: PointerProperty(type=Object, name="", poll=lambda self, object: self.isActorCueListObj(object))
+    actorCueListToPreview: PointerProperty(
+        type=Object, name="", poll=lambda self, object: self.isActorCueListObj(object, "CS Actor Cue List")
+    )
+    playerCueListToPreview: PointerProperty(
+        type=Object, name="", poll=lambda self, object: self.isActorCueListObj(object, "CS Player Cue List")
+    )
 
-    def isActorCueListObj(self, obj: Object):
-        return obj.type == "EMPTY" and obj.ootEmptyType in ["CS Actor Cue List", "CS Player Cue List"]
+    def isActorCueListObj(self, obj: Object, emptyType: str):
+        return obj.type == "EMPTY" and obj.ootEmptyType == emptyType
 
     def draw_props(self, layout: UILayout, isPreview: bool, labelPrefix: str, objName: str):
         box = layout.box()
@@ -62,8 +67,8 @@ class OOTCSMotionActorCueListProperty(PropertyGroup):
             split.operator(OOTCSMotionCreateActorCuePreview.bl_idname)
         else:
             split = box.split(factor=0.5)
-            split.label(text="Actor Cue List to Preview")
-            split.prop(self, "cueListToPreview")
+            split.label(text=f"{labelPrefix} Cue List to Preview")
+            split.prop(self, f"{labelPrefix.lower()}CueListToPreview")
 
 
 class OOTCSMotionActorCueProperty(PropertyGroup):

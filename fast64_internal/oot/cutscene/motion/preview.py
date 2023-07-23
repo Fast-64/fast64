@@ -4,6 +4,7 @@ import math
 from mathutils import Vector, Quaternion
 from bpy.app.handlers import persistent
 from bpy.types import Object, Scene
+from ....utility import PluginError
 from .utility import (
     BoneData,
     getCameraShotBoneData,
@@ -188,14 +189,23 @@ def previewFrameHandler(scene: Scene):
                 obj.ootEmptyType in ["CS Actor Cue Preview", "CS Player Cue Preview"]
                 and parentObj.ootEmptyType == "Cutscene"
             ):
-                pos, rot = getActorCueState(
-                    obj.ootCSMotionProperty.actorCueListProp.cueListToPreview, scene.frame_current
-                )
+                cueListToPreview = None
+                if "Actor" in obj.ootEmptyType:
+                    cueListToPreview = obj.ootCSMotionProperty.actorCueListProp.actorCueListToPreview
+                elif "Player" in obj.ootEmptyType:
+                    cueListToPreview = obj.ootCSMotionProperty.actorCueListProp.playerCueListToPreview
+                else:
+                    raise PluginError("Unknown Empty Type!")
 
-                if pos is not None:
-                    obj.location = pos
-                    obj.rotation_mode = "XYZ"
-                    obj.rotation_euler = rot
+                if cueListToPreview is not None:
+                    pos, rot = getActorCueState(
+                        cueListToPreview, scene.frame_current
+                    )
+
+                    if pos is not None:
+                        obj.location = pos
+                        obj.rotation_mode = "XYZ"
+                        obj.rotation_euler = rot
 
 
 def csMotion_preview_register():

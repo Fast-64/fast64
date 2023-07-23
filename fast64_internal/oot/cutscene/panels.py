@@ -26,8 +26,23 @@ class OOT_CutscenePanel(OOT_Panel):
 
         prop_split(exportBox, context.scene, "ootCutsceneExportPath", "Export To")
 
+        activeObj = context.view_layer.objects.active
+        label = None
         col = exportBox.column()
-        col.operator(OOT_ExportCutscene.bl_idname)
+        colcol = col.column()
+        if (
+            activeObj is None or activeObj.type != "EMPTY" or activeObj.ootEmptyType != "Cutscene"
+        ):
+            label = "Select a cutscene object"
+
+        if activeObj is not None and activeObj.parent is not None:
+            label = "Cutscene object must not be parented to anything"
+
+        if label is not None:
+            col.label(text=label)
+            colcol.enabled = False
+
+        colcol.operator(OOT_ExportCutscene.bl_idname)
         col.operator(OOT_ExportAllCutscenes.bl_idname)
 
         importBox = layout.box()
