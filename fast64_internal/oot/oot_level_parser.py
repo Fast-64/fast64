@@ -148,6 +148,7 @@ class SharedSceneData:
         includeCameras: bool,
         includePaths: bool,
         includeWaterBoxes: bool,
+        includeCutscenes: bool,
     ):
         self.actorDict = {}  # actor hash : blender object
         self.entranceDict = {}  # actor hash : blender object
@@ -163,6 +164,7 @@ class SharedSceneData:
         self.includeCameras = includeCameras
         self.includePaths = includePaths
         self.includeWaterBoxes = includeWaterBoxes
+        self.includeCutscenes = includeCutscenes
 
     def addHeaderIfItemExists(self, hash, itemType: str, headerIndex: int):
         if itemType == "Actor":
@@ -262,7 +264,12 @@ def parseScene(
         settings.includeCameras,
         settings.includePaths,
         settings.includeWaterBoxes,
+        settings.includeCutscenes,
     )
+
+    if settings.includeCutscenes:
+        bpy.context.scene.ootCSNumber = importCutsceneData(None, sceneData)
+
     sceneObj = parseSceneCommands(sceneName, None, None, sceneCommandsName, sceneData, f3dContext, 0, sharedSceneData)
     bpy.context.scene.ootSceneExportObj = sceneObj
 
@@ -273,9 +280,6 @@ def parseScene(
 
     if bpy.context.scene.fast64.oot.headerTabAffectsVisibility:
         setAllActorsVisibility(sceneObj, bpy.context)
-
-    if settings.includeCutscenes:
-        bpy.context.scene.ootCSNumber = importCutsceneData(None, sceneData)
 
 
 def parseSceneCommands(
@@ -368,11 +372,17 @@ def parseSceneCommands(
             if not (args[1] == "NULL" or args[1] == "0" or args[1] == "0x00"):
                 lightsListName = stripName(args[1])
                 parseLightList(sceneObj, sceneHeader, sceneData, lightsListName, headerIndex)
+        elif command == "SCENE_CMD_CUTSCENE_DATA":
+            sceneHeader.writeCutscene = True
+            sceneHeader.csWriteType = "Object"
+            csObjName = f"Cutscene.{args[0]}"
+            try:
+                sceneHeader.csWriteObject = bpy.data.objects[csObjName]
+            except:
+                print(f"ERROR: Cutscene ``{csObjName}`` do not exist!")
         elif command == "SCENE_CMD_ALTERNATE_HEADER_LIST":
             # Delay until after rooms are parsed
             altHeadersListName = stripName(args[0])
-
-        # cutscenes are handled after importing the scene
 
     if altHeadersListName is not None:
         parseAlternateSceneHeaders(sceneObj, roomObjs, sceneData, altHeadersListName, f3dContext, sharedSceneData)
