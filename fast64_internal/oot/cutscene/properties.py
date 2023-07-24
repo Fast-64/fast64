@@ -244,7 +244,7 @@ class OOTCutscenePreviewProperty(PropertyGroup):
     transitionList: CollectionProperty(type=OOTCutsceneTransitionProperty)
     miscList: CollectionProperty(type=OOTCutsceneMiscProperty)
 
-    trigger: BoolProperty(default=False) # for ``CS_TRANS_TRIGGER_INSTANCE``
+    trigger: BoolProperty(default=False)  # for ``CS_TRANS_TRIGGER_INSTANCE``
     isFixedCamSet: BoolProperty(default=False)
     prevFrame: IntProperty(default=-1)
     nextFrame: IntProperty(default=1)

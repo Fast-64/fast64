@@ -71,7 +71,7 @@ def insertCutsceneData(filePath: str, csName: str):
     try:
         with open(filePath, "r") as inputFile:
             fileLines = inputFile.readlines()
-        fileLines = fileLines[len(includes) - 1:]
+        fileLines = fileLines[len(includes) - 1 :]
     except FileNotFoundError:
         fileLines = []
 

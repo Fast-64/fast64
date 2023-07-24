@@ -30,9 +30,7 @@ class OOT_CutscenePanel(OOT_Panel):
         label = None
         col = exportBox.column()
         colcol = col.column()
-        if (
-            activeObj is None or activeObj.type != "EMPTY" or activeObj.ootEmptyType != "Cutscene"
-        ):
+        if activeObj is None or activeObj.type != "EMPTY" or activeObj.ootEmptyType != "Cutscene":
             label = "Select a cutscene object"
 
         if activeObj is not None and activeObj.parent is not None:

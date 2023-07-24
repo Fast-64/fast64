@@ -54,7 +54,7 @@ def oot_operator_panel_unregister():
 def oot_operator_register():
     for cls in toolOpsToRegister:
         register_class(cls)
-    
+
 
 def oot_operator_unregister():
     for cls in reversed(toolOpsToRegister):

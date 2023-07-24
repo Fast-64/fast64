@@ -198,9 +198,7 @@ def previewFrameHandler(scene: Scene):
                     raise PluginError("Unknown Empty Type!")
 
                 if cueListToPreview is not None:
-                    pos, rot = getActorCueState(
-                        cueListToPreview, scene.frame_current
-                    )
+                    pos, rot = getActorCueState(cueListToPreview, scene.frame_current)
 
                     if pos is not None:
                         obj.location = pos
