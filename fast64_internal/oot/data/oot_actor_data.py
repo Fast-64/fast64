@@ -158,3 +158,5 @@ class OoT_ActorData:
             return self.ootEnumTransitionActorID
         elif actorUser == "Entrance":
             return [(self.actorsByKey["player"].id, self.actorsByKey["player"].name, self.actorsByKey["player"].id)]
+        else:
+            raise ValueError("ERROR: The Actor User is unknown!")

@@ -155,10 +155,7 @@ class OOTActorHeaderProperty(PropertyGroup):
 
 
 class OOTActorProperty(PropertyGroup):
-    actorID: EnumProperty(
-        name="Actor", 
-        items=lambda self, context: ootData.actorData.getItems(context.active_object.ootEmptyType)
-    )
+    actorID: EnumProperty(name="Actor", items=ootData.actorData.ootEnumActorID, default="ACTOR_PLAYER")
     actorIDCustom: StringProperty(name="Actor ID", default="ACTOR_PLAYER")
 
     actorParam: StringProperty(name="Actor Parameter", default="0x0000")
@@ -217,10 +214,9 @@ class OOTActorProperty(PropertyGroup):
         return False
 
     def isValueInRange(self, value: int, min: int, max: int):
-        isInRange = True
         if min is not None and max is not None:
-            isInRange = value >= min and value <= max
-        return isInRange
+            return value >= min and value <= max
+        return True
 
     def setParamValue(self, value: str | bool, target: str):
         actor = ootData.actorData.actorsByID[self.actorID]
@@ -234,6 +230,9 @@ class OOTActorProperty(PropertyGroup):
                 else:
                     shiftedVal = int(value, base=16) & param.mask
                     foundType = shiftedVal
+
+                if "Rot" in target:
+                    foundType = int(getEvalParams(getattr(self, getObjName(actor.key, "Type", None, 1))), base=16)
 
                 isInRange = self.isValueInRange(shiftedVal, param.valueRange[0], param.valueRange[1])
                 if isInRange and (foundType is not None and foundType in param.tiedTypes or len(param.tiedTypes) == 0):
@@ -275,6 +274,9 @@ class OOTActorProperty(PropertyGroup):
                             value = ootData.actorData.messageItemsByKey[curPropValue].value
                         paramValue = f"0x{value:X}"
 
+                if "Rot" in target:
+                    typeValue = int(getEvalParams(getattr(self, getObjName(actor.key, "Type", None, 1))), base=16)
+
                 if typeValue is not None and typeValue in param.tiedTypes or len(param.tiedTypes) == 0:
                     evalValue = getEvalParams(paramValue) if paramValue is not None else "-1"
                     val = (int(evalValue, base=16) & param.mask) >> getShiftFromMask(param.mask)
@@ -288,6 +290,9 @@ class OOTActorProperty(PropertyGroup):
             paramString = " | ".join(val for val in paramList)
         else:
             paramString = "0x0"
+
+        if "Rot" in target:
+            typeValue = None
 
         evalTypeValue = typeValue if typeValue is not None else 0
         evalParamValue = int(getEvalParams(paramString), base=16)
