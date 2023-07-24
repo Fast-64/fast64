@@ -757,6 +757,7 @@ def getActorRotation(actorProp: OOTActorProperty, blendRots: list[int]):
                 exportRots[i] = overrideRots[i]
     return exportRots
 
+
 def ootProcessEmpties(scene, room, sceneObj, obj: Object, transformMatrix):
     translation, rotation, scale, orientedRotation = getConvertedTransform(transformMatrix, sceneObj, obj, True)
 
