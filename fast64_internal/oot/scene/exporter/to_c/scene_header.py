@@ -59,7 +59,7 @@ def getLightSettingsEntry(light: OOTLight, lightMode: str, isLightingCustom: boo
 
 def getLightSettings(outScene: OOTScene, headerIndex: int):
     lightSettingsData = CData()
-    lightName = f"LightSettings {outScene.lightListName(headerIndex)}[{len(outScene.lights)}]"
+    lightName = f"EnvLightSettings {outScene.lightListName(headerIndex)}[{len(outScene.lights)}]"
 
     # .h
     lightSettingsData.header = f"extern {lightName};\n"

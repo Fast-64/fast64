@@ -236,7 +236,7 @@ class OOTCutsceneProperty(PropertyGroup):
             r.prop(self, "csTermStart")
             r.prop(self, "csTermEnd")
         for i, p in enumerate(self.csLists):
-            p.draw_props(layout, p, i, obj.name, "Cutscene")
+            p.draw_props(layout, i, obj.name, "Cutscene")
 
         drawCSListAddOp(layout, obj.name, "Cutscene")
 

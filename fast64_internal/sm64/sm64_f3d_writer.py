@@ -4,13 +4,16 @@ from math import ceil, log, radians
 from mathutils import Matrix, Vector
 from bpy.utils import register_class, unregister_class
 from ..panels import SM64_Panel
-from ..f3d.f3d_writer import saveTextureIndex, exportF3DCommon
+from ..f3d.f3d_writer import exportF3DCommon
+from ..f3d.f3d_texture_writer import TexInfo
 from ..f3d.f3d_material import TextureProperty, tmemUsageUI, all_combiner_uses, ui_procAnim
 from .sm64_texscroll import modifyTexScrollFiles, modifyTexScrollHeadersGroup
 from .sm64_utility import starSelectWarning
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_rom_tweaks import ExtendBank0x04
 from typing import Tuple, Union, Iterable
+
+from ..f3d.f3d_bleed import BleedGraphics
 
 from ..f3d.f3d_gbi import (
     GbiMacro,
@@ -95,8 +98,8 @@ enumHUDPaths = {
 
 
 class SM64Model(FModel):
-    def __init__(self, f3dType, isHWv1, name, DLFormat):
-        FModel.__init__(self, f3dType, isHWv1, name, DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert)
+    def __init__(self, f3dType, isHWv1, name, DLFormat, matWriteMethod):
+        FModel.__init__(self, f3dType, isHWv1, name, DLFormat, matWriteMethod)
 
     def getDrawLayerV3(self, obj):
         return int(obj.draw_layer_static)
@@ -120,7 +123,7 @@ class SM64GfxFormatter(GfxFormatter):
             return "", ""
         elif tags & (GfxTag.TileScroll0 | GfxTag.TileScroll1):
             textureIndex = 0 if tags & GfxTag.TileScroll0 else 1
-            return get_tile_scroll_code(fMaterial.scrollData, textureIndex, commandIndex)
+            return get_tile_scroll_code(fMaterial.texture_DL.name, fMaterial.scrollData, textureIndex, commandIndex)
         else:
             return "", ""
 
@@ -147,7 +150,6 @@ class SM64GfxFormatter(GfxFormatter):
             funcName = f"scroll_{vtxListName}"
             data.header = f"extern void {funcName}();\n"
             data.functionCalls.append(funcName)
-
         return data
 
 
@@ -179,8 +181,8 @@ def exportTexRectToC(dirPath, texProp, f3dType, isHWv1, texDir, savePNG, name, e
         fTexRect.save_textures(seg2TexDir, not savePNG)
 
         textures = []
-        for info, texture in fTexRect.textures.items():
-            textures.append(texture)
+        for _, fImage in fTexRect.textures.items():
+            textures.append(fImage)
 
         # Append/Overwrite texture definition to segment2.c
         overwriteData("const\s*u8\s*", textures[0].name, data, seg2CPath, None, False)
@@ -300,24 +302,19 @@ def exportTexRectCommon(texProp, f3dType, isHWv1, name, convertTextureData):
 
     drawEndCommands = GfxList("temp", GfxListTag.Draw, DLFormat.Dynamic)
 
-    texDimensions, nextTmem, fImage = saveTextureIndex(
-        None,
-        texProp.tex.name,
-        fTexRect,
-        fMaterial,
-        fTexRect.draw,
-        drawEndCommands,
-        texProp,
-        0,
-        0,
-        "texture",
-        convertTextureData,
-        None,
-        True,
-        True,
-        None,
-        FImageKey(texProp.tex, texProp.tex_format, texProp.ci_format, [texProp.tex]),
-    )
+    ti = TexInfo()
+    if not ti.fromProp(texProp, 0):
+        raise PluginError(f"In {name}: {texProp.errorMsg}.")
+    if not ti.useTex:
+        raise PluginError(f"In {name}: texture disabled.")
+    if ti.isTexCI:
+        raise PluginError(f"In {name}: CI textures not compatible with exportTexRectCommon (because copy mode).")
+    if ti.tmemSize > 512:
+        raise PluginError(f"In {name}: texture is too big (> 4 KiB).")
+    if ti.texFormat != "RGBA16":
+        raise PluginError(f"In {name}: texture format must be RGBA16 (because copy mode).")
+    ti.imDependencies = [tex]
+    ti.writeAll(fTexRect.draw, fMaterial, fTexRect, convertTextureData)
 
     fTexRect.draw.commands.append(
         SPScisTextureRectangle(0, 0, (texDimensions[0] - 1) << 2, (texDimensions[1] - 1) << 2, 0, 0, 0)
@@ -360,8 +357,19 @@ def sm64ExportF3DtoC(
 ):
     dirPath, texDir = getExportDir(customExport, basePath, headerType, levelName, texDir, name)
 
-    fModel = SM64Model(f3dType, isHWv1, name, DLFormat)
-    fMesh = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, name, DLFormat, not savePNG)
+    inline = bpy.context.scene.exportInlineF3D
+    fModel = SM64Model(
+        f3dType,
+        isHWv1,
+        name,
+        DLFormat,
+        GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
+    )
+    fMeshes = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, name, DLFormat, not savePNG)
+
+    if inline:
+        bleed_gfx = BleedGraphics()
+        bleed_gfx.bleed_fModel(fModel, fMeshes)
 
     modelDirPath = os.path.join(dirPath, toAlnum(name))
 
@@ -474,9 +482,9 @@ def sm64ExportF3DtoC(
 
 
 def exportF3DtoBinary(romfile, exportRange, transformMatrix, obj, f3dType, isHWv1, segmentData, includeChildren):
-
-    fModel = SM64Model(f3dType, isHWv1, obj.name, DLFormat)
-    fMesh = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, obj.name, DLFormat.Static, True)
+    fModel = SM64Model(f3dType, isHWv1, obj.name, DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert)
+    fMeshes = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, obj.name, DLFormat.Static, True)
+    fMesh = fMeshes[fModel.getDrawLayerV3(obj)]
     fModel.freePalettes()
 
     addrRange = fModel.set_addr(exportRange[0])
@@ -494,9 +502,9 @@ def exportF3DtoBinary(romfile, exportRange, transformMatrix, obj, f3dType, isHWv
 
 
 def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix, obj, f3dType, isHWv1, RAMAddr, includeChildren):
-
-    fModel = SM64Model(f3dType, isHWv1, obj.name, DLFormat)
-    fMesh = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, obj.name, DLFormat.Static, True)
+    fModel = SM64Model(f3dType, isHWv1, obj.name, DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert)
+    fMeshes = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, obj.name, DLFormat.Static, True)
+    fMesh = fMeshes[fModel.getDrawLayerV3(obj)]
     segmentData = copy.copy(bank0Segment)
 
     data, startRAM = getBinaryBank0F3DData(fModel, RAMAddr, exportRange)
@@ -514,9 +522,9 @@ def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix, obj, f3dType, 
 
 
 def exportF3DtoInsertableBinary(filepath, transformMatrix, obj, f3dType, isHWv1, includeChildren):
-
-    fModel = SM64Model(f3dType, isHWv1, obj.name, DLFormat)
-    fMesh = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, obj.name, DLFormat.Static, True)
+    fModel = SM64Model(f3dType, isHWv1, obj.name, DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert)
+    fMeshes = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, obj.name, DLFormat.Static, True)
+    fMesh = fMeshes[fModel.getDrawLayerV3(obj)]
 
     data, startRAM = getBinaryBank0F3DData(fModel, 0, [0, 0xFFFFFF])
     # must happen after getBinaryBank0F3DData
@@ -678,7 +686,6 @@ class SM64_ExportDL(bpy.types.Operator):
                         + hex(startAddress + 0x80000000),
                     )
                 else:
-
                     self.report(
                         {"INFO"},
                         "Success! DL at ("

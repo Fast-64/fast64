@@ -38,7 +38,7 @@ def exportCollisionCommon(collision, obj, transformMatrix, includeChildren, name
     addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, collision.bounds)
     for polygonType, faces in collisionDict.items():
         collision.polygonGroups[polygonType] = []
-        for (faceVerts, normal, distance) in faces:
+        for faceVerts, normal, distance in faces:
             assert len(faceVerts) == 3
             indices = []
             for roundedPosition in faceVerts:
@@ -203,8 +203,7 @@ def ootCameraDataToC(camData):
     posC = CData()
     camC = CData()
     if len(camData.camPosDict) > 0:
-
-        camDataName = "CamData " + camData.camDataName() + "[" + str(len(camData.camPosDict)) + "]"
+        camDataName = "BgCamInfo " + camData.camDataName() + "[" + str(len(camData.camPosDict)) + "]"
 
         camC.source = camDataName + " = {\n"
         camC.header = "extern " + camDataName + ";\n"

@@ -16,8 +16,8 @@ from ..utility import (
     writeIfNotFound,
     getDataFromFile,
     saveDataToFile,
-    unhideAllAndGetHiddenList,
-    hideObjsInList,
+    unhideAllAndGetHiddenState,
+    restoreHiddenState,
     overwriteData,
     selectSingleObject,
     deleteIfFound,
@@ -35,6 +35,7 @@ from ..utility import (
 
 from ..f3d.f3d_gbi import (
     ScrollMethod,
+    GfxMatWriteMethod,
     TextureExportSettings,
     DLFormat,
 )
@@ -723,7 +724,8 @@ def exportLevelC(
     cameraVolumeString = "struct CameraTrigger " + levelCameraVolumeName + "[] = {\n"
     puppycamVolumeString = ""
 
-    fModel = SM64Model(f3dType, isHWv1, levelName + "_dl", DLFormat)
+    inline = bpy.context.scene.exportInlineF3D
+    fModel = SM64Model(f3dType, isHWv1, levelName + "_dl", DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll)
     childAreas = [child for child in obj.children if child.data is None and child.sm64_obj_type == "Area Root"]
     if len(childAreas) == 0:
         raise PluginError("The level root has no child empties with the 'Area Root' object type.")
@@ -733,7 +735,7 @@ def exportLevelC(
     zoomFlags = [False, False, False, False]
 
     if bpy.context.scene.exportHiddenGeometry:
-        hiddenObjs = unhideAllAndGetHiddenList(bpy.context.scene)
+        hiddenState = unhideAllAndGetHiddenState(bpy.context.scene)
 
     for child in childAreas:
         if len(child.children) == 0:
@@ -868,7 +870,7 @@ def exportLevelC(
     levelscriptString = prevLevelScript.to_c(areaString)
 
     if bpy.context.scene.exportHiddenGeometry:
-        hideObjsInList(hiddenObjs)
+        restoreHiddenState(hiddenState)
 
     # Remove old areas.
     for f in os.listdir(levelDir):

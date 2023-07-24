@@ -26,7 +26,7 @@ bitSizeDict = {
     "G_IM_SIZ_32b": 32,
 }
 
-texBitSizeOf = {
+texBitSizeF3D = {
     "I4": "G_IM_SIZ_4b",
     "IA4": "G_IM_SIZ_4b",
     "CI4": "G_IM_SIZ_4b",
@@ -219,12 +219,33 @@ class DrawLayerProperty(bpy.types.PropertyGroup):
 
 
 def getTmemWordUsage(texFormat, width, height):
-    texelsPerLine = 64 / bitSizeDict[texBitSizeOf[texFormat]]
-    return math.ceil(width / texelsPerLine) * height
+    texelsPerWord = 64 // texBitSizeInt[texFormat]
+    return (width + texelsPerWord - 1) // texelsPerWord * height
 
 
 def getTmemMax(texFormat):
     return 4096 if texFormat[:2] != "CI" else 2048
+
+
+# Necessary for UV half pixel offset (see 13.7.5.3)
+def isTexturePointSampled(material):
+    f3dMat = material.f3d_mat
+
+    return f3dMat.rdp_settings.g_mdsft_text_filt == "G_TF_POINT"
+
+
+def isLightingDisabled(material):
+    f3dMat = material.f3d_mat
+    return not f3dMat.rdp_settings.g_lighting
+
+
+# Necessary as G_SHADE_SMOOTH actually does nothing
+def checkIfFlatShaded(material):
+    if material.mat_ver > 3:
+        f3dMat = material.f3d_mat
+    else:
+        f3dMat = material
+    return not f3dMat.rdp_settings.g_shade_smooth
 
 
 def F3DOrganizeLights(self, context):
@@ -518,6 +539,13 @@ class F3DPanel(bpy.types.Panel):
         prop_input.enabled = setProp
         return inputGroup
 
+    def ui_large(self, material, layout):
+        layout.prop(material, "use_large_textures")
+        if material.use_large_textures:
+            inputGroup = layout.row().split(factor=0.5)
+            inputGroup.label(text="Large texture edges:")
+            inputGroup.prop(material, "large_edges", text="")
+
     def ui_scale(self, material, layout):
         inputGroup = layout.row().split(factor=0.5)
         prop_input = inputGroup.column()
@@ -752,6 +780,18 @@ class F3DPanel(bpy.types.Panel):
     def drawShadeAlphaNotice(self, layout):
         layout.box().column().label(text='There must be a vertex color layer called "Alpha".', icon="IMAGE_ALPHA")
 
+    def checkDrawMixedCIWarning(self, layout, useDict, f3dMat):
+        useTex0 = useDict["Texture 0"] and f3dMat.tex0.tex_set
+        useTex1 = useDict["Texture 1"] and f3dMat.tex1.tex_set
+        if not useTex0 or not useTex1:
+            return
+        isTex0CI = f3dMat.tex0.tex_format[:2] == "CI"
+        isTex1CI = f3dMat.tex1.tex_format[:2] == "CI"
+        if isTex0CI != isTex1CI:
+            layout.box().column().label(text="Can't have one CI tex and one non-CI.", icon="ERROR")
+        if isTex0CI and isTex1CI and (f3dMat.tex0.ci_format != f3dMat.tex1.ci_format):
+            layout.box().column().label(text="Two CI textures must use the same CI format.", icon="ERROR")
+
     def draw_simple(self, f3dMat, material, layout, context):
         self.ui_uvCheck(layout, context)
 
@@ -765,18 +805,19 @@ class F3DPanel(bpy.types.Panel):
 
         useMultitexture = useDict["Texture 0"] and useDict["Texture 1"] and f3dMat.tex0.tex_set and f3dMat.tex1.tex_set
 
+        self.checkDrawMixedCIWarning(inputCol, useDict, f3dMat)
         canUseLargeTextures = material.mat_ver > 3 and material.f3d_mat.use_large_textures
         if useDict["Texture 0"] and f3dMat.tex0.tex_set:
-            ui_image(canUseLargeTextures, inputCol, f3dMat.tex0, "Texture 0", False)
+            ui_image(canUseLargeTextures, inputCol, material, f3dMat.tex0, "Texture 0", False)
 
         if useDict["Texture 1"] and f3dMat.tex1.tex_set:
-            ui_image(canUseLargeTextures, inputCol, f3dMat.tex1, "Texture 1", False)
+            ui_image(canUseLargeTextures, inputCol, material, f3dMat.tex1, "Texture 1", False)
 
         if useMultitexture:
             inputCol.prop(f3dMat, "uv_basis", text="UV Basis")
 
         if useDict["Texture"]:
-            inputCol.prop(f3dMat, "use_large_textures")
+            self.ui_large(f3dMat, inputCol)
             self.ui_scale(f3dMat, inputCol)
 
         if useDict["Primitive"] and f3dMat.set_prim:
@@ -799,7 +840,6 @@ class F3DPanel(bpy.types.Panel):
             self.ui_fog(f3dMat, inputCol, False)
 
     def draw_full(self, f3dMat, material, layout: bpy.types.UILayout, context):
-
         layout.row().prop(material, "menu_tab", expand=True)
         menuTab = material.menu_tab
         useDict = all_combiner_uses(f3dMat)
@@ -866,18 +906,19 @@ class F3DPanel(bpy.types.Panel):
 
             useMultitexture = useDict["Texture 0"] and useDict["Texture 1"]
 
+            self.checkDrawMixedCIWarning(inputCol, useDict, f3dMat)
             canUseLargeTextures = material.mat_ver > 3 and material.f3d_mat.use_large_textures
             if useDict["Texture 0"]:
-                ui_image(canUseLargeTextures, inputCol, f3dMat.tex0, "Texture 0", True)
+                ui_image(canUseLargeTextures, inputCol, material, f3dMat.tex0, "Texture 0", True)
 
             if useDict["Texture 1"]:
-                ui_image(canUseLargeTextures, inputCol, f3dMat.tex1, "Texture 1", True)
+                ui_image(canUseLargeTextures, inputCol, material, f3dMat.tex1, "Texture 1", True)
 
             if useMultitexture:
                 inputCol.prop(f3dMat, "uv_basis", text="UV Basis")
 
             if useDict["Texture"]:
-                inputCol.prop(f3dMat, "use_large_textures")
+                self.ui_large(f3dMat, inputCol)
                 self.ui_scale(f3dMat, inputCol)
 
             if useDict["Primitive"]:
@@ -1427,7 +1468,7 @@ def set_texture_settings_node(material: bpy.types.Material):
 
 
 def setAutoProp(fieldProperty, pixelLength):
-    fieldProperty.mask = math.ceil(math.log(pixelLength, 2) - 0.001)
+    fieldProperty.mask = log2iRoundUp(pixelLength)
     fieldProperty.shift = 0
     fieldProperty.low = 0
     fieldProperty.high = pixelLength
@@ -1526,7 +1567,7 @@ def toggle_texture_node_muting(material: bpy.types.Material, texIndex: int, isUs
 
 def set_texture_nodes_settings(
     material: bpy.types.Material, texProperty: "TextureProperty", texIndex: int, isUsed: bool
-) -> (list[int] | None):
+) -> list[int] | None:
     node_tree = material.node_tree
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
 
@@ -1773,7 +1814,6 @@ def load_handler(dummy):
 
         # detect if this is one your addon's libraries here
         if "f3d_material_library.blend" in lib_path:
-
             addon_dir = os.path.dirname(os.path.abspath(__file__))
             new_lib_path = os.path.join(addon_dir, "f3d_material_library.blend")
 
@@ -2145,7 +2185,7 @@ class TextureProperty(bpy.types.PropertyGroup):
         default="0x08000000",
     )
     pal_reference_size: bpy.props.IntProperty(
-        name="Texture Reference Size",
+        name="Palette Reference Size",
         min=1,
         default=16,
     )
@@ -2217,7 +2257,12 @@ def update_combiner_connections_and_preset(self, context: bpy.types.Context):
 
 
 def ui_image(
-    canUseLargeTextures: bool, layout: bpy.types.UILayout, textureProp: TextureProperty, name: str, showCheckBox: bool
+    canUseLargeTextures: bool,
+    layout: bpy.types.UILayout,
+    material: bpy.types.Material,
+    textureProp: TextureProperty,
+    name: str,
+    showCheckBox: bool,
 ):
     inputGroup = layout.box().column()
 
@@ -2240,8 +2285,10 @@ def ui_image(
             prop_split(prop_input, textureProp, "tex_reference", "Texture Reference")
             prop_split(prop_input, textureProp, "tex_reference_size", "Texture Size")
             if textureProp.tex_format[:2] == "CI":
-                prop_split(prop_input, textureProp, "pal_reference", "Palette Reference")
-                prop_split(prop_input, textureProp, "pal_reference_size", "Palette Size")
+                flipbook = getattr(material.flipbookGroup, "flipbook" + texIndex)
+                if flipbook is None or not flipbook.enable:
+                    prop_split(prop_input, textureProp, "pal_reference", "Palette Reference")
+                    prop_split(prop_input, textureProp, "pal_reference_size", "Palette Size")
 
         else:
             prop_input.template_ID(
@@ -2252,10 +2299,28 @@ def ui_image(
             if tex is not None:
                 prop_input.label(text="Size: " + str(tex.size[0]) + " x " + str(tex.size[1]))
 
+        if textureProp.use_tex_reference:
+            width, height = textureProp.tex_reference_size[0], textureProp.tex_reference_size[1]
+        elif tex is not None:
+            width, height = tex.size[0], tex.size[1]
+        else:
+            width = height = 0
+
         if canUseLargeTextures:
-            prop_input.label(text="Large texture mode enabled.")
-            prop_input.label(text="Each triangle must fit in a single tile load.")
-            prop_input.label(text="UVs must be in the [0, 1024] pixel range.")
+            availTmem = 512
+            if textureProp.tex_format[:2] == "CI":
+                availTmem /= 2
+            useDict = all_combiner_uses(material.f3d_mat)
+            if useDict["Texture 0"] and useDict["Texture 1"]:
+                availTmem /= 2
+            isLarge = getTmemWordUsage(textureProp.tex_format, width, height) > availTmem
+        else:
+            isLarge = False
+
+        if isLarge:
+            msg = prop_input.box().column()
+            msg.label(text="This is a large texture.", icon="INFO")
+            msg.label(text="Recommend using Create Large Texture Mesh tool.")
         else:
             tmemUsageUI(prop_input, textureProp)
 
@@ -2263,7 +2328,28 @@ def ui_image(
         if textureProp.tex_format[:2] == "CI":
             prop_split(prop_input, textureProp, "ci_format", name="CI Format")
 
-        if not (canUseLargeTextures):
+        if not isLarge:
+            if width > 0 and height > 0:
+                texelsPerWord = 64 // texBitSizeInt[textureProp.tex_format]
+                if width % texelsPerWord != 0:
+                    msg = prop_input.box().column()
+                    msg.label(text=f"Suggest {textureProp.tex_format} tex be multiple ", icon="INFO")
+                    msg.label(text=f"of {texelsPerWord} pixels wide for fast loading.")
+                warnClampS = (
+                    not isPowerOf2(width)
+                    and not textureProp.S.clamp
+                    and (not textureProp.autoprop or textureProp.S.mask != 0)
+                )
+                warnClampT = (
+                    not isPowerOf2(height)
+                    and not textureProp.T.clamp
+                    and (not textureProp.autoprop or textureProp.T.mask != 0)
+                )
+                if warnClampS or warnClampT:
+                    msg = prop_input.box().column()
+                    msg.label(text=f"Clamping required for non-power-of-2 image", icon="ERROR")
+                    msg.label(text=f"dimensions. Enable clamp or set mask to 0.")
+
             texFieldSettings = prop_input.column()
             clampSettings = texFieldSettings.row()
             clampSettings.prop(textureProp.S, "clamp", text="Clamp S")
@@ -2291,16 +2377,6 @@ def ui_image(
                 high = prop_input.row()
                 high.prop(textureProp.S, "high", text="S High")
                 high.prop(textureProp.T, "high", text="T High")
-
-            if (
-                tex is not None
-                and tex.size[0] > 0
-                and tex.size[1] > 0
-                and (math.log(tex.size[0], 2) % 1 > 0.000001 or math.log(tex.size[1], 2) % 1 > 0.000001)
-            ):
-                warnBox = layout.box()
-                warnBox.label(text="Warning: Texture dimensions are not power of 2.")
-                warnBox.label(text="Wrapping only occurs on power of 2 bounds.")
 
 
 class CombinerProperty(bpy.types.PropertyGroup):
@@ -2460,45 +2536,54 @@ class RDPSettings(bpy.types.PropertyGroup):
         name="Z Buffer",
         default=True,
         update=update_node_values_with_preset,
+        description="Enables calculation of Z value for primitives. Disable if not reading or writing Z-Buffer in the blender"
     )
     g_shade: bpy.props.BoolProperty(
         name="Shading",
         default=True,
         update=update_node_values_with_preset,
+        description="Computes shade coordinates for primitives. Disable if not using lighting, vertex colors or fog"
     )
     # v1/2 difference
     g_cull_front: bpy.props.BoolProperty(
         name="Cull Front",
         update=update_node_values_with_preset,
+        description="Disables drawing of front faces"
     )
     # v1/2 difference
     g_cull_back: bpy.props.BoolProperty(
         name="Cull Back",
         default=True,
         update=update_node_values_with_preset,
+        description="Disables drawing of back faces"
     )
     g_fog: bpy.props.BoolProperty(
         name="Fog",
         update=update_node_values_with_preset,
+        description="Turns on/off fog calculation. Fog variable gets stored into shade alpha"
     )
     g_lighting: bpy.props.BoolProperty(
         name="Lighting",
         default=True,
         update=update_node_values_with_preset,
+        description="Enables calculation shade color using lights. Turn off for vertex colors as shade color"
     )
     g_tex_gen: bpy.props.BoolProperty(
         name="Texture UV Generate",
         update=update_node_values_with_preset,
+        description="Generates texture coordinates for reflection mapping based on vertex normals and lookat direction. On a skybox texture, maps the sky to the center of the texture and the ground to a circle inscribed in the border. Requires lighting enabled to use"
     )
     g_tex_gen_linear: bpy.props.BoolProperty(
         name="Texture UV Generate Linear",
         update=update_node_values_with_preset,
+        description="Modifies the texgen mapping; enable with texgen. Use a normal panorama image for the texture, with the sky at the top and the ground at the bottom. Requires lighting enabled to use"
     )
     # v1/2 difference
     g_shade_smooth: bpy.props.BoolProperty(
         name="Smooth Shading",
         default=True,
         update=update_node_values_with_preset,
+        description="Shades primitive smoothly using interpolation between shade values for each vertex (Gouraud shading)"
     )
     # f3dlx2 only
     g_clipping: bpy.props.BoolProperty(
@@ -2513,6 +2598,7 @@ class RDPSettings(bpy.types.PropertyGroup):
         items=enumAlphaDither,
         default="G_AD_NOISE",
         update=update_node_values_with_preset,
+        description="Applies your choice dithering type to output framebuffer alpha. Dithering is used to convert high precision source colors into lower precision framebuffer values"
     )
     # v2 only
     g_mdsft_rgb_dither: bpy.props.EnumProperty(
@@ -2520,35 +2606,41 @@ class RDPSettings(bpy.types.PropertyGroup):
         items=enumRGBDither,
         default="G_CD_MAGICSQ",
         update=update_node_values_with_preset,
+        description="Applies your choice dithering type to output framebuffer color. Dithering is used to convert high precision source colors into lower precision framebuffer values"
     )
     g_mdsft_combkey: bpy.props.EnumProperty(
         name="Chroma Key",
         items=enumCombKey,
         default="G_CK_NONE",
         update=update_node_values_with_preset,
+        description="Turns on/off the chroma key. Chroma key requires a special setup to work properly"
     )
     g_mdsft_textconv: bpy.props.EnumProperty(
         name="Texture Convert",
         items=enumTextConv,
         default="G_TC_FILT",
         update=update_node_values_with_preset,
+        description="Sets the function of the texture convert unit, to do texture filtering, YUV to RGB conversion, or both"
     )
     g_mdsft_text_filt: bpy.props.EnumProperty(
         name="Texture Filter",
         items=enumTextFilt,
         default="G_TF_BILERP",
         update=update_node_values_without_preset,
+        description="Applies your choice of filtering to texels"
     )
     g_mdsft_textlut: bpy.props.EnumProperty(
         name="Texture LUT",
         items=enumTextLUT,
         default="G_TT_NONE",
+        description="Changes texture look up table (LUT) behavior. This property is auto set if you choose a CI texture"
     )
     g_mdsft_textlod: bpy.props.EnumProperty(
         name="Texture LOD",
         items=enumTextLOD,
         default="G_TL_TILE",
         update=update_node_values_with_preset,
+        description="Turns on/off the use of LoD on textures. LoD textures change the used tile based on the texel/pixel ratio"
     )
     num_textures_mipmapped: bpy.props.IntProperty(
         name="Number of Mipmaps",
@@ -2562,18 +2654,21 @@ class RDPSettings(bpy.types.PropertyGroup):
         items=enumTextDetail,
         default="G_TD_CLAMP",
         update=update_node_values_with_preset,
+        description="Changes type of LoD usage. Affects how tiles are selected based on texel magnification. Only works when G_TL_LOD is selected"
     )
     g_mdsft_textpersp: bpy.props.EnumProperty(
         name="Texture Perspective Correction",
         items=enumTextPersp,
         default="G_TP_PERSP",
         update=update_node_values_with_preset,
+        description="Turns on/off texture perspective correction"
     )
     g_mdsft_cycletype: bpy.props.EnumProperty(
         name="Cycle Type",
         items=enumCycleType,
         default="G_CYC_1CYCLE",
         update=update_node_values_with_preset,
+        description="Changes RDP pipeline configuration. For normal textured triangles use one or two cycle mode"
     )
     # v1 only
     g_mdsft_color_dither: bpy.props.EnumProperty(
@@ -2581,12 +2676,14 @@ class RDPSettings(bpy.types.PropertyGroup):
         items=enumColorDither,
         default="G_CD_ENABLE",
         update=update_node_values_with_preset,
+        description="Applies your choice dithering type to output frambuffer"
     )
     g_mdsft_pipeline: bpy.props.EnumProperty(
         name="Pipeline Span Buffer Coherency",
         items=enumPipelineMode,
         default="G_PM_1PRIMITIVE",
         update=update_node_values_with_preset,
+        description="Changes primitive rasterization timing by adding syncs after tri draws. Vanilla SM64 has synchronization issues which could cause a crash if not using 1 prim. For any modern SM64 hacking project or other game N-prim should always be used"
     )
 
     # lower half mode
@@ -2595,12 +2692,14 @@ class RDPSettings(bpy.types.PropertyGroup):
         items=enumAlphaCompare,
         default="G_AC_NONE",
         update=update_node_values_with_preset,
+        description="Uses alpha comparisons to decide if a pixel should be written. Applies before blending"
     )
     g_mdsft_zsrcsel: bpy.props.EnumProperty(
         name="Z Source Selection",
         items=enumDepthSource,
         default="G_ZS_PIXEL",
         update=update_node_values_with_preset,
+        description="Changes screen-space Z value source used for Z-Buffer calculations"
     )
 
     prim_depth: bpy.props.PointerProperty(
@@ -2639,37 +2738,47 @@ class RDPSettings(bpy.types.PropertyGroup):
     )
     aa_en: bpy.props.BoolProperty(
         update=update_node_values_with_preset,
+        description="Enables anti-aliasing to rasterized primitive edges. Uses coverage to determine edges"
     )
     z_cmp: bpy.props.BoolProperty(
         update=update_node_values_with_preset,
+        description="Checks pixel Z value against Z-Buffer to test writing"
     )
     z_upd: bpy.props.BoolProperty(
         update=update_node_values_with_preset,
+        description="Updates the Z-Buffer with the most recently written pixel Z value"
     )
     im_rd: bpy.props.BoolProperty(
         update=update_node_values_with_preset,
+        description="Enables reading from framebuffer for blending calculations"
     )
     clr_on_cvg: bpy.props.BoolProperty(
         update=update_node_values_with_preset,
+        description="Only draw on coverage (amount primitive covers target pixel) overflow"
     )
     cvg_dst: bpy.props.EnumProperty(
         name="Coverage Destination",
         items=enumCoverage,
         update=update_node_values_with_preset,
+        description="Changes how coverage (amount primitive covers target pixel) gets retrieved/stored"
     )
     zmode: bpy.props.EnumProperty(
         name="Z Mode",
         items=enumZMode,
         update=update_node_values_with_preset,
+        description="Changes Z calculation for different types of primitives"
     )
     cvg_x_alpha: bpy.props.BoolProperty(
         update=update_node_values_with_preset,
+        description="Multiply coverage (amount primitive covers target pixel) with alpha and store result as coverage"
     )
     alpha_cvg_sel: bpy.props.BoolProperty(
         update=update_node_values_with_preset,
+        description="Use coverage (amount primitive covers target pixel) as alpha instead of color combiner alpha"
     )
     force_bl: bpy.props.BoolProperty(
         update=update_node_values_with_preset,
+        description="Always uses blending on. Default blending is conditionally only applied during partial coverage. Forcing blending will disable division step of the blender, so B input must be 1-A or there may be rendering issues. Always use this option when Z Buffering is off"
     )
 
     # cycle dependent - (P * A + M - B) / (A + B)
@@ -3114,12 +3223,14 @@ class AddPresetF3D(AddPresetBase, Operator):
 def convertToNewMat(material, oldMat):
     material.f3d_mat.presetName = oldMat.get("presetName", "Custom")
 
-    material.f3d_mat.scale_autoprop = oldMat["scale_autoprop"]
+    material.f3d_mat.scale_autoprop = oldMat.get("scale_autoprop", material.f3d_mat.scale_autoprop)
     material.f3d_mat.uv_basis = oldMat.get("uv_basis", material.f3d_mat.uv_basis)
 
     # Combiners
-    recursiveCopyOldPropertyGroup(oldMat["combiner1"], material.f3d_mat.combiner1)
-    recursiveCopyOldPropertyGroup(oldMat["combiner2"], material.f3d_mat.combiner2)
+    if "combiner1" in oldMat:
+        recursiveCopyOldPropertyGroup(oldMat["combiner1"], material.f3d_mat.combiner1)
+    if "combiner2" in oldMat:
+        recursiveCopyOldPropertyGroup(oldMat["combiner2"], material.f3d_mat.combiner2)
 
     # Texture animation
     material.f3d_mat.menu_procAnim = oldMat.get("menu_procAnim", material.f3d_mat.menu_procAnim)
@@ -3129,18 +3240,18 @@ def convertToNewMat(material, oldMat):
         recursiveCopyOldPropertyGroup(oldMat["UVanim_tex1"], material.f3d_mat.UVanim1)
 
     # material textures
-    material.f3d_mat.tex_scale = oldMat["tex_scale"]
+    material.f3d_mat.tex_scale = oldMat.get("tex_scale", material.f3d_mat.tex_scale)
     recursiveCopyOldPropertyGroup(oldMat["tex0"], material.f3d_mat.tex0)
     recursiveCopyOldPropertyGroup(oldMat["tex1"], material.f3d_mat.tex1)
 
     # Should Set?
-    material.f3d_mat.set_prim = oldMat["set_prim"]
-    material.f3d_mat.set_lights = oldMat["set_lights"]
-    material.f3d_mat.set_env = oldMat["set_env"]
-    material.f3d_mat.set_blend = oldMat["set_blend"]
-    material.f3d_mat.set_key = oldMat["set_key"]
-    material.f3d_mat.set_k0_5 = oldMat["set_k0_5"]
-    material.f3d_mat.set_combiner = oldMat["set_combiner"]
+    material.f3d_mat.set_prim = oldMat.get("set_prim", material.f3d_mat.set_prim)
+    material.f3d_mat.set_lights = oldMat.get("set_lights", material.f3d_mat.set_lights)
+    material.f3d_mat.set_env = oldMat.get("set_env", material.f3d_mat.set_env)
+    material.f3d_mat.set_blend = oldMat.get("set_blend", material.f3d_mat.set_blend)
+    material.f3d_mat.set_key = oldMat.get("set_key", material.f3d_mat.set_key)
+    material.f3d_mat.set_k0_5 = oldMat.get("set_k0_5", material.f3d_mat.set_k0_5)
+    material.f3d_mat.set_combiner = oldMat.get("set_combiner", material.f3d_mat.set_combiner)
     material.f3d_mat.use_default_lighting = oldMat.get("use_default_lighting", material.f3d_mat.use_default_lighting)
 
     # Colors
@@ -3156,7 +3267,8 @@ def convertToNewMat(material, oldMat):
     material.f3d_mat.blend_color = oldMat.get("blend_color", material.f3d_mat.blend_color)
     material.f3d_mat.prim_color = prim
     material.f3d_mat.env_color = env
-    material.f3d_mat.key_center = nodes["Chroma Key Center"].outputs[0].default_value
+    if "Chroma Key Center" in nodes:
+        material.f3d_mat.key_center = nodes["Chroma Key Center"].outputs[0].default_value
 
     # Chroma
     material.f3d_mat.key_scale = oldMat.get("key_scale", material.f3d_mat.key_scale)
@@ -3177,18 +3289,17 @@ def convertToNewMat(material, oldMat):
     # lights
     material.f3d_mat.default_light_color = oldMat.get("default_light_color", material.f3d_mat.default_light_color)
     material.f3d_mat.ambient_light_color = oldMat.get("ambient_light_color", material.f3d_mat.ambient_light_color)
-    material.f3d_mat.f3d_light1 = oldMat.get("f3d_light1", material.f3d_mat.f3d_light1)
-    material.f3d_mat.f3d_light2 = oldMat.get("f3d_light2", material.f3d_mat.f3d_light2)
-    material.f3d_mat.f3d_light3 = oldMat.get("f3d_light3", material.f3d_mat.f3d_light3)
-    material.f3d_mat.f3d_light4 = oldMat.get("f3d_light4", material.f3d_mat.f3d_light4)
-    material.f3d_mat.f3d_light5 = oldMat.get("f3d_light5", material.f3d_mat.f3d_light5)
-    material.f3d_mat.f3d_light6 = oldMat.get("f3d_light6", material.f3d_mat.f3d_light6)
-    material.f3d_mat.f3d_light7 = oldMat.get("f3d_light7", material.f3d_mat.f3d_light7)
+    for i in range(1, 8):
+        old_light = oldMat.get(f"f3d_light{str(i)}")
+        # can be a broken property with V1 materials (IDPropertyGroup), thankfully this isnt typical to see when upgrading but
+        # this method is safer
+        if type(old_light) is bpy.types.Light:
+            setattr(material.f3d_mat, f"f3d_light{str(i)}", old_light)
 
     # Fog Properties
     material.f3d_mat.fog_color = oldMat.get("fog_color", material.f3d_mat.fog_color)
     material.f3d_mat.fog_position = oldMat.get("fog_position", material.f3d_mat.fog_position)
-    material.f3d_mat.set_fog = oldMat["set_fog"]
+    material.f3d_mat.set_fog = oldMat.get("set_fog", material.f3d_mat.set_fog)
     material.f3d_mat.use_global_fog = oldMat.get("use_global_fog", material.f3d_mat.use_global_fog)
 
     # geometry mode
@@ -3197,7 +3308,8 @@ def convertToNewMat(material, oldMat):
     material.f3d_mat.menu_lower = oldMat.get("menu_lower", material.f3d_mat.menu_lower)
     material.f3d_mat.menu_other = oldMat.get("menu_other", material.f3d_mat.menu_other)
     material.f3d_mat.menu_lower_render = oldMat.get("menu_lower_render", material.f3d_mat.menu_lower_render)
-    recursiveCopyOldPropertyGroup(oldMat["rdp_settings"], material.f3d_mat.rdp_settings)
+    if "rdp_settings" in oldMat:
+        recursiveCopyOldPropertyGroup(oldMat["rdp_settings"], material.f3d_mat.rdp_settings)
 
 
 class F3DMaterialProperty(bpy.types.PropertyGroup):
@@ -3448,6 +3560,7 @@ class F3DMaterialProperty(bpy.types.PropertyGroup):
 
     draw_layer: bpy.props.PointerProperty(type=DrawLayerProperty)
     use_large_textures: bpy.props.BoolProperty(name="Large Texture Mode")
+    large_edges: bpy.props.EnumProperty(items=enumLargeEdges, default="Clamp")
 
     def key(self) -> F3DMaterialHash:
         useDefaultLighting = self.set_lights and self.use_default_lighting

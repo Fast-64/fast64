@@ -12,6 +12,7 @@ from ..utility_anim import (
     getFrameInterval,
     getTranslationRelativeToRest,
     getRotationRelativeToRest,
+    stashActionInArmature,
 )
 
 from .oot_utility import (
@@ -330,7 +331,10 @@ def ootConvertLinkAnimationData(anim, armatureObj, convertTransformMatrix, *, fr
 def ootExportNonLinkAnimation(armatureObj, convertTransformMatrix, skeletonName):
     if armatureObj.animation_data is None or armatureObj.animation_data.action is None:
         raise PluginError("No active animation selected.")
+
     anim = armatureObj.animation_data.action
+    stashActionInArmature(armatureObj, anim)
+
     ootAnim = OOTAnimation(toAlnum(skeletonName + anim.name.capitalize() + "Anim"))
 
     skeleton = ootConvertArmatureToSkeletonWithoutMesh(armatureObj, convertTransformMatrix, skeletonName)
@@ -377,7 +381,10 @@ def ootExportNonLinkAnimation(armatureObj, convertTransformMatrix, skeletonName)
 def ootExportLinkAnimation(armatureObj, convertTransformMatrix, skeletonName):
     if armatureObj.animation_data is None or armatureObj.animation_data.action is None:
         raise PluginError("No active animation selected.")
+
     anim = armatureObj.animation_data.action
+    stashActionInArmature(armatureObj, anim)
+
     ootAnim = OOTLinkAnimation(toAlnum(skeletonName + anim.name.capitalize() + "Anim"))
 
     frame_start, frame_last = getFrameInterval(anim)
@@ -441,7 +448,6 @@ def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCu
             for frame in range(frameCount):
                 rawTranslation = mathutils.Vector((0, 0, 0))
                 for propertyIndex in range(3):
-
                     if jointIndex[propertyIndex] < staticIndexMax:
                         value = ootTranslationValue(frameData[jointIndex[propertyIndex]], actorScale)
                     else:
@@ -486,6 +492,8 @@ def ootImportNonLinkAnimationC(armatureObj, filepath, animName, actorScale, isCu
 
     if armatureObj.animation_data is None:
         armatureObj.animation_data_create()
+
+    stashActionInArmature(armatureObj, anim)
     armatureObj.animation_data.action = anim
 
 
@@ -605,6 +613,8 @@ def ootImportLinkAnimationC(
 
     if armatureObj.animation_data is None:
         armatureObj.animation_data_create()
+
+    stashActionInArmature(armatureObj, anim)
     armatureObj.animation_data.action = anim
 
 

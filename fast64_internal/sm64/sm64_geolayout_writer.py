@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import bpy, mathutils, math, copy, os, shutil, re
 from bpy.utils import register_class, unregister_class
 from io import BytesIO
@@ -58,6 +60,11 @@ from ..utility import (
     geoNodeRotateOrder,
 )
 
+from ..f3d.f3d_material import (
+    isTexturePointSampled,
+    isLightingDisabled,
+)
+
 from ..f3d.f3d_writer import (
     TriangleConverterInfo,
     LoopConvertInfo,
@@ -70,15 +77,14 @@ from ..f3d.f3d_writer import (
     saveOrGetF3DMaterial,
     saveMeshWithLargeTexturesByFaces,
     saveMeshByFaces,
-    isLightingDisabled,
     getF3DVert,
-    isTexturePointSampled,
     convertVertexData,
 )
 
 from ..f3d.f3d_gbi import (
     GfxList,
     GfxListTag,
+    GfxMatWriteMethod,
     DPSetAlphaCompare,
     FModel,
     FMesh,
@@ -99,6 +105,7 @@ from .sm64_geolayout_classes import (
     StartNode,
     StartRenderAreaNode,
     GeolayoutGraph,
+    GeoLayoutBleed,
     JumpNode,
     SwitchOverrideNode,
     SwitchNode,
@@ -351,7 +358,14 @@ def convertArmatureToGeolayout(
     armatureObj, obj, convertTransformMatrix, f3dType, isHWv1, camera, name, DLFormat, convertTextureData
 ):
 
-    fModel = SM64Model(f3dType, isHWv1, name, DLFormat)
+    inline = bpy.context.scene.exportInlineF3D
+    fModel = SM64Model(
+        f3dType,
+        isHWv1,
+        name,
+        DLFormat,
+        GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
+    )
 
     if len(armatureObj.children) == 0:
         raise PluginError("No mesh parented to armature.")
@@ -401,6 +415,9 @@ def convertArmatureToGeolayout(
     generateSwitchOptions(meshGeolayout.nodes[0], meshGeolayout, geolayoutGraph, name)
     appendRevertToGeolayout(geolayoutGraph, fModel)
     geolayoutGraph.generateSortedList()
+    if inline:
+        bleed_gfx = GeoLayoutBleed()
+        bleed_gfx.bleed_geo_layout_graph(fModel, geolayoutGraph)
     # if DLFormat == DLFormat.GameSpecific:
     # 	geolayoutGraph.convertToDynamic()
     return geolayoutGraph, fModel
@@ -411,8 +428,15 @@ def convertObjectToGeolayout(
     obj, convertTransformMatrix, f3dType, isHWv1, camera, name, fModel: FModel, areaObj, DLFormat, convertTextureData
 ):
 
+    inline = bpy.context.scene.exportInlineF3D
     if fModel is None:
-        fModel = SM64Model(f3dType, isHWv1, name, DLFormat)
+        fModel = SM64Model(
+            f3dType,
+            isHWv1,
+            name,
+            DLFormat,
+            GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
+        )
 
     # convertTransformMatrix = convertTransformMatrix @ \
     # 	mathutils.Matrix.Diagonal(obj.scale).to_4x4()
@@ -467,6 +491,11 @@ def convertObjectToGeolayout(
 
     appendRevertToGeolayout(geolayoutGraph, fModel)
     geolayoutGraph.generateSortedList()
+    if inline:
+        bleed_gfx = GeoLayoutBleed()
+        bleed_gfx.bleed_geo_layout_graph(
+            fModel, geolayoutGraph, use_rooms=None if areaObj is None else areaObj.enableRoomSwitch
+        )
     # if DLFormat == DLFormat.GameSpecific:
     # 	geolayoutGraph.convertToDynamic()
     return geolayoutGraph, fModel
@@ -1159,6 +1188,7 @@ def generateOverrideHierarchy(
     elif not isinstance(copyNode.node, SwitchOverrideNode) and copyNode.node.hasDL:
         if material is not None:
             copyNode.node.DLmicrocode = copyNode.node.fMesh.drawMatOverrides[(material, specificMat, overrideType)]
+            copyNode.node.override_hash = (material, specificMat, overrideType)
         if drawLayer is not None:
             copyNode.node.drawLayer = drawLayer
 
@@ -2429,7 +2459,7 @@ def saveModelGivenVertexGroup(
             material = obj.material_slots[material_index].material
             checkForF3dMaterialInFaces(obj, material)
             fMaterial, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
-            if fMaterial.useLargeTextures:
+            if fMaterial.isTexLarge[0] or fMaterial.isTexLarge[1]:
                 currentGroupIndex = saveMeshWithLargeTexturesByFaces(
                     material,
                     bFaces,
@@ -2476,7 +2506,16 @@ def saveModelGivenVertexGroup(
     return fMeshes, fSkinnedMeshes, usedDrawLayers
 
 
-def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, drawLayer, convertTextureData):
+def saveOverrideDraw(
+    obj: bpy.types.Object,
+    fModel: FModel,
+    material: bpy.types.Material,
+    specificMat: tuple[bpy.types.Material],
+    overrideType: str,
+    fMesh: FMesh,
+    drawLayer: int,
+    convertTextureData: bool,
+):
     fOverrideMat, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
     overrideIndex = str(len(fMesh.drawMatOverrides))
     if (material, specificMat, overrideType) in fMesh.drawMatOverrides:
@@ -2484,95 +2523,102 @@ def saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, dr
     meshMatOverride = GfxList(
         fMesh.name + "_mat_override_" + toAlnum(material.name) + "_" + overrideIndex, GfxListTag.Draw, fModel.DLFormat
     )
+    meshMatOverride.commands = [copy.copy(cmd) for cmd in fMesh.draw.commands]
     fMesh.drawMatOverrides[(material, specificMat, overrideType)] = meshMatOverride
-    # Copy the DL from the original mesh into the material override mesh
-    for command in fMesh.draw.commands:
-        meshMatOverride.commands.append(copy.copy(command))
-    # Keep track of the previous material for removing unnecessary material loads and reverts
-    prevMaterial = None
-    # Keep track of the previous command, so we can remove if it becomes an unnecessary revert
-    prevCommand = None
-    # Scan the displaylist to look for material loads and reverts
-    # Use a while instead of a for to be able to insert into the list during iteration
-    commandIdx = 0
-    
-    while commandIdx < len(meshMatOverride.commands):
-        # Get the command at the current index
-        command = meshMatOverride.commands[commandIdx]
-        if isinstance(command, SPDisplayList):
-            # Check every material in the model
-            for (modelMaterial, modelDrawLayer, modelAreaIndex), (
-                fMaterial,
-                texDimensions,
-            ) in fModel.getAllMaterials().items():
-                # Determine if the currently checked material should be overriden
-                shouldModify = (overrideType == "Specific" and modelMaterial in specificMat) or (
-                    overrideType == "All" and modelMaterial not in specificMat
-                )
-                # Check if this is a DL to load the checked material
-                if command.displayList == fMaterial.material:
-                    curMaterial = fMaterial
-                    # If it is, check if this material should be replaced and replace it if so
-                    if shouldModify:
-                        # Replace the current material with the override
-                        curMaterial = fOverrideMat
-                        command.displayList = fOverrideMat.material
-                    # Check if this material is the same as the prevous loaded material in the DL
-                    if prevMaterial == curMaterial:
-                        # If so, remove this material load
-                        meshMatOverride.commands.pop(commandIdx)
-                        commandIdx -= 1
-                        # Scan backwards for any reverts
-                        prevIndex = commandIdx - 1
-                        while prevIndex >= 0:
-                            prevCommand = meshMatOverride.commands[prevIndex]
-                            # If the previous command is a revert for this material, remove that revert as well
-                            if isinstance(prevCommand, SPDisplayList) and prevCommand.displayList == curMaterial.revert:
-                                meshMatOverride.commands.pop(prevIndex)
-                                prevIndex -= 1
-                                commandIdx -= 1
-                            else:
-                                break
-                    # Record the current material as the next command's previous material
-                    prevMaterial = curMaterial
-                    # We found what this current command is, so we can skip checking other materials
-                    break
-                # Check if this is a DL to revert for checked material
-                if command.displayList == fMaterial.revert:
-                    # If it is, check if this material should be replaced and replace the revert if so
-                    if shouldModify:
-                        # Check if the override material has a revert
-                        if fOverrideMat.revert is not None:
-                            # If it does, then replace the displaylist for this revert
-                            command.displayList = fOverrideMat.revert
-                        else:
-                            # Otherwise, remove this revert
-                            meshMatOverride.commands.pop(commandIdx)
-                            commandIdx -= 1
-                    # We found what this current command is, so we can skip checking other materials
-                    break
-                # Check if the previous command was a revert we added, as a revert must be followed by a load for it to
-                # be valid. This command is confirmed to not be a material load, so remove the previous command if it is
-                # an added revert.
-                prevIndex = commandIdx - 1
-                if prevIndex > 0:
-                    prevCommand = meshMatOverride.commands[prevIndex]
-                    if isinstance(prevCommand, SPDisplayList) and prevCommand.displayList == fOverrideMat.revert:
-                        # Remove this added revert
-                        meshMatOverride.commands.pop(prevIndex)
-                        commandIdx -= 1
-                # At this point, the current command is confirmed to be neither a material load nor a material revert.
-                # If the override material has a revert and the original material didn't, insert a revert after this command.
-                # This is needed to ensure that override materials that need a revert get them.
-                # Reverts are only needed if the next command is a different material load
-                if fMaterial.revert is None and fOverrideMat.revert is not None:
-                    nextCommand = meshMatOverride.commands[commandIdx + 1]
-                    if isinstance(nextCommand, SPDisplayList) and nextCommand.displayList.tag == GfxListTag.Material and nextCommand.displayList != prevMaterial.material:
-                        # Insert the new command
-                        meshMatOverride.commands.insert(commandIdx + 1, SPDisplayList(fOverrideMat.revert))
-                        commandIdx += 1
+    prev_material = None
+    last_replaced = None
+    command_index = 0
+
+    def find_material_from_jump_cmd(material_list: tuple[tuple[bpy.types.Material, str, FAreaData], tuple[FMaterial, Tuple[int, int]]], dl_jump: SPDisplayList):
+        if dl_jump.displayList.tag == GfxListTag.Geometry:
+            return None, None
+        for mat in material_list:
+            fmaterial = mat[1][0]
+            bpy_material = mat[0][0]
+            if dl_jump.displayList.tag == GfxListTag.MaterialRevert and fmaterial.revert == dl_jump.displayList:
+                return bpy_material, fmaterial
+            elif fmaterial.material == dl_jump.displayList:
+                return bpy_material, fmaterial
+        return None, None
+
+    while command_index < len(meshMatOverride.commands):
+        command = meshMatOverride.commands[command_index]
+        if not isinstance(command, SPDisplayList):
+            command_index += 1
+            continue
+        # get the material referenced, and then check if it should be overriden
+        # a material override will either have a list of mats it overrides, or a mask of mats it doesn't based on type
+        bpy_material, fmaterial = find_material_from_jump_cmd(fModel.getAllMaterials().items(), command)
+        shouldModify = (overrideType == "Specific" and bpy_material in specificMat) or (
+            overrideType == "All" and bpy_material not in specificMat
+        )
+
+        # replace the material load if necessary
+        # if we replaced the previous load with the same override, then remove the cmd to optimize DL
+        if command.displayList.tag == GfxListTag.Material:
+            curMaterial = fmaterial
+            if shouldModify:
+                last_replaced = fmaterial
+                curMaterial = fOverrideMat
+                command.displayList = fOverrideMat.material
+            # remove cmd if it is a repeat load
+            if prev_material == curMaterial:
+                meshMatOverride.commands.pop(command_index)
+                command_index -= 1
+                # if we added a revert for our material redundant load, remove that as well
+                prevIndex = command_index - 1
+                prev_command = meshMatOverride.commands[prevIndex]
+                if (
+                    prevIndex > 0
+                    and isinstance(prev_command, SPDisplayList)
+                    and prev_command.displayList == curMaterial.revert
+                ):
+                    meshMatOverride.commands.pop(prevIndex)
+                    command_index -= 1
+            # update the last loaded material
+            prev_material = curMaterial
+
+        # replace the revert if the override has a revert, otherwise remove the command
+        if command.displayList.tag == GfxListTag.MaterialRevert and shouldModify:
+            if fOverrideMat.revert is not None:
+                command.displayList = fOverrideMat.revert
+            else:
+                meshMatOverride.commands.pop(command_index)
+                command_index -= 1
+
+        if not command.displayList.tag == GfxListTag.Geometry:
+            command_index += 1
+            continue
+        # If the previous command was a revert we added, remove it. All reverts must be followed by a load
+        prev_index = command_index - 1
+        prev_command = meshMatOverride.commands[prev_index]
+        if (
+            prev_index > 0
+            and isinstance(prev_command, SPDisplayList)
+            and prev_command.displayList == fOverrideMat.revert
+        ):
+            meshMatOverride.commands.pop(prev_index)
+            command_index -= 1
+        # If the override material has a revert and the original material didn't, insert a revert after this command.
+        # This is needed to ensure that override materials that need a revert get them.
+        # Reverts are only needed if the next command is a different material load
+        if (
+            last_replaced
+            and last_replaced.revert is None
+            and fOverrideMat.revert is not None
+            and prev_material == fOverrideMat
+        ):
+            next_command = meshMatOverride.commands[command_index + 1]
+            if (
+                isinstance(next_command, SPDisplayList)
+                and next_command.displayList.tag == GfxListTag.Material
+                and next_command.displayList != prev_material.material
+            ) or (isinstance(next_command, SPEndDisplayList)):
+                meshMatOverride.commands.insert(command_index + 1, SPDisplayList(fOverrideMat.revert))
+                command_index += 1
         # iterate to the next cmd
-        commandIdx += 1
+        command_index += 1
+
 
 def findVertIndexInBuffer(loop, buffer, loopDict):
     i = 0
@@ -2719,6 +2765,7 @@ def saveSkinnedMeshByMaterial(
                     obj.data,
                     bufferVert.f3dVert.position,
                     bufferVert.f3dVert.uv,
+                    bufferVert.f3dVert.stOffset,
                     bufferVert.f3dVert.getColorOrNormal(),
                     texDimensions,
                     parentMatrix,
@@ -2743,7 +2790,7 @@ def saveSkinnedMeshByMaterial(
         material = obj.material_slots[material_index].material
         faces = [skinnedFace.bFace for skinnedFace in skinnedFaceArray]
         fMaterial, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
-        if fMaterial.useLargeTextures:
+        if fMaterial.isTexLarge[0] or fMaterial.isTexLarge[1]:
             saveMeshWithLargeTexturesByFaces(
                 material,
                 faces,
@@ -2793,9 +2840,9 @@ def saveSkinnedMeshByMaterial(
     # 	convertInfo = LoopConvertInfo(uv_data, obj, exportVertexColors)
     # 	triConverter = TriangleConverter(triConverterInfo, texDimensions, material,
     # 		None, triGroup.triList, triGroup.vertexList, copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict))
-    # 	saveTriangleStrip(triConverter, [skinnedFace.bFace for skinnedFace in skinnedFaceArray], obj.data, True)
+    # 	saveTriangleStrip(triConverter, [skinnedFace.bFace for skinnedFace in skinnedFaceArray], None, obj.data, True)
     # 	saveTriangleStrip(triConverterClass,
-    # 		[skinnedFace.bFace for skinnedFace in skinnedFaceArray],
+    # 		[skinnedFace.bFace for skinnedFace in skinnedFaceArray], None,
     # 		convertInfo, triGroup.triList, triGroup.vertexList, fModel.f3d,
     # 		texDimensions, currentMatrix, isPointSampled, exportVertexColors,
     # 		copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict),

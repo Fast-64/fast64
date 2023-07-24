@@ -1,4 +1,6 @@
 # Macros are all copied over from gbi.h
+from __future__ import annotations
+
 from typing import Sequence, Union, Tuple
 from dataclasses import dataclass, fields
 import bpy, os, enum, copy
@@ -1758,11 +1760,11 @@ def tile_func(direction: str, speed: int, cmd_num: int):
 
 
 def get_sts_interval_vars(tex_num: str):
-    return f"intervalTex{tex_num}", f"curInterval{tex_num}"
+    return f"interval_{tex_num}", f"cur_interval_{tex_num}"
 
 
 def get_tex_sts_code(
-    tex: FSetTileSizeScrollField, tex_num: int, cmd_num: int
+    variableName: str, tex: FSetTileSizeScrollField, cmd_num: int
 ) -> Tuple[list[str], list[Tuple[str, float]]]:
     variables = []
     # create func calls
@@ -1775,7 +1777,7 @@ def get_tex_sts_code(
     # add interval logic if needed
     if len(lines) and tex.interval > 1:
         # get interval and variable for tracking interval
-        interval, cur_interval = get_sts_interval_vars(tex_num)
+        interval, cur_interval = get_sts_interval_vars(variableName)
         # pass each var and its value to variables
         variables.extend([(interval, tex.interval), (cur_interval, tex.interval)])
 
@@ -1791,12 +1793,14 @@ def get_tex_sts_code(
     return variables, lines
 
 
-def get_tile_scroll_code(scrollData: "FScrollData", textureIndex: int, commandIndex: int) -> Tuple[str, str]:
+def get_tile_scroll_code(
+    variableName: str, scrollData: "FScrollData", textureIndex: int, commandIndex: int
+) -> Tuple[str, str]:
     scrollInfo: FSetTileSizeScrollField = getattr(scrollData, f"tile_scroll_tex{textureIndex}")
     if scrollInfo.s or scrollInfo.t:
         variables = []
         lines = []
-        static_variables, tex_lines = get_tex_sts_code(scrollInfo, textureIndex, commandIndex)
+        static_variables, tex_lines = get_tex_sts_code(variableName, scrollInfo, commandIndex)
 
         for variable, val in static_variables:
             variables.append(f"\tstatic int {variable} = {val};")
@@ -1971,7 +1975,7 @@ class GfxFormatter:
         fMaterial: FMaterial = command.fMaterial
         return "", ""
 
-    def vertexScrollToC(self, fMaterial: "FMaterial", vtxListName: str, vtxCount: int) -> CScrollData:
+    def vertexScrollToC(self, fMaterial: FMaterial, vtxListName: str, vtxCount: int) -> CScrollData:
         """
         Handles writing code that executes vertex scrolling.
         Make sure to add function names to returned CScrollData.functionCalls.
@@ -2205,6 +2209,10 @@ class FImageKey:
         )
 
 
+def getImageKey(texProp: "TextureProperty", useList) -> FImageKey:
+    return FImageKey(texProp.tex, texProp.tex_format, texProp.ci_format, useList)
+
+
 class FPaletteKey:
     def __init__(self, palFormat: str, imagesSharingPalette: list[bpy.types.Image] = []):
         self.palFormat = palFormat
@@ -2220,7 +2228,14 @@ class FPaletteKey:
 
 
 class FModel:
-    def __init__(self, f3dType: F3D, isHWv1: bool, name: str, DLFormat: "DLFormat", matWriteMethod: GfxMatWriteMethod):
+    def __init__(
+        self,
+        f3dType: F3D,
+        isHWv1: bool,
+        name: str,
+        DLFormat: "DLFormat",
+        matWriteMethod: GfxMatWriteMethod,
+    ):
         self.name = name  # used for texture prefixing
         # dict of light name : Lights
         self.lights: dict[str, Lights] = {}
@@ -2244,29 +2259,59 @@ class FModel:
         self.matWriteMethod: GfxMatWriteMethod = matWriteMethod
         self.global_data: FGlobalData = FGlobalData()
         self.texturesSavedLastExport: int = 0  # hacky
-        self.inline: bool = False
 
-    def processTexRefNonCITextures(self, fMaterial: "FMaterial", material: bpy.types.Material, index: int):
+    def processTexRefNonCITextures(self, fMaterial: FMaterial, material: bpy.types.Material, index: int):
         """
         For non CI textures that use a texture reference, process additional textures that will possibly be loaded here.
-        This doesn't return anything.
+        Returns:
+            - a list of images which are referenced (normally just the texture
+              image), for creating image / palette keys
+            - an object containing info about the additional textures, or None
+        """
+        texProp = getattr(material.f3d_mat, f"tex{index}")
+        imDependencies = [] if texProp.tex is None else [texProp.tex]
+        return imDependencies, None
+
+    def writeTexRefNonCITextures(self, obj, texFmt: str):
+        """
+        Write data for non-CI textures which were previously processed.
+        obj is the object returned by processTexRefNonCITextures.
         """
         pass
 
-    def processTexRefCITextures(self, fMaterial: "FMaterial", material: bpy.types.Material, index: int) -> "FImage":
+    def processTexRefCITextures(self, fMaterial: FMaterial, material: bpy.types.Material, index: int) -> "FImage":
         """
         For CI textures that use a texture reference, process additional textures that will possibly be loaded here.
-        This returns a palette FImage that is shared between all processed textures.
+        Returns:
+            - a list of images which are referenced (normally just the texture
+              image), for creating image / palette keys
+            - an object containing info about the additional textures, or None
+            - the palette to use (or None)
         """
-        texProp = getattr(material.f3dMat, f"tex{index}")
-        return FImage(texProp.pal_reference, None, None, 1, texProp.pal_reference_size, None, False)
+        texProp = getattr(material.f3d_mat, f"tex{index}")
+        imDependencies = [] if texProp.tex is None else [texProp.tex]
+        return imDependencies, None, None
+
+    def writeTexRefCITextures(
+        self,
+        obj,
+        fMaterial: "FMaterial",
+        imagesSharingPalette: list[bpy.types.Image],
+        pal: list[int],
+        texFmt: str,
+        palFmt: str,
+    ):
+        """
+        Write data for CI textures which were previously processed.
+        obj is the object returned by processTexRefCITextures.
+        """
+        pass
 
     # Called before SPEndDisplayList
     def onMaterialCommandsBuilt(self, fMaterial, material, drawLayer):
+        fMaterial.material.commands.extend(fMaterial.mat_only_DL.commands)
+        fMaterial.material.commands.extend(fMaterial.texture_DL.commands)
         return
-
-    def getTextureSuffixFromFormat(self, texFmt):
-        return texFmt.lower()
 
     def getDrawLayerV3(self, obj):
         return None
@@ -2306,51 +2351,36 @@ class FModel:
     def onAddMesh(self, fMesh, contextObj):
         return
 
-    def endDraw(self, fMesh, contextObj):
-        self.onEndDraw(fMesh, contextObj)
-        fMesh.draw.commands.append(SPEndDisplayList())
+    def addMaterial(self, materialName):
+        fMaterial = FMaterial(materialName, self.DLFormat)
+        self.onMaterialAdd(fMaterial)
+        return fMaterial
 
-    def onEndDraw(self, fMesh, contextObj):
+    def onMaterialAdd(self, fMaterial):
         return
+
+    def endDraw(self, fMesh, contextObj):
+        fMesh.draw.commands.append(SPEndDisplayList())
 
     def getTextureAndHandleShared(self, imageKey):
         # Check if texture is in self
         if imageKey in self.textures:
-            fImage = self.textures[imageKey]
-            if fImage.paletteKey is not None:
-                if fImage.paletteKey in self.textures:
-                    fPalette = self.textures[fImage.paletteKey]
-                else:
-                    print(f"Can't find {str(fImage.paletteKey)}")
-                    fPalette = None
-            else:
-                # print("Palette key is None")
-                fPalette = None
-
-            return fImage, fPalette
+            return self.textures[imageKey]
 
         if self.parentModel is not None:
             # Check if texture is in parent
             if imageKey in self.parentModel.textures:
-                fImage = self.parentModel.textures[imageKey]
-                fPalette = self.parentModel.textures[fImage.paletteKey] if fImage.paletteKey is not None else None
-                return fImage, fPalette
+                return self.parentModel.textures[imageKey]
 
             # Check if texture is in siblings
             for subModel in self.parentModel.subModels:
                 if imageKey in subModel.textures:
                     fImage = subModel.textures.pop(imageKey)
                     self.parentModel.textures[imageKey] = fImage
-
-                    paletteKey = fImage.paletteKey
-                    fPalette = None
-                    if paletteKey is not None:
-                        fPalette = subModel.textures.pop(paletteKey)
-                        self.parentModel.textures[paletteKey] = fPalette
-                    return fImage, fPalette
-            return None, None
+                    return fImage
+            return None
         else:
-            return None, None
+            return None
 
     def getLightAndHandleShared(self, lightName):
         # Check if light is in self
@@ -2389,7 +2419,7 @@ class FModel:
 
                     # If material is in sibling, handle the material's textures as well.
                     for imageKey in materialItem[0].usedImages:
-                        fImage, fPalette = self.getTextureAndHandleShared(imageKey)
+                        fImage = self.getTextureAndHandleShared(imageKey)
                         if fImage is None:
                             raise PluginError("Error: If a material exists, its textures should exist too.")
 
@@ -2440,8 +2470,8 @@ class FModel:
             if not startAddrSet:
                 startAddrSet = True
                 startAddress = addrRange[0]
-        for info, texture in self.textures.items():
-            addrRange = texture.set_addr(addrRange[1])
+        for _, fImage in self.textures.items():
+            addrRange = fImage.set_addr(addrRange[1])
             if not startAddrSet:
                 startAddrSet = True
                 startAddress = addrRange[0]
@@ -2465,8 +2495,8 @@ class FModel:
     def save_binary(self, romfile, segments):
         for name, light in self.lights.items():
             light.save_binary(romfile)
-        for info, texture in self.textures.items():
-            texture.save_binary(romfile)
+        for _, fImage in self.textures.items():
+            fImage.save_binary(romfile)
         for materialKey, (fMaterial, texDimensions) in self.materials.items():
             fMaterial.save_binary(romfile, self.f3d, segments)
         for name, mesh in self.meshes.items():
@@ -2490,11 +2520,11 @@ class FModel:
         if len(texDir) > 0 and texDir[-1] != "/":
             texDir += "/"
         data = CData()
-        for info, texture in self.textures.items():
+        for _, fImage in self.textures.items():
             if savePNG:
-                data.append(texture.to_c_tex_separate(texDir, texArrayBitSize))
+                data.append(fImage.to_c_tex_separate(texDir, texArrayBitSize))
             else:
-                data.append(texture.to_c(texArrayBitSize))
+                data.append(fImage.to_c(texArrayBitSize))
         return data
 
     def to_c_materials(self, gfxFormatter):
@@ -2582,26 +2612,27 @@ class FModel:
 
     def to_c_gfx_scroll(self, gfxFormatter: GfxFormatter) -> CScrollData:
         data = CScrollData()
-        if not self.inline:
-            for _, (fMaterial, _) in self.materials.items():
-                fMaterial: FMaterial
+        for fMaterial, _ in self.materials.values():
+            fMaterial: FMaterial
+            if fMaterial.material:
                 data.append(gfxFormatter.gfxScrollToC(fMaterial.material, self.f3d))
-        else:
-            for _, fMesh in self.meshes.items():
-                fMesh: FMesh
-                data.append(gfxFormatter.gfxScrollToC(fMesh.draw, self.f3d))
+        for fMesh in self.meshes.values():
+            fMesh: FMesh
+            data.append(gfxFormatter.gfxScrollToC(fMesh.draw, self.f3d))
         return data
 
     def save_textures(self, exportPath):
         # TODO: Saving texture should come from FImage
         texturesSaved = 0
-        for (image, texInfo), texture in self.textures.items():
-            if texInfo[1] == "PAL":
+        for imageKey, fImage in self.textures.items():
+            if isinstance(imageKey, FPaletteKey):
                 continue
+            imageKey: FImageKey
 
             # remove '.inc.c'
-            imageFileName = texture.filename[:-6] + ".png"
+            imageFileName = fImage.filename[:-6] + ".png"
 
+            image = imageKey.image
             isPacked = image.packed_file is not None
             if not isPacked:
                 image.pack()
@@ -2634,11 +2665,11 @@ class FTexRect(FModel):
         # on windows this results in '\', which is incorrect (should be '/')
         if texDir[-1] != "/":
             texDir += "/"
-        for info, texture in self.textures.items():
+        for _, fImage in self.textures.items():
             if savePNG:
-                staticData.append(texture.to_c_tex_separate(texDir, gfxFormatter.texArrayBitSize))
+                staticData.append(fImage.to_c_tex_separate(texDir, gfxFormatter.texArrayBitSize))
             else:
-                staticData.append(texture.to_c(gfxFormatter.texArrayBitSize))
+                staticData.append(fImage.to_c(gfxFormatter.texArrayBitSize))
         dynamicData.append(self.draw.to_c(self.f3d))
         return ExportCData(staticData, dynamicData, CData())
 
@@ -2715,7 +2746,6 @@ class FLODGroup:
         sortedList = sorted(self.lodEntries, key=lambda tup: tup[0])
         hasAnyDLs = False
         for item in sortedList:
-
             # If no DLs are called, we still need an empty DL to preserve LOD.
             if len(item[1].commands) < 2:
                 DL = item[1]
@@ -2842,7 +2872,8 @@ class FTriGroup:
     def to_c(self, f3d, gfxFormatter):
         data = CData()
         data.append(self.vertexList.to_c())
-        data.append(self.triList.to_c(f3d))
+        if self.triList:
+            data.append(self.triList.to_c(f3d))
         return data
 
 
@@ -2872,8 +2903,10 @@ def get_f3d_mat_from_version(material: bpy.types.Material):
 
 class FMaterial:
     def __init__(self, name, DLFormat):
-        self.material = GfxList("mat_" + name, GfxListTag.Material, DLFormat)
-        self.revert = GfxList("mat_revert_" + name, GfxListTag.MaterialRevert, DLFormat.Static)
+        self.material = GfxList(f"mat_{name}", GfxListTag.Material, DLFormat)
+        self.mat_only_DL = GfxList(f"mat_only_{name}", GfxListTag.Material, DLFormat)
+        self.texture_DL = GfxList(f"tex_{name}", GfxListTag.Material, DLFormat.Static)
+        self.revert = GfxList(f"mat_revert_{name}", GfxListTag.MaterialRevert, DLFormat.Static)
         self.DLFormat = DLFormat
         self.scrollData = FScrollData()
 
@@ -2883,9 +2916,13 @@ class FMaterial:
         # Used for tile scrolling
         self.tileSizeCommands = {}  # dict of {texIndex : DPSetTileSize}
 
-        self.useLargeTextures = False
-        self.largeTextureIndex = None
-        self.texturesLoaded = [False, False]
+        # For saveMeshWithLargeTexturesByFaces
+        self.largeTexFmt = None
+        self.isTexLarge = [False, False]
+        self.largeTexAddr = [0, 0]
+        self.largeTexWords = 0
+        self.imageKey = [None, None]
+        self.texPaletteIndex = [0, 0]
 
     def getScrollData(self, material, dimensions):
         self.getScrollDataField(material, 0, 0)
@@ -2953,7 +2990,8 @@ class FMaterial:
 
     def to_c(self, f3d):
         data = CData()
-        data.append(self.material.to_c(f3d))
+        if self.material:
+            data.append(self.material.to_c(f3d))
         if self.revert is not None:
             data.append(self.revert.to_c(f3d))
         return data
@@ -3106,7 +3144,7 @@ class LookAt:
 
 # A palette is just a RGBA16 texture with width = 1.
 class FImage:
-    def __init__(self, name, fmt, bitSize, width, height, filename, converted):
+    def __init__(self, name, fmt, bitSize, width, height, filename):
         self.name = name
         self.fmt = fmt
         self.bitSize = bitSize
@@ -3115,9 +3153,8 @@ class FImage:
         self.startAddress = 0
         self.data = bytearray(0)
         self.filename = filename
-        self.converted = converted
+        self.converted = False
         self.isLargeTexture = False
-        self.paletteKey = None  # another FImage reference
 
     def size(self):
         return len(self.data)
@@ -3359,6 +3396,7 @@ class SPBranchList(GbiMacro):
 
 
 # SPSprite2DBase
+
 
 # RSP short command (no DMA required) macros
 def gsImmp0(c):
@@ -4165,11 +4203,11 @@ class DPSetAlphaCompare(GbiMacro):
     mode: str
 
     def to_binary(self, f3d, segments):
-        if self.mask == "G_AC_NONE":
+        if self.mode == "G_AC_NONE":
             maskVal = f3d.G_AC_NONE
-        elif self.mask == "G_AC_THRESHOLD":
+        elif self.mode == "G_AC_THRESHOLD":
             maskVal = f3d.G_AC_THRESHOLD
-        elif self.mask == "G_AC_DITHER":
+        elif self.mode == "G_AC_DITHER":
             maskVal = f3d.G_AC_DITHER
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_L, f3d.G_MDSFT_ALPHACOMPARE, 2, maskVal, f3d)
 
@@ -4288,7 +4326,7 @@ class DPSetTextureImage(GbiMacro):
     siz: str
     width: int
     image: FImage
-    _segptrs = True  # calls segmented_to_virtualon name when needed
+    _segptrs = True  # calls segmented_to_virtual on name when needed
 
     def to_binary(self, f3d, segments):
         fmt = f3d.G_IM_FMT_VARS[self.fmt]
@@ -4463,14 +4501,14 @@ def gsDPLoadTileGeneric(c, tile, uls, ult, lrs, lrt):
 
 @dataclass(unsafe_hash=True)
 class DPSetTileSize(GbiMacro):
-    t: int
+    tile: int
     uls: int
     ult: int
     lrs: int
     lrt: int
 
     def to_binary(self, f3d, segments):
-        return gsDPLoadTileGeneric(f3d.G_SETTILESIZE, self.t, self.uls, self.ult, self.lrs, self.lrt)
+        return gsDPLoadTileGeneric(f3d.G_SETTILESIZE, self.tile, self.uls, self.ult, self.lrs, self.lrt)
 
     def is_LOADTILE(self, f3d):
         return self.t == f3d.G_TX_LOADTILE
@@ -4478,14 +4516,14 @@ class DPSetTileSize(GbiMacro):
 
 @dataclass(unsafe_hash=True)
 class DPLoadTile(GbiMacro):
-    t: int
+    tile: int
     uls: int
     ult: int
     lrs: int
     lrt: int
 
     def to_binary(self, f3d, segments):
-        return gsDPLoadTileGeneric(f3d.G_LOADTILE, self.t, self.uls, self.ult, self.lrs, self.lrt)
+        return gsDPLoadTileGeneric(f3d.G_LOADTILE, self.tile, self.uls, self.ult, self.lrs, self.lrt)
 
 
 @dataclass(unsafe_hash=True)

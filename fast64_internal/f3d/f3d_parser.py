@@ -68,7 +68,6 @@ def getExportRotation(forwardAxisEnum, convertTransformMatrix):
 
 
 def F3DtoBlenderObject(romfile, startAddress, scene, newname, transformMatrix, segmentData, shadeSmooth):
-
     mesh = bpy.data.meshes.new(newname + "-mesh")
     obj = bpy.data.objects.new(newname, mesh)
     scene.collection.objects.link(obj)
@@ -271,7 +270,6 @@ def interpretLoadVertices(romfile, vertexBuffer, transformMatrix, command, segme
 # Note the divided by 0x0A, which is due to the way BF command stores indices.
 # Without this the triangles are drawn incorrectly.
 def interpretDrawTriangle(command, vertexBuffer, faceSeq, vertSeq, uv_layer, deform_layer, groupIndex):
-
     verts = [None, None, None]
 
     index0 = int(command[5] / 0x0A)
@@ -742,7 +740,6 @@ class F3DContext:
         return material.f3d_mat.key()
 
     def getMaterialIndex(self):
-
         key = self.getMaterialKey(self.materialContext)
         if key in self.materialDict:
             material = self.materialDict[key]
@@ -996,17 +993,21 @@ class F3DContext:
 
         self.setCombineLerp(lerp0, lerp1)
 
-    def setTLUTMode(self, index, value):
+    def setTLUTMode(self, flags):
         mat = self.mat()
-        texProp = getattr(mat, "tex" + str(index))
-        bitData = math_eval(value, self.f3d)
-        if value == self.f3d.G_TT_NONE:
-            if texProp.tex_format[:2] == "CI":
-                texProp.tex_format = "RGBA16"
-        elif value == self.f3d.G_TT_IA16:
-            texProp.ci_format = "IA16"
-        else:
-            texProp.ci_format = "RGBA16"
+        if not isinstance(flags, int):
+            flags = math_eval(flags, self.f3d)
+        tlut_mode = flags & (0b11 << self.f3d.G_MDSFT_TEXTLUT)
+        for index in range(2):
+            texProp = getattr(mat, "tex" + str(index))
+            if tlut_mode == self.f3d.G_TT_IA16:
+                texProp.ci_format = "IA16"
+            elif tlut_mode == self.f3d.G_TT_RGBA16:
+                texProp.ci_format = "RGBA16"
+            else:  # self.f3d.G_TT_NONE or the unsupported value of 1
+                # Othermode is set to disable palette/CI; make sure the texture format is not CI
+                if texProp.tex_format[:2] == "CI":
+                    texProp.tex_format = texProp.tex_format[1:]  # Cut off the C, so CI4->I4 and CI8->I8
 
     def setOtherModeFlags(self, command):
         mat = self.mat()
@@ -1016,11 +1017,27 @@ class F3DContext:
         else:
             self.setOtherModeFlagsL(command)
 
-    def setOtherModeFlagsH(self, command):
+    def setFlagsAttrs(self, command, database):
+        mat = self.mat()
+        flags = math_eval(command.params[3], self.f3d)
+        shift = math_eval(command.params[1], self.f3d)
+        mask = math_eval(command.params[2], self.f3d)
 
+        for field, fieldData in database.items():
+            fieldShift = getattr(self.f3d, field)
+            if shift <= fieldShift < shift + mask:
+                if isinstance(fieldData, list):
+                    value = (flags >> fieldShift) & (roundUpToPowerOf2(len(fieldData)) - 1)
+                    setattr(mat.rdp_settings, field.lower(), fieldData[value])
+                elif callable(fieldData):
+                    fieldData(flags)
+                else:
+                    raise PluginError(f"Internal error in setFlagsAttrs, type(fieldData) == {type(fieldData)}")
+
+    def setOtherModeFlagsH(self, command):
         otherModeH = {
             "G_MDSFT_ALPHADITHER": ["G_AD_PATTERN", "G_AD_NOTPATTERN", "G_AD_NOISE", "G_AD_DISABLE"],
-            "G_MDSFT_RGBDITHER": ["G_CD_MAGICSQ", "G_CD_BAYER", "NOISE"],
+            "G_MDSFT_RGBDITHER": ["G_CD_MAGICSQ", "G_CD_BAYER", "G_CD_NOISE", "G_CD_DISABLE"],
             "G_MDSFT_COMBKEY": ["G_CK_NONE", "G_CK_KEY"],
             "G_MDSFT_TEXTCONV": [
                 "G_TC_CONV",
@@ -1032,26 +1049,15 @@ class F3DContext:
                 "G_TC_FILT",
             ],
             "G_MDSFT_TEXTFILT": ["G_TF_POINT", "G_TF_POINT", "G_TF_BILERP", "G_TF_AVERAGE"],
+            "G_MDSFT_TEXTLUT": self.setTLUTMode,
             "G_MDSFT_TEXTLOD": ["G_TL_TILE", "G_TL_LOD"],
             "G_MDSFT_TEXTDETAIL": ["G_TD_CLAMP", "G_TD_SHARPEN", "G_TD_DETAIL"],
             "G_MDSFT_TEXTPERSP": ["G_TP_NONE", "G_TP_PERSP"],
             "G_MDSFT_CYCLETYPE": ["G_CYC_1CYCLE", "G_CYC_2CYCLE", "G_CYC_COPY", "G_CYC_FILL"],
-            "G_MDSFT_COLORDITHER": ["G_CD_MAGICSQ", "G_CD_BAYER", "G_CD_NOISE"],
+            "G_MDSFT_COLORDITHER": ["G_CD_DISABLE", "G_CD_ENABLE"],
             "G_MDSFT_PIPELINE": ["G_PM_NPRIMITIVE", "G_PM_1PRIMITIVE"],
         }
-        mat = self.mat()
-        flags = math_eval(command.params[3], self.f3d)
-        shift = math_eval(command.params[1], self.f3d)
-        mask = math_eval(command.params[2], self.f3d)
-
-        for field, fieldData in otherModeH.items():
-            fieldShift = getattr(self.f3d, field)
-            if fieldShift >= shift and fieldShift < shift + mask:
-                setattr(
-                    mat.rdp_settings,
-                    field.lower(),
-                    fieldData[(flags >> fieldShift) & ((1 << int(ceil(math.log(len(fieldData), 2)))) - 1)],
-                )
+        self.setFlagsAttrs(command, otherModeH)
 
     # This only handles commonly used render mode presets (with macros),
     # and no render modes at all with raw bit data.
@@ -1059,24 +1065,9 @@ class F3DContext:
         otherModeL = {
             "G_MDSFT_ALPHACOMPARE": ["G_AC_NONE", "G_AC_THRESHOLD", "G_AC_THRESHOLD", "G_AC_DITHER"],
             "G_MDSFT_ZSRCSEL": ["G_ZS_PIXEL", "G_ZS_PRIM"],
+            "G_MDSFT_RENDERMODE": self.setRenderMode,
         }
-
-        mat = self.mat()
-        flags = math_eval(command.params[3], self.f3d)
-        shift = math_eval(command.params[1], self.f3d)
-        mask = math_eval(command.params[2], self.f3d)
-
-        for field, fieldData in otherModeL.items():
-            fieldShift = getattr(self.f3d, field)
-            if fieldShift >= shift and fieldShift < shift + mask:
-                setattr(
-                    mat.rdp_settings,
-                    field.lower(),
-                    fieldData[(flags >> fieldShift) & ((1 << int(ceil(math.log(len(fieldData), 2)))) - 1)],
-                )
-
-        if self.f3d.G_MDSFT_RENDERMODE >= shift and self.f3d.G_MDSFT_RENDERMODE < shift + mask:
-            self.setRenderMode(flags)
+        self.setFlagsAttrs(command, otherModeL)
 
     def setRenderMode(self, flags):
         mat = self.mat()
@@ -1590,8 +1581,7 @@ class F3DContext:
                 elif command.name == "gsDPSetTextureLOD":
                     mat.rdp_settings.g_mdsft_textlod = command.params[0]
                 elif command.name == "gsDPSetTextureLUT":
-                    self.setTLUTMode(0, command.params[0])
-                    self.setTLUTMode(1, command.params[0])
+                    self.setTLUTMode(command.params[0])
                 elif command.name == "gsDPSetTextureFilter":
                     mat.rdp_settings.g_mdsft_text_filt = command.params[0]
                 elif command.name == "gsDPSetTextureConvert":
@@ -1758,7 +1748,7 @@ class F3DContext:
         print("Vertices: " + str(len(self.verts)) + ", Triangles: " + str(triangleCount))
 
         mesh.from_pydata(vertices=verts, edges=[], faces=faces)
-        uv_layer = mesh.uv_layers.new().data
+        uv_layer_name = mesh.uv_layers.new().name
         # if self.materialContext.f3d_mat.rdp_settings.g_lighting:
         alpha_layer = mesh.vertex_colors.new(name="Alpha").data
         color_layer = mesh.vertex_colors.new(name="Col").data
@@ -1774,6 +1764,10 @@ class F3DContext:
 
         for i in range(len(mesh.polygons)):
             mesh.polygons[i].material_index = self.triMatIndices[i]
+
+        # Workaround for an issue in Blender 3.5 where putting this above the `if importNormals` block
+        # causes wrong uvs/normals and sometimes crashes.
+        uv_layer = mesh.uv_layers[uv_layer_name].data
 
         for i in range(len(mesh.loops)):
             # This should be okay, since we aren't trying to optimize vertices
@@ -1821,6 +1815,7 @@ class ParsedMacro:
 
 # Static DLs only
 
+
 # limbName = c variable name (for parsing text)
 # boneName = blender bone name (for assigning vertex groups)
 # we distinguish these because there is no guarantee of bone order in blender,
@@ -1837,7 +1832,6 @@ def parseF3D(
     f3dContext: F3DContext,
     callClearMaterial: bool,
 ):
-
     f3dContext.matrixData[limbName] = transformMatrix
     f3dContext.setCurrentTransform(limbName)
     f3dContext.limbToBoneName[limbName] = boneName
@@ -1992,7 +1986,6 @@ def CI4toRGBA32(value):
 
 
 def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, width, isLUT, f3d):
-
     matchResult = re.search(
         r"([A-Za-z0-9\_]+)\s*" + re.escape(textureName) + r"\s*\[\s*[0-9a-fA-Fx]*\s*\]\s*=\s*\{([^\}]*)\s*\}\s*;\s*",
         dlData,
@@ -2198,7 +2191,6 @@ def importMeshC(
     f3dContext: F3DContext,
     callClearMaterial: bool = True,
 ) -> bpy.types.Object:
-
     # Create new skinned mesh
     mesh = bpy.data.meshes.new(name + "_mesh")
     obj = bpy.data.objects.new(name + "_mesh", mesh)
