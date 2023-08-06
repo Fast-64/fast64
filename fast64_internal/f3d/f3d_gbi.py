@@ -6,6 +6,11 @@ from dataclasses import dataclass, fields
 import bpy, os, enum, copy
 from ..utility import *
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .f3d_material import TextureProperty
+
 
 class ScrollMethod(enum.Enum):
     Vertex = 1
