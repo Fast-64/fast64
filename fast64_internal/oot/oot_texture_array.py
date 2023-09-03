@@ -5,10 +5,13 @@ from ..utility import hexOrDecInt
 from .oot_model_classes import (
     OOTF3DContext,
     TextureFlipbook,
+)
+
+from .file_reading import (
     ootGetActorData,
     ootGetActorDataPaths,
     ootGetIncludedAssetData,
-    ootGetLinkData,
+    ootGetLinkTextureData,
 )
 
 
@@ -27,7 +30,7 @@ def ootReadTextureArrays(
         actorData = ootGetActorData(basePath, overlayName)
         currentPaths = ootGetActorDataPaths(basePath, overlayName)
     else:
-        actorData = ootGetLinkData(basePath)
+        actorData = ootGetLinkTextureData(basePath)
         currentPaths = [os.path.join(basePath, f"src/code/z_player_lib.c")]
     actorData = ootGetIncludedAssetData(basePath, currentPaths, actorData) + actorData
 

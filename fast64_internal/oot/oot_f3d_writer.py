@@ -12,12 +12,8 @@ from ..f3d.f3d_writer import (
     saveMeshByFaces,
 )
 
-from .oot_model_classes import (
-    OOTTriangleConverterInfo,
-    OOTModel,
-    ootGetActorData,
-    ootGetLinkData,
-)
+from .oot_model_classes import OOTTriangleConverterInfo, OOTModel
+from .file_reading import ootGetActorData, getNonLinkActorFilepath, ootGetLinkTextureData
 
 
 # Creates a semi-transparent solid color material (cached)
@@ -207,23 +203,13 @@ def writeTextureArraysNew(fModel: OOTModel, arrayIndex: int):
     return textureArrayData
 
 
-def getActorFilepath(basePath: str, overlayName: str | None, isLink: bool, checkDataPath: bool = False):
-    if isLink:
-        actorFilePath = os.path.join(basePath, f"src/code/z_player_lib.c")
-    else:
-        actorFilePath = os.path.join(basePath, f"src/overlays/actors/{overlayName}/z_{overlayName[4:].lower()}.c")
-        actorFileDataPath = f"{actorFilePath[:-2]}_data.c"  # some bosses store texture arrays here
-
-        if checkDataPath and os.path.exists(actorFileDataPath):
-            actorFilePath = actorFileDataPath
-
-    return actorFilePath
-
-
 def writeTextureArraysExisting(
     exportPath: str, overlayName: str, isLink: bool, flipbookArrayIndex2D: int, fModel: OOTModel
 ):
-    actorFilePath = getActorFilepath(exportPath, overlayName, isLink, True)
+    if not isLink:
+        actorFilePath = getNonLinkActorFilepath(exportPath, overlayName, True)
+    else:
+        actorFilePath = os.path.join(exportPath, f"src/code/z_player_lib.c")
 
     if not os.path.exists(actorFilePath):
         print(f"{actorFilePath} not found, ignoring texture array writing.")
@@ -331,7 +317,7 @@ def ootReadActorScale(basePath: str, overlayName: str, isLink: bool) -> float:
     if not isLink:
         actorData = ootGetActorData(basePath, overlayName)
     else:
-        actorData = ootGetLinkData(basePath)
+        actorData = ootGetLinkTextureData(basePath)
 
     chainInitMatch = re.search(r"CHAIN_VEC3F_DIV1000\s*\(\s*scale\s*,\s*(.*?)\s*,", actorData, re.DOTALL)
     if chainInitMatch is not None:

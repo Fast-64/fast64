@@ -3,12 +3,14 @@ from ....f3d.f3d_gbi import F3D
 from ....f3d.f3d_parser import getImportData, parseF3D
 from ....utility import hexOrDecInt, applyRotation
 from ...oot_f3d_writer import ootReadActorScale
-from ...oot_model_classes import OOTF3DContext, ootGetIncludedAssetData
+from ...oot_model_classes import OOTF3DContext
+from ...file_reading import ootGetIncludedAssetData
 from ...oot_utility import ootGetObjectPath, getOOTScale
 from ...oot_texture_array import ootReadTextureArrays
 from ..constants import ootSkeletonImportDict
 from ..properties import OOTSkeletonImportSettings
 from ..utility import ootGetLimb, ootGetLimbs, ootGetSkeleton, applySkeletonRestPose
+from ...actor_collider import parseColliderData
 
 
 class OOTDLEntry:
@@ -275,6 +277,16 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
         LODArmatureObj.location += mathutils.Vector((10, 0, 0))
 
     f3dContext.deleteMaterialContext()
+
+    if importSettings.handleColliders.enable:
+        parseColliderData(
+            importSettings.name,
+            basePath,
+            overlayName,
+            isLink,
+            armatureObj,
+            importSettings.handleColliders,
+        )
 
     if importSettings.applyRestPose and restPoseData is not None:
         applySkeletonRestPose(restPoseData, armatureObj)

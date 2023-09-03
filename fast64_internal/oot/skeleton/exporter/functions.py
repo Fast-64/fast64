@@ -7,6 +7,11 @@ from ..constants import ootSkeletonImportDict
 from ..properties import OOTSkeletonExportSettings
 from ..utility import ootDuplicateArmatureAndRemoveRotations, getGroupIndices, ootRemoveSkeleton
 from .classes import OOTLimb, OOTSkeleton
+from ...actor_collider import (
+    getColliderData,
+    removeExistingColliderData,
+    writeColliderData,
+)
 
 from ....utility import (
     PluginError,
@@ -296,6 +301,10 @@ def ootConvertArmatureToC(
         textureArrayData = writeTextureArraysNew(fModel, flipbookArrayIndex2D)
         data.append(textureArrayData)
 
+        if settings.handleColliders.enable:
+            colliderData = getColliderData(originalArmatureObj)
+            data.append(colliderData)
+
     writeCData(data, os.path.join(path, filename + ".h"), os.path.join(path, filename + ".c"))
 
     if not isCustomExport:
@@ -303,3 +312,12 @@ def ootConvertArmatureToC(
         addIncludeFiles(folderName, path, filename)
         if removeVanillaData:
             ootRemoveSkeleton(path, folderName, skeletonName)
+
+            if settings.handleColliders.enable:
+                colliderData = getColliderData(originalArmatureObj)
+                removeExistingColliderData(
+                    bpy.context.scene.ootDecompPath, settings.actorOverlayName, isLink, colliderData.source
+                )
+                writeColliderData(
+                    originalArmatureObj, bpy.context.scene.ootDecompPath, settings.actorOverlayName, isLink
+                )

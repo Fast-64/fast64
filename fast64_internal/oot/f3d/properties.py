@@ -3,6 +3,12 @@ from bpy.props import PointerProperty, StringProperty, BoolProperty, EnumPropert
 from bpy.utils import register_class, unregister_class
 from ...f3d.f3d_parser import ootEnumDrawLayers
 from ...utility import prop_split
+from ..actor_collider import OOTActorColliderImportExportSettings
+
+ootEnumGeometryType = [
+    ("Regular", "Regular", "Regular"),
+    ("Actor Collider", "Actor Collider", "Actor Collider"),
+]
 
 
 class OOTDLExportSettings(PropertyGroup):
@@ -20,6 +26,7 @@ class OOTDLExportSettings(PropertyGroup):
     actorOverlayName: StringProperty(name="Overlay", default="")
     flipbookUses2DArray: BoolProperty(name="Has 2D Flipbook Array", default=False)
     flipbookArrayIndex2D: IntProperty(name="Index if 2D Array", default=0, min=0)
+    handleColliders: PointerProperty(type=OOTActorColliderImportExportSettings)
     customAssetIncludeDir: StringProperty(
         name="Asset Include Directory",
         default="assets/objects/gameplay_keep",
@@ -42,6 +49,7 @@ class OOTDLExportSettings(PropertyGroup):
                 box = layout.box().column()
                 prop_split(box, self, "flipbookArrayIndex2D", "Flipbook Index")
 
+        self.handleColliders.draw(layout, "Export Actor Colliders", False)
         prop_split(layout, self, "drawLayer", "Export Draw Layer")
         layout.prop(self, "isCustom")
         layout.prop(self, "removeVanillaData")
@@ -58,6 +66,7 @@ class OOTDLImportSettings(PropertyGroup):
     actorOverlayName: StringProperty(name="Overlay", default="")
     flipbookUses2DArray: BoolProperty(name="Has 2D Flipbook Array", default=False)
     flipbookArrayIndex2D: IntProperty(name="Index if 2D Array", default=0, min=0)
+    handleColliders: PointerProperty(type=OOTActorColliderImportExportSettings)
     autoDetectActorScale: BoolProperty(name="Auto Detect Actor Scale", default=True)
     actorScale: FloatProperty(name="Actor Scale", min=0, default=100)
 
@@ -75,6 +84,7 @@ class OOTDLImportSettings(PropertyGroup):
             if self.flipbookUses2DArray:
                 box = layout.box().column()
                 prop_split(box, self, "flipbookArrayIndex2D", "Flipbook Index")
+            self.handleColliders.draw(layout, "Import Actor Colliders", True)
         prop_split(layout, self, "drawLayer", "Import Draw Layer")
 
         layout.prop(self, "isCustom")
@@ -198,6 +208,7 @@ def f3d_props_register():
     World.ootDefaultRenderModes = PointerProperty(type=OOTDefaultRenderModesProperty)
     Material.ootMaterial = PointerProperty(type=OOTDynamicMaterialProperty)
     Object.ootObjectMenu = EnumProperty(items=ootEnumObjectMenu)
+    Object.ootGeometryType = EnumProperty(items=ootEnumGeometryType, name="Geometry Type")
 
 
 def f3d_props_unregister():
@@ -206,3 +217,4 @@ def f3d_props_unregister():
 
     del Material.ootMaterial
     del Object.ootObjectMenu
+    del Object.ootGeometryType

@@ -4,6 +4,7 @@ from bpy.utils import register_class, unregister_class
 from ...f3d.f3d_material import ootEnumDrawLayers
 from ...utility import prop_split
 from .constants import ootEnumSkeletonImportMode
+from ..actor_collider import OOTActorColliderImportExportSettings
 
 
 ootEnumBoneType = [
@@ -64,6 +65,7 @@ class OOTSkeletonExportSettings(PropertyGroup):
     actorOverlayName: StringProperty(name="Overlay", default="ovl_En_GeldB")
     flipbookUses2DArray: BoolProperty(name="Has 2D Flipbook Array", default=False)
     flipbookArrayIndex2D: IntProperty(name="Index if 2D Array", default=0, min=0)
+    handleColliders: PointerProperty(type=OOTActorColliderImportExportSettings)
     customAssetIncludeDir: StringProperty(
         name="Asset Include Directory",
         default="assets/objects/object_geldb",
@@ -83,6 +85,7 @@ class OOTSkeletonExportSettings(PropertyGroup):
             b = layout.box().column()
             b.label(icon="LIBRARY_DATA_BROKEN", text="Do not draw anything in SkelAnime")
             b.label(text="callbacks or cull limbs, will be corrupted.")
+        self.handleColliders.draw(layout, "Export Actor Colliders", False)
         layout.prop(self, "isCustom")
         layout.label(text="Object name used for export.", icon="INFO")
         layout.prop(self, "isCustomFilename")
@@ -119,6 +122,7 @@ class OOTSkeletonImportSettings(PropertyGroup):
     actorOverlayName: StringProperty(name="Overlay", default="ovl_En_GeldB")
     flipbookUses2DArray: BoolProperty(name="Has 2D Flipbook Array", default=False)
     flipbookArrayIndex2D: IntProperty(name="Index if 2D Array", default=0, min=0)
+    handleColliders: PointerProperty(type=OOTActorColliderImportExportSettings)
     autoDetectActorScale: BoolProperty(name="Auto Detect Actor Scale", default=True)
     actorScale: FloatProperty(name="Actor Scale", min=0, default=100)
 
@@ -155,6 +159,7 @@ class OOTSkeletonImportSettings(PropertyGroup):
                     )
             else:
                 layout.prop(self, "applyRestPose")
+            self.handleColliders.draw(layout, "Import Actor Colliders", True)
 
 
 oot_skeleton_classes = (

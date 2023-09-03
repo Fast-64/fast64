@@ -2,7 +2,7 @@ import math, mathutils, bpy, re
 from ..utility import CData, PluginError, toAlnum, hexOrDecInt
 from ..f3d.f3d_parser import getImportData
 from .skeleton.exporter import ootConvertArmatureToSkeletonWithoutMesh
-from .oot_model_classes import ootGetIncludedAssetData
+from .file_reading import ootGetIncludedAssetData
 
 from ..utility_anim import (
     ValueFrameData,
