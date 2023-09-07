@@ -12,6 +12,7 @@ from .f3d_material import (
     isTexturePointSampled,
     isLightingDisabled,
     checkIfFlatShaded,
+    shift_num,
 )
 from .f3d_texture_writer import MultitexManager, TileLoad, maybeSaveSingleLargeTextureSetup
 from .f3d_gbi import *
@@ -140,6 +141,29 @@ def getInfoDict(obj):
     return infoDict
 
 
+def getSTUVRepeats(tex_prop: "TextureProperty") :
+    SShift, TShift = 2 ** tex_prop.S.shift, 2 ** tex_prop.T.shift
+    sMirrorScale = 2 if tex_prop.S.mirror else 1
+    tMirrorScale = 2 if tex_prop.T.mirror else 1
+    return (SShift * sMirrorScale, TShift * tMirrorScale)
+
+
+def getUVInterval(f3dMat) -> tuple[int, int]:
+    useDict = all_combiner_uses(f3dMat)
+    
+    if useDict["Texture 0"] and f3dMat.tex0.tex_set:
+        tex0UVInterval = getSTUVRepeats(f3dMat.tex0)
+    else:
+        tex0UVInterval = (1, 1)
+
+    if useDict["Texture 1"] and f3dMat.tex1.tex_set:
+        tex1UVInterval = getSTUVRepeats(f3dMat.tex1)
+    else:
+        tex1UVInterval = (1, 1)
+
+    return (max(tex0UVInterval[0], tex1UVInterval[0]), max(tex0UVInterval[1], tex1UVInterval[1]))
+
+
 def fixLargeUVs(obj):
     mesh = obj.data
     if len(obj.data.uv_layers) == 0:
@@ -169,12 +193,9 @@ def fixLargeUVs(obj):
         if material.f3d_mat.use_large_textures:
             continue
 
-        f3dMat = material.f3d_mat
-
-        UVinterval = [
-            2 if f3dMat.tex0.S.mirror or f3dMat.tex1.S.mirror else 1,
-            2 if f3dMat.tex0.T.mirror or f3dMat.tex1.T.mirror else 1,
-        ]
+        # To prevent wrong UVs when wrapping UVs into valid bounds,
+        # we need to account for the highest texture shift and if mirroring is active.
+        UVinterval = getUVInterval(material.f3d_mat)
 
         size = texSizeDict[material]
         if size[0] == 0 or size[1] == 0:
@@ -320,7 +341,7 @@ def saveMeshWithLargeTexturesByFaces(
         firstFace = False
 
     triGroup.triList.commands.append(SPEndDisplayList())
-   
+
     if fMaterial.revert is not None:
         fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
 
@@ -1359,7 +1380,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         defaults,
         fModel.f3d._HW_VERSION_1,
         fModel.matWriteMethod,
-        fModel.f3d
+        fModel.f3d,
     )
     saveOtherModeLDefinition(fMaterial, f3dMat.rdp_settings, defaults, defaultRM, fModel.matWriteMethod, fModel.f3d)
     saveOtherDefinition(fMaterial, f3dMat, defaults)
