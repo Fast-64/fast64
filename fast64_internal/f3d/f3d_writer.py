@@ -12,7 +12,6 @@ from .f3d_material import (
     isTexturePointSampled,
     isLightingDisabled,
     checkIfFlatShaded,
-    shift_num,
 )
 from .f3d_texture_writer import MultitexManager, TileLoad, maybeSaveSingleLargeTextureSetup
 from .f3d_gbi import *
