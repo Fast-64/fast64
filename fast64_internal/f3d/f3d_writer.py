@@ -147,7 +147,7 @@ def getSTUVRepeats(tex_prop: "TextureProperty") :
     return (SShift * sMirrorScale, TShift * tMirrorScale)
 
 
-def getUVInterval(f3dMat) -> tuple[int, int]:
+def getUVInterval(f3dMat) -> tuple[float, float]:
     useDict = all_combiner_uses(f3dMat)
     
     if useDict["Texture 0"] and f3dMat.tex0.tex_set:
