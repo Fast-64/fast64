@@ -86,9 +86,9 @@ def transform_matrix_to_bpy(transform: Matrix) -> Matrix:
 
 def evaluate_macro(line: str):
     scene = bpy.context.scene
-    if scene.LevelImp.Version in line:
+    if scene.level_import.version in line:
         return False
-    if scene.LevelImp.Target in line:
+    if scene.level_import.target in line:
         return False
     return True
 

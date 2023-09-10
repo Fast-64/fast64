@@ -396,7 +396,7 @@ class DL(DataParser):
         if not NewDL:
             raise Exception(
                 "Could not find DL {} in levels/{}/{}leveldata.inc.c".format(
-                    NewDL, self.scene.LevelImp.Level, self.scene.LevelImp.Prefix
+                    NewDL, self.scene.level_import.Level, self.scene.level_import.Prefix
                 )
             )
         self.reset_parser(branched_dl)
@@ -408,7 +408,7 @@ class DL(DataParser):
         if not NewDL:
             raise Exception(
                 "Could not find DL {} in levels/{}/{}leveldata.inc.c".format(
-                    NewDL, self.scene.LevelImp.Level, self.scene.LevelImp.Prefix
+                    NewDL, self.scene.level_import.Level, self.scene.level_import.Prefix
                 )
             )
         self.reset_parser(branched_dl)
@@ -430,7 +430,7 @@ class DL(DataParser):
         if not VB:
             raise Exception(
                 "Could not find VB {} in levels/{}/{}leveldata.inc.c".format(
-                    ref, self.scene.LevelImp.Level, self.scene.LevelImp.Prefix
+                    ref, self.scene.level_import.Level, self.scene.level_import.Prefix
                 )
             )
         vertex_load_start = hexOrDecInt(macro.args[2])

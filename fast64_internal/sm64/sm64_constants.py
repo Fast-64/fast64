@@ -1775,8 +1775,13 @@ enumVersionDefs = [
     ("VERSION_SH", "VERSION_SH", ""),
 ]
 
-# groups you can select for levels
-groupsSeg5 = [
+# groups and whats in them
+# used across various enums
+all_groups = [
+    ("common0", "common0", "Common enemies (amps, cannons, flyguy, goomba etc.)"),
+    ("common1", "common1", "Common objects (coins, doors, trees, star, wooden sign)"),
+    ("group0", "group0", "Mario and particles"),
+    ("group0", "group0", "Mario and particles"),
     ("group1", "group1", "Ground objects (Thwomp, Heave-Ho, Hoot etc.)"),
     ("group2", "group2", "Bully/Blargg"),
     ("group3", "group3", "King Bob-Omb"),
@@ -1788,22 +1793,273 @@ groupsSeg5 = [
     ("group9", "group9", "Haunted Objects (Boo, Mad Piano etc.)"),
     ("group10", "group10", "Peach/Yoshi"),
     ("group11", "group11", "THI Ojbects (Lakitu, Wiggler, Bubba)"),
-    ("Do Not Write", "Do Not Write", "Do Not Write"),
-    ("Custom", "Custom", "Custom"),
-]
-
-
-groupsSeg6 = [
     ("group12", "group12", "Bowser/Bowser Bomb"),
     ("group13", "group13", "Water Objects (Skeeter, Treasure Chest etc.)"),
     ("group14", "group14", "Ground Objects (Piranha Plant, Chain Chomp etc.)"),
     ("group15", "group15", "Castle Objects (MIPS, Toad etc.)"),
     ("group16", "group16", "Ice Objects (Chill Bully, Moneybags)"),
     ("group17", "group17", "Cave Objects (Swoop, Scuttlebug, Dorrie etc.)"),
-    ("Do Not Write", "Do Not Write", "Do Not Write"),
     ("Custom", "Custom", "Custom"),
 ]
 
+groups_seg_5 = [
+    ("group1", "group1", "Ground objects (Thwomp, Heave-Ho, Hoot etc.)"),
+    ("group2", "group2", "Bully/Blargg"),
+    ("group3", "group3", "King Bob-Omb"),
+    ("group4", "group4", "Water Objects (Unagi, Manta, Clam)"),
+    ("group5", "group5", "Sand Objects (Pokey, Eyerock, klepto)"),
+    ("group6", "group6", "TTM Objects (Monty Mole, uUkiki, Fwoosh)"),
+    ("group7", "group7", "Snow Objects (Mr Blizzard, Spindrift etc.)"),
+    ("group8", "group8", "Cap Switch"),
+    ("group9", "group9", "Haunted Objects (Boo, Mad Piano etc.)"),
+    ("group10", "group10", "Peach/Yoshi"),
+    ("group11", "group11", "THI Ojbects (Lakitu, Wiggler, Bubba)"),
+    ("Custom", "Custom", "Custom"),
+]
+
+groups_seg_6 = [
+    ("group12", "group12", "Bowser/Bowser Bomb"),
+    ("group13", "group13", "Water Objects (Skeeter, Treasure Chest etc.)"),
+    ("group14", "group14", "Ground Objects (Piranha Plant, Chain Chomp etc.)"),
+    ("group15", "group15", "Castle Objects (MIPS, Toad etc.)"),
+    ("group16", "group16", "Ice Objects (Chill Bully, Moneybags)"),
+    ("group17", "group17", "Cave Objects (Swoop, Scuttlebug, Dorrie etc.)"),
+    ("Custom", "Custom", "Custom"),
+]
+
+# enums specifically for level loading
+groups_seg_5_lvl_load = [
+    *groups_seg_5,
+    ("Do Not Write", "Do Not Write", "Do Not Write"),
+]
+
+groups_seg_6_lvl_load = [
+    *groups_seg_6,
+    ("Do Not Write", "Do Not Write", "Do Not Write"),
+]
+
+# what is in specific groups and the segmented addresses
+group_0_geos = [
+    ("bubble_geo", "bubble_geo", "0x17000000"),
+    ("purple_marble_geo", "purple_marble_geo", "0x1700001c"),
+    ("smoke_geo", "smoke_geo", "0x17000038"),
+    ("burn_smoke_geo", "burn_smoke_geo", "0x17000084"),
+    ("small_water_splash_geo", "small_water_splash_geo", "0x1700009c"),
+    ("idle_water_wave_geo", "idle_water_wave_geo", "0x17000124"),
+    ("wave_trail_geo", "wave_trail_geo", "0x17000168"),
+    ("sparkles_geo", "sparkles_geo", "0x170001bc"),
+    ("water_splash_geo", "water_splash_geo", "0x17000230"),
+    ("sparkles_animation_geo", "sparkles_animation_geo", "0x17000284"),
+    ("mario_geo", "mario_geo", "0x17002dd4"),
+]
+
+group_1_geos = [
+    ("yellow_sphere_geo", "yellow_sphere_geo", "0x0c000000"),
+    ("hoot_geo", "hoot_geo", "0x0c000018"),
+    ("yoshi_egg_geo", "yoshi_egg_geo", "0x0c0001e4"),
+    ("thwomp_geo", "thwomp_geo", "0x0c000248"),
+    ("bullet_bill_geo", "bullet_bill_geo", "0x0c000264"),
+    ("heave_ho_geo", "heave_ho_geo", "0x0c00028c"),
+]
+
+group_2_geos = [
+    ("bully_geo", "bully_geo", "0x0c000000"),
+    ("bully_boss_geo", "bully_boss_geo", "0x0c000120"),
+    ("blargg_geo", "blargg_geo", "0x0c000240"),
+]
+
+group_3_geos = [
+    ("king_bobomb_geo", "king_bobomb_geo", "0x0c000000"),
+    ("water_bomb_geo", "water_bomb_geo", "0x0c000308"),
+    ("water_bomb_shadow_geo", "water_bomb_shadow_geo", "0x0c000328"),
+]
+
+group_4_geos = [
+    ("clam_shell_geo", "clam_shell_geo", "0x0c000000"),
+    ("sushi_geo", "sushi_geo", "0x0c000068"),
+    ("unagi_geo", "unagi_geo", "0x0c00010c"),
+]
+
+group_5_geos = [
+    ("klepto_geo", "klepto_geo", "0x0c000000"),
+    ("eyerok_left_hand_geo", "eyerok_left_hand_geo", "0x0c0005a8"),
+    ("eyerok_right_hand_geo", "eyerok_right_hand_geo", "0x0c0005e4"),
+    ("pokey_head_geo", "pokey_head_geo", "0x0c000610"),
+    ("pokey_body_part_geo", "pokey_body_part_geo", "0x0c000644"),
+]
+
+group_6_geos = [
+    ("monty_mole_geo", "monty_mole_geo", "0x0c000000"),
+    ("ukiki_geo", "ukiki_geo", "0x0c000110"),
+    ("fwoosh_geo", "fwoosh_geo", "0x0c00036c"),
+]
+
+group_7_geos = [
+    ("spindrift_geo", "spindrift_geo", "0x0c000000"),
+    ("penguin_geo", "penguin_geo", "0x0c000104"),
+    ("mr_blizzard_hidden_geo", "mr_blizzard_hidden_geo", "0x0c00021c"),
+    ("mr_blizzard_geo", "mr_blizzard_geo", "0x0c000348"),
+]
+
+group_8_geos = [
+    ("springboard_top_geo", "springboard_top_geo", "0x0c000000"),
+    ("springboard_spring_geo", "springboard_spring_geo", "0x0c000018"),
+    ("springboard_bottom_geo", "springboard_bottom_geo", "0x0c000030"),
+    ("cap_switch_geo", "cap_switch_geo", "0x0c000048"),
+]
+
+group_9_geos = [
+    ("bookend_part_geo", "bookend_part_geo", "0x0c000000"),
+    ("bookend_geo", "bookend_geo", "0x0c0000c0"),
+    ("haunted_chair_geo", "haunted_chair_geo", "0x0c0000d8"),
+    ("small_key_geo", "small_key_geo", "0x0c000188"),
+    ("mad_piano_geo", "mad_piano_geo", "0x0c0001b4"),
+    ("boo_geo", "boo_geo", "0x0c000224"),
+    ("haunted_cage_geo", "haunted_cage_geo", "0x0c000274"),
+]
+
+group_10_geos = [
+    ("birds_geo", "birds_geo", "0x0c000000"),
+    ("peach_geo", "peach_geo", "0x0c000410"),
+    ("yoshi_geo", "yoshi_geo", "0x0c000468"),
+]
+
+group_11_geos = [
+    ("bubba_geo", "bubba_geo", "0x0c000000"),
+    ("wiggler_head_geo", "wiggler_head_geo", "0x0c000030"),
+    ("enemy_lakitu_geo", "enemy_lakitu_geo", "0x0c0001bc"),
+    ("spiny_ball_geo", "spiny_ball_geo", "0x0c000290"),
+    ("spiny_geo", "spiny_geo", "0x0c000328"),
+]
+
+group_12_geos = [
+    ("bowser_flames_geo", "bowser_flames_geo", "0x0d000000"),
+    ("invisible_bowser_accessory_geo", "invisible_bowser_accessory_geo", "0x0d000090"),
+    ("bowser_1_yellow_sphere_geo", "bowser_1_yellow_sphere_geo", "0x0d0000b0"),
+    ("bowser_shadow_geo", "bowser_shadow_geo", "0x0d000ab8"),
+    ("bowser_geo", "bowser_geo", "0x0d000ac4"),
+    ("bowser2_geo", "bowser2_geo", "0x0d000b40"),
+    ("bowser_bomb_geo", "bowser_bomb_geo", "0x0d000bbc"),
+    ("bowser_impact_smoke_geo", "bowser_impact_smoke_geo", "0x0d000bfc"),
+]
+
+group_13_geos = [
+    ("skeeter_geo", "skeeter_geo", "0x0d000000"),
+    ("seaweed_geo", "seaweed_geo", "0x0d000284"),
+    ("water_mine_geo", "water_mine_geo", "0x0d0002f4"),
+    ("cyan_fish_geo", "cyan_fish_geo", "0x0d000324"),
+    ("bub_geo", "bub_geo", "0x0d00038c"),
+    ("water_ring_geo", "water_ring_geo", "0x0d000414"),
+    ("treasure_chest_base_geo", "treasure_chest_base_geo", "0x0d000450"),
+    ("treasure_chest_lid_geo", "treasure_chest_lid_geo", "0x0d000468"),
+]
+
+group_14_geos = [
+    ("koopa_flag_geo", "koopa_flag_geo", "0x0d000000"),
+    ("wooden_post_geo", "wooden_post_geo", "0x0d0000b8"),
+    ("koopa_without_shell_geo", "koopa_without_shell_geo", "0x0d0000d0"),
+    ("koopa_with_shell_geo", "koopa_with_shell_geo", "0x0d000214"),
+    ("piranha_plant_geo", "piranha_plant_geo", "0x0d000358"),
+    ("whomp_geo", "whomp_geo", "0x0d000480"),
+    ("metallic_ball_geo", "metallic_ball_geo", "0x0d0005d0"),
+    ("chain_chomp_geo", "chain_chomp_geo", "0x0d0005ec"),
+]
+
+group_15_geos = [
+    ("lakitu_geo", "lakitu_geo", "0x0d000000"),
+    ("toad_geo", "toad_geo", "0x0d0003e4"),
+    ("mips_geo", "mips_geo", "0x0d000448"),
+    ("boo_castle_geo", "boo_castle_geo", "0x0d0005b0"),
+]
+
+group_16_geos = [
+    ("moneybag_geo", "moneybag_geo", "0x0d0000f0"),
+    ("mr_i_geo", "mr_i_geo", "0x0d000000"),
+    ("mr_i_iris_geo", "mr_i_iris_geo", "0x0d00001c"),
+]
+
+group_17_geos = [
+    ("swoop_geo", "swoop_geo", "0x0d0000dc"),
+    ("snufit_geo", "snufit_geo", "0x0d0001a0"),
+    ("dorrie_geo", "dorrie_geo", "0x0d000230"),
+    ("scuttlebug_geo", "scuttlebug_geo", "0x0d000394"),
+]
+
+common_0_geos = [
+    ("blue_coin_switch_geo", "blue_coin_switch_geo", "0x0f000000"),
+    ("test_platform_geo", "test_platform_geo", "0x0f000020"),
+    ("amp_geo", "amp_geo", "0x0f000028"),
+    ("cannon_base_geo", "cannon_base_geo", "0x0f0001a8"),
+    ("cannon_barrel_geo", "cannon_barrel_geo", "0x0f0001c0"),
+    ("chuckya_geo", "chuckya_geo", "0x0f0001d8"),
+    ("purple_switch_geo", "purple_switch_geo", "0x0f0004cc"),
+    ("checkerboard_platform_geo", "checkerboard_platform_geo", "0x0f0004e4"),
+    ("heart_geo", "heart_geo", "0x0f0004fc"),
+    ("flyguy_geo", "flyguy_geo", "0x0f000518"),
+    ("breakable_box_geo", "breakable_box_geo", "0x0f0005d0"),
+    ("breakable_box_small_geo", "breakable_box_small_geo", "0x0f000610"),
+    ("bowling_ball_geo", "bowling_ball_geo", "0x0f000640"),
+    ("bowling_ball_track_geo", "bowling_ball_track_geo", "0x0f00066c"),
+    ("exclamation_box_geo", "exclamation_box_geo", "0x0f000694"),
+    ("goomba_geo", "goomba_geo", "0x0f0006e4"),
+    ("black_bobomb_geo", "black_bobomb_geo", "0x0f0007b8"),
+    ("bobomb_buddy_geo", "bobomb_buddy_geo", "0x0f0008f4"),
+    ("metal_box_geo", "metal_box_geo", "0x0f000a30"),
+    ("exclamation_box_outline_geo", "exclamation_box_outline_geo", "0x0f000a58"),
+    ("koopa_shell_geo", "koopa_shell_geo", "0x0f000ab0"),
+    ("koopa_shell2_geo", "koopa_shell2_geo", "0x0f000adc"),
+    ("koopa_shell3_geo", "koopa_shell3_geo", "0x0f000b08"),
+]
+
+common_1_geos = [
+    ("mist_geo", "mist_geo", "0x16000000"),
+    ("white_puff_geo", "white_puff_geo", "0x16000020"),
+    ("explosion_geo", "explosion_geo", "0x16000040"),
+    ("butterfly_geo", "butterfly_geo", "0x160000a8"),
+    ("yellow_coin_geo", "yellow_coin_geo", "0x1600013c"),
+    ("yellow_coin_no_shadow_geo", "yellow_coin_no_shadow_geo", "0x160001a0"),
+    ("blue_coin_geo", "blue_coin_geo", "0x16000200"),
+    ("blue_coin_no_shadow_geo", "blue_coin_no_shadow_geo", "0x16000264"),
+    ("red_coin_geo", "red_coin_geo", "0x160002c4"),
+    ("red_coin_no_shadow_geo", "red_coin_no_shadow_geo", "0x16000328"),
+    ("warp_pipe_geo", "warp_pipe_geo", "0x16000388"),
+    ("castle_door_geo", "castle_door_geo", "0x160003a8"),
+    ("cabin_door_geo", "cabin_door_geo", "0x1600043c"),
+    ("wooden_door_geo", "wooden_door_geo", "0x160004d0"),
+    ("wooden_door2_geo", "wooden_door2_geo", "0x16000564"),
+    ("metal_door_geo", "metal_door_geo", "0x160005f8"),
+    ("hazy_maze_door_geo", "hazy_maze_door_geo", "0x1600068c"),
+    ("haunted_door_geo", "haunted_door_geo", "0x16000720"),
+    ("castle_door_0_star_geo", "castle_door_0_star_geo", "0x160007b4"),
+    ("castle_door_1_star_geo", "castle_door_1_star_geo", "0x16000868"),
+    ("castle_door_3_stars_geo", "castle_door_3_stars_geo", "0x1600091c"),
+    ("key_door_geo", "key_door_geo", "0x160009d0"),
+    ("bowser_key_geo", "bowser_key_geo", "0x16000a84"),
+    ("bowser_key_cutscene_geo", "bowser_key_cutscene_geo", "0x16000ab0"),
+    ("red_flame_shadow_geo", "red_flame_shadow_geo", "0x16000b10"),
+    ("red_flame_geo", "red_flame_geo", "0x16000b2c"),
+    ("blue_flame_geo", "blue_flame_geo", "0x16000b8c"),
+    ("fish_shadow_geo", "fish_shadow_geo", "0x16000bec"),
+    ("fish_geo", "fish_geo", "0x16000c44"),
+    ("leaves_geo", "leaves_geo", "0x16000c8c"),
+    ("marios_cap_geo", "marios_cap_geo", "0x16000ca4"),
+    ("marios_metal_cap_geo", "marios_metal_cap_geo", "0x16000cf0"),
+    ("marios_wing_cap_geo", "marios_wing_cap_geo", "0x16000d3c"),
+    ("marios_winged_metal_cap_geo", "marios_winged_metal_cap_geo", "0x16000da8"),
+    ("number_geo", "number_geo", "0x16000e14"),
+    ("mushroom_1up_geo", "mushroom_1up_geo", "0x16000e84"),
+    ("star_geo", "star_geo", "0x16000ea0"),
+    ("dirt_animation_geo", "dirt_animation_geo", "0x16000ed4"),
+    ("cartoon_star_geo", "cartoon_star_geo", "0x16000f24"),
+    ("transparent_star_geo", "transparent_star_geo", "0x16000f6c"),
+    ("white_particle_geo", "white_particle_geo", "0x16000f98"),
+    ("wooden_signpost_geo", "wooden_signpost_geo", "0x16000fb4"),
+    ("bubbly_tree_geo", "bubbly_tree_geo", "0x16000fe8"),
+    ("spiky_tree_geo", "spiky_tree_geo", "0x16001000"),
+    ("snow_tree_geo", "snow_tree_geo", "0x16001018"),
+    ("spiky_tree1_geo", "spiky_tree1_geo", "0x16001030"),
+    ("palm_tree_geo", "palm_tree_geo", "0x16001048"),
+]
 
 marioAnimations = [
 #   ( Adress, "Animation name" ),

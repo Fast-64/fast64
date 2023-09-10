@@ -51,6 +51,27 @@ from ..utility import (
 from .sm64_constants import (
     enumVersionDefs,
     enumLevelNames,
+    all_groups,
+    group_0_geos,
+    group_1_geos,
+    group_2_geos,
+    group_3_geos,
+    group_4_geos,
+    group_5_geos,
+    group_6_geos,
+    group_7_geos,
+    group_8_geos,
+    group_9_geos,
+    group_10_geos,
+    group_11_geos,
+    group_12_geos,
+    group_13_geos,
+    group_14_geos,
+    group_15_geos,
+    group_16_geos,
+    group_17_geos,
+    common_0_geos,
+    common_1_geos,
 )
 
 # ------------------------------------------------------------------------
@@ -226,13 +247,13 @@ class Level(DataParser):
 
     def AREA(self, macro: Macro, col: bpy.types.Collection):
         area_root = bpy.data.objects.new("Empty", None)
-        if self.scene.LevelImp.UseCol:
-            area_col = bpy.data.collections.new(f"{self.scene.LevelImp.Level} area {macro.args[0]}")
+        if self.scene.level_import.use_collection:
+            area_col = bpy.data.collections.new(f"{self.scene.level_import.level} area {macro.args[0]}")
             col.children.link(area_col)
         else:
             area_col = col
         area_col.objects.link(area_root)
-        area_root.name = f"{self.scene.LevelImp.Level} Area Root {macro.args[0]}"
+        area_root.name = f"{self.scene.level_import.level} Area Root {macro.args[0]}"
         self.areas[macro.args[0]] = Area(area_root, macro.args[1], self.root, int(macro.args[0]), self.scene, area_col)
         self.cur_area = macro.args[0]
         return self.continue_parse
@@ -520,13 +541,13 @@ class Collision(DataParser):
 
 
 class SM64_Material(Mat):
-    def load_texture(self, ForceNewTex: bool, textures: dict, path: Path, tex: Texture):
+    def load_texture(self, force_new_tex: bool, textures: dict, path: Path, tex: Texture):
         if not tex:
             return None
         Timg = textures.get(tex.Timg)[0].split("/")[-1]
         Timg = Timg.replace("#include ", "").replace('"', "").replace("'", "").replace("inc.c", "png")
         image = bpy.data.images.get(Timg)
-        if not image or ForceNewTex:
+        if not image or force_new_tex:
             Timg = textures.get(tex.Timg)[0]
             Timg = Timg.replace("#include ", "").replace('"', "").replace("'", "").replace("inc.c", "png")
             # deal with duplicate pathing (such as /actors/actors etc.)
@@ -552,14 +573,14 @@ class SM64_Material(Mat):
         tex_node = nodes.new("ShaderNodeTexImage")
         links.new(pbsdf.inputs[0], tex_node.outputs[0])  # base color
         links.new(pbsdf.inputs[21], tex_node.outputs[1])  # alpha color
-        image = self.load_texture(bpy.context.scene.LevelImp.ForceNewTex, textures, tex_path, tex)
+        image = self.load_texture(bpy.context.scene.level_import.force_new_tex, textures, tex_path, tex)
         if image:
             tex_node.image = image
         if int(layer) > 4:
             mat.blend_method == "BLEND"
 
     def apply_material_settings(self, mat: bpy.types.Material, textures: dict, tex_path: Path, layer: int):
-        if bpy.context.scene.LevelImp.AsObj:
+        if bpy.context.scene.level_import.as_obj:
             return self.apply_PBSDF_Mat(mat, textures, tex_path, layer, self.tex0)
 
         f3d = mat.f3d_mat
@@ -575,14 +596,14 @@ class SM64_Material(Mat):
         if self.tex0 and self.set_tex:
             self.set_tex_settings(
                 f3d.tex0,
-                self.load_texture(bpy.context.scene.LevelImp.ForceNewTex, textures, tex_path, self.tex0),
+                self.load_texture(bpy.context.scene.level_import.force_new_tex, textures, tex_path, self.tex0),
                 self.tiles[0],
                 self.tex0.Timg,
             )
         if self.tex1 and self.set_tex:
             self.set_tex_settings(
                 f3d.tex1,
-                self.load_texture(bpy.context.scene.LevelImp.ForceNewTex, textures, tex_path, self.tex1),
+                self.load_texture(bpy.context.scene.level_import.force_new_tex, textures, tex_path, self.tex1),
                 self.tiles[1],
                 self.tex1.Timg,
             )
@@ -714,7 +735,7 @@ class SM64_F3D(DL):
 
     # create a new f3d_mat given an SM64_Material class but don't create copies with same props
     def create_new_f3d_mat(self, mat: SM64_Material, mesh: bpy.types.Mesh):
-        if not self.scene.LevelImp.ForceNewTex:
+        if not self.scene.level_import.force_new_tex:
             # check if this mat was used already in another mesh (or this mat if DL is garbage or something)
             # even looping n^2 is probably faster than duping 3 mats with blender speed
             for j, F3Dmat in enumerate(bpy.data.materials):
@@ -728,7 +749,7 @@ class SM64_F3D(DL):
             # add a mat slot and add mat to it
             mesh.materials.append(new)
         else:
-            if self.scene.LevelImp.AsObj:
+            if self.scene.level_import.as_obj:
                 NewMat = bpy.data.materials.new(f"sm64 {mesh.name.replace('Data', 'material')}")
                 mesh.materials.append(NewMat)  # the newest mat should be in slot[-1] for the mesh materials
                 NewMat.use_nodes = True
@@ -1112,7 +1133,7 @@ class GeoLayout(GraphNodes):
         if not geo_layout:
             raise Exception(
                 "Could not find geo layout {} from levels/{}/{}geo.c".format(
-                    start, scene.LevelImp.Level, scene.LevelImp.Prefix
+                    start, scene.level_import.level, scene.level_import.prefix
                 )
             )
         self.stream = start
@@ -1319,7 +1340,7 @@ class GeoArmature(GraphNodes):
         if not geo_layout:
             raise Exception(
                 "Could not find geo layout {} from levels/{}/{}geo.c".format(
-                    start, scene.LevelImp.Level, scene.LevelImp.Prefix
+                    start, scene.level_import.level, scene.level_import.prefix
                 )
             )
         bpy.context.view_layer.objects.active = self.get_or_init_geo_armature()
@@ -1420,13 +1441,13 @@ def parse_level_script(script_file: Path, scene: bpy.types.Scene, col: bpy.types
         scene.collection.objects.link(Root)
     else:
         col.objects.link(Root)
-    Root.name = f"Level Root {scene.LevelImp.Level}"
+    Root.name = f"Level Root {scene.level_import.level}"
     Root.sm64_obj_type = "Level Root"
     # Now parse the script and get data about the level
     # Store data in attribute of a level class then assign later and return class
     with open(script_file, "r", newline="") as script_file:
         lvl = Level(script_file, scene, Root)
-    entry = scene.LevelImp.Entry.format(scene.LevelImp.Level)
+    entry = scene.level_import.entry.format(scene.level_import.level)
     lvl.parse_level_script(entry, col=col)
     return lvl
 
@@ -1702,7 +1723,7 @@ def find_level_models_from_geo(geo: TextIO, lvl: Level, scene: bpy.types.Scene, 
         else:
             col = None
         Geo = GeoLayout(
-            GeoLayouts, area.root, scene, f"GeoRoot {scene.LevelImp.Level} {area_index}", area.root, col=col
+            GeoLayouts, area.root, scene, f"GeoRoot {scene.level_import.level} {area_index}", area.root, col=col
         )
         Geo.parse_level_geo(area.geo, scene)
         area.geo = Geo
@@ -1744,7 +1765,7 @@ def find_collision_data_from_path(aggregate: Path, lvl: Level, scene: bpy.types.
         area.ColFile = col_data.get(area.terrain, None)
         if not area.ColFile:
             raise Exception(
-                f"Collision {area.terrain} not found in levels/{scene.LevelImp.Level}/{scene.LevelImp.Prefix}leveldata.c"
+                f"Collision {area.terrain} not found in levels/{scene.level_import.level}/{scene.level_import.prefix}leveldata.c"
             )
     return lvl
 
@@ -1757,7 +1778,7 @@ def write_level_collision_to_bpy(lvl: Level, scene: bpy.types.Scene, cleanup: bo
             col = create_collection(area.root.users_collection[0], col_name)
         col_parser = Collision(area.ColFile, scene.blenderToSM64Scale)
         col_parser.parse_collision()
-        name = "SM64 {} Area {} Col".format(scene.LevelImp.Level, area_index)
+        name = "SM64 {} Area {} Col".format(scene.level_import.level, area_index)
         obj = col_parser.write_collision(scene, name, area.root, col=col)
         # final operators to clean stuff up
         if cleanup:
@@ -1805,18 +1826,18 @@ class SM64_OT_Act_Import(Operator):
         rt_col = context.collection
         scene.gameEditorMode = "SM64"
         path = Path(bpy.path.abspath(scene.decompPath))
-        folder = path / scene.ActImp.FolderType
-        layout_name = scene.ActImp.GeoLayout
-        prefix = scene.ActImp.Prefix
+        folder = path / scene.actor_import.folder_type
+        layout_name = scene.actor_import.geo_layout
+        prefix = scene.actor_import.prefix
         # different name schemes and I have no clean way to deal with it
-        if "actor" in scene.ActImp.FolderType:
+        if "actor" in scene.actor_import.folder_type:
             geo_path = folder / (prefix + "_geo.c")
             leveldat = folder / (prefix + ".c")
         else:
             geo_path = folder / (prefix + "geo.c")
             leveldat = folder / (prefix + "leveldata.c")
         root_obj = bpy.data.objects.new("Empty", None)
-        root_obj.name = f"Actor {scene.ActImp.GeoLayout}"
+        root_obj.name = f"Actor {scene.actor_import.geo_layout}"
         rt_col.objects.link(root_obj)
 
         geo_layout = find_actor_models_from_geo(
@@ -1844,17 +1865,17 @@ class SM64_OT_Armature_Import(Operator):
         rt_col = context.collection
         scene.gameEditorMode = "SM64"
         path = Path(bpy.path.abspath(scene.decompPath))
-        folder = path / scene.ActImp.FolderType
-        layout_name = scene.ActImp.GeoLayout
-        prefix = scene.ActImp.Prefix
+        folder = path / scene.actor_import.folder_type
+        layout_name = scene.actor_import.geo_layout
+        prefix = scene.actor_import.prefix
         # different name schemes and I have no clean way to deal with it
-        if "actor" in scene.ActImp.FolderType:
+        if "actor" in scene.actor_import.folder_type:
             geo_path = folder / (prefix + "_geo.c")
             leveldat = folder / (prefix + ".c")
         else:
             geo_path = folder / (prefix + "geo.c")
             leveldat = folder / (prefix + "leveldata.c")
-        name = f"Actor {scene.ActImp.GeoLayout}"
+        name = f"Actor {scene.actor_import.geo_layout}"
         armature_obj = bpy.data.objects.new(name, bpy.data.armatures.new(name))
         rt_col.objects.link(armature_obj)
 
@@ -1881,17 +1902,17 @@ class SM64_OT_Lvl_Import(Operator):
         scene = context.scene
 
         col = context.collection
-        if scene.LevelImp.UseCol:
-            obj_col = f"{scene.LevelImp.Level} obj"
-            gfx_col = f"{scene.LevelImp.Level} gfx"
-            col_col = f"{scene.LevelImp.Level} col"
+        if scene.level_import.use_collection:
+            obj_col = f"{scene.level_import.level} obj"
+            gfx_col = f"{scene.level_import.level} gfx"
+            col_col = f"{scene.level_import.level} col"
         else:
             obj_col = gfx_col = col_col = None
 
         scene.gameEditorMode = "SM64"
-        prefix = scene.LevelImp.Prefix
+        prefix = scene.level_import.prefix
         path = Path(bpy.path.abspath(scene.decompPath))
-        level = path / "levels" / scene.LevelImp.Level
+        level = path / "levels" / scene.level_import.level
         script = level / (prefix + "script.c")
         geo = level / (prefix + "geo.c")
         leveldat = level / (prefix + "leveldata.c")
@@ -1912,15 +1933,15 @@ class SM64_OT_Lvl_Gfx_Import(Operator):
         scene = context.scene
 
         col = context.collection
-        if scene.LevelImp.UseCol:
-            gfx_col = f"{scene.LevelImp.Level} gfx"
+        if scene.level_import.use_collection:
+            gfx_col = f"{scene.level_import.level} gfx"
         else:
             gfx_col = None
 
         scene.gameEditorMode = "SM64"
-        prefix = scene.LevelImp.Prefix
+        prefix = scene.level_import.prefix
         path = Path(bpy.path.abspath(scene.decompPath))
-        level = path / "levels" / scene.LevelImp.Level
+        level = path / "levels" / scene.level_import.level
         script = level / (prefix + "script.c")
         geo = level / (prefix + "geo.c")
         model = level / (prefix + "leveldata.c")
@@ -1939,15 +1960,15 @@ class SM64_OT_Lvl_Col_Import(Operator):
         scene = context.scene
 
         col = context.collection
-        if scene.LevelImp.UseCol:
-            col_col = f"{scene.LevelImp.Level} collision"
+        if scene.level_import.use_collection:
+            col_col = f"{scene.level_import.level} collision"
         else:
             col_col = None
 
         scene.gameEditorMode = "SM64"
-        prefix = scene.LevelImp.Prefix
+        prefix = scene.level_import.prefix
         path = Path(bpy.path.abspath(scene.decompPath))
-        level = path / "levels" / scene.LevelImp.Level
+        level = path / "levels" / scene.level_import.level
         script = level / (prefix + "script.c")
         model = level / (prefix + "leveldata.c")
         lvl = parse_level_script(script, scene, col=col)  # returns level class
@@ -1963,15 +1984,15 @@ class SM64_OT_Obj_Import(Operator):
         scene = context.scene
 
         col = context.collection
-        if scene.LevelImp.UseCol:
-            obj_col = f"{scene.LevelImp.Level} objs"
+        if scene.level_import.use_collection:
+            obj_col = f"{scene.level_import.level} objs"
         else:
             obj_col = None
 
         scene.gameEditorMode = "SM64"
-        prefix = scene.LevelImp.Prefix
+        prefix = scene.level_import.prefix
         path = Path(bpy.path.abspath(scene.decompPath))
-        level = path / "levels" / scene.LevelImp.Level
+        level = path / "levels" / scene.level_import.level
         script = level / (prefix + "script.c")
         lvl = parse_level_script(script, scene, col=col)  # returns level class
         write_level_objects(lvl, col_name=obj_col)
@@ -1984,8 +2005,11 @@ class SM64_OT_Obj_Import(Operator):
 
 
 class ActorImport(PropertyGroup):
-    GeoLayout: StringProperty(name="GeoLayout", description="Name of GeoLayout")
-    FolderType: EnumProperty(
+    geo_layout_str: StringProperty(
+        name="geo_layout",
+        description="Name of GeoLayout"
+    )
+    folder_type: EnumProperty(
         name="Source",
         description="Whether the actor is from a level or from a group",
         items=[
@@ -1993,55 +2017,206 @@ class ActorImport(PropertyGroup):
             ("levels", "levels", ""),
         ],
     )
-    Prefix: StringProperty(
+    group_preset: EnumProperty(
+        name="group preset",
+        description="The group you want to load geo from",
+        items=all_groups
+    )
+    group_0_geo_enum: EnumProperty(
+        name="group 0 geos",
+        description="preset geos from vanilla in group 0",
+        items=[*group_0_geos, ("Custom", "Custom", "Custom")]
+    )
+    group_1_geo_enum: EnumProperty(
+            name="group 1 geos",
+            description="preset geos from vanilla in group 1",
+            items=[*group_1_geos, ("Custom", "Custom", "Custom")]
+        )
+    group_2_geo_enum: EnumProperty(
+            name="group 2 geos",
+            description="preset geos from vanilla in group 2",
+            items=[*group_2_geos, ("Custom", "Custom", "Custom")]
+        )
+    group_3_geo_enum: EnumProperty(
+            name="group 3 geos",
+            description="preset geos from vanilla in group 3",
+            items=[*group_3_geos, ("Custom", "Custom", "Custom")]
+        )
+    group_4_geo_enum: EnumProperty(
+            name="group 4 geos",
+            description="preset geos from vanilla in group 4",
+            items=[*group_4_geos, ("Custom", "Custom", "Custom")]
+        )
+    group_5_geo_enum: EnumProperty(
+            name="group 5 geos",
+            description="preset geos from vanilla in group 5",
+            items=[*group_5_geos, ("Custom", "Custom", "Custom")]
+        )
+    group_6_geo_enum: EnumProperty(
+            name="group 6 geos",
+            description="preset geos from vanilla in group 6",
+            items=[*group_6_geos, ("Custom", "Custom", "Custom")]
+        )
+    group_7_geo_enum: EnumProperty(
+            name="group 7 geos",
+            description="preset geos from vanilla in group 7",
+            items=[*group_7_geos, ("Custom", "Custom", "Custom")]
+        )
+    group_8_geo_enum: EnumProperty(
+            name="group 8 geos",
+            description="preset geos from vanilla in group 8",
+            items=[*group_8_geos, ("Custom", "Custom", "Custom")]
+        )
+    group_9_geo_enum: EnumProperty(
+            name="group 9 geos",
+            description="preset geos from vanilla in group 9",
+            items=[*group_9_geos, ("Custom", "Custom", "Custom")]
+        )
+    group_10_geo_enum: EnumProperty(
+            name="group 10 geos",
+            description="preset geos from vanilla in group 10",
+            items=[*group_10_geos, ("Custom", "Custom", "Custom")]
+        )
+    group_11_geo_enum: EnumProperty(
+            name="group 11 geos",
+            description="preset geos from vanilla in group 11",
+            items=[*group_11_geos, ("Custom", "Custom", "Custom")]
+        )
+    group_12_geo_enum: EnumProperty(
+            name="group 12 geos",
+            description="preset geos from vanilla in group 12",
+            items=[*group_12_geos, ("Custom", "Custom", "Custom")]
+        )
+    group_13_geo_enum: EnumProperty(
+            name="group 13 geos",
+            description="preset geos from vanilla in group 13",
+            items=[*group_13_geos, ("Custom", "Custom", "Custom")]
+        )
+    group_14_geo_enum: EnumProperty(
+            name="group 14 geos",
+            description="preset geos from vanilla in group 14",
+            items=[*group_14_geos, ("Custom", "Custom", "Custom")]
+        )
+    group_15_geo_enum: EnumProperty(
+            name="group 15 geos",
+            description="preset geos from vanilla in group 15",
+            items=[*group_15_geos, ("Custom", "Custom", "Custom")]
+        )
+    group_16_geo_enum: EnumProperty(
+            name="group 16 geos",
+            description="preset geos from vanilla in group 16",
+            items=[*group_16_geos, ("Custom", "Custom", "Custom")]
+        )
+    group_17_geo_enum: EnumProperty(
+            name="group 17 geos",
+            description="preset geos from vanilla in group 17",
+            items=[*group_17_geos, ("Custom", "Custom", "Custom")]
+        )
+    common_0_geo_enum: EnumProperty(
+            name="common 0 geos",
+            description="preset geos from vanilla in common 0",
+            items=[*common_0_geos, ("Custom", "Custom", "Custom")]
+        )
+    common_1_geo_enum: EnumProperty(
+            name="common 1 geos",
+            description="preset geos from vanilla in common 1",
+            items=[*common_1_geos, ("Custom", "Custom", "Custom")]
+        )
+    prefix_custom: StringProperty(
         name="Prefix",
-        description="Prefix before expected aggregator files like script.c, leveldata.c and geo.c",
+        description="Prefix before expected aggregator files like script.c, leveldata.c and geo.c. Enter group name if not using dropdowns.",
         default="",
     )
-    Version: EnumProperty(
+    version: EnumProperty(
         name="Version",
         description="Version of the game for any ifdef macros",
         items=enumVersionDefs,
     )
-    Target: StringProperty(
+    target: StringProperty(
         name="Target", description="The platform target for any #ifdefs in code", default="TARGET_N64"
     )
+    
+    @property
+    def geo_group_name(self):
+        if self.group_preset == "Custom":
+            return None
+        if self.group_preset == "common0":
+            return "common_0_geo_enum"
+        if self.group_preset == "common1":
+            return "common_1_geo_enum"
+        else:
+            return f"group_{self.group_preset.removeprefix('group')}_geo_enum"
+    
+    @property
+    def prefix(self):
+        if self.folder_type == "levels" or self.group_preset == "custom":
+            return self.prefix_custom
+        else:
+            return self.group_preset
+    
+    @property
+    def geo_layout(self):
+        if self.folder_type == "levels" or self.group_preset == "custom":
+            return self.geo_layout_str
+        else:
+            return getattr(self, self.geo_group_name)
+    
+    def draw(self, layout: bpy.types.UILayout):
+        layout.prop(self, "folder_type")
+        layout.prop(self, "group_preset")
+        if self.folder_type == "levels" or self.group_preset == "custom":
+            layout.prop(self, "prefix_custom")
+            layout.prop(self, "geo_layout_str")
+        else:
+            layout.prop(self, self.geo_group_name)
+        layout.prop(self, "version")
+        layout.prop(self, "target")
 
 
 class LevelImport(PropertyGroup):
-    Level: EnumProperty(
+    level: EnumProperty(
         name="Level",
         description="Choose a level",
         items=enumLevelNames,
     )
-    Prefix: StringProperty(
+    prefix: StringProperty(
         name="Prefix",
-        description="Prefix before expected aggregator files like script.c, leveldata.c and geo.c",
+        description="Prefix before expected aggregator files like script.c, leveldata.c and geo.c. Leave blank unless using custom files",
         default="",
     )
-    Entry: StringProperty(
-        name="Entrypoint", description="The name of the level script entry variable", default="level_{}_entry"
+    entry: StringProperty(
+        name="Entrypoint", description="The name of the level script entry variable. Levelname is put between braces.", default="level_{}_entry"
     )
-    Version: EnumProperty(
+    version: EnumProperty(
         name="Version",
         description="Version of the game for any ifdef macros",
         items=enumVersionDefs,
     )
-    Target: StringProperty(
+    target: StringProperty(
         name="Target", description="The platform target for any #ifdefs in code", default="TARGET_N64"
     )
-    ForceNewTex: BoolProperty(
-        name="ForceNewTex",
+    force_new_tex: BoolProperty(
+        name="force_new_tex",
         description="Forcefully load new textures even if duplicate path/name is detected",
         default=False,
     )
-    AsObj: BoolProperty(
+    as_obj: BoolProperty(
         name="As OBJ", description="Make new materials as PBSDF so they export to obj format", default=False
     )
-    UseCol: BoolProperty(
-        name="Use Col", description="Make new collections to organzie content during imports", default=True
+    use_collection: BoolProperty(
+        name="use_collection", description="Make new collections to organzie content during imports", default=True
     )
-
+    
+    def draw(self, layout: bpy.types.UILayout):
+        layout.prop(self, "level")
+        layout.prop(self, "entry")
+        layout.prop(self, "prefix")
+        layout.prop(self, "version")
+        layout.prop(self, "target")
+        row = layout.row()
+        row.prop(self, "force_new_tex")
+        row.prop(self, "as_obj")
+        row.prop(self, "use_collection")
 
 # ------------------------------------------------------------------------
 #    Panels
@@ -2063,16 +2238,8 @@ class Level_PT_Panel(Panel):
     def draw(self, context):
         layout = self.layout
         scene = context.scene
-        LevelImp = scene.LevelImp
-        layout.prop(LevelImp, "Level")
-        layout.prop(LevelImp, "Entry")
-        layout.prop(LevelImp, "Prefix")
-        layout.prop(LevelImp, "Version")
-        layout.prop(LevelImp, "Target")
-        row = layout.row()
-        row.prop(LevelImp, "ForceNewTex")
-        row.prop(LevelImp, "AsObj")
-        row.prop(LevelImp, "UseCol")
+        level_import = scene.level_import
+        level_import.draw(layout)
         layout.operator("wm.sm64_import_level")
         layout.operator("wm.sm64_import_level_gfx")
         layout.operator("wm.sm64_import_level_col")
@@ -2094,12 +2261,8 @@ class Actor_PT_Panel(Panel):
     def draw(self, context):
         layout = self.layout
         scene = context.scene
-        ActImp = scene.ActImp
-        layout.prop(ActImp, "FolderType")
-        layout.prop(ActImp, "GeoLayout")
-        layout.prop(ActImp, "Prefix")
-        layout.prop(ActImp, "Version")
-        layout.prop(ActImp, "Target")
+        actor_import = scene.actor_import
+        actor_import.draw(layout)
         layout.operator("wm.sm64_import_actor")
         layout.operator("wm.sm64_import_armature")
 
@@ -2124,8 +2287,8 @@ def sm64_import_register():
     for cls in classes:
         register_class(cls)
 
-    bpy.types.Scene.LevelImp = PointerProperty(type=LevelImport)
-    bpy.types.Scene.ActImp = PointerProperty(type=ActorImport)
+    bpy.types.Scene.level_import = PointerProperty(type=LevelImport)
+    bpy.types.Scene.actor_import = PointerProperty(type=ActorImport)
 
 
 def sm64_import_unregister():
@@ -2133,5 +2296,5 @@ def sm64_import_unregister():
 
     for cls in reversed(classes):
         unregister_class(cls)
-    del bpy.types.Scene.LevelImp
-    del bpy.types.Scene.ActImp
+    del bpy.types.Scene.level_import
+    del bpy.types.Scene.actor_import

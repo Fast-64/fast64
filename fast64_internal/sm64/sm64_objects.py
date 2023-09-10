@@ -23,8 +23,8 @@ from .sm64_constants import (
     enumMacrosNames,
     enumSpecialsNames,
     enumBehaviourPresets,
-    groupsSeg5,
-    groupsSeg6,
+    groups_seg_5_lvl_load,
+    groups_seg_6_lvl_load,
 )
 
 from .sm64_spline import (
@@ -1836,8 +1836,8 @@ class SM64_SegmentProperties(bpy.types.PropertyGroup):
     seg5_group_custom: bpy.props.StringProperty(name="Segment 5 Group")
     seg6_load_custom: bpy.props.StringProperty(name="Segment 6 Seg")
     seg6_group_custom: bpy.props.StringProperty(name="Segment 6 Group")
-    seg5_enum: bpy.props.EnumProperty(name="Segment 5 Group", default="Do Not Write", items=groupsSeg5)
-    seg6_enum: bpy.props.EnumProperty(name="Segment 6 Group", default="Do Not Write", items=groupsSeg6)
+    seg5_enum: bpy.props.EnumProperty(name="Segment 5 Group", default="Do Not Write", items=groups_seg_5_lvl_load)
+    seg6_enum: bpy.props.EnumProperty(name="Segment 6 Group", default="Do Not Write", items=groups_seg_6_lvl_load)
 
     def draw(self, layout):
         col = layout.column()
