@@ -221,13 +221,13 @@ class Level(DataParser):
         scale = self.scene.blenderToSM64Scale
         if not col:
             col = self.scene.collection
-        self.parse_stream(script_stream, entry, col)
+        self.parse_stream_from_start(script_stream, entry, col)
         return self.areas
 
     def AREA(self, macro: Macro, col: bpy.types.Collection):
         area_root = bpy.data.objects.new("Empty", None)
         if self.scene.LevelImp.UseCol:
-            area_col = bpy.data.collections.new(f"{self.scene.LevelImp.Level} area {args[0]}")
+            area_col = bpy.data.collections.new(f"{self.scene.LevelImp.Level} area {macro.args[0]}")
             col.children.link(area_col)
         else:
             area_col = col
@@ -766,8 +766,8 @@ class GraphNodes(DataParser):
         self.scene = scene
         self.stream = stream
         self.render_range = None
-        self.parent_transform = transform_mtx_blender_to_n64()
-        self.last_transform = transform_mtx_blender_to_n64()
+        self.parent_transform = transform_mtx_blender_to_n64().inverted()
+        self.last_transform = transform_mtx_blender_to_n64().inverted()
         self.name = name
         self.col = col
         super().__init__(parent=geo_parent)
@@ -812,13 +812,13 @@ class GraphNodes(DataParser):
     def GEO_BRANCH_AND_LINK(self, macro: Macro, depth: int):
         new_geo_layout = self.geo_layouts.get(macro.args[0])
         if new_geo_layout:
-            self.parse_stream(new_geo_layout, depth)
+            self.parse_stream_from_start(new_geo_layout, macro.args[0], depth)
         return self.continue_parse
 
     def GEO_BRANCH(self, macro: Macro, depth: int):
         new_geo_layout = self.geo_layouts.get(macro.args[1])
         if new_geo_layout:
-            self.parse_stream(new_geo_layout, depth)
+            self.parse_stream_from_start(new_geo_layout, macro.args[1], depth)
         # arg 0 determines if you return and continue or end after the branch
         if eval(macro.args[0]):
             return self.continue_parse
@@ -887,25 +887,25 @@ class GraphNodes(DataParser):
         return self.continue_parse
 
     def GEO_ROTATION_NODE(self, macro: Macro, depth: int):
-        geo_obj = self.GEO_ROTATE(macro)
+        geo_obj = self.GEO_ROTATE(macro, depth)
         if geo_obj:
             self.set_geo_type(geo_obj, self.rotate)
         return self.continue_parse
 
     def GEO_ROTATE(self, macro: Macro, depth: int):
-        transform = Matrix.LocRotScale(Vector(), self.get_rotation(macro.args[1:4]), Vector())
+        transform = Matrix.LocRotScale(Vector(), self.get_rotation(macro.args[1:4]), Vector((1, 1, 1)))
         self.last_transform = self.parent_transform @ transform
         return self.setup_geo_obj("rotate", self.translate_rotate, macro.args[0])
 
     def GEO_ROTATION_NODE_WITH_DL(self, macro: Macro, depth: int):
-        geo_obj = self.GEO_ROTATE_WITH_DL(macro)
+        geo_obj = self.GEO_ROTATE_WITH_DL(macro, depth)
         return self.continue_parse
 
     def GEO_ROTATE_WITH_DL(self, macro: Macro, depth: int):
-        transform = Matrix.LocRotScale(Vector(), self.get_rotation(macro.args[1:4]), Vector())
+        transform = Matrix.LocRotScale(Vector(), self.get_rotation(macro.args[1:4]), Vector((1, 1, 1)))
         self.last_transform = self.parent_transform @ transform
 
-        model = args[-1]
+        model = macro.args[-1]
         if model != "NULL":
             geo_obj = self.add_model(
                 ModelDat(self.last_transform, macro.args[0], model), "rotate", self.translate_rotate, macro.args[0]
@@ -917,11 +917,11 @@ class GraphNodes(DataParser):
 
     def GEO_TRANSLATE_ROTATE_WITH_DL(self, macro: Macro, depth: int):
         transform = Matrix.LocRotScale(
-            self.get_translation(macro.args[1:4]), self.get_rotation(macro.args[4:7]), Vector()
+            self.get_translation(macro.args[1:4]), self.get_rotation(macro.args[4:7]), Vector((1, 1, 1))
         )
         self.last_transform = self.parent_transform @ transform
 
-        model = args[-1]
+        model = macro.args[-1]
         if model != "NULL":
             geo_obj = self.add_model(
                 ModelDat(self.last_transform, macro.args[0], model),
@@ -936,7 +936,7 @@ class GraphNodes(DataParser):
 
     def GEO_TRANSLATE_ROTATE(self, macro: Macro, depth: int):
         transform = Matrix.LocRotScale(
-            self.get_translation(macro.args[1:4]), self.get_rotation(macro.args[1:4]), Vector()
+            self.get_translation(macro.args[1:4]), self.get_rotation(macro.args[1:4]), Vector((1, 1, 1))
         )
         self.last_transform = self.parent_transform @ transform
 
@@ -945,7 +945,7 @@ class GraphNodes(DataParser):
         return self.continue_parse
 
     def GEO_TRANSLATE_WITH_DL(self, macro: Macro, depth: int):
-        geo_obj = self.GEO_TRANSLATE_NODE_WITH_DL(macro)
+        geo_obj = self.GEO_TRANSLATE_NODE_WITH_DL(macro, depth)
         if geo_obj:
             self.set_geo_type(geo_obj, self.translate_rotate)
         return self.continue_parse
@@ -966,7 +966,7 @@ class GraphNodes(DataParser):
         return geo_obj
 
     def GEO_TRANSLATE(self, macro: Macro, depth: int):
-        obj = self.GEO_TRANSLATE_NODE(macro)
+        obj = self.GEO_TRANSLATE_NODE(macro, depth)
         if obj:
             self.set_geo_type(geo_obj, self.translate_rotate)
         return self.continue_parse
@@ -1003,6 +1003,9 @@ class GraphNodes(DataParser):
         return self.continue_parse
 
     # these have no affect on the bpy
+    def GEO_NODE_START(self, macro: Macro, depth: int):
+        return self.continue_parse
+        
     def GEO_BACKGROUND(self, macro: Macro, depth: int):
         return self.continue_parse
 
@@ -1084,7 +1087,7 @@ class GeoLayout(GraphNodes):
         geo_obj.sm64_obj_type = geo_cmd
 
     def set_draw_layer(self, geo_obj: bpy.types.Object, layer: int):
-        geo_obj.draw_layer_static = self.geo_armature(layer)
+        geo_obj.draw_layer_static = str(self.parse_layer(layer))
 
     # make an empty node to act as the root of this geo layout
     # use this to hold a transform, or an actual cmd, otherwise rt is passed
@@ -1112,11 +1115,9 @@ class GeoLayout(GraphNodes):
                     start, scene.LevelImp.Level, scene.LevelImp.Prefix
                 )
             )
-        # This won't parse the geo layout perfectly. For now I'll just get models. This is mostly because fast64
-        # isn't a bijection to geo layouts, the props are sort of handled all over the place
         self.stream = start
-        self.parse_stream(geo_layout, start, 0)
-
+        self.parse_stream_from_start(geo_layout, start, 0)
+        
     def GEO_SCALE(self, macro: Macro, depth: int):
         scale = eval(macro.args[1]) / 0x10000
         geo_obj = self.setup_geo_obj("scale", self.scale, macro.args[0])
@@ -1323,8 +1324,14 @@ class GeoArmature(GraphNodes):
             )
         bpy.context.view_layer.objects.active = self.get_or_init_geo_armature()
         self.stream = start
-        self.parse_stream(geo_layout, start, 0)
+        self.parse_stream_from_start(geo_layout, start, 0)
 
+    def GEO_ASM(self, macro: Macro, depth: int):
+        geo_obj = self.setup_geo_obj("asm", self.asm)
+        geo_obj.func_param = int(macro.args[0])
+        geo_obj.geo_func = macro.args[1]
+        return self.continue_parse
+        
     def GEO_SHADOW(self, macro: Macro, depth: int):
         geo_bone = self.setup_geo_obj("shadow", self.shadow)
         geo_bone.shadow_solidity = hexOrDecInt(macro.args[1]) / 255
@@ -1554,10 +1561,11 @@ def write_geo_to_bpy(
             obj.matrix_world = transform_matrix_to_bpy(model_data.transform) * (1 / scene.blenderToSM64Scale)
 
             obj.ignore_collision = True
-            obj.draw_layer_static = geo_armature.parse_layer(model_data.layer)
+            layer = geo.parse_layer(model_data.layer)
+            obj.draw_layer_static = layer
 
             if name:
-                apply_mesh_data(f3d, obj, mesh, layer, root_path, cleanup)
+                apply_mesh_data(f3d_dat, obj, mesh, layer, root_path, cleanup)
 
     if not geo.children:
         return
@@ -1603,7 +1611,6 @@ def construct_sm64_f3d_data_from_file(gfx: SM64_F3D, model_file: TextIO):
     for key, value in gfx_dat.items():
         attr = getattr(gfx, key)
         attr.update(value)
-    # For textures, try u8, and s16 aswell
     gfx.Textures.update(
         get_data_types_from_file(
             model_file,

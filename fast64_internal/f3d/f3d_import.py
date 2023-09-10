@@ -426,7 +426,7 @@ class DL(DataParser):
         else:
             ref = macro.args[0]
             offset = 0
-        VB = self.Vtx.get(ref)
+        VB = self.Vtx.get(ref.strip())
         if not VB:
             raise Exception(
                 "Could not find VB {} in levels/{}/{}leveldata.inc.c".format(
@@ -528,6 +528,10 @@ class DL(DataParser):
     def gsSPSetLights7(self, macro: Macro):
         return self.continue_parse
 
+    # upper/lower modes
+    def gsDPSetAlphaCompare(self, macro: Macro):
+        return self.continue_parse
+        
     def gsDPSetDepthSource(self, macro: Macro):
         return self.continue_parse
 
@@ -691,6 +695,9 @@ class DL(DataParser):
         return self.continue_parse
 
     # syncs need no processing
+    def gsSPCullDisplayList(self, macro: Macro):
+        return self.continue_parse
+        
     def gsDPPipeSync(self, macro: Macro):
         return self.continue_parse
 

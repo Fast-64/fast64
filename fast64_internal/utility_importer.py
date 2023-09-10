@@ -47,6 +47,12 @@ class DataParser:
         else:
             self.parsed_streams = dict()
 
+    # for if you're jumping, you start from the beginning, but if you're starting/stopping
+    # then you want to just pickup from the last spot
+    def parse_stream_from_start(self, dat_stream: Sequence[Any], entry_id: Any, *args, **kwargs):
+        self.reset_parser(entry_id)
+        self.parse_stream(dat_stream, entry_id, *args, **kwargs)
+        
     def parse_stream(self, dat_stream: Sequence[Any], entry_id: Any, *args, **kwargs):
         parser = self.parsed_streams.get(entry_id)
         if not parser:
@@ -100,8 +106,10 @@ def pre_parse_file(file: TextIO) -> list[str]:
         # check for macro
         if "#ifdef" in line:
             skip_macro = evaluate_macro(line)
+            continue
         if "#elif" in line:
             skip_macro = evaluate_macro(line)
+            continue
         if "#else" in line or "#endif" in line:
             skip_macro = 0
             continue
