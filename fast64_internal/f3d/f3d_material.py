@@ -589,14 +589,15 @@ class F3DPanel(bpy.types.Panel):
         inputGroup = layout.row()
         prop_input_name = inputGroup.column()
         prop_input = inputGroup.column()
+        f3d_mat = material.f3d_mat
         if showCheckBox:
-            prop_input_name.prop(material, setName, text="Chroma Key")
+            prop_input_name.prop(f3d_mat, setName, text="Chroma Key")
         else:
             prop_input_name.label(text="Chroma Key")
-        prop_input.prop(material.f3d_mat, "key_center", text="Center")
-        prop_input.prop(material, "key_scale", text="Scale")
-        prop_input.prop(material, "key_width", text="Width")
-        if material.key_width[0] > 1 or material.key_width[1] > 1 or material.key_width[2] > 1:
+        prop_input.prop(f3d_mat, "key_center", text="Center")
+        prop_input.prop(f3d_mat, "key_scale", text="Scale")
+        prop_input.prop(f3d_mat, "key_width", text="Width")
+        if f3d_mat.key_width[0] > 1 or f3d_mat.key_width[1] > 1 or f3d_mat.key_width[2] > 1:
             layout.box().label(text="NOTE: Keying is disabled for channels with width > 1.")
         prop_input.enabled = setProp
         return inputGroup
