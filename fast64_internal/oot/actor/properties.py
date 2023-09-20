@@ -21,6 +21,7 @@ ootEnumSceneSetupPreset = [
     ("All Non-Cutscene Scene Setups", "All Non-Cutscene Scene Setups", "All Non-Cutscene Scene Setups"),
 ]
 
+
 class OOTActorHeaderItemProperty(PropertyGroup):
     headerIndex: IntProperty(name="Scene Setup", min=4, default=4)
     expandTab: BoolProperty(name="Expand Tab")

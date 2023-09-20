@@ -16,6 +16,7 @@ ootRoomShapeEntryStructs = [
     "RoomShapeCullableEntry",
 ]
 
+
 def getRoomShapeDLEntry(meshEntry: OOTRoomMeshGroup, roomShape: str):
     opaqueName = meshEntry.DLGroup.opaque.name if meshEntry.DLGroup.opaque is not None else "NULL"
     transparentName = meshEntry.DLGroup.transparent.name if meshEntry.DLGroup.transparent is not None else "NULL"

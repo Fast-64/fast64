@@ -27,6 +27,7 @@ ootEnumEmptyType = [
     ("Cutscene", "Cutscene", "Cutscene"),
 ]
 
+
 def drawSceneHeader(box: bpy.types.UILayout, obj: bpy.types.Object):
     objName = obj.name
     obj.ootSceneHeader.draw_props(box, None, None, objName)

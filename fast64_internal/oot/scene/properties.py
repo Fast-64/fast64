@@ -48,7 +48,9 @@ ootEnumSceneMenuAlternate = [
     ("Cutscene", "Cutscene", "Cutscene"),
     ("Exits", "Exits", "Exits"),
 ]
-ootEnumSceneMenu = ootEnumSceneMenuAlternate + [("Alternate", "Alternate", "Alternate"),]
+ootEnumSceneMenu = ootEnumSceneMenuAlternate + [
+    ("Alternate", "Alternate", "Alternate"),
+]
 
 ootEnumLightGroupMenu = [
     ("Dawn", "Dawn", "Dawn"),
@@ -77,6 +79,7 @@ ootEnumExitIndex = [
     ("Custom", "Custom", "Custom"),
     ("Default", "Default", "Default"),
 ]
+
 
 class OOTSceneCommon:
     ootEnumBootMode = [

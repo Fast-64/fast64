@@ -15,7 +15,9 @@ ootEnumHeaderMenu = [
     ("Adult Night", "Adult Night", "Adult Night"),
     ("Cutscene", "Cutscene", "Cutscene"),
 ]
-ootEnumHeaderMenuComplete = [("Child Day", "Child Day", "Child Day"),] + ootEnumHeaderMenu
+ootEnumHeaderMenuComplete = [
+    ("Child Day", "Child Day", "Child Day"),
+] + ootEnumHeaderMenu
 
 ootEnumLinkIdle = [
     ("Custom", "Custom", "Custom"),

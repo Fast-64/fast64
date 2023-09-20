@@ -29,7 +29,10 @@ ootEnumRoomMenuAlternate = [
     ("General", "General", "General"),
     ("Objects", "Objects", "Objects"),
 ]
-ootEnumRoomMenu = ootEnumRoomMenuAlternate + [("Alternate", "Alternate", "Alternate"),]
+ootEnumRoomMenu = ootEnumRoomMenuAlternate + [
+    ("Alternate", "Alternate", "Alternate"),
+]
+
 
 class OOTObjectProperty(PropertyGroup):
     expandTab: BoolProperty(name="Expand Tab")
