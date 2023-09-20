@@ -21,37 +21,19 @@ ootRoomShapeEntryStructs = [
     "RoomShapeCullableEntry",
 ]
 
-
-ootEnumSceneMenu = [
-    ("General", "General", "General"),
-    ("Lighting", "Lighting", "Lighting"),
-    ("Cutscene", "Cutscene", "Cutscene"),
-    ("Exits", "Exits", "Exits"),
-    ("Alternate", "Alternate", "Alternate"),
-]
-
-ootEnumRenderScene = [
-    ("General", "General", "General"),
-    ("Alternate", "Alternate", "Alternate"),
-]
-
 ootEnumSceneMenuAlternate = [
     ("General", "General", "General"),
     ("Lighting", "Lighting", "Lighting"),
     ("Cutscene", "Cutscene", "Cutscene"),
     ("Exits", "Exits", "Exits"),
 ]
-
-ootEnumRoomMenu = [
-    ("General", "General", "General"),
-    ("Objects", "Objects", "Objects"),
-    ("Alternate", "Alternate", "Alternate"),
-]
+ootEnumSceneMenu = ootEnumSceneMenuAlternate + [("Alternate", "Alternate", "Alternate"),]
 
 ootEnumRoomMenuAlternate = [
     ("General", "General", "General"),
     ("Objects", "Objects", "Objects"),
 ]
+ootEnumRoomMenu = ootEnumRoomMenuAlternate + [("Alternate", "Alternate", "Alternate"),]
 
 ootEnumHeaderMenu = [
     ("Child Night", "Child Night", "Child Night"),
@@ -59,14 +41,7 @@ ootEnumHeaderMenu = [
     ("Adult Night", "Adult Night", "Adult Night"),
     ("Cutscene", "Cutscene", "Cutscene"),
 ]
-
-ootEnumHeaderMenuComplete = [
-    ("Child Day", "Child Day", "Child Day"),
-    ("Child Night", "Child Night", "Child Night"),
-    ("Adult Day", "Adult Day", "Adult Day"),
-    ("Adult Night", "Adult Night", "Adult Night"),
-    ("Cutscene", "Cutscene", "Cutscene"),
-]
+ootEnumHeaderMenuComplete = [("Child Day", "Child Day", "Child Day"),] + ootEnumHeaderMenu
 
 ootEnumLightGroupMenu = [
     ("Dawn", "Dawn", "Dawn"),
