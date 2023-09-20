@@ -1,7 +1,6 @@
 import bpy
 from bpy.utils import register_class, unregister_class
 from ..utility import prop_split, gammaInverse
-from .oot_constants import ootEnumEmptyType
 from .oot_utility import getSceneObj, getRoomObj
 from .scene.properties import OOTSceneProperties
 from .room.properties import OOTObjectProperty, OOTRoomHeaderProperty, OOTAlternateRoomHeaderProperty
@@ -14,6 +13,19 @@ from .actor.properties import (
     OOTEntranceProperty,
 )
 
+# Make sure to add exceptions in utility.py - selectMeshChildrenOnly
+ootEnumEmptyType = [
+    ("None", "None", "None"),
+    ("Scene", "Scene", "Scene"),
+    ("Room", "Room", "Room"),
+    ("Actor", "Actor", "Actor"),
+    ("Transition Actor", "Transition Actor", "Transition Actor"),
+    ("Entrance", "Entrance", "Entrance"),
+    ("Water Box", "Water Box", "Water Box"),
+    ("Cull Group", "Custom Cull Group", "Cull Group"),
+    ("LOD", "LOD Group", "LOD Group"),
+    ("Cutscene", "Cutscene", "Cutscene"),
+]
 
 def drawSceneHeader(box: bpy.types.UILayout, obj: bpy.types.Object):
     objName = obj.name

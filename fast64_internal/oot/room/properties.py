@@ -19,14 +19,17 @@ from bpy.props import (
 
 from ..oot_constants import (
     ootData,
-    ootEnumRoomMenu,
-    ootEnumRoomMenuAlternate,
     ootEnumRoomBehaviour,
     ootEnumLinkIdle,
     ootEnumRoomShapeType,
     ootEnumHeaderMenu,
 )
 
+ootEnumRoomMenuAlternate = [
+    ("General", "General", "General"),
+    ("Objects", "Objects", "Objects"),
+]
+ootEnumRoomMenu = ootEnumRoomMenuAlternate + [("Alternate", "Alternate", "Alternate"),]
 
 class OOTObjectProperty(PropertyGroup):
     expandTab: BoolProperty(name="Expand Tab")

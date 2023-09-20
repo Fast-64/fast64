@@ -1,9 +1,20 @@
 from .....utility import CData, indent
 from .....f3d.f3d_gbi import ScrollMethod, TextureExportSettings
 from ....oot_model_classes import OOTGfxFormatter
-from ....oot_constants import ootRoomShapeStructs, ootRoomShapeEntryStructs, ootEnumRoomShapeType
+from ....oot_constants import ootEnumRoomShapeType
 from ....oot_level_classes import OOTRoom, OOTRoomMeshGroup, OOTRoomMesh
 
+ootRoomShapeStructs = [
+    "RoomShapeNormal",
+    "RoomShapeImage",
+    "RoomShapeCullable",
+]
+
+ootRoomShapeEntryStructs = [
+    "RoomShapeDListsEntry",
+    "RoomShapeDListsEntry",
+    "RoomShapeCullableEntry",
+]
 
 def getRoomShapeDLEntry(meshEntry: OOTRoomMeshGroup, roomShape: str):
     opaqueName = meshEntry.DLGroup.opaque.name if meshEntry.DLGroup.opaque is not None else "NULL"
