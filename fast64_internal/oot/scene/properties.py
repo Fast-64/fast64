@@ -56,7 +56,7 @@ class OOTSceneCommon:
     ]
 
     def isSceneObj(self, obj):
-        return obj.data is None and obj.ootEmptyType == "Scene"
+        return obj.type == "EMPTY" and obj.ootEmptyType == "Scene"
 
 
 class OOTSceneProperties(PropertyGroup):

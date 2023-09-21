@@ -1219,7 +1219,7 @@ def duplicateNode(transformNode, parentNode, index):
 
 
 def partOfGeolayout(obj):
-    useGeoEmpty = obj.data is None and checkSM64EmptyUsesGeoLayout(obj.sm64_obj_type)
+    useGeoEmpty = obj.type == "EMPTY" and checkSM64EmptyUsesGeoLayout(obj.sm64_obj_type)
 
     return isinstance(obj.data, bpy.types.Mesh) or useGeoEmpty
 
@@ -1334,13 +1334,13 @@ def processMesh(
 ):
     # finalTransform = copy.deepcopy(transformMatrix)
 
-    useGeoEmpty = obj.data is None and checkSM64EmptyUsesGeoLayout(obj.sm64_obj_type)
+    useGeoEmpty = obj.type == "EMPTY" and checkSM64EmptyUsesGeoLayout(obj.sm64_obj_type)
 
-    useSwitchNode = obj.data is None and obj.sm64_obj_type == "Switch"
+    useSwitchNode = obj.type == "EMPTY" and obj.sm64_obj_type == "Switch"
 
-    useInlineGeo = obj.data is None and checkIsSM64InlineGeoLayout(obj.sm64_obj_type)
+    useInlineGeo = obj.type == "EMPTY" and checkIsSM64InlineGeoLayout(obj.sm64_obj_type)
 
-    addRooms = isRoot and obj.data is None and obj.sm64_obj_type == "Area Root" and obj.enableRoomSwitch
+    addRooms = isRoot and obj.type == "EMPTY" and obj.sm64_obj_type == "Area Root" and obj.enableRoomSwitch
 
     # if useAreaEmpty and areaIndex is not None and obj.areaIndex != areaIndex:
     # 	return
@@ -1514,7 +1514,7 @@ def processMesh(
 
             # Make sure to add additional cases to if statement above
 
-        if obj.data is None:
+        if obj.type == "EMPTY":
             fMeshes = {}
         elif obj.get("instanced_mesh_name"):
             temp_obj = get_obj_temp_mesh(obj)
@@ -2861,7 +2861,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                 raise PluginError("Object not selected.")
             obj = context.active_object
             if type(obj.data) is not bpy.types.Mesh and not (
-                obj.data is None and (obj.sm64_obj_type == "None" or obj.sm64_obj_type == "Switch")
+                obj.type == "EMPTY" and (obj.sm64_obj_type == "None" or obj.sm64_obj_type == "Switch")
             ):
                 raise PluginError('Selected object must be a mesh or an empty with the "None" or "Switch" type.')
             # if context.scene.saveCameraSettings and \

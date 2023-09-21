@@ -91,7 +91,7 @@ class OOTObjectPanel(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.gameEditorMode == "OOT" and (context.object is not None and context.object.data is None)
+        return context.scene.gameEditorMode == "OOT" and (context.object is not None and context.object.type == "EMPTY")
 
     def draw(self, context):
         prop_split(self.layout, context.scene, "gameEditorMode", "Game")
@@ -154,7 +154,7 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
     @staticmethod
     def upgrade_changed_props():
         for obj in bpy.data.objects:
-            if obj.data is None:
+            if obj.type == "EMPTY":
                 if obj.ootEmptyType == "Room":
                     OOTObjectProperty.upgrade_object(obj)
 

@@ -182,7 +182,7 @@ class Fast64_GlobalObjectPanel(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.object is not None and context.object.data is None
+        return context.object is not None and context.object.type == "EMPTY"
 
     def draw(self, context):
         box = self.layout

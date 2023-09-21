@@ -961,18 +961,18 @@ def checkSM64EmptyUsesGeoLayout(sm64_obj_type):
 
 
 def selectMeshChildrenOnly(obj, ignoreAttr, includeEmpties, areaIndex):
-    checkArea = areaIndex is not None and obj.data is None
+    checkArea = areaIndex is not None and obj.type == "EMPTY"
     if checkArea and obj.sm64_obj_type == "Area Root" and obj.areaIndex != areaIndex:
         return
     ignoreObj = ignoreAttr is not None and getattr(obj, ignoreAttr)
     isMesh = isinstance(obj.data, bpy.types.Mesh)
-    isEmpty = obj.data is None and includeEmpties and checkSM64EmptyUsesGeoLayout(obj.sm64_obj_type)
+    isEmpty = obj.type == "EMPTY" and includeEmpties and checkSM64EmptyUsesGeoLayout(obj.sm64_obj_type)
     if (isMesh or isEmpty) and not ignoreObj:
         obj.select_set(True)
         obj.original_name = obj.name
     for child in obj.children:
         if checkArea and obj.sm64_obj_type == "Level Root":
-            if not (child.data is None and child.sm64_obj_type == "Area Root"):
+            if not (child.type == "EMPTY" and child.sm64_obj_type == "Area Root"):
                 continue
         selectMeshChildrenOnly(child, ignoreAttr, includeEmpties, areaIndex)
 

@@ -222,7 +222,7 @@ class OOTObjectCategorizer:
 
     def sortObjects(self, allObjs):
         for obj in allObjs:
-            if obj.data is None:
+            if obj.type == "EMPTY":
                 if obj.ootEmptyType == "Actor":
                     self.actors.append(obj)
                 elif obj.ootEmptyType == "Transition Actor":
@@ -328,7 +328,7 @@ def ootDuplicateHierarchy(obj, ignoreAttr, includeEmpties, objectCategorizer):
 def ootSelectMeshChildrenOnly(obj, includeEmpties):
     isMesh = isinstance(obj.data, bpy.types.Mesh)
     isEmpty = (
-        obj.data is None or isinstance(obj.data, bpy.types.Camera) or isinstance(obj.data, bpy.types.Curve)
+        obj.type == "EMPTY" or isinstance(obj.data, bpy.types.Camera) or isinstance(obj.data, bpy.types.Curve)
     ) and includeEmpties
     if isMesh or isEmpty:
         obj.select_set(True)
@@ -344,7 +344,7 @@ def ootCleanupScene(originalSceneObj, allObjs):
 
 
 def getSceneObj(obj):
-    while not (obj is None or (obj is not None and obj.data is None and obj.ootEmptyType == "Scene")):
+    while not (obj is None or (obj is not None and obj.type == "EMPTY" and obj.ootEmptyType == "Scene")):
         obj = obj.parent
     if obj is None:
         return None
@@ -353,7 +353,7 @@ def getSceneObj(obj):
 
 
 def getRoomObj(obj):
-    while not (obj is None or (obj is not None and obj.data is None and obj.ootEmptyType == "Room")):
+    while not (obj is None or (obj is not None and obj.type == "EMPTY" and obj.ootEmptyType == "Room")):
         obj = obj.parent
     if obj is None:
         return None
@@ -674,7 +674,7 @@ class OOTCollectionMove(bpy.types.Operator):
 
 def getHeaderSettings(actorObj: bpy.types.Object):
     itemType = actorObj.ootEmptyType
-    if actorObj.data is None:
+    if actorObj.type == "EMPTY":
         if itemType == "Actor":
             headerSettings = actorObj.ootActorProperty.headerSettings
         elif itemType == "Entrance":
