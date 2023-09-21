@@ -104,7 +104,7 @@ class OOT_ExportCutscene(Operator):
 
             activeObj = context.view_layer.objects.active
 
-            if activeObj is None or activeObj.data is not None or activeObj.ootEmptyType != "Cutscene":
+            if activeObj is None or activeObj.type != "EMPTY" or activeObj.ootEmptyType != "Cutscene":
                 raise PluginError("You must select a cutscene object")
 
             if activeObj.parent is not None:
@@ -136,7 +136,7 @@ class OOT_ExportAllCutscenes(Operator):
             csdata = ootCutsceneIncludes(headerfilename)
             count = 0
             for obj in context.view_layer.objects:
-                if obj.data is not None or obj.ootEmptyType != "Cutscene":
+                if obj.type != "EMPTY" or obj.ootEmptyType != "Cutscene":
                     continue
                 if obj.parent is not None:
                     raise PluginError("Cutscene object must not be parented to anything")

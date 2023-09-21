@@ -150,7 +150,7 @@ class OOT_ExportScene(Operator):
             obj = context.scene.ootSceneExportObj
             if obj is None:
                 raise PluginError("Scene object input not set.")
-            elif obj.data is not None or obj.ootEmptyType != "Scene":
+            elif obj.type != "EMPTY" or obj.ootEmptyType != "Scene":
                 raise PluginError("The input object is not an empty with the Scene type.")
 
             scaleValue = context.scene.ootBlenderScale

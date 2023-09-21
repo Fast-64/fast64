@@ -841,7 +841,7 @@ def store_original_meshes(add_warning: Callable[[str], None]):
     instanced_meshes = set()
     active_obj = bpy.context.view_layer.objects.active
     for obj in yield_children(active_obj):
-        if obj.data is not None:
+        if obj.type != "EMPTY":
             has_modifiers = len(obj.modifiers) != 0
             has_uneven_scale = not obj_scale_is_unified(obj)
             shares_mesh = obj.data.users > 1
@@ -980,7 +980,7 @@ def selectMeshChildrenOnly(obj, ignoreAttr, includeEmpties, areaIndex):
 def cleanupDuplicatedObjects(selected_objects):
     meshData = []
     for selectedObj in selected_objects:
-        if selectedObj.data is not None and isinstance(selectedObj.data, bpy.types.Mesh):
+        if selectedObj.type != "EMPTY" and isinstance(selectedObj.data, bpy.types.Mesh):
             meshData.append(selectedObj.data)
     for selectedObj in selected_objects:
         bpy.data.objects.remove(selectedObj)

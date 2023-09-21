@@ -493,7 +493,7 @@ def readPathProp(pathProp, obj, scene, sceneObj, sceneName, transformMatrix):
 
 
 def ootConvertScene(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneName, DLFormat, convertTextureData):
-    if originalSceneObj.data is not None or originalSceneObj.ootEmptyType != "Scene":
+    if originalSceneObj.type != "EMPTY" or originalSceneObj.ootEmptyType != "Scene":
         raise PluginError(originalSceneObj.name + ' is not an empty with the "Scene" empty type.')
 
     if bpy.context.scene.exportHiddenGeometry:

@@ -1488,7 +1488,7 @@ def processMesh(
 
         transformNode = TransformNode(node)
 
-        if obj.data is not None and (obj.use_render_range or obj.add_shadow or obj.add_func):
+        if obj.type != "EMPTY" and (obj.use_render_range or obj.add_shadow or obj.add_func):
 
             parentTransformNode.children.append(transformNode)
             transformNode.parent = parentTransformNode

@@ -20,7 +20,7 @@ from ..utility import (
 
 
 def isPathObject(obj: bpy.types.Object) -> bool:
-    return obj.data is not None and isinstance(obj.data, bpy.types.Curve) and obj.ootSplineProperty.splineType == "Path"
+    return obj.type != "EMPTY" and isinstance(obj.data, bpy.types.Curve) and obj.ootSplineProperty.splineType == "Path"
 
 
 ootSceneDungeons = [
@@ -683,7 +683,7 @@ def getHeaderSettings(actorObj: bpy.types.Object):
             headerSettings = actorObj.ootTransitionActorProperty.actor.headerSettings
         else:
             headerSettings = None
-    elif actorObj.data is not None and isPathObject(actorObj):
+    elif isPathObject(actorObj):
         headerSettings = actorObj.ootSplineProperty.headerSettings
     else:
         headerSettings = None

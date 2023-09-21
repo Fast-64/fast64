@@ -1139,7 +1139,7 @@ class SM64_ExportLevel(ObjectDataExporter):
                 if len(context.selected_objects) == 0:
                     raise PluginError("Object not selected.")
                 obj = context.selected_objects[0]
-                if obj.data is not None or obj.sm64_obj_type != "Level Root":
+                if obj.type != "EMPTY" or obj.sm64_obj_type != "Level Root":
                     raise PluginError("The selected object is not an empty with the Level Root type.")
             except PluginError:
                 # try to find parent level root
