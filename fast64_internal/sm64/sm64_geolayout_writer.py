@@ -454,7 +454,7 @@ def convertObjectToGeolayout(
 
     else:
         geolayoutGraph = GeolayoutGraph(name + "_geo")
-        if isinstance(obj.data, bpy.types.Mesh) and obj.use_render_area:
+        if obj.type == "MESH" and obj.use_render_area:
             rootNode = TransformNode(StartRenderAreaNode(obj.culling_radius))
         else:
             rootNode = TransformNode(StartNode())
@@ -1221,7 +1221,7 @@ def duplicateNode(transformNode, parentNode, index):
 def partOfGeolayout(obj):
     useGeoEmpty = obj.type == "EMPTY" and checkSM64EmptyUsesGeoLayout(obj.sm64_obj_type)
 
-    return isinstance(obj.data, bpy.types.Mesh) or useGeoEmpty
+    return obj.type == "MESH" or useGeoEmpty
 
 
 def getSwitchChildren(areaRoot):
@@ -1937,7 +1937,7 @@ def processBone(
                         + str(switchIndex)
                         + ", the switch option armature is None."
                     )
-                elif not isinstance(optionArmature.data, bpy.types.Armature):
+                elif optionArmature.type != "ARMATURE":
                     raise PluginError(
                         "Error: In switch bone "
                         + boneName
@@ -1972,7 +1972,7 @@ def processBone(
                     # the switch node.
                     optionObjs = []
                     for childObj in optionArmature.children:
-                        if isinstance(childObj.data, bpy.types.Mesh):
+                        if childObj.type == "MESH":
                             optionObjs.append(childObj)
                     if len(optionObjs) > 1:
                         raise PluginError(
@@ -2860,7 +2860,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
             if len(context.selected_objects) == 0:
                 raise PluginError("Object not selected.")
             obj = context.active_object
-            if type(obj.data) is not bpy.types.Mesh and not (
+            if obj.type != "MESH" and not (
                 obj.type == "EMPTY" and (obj.sm64_obj_type == "None" or obj.sm64_obj_type == "Switch")
             ):
                 raise PluginError('Selected object must be a mesh or an empty with the "None" or "Switch" type.')
@@ -3045,7 +3045,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
             if len(context.selected_objects) == 0:
                 raise PluginError("Armature not selected.")
             armatureObj = context.active_object
-            if type(armatureObj.data) is not bpy.types.Armature:
+            if armatureObj.type != "ARMATURE":
                 raise PluginError("Armature not selected.")
 
             if len(armatureObj.children) == 0 or not isinstance(armatureObj.children[0].data, bpy.types.Mesh):
@@ -3069,7 +3069,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                 # IMPORTANT: Do this BEFORE rotation
                 optionObjs = []
                 for childObj in linkedArmature.children:
-                    if isinstance(childObj.data, bpy.types.Mesh):
+                    if childObj.type == "MESH":
                         optionObjs.append(childObj)
                 if len(optionObjs) > 1:
                     raise PluginError("Error: " + linkedArmature.name + " has more than one mesh child.")

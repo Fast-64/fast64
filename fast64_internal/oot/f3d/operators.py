@@ -170,7 +170,7 @@ class OOT_ExportDL(Operator):
         if len(context.selected_objects) == 0:
             raise PluginError("Mesh not selected.")
         obj = context.active_object
-        if type(obj.data) is not Mesh:
+        if obj.type != "MESH":
             raise PluginError("Mesh not selected.")
 
         finalTransform = Matrix.Scale(getOOTScale(obj.ootActorScale), 4)

@@ -965,7 +965,7 @@ def selectMeshChildrenOnly(obj, ignoreAttr, includeEmpties, areaIndex):
     if checkArea and obj.sm64_obj_type == "Area Root" and obj.areaIndex != areaIndex:
         return
     ignoreObj = ignoreAttr is not None and getattr(obj, ignoreAttr)
-    isMesh = isinstance(obj.data, bpy.types.Mesh)
+    isMesh = obj.type == "MESH"
     isEmpty = obj.type == "EMPTY" and includeEmpties and checkSM64EmptyUsesGeoLayout(obj.sm64_obj_type)
     if (isMesh or isEmpty) and not ignoreObj:
         obj.select_set(True)
@@ -980,7 +980,7 @@ def selectMeshChildrenOnly(obj, ignoreAttr, includeEmpties, areaIndex):
 def cleanupDuplicatedObjects(selected_objects):
     meshData = []
     for selectedObj in selected_objects:
-        if selectedObj.type != "EMPTY" and isinstance(selectedObj.data, bpy.types.Mesh):
+        if selectedObj.type == "MESH":
             meshData.append(selectedObj.data)
     for selectedObj in selected_objects:
         bpy.data.objects.remove(selectedObj)

@@ -20,7 +20,7 @@ from ..utility import (
 
 
 def isPathObject(obj: bpy.types.Object) -> bool:
-    return obj.type != "EMPTY" and isinstance(obj.data, bpy.types.Curve) and obj.ootSplineProperty.splineType == "Path"
+    return obj.type == "CURVE" and obj.ootSplineProperty.splineType == "Path"
 
 
 ootSceneDungeons = [
@@ -235,7 +235,7 @@ class OOTObjectCategorizer:
                     self.roomObjs.append(obj)
                 elif obj.ootEmptyType == "Scene":
                     self.sceneObj = obj
-            elif isinstance(obj.data, bpy.types.Mesh):
+            elif obj.type == "MESH":
                 self.meshes.append(obj)
 
 
@@ -326,9 +326,9 @@ def ootDuplicateHierarchy(obj, ignoreAttr, includeEmpties, objectCategorizer):
 
 
 def ootSelectMeshChildrenOnly(obj, includeEmpties):
-    isMesh = isinstance(obj.data, bpy.types.Mesh)
+    isMesh = obj.type == "MESH"
     isEmpty = (
-        obj.type == "EMPTY" or isinstance(obj.data, bpy.types.Camera) or isinstance(obj.data, bpy.types.Curve)
+        obj.type == "EMPTY" or obj.type == "CAMERA" or obj.type == "CURVE"
     ) and includeEmpties
     if isMesh or isEmpty:
         obj.select_set(True)

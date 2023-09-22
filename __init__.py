@@ -344,7 +344,7 @@ class UpgradeF3DMaterialsDialog(bpy.types.Operator):
             bpy.ops.object.mode_set(mode="OBJECT")
 
         upgradeF3DVersionAll(
-            [obj for obj in bpy.data.objects if isinstance(obj.data, bpy.types.Mesh)],
+            [obj for obj in bpy.data.objects if obj.type == "MESH"],
             list(bpy.data.armatures),
             MatUpdateConvert.version,
         )

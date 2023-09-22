@@ -570,7 +570,7 @@ class SM64_ExportDL(bpy.types.Operator):
             if len(allObjs) == 0:
                 raise PluginError("No objects selected.")
             obj = context.selected_objects[0]
-            if not isinstance(obj.data, bpy.types.Mesh):
+            if obj.type != "MESH":
                 raise PluginError("Object is not a mesh.")
 
             # T, R, S = obj.matrix_world.decompose()

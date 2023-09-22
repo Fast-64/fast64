@@ -548,10 +548,10 @@ def ootConvertScene(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneNam
             elif obj.type == "EMPTY" and obj.ootEmptyType == "Water Box":
                 # 0x3F = -1 in 6bit value
                 ootProcessWaterBox(sceneObj, obj, transformMatrix, scene, 0x3F)
-            elif isinstance(obj.data, bpy.types.Camera):
+            elif obj.type == "CAMERA":
                 camPosProp = obj.ootCameraPositionProperty
                 readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix)
-            elif isinstance(obj.data, bpy.types.Curve) and assertCurveValid(obj):
+            elif obj.type == "CURVE" and assertCurveValid(obj):
                 if isPathObject(obj):
                     readPathProp(obj.ootSplineProperty, obj, scene, sceneObj, sceneName, transformMatrix)
                 else:
@@ -639,7 +639,7 @@ def ootProcessMesh(
             )
         ).DLGroup
 
-    elif isinstance(obj.data, bpy.types.Mesh) and not obj.ignore_render:
+    elif obj.type == "MESH" and not obj.ignore_render:
         triConverterInfo = TriangleConverterInfo(obj, None, roomMesh.model.f3d, relativeTransform, getInfoDict(obj))
         fMeshes = saveStaticModel(
             triConverterInfo,
@@ -835,10 +835,10 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
             )
         elif obj.ootEmptyType == "Water Box":
             ootProcessWaterBox(sceneObj, obj, transformMatrix, scene, room.roomIndex)
-    elif isinstance(obj.data, bpy.types.Camera):
+    elif obj.type == "CAMERA":
         camPosProp = obj.ootCameraPositionProperty
         readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix)
-    elif isinstance(obj.data, bpy.types.Curve) and assertCurveValid(obj):
+    elif obj.type == "CURVE" and assertCurveValid(obj):
         if isPathObject(obj):
             readPathProp(obj.ootSplineProperty, obj, scene, sceneObj, scene.name, transformMatrix)
         else:
