@@ -5,7 +5,14 @@ from mathutils import Matrix
 from bpy.types import Object
 from ...f3d.f3d_gbi import DLFormat
 from ...utility import PluginError, checkObjectReference, unhideAllAndGetHiddenState, restoreHiddenState, toAlnum
-from ..oot_utility import ExportInfo, OOTObjectCategorizer, ootDuplicateHierarchy, ootCleanupScene, getSceneDirFromLevelName, ootGetPath
+from ..oot_utility import (
+    ExportInfo,
+    OOTObjectCategorizer,
+    ootDuplicateHierarchy,
+    ootCleanupScene,
+    getSceneDirFromLevelName,
+    ootGetPath,
+)
 from ..scene.properties import OOTBootupSceneOptions, OOTSceneHeaderProperty
 from ..room.properties import OOTRoomHeaderProperty
 from ..oot_constants import ootData
@@ -18,6 +25,7 @@ from .io_classes import (
     OOTScene,
     OOTExporter,
 )
+
 
 @dataclass
 class OOTSceneExport:
@@ -57,8 +65,7 @@ class OOTSceneExport:
                     setattr(altHeaderData, header, roomData.getNewRoomHeader(altP, i))
 
             altHeaderData.cutscene = [
-                roomData.getNewRoomHeader(csHeader, i)
-                for i, csHeader in enumerate(altProp.cutsceneHeaders, 4)
+                roomData.getNewRoomHeader(csHeader, i) for i, csHeader in enumerate(altProp.cutsceneHeaders, 4)
             ]
 
             roomData.alternate = altHeaderData
@@ -69,7 +76,7 @@ class OOTSceneExport:
             addMissingObjectsToAllRoomHeadersNew(roomObj, roomData, ootData)
             processedRooms.append(roomIndex)
             roomList.append(roomData)
-            
+
         return roomList
 
     def getSceneData(self):
@@ -84,8 +91,7 @@ class OOTSceneExport:
                 setattr(altHeaderData, header, sceneData.getNewSceneHeader(altP, i))
 
         altHeaderData.cutscene = [
-            sceneData.getNewSceneHeader(csHeader, i)
-            for i, csHeader in enumerate(altProp.cutsceneHeaders, 4)
+            sceneData.getNewSceneHeader(csHeader, i) for i, csHeader in enumerate(altProp.cutsceneHeaders, 4)
         ]
 
         sceneData.alternate = altHeaderData
@@ -120,10 +126,10 @@ class OOTSceneExport:
         except Exception as e:
             ootCleanupScene(originalSceneObj, allObjs)
             raise Exception(str(e))
-        
+
         if sceneData is None:
             raise PluginError("ERROR: 'sceneData' is None!")
-        
+
         return sceneData
 
     def exportScene(self):

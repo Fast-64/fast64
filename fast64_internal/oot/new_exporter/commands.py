@@ -43,8 +43,7 @@ class OOTRoomCommands:
 
     def getWindSettingsCmd(self, infos: "OOTRoomGeneral"):
         return (
-            indent
-            + f"SCENE_CMD_WIND_SETTINGS({', '.join(f'{dir}' for dir in infos.direction)}, {infos.strength}),\n"
+            indent + f"SCENE_CMD_WIND_SETTINGS({', '.join(f'{dir}' for dir in infos.direction)}, {infos.strength}),\n"
         )
 
     # def getRoomShapeCmd(self, infos: "OOTRoom"):
@@ -56,9 +55,7 @@ class OOTRoomCommands:
         ) + f"{objects.getObjectLengthDefineName(headerIndex)}, {objects.objectListName(headerIndex)}),\n"
 
     def getActorListCmd(self, actors: "OOTRoomActors", headerIndex: int):
-        return (
-            indent + "SCENE_CMD_ACTOR_LIST("
-        ) + f"{actors.getActorLengthDefineName()}, {actors.actorListName()}),\n"
+        return (indent + "SCENE_CMD_ACTOR_LIST(") + f"{actors.getActorLengthDefineName()}, {actors.actorListName()}),\n"
 
     def getRoomCommandList(self, room: "OOTRoom", headerIndex: int):
         cmdListData = CData()
@@ -130,10 +127,7 @@ class OOTSceneCommands:
         )
 
     def getSkyboxSettingsCmd(self, infos: "OOTSceneGeneral", lights: "OOTSceneLighting"):
-        return (
-            indent
-            + f"SCENE_CMD_SKYBOX_SETTINGS({infos.skyboxID}, {infos.skyboxConfig}, {lights.envLightMode}),\n"
-        )
+        return indent + f"SCENE_CMD_SKYBOX_SETTINGS({infos.skyboxID}, {infos.skyboxConfig}, {lights.envLightMode}),\n"
 
     def getExitListCmd(self, scene: "OOTScene", headerIndex: int):
         curHeader = scene.getSceneHeaderFromIndex(headerIndex)

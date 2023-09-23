@@ -12,7 +12,7 @@ from ..actor.properties import OOTActorProperty
 from ..oot_constants import ootData
 from .commands import OOTRoomCommands, OOTSceneCommands
 
-    
+
 @dataclass
 class Common:
     sceneObj: Object
@@ -31,13 +31,13 @@ class Common:
         if preset == "Custom":
             if actorProp.headerSettings.childDayHeader and headerIndex == 0:
                 return True
-            if actorProp.headerSettings.childNightHeader and  headerIndex == 1:
+            if actorProp.headerSettings.childNightHeader and headerIndex == 1:
                 return True
             if actorProp.headerSettings.adultDayHeader and headerIndex == 2:
                 return True
-            if actorProp.headerSettings.adultNightHeader and  headerIndex == 3:
+            if actorProp.headerSettings.adultNightHeader and headerIndex == 3:
                 return True
-        
+
         return False
 
     def getPropValue(self, data, propName: str):
@@ -45,7 +45,7 @@ class Common:
 
         value = getattr(data, propName)
         return value if value != "Custom" else getattr(data, f"{propName}Custom")
-    
+
     def getConvertedTransformWithOrientation(self, transformMatrix, sceneObj, obj, orientation):
         relativeTransform = transformMatrix @ sceneObj.matrix_world.inverted() @ obj.matrix_world
         blenderTranslation, blenderRotation, scale = relativeTransform.decompose()
@@ -63,7 +63,7 @@ class Common:
         else:
             orientation = Matrix.Identity(4)
         return self.getConvertedTransformWithOrientation(transformMatrix, sceneObj, obj, orientation)
-    
+
     def getAltHeaderListCmd(self, altName):
         return indent + f"SCENE_CMD_ALTERNATE_HEADER_LIST({altName}),\n"
 
@@ -133,6 +133,7 @@ class EntranceActor(Actor):
 
 ### EXPORT UTILITY ###
 
+
 @dataclass
 class OOTRoomData:
     name: str
@@ -166,7 +167,7 @@ class OOTExporter:
             self.header += roomMainData.header
 
             self.roomList[room.roomIndex] = roomData
-    
+
     def setSceneData(self):
         sceneData = OOTSceneData()
         sceneMainData = self.scene.getSceneMainC()
@@ -185,6 +186,7 @@ class OOTExporter:
 
 
 ### ROOM ###
+
 
 @dataclass
 class RoomCommon:
@@ -230,7 +232,7 @@ class OOTRoomObjects(RoomCommon):
 
     def getObjectLengthDefineName(self, headerIndex: int):
         return f"LENGTH_{self.objectListName(headerIndex).upper()}"
-    
+
     def getObjectList(self, headerIndex: int):
         objectList = CData()
 
@@ -304,7 +306,7 @@ class OOTRoomActors(RoomCommon):
 
     def getActorLengthDefineName(self):
         return f"LENGTH_{self.actorListName().upper()}"
-    
+
     def getActorListData(self):
         """Returns the actor list for the current header"""
         actorList = CData()
@@ -364,13 +366,13 @@ class OOTRoom(Common, OOTRoomCommands):
 
     def hasAlternateHeaders(self):
         return (
-            self.alternate is not None and 
-            self.alternate.childNight is not None and
-            self.alternate.adultDay is not None and
-            self.alternate.adultNight is not None and
-            len(self.alternate.cutscene) > 0
+            self.alternate is not None
+            and self.alternate.childNight is not None
+            and self.alternate.adultDay is not None
+            and self.alternate.adultNight is not None
+            and len(self.alternate.cutscene) > 0
         )
-    
+
     def getRoomHeaderFromIndex(self, headerIndex: int) -> OOTRoomHeader | None:
         if headerIndex == 0:
             return self.header
@@ -378,14 +380,14 @@ class OOTRoom(Common, OOTRoomCommands):
         for i, header in enumerate(self.altHeaderList, 1):
             if headerIndex == i:
                 return getattr(self.alternate, header)
-        
+
         for i, csHeader in enumerate(self.alternate.cutscene, 4):
             if headerIndex == i:
                 return csHeader
 
         return None
 
-    def getNewRoomHeader(self, headerProp: OOTRoomHeaderProperty, headerIndex: int=0):
+    def getNewRoomHeader(self, headerProp: OOTRoomHeaderProperty, headerIndex: int = 0):
         """Returns a new room header with the informations from the scene empty object"""
 
         objIDList = []
@@ -412,7 +414,7 @@ class OOTRoom(Common, OOTRoomCommands):
                 headerProp.echo,
                 headerProp.setWind,
                 [d for d in headerProp.windVector] if headerProp.setWind else None,
-                headerProp.windStrength if headerProp.setWind else None
+                headerProp.windStrength if headerProp.setWind else None,
             ),
             OOTRoomObjects(self.name, objIDList),
             OOTRoomActors(
@@ -421,7 +423,7 @@ class OOTRoom(Common, OOTRoomCommands):
                 self.roomObj,
                 self.transform,
                 headerIndex,
-            )
+            ),
         )
 
     def getRoomMainC(self):
@@ -473,6 +475,7 @@ class OOTRoom(Common, OOTRoomCommands):
 
 ### SCENE ###
 
+
 @dataclass
 class SceneCommon:
     headerName: str
@@ -494,13 +497,13 @@ class EnvLightSettings:
 
     def getBlendFogNear(self):
         return f"(({self.blendRate} << 10) | {self.fogNear})"
-    
+
     def getColorValues(self, vector: tuple[int, int, int]):
         return ", ".join(f"{v:5}" for v in vector)
 
     def getDirectionValues(self, vector: tuple[int, int, int]):
         return ", ".join(f"{v - 0x100 if v > 0x7F else v:5}" for v in vector)
-    
+
     def getLightSettingsEntry(self, index: int):
         isLightingCustom = self.envLightMode == "Custom"
 
@@ -534,7 +537,9 @@ class EnvLightSettings:
         lightData = (
             (indent + lightDesc)
             + (indent + "{\n")
-            + "".join(indent * 2 + f"{'{ ' + vecToC(vector) + ' },':26} // {desc}\n" for (vector, desc, vecToC) in vectors)
+            + "".join(
+                indent * 2 + f"{'{ ' + vecToC(vector) + ' },':26} // {desc}\n" for (vector, desc, vecToC) in vectors
+            )
             + "".join(indent * 2 + f"{fogValue + ',':26} // {fogDesc}\n" for fogValue, fogDesc in fogData)
             + (indent + "},\n")
         )
@@ -590,10 +595,7 @@ class OOTSceneLighting(SceneCommon):
         # .c
         lightSettingsC.source = (
             (lightName + " = {\n")
-            + "".join(
-                light.getLightSettingsEntry(i)
-                for i, light in enumerate(self.settings)
-            )
+            + "".join(light.getLightSettingsEntry(i) for i, light in enumerate(self.settings))
             + "};\n\n"
         )
 
@@ -647,7 +649,7 @@ class OOTSceneActors(SceneCommon):
         self.entranceListName = f"{self.headerName}_entranceList"
         self.startPositionsName = f"{self.headerName}_playerEntryList"
         self.transActorListName = f"{self.headerName}_transitionActors"
-    
+
     def getSpawnActorListC(self):
         """Returns the spawn actor list for the current header"""
         spawnActorList = CData()
@@ -682,7 +684,7 @@ class OOTSceneActors(SceneCommon):
         )
 
         return spawnList
-    
+
     def getTransActorListC(self):
         """Returns the transition actor list for the current header"""
         transActorList = CData()
@@ -763,7 +765,7 @@ class OOTScene(Common, OOTSceneCommands):
         for i, room in enumerate(self.roomList):
             if i != room.roomIndex:
                 return False
-        
+
         return True
 
     def validateScene(self):
@@ -775,27 +777,27 @@ class OOTScene(Common, OOTSceneCommands):
 
     def hasAlternateHeaders(self):
         return (
-            self.alternate is not None and 
-            self.alternate.childNight is not None and
-            self.alternate.adultDay is not None and
-            self.alternate.adultNight is not None and
-            len(self.alternate.cutscene) > 0
+            self.alternate is not None
+            and self.alternate.childNight is not None
+            and self.alternate.adultDay is not None
+            and self.alternate.adultNight is not None
+            and len(self.alternate.cutscene) > 0
         )
-    
+
     def getSceneHeaderFromIndex(self, headerIndex: int) -> OOTSceneHeader | None:
         if headerIndex == 0:
             return self.header
-        
+
         for i, header in enumerate(self.altHeaderList, 1):
             if headerIndex == i:
                 return getattr(self.alternate, header)
-        
+
         for i, csHeader in enumerate(self.alternate.cutscene, 4):
             if headerIndex == i:
                 return csHeader
 
         return None
-    
+
     def getExitListFromProps(self, headerProp: OOTSceneHeaderProperty):
         """Returns the exit list and performs safety checks"""
 
@@ -806,7 +808,7 @@ class OOTScene(Common, OOTSceneCommands):
                 raise PluginError("ERROR: Exits are unfinished, please use 'Custom'.")
 
             exitList.append((i, exitProp.exitIndexCustom))
-        
+
         return exitList
 
     def getRoomObjectFromChild(self, childObj: Object) -> Object | None:
@@ -871,9 +873,7 @@ class OOTScene(Common, OOTSceneCommands):
     def getEntranceActorListFromProps(self):
         actorList: list[EntranceActor] = []
         actorObjList: list[Object] = [
-            obj
-            for obj in self.sceneObj.children_recursive
-            if obj.type == "EMPTY" and obj.ootEmptyType == "Entrance"
+            obj for obj in self.sceneObj.children_recursive if obj.type == "EMPTY" and obj.ootEmptyType == "Entrance"
         ]
         for obj in actorObjList:
             roomObj = self.getRoomObjectFromChild(obj)
@@ -905,7 +905,7 @@ class OOTScene(Common, OOTSceneCommands):
                 actorList.append(entranceActor)
         return actorList
 
-    def getNewSceneHeader(self, headerProp: OOTSceneHeaderProperty, headerIndex: int=0):
+    def getNewSceneHeader(self, headerProp: OOTSceneHeaderProperty, headerIndex: int = 0):
         """Returns a single scene header with the informations from the scene empty object"""
 
         self.headerIndex = headerIndex
@@ -938,7 +938,7 @@ class OOTScene(Common, OOTSceneCommands):
                     exportColor(lightProp.fogColor),
                     lightProp.fogNear,
                     lightProp.fogFar,
-                    lightProp.transitionSpeed
+                    lightProp.transitionSpeed,
                 )
             )
 
@@ -955,7 +955,7 @@ class OOTScene(Common, OOTSceneCommands):
                 self.getPropValue(headerProp, "nightSeq"),
                 self.getPropValue(headerProp, "audioSessionPreset"),
                 self.getPropValue(headerProp, "mapLocation"),
-                self.getPropValue(headerProp, "cameraMode")
+                self.getPropValue(headerProp, "cameraMode"),
             ),
             OOTSceneLighting(
                 self.headerName,
@@ -967,16 +967,16 @@ class OOTScene(Common, OOTSceneCommands):
                 headerProp.writeCutscene,
                 headerProp.csWriteObject,
                 headerProp.csWriteCustom if headerProp.csWriteType == "Custom" else None,
-                [csObj for csObj in headerProp.extraCutscenes]
+                [csObj for csObj in headerProp.extraCutscenes],
             ),
             OOTSceneExits(self.headerName, exitList=self.getExitListFromProps(headerProp)),
             OOTSceneActors(
                 self.headerName,
                 transitionActorList=self.getTransActorListFromProps(),
-                entranceActorList=self.getEntranceActorListFromProps()
-            )
+                entranceActorList=self.getEntranceActorListFromProps(),
+            ),
         )
-    
+
     # Export
 
     def getRoomListC(self):
@@ -1008,8 +1008,7 @@ class OOTScene(Common, OOTSceneCommands):
         else:
             roomList.source += (
                 " },\n".join(
-                    indent + "{ " + f"(uintptr_t){startName}, (uintptr_t){stopName}" 
-                    for startName, stopName in segNames
+                    indent + "{ " + f"(uintptr_t){startName}, (uintptr_t){stopName}" for startName, stopName in segNames
                 )
                 + " },\n"
             )
@@ -1030,11 +1029,7 @@ class OOTScene(Common, OOTSceneCommands):
             headers.append((csHeader, f"Cutscene No. {i + 1}"))
 
         altHeaderPtrs = "\n".join(
-            indent + self.headerName + ","
-            if curHeader is not None
-            else indent + "NULL,"
-            if i < 4
-            else ""
+            indent + self.headerName + "," if curHeader is not None else indent + "NULL," if i < 4 else ""
             for i, (curHeader, _) in enumerate(headers, 1)
         )
 

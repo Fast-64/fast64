@@ -38,5 +38,5 @@ def exportScene(exportInfo: ExportInfo):
         Matrix.Diagonal(Vector((ootBlenderScale, ootBlenderScale, ootBlenderScale))).to_4x4(),
         bpy.context.scene.f3d_type,
         bpy.context.scene.saveTextures,
-        bootOptions if hackerFeaturesEnabled else None
+        bootOptions if hackerFeaturesEnabled else None,
     )
