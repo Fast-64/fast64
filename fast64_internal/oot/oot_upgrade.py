@@ -1,3 +1,4 @@
+import bpy
 from bpy.types import Object, CollectionProperty
 from .data import OoT_ObjectData
 
@@ -34,3 +35,14 @@ def upgradeRoomHeaders(roomObj: Object, objData: OoT_ObjectData):
             upgradeObjectList(sceneLayer.objectList, objData)
     for i in range(len(altHeaders.cutsceneHeaders)):
         upgradeObjectList(altHeaders.cutsceneHeaders[i].objectList, objData)
+
+
+def upgradeActors(actorObj: Object):
+    if actorObj.ootEmptyType == "Entrance":
+        entranceProp = actorObj.ootEntranceProperty
+
+        for obj in bpy.data.objects:
+            if obj.type == "EMPTY" and obj.ootEmptyType == "Room":
+                if actorObj in obj.children_recursive:
+                    entranceProp.tiedRoom = obj
+                    break

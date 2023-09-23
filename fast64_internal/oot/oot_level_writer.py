@@ -818,8 +818,14 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
                 )
         elif obj.ootEmptyType == "Entrance":
             entranceProp = obj.ootEntranceProperty
-            spawnIndex = obj.ootEntranceProperty.spawnIndex
-            addActor(scene, OOTEntrance(room.roomIndex, spawnIndex), entranceProp.actor, "entranceList", obj.name)
+            spawnIndex = entranceProp.spawnIndex
+
+            if entranceProp.tiedRoom is not None:
+                roomIndex = entranceProp.tiedRoom.ootRoomHeader.roomIndex
+            else:
+                raise PluginError("ERROR: The room isn't set!")
+
+            addActor(scene, OOTEntrance(roomIndex, spawnIndex), entranceProp.actor, "entranceList", obj.name)
             addStartPosition(
                 scene,
                 spawnIndex,
