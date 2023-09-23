@@ -61,9 +61,9 @@ def addMissingObjectsToAllRoomHeadersNew(roomObj: Object, room, ootData: OoT_Dat
     Adds missing objects (required by actors) to all headers of a room,
     both to the roomObj empty and the exported room
     """
-    sceneLayers = [room, room.alternate.childNight, room.alternate.adultDay, room.alternate.adultNight]
+    sceneLayers = [room, room.altHeader.childNight, room.altHeader.adultDay, room.altHeader.adultNight]
     for i, layer in enumerate(sceneLayers):
         if layer is not None:
             addMissingObjectsToRoomHeaderNew(roomObj, layer, ootData, i)
-    for i in range(len(room.alternate.cutscene)):
+    for i in range(len(room.altHeader.cutscenes)):
         addMissingObjectsToRoomHeaderNew(roomObj, room.cutsceneHeaders[i], ootData, i + 4)

@@ -7,14 +7,14 @@ from ..oot_utility import ootConvertTranslation, ootConvertRotation
 from ..actor.properties import OOTActorProperty
 
 
+altHeaderList = ["childNight", "adultDay", "adultNight"]
+
+
 @dataclass
 class Common:
     sceneObj: Object
-    roomObj: Object
     transform: Matrix
-    roomIndex: int
-    sceneName: str
-    altHeaderList: list[str] = field(default_factory=lambda: ["childNight", "adultDay", "adultNight"])
+    roomIndex: int = None
 
     def isCurrentHeaderValid(self, actorProp: OOTActorProperty, headerIndex: int):
         preset = actorProp.headerSettings.sceneSetupPreset

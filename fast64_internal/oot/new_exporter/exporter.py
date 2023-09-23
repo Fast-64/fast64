@@ -17,8 +17,9 @@ from ..scene.properties import OOTBootupSceneOptions, OOTSceneHeaderProperty
 from ..room.properties import OOTRoomHeaderProperty
 from ..oot_constants import ootData
 from ..oot_object import addMissingObjectsToAllRoomHeadersNew
-from .scene import OOTScene, OOTSceneAlternate
-from .room import OOTRoom, OOTRoomAlternate
+from .common import altHeaderList
+from .scene import OOTScene, OOTSceneAlternateHeader
+from .room import OOTRoom, OOTRoomAlternateHeader
 
 from ..oot_utility import (
     ExportInfo,
@@ -55,7 +56,6 @@ class OOTSceneExport:
     saveTexturesAsPNG: bool
     hackerootBootOption: OOTBootupSceneOptions
     dlFormat: DLFormat = DLFormat.Static
-    altHeaderList: list[str] = field(default_factory=lambda: ["childNight", "adultDay", "adultNight"])
 
     scene: OOTScene = None
     path: str = None
@@ -78,20 +78,20 @@ class OOTSceneExport:
             altProp = roomObj.ootAlternateRoomHeaders
             roomIndex = roomObj.ootRoomHeader.roomIndex
             roomName = f"{toAlnum(self.sceneName)}_room_{roomIndex}"
-            roomData = OOTRoom(self.sceneObj, roomObj, self.transform, roomIndex, self.sceneName, name=roomName)
-            altHeaderData = OOTRoomAlternate()
-            roomData.header = roomData.getNewRoomHeader(roomObj.ootRoomHeader)
+            roomData = OOTRoom(self.sceneObj, self.transform, roomIndex, roomName, roomObj)
+            altHeaderData = OOTRoomAlternateHeader(f"{roomData.name}_alternateHeaders")
+            roomData.mainHeader = roomData.getNewRoomHeader(roomObj.ootRoomHeader)
 
-            for i, header in enumerate(self.altHeaderList, 1):
+            for i, header in enumerate(altHeaderList, 1):
                 altP: OOTRoomHeaderProperty = getattr(altProp, f"{header}Header")
                 if not altP.usePreviousHeader:
                     setattr(altHeaderData, header, roomData.getNewRoomHeader(altP, i))
 
-            altHeaderData.cutscene = [
+            altHeaderData.cutscenes = [
                 roomData.getNewRoomHeader(csHeader, i) for i, csHeader in enumerate(altProp.cutsceneHeaders, 4)
             ]
 
-            roomData.alternate = altHeaderData
+            roomData.altHeader = altHeaderData
 
             if roomIndex in processedRooms:
                 raise PluginError(f"ERROR: Room index {roomIndex} used more than once!")
@@ -104,20 +104,20 @@ class OOTSceneExport:
 
     def getNewScene(self):
         altProp = self.sceneObj.ootAlternateSceneHeaders
-        sceneData = OOTScene(self.sceneObj, None, self.transform, None, f"{toAlnum(self.sceneName)}_scene")
-        altHeaderData = OOTSceneAlternate()
-        sceneData.header = sceneData.getNewSceneHeader(self.sceneObj.ootSceneHeader)
+        sceneData = OOTScene(self.sceneObj, self.transform, name=f"{toAlnum(self.sceneName)}_scene")
+        altHeaderData = OOTSceneAlternateHeader(f"{sceneData.name}_alternateHeaders")
+        sceneData.mainHeader = sceneData.getNewSceneHeader(self.sceneObj.ootSceneHeader)
 
-        for i, header in enumerate(self.altHeaderList, 1):
+        for i, header in enumerate(altHeaderList, 1):
             altP: OOTSceneHeaderProperty = getattr(altProp, f"{header}Header")
             if not altP.usePreviousHeader:
                 setattr(altHeaderData, header, sceneData.getNewSceneHeader(altP, i))
 
-        altHeaderData.cutscene = [
+        altHeaderData.cutscenes = [
             sceneData.getNewSceneHeader(csHeader, i) for i, csHeader in enumerate(altProp.cutsceneHeaders, 4)
         ]
 
-        sceneData.alternate = altHeaderData
+        sceneData.altHeader = altHeaderData
         sceneData.roomList = self.getNewRoomList()
 
         sceneData.validateScene()
@@ -174,7 +174,7 @@ class OOTSceneExport:
         self.sceneData = sceneData
 
     def writeScene(self):
-        scenePath = os.path.join(self.path, self.scene.sceneName + ".c")
+        scenePath = os.path.join(self.path, self.scene.name + ".c")
         writeFile(scenePath, self.sceneData.sceneMain)
 
         for room in self.roomList.values():

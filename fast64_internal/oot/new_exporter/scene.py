@@ -4,14 +4,13 @@ from ...utility import PluginError, CData, exportColor, ootGetBaseOrCustomLight,
 from ..scene.properties import OOTSceneHeaderProperty, OOTLightProperty
 from ..oot_constants import ootData
 from .commands import OOTSceneCommands
-from .common import Common, TransitionActor, EntranceActor
+from .common import Common, TransitionActor, EntranceActor, altHeaderList
 from .room import OOTRoom
 
 
 @dataclass
 class SceneCommon:
     headerName: str
-    name: str = None
 
 
 @dataclass
@@ -80,7 +79,7 @@ class EnvLightSettings:
 
 
 @dataclass
-class OOTSceneGeneral:
+class OOTSceneHeaderInfos:
     ### General ###
 
     keepObjectID: str
@@ -110,9 +109,10 @@ class OOTSceneGeneral:
 
 
 @dataclass
-class OOTSceneLighting(SceneCommon):
+class OOTSceneHeaderLighting(SceneCommon):
     envLightMode: str = None
     settings: list[EnvLightSettings] = field(default_factory=list)
+    name: str = None
 
     def __post_init__(self):
         self.name = f"{self.headerName}_lightSettings"
@@ -135,17 +135,19 @@ class OOTSceneLighting(SceneCommon):
 
 
 @dataclass
-class OOTSceneCutscene:
+class OOTSceneHeaderCutscene:
     writeType: str
     writeCutscene: bool
     csObj: Object
     csWriteCustom: str
     extraCutscenes: list[Object]
+    name: str = None
 
 
 @dataclass
-class OOTSceneExits(SceneCommon):
+class OOTSceneHeaderExits(SceneCommon):
     exitList: list[tuple[int, str]] = field(default_factory=list)
+    name: str = None
 
     def __post_init__(self):
         self.name = f"{self.headerName}_exitList"
@@ -169,7 +171,7 @@ class OOTSceneExits(SceneCommon):
 
 
 @dataclass
-class OOTSceneActors(SceneCommon):
+class OOTSceneHeaderActors(SceneCommon):
     transitionActorList: list[TransitionActor] = field(default_factory=list)
     entranceActorList: list[EntranceActor] = field(default_factory=list)
 
@@ -236,20 +238,21 @@ class OOTSceneActors(SceneCommon):
 
 
 @dataclass
-class OOTSceneAlternate:
+class OOTSceneAlternateHeader:
+    name: str
     childNight: "OOTSceneHeader" = None
     adultDay: "OOTSceneHeader" = None
     adultNight: "OOTSceneHeader" = None
-    cutscene: list["OOTSceneHeader"] = field(default_factory=list)
+    cutscenes: list["OOTSceneHeader"] = field(default_factory=list)
 
 
 @dataclass
 class OOTSceneHeader:
-    general: OOTSceneGeneral
-    lighting: OOTSceneLighting
-    cutscene: OOTSceneCutscene
-    exits: OOTSceneExits
-    actors: OOTSceneActors
+    infos: OOTSceneHeaderInfos
+    lighting: OOTSceneHeaderLighting
+    cutscene: OOTSceneHeaderCutscene
+    exits: OOTSceneHeaderExits
+    actors: OOTSceneHeaderActors
 
     def getHeaderC(self):
         headerData = CData()
@@ -280,18 +283,16 @@ class OOTSceneHeader:
 
 @dataclass
 class OOTScene(Common, OOTSceneCommands):
+    name: str = None
     headerIndex: int = None
     headerName: str = None
-    header: OOTSceneHeader = None
-    alternate: OOTSceneAlternate = None
+    mainHeader: OOTSceneHeader = None
+    altHeader: OOTSceneAlternateHeader = None
     roomList: list[OOTRoom] = field(default_factory=list)
-
-    altName: str = None
     roomListName: str = None
 
     def __post_init__(self):
-        self.altName = f"{self.sceneName}_alternateHeaders"
-        self.roomListName = f"{self.sceneName}_roomList"
+        self.roomListName = f"{self.name}_roomList"
 
     def validateRoomIndices(self):
         for i, room in enumerate(self.roomList):
@@ -309,22 +310,22 @@ class OOTScene(Common, OOTSceneCommands):
 
     def hasAlternateHeaders(self):
         return (
-            self.alternate is not None
-            and self.alternate.childNight is not None
-            and self.alternate.adultDay is not None
-            and self.alternate.adultNight is not None
-            and len(self.alternate.cutscene) > 0
+            self.altHeader is not None
+            and self.altHeader.childNight is not None
+            and self.altHeader.adultDay is not None
+            and self.altHeader.adultNight is not None
+            and len(self.altHeader.cutscenes) > 0
         )
 
     def getSceneHeaderFromIndex(self, headerIndex: int) -> OOTSceneHeader | None:
         if headerIndex == 0:
-            return self.header
+            return self.mainHeader
 
-        for i, header in enumerate(self.altHeaderList, 1):
+        for i, header in enumerate(altHeaderList, 1):
             if headerIndex == i:
-                return getattr(self.alternate, header)
+                return getattr(self.altHeader, header)
 
-        for i, csHeader in enumerate(self.alternate.cutscene, 4):
+        for i, csHeader in enumerate(self.altHeader.cutscenes, 4):
             if headerIndex == i:
                 return csHeader
 
@@ -441,7 +442,7 @@ class OOTScene(Common, OOTSceneCommands):
         """Returns a single scene header with the informations from the scene empty object"""
 
         self.headerIndex = headerIndex
-        self.headerName = f"{self.sceneName}_header{self.headerIndex:02}"
+        self.headerName = f"{self.name}_header{self.headerIndex:02}"
 
         if headerProp.csWriteType == "Embedded":
             raise PluginError("ERROR: 'Embedded' CS Write Type is not supported!")
@@ -475,7 +476,7 @@ class OOTScene(Common, OOTSceneCommands):
             )
 
         return OOTSceneHeader(
-            OOTSceneGeneral(
+            OOTSceneHeaderInfos(
                 self.getPropValue(headerProp, "globalObject"),
                 self.getPropValue(headerProp, "naviCup"),
                 self.getPropValue(headerProp.sceneTableEntry, "drawConfig"),
@@ -489,27 +490,25 @@ class OOTScene(Common, OOTSceneCommands):
                 self.getPropValue(headerProp, "mapLocation"),
                 self.getPropValue(headerProp, "cameraMode"),
             ),
-            OOTSceneLighting(
+            OOTSceneHeaderLighting(
                 self.headerName,
-                envLightMode=lightMode,
-                settings=lightSettings,
+                lightMode,
+                lightSettings,
             ),
-            OOTSceneCutscene(
+            OOTSceneHeaderCutscene(
                 headerProp.csWriteType,
                 headerProp.writeCutscene,
                 headerProp.csWriteObject,
                 headerProp.csWriteCustom if headerProp.csWriteType == "Custom" else None,
                 [csObj for csObj in headerProp.extraCutscenes],
             ),
-            OOTSceneExits(self.headerName, exitList=self.getExitListFromProps(headerProp)),
-            OOTSceneActors(
+            OOTSceneHeaderExits(self.headerName, self.getExitListFromProps(headerProp)),
+            OOTSceneHeaderActors(
                 self.headerName,
-                transitionActorList=self.getTransActorListFromProps(),
-                entranceActorList=self.getEntranceActorListFromProps(),
+                self.getTransActorListFromProps(),
+                self.getEntranceActorListFromProps(),
             ),
         )
-
-    # Export
 
     def getRoomListC(self):
         roomList = CData()
@@ -524,7 +523,7 @@ class OOTScene(Common, OOTSceneCommands):
         # .h
         roomList.header += f"extern {listName};\n"
 
-        if not self.header.general.useDummyRoomList:
+        if not self.mainHeader.infos.useDummyRoomList:
             # Write externs for rom segments
             roomList.header += "".join(
                 f"extern u8 {startName}[];\n" + f"extern u8 {stopName}[];\n" for startName, stopName in segNames
@@ -533,7 +532,7 @@ class OOTScene(Common, OOTSceneCommands):
         # .c
         roomList.source = listName + " = {\n"
 
-        if self.header.general.useDummyRoomList:
+        if self.mainHeader.infos.useDummyRoomList:
             roomList.source = (
                 "// Dummy room list\n" + roomList.source + ((indent + "{ NULL, NULL },\n") * len(self.roomList))
             )
@@ -552,12 +551,12 @@ class OOTScene(Common, OOTSceneCommands):
         sceneC = CData()
 
         headers: list[tuple[OOTSceneHeader, str]] = [
-            (self.alternate.childNight, "Child Night"),
-            (self.alternate.adultDay, "Adult Day"),
-            (self.alternate.adultNight, "Adult Night"),
+            (self.altHeader.childNight, "Child Night"),
+            (self.altHeader.adultDay, "Adult Day"),
+            (self.altHeader.adultNight, "Adult Night"),
         ]
 
-        for i, csHeader in enumerate(self.alternate.cutscene):
+        for i, csHeader in enumerate(self.altHeader.cutscenes):
             headers.append((csHeader, f"Cutscene No. {i + 1}"))
 
         altHeaderPtrs = "\n".join(
@@ -565,7 +564,7 @@ class OOTScene(Common, OOTSceneCommands):
             for i, (curHeader, _) in enumerate(headers, 1)
         )
 
-        headers.insert(0, (self.header, "Child Day (Default)"))
+        headers.insert(0, (self.mainHeader, "Child Day (Default)"))
         for i, (curHeader, headerDesc) in enumerate(headers):
             if curHeader is not None:
                 sceneC.source += "/**\n * " + f"Header {headerDesc}\n" + "*/\n"
@@ -573,7 +572,7 @@ class OOTScene(Common, OOTSceneCommands):
 
                 if i == 0:
                     if self.hasAlternateHeaders():
-                        altHeaderListName = f"SceneCmd* {self.altName}[]"
+                        altHeaderListName = f"SceneCmd* {self.altHeader.name}[]"
                         sceneC.header += f"extern {altHeaderListName};\n"
                         sceneC.source += altHeaderListName + " = {\n" + altHeaderPtrs + "\n};\n\n"
 

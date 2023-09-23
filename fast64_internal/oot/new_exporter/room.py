@@ -5,7 +5,7 @@ from ...utility import CData, indent
 from ..room.properties import OOTRoomHeaderProperty
 from ..oot_constants import ootData
 from .commands import OOTRoomCommands
-from .common import Common, Actor
+from .common import Common, Actor, altHeaderList
 
 
 @dataclass
@@ -14,7 +14,7 @@ class RoomCommon:
 
 
 @dataclass
-class OOTRoomGeneral:
+class OOTRoomHeaderInfos:
     ### General ###
 
     index: int
@@ -44,7 +44,7 @@ class OOTRoomGeneral:
 
 
 @dataclass
-class OOTRoomObjects(RoomCommon):
+class OOTRoomHeaderObjects(RoomCommon):
     objectList: list[str]
 
     def objectListName(self, headerIndex: int):
@@ -72,7 +72,7 @@ class OOTRoomObjects(RoomCommon):
 
 
 @dataclass
-class OOTRoomActors(RoomCommon):
+class OOTRoomHeaderActors(RoomCommon):
     sceneObj: Object
     roomObj: Object
     transform: Matrix
@@ -146,18 +146,19 @@ class OOTRoomActors(RoomCommon):
 
 
 @dataclass
-class OOTRoomAlternate:
+class OOTRoomAlternateHeader:
+    name: str
     childNight: "OOTRoomHeader" = None
     adultDay: "OOTRoomHeader" = None
     adultNight: "OOTRoomHeader" = None
-    cutscene: list["OOTRoomHeader"] = field(default_factory=list)
+    cutscenes: list["OOTRoomHeader"] = field(default_factory=list)
 
 
 @dataclass
 class OOTRoomHeader(RoomCommon):
-    general: OOTRoomGeneral
-    objects: OOTRoomObjects
-    actors: OOTRoomActors
+    infos: OOTRoomHeaderInfos
+    objects: OOTRoomHeaderObjects
+    actors: OOTRoomHeaderActors
 
     def getHeaderDefines(self, headerIndex: int):
         """Returns a string containing defines for actor and object lists lengths"""
@@ -177,31 +178,28 @@ class OOTRoomHeader(RoomCommon):
 @dataclass
 class OOTRoom(Common, OOTRoomCommands):
     name: str = None
-    altName: str = None
-    header: OOTRoomHeader = None
-    alternate: OOTRoomAlternate = None
-
-    def __post_init__(self):
-        self.altHeadersName = f"{self.name}_alternateHeaders"
+    roomObj: Object = None
+    mainHeader: OOTRoomHeader = None
+    altHeader: OOTRoomAlternateHeader = None
 
     def hasAlternateHeaders(self):
         return (
-            self.alternate is not None
-            and self.alternate.childNight is not None
-            and self.alternate.adultDay is not None
-            and self.alternate.adultNight is not None
-            and len(self.alternate.cutscene) > 0
+            self.altHeader is not None
+            and self.altHeader.childNight is not None
+            and self.altHeader.adultDay is not None
+            and self.altHeader.adultNight is not None
+            and len(self.altHeader.cutscenes) > 0
         )
 
     def getRoomHeaderFromIndex(self, headerIndex: int) -> OOTRoomHeader | None:
         if headerIndex == 0:
-            return self.header
+            return self.mainHeader
 
-        for i, header in enumerate(self.altHeaderList, 1):
+        for i, header in enumerate(altHeaderList, 1):
             if headerIndex == i:
-                return getattr(self.alternate, header)
+                return getattr(self.altHeader, header)
 
-        for i, csHeader in enumerate(self.alternate.cutscene, 4):
+        for i, csHeader in enumerate(self.altHeader.cutscenes, 4):
             if headerIndex == i:
                 return csHeader
 
@@ -219,7 +217,7 @@ class OOTRoom(Common, OOTRoomCommands):
 
         return OOTRoomHeader(
             self.name,
-            OOTRoomGeneral(
+            OOTRoomHeaderInfos(
                 headerProp.roomIndex,
                 headerProp.roomShape,
                 self.getPropValue(headerProp, "roomBehaviour"),
@@ -236,8 +234,8 @@ class OOTRoom(Common, OOTRoomCommands):
                 [d for d in headerProp.windVector] if headerProp.setWind else None,
                 headerProp.windStrength if headerProp.setWind else None,
             ),
-            OOTRoomObjects(self.name, objIDList),
-            OOTRoomActors(
+            OOTRoomHeaderObjects(self.name, objIDList),
+            OOTRoomHeaderActors(
                 self.name,
                 self.sceneObj,
                 self.roomObj,
@@ -250,15 +248,15 @@ class OOTRoom(Common, OOTRoomCommands):
         roomC = CData()
 
         roomHeaders: list[tuple[OOTRoomHeader, str]] = [
-            (self.alternate.childNight, "Child Night"),
-            (self.alternate.adultDay, "Adult Day"),
-            (self.alternate.adultNight, "Adult Night"),
+            (self.altHeader.childNight, "Child Night"),
+            (self.altHeader.adultDay, "Adult Day"),
+            (self.altHeader.adultNight, "Adult Night"),
         ]
 
-        for i, csHeader in enumerate(self.alternate.cutscene):
+        for i, csHeader in enumerate(self.altHeader.cutscenes):
             roomHeaders.append((csHeader, f"Cutscene No. {i + 1}"))
 
-        altHeaderPtrListName = f"SceneCmd* {self.altHeadersName}"
+        altHeaderPtrListName = f"SceneCmd* {self.altHeader.name}"
 
         # .h
         roomC.header = f"extern {altHeaderPtrListName}[];\n"
@@ -274,7 +272,7 @@ class OOTRoom(Common, OOTRoomCommands):
             + "\n};\n\n"
         )
 
-        roomHeaders.insert(0, (self.header, "Child Day (Default)"))
+        roomHeaders.insert(0, (self.mainHeader, "Child Day (Default)"))
         for i, (curHeader, headerDesc) in enumerate(roomHeaders):
             if curHeader is not None:
                 roomC.source += "/**\n * " + f"Header {headerDesc}\n" + "*/\n"
