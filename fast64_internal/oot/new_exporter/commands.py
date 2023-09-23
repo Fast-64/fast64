@@ -3,19 +3,8 @@ from ...utility import CData, indent
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .io_classes import (
-        OOTScene,
-        OOTSceneGeneral,
-        OOTSceneHeader,
-        OOTSceneLighting,
-        OOTSceneCutscene,
-        OOTRoom,
-        OOTRoomHeader,
-        OOTRoomGeneral,
-        OOTRoomObjects,
-        OOTRoomActors,
-        OOTSceneActors,
-    )
+    from .scene import OOTScene, OOTSceneGeneral, OOTSceneHeader, OOTSceneLighting, OOTSceneCutscene, OOTSceneActors
+    from .room import OOTRoom, OOTRoomHeader, OOTRoomGeneral, OOTRoomObjects, OOTRoomActors
 
 
 class OOTRoomCommands:

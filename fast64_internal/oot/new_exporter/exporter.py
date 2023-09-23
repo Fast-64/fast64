@@ -1,10 +1,25 @@
-import bpy, os
+import bpy
+import os
 
 from dataclasses import dataclass, field
 from mathutils import Matrix
 from bpy.types import Object
+from ...utility import (
+    PluginError,
+    checkObjectReference,
+    unhideAllAndGetHiddenState,
+    restoreHiddenState,
+    toAlnum,
+    writeFile,
+)
 from ...f3d.f3d_gbi import DLFormat
-from ...utility import PluginError, checkObjectReference, unhideAllAndGetHiddenState, restoreHiddenState, toAlnum
+from ..scene.properties import OOTBootupSceneOptions, OOTSceneHeaderProperty
+from ..room.properties import OOTRoomHeaderProperty
+from ..oot_constants import ootData
+from ..oot_object import addMissingObjectsToAllRoomHeadersNew
+from .scene import OOTScene, OOTSceneAlternate
+from .room import OOTRoom, OOTRoomAlternate
+
 from ..oot_utility import (
     ExportInfo,
     OOTObjectCategorizer,
@@ -13,18 +28,20 @@ from ..oot_utility import (
     getSceneDirFromLevelName,
     ootGetPath,
 )
-from ..scene.properties import OOTBootupSceneOptions, OOTSceneHeaderProperty
-from ..room.properties import OOTRoomHeaderProperty
-from ..oot_constants import ootData
-from ..oot_object import addMissingObjectsToAllRoomHeadersNew
 
-from .io_classes import (
-    OOTRoomAlternate,
-    OOTRoom,
-    OOTSceneAlternate,
-    OOTScene,
-    OOTExporter,
-)
+
+@dataclass
+class OOTRoomData:
+    name: str
+    roomMain: str = None
+    roomModel: str = None
+    roomModelInfo: str = None
+
+
+@dataclass
+class OOTSceneData:
+    sceneMain: str = None
+    sceneCollision: str = None
 
 
 @dataclass
@@ -38,10 +55,16 @@ class OOTSceneExport:
     saveTexturesAsPNG: bool
     hackerootBootOption: OOTBootupSceneOptions
     dlFormat: DLFormat = DLFormat.Static
-
     altHeaderList: list[str] = field(default_factory=lambda: ["childNight", "adultDay", "adultNight"])
 
-    def getRoomData(self, scene: OOTScene):
+    scene: OOTScene = None
+    path: str = None
+    header: str = ""
+    sceneData: OOTSceneData = None
+    roomList: dict[int, OOTRoomData] = field(default_factory=dict)
+    csList: dict[int, str] = field(default_factory=dict)
+
+    def getNewRoomList(self):
         processedRooms = []
         roomList: list[OOTRoom] = []
         roomObjs: list[Object] = [
@@ -79,7 +102,7 @@ class OOTSceneExport:
 
         return roomList
 
-    def getSceneData(self):
+    def getNewScene(self):
         altProp = self.sceneObj.ootAlternateSceneHeaders
         sceneData = OOTScene(self.sceneObj, None, self.transform, None, f"{toAlnum(self.sceneName)}_scene")
         altHeaderData = OOTSceneAlternate()
@@ -95,12 +118,12 @@ class OOTSceneExport:
         ]
 
         sceneData.alternate = altHeaderData
-        sceneData.roomList = self.getRoomData(sceneData)
+        sceneData.roomList = self.getNewRoomList()
 
         sceneData.validateScene()
         return sceneData
 
-    def processSceneObj(self):
+    def getNewSceneFromEmptyObject(self):
         """Returns the default scene header and adds the alternate/cutscene ones"""
 
         # init
@@ -120,7 +143,7 @@ class OOTSceneExport:
         # convert scene
         sceneData = None
         try:
-            sceneData = self.getSceneData()
+            sceneData = self.getNewScene()
 
             ootCleanupScene(originalSceneObj, allObjs)
         except Exception as e:
@@ -132,7 +155,33 @@ class OOTSceneExport:
 
         return sceneData
 
-    def exportScene(self):
+    def setRoomListData(self):
+        for room in self.scene.roomList:
+            roomData = OOTRoomData(room.name)
+            roomMainData = room.getRoomMainC()
+
+            roomData.roomMain = roomMainData.source
+            self.header += roomMainData.header
+
+            self.roomList[room.roomIndex] = roomData
+
+    def setSceneData(self):
+        sceneData = OOTSceneData()
+        sceneMainData = self.scene.getSceneMainC()
+
+        sceneData.sceneMain = sceneMainData.source
+        self.header += sceneMainData.header
+        self.sceneData = sceneData
+
+    def writeScene(self):
+        scenePath = os.path.join(self.path, self.scene.sceneName + ".c")
+        writeFile(scenePath, self.sceneData.sceneMain)
+
+        for room in self.roomList.values():
+            roomPath = os.path.join(self.path, room.name + ".c")
+            writeFile(roomPath, room.roomMain)
+
+    def export(self):
         checkObjectReference(self.sceneObj, "Scene object")
         isCustomExport = self.exportInfo.isCustomExportPath
         exportPath = self.exportInfo.exportPath
@@ -146,7 +195,9 @@ class OOTSceneExport:
         sceneInclude = exportSubdir + "/" + self.sceneName + "/"
         levelPath = ootGetPath(exportPath, isCustomExport, exportSubdir, self.sceneName, True, True)
 
-        exporter = OOTExporter(self.processSceneObj(), levelPath)
-        exporter.setSceneData()
-        exporter.setRoomListData()
-        exporter.writeScene()
+        self.scene = self.getNewSceneFromEmptyObject()
+        self.path = levelPath
+        self.setSceneData()
+        self.setRoomListData()
+
+        self.writeScene()
