@@ -1,6 +1,7 @@
 import bpy, math, os, re
 from ast import parse, Expression, Num, UnaryOp, USub, Invert, BinOp
 from bpy.utils import register_class, unregister_class
+from bpy.types import Object
 from typing import Callable
 from .oot_constants import ootSceneIDToName
 
@@ -240,7 +241,7 @@ class OOTObjectCategorizer:
 
 
 # This also sets all origins relative to the scene object.
-def ootDuplicateHierarchy(obj, ignoreAttr, includeEmpties, objectCategorizer):
+def ootDuplicateHierarchy(obj, ignoreAttr, includeEmpties, objectCategorizer) -> tuple[Object, list[Object]]:
     # Duplicate objects to apply scale / modifiers / linked data
     bpy.ops.object.select_all(action="DESELECT")
     ootSelectMeshChildrenOnly(obj, includeEmpties)

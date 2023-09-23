@@ -12,6 +12,7 @@ from ..oot_level_writer import ootExportSceneToC
 from ..oot_constants import ootEnumMusicSeq, ootEnumSceneID
 from ..oot_level_parser import parseScene
 from .exporter.to_c import clearBootupScene, modifySceneTable, editSpecFile, deleteSceneFiles
+from ..new_exporter import exportScene
 
 
 def ootRemoveSceneC(exportInfo):
@@ -175,17 +176,18 @@ class OOT_ExportScene(Operator):
 
             bootOptions = context.scene.fast64.oot.bootupSceneOptions
             hackerFeaturesEnabled = context.scene.fast64.oot.hackerFeaturesEnabled
-            ootExportSceneToC(
-                obj,
-                finalTransform,
-                context.scene.f3d_type,
-                context.scene.isHWv1,
-                levelName,
-                DLFormat.Static,
-                context.scene.saveTextures,
-                exportInfo,
-                bootOptions if hackerFeaturesEnabled else None,
-            )
+            exportScene(exportInfo).exportScene()
+            # ootExportSceneToC(
+            #     obj,
+            #     finalTransform,
+            #     context.scene.f3d_type,
+            #     context.scene.isHWv1,
+            #     levelName,
+            #     DLFormat.Static,
+            #     context.scene.saveTextures,
+            #     exportInfo,
+            #     bootOptions if hackerFeaturesEnabled else None,
+            # )
 
             self.report({"INFO"}, "Success!")
 
