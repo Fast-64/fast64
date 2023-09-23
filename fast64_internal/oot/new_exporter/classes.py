@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from mathutils import Matrix
 from bpy.types import Object
 from ...f3d.f3d_gbi import DLFormat
-from ...utility import PluginError, checkObjectReference, unhideAllAndGetHiddenState, restoreHiddenState, writeCDataSourceOnly
+from ...utility import PluginError, checkObjectReference, unhideAllAndGetHiddenState, restoreHiddenState, toAlnum
 from ..oot_utility import ExportInfo, OOTObjectCategorizer, ootDuplicateHierarchy, ootCleanupScene, getSceneDirFromLevelName, ootGetPath
 from ..scene.properties import OOTBootupSceneOptions, OOTSceneHeaderProperty
 from ..room.properties import OOTRoomHeaderProperty
@@ -46,17 +46,18 @@ class OOTSceneExport:
         for roomObj in roomObjs:
             altProp = roomObj.ootAlternateRoomHeaders
             roomIndex = roomObj.ootRoomHeader.roomIndex
-            roomData = OOTRoom(self.sceneObj, roomObj, self.transform, roomIndex, self.sceneName)
+            roomName = f"{toAlnum(self.sceneName)}_room_{roomIndex}"
+            roomData = OOTRoom(self.sceneObj, roomObj, self.transform, roomIndex, self.sceneName, name=roomName)
             altHeaderData = OOTRoomAlternate()
-            roomData.header = roomData.getSingleRoomHeader(roomObj.ootRoomHeader)
+            roomData.header = roomData.getNewRoomHeader(roomObj.ootRoomHeader)
 
             for i, header in enumerate(self.altHeaderList, 1):
                 altP: OOTRoomHeaderProperty = getattr(altProp, f"{header}Header")
                 if not altP.usePreviousHeader:
-                    setattr(altHeaderData, header, roomData.getSingleRoomHeader(altP, i))
+                    setattr(altHeaderData, header, roomData.getNewRoomHeader(altP, i))
 
             altHeaderData.cutscene = [
-                roomData.getSingleRoomHeader(csHeader, i)
+                roomData.getNewRoomHeader(csHeader, i)
                 for i, csHeader in enumerate(altProp.cutsceneHeaders, 4)
             ]
 
@@ -73,17 +74,17 @@ class OOTSceneExport:
 
     def getSceneData(self):
         altProp = self.sceneObj.ootAlternateSceneHeaders
-        sceneData = OOTScene(self.sceneObj, None, self.transform, None, self.sceneName)
+        sceneData = OOTScene(self.sceneObj, None, self.transform, None, f"{toAlnum(self.sceneName)}_scene")
         altHeaderData = OOTSceneAlternate()
-        sceneData.header = sceneData.getSingleSceneHeader(self.sceneObj.ootSceneHeader)
+        sceneData.header = sceneData.getNewSceneHeader(self.sceneObj.ootSceneHeader)
 
         for i, header in enumerate(self.altHeaderList, 1):
             altP: OOTSceneHeaderProperty = getattr(altProp, f"{header}Header")
             if not altP.usePreviousHeader:
-                setattr(altHeaderData, header, sceneData.getSingleSceneHeader(altP, i))
+                setattr(altHeaderData, header, sceneData.getNewSceneHeader(altP, i))
 
         altHeaderData.cutscene = [
-            sceneData.getSingleSceneHeader(csHeader, i)
+            sceneData.getNewSceneHeader(csHeader, i)
             for i, csHeader in enumerate(altProp.cutsceneHeaders, 4)
         ]
 

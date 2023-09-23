@@ -43,7 +43,7 @@ def addMissingObjectsToAllRoomHeaders(roomObj: Object, room: OOTRoom, ootData: O
 
 def addMissingObjectsToRoomHeaderNew(roomObj: Object, room, ootData: OoT_Data, headerIndex: int):
     """Adds missing objects to the object list"""
-    curHeader = room.getRoomHeader(headerIndex)
+    curHeader = room.getRoomHeaderFromIndex(headerIndex)
     if len(curHeader.actors.actorList) > 0:
         for roomActor in curHeader.actors.actorList:
             actor = ootData.actorData.actorsByID.get(roomActor.actorID)

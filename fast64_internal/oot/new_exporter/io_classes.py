@@ -20,6 +20,7 @@ class Common:
     transform: Matrix
     roomIndex: int
     sceneName: str
+    altHeaderList: list[str] = field(default_factory=lambda: ["childNight", "adultDay", "adultNight"])
 
     def isCurrentHeaderValid(self, actorProp: OOTActorProperty, headerIndex: int):
         preset = actorProp.headerSettings.sceneSetupPreset
@@ -158,8 +159,8 @@ class OOTExporter:
 
     def setRoomListData(self):
         for room in self.scene.roomList:
-            roomData = OOTRoomData(room.getRoomName())
-            roomMainData = room.getRoomData()
+            roomData = OOTRoomData(room.name)
+            roomMainData = room.getRoomMainC()
 
             roomData.roomMain = roomMainData.source
             self.header += roomMainData.header
@@ -168,14 +169,14 @@ class OOTExporter:
     
     def setSceneData(self):
         sceneData = OOTSceneData()
-        sceneMainData = self.scene.getSceneData()
+        sceneMainData = self.scene.getSceneMainC()
 
         sceneData.sceneMain = sceneMainData.source
         self.header += sceneMainData.header
         self.sceneData = sceneData
 
     def writeScene(self):
-        scenePath = os.path.join(self.path, self.scene.getSceneName() + ".c")
+        scenePath = os.path.join(self.path, self.scene.sceneName + ".c")
         writeFile(scenePath, self.sceneData.sceneMain)
 
         for room in self.roomList.values():
@@ -188,6 +189,7 @@ class OOTExporter:
 @dataclass
 class RoomCommon:
     roomName: str
+
 
 @dataclass
 class OOTRoomGeneral:
@@ -249,25 +251,71 @@ class OOTRoomObjects(RoomCommon):
 
 @dataclass
 class OOTRoomActors(RoomCommon):
-    actorList: list[Actor]
+    sceneObj: Object
+    roomObj: Object
+    transform: Matrix
+    headerIndex: int
+    actorList: list[Actor] = field(default_factory=list)
 
-    def actorListName(self, headerIndex: int):
-        return f"{self.roomName}_header{headerIndex:02}_actorList"
+    def __post_init__(self):
+        actorObjList: list[Object] = [
+            obj for obj in self.roomObj.children_recursive if obj.type == "EMPTY" and obj.ootEmptyType == "Actor"
+        ]
+        for obj in actorObjList:
+            actorProp = obj.ootActorProperty
+            if not Common.isCurrentHeaderValid(actorProp, self.headerIndex):
+                continue
 
-    def getActorLengthDefineName(self, headerIndex: int):
-        return f"LENGTH_{self.actorListName(headerIndex).upper()}"
+            # The Actor list is filled with ``("None", f"{i} (Deleted from the XML)", "None")`` for
+            # the total number of actors defined in the XML. If the user deletes one, this will prevent
+            # any data loss as Blender saves the index of the element in the Actor list used for the EnumProperty
+            # and not the identifier as defined by the first element of the tuple. Therefore, we need to check if
+            # the current Actor has the ID `None` to avoid export issues.
+            if actorProp.actorID != "None":
+                pos, rot, _, _ = Common.getConvertedTransform(self.transform, self.sceneObj, obj, True)
+                actor = Actor()
+
+                if actorProp.actorID == "Custom":
+                    actor.id = actorProp.actorIDCustom
+                else:
+                    actor.id = actorProp.actorID
+
+                if actorProp.rotOverride:
+                    actor.rot = ", ".join([actorProp.rotOverrideX, actorProp.rotOverrideY, actorProp.rotOverrideZ])
+                else:
+                    actor.rot = ", ".join(f"DEG_TO_BINANG({(r * (180 / 0x8000)):.3f})" for r in rot)
+
+                actor.name = (
+                    ootData.actorData.actorsByID[actorProp.actorID].name.replace(
+                        f" - {actorProp.actorID.removeprefix('ACTOR_')}", ""
+                    )
+                    if actorProp.actorID != "Custom"
+                    else "Custom Actor"
+                )
+
+                actor.pos = pos
+                actor.params = actorProp.actorParam
+                self.actorList.append(actor)
+
+    # Exporter
+
+    def actorListName(self):
+        return f"{self.roomName}_header{self.headerIndex:02}_actorList"
+
+    def getActorLengthDefineName(self):
+        return f"LENGTH_{self.actorListName().upper()}"
     
-    def getActorListData(self, headerIndex: int):
+    def getActorListData(self):
         """Returns the actor list for the current header"""
         actorList = CData()
-        listName = f"ActorEntry {self.actorListName(headerIndex)}"
+        listName = f"ActorEntry {self.actorListName()}"
 
         # .h
         actorList.header = f"extern {listName}[];\n"
 
         # .c
         actorList.source = (
-            (f"{listName}[{self.getActorLengthDefineName(headerIndex)}]" + " = {\n")
+            (f"{listName}[{self.getActorLengthDefineName()}]" + " = {\n")
             + "\n".join(actor.getActorEntry() for actor in self.actorList)
             + "};\n\n"
         )
@@ -305,9 +353,14 @@ class OOTRoomHeader(RoomCommon):
 
 
 @dataclass
-class OOTRoom(Common):
+class OOTRoom(Common, OOTRoomCommands):
+    name: str = None
+    altName: str = None
     header: OOTRoomHeader = None
     alternate: OOTRoomAlternate = None
+
+    def __post_init__(self):
+        self.altHeadersName = f"{self.name}_alternateHeaders"
 
     def hasAlternateHeaders(self):
         return (
@@ -318,10 +371,10 @@ class OOTRoom(Common):
             len(self.alternate.cutscene) > 0
         )
     
-    def getRoomHeader(self, headerIndex: int) -> OOTRoomHeader | None:
+    def getRoomHeaderFromIndex(self, headerIndex: int) -> OOTRoomHeader | None:
         if headerIndex == 0:
             return self.header
-        
+
         for i, header in enumerate(self.altHeaderList, 1):
             if headerIndex == i:
                 return getattr(self.alternate, header)
@@ -332,50 +385,8 @@ class OOTRoom(Common):
 
         return None
 
-    def getActorList(self, headerIndex: int):
-        actorList: list[Actor] = []
-        actorObjList: list[Object] = [
-            obj for obj in self.roomObj.children_recursive if obj.type == "EMPTY" and obj.ootEmptyType == "Actor"
-        ]
-        for obj in actorObjList:
-            actorProp = obj.ootActorProperty
-            if not self.isCurrentHeaderValid(actorProp, headerIndex):
-                continue
-
-            # The Actor list is filled with ``("None", f"{i} (Deleted from the XML)", "None")`` for
-            # the total number of actors defined in the XML. If the user deletes one, this will prevent
-            # any data loss as Blender saves the index of the element in the Actor list used for the EnumProperty
-            # and not the identifier as defined by the first element of the tuple. Therefore, we need to check if
-            # the current Actor has the ID `None` to avoid export issues.
-            if actorProp.actorID != "None":
-                pos, rot, _, _ = self.getConvertedTransform(self.transform, self.sceneObj, obj, True)
-                actor = Actor()
-
-                if actorProp.actorID == "Custom":
-                    actor.id = actorProp.actorIDCustom
-                else:
-                    actor.id = actorProp.actorID
-
-                if actorProp.rotOverride:
-                    actor.rot = ", ".join([actorProp.rotOverrideX, actorProp.rotOverrideY, actorProp.rotOverrideZ])
-                else:
-                    actor.rot = ", ".join(f"DEG_TO_BINANG({(r * (180 / 0x8000)):.3f})" for r in rot)
-
-                actor.name = (
-                    ootData.actorData.actorsByID[actorProp.actorID].name.replace(
-                        f" - {actorProp.actorID.removeprefix('ACTOR_')}", ""
-                    )
-                    if actorProp.actorID != "Custom"
-                    else "Custom Actor"
-                )
-
-                actor.pos = pos
-                actor.params = actorProp.actorParam
-                actorList.append(actor)
-        return actorList
-
-    def getSingleRoomHeader(self, headerProp: OOTRoomHeaderProperty, headerIndex: int=0):
-        """Returns a single room header with the informations from the scene empty object"""
+    def getNewRoomHeader(self, headerProp: OOTRoomHeaderProperty, headerIndex: int=0):
+        """Returns a new room header with the informations from the scene empty object"""
 
         objIDList = []
         for objProp in headerProp.objectList:
@@ -385,7 +396,7 @@ class OOTRoom(Common):
                 objIDList.append(ootData.objectData.objectsByKey[objProp.objectKey].id)
 
         return OOTRoomHeader(
-            self.getRoomName(),
+            self.name,
             OOTRoomGeneral(
                 headerProp.roomIndex,
                 headerProp.roomShape,
@@ -403,23 +414,17 @@ class OOTRoom(Common):
                 [d for d in headerProp.windVector] if headerProp.setWind else None,
                 headerProp.windStrength if headerProp.setWind else None
             ),
-            OOTRoomObjects(self.getRoomName(), objIDList),
+            OOTRoomObjects(self.name, objIDList),
             OOTRoomActors(
-                self.getRoomName(),
-                self.getActorList(headerIndex),
+                self.name,
+                self.sceneObj,
+                self.roomObj,
+                self.transform,
+                headerIndex,
             )
         )
-    
-    # Export
 
-    def getRoomName(self):
-        return f"{toAlnum(self.sceneName)}_room_{self.roomIndex}"
-    
-    def alternateHeadersName(self):
-        return f"{self.getRoomName()}_alternateHeaders"
-
-    def getRoomData(self):
-        cmdExport = OOTRoomCommands()
+    def getRoomMainC(self):
         roomC = CData()
 
         roomHeaders: list[tuple[OOTRoomHeader, str]] = [
@@ -431,7 +436,7 @@ class OOTRoom(Common):
         for i, csHeader in enumerate(self.alternate.cutscene):
             roomHeaders.append((csHeader, f"Cutscene No. {i + 1}"))
 
-        altHeaderPtrListName = f"SceneCmd* {self.alternateHeadersName()}"
+        altHeaderPtrListName = f"SceneCmd* {self.altHeadersName}"
 
         # .h
         roomC.header = f"extern {altHeaderPtrListName}[];\n"
@@ -442,7 +447,7 @@ class OOTRoom(Common):
             + " = {\n"
             + "\n".join(
                 indent + f"{curHeader.roomName()}_header{i:02}," if curHeader is not None else indent + "NULL,"
-                for i, (curHeader, headerDesc) in enumerate(roomHeaders, 1)
+                for i, (curHeader, _) in enumerate(roomHeaders, 1)
             )
             + "\n};\n\n"
         )
@@ -452,7 +457,7 @@ class OOTRoom(Common):
             if curHeader is not None:
                 roomC.source += "/**\n * " + f"Header {headerDesc}\n" + "*/\n"
                 roomC.source += curHeader.getHeaderDefines(i)
-                roomC.append(cmdExport.getRoomCommandList(self, i))
+                roomC.append(self.getRoomCommandList(self, i))
 
                 if i == 0 and self.hasAlternateHeaders():
                     roomC.source += altHeaderPtrList
@@ -461,7 +466,7 @@ class OOTRoom(Common):
                     roomC.append(curHeader.objects.getObjectList(i))
 
                 if len(curHeader.actors.actorList) > 0:
-                    roomC.append(curHeader.actors.getActorListData(i))
+                    roomC.append(curHeader.actors.getActorListData())
 
         return roomC
 
@@ -470,7 +475,8 @@ class OOTRoom(Common):
 
 @dataclass
 class SceneCommon:
-    sceneName: str
+    headerName: str
+    name: str = None
 
 
 @dataclass
@@ -567,22 +573,22 @@ class OOTSceneGeneral:
 
 
 @dataclass
-class OOTSceneLighting:
-    envLightMode: str
-    settings: list[EnvLightSettings]
+class OOTSceneLighting(SceneCommon):
+    envLightMode: str = None
+    settings: list[EnvLightSettings] = field(default_factory=list)
 
-    def lightListName(self, headerName: str):
-        return f"{headerName}_lightSettings"
+    def __post_init__(self):
+        self.name = f"{self.headerName}_lightSettings"
 
-    def getLightSettings(self, headerName: str):
-        lightSettingsData = CData()
-        lightName = f"EnvLightSettings {self.lightListName(headerName)}[{len(self.settings)}]"
+    def getEnvLightSettingsC(self):
+        lightSettingsC = CData()
+        lightName = f"EnvLightSettings {self.name}[{len(self.settings)}]"
 
         # .h
-        lightSettingsData.header = f"extern {lightName};\n"
+        lightSettingsC.header = f"extern {lightName};\n"
 
         # .c
-        lightSettingsData.source = (
+        lightSettingsC.source = (
             (lightName + " = {\n")
             + "".join(
                 light.getLightSettingsEntry(i)
@@ -591,7 +597,7 @@ class OOTSceneLighting:
             + "};\n\n"
         )
 
-        return lightSettingsData
+        return lightSettingsC
 
 
 @dataclass
@@ -604,48 +610,48 @@ class OOTSceneCutscene:
 
 
 @dataclass
-class OOTSceneExits:
-    exitList: list[tuple[int, str]]
+class OOTSceneExits(SceneCommon):
+    exitList: list[tuple[int, str]] = field(default_factory=list)
 
-    def exitListName(self, headerName: str):
-        return f"{headerName}_exitList"
+    def __post_init__(self):
+        self.name = f"{self.headerName}_exitList"
 
-    def getExitListData(self, headerName: str):
-        exitList = CData()
-        listName = f"u16 {self.exitListName(headerName)}[{len(self.exitList)}]"
+    def getExitListC(self):
+        exitListC = CData()
+        listName = f"u16 {self.name}[{len(self.exitList)}]"
 
         # .h
-        exitList.header = f"extern {listName};\n"
+        exitListC.header = f"extern {listName};\n"
 
         # .c
-        exitList.source = (
+        exitListC.source = (
             (listName + " = {\n")
             # @TODO: use the enum name instead of the raw index
             + "\n".join(indent + f"{value}," for (_, value) in self.exitList)
             + "\n};\n\n"
         )
 
-        return exitList
+        return exitListC
 
 
 @dataclass
-class OOTSceneActors:
-    transitionActorList: list[TransitionActor]
-    entranceActorList: list[EntranceActor]
+class OOTSceneActors(SceneCommon):
+    transitionActorList: list[TransitionActor] = field(default_factory=list)
+    entranceActorList: list[EntranceActor] = field(default_factory=list)
 
-    def entranceListName(self, headerName: str):
-        return f"{headerName}_entranceList"
+    entranceListName: str = None
+    startPositionsName: str = None
+    transActorListName: str = None
+
+    def __post_init__(self):
+        self.entranceListName = f"{self.headerName}_entranceList"
+        self.startPositionsName = f"{self.headerName}_playerEntryList"
+        self.transActorListName = f"{self.headerName}_transitionActors"
     
-    def startPositionsName(self, headerName: str):
-        return f"{headerName}_playerEntryList"
-    
-    def transitionActorListName(self, headerName: str):
-        return f"{headerName}_transitionActors"
-    
-    def getSpawnActorList(self, headerName: str):
+    def getSpawnActorListC(self):
         """Returns the spawn actor list for the current header"""
         spawnActorList = CData()
-        listName = f"ActorEntry {self.startPositionsName(headerName)}"
+        listName = f"ActorEntry {self.startPositionsName}"
 
         # .h
         spawnActorList.header = f"extern {listName}[];\n"
@@ -659,10 +665,10 @@ class OOTSceneActors:
 
         return spawnActorList
 
-    def getSpawnList(self, headerName: str):
+    def getSpawnListC(self):
         """Returns the spawn list for the current header"""
         spawnList = CData()
-        listName = f"Spawn {self.entranceListName(headerName)}"
+        listName = f"Spawn {self.entranceListName}"
 
         # .h
         spawnList.header = f"extern {listName}[];\n"
@@ -677,10 +683,10 @@ class OOTSceneActors:
 
         return spawnList
     
-    def getTransitionActorListData(self, headerName: str):
+    def getTransActorListC(self):
         """Returns the transition actor list for the current header"""
         transActorList = CData()
-        listName = f"TransitionActorEntry {self.transitionActorListName(headerName)}"
+        listName = f"TransitionActorEntry {self.transActorListName}"
 
         # .h
         transActorList.header = f"extern {listName}[];\n"
@@ -711,25 +717,25 @@ class OOTSceneHeader:
     exits: OOTSceneExits
     actors: OOTSceneActors
 
-    def getHeaderData(self, headerName: str):
+    def getHeaderC(self):
         headerData = CData()
 
         # Write the spawn position list data and the entrance list
         if len(self.actors.entranceActorList) > 0:
-            headerData.append(self.actors.getSpawnActorList(headerName))
-            headerData.append(self.actors.getSpawnList(headerName))
+            headerData.append(self.actors.getSpawnActorListC())
+            headerData.append(self.actors.getSpawnListC())
 
         # Write the transition actor list data
         if len(self.actors.transitionActorList) > 0:
-            headerData.append(self.actors.getTransitionActorListData(headerName))
+            headerData.append(self.actors.getTransActorListC())
 
         # Write the exit list
         if len(self.exits.exitList) > 0:
-            headerData.append(self.exits.getExitListData(headerName))
+            headerData.append(self.exits.getExitListC())
 
         # Write the light data
         if len(self.lighting.settings) > 0:
-            headerData.append(self.lighting.getLightSettings(headerName))
+            headerData.append(self.lighting.getEnvLightSettingsC())
 
         # Write the path data, if used
         # if len(self.pathList) > 0:
@@ -739,12 +745,19 @@ class OOTSceneHeader:
 
 
 @dataclass
-class OOTScene(Common):
+class OOTScene(Common, OOTSceneCommands):
+    headerIndex: int = None
+    headerName: str = None
     header: OOTSceneHeader = None
     alternate: OOTSceneAlternate = None
     roomList: list[OOTRoom] = field(default_factory=list)
 
-    altHeaderList: list[str] = field(default_factory=lambda: ["childNight", "adultDay", "adultNight"])
+    altName: str = None
+    roomListName: str = None
+
+    def __post_init__(self):
+        self.altName = f"{self.sceneName}_alternateHeaders"
+        self.roomListName = f"{self.sceneName}_roomList"
 
     def validateRoomIndices(self):
         for i, room in enumerate(self.roomList):
@@ -769,7 +782,7 @@ class OOTScene(Common):
             len(self.alternate.cutscene) > 0
         )
     
-    def getSceneHeader(self, headerIndex: int) -> OOTSceneHeader | None:
+    def getSceneHeaderFromIndex(self, headerIndex: int) -> OOTSceneHeader | None:
         if headerIndex == 0:
             return self.header
         
@@ -783,7 +796,7 @@ class OOTScene(Common):
 
         return None
     
-    def getExitList(self, headerProp: OOTSceneHeaderProperty):
+    def getExitListFromProps(self, headerProp: OOTSceneHeaderProperty):
         """Returns the exit list and performs safety checks"""
 
         exitList: list[tuple[int, str]] = []
@@ -796,16 +809,16 @@ class OOTScene(Common):
         
         return exitList
 
-    def getRoomObject(self, object: Object) -> Object | None:
+    def getRoomObjectFromChild(self, childObj: Object) -> Object | None:
         # Note: temporary solution until PRs #243 & #255 are merged
         for obj in self.sceneObj.children_recursive:
             if obj.type == "EMPTY" and obj.ootEmptyType == "Room":
                 for o in obj.children_recursive:
-                    if o == object:
+                    if o == childObj:
                         return obj
         return None
 
-    def getTransitionActorList(self, headerIndex: int):
+    def getTransActorListFromProps(self):
         actorList: list[TransitionActor] = []
         actorObjList: list[Object] = [
             obj
@@ -813,14 +826,14 @@ class OOTScene(Common):
             if obj.type == "EMPTY" and obj.ootEmptyType == "Transition Actor"
         ]
         for obj in actorObjList:
-            roomObj = self.getRoomObject(obj)
+            roomObj = self.getRoomObjectFromChild(obj)
             if roomObj is None:
                 raise PluginError("ERROR: Room Object not found!")
             self.roomIndex = roomObj.ootRoomHeader.roomIndex
 
             transActorProp = obj.ootTransitionActorProperty
 
-            if not self.isCurrentHeaderValid(transActorProp.actor, headerIndex):
+            if not self.isCurrentHeaderValid(transActorProp.actor, self.headerIndex):
                 continue
 
             if transActorProp.actor.actorID != "None":
@@ -855,7 +868,7 @@ class OOTScene(Common):
                 actorList.append(transActor)
         return actorList
 
-    def getEntranceActorList(self, headerIndex: int):
+    def getEntranceActorListFromProps(self):
         actorList: list[EntranceActor] = []
         actorObjList: list[Object] = [
             obj
@@ -863,12 +876,12 @@ class OOTScene(Common):
             if obj.type == "EMPTY" and obj.ootEmptyType == "Entrance"
         ]
         for obj in actorObjList:
-            roomObj = self.getRoomObject(obj)
+            roomObj = self.getRoomObjectFromChild(obj)
             if roomObj is None:
                 raise PluginError("ERROR: Room Object not found!")
 
             entranceProp = obj.ootEntranceProperty
-            if not self.isCurrentHeaderValid(entranceProp.actor, headerIndex):
+            if not self.isCurrentHeaderValid(entranceProp.actor, self.headerIndex):
                 continue
 
             if entranceProp.actor.actorID != "None":
@@ -892,12 +905,15 @@ class OOTScene(Common):
                 actorList.append(entranceActor)
         return actorList
 
-    def getSingleSceneHeader(self, headerProp: OOTSceneHeaderProperty, headerIndex: int=0):
+    def getNewSceneHeader(self, headerProp: OOTSceneHeaderProperty, headerIndex: int=0):
         """Returns a single scene header with the informations from the scene empty object"""
+
+        self.headerIndex = headerIndex
+        self.headerName = f"{self.sceneName}_header{self.headerIndex:02}"
 
         if headerProp.csWriteType == "Embedded":
             raise PluginError("ERROR: 'Embedded' CS Write Type is not supported!")
-        
+
         lightMode = self.getPropValue(headerProp, "skyboxLighting")
         lightList: list[OOTLightProperty] = []
         lightSettings: list[EnvLightSettings] = []
@@ -942,8 +958,9 @@ class OOTScene(Common):
                 self.getPropValue(headerProp, "cameraMode")
             ),
             OOTSceneLighting(
-                lightMode,
-                lightSettings,
+                self.headerName,
+                envLightMode=lightMode,
+                settings=lightSettings,
             ),
             OOTSceneCutscene(
                 headerProp.csWriteType,
@@ -952,35 +969,24 @@ class OOTScene(Common):
                 headerProp.csWriteCustom if headerProp.csWriteType == "Custom" else None,
                 [csObj for csObj in headerProp.extraCutscenes]
             ),
-            OOTSceneExits(self.getExitList(headerProp)),
+            OOTSceneExits(self.headerName, exitList=self.getExitListFromProps(headerProp)),
             OOTSceneActors(
-                self.getTransitionActorList(headerIndex),
-                self.getEntranceActorList(headerIndex)
+                self.headerName,
+                transitionActorList=self.getTransActorListFromProps(),
+                entranceActorList=self.getEntranceActorListFromProps()
             )
         )
     
     # Export
 
-    def getSceneName(self):
-        return f"{toAlnum(self.sceneName)}_scene"
-
-    def getHeaderName(self, headerIndex: int):
-        return f"{self.getSceneName()}_header{headerIndex:02}"
-    
-    def alternateHeadersName(self):
-        return f"{self.getSceneName()}_alternateHeaders"
-
-    def roomListName(self):
-        return f"{self.getSceneName()}_roomList"
-
-    def getRoomList(self):
+    def getRoomListC(self):
         roomList = CData()
-        listName = f"RomFile {self.roomListName()}[]"
+        listName = f"RomFile {self.roomListName}[]"
 
         # generating segment rom names for every room
         segNames = []
         for i in range(len(self.roomList)):
-            roomName = self.roomList[i].getRoomName()
+            roomName = self.roomList[i].name
             segNames.append((f"_{roomName}SegmentRomStart", f"_{roomName}SegmentRomEnd"))
 
         # .h
@@ -1011,8 +1017,7 @@ class OOTScene(Common):
         roomList.source += "};\n\n"
         return roomList
 
-    def getSceneData(self):
-        cmdExport = OOTSceneCommands()
+    def getSceneMainC(self):
         sceneC = CData()
 
         headers: list[tuple[OOTSceneHeader, str]] = [
@@ -1025,7 +1030,7 @@ class OOTScene(Common):
             headers.append((csHeader, f"Cutscene No. {i + 1}"))
 
         altHeaderPtrs = "\n".join(
-            indent + self.getHeaderName(i) + ","
+            indent + self.headerName + ","
             if curHeader is not None
             else indent + "NULL,"
             if i < 4
@@ -1037,17 +1042,17 @@ class OOTScene(Common):
         for i, (curHeader, headerDesc) in enumerate(headers):
             if curHeader is not None:
                 sceneC.source += "/**\n * " + f"Header {headerDesc}\n" + "*/\n"
-                sceneC.append(cmdExport.getSceneCommandList(self, curHeader, i))
+                sceneC.append(self.getSceneCommandList(self, curHeader, i))
 
                 if i == 0:
                     if self.hasAlternateHeaders():
-                        altHeaderListName = f"SceneCmd* {self.alternateHeadersName()}[]"
+                        altHeaderListName = f"SceneCmd* {self.altName}[]"
                         sceneC.header += f"extern {altHeaderListName};\n"
                         sceneC.source += altHeaderListName + " = {\n" + altHeaderPtrs + "\n};\n\n"
 
                     # Write the room segment list
-                    sceneC.append(self.getRoomList())
+                    sceneC.append(self.getRoomListC())
 
-                sceneC.append(curHeader.getHeaderData(self.getHeaderName(i)))
+                sceneC.append(curHeader.getHeaderC())
 
         return sceneC

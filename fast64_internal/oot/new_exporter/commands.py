@@ -58,11 +58,11 @@ class OOTRoomCommands:
     def getActorListCmd(self, actors: "OOTRoomActors", headerIndex: int):
         return (
             indent + "SCENE_CMD_ACTOR_LIST("
-        ) + f"{actors.getActorLengthDefineName(headerIndex)}, {actors.actorListName(headerIndex)}),\n"
+        ) + f"{actors.getActorLengthDefineName()}, {actors.actorListName()}),\n"
 
     def getRoomCommandList(self, room: "OOTRoom", headerIndex: int):
         cmdListData = CData()
-        curHeader = room.getRoomHeader(headerIndex)
+        curHeader = room.getRoomHeaderFromIndex(headerIndex)
         listName = f"SceneCmd {curHeader.roomName}_header{headerIndex:02}"
 
         getCmdFuncList = [
@@ -74,7 +74,7 @@ class OOTRoomCommands:
         ]
 
         roomCmdData = (
-            (room.getAltHeaderListCmd(room.alternateHeadersName()) if room.hasAlternateHeaders() else "")
+            (room.getAltHeaderListCmd(room.altHeadersName) if room.hasAlternateHeaders() else "")
             + (",\n".join(getCmd(curHeader.general) for getCmd in getCmdFuncList) + ",\n")
             + (self.getWindSettingsCmd(curHeader.general) if curHeader.general.setWind else "")
             + (self.getObjectListCmd(curHeader.objects, headerIndex) if len(curHeader.objects.objectList) > 0 else "")
@@ -96,13 +96,12 @@ class OOTSceneCommands:
         return indent + f"SCENE_CMD_SOUND_SETTINGS({infos.specID}, {infos.ambienceID}, {infos.sequenceID})"
 
     def getRoomListCmd(self, scene: "OOTScene"):
-        return indent + f"SCENE_CMD_ROOM_LIST({len(scene.roomList)}, {scene.roomListName()}),\n"
+        return indent + f"SCENE_CMD_ROOM_LIST({len(scene.roomList)}, {scene.roomListName}),\n"
 
-    def getTransActorListCmd(self, scene: "OOTScene", actors: "OOTSceneActors", headerIndex: int):
-        headerName = scene.getHeaderName(headerIndex)
+    def getTransActorListCmd(self, actors: "OOTSceneActors"):
         return (
             indent + "SCENE_CMD_TRANSITION_ACTOR_LIST("
-        ) + f"{len(actors.transitionActorList)}, {actors.transitionActorListName(headerName)})"
+        ) + f"{len(actors.transitionActorList)}, {actors.transActorListName})"
 
     def getMiscSettingsCmd(self, infos: "OOTSceneGeneral"):
         return indent + f"SCENE_CMD_MISC_SETTINGS({infos.sceneCamType}, {infos.worldMapLocation})"
@@ -110,11 +109,10 @@ class OOTSceneCommands:
     # def getColHeaderCmd(self, outScene: OOTScene):
     #     return indent + f"SCENE_CMD_COL_HEADER(&{outScene.collision.headerName()})"
 
-    def getSpawnListCmd(self, scene: "OOTScene", actors: "OOTSceneActors", headerIndex: int):
-        name = scene.getHeaderName(headerIndex)
+    def getSpawnListCmd(self, actors: "OOTSceneActors"):
         return (
             indent + "SCENE_CMD_ENTRANCE_LIST("
-        ) + f"{actors.entranceListName(name) if len(actors.entranceActorList) > 0 else 'NULL'})"
+        ) + f"{actors.entranceListName if len(actors.entranceActorList) > 0 else 'NULL'})"
 
     def getSpecialFilesCmd(self, infos: "OOTSceneGeneral"):
         return indent + f"SCENE_CMD_SPECIAL_FILES({infos.naviHintType}, {infos.keepObjectID})"
@@ -123,9 +121,8 @@ class OOTSceneCommands:
     #     return indent + f"SCENE_CMD_PATH_LIST({outScene.pathListName(headerIndex)})"
 
     def getSpawnActorListCmd(self, scene: "OOTScene", headerIndex: int):
-        curHeader = scene.getSceneHeader(headerIndex)
-        headerName = scene.getHeaderName(headerIndex)
-        startPosName = curHeader.actors.startPositionsName(headerName)
+        curHeader = scene.getSceneHeaderFromIndex(headerIndex)
+        startPosName = curHeader.actors.startPositionsName
         return (
             (indent + "SCENE_CMD_SPAWN_LIST(")
             + f"{len(curHeader.actors.entranceActorList)}, "
@@ -139,14 +136,13 @@ class OOTSceneCommands:
         )
 
     def getExitListCmd(self, scene: "OOTScene", headerIndex: int):
-        curHeader = scene.getSceneHeader(headerIndex)
-        return indent + f"SCENE_CMD_EXIT_LIST({curHeader.exits.exitListName(scene.getHeaderName(headerIndex))}),\n"
+        curHeader = scene.getSceneHeaderFromIndex(headerIndex)
+        return indent + f"SCENE_CMD_EXIT_LIST({curHeader.exits.name}),\n"
 
-    def getLightSettingsCmd(self, scene: "OOTScene", lights: "OOTSceneLighting", headerIndex: int):
-        name = scene.getHeaderName(headerIndex)
+    def getLightSettingsCmd(self, lights: "OOTSceneLighting"):
         return (
             indent + "SCENE_CMD_ENV_LIGHT_SETTINGS("
-        ) + f"{len(lights.settings)}, {lights.lightListName(name) if len(lights.settings) > 0 else 'NULL'}),\n"
+        ) + f"{len(lights.settings)}, {lights.name if len(lights.settings) > 0 else 'NULL'}),\n"
 
     def getCutsceneDataCmd(self, cs: "OOTSceneCutscene"):
         match cs.writeType:
@@ -159,8 +155,7 @@ class OOTSceneCommands:
 
     def getSceneCommandList(self, scene: "OOTScene", curHeader: "OOTSceneHeader", headerIndex: int):
         cmdListData = CData()
-        # curHeader = scene.getSceneHeader(headerIndex)
-        listName = f"SceneCmd {scene.getHeaderName(headerIndex)}"
+        listName = f"SceneCmd {scene.headerName}"
 
         getCmdFunc1ArgList = [
             # self.getColHeaderCmd,
@@ -186,7 +181,7 @@ class OOTSceneCommands:
         #     getCmdFunc2ArgList.append(self.getCutsceneDataCmd)
 
         sceneCmdData = (
-            (scene.getAltHeaderListCmd(scene.alternateHeadersName()) if scene.hasAlternateHeaders() else "")
+            (scene.getAltHeaderListCmd(scene.altName) if scene.hasAlternateHeaders() else "")
             + self.getRoomListCmd(scene)
             + self.getSkyboxSettingsCmd(curHeader.general, curHeader.lighting)
             # + (",\n".join(getCmd(scene) for getCmd in getCmdFunc1ArgList) + ",\n")
@@ -194,8 +189,8 @@ class OOTSceneCommands:
             + (self.getExitListCmd(scene, headerIndex) if len(curHeader.exits.exitList) > 0 else "")
             + (self.getCutsceneDataCmd(curHeader.cutscene) if curHeader.cutscene.writeCutscene else "")
             + self.getSpawnActorListCmd(scene, headerIndex)
-            + self.getLightSettingsCmd(scene, curHeader.lighting, headerIndex)
-            + (",\n".join(getCmd(scene, curHeader.actors, headerIndex) for getCmd in getCmdActorList) + ",\n")
+            + self.getLightSettingsCmd(curHeader.lighting)
+            + (",\n".join(getCmd(curHeader.actors) for getCmd in getCmdActorList) + ",\n")
             + scene.getEndCmd()
         )
 
