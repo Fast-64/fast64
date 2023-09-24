@@ -20,6 +20,7 @@ from ..oot_object import addMissingObjectsToAllRoomHeadersNew
 from .common import altHeaderList
 from .scene import OOTScene, OOTSceneAlternateHeader
 from .room import OOTRoom, OOTRoomAlternateHeader
+from .collision import OOTSceneCollisionHeader
 
 from ..oot_utility import (
     ExportInfo,
@@ -64,6 +65,7 @@ class OOTSceneExport:
     sceneData: OOTSceneData = None
     roomList: dict[int, OOTRoomData] = field(default_factory=dict)
     hasCutscenes: bool = False
+    singleFileExport: bool = True
 
     def getNewRoomList(self):
         processedRooms = []
@@ -130,6 +132,7 @@ class OOTSceneExport:
 
         sceneData.altHeader = altHeaderData if hasAltHeader else None
         sceneData.roomList = self.getNewRoomList()
+        sceneData.colHeader = sceneData.getNewCollisionHeader()
 
         sceneData.validateScene()
         return sceneData
@@ -186,11 +189,13 @@ class OOTSceneExport:
     def setSceneData(self):
         sceneData = OOTSceneData()
         sceneMainData = self.scene.getSceneMainC()
+        sceneCollisionData = self.scene.colHeader.getCollisionDataC()
         sceneCutsceneData = self.scene.getSceneCutscenesC()
 
         sceneData.sceneMain = sceneMainData.source
+        sceneData.sceneCollision = sceneCollisionData.source
         sceneData.sceneCutscenes = [cs.source for cs in sceneCutsceneData]
-        self.header += sceneMainData.header + "".join(cs.header for cs in sceneCutsceneData)
+        self.header += sceneMainData.header + "".join(cs.header for cs in sceneCutsceneData) + sceneCollisionData.header
         self.sceneData = sceneData
 
     def setIncludeData(self):
@@ -222,6 +227,11 @@ class OOTSceneExport:
         if self.hasCutscenes:
             for i, cs in enumerate(self.sceneData.sceneCutscenes):
                 writeFile(f"{sceneBasePath}_cs_{i}.c", cs)
+
+        if self.singleFileExport:
+            self.sceneData.sceneMain += self.sceneData.sceneCollision
+        else:
+            writeFile(f"{sceneBasePath}_col.c", self.sceneData.sceneCollision)
 
         writeFile(sceneBasePath + ".c", self.sceneData.sceneMain)
         writeFile(sceneBasePath + ".h", self.header)

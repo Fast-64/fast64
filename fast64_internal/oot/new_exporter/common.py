@@ -16,6 +16,9 @@ class Common:
     transform: Matrix
     roomIndex: int = None
 
+    def roundPosition(self, position) -> tuple[int, int, int]:
+        return (round(position[0]), round(position[1]), round(position[2]))
+
     def isCurrentHeaderValid(self, headerSettings: OOTActorHeaderProperty, headerIndex: int):
         preset = headerSettings.sceneSetupPreset
 
