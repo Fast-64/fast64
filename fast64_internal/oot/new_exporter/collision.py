@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from ...utility import PluginError, CData, indent
 
 
@@ -144,41 +144,49 @@ class SurfaceType:
 
 @dataclass
 class BgCamFuncData:  # CameraPosData
-    name: str
     pos: tuple[int, int, int]
     rot: tuple[int, int, int]
     fov: int
     roomImageOverrideBgCamIndex: int
-    timer: int
-    flags: int
-    unk_10: int = 0  # unused
 
 
 @dataclass
 class CrawlspaceData:
-    name: str
-    points: list[tuple[int, int, int]]
+    points: list[tuple[int, int, int]] = field(default_factory=list)
+
+    def getCrawlspacePointEntriesC(self):
+        return "".join(indent + "{ " + f"{point[0]:6}, {point[1]:6}, {point[2]:6}" + " },\n" for point in self.points)
 
 
 @dataclass
 class BgCamInfo:
-    name: str
-    setting: int
+    setting: str
     count: int
-
-    # Export one of these but never both, see BgCamInfo in z64bgcheck.h
+    arrayIndex: int
     bgCamFuncDataList: list[BgCamFuncData]
-    crawlspaceList: list[CrawlspaceData]
+
+    def getCamPosEntriesC(self):
+        source = ""
+
+        for camData in self.bgCamFuncDataList:
+            source += (
+                (indent + "{ " + ", ".join(f"{p:6}" for p in camData.pos) + " },\n")
+                + (indent + "{ " + ", ".join(f"{r:6}" for r in camData.rot) + " },\n")
+                + (indent + "{ " + f"{camData.fov:6}, {camData.roomImageOverrideBgCamIndex:6}, {-1:6}" + " },\n")
+            )
+
+        return source
+
+    def getBgCamInfoEntryC(self, posDataName: str):
+        ptr = f"&{posDataName}[{self.arrayIndex}]" if len(self.bgCamFuncDataList) > 0 else "NULL"
+        return indent + "{ " + f"{self.setting}, {self.count}, {ptr}" + " },\n"
 
 
 @dataclass
 class WaterBox:
-    name: str
-    xMin: int
-    ySurface: int
-    zMin: int
-    xLength: int
-    zLength: int
+    position: tuple[int, int, int]
+    scale: float
+    emptyDisplaySize: float
 
     # Properties
     bgCamIndex: int
@@ -186,19 +194,55 @@ class WaterBox:
     roomIndex: int
     setFlag19: bool
 
+    xMin: int = None
+    ySurface: int = None
+    zMin: int = None
+    xLength: int = None
+    zLength: int = None
+
+    useMacros: bool = True
+    setFlag19C: str = None
+    roomIndexC: str = None
+
+    def __post_init__(self):
+        self.setFlag19C = "1" if self.setFlag19 else "0"
+        self.roomIndexC = f"0x{self.roomIndex:02X}" if self.roomIndex == 0x3F else f"{self.roomIndex}"
+
+        # The scale ordering is due to the fact that scaling happens AFTER rotation.
+        # Thus the translation uses Y-up, while the scale uses Z-up.
+        xMax = round(self.position[0] + self.scale[0] * self.emptyDisplaySize)
+        zMax = round(self.position[2] + self.scale[1] * self.emptyDisplaySize)
+
+        self.xMin = round(self.position[0] - self.scale[0] * self.emptyDisplaySize)
+        self.ySurface = round(self.position[1] + self.scale[2] * self.emptyDisplaySize)
+        self.zMin = round(self.position[2] - self.scale[1] * self.emptyDisplaySize)
+        self.xLength = xMax - self.xMin
+        self.zLength = zMax - self.zMin
+
     def getWaterboxProperties(self):
-        return (
-            "("
-            + " | ".join(
-                prop
-                for prop in [
-                    f"(({'1' if self.setFlag19 else '0'} & 1) << 19)",
-                    f"(({self.roomIndex} & 0x3F) << 13)",
-                    f"(({self.lightIndex} & 0x1F) <<  8)",
-                    f"(({self.bgCamIndex}) & 0xFF)",
-                ]
+        if self.useMacros:
+            return f"WATERBOX_PROPERTIES({self.bgCamIndex}, {self.lightIndex}, {self.roomIndexC}, {self.setFlag19C})"
+        else:
+            return (
+                "("
+                + " | ".join(
+                    prop
+                    for prop in [
+                        f"(({self.setFlag19C} & 1) << 19)",
+                        f"(({self.roomIndexC} & 0x3F) << 13)",
+                        f"(({self.lightIndex} & 0x1F) <<  8)",
+                        f"(({self.bgCamIndex}) & 0xFF)",
+                    ]
+                )
+                + ")"
             )
-            + ")"
+
+    def getWaterboxEntryC(self):
+        return (
+            (indent + "{ ")
+            + f"{self.xMin}, {self.ySurface}, {self.zMin}, {self.xLength}, {self.zLength}, "
+            + self.getWaterboxProperties()
+            + " },"
         )
 
 
@@ -207,7 +251,7 @@ class Vertex:
     pos: tuple[int, int, int]
 
     def getVertexEntryC(self):
-        return indent + "{ " + ", ".join(f"{p}" for p in self.pos) + " },"
+        return indent + "{ " + ", ".join(f"{p:6}" for p in self.pos) + " },"
 
 
 @dataclass
@@ -273,13 +317,79 @@ class CollisionHeaderSurfaceType:
 @dataclass
 class CollisionHeaderBgCamInfo:
     name: str
+    posDataName: str
     bgCamInfoList: list[BgCamInfo]
+    crawlspacePosList: list[CrawlspaceData]
+
+    crawlspaceCount: int = 6
+    arrayIdx: int = 0
+
+    def __post_init__(self):
+        if len(self.bgCamInfoList) > 0:
+            self.arrayIdx = self.bgCamInfoList[-1].arrayIndex + self.crawlspaceCount
+
+    def getCamPosListC(self):
+        posData = CData()
+        listName = f"Vec3s {self.posDataName}[]"
+
+        # .h
+        posData.header = f"extern {listName};"
+
+        # .c
+        posData.source = (
+            (listName + " = {\n")
+            + "".join(cam.getCamPosEntriesC() for cam in self.bgCamInfoList)
+            + "".join(crawlspace.getCrawlspacePointEntriesC() for crawlspace in self.crawlspacePosList)
+            + "};\n\n"
+        )
+
+        return posData
+
+    def getCrawlspaceInfoEntries(self):
+        source = ""
+
+        for _ in self.crawlspacePosList:
+            source += indent + "{ " + f"CAM_SET_CRAWLSPACE, 6, &{self.posDataName}[{self.arrayIdx}]" + " },\n"
+            self.arrayIdx += self.crawlspaceCount
+
+        return source
+
+    def getBgCamInfoListC(self):
+        bgCamInfoData = CData()
+        listName = f"BgCamInfo {self.name}[]"
+
+        # .h
+        bgCamInfoData.header = f"extern {listName};"
+
+        # .c
+        bgCamInfoData.source = (
+            (listName + " = {\n")
+            + "".join(cam.getBgCamInfoEntryC(self.posDataName) for cam in self.bgCamInfoList)
+            + self.getCrawlspaceInfoEntries()
+            + "};\n\n"
+        )
+
+        return bgCamInfoData
 
 
 @dataclass
 class CollisionHeaderWaterBox:
     name: str
     waterboxList: list[WaterBox]
+
+    def getWaterboxListC(self):
+        wboxData = CData()
+        listName = f"WaterBox {self.name}[{len(self.waterboxList)}]"
+
+        # .h
+        wboxData.header = f"extern {listName};\n"
+
+        # .c
+        wboxData.source = (
+            (listName + " = {\n") + "\n".join(wBox.getWaterboxEntryC() for wBox in self.waterboxList) + "\n};\n\n"
+        )
+
+        return wboxData
 
 
 @dataclass
@@ -295,14 +405,54 @@ class OOTSceneCollisionHeader:
 
     def getCollisionDataC(self):
         colData = CData()
+        varName = f"CollisionHeader {self.name}"
+
+        vtxPtrLine = "0, NULL"
+        colPolyPtrLine = "0, NULL"
+        surfacePtrLine = "NULL"
+        camPtrLine = "NULL"
+        wBoxPtrLine = "0, NULL"
 
         if len(self.vertices.vertexList) > 0:
             colData.append(self.vertices.getVertexListC())
+            vtxPtrLine = f"ARRAY_COUNT({self.vertices.name}), {self.vertices.name}"
 
         if len(self.collisionPoly.polyList) > 0:
             colData.append(self.collisionPoly.getCollisionPolyDataC())
+            colPolyPtrLine = f"ARRAY_COUNT({self.collisionPoly.name}), {self.collisionPoly.name}"
 
         if len(self.surfaceType.surfaceTypeList) > 0:
             colData.append(self.surfaceType.getSurfaceTypeDataC())
+            surfacePtrLine = f"{self.surfaceType.name}"
+
+        if len(self.bgCamInfo.bgCamInfoList) > 0 or len(self.bgCamInfo.crawlspacePosList) > 0:
+            colData.append(self.bgCamInfo.getCamPosListC())
+            colData.append(self.bgCamInfo.getBgCamInfoListC())
+            camPtrLine = f"{self.bgCamInfo.name}"
+
+        if len(self.waterbox.waterboxList) > 0:
+            colData.append(self.waterbox.getWaterboxListC())
+            wBoxPtrLine = f"ARRAY_COUNT({self.waterbox.name}), {self.waterbox.name}"
+
+        # .h
+        colData.header = f"extern {varName};\n"
+
+        # .c
+        colData.source += (
+            (varName + " = {\n")
+            + ",\n".join(
+                indent + val
+                for val in [
+                    ("{ " + ", ".join(f"{val}" for val in self.minBounds) + " }"),
+                    ("{ " + ", ".join(f"{val}" for val in self.maxBounds) + " }"),
+                    vtxPtrLine,
+                    colPolyPtrLine,
+                    surfacePtrLine,
+                    camPtrLine,
+                    wBoxPtrLine,
+                ]
+            )
+            + "\n};\n\n"
+        )
 
         return colData

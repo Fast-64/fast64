@@ -3,6 +3,7 @@ from ...utility import CData, indent
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from .collision import OOTSceneCollisionHeader
     from .room import OOTRoom, OOTRoomHeaderInfos, OOTRoomHeaderObjects, OOTRoomHeaderActors
     from .scene import (
         OOTScene,
@@ -101,8 +102,8 @@ class OOTSceneCommands:
     def getMiscSettingsCmd(self, infos: "OOTSceneHeaderInfos"):
         return indent + f"SCENE_CMD_MISC_SETTINGS({infos.sceneCamType}, {infos.worldMapLocation})"
 
-    # def getColHeaderCmd(self, outScene: OOTScene):
-    #     return indent + f"SCENE_CMD_COL_HEADER(&{outScene.collision.headerName()})"
+    def getColHeaderCmd(self, colHeader: "OOTSceneCollisionHeader"):
+        return indent + f"SCENE_CMD_COL_HEADER(&{colHeader.name})"
 
     def getSpawnListCmd(self, actors: "OOTSceneHeaderActors"):
         return (
@@ -152,7 +153,6 @@ class OOTSceneCommands:
         getCmdFunc1List = [
             self.getExitListCmd,
             self.getSpawnActorListCmd,
-            # self.getColHeaderCmd,
         ]
 
         getCmdGeneralList = [
@@ -174,6 +174,7 @@ class OOTSceneCommands:
         hasAltHeaders = headerIndex == 0 and scene.hasAlternateHeaders()
         sceneCmdData = (
             (scene.getAltHeaderListCmd(scene.altHeader.name) if hasAltHeaders else "")
+            + self.getColHeaderCmd(scene.colHeader)
             + self.getRoomListCmd(scene)
             + self.getSkyboxSettingsCmd(curHeader.infos, curHeader.lighting)
             + self.getLightSettingsCmd(curHeader.lighting)

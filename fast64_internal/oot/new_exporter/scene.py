@@ -1,13 +1,14 @@
 import math
 
 from dataclasses import dataclass, field
-from mathutils import Vector, Matrix
+from mathutils import Vector, Quaternion
 from bpy.types import Object, Mesh
 from bpy.ops import object
-from ...utility import PluginError, CData, exportColor, ootGetBaseOrCustomLight, indent
+from ...utility import PluginError, CData, exportColor, ootGetBaseOrCustomLight, checkIdentityRotation, indent
 from ..oot_utility import convertIntTo2sComplement
 from ..scene.properties import OOTSceneHeaderProperty, OOTLightProperty
 from ..oot_constants import ootData
+from ..oot_collision_classes import decomp_compat_map_CameraSType
 from .commands import OOTSceneCommands
 from .common import Common, TransitionActor, EntranceActor, altHeaderList
 from .room import OOTRoom
@@ -22,6 +23,10 @@ from .collision import (
     SurfaceType,
     CollisionPoly,
     Vertex,
+    WaterBox,
+    BgCamInfo,
+    BgCamFuncData,
+    CrawlspaceData,
 )
 
 from .scene_header import (
@@ -49,11 +54,9 @@ class OOTScene(Common, OOTSceneCommands):
     roomListName: str = None
 
     colHeader: OOTSceneCollisionHeader = None
-    meshObjList: list[Object] = field(default_factory=list)
 
     def __post_init__(self):
         self.roomListName = f"{self.name}_roomList"
-        self.meshObjList = [obj for obj in self.sceneObj.children_recursive if obj.type == "MESH"]
 
     def validateCurveData(self, curveObj: Object):
         curveData = curveObj.data
@@ -363,17 +366,18 @@ class OOTScene(Common, OOTSceneCommands):
                 return i
         return None
 
-    def getNewCollisionHeader(self):
+    def getColSurfaceVtxDataFromMeshObj(self):
+        meshObjList = [obj for obj in self.sceneObj.children_recursive if obj.type == "MESH"]
         object.select_all(action="DESELECT")
         self.sceneObj.select_set(True)
 
-        surfaceTypeList: list[SurfaceType] = []
+        surfaceTypeData: dict[int, SurfaceType] = {}
         polyList: list[CollisionPoly] = []
         vertexList: list[Vertex] = []
         bounds = []
 
         i = 0
-        for meshObj in self.meshObjList:
+        for meshObj in meshObjList:
             if not meshObj.ignore_collision:
                 if len(meshObj.data.materials) == 0:
                     raise PluginError(f"'{meshObj.name}' must have a material associated with it.")
@@ -432,7 +436,7 @@ class OOTScene(Common, OOTSceneCommands):
                         indices[1], indices[2] = indices[2], indices[1]
 
                     useConveyor = colProp.conveyorOption != "None"
-                    surfaceType = SurfaceType(
+                    surfaceTypeData[i] = SurfaceType(
                         colProp.cameraID,
                         colProp.exitID,
                         int(self.getPropValue(colProp, "floorSetting"), base=16),
@@ -452,9 +456,6 @@ class OOTScene(Common, OOTSceneCommands):
                         colProp.conveyorKeepMomentum if useConveyor else False,
                     )
 
-                    if surfaceType not in surfaceTypeList:
-                        surfaceTypeList.append(surfaceType)
-
                     polyList.append(
                         CollisionPoly(
                             indices,
@@ -468,16 +469,118 @@ class OOTScene(Common, OOTSceneCommands):
                         )
                     )
                 i += 1
+        return bounds, vertexList, polyList, [surfaceTypeData[i] for i in range(len(surfaceTypeData))]
 
+    def getBgCamFuncDataFromObjects(self, camObj: Object):
+        camProp = camObj.ootCameraPositionProperty
+
+        # Camera faces opposite direction
+        pos, rot, _, _ = self.getConvertedTransformWithOrientation(
+            self.transform, self.sceneObj, camObj, Quaternion((0, 1, 0), math.radians(180.0))
+        )
+
+        fov = math.degrees(camObj.data.angle)
+        if fov > 3.6:
+            fov *= 100  # see CAM_DATA_SCALED() macro
+
+        return BgCamFuncData(
+            pos,
+            rot,
+            round(fov),
+            camProp.bgImageOverrideIndex,
+        )
+
+    def getCrawlspaceDataFromObjects(self):
+        crawlspaceList: list[CrawlspaceData] = []
+        crawlspaceObjList: list[Object] = [
+            obj
+            for obj in self.sceneObj.children_recursive
+            if obj.type == "CURVE" and obj.ootSplineProperty.splineType == "Crawlspace"
+        ]
+
+        for obj in crawlspaceObjList:
+            if self.validateCurveData(obj):
+                crawlspaceList.append(
+                    CrawlspaceData(
+                        [
+                            [round(value) for value in self.transform @ obj.matrix_world @ point.co]
+                            for point in obj.data.splines[0].points
+                        ]
+                    )
+                )
+
+        return crawlspaceList
+
+    def getBgCamInfoDataFromObjects(self):
+        camObjList = [obj for obj in self.sceneObj.children_recursive if obj.type == "CAMERA"]
+        camPosData: dict[int, BgCamFuncData] = {}
+        bgCamList: list[BgCamInfo] = []
+
+        index = 0
+        for camObj in camObjList:
+            camProp = camObj.ootCameraPositionProperty
+
+            if camProp.camSType == "Custom":
+                setting = camProp.camSTypeCustom
+            else:
+                setting = decomp_compat_map_CameraSType.get(camProp.camSType, camProp.camSType)
+
+            if camProp.hasPositionData:
+                count = 3
+                index = camProp.index
+                if index in camPosData:
+                    raise PluginError(f"Error: Repeated camera position index: {index} for {camObj.name}")
+                camPosData[index] = self.getBgCamFuncDataFromObjects(camObj)
+            else:
+                count = 0
+
+            bgCamList.append(BgCamInfo(setting, count, index, [camPosData[i] for i in range(len(camPosData))]))
+            index += count
+        return bgCamList
+
+    def getWaterBoxDataFromObjects(self):
+        waterboxObjList = [
+            obj for obj in self.sceneObj.children_recursive if obj.type == "EMPTY" and obj.ootEmptyType == "Water Box"
+        ]
+        waterboxList: list[WaterBox] = []
+
+        for waterboxObj in waterboxObjList:
+            emptyScale = waterboxObj.empty_display_size
+            pos, _, scale, orientedRot = self.getConvertedTransform(self.transform, self.sceneObj, waterboxObj, True)
+            checkIdentityRotation(waterboxObj, orientedRot, False)
+
+            wboxProp = waterboxObj.ootWaterBoxProperty
+            roomObj = self.getRoomObjectFromChild(waterboxObj)
+            waterboxList.append(
+                WaterBox(
+                    pos,
+                    scale,
+                    emptyScale,
+                    wboxProp.camera,
+                    wboxProp.lighting,
+                    roomObj.ootRoomHeader.roomIndex if roomObj is not None else 0x3F,
+                    wboxProp.flag19,
+                )
+            )
+
+        return waterboxList
+
+    def getNewCollisionHeader(self):
+        colBounds, vertexList, polyList, surfaceTypeList = self.getColSurfaceVtxDataFromMeshObj()
         return OOTSceneCollisionHeader(
             f"{self.name}_collisionHeader",
-            bounds[0],
-            bounds[1],
+            colBounds[0],
+            colBounds[1],
             CollisionHeaderVertices(f"{self.name}_vertices", vertexList),
             CollisionHeaderCollisionPoly(f"{self.name}_polygons", polyList),
             CollisionHeaderSurfaceType(f"{self.name}_polygonTypes", surfaceTypeList),
-            None,
-            None,
+            CollisionHeaderBgCamInfo(
+                f"{self.name}_bgCamInfo",
+                f"{self.name}_camPosData",
+                self.getBgCamInfoDataFromObjects(),
+                self.getCrawlspaceDataFromObjects(),
+            ),
+            CollisionHeaderWaterBox(f"{self.name}_waterBoxes", self.getWaterBoxDataFromObjects()),
         )
 
     def getSceneMainC(self):
