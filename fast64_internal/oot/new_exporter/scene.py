@@ -505,16 +505,7 @@ class OOTScene(Common, OOTSceneCommands):
 
         return pathList
 
-    def getNewSceneHeader(self, headerProp: OOTSceneHeaderProperty, headerIndex: int = 0):
-        """Returns a single scene header with the informations from the scene empty object"""
-
-        self.headerIndex = headerIndex
-        headerName = f"{self.name}_header{self.headerIndex:02}"
-
-        if headerProp.writeCutscene and headerProp.csWriteType == "Embedded":
-            raise PluginError("ERROR: 'Embedded' CS Write Type is not supported!")
-
-        lightMode = self.getPropValue(headerProp, "skyboxLighting")
+    def getEnvLightSettingsListFromProps(self, headerProp: OOTSceneHeaderProperty, lightMode: str):
         lightList: list[OOTLightProperty] = []
         lightSettings: list[EnvLightSettings] = []
 
@@ -542,6 +533,18 @@ class OOTScene(Common, OOTSceneCommands):
                 )
             )
 
+        return lightSettings
+
+    def getNewSceneHeader(self, headerProp: OOTSceneHeaderProperty, headerIndex: int = 0):
+        """Returns a single scene header with the informations from the scene empty object"""
+
+        self.headerIndex = headerIndex
+        headerName = f"{self.name}_header{self.headerIndex:02}"
+        lightMode = self.getPropValue(headerProp, "skyboxLighting")
+
+        if headerProp.writeCutscene and headerProp.csWriteType == "Embedded":
+            raise PluginError("ERROR: 'Embedded' CS Write Type is not supported!")
+
         return OOTSceneHeader(
             headerName,
             OOTSceneHeaderInfos(
@@ -561,7 +564,7 @@ class OOTScene(Common, OOTSceneCommands):
             OOTSceneHeaderLighting(
                 f"{headerName}_lightSettings",
                 lightMode,
-                lightSettings,
+                self.getEnvLightSettingsListFromProps(headerProp, lightMode),
             ),
             OOTSceneHeaderCutscene(
                 f"{headerName}_cutscene",
