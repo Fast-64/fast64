@@ -11,6 +11,7 @@ if TYPE_CHECKING:
         OOTSceneHeaderLighting,
         OOTSceneHeaderCutscene,
         OOTSceneHeaderActors,
+        OOTSceneHeaderPath,
     )
 
 
@@ -111,8 +112,8 @@ class OOTSceneCommands:
     def getSpecialFilesCmd(self, infos: "OOTSceneHeaderInfos"):
         return indent + f"SCENE_CMD_SPECIAL_FILES({infos.naviHintType}, {infos.keepObjectID})"
 
-    # def getPathListCmd(self, outScene: "OOTScene", headerIndex: int):
-    #     return indent + f"SCENE_CMD_PATH_LIST({outScene.pathListName(headerIndex)})"
+    def getPathListCmd(self, path: "OOTSceneHeaderPath"):
+        return indent + f"SCENE_CMD_PATH_LIST({path.name}),\n" if len(path.pathList) > 0 else ""
 
     def getSpawnActorListCmd(self, scene: "OOTScene", headerIndex: int):
         curHeader = scene.getSceneHeaderFromIndex(headerIndex)
@@ -167,9 +168,6 @@ class OOTSceneCommands:
         if len(curHeader.actors.transitionActorList) > 0:
             getCmdActorList.append(self.getTransActorListCmd)
 
-        # if len(outScene.pathList) > 0:
-        #     getCmdFunc2ArgList.append(self.getPathListCmd)
-
         # if scene.writeCutscene:
         #     getCmdFunc2ArgList.append(self.getCutsceneDataCmd)
 
@@ -179,6 +177,7 @@ class OOTSceneCommands:
             + self.getRoomListCmd(scene)
             + self.getSkyboxSettingsCmd(curHeader.infos, curHeader.lighting)
             + self.getLightSettingsCmd(curHeader.lighting)
+            + self.getPathListCmd(curHeader.path)
             # + (self.getCutsceneDataCmd(curHeader.cutscene) if curHeader.cutscene.writeCutscene else "")
             + (",\n".join(getCmd(curHeader.infos) for getCmd in getCmdGeneralList) + ",\n")
             + (",\n".join(getCmd(scene, headerIndex) for getCmd in getCmdFunc1List) + ",\n")

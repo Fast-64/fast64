@@ -79,7 +79,7 @@ class OOTRoomHeaderActors:
         ]
         for obj in actorObjList:
             actorProp = obj.ootActorProperty
-            if not Common.isCurrentHeaderValid(actorProp, self.headerIndex):
+            if not Common.isCurrentHeaderValid(actorProp.headerSettings, self.headerIndex):
                 continue
 
             # The Actor list is filled with ``("None", f"{i} (Deleted from the XML)", "None")`` for

@@ -74,6 +74,31 @@ class EnvLightSettings:
 
 
 @dataclass
+class Path:
+    name: str
+    points: list[tuple[int, int, int]] = field(default_factory=list)
+
+    def getPathPointListC(self):
+        pathData = CData()
+        pathName = f"Vec3s {self.name}"
+
+        # .h
+        pathData.header = f"extern {pathName}[];\n"
+
+        # .c
+        pathData.source = (
+            f"{pathName}[]"
+            + " = {\n"
+            + "\n".join(
+                indent + "{ " + ", ".join(f"{round(curPoint):5}" for curPoint in point) + " }," for point in self.points
+            )
+            + "\n};\n\n"
+        )
+
+        return pathData
+
+
+@dataclass
 class OOTSceneHeaderInfos:
     ### General ###
 
@@ -222,6 +247,37 @@ class OOTSceneHeaderActors:
 
 
 @dataclass
+class OOTSceneHeaderPath:
+    name: str
+    pathList: list[Path]
+
+    def getPathC(self):
+        pathData = CData()
+        pathListData = CData()
+        listName = f"Path {self.name}[{len(self.pathList)}]"
+
+        # .h
+        pathListData.header = f"extern {listName};\n"
+
+        # .c
+        pathListData.source = listName + " = {\n"
+
+        for path in self.pathList:
+            pathListData.source += indent + "{ " + f"ARRAY_COUNTU({path.name}), {path.name}" + " },\n"
+            pathData.append(path.getPathPointListC())
+
+        pathListData.source += "};\n\n"
+        pathData.append(pathListData)
+
+        return pathData
+
+
+@dataclass
+class OOTSceneHeaderCrawlspace:
+    name: str
+
+
+@dataclass
 class OOTSceneAlternateHeader:
     name: str
     childNight: "OOTSceneHeader" = None
@@ -238,6 +294,8 @@ class OOTSceneHeader:
     cutscene: OOTSceneHeaderCutscene
     exits: OOTSceneHeaderExits
     actors: OOTSceneHeaderActors
+    path: OOTSceneHeaderPath
+    crawlspace: OOTSceneHeaderCrawlspace
 
     def getHeaderC(self):
         headerData = CData()
@@ -260,8 +318,8 @@ class OOTSceneHeader:
             headerData.append(self.lighting.getEnvLightSettingsC())
 
         # Write the path data, if used
-        # if len(self.pathList) > 0:
-        #     headerData.append(getPathData(header, headerIndex))
+        if len(self.path.pathList) > 0:
+            headerData.append(self.path.getPathC())
 
         return headerData
 
@@ -277,6 +335,18 @@ class OOTScene(Common, OOTSceneCommands):
 
     def __post_init__(self):
         self.roomListName = f"{self.name}_roomList"
+
+    def validateCurveData(self, curveObj: Object):
+        curveData = curveObj.data
+        if curveObj.type != "CURVE" or curveData.splines[0].type != "NURBS":
+            # Curve was likely not intended to be exported
+            return False
+
+        if len(curveData.splines) != 1:
+            # Curve was intended to be exported but has multiple disconnected segments
+            raise PluginError(f"Exported curves should have only one single segment, found {len(curveData.splines)}")
+
+        return True
 
     def validateRoomIndices(self):
         for i, room in enumerate(self.roomList):
@@ -346,7 +416,7 @@ class OOTScene(Common, OOTSceneCommands):
 
             transActorProp = obj.ootTransitionActorProperty
 
-            if not self.isCurrentHeaderValid(transActorProp.actor, self.headerIndex):
+            if not self.isCurrentHeaderValid(transActorProp.actor.headerSettings, self.headerIndex):
                 continue
 
             if transActorProp.actor.actorID != "None":
@@ -392,7 +462,7 @@ class OOTScene(Common, OOTSceneCommands):
                 raise PluginError("ERROR: Room Object not found!")
 
             entranceProp = obj.ootEntranceProperty
-            if not self.isCurrentHeaderValid(entranceProp.actor, self.headerIndex):
+            if not self.isCurrentHeaderValid(entranceProp.actor.headerSettings, self.headerIndex):
                 continue
 
             if entranceProp.actor.actorID != "None":
@@ -415,6 +485,25 @@ class OOTScene(Common, OOTSceneCommands):
                 entranceActor.spawnIndex = entranceProp.spawnIndex
                 actorList.append(entranceActor)
         return actorList
+
+    def getPathListFromProps(self, listNameBase: str):
+        pathList: list[Path] = []
+        pathObjList: list[Object] = [
+            obj
+            for obj in self.sceneObj.children_recursive
+            if obj.type == "CURVE" and obj.ootSplineProperty.splineType == "Path"
+        ]
+
+        for i, obj in enumerate(pathObjList):
+            isHeaderValid = self.isCurrentHeaderValid(obj.ootSplineProperty.headerSettings, self.headerIndex)
+            if isHeaderValid and self.validateCurveData(obj):
+                pathList.append(
+                    Path(
+                        f"{listNameBase}{i:02}", [self.transform @ point.co.xyz for point in obj.data.splines[0].points]
+                    )
+                )
+
+        return pathList
 
     def getNewSceneHeader(self, headerProp: OOTSceneHeaderProperty, headerIndex: int = 0):
         """Returns a single scene header with the informations from the scene empty object"""
@@ -490,6 +579,8 @@ class OOTScene(Common, OOTSceneCommands):
                 self.getTransActorListFromProps(),
                 self.getEntranceActorListFromProps(),
             ),
+            OOTSceneHeaderPath(f"{headerName}_pathway", self.getPathListFromProps(f"{headerName}_pathwayList")),
+            OOTSceneHeaderCrawlspace(None),
         )
 
     def getRoomListC(self):

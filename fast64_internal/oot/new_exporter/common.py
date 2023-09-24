@@ -4,7 +4,7 @@ from mathutils import Quaternion, Matrix
 from bpy.types import Object
 from ...utility import indent
 from ..oot_utility import ootConvertTranslation, ootConvertRotation
-from ..actor.properties import OOTActorProperty
+from ..actor.properties import OOTActorHeaderProperty
 
 
 altHeaderList = ["childNight", "adultDay", "adultNight"]
@@ -16,20 +16,20 @@ class Common:
     transform: Matrix
     roomIndex: int = None
 
-    def isCurrentHeaderValid(self, actorProp: OOTActorProperty, headerIndex: int):
-        preset = actorProp.headerSettings.sceneSetupPreset
+    def isCurrentHeaderValid(self, headerSettings: OOTActorHeaderProperty, headerIndex: int):
+        preset = headerSettings.sceneSetupPreset
 
         if preset == "All Scene Setups" or (preset == "All Non-Cutscene Scene Setups" and headerIndex < 4):
             return True
 
         if preset == "Custom":
-            if actorProp.headerSettings.childDayHeader and headerIndex == 0:
+            if headerSettings.childDayHeader and headerIndex == 0:
                 return True
-            if actorProp.headerSettings.childNightHeader and headerIndex == 1:
+            if headerSettings.childNightHeader and headerIndex == 1:
                 return True
-            if actorProp.headerSettings.adultDayHeader and headerIndex == 2:
+            if headerSettings.adultDayHeader and headerIndex == 2:
                 return True
-            if actorProp.headerSettings.adultNightHeader and headerIndex == 3:
+            if headerSettings.adultNightHeader and headerIndex == 3:
                 return True
 
         return False
