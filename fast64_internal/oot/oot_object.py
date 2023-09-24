@@ -41,9 +41,8 @@ def addMissingObjectsToAllRoomHeaders(roomObj: Object, room: OOTRoom, ootData: O
         addMissingObjectsToRoomHeader(roomObj, room.cutsceneHeaders[i], ootData, i + 4)
 
 
-def addMissingObjectsToRoomHeaderNew(roomObj: Object, room, ootData: OoT_Data, headerIndex: int):
+def addMissingObjectsToRoomHeaderNew(roomObj: Object, curHeader, ootData: OoT_Data, headerIndex: int):
     """Adds missing objects to the object list"""
-    curHeader = room.getRoomHeaderFromIndex(headerIndex)
     if len(curHeader.actors.actorList) > 0:
         for roomActor in curHeader.actors.actorList:
             actor = ootData.actorData.actorsByID.get(roomActor.actorID)
@@ -61,9 +60,10 @@ def addMissingObjectsToAllRoomHeadersNew(roomObj: Object, room, ootData: OoT_Dat
     Adds missing objects (required by actors) to all headers of a room,
     both to the roomObj empty and the exported room
     """
-    sceneLayers = [room, room.altHeader.childNight, room.altHeader.adultDay, room.altHeader.adultNight]
-    for i, layer in enumerate(sceneLayers):
-        if layer is not None:
-            addMissingObjectsToRoomHeaderNew(roomObj, layer, ootData, i)
-    for i in range(len(room.altHeader.cutscenes)):
-        addMissingObjectsToRoomHeaderNew(roomObj, room.cutsceneHeaders[i], ootData, i + 4)
+    if room.altHeader is not None:
+        sceneLayers = [room.mainHeader, room.altHeader.childNight, room.altHeader.adultDay, room.altHeader.adultNight]
+        if len(room.altHeader.cutscenes) > 0:
+            sceneLayers.extend(room.altHeader.cutscenes)
+        for i, layer in enumerate(sceneLayers):
+            if layer is not None:
+                addMissingObjectsToRoomHeaderNew(roomObj, layer, ootData, i)

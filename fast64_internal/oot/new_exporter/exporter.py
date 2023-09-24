@@ -43,6 +43,7 @@ class OOTRoomData:
 class OOTSceneData:
     sceneMain: str = None
     sceneCollision: str = None
+    sceneCutscenes: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -62,7 +63,7 @@ class OOTSceneExport:
     header: str = ""
     sceneData: OOTSceneData = None
     roomList: dict[int, OOTRoomData] = field(default_factory=dict)
-    csList: dict[int, str] = field(default_factory=dict)
+    hasCutscenes: bool = False
 
     def getNewRoomList(self):
         processedRooms = []
@@ -81,17 +82,22 @@ class OOTSceneExport:
             roomData = OOTRoom(self.sceneObj, self.transform, roomIndex, roomName, roomObj)
             altHeaderData = OOTRoomAlternateHeader(f"{roomData.name}_alternateHeaders")
             roomData.mainHeader = roomData.getNewRoomHeader(roomObj.ootRoomHeader)
+            hasAltHeader = False
 
             for i, header in enumerate(altHeaderList, 1):
                 altP: OOTRoomHeaderProperty = getattr(altProp, f"{header}Header")
                 if not altP.usePreviousHeader:
+                    hasAltHeader = True
                     setattr(altHeaderData, header, roomData.getNewRoomHeader(altP, i))
 
             altHeaderData.cutscenes = [
                 roomData.getNewRoomHeader(csHeader, i) for i, csHeader in enumerate(altProp.cutsceneHeaders, 4)
             ]
 
-            roomData.altHeader = altHeaderData
+            if len(altHeaderData.cutscenes) > 0:
+                hasAltHeader = True
+
+            roomData.altHeader = altHeaderData if hasAltHeader else None
 
             if roomIndex in processedRooms:
                 raise PluginError(f"ERROR: Room index {roomIndex} used more than once!")
@@ -107,17 +113,22 @@ class OOTSceneExport:
         sceneData = OOTScene(self.sceneObj, self.transform, name=f"{toAlnum(self.sceneName)}_scene")
         altHeaderData = OOTSceneAlternateHeader(f"{sceneData.name}_alternateHeaders")
         sceneData.mainHeader = sceneData.getNewSceneHeader(self.sceneObj.ootSceneHeader)
+        hasAltHeader = False
 
         for i, header in enumerate(altHeaderList, 1):
             altP: OOTSceneHeaderProperty = getattr(altProp, f"{header}Header")
             if not altP.usePreviousHeader:
                 setattr(altHeaderData, header, sceneData.getNewSceneHeader(altP, i))
+                hasAltHeader = True
 
         altHeaderData.cutscenes = [
             sceneData.getNewSceneHeader(csHeader, i) for i, csHeader in enumerate(altProp.cutsceneHeaders, 4)
         ]
 
-        sceneData.altHeader = altHeaderData
+        if len(altHeaderData.cutscenes) > 0:
+            hasAltHeader = True
+
+        sceneData.altHeader = altHeaderData if hasAltHeader else None
         sceneData.roomList = self.getNewRoomList()
 
         sceneData.validateScene()
@@ -144,6 +155,13 @@ class OOTSceneExport:
         sceneData = None
         try:
             sceneData = self.getNewScene()
+            self.hasCutscenes = sceneData.mainHeader.cutscene.writeCutscene
+
+            if not self.hasCutscenes:
+                for cs in sceneData.altHeader.cutscenes:
+                    if cs.cutscene.writeCutscene:
+                        self.hasCutscenes = True
+                        break
 
             ootCleanupScene(originalSceneObj, allObjs)
         except Exception as e:
@@ -173,13 +191,38 @@ class OOTSceneExport:
         self.header += sceneMainData.header
         self.sceneData = sceneData
 
-    def writeScene(self):
-        scenePath = os.path.join(self.path, self.scene.name + ".c")
-        writeFile(scenePath, self.sceneData.sceneMain)
+    def setIncludeData(self):
+        suffix = "\n\n"
+        common = "\n".join(
+            elem
+            for elem in [
+                '#include "ultra64.h"',
+                '#include "macros.h"',
+                '#include "z64.h"',
+                f'#include "{self.scene.name}.h"',
+            ]
+        )
+        self.sceneData.sceneMain = common + suffix + self.sceneData.sceneMain
+
+        if self.hasCutscenes:
+            for cs in self.sceneData.sceneCutscenes:
+                cs = '#include "z64cutscene.h\n' + '#include "z64cutscene_commands.h\n\n' + cs
 
         for room in self.roomList.values():
-            roomPath = os.path.join(self.path, room.name + ".c")
-            writeFile(roomPath, room.roomMain)
+            room.roomMain = common + suffix + room.roomMain
+
+    def writeScene(self):
+        sceneBasePath = os.path.join(self.path, self.scene.name)
+
+        for room in self.roomList.values():
+            writeFile(os.path.join(self.path, room.name + ".c"), room.roomMain)
+
+        if self.hasCutscenes:
+            for i, cs in enumerate(self.sceneData.sceneCutscenes):
+                writeFile(f"{sceneBasePath}_cs_{i}.c", cs)
+
+        writeFile(sceneBasePath + ".c", self.sceneData.sceneMain)
+        writeFile(sceneBasePath + ".h", self.header)
 
     def export(self):
         checkObjectReference(self.sceneObj, "Scene object")
@@ -199,5 +242,6 @@ class OOTSceneExport:
         self.path = levelPath
         self.setSceneData()
         self.setRoomListData()
+        self.setIncludeData()
 
         self.writeScene()

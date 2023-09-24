@@ -3,6 +3,7 @@ from ...utility import CData, indent
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from .room import OOTRoom, OOTRoomHeaderInfos, OOTRoomHeaderObjects, OOTRoomHeaderActors
     from .scene import (
         OOTScene,
         OOTSceneHeaderInfos,
@@ -11,7 +12,6 @@ if TYPE_CHECKING:
         OOTSceneHeaderCutscene,
         OOTSceneHeaderActors,
     )
-    from .room import OOTRoom, OOTRoomHeader, OOTRoomHeaderInfos, OOTRoomHeaderObjects, OOTRoomHeaderActors
 
 
 class OOTRoomCommands:
@@ -45,20 +45,18 @@ class OOTRoomCommands:
     # def getRoomShapeCmd(self, infos: "OOTRoom"):
     #     return indent + f"SCENE_CMD_ROOM_SHAPE(&{infos.mesh.headerName()})"
 
-    def getObjectListCmd(self, objects: "OOTRoomHeaderObjects", headerIndex: int):
-        return (
-            indent + "SCENE_CMD_OBJECT_LIST("
-        ) + f"{objects.getObjectLengthDefineName(headerIndex)}, {objects.objectListName(headerIndex)}),\n"
+    def getObjectListCmd(self, objects: "OOTRoomHeaderObjects"):
+        return (indent + "SCENE_CMD_OBJECT_LIST(") + f"{objects.getObjectLengthDefineName()}, {objects.name}),\n"
 
-    def getActorListCmd(self, actors: "OOTRoomHeaderActors", headerIndex: int):
-        return (indent + "SCENE_CMD_ACTOR_LIST(") + f"{actors.getActorLengthDefineName()}, {actors.actorListName()}),\n"
+    def getActorListCmd(self, actors: "OOTRoomHeaderActors"):
+        return (indent + "SCENE_CMD_ACTOR_LIST(") + f"{actors.getActorLengthDefineName()}, {actors.name}),\n"
 
     def getRoomCommandList(self, room: "OOTRoom", headerIndex: int):
         cmdListData = CData()
         curHeader = room.getRoomHeaderFromIndex(headerIndex)
-        listName = f"SceneCmd {curHeader.roomName}_header{headerIndex:02}"
+        listName = f"SceneCmd {curHeader.name}"
 
-        getCmdFuncList = [
+        getCmdFuncInfosList = [
             self.getEchoSettingsCmd,
             self.getRoomBehaviourCmd,
             self.getSkyboxDisablesCmd,
@@ -66,12 +64,15 @@ class OOTRoomCommands:
             # self.getRoomShapeCmd,
         ]
 
+        if curHeader.infos.setWind:
+            getCmdFuncInfosList.append(self.getWindSettingsCmd)
+
+        hasAltHeaders = headerIndex == 0 and room.hasAlternateHeaders()
         roomCmdData = (
-            (room.getAltHeaderListCmd(room.altHeader.name) if room.hasAlternateHeaders() else "")
-            + (",\n".join(getCmd(curHeader.infos) for getCmd in getCmdFuncList) + ",\n")
-            + (self.getWindSettingsCmd(curHeader.infos) if curHeader.infos.setWind else "")
-            + (self.getObjectListCmd(curHeader.objects, headerIndex) if len(curHeader.objects.objectList) > 0 else "")
-            + (self.getActorListCmd(curHeader.actors, headerIndex) if len(curHeader.actors.actorList) > 0 else "")
+            (room.getAltHeaderListCmd(room.altHeader.name) if hasAltHeaders else "")
+            + (self.getObjectListCmd(curHeader.objects) if len(curHeader.objects.objectList) > 0 else "")
+            + (self.getActorListCmd(curHeader.actors) if len(curHeader.actors.actorList) > 0 else "")
+            + (",\n".join(getCmd(curHeader.infos) for getCmd in getCmdFuncInfosList) + ",\n")
             + room.getEndCmd()
         )
 
@@ -119,7 +120,7 @@ class OOTSceneCommands:
         return (
             (indent + "SCENE_CMD_SPAWN_LIST(")
             + f"{len(curHeader.actors.entranceActorList)}, "
-            + f"{startPosName if len(curHeader.actors.entranceActorList) > 0 else 'NULL'}),\n"
+            + f"{startPosName if len(curHeader.actors.entranceActorList) > 0 else 'NULL'})"
         )
 
     def getSkyboxSettingsCmd(self, infos: "OOTSceneHeaderInfos", lights: "OOTSceneHeaderLighting"):
@@ -127,7 +128,7 @@ class OOTSceneCommands:
 
     def getExitListCmd(self, scene: "OOTScene", headerIndex: int):
         curHeader = scene.getSceneHeaderFromIndex(headerIndex)
-        return indent + f"SCENE_CMD_EXIT_LIST({curHeader.exits.name}),\n"
+        return indent + f"SCENE_CMD_EXIT_LIST({curHeader.exits.name})"
 
     def getLightSettingsCmd(self, lights: "OOTSceneHeaderLighting"):
         return (
@@ -145,9 +146,11 @@ class OOTSceneCommands:
 
     def getSceneCommandList(self, scene: "OOTScene", curHeader: "OOTSceneHeader", headerIndex: int):
         cmdListData = CData()
-        listName = f"SceneCmd {scene.headerName}"
+        listName = f"SceneCmd {curHeader.name}"
 
-        getCmdFunc1ArgList = [
+        getCmdFunc1List = [
+            self.getExitListCmd,
+            self.getSpawnActorListCmd,
             # self.getColHeaderCmd,
         ]
 
@@ -170,16 +173,15 @@ class OOTSceneCommands:
         # if scene.writeCutscene:
         #     getCmdFunc2ArgList.append(self.getCutsceneDataCmd)
 
+        hasAltHeaders = headerIndex == 0 and scene.hasAlternateHeaders()
         sceneCmdData = (
-            (scene.getAltHeaderListCmd(scene.altHeader.name) if scene.hasAlternateHeaders() else "")
+            (scene.getAltHeaderListCmd(scene.altHeader.name) if hasAltHeaders else "")
             + self.getRoomListCmd(scene)
             + self.getSkyboxSettingsCmd(curHeader.infos, curHeader.lighting)
-            # + (",\n".join(getCmd(scene) for getCmd in getCmdFunc1ArgList) + ",\n")
-            + (",\n".join(getCmd(curHeader.infos) for getCmd in getCmdGeneralList) + ",\n")
-            + (self.getExitListCmd(scene, headerIndex) if len(curHeader.exits.exitList) > 0 else "")
-            + (self.getCutsceneDataCmd(curHeader.cutscene) if curHeader.cutscene.writeCutscene else "")
-            + self.getSpawnActorListCmd(scene, headerIndex)
             + self.getLightSettingsCmd(curHeader.lighting)
+            # + (self.getCutsceneDataCmd(curHeader.cutscene) if curHeader.cutscene.writeCutscene else "")
+            + (",\n".join(getCmd(curHeader.infos) for getCmd in getCmdGeneralList) + ",\n")
+            + (",\n".join(getCmd(scene, headerIndex) for getCmd in getCmdFunc1List) + ",\n")
             + (",\n".join(getCmd(curHeader.actors) for getCmd in getCmdActorList) + ",\n")
             + scene.getEndCmd()
         )

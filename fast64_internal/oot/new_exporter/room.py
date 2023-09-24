@@ -9,11 +9,6 @@ from .common import Common, Actor, altHeaderList
 
 
 @dataclass
-class RoomCommon:
-    roomName: str
-
-
-@dataclass
 class OOTRoomHeaderInfos:
     ### General ###
 
@@ -44,26 +39,24 @@ class OOTRoomHeaderInfos:
 
 
 @dataclass
-class OOTRoomHeaderObjects(RoomCommon):
+class OOTRoomHeaderObjects:
+    name: str
     objectList: list[str]
 
-    def objectListName(self, headerIndex: int):
-        return f"{self.roomName}_header{headerIndex:02}_objectList"
+    def getObjectLengthDefineName(self):
+        return f"LENGTH_{self.name.upper()}"
 
-    def getObjectLengthDefineName(self, headerIndex: int):
-        return f"LENGTH_{self.objectListName(headerIndex).upper()}"
-
-    def getObjectList(self, headerIndex: int):
+    def getObjectListC(self):
         objectList = CData()
 
-        listName = f"s16 {self.objectListName(headerIndex)}"
+        listName = f"s16 {self.name}"
 
         # .h
         objectList.header = f"extern {listName}[];\n"
 
         # .c
         objectList.source = (
-            (f"{listName}[{self.getObjectLengthDefineName(headerIndex)}]" + " = {\n")
+            (f"{listName}[{self.getObjectLengthDefineName()}]" + " = {\n")
             + ",\n".join(indent + objectID for objectID in self.objectList)
             + ",\n};\n\n"
         )
@@ -72,7 +65,8 @@ class OOTRoomHeaderObjects(RoomCommon):
 
 
 @dataclass
-class OOTRoomHeaderActors(RoomCommon):
+class OOTRoomHeaderActors:
+    name: str
     sceneObj: Object
     roomObj: Object
     transform: Matrix
@@ -119,18 +113,13 @@ class OOTRoomHeaderActors(RoomCommon):
                 actor.params = actorProp.actorParam
                 self.actorList.append(actor)
 
-    # Exporter
-
-    def actorListName(self):
-        return f"{self.roomName}_header{self.headerIndex:02}_actorList"
-
     def getActorLengthDefineName(self):
-        return f"LENGTH_{self.actorListName().upper()}"
+        return f"LENGTH_{self.name.upper()}"
 
-    def getActorListData(self):
+    def getActorListC(self):
         """Returns the actor list for the current header"""
         actorList = CData()
-        listName = f"ActorEntry {self.actorListName()}"
+        listName = f"ActorEntry {self.name}"
 
         # .h
         actorList.header = f"extern {listName}[];\n"
@@ -155,22 +144,23 @@ class OOTRoomAlternateHeader:
 
 
 @dataclass
-class OOTRoomHeader(RoomCommon):
+class OOTRoomHeader:
+    name: str
     infos: OOTRoomHeaderInfos
     objects: OOTRoomHeaderObjects
     actors: OOTRoomHeaderActors
 
-    def getHeaderDefines(self, headerIndex: int):
+    def getHeaderDefines(self):
         """Returns a string containing defines for actor and object lists lengths"""
         headerDefines = ""
 
         if len(self.objects.objectList) > 0:
-            name = self.objects.getObjectLengthDefineName(headerIndex)
-            headerDefines += f"#define {name} {len(self.objects.objectList)}\n"
+            defineName = self.objects.getObjectLengthDefineName()
+            headerDefines += f"#define {defineName} {len(self.objects.objectList)}\n"
 
         if len(self.actors.actorList) > 0:
-            name = self.actors.getActorLengthDefineName(headerIndex)
-            headerDefines += f"#define {name} {len(self.actors.actorList)}\n"
+            defineName = self.actors.getActorLengthDefineName()
+            headerDefines += f"#define {defineName} {len(self.actors.actorList)}\n"
 
         return headerDefines
 
@@ -179,17 +169,12 @@ class OOTRoomHeader(RoomCommon):
 class OOTRoom(Common, OOTRoomCommands):
     name: str = None
     roomObj: Object = None
+    headerIndex: int = None
     mainHeader: OOTRoomHeader = None
     altHeader: OOTRoomAlternateHeader = None
 
     def hasAlternateHeaders(self):
-        return (
-            self.altHeader is not None
-            and self.altHeader.childNight is not None
-            and self.altHeader.adultDay is not None
-            and self.altHeader.adultNight is not None
-            and len(self.altHeader.cutscenes) > 0
-        )
+        return self.altHeader is not None
 
     def getRoomHeaderFromIndex(self, headerIndex: int) -> OOTRoomHeader | None:
         if headerIndex == 0:
@@ -208,6 +193,9 @@ class OOTRoom(Common, OOTRoomCommands):
     def getNewRoomHeader(self, headerProp: OOTRoomHeaderProperty, headerIndex: int = 0):
         """Returns a new room header with the informations from the scene empty object"""
 
+        self.headerIndex = headerIndex
+        headerName = f"{self.name}_header{self.headerIndex:02}"
+
         objIDList = []
         for objProp in headerProp.objectList:
             if objProp.objectKey == "Custom":
@@ -216,7 +204,7 @@ class OOTRoom(Common, OOTRoomCommands):
                 objIDList.append(ootData.objectData.objectsByKey[objProp.objectKey].id)
 
         return OOTRoomHeader(
-            self.name,
+            headerName,
             OOTRoomHeaderInfos(
                 headerProp.roomIndex,
                 headerProp.roomShape,
@@ -234,9 +222,9 @@ class OOTRoom(Common, OOTRoomCommands):
                 [d for d in headerProp.windVector] if headerProp.setWind else None,
                 headerProp.windStrength if headerProp.setWind else None,
             ),
-            OOTRoomHeaderObjects(self.name, objIDList),
+            OOTRoomHeaderObjects(f"{headerName}_objectList", objIDList),
             OOTRoomHeaderActors(
-                self.name,
+                f"{headerName}_actorList",
                 self.sceneObj,
                 self.roomObj,
                 self.transform,
@@ -246,46 +234,49 @@ class OOTRoom(Common, OOTRoomCommands):
 
     def getRoomMainC(self):
         roomC = CData()
+        roomHeaders: list[tuple[OOTRoomHeader, str]] = []
+        altHeaderPtrList = None
 
-        roomHeaders: list[tuple[OOTRoomHeader, str]] = [
-            (self.altHeader.childNight, "Child Night"),
-            (self.altHeader.adultDay, "Adult Day"),
-            (self.altHeader.adultNight, "Adult Night"),
-        ]
+        if self.hasAlternateHeaders():
+            roomHeaders: list[tuple[OOTRoomHeader, str]] = [
+                (self.altHeader.childNight, "Child Night"),
+                (self.altHeader.adultDay, "Adult Day"),
+                (self.altHeader.adultNight, "Adult Night"),
+            ]
 
-        for i, csHeader in enumerate(self.altHeader.cutscenes):
-            roomHeaders.append((csHeader, f"Cutscene No. {i + 1}"))
+            for i, csHeader in enumerate(self.altHeader.cutscenes):
+                roomHeaders.append((csHeader, f"Cutscene No. {i + 1}"))
 
-        altHeaderPtrListName = f"SceneCmd* {self.altHeader.name}"
+            altHeaderPtrListName = f"SceneCmd* {self.altHeader.name}"
 
-        # .h
-        roomC.header = f"extern {altHeaderPtrListName}[];\n"
+            # .h
+            roomC.header = f"extern {altHeaderPtrListName}[];\n"
 
-        # .c
-        altHeaderPtrList = (
-            f"{altHeaderPtrListName}[]"
-            + " = {\n"
-            + "\n".join(
-                indent + f"{curHeader.roomName()}_header{i:02}," if curHeader is not None else indent + "NULL,"
-                for i, (curHeader, _) in enumerate(roomHeaders, 1)
+            # .c
+            altHeaderPtrList = (
+                f"{altHeaderPtrListName}[]"
+                + " = {\n"
+                + "\n".join(
+                    indent + f"{curHeader.name}," if curHeader is not None else indent + "NULL,"
+                    for (curHeader, _) in roomHeaders
+                )
+                + "\n};\n\n"
             )
-            + "\n};\n\n"
-        )
 
         roomHeaders.insert(0, (self.mainHeader, "Child Day (Default)"))
         for i, (curHeader, headerDesc) in enumerate(roomHeaders):
             if curHeader is not None:
                 roomC.source += "/**\n * " + f"Header {headerDesc}\n" + "*/\n"
-                roomC.source += curHeader.getHeaderDefines(i)
+                roomC.source += curHeader.getHeaderDefines()
                 roomC.append(self.getRoomCommandList(self, i))
 
-                if i == 0 and self.hasAlternateHeaders():
+                if i == 0 and self.hasAlternateHeaders() and altHeaderPtrList is not None:
                     roomC.source += altHeaderPtrList
 
                 if len(curHeader.objects.objectList) > 0:
-                    roomC.append(curHeader.objects.getObjectList(i))
+                    roomC.append(curHeader.objects.getObjectListC())
 
                 if len(curHeader.actors.actorList) > 0:
-                    roomC.append(curHeader.actors.getActorListData())
+                    roomC.append(curHeader.actors.getActorListC())
 
         return roomC
