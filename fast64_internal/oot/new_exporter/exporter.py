@@ -186,9 +186,11 @@ class OOTSceneExport:
     def setSceneData(self):
         sceneData = OOTSceneData()
         sceneMainData = self.scene.getSceneMainC()
+        sceneCutsceneData = self.scene.getSceneCutscenesC()
 
         sceneData.sceneMain = sceneMainData.source
-        self.header += sceneMainData.header
+        sceneData.sceneCutscenes = [cs.source for cs in sceneCutsceneData]
+        self.header += sceneMainData.header + "".join(cs.header for cs in sceneCutsceneData)
         self.sceneData = sceneData
 
     def setIncludeData(self):

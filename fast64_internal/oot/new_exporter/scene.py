@@ -3,6 +3,7 @@ from bpy.types import Object
 from ...utility import PluginError, CData, exportColor, ootGetBaseOrCustomLight, indent
 from ..scene.properties import OOTSceneHeaderProperty, OOTLightProperty
 from ..oot_constants import ootData
+from ..cutscene.constants import ootEnumCSTextboxTypeEntryC, ootEnumCSListTypeListC, ootEnumCSListTypeEntryC
 from .commands import OOTSceneCommands
 from .common import Common, TransitionActor, EntranceActor, altHeaderList
 from .room import OOTRoom
@@ -159,6 +160,11 @@ class OOTSceneHeaderCutscene:
     csObj: Object
     csWriteCustom: str
     extraCutscenes: list[Object]
+
+    def getCutsceneC(self):
+        # will be implemented when PR #208 is merged
+        cutsceneData = CData()
+        return cutsceneData
 
 
 @dataclass
@@ -567,7 +573,7 @@ class OOTScene(Common, OOTSceneCommands):
                 self.getEnvLightSettingsListFromProps(headerProp, lightMode),
             ),
             OOTSceneHeaderCutscene(
-                f"{headerName}_cutscene",
+                headerProp.csWriteObject.name.removeprefix("Cutscene."),
                 headerProp.csWriteType,
                 headerProp.writeCutscene,
                 headerProp.csWriteObject,
@@ -583,7 +589,7 @@ class OOTScene(Common, OOTSceneCommands):
                 self.getEntranceActorListFromProps(),
             ),
             OOTSceneHeaderPath(f"{headerName}_pathway", self.getPathListFromProps(f"{headerName}_pathwayList")),
-            OOTSceneHeaderCrawlspace(None),
+            OOTSceneHeaderCrawlspace(None), # not implemented yet
         )
 
     def getRoomListC(self):
@@ -629,7 +635,7 @@ class OOTScene(Common, OOTSceneCommands):
         altHeaderPtrs = None
 
         if self.hasAlternateHeaders():
-            headers: list[tuple[OOTSceneHeader, str]] = [
+            headers = [
                 (self.altHeader.childNight, "Child Night"),
                 (self.altHeader.adultDay, "Adult Day"),
                 (self.altHeader.adultNight, "Adult Night"),
@@ -661,3 +667,8 @@ class OOTScene(Common, OOTSceneCommands):
                 sceneC.append(curHeader.getHeaderC())
 
         return sceneC
+
+    def getSceneCutscenesC(self):
+        # will be implemented when PR #208 is merged
+        csDataList: list[CData] = []
+        return csDataList
