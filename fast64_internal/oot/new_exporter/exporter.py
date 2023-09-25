@@ -57,6 +57,7 @@ class OOTSceneExport:
     f3dType: str
     saveTexturesAsPNG: bool
     hackerootBootOption: OOTBootupSceneOptions
+    singleFileExport: bool
     dlFormat: DLFormat = DLFormat.Static
 
     scene: OOTScene = None
@@ -65,7 +66,6 @@ class OOTSceneExport:
     sceneData: OOTSceneData = None
     roomList: dict[int, OOTRoomData] = field(default_factory=dict)
     hasCutscenes: bool = False
-    singleFileExport: bool = True
 
     def getNewRoomList(self):
         processedRooms = []
@@ -200,23 +200,65 @@ class OOTSceneExport:
 
     def setIncludeData(self):
         suffix = "\n\n"
+        sceneInclude = f'\n#include "{self.scene.name}.h"\n'
         common = "\n".join(
             elem
             for elem in [
-                '#include "ultra64.h"',
-                '#include "macros.h"',
-                '#include "z64.h"',
-                f'#include "{self.scene.name}.h"',
+                '#include "ultra64/ultratypes.h"',
+                '#include "libc/stdint.h"',
+                '#include "z64math.h"',
             ]
-        )
-        self.sceneData.sceneMain = common + suffix + self.sceneData.sceneMain
+        ) + "\n"
 
-        if self.hasCutscenes:
-            for cs in self.sceneData.sceneCutscenes:
-                cs = '#include "z64cutscene.h\n' + '#include "z64cutscene_commands.h\n\n' + cs
+        room = "\n".join(
+            elem
+            for elem in [
+                '#include "z64object.h"',
+                '#include "z64actor.h"',
+                '#include "z64scene.h"',
+            ]
+        ) + "\n"
 
-        for room in self.roomList.values():
-            room.roomMain = common + suffix + room.roomMain
+        scene = "\n".join(
+            elem
+            for elem in [
+                '#include "z64dma.h"',
+                '#include "z64actor.h"',
+                '#include "z64scene.h"',
+                '#include "z64environment.h"',
+            ]
+        ) + "\n"
+
+        collision = "\n".join(
+            elem
+            for elem in [
+                '#include "macros.h"',
+                '#include "z64camera.h"',
+                '#include "z64bgcheck.h"',
+            ]
+        ) + "\n"
+
+        cutscene = "\n".join(
+            elem
+            for elem in [
+                '#include "z64cutscene.h"',
+                '#include "z64cutscene_commands.h"',
+            ]
+        ) + "\n"
+
+        for roomData in self.roomList.values():
+            roomData.roomMain = common + room + sceneInclude + suffix + roomData.roomMain
+
+        if self.singleFileExport:
+            common += scene + collision + cutscene + sceneInclude
+            self.sceneData.sceneMain = common + suffix + self.sceneData.sceneMain
+        else:
+            self.sceneData.sceneMain = common + scene + sceneInclude + suffix + self.sceneData.sceneMain
+            self.sceneData.sceneCollision = common + collision + sceneInclude + suffix + self.sceneData.sceneCollision
+
+            if self.hasCutscenes:
+                for cs in self.sceneData.sceneCutscenes:
+                    cs = cutscene + sceneInclude + suffix + cs
 
     def writeScene(self):
         sceneBasePath = os.path.join(self.path, self.scene.name)
@@ -224,14 +266,16 @@ class OOTSceneExport:
         for room in self.roomList.values():
             writeFile(os.path.join(self.path, room.name + ".c"), room.roomMain)
 
-        if self.hasCutscenes:
-            for i, cs in enumerate(self.sceneData.sceneCutscenes):
-                writeFile(f"{sceneBasePath}_cs_{i}.c", cs)
-
         if self.singleFileExport:
             self.sceneData.sceneMain += self.sceneData.sceneCollision
+            if self.hasCutscenes:
+                for i, cs in enumerate(self.sceneData.sceneCutscenes):
+                    self.sceneData.sceneMain += cs
         else:
             writeFile(f"{sceneBasePath}_col.c", self.sceneData.sceneCollision)
+            if self.hasCutscenes:
+                for i, cs in enumerate(self.sceneData.sceneCutscenes):
+                    writeFile(f"{sceneBasePath}_cs_{i}.c", cs)
 
         writeFile(sceneBasePath + ".c", self.sceneData.sceneMain)
         writeFile(sceneBasePath + ".h", self.header)

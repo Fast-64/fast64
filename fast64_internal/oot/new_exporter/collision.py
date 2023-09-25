@@ -404,6 +404,7 @@ class OOTSceneCollisionHeader:
     waterbox: CollisionHeaderWaterBox = None
 
     def getCollisionDataC(self):
+        headerData = CData()
         colData = CData()
         varName = f"CollisionHeader {self.name}"
 
@@ -413,6 +414,19 @@ class OOTSceneCollisionHeader:
         camPtrLine = "NULL"
         wBoxPtrLine = "0, NULL"
 
+        if len(self.waterbox.waterboxList) > 0:
+            colData.append(self.waterbox.getWaterboxListC())
+            wBoxPtrLine = f"ARRAY_COUNT({self.waterbox.name}), {self.waterbox.name}"
+        
+        if len(self.bgCamInfo.bgCamInfoList) > 0 or len(self.bgCamInfo.crawlspacePosList) > 0:
+            colData.append(self.bgCamInfo.getCamPosListC())
+            colData.append(self.bgCamInfo.getBgCamInfoListC())
+            camPtrLine = f"{self.bgCamInfo.name}"
+        
+        if len(self.surfaceType.surfaceTypeList) > 0:
+            colData.append(self.surfaceType.getSurfaceTypeDataC())
+            surfacePtrLine = f"{self.surfaceType.name}"
+
         if len(self.vertices.vertexList) > 0:
             colData.append(self.vertices.getVertexListC())
             vtxPtrLine = f"ARRAY_COUNT({self.vertices.name}), {self.vertices.name}"
@@ -421,24 +435,11 @@ class OOTSceneCollisionHeader:
             colData.append(self.collisionPoly.getCollisionPolyDataC())
             colPolyPtrLine = f"ARRAY_COUNT({self.collisionPoly.name}), {self.collisionPoly.name}"
 
-        if len(self.surfaceType.surfaceTypeList) > 0:
-            colData.append(self.surfaceType.getSurfaceTypeDataC())
-            surfacePtrLine = f"{self.surfaceType.name}"
-
-        if len(self.bgCamInfo.bgCamInfoList) > 0 or len(self.bgCamInfo.crawlspacePosList) > 0:
-            colData.append(self.bgCamInfo.getCamPosListC())
-            colData.append(self.bgCamInfo.getBgCamInfoListC())
-            camPtrLine = f"{self.bgCamInfo.name}"
-
-        if len(self.waterbox.waterboxList) > 0:
-            colData.append(self.waterbox.getWaterboxListC())
-            wBoxPtrLine = f"ARRAY_COUNT({self.waterbox.name}), {self.waterbox.name}"
-
         # .h
-        colData.header = f"extern {varName};\n"
+        headerData.header = f"extern {varName};\n"
 
         # .c
-        colData.source += (
+        headerData.source += (
             (varName + " = {\n")
             + ",\n".join(
                 indent + val
@@ -455,4 +456,5 @@ class OOTSceneCollisionHeader:
             + "\n};\n\n"
         )
 
-        return colData
+        headerData.append(colData)
+        return headerData

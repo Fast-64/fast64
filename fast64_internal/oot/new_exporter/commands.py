@@ -103,7 +103,7 @@ class OOTSceneCommands:
         return indent + f"SCENE_CMD_MISC_SETTINGS({infos.sceneCamType}, {infos.worldMapLocation})"
 
     def getColHeaderCmd(self, colHeader: "OOTSceneCollisionHeader"):
-        return indent + f"SCENE_CMD_COL_HEADER(&{colHeader.name})"
+        return indent + f"SCENE_CMD_COL_HEADER(&{colHeader.name}),\n"
 
     def getSpawnListCmd(self, actors: "OOTSceneHeaderActors"):
         return (

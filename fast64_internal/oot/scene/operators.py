@@ -185,6 +185,7 @@ class OOT_ExportScene(Operator):
                 bpy.context.scene.f3d_type,
                 bpy.context.scene.saveTextures,
                 bootOptions if hackerFeaturesEnabled else None,
+                settings.singleFile,
             ).export()
 
             # ootExportSceneToC(
