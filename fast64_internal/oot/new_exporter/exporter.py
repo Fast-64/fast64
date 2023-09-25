@@ -126,6 +126,10 @@ class OOTSceneExport:
                 boundingBox,
             )
 
+            centroid, radius = boundingBox.getEnclosingSphere()
+            cullGroup.position = centroid
+            cullGroup.cullDepth = radius
+
             roomData.mesh.terminateDLs()
             roomData.mesh.removeUnusedEntries()
 
@@ -136,7 +140,7 @@ class OOTSceneExport:
             if roomHeader.roomShape == "ROOM_SHAPE_TYPE_IMAGE" and len(processedRooms) > 1:
                 raise PluginError(f'Room shape "Image" can only have one room in the scene.')
 
-            roomData.roomShape = roomData.getNewRoomShape()
+            roomData.roomShape = roomData.getNewRoomShape(roomHeader, self.sceneName)
             altHeaderData = OOTRoomAlternateHeader(f"{roomData.name}_alternateHeaders")
             roomData.mainHeader = roomData.getNewRoomHeader(roomHeader)
             hasAltHeader = False
@@ -235,7 +239,7 @@ class OOTSceneExport:
     def setRoomListData(self):
         for room in self.scene.roomList:
             roomMainData = room.getRoomMainC()
-            roomModelData = room.roomShape.getRoomShapeDListC(room.mesh, self.textureExportSettings)
+            roomModelData = room.getRoomShapeModelC(self.textureExportSettings)
             roomModelInfoData = room.roomShape.getRoomShapeC()
 
             self.header += roomMainData.header + roomModelData.header + roomModelInfoData.header
@@ -374,6 +378,7 @@ class OOTSceneExport:
                 for i, cs in enumerate(self.sceneData.sceneCutscenes):
                     writeFile(f"{self.sceneBasePath}_cs_{i}.c", cs)
 
+        writeFile(f"{self.sceneBasePath}_tex.c", self.sceneData.sceneTextures)
         writeFile(self.sceneBasePath + ".c", self.sceneData.sceneMain)
         writeFile(self.sceneBasePath + ".h", self.header)
 

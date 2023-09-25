@@ -1,10 +1,11 @@
 from dataclasses import dataclass
 from bpy.types import Object
-from ...utility import PluginError, CData, indent
+from ...utility import PluginError, CData, toAlnum, indent
+from ...f3d.f3d_gbi import TextureExportSettings, ScrollMethod
 from ..room.properties import OOTRoomHeaderProperty
 from ..oot_constants import ootData
-from ..oot_level_classes import OOTRoomMesh
-from ..oot_model_classes import OOTModel
+from ..oot_level_classes import OOTRoomMesh, OOTBGImage
+from ..oot_model_classes import OOTModel, OOTGfxFormatter
 from .commands import RoomCommands
 from .common import Common, altHeaderList
 
@@ -128,7 +129,7 @@ class OOTRoom(Common, RoomCommands):
             ),
         )
 
-    def getNewRoomShape(self):
+    def getNewRoomShape(self, headerProp: OOTRoomHeaderProperty, sceneName: str):
         normal = None
         single = None
         multiImg = None
@@ -140,6 +141,19 @@ class OOTRoom(Common, RoomCommands):
             case "ROOM_SHAPE_TYPE_NORMAL":
                 normal = RoomShapeNormal(name, self.roomShapeType, dlName)
             case "ROOM_SHAPE_TYPE_IMAGE":
+                for bgImage in headerProp.bgImageList:
+                    if bgImage.image is None:
+                        raise PluginError(
+                            'A room is has room shape "Image" but does not have an image set in one of its BG images.'
+                        )
+                    self.mesh.bgImages.append(
+                        OOTBGImage(
+                            toAlnum(sceneName + "_bg_" + bgImage.image.name),
+                            bgImage.image,
+                            bgImage.otherModeFlags,
+                        )
+                    )
+
                 if len(self.mesh.bgImages) > 1:
                     multiImg = RoomShapeImageMultiBg(f"{self.name}_shapeMultiBg", self.getMultiBgEntries())
                     multi = RoomShapeImageMulti(
@@ -212,3 +226,25 @@ class OOTRoom(Common, RoomCommands):
                     roomC.append(curHeader.actors.getActorListC())
 
         return roomC
+    
+    def getRoomShapeModelC(self, textureSettings: TextureExportSettings):
+        roomModel = CData()
+
+        for i, entry in enumerate(self.mesh.meshEntries):
+            if entry.DLGroup.opaque is not None:
+                roomModel.append(entry.DLGroup.opaque.to_c(self.mesh.model.f3d))
+
+            if entry.DLGroup.transparent is not None:
+                roomModel.append(entry.DLGroup.transparent.to_c(self.mesh.model.f3d))
+
+            # type ``ROOM_SHAPE_TYPE_IMAGE`` only allows 1 room
+            if i == 0 and self.mesh.roomShape == "ROOM_SHAPE_TYPE_IMAGE":
+                break
+
+        roomModel.append(self.mesh.model.to_c(textureSettings, OOTGfxFormatter(ScrollMethod.Vertex)).all())
+
+        if self.roomShape.multiImg is not None:
+            roomModel.append(self.roomShape.multiImg.getC())
+            roomModel.append(self.roomShape.getRoomShapeBgImgDataC(self.mesh, textureSettings))
+
+        return roomModel

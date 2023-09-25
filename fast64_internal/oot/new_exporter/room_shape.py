@@ -206,7 +206,7 @@ class RoomShape:
             return self.multi.name
 
 
-    def getRoomShapeDListC(self, roomMesh: OOTRoomMesh, textureSettings: TextureExportSettings):
+    def getRoomShapeBgImgDataC(self, roomMesh: OOTRoomMesh, textureSettings: TextureExportSettings):
         dlData = CData()
 
         bitsPerValue = 64
@@ -223,10 +223,8 @@ class RoomShape:
                 + "\n};\n\n"
             )
 
-        print("sauce: \n", dlData.source)
-
         return dlData
-
+    
     def getRoomShapeC(self):
         shapeData = CData()
 
