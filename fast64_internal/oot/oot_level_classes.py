@@ -267,9 +267,9 @@ class OOTRoomMesh:
     def __init__(self, roomName, roomShape, model):
         self.roomName = roomName
         self.roomShape = roomShape
-        self.meshEntries = []
+        self.meshEntries: list[OOTRoomMeshGroup] = []
         self.model = model
-        self.bgImages = []
+        self.bgImages: list[OOTBGImage] = []
 
     def terminateDLs(self):
         for entry in self.meshEntries:

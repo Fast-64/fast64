@@ -1,10 +1,24 @@
 from dataclasses import dataclass
 from bpy.types import Object
-from ...utility import CData, indent
+from ...utility import PluginError, CData, indent
 from ..room.properties import OOTRoomHeaderProperty
 from ..oot_constants import ootData
+from ..oot_level_classes import OOTRoomMesh
+from ..oot_model_classes import OOTModel
 from .commands import RoomCommands
 from .common import Common, altHeaderList
+
+from .room_shape import (
+    RoomShape,
+    RoomShapeDLists,
+    RoomShapeDListsEntry,
+    RoomShapeImageBase,
+    RoomShapeImageMulti,
+    RoomShapeImageMultiBg,
+    RoomShapeImageMultiBgEntry,
+    RoomShapeImageSingle,
+    RoomShapeNormal,
+)
 
 from .room_header import (
     OOTRoomHeader,
@@ -19,9 +33,16 @@ from .room_header import (
 class OOTRoom(Common, RoomCommands):
     name: str = None
     roomObj: Object = None
+    roomShapeType: str = None
+    model: OOTModel = None
     headerIndex: int = None
     mainHeader: OOTRoomHeader = None
     altHeader: OOTRoomAlternateHeader = None
+    mesh: OOTRoomMesh = None
+    roomShape: RoomShape = None
+
+    def __post_init__(self):
+        self.mesh = OOTRoomMesh(self.name, self.roomShapeType, self.model)
 
     def hasAlternateHeaders(self):
         return self.altHeader is not None
@@ -39,6 +60,31 @@ class OOTRoom(Common, RoomCommands):
                 return csHeader
 
         return None
+
+    def getMultiBgEntries(self):
+        entries: list[RoomShapeImageMultiBgEntry] = []
+
+        for i, bgImg in enumerate(self.mesh.bgImages):
+            entries.append(
+                RoomShapeImageMultiBgEntry(
+                    i, bgImg.name, bgImg.image.size[0], bgImg.image.size[1], bgImg.otherModeFlags
+                )
+            )
+
+        return entries
+
+    def getDListsEntries(self):
+        entries: list[RoomShapeDListsEntry] = []
+
+        for meshGrp in self.mesh.meshEntries:
+            entries.append(
+                RoomShapeDListsEntry(
+                    meshGrp.DLGroup.opaque.name if meshGrp.DLGroup.opaque is not None else "NULL",
+                    meshGrp.DLGroup.transparent.name if meshGrp.DLGroup.transparent is not None else "NULL",
+                )
+            )
+
+        return entries
 
     def getNewRoomHeader(self, headerProp: OOTRoomHeaderProperty, headerIndex: int = 0):
         """Returns a new room header with the informations from the scene empty object"""
@@ -80,6 +126,42 @@ class OOTRoom(Common, RoomCommands):
                 self.transform,
                 headerIndex,
             ),
+        )
+
+    def getNewRoomShape(self):
+        normal = None
+        single = None
+        multiImg = None
+        multi = None
+        name = f"{self.name}_shapeHeader"
+        dlName = f"{self.name}_shapeDListEntry"
+
+        match self.roomShapeType:
+            case "ROOM_SHAPE_TYPE_NORMAL":
+                normal = RoomShapeNormal(name, self.roomShapeType, dlName)
+            case "ROOM_SHAPE_TYPE_IMAGE":
+                if len(self.mesh.bgImages) > 1:
+                    multiImg = RoomShapeImageMultiBg(f"{self.name}_shapeMultiBg", self.getMultiBgEntries())
+                    multi = RoomShapeImageMulti(
+                        name, self.roomShapeType, "ROOM_SHAPE_IMAGE_AMOUNT_MULTI", dlName, multiImg.name
+                    )
+                else:
+                    bgImg = self.mesh.bgImages[0]
+                    single = RoomShapeImageSingle(
+                        name,
+                        self.roomShapeType,
+                        "ROOM_SHAPE_IMAGE_AMOUNT_SINGLE",
+                        dlName,
+                        bgImg.name,
+                        bgImg.image.size[0],
+                        bgImg.image.size[1],
+                        bgImg.otherModeFlags,
+                    )
+            case _:
+                raise PluginError(f"ERROR: Room Shape not supported: {self.roomShapeType}")
+
+        return RoomShape(
+            RoomShapeDLists(dlName, normal is not None, self.getDListsEntries()), normal, single, multiImg, multi
         )
 
     def getRoomMainC(self):

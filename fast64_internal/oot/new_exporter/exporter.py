@@ -4,12 +4,16 @@ import os
 from dataclasses import dataclass, field
 from mathutils import Matrix
 from bpy.types import Object
-from ...f3d.f3d_gbi import DLFormat
+from ...f3d.f3d_gbi import DLFormat, TextureExportSettings
 from ..scene.properties import OOTBootupSceneOptions, OOTSceneHeaderProperty
 from ..room.properties import OOTRoomHeaderProperty
 from ..oot_constants import ootData
 from ..oot_object import addMissingObjectsToAllRoomHeadersNew
-from .common import altHeaderList
+from ..oot_model_classes import OOTModel
+from ..oot_f3d_writer import writeTextureArraysNew
+from ..oot_level_writer import BoundingBox, writeTextureArraysExistingScene, ootProcessMesh
+from ..oot_utility import CullGroup
+from .common import Common, altHeaderList
 from .scene import OOTScene
 from .scene_header import OOTSceneAlternateHeader
 from .room import OOTRoom, OOTRoomAlternateHeader
@@ -46,6 +50,7 @@ class OOTSceneData:
     sceneMain: str = None
     sceneCollision: str = None
     sceneCutscenes: list[str] = field(default_factory=list)
+    sceneTextures: str = None
 
 
 @dataclass
@@ -59,16 +64,19 @@ class OOTSceneExport:
     saveTexturesAsPNG: bool
     hackerootBootOption: OOTBootupSceneOptions
     singleFileExport: bool
+    isHWv1: bool
+    textureExportSettings: TextureExportSettings
     dlFormat: DLFormat = DLFormat.Static
 
     scene: OOTScene = None
     path: str = None
+    sceneBasePath: str = None
     header: str = ""
     sceneData: OOTSceneData = None
     roomList: dict[int, OOTRoomData] = field(default_factory=dict)
     hasCutscenes: bool = False
 
-    def getNewRoomList(self):
+    def getNewRoomList(self, scene: OOTScene):
         processedRooms = []
         roomList: list[OOTRoom] = []
         roomObjs: list[Object] = [
@@ -80,11 +88,57 @@ class OOTSceneExport:
 
         for roomObj in roomObjs:
             altProp = roomObj.ootAlternateRoomHeaders
-            roomIndex = roomObj.ootRoomHeader.roomIndex
+            roomHeader = roomObj.ootRoomHeader
+            roomIndex = roomHeader.roomIndex
             roomName = f"{toAlnum(self.sceneName)}_room_{roomIndex}"
-            roomData = OOTRoom(self.sceneObj, self.transform, roomIndex, roomName, roomObj)
+            roomData = OOTRoom(
+                self.sceneObj,
+                self.transform,
+                roomIndex,
+                roomName,
+                roomObj,
+                roomHeader.roomShape,
+                scene.model.addSubModel(
+                    OOTModel(
+                        scene.model.f3d.F3D_VER,
+                        scene.model.f3d._HW_VERSION_1,
+                        roomName + "_dl",
+                        scene.model.DLFormat,
+                        None,
+                    )
+                ),
+            )
+
+            # Mesh stuff
+            c = Common(self.sceneObj, self.transform)
+            pos, _, scale, _ = c.getConvertedTransform(self.transform, self.sceneObj, roomObj, True)
+            cullGroup = CullGroup(pos, scale, roomObj.ootRoomHeader.defaultCullDistance)
+            DLGroup = roomData.mesh.addMeshGroup(cullGroup).DLGroup
+            boundingBox = BoundingBox()
+            ootProcessMesh(
+                roomData.mesh,
+                DLGroup,
+                self.sceneObj,
+                roomObj,
+                self.transform,
+                not self.saveTexturesAsPNG,
+                None,
+                boundingBox,
+            )
+
+            roomData.mesh.terminateDLs()
+            roomData.mesh.removeUnusedEntries()
+
+            # Other
+            if roomHeader.roomShape == "ROOM_SHAPE_TYPE_IMAGE" and len(roomHeader.bgImageList) < 1:
+                raise PluginError(f'Room {roomObj.name} uses room shape "Image" but doesn\'t have any BG images.')
+
+            if roomHeader.roomShape == "ROOM_SHAPE_TYPE_IMAGE" and len(processedRooms) > 1:
+                raise PluginError(f'Room shape "Image" can only have one room in the scene.')
+
+            roomData.roomShape = roomData.getNewRoomShape()
             altHeaderData = OOTRoomAlternateHeader(f"{roomData.name}_alternateHeaders")
-            roomData.mainHeader = roomData.getNewRoomHeader(roomObj.ootRoomHeader)
+            roomData.mainHeader = roomData.getNewRoomHeader(roomHeader)
             hasAltHeader = False
 
             for i, header in enumerate(altHeaderList, 1):
@@ -114,6 +168,7 @@ class OOTSceneExport:
     def getNewScene(self):
         altProp = self.sceneObj.ootAlternateSceneHeaders
         sceneData = OOTScene(self.sceneObj, self.transform, name=f"{toAlnum(self.sceneName)}_scene")
+        sceneData.model = OOTModel(self.f3dType, self.isHWv1, f"{sceneData.name}_dl", self.dlFormat, False)
         altHeaderData = OOTSceneAlternateHeader(f"{sceneData.name}_alternateHeaders")
         sceneData.mainHeader = sceneData.getNewSceneHeader(self.sceneObj.ootSceneHeader)
         hasAltHeader = False
@@ -132,7 +187,7 @@ class OOTSceneExport:
             hasAltHeader = True
 
         sceneData.altHeader = altHeaderData if hasAltHeader else None
-        sceneData.roomList = self.getNewRoomList()
+        sceneData.roomList = self.getNewRoomList(sceneData)
         sceneData.colHeader = sceneData.getNewCollisionHeader()
 
         sceneData.validateScene()
@@ -179,25 +234,34 @@ class OOTSceneExport:
 
     def setRoomListData(self):
         for room in self.scene.roomList:
-            roomData = OOTRoomData(room.name)
             roomMainData = room.getRoomMainC()
+            roomModelData = room.roomShape.getRoomShapeDListC(room.mesh, self.textureExportSettings)
+            roomModelInfoData = room.roomShape.getRoomShapeC()
 
-            roomData.roomMain = roomMainData.source
-            self.header += roomMainData.header
-
-            self.roomList[room.roomIndex] = roomData
+            self.header += roomMainData.header + roomModelData.header + roomModelInfoData.header
+            self.roomList[room.roomIndex] = OOTRoomData(
+                room.name, roomMainData.source, roomModelData.source, roomModelInfoData.source
+            )
 
     def setSceneData(self):
-        sceneData = OOTSceneData()
         sceneMainData = self.scene.getSceneMainC()
         sceneCollisionData = self.scene.colHeader.getSceneCollisionC()
         sceneCutsceneData = self.scene.getSceneCutscenesC()
+        sceneTexturesData = self.scene.getSceneTexturesC(self.textureExportSettings)
 
-        sceneData.sceneMain = sceneMainData.source
-        sceneData.sceneCollision = sceneCollisionData.source
-        sceneData.sceneCutscenes = [cs.source for cs in sceneCutsceneData]
-        self.header += sceneMainData.header + "".join(cs.header for cs in sceneCutsceneData) + sceneCollisionData.header
-        self.sceneData = sceneData
+        self.header += (
+            sceneMainData.header
+            + "".join(cs.header for cs in sceneCutsceneData)
+            + sceneCollisionData.header
+            + sceneTexturesData.header
+        )
+
+        self.sceneData = OOTSceneData(
+            sceneMainData.source,
+            sceneCollisionData.source,
+            [cs.source for cs in sceneCutsceneData],
+            sceneTexturesData.source,
+        )
 
     def setIncludeData(self):
         suffix = "\n\n"
@@ -206,6 +270,8 @@ class OOTSceneExport:
             "\n".join(
                 [
                     '#include "ultra64/ultratypes.h"',
+                    '#include "ultra64/gbi.h"',
+                    '#include "libc/stddef.h"',
                     '#include "libc/stdint.h"',
                     '#include "z64math.h"',
                 ]
@@ -218,6 +284,16 @@ class OOTSceneExport:
                 [
                     '#include "z64object.h"',
                     '#include "z64actor.h"',
+                    '#include "z64scene.h"',
+                ]
+            )
+            + "\n"
+        )
+
+        roomShapeInfo = (
+            "\n".join(
+                [
+                    '#include "macros.h"',
                     '#include "z64scene.h"',
                 ]
             )
@@ -258,7 +334,13 @@ class OOTSceneExport:
         )
 
         for roomData in self.roomList.values():
-            roomData.roomMain = common + room + sceneInclude + suffix + roomData.roomMain
+            if self.singleFileExport:
+                common += room + roomShapeInfo + sceneInclude
+                roomData.roomMain = common + suffix + roomData.roomMain
+            else:
+                roomData.roomMain = common + room + sceneInclude + suffix + roomData.roomMain
+                roomData.roomModelInfo = common + roomShapeInfo + sceneInclude + suffix + roomData.roomModelInfo
+                roomData.roomModel = common + sceneInclude + suffix + roomData.roomModel
 
         if self.singleFileExport:
             common += scene + collision + cutscene + sceneInclude
@@ -272,9 +354,13 @@ class OOTSceneExport:
                     cs = cutscene + sceneInclude + suffix + cs
 
     def writeScene(self):
-        sceneBasePath = os.path.join(self.path, self.scene.name)
-
         for room in self.roomList.values():
+            if self.singleFileExport:
+                room.roomMain += room.roomModelInfo + room.roomModel
+            else:
+                writeFile(os.path.join(self.path, f"{room.name}_model_info.c"), room.roomModelInfo)
+                writeFile(os.path.join(self.path, f"{room.name}_model.c"), room.roomModel)
+
             writeFile(os.path.join(self.path, room.name + ".c"), room.roomMain)
 
         if self.singleFileExport:
@@ -283,13 +369,16 @@ class OOTSceneExport:
                 for i, cs in enumerate(self.sceneData.sceneCutscenes):
                     self.sceneData.sceneMain += cs
         else:
-            writeFile(f"{sceneBasePath}_col.c", self.sceneData.sceneCollision)
+            writeFile(f"{self.sceneBasePath}_col.c", self.sceneData.sceneCollision)
             if self.hasCutscenes:
                 for i, cs in enumerate(self.sceneData.sceneCutscenes):
-                    writeFile(f"{sceneBasePath}_cs_{i}.c", cs)
+                    writeFile(f"{self.sceneBasePath}_cs_{i}.c", cs)
 
-        writeFile(sceneBasePath + ".c", self.sceneData.sceneMain)
-        writeFile(sceneBasePath + ".h", self.header)
+        writeFile(self.sceneBasePath + ".c", self.sceneData.sceneMain)
+        writeFile(self.sceneBasePath + ".h", self.header)
+
+        for room in self.scene.roomList:
+            room.mesh.copyBgImages(self.path)
 
     def export(self):
         checkObjectReference(self.sceneObj, "Scene object")
@@ -303,12 +392,20 @@ class OOTSceneExport:
             exportSubdir = os.path.dirname(getSceneDirFromLevelName(self.sceneName))
 
         sceneInclude = exportSubdir + "/" + self.sceneName + "/"
-        levelPath = ootGetPath(exportPath, isCustomExport, exportSubdir, self.sceneName, True, True)
-
         self.scene = self.getNewSceneFromEmptyObject()
-        self.path = levelPath
+        self.path = ootGetPath(exportPath, isCustomExport, exportSubdir, self.sceneName, True, True)
+        self.sceneBasePath = os.path.join(self.path, self.scene.name)
+        self.textureExportSettings.includeDir = sceneInclude
+        self.textureExportSettings.exportPath = self.path
         self.setSceneData()
         self.setRoomListData()
-        self.setIncludeData()
 
+        if not isCustomExport:
+            writeTextureArraysExistingScene(self.scene.model, exportPath, sceneInclude + self.sceneName + "_scene.h")
+        else:
+            textureArrayData = writeTextureArraysNew(self.scene.model, None)
+            self.sceneData.sceneTextures += textureArrayData.source
+            self.header += textureArrayData.header
+
+        self.setIncludeData()
         self.writeScene()

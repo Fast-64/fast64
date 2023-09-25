@@ -3,6 +3,7 @@ from bpy.types import Object
 from ....utility import PluginError, exportColor, ootGetBaseOrCustomLight
 from ...scene.properties import OOTSceneHeaderProperty, OOTLightProperty
 from ...oot_constants import ootData
+from ...oot_model_classes import OOTModel
 from ..commands import SceneCommands
 from ..scene_header import EnvLightSettings, Path, OOTSceneHeader, OOTSceneAlternateHeader
 from ..room import OOTRoom
@@ -13,6 +14,7 @@ from .collision import CollisionCommon
 @dataclass
 class SceneCommon(CollisionCommon, SceneCommands):
     name: str = None
+    model: OOTModel = None
     headerIndex: int = None
     mainHeader: OOTSceneHeader = None
     altHeader: OOTSceneAlternateHeader = None

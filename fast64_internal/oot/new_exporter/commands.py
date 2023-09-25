@@ -44,8 +44,8 @@ class RoomCommands:
             indent + f"SCENE_CMD_WIND_SETTINGS({', '.join(f'{dir}' for dir in infos.direction)}, {infos.strength}),\n"
         )
 
-    # def getRoomShapeCmd(self, infos: "OOTRoom"):
-    #     return indent + f"SCENE_CMD_ROOM_SHAPE(&{infos.mesh.headerName()})"
+    def getRoomShapeCmd(self, room: "OOTRoom"):
+        return indent + f"SCENE_CMD_ROOM_SHAPE(&{room.roomShape.getName()}),\n"
 
     def getObjectListCmd(self, objects: "OOTRoomHeaderObjects"):
         return (indent + "SCENE_CMD_OBJECT_LIST(") + f"{objects.getObjectLengthDefineName()}, {objects.name}),\n"
@@ -63,7 +63,6 @@ class RoomCommands:
             self.getRoomBehaviourCmd,
             self.getSkyboxDisablesCmd,
             self.getTimeSettingsCmd,
-            # self.getRoomShapeCmd,
         ]
 
         if curHeader.infos.setWind:
@@ -72,6 +71,7 @@ class RoomCommands:
         hasAltHeaders = headerIndex == 0 and room.hasAlternateHeaders()
         roomCmdData = (
             (room.getAltHeaderListCmd(room.altHeader.name) if hasAltHeaders else "")
+            + self.getRoomShapeCmd(room)
             + (self.getObjectListCmd(curHeader.objects) if len(curHeader.objects.objectList) > 0 else "")
             + (self.getActorListCmd(curHeader.actors) if len(curHeader.actors.actorList) > 0 else "")
             + (",\n".join(getCmd(curHeader.infos) for getCmd in getCmdFuncInfosList) + ",\n")

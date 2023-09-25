@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 from ...utility import PluginError, CData, indent
+from ...f3d.f3d_gbi import TextureExportSettings, ScrollMethod
+from ..oot_model_classes import OOTGfxFormatter
 from ..scene.properties import OOTSceneHeaderProperty
 from .common import SceneCommon
 
@@ -181,3 +183,7 @@ class OOTScene(SceneCommon):
         # will be implemented when PR #208 is merged
         csDataList: list[CData] = []
         return csDataList
+
+    # Writes the textures and material setup displaylists that are shared between multiple rooms (is written to the scene)
+    def getSceneTexturesC(self, textureExportSettings: TextureExportSettings):
+        return self.model.to_c(textureExportSettings, OOTGfxFormatter(ScrollMethod.Vertex)).all()
