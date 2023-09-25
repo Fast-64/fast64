@@ -189,7 +189,7 @@ class OOTSceneExport:
     def setSceneData(self):
         sceneData = OOTSceneData()
         sceneMainData = self.scene.getSceneMainC()
-        sceneCollisionData = self.scene.colHeader.getCollisionDataC()
+        sceneCollisionData = self.scene.colHeader.getSceneCollisionC()
         sceneCutsceneData = self.scene.getSceneCutscenesC()
 
         sceneData.sceneMain = sceneMainData.source
@@ -201,50 +201,60 @@ class OOTSceneExport:
     def setIncludeData(self):
         suffix = "\n\n"
         sceneInclude = f'\n#include "{self.scene.name}.h"\n'
-        common = "\n".join(
-            elem
-            for elem in [
-                '#include "ultra64/ultratypes.h"',
-                '#include "libc/stdint.h"',
-                '#include "z64math.h"',
-            ]
-        ) + "\n"
+        common = (
+            "\n".join(
+                [
+                    '#include "ultra64/ultratypes.h"',
+                    '#include "libc/stdint.h"',
+                    '#include "z64math.h"',
+                ]
+            )
+            + "\n"
+        )
 
-        room = "\n".join(
-            elem
-            for elem in [
-                '#include "z64object.h"',
-                '#include "z64actor.h"',
-                '#include "z64scene.h"',
-            ]
-        ) + "\n"
+        room = (
+            "\n".join(
+                [
+                    '#include "z64object.h"',
+                    '#include "z64actor.h"',
+                    '#include "z64scene.h"',
+                ]
+            )
+            + "\n"
+        )
 
-        scene = "\n".join(
-            elem
-            for elem in [
-                '#include "z64dma.h"',
-                '#include "z64actor.h"',
-                '#include "z64scene.h"',
-                '#include "z64environment.h"',
-            ]
-        ) + "\n"
+        scene = (
+            "\n".join(
+                [
+                    '#include "z64dma.h"',
+                    '#include "z64actor.h"',
+                    '#include "z64scene.h"',
+                    '#include "z64environment.h"',
+                ]
+            )
+            + "\n"
+        )
 
-        collision = "\n".join(
-            elem
-            for elem in [
-                '#include "macros.h"',
-                '#include "z64camera.h"',
-                '#include "z64bgcheck.h"',
-            ]
-        ) + "\n"
+        collision = (
+            "\n".join(
+                [
+                    '#include "macros.h"',
+                    '#include "z64camera.h"',
+                    '#include "z64bgcheck.h"',
+                ]
+            )
+            + "\n"
+        )
 
-        cutscene = "\n".join(
-            elem
-            for elem in [
-                '#include "z64cutscene.h"',
-                '#include "z64cutscene_commands.h"',
-            ]
-        ) + "\n"
+        cutscene = (
+            "\n".join(
+                [
+                    '#include "z64cutscene.h"',
+                    '#include "z64cutscene_commands.h"',
+                ]
+            )
+            + "\n"
+        )
 
         for roomData in self.roomList.values():
             roomData.roomMain = common + room + sceneInclude + suffix + roomData.roomMain

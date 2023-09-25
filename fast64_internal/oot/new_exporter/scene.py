@@ -20,6 +20,9 @@ from .collision import (
     CollisionHeaderSurfaceType,
     CollisionHeaderBgCamInfo,
     CollisionHeaderWaterBox,
+)
+
+from .collision_common import (
     SurfaceType,
     CollisionPoly,
     Vertex,
@@ -490,7 +493,7 @@ class OOTScene(Common, OOTSceneCommands):
             camProp.bgImageOverrideIndex,
         )
 
-    def getCrawlspaceDataFromObjects(self):
+    def getCrawlspaceDataFromObjects(self, startIndex: int):
         crawlspaceList: list[CrawlspaceData] = []
         crawlspaceObjList: list[Object] = [
             obj
@@ -498,6 +501,7 @@ class OOTScene(Common, OOTSceneCommands):
             if obj.type == "CURVE" and obj.ootSplineProperty.splineType == "Crawlspace"
         ]
 
+        index = startIndex
         for obj in crawlspaceObjList:
             if self.validateCurveData(obj):
                 crawlspaceList.append(
@@ -505,16 +509,17 @@ class OOTScene(Common, OOTSceneCommands):
                         [
                             [round(value) for value in self.transform @ obj.matrix_world @ point.co]
                             for point in obj.data.splines[0].points
-                        ]
+                        ],
+                        index,
                     )
                 )
-
+                index += 6
         return crawlspaceList
 
     def getBgCamInfoDataFromObjects(self):
         camObjList = [obj for obj in self.sceneObj.children_recursive if obj.type == "CAMERA"]
         camPosData: dict[int, BgCamFuncData] = {}
-        bgCamList: list[BgCamInfo] = []
+        camInfoData: dict[int, BgCamInfo] = {}
 
         index = 0
         for camObj in camObjList:
@@ -527,16 +532,26 @@ class OOTScene(Common, OOTSceneCommands):
 
             if camProp.hasPositionData:
                 count = 3
-                index = camProp.index
-                if index in camPosData:
-                    raise PluginError(f"Error: Repeated camera position index: {index} for {camObj.name}")
-                camPosData[index] = self.getBgCamFuncDataFromObjects(camObj)
+                if camProp.index in camPosData:
+                    raise PluginError(f"ERROR: Repeated camera position index: {camProp.index} for {camObj.name}")
+                camPosData[camProp.index] = self.getBgCamFuncDataFromObjects(camObj)
             else:
                 count = 0
 
-            bgCamList.append(BgCamInfo(setting, count, index, [camPosData[i] for i in range(len(camPosData))]))
+            if camProp.index in camInfoData:
+                raise PluginError(f"ERROR: Repeated camera entry: {camProp.index} for {camObj.name}")
+            camInfoData[camProp.index] = BgCamInfo(
+                setting,
+                count,
+                index,
+                camProp.hasPositionData,
+                [camPosData[i] for i in range(min(camPosData.keys()), len(camPosData))] if len(camPosData) > 0 else [],
+            )
+
             index += count
-        return bgCamList
+        return (
+            [camInfoData[i] for i in range(min(camInfoData.keys()), len(camInfoData))] if len(camInfoData) > 0 else []
+        )
 
     def getWaterBoxDataFromObjects(self):
         waterboxObjList = [
@@ -565,8 +580,17 @@ class OOTScene(Common, OOTSceneCommands):
 
         return waterboxList
 
+    def getCount(self, bgCamInfoList: list[BgCamInfo]):
+        count = 0
+        for elem in bgCamInfoList:
+            if elem.count != 0:  # 0 means no pos data
+                count += elem.count
+        return count
+
     def getNewCollisionHeader(self):
         colBounds, vertexList, polyList, surfaceTypeList = self.getColSurfaceVtxDataFromMeshObj()
+        bgCamInfoList = self.getBgCamInfoDataFromObjects()
+
         return OOTSceneCollisionHeader(
             f"{self.name}_collisionHeader",
             colBounds[0],
@@ -577,8 +601,8 @@ class OOTScene(Common, OOTSceneCommands):
             CollisionHeaderBgCamInfo(
                 f"{self.name}_bgCamInfo",
                 f"{self.name}_camPosData",
-                self.getBgCamInfoDataFromObjects(),
-                self.getCrawlspaceDataFromObjects(),
+                bgCamInfoList,
+                self.getCrawlspaceDataFromObjects(self.getCount(bgCamInfoList)),
             ),
             CollisionHeaderWaterBox(f"{self.name}_waterBoxes", self.getWaterBoxDataFromObjects()),
         )
