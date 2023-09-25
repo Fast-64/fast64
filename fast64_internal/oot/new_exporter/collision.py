@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from ...utility import CData, indent
 
-from .collision_common import (
+from .collision_classes import (
     SurfaceType,
     CollisionPoly,
     Vertex,

@@ -3,7 +3,7 @@ from bpy.types import Object
 from ...utility import CData, indent
 from ..room.properties import OOTRoomHeaderProperty
 from ..oot_constants import ootData
-from .commands import OOTRoomCommands
+from .commands import RoomCommands
 from .common import Common, altHeaderList
 
 from .room_header import (
@@ -16,7 +16,7 @@ from .room_header import (
 
 
 @dataclass
-class OOTRoom(Common, OOTRoomCommands):
+class OOTRoom(Common, RoomCommands):
     name: str = None
     roomObj: Object = None
     headerIndex: int = None

@@ -274,11 +274,6 @@ class OOTSceneHeaderPath:
 
 
 @dataclass
-class OOTSceneHeaderCrawlspace:
-    name: str
-
-
-@dataclass
 class OOTSceneAlternateHeader:
     name: str
     childNight: "OOTSceneHeader" = None
@@ -296,7 +291,6 @@ class OOTSceneHeader:
     exits: OOTSceneHeaderExits
     actors: OOTSceneHeaderActors
     path: OOTSceneHeaderPath
-    crawlspace: OOTSceneHeaderCrawlspace
 
     def getHeaderC(self):
         headerData = CData()

@@ -1,12 +1,12 @@
 from ...utility import CData, indent
-
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .collision import OOTSceneCollisionHeader
-    from .room import OOTRoom, OOTRoomHeaderInfos, OOTRoomHeaderObjects, OOTRoomHeaderActors
-    from .scene import (
-        OOTScene,
+    from .room import OOTRoom
+    from .room_header import OOTRoomHeaderInfos, OOTRoomHeaderObjects, OOTRoomHeaderActors
+    from .scene import OOTScene
+    from .scene_header import (
         OOTSceneHeaderInfos,
         OOTSceneHeader,
         OOTSceneHeaderLighting,
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     )
 
 
-class OOTRoomCommands:
+class RoomCommands:
     def getEchoSettingsCmd(self, infos: "OOTRoomHeaderInfos"):
         return indent + f"SCENE_CMD_ECHO_SETTINGS({infos.echo})"
 
@@ -87,7 +87,7 @@ class OOTRoomCommands:
         return cmdListData
 
 
-class OOTSceneCommands:
+class SceneCommands:
     def getSoundSettingsCmd(self, infos: "OOTSceneHeaderInfos"):
         return indent + f"SCENE_CMD_SOUND_SETTINGS({infos.specID}, {infos.ambienceID}, {infos.sequenceID})"
 

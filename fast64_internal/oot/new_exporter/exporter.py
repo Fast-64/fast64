@@ -4,6 +4,16 @@ import os
 from dataclasses import dataclass, field
 from mathutils import Matrix
 from bpy.types import Object
+from ...f3d.f3d_gbi import DLFormat
+from ..scene.properties import OOTBootupSceneOptions, OOTSceneHeaderProperty
+from ..room.properties import OOTRoomHeaderProperty
+from ..oot_constants import ootData
+from ..oot_object import addMissingObjectsToAllRoomHeadersNew
+from .common import altHeaderList
+from .scene import OOTScene
+from .scene_header import OOTSceneAlternateHeader
+from .room import OOTRoom, OOTRoomAlternateHeader
+
 from ...utility import (
     PluginError,
     checkObjectReference,
@@ -12,15 +22,6 @@ from ...utility import (
     toAlnum,
     writeFile,
 )
-from ...f3d.f3d_gbi import DLFormat
-from ..scene.properties import OOTBootupSceneOptions, OOTSceneHeaderProperty
-from ..room.properties import OOTRoomHeaderProperty
-from ..oot_constants import ootData
-from ..oot_object import addMissingObjectsToAllRoomHeadersNew
-from .common import altHeaderList
-from .scene import OOTScene, OOTSceneAlternateHeader
-from .room import OOTRoom, OOTRoomAlternateHeader
-from .collision import OOTSceneCollisionHeader
 
 from ..oot_utility import (
     ExportInfo,

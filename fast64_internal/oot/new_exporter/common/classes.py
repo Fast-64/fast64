@@ -2,9 +2,9 @@ from dataclasses import dataclass, field
 from math import radians
 from mathutils import Quaternion, Matrix
 from bpy.types import Object
-from ...utility import indent
-from ..oot_utility import ootConvertTranslation, ootConvertRotation
-from ..actor.properties import OOTActorHeaderProperty
+from ....utility import PluginError, indent
+from ...oot_utility import ootConvertTranslation, ootConvertRotation
+from ...actor.properties import OOTActorHeaderProperty
 
 
 altHeaderList = ["childNight", "adultDay", "adultNight"]
@@ -15,6 +15,27 @@ class Common:
     sceneObj: Object
     transform: Matrix
     roomIndex: int = None
+
+    def getRoomObjectFromChild(self, childObj: Object) -> Object | None:
+        # Note: temporary solution until PRs #243 & #255 are merged
+        for obj in self.sceneObj.children_recursive:
+            if obj.type == "EMPTY" and obj.ootEmptyType == "Room":
+                for o in obj.children_recursive:
+                    if o == childObj:
+                        return obj
+        return None
+
+    def validateCurveData(self, curveObj: Object):
+        curveData = curveObj.data
+        if curveObj.type != "CURVE" or curveData.splines[0].type != "NURBS":
+            # Curve was likely not intended to be exported
+            return False
+
+        if len(curveData.splines) != 1:
+            # Curve was intended to be exported but has multiple disconnected segments
+            raise PluginError(f"Exported curves should have only one single segment, found {len(curveData.splines)}")
+
+        return True
 
     def roundPosition(self, position) -> tuple[int, int, int]:
         return (round(position[0]), round(position[1]), round(position[2]))
