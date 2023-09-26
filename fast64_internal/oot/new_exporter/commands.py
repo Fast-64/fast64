@@ -151,7 +151,6 @@ class SceneCommands:
         listName = f"SceneCmd {curHeader.name}"
 
         getCmdFunc1List = [
-            self.getExitListCmd,
             self.getSpawnActorListCmd,
         ]
 
@@ -164,6 +163,9 @@ class SceneCommands:
         getCmdActorList = [
             self.getSpawnListCmd,
         ]
+
+        if len(curHeader.exits.exitList) > 0:
+            getCmdFunc1List.append(self.getExitListCmd)
 
         if len(curHeader.actors.transitionActorList) > 0:
             getCmdActorList.insert(0, self.getTransActorListCmd)

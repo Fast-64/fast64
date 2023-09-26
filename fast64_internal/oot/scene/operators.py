@@ -5,7 +5,7 @@ from bpy.props import EnumProperty, IntProperty, StringProperty
 from bpy.utils import register_class, unregister_class
 from bpy.ops import object
 from mathutils import Matrix, Vector
-from ...f3d.f3d_gbi import TextureExportSettings
+from ...f3d.f3d_gbi import TextureExportSettings, DLFormat
 from ...utility import PluginError, raisePluginError, ootGetSceneOrRoomHeader
 from ..oot_utility import ExportInfo, sceneNameFromID, getEnumName
 from ..oot_level_writer import ootExportSceneToC

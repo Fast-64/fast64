@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from mathutils import Vector
 from ...utility import PluginError, indent
 
 
@@ -9,7 +10,7 @@ class CollisionPoly:
     ignoreActor: bool
     ignoreProjectile: bool
     enableConveyor: bool
-    normal: tuple[int, int, int]
+    normal: Vector
     dist: int
     type: int = None
 
@@ -38,7 +39,7 @@ class CollisionPoly:
                     f"0x{self.getFlags_vIB():04X}",
                     f"0x{self.getVIC():04X}",
                     ", ".join(f"COLPOLY_SNORMAL({val})" for val in self.normal),
-                    f"0x{self.dist:04X}",
+                    f"{self.dist:6}",
                 )
             )
             + " },"

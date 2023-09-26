@@ -64,9 +64,9 @@ class CollisionCommon(Common):
                     colProp = meshObj.material_slots[face.material_index].material.ootCollisionProperty
 
                     planePoint = self.transform @ meshObj.data.vertices[face.vertices[0]].co
-                    (x1, y1, z1) = self.roundPosition(planePoint)
-                    (x2, y2, z2) = self.roundPosition(self.transform @ meshObj.data.vertices[face.vertices[1]].co)
-                    (x3, y3, z3) = self.roundPosition(self.transform @ meshObj.data.vertices[face.vertices[2]].co)
+                    (x1, z1, y1) = self.roundPosition(planePoint)
+                    (x2, z2, y2) = self.roundPosition(self.transform @ meshObj.data.vertices[face.vertices[1]].co)
+                    (x3, z3, y3) = self.roundPosition(self.transform @ meshObj.data.vertices[face.vertices[2]].co)
 
                     self.updateBounds((x1, y1, z1), bounds)
                     self.updateBounds((x2, y2, z2), bounds)
@@ -79,7 +79,7 @@ class CollisionCommon(Common):
                     distance = convertIntTo2sComplement(distance, 2, True)
 
                     indices: list[int] = []
-                    for vertex in [(x1, y1, z1), (x2, y2, z2), (x3, y3, z3)]:
+                    for vertex in [(x1, y1, -z1), (x2, y2, -z2), (x3, y3, -z3)]:
                         index = self.getVertIndex(vertex, vertexList)
                         if index is None:
                             vertexList.append(Vertex(vertex))
@@ -140,7 +140,7 @@ class CollisionCommon(Common):
                             colProp.ignoreActorCollision,
                             colProp.ignoreProjectileCollision,
                             useConveyor,
-                            tuple(normal),
+                            Vector((normal[0], normal[2], normal[1])),
                             distance,
                             i,
                         )

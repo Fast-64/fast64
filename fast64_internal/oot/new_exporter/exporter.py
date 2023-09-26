@@ -221,13 +221,15 @@ class OOTSceneExport:
         sceneData = None
         try:
             sceneData = self.getNewScene()
-            self.hasCutscenes = sceneData.mainHeader.cutscene.writeCutscene
 
-            if not self.hasCutscenes:
-                for cs in sceneData.altHeader.cutscenes:
-                    if cs.cutscene.writeCutscene:
-                        self.hasCutscenes = True
-                        break
+            if sceneData.mainHeader.cutscene is not None:
+                self.hasCutscenes = sceneData.mainHeader.cutscene.writeCutscene
+
+                if not self.hasCutscenes:
+                    for cs in sceneData.altHeader.cutscenes:
+                        if cs.cutscene.writeCutscene:
+                            self.hasCutscenes = True
+                            break
 
             ootCleanupScene(originalSceneObj, allObjs)
         except Exception as e:
