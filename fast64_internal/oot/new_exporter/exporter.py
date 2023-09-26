@@ -58,7 +58,7 @@ class OOTSceneData:
 @dataclass
 class OOTSceneExport:
     exportInfo: ExportInfo
-    sceneObj: Object
+    originalSceneObj: Object
     sceneName: str
     ootBlenderScale: float
     transform: Matrix
@@ -70,6 +70,7 @@ class OOTSceneExport:
     textureExportSettings: TextureExportSettings
     dlFormat: DLFormat = DLFormat.Static
 
+    sceneObj: Object = None
     scene: OOTScene = None
     path: str = None
     sceneBasePath: str = None
@@ -202,15 +203,14 @@ class OOTSceneExport:
         """Returns the default scene header and adds the alternate/cutscene ones"""
 
         # init
-        originalSceneObj = self.sceneObj
-        if self.sceneObj.type != "EMPTY" or self.sceneObj.ootEmptyType != "Scene":
-            raise PluginError(f'{self.sceneObj.name} is not an empty with the "Scene" empty type.')
+        if self.originalSceneObj.type != "EMPTY" or self.originalSceneObj.ootEmptyType != "Scene":
+            raise PluginError(f'{self.originalSceneObj.name} is not an empty with the "Scene" empty type.')
 
         if bpy.context.scene.exportHiddenGeometry:
             hiddenState = unhideAllAndGetHiddenState(bpy.context.scene)
 
         # Don't remove ignore_render, as we want to reuse this for collision
-        self.sceneObj, allObjs = ootDuplicateHierarchy(self.sceneObj, None, True, OOTObjectCategorizer())
+        self.sceneObj, allObjs = ootDuplicateHierarchy(self.originalSceneObj, None, True, OOTObjectCategorizer())
 
         if bpy.context.scene.exportHiddenGeometry:
             restoreHiddenState(hiddenState)
@@ -229,9 +229,9 @@ class OOTSceneExport:
                             self.hasCutscenes = True
                             break
 
-            ootCleanupScene(originalSceneObj, allObjs)
+            ootCleanupScene(self.originalSceneObj, allObjs)
         except Exception as e:
-            ootCleanupScene(originalSceneObj, allObjs)
+            ootCleanupScene(self.originalSceneObj, allObjs)
             raise Exception(str(e))
 
         if sceneData is None:
@@ -350,7 +350,7 @@ class OOTSceneExport:
             room.mesh.copyBgImages(self.path)
 
     def export(self):
-        checkObjectReference(self.sceneObj, "Scene object")
+        checkObjectReference(self.originalSceneObj, "Scene object")
         isCustomExport = self.exportInfo.isCustomExportPath
         exportPath = self.exportInfo.exportPath
 

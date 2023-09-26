@@ -1,8 +1,8 @@
 import math
 
 from dataclasses import dataclass
-from mathutils import Vector, Quaternion
-from bpy.types import Object
+from mathutils import Vector, Quaternion, Matrix
+from bpy.types import Object, Mesh
 from bpy.ops import object
 from ....utility import PluginError, checkIdentityRotation
 from ...oot_utility import convertIntTo2sComplement
@@ -43,19 +43,31 @@ class CollisionCommon(Common):
                 return i
         return None
 
+    def getMeshObjects(
+        self, parentObj: Object, transform: Matrix, matrixTable: dict[Object, Matrix]
+    ) -> dict[Object, Matrix]:
+        for obj in parentObj.children:
+            newTransform = transform @ obj.matrix_local
+            if obj.type == "MESH" and not obj.ignore_collision:
+                matrixTable[obj] = newTransform
+            self.getMeshObjects(obj, newTransform, matrixTable)
+        return matrixTable
+
     def getColSurfaceVtxDataFromMeshObj(self):
-        meshObjList = [obj for obj in self.sceneObj.children_recursive if obj.type == "MESH"]
         object.select_all(action="DESELECT")
         self.sceneObj.select_set(True)
 
+        matrixTable: dict[Object, Matrix] = {}
         surfaceTypeData: dict[int, SurfaceType] = {}
         polyList: list[CollisionPoly] = []
         vertexList: list[Vertex] = []
         bounds = []
 
         i = 0
-        for meshObj in meshObjList:
-            if not meshObj.ignore_collision:
+        matrixTable = self.getMeshObjects(self.sceneObj, self.transform, matrixTable)
+        for meshObj, transform in matrixTable.items():
+            # Note: ``isinstance``only used to get the proper type hints
+            if not meshObj.ignore_collision and isinstance(meshObj.data, Mesh):
                 if len(meshObj.data.materials) == 0:
                     raise PluginError(f"'{meshObj.name}' must have a material associated with it.")
 
@@ -63,16 +75,15 @@ class CollisionCommon(Common):
                 for face in meshObj.data.loop_triangles:
                     colProp = meshObj.material_slots[face.material_index].material.ootCollisionProperty
 
-                    planePoint = self.transform @ meshObj.data.vertices[face.vertices[0]].co
-                    (x1, z1, y1) = self.roundPosition(planePoint)
-                    (x2, z2, y2) = self.roundPosition(self.transform @ meshObj.data.vertices[face.vertices[1]].co)
-                    (x3, z3, y3) = self.roundPosition(self.transform @ meshObj.data.vertices[face.vertices[2]].co)
-
+                    planePoint = transform @ meshObj.data.vertices[face.vertices[0]].co
+                    (x1, y1, z1) = self.roundPosition(planePoint)
+                    (x2, y2, z2) = self.roundPosition(transform @ meshObj.data.vertices[face.vertices[1]].co)
+                    (x3, y3, z3) = self.roundPosition(transform @ meshObj.data.vertices[face.vertices[2]].co)
                     self.updateBounds((x1, y1, z1), bounds)
                     self.updateBounds((x2, y2, z2), bounds)
                     self.updateBounds((x3, y3, z3), bounds)
 
-                    normal = (self.transform.inverted().transposed() @ face.normal).normalized()
+                    normal = (transform.inverted().transposed() @ face.normal).normalized()
                     distance = int(
                         round(-1 * (normal[0] * planePoint[0] + normal[1] * planePoint[1] + normal[2] * planePoint[2]))
                     )
@@ -140,7 +151,7 @@ class CollisionCommon(Common):
                             colProp.ignoreActorCollision,
                             colProp.ignoreProjectileCollision,
                             useConveyor,
-                            Vector((normal[0], normal[2], normal[1])),
+                            normal,
                             distance,
                             i,
                         )
