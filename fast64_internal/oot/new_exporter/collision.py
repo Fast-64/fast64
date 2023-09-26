@@ -88,7 +88,7 @@ class CollisionHeaderBgCamInfo:
         listName = f"Vec3s {self.posDataName}[]"
 
         # .h
-        posData.header = f"extern {listName};"
+        posData.header = f"extern {listName};\n"
 
         # .c
         posData.source = (
@@ -105,7 +105,7 @@ class CollisionHeaderBgCamInfo:
         listName = f"BgCamInfo {self.name}[]"
 
         # .h
-        bgCamInfoData.header = f"extern {listName};"
+        bgCamInfoData.header = f"extern {listName};\n"
 
         # .c
         bgCamInfoData.source = (

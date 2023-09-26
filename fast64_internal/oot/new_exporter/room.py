@@ -226,7 +226,7 @@ class OOTRoom(Common, RoomCommands):
                     roomC.append(curHeader.actors.getActorListC())
 
         return roomC
-    
+
     def getRoomShapeModelC(self, textureSettings: TextureExportSettings):
         roomModel = CData()
 

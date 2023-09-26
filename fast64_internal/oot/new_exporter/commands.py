@@ -166,7 +166,7 @@ class SceneCommands:
         ]
 
         if len(curHeader.actors.transitionActorList) > 0:
-            getCmdActorList.append(self.getTransActorListCmd)
+            getCmdActorList.insert(0, self.getTransActorListCmd)
 
         # if scene.writeCutscene:
         #     getCmdFunc2ArgList.append(self.getCutsceneDataCmd)
@@ -181,8 +181,8 @@ class SceneCommands:
             + self.getPathListCmd(curHeader.path)
             # + (self.getCutsceneDataCmd(curHeader.cutscene) if curHeader.cutscene.writeCutscene else "")
             + (",\n".join(getCmd(curHeader.infos) for getCmd in getCmdGeneralList) + ",\n")
-            + (",\n".join(getCmd(scene, headerIndex) for getCmd in getCmdFunc1List) + ",\n")
             + (",\n".join(getCmd(curHeader.actors) for getCmd in getCmdActorList) + ",\n")
+            + (",\n".join(getCmd(scene, headerIndex) for getCmd in getCmdFunc1List) + ",\n")
             + scene.getEndCmd()
         )
 

@@ -1,14 +1,17 @@
 from dataclasses import dataclass, field
 from bpy.types import Object
+from typing import TYPE_CHECKING
 from ....utility import PluginError, exportColor, ootGetBaseOrCustomLight
 from ...scene.properties import OOTSceneHeaderProperty, OOTLightProperty
 from ...oot_constants import ootData
 from ...oot_model_classes import OOTModel
 from ..commands import SceneCommands
 from ..scene_header import EnvLightSettings, Path, OOTSceneHeader, OOTSceneAlternateHeader
-from ..room import OOTRoom
 from .classes import TransitionActor, EntranceActor, altHeaderList
 from .collision import CollisionCommon
+
+if TYPE_CHECKING:
+    from ..room import OOTRoom
 
 
 @dataclass
@@ -18,7 +21,7 @@ class SceneCommon(CollisionCommon, SceneCommands):
     headerIndex: int = None
     mainHeader: OOTSceneHeader = None
     altHeader: OOTSceneAlternateHeader = None
-    roomList: list[OOTRoom] = field(default_factory=list)
+    roomList: list["OOTRoom"] = field(default_factory=list)
 
     def validateRoomIndices(self):
         for i, room in enumerate(self.roomList):

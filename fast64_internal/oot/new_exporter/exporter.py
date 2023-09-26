@@ -6,6 +6,7 @@ from mathutils import Matrix
 from bpy.types import Object
 from ...f3d.f3d_gbi import DLFormat, TextureExportSettings
 from ..scene.properties import OOTBootupSceneOptions, OOTSceneHeaderProperty
+from ..scene.exporter.to_c import setBootupScene
 from ..room.properties import OOTRoomHeaderProperty
 from ..oot_constants import ootData
 from ..oot_object import addMissingObjectsToAllRoomHeadersNew
@@ -13,10 +14,11 @@ from ..oot_model_classes import OOTModel
 from ..oot_f3d_writer import writeTextureArraysNew
 from ..oot_level_writer import BoundingBox, writeTextureArraysExistingScene, ootProcessMesh
 from ..oot_utility import CullGroup
-from .common import Common, altHeaderList
+from .common import Common, altHeaderList, includeData
 from .scene import OOTScene
 from .scene_header import OOTSceneAlternateHeader
 from .room import OOTRoom, OOTRoomAlternateHeader
+from .file import Files
 
 from ...utility import (
     PluginError,
@@ -75,6 +77,7 @@ class OOTSceneExport:
     sceneData: OOTSceneData = None
     roomList: dict[int, OOTRoomData] = field(default_factory=dict)
     hasCutscenes: bool = False
+    hasSceneTextures: bool = False
 
     def getNewRoomList(self, scene: OOTScene):
         processedRooms = []
@@ -270,71 +273,26 @@ class OOTSceneExport:
     def setIncludeData(self):
         suffix = "\n\n"
         sceneInclude = f'\n#include "{self.scene.name}.h"\n'
+        common = includeData["common"]
+        # room = includeData["roomMain"]
+        # roomShapeInfo = includeData["roomShapeInfo"]
+        # scene = includeData["sceneMain"]
+        # collision = includeData["collision"]
+        # cutscene = includeData["cutscene"]
+        room = ""
+        roomShapeInfo = ""
+        scene = ""
+        collision = ""
+        cutscene = ""
+
         common = (
-            "\n".join(
-                [
-                    '#include "ultra64/ultratypes.h"',
-                    '#include "ultra64/gbi.h"',
-                    '#include "libc/stddef.h"',
-                    '#include "libc/stdint.h"',
-                    '#include "z64math.h"',
-                ]
-            )
-            + "\n"
-        )
-
-        room = (
-            "\n".join(
-                [
-                    '#include "z64object.h"',
-                    '#include "z64actor.h"',
-                    '#include "z64scene.h"',
-                ]
-            )
-            + "\n"
-        )
-
-        roomShapeInfo = (
-            "\n".join(
-                [
-                    '#include "macros.h"',
-                    '#include "z64scene.h"',
-                ]
-            )
-            + "\n"
-        )
-
-        scene = (
-            "\n".join(
-                [
-                    '#include "z64dma.h"',
-                    '#include "z64actor.h"',
-                    '#include "z64scene.h"',
-                    '#include "z64environment.h"',
-                ]
-            )
-            + "\n"
-        )
-
-        collision = (
-            "\n".join(
-                [
-                    '#include "macros.h"',
-                    '#include "z64camera.h"',
-                    '#include "z64bgcheck.h"',
-                ]
-            )
-            + "\n"
-        )
-
-        cutscene = (
-            "\n".join(
-                [
-                    '#include "z64cutscene.h"',
-                    '#include "z64cutscene_commands.h"',
-                ]
-            )
-            + "\n"
+            '#include "ultra64.h"\n'
+            + '#include "z64.h"\n'
+            + '#include "macros.h"\n'
+            + '#include "segment_symbols.h"\n'
+            + '#include "command_macros_base.h"\n'
+            + '#include "z64cutscene_commands.h"\n'
+            + '#include "variables.h"\n'
         )
 
         for roomData in self.roomList.values():
@@ -360,26 +318,32 @@ class OOTSceneExport:
     def writeScene(self):
         for room in self.roomList.values():
             if self.singleFileExport:
+                roomMainPath = f"{room.name}.c"
                 room.roomMain += room.roomModelInfo + room.roomModel
             else:
+                roomMainPath = f"{room.name}_main.c"
                 writeFile(os.path.join(self.path, f"{room.name}_model_info.c"), room.roomModelInfo)
                 writeFile(os.path.join(self.path, f"{room.name}_model.c"), room.roomModel)
 
-            writeFile(os.path.join(self.path, room.name + ".c"), room.roomMain)
+            writeFile(os.path.join(self.path, roomMainPath), room.roomMain)
 
         if self.singleFileExport:
+            sceneMainPath = f"{self.sceneBasePath}.c"
             self.sceneData.sceneMain += self.sceneData.sceneCollision
             if self.hasCutscenes:
                 for i, cs in enumerate(self.sceneData.sceneCutscenes):
                     self.sceneData.sceneMain += cs
         else:
+            sceneMainPath = f"{self.sceneBasePath}_main.c"
             writeFile(f"{self.sceneBasePath}_col.c", self.sceneData.sceneCollision)
             if self.hasCutscenes:
                 for i, cs in enumerate(self.sceneData.sceneCutscenes):
                     writeFile(f"{self.sceneBasePath}_cs_{i}.c", cs)
 
-        writeFile(f"{self.sceneBasePath}_tex.c", self.sceneData.sceneTextures)
-        writeFile(self.sceneBasePath + ".c", self.sceneData.sceneMain)
+        if self.hasSceneTextures:
+            writeFile(f"{self.sceneBasePath}_tex.c", self.sceneData.sceneTextures)
+
+        writeFile(sceneMainPath, self.sceneData.sceneMain)
         writeFile(self.sceneBasePath + ".h", self.header)
 
         for room in self.scene.roomList:
@@ -404,6 +368,7 @@ class OOTSceneExport:
         self.textureExportSettings.exportPath = self.path
         self.setSceneData()
         self.setRoomListData()
+        self.hasSceneTextures = len(self.sceneData.sceneTextures) > 0
 
         if not isCustomExport:
             writeTextureArraysExistingScene(self.scene.model, exportPath, sceneInclude + self.sceneName + "_scene.h")
@@ -414,3 +379,15 @@ class OOTSceneExport:
 
         self.setIncludeData()
         self.writeScene()
+
+        if not isCustomExport:
+            Files(self).editFiles()
+
+        if self.hackerootBootOption is not None and self.hackerootBootOption.bootToScene:
+            setBootupScene(
+                os.path.join(exportPath, "include/config/config_debug.h")
+                if not isCustomExport
+                else os.path.join(self.path, "config_bootup.h"),
+                "ENTR_" + self.sceneName.upper() + "_" + str(self.hackerootBootOption.spawnIndex),
+                self.hackerootBootOption,
+            )

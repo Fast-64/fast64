@@ -208,7 +208,7 @@ class ExportInfo:
         self.isCustomExportPath = isCustomExport
         self.exportPath = exportPath
         self.customSubPath = customSubPath
-        self.name = name
+        self.name: str = name
 
 
 class OOTObjectCategorizer:

@@ -205,7 +205,6 @@ class RoomShape:
         if self.multi is not None and self.multiImg is not None:
             return self.multi.name
 
-
     def getRoomShapeBgImgDataC(self, roomMesh: OOTRoomMesh, textureSettings: TextureExportSettings):
         dlData = CData()
 
@@ -224,7 +223,7 @@ class RoomShape:
             )
 
         return dlData
-    
+
     def getRoomShapeC(self):
         shapeData = CData()
 
