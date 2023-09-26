@@ -13,7 +13,6 @@ from .room_shape import (
     RoomShape,
     RoomShapeDLists,
     RoomShapeDListsEntry,
-    RoomShapeImageBase,
     RoomShapeImageMulti,
     RoomShapeImageMultiBg,
     RoomShapeImageMultiBgEntry,

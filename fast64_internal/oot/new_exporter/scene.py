@@ -85,7 +85,7 @@ class OOTScene(SceneCommon):
                 self.getEnvLightSettingsListFromProps(headerProp, lightMode),
             ),
             OOTSceneHeaderCutscene(
-                headerProp.csWriteObject.name.removeprefix("Cutscene."),
+                headerIndex,
                 headerProp.csWriteType,
                 headerProp.writeCutscene,
                 headerProp.csWriteObject,

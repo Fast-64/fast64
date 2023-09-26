@@ -80,8 +80,7 @@ class OOTSceneExport:
     hasSceneTextures: bool = False
 
     def getNewRoomList(self, scene: OOTScene):
-        processedRooms = []
-        roomList: list[OOTRoom] = []
+        roomDict: dict[int, OOTRoom] = {}
         roomObjs: list[Object] = [
             obj for obj in self.sceneObj.children_recursive if obj.type == "EMPTY" and obj.ootEmptyType == "Room"
         ]
@@ -93,8 +92,12 @@ class OOTSceneExport:
             altProp = roomObj.ootAlternateRoomHeaders
             roomHeader = roomObj.ootRoomHeader
             roomIndex = roomHeader.roomIndex
+
+            if roomIndex in roomDict:
+                raise PluginError(f"ERROR: Room index {roomIndex} used more than once!")
+
             roomName = f"{toAlnum(self.sceneName)}_room_{roomIndex}"
-            roomData = OOTRoom(
+            roomDict[roomIndex] = OOTRoom(
                 self.sceneObj,
                 self.transform,
                 roomIndex,
@@ -116,10 +119,10 @@ class OOTSceneExport:
             c = Common(self.sceneObj, self.transform)
             pos, _, scale, _ = c.getConvertedTransform(self.transform, self.sceneObj, roomObj, True)
             cullGroup = CullGroup(pos, scale, roomObj.ootRoomHeader.defaultCullDistance)
-            DLGroup = roomData.mesh.addMeshGroup(cullGroup).DLGroup
+            DLGroup = roomDict[roomIndex].mesh.addMeshGroup(cullGroup).DLGroup
             boundingBox = BoundingBox()
             ootProcessMesh(
-                roomData.mesh,
+                roomDict[roomIndex].mesh,
                 DLGroup,
                 self.sceneObj,
                 roomObj,
@@ -133,44 +136,38 @@ class OOTSceneExport:
             cullGroup.position = centroid
             cullGroup.cullDepth = radius
 
-            roomData.mesh.terminateDLs()
-            roomData.mesh.removeUnusedEntries()
+            roomDict[roomIndex].mesh.terminateDLs()
+            roomDict[roomIndex].mesh.removeUnusedEntries()
 
             # Other
             if roomHeader.roomShape == "ROOM_SHAPE_TYPE_IMAGE" and len(roomHeader.bgImageList) < 1:
                 raise PluginError(f'Room {roomObj.name} uses room shape "Image" but doesn\'t have any BG images.')
 
-            if roomHeader.roomShape == "ROOM_SHAPE_TYPE_IMAGE" and len(processedRooms) > 1:
+            if roomHeader.roomShape == "ROOM_SHAPE_TYPE_IMAGE" and len(roomDict) > 1:
                 raise PluginError(f'Room shape "Image" can only have one room in the scene.')
 
-            roomData.roomShape = roomData.getNewRoomShape(roomHeader, self.sceneName)
-            altHeaderData = OOTRoomAlternateHeader(f"{roomData.name}_alternateHeaders")
-            roomData.mainHeader = roomData.getNewRoomHeader(roomHeader)
+            roomDict[roomIndex].roomShape = roomDict[roomIndex].getNewRoomShape(roomHeader, self.sceneName)
+            altHeaderData = OOTRoomAlternateHeader(f"{roomDict[roomIndex].name}_alternateHeaders")
+            roomDict[roomIndex].mainHeader = roomDict[roomIndex].getNewRoomHeader(roomHeader)
             hasAltHeader = False
 
             for i, header in enumerate(altHeaderList, 1):
                 altP: OOTRoomHeaderProperty = getattr(altProp, f"{header}Header")
                 if not altP.usePreviousHeader:
                     hasAltHeader = True
-                    setattr(altHeaderData, header, roomData.getNewRoomHeader(altP, i))
+                    setattr(altHeaderData, header, roomDict[roomIndex].getNewRoomHeader(altP, i))
 
             altHeaderData.cutscenes = [
-                roomData.getNewRoomHeader(csHeader, i) for i, csHeader in enumerate(altProp.cutsceneHeaders, 4)
+                roomDict[roomIndex].getNewRoomHeader(csHeader, i) for i, csHeader in enumerate(altProp.cutsceneHeaders, 4)
             ]
 
             if len(altHeaderData.cutscenes) > 0:
                 hasAltHeader = True
 
-            roomData.altHeader = altHeaderData if hasAltHeader else None
+            roomDict[roomIndex].altHeader = altHeaderData if hasAltHeader else None
+            addMissingObjectsToAllRoomHeadersNew(roomObj, roomDict[roomIndex], ootData)
 
-            if roomIndex in processedRooms:
-                raise PluginError(f"ERROR: Room index {roomIndex} used more than once!")
-
-            addMissingObjectsToAllRoomHeadersNew(roomObj, roomData, ootData)
-            processedRooms.append(roomIndex)
-            roomList.append(roomData)
-
-        return roomList
+        return [roomDict[i] for i in range(min(roomDict.keys()), len(roomDict))]
 
     def getNewScene(self):
         altProp = self.sceneObj.ootAlternateSceneHeaders

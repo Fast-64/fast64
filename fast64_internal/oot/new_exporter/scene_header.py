@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from bpy.types import Object
-from ...utility import CData, indent
+from ...utility import PluginError, CData, indent
 from .common import TransitionActor, EntranceActor
 
 
@@ -149,12 +149,28 @@ class OOTSceneHeaderLighting:
 
 @dataclass
 class OOTSceneHeaderCutscene:
-    name: str
+    headerIndex: int
     writeType: str
     writeCutscene: bool
     csObj: Object
     csWriteCustom: str
     extraCutscenes: list[Object]
+    name: str = None
+
+    def __post_init__(self):
+        if self.headerIndex > 0 and len(self.extraCutscenes) > 0:
+            raise PluginError("ERROR: Extra cutscenes can only belong to the main header!")
+
+        if self.csObj is not None:
+            self.name = self.csObj.name.removeprefix("Cutscene.")
+
+            if self.csObj.ootEmptyType != "Cutscene":
+                raise PluginError("ERROR: Object selected as cutscene is wrong type, must be empty with Cutscene type")
+            elif self.csObj.parent is not None:
+                raise PluginError("ERROR: Cutscene empty object should not be parented to anything")
+        else:
+            raise PluginError("ERROR: No object selected for cutscene reference")
+        
 
     def getCutsceneC(self):
         # will be implemented when PR #208 is merged
