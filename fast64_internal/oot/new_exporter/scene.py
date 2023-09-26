@@ -91,7 +91,9 @@ class OOTScene(SceneCommon):
                 headerProp.csWriteObject,
                 headerProp.csWriteCustom if headerProp.csWriteType == "Custom" else None,
                 [csObj for csObj in headerProp.extraCutscenes],
-            ) if headerProp.writeCutscene else None,
+            )
+            if headerProp.writeCutscene
+            else None,
             OOTSceneHeaderExits(f"{headerName}_exitList", self.getExitListFromProps(headerProp)),
             OOTSceneHeaderActors(
                 f"{headerName}_entranceList",

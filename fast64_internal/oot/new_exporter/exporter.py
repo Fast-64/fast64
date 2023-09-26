@@ -158,7 +158,8 @@ class OOTSceneExport:
                     setattr(altHeaderData, header, roomDict[roomIndex].getNewRoomHeader(altP, i))
 
             altHeaderData.cutscenes = [
-                roomDict[roomIndex].getNewRoomHeader(csHeader, i) for i, csHeader in enumerate(altProp.cutsceneHeaders, 4)
+                roomDict[roomIndex].getNewRoomHeader(csHeader, i)
+                for i, csHeader in enumerate(altProp.cutsceneHeaders, 4)
             ]
 
             if len(altHeaderData.cutscenes) > 0:

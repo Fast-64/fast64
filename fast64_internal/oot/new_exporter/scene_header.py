@@ -170,7 +170,6 @@ class OOTSceneHeaderCutscene:
                 raise PluginError("ERROR: Cutscene empty object should not be parented to anything")
         else:
             raise PluginError("ERROR: No object selected for cutscene reference")
-        
 
     def getCutsceneC(self):
         # will be implemented when PR #208 is merged
