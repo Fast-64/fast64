@@ -93,8 +93,8 @@ class CollisionHeaderBgCamInfo:
         # .c
         posData.source = (
             (listName + " = {\n")
-            + "".join(cam.getDataEntriesC() for cam in self.bgCamInfoList)
-            + "".join(crawlspace.getDataEntriesC() for crawlspace in self.crawlspacePosList)
+            + "".join(cam.getDataEntryC() for cam in self.bgCamInfoList)
+            + "".join(crawlspace.getDataEntryC() for crawlspace in self.crawlspacePosList)
             + "};\n\n"
         )
 
@@ -163,8 +163,10 @@ class OOTSceneCollisionHeader:
             wBoxPtrLine = f"ARRAY_COUNT({self.waterbox.name}), {self.waterbox.name}"
 
         if len(self.bgCamInfo.bgCamInfoList) > 0 or len(self.bgCamInfo.crawlspacePosList) > 0:
-            colData.append(self.bgCamInfo.getDataArrayC())
-            colData.append(self.bgCamInfo.getInfoArrayC())
+            infoData = self.bgCamInfo.getInfoArrayC()
+            if "&" in infoData.source:
+                colData.append(self.bgCamInfo.getDataArrayC())
+            colData.append(infoData)
             camPtrLine = f"{self.bgCamInfo.name}"
 
         if len(self.surfaceType.surfaceTypeList) > 0:

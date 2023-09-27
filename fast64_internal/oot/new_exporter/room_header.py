@@ -77,7 +77,8 @@ class OOTRoomHeaderActors:
         ]
         for obj in actorObjList:
             actorProp = obj.ootActorProperty
-            if not Common.isCurrentHeaderValid(actorProp.headerSettings, self.headerIndex):
+            c = Common(self.sceneObj, self.transform)
+            if not c.isCurrentHeaderValid(actorProp.headerSettings, self.headerIndex):
                 continue
 
             # The Actor list is filled with ``("None", f"{i} (Deleted from the XML)", "None")`` for
@@ -86,7 +87,7 @@ class OOTRoomHeaderActors:
             # and not the identifier as defined by the first element of the tuple. Therefore, we need to check if
             # the current Actor has the ID `None` to avoid export issues.
             if actorProp.actorID != "None":
-                pos, rot, _, _ = Common.getConvertedTransform(self.transform, self.sceneObj, obj, True)
+                pos, rot, _, _ = c.getConvertedTransform(self.transform, self.sceneObj, obj, True)
                 actor = Actor()
 
                 if actorProp.actorID == "Custom":

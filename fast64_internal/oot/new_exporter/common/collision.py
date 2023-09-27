@@ -229,8 +229,7 @@ class CollisionCommon(Common):
                 setting,
                 count,
                 index,
-                camProp.hasPositionData,
-                [camPosData[i] for i in range(min(camPosData.keys()), len(camPosData))] if len(camPosData) > 0 else [],
+                camPosData[camProp.index] if camProp.hasPositionData else None,
             )
 
             index += count

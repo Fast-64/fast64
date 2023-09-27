@@ -39,7 +39,7 @@ class CollisionPoly:
                     f"0x{self.getFlags_vIB():04X}",
                     f"0x{self.getVIC():04X}",
                     ", ".join(f"COLPOLY_SNORMAL({val})" for val in self.normal),
-                    f"{self.dist:6}",
+                    f"0x{self.dist:04X}",
                 )
             )
             + " },"
@@ -156,8 +156,8 @@ class CrawlspaceData:
     points: list[tuple[int, int, int]] = field(default_factory=list)
     arrayIndex: int = None
 
-    def getDataEntriesC(self):
-        return "".join(indent + "{ " + f"{point[0]:6}, {point[1]:6}, {point[2]:6}" + " },\n" for point in self.points)
+    def getDataEntryC(self):
+        return "".join(indent + "{ " + f"{point[0]:6}, {point[1]:6}, {point[2]:6}" + " },\n\n" for point in self.points)
 
     def getInfoEntryC(self, posDataName: str):
         return indent + "{ " + f"CAM_SET_CRAWLSPACE, 6, &{posDataName}[{self.arrayIndex}]" + " },\n"
@@ -168,19 +168,26 @@ class BgCamInfo:
     setting: str
     count: int
     arrayIndex: int
-    hasPosData: bool
-    bgCamFuncDataList: list[BgCamFuncData]
+    camData: BgCamFuncData
+    hasPosData: bool = False
 
-    def getDataEntriesC(self):
+    def __post_init__(self):
+        self.hasPosData = self.camData is not None
+
+    def getDataEntryC(self):
         source = ""
 
         if self.hasPosData:
-            for camData in self.bgCamFuncDataList:
-                source += (
-                    (indent + "{ " + ", ".join(f"{p:6}" for p in camData.pos) + " },\n")
-                    + (indent + "{ " + ", ".join(f"{r:6}" for r in camData.rot) + " },\n")
-                    + (indent + "{ " + f"{camData.fov:6}, {camData.roomImageOverrideBgCamIndex:6}, {-1:6}" + " },\n")
+            source += (
+                (indent + "{ " + ", ".join(f"{p:6}" for p in self.camData.pos) + " },\n")
+                + (indent + "{ " + ", ".join(f"{r:6}" for r in self.camData.rot) + " },\n")
+                + (
+                    indent
+                    + "{ "
+                    + f"{self.camData.fov:6}, {self.camData.roomImageOverrideBgCamIndex:6}, {-1:6}"
+                    + " },\n\n"
                 )
+            )
 
         return source
 
