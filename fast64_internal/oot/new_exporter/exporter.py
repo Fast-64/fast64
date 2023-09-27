@@ -86,6 +86,12 @@ class OOTSceneExport:
     hasCutscenes: bool = False
     hasSceneTextures: bool = False
 
+    def __post_init__(self):
+        self.header = (
+            f"#ifndef {self.sceneName.upper()}_SCENE_H\n"
+            + f"#define {self.sceneName.upper()}_SCENE_H\n\n"
+        )
+
     def getNewRoomList(self, scene: OOTScene):
         """Returns the room list from empty objects with the type 'Room'"""
 
@@ -348,6 +354,7 @@ class OOTSceneExport:
         if self.hasSceneTextures:
             writeFile(f"{self.sceneBasePath}_tex.c", self.sceneData.sceneTextures)
 
+        self.header += "\n#endif\n"
         writeFile(sceneMainPath, self.sceneData.sceneMain)
         writeFile(self.sceneBasePath + ".h", self.header)
 
