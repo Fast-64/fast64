@@ -7,6 +7,7 @@ from ..oot_level_classes import OOTRoomMesh
 @dataclass
 class RoomShapeImageBase:
     """This class defines the basic informations shared by other image classes"""
+
     name: str
 
     type: str
@@ -17,6 +18,7 @@ class RoomShapeImageBase:
 @dataclass
 class RoomShapeDListsEntry:
     """This class defines a display list pointer entry"""
+
     opaPtr: str
     xluPtr: str
 

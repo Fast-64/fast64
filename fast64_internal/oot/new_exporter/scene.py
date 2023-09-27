@@ -27,6 +27,8 @@ from .scene_header import (
 
 @dataclass
 class OOTScene(SceneCommon):
+    """This class defines a scene"""
+
     roomListName: str = None
     colHeader: OOTSceneCollisionHeader = None
 
@@ -34,6 +36,8 @@ class OOTScene(SceneCommon):
         self.roomListName = f"{self.name}_roomList"
 
     def getNewCollisionHeader(self):
+        """Returns and creates collision data"""
+
         colBounds, vertexList, polyList, surfaceTypeList = self.getColSurfaceVtxDataFromMeshObj()
         bgCamInfoList = self.getBgCamInfoDataFromObjects()
 
@@ -59,7 +63,7 @@ class OOTScene(SceneCommon):
         )
 
     def getNewSceneHeader(self, headerProp: OOTSceneHeaderProperty, headerIndex: int = 0):
-        """Returns a single scene header with the informations from the scene empty object"""
+        """Returns the scene header"""
 
         self.headerIndex = headerIndex
         headerName = f"{self.name}_header{self.headerIndex:02}"
@@ -111,6 +115,8 @@ class OOTScene(SceneCommon):
         )
 
     def getRoomListC(self):
+        """Returns the ``CData`` containing the room list array"""
+
         roomList = CData()
         listName = f"RomFile {self.roomListName}[]"
 
@@ -148,6 +154,8 @@ class OOTScene(SceneCommon):
         return roomList
 
     def getSceneMainC(self):
+        """Returns the main informations of the scene as ``CData``"""
+
         sceneC = CData()
         headers: list[tuple[OOTSceneHeader, str]] = []
         altHeaderPtrs = None
@@ -187,10 +195,17 @@ class OOTScene(SceneCommon):
         return sceneC
 
     def getSceneCutscenesC(self):
+        """Returns the cutscene informations of the scene as ``CData`` (unfinished)"""
+
         # will be implemented when PR #208 is merged
         csDataList: list[CData] = []
         return csDataList
 
-    # Writes the textures and material setup displaylists that are shared between multiple rooms (is written to the scene)
+    #
     def getSceneTexturesC(self, textureExportSettings: TextureExportSettings):
+        """
+        Writes the textures and material setup displaylists that are shared between multiple rooms
+        (is written to the scene)
+        """
+
         return self.model.to_c(textureExportSettings, OOTGfxFormatter(ScrollMethod.Vertex)).all()

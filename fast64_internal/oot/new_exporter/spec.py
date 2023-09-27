@@ -10,8 +10,11 @@ if TYPE_CHECKING:
 
 
 class Spec:
+    """This class hosts different functions to edit the spec file"""
+
     def getSceneSpecEntries(self, segmentDefinition: list[str], sceneName: str):
         """Returns the existing spec entries for the selected scene"""
+
         entries = []
         matchText = rf'\s*name\s*"{sceneName}\_'
 
@@ -23,6 +26,7 @@ class Spec:
 
     def getSpecEntries(self, fileData: str):
         """Returns the existing spec entries for the whole file"""
+
         entries = []
         compressFlag = ""
 
@@ -42,7 +46,8 @@ class Spec:
         return entries, compressFlag, includes
 
     def editSpec(self, exporter: "OOTSceneExport", exportInfo: ExportInfo = None):
-        """Adds or removes entries for the selected scene"""
+        """Adds or removes entries for the selected scene in the spec file"""
+
         isExport = exporter is not None
         if exportInfo is None:
             exportInfo = exporter.exportInfo

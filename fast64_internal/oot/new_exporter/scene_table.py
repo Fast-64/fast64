@@ -11,13 +11,19 @@ if TYPE_CHECKING:
 
 
 class SceneTable:
+    """This class hosts different function to edit the scene table"""
+
     def getSceneNameSettings(self, isExport: bool):
+        """Returns the scene name"""
+
         if isExport:
             return bpy.context.scene.ootSceneExportSettings.option
         else:
             return bpy.context.scene.ootSceneRemoveSettings.option
 
-    def getHackerOoTCheck(self, line: str):
+    def isHackerOoT(self, line: str):
+        """Returns ``True`` if HackerOoT-related data has been found on the current line"""
+
         return (
             line != "\n"
             and '#include "config.h"\n' not in line
@@ -28,6 +34,7 @@ class SceneTable:
 
     def getSceneTable(self, exportPath: str):
         """Read and remove unwanted stuff from ``scene_table.h``"""
+
         dataList = []
         sceneNames = []
         fileHeader = ""
@@ -41,7 +48,7 @@ class SceneTable:
                     if not line.strip():
                         continue
 
-                    if not bpy.context.scene.fast64.oot.hackerFeaturesEnabled or self.getHackerOoTCheck(line):
+                    if not bpy.context.scene.fast64.oot.hackerFeaturesEnabled or self.isHackerOoT(line):
                         if not (
                             # Detects the multiline comment at the top of the file:
                             (line.startswith("/**") or line.startswith(" *"))
@@ -68,6 +75,7 @@ class SceneTable:
 
     def getSceneIndex(self, sceneNameList: list[str], sceneName: str):
         """Returns the index (int) of the chosen scene, returns None if ``Custom`` is chosen"""
+
         if sceneName == "Custom":
             return None
 
@@ -84,6 +92,7 @@ class SceneTable:
         Returns the index of a specific scene defined by which one the user chose
             or by the ``sceneName`` parameter if it's not set to ``None``
         """
+
         i = 0
 
         if sceneName != "Custom":
@@ -97,6 +106,7 @@ class SceneTable:
 
     def getInsertionIndex(self, isExport: bool, sceneNames: list[str], sceneName: str, index: int, mode: str):
         """Returns the index to know where to insert data"""
+
         # special case where the scene is "Inside the Great Deku Tree"
         # since it's the first scene simply return 0
         if sceneName == "SCENE_DEKU_TREE":
@@ -130,6 +140,7 @@ class SceneTable:
 
     def getSceneParams(self, exporter: "OOTSceneExport", exportInfo: ExportInfo, sceneNames: list[str]):
         """Returns the parameters that needs to be set in ``DEFINE_SCENE()``"""
+
         # in order to replace the values of ``unk10``, ``unk12`` and basically every parameters from ``DEFINE_SCENE``,
         # you just have to make it return something other than None, not necessarily a string
         sceneIndex = self.getSceneIndex(sceneNames, self.getSceneNameSettings(exporter is not None))
@@ -147,6 +158,7 @@ class SceneTable:
 
     def sceneTableToC(self, data, header: str, sceneNames: list[str], isExport: bool):
         """Converts the Scene Table to C code"""
+
         # start the data with the header comment explaining the format of the file
         fileData = header
 
@@ -178,7 +190,8 @@ class SceneTable:
 
     def getDrawConfig(self, sceneName: str):
         """Read draw config from scene table"""
-        fileData, header, sceneNames = self.getSceneTable(bpy.path.abspath(bpy.context.scene.ootDecompPath))
+
+        fileData, _, _ = self.getSceneTable(bpy.path.abspath(bpy.context.scene.ootDecompPath))
 
         for sceneEntry in fileData:
             if sceneEntry[0] == f"{sceneName}_scene":
@@ -188,6 +201,7 @@ class SceneTable:
 
     def addHackerOoTData(self, fileData: str):
         """Reads the file and adds HackerOoT's modifications to the scene table file"""
+
         newFileData = ['#include "config.h"\n\n']
 
         for line in fileData.splitlines():
@@ -206,6 +220,7 @@ class SceneTable:
 
     def editSceneTable(self, exporter: "OOTSceneExport", exportInfo: ExportInfo = None):
         """Edit the scene table with the new data"""
+
         isExport = exporter is not None
         if exportInfo is None:
             exportInfo = exporter.exportInfo
