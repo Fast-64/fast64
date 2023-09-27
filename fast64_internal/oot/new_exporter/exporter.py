@@ -41,6 +41,8 @@ from ..oot_utility import (
 
 @dataclass
 class OOTRoomData:
+    """This class hosts the C data for every room files"""
+
     name: str
     roomMain: str = None
     roomModel: str = None
@@ -49,6 +51,8 @@ class OOTRoomData:
 
 @dataclass
 class OOTSceneData:
+    """This class hosts the C data for every scene files"""
+
     sceneMain: str = None
     sceneCollision: str = None
     sceneCutscenes: list[str] = field(default_factory=list)
@@ -57,6 +61,8 @@ class OOTSceneData:
 
 @dataclass
 class OOTSceneExport:
+    """This class is the main exporter class, it handles generating the C data and writing the files"""
+
     exportInfo: ExportInfo
     originalSceneObj: Object
     sceneName: str
@@ -81,6 +87,8 @@ class OOTSceneExport:
     hasSceneTextures: bool = False
 
     def getNewRoomList(self, scene: OOTScene):
+        """Returns the room list from empty objects with the type 'Room'"""
+
         roomDict: dict[int, OOTRoom] = {}
         roomObjs: list[Object] = [
             obj for obj in self.sceneObj.children_recursive if obj.type == "EMPTY" and obj.ootEmptyType == "Room"
@@ -172,36 +180,7 @@ class OOTSceneExport:
         return [roomDict[i] for i in range(min(roomDict.keys()), len(roomDict))]
 
     def getNewScene(self):
-        altProp = self.sceneObj.ootAlternateSceneHeaders
-        sceneData = OOTScene(self.sceneObj, self.transform, name=f"{toAlnum(self.sceneName)}_scene")
-        sceneData.model = OOTModel(self.f3dType, self.isHWv1, f"{sceneData.name}_dl", self.dlFormat, False)
-        altHeaderData = OOTSceneAlternateHeader(f"{sceneData.name}_alternateHeaders")
-        sceneData.mainHeader = sceneData.getNewSceneHeader(self.sceneObj.ootSceneHeader)
-        hasAltHeader = False
-
-        for i, header in enumerate(altHeaderList, 1):
-            altP: OOTSceneHeaderProperty = getattr(altProp, f"{header}Header")
-            if not altP.usePreviousHeader:
-                setattr(altHeaderData, header, sceneData.getNewSceneHeader(altP, i))
-                hasAltHeader = True
-
-        altHeaderData.cutscenes = [
-            sceneData.getNewSceneHeader(csHeader, i) for i, csHeader in enumerate(altProp.cutsceneHeaders, 4)
-        ]
-
-        if len(altHeaderData.cutscenes) > 0:
-            hasAltHeader = True
-
-        sceneData.altHeader = altHeaderData if hasAltHeader else None
-        sceneData.roomList = self.getNewRoomList(sceneData)
-        sceneData.colHeader = sceneData.getNewCollisionHeader()
-
-        sceneData.validateScene()
-        return sceneData
-
-    def getNewSceneFromEmptyObject(self):
-        """Returns the default scene header and adds the alternate/cutscene ones"""
-
+        """Returns and creates scene data"""
         # init
         if self.originalSceneObj.type != "EMPTY" or self.originalSceneObj.ootEmptyType != "Scene":
             raise PluginError(f'{self.originalSceneObj.name} is not an empty with the "Scene" empty type.')
@@ -215,10 +194,31 @@ class OOTSceneExport:
         if bpy.context.scene.exportHiddenGeometry:
             restoreHiddenState(hiddenState)
 
-        # convert scene
-        sceneData = None
         try:
-            sceneData = self.getNewScene()
+            altProp = self.sceneObj.ootAlternateSceneHeaders
+            sceneData = OOTScene(self.sceneObj, self.transform, name=f"{toAlnum(self.sceneName)}_scene")
+            sceneData.model = OOTModel(self.f3dType, self.isHWv1, f"{sceneData.name}_dl", self.dlFormat, False)
+            altHeaderData = OOTSceneAlternateHeader(f"{sceneData.name}_alternateHeaders")
+            sceneData.mainHeader = sceneData.getNewSceneHeader(self.sceneObj.ootSceneHeader)
+            hasAltHeader = False
+
+            for i, header in enumerate(altHeaderList, 1):
+                altP: OOTSceneHeaderProperty = getattr(altProp, f"{header}Header")
+                if not altP.usePreviousHeader:
+                    setattr(altHeaderData, header, sceneData.getNewSceneHeader(altP, i))
+                    hasAltHeader = True
+
+            altHeaderData.cutscenes = [
+                sceneData.getNewSceneHeader(csHeader, i) for i, csHeader in enumerate(altProp.cutsceneHeaders, 4)
+            ]
+
+            if len(altHeaderData.cutscenes) > 0:
+                hasAltHeader = True
+
+            sceneData.altHeader = altHeaderData if hasAltHeader else None
+            sceneData.roomList = self.getNewRoomList(sceneData)
+            sceneData.colHeader = sceneData.getNewCollisionHeader()
+            sceneData.validateScene()
 
             if sceneData.mainHeader.cutscene is not None:
                 self.hasCutscenes = sceneData.mainHeader.cutscene.writeCutscene
@@ -234,12 +234,11 @@ class OOTSceneExport:
             ootCleanupScene(self.originalSceneObj, allObjs)
             raise Exception(str(e))
 
-        if sceneData is None:
-            raise PluginError("ERROR: 'sceneData' is None!")
-
         return sceneData
 
     def setRoomListData(self):
+        """Gets and sets C data for every room elements"""
+
         for room in self.scene.roomList:
             roomMainData = room.getRoomMainC()
             roomModelData = room.getRoomShapeModelC(self.textureExportSettings)
@@ -251,6 +250,8 @@ class OOTSceneExport:
             )
 
     def setSceneData(self):
+        """Gets and sets C data for every scene elements"""
+
         sceneMainData = self.scene.getSceneMainC()
         sceneCollisionData = self.scene.colHeader.getSceneCollisionC()
         sceneCutsceneData = self.scene.getSceneCutscenesC()
@@ -271,6 +272,8 @@ class OOTSceneExport:
         )
 
     def setIncludeData(self):
+        """Adds includes at the beginning of each file to write"""
+
         suffix = "\n\n"
         sceneInclude = f'\n#include "{self.scene.name}.h"\n'
         common = includeData["common"]
@@ -316,6 +319,8 @@ class OOTSceneExport:
                     cs = cutscene + sceneInclude + suffix + cs
 
     def writeScene(self):
+        """Write the scene to the chosen location"""
+
         for room in self.roomList.values():
             if self.singleFileExport:
                 roomMainPath = f"{room.name}.c"
@@ -350,6 +355,8 @@ class OOTSceneExport:
             room.mesh.copyBgImages(self.path)
 
     def export(self):
+        """Main function"""
+
         checkObjectReference(self.originalSceneObj, "Scene object")
         isCustomExport = self.exportInfo.isCustomExportPath
         exportPath = self.exportInfo.exportPath
@@ -361,7 +368,7 @@ class OOTSceneExport:
             exportSubdir = os.path.dirname(getSceneDirFromLevelName(self.sceneName))
 
         sceneInclude = exportSubdir + "/" + self.sceneName + "/"
-        self.scene = self.getNewSceneFromEmptyObject()
+        self.scene = self.getNewScene()
         self.path = ootGetPath(exportPath, isCustomExport, exportSubdir, self.sceneName, True, True)
         self.sceneBasePath = os.path.join(self.path, self.scene.name)
         self.textureExportSettings.includeDir = sceneInclude

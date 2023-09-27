@@ -12,7 +12,9 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class Files:
+class Files:  # TODO: find a better name
+    """This class handles editing decomp files"""
+
     exporter: "OOTSceneExport"
 
     def modifySceneFiles(self):
@@ -30,6 +32,7 @@ class Files:
                     os.remove(filepath)
 
     def editFiles(self):
+        """Edits decomp files"""
         self.modifySceneFiles()
         Spec().editSpec(self.exporter)
         SceneTable().editSceneTable(self.exporter)

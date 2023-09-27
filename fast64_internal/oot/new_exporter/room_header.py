@@ -8,6 +8,8 @@ from .common import Common, Actor
 
 @dataclass
 class OOTRoomHeaderInfos:
+    """This class stores various room header informations"""
+
     ### General ###
 
     index: int
@@ -38,13 +40,19 @@ class OOTRoomHeaderInfos:
 
 @dataclass
 class OOTRoomHeaderObjects:
+    """This class defines an OoT object array"""
+
     name: str
     objectList: list[str]
 
     def getObjectLengthDefineName(self):
+        """Returns the name of the define for the total of entries in the object list"""
+
         return f"LENGTH_{self.name.upper()}"
 
     def getObjectListC(self):
+        """Returns the array with the objects the room uses"""
+
         objectList = CData()
 
         listName = f"s16 {self.name}"
@@ -64,6 +72,8 @@ class OOTRoomHeaderObjects:
 
 @dataclass
 class OOTRoomHeaderActors:
+    """This class defines an OoT actor array"""
+
     name: str
     sceneObj: Object
     roomObj: Object
@@ -113,10 +123,13 @@ class OOTRoomHeaderActors:
                 self.actorList.append(actor)
 
     def getActorLengthDefineName(self):
+        """Returns the name of the define for the total of entries in the actor list"""
+
         return f"LENGTH_{self.name.upper()}"
 
     def getActorListC(self):
-        """Returns the actor list for the current header"""
+        """Returns the array with the actors the room uses"""
+
         actorList = CData()
         listName = f"ActorEntry {self.name}"
 
@@ -135,6 +148,8 @@ class OOTRoomHeaderActors:
 
 @dataclass
 class OOTRoomAlternateHeader:
+    """This class stores alternate header data"""
+
     name: str
     childNight: "OOTRoomHeader" = None
     adultDay: "OOTRoomHeader" = None
@@ -144,6 +159,8 @@ class OOTRoomAlternateHeader:
 
 @dataclass
 class OOTRoomHeader:
+    """This class defines a room header"""
+
     name: str
     infos: OOTRoomHeaderInfos
     objects: OOTRoomHeaderObjects
@@ -151,6 +168,7 @@ class OOTRoomHeader:
 
     def getHeaderDefines(self):
         """Returns a string containing defines for actor and object lists lengths"""
+
         headerDefines = ""
 
         if len(self.objects.objectList) > 0:
