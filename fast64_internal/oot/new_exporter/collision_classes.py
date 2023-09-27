@@ -21,15 +21,15 @@ class CollisionPoly:
         """Returns the value of ``flags_vIA``"""
 
         vtxId = self.indices[0] & 0x1FFF
-        if not (self.ignoreProjectile and self.ignoreActor and self.ignoreCamera):
-            flags = "COLPOLY_IGNORE_NONE" if self.useMacros else "0"
-        else:
+        if self.ignoreProjectile or self.ignoreActor or self.ignoreCamera:
             flag1 = ("COLPOLY_IGNORE_PROJECTILES" if self.useMacros else "(1 << 2)") if self.ignoreProjectile else ""
-            flag2 = ("COLPOLY_IGNORE_ENTITY" if self.useMacros else "(1 << 1)") if self.ignoreProjectile else ""
-            flag3 = ("COLPOLY_IGNORE_CAMERA" if self.useMacros else "(1 << 0)") if self.ignoreProjectile else ""
-            flags = "(" + " | ".join([flag1, flag2, flag3]) + ")"
+            flag2 = ("COLPOLY_IGNORE_ENTITY" if self.useMacros else "(1 << 1)") if self.ignoreActor else ""
+            flag3 = ("COLPOLY_IGNORE_CAMERA" if self.useMacros else "(1 << 0)") if self.ignoreCamera else ""
+            flags = "(" + " | ".join(flag for flag in [flag1, flag2, flag3] if len(flag) > 0) + ")"
+        else:
+            flags = "COLPOLY_IGNORE_NONE" if self.useMacros else "0"
 
-        return f"COLPOLY_VTX({vtxId}, ({flags}))" if self.useMacros else f"((({flags} & 7) << 13) | ({vtxId} & 0x1FFF))"
+        return f"COLPOLY_VTX({vtxId}, {flags})" if self.useMacros else f"((({flags} & 7) << 13) | ({vtxId} & 0x1FFF))"
 
     def getFlags_vIB(self):
         """Returns the value of ``flags_vIB``"""
@@ -56,12 +56,12 @@ class CollisionPoly:
             (indent + "{ ")
             + ", ".join(
                 (
-                    f"0x{self.type:04X}",
-                    f"0x{self.getFlags_vIA():04X}",
-                    f"0x{self.getFlags_vIB():04X}",
-                    f"0x{self.getVIC():04X}",
+                    f"{self.type}",
+                    self.getFlags_vIA(),
+                    self.getFlags_vIB(),
+                    self.getVIC(),
                     ", ".join(f"COLPOLY_SNORMAL({val})" for val in self.normal),
-                    f"0x{self.dist:04X}",
+                    f"{self.dist}",
                 )
             )
             + " },"

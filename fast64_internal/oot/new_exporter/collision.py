@@ -122,7 +122,7 @@ class CollisionHeaderBgCamInfo:
         # .c
         bgCamInfoData.source = (
             (listName + " = {\n")
-            + "".join(cam.getInfoEntryC(self.posDataName) for cam in self.bgCamInfoList)
+            + "".join(cam.getEntryC(self.posDataName) for cam in self.bgCamInfoList)
             + "".join(crawlspace.getInfoEntryC(self.posDataName) for crawlspace in self.crawlspacePosList)
             + "};\n\n"
         )
