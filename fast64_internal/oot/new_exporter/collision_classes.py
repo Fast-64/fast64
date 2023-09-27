@@ -157,7 +157,7 @@ class CrawlspaceData:
     arrayIndex: int = None
 
     def getDataEntryC(self):
-        return "".join(indent + "{ " + f"{point[0]:6}, {point[1]:6}, {point[2]:6}" + " },\n\n" for point in self.points)
+        return "".join(indent + "{ " + f"{point[0]:6}, {point[1]:6}, {point[2]:6}" + " },\n" for point in self.points)
 
     def getInfoEntryC(self, posDataName: str):
         return indent + "{ " + f"CAM_SET_CRAWLSPACE, 6, &{posDataName}[{self.arrayIndex}]" + " },\n"
@@ -175,21 +175,16 @@ class BgCamInfo:
         self.hasPosData = self.camData is not None
 
     def getDataEntryC(self):
-        source = ""
-
-        if self.hasPosData:
-            source += (
-                (indent + "{ " + ", ".join(f"{p:6}" for p in self.camData.pos) + " },\n")
-                + (indent + "{ " + ", ".join(f"{r:6}" for r in self.camData.rot) + " },\n")
-                + (
-                    indent
-                    + "{ "
-                    + f"{self.camData.fov:6}, {self.camData.roomImageOverrideBgCamIndex:6}, {-1:6}"
-                    + " },\n\n"
-                )
+        return (
+            (indent + "{ " + ", ".join(f"{p:6}" for p in self.camData.pos) + " },\n")
+            + (indent + "{ " + ", ".join(f"0x{r:04X}" for r in self.camData.rot) + " },\n")
+            + (
+                indent
+                + "{ "
+                + f"{self.camData.fov:6}, {self.camData.roomImageOverrideBgCamIndex:6}, {-1:6}"
+                + " },\n"
             )
-
-        return source
+        )
 
     def getInfoEntryC(self, posDataName: str):
         ptr = f"&{posDataName}[{self.arrayIndex}]" if self.hasPosData else "NULL"
