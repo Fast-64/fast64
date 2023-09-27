@@ -7,7 +7,8 @@ from ...oot_constants import ootData
 from ...oot_model_classes import OOTModel
 from ..commands import SceneCommands
 from ..scene_header import EnvLightSettings, Path, OOTSceneHeader, OOTSceneAlternateHeader
-from .classes import TransitionActor, EntranceActor, altHeaderList
+from ..actors import TransitionActor, EntranceActor
+from .classes import altHeaderList
 from .collision import CollisionCommon
 
 if TYPE_CHECKING:

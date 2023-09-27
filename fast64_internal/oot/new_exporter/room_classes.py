@@ -3,7 +3,8 @@ from mathutils import Matrix
 from bpy.types import Object
 from ...utility import CData, indent
 from ..oot_constants import ootData
-from .common import Common, Actor
+from .common import Common
+from .actors import Actor
 
 
 @dataclass

@@ -201,7 +201,6 @@ class OOTScene(SceneCommon):
         csDataList: list[CData] = []
         return csDataList
 
-    #
     def getSceneTexturesC(self, textureExportSettings: TextureExportSettings):
         """
         Writes the textures and material setup displaylists that are shared between multiple rooms

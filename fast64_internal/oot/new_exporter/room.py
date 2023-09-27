@@ -20,7 +20,7 @@ from .room_shape import (
     RoomShapeNormal,
 )
 
-from .room_header import (
+from .room_classes import (
     OOTRoomHeader,
     OOTRoomAlternateHeader,
     OOTRoomHeaderInfos,

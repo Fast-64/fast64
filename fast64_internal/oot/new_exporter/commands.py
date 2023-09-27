@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .collision import OOTSceneCollisionHeader
     from .room import OOTRoom
-    from .room_header import OOTRoomHeaderInfos, OOTRoomHeaderObjects, OOTRoomHeaderActors
+    from .room_classes import OOTRoomHeaderInfos, OOTRoomHeaderObjects, OOTRoomHeaderActors
     from .scene import OOTScene
     from .scene_header import (
         OOTSceneHeaderInfos,
