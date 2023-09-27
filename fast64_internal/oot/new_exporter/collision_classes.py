@@ -5,6 +5,8 @@ from ...utility import PluginError, indent
 
 @dataclass
 class CollisionPoly:
+    """This class defines a single collision poly"""
+
     indices: list[int]
     ignoreCamera: bool
     ignoreActor: bool
@@ -13,23 +15,43 @@ class CollisionPoly:
     normal: Vector
     dist: int
     type: int = None
+    useMacros: bool = True
 
     def getFlags_vIA(self):
-        vertPart = self.indices[0] & 0x1FFF
-        colPart = (1 if self.ignoreCamera else 0) + (2 if self.ignoreActor else 0) + (4 if self.ignoreProjectile else 0)
-        return vertPart | (colPart << 13)
+        """Returns the value of ``flags_vIA``"""
+
+        vtxId = self.indices[0] & 0x1FFF
+        if not (self.ignoreProjectile and self.ignoreActor and self.ignoreCamera):
+            flags = "COLPOLY_IGNORE_NONE" if self.useMacros else "0"
+        else:
+            flag1 = ("COLPOLY_IGNORE_PROJECTILES" if self.useMacros else "(1 << 2)") if self.ignoreProjectile else ""
+            flag2 = ("COLPOLY_IGNORE_ENTITY" if self.useMacros else "(1 << 1)") if self.ignoreProjectile else ""
+            flag3 = ("COLPOLY_IGNORE_CAMERA" if self.useMacros else "(1 << 0)") if self.ignoreProjectile else ""
+            flags = "(" + " | ".join([flag1, flag2, flag3]) + ")"
+
+        return f"COLPOLY_VTX({vtxId}, ({flags}))" if self.useMacros else f"((({flags} & 7) << 13) | ({vtxId} & 0x1FFF))"
 
     def getFlags_vIB(self):
-        vertPart = self.indices[1] & 0x1FFF
-        conveyorPart = 1 if self.enableConveyor else 0
-        return vertPart | (conveyorPart << 13)
+        """Returns the value of ``flags_vIB``"""
+
+        vtxId = self.indices[1] & 0x1FFF
+        if self.enableConveyor:
+            flags = "COLPOLY_IS_FLOOR_CONVEYOR" if self.useMacros else "(1 << 0)"
+        else:
+            flags = "COLPOLY_IGNORE_NONE" if self.useMacros else "0"
+        return f"COLPOLY_VTX({vtxId}, {flags})" if self.useMacros else f"((({flags} & 7) << 13) | ({vtxId} & 0x1FFF))"
 
     def getVIC(self):
-        return self.indices[2] & 0x1FFF
+        """Returns the value of ``vIC``"""
+
+        vtxId = self.indices[2] & 0x1FFF
+        return f"COLPOLY_VTX_INDEX({vtxId})" if self.useMacros else f"{vtxId} & 0x1FFF"
 
     def getEntryC(self):
+        """Returns an entry for the collision poly array"""
+
         if self.type is None:
-            raise PluginError("ERROR: Type unset!")
+            raise PluginError("ERROR: Surface Type missing!")
         return (
             (indent + "{ ")
             + ", ".join(
@@ -48,6 +70,8 @@ class CollisionPoly:
 
 @dataclass
 class SurfaceType:
+    """This class defines a single surface type"""
+
     bgCamIndex: int
     exitIndex: int
     floorType: int
@@ -83,6 +107,8 @@ class SurfaceType:
         self.isWallDamageC = "1" if self.isWallDamage else "0"
 
     def getSurfaceType0(self):
+        """Returns surface type properties for the first element of the data array"""
+
         if self.useMacros:
             return (
                 ("SURFACETYPE0(")
@@ -110,6 +136,8 @@ class SurfaceType:
             )
 
     def getSurfaceType1(self):
+        """Returns surface type properties for the second element of the data array"""
+
         if self.useMacros:
             return (
                 ("SURFACETYPE1(")
@@ -137,6 +165,8 @@ class SurfaceType:
             )
 
     def getEntryC(self):
+        """Returns an entry for the surface type array"""
+
         if self.useMacros:
             return indent + "{ " + self.getSurfaceType0() + ", " + self.getSurfaceType1() + " },"
         else:
@@ -144,27 +174,46 @@ class SurfaceType:
 
 
 @dataclass
-class BgCamFuncData:  # CameraPosData
+class BgCamFuncData:
+    """This class defines camera data, if used"""
+
     pos: tuple[int, int, int]
     rot: tuple[int, int, int]
     fov: int
     roomImageOverrideBgCamIndex: int
 
+    def getEntryC(self):
+        """Returns an entry for the camera data array"""
+
+        return (
+            (indent + "{ " + ", ".join(f"{p:6}" for p in self.pos) + " },\n")
+            + (indent + "{ " + ", ".join(f"0x{r:04X}" for r in self.rot) + " },\n")
+            + (indent + "{ " + f"{self.fov:6}, {self.roomImageOverrideBgCamIndex:6}, {-1:6}" + " },\n")
+        )
+
 
 @dataclass
 class CrawlspaceData:
+    """This class defines camera data for crawlspaces, if used"""
+
     points: list[tuple[int, int, int]] = field(default_factory=list)
     arrayIndex: int = None
 
     def getDataEntryC(self):
+        """Returns an entry for the camera data array"""
+
         return "".join(indent + "{ " + f"{point[0]:6}, {point[1]:6}, {point[2]:6}" + " },\n" for point in self.points)
 
     def getInfoEntryC(self, posDataName: str):
+        """Returns a crawlspace entry for the camera informations array"""
+
         return indent + "{ " + f"CAM_SET_CRAWLSPACE, 6, &{posDataName}[{self.arrayIndex}]" + " },\n"
 
 
 @dataclass
 class BgCamInfo:
+    """This class defines camera information data"""
+
     setting: str
     count: int
     arrayIndex: int
@@ -174,20 +223,16 @@ class BgCamInfo:
     def __post_init__(self):
         self.hasPosData = self.camData is not None
 
-    def getDataEntryC(self):
-        return (
-            (indent + "{ " + ", ".join(f"{p:6}" for p in self.camData.pos) + " },\n")
-            + (indent + "{ " + ", ".join(f"0x{r:04X}" for r in self.camData.rot) + " },\n")
-            + (indent + "{ " + f"{self.camData.fov:6}, {self.camData.roomImageOverrideBgCamIndex:6}, {-1:6}" + " },\n")
-        )
-
-    def getInfoEntryC(self, posDataName: str):
+    def getEntryC(self, posDataName: str):
+        """Returns an entry for the camera information array"""
         ptr = f"&{posDataName}[{self.arrayIndex}]" if self.hasPosData else "NULL"
         return indent + "{ " + f"{self.setting}, {self.count}, {ptr}" + " },\n"
 
 
 @dataclass
 class WaterBox:
+    """This class defines waterbox data"""
+
     position: tuple[int, int, int]
     scale: float
     emptyDisplaySize: float
@@ -224,6 +269,8 @@ class WaterBox:
         self.zLength = zMax - self.zMin
 
     def getProperties(self):
+        """Returns the waterbox properties"""
+
         if self.useMacros:
             return f"WATERBOX_PROPERTIES({self.bgCamIndex}, {self.lightIndex}, {self.roomIndexC}, {self.setFlag19C})"
         else:
@@ -242,6 +289,8 @@ class WaterBox:
             )
 
     def getEntryC(self):
+        """Returns a waterbox entry"""
+
         return (
             (indent + "{ ")
             + f"{self.xMin}, {self.ySurface}, {self.zMin}, {self.xLength}, {self.zLength}, "
@@ -252,7 +301,11 @@ class WaterBox:
 
 @dataclass
 class Vertex:
+    """This class defines a vertex data"""
+
     pos: tuple[int, int, int]
 
     def getEntryC(self):
+        """Returns a vertex entry"""
+
         return indent + "{ " + ", ".join(f"{p:6}" for p in self.pos) + " },"

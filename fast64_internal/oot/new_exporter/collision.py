@@ -13,6 +13,8 @@ from .collision_classes import (
 
 @dataclass
 class CollisionHeaderVertices:
+    """This class defines the array of vertices"""
+
     name: str
     vertexList: list[Vertex]
 
@@ -33,6 +35,8 @@ class CollisionHeaderVertices:
 
 @dataclass
 class CollisionHeaderCollisionPoly:
+    """This class defines the array of collision polys"""
+
     name: str
     polyList: list[CollisionPoly]
 
@@ -51,6 +55,8 @@ class CollisionHeaderCollisionPoly:
 
 @dataclass
 class CollisionHeaderSurfaceType:
+    """This class defines the array of surface types"""
+
     name: str
     surfaceTypeList: list[SurfaceType]
 
@@ -71,6 +77,8 @@ class CollisionHeaderSurfaceType:
 
 @dataclass
 class CollisionHeaderBgCamInfo:
+    """This class defines the array of camera informations and the array of the associated data"""
+
     name: str
     posDataName: str
     bgCamInfoList: list[BgCamInfo]
@@ -84,6 +92,8 @@ class CollisionHeaderBgCamInfo:
             self.arrayIdx = self.bgCamInfoList[-1].arrayIndex + self.crawlspaceCount
 
     def getDataArrayC(self):
+        """Returns the camera data/crawlspace positions array"""
+
         posData = CData()
         listName = f"Vec3s {self.posDataName}[]"
 
@@ -93,7 +103,7 @@ class CollisionHeaderBgCamInfo:
         # .c
         posData.source = (
             (listName + " = {\n")
-            + "\n".join(cam.getDataEntryC() for cam in self.bgCamInfoList if cam.hasPosData)
+            + "\n".join(cam.camData.getEntryC() for cam in self.bgCamInfoList if cam.hasPosData)
             + "\n".join(crawlspace.getDataEntryC() for crawlspace in self.crawlspacePosList)
             + "};\n\n"
         )
@@ -101,6 +111,8 @@ class CollisionHeaderBgCamInfo:
         return posData
 
     def getInfoArrayC(self):
+        """Returns the array containing the informations of each cameras"""
+
         bgCamInfoData = CData()
         listName = f"BgCamInfo {self.name}[]"
 
@@ -120,6 +132,8 @@ class CollisionHeaderBgCamInfo:
 
 @dataclass
 class CollisionHeaderWaterBox:
+    """This class defines the array of waterboxes"""
+
     name: str
     waterboxList: list[WaterBox]
 
@@ -138,6 +152,8 @@ class CollisionHeaderWaterBox:
 
 @dataclass
 class OOTSceneCollisionHeader:
+    """This class defines the collision header used by the scene"""
+
     name: str
     minBounds: tuple[int, int, int] = None
     maxBounds: tuple[int, int, int] = None
@@ -148,6 +164,8 @@ class OOTSceneCollisionHeader:
     waterbox: CollisionHeaderWaterBox = None
 
     def getSceneCollisionC(self):
+        """Returns the collision header for the selected scene"""
+
         headerData = CData()
         colData = CData()
         varName = f"CollisionHeader {self.name}"
@@ -158,10 +176,12 @@ class OOTSceneCollisionHeader:
         camPtrLine = "NULL"
         wBoxPtrLine = "0, NULL"
 
+        # Add waterbox data if necessary
         if len(self.waterbox.waterboxList) > 0:
             colData.append(self.waterbox.getC())
             wBoxPtrLine = f"ARRAY_COUNT({self.waterbox.name}), {self.waterbox.name}"
 
+        # Add camera data if necessary
         if len(self.bgCamInfo.bgCamInfoList) > 0 or len(self.bgCamInfo.crawlspacePosList) > 0:
             infoData = self.bgCamInfo.getInfoArrayC()
             if "&" in infoData.source:
@@ -169,17 +189,22 @@ class OOTSceneCollisionHeader:
             colData.append(infoData)
             camPtrLine = f"{self.bgCamInfo.name}"
 
+        # Add surface types
         if len(self.surfaceType.surfaceTypeList) > 0:
             colData.append(self.surfaceType.getC())
             surfacePtrLine = f"{self.surfaceType.name}"
 
+        # Add vertex data
         if len(self.vertices.vertexList) > 0:
             colData.append(self.vertices.getC())
             vtxPtrLine = f"ARRAY_COUNT({self.vertices.name}), {self.vertices.name}"
 
+        # Add collision poly data
         if len(self.collisionPoly.polyList) > 0:
             colData.append(self.collisionPoly.getC())
             colPolyPtrLine = f"ARRAY_COUNT({self.collisionPoly.name}), {self.collisionPoly.name}"
+
+        # build the C data of the collision header
 
         # .h
         headerData.header = f"extern {varName};\n"

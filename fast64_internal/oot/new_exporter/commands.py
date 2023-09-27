@@ -17,6 +17,8 @@ if TYPE_CHECKING:
 
 
 class RoomCommands:
+    """This class defines the command list for rooms"""
+
     def getEchoSettingsCmd(self, infos: "OOTRoomHeaderInfos"):
         return indent + f"SCENE_CMD_ECHO_SETTINGS({infos.echo})"
 
@@ -88,6 +90,8 @@ class RoomCommands:
 
 
 class SceneCommands:
+    """This class defines the command list for scenes"""
+
     def getSoundSettingsCmd(self, infos: "OOTSceneHeaderInfos"):
         return indent + f"SCENE_CMD_SOUND_SETTINGS({infos.specID}, {infos.ambienceID}, {infos.sequenceID})"
 
