@@ -178,12 +178,7 @@ class BgCamInfo:
         return (
             (indent + "{ " + ", ".join(f"{p:6}" for p in self.camData.pos) + " },\n")
             + (indent + "{ " + ", ".join(f"0x{r:04X}" for r in self.camData.rot) + " },\n")
-            + (
-                indent
-                + "{ "
-                + f"{self.camData.fov:6}, {self.camData.roomImageOverrideBgCamIndex:6}, {-1:6}"
-                + " },\n"
-            )
+            + (indent + "{ " + f"{self.camData.fov:6}, {self.camData.roomImageOverrideBgCamIndex:6}, {-1:6}" + " },\n")
         )
 
     def getInfoEntryC(self, posDataName: str):

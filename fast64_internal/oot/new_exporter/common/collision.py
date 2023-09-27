@@ -22,7 +22,11 @@ from ..collision_classes import (
 
 @dataclass
 class CollisionCommon(Common):
+    """This class hosts different functions used to convert mesh data"""
+
     def updateBounds(self, position: tuple[int, int, int], bounds: list[tuple[int, int, int]]):
+        """This is used to update the scene's boundaries"""
+
         if len(bounds) == 0:
             bounds.append([position[0], position[1], position[2]])
             bounds.append([position[0], position[1], position[2]])
@@ -37,6 +41,8 @@ class CollisionCommon(Common):
                 maxBounds[i] = position[i]
 
     def getVertIndex(self, vert: tuple[int, int, int], vertArray: list[Vertex]):
+        """Returns the index of a Vertex based on position data, returns None if no match found"""
+
         for i in range(len(vertArray)):
             colVert = vertArray[i].pos
             if colVert == vert:
@@ -46,6 +52,8 @@ class CollisionCommon(Common):
     def getMeshObjects(
         self, parentObj: Object, transform: Matrix, matrixTable: dict[Object, Matrix]
     ) -> dict[Object, Matrix]:
+        """Returns and updates a dictionnary containing mesh objects associated with their correct transforms"""
+
         for obj in parentObj.children:
             newTransform = transform @ obj.matrix_local
             if obj.type == "MESH" and not obj.ignore_collision:
@@ -54,6 +62,9 @@ class CollisionCommon(Common):
         return matrixTable
 
     def getColSurfaceVtxDataFromMeshObj(self):
+        """Returns collision data, surface types and vertex positions from mesh objects"""
+        # Ideally everything would be separated but this is complicated since it's all tied together
+
         object.select_all(action="DESELECT")
         self.sceneObj.select_set(True)
 
@@ -127,24 +138,24 @@ class CollisionCommon(Common):
                     useConveyor = colProp.conveyorOption != "None"
                     if not surfaceIndex in surfaceTypeData:
                         surfaceTypeData[surfaceIndex] = SurfaceType(
-                                colProp.cameraID,
-                                colProp.exitID,
-                                int(self.getPropValue(colProp, "floorSetting"), base=16),
-                                0,  # unused?
-                                int(self.getPropValue(colProp, "wallSetting"), base=16),
-                                int(self.getPropValue(colProp, "floorProperty"), base=16),
-                                colProp.decreaseHeight,
-                                colProp.eponaBlock,
-                                int(self.getPropValue(colProp, "sound"), base=16),
-                                int(self.getPropValue(colProp, "terrain"), base=16),
-                                colProp.lightingSetting,
-                                int(colProp.echo, base=16),
-                                colProp.hookshotable,
-                                int(self.getPropValue(colProp, "conveyorSpeed"), base=16) if useConveyor else 0,
-                                int(colProp.conveyorRotation / (2 * math.pi) * 0x3F) if useConveyor else 0,
-                                colProp.isWallDamage,
-                                colProp.conveyorKeepMomentum if useConveyor else False,
-                            )
+                            colProp.cameraID,
+                            colProp.exitID,
+                            int(self.getPropValue(colProp, "floorSetting"), base=16),
+                            0,  # unused?
+                            int(self.getPropValue(colProp, "wallSetting"), base=16),
+                            int(self.getPropValue(colProp, "floorProperty"), base=16),
+                            colProp.decreaseHeight,
+                            colProp.eponaBlock,
+                            int(self.getPropValue(colProp, "sound"), base=16),
+                            int(self.getPropValue(colProp, "terrain"), base=16),
+                            colProp.lightingSetting,
+                            int(colProp.echo, base=16),
+                            colProp.hookshotable,
+                            int(self.getPropValue(colProp, "conveyorSpeed"), base=16) if useConveyor else 0,
+                            int(colProp.conveyorRotation / (2 * math.pi) * 0x3F) if useConveyor else 0,
+                            colProp.isWallDamage,
+                            colProp.conveyorKeepMomentum if useConveyor else False,
+                        )
 
                     polyList.append(
                         CollisionPoly(
@@ -163,7 +174,7 @@ class CollisionCommon(Common):
         return bounds, vertexList, polyList, surfaceList
 
     def getBgCamFuncDataFromObjects(self, camObj: Object):
-        camProp = camObj.ootCameraPositionProperty
+        """Returns Camera data from a single camera object"""
 
         # Camera faces opposite direction
         pos, rot, _, _ = self.getConvertedTransformWithOrientation(
@@ -178,10 +189,12 @@ class CollisionCommon(Common):
             pos,
             rot,
             round(fov),
-            camProp.bgImageOverrideIndex,
+            camObj.ootCameraPositionProperty.bgImageOverrideIndex,
         )
 
     def getCrawlspaceDataFromObjects(self, startIndex: int):
+        """Returns a list of rawlspace data from every splines objects with the type 'Crawlspace'"""
+
         crawlspaceList: list[CrawlspaceData] = []
         crawlspaceObjList: list[Object] = [
             obj
@@ -201,10 +214,12 @@ class CollisionCommon(Common):
                         index,
                     )
                 )
-                index += 6
+                index += 6  # crawlspaces are using 6 entries in the data array
         return crawlspaceList
 
     def getBgCamInfoDataFromObjects(self):
+        """Returns a list of camera informations from camera objects"""
+
         camObjList = [obj for obj in self.sceneObj.children_recursive if obj.type == "CAMERA"]
         camPosData: dict[int, BgCamFuncData] = {}
         camInfoData: dict[int, BgCamInfo] = {}
@@ -219,7 +234,7 @@ class CollisionCommon(Common):
                 setting = decomp_compat_map_CameraSType.get(camProp.camSType, camProp.camSType)
 
             if camProp.hasPositionData:
-                count = 3
+                count = 3  # cameras are using 3 entries in the data array
                 if camProp.index in camPosData:
                     raise PluginError(f"ERROR: Repeated camera position index: {camProp.index} for {camObj.name}")
                 camPosData[camProp.index] = self.getBgCamFuncDataFromObjects(camObj)
@@ -241,6 +256,8 @@ class CollisionCommon(Common):
         )
 
     def getWaterBoxDataFromObjects(self):
+        """Returns a list of waterbox data from waterbox empty objects"""
+
         waterboxObjList = [
             obj for obj in self.sceneObj.children_recursive if obj.type == "EMPTY" and obj.ootEmptyType == "Water Box"
         ]
@@ -266,10 +283,3 @@ class CollisionCommon(Common):
             )
 
         return waterboxList
-
-    def getCount(self, bgCamInfoList: list[BgCamInfo]):
-        count = 0
-        for elem in bgCamInfoList:
-            if elem.count != 0:  # 0 means no pos data
-                count += elem.count
-        return count

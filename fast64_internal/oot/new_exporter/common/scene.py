@@ -16,6 +16,8 @@ if TYPE_CHECKING:
 
 @dataclass
 class SceneCommon(CollisionCommon, SceneCommands):
+    """This class hosts various data and functions related to a scene file"""
+
     name: str = None
     model: OOTModel = None
     headerIndex: int = None
@@ -24,13 +26,16 @@ class SceneCommon(CollisionCommon, SceneCommands):
     roomList: list["OOTRoom"] = field(default_factory=list)
 
     def validateRoomIndices(self):
+        """Checks if there are multiple rooms with the same room index"""
+
         for i, room in enumerate(self.roomList):
             if i != room.roomIndex:
                 return False
-
         return True
 
     def validateScene(self):
+        """Performs safety checks related to the scene data"""
+
         if not len(self.roomList) > 0:
             raise PluginError("ERROR: This scene does not have any rooms!")
 
@@ -38,9 +43,13 @@ class SceneCommon(CollisionCommon, SceneCommands):
             raise PluginError("ERROR: Room indices do not have a consecutive list of indices.")
 
     def hasAlternateHeaders(self):
+        """Checks if this scene is using alternate headers"""
+
         return self.altHeader is not None
 
     def getSceneHeaderFromIndex(self, headerIndex: int) -> OOTSceneHeader | None:
+        """Returns the scene header based on the header index"""
+
         if headerIndex == 0:
             return self.mainHeader
 
@@ -55,10 +64,9 @@ class SceneCommon(CollisionCommon, SceneCommands):
         return None
 
     def getExitListFromProps(self, headerProp: OOTSceneHeaderProperty):
-        """Returns the exit list and performs safety checks"""
+        """Returns the exit list from the current scene header"""
 
         exitList: list[tuple[int, str]] = []
-
         for i, exitProp in enumerate(headerProp.exitList):
             if exitProp.exitIndex != "Custom":
                 raise PluginError("ERROR: Exits are unfinished, please use 'Custom'.")
@@ -68,6 +76,8 @@ class SceneCommon(CollisionCommon, SceneCommands):
         return exitList
 
     def getTransActorListFromProps(self):
+        """Returns the transition actor list based on empty objects with the type 'Transition Actor'"""
+
         actorList: list[TransitionActor] = []
         actorObjList: list[Object] = [
             obj
@@ -82,10 +92,10 @@ class SceneCommon(CollisionCommon, SceneCommands):
 
             transActorProp = obj.ootTransitionActorProperty
 
-            if not self.isCurrentHeaderValid(transActorProp.actor.headerSettings, self.headerIndex):
-                continue
-
-            if transActorProp.actor.actorID != "None":
+            if (
+                self.isCurrentHeaderValid(transActorProp.actor.headerSettings, self.headerIndex)
+                and transActorProp.actor.actorID != "None"
+            ):
                 pos, rot, _, _ = self.getConvertedTransform(self.transform, self.sceneObj, obj, True)
                 transActor = TransitionActor()
 
@@ -118,6 +128,8 @@ class SceneCommon(CollisionCommon, SceneCommands):
         return actorList
 
     def getEntranceActorListFromProps(self):
+        """Returns the entrance actor list based on empty objects with the type 'Entrance'"""
+
         actorList: list[EntranceActor] = []
         actorObjList: list[Object] = [
             obj for obj in self.sceneObj.children_recursive if obj.type == "EMPTY" and obj.ootEmptyType == "Entrance"
@@ -128,10 +140,10 @@ class SceneCommon(CollisionCommon, SceneCommands):
                 raise PluginError("ERROR: Room Object not found!")
 
             entranceProp = obj.ootEntranceProperty
-            if not self.isCurrentHeaderValid(entranceProp.actor.headerSettings, self.headerIndex):
-                continue
-
-            if entranceProp.actor.actorID != "None":
+            if (
+                self.isCurrentHeaderValid(entranceProp.actor.headerSettings, self.headerIndex)
+                and entranceProp.actor.actorID != "None"
+            ):
                 pos, rot, _, _ = self.getConvertedTransform(self.transform, self.sceneObj, obj, True)
                 entranceActor = EntranceActor()
 
@@ -153,6 +165,8 @@ class SceneCommon(CollisionCommon, SceneCommands):
         return actorList
 
     def getPathListFromProps(self, listNameBase: str):
+        """Returns the pathway list from spline objects with the type 'Path'"""
+
         pathList: list[Path] = []
         pathObjList: list[Object] = [
             obj
@@ -172,6 +186,8 @@ class SceneCommon(CollisionCommon, SceneCommands):
         return pathList
 
     def getEnvLightSettingsListFromProps(self, headerProp: OOTSceneHeaderProperty, lightMode: str):
+        """Returns the environment light settings list from the current scene header"""
+
         lightList: list[OOTLightProperty] = []
         lightSettings: list[EnvLightSettings] = []
 
