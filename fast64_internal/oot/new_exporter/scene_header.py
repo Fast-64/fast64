@@ -6,6 +6,8 @@ from .common import TransitionActor, EntranceActor
 
 @dataclass
 class EnvLightSettings:
+    """This class defines the information of one environment light setting"""
+
     envLightMode: str
     ambientColor: tuple[int, int, int]
     light1Color: tuple[int, int, int]
@@ -18,15 +20,23 @@ class EnvLightSettings:
     blendRate: int
 
     def getBlendFogNear(self):
+        """Returns the packed blend rate and fog near values"""
+
         return f"(({self.blendRate} << 10) | {self.fogNear})"
 
     def getColorValues(self, vector: tuple[int, int, int]):
+        """Returns and formats color values"""
+
         return ", ".join(f"{v:5}" for v in vector)
 
     def getDirectionValues(self, vector: tuple[int, int, int]):
+        """Returns and formats direction values"""
+
         return ", ".join(f"{v - 0x100 if v > 0x7F else v:5}" for v in vector)
 
     def getLightSettingsEntry(self, index: int):
+        """Returns an environment light entry"""
+
         isLightingCustom = self.envLightMode == "Custom"
 
         vectors = [
@@ -71,10 +81,14 @@ class EnvLightSettings:
 
 @dataclass
 class Path:
+    """This class defines a pathway"""
+
     name: str
     points: list[tuple[int, int, int]] = field(default_factory=list)
 
     def getPathPointListC(self):
+        """Returns the pathway position array"""
+
         pathData = CData()
         pathName = f"Vec3s {self.name}"
 
@@ -96,6 +110,8 @@ class Path:
 
 @dataclass
 class OOTSceneHeaderInfos:
+    """This class stores various scene header informations"""
+
     ### General ###
 
     keepObjectID: str
@@ -126,11 +142,15 @@ class OOTSceneHeaderInfos:
 
 @dataclass
 class OOTSceneHeaderLighting:
+    """This class hosts lighting data"""
+
     name: str
     envLightMode: str = None
     settings: list[EnvLightSettings] = field(default_factory=list)
 
     def getEnvLightSettingsC(self):
+        """Returns a ``CData`` containing the C data of env. light settings"""
+
         lightSettingsC = CData()
         lightName = f"EnvLightSettings {self.name}[{len(self.settings)}]"
 
@@ -149,6 +169,8 @@ class OOTSceneHeaderLighting:
 
 @dataclass
 class OOTSceneHeaderCutscene:
+    """This class hosts cutscene data (unfinished)"""
+
     headerIndex: int
     writeType: str
     writeCutscene: bool
@@ -179,10 +201,14 @@ class OOTSceneHeaderCutscene:
 
 @dataclass
 class OOTSceneHeaderExits:
+    """This class hosts exit data"""
+
     name: str = None
     exitList: list[tuple[int, str]] = field(default_factory=list)
 
     def getExitListC(self):
+        """Returns a ``CData`` containing the C data of the exit array"""
+
         exitListC = CData()
         listName = f"u16 {self.name}[{len(self.exitList)}]"
 
@@ -202,6 +228,8 @@ class OOTSceneHeaderExits:
 
 @dataclass
 class OOTSceneHeaderActors:
+    """This class handles scene actors (transition actors and entrance actors)"""
+
     entranceListName: str
     startPositionsName: str
     transActorListName: str
@@ -210,7 +238,8 @@ class OOTSceneHeaderActors:
     entranceActorList: list[EntranceActor] = field(default_factory=list)
 
     def getSpawnActorListC(self):
-        """Returns the spawn actor list for the current header"""
+        """Returns the spawn actor array"""
+
         spawnActorList = CData()
         listName = f"ActorEntry {self.startPositionsName}"
 
@@ -227,7 +256,8 @@ class OOTSceneHeaderActors:
         return spawnActorList
 
     def getSpawnListC(self):
-        """Returns the spawn list for the current header"""
+        """Returns the spawn array"""
+
         spawnList = CData()
         listName = f"Spawn {self.entranceListName}"
 
@@ -245,7 +275,8 @@ class OOTSceneHeaderActors:
         return spawnList
 
     def getTransActorListC(self):
-        """Returns the transition actor list for the current header"""
+        """Returns the transition actor array"""
+
         transActorList = CData()
         listName = f"TransitionActorEntry {self.transActorListName}"
 
@@ -264,10 +295,14 @@ class OOTSceneHeaderActors:
 
 @dataclass
 class OOTSceneHeaderPath:
+    """This class hosts pathways array data"""
+
     name: str
     pathList: list[Path]
 
     def getPathC(self):
+        """Returns a ``CData`` containing the C data of the pathway array"""
+
         pathData = CData()
         pathListData = CData()
         listName = f"Path {self.name}[{len(self.pathList)}]"
@@ -290,6 +325,8 @@ class OOTSceneHeaderPath:
 
 @dataclass
 class OOTSceneAlternateHeader:
+    """This class stores alternate header data for the scene"""
+
     name: str
     childNight: "OOTSceneHeader" = None
     adultDay: "OOTSceneHeader" = None
@@ -299,6 +336,8 @@ class OOTSceneAlternateHeader:
 
 @dataclass
 class OOTSceneHeader:
+    """This class defines a scene header"""
+
     name: str
     infos: OOTSceneHeaderInfos
     lighting: OOTSceneHeaderLighting
@@ -308,6 +347,8 @@ class OOTSceneHeader:
     path: OOTSceneHeaderPath
 
     def getHeaderC(self):
+        """Returns the ``CData`` containing the header's data"""
+
         headerData = CData()
 
         # Write the spawn position list data and the entrance list

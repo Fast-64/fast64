@@ -31,6 +31,8 @@ from .room_header import (
 
 @dataclass
 class OOTRoom(Common, RoomCommands):
+    """This class defines a room"""
+
     name: str = None
     roomObj: Object = None
     roomShapeType: str = None
@@ -45,9 +47,13 @@ class OOTRoom(Common, RoomCommands):
         self.mesh = OOTRoomMesh(self.name, self.roomShapeType, self.model)
 
     def hasAlternateHeaders(self):
+        """Returns ``True`` if there's alternate headers data"""
+
         return self.altHeader is not None
 
     def getRoomHeaderFromIndex(self, headerIndex: int) -> OOTRoomHeader | None:
+        """Returns the current room header based on the header index"""
+
         if headerIndex == 0:
             return self.mainHeader
 
@@ -62,6 +68,8 @@ class OOTRoom(Common, RoomCommands):
         return None
 
     def getMultiBgEntries(self):
+        """Returns a list of ``RoomShapeImageMultiBgEntry`` based on mesh data"""
+
         entries: list[RoomShapeImageMultiBgEntry] = []
 
         for i, bgImg in enumerate(self.mesh.bgImages):
@@ -74,6 +82,8 @@ class OOTRoom(Common, RoomCommands):
         return entries
 
     def getDListsEntries(self):
+        """Returns a list of ``RoomShapeDListsEntry`` based on mesh data"""
+
         entries: list[RoomShapeDListsEntry] = []
 
         for meshGrp in self.mesh.meshEntries:
@@ -129,6 +139,8 @@ class OOTRoom(Common, RoomCommands):
         )
 
     def getNewRoomShape(self, headerProp: OOTRoomHeaderProperty, sceneName: str):
+        """Returns a new room shape"""
+
         normal = None
         single = None
         multiImg = None
@@ -178,6 +190,8 @@ class OOTRoom(Common, RoomCommands):
         )
 
     def getRoomMainC(self):
+        """Returns the C data of the main informations of a room"""
+
         roomC = CData()
         roomHeaders: list[tuple[OOTRoomHeader, str]] = []
         altHeaderPtrList = None
@@ -227,6 +241,7 @@ class OOTRoom(Common, RoomCommands):
         return roomC
 
     def getRoomShapeModelC(self, textureSettings: TextureExportSettings):
+        """Returns the C data of the room model"""
         roomModel = CData()
 
         for i, entry in enumerate(self.mesh.meshEntries):

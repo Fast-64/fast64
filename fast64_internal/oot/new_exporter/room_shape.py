@@ -6,6 +6,7 @@ from ..oot_level_classes import OOTRoomMesh
 
 @dataclass
 class RoomShapeImageBase:
+    """This class defines the basic informations shared by other image classes"""
     name: str
 
     type: str
@@ -15,6 +16,7 @@ class RoomShapeImageBase:
 
 @dataclass
 class RoomShapeDListsEntry:
+    """This class defines a display list pointer entry"""
     opaPtr: str
     xluPtr: str
 
@@ -24,6 +26,8 @@ class RoomShapeDListsEntry:
 
 @dataclass
 class RoomShapeImageMultiBgEntry:
+    """This class defines an image entry for the multiple image mode"""
+
     bgCamIndex: int
     imgName: str
     width: int
@@ -59,6 +63,8 @@ class RoomShapeImageMultiBgEntry:
 
 @dataclass
 class RoomShapeImageMultiBg:
+    """This class defines the multiple background image array"""
+
     name: str
     entries: list[RoomShapeImageMultiBgEntry]
 
@@ -77,6 +83,8 @@ class RoomShapeImageMultiBg:
 
 @dataclass
 class RoomShapeDLists:
+    """This class defines the display list pointer array (or variable)"""
+
     name: str
     isArray: bool
     entries: list[RoomShapeDListsEntry]
@@ -104,6 +112,8 @@ class RoomShapeDLists:
 
 @dataclass
 class RoomShapeImageSingle(RoomShapeImageBase):
+    """This class defines a room shape using only one image"""
+
     imgName: str
     width: int
     height: int
@@ -116,6 +126,8 @@ class RoomShapeImageSingle(RoomShapeImageBase):
     tlutCount: int = 0
 
     def getC(self):
+        """Returns the single background image mode variable"""
+
         infoData = CData()
         listName = f"RoomShapeImageSingle {self.name}"
 
@@ -140,9 +152,13 @@ class RoomShapeImageSingle(RoomShapeImageBase):
 
 @dataclass
 class RoomShapeImageMulti(RoomShapeImageBase):
+    """This class defines a room shape using multiple images"""
+
     bgEntryArrayName: str
 
     def getC(self):
+        """Returns the multiple background image mode variable"""
+
         infoData = CData()
         listName = f"RoomShapeImageSingle {self.name}"
 
@@ -163,11 +179,15 @@ class RoomShapeImageMulti(RoomShapeImageBase):
 
 @dataclass
 class RoomShapeNormal:
+    """This class defines a normal room shape"""
+
     name: str
     type: str
     entryArrayName: str
 
     def getC(self):
+        """Returns the C data for the room shape"""
+
         infoData = CData()
         listName = f"RoomShapeNormal {self.name}"
 
@@ -189,6 +209,8 @@ class RoomShapeNormal:
 
 @dataclass
 class RoomShape:
+    """This class hosts every type of room shape"""
+
     dl: RoomShapeDLists
     normal: RoomShapeNormal
     single: RoomShapeImageSingle
@@ -196,6 +218,8 @@ class RoomShape:
     multi: RoomShapeImageMulti
 
     def getName(self):
+        """Returns the correct room shape name based on the type used"""
+
         if self.normal is not None:
             return self.normal.name
 
@@ -206,6 +230,8 @@ class RoomShape:
             return self.multi.name
 
     def getRoomShapeBgImgDataC(self, roomMesh: OOTRoomMesh, textureSettings: TextureExportSettings):
+        """Returns the image data for image room shapes"""
+
         dlData = CData()
 
         bitsPerValue = 64
@@ -225,6 +251,8 @@ class RoomShape:
         return dlData
 
     def getRoomShapeC(self):
+        """Returns the C data for the room shape"""
+
         shapeData = CData()
 
         if self.normal is not None:
