@@ -90,7 +90,7 @@ class CollisionCommon(Common):
                     distance = convertIntTo2sComplement(distance, 2, True)
 
                     indices: list[int] = []
-                    for vertex in [(x1, y1, -z1), (x2, y2, -z2), (x3, y3, -z3)]:
+                    for vertex in [(x1, y1, z1), (x2, y2, z2), (x3, y3, z3)]:
                         index = self.getVertIndex(vertex, vertexList)
                         if index is None:
                             vertexList.append(Vertex(vertex))
@@ -123,26 +123,28 @@ class CollisionCommon(Common):
                     if (v1 - v0).cross(v2 - v0).dot(Vector(normal)) < 0:
                         indices[1], indices[2] = indices[2], indices[1]
 
+                    surfaceIndex = i + face.material_index
                     useConveyor = colProp.conveyorOption != "None"
-                    surfaceTypeData[i] = SurfaceType(
-                        colProp.cameraID,
-                        colProp.exitID,
-                        int(self.getPropValue(colProp, "floorSetting"), base=16),
-                        0,  # unused?
-                        int(self.getPropValue(colProp, "wallSetting"), base=16),
-                        int(self.getPropValue(colProp, "floorProperty"), base=16),
-                        colProp.decreaseHeight,
-                        colProp.eponaBlock,
-                        int(self.getPropValue(colProp, "sound"), base=16),
-                        int(self.getPropValue(colProp, "terrain"), base=16),
-                        colProp.lightingSetting,
-                        int(colProp.echo, base=16),
-                        colProp.hookshotable,
-                        int(self.getPropValue(colProp, "conveyorSpeed"), base=16) if useConveyor else 0,
-                        int(colProp.conveyorRotation / (2 * math.pi) * 0x3F) if useConveyor else 0,
-                        colProp.isWallDamage,
-                        colProp.conveyorKeepMomentum if useConveyor else False,
-                    )
+                    if not surfaceIndex in surfaceTypeData:
+                        surfaceTypeData[surfaceIndex] = SurfaceType(
+                                colProp.cameraID,
+                                colProp.exitID,
+                                int(self.getPropValue(colProp, "floorSetting"), base=16),
+                                0,  # unused?
+                                int(self.getPropValue(colProp, "wallSetting"), base=16),
+                                int(self.getPropValue(colProp, "floorProperty"), base=16),
+                                colProp.decreaseHeight,
+                                colProp.eponaBlock,
+                                int(self.getPropValue(colProp, "sound"), base=16),
+                                int(self.getPropValue(colProp, "terrain"), base=16),
+                                colProp.lightingSetting,
+                                int(colProp.echo, base=16),
+                                colProp.hookshotable,
+                                int(self.getPropValue(colProp, "conveyorSpeed"), base=16) if useConveyor else 0,
+                                int(colProp.conveyorRotation / (2 * math.pi) * 0x3F) if useConveyor else 0,
+                                colProp.isWallDamage,
+                                colProp.conveyorKeepMomentum if useConveyor else False,
+                            )
 
                     polyList.append(
                         CollisionPoly(
@@ -153,11 +155,12 @@ class CollisionCommon(Common):
                             useConveyor,
                             normal,
                             distance,
-                            i,
+                            surfaceIndex,
                         )
                     )
                 i += 1
-        return bounds, vertexList, polyList, [surfaceTypeData[i] for i in range(len(surfaceTypeData))]
+        surfaceList = [surfaceTypeData[i] for i in range(min(surfaceTypeData.keys()), len(surfaceTypeData))]
+        return bounds, vertexList, polyList, surfaceList
 
     def getBgCamFuncDataFromObjects(self, camObj: Object):
         camProp = camObj.ootCameraPositionProperty
