@@ -88,7 +88,7 @@ class Spec:
 
                 firstIndex += 1
 
-                for room in exporter.roomList.values():
+                for room in exporter.sceneFile.roomList.values():
                     specEntries.insert(
                         firstIndex,
                         ("\n" + indent + f'name "{room.name}"\n')
@@ -112,14 +112,14 @@ class Spec:
                     sceneSegInclude += indent + f'include "{includeDir}/{sceneName}_tex.o"\n'
 
                 if exporter.hasCutscenes:
-                    for i in range(len(exporter.sceneData.sceneCutscenes)):
+                    for i in range(len(exporter.sceneFile.sceneCutscenes)):
                         sceneSegInclude += indent + f'include "{includeDir}/{sceneName}_cs_{i}.o"\n'
 
                 sceneSegInclude += indent + "number 2\n"
                 specEntries.insert(firstIndex, sceneSegInclude)
                 firstIndex += 1
 
-                for room in exporter.roomList.values():
+                for room in exporter.sceneFile.roomList.values():
                     specEntries.insert(
                         firstIndex,
                         ("\n" + indent + f'name "{room.name}"\n')

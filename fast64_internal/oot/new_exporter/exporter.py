@@ -1,7 +1,7 @@
 import bpy
 import os
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from mathutils import Matrix
 from bpy.types import Object
 from ...f3d.f3d_gbi import DLFormat, TextureExportSettings
@@ -14,11 +14,12 @@ from ..oot_model_classes import OOTModel
 from ..oot_f3d_writer import writeTextureArraysNew
 from ..oot_level_writer import BoundingBox, writeTextureArraysExistingScene, ootProcessMesh
 from ..oot_utility import CullGroup
-from .common import Common, altHeaderList, includeData
+from .common import Common, altHeaderList
 from .scene import OOTScene
 from .scene_header import OOTSceneAlternateHeader
 from .room import OOTRoom, OOTRoomAlternateHeader
 from .file import Files
+from .exporter_classes import SceneFile
 
 from ...utility import (
     PluginError,
@@ -40,26 +41,6 @@ from ..oot_utility import (
 
 
 @dataclass
-class OOTRoomData:
-    """This class hosts the C data for every room files"""
-
-    name: str
-    roomMain: str = None
-    roomModel: str = None
-    roomModelInfo: str = None
-
-
-@dataclass
-class OOTSceneData:
-    """This class hosts the C data for every scene files"""
-
-    sceneMain: str = None
-    sceneCollision: str = None
-    sceneCutscenes: list[str] = field(default_factory=list)
-    sceneTextures: str = None
-
-
-@dataclass
 class OOTSceneExport:
     """This class is the main exporter class, it handles generating the C data and writing the files"""
 
@@ -71,7 +52,7 @@ class OOTSceneExport:
     f3dType: str
     saveTexturesAsPNG: bool
     hackerootBootOption: OOTBootupSceneOptions
-    singleFileExport: bool
+    isSingleFile: bool
     isHWv1: bool
     textureExportSettings: TextureExportSettings
     dlFormat: DLFormat = DLFormat.Static
@@ -79,18 +60,9 @@ class OOTSceneExport:
     sceneObj: Object = None
     scene: OOTScene = None
     path: str = None
-    sceneBasePath: str = None
-    header: str = ""
-    sceneData: OOTSceneData = None
-    roomList: dict[int, OOTRoomData] = field(default_factory=dict)
+    sceneFile: SceneFile = None
     hasCutscenes: bool = False
     hasSceneTextures: bool = False
-
-    def __post_init__(self):
-        self.header = (
-            f"#ifndef {self.sceneName.upper()}_SCENE_H\n"
-            + f"#define {self.sceneName.upper()}_SCENE_H\n\n"
-        )
 
     def getNewRoomList(self, scene: OOTScene):
         """Returns the room list from empty objects with the type 'Room'"""
@@ -242,125 +214,6 @@ class OOTSceneExport:
 
         return sceneData
 
-    def setRoomListData(self):
-        """Gets and sets C data for every room elements"""
-
-        for room in self.scene.roomList:
-            roomMainData = room.getRoomMainC()
-            roomModelData = room.getRoomShapeModelC(self.textureExportSettings)
-            roomModelInfoData = room.roomShape.getRoomShapeC()
-
-            self.header += roomMainData.header + roomModelData.header + roomModelInfoData.header
-            self.roomList[room.roomIndex] = OOTRoomData(
-                room.name, roomMainData.source, roomModelData.source, roomModelInfoData.source
-            )
-
-    def setSceneData(self):
-        """Gets and sets C data for every scene elements"""
-
-        sceneMainData = self.scene.getSceneMainC()
-        sceneCollisionData = self.scene.colHeader.getSceneCollisionC()
-        sceneCutsceneData = self.scene.getSceneCutscenesC()
-        sceneTexturesData = self.scene.getSceneTexturesC(self.textureExportSettings)
-
-        self.header += (
-            sceneMainData.header
-            + "".join(cs.header for cs in sceneCutsceneData)
-            + sceneCollisionData.header
-            + sceneTexturesData.header
-        )
-
-        self.sceneData = OOTSceneData(
-            sceneMainData.source,
-            sceneCollisionData.source,
-            [cs.source for cs in sceneCutsceneData],
-            sceneTexturesData.source,
-        )
-
-    def setIncludeData(self):
-        """Adds includes at the beginning of each file to write"""
-
-        suffix = "\n\n"
-        sceneInclude = f'\n#include "{self.scene.name}.h"\n'
-        common = includeData["common"]
-        # room = includeData["roomMain"]
-        # roomShapeInfo = includeData["roomShapeInfo"]
-        # scene = includeData["sceneMain"]
-        # collision = includeData["collision"]
-        # cutscene = includeData["cutscene"]
-        room = ""
-        roomShapeInfo = ""
-        scene = ""
-        collision = ""
-        cutscene = ""
-
-        common = (
-            '#include "ultra64.h"\n'
-            + '#include "z64.h"\n'
-            + '#include "macros.h"\n'
-            + '#include "segment_symbols.h"\n'
-            + '#include "command_macros_base.h"\n'
-            + '#include "z64cutscene_commands.h"\n'
-            + '#include "variables.h"\n'
-        )
-
-        for roomData in self.roomList.values():
-            if self.singleFileExport:
-                common += room + roomShapeInfo + sceneInclude
-                roomData.roomMain = common + suffix + roomData.roomMain
-            else:
-                roomData.roomMain = common + room + sceneInclude + suffix + roomData.roomMain
-                roomData.roomModelInfo = common + roomShapeInfo + sceneInclude + suffix + roomData.roomModelInfo
-                roomData.roomModel = common + sceneInclude + suffix + roomData.roomModel
-
-        if self.singleFileExport:
-            common += scene + collision + cutscene + sceneInclude
-            self.sceneData.sceneMain = common + suffix + self.sceneData.sceneMain
-        else:
-            self.sceneData.sceneMain = common + scene + sceneInclude + suffix + self.sceneData.sceneMain
-            self.sceneData.sceneCollision = common + collision + sceneInclude + suffix + self.sceneData.sceneCollision
-
-            if self.hasCutscenes:
-                for cs in self.sceneData.sceneCutscenes:
-                    cs = cutscene + sceneInclude + suffix + cs
-
-    def writeScene(self):
-        """Write the scene to the chosen location"""
-
-        for room in self.roomList.values():
-            if self.singleFileExport:
-                roomMainPath = f"{room.name}.c"
-                room.roomMain += room.roomModelInfo + room.roomModel
-            else:
-                roomMainPath = f"{room.name}_main.c"
-                writeFile(os.path.join(self.path, f"{room.name}_model_info.c"), room.roomModelInfo)
-                writeFile(os.path.join(self.path, f"{room.name}_model.c"), room.roomModel)
-
-            writeFile(os.path.join(self.path, roomMainPath), room.roomMain)
-
-        if self.singleFileExport:
-            sceneMainPath = f"{self.sceneBasePath}.c"
-            self.sceneData.sceneMain += self.sceneData.sceneCollision
-            if self.hasCutscenes:
-                for i, cs in enumerate(self.sceneData.sceneCutscenes):
-                    self.sceneData.sceneMain += cs
-        else:
-            sceneMainPath = f"{self.sceneBasePath}_main.c"
-            writeFile(f"{self.sceneBasePath}_col.c", self.sceneData.sceneCollision)
-            if self.hasCutscenes:
-                for i, cs in enumerate(self.sceneData.sceneCutscenes):
-                    writeFile(f"{self.sceneBasePath}_cs_{i}.c", cs)
-
-        if self.hasSceneTextures:
-            writeFile(f"{self.sceneBasePath}_tex.c", self.sceneData.sceneTextures)
-
-        self.header += "\n#endif\n"
-        writeFile(sceneMainPath, self.sceneData.sceneMain)
-        writeFile(self.sceneBasePath + ".h", self.header)
-
-        for room in self.scene.roomList:
-            room.mesh.copyBgImages(self.path)
-
     def export(self):
         """Main function"""
 
@@ -377,22 +230,21 @@ class OOTSceneExport:
         sceneInclude = exportSubdir + "/" + self.sceneName + "/"
         self.scene = self.getNewScene()
         self.path = ootGetPath(exportPath, isCustomExport, exportSubdir, self.sceneName, True, True)
-        self.sceneBasePath = os.path.join(self.path, self.scene.name)
         self.textureExportSettings.includeDir = sceneInclude
         self.textureExportSettings.exportPath = self.path
-        self.setSceneData()
-        self.setRoomListData()
-        self.hasSceneTextures = len(self.sceneData.sceneTextures) > 0
+        self.sceneFile = self.scene.getNewSceneFile(self.path, self.isSingleFile, self.textureExportSettings)
+        self.hasSceneTextures = len(self.sceneFile.sceneTextures) > 0
 
         if not isCustomExport:
             writeTextureArraysExistingScene(self.scene.model, exportPath, sceneInclude + self.sceneName + "_scene.h")
         else:
             textureArrayData = writeTextureArraysNew(self.scene.model, None)
-            self.sceneData.sceneTextures += textureArrayData.source
-            self.header += textureArrayData.header
+            self.sceneFile.sceneTextures += textureArrayData.source
+            self.sceneFile.header += textureArrayData.header
 
-        self.setIncludeData()
-        self.writeScene()
+        self.sceneFile.write()
+        for room in self.scene.roomList:
+            room.mesh.copyBgImages(self.path)
 
         if not isCustomExport:
             Files(self).editFiles()

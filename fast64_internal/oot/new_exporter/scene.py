@@ -4,6 +4,7 @@ from ...f3d.f3d_gbi import TextureExportSettings, ScrollMethod
 from ..oot_model_classes import OOTGfxFormatter
 from ..scene.properties import OOTSceneHeaderProperty
 from .common import SceneCommon
+from .exporter_classes import SceneFile
 
 from .collision import (
     OOTSceneCollisionHeader,
@@ -208,3 +209,30 @@ class OOTScene(SceneCommon):
         """
 
         return self.model.to_c(textureExportSettings, OOTGfxFormatter(ScrollMethod.Vertex)).all()
+
+    def getNewSceneFile(self, path: str, isSingleFile: bool, textureExportSettings: TextureExportSettings):
+        """Gets and sets C data for every scene elements"""
+
+        sceneMainData = self.getSceneMainC()
+        sceneCollisionData = self.colHeader.getSceneCollisionC()
+        sceneCutsceneData = self.getSceneCutscenesC()
+        sceneTexturesData = self.getSceneTexturesC(textureExportSettings)
+
+        return SceneFile(
+            self.name,
+            sceneMainData.source,
+            sceneCollisionData.source,
+            [cs.source for cs in sceneCutsceneData],
+            sceneTexturesData.source,
+            {room.roomIndex: room.getNewRoomFile(path, isSingleFile, textureExportSettings) for room in self.roomList},
+            isSingleFile,
+            path,
+            (
+                f"#ifndef {self.name.upper()}_H\n"
+                + f"#define {self.name.upper()}_H\n\n"
+                + sceneMainData.header
+                + "".join(cs.header for cs in sceneCutsceneData)
+                + sceneCollisionData.header
+                + sceneTexturesData.header
+            ),
+        )

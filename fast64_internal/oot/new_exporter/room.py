@@ -8,6 +8,7 @@ from ..oot_level_classes import OOTRoomMesh, OOTBGImage
 from ..oot_model_classes import OOTModel, OOTGfxFormatter
 from .commands import RoomCommands
 from .common import Common, altHeaderList
+from .exporter_classes import RoomFile
 
 from .room_shape import (
     RoomShape,
@@ -262,3 +263,20 @@ class OOTRoom(Common, RoomCommands):
             roomModel.append(self.roomShape.getRoomShapeBgImgDataC(self.mesh, textureSettings))
 
         return roomModel
+
+    def getNewRoomFile(self, path: str, isSingleFile: bool, textureExportSettings: TextureExportSettings):
+        """Returns a new ``RoomFile`` element"""
+
+        roomMainData = self.getRoomMainC()
+        roomModelData = self.getRoomShapeModelC(textureExportSettings)
+        roomModelInfoData = self.roomShape.getRoomShapeC()
+
+        return RoomFile(
+            self.name,
+            roomMainData.source,
+            roomModelData.source,
+            roomModelInfoData.source,
+            isSingleFile,
+            path,
+            roomMainData.header + roomModelData.header + roomModelInfoData.header,
+        )
