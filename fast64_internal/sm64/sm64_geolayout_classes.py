@@ -262,7 +262,7 @@ class BaseDisplayListNode:
     """Base displaylist node with common helper functions dealing with displaylists"""
 
     dl_ext = "WITH_DL"  # add dl_ext to geo command if command has a displaylist
-    bleed_independently = None # base behavior, can be changed with obj boolProp
+    bleed_independently = False # base behavior, can be changed with obj boolProp
 
     def get_dl_address(self):
         if self.hasDL and (self.dlRef or self.DLmicrocode is not None):
