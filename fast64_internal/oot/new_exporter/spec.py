@@ -76,7 +76,7 @@ class Spec:
                 includeDir = f"build/{getSceneDirFromLevelName(sceneName)}"
 
             sceneName = exporter.scene.name
-            if exporter.singleFileExport:
+            if exporter.isSingleFile:
                 specEntries.insert(
                     firstIndex,
                     ("\n" + indent + f'name "{sceneName}"\n')

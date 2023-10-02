@@ -45,7 +45,7 @@ def addMissingObjectsToRoomHeaderNew(roomObj: Object, curHeader, ootData: OoT_Da
     """Adds missing objects to the object list"""
     if len(curHeader.actors.actorList) > 0:
         for roomActor in curHeader.actors.actorList:
-            actor = ootData.actorData.actorsByID.get(roomActor.actorID)
+            actor = ootData.actorData.actorsByID.get(roomActor.id)
             if actor is not None and actor.key != "player" and len(actor.tiedObjects) > 0:
                 for objKey in actor.tiedObjects:
                     if objKey not in ["obj_gameplay_keep", "obj_gameplay_field_keep", "obj_gameplay_dangeon_keep"]:

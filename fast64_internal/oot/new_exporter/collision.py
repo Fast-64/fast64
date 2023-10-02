@@ -104,6 +104,7 @@ class CollisionHeaderBgCamInfo:
         posData.source = (
             (listName + " = {\n")
             + "\n".join(cam.camData.getEntryC() for cam in self.bgCamInfoList if cam.hasPosData)
+            + ("\n" if len(self.bgCamInfoList) > 0 else "")
             + "\n".join(crawlspace.getDataEntryC() for crawlspace in self.crawlspacePosList)
             + "};\n\n"
         )
