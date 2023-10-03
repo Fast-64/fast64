@@ -68,7 +68,7 @@ class CollisionPoly:
         )
 
 
-@dataclass
+@dataclass(eq=True)
 class SurfaceType:
     """This class defines a single surface type"""
 
@@ -96,6 +96,29 @@ class SurfaceType:
     isHorseBlockedC: str = None
     canHookshotC: str = None
     isWallDamageC: str = None
+
+    def __hash__(self):
+        return hash(
+            (
+                self.bgCamIndex,
+                self.exitIndex,
+                self.floorType,
+                self.unk18,
+                self.wallType,
+                self.floorProperty,
+                self.isSoft,
+                self.isHorseBlocked,
+                self.material,
+                self.floorEffect,
+                self.lightSetting,
+                self.echo,
+                self.canHookshot,
+                self.conveyorSpeed,
+                self.conveyorDirection,
+                self.isWallDamage,
+                self.conveyorKeepMomentum,
+            )
+        )
 
     def __post_init__(self):
         if self.conveyorKeepMomentum:
@@ -198,6 +221,9 @@ class CrawlspaceData:
 
     points: list[tuple[int, int, int]] = field(default_factory=list)
     arrayIndex: int = None
+
+    def __post_init__(self):
+        self.points = [self.points[0], self.points[0], self.points[0], self.points[1], self.points[1], self.points[1]]
 
     def getDataEntryC(self):
         """Returns an entry for the camera data array"""

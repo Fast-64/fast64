@@ -69,12 +69,12 @@ class CollisionCommon(Common):
         self.sceneObj.select_set(True)
 
         matrixTable: dict[Object, Matrix] = {}
-        surfaceTypeData: dict[int, SurfaceType] = {}
+        colPolyFromSurfaceType: dict[SurfaceType, list[CollisionPoly]] = {}
+        surfaceList: list[SurfaceType] = []
         polyList: list[CollisionPoly] = []
         vertexList: list[Vertex] = []
         bounds = []
 
-        i = 0
         matrixTable = self.getMeshObjects(self.sceneObj, self.transform, matrixTable)
         for meshObj, transform in matrixTable.items():
             # Note: ``isinstance``only used to get the proper type hints
@@ -134,30 +134,31 @@ class CollisionCommon(Common):
                     if (v1 - v0).cross(v2 - v0).dot(Vector(normal)) < 0:
                         indices[1], indices[2] = indices[2], indices[1]
 
-                    surfaceIndex = i + face.material_index
                     useConveyor = colProp.conveyorOption != "None"
-                    if not surfaceIndex in surfaceTypeData:
-                        surfaceTypeData[surfaceIndex] = SurfaceType(
-                            colProp.cameraID,
-                            colProp.exitID,
-                            int(self.getPropValue(colProp, "floorSetting"), base=16),
-                            0,  # unused?
-                            int(self.getPropValue(colProp, "wallSetting"), base=16),
-                            int(self.getPropValue(colProp, "floorProperty"), base=16),
-                            colProp.decreaseHeight,
-                            colProp.eponaBlock,
-                            int(self.getPropValue(colProp, "sound"), base=16),
-                            int(self.getPropValue(colProp, "terrain"), base=16),
-                            colProp.lightingSetting,
-                            int(colProp.echo, base=16),
-                            colProp.hookshotable,
-                            int(self.getPropValue(colProp, "conveyorSpeed"), base=16) if useConveyor else 0,
-                            int(colProp.conveyorRotation / (2 * math.pi) * 0x3F) if useConveyor else 0,
-                            colProp.isWallDamage,
-                            colProp.conveyorKeepMomentum if useConveyor else False,
-                        )
+                    surfaceType = SurfaceType(
+                        colProp.cameraID,
+                        colProp.exitID,
+                        int(self.getPropValue(colProp, "floorProperty"), base=16),
+                        0,  # unused?
+                        int(self.getPropValue(colProp, "wallSetting"), base=16),
+                        int(self.getPropValue(colProp, "floorSetting"), base=16),
+                        colProp.decreaseHeight,
+                        colProp.eponaBlock,
+                        int(self.getPropValue(colProp, "sound"), base=16),
+                        int(self.getPropValue(colProp, "terrain"), base=16),
+                        colProp.lightingSetting,
+                        int(colProp.echo, base=16),
+                        colProp.hookshotable,
+                        int(self.getPropValue(colProp, "conveyorSpeed"), base=16) if useConveyor else 0,
+                        int(colProp.conveyorRotation / (2 * math.pi) * 0x3F) if useConveyor else 0,
+                        colProp.isWallDamage,
+                        colProp.conveyorKeepMomentum if useConveyor else False,
+                    )
 
-                    polyList.append(
+                    if not surfaceType in colPolyFromSurfaceType:
+                        colPolyFromSurfaceType[surfaceType] = []
+
+                    colPolyFromSurfaceType[surfaceType].append(
                         CollisionPoly(
                             indices,
                             colProp.ignoreCameraCollision,
@@ -165,12 +166,18 @@ class CollisionCommon(Common):
                             colProp.ignoreProjectileCollision,
                             useConveyor,
                             normal,
-                            distance,
-                            surfaceIndex,
+                            distance
                         )
                     )
-                i += 1
-        surfaceList = [surfaceTypeData[i] for i in range(min(surfaceTypeData.keys()), len(surfaceTypeData))]
+
+        count = 0
+        for surface, colPolyList in colPolyFromSurfaceType.items():
+            for colPoly in colPolyList:
+                colPoly.type = count
+                polyList.append(colPoly)
+            surfaceList.append(surface)
+            count += 1
+
         return bounds, vertexList, polyList, surfaceList
 
     def getBgCamFuncDataFromObjects(self, camObj: Object):
