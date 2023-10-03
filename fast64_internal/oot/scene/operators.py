@@ -190,6 +190,7 @@ class OOT_ExportScene(Operator):
                     settings.singleFile,
                     context.scene.isHWv1,
                     TextureExportSettings(False, context.scene.saveTextures, None, None),
+                    settings.useMacros,
                 ).export()
             else:
                 ootExportSceneToC(

@@ -480,6 +480,7 @@ class OOTExportSceneSettingsProperty(PropertyGroup):
     option: EnumProperty(items=ootEnumSceneID, default="SCENE_DEKU_TREE")
 
     useNewExporter: BoolProperty(name="Use Experimental Exporter", default=True)
+    useMacros: BoolProperty(name="Use Decomp Macros", default=True)
 
     def draw_props(self, layout: UILayout):
         if self.customExport:
@@ -496,6 +497,8 @@ class OOTExportSceneSettingsProperty(PropertyGroup):
         layout.prop(self, "singleFile")
         layout.prop(self, "customExport")
         layout.prop(self, "useNewExporter")
+        if self.useNewExporter:
+            layout.prop(self, "useMacros")
 
 
 class OOTImportSceneSettingsProperty(PropertyGroup):

@@ -153,6 +153,7 @@ class CollisionCommon(Common):
                         int(colProp.conveyorRotation / (2 * math.pi) * 0x3F) if useConveyor else 0,
                         colProp.isWallDamage,
                         colProp.conveyorKeepMomentum if useConveyor else False,
+                        self.useMacros,
                     )
 
                     if not surfaceType in colPolyFromSurfaceType:
@@ -167,6 +168,7 @@ class CollisionCommon(Common):
                             useConveyor,
                             normal,
                             distance,
+                            self.useMacros,
                         )
                     )
 
@@ -282,6 +284,7 @@ class CollisionCommon(Common):
                     wboxProp.lighting,
                     roomObj.ootRoomHeader.roomIndex if roomObj is not None else 0x3F,
                     wboxProp.flag19,
+                    self.useMacros,
                 )
             )
 

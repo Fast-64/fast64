@@ -14,8 +14,8 @@ class CollisionPoly:
     enableConveyor: bool
     normal: Vector
     dist: int
+    useMacros: bool
     type: int = None
-    useMacros: bool = True
 
     def getFlags_vIA(self):
         """Returns the value of ``flags_vIA``"""
@@ -91,7 +91,7 @@ class SurfaceType:
     isWallDamage: bool  # unk27
 
     conveyorKeepMomentum: bool
-    useMacros: bool = True
+    useMacros: bool
     isSoftC: str = None
     isHorseBlockedC: str = None
     canHookshotC: str = None
@@ -271,13 +271,13 @@ class WaterBox:
     roomIndex: int
     setFlag19: bool
 
+    useMacros: bool
     xMin: int = None
     ySurface: int = None
     zMin: int = None
     xLength: int = None
     zLength: int = None
 
-    useMacros: bool = True
     setFlag19C: str = None
     roomIndexC: str = None
 

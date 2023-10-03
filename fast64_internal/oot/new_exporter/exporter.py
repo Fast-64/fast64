@@ -55,6 +55,7 @@ class OOTSceneExport:
     isSingleFile: bool
     isHWv1: bool
     textureExportSettings: TextureExportSettings
+    useMacros: bool
     dlFormat: DLFormat = DLFormat.Static
 
     sceneObj: Object = None
@@ -87,6 +88,7 @@ class OOTSceneExport:
             roomDict[roomIndex] = OOTRoom(
                 self.sceneObj,
                 self.transform,
+                self.useMacros,
                 roomIndex,
                 roomName,
                 roomObj,
@@ -103,7 +105,7 @@ class OOTSceneExport:
             )
 
             # Mesh stuff
-            c = Common(self.sceneObj, self.transform)
+            c = Common(self.sceneObj, self.transform, self.useMacros)
             pos, _, scale, _ = c.getConvertedTransform(self.transform, self.sceneObj, roomObj, True)
             cullGroup = CullGroup(pos, scale, roomObj.ootRoomHeader.defaultCullDistance)
             DLGroup = roomDict[roomIndex].mesh.addMeshGroup(cullGroup).DLGroup
@@ -174,7 +176,7 @@ class OOTSceneExport:
 
         try:
             altProp = self.sceneObj.ootAlternateSceneHeaders
-            sceneData = OOTScene(self.sceneObj, self.transform, name=f"{toAlnum(self.sceneName)}_scene")
+            sceneData = OOTScene(self.sceneObj, self.transform, self.useMacros, name=f"{toAlnum(self.sceneName)}_scene")
             sceneData.model = OOTModel(self.f3dType, self.isHWv1, f"{sceneData.name}_dl", self.dlFormat, False)
             altHeaderData = OOTSceneAlternateHeader(f"{sceneData.name}_alternateHeaders")
             sceneData.mainHeader = sceneData.getNewSceneHeader(self.sceneObj.ootSceneHeader)

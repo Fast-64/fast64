@@ -16,6 +16,7 @@ class Common:
 
     sceneObj: Object
     transform: Matrix
+    useMacros: bool
     roomIndex: int = None
 
     def getRoomObjectFromChild(self, childObj: Object) -> Object | None:

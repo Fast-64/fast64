@@ -136,6 +136,7 @@ class OOTRoom(Common, RoomCommands):
                 self.roomObj,
                 self.transform,
                 headerIndex,
+                self.useMacros,
             ),
         )
 

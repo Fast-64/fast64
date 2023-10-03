@@ -80,6 +80,7 @@ class OOTRoomHeaderActors:
     roomObj: Object
     transform: Matrix
     headerIndex: int
+    useMacros: bool
     actorList: list[Actor] = field(default_factory=list)
 
     def __post_init__(self):
@@ -88,7 +89,7 @@ class OOTRoomHeaderActors:
         ]
         for obj in actorObjList:
             actorProp = obj.ootActorProperty
-            c = Common(self.sceneObj, self.transform)
+            c = Common(self.sceneObj, self.transform, self.useMacros)
             if not c.isCurrentHeaderValid(actorProp.headerSettings, self.headerIndex):
                 continue
 
