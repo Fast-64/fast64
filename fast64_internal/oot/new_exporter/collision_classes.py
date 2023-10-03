@@ -68,7 +68,7 @@ class CollisionPoly:
         )
 
 
-@dataclass(eq=True)
+@dataclass
 class SurfaceType:
     """This class defines a single surface type"""
 
@@ -219,8 +219,9 @@ class BgCamFuncData:
 class CrawlspaceData:
     """This class defines camera data for crawlspaces, if used"""
 
-    points: list[tuple[int, int, int]] = field(default_factory=list)
-    arrayIndex: int = None
+    points: list[tuple[int, int, int]]
+    camIndex: int
+    arrayIndex: int = 0
 
     def __post_init__(self):
         self.points = [self.points[0], self.points[0], self.points[0], self.points[1], self.points[1], self.points[1]]
@@ -242,14 +243,15 @@ class BgCamInfo:
 
     setting: str
     count: int
-    arrayIndex: int
     camData: BgCamFuncData
+    camIndex: int
+    arrayIndex: int = 0
     hasPosData: bool = False
 
     def __post_init__(self):
         self.hasPosData = self.camData is not None
 
-    def getEntryC(self, posDataName: str):
+    def getInfoEntryC(self, posDataName: str):
         """Returns an entry for the camera information array"""
         ptr = f"&{posDataName}[{self.arrayIndex}]" if self.hasPosData else "NULL"
         return indent + "{ " + f"{self.setting}, {self.count}, {ptr}" + " },\n"

@@ -166,7 +166,7 @@ class CollisionCommon(Common):
                             colProp.ignoreProjectileCollision,
                             useConveyor,
                             normal,
-                            distance
+                            distance,
                         )
                     )
 
@@ -199,7 +199,7 @@ class CollisionCommon(Common):
             camObj.ootCameraPositionProperty.bgImageOverrideIndex,
         )
 
-    def getCrawlspaceDataFromObjects(self, startIndex: int):
+    def getCrawlspaceDataFromObjects(self):
         """Returns a list of rawlspace data from every splines objects with the type 'Crawlspace'"""
 
         crawlspaceList: list[CrawlspaceData] = []
@@ -209,7 +209,6 @@ class CollisionCommon(Common):
             if obj.type == "CURVE" and obj.ootSplineProperty.splineType == "Crawlspace"
         ]
 
-        index = startIndex
         for obj in crawlspaceObjList:
             if self.validateCurveData(obj):
                 crawlspaceList.append(
@@ -218,10 +217,9 @@ class CollisionCommon(Common):
                             [round(value) for value in self.transform @ obj.matrix_world @ point.co]
                             for point in obj.data.splines[0].points
                         ],
-                        index,
+                        obj.ootSplineProperty.index,
                     )
                 )
-                index += 6  # crawlspaces are using 6 entries in the data array
         return crawlspaceList
 
     def getBgCamInfoDataFromObjects(self):
@@ -253,14 +251,12 @@ class CollisionCommon(Common):
             camInfoData[camProp.index] = BgCamInfo(
                 setting,
                 count,
-                index,
                 camPosData[camProp.index] if camProp.hasPositionData else None,
+                camProp.index,
             )
 
             index += count
-        return (
-            [camInfoData[i] for i in range(min(camInfoData.keys()), len(camInfoData))] if len(camInfoData) > 0 else []
-        )
+        return list(camInfoData.values())
 
     def getWaterBoxDataFromObjects(self):
         """Returns a list of waterbox data from waterbox empty objects"""

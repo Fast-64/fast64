@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from ...utility import CData, indent
+from dataclasses import dataclass, field
+from ...utility import PluginError, CData, indent
 
 from .collision_classes import (
     SurfaceType,
@@ -86,10 +86,33 @@ class CollisionHeaderBgCamInfo:
 
     arrayIdx: int = 0
     crawlspaceCount: int = 6
+    camFromIndex: dict[int, BgCamInfo | CrawlspaceData] = field(default_factory=dict)
 
     def __post_init__(self):
-        if len(self.bgCamInfoList) > 0:
-            self.arrayIdx = self.bgCamInfoList[-1].arrayIndex + self.crawlspaceCount
+        for bgCam in self.bgCamInfoList:
+            if not bgCam.camIndex in self.camFromIndex:
+                self.camFromIndex[bgCam.camIndex] = bgCam
+            else:
+                raise PluginError(f"ERROR (BgCamInfo): Camera index already used: {bgCam.camIndex}")
+
+        for crawlCam in self.crawlspacePosList:
+            if not crawlCam.camIndex in self.camFromIndex:
+                self.camFromIndex[crawlCam.camIndex] = crawlCam
+            else:
+                raise PluginError(f"ERROR (Crawlspace): Camera index already used: {crawlCam.camIndex}")
+
+        self.camFromIndex = dict(sorted(self.camFromIndex.items()))
+        if list(self.camFromIndex.keys()) != list(range(len(self.camFromIndex))):
+            raise PluginError("ERROR: The camera indices are not consecutive!")
+
+        i = 0
+        for val in self.camFromIndex.values():
+            if isinstance(val, CrawlspaceData):
+                val.arrayIndex = i
+                i += 6  # crawlspaces are using 6 entries in the data array
+            elif val.hasPosData:
+                val.arrayIndex = i
+                i += 3
 
     def getDataArrayC(self):
         """Returns the camera data/crawlspace positions array"""
@@ -101,13 +124,14 @@ class CollisionHeaderBgCamInfo:
         posData.header = f"extern {listName};\n"
 
         # .c
-        posData.source = (
-            (listName + " = {\n")
-            + "\n".join(cam.camData.getEntryC() for cam in self.bgCamInfoList if cam.hasPosData)
-            + ("\n" if len(self.bgCamInfoList) > 0 else "")
-            + "\n".join(crawlspace.getDataEntryC() for crawlspace in self.crawlspacePosList)
-            + "};\n\n"
-        )
+        posData.source = listName + " = {\n"
+        for val in self.camFromIndex.values():
+            if isinstance(val, CrawlspaceData):
+                posData.source += val.getDataEntryC() + "\n"
+            elif val.hasPosData:
+                posData.source += val.camData.getEntryC() + "\n"
+        posData.source = posData.source[:-1]  # remove extra newline
+        posData.source += "};\n\n"
 
         return posData
 
@@ -123,8 +147,7 @@ class CollisionHeaderBgCamInfo:
         # .c
         bgCamInfoData.source = (
             (listName + " = {\n")
-            + "".join(cam.getEntryC(self.posDataName) for cam in self.bgCamInfoList)
-            + "".join(crawlspace.getInfoEntryC(self.posDataName) for crawlspace in self.crawlspacePosList)
+            + "".join(val.getInfoEntryC(self.posDataName) for val in self.camFromIndex.values())
             + "};\n\n"
         )
 

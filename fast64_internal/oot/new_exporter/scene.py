@@ -42,11 +42,6 @@ class OOTScene(SceneCommon):
         colBounds, vertexList, polyList, surfaceTypeList = self.getColSurfaceVtxDataFromMeshObj()
         bgCamInfoList = self.getBgCamInfoDataFromObjects()
 
-        startIndex = 0
-        for elem in bgCamInfoList:
-            if elem.count != 0:  # 0 means no pos data
-                startIndex += elem.count
-
         return OOTSceneCollisionHeader(
             f"{self.name}_collisionHeader",
             colBounds[0],
@@ -58,7 +53,7 @@ class OOTScene(SceneCommon):
                 f"{self.name}_bgCamInfo",
                 f"{self.name}_camPosData",
                 bgCamInfoList,
-                self.getCrawlspaceDataFromObjects(startIndex),
+                self.getCrawlspaceDataFromObjects(),
             ),
             CollisionHeaderWaterBox(f"{self.name}_waterBoxes", self.getWaterBoxDataFromObjects()),
         )
