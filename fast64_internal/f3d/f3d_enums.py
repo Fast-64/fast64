@@ -358,6 +358,7 @@ maxTexelCount = {
 
 enumF3D = [
     ("F3D", "F3D", "F3D"),
+    ("Turbo3D", "Turbo3D", "Turbo3D"),
     ("F3DEX/LX", "F3DEX/LX", "F3DEX/LX"),
     ("F3DLX.Rej", "F3DLX.Rej", "F3DLX.Rej"),
     ("F3DLP.Rej", "F3DLP.Rej", "F3DLP.Rej"),
