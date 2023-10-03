@@ -131,7 +131,7 @@ class SceneCommon(CollisionCommon, SceneCommands):
     def getEntranceActorListFromProps(self):
         """Returns the entrance actor list based on empty objects with the type 'Entrance'"""
 
-        actorList: list[EntranceActor] = []
+        entranceActorFromIndex: dict[int, EntranceActor] = {}
         actorObjList: list[Object] = [
             obj for obj in self.sceneObj.children_recursive if obj.type == "EMPTY" and obj.ootEmptyType == "Entrance"
         ]
@@ -162,8 +162,17 @@ class SceneCommon(CollisionCommon, SceneCommands):
                 entranceActor.params = entranceProp.actor.actorParam
                 entranceActor.roomIndex = roomObj.ootRoomHeader.roomIndex
                 entranceActor.spawnIndex = entranceProp.spawnIndex
-                actorList.append(entranceActor)
-        return actorList
+
+                if not entranceProp.spawnIndex in entranceActorFromIndex:
+                    entranceActorFromIndex[entranceProp.spawnIndex] = entranceActor
+                else:
+                    raise PluginError(f"ERROR: Repeated Spawn Index: {entranceProp.spawnIndex}")
+
+        entranceActorFromIndex = dict(sorted(entranceActorFromIndex.items()))
+        if list(entranceActorFromIndex.keys()) != list(range(len(entranceActorFromIndex))):
+            raise PluginError("ERROR: The spawn indices are not consecutive!")
+
+        return list(entranceActorFromIndex.values())
 
     def getPathListFromProps(self, listNameBase: str):
         """Returns the pathway list from spline objects with the type 'Path'"""
