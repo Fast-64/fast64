@@ -2,7 +2,6 @@ import os
 
 from dataclasses import dataclass, field
 from ...utility import writeFile
-from .common import includeData
 
 
 @dataclass
@@ -60,56 +59,32 @@ class SceneFile:
         """Adds includes at the beginning of each file to write"""
 
         sceneInclude = f'\n#include "{self.name}.h"\n\n\n'
-        common = includeData["common"]
-        # room = includeData["roomMain"]
-        # roomShapeInfo = includeData["roomShapeInfo"]
-        # scene = includeData["sceneMain"]
-        # collision = includeData["collision"]
-        # cutscene = includeData["cutscene"]
-        room = ""
-        roomShapeInfo = ""
-        scene = ""
-        collision = ""
-        cutscene = ""
-
-        common = (
-            '#include "ultra64.h"\n'
-            + '#include "z64.h"\n'
-            + '#include "macros.h"\n'
-            + '#include "segment_symbols.h"\n'
-            + '#include "command_macros_base.h"\n'
-            + '#include "z64cutscene_commands.h"\n'
-            + '#include "variables.h"\n'
-        )
+        includes = "\n".join(
+            [
+                '#include "ultra64/ultratypes.h"',
+                '#include "ultra64/gbi.h"',
+                '#include "libc/stddef.h"',
+                '#include "libc/stdint.h"',
+                '#include "macros.h"',
+                '#include "z64.h"',
+            ]
+        ) + "\n"
 
         for roomData in self.roomList.values():
-            roomMain = common + room
+            roomData.roomMain = self.getSourceWithSceneInclude(sceneInclude, roomData.roomMain, includes)
 
-            if self.singleFileExport:
-                roomMain += roomShapeInfo
-            else:
-                roomModelInfo = common + room
-                roomModel = common + room
-                roomData.roomModelInfo = self.getSourceWithSceneInclude(
-                    sceneInclude, roomData.roomModelInfo, roomModelInfo
-                )
-                roomData.roomModel = self.getSourceWithSceneInclude(sceneInclude, roomData.roomModel, roomModel)
-            roomData.roomMain = self.getSourceWithSceneInclude(sceneInclude, roomData.roomMain, roomMain)
+            if not self.singleFileExport:
+                roomData.roomModelInfo = self.getSourceWithSceneInclude(sceneInclude, roomData.roomModelInfo, includes)
+                roomData.roomModel = self.getSourceWithSceneInclude(sceneInclude, roomData.roomModel, includes)
 
-        sceneMain = common + scene
-        if self.singleFileExport:
-            sceneMain += collision + cutscene
-        else:
-            sceneCollision = common + collision
-            sceneTextures = common
-            self.sceneCollision = self.getSourceWithSceneInclude(sceneInclude, self.sceneCollision, sceneCollision)
-            self.sceneTextures = self.getSourceWithSceneInclude(sceneInclude, self.sceneTextures, sceneTextures)
+        self.sceneMain = self.getSourceWithSceneInclude(sceneInclude, self.sceneMain, includes)
+        if not self.singleFileExport:
+            self.sceneCollision = self.getSourceWithSceneInclude(sceneInclude, self.sceneCollision, includes)
+            self.sceneTextures = self.getSourceWithSceneInclude(sceneInclude, self.sceneTextures, includes)
 
             if self.hasCutscenes:
                 for cs in self.sceneCutscenes:
-                    csInclude = cutscene
-                    cs = self.getSourceWithSceneInclude(sceneInclude, cs, csInclude)
-        self.sceneMain = self.getSourceWithSceneInclude(sceneInclude, self.sceneMain, sceneMain)
+                    cs = self.getSourceWithSceneInclude(sceneInclude, cs, includes)
 
     def write(self):
         self.setIncludeData()
