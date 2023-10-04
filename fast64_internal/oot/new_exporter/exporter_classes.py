@@ -51,11 +51,15 @@ class SceneFile:
         self.hasCutscenes = len(self.sceneCutscenes) > 0
         self.hasSceneTextures = len(self.sceneTextures) > 0
 
+    def getSourceWithSceneInclude(self, sceneInclude: str, source: str, includeSrc: str):
+        if not sceneInclude in source:
+            includeSrc += sceneInclude
+        return includeSrc + source
+
     def setIncludeData(self):
         """Adds includes at the beginning of each file to write"""
 
-        suffix = "\n\n"
-        sceneInclude = f'\n#include "{self.name}.h"\n'
+        sceneInclude = f'\n#include "{self.name}.h"\n\n\n'
         common = includeData["common"]
         # room = includeData["roomMain"]
         # roomShapeInfo = includeData["roomShapeInfo"]
@@ -79,24 +83,33 @@ class SceneFile:
         )
 
         for roomData in self.roomList.values():
-            if self.singleFileExport:
-                common += room + roomShapeInfo + sceneInclude
-                roomData.roomMain = common + suffix + roomData.roomMain
-            else:
-                roomData.roomMain = common + room + sceneInclude + suffix + roomData.roomMain
-                roomData.roomModelInfo = common + roomShapeInfo + sceneInclude + suffix + roomData.roomModelInfo
-                roomData.roomModel = common + sceneInclude + suffix + roomData.roomModel
+            roomMain = common + room
 
+            if self.singleFileExport:
+                roomMain += roomShapeInfo
+            else:
+                roomModelInfo = common + room
+                roomModel = common + room
+                roomData.roomModelInfo = self.getSourceWithSceneInclude(
+                    sceneInclude, roomData.roomModelInfo, roomModelInfo
+                )
+                roomData.roomModel = self.getSourceWithSceneInclude(sceneInclude, roomData.roomModel, roomModel)
+            roomData.roomMain = self.getSourceWithSceneInclude(sceneInclude, roomData.roomMain, roomMain)
+
+        sceneMain = common + scene
         if self.singleFileExport:
-            common += scene + collision + cutscene + sceneInclude
-            self.sceneMain = common + suffix + self.sceneMain
+            sceneMain += collision + cutscene
         else:
-            self.sceneMain = common + scene + sceneInclude + suffix + self.sceneMain
-            self.sceneCollision = common + collision + sceneInclude + suffix + self.sceneCollision
+            sceneCollision = common + collision
+            sceneTextures = common
+            self.sceneCollision = self.getSourceWithSceneInclude(sceneInclude, self.sceneCollision, sceneCollision)
+            self.sceneTextures = self.getSourceWithSceneInclude(sceneInclude, self.sceneTextures, sceneTextures)
 
             if self.hasCutscenes:
                 for cs in self.sceneCutscenes:
-                    cs = cutscene + sceneInclude + suffix + cs
+                    csInclude = cutscene
+                    cs = self.getSourceWithSceneInclude(sceneInclude, cs, csInclude)
+        self.sceneMain = self.getSourceWithSceneInclude(sceneInclude, self.sceneMain, sceneMain)
 
     def write(self):
         self.setIncludeData()
@@ -107,10 +120,9 @@ class SceneFile:
 
         if self.singleFileExport:
             sceneMainPath = f"{self.name}.c"
-            self.sceneMain += self.sceneCollision
             if self.hasCutscenes:
-                for i, cs in enumerate(self.sceneCutscenes):
-                    self.sceneMain += cs
+                self.sceneMain += "".join(cs for cs in self.sceneCutscenes)
+            self.sceneMain += self.sceneCollision
         else:
             sceneMainPath = f"{self.name}_main.c"
             writeFile(os.path.join(self.path, f"{self.name}_col.c"), self.sceneCollision)
