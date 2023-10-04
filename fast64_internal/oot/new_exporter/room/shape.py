@@ -1,7 +1,7 @@
 from dataclasses import dataclass
-from ...utility import CData, indent
-from ...f3d.f3d_gbi import TextureExportSettings
-from ..oot_level_classes import OOTRoomMesh
+from ....utility import CData, indent
+from ....f3d.f3d_gbi import TextureExportSettings
+from ...oot_level_classes import OOTRoomMesh
 
 
 @dataclass

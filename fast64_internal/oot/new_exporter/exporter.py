@@ -14,11 +14,10 @@ from ..oot_model_classes import OOTModel
 from ..oot_f3d_writer import writeTextureArraysNew
 from ..oot_level_writer import BoundingBox, writeTextureArraysExistingScene, ootProcessMesh
 from ..oot_utility import CullGroup
-from .common import Common, altHeaderList
-from .scene import OOTScene
-from .scene_header import OOTSceneAlternateHeader
+from .common import Base, altHeaderList
+from .scene import OOTScene, OOTSceneAlternateHeader
 from .room import OOTRoom, OOTRoomAlternateHeader
-from .file import Files
+from .other import Files
 from .exporter_classes import SceneFile
 
 from ...utility import (
@@ -27,7 +26,6 @@ from ...utility import (
     unhideAllAndGetHiddenState,
     restoreHiddenState,
     toAlnum,
-    writeFile,
 )
 
 from ..oot_utility import (
@@ -105,7 +103,7 @@ class OOTSceneExport:
             )
 
             # Mesh stuff
-            c = Common(self.sceneObj, self.transform, self.useMacros)
+            c = Base(self.sceneObj, self.transform, self.useMacros)
             pos, _, scale, _ = c.getConvertedTransform(self.transform, self.sceneObj, roomObj, True)
             cullGroup = CullGroup(pos, scale, roomObj.ootRoomHeader.defaultCullDistance)
             DLGroup = roomDict[roomIndex].mesh.addMeshGroup(cullGroup).DLGroup

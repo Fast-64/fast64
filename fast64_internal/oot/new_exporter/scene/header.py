@@ -1,8 +1,7 @@
 from dataclasses import dataclass, field
 from bpy.types import Object
-from ...utility import PluginError, CData, indent
-from .actors import TransitionActor, EntranceActor
-from .scene_classes import EnvLightSettings, Path
+from ....utility import PluginError, CData, indent
+from .classes import TransitionActor, EntranceActor, EnvLightSettings, Path
 
 
 @dataclass

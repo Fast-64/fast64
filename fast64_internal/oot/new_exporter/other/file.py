@@ -3,12 +3,12 @@ import re
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
-from ..oot_utility import ExportInfo, getSceneDirFromLevelName
-from .spec import Spec
+from ...oot_utility import getSceneDirFromLevelName
 from .scene_table import SceneTable
+from .spec import Spec
 
 if TYPE_CHECKING:
-    from .exporter import OOTSceneExport
+    from ..exporter import OOTSceneExport
 
 
 @dataclass

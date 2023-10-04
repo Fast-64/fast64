@@ -1,17 +1,17 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from math import radians
 from mathutils import Quaternion, Matrix
 from bpy.types import Object
-from ....utility import PluginError, indent
-from ...oot_utility import ootConvertTranslation, ootConvertRotation
-from ...actor.properties import OOTActorHeaderProperty
+from ...utility import PluginError, indent
+from ..oot_utility import ootConvertTranslation, ootConvertRotation
+from ..actor.properties import OOTActorHeaderProperty
 
 
 altHeaderList = ["childNight", "adultDay", "adultNight"]
 
 
 @dataclass
-class Common:
+class Base:
     """This class hosts common data used across different sub-systems of this exporter"""
 
     sceneObj: Object
@@ -103,3 +103,31 @@ class Common:
         """Returns the scene end command"""
 
         return indent + "SCENE_CMD_END(),\n"
+
+
+@dataclass
+class Actor:
+    """Defines an Actor"""
+
+    name: str = None
+    id: str = None
+    pos: list[int] = field(default_factory=list)
+    rot: str = None
+    params: str = None
+
+    def getActorEntry(self):
+        """Returns a single actor entry"""
+
+        posData = "{ " + ", ".join(f"{round(p)}" for p in self.pos) + " }"
+        rotData = "{ " + self.rot + " }"
+
+        actorInfos = [self.id, posData, rotData, self.params]
+        infoDescs = ["Actor ID", "Position", "Rotation", "Parameters"]
+
+        return (
+            indent
+            + (f"// {self.name}\n" + indent if self.name != "" else "")
+            + "{\n"
+            + ",\n".join((indent * 2) + f"/* {desc:10} */ {info}" for desc, info in zip(infoDescs, actorInfos))
+            + ("\n" + indent + "},\n")
+        )

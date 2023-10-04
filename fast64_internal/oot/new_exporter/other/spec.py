@@ -2,11 +2,11 @@ import os
 import re
 
 from typing import TYPE_CHECKING
-from ...utility import readFile, writeFile, indent
-from ..oot_utility import ExportInfo, getSceneDirFromLevelName
+from ....utility import readFile, writeFile, indent
+from ...oot_utility import ExportInfo, getSceneDirFromLevelName
 
 if TYPE_CHECKING:
-    from .exporter import OOTSceneExport
+    from ..exporter import OOTSceneExport
 
 
 class Spec:

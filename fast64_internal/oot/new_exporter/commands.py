@@ -3,10 +3,9 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .collision import OOTSceneCollisionHeader
-    from .room import OOTRoom
-    from .room_classes import OOTRoomHeaderInfos, OOTRoomHeaderObjects, OOTRoomHeaderActors
-    from .scene import OOTScene
-    from .scene_header import (
+    from .room import OOTRoom, OOTRoomHeaderInfos, OOTRoomHeaderObjects, OOTRoomHeaderActors
+    from .scene import (
+        OOTScene,
         OOTSceneHeaderInfos,
         OOTSceneHeader,
         OOTSceneHeaderLighting,

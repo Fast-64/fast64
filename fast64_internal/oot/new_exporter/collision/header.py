@@ -1,13 +1,13 @@
 from dataclasses import dataclass, field
-from ...utility import PluginError, CData, indent
+from ....utility import PluginError, CData, indent
 
-from .collision_classes import (
-    SurfaceType,
+from .classes import (
     CollisionPoly,
-    Vertex,
-    WaterBox,
-    BgCamInfo,
+    SurfaceType,
     CrawlspaceData,
+    BgCamInfo,
+    WaterBox,
+    Vertex,
 )
 
 

@@ -1,6 +1,6 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from mathutils import Vector
-from ...utility import PluginError, indent
+from ....utility import PluginError, indent
 
 
 @dataclass

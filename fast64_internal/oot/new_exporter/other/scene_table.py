@@ -2,12 +2,12 @@ import os
 import bpy
 
 from typing import TYPE_CHECKING
-from ...utility import PluginError, writeFile
-from ..oot_constants import ootEnumSceneID, ootSceneNameToID
-from ..oot_utility import ExportInfo
+from ....utility import PluginError, writeFile
+from ...oot_constants import ootEnumSceneID, ootSceneNameToID
+from ...oot_utility import ExportInfo
 
 if TYPE_CHECKING:
-    from .exporter import OOTSceneExport
+    from ..exporter import OOTSceneExport
 
 
 class SceneTable:

@@ -6,17 +6,17 @@ from ...scene.properties import OOTSceneHeaderProperty, OOTLightProperty
 from ...oot_constants import ootData
 from ...oot_model_classes import OOTModel
 from ..commands import SceneCommands
-from ..scene_header import EnvLightSettings, Path, OOTSceneHeader, OOTSceneAlternateHeader
-from ..actors import TransitionActor, EntranceActor
-from .classes import altHeaderList
-from .collision import CollisionCommon
+from ..common import altHeaderList
+from ..collision import CollisionBase
+from .classes import TransitionActor, EntranceActor, EnvLightSettings, Path
+from .header import OOTSceneAlternateHeader, OOTSceneHeader
 
 if TYPE_CHECKING:
     from ..room import OOTRoom
 
 
 @dataclass
-class SceneCommon(CollisionCommon, SceneCommands):
+class SceneBase(CollisionBase, SceneCommands):
     """This class hosts various data and functions related to a scene file"""
 
     name: str = None

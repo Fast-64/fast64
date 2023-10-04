@@ -1,37 +1,37 @@
 from dataclasses import dataclass
 from bpy.types import Object
-from ...utility import PluginError, CData, toAlnum, indent
-from ...f3d.f3d_gbi import TextureExportSettings, ScrollMethod
-from ..room.properties import OOTRoomHeaderProperty
-from ..oot_constants import ootData
-from ..oot_level_classes import OOTRoomMesh, OOTBGImage
-from ..oot_model_classes import OOTModel, OOTGfxFormatter
-from .commands import RoomCommands
-from .common import Common, altHeaderList
-from .exporter_classes import RoomFile
+from ....utility import PluginError, CData, toAlnum, indent
+from ....f3d.f3d_gbi import ScrollMethod, TextureExportSettings
+from ...room.properties import OOTRoomHeaderProperty
+from ...oot_constants import ootData
+from ...oot_level_classes import OOTBGImage, OOTRoomMesh
+from ...oot_model_classes import OOTModel, OOTGfxFormatter
+from ..commands import RoomCommands
+from ..exporter_classes import RoomFile
+from ..common import Base, altHeaderList
 
-from .room_shape import (
-    RoomShape,
-    RoomShapeDLists,
+from .shape import (
     RoomShapeDListsEntry,
-    RoomShapeImageMulti,
-    RoomShapeImageMultiBg,
     RoomShapeImageMultiBgEntry,
+    RoomShapeImageMultiBg,
+    RoomShapeDLists,
     RoomShapeImageSingle,
+    RoomShapeImageMulti,
     RoomShapeNormal,
+    RoomShape,
 )
 
-from .room_classes import (
-    OOTRoomHeader,
-    OOTRoomAlternateHeader,
+from .header import (
     OOTRoomHeaderInfos,
     OOTRoomHeaderObjects,
     OOTRoomHeaderActors,
+    OOTRoomAlternateHeader,
+    OOTRoomHeader,
 )
 
 
 @dataclass
-class OOTRoom(Common, RoomCommands):
+class OOTRoom(Base, RoomCommands):
     """This class defines a room"""
 
     name: str = None

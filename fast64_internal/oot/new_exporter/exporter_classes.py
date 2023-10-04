@@ -59,16 +59,19 @@ class SceneFile:
         """Adds includes at the beginning of each file to write"""
 
         sceneInclude = f'\n#include "{self.name}.h"\n\n\n'
-        includes = "\n".join(
-            [
-                '#include "ultra64/ultratypes.h"',
-                '#include "ultra64/gbi.h"',
-                '#include "libc/stddef.h"',
-                '#include "libc/stdint.h"',
-                '#include "macros.h"',
-                '#include "z64.h"',
-            ]
-        ) + "\n"
+        includes = (
+            "\n".join(
+                [
+                    '#include "ultra64/ultratypes.h"',
+                    '#include "ultra64/gbi.h"',
+                    '#include "libc/stddef.h"',
+                    '#include "libc/stdint.h"',
+                    '#include "macros.h"',
+                    '#include "z64.h"',
+                ]
+            )
+            + "\n"
+        )
 
         for roomData in self.roomList.values():
             roomData.roomMain = self.getSourceWithSceneInclude(sceneInclude, roomData.roomMain, includes)

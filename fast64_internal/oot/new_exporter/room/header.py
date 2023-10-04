@@ -1,10 +1,9 @@
 from dataclasses import dataclass, field
 from mathutils import Matrix
 from bpy.types import Object
-from ...utility import CData, indent
-from ..oot_constants import ootData
-from .common import Common
-from .actors import Actor
+from ....utility import CData, indent
+from ...oot_constants import ootData
+from ..common import Base, Actor
 
 
 @dataclass
@@ -89,7 +88,7 @@ class OOTRoomHeaderActors:
         ]
         for obj in actorObjList:
             actorProp = obj.ootActorProperty
-            c = Common(self.sceneObj, self.transform, self.useMacros)
+            c = Base(self.sceneObj, self.transform, self.useMacros)
             if not c.isCurrentHeaderValid(actorProp.headerSettings, self.headerIndex):
                 continue
 

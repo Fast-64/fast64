@@ -1,27 +1,27 @@
 import math
 
 from dataclasses import dataclass
-from mathutils import Vector, Quaternion, Matrix
-from bpy.types import Object, Mesh
+from mathutils import Matrix, Quaternion, Vector
+from bpy.types import Mesh, Object
 from bpy.ops import object
 from ....utility import PluginError, checkIdentityRotation
 from ...oot_utility import convertIntTo2sComplement
 from ...oot_collision_classes import decomp_compat_map_CameraSType
-from .classes import Common
+from ..common import Base
 
-from ..collision_classes import (
-    SurfaceType,
+from .classes import (
     CollisionPoly,
-    Vertex,
-    WaterBox,
-    BgCamInfo,
+    SurfaceType,
     BgCamFuncData,
     CrawlspaceData,
+    BgCamInfo,
+    WaterBox,
+    Vertex,
 )
 
 
 @dataclass
-class CollisionCommon(Common):
+class CollisionBase(Base):
     """This class hosts different functions used to convert mesh data"""
 
     def updateBounds(self, position: tuple[int, int, int], bounds: list[tuple[int, int, int]]):

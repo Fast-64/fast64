@@ -1,33 +1,33 @@
 from dataclasses import dataclass
-from ...utility import PluginError, CData, indent
-from ...f3d.f3d_gbi import TextureExportSettings, ScrollMethod
-from ..oot_model_classes import OOTGfxFormatter
-from ..scene.properties import OOTSceneHeaderProperty
-from .common import SceneCommon
-from .exporter_classes import SceneFile
+from ....utility import PluginError, CData, indent
+from ....f3d.f3d_gbi import TextureExportSettings, ScrollMethod
+from ...oot_model_classes import OOTGfxFormatter
+from ...scene.properties import OOTSceneHeaderProperty
+from ..exporter_classes import SceneFile
+from .base import SceneBase
 
-from .collision import (
-    OOTSceneCollisionHeader,
+from ..collision import (
     CollisionHeaderVertices,
     CollisionHeaderCollisionPoly,
     CollisionHeaderSurfaceType,
     CollisionHeaderBgCamInfo,
     CollisionHeaderWaterBox,
+    OOTSceneCollisionHeader,
 )
 
-from .scene_header import (
-    OOTSceneHeader,
+from .header import (
     OOTSceneHeaderInfos,
     OOTSceneHeaderLighting,
     OOTSceneHeaderCutscene,
     OOTSceneHeaderExits,
     OOTSceneHeaderActors,
     OOTSceneHeaderPath,
+    OOTSceneHeader,
 )
 
 
 @dataclass
-class OOTScene(SceneCommon):
+class OOTScene(SceneBase):
     """This class defines a scene"""
 
     roomListName: str = None
