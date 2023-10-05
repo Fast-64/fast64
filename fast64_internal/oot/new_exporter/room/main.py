@@ -7,8 +7,8 @@ from ...oot_constants import ootData
 from ...oot_level_classes import OOTBGImage, OOTRoomMesh
 from ...oot_model_classes import OOTModel, OOTGfxFormatter
 from ..commands import RoomCommands
-from ..exporter_classes import RoomFile
-from ..common import Base, altHeaderList
+from ..classes import RoomFile
+from ..base import Base, altHeaderList
 
 from .shape import (
     RoomShapeDListsEntry,

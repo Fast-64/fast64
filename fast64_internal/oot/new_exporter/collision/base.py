@@ -7,7 +7,7 @@ from bpy.ops import object
 from ....utility import PluginError, checkIdentityRotation
 from ...oot_utility import convertIntTo2sComplement
 from ...oot_collision_classes import decomp_compat_map_CameraSType
-from ..common import Base
+from ..base import Base
 
 from .classes import (
     CollisionPoly,

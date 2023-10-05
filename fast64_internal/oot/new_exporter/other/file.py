@@ -8,14 +8,14 @@ from .scene_table import SceneTable
 from .spec import Spec
 
 if TYPE_CHECKING:
-    from ..exporter import OOTSceneExport
+    from ..main import SceneExporter
 
 
 @dataclass
 class Files:  # TODO: find a better name
     """This class handles editing decomp files"""
 
-    exporter: "OOTSceneExport"
+    exporter: "SceneExporter"
 
     def modifySceneFiles(self):
         if self.exporter.exportInfo.customSubPath is not None:

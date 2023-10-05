@@ -3,7 +3,7 @@ from ....utility import PluginError, CData, indent
 from ....f3d.f3d_gbi import TextureExportSettings, ScrollMethod
 from ...oot_model_classes import OOTGfxFormatter
 from ...scene.properties import OOTSceneHeaderProperty
-from ..exporter_classes import SceneFile
+from ..classes import SceneFile
 from .base import SceneBase
 
 from ..collision import (

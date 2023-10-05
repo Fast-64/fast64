@@ -6,7 +6,7 @@ from ....utility import readFile, writeFile, indent
 from ...oot_utility import ExportInfo, getSceneDirFromLevelName
 
 if TYPE_CHECKING:
-    from ..exporter import OOTSceneExport
+    from ..main import SceneExporter
 
 
 class Spec:
@@ -45,7 +45,7 @@ class Spec:
 
         return entries, compressFlag, includes
 
-    def editSpec(self, exporter: "OOTSceneExport", exportInfo: ExportInfo = None):
+    def editSpec(self, exporter: "SceneExporter", exportInfo: ExportInfo = None):
         """Adds or removes entries for the selected scene in the spec file"""
 
         isExport = exporter is not None

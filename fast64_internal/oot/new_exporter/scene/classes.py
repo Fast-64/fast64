@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from ....utility import CData, indent
-from ..common import Actor
+from ..base import Actor
 
 
 @dataclass

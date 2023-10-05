@@ -1,1 +1,1 @@
-from .exporter import OOTSceneExport
+from .main import SceneExporter

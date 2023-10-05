@@ -6,7 +6,7 @@ from ...scene.properties import OOTSceneHeaderProperty, OOTLightProperty
 from ...oot_constants import ootData
 from ...oot_model_classes import OOTModel
 from ..commands import SceneCommands
-from ..common import altHeaderList
+from ..base import altHeaderList
 from ..collision import CollisionBase
 from .classes import TransitionActor, EntranceActor, EnvLightSettings, Path
 from .header import SceneAlternateHeader, SceneHeader

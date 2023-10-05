@@ -7,7 +7,7 @@ from ...oot_constants import ootEnumSceneID, ootSceneNameToID
 from ...oot_utility import ExportInfo
 
 if TYPE_CHECKING:
-    from ..exporter import OOTSceneExport
+    from ..main import SceneExporter
 
 
 class SceneTable:
@@ -138,7 +138,7 @@ class SceneTable:
         # if the index hasn't been found yet, do it again but decrement the index
         return self.getInsertionIndex(isExport, sceneNames, sceneName, currentIndex - 1, mode)
 
-    def getSceneParams(self, exporter: "OOTSceneExport", exportInfo: ExportInfo, sceneNames: list[str]):
+    def getSceneParams(self, exporter: "SceneExporter", exportInfo: ExportInfo, sceneNames: list[str]):
         """Returns the parameters that needs to be set in ``DEFINE_SCENE()``"""
 
         # in order to replace the values of ``unk10``, ``unk12`` and basically every parameters from ``DEFINE_SCENE``,
@@ -218,7 +218,7 @@ class SceneTable:
 
         return "".join(newFileData)
 
-    def editSceneTable(self, exporter: "OOTSceneExport", exportInfo: ExportInfo = None):
+    def editSceneTable(self, exporter: "SceneExporter", exportInfo: ExportInfo = None):
         """Edit the scene table with the new data"""
 
         isExport = exporter is not None

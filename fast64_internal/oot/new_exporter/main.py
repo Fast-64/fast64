@@ -14,11 +14,11 @@ from ..oot_model_classes import OOTModel
 from ..oot_f3d_writer import writeTextureArraysNew
 from ..oot_level_writer import BoundingBox, writeTextureArraysExistingScene, ootProcessMesh
 from ..oot_utility import CullGroup
-from .common import Base, altHeaderList
+from .base import Base, altHeaderList
 from .scene import Scene, SceneAlternateHeader
 from .room import Room, RoomAlternateHeader
 from .other import Files
-from .exporter_classes import SceneFile
+from .classes import SceneFile
 
 from ...utility import (
     PluginError,
@@ -39,7 +39,7 @@ from ..oot_utility import (
 
 
 @dataclass
-class OOTSceneExport:
+class SceneExporter:
     """This class is the main exporter class, it handles generating the C data and writing the files"""
 
     exportInfo: ExportInfo
