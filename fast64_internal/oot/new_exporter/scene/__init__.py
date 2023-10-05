@@ -1,11 +1,11 @@
 from .header import (
-    OOTSceneHeaderInfos,
-    OOTSceneHeader,
-    OOTSceneHeaderLighting,
-    OOTSceneHeaderCutscene,
-    OOTSceneHeaderActors,
-    OOTSceneHeaderPath,
-    OOTSceneAlternateHeader,
+    SceneInfos,
+    SceneHeader,
+    SceneLighting,
+    SceneCutscene,
+    SceneActors,
+    ScenePathways,
+    SceneAlternateHeader,
 )
 
-from .main import OOTScene
+from .main import Scene

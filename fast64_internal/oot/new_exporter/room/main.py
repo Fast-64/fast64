@@ -22,16 +22,16 @@ from .shape import (
 )
 
 from .header import (
-    OOTRoomHeaderInfos,
-    OOTRoomHeaderObjects,
-    OOTRoomHeaderActors,
-    OOTRoomAlternateHeader,
-    OOTRoomHeader,
+    RoomInfos,
+    RoomObjects,
+    RoomActors,
+    RoomAlternateHeader,
+    RoomHeader,
 )
 
 
 @dataclass
-class OOTRoom(Base, RoomCommands):
+class Room(Base, RoomCommands):
     """This class defines a room"""
 
     name: str = None
@@ -39,8 +39,8 @@ class OOTRoom(Base, RoomCommands):
     roomShapeType: str = None
     model: OOTModel = None
     headerIndex: int = None
-    mainHeader: OOTRoomHeader = None
-    altHeader: OOTRoomAlternateHeader = None
+    mainHeader: RoomHeader = None
+    altHeader: RoomAlternateHeader = None
     mesh: OOTRoomMesh = None
     roomShape: RoomShape = None
 
@@ -52,7 +52,7 @@ class OOTRoom(Base, RoomCommands):
 
         return self.altHeader is not None
 
-    def getRoomHeaderFromIndex(self, headerIndex: int) -> OOTRoomHeader | None:
+    def getRoomHeaderFromIndex(self, headerIndex: int) -> RoomHeader | None:
         """Returns the current room header based on the header index"""
 
         if headerIndex == 0:
@@ -110,9 +110,9 @@ class OOTRoom(Base, RoomCommands):
             else:
                 objIDList.append(ootData.objectData.objectsByKey[objProp.objectKey].id)
 
-        return OOTRoomHeader(
+        return RoomHeader(
             headerName,
-            OOTRoomHeaderInfos(
+            RoomInfos(
                 headerProp.roomIndex,
                 headerProp.roomShape,
                 self.getPropValue(headerProp, "roomBehaviour"),
@@ -129,8 +129,8 @@ class OOTRoom(Base, RoomCommands):
                 [d for d in headerProp.windVector] if headerProp.setWind else None,
                 headerProp.windStrength if headerProp.setWind else None,
             ),
-            OOTRoomHeaderObjects(f"{headerName}_objectList", objIDList),
-            OOTRoomHeaderActors(
+            RoomObjects(f"{headerName}_objectList", objIDList),
+            RoomActors(
                 f"{headerName}_actorList",
                 self.sceneObj,
                 self.roomObj,
@@ -195,11 +195,11 @@ class OOTRoom(Base, RoomCommands):
         """Returns the C data of the main informations of a room"""
 
         roomC = CData()
-        roomHeaders: list[tuple[OOTRoomHeader, str]] = []
+        roomHeaders: list[tuple[RoomHeader, str]] = []
         altHeaderPtrList = None
 
         if self.hasAlternateHeaders():
-            roomHeaders: list[tuple[OOTRoomHeader, str]] = [
+            roomHeaders: list[tuple[RoomHeader, str]] = [
                 (self.altHeader.childNight, "Child Night"),
                 (self.altHeader.adultDay, "Adult Day"),
                 (self.altHeader.adultNight, "Adult Night"),

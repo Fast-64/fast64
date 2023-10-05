@@ -9,10 +9,10 @@ from ..commands import SceneCommands
 from ..common import altHeaderList
 from ..collision import CollisionBase
 from .classes import TransitionActor, EntranceActor, EnvLightSettings, Path
-from .header import OOTSceneAlternateHeader, OOTSceneHeader
+from .header import SceneAlternateHeader, SceneHeader
 
 if TYPE_CHECKING:
-    from ..room import OOTRoom
+    from ..room import Room
 
 
 @dataclass
@@ -22,9 +22,9 @@ class SceneBase(CollisionBase, SceneCommands):
     name: str = None
     model: OOTModel = None
     headerIndex: int = None
-    mainHeader: OOTSceneHeader = None
-    altHeader: OOTSceneAlternateHeader = None
-    roomList: list["OOTRoom"] = field(default_factory=list)
+    mainHeader: SceneHeader = None
+    altHeader: SceneAlternateHeader = None
+    roomList: list["Room"] = field(default_factory=list)
 
     def validateRoomIndices(self):
         """Checks if there are multiple rooms with the same room index"""
@@ -48,7 +48,7 @@ class SceneBase(CollisionBase, SceneCommands):
 
         return self.altHeader is not None
 
-    def getSceneHeaderFromIndex(self, headerIndex: int) -> OOTSceneHeader | None:
+    def getSceneHeaderFromIndex(self, headerIndex: int) -> SceneHeader | None:
         """Returns the scene header based on the header index"""
 
         if headerIndex == 0:

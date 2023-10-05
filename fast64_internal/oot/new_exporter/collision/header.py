@@ -12,7 +12,7 @@ from .classes import (
 
 
 @dataclass
-class CollisionHeaderVertices:
+class Vertices:
     """This class defines the array of vertices"""
 
     name: str
@@ -34,7 +34,7 @@ class CollisionHeaderVertices:
 
 
 @dataclass
-class CollisionHeaderCollisionPoly:
+class CollisionPolygons:
     """This class defines the array of collision polys"""
 
     name: str
@@ -54,7 +54,7 @@ class CollisionHeaderCollisionPoly:
 
 
 @dataclass
-class CollisionHeaderSurfaceType:
+class SurfaceTypes:
     """This class defines the array of surface types"""
 
     name: str
@@ -76,7 +76,7 @@ class CollisionHeaderSurfaceType:
 
 
 @dataclass
-class CollisionHeaderBgCamInfo:
+class BgCamInformations:
     """This class defines the array of camera informations and the array of the associated data"""
 
     name: str
@@ -155,7 +155,7 @@ class CollisionHeaderBgCamInfo:
 
 
 @dataclass
-class CollisionHeaderWaterBox:
+class WaterBoxes:
     """This class defines the array of waterboxes"""
 
     name: str
@@ -175,17 +175,17 @@ class CollisionHeaderWaterBox:
 
 
 @dataclass
-class OOTSceneCollisionHeader:
+class CollisionHeader:
     """This class defines the collision header used by the scene"""
 
     name: str
     minBounds: tuple[int, int, int] = None
     maxBounds: tuple[int, int, int] = None
-    vertices: CollisionHeaderVertices = None
-    collisionPoly: CollisionHeaderCollisionPoly = None
-    surfaceType: CollisionHeaderSurfaceType = None
-    bgCamInfo: CollisionHeaderBgCamInfo = None
-    waterbox: CollisionHeaderWaterBox = None
+    vertices: Vertices = None
+    collisionPoly: CollisionPolygons = None
+    surfaceType: SurfaceTypes = None
+    bgCamInfo: BgCamInformations = None
+    waterbox: WaterBoxes = None
 
     def getSceneCollisionC(self):
         """Returns the collision header for the selected scene"""

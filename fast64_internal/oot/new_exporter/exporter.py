@@ -15,8 +15,8 @@ from ..oot_f3d_writer import writeTextureArraysNew
 from ..oot_level_writer import BoundingBox, writeTextureArraysExistingScene, ootProcessMesh
 from ..oot_utility import CullGroup
 from .common import Base, altHeaderList
-from .scene import OOTScene, OOTSceneAlternateHeader
-from .room import OOTRoom, OOTRoomAlternateHeader
+from .scene import Scene, SceneAlternateHeader
+from .room import Room, RoomAlternateHeader
 from .other import Files
 from .exporter_classes import SceneFile
 
@@ -57,16 +57,16 @@ class OOTSceneExport:
     dlFormat: DLFormat = DLFormat.Static
 
     sceneObj: Object = None
-    scene: OOTScene = None
+    scene: Scene = None
     path: str = None
     sceneFile: SceneFile = None
     hasCutscenes: bool = False
     hasSceneTextures: bool = False
 
-    def getNewRoomList(self, scene: OOTScene):
+    def getNewRoomList(self, scene: Scene):
         """Returns the room list from empty objects with the type 'Room'"""
 
-        roomDict: dict[int, OOTRoom] = {}
+        roomDict: dict[int, Room] = {}
         roomObjs: list[Object] = [
             obj for obj in self.sceneObj.children_recursive if obj.type == "EMPTY" and obj.ootEmptyType == "Room"
         ]
@@ -83,7 +83,7 @@ class OOTSceneExport:
                 raise PluginError(f"ERROR: Room index {roomIndex} used more than once!")
 
             roomName = f"{toAlnum(self.sceneName)}_room_{roomIndex}"
-            roomDict[roomIndex] = OOTRoom(
+            roomDict[roomIndex] = Room(
                 self.sceneObj,
                 self.transform,
                 self.useMacros,
@@ -134,7 +134,7 @@ class OOTSceneExport:
                 raise PluginError(f'Room shape "Image" can only have one room in the scene.')
 
             roomDict[roomIndex].roomShape = roomDict[roomIndex].getNewRoomShape(roomHeader, self.sceneName)
-            altHeaderData = OOTRoomAlternateHeader(f"{roomDict[roomIndex].name}_alternateHeaders")
+            altHeaderData = RoomAlternateHeader(f"{roomDict[roomIndex].name}_alternateHeaders")
             roomDict[roomIndex].mainHeader = roomDict[roomIndex].getNewRoomHeader(roomHeader)
             hasAltHeader = False
 
@@ -174,9 +174,9 @@ class OOTSceneExport:
 
         try:
             altProp = self.sceneObj.ootAlternateSceneHeaders
-            sceneData = OOTScene(self.sceneObj, self.transform, self.useMacros, name=f"{toAlnum(self.sceneName)}_scene")
+            sceneData = Scene(self.sceneObj, self.transform, self.useMacros, name=f"{toAlnum(self.sceneName)}_scene")
             sceneData.model = OOTModel(self.f3dType, self.isHWv1, f"{sceneData.name}_dl", self.dlFormat, False)
-            altHeaderData = OOTSceneAlternateHeader(f"{sceneData.name}_alternateHeaders")
+            altHeaderData = SceneAlternateHeader(f"{sceneData.name}_alternateHeaders")
             sceneData.mainHeader = sceneData.getNewSceneHeader(self.sceneObj.ootSceneHeader)
             hasAltHeader = False
 

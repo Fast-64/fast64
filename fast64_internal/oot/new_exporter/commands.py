@@ -2,26 +2,26 @@ from ...utility import CData, indent
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .collision import OOTSceneCollisionHeader
-    from .room import OOTRoom, OOTRoomHeaderInfos, OOTRoomHeaderObjects, OOTRoomHeaderActors
+    from .collision import CollisionHeader
+    from .room import Room, RoomInfos, RoomObjects, RoomActors
     from .scene import (
-        OOTScene,
-        OOTSceneHeaderInfos,
-        OOTSceneHeader,
-        OOTSceneHeaderLighting,
-        OOTSceneHeaderCutscene,
-        OOTSceneHeaderActors,
-        OOTSceneHeaderPath,
+        Scene,
+        SceneInfos,
+        SceneHeader,
+        SceneLighting,
+        SceneCutscene,
+        SceneActors,
+        ScenePathways,
     )
 
 
 class RoomCommands:
     """This class defines the command list for rooms"""
 
-    def getEchoSettingsCmd(self, infos: "OOTRoomHeaderInfos"):
+    def getEchoSettingsCmd(self, infos: "RoomInfos"):
         return indent + f"SCENE_CMD_ECHO_SETTINGS({infos.echo})"
 
-    def getRoomBehaviourCmd(self, infos: "OOTRoomHeaderInfos"):
+    def getRoomBehaviourCmd(self, infos: "RoomInfos"):
         showInvisibleActors = "true" if infos.showInvisActors else "false"
         disableWarpSongs = "true" if infos.disableWarpSongs else "false"
 
@@ -31,30 +31,30 @@ class RoomCommands:
             + ")"
         )
 
-    def getSkyboxDisablesCmd(self, infos: "OOTRoomHeaderInfos"):
+    def getSkyboxDisablesCmd(self, infos: "RoomInfos"):
         disableSkybox = "true" if infos.disableSky else "false"
         disableSunMoon = "true" if infos.disableSunMoon else "false"
 
         return indent + f"SCENE_CMD_SKYBOX_DISABLES({disableSkybox}, {disableSunMoon})"
 
-    def getTimeSettingsCmd(self, infos: "OOTRoomHeaderInfos"):
+    def getTimeSettingsCmd(self, infos: "RoomInfos"):
         return indent + f"SCENE_CMD_TIME_SETTINGS({infos.hour}, {infos.minute}, {infos.timeSpeed})"
 
-    def getWindSettingsCmd(self, infos: "OOTRoomHeaderInfos"):
+    def getWindSettingsCmd(self, infos: "RoomInfos"):
         return (
             indent + f"SCENE_CMD_WIND_SETTINGS({', '.join(f'{dir}' for dir in infos.direction)}, {infos.strength}),\n"
         )
 
-    def getRoomShapeCmd(self, room: "OOTRoom"):
+    def getRoomShapeCmd(self, room: "Room"):
         return indent + f"SCENE_CMD_ROOM_SHAPE(&{room.roomShape.getName()}),\n"
 
-    def getObjectListCmd(self, objects: "OOTRoomHeaderObjects"):
+    def getObjectListCmd(self, objects: "RoomObjects"):
         return (indent + "SCENE_CMD_OBJECT_LIST(") + f"{objects.getObjectLengthDefineName()}, {objects.name}),\n"
 
-    def getActorListCmd(self, actors: "OOTRoomHeaderActors"):
+    def getActorListCmd(self, actors: "RoomActors"):
         return (indent + "SCENE_CMD_ACTOR_LIST(") + f"{actors.getActorLengthDefineName()}, {actors.name}),\n"
 
-    def getRoomCommandList(self, room: "OOTRoom", headerIndex: int):
+    def getRoomCommandList(self, room: "Room", headerIndex: int):
         cmdListData = CData()
         curHeader = room.getRoomHeaderFromIndex(headerIndex)
         listName = f"SceneCmd {curHeader.name}"
@@ -91,35 +91,35 @@ class RoomCommands:
 class SceneCommands:
     """This class defines the command list for scenes"""
 
-    def getSoundSettingsCmd(self, infos: "OOTSceneHeaderInfos"):
+    def getSoundSettingsCmd(self, infos: "SceneInfos"):
         return indent + f"SCENE_CMD_SOUND_SETTINGS({infos.specID}, {infos.ambienceID}, {infos.sequenceID})"
 
-    def getRoomListCmd(self, scene: "OOTScene"):
+    def getRoomListCmd(self, scene: "Scene"):
         return indent + f"SCENE_CMD_ROOM_LIST({len(scene.roomList)}, {scene.roomListName}),\n"
 
-    def getTransActorListCmd(self, actors: "OOTSceneHeaderActors"):
+    def getTransActorListCmd(self, actors: "SceneActors"):
         return (
             indent + "SCENE_CMD_TRANSITION_ACTOR_LIST("
         ) + f"{len(actors.transitionActorList)}, {actors.transActorListName})"
 
-    def getMiscSettingsCmd(self, infos: "OOTSceneHeaderInfos"):
+    def getMiscSettingsCmd(self, infos: "SceneInfos"):
         return indent + f"SCENE_CMD_MISC_SETTINGS({infos.sceneCamType}, {infos.worldMapLocation})"
 
-    def getColHeaderCmd(self, colHeader: "OOTSceneCollisionHeader"):
+    def getColHeaderCmd(self, colHeader: "CollisionHeader"):
         return indent + f"SCENE_CMD_COL_HEADER(&{colHeader.name}),\n"
 
-    def getSpawnListCmd(self, actors: "OOTSceneHeaderActors"):
+    def getSpawnListCmd(self, actors: "SceneActors"):
         return (
             indent + "SCENE_CMD_ENTRANCE_LIST("
         ) + f"{actors.entranceListName if len(actors.entranceActorList) > 0 else 'NULL'})"
 
-    def getSpecialFilesCmd(self, infos: "OOTSceneHeaderInfos"):
+    def getSpecialFilesCmd(self, infos: "SceneInfos"):
         return indent + f"SCENE_CMD_SPECIAL_FILES({infos.naviHintType}, {infos.keepObjectID})"
 
-    def getPathListCmd(self, path: "OOTSceneHeaderPath"):
+    def getPathListCmd(self, path: "ScenePathways"):
         return indent + f"SCENE_CMD_PATH_LIST({path.name}),\n" if len(path.pathList) > 0 else ""
 
-    def getSpawnActorListCmd(self, scene: "OOTScene", headerIndex: int):
+    def getSpawnActorListCmd(self, scene: "Scene", headerIndex: int):
         curHeader = scene.getSceneHeaderFromIndex(headerIndex)
         startPosName = curHeader.actors.startPositionsName
         return (
@@ -128,19 +128,19 @@ class SceneCommands:
             + f"{startPosName if len(curHeader.actors.entranceActorList) > 0 else 'NULL'})"
         )
 
-    def getSkyboxSettingsCmd(self, infos: "OOTSceneHeaderInfos", lights: "OOTSceneHeaderLighting"):
+    def getSkyboxSettingsCmd(self, infos: "SceneInfos", lights: "SceneLighting"):
         return indent + f"SCENE_CMD_SKYBOX_SETTINGS({infos.skyboxID}, {infos.skyboxConfig}, {lights.envLightMode}),\n"
 
-    def getExitListCmd(self, scene: "OOTScene", headerIndex: int):
+    def getExitListCmd(self, scene: "Scene", headerIndex: int):
         curHeader = scene.getSceneHeaderFromIndex(headerIndex)
         return indent + f"SCENE_CMD_EXIT_LIST({curHeader.exits.name})"
 
-    def getLightSettingsCmd(self, lights: "OOTSceneHeaderLighting"):
+    def getLightSettingsCmd(self, lights: "SceneLighting"):
         return (
             indent + "SCENE_CMD_ENV_LIGHT_SETTINGS("
         ) + f"{len(lights.settings)}, {lights.name if len(lights.settings) > 0 else 'NULL'}),\n"
 
-    def getCutsceneDataCmd(self, cs: "OOTSceneHeaderCutscene"):
+    def getCutsceneDataCmd(self, cs: "SceneCutscene"):
         match cs.writeType:
             case "Object":
                 csDataName = cs.csObj.name
@@ -149,7 +149,7 @@ class SceneCommands:
 
         return indent + f"SCENE_CMD_CUTSCENE_DATA({csDataName}),\n"
 
-    def getSceneCommandList(self, scene: "OOTScene", curHeader: "OOTSceneHeader", headerIndex: int):
+    def getSceneCommandList(self, scene: "Scene", curHeader: "SceneHeader", headerIndex: int):
         cmdListData = CData()
         listName = f"SceneCmd {curHeader.name}"
 

@@ -7,7 +7,7 @@ from ..common import Base, Actor
 
 
 @dataclass
-class OOTRoomHeaderInfos:
+class RoomInfos:
     """This class stores various room header informations"""
 
     ### General ###
@@ -39,7 +39,7 @@ class OOTRoomHeaderInfos:
 
 
 @dataclass
-class OOTRoomHeaderObjects:
+class RoomObjects:
     """This class defines an OoT object array"""
 
     name: str
@@ -71,7 +71,7 @@ class OOTRoomHeaderObjects:
 
 
 @dataclass
-class OOTRoomHeaderActors:
+class RoomActors:
     """This class defines an OoT actor array"""
 
     name: str
@@ -148,24 +148,13 @@ class OOTRoomHeaderActors:
 
 
 @dataclass
-class OOTRoomAlternateHeader:
-    """This class stores alternate header data"""
-
-    name: str
-    childNight: "OOTRoomHeader" = None
-    adultDay: "OOTRoomHeader" = None
-    adultNight: "OOTRoomHeader" = None
-    cutscenes: list["OOTRoomHeader"] = field(default_factory=list)
-
-
-@dataclass
-class OOTRoomHeader:
+class RoomHeader:
     """This class defines a room header"""
 
     name: str
-    infos: OOTRoomHeaderInfos
-    objects: OOTRoomHeaderObjects
-    actors: OOTRoomHeaderActors
+    infos: RoomInfos
+    objects: RoomObjects
+    actors: RoomActors
 
     def getHeaderDefines(self):
         """Returns a string containing defines for actor and object lists lengths"""
@@ -181,3 +170,14 @@ class OOTRoomHeader:
             headerDefines += f"#define {defineName} {len(self.actors.actorList)}\n"
 
         return headerDefines
+    
+
+@dataclass
+class RoomAlternateHeader:
+    """This class stores alternate header data"""
+
+    name: str
+    childNight: RoomHeader = None
+    adultDay: RoomHeader = None
+    adultNight: RoomHeader = None
+    cutscenes: list[RoomHeader] = field(default_factory=list)

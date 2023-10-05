@@ -7,31 +7,31 @@ from ..exporter_classes import SceneFile
 from .base import SceneBase
 
 from ..collision import (
-    CollisionHeaderVertices,
-    CollisionHeaderCollisionPoly,
-    CollisionHeaderSurfaceType,
-    CollisionHeaderBgCamInfo,
-    CollisionHeaderWaterBox,
-    OOTSceneCollisionHeader,
+    Vertices,
+    CollisionPolygons,
+    SurfaceTypes,
+    BgCamInformations,
+    WaterBoxes,
+    CollisionHeader,
 )
 
 from .header import (
-    OOTSceneHeaderInfos,
-    OOTSceneHeaderLighting,
-    OOTSceneHeaderCutscene,
-    OOTSceneHeaderExits,
-    OOTSceneHeaderActors,
-    OOTSceneHeaderPath,
-    OOTSceneHeader,
+    SceneInfos,
+    SceneLighting,
+    SceneCutscene,
+    SceneExits,
+    SceneActors,
+    ScenePathways,
+    SceneHeader,
 )
 
 
 @dataclass
-class OOTScene(SceneBase):
+class Scene(SceneBase):
     """This class defines a scene"""
 
     roomListName: str = None
-    colHeader: OOTSceneCollisionHeader = None
+    colHeader: CollisionHeader = None
 
     def __post_init__(self):
         self.roomListName = f"{self.name}_roomList"
@@ -42,20 +42,20 @@ class OOTScene(SceneBase):
         colBounds, vertexList, polyList, surfaceTypeList = self.getColSurfaceVtxDataFromMeshObj()
         bgCamInfoList = self.getBgCamInfoDataFromObjects()
 
-        return OOTSceneCollisionHeader(
+        return CollisionHeader(
             f"{self.name}_collisionHeader",
             colBounds[0],
             colBounds[1],
-            CollisionHeaderVertices(f"{self.name}_vertices", vertexList),
-            CollisionHeaderCollisionPoly(f"{self.name}_polygons", polyList),
-            CollisionHeaderSurfaceType(f"{self.name}_polygonTypes", surfaceTypeList),
-            CollisionHeaderBgCamInfo(
+            Vertices(f"{self.name}_vertices", vertexList),
+            CollisionPolygons(f"{self.name}_polygons", polyList),
+            SurfaceTypes(f"{self.name}_polygonTypes", surfaceTypeList),
+            BgCamInformations(
                 f"{self.name}_bgCamInfo",
                 f"{self.name}_camPosData",
                 bgCamInfoList,
                 self.getCrawlspaceDataFromObjects(),
             ),
-            CollisionHeaderWaterBox(f"{self.name}_waterBoxes", self.getWaterBoxDataFromObjects()),
+            WaterBoxes(f"{self.name}_waterBoxes", self.getWaterBoxDataFromObjects()),
         )
 
     def getNewSceneHeader(self, headerProp: OOTSceneHeaderProperty, headerIndex: int = 0):
@@ -68,9 +68,9 @@ class OOTScene(SceneBase):
         if headerProp.writeCutscene and headerProp.csWriteType == "Embedded":
             raise PluginError("ERROR: 'Embedded' CS Write Type is not supported!")
 
-        return OOTSceneHeader(
+        return SceneHeader(
             headerName,
-            OOTSceneHeaderInfos(
+            SceneInfos(
                 self.getPropValue(headerProp, "globalObject"),
                 self.getPropValue(headerProp, "naviCup"),
                 self.getPropValue(headerProp.sceneTableEntry, "drawConfig"),
@@ -84,12 +84,12 @@ class OOTScene(SceneBase):
                 self.getPropValue(headerProp, "mapLocation"),
                 self.getPropValue(headerProp, "cameraMode"),
             ),
-            OOTSceneHeaderLighting(
+            SceneLighting(
                 f"{headerName}_lightSettings",
                 lightMode,
                 self.getEnvLightSettingsListFromProps(headerProp, lightMode),
             ),
-            OOTSceneHeaderCutscene(
+            SceneCutscene(
                 headerIndex,
                 headerProp.csWriteType,
                 headerProp.writeCutscene,
@@ -99,15 +99,15 @@ class OOTScene(SceneBase):
             )
             if headerProp.writeCutscene
             else None,
-            OOTSceneHeaderExits(f"{headerName}_exitList", self.getExitListFromProps(headerProp)),
-            OOTSceneHeaderActors(
+            SceneExits(f"{headerName}_exitList", self.getExitListFromProps(headerProp)),
+            SceneActors(
                 f"{headerName}_entranceList",
                 f"{headerName}_playerEntryList",
                 f"{headerName}_transitionActors",
                 self.getTransActorListFromProps(),
                 self.getEntranceActorListFromProps(),
             ),
-            OOTSceneHeaderPath(f"{headerName}_pathway", self.getPathListFromProps(f"{headerName}_pathwayList")),
+            ScenePathways(f"{headerName}_pathway", self.getPathListFromProps(f"{headerName}_pathwayList")),
         )
 
     def getRoomListC(self):
@@ -153,7 +153,7 @@ class OOTScene(SceneBase):
         """Returns the main informations of the scene as ``CData``"""
 
         sceneC = CData()
-        headers: list[tuple[OOTSceneHeader, str]] = []
+        headers: list[tuple[SceneHeader, str]] = []
         altHeaderPtrs = None
 
         if self.hasAlternateHeaders():

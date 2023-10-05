@@ -1,10 +1,10 @@
 from .base import CollisionBase
 
 from .header import (
-    OOTSceneCollisionHeader,
-    CollisionHeaderVertices,
-    CollisionHeaderCollisionPoly,
-    CollisionHeaderSurfaceType,
-    CollisionHeaderBgCamInfo,
-    CollisionHeaderWaterBox,
+    CollisionHeader,
+    Vertices,
+    CollisionPolygons,
+    SurfaceTypes,
+    BgCamInformations,
+    WaterBoxes,
 )

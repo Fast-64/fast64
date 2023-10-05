@@ -5,7 +5,7 @@ from .classes import TransitionActor, EntranceActor, EnvLightSettings, Path
 
 
 @dataclass
-class OOTSceneHeaderInfos:
+class SceneInfos:
     """This class stores various scene header informations"""
 
     ### General ###
@@ -37,7 +37,7 @@ class OOTSceneHeaderInfos:
 
 
 @dataclass
-class OOTSceneHeaderLighting:
+class SceneLighting:
     """This class hosts lighting data"""
 
     name: str
@@ -64,7 +64,7 @@ class OOTSceneHeaderLighting:
 
 
 @dataclass
-class OOTSceneHeaderCutscene:
+class SceneCutscene:
     """This class hosts cutscene data (unfinished)"""
 
     headerIndex: int
@@ -96,7 +96,7 @@ class OOTSceneHeaderCutscene:
 
 
 @dataclass
-class OOTSceneHeaderExits:
+class SceneExits:
     """This class hosts exit data"""
 
     name: str = None
@@ -123,7 +123,7 @@ class OOTSceneHeaderExits:
 
 
 @dataclass
-class OOTSceneHeaderActors:
+class SceneActors:
     """This class handles scene actors (transition actors and entrance actors)"""
 
     entranceListName: str
@@ -190,7 +190,7 @@ class OOTSceneHeaderActors:
 
 
 @dataclass
-class OOTSceneHeaderPath:
+class ScenePathways:
     """This class hosts pathways array data"""
 
     name: str
@@ -220,27 +220,16 @@ class OOTSceneHeaderPath:
 
 
 @dataclass
-class OOTSceneAlternateHeader:
-    """This class stores alternate header data for the scene"""
-
-    name: str
-    childNight: "OOTSceneHeader" = None
-    adultDay: "OOTSceneHeader" = None
-    adultNight: "OOTSceneHeader" = None
-    cutscenes: list["OOTSceneHeader"] = field(default_factory=list)
-
-
-@dataclass
-class OOTSceneHeader:
+class SceneHeader:
     """This class defines a scene header"""
 
     name: str
-    infos: OOTSceneHeaderInfos
-    lighting: OOTSceneHeaderLighting
-    cutscene: OOTSceneHeaderCutscene
-    exits: OOTSceneHeaderExits
-    actors: OOTSceneHeaderActors
-    path: OOTSceneHeaderPath
+    infos: SceneInfos
+    lighting: SceneLighting
+    cutscene: SceneCutscene
+    exits: SceneExits
+    actors: SceneActors
+    path: ScenePathways
 
     def getHeaderC(self):
         """Returns the ``CData`` containing the header's data"""
@@ -269,3 +258,14 @@ class OOTSceneHeader:
             headerData.append(self.path.getPathC())
 
         return headerData
+
+
+@dataclass
+class SceneAlternateHeader:
+    """This class stores alternate header data for the scene"""
+
+    name: str
+    childNight: SceneHeader = None
+    adultDay: SceneHeader = None
+    adultNight: SceneHeader = None
+    cutscenes: list[SceneHeader] = field(default_factory=list)
