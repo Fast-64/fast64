@@ -12,7 +12,7 @@ from ..oot_level_writer import ootExportSceneToC
 from ..oot_constants import ootEnumMusicSeq, ootEnumSceneID
 from ..oot_level_parser import parseScene
 from .exporter.to_c import clearBootupScene, modifySceneTable, editSpecFile, deleteSceneFiles
-from ..new_exporter import OOTSceneExport
+from ..exporter import SceneExporter
 
 
 def ootRemoveSceneC(exportInfo):
@@ -178,7 +178,7 @@ class OOT_ExportScene(Operator):
             hackerFeaturesEnabled = context.scene.fast64.oot.hackerFeaturesEnabled
 
             if settings.useNewExporter:
-                OOTSceneExport(
+                SceneExporter(
                     exportInfo,
                     obj,
                     exportInfo.name,
