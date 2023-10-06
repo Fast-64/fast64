@@ -5,18 +5,12 @@ from dataclasses import dataclass
 from mathutils import Matrix
 from bpy.types import Object
 from ...f3d.f3d_gbi import DLFormat, TextureExportSettings
-from ..scene.properties import OOTBootupSceneOptions, OOTSceneHeaderProperty
+from ..scene.properties import OOTBootupSceneOptions
 from ..scene.exporter.to_c import setBootupScene
-from ..room.properties import OOTRoomHeaderProperty
-from ..oot_constants import ootData
-from ..oot_object import addMissingObjectsToAllRoomHeadersNew
 from ..oot_model_classes import OOTModel
 from ..oot_f3d_writer import writeTextureArraysNew
-from ..oot_level_writer import BoundingBox, writeTextureArraysExistingScene, ootProcessMesh
-from ..oot_utility import CullGroup
-from .base import Base, altHeaderList
-from .scene import Scene, SceneAlternateHeader
-from .room import Room, RoomAlternateHeader
+from ..oot_level_writer import writeTextureArraysExistingScene
+from .scene import Scene
 from .other import Files
 from .classes import SceneFile
 

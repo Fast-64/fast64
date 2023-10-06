@@ -1,5 +1,4 @@
-from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from dataclasses import dataclass
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
@@ -11,9 +10,6 @@ from ..base import Base, altHeaderList
 from ..collision import CollisionHeader
 from .header import SceneAlternateHeader, SceneHeader
 from .rooms import RoomEntries
-
-if TYPE_CHECKING:
-    from ..room import Room
 
 
 @dataclass

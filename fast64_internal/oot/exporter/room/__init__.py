@@ -1,2 +1,2 @@
-from .header import RoomAlternateHeader, RoomInfos, RoomObjects, RoomActors
+from .header import RoomAlternateHeader
 from .main import Room

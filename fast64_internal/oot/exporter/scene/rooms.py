@@ -4,9 +4,6 @@ from mathutils import Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
 from ...oot_model_classes import OOTModel
-from ...oot_level_writer import BoundingBox, ootProcessMesh
-from ...oot_utility import CullGroup
-from ..base import Base
 from ..room import Room
 
 if TYPE_CHECKING:
