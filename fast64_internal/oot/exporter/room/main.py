@@ -9,13 +9,12 @@ from ...oot_level_classes import OOTRoomMesh
 from ...oot_model_classes import OOTModel, OOTGfxFormatter
 from ..classes import RoomFile
 from ..base import Base, altHeaderList
-from ..commands import RoomCommands
 from .header import RoomAlternateHeader, RoomHeader
 from .shape import RoomShape
 
 
 @dataclass
-class Room(Base, RoomCommands):
+class Room(Base):
     """This class defines a room"""
 
     name: str
@@ -71,6 +70,27 @@ class Room(Base, RoomCommands):
 
         return RoomShape(self.roomShapeType, headerProp, self.mesh, sceneName, self.name)
 
+    def getCmdList(self, curHeader: RoomHeader, hasAltHeaders: bool):
+        cmdListData = CData()
+        listName = f"SceneCmd {curHeader.name}"
+
+        # .h
+        cmdListData.header = f"extern {listName}[];\n"
+
+        # .c
+        cmdListData.source = (
+            (f"{listName}[]" + " = {\n")
+            + (self.getAltHeaderListCmd(self.altHeader.name) if hasAltHeaders else "")
+            + self.roomShape.getCmd()
+            + curHeader.infos.getCmds()
+            + (curHeader.objects.getCmd() if len(curHeader.objects.objectList) > 0 else "")
+            + (curHeader.actors.getCmd() if len(curHeader.actors.actorList) > 0 else "")
+            + self.getEndCmd()
+            + "};\n\n"
+        )
+
+        return cmdListData
+
     def getRoomMainC(self):
         """Returns the C data of the main informations of a room"""
 
@@ -109,7 +129,7 @@ class Room(Base, RoomCommands):
             if curHeader is not None:
                 roomC.source += "/**\n * " + f"Header {headerDesc}\n" + "*/\n"
                 roomC.source += curHeader.getHeaderDefines()
-                roomC.append(self.getRoomCommandList(self, i))
+                roomC.append(self.getCmdList(curHeader, i == 0 and self.hasAlternateHeaders))
 
                 if i == 0 and self.hasAlternateHeaders and altHeaderPtrList is not None:
                     roomC.source += altHeaderPtrList

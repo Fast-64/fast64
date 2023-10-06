@@ -302,6 +302,9 @@ class RoomShape(RoomShapeBase):
         else:
             raise PluginError("ERROR: Name not found!")
 
+    def getCmd(self):
+        return indent + f"SCENE_CMD_ROOM_SHAPE(&{self.getName()}),\n"
+
     def getRoomShapeBgImgDataC(self, roomMesh: OOTRoomMesh, textureSettings: TextureExportSettings):
         """Returns the image data for image room shapes"""
 

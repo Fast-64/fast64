@@ -8,7 +8,6 @@ from ..classes import SceneFile
 from ..collision import CollisionHeader
 from .header import SceneHeader
 from ...oot_model_classes import OOTModel
-from ..commands import SceneCommands
 from ..base import altHeaderList
 from ..collision import CollisionBase
 from .header import SceneAlternateHeader, SceneHeader
@@ -18,7 +17,7 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class Scene(CollisionBase, SceneCommands):
+class Scene(CollisionBase):
     """This class defines a scene"""
 
     name: str = None
@@ -29,9 +28,11 @@ class Scene(CollisionBase, SceneCommands):
     roomList: list["Room"] = field(default_factory=list)
     roomListName: str = None
     colHeader: CollisionHeader = None
+    hasAlternateHeaders: bool = False
 
     def __post_init__(self):
         self.roomListName = f"{self.name}_roomList"
+        self.hasAlternateHeaders = self.altHeader is not None
 
     def validateRoomIndices(self):
         """Checks if there are multiple rooms with the same room index"""
@@ -49,11 +50,6 @@ class Scene(CollisionBase, SceneCommands):
 
         if not self.validateRoomIndices():
             raise PluginError("ERROR: Room indices do not have a consecutive list of indices.")
-
-    def hasAlternateHeaders(self):
-        """Checks if this scene is using alternate headers"""
-
-        return self.altHeader is not None
 
     def getSceneHeaderFromIndex(self, headerIndex: int) -> SceneHeader | None:
         """Returns the scene header based on the header index"""
@@ -94,6 +90,36 @@ class Scene(CollisionBase, SceneCommands):
         return SceneHeader(
             headerProp, f"{self.name}_header{self.headerIndex:02}", self.sceneObj, self.transform, headerIndex
         )
+
+    def getRoomListCmd(self):
+        return indent + f"SCENE_CMD_ROOM_LIST({len(self.roomList)}, {self.roomListName}),\n"
+
+    def getCmdList(self, curHeader: SceneHeader, hasAltHeaders: bool):
+        cmdListData = CData()
+        listName = f"SceneCmd {curHeader.name}"
+
+        # .h
+        cmdListData.header = f"extern {listName}[]" + ";\n"
+
+        # .c
+        cmdListData.source = (
+            (f"{listName}[]" + " = {\n")
+            + (self.getAltHeaderListCmd(self.altHeader.name) if hasAltHeaders else "")
+            + self.colHeader.getCmd()
+            + self.getRoomListCmd()
+            + curHeader.infos.getCmds(curHeader.lighting)
+            + curHeader.lighting.getCmd()
+            + curHeader.path.getCmd()
+            + (curHeader.transitionActors.getCmd() if len(curHeader.transitionActors.entries) > 0 else "")
+            + curHeader.spawns.getCmd()
+            + curHeader.entranceActors.getCmd()
+            + (curHeader.exits.getCmd() if len(curHeader.exits.exitList) > 0 else "")
+            # + (curHeader.cutscene.getCmd() if curHeader.cutscene.writeCutscene else "")
+            + self.getEndCmd()
+            + "};\n\n"
+        )
+
+        return cmdListData
 
     def getRoomListC(self):
         """Returns the ``CData`` containing the room list array"""
@@ -141,7 +167,7 @@ class Scene(CollisionBase, SceneCommands):
         headers: list[tuple[SceneHeader, str]] = []
         altHeaderPtrs = None
 
-        if self.hasAlternateHeaders():
+        if self.hasAlternateHeaders:
             headers = [
                 (self.altHeader.childNight, "Child Night"),
                 (self.altHeader.adultDay, "Adult Day"),
@@ -160,10 +186,10 @@ class Scene(CollisionBase, SceneCommands):
         for i, (curHeader, headerDesc) in enumerate(headers):
             if curHeader is not None:
                 sceneC.source += "/**\n * " + f"Header {headerDesc}\n" + "*/\n"
-                sceneC.append(self.getSceneCommandList(self, curHeader, i))
+                sceneC.append(self.getCmdList(curHeader, i == 0 and self.hasAlternateHeaders))
 
                 if i == 0:
-                    if self.hasAlternateHeaders() and altHeaderPtrs is not None:
+                    if self.hasAlternateHeaders and altHeaderPtrs is not None:
                         altHeaderListName = f"SceneCmd* {self.altHeader.name}[]"
                         sceneC.header += f"extern {altHeaderListName};\n"
                         sceneC.source += altHeaderListName + " = {\n" + altHeaderPtrs + "\n};\n\n"
@@ -171,7 +197,7 @@ class Scene(CollisionBase, SceneCommands):
                     # Write the room segment list
                     sceneC.append(self.getRoomListC())
 
-                sceneC.append(curHeader.getHeaderC())
+                sceneC.append(curHeader.getC())
 
         return sceneC
 

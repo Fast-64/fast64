@@ -65,6 +65,25 @@ class RoomInfos(HeaderBase):
         self.direction = [d for d in self.props.windVector] if self.props.setWind else None
         self.strength = self.props.windStrength if self.props.setWind else None
 
+    def getCmds(self):
+        showInvisActors = "true" if self.showInvisActors else "false"
+        disableWarpSongs = "true" if self.disableWarpSongs else "false"
+        disableSkybox = "true" if self.disableSky else "false"
+        disableSunMoon = "true" if self.disableSunMoon else "false"
+
+        roomBehaviorArgs = f"{self.roomBehavior}, {self.playerIdleType}, {showInvisActors}, {disableWarpSongs}"
+        cmdList = [
+            f"SCENE_CMD_ECHO_SETTINGS({self.echo})",
+            f"SCENE_CMD_ROOM_BEHAVIOR({roomBehaviorArgs})",
+            f"SCENE_CMD_SKYBOX_DISABLES({disableSkybox}, {disableSunMoon})",
+            f"SCENE_CMD_TIME_SETTINGS({self.hour}, {self.minute}, {self.timeSpeed})",
+        ]
+
+        if self.setWind:
+            cmdList.append(f"SCENE_CMD_WIND_SETTINGS({', '.join(f'{dir}' for dir in self.direction)}, {self.strength})")
+
+        return indent + f",\n{indent}".join(cmdList) + ",\n"
+
 
 @dataclass
 class RoomObjects(HeaderBase):
@@ -83,6 +102,9 @@ class RoomObjects(HeaderBase):
         """Returns the name of the define for the total of entries in the object list"""
 
         return f"LENGTH_{self.name.upper()}"
+
+    def getCmd(self):
+        return indent + f"SCENE_CMD_OBJECT_LIST({self.getDefineName()}, {self.name}),\n"
 
     def getC(self):
         """Returns the array with the objects the room uses"""
@@ -154,6 +176,9 @@ class RoomActors(HeaderBase):
         """Returns the name of the define for the total of entries in the actor list"""
 
         return f"LENGTH_{self.name.upper()}"
+
+    def getCmd(self):
+        return indent + f"SCENE_CMD_ACTOR_LIST({self.getDefineName()}, {self.name}),\n"
 
     def getC(self):
         """Returns the array with the actors the room uses"""

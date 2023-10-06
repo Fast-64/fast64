@@ -13,7 +13,7 @@ class TransitionActor(Actor):
     cameraFront: str = None
     cameraBack: str = None
 
-    def getTransitionActorEntry(self):
+    def getEntryC(self):
         """Returns a single transition actor entry"""
 
         sides = [(self.roomFrom, self.cameraFront), (self.roomTo, self.cameraBack)]
@@ -38,7 +38,7 @@ class EntranceActor(Actor):
     roomIndex: int = None
     spawnIndex: int = None
 
-    def getSpawnEntry(self):
+    def getEntryC(self):
         """Returns a single spawn entry"""
 
         return indent + "{ " + f"{self.spawnIndex}, {self.roomIndex}" + " },\n"
@@ -74,7 +74,7 @@ class EnvLightSettings:
 
         return ", ".join(f"{v - 0x100 if v > 0x7F else v:5}" for v in vector)
 
-    def getLightSettingsEntry(self, index: int):
+    def getEntryC(self, index: int):
         """Returns an environment light entry"""
 
         isLightingCustom = self.envLightMode == "Custom"
@@ -126,7 +126,7 @@ class Path:
     name: str
     points: list[tuple[int, int, int]] = field(default_factory=list)
 
-    def getPathPointListC(self):
+    def getC(self):
         """Returns the pathway position array"""
 
         pathData = CData()

@@ -60,6 +60,20 @@ class SceneInfos(HeaderBase):
         self.worldMapLocation = self.getPropValue(self.props, "mapLocation")
         self.sceneCamType = self.getPropValue(self.props, "cameraMode")
 
+    def getCmds(self, lights: "SceneLighting"):
+        return (
+            indent
+            + f",\n{indent}".join(
+                [
+                    f"SCENE_CMD_SOUND_SETTINGS({self.specID}, {self.ambienceID}, {self.sequenceID})",
+                    f"SCENE_CMD_MISC_SETTINGS({self.sceneCamType}, {self.worldMapLocation})",
+                    f"SCENE_CMD_SPECIAL_FILES({self.naviHintType}, {self.keepObjectID})",
+                    f"SCENE_CMD_SKYBOX_SETTINGS({self.skyboxID}, {self.skyboxConfig}, {lights.envLightMode})",
+                ]
+            )
+            + ",\n"
+        )
+
 
 @dataclass
 class SceneLighting(HeaderBase):
@@ -98,7 +112,12 @@ class SceneLighting(HeaderBase):
                 )
             )
 
-    def getEnvLightSettingsC(self):
+    def getCmd(self):
+        return (
+            indent + "SCENE_CMD_ENV_LIGHT_SETTINGS("
+        ) + f"{len(self.settings)}, {self.name if len(self.settings) > 0 else 'NULL'}),\n"
+
+    def getC(self):
         """Returns a ``CData`` containing the C data of env. light settings"""
 
         lightSettingsC = CData()
@@ -109,9 +128,7 @@ class SceneLighting(HeaderBase):
 
         # .c
         lightSettingsC.source = (
-            (lightName + " = {\n")
-            + "".join(light.getLightSettingsEntry(i) for i, light in enumerate(self.settings))
-            + "};\n\n"
+            (lightName + " = {\n") + "".join(light.getEntryC(i) for i, light in enumerate(self.settings)) + "};\n\n"
         )
 
         return lightSettingsC
@@ -153,7 +170,11 @@ class SceneCutscene(HeaderBase):
         else:
             raise PluginError("ERROR: No object selected for cutscene reference")
 
-    def getCutsceneC(self):
+    def getCmd(self):
+        csDataName = self.csObj.name if self.writeType == "Object" else self.csWriteCustom
+        return indent + f"SCENE_CMD_CUTSCENE_DATA({csDataName}),\n"
+
+    def getC(self):
         # will be implemented when PR #208 is merged
         cutsceneData = CData()
         return cutsceneData
@@ -172,7 +193,10 @@ class SceneExits(HeaderBase):
                 raise PluginError("ERROR: Exits are unfinished, please use 'Custom'.")
             self.exitList.append((i, exitProp.exitIndexCustom))
 
-    def getExitListC(self):
+    def getCmd(self):
+        return indent + f"SCENE_CMD_EXIT_LIST({self.name}),\n"
+
+    def getC(self):
         """Returns a ``CData`` containing the C data of the exit array"""
 
         exitListC = CData()
@@ -193,22 +217,15 @@ class SceneExits(HeaderBase):
 
 
 @dataclass
-class SceneActors(HeaderBase):
-    """This class handles scene actors (transition actors and entrance actors)"""
-
+class SceneTransitionActors(HeaderBase):
+    name: str
     sceneObj: Object
     transform: Matrix
     headerIndex: int
-    entranceListName: str
-    startPositionsName: str
-    transActorListName: str
 
-    transitionActorList: list[TransitionActor] = field(default_factory=list)
-    entranceActorList: list[EntranceActor] = field(default_factory=list)
+    entries: list[TransitionActor] = field(default_factory=list)
 
-    def initTransActorList(self):
-        """Returns the transition actor list based on empty objects with the type 'Transition Actor'"""
-
+    def __post_init__(self):
         actorObjList: list[Object] = [
             obj
             for obj in self.sceneObj.children_recursive
@@ -254,9 +271,38 @@ class SceneActors(HeaderBase):
                 transActor.params = transActorProp.actor.actorParam
                 transActor.roomFrom, transActor.cameraFront = front
                 transActor.roomTo, transActor.cameraBack = back
-                self.transitionActorList.append(transActor)
+                self.entries.append(transActor)
 
-    def initEntranceActorList(self):
+    def getCmd(self):
+        return indent + f"SCENE_CMD_TRANSITION_ACTOR_LIST({len(self.entries)}, {self.name}),\n"
+
+    def getC(self):
+        """Returns the transition actor array"""
+
+        transActorList = CData()
+        listName = f"TransitionActorEntry {self.name}"
+
+        # .h
+        transActorList.header = f"extern {listName}[];\n"
+
+        # .c
+        transActorList.source = (
+            (f"{listName}[]" + " = {\n") + "\n".join(transActor.getEntryC() for transActor in self.entries) + "};\n\n"
+        )
+
+        return transActorList
+
+
+@dataclass
+class SceneEntranceActors(HeaderBase):
+    name: str
+    sceneObj: Object
+    transform: Matrix
+    headerIndex: int
+
+    entries: list[EntranceActor] = field(default_factory=list)
+
+    def __post_init__(self):
         """Returns the entrance actor list based on empty objects with the type 'Entrance'"""
 
         entranceActorFromIndex: dict[int, EntranceActor] = {}
@@ -300,35 +346,44 @@ class SceneActors(HeaderBase):
         if list(entranceActorFromIndex.keys()) != list(range(len(entranceActorFromIndex))):
             raise PluginError("ERROR: The spawn indices are not consecutive!")
 
-        self.entranceActorList = list(entranceActorFromIndex.values())
+        self.entries = list(entranceActorFromIndex.values())
 
-    def __post_init__(self):
-        self.initTransActorList()
-        self.initEntranceActorList()
+    def getCmd(self):
+        name = self.name if len(self.entries) > 0 else "NULL"
+        return indent + f"SCENE_CMD_SPAWN_LIST({len(self.entries)}, {name}),\n"
 
-    def getSpawnActorListC(self):
+    def getC(self):
         """Returns the spawn actor array"""
 
         spawnActorList = CData()
-        listName = f"ActorEntry {self.startPositionsName}"
+        listName = f"ActorEntry {self.name}"
 
         # .h
         spawnActorList.header = f"extern {listName}[];\n"
 
         # .c
         spawnActorList.source = (
-            (f"{listName}[]" + " = {\n")
-            + "".join(entrance.getActorEntry() for entrance in self.entranceActorList)
-            + "};\n\n"
+            (f"{listName}[]" + " = {\n") + "".join(entrance.getActorEntry() for entrance in self.entries) + "};\n\n"
         )
 
         return spawnActorList
 
-    def getSpawnListC(self):
+
+@dataclass
+class SceneSpawns(HeaderBase):
+    """This class handles scene actors (transition actors and entrance actors)"""
+
+    name: str
+    entries: list[EntranceActor]
+
+    def getCmd(self):
+        return indent + f"SCENE_CMD_ENTRANCE_LIST({self.name if len(self.entries) > 0 else 'NULL'}),\n"
+
+    def getC(self):
         """Returns the spawn array"""
 
         spawnList = CData()
-        listName = f"Spawn {self.entranceListName}"
+        listName = f"Spawn {self.name}"
 
         # .h
         spawnList.header = f"extern {listName}[];\n"
@@ -337,29 +392,11 @@ class SceneActors(HeaderBase):
         spawnList.source = (
             (f"{listName}[]" + " = {\n")
             + (indent + "// { Spawn Actor List Index, Room Index }\n")
-            + "".join(entrance.getSpawnEntry() for entrance in self.entranceActorList)
+            + "".join(entrance.getEntryC() for entrance in self.entries)
             + "};\n\n"
         )
 
         return spawnList
-
-    def getTransActorListC(self):
-        """Returns the transition actor array"""
-
-        transActorList = CData()
-        listName = f"TransitionActorEntry {self.transActorListName}"
-
-        # .h
-        transActorList.header = f"extern {listName}[];\n"
-
-        # .c
-        transActorList.source = (
-            (f"{listName}[]" + " = {\n")
-            + "\n".join(transActor.getTransitionActorEntry() for transActor in self.transitionActorList)
-            + "};\n\n"
-        )
-
-        return transActorList
 
 
 @dataclass
@@ -390,7 +427,10 @@ class ScenePathways(HeaderBase):
                     )
                 )
 
-    def getPathC(self):
+    def getCmd(self):
+        return indent + f"SCENE_CMD_PATH_LIST({self.name}),\n" if len(self.pathList) > 0 else ""
+
+    def getC(self):
         """Returns a ``CData`` containing the C data of the pathway array"""
 
         pathData = CData()
@@ -405,7 +445,7 @@ class ScenePathways(HeaderBase):
 
         for path in self.pathList:
             pathListData.source += indent + "{ " + f"ARRAY_COUNTU({path.name}), {path.name}" + " },\n"
-            pathData.append(path.getPathPointListC())
+            pathData.append(path.getC())
 
         pathListData.source += "};\n\n"
         pathData.append(pathListData)
@@ -426,51 +466,56 @@ class SceneHeader(HeaderBase):
     lighting: SceneLighting = None
     cutscene: SceneCutscene = None
     exits: SceneExits = None
-    actors: SceneActors = None
+    transitionActors: SceneTransitionActors = None
+    entranceActors: SceneEntranceActors = None
+    spawns: SceneSpawns = None
     path: ScenePathways = None
 
     def __post_init__(self):
         self.infos = SceneInfos(self.props, self.sceneObj)
         self.lighting = SceneLighting(self.props, f"{self.name}_lightSettings")
+
         if self.props.writeCutscene:
             self.cutscene = SceneCutscene(self.props, self.headerIndex)
+
         self.exits = SceneExits(self.props, f"{self.name}_exitList")
-        self.actors = SceneActors(
-            self.props,
-            self.sceneObj,
-            self.transform,
-            self.headerIndex,
-            f"{self.name}_entranceList",
-            f"{self.name}_playerEntryList",
-            f"{self.name}_transitionActors",
+
+        self.transitionActors = SceneTransitionActors(
+            None, f"{self.name}_transitionActors", self.sceneObj, self.transform, self.headerIndex
         )
+
+        self.entranceActors = SceneEntranceActors(
+            None, f"{self.name}_playerEntryList", self.sceneObj, self.transform, self.headerIndex
+        )
+
+        self.spawns = SceneSpawns(None, f"{self.name}_entranceList", self.entranceActors.entries)
         self.path = ScenePathways(self.props, f"{self.name}_pathway", self.sceneObj, self.transform, self.headerIndex)
 
-    def getHeaderC(self):
+    def getC(self):
         """Returns the ``CData`` containing the header's data"""
 
         headerData = CData()
 
         # Write the spawn position list data and the entrance list
-        if len(self.actors.entranceActorList) > 0:
-            headerData.append(self.actors.getSpawnActorListC())
-            headerData.append(self.actors.getSpawnListC())
+        if len(self.entranceActors.entries) > 0:
+            headerData.append(self.entranceActors.getC())
+            headerData.append(self.spawns.getC())
 
         # Write the transition actor list data
-        if len(self.actors.transitionActorList) > 0:
-            headerData.append(self.actors.getTransActorListC())
+        if len(self.transitionActors.entries) > 0:
+            headerData.append(self.transitionActors.getC())
 
         # Write the exit list
         if len(self.exits.exitList) > 0:
-            headerData.append(self.exits.getExitListC())
+            headerData.append(self.exits.getC())
 
         # Write the light data
         if len(self.lighting.settings) > 0:
-            headerData.append(self.lighting.getEnvLightSettingsC())
+            headerData.append(self.lighting.getC())
 
         # Write the path data, if used
         if len(self.path.pathList) > 0:
-            headerData.append(self.path.getPathC())
+            headerData.append(self.path.getC())
 
         return headerData
 

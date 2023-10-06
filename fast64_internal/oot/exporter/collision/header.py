@@ -222,7 +222,7 @@ class BgCamInformations(HeaderBase):
         """Returns the array containing the informations of each cameras"""
 
         bgCamInfoData = CData()
-        listName = f"CameraInfo {self.name}[]"
+        listName = f"BgCamInfo {self.name}[]"
 
         # .h
         bgCamInfoData.header = f"extern {listName};\n"
@@ -316,6 +316,9 @@ class CollisionHeader(HeaderBase):
             self.sceneObj, self.transform, f"{self.sceneName}_bgCamInfo", f"{self.sceneName}_camPosData"
         )
         self.waterbox = WaterBoxes(self.sceneObj, self.transform, f"{self.sceneName}_waterBoxes", self.useMacros)
+
+    def getCmd(self):
+        return indent + f"SCENE_CMD_COL_HEADER(&{self.name}),\n"
 
     def getC(self):
         """Returns the collision header for the selected scene"""

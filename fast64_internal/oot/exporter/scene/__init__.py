@@ -3,7 +3,7 @@ from .header import (
     SceneHeader,
     SceneLighting,
     SceneCutscene,
-    SceneActors,
+    SceneTransitionActors,
     ScenePathways,
     SceneAlternateHeader,
 )
