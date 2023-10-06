@@ -63,98 +63,6 @@ class SceneExporter:
     hasCutscenes: bool = False
     hasSceneTextures: bool = False
 
-    def getNewRoomList(self, scene: Scene):
-        """Returns the room list from empty objects with the type 'Room'"""
-
-        roomDict: dict[int, Room] = {}
-        roomObjs: list[Object] = [
-            obj for obj in self.sceneObj.children_recursive if obj.type == "EMPTY" and obj.ootEmptyType == "Room"
-        ]
-
-        if len(roomObjs) == 0:
-            raise PluginError("ERROR: The scene has no child empties with the 'Room' empty type.")
-
-        for roomObj in roomObjs:
-            altProp = roomObj.ootAlternateRoomHeaders
-            roomHeader = roomObj.ootRoomHeader
-            roomIndex = roomHeader.roomIndex
-
-            if roomIndex in roomDict:
-                raise PluginError(f"ERROR: Room index {roomIndex} used more than once!")
-
-            roomName = f"{toAlnum(self.sceneName)}_room_{roomIndex}"
-            roomDict[roomIndex] = Room(
-                roomName,
-                self.transform,
-                self.sceneObj,
-                roomObj,
-                roomHeader.roomShape,
-                scene.model.addSubModel(
-                    OOTModel(
-                        scene.model.f3d.F3D_VER,
-                        scene.model.f3d._HW_VERSION_1,
-                        roomName + "_dl",
-                        scene.model.DLFormat,
-                        None,
-                    )
-                ),
-                roomIndex,
-            )
-
-            # Mesh stuff
-            pos, _, scale, _ = Base().getConvertedTransform(self.transform, self.sceneObj, roomObj, True)
-            cullGroup = CullGroup(pos, scale, roomObj.ootRoomHeader.defaultCullDistance)
-            DLGroup = roomDict[roomIndex].mesh.addMeshGroup(cullGroup).DLGroup
-            boundingBox = BoundingBox()
-            ootProcessMesh(
-                roomDict[roomIndex].mesh,
-                DLGroup,
-                self.sceneObj,
-                roomObj,
-                self.transform,
-                not self.saveTexturesAsPNG,
-                None,
-                boundingBox,
-            )
-
-            centroid, radius = boundingBox.getEnclosingSphere()
-            cullGroup.position = centroid
-            cullGroup.cullDepth = radius
-
-            roomDict[roomIndex].mesh.terminateDLs()
-            roomDict[roomIndex].mesh.removeUnusedEntries()
-
-            # Other
-            if roomHeader.roomShape == "ROOM_SHAPE_TYPE_IMAGE" and len(roomHeader.bgImageList) < 1:
-                raise PluginError(f'Room {roomObj.name} uses room shape "Image" but doesn\'t have any BG images.')
-
-            if roomHeader.roomShape == "ROOM_SHAPE_TYPE_IMAGE" and len(roomDict) > 1:
-                raise PluginError(f'Room shape "Image" can only have one room in the scene.')
-
-            roomDict[roomIndex].roomShape = roomDict[roomIndex].getNewRoomShape(roomHeader, self.sceneName)
-            altHeaderData = RoomAlternateHeader(f"{roomDict[roomIndex].name}_alternateHeaders")
-            roomDict[roomIndex].mainHeader = roomDict[roomIndex].getNewRoomHeader(roomHeader)
-            hasAltHeader = False
-
-            for i, header in enumerate(altHeaderList, 1):
-                altP: OOTRoomHeaderProperty = getattr(altProp, f"{header}Header")
-                if not altP.usePreviousHeader:
-                    hasAltHeader = True
-                    setattr(altHeaderData, header, roomDict[roomIndex].getNewRoomHeader(altP, i))
-
-            altHeaderData.cutscenes = [
-                roomDict[roomIndex].getNewRoomHeader(csHeader, i)
-                for i, csHeader in enumerate(altProp.cutsceneHeaders, 4)
-            ]
-
-            if len(altHeaderData.cutscenes) > 0:
-                hasAltHeader = True
-
-            roomDict[roomIndex].altHeader = altHeaderData if hasAltHeader else None
-            addMissingObjectsToAllRoomHeadersNew(roomObj, roomDict[roomIndex], ootData)
-
-        return [roomDict[i] for i in range(min(roomDict.keys()), len(roomDict))]
-
     def getNewScene(self):
         """Returns and creates scene data"""
         # init
@@ -171,29 +79,15 @@ class SceneExporter:
             restoreHiddenState(hiddenState)
 
         try:
-            altProp = self.sceneObj.ootAlternateSceneHeaders
-            sceneData = Scene(self.sceneObj, self.transform, self.useMacros, f"{toAlnum(self.sceneName)}_scene")
-            sceneData.model = OOTModel(self.f3dType, self.isHWv1, f"{sceneData.name}_dl", self.dlFormat, False)
-            altHeaderData = SceneAlternateHeader(f"{sceneData.name}_alternateHeaders")
-            sceneData.mainHeader = sceneData.getNewSceneHeader(self.sceneObj.ootSceneHeader)
-            hasAltHeader = False
-
-            for i, header in enumerate(altHeaderList, 1):
-                altP: OOTSceneHeaderProperty = getattr(altProp, f"{header}Header")
-                if not altP.usePreviousHeader:
-                    setattr(altHeaderData, header, sceneData.getNewSceneHeader(altP, i))
-                    hasAltHeader = True
-
-            altHeaderData.cutscenes = [
-                sceneData.getNewSceneHeader(csHeader, i) for i, csHeader in enumerate(altProp.cutsceneHeaders, 4)
-            ]
-
-            if len(altHeaderData.cutscenes) > 0:
-                hasAltHeader = True
-
-            sceneData.altHeader = altHeaderData if hasAltHeader else None
-            sceneData.roomList = self.getNewRoomList(sceneData)
-            sceneData.colHeader = sceneData.getNewCollisionHeader()
+            sceneName = f"{toAlnum(self.sceneName)}_scene"
+            sceneData = Scene(
+                self.sceneObj,
+                self.transform,
+                self.useMacros,
+                sceneName,
+                self.saveTexturesAsPNG,
+                OOTModel(self.f3dType, self.isHWv1, f"{sceneName}_dl", self.dlFormat, False),
+            )
             sceneData.validateScene()
 
             if sceneData.mainHeader.cutscene is not None:
@@ -241,7 +135,7 @@ class SceneExporter:
             self.sceneFile.header += textureArrayData.header
 
         self.sceneFile.write()
-        for room in self.scene.roomList:
+        for room in self.scene.rooms.entries:
             room.mesh.copyBgImages(self.path)
 
         if not isCustomExport:

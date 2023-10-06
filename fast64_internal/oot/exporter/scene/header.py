@@ -1,9 +1,9 @@
 from dataclasses import dataclass, field
 from mathutils import Matrix
 from bpy.types import Object
-from .....utility import CData
-from ....scene.properties import OOTSceneHeaderProperty
-from ...base import Base
+from ....utility import CData
+from ...scene.properties import OOTSceneHeaderProperty
+from ..base import Base
 from .general import SceneLighting, SceneInfos, SceneExits
 from .cutscene import SceneCutscene
 from .actors import SceneTransitionActors, SceneEntranceActors, SceneSpawns

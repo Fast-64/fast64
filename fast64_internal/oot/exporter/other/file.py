@@ -28,7 +28,7 @@ class Files:  # TODO: find a better name
             filepath = os.path.join(scenePath, filename)
             if os.path.isfile(filepath):
                 match = re.match(self.exporter.scene.name + "\_room\_(\d+)\.[ch]", filename)
-                if match is not None and int(match.group(1)) >= len(self.exporter.scene.roomList):
+                if match is not None and int(match.group(1)) >= len(self.exporter.scene.rooms.entries):
                     os.remove(filepath)
 
     def editFiles(self):

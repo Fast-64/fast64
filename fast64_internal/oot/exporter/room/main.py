@@ -1,11 +1,15 @@
 from dataclasses import dataclass
 from mathutils import Matrix
 from bpy.types import Object
-from ....utility import CData, indent
+from ....utility import PluginError, CData, indent
 from ....f3d.f3d_gbi import ScrollMethod, TextureExportSettings
 from ...room.properties import OOTRoomHeaderProperty
+from ...oot_constants import ootData
+from ...oot_object import addMissingObjectsToAllRoomHeadersNew
 from ...oot_level_classes import OOTRoomMesh
 from ...oot_model_classes import OOTModel, OOTGfxFormatter
+from ...oot_level_writer import BoundingBox, ootProcessMesh
+from ...oot_utility import CullGroup
 from ..classes import RoomFile
 from ..base import Base, altHeaderList
 from .header import RoomAlternateHeader, RoomHeader
@@ -23,17 +27,75 @@ class Room(Base):
     roomShapeType: str
     model: OOTModel
     roomIndex: int
+    sceneName: str
+    saveTexturesAsPNG: bool
 
-    headerIndex: int = None
     mainHeader: RoomHeader = None
     altHeader: RoomAlternateHeader = None
     mesh: OOTRoomMesh = None
     roomShape: RoomShape = None
     hasAlternateHeaders: bool = False
 
+    def getNewRoomHeader(self, headerProp: OOTRoomHeaderProperty, headerIndex: int = 0):
+        """Returns a new room header with the informations from the scene empty object"""
+
+        return RoomHeader(
+            f"{self.name}_header{headerIndex:02}",
+            headerProp,
+            self.sceneObj,
+            self.roomObj,
+            self.transform,
+            headerIndex,
+        )
+
     def __post_init__(self):
+        mainHeaderProps = self.roomObj.ootRoomHeader
+        altHeader = RoomAlternateHeader(f"{self.name}_alternateHeaders")
+        altProp = self.roomObj.ootAlternateRoomHeaders
+
+        if mainHeaderProps.roomShape == "ROOM_SHAPE_TYPE_IMAGE" and len(mainHeaderProps.bgImageList) == 0:
+            raise PluginError(f'Room {self.roomObj.name} uses room shape "Image" but doesn\'t have any BG images.')
+
+        if mainHeaderProps.roomShape == "ROOM_SHAPE_TYPE_IMAGE" and self.roomIndex >= 1:
+            raise PluginError(f'Room shape "Image" can only have one room in the scene.')
+
         self.mesh = OOTRoomMesh(self.name, self.roomShapeType, self.model)
-        self.hasAlternateHeaders = self.altHeader is not None
+        self.roomShape = RoomShape(self.roomShapeType, mainHeaderProps, self.mesh, self.sceneName, self.name)
+        self.mainHeader = self.getNewRoomHeader(mainHeaderProps)
+        self.hasAlternateHeaders = False
+
+        for i, header in enumerate(altHeaderList, 1):
+            altP: OOTRoomHeaderProperty = getattr(altProp, f"{header}Header")
+            if not altP.usePreviousHeader:
+                self.hasAlternateHeaders = True
+                setattr(altHeader, header, self.getNewRoomHeader(altP, i))
+
+        altHeader.cutscenes = [
+            self.getNewRoomHeader(csHeader, i) for i, csHeader in enumerate(altProp.cutsceneHeaders, 4)
+        ]
+
+        self.hasAlternateHeaders = True if len(altHeader.cutscenes) > 0 else self.hasAlternateHeaders
+        self.altHeader = altHeader if self.hasAlternateHeaders else None
+        addMissingObjectsToAllRoomHeadersNew(self.roomObj, self, ootData)
+
+        # Mesh stuff
+        pos, _, scale, _ = Base().getConvertedTransform(self.transform, self.sceneObj, self.roomObj, True)
+        cullGroup = CullGroup(pos, scale, self.roomObj.ootRoomHeader.defaultCullDistance)
+        DLGroup = self.mesh.addMeshGroup(cullGroup).DLGroup
+        boundingBox = BoundingBox()
+        ootProcessMesh(
+            self.mesh,
+            DLGroup,
+            self.sceneObj,
+            self.roomObj,
+            self.transform,
+            not self.saveTexturesAsPNG,
+            None,
+            boundingBox,
+        )
+        cullGroup.position, cullGroup.cullDepth = boundingBox.getEnclosingSphere()
+        self.mesh.terminateDLs()
+        self.mesh.removeUnusedEntries()
 
     def getRoomHeaderFromIndex(self, headerIndex: int) -> RoomHeader | None:
         """Returns the current room header based on the header index"""
@@ -50,24 +112,6 @@ class Room(Base):
                 return csHeader
 
         return None
-
-    def getNewRoomHeader(self, headerProp: OOTRoomHeaderProperty, headerIndex: int = 0):
-        """Returns a new room header with the informations from the scene empty object"""
-
-        self.headerIndex = headerIndex
-        return RoomHeader(
-            f"{self.name}_header{self.headerIndex:02}",
-            headerProp,
-            self.sceneObj,
-            self.roomObj,
-            self.transform,
-            self.headerIndex,
-        )
-
-    def getNewRoomShape(self, headerProp: OOTRoomHeaderProperty, sceneName: str):
-        """Returns a new room shape"""
-
-        return RoomShape(self.roomShapeType, headerProp, self.mesh, sceneName, self.name)
 
     def getCmdList(self, curHeader: RoomHeader, hasAltHeaders: bool):
         cmdListData = CData()

@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from bpy.types import Object
-from .....utility import PluginError, CData, indent
-from ....scene.properties import OOTSceneHeaderProperty
-from ...base import Base
+from ....utility import PluginError, CData, indent
+from ...scene.properties import OOTSceneHeaderProperty
+from ..base import Base
 
 
 @dataclass
