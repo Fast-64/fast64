@@ -3,54 +3,88 @@ from mathutils import Matrix
 from bpy.types import Object
 from ....utility import CData, indent
 from ...oot_constants import ootData
+from ...room.properties import OOTRoomHeaderProperty
 from ..base import Base, Actor
 
 
 @dataclass
-class RoomInfos:
+class HeaderBase(Base):
+    name: str = None
+    props: OOTRoomHeaderProperty = None
+    sceneObj: Object = None
+    roomObj: Object = None
+    transform: Matrix = None
+    headerIndex: int = None
+
+
+@dataclass
+class RoomInfos(HeaderBase):
     """This class stores various room header informations"""
 
     ### General ###
 
-    index: int
-    roomShape: str
+    index: int = None
+    roomShape: str = None
 
     ### Behavior ###
 
-    roomBehavior: str
-    playerIdleType: str
-    disableWarpSongs: bool
-    showInvisActors: bool
+    roomBehavior: str = None
+    playerIdleType: str = None
+    disableWarpSongs: bool = None
+    showInvisActors: bool = None
 
     ### Skybox And Time ###
 
-    disableSky: bool
-    disableSunMoon: bool
-    hour: int
-    minute: int
-    timeSpeed: float
-    echo: str
+    disableSky: bool = None
+    disableSunMoon: bool = None
+    hour: int = None
+    minute: int = None
+    timeSpeed: float = None
+    echo: str = None
 
     ### Wind ###
 
-    setWind: bool
-    direction: tuple[int, int, int]
-    strength: int
+    setWind: bool = None
+    direction: tuple[int, int, int] = None
+    strength: int = None
+
+    def __post_init__(self):
+        self.index = self.props.roomIndex
+        self.roomShape = self.props.roomShape
+        self.roomBehavior = self.getPropValue(self.props, "roomBehaviour")
+        self.playerIdleType = self.getPropValue(self.props, "linkIdleMode")
+        self.disableWarpSongs = self.props.disableWarpSongs
+        self.showInvisActors = self.props.showInvisibleActors
+        self.disableSky = self.props.disableSkybox
+        self.disableSunMoon = self.props.disableSunMoon
+        self.hour = 0xFF if self.props.leaveTimeUnchanged else self.props.timeHours
+        self.minute = 0xFF if self.props.leaveTimeUnchanged else self.props.timeMinutes
+        self.timeSpeed = max(-128, min(127, round(self.props.timeSpeed * 0xA)))
+        self.echo = self.props.echo
+        self.setWind = self.props.setWind
+        self.direction = [d for d in self.props.windVector] if self.props.setWind else None
+        self.strength = self.props.windStrength if self.props.setWind else None
 
 
 @dataclass
-class RoomObjects:
+class RoomObjects(HeaderBase):
     """This class defines an OoT object array"""
 
-    name: str
-    objectList: list[str]
+    objectList: list[str] = field(default_factory=list)
 
-    def getObjectLengthDefineName(self):
+    def __post_init__(self):
+        for objProp in self.props.objectList:
+            if objProp.objectKey == "Custom":
+                self.objectList.append(objProp.objectIDCustom)
+            else:
+                self.objectList.append(ootData.objectData.objectsByKey[objProp.objectKey].id)
+
+    def getDefineName(self):
         """Returns the name of the define for the total of entries in the object list"""
 
         return f"LENGTH_{self.name.upper()}"
 
-    def getObjectListC(self):
+    def getC(self):
         """Returns the array with the objects the room uses"""
 
         objectList = CData()
@@ -62,7 +96,7 @@ class RoomObjects:
 
         # .c
         objectList.source = (
-            (f"{listName}[{self.getObjectLengthDefineName()}]" + " = {\n")
+            (f"{listName}[{self.getDefineName()}]" + " = {\n")
             + ",\n".join(indent + objectID for objectID in self.objectList)
             + ",\n};\n\n"
         )
@@ -71,15 +105,9 @@ class RoomObjects:
 
 
 @dataclass
-class RoomActors:
+class RoomActors(HeaderBase):
     """This class defines an OoT actor array"""
 
-    name: str
-    sceneObj: Object
-    roomObj: Object
-    transform: Matrix
-    headerIndex: int
-    useMacros: bool
     actorList: list[Actor] = field(default_factory=list)
 
     def __post_init__(self):
@@ -88,8 +116,7 @@ class RoomActors:
         ]
         for obj in actorObjList:
             actorProp = obj.ootActorProperty
-            c = Base(self.sceneObj, self.transform, self.useMacros)
-            if not c.isCurrentHeaderValid(actorProp.headerSettings, self.headerIndex):
+            if not self.isCurrentHeaderValid(actorProp.headerSettings, self.headerIndex):
                 continue
 
             # The Actor list is filled with ``("None", f"{i} (Deleted from the XML)", "None")`` for
@@ -98,7 +125,7 @@ class RoomActors:
             # and not the identifier as defined by the first element of the tuple. Therefore, we need to check if
             # the current Actor has the ID `None` to avoid export issues.
             if actorProp.actorID != "None":
-                pos, rot, _, _ = c.getConvertedTransform(self.transform, self.sceneObj, obj, True)
+                pos, rot, _, _ = self.getConvertedTransform(self.transform, self.sceneObj, obj, True)
                 actor = Actor()
 
                 if actorProp.actorID == "Custom":
@@ -123,12 +150,12 @@ class RoomActors:
                 actor.params = actorProp.actorParam
                 self.actorList.append(actor)
 
-    def getActorLengthDefineName(self):
+    def getDefineName(self):
         """Returns the name of the define for the total of entries in the actor list"""
 
         return f"LENGTH_{self.name.upper()}"
 
-    def getActorListC(self):
+    def getC(self):
         """Returns the array with the actors the room uses"""
 
         actorList = CData()
@@ -139,7 +166,7 @@ class RoomActors:
 
         # .c
         actorList.source = (
-            (f"{listName}[{self.getActorLengthDefineName()}]" + " = {\n")
+            (f"{listName}[{self.getDefineName()}]" + " = {\n")
             + "\n".join(actor.getActorEntry() for actor in self.actorList)
             + "};\n\n"
         )
@@ -148,13 +175,19 @@ class RoomActors:
 
 
 @dataclass
-class RoomHeader:
+class RoomHeader(HeaderBase):
     """This class defines a room header"""
 
-    name: str
-    infos: RoomInfos
-    objects: RoomObjects
-    actors: RoomActors
+    infos: RoomInfos = None
+    objects: RoomObjects = None
+    actors: RoomActors = None
+
+    def __post_init__(self):
+        self.infos = RoomInfos(None, self.props)
+        self.objects = RoomObjects(f"{self.name}_objectList", self.props)
+        self.actors = RoomActors(
+            f"{self.name}_actorList", None, self.sceneObj, self.roomObj, self.transform, self.headerIndex
+        )
 
     def getHeaderDefines(self):
         """Returns a string containing defines for actor and object lists lengths"""
@@ -162,15 +195,15 @@ class RoomHeader:
         headerDefines = ""
 
         if len(self.objects.objectList) > 0:
-            defineName = self.objects.getObjectLengthDefineName()
+            defineName = self.objects.getDefineName()
             headerDefines += f"#define {defineName} {len(self.objects.objectList)}\n"
 
         if len(self.actors.actorList) > 0:
-            defineName = self.actors.getActorLengthDefineName()
+            defineName = self.actors.getDefineName()
             headerDefines += f"#define {defineName} {len(self.actors.actorList)}\n"
 
         return headerDefines
-    
+
 
 @dataclass
 class RoomAlternateHeader:

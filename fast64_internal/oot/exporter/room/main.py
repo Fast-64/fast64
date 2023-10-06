@@ -1,56 +1,41 @@
 from dataclasses import dataclass
+from mathutils import Matrix
 from bpy.types import Object
-from ....utility import PluginError, CData, toAlnum, indent
+from ....utility import CData, indent
 from ....f3d.f3d_gbi import ScrollMethod, TextureExportSettings
 from ...room.properties import OOTRoomHeaderProperty
 from ...oot_constants import ootData
-from ...oot_level_classes import OOTBGImage, OOTRoomMesh
+from ...oot_level_classes import OOTRoomMesh
 from ...oot_model_classes import OOTModel, OOTGfxFormatter
-from ..commands import RoomCommands
 from ..classes import RoomFile
 from ..base import Base, altHeaderList
-
-from .shape import (
-    RoomShapeDListsEntry,
-    RoomShapeImageMultiBgEntry,
-    RoomShapeImageMultiBg,
-    RoomShapeDLists,
-    RoomShapeImageSingle,
-    RoomShapeImageMulti,
-    RoomShapeNormal,
-    RoomShape,
-)
-
-from .header import (
-    RoomInfos,
-    RoomObjects,
-    RoomActors,
-    RoomAlternateHeader,
-    RoomHeader,
-)
+from ..commands import RoomCommands
+from .header import RoomAlternateHeader, RoomHeader
+from .shape import RoomShape
 
 
 @dataclass
 class Room(Base, RoomCommands):
     """This class defines a room"""
 
-    name: str = None
-    roomObj: Object = None
-    roomShapeType: str = None
-    model: OOTModel = None
+    name: str
+    transform: Matrix
+    sceneObj: Object
+    roomObj: Object
+    roomShapeType: str
+    model: OOTModel
+    roomIndex: int
+
     headerIndex: int = None
     mainHeader: RoomHeader = None
     altHeader: RoomAlternateHeader = None
     mesh: OOTRoomMesh = None
     roomShape: RoomShape = None
+    hasAlternateHeaders: bool = False
 
     def __post_init__(self):
         self.mesh = OOTRoomMesh(self.name, self.roomShapeType, self.model)
-
-    def hasAlternateHeaders(self):
-        """Returns ``True`` if there's alternate headers data"""
-
-        return self.altHeader is not None
+        self.hasAlternateHeaders = self.altHeader is not None
 
     def getRoomHeaderFromIndex(self, headerIndex: int) -> RoomHeader | None:
         """Returns the current room header based on the header index"""
@@ -68,128 +53,23 @@ class Room(Base, RoomCommands):
 
         return None
 
-    def getMultiBgEntries(self):
-        """Returns a list of ``RoomShapeImageMultiBgEntry`` based on mesh data"""
-
-        entries: list[RoomShapeImageMultiBgEntry] = []
-
-        for i, bgImg in enumerate(self.mesh.bgImages):
-            entries.append(
-                RoomShapeImageMultiBgEntry(
-                    i, bgImg.name, bgImg.image.size[0], bgImg.image.size[1], bgImg.otherModeFlags
-                )
-            )
-
-        return entries
-
-    def getDListsEntries(self):
-        """Returns a list of ``RoomShapeDListsEntry`` based on mesh data"""
-
-        entries: list[RoomShapeDListsEntry] = []
-
-        for meshGrp in self.mesh.meshEntries:
-            entries.append(
-                RoomShapeDListsEntry(
-                    meshGrp.DLGroup.opaque.name if meshGrp.DLGroup.opaque is not None else "NULL",
-                    meshGrp.DLGroup.transparent.name if meshGrp.DLGroup.transparent is not None else "NULL",
-                )
-            )
-
-        return entries
-
     def getNewRoomHeader(self, headerProp: OOTRoomHeaderProperty, headerIndex: int = 0):
         """Returns a new room header with the informations from the scene empty object"""
 
         self.headerIndex = headerIndex
-        headerName = f"{self.name}_header{self.headerIndex:02}"
-
-        objIDList = []
-        for objProp in headerProp.objectList:
-            if objProp.objectKey == "Custom":
-                objIDList.append(objProp.objectIDCustom)
-            else:
-                objIDList.append(ootData.objectData.objectsByKey[objProp.objectKey].id)
-
         return RoomHeader(
-            headerName,
-            RoomInfos(
-                headerProp.roomIndex,
-                headerProp.roomShape,
-                self.getPropValue(headerProp, "roomBehaviour"),
-                self.getPropValue(headerProp, "linkIdleMode"),
-                headerProp.disableWarpSongs,
-                headerProp.showInvisibleActors,
-                headerProp.disableSkybox,
-                headerProp.disableSunMoon,
-                0xFF if headerProp.leaveTimeUnchanged else headerProp.timeHours,
-                0xFF if headerProp.leaveTimeUnchanged else headerProp.timeMinutes,
-                max(-128, min(127, round(headerProp.timeSpeed * 0xA))),
-                headerProp.echo,
-                headerProp.setWind,
-                [d for d in headerProp.windVector] if headerProp.setWind else None,
-                headerProp.windStrength if headerProp.setWind else None,
-            ),
-            RoomObjects(f"{headerName}_objectList", objIDList),
-            RoomActors(
-                f"{headerName}_actorList",
-                self.sceneObj,
-                self.roomObj,
-                self.transform,
-                headerIndex,
-                self.useMacros,
-            ),
+            f"{self.name}_header{self.headerIndex:02}",
+            headerProp,
+            self.sceneObj,
+            self.roomObj,
+            self.transform,
+            self.headerIndex,
         )
 
     def getNewRoomShape(self, headerProp: OOTRoomHeaderProperty, sceneName: str):
         """Returns a new room shape"""
 
-        normal = None
-        single = None
-        multiImg = None
-        multi = None
-        name = f"{self.name}_shapeHeader"
-        dlName = f"{self.name}_shapeDListEntry"
-
-        match self.roomShapeType:
-            case "ROOM_SHAPE_TYPE_NORMAL":
-                normal = RoomShapeNormal(name, self.roomShapeType, dlName)
-            case "ROOM_SHAPE_TYPE_IMAGE":
-                for bgImage in headerProp.bgImageList:
-                    if bgImage.image is None:
-                        raise PluginError(
-                            'A room is has room shape "Image" but does not have an image set in one of its BG images.'
-                        )
-                    self.mesh.bgImages.append(
-                        OOTBGImage(
-                            toAlnum(sceneName + "_bg_" + bgImage.image.name),
-                            bgImage.image,
-                            bgImage.otherModeFlags,
-                        )
-                    )
-
-                if len(self.mesh.bgImages) > 1:
-                    multiImg = RoomShapeImageMultiBg(f"{self.name}_shapeMultiBg", self.getMultiBgEntries())
-                    multi = RoomShapeImageMulti(
-                        name, self.roomShapeType, "ROOM_SHAPE_IMAGE_AMOUNT_MULTI", dlName, multiImg.name
-                    )
-                else:
-                    bgImg = self.mesh.bgImages[0]
-                    single = RoomShapeImageSingle(
-                        name,
-                        self.roomShapeType,
-                        "ROOM_SHAPE_IMAGE_AMOUNT_SINGLE",
-                        dlName,
-                        bgImg.name,
-                        bgImg.image.size[0],
-                        bgImg.image.size[1],
-                        bgImg.otherModeFlags,
-                    )
-            case _:
-                raise PluginError(f"ERROR: Room Shape not supported: {self.roomShapeType}")
-
-        return RoomShape(
-            RoomShapeDLists(dlName, normal is not None, self.getDListsEntries()), normal, single, multiImg, multi
-        )
+        return RoomShape(self.roomShapeType, headerProp, self.mesh, sceneName, self.name)
 
     def getRoomMainC(self):
         """Returns the C data of the main informations of a room"""
@@ -198,7 +78,7 @@ class Room(Base, RoomCommands):
         roomHeaders: list[tuple[RoomHeader, str]] = []
         altHeaderPtrList = None
 
-        if self.hasAlternateHeaders():
+        if self.hasAlternateHeaders:
             roomHeaders: list[tuple[RoomHeader, str]] = [
                 (self.altHeader.childNight, "Child Night"),
                 (self.altHeader.adultDay, "Adult Day"),
@@ -231,14 +111,14 @@ class Room(Base, RoomCommands):
                 roomC.source += curHeader.getHeaderDefines()
                 roomC.append(self.getRoomCommandList(self, i))
 
-                if i == 0 and self.hasAlternateHeaders() and altHeaderPtrList is not None:
+                if i == 0 and self.hasAlternateHeaders and altHeaderPtrList is not None:
                     roomC.source += altHeaderPtrList
 
                 if len(curHeader.objects.objectList) > 0:
-                    roomC.append(curHeader.objects.getObjectListC())
+                    roomC.append(curHeader.objects.getC())
 
                 if len(curHeader.actors.actorList) > 0:
-                    roomC.append(curHeader.actors.getActorListC())
+                    roomC.append(curHeader.actors.getC())
 
         return roomC
 

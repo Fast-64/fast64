@@ -1,82 +1,78 @@
 import math
 
 from dataclasses import dataclass
-from mathutils import Matrix, Quaternion, Vector
+from mathutils import Matrix, Vector
 from bpy.types import Mesh, Object
 from bpy.ops import object
-from ....utility import PluginError, checkIdentityRotation
+from ....utility import PluginError
 from ...oot_utility import convertIntTo2sComplement
-from ...oot_collision_classes import decomp_compat_map_CameraSType
 from ..base import Base
-
-from .classes import (
-    CollisionPoly,
-    SurfaceType,
-    BgCamFuncData,
-    CrawlspaceData,
-    BgCamInfo,
-    WaterBox,
-    Vertex,
-)
+from .classes import CollisionPoly, SurfaceType, Vertex
 
 
 @dataclass
 class CollisionBase(Base):
     """This class hosts different functions used to convert mesh data"""
 
-    def updateBounds(self, position: tuple[int, int, int], bounds: list[tuple[int, int, int]]):
+    sceneObj: Object
+    transform: Matrix
+    useMacros: bool
+
+    def updateBounds(self, position: tuple[int, int, int], colBounds: list[tuple[int, int, int]]):
         """This is used to update the scene's boundaries"""
 
-        if len(bounds) == 0:
-            bounds.append([position[0], position[1], position[2]])
-            bounds.append([position[0], position[1], position[2]])
+        if len(colBounds) == 0:
+            colBounds.append([position[0], position[1], position[2]])
+            colBounds.append([position[0], position[1], position[2]])
             return
 
-        minBounds = bounds[0]
-        maxBounds = bounds[1]
+        minBounds = colBounds[0]
+        maxBounds = colBounds[1]
         for i in range(3):
             if position[i] < minBounds[i]:
                 minBounds[i] = position[i]
             if position[i] > maxBounds[i]:
                 maxBounds[i] = position[i]
 
-    def getVertIndex(self, vert: tuple[int, int, int], vertArray: list[Vertex]):
+    def getVertexIndex(self, vertexPos: tuple[int, int, int], vertexList: list[Vertex]):
         """Returns the index of a Vertex based on position data, returns None if no match found"""
 
-        for i in range(len(vertArray)):
-            colVert = vertArray[i].pos
-            if colVert == vert:
+        for i in range(len(vertexList)):
+            if vertexList[i].pos == vertexPos:
                 return i
         return None
 
-    def getMeshObjects(
-        self, parentObj: Object, transform: Matrix, matrixTable: dict[Object, Matrix]
-    ) -> dict[Object, Matrix]:
+    def getMeshObjects(self, parentObj: Object, curTransform: Matrix, transformFromMeshObj: dict[Object, Matrix]):
         """Returns and updates a dictionnary containing mesh objects associated with their correct transforms"""
 
-        for obj in parentObj.children:
-            newTransform = transform @ obj.matrix_local
-            if obj.type == "MESH" and not obj.ignore_collision:
-                matrixTable[obj] = newTransform
-            self.getMeshObjects(obj, newTransform, matrixTable)
-        return matrixTable
+        objList: list[Object] = parentObj.children
+        for obj in objList:
+            newTransform = curTransform @ obj.matrix_local
 
-    def getColSurfaceVtxDataFromMeshObj(self):
+            if obj.type == "MESH" and not obj.ignore_collision:
+                transformFromMeshObj[obj] = newTransform
+
+            if len(obj.children) > 0:
+                self.getMeshObjects(obj, newTransform, transformFromMeshObj)
+
+        return transformFromMeshObj
+
+    def getCollisionData(self):
         """Returns collision data, surface types and vertex positions from mesh objects"""
         # Ideally everything would be separated but this is complicated since it's all tied together
 
         object.select_all(action="DESELECT")
         self.sceneObj.select_set(True)
 
-        matrixTable: dict[Object, Matrix] = {}
         colPolyFromSurfaceType: dict[SurfaceType, list[CollisionPoly]] = {}
         surfaceList: list[SurfaceType] = []
         polyList: list[CollisionPoly] = []
         vertexList: list[Vertex] = []
-        bounds = []
+        colBounds: list[tuple[int, int, int]] = []
 
-        matrixTable = self.getMeshObjects(self.sceneObj, self.transform, matrixTable)
-        for meshObj, transform in matrixTable.items():
+        transformFromMeshObj: dict[Object, Matrix] = {}
+        transformFromMeshObj = self.getMeshObjects(self.sceneObj, self.transform, transformFromMeshObj)
+        for meshObj, transform in transformFromMeshObj.items():
             # Note: ``isinstance``only used to get the proper type hints
             if not meshObj.ignore_collision and isinstance(meshObj.data, Mesh):
                 if len(meshObj.data.materials) == 0:
@@ -86,28 +82,29 @@ class CollisionBase(Base):
                 for face in meshObj.data.loop_triangles:
                     colProp = meshObj.material_slots[face.material_index].material.ootCollisionProperty
 
+                    # get bounds and vertices data
                     planePoint = transform @ meshObj.data.vertices[face.vertices[0]].co
                     (x1, y1, z1) = self.roundPosition(planePoint)
                     (x2, y2, z2) = self.roundPosition(transform @ meshObj.data.vertices[face.vertices[1]].co)
                     (x3, y3, z3) = self.roundPosition(transform @ meshObj.data.vertices[face.vertices[2]].co)
-                    self.updateBounds((x1, y1, z1), bounds)
-                    self.updateBounds((x2, y2, z2), bounds)
-                    self.updateBounds((x3, y3, z3), bounds)
+                    self.updateBounds((x1, y1, z1), colBounds)
+                    self.updateBounds((x2, y2, z2), colBounds)
+                    self.updateBounds((x3, y3, z3), colBounds)
 
                     normal = (transform.inverted().transposed() @ face.normal).normalized()
-                    distance = int(
-                        round(-1 * (normal[0] * planePoint[0] + normal[1] * planePoint[1] + normal[2] * planePoint[2]))
+                    distance = round(
+                        -1 * (normal[0] * planePoint[0] + normal[1] * planePoint[1] + normal[2] * planePoint[2])
                     )
                     distance = convertIntTo2sComplement(distance, 2, True)
 
                     indices: list[int] = []
-                    for vertex in [(x1, y1, z1), (x2, y2, z2), (x3, y3, z3)]:
-                        index = self.getVertIndex(vertex, vertexList)
-                        if index is None:
-                            vertexList.append(Vertex(vertex))
+                    for pos in [(x1, y1, z1), (x2, y2, z2), (x3, y3, z3)]:
+                        vertexIndex = self.getVertexIndex(pos, vertexList)
+                        if vertexIndex is None:
+                            vertexList.append(Vertex(pos))
                             indices.append(len(vertexList) - 1)
                         else:
-                            indices.append(index)
+                            indices.append(vertexIndex)
                     assert len(indices) == 3
 
                     # We need to ensure two things about the order in which the vertex indices are:
@@ -134,6 +131,7 @@ class CollisionBase(Base):
                     if (v1 - v0).cross(v2 - v0).dot(Vector(normal)) < 0:
                         indices[1], indices[2] = indices[2], indices[1]
 
+                    # get surface type and collision poly data
                     useConveyor = colProp.conveyorOption != "None"
                     surfaceType = SurfaceType(
                         colProp.cameraID,
@@ -180,112 +178,4 @@ class CollisionBase(Base):
             surfaceList.append(surface)
             count += 1
 
-        return bounds, vertexList, polyList, surfaceList
-
-    def getBgCamFuncDataFromObjects(self, camObj: Object):
-        """Returns Camera data from a single camera object"""
-
-        # Camera faces opposite direction
-        pos, rot, _, _ = self.getConvertedTransformWithOrientation(
-            self.transform, self.sceneObj, camObj, Quaternion((0, 1, 0), math.radians(180.0))
-        )
-
-        fov = math.degrees(camObj.data.angle)
-        if fov > 3.6:
-            fov *= 100  # see CAM_DATA_SCALED() macro
-
-        return BgCamFuncData(
-            pos,
-            rot,
-            round(fov),
-            camObj.ootCameraPositionProperty.bgImageOverrideIndex,
-        )
-
-    def getCrawlspaceDataFromObjects(self):
-        """Returns a list of rawlspace data from every splines objects with the type 'Crawlspace'"""
-
-        crawlspaceList: list[CrawlspaceData] = []
-        crawlspaceObjList: list[Object] = [
-            obj
-            for obj in self.sceneObj.children_recursive
-            if obj.type == "CURVE" and obj.ootSplineProperty.splineType == "Crawlspace"
-        ]
-
-        for obj in crawlspaceObjList:
-            if self.validateCurveData(obj):
-                crawlspaceList.append(
-                    CrawlspaceData(
-                        [
-                            [round(value) for value in self.transform @ obj.matrix_world @ point.co]
-                            for point in obj.data.splines[0].points
-                        ],
-                        obj.ootSplineProperty.index,
-                    )
-                )
-        return crawlspaceList
-
-    def getBgCamInfoDataFromObjects(self):
-        """Returns a list of camera informations from camera objects"""
-
-        camObjList = [obj for obj in self.sceneObj.children_recursive if obj.type == "CAMERA"]
-        camPosData: dict[int, BgCamFuncData] = {}
-        camInfoData: dict[int, BgCamInfo] = {}
-
-        index = 0
-        for camObj in camObjList:
-            camProp = camObj.ootCameraPositionProperty
-
-            if camProp.camSType == "Custom":
-                setting = camProp.camSTypeCustom
-            else:
-                setting = decomp_compat_map_CameraSType.get(camProp.camSType, camProp.camSType)
-
-            if camProp.hasPositionData:
-                count = 3  # cameras are using 3 entries in the data array
-                if camProp.index in camPosData:
-                    raise PluginError(f"ERROR: Repeated camera position index: {camProp.index} for {camObj.name}")
-                camPosData[camProp.index] = self.getBgCamFuncDataFromObjects(camObj)
-            else:
-                count = 0
-
-            if camProp.index in camInfoData:
-                raise PluginError(f"ERROR: Repeated camera entry: {camProp.index} for {camObj.name}")
-            camInfoData[camProp.index] = BgCamInfo(
-                setting,
-                count,
-                camPosData[camProp.index] if camProp.hasPositionData else None,
-                camProp.index,
-            )
-
-            index += count
-        return list(camInfoData.values())
-
-    def getWaterBoxDataFromObjects(self):
-        """Returns a list of waterbox data from waterbox empty objects"""
-
-        waterboxObjList = [
-            obj for obj in self.sceneObj.children_recursive if obj.type == "EMPTY" and obj.ootEmptyType == "Water Box"
-        ]
-        waterboxList: list[WaterBox] = []
-
-        for waterboxObj in waterboxObjList:
-            emptyScale = waterboxObj.empty_display_size
-            pos, _, scale, orientedRot = self.getConvertedTransform(self.transform, self.sceneObj, waterboxObj, True)
-            checkIdentityRotation(waterboxObj, orientedRot, False)
-
-            wboxProp = waterboxObj.ootWaterBoxProperty
-            roomObj = self.getRoomObjectFromChild(waterboxObj)
-            waterboxList.append(
-                WaterBox(
-                    pos,
-                    scale,
-                    emptyScale,
-                    wboxProp.camera,
-                    wboxProp.lighting,
-                    roomObj.ootRoomHeader.roomIndex if roomObj is not None else 0x3F,
-                    wboxProp.flag19,
-                    self.useMacros,
-                )
-            )
-
-        return waterboxList
+        return colBounds, vertexList, polyList, surfaceList

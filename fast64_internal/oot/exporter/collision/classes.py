@@ -9,7 +9,7 @@ class CollisionPoly:
 
     indices: list[int]
     ignoreCamera: bool
-    ignoreActor: bool
+    ignoreEntity: bool
     ignoreProjectile: bool
     enableConveyor: bool
     normal: Vector
@@ -21,9 +21,9 @@ class CollisionPoly:
         """Returns the value of ``flags_vIA``"""
 
         vtxId = self.indices[0] & 0x1FFF
-        if self.ignoreProjectile or self.ignoreActor or self.ignoreCamera:
+        if self.ignoreProjectile or self.ignoreEntity or self.ignoreCamera:
             flag1 = ("COLPOLY_IGNORE_PROJECTILES" if self.useMacros else "(1 << 2)") if self.ignoreProjectile else ""
-            flag2 = ("COLPOLY_IGNORE_ENTITY" if self.useMacros else "(1 << 1)") if self.ignoreActor else ""
+            flag2 = ("COLPOLY_IGNORE_ENTITY" if self.useMacros else "(1 << 1)") if self.ignoreEntity else ""
             flag3 = ("COLPOLY_IGNORE_CAMERA" if self.useMacros else "(1 << 0)") if self.ignoreCamera else ""
             flags = "(" + " | ".join(flag for flag in [flag1, flag2, flag3] if len(flag) > 0) + ")"
         else:
@@ -41,15 +41,10 @@ class CollisionPoly:
             flags = "COLPOLY_IGNORE_NONE" if self.useMacros else "0"
         return f"COLPOLY_VTX({vtxId}, {flags})" if self.useMacros else f"((({flags} & 7) << 13) | ({vtxId} & 0x1FFF))"
 
-    def getVIC(self):
-        """Returns the value of ``vIC``"""
-
-        vtxId = self.indices[2] & 0x1FFF
-        return f"COLPOLY_VTX_INDEX({vtxId})" if self.useMacros else f"{vtxId} & 0x1FFF"
-
     def getEntryC(self):
         """Returns an entry for the collision poly array"""
 
+        vtxId = self.indices[2] & 0x1FFF
         if self.type is None:
             raise PluginError("ERROR: Surface Type missing!")
         return (
@@ -59,7 +54,7 @@ class CollisionPoly:
                     f"{self.type}",
                     self.getFlags_vIA(),
                     self.getFlags_vIB(),
-                    self.getVIC(),
+                    f"COLPOLY_VTX_INDEX({vtxId})" if self.useMacros else f"{vtxId} & 0x1FFF",
                     ", ".join(f"COLPOLY_SNORMAL({val})" for val in self.normal),
                     f"{self.dist}",
                 )
@@ -197,26 +192,7 @@ class SurfaceType:
 
 
 @dataclass
-class BgCamFuncData:
-    """This class defines camera data, if used"""
-
-    pos: tuple[int, int, int]
-    rot: tuple[int, int, int]
-    fov: int
-    roomImageOverrideBgCamIndex: int
-
-    def getEntryC(self):
-        """Returns an entry for the camera data array"""
-
-        return (
-            (indent + "{ " + ", ".join(f"{p:6}" for p in self.pos) + " },\n")
-            + (indent + "{ " + ", ".join(f"0x{r:04X}" for r in self.rot) + " },\n")
-            + (indent + "{ " + f"{self.fov:6}, {self.roomImageOverrideBgCamIndex:6}, {-1:6}" + " },\n")
-        )
-
-
-@dataclass
-class CrawlspaceData:
+class CrawlspaceCamera:
     """This class defines camera data for crawlspaces, if used"""
 
     points: list[tuple[int, int, int]]
@@ -238,18 +214,37 @@ class CrawlspaceData:
 
 
 @dataclass
-class BgCamInfo:
+class CameraData:
+    """This class defines camera data, if used"""
+
+    pos: tuple[int, int, int]
+    rot: tuple[int, int, int]
+    fov: int
+    roomImageOverrideBgCamIndex: int
+
+    def getEntryC(self):
+        """Returns an entry for the camera data array"""
+
+        return (
+            (indent + "{ " + ", ".join(f"{p:6}" for p in self.pos) + " },\n")
+            + (indent + "{ " + ", ".join(f"0x{r:04X}" for r in self.rot) + " },\n")
+            + (indent + "{ " + f"{self.fov:6}, {self.roomImageOverrideBgCamIndex:6}, {-1:6}" + " },\n")
+        )
+
+
+@dataclass
+class CameraInfo:
     """This class defines camera information data"""
 
     setting: str
     count: int
-    camData: BgCamFuncData
+    data: CameraData
     camIndex: int
     arrayIndex: int = 0
     hasPosData: bool = False
 
     def __post_init__(self):
-        self.hasPosData = self.camData is not None
+        self.hasPosData = self.data is not None
 
     def getInfoEntryC(self, posDataName: str):
         """Returns an entry for the camera information array"""

@@ -49,10 +49,10 @@ class RoomCommands:
         return indent + f"SCENE_CMD_ROOM_SHAPE(&{room.roomShape.getName()}),\n"
 
     def getObjectListCmd(self, objects: "RoomObjects"):
-        return (indent + "SCENE_CMD_OBJECT_LIST(") + f"{objects.getObjectLengthDefineName()}, {objects.name}),\n"
+        return (indent + "SCENE_CMD_OBJECT_LIST(") + f"{objects.getDefineName()}, {objects.name}),\n"
 
     def getActorListCmd(self, actors: "RoomActors"):
-        return (indent + "SCENE_CMD_ACTOR_LIST(") + f"{actors.getActorLengthDefineName()}, {actors.name}),\n"
+        return (indent + "SCENE_CMD_ACTOR_LIST(") + f"{actors.getDefineName()}, {actors.name}),\n"
 
     def getRoomCommandList(self, room: "Room", headerIndex: int):
         cmdListData = CData()
@@ -69,7 +69,7 @@ class RoomCommands:
         if curHeader.infos.setWind:
             getCmdFuncInfosList.append(self.getWindSettingsCmd)
 
-        hasAltHeaders = headerIndex == 0 and room.hasAlternateHeaders()
+        hasAltHeaders = headerIndex == 0 and room.hasAlternateHeaders
         roomCmdData = (
             (room.getAltHeaderListCmd(room.altHeader.name) if hasAltHeaders else "")
             + self.getRoomShapeCmd(room)

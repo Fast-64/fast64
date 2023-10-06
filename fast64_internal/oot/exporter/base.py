@@ -14,11 +14,6 @@ altHeaderList = ["childNight", "adultDay", "adultNight"]
 class Base:
     """This class hosts common data used across different sub-systems of this exporter"""
 
-    sceneObj: Object
-    transform: Matrix
-    useMacros: bool
-    roomIndex: int = None
-
     def getRoomObjectFromChild(self, childObj: Object) -> Object | None:
         """Returns the room empty object from one of its child"""
 

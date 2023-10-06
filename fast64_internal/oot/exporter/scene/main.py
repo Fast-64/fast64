@@ -1,113 +1,98 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 from ....utility import PluginError, CData, indent
 from ....f3d.f3d_gbi import TextureExportSettings, ScrollMethod
 from ...oot_model_classes import OOTGfxFormatter
 from ...scene.properties import OOTSceneHeaderProperty
 from ..classes import SceneFile
-from .base import SceneBase
+from ..collision import CollisionHeader
+from .header import SceneHeader
+from ...oot_model_classes import OOTModel
+from ..commands import SceneCommands
+from ..base import altHeaderList
+from ..collision import CollisionBase
+from .header import SceneAlternateHeader, SceneHeader
 
-from ..collision import (
-    Vertices,
-    CollisionPolygons,
-    SurfaceTypes,
-    BgCamInformations,
-    WaterBoxes,
-    CollisionHeader,
-)
-
-from .header import (
-    SceneInfos,
-    SceneLighting,
-    SceneCutscene,
-    SceneExits,
-    SceneActors,
-    ScenePathways,
-    SceneHeader,
-)
+if TYPE_CHECKING:
+    from ..room import Room
 
 
 @dataclass
-class Scene(SceneBase):
+class Scene(CollisionBase, SceneCommands):
     """This class defines a scene"""
 
+    name: str = None
+    model: OOTModel = None
+    headerIndex: int = None
+    mainHeader: SceneHeader = None
+    altHeader: SceneAlternateHeader = None
+    roomList: list["Room"] = field(default_factory=list)
     roomListName: str = None
     colHeader: CollisionHeader = None
 
     def __post_init__(self):
         self.roomListName = f"{self.name}_roomList"
 
+    def validateRoomIndices(self):
+        """Checks if there are multiple rooms with the same room index"""
+
+        for i, room in enumerate(self.roomList):
+            if i != room.roomIndex:
+                return False
+        return True
+
+    def validateScene(self):
+        """Performs safety checks related to the scene data"""
+
+        if not len(self.roomList) > 0:
+            raise PluginError("ERROR: This scene does not have any rooms!")
+
+        if not self.validateRoomIndices():
+            raise PluginError("ERROR: Room indices do not have a consecutive list of indices.")
+
+    def hasAlternateHeaders(self):
+        """Checks if this scene is using alternate headers"""
+
+        return self.altHeader is not None
+
+    def getSceneHeaderFromIndex(self, headerIndex: int) -> SceneHeader | None:
+        """Returns the scene header based on the header index"""
+
+        if headerIndex == 0:
+            return self.mainHeader
+
+        for i, header in enumerate(altHeaderList, 1):
+            if headerIndex == i:
+                return getattr(self.altHeader, header)
+
+        for i, csHeader in enumerate(self.altHeader.cutscenes, 4):
+            if headerIndex == i:
+                return csHeader
+
+        return None
+
     def getNewCollisionHeader(self):
         """Returns and creates collision data"""
 
-        colBounds, vertexList, polyList, surfaceTypeList = self.getColSurfaceVtxDataFromMeshObj()
-        bgCamInfoList = self.getBgCamInfoDataFromObjects()
-
+        colBounds, vertexList, polyList, surfaceTypeList = self.getCollisionData()
         return CollisionHeader(
+            self.sceneObj,
+            self.transform,
             f"{self.name}_collisionHeader",
-            colBounds[0],
-            colBounds[1],
-            Vertices(f"{self.name}_vertices", vertexList),
-            CollisionPolygons(f"{self.name}_polygons", polyList),
-            SurfaceTypes(f"{self.name}_polygonTypes", surfaceTypeList),
-            BgCamInformations(
-                f"{self.name}_bgCamInfo",
-                f"{self.name}_camPosData",
-                bgCamInfoList,
-                self.getCrawlspaceDataFromObjects(),
-            ),
-            WaterBoxes(f"{self.name}_waterBoxes", self.getWaterBoxDataFromObjects()),
+            self.name,
+            self.useMacros,
+            colBounds,
+            vertexList,
+            polyList,
+            surfaceTypeList,
         )
 
     def getNewSceneHeader(self, headerProp: OOTSceneHeaderProperty, headerIndex: int = 0):
         """Returns the scene header"""
 
         self.headerIndex = headerIndex
-        headerName = f"{self.name}_header{self.headerIndex:02}"
-        lightMode = self.getPropValue(headerProp, "skyboxLighting")
-
-        if headerProp.writeCutscene and headerProp.csWriteType == "Embedded":
-            raise PluginError("ERROR: 'Embedded' CS Write Type is not supported!")
-
         return SceneHeader(
-            headerName,
-            SceneInfos(
-                self.getPropValue(headerProp, "globalObject"),
-                self.getPropValue(headerProp, "naviCup"),
-                self.getPropValue(headerProp.sceneTableEntry, "drawConfig"),
-                headerProp.appendNullEntrance,
-                self.sceneObj.fast64.oot.scene.write_dummy_room_list,
-                self.getPropValue(headerProp, "skyboxID"),
-                self.getPropValue(headerProp, "skyboxCloudiness"),
-                self.getPropValue(headerProp, "musicSeq"),
-                self.getPropValue(headerProp, "nightSeq"),
-                self.getPropValue(headerProp, "audioSessionPreset"),
-                self.getPropValue(headerProp, "mapLocation"),
-                self.getPropValue(headerProp, "cameraMode"),
-            ),
-            SceneLighting(
-                f"{headerName}_lightSettings",
-                lightMode,
-                self.getEnvLightSettingsListFromProps(headerProp, lightMode),
-            ),
-            SceneCutscene(
-                headerIndex,
-                headerProp.csWriteType,
-                headerProp.writeCutscene,
-                headerProp.csWriteObject,
-                headerProp.csWriteCustom if headerProp.csWriteType == "Custom" else None,
-                [csObj for csObj in headerProp.extraCutscenes],
-            )
-            if headerProp.writeCutscene
-            else None,
-            SceneExits(f"{headerName}_exitList", self.getExitListFromProps(headerProp)),
-            SceneActors(
-                f"{headerName}_entranceList",
-                f"{headerName}_playerEntryList",
-                f"{headerName}_transitionActors",
-                self.getTransActorListFromProps(),
-                self.getEntranceActorListFromProps(),
-            ),
-            ScenePathways(f"{headerName}_pathway", self.getPathListFromProps(f"{headerName}_pathwayList")),
+            headerProp, f"{self.name}_header{self.headerIndex:02}", self.sceneObj, self.transform, headerIndex
         )
 
     def getRoomListC(self):
@@ -209,7 +194,7 @@ class Scene(SceneBase):
         """Gets and sets C data for every scene elements"""
 
         sceneMainData = self.getSceneMainC()
-        sceneCollisionData = self.colHeader.getSceneCollisionC()
+        sceneCollisionData = self.colHeader.getC()
         sceneCutsceneData = self.getSceneCutscenesC()
         sceneTexturesData = self.getSceneTexturesC(textureExportSettings)
 

@@ -84,11 +84,9 @@ class SceneExporter:
 
             roomName = f"{toAlnum(self.sceneName)}_room_{roomIndex}"
             roomDict[roomIndex] = Room(
-                self.sceneObj,
-                self.transform,
-                self.useMacros,
-                roomIndex,
                 roomName,
+                self.transform,
+                self.sceneObj,
                 roomObj,
                 roomHeader.roomShape,
                 scene.model.addSubModel(
@@ -100,11 +98,11 @@ class SceneExporter:
                         None,
                     )
                 ),
+                roomIndex,
             )
 
             # Mesh stuff
-            c = Base(self.sceneObj, self.transform, self.useMacros)
-            pos, _, scale, _ = c.getConvertedTransform(self.transform, self.sceneObj, roomObj, True)
+            pos, _, scale, _ = Base().getConvertedTransform(self.transform, self.sceneObj, roomObj, True)
             cullGroup = CullGroup(pos, scale, roomObj.ootRoomHeader.defaultCullDistance)
             DLGroup = roomDict[roomIndex].mesh.addMeshGroup(cullGroup).DLGroup
             boundingBox = BoundingBox()
@@ -174,7 +172,7 @@ class SceneExporter:
 
         try:
             altProp = self.sceneObj.ootAlternateSceneHeaders
-            sceneData = Scene(self.sceneObj, self.transform, self.useMacros, name=f"{toAlnum(self.sceneName)}_scene")
+            sceneData = Scene(self.sceneObj, self.transform, self.useMacros, f"{toAlnum(self.sceneName)}_scene")
             sceneData.model = OOTModel(self.f3dType, self.isHWv1, f"{sceneData.name}_dl", self.dlFormat, False)
             altHeaderData = SceneAlternateHeader(f"{sceneData.name}_alternateHeaders")
             sceneData.mainHeader = sceneData.getNewSceneHeader(self.sceneObj.ootSceneHeader)
