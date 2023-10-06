@@ -1,15 +1,14 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
+from mathutils import Matrix
+from bpy.types import Object
 from ....utility import PluginError, CData, indent
 from ....f3d.f3d_gbi import TextureExportSettings, ScrollMethod
-from ...oot_model_classes import OOTGfxFormatter
 from ...scene.properties import OOTSceneHeaderProperty
+from ...oot_model_classes import OOTModel, OOTGfxFormatter
 from ..classes import SceneFile
+from ..base import Base, altHeaderList
 from ..collision import CollisionHeader
-from .header import SceneHeader
-from ...oot_model_classes import OOTModel
-from ..base import altHeaderList
-from ..collision import CollisionBase
 from .header import SceneAlternateHeader, SceneHeader
 
 if TYPE_CHECKING:
@@ -17,9 +16,12 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class Scene(CollisionBase):
+class Scene(Base):
     """This class defines a scene"""
 
+    sceneObj: Object
+    transform: Matrix
+    useMacros: bool
     name: str = None
     model: OOTModel = None
     headerIndex: int = None
@@ -70,17 +72,12 @@ class Scene(CollisionBase):
     def getNewCollisionHeader(self):
         """Returns and creates collision data"""
 
-        colBounds, vertexList, polyList, surfaceTypeList = self.getCollisionData()
         return CollisionHeader(
             self.sceneObj,
             self.transform,
+            self.useMacros,
             f"{self.name}_collisionHeader",
             self.name,
-            self.useMacros,
-            colBounds,
-            vertexList,
-            polyList,
-            surfaceTypeList,
         )
 
     def getNewSceneHeader(self, headerProp: OOTSceneHeaderProperty, headerIndex: int = 0):

@@ -4,7 +4,6 @@ from bpy.types import Object
 from ....utility import CData, indent
 from ....f3d.f3d_gbi import ScrollMethod, TextureExportSettings
 from ...room.properties import OOTRoomHeaderProperty
-from ...oot_constants import ootData
 from ...oot_level_classes import OOTRoomMesh
 from ...oot_model_classes import OOTModel, OOTGfxFormatter
 from ..classes import RoomFile
