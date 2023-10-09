@@ -62,10 +62,7 @@ class SceneFile:
         includes = (
             "\n".join(
                 [
-                    '#include "ultra64/ultratypes.h"',
-                    '#include "ultra64/gbi.h"',
-                    '#include "libc/stddef.h"',
-                    '#include "libc/stdint.h"',
+                    '#include "ultra64.h"',
                     '#include "macros.h"',
                     '#include "z64.h"',
                 ]
