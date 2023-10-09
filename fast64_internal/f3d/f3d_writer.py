@@ -1466,7 +1466,7 @@ def saveLightsDefinition(fModel, fMaterial, material, lightsName):
     if lights is not None:
         return lights
 
-    lights = Lights(toAlnum(lightsName))
+    lights = Lights(toAlnum(lightsName), fModel.f3d)
 
     if material.use_default_lighting:
         lights.a = Ambient(exportColor(material.ambient_light_color))

@@ -53,16 +53,8 @@ dlTypeEnum = [
     ("PROCEDURAL", "Procedural", "Procedural"),
 ]
 
-lightIndex = {
-    "LIGHT_1": 1,
-    "LIGHT_2": 2,
-    "LIGHT_3": 3,
-    "LIGHT_4": 4,
-    "LIGHT_5": 5,
-    "LIGHT_6": 6,
-    "LIGHT_7": 7,
-    "LIGHT_8": 8,
-}
+# 1-8 for F3DEX2 etc., 1-10 for F3DEX3
+lightIndex = {"LIGHT_" + str(n): n for n in range(1, 11)}
 
 # tuple of max buffer size, max load count.
 vertexBufferSize = {
@@ -72,6 +64,7 @@ vertexBufferSize = {
     "F3DLP.Rej": (80, 32),
     "F3DEX2/LX2": (32, 32),
     "F3DEX2.Rej/LX2.Rej": (64, 64),
+    "F3DEX3": (56, 56),
 }
 
 drawLayerRenderMode = {
@@ -123,39 +116,43 @@ ACMUXDict = {
 }
 
 
+def isUcodeF3DEX1(F3D_VER):
+    return F3D_VER in {"F3DLP.Rej", "F3DLX.Rej", "F3DEX/LX"}
+
+
+def isUcodeF3DEX2(F3D_VER):
+    return F3D_VER in {"F3DEX2.Rej/LX2.Rej", "F3DEX2/LX2"}
+
+
+def isUcodeF3DEX3(F3D_VER):
+    return F3D_VER == "F3DEX3"
+
+
 class F3D:
     """NOTE: do not initialize this class manually! use get_F3D_GBI so that the single instance is cached from the microcode type."""
 
     def __init__(self, F3D_VER, _HW_VERSION_1):
-        if F3D_VER == "F3DEX2.Rej/LX2.Rej" or F3D_VER == "F3DEX2/LX2":
-            self.F3DEX_GBI = False
-            self.F3DEX_GBI_2 = True
-            self.F3DLP_GBI = False
-        elif F3D_VER == "F3DLP.Rej" or F3D_VER == "F3DLX.Rej" or F3D_VER == "F3DEX/LX":
-            self.F3DEX_GBI = True
-            self.F3DEX_GBI_2 = False
-            self.F3DLP_GBI = True
-        elif F3D_VER == "F3D":
-            self.F3DEX_GBI = False
-            self.F3DEX_GBI_2 = False
-            self.F3DLP_GBI = False
-        else:
-            raise PluginError("Invalid F3D version " + F3D_VER + ".")
+        F3DEX_GBI = self.F3DEX_GBI = isUcodeF3DEX1(F3D_VER)
+        F3DEX_GBI_2 = self.F3DEX_GBI_2 = isUcodeF3DEX2(F3D_VER)
+        F3DEX_GBI_3 = self.F3DEX_GBI_3 = isUcodeF3DEX3(F3D_VER)
+        F3DLP_GBI = self.F3DLP_GBI = self.F3DEX_GBI
+        
+        # F3DEX2 is F3DEX1 and F3DEX3 is F3DEX2, but F3DEX3 is not F3DEX1
+        if F3DEX_GBI_2:
+            F3DEX_GBI = self.F3DEX_GBI = True
+        elif F3DEX_GBI_3:
+            F3DEX_GBI_2 = self.F3DEX_GBI_2 = True
 
         self.vert_buffer_size = vertexBufferSize[F3D_VER][0]
         self.vert_load_size = vertexBufferSize[F3D_VER][1]
+        self.G_MAX_LIGHTS = 9 if F3DEX_GBI_3 else 7
+        self.G_INPUT_BUFFER_CMDS = 21
 
-        F3DEX_GBI = self.F3DEX_GBI
-        F3DEX_GBI_2 = self.F3DEX_GBI_2
-        F3DLP_GBI = self.F3DLP_GBI
         self._HW_VERSION_1 = _HW_VERSION_1
         self.F3D_VER = F3D_VER
         # self._LANGUAGE_ASSEMBLY = _LANGUAGE_ASSEMBLY
 
         if F3DEX_GBI_2:
-            self.F3DEX_GBI = True
-            F3DEX_GBI = True
-
             self.G_NOOP = 0x00
             self.G_RDPHALF_2 = 0xF1
             self.G_SETOTHERMODE_H = 0xE3
@@ -172,9 +169,6 @@ class F3D:
             self.G_POPMTX = 0xD8
             self.G_TEXTURE = 0xD7
             self.G_DMA_IO = 0xD6
-            self.G_SPECIAL_1 = 0xD5
-            self.G_SPECIAL_2 = 0xD4
-            self.G_SPECIAL_3 = 0xD3
 
             self.G_VTX = 0x01
             self.G_MODIFYVTX = 0x02
@@ -183,7 +177,19 @@ class F3D:
             self.G_TRI1 = 0x05
             self.G_TRI2 = 0x06
             self.G_QUAD = 0x07
-            self.G_LINE3D = 0x08
+            
+            if F3DEX_GBI_3:
+                self.G_RETURNNONEVISIBLE = 0xD4
+                self.G_BOUNDINGVERTS = 0xD5
+                self.G_POPBRANCHCALL = 0x08
+                self.G_TRISTRIP = 0x09
+                self.G_TRIFAN = 0x0A
+                self.G_LIGHTTORDP = 0x0B
+            else:
+                self.G_SPECIAL_1 = 0xD5
+                self.G_SPECIAL_2 = 0xD4
+                self.G_SPECIAL_3 = 0xD3
+                self.G_LINE3D = 0x08
 
         else:
             # DMA commands
@@ -335,6 +341,41 @@ class F3D:
             self.G_CLIPPING = 0x00800000
         else:
             self.G_CLIPPING = 0x00000000
+        
+        if F3DEX_GBI_3:
+            self.G_ATTROFFSET_ST_ENABLE = 0x00000100
+            self.G_ATTROFFSET_Z_ENABLE = 0x00000800
+            self.G_PACKED_NORMALS = 0x00001000
+            self.G_LIGHTTOALPHA = 0x00002000
+            self.G_AMBOCCLUSION = 0x00004000
+            self.G_FRESNEL = 0x00008000
+            self.G_LIGHTING_POSITIONAL = 0x00400000  # Ignored, always on
+            
+        self.allGeomModeFlags = {
+            "G_ZBUFFER",
+            "G_TEXTURE_ENABLE",
+            "G_SHADE",
+            "G_CULL_FRONT",
+            "G_CULL_BACK",
+            "G_CULL_BOTH",
+            "G_FOG",
+            "G_LIGHTING",
+            "G_TEXTURE_GEN",
+            "G_TEXTURE_GEN_LINEAR",
+            "G_LOD",
+            "G_SHADING_SMOOTH",
+            "G_LIGHTING_POSITIONAL",
+            "G_CLIPPING",
+        }
+        if F3DEX_GBI_3:
+            self.allGeomModeFlags += {
+                "G_ATTROFFSET_ST_ENABLE",
+                "G_ATTROFFSET_Z_ENABLE",
+                "G_PACKED_NORMALS",
+                "G_LIGHTTOALPHA",
+                "G_AMBOCCLUSION",
+                "G_FRESNEL",
+            }
 
         # if _LANGUAGE_ASSEMBLY:
         self.G_FOG_H = self.G_FOG / 0x10000
@@ -1396,6 +1437,18 @@ class F3D:
         self.G_DL_PUSH = 0x00
         self.G_DL_NOPUSH = 0x01
 
+        if F3DEX_GBI_3:
+            self.G_NORMALS_MODE_FAST = 0x00
+            self.G_NORMALS_MODE_AUTO = 0x01
+            self.G_NORMALS_MODE_MANUAL = 0x02
+
+            self.G_ALPHA_COMPARE_CULL_DISABLE = 0
+            self.G_ALPHA_COMPARE_CULL_BELOW = 1
+            self.G_ALPHA_COMPARE_CULL_ABOVE = -1
+
+            self.G_BOUNDINGVERTS_REPLACE = 0
+            self.G_BOUNDINGVERTS_PUSH = -1
+
         # Some structs here
 
         self.G_MAXZ = 0x03FF  # 10 bits of integer screen-Z precision
@@ -1416,18 +1469,19 @@ class F3D:
             self.G_MV_PMTX = 6
             self.G_MV_VIEWPORT = 8
             self.G_MV_LIGHT = 10
-            self.G_MV_POINT = 12
-            self.G_MV_MATRIX = 14  # NOTE: this is in moveword table
-            self.G_MVO_LOOKATX = 0 * 24
-            self.G_MVO_LOOKATY = 1 * 24
-            self.G_MVO_L0 = 2 * 24
-            self.G_MVO_L1 = 3 * 24
-            self.G_MVO_L2 = 4 * 24
-            self.G_MVO_L3 = 5 * 24
-            self.G_MVO_L4 = 6 * 24
-            self.G_MVO_L5 = 7 * 24
-            self.G_MVO_L6 = 8 * 24
-            self.G_MVO_L7 = 9 * 24
+            if not F3DEX_GBI_3:
+                self.G_MV_POINT = 12
+                self.G_MV_MATRIX = 14  # NOTE: this is in moveword table
+                self.G_MVO_LOOKATX = 0 * 24
+                self.G_MVO_LOOKATY = 1 * 24
+                self.G_MVO_L0 = 2 * 24
+                self.G_MVO_L1 = 3 * 24
+                self.G_MVO_L2 = 4 * 24
+                self.G_MVO_L3 = 5 * 24
+                self.G_MVO_L4 = 6 * 24
+                self.G_MVO_L5 = 7 * 24
+                self.G_MVO_L6 = 8 * 24
+                self.G_MVO_L7 = 9 * 24
         else:
             self.G_MV_VIEWPORT = 0x80
             self.G_MV_LOOKATY = 0x82
@@ -1454,17 +1508,24 @@ class F3D:
 		an immediate word will be stored.
 		"""
 
-        self.G_MW_MATRIX = 0x00  # NOTE: also used by movemem
+        if F3DEX_GBI_3:
+            self.G_MW_FX = 0x00
+        else:
+            self.G_MW_MATRIX = 0x00  # NOTE: also used by movemem
         self.G_MW_NUMLIGHT = 0x02
-        self.G_MW_CLIP = 0x04
+        if F3DEX_GBI_3:
+            self.G_MW_PERSPNORM = 0x04
+        else:
+            self.G_MW_CLIP = 0x04
         self.G_MW_SEGMENT = 0x06
         self.G_MW_FOG = 0x08
         self.G_MW_LIGHTCOL = 0x0A
-        if F3DEX_GBI_2:
-            self.G_MW_FORCEMTX = 0x0C
-        else:
-            self.G_MW_POINTS = 0x0C
-        self.G_MW_PERSPNORM = 0x0E
+        if not F3DEX_GBI_3:
+            if F3DEX_GBI_2:
+                self.G_MW_FORCEMTX = 0x0C
+            else:
+                self.G_MW_POINTS = 0x0C
+            self.G_MW_PERSPNORM = 0x0E
 
         # These are offsets from the address in the dmem table
 
@@ -1493,7 +1554,26 @@ class F3D:
         self.G_MWO_aLIGHT_1 = 0x00
         self.G_MWO_bLIGHT_1 = 0x04
 
-        if F3DEX_GBI_2:
+        if F3DEX_GBI_3:
+            self.G_MWO_aLIGHT_2 = 0x10
+            self.G_MWO_bLIGHT_2 = 0x14
+            self.G_MWO_aLIGHT_3 = 0x20
+            self.G_MWO_bLIGHT_3 = 0x24
+            self.G_MWO_aLIGHT_4 = 0x30
+            self.G_MWO_bLIGHT_4 = 0x34
+            self.G_MWO_aLIGHT_5 = 0x40
+            self.G_MWO_bLIGHT_5 = 0x44
+            self.G_MWO_aLIGHT_6 = 0x50
+            self.G_MWO_bLIGHT_6 = 0x54
+            self.G_MWO_aLIGHT_7 = 0x60
+            self.G_MWO_bLIGHT_7 = 0x64
+            self.G_MWO_aLIGHT_8 = 0x70
+            self.G_MWO_bLIGHT_8 = 0x74
+            self.G_MWO_aLIGHT_9 = 0x80
+            self.G_MWO_bLIGHT_9 = 0x84
+            self.G_MWO_aLIGHT_10 = 0x90
+            self.G_MWO_bLIGHT_10 = 0x94
+        elif F3DEX_GBI_2:
             self.G_MWO_aLIGHT_2 = 0x18
             self.G_MWO_bLIGHT_2 = 0x1C
             self.G_MWO_aLIGHT_3 = 0x30
@@ -1524,26 +1604,37 @@ class F3D:
             self.G_MWO_aLIGHT_8 = 0xE0
             self.G_MWO_bLIGHT_8 = 0xE4
 
-        self.G_MWO_MATRIX_XX_XY_I = 0x00
-        self.G_MWO_MATRIX_XZ_XW_I = 0x04
-        self.G_MWO_MATRIX_YX_YY_I = 0x08
-        self.G_MWO_MATRIX_YZ_YW_I = 0x0C
-        self.G_MWO_MATRIX_ZX_ZY_I = 0x10
-        self.G_MWO_MATRIX_ZZ_ZW_I = 0x14
-        self.G_MWO_MATRIX_WX_WY_I = 0x18
-        self.G_MWO_MATRIX_WZ_WW_I = 0x1C
-        self.G_MWO_MATRIX_XX_XY_F = 0x20
-        self.G_MWO_MATRIX_XZ_XW_F = 0x24
-        self.G_MWO_MATRIX_YX_YY_F = 0x28
-        self.G_MWO_MATRIX_YZ_YW_F = 0x2C
-        self.G_MWO_MATRIX_ZX_ZY_F = 0x30
-        self.G_MWO_MATRIX_ZZ_ZW_F = 0x34
-        self.G_MWO_MATRIX_WX_WY_F = 0x38
-        self.G_MWO_MATRIX_WZ_WW_F = 0x3C
+        if not F3DEX_GBI_3:
+            self.G_MWO_MATRIX_XX_XY_I = 0x00
+            self.G_MWO_MATRIX_XZ_XW_I = 0x04
+            self.G_MWO_MATRIX_YX_YY_I = 0x08
+            self.G_MWO_MATRIX_YZ_YW_I = 0x0C
+            self.G_MWO_MATRIX_ZX_ZY_I = 0x10
+            self.G_MWO_MATRIX_ZZ_ZW_I = 0x14
+            self.G_MWO_MATRIX_WX_WY_I = 0x18
+            self.G_MWO_MATRIX_WZ_WW_I = 0x1C
+            self.G_MWO_MATRIX_XX_XY_F = 0x20
+            self.G_MWO_MATRIX_XZ_XW_F = 0x24
+            self.G_MWO_MATRIX_YX_YY_F = 0x28
+            self.G_MWO_MATRIX_YZ_YW_F = 0x2C
+            self.G_MWO_MATRIX_ZX_ZY_F = 0x30
+            self.G_MWO_MATRIX_ZZ_ZW_F = 0x34
+            self.G_MWO_MATRIX_WX_WY_F = 0x38
+            self.G_MWO_MATRIX_WZ_WW_F = 0x3C
+        
         self.G_MWO_POINT_RGBA = 0x10
         self.G_MWO_POINT_ST = 0x14
         self.G_MWO_POINT_XYSCREEN = 0x18
         self.G_MWO_POINT_ZSCREEN = 0x1C
+        
+        if F3DEX_GBI_3:
+            self.G_MWO_AMB_OCCLUSION = 0x00
+            self.G_MWO_FRESNEL = 0x04
+            self.G_MWO_ATTR_OFFSET_ST = 0x08
+            self.G_MWO_ATTR_OFFSET_Z = 0x0C
+            self.G_MWO_NORMALS_MODE = 0x0E
+            self.G_MWO_ALPHA_COMPARE_CULL = 0x12
+            self.G_MWO_BOUNDING_FLAGS = 0x18
 
         # Texturing macros
 
@@ -1584,34 +1675,29 @@ class F3D:
         else:
             self.G_TX_LDBLK_MAX_TXL = 2047
 
-        # Clipping Macros
-        self.FR_NEG_FRUSTRATIO_1 = 0x00000001
-        self.FR_POS_FRUSTRATIO_1 = 0x0000FFFF
-        self.FR_NEG_FRUSTRATIO_2 = 0x00000002
-        self.FR_POS_FRUSTRATIO_2 = 0x0000FFFE
-        self.FR_NEG_FRUSTRATIO_3 = 0x00000003
-        self.FR_POS_FRUSTRATIO_3 = 0x0000FFFD
-        self.FR_NEG_FRUSTRATIO_4 = 0x00000004
-        self.FR_POS_FRUSTRATIO_4 = 0x0000FFFC
-        self.FR_NEG_FRUSTRATIO_5 = 0x00000005
-        self.FR_POS_FRUSTRATIO_5 = 0x0000FFFB
-        self.FR_NEG_FRUSTRATIO_6 = 0x00000006
-        self.FR_POS_FRUSTRATIO_6 = 0x0000FFFA
+        if not F3DEX_GBI_3:
+            # Clipping Macros
+            self.FR_NEG_FRUSTRATIO_1 = 0x00000001
+            self.FR_POS_FRUSTRATIO_1 = 0x0000FFFF
+            self.FR_NEG_FRUSTRATIO_2 = 0x00000002
+            self.FR_POS_FRUSTRATIO_2 = 0x0000FFFE
+            self.FR_NEG_FRUSTRATIO_3 = 0x00000003
+            self.FR_POS_FRUSTRATIO_3 = 0x0000FFFD
+            self.FR_NEG_FRUSTRATIO_4 = 0x00000004
+            self.FR_POS_FRUSTRATIO_4 = 0x0000FFFC
+            self.FR_NEG_FRUSTRATIO_5 = 0x00000005
+            self.FR_POS_FRUSTRATIO_5 = 0x0000FFFB
+            self.FR_NEG_FRUSTRATIO_6 = 0x00000006
+            self.FR_POS_FRUSTRATIO_6 = 0x0000FFFA
 
         self.G_BZ_PERSP = 0
         self.G_BZ_ORTHO = 1
 
         # Lighting Macros
-        self.numLights = {
-            "NUMLIGHTS_0": 1,
-            "NUMLIGHTS_1": 1,
-            "NUMLIGHTS_2": 2,
-            "NUMLIGHTS_3": 3,
-            "NUMLIGHTS_4": 4,
-            "NUMLIGHTS_5": 5,
-            "NUMLIGHTS_6": 6,
-            "NUMLIGHTS_7": 7,
-        }
+        if F3DEX_GBI_3:
+            self.numLights = {"NUMLIGHTS_" + str(n): n for n in range(10)}
+        else:
+            self.numLights = {"NUMLIGHTS_" + str(n): (1 if n == 0 else n) for n in range(8)}
 
     def GBL_c1(self, m1a, m1b, m2a, m2b):
         return (m1a) << 30 | (m1b) << 26 | (m2a) << 22 | (m2b) << 18
@@ -1648,48 +1734,28 @@ class F3D:
         return int(((1 << self.G_TX_DXT_FRAC) + self.TXL2WORDS_4b(width) - 1) / self.TXL2WORDS_4b(width))
 
     def NUML(self, n):
+        if self.F3DEX_GBI_3:
+            return n * 0x10
         nVal = self.numLights[n]
         return ((nVal) * 24) if self.F3DEX_GBI_2 else (((nVal) + 1) * 32 + 0x80000000)
 
     def getLightMWO_a(self, n):
-        if n == "G_MWO_aLIGHT_1":
-            return self.G_MWO_aLIGHT_1
-        elif n == "G_MWO_aLIGHT_2":
-            return self.G_MWO_aLIGHT_2
-        elif n == "G_MWO_aLIGHT_3":
-            return self.G_MWO_aLIGHT_3
-        elif n == "G_MWO_aLIGHT_4":
-            return self.G_MWO_aLIGHT_4
-        elif n == "G_MWO_aLIGHT_5":
-            return self.G_MWO_aLIGHT_5
-        elif n == "G_MWO_aLIGHT_6":
-            return self.G_MWO_aLIGHT_6
-        elif n == "G_MWO_aLIGHT_7":
-            return self.G_MWO_aLIGHT_7
-        elif n == "G_MWO_aLIGHT_8":
-            return self.G_MWO_aLIGHT_8
+        if n.startswith("G_MWO_aLIGHT_") and hasattr(self, n):
+            return getattr(self, n)
         else:
             raise PluginError("Invalid G_MWO_a value for lights: " + n)
 
     def getLightMWO_b(self, n):
-        if n == "G_MWO_bLIGHT_1":
-            return self.G_MWO_bLIGHT_1
-        elif n == "G_MWO_bLIGHT_2":
-            return self.G_MWO_bLIGHT_2
-        elif n == "G_MWO_bLIGHT_3":
-            return self.G_MWO_bLIGHT_3
-        elif n == "G_MWO_bLIGHT_4":
-            return self.G_MWO_bLIGHT_4
-        elif n == "G_MWO_bLIGHT_5":
-            return self.G_MWO_bLIGHT_5
-        elif n == "G_MWO_bLIGHT_6":
-            return self.G_MWO_bLIGHT_6
-        elif n == "G_MWO_bLIGHT_7":
-            return self.G_MWO_bLIGHT_7
-        elif n == "G_MWO_bLIGHT_8":
-            return self.G_MWO_bLIGHT_8
+        if n.startswith("G_MWO_bLIGHT_") and hasattr(self, n):
+            return getattr(self, n)
         else:
             raise PluginError("Invalid G_MWO_b value for lights: " + n)
+    
+    def _DLHINTVALUE(self, count: int) -> int:
+        remainderCommands = count % self.G_INPUT_BUFFER_CMDS
+        if not self.F3DEX_GBI_3 or count == 0 or remainderCommands == 0:
+            return 0
+        return (self.G_INPUT_BUFFER_CMDS - remainderCommands) << 3
 
 
 g_F3D = {"GBI": None, "f3d_type": None, "isHWv1": None}
@@ -1995,10 +2061,11 @@ class GfxFormatter:
 
 
 class Vtx:
-    def __init__(self, position, uv, colorOrNormal):
+    def __init__(self, position, uv, colorOrNormal, packedNormal = 0):
         self.position = position
         self.uv = uv
         self.colorOrNormal = colorOrNormal
+        self.packedNormal = packedNormal
 
     def to_binary(self):
         signX = 1 if self.uv[0] >= 0 else -1
@@ -2008,7 +2075,7 @@ class Vtx:
             self.position[0].to_bytes(2, "big", signed=True)
             + self.position[1].to_bytes(2, "big", signed=True)
             + self.position[2].to_bytes(2, "big", signed=True)
-            + bytearray([0x00, 0x00])
+            + self.packedNormal.to_bytes(2, "big", signed=True)
             + uv[0].to_bytes(2, "big", signed=True)
             + uv[1].to_bytes(2, "big", signed=True)
             + bytearray(self.colorOrNormal)
@@ -2018,7 +2085,8 @@ class Vtx:
         def spc(x):
             return "{" + ", ".join([str(a) for a in x]) + "}"
 
-        return "{{ " + ", ".join([spc(self.position), "0", spc(self.uv), spc(self.colorOrNormal)]) + " }}"
+        flag = "0" if self.packedNormal == 0 else hex(self.packedNormal)
+        return "{{ " + ", ".join([spc(self.position), flag, spc(self.uv), spc(self.colorOrNormal)]) + " }}"
 
 
 class VtxList:
@@ -3069,8 +3137,9 @@ class Hilite:
 
 
 class Lights:
-    def __init__(self, name):
+    def __init__(self, name, f3d):
         self.name = name
+        self.f3d = f3d
         self.startAddress = 0
         self.a = None
         self.l = []
@@ -3086,21 +3155,36 @@ class Lights:
         romfile.write(self.to_binary())
 
     def size(self):
-        return max(len(self.l), 1) * LIGHT_SIZE + AMBIENT_SIZE
+        if self.f3d.F3DEX_GBI_3:
+            count = len(self.l)
+        else:
+            count = max(len(self.l), 1)
+        return count * LIGHT_SIZE + AMBIENT_SIZE
 
     def getLightPointer(self, i):
-        return self.startAddress + AMBIENT_SIZE + i * LIGHT_SIZE
+        if self.f3d.F3DEX_GBI_3:
+            return self.startAddress + i * LIGHT_SIZE
+        else:
+            return self.startAddress + AMBIENT_SIZE + i * LIGHT_SIZE
 
     def getAmbientPointer(self):
-        return self.startAddress
+        if self.f3d.F3DEX_GBI_3:
+            return self.startAddress + len(self.l) * LIGHT_SIZE
+        else:
+            return self.startAddress
 
     def to_binary(self):
-        data = self.a.to_binary()
-        if len(self.l) == 0:
+        ambientData = self.a.to_binary()
+        data = bytes()
+        if len(self.l) == 0 and not self.f3d.F3DEX_GBI_3:
             data += Light([0, 0, 0], [0, 0, 0]).to_binary()
         else:
             for i in range(len(self.l)):
                 data += self.l[i].to_binary()
+        if self.f3d.F3DEX_GBI_3:
+            data = data + ambientData
+        else:
+            data = ambientData + data
         return data
 
     def to_c(self):
@@ -3115,8 +3199,10 @@ class Lights:
 
 
 class LookAt:
-    def __init__(self, name):
+    # F3DEX3 TODO: update this
+    def __init__(self, name, f3d):
         self.name = name
+        self.f3d = f3d
         self.startAddress = 0
         self.l = []  # 2 lights
 
@@ -3141,7 +3227,7 @@ class LookAt:
             + spc(self.l[1].color)
             + "}, 0, "
             + "{"
-            + spc(self.l[0].normal)
+            + spc(self.l[1].normal)
             + "}, 0}}"
             + "}}\n"
         )
@@ -3369,6 +3455,9 @@ class SPViewport(GbiMacro):
             return gsDma1p(f3d.G_MOVEMEM, vpPtr, VP_SIZE, f3d.G_MV_VIEWPORT)
 
 
+# F3DEX3 TODO: Encoding of hints (and generation of the hint values)
+
+
 @dataclass(unsafe_hash=True)
 class SPDisplayList(GbiMacro):
     displayList: GfxList
@@ -3398,6 +3487,13 @@ class SPBranchList(GbiMacro):
     def to_binary(self, f3d, segments):
         dlPtr = int.from_bytes(encodeSegmentedAddr(self.displayList.startAddress, segments), "big")
         return gsDma1p(f3d.G_DL, dlPtr, 0, f3d.G_DL_NOPUSH)
+
+
+@dataclass(unsafe_hash=True)
+class SPEndDisplayList(GbiMacro):
+    def to_binary(self, f3d, segments):
+        words = _SHIFTL(f3d.G_ENDDL, 24, 8), 0
+        return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
 # SPSprite2DBase
@@ -3519,7 +3615,9 @@ class SPLine3D(GbiMacro):
     flag: int
 
     def to_binary(self, f3d, segments):
-        if f3d.F3DEX_GBI_2:
+        if f3d.F3DEX_GBI_3:
+            raise PluginError("SPLine3D is removed in F3DEX3")
+        elif f3d.F3DEX_GBI_2:
             words = _SHIFTL(f3d.G_LINE3D, 24, 8) | _gsSPLine3D_w1f(self.v0, self.v1, 0, self.flag, f3d), 0
         else:
             words = _SHIFTL(f3d.G_LINE3D, 24, 8), _gsSPLine3D_w1f(self.v0, self.v1, 0, self.flag, f3d)
@@ -3534,7 +3632,9 @@ class SPLineW3D(GbiMacro):
     flag: int
 
     def to_binary(self, f3d, segments):
-        if f3d.F3DEX_GBI_2:
+        if f3d.F3DEX_GBI_3:
+            raise PluginError("SPLineW3D is removed in F3DEX3")
+        elif f3d.F3DEX_GBI_2:
             words = _SHIFTL(f3d.G_LINE3D, 24, 8) | _gsSPLine3D_w1f(self.v0, self.v1, self.wd, self.flag, f3d), 0
         else:
             words = _SHIFTL(f3d.G_LINE3D, 24, 8), _gsSPLine3D_w1f(self.v0, self.v1, self.wd, self.flag, f3d)
@@ -3564,6 +3664,10 @@ class SP2Triangles(GbiMacro):
             raise PluginError("SP2Triangles not available in Fast3D.")
 
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
+
+
+# F3DEX3 TODO: Encoding of _g*SP5Triangles commands (SPTriangleStrip, SPTriangleFan)
+# and support for these in export including tri reordering
 
 
 @dataclass(unsafe_hash=True)
@@ -3597,6 +3701,9 @@ class SPClipRatio(GbiMacro):
     ratio: int
 
     def to_binary(self, f3d, segments):
+        if f3d.F3DEX_GBI_3:
+            return gsSPNoOp(f3d)
+        
         # These values are supposed to be flipped.
         shortRatioPos = int.from_bytes((-self.ratio).to_bytes(2, "big", signed=True), "big", signed=False)
         shortRatioNeg = int.from_bytes(self.ratio.to_bytes(2, "big", signed=True), "big", signed=False)
@@ -3614,6 +3721,78 @@ class SPClipRatio(GbiMacro):
 
 # SPInsertMatrix
 # SPForceMatrix
+
+
+@dataclass(unsafe_hash=True)
+class SPAmbOcclusion(GbiMacro):
+    amb: int
+    dir: int
+
+    def to_binary(self, f3d, segments):
+        if not f3d.F3DEX_GBI_3:
+            raise PluginError("SPAmbOcclusion requires F3DEX3 microcode")
+        return gsMoveWd(f3d.G_MW_FX, f3d.G_MWO_AMB_OCCLUSION,
+            (_SHIFTL(self.amb, 16, 16) | _SHIFTL(self.dir, 0, 16)), f3d)
+
+
+@dataclass(unsafe_hash=True)
+class SPFresnel(GbiMacro):
+    offset: int
+    scale: int
+
+    def to_binary(self, f3d, segments):
+        if not f3d.F3DEX_GBI_3:
+            raise PluginError("SPFresnel requires F3DEX3 microcode")
+        return gsMoveWd(f3d.G_MW_FX, f3d.G_MWO_FRESNEL,
+            (_SHIFTL(self.offset, 16, 16) | _SHIFTL(self.scale, 0, 16)), f3d)
+
+
+@dataclass(unsafe_hash=True)
+class SPAttrOffsetST(GbiMacro):
+    s: int
+    t: int
+
+    def to_binary(self, f3d, segments):
+        if not f3d.F3DEX_GBI_3:
+            raise PluginError("SPAttrOffsetST requires F3DEX3 microcode")
+        return gsMoveWd(f3d.G_MW_FX, f3d.G_MWO_ATTR_OFFSET_ST,
+            (_SHIFTL(self.s, 16, 16) | _SHIFTL(self.t, 0, 16)), f3d)
+
+
+@dataclass(unsafe_hash=True)
+class SPAttrOffsetZ(GbiMacro):
+    z: int
+
+    def to_binary(self, f3d, segments):
+        if not f3d.F3DEX_GBI_3:
+            raise PluginError("SPAttrOffsetZ requires F3DEX3 microcode")
+        return gsMoveWd(f3d.G_MW_FX, f3d.G_MWO_ATTR_OFFSET_Z,
+            (_SHIFTL(self.z, 16, 16)), f3d)
+
+
+@dataclass(unsafe_hash=True)
+class SPNormalsMode(GbiMacro):
+    mode: int
+
+    def to_binary(self, f3d, segments):
+        if not f3d.F3DEX_GBI_3:
+            raise PluginError("SPNormalsMode requires F3DEX3 microcode")
+        return gsMoveWd(f3d.G_MW_FX, f3d.G_MWO_NORMALS_MODE, mode, f3d)
+
+
+# F3DEX3 TODO: SPMITMatrix
+
+
+@dataclass(unsafe_hash=True)
+class SPAlphaCompareCull(GbiMacro):
+    mode: int
+    thresh: int
+
+    def to_binary(self, f3d, segments):
+        if not f3d.F3DEX_GBI_3:
+            raise PluginError("SPAlphaCompareCull requires F3DEX3 microcode")
+        return gsMoveWd(f3d.G_MW_FX, f3d.G_MWO_ALPHA_COMPARE_CULL,
+            (_SHIFTL(self.mode, 24, 8) | _SHIFTL(self.thresh, 16, 8)), f3d)
 
 
 @dataclass(unsafe_hash=True)
@@ -3663,6 +3842,9 @@ class SPBranchLessZraw(GbiMacro):
         return GFX_SIZE * 2
 
 
+# F3DEX3 TODO: SPWFarThreshold, SPBoundingVerts, SPReturnNoneVisible,
+# SPPopBranchNotVisible, SPPopCallVisible, SPLoadBoundingFlags
+
 # SPLoadUcode (RSP)
 
 # SPDma_io
@@ -3687,14 +3869,30 @@ class SPLight(GbiMacro):
     light: int  # start address of light
     n: str
     _segptrs = True  # call segmented_to_virtual in to_c method
+    _size = LIGHT_SIZE
 
     def to_binary(self, f3d, segments):
         lightPtr = int.from_bytes(encodeSegmentedAddr(self.light, segments), "big")
+        idx = lightIndex[self.n]
         if f3d.F3DEX_GBI_2:
-            data = gsDma2p(f3d.G_MOVEMEM, lightPtr, LIGHT_SIZE, f3d.G_MV_LIGHT, lightIndex[self.n] * 24 + 24)
+            if f3d.F3DEX_GBI_3:
+                offset = (idx - 1) * 0x10 + 0x10
+            else:
+                offset = idx * 24 + 24
+            data = gsDma2p(f3d.G_MOVEMEM, lightPtr, self._size, f3d.G_MV_LIGHT, offset)
         else:
-            data = gsDma1p(f3d.G_MOVEMEM, lightPtr, LIGHT_SIZE, (lightIndex[self.n] - 1) * 2 + f3d.G_MV_L0)
+            data = gsDma1p(f3d.G_MOVEMEM, lightPtr, self._size, (idx - 1) * 2 + f3d.G_MV_L0)
         return data
+
+
+@dataclass(unsafe_hash=True)
+class SPAmbient(SPLight):
+    _size = AMBIENT_SIZE
+
+    def to_binary(self, f3d, segments):
+        if not f3d.F3DEX_GBI_3:
+            raise PluginError("SPAmbient requires F3DEX3 microcode")
+        return super().to_binary(f3d, segments)
 
 
 @dataclass(unsafe_hash=True)
@@ -3718,6 +3916,8 @@ class SPSetLights(GbiMacro):
     lights: Lights
 
     def get_ptr_offsets(self, f3d):
+        if f3d.F3DEX_GBI_3:
+            return [12]
         offsets = []
         if len(self.lights.l) == 0:
             offsets = [12, 20]
@@ -3730,7 +3930,15 @@ class SPSetLights(GbiMacro):
 
     def to_binary(self, f3d, segments):
         data = SPNumLights("NUMLIGHTS_" + str(len(self.lights.l))).to_binary(f3d, segments)
-        if len(self.lights.l) == 0:
+        if f3d.F3DEX_GBI_3:
+            data += gsDma2p(
+                f3d.G_MOVEMEM,
+                self.lights.startAddress,
+                len(self.lights.l) * 0x10 + 8,
+                f3d.G_MV_LIGHT,
+                0x10
+            )
+        elif len(self.lights.l) == 0:
             # The light does not exist in python, but is added in
             # when converted to binary, making this address valid.
             data += SPLight(self.lights.getLightPointer(0), "LIGHT_1").to_binary(f3d, segments)
@@ -3756,8 +3964,13 @@ class SPSetLights(GbiMacro):
         return header + ")"
 
     def size(self, f3d):
-        return GFX_SIZE * (2 + max(len(self.lights.l), 1))
+        if f3d.F3DEX_GBI_3:
+            return GFX_SIZE * 2
+        else:
+            return GFX_SIZE * (2 + max(len(self.lights.l), 1))
 
+
+# F3DEX3 TODO: SPCameraWorld
 
 # Reflection/Hiliting Macros
 
@@ -3782,8 +3995,11 @@ class SPLookAt(GbiMacro):
     _ptr_amp = True  # add an ampersand to names
 
     def to_binary(self, f3d, segments):
-        light0Ptr = int.from_bytes(encodeSegmentedAddr(self.la.startAddress, segments), "big")
-        return gsSPLookAtX(light0Ptr, f3d) + gsSPLookAtY(light0Ptr + 16, f3d)
+        lookAtPtr = int.from_bytes(encodeSegmentedAddr(self.la.startAddress, segments), "big")
+        if f3d.F3DEX_GBI_3:
+            return gsDma2p(f3d.G_MOVEMEM, lookAtPtr, 8, f3d.G_MV_LIGHT, 8)
+        else:
+            return gsSPLookAtX(lookAtPtr, f3d) + gsSPLookAtY(lookAtPtr + 16, f3d)
 
 
 @dataclass(unsafe_hash=True)
@@ -3896,13 +4112,6 @@ class SPPerspNormalize(GbiMacro):
 # SPPopMatrix
 
 
-@dataclass(unsafe_hash=True)
-class SPEndDisplayList(GbiMacro):
-    def to_binary(self, f3d, segments):
-        words = _SHIFTL(f3d.G_ENDDL, 24, 8), 0
-        return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
-
-
 def gsSPGeometryMode_F3DEX_GBI_2(c, s, f3d):
     words = (_SHIFTL(f3d.G_GEOMETRYMODE, 24, 8) | _SHIFTL(~c, 0, 24)), s
     return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
@@ -3916,32 +4125,8 @@ def gsSPGeometryMode_Non_F3DEX_GBI_2(word, f3d):
 def geoFlagListToWord(flagList, f3d):
     word = 0
     for name in flagList:
-        if name == "G_ZBUFFER":
-            word += f3d.G_ZBUFFER
-        elif name == "G_SHADE":
-            word += f3d.G_SHADE
-        elif name == "G_TEXTURE_ENABLE":
-            word += f3d.G_TEXTURE_ENABLE
-        elif name == "G_SHADING_SMOOTH":
-            word += f3d.G_SHADING_SMOOTH
-        elif name == "G_CULL_FRONT":
-            word += f3d.G_CULL_FRONT
-        elif name == "G_CULL_BACK":
-            word += f3d.G_CULL_BACK
-        elif name == "G_CULL_BOTH":
-            word += f3d.G_CULL_BOTH
-        elif name == "G_FOG":
-            word += f3d.G_FOG
-        elif name == "G_LIGHTING":
-            word += f3d.G_LIGHTING
-        elif name == "G_TEXTURE_GEN":
-            word += f3d.G_TEXTURE_GEN
-        elif name == "G_TEXTURE_GEN_LINEAR":
-            word += f3d.G_TEXTURE_GEN_LINEAR
-        elif name == "G_LOD":
-            word += f3d.G_LOD
-        elif name == "G_CLIPPING":
-            word += f3d.G_CLIPPING
+        if name in f3d.allGeomModeFlags:
+            word += getattr(f3d, name)
         else:
             raise PluginError("Invalid geometry mode flag " + name)
 
@@ -4488,6 +4673,45 @@ class DPSetPrimColor(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
+class SPLightToRDP(GbiMacro):
+    light: int
+    alpha: int
+    word0: int  # word0 of the command to write, which is word1 of this command
+
+    def to_binary(self, f3d, segments):
+        if not f3d.F3DEX_GBI_3:
+            raise PluginError("SPLightToRDP requires F3DEX3 microcode")
+        word = _SHIFTL(f3d.G_LIGHTTORDP, 24, 8) | _SHIFTL(self.light * 0x10, 8, 8) | _SHIFTL(self.alpha, 0, 8))
+        return word.to_bytes(4, "big") + self.word0.to_bytes(4, "big")
+
+
+@dataclass(unsafe_hash=True)
+class SPLightToPrimColor(GbiMacro):
+    light: int
+    alpha: int
+    m: int
+    l: int
+
+    def to_binary(self, f3d, segments):
+        if not f3d.F3DEX_GBI_3:
+            raise PluginError("SPLightToPrimColor requires F3DEX3 microcode")
+        word0 = (_SHIFTL(f3d.G_SETPRIMCOLOR, 24, 8) | _SHIFTL(self.m, 8, 8) | _SHIFTL(self.l, 0, 8))
+        return SPLightToRDP(self.light, self.alpha, word0).to_binary(f3d, segments)
+
+
+@dataclass(unsafe_hash=True)
+class SPLightToEnvColor(GbiMacro):
+    light: int
+    alpha: int
+
+    def to_binary(self, f3d, segments):
+        if not f3d.F3DEX_GBI_3:
+            raise PluginError("SPLightToEnvColor requires F3DEX3 microcode")
+        word0 = _SHIFTL(f3d.G_SETENVCOLOR, 24, 8)
+        return SPLightToRDP(self.light, self.alpha, word0).to_binary(f3d, segments)
+
+
+@dataclass(unsafe_hash=True)
 class DPSetOtherMode(GbiMacro):
     mode0: list
     mode1: list
@@ -4570,6 +4794,9 @@ class DPSetTile(GbiMacro):
 
     def is_LOADTILE(self, f3d):
         return self.tile == f3d.G_TX_LOADTILE
+
+
+# F3DEX3 TODO: DPLoadBlockTag and putting tag values in DPLoadBlock
 
 
 @dataclass(unsafe_hash=True)

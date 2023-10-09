@@ -508,7 +508,7 @@ class F3DContext:
         self.verts: list[F3DVert] = []
         self.limbGroups: dict[str : list[int]] = {}  # dict of groupName : vertex indices
 
-        self.lights: Lights = Lights("lights_context")
+        self.lights: Lights = Lights("lights_context", self.f3d)
 
         # Here these are ints, but when parsing the values will be normalized.
         self.lights.l = [
@@ -576,7 +576,7 @@ class F3DContext:
 
         self.tileSizes = [DPSetTileSize(i, 0, 0, 32, 32) for i in range(8)]
 
-        self.lights = Lights("lights_context")
+        self.lights = Lights("lights_context", self.f3d)
         self.lights.l = [
             Light([0, 0, 0], [0x28, 0x28, 0x28]),
             Light([0, 0, 0], [0x28, 0x28, 0x28]),
@@ -600,14 +600,14 @@ class F3DContext:
             # decomp format
             "\{\s*\{\s*"
             + "\{([^,\}]*),([^,\}]*),([^,\}]*)\}\s*,"
-            + "[^,\}]*,\s*"
+            + "([^,\}]*),\s*"
             + "\{([^,\}]*),([^,\}]*)\}\s*,\s*"
             + "\{([^,\}]*),([^,\}]*),([^,\}]*),([^,\}]*)\}\s*"
             + "\}\s*\}",
             # nusys format
             "\{\s*"
             + "([^,\}]*),([^,\}]*),([^,\}]*),"
-            + "[^,\}]*,"
+            + "([^,\}]*),"
             + "([^,\}]*),([^,\}]*),"
             + "([^,\}]*),([^,\}]*),([^,\}]*),([^,\}]*)\s*"
             + "\}",
@@ -656,18 +656,19 @@ class F3DContext:
         uv = [convertF3DUV(f3dVert.uv[i], texDimensions[i]) for i in range(2)]
         uv[1] = 1 - uv[1]
 
-        color = [
-            value / 256
-            if value > 0
-            else int.from_bytes(round(value).to_bytes(1, "big", signed=True), "big", signed=False) / 256
-            for value in f3dVert.getColorOrNormal()
-        ]
-
-        normal = bytesToNormal(f3dVert.getColorOrNormal()[:3]) + [0]
-        normal = (transform.inverted().transposed() @ mathutils.Vector(normal)).normalized()[:3]
+        has_rgb, has_normal, has_packed_normals = getRgbNormalSettings(self.mat())
+        rgb = mathutils.Vector([v / 0xFF for v in f3dVert.rgb]) if has_rgb else None
+        alpha = f3dVert.alpha / 0xFF
+        normal = None
+        if has_normal:
+            if has_packed_normals:
+                normal = f3dVert.normal
+            else:
+                normal = mathutils.Vector([v - 0x100 if v >= 0x80 else v for v in f3dVert.rgb]).normalized()
+            normal = (transform.inverse().transposed() @ normal).normalized()
 
         # NOTE: The groupIndex here does NOT correspond to a vertex group, but to the name of the limb (c variable)
-        return BufferVertex(F3DVert(position, uv, color, normal), bufferVert.groupIndex, bufferVert.materialIndex)
+        return BufferVertex(F3DVert(position, uv, rgb, normal, alpha), bufferVert.groupIndex, bufferVert.materialIndex)
 
     def addVertices(self, num, start, vertexDataName, vertexDataOffset):
         vertexData = self.vertexData[vertexDataName]
@@ -879,6 +880,18 @@ class F3DContext:
             mat.rdp_settings.g_cull_front = value
         if bitFlags & self.f3d.G_CULL_BACK:
             mat.rdp_settings.g_cull_back = value
+        if bitFlags & self.f3d.G_ATTROFFSET_ST_ENABLE:
+            mat.rdp_settings.g_attroffset_st_enable = value
+        if bitFlags & self.f3d.G_ATTROFFSET_Z_ENABLE:
+            mat.rdp_settings.g_attroffset_z_enable = value
+        if bitFlags & self.f3d.G_PACKED_NORMALS:
+            mat.rdp_settings.g_packed_normals = value
+        if bitFlags & self.f3d.G_LIGHTTOALPHA:
+            mat.rdp_settings.g_lighttoalpha = value
+        if bitFlags & self.f3d.G_AMBOCCLUSION:
+            mat.rdp_settings.g_ambocclusion = value
+        if bitFlags & self.f3d.G_FRESNEL:
+            mat.rdp_settings.g_fresnel = value
         if bitFlags & self.f3d.G_FOG:
             mat.rdp_settings.g_fog = value
         if bitFlags & self.f3d.G_LIGHTING:
@@ -887,6 +900,8 @@ class F3DContext:
             mat.rdp_settings.g_tex_gen = value
         if bitFlags & self.f3d.G_TEXTURE_GEN_LINEAR:
             mat.rdp_settings.g_tex_gen_linear = value
+        if bitFlags & self.f3d.G_LOD:
+            mat.rdp_settings.g_lod = value
         if bitFlags & self.f3d.G_SHADING_SMOOTH:
             mat.rdp_settings.g_shade_smooth = value
         if bitFlags & self.f3d.G_CLIPPING:
@@ -901,10 +916,17 @@ class F3DContext:
         mat.rdp_settings.g_shade = bitFlags & self.f3d.G_SHADE != 0
         mat.rdp_settings.g_cull_front = bitFlags & self.f3d.G_CULL_FRONT != 0
         mat.rdp_settings.g_cull_back = bitFlags & self.f3d.G_CULL_BACK != 0
+        mat.rdp_settings.g_attroffset_st_enable = bitFlags & self.f3d.G_ATTROFFSET_ST_ENABLE != 0
+        mat.rdp_settings.g_attroffset_z_enable = bitFlags & self.f3d.G_ATTROFFSET_Z_ENABLE != 0
+        mat.rdp_settings.g_packed_normals = bitFlags & self.f3d.G_PACKED_NORMALS != 0
+        mat.rdp_settings.g_lighttoalpha = bitFlags & self.f3d.G_LIGHTTOALPHA != 0
+        mat.rdp_settings.g_ambocclusion = bitFlags & self.f3d.G_AMBOCCLUSION != 0
+        mat.rdp_settings.g_fresnel = bitFlags & self.f3d.G_FRESNEL != 0
         mat.rdp_settings.g_fog = bitFlags & self.f3d.G_FOG != 0
         mat.rdp_settings.g_lighting = bitFlags & self.f3d.G_LIGHTING != 0
         mat.rdp_settings.g_tex_gen = bitFlags & self.f3d.G_TEXTURE_GEN != 0
         mat.rdp_settings.g_tex_gen_linear = bitFlags & self.f3d.G_TEXTURE_GEN_LINEAR != 0
+        mat.rdp_settings.g_lod = bitFlags & self.f3d.G_LOD != 0
         mat.rdp_settings.g_shade_smooth = bitFlags & self.f3d.G_SHADING_SMOOTH != 0
         mat.rdp_settings.g_clipping = bitFlags & self.f3d.G_CLIPPING != 0
 
@@ -1245,7 +1267,7 @@ class F3DContext:
 
         # normally a and l are Ambient and Light objects,
         # but here they will be a color and blender light object array.
-        lights = Lights(lightsName)
+        lights = Lights(lightsName, self.f3d)
         lights.a = Ambient(ambientColor)
         lights.l = lightList
 
@@ -1547,6 +1569,27 @@ class F3DContext:
                     self.setLightColor(dlData, command)
                 elif command.name[:13] == "gsSPSetLights":
                     self.setLights(dlData, command)
+                elif command.name == "gsSPAmbOcclusion":
+                    mat.ao_ambient = float(int(command.params[0])) / (2**16)
+                    mat.ao_directional = float(int(command.params[1])) / (2**16)
+                    mat.set_ao = True
+                elif command.name == "gsSPFresnel":
+                    offset = min(float(int(command.params[0])) / (2**15), 1.0)
+                    scale = int(command.params[1])
+                    scaleInt = -(0x10000 - scale) if scale >= 0x8000 else scale
+                    scale = float(scaleInt) / (2**8)
+                    mat.fresnel_lo = offset
+                    mat.fresnel_hi = (1.0 / scale) + offset
+                    mat.set_fresnel = True
+                elif command.name == "gsSPAttrOffsetST":
+                    mat.attroffs_st = [
+                        from_s16_str(command.params[0]) / 32,
+                        from_s16_str(command.params[1]) / 32
+                    ]
+                    mat.set_attroffs_st = True
+                elif command.name == "gsSPAttrOffsetZ":
+                    mat.attroffs_z = from_s16_str(command.params[0])
+                    mat.set_attroffs_z = True
                 elif command.name == "gsSPFogFactor":
                     pass
                 elif command.name == "gsSPFogPosition":

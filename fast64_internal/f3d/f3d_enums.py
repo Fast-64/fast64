@@ -363,6 +363,7 @@ enumF3D = [
     ("F3DLP.Rej", "F3DLP.Rej", "F3DLP.Rej"),
     ("F3DEX2/LX2", "F3DEX2/LX2", "F3DEX2/LX2"),
     ("F3DEX2.Rej/LX2.Rej", "F3DEX2.Rej/LX2.Rej", "F3DEX2.Rej/LX2.Rej"),
+    ("F3DEX3", "F3DEX3", "F3DEX3"),
 ]
 
 enumLargeEdges = [

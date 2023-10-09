@@ -6,7 +6,7 @@ from bpy.utils import register_class, unregister_class
 from mathutils import Color
 
 from .f3d_enums import *
-from .f3d_gbi import get_F3D_GBI, GBL_c1, GBL_c2, enumTexScroll
+from .f3d_gbi import get_F3D_GBI, GBL_c1, GBL_c2, enumTexScroll, isUcodeF3DEX1
 from .f3d_material_presets import *
 from ..utility import *
 from ..render_settings import Fast64RenderSettings_Properties, update_scene_props_from_render_settings
@@ -151,6 +151,30 @@ def update_draw_layer(self, context):
         material.f3d_mat.presetName = "Custom"
         update_blend_method(material, context)
         set_output_node_groups(material)
+
+
+def all_blender_uses(rdp_settings):
+    '''
+    Returns a dictionary of the external features which the blender may or may
+    not use, or None if set_rendermode is disabled so we don't know.
+    '''
+    if not rdp_settings.set_rendermode:
+        return None
+    is_one_cycle = rdp_settings.g_mdsft_cycletype == "G_CYC_1CYCLE"
+    if rdp_settings.rendermode_advanced_enabled:
+        useZ = rdp_settings.z_cmp or rdp_settings.z_upd
+        useShade = rdp_settings.blend_a1 == "G_BL_A_SHADE"
+        if not is_one_cycle:
+            useShade = useShade or rdp_settings.blend_a2 == "G_BL_A_SHADE"
+    else:
+        f3d = get_F3D_GBI()
+        r1 = getattr(f3d, rdp_settings.rendermode_preset_cycle_1, f3d.G_RM_AA_ZB_OPA_SURF)
+        r2 = getattr(f3d, rdp_settings.rendermode_preset_cycle_2, f3d.G_RM_AA_ZB_OPA_SURF)
+        if is_one_cycle:
+            r2 = 0
+        useZ = bool((r1 | r2) & (f3d.Z_CMP | f3d.Z_UPD))
+        useShade = ((r1 >> 26) & 3) == f3d.G_BL_A_SHADE or ((r2 >> 24) & 3) == f3d.G_BL_A_SHADE
+    return {"Shade Alpha": useShade, "Z Buffer": useZ}
 
 
 def get_blend_method(material):
@@ -404,17 +428,99 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             icon="TRIA_DOWN" if dataHolder.menu_geo else "TRIA_RIGHT",
         )
     if not useDropdown or dataHolder.menu_geo:
-        inputGroup.prop(settings, "g_zbuffer", text="Z Buffer")
-        inputGroup.prop(settings, "g_shade", text="Shading")
-        inputGroup.prop(settings, "g_cull_front", text="Cull Front")
-        inputGroup.prop(settings, "g_cull_back", text="Cull Back")
-        inputGroup.prop(settings, "g_fog", text="Fog")
-        inputGroup.prop(settings, "g_lighting", text="Lighting")
-        inputGroup.prop(settings, "g_tex_gen", text="Texture UV Generate")
-        inputGroup.prop(settings, "g_tex_gen_linear", text="Texture UV Generate Linear")
-        inputGroup.prop(settings, "g_shade_smooth", text="Smooth Shading")
-        if bpy.context.scene.f3d_type == "F3DEX_GBI_2" or bpy.context.scene.f3d_type == "F3DEX_GBI":
-            inputGroup.prop(settings, "g_clipping", text="Clipping")
+        
+        def indentGroup(parent, textOrProp, isText: bool):
+            c = parent.column(align=True)
+            if isText:
+                c.label(text=textOrProp)
+            else:
+                c.prop(settings, textOrProp)
+                if not getattr(settings, textOrProp):
+                    return None
+            c = c.split(factor=0.1)
+            c.label(text="")
+            c = c.column(align=True)
+            return c
+        
+        isF3DEX3 = bpy.context.scene.f3d_type == "F3DEX3"
+        if isinstance(dataHolder, F3DMaterialProperty):
+            ccWarnings = blendWarnings = True
+            ccUse = all_combiner_uses(dataHolder)
+            shadeInCC = ccUse["Shade"] or ccUse["Shade Alpha"]
+            blendUse = all_blender_uses(settings)
+            if blendUse is None:
+                blendWarnings = shadeInBlender = zInBlender = False
+            else:
+                shadeInBlender = blendUse["Shade Alpha"]
+                zInBlender = blendUse["Z Buffer"]
+        else:
+            ccWarnings = shadeInCC = False
+            blendWarnings = shadeInBlender = zInBlender = False
+
+        inputGroup.prop(settings, "g_shade_smooth")
+
+        c = indentGroup(inputGroup, "g_lighting", False)
+        if c is not None:
+            if ccWarnings and not shadeInCC and not settings.g_tex_gen:
+                c.label(text="Shade not used in CC, can disable lighting.", icon="INFO")
+            if isF3DEX3:
+                c.prop(settings, "g_packed_normals")
+                c.prop(settings, "g_ambocclusion")
+            d = indentGroup(c, "g_tex_gen", False)
+            if d is not None:
+                d.prop(settings, "g_tex_gen_linear")
+
+        light_to_alpha_prereq = isF3DEX3 and settings.g_lighting
+        if settings.g_fog:
+            shadeAlphaLabel = "Fog"
+        elif light_to_alpha_prereq and settings.g_lighttoalpha:
+            shadeAlphaLabel = "Light intensity"
+        else:
+            shadeAlphaLabel = "Vtx alpha"
+        c = indentGroup(inputGroup, f"Shade alpha = {shadeAlphaLabel}:", True)
+        if light_to_alpha_prereq:
+            c.prop(settings, "g_lighttoalpha")
+        c.prop(settings, "g_fog")
+        if light_to_alpha_prereq and settings.g_lighttoalpha and settings.g_fog:
+            c.label(text="Fog overrides Light-to-Alpha.", icon="ERROR")
+        if blendWarnings and shadeInBlender and not settings.g_fog:
+            c.label(text="Rendermode uses shade alpha, probably fog.", icon="INFO")
+        if blendWarnings and not shadeInBlender and settings.g_fog:
+            c.label(text="Fog not used in rendermode / blender, can disable.", icon="INFO")
+
+        if isF3DEX3:
+            c = indentGroup(inputGroup, "Attribute offsets:", True)
+            c.prop(settings, "g_attroffset_st_enable")
+            c.prop(settings, "g_attroffset_z_enable")
+
+        c = indentGroup(inputGroup, "Face culling:", True)
+        c.prop(settings, "g_cull_front")
+        c.prop(settings, "g_cull_back")
+        if settings.g_cull_front and settings.g_cull_back:
+            c.label(text="Nothing will be drawn.", icon="ERROR")
+
+        c = indentGroup(inputGroup, "Disable if not using:", True)
+        c.prop(settings, "g_zbuffer")
+        if blendWarnings and not settings.g_zbuffer and zInBlender:
+            c.label(text="Rendermode / blender using Z, must enable.", icon="ERROR")
+        elif blendWarnings and settings.g_zbuffer and not zInBlender:
+            c.label(text="Z is not being used, can disable.", icon="INFO")
+        c.prop(settings, "g_shade")
+        if ccWarnings and not settings.g_shade and (shadeInCC or shadeInBlender):
+            if shadeInCC and shadeInBlender:
+                where = "CC and blender"
+            elif shadeInCC:
+                where = "CC"
+            else:
+                where = "rendermode / blender"
+            c.label(text=f"Shade in use in {where}, must enable.", icon="ERROR")
+        elif ccWarnings and settings.g_shade and not shadeInCC and not shadeInBlender:
+            c.label(text="Shade is not being used, can disable.", icon="INFO")
+
+        c = indentGroup(inputGroup, "Not useful:", True)
+        c.prop(settings, "g_lod")
+        if isUcodeF3DEX1(bpy.context.scene.f3d_type):
+            c.prop(settings, "g_clipping")
 
 
 def ui_upper_mode(settings, dataHolder, layout: bpy.types.UILayout, useDropdown):
@@ -755,9 +861,44 @@ class F3DPanel(bpy.types.Panel):
         elif context.scene.gameEditorMode == "OOT":
             prop_split(layout, material.f3d_mat.draw_layer, "oot", "Draw Layer")
 
-    def ui_fog(self, f3dMat, inputCol, showCheckBox):
+    def ui_misc(self, f3dMat, inputCol, showCheckBox):
+        if f3dMat.rdp_settings.g_ambocclusion:
+            if showCheckBox or f3dMat.set_ao:
+                inputGroup = inputCol.column()
+            if showCheckBox:
+                inputGroup.prop(f3dMat, "set_ao", text="Set Ambient Occlusion")
+            if f3dMat.set_ao:
+                prop_split(inputGroup.row(), f3dMat, "ao_ambient", "AO Ambient")
+                prop_split(inputGroup.row(), f3dMat, "ao_directional", "AO Directional")
+                
+        if f3dMat.rdp_settings.g_fresnel:
+            if showCheckBox or f3dMat.set_fresnel:
+                inputGroup = inputCol.column()
+            if showCheckBox:
+                inputGroup.prop(f3dMat, "set_fresnel", text="Set Fresnel")
+            if f3dMat.set_fresnel:
+                prop_split(inputGroup.row(), f3dMat, "fresnel_lo", "Fresnel Lo")
+                prop_split(inputGroup.row(), f3dMat, "fresnel_hi", "Fresnel Hi")
+
+        if f3dMat.rdp_settings.g_attroffset_st_enable:
+            if showCheckBox or f3dMat.set_attroffs_st:
+                inputGroup = inputCol.column()
+            if showCheckBox:
+                inputGroup.prop(f3dMat, "set_attroffs_st", text="Set ST Attr Offset")
+            if f3dMat.set_attroffs_st:
+                prop_split(inputGroup.row(), f3dMat, "attroffs_st", "ST Attr Offset")
+
+        if f3dMat.rdp_settings.g_attroffset_z_enable:
+            if showCheckBox or f3dMat.set_attroffs_z:
+                inputGroup = inputCol.column()
+            if showCheckBox:
+                inputGroup.prop(f3dMat, "set_attroffs_z", text="Set Z Attr Offset")
+            if f3dMat.set_attroffs_z:
+                prop_split(inputGroup.row(), f3dMat, "attroffs_z", "Z Attr Offset")
+
         if f3dMat.rdp_settings.g_fog:
-            inputGroup = inputCol.column()
+            if showCheckBox or f3dMat.set_fog:
+                inputGroup = inputCol.column()
             if showCheckBox:
                 inputGroup.prop(f3dMat, "set_fog", text="Set Fog")
             if f3dMat.set_fog:
@@ -765,12 +906,8 @@ class F3DPanel(bpy.types.Panel):
                 if f3dMat.use_global_fog:
                     inputGroup.label(text="Only applies to levels (area fog settings).", icon="INFO")
                 else:
-                    fogColorGroup = inputGroup.row().split(factor=0.5)
-                    fogColorGroup.label(text="Fog Color")
-                    fogColorGroup.prop(f3dMat, "fog_color", text="")
-                    fogPositionGroup = inputGroup.row().split(factor=0.5)
-                    fogPositionGroup.label(text="Fog Range")
-                    fogPositionGroup.prop(f3dMat, "fog_position", text="")
+                    prop_split(inputGroup.row(), f3dMat, "fog_color", "Fog Color")
+                    prop_split(inputGroup.row(), f3dMat, "fog_position", "Fog Range")
 
     def drawVertexColorNotice(self, layout):
         noticeBox = layout.box().column()
@@ -836,8 +973,7 @@ class F3DPanel(bpy.types.Panel):
         if useDict["Convert"] and f3dMat.set_k0_5:
             self.ui_convert(f3dMat, inputCol, False)
 
-        if f3dMat.set_fog:
-            self.ui_fog(f3dMat, inputCol, False)
+        self.ui_misc(f3dMat, inputCol, False)
 
     def draw_full(self, f3dMat, material, layout: bpy.types.UILayout, context):
         layout.row().prop(material, "menu_tab", expand=True)
@@ -936,7 +1072,7 @@ class F3DPanel(bpy.types.Panel):
             if useDict["Convert"]:
                 self.ui_convert(f3dMat, inputCol, True)
 
-            self.ui_fog(f3dMat, inputCol, True)
+            self.ui_misc(f3dMat, inputCol, True)
 
         if menuTab == "Geo":
             ui_geo_mode(f3dMat.rdp_settings, f3dMat, layout, False)
@@ -2547,6 +2683,7 @@ class RDPSettings(bpy.types.PropertyGroup):
     # v1/2 difference
     g_cull_front: bpy.props.BoolProperty(
         name="Cull Front",
+        default=False,
         update=update_node_values_with_preset,
         description="Disables drawing of front faces"
     )
@@ -2557,8 +2694,45 @@ class RDPSettings(bpy.types.PropertyGroup):
         update=update_node_values_with_preset,
         description="Disables drawing of back faces"
     )
+    g_attroffset_st_enable: bpy.props.BoolProperty(
+        name="ST Offset (for UV scroll)",
+        default=False,
+        update=update_node_values_with_preset,
+        description="F3DEX3: Enables offsets to vertex ST values, usually for UV scrolling"
+    )
+    g_attroffset_z_enable: bpy.props.BoolProperty(
+        name="Z Offset (for decal fix)",
+        default=False,
+        update=update_node_values_with_preset,
+        description="F3DEX3: Enables offset to vertex Z. To fix decals, set the Z mode to opaque and enable this"
+    )
+    g_packed_normals: bpy.props.BoolProperty(
+        name="Packed Normals (Vtx Colors + Lighting)",
+        default=False,
+        update=update_node_values_with_preset,
+        description="F3DEX3: Packs vertex normals in unused 16 bits of each vertex, enabling simultaneous vertex colors and lighting"
+    )
+    g_lighttoalpha: bpy.props.BoolProperty(
+        name="Light to Alpha (for cel shading)",
+        default=False,
+        update=update_node_values_with_preset,
+        description="F3DEX3: Moves light intensity to shade alpha, used for cel shading and other effects"
+    )
+    g_ambocclusion: bpy.props.BoolProperty(
+        name="Ambient Occlusion",
+        default=False,
+        update=update_node_values_with_preset,
+        description="F3DEX3: Scales ambient and/or directional light intensity with vertex alpha. Bake scene shadows / AO into vertex alpha, not vertex color"
+    )
+    g_fresnel: bpy.props.BoolProperty(
+        name="Fresnel",
+        default=False,
+        update=update_node_values_with_preset,
+        description="F3DEX3: Shade alpha derived from how much each vertex normal faces the camera. For water and toon outlines"
+    )
     g_fog: bpy.props.BoolProperty(
         name="Fog",
+        default=False,
         update=update_node_values_with_preset,
         description="Turns on/off fog calculation. Fog variable gets stored into shade alpha"
     )
@@ -2566,29 +2740,37 @@ class RDPSettings(bpy.types.PropertyGroup):
         name="Lighting",
         default=True,
         update=update_node_values_with_preset,
-        description="Enables calculation shade color using lights. Turn off for vertex colors as shade color"
+        description="Enables calculating shade color using lights. Turn off for vertex colors as shade color"
     )
     g_tex_gen: bpy.props.BoolProperty(
         name="Texture UV Generate",
+        default=False,
         update=update_node_values_with_preset,
         description="Generates texture coordinates for reflection mapping based on vertex normals and lookat direction. On a skybox texture, maps the sky to the center of the texture and the ground to a circle inscribed in the border. Requires lighting enabled to use"
     )
     g_tex_gen_linear: bpy.props.BoolProperty(
         name="Texture UV Generate Linear",
+        default=False,
         update=update_node_values_with_preset,
         description="Modifies the texgen mapping; enable with texgen. Use a normal panorama image for the texture, with the sky at the top and the ground at the bottom. Requires lighting enabled to use"
     )
-    # v1/2 difference
+    g_lod: bpy.props.BoolProperty(
+        name="LoD (does nothing)",
+        default=False,
+        update=update_node_values_with_preset,
+        description="Not implemented in any known microcodes. No effect whether enabled or disabled"
+    )
     g_shade_smooth: bpy.props.BoolProperty(
         name="Smooth Shading",
         default=True,
         update=update_node_values_with_preset,
         description="Shades primitive smoothly using interpolation between shade values for each vertex (Gouraud shading)"
     )
-    # f3dlx2 only
     g_clipping: bpy.props.BoolProperty(
         name="Clipping",
+        default=False,
         update=update_node_values_with_preset,
+        description="F3DEX1/LX only, exact function unknown"
     )
 
     # upper half mode
@@ -2832,10 +3014,16 @@ class RDPSettings(bpy.types.PropertyGroup):
             self.g_shade,
             self.g_cull_front,
             self.g_cull_back,
+            self.g_attroffset_st_enable,
+            self.g_attroffset_z_enable,
+            self.g_packed_normals,
+            self.g_lighttoalpha,
+            self.g_ambocclusion,
             self.g_fog,
             self.g_lighting,
             self.g_tex_gen,
             self.g_tex_gen_linear,
+            self.g_lod,
             self.g_shade_smooth,
             self.g_clipping,
             self.g_mdsft_alpha_dither,
@@ -3528,6 +3716,65 @@ class F3DMaterialProperty(bpy.types.PropertyGroup):
     f3d_light6: bpy.props.PointerProperty(type=bpy.types.Light, update=F3DOrganizeLights)
     f3d_light7: bpy.props.PointerProperty(type=bpy.types.Light, update=F3DOrganizeLights)
 
+    # Ambient Occlusion
+    ao_ambient: bpy.props.FloatProperty(
+        name="AO Ambient",
+        min=0.0,
+        max=1.0,
+        default=1.0,
+        description="How much ambient occlusion (vertex alpha) affects ambient light intensity",
+        update=update_node_values_without_preset,
+    )
+    ao_directional: bpy.props.FloatProperty(
+        name="AO Directional",
+        min=0.0,
+        max=1.0,
+        default=0.625,
+        description="How much ambient occlusion (vertex alpha) affects directional light intensity",
+        update=update_node_values_without_preset,
+    )
+    set_ao: bpy.props.BoolProperty(update=update_node_values_without_preset)
+
+    # Fresnel
+    fresnel_lo: bpy.props.FloatProperty(
+        name="Fresnel lo",
+        min=0.0,
+        max=1.0,
+        default=0.7,
+        description="Dot product value which gives shade alpha = 0. The dot product ranges from 1 when the normal points directly at the camera, to 0 when it points sideways",
+        update=update_node_values_without_preset,
+    )
+    fresnel_hi: bpy.props.FloatProperty(
+        name="Fresnel hi",
+        min=0.0,
+        max=1.0,
+        default=0.4,
+        description="Dot product value which gives shade alpha = FF. The dot product ranges from 1 when the normal points directly at the camera, to 0 when it points sideways",
+        update=update_node_values_without_preset,
+    )
+    set_fresnel: bpy.props.BoolProperty(update=update_node_values_without_preset)
+
+    # Attribute Offsets
+    attroffs_st: bpy.props.FloatVectorProperty(
+        name="ST Attr Offset",
+        size=2,
+        min=-1024.0,
+        max=1024.0,
+        default=(0.0, 0.0),
+        description="Offset applied to ST (UV) coordinates, after texture scale. Units are texels. Usually for UV scrolling",
+        update=update_node_values_without_preset,
+    )
+    attroffs_z: bpy.props.IntProperty(
+        name="Z Attr Offset",
+        min=-0x8000,
+        max=0x7FFF,
+        default=-2,
+        description="Offset applied to Z coordinate. To fix decals, set Z mode to opaque and set Z attr offset to something like -2",
+        update=update_node_values_without_preset,
+    )
+    set_attroffs_st: bpy.props.BoolProperty(update=update_node_values_without_preset)
+    set_attroffs_z: bpy.props.BoolProperty(update=update_node_values_without_preset)
+
     # Fog Properties
     fog_color: bpy.props.FloatVectorProperty(
         name="Fog Color",
@@ -3600,6 +3847,10 @@ class F3DMaterialProperty(bpy.types.PropertyGroup):
             round(self.k5, 4) if self.set_k0_5 else None,
             self.combiner1.key() if self.set_combiner else None,
             self.combiner2.key() if self.set_combiner else None,
+            tuple([round(value, 4) for value in (self.ao_ambient, self.ao_directional)]) if self.set_ao else None,
+            tuple([round(value, 4) for value in (self.fresnel_lo, self.fresnel_hi)]) if self.set_fresnel else None,
+            tuple([round(value, 4) for value in self.attroffs_st]) if self.set_attroffs_st else None,
+            self.attroffs_z if self.set_attroffs_z else None,
             tuple([round(value, 4) for value in self.fog_color]) if self.set_fog else None,
             tuple([round(value, 4) for value in self.fog_position]) if self.set_fog else None,
             tuple([round(value, 4) for value in self.default_light_color]) if useDefaultLighting else None,
