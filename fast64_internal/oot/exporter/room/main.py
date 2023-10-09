@@ -59,8 +59,6 @@ class Room(Base):
         if mainHeaderProps.roomShape == "ROOM_SHAPE_TYPE_IMAGE" and self.roomIndex >= 1:
             raise PluginError(f'Room shape "Image" can only have one room in the scene.')
 
-        self.mesh = OOTRoomMesh(self.name, self.roomShapeType, self.model)
-        self.roomShape = RoomShape(self.roomShapeType, mainHeaderProps, self.mesh, self.sceneName, self.name)
         self.mainHeader = self.getNewRoomHeader(mainHeaderProps)
         self.hasAlternateHeaders = False
 
@@ -79,6 +77,7 @@ class Room(Base):
         addMissingObjectsToAllRoomHeadersNew(self.roomObj, self, ootData)
 
         # Mesh stuff
+        self.mesh = OOTRoomMesh(self.name, self.roomShapeType, self.model)
         pos, _, scale, _ = Base().getConvertedTransform(self.transform, self.sceneObj, self.roomObj, True)
         cullGroup = CullGroup(pos, scale, self.roomObj.ootRoomHeader.defaultCullDistance)
         DLGroup = self.mesh.addMeshGroup(cullGroup).DLGroup
@@ -96,6 +95,7 @@ class Room(Base):
         cullGroup.position, cullGroup.cullDepth = boundingBox.getEnclosingSphere()
         self.mesh.terminateDLs()
         self.mesh.removeUnusedEntries()
+        self.roomShape = RoomShape(self.roomShapeType, mainHeaderProps, self.mesh, self.sceneName, self.name)
 
     def getRoomHeaderFromIndex(self, headerIndex: int) -> RoomHeader | None:
         """Returns the current room header based on the header index"""
