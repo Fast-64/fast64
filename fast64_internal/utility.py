@@ -1,5 +1,5 @@
 import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operator
-from math import pi, ceil, degrees, radians
+from math import pi, ceil, degrees, radians, copysign
 from mathutils import *
 from .utility_anim import *
 from typing import Callable, Iterable, Any
@@ -598,6 +598,17 @@ def cast_integer(value: int, bits: int, signed: bool):
 
 to_s16 = lambda x: cast_integer(round(x), 16, True)
 radians_to_s16 = lambda d: to_s16(d * 0x10000 / (2 * math.pi))
+
+
+def from_s16(value: int):
+    value &= 0xFFFF
+    if value >= 0x8000:
+        value -= 0x10000
+    return value
+
+
+def from_s16_str(value: str):
+    return from_s16(int(value))
 
 
 def decompFolderMessage(layout):
@@ -1425,13 +1436,54 @@ def normToSigned8Vector(normal):
     return [int.from_bytes(int(value * 127).to_bytes(1, "big", signed=True), "big") for value in normal]
 
 
-# Normal values are signed bytes (-128 to 127)
-# Normalized magnitude = 127
-def convertNormal(normal):
-    F3DNormal = bytearray(0)
-    for axis in normal:
-        F3DNormal.extend(int(axis * 127).to_bytes(1, "big", signed=True))
-    return F3DNormal
+def unpackNormalS8(packedNormal):
+    assert isinstance(packedNormal, int) and packedNormal >= 0 and packedNormal <= 0xFFFF
+    xo, yo = packedNormal >> 8, packedNormal & 0xFF
+    # This is following the instructions in F3DEX3
+    x, y = xo & 0x7F, yo & 0x7F
+    z = x + y
+    zNeg = bool(z & 0x80)
+    x2, y2 = x ^ 0x7F, y ^ 0x7F # 7F - x, 7F - y
+    z = z ^ 0x7F # = 7F - x - y
+    if zNeg:
+        x, y = x2, y2
+    x, y = -x if xo & 0x80 else x, -y if yo & 0x80 else y
+    z = z - 0x100 if z & 0x80 else z
+    assert abs(x) + abs(y) + abs(z) == 127
+    return x, y, z
+
+
+def unpackNormal(packedNormal):
+    # Convert constant-L1 norm to standard L2 norm
+    return Vector(unpackNormalS8(packedNormal)).normalized()
+
+
+def packNormal(normal):
+    # Convert standard normal to constant-L1 normal
+    assert len(normal) == 3
+    l1norm = abs(normal[0]) + abs(normal[1]) + abs(normal[2])
+    xo, yo, zo = tuple([int(round(a * 127.0 / l1norm)) for a in normal])
+    if abs(xo) + abs(yo) > 127:
+        yo = int(math.copysign(127 - abs(xo), yo))
+    zo = int(math.copysign(127 - abs(xo) - abs(yo), zo))
+    assert abs(xo) + abs(yo) + abs(zo) == 127
+    # Pack normals
+    xsign, ysign = xo & 0x80, yo & 0x80
+    x, y = abs(xo), abs(yo)
+    if zo < 0:
+        x, y = 0x7F - x, 0x7F - y
+    x, y = x | xsign, y | ysign
+    packedNormal = x << 8 | y
+    assert (xo, yo, zo) == unpackNormalS8(packedNormal)
+    return packedNormal
+
+
+def getRgbNormalSettings(material):
+    rdp_settings = material.f3d_mat.rdp_settings
+    has_packed_normals = bpy.context.scene.f3d_type == "F3DEX3"
+    has_rgb = not rdp_settings.g_lighting or (has_packed_normals and rdp_settings.g_packed_normals)
+    has_normal = rdp_settings.g_lighting
+    return has_rgb, has_normal, has_packed_normals
 
 
 def byteMask(data, offset, amount):

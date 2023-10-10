@@ -254,22 +254,7 @@ def getTmemMax(texFormat):
 # Necessary for UV half pixel offset (see 13.7.5.3)
 def isTexturePointSampled(material):
     f3dMat = material.f3d_mat
-
     return f3dMat.rdp_settings.g_mdsft_text_filt == "G_TF_POINT"
-
-
-def isLightingDisabled(material):
-    f3dMat = material.f3d_mat
-    return not f3dMat.rdp_settings.g_lighting
-
-
-# Necessary as G_SHADE_SMOOTH actually does nothing
-def checkIfFlatShaded(material):
-    if material.mat_ver > 3:
-        f3dMat = material.f3d_mat
-    else:
-        f3dMat = material
-    return not f3dMat.rdp_settings.g_shade_smooth
 
 
 def F3DOrganizeLights(self, context):

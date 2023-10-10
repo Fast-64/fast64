@@ -1576,7 +1576,7 @@ class F3DContext:
                 elif command.name == "gsSPFresnel":
                     offset = min(float(int(command.params[0])) / (2**15), 1.0)
                     scale = int(command.params[1])
-                    scaleInt = -(0x10000 - scale) if scale >= 0x8000 else scale
+                    scaleInt = scale - 0x10000 if scale >= 0x8000 else scale
                     scale = float(scaleInt) / (2**8)
                     mat.fresnel_lo = offset
                     mat.fresnel_hi = (1.0 / scale) + offset
@@ -1946,26 +1946,22 @@ def parseVertexData(dlData: str, vertexDataName: str, f3dContext: F3DContext):
     patterns = f3dContext.vertexFormatPatterns(data)
     vertexData = []
     for pattern in patterns:
-        # Note that color is None here, as we are just parsing vertex data.
-        # The same values should be used for color and normal, but getColorOrNormal() will be used later
-        # which returns whichever value is not None between the two.
-
-        # When loaded into the vertex buffer and transformed, the actual normal/color will be calculated.
+        # For this step, store rgb/normal as rgb and packed normal as normal.
         vertexData = [
             F3DVert(
                 mathutils.Vector(
                     [math_eval(match.group(1), f3d), math_eval(match.group(2), f3d), math_eval(match.group(3), f3d)]
                 ),
-                mathutils.Vector([math_eval(match.group(4), f3d), math_eval(match.group(5), f3d)]),
-                None,
+                mathutils.Vector([math_eval(match.group(5), f3d), math_eval(match.group(6), f3d)]),
                 mathutils.Vector(
                     [
-                        math_eval(match.group(6), f3d),
                         math_eval(match.group(7), f3d),
                         math_eval(match.group(8), f3d),
                         math_eval(match.group(9), f3d),
                     ]
                 ),
+                unpackNormal(match.group(4)),
+                math_eval(match.group(10), f3d),
             )
             for match in re.finditer(pattern, data, re.DOTALL)
         ]

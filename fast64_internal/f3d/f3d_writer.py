@@ -1,6 +1,8 @@
-from typing import Union
+from typing import Union, Optional
+from dataclasses import dataclass
 import functools
 import bpy, mathutils, os, re, copy, math
+from mathutils import Vector
 from math import ceil
 from bpy.utils import register_class, unregister_class
 
@@ -10,8 +12,6 @@ from .f3d_material import (
     all_combiner_uses,
     getMaterialScrollDimensions,
     isTexturePointSampled,
-    isLightingDisabled,
-    checkIfFlatShaded,
 )
 from .f3d_texture_writer import MultitexManager, TileLoad, maybeSaveSingleLargeTextureSetup
 from .f3d_gbi import *
@@ -118,7 +118,7 @@ def getInfoDict(obj):
 
         for loopIndex in face.loops:
             convertInfo = LoopConvertInfo(
-                uv_data, obj, isLightingDisabled(obj.material_slots[face.material_index].material)
+                uv_data, obj, obj.material_slots[face.material_index].material
             )
             f3dVertDict[loopIndex] = getF3DVert(mesh.loops[loopIndex], face, convertInfo, mesh)
     for face in mesh.loop_triangles:
@@ -409,18 +409,19 @@ def addCullCommand(obj, fMesh, transformMatrix, matWriteMethod):
     fMesh.add_cull_vtx()
     # if the object has a specifically set culling bounds, use that instead
     for vertexPos in obj.get("culling_bounds", obj.bound_box):
-        # Most other fields of convertVertexData are unnecessary for bounding box verts
         fMesh.cullVertexList.vertices.append(
-            convertVertexData(
-                obj.data,
-                mathutils.Vector(vertexPos),
+            F3DVert(
+                Vector(vertexPos),
                 [0, 0],
                 None,
-                mathutils.Vector([0, 0, 0, 0]),
+                Vector([0, 0, 0]),
+                None,
+                0.0,
+            ).toVtx(
+                obj.data,
                 [32, 32],
                 transformMatrix,
-                False,
-                False,
+                True,
             )
         )
 
@@ -646,28 +647,11 @@ def saveMeshByFaces(
     return currentGroupIndex
 
 
-def get8bitRoundedNormal(loop: bpy.types.MeshLoop, mesh):
-    alpha_layer = getColorLayer(mesh, "Alpha")
-
-    if alpha_layer is not None:
-        normalizedAColor = alpha_layer[loop.index].color
-        if is3_2_or_above():
-            normalizedAColor = gammaCorrect(normalizedAColor)
-        normalizedA = colorToLuminance(normalizedAColor[0:3])
-    else:
-        normalizedA = 1
-
-    # Don't round, as this may move UV toward UV bounds.
-    return mathutils.Vector(
-        (int(loop.normal[0] * 128) / 128, int(loop.normal[1] * 128) / 128, int(loop.normal[2] * 128) / 128, normalizedA)
-    )
-
-
+@dataclass
 class LoopConvertInfo:
-    def __init__(self, uv_data: bpy.types.bpy_prop_collection | list[bpy.types.MeshUVLoop], obj, exportVertexColors):
-        self.uv_data: bpy.types.bpy_prop_collection | list[bpy.types.MeshUVLoop] = uv_data
-        self.obj = obj
-        self.exportVertexColors = exportVertexColors
+    uv_data: bpy.types.bpy_prop_collection | list[bpy.types.MeshUVLoop]
+    obj: bpy.types.Object
+    material: bpy.types.Material
 
 
 def getNewIndices(existingIndices, bufferStart):
@@ -682,21 +666,21 @@ def getNewIndices(existingIndices, bufferStart):
     return newIndices
 
 
-# Color and normal are separate, since for parsing, the normal must be transformed into
-# bone/object space while the color should just be a regular conversion.
 class F3DVert:
     def __init__(
         self,
-        position: mathutils.Vector,
-        uv: mathutils.Vector,
-        color: mathutils.Vector | None,  # 4 components
-        normal: mathutils.Vector | None,  # 4 components
+        position: Vector,
+        uv: Vector,
+        rgb: Optional[Vector],
+        normal: Optional[Vector],
+        alpha: float,
     ):
-        self.position: mathutils.Vector = position
-        self.uv: mathutils.Vector = uv
-        self.stOffset: tuple(int, int) | None = None
-        self.color: mathutils.Vector | None = color
-        self.normal: mathutils.Vector | None = normal
+        self.position: Vector = position
+        self.uv: Vector = uv
+        self.stOffset: Optional[tuple(int, int)] = None
+        self.rgb: Optional[Vector] = rgb
+        self.normal: Optional[Vector] = normal
+        self.alpha: float = alpha
 
     def __eq__(self, other):
         if not isinstance(other, F3DVert):
@@ -705,17 +689,50 @@ class F3DVert:
             self.position == other.position
             and self.uv == other.uv
             and self.stOffset == other.stOffset
-            and self.color == other.color
+            and self.rgb == other.rgb
             and self.normal == other.normal
+            and self.alpha == other.alpha
         )
+        
+    def toVtx(self, mesh, texDimensions, transformMatrix, isPointSampled: bool, tex_scale=(1, 1)) -> Vtx:
+        # Position (8 bytes)
+        position = [int(round(floatValue)) for floatValue in (transformMatrix @ self.position)]
 
-    def getColorOrNormal(self):
-        if self.color is None and self.normal is None:
-            raise PluginError("An F3D vert has neither a color or a normal.")
-        elif self.color is not None:
-            return self.color
+        # UV (4 bytes)
+        # For F3D, Bilinear samples the point from the center of the pixel.
+        # However, Point samples from the corner.
+        # Thus we add 0.5 to the UV only if bilinear filtering.
+        # see section 13.7.5.3 in programming manual.
+        pixelOffset = (
+            (0, 0)
+            if (isPointSampled or tex_scale[0] == 0 or tex_scale[1] == 0)
+            else (0.5 / tex_scale[0], 0.5 / tex_scale[1])
+        )
+        pixelOffset = self.stOffset if self.stOffset is not None else pixelOffset
+
+        uv = [
+            convertFloatToFixed16(self.uv[0] * texDimensions[0] - pixelOffset[0]),
+            convertFloatToFixed16(self.uv[1] * texDimensions[1] - pixelOffset[1]),
+        ]
+
+        packedNormal = 0
+        if self.normal is not None:
+            # normal transformed correctly.
+            normal = (transformMatrix.inverted().transposed() @ self.normal).normalized()
+            if self.rgb is not None:
+                packedNormal = packNormal(normal)
+
+        if self.rgb is not None:
+            colorOrNormal = [scaleToU8(c).to_bytes(1, "big")[0] for c in self.rgb]
         else:
-            return self.normal
+            colorOrNormal = [
+                int(round(normal[0] * 127)).to_bytes(1, "big", signed=True)[0],
+                int(round(normal[1] * 127)).to_bytes(1, "big", signed=True)[0],
+                int(round(normal[2] * 127)).to_bytes(1, "big", signed=True)[0],
+            ]
+        colorOrNormal.append(scaleToU8(self.alpha).to_bytes(1, "big")[0])
+
+        return Vtx(position, uv, colorOrNormal, packedNormal)
 
 
 # groupIndex is either a vertex group (writing), or name of c variable identifying a transform group, like a limb (parsing)
@@ -797,12 +814,10 @@ class TriangleConverter:
         self.triList = triList
         self.vtxList = vtxList
 
-        exportVertexColors = isLightingDisabled(material)
         uv_data = triConverterInfo.obj.data.uv_layers["UVMap"].data
-        self.convertInfo = LoopConvertInfo(uv_data, triConverterInfo.obj, exportVertexColors)
+        self.convertInfo = LoopConvertInfo(uv_data, triConverterInfo.obj, material)
         self.texDimensions = texDimensions
         self.isPointSampled = isTexturePointSampled(material)
-        self.exportVertexColors = exportVertexColors
         self.tex_scale = material.f3d_mat.tex_scale
 
     def vertInBuffer(self, bufferVert, material_index):
@@ -843,16 +858,11 @@ class TriangleConverter:
             # Save vertices
             for bufferVert in self.vertBuffer[bufferStart:bufferEnd]:
                 self.vtxList.vertices.append(
-                    convertVertexData(
+                    bufferVert.f3dVert.toVtx(
                         self.triConverterInfo.mesh,
-                        bufferVert.f3dVert.position,
-                        bufferVert.f3dVert.uv,
-                        bufferVert.f3dVert.stOffset,
-                        bufferVert.f3dVert.getColorOrNormal(),
                         self.texDimensions,
                         self.triConverterInfo.getTransformMatrix(bufferVert.groupIndex),
                         self.isPointSampled,
-                        self.exportVertexColors,
                         tex_scale=self.tex_scale,
                     )
                 )
@@ -878,16 +888,11 @@ class TriangleConverter:
             # Save vertices
             for bufferVert in self.vertBuffer[bufferStart:bufferEnd]:
                 self.vtxList.vertices.append(
-                    convertVertexData(
+                    bufferVert.f3dVert.toVtx(
                         self.triConverterInfo.mesh,
-                        bufferVert.f3dVert.position,
-                        bufferVert.f3dVert.uv,
-                        bufferVert.f3dVert.stOffset,
-                        bufferVert.f3dVert.getColorOrNormal(),
                         self.texDimensions,
                         self.triConverterInfo.getTransformMatrix(bufferVert.groupIndex),
                         self.isPointSampled,
-                        self.exportVertexColors,
                         tex_scale=self.tex_scale,
                     )
                 )
@@ -943,179 +948,35 @@ class TriangleConverter:
 
 
 def getF3DVert(loop: bpy.types.MeshLoop, face, convertInfo: LoopConvertInfo, mesh: bpy.types.Mesh):
-    position: mathutils.Vector = mesh.vertices[loop.vertex_index].co.copy().freeze()
+    position: Vector = mesh.vertices[loop.vertex_index].co.copy().freeze()
     # N64 is -Y, Blender is +Y
-    uv: mathutils.Vector = convertInfo.uv_data[loop.index].uv.copy()
+    uv: Vector = convertInfo.uv_data[loop.index].uv.copy()
     uv[:] = [field if not math.isnan(field) else 0 for field in uv]
     uv[1] = 1 - uv[1]
     uv = uv.freeze()
-    color, normal = getLoopColorOrNormal(
-        loop, face, convertInfo.obj.data, convertInfo.obj, convertInfo.exportVertexColors
-    )
+    
+    has_rgb, has_normal, _ = getRgbNormalSettings(convertInfo.material)
+    mesh = convertInfo.obj.data
+    color = getLoopColor(loop, mesh)
+    rgb = color[:3] if has_rgb else None
+    normal = getLoopNormal(loop) if has_normal else None
+    alpha = color[3]
 
-    return F3DVert(position, uv, color, normal)
-
-
-def getLoopNormal(loop: bpy.types.MeshLoop, face, mesh, isFlatShaded):
-    # This is a workaround for flat shading not working well.
-    # Since we support custom blender normals we can now ignore this.
-    # if isFlatShaded:
-    # 	normal = -face.normal #???
-    # else:
-    # 	normal = -loop.normal #???
-    # return get8bitRoundedNormal(normal).freeze()
-    return get8bitRoundedNormal(loop, mesh).freeze()
+    return F3DVert(position, uv, rgb, normal, alpha)
 
 
-"""
-def getLoopNormalCreased(bLoop, obj):
-	edges = obj.data.edges
-	centerVert = bLoop.vert
-
-	availableFaces = []
-	visitedFaces = [bLoop.face]
-	connectedFaces = getConnectedFaces(bLoop.face, bLoop.vert)
-	if len(connectedFaces) == 0:
-		return bLoop.calc_normal()
-
-	for face in connectedFaces:
-		availableFaces.append(FaceWeight(face, bLoop.face, 1))
-
-	curNormal = bLoop.calc_normal() * bLoop.calc_angle()
-	while len(availableFaces) > 0:
-		nextFaceWeight = getHighestFaceWeight(availableFaces)
-		curNormal += getWeightedNormalAndMoveToNextFace(
-			nextFaceWeight, visitedFaces, availableFaces, centerVert, edges)
-
-	return curNormal.normalized()
-
-def getConnectedFaces(bFace, bVert):
-	connectedFaces = []
-	for face in bVert.link_faces:
-		if face == bFace:
-			continue
-		for edge in face.edges:
-			if bFace in edge.link_faces:
-				connectedFaces.append(face)
-	return connectedFaces
-
-# returns false if not enough faces to check for creasing
-def getNextFace(faceWeight, bVert, visitedFaces, availableFaces):
-	connectedFaces = getConnectedFaces(faceWeight.face, bVert)
-	visitedFaces.append(faceWeight.face)
-
-	newFaceFound = False
-	nextPrevFace = faceWeight.face
-	for face in connectedFaces:
-		if face in visitedFaces:
-			continue
-		elif not newFaceFound:
-			newFaceFound = True
-			faceWeight.prevFace = faceWeight.face
-			faceWeight.face = face
-		else:
-			availableFaces.append(FaceWeight(face, nextPrevFace,
-				faceWeight.weight))
-
-	if not newFaceFound:
-		availableFaces.remove(faceWeight)
-
-	removedFaceWeights = []
-	for otherFaceWeight in availableFaces:
-		if otherFaceWeight.face in visitedFaces:
-			removedFaceWeights.append(otherFaceWeight)
-	for removedFaceWeight in removedFaceWeights:
-		availableFaces.remove(removedFaceWeight)
-
-def getLoopFromFaceVert(bFace, bVert):
-	for loop in bFace.loops:
-		if loop.vert == bVert:
-			return loop
-	return None
-
-def getEdgeBetweenFaces(faceWeight):
-	face1 = faceWeight.face
-	face2 = faceWeight.prevFace
-	for edge1 in face1.edges:
-		for edge2 in face2.edges:
-			if edge1 == edge2:
-				return edge1
-	return None
-
-class FaceWeight:
-	def __init__(self, face, prevFace, weight):
-		self.face = face
-		self.prevFace = prevFace
-		self.weight = weight
-
-def getWeightedNormalAndMoveToNextFace(selectFaceWeight, visitedFaces,
-	availableFaces, centerVert, edges):
-	selectLoop = getLoopFromFaceVert(selectFaceWeight.face, centerVert)
-	edgeIndex = getEdgeBetweenFaces(selectFaceWeight).index
-
-	# Ignore triangulated faces
-	if edgeIndex < len(edges):
-		selectFaceWeight.weight *= 1 - edges[edgeIndex].crease
-
-	getNextFace(selectFaceWeight, centerVert, visitedFaces, availableFaces)
-	return selectLoop.calc_normal() * selectLoop.calc_angle() * \
-		selectFaceWeight.weight
-
-def getHighestFaceWeight(faceWeights):
-	highestFaceWeight = faceWeights[0]
-	for faceWeight in faceWeights[1:]:
-		if faceWeight.weight > highestFaceWeight.weight:
-			highestFaceWeight = faceWeight
-	return highestFaceWeight
-"""
-
-
-def convertVertexData(
-    mesh,
-    loopPos,
-    loopUV,
-    stOffset,
-    loopColorOrNormal,
-    texDimensions,
-    transformMatrix,
-    isPointSampled,
-    exportVertexColors,
-    tex_scale=(1, 1),
-):
-    # Position (8 bytes)
-    position = [int(round(floatValue)) for floatValue in (transformMatrix @ loopPos)]
-
-    # UV (4 bytes)
-    # For F3D, Bilinear samples the point from the center of the pixel.
-    # However, Point samples from the corner.
-    # Thus we add 0.5 to the UV only if bilinear filtering.
-    # see section 13.7.5.3 in programming manual.
-    pixelOffset = (
-        (0, 0)
-        if (isPointSampled or tex_scale[0] == 0 or tex_scale[1] == 0)
-        else (0.5 / tex_scale[0], 0.5 / tex_scale[1])
-    )
-    pixelOffset = stOffset if stOffset is not None else pixelOffset
-
-    uv = [
-        convertFloatToFixed16(loopUV[0] * texDimensions[0] - pixelOffset[0]),
-        convertFloatToFixed16(loopUV[1] * texDimensions[1] - pixelOffset[1]),
-    ]
-
-    # Color/Normal (4 bytes)
-    if exportVertexColors:
-        colorOrNormal = [scaleToU8(c).to_bytes(1, "big")[0] for c in loopColorOrNormal]
-    else:
-        # normal transformed correctly.
-        normal = (transformMatrix.inverted().transposed() @ loopColorOrNormal).normalized()
-        colorOrNormal = [
-            int(round(normal[0] * 127)).to_bytes(1, "big", signed=True)[0],
-            int(round(normal[1] * 127)).to_bytes(1, "big", signed=True)[0],
-            int(round(normal[2] * 127)).to_bytes(1, "big", signed=True)[0],
-            scaleToU8(loopColorOrNormal[3]).to_bytes(1, "big")[0],
-        ]
-
-    return Vtx(position, uv, colorOrNormal)
+def getLoopNormal(loop: bpy.types.MeshLoop):
+    # Have to quantize to something because F3DVerts will be compared, and we
+    # don't want floating-point inaccuracy causing "same" vertices not to be
+    # merged. But, it hasn't been transformed yet, so quantizing to s8 here will
+    # lose some accuracy.
+    return Vector(
+        (
+            round(loop.normal[0] * 2**16) / 2**16,
+            round(loop.normal[1] * 2**16) / 2**16,
+            round(loop.normal[2] * 2**16) / 2**16
+        )
+    ).freeze()
 
 
 @functools.lru_cache(0)
@@ -1123,8 +984,7 @@ def is3_2_or_above():
     return bpy.app.version[0] >= 3 and bpy.app.version[1] >= 2
 
 
-def getLoopColor(loop: bpy.types.MeshLoop, mesh, mat_ver):
-
+def getLoopColor(loop: bpy.types.MeshLoop, mesh):
     color_layer = getColorLayer(mesh, layer="Col")
     alpha_layer = getColorLayer(mesh, layer="Alpha")
 
@@ -1144,17 +1004,6 @@ def getLoopColor(loop: bpy.types.MeshLoop, mesh, mat_ver):
         normalizedA = 1
 
     return mathutils.Vector((normalizedRGB[0], normalizedRGB[1], normalizedRGB[2], normalizedA))
-
-
-def getLoopColorOrNormal(
-    loop: bpy.types.MeshLoop, face, mesh: bpy.types.Mesh, obj: bpy.types.Object, exportVertexColors: bool
-) -> tuple[mathutils.Vector, None] | tuple[None, mathutils.Vector]:
-    material = obj.material_slots[face.material_index].material
-    isFlatShaded = checkIfFlatShaded(material)
-    if exportVertexColors:
-        return getLoopColor(loop, mesh, material.mat_ver), None
-    else:
-        return None, getLoopNormal(loop, face, mesh, isFlatShaded)
 
 
 def createTriangleCommands(triangles, vertexBuffer, useSP2Triangle):
@@ -1320,6 +1169,28 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
                     f3dMat.combiner1.D_alpha,
                 )
             )
+    
+    if f3dMat.set_ao:
+        fMaterial.mat_only_DL.commands.append(
+            SPAmbOcclusion(
+                hex(round(f3dMat.ao_ambient * 2**16)),
+                hex(round(f3dMat.ao_directional * 2**16))
+            )
+        )
+        
+    if f3dMat.set_fresnel:
+        TODO()
+
+    if f3dMat.set_attroffs_st:
+        fMaterial.mat_only_DL.commands.append(
+            SPAttrOffsetST(
+                hex(to_s16(f3dMat.attroffs_st[0] * 32)),
+                hex(to_s16(f3dMat.attroffs_st[1] * 32)),
+            )
+        )
+
+    if f3dMat.set_attroffs_z:
+        fMaterial.mat_only_DL.commands.append(SPAttrOffsetZ(f3dMat.attroffs_z))
 
     if f3dMat.set_fog:
         if f3dMat.use_global_fog and fModel.global_data.getCurrentAreaData() is not None:
@@ -1513,21 +1384,45 @@ def saveBitGeoF3DEX2(value, defaultValue, flagName, geo, matWriteMethod):
             geo.clearFlagList.append(flagName)
 
 
+def saveBitGeo(value, defaultValue, flagName, setGeo, clearGeo, matWriteMethod):
+    if value != defaultValue or matWriteMethod == GfxMatWriteMethod.WriteAll:
+        if value:
+            setGeo.flagList.append(flagName)
+        else:
+            clearGeo.flagList.append(flagName)
+
+
+def saveGeoModeCommon(saveFunc, settings, defaults, args):
+    saveFunc(settings.g_zbuffer, defaults.g_zbuffer, "G_ZBUFFER", *args)
+    saveFunc(settings.g_shade, defaults.g_shade, "G_SHADE", *args)
+    saveFunc(settings.g_cull_front, defaults.g_cull_front, "G_CULL_FRONT", *args)
+    saveFunc(settings.g_cull_back, defaults.g_cull_back, "G_CULL_BACK", *args)
+    if bpy.context.scene.isCustomUcode:
+        cu = bpy.context.scene.customUcode
+        if cu.has_attr_offsets:
+            saveFunc(settings.g_attroffset_st_enable, defaults.g_attroffset_st_enable, "G_ATTROFFSET_ST_ENABLE", *args)
+            saveFunc(settings.g_attroffset_z_enable, defaults.g_attroffset_z_enable, "G_ATTROFFSET_Z_ENABLE", *args)
+        if cu.has_packed_normals:
+            saveFunc(settings.g_packed_normals, defaults.g_packed_normals, "G_PACKED_NORMALS", *args)
+        if cu.has_light_to_alpha:
+            saveFunc(settings.g_lighttoalpha, defaults.g_lighttoalpha, "G_LIGHTTOALPHA", *args)
+        if cu.has_ambient_occlusion:
+            saveFunc(settings.g_ambocclusion, defaults.g_ambocclusion, "G_AMBOCCLUSION", *args)
+    saveFunc(settings.g_fog, defaults.g_fog, "G_FOG", *args)
+    saveFunc(settings.g_lighting, defaults.g_lighting, "G_LIGHTING", *args)
+    saveFunc(settings.g_tex_gen, defaults.g_tex_gen, "G_TEXTURE_GEN", *args)
+    saveFunc(settings.g_tex_gen_linear, defaults.g_tex_gen_linear, "G_TEXTURE_GEN_LINEAR", *args)
+    saveFunc(settings.g_lod, defaults.g_lod, "G_LOD", *args)
+    saveFunc(settings.g_shade_smooth, defaults.g_shade_smooth, "G_SHADING_SMOOTH", *args)
+    if bpy.context.scene.pointLighting:
+        saveFunc(settings.g_lighting_positional, defaults.g_lighting_positional, "G_LIGHTING_POSITIONAL", *args)
+    if isUcodeF3DEX1(bpy.context.scene.f3d_type):
+        saveFunc(settings.g_clipping, defaults.g_clipping, "G_CLIPPING", *args)
+
+    
 def saveGeoModeDefinitionF3DEX2(fMaterial, settings, defaults, matWriteMethod):
     geo = SPGeometryMode([], [])
-
-    saveBitGeoF3DEX2(settings.g_zbuffer, defaults.g_zbuffer, "G_ZBUFFER", geo, matWriteMethod)
-    saveBitGeoF3DEX2(settings.g_shade, defaults.g_shade, "G_SHADE", geo, matWriteMethod)
-    saveBitGeoF3DEX2(settings.g_cull_front, defaults.g_cull_front, "G_CULL_FRONT", geo, matWriteMethod)
-    saveBitGeoF3DEX2(settings.g_cull_back, defaults.g_cull_back, "G_CULL_BACK", geo, matWriteMethod)
-    saveBitGeoF3DEX2(settings.g_fog, defaults.g_fog, "G_FOG", geo, matWriteMethod)
-    saveBitGeoF3DEX2(settings.g_lighting, defaults.g_lighting, "G_LIGHTING", geo, matWriteMethod)
-
-    # make sure normals are saved correctly.
-    saveBitGeoF3DEX2(settings.g_tex_gen, defaults.g_tex_gen, "G_TEXTURE_GEN", geo, matWriteMethod)
-    saveBitGeoF3DEX2(settings.g_tex_gen_linear, defaults.g_tex_gen_linear, "G_TEXTURE_GEN_LINEAR", geo, matWriteMethod)
-    saveBitGeoF3DEX2(settings.g_shade_smooth, defaults.g_shade_smooth, "G_SHADING_SMOOTH", geo, matWriteMethod)
-    saveBitGeoF3DEX2(settings.g_clipping, defaults.g_clipping, "G_CLIPPING", geo, matWriteMethod)
+    saveGeoModeCommon(saveBitGeoF3DEX2, settings, defaults, (geo, matWriteMethod))
 
     if len(geo.clearFlagList) != 0 or len(geo.setFlagList) != 0:
         if len(geo.clearFlagList) == 0:
@@ -1542,33 +1437,11 @@ def saveGeoModeDefinitionF3DEX2(fMaterial, settings, defaults, matWriteMethod):
             fMaterial.revert.commands.append(SPGeometryMode(geo.setFlagList, geo.clearFlagList))
 
 
-def saveBitGeo(value, defaultValue, flagName, setGeo, clearGeo, matWriteMethod):
-    if value != defaultValue or matWriteMethod == GfxMatWriteMethod.WriteAll:
-        if value:
-            setGeo.flagList.append(flagName)
-        else:
-            clearGeo.flagList.append(flagName)
-
-
 def saveGeoModeDefinition(fMaterial, settings, defaults, matWriteMethod):
     setGeo = SPSetGeometryMode([])
     clearGeo = SPClearGeometryMode([])
 
-    saveBitGeo(settings.g_zbuffer, defaults.g_zbuffer, "G_ZBUFFER", setGeo, clearGeo, matWriteMethod)
-    saveBitGeo(settings.g_shade, defaults.g_shade, "G_SHADE", setGeo, clearGeo, matWriteMethod)
-    saveBitGeo(settings.g_cull_front, defaults.g_cull_front, "G_CULL_FRONT", setGeo, clearGeo, matWriteMethod)
-    saveBitGeo(settings.g_cull_back, defaults.g_cull_back, "G_CULL_BACK", setGeo, clearGeo, matWriteMethod)
-    saveBitGeo(settings.g_fog, defaults.g_fog, "G_FOG", setGeo, clearGeo, matWriteMethod)
-    saveBitGeo(settings.g_lighting, defaults.g_lighting, "G_LIGHTING", setGeo, clearGeo, matWriteMethod)
-
-    # make sure normals are saved correctly.
-    saveBitGeo(settings.g_tex_gen, defaults.g_tex_gen, "G_TEXTURE_GEN", setGeo, clearGeo, matWriteMethod)
-    saveBitGeo(
-        settings.g_tex_gen_linear, defaults.g_tex_gen_linear, "G_TEXTURE_GEN_LINEAR", setGeo, clearGeo, matWriteMethod
-    )
-    saveBitGeo(settings.g_shade_smooth, defaults.g_shade_smooth, "G_SHADING_SMOOTH", setGeo, clearGeo, matWriteMethod)
-    if bpy.context.scene.f3d_type == "F3DEX_GBI_2" or bpy.context.scene.f3d_type == "F3DEX_GBI":
-        saveBitGeo(settings.g_clipping, defaults.g_clipping, "G_CLIPPING", setGeo, clearGeo, matWriteMethod)
+    saveGeoModeCommon(saveBitGeo, settings, defaults, (setGeo, clearGeo, matWriteMethod))
 
     if len(setGeo.flagList) > 0:
         fMaterial.mat_only_DL.commands.append(setGeo)
