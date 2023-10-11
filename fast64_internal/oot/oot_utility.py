@@ -930,6 +930,6 @@ def getNewPath(type: str, isClosedShape: bool):
     newPath = bpy.data.objects.new("New Path", newCurve)
     newPath.show_name = True
     newPath.location = Vector(bpy.context.scene.cursor.location)
-    bpy.context.scene.collection.objects.link(newPath)
+    bpy.context.view_layer.active_layer_collection.collection.objects.link(newPath)
 
     return newPath
