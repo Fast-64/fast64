@@ -1,15 +1,6 @@
-from bpy.types import Panel, Object, EditBone, Bone
+from bpy.types import Panel
 from bpy.utils import register_class, unregister_class
 from .properties import OOTCSMotionCameraShotProperty, OOTCSMotionCameraShotPointProperty
-
-
-def getBoneFromEditBone(shotObject: Object, editBone: EditBone) -> Bone:
-    for bone in shotObject.data.bones:
-        if bone.name == editBone.name:
-            return bone
-    else:
-        print("Could not find corresponding bone")
-        return editBone
 
 
 class OOT_CSMotionCameraShotPanel(Panel):
@@ -27,34 +18,23 @@ class OOT_CSMotionCameraShotPanel(Panel):
         if obj.type == "ARMATURE":
             camShotProp: OOTCSMotionCameraShotProperty = obj.data.ootCamShotProp
             camShotPointProp: OOTCSMotionCameraShotPointProperty = None
+            activeBone = editBone = None
 
             box = layout.box()
             camShotProp.draw_props(box, self.bl_label)
 
-            activeBone = editBone = None
             if obj.mode == "POSE":
                 box.label(text="Warning: You can't be in 'Pose' mode to edit camera bones!")
-                return
             elif obj.mode == "OBJECT":
                 activeBone = obj.data.bones.active
-
-                if activeBone is None:
-                    return
+                if activeBone is not None:
+                    camShotPointProp = activeBone.ootCamShotPointProp
+                    camShotPointProp.draw_props(box)
             elif obj.mode == "EDIT":
                 editBone = obj.data.edit_bones.active
-
-                if editBone is None:
-                    return
-
-                activeBone = getBoneFromEditBone(obj, editBone)
-
-            if activeBone is not None:
-                camShotPointProp = activeBone.ootCamShotPointProp
                 if editBone is not None:
-                    if "shotPointFrame" in editBone or "shotPointViewAngle" in editBone or "shotPointRoll" in editBone:
-                        camShotPointProp = editBone.ootCamShotPointProp
-
-                camShotPointProp.draw_props(box)
+                    camShotPointProp = editBone.ootCamShotPointProp
+                    camShotPointProp.draw_props(box)
 
 
 classes = (OOT_CSMotionCameraShotPanel,)

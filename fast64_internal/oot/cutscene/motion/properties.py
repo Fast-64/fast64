@@ -1,6 +1,7 @@
 import bpy
 
-from bpy.types import PropertyGroup, Object, UILayout, Armature, Bone, Scene
+from bpy.ops import object
+from bpy.types import PropertyGroup, Object, UILayout, Armature, Bone, Scene, EditBone
 from bpy.props import IntProperty, StringProperty, PointerProperty, EnumProperty, FloatProperty
 from bpy.utils import register_class, unregister_class
 from ...oot_upgrade import upgradeCutsceneMotion
@@ -123,17 +124,60 @@ class OOTCSMotionCameraShotProperty(PropertyGroup):
 
 
 class OOTCSMotionCameraShotPointProperty(PropertyGroup):
-    shotPointFrame: IntProperty(name="Frame", description="Key point frames value", default=30, min=0)
-    shotPointViewAngle: FloatProperty(
-        name="FoV", description="Field of view (degrees)", default=60.0, min=0.01, max=179.99
+    shotPointFrame: IntProperty(
+        name="Frame",
+        description="Key point frames value",
+        default=30,
+        min=0,
+        get=lambda self: self.getValue("frame"),
+        set=lambda self, value: self.setValue(value, "frame"),
     )
+
+    shotPointViewAngle: FloatProperty(
+        name="FoV",
+        description="Field of view (degrees)",
+        default=60.0,
+        min=0.01,
+        max=179.99,
+        get=lambda self: self.getValue("viewAngle"),
+        set=lambda self, value: self.setValue(value, "viewAngle"),
+    )
+
     shotPointRoll: IntProperty(
         name="Roll",
         description="Camera roll (degrees), positive turns image clockwise",
         default=0,
         min=-128,
         max=127,
+        get=lambda self: self.getValue("roll"),
+        set=lambda self, value: self.setValue(value, "roll"),
     )
+
+    # internal usage only
+    frame: IntProperty(default=30, min=0)
+    viewAngle: FloatProperty(default=60.0, min=0.01, max=179.99)
+    roll: IntProperty(min=-128, max=127, default=0)
+
+    def getBoneFromEditBone(self, shotObject: Object, editBone: EditBone) -> Bone | None:
+        for bone in shotObject.data.bones:
+            if bone.name == editBone.name:
+                return bone
+        else:
+            print("Could not find corresponding bone")
+            return None
+
+    def getValue(self, propName: str):
+        return getattr(self, propName)
+
+    def setValue(self, value, propName: str):
+        setattr(self, propName, value)
+
+        activeObj = bpy.context.view_layer.objects.active
+        if activeObj.mode == "EDIT":
+            bone = self.getBoneFromEditBone(activeObj, activeObj.data.edit_bones.active)
+            if bone is not None:
+                setattr(bone.ootCamShotPointProp, propName, value)
+                activeObj.data.bones.active = bone
 
     def draw_props(self, layout: UILayout):
         box = layout.box()
@@ -170,6 +214,7 @@ def csMotion_props_register():
     Object.ootCSMotionProperty = PointerProperty(type=OOTCutsceneMotionProperty)
     Armature.ootCamShotProp = PointerProperty(type=OOTCSMotionCameraShotProperty)
     Bone.ootCamShotPointProp = PointerProperty(type=OOTCSMotionCameraShotPointProperty)
+    EditBone.ootCamShotPointProp = PointerProperty(type=OOTCSMotionCameraShotPointProperty)
     Scene.previewPlayerAge = EnumProperty(
         items=[("link_adult", "Adult", "Adult Link (170 cm)", 0), ("link_child", "Child", "Child Link (130 cm)", 1)],
         name="Player Age for Preview",
@@ -180,6 +225,7 @@ def csMotion_props_register():
 
 def csMotion_props_unregister():
     del Scene.previewPlayerAge
+    del EditBone.ootCamShotPointProp
     del Bone.ootCamShotPointProp
     del Armature.ootCamShotProp
     del Object.ootCSMotionProperty
