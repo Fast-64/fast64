@@ -368,7 +368,7 @@ class F3D:
             "G_CLIPPING",
         }
         if F3DEX_GBI_3:
-            self.allGeomModeFlags += {
+            self.allGeomModeFlags |= {
                 "G_ATTROFFSET_ST_ENABLE",
                 "G_ATTROFFSET_Z_ENABLE",
                 "G_PACKED_NORMALS",
@@ -3342,6 +3342,7 @@ def gsSPNoOp(f3d):
 class GbiMacro:
     _segptrs = False
     _ptr_amp = False
+    _hex = 0  # If nonzero, write int values as hex with specified digits
 
     tags = GfxTag(0)
     """
@@ -3374,6 +3375,9 @@ class GbiMacro:
                 return field.name
         if hasattr(field, "__iter__") and type(field) is not str:
             return " | ".join(field) if len(field) else "0"
+        if _hex > 0 and isinstance(field, int):
+            temp = field if field >= 0 else (1 << (_hex * 4)) + field
+            return f"{0:#0{1}x}".format(temp, _hex)
         return str(field)
 
     def to_c(self, static=True):
@@ -3727,6 +3731,7 @@ class SPClipRatio(GbiMacro):
 class SPAmbOcclusion(GbiMacro):
     amb: int
     dir: int
+    _hex = 4
 
     def to_binary(self, f3d, segments):
         if not f3d.F3DEX_GBI_3:
@@ -3739,6 +3744,7 @@ class SPAmbOcclusion(GbiMacro):
 class SPFresnel(GbiMacro):
     offset: int
     scale: int
+    _hex = 4
 
     def to_binary(self, f3d, segments):
         if not f3d.F3DEX_GBI_3:
@@ -3751,6 +3757,7 @@ class SPFresnel(GbiMacro):
 class SPAttrOffsetST(GbiMacro):
     s: int
     t: int
+    _hex = 4
 
     def to_binary(self, f3d, segments):
         if not f3d.F3DEX_GBI_3:
@@ -3762,6 +3769,7 @@ class SPAttrOffsetST(GbiMacro):
 @dataclass(unsafe_hash=True)
 class SPAttrOffsetZ(GbiMacro):
     z: int
+    _hex = 4
 
     def to_binary(self, f3d, segments):
         if not f3d.F3DEX_GBI_3:
@@ -4681,7 +4689,7 @@ class SPLightToRDP(GbiMacro):
     def to_binary(self, f3d, segments):
         if not f3d.F3DEX_GBI_3:
             raise PluginError("SPLightToRDP requires F3DEX3 microcode")
-        word = _SHIFTL(f3d.G_LIGHTTORDP, 24, 8) | _SHIFTL(self.light * 0x10, 8, 8) | _SHIFTL(self.alpha, 0, 8))
+        word = _SHIFTL(f3d.G_LIGHTTORDP, 24, 8) | _SHIFTL(self.light * 0x10, 8, 8) | _SHIFTL(self.alpha, 0, 8)
         return word.to_bytes(4, "big") + self.word0.to_bytes(4, "big")
 
 

@@ -428,6 +428,7 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             return c
         
         isF3DEX3 = bpy.context.scene.f3d_type == "F3DEX3"
+        lightFxPrereq = isF3DEX3 and settings.g_lighting
         if isinstance(dataHolder, F3DMaterialProperty):
             ccWarnings = blendWarnings = True
             ccUse = all_combiner_uses(dataHolder)
@@ -455,22 +456,37 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             if d is not None:
                 d.prop(settings, "g_tex_gen_linear")
 
-        light_to_alpha_prereq = isF3DEX3 and settings.g_lighting
+        shadowMapInShadeAlpha = False
         if settings.g_fog:
             shadeAlphaLabel = "Fog"
-        elif light_to_alpha_prereq and settings.g_lighttoalpha:
+        elif lightFxPrereq and settings.g_fresnel:
+            shadeAlphaLabel = "Fresnel"
+        elif lightFxPrereq and settings.g_lighttoalpha:
             shadeAlphaLabel = "Light intensity"
+        elif lightFxPrereq and settings.g_ambocclusion:
+            shadeAlphaLabel = "Shadow map / AO in vtx alpha"
+            shadowMapInShadeAlpha = True
         else:
             shadeAlphaLabel = "Vtx alpha"
         c = indentGroup(inputGroup, f"Shade alpha = {shadeAlphaLabel}:", True)
-        if light_to_alpha_prereq:
+        if lightFxPrereq:
             c.prop(settings, "g_lighttoalpha")
+            c.prop(settings, "g_fresnel")
         c.prop(settings, "g_fog")
-        if light_to_alpha_prereq and settings.g_lighttoalpha and settings.g_fog:
+        
+        if lightFxPrereq and settings.g_fog and settings.g_fresnel:
+            c.label(text="Fog overrides Fresnel.", icon="ERROR")
+        elif lightFxPrereq and settings.g_fog and settings.g_lighttoalpha:
             c.label(text="Fog overrides Light-to-Alpha.", icon="ERROR")
+        elif lightFxPrereq and settings.g_fresnel and settings.g_lighttoalpha:
+            c.label(text="Fresnel overrides Light-to-Alpha.", icon="ERROR")
+        if shadowMapInShadeAlpha and ccUse["Shade Alpha"]:
+            c.label(text="Shadow map = shade alpha used in CC.", icon="INFO")
+        if settings.g_fog and ccUse["Shade Alpha"]:
+            c.label(text="Fog = shade alpha used in CC.", icon="INFO")
         if blendWarnings and shadeInBlender and not settings.g_fog:
             c.label(text="Rendermode uses shade alpha, probably fog.", icon="INFO")
-        if blendWarnings and not shadeInBlender and settings.g_fog:
+        elif blendWarnings and not shadeInBlender and settings.g_fog:
             c.label(text="Fog not used in rendermode / blender, can disable.", icon="INFO")
 
         if isF3DEX3:
@@ -894,13 +910,36 @@ class F3DPanel(bpy.types.Panel):
                     prop_split(inputGroup.row(), f3dMat, "fog_color", "Fog Color")
                     prop_split(inputGroup.row(), f3dMat, "fog_position", "Fog Range")
 
-    def drawVertexColorNotice(self, layout):
+    def checkDrawLayersWarnings(self, f3dMat, useDict, layout):
+        settings = f3dMat.rdp_settings
+        isF3DEX3 = bpy.context.scene.f3d_type == "F3DEX3"
+        lightFxPrereq = isF3DEX3 and settings.g_lighting
+        
+        blendUse = all_blender_uses(settings)
+        anyUseShadeAlpha = useDict["Shade Alpha"] or blendUse["Shade Alpha"]
+        
+        g_lighting = settings.g_lighting
+        g_fog = settings.g_fog
+        g_packed_normals = lightFxPrereq and settings.g_packed_normals
+        g_ambocclusion = lightFxPrereq and settings.g_ambocclusion
+        g_lighttoalpha = lightFxPrereq and settings.g_lighttoalpha
+        g_fresnel = lightFxPrereq and settings.g_fresnel
+        
+        usesVertexColor = useDict["Shade"] and (not g_lighting or g_packed_normals)
+        usesVertexAlpha = anyUseShadeAlpha and (g_ambocclusion or not (
+            g_fog or g_lighttoalpha or g_fresnel
+        ))
+        if not usesVertexColor and not usesVertexAlpha:
+            return
         noticeBox = layout.box().column()
-        noticeBox.label(text="There must be two vertex color layers.", icon="LINENUMBERS_ON")
-        noticeBox.label(text='They should be called "Col" and "Alpha".')
-
-    def drawShadeAlphaNotice(self, layout):
-        layout.box().column().label(text='There must be a vertex color layer called "Alpha".', icon="IMAGE_ALPHA")
+        if not usesVertexColor:
+            noticeBox.label(text='There must be a vertex color layer called "Alpha".', icon="IMAGE_ALPHA")
+        elif not usesVertexAlpha:
+            noticeBox.label(text='There must be a vertex color layer called "Col".', icon="IMAGE_RGB_ALPHA")
+        else:
+            noticeBox.label(text="There must be two vertex color layers.", icon="IMAGE_RGB_ALPHA")
+            noticeBox.label(text='They must be called "Col" and "Alpha".', icon="IMAGE_ALPHA")
+            
 
     def checkDrawMixedCIWarning(self, layout, useDict, f3dMat):
         useTex0 = useDict["Texture 0"] and f3dMat.tex0.tex_set
@@ -920,10 +959,7 @@ class F3DPanel(bpy.types.Panel):
         inputCol = layout.column()
         useDict = all_combiner_uses(f3dMat)
 
-        if not f3dMat.rdp_settings.g_lighting:
-            self.drawVertexColorNotice(layout)
-        elif useDict["Shade Alpha"]:
-            self.drawShadeAlphaNotice(layout)
+        self.checkDrawLayersWarnings(f3dMat, useDict, layout)
 
         useMultitexture = useDict["Texture 0"] and useDict["Texture 1"] and f3dMat.tex0.tex_set and f3dMat.tex1.tex_set
 
@@ -968,10 +1004,7 @@ class F3DPanel(bpy.types.Panel):
         if menuTab == "Combiner":
             self.ui_draw_layer(material, layout, context)
 
-            if not f3dMat.rdp_settings.g_lighting:
-                self.drawVertexColorNotice(layout)
-            elif useDict["Shade Alpha"]:
-                self.drawShadeAlphaNotice(layout)
+            self.checkDrawLayersWarnings(f3dMat, useDict, layout)
 
             combinerBox = layout.box()
             combinerBox.prop(f3dMat, "set_combiner", text="Color Combiner (Color = (A - B) * C + D)")
@@ -4056,7 +4089,13 @@ def mat_register():
         items=enumF3D,
         default="F3D",
     )
-    bpy.types.Scene.isHWv1 = bpy.props.BoolProperty(name="Is Hardware v1?")
+    bpy.types.Scene.isHWv1 = bpy.props.BoolProperty(
+        name="Is Hardware v1?",
+        default=False,
+        description=("Only early N64 devkits have V1 RCP chips; all retail consoles have V2. "
+            + "Display lists made for V1 and V2 are incompatible with each other, "
+            + "so any hardware which can play retail games is V2")
+    )
 
     # RDP Defaults
     bpy.types.World.rdp_defaults = bpy.props.PointerProperty(type=RDPSettings)

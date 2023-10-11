@@ -1173,19 +1173,22 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     if f3dMat.set_ao:
         fMaterial.mat_only_DL.commands.append(
             SPAmbOcclusion(
-                hex(round(f3dMat.ao_ambient * 2**16)),
-                hex(round(f3dMat.ao_directional * 2**16))
+                round(f3dMat.ao_ambient * 2**16),
+                round(f3dMat.ao_directional * 2**16),
             )
         )
         
     if f3dMat.set_fresnel:
-        TODO()
+        offset = min(round(f3dMat.fresnel_lo * 2**15), 0x7FFF)
+        scalePre = 256.0 / (f3dMat.fresnel_hi - f3dMat.fresnel_lo)
+        scale = max(min(round(scalePre), 0x7FFF), -0x8000)
+        fMaterial.mat_only_DL.commands.append(SPFresnel(offset, scale))
 
     if f3dMat.set_attroffs_st:
         fMaterial.mat_only_DL.commands.append(
             SPAttrOffsetST(
-                hex(to_s16(f3dMat.attroffs_st[0] * 32)),
-                hex(to_s16(f3dMat.attroffs_st[1] * 32)),
+                to_s16(f3dMat.attroffs_st[0] * 32),
+                to_s16(f3dMat.attroffs_st[1] * 32),
             )
         )
 
