@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from mathutils import Matrix
 from bpy.types import Object
-from ....utility import CData, indent
+from ....utility import PluginError, CData, indent
 from ...scene.properties import OOTSceneHeaderProperty
 from ..base import Base
 
@@ -48,21 +48,31 @@ class ScenePathways(Base):
     pathList: list[Path] = field(default_factory=list)
 
     def __post_init__(self):
+        pathFromIndex: dict[int, Path] = {}
         pathObjList: list[Object] = [
             obj
             for obj in self.sceneObj.children_recursive
             if obj.type == "CURVE" and obj.ootSplineProperty.splineType == "Path"
         ]
 
-        for i, obj in enumerate(pathObjList):
-            isHeaderValid = self.isCurrentHeaderValid(obj.ootSplineProperty.headerSettings, self.headerIndex)
+        for obj in pathObjList:
+            relativeTransform = self.transform @ self.sceneObj.matrix_world.inverted() @ obj.matrix_world
+            pathProps = obj.ootSplineProperty
+            isHeaderValid = self.isCurrentHeaderValid(pathProps.headerSettings, self.headerIndex)
             if isHeaderValid and self.validateCurveData(obj):
-                self.pathList.append(
-                    Path(
-                        f"{self.name}List{i:02}",
-                        [self.transform @ point.co.xyz for point in obj.data.splines[0].points],
+                if not pathProps.index in pathFromIndex:
+                    pathFromIndex[pathProps.index] = Path(
+                        f"{self.name}List{pathProps.index:02}",
+                        [relativeTransform @ point.co.xyz for point in obj.data.splines[0].points],
                     )
-                )
+                else:
+                    raise PluginError(f"ERROR: Path index already used ({obj.name})")
+
+        pathFromIndex = dict(sorted(pathFromIndex.items()))
+        if list(pathFromIndex.keys()) != list(range(len(pathFromIndex))):
+            raise PluginError("ERROR: Path indices are not consecutive!")
+
+        self.pathList = list(pathFromIndex.values())
 
     def getCmd(self):
         return indent + f"SCENE_CMD_PATH_LIST({self.name}),\n" if len(self.pathList) > 0 else ""
