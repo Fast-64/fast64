@@ -870,8 +870,11 @@ def getEvalParams(input: str):
 
 def getNewPath(type: str, isClosedShape: bool):
     """
-    type: the path's type (square, line, circle, etc)
-    radius: how big the shape will be
+    Returns a new Curve Object with the selected spline shape
+
+    Parameters:
+    - ``type``: the path's type (square, line, etc)
+    - ``isClosedShape``: choose if the spline should have an extra point to make a closed shape
     """
 
     # create a new curve
