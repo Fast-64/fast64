@@ -954,7 +954,7 @@ def getF3DVert(loop: bpy.types.MeshLoop, face, convertInfo: LoopConvertInfo, mes
     uv[1] = 1 - uv[1]
     uv = uv.freeze()
     
-    has_rgb, has_normal, _ = getRgbNormalSettings(convertInfo.material)
+    has_rgb, has_normal, _ = getRgbNormalSettings(convertInfo.material.f3d_mat)
     mesh = convertInfo.obj.data
     color = getLoopColor(loop, mesh)
     rgb = color[:3] if has_rgb else None

@@ -608,7 +608,7 @@ def from_s16(value: int):
 
 
 def from_s16_str(value: str):
-    return from_s16(int(value))
+    return from_s16(int(value, 0))
 
 
 def decompFolderMessage(layout):
@@ -1478,8 +1478,8 @@ def packNormal(normal):
     return packedNormal
 
 
-def getRgbNormalSettings(material):
-    rdp_settings = material.f3d_mat.rdp_settings
+def getRgbNormalSettings(f3d_mat):
+    rdp_settings = f3d_mat.rdp_settings
     has_packed_normals = bpy.context.scene.f3d_type == "F3DEX3"
     has_rgb = not rdp_settings.g_lighting or (has_packed_normals and rdp_settings.g_packed_normals)
     has_normal = rdp_settings.g_lighting

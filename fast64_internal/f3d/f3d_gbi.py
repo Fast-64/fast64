@@ -2085,7 +2085,7 @@ class Vtx:
         def spc(x):
             return "{" + ", ".join([str(a) for a in x]) + "}"
 
-        flag = "0" if self.packedNormal == 0 else hex(self.packedNormal)
+        flag = "0" if self.packedNormal == 0 else "{0:#06x}".format(self.packedNormal)
         return "{{ " + ", ".join([spc(self.position), flag, spc(self.uv), spc(self.colorOrNormal)]) + " }}"
 
 
@@ -3375,7 +3375,6 @@ class GbiMacro:
             return " | ".join(field) if len(field) else "0"
         if self._hex > 0 and isinstance(field, int):
             temp = field if field >= 0 else (1 << (self._hex * 4)) + field
-            print(f"{temp}, {self._hex}")
             return "{0:#0{1}x}".format(temp, self._hex + 2)  # + 2 for the 0x part
         return str(field)
 

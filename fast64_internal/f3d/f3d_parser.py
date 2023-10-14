@@ -453,8 +453,6 @@ class F3DParsedCommands:
 class F3DContext:
     def __init__(self, f3d: F3D, basePath: str, materialContext: bpy.types.Material):
         self.f3d: F3D = f3d
-        if not self.f3d.F3DEX_GBI_3:
-            print("\n\nF3D at creation of F3DContext is not F3DEX3!\n\n")
         self.basePath: str = basePath
         self.materialContext: bpy.types.Material = materialContext
         self.materialContext.f3d_update_flag = True  # Don't want visual updates while parsing
@@ -873,8 +871,6 @@ class F3DContext:
     def setGeoFlags(self, command, value):
         mat = self.mat()
         bitFlags = math_eval(command.params[0], self.f3d)
-
-        assert self.f3d.F3DEX_GBI_3
 
         if bitFlags & self.f3d.G_ZBUFFER:
             mat.rdp_settings.g_zbuffer = value
@@ -1574,12 +1570,12 @@ class F3DContext:
                 elif command.name[:13] == "gsSPSetLights":
                     self.setLights(dlData, command)
                 elif command.name == "gsSPAmbOcclusion":
-                    mat.ao_ambient = float(int(command.params[0])) / (2**16)
-                    mat.ao_directional = float(int(command.params[1])) / (2**16)
+                    mat.ao_ambient = float(int(command.params[0], 0)) / (2**16)
+                    mat.ao_directional = float(int(command.params[1], 0)) / (2**16)
                     mat.set_ao = True
                 elif command.name == "gsSPFresnel":
-                    offset = min(float(int(command.params[0])) / (2**15), 1.0)
-                    scale = int(command.params[1])
+                    offset = min(float(int(command.params[0], 0)) / (2**15), 1.0)
+                    scale = int(command.params[1], 0)
                     scaleInt = scale - 0x10000 if scale >= 0x8000 else scale
                     scale = float(scaleInt) / (2**8)
                     mat.fresnel_lo = offset
@@ -1964,7 +1960,7 @@ def parseVertexData(dlData: str, vertexDataName: str, f3dContext: F3DContext):
                         math_eval(match.group(9), f3d),
                     ]
                 ),
-                unpackNormal(match.group(4)),
+                unpackNormal(math_eval(match.group(4), f3d)),
                 math_eval(match.group(10), f3d),
             )
             for match in re.finditer(pattern, data, re.DOTALL)
