@@ -665,7 +665,7 @@ class F3DContext:
                 normal = f3dVert.normal
             else:
                 normal = mathutils.Vector([v - 0x100 if v >= 0x80 else v for v in f3dVert.rgb]).normalized()
-            normal = (transform.inverse().transposed() @ normal).normalized()
+            normal = (transform.inverted().transposed() @ normal).normalized()
 
         # NOTE: The groupIndex here does NOT correspond to a vertex group, but to the name of the limb (c variable)
         return BufferVertex(F3DVert(position, uv, rgb, normal, alpha), bufferVert.groupIndex, bufferVert.materialIndex)
@@ -1820,11 +1820,11 @@ class F3DContext:
         color_layer = mesh.vertex_colors.new(name="Col").data
         for i in range(len(mesh.loops)):
             # if self.materialContext.f3d_mat.rdp_settings.g_lighting:
-            color_layer[i].color = self.verts[i].color
+            color_layer[i].color = self.verts[i].rgb.to_4d()
 
         alpha_layer = mesh.vertex_colors.new(name="Alpha").data
         for i in range(len(mesh.loops)):
-            alpha_layer[i].color = [self.verts[i].color[3]] * 3 + [1]
+            alpha_layer[i].color = [self.verts[i].alpha] * 3 + [1]
 
         if bpy.context.mode != "OBJECT":
             bpy.ops.object.mode_set(mode="OBJECT")

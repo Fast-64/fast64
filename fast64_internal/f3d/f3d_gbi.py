@@ -152,6 +152,8 @@ class F3D:
         self.F3D_VER = F3D_VER
         # self._LANGUAGE_ASSEMBLY = _LANGUAGE_ASSEMBLY
 
+        self.HAS_TRI2 = F3DEX_GBI or F3DEX_GBI_2 or F3DEX_GBI_3
+
         if F3DEX_GBI_2:
             self.G_NOOP = 0x00
             self.G_RDPHALF_2 = 0xF1

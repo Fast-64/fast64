@@ -900,7 +900,7 @@ class TriangleConverter:
 
         # Load triangles
         self.triList.commands.extend(
-            createTriangleCommands(self.vertexBufferTriangles, self.vertBuffer, self.triConverterInfo.f3d.F3DEX_GBI)
+            createTriangleCommands(self.vertexBufferTriangles, self.vertBuffer, self.triConverterInfo.f3d.HAS_TRI2)
         )
 
     def addFace(self, face, stOffset):
@@ -1008,43 +1008,21 @@ def getLoopColor(loop: bpy.types.MeshLoop, mesh):
 def createTriangleCommands(triangles, vertexBuffer, useSP2Triangle):
     triangles = copy.deepcopy(triangles)
     commands = []
-    if useSP2Triangle:
-        while len(triangles) > 0:
-            if len(triangles) >= 2:
-                commands.append(
-                    SP2Triangles(
-                        vertexBuffer.index(triangles[0][0]),
-                        vertexBuffer.index(triangles[0][1]),
-                        vertexBuffer.index(triangles[0][2]),
-                        0,
-                        vertexBuffer.index(triangles[1][0]),
-                        vertexBuffer.index(triangles[1][1]),
-                        vertexBuffer.index(triangles[1][2]),
-                        0,
-                    )
-                )
-                triangles = triangles[2:]
-            else:
-                commands.append(
-                    SP1Triangle(
-                        vertexBuffer.index(triangles[0][0]),
-                        vertexBuffer.index(triangles[0][1]),
-                        vertexBuffer.index(triangles[0][2]),
-                        0,
-                    )
-                )
-                triangles = []
-    else:
-        while len(triangles) > 0:
+    
+    def getIndices(tri):
+        return [vertexBuffer.index(v) for v in tri]
+        
+    t = 0
+    while t < len(triangles):
+        firstTriIndices = getIndices(triangles[t])
+        t += 1
+        if useSP2Triangle and t < len(triangles):
             commands.append(
-                SP1Triangle(
-                    vertexBuffer.index(triangles[0][0]),
-                    vertexBuffer.index(triangles[0][1]),
-                    vertexBuffer.index(triangles[0][2]),
-                    0,
-                )
+                SP2Triangles(*firstTriIndices, 0, *getIndices(triangles[t]), 0)
             )
-            triangles = triangles[1:]
+            t += 1
+        else:
+            commands.append(SP1Triangle(*firstTriIndices, 0))
 
     return commands
 
