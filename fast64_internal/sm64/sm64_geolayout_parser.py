@@ -70,8 +70,6 @@ def parseGeoLayout(
     useArmature,
     ignoreSwitch,
     shadeSmooth,
-    f3dType,
-    isHWv1,
 ):
     currentAddress = startAddress
     romfile.seek(currentAddress)
@@ -118,8 +116,6 @@ def parseGeoLayout(
         0,
         0,
         [None] * 16 * 16,
-        f3dType,
-        isHWv1,
         segmentData=segmentData,
     )
 
@@ -201,8 +197,6 @@ def parseNode(
     switchLevel,
     switchCount,
     vertexBuffer,
-    f3dType,
-    isHWv1,
     singleChild=False,
     endCmd=GEO_NODE_CLOSE,
     segmentData=None,
@@ -296,8 +290,6 @@ def parseNode(
                 switchLevel,
                 switchCount,
                 vertexBuffer,
-                f3dType,
-                isHWv1,
                 singleChild=switchActive,
                 segmentData=segmentData,
             )
@@ -346,8 +338,6 @@ def parseNode(
                 nodeIndex[-1],
                 segmentData,
                 vertexBuffer,
-                f3dType,
-                isHWv1,
             )
 
         elif currentCmd[0] == GEO_TRANSLATE:  # 0x11
@@ -364,8 +354,6 @@ def parseNode(
                 nodeIndex[-1],
                 segmentData,
                 vertexBuffer,
-                f3dType,
-                isHWv1,
             )
 
         elif currentCmd[0] == GEO_ROTATE:  # 0x12
@@ -382,8 +370,6 @@ def parseNode(
                 nodeIndex[-1],
                 segmentData,
                 vertexBuffer,
-                f3dType,
-                isHWv1,
             )
 
         elif currentCmd[0] == GEO_LOAD_DL_W_OFFSET:  # 0x13
@@ -400,8 +386,6 @@ def parseNode(
                 currentCmd,
                 segmentData,
                 vertexBuffer,
-                f3dType,
-                isHWv1,
             )
 
         elif currentCmd[0] == GEO_BILLBOARD:  # 0x14
@@ -418,8 +402,6 @@ def parseNode(
                 nodeIndex[-1],
                 segmentData,
                 vertexBuffer,
-                f3dType,
-                isHWv1,
             )
 
         elif currentCmd[0] == GEO_LOAD_DL:  # 0x15
@@ -436,8 +418,6 @@ def parseNode(
                 nodeIndex[-1],
                 segmentData,
                 vertexBuffer,
-                f3dType,
-                isHWv1,
             )
 
         elif currentCmd[0] == GEO_START_W_SHADOW:  # 0x16
@@ -490,8 +470,6 @@ def parseNode(
                 nodeIndex[-1],
                 segmentData,
                 vertexBuffer,
-                f3dType,
-                isHWv1,
             )
 
         elif currentCmd[0] == GEO_START_W_RENDERAREA:  # 0x20
@@ -817,8 +795,6 @@ def parseDL(
     nodeIndex,
     segmentData,
     vertexBuffer,
-    f3dType,
-    isHWv1,
 ):
 
     drawLayer = bitMask(currentCmd[1], 0, 4)
@@ -841,8 +817,6 @@ def parseDL(
             nodeIndex,
             "DisplayList",
             vertexBuffer,
-            f3dType,
-            isHWv1,
         )
         if armatureObj is not None:
             bone = armatureObj.data.bones[boneName]
@@ -865,8 +839,6 @@ def parseDLWithOffset(
     currentCmd,
     segmentData,
     vertexBuffer,
-    f3dType,
-    isHWv1,
 ):
     print("DL_OFFSET " + hex(currentAddress))
     romfile.seek(currentAddress)
@@ -968,8 +940,6 @@ def handleNodeCommon(
     nodeIndex,
     boneGroupName,
     vertexBuffer,
-    f3dType,
-    isHWv1,
 ):
 
     boneName = format(nodeIndex, "03") + "-" + boneGroupName.lower()
@@ -1012,8 +982,6 @@ def parseScale(
     nodeIndex,
     segmentData,
     vertexBuffer,
-    f3dType,
-    isHWv1,
 ):
     print("SCALE " + hex(currentAddress))
 
@@ -1042,8 +1010,6 @@ def parseScale(
             nodeIndex,
             "Scale",
             vertexBuffer,
-            f3dType,
-            isHWv1,
         )
         if armatureObj is not None:
             bone = armatureObj.data.bones[boneName]
@@ -1069,8 +1035,6 @@ def parseTranslateRotate(
     nodeIndex,
     segmentData,
     vertexBuffer,
-    f3dType,
-    isHWv1,
 ):
     print("TRANSLATE_ROTATE " + hex(currentAddress))
 
@@ -1127,8 +1091,6 @@ def parseTranslateRotate(
             nodeIndex,
             "TranslateRotate",
             vertexBuffer,
-            f3dType,
-            isHWv1,
         )
         if armatureObj is not None:
             bone = armatureObj.data.bones[boneName]
@@ -1159,8 +1121,6 @@ def parseTranslate(
     nodeIndex,
     segmentData,
     vertexBuffer,
-    f3dType,
-    isHWv1,
 ):
     print("TRANSLATE " + hex(currentAddress))
 
@@ -1193,8 +1153,6 @@ def parseTranslate(
             nodeIndex,
             "Translate",
             vertexBuffer,
-            f3dType,
-            isHWv1,
         )
         if armatureObj is not None:
             bone = armatureObj.data.bones[boneName]
@@ -1220,8 +1178,6 @@ def parseRotate(
     nodeIndex,
     segmentData,
     vertexBuffer,
-    f3dType,
-    isHWv1,
 ):
     print("ROTATE " + hex(currentAddress))
 
@@ -1254,8 +1210,6 @@ def parseRotate(
             nodeIndex,
             "Rotate",
             vertexBuffer,
-            f3dType,
-            isHWv1,
         )
         if armatureObj is not None:
             bone = armatureObj.data.bones[boneName]
@@ -1280,8 +1234,6 @@ def parseBillboard(
     nodeIndex,
     segmentData,
     vertexBuffer,
-    f3dType,
-    isHWv1,
 ):
     print("BILLBOARD " + hex(currentAddress))
 
@@ -1314,8 +1266,6 @@ def parseBillboard(
             nodeIndex,
             "Billboard",
             vertexBuffer,
-            f3dType,
-            isHWv1,
         )
         if armatureObj is not None:
             bone = armatureObj.data.bones[boneName]
@@ -1558,8 +1508,6 @@ class SM64_ImportGeolayout(bpy.types.Operator):
                 generateArmature,
                 ignoreSwitch,
                 True,
-                context.scene.f3d_type,
-                context.scene.isHWv1,
             )
             romfileSrc.close()
 

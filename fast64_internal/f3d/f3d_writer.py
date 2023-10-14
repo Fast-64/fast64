@@ -413,7 +413,6 @@ def addCullCommand(obj, fMesh, transformMatrix, matWriteMethod):
             F3DVert(
                 Vector(vertexPos),
                 [0, 0],
-                None,
                 Vector([0, 0, 0]),
                 None,
                 0.0,
@@ -1173,8 +1172,8 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     if f3dMat.set_ao:
         fMaterial.mat_only_DL.commands.append(
             SPAmbOcclusion(
-                round(f3dMat.ao_ambient * 2**16),
-                round(f3dMat.ao_directional * 2**16),
+                min(round(f3dMat.ao_ambient * 2**16), 0xFFFF),
+                min(round(f3dMat.ao_directional * 2**16), 0xFFFF),
             )
         )
         
@@ -1400,25 +1399,19 @@ def saveGeoModeCommon(saveFunc, settings, defaults, args):
     saveFunc(settings.g_shade, defaults.g_shade, "G_SHADE", *args)
     saveFunc(settings.g_cull_front, defaults.g_cull_front, "G_CULL_FRONT", *args)
     saveFunc(settings.g_cull_back, defaults.g_cull_back, "G_CULL_BACK", *args)
-    if bpy.context.scene.isCustomUcode:
-        cu = bpy.context.scene.customUcode
-        if cu.has_attr_offsets:
-            saveFunc(settings.g_attroffset_st_enable, defaults.g_attroffset_st_enable, "G_ATTROFFSET_ST_ENABLE", *args)
-            saveFunc(settings.g_attroffset_z_enable, defaults.g_attroffset_z_enable, "G_ATTROFFSET_Z_ENABLE", *args)
-        if cu.has_packed_normals:
-            saveFunc(settings.g_packed_normals, defaults.g_packed_normals, "G_PACKED_NORMALS", *args)
-        if cu.has_light_to_alpha:
-            saveFunc(settings.g_lighttoalpha, defaults.g_lighttoalpha, "G_LIGHTTOALPHA", *args)
-        if cu.has_ambient_occlusion:
-            saveFunc(settings.g_ambocclusion, defaults.g_ambocclusion, "G_AMBOCCLUSION", *args)
+    if bpy.context.scene.f3d_type == "F3DEX3":
+        saveFunc(settings.g_attroffset_st_enable, defaults.g_attroffset_st_enable, "G_ATTROFFSET_ST_ENABLE", *args)
+        saveFunc(settings.g_attroffset_z_enable, defaults.g_attroffset_z_enable, "G_ATTROFFSET_Z_ENABLE", *args)
+        saveFunc(settings.g_packed_normals, defaults.g_packed_normals, "G_PACKED_NORMALS", *args)
+        saveFunc(settings.g_lighttoalpha, defaults.g_lighttoalpha, "G_LIGHTTOALPHA", *args)
+        saveFunc(settings.g_ambocclusion, defaults.g_ambocclusion, "G_AMBOCCLUSION", *args)
+        saveFunc(settings.g_fresnel, defaults.g_fresnel, "G_FRESNEL", *args)
     saveFunc(settings.g_fog, defaults.g_fog, "G_FOG", *args)
     saveFunc(settings.g_lighting, defaults.g_lighting, "G_LIGHTING", *args)
     saveFunc(settings.g_tex_gen, defaults.g_tex_gen, "G_TEXTURE_GEN", *args)
     saveFunc(settings.g_tex_gen_linear, defaults.g_tex_gen_linear, "G_TEXTURE_GEN_LINEAR", *args)
     saveFunc(settings.g_lod, defaults.g_lod, "G_LOD", *args)
     saveFunc(settings.g_shade_smooth, defaults.g_shade_smooth, "G_SHADING_SMOOTH", *args)
-    if bpy.context.scene.pointLighting:
-        saveFunc(settings.g_lighting_positional, defaults.g_lighting_positional, "G_LIGHTING_POSITIONAL", *args)
     if isUcodeF3DEX1(bpy.context.scene.f3d_type):
         saveFunc(settings.g_clipping, defaults.g_clipping, "G_CLIPPING", *args)
 
@@ -1494,29 +1487,18 @@ def saveOtherModeHDefinitionAll(fMaterial, settings, tlut, defaults, isHWv1, f3d
 
 def saveOtherModeHDefinitionIndividual(fMaterial, settings, tlut, defaults, isHWv1):
     saveModeSetting(fMaterial, settings.g_mdsft_alpha_dither, defaults.g_mdsft_alpha_dither, DPSetAlphaDither)
-
     if not isHWv1:
         saveModeSetting(fMaterial, settings.g_mdsft_rgb_dither, defaults.g_mdsft_rgb_dither, DPSetColorDither)
-
         saveModeSetting(fMaterial, settings.g_mdsft_combkey, defaults.g_mdsft_combkey, DPSetCombineKey)
-
     saveModeSetting(fMaterial, settings.g_mdsft_textconv, defaults.g_mdsft_textconv, DPSetTextureConvert)
-
     saveModeSetting(fMaterial, settings.g_mdsft_text_filt, defaults.g_mdsft_text_filt, DPSetTextureFilter)
-
     saveModeSetting(fMaterial, tlut, "G_TT_NONE", DPSetTextureLUT)
-
     saveModeSetting(fMaterial, settings.g_mdsft_textlod, defaults.g_mdsft_textlod, DPSetTextureLOD)
-
     saveModeSetting(fMaterial, settings.g_mdsft_textdetail, defaults.g_mdsft_textdetail, DPSetTextureDetail)
-
     saveModeSetting(fMaterial, settings.g_mdsft_textpersp, defaults.g_mdsft_textpersp, DPSetTexturePersp)
-
     saveModeSetting(fMaterial, settings.g_mdsft_cycletype, defaults.g_mdsft_cycletype, DPSetCycleType)
-
     if isHWv1:
         saveModeSetting(fMaterial, settings.g_mdsft_color_dither, defaults.g_mdsft_color_dither, DPSetColorDither)
-
     saveModeSetting(fMaterial, settings.g_mdsft_pipeline, defaults.g_mdsft_pipeline, DPPipelineMode)
 
 
@@ -1694,11 +1676,11 @@ def getWriteMethodFromEnum(enumVal):
 
 
 def exportF3DtoC(
-    dirPath, obj, DLFormat, transformMatrix, f3dType, isHWv1, texDir, savePNG, texSeparate, name, matWriteMethod
+    dirPath, obj, DLFormat, transformMatrix, texDir, savePNG, texSeparate, name, matWriteMethod
 ):
 
     inline = bpy.context.scene.exportInlineF3D
-    fModel = FModel(f3dType, isHWv1, name, DLFormat, matWriteMethod if not inline else GfxMatWriteMethod.WriteAll)
+    fModel = FModel(name, DLFormat, matWriteMethod if not inline else GfxMatWriteMethod.WriteAll)
     fMeshes = exportF3DCommon(obj, fModel, transformMatrix, True, name, DLFormat, not savePNG)
 
     if inline:
@@ -1793,8 +1775,6 @@ class F3D_ExportDL(bpy.types.Operator):
 
             exportPath = bpy.path.abspath(context.scene.DLExportPath)
             dlFormat = DLFormat.Static if context.scene.DLExportisStatic else DLFormat.Dynamic
-            f3dType = context.scene.f3d_type
-            isHWv1 = context.scene.isHWv1
             texDir = bpy.context.scene.DLTexDir
             savePNG = bpy.context.scene.saveTextures
             separateTexDef = bpy.context.scene.DLSeparateTextureDef
@@ -1806,8 +1786,6 @@ class F3D_ExportDL(bpy.types.Operator):
                 obj,
                 dlFormat,
                 finalTransform,
-                f3dType,
-                isHWv1,
                 texDir,
                 savePNG,
                 separateTexDef,

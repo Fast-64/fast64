@@ -2303,8 +2303,6 @@ class FPaletteKey:
 class FModel:
     def __init__(
         self,
-        f3dType: F3D,
-        isHWv1: bool,
         name: str,
         DLFormat: "DLFormat",
         matWriteMethod: GfxMatWriteMethod,
@@ -2321,7 +2319,7 @@ class FModel:
         # GfxList
         self.materialRevert: Union[GfxList, None] = None
         # F3D library
-        self.f3d: F3D = F3D(f3dType, isHWv1)
+        self.f3d: F3D = get_F3D_GBI()
         # array of FModel
         self.subModels: list[FModel] = []
         self.parentModel: Union[FModel, None] = None
@@ -2727,9 +2725,9 @@ class FModel:
 
 
 class FTexRect(FModel):
-    def __init__(self, f3dType, isHWv1, name, matWriteMethod):
+    def __init__(self, name, matWriteMethod):
         self.draw = GfxList(name, GfxListTag.Draw, DLFormat.Dynamic)
-        FModel.__init__(self, f3dType, isHWv1, name, DLFormat, matWriteMethod)
+        FModel.__init__(self, name, DLFormat, matWriteMethod)
 
     def to_c(self, savePNG, texDir, gfxFormatter):
         staticData = CData()
@@ -3375,9 +3373,10 @@ class GbiMacro:
                 return field.name
         if hasattr(field, "__iter__") and type(field) is not str:
             return " | ".join(field) if len(field) else "0"
-        if _hex > 0 and isinstance(field, int):
-            temp = field if field >= 0 else (1 << (_hex * 4)) + field
-            return f"{0:#0{1}x}".format(temp, _hex)
+        if self._hex > 0 and isinstance(field, int):
+            temp = field if field >= 0 else (1 << (self._hex * 4)) + field
+            print(f"{temp}, {self._hex}")
+            return "{0:#0{1}x}".format(temp, self._hex + 2)  # + 2 for the 0x part
         return str(field)
 
     def to_c(self, static=True):

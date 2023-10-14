@@ -453,6 +453,8 @@ class F3DParsedCommands:
 class F3DContext:
     def __init__(self, f3d: F3D, basePath: str, materialContext: bpy.types.Material):
         self.f3d: F3D = f3d
+        if not self.f3d.F3DEX_GBI_3:
+            print("\n\nF3D at creation of F3DContext is not F3DEX3!\n\n")
         self.basePath: str = basePath
         self.materialContext: bpy.types.Material = materialContext
         self.materialContext.f3d_update_flag = True  # Don't want visual updates while parsing
@@ -871,6 +873,8 @@ class F3DContext:
     def setGeoFlags(self, command, value):
         mat = self.mat()
         bitFlags = math_eval(command.params[0], self.f3d)
+
+        assert self.f3d.F3DEX_GBI_3
 
         if bitFlags & self.f3d.G_ZBUFFER:
             mat.rdp_settings.g_zbuffer = value
@@ -2272,8 +2276,6 @@ class F3D_ImportDL(bpy.types.Operator):
             removeDoubles = context.scene.DLRemoveDoubles
             importNormals = context.scene.DLImportNormals
             drawLayer = context.scene.DLImportDrawLayer
-            f3dType = context.scene.f3d_type
-            isHWv1 = context.scene.isHWv1
 
             data = getImportData([importPath])
 
@@ -2284,7 +2286,7 @@ class F3D_ImportDL(bpy.types.Operator):
                 removeDoubles,
                 importNormals,
                 drawLayer,
-                F3DContext(F3D(f3dType, isHWv1), basePath, createF3DMat(None)),
+                F3DContext(get_F3D_GBI(), basePath, createF3DMat(None)),
             )
 
             self.report({"INFO"}, "Success!")

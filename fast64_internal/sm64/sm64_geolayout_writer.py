@@ -354,13 +354,11 @@ def appendRevertToGeolayout(geolayoutGraph, fModel):
 
 # Convert to Geolayout
 def convertArmatureToGeolayout(
-    armatureObj, obj, convertTransformMatrix, f3dType, isHWv1, camera, name, DLFormat, convertTextureData
+    armatureObj, obj, convertTransformMatrix, camera, name, DLFormat, convertTextureData
 ):
 
     inline = bpy.context.scene.exportInlineF3D
     fModel = SM64Model(
-        f3dType,
-        isHWv1,
         name,
         DLFormat,
         GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
@@ -424,14 +422,12 @@ def convertArmatureToGeolayout(
 
 # Camera is unused here
 def convertObjectToGeolayout(
-    obj, convertTransformMatrix, f3dType, isHWv1, camera, name, fModel: FModel, areaObj, DLFormat, convertTextureData
+    obj, convertTransformMatrix, camera, name, fModel: FModel, areaObj, DLFormat, convertTextureData
 ):
 
     inline = bpy.context.scene.exportInlineF3D
     if fModel is None:
         fModel = SM64Model(
-            f3dType,
-            isHWv1,
             name,
             DLFormat,
             GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
@@ -501,8 +497,6 @@ def exportGeolayoutArmatureC(
     armatureObj,
     obj,
     convertTransformMatrix,
-    f3dType,
-    isHWv1,
     dirPath,
     texDir,
     savePNG,
@@ -517,7 +511,7 @@ def exportGeolayoutArmatureC(
     DLFormat,
 ):
     geolayoutGraph, fModel = convertArmatureToGeolayout(
-        armatureObj, obj, convertTransformMatrix, f3dType, isHWv1, camera, dirName, DLFormat, not savePNG
+        armatureObj, obj, convertTransformMatrix, camera, dirName, DLFormat, not savePNG
     )
 
     return saveGeolayoutC(
@@ -540,8 +534,6 @@ def exportGeolayoutArmatureC(
 def exportGeolayoutObjectC(
     obj,
     convertTransformMatrix,
-    f3dType,
-    isHWv1,
     dirPath,
     texDir,
     savePNG,
@@ -556,7 +548,7 @@ def exportGeolayoutObjectC(
     DLFormat,
 ):
     geolayoutGraph, fModel = convertObjectToGeolayout(
-        obj, convertTransformMatrix, f3dType, isHWv1, camera, dirName, None, None, DLFormat, not savePNG
+        obj, convertTransformMatrix, camera, dirName, None, None, DLFormat, not savePNG
     )
 
     return saveGeolayoutC(
@@ -810,18 +802,18 @@ def saveGeolayoutC(
 
 # Insertable Binary
 def exportGeolayoutArmatureInsertableBinary(
-    armatureObj, obj, convertTransformMatrix, f3dType, isHWv1, filepath, camera
+    armatureObj, obj, convertTransformMatrix, filepath, camera
 ):
     geolayoutGraph, fModel = convertArmatureToGeolayout(
-        armatureObj, obj, convertTransformMatrix, f3dType, isHWv1, camera, armatureObj.name, DLFormat.Static, True
+        armatureObj, obj, convertTransformMatrix, camera, armatureObj.name, DLFormat.Static, True
     )
 
     saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath, f3dType)
 
 
-def exportGeolayoutObjectInsertableBinary(obj, convertTransformMatrix, f3dType, isHWv1, filepath, camera):
+def exportGeolayoutObjectInsertableBinary(obj, convertTransformMatrix, filepath, camera):
     geolayoutGraph, fModel = convertObjectToGeolayout(
-        obj, convertTransformMatrix, f3dType, isHWv1, camera, obj.name, None, None, DLFormat.Static, True
+        obj, convertTransformMatrix, camera, obj.name, None, None, DLFormat.Static, True
     )
 
     saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath, f3dType)
@@ -848,14 +840,12 @@ def exportGeolayoutArmatureBinaryBank0(
     levelCommandPos,
     modelID,
     textDumpFilePath,
-    f3dType,
-    isHWv1,
     RAMAddr,
     camera,
 ):
 
     geolayoutGraph, fModel = convertArmatureToGeolayout(
-        armatureObj, obj, convertTransformMatrix, f3dType, isHWv1, camera, armatureObj.name, DLFormat.Static, True
+        armatureObj, obj, convertTransformMatrix, camera, armatureObj.name, DLFormat.Static, True
     )
 
     return saveGeolayoutBinaryBank0(
@@ -871,14 +861,12 @@ def exportGeolayoutObjectBinaryBank0(
     levelCommandPos,
     modelID,
     textDumpFilePath,
-    f3dType,
-    isHWv1,
     RAMAddr,
     camera,
 ):
 
     geolayoutGraph, fModel = convertObjectToGeolayout(
-        obj, convertTransformMatrix, f3dType, isHWv1, camera, obj.name, None, None, DLFormat.Static, True
+        obj, convertTransformMatrix, camera, obj.name, None, None, DLFormat.Static, True
     )
 
     return saveGeolayoutBinaryBank0(
@@ -938,13 +926,11 @@ def exportGeolayoutArmatureBinary(
     levelCommandPos,
     modelID,
     textDumpFilePath,
-    f3dType,
-    isHWv1,
     camera,
 ):
 
     geolayoutGraph, fModel = convertArmatureToGeolayout(
-        armatureObj, obj, convertTransformMatrix, f3dType, isHWv1, camera, armatureObj.name, DLFormat.Static, True
+        armatureObj, obj, convertTransformMatrix, camera, armatureObj.name, DLFormat.Static, True
     )
 
     return saveGeolayoutBinary(
@@ -961,13 +947,11 @@ def exportGeolayoutObjectBinary(
     levelCommandPos,
     modelID,
     textDumpFilePath,
-    f3dType,
-    isHWv1,
     camera,
 ):
 
     geolayoutGraph, fModel = convertObjectToGeolayout(
-        obj, convertTransformMatrix, f3dType, isHWv1, camera, obj.name, None, None, DLFormat.Static, True
+        obj, convertTransformMatrix, camera, obj.name, None, None, DLFormat.Static, True
     )
 
     return saveGeolayoutBinary(
@@ -2887,8 +2871,6 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                 exportGeolayoutObjectC(
                     obj,
                     finalTransform,
-                    context.scene.f3d_type,
-                    context.scene.isHWv1,
                     exportPath,
                     bpy.context.scene.geoTexDir,
                     saveTextures,
@@ -2907,8 +2889,6 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                 exportGeolayoutObjectInsertableBinary(
                     obj,
                     finalTransform,
-                    context.scene.f3d_type,
-                    context.scene.isHWv1,
                     bpy.path.abspath(bpy.context.scene.geoInsertableBinaryPath),
                     None,
                 )
@@ -2944,8 +2924,6 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                         finalTransform,
                         *modelLoadInfo,
                         textDumpFilePath,
-                        context.scene.f3d_type,
-                        context.scene.isHWv1,
                         getAddressFromRAMAddress(int(context.scene.geoRAMAddr, 16)),
                         None,
                     )
@@ -2958,8 +2936,6 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                         segmentData,
                         *modelLoadInfo,
                         textDumpFilePath,
-                        context.scene.f3d_type,
-                        context.scene.isHWv1,
                         None,
                     )
 
@@ -3098,8 +3074,6 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                     armatureObj,
                     obj,
                     finalTransform,
-                    context.scene.f3d_type,
-                    context.scene.isHWv1,
                     exportPath,
                     bpy.context.scene.geoTexDir,
                     saveTextures,
@@ -3120,8 +3094,6 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                     armatureObj,
                     obj,
                     finalTransform,
-                    context.scene.f3d_type,
-                    context.scene.isHWv1,
                     bpy.path.abspath(bpy.context.scene.geoInsertableBinaryPath),
                     None,
                 )
@@ -3158,8 +3130,6 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                         finalTransform,
                         *modelLoadInfo,
                         textDumpFilePath,
-                        context.scene.f3d_type,
-                        context.scene.isHWv1,
                         getAddressFromRAMAddress(int(context.scene.geoRAMAddr, 16)),
                         None,
                     )
@@ -3173,8 +3143,6 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                         segmentData,
                         *modelLoadInfo,
                         textDumpFilePath,
-                        context.scene.f3d_type,
-                        context.scene.isHWv1,
                         None,
                     )
 

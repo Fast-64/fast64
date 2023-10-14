@@ -3,7 +3,7 @@ from random import random
 from collections import OrderedDict
 from ..utility import PluginError, readFile, parentObject, hexOrDecInt, gammaInverse, yUpToZUp
 from ..f3d.f3d_parser import parseMatrices, importMeshC
-from ..f3d.f3d_gbi import F3D
+from ..f3d.f3d_gbi import F3D, get_F3D_GBI
 from ..f3d.flipbook import TextureFlipbook
 from .collision.properties import OOTMaterialCollisionProperty
 from .oot_model_classes import OOTF3DContext
@@ -192,8 +192,6 @@ class SharedSceneData:
 
 
 def parseScene(
-    f3dType: str,
-    isHWv1: bool,
     settings: OOTImportSceneSettingsProperty,
     option: str,
 ):
@@ -231,7 +229,7 @@ def parseScene(
         bpy.context.mode = "OBJECT"
 
     # set scene default registers (see sDefaultDisplayList)
-    f3dContext = OOTF3DContext(F3D(f3dType, isHWv1), [], bpy.path.abspath(bpy.context.scene.ootDecompPath))
+    f3dContext = OOTF3DContext(get_F3D_GBI(), [], bpy.path.abspath(bpy.context.scene.ootDecompPath))
     f3dContext.mat().prim_color = (0.5, 0.5, 0.5, 0.5)
     f3dContext.mat().env_color = (0.5, 0.5, 0.5, 0.5)
 
