@@ -195,7 +195,7 @@ def setupActorCuePreview(csObj: Object, actorOrPlayer: str, selectObject: bool, 
         previewObj.empty_display_type = "SINGLE_ARROW"
         previewObj.empty_display_size = metersToBlend(bpy.context, actorHeight)
         setattr(previewObj.ootCSMotionProperty.actorCueListProp, f"{actorOrPlayer.lower()}CueListToPreview", cueList)
-    
+
     return isCueMoving
 
 

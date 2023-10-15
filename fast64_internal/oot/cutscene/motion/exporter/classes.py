@@ -4,7 +4,7 @@ import bpy
 from dataclasses import dataclass
 from bpy.types import Object
 from .....utility import PluginError, indent
-from ..constants import ootCSMotionCommandTypeRawToEnum
+from ....oot_constants import ootData
 
 from ..io_classes import (
     OOTCSMotionActorCueList,
@@ -140,7 +140,7 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
             if commandType == "Custom":
                 commandType = obj.ootCSMotionProperty.actorCueListProp.commandTypeCustom
             elif self.useDecomp:
-                commandType = ootCSMotionCommandTypeRawToEnum[commandType]
+                commandType = ootData.enumData.enumByKey["csCmd"].itemByKey[commandType].id
 
             actorCueList = OOTCSMotionActorCueList(commandType, entryTotal - 1)  # ignoring dummy cue
             actorCueData += self.getActorCueListCmd(actorCueList, isPlayer)
@@ -149,10 +149,20 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
                 startFrame = childObj.ootCSMotionProperty.actorCueProp.cueStartFrame
                 if i < len(obj.children) and childObj.ootEmptyType != "CS Dummy Cue":
                     endFrame = obj.children[i].ootCSMotionProperty.actorCueProp.cueStartFrame
+                    actionID = None
+
+                    if isPlayer:
+                        cueID = childObj.ootCSMotionProperty.actorCueProp.playerCueID
+                        if cueID != "Custom":
+                            actionID = ootData.enumData.enumByKey["csPlayerCueId"].itemByKey[cueID].id
+
+                    if actionID is None:
+                        actionID = childObj.ootCSMotionProperty.actorCueProp.cueActionID
+
                     actorCue = OOTCSMotionActorCue(
                         startFrame,
                         endFrame,
-                        childObj.ootCSMotionProperty.actorCueProp.cueActionID,
+                        actionID,
                         self.getOoTRotation(childObj),
                         self.getOoTPosition(childObj.location),
                         self.getOoTPosition(obj.children[i].location),

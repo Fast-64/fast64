@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from struct import unpack
 from bpy.types import Object, Armature
 from .....utility import PluginError
+from ....oot_constants import ootData
 from ..utility import setupCutscene, getBlenderPosition, getRotation
 
 from ..constants import (
@@ -13,8 +14,6 @@ from ..constants import (
     ootCSMotionListEntryCommands,
     ootCSMotionSingleCommands,
     ootCSMotionListAndSingleCommands,
-    ootCSMotionTransTypeHexToEnum,
-    ootCSMotionMiscTypeHexToEnum,
 )
 
 from ..io_classes import (
@@ -125,7 +124,7 @@ class OOTCSMotionImportCommands:
         return OOTCSMotionActorCue(
             self.getInteger(params[1]),
             self.getInteger(params[2]),
-            params[0],
+            self.getInteger(params[0]),
             [getRotation(params[3]), getRotation(params[4]), getRotation(params[5])],
             [self.getInteger(params[6]), self.getInteger(params[7]), self.getInteger(params[8])],
             [self.getInteger(params[9]), self.getInteger(params[10]), self.getInteger(params[11])],
@@ -144,10 +143,11 @@ class OOTCSMotionImportCommands:
 
     def getNewMisc(self, cmdData: str):
         params = self.getCmdParams(cmdData, "CS_MISC", OOTCSMotionMisc.paramNumber)
-        if params[0].startswith("CS_MISC_"):
-            miscType = params[0]
-        else:
-            miscType = ootCSMotionMiscTypeHexToEnum[f"0x{self.getInteger(params[0]):02X}"]
+        miscEnum = ootData.enumData.enumByKey["csMiscType"]
+        item = miscEnum.itemById.get(params[0])
+        if item is None:
+            item = miscEnum.itemByIndex[self.getInteger(params[0])]
+        miscType = item.id
         return OOTCSMotionMisc(self.getInteger(params[1]), self.getInteger(params[2]), miscType)
 
     def getNewMiscList(self, cmdData: str):
@@ -156,10 +156,11 @@ class OOTCSMotionImportCommands:
 
     def getNewTransition(self, cmdData: str):
         params = self.getCmdParams(cmdData, "CS_TRANSITION", OOTCSMotionTransition.paramNumber)
-        if params[0].startswith("CS_TRANS_"):
-            transType = params[0]
-        else:
-            transType = ootCSMotionTransTypeHexToEnum[f"0x{self.getInteger(params[0]):02X}"]
+        transitionEnum = ootData.enumData.enumByKey["csTransitionType"]
+        item = transitionEnum.itemById.get(params[0])
+        if item is None:
+            item = transitionEnum.itemByIndex[self.getInteger(params[0])]
+        transType = item.id
         return OOTCSMotionTransition(self.getInteger(params[1]), self.getInteger(params[2]), transType)
 
 

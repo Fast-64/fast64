@@ -2,8 +2,7 @@ import bpy
 
 from dataclasses import dataclass, field
 from bpy.types import Object
-from ...oot_utility import getEnumIndex
-from .constants import ootEnumCSActorCueListCommandType
+from ...oot_constants import ootData
 from .utility import getBlenderPosition, getBlenderRotation
 
 
@@ -35,7 +34,7 @@ class OOTCSMotionCamPoint:
 class OOTCSMotionActorCue(OOTCSMotionBase):
     """This class contains a single Actor Cue command data"""
 
-    actionID: str
+    actionID: int
     rot: list[str, str, str]
     startPos: list[int, int, int]
     endPos: list[int, int, int]
@@ -182,11 +181,16 @@ class OOTCSMotionObjectFactory:
     def getNewActorCueListObject(self, name: str, commandType: str, parentObj: Object):
         newActorCueListObj = self.getNewEmptyObject(name, False, parentObj)
         newActorCueListObj.ootEmptyType = f"CS {'Player' if 'Player' in name else 'Actor'} Cue List"
-        index = getEnumIndex(ootEnumCSActorCueListCommandType, commandType)
+        cmdEnum = ootData.enumData.enumByKey["csCmd"]
 
-        if index is not None:
-            cmdType = ootEnumCSActorCueListCommandType[index][0]
-            newActorCueListObj.ootCSMotionProperty.actorCueListProp.commandType = cmdType
+        if commandType == "Player":
+            commandType = "player_cue"
+
+        index = cmdEnum.itemByKey[commandType].index if commandType in cmdEnum.itemByKey else int(commandType, base=16)
+        item = cmdEnum.itemByIndex.get(index)
+
+        if item is not None:
+            newActorCueListObj.ootCSMotionProperty.actorCueListProp.commandType = item.key
         else:
             newActorCueListObj.ootCSMotionProperty.actorCueListProp.commandType = "Custom"
             newActorCueListObj.ootCSMotionProperty.actorCueListProp.commandTypeCustom = commandType
@@ -197,20 +201,35 @@ class OOTCSMotionObjectFactory:
         self,
         name: str,
         startFrame: int,
-        actionID: str,
+        actionID: int | str,
         location: list[int],
         rot: list[str],
         parentObj: Object,
     ):
+        isDummy = "(D)" in name
+        isPlayer = not isDummy and not "Actor" in name
+
         newActorCueObj = self.getNewEmptyObject(name, False, parentObj)
         newActorCueObj.location = getBlenderPosition(location, bpy.context.scene.ootBlenderScale)
         newActorCueObj.empty_display_type = "ARROWS"
         newActorCueObj.rotation_mode = "XZY"
         newActorCueObj.rotation_euler = getBlenderRotation(rot)
-        emptyType = "Dummy" if "(D)" in name else "Actor" if "Actor" in name else "Player"
+        emptyType = "Dummy" if isDummy else "Player" if isPlayer else "Actor"
         newActorCueObj.ootEmptyType = f"CS {emptyType} Cue"
         newActorCueObj.ootCSMotionProperty.actorCueProp.cueStartFrame = startFrame
-        newActorCueObj.ootCSMotionProperty.actorCueProp.cueActionID = actionID
+
+        item = None
+        if isPlayer:
+            playerEnum = ootData.enumData.enumByKey["csPlayerCueId"]
+            item = playerEnum.itemByIndex.get(actionID)
+
+        if item is not None:
+            newActorCueObj.ootCSMotionProperty.actorCueProp.playerCueID = item.key
+        elif not isDummy:
+            if isPlayer:
+                newActorCueObj.ootCSMotionProperty.actorCueProp.playerCueID = "Custom"
+            newActorCueObj.ootCSMotionProperty.actorCueProp.cueActionID = f"0x{actionID:04X}"
+
         return newActorCueObj
 
     def getNewCameraObject(

@@ -1,11 +1,11 @@
 import bpy
 
-from bpy.ops import object
 from bpy.types import PropertyGroup, Object, UILayout, Armature, Bone, Scene, EditBone
 from bpy.props import IntProperty, StringProperty, PointerProperty, EnumProperty, FloatProperty
 from bpy.utils import register_class, unregister_class
 from ...oot_upgrade import upgradeCutsceneMotion
 from ...oot_utility import getEnumName
+from ...oot_constants import ootData
 from .constants import ootEnumCSMotionCamMode, ootEnumCSActorCueListCommandType
 
 from .operators import (
@@ -13,6 +13,7 @@ from .operators import (
     OOTCSMotionCreateActorCuePreview,
     OOT_SearchActorCueCmdTypeEnumOperator,
     OOTCSMotionAddBone,
+    OOT_SearchPlayerCueIdEnumOperator,
 )
 
 
@@ -31,7 +32,7 @@ def getNextCuesStartFrame(self):
 
 class OOTCSMotionActorCueListProperty(PropertyGroup):
     commandType: EnumProperty(
-        items=ootEnumCSActorCueListCommandType, name="CS Actor Cue Command Type", default="0x000F"
+        items=ootEnumCSActorCueListCommandType, name="CS Actor Cue Command Type", default="actor_cue_0_0"
     )
     commandTypeCustom: StringProperty(name="CS Actor Cue Command Type Custom")
     actorCueListToPreview: PointerProperty(
@@ -85,11 +86,12 @@ class OOTCSMotionActorCueProperty(PropertyGroup):
         get=lambda self: getNextCuesStartFrame(self),
     )
 
+    playerCueID: EnumProperty(items=ootData.enumData.ootEnumCsPlayerCueId, default="cueid_none")
     cueActionID: StringProperty(
         name="Action ID", default="0x0001", description="Actor action. Meaning is unique for each different actor."
     )
 
-    def draw_props(self, layout: UILayout, labelPrefix: str, isDummy: bool):
+    def draw_props(self, layout: UILayout, labelPrefix: str, isDummy: bool, objName: str):
         box = layout.box()
         dummyExtra = "(Sets previous Actor Cue's end frame/pos.)" if isDummy else ""
         boxBox = box.box()
@@ -106,13 +108,23 @@ class OOTCSMotionActorCueProperty(PropertyGroup):
         split = box.split(factor=0.5)
         split.prop(self, "cueStartFrame")
         if not isDummy:
+            label = f"{labelPrefix} Cue (Action) ID:"
+            isPlayer = labelPrefix == "Player"
             split.prop(self, "cueEndFrame")
 
-            split = box.split(factor=0.5)
-            split.label(text=f"{labelPrefix} Cue (Action) ID")
-            split.prop(self, "cueActionID", text="")
+            if isPlayer:
+                split = box.split(factor=0.5)
+                searchOp = split.operator(OOT_SearchPlayerCueIdEnumOperator.bl_idname, icon="VIEWZOOM", text=label)
+                searchOp.objName = objName
+                split.label(text=getEnumName(ootData.enumData.ootEnumCsPlayerCueId, self.playerCueID))
+
+            if not isPlayer or self.playerCueID == "Custom":
+                split = box.split(factor=0.5)
+                split.label(text=label)
+                split.prop(self, "cueActionID", text="")
+
             addCueOp = box.operator(OOTCSMotionAddActorCue.bl_idname, text=f"Add {labelPrefix} Cue")
-            addCueOp.isPlayer = labelPrefix == "Player"
+            addCueOp.isPlayer = isPlayer
 
 
 class OOTCSMotionCameraShotProperty(PropertyGroup):
@@ -126,7 +138,7 @@ class OOTCSMotionCameraShotProperty(PropertyGroup):
         min=-1,
         get=lambda self: self.getEndFrame(),
     )
-    
+
     shotCamMode: EnumProperty(
         items=ootEnumCSMotionCamMode,
         name="Mode",
@@ -134,12 +146,12 @@ class OOTCSMotionCameraShotProperty(PropertyGroup):
         default="splineEyeOrAT",
     )
 
-    def getEndFrame(self, camShotObj: Object=None):
+    def getEndFrame(self, camShotObj: Object = None):
         if camShotObj is None:
             camShotObj = bpy.context.view_layer.objects.active
 
         if camShotObj.type == "ARMATURE":
-            boneFrameList: list[int] = [bone.ootCamShotPointProp.shotPointFrame for bone in camShotObj.data.bones]        
+            boneFrameList: list[int] = [bone.ootCamShotPointProp.shotPointFrame for bone in camShotObj.data.bones]
             # "fake" eye end frame
             return self.shotStartFrame + max(2, sum(frame for frame in boneFrameList)) + 1
         return -1

@@ -2,7 +2,8 @@ import bpy
 
 from bpy.types import Object, CollectionProperty
 from .data import OoT_ObjectData
-from .cutscene.motion.constants import ootEnumCSMotionCamMode, ootCueCmdTypeToEnumIndex
+from .cutscene.motion.constants import ootEnumCSMotionCamMode
+from .oot_constants import ootData
 
 
 def upgradeObjectList(objList: CollectionProperty, objData: OoT_ObjectData):
@@ -54,26 +55,36 @@ def upgradeCutsceneMotion(csMotionObj: Object):
             if "actor_id" in legacyData:
                 index = legacyData["actor_id"]
                 if index >= 0:
-                    cmdType = f"0x{index:04X}"
-                    if cmdType in ootCueCmdTypeToEnumIndex:
-                        csMotionProp.actorCueListProp.commandType = cmdType
+                    cmdEnum = ootData.enumData.enumByKey["csCmd"]
+                    cmdType = cmdEnum.itemByIndex.get(index)
+                    if cmdType is not None:
+                        csMotionProp.actorCueListProp.commandType = cmdType.key
                     else:
                         csMotionProp.actorCueListProp.commandType = "Custom"
-                        csMotionProp.actorCueListProp.commandTypeCustom = cmdType
+                        csMotionProp.actorCueListProp.commandTypeCustom = f"0x{index:04X}"
                 del legacyData["actor_id"]
 
             del csMotionObj["zc_alist"]
 
         if "zc_apoint" in csMotionObj and "Point." in objName:
+            isPlayer = "Link" in csMotionObj.parent.name
             legacyData = csMotionObj["zc_apoint"]
-            csMotionObj.ootEmptyType = f"CS {'Player' if 'Link' in csMotionObj.parent.name else 'Actor'} Cue"
+            csMotionObj.ootEmptyType = f"CS {'Player' if isPlayer else 'Actor'} Cue"
 
             if "start_frame" in legacyData:
                 csMotionProp.actorCueProp.cueStartFrame = legacyData["start_frame"]
                 del legacyData["start_frame"]
 
             if "action_id" in legacyData:
-                csMotionProp.actorCueProp.cueActionID = legacyData["action_id"]
+                playerEnum = ootData.enumData.enumByKey["csPlayerCueId"]
+                item = None
+                if isPlayer:
+                    item = playerEnum.itemByIndex.get(int(legacyData["action_id"], base=16))
+
+                if isPlayer and item is not None:
+                    csMotionProp.actorCueProp.playerCueID = item.key
+                else:
+                    csMotionProp.actorCueProp.cueActionID = legacyData["action_id"]
                 del legacyData["action_id"]
 
             del csMotionObj["zc_apoint"]

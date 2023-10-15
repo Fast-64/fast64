@@ -4,6 +4,7 @@ from bpy.types import Object, Operator, Context, Armature
 from bpy.utils import register_class, unregister_class
 from bpy.props import StringProperty, EnumProperty, BoolProperty
 from ....utility import PluginError
+from ...oot_constants import ootData
 from .io_classes import OOTCSMotionObjectFactory
 from .constants import ootEnumCSActorCueListCommandType
 from ..preview import initFirstFrame, setupCompositorNodes
@@ -35,7 +36,7 @@ def createNewActorCueList(csObj: Object, isPlayer: bool):
     """Creates a new Actor or Player Cue List and adds one basic cue and the dummy one"""
     objFactory = OOTCSMotionObjectFactory()
     playerOrActor = "Player" if isPlayer else "Actor"
-    newActorCueListObj = objFactory.getNewActorCueListObject(f"New {playerOrActor} Cue List", "0x000F", None)
+    newActorCueListObj = objFactory.getNewActorCueListObject(f"New {playerOrActor} Cue List", "actor_cue_0_0", None)
     index, csPrefix = getNameInformations(csObj, f"{playerOrActor} Cue List", None)
     newActorCueListObj.name = f"{csPrefix}.{playerOrActor} Cue List {index:02}"
 
@@ -298,7 +299,7 @@ class OOT_SearchActorCueCmdTypeEnumOperator(Operator):
     bl_property = "commandType"
     bl_options = {"REGISTER", "UNDO"}
 
-    commandType: EnumProperty(items=ootEnumCSActorCueListCommandType, default="0x000F")
+    commandType: EnumProperty(items=ootEnumCSActorCueListCommandType, default="actor_cue_0_0")
     objName: StringProperty()
 
     def execute(self, context):
@@ -307,6 +308,28 @@ class OOT_SearchActorCueCmdTypeEnumOperator(Operator):
 
         context.region.tag_redraw()
         self.report({"INFO"}, "Selected: " + self.commandType)
+        return {"FINISHED"}
+
+    def invoke(self, context, event):
+        context.window_manager.invoke_search_popup(self)
+        return {"RUNNING_MODAL"}
+
+
+class OOT_SearchPlayerCueIdEnumOperator(Operator):
+    bl_idname = "object.oot_search_playercueid_enum_operator"
+    bl_label = "Select Player Cue ID"
+    bl_property = "playerCueID"
+    bl_options = {"REGISTER", "UNDO"}
+
+    playerCueID: EnumProperty(items=ootData.enumData.ootEnumCsPlayerCueId, default="cueid_none")
+    objName: StringProperty()
+
+    def execute(self, context):
+        obj = bpy.data.objects[self.objName]
+        obj.ootCSMotionProperty.actorCueProp.playerCueID = self.playerCueID
+
+        context.region.tag_redraw()
+        self.report({"INFO"}, "Selected: " + self.playerCueID)
         return {"FINISHED"}
 
     def invoke(self, context, event):
@@ -323,6 +346,7 @@ classes = (
     OOTCSMotionCreatePlayerCueList,
     OOTCSMotionCreateActorCueList,
     OOT_SearchActorCueCmdTypeEnumOperator,
+    OOT_SearchPlayerCueIdEnumOperator,
 )
 
 

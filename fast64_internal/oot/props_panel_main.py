@@ -162,7 +162,7 @@ class OOTObjectPanel(bpy.types.Panel):
         elif obj.ootEmptyType in ["CS Actor Cue", "CS Player Cue", "CS Dummy Cue"]:
             labelPrefix = "Player" if obj.parent.ootEmptyType == "CS Player Cue List" else "Actor"
             actorCueProp: OOTCSMotionActorCueProperty = obj.ootCSMotionProperty.actorCueProp
-            actorCueProp.draw_props(box, labelPrefix, obj.ootEmptyType == "CS Dummy Cue")
+            actorCueProp.draw_props(box, labelPrefix, obj.ootEmptyType == "CS Dummy Cue", obj.name)
 
         elif obj.ootEmptyType == "None":
             box.label(text="Geometry can be parented to this.")
