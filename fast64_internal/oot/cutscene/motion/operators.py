@@ -133,6 +133,7 @@ class OOTCSMotionAddBone(Operator):
                     raise PluginError("ERROR: Something went wrong...")
 
                 bpy.ops.object.mode_set(mode=lastMode)
+                self.report({"INFO"}, "Success!")
                 return {"FINISHED"}
             else:
                 raise PluginError("You must select an armature object parented to a cutscene empty object!")
@@ -207,6 +208,7 @@ class OOTCSMotionAddActorCue(Operator):
             else:
                 raise PluginError("ERROR: Select the Actor or Player Cue List!")
 
+            self.report({"INFO"}, "Success!")
             return {"FINISHED"}
         except:
             return {"CANCELLED"}
@@ -222,9 +224,10 @@ class OOTCSMotionCreateActorCuePreview(Operator):
         cueList = getCSMotionValidateObj(None, None, None)
 
         if cueList is not None and cueList.ootEmptyType in ["CS Actor Cue List", "CS Player Cue List"]:
-            setupActorCuePreview(
+            isCueMoving = setupActorCuePreview(
                 cueList.parent, "Actor" if "Actor" in cueList.ootEmptyType else "Player", True, cueList
             )
+            self.report({"INFO"}, "Success!" if isCueMoving else "Actor Cue don't move, ignored preview.")
             return {"FINISHED"}
         else:
             return {"CANCELLED"}
@@ -241,6 +244,7 @@ class OOTCSMotionCreateCameraShot(Operator):
 
         if csObj is not None:
             createNewCameraShot(csObj)
+            self.report({"INFO"}, "Success!")
             return {"FINISHED"}
         else:
             return {"CANCELLED"}
@@ -261,6 +265,7 @@ class OOTCSMotionCreatePlayerCueList(Operator):
             else:
                 raise PluginError("ERROR: You must select the cutscene object!")
 
+            self.report({"INFO"}, "Success!")
             return {"FINISHED"}
         except:
             return {"CANCELLED"}
@@ -281,6 +286,7 @@ class OOTCSMotionCreateActorCueList(Operator):
             else:
                 raise PluginError("ERROR: You must select the cutscene object!")
 
+            self.report({"INFO"}, "Success!")
             return {"FINISHED"}
         except:
             return {"CANCELLED"}

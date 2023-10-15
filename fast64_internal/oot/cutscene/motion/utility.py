@@ -167,17 +167,17 @@ def setupActorCuePreview(csObj: Object, actorOrPlayer: str, selectObject: bool, 
     from .io_classes import OOTCSMotionObjectFactory  # circular import fix
 
     # check if the cue actually moves, if not it's not necessary to create a preview object
-    shouldContinue = False
+    isCueMoving = False
     for i in range(len(cueList.children) - 1):
         actorCue = cueList.children[i]
         nextCue = cueList.children[i + 1]
         curPos = [round(pos) for pos in actorCue.location]
         nextPos = [round(pos) for pos in nextCue.location]
         if curPos != nextPos:
-            shouldContinue = True
+            isCueMoving = True
             break
 
-    if shouldContinue:
+    if isCueMoving:
         index, csPrefix = getNameInformations(csObj, "Preview", int(cueList.name.split(" ")[-1]))
         name = f"{csPrefix}.{actorOrPlayer} Cue Preview {index:02}"
 
@@ -194,7 +194,9 @@ def setupActorCuePreview(csObj: Object, actorOrPlayer: str, selectObject: bool, 
 
         previewObj.empty_display_type = "SINGLE_ARROW"
         previewObj.empty_display_size = metersToBlend(bpy.context, actorHeight)
-        previewObj.ootCSMotionProperty.actorCueListProp.cueListToPreview = cueList
+        setattr(previewObj.ootCSMotionProperty.actorCueListProp, f"{actorOrPlayer.lower()}CueListToPreview", cueList)
+    
+    return isCueMoving
 
 
 def getCameraShotBoneData(shotObj: Object, runChecks: bool):
