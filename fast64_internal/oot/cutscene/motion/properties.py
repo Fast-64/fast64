@@ -47,9 +47,10 @@ class OOTCSMotionActorCueListProperty(PropertyGroup):
     def draw_props(self, layout: UILayout, isPreview: bool, labelPrefix: str, objName: str):
         box = layout.box()
         box.box().label(text=f"{labelPrefix} Cue List")
+        isPlayer = labelPrefix == "Player"
 
         # Player Cue has only one command type
-        if labelPrefix != "Player" and not isPreview:
+        if not isPlayer and not isPreview:
             searchBox = box.row()
             searchOp = searchBox.operator(
                 OOT_SearchActorCueCmdTypeEnumOperator.bl_idname, icon="VIEWZOOM", text="Command Type:"
@@ -64,7 +65,8 @@ class OOTCSMotionActorCueListProperty(PropertyGroup):
 
         if not isPreview:
             split = box.split(factor=0.5)
-            split.operator(OOTCSMotionAddActorCue.bl_idname)
+            addCueOp = split.operator(OOTCSMotionAddActorCue.bl_idname, text=f"Add {labelPrefix} Cue")
+            addCueOp.isPlayer = isPlayer
             split.operator(OOTCSMotionCreateActorCuePreview.bl_idname)
         else:
             split = box.split(factor=0.5)
@@ -77,7 +79,7 @@ class OOTCSMotionActorCueProperty(PropertyGroup):
 
     cueEndFrame: IntProperty(
         name="End Frame",
-        description="End Frame of the Actor Cue",
+        description="End Frame of the Actor Cue, corresponds to the Start Frame of the next Actor Cue",
         default=0,
         min=-1,
         get=lambda self: getNextCuesStartFrame(self),
@@ -95,6 +97,12 @@ class OOTCSMotionActorCueProperty(PropertyGroup):
         if len(dummyExtra) > 0:
             boxBox.label(text=dummyExtra)
 
+        if not isDummy and self.cueStartFrame > self.cueEndFrame:
+            box.label(
+                text="Warning: Start Frame > End Frame!",
+                icon="ERROR",
+            )
+
         split = box.split(factor=0.5)
         split.prop(self, "cueStartFrame")
         if not isDummy:
@@ -103,7 +111,8 @@ class OOTCSMotionActorCueProperty(PropertyGroup):
             split = box.split(factor=0.5)
             split.label(text=f"{labelPrefix} Cue (Action) ID")
             split.prop(self, "cueActionID", text="")
-            box.operator(OOTCSMotionAddActorCue.bl_idname)
+            addCueOp = box.operator(OOTCSMotionAddActorCue.bl_idname, text=f"Add {labelPrefix} Cue")
+            addCueOp.isPlayer = labelPrefix == "Player"
 
 
 class OOTCSMotionCameraShotProperty(PropertyGroup):

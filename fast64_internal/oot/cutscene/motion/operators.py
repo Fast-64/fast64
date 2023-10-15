@@ -2,7 +2,7 @@ import bpy
 
 from bpy.types import Object, Operator, Context, Armature
 from bpy.utils import register_class, unregister_class
-from bpy.props import StringProperty, EnumProperty
+from bpy.props import StringProperty, EnumProperty, BoolProperty
 from ....utility import PluginError
 from .io_classes import OOTCSMotionObjectFactory
 from .constants import ootEnumCSActorCueListCommandType
@@ -146,6 +146,8 @@ class OOTCSMotionAddActorCue(Operator):
     bl_idname = "object.add_actor_cue_point"
     bl_label = "Add Actor Cue"
 
+    isPlayer: BoolProperty(default=False)
+
     def execute(self, context):
         actorCueListObj = getCSMotionValidateObj(None, None, None)
 
@@ -157,7 +159,7 @@ class OOTCSMotionAddActorCue(Operator):
                 # start by creating the new object with basic values
                 objFactory = OOTCSMotionObjectFactory()
                 newActorCueObj = objFactory.getNewActorCueObject(
-                    "New Actor Cue",
+                    f"New {'Player' if self.isPlayer else 'Actor'} Cue",
                     0,
                     "0x0000",
                     [0, 0, 0],
