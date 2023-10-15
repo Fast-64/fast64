@@ -47,9 +47,9 @@ Fast64 has an implementation for creating camera shots and actor cues.
 
 When the shot / armature is selected, in the Object Properties pane there are controls for the start frame of that shot and whether it's normal, relative to Link, or the single Eye/AT point mode. When a particular key point / bone is selected, you have controls for the number of frames, view angle (FoV), and roll of the camera at that position.
 
-At export, camera shots are sorted by name, so you should name them with something they will be in the correct order with at export (e.g. Shot01, Shot02, etc.) Also, the bones / key frames are also sorted by name, so their names must be in the order you want the motion to have. These should both be previewed correctly (i.e. if it looks right in Blender, it should work right in game)
+At export, camera shots are sorted by name, so you should name them with something they will be in the correct order with at export (e.g. Shot01, Shot02, etc.). The bones / key frames are also sorted by name, so their names must be in the order you want the motion to have. These should both be previewed correctly (i.e. if it looks right in Blender, it should work right in game)
 
-When you add a new bone by duplicating the last bone in the sequence, you must switch out of edit mode and back in for the previewer to properly handle that new bone. This only needs to be done after adding bones; you can preview while editing bones normally. This is due to how Blender represents bones differently in edit vs. object mode.
+When you add a new bone by duplicating the last bone in the sequence, you must switch out of edit mode and back in for the previewer to properly handle that new bone. This only needs to be done after adding bones; you can preview while editing bones normally. This is due to how Blender represents bones differently in edit mode vs. object mode.
 
 - An Actor Cue list is defined by an empty object and child objects. The list object lets you control which the "command type" (defines the channel to use) and each child object defines the action ID. Those child objects are called "Actor Cue Point". Each cue's ending frame is defined by the next cue's starting frame. The next one also defines the end position of the previous cue, this is the design made by the original OoT devs that's why it can look a bit weird at first glance.
 

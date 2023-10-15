@@ -213,11 +213,11 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
 
         return camCmdClassMap[camMode]
 
-    def getCamListData(self, obj: Object, useAT: bool):
+    def getCamListData(self, shotObj: Object, useAT: bool):
         """Returns the Camera Shot data from the corresponding Armatures"""
 
-        camPointList = self.getCameraShotPointData(obj.data.bones, useAT)
-        startFrame = obj.data.ootCamShotProp.shotStartFrame
+        camPointList = self.getCameraShotPointData(shotObj.data.bones, useAT)
+        startFrame = shotObj.data.ootCamShotProp.shotStartFrame
 
         # "fake" end frame
         endFrame = (
@@ -229,9 +229,8 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
                 pointData.frame = 0
             self.camEndFrame = endFrame
 
-        camData = self.getCamClass(obj.data.ootCamShotProp.shotCamMode, useAT)(startFrame, endFrame)
-
-        return self.getCamCmdFunc(obj.data.ootCamShotProp.shotCamMode, useAT)(camData) + "".join(
+        camData = self.getCamClass(shotObj.data.ootCamShotProp.shotCamMode, useAT)(startFrame, endFrame)
+        return self.getCamCmdFunc(shotObj.data.ootCamShotProp.shotCamMode, useAT)(camData) + "".join(
             self.getCamPointCmd(pointData) for pointData in camPointList
         )
 
@@ -243,10 +242,9 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
 
         if len(shotObjects) > 0:
             frameCount = -1
-            for obj in shotObjects:
-                cameraShotData += self.getCamListData(obj, False) + self.getCamListData(obj, True)
-                endFrame = obj.data.ootCamShotProp.shotStartFrame + self.camEndFrame + 1
-                frameCount = max(frameCount, endFrame)
+            for shotObj in shotObjects:
+                cameraShotData += self.getCamListData(shotObj, False) + self.getCamListData(shotObj, True)
+                frameCount = max(frameCount, self.camEndFrame + 1)
             self.frameCount += frameCount
             self.entryTotal += len(shotObjects) * 2
 

@@ -117,6 +117,16 @@ class OOTCSMotionActorCueProperty(PropertyGroup):
 
 class OOTCSMotionCameraShotProperty(PropertyGroup):
     shotStartFrame: IntProperty(name="Start Frame", description="Shot start frame", default=0, min=0)
+
+    # only used as a hint for users
+    shotEndFrame: IntProperty(
+        name="End Frame",
+        description="Shot end frame",
+        default=0,
+        min=-1,
+        get=lambda self: self.getEndFrame(),
+    )
+    
     shotCamMode: EnumProperty(
         items=ootEnumCSMotionCamMode,
         name="Mode",
@@ -124,10 +134,22 @@ class OOTCSMotionCameraShotProperty(PropertyGroup):
         default="splineEyeOrAT",
     )
 
+    def getEndFrame(self, camShotObj: Object=None):
+        if camShotObj is None:
+            camShotObj = bpy.context.view_layer.objects.active
+
+        if camShotObj.type == "ARMATURE":
+            boneFrameList: list[int] = [bone.ootCamShotPointProp.shotPointFrame for bone in camShotObj.data.bones]        
+            # "fake" eye end frame
+            return self.shotStartFrame + max(2, sum(frame for frame in boneFrameList)) + 1
+        return -1
+
     def draw_props(self, layout: UILayout, label: str):
         box = layout.box()
         box.label(text=label)
-        box.prop(self, "shotStartFrame")
+        split = box.split(factor=0.5)
+        split.prop(self, "shotStartFrame")
+        split.prop(self, "shotEndFrame")
         box.row().prop(self, "shotCamMode", expand=True)
         box.operator(OOTCSMotionAddBone.bl_idname)
 
