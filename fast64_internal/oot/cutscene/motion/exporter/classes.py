@@ -121,6 +121,7 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
 
         playerOrActor = f"{'Player' if isPlayer else 'Actor'}"
         actorCueListObjects = self.csMotionObjects[f"CS {playerOrActor} Cue List"]
+        actorCueListObjects.sort(key=lambda o: o.ootCSMotionProperty.actorCueProp.cueStartFrame)
         actorCueData = ""
 
         self.entryTotal += len(actorCueListObjects)
