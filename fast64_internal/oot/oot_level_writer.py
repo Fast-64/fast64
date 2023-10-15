@@ -104,9 +104,7 @@ def ootCombineSceneFiles(levelC):
     return sceneC
 
 
-def ootExportSceneToC(
-    originalSceneObj, transformMatrix, sceneName, DLFormat, savePNG, exportInfo, bootToSceneOptions
-):
+def ootExportSceneToC(originalSceneObj, transformMatrix, sceneName, DLFormat, savePNG, exportInfo, bootToSceneOptions):
     checkObjectReference(originalSceneObj, "Scene object")
     isCustomExport = exportInfo.isCustomExportPath
     exportPath = exportInfo.exportPath

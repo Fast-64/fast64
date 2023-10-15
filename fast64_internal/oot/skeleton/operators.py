@@ -122,9 +122,7 @@ class OOT_ExportSkeleton(Operator):
             saveTextures = context.scene.saveTextures
             drawLayer = armatureObj.ootDrawLayer
 
-            ootConvertArmatureToC(
-                armatureObj, finalTransform, DLFormat.Static, saveTextures, drawLayer, exportSettings
-            )
+            ootConvertArmatureToC(armatureObj, finalTransform, DLFormat.Static, saveTextures, drawLayer, exportSettings)
 
             self.report({"INFO"}, "Success!")
             return {"FINISHED"}

@@ -796,7 +796,6 @@ def parseDL(
     segmentData,
     vertexBuffer,
 ):
-
     drawLayer = bitMask(currentCmd[1], 0, 4)
 
     romfile.seek(currentAddress)
@@ -941,7 +940,6 @@ def handleNodeCommon(
     boneGroupName,
     vertexBuffer,
 ):
-
     boneName = format(nodeIndex, "03") + "-" + boneGroupName.lower()
 
     if armatureObj is not None:
@@ -1411,7 +1409,6 @@ def getMarioBoneName(startRelativeAddr, armatureData, default="sm64_mesh"):
 
 
 def assignMarioGeoMetadata(obj, commandAddress, geoStartAddress, cmdType, armatureData, lastTransRotAddr=None):
-
     # for geo_pointer reading offsets:
     # cmd 			= 0
     # draw layer 	= 1

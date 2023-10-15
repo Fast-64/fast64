@@ -1443,8 +1443,8 @@ def unpackNormalS8(packedNormal):
     x, y = xo & 0x7F, yo & 0x7F
     z = x + y
     zNeg = bool(z & 0x80)
-    x2, y2 = x ^ 0x7F, y ^ 0x7F # 7F - x, 7F - y
-    z = z ^ 0x7F # = 7F - x - y
+    x2, y2 = x ^ 0x7F, y ^ 0x7F  # 7F - x, 7F - y
+    z = z ^ 0x7F  # = 7F - x - y
     if zNeg:
         x, y = x2, y2
     x, y = -x if xo & 0x80 else x, -y if yo & 0x80 else y

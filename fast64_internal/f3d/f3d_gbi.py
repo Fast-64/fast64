@@ -136,7 +136,7 @@ class F3D:
         F3DEX_GBI_2 = self.F3DEX_GBI_2 = isUcodeF3DEX2(F3D_VER)
         F3DEX_GBI_3 = self.F3DEX_GBI_3 = isUcodeF3DEX3(F3D_VER)
         F3DLP_GBI = self.F3DLP_GBI = self.F3DEX_GBI
-        
+
         # F3DEX2 is F3DEX1 and F3DEX3 is F3DEX2, but F3DEX3 is not F3DEX1
         if F3DEX_GBI_2:
             F3DEX_GBI = self.F3DEX_GBI = True
@@ -179,7 +179,7 @@ class F3D:
             self.G_TRI1 = 0x05
             self.G_TRI2 = 0x06
             self.G_QUAD = 0x07
-            
+
             if F3DEX_GBI_3:
                 self.G_RETURNNONEVISIBLE = 0xD4
                 self.G_BOUNDINGVERTS = 0xD5
@@ -343,7 +343,7 @@ class F3D:
             self.G_CLIPPING = 0x00800000
         else:
             self.G_CLIPPING = 0x00000000
-        
+
         if F3DEX_GBI_3:
             self.G_ATTROFFSET_ST_ENABLE = 0x00000100
             self.G_ATTROFFSET_Z_ENABLE = 0x00000800
@@ -352,7 +352,7 @@ class F3D:
             self.G_AMBOCCLUSION = 0x00004000
             self.G_FRESNEL = 0x00008000
             self.G_LIGHTING_POSITIONAL = 0x00400000  # Ignored, always on
-            
+
         self.allGeomModeFlags = {
             "G_ZBUFFER",
             "G_TEXTURE_ENABLE",
@@ -1623,12 +1623,12 @@ class F3D:
             self.G_MWO_MATRIX_ZZ_ZW_F = 0x34
             self.G_MWO_MATRIX_WX_WY_F = 0x38
             self.G_MWO_MATRIX_WZ_WW_F = 0x3C
-        
+
         self.G_MWO_POINT_RGBA = 0x10
         self.G_MWO_POINT_ST = 0x14
         self.G_MWO_POINT_XYSCREEN = 0x18
         self.G_MWO_POINT_ZSCREEN = 0x1C
-        
+
         if F3DEX_GBI_3:
             self.G_MWO_AMB_OCCLUSION = 0x00
             self.G_MWO_FRESNEL = 0x04
@@ -1752,7 +1752,7 @@ class F3D:
             return getattr(self, n)
         else:
             raise PluginError("Invalid G_MWO_b value for lights: " + n)
-    
+
     def _DLHINTVALUE(self, count: int) -> int:
         remainderCommands = count % self.G_INPUT_BUFFER_CMDS
         if not self.F3DEX_GBI_3 or count == 0 or remainderCommands == 0:
@@ -2063,7 +2063,7 @@ class GfxFormatter:
 
 
 class Vtx:
-    def __init__(self, position, uv, colorOrNormal, packedNormal = 0):
+    def __init__(self, position, uv, colorOrNormal, packedNormal=0):
         self.position = position
         self.uv = uv
         self.colorOrNormal = colorOrNormal
@@ -3707,7 +3707,7 @@ class SPClipRatio(GbiMacro):
     def to_binary(self, f3d, segments):
         if f3d.F3DEX_GBI_3:
             return gsSPNoOp(f3d)
-        
+
         # These values are supposed to be flipped.
         shortRatioPos = int.from_bytes((-self.ratio).to_bytes(2, "big", signed=True), "big", signed=False)
         shortRatioNeg = int.from_bytes(self.ratio.to_bytes(2, "big", signed=True), "big", signed=False)
@@ -3736,8 +3736,9 @@ class SPAmbOcclusion(GbiMacro):
     def to_binary(self, f3d, segments):
         if not f3d.F3DEX_GBI_3:
             raise PluginError("SPAmbOcclusion requires F3DEX3 microcode")
-        return gsMoveWd(f3d.G_MW_FX, f3d.G_MWO_AMB_OCCLUSION,
-            (_SHIFTL(self.amb, 16, 16) | _SHIFTL(self.dir, 0, 16)), f3d)
+        return gsMoveWd(
+            f3d.G_MW_FX, f3d.G_MWO_AMB_OCCLUSION, (_SHIFTL(self.amb, 16, 16) | _SHIFTL(self.dir, 0, 16)), f3d
+        )
 
 
 @dataclass(unsafe_hash=True)
@@ -3749,8 +3750,9 @@ class SPFresnel(GbiMacro):
     def to_binary(self, f3d, segments):
         if not f3d.F3DEX_GBI_3:
             raise PluginError("SPFresnel requires F3DEX3 microcode")
-        return gsMoveWd(f3d.G_MW_FX, f3d.G_MWO_FRESNEL,
-            (_SHIFTL(self.offset, 16, 16) | _SHIFTL(self.scale, 0, 16)), f3d)
+        return gsMoveWd(
+            f3d.G_MW_FX, f3d.G_MWO_FRESNEL, (_SHIFTL(self.offset, 16, 16) | _SHIFTL(self.scale, 0, 16)), f3d
+        )
 
 
 @dataclass(unsafe_hash=True)
@@ -3762,8 +3764,7 @@ class SPAttrOffsetST(GbiMacro):
     def to_binary(self, f3d, segments):
         if not f3d.F3DEX_GBI_3:
             raise PluginError("SPAttrOffsetST requires F3DEX3 microcode")
-        return gsMoveWd(f3d.G_MW_FX, f3d.G_MWO_ATTR_OFFSET_ST,
-            (_SHIFTL(self.s, 16, 16) | _SHIFTL(self.t, 0, 16)), f3d)
+        return gsMoveWd(f3d.G_MW_FX, f3d.G_MWO_ATTR_OFFSET_ST, (_SHIFTL(self.s, 16, 16) | _SHIFTL(self.t, 0, 16)), f3d)
 
 
 @dataclass(unsafe_hash=True)
@@ -3774,8 +3775,7 @@ class SPAttrOffsetZ(GbiMacro):
     def to_binary(self, f3d, segments):
         if not f3d.F3DEX_GBI_3:
             raise PluginError("SPAttrOffsetZ requires F3DEX3 microcode")
-        return gsMoveWd(f3d.G_MW_FX, f3d.G_MWO_ATTR_OFFSET_Z,
-            (_SHIFTL(self.z, 16, 16)), f3d)
+        return gsMoveWd(f3d.G_MW_FX, f3d.G_MWO_ATTR_OFFSET_Z, (_SHIFTL(self.z, 16, 16)), f3d)
 
 
 @dataclass(unsafe_hash=True)
@@ -3799,8 +3799,9 @@ class SPAlphaCompareCull(GbiMacro):
     def to_binary(self, f3d, segments):
         if not f3d.F3DEX_GBI_3:
             raise PluginError("SPAlphaCompareCull requires F3DEX3 microcode")
-        return gsMoveWd(f3d.G_MW_FX, f3d.G_MWO_ALPHA_COMPARE_CULL,
-            (_SHIFTL(self.mode, 24, 8) | _SHIFTL(self.thresh, 16, 8)), f3d)
+        return gsMoveWd(
+            f3d.G_MW_FX, f3d.G_MWO_ALPHA_COMPARE_CULL, (_SHIFTL(self.mode, 24, 8) | _SHIFTL(self.thresh, 16, 8)), f3d
+        )
 
 
 @dataclass(unsafe_hash=True)
@@ -3940,11 +3941,7 @@ class SPSetLights(GbiMacro):
         data = SPNumLights("NUMLIGHTS_" + str(len(self.lights.l))).to_binary(f3d, segments)
         if f3d.F3DEX_GBI_3:
             data += gsDma2p(
-                f3d.G_MOVEMEM,
-                self.lights.startAddress,
-                len(self.lights.l) * 0x10 + 8,
-                f3d.G_MV_LIGHT,
-                0x10
+                f3d.G_MOVEMEM, self.lights.startAddress, len(self.lights.l) * 0x10 + 8, f3d.G_MV_LIGHT, 0x10
             )
         elif len(self.lights.l) == 0:
             # The light does not exist in python, but is added in
@@ -4703,7 +4700,7 @@ class SPLightToPrimColor(GbiMacro):
     def to_binary(self, f3d, segments):
         if not f3d.F3DEX_GBI_3:
             raise PluginError("SPLightToPrimColor requires F3DEX3 microcode")
-        word0 = (_SHIFTL(f3d.G_SETPRIMCOLOR, 24, 8) | _SHIFTL(self.m, 8, 8) | _SHIFTL(self.l, 0, 8))
+        word0 = _SHIFTL(f3d.G_SETPRIMCOLOR, 24, 8) | _SHIFTL(self.m, 8, 8) | _SHIFTL(self.l, 0, 8)
         return SPLightToRDP(self.light, self.alpha, word0).to_binary(f3d, segments)
 
 

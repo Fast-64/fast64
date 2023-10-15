@@ -353,10 +353,7 @@ def appendRevertToGeolayout(geolayoutGraph, fModel):
 
 
 # Convert to Geolayout
-def convertArmatureToGeolayout(
-    armatureObj, obj, convertTransformMatrix, camera, name, DLFormat, convertTextureData
-):
-
+def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, camera, name, DLFormat, convertTextureData):
     inline = bpy.context.scene.exportInlineF3D
     fModel = SM64Model(
         name,
@@ -424,7 +421,6 @@ def convertArmatureToGeolayout(
 def convertObjectToGeolayout(
     obj, convertTransformMatrix, camera, name, fModel: FModel, areaObj, DLFormat, convertTextureData
 ):
-
     inline = bpy.context.scene.exportInlineF3D
     if fModel is None:
         fModel = SM64Model(
@@ -801,9 +797,7 @@ def saveGeolayoutC(
 
 
 # Insertable Binary
-def exportGeolayoutArmatureInsertableBinary(
-    armatureObj, obj, convertTransformMatrix, filepath, camera
-):
+def exportGeolayoutArmatureInsertableBinary(armatureObj, obj, convertTransformMatrix, filepath, camera):
     geolayoutGraph, fModel = convertArmatureToGeolayout(
         armatureObj, obj, convertTransformMatrix, camera, armatureObj.name, DLFormat.Static, True
     )
@@ -843,7 +837,6 @@ def exportGeolayoutArmatureBinaryBank0(
     RAMAddr,
     camera,
 ):
-
     geolayoutGraph, fModel = convertArmatureToGeolayout(
         armatureObj, obj, convertTransformMatrix, camera, armatureObj.name, DLFormat.Static, True
     )
@@ -864,7 +857,6 @@ def exportGeolayoutObjectBinaryBank0(
     RAMAddr,
     camera,
 ):
-
     geolayoutGraph, fModel = convertObjectToGeolayout(
         obj, convertTransformMatrix, camera, obj.name, None, None, DLFormat.Static, True
     )
@@ -928,7 +920,6 @@ def exportGeolayoutArmatureBinary(
     textDumpFilePath,
     camera,
 ):
-
     geolayoutGraph, fModel = convertArmatureToGeolayout(
         armatureObj, obj, convertTransformMatrix, camera, armatureObj.name, DLFormat.Static, True
     )
@@ -949,7 +940,6 @@ def exportGeolayoutObjectBinary(
     textDumpFilePath,
     camera,
 ):
-
     geolayoutGraph, fModel = convertObjectToGeolayout(
         obj, convertTransformMatrix, camera, obj.name, None, None, DLFormat.Static, True
     )
@@ -1006,6 +996,7 @@ def geoWriteTextDump(textDumpFilePath, geolayoutGraph, levelData):
 # are converted to switch node children, but material/draw layer options
 # are converted to SwitchOverrideNodes. During this process, any material
 # override geometry will be generated as well.
+
 
 # Afterward, the node hierarchy is traversed again, and any SwitchOverride
 # nodes are converted to actual geolayout node hierarchies.
@@ -1471,7 +1462,6 @@ def processMesh(
         transformNode = TransformNode(node)
 
         if obj.data is not None and (obj.use_render_range or obj.add_shadow or obj.add_func):
-
             parentTransformNode.children.append(transformNode)
             transformNode.parent = parentTransformNode
             transformNode.node.hasDL = False
@@ -2121,6 +2111,7 @@ def checkIfFirstNonASMNode(childNode):
 # parent connects child node to itself
 # skinned node handled by child
 
+
 # A skinned mesh node should be before a mesh node.
 # However, other transform nodes may exist in between two mesh nodes,
 # So the skinned mesh node must be inserted before any of those transforms.
@@ -2200,7 +2191,6 @@ def addSkinnedMeshNode(armatureObj, boneName, skinnedMesh, transformNode, parent
                 highestChildIndex > 0
                 and type(highestChildNode.parent.children[highestChildIndex - 1].node) is FunctionNode
             ):
-
                 precedingFunctionCmds.insert(0, copy.deepcopy(highestChildNode.parent.children[highestChildIndex - 1]))
                 highestChildIndex -= 1
             # _____________
@@ -2372,7 +2362,6 @@ def saveModelGivenVertexGroup(
     fMeshes = {}
     fSkinnedMeshes = {}
     for drawLayer, materialFaces in skinnedFaces.items():
-
         meshName = getFMeshName(vertexGroup, namePrefix, drawLayer, False)
         checkUniqueBoneNames(fModel, meshName, vertexGroup)
         skinnedMeshName = getFMeshName(vertexGroup, namePrefix, drawLayer, True)
@@ -2453,7 +2442,7 @@ def saveModelGivenVertexGroup(
         )
 
     # Must be done after all geometry saved
-    for (material, specificMat, overrideType) in materialOverrides:
+    for material, specificMat, overrideType in materialOverrides:
         for drawLayer, fMesh in fMeshes.items():
             saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, drawLayer, convertTextureData)
         for drawLayer, fMesh in fSkinnedMeshes.items():
@@ -2485,7 +2474,10 @@ def saveOverrideDraw(
     last_replaced = None
     command_index = 0
 
-    def find_material_from_jump_cmd(material_list: tuple[tuple[bpy.types.Material, str, FAreaData], tuple[FMaterial, tuple[int, int]]], dl_jump: SPDisplayList):
+    def find_material_from_jump_cmd(
+        material_list: tuple[tuple[bpy.types.Material, str, FAreaData], tuple[FMaterial, tuple[int, int]]],
+        dl_jump: SPDisplayList,
+    ):
         if dl_jump.displayList.tag == GfxListTag.Geometry:
             return None, None
         for mat in material_list:
@@ -2619,13 +2611,13 @@ def splitSkinnedFacesIntoTwoGroups(skinnedFaces, fModel, obj, uv_data, drawLayer
 
         convertInfo = LoopConvertInfo(uv_data, obj, material)
         for skinnedFace in skinnedFaceArray:
-            for (face, loop) in skinnedFace.loopsInGroup:
+            for face, loop in skinnedFace.loopsInGroup:
                 f3dVert = getF3DVert(loop, face, convertInfo, obj.data)
                 bufferVert = BufferVertex(f3dVert, None, material_index)
                 if bufferVert not in inGroupVerts:
                     inGroupVerts.append(bufferVert)
                 loopDict[loop] = f3dVert
-            for (face, loop) in skinnedFace.loopsNotInGroup:
+            for face, loop in skinnedFace.loopsNotInGroup:
                 vert = obj.data.vertices[loop.vertex_index]
                 if vert not in notInGroupBlenderVerts:
                     notInGroupBlenderVerts.append(vert)

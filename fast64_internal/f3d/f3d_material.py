@@ -154,10 +154,10 @@ def update_draw_layer(self, context):
 
 
 def all_blender_uses(rdp_settings):
-    '''
+    """
     Returns a dictionary of the external features which the blender may or may
     not use, or None if set_rendermode is disabled so we don't know.
-    '''
+    """
     if not rdp_settings.set_rendermode:
         return None
     is_one_cycle = rdp_settings.g_mdsft_cycletype == "G_CYC_1CYCLE"
@@ -413,7 +413,7 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             icon="TRIA_DOWN" if dataHolder.menu_geo else "TRIA_RIGHT",
         )
     if not useDropdown or dataHolder.menu_geo:
-        
+
         def indentGroup(parent, textOrProp, isText: bool):
             c = parent.column(align=True)
             if isText:
@@ -426,7 +426,7 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             c.label(text="")
             c = c.column(align=True)
             return c
-        
+
         isF3DEX3 = bpy.context.scene.f3d_type == "F3DEX3"
         lightFxPrereq = isF3DEX3 and settings.g_lighting
         if isinstance(dataHolder, F3DMaterialProperty):
@@ -473,7 +473,7 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             c.prop(settings, "g_lighttoalpha")
             c.prop(settings, "g_fresnel")
         c.prop(settings, "g_fog")
-        
+
         if lightFxPrereq and settings.g_fog and settings.g_fresnel:
             c.label(text="Fog overrides Fresnel.", icon="ERROR")
         elif lightFxPrereq and settings.g_fog and settings.g_lighttoalpha:
@@ -871,7 +871,7 @@ class F3DPanel(bpy.types.Panel):
             if f3dMat.set_ao:
                 prop_split(inputGroup.row(), f3dMat, "ao_ambient", "AO Ambient")
                 prop_split(inputGroup.row(), f3dMat, "ao_directional", "AO Directional")
-                
+
         if f3dMat.rdp_settings.g_fresnel:
             if showCheckBox or f3dMat.set_fresnel:
                 inputGroup = inputCol.column()
@@ -914,21 +914,19 @@ class F3DPanel(bpy.types.Panel):
         settings = f3dMat.rdp_settings
         isF3DEX3 = bpy.context.scene.f3d_type == "F3DEX3"
         lightFxPrereq = isF3DEX3 and settings.g_lighting
-        
+
         blendUse = all_blender_uses(settings)
         anyUseShadeAlpha = useDict["Shade Alpha"] or blendUse["Shade Alpha"]
-        
+
         g_lighting = settings.g_lighting
         g_fog = settings.g_fog
         g_packed_normals = lightFxPrereq and settings.g_packed_normals
         g_ambocclusion = lightFxPrereq and settings.g_ambocclusion
         g_lighttoalpha = lightFxPrereq and settings.g_lighttoalpha
         g_fresnel = lightFxPrereq and settings.g_fresnel
-        
+
         usesVertexColor = useDict["Shade"] and (not g_lighting or g_packed_normals)
-        usesVertexAlpha = anyUseShadeAlpha and (g_ambocclusion or not (
-            g_fog or g_lighttoalpha or g_fresnel
-        ))
+        usesVertexAlpha = anyUseShadeAlpha and (g_ambocclusion or not (g_fog or g_lighttoalpha or g_fresnel))
         if not usesVertexColor and not usesVertexAlpha:
             return
         noticeBox = layout.box().column()
@@ -939,7 +937,6 @@ class F3DPanel(bpy.types.Panel):
         else:
             noticeBox.label(text="There must be two vertex color layers.", icon="IMAGE_RGB_ALPHA")
             noticeBox.label(text='They must be called "Col" and "Alpha".', icon="IMAGE_ALPHA")
-            
 
     def checkDrawMixedCIWarning(self, layout, useDict, f3dMat):
         useTex0 = useDict["Texture 0"] and f3dMat.tex0.tex_set
@@ -2690,105 +2687,105 @@ class RDPSettings(bpy.types.PropertyGroup):
         name="Z Buffer",
         default=True,
         update=update_node_values_with_preset,
-        description="Enables calculation of Z value for primitives. Disable if not reading or writing Z-Buffer in the blender"
+        description="Enables calculation of Z value for primitives. Disable if not reading or writing Z-Buffer in the blender",
     )
     g_shade: bpy.props.BoolProperty(
         name="Shading",
         default=True,
         update=update_node_values_with_preset,
-        description="Computes shade coordinates for primitives. Disable if not using lighting, vertex colors or fog"
+        description="Computes shade coordinates for primitives. Disable if not using lighting, vertex colors or fog",
     )
     # v1/2 difference
     g_cull_front: bpy.props.BoolProperty(
         name="Cull Front",
         default=False,
         update=update_node_values_with_preset,
-        description="Disables drawing of front faces"
+        description="Disables drawing of front faces",
     )
     # v1/2 difference
     g_cull_back: bpy.props.BoolProperty(
         name="Cull Back",
         default=True,
         update=update_node_values_with_preset,
-        description="Disables drawing of back faces"
+        description="Disables drawing of back faces",
     )
     g_attroffset_st_enable: bpy.props.BoolProperty(
         name="ST Offset (for UV scroll)",
         default=False,
         update=update_node_values_with_preset,
-        description="F3DEX3: Enables offsets to vertex ST values, usually for UV scrolling"
+        description="F3DEX3: Enables offsets to vertex ST values, usually for UV scrolling",
     )
     g_attroffset_z_enable: bpy.props.BoolProperty(
         name="Z Offset (for decal fix)",
         default=False,
         update=update_node_values_with_preset,
-        description="F3DEX3: Enables offset to vertex Z. To fix decals, set the Z mode to opaque and enable this"
+        description="F3DEX3: Enables offset to vertex Z. To fix decals, set the Z mode to opaque and enable this",
     )
     g_packed_normals: bpy.props.BoolProperty(
         name="Packed Normals (Vtx Colors + Lighting)",
         default=False,
         update=update_node_values_with_preset,
-        description="F3DEX3: Packs vertex normals in unused 16 bits of each vertex, enabling simultaneous vertex colors and lighting"
+        description="F3DEX3: Packs vertex normals in unused 16 bits of each vertex, enabling simultaneous vertex colors and lighting",
     )
     g_lighttoalpha: bpy.props.BoolProperty(
         name="Light to Alpha (for cel shading)",
         default=False,
         update=update_node_values_with_preset,
-        description="F3DEX3: Moves light intensity to shade alpha, used for cel shading and other effects"
+        description="F3DEX3: Moves light intensity to shade alpha, used for cel shading and other effects",
     )
     g_ambocclusion: bpy.props.BoolProperty(
         name="Ambient Occlusion",
         default=False,
         update=update_node_values_with_preset,
-        description="F3DEX3: Scales ambient and/or directional light intensity with vertex alpha. Bake scene shadows / AO into vertex alpha, not vertex color"
+        description="F3DEX3: Scales ambient and/or directional light intensity with vertex alpha. Bake scene shadows / AO into vertex alpha, not vertex color",
     )
     g_fresnel: bpy.props.BoolProperty(
         name="Fresnel",
         default=False,
         update=update_node_values_with_preset,
-        description="F3DEX3: Shade alpha derived from how much each vertex normal faces the camera. For water and toon outlines"
+        description="F3DEX3: Shade alpha derived from how much each vertex normal faces the camera. For water and toon outlines",
     )
     g_fog: bpy.props.BoolProperty(
         name="Fog",
         default=False,
         update=update_node_values_with_preset,
-        description="Turns on/off fog calculation. Fog variable gets stored into shade alpha"
+        description="Turns on/off fog calculation. Fog variable gets stored into shade alpha",
     )
     g_lighting: bpy.props.BoolProperty(
         name="Lighting",
         default=True,
         update=update_node_values_with_preset,
-        description="Enables calculating shade color using lights. Turn off for vertex colors as shade color"
+        description="Enables calculating shade color using lights. Turn off for vertex colors as shade color",
     )
     g_tex_gen: bpy.props.BoolProperty(
         name="Texture UV Generate",
         default=False,
         update=update_node_values_with_preset,
-        description="Generates texture coordinates for reflection mapping based on vertex normals and lookat direction. On a skybox texture, maps the sky to the center of the texture and the ground to a circle inscribed in the border. Requires lighting enabled to use"
+        description="Generates texture coordinates for reflection mapping based on vertex normals and lookat direction. On a skybox texture, maps the sky to the center of the texture and the ground to a circle inscribed in the border. Requires lighting enabled to use",
     )
     g_tex_gen_linear: bpy.props.BoolProperty(
         name="Texture UV Generate Linear",
         default=False,
         update=update_node_values_with_preset,
-        description="Modifies the texgen mapping; enable with texgen. Use a normal panorama image for the texture, with the sky at the top and the ground at the bottom. Requires lighting enabled to use"
+        description="Modifies the texgen mapping; enable with texgen. Use a normal panorama image for the texture, with the sky at the top and the ground at the bottom. Requires lighting enabled to use",
     )
     g_lod: bpy.props.BoolProperty(
         name="LoD (does nothing)",
         default=False,
         update=update_node_values_with_preset,
-        description="Not implemented in any known microcodes. No effect whether enabled or disabled"
+        description="Not implemented in any known microcodes. No effect whether enabled or disabled",
     )
     g_shade_smooth: bpy.props.BoolProperty(
         name="Smooth Shading",
         default=True,
         update=update_node_values_with_preset,
-        description="Shades primitive smoothly using interpolation between shade values for each vertex (Gouraud shading)"
+        description="Shades primitive smoothly using interpolation between shade values for each vertex (Gouraud shading)",
     )
     g_clipping: bpy.props.BoolProperty(
         name="Clipping",
         default=False,
         update=update_node_values_with_preset,
-        description="F3DEX1/LX only, exact function unknown"
+        description="F3DEX1/LX only, exact function unknown",
     )
 
     # upper half mode
@@ -2798,7 +2795,7 @@ class RDPSettings(bpy.types.PropertyGroup):
         items=enumAlphaDither,
         default="G_AD_NOISE",
         update=update_node_values_with_preset,
-        description="Applies your choice dithering type to output framebuffer alpha. Dithering is used to convert high precision source colors into lower precision framebuffer values"
+        description="Applies your choice dithering type to output framebuffer alpha. Dithering is used to convert high precision source colors into lower precision framebuffer values",
     )
     # v2 only
     g_mdsft_rgb_dither: bpy.props.EnumProperty(
@@ -2806,41 +2803,41 @@ class RDPSettings(bpy.types.PropertyGroup):
         items=enumRGBDither,
         default="G_CD_MAGICSQ",
         update=update_node_values_with_preset,
-        description="Applies your choice dithering type to output framebuffer color. Dithering is used to convert high precision source colors into lower precision framebuffer values"
+        description="Applies your choice dithering type to output framebuffer color. Dithering is used to convert high precision source colors into lower precision framebuffer values",
     )
     g_mdsft_combkey: bpy.props.EnumProperty(
         name="Chroma Key",
         items=enumCombKey,
         default="G_CK_NONE",
         update=update_node_values_with_preset,
-        description="Turns on/off the chroma key. Chroma key requires a special setup to work properly"
+        description="Turns on/off the chroma key. Chroma key requires a special setup to work properly",
     )
     g_mdsft_textconv: bpy.props.EnumProperty(
         name="Texture Convert",
         items=enumTextConv,
         default="G_TC_FILT",
         update=update_node_values_with_preset,
-        description="Sets the function of the texture convert unit, to do texture filtering, YUV to RGB conversion, or both"
+        description="Sets the function of the texture convert unit, to do texture filtering, YUV to RGB conversion, or both",
     )
     g_mdsft_text_filt: bpy.props.EnumProperty(
         name="Texture Filter",
         items=enumTextFilt,
         default="G_TF_BILERP",
         update=update_node_values_without_preset,
-        description="Applies your choice of filtering to texels"
+        description="Applies your choice of filtering to texels",
     )
     g_mdsft_textlut: bpy.props.EnumProperty(
         name="Texture LUT",
         items=enumTextLUT,
         default="G_TT_NONE",
-        description="Changes texture look up table (LUT) behavior. This property is auto set if you choose a CI texture"
+        description="Changes texture look up table (LUT) behavior. This property is auto set if you choose a CI texture",
     )
     g_mdsft_textlod: bpy.props.EnumProperty(
         name="Texture LOD",
         items=enumTextLOD,
         default="G_TL_TILE",
         update=update_node_values_with_preset,
-        description="Turns on/off the use of LoD on textures. LoD textures change the used tile based on the texel/pixel ratio"
+        description="Turns on/off the use of LoD on textures. LoD textures change the used tile based on the texel/pixel ratio",
     )
     num_textures_mipmapped: bpy.props.IntProperty(
         name="Number of Mipmaps",
@@ -2854,21 +2851,21 @@ class RDPSettings(bpy.types.PropertyGroup):
         items=enumTextDetail,
         default="G_TD_CLAMP",
         update=update_node_values_with_preset,
-        description="Changes type of LoD usage. Affects how tiles are selected based on texel magnification. Only works when G_TL_LOD is selected"
+        description="Changes type of LoD usage. Affects how tiles are selected based on texel magnification. Only works when G_TL_LOD is selected",
     )
     g_mdsft_textpersp: bpy.props.EnumProperty(
         name="Texture Perspective Correction",
         items=enumTextPersp,
         default="G_TP_PERSP",
         update=update_node_values_with_preset,
-        description="Turns on/off texture perspective correction"
+        description="Turns on/off texture perspective correction",
     )
     g_mdsft_cycletype: bpy.props.EnumProperty(
         name="Cycle Type",
         items=enumCycleType,
         default="G_CYC_1CYCLE",
         update=update_node_values_with_preset,
-        description="Changes RDP pipeline configuration. For normal textured triangles use one or two cycle mode"
+        description="Changes RDP pipeline configuration. For normal textured triangles use one or two cycle mode",
     )
     # v1 only
     g_mdsft_color_dither: bpy.props.EnumProperty(
@@ -2876,14 +2873,14 @@ class RDPSettings(bpy.types.PropertyGroup):
         items=enumColorDither,
         default="G_CD_ENABLE",
         update=update_node_values_with_preset,
-        description="Applies your choice dithering type to output frambuffer"
+        description="Applies your choice dithering type to output frambuffer",
     )
     g_mdsft_pipeline: bpy.props.EnumProperty(
         name="Pipeline Span Buffer Coherency",
         items=enumPipelineMode,
         default="G_PM_1PRIMITIVE",
         update=update_node_values_with_preset,
-        description="Changes primitive rasterization timing by adding syncs after tri draws. Vanilla SM64 has synchronization issues which could cause a crash if not using 1 prim. For any modern SM64 hacking project or other game N-prim should always be used"
+        description="Changes primitive rasterization timing by adding syncs after tri draws. Vanilla SM64 has synchronization issues which could cause a crash if not using 1 prim. For any modern SM64 hacking project or other game N-prim should always be used",
     )
 
     # lower half mode
@@ -2892,14 +2889,14 @@ class RDPSettings(bpy.types.PropertyGroup):
         items=enumAlphaCompare,
         default="G_AC_NONE",
         update=update_node_values_with_preset,
-        description="Uses alpha comparisons to decide if a pixel should be written. Applies before blending"
+        description="Uses alpha comparisons to decide if a pixel should be written. Applies before blending",
     )
     g_mdsft_zsrcsel: bpy.props.EnumProperty(
         name="Z Source Selection",
         items=enumDepthSource,
         default="G_ZS_PIXEL",
         update=update_node_values_with_preset,
-        description="Changes screen-space Z value source used for Z-Buffer calculations"
+        description="Changes screen-space Z value source used for Z-Buffer calculations",
     )
 
     prim_depth: bpy.props.PointerProperty(
@@ -2938,47 +2935,45 @@ class RDPSettings(bpy.types.PropertyGroup):
     )
     aa_en: bpy.props.BoolProperty(
         update=update_node_values_with_preset,
-        description="Enables anti-aliasing to rasterized primitive edges. Uses coverage to determine edges"
+        description="Enables anti-aliasing to rasterized primitive edges. Uses coverage to determine edges",
     )
     z_cmp: bpy.props.BoolProperty(
-        update=update_node_values_with_preset,
-        description="Checks pixel Z value against Z-Buffer to test writing"
+        update=update_node_values_with_preset, description="Checks pixel Z value against Z-Buffer to test writing"
     )
     z_upd: bpy.props.BoolProperty(
         update=update_node_values_with_preset,
-        description="Updates the Z-Buffer with the most recently written pixel Z value"
+        description="Updates the Z-Buffer with the most recently written pixel Z value",
     )
     im_rd: bpy.props.BoolProperty(
-        update=update_node_values_with_preset,
-        description="Enables reading from framebuffer for blending calculations"
+        update=update_node_values_with_preset, description="Enables reading from framebuffer for blending calculations"
     )
     clr_on_cvg: bpy.props.BoolProperty(
         update=update_node_values_with_preset,
-        description="Only draw on coverage (amount primitive covers target pixel) overflow"
+        description="Only draw on coverage (amount primitive covers target pixel) overflow",
     )
     cvg_dst: bpy.props.EnumProperty(
         name="Coverage Destination",
         items=enumCoverage,
         update=update_node_values_with_preset,
-        description="Changes how coverage (amount primitive covers target pixel) gets retrieved/stored"
+        description="Changes how coverage (amount primitive covers target pixel) gets retrieved/stored",
     )
     zmode: bpy.props.EnumProperty(
         name="Z Mode",
         items=enumZMode,
         update=update_node_values_with_preset,
-        description="Changes Z calculation for different types of primitives"
+        description="Changes Z calculation for different types of primitives",
     )
     cvg_x_alpha: bpy.props.BoolProperty(
         update=update_node_values_with_preset,
-        description="Multiply coverage (amount primitive covers target pixel) with alpha and store result as coverage"
+        description="Multiply coverage (amount primitive covers target pixel) with alpha and store result as coverage",
     )
     alpha_cvg_sel: bpy.props.BoolProperty(
         update=update_node_values_with_preset,
-        description="Use coverage (amount primitive covers target pixel) as alpha instead of color combiner alpha"
+        description="Use coverage (amount primitive covers target pixel) as alpha instead of color combiner alpha",
     )
     force_bl: bpy.props.BoolProperty(
         update=update_node_values_with_preset,
-        description="Always uses blending on. Default blending is conditionally only applied during partial coverage. Forcing blending will disable division step of the blender, so B input must be 1-A or there may be rendering issues. Always use this option when Z Buffering is off"
+        description="Always uses blending on. Default blending is conditionally only applied during partial coverage. Forcing blending will disable division step of the blender, so B input must be 1-A or there may be rendering issues. Always use this option when Z Buffering is off",
     )
 
     # cycle dependent - (P * A + M - B) / (A + B)
@@ -4092,9 +4087,11 @@ def mat_register():
     bpy.types.Scene.isHWv1 = bpy.props.BoolProperty(
         name="Is Hardware v1?",
         default=False,
-        description=("Only early N64 devkits have V1 RCP chips; all retail consoles have V2. "
+        description=(
+            "Only early N64 devkits have V1 RCP chips; all retail consoles have V2. "
             + "Display lists made for V1 and V2 are incompatible with each other, "
-            + "so any hardware which can play retail games is V2")
+            + "so any hardware which can play retail games is V2"
+        ),
     )
 
     # RDP Defaults

@@ -117,9 +117,7 @@ def getInfoDict(obj):
                 edgeDict[edgeKey].append(face)
 
         for loopIndex in face.loops:
-            convertInfo = LoopConvertInfo(
-                uv_data, obj, obj.material_slots[face.material_index].material
-            )
+            convertInfo = LoopConvertInfo(uv_data, obj, obj.material_slots[face.material_index].material)
             f3dVertDict[loopIndex] = getF3DVert(mesh.loops[loopIndex], face, convertInfo, mesh)
     for face in mesh.loop_triangles:
         for edgeKey in face.edge_keys:
@@ -184,7 +182,6 @@ def fixLargeUVs(obj):
         uvOffset = [0, 0]
 
         for i in range(2):
-
             # Move any UVs close to or straddling edge
             minDiff = (-cellSize[i] + 2) - minUV[i]
             if minDiff > 0:
@@ -320,7 +317,7 @@ def saveMeshWithLargeTexturesByFaces(
         firstFace = False
 
     triGroup.triList.commands.append(SPEndDisplayList())
-   
+
     if fMaterial.revert is not None:
         fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
 
@@ -692,7 +689,7 @@ class F3DVert:
             and self.normal == other.normal
             and self.alpha == other.alpha
         )
-        
+
     def toVtx(self, mesh, texDimensions, transformMatrix, isPointSampled: bool, tex_scale=(1, 1)) -> Vtx:
         # Position (8 bytes)
         position = [int(round(floatValue)) for floatValue in (transformMatrix @ self.position)]
@@ -953,7 +950,7 @@ def getF3DVert(loop: bpy.types.MeshLoop, face, convertInfo: LoopConvertInfo, mes
     uv[:] = [field if not math.isnan(field) else 0 for field in uv]
     uv[1] = 1 - uv[1]
     uv = uv.freeze()
-    
+
     has_rgb, has_normal, _ = getRgbNormalSettings(convertInfo.material.f3d_mat)
     mesh = convertInfo.obj.data
     color = getLoopColor(loop, mesh)
@@ -973,7 +970,7 @@ def getLoopNormal(loop: bpy.types.MeshLoop):
         (
             round(loop.normal[0] * 2**16) / 2**16,
             round(loop.normal[1] * 2**16) / 2**16,
-            round(loop.normal[2] * 2**16) / 2**16
+            round(loop.normal[2] * 2**16) / 2**16,
         )
     ).freeze()
 
@@ -1008,18 +1005,16 @@ def getLoopColor(loop: bpy.types.MeshLoop, mesh):
 def createTriangleCommands(triangles, vertexBuffer, useSP2Triangle):
     triangles = copy.deepcopy(triangles)
     commands = []
-    
+
     def getIndices(tri):
         return [vertexBuffer.index(v) for v in tri]
-        
+
     t = 0
     while t < len(triangles):
         firstTriIndices = getIndices(triangles[t])
         t += 1
         if useSP2Triangle and t < len(triangles):
-            commands.append(
-                SP2Triangles(*firstTriIndices, 0, *getIndices(triangles[t]), 0)
-            )
+            commands.append(SP2Triangles(*firstTriIndices, 0, *getIndices(triangles[t]), 0))
             t += 1
         else:
             commands.append(SP1Triangle(*firstTriIndices, 0))
@@ -1146,7 +1141,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
                     f3dMat.combiner1.D_alpha,
                 )
             )
-    
+
     if f3dMat.set_ao:
         fMaterial.mat_only_DL.commands.append(
             SPAmbOcclusion(
@@ -1154,7 +1149,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
                 min(round(f3dMat.ao_directional * 2**16), 0xFFFF),
             )
         )
-        
+
     if f3dMat.set_fresnel:
         offset = min(round(f3dMat.fresnel_lo * 2**15), 0x7FFF)
         scalePre = 256.0 / (f3dMat.fresnel_hi - f3dMat.fresnel_lo)
@@ -1210,7 +1205,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         defaults,
         fModel.f3d._HW_VERSION_1,
         fModel.matWriteMethod,
-        fModel.f3d
+        fModel.f3d,
     )
     saveOtherModeLDefinition(fMaterial, f3dMat.rdp_settings, defaults, defaultRM, fModel.matWriteMethod, fModel.f3d)
     saveOtherDefinition(fMaterial, f3dMat, defaults)
@@ -1393,7 +1388,7 @@ def saveGeoModeCommon(saveFunc, settings, defaults, args):
     if isUcodeF3DEX1(bpy.context.scene.f3d_type):
         saveFunc(settings.g_clipping, defaults.g_clipping, "G_CLIPPING", *args)
 
-    
+
 def saveGeoModeDefinitionF3DEX2(fMaterial, settings, defaults, matWriteMethod):
     geo = SPGeometryMode([], [])
     saveGeoModeCommon(saveBitGeoF3DEX2, settings, defaults, (geo, matWriteMethod))
@@ -1653,10 +1648,7 @@ def getWriteMethodFromEnum(enumVal):
         return matWriteMethodEnumDict[enumVal]
 
 
-def exportF3DtoC(
-    dirPath, obj, DLFormat, transformMatrix, texDir, savePNG, texSeparate, name, matWriteMethod
-):
-
+def exportF3DtoC(dirPath, obj, DLFormat, transformMatrix, texDir, savePNG, texSeparate, name, matWriteMethod):
     inline = bpy.context.scene.exportInlineF3D
     fModel = FModel(name, DLFormat, matWriteMethod if not inline else GfxMatWriteMethod.WriteAll)
     fMeshes = exportF3DCommon(obj, fModel, transformMatrix, True, name, DLFormat, not savePNG)

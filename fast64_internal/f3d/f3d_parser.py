@@ -1582,10 +1582,7 @@ class F3DContext:
                     mat.fresnel_hi = (1.0 / scale) + offset
                     mat.set_fresnel = True
                 elif command.name == "gsSPAttrOffsetST":
-                    mat.attroffs_st = [
-                        from_s16_str(command.params[0]) / 32,
-                        from_s16_str(command.params[1]) / 32
-                    ]
+                    mat.attroffs_st = [from_s16_str(command.params[0]) / 32, from_s16_str(command.params[1]) / 32]
                     mat.set_attroffs_st = True
                 elif command.name == "gsSPAttrOffsetZ":
                     mat.attroffs_z = from_s16_str(command.params[0])
