@@ -372,7 +372,7 @@ def parseSceneCommands(
             if not (args[1] == "NULL" or args[1] == "0" or args[1] == "0x00"):
                 lightsListName = stripName(args[1])
                 parseLightList(sceneObj, sceneHeader, sceneData, lightsListName, headerIndex)
-        elif command == "SCENE_CMD_CUTSCENE_DATA":
+        elif command == "SCENE_CMD_CUTSCENE_DATA" and sharedSceneData.includeCutscenes:
             sceneHeader.writeCutscene = True
             sceneHeader.csWriteType = "Object"
             csObjName = f"Cutscene.{args[0]}"
