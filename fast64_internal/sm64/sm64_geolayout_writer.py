@@ -97,6 +97,7 @@ from ..f3d.f3d_gbi import (
     DLFormat,
     SPEndDisplayList,
     SPDisplayList,
+    FMaterial,
 )
 
 from .sm64_geolayout_classes import (
@@ -2502,7 +2503,7 @@ def saveOverrideDraw(
     last_replaced = None
     command_index = 0
 
-    def find_material_from_jump_cmd(material_list: tuple[tuple[bpy.types.Material, str, FAreaData], tuple[FMaterial, Tuple[int, int]]], dl_jump: SPDisplayList):
+    def find_material_from_jump_cmd(material_list: tuple[tuple[bpy.types.Material, str, FAreaData], tuple[FMaterial, tuple[int, int]]], dl_jump: SPDisplayList):
         if dl_jump.displayList.tag == GfxListTag.Geometry:
             return None, None
         for mat in material_list:
