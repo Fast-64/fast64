@@ -176,19 +176,24 @@ def getActorCueState(cueListObj: Object, frame: int):
 def previewFrameHandler(scene: Scene):
     for obj in bpy.data.objects:
         parentObj = obj.parent
-        if parentObj is not None and parentObj.type == "EMPTY" and parentObj.name.startswith("Cutscene."):
+        if (
+            parentObj is not None
+            and parentObj.type == "EMPTY"
+            and parentObj.name.startswith("Cutscene.")
+            and parentObj.ootEmptyType == "Cutscene"
+        ):
             if obj.type == "CAMERA":
                 pos, rot_quat, viewAngle = getCutsceneCamState(parentObj, scene.frame_current)
+
+                if parentObj.ootCutsceneProperty.preview.useWidescreen:
+                    viewAngle *= 4 / 3
 
                 if pos is not None:
                     obj.location = pos
                     obj.rotation_mode = "QUATERNION"
                     obj.rotation_quaternion = rot_quat
                     obj.data.angle = math.pi * viewAngle / 180.0
-            elif (
-                obj.ootEmptyType in ["CS Actor Cue Preview", "CS Player Cue Preview"]
-                and parentObj.ootEmptyType == "Cutscene"
-            ):
+            elif obj.ootEmptyType in ["CS Actor Cue Preview", "CS Player Cue Preview"]:
                 cueListToPreview = None
                 if "Actor" in obj.ootEmptyType:
                     cueListToPreview = obj.ootCSMotionProperty.actorCueListProp.actorCueListToPreview

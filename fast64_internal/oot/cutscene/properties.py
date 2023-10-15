@@ -1,11 +1,12 @@
 import bpy
-from bpy.types import PropertyGroup, Object, UILayout, Scene
+from bpy.types import PropertyGroup, Object, UILayout, Scene, Context
 from bpy.props import StringProperty, EnumProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
 from bpy.utils import register_class, unregister_class
 from ...utility import PluginError, prop_split
 from ..oot_utility import OOTCollectionAdd, drawCollectionOps
 from .operators import OOTCSTextboxAdd, drawCSListAddOp
 from .constants import ootEnumCSTextboxType, ootEnumCSListType, ootEnumCSTransitionType, ootEnumCSTextboxTypeIcons
+from .motion.preview import previewFrameHandler
 
 from .motion.operators import (
     OOTCSMotionPlayPreview,
@@ -241,6 +242,10 @@ class OOTCutsceneMiscProperty(OOTCutsceneCommandBase, PropertyGroup):
 
 
 class OOTCutscenePreviewProperty(PropertyGroup):
+    useWidescreen: BoolProperty(
+        name="Use Widescreen Camera", default=False, update=lambda self, context: self.updateWidescreen(context)
+    )
+
     transitionList: CollectionProperty(type=OOTCutsceneTransitionProperty)
     miscList: CollectionProperty(type=OOTCutsceneMiscProperty)
 
@@ -248,6 +253,15 @@ class OOTCutscenePreviewProperty(PropertyGroup):
     isFixedCamSet: BoolProperty(default=False)
     prevFrame: IntProperty(default=-1)
     nextFrame: IntProperty(default=1)
+
+    def updateWidescreen(self, context: Context):
+        if self.useWidescreen:
+            context.scene.render.resolution_x = 426
+        else:
+            context.scene.render.resolution_x = 320
+
+        # force a refresh of the current frame
+        previewFrameHandler(context.scene)
 
 
 class OOTCutsceneProperty(PropertyGroup):
@@ -272,6 +286,8 @@ class OOTCutsceneProperty(PropertyGroup):
         split = layout.split(factor=0.5)
         split.operator(OOTCSMotionCreatePlayerCueList.bl_idname)
         split.operator(OOTCSMotionCreateActorCueList.bl_idname)
+
+        layout.prop(self.preview, "useWidescreen")
 
         layout.prop(self, "csEndFrame")
         layout.prop(self, "csWriteTerminator")
