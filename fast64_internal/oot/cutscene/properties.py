@@ -259,6 +259,7 @@ class OOTCutscenePreviewProperty(PropertyGroup):
             context.scene.render.resolution_x = 426
         else:
             context.scene.render.resolution_x = 320
+        context.scene.render.resolution_y = 240
 
         # force a refresh of the current frame
         previewFrameHandler(context.scene)

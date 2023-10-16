@@ -133,11 +133,14 @@ def getNameInformations(csObj: Object, target: str, index: int):
 
     # get the last target objects names
     if csObj.children is not None:
-        for obj in csObj.children:
+        for i, obj in enumerate(csObj.children):
             if obj.type == "EMPTY" and "Cue List" in obj.name or "Camera Shot" in obj.name or target in obj.name:
                 csPrefix = obj.name.split(".")[0]
                 if target in obj.name:
-                    idx = int(obj.name.split(" ")[-1]) + 1
+                    try:
+                        idx = int(obj.name.split(" ")[-1]) + 1
+                    except ValueError:
+                        pass  # idx will stay None
 
     # saving the cutscene number if the target objects can't be found
     if csPrefix is None:
@@ -178,8 +181,11 @@ def setupActorCuePreview(csObj: Object, actorOrPlayer: str, selectObject: bool, 
             break
 
     if isCueMoving:
-        index, csPrefix = getNameInformations(csObj, "Preview", int(cueList.name.split(" ")[-1]))
-        name = f"{csPrefix}.{actorOrPlayer} Cue Preview {index:02}"
+        try:
+            index, csPrefix = getNameInformations(csObj, "Preview", int(cueList.name.split(" ")[-1]))
+            name = f"{csPrefix}.{actorOrPlayer} Cue Preview {index:02}"
+        except ValueError:
+            name = f"{cueList.name} - Preview"
 
         for obj in csObj.children:
             if obj.name == name:

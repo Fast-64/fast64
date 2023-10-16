@@ -228,7 +228,13 @@ class OOTCSMotionObjectFactory:
         elif not isDummy:
             if isPlayer:
                 newActorCueObj.ootCSMotionProperty.actorCueProp.playerCueID = "Custom"
-            newActorCueObj.ootCSMotionProperty.actorCueProp.cueActionID = f"0x{actionID:04X}"
+
+            if isinstance(actionID, int):
+                cueActionID = f"0x{actionID:04X}"
+            else:
+                cueActionID = actionID
+
+            newActorCueObj.ootCSMotionProperty.actorCueProp.cueActionID = cueActionID
 
         return newActorCueObj
 

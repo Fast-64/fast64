@@ -125,7 +125,10 @@ class OOTCSMotionAddBone(Operator):
                     secondToLastBone = armatureData.edit_bones[-2]
                     newBone = armatureData.edit_bones[-1]
                     splitName = secondToLastBone.name.split(" ")
-                    newBone.name = f"{splitName[0]} Point {int(splitName[2]) + 1:02}"
+                    try:
+                        newBone.name = f"{splitName[0]} Point {int(splitName[2]) + 1:02}"
+                    except ValueError:
+                        newBone.name = f"Camera Point 500"
                     newBone.head = secondToLastBone.head
                     newBone.tail = secondToLastBone.tail
                 bpy.ops.object.mode_set(mode="OBJECT")  # going back to object mode to update the bones properly
@@ -179,7 +182,10 @@ class OOTCSMotionAddActorCue(Operator):
                     if dummyCue is not None:
                         lastCueObj = actorCueListObj.children[i - 1]
                         nameSplit = lastCueObj.name.split(".")
-                        index = int(nameSplit[-1]) + 1
+                        try:
+                            index = int(nameSplit[-1]) + 1
+                        except ValueError:
+                            index = i + 500  # huge number to make sure it's going at the end of the list
                         startFrame = dummyCue.ootCSMotionProperty.actorCueProp.cueStartFrame
                         newActorCueObj.name = f"{nameSplit[0]}.{nameSplit[1]}.{index:02}"
                         newActorCueObj.ootCSMotionProperty.actorCueProp.cueStartFrame = startFrame
@@ -189,7 +195,10 @@ class OOTCSMotionAddActorCue(Operator):
                 else:
                     # else create the name from the actor cue list object
                     nameSplit = actorCueListObj.name.split(".")
-                    index = int(nameSplit[1].split(" ")[3])
+                    try:
+                        index = int(nameSplit[1].split(" ")[3])
+                    except ValueError:
+                        index = 500
                     newActorCueObj.name = f"{nameSplit[0]}.{nameSplit[1][:-8]} {index}.01"
 
                     # add the dummy cue since the list is empty
@@ -211,7 +220,9 @@ class OOTCSMotionAddActorCue(Operator):
 
             self.report({"INFO"}, "Success!")
             return {"FINISHED"}
-        except:
+        except Exception as e:
+            # print(e)
+            raise PluginError("ERROR: Something went wrong.")
             return {"CANCELLED"}
 
 
