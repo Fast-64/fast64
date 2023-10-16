@@ -22,8 +22,8 @@ def getCSMotionObjects(csName: str):
         isEmptyObj = obj.type == "EMPTY"
 
         # look for the cutscene object based on the cutscene name
-        parentCheck = obj.parent is not None and csName in obj.parent.name
-        csObjCheck = isEmptyObj and obj.ootEmptyType == "Cutscene" and csName in obj.name
+        parentCheck = obj.parent is not None and obj.parent.name == f"Cutscene.{csName}"
+        csObjCheck = isEmptyObj and obj.ootEmptyType == "Cutscene" and obj.name == f"Cutscene.{csName}"
         if parentCheck or csObjCheck:
             # add the relevant objects based on the empty type or if it's an armature
             if isEmptyObj and obj.ootEmptyType in csMotionObjects.keys():

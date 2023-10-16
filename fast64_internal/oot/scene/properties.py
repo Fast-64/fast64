@@ -219,7 +219,11 @@ class OOTSceneTableEntryProperty(PropertyGroup):
 
 
 class OOTExtraCutsceneProperty(PropertyGroup):
-    csObject: PointerProperty(name="Cutscene Object", type=Object)
+    csObject: PointerProperty(
+        name="Cutscene Object",
+        type=Object,
+        poll=lambda self, object: object.type == "EMPTY" and object.ootEmptyType == "Cutscene",
+    )
 
 
 class OOTSceneHeaderProperty(PropertyGroup):

@@ -152,8 +152,14 @@ def ootCutsceneDataToC(csParent, csName):
 
 def getSceneCutscenes(outScene: OOTScene):
     cutscenes: list[CData] = []
-    altHeaders = [outScene, outScene.childNightHeader, outScene.adultDayHeader, outScene.adultNightHeader]
+    altHeaders: list[OOTScene] = [
+        outScene,
+        outScene.childNightHeader,
+        outScene.adultDayHeader,
+        outScene.adultNightHeader,
+    ]
     altHeaders.extend(outScene.cutsceneHeaders)
+    csObjects = []
 
     for i, curHeader in enumerate(altHeaders):
         # curHeader is either None or an OOTScene. This can either be the main scene itself,
@@ -161,10 +167,13 @@ def getSceneCutscenes(outScene: OOTScene):
         if curHeader is not None and curHeader.writeCutscene:
             if curHeader.csWriteType == "Embedded":
                 cutscenes.append(ootCutsceneDataToC(curHeader, curHeader.cutsceneDataName(i)))
-            elif curHeader.csWriteType == "Object":
+            elif curHeader.csWriteType == "Object" and curHeader.csWriteObject.name not in csObjects:
                 cutscenes.append(ootCutsceneDataToC(curHeader.csWriteObject, curHeader.csWriteObject.name))
+                csObjects.append(curHeader.csWriteObject.name)
 
     for extraCs in outScene.extraCutscenes:
-        cutscenes.append(ootCutsceneDataToC(extraCs, extraCs.name))
+        if not extraCs.name in csObjects:
+            cutscenes.append(ootCutsceneDataToC(extraCs, extraCs.name))
+            csObjects.append(extraCs.name)
 
     return cutscenes
