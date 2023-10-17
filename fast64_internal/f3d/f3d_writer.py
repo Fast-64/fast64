@@ -1,4 +1,4 @@
-from typing import Union, Optional
+from typing import Union, Optional, Callable, Any
 from dataclasses import dataclass
 import functools
 import bpy, mathutils, os, re, copy, math
@@ -961,7 +961,7 @@ def getF3DVert(loop: bpy.types.MeshLoop, face, convertInfo: LoopConvertInfo, mes
     return F3DVert(position, uv, rgb, normal, alpha)
 
 
-def getLoopNormal(loop: bpy.types.MeshLoop):
+def getLoopNormal(loop: bpy.types.MeshLoop) -> Vector:
     # Have to quantize to something because F3DVerts will be compared, and we
     # don't want floating-point inaccuracy causing "same" vertices not to be
     # merged. But, it hasn't been transformed yet, so quantizing to s8 here will
@@ -980,7 +980,7 @@ def is3_2_or_above():
     return bpy.app.version[0] >= 3 and bpy.app.version[1] >= 2
 
 
-def getLoopColor(loop: bpy.types.MeshLoop, mesh):
+def getLoopColor(loop: bpy.types.MeshLoop, mesh: bpy.types.Mesh) -> Vector:
     color_layer = getColorLayer(mesh, layer="Col")
     alpha_layer = getColorLayer(mesh, layer="Alpha")
 
@@ -1367,7 +1367,7 @@ def saveBitGeo(value, defaultValue, flagName, setGeo, clearGeo, matWriteMethod):
             clearGeo.flagList.append(flagName)
 
 
-def saveGeoModeCommon(saveFunc, settings, defaults, args):
+def saveGeoModeCommon(saveFunc: Callable, settings: RDPSettings, defaults: RDPSettings, args: Any):
     saveFunc(settings.g_zbuffer, defaults.g_zbuffer, "G_ZBUFFER", *args)
     saveFunc(settings.g_shade, defaults.g_shade, "G_SHADE", *args)
     saveFunc(settings.g_cull_front, defaults.g_cull_front, "G_CULL_FRONT", *args)

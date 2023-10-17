@@ -420,7 +420,7 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
         )
     if not useDropdown or dataHolder.menu_geo:
 
-        def indentGroup(parent, textOrProp, isText: bool):
+        def indentGroup(parent: UILayout, textOrProp: Union[str, F3DMaterialProperty], isText: bool) -> UILayout:
             c = parent.column(align=True)
             if isText:
                 c.label(text=textOrProp)
@@ -868,7 +868,7 @@ class F3DPanel(Panel):
         elif context.scene.gameEditorMode == "OOT":
             prop_split(layout, material.f3d_mat.draw_layer, "oot", "Draw Layer")
 
-    def ui_misc(self, f3dMat, inputCol, showCheckBox):
+    def ui_misc(self, f3dMat: F3DMaterialProperty, inputCol: UILayout, showCheckBox: bool) -> None:
         if f3dMat.rdp_settings.g_ambocclusion:
             if showCheckBox or f3dMat.set_ao:
                 inputGroup = inputCol.column()
@@ -916,7 +916,7 @@ class F3DPanel(Panel):
                     prop_split(inputGroup.row(), f3dMat, "fog_color", "Fog Color")
                     prop_split(inputGroup.row(), f3dMat, "fog_position", "Fog Range")
 
-    def checkDrawLayersWarnings(self, f3dMat, useDict, layout):
+    def checkDrawLayersWarnings(self, f3dMat: F3DMaterialProperty, useDict: Dict[str: bool], layout: UILayout):
         settings = f3dMat.rdp_settings
         isF3DEX3 = bpy.context.scene.f3d_type == "F3DEX3"
         lightFxPrereq = isF3DEX3 and settings.g_lighting
