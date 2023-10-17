@@ -210,9 +210,7 @@ class OOTScene(OOTCommonCommands):
             count = count + 1
 
     def addRoom(self, roomIndex, roomName, roomShape):
-        roomModel = self.model.addSubModel(
-            OOTModel(roomName + "_dl", self.model.DLFormat, None)
-        )
+        roomModel = self.model.addSubModel(OOTModel(roomName + "_dl", self.model.DLFormat, None))
         room = OOTRoom(roomIndex, roomName, roomModel, roomShape)
         if roomIndex in self.rooms:
             raise PluginError("Repeat room index " + str(roomIndex) + " for " + str(roomName))

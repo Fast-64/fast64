@@ -1,11 +1,29 @@
 import logging
 import bpy, math, os
 from bpy.types import (
-    Attribute, Context, Image, Light, Material, 
-    Menu, Mesh, NodeGroupOutput, NodeInputs, NodeLink, NodeSocket, 
-    NodeTree, Object, Operator, Panel, Property,
-    PropertyGroup, Scene, ShaderNodeGroup, TextureNodeImage, 
-    UILayout, VIEW3D_HT_header, World
+    Attribute,
+    Context,
+    Image,
+    Light,
+    Material,
+    Menu,
+    Mesh,
+    NodeGroupOutput,
+    NodeInputs,
+    NodeLink,
+    NodeSocket,
+    NodeTree,
+    Object,
+    Operator,
+    Panel,
+    Property,
+    PropertyGroup,
+    Scene,
+    ShaderNodeGroup,
+    TextureNodeImage,
+    UILayout,
+    VIEW3D_HT_header,
+    World,
 )
 from bl_operators.presets import AddPresetBase
 from bpy.utils import register_class, unregister_class
@@ -159,7 +177,7 @@ def update_draw_layer(self, context):
         set_output_node_groups(material)
 
 
-def all_blender_uses(rdp_settings: "RDPSettings") -> Dict[str: bool]:
+def all_blender_uses(rdp_settings: "RDPSettings") -> Dict[str:bool]:
     """
     Returns a dictionary of the external features which the blender may or may
     not use, or None if set_rendermode is disabled so we don't know.
@@ -851,11 +869,7 @@ class F3DPanel(Panel):
             renderGroup.enabled = material.rdp_settings.set_rendermode
 
     def ui_uvCheck(self, layout, context):
-        if (
-            hasattr(context, "object")
-            and context.object is not None
-            and isinstance(context.object.data, Mesh)
-        ):
+        if hasattr(context, "object") and context.object is not None and isinstance(context.object.data, Mesh):
             uv_layers = context.object.data.uv_layers
             if uv_layers.active is None or uv_layers.active.name != "UVMap":
                 uvErrorBox = layout.box()
@@ -916,7 +930,7 @@ class F3DPanel(Panel):
                     prop_split(inputGroup.row(), f3dMat, "fog_color", "Fog Color")
                     prop_split(inputGroup.row(), f3dMat, "fog_position", "Fog Range")
 
-    def checkDrawLayersWarnings(self, f3dMat: F3DMaterialProperty, useDict: Dict[str: bool], layout: UILayout):
+    def checkDrawLayersWarnings(self, f3dMat: F3DMaterialProperty, useDict: Dict[str:bool], layout: UILayout):
         settings = f3dMat.rdp_settings
         isF3DEX3 = bpy.context.scene.f3d_type == "F3DEX3"
         lightFxPrereq = isF3DEX3 and settings.g_lighting
@@ -1436,9 +1450,7 @@ def update_noise_nodes(material: Material):
         nodes["F3DNoiseFactor"].node_tree = noise_group
 
 
-def update_combiner_connections(
-    material: Material, context: Context, combiner: (int | None) = None
-):
+def update_combiner_connections(material: Material, context: Context, combiner: (int | None) = None):
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
 
     update_noise_nodes(material)
@@ -1647,9 +1659,7 @@ def trunc_10_2(val: float):
     return int(val * 4) / 4
 
 
-def update_tex_values_field(
-    self: Material, texProperty: "TextureProperty", tex_size: list[int], tex_index: int
-):
+def update_tex_values_field(self: Material, texProperty: "TextureProperty", tex_size: list[int], tex_index: int):
     nodes = self.node_tree.nodes
     textureSettings: ShaderNodeGroup = nodes["TextureSettings"]
     inputs = textureSettings.inputs
