@@ -221,7 +221,10 @@ class OOTCSMotionObjectFactory:
         item = None
         if isPlayer:
             playerEnum = ootData.enumData.enumByKey["csPlayerCueId"]
-            item = playerEnum.itemByIndex.get(actionID)
+            if isinstance(actionID, int):
+                item = playerEnum.itemByIndex.get(actionID)
+            else:
+                item = playerEnum.itemByKey.get(actionID)
 
         if item is not None:
             newActorCueObj.ootCSMotionProperty.actorCueProp.playerCueID = item.key

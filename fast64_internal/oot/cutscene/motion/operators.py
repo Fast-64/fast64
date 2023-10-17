@@ -46,7 +46,7 @@ def createNewActorCueList(csObj: Object, isPlayer: bool):
         newActorCueObj = objFactory.getNewActorCueObject(
             f"{csPrefix}.{playerOrActor} Cue {index:02}.{nameSuffix}",
             i,
-            "0x0000",
+            "cueid_none" if isPlayer else "0x0000",
             [0, 0, 0],
             ["0x0", "0x0", "0x0"],
             newActorCueListObj,
@@ -166,7 +166,7 @@ class OOTCSMotionAddActorCue(Operator):
                 newActorCueObj = objFactory.getNewActorCueObject(
                     f"New {'Player' if self.isPlayer else 'Actor'} Cue",
                     0,
-                    "0x0000",
+                    "cueid_none" if self.isPlayer else "0x0000",
                     [0, 0, 0],
                     ["0x0", "0x0", "0x0"],
                     None,
