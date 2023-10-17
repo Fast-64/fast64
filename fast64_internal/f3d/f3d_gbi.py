@@ -116,15 +116,15 @@ ACMUXDict = {
 }
 
 
-def isUcodeF3DEX1(F3D_VER):
+def isUcodeF3DEX1(F3D_VER: str) -> bool:
     return F3D_VER in {"F3DLP.Rej", "F3DLX.Rej", "F3DEX/LX"}
 
 
-def isUcodeF3DEX2(F3D_VER):
+def isUcodeF3DEX2(F3D_VER: str) -> bool:
     return F3D_VER in {"F3DEX2.Rej/LX2.Rej", "F3DEX2/LX2"}
 
 
-def isUcodeF3DEX3(F3D_VER):
+def isUcodeF3DEX3(F3D_VER: str) -> bool:
     return F3D_VER == "F3DEX3"
 
 
@@ -1697,9 +1697,9 @@ class F3D:
 
         # Lighting Macros
         if F3DEX_GBI_3:
-            self.numLights = {"NUMLIGHTS_" + str(n): n for n in range(10)}
+            self.numLights = {f"NUMLIGHTS_{n}": n for n in range(10)}
         else:
-            self.numLights = {"NUMLIGHTS_" + str(n): (1 if n == 0 else n) for n in range(8)}
+            self.numLights = {f"NUMLIGHTS_{n}": (1 if n == 0 else n) for n in range(8)}
 
     def GBL_c1(self, m1a, m1b, m2a, m2b):
         return (m1a) << 30 | (m1b) << 26 | (m2a) << 22 | (m2b) << 18
@@ -2087,7 +2087,7 @@ class Vtx:
         def spc(x):
             return "{" + ", ".join([str(a) for a in x]) + "}"
 
-        flag = "0" if self.packedNormal == 0 else "{0:#06x}".format(self.packedNormal)
+        flag = "0" if self.packedNormal == 0 else f"{self.packedNormal:#06x}"
         return "{{ " + ", ".join([spc(self.position), flag, spc(self.uv), spc(self.colorOrNormal)]) + " }}"
 
 
@@ -3377,7 +3377,7 @@ class GbiMacro:
             return " | ".join(field) if len(field) else "0"
         if self._hex > 0 and isinstance(field, int):
             temp = field if field >= 0 else (1 << (self._hex * 4)) + field
-            return "{0:#0{1}x}".format(temp, self._hex + 2)  # + 2 for the 0x part
+            return f"{temp:#0{self._hex + 2}x}"  # + 2 for the 0x part
         return str(field)
 
     def to_c(self, static=True):

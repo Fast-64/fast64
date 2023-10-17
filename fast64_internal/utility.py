@@ -2,7 +2,7 @@ import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operato
 from math import pi, ceil, degrees, radians, copysign
 from mathutils import *
 from .utility_anim import *
-from typing import Callable, Iterable, Any
+from typing import Callable, Iterable, Any, Tuple
 
 CollectionProperty = Any  # collection prop as defined by using bpy.props.CollectionProperty
 
@@ -600,15 +600,15 @@ to_s16 = lambda x: cast_integer(round(x), 16, True)
 radians_to_s16 = lambda d: to_s16(d * 0x10000 / (2 * math.pi))
 
 
-def from_s16(value: int):
+def int_from_s16(value: int) -> int:
     value &= 0xFFFF
     if value >= 0x8000:
         value -= 0x10000
     return value
 
 
-def from_s16_str(value: str):
-    return from_s16(int(value, 0))
+def int_from_s16_str(value: str) -> int:
+    return int_from_s16(int(value, 0))
 
 
 def decompFolderMessage(layout):
@@ -1436,15 +1436,15 @@ def normToSigned8Vector(normal):
     return [int.from_bytes(int(value * 127).to_bytes(1, "big", signed=True), "big") for value in normal]
 
 
-def unpackNormalS8(packedNormal):
+def unpackNormalS8(packedNormal: int) -> Tuple[int, int, int]:
     assert isinstance(packedNormal, int) and packedNormal >= 0 and packedNormal <= 0xFFFF
     xo, yo = packedNormal >> 8, packedNormal & 0xFF
     # This is following the instructions in F3DEX3
     x, y = xo & 0x7F, yo & 0x7F
     z = x + y
     zNeg = bool(z & 0x80)
-    x2, y2 = x ^ 0x7F, y ^ 0x7F  # 7F - x, 7F - y
-    z = z ^ 0x7F  # = 7F - x - y
+    x2, y2 = x ^ 0x7F, y ^ 0x7F  # this is actually producing 7F - x, 7F - y
+    z = z ^ 0x7F  # 7F - x - y; using xor saves an instruction and a register on the RSP
     if zNeg:
         x, y = x2, y2
     x, y = -x if xo & 0x80 else x, -y if yo & 0x80 else y
@@ -1453,12 +1453,12 @@ def unpackNormalS8(packedNormal):
     return x, y, z
 
 
-def unpackNormal(packedNormal):
+def unpackNormal(packedNormal: int) -> Vector:
     # Convert constant-L1 norm to standard L2 norm
     return Vector(unpackNormalS8(packedNormal)).normalized()
 
 
-def packNormal(normal):
+def packNormal(normal: Vector) -> int:
     # Convert standard normal to constant-L1 normal
     assert len(normal) == 3
     l1norm = abs(normal[0]) + abs(normal[1]) + abs(normal[2])
@@ -1474,11 +1474,13 @@ def packNormal(normal):
         x, y = 0x7F - x, 0x7F - y
     x, y = x | xsign, y | ysign
     packedNormal = x << 8 | y
+    # The only error is in the float to int rounding above. The packing and unpacking
+    # will precisely restore the original int values.
     assert (xo, yo, zo) == unpackNormalS8(packedNormal)
     return packedNormal
 
 
-def getRgbNormalSettings(f3d_mat):
+def getRgbNormalSettings(f3d_mat: "F3DMaterialProperty") -> Tuple[bool, bool, bool]:
     rdp_settings = f3d_mat.rdp_settings
     has_packed_normals = bpy.context.scene.f3d_type == "F3DEX3"
     has_rgb = not rdp_settings.g_lighting or (has_packed_normals and rdp_settings.g_packed_normals)
