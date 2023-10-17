@@ -880,18 +880,19 @@ class F3DContext:
             mat.rdp_settings.g_cull_front = value
         if bitFlags & self.f3d.G_CULL_BACK:
             mat.rdp_settings.g_cull_back = value
-        if bitFlags & self.f3d.G_ATTROFFSET_ST_ENABLE:
-            mat.rdp_settings.g_attroffset_st_enable = value
-        if bitFlags & self.f3d.G_ATTROFFSET_Z_ENABLE:
-            mat.rdp_settings.g_attroffset_z_enable = value
-        if bitFlags & self.f3d.G_PACKED_NORMALS:
-            mat.rdp_settings.g_packed_normals = value
-        if bitFlags & self.f3d.G_LIGHTTOALPHA:
-            mat.rdp_settings.g_lighttoalpha = value
-        if bitFlags & self.f3d.G_AMBOCCLUSION:
-            mat.rdp_settings.g_ambocclusion = value
-        if bitFlags & self.f3d.G_FRESNEL:
-            mat.rdp_settings.g_fresnel = value
+        if self.f3d.F3DEX_GBI_3:
+            if bitFlags & self.f3d.G_ATTROFFSET_ST_ENABLE:
+                mat.rdp_settings.g_attroffset_st_enable = value
+            if bitFlags & self.f3d.G_ATTROFFSET_Z_ENABLE:
+                mat.rdp_settings.g_attroffset_z_enable = value
+            if bitFlags & self.f3d.G_PACKED_NORMALS:
+                mat.rdp_settings.g_packed_normals = value
+            if bitFlags & self.f3d.G_LIGHTTOALPHA:
+                mat.rdp_settings.g_lighttoalpha = value
+            if bitFlags & self.f3d.G_AMBOCCLUSION:
+                mat.rdp_settings.g_ambocclusion = value
+            if bitFlags & self.f3d.G_FRESNEL:
+                mat.rdp_settings.g_fresnel = value
         if bitFlags & self.f3d.G_FOG:
             mat.rdp_settings.g_fog = value
         if bitFlags & self.f3d.G_LIGHTING:
@@ -916,12 +917,20 @@ class F3DContext:
         mat.rdp_settings.g_shade = bitFlags & self.f3d.G_SHADE != 0
         mat.rdp_settings.g_cull_front = bitFlags & self.f3d.G_CULL_FRONT != 0
         mat.rdp_settings.g_cull_back = bitFlags & self.f3d.G_CULL_BACK != 0
-        mat.rdp_settings.g_attroffset_st_enable = bitFlags & self.f3d.G_ATTROFFSET_ST_ENABLE != 0
-        mat.rdp_settings.g_attroffset_z_enable = bitFlags & self.f3d.G_ATTROFFSET_Z_ENABLE != 0
-        mat.rdp_settings.g_packed_normals = bitFlags & self.f3d.G_PACKED_NORMALS != 0
-        mat.rdp_settings.g_lighttoalpha = bitFlags & self.f3d.G_LIGHTTOALPHA != 0
-        mat.rdp_settings.g_ambocclusion = bitFlags & self.f3d.G_AMBOCCLUSION != 0
-        mat.rdp_settings.g_fresnel = bitFlags & self.f3d.G_FRESNEL != 0
+        if self.f3d.F3DEX_GBI_3:
+            mat.rdp_settings.g_attroffset_st_enable = bitFlags & self.f3d.G_ATTROFFSET_ST_ENABLE != 0
+            mat.rdp_settings.g_attroffset_z_enable = bitFlags & self.f3d.G_ATTROFFSET_Z_ENABLE != 0
+            mat.rdp_settings.g_packed_normals = bitFlags & self.f3d.G_PACKED_NORMALS != 0
+            mat.rdp_settings.g_lighttoalpha = bitFlags & self.f3d.G_LIGHTTOALPHA != 0
+            mat.rdp_settings.g_ambocclusion = bitFlags & self.f3d.G_AMBOCCLUSION != 0
+            mat.rdp_settings.g_fresnel = bitFlags & self.f3d.G_FRESNEL != 0
+        else:
+            mat.rdp_settings.g_attroffset_st_enable = False
+            mat.rdp_settings.g_attroffset_z_enable = False
+            mat.rdp_settings.g_packed_normals = False
+            mat.rdp_settings.g_lighttoalpha = False
+            mat.rdp_settings.g_ambocclusion = False
+            mat.rdp_settings.g_fresnel = False
         mat.rdp_settings.g_fog = bitFlags & self.f3d.G_FOG != 0
         mat.rdp_settings.g_lighting = bitFlags & self.f3d.G_LIGHTING != 0
         mat.rdp_settings.g_tex_gen = bitFlags & self.f3d.G_TEXTURE_GEN != 0
