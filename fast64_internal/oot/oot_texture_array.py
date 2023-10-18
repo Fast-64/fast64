@@ -11,6 +11,7 @@ from .oot_model_classes import (
     ootGetLinkData,
 )
 
+
 # Special cases:
 # z_en_xc: one texture is not stored in any array.
 # skeletonName only used for en_ossan (shopkeepers) and demo_ec (end credits party), which have multiple skeletons
@@ -93,10 +94,9 @@ def ootReadTextureArraysGeneric(
     f3dContext: OOTF3DContext,
 ):
     # find gSPSegment() calls that reference texture arrays
-    for (flipbookKey, segmentParam, spSegmentMatch) in getSegmentCallsFunc(actorData):
-
+    for flipbookKey, segmentParam, spSegmentMatch in getSegmentCallsFunc(actorData):
         # check for texture array reference
-        for (arrayName, flipbook) in flipbookList.items():
+        for arrayName, flipbook in flipbookList.items():
             directArrayReference = findDirectArrayReference(arrayName, segmentParam)
             indexIntoArrayReference = findIndexIntoArrayReference(arrayName, segmentParam, actorData)
 

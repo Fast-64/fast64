@@ -1,4 +1,5 @@
-from bpy.types import PropertyGroup, Object, UILayout
+import bpy
+from bpy.types import PropertyGroup, Object, UILayout, Scene, Context
 from bpy.props import StringProperty, EnumProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
 from bpy.utils import register_class, unregister_class
 from ...utility import PluginError, prop_split
@@ -6,6 +7,15 @@ from ..oot_utility import OOTCollectionAdd, drawCollectionOps, getEnumName
 from ..oot_constants import ootEnumMusicSeq
 from ..oot_upgrade import upgradeCutsceneSubProps, upgradeCSListProps, upgradeCutsceneProperty
 from .operators import OOTCSTextAdd, OOT_SearchCSDestinationEnumOperator, drawCSListAddOp
+from .motion.preview import previewFrameHandler
+
+from .motion.operators import (
+    OOTCSMotionPlayPreview,
+    OOTCSMotionCreateCameraShot,
+    OOTCSMotionCreatePlayerCueList,
+    OOTCSMotionCreateActorCueList,
+)
+
 from .constants import (
     ootEnumCSTextboxType,
     ootEnumCSListType,
@@ -268,6 +278,43 @@ class OOTCSListProperty(PropertyGroup):
             box.label(text="No items in " + getEnumName(ootEnumCSListType, self.listType))
 
 
+class OOTCutsceneCommandBase:
+    startFrame: IntProperty(min=0)
+    endFrame: IntProperty(min=0)
+
+
+class OOTCutsceneTransitionProperty(OOTCutsceneCommandBase, PropertyGroup):
+    type: StringProperty(default="Unknown")
+
+
+class OOTCutsceneMiscProperty(OOTCutsceneCommandBase, PropertyGroup):
+    type: StringProperty(default="Unknown")
+
+
+class OOTCutscenePreviewProperty(PropertyGroup):
+    useWidescreen: BoolProperty(
+        name="Use Widescreen Camera", default=False, update=lambda self, context: self.updateWidescreen(context)
+    )
+
+    transitionList: CollectionProperty(type=OOTCutsceneTransitionProperty)
+    miscList: CollectionProperty(type=OOTCutsceneMiscProperty)
+
+    trigger: BoolProperty(default=False)  # for ``CS_TRANS_TRIGGER_INSTANCE``
+    isFixedCamSet: BoolProperty(default=False)
+    prevFrame: IntProperty(default=-1)
+    nextFrame: IntProperty(default=1)
+
+    def updateWidescreen(self, context: Context):
+        if self.useWidescreen:
+            context.scene.render.resolution_x = 426
+        else:
+            context.scene.render.resolution_x = 320
+        context.scene.render.resolution_y = 240
+
+        # force a refresh of the current frame
+        previewFrameHandler(context.scene)
+
+
 class OOTCutsceneProperty(PropertyGroup):
     csEndFrame: IntProperty(name="End Frame", min=0, default=100)
     csUseDestination: BoolProperty(name="Cutscene Destination (Scene Change)")
@@ -277,6 +324,8 @@ class OOTCutsceneProperty(PropertyGroup):
     csDestinationCustom: StringProperty(default="CS_DEST_CUSTOM")
     csDestinationStartFrame: IntProperty(name="Start Frame", min=0, default=99)
     csLists: CollectionProperty(type=OOTCSListProperty, name="Cutscene Lists")
+
+    preview: PointerProperty(type=OOTCutscenePreviewProperty)
 
     @staticmethod
     def upgrade_object(obj):
@@ -296,6 +345,20 @@ class OOTCutsceneProperty(PropertyGroup):
                     upgradeCutsceneSubProps(csListSubProp)
 
     def draw_props(self, layout: UILayout, obj: Object):
+        split = layout.split(factor=0.5)
+        split.label(text="Player Age for Preview")
+        split.prop(bpy.context.scene, "previewPlayerAge", text="")
+
+        split = layout.split(factor=0.5)
+        split.operator(OOTCSMotionCreateCameraShot.bl_idname, icon="VIEW_CAMERA")
+        split.operator(OOTCSMotionPlayPreview.bl_idname, icon="RESTRICT_VIEW_OFF")
+
+        split = layout.split(factor=0.5)
+        split.operator(OOTCSMotionCreatePlayerCueList.bl_idname)
+        split.operator(OOTCSMotionCreateActorCueList.bl_idname)
+
+        layout.prop(self.preview, "useWidescreen")
+
         layout.prop(self, "csEndFrame")
 
         csDestLayout = layout.box()
@@ -329,6 +392,9 @@ classes = (
     OOTCSMiscProperty,
     OOTCSRumbleProperty,
     OOTCSListProperty,
+    OOTCutsceneTransitionProperty,
+    OOTCutsceneMiscProperty,
+    OOTCutscenePreviewProperty,
     OOTCutsceneProperty,
 )
 
@@ -338,9 +404,13 @@ def cutscene_props_register():
         register_class(cls)
 
     Object.ootCutsceneProperty = PointerProperty(type=OOTCutsceneProperty)
+    Scene.ootCSPreviewNodesReady = BoolProperty(default=False)
+    Scene.ootCSPreviewCSObj = PointerProperty(type=Object)
 
 
 def cutscene_props_unregister():
+    del Scene.ootCSPreviewCSObj
+    del Scene.ootCSPreviewNodesReady
     del Object.ootCutsceneProperty
 
     for cls in reversed(classes):
