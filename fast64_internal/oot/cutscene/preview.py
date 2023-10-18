@@ -121,7 +121,7 @@ def processCurrentFrame(csObj: Object, curFrame: float, useNodeFeatures: bool, c
             startFrame = transitionCmd.startFrame
             endFrame = transitionCmd.endFrame
             frameCur = curFrame
-            isTriggerInstance = transitionCmd.type == "CS_TRANS_TRIGGER_INSTANCE"
+            isTriggerInstance = transitionCmd.type == "trigger_instance"
             linear160 = getColor(160.0)
 
             if transitionCmd.type == "Unknown":
@@ -144,24 +144,24 @@ def processCurrentFrame(csObj: Object, curFrame: float, useNodeFeatures: bool, c
                 if isTriggerInstance:
                     previewProp.trigger = True
 
-                if transitionCmd.type.endswith("IN"):
+                if transitionCmd.type.endswith("in"):
                     alpha = linear255 * lerp
                 else:
                     alpha = (1.0 - lerp) * linear255
 
-                if "HALF" in transitionCmd.type:
-                    if "_IN_" in transitionCmd.type:
+                if "half" in transitionCmd.type:
+                    if "_in_" in transitionCmd.type:
                         alpha = linear255 - ((1.0 - lerp) * linear155)
                     else:
                         alpha = linear255 - (linear155 * lerp)
 
-                if "_GRAY_" in transitionCmd.type or previewProp.trigger:
+                if "gray_" in transitionCmd.type or previewProp.trigger:
                     color[0] = color[1] = color[2] = linear160 * alpha
-                elif "_RED_" in transitionCmd.type:
+                elif "red_" in transitionCmd.type:
                     color[0] = linear255 * alpha
-                elif "_GREEN_" in transitionCmd.type:
+                elif "green_" in transitionCmd.type:
                     color[1] = linear255 * alpha
-                elif "_BLUE_" in transitionCmd.type:
+                elif "blue_" in transitionCmd.type:
                     color[2] = linear255 * alpha
 
                 color[3] = alpha
@@ -175,11 +175,11 @@ def processCurrentFrame(csObj: Object, curFrame: float, useNodeFeatures: bool, c
             print("ERROR: Unknown command!")
 
         if curFrame == startFrame:
-            if miscCmd.type == "CS_MISC_SET_LOCKED_VIEWPOINT" and not None in cameraObjects:
+            if miscCmd.type == "set_locked_viewpoint" and not None in cameraObjects:
                 bpy.context.scene.camera = cameraObjects[int(csObj.ootCutsceneProperty.preview.isFixedCamSet)]
                 csObj.ootCutsceneProperty.preview.isFixedCamSet ^= True
 
-            if miscCmd.type == "CS_MISC_STOP_CUTSCENE":
+            elif miscCmd.type == "stop_cutscene":
                 # stop the playback and set the frame to 0
                 bpy.ops.screen.animation_cancel()
                 bpy.context.scene.frame_set(bpy.context.scene.frame_start)
@@ -189,8 +189,8 @@ def processCurrentFrame(csObj: Object, curFrame: float, useNodeFeatures: bool, c
                 color = [0.0, 0.0, 0.0, 0.0]
                 lerp = getLerp(endFrame - 1, startFrame, curFrame)
 
-                if miscCmd.type in ["CS_MISC_VISMONO_SEPIA", "CS_MISC_VISMONO_BLACK_AND_WHITE"]:
-                    if miscCmd.type == "CS_MISC_VISMONO_SEPIA":
+                if miscCmd.type in ["vismono_sepia", "vismono_black_and_white"]:
+                    if miscCmd.type == "vismono_sepia":
                         col = [255.0, 180.0, 100.0]
                     else:
                         col = [255.0, 255.0, 254.0]
@@ -201,7 +201,7 @@ def processCurrentFrame(csObj: Object, curFrame: float, useNodeFeatures: bool, c
                     color[3] = getColor(255.0) * lerp
                     bpy.context.scene.node_tree.nodes["CSMisc_RGB"].outputs[0].default_value = color
 
-                if miscCmd.type == "CS_MISC_RED_PULSATING_LIGHTS":
+                elif miscCmd.type == "red_pulsating_lights":
                     color = bpy.context.scene.node_tree.nodes["CSMisc_RGB"].outputs[0].default_value
                     color[0] = getColor(255.0)
                     color[1] = color[2] = 0.0
@@ -253,9 +253,25 @@ def cutscenePreviewFrameHandler(scene: Scene):
     # setup nodes
     bpy.context.scene.ootCSPreviewNodesReady = False
     setupCompositorNodes()
+    previewProp = csObj.ootCutsceneProperty.preview
+
+    # set preview properties
+    previewProp.miscList.clear()
+    previewProp.transitionList.clear()
+    for item in csObj.ootCutsceneProperty.csLists:
+        if item.listType == "Transition":
+            newProp = previewProp.transitionList.add()
+            newProp.startFrame = item.transitionStartFrame
+            newProp.endFrame = item.transitionEndFrame
+            newProp.type = item.transitionType
+        elif item.listType == "MiscList":
+            for normalMisc in item.miscList:
+                newProp = previewProp.miscList.add()
+                newProp.startFrame = normalMisc.startFrame
+                newProp.endFrame = normalMisc.endFrame
+                newProp.type = normalMisc.csMiscType
 
     # execute the main preview logic
-    previewProp = csObj.ootCutsceneProperty.preview
     curFrame = bpy.context.scene.frame_current
     if isclose(curFrame, previewProp.prevFrame, abs_tol=1) and isclose(curFrame, previewProp.nextFrame, abs_tol=1):
         processCurrentFrame(csObj, curFrame, bpy.context.scene.ootCSPreviewNodesReady, cameraObjects)
