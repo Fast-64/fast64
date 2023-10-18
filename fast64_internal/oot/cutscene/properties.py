@@ -4,7 +4,7 @@ from bpy.props import StringProperty, EnumProperty, IntProperty, BoolProperty, C
 from bpy.utils import register_class, unregister_class
 from ...utility import PluginError, prop_split
 from ..oot_utility import OOTCollectionAdd, drawCollectionOps, getEnumName
-from ..oot_constants import ootData, ootEnumMusicSeq
+from ..oot_constants import ootData
 from ..oot_upgrade import upgradeCutsceneSubProps, upgradeCSListProps, upgradeCutsceneProperty
 from .operators import OOTCSTextAdd, OOT_SearchCSDestinationEnumOperator, drawCSListAddOp
 from .motion.preview import previewFrameHandler
@@ -68,7 +68,6 @@ class OOTCutsceneCommon:
             if self.filterProp(p, listProp):
                 name = self.filterName(p, listProp)
                 displayName = ootCSSubPropToName[name]
-                value = getattr(self, p)
 
                 if name == "csSeqPlayer":
                     # change the property name to draw the other enum for fade seq command
@@ -83,6 +82,7 @@ class OOTCutsceneCommon:
                     "csSeqID",
                     "csSeqPlayer",
                 ]
+                value = getattr(self, p)
                 if name in customValues and value == "Custom":
                     prop_split(box, self, f"{name}Custom", f"{displayName} Custom")
 
@@ -133,7 +133,7 @@ class OOTCSTextProperty(OOTCutsceneCommon, PropertyGroup):
 class OOTCSLightSettingsProperty(OOTCutsceneCommon, PropertyGroup):
     attrName = "lightSettingsList"
     subprops = ["lightSettingsIndex", "startFrame"]
-    lightSettingsIndex: IntProperty(name="", default=1, min=1)
+    lightSettingsIndex: IntProperty(name="", default=0, min=0)
 
 
 class OOTCSTimeProperty(OOTCutsceneCommon, PropertyGroup):
@@ -146,7 +146,7 @@ class OOTCSTimeProperty(OOTCutsceneCommon, PropertyGroup):
 class OOTCSSeqProperty(OOTCutsceneCommon, PropertyGroup):
     attrName = "seqList"
     subprops = ["csSeqID", "startFrame", "endFrame"]
-    csSeqID: EnumProperty(name="Seq ID", items=ootEnumMusicSeq, default="NA_BGM_GENERAL_SFX")
+    csSeqID: EnumProperty(name="Seq ID", items=ootData.enumData.ootEnumSeqId, default="general_sfx")
     csSeqIDCustom: StringProperty(default="NA_BGM_CUSTOM")
     csSeqPlayer: EnumProperty(
         name="Seq Player", items=ootData.enumData.ootEnumCsFadeOutSeqPlayer, default="fade_out_fanfare"

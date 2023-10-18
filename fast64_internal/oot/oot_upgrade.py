@@ -56,14 +56,17 @@ class Cutscene_UpgradeData:
 def transferOldDataToNew(data, oldDataToNewData: dict[str, str]):
     # conversion to the same prop type
     # simply transfer the old data to the new one
-    # special case for rumble subprops where it's a string to int conversion
     for oldName, newName in oldDataToNewData.items():
         if oldName in data:
             if newName is not None:
                 value = data[oldName]
 
+                # special case for rumble subprops where it's a string to int conversion
+                # another special case for light setting index where the value need to be minus one
                 if newName in ["rumbleSourceStrength", "rumbleDuration", "rumbleDecreaseRate"]:
                     value = int(getEvalParams(data[oldName]), base=16)
+                elif newName == "lightSettingsIndex":
+                    value -= 1
 
                 data[newName] = value
 
@@ -172,7 +175,7 @@ def upgradeCutsceneSubProps(csListSubProp):
         Cutscene_UpgradeData("ocarinaSongAction", "ocarinaAction", ootData.enumData.ootEnumOcarinaSongActionId),
         Cutscene_UpgradeData("type", "csTextType", ootData.enumData.ootEnumCsTextType),
         # Seq
-        Cutscene_UpgradeData("value", "csSeqID", ootEnumMusicSeq),
+        Cutscene_UpgradeData("value", "csSeqID", ootData.enumData.ootEnumSeqId),
         # Misc
         Cutscene_UpgradeData("operation", "csMiscType", ootData.enumData.ootEnumCsMiscType),
     ]

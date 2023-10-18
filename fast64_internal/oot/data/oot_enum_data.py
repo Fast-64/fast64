@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 from os import path
-from ...utility import PluginError
 from .oot_getters import getXMLRoot
 from .oot_data import OoT_BaseElement
 
@@ -14,28 +13,29 @@ class OoT_ItemElement(OoT_BaseElement):
     def __post_init__(self):
         # generate the name from the id
 
-        keyToPrefix = {
-            "csCmd": "CS_CMD",
-            "csMiscType": "CS_MISC",
-            "csTextType": "CS_TEXT",
-            "csFadeOutSeqPlayer": "CS_FADE_OUT",
-            "csTransitionType": "CS_TRANS",
-            "csDestination": "CS_DEST",
-            "csPlayerCueId": "PLAYER_CUEID",
-            "naviQuestHintType": "NAVI_QUEST_HINTS",
-            "ocarinaSongActionId": "OCARINA_ACTION",
-        }
+        if self.name is None:
+            keyToPrefix = {
+                "csCmd": "CS_CMD",
+                "csMiscType": "CS_MISC",
+                "csTextType": "CS_TEXT",
+                "csFadeOutSeqPlayer": "CS_FADE_OUT",
+                "csTransitionType": "CS_TRANS",
+                "csDestination": "CS_DEST",
+                "csPlayerCueId": "PLAYER_CUEID",
+                "naviQuestHintType": "NAVI_QUEST_HINTS",
+                "ocarinaSongActionId": "OCARINA_ACTION",
+            }
 
-        self.name = self.id.removeprefix(f"{keyToPrefix[self.parentKey]}_")
+            self.name = self.id.removeprefix(f"{keyToPrefix[self.parentKey]}_")
 
-        if self.parentKey in ["csCmd", "csPlayerCueId"]:
-            split = self.name.split("_")
-            if self.parentKey == "csCmd" and "ACTOR_CUE" in self.id:
-                self.name = f"Actor Cue {split[-2]}_{split[-1]}"
+            if self.parentKey in ["csCmd", "csPlayerCueId"]:
+                split = self.name.split("_")
+                if self.parentKey == "csCmd" and "ACTOR_CUE" in self.id:
+                    self.name = f"Actor Cue {split[-2]}_{split[-1]}"
+                else:
+                    self.name = f"Player Cue Id {split[-1]}"
             else:
-                self.name = f"Player Cue Id {split[-1]}"
-        else:
-            self.name = self.name.replace("_", " ").title()
+                self.name = self.name.replace("_", " ").title()
 
 
 @dataclass
@@ -73,7 +73,8 @@ class OoT_EnumData:
                         OoT_ItemElement(
                             item.attrib["ID"],
                             item.attrib["Key"],
-                            None,  # note: the name sets automatically after the init
+                            # note: the name sets automatically after the init if None
+                            item.attrib["Name"] if enum.attrib["Key"] == "seqId" else None,
                             int(item.attrib["Index"]),
                             enum.attrib["Key"],
                         )
@@ -94,6 +95,7 @@ class OoT_EnumData:
         self.ootEnumCsPlayerCueId: list[tuple[str, str, str]] = []
         self.ootEnumNaviQuestHintType: list[tuple[str, str, str]] = []
         self.ootEnumOcarinaSongActionId: list[tuple[str, str, str]] = []
+        self.ootEnumSeqId: list[tuple[str, str, str]] = []
 
         self.enumByID = {enum.id: enum for enum in self.enumDataList}
         self.enumByKey = {enum.key: enum for enum in self.enumDataList}

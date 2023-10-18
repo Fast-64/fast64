@@ -35,6 +35,12 @@ ootCSMotionLegacyToNewCmdNames = {
     "CS_FADE_BGM_LIST": "CS_FADE_OUT_SEQ_LIST",
     "CS_FADE_BGM": "CS_FADE_OUT_SEQ",
     "CS_TERMINATOR": "CS_DESTINATION",
+    "CS_LIGHTING_LIST": "CS_LIGHT_SETTING_LIST",
+    "CS_LIGHTING": "L_CS_LIGHT_SETTING",
+    "CS_PLAY_BGM_LIST": "CS_START_SEQ_LIST",
+    "CS_PLAY_BGM": "L_CS_START_SEQ",
+    "CS_STOP_BGM_LIST": "CS_STOP_SEQ_LIST",
+    "CS_STOP_BGM": "L_CS_STOP_SEQ",
 }
 
 ootCSMotionListCommands = [
@@ -78,6 +84,10 @@ ootCSMotionListEntryCommands = [
     "CS_PLAY_BGM",
     "CS_STOP_BGM",
     "CS_LIGHTING",
+    # some old commands need to remove 1 to the first argument to stay accurate
+    "L_CS_LIGHT_SETTING",
+    "L_CS_START_SEQ",
+    "L_CS_STOP_SEQ",
 ]
 
 ootCSMotionSingleCommands = [

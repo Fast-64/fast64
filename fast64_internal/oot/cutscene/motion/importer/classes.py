@@ -2,10 +2,14 @@ import bpy
 
 from dataclasses import dataclass
 from struct import unpack
+from typing import TYPE_CHECKING 
 from bpy.types import Object, Armature
 from .....utility import PluginError
 from ....oot_constants import ootData
 from ..utility import setupCutscene, getBlenderPosition, getRotation
+
+if TYPE_CHECKING:
+    from ...properties import OOTCSListProperty
 
 from ..constants import (
     ootCSMotionLegacyToNewCmdNames,
@@ -31,6 +35,20 @@ from ..io_classes import (
     OOTCSMotionMisc,
     OOTCSMotionMiscList,
     OOTCSMotionTransition,
+    OOTCSMotionText,
+    OOTCSMotionTextNone,
+    OOTCSMotionTextOcarinaAction,
+    OOTCSMotionTextList,
+    OOTCSMotionLightSetting,
+    OOTCSMotionLightSettingList,
+    OOTCSMotionTime,
+    OOTCSMotionTimeList,
+    OOTCSMotionStartStopSeq,
+    OOTCSMotionStartStopSeqList,
+    OOTCSMotionFadeSeq,
+    OOTCSMotionFadeSeqList,
+    OOTCSMotionRumbleController,
+    OOTCSMotionRumbleControllerList,
 )
 
 
@@ -48,8 +66,10 @@ class OOTCSMotionImportCommands:
     def getCmdParams(self, data: str, cmdName: str, paramNumber: int):
         """Returns the list of every parameter of the given command"""
 
-        params = data.strip().removeprefix(f"{cmdName}(").replace(" ", "").removesuffix(")").split(",")
-        if len(params) != paramNumber:
+        parenthesis = "(" if not cmdName.endswith("(") else ""
+        params = data.strip().removeprefix(f"{cmdName}{parenthesis}").replace(" ", "").removesuffix(")").split(",")
+        validTimeCmd = cmdName == "CS_TIME" and len(params) == 6 and paramNumber == 5
+        if len(params) != paramNumber and not validTimeCmd:
             raise PluginError(
                 f"ERROR: The number of expected parameters for `{cmdName}` "
                 + "and the number of found ones is not the same!"
@@ -146,8 +166,8 @@ class OOTCSMotionImportCommands:
         miscEnum = ootData.enumData.enumByKey["csMiscType"]
         item = miscEnum.itemById.get(params[0])
         if item is None:
-            item = miscEnum.itemByIndex[self.getInteger(params[0])]
-        miscType = item.id
+            item = miscEnum.itemByIndex.get(self.getInteger(params[0]))
+        miscType = item.key if item is not None else params[0]
         return OOTCSMotionMisc(self.getInteger(params[1]), self.getInteger(params[2]), miscType)
 
     def getNewMiscList(self, cmdData: str):
@@ -159,9 +179,136 @@ class OOTCSMotionImportCommands:
         transitionEnum = ootData.enumData.enumByKey["csTransitionType"]
         item = transitionEnum.itemById.get(params[0])
         if item is None:
-            item = transitionEnum.itemByIndex[self.getInteger(params[0])]
-        transType = item.id
+            item = transitionEnum.itemByIndex.get(self.getInteger(params[0]))
+        transType = item.key if item is not None else params[0]
         return OOTCSMotionTransition(self.getInteger(params[1]), self.getInteger(params[2]), transType)
+
+    def getNewText(self, cmdData: str):
+        params = self.getCmdParams(cmdData, "CS_TEXT(", OOTCSMotionText.paramNumber)
+        textEnum = ootData.enumData.enumByKey["csTextType"]
+        item = textEnum.itemById.get(params[3])
+        if item is None:
+            item = textEnum.itemByIndex.get(self.getInteger(params[3]))
+        textType = item.key if item is not None else params[3]
+        return OOTCSMotionText(
+            self.getInteger(params[1]),
+            self.getInteger(params[2]),
+            self.getInteger(params[0]),
+            textType,
+            self.getInteger(params[4]),
+            self.getInteger(params[5]),
+        )
+    
+    def getNewTextNone(self, cmdData: str):
+        params = self.getCmdParams(cmdData, "CS_TEXT_NONE", OOTCSMotionTextNone.paramNumber)
+        return OOTCSMotionTextNone(self.getInteger(params[0]), self.getInteger(params[1]))
+    
+    def getNewTextOcarinaAction(self, cmdData: str):
+        params = self.getCmdParams(cmdData, "CS_TEXT_OCARINA_ACTION", OOTCSMotionTextOcarinaAction.paramNumber)
+        actionEnum = ootData.enumData.enumByKey["ocarinaSongActionId"]
+        item = actionEnum.itemById.get(params[0])
+        if item is None:
+            item = actionEnum.itemByIndex.get(self.getInteger(params[0]))
+        actionId = item.key if item is not None else params[0]
+        return OOTCSMotionTextOcarinaAction(
+            self.getInteger(params[1]),
+            self.getInteger(params[2]),
+            actionId,
+            self.getInteger(params[3])
+        )
+
+    def getNewTextEntry(self, cmdData: str):
+        if cmdData.startswith("CS_TEXT("):
+            return self.getNewText(cmdData)
+        elif cmdData.startswith("CS_TEXT_NONE("):
+            return self.getNewTextNone(cmdData)
+        elif cmdData.startswith("CS_TEXT_OCARINA_ACTION("):
+            return self.getNewTextOcarinaAction(cmdData)
+        return None
+ 
+    def getNewTextList(self, cmdData: str):
+        params = self.getCmdParams(cmdData, "CS_TEXT_LIST", OOTCSMotionTextList.paramNumber)
+        return OOTCSMotionTextList(self.getInteger(params[0]))
+
+    def getNewLightSetting(self, cmdData: str):
+        isLegacy = cmdData.startswith("L_")
+        if isLegacy:
+            cmdData = cmdData.removeprefix("L_")
+        params = self.getCmdParams(cmdData, "CS_LIGHT_SETTING", OOTCSMotionLightSetting.paramNumber)
+        setting = self.getInteger(params[0])
+
+        if isLegacy:
+            setting -= 1
+        return OOTCSMotionLightSetting(
+            self.getInteger(params[1]), self.getInteger(params[2]), setting
+        )
+
+    def getNewLightSettingList(self, cmdData: str):
+        params = self.getCmdParams(cmdData, "CS_LIGHT_SETTING_LIST", OOTCSMotionLightSettingList.paramNumber)
+        return OOTCSMotionLightSettingList(self.getInteger(params[0]))
+
+    def getNewTime(self, cmdData: str):
+        params = self.getCmdParams(cmdData, "CS_TIME", OOTCSMotionTime.paramNumber)
+        return OOTCSMotionTime(
+            self.getInteger(params[1]), self.getInteger(params[2]), self.getInteger(params[3]), self.getInteger(params[4])
+        )
+
+    def getNewTimeList(self, cmdData: str):
+        params = self.getCmdParams(cmdData, "CS_TIME_LIST", OOTCSMotionTimeList.paramNumber)
+        return OOTCSMotionTimeList(self.getInteger(params[0]))
+
+    def getNewStartStopSeq(self, cmdData: str, type: str):
+        isLegacy = cmdData.startswith("L_")
+        if isLegacy:
+            cmdData = cmdData.removeprefix("L_")
+        cmdName = f"CS_{'START' if type == 'start' else 'STOP'}_SEQ"
+        params = self.getCmdParams(cmdData, cmdName, OOTCSMotionStartStopSeq.paramNumber)
+        try:
+            seqEnum = ootData.enumData.enumByKey["seqId"]
+            item = seqEnum.itemById.get(params[0])
+            if item is None:
+                setting = self.getInteger(params[0])
+                if isLegacy:
+                    setting -= 1
+                item = seqEnum.itemByIndex.get(setting)
+            seqId = item.key if item is not None else params[0]
+        except:
+            seqId = params[0]
+        return OOTCSMotionStartStopSeq(
+            self.getInteger(params[1]), self.getInteger(params[2]), seqId,
+        )
+
+    def getNewStartStopSeqList(self, cmdData: str, type: str):
+        cmdName = f"CS_{'START' if type == 'start' else 'STOP'}_SEQ_LIST"
+        params = self.getCmdParams(cmdData, cmdName, OOTCSMotionStartStopSeqList.paramNumber)
+        return OOTCSMotionStartStopSeqList(self.getInteger(params[0]), type)
+
+    def getNewFadeSeq(self, cmdData: str):
+        params = self.getCmdParams(cmdData, "CS_FADE_OUT_SEQ", OOTCSMotionFadeSeq.paramNumber)
+        fadePlayerEnum = ootData.enumData.enumByKey["csFadeOutSeqPlayer"]
+        item = fadePlayerEnum.itemById.get(params[0])
+        if item is None:
+            item = fadePlayerEnum.itemByIndex.get(self.getInteger(params[0]))
+        fadePlayerType = item.key if item is not None else params[0]
+        return OOTCSMotionFadeSeq(self.getInteger(params[1]), self.getInteger(params[2]), fadePlayerType)
+
+    def getNewFadeSeqList(self, cmdData: str):
+        params = self.getCmdParams(cmdData, "CS_FADE_OUT_SEQ_LIST", OOTCSMotionFadeSeqList.paramNumber)
+        return OOTCSMotionFadeSeqList(self.getInteger(params[0]))
+
+    def getNewRumbleController(self, cmdData: str):
+        params = self.getCmdParams(cmdData, "CS_RUMBLE_CONTROLLER", OOTCSMotionRumbleController.paramNumber)
+        return OOTCSMotionRumbleController(
+            self.getInteger(params[1]),
+            self.getInteger(params[2]),
+            self.getInteger(params[3]),
+            self.getInteger(params[4]),
+            self.getInteger(params[5]),
+        )
+
+    def getNewRumbleControllerList(self, cmdData: str):
+        params = self.getCmdParams(cmdData, "CS_RUMBLE_CONTROLLER_LIST", OOTCSMotionRumbleControllerList.paramNumber)
+        return OOTCSMotionRumbleControllerList(self.getInteger(params[0]))
 
 
 @dataclass
@@ -250,7 +397,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                             # camera and lighting have "non-standard" list names
                             if curCmd.startswith("CS_CAM"):
                                 curCmdPrefix = "CS_CAM"
-                            elif curCmd.startswith("CS_LIGHT"):
+                            elif curCmd.startswith("CS_LIGHT") or curCmd.startswith("L_CS_LIGHT"):
                                 curCmdPrefix = "CS_LIGHT"
                             else:
                                 curCmdPrefix = curCmd[:-5]
@@ -304,6 +451,12 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
             ("CAM_AT", self.getNewCamAT, self.getNewCamPoint, "camAT"),
             ("MISC_LIST", self.getNewMiscList, self.getNewMisc, "misc"),
             ("TRANSITION", self.getNewTransition, None, "transition"),
+            ("TEXT_LIST", self.getNewTextList, self.getNewTextEntry, "text"),
+            ("LIGHT_SETTING_LIST", self.getNewLightSettingList, self.getNewLightSetting, "lightSetting"),
+            ("TIME_LIST", self.getNewTimeList, self.getNewTime, "time"),
+            ("SEQ_LIST", self.getNewStartStopSeqList, self.getNewStartStopSeq, "seq"),
+            ("FADE_OUT_SEQ_LIST", self.getNewFadeSeqList, self.getNewFadeSeq, "fadeSeq"),
+            ("RUMBLE_CONTROLLER_LIST", self.getNewRumbleControllerList, self.getNewRumbleController, "rumble"),
         ]
 
         # for each cutscene from the list returned by getParsedCutscenes(),
@@ -312,6 +465,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
         for parsedCS in parsedCutscenes:
             cutscene = None
             for data in parsedCS.csData:
+                # print(data)
                 # create a new cutscene data
                 if "CS_BEGIN_CUTSCENE(" in data:
                     cutscene = self.getNewCutscene(data, parsedCS.csName)
@@ -322,21 +476,35 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                     cmdListData = cmdData.pop(0)
                     for cmd, getListFunc, getFunc, listName in cmdDataList:
                         isPlayer = cmd == "PLAYER_CUE_LIST"
+                        isStartSeq = cmd == "SEQ_LIST" and cmdListData.startswith("CS_START_SEQ_LIST")
+                        isStopSeq = cmd == "SEQ_LIST" and cmdListData.startswith("CS_STOP_SEQ_LIST")
 
-                        if f"CS_{cmd}(" in data:
+                        if isStartSeq or isStopSeq or f"CS_{cmd}(" in data:
                             cmdList = getattr(cutscene, f"{listName}List")
 
                             if getListFunc is not None:
                                 if not isPlayer and not cmd == "ACTOR_CUE_LIST":
-                                    commandData = getListFunc(cmdListData)
+                                    if isStartSeq:
+                                        commandData = getListFunc(cmdListData, "start")
+                                    elif isStopSeq:
+                                        commandData = getListFunc(cmdListData, "stop")
+                                    else:
+                                        commandData = getListFunc(cmdListData)
                                 else:
                                     commandData = getListFunc(cmdListData, isPlayer)
+                            else:
+                                raise PluginError("ERROR: List getter callback is None!")
 
                             if getFunc is not None:
                                 foundEndCmd = False
                                 for d in cmdData:
                                     if not isPlayer and not cmd == "ACTOR_CUE_LIST":
-                                        listEntry = getFunc(d)
+                                        if isStartSeq:
+                                            listEntry = getFunc(d, "start")
+                                        elif isStopSeq:
+                                            listEntry = getFunc(d, "stop")
+                                        else:
+                                            listEntry = getFunc(d)
                                         if "CAM" in cmd:
                                             flag = d.removeprefix("CS_CAM_POINT(").split(",")[0]
                                             if foundEndCmd:
@@ -344,7 +512,9 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                                             foundEndCmd = "CS_CAM_STOP" in flag or "-1" in flag
                                     else:
                                         listEntry = getFunc(d, isPlayer)
-                                    commandData.entries.append(listEntry)
+
+                                    if listEntry is not None:
+                                        commandData.entries.append(listEntry)
 
                             cmdList.append(commandData)
 
@@ -492,6 +662,16 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
             endIndex = i
 
         return endIndex + 1
+    
+    def setListData(self, prop, typeName: str, startFrame: int, endFrame: int, type: str):
+        prop.startFrame = startFrame
+        prop.endFrame = endFrame
+        if typeName is not None and type is not None:
+            try:
+                setattr(prop, typeName, type)
+            except TypeError:
+                setattr(prop, typeName, "Custom")
+                setattr(prop, f"{typeName}Custom", type)
 
     def setCutsceneData(self, csNumber):
         """Creates the cutscene empty objects from the file data"""
@@ -507,6 +687,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
             self.validateCameraData(cutscene)
             csName = f"Cutscene.{cutscene.name}"
             csObj = self.getNewCutsceneObject(csName, cutscene.frameCount, None)
+            csProp = csObj.ootCutsceneProperty
             csNumber = i
 
             print("Importing Actor Cues...")
@@ -535,20 +716,97 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                     csObj, cutscene.camEyeList, cutscene.camATList, "eyeOrAT", lastIndex, i
                 )
 
-            if len(cutscene.miscList) > 0:
-                for miscList in cutscene.miscList:
-                    for miscCmd in miscList.entries:
-                        miscProp = csObj.ootCutsceneProperty.preview.miscList.add()
-                        miscProp.startFrame = miscCmd.startFrame
-                        miscProp.endFrame = miscCmd.endFrame
-                        miscProp.type = miscCmd.type
+            for miscList in cutscene.miscList:
+                miscElem: "OOTCSListProperty" = csProp.csLists.add()
+                miscElem.listType = "MiscList"
+                for miscCmd in miscList.entries:
+                    miscProp = miscElem.miscList.add()
+                    self.setListData(miscProp, "csMiscType", miscCmd.startFrame, miscCmd.endFrame, miscCmd.type)
 
-            if len(cutscene.transitionList) > 0:
-                for transition in cutscene.transitionList:
-                    transitionProp = csObj.ootCutsceneProperty.preview.transitionList.add()
-                    transitionProp.startFrame = transition.startFrame
-                    transitionProp.endFrame = transition.endFrame
-                    transitionProp.type = transition.type
+            for transition in cutscene.transitionList:
+                transitionElem: "OOTCSListProperty" = csProp.csLists.add()
+                transitionElem.listType = "Transition"
+                transitionElem.transitionStartFrame = transition.startFrame
+                transitionElem.transitionEndFrame = transition.endFrame
+                try:
+                    transitionElem.transitionType = transition.type
+                except TypeError:
+                    transitionElem.transitionType = "Custom"
+                    transitionElem.transitionTypeCustom = transition.type
+
+            for textList in cutscene.textList:
+                textElem: "OOTCSListProperty" = csProp.csLists.add()
+                textElem.listType = "TextList"
+                textList.entries.sort(key=lambda elem: elem.startFrame)
+                for textCmd in textList.entries:
+                    textProp = textElem.textList.add()
+                    textProp.textboxType = textCmd.id
+                    match textCmd.id:
+                        case "Text":
+                            textProp.textID = f"0x{textCmd.textId:04X}"
+                            typeName = "csTextType"
+                            type = textCmd.type
+                        case "None":
+                            typeName = type = None
+                        case "OcarinaAction":
+                            textProp.ocarinaMessageId = f"0x{textCmd.messageId:04X}"
+                            typeName = "ocarinaAction"
+                            type = textCmd.ocarinaActionId
+                        case _:
+                            raise PluginError("ERROR: Unknown text type!")
+                    self.setListData(textProp, typeName, textCmd.startFrame, textCmd.endFrame, type)
+
+            for lightList in cutscene.lightSettingList:
+                lightElem: "OOTCSListProperty" = csProp.csLists.add()
+                lightElem.listType = "LightSettingsList"
+                for lightCmd in lightList.entries:
+                    lightProp = lightElem.lightSettingsList.add()
+                    lightProp.lightSettingsIndex = lightCmd.lightSetting
+                    lightProp.startFrame = lightCmd.startFrame
+
+            for timeList in cutscene.timeList:
+                timeElem: "OOTCSListProperty" = csProp.csLists.add()
+                timeElem.listType = "TimeList"
+                for timeCmd in timeList.entries:
+                    timeProp = timeElem.timeList.add()
+                    timeProp.hour = timeCmd.hour
+                    timeProp.minute = timeCmd.minute
+                    timeProp.startFrame = timeCmd.startFrame
+
+            for seqList in cutscene.seqList:
+                seqElem: "OOTCSListProperty" = csProp.csLists.add()
+                seqElem.listType = "StartSeqList" if seqList.type == "start" else "StopSeqList"
+                for seqCmd in seqList.entries:
+                    seqProp = seqElem.seqList.add()
+                    try:
+                        seqProp.csSeqID = seqCmd.seqId
+                    except TypeError:
+                        seqProp.csSeqID = "Custom"
+                        transitionElem.csSeqIDCustom = seqCmd.seqId
+                    seqProp.startFrame = seqCmd.startFrame
+
+            for fadeList in cutscene.fadeSeqList:
+                fadeElem: "OOTCSListProperty" = csProp.csLists.add()
+                fadeElem.listType = "FadeOutSeqList"
+                for fadeCmd in fadeList.entries:
+                    fadeProp = fadeElem.seqList.add()
+                    try:
+                        fadeProp.csSeqPlayer = fadeCmd.seqPlayer
+                    except TypeError:
+                        fadeProp.csSeqPlayer = "Custom"
+                        transitionElem.csSeqPlayerCustom = fadeCmd.seqPlayer
+                    fadeProp.startFrame = fadeCmd.startFrame
+                    fadeProp.endFrame = fadeCmd.endFrame
+
+            for rumbleList in cutscene.rumbleList:
+                rumbleElem: "OOTCSListProperty" = csProp.csLists.add()
+                rumbleElem.listType = "RumbleList"
+                for rumbleCmd in rumbleList.entries:
+                    rumbleProp = rumbleElem.rumbleList.add()
+                    rumbleProp.startFrame = rumbleCmd.startFrame
+                    rumbleProp.rumbleSourceStrength = rumbleCmd.sourceStrength
+                    rumbleProp.rumbleDuration = rumbleCmd.duration
+                    rumbleProp.rumbleDecreaseRate = rumbleCmd.decreaseRate
 
             # Init camera + preview objects and setup the scene
             setupCutscene(csObj)

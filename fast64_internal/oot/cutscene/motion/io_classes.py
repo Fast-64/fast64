@@ -127,6 +127,134 @@ class OOTCSMotionTransition(OOTCSMotionBase):
 
 
 @dataclass
+class OOTCSMotionText(OOTCSMotionBase):
+    """This class contains Text command data"""
+
+    textId: int
+    type: str
+    altTextId1: int
+    altTextId2: int
+    paramNumber: int = 6
+    id: str = "Text"
+
+
+@dataclass
+class OOTCSMotionTextNone(OOTCSMotionBase):
+    """This class contains Text None command data"""
+
+    paramNumber: int = 2
+    id: str = "None"
+
+
+@dataclass
+class OOTCSMotionTextOcarinaAction(OOTCSMotionBase):
+    """This class contains Text Ocarina Action command data"""
+
+    ocarinaActionId: str
+    messageId: int
+    paramNumber: int = 4
+    id: str = "OcarinaAction"
+
+
+@dataclass
+class OOTCSMotionTextList:
+    """This class contains Text List command data"""
+
+    entryTotal: int
+    entries: list[OOTCSMotionText | OOTCSMotionTextNone | OOTCSMotionTextOcarinaAction] = field(default_factory=list)
+    paramNumber: int = 1
+
+
+@dataclass
+class OOTCSMotionLightSetting(OOTCSMotionBase):
+    """This class contains Light Setting command data"""
+
+    lightSetting: int
+    paramNumber: int = 11
+
+
+@dataclass
+class OOTCSMotionLightSettingList:
+    """This class contains Light Setting List command data"""
+
+    entryTotal: int
+    entries: list[OOTCSMotionLightSetting] = field(default_factory=list)
+    paramNumber: int = 1
+
+
+@dataclass
+class OOTCSMotionTime(OOTCSMotionBase):
+    """This class contains Time Ocarina Action command data"""
+
+    hour: int
+    minute: int
+    paramNumber: int = 5
+
+
+@dataclass
+class OOTCSMotionTimeList:
+    """This class contains Time List command data"""
+
+    entryTotal: int
+    entries: list[OOTCSMotionTime] = field(default_factory=list)
+    paramNumber: int = 1
+
+
+@dataclass
+class OOTCSMotionStartStopSeq(OOTCSMotionBase):
+    """This class contains Start/Stop Seq command data"""
+
+    seqId: str
+    paramNumber: int = 11
+
+
+@dataclass
+class OOTCSMotionStartStopSeqList:
+    """This class contains Start/Stop Seq List command data"""
+
+    entryTotal: int
+    type: str
+    entries: list[OOTCSMotionStartStopSeq] = field(default_factory=list)
+    paramNumber: int = 1
+
+
+@dataclass
+class OOTCSMotionFadeSeq(OOTCSMotionBase):
+    """This class contains Fade Seq command data"""
+
+    seqPlayer: str
+    paramNumber: int = 11
+
+
+@dataclass
+class OOTCSMotionFadeSeqList:
+    """This class contains Fade Seq List command data"""
+
+    entryTotal: int
+    entries: list[OOTCSMotionFadeSeq] = field(default_factory=list)
+    paramNumber: int = 1
+
+
+@dataclass
+class OOTCSMotionRumbleController(OOTCSMotionBase):
+    """This class contains Rumble Controller command data"""
+
+    sourceStrength: int
+    duration: int
+    decreaseRate: int
+    paramNumber: int = 8
+
+
+@dataclass
+class OOTCSMotionRumbleControllerList:
+    """This class contains Rumble Controller List command data"""
+
+    entryTotal: int
+    entries: list[OOTCSMotionRumbleController] = field(default_factory=list)
+    paramNumber: int = 1
+
+
+@dataclass
 class OOTCSMotionCutscene:
     """This class contains a Cutscene's data, including every commands' data"""
 
@@ -145,6 +273,12 @@ class OOTCSMotionCutscene:
     camATList: list[OOTCSMotionCamAT] = field(default_factory=list)
     miscList: list[OOTCSMotionMiscList] = field(default_factory=list)
     transitionList: list[OOTCSMotionTransition] = field(default_factory=list)
+    textList: list[OOTCSMotionTextList] = field(default_factory=list)
+    lightSettingList: list[OOTCSMotionLightSettingList] = field(default_factory=list)
+    timeList: list[OOTCSMotionTimeList] = field(default_factory=list)
+    seqList: list[OOTCSMotionStartStopSeqList] = field(default_factory=list)
+    fadeSeqList: list[OOTCSMotionFadeSeqList] = field(default_factory=list)
+    rumbleList: list[OOTCSMotionRumbleControllerList] = field(default_factory=list)
 
 
 class OOTCSMotionObjectFactory:
