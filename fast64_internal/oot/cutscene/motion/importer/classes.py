@@ -2,7 +2,7 @@ import bpy
 
 from dataclasses import dataclass
 from struct import unpack
-from typing import TYPE_CHECKING 
+from typing import TYPE_CHECKING
 from bpy.types import Object, Armature
 from .....utility import PluginError
 from ....oot_constants import ootData
@@ -198,11 +198,11 @@ class OOTCSMotionImportCommands:
             self.getInteger(params[4]),
             self.getInteger(params[5]),
         )
-    
+
     def getNewTextNone(self, cmdData: str):
         params = self.getCmdParams(cmdData, "CS_TEXT_NONE", OOTCSMotionTextNone.paramNumber)
         return OOTCSMotionTextNone(self.getInteger(params[0]), self.getInteger(params[1]))
-    
+
     def getNewTextOcarinaAction(self, cmdData: str):
         params = self.getCmdParams(cmdData, "CS_TEXT_OCARINA_ACTION", OOTCSMotionTextOcarinaAction.paramNumber)
         actionEnum = ootData.enumData.enumByKey["ocarinaSongActionId"]
@@ -211,10 +211,7 @@ class OOTCSMotionImportCommands:
             item = actionEnum.itemByIndex.get(self.getInteger(params[0]))
         actionId = item.key if item is not None else params[0]
         return OOTCSMotionTextOcarinaAction(
-            self.getInteger(params[1]),
-            self.getInteger(params[2]),
-            actionId,
-            self.getInteger(params[3])
+            self.getInteger(params[1]), self.getInteger(params[2]), actionId, self.getInteger(params[3])
         )
 
     def getNewTextEntry(self, cmdData: str):
@@ -225,7 +222,7 @@ class OOTCSMotionImportCommands:
         elif cmdData.startswith("CS_TEXT_OCARINA_ACTION("):
             return self.getNewTextOcarinaAction(cmdData)
         return None
- 
+
     def getNewTextList(self, cmdData: str):
         params = self.getCmdParams(cmdData, "CS_TEXT_LIST", OOTCSMotionTextList.paramNumber)
         return OOTCSMotionTextList(self.getInteger(params[0]))
@@ -239,9 +236,7 @@ class OOTCSMotionImportCommands:
 
         if isLegacy:
             setting -= 1
-        return OOTCSMotionLightSetting(
-            self.getInteger(params[1]), self.getInteger(params[2]), setting
-        )
+        return OOTCSMotionLightSetting(self.getInteger(params[1]), self.getInteger(params[2]), setting)
 
     def getNewLightSettingList(self, cmdData: str):
         params = self.getCmdParams(cmdData, "CS_LIGHT_SETTING_LIST", OOTCSMotionLightSettingList.paramNumber)
@@ -250,7 +245,10 @@ class OOTCSMotionImportCommands:
     def getNewTime(self, cmdData: str):
         params = self.getCmdParams(cmdData, "CS_TIME", OOTCSMotionTime.paramNumber)
         return OOTCSMotionTime(
-            self.getInteger(params[1]), self.getInteger(params[2]), self.getInteger(params[3]), self.getInteger(params[4])
+            self.getInteger(params[1]),
+            self.getInteger(params[2]),
+            self.getInteger(params[3]),
+            self.getInteger(params[4]),
         )
 
     def getNewTimeList(self, cmdData: str):
@@ -275,7 +273,9 @@ class OOTCSMotionImportCommands:
         except:
             seqId = params[0]
         return OOTCSMotionStartStopSeq(
-            self.getInteger(params[1]), self.getInteger(params[2]), seqId,
+            self.getInteger(params[1]),
+            self.getInteger(params[2]),
+            seqId,
         )
 
     def getNewStartStopSeqList(self, cmdData: str, type: str):
@@ -662,7 +662,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
             endIndex = i
 
         return endIndex + 1
-    
+
     def setListData(self, prop, typeName: str, startFrame: int, endFrame: int, type: str):
         prop.startFrame = startFrame
         prop.endFrame = endFrame
