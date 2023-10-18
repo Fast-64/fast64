@@ -148,7 +148,9 @@ class OOTCSSeqProperty(OOTCutsceneCommon, PropertyGroup):
     subprops = ["csSeqID", "startFrame", "endFrame"]
     csSeqID: EnumProperty(name="Seq ID", items=ootEnumMusicSeq, default="NA_BGM_GENERAL_SFX")
     csSeqIDCustom: StringProperty(default="NA_BGM_CUSTOM")
-    csSeqPlayer: EnumProperty(name="Seq Player", items=ootData.enumData.ootEnumCsFadeOutSeqPlayer, default="fade_out_fanfare")
+    csSeqPlayer: EnumProperty(
+        name="Seq Player", items=ootData.enumData.ootEnumCsFadeOutSeqPlayer, default="fade_out_fanfare"
+    )
     csSeqPlayerCustom: StringProperty(default="CS_FADE_OUT_CUSTOM")
 
     def filterProp(self, name, listProp):

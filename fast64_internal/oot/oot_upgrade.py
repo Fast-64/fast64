@@ -50,7 +50,7 @@ def upgradeRoomHeaders(roomObj: Object, objData: OoT_ObjectData):
 class Cutscene_UpgradeData:
     oldPropName: str
     newPropName: str
-    enumData: list[tuple[str, str, str]] # this is the list used for enum properties
+    enumData: list[tuple[str, str, str]]  # this is the list used for enum properties
 
 
 def transferOldDataToNew(data, oldDataToNewData: dict[str, str]):
@@ -198,7 +198,9 @@ def upgradeCSListProps(csListProp):
     transferOldDataToNew(csListProp, csListPropOldToNew)
 
     # both are enums but the item list is different (the old one doesn't have a "custom" entry)
-    convertOldDataToEnumData(csListProp, [Cutscene_UpgradeData("fxType", "transitionType", ootData.enumData.ootEnumCsTransitionType)])
+    convertOldDataToEnumData(
+        csListProp, [Cutscene_UpgradeData("fxType", "transitionType", ootData.enumData.ootEnumCsTransitionType)]
+    )
 
 
 def upgradeCutsceneProperty(csProp):
@@ -211,7 +213,9 @@ def upgradeCutsceneProperty(csProp):
     }
 
     transferOldDataToNew(csProp, csPropOldToNew)
-    convertOldDataToEnumData(csProp, [Cutscene_UpgradeData("csTermIdx", "csDestination", ootData.enumData.ootEnumCsDestination)])
+    convertOldDataToEnumData(
+        csProp, [Cutscene_UpgradeData("csTermIdx", "csDestination", ootData.enumData.ootEnumCsDestination)]
+    )
 
 
 def upgradeCutsceneMotion(csMotionObj: Object):

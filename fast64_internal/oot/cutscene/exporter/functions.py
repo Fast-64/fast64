@@ -31,7 +31,7 @@ def readCutsceneData(csParentOut, csParentIn):
                 entryOut = OOTCSText()
                 entryOut.textboxType = entryIn.textboxType
                 entryOut.textID = entryIn.textID
-                
+
                 value = getCustomProperty(entryIn, "ocarinaAction")
                 entryOut.ocarinaAction = (
                     ootData.enumData.enumByKey["ocarinaSongActionId"].itemByKey[value] if value != "Custom" else value
@@ -111,9 +111,7 @@ def convertCutsceneObject(obj):
     cs.csEndFrame = getCustomProperty(csprop, "csEndFrame")
     cs.csUseDestination = getCustomProperty(csprop, "csUseDestination")
     value = getCustomProperty(csprop, "csDestination")
-    cs.csDestination = (
-        ootData.enumData.enumByKey["csDestination"].itemByKey[value] if value != "Custom" else value
-    )
+    cs.csDestination = ootData.enumData.enumByKey["csDestination"].itemByKey[value] if value != "Custom" else value
     cs.csDestinationStartFrame = getCustomProperty(csprop, "csDestinationStartFrame")
     readCutsceneData(cs, csprop)
 

@@ -73,7 +73,7 @@ class OoT_EnumData:
                         OoT_ItemElement(
                             item.attrib["ID"],
                             item.attrib["Key"],
-                            None, # note: the name sets automatically after the init
+                            None,  # note: the name sets automatically after the init
                             int(item.attrib["Index"]),
                             enum.attrib["Key"],
                         )
