@@ -200,8 +200,9 @@
   </Enum>
   <Enum Games="OoTMqDbg" Key="csFadeOutSeqPlayer" ID="CutsceneFadeOutSeqPlayer">
     <!-- https://github.com/zeldaret/oot/blob/7235af2249843fb68740111b70089bad827a4730/include/z64cutscene.h#L214-L217 -->
-    <Item Key="fade_out_fanfare" ID="CS_FADE_OUT_FANFARE" Index="3"/>
-    <Item Key="fade_out_bgm_main" ID="CS_FADE_OUT_BGM_MAIN" Index="4"/>
+    <!-- Note: those indices are respectively 3 and 4 -->
+    <Item Key="fade_out_fanfare" ID="CS_FADE_OUT_FANFARE" Index="0"/>
+    <Item Key="fade_out_bgm_main" ID="CS_FADE_OUT_BGM_MAIN" Index="1"/>
   </Enum>
   <Enum Games="OoTMqDbg" Key="csTransitionType" ID="CutsceneTransitionType">
     <!-- https://github.com/zeldaret/oot/blob/823e47a0f8e9fb9fab89bc61b57f45488ff6debe/include/z64cutscene.h#L219-233 -->
@@ -428,5 +429,58 @@
     <Item Key="hints_none" ID="NAVI_QUEST_HINTS_NONE" Index="0"/>
     <Item Key="hints_overworld" ID="NAVI_QUEST_HINTS_OVERWORLD" Index="1"/>
     <Item Key="hints_dungeon" ID="NAVI_QUEST_HINTS_DUNGEON" Index="2"/>
+  </Enum>
+  <Enum Games="OoTMqDbg" Key="ocarinaSongActionId" ID="OcarinaSongActionId">
+    <!-- https://github.com/zeldaret/oot/blob/b3486b57ef41a284a366eb40ca07bf82bf4750d6/include/z64ocarina.h#L25-L76 -->
+    <Item Key="unk_0" ID="OCARINA_ACTION_UNK_0" Index="0"/>
+    <Item Key="free_play" ID="OCARINA_ACTION_FREE_PLAY" Index="1"/>
+    <Item Key="teach_minuet" ID="OCARINA_ACTION_TEACH_MINUET" Index="2"/>
+    <Item Key="teach_bolero" ID="OCARINA_ACTION_TEACH_BOLERO" Index="3"/>
+    <Item Key="teach_serenade" ID="OCARINA_ACTION_TEACH_SERENADE" Index="4"/>
+    <Item Key="teach_requiem" ID="OCARINA_ACTION_TEACH_REQUIEM" Index="5"/>
+    <Item Key="teach_nocturne" ID="OCARINA_ACTION_TEACH_NOCTURNE" Index="6"/>
+    <Item Key="teach_prelude" ID="OCARINA_ACTION_TEACH_PRELUDE" Index="7"/>
+    <Item Key="teach_saria" ID="OCARINA_ACTION_TEACH_SARIA" Index="8"/>
+    <Item Key="teach_epona" ID="OCARINA_ACTION_TEACH_EPONA" Index="9"/>
+    <Item Key="teach_lullaby" ID="OCARINA_ACTION_TEACH_LULLABY" Index="10"/>
+    <Item Key="teach_suns" ID="OCARINA_ACTION_TEACH_SUNS" Index="11"/>
+    <Item Key="teach_time" ID="OCARINA_ACTION_TEACH_TIME" Index="12"/>
+    <Item Key="teach_storms" ID="OCARINA_ACTION_TEACH_STORMS" Index="13"/>
+    <Item Key="unk_e" ID="OCARINA_ACTION_UNK_E" Index="14"/>
+    <Item Key="playback_minuet" ID="OCARINA_ACTION_PLAYBACK_MINUET" Index="15"/>
+    <Item Key="playback_bolero" ID="OCARINA_ACTION_PLAYBACK_BOLERO" Index="16"/>
+    <Item Key="playback_serenade" ID="OCARINA_ACTION_PLAYBACK_SERENADE" Index="17"/>
+    <Item Key="playback_requiem" ID="OCARINA_ACTION_PLAYBACK_REQUIEM" Index="18"/>
+    <Item Key="playback_nocturne" ID="OCARINA_ACTION_PLAYBACK_NOCTURNE" Index="19"/>
+    <Item Key="playback_prelude" ID="OCARINA_ACTION_PLAYBACK_PRELUDE" Index="20"/>
+    <Item Key="playback_saria" ID="OCARINA_ACTION_PLAYBACK_SARIA" Index="21"/>
+    <Item Key="playback_epona" ID="OCARINA_ACTION_PLAYBACK_EPONA" Index="22"/>
+    <Item Key="playback_lullaby" ID="OCARINA_ACTION_PLAYBACK_LULLABY" Index="23"/>
+    <Item Key="playback_suns" ID="OCARINA_ACTION_PLAYBACK_SUNS" Index="24"/>
+    <Item Key="playback_time" ID="OCARINA_ACTION_PLAYBACK_TIME" Index="25"/>
+    <Item Key="playback_storms" ID="OCARINA_ACTION_PLAYBACK_STORMS" Index="26"/>
+    <Item Key="unk_1b" ID="OCARINA_ACTION_UNK_1B" Index="27"/>
+    <Item Key="check_minuet" ID="OCARINA_ACTION_CHECK_MINUET" Index="28"/>
+    <Item Key="check_bolero" ID="OCARINA_ACTION_CHECK_BOLERO" Index="29"/>
+    <Item Key="check_serenade" ID="OCARINA_ACTION_CHECK_SERENADE" Index="30"/>
+    <Item Key="check_requiem" ID="OCARINA_ACTION_CHECK_REQUIEM" Index="31"/>
+    <Item Key="check_nocturne" ID="OCARINA_ACTION_CHECK_NOCTURNE" Index="32"/>
+    <Item Key="check_prelude" ID="OCARINA_ACTION_CHECK_PRELUDE" Index="33"/>
+    <Item Key="check_saria" ID="OCARINA_ACTION_CHECK_SARIA" Index="34"/>
+    <Item Key="check_epona" ID="OCARINA_ACTION_CHECK_EPONA" Index="35"/>
+    <Item Key="check_lullaby" ID="OCARINA_ACTION_CHECK_LULLABY" Index="36"/>
+    <Item Key="check_suns" ID="OCARINA_ACTION_CHECK_SUNS" Index="37"/>
+    <Item Key="check_time" ID="OCARINA_ACTION_CHECK_TIME" Index="38"/>
+    <Item Key="check_storms" ID="OCARINA_ACTION_CHECK_STORMS" Index="39"/>
+    <Item Key="check_scarecrow_spawn" ID="OCARINA_ACTION_CHECK_SCARECROW_SPAWN" Index="40"/>
+    <Item Key="free_play_done" ID="OCARINA_ACTION_FREE_PLAY_DONE" Index="41"/>
+    <Item Key="scarecrow_long_recording" ID="OCARINA_ACTION_SCARECROW_LONG_RECORDING" Index="42"/>
+    <Item Key="scarecrow_long_playback" ID="OCARINA_ACTION_SCARECROW_LONG_PLAYBACK" Index="43"/>
+    <Item Key="scarecrow_spawn_recording" ID="OCARINA_ACTION_SCARECROW_SPAWN_RECORDING" Index="44"/>
+    <Item Key="scarecrow_spawn_playback" ID="OCARINA_ACTION_SCARECROW_SPAWN_PLAYBACK" Index="45"/>
+    <Item Key="memory_game" ID="OCARINA_ACTION_MEMORY_GAME" Index="46"/>
+    <Item Key="frogs" ID="OCARINA_ACTION_FROGS" Index="47"/>
+    <Item Key="check_nowarp" ID="OCARINA_ACTION_CHECK_NOWARP" Index="48"/>
+    <Item Key="check_nowarp_done" ID="OCARINA_ACTION_CHECK_NOWARP_DONE" Index="49"/>
   </Enum>
 </Table>

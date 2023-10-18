@@ -9,9 +9,10 @@ from bpy.types import Scene, Operator, Context, UILayout
 from bpy.utils import register_class, unregister_class
 from ...utility import CData, PluginError, writeCData, raisePluginError
 from ..oot_utility import getCollection
+from ..oot_constants import ootData
 from ..scene.exporter.to_c import ootCutsceneDataToC
 from .exporter import convertCutsceneObject
-from .constants import ootEnumCSTextboxType, ootEnumCSListType, ootEnumCSListTypeIcons, ootEnumCSDestinationType
+from .constants import ootEnumCSTextboxType, ootEnumCSListType, ootEnumCSListTypeIcons
 from .motion.importer import importCutsceneData
 from .motion.exporter import getCutsceneMotionData
 
@@ -257,7 +258,7 @@ class OOT_SearchCSDestinationEnumOperator(Operator):
     bl_property = "csDestination"
     bl_options = {"REGISTER", "UNDO"}
 
-    csDestination: EnumProperty(items=ootEnumCSDestinationType, default="CS_DEST_CUTSCENE_MAP_GANON_HORSE")
+    csDestination: EnumProperty(items=ootData.enumData.ootEnumCsDestination, default="cutscene_map_ganon_horse")
     objName: StringProperty()
 
     def execute(self, context):

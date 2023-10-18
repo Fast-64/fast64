@@ -1,4 +1,5 @@
 from ...oot_utility import getCutsceneName, getCustomProperty
+from ...oot_constants import ootData
 
 from .classes import (
     OOTCSList,
@@ -17,8 +18,9 @@ def readCutsceneData(csParentOut, csParentIn):
         listOut = OOTCSList()
         listOut.listType = listIn.listType
 
+        value = getCustomProperty(listIn, "transitionType")
         listOut.transitionType, listOut.transitionStartFrame, listOut.transitionEndFrame = (
-            getCustomProperty(listIn, "transitionType"),
+            ootData.enumData.enumByKey["csTransitionType"].itemByKey[value] if value != "Custom" else value,
             listIn.transitionStartFrame,
             listIn.transitionEndFrame,
         )
@@ -29,12 +31,21 @@ def readCutsceneData(csParentOut, csParentIn):
                 entryOut = OOTCSText()
                 entryOut.textboxType = entryIn.textboxType
                 entryOut.textID = entryIn.textID
-                entryOut.ocarinaAction = getCustomProperty(entryIn, "ocarinaAction")
+                
+                value = getCustomProperty(entryIn, "ocarinaAction")
+                entryOut.ocarinaAction = (
+                    ootData.enumData.enumByKey["ocarinaSongActionId"].itemByKey[value] if value != "Custom" else value
+                )
+
                 entryOut.startFrame = entryIn.startFrame
                 entryOut.endFrame = entryIn.endFrame
-                entryOut.textType = getCustomProperty(entryIn, "csTextType")
 
-                if entryOut.textType == "CS_TEXT_CHOICE":
+                value = getCustomProperty(entryIn, "csTextType")
+                entryOut.textType = (
+                    ootData.enumData.enumByKey["csTextType"].itemByKey[value] if value != "Custom" else value
+                )
+
+                if entryOut.textType == "choice":
                     entryOut.topOptionTextID = entryIn.topOptionTextID
                     entryOut.bottomOptionTextID = entryIn.bottomOptionTextID
 
@@ -57,15 +68,22 @@ def readCutsceneData(csParentOut, csParentIn):
             for entryIn in listIn.seqList:
                 entryOut = OOTCSSeq()
                 entryOut.csSeqID = getCustomProperty(entryIn, "csSeqID")
-                entryOut.csSeqPlayer = getCustomProperty(entryIn, "csSeqPlayer")
-                print(entryOut.csSeqPlayer)
+
+                value = getCustomProperty(entryIn, "csSeqPlayer")
+                entryOut.csSeqPlayer = (
+                    ootData.enumData.enumByKey["csFadeOutSeqPlayer"].itemByKey[value] if value != "Custom" else value
+                )
+
                 entryOut.startFrame = entryIn.startFrame
                 entryOut.endFrame = entryIn.endFrame
                 listOut.entries.append(entryOut)
         elif listOut.listType == "MiscList":
             for entryIn in listIn.miscList:
                 entryOut = OOTCSMisc()
-                entryOut.csMiscType = getCustomProperty(entryIn, "csMiscType")
+                value = getCustomProperty(entryIn, "csMiscType")
+                entryOut.csMiscType = (
+                    ootData.enumData.enumByKey["csMiscType"].itemByKey[value] if value != "Custom" else value
+                )
                 entryOut.startFrame = entryIn.startFrame
                 entryOut.endFrame = entryIn.endFrame
                 listOut.entries.append(entryOut)
@@ -92,7 +110,10 @@ def convertCutsceneObject(obj):
     csprop = obj.ootCutsceneProperty
     cs.csEndFrame = getCustomProperty(csprop, "csEndFrame")
     cs.csUseDestination = getCustomProperty(csprop, "csUseDestination")
-    cs.csDestination = getCustomProperty(csprop, "csDestination")
+    value = getCustomProperty(csprop, "csDestination")
+    cs.csDestination = (
+        ootData.enumData.enumByKey["csDestination"].itemByKey[value] if value != "Custom" else value
+    )
     cs.csDestinationStartFrame = getCustomProperty(csprop, "csDestinationStartFrame")
     readCutsceneData(cs, csprop)
 

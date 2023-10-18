@@ -4,13 +4,6 @@ from .data import OoT_ObjectData
 from .oot_utility import getEvalParams
 from .oot_constants import ootData, ootEnumMusicSeq
 from .cutscene.motion.constants import ootEnumCSMotionCamMode
-from .cutscene.constants import (
-    ootEnumTextType,
-    ootEnumCSMiscType,
-    ootEnumOcarinaAction,
-    ootEnumCSTransitionType,
-    ootEnumCSDestinationType,
-)
 
 
 #####################################
@@ -176,12 +169,12 @@ def upgradeCutsceneSubProps(csListSubProp):
 
     subPropsToEnum = [
         # TextBox
-        Cutscene_UpgradeData("ocarinaSongAction", "ocarinaAction", ootEnumOcarinaAction),
-        Cutscene_UpgradeData("type", "csTextType", ootEnumTextType),
+        Cutscene_UpgradeData("ocarinaSongAction", "ocarinaAction", ootData.enumData.ootEnumOcarinaSongActionId),
+        Cutscene_UpgradeData("type", "csTextType", ootData.enumData.ootEnumCsTextType),
         # Seq
         Cutscene_UpgradeData("value", "csSeqID", ootEnumMusicSeq),
         # Misc
-        Cutscene_UpgradeData("operation", "csMiscType", ootEnumCSMiscType),
+        Cutscene_UpgradeData("operation", "csMiscType", ootData.enumData.ootEnumCsMiscType),
     ]
 
     transferOldDataToNew(csListSubProp, subPropsOldToNew)
@@ -205,7 +198,7 @@ def upgradeCSListProps(csListProp):
     transferOldDataToNew(csListProp, csListPropOldToNew)
 
     # both are enums but the item list is different (the old one doesn't have a "custom" entry)
-    convertOldDataToEnumData(csListProp, [Cutscene_UpgradeData("fxType", "transitionType", ootEnumCSTransitionType)])
+    convertOldDataToEnumData(csListProp, [Cutscene_UpgradeData("fxType", "transitionType", ootData.enumData.ootEnumCsTransitionType)])
 
 
 def upgradeCutsceneProperty(csProp):
@@ -218,7 +211,7 @@ def upgradeCutsceneProperty(csProp):
     }
 
     transferOldDataToNew(csProp, csPropOldToNew)
-    convertOldDataToEnumData(csProp, [Cutscene_UpgradeData("csTermIdx", "csDestination", ootEnumCSDestinationType)])
+    convertOldDataToEnumData(csProp, [Cutscene_UpgradeData("csTermIdx", "csDestination", ootData.enumData.ootEnumCsDestination)])
 
 
 def upgradeCutsceneMotion(csMotionObj: Object):
