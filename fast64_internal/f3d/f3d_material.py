@@ -558,11 +558,8 @@ def ui_upper_mode(settings, dataHolder, layout: UILayout, useDropdown):
             icon="TRIA_DOWN" if dataHolder.menu_upper else "TRIA_RIGHT",
         )
     if not useDropdown or dataHolder.menu_upper:
-        if not bpy.context.scene.isHWv1:
-            prop_split(inputGroup, settings, "g_mdsft_alpha_dither", "Alpha Dither")
-            prop_split(inputGroup, settings, "g_mdsft_rgb_dither", "RGB Dither")
-        else:
-            prop_split(inputGroup, settings, "g_mdsft_color_dither", "Color Dither")
+        prop_split(inputGroup, settings, "g_mdsft_alpha_dither", "Alpha Dither")
+        prop_split(inputGroup, settings, "g_mdsft_rgb_dither", "RGB Dither")
         prop_split(inputGroup, settings, "g_mdsft_combkey", "Chroma Key")
         prop_split(inputGroup, settings, "g_mdsft_textconv", "Texture Convert")
         prop_split(inputGroup, settings, "g_mdsft_text_filt", "Texture Filter")
@@ -4099,15 +4096,6 @@ def mat_register():
         name="F3D Microcode",
         items=enumF3D,
         default="F3D",
-    )
-    Scene.isHWv1 = bpy.props.BoolProperty(
-        name="Is Hardware v1?",
-        default=False,
-        description=(
-            "Only early N64 devkits have V1 RCP chips; all retail consoles have V2. "
-            + "Display lists made for V1 and V2 are incompatible with each other, "
-            + "so any hardware which can play retail games is V2"
-        ),
     )
 
     # RDP Defaults
