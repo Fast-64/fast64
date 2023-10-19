@@ -3,7 +3,7 @@ import bpy
 from dataclasses import dataclass, field
 from bpy.types import Object
 from ...oot_constants import ootData
-from .utility import getBlenderPosition, getBlenderRotation
+from .utility import getBlenderPosition, getBlenderRotation, getRotation, getInteger
 
 
 # NOTE: ``paramNumber`` is the expected number of parameters inside the parsed commands,
@@ -14,41 +14,82 @@ from .utility import getBlenderPosition, getBlenderRotation
 class OOTCSMotionBase:
     """This class contains common Cutscene data"""
 
-    startFrame: int
-    endFrame: int
+    params: list[str]
+
+    startFrame: int = None
+    endFrame: int = None
+
+    def getEnumValue(self, enumKey: str, index: int, isSeqLegacy: bool = False):
+        enum = ootData.enumData.enumByKey[enumKey]
+        item = enum.itemById.get(self.params[index])
+        if item is None:
+            setting = getInteger(self.params[index])
+            if isSeqLegacy:
+                setting -= 1
+            item = enum.itemByIndex.get(setting)
+        return item.key if item is not None else self.params[index]
 
 
 @dataclass
-class OOTCSMotionCamPoint:
+class OOTCSMotionCamPoint(OOTCSMotionBase):
     """This class contains a single Camera Point command data"""
 
-    continueFlag: str
-    camRoll: int
-    frame: int
-    viewAngle: float
-    pos: list[int, int, int]
+    continueFlag: str = None
+    camRoll: int = None
+    frame: int = None
+    viewAngle: float = None
+    pos: list[int, int, int] = field(default_factory=list)
     paramNumber: int = 8
+
+    def __post_init__(self):
+        self.continueFlag = self.params[0]
+        self.camRoll = getInteger(self.params[1])
+        self.frame = getInteger(self.params[2])
+        self.viewAngle = float(self.params[3][:-1])
+        self.pos = [getInteger(self.params[4]), getInteger(self.params[5]), getInteger(self.params[6])]
 
 
 @dataclass
 class OOTCSMotionActorCue(OOTCSMotionBase):
     """This class contains a single Actor Cue command data"""
 
-    actionID: int
-    rot: list[str, str, str]
-    startPos: list[int, int, int]
-    endPos: list[int, int, int]
+    actionID: int = None
+    rot: list[str, str, str] = field(default_factory=list)
+    startPos: list[int, int, int] = field(default_factory=list)
+    endPos: list[int, int, int] = field(default_factory=list)
     paramNumber: int = 15
+
+    def __post_init__(self):
+        self.startFrame = getInteger(self.params[1])
+        self.endFrame = getInteger(self.params[2])
+        self.actionID = getInteger(self.params[0])
+        self.rot = [getRotation(self.params[3]), getRotation(self.params[4]), getRotation(self.params[5])]
+        self.startPos = [getInteger(self.params[6]), getInteger(self.params[7]), getInteger(self.params[8])]
+        self.endPos = [getInteger(self.params[9]), getInteger(self.params[10]), getInteger(self.params[11])]
 
 
 @dataclass
-class OOTCSMotionActorCueList:
+class OOTCSMotionActorCueList(OOTCSMotionBase):
     """This class contains the Actor Cue List command data"""
 
-    commandType: str
-    entryTotal: int
+    isPlayer: bool = False
+    commandType: str = None
+    entryTotal: int = None
     entries: list[OOTCSMotionActorCue] = field(default_factory=list)
     paramNumber: int = 2
+    listName: str = "actorCueList"
+
+    def __post_init__(self):
+        if self.isPlayer:
+            self.commandType = "Player"
+            self.entryTotal = getInteger(self.params[0])
+        else:
+            self.commandType = self.params[0]
+            if self.commandType.startswith("0x"):
+                # make it a 4 digit hex
+                self.commandType = self.commandType.removeprefix("0x")
+                self.commandType = "0x" + "0" * (4 - len(self.commandType)) + self.commandType
+            self.entryTotal = getInteger(self.params[1].strip())
 
 
 @dataclass
@@ -57,6 +98,11 @@ class OOTCSMotionCamEyeSpline(OOTCSMotionBase):
 
     entries: list[OOTCSMotionCamPoint] = field(default_factory=list)
     paramNumber: int = 2
+    listName: str = "camEyeSplineList"
+
+    def __post_init__(self):
+        self.startFrame = getInteger(self.params[0])
+        self.endFrame = getInteger(self.params[1])
 
 
 @dataclass
@@ -65,6 +111,11 @@ class OOTCSMotionCamATSpline(OOTCSMotionBase):
 
     entries: list[OOTCSMotionCamPoint] = field(default_factory=list)
     paramNumber: int = 2
+    listName: str = "camATSplineList"
+
+    def __post_init__(self):
+        self.startFrame = getInteger(self.params[0])
+        self.endFrame = getInteger(self.params[1])
 
 
 @dataclass
@@ -73,6 +124,11 @@ class OOTCSMotionCamEyeSplineRelToPlayer(OOTCSMotionBase):
 
     entries: list[OOTCSMotionCamPoint] = field(default_factory=list)
     paramNumber: int = 2
+    listName: str = "camEyeSplineRelPlayerList"
+
+    def __post_init__(self):
+        self.startFrame = getInteger(self.params[0])
+        self.endFrame = getInteger(self.params[1])
 
 
 @dataclass
@@ -81,6 +137,11 @@ class OOTCSMotionCamATSplineRelToPlayer(OOTCSMotionBase):
 
     entries: list[OOTCSMotionCamPoint] = field(default_factory=list)
     paramNumber: int = 2
+    listName: str = "camATSplineRelPlayerList"
+
+    def __post_init__(self):
+        self.startFrame = getInteger(self.params[0])
+        self.endFrame = getInteger(self.params[1])
 
 
 @dataclass
@@ -90,6 +151,11 @@ class OOTCSMotionCamEye(OOTCSMotionBase):
     # This feature is not used in the final game and lacks polish, it is recommended to use splines in all cases.
     entries: list = field(default_factory=list)
     paramNumber: int = 2
+    listName: str = "camEyeList"
+
+    def __post_init__(self):
+        self.startFrame = getInteger(self.params[0])
+        self.endFrame = getInteger(self.params[1])
 
 
 @dataclass
@@ -99,43 +165,71 @@ class OOTCSMotionCamAT(OOTCSMotionBase):
     # This feature is not used in the final game and lacks polish, it is recommended to use splines in all cases.
     entries: list = field(default_factory=list)
     paramNumber: int = 2
+    listName: str = "camATList"
+
+    def __post_init__(self):
+        self.startFrame = getInteger(self.params[0])
+        self.endFrame = getInteger(self.params[1])
 
 
 @dataclass
 class OOTCSMotionMisc(OOTCSMotionBase):
     """This class contains a single misc command entry"""
 
-    type: str  # see ``CutsceneMiscType`` in decomp
+    type: str = None  # see ``CutsceneMiscType`` in decomp
     paramNumber: int = 14
+
+    def __post_init__(self):
+        self.startFrame = getInteger(self.params[1])
+        self.endFrame = getInteger(self.params[2])
+        self.type = self.getEnumValue("csMiscType", 0)
 
 
 @dataclass
-class OOTCSMotionMiscList:
+class OOTCSMotionMiscList(OOTCSMotionBase):
     """This class contains Misc command data"""
 
-    entryTotal: int
+    entryTotal: int = None
     entries: list[OOTCSMotionMisc] = field(default_factory=list)
     paramNumber: int = 1
+    listName: str = "miscList"
+
+    def __post_init__(self):
+        self.entryTotal = getInteger(self.params[0])
 
 
 @dataclass
 class OOTCSMotionTransition(OOTCSMotionBase):
     """This class contains Transition command data"""
 
-    type: str
+    type: str = None
     paramNumber: int = 3
+    listName: str = "transitionList"
+
+    def __post_init__(self):
+        self.startFrame = getInteger(self.params[1])
+        self.endFrame = getInteger(self.params[2])
+        self.type = self.getEnumValue("csTransitionType", 0)
 
 
 @dataclass
 class OOTCSMotionText(OOTCSMotionBase):
     """This class contains Text command data"""
 
-    textId: int
-    type: str
-    altTextId1: int
-    altTextId2: int
+    textId: int = None
+    type: str = None
+    altTextId1: int = None
+    altTextId2: int = None
     paramNumber: int = 6
     id: str = "Text"
+
+    def __post_init__(self):
+        self.startFrame = getInteger(self.params[1])
+        self.endFrame = getInteger(self.params[2])
+        self.textId = getInteger(self.params[0])
+        self.type = self.getEnumValue("csTextType", 3)
+        self.altTextId1 = (getInteger(self.params[4]),)
+        self.altTextId2 = (getInteger(self.params[5]),)
 
 
 @dataclass
@@ -145,113 +239,180 @@ class OOTCSMotionTextNone(OOTCSMotionBase):
     paramNumber: int = 2
     id: str = "None"
 
+    def __post_init__(self):
+        self.startFrame = getInteger(self.params[0])
+        self.endFrame = getInteger(self.params[1])
+
 
 @dataclass
 class OOTCSMotionTextOcarinaAction(OOTCSMotionBase):
     """This class contains Text Ocarina Action command data"""
 
-    ocarinaActionId: str
-    messageId: int
+    ocarinaActionId: str = None
+    messageId: int = None
     paramNumber: int = 4
     id: str = "OcarinaAction"
 
+    def __post_init__(self):
+        self.startFrame = getInteger(self.params[1])
+        self.endFrame = getInteger(self.params[2])
+        self.ocarinaActionId = self.getEnumValue("ocarinaSongActionId", 0)
+        self.messageId = getInteger(self.params[3])
+
 
 @dataclass
-class OOTCSMotionTextList:
+class OOTCSMotionTextList(OOTCSMotionBase):
     """This class contains Text List command data"""
 
-    entryTotal: int
+    entryTotal: int = None
     entries: list[OOTCSMotionText | OOTCSMotionTextNone | OOTCSMotionTextOcarinaAction] = field(default_factory=list)
     paramNumber: int = 1
+    listName: str = "textList"
+
+    def __post_init__(self):
+        self.entryTotal = getInteger(self.params[0])
 
 
 @dataclass
 class OOTCSMotionLightSetting(OOTCSMotionBase):
     """This class contains Light Setting command data"""
 
-    lightSetting: int
+    isLegacy: bool = None
+    lightSetting: int = None
     paramNumber: int = 11
+
+    def __post_init__(self):
+        self.startFrame = getInteger(self.params[1])
+        self.endFrame = getInteger(self.params[2])
+        self.lightSetting = getInteger(self.params[0])
+        if self.isLegacy:
+            self.lightSetting -= 1
 
 
 @dataclass
-class OOTCSMotionLightSettingList:
+class OOTCSMotionLightSettingList(OOTCSMotionBase):
     """This class contains Light Setting List command data"""
 
-    entryTotal: int
+    entryTotal: int = None
     entries: list[OOTCSMotionLightSetting] = field(default_factory=list)
     paramNumber: int = 1
+    listName: str = "lightSettingsList"
+
+    def __post_init__(self):
+        self.entryTotal = getInteger(self.params[0])
 
 
 @dataclass
 class OOTCSMotionTime(OOTCSMotionBase):
     """This class contains Time Ocarina Action command data"""
 
-    hour: int
-    minute: int
+    hour: int = None
+    minute: int = None
     paramNumber: int = 5
+
+    def __post_init__(self):
+        self.startFrame = getInteger(self.params[1])
+        self.endFrame = getInteger(self.params[2])
+        self.hour = getInteger(self.params[3])
+        self.minute = getInteger(self.params[4])
 
 
 @dataclass
-class OOTCSMotionTimeList:
+class OOTCSMotionTimeList(OOTCSMotionBase):
     """This class contains Time List command data"""
 
-    entryTotal: int
+    entryTotal: int = None
     entries: list[OOTCSMotionTime] = field(default_factory=list)
     paramNumber: int = 1
+    listName: str = "timeList"
+
+    def __post_init__(self):
+        self.entryTotal = getInteger(self.params[0])
 
 
 @dataclass
 class OOTCSMotionStartStopSeq(OOTCSMotionBase):
     """This class contains Start/Stop Seq command data"""
 
-    seqId: str
+    isLegacy: bool = None
+    seqId: str = None
     paramNumber: int = 11
+
+    def __post_init__(self):
+        self.startFrame = getInteger(self.params[1])
+        self.endFrame = getInteger(self.params[2])
+        self.seqId = self.getEnumValue("seqId", 0, self.isLegacy)
 
 
 @dataclass
-class OOTCSMotionStartStopSeqList:
+class OOTCSMotionStartStopSeqList(OOTCSMotionBase):
     """This class contains Start/Stop Seq List command data"""
 
-    entryTotal: int
-    type: str
+    entryTotal: int = None
+    type: str = None
     entries: list[OOTCSMotionStartStopSeq] = field(default_factory=list)
     paramNumber: int = 1
+    listName: str = "seqList"
+
+    def __post_init__(self):
+        self.entryTotal = getInteger(self.params[0])
 
 
 @dataclass
 class OOTCSMotionFadeSeq(OOTCSMotionBase):
     """This class contains Fade Seq command data"""
 
-    seqPlayer: str
+    seqPlayer: str = None
     paramNumber: int = 11
+    enumKey: str = "csFadeOutSeqPlayer"
+
+    def __post_init__(self):
+        self.startFrame = getInteger(self.params[1])
+        self.endFrame = getInteger(self.params[2])
+        self.seqPlayer = self.getEnumValue("csFadeOutSeqPlayer", 0)
 
 
 @dataclass
-class OOTCSMotionFadeSeqList:
+class OOTCSMotionFadeSeqList(OOTCSMotionBase):
     """This class contains Fade Seq List command data"""
 
-    entryTotal: int
+    entryTotal: int = None
     entries: list[OOTCSMotionFadeSeq] = field(default_factory=list)
     paramNumber: int = 1
+    listName: str = "fadeSeqList"
+
+    def __post_init__(self):
+        self.entryTotal = getInteger(self.params[0])
 
 
 @dataclass
 class OOTCSMotionRumbleController(OOTCSMotionBase):
     """This class contains Rumble Controller command data"""
 
-    sourceStrength: int
-    duration: int
-    decreaseRate: int
+    sourceStrength: int = None
+    duration: int = None
+    decreaseRate: int = None
     paramNumber: int = 8
+
+    def __post_init__(self):
+        self.startFrame = getInteger(self.params[1])
+        self.endFrame = getInteger(self.params[2])
+        self.sourceStrength = getInteger(self.params[3])
+        self.duration = getInteger(self.params[4])
+        self.decreaseRate = getInteger(self.params[5])
 
 
 @dataclass
-class OOTCSMotionRumbleControllerList:
+class OOTCSMotionRumbleControllerList(OOTCSMotionBase):
     """This class contains Rumble Controller List command data"""
 
-    entryTotal: int
+    entryTotal: int = None
     entries: list[OOTCSMotionRumbleController] = field(default_factory=list)
     paramNumber: int = 1
+    listName: str = "rumbleList"
+
+    def __post_init__(self):
+        self.entryTotal = getInteger(self.params[0])
 
 
 @dataclass
@@ -274,7 +435,7 @@ class OOTCSMotionCutscene:
     miscList: list[OOTCSMotionMiscList] = field(default_factory=list)
     transitionList: list[OOTCSMotionTransition] = field(default_factory=list)
     textList: list[OOTCSMotionTextList] = field(default_factory=list)
-    lightSettingList: list[OOTCSMotionLightSettingList] = field(default_factory=list)
+    lightSettingsList: list[OOTCSMotionLightSettingList] = field(default_factory=list)
     timeList: list[OOTCSMotionTimeList] = field(default_factory=list)
     seqList: list[OOTCSMotionStartStopSeqList] = field(default_factory=list)
     fadeSeqList: list[OOTCSMotionFadeSeqList] = field(default_factory=list)

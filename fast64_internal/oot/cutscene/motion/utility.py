@@ -1,5 +1,6 @@
 import bpy
 
+from struct import unpack
 from bpy.types import Object, Bone, Context, EditBone, Armature
 from mathutils import Vector
 from ....utility import yUpToZUp
@@ -81,6 +82,18 @@ def getBlenderPosition(pos: list[int], scale: int):
     # OoT: +X right, +Y up, -Z forward
     # Blender: +X right, +Z up, +Y forward
     return [float(pos[0]) / scale, -float(pos[2]) / scale, float(pos[1]) / scale]
+
+
+def getInteger(number: str):
+    """Returns an int number (handles properly negative hex numbers)"""
+
+    if number.startswith("0x"):
+        number = number.removeprefix("0x")
+
+        # ``"0" * (8 - len(number)`` adds the missing zeroes (if necessary) to have a 8 digit hex number
+        return unpack("!i", bytes.fromhex("0" * (8 - len(number)) + number))[0]
+    else:
+        return int(number)
 
 
 def getRotation(data: str):
