@@ -8,7 +8,7 @@ from ....oot_constants import ootData
 from ..utility import setupCutscene, getBlenderPosition, getInteger
 
 if TYPE_CHECKING:
-    from ...properties import OOTCSListProperty
+    from ...properties import OOTCSListProperty, OOTCutsceneProperty
 
 from ..constants import (
     ootCSMotionLegacyToNewCmdNames,
@@ -57,6 +57,13 @@ class ParsedCutscene:
 
     csName: str
     csData: list[str]  # contains every command lists or standalone ones like ``CS_TRANSITION()``
+
+
+@dataclass
+class PropertyData:
+    listType: str
+    subPropsData: dict[str, str]
+    useEndFrame: bool
 
 
 class OOTCSMotionImportCommands:
@@ -231,6 +238,22 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
             "CS_STOP_SEQ_LIST": OOTCSMotionStartStopSeqList,
             "CS_ACTOR_CUE_LIST": OOTCSMotionActorCueList,
             "CS_PLAYER_CUE_LIST": OOTCSMotionActorCueList,
+        }
+
+        cmdToDefinition = {
+            "CS_CAM_EYE_SPLINE": OOTCSMotionCamEyeSpline,
+            "CS_CAM_AT_SPLINE": OOTCSMotionCamATSpline,
+            "CS_CAM_EYE_SPLINE_REL_TO_PLAYER": OOTCSMotionCamEyeSplineRelToPlayer,
+            "CS_CAM_AT_SPLINE_REL_TO_PLAYER": OOTCSMotionCamATSplineRelToPlayer,
+            "CS_CAM_EYE": OOTCSMotionCamEye,
+            "CS_CAM_AT": OOTCSMotionCamAT,
+            "TRANSITION": OOTCSMotionTransition,
+            "MISC_LIST" : OOTCSMotionMiscList,
+            "TEXT_LIST" : OOTCSMotionTextList,
+            "LIGHT_SETTING_LIST" : OOTCSMotionLightSettingList,
+            "TIME_LIST" : OOTCSMotionTimeList,
+            "FADE_OUT_SEQ_LIST" : OOTCSMotionFadeSeqList,
+            "RUMBLE_CONTROLLER_LIST" : OOTCSMotionRumbleControllerList,
         }
 
         # for each cutscene from the list returned by getParsedCutscenes(),
@@ -438,15 +461,71 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
 
         return endIndex + 1
 
-    def setListData(self, prop, typeName: str, startFrame: int, endFrame: int, type: str):
-        prop.startFrame = startFrame
-        prop.endFrame = endFrame
-        if typeName is not None and type is not None:
-            try:
-                setattr(prop, typeName, type)
-            except TypeError:
-                setattr(prop, typeName, "Custom")
-                setattr(prop, f"{typeName}Custom", type)
+    def setSubPropertyData(self, subPropsData: dict[str, str], newSubElem, entry):
+        customNames = [
+            "csMiscType",
+            "csTextType",
+            "ocarinaAction",
+            "transitionType",
+            "csSeqID",
+            "csSeqPlayer",
+            "transition",
+        ]
+
+        for key, value in subPropsData.items():
+            if value is not None:
+                if key in customNames:
+                    valueToSet = getattr(entry, value)
+                    try:
+                        setattr(newSubElem, key, valueToSet)
+                    except TypeError:
+                        setattr(newSubElem, key, "Custom")
+                        setattr(newSubElem, f"{key}Custom", valueToSet)
+                else:
+                    setattr(newSubElem, key, getattr(entry, value))
+
+    def setPropertyData(
+        self, csProp: "OOTCutsceneProperty", cutscene: OOTCSMotionCutscene, propDataList: list[PropertyData]
+    ):
+        for data in propDataList:
+            listName = f"{data.listType[0].lower() + data.listType[1:]}List"
+            dataList = getattr(cutscene, (listName if data.listType != "FadeOutSeq" else "fadeSeqList"))
+            for list in dataList:
+                newElem: "OOTCSListProperty" = csProp.csLists.add()
+
+                if data.listType == "Seq":
+                    type = "StartSeqList" if list.type == "start" else "StopSeqList"
+                else:
+                    type = f"{data.listType}List" if data.listType != "Transition" else data.listType
+                newElem.listType = type
+
+                if data.listType == "Transition":
+                    newElem.transitionStartFrame = list.startFrame
+                    newElem.transitionEndFrame = list.endFrame
+                    self.setSubPropertyData(data.subPropsData, newElem, list)
+                else:
+                    list.entries.sort(key=lambda elem: elem.startFrame)
+                    for entry in list.entries:
+                        newSubElem = getattr(newElem, "seqList" if "fadeOut" in listName else listName).add()
+                        newSubElem.startFrame = entry.startFrame
+
+                        if data.useEndFrame:
+                            newSubElem.endFrame = entry.endFrame
+
+                        if data.listType == "Text":
+                            data.subPropsData["textboxType"] = "id"
+                            match entry.id:
+                                case "Text":
+                                    newSubElem.textID = f"0x{entry.textId:04X}"
+                                    data.subPropsData["csTextType"] = "type"
+                                case "None":
+                                    data.subPropsData["csTextType"] = None
+                                case "OcarinaAction":
+                                    newSubElem.ocarinaMessageId = f"0x{entry.messageId:04X}"
+                                    data.subPropsData["ocarinaAction"] = "ocarinaActionId"
+                                case _:
+                                    raise PluginError("ERROR: Unknown text type!")
+                        self.setSubPropertyData(data.subPropsData, newSubElem, entry)
 
     def setCutsceneData(self, csNumber):
         """Creates the cutscene empty objects from the file data"""
@@ -458,19 +537,16 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
             return csNumber
 
         for i, cutscene in enumerate(cutsceneList, csNumber):
-            print(f'Found Cutscene "{cutscene.name}"!')
+            print(f'Found Cutscene "{cutscene.name}"! Importing...')
             self.validateCameraData(cutscene)
             csName = f"Cutscene.{cutscene.name}"
             csObj = self.getNewCutsceneObject(csName, cutscene.frameCount, None)
             csProp = csObj.ootCutsceneProperty
             csNumber = i
 
-            print("Importing Actor Cues...")
             self.setActorCueData(csObj, cutscene.actorCueList, "Actor", i)
             self.setActorCueData(csObj, cutscene.playerCueList, "Player", i)
-            print("Done!")
 
-            print("Importing Camera Shots...")
             if len(cutscene.camEyeSplineList) > 0:
                 lastIndex = self.setCameraShotData(
                     csObj, cutscene.camEyeSplineList, cutscene.camATSplineList, "splineEyeOrAT", 1, i
@@ -491,102 +567,30 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                     csObj, cutscene.camEyeList, cutscene.camATList, "eyeOrAT", lastIndex, i
                 )
 
-            for miscList in cutscene.miscList:
-                miscElem: "OOTCSListProperty" = csProp.csLists.add()
-                miscElem.listType = "MiscList"
-                for miscCmd in miscList.entries:
-                    miscProp = miscElem.miscList.add()
-                    self.setListData(miscProp, "csMiscType", miscCmd.startFrame, miscCmd.endFrame, miscCmd.type)
-
-            for transition in cutscene.transitionList:
-                transitionElem: "OOTCSListProperty" = csProp.csLists.add()
-                transitionElem.listType = "Transition"
-                transitionElem.transitionStartFrame = transition.startFrame
-                transitionElem.transitionEndFrame = transition.endFrame
-                try:
-                    transitionElem.transitionType = transition.type
-                except TypeError:
-                    transitionElem.transitionType = "Custom"
-                    transitionElem.transitionTypeCustom = transition.type
-
-            for textList in cutscene.textList:
-                textElem: "OOTCSListProperty" = csProp.csLists.add()
-                textElem.listType = "TextList"
-                textList.entries.sort(key=lambda elem: elem.startFrame)
-                for textCmd in textList.entries:
-                    textProp = textElem.textList.add()
-                    textProp.textboxType = textCmd.id
-                    match textCmd.id:
-                        case "Text":
-                            textProp.textID = f"0x{textCmd.textId:04X}"
-                            typeName = "csTextType"
-                            type = textCmd.type
-                        case "None":
-                            typeName = type = None
-                        case "OcarinaAction":
-                            textProp.ocarinaMessageId = f"0x{textCmd.messageId:04X}"
-                            typeName = "ocarinaAction"
-                            type = textCmd.ocarinaActionId
-                        case _:
-                            raise PluginError("ERROR: Unknown text type!")
-                    self.setListData(textProp, typeName, textCmd.startFrame, textCmd.endFrame, type)
-
-            for lightList in cutscene.lightSettingsList:
-                lightElem: "OOTCSListProperty" = csProp.csLists.add()
-                lightElem.listType = "LightSettingsList"
-                for lightCmd in lightList.entries:
-                    lightProp = lightElem.lightSettingsList.add()
-                    lightProp.lightSettingsIndex = lightCmd.lightSetting
-                    lightProp.startFrame = lightCmd.startFrame
-
-            for timeList in cutscene.timeList:
-                timeElem: "OOTCSListProperty" = csProp.csLists.add()
-                timeElem.listType = "TimeList"
-                for timeCmd in timeList.entries:
-                    timeProp = timeElem.timeList.add()
-                    timeProp.hour = timeCmd.hour
-                    timeProp.minute = timeCmd.minute
-                    timeProp.startFrame = timeCmd.startFrame
-
-            for seqList in cutscene.seqList:
-                seqElem: "OOTCSListProperty" = csProp.csLists.add()
-                seqElem.listType = "StartSeqList" if seqList.type == "start" else "StopSeqList"
-                for seqCmd in seqList.entries:
-                    seqProp = seqElem.seqList.add()
-                    try:
-                        seqProp.csSeqID = seqCmd.seqId
-                    except TypeError:
-                        seqProp.csSeqID = "Custom"
-                        transitionElem.csSeqIDCustom = seqCmd.seqId
-                    seqProp.startFrame = seqCmd.startFrame
-
-            for fadeList in cutscene.fadeSeqList:
-                fadeElem: "OOTCSListProperty" = csProp.csLists.add()
-                fadeElem.listType = "FadeOutSeqList"
-                for fadeCmd in fadeList.entries:
-                    fadeProp = fadeElem.seqList.add()
-                    try:
-                        fadeProp.csSeqPlayer = fadeCmd.seqPlayer
-                    except TypeError:
-                        fadeProp.csSeqPlayer = "Custom"
-                        transitionElem.csSeqPlayerCustom = fadeCmd.seqPlayer
-                    fadeProp.startFrame = fadeCmd.startFrame
-                    fadeProp.endFrame = fadeCmd.endFrame
-
-            for rumbleList in cutscene.rumbleList:
-                rumbleElem: "OOTCSListProperty" = csProp.csLists.add()
-                rumbleElem.listType = "RumbleList"
-                for rumbleCmd in rumbleList.entries:
-                    rumbleProp = rumbleElem.rumbleList.add()
-                    rumbleProp.startFrame = rumbleCmd.startFrame
-                    rumbleProp.rumbleSourceStrength = rumbleCmd.sourceStrength
-                    rumbleProp.rumbleDuration = rumbleCmd.duration
-                    rumbleProp.rumbleDecreaseRate = rumbleCmd.decreaseRate
+            propDataList = [
+                PropertyData("Text", {"textboxType": "id"}, True),
+                PropertyData("Misc", {"csMiscType": "type"}, True),
+                PropertyData("Transition", {"transitionType": "type"}, True),
+                PropertyData("LightSettings", {"lightSettingsIndex": "lightSetting"}, False),
+                PropertyData("Time", {"hour": "hour", "minute": "minute"}, False),
+                PropertyData("Seq", {"csSeqID": "seqId"}, False),
+                PropertyData("FadeOutSeq", {"csSeqPlayer": "seqPlayer"}, True),
+                PropertyData(
+                    "Rumble",
+                    {
+                        "rumbleSourceStrength": "sourceStrength",
+                        "rumbleDuration": "duration",
+                        "rumbleDecreaseRate": "decreaseRate",
+                    },
+                    False,
+                ),
+            ]
+            self.setPropertyData(csProp, cutscene, propDataList)
 
             # Init camera + preview objects and setup the scene
             setupCutscene(csObj)
-            print("Done!")
             bpy.ops.object.select_all(action="DESELECT")
+            print("Success!")
 
         # ``csNumber`` makes sure there's no duplicates
         return csNumber + 1
