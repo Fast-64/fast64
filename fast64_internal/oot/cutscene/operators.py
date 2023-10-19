@@ -8,10 +8,9 @@ from bpy.props import StringProperty, EnumProperty, IntProperty
 from bpy.types import Scene, Operator, Context, UILayout
 from bpy.utils import register_class, unregister_class
 from ...utility import CData, PluginError, writeCData, raisePluginError
-from ..oot_utility import getCollection
+from ..oot_utility import getCollection, getCutsceneName
 from ..oot_constants import ootData
 from ..scene.exporter.to_c import ootCutsceneDataToC
-from .exporter import convertCutsceneObject
 from .constants import ootEnumCSTextboxType, ootEnumCSListType, ootEnumCSListTypeIcons
 from .motion.importer import importCutsceneData
 from .motion.exporter import getCutsceneMotionData
@@ -77,7 +76,7 @@ def insertCutsceneData(filePath: str, csName: str):
         fileLines = []
 
     foundCutscene = False
-    motionExporter = getCutsceneMotionData(csName, False)
+    motionExporter = getCutsceneMotionData(csName)
     beginIndex = 0
 
     for i, line in enumerate(fileLines):
@@ -199,12 +198,11 @@ class OOT_ExportCutscene(Operator):
 
             cpath, hpath, headerfilename = checkGetFilePaths(context)
             csdata = ootCutsceneIncludes(headerfilename)
-            converted = convertCutsceneObject(activeObj)
 
             if context.scene.exportMotionOnly:
                 csdata.append(insertCutsceneData(cpath, activeObj.name.removeprefix("Cutscene.")))
             else:
-                csdata.append(ootCutsceneDataToC(converted, converted.name))
+                csdata.append(ootCutsceneDataToC(getCutsceneName(activeObj)))
             writeCData(csdata, hpath, cpath)
 
             self.report({"INFO"}, "Successfully exported cutscene")
@@ -234,11 +232,10 @@ class OOT_ExportAllCutscenes(Operator):
                         print(f"Parent: {obj.parent.name}, Object: {obj.name}")
                         raise PluginError("Cutscene object must not be parented to anything")
 
-                    converted = convertCutsceneObject(obj)
                     if context.scene.exportMotionOnly:
                         raise PluginError("ERROR: Not implemented yet.")
                     else:
-                        csdata.append(ootCutsceneDataToC(converted, converted.name))
+                        csdata.append(ootCutsceneDataToC(getCutsceneName(obj)))
                     count += 1
 
             if count == 0:

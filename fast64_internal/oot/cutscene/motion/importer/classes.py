@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from bpy.types import Object, Armature
 from .....utility import PluginError
-from ....oot_constants import ootData
 from ..utility import setupCutscene, getBlenderPosition, getInteger
+from ..constants import cmdToClass
 
 if TYPE_CHECKING:
     from ...properties import OOTCSListProperty, OOTCutsceneProperty
@@ -21,33 +21,9 @@ from ..constants import (
 
 from ..io_classes import (
     OOTCSMotionActorCueList,
-    OOTCSMotionActorCue,
-    OOTCSMotionCamEyeSpline,
-    OOTCSMotionCamATSpline,
-    OOTCSMotionCamEyeSplineRelToPlayer,
-    OOTCSMotionCamATSplineRelToPlayer,
-    OOTCSMotionCamEye,
-    OOTCSMotionCamAT,
     OOTCSMotionCamPoint,
     OOTCSMotionCutscene,
     OOTCSMotionObjectFactory,
-    OOTCSMotionMisc,
-    OOTCSMotionMiscList,
-    OOTCSMotionTransition,
-    OOTCSMotionText,
-    OOTCSMotionTextNone,
-    OOTCSMotionTextOcarinaAction,
-    OOTCSMotionTextList,
-    OOTCSMotionLightSetting,
-    OOTCSMotionLightSettingList,
-    OOTCSMotionTime,
-    OOTCSMotionTimeList,
-    OOTCSMotionStartStopSeq,
-    OOTCSMotionStartStopSeqList,
-    OOTCSMotionFadeSeq,
-    OOTCSMotionFadeSeqList,
-    OOTCSMotionRumbleController,
-    OOTCSMotionRumbleControllerList,
 )
 
 
@@ -207,55 +183,6 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
 
         cutsceneList: list[OOTCSMotionCutscene] = []
 
-        cmdToClass = {
-            "CS_CAM_POINT": OOTCSMotionCamPoint,
-            "CS_MISC": OOTCSMotionMisc,
-            "CS_LIGHT_SETTING": OOTCSMotionLightSetting,
-            "CS_TIME": OOTCSMotionTime,
-            "CS_FADE_OUT_SEQ": OOTCSMotionFadeSeq,
-            "CS_RUMBLE_CONTROLLER": OOTCSMotionRumbleController,
-            "CS_TEXT": OOTCSMotionText,
-            "CS_TEXT_NONE": OOTCSMotionTextNone,
-            "CS_TEXT_OCARINA_ACTION": OOTCSMotionTextOcarinaAction,
-            "CS_START_SEQ": OOTCSMotionStartStopSeq,
-            "CS_STOP_SEQ": OOTCSMotionStartStopSeq,
-            "CS_ACTOR_CUE": OOTCSMotionActorCue,
-            "CS_PLAYER_CUE": OOTCSMotionActorCue,
-            "CS_CAM_EYE_SPLINE": OOTCSMotionCamEyeSpline,
-            "CS_CAM_AT_SPLINE": OOTCSMotionCamATSpline,
-            "CS_CAM_EYE_SPLINE_REL_TO_PLAYER": OOTCSMotionCamEyeSplineRelToPlayer,
-            "CS_CAM_AT_SPLINE_REL_TO_PLAYER": OOTCSMotionCamATSplineRelToPlayer,
-            "CS_CAM_EYE": OOTCSMotionCamEye,
-            "CS_CAM_AT": OOTCSMotionCamAT,
-            "CS_MISC_LIST": OOTCSMotionMiscList,
-            "CS_TRANSITION": OOTCSMotionTransition,
-            "CS_TEXT_LIST": OOTCSMotionTextList,
-            "CS_LIGHT_SETTING_LIST": OOTCSMotionLightSettingList,
-            "CS_TIME_LIST": OOTCSMotionTimeList,
-            "CS_FADE_OUT_SEQ_LIST": OOTCSMotionFadeSeqList,
-            "CS_RUMBLE_CONTROLLER_LIST": OOTCSMotionRumbleControllerList,
-            "CS_START_SEQ_LIST": OOTCSMotionStartStopSeqList,
-            "CS_STOP_SEQ_LIST": OOTCSMotionStartStopSeqList,
-            "CS_ACTOR_CUE_LIST": OOTCSMotionActorCueList,
-            "CS_PLAYER_CUE_LIST": OOTCSMotionActorCueList,
-        }
-
-        cmdToDefinition = {
-            "CS_CAM_EYE_SPLINE": OOTCSMotionCamEyeSpline,
-            "CS_CAM_AT_SPLINE": OOTCSMotionCamATSpline,
-            "CS_CAM_EYE_SPLINE_REL_TO_PLAYER": OOTCSMotionCamEyeSplineRelToPlayer,
-            "CS_CAM_AT_SPLINE_REL_TO_PLAYER": OOTCSMotionCamATSplineRelToPlayer,
-            "CS_CAM_EYE": OOTCSMotionCamEye,
-            "CS_CAM_AT": OOTCSMotionCamAT,
-            "TRANSITION": OOTCSMotionTransition,
-            "MISC_LIST" : OOTCSMotionMiscList,
-            "TEXT_LIST" : OOTCSMotionTextList,
-            "LIGHT_SETTING_LIST" : OOTCSMotionLightSettingList,
-            "TIME_LIST" : OOTCSMotionTimeList,
-            "FADE_OUT_SEQ_LIST" : OOTCSMotionFadeSeqList,
-            "RUMBLE_CONTROLLER_LIST" : OOTCSMotionRumbleControllerList,
-        }
-
         # for each cutscene from the list returned by getParsedCutscenes(),
         # create classes containing the cutscene's informations
         # that will be used later when creating Blender objects to complete the import
@@ -406,7 +333,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                     # NOTE: There is a bug in the game where when incrementing to the next set of key points,
                     # the key point which checked for whether it's the last point or not is the last point
                     # of the next set, not the last point of the old set. This means we need to remove
-                    # the extra point at the end  that will only tell the game that this camera shot stops.
+                    # the extra point at the end that will only tell the game that this camera shot stops.
                     del eyeListEntry.entries[-1]
                     del atListEntry.entries[-1]
 

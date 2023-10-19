@@ -2,11 +2,24 @@ import math
 import bpy
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 from bpy.types import Object
 from .....utility import PluginError, indent
 from ....oot_constants import ootData
+from ...constants import ootEnumCSListTypeListC
+
+if TYPE_CHECKING:
+    from ...properties import OOTCutsceneProperty, OOTCSTextProperty
 
 from ..io_classes import (
+    OOTCSMotionTransition,
+    OOTCSMotionRumbleController,
+    OOTCSMotionMisc,
+    OOTCSMotionTime,
+    OOTCSMotionLightSetting,
+    OOTCSMotionText,
+    OOTCSMotionTextNone,
+    OOTCSMotionTextOcarinaAction,
     OOTCSMotionActorCueList,
     OOTCSMotionActorCue,
     OOTCSMotionCamEyeSpline,
@@ -22,15 +35,68 @@ from ..io_classes import (
 class OOTCSMotionExportCommands:
     """This class contains functions to create the cutscene commands"""
 
+    def getEnumValue(self, enumKey: str, owner, propName: str):
+        item = ootData.enumData.enumByKey[enumKey].itemByKey.get(getattr(owner, propName))
+        return item.id if item is not None else getattr(owner, f"{propName}Custom")
+
+    def getGenericListCmd(self, cmdName: str, entryTotal: int):
+        return indent * 2 + f"{cmdName}({entryTotal}),\n"
+
+    def getGenericSeqCmd(self, cmdName: str, type: str, startFrame: int, endFrame: int):
+        return indent * 3 + f"{cmdName}({type}, {startFrame}, {endFrame}" + ", 0" * 8 + "),\n"
+
+    def getTransitionCmd(self, transition: OOTCSMotionTransition):
+        return indent * 2 + f"CS_TRANSITION({transition.type}, {transition.startFrame}, {transition.endFrame}),\n"
+
+    def getRumbleControllerCmd(self, rumble: OOTCSMotionRumbleController):
+        return indent * 3 + (
+            f"CS_RUMBLE_CONTROLLER("
+            + f"0, {rumble.startFrame}, 0, "
+            + f"{rumble.sourceStrength}, {rumble.duration}, {rumble.decreaseRate}, 0, 0),\n"
+        )
+
+    def getMiscCmd(self, misc: OOTCSMotionMisc):
+        return indent * 3 + (f"CS_MISC(" + f"{misc.type}, {misc.startFrame}, {misc.endFrame}" + ", 0" * 11 + "),\n")
+
+    def getTimeCmd(self, time: OOTCSMotionTime):
+        return indent * 3 + (f"CS_TIME(" + f"0, {time.startFrame}, 0, {time.hour}, {time.minute}" + "),\n")
+
+    def getLightSettingCmd(self, lightSetting: OOTCSMotionLightSetting):
+        return indent * 3 + (
+            f"CS_LIGHT_SETTING(" + f"{lightSetting.lightSetting}, {lightSetting.startFrame}" + ", 0" * 9 + "),\n"
+        )
+
+    def getTextCmd(self, text: OOTCSMotionText):
+        return indent * 3 + (
+            f"CS_TEXT("
+            + f"{text.textId}, {text.startFrame}, {text.endFrame}, {text.type}, {text.altTextId1}, {text.altTextId2}"
+            + "),\n"
+        )
+
+    def getTextNoneCmd(self, textNone: OOTCSMotionTextNone):
+        return indent * 3 + f"CS_TEXT_NONE({textNone.startFrame}, {textNone.endFrame}),\n"
+
+    def getTextOcarinaActionCmd(self, ocarinaAction: OOTCSMotionTextOcarinaAction):
+        return indent * 3 + (
+            f"CS_TEXT_OCARINA_ACTION("
+            + f"{ocarinaAction.ocarinaActionId}, {ocarinaAction.startFrame}, "
+            + f"{ocarinaAction.endFrame}, {ocarinaAction.messageId}"
+            + "),\n"
+        )
+
+    def getDestinationCmd(self, csProp: "OOTCutsceneProperty"):
+        dest = self.getEnumValue("csDestination", csProp, "csDestination")
+        return indent * 2 + f"CS_DESTINATION({dest}, {csProp.csDestinationStartFrame}, 0),\n"
+
     def getActorCueListCmd(self, actorCueList: OOTCSMotionActorCueList, isPlayerActor: bool):
-        return indent + (
+        return indent * 2 + (
             f"CS_{'PLAYER' if isPlayerActor else 'ACTOR'}_CUE_LIST("
             + f"{actorCueList.commandType + ', ' if not isPlayerActor else ''}"
             + f"{actorCueList.entryTotal}),\n"
         )
 
     def getActorCueCmd(self, actorCue: OOTCSMotionActorCue, isPlayerActor: bool):
-        return indent * 2 + (
+        return indent * 3 + (
             f"CS_{'PLAYER' if isPlayerActor else 'ACTOR'}_CUE("
             + f"{actorCue.actionID}, {actorCue.startFrame}, {actorCue.endFrame}, "
             + "".join(f"{rot}, " for rot in actorCue.rot)
@@ -40,7 +106,7 @@ class OOTCSMotionExportCommands:
         )
 
     def getCamListCmd(self, cmdName: str, startFrame: int, endFrame: int):
-        return indent + f"{cmdName}({startFrame}, {endFrame}),\n"
+        return indent * 2 + f"{cmdName}({startFrame}, {endFrame}),\n"
 
     def getCamEyeSplineCmd(self, camEyeSpline: OOTCSMotionCamEyeSpline):
         return self.getCamListCmd("CS_CAM_EYE_SPLINE", camEyeSpline.startFrame, camEyeSpline.endFrame)
@@ -65,7 +131,7 @@ class OOTCSMotionExportCommands:
         return self.getCamListCmd("CS_CAM_AT", camAT.startFrame, camAT.endFrame)
 
     def getCamPointCmd(self, camPoint: OOTCSMotionCamPoint):
-        return indent * 2 + (
+        return indent * 3 + (
             f"CS_CAM_POINT("
             + f"{camPoint.continueFlag}, {camPoint.camRoll}, {camPoint.frame}, {camPoint.viewAngle}f, "
             + "".join(f"{pos}, " for pos in camPoint.pos)
@@ -79,9 +145,10 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
 
     csMotionObjects: dict[str, list[Object]]
     useDecomp: bool
-    addBeginEndCmds: bool
+    motionOnly: bool
     entryTotal: int = 0
     frameCount: int = 0
+    motionFrameCount: int = 0
     camEndFrame: int = 0
 
     def getOoTRotation(self, obj: Object):
@@ -143,7 +210,8 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
             elif self.useDecomp:
                 commandType = ootData.enumData.enumByKey["csCmd"].itemByKey[commandType].id
 
-            actorCueList = OOTCSMotionActorCueList(commandType, entryTotal - 1)  # ignoring dummy cue
+            # ignoring dummy cue
+            actorCueList = OOTCSMotionActorCueList(None, entryTotal=entryTotal - 1, commandType=commandType)
             actorCueData += self.getActorCueListCmd(actorCueList, isPlayer)
 
             for i, childObj in enumerate(obj.children, 1):
@@ -161,6 +229,7 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
                         actionID = childObj.ootCSMotionProperty.actorCueProp.cueActionID
 
                     actorCue = OOTCSMotionActorCue(
+                        None,
                         startFrame,
                         endFrame,
                         actionID,
@@ -186,6 +255,9 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
 
             shotPoints.append(
                 OOTCSMotionCamPoint(
+                    None,
+                    None,
+                    None,
                     ("CS_CAM_CONTINUE" if self.useDecomp else "0"),
                     bone.ootCamShotPointProp.shotPointRoll if useAT else 0,
                     bone.ootCamShotPointProp.shotPointFrame,
@@ -195,7 +267,9 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
             )
 
         # NOTE: because of the game's bug explained in the importer we need to add an extra dummy point when exporting
-        shotPoints.append(OOTCSMotionCamPoint("CS_CAM_STOP" if self.useDecomp else "-1", 0, 0, 0.0, [0, 0, 0]))
+        shotPoints.append(
+            OOTCSMotionCamPoint(None, None, None, "CS_CAM_STOP" if self.useDecomp else "-1", 0, 0, 0.0, [0, 0, 0])
+        )
         return shotPoints
 
     def getCamCmdFunc(self, camMode: str, useAT: bool):
@@ -240,7 +314,7 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
                 pointData.frame = 0
             self.camEndFrame = endFrame
 
-        camData = self.getCamClass(shotObj.data.ootCamShotProp.shotCamMode, useAT)(startFrame, endFrame)
+        camData = self.getCamClass(shotObj.data.ootCamShotProp.shotCamMode, useAT)(None, startFrame, endFrame)
         return self.getCamCmdFunc(shotObj.data.ootCamShotProp.shotCamMode, useAT)(camData) + "".join(
             self.getCamPointCmd(pointData) for pointData in camPointList
         )
@@ -252,21 +326,135 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
         cameraShotData = ""
 
         if len(shotObjects) > 0:
-            frameCount = -1
+            motionFrameCount = -1
             for shotObj in shotObjects:
                 cameraShotData += self.getCamListData(shotObj, False) + self.getCamListData(shotObj, True)
-                frameCount = max(frameCount, self.camEndFrame + 1)
-            self.frameCount += frameCount
+                motionFrameCount = max(motionFrameCount, self.camEndFrame + 1)
+            self.motionFrameCount += motionFrameCount
             self.entryTotal += len(shotObjects) * 2
 
         return cameraShotData
 
+    def getTextListData(self, textEntry: "OOTCSTextProperty"):
+        match textEntry.textboxType:
+            case "Text":
+                return self.getTextCmd(
+                    OOTCSMotionText(
+                        None,
+                        textEntry.startFrame,
+                        textEntry.endFrame,
+                        textEntry.textID,
+                        self.getEnumValue("csTextType", textEntry, "csTextType"),
+                        textEntry.topOptionTextID,
+                        textEntry.bottomOptionTextID,
+                    )
+                )
+            case "None":
+                return self.getTextNoneCmd(OOTCSMotionTextNone(None, textEntry.startFrame, textEntry.endFrame))
+            case "OcarinaAction":
+                return self.getTextOcarinaActionCmd(
+                    OOTCSMotionTextOcarinaAction(
+                        None,
+                        textEntry.startFrame,
+                        textEntry.endFrame,
+                        self.getEnumValue("ocarinaSongActionId", textEntry, "ocarinaAction"),
+                        textEntry.ocarinaMessageId,
+                    )
+                )
+
+    def getCutsceneData(self):
+        csProp: "OOTCutsceneProperty" = self.csMotionObjects["Cutscene"][0].ootCutsceneProperty
+        self.frameCount = csProp.csEndFrame
+        data = ""
+
+        if csProp.csUseDestination:
+            data += self.getDestinationCmd(csProp)
+            self.entryTotal += 1
+
+        for entry in csProp.csLists:
+            subData = ""
+            listCmd = ""
+            entryTotal = 0
+            match entry.listType:
+                case "StartSeqList" | "StopSeqList" | "FadeOutSeqList":
+                    entryTotal = len(entry.seqList)
+                    for elem in entry.seqList:
+                        enumKey = "csFadeOutSeqPlayer" if entry.listType == "FadeOutSeqList" else "seqId"
+                        propName = "csSeqPlayer" if entry.listType == "FadeOutSeqList" else "csSeqID"
+                        subData += self.getGenericSeqCmd(
+                            ootEnumCSListTypeListC[entry.listType].removesuffix("_LIST"),
+                            self.getEnumValue(enumKey, elem, propName),
+                            elem.startFrame,
+                            elem.endFrame,
+                        )
+                case "Transition":
+                    subData += self.getTransitionCmd(
+                        OOTCSMotionTransition(
+                            None,
+                            entry.transitionStartFrame,
+                            entry.transitionEndFrame,
+                            self.getEnumValue("csTransitionType", entry, "transitionType"),
+                        )
+                    )
+                case _:
+                    curList = getattr(entry, (entry.listType[0].lower() + entry.listType[1:]))
+                    entryTotal = len(curList)
+                    for elem in curList:
+                        match entry.listType:
+                            case "TextList":
+                                subData += self.getTextListData(elem)
+                            case "LightSettingsList":
+                                subData += self.getLightSettingCmd(
+                                    OOTCSMotionLightSetting(
+                                        None, elem.startFrame, elem.endFrame, None, elem.lightSettingsIndex
+                                    )
+                                )
+                            case "TimeList":
+                                subData += self.getTimeCmd(
+                                    OOTCSMotionTime(None, elem.startFrame, elem.endFrame, elem.hour, elem.minute)
+                                )
+                            case "MiscList":
+                                subData += self.getMiscCmd(
+                                    OOTCSMotionMisc(
+                                        None,
+                                        elem.startFrame,
+                                        elem.endFrame,
+                                        self.getEnumValue("csMiscType", elem, "csMiscType"),
+                                    )
+                                )
+                            case "RumbleList":
+                                subData += self.getRumbleControllerCmd(
+                                    OOTCSMotionRumbleController(
+                                        None,
+                                        elem.startFrame,
+                                        elem.endFrame,
+                                        elem.rumbleSourceStrength,
+                                        elem.rumbleDuration,
+                                        elem.rumbleDecreaseRate,
+                                    )
+                                )
+                            case _:
+                                raise PluginError("ERROR: Unknown Cutscene List Type!")
+            if entry.listType != "Transition":
+                listCmd = self.getGenericListCmd(ootEnumCSListTypeListC[entry.listType], entryTotal)
+            self.entryTotal += 1
+            data += listCmd + subData
+
+        return data
+
     def getExportData(self):
         """Returns the cutscene data"""
 
-        data = self.getActorCueListData(False) + self.getActorCueListData(True) + self.getCameraShotData()
-        if self.addBeginEndCmds:
-            data = (
-                indent + f"CS_BEGIN_CUTSCENE({self.entryTotal}, {self.frameCount}),\n" + data + indent + "CS_END(),\n"
-            )
-        return data
+        csData = ""
+        if not self.motionOnly:
+            csData = self.getCutsceneData()
+        csData += self.getActorCueListData(False) + self.getActorCueListData(True) + self.getCameraShotData()
+
+        if self.motionFrameCount > self.frameCount:
+            self.frameCount += self.motionFrameCount - self.frameCount
+
+        return (
+            (indent + f"CS_BEGIN_CUTSCENE({self.entryTotal}, {self.frameCount}),\n")
+            + csData
+            + (indent + "CS_END(),\n")
+        )

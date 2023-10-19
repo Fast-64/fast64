@@ -68,7 +68,7 @@ def getCutsceneDataCmd(outScene: OOTScene, headerIndex: int):
         case "Embedded":
             csDataName = outScene.cutsceneDataName(headerIndex)
         case "Object":
-            csDataName = outScene.csWriteObject.name
+            csDataName = outScene.csName
         case _:
             csDataName = outScene.csWriteCustom
 

@@ -29,7 +29,7 @@ class OOTCutsceneCommon:
     subprops = ["startFrame", "endFrame"]
     expandTab: BoolProperty(default=True)
     startFrame: IntProperty(name="", default=0, min=0)
-    endFrame: IntProperty(name="", default=1, min=0)
+    endFrame: IntProperty(name="", default=0, min=0)
 
     def getName(self):
         pass

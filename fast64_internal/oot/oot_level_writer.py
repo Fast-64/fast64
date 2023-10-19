@@ -4,7 +4,7 @@ from ..f3d.f3d_writer import TriangleConverterInfo, saveStaticModel, getInfoDict
 from .scene.properties import OOTSceneProperties, OOTSceneHeaderProperty, OOTAlternateSceneHeaderProperty
 from .room.properties import OOTRoomHeaderProperty, OOTAlternateRoomHeaderProperty
 from .oot_constants import ootData
-from .cutscene.exporter import convertCutsceneObject, readCutsceneData
+from .cutscene.exporter import readCutsceneData
 from .oot_spline import assertCurveValid, ootConvertPath
 from .oot_model_classes import OOTModel
 from .oot_collision import OOTCameraData, exportCollisionCommon
@@ -288,12 +288,9 @@ def readSceneData(
             elif sceneHeader.csWriteObject.parent is not None:
                 raise PluginError("Cutscene empty object should not be parented to anything")
             else:
-                scene.csWriteObject = convertCutsceneObject(sceneHeader.csWriteObject)
+                scene.csName = sceneHeader.csWriteObject.name.removeprefix("Cutscene.")
 
     if alternateSceneHeaders is not None:
-        for ec in sceneHeader.extraCutscenes:
-            scene.extraCutscenes.append(convertCutsceneObject(ec.csObject))
-
         scene.collision.cameraData = OOTCameraData(scene.name)
 
         if not alternateSceneHeaders.childNightHeader.usePreviousHeader:

@@ -42,11 +42,12 @@ class OOTCSMotionCamPoint(OOTCSMotionBase):
     paramNumber: int = 8
 
     def __post_init__(self):
-        self.continueFlag = self.params[0]
-        self.camRoll = getInteger(self.params[1])
-        self.frame = getInteger(self.params[2])
-        self.viewAngle = float(self.params[3][:-1])
-        self.pos = [getInteger(self.params[4]), getInteger(self.params[5]), getInteger(self.params[6])]
+        if self.params is not None:
+            self.continueFlag = self.params[0]
+            self.camRoll = getInteger(self.params[1])
+            self.frame = getInteger(self.params[2])
+            self.viewAngle = float(self.params[3][:-1])
+            self.pos = [getInteger(self.params[4]), getInteger(self.params[5]), getInteger(self.params[6])]
 
 
 @dataclass
@@ -60,12 +61,13 @@ class OOTCSMotionActorCue(OOTCSMotionBase):
     paramNumber: int = 15
 
     def __post_init__(self):
-        self.startFrame = getInteger(self.params[1])
-        self.endFrame = getInteger(self.params[2])
-        self.actionID = getInteger(self.params[0])
-        self.rot = [getRotation(self.params[3]), getRotation(self.params[4]), getRotation(self.params[5])]
-        self.startPos = [getInteger(self.params[6]), getInteger(self.params[7]), getInteger(self.params[8])]
-        self.endPos = [getInteger(self.params[9]), getInteger(self.params[10]), getInteger(self.params[11])]
+        if self.params is not None:
+            self.startFrame = getInteger(self.params[1])
+            self.endFrame = getInteger(self.params[2])
+            self.actionID = getInteger(self.params[0])
+            self.rot = [getRotation(self.params[3]), getRotation(self.params[4]), getRotation(self.params[5])]
+            self.startPos = [getInteger(self.params[6]), getInteger(self.params[7]), getInteger(self.params[8])]
+            self.endPos = [getInteger(self.params[9]), getInteger(self.params[10]), getInteger(self.params[11])]
 
 
 @dataclass
@@ -80,16 +82,17 @@ class OOTCSMotionActorCueList(OOTCSMotionBase):
     listName: str = "actorCueList"
 
     def __post_init__(self):
-        if self.isPlayer:
-            self.commandType = "Player"
-            self.entryTotal = getInteger(self.params[0])
-        else:
-            self.commandType = self.params[0]
-            if self.commandType.startswith("0x"):
-                # make it a 4 digit hex
-                self.commandType = self.commandType.removeprefix("0x")
-                self.commandType = "0x" + "0" * (4 - len(self.commandType)) + self.commandType
-            self.entryTotal = getInteger(self.params[1].strip())
+        if self.params is not None:
+            if self.isPlayer:
+                self.commandType = "Player"
+                self.entryTotal = getInteger(self.params[0])
+            else:
+                self.commandType = self.params[0]
+                if self.commandType.startswith("0x"):
+                    # make it a 4 digit hex
+                    self.commandType = self.commandType.removeprefix("0x")
+                    self.commandType = "0x" + "0" * (4 - len(self.commandType)) + self.commandType
+                self.entryTotal = getInteger(self.params[1].strip())
 
 
 @dataclass
@@ -101,8 +104,9 @@ class OOTCSMotionCamEyeSpline(OOTCSMotionBase):
     listName: str = "camEyeSplineList"
 
     def __post_init__(self):
-        self.startFrame = getInteger(self.params[0])
-        self.endFrame = getInteger(self.params[1])
+        if self.params is not None:
+            self.startFrame = getInteger(self.params[0])
+            self.endFrame = getInteger(self.params[1])
 
 
 @dataclass
@@ -114,8 +118,9 @@ class OOTCSMotionCamATSpline(OOTCSMotionBase):
     listName: str = "camATSplineList"
 
     def __post_init__(self):
-        self.startFrame = getInteger(self.params[0])
-        self.endFrame = getInteger(self.params[1])
+        if self.params is not None:
+            self.startFrame = getInteger(self.params[0])
+            self.endFrame = getInteger(self.params[1])
 
 
 @dataclass
@@ -127,8 +132,9 @@ class OOTCSMotionCamEyeSplineRelToPlayer(OOTCSMotionBase):
     listName: str = "camEyeSplineRelPlayerList"
 
     def __post_init__(self):
-        self.startFrame = getInteger(self.params[0])
-        self.endFrame = getInteger(self.params[1])
+        if self.params is not None:
+            self.startFrame = getInteger(self.params[0])
+            self.endFrame = getInteger(self.params[1])
 
 
 @dataclass
@@ -140,8 +146,9 @@ class OOTCSMotionCamATSplineRelToPlayer(OOTCSMotionBase):
     listName: str = "camATSplineRelPlayerList"
 
     def __post_init__(self):
-        self.startFrame = getInteger(self.params[0])
-        self.endFrame = getInteger(self.params[1])
+        if self.params is not None:
+            self.startFrame = getInteger(self.params[0])
+            self.endFrame = getInteger(self.params[1])
 
 
 @dataclass
@@ -154,8 +161,9 @@ class OOTCSMotionCamEye(OOTCSMotionBase):
     listName: str = "camEyeList"
 
     def __post_init__(self):
-        self.startFrame = getInteger(self.params[0])
-        self.endFrame = getInteger(self.params[1])
+        if self.params is not None:
+            self.startFrame = getInteger(self.params[0])
+            self.endFrame = getInteger(self.params[1])
 
 
 @dataclass
@@ -168,8 +176,9 @@ class OOTCSMotionCamAT(OOTCSMotionBase):
     listName: str = "camATList"
 
     def __post_init__(self):
-        self.startFrame = getInteger(self.params[0])
-        self.endFrame = getInteger(self.params[1])
+        if self.params is not None:
+            self.startFrame = getInteger(self.params[0])
+            self.endFrame = getInteger(self.params[1])
 
 
 @dataclass
@@ -180,9 +189,10 @@ class OOTCSMotionMisc(OOTCSMotionBase):
     paramNumber: int = 14
 
     def __post_init__(self):
-        self.startFrame = getInteger(self.params[1])
-        self.endFrame = getInteger(self.params[2])
-        self.type = self.getEnumValue("csMiscType", 0)
+        if self.params is not None:
+            self.startFrame = getInteger(self.params[1])
+            self.endFrame = getInteger(self.params[2])
+            self.type = self.getEnumValue("csMiscType", 0)
 
 
 @dataclass
@@ -195,7 +205,8 @@ class OOTCSMotionMiscList(OOTCSMotionBase):
     listName: str = "miscList"
 
     def __post_init__(self):
-        self.entryTotal = getInteger(self.params[0])
+        if self.params is not None:
+            self.entryTotal = getInteger(self.params[0])
 
 
 @dataclass
@@ -207,9 +218,10 @@ class OOTCSMotionTransition(OOTCSMotionBase):
     listName: str = "transitionList"
 
     def __post_init__(self):
-        self.startFrame = getInteger(self.params[1])
-        self.endFrame = getInteger(self.params[2])
-        self.type = self.getEnumValue("csTransitionType", 0)
+        if self.params is not None:
+            self.startFrame = getInteger(self.params[1])
+            self.endFrame = getInteger(self.params[2])
+            self.type = self.getEnumValue("csTransitionType", 0)
 
 
 @dataclass
@@ -224,12 +236,13 @@ class OOTCSMotionText(OOTCSMotionBase):
     id: str = "Text"
 
     def __post_init__(self):
-        self.startFrame = getInteger(self.params[1])
-        self.endFrame = getInteger(self.params[2])
-        self.textId = getInteger(self.params[0])
-        self.type = self.getEnumValue("csTextType", 3)
-        self.altTextId1 = (getInteger(self.params[4]),)
-        self.altTextId2 = (getInteger(self.params[5]),)
+        if self.params is not None:
+            self.startFrame = getInteger(self.params[1])
+            self.endFrame = getInteger(self.params[2])
+            self.textId = getInteger(self.params[0])
+            self.type = self.getEnumValue("csTextType", 3)
+            self.altTextId1 = (getInteger(self.params[4]),)
+            self.altTextId2 = (getInteger(self.params[5]),)
 
 
 @dataclass
@@ -240,8 +253,9 @@ class OOTCSMotionTextNone(OOTCSMotionBase):
     id: str = "None"
 
     def __post_init__(self):
-        self.startFrame = getInteger(self.params[0])
-        self.endFrame = getInteger(self.params[1])
+        if self.params is not None:
+            self.startFrame = getInteger(self.params[0])
+            self.endFrame = getInteger(self.params[1])
 
 
 @dataclass
@@ -254,10 +268,11 @@ class OOTCSMotionTextOcarinaAction(OOTCSMotionBase):
     id: str = "OcarinaAction"
 
     def __post_init__(self):
-        self.startFrame = getInteger(self.params[1])
-        self.endFrame = getInteger(self.params[2])
-        self.ocarinaActionId = self.getEnumValue("ocarinaSongActionId", 0)
-        self.messageId = getInteger(self.params[3])
+        if self.params is not None:
+            self.startFrame = getInteger(self.params[1])
+            self.endFrame = getInteger(self.params[2])
+            self.ocarinaActionId = self.getEnumValue("ocarinaSongActionId", 0)
+            self.messageId = getInteger(self.params[3])
 
 
 @dataclass
@@ -270,7 +285,8 @@ class OOTCSMotionTextList(OOTCSMotionBase):
     listName: str = "textList"
 
     def __post_init__(self):
-        self.entryTotal = getInteger(self.params[0])
+        if self.params is not None:
+            self.entryTotal = getInteger(self.params[0])
 
 
 @dataclass
@@ -282,11 +298,12 @@ class OOTCSMotionLightSetting(OOTCSMotionBase):
     paramNumber: int = 11
 
     def __post_init__(self):
-        self.startFrame = getInteger(self.params[1])
-        self.endFrame = getInteger(self.params[2])
-        self.lightSetting = getInteger(self.params[0])
-        if self.isLegacy:
-            self.lightSetting -= 1
+        if self.params is not None:
+            self.startFrame = getInteger(self.params[1])
+            self.endFrame = getInteger(self.params[2])
+            self.lightSetting = getInteger(self.params[0])
+            if self.isLegacy:
+                self.lightSetting -= 1
 
 
 @dataclass
@@ -299,7 +316,8 @@ class OOTCSMotionLightSettingList(OOTCSMotionBase):
     listName: str = "lightSettingsList"
 
     def __post_init__(self):
-        self.entryTotal = getInteger(self.params[0])
+        if self.params is not None:
+            self.entryTotal = getInteger(self.params[0])
 
 
 @dataclass
@@ -311,10 +329,11 @@ class OOTCSMotionTime(OOTCSMotionBase):
     paramNumber: int = 5
 
     def __post_init__(self):
-        self.startFrame = getInteger(self.params[1])
-        self.endFrame = getInteger(self.params[2])
-        self.hour = getInteger(self.params[3])
-        self.minute = getInteger(self.params[4])
+        if self.params is not None:
+            self.startFrame = getInteger(self.params[1])
+            self.endFrame = getInteger(self.params[2])
+            self.hour = getInteger(self.params[3])
+            self.minute = getInteger(self.params[4])
 
 
 @dataclass
@@ -327,7 +346,8 @@ class OOTCSMotionTimeList(OOTCSMotionBase):
     listName: str = "timeList"
 
     def __post_init__(self):
-        self.entryTotal = getInteger(self.params[0])
+        if self.params is not None:
+            self.entryTotal = getInteger(self.params[0])
 
 
 @dataclass
@@ -339,9 +359,10 @@ class OOTCSMotionStartStopSeq(OOTCSMotionBase):
     paramNumber: int = 11
 
     def __post_init__(self):
-        self.startFrame = getInteger(self.params[1])
-        self.endFrame = getInteger(self.params[2])
-        self.seqId = self.getEnumValue("seqId", 0, self.isLegacy)
+        if self.params is not None:
+            self.startFrame = getInteger(self.params[1])
+            self.endFrame = getInteger(self.params[2])
+            self.seqId = self.getEnumValue("seqId", 0, self.isLegacy)
 
 
 @dataclass
@@ -355,7 +376,8 @@ class OOTCSMotionStartStopSeqList(OOTCSMotionBase):
     listName: str = "seqList"
 
     def __post_init__(self):
-        self.entryTotal = getInteger(self.params[0])
+        if self.params is not None:
+            self.entryTotal = getInteger(self.params[0])
 
 
 @dataclass
@@ -367,9 +389,10 @@ class OOTCSMotionFadeSeq(OOTCSMotionBase):
     enumKey: str = "csFadeOutSeqPlayer"
 
     def __post_init__(self):
-        self.startFrame = getInteger(self.params[1])
-        self.endFrame = getInteger(self.params[2])
-        self.seqPlayer = self.getEnumValue("csFadeOutSeqPlayer", 0)
+        if self.params is not None:
+            self.startFrame = getInteger(self.params[1])
+            self.endFrame = getInteger(self.params[2])
+            self.seqPlayer = self.getEnumValue("csFadeOutSeqPlayer", 0)
 
 
 @dataclass
@@ -382,7 +405,8 @@ class OOTCSMotionFadeSeqList(OOTCSMotionBase):
     listName: str = "fadeSeqList"
 
     def __post_init__(self):
-        self.entryTotal = getInteger(self.params[0])
+        if self.params is not None:
+            self.entryTotal = getInteger(self.params[0])
 
 
 @dataclass
@@ -395,11 +419,12 @@ class OOTCSMotionRumbleController(OOTCSMotionBase):
     paramNumber: int = 8
 
     def __post_init__(self):
-        self.startFrame = getInteger(self.params[1])
-        self.endFrame = getInteger(self.params[2])
-        self.sourceStrength = getInteger(self.params[3])
-        self.duration = getInteger(self.params[4])
-        self.decreaseRate = getInteger(self.params[5])
+        if self.params is not None:
+            self.startFrame = getInteger(self.params[1])
+            self.endFrame = getInteger(self.params[2])
+            self.sourceStrength = getInteger(self.params[3])
+            self.duration = getInteger(self.params[4])
+            self.decreaseRate = getInteger(self.params[5])
 
 
 @dataclass
@@ -412,7 +437,8 @@ class OOTCSMotionRumbleControllerList(OOTCSMotionBase):
     listName: str = "rumbleList"
 
     def __post_init__(self):
-        self.entryTotal = getInteger(self.params[0])
+        if self.params is not None:
+            self.entryTotal = getInteger(self.params[0])
 
 
 @dataclass

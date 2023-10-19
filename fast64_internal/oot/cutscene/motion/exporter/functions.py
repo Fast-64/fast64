@@ -32,15 +32,18 @@ def getCSMotionObjects(csName: str):
             if obj.type == "ARMATURE" and obj.parent.ootEmptyType == "Cutscene":
                 csMotionObjects["camShot"].append(obj)
 
+    if len(csMotionObjects["Cutscene"]) != 1:
+        raise PluginError("ERROR: No cutscene found or several cutscenes in the object list!")
+
     return csMotionObjects
 
 
-def getCutsceneMotionData(csName: str, addBeginEndCmds: bool):
+def getCutsceneMotionData(csName: str, motionOnly: bool):
     """Returns the initialised cutscene exporter"""
 
     # this allows us to change the exporter's variables to get what we need
     return OOTCSMotionExport(
         getCSMotionObjects(csName),
         bpy.context.scene.fast64.oot.hackerFeaturesEnabled or bpy.context.scene.useDecompFeatures,
-        addBeginEndCmds,
+        motionOnly,
     )

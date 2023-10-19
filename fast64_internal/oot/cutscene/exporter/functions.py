@@ -1,4 +1,4 @@
-from ...oot_utility import getCutsceneName, getCustomProperty
+from ...oot_utility import getCustomProperty
 from ...oot_constants import ootData
 
 from .classes import (
@@ -9,7 +9,6 @@ from .classes import (
     OOTCSSeq,
     OOTCSMisc,
     OOTCSRumble,
-    OOTCutscene,
 )
 
 
@@ -101,18 +100,3 @@ def readCutsceneData(csParentOut, csParentIn):
                 entryOut.rumbleDecreaseRate = entryIn.rumbleDecreaseRate
                 listOut.entries.append(entryOut)
         csParentOut.csLists.append(listOut)
-
-
-def convertCutsceneObject(obj):
-    cs = OOTCutscene()
-
-    cs.name = getCutsceneName(obj)
-    csprop = obj.ootCutsceneProperty
-    cs.csEndFrame = getCustomProperty(csprop, "csEndFrame")
-    cs.csUseDestination = getCustomProperty(csprop, "csUseDestination")
-    value = getCustomProperty(csprop, "csDestination")
-    cs.csDestination = ootData.enumData.enumByKey["csDestination"].itemByKey[value] if value != "Custom" else value
-    cs.csDestinationStartFrame = getCustomProperty(csprop, "csDestinationStartFrame")
-    readCutsceneData(cs, csprop)
-
-    return cs

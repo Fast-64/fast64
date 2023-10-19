@@ -111,7 +111,8 @@ class OOTScene(OOTCommonCommands):
         self.cameraList = []
 
         self.writeCutscene = False
-        self.csWriteType = "Embedded"
+        self.csWriteType = "Object"
+        self.csName = ""
         self.csWriteCustom = ""
         self.csWriteObject = None
         self.csEndFrame = 100
