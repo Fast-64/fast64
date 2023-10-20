@@ -12,8 +12,8 @@ from ..oot_utility import getCollection, getCutsceneName
 from ..oot_constants import ootData
 from ..scene.exporter.to_c import getCutsceneC
 from .constants import ootEnumCSTextboxType, ootEnumCSListType
-from .motion.importer import importCutsceneData
-from .motion.exporter import getCutsceneMotionData
+from .importer import importCutsceneData
+from .exporter import getCutsceneMotionData
 
 
 def checkGetFilePaths(context: Context):

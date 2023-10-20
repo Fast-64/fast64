@@ -2,7 +2,7 @@ import bpy
 
 from .....utility import CData
 from ....oot_level_classes import OOTScene
-from ....cutscene.motion.exporter import getCutsceneMotionData
+from ....cutscene.exporter import getCutsceneMotionData
 
 
 def getCutsceneC(csName: str):

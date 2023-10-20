@@ -4,7 +4,7 @@ from bpy.types import Object, CollectionProperty
 from .data import OoT_ObjectData
 from .oot_utility import getEvalParams
 from .oot_constants import ootData
-from .cutscene.motion.constants import ootEnumCSMotionCamMode
+from .cutscene.constants import ootEnumCSMotionCamMode
 
 if TYPE_CHECKING:
     from .cutscene.properties import OOTCutsceneProperty

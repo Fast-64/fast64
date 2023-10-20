@@ -2,8 +2,8 @@ import bpy
 
 from dataclasses import dataclass, field
 from bpy.types import Object
-from ...oot_constants import ootData
-from .utility import getBlenderPosition, getBlenderRotation, getRotation, getInteger
+from ..oot_constants import ootData
+from .motion.utility import getBlenderPosition, getBlenderRotation, getRotation, getInteger
 
 
 # NOTE: ``paramNumber`` is the expected number of parameters inside the parsed commands,

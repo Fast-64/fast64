@@ -1,7 +1,7 @@
 import bpy
 
 from bpy.types import Object
-from .....utility import PluginError
+from ....utility import PluginError
 from .classes import OOTCSMotionExport
 
 

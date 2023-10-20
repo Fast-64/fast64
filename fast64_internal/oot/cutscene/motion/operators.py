@@ -5,8 +5,8 @@ from bpy.utils import register_class, unregister_class
 from bpy.props import StringProperty, EnumProperty, BoolProperty
 from ....utility import PluginError
 from ...oot_constants import ootData
-from .io_classes import OOTCSMotionObjectFactory
-from .constants import ootEnumCSActorCueListCommandType
+from ..io_classes import OOTCSMotionObjectFactory
+from ..constants import ootEnumCSActorCueListCommandType
 from ..preview import initFirstFrame, setupCompositorNodes
 from .utility import (
     setupActorCuePreview,

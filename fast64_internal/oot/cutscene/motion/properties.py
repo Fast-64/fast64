@@ -6,7 +6,7 @@ from bpy.utils import register_class, unregister_class
 from ...oot_upgrade import upgradeCutsceneMotion
 from ...oot_utility import getEnumName
 from ...oot_constants import ootData
-from .constants import ootEnumCSMotionCamMode, ootEnumCSActorCueListCommandType
+from ..constants import ootEnumCSMotionCamMode, ootEnumCSActorCueListCommandType
 
 from .operators import (
     OOTCSMotionAddActorCue,

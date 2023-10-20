@@ -4,12 +4,12 @@ import bpy
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from bpy.types import Object
-from .....utility import PluginError, indent
-from ....oot_constants import ootData
-from ...constants import ootEnumCSListTypeListC
+from ....utility import PluginError, indent
+from ...oot_constants import ootData
+from ..constants import ootEnumCSListTypeListC
 
 if TYPE_CHECKING:
-    from ...properties import OOTCutsceneProperty, OOTCSTextProperty
+    from ..properties import OOTCutsceneProperty, OOTCSTextProperty
 
 from ..io_classes import (
     OOTCSMotionTransition,

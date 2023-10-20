@@ -3,12 +3,11 @@ import bpy
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from bpy.types import Object, Armature
-from .....utility import PluginError
-from ..utility import setupCutscene, getBlenderPosition, getInteger
-from ..constants import cmdToClass
+from ....utility import PluginError
+from ..motion.utility import setupCutscene, getBlenderPosition, getInteger
 
 if TYPE_CHECKING:
-    from ...properties import OOTCSListProperty, OOTCutsceneProperty
+    from ..properties import OOTCSListProperty, OOTCutsceneProperty
 
 from ..constants import (
     ootCSMotionLegacyToNewCmdNames,
@@ -17,6 +16,7 @@ from ..constants import (
     ootCSMotionListEntryCommands,
     ootCSMotionSingleCommands,
     ootCSMotionListAndSingleCommands,
+    cmdToClass,
 )
 
 from ..io_classes import (
