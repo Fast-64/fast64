@@ -5,7 +5,7 @@ from ....oot_level_classes import OOTScene
 from ....cutscene.motion.exporter import getCutsceneMotionData
 
 
-def ootCutsceneDataToC(csName: str):
+def getCutsceneC(csName: str):
     csData = CData()
     declarationBase = f"CutsceneData {csName}[]"
 
@@ -34,17 +34,18 @@ def getSceneCutscenes(outScene: OOTScene):
     altHeaders.extend(outScene.cutsceneHeaders)
     csObjects = []
 
-    for i, curHeader in enumerate(altHeaders):
+    for curHeader in altHeaders:
         # curHeader is either None or an OOTScene. This can either be the main scene itself,
         # or one of the alternate / cutscene headers.
         if curHeader is not None and curHeader.writeCutscene:
             if curHeader.csWriteType == "Object" and curHeader.csName not in csObjects:
-                cutscenes.append(ootCutsceneDataToC(curHeader.csName))
+                cutscenes.append(getCutsceneC(curHeader.csName))
                 csObjects.append(curHeader.csName)
 
-    for extraCs in outScene.extraCutscenes:
-        if not extraCs.name in csObjects:
-            cutscenes.append(ootCutsceneDataToC(extraCs.name))
-            csObjects.append(extraCs.name)
+    for csObj in outScene.extraCutscenes:
+        name = csObj.name.removeprefix("Cutscene.")
+        if not name in csObjects:
+            cutscenes.append(getCutsceneC(name))
+            csObjects.append(name)
 
     return cutscenes

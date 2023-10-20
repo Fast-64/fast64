@@ -11,8 +11,8 @@ ootEnumCSListTypeListC = {
 }
 
 ootEnumCSWriteType = [
-    ("Custom", "Custom", "Provide the name of a cutscene header variable"),
-    ("Object", "Object", "Reference to Blender object representing cutscene"),
+    ("Custom", "Custom", "Provide the name of a cutscene header variable", "", 0),
+    ("Object", "Object", "Reference to Blender object representing cutscene", "", 2),
 ]
 
 # order here sets order on the UI

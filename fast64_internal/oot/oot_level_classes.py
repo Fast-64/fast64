@@ -1,5 +1,9 @@
-import bpy, os, shutil
+import bpy
+import os
+import shutil
+
 from typing import Optional
+from bpy.types import Object
 from ..utility import PluginError, toAlnum, indent
 from .oot_collision_classes import OOTCollision
 from .oot_model_classes import OOTModel
@@ -114,7 +118,7 @@ class OOTScene(OOTCommonCommands):
         self.csWriteType = "Object"
         self.csName = ""
         self.csWriteCustom = ""
-        self.extraCutscenes = []
+        self.extraCutscenes: list[Object] = []
 
         self.sceneTableEntry = OOTSceneTableEntry()
 

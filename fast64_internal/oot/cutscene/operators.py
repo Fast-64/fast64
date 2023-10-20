@@ -10,7 +10,7 @@ from bpy.utils import register_class, unregister_class
 from ...utility import CData, PluginError, writeCData, raisePluginError
 from ..oot_utility import getCollection, getCutsceneName
 from ..oot_constants import ootData
-from ..scene.exporter.to_c import ootCutsceneDataToC
+from ..scene.exporter.to_c import getCutsceneC
 from .constants import ootEnumCSTextboxType, ootEnumCSListType
 from .motion.importer import importCutsceneData
 from .motion.exporter import getCutsceneMotionData
@@ -183,7 +183,7 @@ class OOT_ExportCutscene(Operator):
             if context.scene.exportMotionOnly:
                 csdata.append(insertCutsceneData(cpath, activeObj.name.removeprefix("Cutscene.")))
             else:
-                csdata.append(ootCutsceneDataToC(getCutsceneName(activeObj)))
+                csdata.append(getCutsceneC(getCutsceneName(activeObj)))
             writeCData(csdata, hpath, cpath)
 
             self.report({"INFO"}, "Successfully exported cutscene")
@@ -216,7 +216,7 @@ class OOT_ExportAllCutscenes(Operator):
                     if context.scene.exportMotionOnly:
                         raise PluginError("ERROR: Not implemented yet.")
                     else:
-                        csdata.append(ootCutsceneDataToC(getCutsceneName(obj)))
+                        csdata.append(getCutsceneC(getCutsceneName(obj)))
                     count += 1
 
             if count == 0:

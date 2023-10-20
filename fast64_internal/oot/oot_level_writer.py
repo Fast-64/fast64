@@ -302,6 +302,9 @@ def readSceneData(
             cutsceneHeader = scene.getAlternateHeaderScene(scene.name)
             readSceneData(cutsceneHeader, scene_properties, cutsceneHeaderProp, None)
             scene.cutsceneHeaders.append(cutsceneHeader)
+
+        for extraCS in sceneHeader.extraCutscenes:
+            scene.extraCutscenes.append(extraCS.csObject)
     else:
         if len(sceneHeader.extraCutscenes) > 0:
             raise PluginError(

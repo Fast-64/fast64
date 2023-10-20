@@ -33,7 +33,7 @@ def getCSMotionObjects(csName: str):
                 csMotionObjects["camShot"].append(obj)
 
     if len(csMotionObjects["Cutscene"]) != 1:
-        raise PluginError("ERROR: No cutscene found or several cutscenes in the object list!")
+        raise PluginError(f"ERROR: Expected 1 Cutscene Object, found {len(csMotionObjects['Cutscene'])} ({csName}).")
 
     return csMotionObjects
 
