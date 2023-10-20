@@ -421,15 +421,13 @@ def cutscene_props_register():
     Scene.ootCSPreviewNodesReady = BoolProperty(default=False)
     Scene.ootCSPreviewCSObj = PointerProperty(type=Object)
 
-    Scene.ootCsUseWidescreen = BoolProperty(
-        name="Use Widescreen Camera", default=False, update=updateWidescreen
-    )
+    Scene.ootCsUseWidescreen = BoolProperty(name="Use Widescreen Camera", default=False, update=updateWidescreen)
 
     Scene.ootCsUseOpaqueCamBg = BoolProperty(
         name="Use Opaque Camera Background",
         description="Can be used to simulate the letterbox with widescreen mode enabled",
-        default=False, 
-        update=updateCamBackground
+        default=False,
+        update=updateCamBackground,
     )
 
 

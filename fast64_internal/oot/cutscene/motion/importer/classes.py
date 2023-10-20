@@ -390,7 +390,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
             endIndex = i
 
         return endIndex + 1
-    
+
     def setPropOrCustom(self, prop, propName: str, value):
         try:
             setattr(prop, propName, value)

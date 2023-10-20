@@ -454,7 +454,5 @@ class OOTCSMotionExport(OOTCSMotionExportCommands):
             self.frameCount += self.motionFrameCount - self.frameCount
 
         return (
-            (indent + f"CS_BEGIN_CUTSCENE({self.entryTotal}, {self.frameCount}),\n")
-            + csData
-            + (indent + "CS_END(),\n")
+            (indent + f"CS_BEGIN_CUTSCENE({self.entryTotal}, {self.frameCount}),\n") + csData + (indent + "CS_END(),\n")
         )
