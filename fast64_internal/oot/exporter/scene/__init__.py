@@ -189,6 +189,17 @@ class Scene(Base):
         sceneCutsceneData = self.getSceneCutscenesC()
         sceneTexturesData = self.getSceneTexturesC(textureExportSettings)
 
+        includes = (
+            "\n".join(
+                [
+                    '#include "ultra64.h"',
+                    '#include "macros.h"',
+                    '#include "z64.h"',
+                ]
+            )
+            + "\n\n\n"
+        )
+
         return SceneFile(
             self.name,
             sceneMainData.source,
@@ -204,6 +215,7 @@ class Scene(Base):
             (
                 f"#ifndef {self.name.upper()}_H\n"
                 + f"#define {self.name.upper()}_H\n\n"
+                + includes
                 + sceneMainData.header
                 + "".join(cs.header for cs in sceneCutsceneData)
                 + sceneCollisionData.header

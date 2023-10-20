@@ -50,41 +50,32 @@ class SceneFile:
         self.hasCutscenes = len(self.sceneCutscenes) > 0
         self.hasSceneTextures = len(self.sceneTextures) > 0
 
-    def getSourceWithSceneInclude(self, sceneInclude: str, source: str, includeSrc: str):
+    def getSourceWithSceneInclude(self, sceneInclude: str, source: str):
+        ret = ""
         if not sceneInclude in source:
-            includeSrc += sceneInclude
-        return includeSrc + source
+            ret = sceneInclude
+        return ret + source
 
     def setIncludeData(self):
         """Adds includes at the beginning of each file to write"""
 
-        sceneInclude = f'\n#include "{self.name}.h"\n\n\n'
-        includes = (
-            "\n".join(
-                [
-                    '#include "ultra64.h"',
-                    '#include "macros.h"',
-                    '#include "z64.h"',
-                ]
-            )
-            + "\n"
-        )
+        sceneInclude = f'#include "{self.name}.h"\n\n\n'
 
         for roomData in self.roomList.values():
-            roomData.roomMain = self.getSourceWithSceneInclude(sceneInclude, roomData.roomMain, includes)
+            roomData.roomMain = self.getSourceWithSceneInclude(sceneInclude, roomData.roomMain)
 
             if not self.singleFileExport:
-                roomData.roomModelInfo = self.getSourceWithSceneInclude(sceneInclude, roomData.roomModelInfo, includes)
-                roomData.roomModel = self.getSourceWithSceneInclude(sceneInclude, roomData.roomModel, includes)
+                roomData.roomModelInfo = self.getSourceWithSceneInclude(sceneInclude, roomData.roomModelInfo)
+                roomData.roomModel = self.getSourceWithSceneInclude(sceneInclude, roomData.roomModel)
 
-        self.sceneMain = self.getSourceWithSceneInclude(sceneInclude, self.sceneMain, includes)
+        self.sceneMain = self.getSourceWithSceneInclude(sceneInclude, self.sceneMain)
+        self.sceneTextures = self.getSourceWithSceneInclude(sceneInclude, self.sceneTextures)
+
         if not self.singleFileExport:
-            self.sceneCollision = self.getSourceWithSceneInclude(sceneInclude, self.sceneCollision, includes)
-            self.sceneTextures = self.getSourceWithSceneInclude(sceneInclude, self.sceneTextures, includes)
-
+            self.sceneCollision = self.getSourceWithSceneInclude(sceneInclude, self.sceneCollision)
             if self.hasCutscenes:
                 for cs in self.sceneCutscenes:
-                    cs = self.getSourceWithSceneInclude(sceneInclude, cs, includes)
+                    cs = self.getSourceWithSceneInclude(sceneInclude, cs)
 
     def write(self):
         self.setIncludeData()
