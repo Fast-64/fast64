@@ -16,6 +16,7 @@ from .utility import (
     createNewBone,
     createNewCameraShot,
     getCutsceneEndFrame,
+    getCutsceneCamera,
 )
 
 
@@ -68,11 +69,8 @@ class OOTCSMotionPlayPreview(Operator):
 
             if csObj is not None:
                 # get and set the camera
-                cameraObj = None
-                for childObj in csObj.children:
-                    if childObj.type == "CAMERA":
-                        cameraObj = childObj
-                        break
+                cameraObj = getCutsceneCamera(csObj)
+                cameraObj.data.passepartout_alpha = 1.0 if context.scene.ootCsUseOpaqueCamBg else 0.95
 
                 # from https://blender.stackexchange.com/a/259103
                 space = None

@@ -185,7 +185,7 @@ def previewFrameHandler(scene: Scene):
             if obj.type == "CAMERA":
                 pos, rot_quat, viewAngle = getCutsceneCamState(parentObj, scene.frame_current)
 
-                if parentObj.ootCutsceneProperty.preview.useWidescreen:
+                if scene.ootCsUseWidescreen:
                     viewAngle *= 4 / 3
 
                 if pos is not None:

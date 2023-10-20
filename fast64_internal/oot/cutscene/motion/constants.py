@@ -26,6 +26,7 @@ from .io_classes import (
     OOTCSMotionFadeSeqList,
     OOTCSMotionRumbleController,
     OOTCSMotionRumbleControllerList,
+    OOTCSMotionDestination,
 )
 
 ootEnumCSMotionCamMode = [
@@ -160,4 +161,5 @@ cmdToClass = {
     "CS_STOP_SEQ_LIST": OOTCSMotionStartStopSeqList,
     "CS_ACTOR_CUE_LIST": OOTCSMotionActorCueList,
     "CS_PLAYER_CUE_LIST": OOTCSMotionActorCueList,
+    "CS_DESTINATION": OOTCSMotionDestination,
 }

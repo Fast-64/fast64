@@ -34,17 +34,30 @@ ootEnumCSWriteType = [
     ("Object", "Object", "Reference to Blender object representing cutscene"),
 ]
 
+# order here sets order on the UI
 ootEnumCSListType = [
-    ("TextList", "Text List", "Textbox"),
-    ("Transition", "Transition", "Transition"),
-    ("LightSettingsList", "Light Settings List", "Lighting"),
-    ("TimeList", "Time List", "Time"),
-    ("StartSeqList", "Start Seq List", "Play BGM"),
-    ("StopSeqList", "Stop Seq List", "Stop BGM"),
-    ("FadeOutSeqList", "Fade-Out Seq List", "Fade BGM"),
-    ("MiscList", "Misc List", "Misc"),
-    ("RumbleList", "Rumble List", "Rumble Controller"),
+    ("TextList", "Text List", "Textbox", "ALIGN_BOTTOM", 0),
+    ("TimeList", "Time List", "Time", "TIME", 3),
+    ("FadeOutSeqList", "Fade-Out Seq List", "Fade BGM", "IPO_EASE_IN_OUT", 6),
+    ("Transition", "Transition", "Transition", "COLORSET_10_VEC", 1),
+    ("StartSeqList", "Start Seq List", "Play BGM", "PLAY", 4),
+    ("MiscList", "Misc List", "Misc", "OPTIONS", 7),
+    ("LightSettingsList", "Light Settings List", "Lighting", "LIGHT_SUN", 2),
+    ("StopSeqList", "Stop Seq List", "Stop BGM", "SNAP_FACE", 5),
+    ("RumbleList", "Rumble List", "Rumble Controller", "OUTLINER_OB_FORCE_FIELD", 8),
 ]
+
+csListTypeToIcon = {
+    "TextList": "ALIGN_BOTTOM",
+    "Transition": "COLORSET_10_VEC",
+    "LightSettingsList": "LIGHT_SUN",
+    "TimeList": "TIME",
+    "StartSeqList": "PLAY",
+    "StopSeqList": "SNAP_FACE",
+    "FadeOutSeqList": "IPO_EASE_IN_OUT",
+    "MiscList": "OPTIONS",
+    "RumbleList": "OUTLINER_OB_FORCE_FIELD",
+}
 
 ootEnumCSListTypeIcons = [
     "ALIGN_BOTTOM",

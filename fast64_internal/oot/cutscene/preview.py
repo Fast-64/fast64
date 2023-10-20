@@ -4,6 +4,7 @@ from math import isclose
 from bpy.types import Scene, Object, Node
 from bpy.app.handlers import persistent
 from ...utility import gammaInverse, hexOrDecInt
+from .motion.utility import getCutsceneCamera
 
 
 def getLerp(max: float, min: float, val: float):
@@ -224,11 +225,7 @@ def cutscenePreviewFrameHandler(scene: Scene):
         return
 
     # populate ``cameraObjects`` with the cutscene camera and the first found prerend fixed camera
-    cameraObjects = [None, None]
-    for obj in csObj.children:
-        if obj.type == "CAMERA":
-            cameraObjects[1] = obj
-            break
+    cameraObjects = [None, getCutsceneCamera(csObj)]
 
     foundObj = None
     for obj in bpy.data.objects:

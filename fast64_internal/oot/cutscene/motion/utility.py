@@ -286,3 +286,12 @@ def setupCutscene(csObj: Object):
     context.scene.render.resolution_y = 240
     context.scene.frame_set(context.scene.frame_start)
     context.scene.camera = camObj
+
+
+def getCutsceneCamera(csObj: Object) -> Object | None:
+    cameraObj = None
+    for childObj in csObj.children:
+        if childObj.type == "CAMERA":
+            cameraObj = childObj
+            break
+    return cameraObj

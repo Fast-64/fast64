@@ -216,7 +216,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                         else:
                             commandData = cmd(params)
 
-                        if cmdListName != "CS_TRANSITION":
+                        if cmdListName != "CS_TRANSITION" and cmdListName != "CS_DESTINATION":
                             foundEndCmd = False
                             for d in cmdData:
                                 cmdEntryName = d.strip().split("(")[0]
@@ -239,7 +239,10 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                                 else:
                                     listEntry = entryCmd(params)
                                 commandData.entries.append(listEntry)
-                        cmdList.append(commandData)
+                        if cmdListName == "CS_DESTINATION":
+                            cutscene.destination = commandData
+                        else:
+                            cmdList.append(commandData)
                     else:
                         print(f"WARNING: `{cmdListName}` is not implemented yet!")
 
@@ -387,6 +390,13 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
             endIndex = i
 
         return endIndex + 1
+    
+    def setPropOrCustom(self, prop, propName: str, value):
+        try:
+            setattr(prop, propName, value)
+        except TypeError:
+            setattr(prop, propName, "Custom")
+            setattr(prop, f"{propName}Custom", value)
 
     def setSubPropertyData(self, subPropsData: dict[str, str], newSubElem, entry):
         customNames = [
@@ -403,11 +413,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
             if value is not None:
                 if key in customNames:
                     valueToSet = getattr(entry, value)
-                    try:
-                        setattr(newSubElem, key, valueToSet)
-                    except TypeError:
-                        setattr(newSubElem, key, "Custom")
-                        setattr(newSubElem, f"{key}Custom", valueToSet)
+                    self.setPropOrCustom(newSubElem, key, valueToSet)
                 else:
                     setattr(newSubElem, key, getattr(entry, value))
 
@@ -440,16 +446,16 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                             newSubElem.endFrame = entry.endFrame
 
                         if data.listType == "Text":
-                            data.subPropsData["textboxType"] = "id"
+                            self.setPropOrCustom(newSubElem, "textboxType", entry.id)
                             match entry.id:
                                 case "Text":
                                     newSubElem.textID = f"0x{entry.textId:04X}"
-                                    data.subPropsData["csTextType"] = "type"
+                                    self.setPropOrCustom(newSubElem, "csTextType", entry.type)
                                 case "None":
-                                    data.subPropsData["csTextType"] = None
+                                    pass
                                 case "OcarinaAction":
                                     newSubElem.ocarinaMessageId = f"0x{entry.messageId:04X}"
-                                    data.subPropsData["ocarinaAction"] = "ocarinaActionId"
+                                    self.setPropOrCustom(newSubElem, "ocarinaAction", entry.ocarinaActionId)
                                 case _:
                                     raise PluginError("ERROR: Unknown text type!")
                         self.setSubPropertyData(data.subPropsData, newSubElem, entry)
@@ -493,6 +499,11 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                 lastIndex = self.setCameraShotData(
                     csObj, cutscene.camEyeList, cutscene.camATList, "eyeOrAT", lastIndex, i
                 )
+
+            if cutscene.destination is not None:
+                csProp.csUseDestination = True
+                csProp.csDestinationStartFrame = cutscene.destination.startFrame
+                self.setPropOrCustom(csProp, "csDestination", cutscene.destination.id)
 
             propDataList = [
                 PropertyData("Text", {"textboxType": "id"}, True),

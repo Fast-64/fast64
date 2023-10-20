@@ -6,8 +6,9 @@ from ...utility import PluginError, prop_split
 from ..oot_utility import OOTCollectionAdd, drawCollectionOps, getEnumName
 from ..oot_constants import ootData
 from ..oot_upgrade import upgradeCutsceneSubProps, upgradeCSListProps, upgradeCutsceneProperty
-from .operators import OOTCSTextAdd, OOT_SearchCSDestinationEnumOperator, drawCSListAddOp
+from .operators import OOTCSTextAdd, OOT_SearchCSDestinationEnumOperator, OOTCSListAdd
 from .motion.preview import previewFrameHandler
+from .motion.utility import getCutsceneCamera
 
 from .motion.operators import (
     OOTCSMotionPlayPreview,
@@ -21,6 +22,7 @@ from .constants import (
     ootEnumCSListType,
     ootEnumCSTextboxTypeIcons,
     ootCSSubPropToName,
+    csListTypeToIcon,
 )
 
 
@@ -288,10 +290,6 @@ class OOTCutsceneMiscProperty(OOTCutsceneCommandBase, PropertyGroup):
 
 
 class OOTCutscenePreviewProperty(PropertyGroup):
-    useWidescreen: BoolProperty(
-        name="Use Widescreen Camera", default=False, update=lambda self, context: self.updateWidescreen(context)
-    )
-
     transitionList: CollectionProperty(type=OOTCutsceneTransitionProperty)
     miscList: CollectionProperty(type=OOTCutsceneMiscProperty)
 
@@ -299,16 +297,6 @@ class OOTCutscenePreviewProperty(PropertyGroup):
     isFixedCamSet: BoolProperty(default=False)
     prevFrame: IntProperty(default=-1)
     nextFrame: IntProperty(default=1)
-
-    def updateWidescreen(self, context: Context):
-        if self.useWidescreen:
-            context.scene.render.resolution_x = 426
-        else:
-            context.scene.render.resolution_x = 320
-        context.scene.render.resolution_y = 240
-
-        # force a refresh of the current frame
-        previewFrameHandler(context.scene)
 
 
 class OOTCutsceneProperty(PropertyGroup):
@@ -320,6 +308,7 @@ class OOTCutsceneProperty(PropertyGroup):
     csDestinationCustom: StringProperty(default="CS_DEST_CUSTOM")
     csDestinationStartFrame: IntProperty(name="Start Frame", min=0, default=99)
     csLists: CollectionProperty(type=OOTCSListProperty, name="Cutscene Lists")
+    menuTab: EnumProperty(items=ootEnumCSListType)
 
     preview: PointerProperty(type=OOTCutscenePreviewProperty)
 
@@ -353,7 +342,8 @@ class OOTCutsceneProperty(PropertyGroup):
         split.operator(OOTCSMotionCreatePlayerCueList.bl_idname)
         split.operator(OOTCSMotionCreateActorCueList.bl_idname)
 
-        layout.prop(self.preview, "useWidescreen")
+        layout.prop(bpy.context.scene, "ootCsUseWidescreen")
+        layout.prop(bpy.context.scene, "ootCsUseOpaqueCamBg")
 
         layout.prop(self, "csEndFrame")
 
@@ -373,11 +363,19 @@ class OOTCutsceneProperty(PropertyGroup):
             r = csDestLayout.row()
             r.prop(self, "csDestinationStartFrame")
 
-        drawCSListAddOp(layout, obj.name, "Cutscene")
+        menuBox = layout.box()
+        menuBox.label(text="Cutscene Commands")
+        menuBox.column_flow(columns=3, align=True).prop(self, "menuTab", expand=True)
+        label = f"Add New {self.menuTab.replace('List', ' List')}"
+        op = menuBox.operator(OOTCSListAdd.bl_idname, text=label, icon=csListTypeToIcon[self.menuTab])
+        op.collectionType = "Cutscene"
+        op.listType = self.menuTab
+        op.objName = obj.name
 
         for i, csListProp in enumerate(self.csLists):
             # ``csListProp`` type: OOTCSListProperty
-            csListProp.draw_props(layout, i, obj.name, "Cutscene")
+            if csListProp.listType == self.menuTab:
+                csListProp.draw_props(menuBox, i, obj.name, "Cutscene")
 
 
 classes = (
@@ -395,6 +393,26 @@ classes = (
 )
 
 
+def updateWidescreen(self, context: Context):
+    if context.scene.ootCsUseWidescreen:
+        context.scene.render.resolution_x = 426
+    else:
+        context.scene.render.resolution_x = 320
+    context.scene.render.resolution_y = 240
+
+    # force a refresh of the current frame
+    previewFrameHandler(context.scene)
+
+
+def updateCamBackground(self, context: Context):
+    camObj = getCutsceneCamera(context.view_layer.objects.active)
+    if camObj is not None:
+        if context.scene.ootCsUseOpaqueCamBg:
+            camObj.data.passepartout_alpha = 1.0
+        else:
+            camObj.data.passepartout_alpha = 0.95
+
+
 def cutscene_props_register():
     for cls in classes:
         register_class(cls)
@@ -403,8 +421,21 @@ def cutscene_props_register():
     Scene.ootCSPreviewNodesReady = BoolProperty(default=False)
     Scene.ootCSPreviewCSObj = PointerProperty(type=Object)
 
+    Scene.ootCsUseWidescreen = BoolProperty(
+        name="Use Widescreen Camera", default=False, update=updateWidescreen
+    )
+
+    Scene.ootCsUseOpaqueCamBg = BoolProperty(
+        name="Use Opaque Camera Background",
+        description="Can be used to simulate the letterbox with widescreen mode enabled",
+        default=False, 
+        update=updateCamBackground
+    )
+
 
 def cutscene_props_unregister():
+    del Scene.ootCsUseOpaqueCamBg
+    del Scene.ootCsUseWidescreen
     del Scene.ootCSPreviewCSObj
     del Scene.ootCSPreviewNodesReady
     del Object.ootCutsceneProperty

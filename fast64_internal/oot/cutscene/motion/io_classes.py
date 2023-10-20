@@ -442,6 +442,20 @@ class OOTCSMotionRumbleControllerList(OOTCSMotionBase):
 
 
 @dataclass
+class OOTCSMotionDestination(OOTCSMotionBase):
+    """This class contains Destination command data"""
+
+    id: str = None
+    paramNumber: int = 3
+    listName: str = "destination"
+
+    def __post_init__(self):
+        if self.params is not None:
+            self.id = self.getEnumValue("csDestination", 0)
+            self.startFrame = getInteger(self.params[1])
+
+
+@dataclass
 class OOTCSMotionCutscene:
     """This class contains a Cutscene's data, including every commands' data"""
 
@@ -450,6 +464,7 @@ class OOTCSMotionCutscene:
     frameCount: int
     paramNumber: int = 2
 
+    destination: OOTCSMotionDestination = None
     actorCueList: list[OOTCSMotionActorCueList] = field(default_factory=list)
     playerCueList: list[OOTCSMotionActorCueList] = field(default_factory=list)
     camEyeSplineList: list[OOTCSMotionCamEyeSpline] = field(default_factory=list)
