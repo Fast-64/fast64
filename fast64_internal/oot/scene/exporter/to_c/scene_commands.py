@@ -72,7 +72,7 @@ def getCutsceneDataCmd(outScene: OOTScene, headerIndex: int):
         case _:
             csDataName = outScene.csWriteCustom
 
-    return f"SCENE_CMD_CUTSCENE_DATA({csDataName})"
+    return indent + f"SCENE_CMD_CUTSCENE_DATA({csDataName})"
 
 
 def getSceneCommandList(outScene: OOTScene, headerIndex: int):
