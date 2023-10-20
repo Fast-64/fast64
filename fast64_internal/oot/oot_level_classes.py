@@ -114,11 +114,6 @@ class OOTScene(OOTCommonCommands):
         self.csWriteType = "Object"
         self.csName = ""
         self.csWriteCustom = ""
-        self.csWriteObject = None
-        self.csEndFrame = 100
-        self.csUseDestination = False
-        self.csDestinationStartFrame = 99
-        self.csLists = []
         self.extraCutscenes = []
 
         self.sceneTableEntry = OOTSceneTableEntry()
@@ -159,9 +154,6 @@ class OOTScene(OOTCommonCommands):
 
     def cameraListName(self):
         return self.sceneName() + "_cameraList"
-
-    def cutsceneDataName(self, headerIndex):
-        return self.sceneName() + "_header" + format(headerIndex, "02") + "_cutscene"
 
     def alternateHeadersName(self):
         return self.sceneName() + "_alternateHeaders"

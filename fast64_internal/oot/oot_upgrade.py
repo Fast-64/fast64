@@ -1,9 +1,13 @@
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 from bpy.types import Object, CollectionProperty
 from .data import OoT_ObjectData
 from .oot_utility import getEvalParams
-from .oot_constants import ootData, ootEnumMusicSeq
+from .oot_constants import ootData
 from .cutscene.motion.constants import ootEnumCSMotionCamMode
+
+if TYPE_CHECKING:
+    from .cutscene.properties import OOTCutsceneProperty
 
 
 #####################################
@@ -206,9 +210,7 @@ def upgradeCSListProps(csListProp):
     )
 
 
-def upgradeCutsceneProperty(csProp):
-    # ``csProp`` type: ``OOTCutsceneProperty``
-
+def upgradeCutsceneProperty(csProp: "OOTCutsceneProperty"):
     csPropOldToNew = {
         "csWriteTerminator": "csUseDestination",
         "csTermStart": "csDestinationStartFrame",

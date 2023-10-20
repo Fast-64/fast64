@@ -5,13 +5,13 @@ import bpy
 from bpy.path import abspath
 from bpy.ops import object
 from bpy.props import StringProperty, EnumProperty, IntProperty
-from bpy.types import Scene, Operator, Context, UILayout
+from bpy.types import Scene, Operator, Context
 from bpy.utils import register_class, unregister_class
 from ...utility import CData, PluginError, writeCData, raisePluginError
 from ..oot_utility import getCollection, getCutsceneName
 from ..oot_constants import ootData
 from ..scene.exporter.to_c import ootCutsceneDataToC
-from .constants import ootEnumCSTextboxType, ootEnumCSListType, ootEnumCSListTypeIcons
+from .constants import ootEnumCSTextboxType, ootEnumCSListType
 from .motion.importer import importCutsceneData
 from .motion.exporter import getCutsceneMotionData
 
@@ -41,25 +41,6 @@ def ootCutsceneIncludes(headerfilename):
         + '"\n\n'
     )
     return ret
-
-
-def drawCSListAddOp(layout: UILayout, objName: str, collectionType: str):
-    def addButton(row):
-        nonlocal l
-        op = row.operator(OOTCSListAdd.bl_idname, text=ootEnumCSListType[l][1], icon=ootEnumCSListTypeIcons[l])
-        op.collectionType = collectionType
-        op.listType = ootEnumCSListType[l][0]
-        op.objName = objName
-        l += 1
-
-    box = layout.box()
-    l = 0
-    row = box.row(align=True)
-    row.label(text="Cutscene Commands")
-    for _ in range(3):
-        row = box.row(align=True)
-        for _ in range(3):
-            addButton(row)
 
 
 def insertCutsceneData(filePath: str, csName: str):

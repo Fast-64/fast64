@@ -1,9 +1,3 @@
-ootEnumCSTextboxTypeEntryC = {
-    "Text": "CS_TEXT",
-    "None": "CS_TEXT_NONE",
-    "OcarinaAction": "CS_TEXT_OCARINA_ACTION",
-}
-
 ootEnumCSListTypeListC = {
     "TextList": "CS_TEXT_LIST",
     "Transition": "CS_TRANSITION",
@@ -16,21 +10,8 @@ ootEnumCSListTypeListC = {
     "RumbleList": "CS_RUMBLE_CONTROLLER_LIST",
 }
 
-ootEnumCSListTypeEntryC = {
-    "Text": None,  # special case
-    "Transition": None,  # no list entries
-    "LightSettings": "CS_LIGHT_SETTING",
-    "Time": "CS_TIME",
-    "StartSeq": "CS_START_SEQ",
-    "StopSeq": "CS_STOP_SEQ",
-    "FadeOutSeq": "CS_FADE_OUT_SEQ",
-    "Misc": "CS_MISC",
-    "Rumble": "CS_RUMBLE_CONTROLLER",
-}
-
 ootEnumCSWriteType = [
     ("Custom", "Custom", "Provide the name of a cutscene header variable"),
-    ("Embedded", "(Deprecated) Embedded", "Cutscene data is within scene header"),
     ("Object", "Object", "Reference to Blender object representing cutscene"),
 ]
 
@@ -58,18 +39,6 @@ csListTypeToIcon = {
     "MiscList": "OPTIONS",
     "RumbleList": "OUTLINER_OB_FORCE_FIELD",
 }
-
-ootEnumCSListTypeIcons = [
-    "ALIGN_BOTTOM",
-    "COLORSET_10_VEC",
-    "LIGHT_SUN",
-    "TIME",
-    "PLAY",
-    "SNAP_FACE",
-    "IPO_EASE_IN_OUT",
-    "OPTIONS",
-    "OUTLINER_OB_FORCE_FIELD",
-]
 
 ootEnumCSTextboxType = [
     ("Text", "Text", "Text"),
@@ -103,4 +72,14 @@ ootCSSubPropToName = {
     "rumbleSourceStrength": "Source Strength",
     "rumbleDuration": "Duration",
     "rumbleDecreaseRate": "Decrease Rate",
+    # Lists
+    "TextList": "Text List",
+    "TimeList": "Time List",
+    "FadeOutSeqList": "Fade-Out Seq List",
+    "Transition": "Transition",
+    "StartSeqList": "Start Seq List",
+    "MiscList": "Misc List",
+    "LightSettingsList": "Light Settings List",
+    "StopSeqList": "Stop Seq Lis",
+    "RumbleList": "Rumble List",
 }

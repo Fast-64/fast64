@@ -366,7 +366,7 @@ class OOTCutsceneProperty(PropertyGroup):
         menuBox = layout.box()
         menuBox.label(text="Cutscene Commands")
         menuBox.column_flow(columns=3, align=True).prop(self, "menuTab", expand=True)
-        label = f"Add New {self.menuTab.replace('List', ' List')}"
+        label = ootCSSubPropToName[self.menuTab]
         op = menuBox.operator(OOTCSListAdd.bl_idname, text=label, icon=csListTypeToIcon[self.menuTab])
         op.collectionType = "Cutscene"
         op.listType = self.menuTab

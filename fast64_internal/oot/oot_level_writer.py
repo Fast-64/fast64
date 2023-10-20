@@ -4,7 +4,6 @@ from ..f3d.f3d_writer import TriangleConverterInfo, saveStaticModel, getInfoDict
 from .scene.properties import OOTSceneProperties, OOTSceneHeaderProperty, OOTAlternateSceneHeaderProperty
 from .room.properties import OOTRoomHeaderProperty, OOTAlternateRoomHeaderProperty
 from .oot_constants import ootData
-from .cutscene.exporter import readCutsceneData
 from .oot_spline import assertCurveValid, ootConvertPath
 from .oot_model_classes import OOTModel
 from .oot_collision import OOTCameraData, exportCollisionCommon
@@ -271,16 +270,9 @@ def readSceneData(
     if scene.writeCutscene:
         scene.csWriteType = getattr(sceneHeader, "csWriteType")
 
-        if scene.csWriteType == "Embedded":
-            scene.csEndFrame = getCustomProperty(sceneHeader, "csEndFrame")
-            scene.csUseDestination = getCustomProperty(sceneHeader, "csUseDestination")
-            scene.csDestinationStartFrame = getCustomProperty(sceneHeader, "csDestinationStartFrame")
-            readCutsceneData(scene, sceneHeader)
-
-        elif scene.csWriteType == "Custom":
+        if scene.csWriteType == "Custom":
             scene.csWriteCustom = getCustomProperty(sceneHeader, "csWriteCustom")
-
-        elif scene.csWriteType == "Object":
+        else:
             if sceneHeader.csWriteObject is None:
                 raise PluginError("No object selected for cutscene reference")
             elif sceneHeader.csWriteObject.ootEmptyType != "Cutscene":

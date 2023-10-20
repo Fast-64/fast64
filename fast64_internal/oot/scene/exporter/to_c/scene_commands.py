@@ -65,8 +65,6 @@ def getLightSettingsCmd(outScene: OOTScene, headerIndex: int):
 
 def getCutsceneDataCmd(outScene: OOTScene, headerIndex: int):
     match outScene.csWriteType:
-        case "Embedded":
-            csDataName = outScene.cutsceneDataName(headerIndex)
         case "Object":
             csDataName = outScene.csName
         case _:

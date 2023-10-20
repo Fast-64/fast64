@@ -1,4 +1,4 @@
-import os, bpy
+import bpy
 from bpy.types import PropertyGroup, Object, Light, UILayout, Scene
 from bpy.props import (
     EnumProperty,
@@ -12,8 +12,6 @@ from bpy.props import (
 from bpy.utils import register_class, unregister_class
 from ...render_settings import on_update_oot_render_settings
 from ...utility import prop_split, customExportWarning
-from ..cutscene.properties import OOTCSListProperty
-from ..cutscene.operators import drawCSListAddOp
 from ..cutscene.constants import ootEnumCSWriteType
 
 from ..oot_utility import (
@@ -22,7 +20,6 @@ from ..oot_utility import (
     drawCollectionOps,
     drawEnumWithCustom,
     drawAddButton,
-    getEnumName,
 )
 
 from ..oot_constants import (
@@ -266,7 +263,7 @@ class OOTSceneHeaderProperty(PropertyGroup):
     exitList: CollectionProperty(type=OOTExitProperty, name="Exit List")
 
     writeCutscene: BoolProperty(name="Write Cutscene")
-    csWriteType: EnumProperty(name="Cutscene Data Type", items=ootEnumCSWriteType, default="Embedded")
+    csWriteType: EnumProperty(name="Cutscene Data Type", items=ootEnumCSWriteType, default="Object")
     csWriteCustom: StringProperty(name="CS hdr var:", default="")
     csWriteObject: PointerProperty(
         name="Cutscene Object",
@@ -274,19 +271,8 @@ class OOTSceneHeaderProperty(PropertyGroup):
         poll=lambda self, object: object.type == "EMPTY" and object.ootEmptyType == "Cutscene",
     )
 
-    # These properties are for the deprecated "Embedded" cutscene type. They have
-    # not been removed as doing so would break any existing scenes made with this
-    # type of cutscene data.
-    csEndFrame: IntProperty(name="End Frame", min=0, default=100)
-    csUseDestination: BoolProperty(name="Write Terminator (Code Execution)")
-    csDestination: IntProperty(name="Index", min=0)
-    csDestinationStartFrame: IntProperty(name="Start Frm", min=0, default=99)
-    csLists: CollectionProperty(type=OOTCSListProperty, name="Cutscene Lists")
-
     extraCutscenes: CollectionProperty(type=OOTExtraCutsceneProperty, name="Extra Cutscenes")
-
     sceneTableEntry: PointerProperty(type=OOTSceneTableEntryProperty)
-
     menuTab: EnumProperty(name="Menu", items=ootEnumSceneMenu, update=onMenuTabChange)
     altMenuTab: EnumProperty(name="Menu", items=ootEnumSceneMenuAlternate)
 
@@ -362,26 +348,8 @@ class OOTSceneHeaderProperty(PropertyGroup):
                 r.prop(self, "csWriteType", text="Data")
                 if self.csWriteType == "Custom":
                     cutscene.prop(self, "csWriteCustom")
-                elif self.csWriteType == "Object":
-                    cutscene.prop(self, "csWriteObject")
                 else:
-                    # This is the GUI setup / drawing for the properties for the
-                    # deprecated "Embedded" cutscene type. They have not been removed
-                    # as doing so would break any existing scenes made with this type
-                    # of cutscene data.
-                    cutscene.label(text='Embedded cutscenes are deprecated. Please use "Object" instead.')
-                    cutscene.prop(self, "csEndFrame", text="End Frame")
-                    cutscene.prop(self, "csUseDestination", text="Write Terminator (Code Execution)")
-                    if self.csUseDestination:
-                        r = cutscene.row()
-                        r.prop(self, "csDestination", text="Index")
-                        r.prop(self, "csDestinationStartFrame", text="Start Frm")
-                    collectionType = "CSHdr." + str(0 if headerIndex is None else headerIndex)
-
-                    drawCSListAddOp(cutscene, objName, collectionType)
-
-                    for i, p in enumerate(self.csLists):
-                        p.draw_props(cutscene, i, objName, collectionType)
+                    cutscene.prop(self, "csWriteObject")
 
             if headerIndex is None or headerIndex == 0:
                 cutscene.label(text="Extra cutscenes (not in any header):")

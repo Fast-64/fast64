@@ -38,9 +38,7 @@ def getSceneCutscenes(outScene: OOTScene):
         # curHeader is either None or an OOTScene. This can either be the main scene itself,
         # or one of the alternate / cutscene headers.
         if curHeader is not None and curHeader.writeCutscene:
-            if curHeader.csWriteType == "Embedded":
-                cutscenes.append(ootCutsceneDataToC(curHeader.cutsceneDataName(i)))
-            elif curHeader.csWriteType == "Object" and curHeader.csName not in csObjects:
+            if curHeader.csWriteType == "Object" and curHeader.csName not in csObjects:
                 cutscenes.append(ootCutsceneDataToC(curHeader.csName))
                 csObjects.append(curHeader.csName)
 
