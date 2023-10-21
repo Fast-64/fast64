@@ -67,7 +67,11 @@ class OOT_CutscenePanel(OOT_Panel):
         col.operator(OOT_ImportCutscene.bl_idname)
 
 
-oot_cutscene_panel_classes = (OoT_PreviewSettingsPanel, OOT_CutscenePanel,)
+oot_cutscene_panel_classes = (
+    OoT_PreviewSettingsPanel,
+    OOT_CutscenePanel,
+)
+
 
 def updateWidescreen(self, context: Context):
     if context.scene.ootCsUseWidescreen:

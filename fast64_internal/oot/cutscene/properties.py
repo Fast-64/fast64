@@ -327,7 +327,6 @@ class OOTCutsceneProperty(PropertyGroup):
                     upgradeCutsceneSubProps(csListSubProp)
 
     def draw_props(self, layout: UILayout, obj: Object):
-
         split = layout.split(factor=0.5)
         split.operator(CutsceneCmdCreateCameraShot.bl_idname, icon="VIEW_CAMERA")
         split.operator(CutsceneCmdPlayPreview.bl_idname, icon="RESTRICT_VIEW_OFF")
@@ -382,6 +381,7 @@ classes = (
     OOTCutscenePreviewProperty,
     OOTCutsceneProperty,
 )
+
 
 def cutscene_props_register():
     for cls in classes:

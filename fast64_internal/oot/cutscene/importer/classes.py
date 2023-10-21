@@ -413,9 +413,7 @@ class CutsceneImport(CutsceneObjectFactory):
                 else:
                     setattr(newSubElem, key, getattr(entry, value))
 
-    def setPropertyData(
-        self, csProp: "OOTCutsceneProperty", cutscene: Cutscene, propDataList: list[PropertyData]
-    ):
+    def setPropertyData(self, csProp: "OOTCutsceneProperty", cutscene: Cutscene, propDataList: list[PropertyData]):
         for data in propDataList:
             listName = f"{data.listType[0].lower() + data.listType[1:]}List"
             dataList = getattr(cutscene, (listName if data.listType != "FadeOutSeq" else "fadeSeqList"))

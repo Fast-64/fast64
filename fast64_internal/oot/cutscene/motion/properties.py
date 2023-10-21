@@ -258,7 +258,7 @@ def csMotion_props_register():
     Armature.ootCamShotProp = PointerProperty(type=CutsceneCmdCameraShotProperty)
     Bone.ootCamShotPointProp = PointerProperty(type=CutsceneCmdCameraShotPointProperty)
     EditBone.ootCamShotPointProp = PointerProperty(type=CutsceneCmdCameraShotPointProperty)
-    
+
 
 def csMotion_props_unregister():
     del EditBone.ootCamShotPointProp
