@@ -92,7 +92,7 @@ class OOTCutsceneCommon:
                 if name in customValues and value == "Custom":
                     prop_split(box, self, f"{name}Custom", f"{displayName} Custom")
 
-                if name == "csTextType" and value != "CS_TEXT_CHOICE":
+                if name == "csTextType" and value != "choice":
                     break
 
 
