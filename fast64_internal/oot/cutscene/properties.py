@@ -1,5 +1,4 @@
-import bpy
-from bpy.types import PropertyGroup, Object, UILayout, Scene, Context
+from bpy.types import PropertyGroup, Object, UILayout, Scene
 from bpy.props import StringProperty, EnumProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
 from bpy.utils import register_class, unregister_class
 from ...utility import PluginError, prop_split
@@ -7,8 +6,6 @@ from ..oot_utility import OOTCollectionAdd, drawCollectionOps, getEnumName
 from ..oot_constants import ootData
 from ..oot_upgrade import upgradeCutsceneSubProps, upgradeCSListProps, upgradeCutsceneProperty
 from .operators import OOTCSTextAdd, OOT_SearchCSDestinationEnumOperator, OOTCSListAdd
-from .motion.preview import previewFrameHandler
-from .motion.utility import getCutsceneCamera
 
 from .motion.operators import (
     CutsceneCmdPlayPreview,
@@ -330,9 +327,6 @@ class OOTCutsceneProperty(PropertyGroup):
                     upgradeCutsceneSubProps(csListSubProp)
 
     def draw_props(self, layout: UILayout, obj: Object):
-        split = layout.split(factor=0.5)
-        split.label(text="Player Age for Preview")
-        split.prop(bpy.context.scene, "previewPlayerAge", text="")
 
         split = layout.split(factor=0.5)
         split.operator(CutsceneCmdCreateCameraShot.bl_idname, icon="VIEW_CAMERA")
@@ -342,17 +336,19 @@ class OOTCutsceneProperty(PropertyGroup):
         split.operator(CutsceneCmdCreatePlayerCueList.bl_idname)
         split.operator(CutsceneCmdCreateActorCueList.bl_idname)
 
-        layout.prop(bpy.context.scene, "ootCsUseWidescreen")
-        layout.prop(bpy.context.scene, "ootCsUseOpaqueCamBg")
+        split = layout.split(factor=0.5)
+        split.label(text="Cutscene End Frame")
+        split.prop(self, "csEndFrame")
 
-        layout.prop(self, "csEndFrame")
+        commandsBox = layout.box()
+        commandsBox.box().label(text="Cutscene Commands")
 
-        csDestLayout = layout.box()
-        csDestLayout.prop(self, "csUseDestination")
+        b = commandsBox.box()
+        b.prop(self, "csUseDestination")
         if self.csUseDestination:
-            r = csDestLayout.row()
+            b.prop(self, "csDestinationStartFrame")
 
-            searchBox = r.box()
+            searchBox = b.box()
             boxRow = searchBox.row()
             searchOp = boxRow.operator(OOT_SearchCSDestinationEnumOperator.bl_idname, icon="VIEWZOOM", text="")
             searchOp.objName = obj.name
@@ -360,14 +356,9 @@ class OOTCutsceneProperty(PropertyGroup):
             if self.csDestination == "Custom":
                 prop_split(searchBox.column(), self, "csDestinationCustom", "Cutscene Destination Custom")
 
-            r = csDestLayout.row()
-            r.prop(self, "csDestinationStartFrame")
-
-        menuBox = layout.box()
-        menuBox.label(text="Cutscene Commands")
-        menuBox.column_flow(columns=3, align=True).prop(self, "menuTab", expand=True)
-        label = ootCSSubPropToName[self.menuTab]
-        op = menuBox.operator(OOTCSListAdd.bl_idname, text=label, icon=csListTypeToIcon[self.menuTab])
+        commandsBox.column_flow(columns=3, align=True).prop(self, "menuTab", expand=True)
+        label = f"Add New {ootCSSubPropToName[self.menuTab]}"
+        op = commandsBox.operator(OOTCSListAdd.bl_idname, text=label, icon=csListTypeToIcon[self.menuTab])
         op.collectionType = "Cutscene"
         op.listType = self.menuTab
         op.objName = obj.name
@@ -375,7 +366,7 @@ class OOTCutsceneProperty(PropertyGroup):
         for i, csListProp in enumerate(self.csLists):
             # ``csListProp`` type: OOTCSListProperty
             if csListProp.listType == self.menuTab:
-                csListProp.draw_props(menuBox, i, obj.name, "Cutscene")
+                csListProp.draw_props(commandsBox, i, obj.name, "Cutscene")
 
 
 classes = (
@@ -392,27 +383,6 @@ classes = (
     OOTCutsceneProperty,
 )
 
-
-def updateWidescreen(self, context: Context):
-    if context.scene.ootCsUseWidescreen:
-        context.scene.render.resolution_x = 426
-    else:
-        context.scene.render.resolution_x = 320
-    context.scene.render.resolution_y = 240
-
-    # force a refresh of the current frame
-    previewFrameHandler(context.scene)
-
-
-def updateCamBackground(self, context: Context):
-    camObj = getCutsceneCamera(context.view_layer.objects.active)
-    if camObj is not None:
-        if context.scene.ootCsUseOpaqueCamBg:
-            camObj.data.passepartout_alpha = 1.0
-        else:
-            camObj.data.passepartout_alpha = 0.95
-
-
 def cutscene_props_register():
     for cls in classes:
         register_class(cls)
@@ -421,19 +391,8 @@ def cutscene_props_register():
     Scene.ootCSPreviewNodesReady = BoolProperty(default=False)
     Scene.ootCSPreviewCSObj = PointerProperty(type=Object)
 
-    Scene.ootCsUseWidescreen = BoolProperty(name="Use Widescreen Camera", default=False, update=updateWidescreen)
-
-    Scene.ootCsUseOpaqueCamBg = BoolProperty(
-        name="Use Opaque Camera Background",
-        description="Can be used to simulate the letterbox with widescreen mode enabled",
-        default=False,
-        update=updateCamBackground,
-    )
-
 
 def cutscene_props_unregister():
-    del Scene.ootCsUseOpaqueCamBg
-    del Scene.ootCsUseWidescreen
     del Scene.ootCSPreviewCSObj
     del Scene.ootCSPreviewNodesReady
     del Object.ootCutsceneProperty

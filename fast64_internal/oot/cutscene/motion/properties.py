@@ -258,16 +258,9 @@ def csMotion_props_register():
     Armature.ootCamShotProp = PointerProperty(type=CutsceneCmdCameraShotProperty)
     Bone.ootCamShotPointProp = PointerProperty(type=CutsceneCmdCameraShotPointProperty)
     EditBone.ootCamShotPointProp = PointerProperty(type=CutsceneCmdCameraShotPointProperty)
-    Scene.previewPlayerAge = EnumProperty(
-        items=[("link_adult", "Adult", "Adult Link (170 cm)", 0), ("link_child", "Child", "Child Link (130 cm)", 1)],
-        name="Player Age for Preview",
-        description="For setting Link's height for preview",
-        default="link_adult",
-    )
-
+    
 
 def csMotion_props_unregister():
-    del Scene.previewPlayerAge
     del EditBone.ootCamShotPointProp
     del Bone.ootCamShotPointProp
     del Armature.ootCamShotProp
