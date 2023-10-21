@@ -69,8 +69,9 @@ class CutsceneCmdPlayPreview(Operator):
 
             if csObj is not None:
                 # get and set the camera
+                previewSettings = context.scene.ootPreviewSettingsProperty
                 cameraObj = getCutsceneCamera(csObj)
-                cameraObj.data.passepartout_alpha = 1.0 if context.scene.ootCsUseOpaqueCamBg else 0.95
+                cameraObj.data.passepartout_alpha = 1.0 if previewSettings.useOpaqueCamBg else 0.95
 
                 # from https://blender.stackexchange.com/a/259103
                 space = None
@@ -86,10 +87,10 @@ class CutsceneCmdPlayPreview(Operator):
                 endFrame = getCutsceneEndFrame(csObj)
                 context.scene.frame_end = endFrame if endFrame > -1 else context.scene.frame_end
                 context.scene.frame_set(context.scene.frame_start)
-                bpy.context.scene.ootCSPreviewCSObj = csObj
-                bpy.context.scene.ootCSPreviewNodesReady = False
+                previewSettings.ootCSPreviewCSObj = csObj
+                previewSettings.ootCSPreviewNodesReady = False
                 setupCompositorNodes()
-                initFirstFrame(csObj, bpy.context.scene.ootCSPreviewNodesReady, cameraObj)
+                initFirstFrame(csObj, previewSettings.ootCSPreviewNodesReady, cameraObj)
                 bpy.ops.screen.animation_cancel()
                 bpy.ops.screen.animation_play()
                 return {"FINISHED"}

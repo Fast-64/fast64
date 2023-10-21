@@ -1,4 +1,4 @@
-from bpy.types import PropertyGroup, Object, UILayout, Scene
+from bpy.types import PropertyGroup, Object, UILayout, Scene, Context
 from bpy.props import StringProperty, EnumProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
 from bpy.utils import register_class, unregister_class
 from ...utility import PluginError, prop_split
@@ -6,6 +6,8 @@ from ..oot_utility import OOTCollectionAdd, drawCollectionOps, getEnumName
 from ..oot_constants import ootData
 from ..oot_upgrade import upgradeCutsceneSubProps, upgradeCSListProps, upgradeCutsceneProperty
 from .operators import OOTCSTextAdd, OOT_SearchCSDestinationEnumOperator, OOTCSListAdd
+from .motion.preview import previewFrameHandler
+from .motion.utility import getCutsceneCamera
 
 from .motion.operators import (
     CutsceneCmdPlayPreview,
@@ -236,7 +238,7 @@ class OOTCSListProperty(PropertyGroup):
         else:
             raise PluginError("Internal error: invalid listType " + self.listType)
 
-        dat = getattr(self, attrName)
+        data = getattr(self, attrName)
 
         if self.listType == "TextList":
             subBox = box.box()
@@ -258,18 +260,18 @@ class OOTCSListProperty(PropertyGroup):
             addOp = box.operator(
                 OOTCollectionAdd.bl_idname, text="Add item to " + getEnumName(ootEnumCSListType, self.listType)
             )
-            addOp.option = len(dat)
+            addOp.option = len(data)
             addOp.collectionType = collectionType + "." + attrName
             addOp.subIndex = listIndex
             addOp.objName = objName
 
-        for i, p in enumerate(dat):
+        for i, p in enumerate(data):
             # ``p`` type:
             # OOTCSTextProperty | OOTCSLightSettingsProperty | OOTCSTimeProperty |
             # OOTCSSeqProperty | OOTCSMiscProperty | OOTCSRumbleProperty
             p.draw_props(box, self, listIndex, i, objName, collectionType, enumName.removesuffix(" List"))
 
-        if len(dat) == 0:
+        if len(data) == 0:
             box.label(text="No items in " + getEnumName(ootEnumCSListType, self.listType))
 
 
@@ -294,6 +296,55 @@ class OOTCutscenePreviewProperty(PropertyGroup):
     isFixedCamSet: BoolProperty(default=False)
     prevFrame: IntProperty(default=-1)
     nextFrame: IntProperty(default=1)
+
+
+class OOTCutscenePreviewSettingsProperty(PropertyGroup):
+    useWidescreen: BoolProperty(
+        name="Use Widescreen Camera", default=False, update=lambda self, context: self.updateWidescreen(context)
+    )
+
+    useOpaqueCamBg: BoolProperty(
+        name="Use Opaque Camera Background",
+        description="Can be used to simulate the letterbox with widescreen mode enabled",
+        default=False,
+        update=lambda self, context: self.updateCamBackground(context),
+    )
+
+    previewPlayerAge: EnumProperty(
+        items=[("link_adult", "Adult", "Adult Link (170 cm)", 0), ("link_child", "Child", "Child Link (130 cm)", 1)],
+        name="Player Age for Preview",
+        description="For setting Link's height for preview",
+        default="link_adult",
+    )
+
+    # internal only
+    ootCSPreviewNodesReady: BoolProperty(default=False)
+    ootCSPreviewCSObj: PointerProperty(type=Object)
+
+    def updateWidescreen(self, context: Context):
+        if self.useWidescreen:
+            context.scene.render.resolution_x = 426
+        else:
+            context.scene.render.resolution_x = 320
+        context.scene.render.resolution_y = 240
+
+        # force a refresh of the current frame
+        previewFrameHandler(context.scene)
+
+    def updateCamBackground(self, context: Context):
+        camObj = getCutsceneCamera(context.view_layer.objects.active)
+        if camObj is not None:
+            if self.useOpaqueCamBg:
+                camObj.data.passepartout_alpha = 1.0
+            else:
+                camObj.data.passepartout_alpha = 0.95
+
+    def draw_props(self, layout: UILayout):
+        previewBox = layout.box()
+        previewBox.box().label(text="Preview Settings")
+        prop_split(previewBox, self, "previewPlayerAge", "Player Age for Preview")
+        previewBox.prop(self, "useWidescreen")
+        previewBox.prop(self, "useOpaqueCamBg")
 
 
 class OOTCutsceneProperty(PropertyGroup):
@@ -379,6 +430,7 @@ classes = (
     OOTCutsceneTransitionProperty,
     OOTCutsceneMiscProperty,
     OOTCutscenePreviewProperty,
+    OOTCutscenePreviewSettingsProperty,
     OOTCutsceneProperty,
 )
 
@@ -388,13 +440,11 @@ def cutscene_props_register():
         register_class(cls)
 
     Object.ootCutsceneProperty = PointerProperty(type=OOTCutsceneProperty)
-    Scene.ootCSPreviewNodesReady = BoolProperty(default=False)
-    Scene.ootCSPreviewCSObj = PointerProperty(type=Object)
+    Scene.ootPreviewSettingsProperty = PointerProperty(type=OOTCutscenePreviewSettingsProperty)
 
 
 def cutscene_props_unregister():
-    del Scene.ootCSPreviewCSObj
-    del Scene.ootCSPreviewNodesReady
+    del Scene.ootPreviewSettingsProperty
     del Object.ootCutsceneProperty
 
     for cls in reversed(classes):

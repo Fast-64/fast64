@@ -56,7 +56,7 @@ def setupCompositorNodes():
         space.shading.use_compositor = "CAMERA"
 
     # if everything's fine and nodes are already ready to use stop there
-    if bpy.context.scene.ootCSPreviewNodesReady:
+    if bpy.context.scene.ootPreviewSettingsProperty.ootCSPreviewNodesReady:
         return
 
     # get the existing nodes
@@ -94,7 +94,7 @@ def setupCompositorNodes():
     # misc settings
     nodeMixRGBMisc.use_alpha = True
     nodeMixRGBMisc.blend_type = "COLOR"
-    bpy.context.scene.ootCSPreviewNodesReady = True
+    bpy.context.scene.ootPreviewSettingsProperty.ootCSPreviewNodesReady = True
 
 
 def initFirstFrame(csObj: Object, useNodeFeatures: bool, defaultCam: Object):
@@ -219,7 +219,8 @@ def processCurrentFrame(csObj: Object, curFrame: float, useNodeFeatures: bool, c
 @persistent
 def cutscenePreviewFrameHandler(scene: Scene):
     """Preview frame handler, executes each frame when the cutscene is played"""
-    csObj: Object = bpy.context.scene.ootCSPreviewCSObj
+    previewSettings = scene.ootPreviewSettingsProperty
+    csObj: Object = previewSettings.ootCSPreviewCSObj
 
     if csObj is None or not csObj.type == "EMPTY" and not csObj.ootEmptyType == "Cutscene":
         return
@@ -248,7 +249,7 @@ def cutscenePreviewFrameHandler(scene: Scene):
         cameraObjects[0] = foundObj
 
     # setup nodes
-    bpy.context.scene.ootCSPreviewNodesReady = False
+    previewSettings.ootCSPreviewNodesReady = False
     setupCompositorNodes()
     previewProp = csObj.ootCutsceneProperty.preview
 
@@ -262,20 +263,20 @@ def cutscenePreviewFrameHandler(scene: Scene):
             newProp.endFrame = item.transitionEndFrame
             newProp.type = item.transitionType
         elif item.listType == "MiscList":
-            for normalMisc in item.miscList:
+            for miscEntry in item.miscList:
                 newProp = previewProp.miscList.add()
-                newProp.startFrame = normalMisc.startFrame
-                newProp.endFrame = normalMisc.endFrame
-                newProp.type = normalMisc.csMiscType
+                newProp.startFrame = miscEntry.startFrame
+                newProp.endFrame = miscEntry.endFrame
+                newProp.type = miscEntry.csMiscType
 
     # execute the main preview logic
     curFrame = bpy.context.scene.frame_current
     if isclose(curFrame, previewProp.prevFrame, abs_tol=1) and isclose(curFrame, previewProp.nextFrame, abs_tol=1):
-        processCurrentFrame(csObj, curFrame, bpy.context.scene.ootCSPreviewNodesReady, cameraObjects)
+        processCurrentFrame(csObj, curFrame, previewSettings.ootCSPreviewNodesReady, cameraObjects)
     else:
         # Simulate cutscene for all frames up to present
         for i in range(bpy.context.scene.frame_current):
-            processCurrentFrame(csObj, i, bpy.context.scene.ootCSPreviewNodesReady, cameraObjects)
+            processCurrentFrame(csObj, i, previewSettings.ootCSPreviewNodesReady, cameraObjects)
 
     # since we reached the end of the function, the current frame becomes the previous one
     previewProp.nextFrame = curFrame + 2 if curFrame > previewProp.prevFrame else curFrame - 2

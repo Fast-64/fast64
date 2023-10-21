@@ -209,7 +209,7 @@ def setupActorCuePreview(csObj: Object, actorOrPlayer: str, selectObject: bool, 
 
         actorHeight = 1.5
         if actorOrPlayer == "Player":
-            actorHeight = 1.7 if bpy.context.scene.previewPlayerAge == "link_adult" else 1.3
+            actorHeight = 1.7 if bpy.context.scene.ootPreviewSettingsProperty.previewPlayerAge == "link_adult" else 1.3
 
         previewObj.empty_display_type = "SINGLE_ARROW"
         previewObj.empty_display_size = metersToBlend(bpy.context, actorHeight)
@@ -262,7 +262,7 @@ def setupCutscene(csObj: Object):
 
     objFactory = CutsceneObjectFactory()
     context = bpy.context
-    bpy.context.scene.ootCSPreviewCSObj = csObj
+    bpy.context.scene.ootPreviewSettingsProperty.ootCSPreviewCSObj = csObj
     camObj = objFactory.getNewCameraObject(
         f"{csObj.name}.Camera",
         metersToBlend(context, 0.25),
