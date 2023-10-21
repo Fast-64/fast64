@@ -5,7 +5,7 @@ from ...utility import PluginError, prop_split
 from ..oot_utility import OOTCollectionAdd, drawCollectionOps, getEnumName
 from ..oot_constants import ootData
 from ..oot_upgrade import upgradeCutsceneSubProps, upgradeCSListProps, upgradeCutsceneProperty
-from .operators import OOTCSTextAdd, OOT_SearchCSDestinationEnumOperator, OOTCSListAdd
+from .operators import OOTCSTextAdd, OOT_SearchCSDestinationEnumOperator, OOTCSListAdd, OOT_SearchCSSeqOperator
 from .motion.preview import previewFrameHandler
 from .motion.utility import getCutsceneCamera
 
@@ -75,6 +75,11 @@ class OOTCutsceneCommon:
                     p = name
 
                 prop_split(box, self, p, displayName)
+
+                if name == "csSeqID":
+                    seqOp = box.operator(OOT_SearchCSSeqOperator.bl_idname)
+                    seqOp.itemIndex = cmdIndex
+                    seqOp.listType = listProp.listType
 
                 customValues = [
                     "csMiscType",

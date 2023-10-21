@@ -112,7 +112,7 @@ ootCSSubPropToName = {
     "StartSeqList": "Start Seq List",
     "MiscList": "Misc List",
     "LightSettingsList": "Light Settings List",
-    "StopSeqList": "Stop Seq Lis",
+    "StopSeqList": "Stop Seq List",
     "RumbleList": "Rumble List",
 }
 

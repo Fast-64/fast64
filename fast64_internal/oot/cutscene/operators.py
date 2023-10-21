@@ -252,6 +252,31 @@ class OOT_SearchCSDestinationEnumOperator(Operator):
         return {"RUNNING_MODAL"}
 
 
+class OOT_SearchCSSeqOperator(Operator):
+    bl_idname = "object.oot_search_cs_seq_enum_operator"
+    bl_label = "Search Music Sequence"
+    bl_property = "seqId"
+    bl_options = {"REGISTER", "UNDO"}
+
+    seqId: EnumProperty(items=ootData.enumData.ootEnumSeqId, default="general_sfx")
+    itemIndex: IntProperty()
+    listType: StringProperty()
+
+    def execute(self, context):
+        csProp = context.view_layer.objects.active.ootCutsceneProperty
+        for elem in csProp.csLists:
+            if elem.listType == self.listType:
+                elem.seqList[self.itemIndex].csSeqID = self.seqId
+                break
+        context.region.tag_redraw()
+        self.report({"INFO"}, "Selected: " + self.seqId)
+        return {"FINISHED"}
+
+    def invoke(self, context, event):
+        context.window_manager.invoke_search_popup(self)
+        return {"RUNNING_MODAL"}
+
+
 oot_cutscene_classes = (
     OOTCSTextAdd,
     OOTCSListAdd,
@@ -259,6 +284,7 @@ oot_cutscene_classes = (
     OOT_ExportCutscene,
     OOT_ExportAllCutscenes,
     OOT_SearchCSDestinationEnumOperator,
+    OOT_SearchCSSeqOperator,
 )
 
 
