@@ -12,6 +12,7 @@ from .f3d_material import (
     all_combiner_uses,
     getMaterialScrollDimensions,
     isTexturePointSampled,
+    RDPSettings,
 )
 from .f3d_texture_writer import MultitexManager, TileLoad, maybeSaveSingleLargeTextureSetup
 from .f3d_gbi import *

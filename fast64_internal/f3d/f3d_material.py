@@ -36,7 +36,7 @@ from ..utility import *
 from ..render_settings import Fast64RenderSettings_Properties, update_scene_props_from_render_settings
 from .f3d_material_helpers import F3DMaterial_UpdateLock
 from bpy.app.handlers import persistent
-from typing import Generator, Optional, Tuple, Any, Dict
+from typing import Generator, Optional, Tuple, Any, Dict, Union
 
 F3DMaterialHash = Any  # giant tuple
 
@@ -177,7 +177,7 @@ def update_draw_layer(self, context):
         set_output_node_groups(material)
 
 
-def all_blender_uses(rdp_settings: "RDPSettings") -> Dict[str:bool]:
+def all_blender_uses(rdp_settings: "RDPSettings") -> Dict[str, bool]:
     """
     Returns a dictionary of the external features which the blender may or may
     not use, or None if set_rendermode is disabled so we don't know.
@@ -438,7 +438,7 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
         )
     if not useDropdown or dataHolder.menu_geo:
 
-        def indentGroup(parent: UILayout, textOrProp: Union[str, F3DMaterialProperty], isText: bool) -> UILayout:
+        def indentGroup(parent: UILayout, textOrProp: Union[str, "F3DMaterialProperty"], isText: bool) -> UILayout:
             c = parent.column(align=True)
             if isText:
                 c.label(text=textOrProp)
@@ -879,7 +879,7 @@ class F3DPanel(Panel):
         elif context.scene.gameEditorMode == "OOT":
             prop_split(layout, material.f3d_mat.draw_layer, "oot", "Draw Layer")
 
-    def ui_misc(self, f3dMat: F3DMaterialProperty, inputCol: UILayout, showCheckBox: bool) -> None:
+    def ui_misc(self, f3dMat: "F3DMaterialProperty", inputCol: UILayout, showCheckBox: bool) -> None:
         if f3dMat.rdp_settings.g_ambocclusion:
             if showCheckBox or f3dMat.set_ao:
                 inputGroup = inputCol.column()
@@ -927,7 +927,7 @@ class F3DPanel(Panel):
                     prop_split(inputGroup.row(), f3dMat, "fog_color", "Fog Color")
                     prop_split(inputGroup.row(), f3dMat, "fog_position", "Fog Range")
 
-    def checkDrawLayersWarnings(self, f3dMat: F3DMaterialProperty, useDict: Dict[str:bool], layout: UILayout):
+    def checkDrawLayersWarnings(self, f3dMat: "F3DMaterialProperty", useDict: Dict[str, bool], layout: UILayout):
         settings = f3dMat.rdp_settings
         isF3DEX3 = bpy.context.scene.f3d_type == "F3DEX3"
         lightFxPrereq = isF3DEX3 and settings.g_lighting
@@ -948,11 +948,13 @@ class F3DPanel(Panel):
             return
         noticeBox = layout.box().column()
         if not usesVertexColor:
-            noticeBox.label(text='There must be a vertex color layer called "Alpha".', icon="IMAGE_ALPHA")
+            noticeBox.label(text='Mesh must have Color Attribute (vtx color) layer called "Alpha".', icon="IMAGE_ALPHA")
         elif not usesVertexAlpha:
-            noticeBox.label(text='There must be a vertex color layer called "Col".', icon="IMAGE_RGB_ALPHA")
+            noticeBox.label(
+                text='Mesh must have Color Attribute (vtx color) layer called "Col".', icon="IMAGE_RGB_ALPHA"
+            )
         else:
-            noticeBox.label(text="There must be two vertex color layers.", icon="IMAGE_RGB_ALPHA")
+            noticeBox.label(text="Mesh must have two Color Attribute (vtx color) layers.", icon="IMAGE_RGB_ALPHA")
             noticeBox.label(text='They must be called "Col" and "Alpha".', icon="IMAGE_ALPHA")
 
     def checkDrawMixedCIWarning(self, layout, useDict, f3dMat):

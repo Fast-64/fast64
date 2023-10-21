@@ -506,7 +506,7 @@ class F3DContext:
         # data for Mesh.from_pydata, list of BufferVertex tuples
         # use BufferVertex to also form uvs / normals / colors
         self.verts: list[F3DVert] = []
-        self.limbGroups: dict[str : list[int]] = {}  # dict of groupName : vertex indices
+        self.limbGroups: dict[str, list[int]] = {}  # dict of groupName : vertex indices
 
         self.lights: Lights = Lights("lights_context", self.f3d)
 
