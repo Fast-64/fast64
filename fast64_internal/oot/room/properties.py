@@ -34,7 +34,7 @@ class OOTObjectProperty(PropertyGroup):
     objectIDCustom: StringProperty(default="OBJECT_CUSTOM")
 
     @staticmethod
-    def upgrade_object(obj):
+    def upgrade_object(obj: Object):
         print(f"Processing '{obj.name}'...")
         upgradeRoomHeaders(obj, ootData.objectData)
 
