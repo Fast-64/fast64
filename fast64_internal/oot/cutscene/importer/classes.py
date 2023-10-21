@@ -10,16 +10,16 @@ if TYPE_CHECKING:
     from ..properties import OOTCSListProperty, OOTCutsceneProperty
 
 from ..constants import (
-    ootCSMotionLegacyToNewCmdNames,
-    ootCSMotionListCommands,
-    ootCSMotionCSCommands,
-    ootCSMotionListEntryCommands,
-    ootCSMotionSingleCommands,
-    ootCSMotionListAndSingleCommands,
+    ootCSLegacyToNewCmdNames,
+    ootCSListCommands,
+    ootCutsceneCommandsC,
+    ootCSListEntryCommands,
+    ootCSSingleCommands,
+    ootCSListAndSingleCommands,
     cmdToClass,
 )
 
-from ..io_classes import (
+from ..classes import (
     CutsceneCmdActorCueList,
     CutsceneCmdCamPoint,
     Cutscene,
@@ -42,8 +42,12 @@ class PropertyData:
     useEndFrame: bool
 
 
-class CutsceneCmdImportCommands:
-    """This class contains functions to create the cutscene dataclasses"""
+@dataclass
+class CutsceneImport(CutsceneObjectFactory):
+    """This class contains functions to create the new cutscene Blender data"""
+
+    filePath: str  # used when importing from the panel
+    fileData: str  # used when importing the cutscenes when importing a scene
 
     def getCmdParams(self, data: str, cmdName: str, paramNumber: int):
         """Returns the list of every parameter of the given command"""
@@ -62,14 +66,6 @@ class CutsceneCmdImportCommands:
         params = self.getCmdParams(csData, "CS_BEGIN_CUTSCENE", Cutscene.paramNumber)
         return Cutscene(name, getInteger(params[0]), getInteger(params[1]))
 
-
-@dataclass
-class CutsceneCmdImport(CutsceneCmdImportCommands, CutsceneObjectFactory):
-    """This class contains functions to create the new cutscene Blender data"""
-
-    filePath: str  # used when importing from the panel
-    fileData: str  # used when importing the cutscenes when importing a scene
-
     def getParsedCutscenes(self):
         """Returns the parsed commands read from every cutscene we can find"""
 
@@ -84,11 +80,11 @@ class CutsceneCmdImport(CutsceneCmdImportCommands, CutsceneObjectFactory):
             raise PluginError("ERROR: File data can't be found!")
 
         # replace old names
-        oldNames = list(ootCSMotionLegacyToNewCmdNames.keys())
+        oldNames = list(ootCSLegacyToNewCmdNames.keys())
         fileData = fileData.replace("CS_CMD_CONTINUE", "CS_CAM_CONTINUE")
         fileData = fileData.replace("CS_CMD_STOP", "CS_CAM_STOP")
         for oldName in oldNames:
-            fileData = fileData.replace(f"{oldName}(", f"{ootCSMotionLegacyToNewCmdNames[oldName]}(")
+            fileData = fileData.replace(f"{oldName}(", f"{ootCSLegacyToNewCmdNames[oldName]}(")
 
         # parse cutscenes
         fileLines = fileData.split("\n")
@@ -136,13 +132,13 @@ class CutsceneCmdImport(CutsceneCmdImportCommands, CutsceneObjectFactory):
 
                 # NOTE: ``CS_UNK_DATA()`` are commands that are completely useless, so we're ignoring those
                 if csName is not None and not "CS_UNK_DATA" in curCmd:
-                    if curCmd in ootCSMotionCSCommands:
+                    if curCmd in ootCutsceneCommandsC:
                         line = line.removesuffix(",") + "\n"
 
-                        if curCmd in ootCSMotionSingleCommands and curCmd != "CS_END":
+                        if curCmd in ootCSSingleCommands and curCmd != "CS_END":
                             parsedData += line
 
-                        if not cmdListFound and curCmd in ootCSMotionListCommands:
+                        if not cmdListFound and curCmd in ootCSListCommands:
                             cmdListFound = True
                             parsedData = ""
 
@@ -157,11 +153,11 @@ class CutsceneCmdImport(CutsceneCmdImportCommands, CutsceneObjectFactory):
                         if curCmdPrefix is not None:
                             if curCmdPrefix in curCmd:
                                 parsedData += line
-                            elif not cmdListFound and curCmd in ootCSMotionListEntryCommands:
+                            elif not cmdListFound and curCmd in ootCSListEntryCommands:
                                 print(f"{csName}, command:\n{line}")
                                 raise PluginError(f"ERROR: Found a list entry outside a list inside ``{csName}``!")
 
-                        if cmdListFound and nextCmd == "CS_END" or nextCmd in ootCSMotionListAndSingleCommands:
+                        if cmdListFound and nextCmd == "CS_END" or nextCmd in ootCSListAndSingleCommands:
                             cmdListFound = False
                             parsedCS.append(parsedData)
                             parsedData = ""

@@ -2,13 +2,13 @@ import bpy
 
 from bpy.types import Object
 from ....utility import PluginError
-from .classes import CutsceneCmdExport
+from .classes import CutsceneExport
 
 
-def getCSMotionObjects(csName: str):
+def getCutsceneObjects(csName: str):
     """Returns the object list containing every object from the cutscene to export"""
 
-    csMotionObjects: dict[str, list[Object]] = {
+    csObjects: dict[str, list[Object]] = {
         "Cutscene": [],
         "CS Actor Cue List": [],
         "CS Player Cue List": [],
@@ -26,24 +26,24 @@ def getCSMotionObjects(csName: str):
         csObjCheck = isEmptyObj and obj.ootEmptyType == "Cutscene" and obj.name == f"Cutscene.{csName}"
         if parentCheck or csObjCheck:
             # add the relevant objects based on the empty type or if it's an armature
-            if isEmptyObj and obj.ootEmptyType in csMotionObjects.keys():
-                csMotionObjects[obj.ootEmptyType].append(obj)
+            if isEmptyObj and obj.ootEmptyType in csObjects.keys():
+                csObjects[obj.ootEmptyType].append(obj)
 
             if obj.type == "ARMATURE" and obj.parent.ootEmptyType == "Cutscene":
-                csMotionObjects["camShot"].append(obj)
+                csObjects["camShot"].append(obj)
 
-    if len(csMotionObjects["Cutscene"]) != 1:
-        raise PluginError(f"ERROR: Expected 1 Cutscene Object, found {len(csMotionObjects['Cutscene'])} ({csName}).")
+    if len(csObjects["Cutscene"]) != 1:
+        raise PluginError(f"ERROR: Expected 1 Cutscene Object, found {len(csObjects['Cutscene'])} ({csName}).")
 
-    return csMotionObjects
+    return csObjects
 
 
-def getCutsceneMotionData(csName: str, motionOnly: bool):
+def getNewCutsceneExport(csName: str, motionOnly: bool):
     """Returns the initialised cutscene exporter"""
 
     # this allows us to change the exporter's variables to get what we need
-    return CutsceneCmdExport(
-        getCSMotionObjects(csName),
+    return CutsceneExport(
+        getCutsceneObjects(csName),
         bpy.context.scene.fast64.oot.hackerFeaturesEnabled or bpy.context.scene.useDecompFeatures,
         motionOnly,
     )

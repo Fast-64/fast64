@@ -11,7 +11,7 @@ from ..constants import ootEnumCSListTypeListC
 if TYPE_CHECKING:
     from ..properties import OOTCutsceneProperty, OOTCSTextProperty
 
-from ..io_classes import (
+from ..classes import (
     CutsceneCmdTransition,
     CutsceneCmdRumbleController,
     CutsceneCmdMisc,
@@ -32,7 +32,7 @@ from ..io_classes import (
 )
 
 
-class CutsceneCmdExportCommands:
+class CutsceneCmdToC:
     """This class contains functions to create the cutscene commands"""
 
     def getEnumValue(self, enumKey: str, owner, propName: str):
@@ -140,10 +140,10 @@ class CutsceneCmdExportCommands:
 
 
 @dataclass
-class CutsceneCmdExport(CutsceneCmdExportCommands):
+class CutsceneExport(CutsceneCmdToC):
     """This class contains functions to create the new cutscene data"""
 
-    csMotionObjects: dict[str, list[Object]]
+    csObjects: dict[str, list[Object]]
     useDecomp: bool
     motionOnly: bool
     entryTotal: int = 0
@@ -187,7 +187,7 @@ class CutsceneCmdExport(CutsceneCmdExportCommands):
         """Returns the Actor Cue List commands from the corresponding objects"""
 
         playerOrActor = f"{'Player' if isPlayer else 'Actor'}"
-        actorCueListObjects = self.csMotionObjects[f"CS {playerOrActor} Cue List"]
+        actorCueListObjects = self.csObjects[f"CS {playerOrActor} Cue List"]
         actorCueListObjects.sort(key=lambda o: o.ootCSMotionProperty.actorCueProp.cueStartFrame)
         actorCueData = ""
 
@@ -322,7 +322,7 @@ class CutsceneCmdExport(CutsceneCmdExportCommands):
     def getCameraShotData(self):
         """Returns every Camera Shot commands"""
 
-        shotObjects = self.csMotionObjects["camShot"]
+        shotObjects = self.csObjects["camShot"]
         cameraShotData = ""
 
         if len(shotObjects) > 0:
@@ -363,7 +363,7 @@ class CutsceneCmdExport(CutsceneCmdExportCommands):
                 )
 
     def getCutsceneData(self):
-        csProp: "OOTCutsceneProperty" = self.csMotionObjects["Cutscene"][0].ootCutsceneProperty
+        csProp: "OOTCutsceneProperty" = self.csObjects["Cutscene"][0].ootCutsceneProperty
         self.frameCount = csProp.csEndFrame
         data = ""
 

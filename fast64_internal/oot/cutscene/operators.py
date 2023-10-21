@@ -13,7 +13,7 @@ from ..oot_constants import ootData
 from ..scene.exporter.to_c import getCutsceneC
 from .constants import ootEnumCSTextboxType, ootEnumCSListType
 from .importer import importCutsceneData
-from .exporter import getCutsceneMotionData
+from .exporter import getNewCutsceneExport
 
 
 def checkGetFilePaths(context: Context):
@@ -57,7 +57,7 @@ def insertCutsceneData(filePath: str, csName: str):
         fileLines = []
 
     foundCutscene = False
-    motionExporter = getCutsceneMotionData(csName)
+    motionExporter = getNewCutsceneExport(csName)
     beginIndex = 0
 
     for i, line in enumerate(fileLines):

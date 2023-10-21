@@ -1,5 +1,5 @@
 from ..oot_constants import ootData
-from .io_classes import (
+from .classes import (
     CutsceneCmdActorCueList,
     CutsceneCmdActorCue,
     CutsceneCmdCamEyeSpline,
@@ -128,7 +128,7 @@ ootEnumCSActorCueListCommandType = [
 ootEnumCSActorCueListCommandType.sort()
 ootEnumCSActorCueListCommandType.insert(0, ("Custom", "Custom", "Custom"))
 
-ootCSMotionLegacyToNewCmdNames = {
+ootCSLegacyToNewCmdNames = {
     "CS_CAM_POS_LIST": "CS_CAM_EYE_SPLINE",
     "CS_CAM_FOCUS_POINT_LIST": "CS_CAM_AT_SPLINE",
     "CS_CAM_POS_PLAYER_LIST": "CS_CAM_EYE_SPLINE_REL_TO_PLAYER",
@@ -159,7 +159,7 @@ ootCSMotionLegacyToNewCmdNames = {
     "CS_STOP_BGM": "L_CS_STOP_SEQ",
 }
 
-ootCSMotionListCommands = [
+ootCSListCommands = [
     "CS_ACTOR_CUE_LIST",
     "CS_PLAYER_CUE_LIST",
     "CS_CAM_EYE_SPLINE",
@@ -182,7 +182,7 @@ ootCSMotionListCommands = [
     "CS_LIGHTING_LIST",
 ]
 
-ootCSMotionListEntryCommands = [
+ootCSListEntryCommands = [
     "CS_ACTOR_CUE",
     "CS_PLAYER_CUE",
     "CS_CAM_POINT",
@@ -206,16 +206,16 @@ ootCSMotionListEntryCommands = [
     "L_CS_STOP_SEQ",
 ]
 
-ootCSMotionSingleCommands = [
+ootCSSingleCommands = [
     "CS_BEGIN_CUTSCENE",
     "CS_END",
     "CS_TRANSITION",
     "CS_DESTINATION",
 ]
 
-ootCSMotionListAndSingleCommands = ootCSMotionSingleCommands + ootCSMotionListCommands
-ootCSMotionListAndSingleCommands.remove("CS_BEGIN_CUTSCENE")
-ootCSMotionCSCommands = ootCSMotionSingleCommands + ootCSMotionListCommands + ootCSMotionListEntryCommands
+ootCSListAndSingleCommands = ootCSSingleCommands + ootCSListCommands
+ootCSListAndSingleCommands.remove("CS_BEGIN_CUTSCENE")
+ootCutsceneCommandsC = ootCSSingleCommands + ootCSListCommands + ootCSListEntryCommands
 
 cmdToClass = {
     "CS_CAM_POINT": CutsceneCmdCamPoint,

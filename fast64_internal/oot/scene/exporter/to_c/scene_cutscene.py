@@ -2,7 +2,7 @@ import bpy
 
 from .....utility import CData
 from ....oot_level_classes import OOTScene
-from ....cutscene.exporter import getCutsceneMotionData
+from ....cutscene.exporter import getNewCutsceneExport
 
 
 def getCutsceneC(csName: str):
@@ -16,7 +16,7 @@ def getCutsceneC(csName: str):
     csData.source = (
         declarationBase
         + " = {\n"
-        + getCutsceneMotionData(csName, bpy.context.scene.exportMotionOnly).getExportData()
+        + getNewCutsceneExport(csName, bpy.context.scene.exportMotionOnly).getExportData()
         + "};\n\n"
     )
 

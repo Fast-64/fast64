@@ -57,7 +57,7 @@ def createNewBone(cameraShotObj: Object, name: str, headPos: list[float], tailPo
 
 
 def createNewCameraShot(csObj: Object):
-    from ..io_classes import CutsceneObjectFactory  # circular import fix
+    from ..classes import CutsceneObjectFactory  # circular import fix
 
     index, csPrefix = getNameInformations(csObj, "Camera Shot", None)
 
@@ -180,7 +180,7 @@ def metersToBlend(context: Context, value: float):
 
 
 def setupActorCuePreview(csObj: Object, actorOrPlayer: str, selectObject: bool, cueList: Object):
-    from ..io_classes import CutsceneObjectFactory  # circular import fix
+    from ..classes import CutsceneObjectFactory  # circular import fix
 
     # check if the cue actually moves, if not it's not necessary to create a preview object
     isCueMoving = False
@@ -258,7 +258,7 @@ def getCutsceneEndFrame(csObj: Object):
 
 
 def setupCutscene(csObj: Object):
-    from ..io_classes import CutsceneObjectFactory  # circular import fix
+    from ..classes import CutsceneObjectFactory  # circular import fix
 
     objFactory = CutsceneObjectFactory()
     context = bpy.context
