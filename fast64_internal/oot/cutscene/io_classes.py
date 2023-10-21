@@ -11,7 +11,7 @@ from .motion.utility import getBlenderPosition, getBlenderRotation, getRotation,
 
 
 @dataclass
-class OOTCSMotionBase:
+class CutsceneCmdBase:
     """This class contains common Cutscene data"""
 
     params: list[str]
@@ -31,7 +31,7 @@ class OOTCSMotionBase:
 
 
 @dataclass
-class OOTCSMotionCamPoint(OOTCSMotionBase):
+class CutsceneCmdCamPoint(CutsceneCmdBase):
     """This class contains a single Camera Point command data"""
 
     continueFlag: str = None
@@ -51,7 +51,7 @@ class OOTCSMotionCamPoint(OOTCSMotionBase):
 
 
 @dataclass
-class OOTCSMotionActorCue(OOTCSMotionBase):
+class CutsceneCmdActorCue(CutsceneCmdBase):
     """This class contains a single Actor Cue command data"""
 
     actionID: int = None
@@ -71,13 +71,13 @@ class OOTCSMotionActorCue(OOTCSMotionBase):
 
 
 @dataclass
-class OOTCSMotionActorCueList(OOTCSMotionBase):
+class CutsceneCmdActorCueList(CutsceneCmdBase):
     """This class contains the Actor Cue List command data"""
 
     isPlayer: bool = False
     commandType: str = None
     entryTotal: int = None
-    entries: list[OOTCSMotionActorCue] = field(default_factory=list)
+    entries: list[CutsceneCmdActorCue] = field(default_factory=list)
     paramNumber: int = 2
     listName: str = "actorCueList"
 
@@ -96,10 +96,10 @@ class OOTCSMotionActorCueList(OOTCSMotionBase):
 
 
 @dataclass
-class OOTCSMotionCamEyeSpline(OOTCSMotionBase):
+class CutsceneCmdCamEyeSpline(CutsceneCmdBase):
     """This class contains the Camera Eye Spline data"""
 
-    entries: list[OOTCSMotionCamPoint] = field(default_factory=list)
+    entries: list[CutsceneCmdCamPoint] = field(default_factory=list)
     paramNumber: int = 2
     listName: str = "camEyeSplineList"
 
@@ -110,10 +110,10 @@ class OOTCSMotionCamEyeSpline(OOTCSMotionBase):
 
 
 @dataclass
-class OOTCSMotionCamATSpline(OOTCSMotionBase):
+class CutsceneCmdCamATSpline(CutsceneCmdBase):
     """This class contains the Camera AT (look-at) Spline data"""
 
-    entries: list[OOTCSMotionCamPoint] = field(default_factory=list)
+    entries: list[CutsceneCmdCamPoint] = field(default_factory=list)
     paramNumber: int = 2
     listName: str = "camATSplineList"
 
@@ -124,10 +124,10 @@ class OOTCSMotionCamATSpline(OOTCSMotionBase):
 
 
 @dataclass
-class OOTCSMotionCamEyeSplineRelToPlayer(OOTCSMotionBase):
+class CutsceneCmdCamEyeSplineRelToPlayer(CutsceneCmdBase):
     """This class contains the Camera Eye Spline Relative to the Player data"""
 
-    entries: list[OOTCSMotionCamPoint] = field(default_factory=list)
+    entries: list[CutsceneCmdCamPoint] = field(default_factory=list)
     paramNumber: int = 2
     listName: str = "camEyeSplineRelPlayerList"
 
@@ -138,10 +138,10 @@ class OOTCSMotionCamEyeSplineRelToPlayer(OOTCSMotionBase):
 
 
 @dataclass
-class OOTCSMotionCamATSplineRelToPlayer(OOTCSMotionBase):
+class CutsceneCmdCamATSplineRelToPlayer(CutsceneCmdBase):
     """This class contains the Camera AT Spline Relative to the Player data"""
 
-    entries: list[OOTCSMotionCamPoint] = field(default_factory=list)
+    entries: list[CutsceneCmdCamPoint] = field(default_factory=list)
     paramNumber: int = 2
     listName: str = "camATSplineRelPlayerList"
 
@@ -152,7 +152,7 @@ class OOTCSMotionCamATSplineRelToPlayer(OOTCSMotionBase):
 
 
 @dataclass
-class OOTCSMotionCamEye(OOTCSMotionBase):
+class CutsceneCmdCamEye(CutsceneCmdBase):
     """This class contains a single Camera Eye point"""
 
     # This feature is not used in the final game and lacks polish, it is recommended to use splines in all cases.
@@ -167,7 +167,7 @@ class OOTCSMotionCamEye(OOTCSMotionBase):
 
 
 @dataclass
-class OOTCSMotionCamAT(OOTCSMotionBase):
+class CutsceneCmdCamAT(CutsceneCmdBase):
     """This class contains a single Camera AT point"""
 
     # This feature is not used in the final game and lacks polish, it is recommended to use splines in all cases.
@@ -182,7 +182,7 @@ class OOTCSMotionCamAT(OOTCSMotionBase):
 
 
 @dataclass
-class OOTCSMotionMisc(OOTCSMotionBase):
+class CutsceneCmdMisc(CutsceneCmdBase):
     """This class contains a single misc command entry"""
 
     type: str = None  # see ``CutsceneMiscType`` in decomp
@@ -196,11 +196,11 @@ class OOTCSMotionMisc(OOTCSMotionBase):
 
 
 @dataclass
-class OOTCSMotionMiscList(OOTCSMotionBase):
+class CutsceneCmdMiscList(CutsceneCmdBase):
     """This class contains Misc command data"""
 
     entryTotal: int = None
-    entries: list[OOTCSMotionMisc] = field(default_factory=list)
+    entries: list[CutsceneCmdMisc] = field(default_factory=list)
     paramNumber: int = 1
     listName: str = "miscList"
 
@@ -210,7 +210,7 @@ class OOTCSMotionMiscList(OOTCSMotionBase):
 
 
 @dataclass
-class OOTCSMotionTransition(OOTCSMotionBase):
+class CutsceneCmdTransition(CutsceneCmdBase):
     """This class contains Transition command data"""
 
     type: str = None
@@ -225,7 +225,7 @@ class OOTCSMotionTransition(OOTCSMotionBase):
 
 
 @dataclass
-class OOTCSMotionText(OOTCSMotionBase):
+class CutsceneCmdText(CutsceneCmdBase):
     """This class contains Text command data"""
 
     textId: int = None
@@ -246,7 +246,7 @@ class OOTCSMotionText(OOTCSMotionBase):
 
 
 @dataclass
-class OOTCSMotionTextNone(OOTCSMotionBase):
+class CutsceneCmdTextNone(CutsceneCmdBase):
     """This class contains Text None command data"""
 
     paramNumber: int = 2
@@ -259,7 +259,7 @@ class OOTCSMotionTextNone(OOTCSMotionBase):
 
 
 @dataclass
-class OOTCSMotionTextOcarinaAction(OOTCSMotionBase):
+class CutsceneCmdTextOcarinaAction(CutsceneCmdBase):
     """This class contains Text Ocarina Action command data"""
 
     ocarinaActionId: str = None
@@ -276,11 +276,11 @@ class OOTCSMotionTextOcarinaAction(OOTCSMotionBase):
 
 
 @dataclass
-class OOTCSMotionTextList(OOTCSMotionBase):
+class CutsceneCmdTextList(CutsceneCmdBase):
     """This class contains Text List command data"""
 
     entryTotal: int = None
-    entries: list[OOTCSMotionText | OOTCSMotionTextNone | OOTCSMotionTextOcarinaAction] = field(default_factory=list)
+    entries: list[CutsceneCmdText | CutsceneCmdTextNone | CutsceneCmdTextOcarinaAction] = field(default_factory=list)
     paramNumber: int = 1
     listName: str = "textList"
 
@@ -290,7 +290,7 @@ class OOTCSMotionTextList(OOTCSMotionBase):
 
 
 @dataclass
-class OOTCSMotionLightSetting(OOTCSMotionBase):
+class CutsceneCmdLightSetting(CutsceneCmdBase):
     """This class contains Light Setting command data"""
 
     isLegacy: bool = None
@@ -307,11 +307,11 @@ class OOTCSMotionLightSetting(OOTCSMotionBase):
 
 
 @dataclass
-class OOTCSMotionLightSettingList(OOTCSMotionBase):
+class CutsceneCmdLightSettingList(CutsceneCmdBase):
     """This class contains Light Setting List command data"""
 
     entryTotal: int = None
-    entries: list[OOTCSMotionLightSetting] = field(default_factory=list)
+    entries: list[CutsceneCmdLightSetting] = field(default_factory=list)
     paramNumber: int = 1
     listName: str = "lightSettingsList"
 
@@ -321,7 +321,7 @@ class OOTCSMotionLightSettingList(OOTCSMotionBase):
 
 
 @dataclass
-class OOTCSMotionTime(OOTCSMotionBase):
+class CutsceneCmdTime(CutsceneCmdBase):
     """This class contains Time Ocarina Action command data"""
 
     hour: int = None
@@ -337,11 +337,11 @@ class OOTCSMotionTime(OOTCSMotionBase):
 
 
 @dataclass
-class OOTCSMotionTimeList(OOTCSMotionBase):
+class CutsceneCmdTimeList(CutsceneCmdBase):
     """This class contains Time List command data"""
 
     entryTotal: int = None
-    entries: list[OOTCSMotionTime] = field(default_factory=list)
+    entries: list[CutsceneCmdTime] = field(default_factory=list)
     paramNumber: int = 1
     listName: str = "timeList"
 
@@ -351,7 +351,7 @@ class OOTCSMotionTimeList(OOTCSMotionBase):
 
 
 @dataclass
-class OOTCSMotionStartStopSeq(OOTCSMotionBase):
+class CutsceneCmdStartStopSeq(CutsceneCmdBase):
     """This class contains Start/Stop Seq command data"""
 
     isLegacy: bool = None
@@ -366,12 +366,12 @@ class OOTCSMotionStartStopSeq(OOTCSMotionBase):
 
 
 @dataclass
-class OOTCSMotionStartStopSeqList(OOTCSMotionBase):
+class CutsceneCmdStartStopSeqList(CutsceneCmdBase):
     """This class contains Start/Stop Seq List command data"""
 
     entryTotal: int = None
     type: str = None
-    entries: list[OOTCSMotionStartStopSeq] = field(default_factory=list)
+    entries: list[CutsceneCmdStartStopSeq] = field(default_factory=list)
     paramNumber: int = 1
     listName: str = "seqList"
 
@@ -381,7 +381,7 @@ class OOTCSMotionStartStopSeqList(OOTCSMotionBase):
 
 
 @dataclass
-class OOTCSMotionFadeSeq(OOTCSMotionBase):
+class CutsceneCmdFadeSeq(CutsceneCmdBase):
     """This class contains Fade Seq command data"""
 
     seqPlayer: str = None
@@ -396,11 +396,11 @@ class OOTCSMotionFadeSeq(OOTCSMotionBase):
 
 
 @dataclass
-class OOTCSMotionFadeSeqList(OOTCSMotionBase):
+class CutsceneCmdFadeSeqList(CutsceneCmdBase):
     """This class contains Fade Seq List command data"""
 
     entryTotal: int = None
-    entries: list[OOTCSMotionFadeSeq] = field(default_factory=list)
+    entries: list[CutsceneCmdFadeSeq] = field(default_factory=list)
     paramNumber: int = 1
     listName: str = "fadeSeqList"
 
@@ -410,7 +410,7 @@ class OOTCSMotionFadeSeqList(OOTCSMotionBase):
 
 
 @dataclass
-class OOTCSMotionRumbleController(OOTCSMotionBase):
+class CutsceneCmdRumbleController(CutsceneCmdBase):
     """This class contains Rumble Controller command data"""
 
     sourceStrength: int = None
@@ -428,11 +428,11 @@ class OOTCSMotionRumbleController(OOTCSMotionBase):
 
 
 @dataclass
-class OOTCSMotionRumbleControllerList(OOTCSMotionBase):
+class CutsceneCmdRumbleControllerList(CutsceneCmdBase):
     """This class contains Rumble Controller List command data"""
 
     entryTotal: int = None
-    entries: list[OOTCSMotionRumbleController] = field(default_factory=list)
+    entries: list[CutsceneCmdRumbleController] = field(default_factory=list)
     paramNumber: int = 1
     listName: str = "rumbleList"
 
@@ -442,7 +442,7 @@ class OOTCSMotionRumbleControllerList(OOTCSMotionBase):
 
 
 @dataclass
-class OOTCSMotionDestination(OOTCSMotionBase):
+class CutsceneCmdDestination(CutsceneCmdBase):
     """This class contains Destination command data"""
 
     id: str = None
@@ -456,7 +456,7 @@ class OOTCSMotionDestination(OOTCSMotionBase):
 
 
 @dataclass
-class OOTCSMotionCutscene:
+class Cutscene:
     """This class contains a Cutscene's data, including every commands' data"""
 
     name: str
@@ -464,26 +464,26 @@ class OOTCSMotionCutscene:
     frameCount: int
     paramNumber: int = 2
 
-    destination: OOTCSMotionDestination = None
-    actorCueList: list[OOTCSMotionActorCueList] = field(default_factory=list)
-    playerCueList: list[OOTCSMotionActorCueList] = field(default_factory=list)
-    camEyeSplineList: list[OOTCSMotionCamEyeSpline] = field(default_factory=list)
-    camATSplineList: list[OOTCSMotionCamATSpline] = field(default_factory=list)
-    camEyeSplineRelPlayerList: list[OOTCSMotionCamEyeSplineRelToPlayer] = field(default_factory=list)
-    camATSplineRelPlayerList: list[OOTCSMotionCamATSplineRelToPlayer] = field(default_factory=list)
-    camEyeList: list[OOTCSMotionCamEye] = field(default_factory=list)
-    camATList: list[OOTCSMotionCamAT] = field(default_factory=list)
-    miscList: list[OOTCSMotionMiscList] = field(default_factory=list)
-    transitionList: list[OOTCSMotionTransition] = field(default_factory=list)
-    textList: list[OOTCSMotionTextList] = field(default_factory=list)
-    lightSettingsList: list[OOTCSMotionLightSettingList] = field(default_factory=list)
-    timeList: list[OOTCSMotionTimeList] = field(default_factory=list)
-    seqList: list[OOTCSMotionStartStopSeqList] = field(default_factory=list)
-    fadeSeqList: list[OOTCSMotionFadeSeqList] = field(default_factory=list)
-    rumbleList: list[OOTCSMotionRumbleControllerList] = field(default_factory=list)
+    destination: CutsceneCmdDestination = None
+    actorCueList: list[CutsceneCmdActorCueList] = field(default_factory=list)
+    playerCueList: list[CutsceneCmdActorCueList] = field(default_factory=list)
+    camEyeSplineList: list[CutsceneCmdCamEyeSpline] = field(default_factory=list)
+    camATSplineList: list[CutsceneCmdCamATSpline] = field(default_factory=list)
+    camEyeSplineRelPlayerList: list[CutsceneCmdCamEyeSplineRelToPlayer] = field(default_factory=list)
+    camATSplineRelPlayerList: list[CutsceneCmdCamATSplineRelToPlayer] = field(default_factory=list)
+    camEyeList: list[CutsceneCmdCamEye] = field(default_factory=list)
+    camATList: list[CutsceneCmdCamAT] = field(default_factory=list)
+    miscList: list[CutsceneCmdMiscList] = field(default_factory=list)
+    transitionList: list[CutsceneCmdTransition] = field(default_factory=list)
+    textList: list[CutsceneCmdTextList] = field(default_factory=list)
+    lightSettingsList: list[CutsceneCmdLightSettingList] = field(default_factory=list)
+    timeList: list[CutsceneCmdTimeList] = field(default_factory=list)
+    seqList: list[CutsceneCmdStartStopSeqList] = field(default_factory=list)
+    fadeSeqList: list[CutsceneCmdFadeSeqList] = field(default_factory=list)
+    rumbleList: list[CutsceneCmdRumbleControllerList] = field(default_factory=list)
 
 
-class OOTCSMotionObjectFactory:
+class CutsceneObjectFactory:
     """This class contains functions to create new Blender objects"""
 
     def getNewObject(self, name: str, data, selectObject: bool, parentObj: Object) -> Object:

@@ -9,8 +9,8 @@ from .collision.properties import OOTWaterBoxProperty
 from .cutscene.properties import OOTCutsceneProperty
 from .cutscene.motion.properties import (
     OOTCutsceneMotionProperty,
-    OOTCSMotionActorCueListProperty,
-    OOTCSMotionActorCueProperty,
+    CutsceneCmdActorCueListProperty,
+    CutsceneCmdActorCueProperty,
 )
 
 from .actor.properties import (
@@ -156,12 +156,12 @@ class OOTObjectPanel(bpy.types.Panel):
             "CS Player Cue Preview",
         ]:
             labelPrefix = "Player" if "Player" in obj.ootEmptyType else "Actor"
-            actorCueListProp: OOTCSMotionActorCueListProperty = obj.ootCSMotionProperty.actorCueListProp
+            actorCueListProp: CutsceneCmdActorCueListProperty = obj.ootCSMotionProperty.actorCueListProp
             actorCueListProp.draw_props(box, obj.ootEmptyType == f"CS {labelPrefix} Cue Preview", labelPrefix, obj.name)
 
         elif obj.ootEmptyType in ["CS Actor Cue", "CS Player Cue", "CS Dummy Cue"]:
             labelPrefix = "Player" if obj.parent.ootEmptyType == "CS Player Cue List" else "Actor"
-            actorCueProp: OOTCSMotionActorCueProperty = obj.ootCSMotionProperty.actorCueProp
+            actorCueProp: CutsceneCmdActorCueProperty = obj.ootCSMotionProperty.actorCueProp
             actorCueProp.draw_props(box, labelPrefix, obj.ootEmptyType == "CS Dummy Cue", obj.name)
 
         elif obj.ootEmptyType == "None":

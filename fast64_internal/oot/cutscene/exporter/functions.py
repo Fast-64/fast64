@@ -2,7 +2,7 @@ import bpy
 
 from bpy.types import Object
 from ....utility import PluginError
-from .classes import OOTCSMotionExport
+from .classes import CutsceneCmdExport
 
 
 def getCSMotionObjects(csName: str):
@@ -42,7 +42,7 @@ def getCutsceneMotionData(csName: str, motionOnly: bool):
     """Returns the initialised cutscene exporter"""
 
     # this allows us to change the exporter's variables to get what we need
-    return OOTCSMotionExport(
+    return CutsceneCmdExport(
         getCSMotionObjects(csName),
         bpy.context.scene.fast64.oot.hackerFeaturesEnabled or bpy.context.scene.useDecompFeatures,
         motionOnly,

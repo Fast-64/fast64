@@ -9,10 +9,10 @@ from ...oot_constants import ootData
 from ..constants import ootEnumCSMotionCamMode, ootEnumCSActorCueListCommandType
 
 from .operators import (
-    OOTCSMotionAddActorCue,
-    OOTCSMotionCreateActorCuePreview,
+    CutsceneCmdAddActorCue,
+    CutsceneCmdCreateActorCuePreview,
     OOT_SearchActorCueCmdTypeEnumOperator,
-    OOTCSMotionAddBone,
+    CutsceneCmdAddBone,
     OOT_SearchPlayerCueIdEnumOperator,
 )
 
@@ -30,7 +30,7 @@ def getNextCuesStartFrame(self):
     return -1
 
 
-class OOTCSMotionActorCueListProperty(PropertyGroup):
+class CutsceneCmdActorCueListProperty(PropertyGroup):
     commandType: EnumProperty(
         items=ootEnumCSActorCueListCommandType, name="CS Actor Cue Command Type", default="actor_cue_0_0"
     )
@@ -66,16 +66,16 @@ class OOTCSMotionActorCueListProperty(PropertyGroup):
 
         if not isPreview:
             split = box.split(factor=0.5)
-            addCueOp = split.operator(OOTCSMotionAddActorCue.bl_idname, text=f"Add {labelPrefix} Cue")
+            addCueOp = split.operator(CutsceneCmdAddActorCue.bl_idname, text=f"Add {labelPrefix} Cue")
             addCueOp.isPlayer = isPlayer
-            split.operator(OOTCSMotionCreateActorCuePreview.bl_idname)
+            split.operator(CutsceneCmdCreateActorCuePreview.bl_idname)
         else:
             split = box.split(factor=0.5)
             split.label(text=f"{labelPrefix} Cue List to Preview")
             split.prop(self, f"{labelPrefix.lower()}CueListToPreview")
 
 
-class OOTCSMotionActorCueProperty(PropertyGroup):
+class CutsceneCmdActorCueProperty(PropertyGroup):
     cueStartFrame: IntProperty(name="Start Frame", description="Start frame of the Actor Cue", default=0, min=0)
 
     cueEndFrame: IntProperty(
@@ -123,11 +123,11 @@ class OOTCSMotionActorCueProperty(PropertyGroup):
                 split.label(text=label)
                 split.prop(self, "cueActionID", text="")
 
-            addCueOp = box.operator(OOTCSMotionAddActorCue.bl_idname, text=f"Add {labelPrefix} Cue")
+            addCueOp = box.operator(CutsceneCmdAddActorCue.bl_idname, text=f"Add {labelPrefix} Cue")
             addCueOp.isPlayer = isPlayer
 
 
-class OOTCSMotionCameraShotProperty(PropertyGroup):
+class CutsceneCmdCameraShotProperty(PropertyGroup):
     shotStartFrame: IntProperty(name="Start Frame", description="Shot start frame", default=0, min=0)
 
     # only used as a hint for users
@@ -163,10 +163,10 @@ class OOTCSMotionCameraShotProperty(PropertyGroup):
         split.prop(self, "shotStartFrame")
         split.prop(self, "shotEndFrame")
         box.row().prop(self, "shotCamMode", expand=True)
-        box.operator(OOTCSMotionAddBone.bl_idname)
+        box.operator(CutsceneCmdAddBone.bl_idname)
 
 
-class OOTCSMotionCameraShotPointProperty(PropertyGroup):
+class CutsceneCmdCameraShotPointProperty(PropertyGroup):
     shotPointFrame: IntProperty(
         name="Frame",
         description="Key point frames value",
@@ -231,8 +231,8 @@ class OOTCSMotionCameraShotPointProperty(PropertyGroup):
 
 
 class OOTCutsceneMotionProperty(PropertyGroup):
-    actorCueListProp: PointerProperty(type=OOTCSMotionActorCueListProperty)
-    actorCueProp: PointerProperty(type=OOTCSMotionActorCueProperty)
+    actorCueListProp: PointerProperty(type=CutsceneCmdActorCueListProperty)
+    actorCueProp: PointerProperty(type=CutsceneCmdActorCueProperty)
 
     @staticmethod
     def upgrade_object(csObj: Object):
@@ -242,10 +242,10 @@ class OOTCutsceneMotionProperty(PropertyGroup):
 
 
 classes = (
-    OOTCSMotionActorCueListProperty,
-    OOTCSMotionActorCueProperty,
-    OOTCSMotionCameraShotProperty,
-    OOTCSMotionCameraShotPointProperty,
+    CutsceneCmdActorCueListProperty,
+    CutsceneCmdActorCueProperty,
+    CutsceneCmdCameraShotProperty,
+    CutsceneCmdCameraShotPointProperty,
     OOTCutsceneMotionProperty,
 )
 
@@ -255,9 +255,9 @@ def csMotion_props_register():
         register_class(cls)
 
     Object.ootCSMotionProperty = PointerProperty(type=OOTCutsceneMotionProperty)
-    Armature.ootCamShotProp = PointerProperty(type=OOTCSMotionCameraShotProperty)
-    Bone.ootCamShotPointProp = PointerProperty(type=OOTCSMotionCameraShotPointProperty)
-    EditBone.ootCamShotPointProp = PointerProperty(type=OOTCSMotionCameraShotPointProperty)
+    Armature.ootCamShotProp = PointerProperty(type=CutsceneCmdCameraShotProperty)
+    Bone.ootCamShotPointProp = PointerProperty(type=CutsceneCmdCameraShotPointProperty)
+    EditBone.ootCamShotPointProp = PointerProperty(type=CutsceneCmdCameraShotPointProperty)
     Scene.previewPlayerAge = EnumProperty(
         items=[("link_adult", "Adult", "Adult Link (170 cm)", 0), ("link_child", "Child", "Child Link (130 cm)", 1)],
         name="Player Age for Preview",

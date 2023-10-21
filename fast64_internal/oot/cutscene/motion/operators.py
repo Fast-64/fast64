@@ -5,7 +5,7 @@ from bpy.utils import register_class, unregister_class
 from bpy.props import StringProperty, EnumProperty, BoolProperty
 from ....utility import PluginError
 from ...oot_constants import ootData
-from ..io_classes import OOTCSMotionObjectFactory
+from ..io_classes import CutsceneObjectFactory
 from ..constants import ootEnumCSActorCueListCommandType
 from ..preview import initFirstFrame, setupCompositorNodes
 from .utility import (
@@ -35,7 +35,7 @@ def getActorCueList(operator: Operator, context: Context) -> Object | None:
 
 def createNewActorCueList(csObj: Object, isPlayer: bool):
     """Creates a new Actor or Player Cue List and adds one basic cue and the dummy one"""
-    objFactory = OOTCSMotionObjectFactory()
+    objFactory = CutsceneObjectFactory()
     playerOrActor = "Player" if isPlayer else "Actor"
     newActorCueListObj = objFactory.getNewActorCueListObject(f"New {playerOrActor} Cue List", "actor_cue_0_0", None)
     index, csPrefix = getNameInformations(csObj, f"{playerOrActor} Cue List", None)
@@ -57,7 +57,7 @@ def createNewActorCueList(csObj: Object, isPlayer: bool):
     newActorCueListObj.parent = csObj
 
 
-class OOTCSMotionPlayPreview(Operator):
+class CutsceneCmdPlayPreview(Operator):
     """Camera Preview Playback"""
 
     bl_idname = "object.play_preview"
@@ -97,7 +97,7 @@ class OOTCSMotionPlayPreview(Operator):
             return {"CANCELLED"}
 
 
-class OOTCSMotionAddBone(Operator):
+class CutsceneCmdAddBone(Operator):
     """Add a bone to an armature"""
 
     bl_idname = "object.add_bone"
@@ -143,7 +143,7 @@ class OOTCSMotionAddBone(Operator):
             return {"CANCELLED"}
 
 
-class OOTCSMotionAddActorCue(Operator):
+class CutsceneCmdAddActorCue(Operator):
     """Add an entry to a player or actor cue list"""
 
     bl_idname = "object.add_actor_cue_point"
@@ -160,7 +160,7 @@ class OOTCSMotionAddActorCue(Operator):
                     actorCueListObj = actorCueListObj.parent
 
                 # start by creating the new object with basic values
-                objFactory = OOTCSMotionObjectFactory()
+                objFactory = CutsceneObjectFactory()
                 newActorCueObj = objFactory.getNewActorCueObject(
                     f"New {'Player' if self.isPlayer else 'Actor'} Cue",
                     0,
@@ -224,7 +224,7 @@ class OOTCSMotionAddActorCue(Operator):
             return {"CANCELLED"}
 
 
-class OOTCSMotionCreateActorCuePreview(Operator):
+class CutsceneCmdCreateActorCuePreview(Operator):
     """Create a preview empty object for a player or an actor cue list"""
 
     bl_idname = "object.create_actor_cue_preview"
@@ -243,7 +243,7 @@ class OOTCSMotionCreateActorCuePreview(Operator):
             return {"CANCELLED"}
 
 
-class OOTCSMotionCreateCameraShot(Operator):
+class CutsceneCmdCreateCameraShot(Operator):
     """Create and initialize a camera shot armature"""
 
     bl_idname = "object.create_camera_shot"
@@ -260,7 +260,7 @@ class OOTCSMotionCreateCameraShot(Operator):
             return {"CANCELLED"}
 
 
-class OOTCSMotionCreatePlayerCueList(Operator):
+class CutsceneCmdCreatePlayerCueList(Operator):
     """Create a cutscene player cue list"""
 
     bl_idname = "object.create_player_cue_list"
@@ -281,7 +281,7 @@ class OOTCSMotionCreatePlayerCueList(Operator):
             return {"CANCELLED"}
 
 
-class OOTCSMotionCreateActorCueList(Operator):
+class CutsceneCmdCreateActorCueList(Operator):
     """Create a cutscene actor cue list"""
 
     bl_idname = "object.create_actor_cue_list"
@@ -347,13 +347,13 @@ class OOT_SearchPlayerCueIdEnumOperator(Operator):
 
 
 classes = (
-    OOTCSMotionPlayPreview,
-    OOTCSMotionAddBone,
-    OOTCSMotionAddActorCue,
-    OOTCSMotionCreateActorCuePreview,
-    OOTCSMotionCreateCameraShot,
-    OOTCSMotionCreatePlayerCueList,
-    OOTCSMotionCreateActorCueList,
+    CutsceneCmdPlayPreview,
+    CutsceneCmdAddBone,
+    CutsceneCmdAddActorCue,
+    CutsceneCmdCreateActorCuePreview,
+    CutsceneCmdCreateCameraShot,
+    CutsceneCmdCreatePlayerCueList,
+    CutsceneCmdCreateActorCueList,
     OOT_SearchActorCueCmdTypeEnumOperator,
     OOT_SearchPlayerCueIdEnumOperator,
 )

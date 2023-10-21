@@ -11,10 +11,10 @@ from .motion.preview import previewFrameHandler
 from .motion.utility import getCutsceneCamera
 
 from .motion.operators import (
-    OOTCSMotionPlayPreview,
-    OOTCSMotionCreateCameraShot,
-    OOTCSMotionCreatePlayerCueList,
-    OOTCSMotionCreateActorCueList,
+    CutsceneCmdPlayPreview,
+    CutsceneCmdCreateCameraShot,
+    CutsceneCmdCreatePlayerCueList,
+    CutsceneCmdCreateActorCueList,
 )
 
 from .constants import (
@@ -335,12 +335,12 @@ class OOTCutsceneProperty(PropertyGroup):
         split.prop(bpy.context.scene, "previewPlayerAge", text="")
 
         split = layout.split(factor=0.5)
-        split.operator(OOTCSMotionCreateCameraShot.bl_idname, icon="VIEW_CAMERA")
-        split.operator(OOTCSMotionPlayPreview.bl_idname, icon="RESTRICT_VIEW_OFF")
+        split.operator(CutsceneCmdCreateCameraShot.bl_idname, icon="VIEW_CAMERA")
+        split.operator(CutsceneCmdPlayPreview.bl_idname, icon="RESTRICT_VIEW_OFF")
 
         split = layout.split(factor=0.5)
-        split.operator(OOTCSMotionCreatePlayerCueList.bl_idname)
-        split.operator(OOTCSMotionCreateActorCueList.bl_idname)
+        split.operator(CutsceneCmdCreatePlayerCueList.bl_idname)
+        split.operator(CutsceneCmdCreateActorCueList.bl_idname)
 
         layout.prop(bpy.context.scene, "ootCsUseWidescreen")
         layout.prop(bpy.context.scene, "ootCsUseOpaqueCamBg")

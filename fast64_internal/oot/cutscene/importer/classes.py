@@ -20,10 +20,10 @@ from ..constants import (
 )
 
 from ..io_classes import (
-    OOTCSMotionActorCueList,
-    OOTCSMotionCamPoint,
-    OOTCSMotionCutscene,
-    OOTCSMotionObjectFactory,
+    CutsceneCmdActorCueList,
+    CutsceneCmdCamPoint,
+    Cutscene,
+    CutsceneObjectFactory,
 )
 
 
@@ -42,7 +42,7 @@ class PropertyData:
     useEndFrame: bool
 
 
-class OOTCSMotionImportCommands:
+class CutsceneCmdImportCommands:
     """This class contains functions to create the cutscene dataclasses"""
 
     def getCmdParams(self, data: str, cmdName: str, paramNumber: int):
@@ -59,12 +59,12 @@ class OOTCSMotionImportCommands:
         return params
 
     def getNewCutscene(self, csData: str, name: str):
-        params = self.getCmdParams(csData, "CS_BEGIN_CUTSCENE", OOTCSMotionCutscene.paramNumber)
-        return OOTCSMotionCutscene(name, getInteger(params[0]), getInteger(params[1]))
+        params = self.getCmdParams(csData, "CS_BEGIN_CUTSCENE", Cutscene.paramNumber)
+        return Cutscene(name, getInteger(params[0]), getInteger(params[1]))
 
 
 @dataclass
-class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
+class CutsceneCmdImport(CutsceneCmdImportCommands, CutsceneObjectFactory):
     """This class contains functions to create the new cutscene Blender data"""
 
     filePath: str  # used when importing from the panel
@@ -181,7 +181,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
             # if it's none then there's no cutscene in the file
             return None
 
-        cutsceneList: list[OOTCSMotionCutscene] = []
+        cutsceneList: list[Cutscene] = []
 
         # for each cutscene from the list returned by getParsedCutscenes(),
         # create classes containing the cutscene's informations
@@ -251,7 +251,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                 cutsceneList.append(cutscene)
         return cutsceneList
 
-    def setActorCueData(self, csObj: Object, actorCueList: list[OOTCSMotionActorCueList], cueName: str, csNbr: int):
+    def setActorCueData(self, csObj: Object, actorCueList: list[CutsceneCmdActorCueList], cueName: str, csNbr: int):
         """Creates the objects from the Actor Cue List data"""
 
         cueObjList = []
@@ -311,7 +311,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
             if endFrame != getEndFrame and obj.ootEmptyType != "CS Dummy Cue":
                 print(f"WARNING: `{obj.name}`'s end frame do not match the one from the script!")
 
-    def validateCameraData(self, cutscene: OOTCSMotionCutscene):
+    def validateCameraData(self, cutscene: Cutscene):
         """Safety checks to make sure the camera data is correct"""
 
         camLists: list[tuple[str, list, list]] = [
@@ -341,7 +341,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                     del atListEntry.entries[-1]
 
     def setBoneData(
-        self, cameraShotObj: Object, boneData: list[tuple[OOTCSMotionCamPoint, OOTCSMotionCamPoint]], csNbr: int
+        self, cameraShotObj: Object, boneData: list[tuple[CutsceneCmdCamPoint, CutsceneCmdCamPoint]], csNbr: int
     ):
         """Creates the bones from the Camera Point data"""
 
@@ -418,7 +418,7 @@ class OOTCSMotionImport(OOTCSMotionImportCommands, OOTCSMotionObjectFactory):
                     setattr(newSubElem, key, getattr(entry, value))
 
     def setPropertyData(
-        self, csProp: "OOTCutsceneProperty", cutscene: OOTCSMotionCutscene, propDataList: list[PropertyData]
+        self, csProp: "OOTCutsceneProperty", cutscene: Cutscene, propDataList: list[PropertyData]
     ):
         for data in propDataList:
             listName = f"{data.listType[0].lower() + data.listType[1:]}List"

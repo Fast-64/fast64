@@ -57,13 +57,13 @@ def createNewBone(cameraShotObj: Object, name: str, headPos: list[float], tailPo
 
 
 def createNewCameraShot(csObj: Object):
-    from ..io_classes import OOTCSMotionObjectFactory  # circular import fix
+    from ..io_classes import CutsceneObjectFactory  # circular import fix
 
     index, csPrefix = getNameInformations(csObj, "Camera Shot", None)
 
     # create a basic armature
     name = f"{csPrefix}.Camera Shot {index:02}"
-    newCameraShotObj = OOTCSMotionObjectFactory().getNewArmatureObject(name, True, csObj)
+    newCameraShotObj = CutsceneObjectFactory().getNewArmatureObject(name, True, csObj)
 
     # add 4 bones since it's the minimum required
     for i in range(1, 5):
@@ -180,7 +180,7 @@ def metersToBlend(context: Context, value: float):
 
 
 def setupActorCuePreview(csObj: Object, actorOrPlayer: str, selectObject: bool, cueList: Object):
-    from ..io_classes import OOTCSMotionObjectFactory  # circular import fix
+    from ..io_classes import CutsceneObjectFactory  # circular import fix
 
     # check if the cue actually moves, if not it's not necessary to create a preview object
     isCueMoving = False
@@ -205,7 +205,7 @@ def setupActorCuePreview(csObj: Object, actorOrPlayer: str, selectObject: bool, 
                 previewObj = obj
                 break
         else:
-            previewObj = OOTCSMotionObjectFactory().getNewActorCuePreviewObject(name, selectObject, csObj)
+            previewObj = CutsceneObjectFactory().getNewActorCuePreviewObject(name, selectObject, csObj)
 
         actorHeight = 1.5
         if actorOrPlayer == "Player":
@@ -258,9 +258,9 @@ def getCutsceneEndFrame(csObj: Object):
 
 
 def setupCutscene(csObj: Object):
-    from ..io_classes import OOTCSMotionObjectFactory  # circular import fix
+    from ..io_classes import CutsceneObjectFactory  # circular import fix
 
-    objFactory = OOTCSMotionObjectFactory()
+    objFactory = CutsceneObjectFactory()
     context = bpy.context
     bpy.context.scene.ootCSPreviewCSObj = csObj
     camObj = objFactory.getNewCameraObject(
