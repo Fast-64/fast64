@@ -116,26 +116,28 @@ ACMUXDict = {
 }
 
 
-def isUcodeF3DEX1(F3D_VER):
+def isUcodeF3DEX1(F3D_VER: str) -> bool:
     return F3D_VER in {"F3DLP.Rej", "F3DLX.Rej", "F3DEX/LX"}
 
 
-def isUcodeF3DEX2(F3D_VER):
+def isUcodeF3DEX2(F3D_VER: str) -> bool:
     return F3D_VER in {"F3DEX2.Rej/LX2.Rej", "F3DEX2/LX2"}
 
 
-def isUcodeF3DEX3(F3D_VER):
+def isUcodeF3DEX3(F3D_VER: str) -> bool:
     return F3D_VER == "F3DEX3"
 
 
 class F3D:
     """NOTE: do not initialize this class manually! use get_F3D_GBI so that the single instance is cached from the microcode type."""
 
-    def __init__(self, F3D_VER, _HW_VERSION_1):
+    def __init__(self, F3D_VER):
+        self.F3D_VER = F3D_VER
         F3DEX_GBI = self.F3DEX_GBI = isUcodeF3DEX1(F3D_VER)
         F3DEX_GBI_2 = self.F3DEX_GBI_2 = isUcodeF3DEX2(F3D_VER)
         F3DEX_GBI_3 = self.F3DEX_GBI_3 = isUcodeF3DEX3(F3D_VER)
         F3DLP_GBI = self.F3DLP_GBI = self.F3DEX_GBI
+        self.F3D_OLD_GBI = not (F3DEX_GBI or F3DEX_GBI_2 or F3DEX_GBI_3)
 
         # F3DEX2 is F3DEX1 and F3DEX3 is F3DEX2, but F3DEX3 is not F3DEX1
         if F3DEX_GBI_2:
@@ -147,12 +149,6 @@ class F3D:
         self.vert_load_size = vertexBufferSize[F3D_VER][1]
         self.G_MAX_LIGHTS = 9 if F3DEX_GBI_3 else 7
         self.G_INPUT_BUFFER_CMDS = 21
-
-        self._HW_VERSION_1 = _HW_VERSION_1
-        self.F3D_VER = F3D_VER
-        # self._LANGUAGE_ASSEMBLY = _LANGUAGE_ASSEMBLY
-
-        self.HAS_TRI2 = F3DEX_GBI or F3DEX_GBI_2 or F3DEX_GBI_3
 
         if F3DEX_GBI_2:
             self.G_NOOP = 0x00
@@ -282,13 +278,9 @@ class F3D:
         self.G_RDP_TRI_TXTR_MASK = 0x02
         self.G_RDP_TRI_ZBUFF_MASK = 0x01
 
-        self.BOWTIE_VAL = 0
-
         # gets added to RDP command, in order to test for addres fixup
         self.G_RDP_ADDR_FIXUP = 3  # |RDP cmds| <= this, do addr fixup
-        # if _LANGUAGE_ASSEMBLY:
         self.G_RDP_TEXRECT_CHECK = (-1 * self.G_TEXRECTFLIP) & 0xFF
-        # endif
 
         self.G_DMACMDSIZ = 128
         self.G_IMMCMDSIZ = 64
@@ -379,7 +371,6 @@ class F3D:
                 "G_FRESNEL",
             }
 
-        # if _LANGUAGE_ASSEMBLY:
         self.G_FOG_H = self.G_FOG / 0x10000
         self.G_LIGHTING_H = self.G_LIGHTING / 0x10000
         self.G_TEXTURE_GEN_H = self.G_TEXTURE_GEN / 0x10000
@@ -387,10 +378,8 @@ class F3D:
         self.G_LOD_H = self.G_LOD / 0x10000  # NOT IMPLEMENTED
         if F3DEX_GBI or F3DLP_GBI:
             self.G_CLIPPING_H = self.G_CLIPPING / 0x10000
-        # endif
 
         # Need these defined for Sprite Microcode
-        # if _LANGUAGE_ASSEMBLY:
         self.G_TX_LOADTILE = 7
         self.G_TX_RENDERTILE = 0
 
@@ -400,7 +389,6 @@ class F3D:
         self.G_TX_CLAMP = 0x2
         self.G_TX_NOMASK = 0
         self.G_TX_NOLOD = 0
-        # endif
 
         self.G_TX_VARS = {
             "G_TX_NOMIRROR": 0,
@@ -735,13 +723,8 @@ class F3D:
         self.G_CD_MAGICSQ = 0 << G_MDSFT_RGBDITHER
         self.G_CD_BAYER = 1 << G_MDSFT_RGBDITHER
         self.G_CD_NOISE = 2 << G_MDSFT_RGBDITHER
-
-        if not _HW_VERSION_1:
-            self.G_CD_DISABLE = 3 << G_MDSFT_RGBDITHER
-            self.G_CD_ENABLE = self.G_CD_NOISE  # HW 1.0 compatibility mode
-        else:
-            self.G_CD_ENABLE = 1 << G_MDSFT_COLORDITHER
-            self.G_CD_DISABLE = 0 << G_MDSFT_COLORDITHER
+        self.G_CD_DISABLE = 3 << G_MDSFT_RGBDITHER
+        self.G_CD_ENABLE = self.G_CD_NOISE
 
         # G_SETOTHERMODE_H gSetAlphaDither
         self.G_AD_PATTERN = 0 << G_MDSFT_ALPHADITHER
@@ -1672,10 +1655,7 @@ class F3D:
 		tile manipulation yourself.  RJM.
 		"""
 
-        if _HW_VERSION_1:
-            self.G_TX_LDBLK_MAX_TXL = 4095
-        else:
-            self.G_TX_LDBLK_MAX_TXL = 2047
+        self.G_TX_LDBLK_MAX_TXL = 2047
 
         if not F3DEX_GBI_3:
             # Clipping Macros
@@ -1697,9 +1677,9 @@ class F3D:
 
         # Lighting Macros
         if F3DEX_GBI_3:
-            self.numLights = {"NUMLIGHTS_" + str(n): n for n in range(10)}
+            self.numLights = {f"NUMLIGHTS_{n}": n for n in range(10)}
         else:
-            self.numLights = {"NUMLIGHTS_" + str(n): (1 if n == 0 else n) for n in range(8)}
+            self.numLights = {f"NUMLIGHTS_{n}": (1 if n == 0 else n) for n in range(8)}
 
     def GBL_c1(self, m1a, m1b, m2a, m2b):
         return (m1a) << 30 | (m1b) << 26 | (m2a) << 22 | (m2b) << 18
@@ -1760,21 +1740,23 @@ class F3D:
         return (self.G_INPUT_BUFFER_CMDS - remainderCommands) << 3
 
 
-g_F3D = {"GBI": None, "f3d_type": None, "isHWv1": None}
+g_F3D = {
+    "GBI": None,
+    "f3d_type": None,
+}
 
 
-def get_cached_F3D_GBI(f3d_type: str, isHWv1: bool) -> F3D:
+def get_cached_F3D_GBI(f3d_type: str) -> F3D:
     """Get constructed/cached F3D class"""
-    if g_F3D["GBI"] is None or f3d_type != g_F3D["f3d_type"] or isHWv1 != g_F3D["isHWv1"]:
+    if g_F3D["GBI"] is None or f3d_type != g_F3D["f3d_type"]:
         g_F3D["f3d_type"] = f3d_type
-        g_F3D["isHWv1"] = isHWv1
-        g_F3D["GBI"] = F3D(f3d_type, isHWv1)
+        g_F3D["GBI"] = F3D(f3d_type)
     return g_F3D["GBI"]
 
 
 def get_F3D_GBI() -> F3D:
     """Gets cached F3D class and automatically supplies params"""
-    return get_cached_F3D_GBI(bpy.context.scene.f3d_type, bpy.context.scene.isHWv1)
+    return get_cached_F3D_GBI(bpy.context.scene.f3d_type)
 
 
 def _SHIFTL(value, amount, mask):
@@ -2087,7 +2069,7 @@ class Vtx:
         def spc(x):
             return "{" + ", ".join([str(a) for a in x]) + "}"
 
-        flag = "0" if self.packedNormal == 0 else "{0:#06x}".format(self.packedNormal)
+        flag = "0" if self.packedNormal == 0 else f"{self.packedNormal:#06x}"
         return "{{ " + ", ".join([spc(self.position), flag, spc(self.uv), spc(self.colorOrNormal)]) + " }}"
 
 
@@ -3377,7 +3359,7 @@ class GbiMacro:
             return " | ".join(field) if len(field) else "0"
         if self._hex > 0 and isinstance(field, int):
             temp = field if field >= 0 else (1 << (self._hex * 4)) + field
-            return "{0:#0{1}x}".format(temp, self._hex + 2)  # + 2 for the 0x part
+            return f"{temp:#0{self._hex + 2}x}"  # + 2 for the 0x part
         return str(field)
 
     def to_c(self, static=True):
@@ -4085,7 +4067,6 @@ class SPTexture(GbiMacro):
         if f3d.F3DEX_GBI_2:
             words = (
                 _SHIFTL(f3d.G_TEXTURE, 24, 8)
-                | _SHIFTL(f3d.BOWTIE_VAL, 16, 8)
                 | _SHIFTL((self.level), 11, 3)
                 | _SHIFTL((self.tile), 8, 3)
                 | _SHIFTL((self.on), 1, 7)
@@ -4093,7 +4074,6 @@ class SPTexture(GbiMacro):
         else:
             words = (
                 _SHIFTL(f3d.G_TEXTURE, 24, 8)
-                | _SHIFTL(f3d.BOWTIE_VAL, 16, 8)
                 | _SHIFTL((self.level), 11, 3)
                 | _SHIFTL((self.tile), 8, 3)
                 | _SHIFTL((self.on), 0, 8)
@@ -4352,24 +4332,17 @@ class DPSetColorDither(GbiMacro):
     mode: str
 
     def to_binary(self, f3d, segments):
-        if not f3d._HW_VERSION_1:
-            if self.mode == "G_CD_MAGICSQ":
-                modeVal = f3d.G_CD_MAGICSQ
-            elif self.mode == "G_CD_BAYER":
-                modeVal = f3d.G_CD_BAYER
-            elif self.mode == "G_CD_NOISE":
-                modeVal = f3d.G_CD_NOISE
-            elif self.mode == "G_CD_DISABLE":
-                modeVal = f3d.G_CD_DISABLE
-            elif self.mode == "G_CD_ENABLE":
-                modeVal = f3d.G_CD_ENABLE
-            return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_RGBDITHER, 2, modeVal, f3d)
-        else:
-            if self.mode == "G_CD_ENABLE":
-                modeVal = f3d.G_CD_ENABLE
-            elif self.mode == "G_CD_DISABLE":
-                modeVal = f3d.G_CD_DISABLE
-            return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_COLORDITHER, 1, modeVal, f3d)
+        if self.mode == "G_CD_MAGICSQ":
+            modeVal = f3d.G_CD_MAGICSQ
+        elif self.mode == "G_CD_BAYER":
+            modeVal = f3d.G_CD_BAYER
+        elif self.mode == "G_CD_NOISE":
+            modeVal = f3d.G_CD_NOISE
+        elif self.mode == "G_CD_DISABLE":
+            modeVal = f3d.G_CD_DISABLE
+        elif self.mode == "G_CD_ENABLE":
+            modeVal = f3d.G_CD_ENABLE
+        return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_RGBDITHER, 2, modeVal, f3d)
 
 
 @dataclass(unsafe_hash=True)
@@ -4378,18 +4351,15 @@ class DPSetAlphaDither(GbiMacro):
     mode: str
 
     def to_binary(self, f3d, segments):
-        if not f3d._HW_VERSION_1:
-            if self.mode == "G_AD_PATTERN":
-                modeVal = f3d.G_AD_PATTERN
-            elif self.mode == "G_AD_NOTPATTERN":
-                modeVal = f3d.G_AD_NOTPATTERN
-            elif self.mode == "G_AD_NOISE":
-                modeVal = f3d.G_AD_NOISE
-            elif self.mode == "G_AD_DISABLE":
-                modeVal = f3d.G_AD_DISABLE
-            return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_ALPHADITHER, 2, modeVal, f3d)
-        else:
-            raise PluginError("SetAlphaDither not available in HW v1.")
+        if self.mode == "G_AD_PATTERN":
+            modeVal = f3d.G_AD_PATTERN
+        elif self.mode == "G_AD_NOTPATTERN":
+            modeVal = f3d.G_AD_NOTPATTERN
+        elif self.mode == "G_AD_NOISE":
+            modeVal = f3d.G_AD_NOISE
+        elif self.mode == "G_AD_DISABLE":
+            modeVal = f3d.G_AD_DISABLE
+        return gsSPSetOtherMode(f3d.G_SETOTHERMODE_H, f3d.G_MDSFT_ALPHADITHER, 2, modeVal, f3d)
 
 
 @dataclass(unsafe_hash=True)
@@ -5291,39 +5261,19 @@ class DPLoadTLUT_pal16(GbiMacro):
     _ptr_amp = True  # adds & to name of image
 
     def to_binary(self, f3d, segments):
-        if not f3d._HW_VERSION_1:
-            return (
-                DPSetTextureImage("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 1, self.dram).to_binary(f3d, segments)
-                + DPTileSync().to_binary(f3d, segments)
-                + DPSetTile(
-                    "0", "0", 0, (256 + (((self.pal) & 0xF) * 16)), f3d.G_TX_LOADTILE, 0, 0, 0, 0, 0, 0, 0
-                ).to_binary(f3d, segments)
-                + DPLoadSync().to_binary(f3d, segments)
-                + DPLoadTLUTCmd(f3d.G_TX_LOADTILE, 15).to_binary(f3d, segments)
-                + DPPipeSync().to_binary(f3d, segments)
-            )
-        else:
-            return _DPLoadTextureBlock(
-                self.dram,
-                (256 + (((self.pal) & 0xF) * 16)),
-                f3d.G_IM_FMT_VARS["G_IM_FMT_RGBA"],
-                f3d.G_IM_SIZ_VARS["G_IM_SIZ_16b"],
-                4 * 16,
-                1,
-                self.pal,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
+        return (
+            DPSetTextureImage("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 1, self.dram).to_binary(f3d, segments)
+            + DPTileSync().to_binary(f3d, segments)
+            + DPSetTile(
+                "0", "0", 0, (256 + (((self.pal) & 0xF) * 16)), f3d.G_TX_LOADTILE, 0, 0, 0, 0, 0, 0, 0
             ).to_binary(f3d, segments)
+            + DPLoadSync().to_binary(f3d, segments)
+            + DPLoadTLUTCmd(f3d.G_TX_LOADTILE, 15).to_binary(f3d, segments)
+            + DPPipeSync().to_binary(f3d, segments)
+        )
 
     def size(self, f3d):
-        if not f3d._HW_VERSION_1:
-            return GFX_SIZE * 6
-        else:
-            return GFX_SIZE * 7
+        return GFX_SIZE * 6
 
 
 @dataclass(unsafe_hash=True)
@@ -5332,37 +5282,17 @@ class DPLoadTLUT_pal256(GbiMacro):
     _ptr_amp = True  # adds & to name of image
 
     def to_binary(self, f3d, segments):
-        if not f3d._HW_VERSION_1:
-            return (
-                DPSetTextureImage("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 1, self.dram).to_binary(f3d, segments)
-                + DPTileSync().to_binary(f3d, segments)
-                + DPSetTile("0", "0", 0, 256, f3d.G_TX_LOADTILE, 0, 0, 0, 0, 0, 0, 0).to_binary(f3d, segments)
-                + DPLoadSync().to_binary(f3d, segments)
-                + DPLoadTLUTCmd(f3d.G_TX_LOADTILE, 255).to_binary(f3d, segments)
-                + DPPipeSync().to_binary(f3d, segments)
-            )
-        else:
-            return _DPLoadTextureBlock(
-                self.dram,
-                256,
-                f3d.G_IM_FMT_VARS["G_IM_FMT_RGBA"],
-                f3d.G_IM_SIZ_VARS["G_IM_SIZ_16b"],
-                4 * 256,
-                1,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-            ).to_binary(f3d, segments)
+        return (
+            DPSetTextureImage("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 1, self.dram).to_binary(f3d, segments)
+            + DPTileSync().to_binary(f3d, segments)
+            + DPSetTile("0", "0", 0, 256, f3d.G_TX_LOADTILE, 0, 0, 0, 0, 0, 0, 0).to_binary(f3d, segments)
+            + DPLoadSync().to_binary(f3d, segments)
+            + DPLoadTLUTCmd(f3d.G_TX_LOADTILE, 255).to_binary(f3d, segments)
+            + DPPipeSync().to_binary(f3d, segments)
+        )
 
     def size(self, f3d):
-        if not f3d._HW_VERSION_1:
-            return GFX_SIZE * 6
-        else:
-            return GFX_SIZE * 7
+        return GFX_SIZE * 6
 
 
 @dataclass(unsafe_hash=True)
@@ -5373,37 +5303,17 @@ class DPLoadTLUT(GbiMacro):
     _ptr_amp = True  # adds & to name of image
 
     def to_binary(self, f3d, segments):
-        if not f3d._HW_VERSION_1:
-            return (
-                DPSetTextureImage("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 1, self.dram).to_binary(f3d, segments)
-                + DPTileSync().to_binary(f3d, segments)
-                + DPSetTile("0", "0", 0, self.tmemaddr, f3d.G_TX_LOADTILE, 0, 0, 0, 0, 0, 0, 0).to_binary(f3d, segments)
-                + DPLoadSync().to_binary(f3d, segments)
-                + DPLoadTLUTCmd(f3d.G_TX_LOADTILE, self.count - 1).to_binary(f3d, segments)
-                + DPPipeSync().to_binary(f3d, segments)
-            )
-        else:
-            return _DPLoadTextureBlock(
-                self.dram,
-                self.tmemaddr,
-                f3d.G_IM_FMT_VARS["G_IM_FMT_RGBA"],
-                f3d.G_IM_SIZ_VARS["G_IM_SIZ_16b"],
-                4,
-                self.count,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-            ).to_binary(f3d, segments)
+        return (
+            DPSetTextureImage("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 1, self.dram).to_binary(f3d, segments)
+            + DPTileSync().to_binary(f3d, segments)
+            + DPSetTile("0", "0", 0, self.tmemaddr, f3d.G_TX_LOADTILE, 0, 0, 0, 0, 0, 0, 0).to_binary(f3d, segments)
+            + DPLoadSync().to_binary(f3d, segments)
+            + DPLoadTLUTCmd(f3d.G_TX_LOADTILE, self.count - 1).to_binary(f3d, segments)
+            + DPPipeSync().to_binary(f3d, segments)
+        )
 
     def size(self, f3d):
-        if not f3d._HW_VERSION_1:
-            return GFX_SIZE * 6
-        else:
-            return GFX_SIZE * 7
+        return GFX_SIZE * 6
 
 
 # gsDPSetScissor

@@ -1,4 +1,4 @@
-from typing import Union, Optional
+from typing import Union, Optional, Callable, Any
 from dataclasses import dataclass
 import functools
 import bpy, mathutils, os, re, copy, math
@@ -12,6 +12,7 @@ from .f3d_material import (
     all_combiner_uses,
     getMaterialScrollDimensions,
     isTexturePointSampled,
+    RDPSettings,
 )
 from .f3d_texture_writer import MultitexManager, TileLoad, maybeSaveSingleLargeTextureSetup
 from .f3d_gbi import *
@@ -897,7 +898,9 @@ class TriangleConverter:
 
         # Load triangles
         self.triList.commands.extend(
-            createTriangleCommands(self.vertexBufferTriangles, self.vertBuffer, self.triConverterInfo.f3d.HAS_TRI2)
+            createTriangleCommands(
+                self.vertexBufferTriangles, self.vertBuffer, not self.triConverterInfo.f3d.F3D_OLD_GBI
+            )
         )
 
     def addFace(self, face, stOffset):
@@ -961,7 +964,7 @@ def getF3DVert(loop: bpy.types.MeshLoop, face, convertInfo: LoopConvertInfo, mes
     return F3DVert(position, uv, rgb, normal, alpha)
 
 
-def getLoopNormal(loop: bpy.types.MeshLoop):
+def getLoopNormal(loop: bpy.types.MeshLoop) -> Vector:
     # Have to quantize to something because F3DVerts will be compared, and we
     # don't want floating-point inaccuracy causing "same" vertices not to be
     # merged. But, it hasn't been transformed yet, so quantizing to s8 here will
@@ -980,7 +983,7 @@ def is3_2_or_above():
     return bpy.app.version[0] >= 3 and bpy.app.version[1] >= 2
 
 
-def getLoopColor(loop: bpy.types.MeshLoop, mesh):
+def getLoopColor(loop: bpy.types.MeshLoop, mesh: bpy.types.Mesh) -> Vector:
     color_layer = getColorLayer(mesh, layer="Col")
     alpha_layer = getColorLayer(mesh, layer="Alpha")
 
@@ -1203,7 +1206,6 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         f3dMat.rdp_settings,
         multitexManager.getTT(),
         defaults,
-        fModel.f3d._HW_VERSION_1,
         fModel.matWriteMethod,
         fModel.f3d,
     )
@@ -1367,7 +1369,7 @@ def saveBitGeo(value, defaultValue, flagName, setGeo, clearGeo, matWriteMethod):
             clearGeo.flagList.append(flagName)
 
 
-def saveGeoModeCommon(saveFunc, settings, defaults, args):
+def saveGeoModeCommon(saveFunc: Callable, settings: RDPSettings, defaults: RDPSettings, args: Any):
     saveFunc(settings.g_zbuffer, defaults.g_zbuffer, "G_ZBUFFER", *args)
     saveFunc(settings.g_shade, defaults.g_shade, "G_SHADE", *args)
     saveFunc(settings.g_cull_front, defaults.g_cull_front, "G_CULL_FRONT", *args)
@@ -1428,22 +1430,20 @@ def saveModeSetting(fMaterial, value, defaultValue, cmdClass):
         fMaterial.revert.commands.append(cmdClass(defaultValue))
 
 
-def saveOtherModeHDefinition(fMaterial, settings, tlut, defaults, isHWv1, matWriteMethod, f3d):
+def saveOtherModeHDefinition(fMaterial, settings, tlut, defaults, matWriteMethod, f3d):
     if matWriteMethod == GfxMatWriteMethod.WriteAll:
-        saveOtherModeHDefinitionAll(fMaterial, settings, tlut, defaults, isHWv1, f3d)
+        saveOtherModeHDefinitionAll(fMaterial, settings, tlut, defaults, f3d)
     elif matWriteMethod == GfxMatWriteMethod.WriteDifferingAndRevert:
-        saveOtherModeHDefinitionIndividual(fMaterial, settings, tlut, defaults, isHWv1)
+        saveOtherModeHDefinitionIndividual(fMaterial, settings, tlut, defaults)
     else:
         raise PluginError("Unhandled material write method: " + str(matWriteMethod))
 
 
-def saveOtherModeHDefinitionAll(fMaterial, settings, tlut, defaults, isHWv1, f3d):
-    is_f3d_old = all((not f3d.F3DEX_GBI, not f3d.F3DEX_GBI_2, not f3d.F3DLP_GBI))
-    cmd = SPSetOtherMode("G_SETOTHERMODE_H", 4, 20 - is_f3d_old, [])
+def saveOtherModeHDefinitionAll(fMaterial, settings, tlut, defaults, f3d):
+    cmd = SPSetOtherMode("G_SETOTHERMODE_H", 4, 20 - f3d.F3D_OLD_GBI, [])
     cmd.flagList.append(settings.g_mdsft_alpha_dither)
-    if not isHWv1:
-        cmd.flagList.append(settings.g_mdsft_rgb_dither)
-        cmd.flagList.append(settings.g_mdsft_combkey)
+    cmd.flagList.append(settings.g_mdsft_rgb_dither)
+    cmd.flagList.append(settings.g_mdsft_combkey)
     cmd.flagList.append(settings.g_mdsft_textconv)
     cmd.flagList.append(settings.g_mdsft_text_filt)
     cmd.flagList.append(tlut)
@@ -1451,18 +1451,15 @@ def saveOtherModeHDefinitionAll(fMaterial, settings, tlut, defaults, isHWv1, f3d
     cmd.flagList.append(settings.g_mdsft_textdetail)
     cmd.flagList.append(settings.g_mdsft_textpersp)
     cmd.flagList.append(settings.g_mdsft_cycletype)
-    if isHWv1:
-        cmd.flagList.append(settings.g_mdsft_color_dither)
     cmd.flagList.append(settings.g_mdsft_pipeline)
 
     fMaterial.mat_only_DL.commands.append(cmd)
 
 
-def saveOtherModeHDefinitionIndividual(fMaterial, settings, tlut, defaults, isHWv1):
+def saveOtherModeHDefinitionIndividual(fMaterial, settings, tlut, defaults):
     saveModeSetting(fMaterial, settings.g_mdsft_alpha_dither, defaults.g_mdsft_alpha_dither, DPSetAlphaDither)
-    if not isHWv1:
-        saveModeSetting(fMaterial, settings.g_mdsft_rgb_dither, defaults.g_mdsft_rgb_dither, DPSetColorDither)
-        saveModeSetting(fMaterial, settings.g_mdsft_combkey, defaults.g_mdsft_combkey, DPSetCombineKey)
+    saveModeSetting(fMaterial, settings.g_mdsft_rgb_dither, defaults.g_mdsft_rgb_dither, DPSetColorDither)
+    saveModeSetting(fMaterial, settings.g_mdsft_combkey, defaults.g_mdsft_combkey, DPSetCombineKey)
     saveModeSetting(fMaterial, settings.g_mdsft_textconv, defaults.g_mdsft_textconv, DPSetTextureConvert)
     saveModeSetting(fMaterial, settings.g_mdsft_text_filt, defaults.g_mdsft_text_filt, DPSetTextureFilter)
     saveModeSetting(fMaterial, tlut, "G_TT_NONE", DPSetTextureLUT)
@@ -1470,66 +1467,39 @@ def saveOtherModeHDefinitionIndividual(fMaterial, settings, tlut, defaults, isHW
     saveModeSetting(fMaterial, settings.g_mdsft_textdetail, defaults.g_mdsft_textdetail, DPSetTextureDetail)
     saveModeSetting(fMaterial, settings.g_mdsft_textpersp, defaults.g_mdsft_textpersp, DPSetTexturePersp)
     saveModeSetting(fMaterial, settings.g_mdsft_cycletype, defaults.g_mdsft_cycletype, DPSetCycleType)
-    if isHWv1:
-        saveModeSetting(fMaterial, settings.g_mdsft_color_dither, defaults.g_mdsft_color_dither, DPSetColorDither)
     saveModeSetting(fMaterial, settings.g_mdsft_pipeline, defaults.g_mdsft_pipeline, DPPipelineMode)
 
 
 def saveOtherModeLDefinition(fMaterial, settings, defaults, defaultRenderMode, matWriteMethod, f3d):
     if matWriteMethod == GfxMatWriteMethod.WriteAll:
-        saveOtherModeLDefinitionAll(fMaterial, settings, defaults, defaultRenderMode, f3d)
+        saveOtherModeLDefinitionAll(fMaterial, settings, defaults, f3d)
     elif matWriteMethod == GfxMatWriteMethod.WriteDifferingAndRevert:
         saveOtherModeLDefinitionIndividual(fMaterial, settings, defaults, defaultRenderMode)
     else:
         raise PluginError("Unhandled material write method: " + str(matWriteMethod))
 
 
-def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaults, defaultRenderMode, f3d):
-    is_f3d_old = all((not f3d.F3DEX_GBI, not f3d.F3DEX_GBI_2, not f3d.F3DLP_GBI))
-    if not settings.set_rendermode:
-        cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, 3 - is_f3d_old, [])
-        cmd.flagList.append(settings.g_mdsft_alpha_compare)
-        cmd.flagList.append(settings.g_mdsft_zsrcsel)
+def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaults, f3d):
+    baseLength = 3 if not settings.set_rendermode else 32
+    cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, baseLength - f3d.F3D_OLD_GBI, [])
+    cmd.flagList.append(settings.g_mdsft_alpha_compare)
+    cmd.flagList.append(settings.g_mdsft_zsrcsel)
 
-    else:
-        cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, 32 - is_f3d_old, [])
-        cmd.flagList.append(settings.g_mdsft_alpha_compare)
-        cmd.flagList.append(settings.g_mdsft_zsrcsel)
-
-        if settings.set_rendermode:
-            flagList, blendList = getRenderModeFlagList(settings, fMaterial)
-            cmd.flagList.extend(flagList)
-            if blendList is not None:
-                cmd.flagList.extend(
-                    [
-                        "GBL_c1("
-                        + blendList[0]
-                        + ", "
-                        + blendList[1]
-                        + ", "
-                        + blendList[2]
-                        + ", "
-                        + blendList[3]
-                        + ")",
-                        "GBL_c2("
-                        + blendList[4]
-                        + ", "
-                        + blendList[5]
-                        + ", "
-                        + blendList[6]
-                        + ", "
-                        + blendList[7]
-                        + ")",
-                    ]
-                )
-        else:
-            cmd.flagList.extend(defaultRenderMode)
+    if settings.set_rendermode:
+        flagList, blendList = getRenderModeFlagList(settings, fMaterial)
+        cmd.flagList.extend(flagList)
+        if blendList is not None:
+            cmd.flagList.extend(
+                [
+                    "GBL_c1(" + blendList[0] + ", " + blendList[1] + ", " + blendList[2] + ", " + blendList[3] + ")",
+                    "GBL_c2(" + blendList[4] + ", " + blendList[5] + ", " + blendList[6] + ", " + blendList[7] + ")",
+                ]
+            )
 
     fMaterial.mat_only_DL.commands.append(cmd)
 
     if settings.g_mdsft_zsrcsel == "G_ZS_PRIM":
         fMaterial.mat_only_DL.commands.append(DPSetPrimDepth(z=settings.prim_depth.z, dz=settings.prim_depth.dz))
-        fMaterial.revert.commands.append(DPSetPrimDepth())
 
 
 def saveOtherModeLDefinitionIndividual(fMaterial, settings, defaults, defaultRenderMode):

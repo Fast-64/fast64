@@ -12,6 +12,7 @@ from .scene.exporter.to_c import getDrawConfig
 from .scene.properties import OOTSceneHeaderProperty, OOTLightProperty, OOTImportSceneSettingsProperty
 from .room.properties import OOTRoomHeaderProperty
 from .actor.properties import OOTActorProperty, OOTActorHeaderProperty
+from .cutscene.motion.importer import importCutsceneData
 
 from .oot_utility import (
     getHeaderSettings,
@@ -147,6 +148,7 @@ class SharedSceneData:
         includeCameras: bool,
         includePaths: bool,
         includeWaterBoxes: bool,
+        includeCutscenes: bool,
     ):
         self.actorDict = {}  # actor hash : blender object
         self.entranceDict = {}  # actor hash : blender object
@@ -162,6 +164,7 @@ class SharedSceneData:
         self.includeCameras = includeCameras
         self.includePaths = includePaths
         self.includeWaterBoxes = includeWaterBoxes
+        self.includeCutscenes = includeCutscenes
 
     def addHeaderIfItemExists(self, hash, itemType: str, headerIndex: int):
         if itemType == "Actor":
@@ -214,7 +217,8 @@ def parseScene(
         importSubdir = os.path.dirname(getSceneDirFromLevelName(sceneName)) + "/"
 
     sceneFolderPath = ootGetPath(importPath, settings.isCustomDest, importSubdir, sceneName, False, True)
-    sceneData = readFile(os.path.join(sceneFolderPath, f"{sceneName}_scene.c"))
+    filePath = os.path.join(sceneFolderPath, f"{sceneName}_scene.c")
+    sceneData = readFile(filePath)
 
     # roomData = ""
     # sceneFolderFiles = [f for f in listdir(sceneFolderPath) if isfile(join(sceneFolderPath, f))]
@@ -258,7 +262,12 @@ def parseScene(
         settings.includeCameras,
         settings.includePaths,
         settings.includeWaterBoxes,
+        settings.includeCutscenes,
     )
+
+    if settings.includeCutscenes:
+        bpy.context.scene.ootCSNumber = importCutsceneData(None, sceneData)
+
     sceneObj = parseSceneCommands(sceneName, None, None, sceneCommandsName, sceneData, f3dContext, 0, sharedSceneData)
     bpy.context.scene.ootSceneExportObj = sceneObj
 
@@ -361,9 +370,14 @@ def parseSceneCommands(
             if not (args[1] == "NULL" or args[1] == "0" or args[1] == "0x00"):
                 lightsListName = stripName(args[1])
                 parseLightList(sceneObj, sceneHeader, sceneData, lightsListName, headerIndex)
-        elif command == "SCENE_CMD_CUTSCENE_DATA":
-            cutsceneName = args[0]
-            print("Cutscene command parsing not implemented.")
+        elif command == "SCENE_CMD_CUTSCENE_DATA" and sharedSceneData.includeCutscenes:
+            sceneHeader.writeCutscene = True
+            sceneHeader.csWriteType = "Object"
+            csObjName = f"Cutscene.{args[0]}"
+            try:
+                sceneHeader.csWriteObject = bpy.data.objects[csObjName]
+            except:
+                print(f"ERROR: Cutscene ``{csObjName}`` do not exist!")
         elif command == "SCENE_CMD_ALTERNATE_HEADER_LIST":
             # Delay until after rooms are parsed
             altHeadersListName = stripName(args[0])
