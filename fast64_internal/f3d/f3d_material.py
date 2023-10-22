@@ -927,6 +927,69 @@ class F3DPanel(Panel):
                     prop_split(inputGroup.row(), f3dMat, "fog_color", "Fog Color")
                     prop_split(inputGroup.row(), f3dMat, "fog_position", "Fog Range")
 
+    def ui_cel_shading(self, material: Material, layout: UILayout):
+        inputGroup = layout.box().column()
+        r = inputGroup.row().split(factor=0.3)
+        r.prop(material.f3d_mat, "do_cel_shading")
+        if not material.f3d_mat.do_cel_shading:
+            return
+        cel = material.f3d_mat.cel_shading
+        r = r.split(factor=0.28)
+        r.label(text="Tint pipeline:")
+        r.prop(cel, "tintPipeline", text="")
+        
+        showSegHelp = False
+        for l in cel.levels:
+            box = inputGroup.box().column()
+            r = box.row().split(factor=0.2)
+            r.label(text="Draw when")
+            r = r.split(factor=0.3)
+            r.prop(l, "threshMode", text="")
+            r = r.split(factor=0.2)
+            r.label(text="than")
+            r.prop(l, "threshold")
+            r = box.row().split(factor=0.08)
+            r.label(text="Tint:")
+            r = r.split(factor=0.27)
+            r.prop(l, "tintType", text="")
+            if l.tintType == "Fixed":
+                r = r.split(factor=0.45)
+                r.prop(l, "tintFixedLevel")
+                r = r.split(factor=0.3)
+                r.label(text="Color:")
+                r.prop(l, "tintFixedColor", text="")
+            elif l.tintType == "Segment":
+                r = r.split(factor=0.45)
+                r.prop(l, "tintSegmentNum")
+                r.prop(l, "tintSegmentOffset")
+                showSegHelp = True
+            elif l.tintType == "Light":
+                r = r.split(factor=0.45)
+                r.prop(l, "tintFixedLevel")
+                r = r.split(factor=0.7)
+                r.label(text="Light (/end):")
+                r.prop(l, "tintLightSlot", text="")
+            else:
+                raise PluginError("Invalid tintType")
+        if showSegHelp:
+            tintName, tintNameCap = ("prim", "Prim") if cel.tintPipeline == "CC" else ("fog", "Fog")
+            r = inputGroup.row()
+            r.label(icon="INFO", text="Segments: In your code, set up DL in segment(s) used with")
+            r.scale_y = 0.75
+            r = inputGroup.row()
+            r.label(text=f"gsDPSet{tintNameCap}Color then gsSPEndDisplayList at appropriate offset")
+            r.scale_y = 0.75
+            r = inputGroup.row()
+            r.label(text=f"with {tintName} color = tint color and {tintName} alpha = tint level.")
+            r.scale_y = 0.75
+        
+        r = inputGroup.row()
+        op = r.operator(CelLevelAdd.bl_idname)
+        op.materialName = material.name
+        if len(cel.levels) > 0:
+            op = r.operator(CelLevelRemove.bl_idname)
+            op.materialName = material.name
+
     def checkDrawLayersWarnings(self, f3dMat: "F3DMaterialProperty", useDict: Dict[str, bool], layout: UILayout):
         settings = f3dMat.rdp_settings
         isF3DEX3 = bpy.context.scene.f3d_type == "F3DEX3"
@@ -1149,6 +1212,9 @@ class F3DPanel(Panel):
         else:
             presetCol.prop(context.scene, "f3dUserPresetsOnly")
             self.draw_full(f3dMat, material, layout, context)
+        
+        if context.scene.f3d_type == "F3DEX3":
+            self.ui_cel_shading(material, layout)
 
 
 def ui_tileScroll(tex, name, layout):
@@ -3116,6 +3182,91 @@ class DefaultRDPSettingsPanel(Panel):
         ui_other(world.rdp_defaults, world, layout, True)
 
 
+class CelLevelProperty(PropertyGroup):
+    threshMode : bpy.props.EnumProperty(items = enumCelThreshMode, name = "Draw when", default = "Lighter")
+    threshold : bpy.props.IntProperty(
+        name = "Threshold",
+        description = "Light level at which the boundary between cel levels occurs. One level is >= this value, the other is < it",
+        min = 2,
+        max = 255,
+        default = 128
+    )
+    tintType : bpy.props.EnumProperty(items = enumCelTintType, name = "Tint type", default = "Fixed")
+    tintFixedLevel : bpy.props.IntProperty(
+        name = "Level",
+        description = "0: original color <=> 255: fully tint color",
+        min = 0,
+        max = 255,
+        default = 50,
+    )
+    tintFixedColor : bpy.props.FloatVectorProperty(
+        name = "Tint color",
+        size = 3,
+        min = 0.0,
+        max = 1.0,
+        subtype = "COLOR",
+    )
+    tintSegmentNum : bpy.props.IntProperty(
+        name = "Segment",
+        description = "Segment number to store tint DL in",
+        min = 8,
+        max = 0xD,
+        default = 8,
+    )
+    tintSegmentOffset : bpy.props.IntProperty(
+        name = "Offset (instr)",
+        description = "Number of instructions (8 bytes) within this DL to jump to",
+        min = 0,
+        max = 1000,
+        default = 0,
+    )
+    tintLightSlot : bpy.props.IntProperty(
+        name = "Light slot (from end)",
+        description = "Which light to load RGB color from, counting from the end. 0 = ambient, 1 = last directional / point light, 2 = second-to-last, etc.",
+        min = 0,
+        max = 9,
+        default = 1,
+    )
+    
+    
+class CelShadingProperty(PropertyGroup):
+    tintPipeline : bpy.props.EnumProperty(items = enumCelTintPipeline, name = "Tint pipeline", default = "CC")
+    levels : bpy.props.CollectionProperty(type = CelLevelProperty, name = "Cel levels")
+
+
+def celGetMaterialLevels(materialName):
+    material = bpy.data.materials.get(materialName)
+    if material is None:
+        raise PluginError(f"Could not find material {materialName}")
+    return material.f3d_mat.cel_shading.levels
+
+
+class CelLevelAdd(bpy.types.Operator):
+    bl_idname = "material.f3d_cel_level_add"
+    bl_label = "Add Cel Level"
+    bl_options = {'REGISTER', 'UNDO'}
+    
+    materialName : bpy.props.StringProperty()
+    
+    def execute(self, context):
+        levels = celGetMaterialLevels(self.materialName)
+        levels.add()
+        return {'FINISHED'}
+
+
+class CelLevelRemove(bpy.types.Operator):
+    bl_idname = "material.f3d_cel_level_remove"
+    bl_label = "Remove Last Level"
+    bl_options = {'REGISTER', 'UNDO'}
+    
+    materialName : bpy.props.StringProperty()
+    
+    def execute(self, context):
+        levels = celGetMaterialLevels(self.materialName)
+        levels.remove(len(levels) - 1)
+        return {'FINISHED'}
+
+
 def getOptimalFormat(tex, curFormat, isMultitexture):
     texFormat = "RGBA16"
     if isMultitexture:
@@ -3191,8 +3342,11 @@ class MATERIAL_MT_f3d_presets(Menu):
         props_default = getattr(self, "preset_operator_defaults", None)
         add_operator = getattr(self, "preset_add_operator", None)
         presetDir = getCurrentPresetDir()
-        paths = bpy.utils.preset_paths(presetDir) if not bpy.context.scene.f3dUserPresetsOnly else []
-        paths += bpy.utils.preset_paths("f3d/user")
+        paths = bpy.utils.preset_paths("f3d/user")
+        if not bpy.context.scene.f3dUserPresetsOnly:
+            paths += bpy.utils.preset_paths(presetDir)
+            if bpy.context.scene.f3d_type == "F3DEX3":
+                paths += bpy.utils.preset_paths(f"{presetDir}_cel")
         self.path_menu(
             paths,
             self.preset_operator,
@@ -3837,6 +3991,9 @@ class F3DMaterialProperty(PropertyGroup):
     use_large_textures: bpy.props.BoolProperty(name="Large Texture Mode")
     large_edges: bpy.props.EnumProperty(items=enumLargeEdges, default="Clamp")
 
+    do_cel_shading : bpy.props.BoolProperty(name = "Cel Shading")
+    cel_shading : bpy.props.PointerProperty(type = CelShadingProperty)
+
     def key(self) -> F3DMaterialHash:
         useDefaultLighting = self.set_lights and self.use_default_lighting
         return (
@@ -3850,6 +4007,18 @@ class F3DMaterialProperty(PropertyGroup):
             self.rdp_settings.key(),
             self.draw_layer.key(),
             self.use_large_textures,
+            self.do_cel_shading,
+            self.cel_shading.tintPipeline if self.do_cel_shading else None,
+            tuple([(
+                c.threshMode,
+                c.threshold,
+                c.tintType,
+                c.tintFixedLevel,
+                c.tintFixedColor,
+                c.tintSegmentNum,
+                c.tintSegmentOffset,
+                c.tintLightSlot
+            ) for c in self.cel_shading.levels]) if self.do_cel_shading else None,
             self.use_default_lighting,
             self.set_blend,
             self.set_prim,
@@ -4050,6 +4219,10 @@ mat_classes = (
     PrimDepthSettings,
     RDPSettings,
     DefaultRDPSettingsPanel,
+    CelLevelProperty,
+    CelShadingProperty,
+    CelLevelAdd,
+    CelLevelRemove,
     F3DMaterialProperty,
     ReloadDefaultF3DPresets,
     UpdateF3DNodes,

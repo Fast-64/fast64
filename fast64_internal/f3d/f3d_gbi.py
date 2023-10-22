@@ -2911,6 +2911,13 @@ class FTriGroup:
         self.fMaterial = fMaterial
         self.vertexList = VtxList(name + "_vtx_" + str(index))
         self.triList = GfxList(name + "_tri_" + str(index), GfxListTag.Geometry, DLFormat.Static)
+        self.celTriLists = []
+        self.celTriListBaseName = f"{name}_tri_{index}_cel"
+
+    def add_cel_tri_list(self):
+        ret = GfxList(f"{self.celTriListBaseName}{len(self.celTriLists)}", GfxListTag.Geometry, DLFormat.Static)
+        self.celTriLists.append(ret)
+        return ret
 
     def get_ptr_addresses(self, f3d):
         return self.triList.get_ptr_addresses(f3d)
@@ -2921,12 +2928,16 @@ class FTriGroup:
         return startAddress, addrRange[1]
 
     def save_binary(self, romfile, f3d, segments):
+        for celTriList in self.celTriLists:
+            celTriList.save_binary(romfile, f3d, segments);
         self.triList.save_binary(romfile, f3d, segments)
         self.vertexList.save_binary(romfile)
 
     def to_c(self, f3d, gfxFormatter):
         data = CData()
         data.append(self.vertexList.to_c())
+        for celTriList in self.celTriLists:
+            data.append(celTriList.to_c(f3d))
         if self.triList:
             data.append(self.triList.to_c(f3d))
         return data

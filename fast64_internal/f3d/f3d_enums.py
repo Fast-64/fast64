@@ -391,18 +391,18 @@ enumLargeEdges = [
     ("Wrap", "Wrap", "Wrap outside image bounds (more expensive)"),
 ]
 
-enumCelThreshMode = {
-    ("Lighter", "Lighter", "This cel level is drawn when the lighting level per-pixel is LIGHTER than the threshold"),
-    ("Darker", "Darker", "This cel level is drawn when the lighting level per-pixel is DARKER than the threshold"),
-}
+enumCelThreshMode = [
+    ("Lighter", "Lighter", "This cel level is drawn when the lighting level per-pixel is LIGHTER than (>=) the threshold"),
+    ("Darker", "Darker", "This cel level is drawn when the lighting level per-pixel is DARKER than (<) the threshold"),
+]
 
-enumCelTintPipeline = {
+enumCelTintPipeline = [
     ("CC", "CC (tint in Prim Color)", "Cel shading puts tint color in Prim Color and tint level in Prim Alpha. Set up CC color to LERP between source color and tint color based on tint level, or multiply source color by tint color. Source may be Tex 0 or Env Color"),
     ("Blender", "Blender (tint in Fog Color)", "Cel shading puts tint color in Fog Color and tint level in Fog Alpha. Set up blender to LERP between CC output and tint color based on tint level. Then set CC to Tex 0 * shade color (vertex colors)"),
-}
+]
 
-enumCelTintType = {
+enumCelTintType = [
     ("Fixed", "Fixed", "Fixed tint color and level stored directly in DL"),
     ("Segment", "Segment", "Call a segmented DL to set the tint, can change at runtime"),
     ("Light", "From Light", "Automatically load tint color from selectable light slot. Tint level stored in DL"),
-}
+]
