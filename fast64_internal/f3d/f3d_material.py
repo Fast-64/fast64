@@ -311,7 +311,8 @@ def F3DOrganizeLights(self, context):
         self.f3d_light7 = lightList[6] if len(lightList) > 6 else None
 
 
-def combiner_uses(material, checkList, is2Cycle):
+def combiner_uses(material, checkList):
+    is2Cycle = f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
     display = False
     for value in checkList:
         if value[:5] == "TEXEL":
@@ -389,11 +390,11 @@ CombinerUses = dict[str, bool]
 
 
 def combiner_uses_tex0(f3d_mat: "F3DMaterialProperty"):
-    return combiner_uses(f3d_mat, ["TEXEL0", "TEXEL0_ALPHA"], f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE")
+    return combiner_uses(f3d_mat, ["TEXEL0", "TEXEL0_ALPHA"])
 
 
 def combiner_uses_tex1(f3d_mat: "F3DMaterialProperty"):
-    return combiner_uses(f3d_mat, ["TEXEL1", "TEXEL1_ALPHA"], f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE")
+    return combiner_uses(f3d_mat, ["TEXEL1", "TEXEL1_ALPHA"])
 
 
 def all_combiner_uses(f3d_mat: "F3DMaterialProperty") -> CombinerUses:
@@ -407,22 +408,21 @@ def all_combiner_uses(f3d_mat: "F3DMaterialProperty") -> CombinerUses:
         "Primitive": combiner_uses(
             f3d_mat,
             ["PRIMITIVE", "PRIMITIVE_ALPHA", "PRIM_LOD_FRAC"],
-            f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE",
         ),
         "Environment": combiner_uses(
-            f3d_mat, ["ENVIRONMENT", "ENV_ALPHA"], f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+            f3d_mat, ["ENVIRONMENT", "ENV_ALPHA"]
         ),
         "Shade": combiner_uses(
-            f3d_mat, ["SHADE", "SHADE_ALPHA"], f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+            f3d_mat, ["SHADE", "SHADE_ALPHA"]
         ),
         "Shade Alpha": combiner_uses_alpha(
-            f3d_mat, ["SHADE"], f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+            f3d_mat, ["SHADE"]
         ),
-        "Key": combiner_uses(f3d_mat, ["CENTER", "SCALE"], f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"),
+        "Key": combiner_uses(f3d_mat, ["CENTER", "SCALE"]),
         "LOD Fraction": combiner_uses(
-            f3d_mat, ["LOD_FRACTION"], f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+            f3d_mat, ["LOD_FRACTION"]
         ),
-        "Convert": combiner_uses(f3d_mat, ["K4", "K5"], f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"),
+        "Convert": combiner_uses(f3d_mat, ["K4", "K5"]),
     }
     return useDict
 
@@ -591,8 +591,6 @@ def ui_lower_mode(settings, dataHolder, layout: UILayout, useDropdown):
         )
     if not useDropdown or dataHolder.menu_lower:
         prop_split(inputGroup, settings, "g_mdsft_alpha_compare", "Alpha Compare")
-        if settings.g_mdsft_alpha_compare == "G_AC_THRESHOLD" and settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
-            inputGroup.label(text="Compares blend alpha to *first cycle* combined (CC) alpha.")
         prop_split(inputGroup, settings, "g_mdsft_zsrcsel", "Z Source Selection")
     if settings.g_mdsft_zsrcsel == "G_ZS_PRIM":
         prim_box = inputGroup.box()
@@ -929,59 +927,78 @@ class F3DPanel(Panel):
 
     def ui_cel_shading(self, material: Material, layout: UILayout):
         inputGroup = layout.box().column()
-        r = inputGroup.row().split(factor=0.3)
-        r.prop(material.f3d_mat, "do_cel_shading")
-        if not material.f3d_mat.do_cel_shading:
+        r = inputGroup.row()
+        r.prop(material.f3d_mat, "use_cel_shading")
+        if not material.f3d_mat.use_cel_shading:
             return
         cel = material.f3d_mat.cel_shading
-        r = r.split(factor=0.28)
+        r = inputGroup.row().split(factor=0.3)
         r.label(text="Tint pipeline:")
+        r = r.split(factor=0.3)
         r.prop(cel, "tintPipeline", text="")
+        r = r.split(factor=0.3)
+        r.label(text="Cutout:")
+        r.prop(cel, "cutoutSource", text="")
+        
+        if cel.cutoutSource == "ENVIRONMENT":
+            if not material.f3d_mat.set_env or material.f3d_mat.env_color[3] != 1.0:
+                inputGroup.label(text = "Enable env color, and set env alpha to 255.", icon = "ERROR")
+        else:
+            if not combiner_uses(material, cel.cutoutSource):
+                inputGroup.label(text = "This texture does not exist.", icon = "ERROR")
+        
+        if (
+            len(cel.levels) >= 3 and
+            cel.levels[0].threshMode == cel.levels[1].threshMode and
+            not all([cel.levels[0].threshMode == lvl.threshMode for lvl in cel.levels[1:]])
+        ):
+            multilineLabel(inputGroup.box(),
+                "If using both lighter and darker cel\n" +
+                "levels, one of each must be at the beginning",
+                "ERROR"
+            )
         
         showSegHelp = False
-        for l in cel.levels:
+        for level in cel.levels:
             box = inputGroup.box().column()
             r = box.row().split(factor=0.2)
             r.label(text="Draw when")
             r = r.split(factor=0.3)
-            r.prop(l, "threshMode", text="")
+            r.prop(level, "threshMode", text="")
             r = r.split(factor=0.2)
             r.label(text="than")
-            r.prop(l, "threshold")
+            r.prop(level, "threshold")
             r = box.row().split(factor=0.08)
             r.label(text="Tint:")
             r = r.split(factor=0.27)
-            r.prop(l, "tintType", text="")
-            if l.tintType == "Fixed":
+            r.prop(level, "tintType", text="")
+            if level.tintType == "Fixed":
                 r = r.split(factor=0.45)
-                r.prop(l, "tintFixedLevel")
+                r.prop(level, "tintFixedLevel")
                 r = r.split(factor=0.3)
                 r.label(text="Color:")
-                r.prop(l, "tintFixedColor", text="")
-            elif l.tintType == "Segment":
+                r.prop(level, "tintFixedColor", text="")
+            elif level.tintType == "Segment":
                 r = r.split(factor=0.45)
-                r.prop(l, "tintSegmentNum")
-                r.prop(l, "tintSegmentOffset")
+                r.prop(level, "tintSegmentNum")
+                r.prop(level, "tintSegmentOffset")
                 showSegHelp = True
-            elif l.tintType == "Light":
+            elif level.tintType == "Light":
                 r = r.split(factor=0.45)
-                r.prop(l, "tintFixedLevel")
-                r = r.split(factor=0.7)
+                r.prop(level, "tintFixedLevel")
+                r = r.split(factor=0.65)
                 r.label(text="Light (/end):")
-                r.prop(l, "tintLightSlot", text="")
+                r.prop(level, "tintLightSlot", text="")
             else:
                 raise PluginError("Invalid tintType")
         if showSegHelp:
             tintName, tintNameCap = ("prim", "Prim") if cel.tintPipeline == "CC" else ("fog", "Fog")
-            r = inputGroup.row()
-            r.label(icon="INFO", text="Segments: In your code, set up DL in segment(s) used with")
-            r.scale_y = 0.75
-            r = inputGroup.row()
-            r.label(text=f"gsDPSet{tintNameCap}Color then gsSPEndDisplayList at appropriate offset")
-            r.scale_y = 0.75
-            r = inputGroup.row()
-            r.label(text=f"with {tintName} color = tint color and {tintName} alpha = tint level.")
-            r.scale_y = 0.75
+            multilineLabel(inputGroup,
+                "Segments: In your code, set up DL in segment(s) used with\n" +
+                f"gsDPSet{tintNameCap}Color then gsSPEndDisplayList at appropriate offset\n" +
+                f"with {tintName} color = tint color and {tintName} alpha = tint level.",
+                'INFO'
+            )
         
         r = inputGroup.row()
         op = r.operator(CelLevelAdd.bl_idname)
@@ -1085,43 +1102,38 @@ class F3DPanel(Panel):
 
             self.checkDrawLayersWarnings(f3dMat, useDict, layout)
 
+            def drawCCProps(ui: UILayout, combiner: "CombinerProperty", isAlpha: bool) -> None:
+                ui = ui.column()
+                for letter in ["A", "B", "C", "D"]:
+                    r = ui.row().split(factor=0.25 if isAlpha else 0.1)
+                    r.label(text = f"{letter}{' Alpha' if isAlpha else ''}:")
+                    r.prop(combiner, f"{letter}{'_alpha' if isAlpha else ''}", text="")                    
+
+            isTwoCycle = f3dMat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+
             combinerBox = layout.box()
             combinerBox.prop(f3dMat, "set_combiner", text="Color Combiner (Color = (A - B) * C + D)")
-            combinerCol = combinerBox.row()
+            combinerCol = combinerBox.row().split(factor=0.45)
             combinerCol.enabled = f3dMat.set_combiner
-            rowColor = combinerCol.column()
-            rowAlpha = combinerCol.column()
+            drawCCProps(combinerCol, f3dMat.combiner1, False)
+            
+            if f3dMat.use_cel_shading:
+                r = combinerCol.column().box().column()
+                r.label(text = "")
+                r.label(text = f"CC alpha{' cycle 1' if isTwoCycle else ''} is")
+                r.label(text = "occupied by cel shading.")
+                r.label(text = "")
+                r.scale_y = 0.9
+            else:
+                drawCCProps(combinerCol, f3dMat.combiner1, True)
 
-            rowColor.prop(f3dMat.combiner1, "A")
-            rowColor.prop(f3dMat.combiner1, "B")
-            rowColor.prop(f3dMat.combiner1, "C")
-            rowColor.prop(f3dMat.combiner1, "D")
-            rowAlpha.prop(f3dMat.combiner1, "A_alpha")
-            rowAlpha.prop(f3dMat.combiner1, "B_alpha")
-            rowAlpha.prop(f3dMat.combiner1, "C_alpha")
-            rowAlpha.prop(f3dMat.combiner1, "D_alpha")
-            if (
-                f3dMat.rdp_settings.g_mdsft_alpha_compare == "G_AC_THRESHOLD"
-                and f3dMat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
-            ):
-                combinerBox.label(text="First cycle alpha out used for compare threshold.")
-
-            if f3dMat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
+            if isTwoCycle:
                 combinerBox2 = layout.box()
                 combinerBox2.label(text="Color Combiner Cycle 2")
                 combinerBox2.enabled = f3dMat.set_combiner
-                combinerCol2 = combinerBox2.row()
-                rowColor2 = combinerCol2.column()
-                rowAlpha2 = combinerCol2.column()
-
-                rowColor2.prop(f3dMat.combiner2, "A")
-                rowColor2.prop(f3dMat.combiner2, "B")
-                rowColor2.prop(f3dMat.combiner2, "C")
-                rowColor2.prop(f3dMat.combiner2, "D")
-                rowAlpha2.prop(f3dMat.combiner2, "A_alpha")
-                rowAlpha2.prop(f3dMat.combiner2, "B_alpha")
-                rowAlpha2.prop(f3dMat.combiner2, "C_alpha")
-                rowAlpha2.prop(f3dMat.combiner2, "D_alpha")
+                combinerCol2 = combinerBox2.row().split(factor=0.45)
+                drawCCProps(combinerCol2, f3dMat.combiner2, False)
+                drawCCProps(combinerCol2, f3dMat.combiner2, True)
 
                 if useDict["Texture 0"]:
                     cc_list = ["A", "B", "C", "D", "A_alpha", "B_alpha", "C_alpha", "D_alpha"]
@@ -1194,6 +1206,7 @@ class F3DPanel(Panel):
             return
 
         f3dMat = material.f3d_mat
+        settings = f3dMat.rdp_settings
         layout.prop(context.scene, "f3d_simple", text="Show Simplified UI")
         layout = layout.box()
         titleCol = layout.column()
@@ -1206,6 +1219,12 @@ class F3DPanel(Panel):
         row.menu(MATERIAL_MT_f3d_presets.__name__, text=f3dMat.presetName)
         row.operator(AddPresetF3D.bl_idname, text="", icon="ZOOM_IN")
         row.operator(AddPresetF3D.bl_idname, text="", icon="ZOOM_OUT").remove_active = True
+
+        if settings.g_mdsft_alpha_compare == "G_AC_THRESHOLD" and settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
+            multilineLabel(layout.box(),
+                "RDP silicon bug: Alpha compare in 2-cycle mode is broken.\n" +
+                "Compares to FIRST cycle CC alpha output from NEXT pixel.",
+                'ORPHAN_DATA')
 
         if context.scene.f3d_simple and f3dMat.presetName != "Custom":
             self.draw_simple(f3dMat, material, layout, context)
@@ -3231,6 +3250,7 @@ class CelLevelProperty(PropertyGroup):
     
 class CelShadingProperty(PropertyGroup):
     tintPipeline : bpy.props.EnumProperty(items = enumCelTintPipeline, name = "Tint pipeline", default = "CC")
+    cutoutSource : bpy.props.EnumProperty(items = enumCelCutoutSource, name = "Cutout", default = "ENVIRONMENT")
     levels : bpy.props.CollectionProperty(type = CelLevelProperty, name = "Cel levels")
 
 
@@ -3991,7 +4011,7 @@ class F3DMaterialProperty(PropertyGroup):
     use_large_textures: bpy.props.BoolProperty(name="Large Texture Mode")
     large_edges: bpy.props.EnumProperty(items=enumLargeEdges, default="Clamp")
 
-    do_cel_shading : bpy.props.BoolProperty(name = "Cel Shading")
+    use_cel_shading : bpy.props.BoolProperty(name = "Cel Shading")
     cel_shading : bpy.props.PointerProperty(type = CelShadingProperty)
 
     def key(self) -> F3DMaterialHash:
@@ -4007,8 +4027,8 @@ class F3DMaterialProperty(PropertyGroup):
             self.rdp_settings.key(),
             self.draw_layer.key(),
             self.use_large_textures,
-            self.do_cel_shading,
-            self.cel_shading.tintPipeline if self.do_cel_shading else None,
+            self.use_cel_shading,
+            self.cel_shading.tintPipeline if self.use_cel_shading else None,
             tuple([(
                 c.threshMode,
                 c.threshold,
@@ -4018,7 +4038,7 @@ class F3DMaterialProperty(PropertyGroup):
                 c.tintSegmentNum,
                 c.tintSegmentOffset,
                 c.tintLightSlot
-            ) for c in self.cel_shading.levels]) if self.do_cel_shading else None,
+            ) for c in self.cel_shading.levels]) if self.use_cel_shading else None,
             self.use_default_lighting,
             self.set_blend,
             self.set_prim,

@@ -401,6 +401,12 @@ enumCelTintPipeline = [
     ("Blender", "Blender (tint in Fog Color)", "Cel shading puts tint color in Fog Color and tint level in Fog Alpha. Set up blender to LERP between CC output and tint color based on tint level. Then set CC to Tex 0 * shade color (vertex colors)"),
 ]
 
+enumCelCutoutSource = [
+    ("TEXEL0", "Texture 0", "Cel shading material has binary alpha cutout from Texture 0 alpha. Does not work with I4 or I8 formats"),
+    ("TEXEL1", "Texture 1", "Cel shading material has binary alpha cutout from Texture 1 alpha. Does not work with I4 or I8 formats"),
+    ("ENVIRONMENT", "None / Env Alpha", "Make sure your material writes env color, and set env alpha to opaque (255)"),
+]
+
 enumCelTintType = [
     ("Fixed", "Fixed", "Fixed tint color and level stored directly in DL"),
     ("Segment", "Segment", "Call a segmented DL to set the tint, can change at runtime"),

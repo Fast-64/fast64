@@ -2763,32 +2763,6 @@ def saveSkinnedMeshByMaterial(
             )
 
     return fMesh, fSkinnedMesh
-    # for material_index, skinnedFaceArray in skinnedFaces.items():
-    #
-    # 	# We've already saved all materials, this just returns the existing ones.
-    # 	material = obj.material_slots[material_index].material
-    # 	fMaterial, texDimensions = \
-    # 		saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
-    # 	isPointSampled = isTexturePointSampled(material)
-    #
-    # 	triGroup = fMesh.tri_group_new(fMaterial)
-    # 	fMesh.draw.commands.append(SPDisplayList(fMaterial.material))
-    # 	fMesh.draw.commands.append(SPDisplayList(triGroup.triList))
-    # 	if fMaterial.revert is not None:
-    # 		fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
-    #
-    # 	convertInfo = LoopConvertInfo(uv_data, obj, material)
-    # 	triConverter = TriangleConverter(triConverterInfo, texDimensions, material,
-    # 		None, triGroup.triList, triGroup.vertexList, copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict))
-    # 	saveTriangleStrip(triConverter, [skinnedFace.bFace for skinnedFace in skinnedFaceArray], None, obj.data, True)
-    # 	saveTriangleStrip(triConverterClass,
-    # 		[skinnedFace.bFace for skinnedFace in skinnedFaceArray], None,
-    # 		convertInfo, triGroup.triList, triGroup.vertexList, fModel.f3d,
-    # 		texDimensions, currentMatrix, isPointSampled,
-    # 		copy.deepcopy(existingVertData), copy.deepcopy(matRegionDict),
-    # 		infoDict, obj.data, None, True)
-
-    return fMesh, fSkinnedMesh
 
 
 def writeDynamicMeshFunction(name, displayList):
