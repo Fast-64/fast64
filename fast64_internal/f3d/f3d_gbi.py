@@ -4686,14 +4686,14 @@ class SPLightToPrimColor(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class SPLightToEnvColor(GbiMacro):
+class SPLightToFogColor(GbiMacro):
     light: int
     alpha: int
 
     def to_binary(self, f3d, segments):
         if not f3d.F3DEX_GBI_3:
-            raise PluginError("SPLightToEnvColor requires F3DEX3 microcode")
-        word0 = _SHIFTL(f3d.G_SETENVCOLOR, 24, 8)
+            raise PluginError("SPLightToFogColor requires F3DEX3 microcode")
+        word0 = _SHIFTL(f3d.G_SETFOGCOLOR, 24, 8)
         return SPLightToRDP(self.light, self.alpha, word0).to_binary(f3d, segments)
 
 

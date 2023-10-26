@@ -1,4 +1,4 @@
-from typing import Union, Optional, Callable, Any
+from typing import Union, Optional, Callable, Any, List
 from dataclasses import dataclass
 import functools
 import bpy, mathutils, os, re, copy, math
@@ -910,14 +910,17 @@ class TriangleConverter:
                 celTriList.commands.append(SPEndDisplayList())
                 self.writeCelLevels(celTriList = celTriList)
     
-    def writeCelLevels(self, celTriList: Optional[GfxList] = None, triCmds: Optional[List[GbiMacro]] = None):
+    def writeCelLevels(self, celTriList: Optional[GfxList] = None, triCmds: Optional[List[GbiMacro]] = None) -> None:
+        assert (celTriList == None) != (triCmds == None)
         settings = self.material.f3d_mat.rdp_settings
         cel = self.material.f3d_mat.cel_shading
         f3d = get_F3D_GBI()
         
         # Don't want to have to change back and forth arbitrarily between decal and
         # opaque mode. So if you're using both lighter and darker, need to do those
-        # first before switching to opaque.
+        # first before switching to decal.
+        if getZMode(self.material) != "ZMODE_OPA":
+            raise PluginError(f"Material {self.material.name} with cel shading: zmode in blender / rendermode must be opaque.", icon = "ERROR")
         wroteLighter = wroteDarker = usesDecal = False
         if len(cel.levels):
             raise PluginError(f"Material {self.material.name} with cel shading has no cel levels")
@@ -926,13 +929,13 @@ class TriangleConverter:
                 if wroteDarker:
                     usesDecal = True
                 elif usesDecal:
-                    raise PluginError("Must use Lighter and Darker cel levels before duplicating either of them")
+                    raise PluginError(f"Material {self.material.name}: must use Lighter and Darker cel levels before duplicating either of them")
                 wroteDarker = True
             else:
                 if wroteLighter:
                     usesDecal = True
                 elif usesDecal:
-                    raise PluginError("Must use Lighter and Darker cel levels before duplicating either of them")
+                    raise PluginError(f"Material {self.material.name}: must use Lighter and Darker cel levels before duplicating either of them")
                 wroteLighter = True
         
         wroteLighter = wroteDarker = wroteOpaque = wroteDecal = False
@@ -940,12 +943,7 @@ class TriangleConverter:
         for level in cel.levels:
             darker = level.threshMode == "Darker"
             self.triList.commands.append(DPPipeSync())
-            if usesDecal:
-                if not wroteOpaque:
-                    wroteOpaque = True
-                    self.triList.commands.append(SPSetOtherMode("G_SETOTHERMODE_L",
-                        10, 2, ["ZMODE_OPA"]))
-                elif not wroteDecal and (darker and wroteDarker or not darker and wroteLighter):
+            if usesDecal and not wroteDecal and (darker and wroteDarker or not darker and wroteLighter):
                     wroteDecal = True
                     self.triList.commands.append(SPSetOtherMode("G_SETOTHERMODE_L",
                         10, 2, ["ZMODE_DEC"]))
@@ -954,9 +952,9 @@ class TriangleConverter:
             else:
                 wroteLighter = True
             
-            if lastDarker != darker:
+            if lastDarker != darker and lastDarker is not None:
                 lastDarker = darker
-                # Set up CC
+                # Set up CC. CC for first cel level is set up in material.
                 ccSettings = []
                 for prop in ["A", "B", "C", "D"]:
                     ccSettings.append(getattr(settings.combiner1, prop))
@@ -984,8 +982,17 @@ class TriangleConverter:
                     GfxListTag.Material,
                     DLFormat.Static
                 )))
+            elif level.tintType == "Light":
+                if cel.tintPipeline == "CC":
+                    self.triList.commands.append(SPLightToPrimColor(
+                        level.tintLightSlot, level.tintFixedLevel, 0, 0
+                    ))
+                else:
+                    self.triList.commands.append(SPLightToFogColor(
+                        level.tintLightSlot, level.tintFixedLevel
+                    ))
             else:
-                pass # TODO light to RDP
+                raise PluginError("Unknown tint type")
             
             # Set up threshold
             self.triList.commands.append(DPSetBlendColor(255, 255, 255, 
@@ -1004,9 +1011,6 @@ class TriangleConverter:
         # Disable alpha compare culling for future DLs
         self.triList.commands.append(SPAlphaCompareCull(
             f3d.G_ALPHA_COMPARE_CULL_DISABLE, 0))
-                    
-                    
-                
 
     def addFace(self, face, stOffset):
         triIndices = []
