@@ -3773,12 +3773,18 @@ class SPAttrOffsetZ(GbiMacro):
 
 @dataclass(unsafe_hash=True)
 class SPNormalsMode(GbiMacro):
-    mode: int
+    mode: str
 
     def to_binary(self, f3d, segments):
         if not f3d.F3DEX_GBI_3:
             raise PluginError("SPNormalsMode requires F3DEX3 microcode")
-        return gsMoveWd(f3d.G_MW_FX, f3d.G_MWO_NORMALS_MODE, mode, f3d)
+        if self.mode == "G_NORMALS_MODE_FAST":
+            modeVal = f3d.G_NORMALS_MODE_FAST
+        elif self.mode == "G_NORMALS_MODE_AUTO":
+            modeVal = f3d.G_NORMALS_MODE_AUTO
+        elif self.mode == "G_NORMALS_MODE_MANUAL":
+            modeVal = f3d.G_NORMALS_MODE_MANUAL
+        return gsMoveWd(f3d.G_MW_FX, f3d.G_MWO_NORMALS_MODE, modeVal, f3d)
 
 
 # F3DEX3 TODO: SPMITMatrix
@@ -3786,14 +3792,20 @@ class SPNormalsMode(GbiMacro):
 
 @dataclass(unsafe_hash=True)
 class SPAlphaCompareCull(GbiMacro):
-    mode: int
+    mode: str
     thresh: int
 
     def to_binary(self, f3d, segments):
         if not f3d.F3DEX_GBI_3:
             raise PluginError("SPAlphaCompareCull requires F3DEX3 microcode")
+        if self.mode == "G_ALPHA_COMPARE_CULL_DISABLE":
+            modeVal = f3d.G_ALPHA_COMPARE_CULL_DISABLE
+        elif self.mode == "G_ALPHA_COMPARE_CULL_BELOW":
+            modeVal = f3d.G_ALPHA_COMPARE_CULL_BELOW
+        elif self.mode == "G_ALPHA_COMPARE_CULL_ABOVE":
+            modeVal = f3d.G_ALPHA_COMPARE_CULL_ABOVE
         return gsMoveWd(
-            f3d.G_MW_FX, f3d.G_MWO_ALPHA_COMPARE_CULL, (_SHIFTL(self.mode, 24, 8) | _SHIFTL(self.thresh, 16, 8)), f3d
+            f3d.G_MW_FX, f3d.G_MWO_ALPHA_COMPARE_CULL, (_SHIFTL(modeVal, 24, 8) | _SHIFTL(self.thresh, 16, 8)), f3d
         )
 
 

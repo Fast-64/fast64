@@ -11,6 +11,7 @@ from .f3d_constants import *
 from .f3d_material import (
     all_combiner_uses,
     getMaterialScrollDimensions,
+    getZMode,
     isTexturePointSampled,
     RDPSettings,
 )
@@ -807,7 +808,7 @@ class TriangleConverter:
 
         self.triGroup = triGroup
         self.triList = triGroup.triList
-        self.vtxList = triGroup.vtxList
+        self.vtxList = triGroup.vertexList
 
         self.material = material
         uv_data = triConverterInfo.obj.data.uv_layers["UVMap"].data
@@ -912,8 +913,8 @@ class TriangleConverter:
     
     def writeCelLevels(self, celTriList: Optional[GfxList] = None, triCmds: Optional[List[GbiMacro]] = None) -> None:
         assert (celTriList == None) != (triCmds == None)
-        settings = self.material.f3d_mat.rdp_settings
-        cel = self.material.f3d_mat.cel_shading
+        f3dMat = self.material.f3d_mat
+        cel = f3dMat.cel_shading
         f3d = get_F3D_GBI()
         
         # Don't want to have to change back and forth arbitrarily between decal and
@@ -922,7 +923,7 @@ class TriangleConverter:
         if getZMode(self.material) != "ZMODE_OPA":
             raise PluginError(f"Material {self.material.name} with cel shading: zmode in blender / rendermode must be opaque.", icon = "ERROR")
         wroteLighter = wroteDarker = usesDecal = False
-        if len(cel.levels):
+        if len(cel.levels) == 0:
             raise PluginError(f"Material {self.material.name} with cel shading has no cel levels")
         for level in cel.levels:
             if level.threshMode == "Darker":
@@ -938,12 +939,20 @@ class TriangleConverter:
                     raise PluginError(f"Material {self.material.name}: must use Lighter and Darker cel levels before duplicating either of them")
                 wroteLighter = True
         
+        # Because this might not be the first tri list in the object with this
+        # material, we have to set things even if they were set up already in
+        # the material.
         wroteLighter = wroteDarker = wroteOpaque = wroteDecal = False
         lastDarker = None
         for level in cel.levels:
             darker = level.threshMode == "Darker"
             self.triList.commands.append(DPPipeSync())
-            if usesDecal and not wroteDecal and (darker and wroteDarker or not darker and wroteLighter):
+            if usesDecal:
+                if not wroteOpaque:
+                    wroteOpaque = True
+                    self.triList.commands.append(SPSetOtherMode("G_SETOTHERMODE_L",
+                        10, 2, ["ZMODE_OPA"]))
+                if not wroteDecal and (darker and wroteDarker or not darker and wroteLighter):
                     wroteDecal = True
                     self.triList.commands.append(SPSetOtherMode("G_SETOTHERMODE_L",
                         10, 2, ["ZMODE_DEC"]))
@@ -952,17 +961,17 @@ class TriangleConverter:
             else:
                 wroteLighter = True
             
-            if lastDarker != darker and lastDarker is not None:
+            if lastDarker != darker:
                 lastDarker = darker
-                # Set up CC. CC for first cel level is set up in material.
+                # Set up CC.
                 ccSettings = []
                 for prop in ["A", "B", "C", "D"]:
-                    ccSettings.append(getattr(settings.combiner1, prop))
+                    ccSettings.append(getattr(f3dMat.combiner1, prop))
                 ccSettings.extend(["1", "SHADE"] if darker else ["SHADE", "0"])
                 ccSettings.extend([cel.cutoutSource, "0"])
-                if settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
+                if f3dMat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
                     for prop in ["A", "B", "C", "D", "A_alpha", "B_alpha", "C_alpha", "D_alpha"]:
-                        ccSettings.append(getattr(settings.combiner2, prop))
+                        ccSettings.append(getattr(f3dMat.combiner2, prop))
                 else:
                     ccSettings *= 2
                 self.triList.commands.append(DPSetCombineMode(*ccSettings))
@@ -998,8 +1007,8 @@ class TriangleConverter:
             self.triList.commands.append(DPSetBlendColor(255, 255, 255, 
                 0x101 - level.threshold if darker else level.threshold))
             self.triList.commands.append(SPAlphaCompareCull(
-                f3d.G_ALPHA_COMPARE_CULL_ABOVE if darker else
-                f3d.G_ALPHA_COMPARE_CULL_BELOW,
+                "G_ALPHA_COMPARE_CULL_ABOVE" if darker else
+                "G_ALPHA_COMPARE_CULL_BELOW",
                 level.threshold))
             
             # Draw tris, inline or by call
@@ -1010,7 +1019,7 @@ class TriangleConverter:
         
         # Disable alpha compare culling for future DLs
         self.triList.commands.append(SPAlphaCompareCull(
-            f3d.G_ALPHA_COMPARE_CULL_DISABLE, 0))
+            "G_ALPHA_COMPARE_CULL_DISABLE", 0))
 
     def addFace(self, face, stOffset):
         triIndices = []
