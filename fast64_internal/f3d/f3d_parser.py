@@ -1,5 +1,6 @@
 from typing import Union
 import bmesh, bpy, mathutils, re, math, traceback
+from mathutils import Vector
 from bpy.utils import register_class, unregister_class
 from .f3d_gbi import *
 from .f3d_material import (
@@ -257,7 +258,7 @@ def interpretLoadVertices(romfile, vertexBuffer, transformMatrix, command, segme
     data = romfile.read(dataLength)
 
     for i in range(numVerts):
-        vert = mathutils.Vector(readVectorFromShorts(data, i * 16))
+        vert = Vector(readVectorFromShorts(data, i * 16))
         vert = transformMatrix @ vert
         transformedVert = bytearray(6)
         writeVectorToShorts(transformedVert, 0, vert)
@@ -276,9 +277,9 @@ def interpretDrawTriangle(command, vertexBuffer, faceSeq, vertSeq, uv_layer, def
     index1 = int(command[6] / 0x0A)
     index2 = int(command[7] / 0x0A)
 
-    vert0 = mathutils.Vector(getPosition(vertexBuffer, index0))
-    vert1 = mathutils.Vector(getPosition(vertexBuffer, index1))
-    vert2 = mathutils.Vector(getPosition(vertexBuffer, index2))
+    vert0 = Vector(getPosition(vertexBuffer, index0))
+    vert1 = Vector(getPosition(vertexBuffer, index1))
+    vert2 = Vector(getPosition(vertexBuffer, index2))
 
     verts[0] = vertSeq.new(vert0)
     verts[1] = vertSeq.new(vert1)
@@ -292,7 +293,7 @@ def interpretDrawTriangle(command, vertexBuffer, faceSeq, vertSeq, uv_layer, def
 
     loopIndex = 0
     for loop in tri.loops:
-        loop[uv_layer].uv = mathutils.Vector(getUV(vertexBuffer, int(command[5 + loopIndex] / 0x0A)))
+        loop[uv_layer].uv = Vector(getUV(vertexBuffer, int(command[5 + loopIndex] / 0x0A)))
         loopIndex += 1
 
     return verts
@@ -641,7 +642,7 @@ class F3DContext:
 
         mat = self.mat()
         f3dVert = bufferVert.f3dVert
-        position = transform @ mathutils.Vector(f3dVert.position)
+        position = transform @ Vector(f3dVert.position)
         if mat.tex0.tex is not None:
             texDimensions = mat.tex0.tex.size
         elif mat.tex0.use_tex_reference:
@@ -657,14 +658,14 @@ class F3DContext:
         uv[1] = 1 - uv[1]
 
         has_rgb, has_normal, has_packed_normals = getRgbNormalSettings(self.mat())
-        rgb = mathutils.Vector([v / 0xFF for v in f3dVert.rgb]) if has_rgb else None
+        rgb = Vector([v / 0xFF for v in f3dVert.rgb]) if has_rgb else Vector([1.0, 1.0, 1.0])
         alpha = f3dVert.alpha / 0xFF
-        normal = None
+        normal = Vector([0.0, 0.0, 0.0])  # Zero normal makes normals_split_custom_set use auto
         if has_normal:
             if has_packed_normals:
                 normal = f3dVert.normal
             else:
-                normal = mathutils.Vector([v - 0x100 if v >= 0x80 else v for v in f3dVert.rgb]).normalized()
+                normal = Vector([v - 0x100 if v >= 0x80 else v for v in f3dVert.rgb]).normalized()
             normal = (transform.inverted().transposed() @ normal).normalized()
 
         # NOTE: The groupIndex here does NOT correspond to a vertex group, but to the name of the limb (c variable)
@@ -1178,9 +1179,9 @@ class F3DContext:
 
             lightObj.rotation_euler = (
                 mathutils.Euler((0, 0, math.pi)).to_quaternion()
-                @ (
-                    mathutils.Euler((math.pi / 2, 0, 0)).to_quaternion() @ mathutils.Vector(light.normal)
-                ).rotation_difference(mathutils.Vector((0, 0, 1)))
+                @ (mathutils.Euler((math.pi / 2, 0, 0)).to_quaternion() @ Vector(light.normal)).rotation_difference(
+                    Vector((0, 0, 1))
+                )
             ).to_euler()
             # lightObj.rotation_euler[0] *= 1
             bLight.color = light.color
@@ -1204,7 +1205,7 @@ class F3DContext:
         self.mat().set_lights = True
         lightIndex = self.getLightIndex(command.params[0])
         colorData = math_eval(command.params[1], self.f3d)
-        color = mathutils.Vector(
+        color = Vector(
             [((colorData >> 24) & 0xFF) / 0xFF, ((colorData >> 16) & 0xFF) / 0xFF, ((colorData >> 8) & 0xFF) / 0xFF]
         )
 
@@ -1262,17 +1263,17 @@ class F3DContext:
 
     def createLights(self, data, lightsName):
         numLights, lightValues = parseLightsData(data, lightsName, self)
-        ambientColor = mathutils.Vector(gammaInverse([value / 255 for value in lightValues[0:3]]))
+        ambientColor = Vector(gammaInverse([value / 255 for value in lightValues[0:3]]))
 
         lightList = []
 
         for i in range(numLights):
-            color = mathutils.Vector(gammaInverse([value / 255 for value in lightValues[3 + 6 * i : 3 + 6 * i + 3]]))
-            direction = mathutils.Vector(bytesToNormal(lightValues[3 + 6 * i + 3 : 3 + 6 * i + 6]))
+            color = Vector(gammaInverse([value / 255 for value in lightValues[3 + 6 * i : 3 + 6 * i + 3]]))
+            direction = Vector(bytesToNormal(lightValues[3 + 6 * i + 3 : 3 + 6 * i + 6]))
             lightList.append(Light(color, direction))
 
         while len(lightList) < 7:
-            lightList.append(Light(mathutils.Vector([0, 0, 0]), mathutils.Vector([0x28, 0x28, 0x28])))
+            lightList.append(Light(Vector([0, 0, 0]), Vector([0x28, 0x28, 0x28])))
 
         # normally a and l are Ambient and Light objects,
         # but here they will be a color and blender light object array.
@@ -1828,7 +1829,6 @@ class F3DContext:
 
         color_layer = mesh.vertex_colors.new(name="Col").data
         for i in range(len(mesh.loops)):
-            # if self.materialContext.f3d_mat.rdp_settings.g_lighting:
             color_layer[i].color = self.verts[i].rgb.to_4d()
 
         alpha_layer = mesh.vertex_colors.new(name="Alpha").data
@@ -1855,7 +1855,7 @@ class F3DContext:
 
         i = 0
         for key, lightObj in self.lightData.items():
-            lightObj.location = bpy.context.scene.cursor.location + mathutils.Vector((i, 0, 0))
+            lightObj.location = bpy.context.scene.cursor.location + Vector((i, 0, 0))
             i += 1
 
         self.clearGeometry()
@@ -1956,24 +1956,20 @@ def parseVertexData(dlData: str, vertexDataName: str, f3dContext: F3DContext):
     vertexData = []
     for pattern in patterns:
         # For this step, store rgb/normal as rgb and packed normal as normal.
-        vertexData = [
-            F3DVert(
-                mathutils.Vector(
-                    [math_eval(match.group(1), f3d), math_eval(match.group(2), f3d), math_eval(match.group(3), f3d)]
-                ),
-                mathutils.Vector([math_eval(match.group(5), f3d), math_eval(match.group(6), f3d)]),
-                mathutils.Vector(
-                    [
-                        math_eval(match.group(7), f3d),
-                        math_eval(match.group(8), f3d),
-                        math_eval(match.group(9), f3d),
-                    ]
-                ),
-                unpackNormal(math_eval(match.group(4), f3d)),
-                math_eval(match.group(10), f3d),
+        for match in re.finditer(pattern, data, re.DOTALL):
+            values = [math_eval(g, f3d) for g in match.groups()]
+            if len(values) == 9:
+                # A format without the flag / packed normal
+                values = values[0:3] + [0] + values[3:9]
+            vertexData.append(
+                F3DVert(
+                    Vector(values[0:3]),
+                    Vector(values[4:6]),
+                    Vector(values[6:9]),
+                    unpackNormal(values[3]),
+                    values[9],
+                )
             )
-            for match in re.finditer(pattern, data, re.DOTALL)
-        ]
         if len(vertexData) > 0:
             break
     f3dContext.vertexData[vertexDataName] = vertexData
