@@ -54,7 +54,7 @@ dlTypeEnum = [
 ]
 
 # 1-8 for F3DEX2 etc., 1-10 for F3DEX3
-lightIndex = {"LIGHT_" + str(n): n for n in range(1, 11)}
+lightIndex = {f"LIGHT_{n}": n for n in range(1, 11)}
 
 # tuple of max buffer size, max load count.
 vertexBufferSize = {
@@ -3943,7 +3943,8 @@ class SPSetLights(GbiMacro):
         return offsets
 
     def to_binary(self, f3d, segments):
-        data = SPNumLights("NUMLIGHTS_" + str(len(self.lights.l))).to_binary(f3d, segments)
+        n = len(self.lights.l)
+        data = SPNumLights(f"NUMLIGHTS_{n}").to_binary(f3d, segments)
         if f3d.F3DEX_GBI_3:
             data += gsDma2p(
                 f3d.G_MOVEMEM, self.lights.startAddress, len(self.lights.l) * 0x10 + 8, f3d.G_MV_LIGHT, 0x10
@@ -3956,19 +3957,14 @@ class SPSetLights(GbiMacro):
         else:
             for i in range(len(self.lights.l)):
                 data += SPLight(self.lights.getLightPointer(i), "LIGHT_" + str(i + 1)).to_binary(f3d, segments)
-            data += SPLight(self.lights.getAmbientPointer(), "LIGHT_" + str(len(self.lights.l) + 1)).to_binary(
-                f3d, segments
-            )
+            data += SPLight(self.lights.getAmbientPointer(), "LIGHT_" + str(n + 1)).to_binary(f3d, segments)
         return data
 
     def to_c(self, static=True):
-        header = (
-            "gsSPSetLights" + str(len(self.lights.l)) + "("
-            if static
-            else "gSPSetLights" + str(len(self.lights.l)) + "(glistp++, "
-        )
+        n = len(self.lights.l)
+        header = f"gsSPSetLights{n}(" if static else f"gSPSetLights{n}(glistp++, "
         if not static and bpy.context.scene.decomp_compatible:
-            header += "(*(Lights" + str(len(self.lights.l)) + "*) segmented_to_virtual(&" + self.lights.name + "))"
+            header += f"(*(Lights{n}*) segmented_to_virtual(&{self.lights.name}))"
         else:
             header += self.lights.name
         return header + ")"
