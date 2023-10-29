@@ -1482,8 +1482,8 @@ def packNormal(normal: Vector) -> int:
 
 def getRgbNormalSettings(f3d_mat: "F3DMaterialProperty") -> Tuple[bool, bool, bool]:
     rdp_settings = f3d_mat.rdp_settings
-    has_packed_normals = bpy.context.scene.f3d_type == "F3DEX3"
-    has_rgb = not rdp_settings.g_lighting or (has_packed_normals and rdp_settings.g_packed_normals)
+    has_packed_normals = bpy.context.scene.f3d_type == "F3DEX3" and rdp_settings.g_packed_normals
+    has_rgb = not rdp_settings.g_lighting or has_packed_normals
     has_normal = rdp_settings.g_lighting
     return has_rgb, has_normal, has_packed_normals
 
