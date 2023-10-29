@@ -987,7 +987,7 @@ class TriangleConverter:
                         color[1], color[2], level.tintFixedLevel))
             elif level.tintType == "Segment":
                 self.triList.commands.append(SPDisplayList(GfxList(
-                    f"{level.tintSegmentNum:#02X}{level.tintSegmentOffset * 8:06X}",
+                    f"{level.tintSegmentNum:#04x}{level.tintSegmentOffset * 8:06x}",
                     GfxListTag.Material,
                     DLFormat.Static
                 )))
