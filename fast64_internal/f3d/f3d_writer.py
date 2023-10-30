@@ -1005,11 +1005,11 @@ class TriangleConverter:
             
             # Set up threshold
             self.triList.commands.append(DPSetBlendColor(255, 255, 255, 
-                0x101 - level.threshold if darker else level.threshold))
-            self.triList.commands.append(SPAlphaCompareCull(
-                "G_ALPHA_COMPARE_CULL_ABOVE" if darker else
-                "G_ALPHA_COMPARE_CULL_BELOW",
-                level.threshold))
+                0x100 - level.threshold if darker else level.threshold))
+            # self.triList.commands.append(SPAlphaCompareCull(
+            #     "G_ALPHA_COMPARE_CULL_ABOVE" if darker else
+            #     "G_ALPHA_COMPARE_CULL_BELOW",
+            #     level.threshold))
             
             # Draw tris, inline or by call
             if triCmds is not None:
@@ -1018,8 +1018,8 @@ class TriangleConverter:
                 self.triList.commands.append(SPDisplayList(celTriList))
         
         # Disable alpha compare culling for future DLs
-        self.triList.commands.append(SPAlphaCompareCull(
-            "G_ALPHA_COMPARE_CULL_DISABLE", 0))
+        # self.triList.commands.append(SPAlphaCompareCull(
+        #     "G_ALPHA_COMPARE_CULL_DISABLE", 0))
 
     def addFace(self, face, stOffset):
         triIndices = []
