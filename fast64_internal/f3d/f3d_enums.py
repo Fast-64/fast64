@@ -171,7 +171,11 @@ enumCombKey = [
 
 enumTextConv = [
     ("G_TC_CONV", "Convert", "Convert YUV to RGB"),
-    ("G_TC_FILTCONV", "Filter And Convert", "Applies chosen filter on cycle 1 and converts YUB to RGB in the second cycle"),
+    (
+        "G_TC_FILTCONV",
+        "Filter And Convert",
+        "Applies chosen filter on cycle 1 and converts YUB to RGB in the second cycle",
+    ),
     ("G_TC_FILT", "Filter", "Applies chosen filter on textures with no color conversion"),
 ]
 
@@ -189,11 +193,19 @@ enumTextLUT = [
 
 enumTextLOD = [
     ("G_TL_TILE", "Tile", "Shows selected color combiner tiles"),
-    ("G_TL_LOD", "LoD", "Enables LoD calculations, LoD tile is base tile + clamp(log2(texel/pixel)), remainder of log2(texel/pixel) ratio gets stored to LoD Fraction in the color combiner"),
+    (
+        "G_TL_LOD",
+        "LoD",
+        "Enables LoD calculations, LoD tile is base tile + clamp(log2(texel/pixel)), remainder of log2(texel/pixel) ratio gets stored to LoD Fraction in the color combiner",
+    ),
 ]
 
 enumTextDetail = [
-    ("G_TD_CLAMP", "Clamp", "Shows base tile for texel0 and texel 1 when magnifying (>1 texel/pixel), else shows LoD tiles"),
+    (
+        "G_TD_CLAMP",
+        "Clamp",
+        "Shows base tile for texel0 and texel 1 when magnifying (>1 texel/pixel), else shows LoD tiles",
+    ),
     ("G_TD_SHARPEN", "Sharpen", "Sharpens pixel colors when magnifying (<1 texel/pixel), always shows LoD tiles"),
     ("G_TD_DETAIL", "Detail", "Shows base tile when magnifying (<1 texel/pixel), else shows LoD tiles + 1"),
 ]
@@ -213,8 +225,16 @@ enumCycleType = [
 enumColorDither = [("G_CD_DISABLE", "Disable", "Disable"), ("G_CD_ENABLE", "Enable", "Enable")]
 
 enumPipelineMode = [
-    ("G_PM_1PRIMITIVE", "1 Primitive", "Adds in pipe sync after every tri draw. Adds significant amounts of lag. Only use in vanilla SM64 hacking projects"),
-    ("G_PM_NPRIMITIVE", "N Primitive", "No additional syncs are added after tri draws. Default option for every game but vanilla SM64"),
+    (
+        "G_PM_1PRIMITIVE",
+        "1 Primitive",
+        "Adds in pipe sync after every tri draw. Adds significant amounts of lag. Only use in vanilla SM64 hacking projects",
+    ),
+    (
+        "G_PM_NPRIMITIVE",
+        "N Primitive",
+        "No additional syncs are added after tri draws. Default option for every game but vanilla SM64",
+    ),
 ]
 
 enumAlphaCompare = [
@@ -357,12 +377,13 @@ maxTexelCount = {
 }
 
 enumF3D = [
-    ("F3D", "F3D", "F3D"),
-    ("F3DEX/LX", "F3DEX/LX", "F3DEX/LX"),
+    ("F3D", "F3D", "Original microcode used in SM64"),
+    ("F3DEX/LX", "F3DEX/LX", "F3DEX version 1"),
     ("F3DLX.Rej", "F3DLX.Rej", "F3DLX.Rej"),
     ("F3DLP.Rej", "F3DLP.Rej", "F3DLP.Rej"),
-    ("F3DEX2/LX2", "F3DEX2/LX2", "F3DEX2/LX2"),
-    ("F3DEX2.Rej/LX2.Rej", "F3DEX2.Rej/LX2.Rej", "F3DEX2.Rej/LX2.Rej"),
+    ("F3DEX2/LX2", "F3DEX2/LX2/ZEX", "Family of microcodes used in later N64 games including OoT and MM"),
+    ("F3DEX2.Rej/LX2.Rej", "F3DEX2.Rej/LX2.Rej", "Variant of F3DEX2 family using vertex rejection instead of clipping"),
+    ("F3DEX3", "F3DEX3", "Custom microcode by Sauraen"),
 ]
 
 enumLargeEdges = [
