@@ -2008,8 +2008,13 @@ def createOrUpdateSceneProperties():
 
     if upgrade_group and group:
         # Need to upgrade; remove old outputs
-        for out in group.outputs:
-            group.outputs.remove(out)
+        if bpy.app.version >= (4,0,0):
+            for item in group.interface.items_tree:
+                if item.item_type == 'SOCKET' and item.in_out == 'OUTPUT':
+                    group.interface.remove(item)
+        else:
+            for out in group.outputs:
+                group.outputs.remove(out)
         new_group = group
     else:
         logger.info("Creating Scene Properties")
