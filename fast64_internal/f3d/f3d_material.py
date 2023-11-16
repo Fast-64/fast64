@@ -933,7 +933,7 @@ class F3DPanel(Panel):
         lightFxPrereq = isF3DEX3 and settings.g_lighting
 
         blendUse = all_blender_uses(settings)
-        anyUseShadeAlpha = useDict["Shade Alpha"] or blendUse["Shade Alpha"]
+        anyUseShadeAlpha = useDict["Shade Alpha"] or (blendUse is not None and blendUse["Shade Alpha"])
 
         g_lighting = settings.g_lighting
         g_fog = settings.g_fog
@@ -1953,17 +1953,14 @@ def update_preset_manual(material, context):
 
 
 def update_preset_manual_v4(material, preset):
-    override = bpy.context.copy()
-    override["material"] = material
     if preset == "Shaded Solid":
         preset = "sm64_shaded_solid"
     if preset == "Shaded Texture":
         preset = "sm64_shaded_texture"
     if preset.lower() != "custom":
         material.f3d_update_flag = True
-        bpy.ops.script.execute_preset(
-            override, filepath=findF3DPresetPath(preset), menu_idname="MATERIAL_MT_f3d_presets"
-        )
+        with bpy.context.temp_override(material=material):
+            bpy.ops.script.execute_preset(filepath=findF3DPresetPath(preset), menu_idname="MATERIAL_MT_f3d_presets")
         material.f3d_update_flag = False
 
 
@@ -2024,18 +2021,49 @@ def createOrUpdateSceneProperties():
     new_group["version"] = SCENE_PROPERTIES_VERSION
 
     # Create outputs
-    _nodeFogEnable: NodeSocketInt = new_group.outputs.new("NodeSocketInt", "FogEnable")
-    _nodeFogColor: NodeSocketColor = new_group.outputs.new("NodeSocketColor", "FogColor")
-    _nodeF3D_NearClip: NodeSocketFloat = new_group.outputs.new("NodeSocketFloat", "F3D_NearClip")
-    _nodeF3D_FarClip: NodeSocketFloat = new_group.outputs.new("NodeSocketFloat", "F3D_FarClip")
-    _nodeBlender_Game_Scale: NodeSocketFloat = new_group.outputs.new("NodeSocketFloat", "Blender_Game_Scale")
-    _nodeFogNear: NodeSocketInt = new_group.outputs.new("NodeSocketInt", "FogNear")
-    _nodeFogFar: NodeSocketInt = new_group.outputs.new("NodeSocketInt", "FogFar")
-    _nodeShadeColor: NodeSocketColor = new_group.outputs.new("NodeSocketColor", "ShadeColor")
-    _nodeAmbientColor: NodeSocketColor = new_group.outputs.new("NodeSocketColor", "AmbientColor")
-    _nodeLightDirection: NodeSocketVectorDirection = new_group.outputs.new(
-        "NodeSocketVectorDirection", "LightDirection"
-    )
+    if bpy.app.version >= (4, 0, 0):
+        tree_interface = new_group.interface
+
+        _nodeFogEnable: NodeSocketFloat = tree_interface.new_socket(
+            "FogEnable", socket_type="NodeSocketFloat", in_out="OUTPUT"
+        )
+        _nodeFogColor: NodeSocketColor = tree_interface.new_socket(
+            "FogColor", socket_type="NodeSocketColor", in_out="OUTPUT"
+        )
+        _nodeF3D_NearClip: NodeSocketFloat = tree_interface.new_socket(
+            "F3D_NearClip", socket_type="NodeSocketFloat", in_out="OUTPUT"
+        )
+        _nodeF3D_FarClip: NodeSocketFloat = tree_interface.new_socket(
+            "F3D_FarClip", socket_type="NodeSocketFloat", in_out="OUTPUT"
+        )
+        _nodeBlender_Game_Scale: NodeSocketFloat = tree_interface.new_socket(
+            "Blender_Game_Scale", socket_type="NodeSocketFloat", in_out="OUTPUT"
+        )
+        _nodeFogNear: NodeSocketFloat = tree_interface.new_socket("FogNear", socket_type="NodeSocketFloat", in_out="OUTPUT")
+        _nodeFogFar: NodeSocketFloat = tree_interface.new_socket("FogFar", socket_type="NodeSocketFloat", in_out="OUTPUT")
+        _nodeShadeColor: NodeSocketColor = tree_interface.new_socket(
+            "ShadeColor", socket_type="NodeSocketColor", in_out="OUTPUT"
+        )
+        _nodeAmbientColor: NodeSocketColor = tree_interface.new_socket(
+            "AmbientColor", socket_type="NodeSocketColor", in_out="OUTPUT"
+        )
+        _nodeLightDirection: NodeSocketVector = tree_interface.new_socket(
+            "LightDirection", socket_type="NodeSocketVector", in_out="OUTPUT"
+        )
+        
+    else:
+        _nodeFogEnable: NodeSocketInt = new_group.outputs.new("NodeSocketInt", "FogEnable")
+        _nodeFogColor: NodeSocketColor = new_group.outputs.new("NodeSocketColor", "FogColor")
+        _nodeF3D_NearClip: NodeSocketFloat = new_group.outputs.new("NodeSocketFloat", "F3D_NearClip")
+        _nodeF3D_FarClip: NodeSocketFloat = new_group.outputs.new("NodeSocketFloat", "F3D_FarClip")
+        _nodeBlender_Game_Scale: NodeSocketFloat = new_group.outputs.new("NodeSocketFloat", "Blender_Game_Scale")
+        _nodeFogNear: NodeSocketInt = new_group.outputs.new("NodeSocketInt", "FogNear")
+        _nodeFogFar: NodeSocketInt = new_group.outputs.new("NodeSocketInt", "FogFar")
+        _nodeShadeColor: NodeSocketColor = new_group.outputs.new("NodeSocketColor", "ShadeColor")
+        _nodeAmbientColor: NodeSocketColor = new_group.outputs.new("NodeSocketColor", "AmbientColor")
+        _nodeLightDirection: NodeSocketVectorDirection = new_group.outputs.new(
+            "NodeSocketVectorDirection", "LightDirection"
+        )
 
     # Set outputs from render settings
     sceneOutputs: NodeGroupOutput = new_group.nodes["Group Output"]
