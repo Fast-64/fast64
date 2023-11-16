@@ -1,3 +1,4 @@
+import bpy
 from bpy.ops import object
 from bpy.types import Bone, Object, Panel, Operator, Armature, Mesh, Material, PropertyGroup
 from bpy.utils import register_class, unregister_class
@@ -81,7 +82,6 @@ enumMatOverrideOptions = [
 
 
 def drawGeoInfo(panel: Panel, bone: Bone):
-
     panel.layout.box().label(text="Geolayout Inspector")
     if bone is None:
         panel.layout.label(text="Edit geolayout properties in Pose mode.")
@@ -427,9 +427,14 @@ class GeolayoutBoneSidePanel(Panel):
 
 def getSwitchOptionBone(switchArmature):
     optionBones = []
-    for poseBone in switchArmature.pose.bones:
-        if poseBone.bone_group is not None and poseBone.bone_group.name == "SwitchOption":
-            optionBones.append(poseBone.name)
+    if bpy.app.version >= (4, 0, 0):
+        for bone in switchArmature.data.bones:
+            if bone.name in switchArmature.data.collections["SwitchOption"].bones:
+                optionBones.append(bone.name)
+    else:
+        for poseBone in switchArmature.pose.bones:
+            if poseBone.bone_group is not None and poseBone.bone_group.name == "SwitchOption":
+                optionBones.append(poseBone.name)
     if len(optionBones) > 1:
         raise PluginError("There should only be one switch option bone in " + switchArmature.name + ".")
     elif len(optionBones) < 1:

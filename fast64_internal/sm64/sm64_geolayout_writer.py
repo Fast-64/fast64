@@ -1603,7 +1603,8 @@ def processBone(
 ):
     bone = armatureObj.data.bones[boneName]
     poseBone = armatureObj.pose.bones[boneName]
-    boneGroup = poseBone.bone_group
+    if bpy.app.version < (4, 0, 0):
+        boneGroup = poseBone.bone_group
     finalTransform = copy.deepcopy(transformMatrix)
     materialOverrides = copy.copy(materialOverrides)
 

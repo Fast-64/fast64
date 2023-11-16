@@ -165,7 +165,7 @@ def parseGeoLayout(
         # bpy.ops.transform.rotate(value = math.radians(-90), orient_axis = 'X')
         # bpy.ops.object.transform_apply()
 
-    if useArmature:
+    if bpy.app.version < (4, 0, 0) and useArmature:
         armatureObj.data.layers[1] = True
 
     """
@@ -508,11 +508,18 @@ def parseNode(
 
 
 def generateMetarig(armatureObj):
+    armature = armatureObj.data
     startBones = findStartBones(armatureObj)
     createBoneGroups(armatureObj)
     for boneName in startBones:
         traverseArmatureForMetarig(armatureObj, boneName, None)
-    armatureObj.data.layers = createBoneLayerMask([boneLayers["visual"]])
+    if bpy.app.version >= (4, 0, 0):
+        if not "visual" in armature.collections:
+            armature.collections.new(name="visual")
+        armature.collections["visual"].assign(armature.bones[boneName])
+    else:
+        armatureObj.data.layers = createBoneLayerMask([boneLayers["visual"]])
+
     if bpy.context.mode != "OBJECT":
         bpy.ops.object.mode_set(mode="OBJECT")
 
@@ -520,15 +527,27 @@ def generateMetarig(armatureObj):
 def traverseArmatureForMetarig(armatureObj, boneName, parentName):
     if bpy.context.mode != "OBJECT":
         bpy.ops.object.mode_set(mode="OBJECT")
-    poseBone = armatureObj.pose.bones[boneName]
-    if poseBone.bone_group is None:
-        processBoneMeta(armatureObj, boneName, parentName)
-    elif poseBone.bone_group.name == "Ignore":
-        return
 
+    armature = armatureObj.data
+    bone = armature.bones[boneName]
     poseBone = armatureObj.pose.bones[boneName]
-    nextParentName = boneName if poseBone.bone_group is None else parentName
-    childrenNames = [child.name for child in poseBone.children]
+
+    if bpy.app.version >= (4, 0, 0):
+        if len(bone.collections) == 0:
+            processBoneMeta(armatureObj, boneName, parentName)
+        elif "Ignore" in bone.collections:
+            return
+        nextParentName = boneName if len(bone.collections) == 0 else parentName
+        childrenNames = [child.name for child in bone.children]
+
+    else:
+        if poseBone.bone_group is None:
+            processBoneMeta(armatureObj, boneName, parentName)
+        elif poseBone.bone_group.name == "Ignore":
+            return
+        nextParentName = boneName if poseBone.bone_group is None else parentName
+        childrenNames = [child.name for child in poseBone.children]
+
     for childName in childrenNames:
         traverseArmatureForMetarig(armatureObj, childName, nextParentName)
 
@@ -536,6 +555,7 @@ def traverseArmatureForMetarig(armatureObj, boneName, parentName):
 def processBoneMeta(armatureObj, boneName, parentName):
     bpy.ops.object.mode_set(mode="EDIT")
     bone = armatureObj.data.edit_bones[boneName]
+    armature = armatureObj.data
 
     # create meta bone, which the actual bone copies the rotation of
     metabone = armatureObj.data.edit_bones.new("meta_" + boneName)
@@ -574,15 +594,28 @@ def processBoneMeta(armatureObj, boneName, parentName):
     translateConstraint.target = armatureObj
     translateConstraint.subtarget = metaboneName
 
-    metabone.layers = createBoneLayerMask([boneLayers["meta"]])
+    if bpy.app.version >= (4, 0, 0):
+        if not "meta" in armature.collections:
+            armature.collections.new(name="meta")
+        armature.collections["meta"].assign(metabone)
+
+        if not "visual" in armature.collections:
+            armature.collections.new(name="visual")
+        armature.collections["visual"].assign(visualBone)
+
+        armature.collections["Ignore"].assign(visualBone)
+        armature.collections["Ignore"].assign(metabone)
+
+    else:
+        metabone.layers = createBoneLayerMask([boneLayers["meta"]])
+        visualBone.layers = createBoneLayerMask([boneLayers["visual"]])
+
+        metabonePose.bone_group_index = getBoneGroupIndex(armatureObj, "Ignore")
+        visualBonePose.bone_group_index = getBoneGroupIndex(armatureObj, "Ignore")
+
     metabone.use_deform = False
     metabonePose.lock_rotation = (True, True, True)
-
-    visualBone.layers = createBoneLayerMask([boneLayers["visual"]])
     visualBone.use_deform = False
-
-    metabonePose.bone_group_index = getBoneGroupIndex(armatureObj, "Ignore")
-    visualBonePose.bone_group_index = getBoneGroupIndex(armatureObj, "Ignore")
 
     bpy.ops.object.mode_set(mode="EDIT")
     metabone = armatureObj.data.edit_bones[metaboneName]
@@ -622,6 +655,7 @@ def processBoneMeta(armatureObj, boneName, parentName):
 
 
 def createConnectBone(armatureObj, childName, parentName):
+    armature = armatureObj.data
     child = armatureObj.data.edit_bones[childName]
     parent = armatureObj.data.edit_bones[parentName]
 
@@ -643,8 +677,16 @@ def createConnectBone(armatureObj, childName, parentName):
         bpy.ops.object.mode_set(mode="OBJECT")
     connectPoseBone = armatureObj.pose.bones[connectBoneName]
     connectBone = armatureObj.data.bones[connectBoneName]
-    connectBone.layers = createBoneLayerMask([boneLayers["visual"]])
-    connectPoseBone.bone_group_index = getBoneGroupIndex(armatureObj, "Ignore")
+
+    if bpy.app.version > (4, 0, 0):
+        if not "visual" in armature.collections:
+            armature.collections.new(name="visual")
+        armature.collections["visual"].assign(connectBone)
+        armature.collections["Ignore"].assign(connectBone)
+    else:
+        connectBone.layers = createBoneLayerMask([boneLayers["visual"]])
+        connectPoseBone.bone_group_index = getBoneGroupIndex(armatureObj, "Ignore")
+
     connectPoseBone.lock_rotation = (True, True, True)
     bpy.ops.object.mode_set(mode="EDIT")
 
