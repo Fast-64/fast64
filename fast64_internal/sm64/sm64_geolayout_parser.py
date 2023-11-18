@@ -603,6 +603,10 @@ def processBoneMeta(armatureObj, boneName, parentName):
             armature.collections.new(name="visual")
         armature.collections["visual"].assign(visualBone)
 
+        # Ignore collection should always be created, but check just in case
+        # (generateMetarig() calls createBoneGroups() before traverseArmatureForMetarig())
+        if not "Ignore" in armature.collections:
+            armature.collections.new(name="Ignore")
         armature.collections["Ignore"].assign(visualBone)
         armature.collections["Ignore"].assign(metabone)
 
