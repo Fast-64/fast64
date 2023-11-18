@@ -541,7 +541,6 @@ def traverseArmatureForMetarig(armatureObj, boneName, parentName):
             if collectionName in bone.collections:
                 isAnimatableBone = False
                 break
-        print(f"{boneName}: animatable = {isAnimatableBone}, children = {[child.name for child in bone.children]}")
         if isAnimatableBone:
             processBoneMeta(armatureObj, boneName, parentName)
         nextParentName = boneName if isAnimatableBone else parentName
