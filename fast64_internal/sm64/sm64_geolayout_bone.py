@@ -429,7 +429,7 @@ def getSwitchOptionBone(switchArmature):
     optionBones = []
     if bpy.app.version >= (4, 0, 0):
         for bone in switchArmature.data.bones:
-            if bone.name in switchArmature.data.collections["SwitchOption"].bones:
+            if "SwitchOption" in bone.collections:
                 optionBones.append(bone.name)
     else:
         for poseBone in switchArmature.pose.bones:
