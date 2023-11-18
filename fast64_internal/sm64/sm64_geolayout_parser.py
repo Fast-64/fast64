@@ -535,16 +535,12 @@ def traverseArmatureForMetarig(armatureObj, boneName, parentName):
     if bpy.app.version >= (4, 0, 0):
         if "Ignore" in bone.collections:
             return
-        isAnimatableBone = True
         nonAnimatableBoneTypes = set([item[0] for item in enumBoneType]) - animatableBoneTypes
-        for collectionName in nonAnimatableBoneTypes:
-            if collectionName in bone.collections:
-                isAnimatableBone = False
-                break
+        isAnimatableBone = not any([item in bone.collections for item in nonAnimatableBoneTypes])
         if isAnimatableBone:
             processBoneMeta(armatureObj, boneName, parentName)
         nextParentName = boneName if isAnimatableBone else parentName
-        bone = armature.bones[boneName] # re-obtain reference after edit mode changes
+        bone = armature.bones[boneName]  # re-obtain reference after edit mode changes
         childrenNames = [child.name for child in bone.children]
 
     else:
@@ -552,8 +548,8 @@ def traverseArmatureForMetarig(armatureObj, boneName, parentName):
             processBoneMeta(armatureObj, boneName, parentName)
         elif poseBone.bone_group.name == "Ignore":
             return
-        
-        poseBone = armatureObj.pose.bones[boneName] # re-obtain reference after edit mode changes
+
+        poseBone = armatureObj.pose.bones[boneName]  # re-obtain reference after edit mode changes
         nextParentName = boneName if poseBone.bone_group is None else parentName
         childrenNames = [child.name for child in poseBone.children]
 
