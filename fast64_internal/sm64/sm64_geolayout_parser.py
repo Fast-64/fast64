@@ -595,7 +595,7 @@ def processBoneMeta(armatureObj, boneName, parentName):
     translateConstraint.subtarget = metaboneName
 
     if bpy.app.version >= (4, 0, 0):
-        if not "meta" in armature.collections:
+        if "meta" not in armature.collections:
             armature.collections.new(name="meta")
         armature.collections["meta"].assign(metabone)
 
