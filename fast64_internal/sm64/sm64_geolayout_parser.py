@@ -4,7 +4,7 @@ from ..f3d.f3d_parser import createBlankMaterial, parseF3DBinary
 from ..panels import SM64_Panel, sm64GoalImport
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_constants import level_pointers, level_enums
-from .sm64_geolayout_bone import enumShadowType
+from .sm64_geolayout_bone import enumShadowType, animatableBoneTypes, enumBoneType
 from .sm64_geolayout_constants import getGeoLayoutCmdLength, nodeGroupCmds, GEO_BRANCH_STORE
 
 from ..utility import (
@@ -533,11 +533,19 @@ def traverseArmatureForMetarig(armatureObj, boneName, parentName):
     poseBone = armatureObj.pose.bones[boneName]
 
     if bpy.app.version >= (4, 0, 0):
-        if len(bone.collections) == 0:
-            processBoneMeta(armatureObj, boneName, parentName)
-        elif "Ignore" in bone.collections:
+        if "Ignore" in bone.collections:
             return
-        nextParentName = boneName if len(bone.collections) == 0 else parentName
+        isAnimatableBone = True
+        nonAnimatableBoneTypes = set([item[0] for item in enumBoneType]) - animatableBoneTypes
+        for collectionName in nonAnimatableBoneTypes:
+            if collectionName in bone.collections:
+                isAnimatableBone = False
+                break
+        print(f"{boneName}: animatable = {isAnimatableBone}, children = {[child.name for child in bone.children]}")
+        if isAnimatableBone:
+            processBoneMeta(armatureObj, boneName, parentName)
+        nextParentName = boneName if isAnimatableBone else parentName
+        bone = armature.bones[boneName] # re-obtain reference after edit mode changes
         childrenNames = [child.name for child in bone.children]
 
     else:
@@ -545,6 +553,8 @@ def traverseArmatureForMetarig(armatureObj, boneName, parentName):
             processBoneMeta(armatureObj, boneName, parentName)
         elif poseBone.bone_group.name == "Ignore":
             return
+        
+        poseBone = armatureObj.pose.bones[boneName] # re-obtain reference after edit mode changes
         nextParentName = boneName if poseBone.bone_group is None else parentName
         childrenNames = [child.name for child in poseBone.children]
 

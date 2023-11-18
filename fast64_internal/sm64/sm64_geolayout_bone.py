@@ -446,18 +446,15 @@ def getSwitchOptionBone(switchArmature):
     return optionBones[0]
 
 
-def updateBone(self, context):
-    if not hasattr(context, "bone"):
-        print("No bone in context.")
-        return
+def updateBone(bone, context):
     armatureObj = context.object
 
     createBoneGroups(armatureObj)
-    if context.bone.geo_cmd not in animatableBoneTypes:
-        addBoneToGroup(armatureObj, context.bone.name, context.bone.geo_cmd)
+    if bone.geo_cmd not in animatableBoneTypes:
+        addBoneToGroup(armatureObj, bone.name, bone.geo_cmd)
         object.mode_set(mode="POSE")
     else:
-        addBoneToGroup(armatureObj, context.bone.name, None)
+        addBoneToGroup(armatureObj, bone.name, None)
         object.mode_set(mode="POSE")
 
 
