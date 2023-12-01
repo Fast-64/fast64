@@ -80,6 +80,7 @@ from ..f3d.f3d_writer import (
 )
 
 from ..f3d.f3d_gbi import (
+    get_F3D_GBI,
     GfxList,
     GfxListTag,
     GfxMatWriteMethod,
@@ -802,7 +803,7 @@ def exportGeolayoutArmatureInsertableBinary(armatureObj, obj, convertTransformMa
         armatureObj, obj, convertTransformMatrix, camera, armatureObj.name, DLFormat.Static, True
     )
 
-    saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath, f3dType)
+    saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath)
 
 
 def exportGeolayoutObjectInsertableBinary(obj, convertTransformMatrix, filepath, camera):
@@ -810,14 +811,14 @@ def exportGeolayoutObjectInsertableBinary(obj, convertTransformMatrix, filepath,
         obj, convertTransformMatrix, camera, obj.name, None, None, DLFormat.Static, True
     )
 
-    saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath, f3dType)
+    saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath)
 
 
-def saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath, f3d):
+def saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath):
     data, startRAM = getBinaryBank0GeolayoutData(fModel, geolayoutGraph, 0, [0, 0xFFFFFF])
 
     address_ptrs = geolayoutGraph.get_ptr_addresses()
-    address_ptrs.extend(fModel.get_ptr_addresses(f3d))
+    address_ptrs.extend(fModel.get_ptr_addresses(get_F3D_GBI()))
 
     writeInsertableFile(
         filepath, insertableBinaryTypes["Geolayout"], address_ptrs, geolayoutGraph.startGeolayout.startAddress, data
@@ -1603,7 +1604,6 @@ def processBone(
 ):
     bone = armatureObj.data.bones[boneName]
     poseBone = armatureObj.pose.bones[boneName]
-    boneGroup = poseBone.bone_group
     finalTransform = copy.deepcopy(transformMatrix)
     materialOverrides = copy.copy(materialOverrides)
 
