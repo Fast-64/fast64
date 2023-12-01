@@ -806,6 +806,22 @@ class F3DPanel(Panel):
                 prop_split(renderGroup, material.rdp_settings, "alpha_cvg_sel", "Use Coverage For Alpha")
                 prop_split(renderGroup, material.rdp_settings, "force_bl", "Force Blending")
 
+                if material.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
+                    if (
+                        material.rdp_settings.blend_b1 == "G_BL_A_MEM" or
+                        material.rdp_settings.blend_p1 == "G_BL_CLR_MEM" or
+                        material.rdp_settings.blend_m1 == "G_BL_CLR_MEM"
+                    ):
+                        multilineLabel(renderGroup.box(),
+                            "RDP silicon bug: Framebuffer color / alpha in blender\n" +
+                            "cycle 1 is broken, actually value from PREVIOUS pixel.",
+                            'ORPHAN_DATA')
+                    if material.rdp_settings.blend_a2 == "G_BL_A_SHADE":
+                        multilineLabel(renderGroup.box(),
+                            "RDP silicon bug: Shade alpha in blender cycle 2\n" +
+                            "is broken, actually shade alpha from NEXT pixel.",
+                            'ORPHAN_DATA')
+
                 # cycle dependent - (P * A + M - B) / (A + B)
                 combinerBox = renderGroup.box()
                 combinerBox.label(text="Blender (Color = (P * A + M * B) / (A + B)")

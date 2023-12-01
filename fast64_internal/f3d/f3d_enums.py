@@ -268,7 +268,7 @@ enumBlendColor = [
         "Input (CC/Blender)",
         "First cycle: Color Combiner RGB, Second cycle: Blender numerator from first cycle",
     ),
-    ("G_BL_CLR_MEM", "Framebuffer Color", "Framebuffer Color (Memory)"),
+    ("G_BL_CLR_MEM", "Framebuffer Color", "Framebuffer (Memory) Color"),
     ("G_BL_CLR_BL", "Blend Color", "Blend Color Register"),
     ("G_BL_CLR_FOG", "Fog Color", "Fog Color Register"),
 ]
@@ -276,13 +276,13 @@ enumBlendColor = [
 enumBlendAlpha = [
     ("G_BL_A_IN", "Color Combiner Alpha", "Color Combiner Alpha"),
     ("G_BL_A_FOG", "Fog Alpha", "Fog Color Register Alpha"),
-    ("G_BL_A_SHADE", "Shade Alpha", "Stepped Shade Alpha"),
+    ("G_BL_A_SHADE", "Shade Alpha", "Stepped Shade Alpha from RSP, often fog"),
     ("G_BL_0", "0", "0"),
 ]
 
 enumBlendMix = [
     ("G_BL_1MA", "1 - A", "1 - A, where A is selected above"),
-    ("G_BL_A_MEM", "Framebuffer Alpha", "Framebuffer (Memory) Alpha"),
+    ("G_BL_A_MEM", "Framebuffer Alpha", "Framebuffer (Memory) Alpha (Coverage)"),
     ("G_BL_1", "1", "1"),
     ("G_BL_0", "0", "0"),
 ]
