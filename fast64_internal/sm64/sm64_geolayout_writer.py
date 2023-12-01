@@ -80,6 +80,7 @@ from ..f3d.f3d_writer import (
 )
 
 from ..f3d.f3d_gbi import (
+    get_F3D_GBI,
     GfxList,
     GfxListTag,
     GfxMatWriteMethod,

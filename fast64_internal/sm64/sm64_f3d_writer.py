@@ -16,6 +16,7 @@ from typing import Tuple, Union, Iterable
 from ..f3d.f3d_bleed import BleedGraphics
 
 from ..f3d.f3d_gbi import (
+    get_F3D_GBI,
     GbiMacro,
     GfxTag,
     FMaterial,
