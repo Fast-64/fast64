@@ -524,7 +524,7 @@ def exportF3DtoInsertableBinary(filepath, transformMatrix, obj, includeChildren)
 
     data, startRAM = getBinaryBank0F3DData(fModel, 0, [0, 0xFFFFFF])
     # must happen after getBinaryBank0F3DData
-    address_ptrs = fModel.get_ptr_addresses(f3dType)
+    address_ptrs = fModel.get_ptr_addresses(get_F3D_GBI())
 
     writeInsertableFile(filepath, insertableBinaryTypes["Display List"], address_ptrs, fMesh.draw.startAddress, data)
 
