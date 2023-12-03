@@ -1268,14 +1268,16 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             SPAmbOcclusion(
                 min(round(f3dMat.ao_ambient * 2**16), 0xFFFF),
                 min(round(f3dMat.ao_directional * 2**16), 0xFFFF),
+                min(round(f3dMat.ao_point * 2**16), 0xFFFF),
             )
         )
 
     if f3dMat.set_fresnel:
-        offset = min(round(f3dMat.fresnel_lo * 2**15), 0x7FFF)
-        scalePre = 256.0 / (f3dMat.fresnel_hi - f3dMat.fresnel_lo)
-        scale = max(min(round(scalePre), 0x7FFF), -0x8000)
-        fMaterial.mat_only_DL.commands.append(SPFresnel(offset, scale))
+        dotMin = round(f3dMat.fresnel_lo * 0x7FFF)
+        dotMax = round(f3dMat.fresnel_hi * 0x7FFF)
+        scale = max(min(0x3F8000 // (dotMax - dotMin), 0x7FFF), -0x8000)
+        offset = max(min(-(0x7F * dotMin) // (dotMax - dotMin), 0x7FFF), -0x8000)
+        fMaterial.mat_only_DL.commands.append(SPFresnel(scale, offset))
 
     if f3dMat.set_attroffs_st:
         fMaterial.mat_only_DL.commands.append(
@@ -1493,12 +1495,14 @@ def saveGeoModeCommon(saveFunc: Callable, settings: RDPSettings, defaults: RDPSe
     saveFunc(settings.g_cull_front, defaults.g_cull_front, "G_CULL_FRONT", *args)
     saveFunc(settings.g_cull_back, defaults.g_cull_back, "G_CULL_BACK", *args)
     if bpy.context.scene.f3d_type == "F3DEX3":
-        saveFunc(settings.g_attroffset_st_enable, defaults.g_attroffset_st_enable, "G_ATTROFFSET_ST_ENABLE", *args)
+        saveFunc(settings.g_ambocclusion, defaults.g_ambocclusion, "G_AMBOCCLUSION", *args)
         saveFunc(settings.g_attroffset_z_enable, defaults.g_attroffset_z_enable, "G_ATTROFFSET_Z_ENABLE", *args)
+        saveFunc(settings.g_attroffset_st_enable, defaults.g_attroffset_st_enable, "G_ATTROFFSET_ST_ENABLE", *args)
         saveFunc(settings.g_packed_normals, defaults.g_packed_normals, "G_PACKED_NORMALS", *args)
         saveFunc(settings.g_lighttoalpha, defaults.g_lighttoalpha, "G_LIGHTTOALPHA", *args)
-        saveFunc(settings.g_ambocclusion, defaults.g_ambocclusion, "G_AMBOCCLUSION", *args)
-        saveFunc(settings.g_fresnel, defaults.g_fresnel, "G_FRESNEL", *args)
+        saveFunc(settings.g_lighting_specular, defaults.g_lighting_specular, "G_LIGHTING_SPECULAR", *args)
+        saveFunc(settings.g_fresnel_color, defaults.g_fresnel_color, "G_FRESNEL_COLOR", *args)
+        saveFunc(settings.g_fresnel_alpha, defaults.g_fresnel_alpha, "G_FRESNEL_ALPHA", *args)
     saveFunc(settings.g_fog, defaults.g_fog, "G_FOG", *args)
     saveFunc(settings.g_lighting, defaults.g_lighting, "G_LIGHTING", *args)
     saveFunc(settings.g_tex_gen, defaults.g_tex_gen, "G_TEXTURE_GEN", *args)

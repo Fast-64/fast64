@@ -380,10 +380,12 @@ def all_combiner_uses(f3d_mat: "F3DMaterialProperty") -> dict[str, bool]:
             f3d_mat, ["ENVIRONMENT", "ENV_ALPHA"]
         ),
         "Shade": combiner_uses(
-            f3d_mat, ["SHADE", "SHADE_ALPHA"]
+            f3d_mat, ["SHADE"], checkAlpha = False
         ),
         "Shade Alpha": combiner_uses(
             f3d_mat, ["SHADE"], checkColor = False
+        ) or combiner_uses(
+            f3d_mat, ["SHADE_ALPHA"], checkAlpha = False
         ),
         "Key": combiner_uses(f3d_mat, ["CENTER", "SCALE"]),
         "LOD Fraction": combiner_uses(
@@ -442,15 +444,30 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
                 c.label(text="Shade not used in CC, can disable lighting.", icon="INFO")
             if isF3DEX3:
                 c.prop(settings, "g_packed_normals")
+                c.prop(settings, "g_lighting_specular")
                 c.prop(settings, "g_ambocclusion")
             d = indentGroup(c, "g_tex_gen", False)
             if d is not None:
                 d.prop(settings, "g_tex_gen_linear")
 
+        if lightFxPrereq and settings.g_fresnel_color:
+            shadeColorLabel = "Fresnel"
+        elif not settings.g_lighting or (lightFxPrereq and settings.g_lighttoalpha):
+            shadeColorLabel = "Vertex color"
+        elif lightFxPrereq and settings.g_packed_normals and not settings.g_lighttoalpha:
+            shadeColorLabel = "Lighting * vertex color"
+        else:
+            shadeColorLabel = "Lighting"
+        if lightFxPrereq:
+            c = indentGroup(inputGroup, f"Shade color = {shadeColorLabel}:", True)
+            c.prop(settings, "g_fresnel_color")
+        else:
+            inputGroup.column().label(text = f"Shade color = {shadeColorLabel}")
+
         shadowMapInShadeAlpha = False
         if settings.g_fog:
             shadeAlphaLabel = "Fog"
-        elif lightFxPrereq and settings.g_fresnel:
+        elif lightFxPrereq and settings.g_fresnel_alpha:
             shadeAlphaLabel = "Fresnel"
         elif lightFxPrereq and settings.g_lighttoalpha:
             shadeAlphaLabel = "Light intensity"
@@ -462,19 +479,18 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
         c = indentGroup(inputGroup, f"Shade alpha = {shadeAlphaLabel}:", True)
         if lightFxPrereq:
             c.prop(settings, "g_lighttoalpha")
-            c.prop(settings, "g_fresnel")
+            c.prop(settings, "g_fresnel_alpha")
         c.prop(settings, "g_fog")
-
-        if lightFxPrereq and settings.g_fog and settings.g_fresnel:
-            c.label(text="Fog overrides Fresnel.", icon="ERROR")
-        elif lightFxPrereq and settings.g_fog and settings.g_lighttoalpha:
+        if lightFxPrereq and settings.g_fog and settings.g_fresnel_alpha:
+            c.label(text="Fog overrides Fresnel Alpha.", icon="ERROR")
+        if lightFxPrereq and settings.g_fog and settings.g_lighttoalpha:
             c.label(text="Fog overrides Light-to-Alpha.", icon="ERROR")
-        elif lightFxPrereq and settings.g_fresnel and settings.g_lighttoalpha:
-            c.label(text="Fresnel overrides Light-to-Alpha.", icon="ERROR")
+        if lightFxPrereq and settings.g_fresnel_alpha and settings.g_lighttoalpha:
+            c.label(text="Fresnel Alpha overrides Light-to-Alpha.", icon="ERROR")
         if shadowMapInShadeAlpha and ccUse["Shade Alpha"]:
-            c.label(text="Shadow map = shade alpha used in CC.", icon="INFO")
+            c.label(text="Shadow map = shade alpha used in CC, probably wrong.", icon="INFO")
         if settings.g_fog and ccUse["Shade Alpha"]:
-            c.label(text="Fog = shade alpha used in CC.", icon="INFO")
+            c.label(text="Fog = shade alpha used in CC, probably wrong.", icon="INFO")
         if blendWarnings and shadeInBlender and not settings.g_fog:
             c.label(text="Rendermode uses shade alpha, probably fog.", icon="INFO")
         elif blendWarnings and not shadeInBlender and settings.g_fog:
@@ -869,8 +885,9 @@ class F3DPanel(Panel):
             if f3dMat.set_ao:
                 prop_split(inputGroup.row(), f3dMat, "ao_ambient", "AO Ambient")
                 prop_split(inputGroup.row(), f3dMat, "ao_directional", "AO Directional")
+                prop_split(inputGroup.row(), f3dMat, "ao_point", "AO Point")
 
-        if f3dMat.rdp_settings.g_fresnel:
+        if f3dMat.rdp_settings.g_fresnel_color or f3dMat.rdp_settings.g_fresnel_alpha:
             if showCheckBox or f3dMat.set_fresnel:
                 inputGroup = inputCol.column()
             if showCheckBox:
@@ -1004,10 +1021,11 @@ class F3DPanel(Panel):
         g_packed_normals = lightFxPrereq and settings.g_packed_normals
         g_ambocclusion = lightFxPrereq and settings.g_ambocclusion
         g_lighttoalpha = lightFxPrereq and settings.g_lighttoalpha
-        g_fresnel = lightFxPrereq and settings.g_fresnel
+        g_fresnel_color = lightFxPrereq and settings.g_fresnel_color
+        g_fresnel_alpha = lightFxPrereq and settings.g_fresnel_alpha
 
-        usesVertexColor = useDict["Shade"] and (not g_lighting or g_packed_normals)
-        usesVertexAlpha = anyUseShadeAlpha and (g_ambocclusion or not (g_fog or g_lighttoalpha or g_fresnel))
+        usesVertexColor = useDict["Shade"] and (not g_lighting or (g_packed_normals and not g_fresnel_color))
+        usesVertexAlpha = anyUseShadeAlpha and (g_ambocclusion or not (g_fog or g_lighttoalpha or g_fresnel_alpha))
         if not usesVertexColor and not usesVertexAlpha:
             return
         noticeBox = layout.box().column()
@@ -2821,6 +2839,24 @@ class RDPSettings(PropertyGroup):
         update=update_node_values_with_preset,
         description="Computes shade coordinates for primitives. Disable if not using lighting, vertex colors or fog",
     )
+    g_ambocclusion: bpy.props.BoolProperty(
+        name="Ambient Occlusion",
+        default=False,
+        update=update_node_values_with_preset,
+        description="F3DEX3: Scales each type light intensity differently with vertex alpha. Bake scene shadows / AO into vertex alpha, not vertex color",
+    )
+    g_attroffset_z_enable: bpy.props.BoolProperty(
+        name="Z Offset (for decal fix)",
+        default=False,
+        update=update_node_values_with_preset,
+        description="F3DEX3: Enables offset to vertex Z. To fix decals, set the Z mode to opaque and enable this",
+    )
+    g_attroffset_st_enable: bpy.props.BoolProperty(
+        name="ST Offset (for UV scroll)",
+        default=False,
+        update=update_node_values_with_preset,
+        description="F3DEX3: Enables offsets to vertex ST values, usually for UV scrolling",
+    )
     # v1/2 difference
     g_cull_front: bpy.props.BoolProperty(
         name="Cull Front",
@@ -2835,18 +2871,6 @@ class RDPSettings(PropertyGroup):
         update=update_node_values_with_preset,
         description="Disables drawing of back faces",
     )
-    g_attroffset_st_enable: bpy.props.BoolProperty(
-        name="ST Offset (for UV scroll)",
-        default=False,
-        update=update_node_values_with_preset,
-        description="F3DEX3: Enables offsets to vertex ST values, usually for UV scrolling",
-    )
-    g_attroffset_z_enable: bpy.props.BoolProperty(
-        name="Z Offset (for decal fix)",
-        default=False,
-        update=update_node_values_with_preset,
-        description="F3DEX3: Enables offset to vertex Z. To fix decals, set the Z mode to opaque and enable this",
-    )
     g_packed_normals: bpy.props.BoolProperty(
         name="Packed Normals (Vtx Colors + Lighting)",
         default=False,
@@ -2859,14 +2883,20 @@ class RDPSettings(PropertyGroup):
         update=update_node_values_with_preset,
         description="F3DEX3: Moves light intensity to shade alpha, used for cel shading and other effects",
     )
-    g_ambocclusion: bpy.props.BoolProperty(
-        name="Ambient Occlusion",
+    g_lighting_specular: bpy.props.BoolProperty(
+        name="Specular Lighting",
         default=False,
         update=update_node_values_with_preset,
-        description="F3DEX3: Scales ambient and/or directional light intensity with vertex alpha. Bake scene shadows / AO into vertex alpha, not vertex color",
+        description="F3DEX3: Microcode lighting computes specular instead of diffuse component. If using, must set light size field in code",
     )
-    g_fresnel: bpy.props.BoolProperty(
-        name="Fresnel",
+    g_fresnel_color: bpy.props.BoolProperty(
+        name="Fresnel to Color",
+        default=False,
+        update=update_node_values_with_preset,
+        description="F3DEX3: Shade color derived from how much each vertex normal faces the camera. For bump mapping",
+    )
+    g_fresnel_alpha: bpy.props.BoolProperty(
+        name="Fresnel to Alpha",
         default=False,
         update=update_node_values_with_preset,
         description="F3DEX3: Shade alpha derived from how much each vertex normal faces the camera. For water and toon outlines",
@@ -3971,21 +4001,29 @@ class F3DMaterialProperty(PropertyGroup):
         description="How much ambient occlusion (vertex alpha) affects directional light intensity",
         update=update_node_values_without_preset,
     )
+    ao_point: bpy.props.FloatProperty(
+        name="AO Point",
+        min=0.0,
+        max=1.0,
+        default=0.0,
+        description="How much ambient occlusion (vertex alpha) affects point light intensity",
+        update=update_node_values_without_preset,
+    )
     set_ao: bpy.props.BoolProperty(update=update_node_values_without_preset)
 
     # Fresnel
     fresnel_lo: bpy.props.FloatProperty(
         name="Fresnel lo",
-        min=0.0,
-        max=1.0,
+        min=-1000.0,
+        max=1000.0,
         default=0.7,
         description="Dot product value which gives shade alpha = 0. The dot product ranges from 1 when the normal points directly at the camera, to 0 when it points sideways",
         update=update_node_values_without_preset,
     )
     fresnel_hi: bpy.props.FloatProperty(
         name="Fresnel hi",
-        min=0.0,
-        max=1.0,
+        min=-1000.0,
+        max=1000.0,
         default=0.4,
         description="Dot product value which gives shade alpha = FF. The dot product ranges from 1 when the normal points directly at the camera, to 0 when it points sideways",
         update=update_node_values_without_preset,
@@ -4100,7 +4138,7 @@ class F3DMaterialProperty(PropertyGroup):
             round(self.k5, 4) if self.set_k0_5 else None,
             self.combiner1.key() if self.set_combiner else None,
             self.combiner2.key() if self.set_combiner else None,
-            tuple([round(value, 4) for value in (self.ao_ambient, self.ao_directional)]) if self.set_ao else None,
+            tuple([round(value, 4) for value in (self.ao_ambient, self.ao_directional, self.ao_point)]) if self.set_ao else None,
             tuple([round(value, 4) for value in (self.fresnel_lo, self.fresnel_hi)]) if self.set_fresnel else None,
             tuple([round(value, 4) for value in self.attroffs_st]) if self.set_attroffs_st else None,
             self.attroffs_z if self.set_attroffs_z else None,
