@@ -927,17 +927,17 @@ class F3DPanel(Panel):
 
     def ui_cel_shading(self, material: Material, layout: UILayout):
         inputGroup = layout.box().column()
-        r = inputGroup.row().split(factor=0.25)
+        r = inputGroup.row().split(factor=0.27)
         r.prop(material.f3d_mat, "use_cel_shading")
         if not material.f3d_mat.use_cel_shading:
             return
         cel = material.f3d_mat.cel_shading
-        r = r.split(factor=0.3)
+        r = r.split(factor=0.33)
         r.label(text="Tint pipeline:")
         r.prop(cel, "tintPipeline", text="")
-        r = inputGroup.row().split(factor=0.25)
+        r = inputGroup.row().split(factor=0.27)
         r.label(text="")
-        r = r.split(factor=0.3)
+        r = r.split(factor=0.33)
         r.label(text="Cutout:")
         r.prop(cel, "cutoutSource", text="")
         
