@@ -2887,7 +2887,7 @@ class RDPSettings(PropertyGroup):
         name="Specular Lighting",
         default=False,
         update=update_node_values_with_preset,
-        description="F3DEX3: Microcode lighting computes specular instead of diffuse component. If using, must set light size field in code",
+        description="F3DEX3: Microcode lighting computes specular instead of diffuse component. If using, must set size field of every light in code",
     )
     g_fresnel_color: bpy.props.BoolProperty(
         name="Fresnel to Color",
@@ -2899,7 +2899,7 @@ class RDPSettings(PropertyGroup):
         name="Fresnel to Alpha",
         default=False,
         update=update_node_values_with_preset,
-        description="F3DEX3: Shade alpha derived from how much each vertex normal faces the camera. For water and toon outlines",
+        description="F3DEX3: Shade alpha derived from how much each vertex normal faces the camera. For water, glass, ghosts, etc., or toon outlines",
     )
     g_fog: bpy.props.BoolProperty(
         name="Fog",
