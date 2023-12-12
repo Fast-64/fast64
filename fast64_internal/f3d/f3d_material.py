@@ -2099,10 +2099,6 @@ def load_handler(dummy):
 
 bpy.app.handlers.load_post.append(load_handler)
 
-# bpy.context.mode returns the keys here, while the values are required by bpy.ops.object.mode_set
-BLENDER_MODE_TO_MODE_SET = {"PAINT_VERTEX": "VERTEX_PAINT", "EDIT_MESH": "EDIT"}
-get_mode_set_from_context_mode = lambda mode: BLENDER_MODE_TO_MODE_SET.get(mode, "OBJECT")
-
 SCENE_PROPERTIES_VERSION = 1
 
 
@@ -2288,6 +2284,20 @@ def addColorAttributesToModel(obj: Object):
         bpy.ops.object.mode_set(mode=get_mode_set_from_context_mode(prevMode))
 
 
+def add_f3d_mat_to_obj(obj: bpy.types.Object, material, index=None):
+    # add material to object
+    if obj is not None:
+        addColorAttributesToModel(obj)
+        if index is None:
+            obj.data.materials.append(material)
+            if bpy.context.object is not None:
+                bpy.context.object.active_material_index = len(obj.material_slots) - 1
+        else:
+            obj.material_slots[index].material = material
+            if bpy.context.object is not None:
+                bpy.context.object.active_material_index = index
+
+
 def createF3DMat(obj: Object | None, preset="Shaded Solid", index=None):
     # link all node_groups + material from addon's data .blend
     link_f3d_material_library()
@@ -2302,17 +2312,7 @@ def createF3DMat(obj: Object | None, preset="Shaded Solid", index=None):
 
     createScenePropertiesForMaterial(material)
 
-    # add material to object
-    if obj is not None:
-        addColorAttributesToModel(obj)
-        if index is None:
-            obj.data.materials.append(material)
-            if bpy.context.object is not None:
-                bpy.context.object.active_material_index = len(obj.material_slots) - 1
-        else:
-            obj.material_slots[index].material = material
-            if bpy.context.object is not None:
-                bpy.context.object.active_material_index = index
+    add_f3d_mat_to_obj(obj, material, index)
 
     material.is_f3d = True
     material.mat_ver = 5
