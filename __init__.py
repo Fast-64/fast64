@@ -1,10 +1,29 @@
 import bpy
 from bpy.utils import register_class, unregister_class
+<<<<<<< HEAD
 from . import addon_updater_ops
 from .fast64_internal.utility import prop_split, multilineLabel
 
 from .fast64_internal.sm64 import sm64_register, sm64_unregister
 from .fast64_internal.sm64.settings.properties import SM64_Properties
+=======
+from bpy.path import abspath
+
+from . import addon_updater_ops
+
+from .fast64_internal.utility import filepath_ui_warnings, prop_split, multilineLabel
+
+from .fast64_internal.repo_settings import (
+    SM64_LoadRepoSettings,
+    SM64_SaveRepoSettings,
+    load_repo_settings,
+    repo_settings_operators_register,
+    repo_settings_operators_unregister,
+)
+
+from .fast64_internal.sm64.settings.properties import SM64_Properties
+from .fast64_internal.sm64 import sm64_register, sm64_unregister
+>>>>>>> 1ccf49f (General settings rework, tools rework, level layout operator, etc)
 from .fast64_internal.sm64.sm64_geolayout_bone import SM64_BoneProperties
 from .fast64_internal.sm64.sm64_objects import SM64_ObjectProperties
 
@@ -94,14 +113,54 @@ class Fast64_GlobalSettingsPanel(bpy.types.Panel):
     def poll(cls, context):
         return True
 
+    def draw_repo_settings(self, layout, context):
+        col = layout.column()
+
+        scene = context.scene
+        fast64_settings = scene.fast64.settings
+
+        col.prop(
+            fast64_settings,
+            "repo_settings_tab",
+            text="Repo Settings",
+            icon="TRIA_DOWN" if fast64_settings.repo_settings_tab else "TRIA_RIGHT",
+        )
+        if not fast64_settings.repo_settings_tab:
+            return
+
+        col.box().label(text="World defaults will be saved and loaded.")
+
+        prop_split(col, fast64_settings, "repo_settings_path", "Repo Settings Path")
+
+        path = abspath(fast64_settings.repo_settings_path)
+        if filepath_ui_warnings(col, path):
+            load_op = col.operator(SM64_LoadRepoSettings.bl_idname)
+            load_op.path = fast64_settings.repo_settings_path
+
+        prop_split(col, scene, "f3d_type", "F3D Microcode")
+        col.prop(scene, "saveTextures")
+        col.prop(fast64_settings, "auto_repo_load_settings")
+
+        load_op = col.operator(SM64_LoadRepoSettings.bl_idname)
+        load_op.path = fast64_settings.repo_settings_path
+        save_op = col.operator(SM64_SaveRepoSettings.bl_idname)
+        save_op.path = fast64_settings.repo_settings_path
+
     # called every frame
     def draw(self, context):
         col = self.layout.column()
         col.scale_y = 1.1  # extra padding
-        prop_split(col, context.scene, "gameEditorMode", "Game")
-        col.prop(context.scene, "exportHiddenGeometry")
-        col.prop(context.scene, "fullTraceback")
-        prop_split(col, context.scene.fast64.settings, "anim_range_choice", "Anim Range")
+
+        scene = context.scene
+        fast64_settings = scene.fast64.settings
+
+        prop_split(col, scene, "gameEditorMode", "Game")
+        col.prop(scene, "exportHiddenGeometry")
+        col.prop(scene, "fullTraceback")
+
+        prop_split(col, fast64_settings, "anim_range_choice", "Anim Range")
+
+        self.draw_repo_settings(col.box(), context)
 
 
 class Fast64_GlobalToolsPanel(bpy.types.Panel):
@@ -122,6 +181,10 @@ class Fast64_GlobalToolsPanel(bpy.types.Panel):
         # col.operator(CreateMetarig.bl_idname)
         ui_oplargetexture(col, context)
         addon_updater_ops.update_notice_box_ui(self, context)
+
+
+def repo_path_update(self, context):
+    load_repo_settings(context.scene, abspath(self.repo_settings_path), True)
 
 
 class Fast64Settings_Properties(bpy.types.PropertyGroup):
@@ -155,6 +218,16 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
             ),
         ],
         default="intersect_action_and_scene",
+    )
+
+    repo_settings_tab: bpy.props.BoolProperty(default=True)
+    repo_settings_path: bpy.props.StringProperty(
+        name="Repo Settings Path", subtype="FILE_PATH", update=repo_path_update
+    )
+    auto_repo_load_settings: bpy.props.BoolProperty(
+        name="Auto Load Repo's Settings",
+        description="When enabled, this will make fast64 automatically load repo settings if they are found after picking a decomp path",
+        default=True,
     )
 
 
@@ -277,6 +350,10 @@ classes = (
     Fast64_Properties,
     Fast64_BoneProperties,
     Fast64_ObjectProperties,
+<<<<<<< HEAD
+=======
+    # Fast64_GlobalObjectPanel,
+>>>>>>> 1ccf49f (General settings rework, tools rework, level layout operator, etc)
     F3D_GlobalSettingsPanel,
     Fast64_GlobalSettingsPanel,
     Fast64_GlobalToolsPanel,
@@ -340,6 +417,8 @@ def register():
     sm64_register(True)
     oot_register(True)
 
+    repo_settings_operators_register()
+
     for cls in classes:
         register_class(cls)
 
@@ -402,6 +481,8 @@ def unregister():
     del bpy.types.Scene.fast64
     del bpy.types.Bone.fast64
     del bpy.types.Object.fast64
+
+    repo_settings_operators_unregister()
 
     for cls in classes:
         unregister_class(cls)

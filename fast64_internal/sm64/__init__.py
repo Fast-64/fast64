@@ -122,9 +122,10 @@ def sm64_panel_unregister():
     sm64_anim_panel_unregister()
 
 
-def sm64_register(registerPanels):
+def sm64_register(register_panels: bool):
+    settings_props_register()
     tools_operators_register()
-    sm64_col_register()  # register first, so panel goes above mat panel
+    sm64_col_register()
     sm64_bone_register()
     sm64_cam_register()
     sm64_obj_register()
@@ -137,11 +138,12 @@ def sm64_register(registerPanels):
     sm64_anim_register()
     settings_props_register()
 
-    if registerPanels:
+    if register_panels:
         sm64_panel_register()
 
 
-def sm64_unregister(unregisterPanels):
+def sm64_unregister(unregister_panels: bool):
+    settings_props_unregister()
     tools_operators_unregister()
     sm64_col_unregister()
     sm64_bone_unregister()
@@ -156,5 +158,5 @@ def sm64_unregister(unregisterPanels):
     sm64_anim_unregister()
     settings_props_unregister()
 
-    if unregisterPanels:
+    if unregister_panels:
         sm64_panel_unregister()

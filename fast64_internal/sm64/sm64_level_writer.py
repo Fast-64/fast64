@@ -836,7 +836,7 @@ def exportLevelC(obj, transformMatrix, levelName, exportDir, savePNG, customExpo
     cameraVolumeString += "\tNULL_TRIGGER\n};"
 
     # Generate levelscript string
-    compressionFmt = bpy.context.scene.compressionFormat
+    compressionFmt = bpy.context.scene.fast64.sm64.compression_format
     replaceSegmentLoad(prevLevelScript, f"_{levelName}_segment_7", f"LOAD_{compressionFmt.upper()}", 0x07)
     if usesEnvFX:
         replaceSegmentLoad(prevLevelScript, f"_effect_{compressionFmt}", f"LOAD_{compressionFmt.upper()}", 0x0B)
@@ -1153,7 +1153,7 @@ class SM64_ExportLevel(ObjectDataExporter):
                     raise PluginError("Cannot find level empty.")
                 selectSingleObject(obj)
 
-            scaleValue = bpy.context.scene.blenderToSM64Scale
+            scaleValue = bpy.context.scene.fast64.sm64.blender_to_sm64_scale
             finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((scaleValue, scaleValue, scaleValue))).to_4x4()
 
         except Exception as e:
@@ -1168,7 +1168,7 @@ class SM64_ExportLevel(ObjectDataExporter):
                 levelName = context.scene.levelName
                 triggerName = "sCam" + context.scene.levelName.title().replace(" ", "").replace("_", "")
             else:
-                exportPath = bpy.path.abspath(context.scene.decompPath)
+                exportPath = bpy.path.abspath(context.scene.fast64.sm64.decomp_path)
                 if context.scene.levelOption == "custom":
                     levelName = context.scene.levelName
                     triggerName = "sCam" + context.scene.levelName.title().replace(" ", "").replace("_", "")
