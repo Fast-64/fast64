@@ -927,19 +927,24 @@ class F3DPanel(Panel):
 
     def ui_cel_shading(self, material: Material, layout: UILayout):
         inputGroup = layout.box().column()
-        r = inputGroup.row().split(factor=0.27)
+        r = inputGroup.row(align=True)
+        r.prop(
+            material.f3d_mat,
+            "expand_cel_shading_ui",
+            text="",
+            icon='TRIA_DOWN' if material.f3d_mat.expand_cel_shading_ui else 'TRIA_RIGHT',
+            icon_only=True,
+            emboss=False
+        )
         r.prop(material.f3d_mat, "use_cel_shading")
-        if not material.f3d_mat.use_cel_shading:
+        if not material.f3d_mat.expand_cel_shading_ui:
             return
+        if not material.f3d_mat.use_cel_shading:
+            inputGroup = inputGroup.column()
+            inputGroup.enabled = False
         cel = material.f3d_mat.cel_shading
-        r = r.split(factor=0.33)
-        r.label(text="Tint pipeline:")
-        r.prop(cel, "tintPipeline", text="")
-        r = inputGroup.row().split(factor=0.27)
-        r.label(text="")
-        r = r.split(factor=0.33)
-        r.label(text="Cutout:")
-        r.prop(cel, "cutoutSource", text="")
+        prop_split(inputGroup.row(), cel, "tintPipeline", "Tint pipeline:")
+        prop_split(inputGroup.row(), cel, "cutoutSource", "Cutout:")
         
         if getZMode(material) != "ZMODE_OPA":
             inputGroup.label(text = "zmode in blender / rendermode must be opaque.", icon = "ERROR")
@@ -962,6 +967,14 @@ class F3DPanel(Panel):
                 "levels, one of each must be at the beginning",
                 "ERROR"
             )
+        
+        r = inputGroup.row(align=True)
+        r.label(text="Cel levels:")
+        op = r.operator(CelLevelAdd.bl_idname, text="", icon='ADD')
+        op.materialName = material.name
+        if len(cel.levels) > 0:
+            op = r.operator(CelLevelRemove.bl_idname, text="", icon='REMOVE')
+            op.materialName = material.name
         
         showSegHelp = False
         for level in cel.levels:
@@ -1001,12 +1014,6 @@ class F3DPanel(Panel):
                 'INFO'
             )
         
-        r = inputGroup.row()
-        op = r.operator(CelLevelAdd.bl_idname)
-        op.materialName = material.name
-        if len(cel.levels) > 0:
-            op = r.operator(CelLevelRemove.bl_idname)
-            op.materialName = material.name
 
     def checkDrawLayersWarnings(self, f3dMat: "F3DMaterialProperty", useDict: Dict[str, bool], layout: UILayout):
         settings = f3dMat.rdp_settings
@@ -1227,6 +1234,10 @@ class F3DPanel(Panel):
         
         if context.scene.f3d_type == "F3DEX3":
             self.ui_cel_shading(material, layout)
+        else:
+            r = layout.row()
+            r.enabled = False
+            r.label(text="Use Cel Shading (requires F3DEX3)", icon='TRIA_RIGHT')
 
 
 def ui_tileScroll(tex, name, layout):
@@ -4085,7 +4096,8 @@ class F3DMaterialProperty(PropertyGroup):
     use_large_textures: bpy.props.BoolProperty(name="Large Texture Mode")
     large_edges: bpy.props.EnumProperty(items=enumLargeEdges, default="Clamp")
 
-    use_cel_shading : bpy.props.BoolProperty(name = "Cel Shading", update = update_cel_cutout_source)
+    expand_cel_shading_ui : bpy.props.BoolProperty(name = "Expand Cel Shading UI")
+    use_cel_shading : bpy.props.BoolProperty(name = "Use Cel Shading", update = update_cel_cutout_source)
     cel_shading : bpy.props.PointerProperty(type = CelShadingProperty)
 
     def key(self) -> F3DMaterialHash:
