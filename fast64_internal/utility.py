@@ -610,6 +610,10 @@ def int_from_s16(value: int) -> int:
 
 def int_from_s16_str(value: str) -> int:
     return int_from_s16(int(value, 0))
+    
+
+def float_from_u16_str(value: str) -> float:
+    return float(int(value, 0)) / (2**16)
 
 
 def decompFolderMessage(layout):

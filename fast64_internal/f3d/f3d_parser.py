@@ -1588,26 +1588,26 @@ class F3DContext:
                 elif command.name[:13] == "gsSPSetLights":
                     self.setLights(dlData, command)
                 elif command.name == "gsSPAmbOcclusionAmb":
-                    mat.ao_ambient = float(int(command.params[0], 0)) / (2**16)
+                    mat.ao_ambient = float_from_u16_str(command.params[0])
                     mat.set_ao = True
                 elif command.name == "gsSPAmbOcclusionDir":
-                    mat.ao_directional = float(int(command.params[0], 0)) / (2**16)
+                    mat.ao_directional = float_from_u16_str(command.params[0])
                     mat.set_ao = True
                 elif command.name == "gsSPAmbOcclusionPoint":
-                    mat.ao_point = float(int(command.params[0], 0)) / (2**16)
+                    mat.ao_point = float_from_u16_str(command.params[0])
                     mat.set_ao = True
                 elif command.name == "gsSPAmbOcclusionAmbDir":
-                    mat.ao_ambient = float(int(command.params[0], 0)) / (2**16)
-                    mat.ao_directional = float(int(command.params[1], 0)) / (2**16)
+                    mat.ao_ambient = float_from_u16_str(command.params[0])
+                    mat.ao_directional = float_from_u16_str(command.params[1])
                     mat.set_ao = True
                 elif command.name == "gsSPAmbOcclusionDirPoint":
-                    mat.ao_directional = float(int(command.params[0], 0)) / (2**16)
-                    mat.ao_point = float(int(command.params[1], 0)) / (2**16)
+                    mat.ao_directional = float_from_u16_str(command.params[0])
+                    mat.ao_point = float_from_u16_str(command.params[1])
                     mat.set_ao = True
                 elif command.name == "gsSPAmbOcclusion":
-                    mat.ao_ambient = float(int(command.params[0], 0)) / (2**16)
-                    mat.ao_directional = float(int(command.params[1], 0)) / (2**16)
-                    mat.ao_point = float(int(command.params[2], 0)) / (2**16)
+                    mat.ao_ambient = float_from_u16_str(command.params[0])
+                    mat.ao_directional = float_from_u16_str(command.params[1])
+                    mat.ao_point = float_from_u16_str(command.params[2])
                     mat.set_ao = True
                 elif command.name == "gsSPFresnel":
                     scale = int_from_s16_str(command.params[0])
