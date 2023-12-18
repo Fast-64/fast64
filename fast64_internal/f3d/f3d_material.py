@@ -1217,8 +1217,8 @@ class F3DPanel(Panel):
         split.label(text="Preset")
         row = split.row(align=True)
         row.menu(MATERIAL_MT_f3d_presets.__name__, text=f3dMat.presetName)
-        row.operator(AddPresetF3D.bl_idname, text="", icon="ZOOM_IN")
-        row.operator(AddPresetF3D.bl_idname, text="", icon="ZOOM_OUT").remove_active = True
+        row.operator(AddPresetF3D.bl_idname, text="", icon="ADD")
+        row.operator(AddPresetF3D.bl_idname, text="", icon="REMOVE").remove_active = True
 
         if settings.g_mdsft_alpha_compare == "G_AC_THRESHOLD" and settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
             multilineLabel(layout.box(),
@@ -3443,7 +3443,7 @@ class MATERIAL_MT_f3d_presets(Menu):
         if not bpy.context.scene.f3dUserPresetsOnly:
             paths += bpy.utils.preset_paths(presetDir)
             if bpy.context.scene.f3d_type == "F3DEX3":
-                paths += bpy.utils.preset_paths(f"{presetDir}_cel")
+                paths += bpy.utils.preset_paths(f"{presetDir}_f3dex3")
         self.path_menu(
             paths,
             self.preset_operator,
