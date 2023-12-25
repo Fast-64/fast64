@@ -49,6 +49,21 @@ def upgradeActors(actorObj: Object):
                 if actorObj in obj.children_recursive:
                     entranceProp.tiedRoom = obj
                     break
+    elif actorObj.ootEmptyType == "Transition Actor":
+        transActorProp = actorObj.ootTransitionActorProperty
+        transActorProp.isRoomTransition = actorObj["ootTransitionActorProperty"]["dontTransition"] == False
+        del actorObj["ootTransitionActorProperty"]["dontTransition"]
+
+        if transActorProp.isRoomTransition:
+            for obj in bpy.data.objects:
+                if obj.type == "EMPTY":
+                    if obj.ootEmptyType == "Room":
+                        if actorObj in obj.children_recursive:
+                            transActorProp.fromRoom = obj
+
+                        if obj.ootRoomHeader.roomIndex == actorObj["ootTransitionActorProperty"]["roomIndex"]:
+                            transActorProp.toRoom = obj
+                            del actorObj["ootTransitionActorProperty"]["roomIndex"]
 
 
 def upgradeCutsceneMotion(csMotionObj: Object):

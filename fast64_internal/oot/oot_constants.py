@@ -9,71 +9,15 @@ ootEnumRoomShapeType = [
     ("ROOM_SHAPE_TYPE_CULLABLE", "Cullable", "Cullable"),
 ]
 
-ootRoomShapeStructs = [
-    "RoomShapeNormal",
-    "RoomShapeImage",
-    "RoomShapeCullable",
-]
-
-ootRoomShapeEntryStructs = [
-    "RoomShapeDListsEntry",
-    "RoomShapeDListsEntry",
-    "RoomShapeCullableEntry",
-]
-
-
-ootEnumSceneMenu = [
-    ("General", "General", "General"),
-    ("Lighting", "Lighting", "Lighting"),
-    ("Cutscene", "Cutscene", "Cutscene"),
-    ("Exits", "Exits", "Exits"),
-    ("Alternate", "Alternate", "Alternate"),
-]
-
-ootEnumRenderScene = [
-    ("General", "General", "General"),
-    ("Alternate", "Alternate", "Alternate"),
-]
-
-ootEnumSceneMenuAlternate = [
-    ("General", "General", "General"),
-    ("Lighting", "Lighting", "Lighting"),
-    ("Cutscene", "Cutscene", "Cutscene"),
-    ("Exits", "Exits", "Exits"),
-]
-
-ootEnumRoomMenu = [
-    ("General", "General", "General"),
-    ("Objects", "Objects", "Objects"),
-    ("Alternate", "Alternate", "Alternate"),
-]
-
-ootEnumRoomMenuAlternate = [
-    ("General", "General", "General"),
-    ("Objects", "Objects", "Objects"),
-]
-
 ootEnumHeaderMenu = [
     ("Child Night", "Child Night", "Child Night"),
     ("Adult Day", "Adult Day", "Adult Day"),
     ("Adult Night", "Adult Night", "Adult Night"),
     ("Cutscene", "Cutscene", "Cutscene"),
 ]
-
 ootEnumHeaderMenuComplete = [
     ("Child Day", "Child Day", "Child Day"),
-    ("Child Night", "Child Night", "Child Night"),
-    ("Adult Day", "Adult Day", "Adult Day"),
-    ("Adult Night", "Adult Night", "Adult Night"),
-    ("Cutscene", "Cutscene", "Cutscene"),
-]
-
-ootEnumLightGroupMenu = [
-    ("Dawn", "Dawn", "Dawn"),
-    ("Day", "Day", "Day"),
-    ("Dusk", "Dusk", "Dusk"),
-    ("Night", "Night", "Night"),
-]
+] + ootEnumHeaderMenu
 
 ootEnumLinkIdle = [
     ("Custom", "Custom", "Custom"),
@@ -85,28 +29,6 @@ ootEnumLinkIdle = [
     ("0x09", "Brandish Sword", "Brandish Sword"),
     ("0x0A", "Adjust Tunic", "Adjust Tunic"),
     ("0xFF", "Hops On Epona", "Hops On Epona"),
-]
-
-# Make sure to add exceptions in utility.py - selectMeshChildrenOnly
-ootEnumEmptyType = [
-    ("None", "None", "None"),
-    ("Scene", "Scene", "Scene"),
-    ("Room", "Room", "Room"),
-    ("Actor", "Actor", "Actor"),
-    ("Transition Actor", "Transition Actor", "Transition Actor"),
-    ("Entrance", "Entrance", "Entrance"),
-    ("Water Box", "Water Box", "Water Box"),
-    ("Cull Group", "Custom Cull Group", "Cull Group"),
-    ("LOD", "LOD Group", "LOD Group"),
-    ("Cutscene", "Cutscene Main", "Cutscene"),
-    ("CS Actor Cue List", "CS Actor Cue List", "CS Actor Cue List"),
-    ("CS Actor Cue", "CS Actor Cue", "CS Actor Cue"),
-    ("CS Player Cue List", "CS Player Cue List", "CS Player Cue List"),
-    ("CS Player Cue", "CS Player Cue", "CS Player Cue"),
-    ("CS Actor Cue Preview", "CS Actor Cue Preview", "CS Actor Cue Preview"),
-    ("CS Player Cue Preview", "CS Player Cue Preview", "CS Player Cue Preview"),
-    ("CS Dummy Cue", "CS Dummy Cue", "CS Dummy Cue"),
-    # ('Camera Volume', 'Camera Volume', 'Camera Volume'),
 ]
 
 ootEnumCloudiness = [
@@ -355,22 +277,6 @@ ootEnumNaviHints = [
     ("0x02", "Dungeon", "elf_message_ydan"),
 ]
 
-ootEnumTransitionAnims = [
-    ("Custom", "Custom", "Custom"),
-    ("0x00", "Spiky", "Spiky"),
-    ("0x01", "Triforce", "Triforce"),
-    ("0x02", "Slow Black Fade", "Slow Black Fade"),
-    ("0x03", "Slow Day/White, Slow Night/Black Fade", "Slow Day/White, Slow Night/Black Fade"),
-    ("0x04", "Fast Day/Black, Slow Night/Black Fade", "Fast Day/Black, Slow Night/Black Fade"),
-    ("0x05", "Fast Day/White, Slow Night/Black Fade", "Fast Day/White, Slow Night/Black Fade"),
-    ("0x06", "Very Slow Day/White, Slow Night/Black Fade", "Very Slow Day/White, Slow Night/Black Fade"),
-    ("0x07", "Very Slow Day/White, Slow Night/Black Fade", "Very Slow Day/White, Slow Night/Black Fade"),
-    ("0x0E", "Slow Sandstorm Fade", "Slow Sandstorm Fade"),
-    ("0x0F", "Fast Sandstorm Fade", "Fast Sandstorm Fade"),
-    ("0x20", "Iris Fade", "Iris Fade"),
-    ("0x2C", "Shortcut Transition", "Shortcut Transition"),
-]
-
 # The order of this list matters (normal OoT scene order as defined by ``scene_table.h``)
 ootEnumSceneID = [
     ("Custom", "Custom", "Custom"),
@@ -606,6 +512,7 @@ ootSceneIDToName = {
     "SCENE_SASATEST": "sasatest",
     "SCENE_TESTROOM": "testroom",
 }
+ootSceneNameToID = {val: key for key, val in ootSceneIDToName.items()}
 
 ootEnumCamTransition = [
     ("Custom", "Custom", "Custom"),
@@ -614,7 +521,7 @@ ootEnumCamTransition = [
     # ("0xFF", "0xFF", "0xFF"),
 ]
 
-# see curRoom.unk_03
+# see curRoom.behaviorType1
 ootEnumRoomBehaviour = [
     ("Custom", "Custom", "Custom"),
     ("0x00", "Default", "Default"),
@@ -623,17 +530,6 @@ ootEnumRoomBehaviour = [
     ("0x03", "Disable Color Dither", "Disable Color Dither"),
     ("0x04", "(?) Horse Camera Related", "(?) Horse Camera Related"),
     ("0x05", "Disable Darker Screen Effect (NL/Spins)", "Disable Darker Screen Effect (NL/Spins)"),
-]
-
-ootEnumExitIndex = [
-    ("Custom", "Custom", "Custom"),
-    ("Default", "Default", "Default"),
-]
-
-ootEnumSceneSetupPreset = [
-    ("Custom", "Custom", "Custom"),
-    ("All Scene Setups", "All Scene Setups", "All Scene Setups"),
-    ("All Non-Cutscene Scene Setups", "All Non-Cutscene Scene Setups", "All Non-Cutscene Scene Setups"),
 ]
 
 ootEnumDrawConfig = [
@@ -696,5 +592,3 @@ ootEnumDrawConfig = [
     ("SDC_GANONS_TOWER_COLLAPSE_INTERIOR", "Ganon's Tower (Collapsing) (Ganon Sonogo)", "Ganon Sonogo"),
     ("SDC_INSIDE_GANONS_CASTLE_COLLAPSE", "Inside Ganon's Castle (Collapsing) (Ganontika Sonogo)", "Ganontika Sonogo"),
 ]
-
-ootSceneNameToID = {val: key for key, val in ootSceneIDToName.items()}
