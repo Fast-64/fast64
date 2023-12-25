@@ -28,9 +28,6 @@ from ..oot_utility import (
 from ..oot_constants import (
     ootEnumMusicSeq,
     ootEnumSceneID,
-    ootEnumExitIndex,
-    ootEnumTransitionAnims,
-    ootEnumLightGroupMenu,
     ootEnumGlobalObject,
     ootEnumNaviHints,
     ootEnumSkybox,
@@ -40,12 +37,48 @@ from ..oot_constants import (
     ootEnumCameraMode,
     ootEnumNightSeq,
     ootEnumAudioSessionPreset,
-    ootEnumSceneMenu,
-    ootEnumSceneMenuAlternate,
     ootEnumHeaderMenu,
     ootEnumDrawConfig,
     ootEnumHeaderMenuComplete,
 )
+
+ootEnumSceneMenuAlternate = [
+    ("General", "General", "General"),
+    ("Lighting", "Lighting", "Lighting"),
+    ("Cutscene", "Cutscene", "Cutscene"),
+    ("Exits", "Exits", "Exits"),
+]
+ootEnumSceneMenu = ootEnumSceneMenuAlternate + [
+    ("Alternate", "Alternate", "Alternate"),
+]
+
+ootEnumLightGroupMenu = [
+    ("Dawn", "Dawn", "Dawn"),
+    ("Day", "Day", "Day"),
+    ("Dusk", "Dusk", "Dusk"),
+    ("Night", "Night", "Night"),
+]
+
+ootEnumTransitionAnims = [
+    ("Custom", "Custom", "Custom"),
+    ("0x00", "Spiky", "Spiky"),
+    ("0x01", "Triforce", "Triforce"),
+    ("0x02", "Slow Black Fade", "Slow Black Fade"),
+    ("0x03", "Slow Day/White, Slow Night/Black Fade", "Slow Day/White, Slow Night/Black Fade"),
+    ("0x04", "Fast Day/Black, Slow Night/Black Fade", "Fast Day/Black, Slow Night/Black Fade"),
+    ("0x05", "Fast Day/White, Slow Night/Black Fade", "Fast Day/White, Slow Night/Black Fade"),
+    ("0x06", "Very Slow Day/White, Slow Night/Black Fade", "Very Slow Day/White, Slow Night/Black Fade"),
+    ("0x07", "Very Slow Day/White, Slow Night/Black Fade", "Very Slow Day/White, Slow Night/Black Fade"),
+    ("0x0E", "Slow Sandstorm Fade", "Slow Sandstorm Fade"),
+    ("0x0F", "Fast Sandstorm Fade", "Fast Sandstorm Fade"),
+    ("0x20", "Iris Fade", "Iris Fade"),
+    ("0x2C", "Shortcut Transition", "Shortcut Transition"),
+]
+
+ootEnumExitIndex = [
+    ("Custom", "Custom", "Custom"),
+    ("Default", "Default", "Default"),
+]
 
 
 class OOTSceneCommon:
