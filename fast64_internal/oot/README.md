@@ -14,7 +14,7 @@
 11. [Cutscenes](#cutscenes)
 
 ### Getting Started
-1. In the 3D view properties sidebar (press `n`), go to the ``Fast64`` tab, then ``Fast64 Global Settings`` and set ``Game`` to ``OOT``.
+1. In the 3D view properties sidebar (default hotkey to show this is `n` in the viewport), go to the ``Fast64`` tab, then ``Fast64 Global Settings`` and set ``Game`` to ``OOT``.
 2. Switch to the ``OOT`` tab. In ``OOT File Settings``, set your decomp path to the path of your [HackerOoT (recommended)](https://github.com/HackerN64/HackerOoT) or [OoT Decomp](https://github.com/zeldaret/oot/) repository on disk. Check `Enable HackerOoT Features` if using HackerOoT.
 3. In ``OOT Tools``, click `Add Scene` to create a basic scene.
 4. Press `a` so that everything is selected, then click `Clear Transform`.
