@@ -3,10 +3,11 @@ import bpy
 from mathutils import Vector
 from bpy.ops import mesh, object, curve
 from bpy.types import Operator, Object, Context
-from bpy.props import FloatProperty, StringProperty
+from bpy.props import FloatProperty, StringProperty, EnumProperty, BoolProperty
 from ...operators import AddWaterBox, addMaterialByName
 from ...utility import parentObject, setOrigin
 from ..cutscene.motion.utility import setupCutscene, createNewCameraShot
+from ..oot_utility import getNewPath
 
 
 class OOT_AddWaterBox(AddWaterBox):
@@ -181,22 +182,47 @@ class OOT_AddCutscene(Operator):
 class OOT_AddPath(Operator):
     bl_idname = "object.oot_add_path"
     bl_label = "Add Path"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
+    bl_options = {"REGISTER", "UNDO"}
+
+    isClosedShape: BoolProperty(name="", default=True)
+    pathType: EnumProperty(
+        name="",
+        items=[
+            ("Line", "Line", "Line"),
+            ("Square", "Square", "Square"),
+            ("Triangle", "Triangle", "Triangle"),
+            ("Trapezium", "Trapezium", "Trapezium"),
+        ],
+        default="Line",
+    )
 
     def execute(self, context):
         if context.mode != "OBJECT":
             object.mode_set(mode="OBJECT")
         object.select_all(action="DESELECT")
 
-        location = Vector(context.scene.cursor.location)
-        curve.primitive_nurbs_path_add(radius=1, align="WORLD", location=location[:])
-        pathObj = context.view_layer.objects.active
-        pathObj.name = "New Path"
+        pathObj = getNewPath(self.pathType, self.isClosedShape)
+        activeObj = context.view_layer.objects.active
+        if activeObj.type == "EMPTY" and activeObj.ootEmptyType == "Scene":
+            pathObj.parent = activeObj
 
         object.select_all(action="DESELECT")
         pathObj.select_set(True)
         context.view_layer.objects.active = pathObj
         return {"FINISHED"}
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self, width=320)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.label(text="Path Settings")
+        props = [("Path Type", "pathType"), ("Closed Shape", "isClosedShape")]
+
+        for desc, propName in props:
+            split = layout.split(factor=0.30)
+            split.label(text=desc)
+            split.prop(self, propName)
 
 
 class OOTClearTransformAndLock(Operator):
