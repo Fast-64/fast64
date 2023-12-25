@@ -32,6 +32,13 @@ from .f3d_gbi import (
     DPTileSync,
     DPSetTile,
     DPLoadTile,
+    FModel,
+    FMesh,
+    FMaterial,
+    F3D,
+    GfxList,
+    FTriGroup,
+    GbiMacro,
 )
 
 
