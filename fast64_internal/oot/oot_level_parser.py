@@ -735,6 +735,7 @@ def parseTransActorList(
                 transActorProp.toRoom = toRoom
                 transActorProp.isRoomTransition = True
             else:
+                transActorProp.isRoomTransition = False
                 parentObject(toRoom, actorObj)
 
             setCustomProperty(transActorProp, "cameraTransitionFront", camFront, ootEnumCamTransition)
