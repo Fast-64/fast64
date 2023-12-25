@@ -50,7 +50,7 @@ A new optimized shader graph was introduced to decrease processing times for mat
 
 ### F3DEX3 Features
 
-fast64 supports exporting data for [F3DEX3](https://github.com/HackerN64/F3DEX3), a modded microcode which brings many new features and higher performance. **Preview of these new features in the 3D view is not currently supported**, but they will be exported correctly. To modify the vertex colors of an object with a material which is using packed normals (shading/lighting and vertex colors together), temporarily switch to a vertex colored preset or uncheck `Lighting` in the material geometry mode settings. Once the vertex colors are painted how you want them, re-enable `Lighting` and `Packed Normals`.
+Fast64 supports exporting data for [F3DEX3](https://github.com/HackerN64/F3DEX3), a modded microcode which brings many new features and higher performance. **Preview of these new features in the 3D view is not currently supported**, but they will be exported correctly. To modify the vertex colors of an object with a material which is using packed normals (shading/lighting and vertex colors together), temporarily switch to a vertex colored preset or uncheck `Lighting` in the material geometry mode settings. Once the vertex colors are painted how you want them, re-enable `Lighting` and `Packed Normals`.
 
 Selecting F3DEX3 as your microcode unlocks a large number of additional presets based on F3DEX3 features. For more information on all these features, see the F3DEX3 readme, GBI, and [these videos](https://www.youtube.com/playlist?list=PLU2OUGtyQi6QswDQOXWIMaYFUcgQ9Psvm). The preset names get very long and are abbreviated as follows:
 - `Shaded`: Computes lighting, which normally affects shade color.
