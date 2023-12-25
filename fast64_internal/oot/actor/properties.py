@@ -2,7 +2,7 @@ from bpy.types import Object, PropertyGroup, UILayout
 from bpy.utils import register_class, unregister_class
 from bpy.props import EnumProperty, StringProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
 from ...utility import prop_split, label_split
-from ..oot_constants import ootData, ootEnumSceneSetupPreset, ootEnumCamTransition
+from ..oot_constants import ootData, ootEnumCamTransition
 from ..oot_upgrade import upgradeActors
 from ..scene.properties import OOTAlternateSceneHeaderProperty
 from ..room.properties import OOTAlternateRoomHeaderProperty
@@ -15,6 +15,12 @@ from ..oot_utility import (
     drawCollectionOps,
     drawEnumWithCustom,
 )
+
+ootEnumSceneSetupPreset = [
+    ("Custom", "Custom", "Custom"),
+    ("All Scene Setups", "All Scene Setups", "All Scene Setups"),
+    ("All Non-Cutscene Scene Setups", "All Non-Cutscene Scene Setups", "All Non-Cutscene Scene Setups"),
+]
 
 
 class OOTActorHeaderItemProperty(PropertyGroup):
