@@ -95,11 +95,11 @@ def ootGetLinkData(basePath: str) -> str:
 
 
 class OOTModel(FModel):
-    def __init__(self, f3dType, isHWv1, name, DLFormat, drawLayerOverride):
+    def __init__(self, name, DLFormat, drawLayerOverride):
         self.drawLayerOverride = drawLayerOverride
         self.flipbooks: list[TextureFlipbook] = []
 
-        FModel.__init__(self, f3dType, isHWv1, name, DLFormat, GfxMatWriteMethod.WriteAll)
+        FModel.__init__(self, name, DLFormat, GfxMatWriteMethod.WriteAll)
 
     # Since dynamic textures are handled by scene draw config, flipbooks should only belong to scene model.
     # Thus we have this function.
