@@ -95,6 +95,7 @@ class OOT_AddScene(Operator):
         roomObj = context.view_layer.objects.active
         roomObj.ootEmptyType = "Room"
         roomObj.name = "Room"
+        entranceObj.ootEntranceProperty.tiedRoom = roomObj
         parentObject(roomObj, planeObj)
 
         location += Vector([0, 0, 2])
