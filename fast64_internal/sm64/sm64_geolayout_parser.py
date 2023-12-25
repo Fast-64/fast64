@@ -4,7 +4,7 @@ from ..f3d.f3d_parser import createBlankMaterial, parseF3DBinary
 from ..panels import SM64_Panel, sm64GoalImport
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_constants import level_pointers, level_enums
-from .sm64_geolayout_bone import enumShadowType
+from .sm64_geolayout_bone import enumShadowType, animatableBoneTypes, enumBoneType
 from .sm64_geolayout_constants import getGeoLayoutCmdLength, nodeGroupCmds, GEO_BRANCH_STORE
 
 from ..utility import (
@@ -70,8 +70,6 @@ def parseGeoLayout(
     useArmature,
     ignoreSwitch,
     shadeSmooth,
-    f3dType,
-    isHWv1,
 ):
     currentAddress = startAddress
     romfile.seek(currentAddress)
@@ -118,8 +116,6 @@ def parseGeoLayout(
         0,
         0,
         [None] * 16 * 16,
-        f3dType,
-        isHWv1,
         segmentData=segmentData,
     )
 
@@ -169,7 +165,7 @@ def parseGeoLayout(
         # bpy.ops.transform.rotate(value = math.radians(-90), orient_axis = 'X')
         # bpy.ops.object.transform_apply()
 
-    if useArmature:
+    if bpy.app.version < (4, 0, 0) and useArmature:
         armatureObj.data.layers[1] = True
 
     """
@@ -201,8 +197,6 @@ def parseNode(
     switchLevel,
     switchCount,
     vertexBuffer,
-    f3dType,
-    isHWv1,
     singleChild=False,
     endCmd=GEO_NODE_CLOSE,
     segmentData=None,
@@ -296,8 +290,6 @@ def parseNode(
                 switchLevel,
                 switchCount,
                 vertexBuffer,
-                f3dType,
-                isHWv1,
                 singleChild=switchActive,
                 segmentData=segmentData,
             )
@@ -346,8 +338,6 @@ def parseNode(
                 nodeIndex[-1],
                 segmentData,
                 vertexBuffer,
-                f3dType,
-                isHWv1,
             )
 
         elif currentCmd[0] == GEO_TRANSLATE:  # 0x11
@@ -364,8 +354,6 @@ def parseNode(
                 nodeIndex[-1],
                 segmentData,
                 vertexBuffer,
-                f3dType,
-                isHWv1,
             )
 
         elif currentCmd[0] == GEO_ROTATE:  # 0x12
@@ -382,8 +370,6 @@ def parseNode(
                 nodeIndex[-1],
                 segmentData,
                 vertexBuffer,
-                f3dType,
-                isHWv1,
             )
 
         elif currentCmd[0] == GEO_LOAD_DL_W_OFFSET:  # 0x13
@@ -400,8 +386,6 @@ def parseNode(
                 currentCmd,
                 segmentData,
                 vertexBuffer,
-                f3dType,
-                isHWv1,
             )
 
         elif currentCmd[0] == GEO_BILLBOARD:  # 0x14
@@ -418,8 +402,6 @@ def parseNode(
                 nodeIndex[-1],
                 segmentData,
                 vertexBuffer,
-                f3dType,
-                isHWv1,
             )
 
         elif currentCmd[0] == GEO_LOAD_DL:  # 0x15
@@ -436,8 +418,6 @@ def parseNode(
                 nodeIndex[-1],
                 segmentData,
                 vertexBuffer,
-                f3dType,
-                isHWv1,
             )
 
         elif currentCmd[0] == GEO_START_W_SHADOW:  # 0x16
@@ -490,8 +470,6 @@ def parseNode(
                 nodeIndex[-1],
                 segmentData,
                 vertexBuffer,
-                f3dType,
-                isHWv1,
             )
 
         elif currentCmd[0] == GEO_START_W_RENDERAREA:  # 0x20
@@ -530,11 +508,18 @@ def parseNode(
 
 
 def generateMetarig(armatureObj):
+    armature = armatureObj.data
     startBones = findStartBones(armatureObj)
     createBoneGroups(armatureObj)
     for boneName in startBones:
         traverseArmatureForMetarig(armatureObj, boneName, None)
-    armatureObj.data.layers = createBoneLayerMask([boneLayers["visual"]])
+    if bpy.app.version >= (4, 0, 0):
+        if not "visual" in armature.collections:
+            armature.collections.new(name="visual")
+        armature.collections["visual"].assign(armature.bones[boneName])
+    else:
+        armatureObj.data.layers = createBoneLayerMask([boneLayers["visual"]])
+
     if bpy.context.mode != "OBJECT":
         bpy.ops.object.mode_set(mode="OBJECT")
 
@@ -542,15 +527,32 @@ def generateMetarig(armatureObj):
 def traverseArmatureForMetarig(armatureObj, boneName, parentName):
     if bpy.context.mode != "OBJECT":
         bpy.ops.object.mode_set(mode="OBJECT")
-    poseBone = armatureObj.pose.bones[boneName]
-    if poseBone.bone_group is None:
-        processBoneMeta(armatureObj, boneName, parentName)
-    elif poseBone.bone_group.name == "Ignore":
-        return
 
+    armature = armatureObj.data
+    bone = armature.bones[boneName]
     poseBone = armatureObj.pose.bones[boneName]
-    nextParentName = boneName if poseBone.bone_group is None else parentName
-    childrenNames = [child.name for child in poseBone.children]
+
+    if bpy.app.version >= (4, 0, 0):
+        if "Ignore" in bone.collections:
+            return
+        nonAnimatableBoneTypes = set([item[0] for item in enumBoneType]) - animatableBoneTypes
+        isAnimatableBone = not any([item in bone.collections for item in nonAnimatableBoneTypes])
+        if isAnimatableBone:
+            processBoneMeta(armatureObj, boneName, parentName)
+        nextParentName = boneName if isAnimatableBone else parentName
+        bone = armature.bones[boneName]  # re-obtain reference after edit mode changes
+        childrenNames = [child.name for child in bone.children]
+
+    else:
+        if poseBone.bone_group is None:
+            processBoneMeta(armatureObj, boneName, parentName)
+        elif poseBone.bone_group.name == "Ignore":
+            return
+
+        poseBone = armatureObj.pose.bones[boneName]  # re-obtain reference after edit mode changes
+        nextParentName = boneName if poseBone.bone_group is None else parentName
+        childrenNames = [child.name for child in poseBone.children]
+
     for childName in childrenNames:
         traverseArmatureForMetarig(armatureObj, childName, nextParentName)
 
@@ -558,6 +560,7 @@ def traverseArmatureForMetarig(armatureObj, boneName, parentName):
 def processBoneMeta(armatureObj, boneName, parentName):
     bpy.ops.object.mode_set(mode="EDIT")
     bone = armatureObj.data.edit_bones[boneName]
+    armature = armatureObj.data
 
     # create meta bone, which the actual bone copies the rotation of
     metabone = armatureObj.data.edit_bones.new("meta_" + boneName)
@@ -596,15 +599,32 @@ def processBoneMeta(armatureObj, boneName, parentName):
     translateConstraint.target = armatureObj
     translateConstraint.subtarget = metaboneName
 
-    metabone.layers = createBoneLayerMask([boneLayers["meta"]])
+    if bpy.app.version >= (4, 0, 0):
+        if "meta" not in armature.collections:
+            armature.collections.new(name="meta")
+        armature.collections["meta"].assign(metabone)
+
+        if not "visual" in armature.collections:
+            armature.collections.new(name="visual")
+        armature.collections["visual"].assign(visualBone)
+
+        # Ignore collection should always be created, but check just in case
+        # (generateMetarig() calls createBoneGroups() before traverseArmatureForMetarig())
+        if not "Ignore" in armature.collections:
+            armature.collections.new(name="Ignore")
+        armature.collections["Ignore"].assign(visualBone)
+        armature.collections["Ignore"].assign(metabone)
+
+    else:
+        metabone.layers = createBoneLayerMask([boneLayers["meta"]])
+        visualBone.layers = createBoneLayerMask([boneLayers["visual"]])
+
+        metabonePose.bone_group_index = getBoneGroupIndex(armatureObj, "Ignore")
+        visualBonePose.bone_group_index = getBoneGroupIndex(armatureObj, "Ignore")
+
     metabone.use_deform = False
     metabonePose.lock_rotation = (True, True, True)
-
-    visualBone.layers = createBoneLayerMask([boneLayers["visual"]])
     visualBone.use_deform = False
-
-    metabonePose.bone_group_index = getBoneGroupIndex(armatureObj, "Ignore")
-    visualBonePose.bone_group_index = getBoneGroupIndex(armatureObj, "Ignore")
 
     bpy.ops.object.mode_set(mode="EDIT")
     metabone = armatureObj.data.edit_bones[metaboneName]
@@ -644,6 +664,7 @@ def processBoneMeta(armatureObj, boneName, parentName):
 
 
 def createConnectBone(armatureObj, childName, parentName):
+    armature = armatureObj.data
     child = armatureObj.data.edit_bones[childName]
     parent = armatureObj.data.edit_bones[parentName]
 
@@ -665,8 +686,16 @@ def createConnectBone(armatureObj, childName, parentName):
         bpy.ops.object.mode_set(mode="OBJECT")
     connectPoseBone = armatureObj.pose.bones[connectBoneName]
     connectBone = armatureObj.data.bones[connectBoneName]
-    connectBone.layers = createBoneLayerMask([boneLayers["visual"]])
-    connectPoseBone.bone_group_index = getBoneGroupIndex(armatureObj, "Ignore")
+
+    if bpy.app.version > (4, 0, 0):
+        if not "visual" in armature.collections:
+            armature.collections.new(name="visual")
+        armature.collections["visual"].assign(connectBone)
+        armature.collections["Ignore"].assign(connectBone)
+    else:
+        connectBone.layers = createBoneLayerMask([boneLayers["visual"]])
+        connectPoseBone.bone_group_index = getBoneGroupIndex(armatureObj, "Ignore")
+
     connectPoseBone.lock_rotation = (True, True, True)
     bpy.ops.object.mode_set(mode="EDIT")
 
@@ -817,10 +846,7 @@ def parseDL(
     nodeIndex,
     segmentData,
     vertexBuffer,
-    f3dType,
-    isHWv1,
 ):
-
     drawLayer = bitMask(currentCmd[1], 0, 4)
 
     romfile.seek(currentAddress)
@@ -841,8 +867,6 @@ def parseDL(
             nodeIndex,
             "DisplayList",
             vertexBuffer,
-            f3dType,
-            isHWv1,
         )
         if armatureObj is not None:
             bone = armatureObj.data.bones[boneName]
@@ -865,8 +889,6 @@ def parseDLWithOffset(
     currentCmd,
     segmentData,
     vertexBuffer,
-    f3dType,
-    isHWv1,
 ):
     print("DL_OFFSET " + hex(currentAddress))
     romfile.seek(currentAddress)
@@ -968,10 +990,7 @@ def handleNodeCommon(
     nodeIndex,
     boneGroupName,
     vertexBuffer,
-    f3dType,
-    isHWv1,
 ):
-
     boneName = format(nodeIndex, "03") + "-" + boneGroupName.lower()
 
     if armatureObj is not None:
@@ -1012,8 +1031,6 @@ def parseScale(
     nodeIndex,
     segmentData,
     vertexBuffer,
-    f3dType,
-    isHWv1,
 ):
     print("SCALE " + hex(currentAddress))
 
@@ -1042,8 +1059,6 @@ def parseScale(
             nodeIndex,
             "Scale",
             vertexBuffer,
-            f3dType,
-            isHWv1,
         )
         if armatureObj is not None:
             bone = armatureObj.data.bones[boneName]
@@ -1069,8 +1084,6 @@ def parseTranslateRotate(
     nodeIndex,
     segmentData,
     vertexBuffer,
-    f3dType,
-    isHWv1,
 ):
     print("TRANSLATE_ROTATE " + hex(currentAddress))
 
@@ -1127,8 +1140,6 @@ def parseTranslateRotate(
             nodeIndex,
             "TranslateRotate",
             vertexBuffer,
-            f3dType,
-            isHWv1,
         )
         if armatureObj is not None:
             bone = armatureObj.data.bones[boneName]
@@ -1159,8 +1170,6 @@ def parseTranslate(
     nodeIndex,
     segmentData,
     vertexBuffer,
-    f3dType,
-    isHWv1,
 ):
     print("TRANSLATE " + hex(currentAddress))
 
@@ -1193,8 +1202,6 @@ def parseTranslate(
             nodeIndex,
             "Translate",
             vertexBuffer,
-            f3dType,
-            isHWv1,
         )
         if armatureObj is not None:
             bone = armatureObj.data.bones[boneName]
@@ -1220,8 +1227,6 @@ def parseRotate(
     nodeIndex,
     segmentData,
     vertexBuffer,
-    f3dType,
-    isHWv1,
 ):
     print("ROTATE " + hex(currentAddress))
 
@@ -1254,8 +1259,6 @@ def parseRotate(
             nodeIndex,
             "Rotate",
             vertexBuffer,
-            f3dType,
-            isHWv1,
         )
         if armatureObj is not None:
             bone = armatureObj.data.bones[boneName]
@@ -1280,8 +1283,6 @@ def parseBillboard(
     nodeIndex,
     segmentData,
     vertexBuffer,
-    f3dType,
-    isHWv1,
 ):
     print("BILLBOARD " + hex(currentAddress))
 
@@ -1314,8 +1315,6 @@ def parseBillboard(
             nodeIndex,
             "Billboard",
             vertexBuffer,
-            f3dType,
-            isHWv1,
         )
         if armatureObj is not None:
             bone = armatureObj.data.bones[boneName]
@@ -1461,7 +1460,6 @@ def getMarioBoneName(startRelativeAddr, armatureData, default="sm64_mesh"):
 
 
 def assignMarioGeoMetadata(obj, commandAddress, geoStartAddress, cmdType, armatureData, lastTransRotAddr=None):
-
     # for geo_pointer reading offsets:
     # cmd 			= 0
     # draw layer 	= 1
@@ -1558,8 +1556,6 @@ class SM64_ImportGeolayout(bpy.types.Operator):
                 generateArmature,
                 ignoreSwitch,
                 True,
-                context.scene.f3d_type,
-                context.scene.isHWv1,
             )
             romfileSrc.close()
 
