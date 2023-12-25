@@ -783,6 +783,8 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
             transActorProp = obj.ootTransitionActorProperty
             if transActorProp.actor.actorID != "None":
                 if transActorProp.isRoomTransition:
+                    if transActorProp.fromRoom is None or transActorProp.toRoom is None:
+                        raise PluginError("ERROR: Missing room empty object assigned to transition.")
                     fromIndex = transActorProp.fromRoom.ootRoomHeader.roomIndex
                     toIndex = transActorProp.toRoom.ootRoomHeader.roomIndex
                 else:
