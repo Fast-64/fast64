@@ -5,6 +5,7 @@ import re
 
 from ast import parse, Expression, Num, UnaryOp, USub, Invert, BinOp
 from mathutils import Vector
+from bpy.types import Object
 from bpy.utils import register_class, unregister_class
 from typing import Callable
 from .oot_constants import ootSceneIDToName
@@ -496,6 +497,13 @@ def getEnumName(enumItems, value):
     raise PluginError("Could not find enum value " + str(value))
 
 
+def getEnumIndex(enumItems, value):
+    for i, enumTuple in enumerate(enumItems):
+        if enumTuple[0] == value or enumTuple[1] == value:
+            return i
+    return None
+
+
 def ootConvertTranslation(translation):
     return [int(round(value)) for value in translation]
 
@@ -506,7 +514,7 @@ def ootConvertRotation(rotation):
 
 
 # parse rotaion in Vec3s format
-def ootParseRotation(values):
+def ootParseRotation(values: list[int]):
     return [
         math.radians(
             (int.from_bytes(value.to_bytes(2, "big", signed=value < 0x8000), "big", signed=False) / 2**16) * 360

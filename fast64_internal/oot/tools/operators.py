@@ -1,9 +1,12 @@
+import bpy
+
 from mathutils import Vector
 from bpy.ops import mesh, object, curve
-from bpy.types import Operator
+from bpy.types import Operator, Object, Context
 from bpy.props import FloatProperty, StringProperty, EnumProperty, BoolProperty
 from ...operators import AddWaterBox, addMaterialByName
 from ...utility import parentObject, setOrigin
+from ..cutscene.motion.utility import setupCutscene, createNewCameraShot
 from ..oot_utility import getNewPath
 
 
@@ -144,7 +147,9 @@ class OOT_AddRoom(Operator):
 class OOT_AddCutscene(Operator):
     bl_idname = "object.oot_add_cutscene"
     bl_label = "Add Cutscene"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
+    bl_options = {"REGISTER", "UNDO"}
+
+    csName: StringProperty(name="", default="Something", description="The Cutscene's Name without `Cutscene.`")
 
     def execute(self, context):
         if context.mode != "OBJECT":
@@ -154,12 +159,24 @@ class OOT_AddCutscene(Operator):
         object.empty_add(type="ARROWS", radius=1, align="WORLD")
         csObj = context.view_layer.objects.active
         csObj.ootEmptyType = "Cutscene"
-        csObj.name = "Cutscene.Something"
+        csObj.name = f"Cutscene.{self.csName}"
+        createNewCameraShot(csObj)
+        setupCutscene(csObj)
 
         object.select_all(action="DESELECT")
         csObj.select_set(True)
         context.view_layer.objects.active = csObj
         return {"FINISHED"}
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self, width=200)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.label(text="Set the Cutscene's Name")
+        split = layout.split(factor=0.30)
+        split.label(text="Cutscene.")
+        split.prop(self, "csName")
 
 
 class OOT_AddPath(Operator):
@@ -206,3 +223,34 @@ class OOT_AddPath(Operator):
             split = layout.split(factor=0.30)
             split.label(text=desc)
             split.prop(self, propName)
+
+
+class OOTClearTransformAndLock(Operator):
+    bl_idname = "object.oot_clear_transform"
+    bl_label = "Clear Transform (Scenes & Cutscenes)"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def clearTransform(self, obj: Object):
+        print(obj.name)
+        prevSelect = obj.select_get()
+        obj.select_set(True)
+        object.location_clear()
+        object.rotation_clear()
+        object.scale_clear()
+        object.origin_clear()
+        if obj.type != "EMPTY":
+            object.transform_apply(location=True, rotation=True, scale=True)
+        obj.select_set(prevSelect)
+
+    def execute(self, context: Context):
+        try:
+            for obj in bpy.data.objects:
+                if obj.type == "EMPTY":
+                    if obj.ootEmptyType in ["Scene", "Cutscene"]:
+                        self.clearTransform(obj)
+                        for childObj in obj.children_recursive:
+                            self.clearTransform(childObj)
+            self.report({"INFO"}, "Success!")
+            return {"FINISHED"}
+        except:
+            return {"CANCELLED"}
