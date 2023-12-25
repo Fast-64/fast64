@@ -40,6 +40,24 @@ def upgradeRoomHeaders(roomObj: Object, objData: OoT_ObjectData):
         upgradeObjectList(altHeaders.cutsceneHeaders[i].objectList, objData)
 
 
+def upgradeActors(actorObj: Object):
+    if actorObj.ootEmptyType == "Transition Actor":
+        transActorProp = actorObj.ootTransitionActorProperty
+        transActorProp.isRoomTransition = actorObj["ootTransitionActorProperty"]["dontTransition"] == False
+        del actorObj["ootTransitionActorProperty"]["dontTransition"]
+
+        if transActorProp.isRoomTransition:
+            for obj in bpy.data.objects:
+                if obj.type == "EMPTY":
+                    if obj.ootEmptyType == "Room":
+                        if actorObj in obj.children_recursive:
+                            transActorProp.fromRoom = obj
+
+                        if obj.ootRoomHeader.roomIndex == actorObj["ootTransitionActorProperty"]["roomIndex"]:
+                            transActorProp.toRoom = obj
+                            del actorObj["ootTransitionActorProperty"]["roomIndex"]
+
+
 def upgradeCutsceneMotion(csMotionObj: Object):
     """Main upgrade logic for Cutscene Motion data from zcamedit"""
     objName = csMotionObj.name
