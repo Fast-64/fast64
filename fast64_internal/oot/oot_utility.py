@@ -1,5 +1,10 @@
-import bpy, math, os, re
+import bpy
+import math
+import os
+import re
+
 from ast import parse, Expression, Num, UnaryOp, USub, Invert, BinOp
+from mathutils import Vector
 from bpy.types import Object
 from bpy.utils import register_class, unregister_class
 from typing import Callable
@@ -869,3 +874,70 @@ def getEvalParams(input: str):
             raise ValueError(f"Unsupported AST node {node}")
 
     return f"0x{_eval(node.body):X}"
+
+
+def getNewPath(type: str, isClosedShape: bool):
+    """
+    Returns a new Curve Object with the selected spline shape
+
+    Parameters:
+    - ``type``: the path's type (square, line, etc)
+    - ``isClosedShape``: choose if the spline should have an extra point to make a closed shape
+    """
+
+    # create a new curve
+    newCurve = bpy.data.curves.new("New Path", "CURVE")
+    newCurve.dimensions = "3D"
+
+    # add a new spline to the curve
+    newSpline = newCurve.splines.new("NURBS")  # comes with 1 point
+
+    # generate shape based on 'type' parameter
+    scaleDivBy2 = bpy.context.scene.ootBlenderScale / 2
+    match type:
+        case "Line":
+            newSpline.points.add(1)
+            for i, point in enumerate(newSpline.points):
+                point.co.x = i * bpy.context.scene.ootBlenderScale
+                point.co.w = 1
+        case "Triangle":
+            newSpline.points.add(2)
+            for i, point in enumerate(newSpline.points):
+                point.co.x = i * scaleDivBy2
+                if i == 1:
+                    point.co.y = (len(newSpline.points) * scaleDivBy2) / 2
+                point.co.w = 1
+        case "Square" | "Trapezium":
+            newSpline.points.add(3)
+            for i, point in enumerate(newSpline.points):
+                point.co.x = i * scaleDivBy2
+                if i in [1, 2]:
+                    if type == "Square":
+                        point.co.y = (len(newSpline.points) - 1) * scaleDivBy2
+                        if i == 1:
+                            point.co.x = newSpline.points[0].co.x
+                        else:
+                            point.co.x = point.co.y
+                    else:
+                        point.co.y = 1 * scaleDivBy2
+                point.co.w = 1
+        case _:
+            raise PluginError("ERROR: Invalid Path Type!")
+
+    if isClosedShape and type != "Line":
+        newSpline.points.add(1)
+        newSpline.points[-1].co = newSpline.points[0].co
+
+    # make the curve's display accurate to the point's shape
+    newSpline.use_cyclic_u = True
+    newSpline.use_endpoint_u = False
+    newSpline.resolution_u = 64
+    newSpline.order_u = 2
+
+    # create a new object and add the curve as data
+    newPath = bpy.data.objects.new("New Path", newCurve)
+    newPath.show_name = True
+    newPath.location = Vector(bpy.context.scene.cursor.location)
+    bpy.context.view_layer.active_layer_collection.collection.objects.link(newPath)
+
+    return newPath

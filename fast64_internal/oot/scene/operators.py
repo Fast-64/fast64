@@ -39,14 +39,8 @@ def run_ops_without_view_layer_update(func):
 
 
 def parseSceneFunc():
-    context = bpy.context
-    settings = context.scene.ootSceneImportSettings
-    parseScene(
-        context.scene.f3d_type,
-        context.scene.isHWv1,
-        settings,
-        settings.option,
-    )
+    settings = bpy.context.scene.ootSceneImportSettings
+    parseScene(settings, settings.option)
 
 
 class OOT_SearchSceneEnumOperator(Operator):
@@ -180,8 +174,6 @@ class OOT_ExportScene(Operator):
             ootExportSceneToC(
                 obj,
                 finalTransform,
-                context.scene.f3d_type,
-                context.scene.isHWv1,
                 levelName,
                 DLFormat.Static,
                 context.scene.saveTextures,

@@ -104,14 +104,12 @@ def ootCombineSceneFiles(levelC):
     return sceneC
 
 
-def ootExportSceneToC(
-    originalSceneObj, transformMatrix, f3dType, isHWv1, sceneName, DLFormat, savePNG, exportInfo, bootToSceneOptions
-):
+def ootExportSceneToC(originalSceneObj, transformMatrix, sceneName, DLFormat, savePNG, exportInfo, bootToSceneOptions):
     checkObjectReference(originalSceneObj, "Scene object")
     isCustomExport = exportInfo.isCustomExportPath
     exportPath = exportInfo.exportPath
 
-    scene = ootConvertScene(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneName, DLFormat, not savePNG)
+    scene = ootConvertScene(originalSceneObj, transformMatrix, sceneName, DLFormat, not savePNG)
 
     exportSubdir = ""
     if exportInfo.customSubPath is not None:
@@ -491,7 +489,7 @@ def readPathProp(pathProp, obj, scene, sceneObj, sceneName, transformMatrix):
     addActor(scene, ootConvertPath(sceneName, obj, relativeTransform), obj.ootSplineProperty, "pathList", obj.name)
 
 
-def ootConvertScene(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneName, DLFormat, convertTextureData):
+def ootConvertScene(originalSceneObj, transformMatrix, sceneName, DLFormat, convertTextureData):
     if originalSceneObj.data is not None or originalSceneObj.ootEmptyType != "Scene":
         raise PluginError(originalSceneObj.name + ' is not an empty with the "Scene" empty type.')
 
@@ -509,7 +507,7 @@ def ootConvertScene(originalSceneObj, transformMatrix, f3dType, isHWv1, sceneNam
         raise PluginError("The scene has no child empties with the 'Room' empty type.")
 
     try:
-        scene = OOTScene(sceneName, OOTModel(f3dType, isHWv1, sceneName + "_dl", DLFormat, None))
+        scene = OOTScene(sceneName, OOTModel(sceneName + "_dl", DLFormat, None))
         readSceneData(scene, sceneObj.fast64.oot.scene, sceneObj.ootSceneHeader, sceneObj.ootAlternateSceneHeaders)
         processedRooms = set()
 

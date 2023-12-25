@@ -55,21 +55,33 @@ def createBoneLayerMask(values):
 
 
 def createBoneGroups(armatureObj):
-    for (groupName, properties) in boneNodeProperties.items():
-        if getBoneGroupByName(armatureObj, groupName) is None:
-            boneGroup = armatureObj.pose.bone_groups.new(name=groupName)
-            boneGroup.color_set = properties.theme
+    armature = armatureObj.data
+    for groupName, properties in boneNodeProperties.items():
+        if bpy.app.version >= (4, 0, 0):
+            if groupName not in armature.collections:
+                boneGroup = armature.collections.new(name=groupName)
+        else:
+            if getBoneGroupByName(armatureObj, groupName) is None:
+                boneGroup = armatureObj.pose.bone_groups.new(name=groupName)
+                boneGroup.color_set = properties.theme
 
 
 def addBoneToGroup(armatureObj, boneName, groupName):
+    armature = armatureObj.data
     if groupName is None:
         if bpy.context.mode != "OBJECT":
             bpy.ops.object.mode_set(mode="OBJECT")
         posebone = armatureObj.pose.bones[boneName]
-        bone = armatureObj.data.bones[boneName]
-        posebone.bone_group = None
+        bone = armature.bones[boneName]
         bone.use_deform = True
-        bone.layers = createBoneLayerMask([boneLayers["anim"]])
+        if bpy.app.version >= (4, 0, 0):
+            if not "anim" in armature.collections:
+                armature.collections.new(name="anim")
+            armature.collections["anim"].assign(bone)
+        else:
+            posebone.bone_group = None
+            bone.layers = createBoneLayerMask([boneLayers["anim"]])
+
         posebone.lock_location = (False, False, False)
         posebone.lock_rotation = (False, False, False)
         posebone.lock_scale = (False, False, False)
@@ -80,13 +92,24 @@ def addBoneToGroup(armatureObj, boneName, groupName):
 
     if bpy.context.mode != "OBJECT":
         bpy.ops.object.mode_set(mode="OBJECT")
+
     posebone = armatureObj.pose.bones[boneName]
     bone = armatureObj.data.bones[boneName]
-    posebone.bone_group_index = getBoneGroupIndex(armatureObj, groupName)
+    if bpy.app.version >= (4, 0, 0):
+        armature.collections[groupName].assign(bone)
+    else:
+        posebone.bone_group_index = getBoneGroupIndex(armatureObj, groupName)
+
     if groupName != "Ignore":
         bone.use_deform = boneNodeProperties[groupName].deform
         if groupName != "DisplayList":
-            bone.layers = createBoneLayerMask([boneLayers["other"]])
+            if bpy.app.version >= (4, 0, 0):
+                if not "other" in armature.collections:
+                    armature.collections.new(name="other")
+                armature.collections["other"].assign(bone)
+            else:
+                bone.layers = createBoneLayerMask([boneLayers["other"]])
+
         if groupName != "SwitchOption":
             posebone.lock_location = (True, True, True)
         posebone.lock_rotation = (True, True, True)

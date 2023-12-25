@@ -14,17 +14,17 @@
 11. [Cutscenes](#cutscenes)
 
 ### Getting Started
-1. In the 3D view properties sidebar, go to the ``Fast64`` tab, then ``Fast64 Global Settings`` and set ``Game`` to ``OOT``.
-2. Set ``F3D Microcode`` to ``F3DEX2/LX2``.
-3. Switch to the ``OOT`` tab. In ``OOT File Settings``, set your decomp path to the path of your [OoT Decomp](https://github.com/zeldaret/oot/) repository on disk.
-4. In ``OOT Tools``, click "Add Scene" to create a basic scene.
+1. In the 3D view properties sidebar (default hotkey to show this is `n` in the viewport), go to the ``Fast64`` tab, then ``Fast64 Global Settings`` and set ``Game`` to ``OOT``.
+2. Switch to the ``OOT`` tab. In ``OOT File Settings``, set your decomp path to the path of your [HackerOoT (recommended)](https://github.com/HackerN64/HackerOoT) or [OoT Decomp](https://github.com/zeldaret/oot/) repository on disk. Check `Enable HackerOoT Features` if using HackerOoT.
+3. In ``OOT Tools``, click `Add Scene` to create a basic scene.
+4. Press `a` so that everything is selected, then click `Clear Transform`.
 5. In ``OOT Scene Exporter`` you can choose the scene to replace or add. Some scenes have some hardcoded things that will cause them to break, so choose something like ``Market Entrance (Child Day) (Entra)``.
 - To add a custom scene choose ``Custom`` in the scene search box, then choose in which folder you want to export the scene and which name you want it to be (note that Fast64 will force the scene name to be lower-case).
+- Enable ``Export as Single File`` if you want to have your scene in the same format as the other ones in decomp.
 6. Make sure you selected the right scene in ``Scene Object`` then click "Export Scene" to export it. When you click ``Add Scene`` this is set automatically.
-7. Compile and run the game. This was tested for commit ef56b01.
+7. Compile and run the game.
 8. (Optional) In the ``View`` tab you may want to increase the ``Clip End`` value.
-9. Note: You can enable ``Export as Single File`` if you want to have your scene in the same format as the other ones in decomp.
-10. Note: You can read [this code](https://github.com/Dragorn421/oot/tree/mod_base_for_mods) to take a glance at what you can do for quality of life for testing.
+9. Note: You can read [this code](https://github.com/Dragorn421/oot/tree/mod_base_for_mods) to take a glance at what you can do for quality of life for testing.
 
 ### Scene Overview
 In Blender, the "empty" object type is used to define different types of OOT data, including scenes and rooms.
