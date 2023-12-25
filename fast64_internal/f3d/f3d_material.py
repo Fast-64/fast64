@@ -177,6 +177,15 @@ def update_draw_layer(self, context):
         set_output_node_groups(material)
 
 
+def rendermodePresetToBits(rdp_settings: "RDPSettings") -> Tuple[int, int]:
+    f3d = get_F3D_GBI()
+    r1 = getattr(f3d, rdp_settings.rendermode_preset_cycle_1, f3d.G_RM_AA_ZB_OPA_SURF)
+    r2 = getattr(f3d, rdp_settings.rendermode_preset_cycle_2, f3d.G_RM_AA_ZB_OPA_SURF)
+    if rdp_settings.g_mdsft_cycletype == "G_CYC_1CYCLE":
+        r2 = 0
+    return r1, r2
+
+
 def all_blender_uses(rdp_settings: "RDPSettings") -> Dict[str, bool]:
     """
     Returns a dictionary of the external features which the blender may or may
@@ -191,11 +200,8 @@ def all_blender_uses(rdp_settings: "RDPSettings") -> Dict[str, bool]:
         if not is_one_cycle:
             useShade = useShade or rdp_settings.blend_a2 == "G_BL_A_SHADE"
     else:
+        r1, r2 = rendermodePresetToBits(rdp_settings)
         f3d = get_F3D_GBI()
-        r1 = getattr(f3d, rdp_settings.rendermode_preset_cycle_1, f3d.G_RM_AA_ZB_OPA_SURF)
-        r2 = getattr(f3d, rdp_settings.rendermode_preset_cycle_2, f3d.G_RM_AA_ZB_OPA_SURF)
-        if is_one_cycle:
-            r2 = 0
         useZ = bool((r1 | r2) & (f3d.Z_CMP | f3d.Z_UPD))
         useShade = ((r1 >> 26) & 3) == f3d.G_BL_A_SHADE or ((r2 >> 24) & 3) == f3d.G_BL_A_SHADE
     return {"Shade Alpha": useShade, "Z Buffer": useZ}
@@ -258,6 +264,19 @@ def update_blend_method(material: Material, context):
         material.alpha_threshold = 0.125
 
 
+def getZMode(material: Material):
+    f3dMat = material.f3d_mat
+    settings = f3dMat.rdp_settings
+    if not settings.set_rendermode:
+        return "ZMODE_OPA"
+    if settings.rendermode_advanced_enabled:
+        return settings.zmode
+    r1, r2 = rendermodePresetToBits(settings)
+    f3d = get_F3D_GBI()
+    zmode = ((r1 | r2) & f3d.ZMODE_DEC) // f3d.ZMODE_INTER
+    return enumZMode[zmode][0]
+    
+
 class DrawLayerProperty(PropertyGroup):
     sm64: bpy.props.EnumProperty(items=sm64EnumDrawLayers, default="1", update=update_draw_layer)
     oot: bpy.props.EnumProperty(items=ootEnumDrawLayers, default="Opaque", update=update_draw_layer)
@@ -311,92 +330,41 @@ def F3DOrganizeLights(self, context):
         self.f3d_light7 = lightList[6] if len(lightList) > 6 else None
 
 
-def combiner_uses(material, checkList, is2Cycle):
-    display = False
-    for value in checkList:
-        if value[:5] == "TEXEL":
-            value1 = value
-            value2 = value.replace("0", "1") if "0" in value else value.replace("1", "0")
-        else:
-            value1 = value
-            value2 = value
-
-        display |= material.combiner1.A == value1
-        if is2Cycle:
-            display |= material.combiner2.A == value2
-
-        display |= material.combiner1.B == value1
-        if is2Cycle:
-            display |= material.combiner2.B == value2
-
-        display |= material.combiner1.C == value1
-        if is2Cycle:
-            display |= material.combiner2.C == value2
-
-        display |= material.combiner1.D == value1
-        if is2Cycle:
-            display |= material.combiner2.D == value2
-
-        display |= material.combiner1.A_alpha == value1
-        if is2Cycle:
-            display |= material.combiner2.A_alpha == value2
-
-        display |= material.combiner1.B_alpha == value1
-        if is2Cycle:
-            display |= material.combiner2.B_alpha == value2
-
-        display |= material.combiner1.C_alpha == value1
-        if is2Cycle:
-            display |= material.combiner2.C_alpha == value2
-
-        display |= material.combiner1.D_alpha == value1
-        if is2Cycle:
-            display |= material.combiner2.D_alpha == value2
-
-    return display
-
-
-def combiner_uses_alpha(material, checkList, is2Cycle):
-    display = False
-    for value in checkList:
-        if value[:5] == "TEXEL":
-            value1 = value
-            value2 = value.replace("0", "1") if "0" in value else value.replace("1", "0")
-        else:
-            value1 = value
-            value2 = value
-
-        display |= material.combiner1.A_alpha == value1
-        if is2Cycle:
-            display |= material.combiner2.A_alpha == value2
-
-        display |= material.combiner1.B_alpha == value1
-        if is2Cycle:
-            display |= material.combiner2.B_alpha == value2
-
-        display |= material.combiner1.C_alpha == value1
-        if is2Cycle:
-            display |= material.combiner2.C_alpha == value2
-
-        display |= material.combiner1.D_alpha == value1
-        if is2Cycle:
-            display |= material.combiner2.D_alpha == value2
-
-    return display
-
-
-CombinerUses = dict[str, bool]
+def combiner_uses(
+    f3dMat: "F3DMaterialProperty",
+    checkList,
+    checkCycle1 = True,
+    checkCycle2 = True,
+    checkColor = True,
+    checkAlpha = True,
+    swapTexelsCycle2 = True,
+):
+    is2Cycle = f3dMat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+    for i in range(1, 3):
+        if i == 1 and not checkCycle1 or i == 2 and (not checkCycle2 or not is2Cycle):
+            continue
+        combiner = getattr(f3dMat, f"combiner{i}")
+        for isAlpha in [False, True]:
+            if not isAlpha and not checkColor or isAlpha and not checkAlpha:
+                continue
+            for letter in ["A", "B", "C", "D"]:
+                value = getattr(combiner, letter + ("_alpha" if isAlpha else ""))
+                if i == 2 and swapTexelsCycle2 and value.startswith("TEXEL"):
+                    value = "TEXEL" + chr(ord(value[5]) ^ 1)  # Swap 0 and 1
+                if value in checkList:
+                    return True
+    return False
 
 
 def combiner_uses_tex0(f3d_mat: "F3DMaterialProperty"):
-    return combiner_uses(f3d_mat, ["TEXEL0", "TEXEL0_ALPHA"], f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE")
+    return combiner_uses(f3d_mat, ["TEXEL0", "TEXEL0_ALPHA"])
 
 
 def combiner_uses_tex1(f3d_mat: "F3DMaterialProperty"):
-    return combiner_uses(f3d_mat, ["TEXEL1", "TEXEL1_ALPHA"], f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE")
+    return combiner_uses(f3d_mat, ["TEXEL1", "TEXEL1_ALPHA"])
 
 
-def all_combiner_uses(f3d_mat: "F3DMaterialProperty") -> CombinerUses:
+def all_combiner_uses(f3d_mat: "F3DMaterialProperty") -> dict[str, bool]:
     use_tex0 = combiner_uses_tex0(f3d_mat)
     use_tex1 = combiner_uses_tex1(f3d_mat)
 
@@ -407,22 +375,23 @@ def all_combiner_uses(f3d_mat: "F3DMaterialProperty") -> CombinerUses:
         "Primitive": combiner_uses(
             f3d_mat,
             ["PRIMITIVE", "PRIMITIVE_ALPHA", "PRIM_LOD_FRAC"],
-            f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE",
         ),
         "Environment": combiner_uses(
-            f3d_mat, ["ENVIRONMENT", "ENV_ALPHA"], f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+            f3d_mat, ["ENVIRONMENT", "ENV_ALPHA"]
         ),
         "Shade": combiner_uses(
-            f3d_mat, ["SHADE", "SHADE_ALPHA"], f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+            f3d_mat, ["SHADE"], checkAlpha = False
         ),
-        "Shade Alpha": combiner_uses_alpha(
-            f3d_mat, ["SHADE"], f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+        "Shade Alpha": combiner_uses(
+            f3d_mat, ["SHADE"], checkColor = False
+        ) or combiner_uses(
+            f3d_mat, ["SHADE_ALPHA"], checkAlpha = False
         ),
-        "Key": combiner_uses(f3d_mat, ["CENTER", "SCALE"], f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"),
+        "Key": combiner_uses(f3d_mat, ["CENTER", "SCALE"]),
         "LOD Fraction": combiner_uses(
-            f3d_mat, ["LOD_FRACTION"], f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+            f3d_mat, ["LOD_FRACTION"]
         ),
-        "Convert": combiner_uses(f3d_mat, ["K4", "K5"], f3d_mat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"),
+        "Convert": combiner_uses(f3d_mat, ["K4", "K5"]),
     }
     return useDict
 
@@ -475,15 +444,30 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
                 c.label(text="Shade not used in CC, can disable lighting.", icon="INFO")
             if isF3DEX3:
                 c.prop(settings, "g_packed_normals")
+                c.prop(settings, "g_lighting_specular")
                 c.prop(settings, "g_ambocclusion")
             d = indentGroup(c, "g_tex_gen", False)
             if d is not None:
                 d.prop(settings, "g_tex_gen_linear")
 
+        if lightFxPrereq and settings.g_fresnel_color:
+            shadeColorLabel = "Fresnel"
+        elif not settings.g_lighting or (lightFxPrereq and settings.g_lighttoalpha):
+            shadeColorLabel = "Vertex color"
+        elif lightFxPrereq and settings.g_packed_normals and not settings.g_lighttoalpha:
+            shadeColorLabel = "Lighting * vertex color"
+        else:
+            shadeColorLabel = "Lighting"
+        if lightFxPrereq:
+            c = indentGroup(inputGroup, f"Shade color = {shadeColorLabel}:", True)
+            c.prop(settings, "g_fresnel_color")
+        else:
+            inputGroup.column().label(text = f"Shade color = {shadeColorLabel}")
+
         shadowMapInShadeAlpha = False
         if settings.g_fog:
             shadeAlphaLabel = "Fog"
-        elif lightFxPrereq and settings.g_fresnel:
+        elif lightFxPrereq and settings.g_fresnel_alpha:
             shadeAlphaLabel = "Fresnel"
         elif lightFxPrereq and settings.g_lighttoalpha:
             shadeAlphaLabel = "Light intensity"
@@ -495,19 +479,18 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
         c = indentGroup(inputGroup, f"Shade alpha = {shadeAlphaLabel}:", True)
         if lightFxPrereq:
             c.prop(settings, "g_lighttoalpha")
-            c.prop(settings, "g_fresnel")
+            c.prop(settings, "g_fresnel_alpha")
         c.prop(settings, "g_fog")
-
-        if lightFxPrereq and settings.g_fog and settings.g_fresnel:
-            c.label(text="Fog overrides Fresnel.", icon="ERROR")
-        elif lightFxPrereq and settings.g_fog and settings.g_lighttoalpha:
+        if lightFxPrereq and settings.g_fog and settings.g_fresnel_alpha:
+            c.label(text="Fog overrides Fresnel Alpha.", icon="ERROR")
+        if lightFxPrereq and settings.g_fog and settings.g_lighttoalpha:
             c.label(text="Fog overrides Light-to-Alpha.", icon="ERROR")
-        elif lightFxPrereq and settings.g_fresnel and settings.g_lighttoalpha:
-            c.label(text="Fresnel overrides Light-to-Alpha.", icon="ERROR")
+        if lightFxPrereq and settings.g_fresnel_alpha and settings.g_lighttoalpha:
+            c.label(text="Fresnel Alpha overrides Light-to-Alpha.", icon="ERROR")
         if shadowMapInShadeAlpha and ccUse["Shade Alpha"]:
-            c.label(text="Shadow map = shade alpha used in CC.", icon="INFO")
+            c.label(text="Shadow map = shade alpha used in CC, probably wrong.", icon="INFO")
         if settings.g_fog and ccUse["Shade Alpha"]:
-            c.label(text="Fog = shade alpha used in CC.", icon="INFO")
+            c.label(text="Fog = shade alpha used in CC, probably wrong.", icon="INFO")
         if blendWarnings and shadeInBlender and not settings.g_fog:
             c.label(text="Rendermode uses shade alpha, probably fog.", icon="INFO")
         elif blendWarnings and not shadeInBlender and settings.g_fog:
@@ -591,8 +574,6 @@ def ui_lower_mode(settings, dataHolder, layout: UILayout, useDropdown):
         )
     if not useDropdown or dataHolder.menu_lower:
         prop_split(inputGroup, settings, "g_mdsft_alpha_compare", "Alpha Compare")
-        if settings.g_mdsft_alpha_compare == "G_AC_THRESHOLD" and settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
-            inputGroup.label(text="Compares blend alpha to *first cycle* combined (CC) alpha.")
         prop_split(inputGroup, settings, "g_mdsft_zsrcsel", "Z Source Selection")
     if settings.g_mdsft_zsrcsel == "G_ZS_PRIM":
         prim_box = inputGroup.box()
@@ -841,6 +822,22 @@ class F3DPanel(Panel):
                 prop_split(renderGroup, material.rdp_settings, "alpha_cvg_sel", "Use Coverage For Alpha")
                 prop_split(renderGroup, material.rdp_settings, "force_bl", "Force Blending")
 
+                if material.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
+                    if (
+                        material.rdp_settings.blend_b1 == "G_BL_A_MEM" or
+                        material.rdp_settings.blend_p1 == "G_BL_CLR_MEM" or
+                        material.rdp_settings.blend_m1 == "G_BL_CLR_MEM"
+                    ):
+                        multilineLabel(renderGroup.box(),
+                            "RDP silicon bug: Framebuffer color / alpha in blender\n" +
+                            "cycle 1 is broken, actually value from PREVIOUS pixel.",
+                            'ORPHAN_DATA')
+                    if material.rdp_settings.blend_a2 == "G_BL_A_SHADE":
+                        multilineLabel(renderGroup.box(),
+                            "RDP silicon bug: Shade alpha in blender cycle 2\n" +
+                            "is broken, actually shade alpha from NEXT pixel.",
+                            'ORPHAN_DATA')
+
                 # cycle dependent - (P * A + M - B) / (A + B)
                 combinerBox = renderGroup.box()
                 combinerBox.label(text="Blender (Color = (P * A + M * B) / (A + B)")
@@ -888,8 +885,9 @@ class F3DPanel(Panel):
             if f3dMat.set_ao:
                 prop_split(inputGroup.row(), f3dMat, "ao_ambient", "AO Ambient")
                 prop_split(inputGroup.row(), f3dMat, "ao_directional", "AO Directional")
+                prop_split(inputGroup.row(), f3dMat, "ao_point", "AO Point")
 
-        if f3dMat.rdp_settings.g_fresnel:
+        if f3dMat.rdp_settings.g_fresnel_color or f3dMat.rdp_settings.g_fresnel_alpha:
             if showCheckBox or f3dMat.set_fresnel:
                 inputGroup = inputCol.column()
             if showCheckBox:
@@ -927,6 +925,96 @@ class F3DPanel(Panel):
                     prop_split(inputGroup.row(), f3dMat, "fog_color", "Fog Color")
                     prop_split(inputGroup.row(), f3dMat, "fog_position", "Fog Range")
 
+    def ui_cel_shading(self, material: Material, layout: UILayout):
+        inputGroup = layout.box().column()
+        r = inputGroup.row(align=True)
+        r.prop(
+            material.f3d_mat,
+            "expand_cel_shading_ui",
+            text="",
+            icon='TRIA_DOWN' if material.f3d_mat.expand_cel_shading_ui else 'TRIA_RIGHT',
+            icon_only=True,
+            emboss=False
+        )
+        r.prop(material.f3d_mat, "use_cel_shading")
+        if not material.f3d_mat.expand_cel_shading_ui:
+            return
+        if not material.f3d_mat.use_cel_shading:
+            inputGroup = inputGroup.column()
+            inputGroup.enabled = False
+        cel = material.f3d_mat.cel_shading
+        prop_split(inputGroup.row(), cel, "tintPipeline", "Tint pipeline:")
+        prop_split(inputGroup.row(), cel, "cutoutSource", "Cutout:")
+        
+        if getZMode(material) != "ZMODE_OPA":
+            inputGroup.label(text = "zmode in blender / rendermode must be opaque.", icon = "ERROR")
+
+        if cel.cutoutSource == "ENVIRONMENT":
+            if not material.f3d_mat.set_env or material.f3d_mat.env_color[3] != 1.0:
+                inputGroup.label(text = "Enable env color, and set env alpha to 255.", icon = "ERROR")
+        else:
+            tex = material.f3d_mat.tex0 if cel.cutoutSource == "TEXEL0" else material.f3d_mat.tex1
+            if tex.tex is None or not tex.tex_set:
+                inputGroup.label(text = f"Texture {cel.cutoutSource[5]} is not set up correctly.", icon = "ERROR")
+        
+        if (
+            len(cel.levels) >= 3 and
+            cel.levels[0].threshMode == cel.levels[1].threshMode and
+            not all([cel.levels[0].threshMode == lvl.threshMode for lvl in cel.levels[1:]])
+        ):
+            multilineLabel(inputGroup.box(),
+                "If using both lighter and darker cel\n" +
+                "levels, one of each must be at the beginning",
+                "ERROR"
+            )
+        
+        r = inputGroup.row(align=True)
+        r.label(text="Cel levels:")
+        op = r.operator(CelLevelAdd.bl_idname, text="", icon='ADD')
+        op.materialName = material.name
+        if len(cel.levels) > 0:
+            op = r.operator(CelLevelRemove.bl_idname, text="", icon='REMOVE')
+            op.materialName = material.name
+        
+        showSegHelp = False
+        for level in cel.levels:
+            box = inputGroup.box().column()
+            r = box.row().split(factor=0.2)
+            r.label(text="Draw when")
+            r = r.split(factor=0.3)
+            r.prop(level, "threshMode", text="")
+            r = r.split(factor=0.2)
+            r.label(text="than")
+            r.prop(level, "threshold")
+            r = box.row().split(factor=0.08)
+            r.label(text="Tint:")
+            r = r.split(factor=0.27)
+            r.prop(level, "tintType", text="")
+            r = r.split(factor=0.45)
+            if level.tintType == "Fixed":
+                r.prop(level, "tintFixedLevel")
+                r = r.split(factor=0.3)
+                r.label(text="Color:")
+                r.prop(level, "tintFixedColor", text="")
+            elif level.tintType == "Segment":
+                r.prop(level, "tintSegmentNum")
+                r.prop(level, "tintSegmentOffset")
+                showSegHelp = True
+            elif level.tintType == "Light":
+                r.prop(level, "tintFixedLevel")
+                r.prop(level, "tintLightSlot")
+            else:
+                raise PluginError("Invalid tintType")
+        if showSegHelp:
+            tintName, tintNameCap = ("prim", "Prim") if cel.tintPipeline == "CC" else ("fog", "Fog")
+            multilineLabel(inputGroup,
+                "Segments: In your code, set up DL in segment(s) used with\n" +
+                f"gsDPSet{tintNameCap}Color then gsSPEndDisplayList at appropriate offset\n" +
+                f"with {tintName} color = tint color and {tintName} alpha = tint level.",
+                'INFO'
+            )
+        
+
     def checkDrawLayersWarnings(self, f3dMat: "F3DMaterialProperty", useDict: Dict[str, bool], layout: UILayout):
         settings = f3dMat.rdp_settings
         isF3DEX3 = bpy.context.scene.f3d_type == "F3DEX3"
@@ -940,10 +1028,11 @@ class F3DPanel(Panel):
         g_packed_normals = lightFxPrereq and settings.g_packed_normals
         g_ambocclusion = lightFxPrereq and settings.g_ambocclusion
         g_lighttoalpha = lightFxPrereq and settings.g_lighttoalpha
-        g_fresnel = lightFxPrereq and settings.g_fresnel
+        g_fresnel_color = lightFxPrereq and settings.g_fresnel_color
+        g_fresnel_alpha = lightFxPrereq and settings.g_fresnel_alpha
 
-        usesVertexColor = useDict["Shade"] and (not g_lighting or g_packed_normals)
-        usesVertexAlpha = anyUseShadeAlpha and (g_ambocclusion or not (g_fog or g_lighttoalpha or g_fresnel))
+        usesVertexColor = useDict["Shade"] and (not g_lighting or (g_packed_normals and not g_fresnel_color))
+        usesVertexAlpha = anyUseShadeAlpha and (g_ambocclusion or not (g_fog or g_lighttoalpha or g_fresnel_alpha))
         if not usesVertexColor and not usesVertexAlpha:
             return
         noticeBox = layout.box().column()
@@ -1022,53 +1111,39 @@ class F3DPanel(Panel):
 
             self.checkDrawLayersWarnings(f3dMat, useDict, layout)
 
+            def drawCCProps(ui: UILayout, combiner: "CombinerProperty", isAlpha: bool, enabled: bool = True) -> None:
+                ui = ui.column()
+                ui.enabled = enabled
+                for letter in ["A", "B", "C", "D"]:
+                    r = ui.row().split(factor=0.25 if isAlpha else 0.1)
+                    r.label(text = f"{letter}{' Alpha' if isAlpha else ''}:")
+                    r.prop(combiner, f"{letter}{'_alpha' if isAlpha else ''}", text="")                    
+
+            isTwoCycle = f3dMat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+
             combinerBox = layout.box()
             combinerBox.prop(f3dMat, "set_combiner", text="Color Combiner (Color = (A - B) * C + D)")
-            combinerCol = combinerBox.row()
+            combinerCol = combinerBox.row().split(factor=0.45)
             combinerCol.enabled = f3dMat.set_combiner
-            rowColor = combinerCol.column()
-            rowAlpha = combinerCol.column()
+            drawCCProps(combinerCol, f3dMat.combiner1, False)
+            drawCCProps(combinerCol, f3dMat.combiner1, True, not f3dMat.use_cel_shading)
+            if f3dMat.use_cel_shading:
+                r = combinerBox.column().label(text = f"CC alpha{' cycle 1' if isTwoCycle else ''} is occupied by cel shading.")
 
-            rowColor.prop(f3dMat.combiner1, "A")
-            rowColor.prop(f3dMat.combiner1, "B")
-            rowColor.prop(f3dMat.combiner1, "C")
-            rowColor.prop(f3dMat.combiner1, "D")
-            rowAlpha.prop(f3dMat.combiner1, "A_alpha")
-            rowAlpha.prop(f3dMat.combiner1, "B_alpha")
-            rowAlpha.prop(f3dMat.combiner1, "C_alpha")
-            rowAlpha.prop(f3dMat.combiner1, "D_alpha")
-            if (
-                f3dMat.rdp_settings.g_mdsft_alpha_compare == "G_AC_THRESHOLD"
-                and f3dMat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
-            ):
-                combinerBox.label(text="First cycle alpha out used for compare threshold.")
-
-            if f3dMat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
+            if isTwoCycle:
                 combinerBox2 = layout.box()
                 combinerBox2.label(text="Color Combiner Cycle 2")
                 combinerBox2.enabled = f3dMat.set_combiner
-                combinerCol2 = combinerBox2.row()
-                rowColor2 = combinerCol2.column()
-                rowAlpha2 = combinerCol2.column()
+                combinerCol2 = combinerBox2.row().split(factor=0.45)
+                drawCCProps(combinerCol2, f3dMat.combiner2, False)
+                drawCCProps(combinerCol2, f3dMat.combiner2, True)
 
-                rowColor2.prop(f3dMat.combiner2, "A")
-                rowColor2.prop(f3dMat.combiner2, "B")
-                rowColor2.prop(f3dMat.combiner2, "C")
-                rowColor2.prop(f3dMat.combiner2, "D")
-                rowAlpha2.prop(f3dMat.combiner2, "A_alpha")
-                rowAlpha2.prop(f3dMat.combiner2, "B_alpha")
-                rowAlpha2.prop(f3dMat.combiner2, "C_alpha")
-                rowAlpha2.prop(f3dMat.combiner2, "D_alpha")
+                if combiner_uses(f3dMat, ["TEXEL0", "TEXEL0_ALPHA"], checkCycle1 = False, swapTexelsCycle2 = False):
+                    combinerBox2.label(text = "'Texture 0' in Cycle 2 is actually Texture 1.", icon = "INFO")
+                if combiner_uses(f3dMat, ["TEXEL1", "TEXEL1_ALPHA"], checkCycle1 = False, swapTexelsCycle2 = False):
+                    multilineLabel(combinerBox2, "RDP silicon bug: 'Texture 1' in Cycle 2 is actually\n"
+                        + "Texture 0 for the NEXT pixel, causes visual issues.", "ORPHAN_DATA")
 
-                if useDict["Texture 0"]:
-                    cc_list = ["A", "B", "C", "D", "A_alpha", "B_alpha", "C_alpha", "D_alpha"]
-                    if len([c for c in cc_list if getattr(f3dMat.combiner2, c) == "TEXEL1"]):
-                        combinerBox2.label(
-                            text="Warning: Using 'Texture 1' in Cycle 2 can cause display issues!",
-                            icon="LIBRARY_DATA_BROKEN",
-                        )
-
-                combinerBox2.label(text="Note: In second cycle, texture 0 and texture 1 are flipped.")
         if menuTab == "Sources":
             self.ui_uvCheck(layout, context)
 
@@ -1131,6 +1206,7 @@ class F3DPanel(Panel):
             return
 
         f3dMat = material.f3d_mat
+        settings = f3dMat.rdp_settings
         layout.prop(context.scene, "f3d_simple", text="Show Simplified UI")
         layout = layout.box()
         titleCol = layout.column()
@@ -1141,14 +1217,27 @@ class F3DPanel(Panel):
         split.label(text="Preset")
         row = split.row(align=True)
         row.menu(MATERIAL_MT_f3d_presets.__name__, text=f3dMat.presetName)
-        row.operator(AddPresetF3D.bl_idname, text="", icon="ZOOM_IN")
-        row.operator(AddPresetF3D.bl_idname, text="", icon="ZOOM_OUT").remove_active = True
+        row.operator(AddPresetF3D.bl_idname, text="", icon="ADD")
+        row.operator(AddPresetF3D.bl_idname, text="", icon="REMOVE").remove_active = True
+
+        if settings.g_mdsft_alpha_compare == "G_AC_THRESHOLD" and settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
+            multilineLabel(layout.box(),
+                "RDP silicon bug: Alpha compare in 2-cycle mode is broken.\n" +
+                "Compares to FIRST cycle CC alpha output from NEXT pixel.",
+                'ORPHAN_DATA')
 
         if context.scene.f3d_simple and f3dMat.presetName != "Custom":
             self.draw_simple(f3dMat, material, layout, context)
         else:
             presetCol.prop(context.scene, "f3dUserPresetsOnly")
             self.draw_full(f3dMat, material, layout, context)
+        
+        if context.scene.f3d_type == "F3DEX3":
+            self.ui_cel_shading(material, layout)
+        else:
+            r = layout.row()
+            r.enabled = False
+            r.label(text="Use Cel Shading (requires F3DEX3)", icon='TRIA_RIGHT')
 
 
 def ui_tileScroll(tex, name, layout):
@@ -1261,6 +1350,24 @@ def update_light_properties(self, context):
             return
 
         update_light_colors(material, context)
+
+
+def update_cel_cutout_source(self, context):
+    with F3DMaterial_UpdateLock(get_material_from_context(context)) as material:
+        if not material:
+            return
+        if not material.f3d_mat.use_cel_shading:
+            return
+            
+        f3dMat = material.f3d_mat
+        cel = f3dMat.cel_shading
+        firstDarker = len(cel.levels) >= 1 and cel.levels[0].threshMode == "Darker"
+        
+        f3dMat.combiner1.A_alpha, f3dMat.combiner1.B_alpha = (
+            ("1", "SHADE") if firstDarker else ("SHADE", "0")
+        )
+        f3dMat.combiner1.C_alpha = cel.cutoutSource
+        f3dMat.combiner1.D_alpha = "0"
 
 
 def getSocketFromCombinerToNodeDictColor(nodes, combinerInput):
@@ -2743,6 +2850,24 @@ class RDPSettings(PropertyGroup):
         update=update_node_values_with_preset,
         description="Computes shade coordinates for primitives. Disable if not using lighting, vertex colors or fog",
     )
+    g_ambocclusion: bpy.props.BoolProperty(
+        name="Ambient Occlusion",
+        default=False,
+        update=update_node_values_with_preset,
+        description="F3DEX3: Scales each type light intensity differently with vertex alpha. Bake scene shadows / AO into vertex alpha, not vertex color",
+    )
+    g_attroffset_z_enable: bpy.props.BoolProperty(
+        name="Z Offset (for decal fix)",
+        default=False,
+        update=update_node_values_with_preset,
+        description="F3DEX3: Enables offset to vertex Z. To fix decals, set the Z mode to opaque and enable this",
+    )
+    g_attroffset_st_enable: bpy.props.BoolProperty(
+        name="ST Offset (for UV scroll)",
+        default=False,
+        update=update_node_values_with_preset,
+        description="F3DEX3: Enables offsets to vertex ST values, usually for UV scrolling",
+    )
     # v1/2 difference
     g_cull_front: bpy.props.BoolProperty(
         name="Cull Front",
@@ -2757,18 +2882,6 @@ class RDPSettings(PropertyGroup):
         update=update_node_values_with_preset,
         description="Disables drawing of back faces",
     )
-    g_attroffset_st_enable: bpy.props.BoolProperty(
-        name="ST Offset (for UV scroll)",
-        default=False,
-        update=update_node_values_with_preset,
-        description="F3DEX3: Enables offsets to vertex ST values, usually for UV scrolling",
-    )
-    g_attroffset_z_enable: bpy.props.BoolProperty(
-        name="Z Offset (for decal fix)",
-        default=False,
-        update=update_node_values_with_preset,
-        description="F3DEX3: Enables offset to vertex Z. To fix decals, set the Z mode to opaque and enable this",
-    )
     g_packed_normals: bpy.props.BoolProperty(
         name="Packed Normals (Vtx Colors + Lighting)",
         default=False,
@@ -2781,17 +2894,23 @@ class RDPSettings(PropertyGroup):
         update=update_node_values_with_preset,
         description="F3DEX3: Moves light intensity to shade alpha, used for cel shading and other effects",
     )
-    g_ambocclusion: bpy.props.BoolProperty(
-        name="Ambient Occlusion",
+    g_lighting_specular: bpy.props.BoolProperty(
+        name="Specular Lighting",
         default=False,
         update=update_node_values_with_preset,
-        description="F3DEX3: Scales ambient and/or directional light intensity with vertex alpha. Bake scene shadows / AO into vertex alpha, not vertex color",
+        description="F3DEX3: Microcode lighting computes specular instead of diffuse component. If using, must set size field of every light in code",
     )
-    g_fresnel: bpy.props.BoolProperty(
-        name="Fresnel",
+    g_fresnel_color: bpy.props.BoolProperty(
+        name="Fresnel to Color",
         default=False,
         update=update_node_values_with_preset,
-        description="F3DEX3: Shade alpha derived from how much each vertex normal faces the camera. For water and toon outlines",
+        description="F3DEX3: Shade color derived from how much each vertex normal faces the camera. For bump mapping",
+    )
+    g_fresnel_alpha: bpy.props.BoolProperty(
+        name="Fresnel to Alpha",
+        default=False,
+        update=update_node_values_with_preset,
+        description="F3DEX3: Shade alpha derived from how much each vertex normal faces the camera. For water, glass, ghosts, etc., or toon outlines",
     )
     g_fog: bpy.props.BoolProperty(
         name="Fog",
@@ -3149,6 +3268,102 @@ class DefaultRDPSettingsPanel(Panel):
         ui_other(world.rdp_defaults, world, layout, True)
 
 
+class CelLevelProperty(PropertyGroup):
+    threshMode : bpy.props.EnumProperty(
+        items = enumCelThreshMode,
+        name = "Draw when",
+        default = "Lighter",
+        update = update_cel_cutout_source
+    )
+    threshold : bpy.props.IntProperty(
+        name = "Threshold",
+        description = "Light level at which the boundary between cel levels occurs. One level is >= this value, the other is < it",
+        min = 2,
+        max = 255,
+        default = 128
+    )
+    tintType : bpy.props.EnumProperty(items = enumCelTintType, name = "Tint type", default = "Fixed")
+    tintFixedLevel : bpy.props.IntProperty(
+        name = "Level",
+        description = "0: original color <=> 255: fully tint color",
+        min = 0,
+        max = 255,
+        default = 50,
+    )
+    tintFixedColor : bpy.props.FloatVectorProperty(
+        name = "Tint color",
+        size = 3,
+        min = 0.0,
+        max = 1.0,
+        subtype = "COLOR",
+    )
+    tintSegmentNum : bpy.props.IntProperty(
+        name = "Segment",
+        description = "Segment number to store tint DL in",
+        min = 8,
+        max = 0xD,
+        default = 8,
+    )
+    tintSegmentOffset : bpy.props.IntProperty(
+        name = "Offset (instr)",
+        description = "Number of instructions (8 bytes) within this DL to jump to",
+        min = 0,
+        max = 1000,
+        default = 0,
+    )
+    tintLightSlot : bpy.props.IntProperty(
+        name = "Light (/end)",
+        description = "Which light to load RGB color from, counting from the end. 0 = ambient, 1 = last directional / point light, 2 = second-to-last, etc.",
+        min = 0,
+        max = 9,
+        default = 1,
+    )
+    
+    
+class CelShadingProperty(PropertyGroup):
+    tintPipeline : bpy.props.EnumProperty(items = enumCelTintPipeline, name = "Tint pipeline", default = "CC")
+    cutoutSource : bpy.props.EnumProperty(
+        items = enumCelCutoutSource,
+        name = "Cutout",
+        default = "ENVIRONMENT",
+        update = update_cel_cutout_source,
+    )
+    levels : bpy.props.CollectionProperty(type = CelLevelProperty, name = "Cel levels")
+
+
+def celGetMaterialLevels(materialName):
+    material = bpy.data.materials.get(materialName)
+    if material is None:
+        raise PluginError(f"Could not find material {materialName}")
+    return material.f3d_mat.cel_shading.levels
+
+
+class CelLevelAdd(bpy.types.Operator):
+    bl_idname = "material.f3d_cel_level_add"
+    bl_label = "Add Cel Level"
+    bl_options = {'REGISTER', 'UNDO'}
+    
+    materialName : bpy.props.StringProperty()
+    
+    def execute(self, context):
+        levels = celGetMaterialLevels(self.materialName)
+        levels.add()
+        return {'FINISHED'}
+
+
+class CelLevelRemove(bpy.types.Operator):
+    bl_idname = "material.f3d_cel_level_remove"
+    bl_label = "Remove Last Level"
+    bl_options = {'REGISTER', 'UNDO'}
+    
+    materialName : bpy.props.StringProperty()
+    
+    def execute(self, context):
+        levels = celGetMaterialLevels(self.materialName)
+        levels.remove(len(levels) - 1)
+        return {'FINISHED'}
+
+
 def getOptimalFormat(tex, curFormat, isMultitexture):
     texFormat = "RGBA16"
     if isMultitexture:
@@ -3224,8 +3439,11 @@ class MATERIAL_MT_f3d_presets(Menu):
         props_default = getattr(self, "preset_operator_defaults", None)
         add_operator = getattr(self, "preset_add_operator", None)
         presetDir = getCurrentPresetDir()
-        paths = bpy.utils.preset_paths(presetDir) if not bpy.context.scene.f3dUserPresetsOnly else []
-        paths += bpy.utils.preset_paths("f3d/user")
+        paths = bpy.utils.preset_paths("f3d/user")
+        if not bpy.context.scene.f3dUserPresetsOnly:
+            paths += bpy.utils.preset_paths(presetDir)
+            if bpy.context.scene.f3d_type == "F3DEX3":
+                paths += bpy.utils.preset_paths(f"{presetDir}_f3dex3")
         self.path_menu(
             paths,
             self.preset_operator,
@@ -3794,21 +4012,29 @@ class F3DMaterialProperty(PropertyGroup):
         description="How much ambient occlusion (vertex alpha) affects directional light intensity",
         update=update_node_values_without_preset,
     )
+    ao_point: bpy.props.FloatProperty(
+        name="AO Point",
+        min=0.0,
+        max=1.0,
+        default=0.0,
+        description="How much ambient occlusion (vertex alpha) affects point light intensity",
+        update=update_node_values_without_preset,
+    )
     set_ao: bpy.props.BoolProperty(update=update_node_values_without_preset)
 
     # Fresnel
     fresnel_lo: bpy.props.FloatProperty(
         name="Fresnel lo",
-        min=0.0,
-        max=1.0,
+        min=-1000.0,
+        max=1000.0,
         default=0.7,
         description="Dot product value which gives shade alpha = 0. The dot product ranges from 1 when the normal points directly at the camera, to 0 when it points sideways",
         update=update_node_values_without_preset,
     )
     fresnel_hi: bpy.props.FloatProperty(
         name="Fresnel hi",
-        min=0.0,
-        max=1.0,
+        min=-1000.0,
+        max=1000.0,
         default=0.4,
         description="Dot product value which gives shade alpha = FF. The dot product ranges from 1 when the normal points directly at the camera, to 0 when it points sideways",
         update=update_node_values_without_preset,
@@ -3870,6 +4096,10 @@ class F3DMaterialProperty(PropertyGroup):
     use_large_textures: bpy.props.BoolProperty(name="Large Texture Mode")
     large_edges: bpy.props.EnumProperty(items=enumLargeEdges, default="Clamp")
 
+    expand_cel_shading_ui : bpy.props.BoolProperty(name = "Expand Cel Shading UI")
+    use_cel_shading : bpy.props.BoolProperty(name = "Use Cel Shading", update = update_cel_cutout_source)
+    cel_shading : bpy.props.PointerProperty(type = CelShadingProperty)
+
     def key(self) -> F3DMaterialHash:
         useDefaultLighting = self.set_lights and self.use_default_lighting
         return (
@@ -3883,6 +4113,18 @@ class F3DMaterialProperty(PropertyGroup):
             self.rdp_settings.key(),
             self.draw_layer.key(),
             self.use_large_textures,
+            self.use_cel_shading,
+            self.cel_shading.tintPipeline if self.use_cel_shading else None,
+            tuple([(
+                c.threshMode,
+                c.threshold,
+                c.tintType,
+                c.tintFixedLevel,
+                c.tintFixedColor,
+                c.tintSegmentNum,
+                c.tintSegmentOffset,
+                c.tintLightSlot
+            ) for c in self.cel_shading.levels]) if self.use_cel_shading else None,
             self.use_default_lighting,
             self.set_blend,
             self.set_prim,
@@ -3908,7 +4150,7 @@ class F3DMaterialProperty(PropertyGroup):
             round(self.k5, 4) if self.set_k0_5 else None,
             self.combiner1.key() if self.set_combiner else None,
             self.combiner2.key() if self.set_combiner else None,
-            tuple([round(value, 4) for value in (self.ao_ambient, self.ao_directional)]) if self.set_ao else None,
+            tuple([round(value, 4) for value in (self.ao_ambient, self.ao_directional, self.ao_point)]) if self.set_ao else None,
             tuple([round(value, 4) for value in (self.fresnel_lo, self.fresnel_hi)]) if self.set_fresnel else None,
             tuple([round(value, 4) for value in self.attroffs_st]) if self.set_attroffs_st else None,
             self.attroffs_z if self.set_attroffs_z else None,
@@ -4083,6 +4325,10 @@ mat_classes = (
     PrimDepthSettings,
     RDPSettings,
     DefaultRDPSettingsPanel,
+    CelLevelProperty,
+    CelShadingProperty,
+    CelLevelAdd,
+    CelLevelRemove,
     F3DMaterialProperty,
     ReloadDefaultF3DPresets,
     UpdateF3DNodes,

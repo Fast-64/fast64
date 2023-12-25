@@ -2,7 +2,8 @@ import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operato
 from math import pi, ceil, degrees, radians, copysign
 from mathutils import *
 from .utility_anim import *
-from typing import Callable, Iterable, Any, Tuple
+from typing import Callable, Iterable, Any, Tuple, Optional
+from bpy.types import UILayout
 
 CollectionProperty = Any  # collection prop as defined by using bpy.props.CollectionProperty
 
@@ -609,6 +610,10 @@ def int_from_s16(value: int) -> int:
 
 def int_from_s16_str(value: str) -> int:
     return int_from_s16(int(value, 0))
+    
+
+def float_from_u16_str(value: str) -> float:
+    return float(int(value, 0)) / (2**16)
 
 
 def decompFolderMessage(layout):
@@ -1193,6 +1198,14 @@ def prop_split(layout, data, field, name, **prop_kwargs):
     split = layout.split(factor=0.5)
     split.label(text=name)
     split.prop(data, field, text="", **prop_kwargs)
+
+
+def multilineLabel(layout: UILayout, text: str, icon: str = "NONE"):
+    layout = layout.column()
+    for i, line in enumerate(text.split("\n")):
+        r = layout.row()
+        r.label(text = line, icon = icon if i == 0 else "NONE")
+        r.scale_y = 0.75
 
 
 def toAlnum(name, exceptions=[]):
