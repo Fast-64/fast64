@@ -163,7 +163,7 @@ class OOTTransitionActorProperty(PropertyGroup):
     cameraTransitionFrontCustom: StringProperty(default="0x00")
     cameraTransitionBack: EnumProperty(items=ootEnumCamTransition, default="0x00")
     cameraTransitionBackCustom: StringProperty(default="0x00")
-    isRoomTransition: BoolProperty(name="Is Room Transition", default=False)
+    isRoomTransition: BoolProperty(name="Is Room Transition", default=True)
 
     actor: PointerProperty(type=OOTActorProperty)
 
