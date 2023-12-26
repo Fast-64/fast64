@@ -727,12 +727,16 @@ def parseTransActorList(
 
             sharedSceneData.transDict[actorHash] = actorObj
 
-            if roomIndexFront != 255:
-                parentObject(roomObjs[roomIndexFront], actorObj)
-                transActorProp.roomIndex = roomIndexBack
+            fromRoom = roomObjs[roomIndexFront]
+            toRoom = roomObjs[roomIndexBack]
+            if roomIndexFront != roomIndexBack:
+                parentObject(fromRoom, actorObj)
+                transActorProp.fromRoom = fromRoom
+                transActorProp.toRoom = toRoom
+                transActorProp.isRoomTransition = True
             else:
-                parentObject(roomObjs[roomIndexBack], actorObj)
-                transActorProp.dontTransition = True
+                transActorProp.isRoomTransition = False
+                parentObject(toRoom, actorObj)
 
             setCustomProperty(transActorProp, "cameraTransitionFront", camFront, ootEnumCamTransition)
             setCustomProperty(transActorProp, "cameraTransitionBack", camBack, ootEnumCamTransition)
@@ -820,6 +824,7 @@ def parseSpawnList(
             spawnObj.ootEmptyType = "Entrance"
             spawnObj.name = "Entrance"
             spawnProp = spawnObj.ootEntranceProperty
+            spawnProp.tiedRoom = roomObjs[roomIndex]
             spawnProp.spawnIndex = spawnIndex
             spawnProp.customActor = actorID != "ACTOR_PLAYER"
             actorProp = spawnProp.actor

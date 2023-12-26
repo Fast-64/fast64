@@ -297,3 +297,32 @@ def upgradeCutsceneMotion(csMotionObj: Object):
             if "camroll" in bone:
                 camShotPointProp.shotPointRoll = bone["camroll"]
                 del bone["camroll"]
+
+
+#####################################
+# Actors
+#####################################
+def upgradeActors(actorObj: Object):
+    if actorObj.ootEmptyType == "Entrance":
+        entranceProp = actorObj.ootEntranceProperty
+
+        for obj in bpy.data.objects:
+            if obj.type == "EMPTY" and obj.ootEmptyType == "Room":
+                if actorObj in obj.children_recursive:
+                    entranceProp.tiedRoom = obj
+                    break
+    elif actorObj.ootEmptyType == "Transition Actor":
+        transActorProp = actorObj.ootTransitionActorProperty
+        transActorProp.isRoomTransition = actorObj["ootTransitionActorProperty"]["dontTransition"] == False
+        del actorObj["ootTransitionActorProperty"]["dontTransition"]
+
+        if transActorProp.isRoomTransition:
+            for obj in bpy.data.objects:
+                if obj.type == "EMPTY":
+                    if obj.ootEmptyType == "Room":
+                        if actorObj in obj.children_recursive:
+                            transActorProp.fromRoom = obj
+
+                        if obj.ootRoomHeader.roomIndex == actorObj["ootTransitionActorProperty"]["roomIndex"]:
+                            transActorProp.toRoom = obj
+                            del actorObj["ootTransitionActorProperty"]["roomIndex"]

@@ -781,12 +781,15 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
         elif obj.ootEmptyType == "Transition Actor":
             transActorProp = obj.ootTransitionActorProperty
             if transActorProp.actor.actorID != "None":
-                if transActorProp.dontTransition:
-                    front = (255, getCustomProperty(transActorProp, "cameraTransitionBack"))
-                    back = (room.roomIndex, getCustomProperty(transActorProp, "cameraTransitionFront"))
+                if transActorProp.isRoomTransition:
+                    if transActorProp.fromRoom is None or transActorProp.toRoom is None:
+                        raise PluginError("ERROR: Missing room empty object assigned to transition.")
+                    fromIndex = transActorProp.fromRoom.ootRoomHeader.roomIndex
+                    toIndex = transActorProp.toRoom.ootRoomHeader.roomIndex
                 else:
-                    front = (room.roomIndex, getCustomProperty(transActorProp, "cameraTransitionFront"))
-                    back = (transActorProp.roomIndex, getCustomProperty(transActorProp, "cameraTransitionBack"))
+                    fromIndex = toIndex = room.roomIndex
+                front = (fromIndex, getCustomProperty(transActorProp, "cameraTransitionFront"))
+                back = (toIndex, getCustomProperty(transActorProp, "cameraTransitionBack"))
 
                 transActorName = (
                     ootData.actorData.actorsByID[transActorProp.actor.actorID].name.replace(
@@ -815,8 +818,14 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
                 )
         elif obj.ootEmptyType == "Entrance":
             entranceProp = obj.ootEntranceProperty
-            spawnIndex = obj.ootEntranceProperty.spawnIndex
-            addActor(scene, OOTEntrance(room.roomIndex, spawnIndex), entranceProp.actor, "entranceList", obj.name)
+            spawnIndex = entranceProp.spawnIndex
+
+            if entranceProp.tiedRoom is not None:
+                roomIndex = entranceProp.tiedRoom.ootRoomHeader.roomIndex
+            else:
+                raise PluginError("ERROR: Missing room empty object assigned to the entrance.")
+
+            addActor(scene, OOTEntrance(roomIndex, spawnIndex), entranceProp.actor, "entranceList", obj.name)
             addStartPosition(
                 scene,
                 spawnIndex,
