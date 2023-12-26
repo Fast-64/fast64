@@ -41,7 +41,15 @@ def upgradeRoomHeaders(roomObj: Object, objData: OoT_ObjectData):
 
 
 def upgradeActors(actorObj: Object):
-    if actorObj.ootEmptyType == "Transition Actor":
+    if actorObj.ootEmptyType == "Entrance":
+        entranceProp = actorObj.ootEntranceProperty
+
+        for obj in bpy.data.objects:
+            if obj.type == "EMPTY" and obj.ootEmptyType == "Room":
+                if actorObj in obj.children_recursive:
+                    entranceProp.tiedRoom = obj
+                    break
+    elif actorObj.ootEmptyType == "Transition Actor":
         transActorProp = actorObj.ootTransitionActorProperty
         transActorProp.isRoomTransition = actorObj["ootTransitionActorProperty"]["dontTransition"] == False
         del actorObj["ootTransitionActorProperty"]["dontTransition"]

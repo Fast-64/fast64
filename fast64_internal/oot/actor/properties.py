@@ -206,23 +206,29 @@ class OOTTransitionActorProperty(PropertyGroup):
 
 
 class OOTEntranceProperty(PropertyGroup):
-    # This is also used in entrance list, and roomIndex is obtained from the room this empty is parented to.
+    # This is also used in entrance list.
     spawnIndex: IntProperty(min=0)
     customActor: BoolProperty(name="Use Custom Actor")
     actor: PointerProperty(type=OOTActorProperty)
+
+    tiedRoom: PointerProperty(
+        type=Object,
+        poll=lambda self, object: self.isRoomEmptyObject(object),
+        description="Used to set the room index",
+    )
+
+    def isRoomEmptyObject(self, obj: Object):
+        return obj.type == "EMPTY" and obj.ootEmptyType == "Room"
 
     def draw_props(self, layout: UILayout, obj: Object, altSceneProp: OOTAlternateSceneHeaderProperty, objName: str):
         box = layout.column()
         # box.box().label(text = "Properties")
         roomObj = getRoomObj(obj)
-        if roomObj is not None:
-            split = box.split(factor=0.5)
-            split.label(text="Room Index")
-            split.label(text=str(roomObj.ootRoomHeader.roomIndex))
-        else:
+        if roomObj is None:
             box.label(text="This must be part of a Room empty's hierarchy.", icon="OUTLINER")
 
         entranceProp = obj.ootEntranceProperty
+        prop_split(box, entranceProp, "tiedRoom", "Room")
         prop_split(box, entranceProp, "spawnIndex", "Spawn Index")
         prop_split(box, entranceProp.actor, "actorParam", "Actor Param")
         box.prop(entranceProp, "customActor")

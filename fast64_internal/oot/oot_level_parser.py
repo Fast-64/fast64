@@ -824,6 +824,7 @@ def parseSpawnList(
             spawnObj.ootEmptyType = "Entrance"
             spawnObj.name = "Entrance"
             spawnProp = spawnObj.ootEntranceProperty
+            spawnProp.tiedRoom = roomObjs[roomIndex]
             spawnProp.spawnIndex = spawnIndex
             spawnProp.customActor = actorID != "ACTOR_PLAYER"
             actorProp = spawnProp.actor
