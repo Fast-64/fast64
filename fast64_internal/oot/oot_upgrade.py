@@ -1,5 +1,9 @@
+import bpy
+
 from bpy.types import Object, CollectionProperty
 from .data import OoT_ObjectData
+from .cutscene.motion.constants import ootEnumCSMotionCamMode
+from .oot_constants import ootData
 
 
 def upgradeObjectList(objList: CollectionProperty, objData: OoT_ObjectData):
@@ -34,3 +38,105 @@ def upgradeRoomHeaders(roomObj: Object, objData: OoT_ObjectData):
             upgradeObjectList(sceneLayer.objectList, objData)
     for i in range(len(altHeaders.cutsceneHeaders)):
         upgradeObjectList(altHeaders.cutsceneHeaders[i].objectList, objData)
+
+
+def upgradeActors(actorObj: Object):
+    if actorObj.ootEmptyType == "Entrance":
+        entranceProp = actorObj.ootEntranceProperty
+
+        for obj in bpy.data.objects:
+            if obj.type == "EMPTY" and obj.ootEmptyType == "Room":
+                if actorObj in obj.children_recursive:
+                    entranceProp.tiedRoom = obj
+                    break
+    elif actorObj.ootEmptyType == "Transition Actor":
+        transActorProp = actorObj.ootTransitionActorProperty
+        transActorProp.isRoomTransition = actorObj["ootTransitionActorProperty"]["dontTransition"] == False
+        del actorObj["ootTransitionActorProperty"]["dontTransition"]
+
+        if transActorProp.isRoomTransition:
+            for obj in bpy.data.objects:
+                if obj.type == "EMPTY":
+                    if obj.ootEmptyType == "Room":
+                        if actorObj in obj.children_recursive:
+                            transActorProp.fromRoom = obj
+
+                        if obj.ootRoomHeader.roomIndex == actorObj["ootTransitionActorProperty"]["roomIndex"]:
+                            transActorProp.toRoom = obj
+                            del actorObj["ootTransitionActorProperty"]["roomIndex"]
+
+
+def upgradeCutsceneMotion(csMotionObj: Object):
+    """Main upgrade logic for Cutscene Motion data from zcamedit"""
+    objName = csMotionObj.name
+
+    if csMotionObj.type == "EMPTY":
+        csMotionProp = csMotionObj.ootCSMotionProperty
+
+        if "zc_alist" in csMotionObj and ("Preview." in objName or "ActionList." in objName):
+            legacyData = csMotionObj["zc_alist"]
+            emptyTypeSuffix = "List" if "ActionList." in objName else "Preview"
+            csMotionObj.ootEmptyType = f"CS {'Player' if 'Link' in objName else 'Actor'} Cue {emptyTypeSuffix}"
+
+            if "actor_id" in legacyData:
+                index = legacyData["actor_id"]
+                if index >= 0:
+                    cmdEnum = ootData.enumData.enumByKey["csCmd"]
+                    cmdType = cmdEnum.itemByIndex.get(index)
+                    if cmdType is not None:
+                        csMotionProp.actorCueListProp.commandType = cmdType.key
+                    else:
+                        csMotionProp.actorCueListProp.commandType = "Custom"
+                        csMotionProp.actorCueListProp.commandTypeCustom = f"0x{index:04X}"
+                del legacyData["actor_id"]
+
+            del csMotionObj["zc_alist"]
+
+        if "zc_apoint" in csMotionObj and "Point." in objName:
+            isPlayer = "Link" in csMotionObj.parent.name
+            legacyData = csMotionObj["zc_apoint"]
+            csMotionObj.ootEmptyType = f"CS {'Player' if isPlayer else 'Actor'} Cue"
+
+            if "start_frame" in legacyData:
+                csMotionProp.actorCueProp.cueStartFrame = legacyData["start_frame"]
+                del legacyData["start_frame"]
+
+            if "action_id" in legacyData:
+                playerEnum = ootData.enumData.enumByKey["csPlayerCueId"]
+                item = None
+                if isPlayer:
+                    item = playerEnum.itemByIndex.get(int(legacyData["action_id"], base=16))
+
+                if isPlayer and item is not None:
+                    csMotionProp.actorCueProp.playerCueID = item.key
+                else:
+                    csMotionProp.actorCueProp.cueActionID = legacyData["action_id"]
+                del legacyData["action_id"]
+
+            del csMotionObj["zc_apoint"]
+
+    if csMotionObj.type == "ARMATURE":
+        camShotProp = csMotionObj.data.ootCamShotProp
+
+        if "start_frame" in csMotionObj.data:
+            camShotProp.shotStartFrame = csMotionObj.data["start_frame"]
+            del csMotionObj.data["start_frame"]
+
+        if "cam_mode" in csMotionObj.data:
+            camShotProp.shotCamMode = ootEnumCSMotionCamMode[csMotionObj.data["cam_mode"]][0]
+            del csMotionObj.data["cam_mode"]
+
+        for bone in csMotionObj.data.bones:
+            camShotPointProp = bone.ootCamShotPointProp
+
+            if "frames" in bone:
+                camShotPointProp.shotPointFrame = bone["frames"]
+                del bone["frames"]
+
+            if "fov" in bone:
+                camShotPointProp.shotPointViewAngle = bone["fov"]
+                del bone["fov"]
+
+            if "camroll" in bone:
+                camShotPointProp.shotPointRoll = bone["camroll"]
+                del bone["camroll"]

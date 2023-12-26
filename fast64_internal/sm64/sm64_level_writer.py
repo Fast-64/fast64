@@ -697,10 +697,7 @@ class SM64OptionalFileStatus:
         self.starSelectC = False
 
 
-def exportLevelC(
-    obj, transformMatrix, f3dType, isHWv1, levelName, exportDir, savePNG, customExport, levelCameraVolumeName, DLFormat
-):
-
+def exportLevelC(obj, transformMatrix, levelName, exportDir, savePNG, customExport, levelCameraVolumeName, DLFormat):
     fileStatus = SM64OptionalFileStatus()
 
     if customExport:
@@ -725,7 +722,11 @@ def exportLevelC(
     puppycamVolumeString = ""
 
     inline = bpy.context.scene.exportInlineF3D
-    fModel = SM64Model(f3dType, isHWv1, levelName + "_dl", DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll)
+    fModel = SM64Model(
+        levelName + "_dl",
+        DLFormat,
+        GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
+    )
     childAreas = [child for child in obj.children if child.type == "EMPTY" and child.sm64_obj_type == "Area Root"]
     if len(childAreas) == 0:
         raise PluginError("The level root has no child empties with the 'Area Root' object type.")
@@ -767,8 +768,6 @@ def exportLevelC(
         geolayoutGraph, fModel = convertObjectToGeolayout(
             obj,
             transformMatrix,
-            f3dType,
-            isHWv1,
             child.areaCamera,
             levelName + "_" + areaName,
             fModel,
@@ -1181,8 +1180,6 @@ class SM64_ExportLevel(ObjectDataExporter):
             fileStatus = exportLevelC(
                 obj,
                 finalTransform,
-                context.scene.f3d_type,
-                context.scene.isHWv1,
                 levelName,
                 exportPath,
                 context.scene.saveTextures,

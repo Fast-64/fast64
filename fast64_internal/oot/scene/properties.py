@@ -28,9 +28,6 @@ from ..oot_utility import (
 from ..oot_constants import (
     ootEnumMusicSeq,
     ootEnumSceneID,
-    ootEnumExitIndex,
-    ootEnumTransitionAnims,
-    ootEnumLightGroupMenu,
     ootEnumGlobalObject,
     ootEnumNaviHints,
     ootEnumSkybox,
@@ -40,12 +37,48 @@ from ..oot_constants import (
     ootEnumCameraMode,
     ootEnumNightSeq,
     ootEnumAudioSessionPreset,
-    ootEnumSceneMenu,
-    ootEnumSceneMenuAlternate,
     ootEnumHeaderMenu,
     ootEnumDrawConfig,
     ootEnumHeaderMenuComplete,
 )
+
+ootEnumSceneMenuAlternate = [
+    ("General", "General", "General"),
+    ("Lighting", "Lighting", "Lighting"),
+    ("Cutscene", "Cutscene", "Cutscene"),
+    ("Exits", "Exits", "Exits"),
+]
+ootEnumSceneMenu = ootEnumSceneMenuAlternate + [
+    ("Alternate", "Alternate", "Alternate"),
+]
+
+ootEnumLightGroupMenu = [
+    ("Dawn", "Dawn", "Dawn"),
+    ("Day", "Day", "Day"),
+    ("Dusk", "Dusk", "Dusk"),
+    ("Night", "Night", "Night"),
+]
+
+ootEnumTransitionAnims = [
+    ("Custom", "Custom", "Custom"),
+    ("0x00", "Spiky", "Spiky"),
+    ("0x01", "Triforce", "Triforce"),
+    ("0x02", "Slow Black Fade", "Slow Black Fade"),
+    ("0x03", "Slow Day/White, Slow Night/Black Fade", "Slow Day/White, Slow Night/Black Fade"),
+    ("0x04", "Fast Day/Black, Slow Night/Black Fade", "Fast Day/Black, Slow Night/Black Fade"),
+    ("0x05", "Fast Day/White, Slow Night/Black Fade", "Fast Day/White, Slow Night/Black Fade"),
+    ("0x06", "Very Slow Day/White, Slow Night/Black Fade", "Very Slow Day/White, Slow Night/Black Fade"),
+    ("0x07", "Very Slow Day/White, Slow Night/Black Fade", "Very Slow Day/White, Slow Night/Black Fade"),
+    ("0x0E", "Slow Sandstorm Fade", "Slow Sandstorm Fade"),
+    ("0x0F", "Fast Sandstorm Fade", "Fast Sandstorm Fade"),
+    ("0x20", "Iris Fade", "Iris Fade"),
+    ("0x2C", "Shortcut Transition", "Shortcut Transition"),
+]
+
+ootEnumExitIndex = [
+    ("Custom", "Custom", "Custom"),
+    ("Default", "Default", "Default"),
+]
 
 
 class OOTSceneCommon:
@@ -219,7 +252,11 @@ class OOTSceneTableEntryProperty(PropertyGroup):
 
 
 class OOTExtraCutsceneProperty(PropertyGroup):
-    csObject: PointerProperty(name="Cutscene Object", type=Object)
+    csObject: PointerProperty(
+        name="Cutscene Object",
+        type=Object,
+        poll=lambda self, object: object.type == "EMPTY" and object.ootEmptyType == "Cutscene",
+    )
 
 
 class OOTSceneHeaderProperty(PropertyGroup):
@@ -264,7 +301,11 @@ class OOTSceneHeaderProperty(PropertyGroup):
     writeCutscene: BoolProperty(name="Write Cutscene")
     csWriteType: EnumProperty(name="Cutscene Data Type", items=ootEnumCSWriteType, default="Embedded")
     csWriteCustom: StringProperty(name="CS hdr var:", default="")
-    csWriteObject: PointerProperty(name="Cutscene Object", type=Object)
+    csWriteObject: PointerProperty(
+        name="Cutscene Object",
+        type=Object,
+        poll=lambda self, object: object.type == "EMPTY" and object.ootEmptyType == "Cutscene",
+    )
 
     # These properties are for the deprecated "Embedded" cutscene type. They have
     # not been removed as doing so would break any existing scenes made with this
@@ -508,6 +549,7 @@ class OOTImportSceneSettingsProperty(PropertyGroup):
     includeCameras: BoolProperty(name="Cameras", default=True)
     includePaths: BoolProperty(name="Paths", default=True)
     includeWaterBoxes: BoolProperty(name="Water Boxes", default=True)
+    includeCutscenes: BoolProperty(name="Cutscenes", default=False)
     option: EnumProperty(items=ootEnumSceneID, default="SCENE_DEKU_TREE")
 
     def draw_props(self, layout: UILayout, sceneOption: str):
@@ -515,17 +557,19 @@ class OOTImportSceneSettingsProperty(PropertyGroup):
         includeButtons1 = col.row(align=True)
         includeButtons1.prop(self, "includeMesh", toggle=1)
         includeButtons1.prop(self, "includeCollision", toggle=1)
+        includeButtons1.prop(self, "includeActors", toggle=1)
 
         includeButtons2 = col.row(align=True)
-        includeButtons2.prop(self, "includeActors", toggle=1)
         includeButtons2.prop(self, "includeCullGroups", toggle=1)
         includeButtons2.prop(self, "includeLights", toggle=1)
+        includeButtons2.prop(self, "includeCameras", toggle=1)
 
         includeButtons3 = col.row(align=True)
-        includeButtons3.prop(self, "includeCameras", toggle=1)
         includeButtons3.prop(self, "includePaths", toggle=1)
         includeButtons3.prop(self, "includeWaterBoxes", toggle=1)
+        includeButtons3.prop(self, "includeCutscenes", toggle=1)
         col.prop(self, "isCustomDest")
+
         if self.isCustomDest:
             prop_split(col, self, "destPath", "Directory")
             prop_split(col, self, "name", "Name")
@@ -533,8 +577,6 @@ class OOTImportSceneSettingsProperty(PropertyGroup):
             if self.option == "Custom":
                 prop_split(col, self, "subFolder", "Subfolder")
                 prop_split(col, self, "name", "Name")
-
-        col.label(text="Cutscenes won't be imported.")
 
         if "SCENE_JABU_JABU" in sceneOption:
             col.label(text="Pulsing wall effect won't be imported.", icon="ERROR")

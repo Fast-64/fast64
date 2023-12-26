@@ -1,15 +1,23 @@
-from .....utility import CData, PluginError
+from .....utility import CData, PluginError, indent
 from ....oot_level_classes import OOTScene
 from ....cutscene.constants import ootEnumCSTextboxTypeEntryC, ootEnumCSListTypeListC, ootEnumCSListTypeEntryC
+from ....cutscene.motion.exporter import getCutsceneMotionData
 
 
 def ootCutsceneDataToC(csParent, csName):
     # csParent can be OOTCutscene or OOTScene
+    motionExporter = getCutsceneMotionData(csName, False)
+    motionData = motionExporter.getExportData()
     data = CData()
     data.header = "extern CutsceneData " + csName + "[];\n"
     data.source = "CutsceneData " + csName + "[] = {\n"
     nentries = len(csParent.csLists) + (1 if csParent.csWriteTerminator else 0)
-    data.source += "\tCS_BEGIN_CUTSCENE(" + str(nentries) + ", " + str(csParent.csEndFrame) + "),\n"
+    frameDiff = 0
+    if motionExporter.frameCount > csParent.csEndFrame:
+        frameDiff = motionExporter.frameCount - csParent.csEndFrame
+    data.source += (
+        indent + f"CS_BEGIN_CUTSCENE({nentries + motionExporter.entryTotal}, "
+    ) + f"{csParent.csEndFrame + frameDiff}),\n"
     if csParent.csWriteTerminator:
         data.source += (
             "\tCS_TERMINATOR("
@@ -136,6 +144,7 @@ def ootCutsceneDataToC(csParent, csName):
             else:
                 raise PluginError("Internal error: invalid cutscene list type " + list.listType)
             data.source += "),\n"
+    data.source += motionData
     data.source += "\tCS_END(),\n"
     data.source += "};\n\n"
     return data
@@ -143,8 +152,14 @@ def ootCutsceneDataToC(csParent, csName):
 
 def getSceneCutscenes(outScene: OOTScene):
     cutscenes: list[CData] = []
-    altHeaders = [outScene, outScene.childNightHeader, outScene.adultDayHeader, outScene.adultNightHeader]
+    altHeaders: list[OOTScene] = [
+        outScene,
+        outScene.childNightHeader,
+        outScene.adultDayHeader,
+        outScene.adultNightHeader,
+    ]
     altHeaders.extend(outScene.cutsceneHeaders)
+    csObjects = []
 
     for i, curHeader in enumerate(altHeaders):
         # curHeader is either None or an OOTScene. This can either be the main scene itself,
@@ -152,10 +167,13 @@ def getSceneCutscenes(outScene: OOTScene):
         if curHeader is not None and curHeader.writeCutscene:
             if curHeader.csWriteType == "Embedded":
                 cutscenes.append(ootCutsceneDataToC(curHeader, curHeader.cutsceneDataName(i)))
-            elif curHeader.csWriteType == "Object":
+            elif curHeader.csWriteType == "Object" and curHeader.csWriteObject.name not in csObjects:
                 cutscenes.append(ootCutsceneDataToC(curHeader.csWriteObject, curHeader.csWriteObject.name))
+                csObjects.append(curHeader.csWriteObject.name)
 
     for extraCs in outScene.extraCutscenes:
-        cutscenes.append(ootCutsceneDataToC(extraCs, extraCs.name))
+        if not extraCs.name in csObjects:
+            cutscenes.append(ootCutsceneDataToC(extraCs, extraCs.name))
+            csObjects.append(extraCs.name)
 
     return cutscenes
