@@ -824,7 +824,7 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
             if entranceProp.tiedRoom is not None:
                 roomIndex = entranceProp.tiedRoom.ootRoomHeader.roomIndex
             else:
-                raise PluginError("ERROR: Missing room empty object assigned to entrance.")
+                raise PluginError("ERROR: Missing room empty object assigned to the entrance.")
 
             addActor(scene, OOTEntrance(roomIndex, spawnIndex), entranceProp.actor, "entranceList", obj.name)
             addStartPosition(
