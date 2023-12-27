@@ -3,6 +3,8 @@ from bpy.types import Operator, PropertyGroup, Scene
 from bpy.props import BoolProperty, StringProperty, EnumProperty, IntProperty, FloatProperty
 from bpy.utils import register_class, unregister_class
 from bpy.path import abspath
+
+from .sm64_tools import sm64_tools_register, sm64_tools_unregister
 from ..panels import SM64_Panel, sm64GoalTypeEnum, sm64GoalImport
 from ..render_settings import on_update_render_settings
 from .sm64_level_parser import parseLevelAtPointer
@@ -275,6 +277,7 @@ def sm64_panel_register():
     sm64_dl_writer_panel_register()
     sm64_dl_parser_panel_register()
     sm64_anim_panel_register()
+    sm64_tools_register()
 
 
 def sm64_panel_unregister():
@@ -292,6 +295,7 @@ def sm64_panel_unregister():
     sm64_dl_writer_panel_unregister()
     sm64_dl_parser_panel_unregister()
     sm64_anim_panel_unregister()
+    sm64_tools_unregister()
 
 
 def sm64_register(registerPanels):

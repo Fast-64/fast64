@@ -13,7 +13,7 @@ from .sm64_f3d_writer import SM64Model, SM64GfxFormatter
 from .sm64_texscroll import modifyTexScrollFiles, modifyTexScrollHeadersGroup
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_rom_tweaks import ExtendBank0x04
-from .sm64_utility import starSelectWarning
+from .sm64_utility import starSelectWarning, check_obj_is_room, duplicate_and_create_initial_geolayout_hierarchy, ProcessGeolayoutContext, process_geolayout
 
 from ..utility import (
     PluginError,
@@ -454,25 +454,29 @@ def convertObjectToGeolayout(
         rootObj = obj
 
     # Duplicate objects to apply scale / modifiers / linked data
-    tempObj, allObjs = duplicateHierarchy(
-        rootObj, "ignore_render", True, None if areaObj is None else areaObj.areaIndex
-    )
+    # tempObj, allObjs = duplicateHierarchy(
+    #     rootObj, "ignore_render", True, None if areaObj is None else areaObj.areaIndex
+    # )
     try:
-        processMesh(
-            fModel,
-            tempObj,
-            convertTransformMatrix,
-            meshGeolayout.nodes[0],
-            geolayoutGraph.startGeolayout,
-            geolayoutGraph,
-            True,
-            convertTextureData,
-        )
-        cleanupDuplicatedObjects(allObjs)
-        rootObj.select_set(True)
-        bpy.context.view_layer.objects.active = rootObj
+        geo_root = duplicate_and_create_initial_geolayout_hierarchy(rootObj, "ignore_render")
+        process_context = ProcessGeolayoutContext(fModel, geolayoutGraph.startGeolayout, geolayoutGraph, convertTextureData, convertTransformMatrix)
+        process_geolayout(process_context, geo_root, meshGeolayout.nodes[0])
+    # try:
+        # processMesh(
+        #     fModel,
+        #     tempObj,
+        #     convertTransformMatrix,
+        #     meshGeolayout.nodes[0],
+        #     geolayoutGraph.startGeolayout,
+        #     geolayoutGraph,
+        #     True,
+        #     convertTextureData,
+        # )
+        # cleanupDuplicatedObjects(allObjs)
+        # rootObj.select_set(True)
+        # bpy.context.view_layer.objects.active = rootObj
     except Exception as e:
-        cleanupDuplicatedObjects(allObjs)
+        # cleanupDuplicatedObjects(allObjs)
         rootObj.select_set(True)
         bpy.context.view_layer.objects.active = rootObj
         raise Exception(str(e))
@@ -1294,6 +1298,20 @@ def processInlineGeoNode(
     return node, parentTransformNode
 
 
+def extract_rooms_render_objects(objects: list[bpy.types.Object]):
+    """Iterate through objects in room.objects_render_before or objects_render_after and group them together"""
+    objs: list[bpy.types.Object] = []
+    for obj in objects:
+        if not obj:
+            continue
+        # If any of those objects are rooms themselves, the children are extracted from the room.
+        if check_obj_is_room(obj):
+            objs.extend(sorted(obj.children, key=lambda childObj: childObj.original_name.lower()))
+        else:
+            objs.append(obj)
+    return objs
+
+
 # This function should be called on a copy of an object
 # The copy will have modifiers / scale applied and will be made single user
 def processMesh(
@@ -1362,7 +1380,7 @@ def processMesh(
         parentTransformNode = addParentNode(parentTransformNode, SwitchNode(switchFunc, switchParam, obj.original_name))
         alphabeticalChildren = getSwitchChildren(obj)
         for i in range(len(alphabeticalChildren)):
-            childObj = alphabeticalChildren[i]
+            childObj: bpy.types.Object = alphabeticalChildren[i]
             if i == 0:  # Outside room system
                 # TODO: Allow users to specify whether this should be rendered before or after rooms (currently, it is after)
                 processMesh(
@@ -1387,6 +1405,7 @@ def processMesh(
                 else:
                     startNode = TransformNode(StartNode())
                 optionGeolayout.nodes.append(startNode)
+
                 processMesh(
                     fModel,
                     childObj,
@@ -1545,7 +1564,7 @@ def processMesh(
                 if not firstNodeProcessed:
                     node.DLmicrocode = fMesh.draw
                     node.fMesh = fMesh
-                    node.drawLayer = drawLayer  # previous drawLayer assigments useless?
+                    node.drawLayer = drawLayer  # previous drawLayer assignments useless?
                     firstNodeProcessed = True
                 else:
                     additionalNode = (
@@ -1563,6 +1582,14 @@ def processMesh(
         transformNode.parent = parentTransformNode
 
         alphabeticalChildren = sorted(obj.children, key=lambda childObj: childObj.original_name.lower())
+        if check_obj_is_room(obj):
+            room_data = obj.fast64.sm64.room
+            alphabeticalChildren = (
+                extract_rooms_render_objects([o.obj for o in room_data.objects_render_before if o.obj])
+                + alphabeticalChildren
+                + extract_rooms_render_objects([o.obj for o in room_data.objects_render_after if o.obj])
+            )
+
         for childObj in alphabeticalChildren:
             processMesh(
                 fModel, childObj, transformMatrix, transformNode, geolayout, geolayoutGraph, False, convertTextureData
@@ -2823,7 +2850,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
             # Rotate all armatures 90 degrees
             applyRotation([obj], math.radians(90), "X")
 
-            saveTextures = bpy.context.scene.saveTextures
+            saveTextures = bpy.context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions
 
             if context.scene.fast64.sm64.exportType == "C":
                 exportPath, levelName = getPathAndLevel(
@@ -3033,7 +3060,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                     context.scene.geoLevelOption,
                 )
 
-                saveTextures = bpy.context.scene.saveTextures
+                saveTextures = bpy.context.scene.saveTextures or bpy.context.scene.ignoreTextureRestrictions
                 if not context.scene.geoCustomExport:
                     applyBasicTweaks(exportPath)
                 header, fileStatus = exportGeolayoutArmatureC(
@@ -3179,7 +3206,7 @@ class SM64_ExportGeolayoutPanel(SM64_Panel):
         propsGeoE = col.operator(SM64_ExportGeolayoutObject.bl_idname)
 
         if context.scene.fast64.sm64.exportType == "C":
-            if context.scene.saveTextures:
+            if not bpy.context.scene.ignoreTextureRestrictions and context.scene.saveTextures:
                 if context.scene.geoCustomExport:
                     prop_split(col, context.scene, "geoTexDir", "Texture Include Path")
                 col.prop(context.scene, "geoSeparateTextureDef")

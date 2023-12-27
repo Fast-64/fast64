@@ -377,7 +377,8 @@ class TransformNode:
             if type(self.node) in nodeGroupClasses:
                 data += depth * "\t" + "GEO_CLOSE_NODE(),\n"
         elif type(self.node) is SwitchNode:
-            raise PluginError("A switch bone must have at least one child bone.")
+            data += depth * "\t" + "// this is the fuckup\n" 
+            # raise PluginError("A switch bone must have at least one child bone.")
         return data
 
     def toTextDump(self, nodeLevel, segmentData):
@@ -1259,7 +1260,7 @@ class CustomAnimatedNode(BaseDisplayListNode):
         return f"{self.command}({join_c_args(args)}),"
 
 
-nodeGroupClasses = [
+nodeGroupClasses = {
     StartNode,
     SwitchNode,
     TranslateRotateNode,
@@ -1278,7 +1279,7 @@ nodeGroupClasses = [
     RenderRangeNode,
     CustomNode,
     CustomAnimatedNode,
-]
+}
 
 DLNodes = [
     JumpNode,

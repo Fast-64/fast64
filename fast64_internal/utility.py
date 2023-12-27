@@ -857,7 +857,7 @@ def store_original_meshes(add_warning: Callable[[str], None]):
     instanced_meshes = set()
     active_obj = bpy.context.view_layer.objects.active
     for obj in yield_children(active_obj):
-        if obj.data is not None:
+        if obj.data is not None and type(obj.data) == bpy.types.Mesh:
             has_modifiers = len(obj.modifiers) != 0
             has_uneven_scale = not obj_scale_is_unified(obj)
             shares_mesh = obj.data.users > 1
@@ -873,6 +873,7 @@ def store_original_meshes(add_warning: Callable[[str], None]):
                     instanced_meshes.add(obj.data.name)
                     copy_object_and_apply(obj)
             else:
+                obj["instanced_mesh_name"] = None
                 if shares_mesh and has_modifiers:
                     add_warning(
                         f'Object "{obj.name}" cannot be instanced due to having modifiers so an extra displaylist will be created. Remove modifiers to allow instancing.'
