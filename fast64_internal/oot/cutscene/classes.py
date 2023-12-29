@@ -39,7 +39,7 @@ class CutsceneCmdCamPoint(CutsceneCmdBase):
     camRoll: Optional[int] = None
     frame: Optional[int] = None
     viewAngle: Optional[float] = None
-    pos: tuple[int, int, int] = field(default_factory=tuple)
+    pos: list[int] = field(default_factory=list)
     paramNumber: int = 8
 
     def __post_init__(self):
@@ -56,9 +56,9 @@ class CutsceneCmdActorCue(CutsceneCmdBase):
     """This class contains a single Actor Cue command data"""
 
     actionID: Optional[int] = None
-    rot: tuple[str, str, str] = field(default_factory=tuple)
-    startPos: tuple[int, int, int] = field(default_factory=tuple)
-    endPos: tuple[int, int, int] = field(default_factory=tuple)
+    rot: list[str] = field(default_factory=list)
+    startPos: list[int] = field(default_factory=list)
+    endPos: list[int] = field(default_factory=list)
     paramNumber: int = 15
 
     def __post_init__(self):
