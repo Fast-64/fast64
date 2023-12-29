@@ -333,9 +333,7 @@ def ootDuplicateHierarchy(obj, ignoreAttr, includeEmpties, objectCategorizer):
 
 def ootSelectMeshChildrenOnly(obj, includeEmpties):
     isMesh = obj.type == "MESH"
-    isEmpty = (
-        obj.type == "EMPTY" or obj.type == "CAMERA" or obj.type == "CURVE"
-    ) and includeEmpties
+    isEmpty = (obj.type == "EMPTY" or obj.type == "CAMERA" or obj.type == "CURVE") and includeEmpties
     if isMesh or isEmpty:
         obj.select_set(True)
         obj.original_name = obj.name
