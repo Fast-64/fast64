@@ -2,6 +2,7 @@ import bpy
 
 from dataclasses import dataclass, field
 from bpy.types import Object
+from typing import Optional
 from ..oot_constants import ootData
 from .motion.utility import getBlenderPosition, getBlenderRotation, getRotation, getInteger
 
@@ -16,8 +17,8 @@ class CutsceneCmdBase:
 
     params: list[str]
 
-    startFrame: int = None
-    endFrame: int = None
+    startFrame: Optional[int] = None
+    endFrame: Optional[int] = None
 
     def getEnumValue(self, enumKey: str, index: int, isSeqLegacy: bool = False):
         enum = ootData.enumData.enumByKey[enumKey]
@@ -34,11 +35,11 @@ class CutsceneCmdBase:
 class CutsceneCmdCamPoint(CutsceneCmdBase):
     """This class contains a single Camera Point command data"""
 
-    continueFlag: str = None
-    camRoll: int = None
-    frame: int = None
-    viewAngle: float = None
-    pos: list[int, int, int] = field(default_factory=list)
+    continueFlag: Optional[str] = None
+    camRoll: Optional[int] = None
+    frame: Optional[int] = None
+    viewAngle: Optional[float] = None
+    pos: tuple[int, int, int] = field(default_factory=tuple)
     paramNumber: int = 8
 
     def __post_init__(self):
@@ -54,10 +55,10 @@ class CutsceneCmdCamPoint(CutsceneCmdBase):
 class CutsceneCmdActorCue(CutsceneCmdBase):
     """This class contains a single Actor Cue command data"""
 
-    actionID: int = None
-    rot: list[str, str, str] = field(default_factory=list)
-    startPos: list[int, int, int] = field(default_factory=list)
-    endPos: list[int, int, int] = field(default_factory=list)
+    actionID: Optional[int] = None
+    rot: tuple[str, str, str] = field(default_factory=tuple)
+    startPos: tuple[int, int, int] = field(default_factory=tuple)
+    endPos: tuple[int, int, int] = field(default_factory=tuple)
     paramNumber: int = 15
 
     def __post_init__(self):
@@ -75,8 +76,8 @@ class CutsceneCmdActorCueList(CutsceneCmdBase):
     """This class contains the Actor Cue List command data"""
 
     isPlayer: bool = False
-    commandType: str = None
-    entryTotal: int = None
+    commandType: Optional[str] = None
+    entryTotal: Optional[int] = None
     entries: list[CutsceneCmdActorCue] = field(default_factory=list)
     paramNumber: int = 2
     listName: str = "actorCueList"
@@ -92,6 +93,8 @@ class CutsceneCmdActorCueList(CutsceneCmdBase):
                     # make it a 4 digit hex
                     self.commandType = self.commandType.removeprefix("0x")
                     self.commandType = "0x" + "0" * (4 - len(self.commandType)) + self.commandType
+                else:
+                    self.commandType = ootData.enumData.enumByKey["csCmd"].itemById[self.commandType].key
                 self.entryTotal = getInteger(self.params[1].strip())
 
 
@@ -185,7 +188,7 @@ class CutsceneCmdCamAT(CutsceneCmdBase):
 class CutsceneCmdMisc(CutsceneCmdBase):
     """This class contains a single misc command entry"""
 
-    type: str = None  # see ``CutsceneMiscType`` in decomp
+    type: Optional[str] = None  # see ``CutsceneMiscType`` in decomp
     paramNumber: int = 14
 
     def __post_init__(self):
@@ -199,7 +202,7 @@ class CutsceneCmdMisc(CutsceneCmdBase):
 class CutsceneCmdMiscList(CutsceneCmdBase):
     """This class contains Misc command data"""
 
-    entryTotal: int = None
+    entryTotal: Optional[int] = None
     entries: list[CutsceneCmdMisc] = field(default_factory=list)
     paramNumber: int = 1
     listName: str = "miscList"
@@ -213,7 +216,7 @@ class CutsceneCmdMiscList(CutsceneCmdBase):
 class CutsceneCmdTransition(CutsceneCmdBase):
     """This class contains Transition command data"""
 
-    type: str = None
+    type: Optional[str] = None
     paramNumber: int = 3
     listName: str = "transitionList"
 
@@ -228,10 +231,10 @@ class CutsceneCmdTransition(CutsceneCmdBase):
 class CutsceneCmdText(CutsceneCmdBase):
     """This class contains Text command data"""
 
-    textId: int = None
-    type: str = None
-    altTextId1: int = None
-    altTextId2: int = None
+    textId: Optional[int] = None
+    type: Optional[str] = None
+    altTextId1: Optional[int] = None
+    altTextId2: Optional[int] = None
     paramNumber: int = 6
     id: str = "Text"
 
@@ -262,8 +265,8 @@ class CutsceneCmdTextNone(CutsceneCmdBase):
 class CutsceneCmdTextOcarinaAction(CutsceneCmdBase):
     """This class contains Text Ocarina Action command data"""
 
-    ocarinaActionId: str = None
-    messageId: int = None
+    ocarinaActionId: Optional[str] = None
+    messageId: Optional[int] = None
     paramNumber: int = 4
     id: str = "OcarinaAction"
 
@@ -279,7 +282,7 @@ class CutsceneCmdTextOcarinaAction(CutsceneCmdBase):
 class CutsceneCmdTextList(CutsceneCmdBase):
     """This class contains Text List command data"""
 
-    entryTotal: int = None
+    entryTotal: Optional[int] = None
     entries: list[CutsceneCmdText | CutsceneCmdTextNone | CutsceneCmdTextOcarinaAction] = field(default_factory=list)
     paramNumber: int = 1
     listName: str = "textList"
@@ -293,8 +296,8 @@ class CutsceneCmdTextList(CutsceneCmdBase):
 class CutsceneCmdLightSetting(CutsceneCmdBase):
     """This class contains Light Setting command data"""
 
-    isLegacy: bool = None
-    lightSetting: int = None
+    isLegacy: Optional[bool] = None
+    lightSetting: Optional[int] = None
     paramNumber: int = 11
 
     def __post_init__(self):
@@ -310,7 +313,7 @@ class CutsceneCmdLightSetting(CutsceneCmdBase):
 class CutsceneCmdLightSettingList(CutsceneCmdBase):
     """This class contains Light Setting List command data"""
 
-    entryTotal: int = None
+    entryTotal: Optional[int] = None
     entries: list[CutsceneCmdLightSetting] = field(default_factory=list)
     paramNumber: int = 1
     listName: str = "lightSettingsList"
@@ -324,8 +327,8 @@ class CutsceneCmdLightSettingList(CutsceneCmdBase):
 class CutsceneCmdTime(CutsceneCmdBase):
     """This class contains Time Ocarina Action command data"""
 
-    hour: int = None
-    minute: int = None
+    hour: Optional[int] = None
+    minute: Optional[int] = None
     paramNumber: int = 5
 
     def __post_init__(self):
@@ -340,7 +343,7 @@ class CutsceneCmdTime(CutsceneCmdBase):
 class CutsceneCmdTimeList(CutsceneCmdBase):
     """This class contains Time List command data"""
 
-    entryTotal: int = None
+    entryTotal: Optional[int] = None
     entries: list[CutsceneCmdTime] = field(default_factory=list)
     paramNumber: int = 1
     listName: str = "timeList"
@@ -354,8 +357,8 @@ class CutsceneCmdTimeList(CutsceneCmdBase):
 class CutsceneCmdStartStopSeq(CutsceneCmdBase):
     """This class contains Start/Stop Seq command data"""
 
-    isLegacy: bool = None
-    seqId: str = None
+    isLegacy: Optional[bool] = None
+    seqId: Optional[str] = None
     paramNumber: int = 11
 
     def __post_init__(self):
@@ -369,8 +372,8 @@ class CutsceneCmdStartStopSeq(CutsceneCmdBase):
 class CutsceneCmdStartStopSeqList(CutsceneCmdBase):
     """This class contains Start/Stop Seq List command data"""
 
-    entryTotal: int = None
-    type: str = None
+    entryTotal: Optional[int] = None
+    type: Optional[str] = None
     entries: list[CutsceneCmdStartStopSeq] = field(default_factory=list)
     paramNumber: int = 1
     listName: str = "seqList"
@@ -384,7 +387,7 @@ class CutsceneCmdStartStopSeqList(CutsceneCmdBase):
 class CutsceneCmdFadeSeq(CutsceneCmdBase):
     """This class contains Fade Seq command data"""
 
-    seqPlayer: str = None
+    seqPlayer: Optional[str] = None
     paramNumber: int = 11
     enumKey: str = "csFadeOutSeqPlayer"
 
@@ -399,7 +402,7 @@ class CutsceneCmdFadeSeq(CutsceneCmdBase):
 class CutsceneCmdFadeSeqList(CutsceneCmdBase):
     """This class contains Fade Seq List command data"""
 
-    entryTotal: int = None
+    entryTotal: Optional[int] = None
     entries: list[CutsceneCmdFadeSeq] = field(default_factory=list)
     paramNumber: int = 1
     listName: str = "fadeSeqList"
@@ -413,9 +416,9 @@ class CutsceneCmdFadeSeqList(CutsceneCmdBase):
 class CutsceneCmdRumbleController(CutsceneCmdBase):
     """This class contains Rumble Controller command data"""
 
-    sourceStrength: int = None
-    duration: int = None
-    decreaseRate: int = None
+    sourceStrength: Optional[int] = None
+    duration: Optional[int] = None
+    decreaseRate: Optional[int] = None
     paramNumber: int = 8
 
     def __post_init__(self):
@@ -431,7 +434,7 @@ class CutsceneCmdRumbleController(CutsceneCmdBase):
 class CutsceneCmdRumbleControllerList(CutsceneCmdBase):
     """This class contains Rumble Controller List command data"""
 
-    entryTotal: int = None
+    entryTotal: Optional[int] = None
     entries: list[CutsceneCmdRumbleController] = field(default_factory=list)
     paramNumber: int = 1
     listName: str = "rumbleList"
@@ -445,7 +448,7 @@ class CutsceneCmdRumbleControllerList(CutsceneCmdBase):
 class CutsceneCmdDestination(CutsceneCmdBase):
     """This class contains Destination command data"""
 
-    id: str = None
+    id: Optional[str] = None
     paramNumber: int = 3
     listName: str = "destination"
 
@@ -473,14 +476,14 @@ class Cutscene:
     camATSplineRelPlayerList: list[CutsceneCmdCamATSplineRelToPlayer] = field(default_factory=list)
     camEyeList: list[CutsceneCmdCamEye] = field(default_factory=list)
     camATList: list[CutsceneCmdCamAT] = field(default_factory=list)
-    miscList: list[CutsceneCmdMiscList] = field(default_factory=list)
-    transitionList: list[CutsceneCmdTransition] = field(default_factory=list)
     textList: list[CutsceneCmdTextList] = field(default_factory=list)
+    miscList: list[CutsceneCmdMiscList] = field(default_factory=list)
+    rumbleList: list[CutsceneCmdRumbleControllerList] = field(default_factory=list)
+    transitionList: list[CutsceneCmdTransition] = field(default_factory=list)
     lightSettingsList: list[CutsceneCmdLightSettingList] = field(default_factory=list)
     timeList: list[CutsceneCmdTimeList] = field(default_factory=list)
     seqList: list[CutsceneCmdStartStopSeqList] = field(default_factory=list)
     fadeSeqList: list[CutsceneCmdFadeSeqList] = field(default_factory=list)
-    rumbleList: list[CutsceneCmdRumbleControllerList] = field(default_factory=list)
 
 
 class CutsceneObjectFactory:
