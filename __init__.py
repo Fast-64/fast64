@@ -181,7 +181,7 @@ class Fast64_GlobalObjectPanel(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.object is not None and context.object.data is None
+        return context.object is not None and context.object.type == "EMPTY"
 
     def draw(self, context):
         box = self.layout
@@ -343,7 +343,7 @@ class UpgradeF3DMaterialsDialog(bpy.types.Operator):
             bpy.ops.object.mode_set(mode="OBJECT")
 
         upgradeF3DVersionAll(
-            [obj for obj in bpy.data.objects if isinstance(obj.data, bpy.types.Mesh)],
+            [obj for obj in bpy.data.objects if obj.type == "MESH"],
             list(bpy.data.armatures),
             MatUpdateConvert.version,
         )

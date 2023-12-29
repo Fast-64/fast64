@@ -2261,7 +2261,7 @@ def convertColorAttribute(mesh: Mesh, attr_name="Col"):
 
 
 def addColorAttributesToModel(obj: Object):
-    if not isinstance(obj.data, Mesh):
+    if obj.type != "MESH":
         return
 
     prevMode = bpy.context.mode

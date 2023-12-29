@@ -234,7 +234,7 @@ def ootFlipbookRequirementMessage(layout: bpy.types.UILayout):
 
 def ootFlipbookAnimUpdate(self, armatureObj: bpy.types.Object, segment: str, index: int):
     for child in armatureObj.children:
-        if not isinstance(child.data, bpy.types.Mesh):
+        if child.type != "MESH":
             continue
         for material in child.data.materials:
             for i in range(2):
@@ -257,7 +257,7 @@ def ootFlipbookAnimUpdate(self, armatureObj: bpy.types.Object, segment: str, ind
 def flipbookAnimHandler(dummy):
     if bpy.context.scene.gameEditorMode == "OOT":
         for obj in bpy.data.objects:
-            if isinstance(obj.data, bpy.types.Armature):
+            if obj.type == "ARMATURE":
                 # we only want to update texture on keyframed armatures.
                 # this somewhat mitigates the issue of two skeletons using the same flipbook material.
                 if obj.animation_data is None or obj.animation_data.action is None:
