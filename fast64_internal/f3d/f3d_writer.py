@@ -1364,7 +1364,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         fMaterial.mat_only_DL.commands.extend([SPSetLights(fLights)])  # TODO: handle synching: NO NEED?
 
     if useDict["Key"] and f3dMat.set_key:
-        if material.mat_ver == 4:
+        if material.mat_ver >= 4:
             center = f3dMat.key_center
         else:
             center = nodes["Chroma Key Center"].outputs[0].default_value
