@@ -118,7 +118,7 @@ def ootExportSceneToC(originalSceneObj, transformMatrix, sceneName, DLFormat, sa
         exportSubdir = os.path.dirname(getSceneDirFromLevelName(sceneName))
 
     roomObjList = [
-        obj for obj in originalSceneObj.children_recursive if obj.data is None and obj.ootEmptyType == "Room"
+        obj for obj in originalSceneObj.children_recursive if obj.type == "EMPTY" and obj.ootEmptyType == "Room"
     ]
     for roomObj in roomObjList:
         room = scene.rooms[roomObj.ootRoomHeader.roomIndex]
@@ -490,7 +490,7 @@ def readPathProp(pathProp, obj, scene, sceneObj, sceneName, transformMatrix):
 
 
 def ootConvertScene(originalSceneObj, transformMatrix, sceneName, DLFormat, convertTextureData):
-    if originalSceneObj.data is not None or originalSceneObj.ootEmptyType != "Scene":
+    if originalSceneObj.type != "EMPTY" or originalSceneObj.ootEmptyType != "Scene":
         raise PluginError(originalSceneObj.name + ' is not an empty with the "Scene" empty type.')
 
     if bpy.context.scene.exportHiddenGeometry:
@@ -502,7 +502,7 @@ def ootConvertScene(originalSceneObj, transformMatrix, sceneName, DLFormat, conv
     if bpy.context.scene.exportHiddenGeometry:
         restoreHiddenState(hiddenState)
 
-    roomObjs = [child for child in sceneObj.children_recursive if child.data is None and child.ootEmptyType == "Room"]
+    roomObjs = [child for child in sceneObj.children_recursive if child.type == "EMPTY" and child.ootEmptyType == "Room"]
     if len(roomObjs) == 0:
         raise PluginError("The scene has no child empties with the 'Room' empty type.")
 
@@ -514,7 +514,7 @@ def ootConvertScene(originalSceneObj, transformMatrix, sceneName, DLFormat, conv
         for obj in sceneObj.children_recursive:
             translation, rotation, scale, orientedRotation = getConvertedTransform(transformMatrix, sceneObj, obj, True)
 
-            if obj.data is None and obj.ootEmptyType == "Room":
+            if obj.type == "EMPTY" and obj.ootEmptyType == "Room":
                 roomObj = obj
                 roomHeader = roomObj.ootRoomHeader
                 roomIndex = roomHeader.roomIndex
@@ -542,13 +542,13 @@ def ootConvertScene(originalSceneObj, transformMatrix, sceneName, DLFormat, conv
                 room.mesh.terminateDLs()
                 room.mesh.removeUnusedEntries()
                 ootProcessEmpties(scene, room, sceneObj, roomObj, transformMatrix)
-            elif obj.data is None and obj.ootEmptyType == "Water Box":
+            elif obj.type == "EMPTY" and obj.ootEmptyType == "Water Box":
                 # 0x3F = -1 in 6bit value
                 ootProcessWaterBox(sceneObj, obj, transformMatrix, scene, 0x3F)
-            elif isinstance(obj.data, bpy.types.Camera):
+            elif obj.type == "CAMERA":
                 camPosProp = obj.ootCameraPositionProperty
                 readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix)
-            elif isinstance(obj.data, bpy.types.Curve) and assertCurveValid(obj):
+            elif obj.type == "CURVE" and assertCurveValid(obj):
                 if isPathObject(obj):
                     readPathProp(obj.ootSplineProperty, obj, scene, sceneObj, sceneName, transformMatrix)
                 else:
@@ -617,7 +617,7 @@ def ootProcessMesh(
     relativeTransform = transformMatrix @ sceneObj.matrix_world.inverted() @ obj.matrix_world
     translation, rotation, scale = relativeTransform.decompose()
 
-    if obj.data is None and obj.ootEmptyType == "Cull Group":
+    if obj.type == "EMPTY" and obj.ootEmptyType == "Cull Group":
         if LODHierarchyObject is not None:
             raise PluginError(
                 obj.name
@@ -636,7 +636,7 @@ def ootProcessMesh(
             )
         ).DLGroup
 
-    elif isinstance(obj.data, bpy.types.Mesh) and not obj.ignore_render:
+    elif obj.type == "MESH" and not obj.ignore_render:
         triConverterInfo = TriangleConverterInfo(obj, None, roomMesh.model.f3d, relativeTransform, getInfoDict(obj))
         fMeshes = saveStaticModel(
             triConverterInfo,
@@ -656,7 +656,7 @@ def ootProcessMesh(
 
     alphabeticalChildren = sorted(obj.children, key=lambda childObj: childObj.original_name.lower())
     for childObj in alphabeticalChildren:
-        if childObj.data is None and childObj.ootEmptyType == "LOD":
+        if childObj.type == "EMPTY" and childObj.ootEmptyType == "LOD":
             ootProcessLOD(
                 roomMesh,
                 DLGroup,
@@ -700,7 +700,7 @@ def ootProcessLOD(
         childDLGroup = OOTDLGroup(name + str(index), roomMesh.model.DLFormat)
         index += 1
 
-        if childObj.data is None and childObj.ootEmptyType == "LOD":
+        if childObj.type == "EMPTY" and childObj.ootEmptyType == "LOD":
             ootProcessLOD(
                 roomMesh,
                 childDLGroup,
@@ -742,7 +742,7 @@ def ootProcessLOD(
 def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
     translation, rotation, scale, orientedRotation = getConvertedTransform(transformMatrix, sceneObj, obj, True)
 
-    if obj.data is None:
+    if obj.type == "EMPTY":
         if obj.ootEmptyType == "Actor":
             actorProp = obj.ootActorProperty
 
@@ -841,10 +841,10 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
             )
         elif obj.ootEmptyType == "Water Box":
             ootProcessWaterBox(sceneObj, obj, transformMatrix, scene, room.roomIndex)
-    elif isinstance(obj.data, bpy.types.Camera):
+    elif obj.type == "CAMERA":
         camPosProp = obj.ootCameraPositionProperty
         readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix)
-    elif isinstance(obj.data, bpy.types.Curve) and assertCurveValid(obj):
+    elif obj.type == "CURVE" and assertCurveValid(obj):
         if isPathObject(obj):
             readPathProp(obj.ootSplineProperty, obj, scene, sceneObj, scene.name, transformMatrix)
         else:

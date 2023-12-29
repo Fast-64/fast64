@@ -26,7 +26,7 @@ from ..utility import (
 
 
 def isPathObject(obj: bpy.types.Object) -> bool:
-    return obj.data is not None and isinstance(obj.data, bpy.types.Curve) and obj.ootSplineProperty.splineType == "Path"
+    return obj.type == "CURVE" and obj.ootSplineProperty.splineType == "Path"
 
 
 ootSceneDungeons = [
@@ -228,7 +228,7 @@ class OOTObjectCategorizer:
 
     def sortObjects(self, allObjs):
         for obj in allObjs:
-            if obj.data is None:
+            if obj.type == "EMPTY":
                 if obj.ootEmptyType == "Actor":
                     self.actors.append(obj)
                 elif obj.ootEmptyType == "Transition Actor":
@@ -241,7 +241,7 @@ class OOTObjectCategorizer:
                     self.roomObjs.append(obj)
                 elif obj.ootEmptyType == "Scene":
                     self.sceneObj = obj
-            elif isinstance(obj.data, bpy.types.Mesh):
+            elif obj.type == "MESH":
                 self.meshes.append(obj)
 
 
@@ -332,9 +332,9 @@ def ootDuplicateHierarchy(obj, ignoreAttr, includeEmpties, objectCategorizer):
 
 
 def ootSelectMeshChildrenOnly(obj, includeEmpties):
-    isMesh = isinstance(obj.data, bpy.types.Mesh)
+    isMesh = obj.type == "MESH"
     isEmpty = (
-        obj.data is None or isinstance(obj.data, bpy.types.Camera) or isinstance(obj.data, bpy.types.Curve)
+        obj.type == "EMPTY" or obj.type == "CAMERA" or obj.type == "CURVE"
     ) and includeEmpties
     if isMesh or isEmpty:
         obj.select_set(True)
@@ -350,7 +350,7 @@ def ootCleanupScene(originalSceneObj, allObjs):
 
 
 def getSceneObj(obj):
-    while not (obj is None or (obj is not None and obj.data is None and obj.ootEmptyType == "Scene")):
+    while not (obj is None or (obj is not None and obj.type == "EMPTY" and obj.ootEmptyType == "Scene")):
         obj = obj.parent
     if obj is None:
         return None
@@ -359,7 +359,7 @@ def getSceneObj(obj):
 
 
 def getRoomObj(obj):
-    while not (obj is None or (obj is not None and obj.data is None and obj.ootEmptyType == "Room")):
+    while not (obj is None or (obj is not None and obj.type == "EMPTY" and obj.ootEmptyType == "Room")):
         obj = obj.parent
     if obj is None:
         return None
@@ -687,7 +687,7 @@ class OOTCollectionMove(bpy.types.Operator):
 
 def getHeaderSettings(actorObj: bpy.types.Object):
     itemType = actorObj.ootEmptyType
-    if actorObj.data is None:
+    if actorObj.type == "EMPTY":
         if itemType == "Actor":
             headerSettings = actorObj.ootActorProperty.headerSettings
         elif itemType == "Entrance":
@@ -696,7 +696,7 @@ def getHeaderSettings(actorObj: bpy.types.Object):
             headerSettings = actorObj.ootTransitionActorProperty.actor.headerSettings
         else:
             headerSettings = None
-    elif actorObj.data is not None and isPathObject(actorObj):
+    elif isPathObject(actorObj):
         headerSettings = actorObj.ootSplineProperty.headerSettings
     else:
         headerSettings = None

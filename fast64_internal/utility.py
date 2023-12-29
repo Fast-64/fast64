@@ -857,7 +857,7 @@ def store_original_meshes(add_warning: Callable[[str], None]):
     instanced_meshes = set()
     active_obj = bpy.context.view_layer.objects.active
     for obj in yield_children(active_obj):
-        if obj.data is not None:
+        if obj.type != "EMPTY":
             has_modifiers = len(obj.modifiers) != 0
             has_uneven_scale = not obj_scale_is_unified(obj)
             shares_mesh = obj.data.users > 1
@@ -977,18 +977,18 @@ def checkSM64EmptyUsesGeoLayout(sm64_obj_type):
 
 
 def selectMeshChildrenOnly(obj, ignoreAttr, includeEmpties, areaIndex):
-    checkArea = areaIndex is not None and obj.data is None
+    checkArea = areaIndex is not None and obj.type == "EMPTY"
     if checkArea and obj.sm64_obj_type == "Area Root" and obj.areaIndex != areaIndex:
         return
     ignoreObj = ignoreAttr is not None and getattr(obj, ignoreAttr)
-    isMesh = isinstance(obj.data, bpy.types.Mesh)
-    isEmpty = obj.data is None and includeEmpties and checkSM64EmptyUsesGeoLayout(obj.sm64_obj_type)
+    isMesh = obj.type == "MESH"
+    isEmpty = obj.type == "EMPTY" and includeEmpties and checkSM64EmptyUsesGeoLayout(obj.sm64_obj_type)
     if (isMesh or isEmpty) and not ignoreObj:
         obj.select_set(True)
         obj.original_name = obj.name
     for child in obj.children:
         if checkArea and obj.sm64_obj_type == "Level Root":
-            if not (child.data is None and child.sm64_obj_type == "Area Root"):
+            if not (child.type == "EMPTY" and child.sm64_obj_type == "Area Root"):
                 continue
         selectMeshChildrenOnly(child, ignoreAttr, includeEmpties, areaIndex)
 
@@ -996,7 +996,7 @@ def selectMeshChildrenOnly(obj, ignoreAttr, includeEmpties, areaIndex):
 def cleanupDuplicatedObjects(selected_objects):
     meshData = []
     for selectedObj in selected_objects:
-        if selectedObj.data is not None and isinstance(selectedObj.data, bpy.types.Mesh):
+        if selectedObj.type == "MESH":
             meshData.append(selectedObj.data)
     for selectedObj in selected_objects:
         bpy.data.objects.remove(selectedObj)

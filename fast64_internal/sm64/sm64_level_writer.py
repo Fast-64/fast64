@@ -727,7 +727,7 @@ def exportLevelC(obj, transformMatrix, levelName, exportDir, savePNG, customExpo
         DLFormat,
         GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
     )
-    childAreas = [child for child in obj.children if child.data is None and child.sm64_obj_type == "Area Root"]
+    childAreas = [child for child in obj.children if child.type == "EMPTY" and child.sm64_obj_type == "Area Root"]
     if len(childAreas) == 0:
         raise PluginError("The level root has no child empties with the 'Area Root' object type.")
 
@@ -1138,7 +1138,7 @@ class SM64_ExportLevel(ObjectDataExporter):
                 if len(context.selected_objects) == 0:
                     raise PluginError("Object not selected.")
                 obj = context.selected_objects[0]
-                if obj.data is not None or obj.sm64_obj_type != "Level Root":
+                if obj.type != "EMPTY" or obj.sm64_obj_type != "Level Root":
                     raise PluginError("The selected object is not an empty with the Level Root type.")
             except PluginError:
                 # try to find parent level root
@@ -1147,7 +1147,7 @@ class SM64_ExportLevel(ObjectDataExporter):
                         if not obj.parent:
                             break
                         obj = obj.parent
-                        if obj.data is None and obj.sm64_obj_type == "Level Root":
+                        if obj.type == "EMPTY" and obj.sm64_obj_type == "Level Root":
                             break
                 if obj is None or obj.sm64_obj_type != "Level Root":
                     raise PluginError("Cannot find level empty.")

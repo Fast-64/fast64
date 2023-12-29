@@ -8,6 +8,7 @@ from ...operators import AddWaterBox, addMaterialByName
 from ...utility import parentObject, setOrigin
 from ..cutscene.motion.utility import setupCutscene, createNewCameraShot
 from ..oot_utility import getNewPath
+from .quick_import import QuickImportAborted, quick_import_exec
 
 
 class OOT_AddWaterBox(AddWaterBox):
@@ -255,3 +256,40 @@ class OOTClearTransformAndLock(Operator):
             return {"FINISHED"}
         except:
             return {"CANCELLED"}
+
+
+class OOTQuickImport(Operator):
+    bl_idname = "object.oot_quick_import"
+    bl_label = "Quick Import"
+    bl_options = {"REGISTER", "UNDO"}
+    bl_description = (
+        "Import (almost) anything by inputting a symbol name from an object."
+        " This operator automatically finds the file to import from (within objects)"
+    )
+
+    sym_name: StringProperty(
+        name="Symbol name",
+        description=(
+            "Which symbol to import."
+            " This may be a display list (e.g. gBoomerangDL), "
+            "a skeleton (e.g. object_daiku_Skel_007958), "
+            "an animation (with the appropriate skeleton selected, e.g. object_daiku_Anim_008164)"
+        ),
+    )
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context):
+        self.layout.prop(self, "sym_name", text="Symbol")
+
+    def execute(self, context: Context):
+        try:
+            quick_import_exec(
+                context,
+                self.sym_name,
+            )
+        except QuickImportAborted as e:
+            self.report({"ERROR"}, e.message)
+            return {"CANCELLED"}
+        return {"FINISHED"}

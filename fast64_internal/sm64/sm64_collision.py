@@ -418,7 +418,7 @@ def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren
 
 
 def addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, areaIndex):
-    if isinstance(obj.data, bpy.types.Mesh) and not obj.ignore_collision:
+    if obj.type == "MESH" and not obj.ignore_collision:
         if len(obj.data.materials) == 0:
             raise PluginError(obj.name + " must have a material associated with it.")
         obj.data.calc_loop_triangles()

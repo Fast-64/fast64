@@ -73,7 +73,7 @@ def attemptModifierApply(modifier):
 
 def armatureApplyWithMesh(armatureObj: bpy.types.Object, context: bpy.types.Context):
     for child in armatureObj.children:
-        if type(child.data) is not bpy.types.Mesh:
+        if child.type != "MESH":
             continue
         armatureModifier = None
         for modifier in child.modifiers:

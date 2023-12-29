@@ -105,7 +105,7 @@ def set_best_draw_layer_for_materials():
     objects = bpy.data.objects
     obj: bpy.types.Object = None
     for obj in objects:
-        if not isinstance(obj.data, bpy.types.Mesh) or len(obj.material_slots) < 1:
+        if obj.type != "MESH" or len(obj.material_slots) < 1:
             continue
 
         p: bpy.types.MeshPolygon = None
@@ -131,7 +131,7 @@ def set_best_draw_layer_for_materials():
             finished_mats.add(mat.name)
 
     for obj in objects:
-        if not isinstance(obj.data, bpy.types.Mesh):
+        if obj.type != "MESH":
             continue
         for mat_slot in obj.material_slots:
             mat: bpy.types.Material = mat_slot.material
@@ -264,7 +264,7 @@ class BSDFConvert(bpy.types.Operator):
 
             if context.scene.bsdf_conv_all:
                 convertAllBSDFtoF3D(
-                    [obj for obj in bpy.data.objects if isinstance(obj.data, bpy.types.Mesh)],
+                    [obj for obj in bpy.data.objects if obj.type == "MESH"],
                     context.scene.rename_uv_maps,
                 )
             else:
@@ -300,7 +300,7 @@ class MatUpdateConvert(bpy.types.Operator):
 
             if context.scene.update_conv_all:
                 upgradeF3DVersionAll(
-                    [obj for obj in bpy.data.objects if isinstance(obj.data, bpy.types.Mesh)],
+                    [obj for obj in bpy.data.objects if obj.type == "MESH"],
                     bpy.data.armatures,
                     self.version,
                 )

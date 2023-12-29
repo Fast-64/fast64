@@ -171,7 +171,7 @@ class OOT_ExportCutscene(Operator):
 
             activeObj = context.view_layer.objects.active
 
-            if activeObj is None or activeObj.data is not None or activeObj.ootEmptyType != "Cutscene":
+            if activeObj is None or activeObj.type != "EMPTY" or activeObj.ootEmptyType != "Cutscene":
                 raise PluginError("You must select a cutscene object")
 
             if activeObj.parent is not None:
