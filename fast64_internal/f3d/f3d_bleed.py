@@ -37,6 +37,13 @@ from .f3d_gbi import (
     DPTileSync,
     DPSetTile,
     DPLoadTile,
+    FModel,
+    FMesh,
+    FMaterial,
+    F3D,
+    GfxList,
+    FTriGroup,
+    GbiMacro,
 )
 
 
@@ -85,7 +92,6 @@ class BleedGraphics:
         self.default_clear_geo = clearGeo
 
     def build_default_othermodes(self):
-        is_hardware_v1 = bpy.context.scene.isHWv1
         defaults = bpy.context.scene.world.rdp_defaults
 
         othermode_H = SPSetOtherMode("G_SETOTHERMODE_H", 4, 20 - self.is_f3d_old, [])
@@ -95,11 +101,8 @@ class BleedGraphics:
         othermode_L.flagList.append(defaults.g_mdsft_alpha_compare)
         othermode_L.flagList.append(defaults.g_mdsft_zsrcsel)
 
-        if not is_hardware_v1:
-            othermode_H.flagList.append(defaults.g_mdsft_rgb_dither)
-            othermode_H.flagList.append(defaults.g_mdsft_alpha_dither)
-        else:
-            othermode_H.flagList.append(defaults.g_mdsft_color_dither)
+        othermode_H.flagList.append(defaults.g_mdsft_rgb_dither)
+        othermode_H.flagList.append(defaults.g_mdsft_alpha_dither)
         othermode_H.flagList.append(defaults.g_mdsft_combkey)
         othermode_H.flagList.append(defaults.g_mdsft_textconv)
         othermode_H.flagList.append(defaults.g_mdsft_text_filt)

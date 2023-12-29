@@ -1,0 +1,928 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+Documentation on this file's format:
+
+elements:
+- <Actor> -> defines an actor
+* Category -> the actor's category
+* ID -> the actor's ID (written when exporting to C)
+* Key -> the actor's identifier (shouldn't be changed ever, saved in the .blend)
+* Name -> Display name (seen in the UI)
+* ObjectKey -> the actor's tied objects (identified by the never-changing key)
+* Index -> used for compatibility with blends
+
+- <List> -> defines a hardcoded list (WIP, can't be used atm)
+* Name -> name of the list
+* Key -> the list identifier (shouldn't be changed)
+
+
+sub-elements of <Actor>:
+- <Type> -> adds an enum property of the actor's basic parameter (can't use multiple ones atm)
+* Index -> defines an order
+* Mask -> the mask to apply to the value (as in `value & mask`)
+# <Item> -> represents a single element of the enum (Params -> the parameter value, already shifted)
+
+for each sub element (of <Actor>) mentioned below:
+* Index -> defines an order (should not change, used for saving in the .blend)
+* Mask -> the mask to apply to the value (as in `value & mask`), the amount of shifting is determined from that
+* Name -> display name (in the UI)
+* TiedActorTypes -> optional, used to use this property for the current actor type (see en_rd for an example)
+* Target -> optional, defines which variable should be used to store this parameter (actor.home.rot.X-Y-Z, actor.params), if none then Params is used by default
+
+- <Bool> -> adds a bool property (checkbox)
+- <Enum> -> adds an enum property, different from <Type> (use this if you want multiple <Type> enums for now)
+* Value -> the not-shifted hex value (0x1, 0x2, etc)
+
+- <Property> -> adds a string property, expects an hex value
+- <Flag> -> adds a string property, specific to actor flags (switch flag, chest flag, etc)
+* Type -> the type of flag we're dealing with: switch, collectible or chest
+
+- <Message> -> used to draw the navi message id <List>
+- <ChestContent> -> used to draw the chest content item <List>
+- <Collectible> -> used to draw the collectible drop item <List>
+-->
+<Table>
+  <Actor ID="ACTOR_PLAYER" Key="player" ObjectKey="OBJECT_UNSET_0" Name="Player" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TEST" Key="en_test" ObjectKey="GAMEPLAY_KEEP" Name="En_Test" Category=""></Actor>
+  <Actor ID="ACTOR_EN_GIRLA" Key="en_girla" ObjectKey="GAMEPLAY_KEEP" Name="En_GirlA" Category=""></Actor>
+  <Actor ID="ACTOR_EN_PART" Key="en_part" ObjectKey="GAMEPLAY_KEEP" Name="En_Part" Category=""></Actor>
+
+  <Actor ID="ACTOR_EN_LIGHT" Key="en_light" ObjectKey="GAMEPLAY_KEEP" Name="Flame" Category="">
+    <Type Index="1" Mask="0x000F">
+      <Item Params="0000">Large Orange Flame</Items>
+      <Item Params="0001">Large Orange Flame</Items>
+      <Item Params="0002">Large Blue Flame</Items>
+      <Item Params="0003">Large Green Flame</Items>
+      <Item Params="0004">Small Orange Flame</Items>
+      <Item Params="0005">Large Orange Flame</Items>
+      <Item Params="0006">Large Green Flame</Items>
+      <Item Params="0007">Large Blue Flame</Items>
+      <Item Params="0008">Large Magenta Flame</Items>
+      <Item Params="0009">Large Pale Orange Flame</Items>
+      <Item Params="000A">Large Pale Yellow Flame</Items>
+      <Item Params="000B">Large Pale Green Flame</Items>
+      <Item Params="000C">Large Pale Pink Flame</Items>
+      <Item Params="000D">Large Pale Purple Flame</Items>
+      <Item Params="000E">Large Pale Indigo Flame</Items>
+      <Item Params="000F">Large Pale Blue Flame</Items>
+      <!--Item Params="83F0">Candle Flame</Items-->
+      <!--Item Params="FFFF">Faint Blue Aura</Items-->
+    </Type>
+  </Actor>
+
+  <Actor ID="ACTOR_EN_DOOR" Key="en_door" ObjectKey="GAMEPLAY_KEEP" Name="Wooden Door" Category=""></Actor>
+  
+  <Actor ID="ACTOR_EN_BOX" Key="en_box" ObjectKey="OBJECT_BOX" Name="Treasure Chest" Category="">
+    <Type Index="1" Mask="0xF000">
+      <Item Params="0000">Golden</Item>
+      <Item Params="1000">Golden - Appears - Clear Flag</Item>
+      <Item Params="2000">Boss Key Chest</Item>
+      <Item Params="3000">Golden - Falls - Switch Flag</Item>
+      <Item Params="4000">Golden - Invisible</Item>
+      <Item Params="5000">Wooden</Item>
+      <Item Params="6000">Wooden - Invisible</Item>
+      <Item Params="7000">Wooden - Clear Flag</Item>
+      <Item Params="8000">Wooden - Falls - Switch Flag</Item>
+      <Item Params="9000">Crash</Item>
+      <Item Params="A000">Crash</Item>
+      <Item Params="B000">Golden - Appears - Switch Flag</Item>
+    </Type>
+    <Flag Index="1" Mask="0x1FF" Target="ZRot" Type="Switch"/>
+    <Flag Index="2" Mask="0x001F" Target="Params" Type="Chest"/>
+    <ChestContent Mask="0x0FE0" Target="Params"/>
+  </Actor>
+  <!-- this->collectableFlag = (this->dyna.actor.world.rot.x & 0x7F); -->
+
+  <Actor ID="ACTOR_EN_PAMETFROG" Key="en_pametfrog" ObjectKey="OBJECT_BIGSLIME" Name="Gekko and Snapper Miniboss" Category=""></Actor>
+  <Actor ID="ACTOR_EN_OKUTA" Key="en_okuta" ObjectKey="OBJECT_OKUTA" Name="Octorok" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BOM" Key="en_bom" ObjectKey="GAMEPLAY_KEEP" Name="Powder Keg" Category=""></Actor>
+  <Actor ID="ACTOR_EN_WALLMAS" Key="en_wallmas" ObjectKey="OBJECT_WALLMASTER" Name="Wallmaster" Category=""></Actor>
+  
+  <Actor ID="ACTOR_EN_DODONGO" Key="en_dodongo" ObjectKey="OBJECT_DODONGO" Name="Dodongo" Category="">
+    <Type Index="1">
+      <Item Params="0000">Regular</Item>
+      <Item Params="0001">Large</Item>
+    </Type>
+  </Actor>
+
+  <Actor ID="ACTOR_EN_FIREFLY" Key="en_firefly" ObjectKey="OBJECT_FIREFLY" Name="Keese" Category=""></Actor>
+  <Actor ID="ACTOR_EN_HORSE" Key="en_horse" ObjectKey="GAMEPLAY_KEEP" Name="Child Epona (Cutscenes)" Category=""></Actor>
+  
+  <Actor ID="ACTOR_EN_ITEM00" Key="en_item00" ObjectKey="OBJECT_UNSET_0" Name="Collectible Items" Category="">
+    <Collectible Index="1" Mask="0x00FF" Name="CItem" Target="Params" Type="Drop"/>
+    <Flag Index="1" Mask="0x7F00" Name="Collectible Flag" Type="Collectible"/>
+    <Bool Index="1" Mask="0x8000" Name="Obtain on Load"/>
+  </Actor>
+
+  <Actor ID="ACTOR_EN_ARROW" Key="en_arrow" ObjectKey="GAMEPLAY_KEEP" Name="Arrow" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ELF" Key="en_elf" ObjectKey="GAMEPLAY_KEEP" Name="Healing Fairy and Tatl (Gameplay)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_NIW" Key="en_niw" ObjectKey="OBJECT_NIW" Name="Cucco" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TITE" Key="en_tite" ObjectKey="OBJECT_TITE" Name="Tektite" Category=""></Actor>
+  <Actor ID="ACTOR_EN_PEEHAT" Key="en_peehat" ObjectKey="OBJECT_PH" Name="Peahat" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BUTTE" Key="en_butte" ObjectKey="GAMEPLAY_FIELD_KEEP" Name="Butterfly" Category=""></Actor>
+  <Actor ID="ACTOR_EN_INSECT" Key="en_insect" ObjectKey="GAMEPLAY_KEEP" Name="Bug" Category=""></Actor>
+  <Actor ID="ACTOR_EN_FISH" Key="en_fish" ObjectKey="GAMEPLAY_KEEP" Name="Fish" Category=""></Actor>
+  <Actor ID="ACTOR_EN_HOLL" Key="en_holl" ObjectKey="GAMEPLAY_KEEP" Name="Black Room Transition Plane" Category=""></Actor>
+  <Actor ID="ACTOR_EN_DINOFOS" Key="en_dinofos" ObjectKey="OBJECT_DINOFOS" Name="Dinolfos" Category=""></Actor>
+  <Actor ID="ACTOR_EN_HATA" Key="en_hata" ObjectKey="OBJECT_HATA" Name="Red Flag on Post" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ZL1" Key="en_zl1" ObjectKey="OBJECT_ZL1" Name="Child Zelda" Category=""></Actor>
+  <Actor ID="ACTOR_EN_VIEWER" Key="en_viewer" ObjectKey="GAMEPLAY_KEEP" Name="En_Viewer" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BUBBLE" Key="en_bubble" ObjectKey="OBJECT_BUBBLE" Name="Shabom" Category=""></Actor>
+  <Actor ID="ACTOR_DOOR_SHUTTER" Key="door_shutter" ObjectKey="GAMEPLAY_KEEP" Name="Dungeon Door" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BOOM" Key="en_boom" ObjectKey="GAMEPLAY_KEEP" Name="Zora Fins" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TORCH2" Key="en_torch2" ObjectKey="GAMEPLAY_KEEP" Name="Elegy Statues" Category=""></Actor>
+  <Actor ID="ACTOR_EN_MINIFROG" Key="en_minifrog" ObjectKey="OBJECT_FR" Name="Frog" Category=""></Actor>
+
+  <Actor ID="ACTOR_EN_ST" Key="en_st" ObjectKey="OBJECT_ST" Name="Skulltula" Category="">
+    <Type Index="1" Mask="0x0040">
+      <Item Params="0000">Default</Item>
+      <Item Params="0040">Invisible</Item>
+    </Type>
+    <Flag Index="1" Mask="0x003F" Type="Switch"/>
+  </Actor>
+
+  <Actor ID="ACTOR_EN_A_OBJ" Key="en_a_obj" ObjectKey="OBJECT_UNSET_0" Name="Directional Sign and Square Sign [Early]" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_WTURN" Key="obj_wturn" ObjectKey="GAMEPLAY_KEEP" Name="Stone Tower Temple Inverter" Category=""></Actor>
+  <Actor ID="ACTOR_EN_RIVER_SOUND" Key="en_river_sound" ObjectKey="GAMEPLAY_KEEP" Name="Sound Effects I" Category=""></Actor>
+  <Actor ID="ACTOR_EN_OSSAN" Key="en_ossan" ObjectKey="GAMEPLAY_KEEP" Name="Middle-Aged Man" Category=""></Actor>
+  <Actor ID="ACTOR_EN_FAMOS" Key="en_famos" ObjectKey="OBJECT_FAMOS" Name="Death Armos" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BOMBF" Key="en_bombf" ObjectKey="OBJECT_BOMBF" Name="Bomb Flower" Category=""></Actor>
+  <Actor ID="ACTOR_EN_AM" Key="en_am" ObjectKey="OBJECT_AM" Name="Armos" Category=""></Actor>
+  <Actor ID="ACTOR_EN_DEKUBABA" Key="en_dekubaba" ObjectKey="OBJECT_DEKUBABA" Name="Deku Baba" Category=""></Actor>
+  <Actor ID="ACTOR_EN_M_FIRE1" Key="en_m_fire1" ObjectKey="GAMEPLAY_KEEP" Name="Deku Nut Effect" Category=""></Actor>
+  <Actor ID="ACTOR_EN_M_THUNDER" Key="en_m_thunder" ObjectKey="GAMEPLAY_KEEP" Name="Spin Attack and Sword Beam Effects" Category=""></Actor>
+  <Actor ID="ACTOR_BG_BREAKWALL" Key="bg_breakwall" ObjectKey="GAMEPLAY_KEEP" Name="Post Office Objects" Category=""></Actor>
+  <Actor ID="ACTOR_DOOR_WARP1" Key="door_warp1" ObjectKey="OBJECT_WARP1" Name="Blue Warp" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_SYOKUDAI" Key="obj_syokudai" ObjectKey="OBJECT_SYOKUDAI" Name="Torch" Category=""></Actor>
+  <Actor ID="ACTOR_ITEM_B_HEART" Key="item_b_heart" ObjectKey="OBJECT_GI_HEARTS" Name="Heart Container (Boss Lairs)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_DEKUNUTS" Key="en_dekunuts" ObjectKey="OBJECT_DEKUNUTS" Name="Mad Scrub" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BBFALL" Key="en_bbfall" ObjectKey="OBJECT_BB" Name="Red Bubble" Category=""></Actor>
+  <Actor ID="ACTOR_ARMS_HOOK" Key="arms_hook" ObjectKey="GAMEPLAY_KEEP" Name="Hookshot" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BB" Key="en_bb" ObjectKey="OBJECT_BB" Name="Blue Bubble" Category=""></Actor>
+  <Actor ID="ACTOR_BG_KEIKOKU_SPR" Key="bg_keikoku_spr" ObjectKey="OBJECT_KEIKOKU_OBJ" Name="Fountain Water" Category=""></Actor>
+  <Actor ID="ACTOR_EN_WOOD02" Key="en_wood02" ObjectKey="OBJECT_WOOD02" Name="Greenery" Category=""></Actor>
+  <Actor ID="ACTOR_EN_DEATH" Key="en_death" ObjectKey="OBJECT_DEATH" Name="Gomess" Category=""></Actor>
+  <Actor ID="ACTOR_EN_MINIDEATH" Key="en_minideath" ObjectKey="OBJECT_DEATH" Name="Gomess' Bats" Category=""></Actor>
+  <Actor ID="ACTOR_EN_VM" Key="en_vm" ObjectKey="OBJECT_VM" Name="Beamos" Category=""></Actor>
+  <Actor ID="ACTOR_DEMO_EFFECT" Key="demo_effect" ObjectKey="GAMEPLAY_KEEP" Name="Demo_Effect" Category=""></Actor>
+  <Actor ID="ACTOR_DEMO_KANKYO" Key="demo_kankyo" ObjectKey="GAMEPLAY_KEEP" Name="Environment Effects" Category=""></Actor>
+  <Actor ID="ACTOR_EN_FLOORMAS" Key="en_floormas" ObjectKey="OBJECT_WALLMASTER" Name="Floormaster" Category=""></Actor>
+  <Actor ID="ACTOR_EN_RD" Key="en_rd" ObjectKey="OBJECT_RD" Name="Redead" Category=""></Actor>
+  <Actor ID="ACTOR_BG_F40_FLIFT" Key="bg_f40_flift" ObjectKey="OBJECT_F40_OBJ" Name="Stone Tower Temple Elevator [Early]" Category=""></Actor>
+  <Actor ID="ACTOR_UNSET_4E" Key="unset_4e" ObjectKey="OBJECT_UNSET_0" Name="Golden Gauntlets Rock (JP 1.0 Only)" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_MURE" Key="obj_mure" ObjectKey="GAMEPLAY_KEEP" Name="Fish, Bugs, Butterflies" Category=""></Actor>
+  <Actor ID="ACTOR_EN_SW" Key="en_sw" ObjectKey="OBJECT_ST" Name="(Golden) Skulltula" Category=""></Actor>
+  <Actor ID="ACTOR_OBJECT_KANKYO" Key="object_kankyo" ObjectKey="GAMEPLAY_KEEP" Name="Environment Effects 2?" Category=""></Actor>
+  <Actor ID="ACTOR_EN_HORSE_LINK_CHILD" Key="en_horse_link_child" ObjectKey="OBJECT_HORSE_LINK_CHILD" Name="Child Epona (Gameplay)" Category=""></Actor>
+  <Actor ID="ACTOR_DOOR_ANA" Key="door_ana" ObjectKey="GAMEPLAY_FIELD_KEEP" Name="Grotto Hole" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ENCOUNT1" Key="en_encount1" ObjectKey="GAMEPLAY_KEEP" Name="En_Encount1" Category=""></Actor>
+  <Actor ID="ACTOR_DEMO_TRE_LGT" Key="demo_tre_lgt" ObjectKey="OBJECT_BOX" Name="Treasure Chest Glow" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ENCOUNT2" Key="en_encount2" ObjectKey="OBJECT_FUSEN" Name="Majora Balloon" Category=""></Actor>
+  <Actor ID="ACTOR_EN_FIRE_ROCK" Key="en_fire_rock" ObjectKey="OBJECT_EFC_STAR_FIELD" Name="Rock and Beam of Light [OoT]" Category=""></Actor>
+  <Actor ID="ACTOR_BG_CTOWER_ROT" Key="bg_ctower_rot" ObjectKey="OBJECT_CTOWER_ROT" Name="Clock Tower Helix Path" Category=""></Actor>
+  <Actor ID="ACTOR_MIR_RAY" Key="mir_ray" ObjectKey="OBJECT_MIR_RAY" Name="Mirror Shield Light Ray I [?]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_SB" Key="en_sb" ObjectKey="OBJECT_SB" Name="Shellblade" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BIGSLIME" Key="en_bigslime" ObjectKey="OBJECT_BIGSLIME" Name="Mad Jelly" Category=""></Actor>
+  <Actor ID="ACTOR_EN_KAREBABA" Key="en_karebaba" ObjectKey="OBJECT_DEKUBABA" Name="Deku Baba" Category=""></Actor>
+  <Actor ID="ACTOR_EN_IN" Key="en_in" ObjectKey="OBJECT_IN" Name="Gorman Bros." Category=""></Actor>
+  <Actor ID="ACTOR_EN_RU" Key="en_ru" ObjectKey="OBJECT_RU2" Name="Adult Ruto [OoT]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BOM_CHU" Key="en_bom_chu" ObjectKey="GAMEPLAY_KEEP" Name="Bombchu" Category=""></Actor>
+  <Actor ID="ACTOR_EN_HORSE_GAME_CHECK" Key="en_horse_game_check" ObjectKey="OBJECT_HORSE_GAME_CHECK" Name="En_Horse_Game_Check" Category=""></Actor>
+  <Actor ID="ACTOR_EN_RR" Key="en_rr" ObjectKey="OBJECT_RR" Name="Like Like" Category=""></Actor>
+  <Actor ID="ACTOR_EN_FR" Key="en_fr" ObjectKey="GAMEPLAY_KEEP" Name="En_Fr" Category=""></Actor>
+  <Actor ID="ACTOR_EN_FISHING" Key="en_fishing" ObjectKey="OBJECT_UNSET_0" Name="Fishing Pond Owner (JP 1.0 Only)" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_OSHIHIKI" Key="obj_oshihiki" ObjectKey="GAMEPLAY_DANGEON_KEEP" Name="Pushable Block" Category=""></Actor>
+  <Actor ID="ACTOR_EFF_DUST" Key="eff_dust" ObjectKey="GAMEPLAY_KEEP" Name="Spin Attack Charge Particles" Category=""></Actor>
+  <Actor ID="ACTOR_BG_UMAJUMP" Key="bg_umajump" ObjectKey="GAMEPLAY_KEEP" Name="Horse Jumping Fence" Category=""></Actor>
+  <Actor ID="ACTOR_ARROW_FIRE" Key="arrow_fire" ObjectKey="GAMEPLAY_KEEP" Name="Fire Arrow" Category=""></Actor>
+  <Actor ID="ACTOR_ARROW_ICE" Key="arrow_ice" ObjectKey="GAMEPLAY_KEEP" Name="Ice Arrow" Category=""></Actor>
+  <Actor ID="ACTOR_ARROW_LIGHT" Key="arrow_light" ObjectKey="GAMEPLAY_KEEP" Name="Light Arrow" Category=""></Actor>
+  <Actor ID="ACTOR_ITEM_ETCETERA" Key="item_etcetera" ObjectKey="GAMEPLAY_KEEP" Name="Item_Etcetera" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_KIBAKO" Key="obj_kibako" ObjectKey="GAMEPLAY_KEEP" Name="Small Wooden Crate" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_TSUBO" Key="obj_tsubo" ObjectKey="GAMEPLAY_KEEP" Name="Pot" Category=""></Actor>
+  <Actor ID="ACTOR_EN_IK" Key="en_ik" ObjectKey="OBJECT_IK" Name="Iron Knuckle" Category=""></Actor>
+  <Actor ID="ACTOR_DEMO_SHD" Key="demo_shd" ObjectKey="OBJECT_FWALL" Name="Demo_Shd" Category=""></Actor>
+  <Actor ID="ACTOR_EN_DNS" Key="en_dns" ObjectKey="OBJECT_DNS" Name="Deku Scrub Guard (Royal Chamber)" Category=""></Actor>
+  <Actor ID="ACTOR_ELF_MSG" Key="elf_msg" ObjectKey="GAMEPLAY_KEEP" Name="Elf_Msg" Category=""></Actor>
+  <Actor ID="ACTOR_EN_HONOTRAP" Key="en_honotrap" ObjectKey="GAMEPLAY_DANGEON_KEEP" Name="En_Honotrap" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TUBO_TRAP" Key="en_tubo_trap" ObjectKey="GAMEPLAY_DANGEON_KEEP" Name="Flying Pot" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_ICE_POLY" Key="obj_ice_poly" ObjectKey="GAMEPLAY_KEEP" Name="Ice Sparkle Effect" Category=""></Actor>
+  <Actor ID="ACTOR_EN_FZ" Key="en_fz" ObjectKey="OBJECT_FZ" Name="Freezard" Category=""></Actor>
+  <Actor ID="ACTOR_EN_KUSA" Key="en_kusa" ObjectKey="GAMEPLAY_KEEP" Name="Cut-able Grass" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_BEAN" Key="obj_bean" ObjectKey="OBJECT_MAMENOKI" Name="Magic Bean Plant" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_BOMBIWA" Key="obj_bombiwa" ObjectKey="OBJECT_BOMBIWA" Name="Bombable Rock" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_SWITCH" Key="obj_switch" ObjectKey="GAMEPLAY_DANGEON_KEEP" Name="Dungeon Switches" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_LIFT" Key="obj_lift" ObjectKey="OBJECT_D_LIFT" Name="Dampé's House Elevator" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_HSBLOCK" Key="obj_hsblock" ObjectKey="OBJECT_D_HSBLOCK" Name="Stone Hookshot Pillar" Category=""></Actor>
+  <Actor ID="ACTOR_EN_OKARINA_TAG" Key="en_okarina_tag" ObjectKey="GAMEPLAY_KEEP" Name="Ocarina Song Spot" Category=""></Actor>
+  <Actor ID="ACTOR_EN_GOROIWA" Key="en_goroiwa" ObjectKey="OBJECT_GOROIWA" Name="Snowball and Rolling Boulder [?]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_DAIKU" Key="en_daiku" ObjectKey="OBJECT_DAIKU" Name="Carpenter (Clock Town)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_NWC" Key="en_nwc" ObjectKey="OBJECT_NWC" Name="Cucco Chick" Category=""></Actor>
+  <Actor ID="ACTOR_ITEM_INBOX" Key="item_inbox" ObjectKey="GAMEPLAY_KEEP" Name="Item_Inbox" Category=""></Actor>
+  <Actor ID="ACTOR_EN_GE1" Key="en_ge1" ObjectKey="OBJECT_GE1" Name="Pirate Lieutenant" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_BLOCKSTOP" Key="obj_blockstop" ObjectKey="GAMEPLAY_KEEP" Name="Obj_Blockstop" Category=""></Actor>
+  <Actor ID="ACTOR_EN_SDA" Key="en_sda" ObjectKey="GAMEPLAY_KEEP" Name="Dynamic Shadow (Glitchy)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_CLEAR_TAG" Key="en_clear_tag" ObjectKey="GAMEPLAY_KEEP" Name="En_Clear_Tag" Category=""></Actor>
+  <Actor ID="ACTOR_EN_GM" Key="en_gm" ObjectKey="OBJECT_IN2" Name="Gorman" Category=""></Actor>
+  <Actor ID="ACTOR_EN_MS" Key="en_ms" ObjectKey="OBJECT_MS" Name="Magic Bean Seller" Category=""></Actor>
+  <Actor ID="ACTOR_EN_HS" Key="en_hs" ObjectKey="OBJECT_HS" Name="Grog" Category=""></Actor>
+  <Actor ID="ACTOR_BG_INGATE" Key="bg_ingate" ObjectKey="OBJECT_SICHITAI_OBJ" Name="Boat Cruise Canoe" Category=""></Actor>
+  <Actor ID="ACTOR_EN_KANBAN" Key="en_kanban" ObjectKey="OBJECT_KANBAN" Name="Square Signpost" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ATTACK_NIW" Key="en_attack_niw" ObjectKey="OBJECT_NIW" Name="Attacking Cucco" Category=""></Actor>
+  <Actor ID="ACTOR_EN_MK" Key="en_mk" ObjectKey="OBJECT_MK" Name="Marine Scientist" Category=""></Actor>
+  <Actor ID="ACTOR_EN_OWL" Key="en_owl" ObjectKey="OBJECT_OWL" Name="Owl" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ISHI" Key="en_ishi" ObjectKey="GAMEPLAY_KEEP" Name="Rock" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_HANA" Key="obj_hana" ObjectKey="OBJECT_HANA" Name="Orange Graveyard Flower" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_LIGHTSWITCH" Key="obj_lightswitch" ObjectKey="OBJECT_LIGHTSWITCH" Name="Sun Switch" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_MURE2" Key="obj_mure2" ObjectKey="GAMEPLAY_KEEP" Name="Grass and Rock Cluster" Category=""></Actor>
+  <Actor ID="ACTOR_EN_FU" Key="en_fu" ObjectKey="OBJECT_MU" Name="Honey and Darling" Category=""></Actor>
+  <Actor ID="ACTOR_EN_STREAM" Key="en_stream" ObjectKey="OBJECT_STREAM" Name="Water Spout" Category=""></Actor>
+  <Actor ID="ACTOR_EN_MM" Key="en_mm" ObjectKey="GAMEPLAY_KEEP" Name="Rock Sirloin" Category=""></Actor>
+  <Actor ID="ACTOR_EN_WEATHER_TAG" Key="en_weather_tag" ObjectKey="GAMEPLAY_KEEP" Name="En_Weather_Tag" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ANI" Key="en_ani" ObjectKey="OBJECT_ANI" Name="Part-Timer" Category=""></Actor>
+  <Actor ID="ACTOR_EN_JS" Key="en_js" ObjectKey="OBJECT_OB" Name="Moon Child" Category=""></Actor>
+  <Actor ID="ACTOR_EN_OKARINA_EFFECT" Key="en_okarina_effect" ObjectKey="GAMEPLAY_KEEP" Name="Song of Storms Effect I [?]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_MAG" Key="en_mag" ObjectKey="OBJECT_MAG" Name="Title Logo" Category=""></Actor>
+  <Actor ID="ACTOR_ELF_MSG2" Key="elf_msg2" ObjectKey="GAMEPLAY_KEEP" Name="Elf_Msg2" Category=""></Actor>
+  <Actor ID="ACTOR_BG_F40_SWLIFT" Key="bg_f40_swlift" ObjectKey="OBJECT_F40_OBJ" Name="Stone Tower Temple Platform [Early]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_KAKASI" Key="en_kakasi" ObjectKey="OBJECT_KA" Name="Scarecrow" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_MAKEOSHIHIKI" Key="obj_makeoshihiki" ObjectKey="GAMEPLAY_KEEP" Name="Obj_Makeoshihiki" Category=""></Actor>
+  <Actor ID="ACTOR_OCEFF_SPOT" Key="oceff_spot" ObjectKey="GAMEPLAY_KEEP" Name="Sun's Song Effect" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TORCH" Key="en_torch" ObjectKey="GAMEPLAY_KEEP" Name="Treasure Chest (Grotto)" Category=""></Actor>
+  <Actor ID="ACTOR_SHOT_SUN" Key="shot_sun" ObjectKey="GAMEPLAY_KEEP" Name="Shot_Sun" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_ROOMTIMER" Key="obj_roomtimer" ObjectKey="GAMEPLAY_KEEP" Name="Obj_Roomtimer" Category=""></Actor>
+  <Actor ID="ACTOR_EN_SSH" Key="en_ssh" ObjectKey="OBJECT_SSH" Name="Cursed Skulltula Man" Category=""></Actor>
+  <Actor ID="ACTOR_OCEFF_WIPE" Key="oceff_wipe" ObjectKey="GAMEPLAY_KEEP" Name="Song of Time Effect" Category=""></Actor>
+  <Actor ID="ACTOR_OCEFF_STORM" Key="oceff_storm" ObjectKey="GAMEPLAY_KEEP" Name="Song of Storms Effect II [?]" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_DEMO" Key="obj_demo" ObjectKey="GAMEPLAY_KEEP" Name="Cutscene Trigger" Category=""></Actor>
+  <Actor ID="ACTOR_EN_MINISLIME" Key="en_minislime" ObjectKey="OBJECT_BIGSLIME" Name="Jelly Droplets" Category=""></Actor>
+  <Actor ID="ACTOR_EN_NUTSBALL" Key="en_nutsball" ObjectKey="GAMEPLAY_KEEP" Name="Deku Nut Projectile" Category=""></Actor>
+  <Actor ID="ACTOR_OCEFF_WIPE2" Key="oceff_wipe2" ObjectKey="GAMEPLAY_KEEP" Name="Epona's Song Effect" Category=""></Actor>
+  <Actor ID="ACTOR_OCEFF_WIPE3" Key="oceff_wipe3" ObjectKey="GAMEPLAY_KEEP" Name="Saria's Song Effect" Category=""></Actor>
+  <Actor ID="ACTOR_EN_DG" Key="en_dg" ObjectKey="OBJECT_DOG" Name="Dog" Category=""></Actor>
+  <Actor ID="ACTOR_EN_SI" Key="en_si" ObjectKey="OBJECT_ST" Name="Gold Skulltula Token" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_COMB" Key="obj_comb" ObjectKey="OBJECT_COMB" Name="Beehive" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_KIBAKO2" Key="obj_kibako2" ObjectKey="OBJECT_KIBAKO2" Name="Wooden Crate" Category=""></Actor>
+  <Actor ID="ACTOR_EN_HS2" Key="en_hs2" ObjectKey="GAMEPLAY_KEEP" Name="En_Hs2" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_MURE3" Key="obj_mure3" ObjectKey="GAMEPLAY_KEEP" Name="Rupee Cluster" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TG" Key="en_tg" ObjectKey="OBJECT_MU" Name="Honey and Darling (Cutscenes)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_WF" Key="en_wf" ObjectKey="OBJECT_WF" Name="Wolfos" Category=""></Actor>
+  <Actor ID="ACTOR_EN_SKB" Key="en_skb" ObjectKey="OBJECT_SKB" Name="Stalchild" Category=""></Actor>
+  <Actor ID="ACTOR_EN_GS" Key="en_gs" ObjectKey="OBJECT_GS" Name="Gossip Stone" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_SOUND" Key="obj_sound" ObjectKey="GAMEPLAY_KEEP" Name="Sound Effects II" Category=""></Actor>
+  <Actor ID="ACTOR_EN_CROW" Key="en_crow" ObjectKey="OBJECT_CROW" Name="Guay" Category=""></Actor>
+  <Actor ID="ACTOR_EN_COW" Key="en_cow" ObjectKey="OBJECT_COW" Name="Cow" Category=""></Actor>
+  <Actor ID="ACTOR_OCEFF_WIPE4" Key="oceff_wipe4" ObjectKey="GAMEPLAY_KEEP" Name="Scarecrow's Song Effect" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ZO" Key="en_zo" ObjectKey="OBJECT_ZO" Name="Zora [Early]" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_MAKEKINSUTA" Key="obj_makekinsuta" ObjectKey="GAMEPLAY_KEEP" Name="Obj_Makekinsuta" Category=""></Actor>
+  <Actor ID="ACTOR_EN_GE3" Key="en_ge3" ObjectKey="OBJECT_GELDB" Name="Aveil" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_HAMISHI" Key="obj_hamishi" ObjectKey="GAMEPLAY_FIELD_KEEP" Name="Bronze Boulder" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ZL4" Key="en_zl4" ObjectKey="OBJECT_STK" Name="En_Zl4" Category=""></Actor>
+  <Actor ID="ACTOR_EN_MM2" Key="en_mm2" ObjectKey="GAMEPLAY_KEEP" Name="Postman's Letter to Himself" Category=""></Actor>
+  <Actor ID="ACTOR_DOOR_SPIRAL" Key="door_spiral" ObjectKey="GAMEPLAY_KEEP" Name="Spiral Staircase" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_PZLBLOCK" Key="obj_pzlblock" ObjectKey="GAMEPLAY_KEEP" Name="Majora Pushblock" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_TOGE" Key="obj_toge" ObjectKey="OBJECT_TRAP" Name="Blade Trap" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_ARMOS" Key="obj_armos" ObjectKey="OBJECT_AM" Name="Armos Statue" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_BOYO" Key="obj_boyo" ObjectKey="OBJECT_BOYO" Name="Green Bumper" Category=""></Actor>
+  <Actor ID="ACTOR_EN_GRASSHOPPER" Key="en_grasshopper" ObjectKey="OBJECT_GRASSHOPPER" Name="Dragonfly" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_GRASS" Key="obj_grass" ObjectKey="GAMEPLAY_FIELD_KEEP" Name="Obj_Grass" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_GRASS_CARRY" Key="obj_grass_carry" ObjectKey="GAMEPLAY_FIELD_KEEP" Name="Obj_Grass_Carry" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_GRASS_UNIT" Key="obj_grass_unit" ObjectKey="GAMEPLAY_FIELD_KEEP" Name="Grass Cluster" Category=""></Actor>
+  <Actor ID="ACTOR_BG_FIRE_WALL" Key="bg_fire_wall" ObjectKey="OBJECT_FWALL" Name="Proximity-Activated Firewall" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BU" Key="en_bu" ObjectKey="GAMEPLAY_KEEP" Name="En_Bu" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ENCOUNT3" Key="en_encount3" ObjectKey="OBJECT_BIG_FWALL" Name="Circle of Light [?]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_JSO" Key="en_jso" ObjectKey="OBJECT_JSO" Name="Garo Master I [?]" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_CHIKUWA" Key="obj_chikuwa" ObjectKey="OBJECT_D_LIFT" Name="Falling Block Row" Category=""></Actor>
+  <Actor ID="ACTOR_EN_KNIGHT" Key="en_knight" ObjectKey="OBJECT_KNIGHT" Name="Igos du Ikana and Henchmen [?]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_WARP_TAG" Key="en_warp_tag" ObjectKey="GAMEPLAY_KEEP" Name="Warp to Trial Entrance" Category=""></Actor>
+  <Actor ID="ACTOR_EN_AOB_01" Key="en_aob_01" ObjectKey="OBJECT_AOB" Name="Mamamu Yan" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BOJ_01" Key="en_boj_01" ObjectKey="GAMEPLAY_KEEP" Name="En_Boj_01" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BOJ_02" Key="en_boj_02" ObjectKey="GAMEPLAY_KEEP" Name="En_Boj_02" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BOJ_03" Key="en_boj_03" ObjectKey="GAMEPLAY_KEEP" Name="En_Boj_03" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ENCOUNT4" Key="en_encount4" ObjectKey="GAMEPLAY_KEEP" Name="En_Encount4" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BOM_BOWL_MAN" Key="en_bom_bowl_man" ObjectKey="OBJECT_CS" Name="Bomber I [?]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_SYATEKI_MAN" Key="en_syateki_man" ObjectKey="OBJECT_SHN" Name="Shooting Gallery Proprietors [?]" Category=""></Actor>
+  <Actor ID="ACTOR_BG_ICICLE" Key="bg_icicle" ObjectKey="OBJECT_ICICLE" Name="Icicle" Category=""></Actor>
+  <Actor ID="ACTOR_EN_SYATEKI_CROW" Key="en_syateki_crow" ObjectKey="OBJECT_CROW" Name="Guay (Shooting Gallery)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BOJ_04" Key="en_boj_04" ObjectKey="GAMEPLAY_KEEP" Name="En_Boj_04" Category=""></Actor>
+  <Actor ID="ACTOR_EN_CNE_01" Key="en_cne_01" ObjectKey="GAMEPLAY_KEEP" Name="Thin Woman in Blue Dress [OoT]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BBA_01" Key="en_bba_01" ObjectKey="GAMEPLAY_KEEP" Name="Bomb Shop Proprietor's Mother [Early]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BJI_01" Key="en_bji_01" ObjectKey="OBJECT_BJI" Name="Shikashi" Category=""></Actor>
+  <Actor ID="ACTOR_BG_SPDWEB" Key="bg_spdweb" ObjectKey="OBJECT_SPDWEB" Name="Spiderweb" Category=""></Actor>
+  <Actor ID="ACTOR_EN_MT_TAG" Key="en_mt_tag" ObjectKey="GAMEPLAY_KEEP" Name="En_Mt_tag" Category=""></Actor>
+  <Actor ID="ACTOR_BOSS_01" Key="boss_01" ObjectKey="OBJECT_BOSS01" Name="Odolwa" Category=""></Actor>
+  <Actor ID="ACTOR_BOSS_02" Key="boss_02" ObjectKey="OBJECT_BOSS02" Name="Twinmold" Category=""></Actor>
+  <Actor ID="ACTOR_BOSS_03" Key="boss_03" ObjectKey="OBJECT_BOSS03" Name="Gyorg" Category=""></Actor>
+  <Actor ID="ACTOR_BOSS_04" Key="boss_04" ObjectKey="OBJECT_BOSS04" Name="Wart" Category=""></Actor>
+  <Actor ID="ACTOR_BOSS_05" Key="boss_05" ObjectKey="OBJECT_BOSS05" Name="Bio Deku Baba" Category=""></Actor>
+  <Actor ID="ACTOR_BOSS_06" Key="boss_06" ObjectKey="OBJECT_KNIGHT" Name="Igos du Ikana [?]" Category=""></Actor>
+  <Actor ID="ACTOR_BOSS_07" Key="boss_07" ObjectKey="OBJECT_BOSS07" Name="Majora" Category=""></Actor>
+  <Actor ID="ACTOR_BG_DY_YOSEIZO" Key="bg_dy_yoseizo" ObjectKey="OBJECT_DY_OBJ" Name="Great Fairy" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BOJ_05" Key="en_boj_05" ObjectKey="GAMEPLAY_KEEP" Name="En_Boj_05" Category=""></Actor>
+  <Actor ID="ACTOR_EN_SOB1" Key="en_sob1" ObjectKey="GAMEPLAY_KEEP" Name="En_Sob1" Category=""></Actor>
+  <Actor ID="ACTOR_EN_GO" Key="en_go" ObjectKey="OBJECT_OF1D_MAP" Name="Goron" Category=""></Actor>
+  <Actor ID="ACTOR_EN_RAF" Key="en_raf" ObjectKey="OBJECT_RAF" Name="Carnivorous Lilypad" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_FUNEN" Key="obj_funen" ObjectKey="OBJECT_FUNEN" Name="Stone Tower Smoke Plume [Early]" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_RAILLIFT" Key="obj_raillift" ObjectKey="OBJECT_RAILLIFT" Name="Elevator (Deku Palace and Woodfall Temple) [?]" Category=""></Actor>
+  <Actor ID="ACTOR_BG_NUMA_HANA" Key="bg_numa_hana" ObjectKey="OBJECT_NUMA_OBJ" Name="Wooden Flower" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_FLOWERPOT" Key="obj_flowerpot" ObjectKey="OBJECT_FLOWERPOT" Name="Potted Plant" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_SPINYROLL" Key="obj_spinyroll" ObjectKey="OBJECT_SPINYROLL" Name="Spiked Log (Horizontal)" Category=""></Actor>
+  <Actor ID="ACTOR_DM_HINA" Key="dm_hina" ObjectKey="OBJECT_BSMASK" Name="Boss Remains (Cutscenes)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_SYATEKI_WF" Key="en_syateki_wf" ObjectKey="OBJECT_WF" Name="Wolfos (Shooting Gallery)" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_SKATEBLOCK" Key="obj_skateblock" ObjectKey="GAMEPLAY_DANGEON_KEEP" Name="Ice Pushblock" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_ICEBLOCK" Key="obj_iceblock" ObjectKey="OBJECT_ICE_BLOCK" Name="Frozen Enemy Ice Block" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BIGPAMET" Key="en_bigpamet" ObjectKey="OBJECT_TL" Name="Snapper (Mini-Boss)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_SYATEKI_DEKUNUTS" Key="en_syateki_dekunuts" ObjectKey="OBJECT_DEKUNUTS" Name="Mad Scrub (Shooting Gallery)" Category=""></Actor>
+  <Actor ID="ACTOR_ELF_MSG3" Key="elf_msg3" ObjectKey="GAMEPLAY_KEEP" Name="Elf_Msg3" Category=""></Actor>
+  <Actor ID="ACTOR_EN_FG" Key="en_fg" ObjectKey="OBJECT_FR" Name="Frog II [?]" Category=""></Actor>
+  <Actor ID="ACTOR_DM_RAVINE" Key="dm_ravine" ObjectKey="OBJECT_KEIKOKU_DEMO" Name="Tree Trunk" Category=""></Actor>
+  <Actor ID="ACTOR_DM_SA" Key="dm_sa" ObjectKey="OBJECT_STK" Name="Dm_Sa" Category=""></Actor>
+  <Actor ID="ACTOR_EN_SLIME" Key="en_slime" ObjectKey="OBJECT_SLIME" Name="Chuchu" Category=""></Actor>
+  <Actor ID="ACTOR_EN_PR" Key="en_pr" ObjectKey="OBJECT_PR" Name="Desbreko" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_TOUDAI" Key="obj_toudai" ObjectKey="OBJECT_F53_OBJ" Name="Clock Tower Spotlight" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_ENTOTU" Key="obj_entotu" ObjectKey="OBJECT_F53_OBJ" Name="Clock Town 2D Chimney Backdrop" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_BELL" Key="obj_bell" ObjectKey="OBJECT_F52_OBJ" Name="Stock Pot Inn Bell" Category=""></Actor>
+  <Actor ID="ACTOR_EN_SYATEKI_OKUTA" Key="en_syateki_okuta" ObjectKey="OBJECT_OKUTA" Name="Octorok (Shooting Gallery)" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_SHUTTER" Key="obj_shutter" ObjectKey="OBJECT_F53_OBJ" Name="Clock Town Bank Shutter" Category=""></Actor>
+  <Actor ID="ACTOR_DM_ZL" Key="dm_zl" ObjectKey="OBJECT_ZL4" Name="Child Zelda (Cutscenes)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ELFGRP" Key="en_elfgrp" ObjectKey="GAMEPLAY_KEEP" Name="Group of Stray Fairies" Category=""></Actor>
+  <Actor ID="ACTOR_DM_TSG" Key="dm_tsg" ObjectKey="OBJECT_OPEN_OBJ" Name="Deku Door/Spotlights" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BAGUO" Key="en_baguo" ObjectKey="OBJECT_GMO" Name="Nejiron" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_VSPINYROLL" Key="obj_vspinyroll" ObjectKey="OBJECT_SPINYROLL" Name="Spiked Log (Vertical)" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_SMORK" Key="obj_smork" ObjectKey="OBJECT_F53_OBJ" Name="Romani Ranch Chimney Smoke" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TEST2" Key="en_test2" ObjectKey="GAMEPLAY_KEEP" Name="En_Test2" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TEST3" Key="en_test3" ObjectKey="OBJECT_TEST3" Name="Kafei" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TEST4" Key="en_test4" ObjectKey="GAMEPLAY_KEEP" Name="Three-Day Timer" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BAT" Key="en_bat" ObjectKey="OBJECT_BAT" Name="Bad Bat" Category=""></Actor>
+  <Actor ID="ACTOR_EN_SEKIHI" Key="en_sekihi" ObjectKey="GAMEPLAY_KEEP" Name="Mikau's Grave and Song Pedestals [Early]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_WIZ" Key="en_wiz" ObjectKey="OBJECT_WIZ" Name="Wizzrobe" Category=""></Actor>
+  <Actor ID="ACTOR_EN_WIZ_BROCK" Key="en_wiz_brock" ObjectKey="OBJECT_WIZ" Name="Wizzrobe Warp Platform" Category=""></Actor>
+  <Actor ID="ACTOR_EN_WIZ_FIRE" Key="en_wiz_fire" ObjectKey="OBJECT_WIZ" Name="Wizzrobe Fire Attack" Category=""></Actor>
+  <Actor ID="ACTOR_EFF_CHANGE" Key="eff_change" ObjectKey="GAMEPLAY_KEEP" Name="Camera Refocuser" Category=""></Actor>
+  <Actor ID="ACTOR_DM_STATUE" Key="dm_statue" ObjectKey="OBJECT_SMTOWER" Name="Elegy Statue Light Beam [?]" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_FIRESHIELD" Key="obj_fireshield" ObjectKey="GAMEPLAY_KEEP" Name="Circle of Flames" Category=""></Actor>
+  <Actor ID="ACTOR_BG_LADDER" Key="bg_ladder" ObjectKey="OBJECT_LADDER" Name="Ladder" Category=""></Actor>
+  <Actor ID="ACTOR_EN_MKK" Key="en_mkk" ObjectKey="OBJECT_MKK" Name="Black and White Boes" Category=""></Actor>
+  <Actor ID="ACTOR_DEMO_GETITEM" Key="demo_getitem" ObjectKey="GAMEPLAY_KEEP" Name="Great Fairy's Mask and Great Fairy's Sword" Category=""></Actor>
+  <Actor ID="ACTOR_EN_DNB" Key="en_dnb" ObjectKey="OBJECT_HANAREYAMA_OBJ" Name="En_Dnb" Category=""></Actor>
+  <Actor ID="ACTOR_EN_DNH" Key="en_dnh" ObjectKey="OBJECT_TRO" Name="Boat Cruise Target Spot" Category=""></Actor>
+  <Actor ID="ACTOR_EN_DNK" Key="en_dnk" ObjectKey="GAMEPLAY_KEEP" Name="Mad Scrubs (Cutscenes)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_DNQ" Key="en_dnq" ObjectKey="OBJECT_DNO" Name="Deku King" Category=""></Actor>
+  <Actor ID="ACTOR_BG_KEIKOKU_SAKU" Key="bg_keikoku_saku" ObjectKey="OBJECT_KEIKOKU_OBJ" Name="Spiked Iron Fence" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_HUGEBOMBIWA" Key="obj_hugebombiwa" ObjectKey="OBJECT_BOMBIWA" Name="Powder Keg Boulder" Category=""></Actor>
+  <Actor ID="ACTOR_EN_FIREFLY2" Key="en_firefly2" ObjectKey="OBJECT_FIREFLY" Name="En_Firefly2" Category=""></Actor>
+  <Actor ID="ACTOR_EN_RAT" Key="en_rat" ObjectKey="OBJECT_RAT" Name="Real Bombchu" Category=""></Actor>
+  <Actor ID="ACTOR_EN_WATER_EFFECT" Key="en_water_effect" ObjectKey="OBJECT_WATER_EFFECT" Name="Dripping Water" Category=""></Actor>
+  <Actor ID="ACTOR_EN_KUSA2" Key="en_kusa2" ObjectKey="GAMEPLAY_FIELD_KEEP" Name="Keaton Grass Cluster" Category=""></Actor>
+  <Actor ID="ACTOR_BG_SPOUT_FIRE" Key="bg_spout_fire" ObjectKey="OBJECT_FWALL" Name="Proximity-Activated Firewall" Category=""></Actor>
+  <Actor ID="ACTOR_BG_DBLUE_MOVEBG" Key="bg_dblue_movebg" ObjectKey="OBJECT_DBLUE_OBJECT" Name="Great Bay Temple Gears" Category=""></Actor>
+  <Actor ID="ACTOR_EN_DY_EXTRA" Key="en_dy_extra" ObjectKey="OBJECT_DY_OBJ" Name="Great Fairy Healing Beam" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BAL" Key="en_bal" ObjectKey="OBJECT_BAL" Name="Tingle (Gameplay)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_GINKO_MAN" Key="en_ginko_man" ObjectKey="OBJECT_BOJ" Name="Bank Teller, Sakon, Twin Jugglers" Category=""></Actor>
+  <Actor ID="ACTOR_EN_WARP_UZU" Key="en_warp_uzu" ObjectKey="OBJECT_WARP_UZU" Name="Pirates' Fortress Telescope" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_DRIFTICE" Key="obj_driftice" ObjectKey="OBJECT_DRIFTICE" Name="Drifting Ice Platform" Category=""></Actor>
+  <Actor ID="ACTOR_EN_LOOK_NUTS" Key="en_look_nuts" ObjectKey="OBJECT_DNK" Name="Deku Scrub Guard (Palace Gardens)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_MUSHI2" Key="en_mushi2" ObjectKey="GAMEPLAY_KEEP" Name="En_Mushi2" Category=""></Actor>
+  <Actor ID="ACTOR_EN_FALL" Key="en_fall" ObjectKey="GAMEPLAY_KEEP" Name="The Moon" Category=""></Actor>
+  <Actor ID="ACTOR_EN_MM3" Key="en_mm3" ObjectKey="OBJECT_MM" Name="Postman (Counting Game)" Category=""></Actor>
+  <Actor ID="ACTOR_BG_CRACE_MOVEBG" Key="bg_crace_movebg" ObjectKey="OBJECT_CRACE_OBJECT" Name="Deku Shrine Door" Category=""></Actor>
+  <Actor ID="ACTOR_EN_DNO" Key="en_dno" ObjectKey="OBJECT_DNJ" Name="Deku Butler" Category=""></Actor>
+  <Actor ID="ACTOR_EN_PR2" Key="en_pr2" ObjectKey="OBJECT_PR" Name="Skullfish" Category=""></Actor>
+  <Actor ID="ACTOR_EN_PRZ" Key="en_prz" ObjectKey="OBJECT_PR" Name="Skullfish - Defeated" Category=""></Actor>
+  <Actor ID="ACTOR_EN_JSO2" Key="en_jso2" ObjectKey="OBJECT_JSO" Name="Garo Master II [?]" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_ETCETERA" Key="obj_etcetera" ObjectKey="GAMEPLAY_KEEP" Name="Deku Flower" Category=""></Actor>
+  <Actor ID="ACTOR_EN_EGOL" Key="en_egol" ObjectKey="OBJECT_EG" Name="Eyegore" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_MINE" Key="obj_mine" ObjectKey="OBJECT_NY" Name="Spiked Metal Mine" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_PURIFY" Key="obj_purify" ObjectKey="GAMEPLAY_KEEP" Name="Poisoned/Purified Water Elements" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TRU" Key="en_tru" ObjectKey="OBJECT_TRU" Name="Koume (Gameplay) [?]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TRT" Key="en_trt" ObjectKey="OBJECT_TRT" Name="Kotake (No Broom) [?]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TEST5" Key="en_test5" ObjectKey="GAMEPLAY_KEEP" Name="Spring Water" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TEST6" Key="en_test6" ObjectKey="GAMEPLAY_KEEP" Name="Song of Time Cutscene Effects" Category=""></Actor>
+  <Actor ID="ACTOR_EN_AZ" Key="en_az" ObjectKey="OBJECT_AZ" Name="Beaver Bros." Category=""></Actor>
+  <Actor ID="ACTOR_EN_ESTONE" Key="en_estone" ObjectKey="OBJECT_EG" Name="Eyegore Rubble" Category=""></Actor>
+  <Actor ID="ACTOR_BG_HAKUGIN_POST" Key="bg_hakugin_post" ObjectKey="OBJECT_HAKUGIN_OBJ" Name="Snowhead Temple Central Pillar" Category=""></Actor>
+  <Actor ID="ACTOR_DM_OPSTAGE" Key="dm_opstage" ObjectKey="OBJECT_KEIKOKU_DEMO" Name="Opening Cutscene Objects" Category=""></Actor>
+  <Actor ID="ACTOR_DM_STK" Key="dm_stk" ObjectKey="OBJECT_STK" Name="Skull Kid" Category=""></Actor>
+  <Actor ID="ACTOR_DM_CHAR00" Key="dm_char00" ObjectKey="OBJECT_DELF" Name="Tatl and Tael (Cutscenes) II [?]" Category=""></Actor>
+  <Actor ID="ACTOR_DM_CHAR01" Key="dm_char01" ObjectKey="OBJECT_MTORIDE" Name="Woodfall Temple Rises Cutscene Objects" Category=""></Actor>
+  <Actor ID="ACTOR_DM_CHAR02" Key="dm_char02" ObjectKey="OBJECT_STK2" Name="Clock Tower Roof Cutscene - OoT and Majora's Mask" Category=""></Actor>
+  <Actor ID="ACTOR_DM_CHAR03" Key="dm_char03" ObjectKey="OBJECT_OSN" Name="Happy Mask Salesman (Cutscenes)" Category=""></Actor>
+  <Actor ID="ACTOR_DM_CHAR04" Key="dm_char04" ObjectKey="GAMEPLAY_KEEP" Name="Tatl and Tael (Cutscenes) I [?]" Category=""></Actor>
+  <Actor ID="ACTOR_DM_CHAR05" Key="dm_char05" ObjectKey="OBJECT_DMASK" Name="Masks (Cutscenes)" Category=""></Actor>
+  <Actor ID="ACTOR_DM_CHAR06" Key="dm_char06" ObjectKey="OBJECT_YUKIYAMA" Name="Mountain Village Cutscene Objects [?]" Category=""></Actor>
+  <Actor ID="ACTOR_DM_CHAR07" Key="dm_char07" ObjectKey="OBJECT_MILKBAR" Name="Milk Bar Stage (Cutscenes)" Category=""></Actor>
+  <Actor ID="ACTOR_DM_CHAR08" Key="dm_char08" ObjectKey="OBJECT_KAMEJIMA" Name="Turtle (Cutscenes) [?]" Category=""></Actor>
+  <Actor ID="ACTOR_DM_CHAR09" Key="dm_char09" ObjectKey="OBJECT_BEE" Name="Giant Bee (Cutscenes)" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_TOKEIDAI" Key="obj_tokeidai" ObjectKey="OBJECT_OBJ_TOKEIDAI" Name="Clock Tower and Light Beam" Category=""></Actor>
+  <Actor ID="ACTOR_EN_MNK" Key="en_mnk" ObjectKey="OBJECT_MNK" Name="Monkey" Category=""></Actor>
+  <Actor ID="ACTOR_EN_EGBLOCK" Key="en_egblock" ObjectKey="OBJECT_EG" Name="Eyegore Block" Category=""></Actor>
+  <Actor ID="ACTOR_EN_GUARD_NUTS" Key="en_guard_nuts" ObjectKey="OBJECT_DNK" Name="Deku Scrub Guard (Palace Entrance) [?]" Category=""></Actor>
+  <Actor ID="ACTOR_BG_HAKUGIN_BOMBWALL" Key="bg_hakugin_bombwall" ObjectKey="OBJECT_HAKUGIN_OBJ" Name="Snowhead Temple Bombable Wall" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_TOKEI_TOBIRA" Key="obj_tokei_tobira" ObjectKey="OBJECT_TOKEI_TOBIRA" Name="Clock Tower Doors" Category=""></Actor>
+  <Actor ID="ACTOR_BG_HAKUGIN_ELVPOLE" Key="bg_hakugin_elvpole" ObjectKey="OBJECT_HAKUGIN_OBJ" Name="Snowhead Temple Punchable Pillar Inserts" Category=""></Actor>
+  <Actor ID="ACTOR_EN_MA4" Key="en_ma4" ObjectKey="OBJECT_MA1" Name="Romani I [?]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TWIG" Key="en_twig" ObjectKey="OBJECT_TWIG" Name="Beaver Race Ring" Category=""></Actor>
+  <Actor ID="ACTOR_EN_PO_FUSEN" Key="en_po_fusen" ObjectKey="OBJECT_PO_FUSEN" Name="Poe Balloon" Category=""></Actor>
+  <Actor ID="ACTOR_EN_DOOR_ETC" Key="en_door_etc" ObjectKey="GAMEPLAY_KEEP" Name="En_Door_Etc" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BIGOKUTA" Key="en_bigokuta" ObjectKey="OBJECT_BIGOKUTA" Name="Big Octo" Category=""></Actor>
+  <Actor ID="ACTOR_BG_ICEFLOE" Key="bg_icefloe" ObjectKey="OBJECT_ICEFLOE" Name="Ice Arrow Platform" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_OCARINALIFT" Key="obj_ocarinalift" ObjectKey="OBJECT_RAILLIFT" Name="Triforce Elevator" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TIME_TAG" Key="en_time_tag" ObjectKey="GAMEPLAY_KEEP" Name="En_Time_Tag" Category=""></Actor>
+  <Actor ID="ACTOR_BG_OPEN_SHUTTER" Key="bg_open_shutter" ObjectKey="OBJECT_OPEN_OBJ" Name="Deku Emblem Door" Category=""></Actor>
+  <Actor ID="ACTOR_BG_OPEN_SPOT" Key="bg_open_spot" ObjectKey="OBJECT_OPEN_OBJ" Name="Skull Kid Spotlights" Category=""></Actor>
+  <Actor ID="ACTOR_BG_FU_KAITEN" Key="bg_fu_kaiten" ObjectKey="OBJECT_FU_KAITEN" Name="Honey and Darling's Shop Rotating Platform" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_AQUA" Key="obj_aqua" ObjectKey="GAMEPLAY_KEEP" Name="Poured Water" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ELFORG" Key="en_elforg" ObjectKey="GAMEPLAY_KEEP" Name="Stray Fairy" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ELFBUB" Key="en_elfbub" ObjectKey="OBJECT_BUBBLE" Name="Stray Fairy Bubble" Category=""></Actor>
+  <Actor ID="ACTOR_EN_FU_MATO" Key="en_fu_mato" ObjectKey="OBJECT_FU_MATO" Name="Honey and Darling's Shop Target" Category=""></Actor>
+  <Actor ID="ACTOR_EN_FU_KAGO" Key="en_fu_kago" ObjectKey="OBJECT_FU_MATO" Name="Honey and Darling's Shop Basket" Category=""></Actor>
+  <Actor ID="ACTOR_EN_OSN" Key="en_osn" ObjectKey="OBJECT_OSN" Name="Happy Mask Salesman (Gameplay)" Category=""></Actor>
+  <Actor ID="ACTOR_BG_CTOWER_GEAR" Key="bg_ctower_gear" ObjectKey="OBJECT_CTOWER_ROT" Name="Clock Tower Gear" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TRT2" Key="en_trt2" ObjectKey="OBJECT_TRT" Name="Kotake (Broom) [?]" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_TOKEI_STEP" Key="obj_tokei_step" ObjectKey="OBJECT_TOKEI_STEP" Name="Clock Tower Roof Door" Category=""></Actor>
+  <Actor ID="ACTOR_BG_LOTUS" Key="bg_lotus" ObjectKey="OBJECT_LOTUS" Name="Lilypad" Category=""></Actor>
+  <Actor ID="ACTOR_EN_KAME" Key="en_kame" ObjectKey="OBJECT_TL" Name="Snapper" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_TAKARAYA_WALL" Key="obj_takaraya_wall" ObjectKey="OBJECT_TAKARAYA_OBJECTS" Name="Treasure Chest Game Proximity-Activated Wall" Category=""></Actor>
+  <Actor ID="ACTOR_BG_FU_MIZU" Key="bg_fu_mizu" ObjectKey="OBJECT_FU_KAITEN" Name="Honey and Darling's Shop Moat" Category=""></Actor>
+  <Actor ID="ACTOR_EN_SELLNUTS" Key="en_sellnuts" ObjectKey="OBJECT_DNT" Name="Business Scrub (Flying) [?]" Category=""></Actor>
+  <Actor ID="ACTOR_BG_DKJAIL_IVY" Key="bg_dkjail_ivy" ObjectKey="OBJECT_DKJAIL_OBJ" Name="Woodfall Prison Ivy" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_VISIBLOCK" Key="obj_visiblock" ObjectKey="OBJECT_VISIBLOCK" Name="Lens of Truth Platform" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TAKARAYA" Key="en_takaraya" ObjectKey="OBJECT_BG" Name="Treasure Chest Game Employee" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TSN" Key="en_tsn" ObjectKey="OBJECT_TSN" Name="Fisherman (Great Bay)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_DS2N" Key="en_ds2n" ObjectKey="OBJECT_DS2N" Name="Potion Shop Proprietor (Updated) [OoT]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_FSN" Key="en_fsn" ObjectKey="OBJECT_FSN" Name="Curiosity Shop Proprietor" Category=""></Actor>
+  <Actor ID="ACTOR_EN_SHN" Key="en_shn" ObjectKey="OBJECT_SHN" Name="Swamp Tourist Center Guide" Category=""></Actor>
+  <Actor ID="ACTOR_EN_STOP_HEISHI" Key="en_stop_heishi" ObjectKey="OBJECT_SDN" Name="Soldier (Gate Guard)" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_BIGICICLE" Key="obj_bigicicle" ObjectKey="OBJECT_BIGICICLE" Name="Ice Block" Category=""></Actor>
+  <Actor ID="ACTOR_EN_LIFT_NUTS" Key="en_lift_nuts" ObjectKey="OBJECT_DNT" Name="Deku Scrub Playground Employee" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TK" Key="en_tk" ObjectKey="OBJECT_TK" Name="Dampé" Category=""></Actor>
+  <Actor ID="ACTOR_BG_MARKET_STEP" Key="bg_market_step" ObjectKey="OBJECT_MARKET_OBJ" Name="West Clock Town Steps" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_LUPYGAMELIFT" Key="obj_lupygamelift" ObjectKey="OBJECT_RAILLIFT" Name="Deku Scrub Playground Elevator" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TEST7" Key="en_test7" ObjectKey="GAMEPLAY_KEEP" Name="Song of Soaring Cutscene Activator" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_LIGHTBLOCK" Key="obj_lightblock" ObjectKey="OBJECT_LIGHTBLOCK" Name="Dissolvable Light Block" Category=""></Actor>
+  <Actor ID="ACTOR_MIR_RAY2" Key="mir_ray2" ObjectKey="OBJECT_MIR_RAY" Name="Mirror Shield Reflectable Spotlight [?]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_WDHAND" Key="en_wdhand" ObjectKey="OBJECT_WDHAND" Name="Dexihand" Category=""></Actor>
+  <Actor ID="ACTOR_EN_GAMELUPY" Key="en_gamelupy" ObjectKey="GAMEPLAY_KEEP" Name="Deku Scrub Playground Rupee" Category=""></Actor>
+  <Actor ID="ACTOR_BG_DANPEI_MOVEBG" Key="bg_danpei_movebg" ObjectKey="GAMEPLAY_KEEP" Name="Dampé's House Objects" Category=""></Actor>
+  <Actor ID="ACTOR_EN_SNOWWD" Key="en_snowwd" ObjectKey="OBJECT_SNOWWD" Name="Snow-Covered Tree" Category=""></Actor>
+  <Actor ID="ACTOR_EN_PM" Key="en_pm" ObjectKey="OBJECT_MM" Name="Postman (Delivering Letters)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_GAKUFU" Key="en_gakufu" ObjectKey="GAMEPLAY_KEEP" Name="2D Music Staff" Category=""></Actor>
+  <Actor ID="ACTOR_ELF_MSG4" Key="elf_msg4" ObjectKey="GAMEPLAY_KEEP" Name="Elf_Msg4" Category=""></Actor>
+  <Actor ID="ACTOR_ELF_MSG5" Key="elf_msg5" ObjectKey="GAMEPLAY_KEEP" Name="Elf_Msg5" Category=""></Actor>
+  <Actor ID="ACTOR_EN_COL_MAN" Key="en_col_man" ObjectKey="GAMEPLAY_KEEP" Name="Piece of Heart" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TALK_GIBUD" Key="en_talk_gibud" ObjectKey="OBJECT_RD" Name="Gibdo (Ikana Well)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_GIANT" Key="en_giant" ObjectKey="OBJECT_GIANT" Name="Giant" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_SNOWBALL" Key="obj_snowball" ObjectKey="OBJECT_GOROIWA" Name="Large Snowball" Category=""></Actor>
+  <Actor ID="ACTOR_BOSS_HAKUGIN" Key="boss_hakugin" ObjectKey="OBJECT_BOSS_HAKUGIN" Name="Goht" Category=""></Actor>
+  <Actor ID="ACTOR_EN_GB2" Key="en_gb2" ObjectKey="OBJECT_PS" Name="Ghost Hut Proprietor" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ONPUMAN" Key="en_onpuman" ObjectKey="GAMEPLAY_KEEP" Name="Monkey Instrument Prompt" Category=""></Actor>
+  <Actor ID="ACTOR_BG_TOBIRA01" Key="bg_tobira01" ObjectKey="OBJECT_SPOT11_OBJ" Name="Goron Shrine Gate" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TAG_OBJ" Key="en_tag_obj" ObjectKey="GAMEPLAY_KEEP" Name="En_Tag_Obj" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_DHOUSE" Key="obj_dhouse" ObjectKey="OBJECT_DHOUSE" Name="Dampé's House Facade" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_HAKAISI" Key="obj_hakaisi" ObjectKey="OBJECT_HAKAISI" Name="Gravestone" Category=""></Actor>
+  <Actor ID="ACTOR_BG_HAKUGIN_SWITCH" Key="bg_hakugin_switch" ObjectKey="OBJECT_GORONSWITCH" Name="Goron Link Switch" Category=""></Actor>
+  <Actor ID="ACTOR_EN_SNOWMAN" Key="en_snowman" ObjectKey="OBJECT_SNOWMAN" Name="Big and Small Eeno" Category=""></Actor>
+  <Actor ID="ACTOR_TG_SW" Key="tg_sw" ObjectKey="GAMEPLAY_KEEP" Name="TG_Sw" Category=""></Actor>
+  <Actor ID="ACTOR_EN_PO_SISTERS" Key="en_po_sisters" ObjectKey="OBJECT_PO_SISTERS" Name="Poe Sisters" Category=""></Actor>
+  <Actor ID="ACTOR_EN_PP" Key="en_pp" ObjectKey="OBJECT_PP" Name="Hiploop" Category=""></Actor>
+  <Actor ID="ACTOR_EN_HAKUROCK" Key="en_hakurock" ObjectKey="OBJECT_BOSS_HAKUGIN" Name="Goht Debris" Category=""></Actor>
+  <Actor ID="ACTOR_EN_HANABI" Key="en_hanabi" ObjectKey="GAMEPLAY_KEEP" Name="Fireworks" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_DOWSING" Key="obj_dowsing" ObjectKey="GAMEPLAY_KEEP" Name="Obj_Dowsing" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_WIND" Key="obj_wind" ObjectKey="GAMEPLAY_KEEP" Name="Wind Funnel" Category=""></Actor>
+  <Actor ID="ACTOR_EN_RACEDOG" Key="en_racedog" ObjectKey="OBJECT_DOG" Name="Dog (Doggie Racetrack)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_KENDO_JS" Key="en_kendo_js" ObjectKey="OBJECT_JS" Name="Swordsman" Category=""></Actor>
+  <Actor ID="ACTOR_BG_BOTIHASIRA" Key="bg_botihasira" ObjectKey="OBJECT_BOTIHASIRA" Name="Captain Keeta Race Gatepost" Category=""></Actor>
+  <Actor ID="ACTOR_EN_FISH2" Key="en_fish2" ObjectKey="OBJECT_FB" Name="Marine Research Lab Fish" Category=""></Actor>
+  <Actor ID="ACTOR_EN_PST" Key="en_pst" ObjectKey="OBJECT_PST" Name="Postbox" Category=""></Actor>
+  <Actor ID="ACTOR_EN_POH" Key="en_poh" ObjectKey="OBJECT_PO" Name="Poe" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_SPIDERTENT" Key="obj_spidertent" ObjectKey="OBJECT_SPIDERTENT" Name="Tent-Shaped Spider Web" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ZORAEGG" Key="en_zoraegg" ObjectKey="OBJECT_ZORAEGG" Name="Zora Egg" Category=""></Actor>
+  <Actor ID="ACTOR_EN_KBT" Key="en_kbt" ObjectKey="OBJECT_KBT" Name="Zubora" Category=""></Actor>
+  <Actor ID="ACTOR_EN_GG" Key="en_gg" ObjectKey="OBJECT_GG" Name="Darmani's Ghost I [?]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_MARUTA" Key="en_maruta" ObjectKey="OBJECT_MARUTA" Name="Swordsman's School Practice Log" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_SNOWBALL2" Key="obj_snowball2" ObjectKey="OBJECT_GOROIWA" Name="Small Snowball" Category=""></Actor>
+  <Actor ID="ACTOR_EN_GG2" Key="en_gg2" ObjectKey="OBJECT_GG" Name="Darmani's Ghost II [?]" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_GHAKA" Key="obj_ghaka" ObjectKey="OBJECT_GHAKA" Name="Darmani's Gravestone" Category=""></Actor>
+  <Actor ID="ACTOR_EN_DNP" Key="en_dnp" ObjectKey="OBJECT_DNQ" Name="Deku Princess" Category=""></Actor>
+  <Actor ID="ACTOR_EN_DAI" Key="en_dai" ObjectKey="OBJECT_DAI" Name="Biggoron" Category=""></Actor>
+  <Actor ID="ACTOR_BG_GORON_OYU" Key="bg_goron_oyu" ObjectKey="OBJECT_OYU" Name="Hot Spring Water" Category=""></Actor>
+  <Actor ID="ACTOR_EN_KGY" Key="en_kgy" ObjectKey="OBJECT_KGY" Name="Gabora" Category=""></Actor>
+  <Actor ID="ACTOR_EN_INVADEPOH" Key="en_invadepoh" ObjectKey="GAMEPLAY_KEEP" Name="En_Invadepoh" Category=""></Actor>
+  <Actor ID="ACTOR_EN_GK" Key="en_gk" ObjectKey="OBJECT_GK" Name="Goron Elder's Son" Category=""></Actor>
+  <Actor ID="ACTOR_EN_AN" Key="en_an" ObjectKey="OBJECT_AN1" Name="Anju (Gameplay)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BEE" Key="en_bee" ObjectKey="OBJECT_BEE" Name="Giant Bee (Gameplay)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_OT" Key="en_ot" ObjectKey="OBJECT_OT" Name="Seahorse" Category=""></Actor>
+  <Actor ID="ACTOR_EN_DRAGON" Key="en_dragon" ObjectKey="OBJECT_UTUBO" Name="Deep Python" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_DORA" Key="obj_dora" ObjectKey="OBJECT_DORA" Name="Swordsman's School Gong" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BIGPO" Key="en_bigpo" ObjectKey="OBJECT_BIGPO" Name="Big Poe" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_KENDO_KANBAN" Key="obj_kendo_kanban" ObjectKey="OBJECT_DORA" Name="Swordsman's School Wooden Board" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_HARIKO" Key="obj_hariko" ObjectKey="OBJECT_HARIKO" Name="Cow Figurine" Category=""></Actor>
+  <Actor ID="ACTOR_EN_STH" Key="en_sth" ObjectKey="GAMEPLAY_KEEP" Name="En_Sth" Category=""></Actor>
+  <Actor ID="ACTOR_BG_SINKAI_KABE" Key="bg_sinkai_kabe" ObjectKey="OBJECT_SINKAI_KABE" Name="Bg_Sinkai_Kabe" Category=""></Actor>
+  <Actor ID="ACTOR_BG_HAKA_CURTAIN" Key="bg_haka_curtain" ObjectKey="OBJECT_HAKA_OBJ" Name="Beneath the Grave Curtain" Category=""></Actor>
+  <Actor ID="ACTOR_BG_KIN2_BOMBWALL" Key="bg_kin2_bombwall" ObjectKey="OBJECT_KIN2_OBJ" Name="Oceanside Spider House Bombable Wall" Category=""></Actor>
+  <Actor ID="ACTOR_BG_KIN2_FENCE" Key="bg_kin2_fence" ObjectKey="OBJECT_KIN2_OBJ" Name="Oceanside Spider House Fireplace Grate" Category=""></Actor>
+  <Actor ID="ACTOR_BG_KIN2_PICTURE" Key="bg_kin2_picture" ObjectKey="OBJECT_KIN2_OBJ" Name="Oceanside Spider House Skull Kid Painting" Category=""></Actor>
+  <Actor ID="ACTOR_BG_KIN2_SHELF" Key="bg_kin2_shelf" ObjectKey="OBJECT_KIN2_OBJ" Name="Oceanside Spider House Drawers and Bookshelf" Category=""></Actor>
+  <Actor ID="ACTOR_EN_RAIL_SKB" Key="en_rail_skb" ObjectKey="OBJECT_SKB" Name="Circle of Stalchildren" Category=""></Actor>
+  <Actor ID="ACTOR_EN_JG" Key="en_jg" ObjectKey="OBJECT_JG" Name="Goron Elder" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TRU_MT" Key="en_tru_mt" ObjectKey="OBJECT_TRU" Name="Koume (Boat Cruise) [?]" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_UM" Key="obj_um" ObjectKey="OBJECT_UM" Name="Cremia's Cart" Category=""></Actor>
+  <Actor ID="ACTOR_EN_NEO_REEBA" Key="en_neo_reeba" ObjectKey="OBJECT_RB" Name="Leever" Category=""></Actor>
+  <Actor ID="ACTOR_BG_MBAR_CHAIR" Key="bg_mbar_chair" ObjectKey="OBJECT_MBAR_OBJ" Name="Milk Bar Chair" Category=""></Actor>
+  <Actor ID="ACTOR_BG_IKANA_BLOCK" Key="bg_ikana_block" ObjectKey="GAMEPLAY_DANGEON_KEEP" Name="Bg_Ikana_Block" Category=""></Actor>
+  <Actor ID="ACTOR_BG_IKANA_MIRROR" Key="bg_ikana_mirror" ObjectKey="OBJECT_IKANA_OBJ" Name="Stone Tower Temple Mirror" Category=""></Actor>
+  <Actor ID="ACTOR_BG_IKANA_ROTARYROOM" Key="bg_ikana_rotaryroom" ObjectKey="OBJECT_IKANA_OBJ" Name="Stone Tower Temple Rotating Room" Category=""></Actor>
+  <Actor ID="ACTOR_BG_DBLUE_BALANCE" Key="bg_dblue_balance" ObjectKey="OBJECT_DBLUE_OBJECT" Name="Great Bay Temple See-Saw" Category=""></Actor>
+  <Actor ID="ACTOR_BG_DBLUE_WATERFALL" Key="bg_dblue_waterfall" ObjectKey="OBJECT_DBLUE_OBJECT" Name="Great Bay Temple Water Spout" Category=""></Actor>
+  <Actor ID="ACTOR_EN_KAIZOKU" Key="en_kaizoku" ObjectKey="OBJECT_KZ" Name="Pirate [?]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_GE2" Key="en_ge2" ObjectKey="OBJECT_GLA" Name="Patrolling Pirate Guard" Category=""></Actor>
+  <Actor ID="ACTOR_EN_MA_YTS" Key="en_ma_yts" ObjectKey="OBJECT_MA1" Name="Romani II [?]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_MA_YTO" Key="en_ma_yto" ObjectKey="OBJECT_MA2" Name="Cremia" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_TOKEI_TURRET" Key="obj_tokei_turret" ObjectKey="OBJECT_TOKEI_TURRET" Name="South Clock Town Objects" Category=""></Actor>
+  <Actor ID="ACTOR_BG_DBLUE_ELEVATOR" Key="bg_dblue_elevator" ObjectKey="OBJECT_DBLUE_OBJECT" Name="Great Bay Temple Elevator" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_WARPSTONE" Key="obj_warpstone" ObjectKey="OBJECT_SEK" Name="Owl Statue" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ZOG" Key="en_zog" ObjectKey="OBJECT_ZOG" Name="Mikau" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_ROTLIFT" Key="obj_rotlift" ObjectKey="OBJECT_ROTLIFT" Name="Deku Moon Trial Rotating Platform" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_JG_GAKKI" Key="obj_jg_gakki" ObjectKey="OBJECT_JG" Name="Goron Elder's Drum" Category=""></Actor>
+  <Actor ID="ACTOR_BG_INIBS_MOVEBG" Key="bg_inibs_movebg" ObjectKey="OBJECT_INIBS_OBJECT" Name="Twinmold's Lair Objects [?]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ZOT" Key="en_zot" ObjectKey="OBJECT_ZO" Name="Zora (Land)" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_TREE" Key="obj_tree" ObjectKey="OBJECT_TREE" Name="Fork-Branched Tree" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_Y2LIFT" Key="obj_y2lift" ObjectKey="OBJECT_KAIZOKU_OBJ" Name="Pirates' Fortress Mesh Elevator" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_Y2SHUTTER" Key="obj_y2shutter" ObjectKey="OBJECT_KAIZOKU_OBJ" Name="Pirates' Fortress Interior Door" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_BOAT" Key="obj_boat" ObjectKey="OBJECT_KAIZOKU_OBJ" Name="Pirates' Fortress Boat" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_TARU" Key="obj_taru" ObjectKey="OBJECT_TARU" Name="Barrel" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_HUNSUI" Key="obj_hunsui" ObjectKey="OBJECT_HUNSUI" Name="Geyser" Category=""></Actor>
+  <Actor ID="ACTOR_EN_JC_MATO" Key="en_jc_mato" ObjectKey="OBJECT_TRU" Name="Boat Cruise Target" Category=""></Actor>
+  <Actor ID="ACTOR_MIR_RAY3" Key="mir_ray3" ObjectKey="OBJECT_MIR_RAY" Name="Mirror Shield Light Ray II [?]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ZOB" Key="en_zob" ObjectKey="OBJECT_ZOB" Name="Japas" Category=""></Actor>
+  <Actor ID="ACTOR_ELF_MSG6" Key="elf_msg6" ObjectKey="GAMEPLAY_KEEP" Name="Elf_Msg6" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_NOZOKI" Key="obj_nozoki" ObjectKey="GAMEPLAY_KEEP" Name="Obj_Nozoki" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TOTO" Key="en_toto" ObjectKey="OBJECT_ZM" Name="Toto" Category=""></Actor>
+  <Actor ID="ACTOR_EN_RAILGIBUD" Key="en_railgibud" ObjectKey="OBJECT_RD" Name="Gibdo (Ikana Canyon)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BABA" Key="en_baba" ObjectKey="OBJECT_BBA" Name="Bomb Shop Proprietor's Mother" Category=""></Actor>
+  <Actor ID="ACTOR_EN_SUTTARI" Key="en_suttari" ObjectKey="OBJECT_BOJ" Name="Sakon" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ZOD" Key="en_zod" ObjectKey="OBJECT_ZOD" Name="Tijo" Category=""></Actor>
+  <Actor ID="ACTOR_EN_KUJIYA" Key="en_kujiya" ObjectKey="OBJECT_KUJIYA" Name="Lottery Shop Kiosk" Category=""></Actor>
+  <Actor ID="ACTOR_EN_GEG" Key="en_geg" ObjectKey="OBJECT_OF1D_MAP" Name="Don Gero" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_KINOKO" Key="obj_kinoko" ObjectKey="GAMEPLAY_KEEP" Name="Mushroom Scent Cloud" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_YASI" Key="obj_yasi" ObjectKey="OBJECT_OBJ_YASI" Name="Palm Tree" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TANRON1" Key="en_tanron1" ObjectKey="GAMEPLAY_KEEP" Name="Swarm of Moths" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TANRON2" Key="en_tanron2" ObjectKey="OBJECT_BOSS04" Name="Wart's Bubbles" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TANRON3" Key="en_tanron3" ObjectKey="OBJECT_BOSS03" Name="Gyorg's Fish" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_CHAN" Key="obj_chan" ObjectKey="OBJECT_OBJ_CHAN" Name="Goron Village Chandelier" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ZOS" Key="en_zos" ObjectKey="OBJECT_ZOS" Name="Evan" Category=""></Actor>
+  <Actor ID="ACTOR_EN_S_GORO" Key="en_s_goro" ObjectKey="OBJECT_OF1D_MAP" Name="Goron (Goron Shrine and Bomb Shop) [?]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_NB" Key="en_nb" ObjectKey="OBJECT_NB" Name="Anju's Grandmother (Gameplay)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_JA" Key="en_ja" ObjectKey="OBJECT_BOJ" Name="Jugglers" Category=""></Actor>
+  <Actor ID="ACTOR_BG_F40_BLOCK" Key="bg_f40_block" ObjectKey="OBJECT_F40_OBJ" Name="Stone Tower Temple Shifting Block" Category=""></Actor>
+  <Actor ID="ACTOR_BG_F40_SWITCH" Key="bg_f40_switch" ObjectKey="OBJECT_F40_SWITCH" Name="Elegy Statue Switch" Category=""></Actor>
+  <Actor ID="ACTOR_EN_PO_COMPOSER" Key="en_po_composer" ObjectKey="OBJECT_PO_COMPOSER" Name="Composer Brothers" Category=""></Actor>
+  <Actor ID="ACTOR_EN_GURUGURU" Key="en_guruguru" ObjectKey="OBJECT_FU" Name="Guru-Guru" Category=""></Actor>
+  <Actor ID="ACTOR_OCEFF_WIPE5" Key="oceff_wipe5" ObjectKey="GAMEPLAY_KEEP" Name="Sonata of Awakening Effect" Category=""></Actor>
+  <Actor ID="ACTOR_EN_STONE_HEISHI" Key="en_stone_heishi" ObjectKey="OBJECT_SDN" Name="Shiro" Category=""></Actor>
+  <Actor ID="ACTOR_OCEFF_WIPE6" Key="oceff_wipe6" ObjectKey="GAMEPLAY_KEEP" Name="Song of Soaring Effect" Category=""></Actor>
+  <Actor ID="ACTOR_EN_SCOPENUTS" Key="en_scopenuts" ObjectKey="OBJECT_DNT" Name="Business Scrub (Telescope)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_SCOPECROW" Key="en_scopecrow" ObjectKey="OBJECT_CROW" Name="Guay (Observatory Telescope)" Category=""></Actor>
+  <Actor ID="ACTOR_OCEFF_WIPE7" Key="oceff_wipe7" ObjectKey="GAMEPLAY_KEEP" Name="Song of Healing Effect" Category=""></Actor>
+  <Actor ID="ACTOR_EFF_KAMEJIMA_WAVE" Key="eff_kamejima_wave" ObjectKey="OBJECT_KAMEJIMA" Name="Turtle's Tsunami" Category=""></Actor>
+  <Actor ID="ACTOR_EN_HG" Key="en_hg" ObjectKey="OBJECT_HARFGIBUD" Name="Pamela's Father (Normal)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_HGO" Key="en_hgo" ObjectKey="OBJECT_HARFGIBUD" Name="Pamela's Father (Cursed)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ZOV" Key="en_zov" ObjectKey="OBJECT_ZOV" Name="Lulu" Category=""></Actor>
+  <Actor ID="ACTOR_EN_AH" Key="en_ah" ObjectKey="OBJECT_AH" Name="Anju's Mother (Gameplay)" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_HGDOOR" Key="obj_hgdoor" ObjectKey="OBJECT_HGDOOR" Name="Music Box House Cupboard Doors" Category=""></Actor>
+  <Actor ID="ACTOR_BG_IKANA_BOMBWALL" Key="bg_ikana_bombwall" ObjectKey="OBJECT_IKANA_OBJ" Name="Stone Tower Temple Bombable Floor Tile and Wall" Category=""></Actor>
+  <Actor ID="ACTOR_BG_IKANA_RAY" Key="bg_ikana_ray" ObjectKey="OBJECT_IKANA_OBJ" Name="Stone Tower Temple Light Ray [?]" Category=""></Actor>
+  <Actor ID="ACTOR_BG_IKANA_SHUTTER" Key="bg_ikana_shutter" ObjectKey="OBJECT_IKANA_OBJ" Name="Stone Tower Temple Lattice Door" Category=""></Actor>
+  <Actor ID="ACTOR_BG_HAKA_BOMBWALL" Key="bg_haka_bombwall" ObjectKey="OBJECT_HAKA_OBJ" Name="Beneath the Grave Bombable Wall" Category=""></Actor>
+  <Actor ID="ACTOR_BG_HAKA_TOMB" Key="bg_haka_tomb" ObjectKey="OBJECT_HAKA_OBJ" Name="Flat's Tomb" Category=""></Actor>
+  <Actor ID="ACTOR_EN_SC_RUPPE" Key="en_sc_ruppe" ObjectKey="GAMEPLAY_KEEP" Name="Large Rotating Green Rupee" Category=""></Actor>
+  <Actor ID="ACTOR_BG_IKNV_DOUKUTU" Key="bg_iknv_doukutu" ObjectKey="OBJECT_IKNV_OBJ" Name="Sharp's Cave" Category=""></Actor>
+  <Actor ID="ACTOR_BG_IKNV_OBJ" Key="bg_iknv_obj" ObjectKey="OBJECT_IKNV_OBJ" Name="Ikana Canyon Objects" Category=""></Actor>
+  <Actor ID="ACTOR_EN_PAMERA" Key="en_pamera" ObjectKey="OBJECT_PAMERA" Name="Pamela" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_HSSTUMP" Key="obj_hsstump" ObjectKey="OBJECT_HSSTUMP" Name="Hookshot Stump" Category=""></Actor>
+  <Actor ID="ACTOR_EN_HIDDEN_NUTS" Key="en_hidden_nuts" ObjectKey="OBJECT_HINTNUTS" Name="Mad Scrub (Sleeping)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ZOW" Key="en_zow" ObjectKey="OBJECT_ZO" Name="Zora (Water)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TALK" Key="en_talk" ObjectKey="GAMEPLAY_KEEP" Name="En_Talk" Category=""></Actor>
+  <Actor ID="ACTOR_EN_AL" Key="en_al" ObjectKey="OBJECT_AL" Name="Madame Aroma (Gameplay)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TAB" Key="en_tab" ObjectKey="OBJECT_TAB" Name="Mr. Barten" Category=""></Actor>
+  <Actor ID="ACTOR_EN_NIMOTSU" Key="en_nimotsu" ObjectKey="OBJECT_BOJ" Name="Bomb Shop Bag" Category=""></Actor>
+  <Actor ID="ACTOR_EN_HIT_TAG" Key="en_hit_tag" ObjectKey="GAMEPLAY_KEEP" Name="En_Hit_Tag" Category=""></Actor>
+  <Actor ID="ACTOR_EN_RUPPECROW" Key="en_ruppecrow" ObjectKey="OBJECT_CROW" Name="Guay (Circling Clock Town)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TANRON4" Key="en_tanron4" ObjectKey="OBJECT_TANRON4" Name="Flock of Seagulls" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TANRON5" Key="en_tanron5" ObjectKey="OBJECT_BOSS02" Name="En_Tanron5" Category=""></Actor>
+  <Actor ID="ACTOR_EN_TANRON6" Key="en_tanron6" ObjectKey="OBJECT_TANRON5" Name="Swarm of Giant Bees" Category=""></Actor>
+  <Actor ID="ACTOR_EN_DAIKU2" Key="en_daiku2" ObjectKey="OBJECT_DAIKU" Name="Carpenter (Milk Road)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_MUTO" Key="en_muto" ObjectKey="OBJECT_TORYO" Name="Mutoh (Gameplay)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BAISEN" Key="en_baisen" ObjectKey="OBJECT_BAI" Name="Captain Viscen" Category=""></Actor>
+  <Actor ID="ACTOR_EN_HEISHI" Key="en_heishi" ObjectKey="OBJECT_SDN" Name="Soldier (Mayor's House)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_DEMO_HEISHI" Key="en_demo_heishi" ObjectKey="OBJECT_SDN" Name="Soldier (Cutscenes) I [?]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_DT" Key="en_dt" ObjectKey="OBJECT_DT" Name="Mayor Dotour (Gameplay)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_CHA" Key="en_cha" ObjectKey="OBJECT_CHA" Name="Laundry Pool Bell [?]" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_DINNER" Key="obj_dinner" ObjectKey="OBJECT_OBJ_DINNER" Name="Cremia and Romani's Dinner" Category=""></Actor>
+  <Actor ID="ACTOR_EFF_LASTDAY" Key="eff_lastday" ObjectKey="OBJECT_LASTDAY" Name="Moon Fall Effects" Category=""></Actor>
+  <Actor ID="ACTOR_BG_IKANA_DHARMA" Key="bg_ikana_dharma" ObjectKey="OBJECT_IKANA_OBJ" Name="Ancient Castle of Ikana Punchable Pillar Segments" Category=""></Actor>
+  <Actor ID="ACTOR_EN_AKINDONUTS" Key="en_akindonuts" ObjectKey="OBJECT_DNT" Name="Traveling Business Scrub" Category=""></Actor>
+  <Actor ID="ACTOR_EFF_STK" Key="eff_stk" ObjectKey="OBJECT_STK2" Name="Skull Kid Moon-Summoning Effects [?]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_IG" Key="en_ig" ObjectKey="OBJECT_DAI" Name="Link the Goron" Category=""></Actor>
+  <Actor ID="ACTOR_EN_RG" Key="en_rg" ObjectKey="OBJECT_OF1D_MAP" Name="Goron (Goron Racetrack)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_OSK" Key="en_osk" ObjectKey="OBJECT_IKN_DEMO" Name="Igos du Ikana and Henchmen's Heads" Category=""></Actor>
+  <Actor ID="ACTOR_EN_STH2" Key="en_sth2" ObjectKey="GAMEPLAY_KEEP" Name="En_Sth2" Category=""></Actor>
+  <Actor ID="ACTOR_EN_YB" Key="en_yb" ObjectKey="OBJECT_YB" Name="Kamaro" Category=""></Actor>
+  <Actor ID="ACTOR_EN_RZ" Key="en_rz" ObjectKey="OBJECT_RZ" Name="Rosa Sister" Category=""></Actor>
+  <Actor ID="ACTOR_EN_SCOPECOIN" Key="en_scopecoin" ObjectKey="GAMEPLAY_KEEP" Name="En_Scopecoin" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BJT" Key="en_bjt" ObjectKey="OBJECT_BJT" Name="Hand in Toilet" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BOMJIMA" Key="en_bomjima" ObjectKey="OBJECT_CS" Name="Jim I [?]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BOMJIMB" Key="en_bomjimb" ObjectKey="OBJECT_CS" Name="Jim II [?]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BOMBERS" Key="en_bombers" ObjectKey="OBJECT_CS" Name="Bomber II [?]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BOMBERS2" Key="en_bombers2" ObjectKey="OBJECT_CS" Name="Bomber (Hideout Guard)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BOMBAL" Key="en_bombal" ObjectKey="OBJECT_FUSEN" Name="Majora Balloon (North Clock Town)" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_MOON_STONE" Key="obj_moon_stone" ObjectKey="OBJECT_GI_RESERVE00" Name="Moon's Tear" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_MU_PICT" Key="obj_mu_pict" ObjectKey="GAMEPLAY_KEEP" Name="Obj_Mu_Pict" Category=""></Actor>
+  <Actor ID="ACTOR_BG_IKNINSIDE" Key="bg_ikninside" ObjectKey="OBJECT_IKNINSIDE_OBJ" Name="Ancient Castle of Ikana Objects [?]" Category=""></Actor>
+  <Actor ID="ACTOR_EFF_ZORABAND" Key="eff_zoraband" ObjectKey="OBJECT_ZORABAND" Name="Blue Spotlight Effect" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_KEPN_KOYA" Key="obj_kepn_koya" ObjectKey="OBJECT_KEPN_KOYA" Name="Gorman Track Buildings" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_USIYANE" Key="obj_usiyane" ObjectKey="OBJECT_OBJ_USIYANE" Name="Cow Barn Roof (Exterior)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_NNH" Key="en_nnh" ObjectKey="OBJECT_NNH" Name="Deku Butler's Son" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_KZSAKU" Key="obj_kzsaku" ObjectKey="OBJECT_KZSAKU" Name="Metal Portcullis" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_MILK_BIN" Key="obj_milk_bin" ObjectKey="OBJECT_OBJ_MILK_BIN" Name="Chateau Romani Delivery Bottle" Category=""></Actor>
+  <Actor ID="ACTOR_EN_KITAN" Key="en_kitan" ObjectKey="OBJECT_KITAN" Name="Keaton" Category=""></Actor>
+  <Actor ID="ACTOR_BG_ASTR_BOMBWALL" Key="bg_astr_bombwall" ObjectKey="OBJECT_ASTR_OBJ" Name="Astral Observatory Bombable Wall" Category=""></Actor>
+  <Actor ID="ACTOR_BG_IKNIN_SUSCEIL" Key="bg_iknin_susceil" ObjectKey="OBJECT_IKNINSIDE_OBJ" Name="Hot Checkered Ceiling [?]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BSB" Key="en_bsb" ObjectKey="OBJECT_BSB" Name="Captain Keeta" Category=""></Actor>
+  <Actor ID="ACTOR_EN_RECEPGIRL" Key="en_recepgirl" ObjectKey="OBJECT_BG" Name="Mayor's Receptionist" Category=""></Actor>
+  <Actor ID="ACTOR_EN_THIEFBIRD" Key="en_thiefbird" ObjectKey="OBJECT_THIEFBIRD" Name="Takkuri" Category=""></Actor>
+  <Actor ID="ACTOR_EN_JGAME_TSN" Key="en_jgame_tsn" ObjectKey="OBJECT_TSN" Name="Fisherman (Fisherman's Jumping Game)" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_JGAME_LIGHT" Key="obj_jgame_light" ObjectKey="OBJECT_SYOKUDAI" Name="Torch Stand (Fisherman's Jumping Game)" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_YADO" Key="obj_yado" ObjectKey="OBJECT_YADO_OBJ" Name="Stockpot Inn Window" Category=""></Actor>
+  <Actor ID="ACTOR_DEMO_SYOTEN" Key="demo_syoten" ObjectKey="OBJECT_SYOTEN" Name="Ikana Canyon Curse Lifted Effects" Category=""></Actor>
+  <Actor ID="ACTOR_DEMO_MOONEND" Key="demo_moonend" ObjectKey="OBJECT_MOONEND" Name="Moon (Cutscenes)" Category=""></Actor>
+  <Actor ID="ACTOR_BG_LBFSHOT" Key="bg_lbfshot" ObjectKey="OBJECT_LBFSHOT" Name="Rainbow Hookshot Pillar" Category=""></Actor>
+  <Actor ID="ACTOR_BG_LAST_BWALL" Key="bg_last_bwall" ObjectKey="OBJECT_LAST_OBJ" Name="Link Moon Trial Bombable and Climbable Walls" Category=""></Actor>
+  <Actor ID="ACTOR_EN_AND" Key="en_and" ObjectKey="OBJECT_AND" Name="Anju (Wedding Dress)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_INVADEPOH_DEMO" Key="en_invadepoh_demo" ObjectKey="GAMEPLAY_KEEP" Name="Invader Poe (Cutscenes)" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_DANPEILIFT" Key="obj_danpeilift" ObjectKey="OBJECT_OBJ_DANPEILIFT" Name="Deku Shrine and Snowhead Temple Elevator [?]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_FALL2" Key="en_fall2" ObjectKey="OBJECT_FALL2" Name="Falling Moon" Category=""></Actor>
+  <Actor ID="ACTOR_DM_AL" Key="dm_al" ObjectKey="OBJECT_AL" Name="Madame Aroma (Cutscenes)" Category=""></Actor>
+  <Actor ID="ACTOR_DM_AN" Key="dm_an" ObjectKey="OBJECT_AN1" Name="Anju Cutscene Animations" Category=""></Actor>
+  <Actor ID="ACTOR_DM_AH" Key="dm_ah" ObjectKey="OBJECT_AH" Name="Anju's Mother (Cutscenes)" Category=""></Actor>
+  <Actor ID="ACTOR_DM_NB" Key="dm_nb" ObjectKey="OBJECT_NB" Name="Anju's Grandmother (Cutscenes)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_DRS" Key="en_drs" ObjectKey="OBJECT_DRS" Name="Wedding Dress Mannequin" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ENDING_HERO" Key="en_ending_hero" ObjectKey="OBJECT_DT" Name="Mayor Dotour (Cutscenes)" Category=""></Actor>
+  <Actor ID="ACTOR_DM_BAL" Key="dm_bal" ObjectKey="OBJECT_BAL" Name="Tingle (Cutscenes)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_PAPER" Key="en_paper" ObjectKey="OBJECT_BAL" Name="Tingle Confetti" Category=""></Actor>
+  <Actor ID="ACTOR_EN_HINT_SKB" Key="en_hint_skb" ObjectKey="OBJECT_SKB" Name="Stalchild (Oceanside Spider House)" Category=""></Actor>
+  <Actor ID="ACTOR_DM_TAG" Key="dm_tag" ObjectKey="GAMEPLAY_KEEP" Name="Dm_Tag" Category=""></Actor>
+  <Actor ID="ACTOR_EN_BH" Key="en_bh" ObjectKey="OBJECT_BH" Name="Brown Bird" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ENDING_HERO2" Key="en_ending_hero2" ObjectKey="OBJECT_BAI" Name="Viscen (Cutscenes)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ENDING_HERO3" Key="en_ending_hero3" ObjectKey="OBJECT_TORYO" Name="Mutoh (Cutscenes)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ENDING_HERO4" Key="en_ending_hero4" ObjectKey="OBJECT_SDN" Name="Soldier (Cutscenes) II [?]" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ENDING_HERO5" Key="en_ending_hero5" ObjectKey="OBJECT_DAIKU" Name="Carpenter (Cutscenes)" Category=""></Actor>
+  <Actor ID="ACTOR_EN_ENDING_HERO6" Key="en_ending_hero6" ObjectKey="GAMEPLAY_KEEP" Name="En_Ending_Hero6" Category=""></Actor>
+  <Actor ID="ACTOR_DM_GM" Key="dm_gm" ObjectKey="OBJECT_AN1" Name="Dm_Gm" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_SWPRIZE" Key="obj_swprize" ObjectKey="GAMEPLAY_KEEP" Name="Obj_Swprize" Category=""></Actor>
+  <Actor ID="ACTOR_EN_INVISIBLE_RUPPE" Key="en_invisible_ruppe" ObjectKey="GAMEPLAY_KEEP" Name="Invisible - Rupee" Category=""></Actor>
+  <Actor ID="ACTOR_OBJ_ENDING" Key="obj_ending" ObjectKey="OBJECT_ENDING_OBJ" Name="Epilogue Cutscene Objects" Category=""></Actor>
+  <Actor ID="ACTOR_EN_RSN" Key="en_rsn" ObjectKey="GAMEPLAY_KEEP" Name="Bomb Shop Proprietor" Category=""></Actor>
+
+<!-- =============================================== -->
+<!-- ================ MESSAGE TABLE ================ -->
+<!-- =============================================== -->
+
+  <List Name="Elf_Msg Message ID">
+    <!-- TODO -->
+    <!--Item Key="msg_00" Name="What's that?" Value="0x00"/ -->
+  </List>
+
+<!-- =============================================== -->
+<!-- ================ COLLECTIBLES ================= -->
+<!-- =============================================== -->
+
+  <List Name="Collectibles">
+    <Item Value="0x00" Key="ITEM00_RUPEE_GREEN"     Name="Green Rupee"     />
+    <Item Value="0x01" Key="ITEM00_RUPEE_BLUE"      Name="Blue Rupee"      />
+    <Item Value="0x02" Key="ITEM00_RUPEE_RED"       Name="Red Rupee"       />
+    <Item Value="0x03" Key="ITEM00_RECOVERY_HEART"  Name="Recovery Heart"  />
+    <Item Value="0x04" Key="ITEM00_BOMBS_A"         Name="Bomb (5)"        />
+    <Item Value="0x05" Key="ITEM00_ARROWS_10"       Name="Arrows (10)"     />
+    <Item Value="0x06" Key="ITEM00_HEART_PIECE"     Name="Heart Piece"     />
+    <Item Value="0x07" Key="ITEM00_HEART_CONTAINER" Name="Heart Container" />
+    <Item Value="0x08" Key="ITEM00_ARROWS_30"       Name="Arrows (20)"     />
+    <Item Value="0x09" Key="ITEM00_ARROWS_40"       Name="Arrows (30)"     />
+    <Item Value="0x0A" Key="ITEM00_ARROWS_50"       Name="Arrows (50)"     />
+    <Item Value="0x0B" Key="ITEM00_BOMBS_B"         Name="Bomb (5)"        />
+    <Item Value="0x0C" Key="ITEM00_NUTS_1"          Name="Deku Nut (1)"    />
+    <Item Value="0x0D" Key="ITEM00_STICK"           Name="Deku Stick (1)"  />
+    <Item Value="0x0E" Key="ITEM00_MAGIC_LARGE"     Name="Large Magic Jar" />
+    <Item Value="0x0F" Key="ITEM00_MAGIC_SMALL"     Name="Small Magic Jar" />
+    <Item Value="0x10" Key="ITEM00_MASK"            Name="Link=Arrows, Zora=Heart, Goron=Magic" />
+    <Item Value="0x11" Key="ITEM00_SMALL_KEY"       Name="Small Key"       />
+    <Item Value="0x12" Key="ITEM00_FLEXIBLE"        Name="Flexible"        />
+    <Item Value="0x13" Key="ITEM00_RUPEE_HUGE"      Name="Orange Rupee"    />
+    <Item Value="0x14" Key="ITEM00_RUPEE_PURPLE"    Name="Purple Rupee"    />
+    <Item Value="0x15" Key="ITEM00_3_HEARTS"        Name="Recovery Hearts (3)"/>
+    <Item Value="0x16" Key="ITEM00_SHIELD_HERO"     Name="Hero-Shield"     />
+    <Item Value="0x17" Key="ITEM00_NUTS_10"         Name="Deku Nuts (10)"  />
+    <Item Value="0x18" Key="ITEM00_NOTHING"         Name="Nothing"         />
+    <Item Value="0x19" Key="ITEM00_BOMBS_0"         Name="Bomb (None/Fake)"/>
+    <Item Value="0x1A" Key="ITEM00_BIG_FAIRY"       Name="Big Fairy"       />
+    <Item Value="0x1B" Key="ITEM00_MAP"             Name="Map"             />
+    <Item Value="0x1C" Key="ITEM00_COMPASS"         Name="Compass"         />
+    <Item Value="0x1D" Key="ITEM00_MUSHROOM_CLOUD"  Name="Mushroom Cloud"  />
+  </List>
+
+<!-- =============================================== -->
+<!-- ================ CHEST CONTENT ================ -->
+<!-- =============================================== -->
+
+  <List Name="Chest Content">
+    <Item Key="item_00" Value="0x00" Name="[None]" />
+    <Item Key="item_01" Value="0x01" Name="Rupee (1)" />
+    <Item Key="item_02" Value="0x02" Name="Rupees (5)" />
+    <Item Key="item_03" Value="0x03" Name="Rupees (10)" />
+    <Item Key="item_04" Value="0x04" Name="Rupees (20)" />
+    <Item Key="item_05" Value="0x05" Name="Rupees (50)" />
+    <Item Key="item_06" Value="0x06" Name="Rupees (100)" />
+    <Item Key="item_07" Value="0x07" Name="Rupees (200)" />
+    <Item Key="item_08" Value="0x08" Name="Wallet (Adult)" />
+    <Item Key="item_09" Value="0x09" Name="Wallet (Giant)" />
+    <Item Key="item_0A" Value="0x0A" Name="Recovery Heart" />
+    <Item Key="item_0B" Value="0x0B" Name="GI_0B" />
+    <Item Key="item_0C" Value="0x0C" Name="Heart Piece" />
+    <Item Key="item_0D" Value="0x0D" Name="Heart Container" />
+    <Item Key="item_0E" Value="0x0E" Name="Small Magic Jar" />
+    <Item Key="item_0F" Value="0x0F" Name="Large Magic Jar" />
+    <Item Key="item_10" Value="0x10" Name="GI_10" />
+    <Item Key="item_11" Value="0x11" Name="Stray Fairy" />
+    <Item Key="item_12" Value="0x12" Name="GI_12" />
+    <Item Key="item_13" Value="0x13" Name="GI_13" />
+    <Item Key="item_14" Value="0x14" Name="Bombs (1)" />
+    <Item Key="item_15" Value="0x15" Name="Bombs (5)" />
+    <Item Key="item_16" Value="0x16" Name="Bombs (10)" />
+    <Item Key="item_17" Value="0x17" Name="Bombs (20)" />
+    <Item Key="item_18" Value="0x18" Name="Bombs (30)" />
+    <Item Key="item_19" Value="0x19" Name="Deku-Stick" />
+    <Item Key="item_1A" Value="0x1A" Name="Bombchus (10)" />
+    <Item Key="item_1B" Value="0x1B" Name="Bomb-Bag (20)" />
+    <Item Key="item_1C" Value="0x1C" Name="Bomb-Bag (30)" />
+    <Item Key="item_1D" Value="0x1D" Name="Bomb-Bag (40)" />
+    <Item Key="item_1E" Value="0x1E" Name="Arrows (10)" />
+    <Item Key="item_1F" Value="0x1F" Name="Arrows (30)" />
+    <Item Key="item_20" Value="0x20" Name="Arrows (40)" />
+    <Item Key="item_21" Value="0x21" Name="Arrows (50)" />
+    <Item Key="item_22" Value="0x22" Name="Quiver (30)" />
+    <Item Key="item_23" Value="0x23" Name="Quiver (40)" />
+    <Item Key="item_24" Value="0x24" Name="Quiver (50)" />
+    <Item Key="item_25" Value="0x25" Name="Fire-Arrows" />
+    <Item Key="item_26" Value="0x26" Name="Ice-Arrows" />
+    <Item Key="item_27" Value="0x27" Name="Light-Arrows" />
+    <Item Key="item_28" Value="0x28" Name="Deku-Nuts (1)" />
+    <Item Key="item_29" Value="0x29" Name="Deku-Nuts (5)" />
+    <Item Key="item_2A" Value="0x2A" Name="Deku-Nuts (10)" />
+    <Item Key="item_2B" Value="0x2B" Name="GI_2B" />
+    <Item Key="item_2C" Value="0x2C" Name="GI_2C" />
+    <Item Key="item_2D" Value="0x2D" Name="GI_2D" />
+    <Item Key="item_2E" Value="0x2E" Name="Bombchus (20)" />
+    <Item Key="item_2F" Value="0x2F" Name="GI_2F" />
+    <Item Key="item_30" Value="0x30" Name="GI_30" />
+    <Item Key="item_31" Value="0x31" Name="GI_31" />
+    <Item Key="item_32" Value="0x32" Name="Hero-Shield" />
+    <Item Key="item_33" Value="0x33" Name="Mirror-Shield" />
+    <Item Key="item_34" Value="0x34" Name="Powder-Keg" />
+    <Item Key="item_35" Value="0x35" Name="Magic Beans" />
+    <Item Key="item_36" Value="0x36" Name="Bombchu (1)" />
+    <Item Key="item_37" Value="0x37" Name="Kokiri-Sword" />
+    <Item Key="item_38" Value="0x38" Name="Razow-Sword" />
+    <Item Key="item_39" Value="0x39" Name="Gilded-Sword" />
+    <Item Key="item_3A" Value="0x3A" Name="Bombchus (5)" />
+    <Item Key="item_3B" Value="0x3B" Name="Great-Fairy Sword" />
+    <Item Key="item_3C" Value="0x3C" Name="Small Key" />
+    <Item Key="item_3D" Value="0x3D" Name="Boss-Key" />
+    <Item Key="item_3E" Value="0x3E" Name="Map" />
+    <Item Key="item_3F" Value="0x3F" Name="Compass" />
+    <Item Key="item_40" Value="0x40" Name="GI_40" />
+    <Item Key="item_41" Value="0x41" Name="Hookshor" />
+    <Item Key="item_42" Value="0x42" Name="Lens of Truth" />
+    <Item Key="item_43" Value="0x43" Name="Pictograph Box" />
+    <Item Key="item_44" Value="0x44" Name="GI_44" />
+    <Item Key="item_45" Value="0x45" Name="GI_45" />
+    <Item Key="item_46" Value="0x46" Name="GI_46" />
+    <Item Key="item_47" Value="0x47" Name="GI_47" />
+    <Item Key="item_48" Value="0x48" Name="GI_48" />
+    <Item Key="item_49" Value="0x49" Name="GI_49" />
+    <Item Key="item_4A" Value="0x4A" Name="GI_4A" />
+    <Item Key="item_4B" Value="0x4B" Name="GI_4B" />
+    <Item Key="item_4C" Value="0x4C" Name="Ocarina of time" />
+    <Item Key="item_4D" Value="0x4D" Name="GI_4D" />
+    <Item Key="item_4E" Value="0x4E" Name="GI_4E" />
+    <Item Key="item_4F" Value="0x4F" Name="GI_4F" />
+    <Item Key="item_50" Value="0x50" Name="Bomber's Notebook" />
+    <Item Key="item_51" Value="0x51" Name="GI_51" />
+    <Item Key="item_52" Value="0x52" Name="Golden-Skulltula Token" />
+    <Item Key="item_53" Value="0x53" Name="GI_53" />
+    <Item Key="item_54" Value="0x54" Name="GI_54" />
+    <Item Key="item_55" Value="0x55" Name="Remains (Odolwa)" />
+    <Item Key="item_56" Value="0x56" Name="Remains (Goht)" />
+    <Item Key="item_57" Value="0x57" Name="Remains (Gyorg)" />
+    <Item Key="item_58" Value="0x58" Name="Remains (Twinmold)" />
+    <Item Key="item_59" Value="0x59" Name="Red Potion Bottle" />
+    <Item Key="item_5A" Value="0x5A" Name="Bottle" />
+    <Item Key="item_5B" Value="0x5B" Name="Red Potion" />
+    <Item Key="item_5C" Value="0x5C" Name="Green Potion" />
+    <Item Key="item_5D" Value="0x5D" Name="Blue Potion" />
+    <Item Key="item_5E" Value="0x5E" Name="Fairy" />
+    <Item Key="item_5F" Value="0x5F" Name="Deku Princess" />
+    <Item Key="item_60" Value="0x60" Name="Milk-Bottle (Full)" />
+    <Item Key="item_61" Value="0x61" Name="Milk-Bottle (Half)" />
+    <Item Key="item_62" Value="0x62" Name="Fish" />
+    <Item Key="item_63" Value="0x63" Name="Bug" />
+    <Item Key="item_64" Value="0x64" Name="Blue-Fire" />
+    <Item Key="item_65" Value="0x65" Name="Poe" />
+    <Item Key="item_66" Value="0x66" Name="Big-Poe" />
+    <Item Key="item_67" Value="0x67" Name="Spring-Water (Cold)" />
+    <Item Key="item_68" Value="0x68" Name="Spring-Water (Hot)" />
+    <Item Key="item_69" Value="0x69" Name="Zora-Egg" />
+    <Item Key="item_6A" Value="0x6A" Name="Gold-Dust" />
+    <Item Key="item_6B" Value="0x6B" Name="Mushroom" />
+    <Item Key="item_6C" Value="0x6C" Name="GI_6C" />
+    <Item Key="item_6D" Value="0x6D" Name="GI_6D" />
+    <Item Key="item_6E" Value="0x6E" Name="Seahorse" />
+    <Item Key="item_6F" Value="0x6F" Name="Chateau-Romani Bottle" />
+    <Item Key="item_70" Value="0x70" Name="Hylian Loach" />
+    <Item Key="item_71" Value="0x71" Name="GI_71" />
+    <Item Key="item_72" Value="0x72" Name="GI_72" />
+    <Item Key="item_73" Value="0x73" Name="GI_73" />
+    <Item Key="item_74" Value="0x74" Name="GI_74" />
+    <Item Key="item_75" Value="0x75" Name="GI_75" />
+    <Item Key="item_76" Value="0x76" Name="Ice-Trap" />
+    <Item Key="item_77" Value="0x77" Name="GI_77" />
+    <Item Key="item_78" Value="0x78" Name="Mask (Deku)" />
+    <Item Key="item_79" Value="0x79" Name="Mask (Goron)" />
+    <Item Key="item_7A" Value="0x7A" Name="Mask (Zora)" />
+    <Item Key="item_7B" Value="0x7B" Name="Mask (Fierce-Deity)" />
+    <Item Key="item_7C" Value="0x7C" Name="Mask (Captain)" />
+    <Item Key="item_7D" Value="0x7D" Name="Mask (Giant)" />
+    <Item Key="item_7E" Value="0x7E" Name="Mask (All-Night)" />
+    <Item Key="item_7F" Value="0x7F" Name="Mask (Bunny)" />
+    <Item Key="item_80" Value="0x80" Name="Mask (Keaton)" />
+    <Item Key="item_81" Value="0x81" Name="Mask (Garo)" />
+    <Item Key="item_82" Value="0x82" Name="Mask (Romani)" />
+    <Item Key="item_83" Value="0x83" Name="Mask (Circus leader)" />
+    <Item Key="item_84" Value="0x84" Name="Mask (Postman)" />
+    <Item Key="item_85" Value="0x85" Name="Mask (Couple)" />
+    <Item Key="item_86" Value="0x86" Name="Mask (Great-Fairy)" />
+    <Item Key="item_87" Value="0x87" Name="Mask (Gibdo)" />
+    <Item Key="item_88" Value="0x88" Name="Mask (Don-Gero)" />
+    <Item Key="item_89" Value="0x89" Name="Mask (Kamaro)" />
+    <Item Key="item_8A" Value="0x8A" Name="Mask (Truth)" />
+    <Item Key="item_8B" Value="0x8B" Name="Mask (Stone)" />
+    <Item Key="item_8C" Value="0x8C" Name="Mask (Bremen)" />
+    <Item Key="item_8D" Value="0x8D" Name="Mask (Blast)" />
+    <Item Key="item_8E" Value="0x8E" Name="Mask (Scents)" />
+    <Item Key="item_8F" Value="0x8F" Name="Mask (Kafei)" />
+    <Item Key="item_90" Value="0x90" Name="GI_90" />
+    <Item Key="item_91" Value="0x91" Name="Chateau-Romani Milk" />
+    <Item Key="item_92" Value="0x92" Name="Regular Milk" />
+    <Item Key="item_93" Value="0x93" Name="Gold Dust (0x93)" />
+    <Item Key="item_94" Value="0x94" Name="Hylian Loach (0x94)" />
+    <Item Key="item_95" Value="0x95" Name="Seahorse (Caught)" />
+    <Item Key="item_96" Value="0x96" Name="Moon tear" />
+    <Item Key="item_97" Value="0x97" Name="Land-Deed (Land)" />
+    <Item Key="item_98" Value="0x98" Name="Land-Deed (Swamp)" />
+    <Item Key="item_99" Value="0x99" Name="Land-Deed (Mountain)" />
+    <Item Key="item_9A" Value="0x9A" Name="Land-Deed (Ocean)" />
+    <Item Key="item_9B" Value="0x9B" Name="Stolen Sword (Great-Fairy)" />
+    <Item Key="item_9C" Value="0x9C" Name="Stolen Sword (Kokiri)" />
+    <Item Key="item_9D" Value="0x9D" Name="Stolen Sword (Razor)" />
+    <Item Key="item_9E" Value="0x9E" Name="Stolen Sword (Gilded)" />
+    <Item Key="item_9F" Value="0x9F" Name="Stolen Shield (Hero)" />
+    <Item Key="item_A0" Value="0xA0" Name="Room-Key" />
+    <Item Key="item_A1" Value="0xA1" Name="Letter to Mama" />
+    <Item Key="item_A2" Value="0xA2" Name="GI_A2" />
+    <Item Key="item_A3" Value="0xA3" Name="GI_A3" />
+    <Item Key="item_A4" Value="0xA4" Name="GI_A4" />
+    <Item Key="item_A5" Value="0xA5" Name="GI_A5" />
+    <Item Key="item_A6" Value="0xA6" Name="GI_A6" />
+    <Item Key="item_A7" Value="0xA7" Name="GI_A7" />
+    <Item Key="item_A8" Value="0xA8" Name="GI_A8" />
+    <Item Key="item_A9" Value="0xA9" Name="Stolen Bottle" />
+    <Item Key="item_AA" Value="0xAA" Name="Letter to Kafei" />
+    <Item Key="item_AB" Value="0xAB" Name="Pendant of memories" />
+    <Item Key="item_AC" Value="0xAC" Name="GI_AC" />
+    <Item Key="item_AD" Value="0xAD" Name="GI_AD" />
+    <Item Key="item_AE" Value="0xAE" Name="GI_AE" />
+    <Item Key="item_AF" Value="0xAF" Name="GI_AF" />
+    <Item Key="item_B0" Value="0xB0" Name="GI_B0" />
+    <Item Key="item_B1" Value="0xB1" Name="GI_B1" />
+    <Item Key="item_B2" Value="0xB2" Name="GI_B2" />
+    <Item Key="item_B3" Value="0xB3" Name="GI_B3" />
+    <Item Key="item_B4" Value="0xB4" Name="Tingle-Map (Clock-Town)" />
+    <Item Key="item_B5" Value="0xB5" Name="Tingle-Map (Woodfall)" />
+    <Item Key="item_B6" Value="0xB6" Name="Tingle-Map (Snowhead)" />
+    <Item Key="item_B7" Value="0xB7" Name="Tingle-Map (Romani Ranch)" />
+    <Item Key="item_B8" Value="0xB8" Name="Tingle-Map (Great Bay)" />
+    <Item Key="item_B9" Value="0xB9" Name="Tingle-Map (Stone Tower)" />
+  </List>
+
+</Table>

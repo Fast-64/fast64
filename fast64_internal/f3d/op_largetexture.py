@@ -246,8 +246,8 @@ def createLargeTextureMeshInternal(bm, prop):
         # that these meshes won't have holes in them. Prefer correct seamless results
         # over saving a few tri draws (the loads will still be combined).
         distFromWrap = (texelsPerWord, 2)[dim]
-        # Number of texels such that if a wrap load could reach the end of the drawn
-        # region by continuing to load this many texels into the image after wrapping,
+        # Number of texels such that if a wrap load could reach the end of the drawn region
+        # by continuing to load this many texels into the image after wrapping,
         # it's worth it to do so (as opposed to only loading row/col 0, and drawing
         # the rest with a new tri which shares the load at the beginning of the image).
         worthItExtraEnd = max(baseTile[dim] // 8, distFromWrap) if bilinear else 0

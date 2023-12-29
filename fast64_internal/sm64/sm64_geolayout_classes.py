@@ -20,6 +20,7 @@ from ..utility import (
     geoNodeRotateOrder,
 )
 from ..f3d.f3d_bleed import BleedGraphics
+from ..f3d.f3d_gbi import FModel
 
 from .sm64_geolayout_constants import (
     nodeGroupCmds,

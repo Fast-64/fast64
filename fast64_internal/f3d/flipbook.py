@@ -6,6 +6,7 @@ from .f3d_gbi import FImage
 from .f3d_material import all_combiner_uses, update_tex_values_manual, iter_tex_nodes, TextureProperty
 from ..utility import prop_split, CollectionProperty
 from dataclasses import dataclass
+import dataclasses
 
 
 @dataclass
@@ -13,7 +14,7 @@ class TextureFlipbook:
     name: str
     exportMode: str
     textureNames: list[str]
-    images: list[tuple[bpy.types.Image, FImage]]
+    images: list[tuple[bpy.types.Image, FImage]] = dataclasses.field(default_factory=list)
 
 
 def flipbook_data_to_c(flipbook: TextureFlipbook):
@@ -233,7 +234,7 @@ def ootFlipbookRequirementMessage(layout: bpy.types.UILayout):
 
 def ootFlipbookAnimUpdate(self, armatureObj: bpy.types.Object, segment: str, index: int):
     for child in armatureObj.children:
-        if not isinstance(child.data, bpy.types.Mesh):
+        if child.type != "MESH":
             continue
         for material in child.data.materials:
             for i in range(2):
@@ -256,7 +257,7 @@ def ootFlipbookAnimUpdate(self, armatureObj: bpy.types.Object, segment: str, ind
 def flipbookAnimHandler(dummy):
     if bpy.context.scene.gameEditorMode == "OOT":
         for obj in bpy.data.objects:
-            if isinstance(obj.data, bpy.types.Armature):
+            if obj.type == "ARMATURE":
                 # we only want to update texture on keyframed armatures.
                 # this somewhat mitigates the issue of two skeletons using the same flipbook material.
                 if obj.animation_data is None or obj.animation_data.action is None:

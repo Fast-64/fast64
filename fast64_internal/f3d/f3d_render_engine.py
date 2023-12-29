@@ -103,7 +103,7 @@ class F3DRenderEngine(bpy.types.RenderEngine):
 					print("Create Material: " + str(glGetError()))
 				elif isinstance(datablock, bpy.types.Mesh):
 					pass
-				elif isinstance(datablock, bpy.types.Object) and isinstance(datablock.data, bpy.types.Mesh):
+				elif isinstance(datablock, bpy.types.Object) and datablock.type == "MESH":
 					self.draw_data.objects[datablock.name] = F3DRendererObject(datablock, self.draw_data)
 					print("Create Object: " + str(glGetError()))
 		else:
