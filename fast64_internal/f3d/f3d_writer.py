@@ -319,7 +319,7 @@ def saveMeshWithLargeTexturesByFaces(
 
     triGroup.triList.commands.append(SPEndDisplayList())
 
-    if fMaterial.revert.tag == GfxListTag.NoExport:
+    if fMaterial.revert.tag != GfxListTag.NoExport:
         fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
 
     return currentGroupIndex
@@ -638,7 +638,7 @@ def saveMeshByFaces(
 
     currentGroupIndex = saveTriangleStrip(triConverter, faces, None, obj.data, True)
 
-    if fMaterial.revert.tag == GfxListTag.NoExport:
+    if fMaterial.revert.tag != GfxListTag.NoExport:
         fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
 
     return currentGroupIndex
