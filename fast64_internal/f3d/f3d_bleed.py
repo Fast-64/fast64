@@ -127,11 +127,11 @@ class BleedGraphics:
     # clear the gfx lists so they don't export
     def clear_gfx_lists(self, fModel: FModel):
         for (fMaterial, texDimensions) in fModel.materials.values():
-            fMaterial.material = None
-            fMaterial.revert = None
+            fMaterial.material.tag = GfxListTag.NoExport
+            fMaterial.revert.tag = GfxListTag.NoExport
         for fMesh in fModel.meshes.values():
             for tri_list in fMesh.triangleGroups:
-                tri_list.triList = None
+                tri_list.triList.tag = GfxListTag.NoExport
 
     def bleed_fmesh(self, fMesh: FMesh, last_mat: FMaterial, cmd_list: GfxList, fmodel_materials, default_render_mode: list[str] = None):
         if bled_mat := self.bled_gfx_lists.get(cmd_list, None):

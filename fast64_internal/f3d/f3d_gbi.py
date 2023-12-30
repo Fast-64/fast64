@@ -28,6 +28,7 @@ class GfxListTag(enum.Enum):
     Material = 2
     MaterialRevert = 3
     Draw = 3
+    NoExport = 4
 
 
 class GfxTag(enum.Flag):
@@ -2672,7 +2673,7 @@ class FModel:
         data = CScrollData()
         for fMaterial, _ in self.materials.values():
             fMaterial: FMaterial
-            if fMaterial.material:
+            if fMaterial.material.tag != GfxListTag.NoExport:
                 data.append(gfxFormatter.gfxScrollToC(fMaterial.material, self.f3d))
         for fMesh in self.meshes.values():
             fMesh: FMesh
@@ -2941,7 +2942,7 @@ class FTriGroup:
         data.append(self.vertexList.to_c())
         for celTriList in self.celTriLists:
             data.append(celTriList.to_c(f3d))
-        if self.triList:
+        if self.triList.tag != GfxListTag.NoExport:
             data.append(self.triList.to_c(f3d))
         return data
 
@@ -3059,9 +3060,9 @@ class FMaterial:
 
     def to_c(self, f3d):
         data = CData()
-        if self.material:
+        if self.material.tag != GfxListTag.NoExport:
             data.append(self.material.to_c(f3d))
-        if self.revert is not None:
+        if self.revert.tag != GfxListTag.NoExport:
             data.append(self.revert.to_c(f3d))
         return data
 
