@@ -476,9 +476,9 @@ class GeoLayoutBleed(BleedGraphics):
                 else:
                     last_materials[base_node.drawLayer] = lastMat
             # don't carry over lastmat if it is a switch node or geo asm node
-            if type(base_node) in [SwitchNode, FunctionNode]:
-                last_materials = dict()
             for child in node.children:
+                if type(base_node) in [SwitchNode, FunctionNode]:
+                    last_materials = dict()
                 last_materials = walk(child, last_materials)
             return last_materials
         
