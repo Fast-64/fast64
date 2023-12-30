@@ -467,15 +467,15 @@ class GeoLayoutBleed(BleedGraphics):
             fMesh = getattr(base_node, "fMesh", None)
             if fMesh:
                 cmd_list = fMesh.drawMatOverrides.get(base_node.override_hash, None) or fMesh.draw
-                lastMat = last_materials.get(base_node.drawLayer, None)
+                last_mat = last_materials.get(base_node.drawLayer, None)
                 default_render_mode = fModel.getRenderMode(base_node.drawLayer)
-                lastMat = self.bleed_fmesh(fModel.f3d, fMesh, lastMat if not base_node.bleed_independently else None, cmd_list, default_render_mode)
+                last_mat = self.bleed_fmesh(fMesh, last_mat if not base_node.bleed_independently else None, cmd_list, fModel.getAllMaterials().items(), default_render_mode)
                 # if the mesh has culling, it can be culled, and create invalid combinations of f3d to represent the current full DL
                 if fMesh.cullVertexList:
                     last_materials[base_node.drawLayer] = None
                 else:
-                    last_materials[base_node.drawLayer] = lastMat
-            # don't carry over lastmat if it is a switch node or geo asm node
+                    last_materials[base_node.drawLayer] = last_mat
+            # don't carry over last_mat if it is a switch node or geo asm node
             for child in node.children:
                 if type(base_node) in [SwitchNode, FunctionNode]:
                     last_materials = dict()

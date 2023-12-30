@@ -60,6 +60,10 @@ from ..utility import (
     geoNodeRotateOrder,
 )
 
+from ..f3d.f3d_bleed import (
+    find_material_from_jump_cmd,
+)
+
 from ..f3d.f3d_material import (
     isTexturePointSampled,
 )
@@ -2491,21 +2495,6 @@ def saveOverrideDraw(
     prev_material = None
     last_replaced = None
     command_index = 0
-
-    def find_material_from_jump_cmd(
-        material_list: tuple[tuple[bpy.types.Material, str, FAreaData], tuple[FMaterial, tuple[int, int]]],
-        dl_jump: SPDisplayList,
-    ):
-        if dl_jump.displayList.tag == GfxListTag.Geometry:
-            return None, None
-        for mat in material_list:
-            fmaterial = mat[1][0]
-            bpy_material = mat[0][0]
-            if dl_jump.displayList.tag == GfxListTag.MaterialRevert and fmaterial.revert == dl_jump.displayList:
-                return bpy_material, fmaterial
-            elif fmaterial.material == dl_jump.displayList:
-                return bpy_material, fmaterial
-        return None, None
 
     while command_index < len(meshMatOverride.commands):
         command = meshMatOverride.commands[command_index]

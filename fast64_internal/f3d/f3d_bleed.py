@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 
 from .f3d_gbi import (
     GfxTag,
+    GfxListTag,
     SPMatrix,
     SPVertex,
     SPViewport,
@@ -40,6 +41,7 @@ from .f3d_gbi import (
     FModel,
     FMesh,
     FMaterial,
+    FAreaData,
     F3D,
     GfxList,
     FTriGroup,
@@ -117,9 +119,9 @@ class BleedGraphics:
         self.default_othermode_H = othermode_H
 
     def bleed_fModel(self, fModel: FModel, fMeshes: dict[FMesh]):
-        # walk fModel, no order to drawing is observed, so lastMat is not kept track of
+        # walk fModel, no order to drawing is observed, so last_mat is not kept track of
         for drawLayer, fMesh in fMeshes.items():
-            self.bleed_fmesh(fModel.f3d, fMesh, None, fMesh.draw, fModel.getRenderMode(drawLayer))
+            self.bleed_fmesh(fMesh, None, fMesh.draw, fModel.getAllMaterials().items(), fModel.getRenderMode(drawLayer))
         self.clear_gfx_lists(fModel)
 
     # clear the gfx lists so they don't export
@@ -131,29 +133,45 @@ class BleedGraphics:
             for tri_list in fMesh.triangleGroups:
                 tri_list.triList = None
 
-    def bleed_fmesh(self, f3d: F3D, fMesh: FMesh, lastMat: FMaterial, cmd_list: GfxList, default_render_mode: list[str] = None):
+    def bleed_fmesh(self, fMesh: FMesh, last_mat: FMaterial, cmd_list: GfxList, fmodel_materials, default_render_mode: list[str] = None):
         if bled_mat := self.bled_gfx_lists.get(cmd_list, None):
             return bled_mat
-        reset_cmd_dict = dict()
-        fmesh_static_cmds = self.on_bleed_start(f3d, lastMat, cmd_list)
+        
         bleed_state = self.bleed_start
-        for triGroup in fMesh.triangleGroups:
+        cur_fmat = None
+        reset_cmd_dict = dict()
+        bleed_gfx_lists = BleedGfxLists()
+        fmesh_static_cmds, fmesh_jump_cmds = self.on_bleed_start(cmd_list)
+        for jump_list_cmd in fmesh_jump_cmds:
             # bleed mat and tex
-            bleed_gfx_lists = BleedGfxLists()
-            if triGroup.fMaterial:
-                bleed_gfx_lists.bled_mats = self.bleed_mat(triGroup.fMaterial, lastMat, cmd_list, bleed_state)
-                if not (triGroup.fMaterial.isTexLarge[0] or triGroup.fMaterial.isTexLarge[1]):
-                    bleed_gfx_lists.bled_tex = self.bleed_textures(triGroup.fMaterial, lastMat, cmd_list, bleed_state)
+            if jump_list_cmd.displayList.tag == GfxListTag.Material:
+                # update last_mat
+                if cur_fmat:
+                    last_mat = cur_fmat
+                _, cur_fmat = find_material_from_jump_cmd(fmodel_materials, jump_list_cmd)
+                if not cur_fmat:
+                    # make better error msg
+                    print("could not find material used in fmesh draw")
+                    continue
+                bleed_gfx_lists.bled_mats = self.bleed_mat(cur_fmat, last_mat, bleed_state)
+                if not (cur_fmat.isTexLarge[0] or cur_fmat.isTexLarge[1]):
+                    bleed_gfx_lists.bled_tex = self.bleed_textures(cur_fmat, last_mat, bleed_state)
                 else:
-                    bleed_gfx_lists.bled_tex = triGroup.fMaterial.texture_DL.commands
-            lastMat = triGroup.fMaterial
+                    bleed_gfx_lists.bled_tex = cur_fmat.texture_DL.commands
             # bleed tri group (for large textures) and to remove other unnecessary cmds
-            self.bleed_tri_group(f3d, triGroup, bleed_gfx_lists, cmd_list, bleed_state)
-            self.inline_triGroup(f3d, triGroup, bleed_gfx_lists, cmd_list, reset_cmd_dict)
-            self.on_tri_group_bleed_end(f3d, triGroup, lastMat, bleed_gfx_lists)
+            if jump_list_cmd.displayList.tag == GfxListTag.Geometry:
+                tri_list = jump_list_cmd.displayList
+                self.bleed_tri_group(tri_list, cur_fmat, bleed_state)
+                self.inline_triGroup(tri_list, bleed_gfx_lists, cmd_list, reset_cmd_dict)
+                self.on_tri_group_bleed_end(tri_list, cur_fmat, bleed_gfx_lists)
+                # reset bleed gfx lists after inlining
+                bleed_gfx_lists = BleedGfxLists()
+            # set bleed state for cmd reverts
             bleed_state = self.bleed_in_progress
-        self.on_bleed_end(f3d, lastMat, bleed_gfx_lists, cmd_list, fmesh_static_cmds, reset_cmd_dict, default_render_mode)
-        return lastMat
+        
+        last_mat = cur_fmat
+        self.on_bleed_end(last_mat, cmd_list, fmesh_static_cmds, reset_cmd_dict, default_render_mode)
+        return last_mat
 
     def build_tmem_dict(self, cmd_list: GfxList):
         im_buffer = None
@@ -170,14 +188,14 @@ class BleedGraphics:
                 continue
         return tmem_dict
     
-    def bleed_textures(self, curMat: FMaterial, lastMat: FMaterial, cmd_list: GfxList, bleed_state: int):
-        if lastMat:
+    def bleed_textures(self, cur_fmat: FMaterial, last_mat: FMaterial, bleed_state: int):
+        if last_mat:
             # bleed cmds if matching tile has duplicate cmds
             # deep copy breaks on Image objects so I will only copy the levels needed
-            commands_bled = copy.copy(curMat.texture_DL)
-            commands_bled.commands = copy.copy(curMat.texture_DL.commands)  # copy the commands also
+            commands_bled = copy.copy(cur_fmat.texture_DL)
+            commands_bled.commands = copy.copy(cur_fmat.texture_DL.commands)  # copy the commands also
             # eliminate set tex images, but only if there is an overlap of the same image at the same tmem location
-            last_im_loads = self.build_tmem_dict(lastMat.texture_DL)
+            last_im_loads = self.build_tmem_dict(last_mat.texture_DL)
             new_im_loads = self.build_tmem_dict(commands_bled)
             removable_images = []
             for tmem, image in new_im_loads.items():
@@ -186,7 +204,7 @@ class BleedGraphics:
             # now go through list and cull out loads for the specific cmds
             # this will be the set tex image, and the loading cmds
             rm_load = False
-            for j, cmd in enumerate(curMat.texture_DL.commands):
+            for j, cmd in enumerate(cur_fmat.texture_DL.commands):
                 # remove set tex explicitly
                 if cmd in removable_images:
                     commands_bled.commands[j] = None
@@ -199,27 +217,27 @@ class BleedGraphics:
                     rm_load = None
                     continue
             # now eval as normal conditionals
-            for j, cmd in enumerate(curMat.texture_DL.commands):
+            for j, cmd in enumerate(cur_fmat.texture_DL.commands):
                 if not cmd:
                     continue # some cmds are None from previous step
                 if self.bleed_individual_cmd(commands_bled, cmd, bleed_state):
-                    if cmd in lastMat.texture_DL.commands:
+                    if cmd in last_mat.texture_DL.commands:
                         commands_bled.commands[j] = None
             # remove Nones from list
             while None in commands_bled.commands:
                 commands_bled.commands.remove(None)
             bled_tex = commands_bled
         else:
-            bled_tex = curMat.texture_DL
+            bled_tex = cur_fmat.texture_DL
         return bled_tex.commands
 
-    def bleed_mat(self, curMat: FMaterial, lastMat: FMaterial, cmd_list: GfxList, bleed_state: int):
-        if lastMat:
-            gfx = curMat.mat_only_DL
+    def bleed_mat(self, cur_fmat: FMaterial, last_mat: FMaterial, bleed_state: int):
+        if last_mat:
+            gfx = cur_fmat.mat_only_DL
             # deep copy breaks on Image objects so I will only copy the levels needed
             commands_bled = copy.copy(gfx)
             commands_bled.commands = copy.copy(gfx.commands)  # copy the commands also
-            last_cmd_list = lastMat.mat_only_DL.commands
+            last_cmd_list = last_mat.mat_only_DL.commands
             for j, cmd in enumerate(gfx.commands):
                 if self.bleed_individual_cmd(commands_bled, cmd, bleed_state, last_cmd_list):
                     commands_bled.commands[j] = None
@@ -227,20 +245,20 @@ class BleedGraphics:
             while None in commands_bled.commands:
                 commands_bled.commands.remove(None)
         else:
-            commands_bled = self.bleed_cmd_list(curMat.mat_only_DL, bleed_state)
+            commands_bled = self.bleed_cmd_list(cur_fmat.mat_only_DL, bleed_state)
         # remove SPEndDisplayList
         while SPEndDisplayList() in commands_bled.commands:
             commands_bled.commands.remove(SPEndDisplayList())
         return commands_bled.commands
 
     def bleed_tri_group(
-        self, f3d: F3D, triGroup: FTriGroup, bleed_gfx_lists: BleedGfxLists, cmd_list: GfxList, bleed_state: int
+        self, tri_list: GfxList, cur_fmat: fMaterial, bleed_state: int
     ):
         # remove SPEndDisplayList from triGroup
-        while SPEndDisplayList() in triGroup.triList.commands:
-            triGroup.triList.commands.remove(SPEndDisplayList())
-        if (triGroup.fMaterial.isTexLarge[0] or triGroup.fMaterial.isTexLarge[1]):
-            triGroup.triList = self.bleed_cmd_list(triGroup.triList, bleed_state)
+        while SPEndDisplayList() in tri_list.commands:
+            tri_list.commands.remove(SPEndDisplayList())
+        if not cur_fmat or (cur_fmat.isTexLarge[0] or cur_fmat.isTexLarge[1]):
+            tri_list = self.bleed_cmd_list(tri_list, bleed_state)
 
     # this is a little less versatile than comparing by last used material
     def bleed_cmd_list(self, target_cmd_list: GfxList, bleed_state: int):
@@ -262,25 +280,26 @@ class BleedGraphics:
         return commands_bled
 
     # Put triGroup bleed gfx in the FMesh.draw object
-    def inline_triGroup(self, f3d: F3D, triGroup: FTriGroup, bleed_gfx_lists: BleedGfxLists, cmd_list: GfxList, reset_cmd_dict: dict[GbiMacro]):
+    def inline_triGroup(self, tri_list: GfxList, bleed_gfx_lists: BleedGfxLists, cmd_list: GfxList, reset_cmd_dict: dict[GbiMacro]):
         # add material
         cmd_list.commands.extend(bleed_gfx_lists.bled_mats)
         # add textures
         cmd_list.commands.extend(bleed_gfx_lists.bled_tex)
         # add in triangles
-        cmd_list.commands.extend(triGroup.triList.commands)
+        cmd_list.commands.extend(tri_list.commands)
         # skinned meshes don't draw tris sometimes, use this opportunity to save a sync
-        tri_cmds = [c for c in triGroup.triList.commands if type(c) == SP1Triangle or type(c) == SP2Triangles]
+        tri_cmds = [c for c in tri_list.commands if type(c) == SP1Triangle or type(c) == SP2Triangles]
         if tri_cmds:
             reset_cmd_dict[DPPipeSync] = DPPipeSync()
         [bleed_gfx_lists.add_reset_cmd(cmd, reset_cmd_dict) for cmd in bleed_gfx_lists.bled_mats]
 
     # pre processes cmd_list and removes cmds deemed useless. subclass and override if this causes a game specific issue
-    def on_bleed_start(self, f3d: F3D, lastMat: FMaterial, cmd_list: GfxList):
+    def on_bleed_start(self, cmd_list: GfxList):
         # remove SPDisplayList and SPEndDisplayList from FMesh.draw
         # place static cmds after SPDisplay lists aside and append them to the end after inline
         sp_dl_start = False
         non_jump_dl_cmds = []
+        jump_dl_cmds = []
         for j, cmd in enumerate(cmd_list.commands):
             if type(cmd) == SPEndDisplayList:
                 cmd_list.commands[j] = None
@@ -295,6 +314,7 @@ class BleedGraphics:
             elif type(cmd) == SPDisplayList:
                 cmd_list.commands[j] = None
                 sp_dl_start = True
+                jump_dl_cmds.append(cmd)
                 continue
             elif sp_dl_start and cmd is not None:
                 cmd_list.commands[j] = None
@@ -302,13 +322,13 @@ class BleedGraphics:
         # remove Nones from list
         while None in cmd_list.commands:
             cmd_list.commands.remove(None)
-        return non_jump_dl_cmds
+        return non_jump_dl_cmds, jump_dl_cmds
 
-    def on_tri_group_bleed_end(self, f3d: F3D, triGroup: FTriGroup, lastMat: FMaterial, bleed_gfx_lists: BleedGfxLists):
+    def on_tri_group_bleed_end(self, triGroup: FTriGroup, last_mat: FMaterial, bleed_gfx_lists: BleedGfxLists):
         return
 
     def on_bleed_end(
-        self, f3d: F3D, lastMat: FMaterial, bleed_gfx_lists: BleedGfxLists, cmd_list: GfxList, fmesh_static_cmds: list[GbiMacro], reset_cmd_dict: dict[GbiMacro], default_render_mode: list[str] = None
+        self, last_mat: FMaterial, cmd_list: GfxList, fmesh_static_cmds: list[GbiMacro], reset_cmd_dict: dict[GbiMacro], default_render_mode: list[str] = None
     ):
         # revert certain cmds for extra safety
         reset_cmds = self.create_reset_cmds(reset_cmd_dict, default_render_mode)
@@ -319,7 +339,7 @@ class BleedGraphics:
         cmd_list.commands.extend(reset_cmds)
         cmd_list.commands.extend(fmesh_static_cmds) # this is troublesome
         cmd_list.commands.append(SPEndDisplayList())
-        self.bled_gfx_lists[cmd_list] = lastMat
+        self.bled_gfx_lists[cmd_list] = last_mat
 
     def create_reset_cmds(self, reset_cmd_dict: dict[GbiMacro], default_render_mode: list[str]):
         reset_cmds = []
@@ -496,3 +516,20 @@ class BleedGfxLists:
             
         if type(cmd) in reset_cmd_list:
             reset_cmd_dict[type(cmd)] = cmd
+
+
+# helper function used for sm64
+def find_material_from_jump_cmd(
+    material_list: tuple[tuple[bpy.types.Material, str], tuple[FMaterial, tuple[int, int]]],
+    dl_jump: SPDisplayList,
+):
+    if dl_jump.displayList.tag == GfxListTag.Geometry:
+        return None, None
+    for mat in material_list:
+        fmaterial = mat[1][0]
+        bpy_material = mat[0][0]
+        if dl_jump.displayList.tag == GfxListTag.MaterialRevert and fmaterial.revert == dl_jump.displayList:
+            return bpy_material, fmaterial
+        elif fmaterial.material == dl_jump.displayList:
+            return bpy_material, fmaterial
+    return None, None
