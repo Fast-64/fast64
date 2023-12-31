@@ -213,8 +213,8 @@ def rendermode_preset_to_advanced(material: bpy.types.Material):
     settings.z_upd = (r & f3d.Z_UPD) != 0
     settings.im_rd = (r & f3d.IM_RD) != 0
     settings.clr_on_cvg = (r & f3d.CLR_ON_CVG) != 0
-    settings.cvg_dst = f3d.cvgDstDict[(r & f3d.CVG_DST_SAVE) // f3d.CVG_DST_WRAP]
-    settings.zmode = f3d.zmodeDict[(r & f3d.ZMODE_DEC) // f3d.ZMODE_INTER]
+    settings.cvg_dst = f3d.cvgDstDict[r & f3d.CVG_DST_SAVE]
+    settings.zmode = f3d.zmodeDict[r & f3d.ZMODE_DEC]
     settings.cvg_x_alpha = (r & f3d.CVG_X_ALPHA) != 0
     settings.alpha_cvg_sel = (r & f3d.ALPHA_CVG_SEL) != 0
     settings.force_bl = (r & f3d.FORCE_BL) != 0
@@ -851,9 +851,28 @@ class F3DPanel(Panel):
             renderGroup = inputGroup.column()
             renderGroup.prop(material.rdp_settings, "rendermode_advanced_enabled", text="Show Advanced Settings")
             if not material.rdp_settings.rendermode_advanced_enabled:
+                f3d = get_F3D_GBI()
                 prop_split(renderGroup, material.rdp_settings, "rendermode_preset_cycle_1", "Render Mode")
+                no_flags_1 = material.rdp_settings.rendermode_preset_cycle_1 in f3d.rendermodePresetsWithoutFlags
                 if material.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
                     prop_split(renderGroup, material.rdp_settings, "rendermode_preset_cycle_2", "Render Mode Cycle 2")
+                    no_flags_2 = material.rdp_settings.rendermode_preset_cycle_2 in f3d.rendermodePresetsWithoutFlags
+                    if no_flags_1 and no_flags_2:
+                        multilineLabel(renderGroup.box(),
+                            "Invalid combination of rendermode presets.\n"
+                            + "Neither of these presets sets the rendermode flags.",
+                            "ERROR")
+                    elif not no_flags_1 and not no_flags_2:
+                        multilineLabel(renderGroup.box(),
+                            "Invalid combination of rendermode presets.\n"
+                            + "Both of these presets set the rendermode flags.",
+                            "ERROR")
+                else:
+                    if no_flags_1:
+                        multilineLabel(renderGroup.box(),
+                            "Invalid rendermode preset in 1-cycle.\n"
+                            + "This preset does not set the rendermode flags.",
+                            "ERROR")
             else:
                 prop_split(renderGroup, material.rdp_settings, "aa_en", "Antialiasing")
                 prop_split(renderGroup, material.rdp_settings, "z_cmp", "Z Testing")
@@ -865,22 +884,6 @@ class F3DPanel(Panel):
                 prop_split(renderGroup, material.rdp_settings, "cvg_x_alpha", "Multiply Coverage And Alpha")
                 prop_split(renderGroup, material.rdp_settings, "alpha_cvg_sel", "Use Coverage For Alpha")
                 prop_split(renderGroup, material.rdp_settings, "force_bl", "Force Blending")
-
-                if material.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
-                    if (
-                        material.rdp_settings.blend_b1 == "G_BL_A_MEM" or
-                        material.rdp_settings.blend_p1 == "G_BL_CLR_MEM" or
-                        material.rdp_settings.blend_m1 == "G_BL_CLR_MEM"
-                    ):
-                        multilineLabel(renderGroup.box(),
-                            "RDP silicon bug: Framebuffer color / alpha in blender\n" +
-                            "cycle 1 is broken, actually value from PREVIOUS pixel.",
-                            'ORPHAN_DATA')
-                    if material.rdp_settings.blend_a2 == "G_BL_A_SHADE":
-                        multilineLabel(renderGroup.box(),
-                            "RDP silicon bug: Shade alpha in blender cycle 2\n" +
-                            "is broken, actually shade alpha from NEXT pixel.",
-                            'ORPHAN_DATA')
 
                 # cycle dependent - (P * A + M - B) / (A + B)
                 combinerBox = renderGroup.box()
@@ -903,6 +906,22 @@ class F3DPanel(Panel):
                     rowColor2.prop(material.rdp_settings, "blend_m2", text="M")
                     rowAlpha2.prop(material.rdp_settings, "blend_a2", text="A")
                     rowAlpha2.prop(material.rdp_settings, "blend_b2", text="B")
+
+            if material.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
+                if (
+                    material.rdp_settings.blend_b1 == "G_BL_A_MEM" or
+                    material.rdp_settings.blend_p1 == "G_BL_CLR_MEM" or
+                    material.rdp_settings.blend_m1 == "G_BL_CLR_MEM"
+                ):
+                    multilineLabel(renderGroup.box(),
+                        "RDP silicon bug: Framebuffer color / alpha in blender\n" +
+                        "cycle 1 is broken, actually value from PREVIOUS pixel.",
+                        'ORPHAN_DATA')
+                if material.rdp_settings.blend_a2 == "G_BL_A_SHADE":
+                    multilineLabel(renderGroup.box(),
+                        "RDP silicon bug: Shade alpha in blender cycle 2\n" +
+                        "is broken, actually shade alpha from NEXT pixel.",
+                        'ORPHAN_DATA')
 
             renderGroup.enabled = material.rdp_settings.set_rendermode
 
@@ -2119,6 +2138,10 @@ def load_handler(dummy):
                 lib.reload()
             bpy.context.scene["f3d_lib_dir"] = None  # force node reload!
             link_f3d_material_library()
+
+    for mat in bpy.data.materials:
+        if mat is not None and mat.use_nodes and mat.is_f3d:
+            rendermode_preset_to_advanced(mat)
 
 
 bpy.app.handlers.load_post.append(load_handler)
