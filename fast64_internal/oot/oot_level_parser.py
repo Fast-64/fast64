@@ -12,7 +12,7 @@ from .scene.exporter.to_c import getDrawConfig
 from .scene.properties import OOTSceneHeaderProperty, OOTLightProperty, OOTImportSceneSettingsProperty
 from .room.properties import OOTRoomHeaderProperty
 from .actor.properties import OOTActorProperty, OOTActorHeaderProperty
-from .cutscene.motion.importer import importCutsceneData
+from .cutscene.importer import importCutsceneData
 
 from .oot_utility import (
     getHeaderSettings,

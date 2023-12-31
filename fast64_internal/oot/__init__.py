@@ -82,18 +82,19 @@ oot_classes = (OOT_Properties,)
 
 def oot_panel_register():
     oot_operator_panel_register()
+    cutscene_panels_register()
+    scene_panels_register()
     f3d_panels_register()
     collision_panels_register()
     oot_obj_panel_register()
-    scene_panels_register()
     spline_panels_register()
     anim_panels_register()
     skeleton_panels_register()
-    cutscene_panels_register()
 
 
 def oot_panel_unregister():
     oot_operator_panel_unregister()
+    cutscene_panels_unregister()
     collision_panels_unregister()
     oot_obj_panel_unregister()
     scene_panels_unregister()
@@ -101,7 +102,6 @@ def oot_panel_unregister():
     f3d_panels_unregister()
     anim_panels_unregister()
     skeleton_panels_unregister()
-    cutscene_panels_unregister()
 
 
 def oot_register(registerPanels):

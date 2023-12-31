@@ -45,9 +45,9 @@ Read the "Getting Started" section for information on scene exporting.
 To add an actor you need to create a new empty object in Blender, the shape doesn't matter.
 When the empty object is created you can set the ``Actor`` object type in the ``Object Properties`` panel.
 
-To add actors to a scene, create a new Empty and parent it to a Room, otherwise they will not be exported in the room C code. Then in the Object Properties panel select ``Actor`` as the Object Type. Use the ``Select Actor ID`` button to choose an actor, and then set the Actor Parameter value as desired (see the list of Actor Parameters below). 
+To add actors to a scene, create a new Empty and parent it to a Room, otherwise they will not be exported in the room C code. Then in the Object Properties panel select ``Actor`` as the Object Type. Use the ``Select Actor ID`` button to choose an actor, and then set the Actor Parameter value as desired (see the list of Actor Parameters below).
 
-Finally, every actors you are using needs their assets. In OoT they're called "Objects", if an actor is missing an object the code will not spawn the actor. To do this select the Room that your actor is parented to, select the "Objects" tab in its Object Properties window, and click "Add Item". 
+Finally, every actors you are using needs their assets. In OoT they're called "Objects", if an actor is missing an object the code will not spawn the actor. To do this select the Room that your actor is parented to, select the "Objects" tab in its Object Properties window, and click "Add Item".
 
 Then "Search Object ID" to find the actor object you need. For example, if adding a Deku Baba actor (EN_DEKUBABA) you need to add the "Dekubaba" object to the Room's object dependencies. Note that the object list must not contain more than 15 items.
 
@@ -95,7 +95,7 @@ To import an animation, select the armature the animation belongs to then click 
 To export an animation, select an armature and click "Export", which will export the active animation of the armature.
 
 ### Flipbook Textures
-Many actors in OOT will animate textures through code using a flipbook method, like with Link's eyes/mouth. A flipbook material will use a texture reference pointing to an address formatted as 0x0?000000. You can find the flipbook texture frames in the material properties tab underneath the dynamic material section. 
+Many actors in OOT will animate textures through code using a flipbook method, like with Link's eyes/mouth. A flipbook material will use a texture reference pointing to an address formatted as 0x0?000000. You can find the flipbook texture frames in the material properties tab underneath the dynamic material section.
 ![](/images/oot_flipbook.png)
 On import, Fast64 will try to read the provided actors code for flipbook textures. On export, Fast64 will try to modify texture arrays used for flipbook textures.
 
@@ -120,7 +120,7 @@ For Link, the eyes/mouth materials use flipbook textures. For Link animations yo
 11. Common Issues:
     - Corrupted mesh: Make sure the root, upper control, and lower control bones are the only bones set to non-deform.
     - Incorrect waist DL: Go to src/code/z_player_lib.c and modify sPlayerWaistDLs to include your own waist DL.
-    
+
 Note on Link's bone-weighting requirements in depth:
 Heavy modifications of Links model can cause his matrices array to shift from what many display lists in the game expect. Changing the amount of display lists Link's skeleton has can cause some references to matrices in segment 0xD to break, and those display lists must be updated to reflect your changes.
 
@@ -174,6 +174,13 @@ To be able to actually watch your cutscene you need to have a way to trigger it,
 - ``gHyruleFieldIntroCs`` is the name of the array with the cutscene commands, as defined in ``assets/scenes/overworld/spot00_scene.c``, ``CutsceneData gHyruleFieldIntroCs[]``
 4. Compile the game again and use the entrance you chose for ``sEntranceCutsceneTable`` and your cutscene should play.
 
+Alternatively, you can use the map select to watch your cutscene, though note that this won't make it watchable during normal gameplay:
+
+1. Open ``src/overlays/gamestates/ovl_select/z_select.c``
+2. Either edit or add an entry inside ``SceneSelectEntry sScenes[]``, for instance: ``{ "My Scene", MapSelect_LoadGame, ENTR_MYSCENE_0 },`` (note that the entrance used is the first of the block you need to have for the scene)
+3. Compile the game, you may or may not need to run ``make clean`` first if you edited the entrance table
+4. Get on the map select then scroll until you see your new entry (in the previous example is will be called "My Scene") then press R to change the header, on the vanilla map select the first cutscene header will be called ``ﾃﾞﾓ00``, on HackerOoT it will be ``Cutscene 0`` then press A to start the cutscene.
+
 Note that you can have the actual address of your cutscene if you use ``sym_info.py`` from decomp. Example with ``gHyruleFieldIntroCs``:
 - Command: ``./sym_info.py gHyruleFieldIntroCs``
 - Result: ``Symbol gHyruleFieldIntroCs (RAM: 0x02013AA0, ROM: 0x27E9AA0, build/assets/scenes/overworld/spot00/spot00_scene.o)``
@@ -185,3 +192,5 @@ If the camera preview in Blender isn't following where you have the bones or if 
 1. Make sure your scene empty object, room empty object, and cutscene empty object are all at the Blender origin. You can usually do this with a combination of Object > Clear > Origin and Alt+G. Maybe Object > Apply > All Transforms if that doesn't work. If your room empty object is 1 meter below your scene empty object, as fast64 does by default, that offset will be applied to everything in game and then the zcamedit stuff will not be at the correct relative position.
 
 2. If you moved / rotated / etc. one of the camera shots / armatures in object mode, this transformation will be ignored. You can fix this by selecting the shot / armature in object mode and clicking Object > Apply > All Transforms. That will convert the transform to actual changed positions for each bone.
+
+If the game crashes check the transitions if you use the transition command (check both the ones from the entrance table and your cutscene script), also it will crash if you try to use the map select without having a 5th entrance (or more depending on the number of cutscenes you have) in the group for your scene.
