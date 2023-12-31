@@ -53,7 +53,7 @@ def getActorListCmd(outRoom: OOTRoom, headerIndex: int):
 
 def getRoomCommandList(outRoom: OOTRoom, headerIndex: int):
     cmdListData = CData()
-    listName = f"SceneCmd {outRoom.roomName()}_header{headerIndex:02}"
+    declarationBase = f"SceneCmd {outRoom.roomName()}_header{headerIndex:02}"
 
     getCmdFuncList = [
         getEchoSettingsCmd,
@@ -73,9 +73,9 @@ def getRoomCommandList(outRoom: OOTRoom, headerIndex: int):
     )
 
     # .h
-    cmdListData.header = f"extern {listName}[];\n"
+    cmdListData.header = f"extern {declarationBase}[];\n"
 
     # .c
-    cmdListData.source = f"{listName}[]" + " = {\n" + roomCmdData + "};\n\n"
+    cmdListData.source = f"{declarationBase}[]" + " = {\n" + roomCmdData + "};\n\n"
 
     return cmdListData

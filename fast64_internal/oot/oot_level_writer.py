@@ -1,9 +1,9 @@
 import bpy, os, math, mathutils
 from ..f3d.f3d_gbi import TextureExportSettings
 from ..f3d.f3d_writer import TriangleConverterInfo, saveStaticModel, getInfoDict
+from .scene.properties import OOTSceneProperties, OOTSceneHeaderProperty, OOTAlternateSceneHeaderProperty
 from .room.properties import OOTRoomHeaderProperty, OOTAlternateRoomHeaderProperty
 from .oot_constants import ootData
-from .cutscene.exporter import convertCutsceneObject, readCutsceneData
 from .oot_spline import assertCurveValid, ootConvertPath
 from .oot_model_classes import OOTModel
 from .oot_collision import OOTCameraData, exportCollisionCommon
@@ -227,7 +227,12 @@ def writeOtherSceneProperties(scene, exportInfo, levelC):
     modifySceneFiles(scene, exportInfo)
 
 
-def readSceneData(scene, scene_properties, sceneHeader, alternateSceneHeaders):
+def readSceneData(
+    scene: OOTScene,
+    scene_properties: OOTSceneProperties,
+    sceneHeader: OOTSceneHeaderProperty,
+    alternateSceneHeaders: OOTAlternateSceneHeaderProperty,
+):
     scene.write_dummy_room_list = scene_properties.write_dummy_room_list
     scene.sceneTableEntry.drawConfig = getCustomProperty(sceneHeader.sceneTableEntry, "drawConfig")
     scene.globalObject = getCustomProperty(sceneHeader, "globalObject")
@@ -262,16 +267,10 @@ def readSceneData(scene, scene_properties, sceneHeader, alternateSceneHeaders):
     scene.writeCutscene = getCustomProperty(sceneHeader, "writeCutscene")
     if scene.writeCutscene:
         scene.csWriteType = getattr(sceneHeader, "csWriteType")
-        if scene.csWriteType == "Embedded":
-            scene.csEndFrame = getCustomProperty(sceneHeader, "csEndFrame")
-            scene.csWriteTerminator = getCustomProperty(sceneHeader, "csWriteTerminator")
-            scene.csTermIdx = getCustomProperty(sceneHeader, "csTermIdx")
-            scene.csTermStart = getCustomProperty(sceneHeader, "csTermStart")
-            scene.csTermEnd = getCustomProperty(sceneHeader, "csTermEnd")
-            readCutsceneData(scene, sceneHeader)
-        elif scene.csWriteType == "Custom":
+
+        if scene.csWriteType == "Custom":
             scene.csWriteCustom = getCustomProperty(sceneHeader, "csWriteCustom")
-        elif scene.csWriteType == "Object":
+        else:
             if sceneHeader.csWriteObject is None:
                 raise PluginError("No object selected for cutscene reference")
             elif sceneHeader.csWriteObject.ootEmptyType != "Cutscene":
@@ -279,12 +278,9 @@ def readSceneData(scene, scene_properties, sceneHeader, alternateSceneHeaders):
             elif sceneHeader.csWriteObject.parent is not None:
                 raise PluginError("Cutscene empty object should not be parented to anything")
             else:
-                scene.csWriteObject = convertCutsceneObject(sceneHeader.csWriteObject)
+                scene.csName = sceneHeader.csWriteObject.name.removeprefix("Cutscene.")
 
     if alternateSceneHeaders is not None:
-        for ec in sceneHeader.extraCutscenes:
-            scene.extraCutscenes.append(convertCutsceneObject(ec.csObject))
-
         scene.collision.cameraData = OOTCameraData(scene.name)
 
         if not alternateSceneHeaders.childNightHeader.usePreviousHeader:
@@ -304,6 +300,9 @@ def readSceneData(scene, scene_properties, sceneHeader, alternateSceneHeaders):
             cutsceneHeader = scene.getAlternateHeaderScene(scene.name)
             readSceneData(cutsceneHeader, scene_properties, cutsceneHeaderProp, None)
             scene.cutsceneHeaders.append(cutsceneHeader)
+
+        for extraCS in sceneHeader.extraCutscenes:
+            scene.extraCutscenes.append(extraCS.csObject)
     else:
         if len(sceneHeader.extraCutscenes) > 0:
             raise PluginError(
@@ -503,7 +502,9 @@ def ootConvertScene(originalSceneObj, transformMatrix, sceneName, DLFormat, conv
     if bpy.context.scene.exportHiddenGeometry:
         restoreHiddenState(hiddenState)
 
-    roomObjs = [child for child in sceneObj.children_recursive if child.type == "EMPTY" and child.ootEmptyType == "Room"]
+    roomObjs = [
+        child for child in sceneObj.children_recursive if child.type == "EMPTY" and child.ootEmptyType == "Room"
+    ]
     if len(roomObjs) == 0:
         raise PluginError("The scene has no child empties with the 'Room' empty type.")
 
