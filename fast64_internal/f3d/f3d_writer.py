@@ -11,7 +11,6 @@ from .f3d_constants import *
 from .f3d_material import (
     all_combiner_uses,
     getMaterialScrollDimensions,
-    getZMode,
     isTexturePointSampled,
     RDPSettings,
 )
@@ -920,7 +919,7 @@ class TriangleConverter:
         # Don't want to have to change back and forth arbitrarily between decal and
         # opaque mode. So if you're using both lighter and darker, need to do those
         # first before switching to decal.
-        if getZMode(self.material) != "ZMODE_OPA":
+        if f3dMat.rdp_settings.zmode != "ZMODE_OPA":
             raise PluginError(f"Material {self.material.name} with cel shading: zmode in blender / rendermode must be opaque.", icon = "ERROR")
         wroteLighter = wroteDarker = usesDecal = False
         if len(cel.levels) == 0:

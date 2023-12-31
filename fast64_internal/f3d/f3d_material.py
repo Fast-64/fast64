@@ -198,14 +198,14 @@ def rendermode_preset_to_advanced(material: bpy.types.Material):
     
     is_one_cycle = settings.g_mdsft_cycletype == "G_CYC_1CYCLE"
     if is_one_cycle:
-        r = get_with_default(rdp_settings.rendermode_preset_cycle_1, f3d.G_RM_AA_ZB_OPA_SURF)
+        r = get_with_default(settings.rendermode_preset_cycle_1, f3d.G_RM_AA_ZB_OPA_SURF)
         r1 = r
         # For GBL_c2, look at the same bits as for cycle 1. Cycle 1 bits are copied
         # to cycle 2 bits at export.
         r2 = r >> 2
     else:
-        r1 = get_with_default(rdp_settings.rendermode_preset_cycle_1, f3d.G_RM_FOG_SHADE_A)
-        r2 = get_with_default(rdp_settings.rendermode_preset_cycle_2, f3d.G_RM_AA_ZB_OPA_SURF2)
+        r1 = get_with_default(settings.rendermode_preset_cycle_1, f3d.G_RM_FOG_SHADE_A)
+        r2 = get_with_default(settings.rendermode_preset_cycle_2, f3d.G_RM_AA_ZB_OPA_SURF2)
         r = r1 | r2
     
     settings.aa_en = (r & f3d.AA_EN) != 0
@@ -306,7 +306,7 @@ def is_blender_doing_fog(settings: "RDPSettings") -> bool:
 
 
 def get_blend_method(material: bpy.types.Material) -> str:
-    settings = material.f3d_mat.settings
+    settings = material.f3d_mat.rdp_settings
     if not settings.set_rendermode:
         return drawLayerSM64Alpha[material.f3d_mat.draw_layer.sm64]
     if settings.cvg_x_alpha:
@@ -474,9 +474,9 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             ccWarnings = True
             ccUse = all_combiner_uses(dataHolder)
             shadeInCC = ccUse["Shade"] or ccUse["Shade Alpha"]
-            if rdp_settings.set_rendermode:
+            if settings.set_rendermode:
                 blendWarnings = True
-                shadeInBlender = does_blender_use_alpha(rdp_settings, "G_BL_A_SHADE")
+                shadeInBlender = does_blender_use_alpha(settings, "G_BL_A_SHADE")
                 zInBlender = settings.z_cmp or settings.z_upd
 
         inputGroup.prop(settings, "g_shade_smooth")
