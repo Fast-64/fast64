@@ -127,11 +127,11 @@ class BleedGraphics:
     # clear the gfx lists so they don't export
     def clear_gfx_lists(self, fModel: FModel):
         for (fMaterial, texDimensions) in fModel.materials.values():
-            fMaterial.material.tag = GfxListTag.NoExport
-            fMaterial.revert.tag = GfxListTag.NoExport
+            fMaterial.material.tag |= GfxListTag.NoExport
+            fMaterial.revert.tag |= GfxListTag.NoExport
         for fMesh in fModel.meshes.values():
             for tri_list in fMesh.triangleGroups:
-                tri_list.triList.tag = GfxListTag.NoExport
+                tri_list.triList.tag |= GfxListTag.NoExport
 
     def bleed_fmesh(self, fMesh: FMesh, last_mat: FMaterial, cmd_list: GfxList, fmodel_materials, default_render_mode: list[str] = None):
         if bled_mat := self.bled_gfx_lists.get(cmd_list, None):
@@ -144,7 +144,7 @@ class BleedGraphics:
         fmesh_static_cmds, fmesh_jump_cmds = self.on_bleed_start(cmd_list)
         for jump_list_cmd in fmesh_jump_cmds:
             # bleed mat and tex
-            if jump_list_cmd.displayList.tag == GfxListTag.Material:
+            if jump_list_cmd.displayList.tag & GfxListTag.Material:
                 # update last_mat
                 if cur_fmat:
                     last_mat = cur_fmat
@@ -159,7 +159,7 @@ class BleedGraphics:
                 else:
                     bleed_gfx_lists.bled_tex = cur_fmat.texture_DL.commands
             # bleed tri group (for large textures) and to remove other unnecessary cmds
-            if jump_list_cmd.displayList.tag == GfxListTag.Geometry:
+            if jump_list_cmd.displayList.tag & GfxListTag.Geometry:
                 tri_list = jump_list_cmd.displayList
                 self.bleed_tri_group(tri_list, cur_fmat, bleed_state)
                 self.inline_triGroup(tri_list, bleed_gfx_lists, cmd_list, reset_cmd_dict)
@@ -523,7 +523,7 @@ def find_material_from_jump_cmd(
     material_list: tuple[tuple[bpy.types.Material, str], tuple[FMaterial, tuple[int, int]]],
     dl_jump: SPDisplayList,
 ):
-    if dl_jump.displayList.tag == GfxListTag.Geometry:
+    if dl_jump.displayList.tag & GfxListTag.Geometry:
         return None, None
     for mat in material_list:
         fmaterial = mat[1][0]

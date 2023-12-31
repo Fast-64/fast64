@@ -2510,7 +2510,7 @@ def saveOverrideDraw(
 
         # replace the material load if necessary
         # if we replaced the previous load with the same override, then remove the cmd to optimize DL
-        if command.displayList.tag == GfxListTag.Material:
+        if command.displayList.tag & GfxListTag.Material:
             curMaterial = fmaterial
             if shouldModify:
                 last_replaced = fmaterial
@@ -2534,14 +2534,14 @@ def saveOverrideDraw(
             prev_material = curMaterial
 
         # replace the revert if the override has a revert, otherwise remove the command
-        if command.displayList.tag == GfxListTag.MaterialRevert and shouldModify:
+        if command.displayList.tag & GfxListTag.MaterialRevert and shouldModify:
             if fOverrideMat.revert is not None:
                 command.displayList = fOverrideMat.revert
             else:
                 meshMatOverride.commands.pop(command_index)
                 command_index -= 1
 
-        if not command.displayList.tag == GfxListTag.Geometry:
+        if not command.displayList.tag & GfxListTag.Geometry:
             command_index += 1
             continue
         # If the previous command was a revert we added, remove it. All reverts must be followed by a load
@@ -2566,7 +2566,7 @@ def saveOverrideDraw(
             next_command = meshMatOverride.commands[command_index + 1]
             if (
                 isinstance(next_command, SPDisplayList)
-                and next_command.displayList.tag == GfxListTag.Material
+                and next_command.displayList.tag & GfxListTag.Material
                 and next_command.displayList != prev_material.material
             ) or (isinstance(next_command, SPEndDisplayList)):
                 meshMatOverride.commands.insert(command_index + 1, SPDisplayList(fOverrideMat.revert))
@@ -2723,7 +2723,7 @@ def saveSkinnedMeshByMaterial(
             )
 
         skinnedTriGroup.triList.commands.append(SPEndDisplayList())
-        if fMaterial.revert.tag != GfxListTag.NoExport:
+        if not fMaterial.revert.tag & GfxListTag.NoExport:
             fSkinnedMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
 
     # End skinned mesh vertices.
