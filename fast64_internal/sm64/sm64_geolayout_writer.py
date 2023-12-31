@@ -2723,7 +2723,7 @@ def saveSkinnedMeshByMaterial(
             )
 
         skinnedTriGroup.triList.commands.append(SPEndDisplayList())
-        if not fMaterial.revert.tag & GfxListTag.NoExport:
+        if fMaterial.revert is not None:
             fSkinnedMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
 
     # End skinned mesh vertices.

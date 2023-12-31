@@ -26,9 +26,13 @@ class DLFormat(enum.Enum):
 class GfxListTag(enum.IntFlag):
     Geometry = 1
     Material = 2
-    MaterialRevert = 3
-    Draw = 3
+    MaterialRevert = 4
+    Draw = 4
     NoExport = 16
+    
+    @property
+    def Export(self):
+        return not self & GfxListTag.NoExport
     
 
 
@@ -2674,7 +2678,7 @@ class FModel:
         data = CScrollData()
         for fMaterial, _ in self.materials.values():
             fMaterial: FMaterial
-            if not fMaterial.material.tag & GfxListTag.NoExport:
+            if fMaterial.material.tag.Export:
                 data.append(gfxFormatter.gfxScrollToC(fMaterial.material, self.f3d))
         for fMesh in self.meshes.values():
             fMesh: FMesh
@@ -2943,7 +2947,7 @@ class FTriGroup:
         data.append(self.vertexList.to_c())
         for celTriList in self.celTriLists:
             data.append(celTriList.to_c(f3d))
-        if not self.triList.tag & GfxListTag.NoExport:
+        if self.triList.tag.Export:
             data.append(self.triList.to_c(f3d))
         return data
 
@@ -3043,7 +3047,7 @@ class FMaterial:
 
     def get_ptr_addresses(self, f3d):
         addresses = self.material.get_ptr_addresses(f3d)
-        if self.revert is not None:
+        if self.revert is not None and self.revert.tag.Export:
             addresses.extend(self.revert.get_ptr_addresses(f3d))
         return addresses
 
@@ -3061,9 +3065,9 @@ class FMaterial:
 
     def to_c(self, f3d):
         data = CData()
-        if not self.material.tag & GfxListTag.NoExport:
+        if self.material.tag.Export:
             data.append(self.material.to_c(f3d))
-        if not self.revert.tag & GfxListTag.NoExport:
+        if self.revert is not None and self.revert.tag.Export:
             data.append(self.revert.to_c(f3d))
         return data
 

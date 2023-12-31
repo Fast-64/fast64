@@ -128,7 +128,8 @@ class BleedGraphics:
     def clear_gfx_lists(self, fModel: FModel):
         for (fMaterial, texDimensions) in fModel.materials.values():
             fMaterial.material.tag |= GfxListTag.NoExport
-            fMaterial.revert.tag |= GfxListTag.NoExport
+            if fMaterial.revert:
+                fMaterial.revert.tag |= GfxListTag.NoExport
         for fMesh in fModel.meshes.values():
             for tri_list in fMesh.triangleGroups:
                 tri_list.triList.tag |= GfxListTag.NoExport

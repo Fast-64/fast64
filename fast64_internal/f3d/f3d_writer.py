@@ -319,7 +319,7 @@ def saveMeshWithLargeTexturesByFaces(
 
     triGroup.triList.commands.append(SPEndDisplayList())
 
-    if not fMaterial.revert.tag & GfxListTag.NoExport:
+    if fMaterial.revert is not None:
         fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
 
     return currentGroupIndex
@@ -638,7 +638,7 @@ def saveMeshByFaces(
 
     currentGroupIndex = saveTriangleStrip(triConverter, faces, None, obj.data, True)
 
-    if not fMaterial.revert.tag & GfxListTag.NoExport:
+    if fMaterial.revert is not None:
         fMesh.draw.commands.append(SPDisplayList(fMaterial.revert))
 
     return currentGroupIndex
@@ -1417,7 +1417,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         if fMaterial.DLFormat == DLFormat.Static:
             fMaterial.revert.commands.append(SPEndDisplayList())
     else:
-        fMaterial.revert.tag |= GfxListTag.NoExport
+        fMaterial.revert = None
 
     texDimensions = multitexManager.getTexDimensions()
     materialKey = (
