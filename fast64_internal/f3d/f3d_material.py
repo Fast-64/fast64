@@ -177,85 +177,144 @@ def update_draw_layer(self, context):
         set_output_node_groups(material)
 
 
-def rendermodePresetToBits(rdp_settings: "RDPSettings") -> Tuple[int, int]:
+def rendermode_preset_to_advanced(material: bpy.types.Material):
+    """
+    Set all individual controls for the rendermode from the preset rendermode.
+    """
+    settings = material.f3d_mat.rdp_settings
     f3d = get_F3D_GBI()
-    r1 = getattr(f3d, rdp_settings.rendermode_preset_cycle_1, f3d.G_RM_AA_ZB_OPA_SURF)
-    r2 = getattr(f3d, rdp_settings.rendermode_preset_cycle_2, f3d.G_RM_AA_ZB_OPA_SURF)
-    if rdp_settings.g_mdsft_cycletype == "G_CYC_1CYCLE":
-        r2 = 0
-    return r1, r2
-
-
-def all_blender_uses(rdp_settings: "RDPSettings") -> Dict[str, bool]:
-    """
-    Returns a dictionary of the external features which the blender may or may
-    not use, or None if set_rendermode is disabled so we don't know.
-    """
-    if not rdp_settings.set_rendermode:
-        return None
-    is_one_cycle = rdp_settings.g_mdsft_cycletype == "G_CYC_1CYCLE"
-    if rdp_settings.rendermode_advanced_enabled:
-        useZ = rdp_settings.z_cmp or rdp_settings.z_upd
-        useShade = rdp_settings.blend_a1 == "G_BL_A_SHADE"
-        if not is_one_cycle:
-            useShade = useShade or rdp_settings.blend_a2 == "G_BL_A_SHADE"
+    
+    if settings.rendermode_advanced_enabled:
+        # Already in advanced mode, don't overwrite this with the preset
+        return
+    
+    def get_with_default(preset, default):
+        # Use the default either if we are not setting rendermode, or if the
+        # preset is not in the GBI. We do want to set the advanced settings
+        # even if not setting rendermode, because they are read for nodes preview.
+        if not settings.set_rendermode:
+            return default
+        return getattr(f3d, preset, default)
+    
+    is_one_cycle = settings.g_mdsft_cycletype == "G_CYC_1CYCLE"
+    if is_one_cycle:
+        r = get_with_default(rdp_settings.rendermode_preset_cycle_1, f3d.G_RM_AA_ZB_OPA_SURF)
+        r1 = r
+        # For GBL_c2, look at the same bits as for cycle 1. Cycle 1 bits are copied
+        # to cycle 2 bits at export.
+        r2 = r >> 2
     else:
-        r1, r2 = rendermodePresetToBits(rdp_settings)
-        f3d = get_F3D_GBI()
-        useZ = bool((r1 | r2) & (f3d.Z_CMP | f3d.Z_UPD))
-        useShade = ((r1 >> 26) & 3) == f3d.G_BL_A_SHADE or ((r2 >> 24) & 3) == f3d.G_BL_A_SHADE
-    return {"Shade Alpha": useShade, "Z Buffer": useZ}
+        r1 = get_with_default(rdp_settings.rendermode_preset_cycle_1, f3d.G_RM_FOG_SHADE_A)
+        r2 = get_with_default(rdp_settings.rendermode_preset_cycle_2, f3d.G_RM_AA_ZB_OPA_SURF2)
+        r = r1 | r2
+    
+    settings.aa_en = (r & f3d.AA_EN) != 0
+    settings.z_cmp = (r & f3d.Z_CMP) != 0
+    settings.z_upd = (r & f3d.Z_UPD) != 0
+    settings.im_rd = (r & f3d.IM_RD) != 0
+    settings.clr_on_cvg = (r & f3d.CLR_ON_CVG) != 0
+    settings.cvg_dst = f3d.cvgDstDict[(r & f3d.CVG_DST_SAVE) // f3d.CVG_DST_WRAP]
+    settings.zmode = f3d.zmodeDict[(r & f3d.ZMODE_DEC) // f3d.ZMODE_INTER]
+    settings.cvg_x_alpha = (r & f3d.CVG_X_ALPHA) != 0
+    settings.alpha_cvg_sel = (r & f3d.ALPHA_CVG_SEL) != 0
+    settings.force_bl = (r & f3d.FORCE_BL) != 0
+    
+    settings.blend_p1 = f3d.blendColorDict[(r1 >> 30) & 3]
+    settings.blend_p2 = f3d.blendColorDict[(r2 >> 28) & 3]
+    settings.blend_a1 = f3d.blendAlphaDict[(r1 >> 26) & 3]
+    settings.blend_a2 = f3d.blendAlphaDict[(r2 >> 24) & 3]
+    settings.blend_m1 = f3d.blendColorDict[(r1 >> 22) & 3]
+    settings.blend_m2 = f3d.blendColorDict[(r2 >> 20) & 3]
+    settings.blend_b1 = f3d.blendMixDict[(r1 >> 18) & 3]
+    settings.blend_b2 = f3d.blendMixDict[(r2 >> 16) & 3]
 
 
-def get_blend_method(material):
-    f3dMat = material.f3d_mat
-    drawLayer = material.f3d_mat.draw_layer
-    blend_method = drawLayerSM64Alpha[drawLayer.sm64]
+def does_blender_use_color(
+    settings: "RDPSettings",
+    color: str,
+    default_for_no_rendermode: bool = False
+) -> bool:
+    if not settings.set_rendermode:
+        return default_for_no_rendermode
+    is_one_cycle = settings.g_mdsft_cycletype == "G_CYC_1CYCLE"
+    return (
+        settings.blend_p1 == color or settings.blend_m1 == color
+        or (is_one_cycle and (settings.blend_p2 == color or settings.blend_m2 == color))
+    )
+    
 
-    is_one_cycle = f3dMat.rdp_settings.g_mdsft_cycletype == "G_CYC_1CYCLE"
+def does_blender_use_alpha(
+    settings: "RDPSettings",
+    alpha: str,
+    default_for_no_rendermode: bool = False
+) -> bool:
+    if not settings.set_rendermode:
+        return default_for_no_rendermode
+    is_one_cycle = settings.g_mdsft_cycletype == "G_CYC_1CYCLE"
+    return settings.blend_a1 == alpha or (is_one_cycle and settings.blend_a2 == alpha)
 
-    if f3dMat.rdp_settings.set_rendermode:
-        if f3dMat.rdp_settings.rendermode_advanced_enabled:
-            if f3dMat.rdp_settings.cvg_x_alpha:
-                blend_method = "CLIP"
-            elif (
-                is_one_cycle
-                and f3dMat.rdp_settings.force_bl
-                and f3dMat.rdp_settings.blend_p1 == "G_BL_CLR_IN"
-                and f3dMat.rdp_settings.blend_a1 == "G_BL_A_IN"
-                and f3dMat.rdp_settings.blend_m1 == "G_BL_CLR_MEM"
-                and f3dMat.rdp_settings.blend_b1 == "G_BL_1MA"
-            ):
-                blend_method = "BLEND"
-            elif (
-                not is_one_cycle
-                and f3dMat.rdp_settings.force_bl
-                and f3dMat.rdp_settings.blend_p2 == "G_BL_CLR_IN"
-                and f3dMat.rdp_settings.blend_a2 == "G_BL_A_IN"
-                and f3dMat.rdp_settings.blend_m2 == "G_BL_CLR_MEM"
-                and f3dMat.rdp_settings.blend_b2 == "G_BL_1MA"
-            ):
-                blend_method = "BLEND"
-            else:
-                blend_method = "OPAQUE"
-        else:
-            rendermode = f3dMat.rdp_settings.rendermode_preset_cycle_1
-            if not is_one_cycle:
-                rendermode = f3dMat.rdp_settings.rendermode_preset_cycle_2
 
-            f3d = get_F3D_GBI()
-            r_mode = getattr(f3d, rendermode, f3d.G_RM_AA_ZB_OPA_SURF)
-            if r_mode & f3d.CVG_X_ALPHA:
-                blend_method = "CLIP"
-            else:
-                cfunc = GBL_c1 if is_one_cycle else GBL_c2
-                xlu_comb = r_mode & cfunc(f3d.G_BL_CLR_IN, f3d.G_BL_A_IN, f3d.G_BL_CLR_MEM, f3d.G_BL_1MA)
-                if xlu_comb and r_mode & f3d.FORCE_BL:
-                    blend_method = "BLEND"
-                else:
-                    blend_method = "OPAQUE"
+def does_blender_use_mix(
+    settings: "RDPSettings",
+    mix: str,
+    default_for_no_rendermode: bool = False
+) -> bool:
+    if not settings.set_rendermode:
+        return default_for_no_rendermode
+    is_one_cycle = settings.g_mdsft_cycletype == "G_CYC_1CYCLE"
+    return settings.blend_b1 == mix or (is_one_cycle and settings.blend_b2 == mix)
 
-    return blend_method
+
+def is_blender_lerp(
+    settings: "RDPSettings",
+    cycle: int,
+    p: str,
+    a: str,
+    m: str,
+    b: str,
+    default_for_no_rendermode: bool = False
+) -> bool:
+    assert cycle in {1, 2, -1}  # -1 = last cycle
+    if cycle == -1:
+        cycle = 1 if settings.g_mdsft_cycletype == "G_CYC_1CYCLE" else 2
+    if not settings.set_rendermode:
+        return default_for_no_rendermode
+    return (
+        getattr(settings, f"blend_p{cycle}") == p
+        and getattr(settings, f"blend_a{cycle}") == a
+        and getattr(settings, f"blend_m{cycle}") == m
+        and getattr(settings, f"blend_b{cycle}") == b
+    )
+
+
+def is_blender_doing_fog(settings: "RDPSettings") -> bool:
+    return is_blender_lerp(
+        settings,
+        # If 2 cycle, fog must be in first cycle.
+        1,
+        "G_BL_CLR_FOG",
+        "G_BL_A_SHADE",
+        # While technically it being fog only requires that P and A be fog color
+        # and shade alpha, the only reasonable choice for M and B in this case
+        # is color in and 1-A.
+        "G_BL_CLR_IN",
+        "G_BL_1MA",
+        # if NOT setting rendermode, it is more likely that the user is setting
+        # rendermodes in code, so to be safe we'll enable fog
+        True
+    )
+
+
+def get_blend_method(material: bpy.types.Material) -> str:
+    settings = material.f3d_mat.settings
+    if not settings.set_rendermode:
+        return drawLayerSM64Alpha[material.f3d_mat.draw_layer.sm64]
+    if settings.cvg_x_alpha:
+        return "CLIP"
+    if settings.force_bl and is_blender_lerp(settings, -1,
+        "G_BL_CLR_IN", "G_BL_A_IN", "G_BL_CLR_MEM", "G_BL_1MA"):
+        return "BLEND"
+    return "OPAQUE"
 
 
 def update_blend_method(material: Material, context):
@@ -263,19 +322,6 @@ def update_blend_method(material: Material, context):
     if material.blend_method == "CLIP":
         material.alpha_threshold = 0.125
 
-
-def getZMode(material: Material):
-    f3dMat = material.f3d_mat
-    settings = f3dMat.rdp_settings
-    if not settings.set_rendermode:
-        return "ZMODE_OPA"
-    if settings.rendermode_advanced_enabled:
-        return settings.zmode
-    r1, r2 = rendermodePresetToBits(settings)
-    f3d = get_F3D_GBI()
-    zmode = ((r1 | r2) & f3d.ZMODE_DEC) // f3d.ZMODE_INTER
-    return enumZMode[zmode][0]
-    
 
 class DrawLayerProperty(PropertyGroup):
     sm64: bpy.props.EnumProperty(items=sm64EnumDrawLayers, default="1", update=update_draw_layer)
@@ -422,19 +468,16 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
 
         isF3DEX3 = bpy.context.scene.f3d_type == "F3DEX3"
         lightFxPrereq = isF3DEX3 and settings.g_lighting
+        ccWarnings = shadeInCC = False
+        blendWarnings = shadeInBlender = zInBlender = False
         if isinstance(dataHolder, F3DMaterialProperty):
-            ccWarnings = blendWarnings = True
+            ccWarnings = True
             ccUse = all_combiner_uses(dataHolder)
             shadeInCC = ccUse["Shade"] or ccUse["Shade Alpha"]
-            blendUse = all_blender_uses(settings)
-            if blendUse is None:
-                blendWarnings = shadeInBlender = zInBlender = False
-            else:
-                shadeInBlender = blendUse["Shade Alpha"]
-                zInBlender = blendUse["Z Buffer"]
-        else:
-            ccWarnings = shadeInCC = False
-            blendWarnings = shadeInBlender = zInBlender = False
+            if rdp_settings.set_rendermode:
+                blendWarnings = True
+                shadeInBlender = does_blender_use_alpha(rdp_settings, "G_BL_A_SHADE")
+                zInBlender = settings.z_cmp or settings.z_upd
 
         inputGroup.prop(settings, "g_shade_smooth")
 
@@ -913,7 +956,11 @@ class F3DPanel(Panel):
             if f3dMat.set_attroffs_z:
                 prop_split(inputGroup.row(), f3dMat, "attroffs_z", "Z Attr Offset")
 
-        if f3dMat.rdp_settings.g_fog:
+        if (
+            f3dMat.rdp_settings.g_fog
+            or does_blender_use_color(f3dMat.rdp_settings, "G_BL_CLR_FOG")
+            or does_blender_use_alpha(f3dMat.rdp_settings, "G_BL_A_FOG")
+        ):
             if showCheckBox or f3dMat.set_fog:
                 inputGroup = inputCol.column()
             if showCheckBox:
@@ -947,7 +994,7 @@ class F3DPanel(Panel):
         prop_split(inputGroup.row(), cel, "tintPipeline", "Tint pipeline:")
         prop_split(inputGroup.row(), cel, "cutoutSource", "Cutout:")
         
-        if getZMode(material) != "ZMODE_OPA":
+        if material.f3d_mat.rdp_settings.zmode != "ZMODE_OPA":
             inputGroup.label(text = "zmode in blender / rendermode must be opaque.", icon = "ERROR")
 
         if cel.cutoutSource == "ENVIRONMENT":
@@ -1020,9 +1067,7 @@ class F3DPanel(Panel):
         settings = f3dMat.rdp_settings
         isF3DEX3 = bpy.context.scene.f3d_type == "F3DEX3"
         lightFxPrereq = isF3DEX3 and settings.g_lighting
-
-        blendUse = all_blender_uses(settings)
-        anyUseShadeAlpha = useDict["Shade Alpha"] or (blendUse is not None and blendUse["Shade Alpha"])
+        anyUseShadeAlpha = useDict["Shade Alpha"] or does_blender_use_alpha(settings, "G_BL_A_SHADE")
 
         g_lighting = settings.g_lighting
         g_fog = settings.g_fog
@@ -1371,6 +1416,14 @@ def update_cel_cutout_source(self, context):
         f3dMat.combiner1.D_alpha = "0"
 
 
+def update_rendermode_preset(self, context):
+    with F3DMaterial_UpdateLock(get_material_from_context(context)) as material:
+        if material:
+            rendermode_preset_to_advanced(material)
+    
+    update_node_values_with_preset(self, context)
+
+
 def getSocketFromCombinerToNodeDictColor(nodes, combinerInput):
     nodeName, socketIndex = combinerToNodeDictColor[combinerInput]
     return nodes[nodeName].outputs[socketIndex] if nodeName is not None else None
@@ -1485,50 +1538,21 @@ def update_node_combiner(material, combinerInputs, cycleIndex):
                 material.node_tree.links.new(cycle_node.inputs[i], input_value)
 
 
-def check_fog_settings(material: Material):
-    f3dMat: "F3DMaterialProperty" = material.f3d_mat
-    fog_enabled: bool = f3dMat.rdp_settings.g_fog
-    fog_rendermode_enabled: bool = fog_enabled
-
-    is_one_cycle = f3dMat.rdp_settings.g_mdsft_cycletype == "G_CYC_1CYCLE"
-
-    if is_one_cycle or fog_enabled == False:
-        fog_rendermode_enabled = False
-    elif f3dMat.rdp_settings.set_rendermode:
-        if f3dMat.rdp_settings.rendermode_advanced_enabled:
-            if f3dMat.rdp_settings.blend_p1 == "G_BL_CLR_FOG" and f3dMat.rdp_settings.blend_a1 == "G_BL_A_SHADE":
-                fog_rendermode_enabled = True
-        else:
-            f3d = get_F3D_GBI()
-            r_mode = getattr(f3d, f3dMat.rdp_settings.rendermode_preset_cycle_1, f3d.G_RM_PASS)
-
-            # Note: GBL_c1 uses (m1a) << 30 | (m1b) << 26 | (m2a) << 22 | (m2b) << 18
-            # This checks if m1a is G_BL_CLR_FOG and m1b is G_BL_A_SHADE
-            if r_mode & (f3d.G_BL_CLR_FOG << 30) != 0 and r_mode & (f3d.G_BL_A_SHADE << 26):
-                fog_rendermode_enabled = True
-    else:
-        # if NOT setting rendermode, it is more likely that the user is setting rendermodes in code,
-        # so to be safe we'll enable fog
-        fog_rendermode_enabled = True
-
-    return fog_enabled, fog_rendermode_enabled
-
-
 def update_fog_nodes(material: Material, context: Context):
     nodes = material.node_tree.nodes
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
+    shade_alpha_is_fog = material.f3d_mat.rdp_settings.g_fog
 
-    fog_enabled, fog_rendermode_enabled = check_fog_settings(material)
-
-    nodes["Shade Color"].inputs["Fog"].default_value = int(fog_enabled)
+    nodes["Shade Color"].inputs["Fog"].default_value = int(shade_alpha_is_fog)
 
     fogBlender: ShaderNodeGroup = nodes["FogBlender"]
-    if fog_rendermode_enabled and fog_enabled:
-        fogBlender.node_tree = bpy.data.node_groups["FogBlender_On"]
-    else:
-        fogBlender.node_tree = bpy.data.node_groups["FogBlender_Off"]
+    fogBlender.node_tree = bpy.data.node_groups[
+        "FogBlender_On"
+        if shade_alpha_is_fog and is_blender_doing_fog(material.f3d_mat.rdp_settings)
+        else "FogBlender_Off"
+    ]
 
-    if fog_enabled:
+    if shade_alpha_is_fog:
         inherit_fog = f3dMat.use_global_fog or not f3dMat.set_fog
         if inherit_fog:
             link_if_none_exist(material, nodes["SceneProperties"].outputs["FogColor"], nodes["FogColor"].inputs[0])
@@ -3093,13 +3117,13 @@ class RDPSettings(PropertyGroup):
         items=enumRenderModesCycle1,
         default="G_RM_AA_ZB_OPA_SURF",
         name="Render Mode Cycle 1",
-        update=update_node_values_with_preset,
+        update=update_rendermode_preset,
     )
     rendermode_preset_cycle_2: bpy.props.EnumProperty(
         items=enumRenderModesCycle2,
         default="G_RM_AA_ZB_OPA_SURF2",
         name="Render Mode Cycle 2",
-        update=update_node_values_with_preset,
+        update=update_rendermode_preset,
     )
     aa_en: bpy.props.BoolProperty(
         update=update_node_values_with_preset,
