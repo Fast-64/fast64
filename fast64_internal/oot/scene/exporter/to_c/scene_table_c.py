@@ -1,4 +1,5 @@
 import os
+import enum
 import bpy
 
 from dataclasses import dataclass, field
@@ -9,10 +10,17 @@ from ....oot_utility import getCustomProperty, ExportInfo
 from ....oot_level_classes import OOTScene
 
 
+class SceneIndexType(enum.Enum):
+    """Used to figure out the value of ``selectedSceneIndex``"""
+    # this is using negative numbers since this is used as a return type if the scene index wasn't found
+    CUSTOM = -1 # custom scene
+    VANILLA_REMOVED = -2 # vanilla scene that was removed, this is to know if it should insert an entry
+
+
 @dataclass(unsafe_hash=True)
 class SceneTableEntry:
     index: int
-    original: str
+    original: Optional[str]
     scene: Optional[OOTScene] = None
     exportName: Optional[str] = None
     prefix: Optional[str] = None  # ifdefs, endifs, comments etc, everything before the current entry
@@ -27,13 +35,14 @@ class SceneTableEntry:
     unk2: Optional[str] = None
 
     def __post_init__(self):
-        self.paramStart = "DEFINE_SCENE("
-        if self.original is not None and self.paramStart in self.original:
-            self.ogIdx = self.original.index(self.paramStart)
-            self.parsed = self.original[self.ogIdx + len(self.paramStart) :][:-1]
+        macroStart = "DEFINE_SCENE("
+        if self.original is not None and macroStart in self.original:
+            self.ogIdx = self.original.index(macroStart)
+            self.parsed = self.original[self.ogIdx + len(macroStart) :][:-1]
 
             parameters = self.parsed.split(", ")
-            self.setParameters(parameters[0], parameters[1], parameters[2], parameters[3], parameters[4], parameters[5])
+            assert len(parameters) == 6
+            self.setParameters(*parameters)
         elif self.scene is not None:
             self.setParametersFromScene()
 
@@ -72,18 +81,17 @@ class SceneTableEntry:
 class SceneTable:
     exportPath: str
     exportName: Optional[str]
-    selectedSceneEnumValue: str
+    selectedSceneEnumValue: Optional[str]
     entries: list[SceneTableEntry] = field(default_factory=list)
     sceneEnumValues: list[str] = field(default_factory=list)  # existing values in ``scene_table.h``
     isNewCustom: bool = False  # true if the custom scene doesn't exist in the table
     firstAppend: bool = False
-    selectedSceneIndex: int = -3
+    selectedSceneIndex: int = 0
     customSceneIndex: int = 0
 
     def __post_init__(self):
         try:
             with open(self.exportPath) as fileData:
-                # with open(self.exportPath, "r") as fileData:
                 data = fileData.read()
                 lines = data.split("\n")
         except FileNotFoundError:
@@ -124,14 +132,14 @@ class SceneTable:
         self.entryBySpecName = {entry.specName: entry for entry in self.entries}
 
     def getIndexFromEnumValue(self):
-        """Returns the index (int) of the chosen scene, returns -1 if custom and -2 if insertion"""
+        """Returns the index (int) of the chosen scene if vanilla and found, else return an enum value from ``SceneIndexType``"""
+        if self.selectedSceneEnumValue == "Custom":
+            return SceneIndexType.CUSTOM
         for i in range(len(self.sceneEnumValues)):
             if self.sceneEnumValues[i] == self.selectedSceneEnumValue:
                 return i
-        if self.selectedSceneEnumValue == "Custom":
-            return -1
         # if the index is not found and it's not a custom export it means it's a vanilla scene that was removed
-        return -2
+        return SceneIndexType.VANILLA_REMOVED
 
     def getOriginalIndex(self):
         """
@@ -209,7 +217,7 @@ class SceneTable:
                 transferEntry.prefix = entry.prefix
 
             self.entries.remove(entry)
-        elif index == -2:
+        elif index == SceneIndexType.VANILLA_REMOVED:
             PluginError("INFO: This scene was already removed.")
         else:
             raise PluginError("ERROR: Unexpected scene index value.")
@@ -241,10 +249,10 @@ def modifySceneTable(scene: Optional[OOTScene], exportInfo: ExportInfo):
     if scene is None:
         # remove mode
         sceneTable.remove(sceneTable.selectedSceneIndex)
-    elif sceneTable.selectedSceneIndex == -1 and sceneTable.isNewCustom:
+    elif sceneTable.selectedSceneIndex == SceneIndexType.CUSTOM and sceneTable.isNewCustom:
         # custom mode: new custom scene
         sceneTable.append(SceneTableEntry(len(sceneTable.entries) - 1, None, scene, exportInfo.name))
-    elif sceneTable.selectedSceneIndex == -2:
+    elif sceneTable.selectedSceneIndex == SceneIndexType.VANILLA_REMOVED:
         # insert mode
         sceneTable.insert(SceneTableEntry(sceneTable.getInsertionIndex(), None, scene, exportInfo.name))
     else:
