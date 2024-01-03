@@ -503,7 +503,9 @@ def ootConvertScene(originalSceneObj, transformMatrix, sceneName, DLFormat, conv
     if bpy.context.scene.exportHiddenGeometry:
         restoreHiddenState(hiddenState)
 
-    roomObjs = [child for child in sceneObj.children_recursive if child.type == "EMPTY" and child.ootEmptyType == "Room"]
+    roomObjs = [
+        child for child in sceneObj.children_recursive if child.type == "EMPTY" and child.ootEmptyType == "Room"
+    ]
     if len(roomObjs) == 0:
         raise PluginError("The scene has no child empties with the 'Room' empty type.")
 
