@@ -10,11 +10,12 @@ from ....oot_utility import getCustomProperty, ExportInfo
 from ....oot_level_classes import OOTScene
 
 
-class SceneIndexType(enum.Enum):
+class SceneIndexType(enum.IntEnum):
     """Used to figure out the value of ``selectedSceneIndex``"""
+
     # this is using negative numbers since this is used as a return type if the scene index wasn't found
-    CUSTOM = -1 # custom scene
-    VANILLA_REMOVED = -2 # vanilla scene that was removed, this is to know if it should insert an entry
+    CUSTOM = -1  # custom scene
+    VANILLA_REMOVED = -2  # vanilla scene that was removed, this is to know if it should insert an entry
 
 
 @dataclass(unsafe_hash=True)
@@ -70,7 +71,7 @@ class SceneTableEntry:
     def to_c(self):
         return (
             (self.prefix if self.prefix is not None else "")
-            + (self.original[: self.ogIdx] if self.original is not None else f"/* 0x{self.index:02X} */ ")
+            + f"/* 0x{self.index:02X} */ "
             + f"DEFINE_SCENE({self.specName}, {self.titleCardName}, {self.enumValue}, "
             + f"{self.drawConfigIdx}, {self.unk1}, {self.unk2})\n"
             + (self.suffix if self.suffix is not None else "")
@@ -176,6 +177,11 @@ class SceneTable:
         # if the index hasn't been found yet, do it again but decrement the index
         return self.getInsertionIndex(currentIndex - 1)
 
+    def updateEntryIndex(self):
+        for i, entry in enumerate(self.entries):
+            if entry.index != i:
+                entry.index = i
+
     def append(self, entry: SceneTableEntry):
         if not self.firstAppend:
             entry.prefix = "// Added scenes\n"
@@ -205,16 +211,18 @@ class SceneTable:
             raise PluginError("ERROR: (Insert) Entry already in the table!")
 
     def remove(self, index: int):
-        if index >= 0:
+        if index >= 0 or index == SceneIndexType.CUSTOM:
             entry = self.entries[index]
 
             if len(entry.prefix) > 0:
                 nextIndex = index + 1
-                if nextIndex < len(self.entries):
-                    transferEntry = self.entries[index + 1]
+                if index != SceneIndexType.CUSTOM and nextIndex < len(self.entries):
+                    self.entries[nextIndex].prefix = entry.prefix
                 else:
-                    transferEntry = self.entries[index - 1]
-                transferEntry.prefix = entry.prefix
+                    previousIndex = entry.index - 1
+                    if entry.index == len(self.entries) - 1:
+                        entry.prefix = entry.prefix.removesuffix("// Added scenes\n")
+                    self.entries[previousIndex].suffix = entry.prefix
 
             self.entries.remove(entry)
         elif index == SceneIndexType.VANILLA_REMOVED:
@@ -260,6 +268,9 @@ def modifySceneTable(scene: Optional[OOTScene], exportInfo: ExportInfo):
         index = sceneTable.selectedSceneIndex if sceneTable.selectedSceneIndex >= 0 else sceneTable.customSceneIndex
         entry = sceneTable.entries[index]
         entry.setParametersFromScene(scene)
+
+    # update the indices
+    sceneTable.updateEntryIndex()
 
     # write the file with the final data
     writeFile(sceneTable.exportPath, sceneTable.to_c())
