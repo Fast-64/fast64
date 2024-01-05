@@ -1,9 +1,14 @@
+import bpy
+
 from mathutils import Vector
 from bpy.ops import mesh, object, curve
-from bpy.types import Operator
-from bpy.props import FloatProperty, StringProperty
+from bpy.types import Operator, Object, Context
+from bpy.props import FloatProperty, StringProperty, EnumProperty, BoolProperty
 from ...operators import AddWaterBox, addMaterialByName
 from ...utility import parentObject, setOrigin
+from ..cutscene.motion.utility import setupCutscene, createNewCameraShot
+from ..oot_utility import getNewPath
+from .quick_import import QuickImportAborted, quick_import_exec
 
 
 class OOT_AddWaterBox(AddWaterBox):
@@ -92,6 +97,7 @@ class OOT_AddScene(Operator):
         roomObj = context.view_layer.objects.active
         roomObj.ootEmptyType = "Room"
         roomObj.name = "Room"
+        entranceObj.ootEntranceProperty.tiedRoom = roomObj
         parentObject(roomObj, planeObj)
 
         location += Vector([0, 0, 2])
@@ -143,7 +149,9 @@ class OOT_AddRoom(Operator):
 class OOT_AddCutscene(Operator):
     bl_idname = "object.oot_add_cutscene"
     bl_label = "Add Cutscene"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
+    bl_options = {"REGISTER", "UNDO"}
+
+    csName: StringProperty(name="", default="Something", description="The Cutscene's Name without `Cutscene.`")
 
     def execute(self, context):
         if context.mode != "OBJECT":
@@ -153,30 +161,135 @@ class OOT_AddCutscene(Operator):
         object.empty_add(type="ARROWS", radius=1, align="WORLD")
         csObj = context.view_layer.objects.active
         csObj.ootEmptyType = "Cutscene"
-        csObj.name = "Cutscene.Something"
+        csObj.name = f"Cutscene.{self.csName}"
+        createNewCameraShot(csObj)
+        setupCutscene(csObj)
 
         object.select_all(action="DESELECT")
         csObj.select_set(True)
         context.view_layer.objects.active = csObj
         return {"FINISHED"}
 
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self, width=200)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.label(text="Set the Cutscene's Name")
+        split = layout.split(factor=0.30)
+        split.label(text="Cutscene.")
+        split.prop(self, "csName")
+
 
 class OOT_AddPath(Operator):
     bl_idname = "object.oot_add_path"
     bl_label = "Add Path"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
+    bl_options = {"REGISTER", "UNDO"}
+
+    isClosedShape: BoolProperty(name="", default=True)
+    pathType: EnumProperty(
+        name="",
+        items=[
+            ("Line", "Line", "Line"),
+            ("Square", "Square", "Square"),
+            ("Triangle", "Triangle", "Triangle"),
+            ("Trapezium", "Trapezium", "Trapezium"),
+        ],
+        default="Line",
+    )
 
     def execute(self, context):
         if context.mode != "OBJECT":
             object.mode_set(mode="OBJECT")
         object.select_all(action="DESELECT")
 
-        location = Vector(context.scene.cursor.location)
-        curve.primitive_nurbs_path_add(radius=1, align="WORLD", location=location[:])
-        pathObj = context.view_layer.objects.active
-        pathObj.name = "New Path"
+        pathObj = getNewPath(self.pathType, self.isClosedShape)
+        activeObj = context.view_layer.objects.active
+        if activeObj.type == "EMPTY" and activeObj.ootEmptyType == "Scene":
+            pathObj.parent = activeObj
 
         object.select_all(action="DESELECT")
         pathObj.select_set(True)
         context.view_layer.objects.active = pathObj
+        return {"FINISHED"}
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self, width=320)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.label(text="Path Settings")
+        props = [("Path Type", "pathType"), ("Closed Shape", "isClosedShape")]
+
+        for desc, propName in props:
+            split = layout.split(factor=0.30)
+            split.label(text=desc)
+            split.prop(self, propName)
+
+
+class OOTClearTransformAndLock(Operator):
+    bl_idname = "object.oot_clear_transform"
+    bl_label = "Clear Transform (Scenes & Cutscenes)"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def clearTransform(self, obj: Object):
+        print(obj.name)
+        prevSelect = obj.select_get()
+        obj.select_set(True)
+        object.location_clear()
+        object.rotation_clear()
+        object.scale_clear()
+        object.origin_clear()
+        if obj.type != "EMPTY":
+            object.transform_apply(location=True, rotation=True, scale=True)
+        obj.select_set(prevSelect)
+
+    def execute(self, context: Context):
+        try:
+            for obj in bpy.data.objects:
+                if obj.type == "EMPTY":
+                    if obj.ootEmptyType in ["Scene", "Cutscene"]:
+                        self.clearTransform(obj)
+                        for childObj in obj.children_recursive:
+                            self.clearTransform(childObj)
+            self.report({"INFO"}, "Success!")
+            return {"FINISHED"}
+        except:
+            return {"CANCELLED"}
+
+
+class OOTQuickImport(Operator):
+    bl_idname = "object.oot_quick_import"
+    bl_label = "Quick Import"
+    bl_options = {"REGISTER", "UNDO"}
+    bl_description = (
+        "Import (almost) anything by inputting a symbol name from an object."
+        " This operator automatically finds the file to import from (within objects)"
+    )
+
+    sym_name: StringProperty(
+        name="Symbol name",
+        description=(
+            "Which symbol to import."
+            " This may be a display list (e.g. gBoomerangDL), "
+            "a skeleton (e.g. object_daiku_Skel_007958), "
+            "an animation (with the appropriate skeleton selected, e.g. object_daiku_Anim_008164)"
+        ),
+    )
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context):
+        self.layout.prop(self, "sym_name", text="Symbol")
+
+    def execute(self, context: Context):
+        try:
+            quick_import_exec(
+                context,
+                self.sym_name,
+            )
+        except QuickImportAborted as e:
+            self.report({"ERROR"}, e.message)
+            return {"CANCELLED"}
         return {"FINISHED"}

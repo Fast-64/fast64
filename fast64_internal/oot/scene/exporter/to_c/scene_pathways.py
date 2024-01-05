@@ -5,14 +5,14 @@ from ....oot_level_classes import OOTScene
 
 def getPathPointData(path: OOTPath, headerIndex: int, pathIndex: int):
     pathData = CData()
-    pathName = f"Vec3s {path.pathName(headerIndex, pathIndex)}"
+    declarationBase = f"Vec3s {path.pathName(headerIndex, pathIndex)}"
 
     # .h
-    pathData.header = f"extern {pathName}[];\n"
+    pathData.header = f"extern {declarationBase}[];\n"
 
     # .c
     pathData.source = (
-        f"{pathName}[]"
+        f"{declarationBase}[]"
         + " = {\n"
         + "\n".join(
             indent + "{ " + ", ".join(f"{round(curPoint):5}" for curPoint in point) + " }," for point in path.points
@@ -26,13 +26,13 @@ def getPathPointData(path: OOTPath, headerIndex: int, pathIndex: int):
 def getPathData(outScene: OOTScene, headerIndex: int):
     pathData = CData()
     pathListData = CData()
-    listName = f"Path {outScene.pathListName(headerIndex)}[{len(outScene.pathList)}]"
+    declarationBase = f"Path {outScene.pathListName(headerIndex)}[{len(outScene.pathList)}]"
 
     # .h
-    pathListData.header = f"extern {listName};\n"
+    pathListData.header = f"extern {declarationBase};\n"
 
     # .c
-    pathListData.source = listName + " = {\n"
+    pathListData.source = declarationBase + " = {\n"
 
     # Parse in alphabetical order of names
     sortedPathList = sorted(outScene.pathList, key=lambda x: x.objName.lower())

@@ -3,7 +3,7 @@ from bpy.utils import register_class, unregister_class
 from . import addon_updater_ops
 from .fast64_internal.operators import AddWaterBox
 from .fast64_internal.panels import SM64_Panel
-from .fast64_internal.utility import PluginError, raisePluginError, attemptModifierApply, prop_split
+from .fast64_internal.utility import PluginError, raisePluginError, attemptModifierApply, prop_split, multilineLabel
 
 from .fast64_internal.sm64 import SM64_Properties, sm64_register, sm64_unregister
 from .fast64_internal.sm64.sm64_geolayout_bone import SM64_BoneProperties
@@ -162,11 +162,12 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
         col = self.layout.column()
         col.scale_y = 1.1  # extra padding
         prop_split(col, context.scene, "f3d_type", "F3D Microcode")
-        col.prop(context.scene, "isHWv1")
         col.prop(context.scene, "saveTextures")
         col.prop(context.scene, "f3d_simple", text="Simple Material UI")
         col.prop(context.scene, "generateF3DNodeGraph", text="Generate F3D Node Graph For Materials")
         col.prop(context.scene, "exportInlineF3D", text="Bleed and Inline Material Exports")
+        if context.scene.exportInlineF3D:
+            multilineLabel(col.box(), "While inlining, all meshes will be restored to world default values.\n         You can configure these values in the world properties tab.", icon="INFO")
         col.prop(context.scene, "decomp_compatible", invert_checkbox=True, text="Homebrew Compatibility")
         col.prop(context.scene, "ignoreTextureRestrictions")
         if context.scene.ignoreTextureRestrictions:
@@ -183,7 +184,7 @@ class Fast64_GlobalObjectPanel(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.object is not None and context.object.data is None
+        return context.object is not None and context.object.type == "EMPTY"
 
     def draw(self, context):
         box = self.layout
@@ -345,7 +346,7 @@ class UpgradeF3DMaterialsDialog(bpy.types.Operator):
             bpy.ops.object.mode_set(mode="OBJECT")
 
         upgradeF3DVersionAll(
-            [obj for obj in bpy.data.objects if isinstance(obj.data, bpy.types.Mesh)],
+            [obj for obj in bpy.data.objects if obj.type == "MESH"],
             list(bpy.data.armatures),
             MatUpdateConvert.version,
         )
@@ -428,7 +429,6 @@ def gameEditorUpdate(self, context):
 # register operators and panels here
 # append menu layout drawing function to an existing window
 def register():
-
     if bpy.app.version < (3, 2, 0):
         msg = "\n".join(
             (
@@ -474,8 +474,11 @@ def register():
     bpy.types.Scene.saveTextures = bpy.props.BoolProperty(name="Save Textures As PNGs (Breaks CI Textures)")
     bpy.types.Scene.generateF3DNodeGraph = bpy.props.BoolProperty(name="Generate F3D Node Graph", default=True)
     bpy.types.Scene.exportHiddenGeometry = bpy.props.BoolProperty(name="Export Hidden Geometry", default=True)
-    bpy.types.Scene.exportInlineF3D = bpy.props.BoolProperty(name="Bleed and Inline Material Exports", \
-    description = "Inlines and bleeds materials in a single mesh. GeoLayout + Armature exports bleed over entire model", default=False)
+    bpy.types.Scene.exportInlineF3D = bpy.props.BoolProperty(
+        name="Bleed and Inline Material Exports",
+        description="Inlines and bleeds materials in a single mesh. GeoLayout + Armature exports bleed over entire model",
+        default=False,
+    )
     bpy.types.Scene.blenderF3DScale = bpy.props.FloatProperty(
         name="F3D Blender Scale", default=100, update=on_update_render_settings
     )

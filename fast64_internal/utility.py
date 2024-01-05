@@ -1,8 +1,9 @@
 import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operator
-from math import pi, ceil, degrees, radians
+from math import pi, ceil, degrees, radians, copysign
 from mathutils import *
 from .utility_anim import *
-from typing import Callable, Iterable, Any
+from typing import Callable, Iterable, Any, Tuple, Optional
+from bpy.types import UILayout
 
 CollectionProperty = Any  # collection prop as defined by using bpy.props.CollectionProperty
 
@@ -600,6 +601,21 @@ to_s16 = lambda x: cast_integer(round(x), 16, True)
 radians_to_s16 = lambda d: to_s16(d * 0x10000 / (2 * math.pi))
 
 
+def int_from_s16(value: int) -> int:
+    value &= 0xFFFF
+    if value >= 0x8000:
+        value -= 0x10000
+    return value
+
+
+def int_from_s16_str(value: str) -> int:
+    return int_from_s16(int(value, 0))
+    
+
+def float_from_u16_str(value: str) -> float:
+    return float(int(value, 0)) / (2**16)
+
+
 def decompFolderMessage(layout):
     layout.box().label(text="This will export to your decomp folder.")
 
@@ -841,7 +857,7 @@ def store_original_meshes(add_warning: Callable[[str], None]):
     instanced_meshes = set()
     active_obj = bpy.context.view_layer.objects.active
     for obj in yield_children(active_obj):
-        if obj.data is not None:
+        if obj.type != "EMPTY":
             has_modifiers = len(obj.modifiers) != 0
             has_uneven_scale = not obj_scale_is_unified(obj)
             shares_mesh = obj.data.users > 1
@@ -961,18 +977,18 @@ def checkSM64EmptyUsesGeoLayout(sm64_obj_type):
 
 
 def selectMeshChildrenOnly(obj, ignoreAttr, includeEmpties, areaIndex):
-    checkArea = areaIndex is not None and obj.data is None
+    checkArea = areaIndex is not None and obj.type == "EMPTY"
     if checkArea and obj.sm64_obj_type == "Area Root" and obj.areaIndex != areaIndex:
         return
     ignoreObj = ignoreAttr is not None and getattr(obj, ignoreAttr)
-    isMesh = isinstance(obj.data, bpy.types.Mesh)
-    isEmpty = obj.data is None and includeEmpties and checkSM64EmptyUsesGeoLayout(obj.sm64_obj_type)
+    isMesh = obj.type == "MESH"
+    isEmpty = obj.type == "EMPTY" and includeEmpties and checkSM64EmptyUsesGeoLayout(obj.sm64_obj_type)
     if (isMesh or isEmpty) and not ignoreObj:
         obj.select_set(True)
         obj.original_name = obj.name
     for child in obj.children:
         if checkArea and obj.sm64_obj_type == "Level Root":
-            if not (child.data is None and child.sm64_obj_type == "Area Root"):
+            if not (child.type == "EMPTY" and child.sm64_obj_type == "Area Root"):
                 continue
         selectMeshChildrenOnly(child, ignoreAttr, includeEmpties, areaIndex)
 
@@ -980,7 +996,7 @@ def selectMeshChildrenOnly(obj, ignoreAttr, includeEmpties, areaIndex):
 def cleanupDuplicatedObjects(selected_objects):
     meshData = []
     for selectedObj in selected_objects:
-        if selectedObj.data is not None and isinstance(selectedObj.data, bpy.types.Mesh):
+        if selectedObj.type == "MESH":
             meshData.append(selectedObj.data)
     for selectedObj in selected_objects:
         bpy.data.objects.remove(selectedObj)
@@ -1182,6 +1198,14 @@ def prop_split(layout, data, field, name, **prop_kwargs):
     split = layout.split(factor=0.5)
     split.label(text=name)
     split.prop(data, field, text="", **prop_kwargs)
+
+
+def multilineLabel(layout: UILayout, text: str, icon: str = "NONE"):
+    layout = layout.column()
+    for i, line in enumerate(text.split("\n")):
+        r = layout.row()
+        r.label(text = line, icon = icon if i == 0 else "NONE")
+        r.scale_y = 0.75
 
 
 def toAlnum(name, exceptions=[]):
@@ -1425,13 +1449,56 @@ def normToSigned8Vector(normal):
     return [int.from_bytes(int(value * 127).to_bytes(1, "big", signed=True), "big") for value in normal]
 
 
-# Normal values are signed bytes (-128 to 127)
-# Normalized magnitude = 127
-def convertNormal(normal):
-    F3DNormal = bytearray(0)
-    for axis in normal:
-        F3DNormal.extend(int(axis * 127).to_bytes(1, "big", signed=True))
-    return F3DNormal
+def unpackNormalS8(packedNormal: int) -> Tuple[int, int, int]:
+    assert isinstance(packedNormal, int) and packedNormal >= 0 and packedNormal <= 0xFFFF
+    xo, yo = packedNormal >> 8, packedNormal & 0xFF
+    # This is following the instructions in F3DEX3
+    x, y = xo & 0x7F, yo & 0x7F
+    z = x + y
+    zNeg = bool(z & 0x80)
+    x2, y2 = x ^ 0x7F, y ^ 0x7F  # this is actually producing 7F - x, 7F - y
+    z = z ^ 0x7F  # 7F - x - y; using xor saves an instruction and a register on the RSP
+    if zNeg:
+        x, y = x2, y2
+    x, y = -x if xo & 0x80 else x, -y if yo & 0x80 else y
+    z = z - 0x100 if z & 0x80 else z
+    assert abs(x) + abs(y) + abs(z) == 127
+    return x, y, z
+
+
+def unpackNormal(packedNormal: int) -> Vector:
+    # Convert constant-L1 norm to standard L2 norm
+    return Vector(unpackNormalS8(packedNormal)).normalized()
+
+
+def packNormal(normal: Vector) -> int:
+    # Convert standard normal to constant-L1 normal
+    assert len(normal) == 3
+    l1norm = abs(normal[0]) + abs(normal[1]) + abs(normal[2])
+    xo, yo, zo = tuple([int(round(a * 127.0 / l1norm)) for a in normal])
+    if abs(xo) + abs(yo) > 127:
+        yo = int(math.copysign(127 - abs(xo), yo))
+    zo = int(math.copysign(127 - abs(xo) - abs(yo), zo))
+    assert abs(xo) + abs(yo) + abs(zo) == 127
+    # Pack normals
+    xsign, ysign = xo & 0x80, yo & 0x80
+    x, y = abs(xo), abs(yo)
+    if zo < 0:
+        x, y = 0x7F - x, 0x7F - y
+    x, y = x | xsign, y | ysign
+    packedNormal = x << 8 | y
+    # The only error is in the float to int rounding above. The packing and unpacking
+    # will precisely restore the original int values.
+    assert (xo, yo, zo) == unpackNormalS8(packedNormal)
+    return packedNormal
+
+
+def getRgbNormalSettings(f3d_mat: "F3DMaterialProperty") -> Tuple[bool, bool, bool]:
+    rdp_settings = f3d_mat.rdp_settings
+    has_packed_normals = bpy.context.scene.f3d_type == "F3DEX3" and rdp_settings.g_packed_normals
+    has_rgb = not rdp_settings.g_lighting or has_packed_normals
+    has_normal = rdp_settings.g_lighting
+    return has_rgb, has_normal, has_packed_normals
 
 
 def byteMask(data, offset, amount):
