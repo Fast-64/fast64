@@ -4403,6 +4403,7 @@ def mat_register():
     )
     Object.ignore_render = bpy.props.BoolProperty(name="Ignore Render")
     Object.ignore_collision = bpy.props.BoolProperty(name="Ignore Collision")
+    Object.bleed_independently = bpy.props.BoolProperty(name="Bleed Independently", description="While bleeding, this object will not inherit properties from previously drawn meshes in the drawing graph")
     Object.f3d_lod_z = bpy.props.IntProperty(
         name="F3D LOD Z",
         min=1,
@@ -4424,6 +4425,7 @@ def mat_unregister():
     del Scene.f3d_simple
     del Object.ignore_render
     del Object.ignore_collision
+    del Object.bleed_independently
     del Object.use_f3d_culling
     del Scene.f3dUserPresetsOnly
     del Object.f3d_lod_z

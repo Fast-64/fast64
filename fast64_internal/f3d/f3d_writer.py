@@ -450,8 +450,9 @@ def exportF3DCommon(obj, fModel, transformMatrix, includeChildren, name, DLForma
     try:
         infoDict = getInfoDict(tempObj)
         triConverterInfo = TriangleConverterInfo(tempObj, None, fModel.f3d, transformMatrix, infoDict)
+        revert_materials = fModel.matWriteMethod == GfxMatWriteMethod.WriteDifferingAndRevert
         fMeshes = saveStaticModel(
-            triConverterInfo, fModel, tempObj, transformMatrix, name, convertTextureData, True, None
+            triConverterInfo, fModel, tempObj, transformMatrix, name, convertTextureData, revert_materials, None
         )
         cleanupCombineObj(tempObj, meshList)
         obj.select_set(True)
