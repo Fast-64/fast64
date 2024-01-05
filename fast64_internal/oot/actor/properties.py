@@ -42,7 +42,7 @@ def getObjName(actorKey: str, paramType: str, paramSubType: str, paramIndex: int
         "Message": "naviMsg",
     }
     suffix = paramTypeToObjName[paramType] if paramType != "Flag" else flagTypeToObjName[paramSubType]
-    return f"{actorKey}.{suffix}{paramIndex}"  # i.e: ``en_test.props1``
+    return f"{actorKey}.{suffix}{paramIndex}"  # e.g.: ``en_test.props1``
 
 
 def initOOTActorProperties():
@@ -164,12 +164,14 @@ class OOTActorProperty(PropertyGroup):
     actorID: EnumProperty(name="Actor", items=ootData.actorData.ootEnumActorID, default="ACTOR_PLAYER")
     actorIDCustom: StringProperty(name="Actor ID", default="ACTOR_PLAYER")
 
+    # used for actors with the id "Custom"
     actorParam: StringProperty(name="Actor Parameter", default="0x0000")
     rotOverride: BoolProperty(name="Override Rotation", default=False)
     rotOverrideX: StringProperty(name="Rot X", default="0x0000")
     rotOverrideY: StringProperty(name="Rot Y", default="0x0000")
     rotOverrideZ: StringProperty(name="Rot Z", default="0x0000")
 
+    # non-custom actors
     params: StringProperty(
         name="Actor Parameter",
         default="0x0000",
