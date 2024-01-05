@@ -390,12 +390,12 @@ class OOTF3DContext(F3DContext):
             if name == "gEmptyDL":
                 return None
             else:
-                for attr_name in dir(self.materialContext.ootMaterial.opaque):
-                    if re.match("segment[89ABCD]", attr_name):
-                        setattr(self.materialContext.ootMaterial.opaque, attr_name, False)
-                for attr_name in dir(self.materialContext.ootMaterial.transparent):
-                    if re.match("segment[89ABCD]", attr_name):
-                        setattr(self.materialContext.ootMaterial.transparent, attr_name, False)
+                def clear_segment_attrs(obj):
+                    for attr_name in dir(obj):
+                        setattr(obj, attr_name, False)
+
+                clear_segment_attrs(self.materialContext.ootMaterial.opaque)
+                clear_segment_attrs(self.materialContext.ootMaterial.transparent)
                 return name
         else:
             segment = pointer >> 24
