@@ -39,7 +39,7 @@ class SM64_ToolsPanel(SM64_Panel):
         try:
             import_rom_checks(abspath(sm64_props.import_rom))
         except Exception as e:
-            multilineLabel(layout.box(), str(e), "ERROR")
+            multilineLabel(addr_conv_col.box(), str(e), "ERROR")
             addr_conv_box = addr_conv_box.column()
             addr_conv_box.enabled = False
 
