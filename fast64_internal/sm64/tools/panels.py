@@ -2,7 +2,7 @@ from bpy.utils import register_class, unregister_class
 from bpy.path import abspath
 
 from ...panels import SM64_Panel
-from ...utility import draw_error, prop_split
+from ...utility import multilineLabel, prop_split
 
 from ..sm64_utility import import_rom_checks
 
@@ -39,7 +39,7 @@ class SM64_ToolsPanel(SM64_Panel):
         try:
             import_rom_checks(abspath(sm64_props.import_rom))
         except Exception as e:
-            draw_error(addr_conv_box.box(), str(e))
+            multilineLabel(layout.box(), str(e), "ERROR")
             addr_conv_box = addr_conv_box.column()
             addr_conv_box.enabled = False
 
