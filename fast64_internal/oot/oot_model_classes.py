@@ -410,7 +410,7 @@ class OOTF3DContext(F3DContext):
             # 	print("Unhandled OOT pointer: " + textureName)
 
     def getMaterialKey(self, material: bpy.types.Material):
-        return (material.ootMaterial.key(), material.f3d_mat.key())
+        return (material.ootMaterial.key(), super().getMaterialKey(material))
 
     def clearGeometry(self):
         self.dlList = []

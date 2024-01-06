@@ -120,7 +120,6 @@ class OOTDynamicMaterialDrawLayerProperty(PropertyGroup):
             if getattr(self, p):
                 col.prop(self, p + "_seg", text="")
 
-
 # The reason these are separate is for the case when the user changes the material draw layer, but not the
 # dynamic material calls. This could cause crashes which would be hard to detect.
 class OOTDynamicMaterialProperty(PropertyGroup):

@@ -3039,12 +3039,6 @@ class FMaterial:
         self.scrollData.tile_scroll_tex1.t = tex1.tile_scroll.t
         self.scrollData.tile_scroll_tex1.interval = tex1.tile_scroll.interval
 
-    def sets_rendermode(self):
-        for command in self.material.commands:
-            if isinstance(command, DPSetRenderMode):
-                return True
-        return False
-
     def get_ptr_addresses(self, f3d):
         addresses = self.material.get_ptr_addresses(f3d)
         if self.revert is not None and self.revert.tag.Export:
