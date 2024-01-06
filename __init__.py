@@ -166,7 +166,11 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
         col.prop(context.scene, "generateF3DNodeGraph", text="Generate F3D Node Graph For Materials")
         col.prop(context.scene, "exportInlineF3D", text="Bleed and Inline Material Exports")
         if context.scene.exportInlineF3D:
-            multilineLabel(col.box(), "While inlining, all meshes will be restored to world default values.\n         You can configure these values in the world properties tab.", icon="INFO")
+            multilineLabel(
+                col.box(),
+                "While inlining, all meshes will be restored to world default values.\n         You can configure these values in the world properties tab.",
+                icon="INFO",
+            )
         col.prop(context.scene, "decomp_compatible", invert_checkbox=True, text="Homebrew Compatibility")
         col.prop(context.scene, "ignoreTextureRestrictions")
         if context.scene.ignoreTextureRestrictions:
