@@ -12,7 +12,11 @@ target-version = [
 # What files to exclude when running Black on directories (for example `black .`)
 # Use forward slashes for directory delimiters, even on Windows
 # This is a regular expression, escape dots with a backslash like '\.'
-# Note: All whitespace seems to be trimmed (thankfully), probably by Black?
+# Note: All whitespace seems to be removed (thankfully), probably by Black?
 extend-exclude = '''
-^/fast64_internal/f3d/f3d_constants\.py
+^
+/fast64_internal/f3d/f3d_constants\.py
+|addon_updater\.py
+|addon_updater_ops\.py
+$
 '''
