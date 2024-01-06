@@ -1184,28 +1184,12 @@ def prop_split(layout, data, field, name, **prop_kwargs):
     split.prop(data, field, text="", **prop_kwargs)
 
 
-def draw_label_with_wrapping(layout: bpy.types.UILayout, text: str, icon: Optional[str] = None, wrap_width: int = 50):
-    col = layout.column()
-
-    newline_wrapped_lines: list[str] = text.splitlines()
-
-    wrapped_lines: list[str] = []
-    for string in newline_wrapped_lines:
-        wrapped_lines += textwrap.wrap(string, width=wrap_width)
-
-    for line_num, text_line in enumerate(wrapped_lines):
-        if icon and line_num == 0:
-            col.label(text=text_line, icon=icon)
-        else:
-            col.label(text=text_line)
-
-
-def draw_error(layout: bpy.types.UILayout, text: str, wrap: bool = True, wrap_width: int = 50):
-    col = layout.column()
-    if wrap:
-        draw_label_with_wrapping(col, text, "ERROR", wrap_width)
-    else:
-        col.label(text=text, icon="ERROR")
+def multilineLabel(layout: UILayout, text: str, icon: str = "NONE"):
+    layout = layout.column()
+    for i, line in enumerate(text.split("\n")):
+        r = layout.row()
+        r.label(text = line, icon = icon if i == 0 else "NONE")
+        r.scale_y = 0.75
 
 
 def directory_path_checks(
@@ -1233,7 +1217,7 @@ def directory_ui_warnings(
         directory_path_checks(directory_path, empty_error, doesnt_exist_error, not_a_directory_error)
         return True
     except Exception as e:
-        draw_error(layout.box(), str(e))
+        multilineLabel(layout.box(), str(e), "ERROR")
         return False
 
 
@@ -1262,7 +1246,7 @@ def filepath_ui_warnings(
         filepath_checks(filepath, empty_error, doesnt_exist_error, not_a_file_error)
         return True
     except Exception as e:
-        draw_error(layout.box(), str(e))
+        multilineLabel(layout.box(), str(e), "ERROR")
         return False
 
 
