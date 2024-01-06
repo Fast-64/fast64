@@ -52,5 +52,5 @@ def check_expanded(filepath: str):
     size = os.path.getsize(filepath)
     if size < 9000000:  # check if 8MB
         raise PluginError(
-            f"ROM at {filepath} is too small. You may be using an unexpanded ROM. You can expand a ROM by opening it in SM64 Editor or ROM Manager."
+            f"ROM at {filepath} is too small.\nYou may be using an unexpanded ROM.\nYou can expand a ROM by opening it in SM64 Editor or ROM Manager."
         )
