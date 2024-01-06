@@ -7,7 +7,6 @@ from math import ceil
 from bpy.utils import register_class, unregister_class
 
 from .f3d_enums import *
-from .f3d_constants import *
 from .f3d_material import (
     all_combiner_uses,
     getMaterialScrollDimensions,
@@ -495,7 +494,14 @@ def revertMatAndEndDraw(gfxList, otherCommands):
             DPPipeSync(),
             SPSetGeometryMode(["G_LIGHTING"]),
             SPClearGeometryMode(["G_TEXTURE_GEN"]),
-            DPSetCombineMode(*S_SHADED_SOLID),
+            DPSetCombineMode(
+                *(
+                    ["0", "0", "0", "SHADE"]
+                    + ["0", "0", "0", "ENVIRONMENT"]
+                    + ["0", "0", "0", "SHADE"]
+                    + ["0", "0", "0", "ENVIRONMENT"]
+                )
+            ),
             SPTexture(0xFFFF, 0xFFFF, 0, 0, 0),
         ]
         + otherCommands
