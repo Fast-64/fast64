@@ -1768,14 +1768,14 @@ class F3DContext:
                             + [command.params[1], "G_IM_SIZ_4b"]
                             + command.params[2:4]
                             + command.params[9:],
-                            "4b",
+                            "4b",  # FIXME extra argument?
                             dlData,
                             True,
                         )
                     else:
                         self.loadMultiBlock(
                             [command.params[0]] + [0, "G_TX_RENDERTILE"] + command.params[1:5] + command.params[9:],
-                            "4b",
+                            "4b",  # FIXME extra argument?
                             dlData,
                             False,
                         )
