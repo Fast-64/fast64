@@ -142,14 +142,12 @@ class Fast64_GlobalSettingsPanel(bpy.types.Panel):
             load_op = col.operator(SM64_LoadRepoSettings.bl_idname)
             load_op.path = fast64_settings.repo_settings_path
 
+        save_op = col.operator(SM64_SaveRepoSettings.bl_idname)
+        save_op.path = fast64_settings.repo_settings_path
+
         prop_split(col, scene, "f3d_type", "F3D Microcode")
         col.prop(scene, "saveTextures")
         col.prop(fast64_settings, "auto_repo_load_settings")
-
-        load_op = col.operator(SM64_LoadRepoSettings.bl_idname)
-        load_op.path = fast64_settings.repo_settings_path
-        save_op = col.operator(SM64_SaveRepoSettings.bl_idname)
-        save_op.path = fast64_settings.repo_settings_path
 
     # called every frame
     def draw(self, context):
