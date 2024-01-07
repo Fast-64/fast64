@@ -2292,8 +2292,8 @@ def createF3DMat(obj: Object | None, preset="Shaded Solid", index=None):
     # link all node_groups + material from addon's data .blend
     link_f3d_material_library()
 
-    # beefwashere is a linked material containing the default layout for all the linked node_groups
-    mat = bpy.data.materials["beefwashere"]
+    # a linked material containing the default layout for all the linked node_groups
+    mat = bpy.data.materials["fast64_f3d_material_library_beefwashere"]
     # duplicate and rename the linked material
     material = mat.copy()
     material.name = "f3dlite_material"
