@@ -14,7 +14,7 @@ ootEnumBoneType = [
 
 
 def pollArmature(self, obj):
-    return isinstance(obj.data, Armature)
+    return obj.type == "ARMATURE"
 
 
 class OOTDynamicTransformProperty(PropertyGroup):

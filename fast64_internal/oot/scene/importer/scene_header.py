@@ -329,9 +329,14 @@ def parseSceneCommands(
             if not (args[1] == "NULL" or args[1] == "0" or args[1] == "0x00"):
                 lightsListName = stripName(args[1])
                 parseLightList(sceneObj, sceneHeader, sceneData, lightsListName, headerIndex)
-        elif command == "SCENE_CMD_CUTSCENE_DATA":
-            cutsceneName = args[0]
-            print("Cutscene command parsing not implemented.")
+        elif command == "SCENE_CMD_CUTSCENE_DATA" and sharedSceneData.includeCutscenes:
+            sceneHeader.writeCutscene = True
+            sceneHeader.csWriteType = "Object"
+            csObjName = f"Cutscene.{args[0]}"
+            try:
+                sceneHeader.csWriteObject = bpy.data.objects[csObjName]
+            except:
+                print(f"ERROR: Cutscene ``{csObjName}`` do not exist!")
         elif command == "SCENE_CMD_ALTERNATE_HEADER_LIST":
             # Delay until after rooms are parsed
             altHeadersListName = stripName(args[0])

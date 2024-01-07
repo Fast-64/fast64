@@ -26,7 +26,7 @@ class OOT_SaveRestPose(Operator):
         if len(context.selected_objects) == 0:
             raise PluginError("Armature not selected.")
         armatureObj = context.active_object
-        if type(armatureObj.data) is not Armature:
+        if armatureObj.type != "ARMATURE":
             raise PluginError("Armature not selected.")
 
         try:
@@ -100,7 +100,7 @@ class OOT_ExportSkeleton(Operator):
         if len(context.selected_objects) == 0:
             raise PluginError("Armature not selected.")
         armatureObj = context.active_object
-        if type(armatureObj.data) is not Armature:
+        if armatureObj.type != "ARMATURE":
             raise PluginError("Armature not selected.")
 
         if len(armatureObj.children) == 0 or not isinstance(armatureObj.children[0].data, Mesh):
@@ -120,13 +120,9 @@ class OOT_ExportSkeleton(Operator):
             exportSettings: OOTSkeletonExportSettings = context.scene.fast64.oot.skeletonExportSettings
 
             saveTextures = context.scene.saveTextures
-            isHWv1 = context.scene.isHWv1
-            f3dType = context.scene.f3d_type
             drawLayer = armatureObj.ootDrawLayer
 
-            ootConvertArmatureToC(
-                armatureObj, finalTransform, f3dType, isHWv1, DLFormat.Static, saveTextures, drawLayer, exportSettings
-            )
+            ootConvertArmatureToC(armatureObj, finalTransform, DLFormat.Static, saveTextures, drawLayer, exportSettings)
 
             self.report({"INFO"}, "Success!")
             return {"FINISHED"}

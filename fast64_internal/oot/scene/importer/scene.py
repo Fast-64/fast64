@@ -5,7 +5,7 @@ import mathutils
 
 from ....utility import readFile, hexOrDecInt
 from ....f3d.f3d_parser import parseMatrices
-from ....f3d.f3d_gbi import F3D
+from ....f3d.f3d_gbi import get_F3D_GBI
 from ....f3d.flipbook import TextureFlipbook
 from ...oot_model_classes import OOTF3DContext
 from ..exporter.to_c import getDrawConfig
@@ -13,6 +13,7 @@ from ..properties import OOTImportSceneSettingsProperty
 from ...oot_constants import ootEnumDrawConfig
 from .scene_header import parseSceneCommands
 from .classes import SharedSceneData
+from ...cutscene.importer import importCutsceneData
 
 from ...oot_utility import (
     getSceneDirFromLevelName,
@@ -74,8 +75,6 @@ def parseDrawConfig(drawConfigName: str, sceneData: str, drawConfigData: str, f3
 
 
 def parseScene(
-    f3dType: str,
-    isHWv1: bool,
     settings: OOTImportSceneSettingsProperty,
     option: str,
 ):
@@ -98,7 +97,8 @@ def parseScene(
         importSubdir = os.path.dirname(getSceneDirFromLevelName(sceneName)) + "/"
 
     sceneFolderPath = ootGetPath(importPath, settings.isCustomDest, importSubdir, sceneName, False, True)
-    sceneData = readFile(os.path.join(sceneFolderPath, f"{sceneName}_scene.c"))
+    filePath = os.path.join(sceneFolderPath, f"{sceneName}_scene.c")
+    sceneData = readFile(filePath)
 
     # roomData = ""
     # sceneFolderFiles = [f for f in listdir(sceneFolderPath) if isfile(join(sceneFolderPath, f))]
@@ -113,7 +113,7 @@ def parseScene(
         bpy.context.mode = "OBJECT"
 
     # set scene default registers (see sDefaultDisplayList)
-    f3dContext = OOTF3DContext(F3D(f3dType, isHWv1), [], bpy.path.abspath(bpy.context.scene.ootDecompPath))
+    f3dContext = OOTF3DContext(get_F3D_GBI(), [], bpy.path.abspath(bpy.context.scene.ootDecompPath))
     f3dContext.mat().prim_color = (0.5, 0.5, 0.5, 0.5)
     f3dContext.mat().env_color = (0.5, 0.5, 0.5, 0.5)
 
@@ -142,7 +142,12 @@ def parseScene(
         settings.includeCameras,
         settings.includePaths,
         settings.includeWaterBoxes,
+        settings.includeCutscenes,
     )
+
+    if settings.includeCutscenes:
+        bpy.context.scene.ootCSNumber = importCutsceneData(None, sceneData)
+
     sceneObj = parseSceneCommands(sceneName, None, None, sceneCommandsName, sceneData, f3dContext, 0, sharedSceneData)
     bpy.context.scene.ootSceneExportObj = sceneObj
 

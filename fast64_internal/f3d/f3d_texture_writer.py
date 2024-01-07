@@ -4,7 +4,6 @@ import bpy
 from math import ceil, floor
 
 from .f3d_enums import *
-from .f3d_constants import *
 from .f3d_material import (
     all_combiner_uses,
     getTmemWordUsage,
@@ -16,6 +15,7 @@ from .f3d_material import (
 )
 from .f3d_gbi import *
 from .f3d_gbi import _DPLoadTextureBlock
+from .flipbook import TextureFlipbook
 
 from ..utility import *
 
@@ -1060,35 +1060,13 @@ def savePaletteLoad(
     assert 0 <= palAddr < 256 and (palAddr & 0xF) == 0
     palFmt = texFormatOf[palFormat]
     nocm = ["G_TX_WRAP", "G_TX_NOMIRROR"]
-
-    if not f3d._HW_VERSION_1:
-        gfxOut.commands.extend(
-            [
-                DPSetTextureImage(palFmt, "G_IM_SIZ_16b", 1, fPalette),
-                DPSetTile("0", "0", 0, 256 + palAddr, loadtile, 0, nocm, 0, 0, nocm, 0, 0),
-                DPLoadTLUTCmd(loadtile, palLen - 1),
-            ]
-        )
-    else:
-        gfxOut.commands.extend(
-            [
-                _DPLoadTextureBlock(
-                    fPalette,
-                    256 + palAddr,
-                    palFmt,
-                    "G_IM_SIZ_16b",
-                    4 * palLen,
-                    1,
-                    0,
-                    nocm,
-                    nocm,
-                    0,
-                    0,
-                    0,
-                    0,
-                )
-            ]
-        )
+    gfxOut.commands.extend(
+        [
+            DPSetTextureImage(palFmt, "G_IM_SIZ_16b", 1, fPalette),
+            DPSetTile("0", "0", 0, 256 + palAddr, loadtile, 0, nocm, 0, 0, nocm, 0, 0),
+            DPLoadTLUTCmd(loadtile, palLen - 1),
+        ]
+    )
 
 
 # Functions for converting and writing texture and palette data
