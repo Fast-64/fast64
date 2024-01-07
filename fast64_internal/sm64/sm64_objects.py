@@ -1429,7 +1429,7 @@ class AddBehavior(bpy.types.Operator):
     option: bpy.props.IntProperty()
 
     def execute(self, context):
-        prop = context.scene.fast64.sm64.combined_object_export
+        prop = context.scene.fast64.sm64.combined_export
         prop.behavior_script.add()
         prop.behavior_script.move(len(prop.behavior_script) - 1, self.option)
         self.report({"INFO"}, "Success!")
@@ -1442,7 +1442,7 @@ class RemoveBehavior(bpy.types.Operator):
     option: bpy.props.IntProperty()
 
     def execute(self, context):
-        prop = context.scene.fast64.sm64.combined_object_export
+        prop = context.scene.fast64.sm64.combined_export
         prop.behavior_script.remove(self.option)
         self.report({"INFO"}, "Success!")
         return {"FINISHED"}
@@ -1494,12 +1494,12 @@ class BehaviorScriptProperty(bpy.types.PropertyGroup):
         if self.bhv_args:
             return [getattr(self, field) for field, arg_name in zip(self.arg_fields, self.bhv_args)]
     
+    # add more features
     def get_inherit_args(self, context, props):
         if self.macro not in self._inheritable_macros:
             return self.macro_args
         if self.macro == "LOAD_COLLISION_DATA":
             return props.collision_name
-        # for now, just return args, I will make this a working feature later
         return self.macro_args
     
     def draw(self, layout, index):
@@ -1786,8 +1786,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         self.write_file_lines(behavior_data, bhv_data_lines)
 
     # verify you can run this operator
-    def verify_context(self, context):
-        props = context.scene.fast64.sm64.combined_object_export
+    def verify_context(self, context, props):
         if context.scene.fast64.sm64.exportType != "C":
             raise PluginError("Combined Object Export only supports C exporting")
         if not props.col_object and not props.gfx_object:
@@ -1795,7 +1794,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
 
     def get_export_objects(self, context, props):
         if not props.export_all_selected:
-            return {props.col_object, props.gfx_object}, None
+            return {props.col_object, props.gfx_object}
         
         def obj_root(object):
             while(object.parent):
@@ -1806,15 +1805,13 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             return object
                         
         root_objects = {obj_root(obj) for obj in context.selected_objects}
-        level_objs = []
         actor_objs = []
         for obj in root_objects:
-            if obj.sm64_obj_type == "Level Root":
-                level_objs.append(obj)
-            elif "Geo" in obj.sm64_obj_type or obj.sm64_obj_type in ("None", "Switch"):
+            # eval this
+            if "Geo" in obj.sm64_obj_type or obj.sm64_obj_type in ("None", "Switch"):
                 actor_objs.append(obj)
                 
-        return actor_objs, level_objs
+        return actor_objs
         
     # writes collision.inc.c file, collision_header.h
     # writes include into aggregate file in export location (leveldata.c/<group>.c)
@@ -1850,10 +1847,10 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             raise Exception(e)
     
     def execute(self, context):
-        props = context.scene.fast64.sm64.combined_object_export
+        props = context.scene.fast64.sm64.combined_export
         try:
-            self.verify_context(context)
-            actor_objs, lvl_objs = self.get_export_objects(context, props)
+            self.verify_context(context, props)
+            actor_objs = self.get_export_objects(context, props)
         except Exception as e:
             raisePluginError(self, e)
             return {"CANCELLED"}
@@ -2008,16 +2005,20 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         layout.prop(self, "export_all_selected")
         self.draw_obj_name(layout)
     
-    def draw_gfx_names(self, layout):
+    def draw_level_path(self, layout):
         if self.export_header_type == "Custom":
-            export_path = f"{toAlnum(self.custom_export_path)}/{toAlnum(self.obj_name_gfx)}"
-        elif self.export_header_type == "Level":
-            export_path = f"/levels/{toAlnum(self.level_name)}/{toAlnum(self.obj_name_gfx)}"
-        elif self.export_header_type == "Actor":
-            export_path = f"/actors/{toAlnum(self.obj_name_gfx)}/"
-        layout.label(text=f"Export location is: {export_path}")
+            export_path = f"{toAlnum(self.custom_export_path)}/"
+        else:
+            export_path = f"/levels/{toAlnum(self.level_name)}/"
+        layout.label(text=f"Level export location is: {export_path}")
+            
+    def draw_gfx_names(self, layout):
         if self.export_header_type == "Actor":
+            export_path = f"/actors/{toAlnum(self.obj_name_gfx)}/"
+            layout.label(text=f"Object export location is: {export_path}")
             layout.label(text=f"This will also export to /actors/{toAlnum(self.obj_name_gfx)}(.c, .h, _geo.c)")
+        else:
+            self.draw_level_path(layout)
         layout.label(text=f"Geo Layout name will be: {self.geo_name}")
         layout.label(text=f"Model ID will be: {self.model_id_define}")
     
@@ -2042,6 +2043,11 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
             bhv.draw(box, index)
         
     def draw(self, layout):
+        # level exports
+        layout.operator("object.sm64_export_level", text="Export Level")
+        self.draw_level_path(layout.box())
+        layout.separator()
+        # object exports
         col = layout.column()
         if not self.export_col and not self.export_bhv and not self.export_gfx:
             box = col.box()
@@ -2061,10 +2067,11 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         
         if self.export_header_type == "Custom":
             prop_split(col, self, "custom_export_path", "Custom Path")
-        elif self.export_header_type == "Level":
-            prop_split(col, self, "level_name", "Level")
-            if self.level_name == "custom":
-                prop_split(col, self, "custom_export_name", "Level Name")
+        # always draw for level operator
+        prop_split(col, self, "level_name", "Level")
+        if self.level_name == "custom":
+            prop_split(col, self, "custom_export_name", "Level Name")
+            
         elif self.export_header_type == "Actor":
             prop_split(col, self, "group_name", "Group Name")
             if self.group_name == "custom":
@@ -2078,7 +2085,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
             prop_split(col, self, "model_id", "Model ID Num")
 
         # behavior options
-        if self.export_bhv and:
+        if self.export_bhv and not self.export_all_selected:
             self.draw_bhv_options(col)
 
         # info/warnings
@@ -2122,7 +2129,7 @@ class SM64_CombinedObjectPanel(SM64_Panel):
 
     def draw(self, context):
         col = self.layout.column()
-        context.scene.fast64.sm64.combined_object_export.draw(col)
+        context.scene.fast64.sm64.combined_export.draw(col)
 
 
 enumStarGetCutscene = [
