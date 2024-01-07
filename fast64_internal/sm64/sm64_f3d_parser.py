@@ -69,7 +69,7 @@ class SM64_ImportDL(Operator):
 class SM64_ImportDLPanel(SM64_Panel):
     bl_idname = "SM64_PT_import_dl"
     bl_label = "SM64 DL Importer"
-    goal = "Import"
+    import_panel = True
 
     # called every frame
     def draw(self, context):

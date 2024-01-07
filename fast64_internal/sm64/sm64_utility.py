@@ -1,5 +1,4 @@
 import os
-from bpy.path import abspath
 
 from ..utility import PluginError, filepath_checks
 
@@ -45,13 +44,6 @@ def export_rom_checks(filepath: str):
 
 
 def check_expanded(filepath: str):
-    filepath_checks(
-        filepath,
-        empty_error=f"ROM path is empty.",
-        doesnt_exist_error=f"ROM path does not exist.",
-        not_a_file_error=f"ROM path is not a file.",
-    )
-
     size = os.path.getsize(filepath)
     if size < 9000000:  # check if 8MB
         raise PluginError(
