@@ -60,7 +60,7 @@ class ScenePathways(Base):
             pathProps = obj.ootSplineProperty
             isHeaderValid = self.isCurrentHeaderValid(pathProps.headerSettings, self.headerIndex)
             if isHeaderValid and self.validateCurveData(obj):
-                if not pathProps.index in pathFromIndex:
+                if pathProps.index not in pathFromIndex:
                     pathFromIndex[pathProps.index] = Path(
                         f"{self.name}List{pathProps.index:02}",
                         [relativeTransform @ point.co.xyz for point in obj.data.splines[0].points],

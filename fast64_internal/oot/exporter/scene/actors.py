@@ -172,7 +172,7 @@ class SceneEntranceActors(Base):
                 entranceActor.roomIndex = roomObj.ootRoomHeader.roomIndex
                 entranceActor.spawnIndex = entranceProp.spawnIndex
 
-                if not entranceProp.spawnIndex in entranceActorFromIndex:
+                if entranceProp.spawnIndex not in entranceActorFromIndex:
                     entranceActorFromIndex[entranceProp.spawnIndex] = entranceActor
                 else:
                     raise PluginError(f"ERROR: Repeated Spawn Index: {entranceProp.spawnIndex}")

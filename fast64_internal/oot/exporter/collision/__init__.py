@@ -157,7 +157,7 @@ class CollisionBase(Base):
                         self.useMacros,
                     )
 
-                    if not surfaceType in colPolyFromSurfaceType:
+                    if surfaceType not in colPolyFromSurfaceType:
                         colPolyFromSurfaceType[surfaceType] = []
 
                     colPolyFromSurfaceType[surfaceType].append(

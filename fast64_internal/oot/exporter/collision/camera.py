@@ -151,13 +151,13 @@ class BgCamInformations(Base):
 
     def initCamTable(self):
         for bgCam in self.bgCamInfoList:
-            if not bgCam.camIndex in self.camFromIndex:
+            if bgCam.camIndex not in self.camFromIndex:
                 self.camFromIndex[bgCam.camIndex] = bgCam
             else:
                 raise PluginError(f"ERROR (CameraInfo): Camera index already used: {bgCam.camIndex}")
 
         for crawlCam in self.crawlspacePosList:
-            if not crawlCam.camIndex in self.camFromIndex:
+            if crawlCam.camIndex not in self.camFromIndex:
                 self.camFromIndex[crawlCam.camIndex] = crawlCam
             else:
                 raise PluginError(f"ERROR (Crawlspace): Camera index already used: {crawlCam.camIndex}")

@@ -53,7 +53,7 @@ class SceneFile:
 
     def getSourceWithSceneInclude(self, sceneInclude: str, source: str):
         ret = ""
-        if not sceneInclude in source:
+        if sceneInclude not in source:
             ret = sceneInclude
         return ret + source
 

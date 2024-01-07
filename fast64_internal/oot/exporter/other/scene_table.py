@@ -213,7 +213,7 @@ class SceneTable:
 
             newFileData.append(f"{line}\n")
 
-        if not "// Added scenes" in fileData:
+        if "// Added scenes" not in fileData:
             newFileData.append("#endif\n")
 
         return "".join(newFileData)
