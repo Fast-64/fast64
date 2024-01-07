@@ -120,7 +120,6 @@ def sm64_panel_unregister():
 
 
 def sm64_register(register_panels: bool):
-    settings_props_register()
     tools_operators_register()
     sm64_col_register()
     sm64_bone_register()
@@ -133,13 +132,13 @@ def sm64_register(register_panels: bool):
     sm64_dl_writer_register()
     sm64_dl_parser_register()
     sm64_anim_register()
+    settings_props_register()
 
     if register_panels:
         sm64_panel_register()
 
 
 def sm64_unregister(unregister_panels: bool):
-    settings_props_unregister()
     tools_operators_unregister()
     sm64_col_unregister()
     sm64_bone_unregister()
@@ -152,6 +151,7 @@ def sm64_unregister(unregister_panels: bool):
     sm64_dl_writer_unregister()
     sm64_dl_parser_unregister()
     sm64_anim_unregister()
+    settings_props_unregister()
 
     if unregister_panels:
         sm64_panel_unregister()
