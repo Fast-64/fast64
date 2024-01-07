@@ -12,7 +12,7 @@ from ..base import Base, Actor
 class TransitionActor(Actor):
     """Defines a Transition Actor"""
 
-    dontTransition: Optional[bool] = None
+    isRoomTransition: Optional[bool] = None
     roomFrom: Optional[int] = None
     roomTo: Optional[int] = None
     cameraFront: Optional[str] = None
@@ -67,12 +67,15 @@ class SceneTransitionActors(Base):
                 pos, rot, _, _ = self.getConvertedTransform(self.transform, self.sceneObj, obj, True)
                 transActor = TransitionActor()
 
-                if transActorProp.dontTransition:
-                    front = (255, self.getPropValue(transActorProp, "cameraTransitionBack"))
-                    back = (self.roomIndex, self.getPropValue(transActorProp, "cameraTransitionFront"))
+                if transActorProp.isRoomTransition:
+                    if transActorProp.fromRoom is None or transActorProp.toRoom is None:
+                        raise PluginError("ERROR: Missing room empty object assigned to transition.")
+                    fromIndex = transActorProp.fromRoom.ootRoomHeader.roomIndex
+                    toIndex = transActorProp.toRoom.ootRoomHeader.roomIndex
                 else:
-                    front = (self.roomIndex, self.getPropValue(transActorProp, "cameraTransitionFront"))
-                    back = (transActorProp.roomIndex, self.getPropValue(transActorProp, "cameraTransitionBack"))
+                    fromIndex = toIndex = self.roomIndex
+                front = (fromIndex, self.getPropValue(transActorProp, "cameraTransitionFront"))
+                back = (toIndex, self.getPropValue(transActorProp, "cameraTransitionBack"))
 
                 if transActorProp.actor.actorID == "Custom":
                     transActor.id = transActorProp.actor.actorIDCustom
@@ -169,7 +172,10 @@ class SceneEntranceActors(Base):
                 entranceActor.pos = pos
                 entranceActor.rot = ", ".join(f"DEG_TO_BINANG({(r * (180 / 0x8000)):.3f})" for r in rot)
                 entranceActor.params = entranceProp.actor.actorParam
-                entranceActor.roomIndex = roomObj.ootRoomHeader.roomIndex
+                if entranceProp.tiedRoom is not None:
+                    entranceActor.roomIndex = entranceProp.tiedRoom.ootRoomHeader.roomIndex
+                else:
+                    raise PluginError("ERROR: Missing room empty object assigned to the entrance.")
                 entranceActor.spawnIndex = entranceProp.spawnIndex
 
                 if entranceProp.spawnIndex not in entranceActorFromIndex:

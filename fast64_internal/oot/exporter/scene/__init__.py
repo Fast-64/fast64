@@ -33,7 +33,12 @@ class Scene(Base):
         """Returns a scene header"""
 
         return SceneHeader(
-            headerProp, f"{self.name}_header{headerIndex:02}", self.sceneObj, self.transform, headerIndex
+            headerProp,
+            f"{self.name}_header{headerIndex:02}",
+            self.sceneObj,
+            self.transform,
+            headerIndex,
+            self.useMacros,
         )
 
     def __post_init__(self):
@@ -118,7 +123,7 @@ class Scene(Base):
             + curHeader.spawns.getCmd()
             + curHeader.entranceActors.getCmd()
             + (curHeader.exits.getCmd() if len(curHeader.exits.exitList) > 0 else "")
-            # + (curHeader.cutscene.getCmd() if curHeader.cutscene.writeCutscene else "")
+            + (curHeader.cutscene.getCmd() if len(curHeader.cutscene.entries) > 0 else "")
             + self.getEndCmd()
             + "};\n\n"
         )
@@ -167,10 +172,21 @@ class Scene(Base):
         return sceneC
 
     def getSceneCutscenesC(self):
-        """Returns the cutscene informations of the scene as ``CData`` (unfinished)"""
+        """Returns the cutscene informations of the scene as ``CData``"""
 
-        # will be implemented when PR #208 is merged
         csDataList: list[CData] = []
+        headers: list[SceneHeader] = [
+            self.mainHeader,
+            self.altHeader.childNight,
+            self.altHeader.adultDay,
+            self.altHeader.adultNight,
+        ]
+
+        for curHeader in headers:
+            if curHeader is not None:
+                for csEntry in curHeader.cutscene.entries:
+                    csDataList.append(csEntry.getC())
+
         return csDataList
 
     def getSceneTexturesC(self, textureExportSettings: TextureExportSettings):

@@ -48,8 +48,6 @@ class RoomEntries:
                 roomHeader.roomShape,
                 self.scene.model.addSubModel(
                     OOTModel(
-                        self.scene.model.f3d.F3D_VER,
-                        self.scene.model.f3d._HW_VERSION_1,
                         f"{roomName}_dl",
                         self.scene.model.DLFormat,
                         None,

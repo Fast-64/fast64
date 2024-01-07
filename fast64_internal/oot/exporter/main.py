@@ -84,11 +84,11 @@ class SceneExporter:
             sceneData.validateScene()
 
             if sceneData.mainHeader.cutscene is not None:
-                self.hasCutscenes = sceneData.mainHeader.cutscene.writeCutscene
+                self.hasCutscenes = len(sceneData.mainHeader.cutscene.entries) > 0
 
                 if not self.hasCutscenes:
                     for cs in sceneData.altHeader.cutscenes:
-                        if cs.cutscene.writeCutscene:
+                        if len(cs.cutscene.entries) > 0:
                             self.hasCutscenes = True
                             break
 

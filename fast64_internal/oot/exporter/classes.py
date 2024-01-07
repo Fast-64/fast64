@@ -75,8 +75,9 @@ class SceneFile:
         if not self.singleFileExport:
             self.sceneCollision = self.getSourceWithSceneInclude(sceneInclude, self.sceneCollision)
             if self.hasCutscenes:
-                for cs in self.sceneCutscenes:
-                    cs = self.getSourceWithSceneInclude(sceneInclude, cs)
+                csInclude = sceneInclude[:-2] + '#include "z64cutscene.h"\n' + '#include "z64cutscene_commands.h"\n\n\n'
+                for i in range(len(self.sceneCutscenes)):
+                    self.sceneCutscenes[i] = self.getSourceWithSceneInclude(csInclude, self.sceneCutscenes[i])
 
     def write(self):
         self.setIncludeData()

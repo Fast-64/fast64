@@ -20,6 +20,7 @@ class SceneHeader(Base):
     sceneObj: Object
     transform: Matrix
     headerIndex: int
+    useMacros: bool
 
     infos: Optional[SceneInfos] = None
     lighting: Optional[SceneLighting] = None
@@ -33,10 +34,7 @@ class SceneHeader(Base):
     def __post_init__(self):
         self.infos = SceneInfos(self.props, self.sceneObj)
         self.lighting = SceneLighting(self.props, f"{self.name}_lightSettings")
-
-        if self.props.writeCutscene:
-            self.cutscene = SceneCutscene(self.props, self.headerIndex)
-
+        self.cutscene = SceneCutscene(self.props, self.headerIndex, self.useMacros)
         self.exits = SceneExits(self.props, f"{self.name}_exitList")
 
         self.transitionActors = SceneTransitionActors(
