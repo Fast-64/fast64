@@ -622,7 +622,9 @@ def getKeyFramesTranslation(romfile, transformValuesStart, boneIndex):
     keyframes = []
     for frame in range(boneIndex.numFrames):
         romfile.seek(ptrToValue + frame * 2)
-        keyframes.append(int.from_bytes(romfile.read(2), "big", signed=True) / bpy.context.scene.fast64.sm64.blender_to_sm64_scale)
+        keyframes.append(
+            int.from_bytes(romfile.read(2), "big", signed=True) / bpy.context.scene.fast64.sm64.blender_to_sm64_scale
+        )
 
     return keyframes
 

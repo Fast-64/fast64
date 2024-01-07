@@ -1764,7 +1764,8 @@ def processBone(
             obj,
             armatureObj.data,
             fModel.f3d,
-            mathutils.Matrix.Scale(bpy.context.scene.fast64.sm64.blender_to_sm64_scale, 4) @ bone.matrix_local.inverted(),
+            mathutils.Matrix.Scale(bpy.context.scene.fast64.sm64.blender_to_sm64_scale, 4)
+            @ bone.matrix_local.inverted(),
             infoDict,
         )
         fMeshes, fSkinnedMeshes, usedDrawLayers = saveModelGivenVertexGroup(

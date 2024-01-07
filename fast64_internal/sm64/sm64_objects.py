@@ -741,11 +741,7 @@ def handleRefreshDiffModelIDs(modelID):
     elif refresh_version == "Refresh 6":
         if modelID == "MODEL_TWEESTER":
             modelID = "MODEL_TORNADO"
-    elif (
-        refresh_version == "Refresh 5"
-        or refresh_version == "Refresh 4"
-        or refresh_version == "Refresh 3"
-    ):
+    elif refresh_version == "Refresh 5" or refresh_version == "Refresh 4" or refresh_version == "Refresh 3":
         if modelID == "MODEL_TWEESTER":
             modelID = "MODEL_TORNADO"
         elif modelID == "MODEL_WAVE_TRAIL":

@@ -2,11 +2,11 @@ import bpy, shutil, os, math, mathutils
 from bpy.utils import register_class, unregister_class
 from io import BytesIO
 from .sm64_constants import (
-    level_enums, 
-    level_pointers, 
-    enumLevelNames, 
-    insertableBinaryTypes, 
-    defaultExtendSegment4, 
+    level_enums,
+    level_pointers,
+    enumLevelNames,
+    insertableBinaryTypes,
+    defaultExtendSegment4,
 )
 from .sm64_utility import export_rom_checks
 from .sm64_objects import SM64_Area, start_process_sm64_objects
