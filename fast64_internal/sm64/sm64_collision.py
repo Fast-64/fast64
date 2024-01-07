@@ -384,6 +384,8 @@ def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren
     tempObj, allObjs = duplicateHierarchy(obj, None, True, areaIndex)
     try:
         addCollisionTriangles(tempObj, collisionDict, includeChildren, transformMatrix, areaIndex)
+        if not collisionDict:
+            raise PluginError("No collision data to export, col export cancelled")
         cleanupDuplicatedObjects(allObjs)
         obj.select_set(True)
         bpy.context.view_layer.objects.active = obj
@@ -418,7 +420,7 @@ def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren
 
 
 def addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, areaIndex):
-    if isinstance(obj.data, bpy.types.Mesh) and not obj.ignore_collision:
+    if obj.type == "MESH" and not obj.ignore_collision:
         if len(obj.data.materials) == 0:
             raise PluginError(obj.name + " must have a material associated with it.")
         obj.data.calc_loop_triangles()
@@ -629,6 +631,10 @@ class SM64_ExportCollisionPanel(SM64_Panel):
     bl_label = "SM64 Collision Exporter"
     goal = "Export Object/Actor/Anim"
 
+    @classmethod
+    def poll(cls, context):
+        return context.scene.fast64.sm64.exportType != "C"
+    
     # called every frame
     def draw(self, context):
         col = self.layout.column()
@@ -636,34 +642,9 @@ class SM64_ExportCollisionPanel(SM64_Panel):
 
         col.prop(context.scene, "colIncludeChildren")
 
-        if context.scene.fast64.sm64.exportType == "C":
-            col.prop(context.scene, "colExportRooms")
-            col.prop(context.scene, "colCustomExport")
-            if context.scene.colCustomExport:
-                col.prop(context.scene, "colExportPath")
-                prop_split(col, context.scene, "colName", "Name")
-                customExportWarning(col)
-            else:
-                prop_split(col, context.scene, "colExportHeaderType", "Export Type")
-                prop_split(col, context.scene, "colName", "Name")
-                if context.scene.colExportHeaderType == "Actor":
-                    prop_split(col, context.scene, "colGroupName", "Group Name")
-                elif context.scene.colExportHeaderType == "Level":
-                    prop_split(col, context.scene, "colLevelOption", "Level")
-                    if context.scene.colLevelOption == "custom":
-                        prop_split(col, context.scene, "colLevelName", "Level Name")
+        # c exporting moved to combined object export panel
 
-                decompFolderMessage(col)
-                writeBox = makeWriteInfoBox(col)
-                writeBoxExportType(
-                    writeBox,
-                    context.scene.colExportHeaderType,
-                    context.scene.colName,
-                    context.scene.colLevelName,
-                    context.scene.colLevelOption,
-                )
-
-        elif context.scene.fast64.sm64.exportType == "Insertable Binary":
+        if context.scene.fast64.sm64.exportType == "Insertable Binary":
             col.prop(context.scene, "colInsertableBinaryPath")
         else:
             prop_split(col, context.scene, "colStartAddr", "Start Address")

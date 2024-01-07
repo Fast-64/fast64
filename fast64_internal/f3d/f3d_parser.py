@@ -1,5 +1,6 @@
 from typing import Union
 import bmesh, bpy, mathutils, re, math, traceback
+from mathutils import Vector
 from bpy.utils import register_class, unregister_class
 from .f3d_gbi import *
 from .f3d_material import (
@@ -68,7 +69,6 @@ def getExportRotation(forwardAxisEnum, convertTransformMatrix):
 
 
 def F3DtoBlenderObject(romfile, startAddress, scene, newname, transformMatrix, segmentData, shadeSmooth):
-
     mesh = bpy.data.meshes.new(newname + "-mesh")
     obj = bpy.data.objects.new(newname, mesh)
     scene.collection.objects.link(obj)
@@ -258,7 +258,7 @@ def interpretLoadVertices(romfile, vertexBuffer, transformMatrix, command, segme
     data = romfile.read(dataLength)
 
     for i in range(numVerts):
-        vert = mathutils.Vector(readVectorFromShorts(data, i * 16))
+        vert = Vector(readVectorFromShorts(data, i * 16))
         vert = transformMatrix @ vert
         transformedVert = bytearray(6)
         writeVectorToShorts(transformedVert, 0, vert)
@@ -271,16 +271,15 @@ def interpretLoadVertices(romfile, vertexBuffer, transformMatrix, command, segme
 # Note the divided by 0x0A, which is due to the way BF command stores indices.
 # Without this the triangles are drawn incorrectly.
 def interpretDrawTriangle(command, vertexBuffer, faceSeq, vertSeq, uv_layer, deform_layer, groupIndex):
-
     verts = [None, None, None]
 
     index0 = int(command[5] / 0x0A)
     index1 = int(command[6] / 0x0A)
     index2 = int(command[7] / 0x0A)
 
-    vert0 = mathutils.Vector(getPosition(vertexBuffer, index0))
-    vert1 = mathutils.Vector(getPosition(vertexBuffer, index1))
-    vert2 = mathutils.Vector(getPosition(vertexBuffer, index2))
+    vert0 = Vector(getPosition(vertexBuffer, index0))
+    vert1 = Vector(getPosition(vertexBuffer, index1))
+    vert2 = Vector(getPosition(vertexBuffer, index2))
 
     verts[0] = vertSeq.new(vert0)
     verts[1] = vertSeq.new(vert1)
@@ -294,7 +293,7 @@ def interpretDrawTriangle(command, vertexBuffer, faceSeq, vertSeq, uv_layer, def
 
     loopIndex = 0
     for loop in tri.loops:
-        loop[uv_layer].uv = mathutils.Vector(getUV(vertexBuffer, int(command[5 + loopIndex] / 0x0A)))
+        loop[uv_layer].uv = Vector(getUV(vertexBuffer, int(command[5 + loopIndex] / 0x0A)))
         loopIndex += 1
 
     return verts
@@ -508,19 +507,19 @@ class F3DContext:
         # data for Mesh.from_pydata, list of BufferVertex tuples
         # use BufferVertex to also form uvs / normals / colors
         self.verts: list[F3DVert] = []
-        self.limbGroups: dict[str : list[int]] = {}  # dict of groupName : vertex indices
+        self.limbGroups: dict[str, list[int]] = {}  # dict of groupName : vertex indices
 
-        self.lights: Lights = Lights("lights_context")
+        self.lights: Lights = Lights("lights_context", self.f3d)
 
         # Here these are ints, but when parsing the values will be normalized.
         self.lights.l = [
-            Light([0, 0, 0], [0x28, 0x28, 0x28]),
-            Light([0, 0, 0], [0x28, 0x28, 0x28]),
-            Light([0, 0, 0], [0x28, 0x28, 0x28]),
-            Light([0, 0, 0], [0x28, 0x28, 0x28]),
-            Light([0, 0, 0], [0x28, 0x28, 0x28]),
-            Light([0, 0, 0], [0x28, 0x28, 0x28]),
-            Light([0, 0, 0], [0x28, 0x28, 0x28]),
+            Light([0, 0, 0], [0x49, 0x49, 0x49]),
+            Light([0, 0, 0], [0x49, 0x49, 0x49]),
+            Light([0, 0, 0], [0x49, 0x49, 0x49]),
+            Light([0, 0, 0], [0x49, 0x49, 0x49]),
+            Light([0, 0, 0], [0x49, 0x49, 0x49]),
+            Light([0, 0, 0], [0x49, 0x49, 0x49]),
+            Light([0, 0, 0], [0x49, 0x49, 0x49]),
         ]
         self.lights.a = Ambient([0, 0, 0])
         self.numLights: int = 0
@@ -578,15 +577,15 @@ class F3DContext:
 
         self.tileSizes = [DPSetTileSize(i, 0, 0, 32, 32) for i in range(8)]
 
-        self.lights = Lights("lights_context")
+        self.lights = Lights("lights_context", self.f3d)
         self.lights.l = [
-            Light([0, 0, 0], [0x28, 0x28, 0x28]),
-            Light([0, 0, 0], [0x28, 0x28, 0x28]),
-            Light([0, 0, 0], [0x28, 0x28, 0x28]),
-            Light([0, 0, 0], [0x28, 0x28, 0x28]),
-            Light([0, 0, 0], [0x28, 0x28, 0x28]),
-            Light([0, 0, 0], [0x28, 0x28, 0x28]),
-            Light([0, 0, 0], [0x28, 0x28, 0x28]),
+            Light([0, 0, 0], [0x49, 0x49, 0x49]),
+            Light([0, 0, 0], [0x49, 0x49, 0x49]),
+            Light([0, 0, 0], [0x49, 0x49, 0x49]),
+            Light([0, 0, 0], [0x49, 0x49, 0x49]),
+            Light([0, 0, 0], [0x49, 0x49, 0x49]),
+            Light([0, 0, 0], [0x49, 0x49, 0x49]),
+            Light([0, 0, 0], [0x49, 0x49, 0x49]),
         ]
         self.lights.a = Ambient([0, 0, 0])
         self.numLights = 0
@@ -602,14 +601,14 @@ class F3DContext:
             # decomp format
             "\{\s*\{\s*"
             + "\{([^,\}]*),([^,\}]*),([^,\}]*)\}\s*,"
-            + "[^,\}]*,\s*"
+            + "([^,\}]*),\s*"
             + "\{([^,\}]*),([^,\}]*)\}\s*,\s*"
             + "\{([^,\}]*),([^,\}]*),([^,\}]*),([^,\}]*)\}\s*"
             + "\}\s*\}",
             # nusys format
             "\{\s*"
             + "([^,\}]*),([^,\}]*),([^,\}]*),"
-            + "[^,\}]*,"
+            + "([^,\}]*),"
             + "([^,\}]*),([^,\}]*),"
             + "([^,\}]*),([^,\}]*),([^,\}]*),([^,\}]*)\s*"
             + "\}",
@@ -643,7 +642,7 @@ class F3DContext:
 
         mat = self.mat()
         f3dVert = bufferVert.f3dVert
-        position = transform @ mathutils.Vector(f3dVert.position)
+        position = transform @ Vector(f3dVert.position)
         if mat.tex0.tex is not None:
             texDimensions = mat.tex0.tex.size
         elif mat.tex0.use_tex_reference:
@@ -658,18 +657,19 @@ class F3DContext:
         uv = [convertF3DUV(f3dVert.uv[i], texDimensions[i]) for i in range(2)]
         uv[1] = 1 - uv[1]
 
-        color = [
-            value / 256
-            if value > 0
-            else int.from_bytes(round(value).to_bytes(1, "big", signed=True), "big", signed=False) / 256
-            for value in f3dVert.getColorOrNormal()
-        ]
-
-        normal = bytesToNormal(f3dVert.getColorOrNormal()[:3]) + [0]
-        normal = (transform.inverted().transposed() @ mathutils.Vector(normal)).normalized()[:3]
+        has_rgb, has_normal, has_packed_normals = getRgbNormalSettings(self.mat())
+        rgb = Vector([v / 0xFF for v in f3dVert.rgb]) if has_rgb else Vector([1.0, 1.0, 1.0])
+        alpha = f3dVert.alpha / 0xFF
+        normal = Vector([0.0, 0.0, 0.0])  # Zero normal makes normals_split_custom_set use auto
+        if has_normal:
+            if has_packed_normals:
+                normal = f3dVert.normal
+            else:
+                normal = Vector([v - 0x100 if v >= 0x80 else v for v in f3dVert.rgb]).normalized()
+            normal = (transform.inverted().transposed() @ normal).normalized()
 
         # NOTE: The groupIndex here does NOT correspond to a vertex group, but to the name of the limb (c variable)
-        return BufferVertex(F3DVert(position, uv, color, normal), bufferVert.groupIndex, bufferVert.materialIndex)
+        return BufferVertex(F3DVert(position, uv, rgb, normal, alpha), bufferVert.groupIndex, bufferVert.materialIndex)
 
     def addVertices(self, num, start, vertexDataName, vertexDataOffset):
         vertexData = self.vertexData[vertexDataName]
@@ -742,7 +742,6 @@ class F3DContext:
         return material.f3d_mat.key()
 
     def getMaterialIndex(self):
-
         key = self.getMaterialKey(self.materialContext)
         if key in self.materialDict:
             material = self.materialDict[key]
@@ -882,6 +881,23 @@ class F3DContext:
             mat.rdp_settings.g_cull_front = value
         if bitFlags & self.f3d.G_CULL_BACK:
             mat.rdp_settings.g_cull_back = value
+        if self.f3d.F3DEX_GBI_3:
+            if bitFlags & self.f3d.G_AMBOCCLUSION:
+                mat.rdp_settings.g_ambocclusion = value
+            if bitFlags & self.f3d.G_ATTROFFSET_Z_ENABLE:
+                mat.rdp_settings.g_attroffset_z_enable = value
+            if bitFlags & self.f3d.G_ATTROFFSET_ST_ENABLE:
+                mat.rdp_settings.g_attroffset_st_enable = value
+            if bitFlags & self.f3d.G_PACKED_NORMALS:
+                mat.rdp_settings.g_packed_normals = value
+            if bitFlags & self.f3d.G_LIGHTTOALPHA:
+                mat.rdp_settings.g_lighttoalpha = value
+            if bitFlags & self.f3d.G_LIGHTING_SPECULAR:
+                mat.rdp_settings.g_lighting_specular = value
+            if bitFlags & self.f3d.G_FRESNEL_COLOR:
+                mat.rdp_settings.g_fresnel_color = value
+            if bitFlags & self.f3d.G_FRESNEL_ALPHA:
+                mat.rdp_settings.g_fresnel_alpha = value
         if bitFlags & self.f3d.G_FOG:
             mat.rdp_settings.g_fog = value
         if bitFlags & self.f3d.G_LIGHTING:
@@ -890,6 +906,8 @@ class F3DContext:
             mat.rdp_settings.g_tex_gen = value
         if bitFlags & self.f3d.G_TEXTURE_GEN_LINEAR:
             mat.rdp_settings.g_tex_gen_linear = value
+        if bitFlags & self.f3d.G_LOD:
+            mat.rdp_settings.g_lod = value
         if bitFlags & self.f3d.G_SHADING_SMOOTH:
             mat.rdp_settings.g_shade_smooth = value
         if bitFlags & self.f3d.G_CLIPPING:
@@ -904,10 +922,29 @@ class F3DContext:
         mat.rdp_settings.g_shade = bitFlags & self.f3d.G_SHADE != 0
         mat.rdp_settings.g_cull_front = bitFlags & self.f3d.G_CULL_FRONT != 0
         mat.rdp_settings.g_cull_back = bitFlags & self.f3d.G_CULL_BACK != 0
+        if self.f3d.F3DEX_GBI_3:
+            mat.rdp_settings.g_ambocclusion = bitFlags & self.f3d.G_AMBOCCLUSION != 0
+            mat.rdp_settings.g_attroffset_z_enable = bitFlags & self.f3d.G_ATTROFFSET_Z_ENABLE != 0
+            mat.rdp_settings.g_attroffset_st_enable = bitFlags & self.f3d.G_ATTROFFSET_ST_ENABLE != 0
+            mat.rdp_settings.g_packed_normals = bitFlags & self.f3d.G_PACKED_NORMALS != 0
+            mat.rdp_settings.g_lighttoalpha = bitFlags & self.f3d.G_LIGHTTOALPHA != 0
+            mat.rdp_settings.g_lighting_specular = bitFlags & self.f3d.G_LIGHTING_SPECULAR != 0
+            mat.rdp_settings.g_fresnel_color = bitFlags & self.f3d.G_FRESNEL_COLOR != 0
+            mat.rdp_settings.g_fresnel_alpha = bitFlags & self.f3d.G_FRESNEL_ALPHA != 0
+        else:
+            mat.rdp_settings.g_ambocclusion = False
+            mat.rdp_settings.g_attroffset_z_enable = False
+            mat.rdp_settings.g_attroffset_st_enable = False
+            mat.rdp_settings.g_packed_normals = False
+            mat.rdp_settings.g_lighttoalpha = False
+            mat.rdp_settings.g_lighting_specular = False
+            mat.rdp_settings.g_fresnel_color = False
+            mat.rdp_settings.g_fresnel_alpha = False
         mat.rdp_settings.g_fog = bitFlags & self.f3d.G_FOG != 0
         mat.rdp_settings.g_lighting = bitFlags & self.f3d.G_LIGHTING != 0
         mat.rdp_settings.g_tex_gen = bitFlags & self.f3d.G_TEXTURE_GEN != 0
         mat.rdp_settings.g_tex_gen_linear = bitFlags & self.f3d.G_TEXTURE_GEN_LINEAR != 0
+        mat.rdp_settings.g_lod = bitFlags & self.f3d.G_LOD != 0
         mat.rdp_settings.g_shade_smooth = bitFlags & self.f3d.G_SHADING_SMOOTH != 0
         mat.rdp_settings.g_clipping = bitFlags & self.f3d.G_CLIPPING != 0
 
@@ -996,17 +1033,21 @@ class F3DContext:
 
         self.setCombineLerp(lerp0, lerp1)
 
-    def setTLUTMode(self, index, value):
+    def setTLUTMode(self, flags):
         mat = self.mat()
-        texProp = getattr(mat, "tex" + str(index))
-        bitData = math_eval(value, self.f3d)
-        if value == self.f3d.G_TT_NONE:
-            if texProp.tex_format[:2] == "CI":
-                texProp.tex_format = "RGBA16"
-        elif value == self.f3d.G_TT_IA16:
-            texProp.ci_format = "IA16"
-        else:
-            texProp.ci_format = "RGBA16"
+        if not isinstance(flags, int):
+            flags = math_eval(flags, self.f3d)
+        tlut_mode = flags & (0b11 << self.f3d.G_MDSFT_TEXTLUT)
+        for index in range(2):
+            texProp = getattr(mat, "tex" + str(index))
+            if tlut_mode == self.f3d.G_TT_IA16:
+                texProp.ci_format = "IA16"
+            elif tlut_mode == self.f3d.G_TT_RGBA16:
+                texProp.ci_format = "RGBA16"
+            else:  # self.f3d.G_TT_NONE or the unsupported value of 1
+                # Othermode is set to disable palette/CI; make sure the texture format is not CI
+                if texProp.tex_format[:2] == "CI":
+                    texProp.tex_format = texProp.tex_format[1:]  # Cut off the C, so CI4->I4 and CI8->I8
 
     def setOtherModeFlags(self, command):
         mat = self.mat()
@@ -1016,11 +1057,27 @@ class F3DContext:
         else:
             self.setOtherModeFlagsL(command)
 
-    def setOtherModeFlagsH(self, command):
+    def setFlagsAttrs(self, command, database):
+        mat = self.mat()
+        flags = math_eval(command.params[3], self.f3d)
+        shift = math_eval(command.params[1], self.f3d)
+        mask = math_eval(command.params[2], self.f3d)
 
+        for field, fieldData in database.items():
+            fieldShift = getattr(self.f3d, field)
+            if shift <= fieldShift < shift + mask:
+                if isinstance(fieldData, list):
+                    value = (flags >> fieldShift) & (roundUpToPowerOf2(len(fieldData)) - 1)
+                    setattr(mat.rdp_settings, field.lower(), fieldData[value])
+                elif callable(fieldData):
+                    fieldData(flags)
+                else:
+                    raise PluginError(f"Internal error in setFlagsAttrs, type(fieldData) == {type(fieldData)}")
+
+    def setOtherModeFlagsH(self, command):
         otherModeH = {
             "G_MDSFT_ALPHADITHER": ["G_AD_PATTERN", "G_AD_NOTPATTERN", "G_AD_NOISE", "G_AD_DISABLE"],
-            "G_MDSFT_RGBDITHER": ["G_CD_MAGICSQ", "G_CD_BAYER", "NOISE"],
+            "G_MDSFT_RGBDITHER": ["G_CD_MAGICSQ", "G_CD_BAYER", "G_CD_NOISE", "G_CD_DISABLE"],
             "G_MDSFT_COMBKEY": ["G_CK_NONE", "G_CK_KEY"],
             "G_MDSFT_TEXTCONV": [
                 "G_TC_CONV",
@@ -1032,26 +1089,15 @@ class F3DContext:
                 "G_TC_FILT",
             ],
             "G_MDSFT_TEXTFILT": ["G_TF_POINT", "G_TF_POINT", "G_TF_BILERP", "G_TF_AVERAGE"],
+            "G_MDSFT_TEXTLUT": self.setTLUTMode,
             "G_MDSFT_TEXTLOD": ["G_TL_TILE", "G_TL_LOD"],
             "G_MDSFT_TEXTDETAIL": ["G_TD_CLAMP", "G_TD_SHARPEN", "G_TD_DETAIL"],
             "G_MDSFT_TEXTPERSP": ["G_TP_NONE", "G_TP_PERSP"],
             "G_MDSFT_CYCLETYPE": ["G_CYC_1CYCLE", "G_CYC_2CYCLE", "G_CYC_COPY", "G_CYC_FILL"],
-            "G_MDSFT_COLORDITHER": ["G_CD_MAGICSQ", "G_CD_BAYER", "G_CD_NOISE"],
+            "G_MDSFT_COLORDITHER": ["G_CD_DISABLE", "G_CD_ENABLE"],
             "G_MDSFT_PIPELINE": ["G_PM_NPRIMITIVE", "G_PM_1PRIMITIVE"],
         }
-        mat = self.mat()
-        flags = math_eval(command.params[3], self.f3d)
-        shift = math_eval(command.params[1], self.f3d)
-        mask = math_eval(command.params[2], self.f3d)
-
-        for field, fieldData in otherModeH.items():
-            fieldShift = getattr(self.f3d, field)
-            if fieldShift >= shift and fieldShift < shift + mask:
-                setattr(
-                    mat.rdp_settings,
-                    field.lower(),
-                    fieldData[(flags >> fieldShift) & ((1 << int(ceil(math.log(len(fieldData), 2)))) - 1)],
-                )
+        self.setFlagsAttrs(command, otherModeH)
 
     # This only handles commonly used render mode presets (with macros),
     # and no render modes at all with raw bit data.
@@ -1059,24 +1105,9 @@ class F3DContext:
         otherModeL = {
             "G_MDSFT_ALPHACOMPARE": ["G_AC_NONE", "G_AC_THRESHOLD", "G_AC_THRESHOLD", "G_AC_DITHER"],
             "G_MDSFT_ZSRCSEL": ["G_ZS_PIXEL", "G_ZS_PRIM"],
+            "G_MDSFT_RENDERMODE": self.setRenderMode,
         }
-
-        mat = self.mat()
-        flags = math_eval(command.params[3], self.f3d)
-        shift = math_eval(command.params[1], self.f3d)
-        mask = math_eval(command.params[2], self.f3d)
-
-        for field, fieldData in otherModeL.items():
-            fieldShift = getattr(self.f3d, field)
-            if fieldShift >= shift and fieldShift < shift + mask:
-                setattr(
-                    mat.rdp_settings,
-                    field.lower(),
-                    fieldData[(flags >> fieldShift) & ((1 << int(ceil(math.log(len(fieldData), 2)))) - 1)],
-                )
-
-        if self.f3d.G_MDSFT_RENDERMODE >= shift and self.f3d.G_MDSFT_RENDERMODE < shift + mask:
-            self.setRenderMode(flags)
+        self.setFlagsAttrs(command, otherModeL)
 
     def setRenderMode(self, flags):
         mat = self.mat()
@@ -1156,9 +1187,9 @@ class F3DContext:
 
             lightObj.rotation_euler = (
                 mathutils.Euler((0, 0, math.pi)).to_quaternion()
-                @ (
-                    mathutils.Euler((math.pi / 2, 0, 0)).to_quaternion() @ mathutils.Vector(light.normal)
-                ).rotation_difference(mathutils.Vector((0, 0, 1)))
+                @ (mathutils.Euler((math.pi / 2, 0, 0)).to_quaternion() @ Vector(light.normal)).rotation_difference(
+                    Vector((0, 0, 1))
+                )
             ).to_euler()
             # lightObj.rotation_euler[0] *= 1
             bLight.color = light.color
@@ -1182,7 +1213,7 @@ class F3DContext:
         self.mat().set_lights = True
         lightIndex = self.getLightIndex(command.params[0])
         colorData = math_eval(command.params[1], self.f3d)
-        color = mathutils.Vector(
+        color = Vector(
             [((colorData >> 24) & 0xFF) / 0xFF, ((colorData >> 16) & 0xFF) / 0xFF, ((colorData >> 8) & 0xFF) / 0xFF]
         )
 
@@ -1240,21 +1271,21 @@ class F3DContext:
 
     def createLights(self, data, lightsName):
         numLights, lightValues = parseLightsData(data, lightsName, self)
-        ambientColor = mathutils.Vector(gammaInverse([value / 255 for value in lightValues[0:3]]))
+        ambientColor = Vector(gammaInverse([value / 255 for value in lightValues[0:3]]))
 
         lightList = []
 
         for i in range(numLights):
-            color = mathutils.Vector(gammaInverse([value / 255 for value in lightValues[3 + 6 * i : 3 + 6 * i + 3]]))
-            direction = mathutils.Vector(bytesToNormal(lightValues[3 + 6 * i + 3 : 3 + 6 * i + 6]))
+            color = Vector(gammaInverse([value / 255 for value in lightValues[3 + 6 * i : 3 + 6 * i + 3]]))
+            direction = Vector(bytesToNormal(lightValues[3 + 6 * i + 3 : 3 + 6 * i + 6]))
             lightList.append(Light(color, direction))
 
         while len(lightList) < 7:
-            lightList.append(Light(mathutils.Vector([0, 0, 0]), mathutils.Vector([0x28, 0x28, 0x28])))
+            lightList.append(Light(Vector([0, 0, 0]), Vector([0x49, 0x49, 0x49])))
 
         # normally a and l are Ambient and Light objects,
         # but here they will be a color and blender light object array.
-        lights = Lights(lightsName)
+        lights = Lights(lightsName, self.f3d)
         lights.a = Ambient(ambientColor)
         lights.l = lightList
 
@@ -1314,13 +1345,15 @@ class F3DContext:
 
     def loadTile(self, params):
         tileSettings = self.getTileSettings(params[0])
-        # TODO: Region parsing too hard?
-        # region = [
-        # 	math_eval(params[1], self.f3d) / 4,
-        # 	math_eval(params[2], self.f3d) / 4,
-        # 	math_eval(params[3], self.f3d) / 4,
-        # 	math_eval(params[4], self.f3d) / 4
-        # ]
+        """
+        TODO: Region parsing too hard?
+        region = [
+        	math_eval(params[1], self.f3d) / 4,
+        	math_eval(params[2], self.f3d) / 4,
+        	math_eval(params[3], self.f3d) / 4,
+        	math_eval(params[4], self.f3d) / 4
+        ]
+        """
         region = None
 
         # Defer texture parsing until next set tile.
@@ -1450,7 +1483,7 @@ class F3DContext:
         if textureName in self.textureData:
             return self.textureData[textureName]
 
-        # region ignored?
+        """region ignored?"""
         if isLUT:
             siz = "G_IM_SIZ_16b"
             width = 16
@@ -1554,6 +1587,45 @@ class F3DContext:
                     self.setLightColor(dlData, command)
                 elif command.name[:13] == "gsSPSetLights":
                     self.setLights(dlData, command)
+                elif command.name == "gsSPAmbOcclusionAmb":
+                    mat.ao_ambient = float_from_u16_str(command.params[0])
+                    mat.set_ao = True
+                elif command.name == "gsSPAmbOcclusionDir":
+                    mat.ao_directional = float_from_u16_str(command.params[0])
+                    mat.set_ao = True
+                elif command.name == "gsSPAmbOcclusionPoint":
+                    mat.ao_point = float_from_u16_str(command.params[0])
+                    mat.set_ao = True
+                elif command.name == "gsSPAmbOcclusionAmbDir":
+                    mat.ao_ambient = float_from_u16_str(command.params[0])
+                    mat.ao_directional = float_from_u16_str(command.params[1])
+                    mat.set_ao = True
+                elif command.name == "gsSPAmbOcclusionDirPoint":
+                    mat.ao_directional = float_from_u16_str(command.params[0])
+                    mat.ao_point = float_from_u16_str(command.params[1])
+                    mat.set_ao = True
+                elif command.name == "gsSPAmbOcclusion":
+                    mat.ao_ambient = float_from_u16_str(command.params[0])
+                    mat.ao_directional = float_from_u16_str(command.params[1])
+                    mat.ao_point = float_from_u16_str(command.params[2])
+                    mat.set_ao = True
+                elif command.name == "gsSPFresnel":
+                    scale = int_from_s16_str(command.params[0])
+                    offset = int_from_s16_str(command.params[1])
+                    dotMax = ((0x7F - offset) << 15) // scale
+                    dotMin = ((0x00 - offset) << 15) // scale
+                    mat.fresnel_hi = dotMax / float(0x7FFF)
+                    mat.fresnel_lo = dotMin / float(0x7FFF)
+                    mat.set_fresnel = True
+                elif command.name == "gsSPAttrOffsetST":
+                    mat.attroffs_st = [
+                        int_from_s16_str(command.params[0]) / 32,
+                        int_from_s16_str(command.params[1]) / 32,
+                    ]
+                    mat.set_attroffs_st = True
+                elif command.name == "gsSPAttrOffsetZ":
+                    mat.attroffs_z = int_from_s16_str(command.params[0])
+                    mat.set_attroffs_z = True
                 elif command.name == "gsSPFogFactor":
                     pass
                 elif command.name == "gsSPFogPosition":
@@ -1590,8 +1662,7 @@ class F3DContext:
                 elif command.name == "gsDPSetTextureLOD":
                     mat.rdp_settings.g_mdsft_textlod = command.params[0]
                 elif command.name == "gsDPSetTextureLUT":
-                    self.setTLUTMode(0, command.params[0])
-                    self.setTLUTMode(1, command.params[0])
+                    self.setTLUTMode(command.params[0])
                 elif command.name == "gsDPSetTextureFilter":
                     mat.rdp_settings.g_mdsft_text_filt = command.params[0]
                 elif command.name == "gsDPSetTextureConvert":
@@ -1758,10 +1829,8 @@ class F3DContext:
         print("Vertices: " + str(len(self.verts)) + ", Triangles: " + str(triangleCount))
 
         mesh.from_pydata(vertices=verts, edges=[], faces=faces)
-        uv_layer = mesh.uv_layers.new().data
+        uv_layer_name = mesh.uv_layers.new().name
         # if self.materialContext.f3d_mat.rdp_settings.g_lighting:
-        alpha_layer = mesh.vertex_colors.new(name="Alpha").data
-        color_layer = mesh.vertex_colors.new(name="Col").data
         # else:
 
         if importNormals:
@@ -1775,14 +1844,22 @@ class F3DContext:
         for i in range(len(mesh.polygons)):
             mesh.polygons[i].material_index = self.triMatIndices[i]
 
+        # Workaround for an issue in Blender 3.5 where putting this above the `if importNormals` block
+        # causes wrong uvs/normals and sometimes crashes.
+        uv_layer = mesh.uv_layers[uv_layer_name].data
+
         for i in range(len(mesh.loops)):
             # This should be okay, since we aren't trying to optimize vertices
             # There will be one loop for every vertex
             uv_layer[i].uv = self.verts[i].uv
 
-            # if self.materialContext.f3d_mat.rdp_settings.g_lighting:
-            color_layer[i].color = self.verts[i].color
-            alpha_layer[i].color = [self.verts[i].color[3]] * 3 + [1]
+        color_layer = mesh.vertex_colors.new(name="Col").data
+        for i in range(len(mesh.loops)):
+            color_layer[i].color = self.verts[i].rgb.to_4d()
+
+        alpha_layer = mesh.vertex_colors.new(name="Alpha").data
+        for i in range(len(mesh.loops)):
+            alpha_layer[i].color = [self.verts[i].alpha] * 3 + [1]
 
         if bpy.context.mode != "OBJECT":
             bpy.ops.object.mode_set(mode="OBJECT")
@@ -1804,7 +1881,7 @@ class F3DContext:
 
         i = 0
         for key, lightObj in self.lightData.items():
-            lightObj.location = bpy.context.scene.cursor.location + mathutils.Vector((i, 0, 0))
+            lightObj.location = bpy.context.scene.cursor.location + Vector((i, 0, 0))
             i += 1
 
         self.clearGeometry()
@@ -1820,6 +1897,7 @@ class ParsedMacro:
 
 
 # Static DLs only
+
 
 # limbName = c variable name (for parsing text)
 # boneName = blender bone name (for assigning vertex groups)
@@ -1837,7 +1915,6 @@ def parseF3D(
     f3dContext: F3DContext,
     callClearMaterial: bool,
 ):
-
     f3dContext.matrixData[limbName] = transformMatrix
     f3dContext.setCurrentTransform(limbName)
     f3dContext.limbToBoneName[limbName] = boneName
@@ -1904,29 +1981,21 @@ def parseVertexData(dlData: str, vertexDataName: str, f3dContext: F3DContext):
     patterns = f3dContext.vertexFormatPatterns(data)
     vertexData = []
     for pattern in patterns:
-        # Note that color is None here, as we are just parsing vertex data.
-        # The same values should be used for color and normal, but getColorOrNormal() will be used later
-        # which returns whichever value is not None between the two.
-
-        # When loaded into the vertex buffer and transformed, the actual normal/color will be calculated.
-        vertexData = [
-            F3DVert(
-                mathutils.Vector(
-                    [math_eval(match.group(1), f3d), math_eval(match.group(2), f3d), math_eval(match.group(3), f3d)]
-                ),
-                mathutils.Vector([math_eval(match.group(4), f3d), math_eval(match.group(5), f3d)]),
-                None,
-                mathutils.Vector(
-                    [
-                        math_eval(match.group(6), f3d),
-                        math_eval(match.group(7), f3d),
-                        math_eval(match.group(8), f3d),
-                        math_eval(match.group(9), f3d),
-                    ]
-                ),
+        # For this step, store rgb/normal as rgb and packed normal as normal.
+        for match in re.finditer(pattern, data, re.DOTALL):
+            values = [math_eval(g, f3d) for g in match.groups()]
+            if len(values) == 9:
+                # A format without the flag / packed normal
+                values = values[0:3] + [0] + values[3:9]
+            vertexData.append(
+                F3DVert(
+                    Vector(values[0:3]),
+                    Vector(values[4:6]),
+                    Vector(values[6:9]),
+                    unpackNormal(values[3]),
+                    values[9],
+                )
             )
-            for match in re.finditer(pattern, data, re.DOTALL)
-        ]
         if len(vertexData) > 0:
             break
     f3dContext.vertexData[vertexDataName] = vertexData
@@ -1992,7 +2061,6 @@ def CI4toRGBA32(value):
 
 
 def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, width, isLUT, f3d):
-
     matchResult = re.search(
         r"([A-Za-z0-9\_]+)\s*" + re.escape(textureName) + r"\s*\[\s*[0-9a-fA-Fx]*\s*\]\s*=\s*\{([^\}]*)\s*\}\s*;\s*",
         dlData,
@@ -2198,7 +2266,6 @@ def importMeshC(
     f3dContext: F3DContext,
     callClearMaterial: bool = True,
 ) -> bpy.types.Object:
-
     # Create new skinned mesh
     mesh = bpy.data.meshes.new(name + "_mesh")
     obj = bpy.data.objects.new(name + "_mesh", mesh)
@@ -2236,8 +2303,6 @@ class F3D_ImportDL(bpy.types.Operator):
             removeDoubles = context.scene.DLRemoveDoubles
             importNormals = context.scene.DLImportNormals
             drawLayer = context.scene.DLImportDrawLayer
-            f3dType = context.scene.f3d_type
-            isHWv1 = context.scene.isHWv1
 
             data = getImportData([importPath])
 
@@ -2248,7 +2313,7 @@ class F3D_ImportDL(bpy.types.Operator):
                 removeDoubles,
                 importNormals,
                 drawLayer,
-                F3DContext(F3D(f3dType, isHWv1), basePath, createF3DMat(None)),
+                F3DContext(get_F3D_GBI(), basePath, createF3DMat(None)),
             )
 
             self.report({"INFO"}, "Success!")

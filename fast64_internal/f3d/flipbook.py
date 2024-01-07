@@ -2,9 +2,11 @@ import bpy, re
 from typing import Any, Callable, Optional
 from bpy.utils import register_class, unregister_class
 from bpy.app.handlers import persistent
+from .f3d_gbi import FImage
 from .f3d_material import all_combiner_uses, update_tex_values_manual, iter_tex_nodes, TextureProperty
 from ..utility import prop_split, CollectionProperty
 from dataclasses import dataclass
+import dataclasses
 
 
 @dataclass
@@ -12,18 +14,19 @@ class TextureFlipbook:
     name: str
     exportMode: str
     textureNames: list[str]
+    images: list[tuple[bpy.types.Image, FImage]] = dataclasses.field(default_factory=list)
 
 
 def flipbook_data_to_c(flipbook: TextureFlipbook):
     newArrayData = ""
     for textureName in flipbook.textureNames:
-        newArrayData += textureName + ",\n"
+        newArrayData += "    " + textureName + ",\n"
     return newArrayData
 
 
 def flipbook_to_c(flipbook: TextureFlipbook, isStatic: bool):
     newArrayData = "void* " if not isStatic else "static void* "
-    newArrayData += f"{flipbook.name}[]" + " = { "
+    newArrayData += f"{flipbook.name}[]" + " = {\n"
     newArrayData += flipbook_data_to_c(flipbook)
     newArrayData += "};"
     return newArrayData
@@ -31,7 +34,7 @@ def flipbook_to_c(flipbook: TextureFlipbook, isStatic: bool):
 
 def flipbook_2d_to_c(flipbook: TextureFlipbook, isStatic: bool, count: int):
     newArrayData = "void* " if not isStatic else "static void* "
-    newArrayData += f"{flipbook.name}[][{len(flipbook.textureNames)}] = {{ "
+    newArrayData += f"{flipbook.name}[][{len(flipbook.textureNames)}] = {{\n"
     newArrayData += ("{ " + flipbook_data_to_c(flipbook) + " },\n") * count
     newArrayData += " };"
     return newArrayData
@@ -216,7 +219,7 @@ def drawFlipbookGroupProperty(
         if usesFlipbook(material, flipbook, i, False, checkFlipbookReference):
             drawFlipbookProperty(layout.column(), flipbook, i)
             if getattr(material.f3d_mat, "tex" + str(i)).tex_format[:2] == "CI":
-                layout.label(text="New shared CI palette will be generated.", icon="ERROR")
+                layout.label(text="New shared CI palette will be generated.", icon="RENDERLAYERS")
 
 
 # START GAME SPECIFIC CALLBACKS
@@ -231,7 +234,7 @@ def ootFlipbookRequirementMessage(layout: bpy.types.UILayout):
 
 def ootFlipbookAnimUpdate(self, armatureObj: bpy.types.Object, segment: str, index: int):
     for child in armatureObj.children:
-        if not isinstance(child.data, bpy.types.Mesh):
+        if child.type != "MESH":
             continue
         for material in child.data.materials:
             for i in range(2):
@@ -254,7 +257,7 @@ def ootFlipbookAnimUpdate(self, armatureObj: bpy.types.Object, segment: str, ind
 def flipbookAnimHandler(dummy):
     if bpy.context.scene.gameEditorMode == "OOT":
         for obj in bpy.data.objects:
-            if isinstance(obj.data, bpy.types.Armature):
+            if obj.type == "ARMATURE":
                 # we only want to update texture on keyframed armatures.
                 # this somewhat mitigates the issue of two skeletons using the same flipbook material.
                 if obj.animation_data is None or obj.animation_data.action is None:

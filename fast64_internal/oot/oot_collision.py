@@ -38,7 +38,7 @@ def exportCollisionCommon(collision, obj, transformMatrix, includeChildren, name
     addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, collision.bounds)
     for polygonType, faces in collisionDict.items():
         collision.polygonGroups[polygonType] = []
-        for (faceVerts, normal, distance) in faces:
+        for faceVerts, normal, distance in faces:
             assert len(faceVerts) == 3
             indices = []
             for roundedPosition in faceVerts:
@@ -93,7 +93,7 @@ def updateBounds(position, bounds):
 
 
 def addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, bounds):
-    if isinstance(obj.data, bpy.types.Mesh) and not obj.ignore_collision:
+    if obj.type == "MESH" and not obj.ignore_collision:
         if len(obj.data.materials) == 0:
             raise PluginError(obj.name + " must have a material associated with it.")
         obj.data.calc_loop_triangles()
@@ -203,7 +203,6 @@ def ootCameraDataToC(camData):
     posC = CData()
     camC = CData()
     if len(camData.camPosDict) > 0:
-
         camDataName = "BgCamInfo " + camData.camDataName() + "[" + str(len(camData.camPosDict)) + "]"
 
         camC.source = camDataName + " = {\n"

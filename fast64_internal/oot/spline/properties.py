@@ -40,7 +40,6 @@ def spline_props_register():
 
 
 def spline_props_unregister():
-
     for cls in reversed(oot_spline_classes):
         unregister_class(cls)
 
