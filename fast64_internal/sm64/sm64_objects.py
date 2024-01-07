@@ -1088,7 +1088,9 @@ class SM64ObjectPanel(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.gameEditorMode == "SM64" and (context.object is not None and context.object.type == "EMPTY")
+        return context.scene.gameEditorMode == "SM64" and (
+            context.object is not None and context.object.type == "EMPTY"
+        )
 
     def draw_inline_obj(self, box: bpy.types.UILayout, obj: bpy.types.Object):
         obj_details: InlineGeolayoutObjConfig = inlineGeoLayoutObjects.get(obj.sm64_obj_type)
