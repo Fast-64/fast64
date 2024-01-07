@@ -3,7 +3,6 @@ from ..utility import PluginError
 
 
 def ExtendBank0x04(romfile, segmentData, segment4):
-
     # Extend bank 0x04
     romfile.seek(loadSegmentAddresses[0x04] + 4)
     oldStart = int.from_bytes(romfile.read(4), "big")

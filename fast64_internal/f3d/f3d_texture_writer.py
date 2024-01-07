@@ -4,7 +4,6 @@ import bpy
 from math import ceil, floor
 
 from .f3d_enums import *
-from .f3d_constants import *
 from .f3d_material import (
     all_combiner_uses,
     getTmemWordUsage,

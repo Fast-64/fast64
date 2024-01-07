@@ -50,7 +50,6 @@ from .f3d_gbi import (
 
 
 class BleedGraphics:
-
     # bleed_state "enums"
     bleed_start = 1
     bleed_in_progress = 2
@@ -126,7 +125,7 @@ class BleedGraphics:
 
     # clear the gfx lists so they don't export
     def clear_gfx_lists(self, fModel: FModel):
-        for (fMaterial, texDimensions) in fModel.materials.values():
+        for fMaterial, texDimensions in fModel.materials.values():
             fMaterial.material.tag |= GfxListTag.NoExport
             if fMaterial.revert:
                 fMaterial.revert.tag |= GfxListTag.NoExport
@@ -134,10 +133,17 @@ class BleedGraphics:
             for tri_list in fMesh.triangleGroups:
                 tri_list.triList.tag |= GfxListTag.NoExport
 
-    def bleed_fmesh(self, fMesh: FMesh, last_mat: FMaterial, cmd_list: GfxList, fmodel_materials, default_render_mode: list[str] = None):
+    def bleed_fmesh(
+        self,
+        fMesh: FMesh,
+        last_mat: FMaterial,
+        cmd_list: GfxList,
+        fmodel_materials,
+        default_render_mode: list[str] = None,
+    ):
         if bled_mat := self.bled_gfx_lists.get(cmd_list, None):
             return bled_mat
-        
+
         bleed_state = self.bleed_start
         cur_fmat = None
         reset_cmd_dict = dict()
@@ -169,7 +175,7 @@ class BleedGraphics:
                 bleed_gfx_lists = BleedGfxLists()
             # set bleed state for cmd reverts
             bleed_state = self.bleed_in_progress
-        
+
         last_mat = cur_fmat
         self.on_bleed_end(last_mat, cmd_list, fmesh_static_cmds, reset_cmd_dict, default_render_mode)
         return last_mat
@@ -177,7 +183,7 @@ class BleedGraphics:
     def build_tmem_dict(self, cmd_list: GfxList):
         im_buffer = None
         tmem_dict = dict()
-        tile_dict = {i:0 for i in range(8)} # an assumption that hopefully never needs correction
+        tile_dict = {i: 0 for i in range(8)}  # an assumption that hopefully never needs correction
         for cmd in cmd_list.commands:
             if type(cmd) == DPSetTextureImage:
                 im_buffer = cmd
@@ -188,7 +194,7 @@ class BleedGraphics:
                 tmem_dict[tile_dict[cmd.tile]] = im_buffer
                 continue
         return tmem_dict
-    
+
     def bleed_textures(self, cur_fmat: FMaterial, last_mat: FMaterial, bleed_state: int):
         if last_mat:
             # bleed cmds if matching tile has duplicate cmds
@@ -220,7 +226,7 @@ class BleedGraphics:
             # now eval as normal conditionals
             for j, cmd in enumerate(cur_fmat.texture_DL.commands):
                 if not cmd:
-                    continue # some cmds are None from previous step
+                    continue  # some cmds are None from previous step
                 if self.bleed_individual_cmd(commands_bled, cmd, bleed_state):
                     if cmd in last_mat.texture_DL.commands:
                         commands_bled.commands[j] = None
@@ -252,9 +258,7 @@ class BleedGraphics:
             commands_bled.commands.remove(SPEndDisplayList())
         return commands_bled.commands
 
-    def bleed_tri_group(
-        self, tri_list: GfxList, cur_fmat: fMaterial, bleed_state: int
-    ):
+    def bleed_tri_group(self, tri_list: GfxList, cur_fmat: fMaterial, bleed_state: int):
         # remove SPEndDisplayList from triGroup
         while SPEndDisplayList() in tri_list.commands:
             tri_list.commands.remove(SPEndDisplayList())
@@ -281,7 +285,9 @@ class BleedGraphics:
         return commands_bled
 
     # Put triGroup bleed gfx in the FMesh.draw object
-    def inline_triGroup(self, tri_list: GfxList, bleed_gfx_lists: BleedGfxLists, cmd_list: GfxList, reset_cmd_dict: dict[GbiMacro]):
+    def inline_triGroup(
+        self, tri_list: GfxList, bleed_gfx_lists: BleedGfxLists, cmd_list: GfxList, reset_cmd_dict: dict[GbiMacro]
+    ):
         # add material
         cmd_list.commands.extend(bleed_gfx_lists.bled_mats)
         # add textures
@@ -329,7 +335,12 @@ class BleedGraphics:
         return
 
     def on_bleed_end(
-        self, last_mat: FMaterial, cmd_list: GfxList, fmesh_static_cmds: list[GbiMacro], reset_cmd_dict: dict[GbiMacro], default_render_mode: list[str] = None
+        self,
+        last_mat: FMaterial,
+        cmd_list: GfxList,
+        fmesh_static_cmds: list[GbiMacro],
+        reset_cmd_dict: dict[GbiMacro],
+        default_render_mode: list[str] = None,
     ):
         # revert certain cmds for extra safety
         reset_cmds = self.create_reset_cmds(reset_cmd_dict, default_render_mode)
@@ -338,14 +349,13 @@ class BleedGraphics:
             reset_cmds.remove(DPPipeSync)
             reset_cmds.insert(0, DPPipeSync)
         cmd_list.commands.extend(reset_cmds)
-        cmd_list.commands.extend(fmesh_static_cmds) # this is troublesome
+        cmd_list.commands.extend(fmesh_static_cmds)  # this is troublesome
         cmd_list.commands.append(SPEndDisplayList())
         self.bled_gfx_lists[cmd_list] = last_mat
 
     def create_reset_cmds(self, reset_cmd_dict: dict[GbiMacro], default_render_mode: list[str]):
         reset_cmds = []
         for cmd_type, cmd_use in reset_cmd_dict.items():
-            
             if cmd_type == DPPipeSync:
                 reset_cmds.append(DPPipeSync())
 
@@ -493,7 +503,7 @@ class BleedGraphics:
 class BleedGfxLists:
     bled_mats: GfxList = field(default_factory=list)
     bled_tex: GfxList = field(default_factory=list)
-    
+
     @property
     def reset_command_dict(self):
         return {
@@ -514,7 +524,7 @@ class BleedGfxLists:
         # separate other mode H and othermode L
         if type(cmd) == SPSetOtherMode:
             reset_cmd_dict[cmd.cmd] = cmd
-            
+
         if type(cmd) in reset_cmd_list:
             reset_cmd_dict[type(cmd)] = cmd
 
