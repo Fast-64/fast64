@@ -263,6 +263,7 @@ class BaseDisplayListNode:
     """Base displaylist node with common helper functions dealing with displaylists"""
 
     dl_ext = "WITH_DL"  # add dl_ext to geo command if command has a displaylist
+    bleed_independently = False  # base behavior, can be changed with obj boolProp
 
     def get_dl_address(self):
         if self.hasDL and (self.dlRef or self.DLmicrocode is not None):
@@ -454,33 +455,41 @@ class JumpNode:
 class GeoLayoutBleed(BleedGraphics):
     def bleed_geo_layout_graph(self, fModel: FModel, geo_layout_graph: GeolayoutGraph, use_rooms: bool = False):
         last_materials = dict()  # last used material should be kept track of per layer
-        
+
         def walk(node, last_materials):
             base_node = node.node
             if type(base_node) == JumpNode:
                 if base_node.geolayout:
                     for node in base_node.geolayout.nodes:
-                        last_materials = walk(node, last_materials if not use_rooms else dict()) if not use_rooms else dict()
+                        last_materials = (
+                            walk(node, last_materials if not use_rooms else dict()) if not use_rooms else dict()
+                        )
                 else:
                     last_materials = dict()
             fMesh = getattr(base_node, "fMesh", None)
             if fMesh:
                 cmd_list = fMesh.drawMatOverrides.get(base_node.override_hash, None) or fMesh.draw
-                lastMat = last_materials.get(base_node.drawLayer, None)
+                last_mat = last_materials.get(base_node.drawLayer, None)
                 default_render_mode = fModel.getRenderMode(base_node.drawLayer)
-                lastMat = self.bleed_fmesh(fModel.f3d, fMesh, lastMat, cmd_list, default_render_mode)
+                last_mat = self.bleed_fmesh(
+                    fMesh,
+                    last_mat if not base_node.bleed_independently else None,
+                    cmd_list,
+                    fModel.getAllMaterials().items(),
+                    default_render_mode,
+                )
                 # if the mesh has culling, it can be culled, and create invalid combinations of f3d to represent the current full DL
                 if fMesh.cullVertexList:
                     last_materials[base_node.drawLayer] = None
                 else:
-                    last_materials[base_node.drawLayer] = lastMat
-            # don't carry over lastmat if it is a switch node or geo asm node
-            if type(base_node) in [SwitchNode, FunctionNode]:
-                last_materials = dict()
+                    last_materials[base_node.drawLayer] = last_mat
+            # don't carry over last_mat if it is a switch node or geo asm node
             for child in node.children:
+                if type(base_node) in [SwitchNode, FunctionNode]:
+                    last_materials = dict()
                 last_materials = walk(child, last_materials)
             return last_materials
-        
+
         for node in geo_layout_graph.startGeolayout.nodes:
             last_materials = walk(node, last_materials)
         self.clear_gfx_lists(fModel)
@@ -606,7 +615,6 @@ class SwitchNode:
 
 class TranslateRotateNode(BaseDisplayListNode):
     def __init__(self, drawLayer, fieldLayout, hasDL, translate, rotate, dlRef: str = None):
-
         self.drawLayer = drawLayer
         self.fieldLayout = fieldLayout
         self.hasDL = hasDL

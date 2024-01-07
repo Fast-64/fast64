@@ -1,3 +1,4 @@
+import bpy
 from bpy.ops import object
 from bpy.types import Bone, Object, Panel, Operator, Armature, Mesh, Material, PropertyGroup
 from bpy.utils import register_class, unregister_class
@@ -81,7 +82,6 @@ enumMatOverrideOptions = [
 
 
 def drawGeoInfo(panel: Panel, bone: Bone):
-
     panel.layout.box().label(text="Geolayout Inspector")
     if bone is None:
         panel.layout.label(text="Edit geolayout properties in Pose mode.")
@@ -252,6 +252,8 @@ class GeolayoutObjectPanel(Panel):
         col.prop(obj, "ignore_render")
         col.prop(obj, "ignore_collision")
         col.prop(obj, "use_f3d_culling")
+        if context.scene.exportInlineF3D:
+            col.prop(obj, "bleed_independently")
         if obj_scale_is_unified(obj) and len(obj.modifiers) == 0:
             col.prop(obj, "scaleFromGeolayout")
         # prop_split(col, obj, 'room_num', 'Room')
@@ -427,9 +429,14 @@ class GeolayoutBoneSidePanel(Panel):
 
 def getSwitchOptionBone(switchArmature):
     optionBones = []
-    for poseBone in switchArmature.pose.bones:
-        if poseBone.bone_group is not None and poseBone.bone_group.name == "SwitchOption":
-            optionBones.append(poseBone.name)
+    if bpy.app.version >= (4, 0, 0):
+        for bone in switchArmature.data.bones:
+            if "SwitchOption" in bone.collections:
+                optionBones.append(bone.name)
+    else:
+        for poseBone in switchArmature.pose.bones:
+            if poseBone.bone_group is not None and poseBone.bone_group.name == "SwitchOption":
+                optionBones.append(poseBone.name)
     if len(optionBones) > 1:
         raise PluginError("There should only be one switch option bone in " + switchArmature.name + ".")
     elif len(optionBones) < 1:
@@ -441,18 +448,15 @@ def getSwitchOptionBone(switchArmature):
     return optionBones[0]
 
 
-def updateBone(self, context):
-    if not hasattr(context, "bone"):
-        print("No bone in context.")
-        return
+def updateBone(bone, context):
     armatureObj = context.object
 
     createBoneGroups(armatureObj)
-    if context.bone.geo_cmd not in animatableBoneTypes:
-        addBoneToGroup(armatureObj, context.bone.name, context.bone.geo_cmd)
+    if bone.geo_cmd not in animatableBoneTypes:
+        addBoneToGroup(armatureObj, bone.name, bone.geo_cmd)
         object.mode_set(mode="POSE")
     else:
-        addBoneToGroup(armatureObj, context.bone.name, None)
+        addBoneToGroup(armatureObj, bone.name, None)
         object.mode_set(mode="POSE")
 
 

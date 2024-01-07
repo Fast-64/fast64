@@ -1,8 +1,20 @@
 from .....utility import CData, indent
 from .....f3d.f3d_gbi import ScrollMethod, TextureExportSettings
 from ....oot_model_classes import OOTGfxFormatter
-from ....oot_constants import ootRoomShapeStructs, ootRoomShapeEntryStructs, ootEnumRoomShapeType
+from ....oot_constants import ootEnumRoomShapeType
 from ....oot_level_classes import OOTRoom, OOTRoomMeshGroup, OOTRoomMesh
+
+ootRoomShapeStructs = [
+    "RoomShapeNormal",
+    "RoomShapeImage",
+    "RoomShapeCullable",
+]
+
+ootRoomShapeEntryStructs = [
+    "RoomShapeDListsEntry",
+    "RoomShapeDListsEntry",
+    "RoomShapeCullableEntry",
+]
 
 
 def getRoomShapeDLEntry(meshEntry: OOTRoomMeshGroup, roomShape: str):
@@ -24,13 +36,13 @@ def getRoomShapeImageData(roomMesh: OOTRoomMesh, textureSettings: TextureExportS
     code = CData()
 
     if len(roomMesh.bgImages) > 1:
-        multiBgImageName = f"RoomShapeImageMultiBgEntry {roomMesh.getMultiBgStructName()}"
+        declarationBase = f"RoomShapeImageMultiBgEntry {roomMesh.getMultiBgStructName()}"
 
         # .h
-        code.header += f"extern {multiBgImageName}[{len(roomMesh.bgImages)}];\n"
+        code.header += f"extern {declarationBase}[{len(roomMesh.bgImages)}];\n"
 
         # .c
-        code.source += f"{multiBgImageName}[{len(roomMesh.bgImages)}] = {{\n"
+        code.source += f"{declarationBase}[{len(roomMesh.bgImages)}] = {{\n"
         for i in range(len(roomMesh.bgImages)):
             bgImage = roomMesh.bgImages[i]
             code.source += indent + "{\n" + bgImage.multiPropertiesC(2, i) + indent + "},\n"
@@ -70,7 +82,7 @@ def getRoomShape(outRoom: OOTRoom):
 
     if mesh.roomShape != "ROOM_SHAPE_TYPE_IMAGE":
         entryName = mesh.entriesName()
-        dlEntryArrayName = f"{dlEntryType} {mesh.entriesName()}[{len(mesh.meshEntries)}]"
+        dlEntryDeclarationBase = f"{dlEntryType} {mesh.entriesName()}[{len(mesh.meshEntries)}]"
 
         roomShapeInfo.source = (
             "\n".join(
@@ -86,8 +98,8 @@ def getRoomShape(outRoom: OOTRoom):
             + "\n\n"
         )
 
-        roomShapeDLArray.header = f"extern {dlEntryArrayName};\n"
-        roomShapeDLArray.source = dlEntryArrayName + " = {\n"
+        roomShapeDLArray.header = f"extern {dlEntryDeclarationBase};\n"
+        roomShapeDLArray.source = dlEntryDeclarationBase + " = {\n"
 
         for entry in mesh.meshEntries:
             roomShapeDLArray.source += indent + getRoomShapeDLEntry(entry, mesh.roomShape)

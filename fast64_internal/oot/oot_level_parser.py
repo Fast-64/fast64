@@ -3,7 +3,7 @@ from random import random
 from collections import OrderedDict
 from ..utility import PluginError, readFile, parentObject, hexOrDecInt, gammaInverse, yUpToZUp
 from ..f3d.f3d_parser import parseMatrices, importMeshC
-from ..f3d.f3d_gbi import F3D
+from ..f3d.f3d_gbi import F3D, get_F3D_GBI
 from ..f3d.flipbook import TextureFlipbook
 from .collision.properties import OOTMaterialCollisionProperty
 from .oot_model_classes import OOTF3DContext
@@ -12,7 +12,7 @@ from .scene.exporter.to_c import getDrawConfig
 from .scene.properties import OOTSceneHeaderProperty, OOTLightProperty, OOTImportSceneSettingsProperty
 from .room.properties import OOTRoomHeaderProperty
 from .actor.properties import OOTActorProperty, OOTActorHeaderProperty
-from .cutscene.motion.importer import importCutsceneData
+from .cutscene.importer import importCutsceneData
 
 from .oot_utility import (
     getHeaderSettings,
@@ -195,8 +195,6 @@ class SharedSceneData:
 
 
 def parseScene(
-    f3dType: str,
-    isHWv1: bool,
     settings: OOTImportSceneSettingsProperty,
     option: str,
 ):
@@ -235,7 +233,7 @@ def parseScene(
         bpy.context.mode = "OBJECT"
 
     # set scene default registers (see sDefaultDisplayList)
-    f3dContext = OOTF3DContext(F3D(f3dType, isHWv1), [], bpy.path.abspath(bpy.context.scene.ootDecompPath))
+    f3dContext = OOTF3DContext(get_F3D_GBI(), [], bpy.path.abspath(bpy.context.scene.ootDecompPath))
     f3dContext.mat().prim_color = (0.5, 0.5, 0.5, 0.5)
     f3dContext.mat().env_color = (0.5, 0.5, 0.5, 0.5)
 
@@ -729,12 +727,16 @@ def parseTransActorList(
 
             sharedSceneData.transDict[actorHash] = actorObj
 
-            if roomIndexFront != 255:
-                parentObject(roomObjs[roomIndexFront], actorObj)
-                transActorProp.roomIndex = roomIndexBack
+            fromRoom = roomObjs[roomIndexFront]
+            toRoom = roomObjs[roomIndexBack]
+            if roomIndexFront != roomIndexBack:
+                parentObject(fromRoom, actorObj)
+                transActorProp.fromRoom = fromRoom
+                transActorProp.toRoom = toRoom
+                transActorProp.isRoomTransition = True
             else:
-                parentObject(roomObjs[roomIndexBack], actorObj)
-                transActorProp.dontTransition = True
+                transActorProp.isRoomTransition = False
+                parentObject(toRoom, actorObj)
 
             setCustomProperty(transActorProp, "cameraTransitionFront", camFront, ootEnumCamTransition)
             setCustomProperty(transActorProp, "cameraTransitionBack", camBack, ootEnumCamTransition)
@@ -822,6 +824,7 @@ def parseSpawnList(
             spawnObj.ootEmptyType = "Entrance"
             spawnObj.name = "Entrance"
             spawnProp = spawnObj.ootEntranceProperty
+            spawnProp.tiedRoom = roomObjs[roomIndex]
             spawnProp.spawnIndex = spawnIndex
             spawnProp.customActor = actorID != "ACTOR_PLAYER"
             actorProp = spawnProp.actor

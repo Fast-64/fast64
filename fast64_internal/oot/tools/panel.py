@@ -8,6 +8,7 @@ from .operators import (
     OOT_AddCutscene,
     OOT_AddPath,
     OOTClearTransformAndLock,
+    OOTQuickImport,
 )
 
 
@@ -24,6 +25,7 @@ class OoT_ToolsPanel(OOT_Panel):
         col.operator(OOT_AddCutscene.bl_idname)
         col.operator(OOT_AddPath.bl_idname)
         col.operator(OOTClearTransformAndLock.bl_idname)
+        col.operator(OOTQuickImport.bl_idname)
 
 
 oot_operator_panel_classes = [
@@ -38,6 +40,7 @@ toolOpsToRegister = [
     OOT_AddCutscene,
     OOT_AddPath,
     OOTClearTransformAndLock,
+    OOTQuickImport,
 ]
 
 
