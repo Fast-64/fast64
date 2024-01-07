@@ -1,18 +1,19 @@
 import os
 import re
+import bpy
 
 from bpy.path import abspath
 from bpy.ops import object
 from bpy.props import StringProperty, EnumProperty, IntProperty
-from bpy.types import Scene, Operator, Context, UILayout
+from bpy.types import Scene, Operator, Context
 from bpy.utils import register_class, unregister_class
 from ...utility import CData, PluginError, writeCData, raisePluginError
-from ..oot_utility import getCollection
-from ..scene.exporter.to_c import ootCutsceneDataToC
-from .exporter import convertCutsceneObject
-from .constants import ootEnumCSTextboxType, ootEnumCSListType, ootEnumCSListTypeIcons
-from .motion.importer import importCutsceneData
-from .motion.exporter import getCutsceneMotionData
+from ..oot_utility import getCollection, getCutsceneName
+from ..oot_constants import ootData
+from ..scene.exporter.to_c import getCutsceneC
+from .constants import ootEnumCSTextboxType, ootEnumCSListType
+from .importer import importCutsceneData
+from .exporter import getNewCutsceneExport
 
 
 def checkGetFilePaths(context: Context):
@@ -42,26 +43,6 @@ def ootCutsceneIncludes(headerfilename):
     return ret
 
 
-def drawCSListAddOp(layout: UILayout, objName: str, collectionType):
-    def addButton(row):
-        nonlocal l
-        op = row.operator(OOTCSListAdd.bl_idname, text=ootEnumCSListType[l][1], icon=ootEnumCSListTypeIcons[l])
-        op.collectionType = collectionType
-        op.listType = ootEnumCSListType[l][0]
-        op.objName = objName
-        l += 1
-
-    box = layout.column(align=True)
-    l = 0
-    row = box.row(align=True)
-    row.label(text="Add:")
-    addButton(row)
-    for _ in range(3):
-        row = box.row(align=True)
-        for _ in range(3):
-            addButton(row)
-
-
 def insertCutsceneData(filePath: str, csName: str):
     """Inserts the motion data in the cutscene and returns the new data"""
     fileLines = []
@@ -76,7 +57,7 @@ def insertCutsceneData(filePath: str, csName: str):
         fileLines = []
 
     foundCutscene = False
-    motionExporter = getCutsceneMotionData(csName, False)
+    motionExporter = getNewCutsceneExport(csName)
     beginIndex = 0
 
     for i, line in enumerate(fileLines):
@@ -125,7 +106,7 @@ def insertCutsceneData(filePath: str, csName: str):
     return fileData
 
 
-class OOTCSTextboxAdd(Operator):
+class OOTCSTextAdd(Operator):
     bl_idname = "object.oot_cstextbox_add"
     bl_label = "Add CS Textbox"
     bl_options = {"REGISTER", "UNDO"}
@@ -198,12 +179,11 @@ class OOT_ExportCutscene(Operator):
 
             cpath, hpath, headerfilename = checkGetFilePaths(context)
             csdata = ootCutsceneIncludes(headerfilename)
-            converted = convertCutsceneObject(activeObj)
 
             if context.scene.exportMotionOnly:
                 csdata.append(insertCutsceneData(cpath, activeObj.name.removeprefix("Cutscene.")))
             else:
-                csdata.append(ootCutsceneDataToC(converted, converted.name))
+                csdata.append(getCutsceneC(getCutsceneName(activeObj)))
             writeCData(csdata, hpath, cpath)
 
             self.report({"INFO"}, "Successfully exported cutscene")
@@ -233,11 +213,10 @@ class OOT_ExportAllCutscenes(Operator):
                         print(f"Parent: {obj.parent.name}, Object: {obj.name}")
                         raise PluginError("Cutscene object must not be parented to anything")
 
-                    converted = convertCutsceneObject(obj)
                     if context.scene.exportMotionOnly:
                         raise PluginError("ERROR: Not implemented yet.")
                     else:
-                        csdata.append(ootCutsceneDataToC(converted, converted.name))
+                        csdata.append(getCutsceneC(getCutsceneName(obj)))
                     count += 1
 
             if count == 0:
@@ -251,12 +230,61 @@ class OOT_ExportAllCutscenes(Operator):
             return {"CANCELLED"}
 
 
+class OOT_SearchCSDestinationEnumOperator(Operator):
+    bl_idname = "object.oot_search_cs_dest_enum_operator"
+    bl_label = "Choose Destination"
+    bl_property = "csDestination"
+    bl_options = {"REGISTER", "UNDO"}
+
+    csDestination: EnumProperty(items=ootData.enumData.ootEnumCsDestination, default="cutscene_map_ganon_horse")
+    objName: StringProperty()
+
+    def execute(self, context):
+        obj = bpy.data.objects[self.objName]
+        obj.ootCutsceneProperty.csDestination = self.csDestination
+
+        context.region.tag_redraw()
+        self.report({"INFO"}, "Selected: " + self.csDestination)
+        return {"FINISHED"}
+
+    def invoke(self, context, event):
+        context.window_manager.invoke_search_popup(self)
+        return {"RUNNING_MODAL"}
+
+
+class OOT_SearchCSSeqOperator(Operator):
+    bl_idname = "object.oot_search_cs_seq_enum_operator"
+    bl_label = "Search Music Sequence"
+    bl_property = "seqId"
+    bl_options = {"REGISTER", "UNDO"}
+
+    seqId: EnumProperty(items=ootData.enumData.ootEnumSeqId, default="general_sfx")
+    itemIndex: IntProperty()
+    listType: StringProperty()
+
+    def execute(self, context):
+        csProp = context.view_layer.objects.active.ootCutsceneProperty
+        for elem in csProp.csLists:
+            if elem.listType == self.listType:
+                elem.seqList[self.itemIndex].csSeqID = self.seqId
+                break
+        context.region.tag_redraw()
+        self.report({"INFO"}, "Selected: " + self.seqId)
+        return {"FINISHED"}
+
+    def invoke(self, context, event):
+        context.window_manager.invoke_search_popup(self)
+        return {"RUNNING_MODAL"}
+
+
 oot_cutscene_classes = (
-    OOTCSTextboxAdd,
+    OOTCSTextAdd,
     OOTCSListAdd,
     OOT_ImportCutscene,
     OOT_ExportCutscene,
     OOT_ExportAllCutscenes,
+    OOT_SearchCSDestinationEnumOperator,
+    OOT_SearchCSSeqOperator,
 )
 
 

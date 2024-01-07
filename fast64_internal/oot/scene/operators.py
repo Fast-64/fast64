@@ -1,13 +1,15 @@
-import bpy, os
+import bpy
+import os
+
 from bpy.path import abspath
-from bpy.types import Operator, UILayout
+from bpy.types import Operator
 from bpy.props import EnumProperty, IntProperty, StringProperty
 from bpy.utils import register_class, unregister_class
 from bpy.ops import object
 from mathutils import Matrix, Vector
 from ...f3d.f3d_gbi import DLFormat
 from ...utility import PluginError, raisePluginError, ootGetSceneOrRoomHeader
-from ..oot_utility import ExportInfo, sceneNameFromID, getEnumName
+from ..oot_utility import ExportInfo, sceneNameFromID
 from ..oot_level_writer import ootExportSceneToC
 from ..oot_constants import ootEnumMusicSeq, ootEnumSceneID
 from ..oot_level_parser import parseScene
@@ -75,7 +77,7 @@ class OOT_SearchMusicSeqEnumOperator(Operator):
     bl_property = "ootMusicSeq"
     bl_options = {"REGISTER", "UNDO"}
 
-    ootMusicSeq: EnumProperty(items=ootEnumMusicSeq, default="0x02")
+    ootMusicSeq: EnumProperty(items=ootEnumMusicSeq, default="NA_BGM_FIELD_LOGIC")
     headerIndex: IntProperty(default=0, min=0)
     objName: StringProperty()
 

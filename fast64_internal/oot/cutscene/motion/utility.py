@@ -1,5 +1,6 @@
 import bpy
 
+from struct import unpack
 from bpy.types import Object, Bone, Context, EditBone, Armature
 from mathutils import Vector
 from ....utility import yUpToZUp
@@ -56,13 +57,13 @@ def createNewBone(cameraShotObj: Object, name: str, headPos: list[float], tailPo
 
 
 def createNewCameraShot(csObj: Object):
-    from .io_classes import OOTCSMotionObjectFactory  # circular import fix
+    from ..classes import CutsceneObjectFactory  # circular import fix
 
     index, csPrefix = getNameInformations(csObj, "Camera Shot", None)
 
     # create a basic armature
     name = f"{csPrefix}.Camera Shot {index:02}"
-    newCameraShotObj = OOTCSMotionObjectFactory().getNewArmatureObject(name, True, csObj)
+    newCameraShotObj = CutsceneObjectFactory().getNewArmatureObject(name, True, csObj)
 
     # add 4 bones since it's the minimum required
     for i in range(1, 5):
@@ -81,6 +82,18 @@ def getBlenderPosition(pos: list[int], scale: int):
     # OoT: +X right, +Y up, -Z forward
     # Blender: +X right, +Z up, +Y forward
     return [float(pos[0]) / scale, -float(pos[2]) / scale, float(pos[1]) / scale]
+
+
+def getInteger(number: str):
+    """Returns an int number (handles properly negative hex numbers)"""
+
+    if number.startswith("0x"):
+        number = number.removeprefix("0x")
+
+        # ``"0" * (8 - len(number)`` adds the missing zeroes (if necessary) to have a 8 digit hex number
+        return unpack("!i", bytes.fromhex("0" * (8 - len(number)) + number))[0]
+    else:
+        return int(number)
 
 
 def getRotation(data: str):
@@ -167,7 +180,7 @@ def metersToBlend(context: Context, value: float):
 
 
 def setupActorCuePreview(csObj: Object, actorOrPlayer: str, selectObject: bool, cueList: Object):
-    from .io_classes import OOTCSMotionObjectFactory  # circular import fix
+    from ..classes import CutsceneObjectFactory  # circular import fix
 
     # check if the cue actually moves, if not it's not necessary to create a preview object
     isCueMoving = False
@@ -192,11 +205,11 @@ def setupActorCuePreview(csObj: Object, actorOrPlayer: str, selectObject: bool, 
                 previewObj = obj
                 break
         else:
-            previewObj = OOTCSMotionObjectFactory().getNewActorCuePreviewObject(name, selectObject, csObj)
+            previewObj = CutsceneObjectFactory().getNewActorCuePreviewObject(name, selectObject, csObj)
 
         actorHeight = 1.5
         if actorOrPlayer == "Player":
-            actorHeight = 1.7 if bpy.context.scene.previewPlayerAge == "link_adult" else 1.3
+            actorHeight = 1.7 if bpy.context.scene.ootPreviewSettingsProperty.previewPlayerAge == "link_adult" else 1.3
 
         previewObj.empty_display_type = "SINGLE_ARROW"
         previewObj.empty_display_size = metersToBlend(bpy.context, actorHeight)
@@ -245,11 +258,11 @@ def getCutsceneEndFrame(csObj: Object):
 
 
 def setupCutscene(csObj: Object):
-    from .io_classes import OOTCSMotionObjectFactory  # circular import fix
+    from ..classes import CutsceneObjectFactory  # circular import fix
 
-    objFactory = OOTCSMotionObjectFactory()
+    objFactory = CutsceneObjectFactory()
     context = bpy.context
-    bpy.context.scene.ootCSPreviewCSObj = csObj
+    bpy.context.scene.ootPreviewSettingsProperty.ootCSPreviewCSObj = csObj
     camObj = objFactory.getNewCameraObject(
         f"{csObj.name}.Camera",
         metersToBlend(context, 0.25),
@@ -273,3 +286,12 @@ def setupCutscene(csObj: Object):
     context.scene.render.resolution_y = 240
     context.scene.frame_set(context.scene.frame_start)
     context.scene.camera = camObj
+
+
+def getCutsceneCamera(csObj: Object) -> Object | None:
+    cameraObj = None
+    for childObj in csObj.children:
+        if childObj.type == "CAMERA":
+            cameraObj = childObj
+            break
+    return cameraObj

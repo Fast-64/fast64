@@ -610,7 +610,7 @@ def int_from_s16(value: int) -> int:
 
 def int_from_s16_str(value: str) -> int:
     return int_from_s16(int(value, 0))
-    
+
 
 def float_from_u16_str(value: str) -> float:
     return float(int(value, 0)) / (2**16)
@@ -1204,7 +1204,7 @@ def multilineLabel(layout: UILayout, text: str, icon: str = "NONE"):
     layout = layout.column()
     for i, line in enumerate(text.split("\n")):
         r = layout.row()
-        r.label(text = line, icon = icon if i == 0 else "NONE")
+        r.label(text=line, icon=icon if i == 0 else "NONE")
         r.scale_y = 0.75
 
 
