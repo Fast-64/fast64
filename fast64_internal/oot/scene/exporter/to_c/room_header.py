@@ -20,14 +20,14 @@ def getHeaderDefines(outRoom: OOTRoom, headerIndex: int):
 # Object List
 def getObjectList(outRoom: OOTRoom, headerIndex: int):
     objectList = CData()
-    listName = f"s16 {outRoom.objectListName(headerIndex)}"
+    declarationBase = f"s16 {outRoom.objectListName(headerIndex)}"
 
     # .h
-    objectList.header = f"extern {listName}[];\n"
+    objectList.header = f"extern {declarationBase}[];\n"
 
     # .c
     objectList.source = (
-        (f"{listName}[{outRoom.getObjectLengthDefineName(headerIndex)}]" + " = {\n")
+        (f"{declarationBase}[{outRoom.getObjectLengthDefineName(headerIndex)}]" + " = {\n")
         + ",\n".join(indent + objectID for objectID in outRoom.objectIDList)
         + ",\n};\n\n"
     )
@@ -48,14 +48,14 @@ def getRoomData(outRoom: OOTRoom):
     for i, csHeader in enumerate(outRoom.cutsceneHeaders):
         roomHeaders.append((csHeader, f"Cutscene No. {i + 1}"))
 
-    altHeaderPtrListName = f"SceneCmd* {outRoom.alternateHeadersName()}"
+    declarationBase = f"SceneCmd* {outRoom.alternateHeadersName()}"
 
     # .h
-    roomC.header = f"extern {altHeaderPtrListName}[];\n"
+    roomC.header = f"extern {declarationBase}[];\n"
 
     # .c
     altHeaderPtrList = (
-        f"{altHeaderPtrListName}[]"
+        f"{declarationBase}[]"
         + " = {\n"
         + "\n".join(
             indent + f"{curHeader.roomName()}_header{i:02}," if curHeader is not None else indent + "NULL,"

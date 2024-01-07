@@ -1,5 +1,11 @@
-import bpy, math, os, re
+import bpy
+import math
+import os
+import re
+
 from ast import parse, Expression, Num, UnaryOp, USub, Invert, BinOp
+from mathutils import Vector
+from bpy.types import Object
 from bpy.utils import register_class, unregister_class
 from typing import Callable
 from .oot_constants import ootSceneIDToName
@@ -20,7 +26,7 @@ from ..utility import (
 
 
 def isPathObject(obj: bpy.types.Object) -> bool:
-    return obj.data is not None and isinstance(obj.data, bpy.types.Curve) and obj.ootSplineProperty.splineType == "Path"
+    return obj.type == "CURVE" and obj.ootSplineProperty.splineType == "Path"
 
 
 ootSceneDungeons = [
@@ -222,7 +228,7 @@ class OOTObjectCategorizer:
 
     def sortObjects(self, allObjs):
         for obj in allObjs:
-            if obj.data is None:
+            if obj.type == "EMPTY":
                 if obj.ootEmptyType == "Actor":
                     self.actors.append(obj)
                 elif obj.ootEmptyType == "Transition Actor":
@@ -235,7 +241,7 @@ class OOTObjectCategorizer:
                     self.roomObjs.append(obj)
                 elif obj.ootEmptyType == "Scene":
                     self.sceneObj = obj
-            elif isinstance(obj.data, bpy.types.Mesh):
+            elif obj.type == "MESH":
                 self.meshes.append(obj)
 
 
@@ -326,10 +332,8 @@ def ootDuplicateHierarchy(obj, ignoreAttr, includeEmpties, objectCategorizer):
 
 
 def ootSelectMeshChildrenOnly(obj, includeEmpties):
-    isMesh = isinstance(obj.data, bpy.types.Mesh)
-    isEmpty = (
-        obj.data is None or isinstance(obj.data, bpy.types.Camera) or isinstance(obj.data, bpy.types.Curve)
-    ) and includeEmpties
+    isMesh = obj.type == "MESH"
+    isEmpty = (obj.type == "EMPTY" or obj.type == "CAMERA" or obj.type == "CURVE") and includeEmpties
     if isMesh or isEmpty:
         obj.select_set(True)
         obj.original_name = obj.name
@@ -344,7 +348,7 @@ def ootCleanupScene(originalSceneObj, allObjs):
 
 
 def getSceneObj(obj):
-    while not (obj is None or (obj is not None and obj.data is None and obj.ootEmptyType == "Scene")):
+    while not (obj is None or (obj is not None and obj.type == "EMPTY" and obj.ootEmptyType == "Scene")):
         obj = obj.parent
     if obj is None:
         return None
@@ -353,7 +357,7 @@ def getSceneObj(obj):
 
 
 def getRoomObj(obj):
-    while not (obj is None or (obj is not None and obj.data is None and obj.ootEmptyType == "Room")):
+    while not (obj is None or (obj is not None and obj.type == "EMPTY" and obj.ootEmptyType == "Room")):
         obj = obj.parent
     if obj is None:
         return None
@@ -491,6 +495,13 @@ def getEnumName(enumItems, value):
     raise PluginError("Could not find enum value " + str(value))
 
 
+def getEnumIndex(enumItems, value):
+    for i, enumTuple in enumerate(enumItems):
+        if enumTuple[0] == value or enumTuple[1] == value:
+            return i
+    return None
+
+
 def ootConvertTranslation(translation):
     return [int(round(value)) for value in translation]
 
@@ -501,7 +512,7 @@ def ootConvertRotation(rotation):
 
 
 # parse rotaion in Vec3s format
-def ootParseRotation(values):
+def ootParseRotation(values: list[int]):
     return [
         math.radians(
             (int.from_bytes(value.to_bytes(2, "big", signed=value < 0x8000), "big", signed=False) / 2**16) * 360
@@ -674,7 +685,7 @@ class OOTCollectionMove(bpy.types.Operator):
 
 def getHeaderSettings(actorObj: bpy.types.Object):
     itemType = actorObj.ootEmptyType
-    if actorObj.data is None:
+    if actorObj.type == "EMPTY":
         if itemType == "Actor":
             headerSettings = actorObj.ootActorProperty.headerSettings
         elif itemType == "Entrance":
@@ -683,7 +694,7 @@ def getHeaderSettings(actorObj: bpy.types.Object):
             headerSettings = actorObj.ootTransitionActorProperty.actor.headerSettings
         else:
             headerSettings = None
-    elif actorObj.data is not None and isPathObject(actorObj):
+    elif isPathObject(actorObj):
         headerSettings = actorObj.ootSplineProperty.headerSettings
     else:
         headerSettings = None
@@ -861,3 +872,70 @@ def getEvalParams(input: str):
             raise ValueError(f"Unsupported AST node {node}")
 
     return f"0x{_eval(node.body):X}"
+
+
+def getNewPath(type: str, isClosedShape: bool):
+    """
+    Returns a new Curve Object with the selected spline shape
+
+    Parameters:
+    - ``type``: the path's type (square, line, etc)
+    - ``isClosedShape``: choose if the spline should have an extra point to make a closed shape
+    """
+
+    # create a new curve
+    newCurve = bpy.data.curves.new("New Path", "CURVE")
+    newCurve.dimensions = "3D"
+
+    # add a new spline to the curve
+    newSpline = newCurve.splines.new("NURBS")  # comes with 1 point
+
+    # generate shape based on 'type' parameter
+    scaleDivBy2 = bpy.context.scene.ootBlenderScale / 2
+    match type:
+        case "Line":
+            newSpline.points.add(1)
+            for i, point in enumerate(newSpline.points):
+                point.co.x = i * bpy.context.scene.ootBlenderScale
+                point.co.w = 1
+        case "Triangle":
+            newSpline.points.add(2)
+            for i, point in enumerate(newSpline.points):
+                point.co.x = i * scaleDivBy2
+                if i == 1:
+                    point.co.y = (len(newSpline.points) * scaleDivBy2) / 2
+                point.co.w = 1
+        case "Square" | "Trapezium":
+            newSpline.points.add(3)
+            for i, point in enumerate(newSpline.points):
+                point.co.x = i * scaleDivBy2
+                if i in [1, 2]:
+                    if type == "Square":
+                        point.co.y = (len(newSpline.points) - 1) * scaleDivBy2
+                        if i == 1:
+                            point.co.x = newSpline.points[0].co.x
+                        else:
+                            point.co.x = point.co.y
+                    else:
+                        point.co.y = 1 * scaleDivBy2
+                point.co.w = 1
+        case _:
+            raise PluginError("ERROR: Invalid Path Type!")
+
+    if isClosedShape and type != "Line":
+        newSpline.points.add(1)
+        newSpline.points[-1].co = newSpline.points[0].co
+
+    # make the curve's display accurate to the point's shape
+    newSpline.use_cyclic_u = True
+    newSpline.use_endpoint_u = False
+    newSpline.resolution_u = 64
+    newSpline.order_u = 2
+
+    # create a new object and add the curve as data
+    newPath = bpy.data.objects.new("New Path", newCurve)
+    newPath.show_name = True
+    newPath.location = Vector(bpy.context.scene.cursor.location)
+    bpy.context.view_layer.active_layer_collection.collection.objects.link(newPath)
+
+    return newPath

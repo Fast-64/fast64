@@ -21,7 +21,7 @@ class OOT_ExportCollision(Operator):
         if len(context.selected_objects) == 0:
             raise PluginError("No object selected.")
         obj = context.active_object
-        if type(obj.data) is not Mesh:
+        if obj.type != "MESH":
             raise PluginError("No mesh object selected.")
 
         finalTransform = Matrix.Scale(getOOTScale(obj.ootActorScale), 4)
