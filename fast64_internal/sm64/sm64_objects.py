@@ -755,29 +755,14 @@ def handleRefreshDiffModelIDs(modelID):
 
 
 def handleRefreshDiffSpecials(preset):
-    refresh_version = bpy.context.scene.fast64.sm64.refresh_version
-    if (
-        refresh_version == "Refresh 8"
-        or refresh_version == "Refresh 7"
-        or refresh_version == "Refresh 6"
-        or refresh_version == "Refresh 5"
-        or refresh_version == "Refresh 4"
-        or refresh_version == "Refresh 3"
-    ):
-        pass
-    return preset
-
-
-def handleRefreshDiffMacros(preset):
-    refresh_version = bpy.context.scene.fast64.sm64.refresh_version
-    if (
-        refresh_version == "Refresh 8"
-        or refresh_version == "Refresh 7"
-        or refresh_version == "Refresh 6"
-        or refresh_version == "Refresh 5"
-        or refresh_version == "Refresh 4"
-        or refresh_version == "Refresh 3"
-    ):
+    if bpy.context.scene.fast64.sm64.refresh_version in {
+        "Refresh 8",
+        "Refresh 7",
+        "Refresh 6",
+        "Refresh 5",
+        "Refresh 4",
+        "Refresh 3",
+    }:
         pass
     return preset
 

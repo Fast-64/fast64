@@ -96,21 +96,21 @@ Sets bank 4 range to ({hex(defaultExtendSegment4[0])}, {hex(defaultExtendSegment
             setattr(self, new, scene.get(old, getattr(self, new)))
 
         refresh_version = scene.get("refreshVer", None)
-        if refresh_version:
+        if refresh_version is not None:
             self.refresh_version = enum_refresh_versions[refresh_version][0]
 
         self.show_importing_menus = self.get("showImportingMenus", self.show_importing_menus)
 
         export_type = self.get("exportType", None)
-        if export_type:
+        if export_type is not None:
             self.export_type = enum_export_type[export_type][0]
 
         self.version = 2
 
     @staticmethod
     def upgrade_changed_props():
-        sm64_props: SM64_Properties = bpy.context.scene.fast64.sm64
         for scene in bpy.data.scenes:
+            sm64_props: SM64_Properties = scene.fast64.sm64
             if sm64_props.version == 0:
                 sm64_props.export_type = sm64_props.get_legacy_export_type(scene)
                 print("Upgraded global SM64 settings to version 1")

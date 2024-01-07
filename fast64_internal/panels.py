@@ -6,11 +6,12 @@ class SM64_Panel(bpy.types.Panel):
     bl_region_type = "UI"
     bl_category = "SM64"
     bl_options = {"DEFAULT_CLOSED"}
+
     # goal refers to the selected enum_sm64_goal_type, a different selection than this goal will filter this panel out
-    # "Import" is not in the enum, as it is a separate UI option
     goal = None
     # if this is True, the panel is hidden whenever the scene's export_type is not 'C'
     decomp_only = False
+    import_panel = False
 
     @classmethod
     def poll(cls, context):
@@ -19,10 +20,9 @@ class SM64_Panel(bpy.types.Panel):
             return False
         elif not cls.goal:
             return True  # Panel should always be shown
-        elif cls.goal == "Import":
-            # Only show if importing is enabled
-            return sm64_props.show_importing_menus
         elif cls.decomp_only and sm64_props.export_type != "C":
+            return False
+        elif cls.import_panel and not sm64_props.show_importing_menus:
             return False
 
         scene_goal = sm64_props.goal
