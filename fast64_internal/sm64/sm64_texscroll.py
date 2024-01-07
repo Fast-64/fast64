@@ -348,7 +348,6 @@ def modifyTexScrollHeadersGroup(
 def writeTexScrollHeadersGroup(
     exportDir: str, includeC: str, includeH: str, groupName: str, topLevelScrollFunc: str, dataInclude: str
 ):
-
     # Create group scroll files
     fileStatus = createTexScrollHeadersGroup(exportDir, groupName, dataInclude)
 
@@ -399,7 +398,6 @@ def writeTexScrollHeadersGroup(
 
 
 def removeTexScrollHeadersGroup(exportDir: str, includeC: str, includeH: str, groupName: str, topLevelScrollFunc: str):
-
     includeH += "\n"
     includeC += "\n"
 
