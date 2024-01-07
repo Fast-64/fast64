@@ -7,7 +7,6 @@ from math import ceil
 from bpy.utils import register_class, unregister_class
 
 from .f3d_enums import *
-from .f3d_constants import *
 from .f3d_material import (
     all_combiner_uses,
     getMaterialScrollDimensions,
@@ -495,7 +494,14 @@ def revertMatAndEndDraw(gfxList, otherCommands):
             DPPipeSync(),
             SPSetGeometryMode(["G_LIGHTING"]),
             SPClearGeometryMode(["G_TEXTURE_GEN"]),
-            DPSetCombineMode(*S_SHADED_SOLID),
+            DPSetCombineMode(
+                *(
+                    ["0", "0", "0", "SHADE"]
+                    + ["0", "0", "0", "ENVIRONMENT"]
+                    + ["0", "0", "0", "SHADE"]
+                    + ["0", "0", "0", "ENVIRONMENT"]
+                )
+            ),
             SPTexture(0xFFFF, 0xFFFF, 0, 0, 0),
         ]
         + otherCommands
@@ -905,24 +911,27 @@ class TriangleConverter:
             self.triList.commands.extend(triCmds)
         else:
             if len(triCmds) <= 2:
-                self.writeCelLevels(triCmds = triCmds)
+                self.writeCelLevels(triCmds=triCmds)
             else:
                 celTriList = self.triGroup.add_cel_tri_list()
                 celTriList.commands.extend(triCmds)
                 celTriList.commands.append(SPEndDisplayList())
-                self.writeCelLevels(celTriList = celTriList)
-    
+                self.writeCelLevels(celTriList=celTriList)
+
     def writeCelLevels(self, celTriList: Optional[GfxList] = None, triCmds: Optional[List[GbiMacro]] = None) -> None:
         assert (celTriList == None) != (triCmds == None)
         f3dMat = self.material.f3d_mat
         cel = f3dMat.cel_shading
         f3d = get_F3D_GBI()
-        
+
         # Don't want to have to change back and forth arbitrarily between decal and
         # opaque mode. So if you're using both lighter and darker, need to do those
         # first before switching to decal.
         if getZMode(self.material) != "ZMODE_OPA":
-            raise PluginError(f"Material {self.material.name} with cel shading: zmode in blender / rendermode must be opaque.", icon = "ERROR")
+            raise PluginError(
+                f"Material {self.material.name} with cel shading: zmode in blender / rendermode must be opaque.",
+                icon="ERROR",
+            )
         wroteLighter = wroteDarker = usesDecal = False
         if len(cel.levels) == 0:
             raise PluginError(f"Material {self.material.name} with cel shading has no cel levels")
@@ -931,15 +940,19 @@ class TriangleConverter:
                 if wroteDarker:
                     usesDecal = True
                 elif usesDecal:
-                    raise PluginError(f"Material {self.material.name}: must use Lighter and Darker cel levels before duplicating either of them")
+                    raise PluginError(
+                        f"Material {self.material.name}: must use Lighter and Darker cel levels before duplicating either of them"
+                    )
                 wroteDarker = True
             else:
                 if wroteLighter:
                     usesDecal = True
                 elif usesDecal:
-                    raise PluginError(f"Material {self.material.name}: must use Lighter and Darker cel levels before duplicating either of them")
+                    raise PluginError(
+                        f"Material {self.material.name}: must use Lighter and Darker cel levels before duplicating either of them"
+                    )
                 wroteLighter = True
-        
+
         # Because this might not be the first tri list in the object with this
         # material, we have to set things even if they were set up already in
         # the material.
@@ -951,17 +964,15 @@ class TriangleConverter:
             if usesDecal:
                 if not wroteOpaque:
                     wroteOpaque = True
-                    self.triList.commands.append(SPSetOtherMode("G_SETOTHERMODE_L",
-                        10, 2, ["ZMODE_OPA"]))
+                    self.triList.commands.append(SPSetOtherMode("G_SETOTHERMODE_L", 10, 2, ["ZMODE_OPA"]))
                 if not wroteDecal and (darker and wroteDarker or not darker and wroteLighter):
                     wroteDecal = True
-                    self.triList.commands.append(SPSetOtherMode("G_SETOTHERMODE_L",
-                        10, 2, ["ZMODE_DEC"]))
+                    self.triList.commands.append(SPSetOtherMode("G_SETOTHERMODE_L", 10, 2, ["ZMODE_DEC"]))
             if darker:
                 wroteDarker = True
             else:
                 wroteLighter = True
-            
+
             if lastDarker != darker:
                 lastDarker = darker
                 # Set up CC.
@@ -976,51 +987,52 @@ class TriangleConverter:
                 else:
                     ccSettings *= 2
                 self.triList.commands.append(DPSetCombineMode(*ccSettings))
-            
+
             # Set up tint color and level
             if level.tintType == "Fixed":
                 color = exportColor(level.tintFixedColor)
                 if cel.tintPipeline == "CC":
-                    self.triList.commands.append(DPSetPrimColor(0, 0, color[0],
-                        color[1], color[2], level.tintFixedLevel))
+                    self.triList.commands.append(
+                        DPSetPrimColor(0, 0, color[0], color[1], color[2], level.tintFixedLevel)
+                    )
                 else:
-                    self.triList.commands.append(DPSetFogColor(color[0],
-                        color[1], color[2], level.tintFixedLevel))
+                    self.triList.commands.append(DPSetFogColor(color[0], color[1], color[2], level.tintFixedLevel))
             elif level.tintType == "Segment":
-                self.triList.commands.append(SPDisplayList(GfxList(
-                    f"{level.tintSegmentNum:#04x}{level.tintSegmentOffset * 8:06x}",
-                    GfxListTag.Material,
-                    DLFormat.Static
-                )))
+                self.triList.commands.append(
+                    SPDisplayList(
+                        GfxList(
+                            f"{level.tintSegmentNum:#04x}{level.tintSegmentOffset * 8:06x}",
+                            GfxListTag.Material,
+                            DLFormat.Static,
+                        )
+                    )
+                )
             elif level.tintType == "Light":
                 if cel.tintPipeline == "CC":
-                    self.triList.commands.append(SPLightToPrimColor(
-                        level.tintLightSlot, level.tintFixedLevel, 0, 0
-                    ))
+                    self.triList.commands.append(SPLightToPrimColor(level.tintLightSlot, level.tintFixedLevel, 0, 0))
                 else:
-                    self.triList.commands.append(SPLightToFogColor(
-                        level.tintLightSlot, level.tintFixedLevel
-                    ))
+                    self.triList.commands.append(SPLightToFogColor(level.tintLightSlot, level.tintFixedLevel))
             else:
                 raise PluginError("Unknown tint type")
-            
+
             # Set up threshold
-            self.triList.commands.append(DPSetBlendColor(255, 255, 255, 
-                0x100 - level.threshold if darker else level.threshold))
-            self.triList.commands.append(SPAlphaCompareCull(
-                "G_ALPHA_COMPARE_CULL_ABOVE" if darker else
-                "G_ALPHA_COMPARE_CULL_BELOW",
-                level.threshold))
-            
+            self.triList.commands.append(
+                DPSetBlendColor(255, 255, 255, 0x100 - level.threshold if darker else level.threshold)
+            )
+            self.triList.commands.append(
+                SPAlphaCompareCull(
+                    "G_ALPHA_COMPARE_CULL_ABOVE" if darker else "G_ALPHA_COMPARE_CULL_BELOW", level.threshold
+                )
+            )
+
             # Draw tris, inline or by call
             if triCmds is not None:
                 self.triList.commands.extend(triCmds)
             else:
                 self.triList.commands.append(SPDisplayList(celTriList))
-        
+
         # Disable alpha compare culling for future DLs
-        self.triList.commands.append(SPAlphaCompareCull(
-            "G_ALPHA_COMPARE_CULL_DISABLE", 0))
+        self.triList.commands.append(SPAlphaCompareCull("G_ALPHA_COMPARE_CULL_DISABLE", 0))
 
     def addFace(self, face, stOffset):
         triIndices = []
