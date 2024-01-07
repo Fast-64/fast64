@@ -4,6 +4,7 @@ from ..utility import (
     PluginError,
     CData,
     prop_split,
+    selectSingleObject,
 )
 
 from .oot_collision_classes import (
@@ -29,8 +30,7 @@ def drawCameraPosProperty(layout, cameraRefProp, index, headerIndex, objName):
 
 # water boxes handled by level writer
 def exportCollisionCommon(collision, obj, transformMatrix, includeChildren, name):
-    bpy.ops.object.select_all(action="DESELECT")
-    obj.select_set(True)
+    selectSingleObject(obj)
 
     # dict of collisionType : faces
     collisionDict = {}

@@ -444,7 +444,9 @@ def addCullCommand(obj, fMesh, transformMatrix, matWriteMethod):
     fMesh.draw.commands = cullCommands + fMesh.draw.commands
 
 
-def exportF3DCommon(obj, fModel, transformMatrix, includeChildren, name, DLFormat, convertTextureData):
+def exportF3DCommon(
+    obj: bpy.types.Object, fModel, transformMatrix, includeChildren: bool, name, DLFormat, convertTextureData
+):
     tempObj, meshList = combineObjects(obj, includeChildren, None, None)
     try:
         infoDict = getInfoDict(tempObj)
@@ -454,12 +456,10 @@ def exportF3DCommon(obj, fModel, transformMatrix, includeChildren, name, DLForma
             triConverterInfo, fModel, tempObj, transformMatrix, name, convertTextureData, revert_materials, None
         )
         cleanupCombineObj(tempObj, meshList)
-        obj.select_set(True)
-        bpy.context.view_layer.objects.active = obj
+        setActiveObject(obj)
     except Exception as e:
         cleanupCombineObj(tempObj, meshList)
-        obj.select_set(True)
-        bpy.context.view_layer.objects.active = obj
+        setActiveObject(obj)
         raise Exception(str(e))
 
     return fMeshes
@@ -1753,7 +1753,9 @@ def getWriteMethodFromEnum(enumVal):
         return matWriteMethodEnumDict[enumVal]
 
 
-def exportF3DtoC(dirPath, obj, DLFormat, transformMatrix, texDir, savePNG, texSeparate, name, matWriteMethod):
+def exportF3DtoC(
+    dirPath, obj: bpy.types.Object, DLFormat, transformMatrix, texDir, savePNG, texSeparate, name, matWriteMethod
+):
     inline = bpy.context.scene.exportInlineF3D
     fModel = FModel(name, DLFormat, matWriteMethod if not inline else GfxMatWriteMethod.WriteAll)
     fMeshes = exportF3DCommon(obj, fModel, transformMatrix, True, name, DLFormat, not savePNG)

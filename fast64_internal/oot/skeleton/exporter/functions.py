@@ -15,6 +15,7 @@ from ....utility import (
     writeCData,
     toAlnum,
     cleanupDuplicatedObjects,
+    setActiveObject,
 )
 
 from ...oot_utility import (
@@ -180,14 +181,12 @@ def ootConvertArmatureToSkeleton(
         )
 
         cleanupDuplicatedObjects(meshObjs + [armatureObj])
-        originalArmatureObj.select_set(True)
-        bpy.context.view_layer.objects.active = originalArmatureObj
+        setActiveObject(originalArmatureObj)
 
         return skeleton, fModel
     except Exception as e:
         cleanupDuplicatedObjects(meshObjs + [armatureObj])
-        originalArmatureObj.select_set(True)
-        bpy.context.view_layer.objects.active = originalArmatureObj
+        setActiveObject(originalArmatureObj)
         raise Exception(str(e))
 
 

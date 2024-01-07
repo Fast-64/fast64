@@ -87,8 +87,7 @@ def F3DtoBlenderObject(romfile, startAddress, scene, newname, transformMatrix, s
     mesh.update()
 
     if shadeSmooth:
-        bpy.ops.object.select_all(action="DESELECT")
-        obj.select_set(True)
+        selectSingleObject(obj)
         bpy.ops.object.shade_smooth()
 
     return obj
@@ -1863,9 +1862,7 @@ class F3DContext:
 
         if bpy.context.mode != "OBJECT":
             bpy.ops.object.mode_set(mode="OBJECT")
-        bpy.ops.object.select_all(action="DESELECT")
-        obj.select_set(True)
-        bpy.context.view_layer.objects.active = obj
+        selectSingleObject(obj)
 
         for material in self.materials:
             obj.data.materials.append(material)
