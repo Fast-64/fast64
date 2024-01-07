@@ -10,6 +10,8 @@ from ....oot_utility import getCustomProperty, ExportInfo
 from ....oot_level_classes import OOTScene
 
 
+ADDED_SCENES_COMMENT = "// Added scenes"
+
 class SceneIndexType(enum.IntEnum):
     """Used to figure out the value of ``selectedSceneIndex``"""
 
@@ -18,7 +20,7 @@ class SceneIndexType(enum.IntEnum):
     VANILLA_REMOVED = -2  # vanilla scene that was removed, this is to know if it should insert an entry
 
 
-@dataclass(unsafe_hash=True)
+@dataclass
 class SceneTableEntry:
     """Defines an entry of ``scene_table.h``"""
 
@@ -95,7 +97,7 @@ class SceneTable:
     selectedSceneEnumValue: Optional[str]
     entries: list[SceneTableEntry] = field(default_factory=list)
     sceneEnumValues: list[str] = field(default_factory=list)  # existing values in ``scene_table.h``
-    firstAppend: bool = False  # if false, adds the "Added Scenes" comment to the C data
+    isFirstCustom: bool = False  # if true, adds the "Added Scenes" comment to the C data
     selectedSceneIndex: int = 0
     customSceneIndex: Optional[int] = None  # None if the selected custom scene isn't in the table yet
 
@@ -111,7 +113,7 @@ class SceneTable:
 
         # parse the entries and populate the list of entries (``self.entries``)
         prefix = ""
-        self.firstAppend = "// Added scenes" in data
+        self.isFirstCustom = ADDED_SCENES_COMMENT not in data
         entryIndex = 0  # we don't use ``enumerate`` since not every line is an actual entry
         assert len(lines) > 0
         for line in lines:
@@ -204,15 +206,19 @@ class SceneTable:
     def getIndex(self):
         """Returns the selected scene index if it's a vanilla one, else returns the custom scene index"""
         assert self.selectedSceneIndex != SceneIndexType.VANILLA_REMOVED
-        assert self.customSceneIndex is not None  # this function's usage makes ``customSceneIndex is None`` impossible
+
+        # this function's usage makes ``customSceneIndex is None`` impossible
+        if self.selectedSceneIndex < 0 and self.customSceneIndex is not None:
+            raise PluginError("ERROR: Custom Scene Index is None!")
+
         return self.selectedSceneIndex if self.selectedSceneIndex >= 0 else self.customSceneIndex
 
     def append(self, entry: SceneTableEntry):
         """Appends an entry to the scene table, only used by custom scenes"""
-        # add the added scenes comment if it's not already there
-        if not self.firstAppend:
-            entry.prefix = "\n// Added scenes\n"
-            self.firstAppend = True
+        # add the "added scenes" comment if it's not already there
+        if self.isFirstCustom:
+            entry.prefix = f"\n{ADDED_SCENES_COMMENT}\n"
+            self.isFirstCustom = False
 
         if entry not in self.entries:
             if entry.index >= 0:
@@ -255,13 +261,13 @@ class SceneTable:
                     self.entries[nextIndex].prefix = entry.prefix
                 else:
                     previousIndex = entry.index - 1
-                    if entry.index == len(self.entries) - 1:
-                        entry.prefix = entry.prefix.removesuffix("\n// Added scenes\n")
+                    if entry.index == len(self.entries) - 1 and ADDED_SCENES_COMMENT in entry.prefix:
+                        entry.prefix = entry.prefix.removesuffix(f"\n{ADDED_SCENES_COMMENT}\n")
                     self.entries[previousIndex].suffix = entry.prefix
 
             self.entries.remove(entry)
         elif index == SceneIndexType.VANILLA_REMOVED:
-            PluginError("INFO: This scene was already removed.")
+            raise PluginError("INFO: This scene was already removed.")
         else:
             raise PluginError("ERROR: Unexpected scene index value.")
 
