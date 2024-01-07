@@ -4,6 +4,7 @@ import os
 from dataclasses import dataclass
 from mathutils import Matrix
 from bpy.types import Object
+from typing import Optional
 from ...f3d.f3d_gbi import DLFormat, TextureExportSettings
 from ..scene.properties import OOTBootupSceneOptions
 from ..scene.exporter.to_c import setBootupScene
@@ -41,19 +42,17 @@ class SceneExporter:
     sceneName: str
     ootBlenderScale: float
     transform: Matrix
-    f3dType: str
     saveTexturesAsPNG: bool
     hackerootBootOption: OOTBootupSceneOptions
     isSingleFile: bool
-    isHWv1: bool
     textureExportSettings: TextureExportSettings
     useMacros: bool
     dlFormat: DLFormat = DLFormat.Static
 
-    sceneObj: Object = None
-    scene: Scene = None
-    path: str = None
-    sceneFile: SceneFile = None
+    sceneObj: Optional[Object] = None
+    scene: Optional[Scene] = None
+    path: Optional[str] = None
+    sceneFile: Optional[SceneFile] = None
     hasCutscenes: bool = False
     hasSceneTextures: bool = False
 
@@ -80,7 +79,7 @@ class SceneExporter:
                 self.useMacros,
                 sceneName,
                 self.saveTexturesAsPNG,
-                OOTModel(self.f3dType, self.isHWv1, f"{sceneName}_dl", self.dlFormat, False),
+                OOTModel(f"{sceneName}_dl", self.dlFormat, False),
             )
             sceneData.validateScene()
 

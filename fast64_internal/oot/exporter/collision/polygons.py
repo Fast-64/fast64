@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 from mathutils import Vector
 from ....utility import PluginError, CData, indent
 
@@ -15,7 +16,7 @@ class CollisionPoly:
     normal: Vector
     dist: int
     useMacros: bool
-    type: int = None
+    type: Optional[int] = None
 
     def getFlags_vIA(self):
         """Returns the value of ``flags_vIA``"""

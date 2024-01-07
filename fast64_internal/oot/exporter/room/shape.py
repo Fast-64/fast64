@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Optional
 from ....utility import PluginError, CData, toAlnum, indent
 from ....f3d.f3d_gbi import TextureExportSettings
 from ...oot_level_classes import OOTRoomMesh
@@ -242,11 +243,11 @@ class RoomShape(RoomShapeBase):
     sceneName: str
     roomName: str
 
-    dl: RoomShapeDLists = None
-    normal: RoomShapeNormal = None
-    single: RoomShapeImageSingle = None
-    multiImg: RoomShapeImageMultiBg = None
-    multi: RoomShapeImageMulti = None
+    dl: Optional[RoomShapeDLists] = None
+    normal: Optional[RoomShapeNormal] = None
+    single: Optional[RoomShapeImageSingle] = None
+    multiImg: Optional[RoomShapeImageMultiBg] = None
+    multi: Optional[RoomShapeImageMulti] = None
 
     def __post_init__(self):
         name = f"{self.roomName}_shapeHeader"

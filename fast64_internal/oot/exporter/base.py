@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Optional
 from math import radians
 from mathutils import Quaternion, Matrix
 from bpy.types import Object
@@ -104,11 +105,11 @@ class Base:
 class Actor:
     """Defines an Actor"""
 
-    name: str = None
-    id: str = None
+    name: Optional[str] = None
+    id: Optional[str] = None
     pos: list[int] = field(default_factory=list)
-    rot: str = None
-    params: str = None
+    rot: Optional[str] = None
+    params: Optional[str] = None
 
     def getActorEntry(self):
         """Returns a single actor entry"""

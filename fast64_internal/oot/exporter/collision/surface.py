@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 from ....utility import CData, indent
 
 
@@ -26,10 +27,10 @@ class SurfaceType:
 
     conveyorKeepMomentum: bool
     useMacros: bool
-    isSoftC: str = None
-    isHorseBlockedC: str = None
-    canHookshotC: str = None
-    isWallDamageC: str = None
+    isSoftC: Optional[str] = None
+    isHorseBlockedC: Optional[str] = None
+    canHookshotC: Optional[str] = None
+    isWallDamageC: Optional[str] = None
 
     def __hash__(self):
         return hash(

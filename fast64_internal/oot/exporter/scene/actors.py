@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
@@ -11,11 +12,11 @@ from ..base import Base, Actor
 class TransitionActor(Actor):
     """Defines a Transition Actor"""
 
-    dontTransition: bool = None
-    roomFrom: int = None
-    roomTo: int = None
-    cameraFront: str = None
-    cameraBack: str = None
+    dontTransition: Optional[bool] = None
+    roomFrom: Optional[int] = None
+    roomTo: Optional[int] = None
+    cameraFront: Optional[str] = None
+    cameraBack: Optional[str] = None
 
     def getEntryC(self):
         """Returns a single transition actor entry"""
@@ -117,8 +118,8 @@ class SceneTransitionActors(Base):
 class EntranceActor(Actor):
     """Defines an Entrance Actor"""
 
-    roomIndex: int = None
-    spawnIndex: int = None
+    roomIndex: Optional[int] = None
+    spawnIndex: Optional[int] = None
 
     def getEntryC(self):
         """Returns a single spawn entry"""

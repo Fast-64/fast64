@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import CData, checkIdentityRotation, indent
@@ -20,14 +21,14 @@ class WaterBox:
     setFlag19: bool
 
     useMacros: bool
-    xMin: int = None
-    ySurface: int = None
-    zMin: int = None
-    xLength: int = None
-    zLength: int = None
+    xMin: Optional[int] = None
+    ySurface: Optional[int] = None
+    zMin: Optional[int] = None
+    xLength: Optional[int] = None
+    zLength: Optional[int] = None
 
-    setFlag19C: str = None
-    roomIndexC: str = None
+    setFlag19C: Optional[str] = None
+    roomIndexC: Optional[str] = None
 
     def __post_init__(self):
         self.setFlag19C = "1" if self.setFlag19 else "0"

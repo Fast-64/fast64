@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import CData
@@ -20,14 +21,14 @@ class SceneHeader(Base):
     transform: Matrix
     headerIndex: int
 
-    infos: SceneInfos = None
-    lighting: SceneLighting = None
-    cutscene: SceneCutscene = None
-    exits: SceneExits = None
-    transitionActors: SceneTransitionActors = None
-    entranceActors: SceneEntranceActors = None
-    spawns: SceneSpawns = None
-    path: ScenePathways = None
+    infos: Optional[SceneInfos] = None
+    lighting: Optional[SceneLighting] = None
+    cutscene: Optional[SceneCutscene] = None
+    exits: Optional[SceneExits] = None
+    transitionActors: Optional[SceneTransitionActors] = None
+    entranceActors: Optional[SceneEntranceActors] = None
+    spawns: Optional[SceneSpawns] = None
+    path: Optional[ScenePathways] = None
 
     def __post_init__(self):
         self.infos = SceneInfos(self.props, self.sceneObj)
@@ -83,7 +84,7 @@ class SceneAlternateHeader:
     """This class stores alternate header data for the scene"""
 
     name: str
-    childNight: SceneHeader = None
-    adultDay: SceneHeader = None
-    adultNight: SceneHeader = None
+    childNight: Optional[SceneHeader] = None
+    adultDay: Optional[SceneHeader] = None
+    adultNight: Optional[SceneHeader] = None
     cutscenes: list[SceneHeader] = field(default_factory=list)

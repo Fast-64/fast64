@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Optional
 from bpy.types import Object
 from ....utility import PluginError, CData, exportColor, ootGetBaseOrCustomLight, indent
 from ...scene.properties import OOTSceneHeaderProperty, OOTLightProperty
@@ -57,7 +58,7 @@ class EnvLightSettings:
         lightDescs = ["Dawn", "Day", "Dusk", "Night"]
 
         if not isLightingCustom and self.envLightMode == "LIGHT_MODE_TIME":
-            # @TODO: Improve the lighting system.
+            # TODO: Improve the lighting system.
             # Currently Fast64 assumes there's only 4 possible settings for "Time of Day" lighting.
             # This is not accurate and more complicated,
             # for now we are doing ``index % 4`` to avoid having an OoB read in the list
@@ -87,7 +88,7 @@ class SceneLighting(Base):
     props: OOTSceneHeaderProperty
     name: str
 
-    envLightMode: str = None
+    envLightMode: Optional[str] = None
     settings: list[EnvLightSettings] = field(default_factory=list)
 
     def __post_init__(self):
@@ -149,30 +150,30 @@ class SceneInfos(Base):
 
     ### General ###
 
-    keepObjectID: str = None
-    naviHintType: str = None
-    drawConfig: str = None
-    appendNullEntrance: bool = None
-    useDummyRoomList: bool = None
+    keepObjectID: Optional[str] = None
+    naviHintType: Optional[str] = None
+    drawConfig: Optional[str] = None
+    appendNullEntrance: Optional[bool] = None
+    useDummyRoomList: Optional[bool] = None
 
     ### Skybox And Sound ###
 
     # Skybox
-    skyboxID: str = None
-    skyboxConfig: str = None
+    skyboxID: Optional[str] = None
+    skyboxConfig: Optional[str] = None
 
     # Sound
-    sequenceID: str = None
-    ambienceID: str = None
-    specID: str = None
+    sequenceID: Optional[str] = None
+    ambienceID: Optional[str] = None
+    specID: Optional[str] = None
 
     ### Camera And World Map ###
 
     # World Map
-    worldMapLocation: str = None
+    worldMapLocation: Optional[str] = None
 
     # Camera
-    sceneCamType: str = None
+    sceneCamType: Optional[str] = None
 
     def __post_init__(self):
         self.keepObjectID = self.getPropValue(self.props, "globalObject")

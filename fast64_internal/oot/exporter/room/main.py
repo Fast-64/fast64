@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
@@ -30,10 +31,10 @@ class Room(Base):
     sceneName: str
     saveTexturesAsPNG: bool
 
-    mainHeader: RoomHeader = None
-    altHeader: RoomAlternateHeader = None
-    mesh: OOTRoomMesh = None
-    roomShape: RoomShape = None
+    mainHeader: Optional[RoomHeader] = None
+    altHeader: Optional[RoomAlternateHeader] = None
+    mesh: Optional[OOTRoomMesh] = None
+    roomShape: Optional[RoomShape] = None
     hasAlternateHeaders: bool = False
 
     def getNewRoomHeader(self, headerProp: OOTRoomHeaderProperty, headerIndex: int = 0):

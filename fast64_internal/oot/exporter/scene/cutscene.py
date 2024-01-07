@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Optional
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
 from ...scene.properties import OOTSceneHeaderProperty
@@ -12,12 +13,12 @@ class SceneCutscene(Base):
     props: OOTSceneHeaderProperty
     headerIndex: int
 
-    writeType: str = None
-    writeCutscene: bool = None
-    csObj: Object = None
-    csWriteCustom: str = None
+    writeType: Optional[str] = None
+    writeCutscene: Optional[bool] = None
+    csObj: Optional[Object] = None
+    csWriteCustom: Optional[str] = None
     extraCutscenes: list[Object] = field(default_factory=list)
-    name: str = None
+    name: Optional[str] = None
 
     def __post_init__(self):
         self.writeType = self.props.csWriteType

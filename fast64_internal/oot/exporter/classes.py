@@ -1,6 +1,7 @@
 import os
 
 from dataclasses import dataclass, field
+from typing import Optional
 from ...utility import writeFile
 
 
@@ -9,11 +10,11 @@ class RoomFile:
     """This class hosts the C data for every room files"""
 
     name: str
-    roomMain: str = None
-    roomModel: str = None
-    roomModelInfo: str = None
+    roomMain: Optional[str] = None
+    roomModel: Optional[str] = None
+    roomModelInfo: Optional[str] = None
     singleFileExport: bool = False
-    path: str = None
+    path: Optional[str] = None
 
     header: str = ""
 
@@ -34,13 +35,13 @@ class SceneFile:
     """This class hosts the C data for every scene files"""
 
     name: str
-    sceneMain: str = None
-    sceneCollision: str = None
+    sceneMain: Optional[str] = None
+    sceneCollision: Optional[str] = None
     sceneCutscenes: list[str] = field(default_factory=list)
-    sceneTextures: str = None
+    sceneTextures: Optional[str] = None
     roomList: dict[int, RoomFile] = field(default_factory=dict)
     singleFileExport: bool = False
-    path: str = None
+    path: Optional[str] = None
     header: str = ""
 
     hasCutscenes: bool = False

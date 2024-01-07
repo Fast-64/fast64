@@ -180,11 +180,9 @@ class OOT_ExportScene(Operator):
                     exportInfo.name,
                     context.scene.ootBlenderScale,
                     finalTransform,
-                    bpy.context.scene.f3d_type,
                     bpy.context.scene.saveTextures,
                     bootOptions if hackerFeaturesEnabled else None,
                     settings.singleFile,
-                    context.scene.isHWv1,
                     TextureExportSettings(False, context.scene.saveTextures, None, None),
                     settings.useMacros,
                 ).export()

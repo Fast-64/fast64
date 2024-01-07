@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import CData, indent
@@ -9,12 +10,12 @@ from ..base import Base, Actor
 
 @dataclass
 class HeaderBase(Base):
-    name: str = None
-    props: OOTRoomHeaderProperty = None
-    sceneObj: Object = None
-    roomObj: Object = None
-    transform: Matrix = None
-    headerIndex: int = None
+    name: Optional[str] = None
+    props: Optional[OOTRoomHeaderProperty] = None
+    sceneObj: Optional[Object] = None
+    roomObj: Optional[Object] = None
+    transform: Optional[Matrix] = None
+    headerIndex: Optional[int] = None
 
 
 @dataclass
@@ -23,30 +24,30 @@ class RoomInfos(HeaderBase):
 
     ### General ###
 
-    index: int = None
-    roomShape: str = None
+    index: Optional[int] = None
+    roomShape: Optional[str] = None
 
     ### Behavior ###
 
-    roomBehavior: str = None
-    playerIdleType: str = None
-    disableWarpSongs: bool = None
-    showInvisActors: bool = None
+    roomBehavior: Optional[str] = None
+    playerIdleType: Optional[str] = None
+    disableWarpSongs: Optional[bool] = None
+    showInvisActors: Optional[bool] = None
 
     ### Skybox And Time ###
 
-    disableSky: bool = None
-    disableSunMoon: bool = None
-    hour: int = None
-    minute: int = None
-    timeSpeed: float = None
-    echo: str = None
+    disableSky: Optional[bool] = None
+    disableSunMoon: Optional[bool] = None
+    hour: Optional[int] = None
+    minute: Optional[int] = None
+    timeSpeed: Optional[float] = None
+    echo: Optional[str] = None
 
     ### Wind ###
 
-    setWind: bool = None
+    setWind: Optional[bool] = None
     direction: tuple[int, int, int] = None
-    strength: int = None
+    strength: Optional[int] = None
 
     def __post_init__(self):
         self.index = self.props.roomIndex
@@ -203,9 +204,9 @@ class RoomActors(HeaderBase):
 class RoomHeader(HeaderBase):
     """This class defines a room header"""
 
-    infos: RoomInfos = None
-    objects: RoomObjects = None
-    actors: RoomActors = None
+    infos: Optional[RoomInfos] = None
+    objects: Optional[RoomObjects] = None
+    actors: Optional[RoomActors] = None
 
     def __post_init__(self):
         self.infos = RoomInfos(None, self.props)
@@ -235,7 +236,7 @@ class RoomAlternateHeader:
     """This class stores alternate header data"""
 
     name: str
-    childNight: RoomHeader = None
-    adultDay: RoomHeader = None
-    adultNight: RoomHeader = None
+    childNight: Optional[RoomHeader] = None
+    adultDay: Optional[RoomHeader] = None
+    adultNight: Optional[RoomHeader] = None
     cutscenes: list[RoomHeader] = field(default_factory=list)
