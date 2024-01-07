@@ -3,6 +3,7 @@ from bpy.path import abspath
 
 from ..utility import PluginError, filepath_checks
 
+
 def starSelectWarning(operator, fileStatus):
     if fileStatus is not None and not fileStatus.starSelectC:
         operator.report({"WARNING"}, "star_select.c not found, skipping star select scrolling.")
@@ -25,21 +26,23 @@ def getMemoryCFilePath(decompDir):
 
 def import_rom_checks(filepath: str):
     filepath_checks(
-		filepath,
-		empty_error=f"Import ROM path is empty.",
-		doesnt_exist_error=f"Import ROM path does not exist.",
-		not_a_file_error=f"Import ROM path is not a file.",
-	)
+        filepath,
+        empty_error=f"Import ROM path is empty.",
+        doesnt_exist_error=f"Import ROM path does not exist.",
+        not_a_file_error=f"Import ROM path is not a file.",
+    )
     check_expanded(filepath)
+
 
 def export_rom_checks(filepath: str):
     filepath_checks(
-		filepath,
-		empty_error=f"Export ROM path is empty.",
-		doesnt_exist_error=f"Export ROM path does not exist.",
-		not_a_file_error=f"Export ROM path is not a file.",
-	)
+        filepath,
+        empty_error=f"Export ROM path is empty.",
+        doesnt_exist_error=f"Export ROM path does not exist.",
+        not_a_file_error=f"Export ROM path is not a file.",
+    )
     check_expanded(filepath)
+
 
 def check_expanded(filepath: str):
     filepath_checks(

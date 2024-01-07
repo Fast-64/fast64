@@ -343,7 +343,7 @@ def appendRevertToGeolayout(geolayoutGraph, fModel):
 
     # walk the geo layout graph to find the last used DL for each layer
     last_gfx_list = dict()
-    
+
     def walk(node, last_gfx_list):
         base_node = node.node
         if type(base_node) == JumpNode:
@@ -359,7 +359,7 @@ def appendRevertToGeolayout(geolayoutGraph, fModel):
         for child in node.children:
             last_gfx_list = walk(child, last_gfx_list)
         return last_gfx_list
-    
+
     for node in geolayoutGraph.startGeolayout.nodes:
         last_gfx_list = walk(node, last_gfx_list)
 
@@ -368,7 +368,7 @@ def appendRevertToGeolayout(geolayoutGraph, fModel):
         # remove SPEndDisplayList from gfx_list, materialRevert has its own SPEndDisplayList cmd
         while SPEndDisplayList() in gfx_list.commands:
             gfx_list.commands.remove(SPEndDisplayList())
-            
+
         gfx_list.commands.extend(materialRevert.commands)
 
 

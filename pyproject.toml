@@ -12,8 +12,11 @@ target-version = [
 # What files to exclude when running Black on directories (for example `black .`)
 # Use forward slashes for directory delimiters, even on Windows
 # This is a regular expression, escape dots with a backslash like '\.'
-# Note: All whitespace seems to be trimmed (thankfully), probably by Black?
+# Note: This is a verbose regex (whitespace and "comments" are ignored)
+#       https://docs.python.org/3/library/re.html#re.VERBOSE
 extend-exclude = '''
-^
-$
+^(
+# Addon updater is copied from another repo
+/addon_updater\.py | /addon_updater_ops\.py
+)$
 '''

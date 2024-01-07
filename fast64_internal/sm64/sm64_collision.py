@@ -301,7 +301,6 @@ def exportCollisionC(
     groupName,
     levelName,
 ):
-
     dirPath, texDir = getExportDir(customExport, dirPath, headerType, levelName, "", name)
 
     name = toAlnum(name)
@@ -402,7 +401,7 @@ def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren
     collision = Collision(toAlnum(name) + "_collision")
     for collisionType, faces in collisionDict.items():
         collision.triangles[collisionType] = []
-        for (faceVerts, specialParam, room) in faces:
+        for faceVerts, specialParam, room in faces:
             indices = []
             for roundedPosition in faceVerts:
                 index = collisionVertIndex(roundedPosition, collision.vertices)
