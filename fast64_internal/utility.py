@@ -176,7 +176,7 @@ def selectSingleObject(obj: bpy.types.Object):
     setActiveObject(obj)
 
 
-def parentObject(parent: bpy.types.Object, child: bpy.types.Object):
+def setParentObject(child: bpy.types.Object, parent: bpy.types.Object):
     deselectAllObjects()
 
     child.select_set(True)

@@ -46,7 +46,7 @@ class AddWaterBox(bpy.types.Operator):
         emptyObj.name = "Water Box"
         self.setEmptyType(emptyObj)
 
-        parentObject(planeObj, emptyObj)
+        setParentObject(emptyObj, planeObj)
 
         return {"FINISHED"}
 

@@ -5,7 +5,7 @@ from bpy.ops import mesh, object, curve
 from bpy.types import Operator, Object, Context
 from bpy.props import FloatProperty, StringProperty, EnumProperty, BoolProperty
 from ...operators import AddWaterBox, addMaterialByName
-from ...utility import parentObject, setOrigin, deselectAllObjects, selectSingleObject
+from ...utility import setParentObject, setOrigin, deselectAllObjects, selectSingleObject
 from ..cutscene.motion.utility import setupCutscene, createNewCameraShot
 from ..oot_utility import getNewPath
 from .quick_import import QuickImportAborted, quick_import_exec
@@ -57,7 +57,7 @@ class OOT_AddDoor(Operator):
         emptyObj.ootTransitionActorProperty.actor.actorID = "ACTOR_DOOR_SHUTTER"
         emptyObj.ootTransitionActorProperty.actor.actorParam = "0x0000"
 
-        parentObject(cubeObj, emptyObj)
+        setParentObject(emptyObj, cubeObj)
 
         setOrigin(cubeObj, emptyObj.location)
 
@@ -90,7 +90,7 @@ class OOT_AddScene(Operator):
         entranceObj.ootEmptyType = "Entrance"
         entranceObj.name = "Entrance"
         entranceObj.ootEntranceProperty.actor.actorParam = "0x0FFF"
-        parentObject(planeObj, entranceObj)
+        setParentObject(entranceObj, planeObj)
 
         location += Vector([0, 0, 10])
         object.empty_add(type="SPHERE", radius=1, align="WORLD", location=location[:])
@@ -98,14 +98,14 @@ class OOT_AddScene(Operator):
         roomObj.ootEmptyType = "Room"
         roomObj.name = "Room"
         entranceObj.ootEntranceProperty.tiedRoom = roomObj
-        parentObject(roomObj, planeObj)
+        setParentObject(planeObj, roomObj)
 
         location += Vector([0, 0, 2])
         object.empty_add(type="SPHERE", radius=1, align="WORLD", location=location[:])
         sceneObj = context.view_layer.objects.active
         sceneObj.ootEmptyType = "Scene"
         sceneObj.name = "Scene"
-        parentObject(sceneObj, roomObj)
+        setParentObject(roomObj, sceneObj)
 
         context.scene.ootSceneExportObj = sceneObj
         context.scene.fast64.renderSettings.ootSceneObject = sceneObj
@@ -138,7 +138,7 @@ class OOT_AddRoom(Operator):
             while nextIndex in indices:
                 nextIndex += 1
             roomObj.ootRoomHeader.roomIndex = nextIndex
-            parentObject(sceneObj, roomObj)
+            setParentObject(roomObj, sceneObj)
 
         selectSingleObject(roomObj)
         return {"FINISHED"}

@@ -1,7 +1,7 @@
 import math, os, re, bpy, mathutils
 from random import random
 from collections import OrderedDict
-from ..utility import PluginError, readFile, parentObject, hexOrDecInt, gammaInverse, yUpToZUp
+from ..utility import PluginError, readFile, setParentObject, hexOrDecInt, gammaInverse, yUpToZUp
 from ..f3d.f3d_parser import parseMatrices, importMeshC
 from ..f3d.f3d_gbi import F3D, get_F3D_GBI
 from ..f3d.flipbook import TextureFlipbook
@@ -437,7 +437,7 @@ def parseRoomList(
             sharedSceneData,
             headerIndex,
         )
-        parentObject(sceneObj, roomObj)
+        setParentObject(roomObj, sceneObj)
         index += 1
         roomObjs.append(roomObj)
 
@@ -628,7 +628,7 @@ def parseMeshList(
                 cullProp.manualRadius = hexOrDecInt(entryMatch.group(4).strip())
                 cullObj.show_name = True
                 # cullObj.empty_display_size = hexOrDecInt(entryMatch.group(4).strip()) / bpy.context.scene.ootBlenderScale
-                parentObject(roomObj, cullObj)
+                setParentObject(cullObj, roomObj)
                 parentObj = cullObj
             else:
                 parentObj = roomObj
@@ -651,7 +651,7 @@ def parseMeshList(
                 )
                 meshObj.location = [0, 0, 0]
                 meshObj.ignore_collision = True
-                parentObject(parentObj, meshObj)
+                setParentObject(meshObj, parentObj)
 
 
 def createEmptyWithTransform(positionValues: list[float], rotationValues: list[float]) -> bpy.types.Object:
@@ -730,13 +730,13 @@ def parseTransActorList(
             fromRoom = roomObjs[roomIndexFront]
             toRoom = roomObjs[roomIndexBack]
             if roomIndexFront != roomIndexBack:
-                parentObject(fromRoom, actorObj)
+                setParentObject(actorObj, fromRoom)
                 transActorProp.fromRoom = fromRoom
                 transActorProp.toRoom = toRoom
                 transActorProp.isRoomTransition = True
             else:
                 transActorProp.isRoomTransition = False
-                parentObject(toRoom, actorObj)
+                setParentObject(actorObj, toRoom)
 
             setCustomProperty(transActorProp, "cameraTransitionFront", camFront, ootEnumCamTransition)
             setCustomProperty(transActorProp, "cameraTransitionBack", camBack, ootEnumCamTransition)
@@ -835,7 +835,7 @@ def parseSpawnList(
 
             sharedSceneData.entranceDict[actorHash] = spawnObj
 
-            parentObject(roomObjs[roomIndex], spawnObj)
+            setParentObject(spawnObj, roomObjs[roomIndex])
         index += 1
 
 
@@ -898,7 +898,7 @@ def parseActorList(
 
             sharedSceneData.actorDict[actorHash] = actorObj
 
-            parentObject(roomObj, actorObj)
+            setParentObject(actorObj, roomObj)
 
 
 def parseAlternateSceneHeaders(
@@ -997,7 +997,7 @@ def parsePath(
     unsetAllHeadersExceptSpecified(splineProp.headerSettings, headerIndex)
     sharedSceneData.pathDict[pathPoints] = curveObj
 
-    parentObject(sceneObj, curveObj)
+    setParentObject(curveObj, sceneObj)
 
 
 def parseColor(values: tuple[str, str, str]) -> tuple[float, float, float]:
@@ -1089,10 +1089,10 @@ def parseLightList(
         lightObj1 = parseLight(lightHeader, 1, diffuseDir1, diffuseColor1)
 
         if lightObj0 is not None:
-            parentObject(sceneObj, lightObj0)
+            setParentObject(lightObj0, sceneObj)
             lightObj0.location = [4 + headerIndex * 2, 0, -index * 2]
         if lightObj1 is not None:
-            parentObject(sceneObj, lightObj1)
+            setParentObject(lightObj1, sceneObj)
             lightObj1.location = [4 + headerIndex * 2, 2, -index * 2]
 
         lightHeader.fogColor = fogColor + (1,)
@@ -1222,7 +1222,7 @@ def parseCollision(
 
     obj.ignore_render = True
 
-    parentObject(sceneObj, obj)
+    setParentObject(obj, sceneObj)
 
 
 def parseSurfaceParams(
@@ -1339,7 +1339,7 @@ def parseCamDataList(sceneObj: bpy.types.Object, camDataListName: str, sceneData
         else:
             obj = parseCamPosData(setting, sceneData, posDataName, index, objName, orderIndex)
 
-        parentObject(sceneObj, obj)
+        setParentObject(obj, sceneObj)
         orderIndex += 1
 
 
@@ -1459,7 +1459,7 @@ def parseWaterBoxes(
         waterBoxProp.flag19 = flag19
 
         # 0x3F = -1 in 6bit value
-        parentObject(roomObjs[roomIndex] if roomIndex != 0x3F else sceneObj, waterBoxObj)
+        setParentObject(waterBoxObj, roomObjs[roomIndex] if roomIndex != 0x3F else sceneObj)
         orderIndex += 1
 
 
