@@ -12,6 +12,7 @@ from ....oot_level_classes import OOTScene
 
 ADDED_SCENES_COMMENT = "// Added scenes"
 
+
 class SceneIndexType(enum.IntEnum):
     """Used to figure out the value of ``selectedSceneIndex``"""
 
