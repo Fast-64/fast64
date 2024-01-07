@@ -19,6 +19,7 @@ from ..oot_utility import (
     drawCollectionOps,
     drawEnumWithCustom,
     getEvalParams,
+    getEvalParamsInt,
     getShiftFromMask,
     getFormattedParams,
 )
@@ -178,9 +179,7 @@ class OOTActorProperty(PropertyGroup):
         get=lambda self: self.getParamValue("Params"),
         set=lambda self, value: self.setParamValue(value, "Params"),
     )
-    isRotX: BoolProperty(name="", default=False, get=lambda self: self.isRotation("XRot"))
-    isRotY: BoolProperty(name="", default=False, get=lambda self: self.isRotation("YRot"))
-    isRotZ: BoolProperty(name="", default=False, get=lambda self: self.isRotation("ZRot"))
+
     rotX: StringProperty(
         name="Rot X",
         default="0",
@@ -200,6 +199,11 @@ class OOTActorProperty(PropertyGroup):
         set=lambda self, value: self.setParamValue(value, "ZRot"),
     )
 
+    # internal usage only
+    isRotXUsedByActor: BoolProperty(name="", default=False, get=lambda self: self.isRotationUsedByActor("XRot"))
+    isRotYUsedByActor: BoolProperty(name="", default=False, get=lambda self: self.isRotationUsedByActor("YRot"))
+    isRotZUsedByActor: BoolProperty(name="", default=False, get=lambda self: self.isRotationUsedByActor("ZRot"))
+
     headerSettings: PointerProperty(type=OOTActorHeaderProperty)
     evalParams: BoolProperty(name="Eval Params", default=False)
 
@@ -208,13 +212,13 @@ class OOTActorProperty(PropertyGroup):
         print(f"Processing '{obj.name}'...")
         upgradeActors(obj)
 
-    def isRotation(self, target: str):
+    def isRotationUsedByActor(self, target: str):
         actor = ootData.actorData.actorsByID[self.actorID]
         curType = None
         for param in actor.params:
             if param.type == "Type":
                 objName = getObjName(actor.key, param.type, param.subType, param.index)
-                curType = int(getEvalParams(getattr(self, objName)), base=16)
+                curType = getEvalParamsInt(getattr(self, objName))
 
             if curType is not None and curType in param.tiedTypes or len(param.tiedTypes) == 0:
                 if param.target != "Params" and target == param.target:
@@ -228,19 +232,19 @@ class OOTActorProperty(PropertyGroup):
 
     def setParamValue(self, value: str | bool, target: str):
         actor = ootData.actorData.actorsByID[self.actorID]
-        value = getEvalParams(value)
+        value = getEvalParamsInt(value)
         foundType = None
         for param in actor.params:
             if target == param.target:
                 shift = getShiftFromMask(param.mask)
                 if param.type != "Type":
-                    shiftedVal = (int(value, base=16) & param.mask) >> shift
+                    shiftedVal = (value & param.mask) >> shift
                 else:
-                    shiftedVal = int(value, base=16) & param.mask
+                    shiftedVal = value & param.mask
                     foundType = shiftedVal
 
                 if "Rot" in target:
-                    foundType = int(getEvalParams(getattr(self, getObjName(actor.key, "Type", None, 1))), base=16)
+                    foundType = getEvalParamsInt(getattr(self, getObjName(actor.key, "Type", None, 1)))
 
                 isInRange = self.isValueInRange(shiftedVal, param.valueRange[0], param.valueRange[1])
                 if isInRange and (foundType is not None and foundType in param.tiedTypes or len(param.tiedTypes) == 0):
@@ -266,31 +270,30 @@ class OOTActorProperty(PropertyGroup):
                 paramValue = None
                 curPropValue = getattr(self, getObjName(actor.key, param.type, param.subType, param.index))
 
-                if not param.type in ["Type", "ChestContent", "Collectible", "Message"]:
-                    value = getEvalParams(curPropValue if not param.type == "Bool" else "1" if curPropValue else "0")
-                    paramValue = f"0x{int(value, base=16):X}"
+                if param.type not in ["Type", "ChestContent", "Collectible", "Message"]:
+                    paramValue = getEvalParamsInt(
+                        curPropValue if not param.type == "Bool" else "1" if curPropValue else "0"
+                    )
                 else:
                     if param.type == "Type":
-                        typeValue = int(getEvalParams(curPropValue), base=16)
+                        typeValue = getEvalParamsInt(curPropValue)
                     else:
-                        value = 0
+                        paramValue = 0
                         if param.type == "ChestContent":
-                            value = ootData.actorData.chestItemByKey[curPropValue].value
+                            paramValue = ootData.actorData.chestItemByKey[curPropValue].value
                         elif param.type == "Collectible":
-                            value = ootData.actorData.collectibleItemsByKey[curPropValue].value
+                            paramValue = ootData.actorData.collectibleItemsByKey[curPropValue].value
                         elif param.type == "Message":
-                            value = ootData.actorData.messageItemsByKey[curPropValue].value
-                        paramValue = f"0x{value:X}"
+                            paramValue = ootData.actorData.messageItemsByKey[curPropValue].value
 
                 if "Rot" in target:
-                    typeValue = int(getEvalParams(getattr(self, getObjName(actor.key, "Type", None, 1))), base=16)
+                    typeValue = getEvalParamsInt(getattr(self, getObjName(actor.key, "Type", None, 1)))
 
                 if typeValue is not None and typeValue in param.tiedTypes or len(param.tiedTypes) == 0:
-                    evalValue = getEvalParams(paramValue) if paramValue is not None else "-1"
-                    val = (int(evalValue, base=16) & param.mask) >> getShiftFromMask(param.mask)
+                    val = ((paramValue if paramValue is not None else -1) & param.mask) >> getShiftFromMask(param.mask)
                     isInRange = self.isValueInRange(val, param.valueRange[0], param.valueRange[1])
                     if isInRange and param.type != "Type" and paramValue is not None:
-                        value = getFormattedParams(param.mask, evalValue, param.type == "Bool")
+                        value = getFormattedParams(param.mask, paramValue, param.type == "Bool")
                         if value is not None:
                             paramList.append(value)
 
@@ -303,7 +306,7 @@ class OOTActorProperty(PropertyGroup):
             typeValue = None
 
         evalTypeValue = typeValue if typeValue is not None else 0
-        evalParamValue = int(getEvalParams(paramString), base=16)
+        evalParamValue = getEvalParamsInt(paramString)
 
         if evalTypeValue and evalParamValue and typeValue is not None:
             paramString = f"(0x{typeValue:04X} | ({paramString}))"
@@ -323,7 +326,7 @@ class OOTActorProperty(PropertyGroup):
             propName = getObjName(actor.key, param.type, param.subType, param.index)
 
             if param.type == "Type":
-                curType = int(getEvalParams(getattr(self, propName)), base=16)
+                curType = getEvalParamsInt(getattr(self, propName))
 
             if curType is not None and curType in param.tiedTypes or param.type == "Type" or len(param.tiedTypes) == 0:
                 searchOp = itemName = None
@@ -375,21 +378,21 @@ class OOTActorProperty(PropertyGroup):
         else:
             paramBox.prop(self, "actorParam", text="")
 
-        allowedRotations = []
+        rotationsUsedByActor = []
         if self.rotOverride:
-            allowedRotations = ["X", "Y", "Z"]
+            rotationsUsedByActor = ["X", "Y", "Z"]
         elif self.actorID != "Custom":
-            if self.isRotX:
-                allowedRotations.append("X")
-            if self.isRotY:
-                allowedRotations.append("Y")
-            if self.isRotZ:
-                allowedRotations.append("Z")
+            if self.isRotXUsedByActor:
+                rotationsUsedByActor.append("X")
+            if self.isRotYUsedByActor:
+                rotationsUsedByActor.append("Y")
+            if self.isRotZUsedByActor:
+                rotationsUsedByActor.append("Z")
 
         if self.actorID == "Custom":
             paramBox.prop(self, "rotOverride", text="Override Rotation (ignore Blender rot)")
 
-        for rot in allowedRotations:
+        for rot in rotationsUsedByActor:
             override = ""
             if self.actorID == "Custom":
                 override = "Override"
