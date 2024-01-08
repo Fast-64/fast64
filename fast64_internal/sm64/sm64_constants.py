@@ -36,10 +36,10 @@ commonGeolayoutPointers = {
 
 enum_sm64_goal_type = [
     ("All", "All", "All"),
-    ("Export Object/Actor/Anim", "Export Object/Actor/Anim", "Export Object/Actor/Anim"),
-    ("Export Level", "Export Level", "Export Level"),
-    ("Export Displaylist", "Export Displaylist", "Export Displaylist"),
-    ("Export UI Image", "Export UI Image", "Export UI Image"),
+    ("Object/Actor/Anim", "Object/Actor/Anim", "Object/Actor/Anim"),
+    ("Level", "Level", "Level"),
+    ("Displaylist", "Displaylist", "Displaylist"),
+    ("UI Image", "UI Image", "UI Image"),
 ]
 
 enum_export_type = [

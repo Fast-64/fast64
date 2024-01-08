@@ -623,7 +623,7 @@ class SM64_ExportCollision(bpy.types.Operator):
 class SM64_ExportCollisionPanel(SM64_Panel):
     bl_idname = "SM64_PT_export_collision"
     bl_label = "SM64 Collision Exporter"
-    goal = "Export Object/Actor/Anim"
+    goal = "Object/Actor/Anim"
 
     # called every frame
     def draw(self, context):

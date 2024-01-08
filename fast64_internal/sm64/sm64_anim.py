@@ -861,7 +861,7 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 class SM64_ExportAnimPanel(SM64_Panel):
     bl_idname = "SM64_PT_export_anim"
     bl_label = "SM64 Animation Exporter"
-    goal = "Export Object/Actor/Anim"
+    goal = "Object/Actor/Anim"
 
     # called every frame
     def draw(self, context):
@@ -1007,7 +1007,7 @@ class SM64_ImportAllMarioAnims(bpy.types.Operator):
 class SM64_ImportAnimPanel(SM64_Panel):
     bl_idname = "SM64_PT_import_anim"
     bl_label = "SM64 Animation Importer"
-    goal = "Export Object/Actor/Anim"
+    goal = "Object/Actor/Anim"
     import_panel = True
 
     # called every frame

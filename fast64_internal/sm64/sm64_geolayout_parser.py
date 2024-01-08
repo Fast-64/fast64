@@ -1592,7 +1592,7 @@ class SM64_ImportGeolayout(bpy.types.Operator):
 class SM64_ImportGeolayoutPanel(SM64_Panel):
     bl_idname = "SM64_PT_import_geolayout"
     bl_label = "SM64 Geolayout Importer"
-    goal = "Export Object/Actor/Anim"
+    goal = "Object/Actor/Anim"
     import_panel = True
 
     # called every frame
