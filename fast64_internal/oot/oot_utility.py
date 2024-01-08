@@ -8,7 +8,7 @@ from mathutils import Vector
 from bpy.types import Object
 from bpy.utils import register_class, unregister_class
 from bpy.types import Object
-from typing import Callable
+from typing import Callable, Optional
 from .oot_constants import ootSceneIDToName
 
 from ..utility import (
@@ -940,3 +940,31 @@ def getNewPath(type: str, isClosedShape: bool):
     bpy.context.view_layer.active_layer_collection.collection.objects.link(newPath)
 
     return newPath
+
+
+def getObjectList(
+    objList: list[Object], objType: str, emptyType: Optional[str] = None, splineType: Optional[str] = None
+):
+    """
+    Returns a list containing objects matching ``objType``. Sorts by object name.
+
+    Parameters:
+    - ``objList``: the list of objects to iterate through, usually ``obj.children_recursive``
+    - ``objType``: the object's type (``EMPTY``, ``CURVE``, etc.)
+    - ``emptyType``: optional, filters the object by the given empty type
+    - ``splineType``: optional, filters the object by the given spline type
+    """
+
+    ret: list[Object] = []
+    for obj in objList:
+        cond = True
+
+        if emptyType is not None:
+            cond = obj.ootEmptyType == emptyType
+        elif splineType is not None:
+            cond = obj.ootSplineProperty.splineType == splineType
+
+        if obj.type == objType and cond:
+            ret.append(obj)
+    ret.sort(key=lambda o: o.name)
+    return ret

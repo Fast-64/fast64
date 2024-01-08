@@ -3,6 +3,7 @@ from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
+from ...oot_utility import getObjectList
 from ...oot_constants import ootData
 from ...scene.properties import OOTSceneHeaderProperty
 from ..base import Base, Actor
@@ -47,11 +48,7 @@ class SceneTransitionActors(Base):
     entries: list[TransitionActor] = field(default_factory=list)
 
     def __post_init__(self):
-        actorObjList: list[Object] = [
-            obj
-            for obj in self.sceneObj.children_recursive
-            if obj.type == "EMPTY" and obj.ootEmptyType == "Transition Actor"
-        ]
+        actorObjList = getObjectList(self.sceneObj.children_recursive, "EMPTY", "Transition Actor")
         for obj in actorObjList:
             roomObj = self.getRoomObjectFromChild(obj)
             if roomObj is None:
@@ -146,9 +143,7 @@ class SceneEntranceActors(Base):
         """Returns the entrance actor list based on empty objects with the type 'Entrance'"""
 
         entranceActorFromIndex: dict[int, EntranceActor] = {}
-        actorObjList: list[Object] = [
-            obj for obj in self.sceneObj.children_recursive if obj.type == "EMPTY" and obj.ootEmptyType == "Entrance"
-        ]
+        actorObjList = getObjectList(self.sceneObj.children_recursive, "EMPTY", "Entrance")
         for obj in actorObjList:
             roomObj = self.getRoomObjectFromChild(obj)
             if roomObj is None:

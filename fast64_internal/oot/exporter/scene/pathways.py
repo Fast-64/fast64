@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
+from ...oot_utility import getObjectList
 from ...scene.properties import OOTSceneHeaderProperty
 from ..base import Base
 
@@ -49,11 +50,7 @@ class ScenePathways(Base):
 
     def __post_init__(self):
         pathFromIndex: dict[int, Path] = {}
-        pathObjList: list[Object] = [
-            obj
-            for obj in self.sceneObj.children_recursive
-            if obj.type == "CURVE" and obj.ootSplineProperty.splineType == "Path"
-        ]
+        pathObjList = getObjectList(self.sceneObj.children_recursive, "CURVE", splineType="Path")
 
         for obj in pathObjList:
             relativeTransform = self.transform @ self.sceneObj.matrix_world.inverted() @ obj.matrix_world

@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
+from ...oot_utility import getObjectList
 from ....utility import CData, checkIdentityRotation, indent
 from ..base import Base
 
@@ -88,10 +89,7 @@ class WaterBoxes(Base):
     waterboxList: list[WaterBox] = field(default_factory=list)
 
     def __post_init__(self):
-        waterboxObjList: list[Object] = [
-            obj for obj in self.sceneObj.children_recursive if obj.type == "EMPTY" and obj.ootEmptyType == "Water Box"
-        ]
-
+        waterboxObjList = getObjectList(self.sceneObj.children_recursive, "EMPTY", "Water Box")
         for waterboxObj in waterboxObjList:
             emptyScale = waterboxObj.empty_display_size
             pos, _, scale, orientedRot = self.getConvertedTransform(self.transform, self.sceneObj, waterboxObj, True)

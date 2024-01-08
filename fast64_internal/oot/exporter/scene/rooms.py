@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
+from ...oot_utility import getObjectList
 from ...oot_model_classes import OOTModel
 from ..room import Room
 
@@ -25,9 +26,7 @@ class RoomEntries:
 
         sceneName = self.scene.name.removesuffix("_scene")
         roomDict: dict[int, Room] = {}
-        roomObjs: list[Object] = [
-            obj for obj in self.sceneObj.children_recursive if obj.type == "EMPTY" and obj.ootEmptyType == "Room"
-        ]
+        roomObjs = getObjectList(self.sceneObj.children_recursive, "EMPTY", "Room")
 
         if len(roomObjs) == 0:
             raise PluginError("ERROR: The scene has no child empties with the 'Room' empty type.")

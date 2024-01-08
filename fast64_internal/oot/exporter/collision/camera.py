@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from mathutils import Quaternion, Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
+from ...oot_utility import getObjectList
 from ...oot_collision_classes import decomp_compat_map_CameraSType
 from ...collision.properties import OOTCameraPositionProperty
 from ..base import Base
@@ -89,12 +90,7 @@ class BgCamInformations(Base):
     def initCrawlspaceList(self):
         """Returns a list of crawlspace data from every splines objects with the type 'Crawlspace'"""
 
-        crawlspaceObjList: list[Object] = [
-            obj
-            for obj in self.sceneObj.children_recursive
-            if obj.type == "CURVE" and obj.ootSplineProperty.splineType == "Crawlspace"
-        ]
-
+        crawlspaceObjList = getObjectList(self.sceneObj.children_recursive, "CURVE", splineType="Crawlspace")
         for obj in crawlspaceObjList:
             if self.validateCurveData(obj):
                 self.crawlspacePosList.append(
@@ -110,7 +106,7 @@ class BgCamInformations(Base):
     def initBgCamInfoList(self):
         """Returns a list of camera informations from camera objects"""
 
-        camObjList: list[Object] = [obj for obj in self.sceneObj.children_recursive if obj.type == "CAMERA"]
+        camObjList = getObjectList(self.sceneObj.children_recursive, "CAMERA")
         camPosData: dict[int, CameraData] = {}
         camInfoData: dict[int, CameraInfo] = {}
 

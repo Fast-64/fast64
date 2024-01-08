@@ -3,6 +3,7 @@ from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import CData, indent
+from ...oot_utility import getObjectList
 from ...oot_constants import ootData
 from ...room.properties import OOTRoomHeaderProperty
 from ..base import Base, Actor
@@ -139,9 +140,7 @@ class RoomActors(HeaderBase):
     actorList: list[Actor] = field(default_factory=list)
 
     def __post_init__(self):
-        actorObjList: list[Object] = [
-            obj for obj in self.roomObj.children_recursive if obj.type == "EMPTY" and obj.ootEmptyType == "Actor"
-        ]
+        actorObjList = getObjectList(self.sceneObj.children_recursive, "EMPTY", "Actor")
         for obj in actorObjList:
             actorProp = obj.ootActorProperty
             if not self.isCurrentHeaderValid(actorProp.headerSettings, self.headerIndex):
