@@ -24,13 +24,12 @@ from ...utility import (
 
 
 def decomp_path_update(self, context: Context):
-    directory_path_checks(
-        abspath(self.decomp_path), "Empty decomp path.", "Decomp path does not exist.", "Decomp path is not a folder."
-    )
-    context.scene.fast64.settings.repo_settings_path = os.path.join(
-        os.path.dirname(abspath(self.decomp_path)), "fast64.json"
-    )
-
+    try:
+        directory_path_checks(abspath(self.decomp_path))
+        context.scene.fast64.settings.repo_settings_path = os.path.join(
+            os.path.dirname(abspath(self.decomp_path)), "fast64.json"
+        )
+    except: return
 
 class SM64_Properties(PropertyGroup):
     """Global SM64 Scene Properties found under scene.fast64.sm64"""
