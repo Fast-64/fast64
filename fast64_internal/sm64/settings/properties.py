@@ -70,7 +70,7 @@ Sets bank 4 range to ({hex(defaultExtendSegment4[0])}, {hex(defaultExtendSegment
     force_extended_ram: BoolProperty(name="Force Extended Ram", default=True)
     matstack_fix: BoolProperty(
         name="Matstack Fix",
-        description="Exports account for matsack fix requirements",
+        description="Exports account for matstack fix requirements",
         default=False,
     )
 
