@@ -476,7 +476,6 @@ def convertObjectToGeolayout(
         cleanupDuplicatedObjects(allObjs)
         rootObj.select_set(True)
         bpy.context.view_layer.objects.active = rootObj
-        
 
     appendRevertToGeolayout(geolayoutGraph, fModel)
     geolayoutGraph.generateSortedList()
@@ -2789,31 +2788,29 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
     bl_label = "Export Object Geolayout"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
+    export_obj: bpy.props.StringProperty()
+
     # Called on demand (i.e. button press, menu item)
     # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
         romfileOutput = None
         tempROM = None
+        props = context.scene.fast64.sm64.combined_export
         try:
             obj = None
             if context.mode != "OBJECT":
                 raise PluginError("Operator can only be used in object mode.")
             if len(context.selected_objects) == 0:
                 raise PluginError("Object not selected.")
-            obj = context.active_object
+            obj = bpy.data.objects.get(self.export_obj, None) or context.active_object
             if obj.type != "MESH" and not (
                 obj.type == "EMPTY" and (obj.sm64_obj_type == "None" or obj.sm64_obj_type == "Switch")
             ):
                 raise PluginError('Selected object must be a mesh or an empty with the "None" or "Switch" type.')
-            # if context.scene.saveCameraSettings and \
-            # 	context.scene.levelCamera is None:
-            # 	raise PluginError("Cannot save camera settings with no camera provided.")
-            # levelCamera = context.scene.levelCamera if \
-            # 	context.scene.saveCameraSettings else None
 
-            finalTransform = mathutils.Matrix.Identity(4)
+            final_transform = mathutils.Matrix.Identity(4)
             scaleValue = bpy.context.scene.blenderToSM64Scale
-            finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((scaleValue, scaleValue, scaleValue))).to_4x4()
+            final_transform = mathutils.Matrix.Diagonal(mathutils.Vector((scaleValue, scaleValue, scaleValue))).to_4x4()
         except Exception as e:
             raisePluginError(self, e)
             return {"CANCELLED"}
@@ -2823,39 +2820,38 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
 
             # Rotate all armatures 90 degrees
             applyRotation([obj], math.radians(90), "X")
-
-            saveTextures = bpy.context.scene.saveTextures
+            save_textures = bpy.context.scene.saveTextures
 
             if context.scene.fast64.sm64.exportType == "C":
-                exportPath, levelName = getPathAndLevel(
-                    context.scene.geoCustomExport,
-                    context.scene.geoExportPath,
-                    context.scene.geoLevelName,
-                    context.scene.geoLevelOption,
+                export_path, level_name = getPathAndLevel(
+                    props.export_header_type == "Custom",
+                    props.custom_export_path,
+                    props.custom_export_name,
+                    props.level_name,
                 )
-                if not context.scene.geoCustomExport:
-                    applyBasicTweaks(exportPath)
+                if not props.export_header_type == "Custom":
+                    applyBasicTweaks(export_path)
                 exportGeolayoutObjectC(
                     obj,
-                    finalTransform,
-                    exportPath,
+                    final_transform,
+                    export_path,
                     bpy.context.scene.geoTexDir,
-                    saveTextures,
-                    saveTextures and bpy.context.scene.geoSeparateTextureDef,
+                    save_textures,
+                    save_textures and bpy.context.scene.geoSeparateTextureDef,
                     None,
-                    bpy.context.scene.geoGroupName,
-                    context.scene.geoExportHeaderType,
-                    context.scene.geoName,
-                    context.scene.geoStructName,
-                    levelName,
-                    context.scene.geoCustomExport,
+                    props.group_name,
+                    props.export_header_type,
+                    props.obj_name_gfx,
+                    props.geo_name,
+                    level_name,
+                    props.export_header_type == "Custom",
                     DLFormat.Static,
                 )
                 self.report({"INFO"}, "Success!")
             elif context.scene.fast64.sm64.exportType == "Insertable Binary":
                 exportGeolayoutObjectInsertableBinary(
                     obj,
-                    finalTransform,
+                    final_transform,
                     bpy.path.abspath(bpy.context.scene.geoInsertableBinaryPath),
                     None,
                 )
@@ -2888,7 +2884,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                         romfileOutput,
                         obj,
                         exportRange,
-                        finalTransform,
+                        final_transform,
                         *modelLoadInfo,
                         textDumpFilePath,
                         getAddressFromRAMAddress(int(context.scene.geoRAMAddr, 16)),
@@ -2899,7 +2895,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                         romfileOutput,
                         obj,
                         exportRange,
-                        finalTransform,
+                        final_transform,
                         segmentData,
                         *modelLoadInfo,
                         textDumpFilePath,
@@ -2966,31 +2962,29 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
     bl_label = "Export Armature Geolayout"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
+    export_obj: bpy.props.StringProperty()
+
     # Called on demand (i.e. button press, menu item)
     # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
         romfileOutput = None
         tempROM = None
+        props = context.scene.fast64.sm64.combined_export
         try:
             armatureObj = None
             if context.mode != "OBJECT":
                 raise PluginError("Operator can only be used in object mode.")
             if len(context.selected_objects) == 0:
                 raise PluginError("Armature not selected.")
-            armatureObj = context.active_object
+            armatureObj = bpy.data.objects.get(self.export_obj, None) or context.active_object
             if armatureObj.type != "ARMATURE":
                 raise PluginError("Armature not selected.")
 
             if len(armatureObj.children) == 0 or not isinstance(armatureObj.children[0].data, bpy.types.Mesh):
-                raise PluginError("Armature does not have any mesh children, or " + "has a non-mesh child.")
-            # if context.scene.saveCameraSettings and \
-            # 	context.scene.levelCamera is None:
-            # 	raise PluginError("Cannot save camera settings with no camera provided.")
-            # levelCamera = context.scene.levelCamera if \
-            # 	context.scene.saveCameraSettings else None
+                raise PluginError("Armature does not have any mesh children, or has a non-mesh child.")
 
             obj = armatureObj.children[0]
-            finalTransform = mathutils.Matrix.Identity(4)
+            final_transform = mathutils.Matrix.Identity(4)
 
             # get all switch option armatures as well
             linkedArmatures = [armatureObj]
@@ -3027,31 +3021,31 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
             bpy.context.view_layer.objects.active = obj
             bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
             if context.scene.fast64.sm64.exportType == "C":
-                exportPath, levelName = getPathAndLevel(
-                    context.scene.geoCustomExport,
-                    context.scene.geoExportPath,
-                    context.scene.geoLevelName,
-                    context.scene.geoLevelOption,
+                export_path, level_name = getPathAndLevel(
+                    props.export_header_type == "Custom",
+                    props.custom_export_path,
+                    props.custom_export_name,
+                    props.level_name,
                 )
 
-                saveTextures = bpy.context.scene.saveTextures
-                if not context.scene.geoCustomExport:
-                    applyBasicTweaks(exportPath)
+                save_textures = bpy.context.scene.saveTextures
+                if not props.export_header_type == "Custom":
+                    applyBasicTweaks(export_path)
                 header, fileStatus = exportGeolayoutArmatureC(
                     armatureObj,
                     obj,
-                    finalTransform,
-                    exportPath,
+                    final_transform,
+                    export_path,
                     bpy.context.scene.geoTexDir,
-                    saveTextures,
-                    saveTextures and bpy.context.scene.geoSeparateTextureDef,
+                    save_textures,
+                    save_textures and bpy.context.scene.geoSeparateTextureDef,
                     None,
-                    bpy.context.scene.geoGroupName,
-                    context.scene.geoExportHeaderType,
-                    context.scene.geoName,
-                    context.scene.geoStructName,
-                    levelName,
-                    context.scene.geoCustomExport,
+                    props.group_name,
+                    props.export_header_type,
+                    props.obj_name_gfx,
+                    props.geo_name,
+                    level_name,
+                    props.export_header_type == "Custom",
                     DLFormat.Static,
                 )
                 starSelectWarning(self, fileStatus)
@@ -3060,7 +3054,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                 exportGeolayoutArmatureInsertableBinary(
                     armatureObj,
                     obj,
-                    finalTransform,
+                    final_transform,
                     bpy.path.abspath(bpy.context.scene.geoInsertableBinaryPath),
                     None,
                 )
@@ -3094,7 +3088,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                         armatureObj,
                         obj,
                         exportRange,
-                        finalTransform,
+                        final_transform,
                         *modelLoadInfo,
                         textDumpFilePath,
                         getAddressFromRAMAddress(int(context.scene.geoRAMAddr, 16)),
@@ -3106,7 +3100,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                         armatureObj,
                         obj,
                         exportRange,
-                        finalTransform,
+                        final_transform,
                         segmentData,
                         *modelLoadInfo,
                         textDumpFilePath,
@@ -3176,15 +3170,15 @@ class SM64_ExportGeolayoutPanel(SM64_Panel):
     @classmethod
     def poll(cls, context):
         return context.scene.fast64.sm64.exportType != "C"
-    
+
     # called every frame
     def draw(self, context):
         col = self.layout.column()
         propsGeoE = col.operator(SM64_ExportGeolayoutArmature.bl_idname)
         propsGeoE = col.operator(SM64_ExportGeolayoutObject.bl_idname)
 
-        #c exporting moved to combined object export
-        
+        # c exporting moved to combined object export
+
         if context.scene.fast64.sm64.exportType == "Insertable Binary":
             col.prop(context.scene, "geoInsertableBinaryPath")
         else:
@@ -3240,7 +3234,6 @@ def sm64_geo_writer_register():
 
     bpy.types.Scene.textDumpGeo = bpy.props.BoolProperty(name="Dump geolayout as text", default=False)
     bpy.types.Scene.textDumpGeoPath = bpy.props.StringProperty(name="Text Dump Path", subtype="FILE_PATH")
-    bpy.types.Scene.geoExportPath = bpy.props.StringProperty(name="Directory", subtype="FILE_PATH")
     bpy.types.Scene.geoUseBank0 = bpy.props.BoolProperty(name="Use Bank 0")
     bpy.types.Scene.geoRAMAddr = bpy.props.StringProperty(name="RAM Address", default="80000000")
     bpy.types.Scene.geoTexDir = bpy.props.StringProperty(name="Include Path", default="actors/mario/")
@@ -3280,7 +3273,6 @@ def sm64_geo_writer_unregister():
     del bpy.types.Scene.modelID
     del bpy.types.Scene.textDumpGeo
     del bpy.types.Scene.textDumpGeoPath
-    del bpy.types.Scene.geoExportPath
     del bpy.types.Scene.geoUseBank0
     del bpy.types.Scene.geoRAMAddr
     del bpy.types.Scene.geoTexDir
