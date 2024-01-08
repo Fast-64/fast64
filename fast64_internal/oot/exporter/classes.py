@@ -19,6 +19,8 @@ class RoomFile:
     header: str = ""
 
     def write(self):
+        """Writes the room files"""
+
         if self.singleFileExport:
             roomMainPath = f"{self.name}.c"
             self.roomMain += self.roomModelInfo + self.roomModel
@@ -52,6 +54,7 @@ class SceneFile:
         self.hasSceneTextures = len(self.sceneTextures) > 0
 
     def getSourceWithSceneInclude(self, sceneInclude: str, source: str):
+        """Returns the source with the includes if missing"""
         ret = ""
         if sceneInclude not in source:
             ret = sceneInclude
@@ -80,6 +83,7 @@ class SceneFile:
                     self.sceneCutscenes[i] = self.getSourceWithSceneInclude(csInclude, self.sceneCutscenes[i])
 
     def write(self):
+        """Writes the scene files"""
         self.setIncludeData()
 
         for room in self.roomList.values():

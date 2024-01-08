@@ -104,6 +104,8 @@ class Scene(Base):
         return None
 
     def getCmdList(self, curHeader: SceneHeader, hasAltHeaders: bool):
+        """Returns the scene's commands list"""
+
         cmdListData = CData()
         listName = f"SceneCmd {curHeader.name}"
 
@@ -198,7 +200,7 @@ class Scene(Base):
         return self.model.to_c(textureExportSettings, OOTGfxFormatter(ScrollMethod.Vertex)).all()
 
     def getNewSceneFile(self, path: str, isSingleFile: bool, textureExportSettings: TextureExportSettings):
-        """Gets and sets C data for every scene elements"""
+        """Returns a new scene file containing the C data"""
 
         sceneMainData = self.getSceneMainC()
         sceneCollisionData = self.colHeader.getC()

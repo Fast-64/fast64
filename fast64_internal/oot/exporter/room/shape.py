@@ -9,6 +9,8 @@ from ...room.properties import OOTRoomHeaderProperty
 
 @dataclass
 class RoomShapeBase:
+    """This class defines the basic informations of a non-image room shape"""
+
     type: str
     props: OOTRoomHeaderProperty
     mesh: OOTRoomMesh
@@ -304,6 +306,8 @@ class RoomShape(RoomShapeBase):
             raise PluginError("ERROR: Name not found!")
 
     def getCmd(self):
+        """Returns the room shape room command"""
+
         return indent + f"SCENE_CMD_ROOM_SHAPE(&{self.getName()}),\n"
 
     def getRoomShapeBgImgDataC(self, roomMesh: OOTRoomMesh, textureSettings: TextureExportSettings):

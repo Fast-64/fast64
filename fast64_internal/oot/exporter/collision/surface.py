@@ -3,7 +3,7 @@ from typing import Optional
 from ....utility import CData, indent
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class SurfaceType:
     """This class defines a single surface type"""
 
@@ -31,29 +31,6 @@ class SurfaceType:
     isHorseBlockedC: Optional[str] = None
     canHookshotC: Optional[str] = None
     isWallDamageC: Optional[str] = None
-
-    def __hash__(self):
-        return hash(
-            (
-                self.bgCamIndex,
-                self.exitIndex,
-                self.floorType,
-                self.unk18,
-                self.wallType,
-                self.floorProperty,
-                self.isSoft,
-                self.isHorseBlocked,
-                self.material,
-                self.floorEffect,
-                self.lightSetting,
-                self.echo,
-                self.canHookshot,
-                self.conveyorSpeed,
-                self.conveyorDirection,
-                self.isWallDamage,
-                self.conveyorKeepMomentum,
-            )
-        )
 
     def __post_init__(self):
         if self.conveyorKeepMomentum:

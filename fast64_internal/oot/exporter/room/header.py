@@ -10,6 +10,8 @@ from ..base import Base, Actor
 
 @dataclass
 class HeaderBase(Base):
+    """Defines the base of a room header"""
+
     name: Optional[str] = None
     props: Optional[OOTRoomHeaderProperty] = None
     sceneObj: Optional[Object] = None
@@ -67,6 +69,7 @@ class RoomInfos(HeaderBase):
         self.strength = self.props.windStrength if self.props.setWind else None
 
     def getCmds(self):
+        """Returns the echo settings, room behavior, skybox disables and time settings room commands"""
         showInvisActors = "true" if self.showInvisActors else "false"
         disableWarpSongs = "true" if self.disableWarpSongs else "false"
         disableSkybox = "true" if self.disableSky else "false"
@@ -105,6 +108,8 @@ class RoomObjects(HeaderBase):
         return f"LENGTH_{self.name.upper()}"
 
     def getCmd(self):
+        """Returns the object list room command"""
+
         return indent + f"SCENE_CMD_OBJECT_LIST({self.getDefineName()}, {self.name}),\n"
 
     def getC(self):
@@ -179,6 +184,8 @@ class RoomActors(HeaderBase):
         return f"LENGTH_{self.name.upper()}"
 
     def getCmd(self):
+        """Returns the actor list room command"""
+
         return indent + f"SCENE_CMD_ACTOR_LIST({self.getDefineName()}, {self.name}),\n"
 
     def getC(self):

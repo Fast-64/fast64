@@ -61,6 +61,8 @@ class RoomEntries:
         self.entries = [roomDict[i] for i in range(min(roomDict.keys()), len(roomDict))]
 
     def getCmd(self):
+        """Returns the room list scene command"""
+
         return indent + f"SCENE_CMD_ROOM_LIST({len(self.entries)}, {self.name}),\n"
 
     def getC(self, useDummyRoomList: bool):

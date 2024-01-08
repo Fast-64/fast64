@@ -66,6 +66,7 @@ class CameraInfo:
 
     def getInfoEntryC(self, posDataName: str):
         """Returns an entry for the camera information array"""
+
         ptr = f"&{posDataName}[{self.arrayIndex}]" if self.hasPosData else "NULL"
         return indent + "{ " + f"{self.setting}, {self.count}, {ptr}" + " },\n"
 

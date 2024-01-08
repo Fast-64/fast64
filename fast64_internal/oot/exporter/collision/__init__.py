@@ -214,6 +214,8 @@ class CollisionHeader(CollisionBase):
         self.waterbox = WaterBoxes(self.sceneObj, self.transform, f"{self.sceneName}_waterBoxes", self.useMacros)
 
     def getCmd(self):
+        """Returns the collision header scene command"""
+
         return indent + f"SCENE_CMD_COL_HEADER(&{self.name}),\n"
 
     def getC(self):

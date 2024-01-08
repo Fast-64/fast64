@@ -115,6 +115,8 @@ class Room(Base):
         return None
 
     def getCmdList(self, curHeader: RoomHeader, hasAltHeaders: bool):
+        """Returns the room commands list"""
+
         cmdListData = CData()
         listName = f"SceneCmd {curHeader.name}"
 

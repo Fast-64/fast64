@@ -73,7 +73,7 @@ class SceneExporter:
 
         try:
             sceneName = f"{toAlnum(self.sceneName)}_scene"
-            sceneData = Scene(
+            newScene = Scene(
                 self.sceneObj,
                 self.transform,
                 self.useMacros,
@@ -81,23 +81,22 @@ class SceneExporter:
                 self.saveTexturesAsPNG,
                 OOTModel(f"{sceneName}_dl", self.dlFormat, False),
             )
-            sceneData.validateScene()
+            newScene.validateScene()
 
-            if sceneData.mainHeader.cutscene is not None:
-                self.hasCutscenes = len(sceneData.mainHeader.cutscene.entries) > 0
+            if newScene.mainHeader.cutscene is not None:
+                self.hasCutscenes = len(newScene.mainHeader.cutscene.entries) > 0
 
                 if not self.hasCutscenes:
-                    for cs in sceneData.altHeader.cutscenes:
+                    for cs in newScene.altHeader.cutscenes:
                         if len(cs.cutscene.entries) > 0:
                             self.hasCutscenes = True
                             break
-
-            ootCleanupScene(self.originalSceneObj, allObjs)
         except Exception as e:
-            ootCleanupScene(self.originalSceneObj, allObjs)
             raise Exception(str(e))
+        finally:
+            ootCleanupScene(self.originalSceneObj, allObjs)
 
-        return sceneData
+        return newScene
 
     def export(self):
         """Main function"""
@@ -139,6 +138,6 @@ class SceneExporter:
                 os.path.join(exportPath, "include/config/config_debug.h")
                 if not isCustomExport
                 else os.path.join(self.path, "config_bootup.h"),
-                "ENTR_" + self.sceneName.upper() + "_" + str(self.hackerootBootOption.spawnIndex),
+                f"ENTR_{self.sceneName.upper()}_{self.hackerootBootOption.spawnIndex}",
                 self.hackerootBootOption,
             )

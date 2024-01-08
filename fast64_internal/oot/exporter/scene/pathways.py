@@ -75,6 +75,8 @@ class ScenePathways(Base):
         self.pathList = list(pathFromIndex.values())
 
     def getCmd(self):
+        """Returns the path list scene command"""
+
         return indent + f"SCENE_CMD_PATH_LIST({self.name}),\n" if len(self.pathList) > 0 else ""
 
     def getC(self):

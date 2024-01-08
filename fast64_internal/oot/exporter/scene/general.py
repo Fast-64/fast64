@@ -120,6 +120,8 @@ class SceneLighting(Base):
             )
 
     def getCmd(self):
+        """Returns the env light settings scene command"""
+
         return (
             indent + "SCENE_CMD_ENV_LIGHT_SETTINGS("
         ) + f"{len(self.settings)}, {self.name if len(self.settings) > 0 else 'NULL'}),\n"
@@ -190,6 +192,8 @@ class SceneInfos(Base):
         self.sceneCamType = self.getPropValue(self.props, "cameraMode")
 
     def getCmds(self, lights: SceneLighting):
+        """Returns the sound settings, misc settings, special files and skybox settings scene commands"""
+
         return (
             indent
             + f",\n{indent}".join(
@@ -213,12 +217,16 @@ class SceneExits(Base):
     exitList: list[tuple[int, str]] = field(default_factory=list)
 
     def __post_init__(self):
+        # TODO: proper implementation of exits
+
         for i, exitProp in enumerate(self.props.exitList):
             if exitProp.exitIndex != "Custom":
                 raise PluginError("ERROR: Exits are unfinished, please use 'Custom'.")
             self.exitList.append((i, exitProp.exitIndexCustom))
 
     def getCmd(self):
+        """Returns the exit list scene command"""
+
         return indent + f"SCENE_CMD_EXIT_LIST({self.name}),\n"
 
     def getC(self):

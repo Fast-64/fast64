@@ -528,8 +528,12 @@ class SceneCutscene(Base):
                     )
 
     def getCutsceneName(self, csObj: Object, customName: Optional[str] = None) -> str:
+        """Returns the cutscene's name"""
+
         return customName if customName is not None else csObj.name.removeprefix("Cutscene.")
 
     def getCmd(self):
+        """Returns the cutscene data scene command"""
+
         csDataName = self.getCutsceneName(self.csObj)
         return indent + f"SCENE_CMD_CUTSCENE_DATA({csDataName}),\n"

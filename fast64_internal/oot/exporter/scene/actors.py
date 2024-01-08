@@ -98,6 +98,8 @@ class SceneTransitionActors(Base):
                 self.entries.append(transActor)
 
     def getCmd(self):
+        """Returns the transition actor list scene command"""
+
         return indent + f"SCENE_CMD_TRANSITION_ACTOR_LIST({len(self.entries)}, {self.name}),\n"
 
     def getC(self):
@@ -190,6 +192,8 @@ class SceneEntranceActors(Base):
         self.entries = list(entranceActorFromIndex.values())
 
     def getCmd(self):
+        """Returns the spawn list scene command"""
+
         name = self.name if len(self.entries) > 0 else "NULL"
         return indent + f"SCENE_CMD_SPAWN_LIST({len(self.entries)}, {name}),\n"
 
@@ -219,6 +223,8 @@ class SceneSpawns(Base):
     entries: list[EntranceActor]
 
     def getCmd(self):
+        """Returns the entrance list scene command"""
+
         return indent + f"SCENE_CMD_ENTRANCE_LIST({self.name if len(self.entries) > 0 else 'NULL'}),\n"
 
     def getC(self):
