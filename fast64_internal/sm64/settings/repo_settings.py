@@ -19,6 +19,7 @@ def save_sm64_repo_settings(scene: Scene):
     sm64_props = scene.fast64.sm64
     data["refresh_version"] = sm64_props.refresh_version
     data["compression_format"] = sm64_props.compression_format
+    data["force_extended_ram"] = sm64_props.force_extended_ram
 
     return data
 
@@ -37,3 +38,4 @@ def load_sm64_repo_settings(scene: Scene, data: dict[str, Any]):
     sm64_props = scene.fast64.sm64
     sm64_props.refresh_version = data.get("refresh_version", sm64_props.refresh_version)
     sm64_props.compression_format = data.get("compression_format", sm64_props.compression_format)
+    sm64_props.force_extended_ram = data.get("force_extended_ram", sm64_props.force_extended_ram)
