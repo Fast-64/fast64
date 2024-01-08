@@ -64,10 +64,15 @@ Sets bank 4 range to ({hex(defaultExtendSegment4[0])}, {hex(defaultExtendSegment
 
     # C
     sm64_repo_settings_tab: bpy.props.BoolProperty(default=True)
+    disable_scroll: BoolProperty(name="Disable Scrolling Textures")
     refresh_version: EnumProperty(items=enum_refresh_versions, name="Refresh", default="Refresh 13")
     compression_format: EnumProperty(items=enum_compression_formats, name="Compression", default="mio0")
     force_extended_ram: BoolProperty(name="Force Extended Ram", default=True)
-    disable_scroll: BoolProperty(name="Disable Scrolling Textures")
+    matstack_fix: BoolProperty(
+        name="Matstack Fix",
+        description="Exports account for matsack fix requirements",
+        default=False,
+    )
 
     def is_binary_export(self):
         return self.export_type in ["Binary", "Insertable Binary"]
@@ -152,6 +157,7 @@ Sets bank 4 range to ({hex(defaultExtendSegment4[0])}, {hex(defaultExtendSegment
                 prop_split(col, self, "compression_format", "Compression Format")
                 prop_split(col, self, "refresh_version", "Refresh (Function Map)")
                 col.prop(self, "force_extended_ram")
+                col.prop(self, "matstack_fix")
 
         col.separator()
 
