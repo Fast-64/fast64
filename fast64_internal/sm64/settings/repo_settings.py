@@ -21,6 +21,7 @@ def save_sm64_repo_settings(scene: Scene):
     data["compression_format"] = sm64_props.compression_format
     data["force_extended_ram"] = sm64_props.force_extended_ram
     data["matstack_fix"] = sm64_props.matstack_fix
+    data["lighting_engine_presets"] = sm64_props.lighting_engine_presets
 
     return data
 
@@ -41,3 +42,4 @@ def load_sm64_repo_settings(scene: Scene, data: dict[str, Any]):
     sm64_props.compression_format = data.get("compression_format", sm64_props.compression_format)
     sm64_props.force_extended_ram = data.get("force_extended_ram", sm64_props.force_extended_ram)
     sm64_props.matstack_fix = data.get("matstack_fix", sm64_props.matstack_fix)
+    sm64_props.lighting_engine_presets = data.get("lighting_engine_presets", sm64_props.lighting_engine_presets)

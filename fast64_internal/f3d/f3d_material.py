@@ -3418,10 +3418,6 @@ def getOptimalFormat(tex, curFormat, isMultitexture):
     return texFormat
 
 
-def getCurrentPresetDir():
-    return "f3d/" + bpy.context.scene.gameEditorMode.lower()
-
-
 # modules/bpy_types.py -> Menu
 class MATERIAL_MT_f3d_presets(Menu):
     bl_label = "F3D Material Presets"
@@ -3441,12 +3437,19 @@ class MATERIAL_MT_f3d_presets(Menu):
         ext_valid = getattr(self, "preset_extensions", {".py", ".xml"})
         props_default = getattr(self, "preset_operator_defaults", None)
         add_operator = getattr(self, "preset_add_operator", None)
-        presetDir = getCurrentPresetDir()
+
+        game = bpy.context.scene.gameEditorMode.lower()
         paths = bpy.utils.preset_paths("f3d/user")
         if not bpy.context.scene.f3dUserPresetsOnly:
-            paths += bpy.utils.preset_paths(presetDir)
-            if bpy.context.scene.f3d_type == "F3DEX3":
-                paths += bpy.utils.preset_paths(f"{presetDir}_f3dex3")
+            if game == "sm64":
+                if bpy.context.scene.fast64.sm64.lighting_engine_presets:
+                    paths += bpy.utils.preset_paths("f3d/sm64_lighting_engine")
+                else:
+                    paths += bpy.utils.preset_paths("f3d/sm64")
+            elif game == "oot":
+                paths += bpy.utils.preset_paths("f3d/oot")
+                if bpy.context.scene.f3d_type == "F3DEX3":
+                    paths += bpy.utils.preset_paths("f3d/oot_f3dex3")
         self.path_menu(
             paths,
             self.preset_operator,
