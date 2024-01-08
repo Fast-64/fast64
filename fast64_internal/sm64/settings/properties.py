@@ -66,6 +66,7 @@ Sets bank 4 range to ({hex(defaultExtendSegment4[0])}, {hex(defaultExtendSegment
     sm64_repo_settings_tab: bpy.props.BoolProperty(default=True)
     refresh_version: EnumProperty(items=enum_refresh_versions, name="Refresh", default="Refresh 13")
     compression_format: EnumProperty(items=enum_compression_formats, name="Compression", default="mio0")
+    force_extended_ram: BoolProperty(name="Force Extended Ram", default=True)
     disable_scroll: BoolProperty(name="Disable Scrolling Textures")
 
     def is_binary_export(self):
@@ -150,6 +151,7 @@ Sets bank 4 range to ({hex(defaultExtendSegment4[0])}, {hex(defaultExtendSegment
             if show_repo_settings:
                 prop_split(col, self, "compression_format", "Compression Format")
                 prop_split(col, self, "refresh_version", "Refresh (Function Map)")
+                col.prop(self, "force_extended_ram")
 
         col.separator()
 

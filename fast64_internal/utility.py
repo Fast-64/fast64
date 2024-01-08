@@ -462,8 +462,8 @@ def saveDataToFile(filepath, data):
 
 
 def applyBasicTweaks(baseDir):
-    enableExtendedRAM(baseDir)
-    return
+    if bpy.context.scene.fast64.sm64.force_extended_ram:
+        enableExtendedRAM(baseDir)
 
 
 def enableExtendedRAM(baseDir):
