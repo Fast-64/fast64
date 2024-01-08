@@ -5,8 +5,8 @@ from bpy.types import Object
 from ....utility import CData
 from ...scene.properties import OOTSceneHeaderProperty
 from ..base import Base
+from ..cutscene import SceneCutscene
 from .general import SceneLighting, SceneInfos, SceneExits
-from .cutscene import SceneCutscene
 from .actors import SceneTransitionActors, SceneEntranceActors, SceneSpawns
 from .pathways import ScenePathways
 
