@@ -4014,7 +4014,7 @@ class SPLightColor(GbiMacro):
     col: Sequence[int]
 
     def color_to_int(self):
-        return self.col[0]*0x1000000 + self.col[1]*0x10000 + self.col[2]*0x100 + 0xFF
+        return self.col[0] * 0x1000000 + self.col[1] * 0x10000 + self.col[2] * 0x100 + 0xFF
 
     def to_binary(self, f3d, segments):
         return gsMoveWd(f3d.G_MW_LIGHTCOL, f3d.getLightMWO_a(self.n), self.color_to_int(), f3d) + gsMoveWd(

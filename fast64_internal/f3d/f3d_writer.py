@@ -1538,7 +1538,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     return fMaterial, texDimensions
 
 
-def getLightDefinitions(fModel, material, lightsName = ""):
+def getLightDefinitions(fModel, material, lightsName=""):
     lights = Lights(toAlnum(lightsName), fModel.f3d)
 
     if material.use_default_lighting:
