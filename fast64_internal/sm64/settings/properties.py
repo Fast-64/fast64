@@ -29,7 +29,9 @@ def decomp_path_update(self, context: Context):
         context.scene.fast64.settings.repo_settings_path = os.path.join(
             os.path.dirname(abspath(self.decomp_path)), "fast64.json"
         )
-    except: return
+    except:
+        return
+
 
 class SM64_Properties(PropertyGroup):
     """Global SM64 Scene Properties found under scene.fast64.sm64"""
