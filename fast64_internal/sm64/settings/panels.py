@@ -22,6 +22,7 @@ def draw_repo_settings(scene: Scene, layout: UILayout):
     prop_split(col, sm64_props, "compression_format", "Compression Format")
     prop_split(col, sm64_props, "refresh_version", "Refresh (Function Map)")
     col.prop(sm64_props, "force_extended_ram")
+    col.prop(sm64_props, "matstack_fix")
 
 
 class SM64_GeneralSettingsPanel(SM64_Panel):
