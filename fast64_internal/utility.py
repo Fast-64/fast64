@@ -4,7 +4,6 @@ from mathutils import *
 from .utility_anim import *
 from typing import Callable, Iterable, Any, Tuple, Union
 from bpy.types import UILayout
-import textwrap
 
 CollectionProperty = Any  # collection prop as defined by using bpy.props.CollectionProperty
 
