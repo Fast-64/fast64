@@ -1126,7 +1126,7 @@ def addHeaderC(levelName):
 class SM64_ExportLevel(ObjectDataExporter):
     # set bl_ properties
     bl_idname = "object.sm64_export_level"
-    bl_label = "Export Level"
+    bl_label = "Level"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
     def execute(self, context):
@@ -1215,7 +1215,7 @@ class SM64_ExportLevel(ObjectDataExporter):
 class SM64_ExportLevelPanel(SM64_Panel):
     bl_idname = "SM64_PT_export_level"
     bl_label = "SM64 Level Exporter"
-    goal = "Export Level"
+    goal = "Level"
     decomp_only = True
 
     # called every frame

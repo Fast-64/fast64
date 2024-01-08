@@ -3177,7 +3177,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 class SM64_ExportGeolayoutPanel(SM64_Panel):
     bl_idname = "SM64_PT_export_geolayout"
     bl_label = "SM64 Geolayout Exporter"
-    goal = "Export Object/Actor/Anim"
+    goal = "Object/Actor/Anim"
 
     # called every frame
     def draw(self, context):

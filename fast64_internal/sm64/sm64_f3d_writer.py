@@ -697,7 +697,7 @@ class SM64_ExportDL(bpy.types.Operator):
 class SM64_ExportDLPanel(SM64_Panel):
     bl_idname = "SM64_PT_export_dl"
     bl_label = "SM64 DL Exporter"
-    goal = "Export Displaylist"
+    goal = "Displaylist"
 
     # called every frame
     def draw(self, context):
@@ -806,7 +806,7 @@ class UnlinkTexRect(bpy.types.Operator):
 class ExportTexRectDrawPanel(SM64_Panel):
     bl_idname = "TEXTURE_PT_export_texrect"
     bl_label = "SM64 UI Image Exporter"
-    goal = "Export UI Image"
+    goal = "UI Image"
     decomp_only = True
 
     # called every frame
