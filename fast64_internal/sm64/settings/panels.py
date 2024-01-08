@@ -12,11 +12,11 @@ def draw_repo_settings(scene: Scene, layout: UILayout):
 
     col.prop(
         sm64_props,
-        "repo_settings_tab",
+        "sm64_repo_settings_tab",
         text="Repo Settings",
-        icon="TRIA_DOWN" if sm64_props.repo_settings_tab else "TRIA_RIGHT",
+        icon="TRIA_DOWN" if sm64_props.sm64_repo_settings_tab else "TRIA_RIGHT",
     )
-    if not sm64_props.repo_settings_tab:
+    if not sm64_props.sm64_repo_settings_tab:
         return
 
     prop_split(col, sm64_props, "compression_format", "Compression Format")
@@ -35,7 +35,7 @@ class SM64_GeneralSettingsPanel(SM64_Panel):
         if sm64_props.export_type == "C":
             # If the repo settings tab is open, we pass show_repo_settings as False
             # because we want to draw those specfic properties in the repo settings box
-            sm64_props.draw_props(col, not sm64_props.repo_settings_tab)
+            sm64_props.draw_props(col, not sm64_props.sm64_repo_settings_tab)
             col.separator()
             draw_repo_settings(context.scene, col.box())
         else:

@@ -63,7 +63,7 @@ Sets bank 4 range to ({hex(defaultExtendSegment4[0])}, {hex(defaultExtendSegment
     blender_to_sm64_scale: FloatProperty(name="Blender To SM64 Scale", default=100, update=on_update_render_settings)
 
     # C
-    repo_settings_tab: bpy.props.BoolProperty(default=True)
+    sm64_repo_settings_tab: bpy.props.BoolProperty(default=True)
     refresh_version: EnumProperty(items=enum_refresh_versions, name="Refresh", default="Refresh 13")
     compression_format: EnumProperty(items=enum_compression_formats, name="Compression", default="mio0")
     disable_scroll: BoolProperty(name="Disable Scrolling Textures")
