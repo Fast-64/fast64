@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Optional
-from ....utility import indent
+from ....utility import PluginError, indent
 from ...cutscene.motion.utility import getInteger
 from .common import CutsceneCmdBase
 
@@ -26,6 +26,15 @@ class CutsceneCmdText(CutsceneCmdBase):
             self.altTextId2 = getInteger(self.params[5])
 
     def getCmd(self):
+        self.validateFrames()
+        if self.textId is None:
+            raise PluginError("ERROR: ``textId`` is None!")
+        if self.type is None:
+            raise PluginError("ERROR: ``type`` is None!")
+        if self.altTextId1 is None:
+            raise PluginError("ERROR: ``altTextId1`` is None!")
+        if self.altTextId2 is None:
+            raise PluginError("ERROR: ``altTextId2`` is None!")
         return indent * 3 + (
             f"CS_TEXT("
             + f"{self.textId}, {self.startFrame}, {self.endFrame}, {self.type}, {self.altTextId1}, {self.altTextId2}"
@@ -46,6 +55,7 @@ class CutsceneCmdTextNone(CutsceneCmdBase):
             self.endFrame = getInteger(self.params[1])
 
     def getCmd(self):
+        self.validateFrames()
         return indent * 3 + f"CS_TEXT_NONE({self.startFrame}, {self.endFrame}),\n"
 
 
@@ -66,10 +76,14 @@ class CutsceneCmdTextOcarinaAction(CutsceneCmdBase):
             self.messageId = getInteger(self.params[3])
 
     def getCmd(self):
+        self.validateFrames()
+        if self.ocarinaActionId is None:
+            raise PluginError("ERROR: ``ocarinaActionId`` is None!")
+        if self.messageId is None:
+            raise PluginError("ERROR: ``messageId`` is None!")
         return indent * 3 + (
             f"CS_TEXT_OCARINA_ACTION("
-            + f"{self.ocarinaActionId}, {self.startFrame}, "
-            + f"{self.endFrame}, {self.messageId}"
+            + f"{self.ocarinaActionId}, {self.startFrame}, {self.endFrame}, {self.messageId}"
             + "),\n"
         )
 
@@ -88,6 +102,8 @@ class CutsceneCmdTextList(CutsceneCmdBase):
             self.entryTotal = getInteger(self.params[0])
 
     def getCmd(self):
+        if len(self.entries) == 0:
+            raise PluginError("ERROR: Entry list is empty!")
         return self.getGenericListCmd("CS_TEXT_LIST", self.entryTotal) + "".join(
             entry.getCmd() for entry in self.entries
         )

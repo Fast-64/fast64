@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Optional
-from ....utility import indent
+from ....utility import PluginError, indent
 from ...cutscene.motion.utility import getInteger
 from .common import CutsceneCmdBase
 
@@ -19,6 +19,9 @@ class CutsceneCmdMisc(CutsceneCmdBase):
             self.type = self.getEnumValue("csMiscType", 0)
 
     def getCmd(self):
+        self.validateFrames()
+        if self.type is None:
+            raise PluginError("ERROR: Misc Type is None!")
         return indent * 3 + (f"CS_MISC({self.type}, {self.startFrame}, {self.endFrame}" + ", 0" * 11 + "),\n")
 
 
@@ -39,6 +42,9 @@ class CutsceneCmdLightSetting(CutsceneCmdBase):
                 self.lightSetting -= 1
 
     def getCmd(self):
+        self.validateFrames(False)
+        if self.lightSetting is None:
+            raise PluginError("ERROR: Light Setting is None!")
         return indent * 3 + (f"CS_LIGHT_SETTING({self.lightSetting}, {self.startFrame}" + ", 0" * 9 + "),\n")
 
 
@@ -58,6 +64,11 @@ class CutsceneCmdTime(CutsceneCmdBase):
             self.minute = getInteger(self.params[4])
 
     def getCmd(self):
+        self.validateFrames(False)
+        if self.hour is None:
+            raise PluginError("ERROR: ``hour`` is None!")
+        if self.minute is None:
+            raise PluginError("ERROR: ``minute`` is None!")
         return indent * 3 + f"CS_TIME(0, {self.startFrame}, 0, {self.hour}, {self.minute}),\n"
 
 
@@ -79,10 +90,16 @@ class CutsceneCmdRumbleController(CutsceneCmdBase):
             self.decreaseRate = getInteger(self.params[5])
 
     def getCmd(self):
+        self.validateFrames(False)
+        if self.sourceStrength is None:
+            raise PluginError("ERROR: ``sourceStrength`` is None!")
+        if self.duration is None:
+            raise PluginError("ERROR: ``duration`` is None!")
+        if self.decreaseRate is None:
+            raise PluginError("ERROR: ``decreaseRate`` is None!")
         return indent * 3 + (
             f"CS_RUMBLE_CONTROLLER("
-            + f"0, {self.startFrame}, 0, "
-            + f"{self.sourceStrength}, {self.duration}, {self.decreaseRate}, 0, 0),\n"
+            + f"0, {self.startFrame}, 0, {self.sourceStrength}, {self.duration}, {self.decreaseRate}, 0, 0),\n"
         )
 
 
@@ -100,6 +117,8 @@ class CutsceneCmdMiscList(CutsceneCmdBase):
             self.entryTotal = getInteger(self.params[0])
 
     def getCmd(self):
+        if len(self.entries) == 0:
+            raise PluginError("ERROR: Entry list is empty!")
         return self.getGenericListCmd("CS_MISC_LIST", self.entryTotal) + "".join(
             entry.getCmd() for entry in self.entries
         )
@@ -119,6 +138,8 @@ class CutsceneCmdLightSettingList(CutsceneCmdBase):
             self.entryTotal = getInteger(self.params[0])
 
     def getCmd(self):
+        if len(self.entries) == 0:
+            raise PluginError("ERROR: Entry list is empty!")
         return self.getGenericListCmd("CS_LIGHT_SETTING_LIST", self.entryTotal) + "".join(
             entry.getCmd() for entry in self.entries
         )
@@ -138,6 +159,8 @@ class CutsceneCmdTimeList(CutsceneCmdBase):
             self.entryTotal = getInteger(self.params[0])
 
     def getCmd(self):
+        if len(self.entries) == 0:
+            raise PluginError("ERROR: Entry list is empty!")
         return self.getGenericListCmd("CS_TIME_LIST", self.entryTotal) + "".join(
             entry.getCmd() for entry in self.entries
         )
@@ -157,6 +180,8 @@ class CutsceneCmdRumbleControllerList(CutsceneCmdBase):
             self.entryTotal = getInteger(self.params[0])
 
     def getCmd(self):
+        if len(self.entries) == 0:
+            raise PluginError("ERROR: Entry list is empty!")
         return self.getGenericListCmd("CS_RUMBLE_CONTROLLER_LIST", self.entryTotal) + "".join(
             entry.getCmd() for entry in self.entries
         )
@@ -176,6 +201,9 @@ class CutsceneCmdDestination(CutsceneCmdBase):
             self.startFrame = getInteger(self.params[1])
 
     def getCmd(self):
+        self.validateFrames(False)
+        if self.id is None:
+            raise PluginError("ERROR: Destination ID is None!")
         return indent * 2 + f"CS_DESTINATION({self.id}, {self.startFrame}, 0),\n"
 
 
@@ -194,4 +222,7 @@ class CutsceneCmdTransition(CutsceneCmdBase):
             self.type = self.getEnumValue("csTransitionType", 0)
 
     def getCmd(self):
+        self.validateFrames()
+        if self.type is None:
+            raise PluginError("ERROR: Transition type is None!")
         return indent * 2 + f"CS_TRANSITION({self.type}, {self.startFrame}, {self.endFrame}),\n"

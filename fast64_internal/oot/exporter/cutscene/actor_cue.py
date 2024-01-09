@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Optional
-from ....utility import indent
+from ....utility import PluginError, indent
 from ...oot_constants import ootData
 from ...cutscene.motion.utility import getRotation, getInteger
 from .common import CutsceneCmdBase
@@ -27,6 +27,15 @@ class CutsceneCmdActorCue(CutsceneCmdBase):
             self.endPos = [getInteger(self.params[9]), getInteger(self.params[10]), getInteger(self.params[11])]
 
     def getCmd(self):
+        self.validateFrames()
+        if self.actionID is None:
+            raise PluginError("ERROR: Action ID is None!")
+        if len(self.rot) == 0:
+            raise PluginError("ERROR: Rotation list is empty!")
+        if len(self.startPos) == 0:
+            raise PluginError("ERROR: Start Position list is empty!")
+        if len(self.endPos) == 0:
+            raise PluginError("ERROR: End Position list is empty!")
         return indent * 3 + (
             f"CS_{'PLAYER' if self.isPlayer else 'ACTOR'}_CUE("
             + f"{self.actionID}, {self.startFrame}, {self.endFrame}, "
@@ -64,6 +73,12 @@ class CutsceneCmdActorCueList(CutsceneCmdBase):
                 self.entryTotal = getInteger(self.params[1].strip())
 
     def getCmd(self):
+        if self.commandType is None:
+            raise PluginError("ERROR: ``commandType`` is None!")
+        if self.entryTotal is None:
+            raise PluginError("ERROR: ``entryTotal`` is None!")
+        if len(self.entries) == 0:
+            raise PluginError("ERROR: No Actor Cue entry found!")
         return (
             indent * 2
             + (

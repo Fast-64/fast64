@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Optional
+from ....utility import PluginError
 from ...cutscene.motion.utility import getInteger
 from .common import CutsceneCmdBase
 
@@ -20,6 +21,9 @@ class CutsceneCmdStartStopSeq(CutsceneCmdBase):
             self.seqId = self.getEnumValue("seqId", 0, self.isLegacy)
 
     def getCmd(self):
+        self.validateFrames()
+        if self.type is None:
+            raise PluginError("ERROR: Type is None!")
         return self.getGenericSeqCmd(f"CS_{self.type.upper()}_SEQ", self.seqId, self.startFrame, self.endFrame)
 
 
@@ -38,6 +42,7 @@ class CutsceneCmdFadeSeq(CutsceneCmdBase):
             self.seqPlayer = self.getEnumValue(self.enumKey, 0)
 
     def getCmd(self):
+        self.validateFrames()
         return self.getGenericSeqCmd("CS_FADE_OUT_SEQ", self.seqPlayer, self.startFrame, self.endFrame)
 
 
@@ -56,6 +61,10 @@ class CutsceneCmdStartStopSeqList(CutsceneCmdBase):
             self.entryTotal = getInteger(self.params[0])
 
     def getCmd(self):
+        if len(self.entries) == 0:
+            raise PluginError("ERROR: Entry list is empty!")
+        if self.type is None:
+            raise PluginError("ERROR: Seq Type is None!")
         return self.getGenericListCmd(f"CS_{self.type.upper()}_SEQ_LIST", self.entryTotal) + "".join(
             entry.getCmd() for entry in self.entries
         )
@@ -75,6 +84,8 @@ class CutsceneCmdFadeSeqList(CutsceneCmdBase):
             self.entryTotal = getInteger(self.params[0])
 
     def getCmd(self):
+        if len(self.entries) == 0:
+            raise PluginError("ERROR: Entry list is empty!")
         return self.getGenericListCmd("CS_FADE_OUT_SEQ_LIST", self.entryTotal) + "".join(
             entry.getCmd() for entry in self.entries
         )

@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Optional
-from ....utility import indent
+from ....utility import PluginError, indent
 from ...cutscene.motion.utility import getInteger
 from .common import CutsceneCmdBase
 
@@ -25,9 +25,18 @@ class CutsceneCmdCamPoint(CutsceneCmdBase):
             self.pos = [getInteger(self.params[4]), getInteger(self.params[5]), getInteger(self.params[6])]
 
     def getCmd(self):
+        if self.continueFlag is None:
+            raise PluginError("ERROR: ``continueFlag`` is None!")
+        if self.camRoll is None:
+            raise PluginError("ERROR: ``camRoll`` is None!")
+        if self.frame is None:
+            raise PluginError("ERROR: ``frame`` is None!")
+        if self.viewAngle is None:
+            raise PluginError("ERROR: ``viewAngle`` is None!")
+        if len(self.pos) == 0:
+            raise PluginError("ERROR: Pos list is empty!")
         return indent * 3 + (
-            f"CS_CAM_POINT("
-            + f"{self.continueFlag}, {self.camRoll}, {self.frame}, {self.viewAngle}f, "
+            f"CS_CAM_POINT({self.continueFlag}, {self.camRoll}, {self.frame}, {self.viewAngle}f, "
             + "".join(f"{pos}, " for pos in self.pos)
             + "0),\n"
         )
@@ -47,6 +56,8 @@ class CutsceneCmdCamEyeSpline(CutsceneCmdBase):
             self.endFrame = getInteger(self.params[1])
 
     def getCmd(self):
+        if len(self.entries) == 0:
+            raise PluginError("ERROR: Entry list is empty!")
         return self.getCamListCmd("CS_CAM_EYE_SPLINE", self.startFrame, self.endFrame) + "".join(
             entry.getCmd() for entry in self.entries
         )
@@ -66,6 +77,8 @@ class CutsceneCmdCamATSpline(CutsceneCmdBase):
             self.endFrame = getInteger(self.params[1])
 
     def getCmd(self):
+        if len(self.entries) == 0:
+            raise PluginError("ERROR: Entry list is empty!")
         return self.getCamListCmd("CS_CAM_AT_SPLINE", self.startFrame, self.endFrame) + "".join(
             entry.getCmd() for entry in self.entries
         )
@@ -85,6 +98,8 @@ class CutsceneCmdCamEyeSplineRelToPlayer(CutsceneCmdBase):
             self.endFrame = getInteger(self.params[1])
 
     def getCmd(self):
+        if len(self.entries) == 0:
+            raise PluginError("ERROR: Entry list is empty!")
         return self.getCamListCmd("CS_CAM_EYE_SPLINE_REL_TO_PLAYER", self.startFrame, self.endFrame) + "".join(
             entry.getCmd() for entry in self.entries
         )
@@ -104,6 +119,8 @@ class CutsceneCmdCamATSplineRelToPlayer(CutsceneCmdBase):
             self.endFrame = getInteger(self.params[1])
 
     def getCmd(self):
+        if len(self.entries) == 0:
+            raise PluginError("ERROR: Entry list is empty!")
         return self.getCamListCmd("CS_CAM_AT_SPLINE_REL_TO_PLAYER", self.startFrame, self.endFrame) + "".join(
             entry.getCmd() for entry in self.entries
         )
