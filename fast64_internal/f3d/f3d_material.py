@@ -196,18 +196,20 @@ def rendermode_preset_to_advanced(material: bpy.types.Material):
             return default
         return getattr(f3d, preset, default)
 
-    is_one_cycle = settings.g_mdsft_cycletype == "G_CYC_1CYCLE"
-    if is_one_cycle:
-        r = get_with_default(settings.rendermode_preset_cycle_1, f3d.G_RM_AA_ZB_OPA_SURF)
-        r1 = r
-        # For GBL_c2, look at the same bits as for cycle 1. Cycle 1 bits are copied
-        # to cycle 2 bits at export.
-        r2 = r >> 2
-    else:
+    is_two_cycle = settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+    if is_two_cycle:
         r1 = get_with_default(settings.rendermode_preset_cycle_1, f3d.G_RM_FOG_SHADE_A)
         r2 = get_with_default(settings.rendermode_preset_cycle_2, f3d.G_RM_AA_ZB_OPA_SURF2)
         r = r1 | r2
+    else:
+        r = get_with_default(settings.rendermode_preset_cycle_1, f3d.G_RM_AA_ZB_OPA_SURF)
+        r1 = r
+        # The cycle 1 bits are copied to the cycle 2 bits at export if in 1-cycle mode
+        # (the hardware requires them to be the same). So, here we also move the cycle 1
+        # bits to the cycle 2 slots. r2 is only read for the cycle dependent settings below.
+        r2 = r >> 2
 
+    # cycle independent
     settings.aa_en = (r & f3d.AA_EN) != 0
     settings.z_cmp = (r & f3d.Z_CMP) != 0
     settings.z_upd = (r & f3d.Z_UPD) != 0
@@ -219,6 +221,7 @@ def rendermode_preset_to_advanced(material: bpy.types.Material):
     settings.alpha_cvg_sel = (r & f3d.ALPHA_CVG_SEL) != 0
     settings.force_bl = (r & f3d.FORCE_BL) != 0
 
+    # cycle dependent / lerp
     settings.blend_p1 = f3d.blendColorDict[(r1 >> 30) & 3]
     settings.blend_p2 = f3d.blendColorDict[(r2 >> 28) & 3]
     settings.blend_a1 = f3d.blendAlphaDict[(r1 >> 26) & 3]
@@ -232,26 +235,26 @@ def rendermode_preset_to_advanced(material: bpy.types.Material):
 def does_blender_use_color(settings: "RDPSettings", color: str, default_for_no_rendermode: bool = False) -> bool:
     if not settings.set_rendermode:
         return default_for_no_rendermode
-    is_one_cycle = settings.g_mdsft_cycletype == "G_CYC_1CYCLE"
+    is_two_cycle = settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
     return (
         settings.blend_p1 == color
         or settings.blend_m1 == color
-        or (is_one_cycle and (settings.blend_p2 == color or settings.blend_m2 == color))
+        or (is_two_cycle and (settings.blend_p2 == color or settings.blend_m2 == color))
     )
 
 
 def does_blender_use_alpha(settings: "RDPSettings", alpha: str, default_for_no_rendermode: bool = False) -> bool:
     if not settings.set_rendermode:
         return default_for_no_rendermode
-    is_one_cycle = settings.g_mdsft_cycletype == "G_CYC_1CYCLE"
-    return settings.blend_a1 == alpha or (is_one_cycle and settings.blend_a2 == alpha)
+    is_two_cycle = settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+    return settings.blend_a1 == alpha or (is_two_cycle and settings.blend_a2 == alpha)
 
 
 def does_blender_use_mix(settings: "RDPSettings", mix: str, default_for_no_rendermode: bool = False) -> bool:
     if not settings.set_rendermode:
         return default_for_no_rendermode
-    is_one_cycle = settings.g_mdsft_cycletype == "G_CYC_1CYCLE"
-    return settings.blend_b1 == mix or (is_one_cycle and settings.blend_b2 == mix)
+    is_two_cycle = settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+    return settings.blend_b1 == mix or (is_two_cycle and settings.blend_b2 == mix)
 
 
 def is_blender_lerp(
@@ -259,7 +262,7 @@ def is_blender_lerp(
 ) -> bool:
     assert cycle in {1, 2, -1}  # -1 = last cycle
     if cycle == -1:
-        cycle = 1 if settings.g_mdsft_cycletype == "G_CYC_1CYCLE" else 2
+        cycle = 2 if settings.g_mdsft_cycletype == "G_CYC_2CYCLE" else 1
     if not settings.set_rendermode:
         return default_for_no_rendermode
     return (
@@ -367,9 +370,9 @@ def combiner_uses(
     checkAlpha=True,
     swapTexelsCycle2=True,
 ):
-    is2Cycle = f3dMat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+    is_two_cycle = f3dMat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
     for i in range(1, 3):
-        if i == 1 and not checkCycle1 or i == 2 and (not checkCycle2 or not is2Cycle):
+        if i == 1 and not checkCycle1 or i == 2 and (not checkCycle2 or not is_two_cycle):
             continue
         combiner = getattr(f3dMat, f"combiner{i}")
         for isAlpha in [False, True]:
@@ -575,7 +578,6 @@ def ui_upper_mode(settings, dataHolder, layout: UILayout, useDropdown):
         prop_split(inputGroup, settings, "g_mdsft_textdetail", "Texture Detail")
         prop_split(inputGroup, settings, "g_mdsft_textpersp", "Texture Perspective Correction")
         prop_split(inputGroup, settings, "g_mdsft_cycletype", "Cycle Type")
-
         prop_split(inputGroup, settings, "g_mdsft_pipeline", "Pipeline Span Buffer Coherency")
 
 
@@ -809,6 +811,7 @@ class F3DPanel(Panel):
         return inputGroup
 
     def ui_lower_render_mode(self, material, layout, useDropdown):
+        is_two_cycle = material.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
         # cycle independent
         inputGroup = layout.column()
         if useDropdown:
@@ -827,7 +830,7 @@ class F3DPanel(Panel):
                 f3d = get_F3D_GBI()
                 prop_split(renderGroup, material.rdp_settings, "rendermode_preset_cycle_1", "Render Mode")
                 no_flags_1 = material.rdp_settings.rendermode_preset_cycle_1 in f3d.rendermodePresetsWithoutFlags
-                if material.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
+                if is_two_cycle:
                     prop_split(renderGroup, material.rdp_settings, "rendermode_preset_cycle_2", "Render Mode Cycle 2")
                     no_flags_2 = material.rdp_settings.rendermode_preset_cycle_2 in f3d.rendermodePresetsWithoutFlags
                     if no_flags_1 and no_flags_2:
@@ -875,7 +878,7 @@ class F3DPanel(Panel):
                 rowAlpha.prop(material.rdp_settings, "blend_a1", text="A")
                 rowAlpha.prop(material.rdp_settings, "blend_b1", text="B")
 
-                if material.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
+                if is_two_cycle:
                     combinerBox2 = renderGroup.box()
                     combinerBox2.label(text="Blender Cycle 2")
                     combinerCol2 = combinerBox2.row()
@@ -886,7 +889,7 @@ class F3DPanel(Panel):
                     rowAlpha2.prop(material.rdp_settings, "blend_a2", text="A")
                     rowAlpha2.prop(material.rdp_settings, "blend_b2", text="B")
 
-            if material.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
+            if is_two_cycle:
                 if (
                     material.rdp_settings.blend_b1 == "G_BL_A_MEM"
                     or material.rdp_settings.blend_p1 == "G_BL_CLR_MEM"
@@ -1167,7 +1170,7 @@ class F3DPanel(Panel):
                     r.label(text=f"{letter}{' Alpha' if isAlpha else ''}:")
                     r.prop(combiner, f"{letter}{'_alpha' if isAlpha else ''}", text="")
 
-            isTwoCycle = f3dMat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+            is_two_cycle = f3dMat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
 
             combinerBox = layout.box()
             combinerBox.prop(f3dMat, "set_combiner", text="Color Combiner (Color = (A - B) * C + D)")
@@ -1177,10 +1180,10 @@ class F3DPanel(Panel):
             drawCCProps(combinerCol, f3dMat.combiner1, True, not f3dMat.use_cel_shading)
             if f3dMat.use_cel_shading:
                 r = combinerBox.column().label(
-                    text=f"CC alpha{' cycle 1' if isTwoCycle else ''} is occupied by cel shading."
+                    text=f"CC alpha{' cycle 1' if is_two_cycle else ''} is occupied by cel shading."
                 )
 
-            if isTwoCycle:
+            if is_two_cycle:
                 combinerBox2 = layout.box()
                 combinerBox2.label(text="Color Combiner Cycle 2")
                 combinerBox2.enabled = f3dMat.set_combiner
@@ -1625,19 +1628,19 @@ def update_combiner_connections(material: Material, context: Context, combiner: 
 def set_output_node_groups(material: Material):
     nodes = material.node_tree.nodes
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
-    is_one_cycle = f3dMat.rdp_settings.g_mdsft_cycletype == "G_CYC_1CYCLE"
+    is_two_cycle = f3dMat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
 
     output_node = nodes["OUTPUT"]
-    if is_one_cycle:
-        if material.blend_method == "OPAQUE":
-            output_node.node_tree = bpy.data.node_groups["OUTPUT_1CYCLE_OPA"]
-        else:
-            output_node.node_tree = bpy.data.node_groups["OUTPUT_1CYCLE_XLU"]
-    else:
+    if is_two_cycle:
         if material.blend_method == "OPAQUE":
             output_node.node_tree = bpy.data.node_groups["OUTPUT_2CYCLE_OPA"]
         else:
             output_node.node_tree = bpy.data.node_groups["OUTPUT_2CYCLE_XLU"]
+    else:
+        if material.blend_method == "OPAQUE":
+            output_node.node_tree = bpy.data.node_groups["OUTPUT_1CYCLE_OPA"]
+        else:
+            output_node.node_tree = bpy.data.node_groups["OUTPUT_1CYCLE_XLU"]
 
 
 def update_light_colors(material, context):
