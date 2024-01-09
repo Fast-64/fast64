@@ -1,3 +1,5 @@
+import bpy
+
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from bpy.types import Object, CollectionProperty
@@ -313,10 +315,11 @@ def upgradeActors(actorObj: Object):
                     break
     elif actorObj.ootEmptyType == "Transition Actor":
         transActorProp = actorObj.ootTransitionActorProperty
-        transActorProp.isRoomTransition = actorObj["ootTransitionActorProperty"]["dontTransition"] == False
-        del actorObj["ootTransitionActorProperty"]["dontTransition"]
+        if "dontTransition" in transActorProp:
+            transActorProp.isRoomTransition = actorObj["ootTransitionActorProperty"]["dontTransition"] == False
+            del actorObj["ootTransitionActorProperty"]["dontTransition"]
 
-        if transActorProp.isRoomTransition:
+        if "roomIndex" in transActorProp:
             for obj in bpy.data.objects:
                 if obj.type == "EMPTY":
                     if obj.ootEmptyType == "Room":
