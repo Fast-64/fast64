@@ -1495,9 +1495,9 @@ class BehaviorScriptProperty(bpy.types.PropertyGroup):
         if self.macro not in self._inheritable_macros:
             return self.macro_args
         if self.macro == "SET_MODEL":
-            return (props.model_id_define,)
+            return props.model_id_define
         if self.macro == "LOAD_COLLISION_DATA":
-            return (props.collision_name,)
+            return props.collision_name
         return self.macro_args
 
     def draw(self, layout, index):
@@ -1707,6 +1707,10 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
 
     # export the behavior script, edits /data/behaviour_data.c and /include/behaviour_data.h
     def export_behavior_script(self, context, props):
+        # make sure you have a bhv script
+        if len(props.behavior_script) == 0:
+            raise PluginError("Behavior must have more than 0 cmds to export")
+        
         # exporting bhv header
         self.export_behavior_header(context, props)
         # export the behavior script itself
@@ -1824,17 +1828,17 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         try:
             self.verify_context(context, props)
             actor_objs = self.get_export_objects(context, props)
+            for index, obj in enumerate(actor_objs):
+                props.context_obj = obj
+                self.execute_col(props, context, obj)
+                self.execute_gfx(props, context, obj, index)
+                # do not export behaviors with multiple selection
+                if props.export_bhv and props.obj_name_bhv and not props.export_all_selected:
+                    self.export_behavior_script(context, props)
         except Exception as e:
             raisePluginError(self, e)
             return {"CANCELLED"}
 
-        for index, obj in enumerate(actor_objs):
-            props.context_obj = obj
-            self.execute_col(props, context, obj)
-            # do not export behaviors with multiple selection
-            if props.export_bhv and props.obj_name_bhv and not props.export_all_selected:
-                self.export_behavior_script(context, props)
-            self.execute_gfx(props, context, obj, index)
 
         props.context_obj = None
         # you've done it!~
