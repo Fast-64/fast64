@@ -1,9 +1,9 @@
-from bpy.types import Panel
 from bpy.utils import register_class, unregister_class
+from ....panels import OOT_Panel
 from .properties import CutsceneCmdCameraShotProperty, CutsceneCmdCameraShotPointProperty
 
 
-class OOT_CSMotionCameraShotPanel(Panel):
+class OOT_CSMotionCameraShotPanel(OOT_Panel):
     bl_label = "Cutscene Motion Camera Shot Controls"
     bl_idname = "OOT_PT_camera_shot_panel"
     bl_space_type = "PROPERTIES"
