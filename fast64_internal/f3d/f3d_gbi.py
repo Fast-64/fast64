@@ -23,11 +23,16 @@ class DLFormat(enum.Enum):
     Dynamic = 2
 
 
-class GfxListTag(enum.Enum):
+class GfxListTag(enum.IntFlag):
     Geometry = 1
     Material = 2
-    MaterialRevert = 3
-    Draw = 3
+    MaterialRevert = 4
+    Draw = 4
+    NoExport = 16
+
+    @property
+    def Export(self):
+        return not self & GfxListTag.NoExport
 
 
 class GfxTag(enum.Flag):
@@ -2680,7 +2685,7 @@ class FModel:
         data = CScrollData()
         for fMaterial, _ in self.materials.values():
             fMaterial: FMaterial
-            if fMaterial.material:
+            if fMaterial.material.tag.Export:
                 data.append(gfxFormatter.gfxScrollToC(fMaterial.material, self.f3d))
         for fMesh in self.meshes.values():
             fMesh: FMesh
@@ -2940,7 +2945,7 @@ class FTriGroup:
 
     def save_binary(self, romfile, f3d, segments):
         for celTriList in self.celTriLists:
-            celTriList.save_binary(romfile, f3d, segments);
+            celTriList.save_binary(romfile, f3d, segments)
         self.triList.save_binary(romfile, f3d, segments)
         self.vertexList.save_binary(romfile)
 
@@ -2949,7 +2954,7 @@ class FTriGroup:
         data.append(self.vertexList.to_c())
         for celTriList in self.celTriLists:
             data.append(celTriList.to_c(f3d))
-        if self.triList:
+        if self.triList.tag.Export:
             data.append(self.triList.to_c(f3d))
         return data
 
@@ -3049,7 +3054,7 @@ class FMaterial:
 
     def get_ptr_addresses(self, f3d):
         addresses = self.material.get_ptr_addresses(f3d)
-        if self.revert is not None:
+        if self.revert is not None and self.revert.tag.Export:
             addresses.extend(self.revert.get_ptr_addresses(f3d))
         return addresses
 
@@ -3067,9 +3072,9 @@ class FMaterial:
 
     def to_c(self, f3d):
         data = CData()
-        if self.material:
+        if self.material.tag.Export:
             data.append(self.material.to_c(f3d))
-        if self.revert is not None:
+        if self.revert is not None and self.revert.tag.Export:
             data.append(self.revert.to_c(f3d))
         return data
 
@@ -3781,9 +3786,7 @@ class SPAmbOcclusionAmbDir(GbiMacro):
     def to_binary(self, f3d, segments):
         if not f3d.F3DEX_GBI_3:
             raise PluginError("SPAmbOcclusionAmbDir requires F3DEX3 microcode")
-        return gsMoveWd(
-            f3d.G_MW_FX, f3d.G_MWO_AO_AMBIENT, (_SHIFTL(self.amb, 16, 16) | _SHIFTL(self.dir, 0, 16)), f3d
-        )
+        return gsMoveWd(f3d.G_MW_FX, f3d.G_MWO_AO_AMBIENT, (_SHIFTL(self.amb, 16, 16) | _SHIFTL(self.dir, 0, 16)), f3d)
 
 
 @dataclass(unsafe_hash=True)
@@ -3810,8 +3813,9 @@ class SPAmbOcclusion(GbiMacro):
     def to_binary(self, f3d, segments):
         if not f3d.F3DEX_GBI_3:
             raise PluginError("SPAmbOcclusion requires F3DEX3 microcode")
-        return SPAmbOcclusionAmbDir(self.amb, self.dir).to_binary(f3d, segments) + \
-            SPAmbOcclusionPoint(self.point).to_binary(f3d, segments)
+        return SPAmbOcclusionAmbDir(self.amb, self.dir).to_binary(f3d, segments) + SPAmbOcclusionPoint(
+            self.point
+        ).to_binary(f3d, segments)
 
 
 @dataclass(unsafe_hash=True)
@@ -3822,9 +3826,7 @@ class SPFresnelScale(GbiMacro):
     def to_binary(self, f3d, segments):
         if not f3d.F3DEX_GBI_3:
             raise PluginError("SPFresnelScale requires F3DEX3 microcode")
-        return gsMoveHalfwd(
-            f3d.G_MW_FX, f3d.G_MWO_FRESNEL_SCALE, self.scale, f3d
-        )
+        return gsMoveHalfwd(f3d.G_MW_FX, f3d.G_MWO_FRESNEL_SCALE, self.scale, f3d)
 
 
 @dataclass(unsafe_hash=True)
@@ -3835,9 +3837,7 @@ class SPFresnelOffset(GbiMacro):
     def to_binary(self, f3d, segments):
         if not f3d.F3DEX_GBI_3:
             raise PluginError("SPFresnelOffset requires F3DEX3 microcode")
-        return gsMoveHalfwd(
-            f3d.G_MW_FX, f3d.G_MWO_FRESNEL_OFFSET, self.offset, f3d
-        )
+        return gsMoveHalfwd(f3d.G_MW_FX, f3d.G_MWO_FRESNEL_OFFSET, self.offset, f3d)
 
 
 @dataclass(unsafe_hash=True)

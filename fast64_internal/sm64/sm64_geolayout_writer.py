@@ -60,6 +60,10 @@ from ..utility import (
     geoNodeRotateOrder,
 )
 
+from ..f3d.f3d_bleed import (
+    find_material_from_jump_cmd,
+)
+
 from ..f3d.f3d_material import (
     isTexturePointSampled,
 )
@@ -333,24 +337,40 @@ def getCameraObj(camera):
 
 
 def appendRevertToGeolayout(geolayoutGraph, fModel):
-    fModel.materialRevert = GfxList(
+    materialRevert = GfxList(
         fModel.name + "_" + "material_revert_render_settings", GfxListTag.MaterialRevert, fModel.DLFormat
     )
-    revertMatAndEndDraw(fModel.materialRevert, [DPSetEnvColor(0xFF, 0xFF, 0xFF, 0xFF), DPSetAlphaCompare("G_AC_NONE")])
+    revertMatAndEndDraw(materialRevert, [DPSetEnvColor(0xFF, 0xFF, 0xFF, 0xFF), DPSetAlphaCompare("G_AC_NONE")])
 
-    # Get all draw layers, turn layers into strings (some are ints), deduplicate using a set
-    drawLayers = set(str(layer) for layer in geolayoutGraph.getDrawLayers())
+    # walk the geo layout graph to find the last used DL for each layer
+    last_gfx_list = dict()
+
+    def walk(node, last_gfx_list):
+        base_node = node.node
+        if type(base_node) == JumpNode:
+            if base_node.geolayout:
+                for node in base_node.geolayout.nodes:
+                    last_gfx_list = walk(node, last_gfx_list)
+            else:
+                last_materials = dict()
+        fMesh = getattr(base_node, "fMesh", None)
+        if fMesh:
+            cmd_list = fMesh.drawMatOverrides.get(base_node.override_hash, None) or fMesh.draw
+            last_gfx_list[base_node.drawLayer] = cmd_list
+        for child in node.children:
+            last_gfx_list = walk(child, last_gfx_list)
+        return last_gfx_list
+
+    for node in geolayoutGraph.startGeolayout.nodes:
+        last_gfx_list = walk(node, last_gfx_list)
 
     # Revert settings in each draw layer
-    for layer in sorted(drawLayers):  # Must be sorted, otherwise ordering is random due to `set` behavior
-        dlNode = DisplayListNode(layer)
-        dlNode.DLmicrocode = fModel.materialRevert
+    for gfx_list in last_gfx_list.values():
+        # remove SPEndDisplayList from gfx_list, materialRevert has its own SPEndDisplayList cmd
+        while SPEndDisplayList() in gfx_list.commands:
+            gfx_list.commands.remove(SPEndDisplayList())
 
-        # Assume first node is start render area
-        # This is important, since a render area groups things separately.
-        # If we added these nodes outside the render area, they would not happen
-        # right after the nodes inside.
-        geolayoutGraph.startGeolayout.nodes[0].children.append(TransformNode(dlNode))
+        gfx_list.commands.extend(materialRevert.commands)
 
 
 # Convert to Geolayout
@@ -1545,6 +1565,7 @@ def processMesh(
                 if not firstNodeProcessed:
                     node.DLmicrocode = fMesh.draw
                     node.fMesh = fMesh
+                    node.bleed_independently = obj.bleed_independently
                     node.drawLayer = drawLayer  # previous drawLayer assigments useless?
                     firstNodeProcessed = True
                 else:
@@ -1555,6 +1576,7 @@ def processMesh(
                     )
                     additionalNode.DLmicrocode = fMesh.draw
                     additionalNode.fMesh = fMesh
+                    additionalNode.bleed_independently = obj.bleed_independently
                     additionalTransformNode = TransformNode(additionalNode)
                     transformNode.children.append(additionalTransformNode)
                     additionalTransformNode.parent = transformNode
@@ -2474,21 +2496,6 @@ def saveOverrideDraw(
     last_replaced = None
     command_index = 0
 
-    def find_material_from_jump_cmd(
-        material_list: tuple[tuple[bpy.types.Material, str, FAreaData], tuple[FMaterial, tuple[int, int]]],
-        dl_jump: SPDisplayList,
-    ):
-        if dl_jump.displayList.tag == GfxListTag.Geometry:
-            return None, None
-        for mat in material_list:
-            fmaterial = mat[1][0]
-            bpy_material = mat[0][0]
-            if dl_jump.displayList.tag == GfxListTag.MaterialRevert and fmaterial.revert == dl_jump.displayList:
-                return bpy_material, fmaterial
-            elif fmaterial.material == dl_jump.displayList:
-                return bpy_material, fmaterial
-        return None, None
-
     while command_index < len(meshMatOverride.commands):
         command = meshMatOverride.commands[command_index]
         if not isinstance(command, SPDisplayList):
@@ -2503,7 +2510,7 @@ def saveOverrideDraw(
 
         # replace the material load if necessary
         # if we replaced the previous load with the same override, then remove the cmd to optimize DL
-        if command.displayList.tag == GfxListTag.Material:
+        if command.displayList.tag & GfxListTag.Material:
             curMaterial = fmaterial
             if shouldModify:
                 last_replaced = fmaterial
@@ -2527,14 +2534,14 @@ def saveOverrideDraw(
             prev_material = curMaterial
 
         # replace the revert if the override has a revert, otherwise remove the command
-        if command.displayList.tag == GfxListTag.MaterialRevert and shouldModify:
+        if command.displayList.tag & GfxListTag.MaterialRevert and shouldModify:
             if fOverrideMat.revert is not None:
                 command.displayList = fOverrideMat.revert
             else:
                 meshMatOverride.commands.pop(command_index)
                 command_index -= 1
 
-        if not command.displayList.tag == GfxListTag.Geometry:
+        if not command.displayList.tag & GfxListTag.Geometry:
             command_index += 1
             continue
         # If the previous command was a revert we added, remove it. All reverts must be followed by a load
@@ -2559,7 +2566,7 @@ def saveOverrideDraw(
             next_command = meshMatOverride.commands[command_index + 1]
             if (
                 isinstance(next_command, SPDisplayList)
-                and next_command.displayList.tag == GfxListTag.Material
+                and next_command.displayList.tag & GfxListTag.Material
                 and next_command.displayList != prev_material.material
             ) or (isinstance(next_command, SPEndDisplayList)):
                 meshMatOverride.commands.insert(command_index + 1, SPDisplayList(fOverrideMat.revert))
