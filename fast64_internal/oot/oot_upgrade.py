@@ -319,13 +319,16 @@ def upgradeActors(actorObj: Object):
             transActorProp.isRoomTransition = actorObj["ootTransitionActorProperty"]["dontTransition"] == False
             del actorObj["ootTransitionActorProperty"]["dontTransition"]
 
-        if "roomIndex" in transActorProp:
-            for obj in bpy.data.objects:
-                if obj.type == "EMPTY":
-                    if obj.ootEmptyType == "Room":
-                        if actorObj in obj.children_recursive:
-                            transActorProp.fromRoom = obj
+        for obj in bpy.data.objects:
+            if obj.type == "EMPTY":
+                if obj.ootEmptyType == "Room":
+                    if actorObj in obj.children_recursive:
+                        transActorProp.fromRoom = obj
 
-                        if obj.ootRoomHeader.roomIndex == actorObj["ootTransitionActorProperty"]["roomIndex"]:
-                            transActorProp.toRoom = obj
-                            del actorObj["ootTransitionActorProperty"]["roomIndex"]
+        if "roomIndex" in transActorProp and transActorProp.fromRoom is not None:
+            for obj in bpy.data.objects:
+                if obj.name != transActorProp.fromRoom.name and obj.type == "EMPTY" and obj.ootEmptyType == "Room":
+                    if obj.ootRoomHeader.roomIndex == actorObj["ootTransitionActorProperty"]["roomIndex"]:
+                        transActorProp.toRoom = obj
+                        del actorObj["ootTransitionActorProperty"]["roomIndex"]
+                        break
