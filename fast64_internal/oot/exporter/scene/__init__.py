@@ -179,10 +179,16 @@ class Scene(Base):
         csDataList: list[CData] = []
         headers: list[SceneHeader] = [
             self.mainHeader,
-            self.altHeader.childNight,
-            self.altHeader.adultDay,
-            self.altHeader.adultNight,
         ]
+
+        if self.altHeader is not None:
+            headers.extend(
+                [
+                    self.altHeader.childNight,
+                    self.altHeader.adultDay,
+                    self.altHeader.adultNight,
+                ]
+            )
 
         for curHeader in headers:
             if curHeader is not None:

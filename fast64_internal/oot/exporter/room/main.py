@@ -75,7 +75,7 @@ class Room(Base):
 
         self.hasAlternateHeaders = True if len(altHeader.cutscenes) > 0 else self.hasAlternateHeaders
         self.altHeader = altHeader if self.hasAlternateHeaders else None
-        addMissingObjectsToAllRoomHeadersNew(self.roomObj, self, ootData)
+        addMissingObjectsToAllRoomHeadersNew(self.roomObj, self)
 
         # Mesh stuff
         self.mesh = OOTRoomMesh(self.name, self.roomShapeType, self.model)

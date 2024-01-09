@@ -64,6 +64,7 @@ class SceneFile:
         """Adds includes at the beginning of each file to write"""
 
         sceneInclude = f'#include "{self.name}.h"\n\n\n'
+        csInclude = sceneInclude[:-2] + '#include "z64cutscene.h"\n' + '#include "z64cutscene_commands.h"\n\n\n'
 
         for roomData in self.roomList.values():
             roomData.roomMain = self.getSourceWithSceneInclude(sceneInclude, roomData.roomMain)
@@ -72,13 +73,14 @@ class SceneFile:
                 roomData.roomModelInfo = self.getSourceWithSceneInclude(sceneInclude, roomData.roomModelInfo)
                 roomData.roomModel = self.getSourceWithSceneInclude(sceneInclude, roomData.roomModel)
 
-        self.sceneMain = self.getSourceWithSceneInclude(sceneInclude, self.sceneMain)
+        self.sceneMain = self.getSourceWithSceneInclude(
+            sceneInclude if not self.singleFileExport else csInclude, self.sceneMain
+        )
         self.sceneTextures = self.getSourceWithSceneInclude(sceneInclude, self.sceneTextures)
 
         if not self.singleFileExport:
             self.sceneCollision = self.getSourceWithSceneInclude(sceneInclude, self.sceneCollision)
             if self.hasCutscenes:
-                csInclude = sceneInclude[:-2] + '#include "z64cutscene.h"\n' + '#include "z64cutscene_commands.h"\n\n\n'
                 for i in range(len(self.sceneCutscenes)):
                     self.sceneCutscenes[i] = self.getSourceWithSceneInclude(csInclude, self.sceneCutscenes[i])
 

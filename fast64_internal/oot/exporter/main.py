@@ -86,7 +86,7 @@ class SceneExporter:
             if newScene.mainHeader.cutscene is not None:
                 self.hasCutscenes = len(newScene.mainHeader.cutscene.entries) > 0
 
-                if not self.hasCutscenes:
+                if not self.hasCutscenes and newScene.altHeader is not None:
                     for cs in newScene.altHeader.cutscenes:
                         if len(cs.cutscene.entries) > 0:
                             self.hasCutscenes = True

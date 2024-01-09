@@ -140,7 +140,7 @@ class RoomActors(HeaderBase):
     actorList: list[Actor] = field(default_factory=list)
 
     def __post_init__(self):
-        actorObjList = getObjectList(self.sceneObj.children_recursive, "EMPTY", "Actor")
+        actorObjList = getObjectList(self.sceneObj.children_recursive, "EMPTY", "Actor", parentObj=self.roomObj)
         for obj in actorObjList:
             actorProp = obj.ootActorProperty
             if not self.isCurrentHeaderValid(actorProp.headerSettings, self.headerIndex):

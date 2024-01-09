@@ -943,7 +943,11 @@ def getNewPath(type: str, isClosedShape: bool):
 
 
 def getObjectList(
-    objList: list[Object], objType: str, emptyType: Optional[str] = None, splineType: Optional[str] = None
+    objList: list[Object],
+    objType: str,
+    emptyType: Optional[str] = None,
+    splineType: Optional[str] = None,
+    parentObj: Object = None,
 ):
     """
     Returns a list containing objects matching ``objType``. Sorts by object name.
@@ -953,6 +957,7 @@ def getObjectList(
     - ``objType``: the object's type (``EMPTY``, ``CURVE``, etc.)
     - ``emptyType``: optional, filters the object by the given empty type
     - ``splineType``: optional, filters the object by the given spline type
+    - ``parentObj``: optional, checks if the found object is parented to ``parentObj``
     """
 
     ret: list[Object] = []
@@ -963,6 +968,9 @@ def getObjectList(
             cond = obj.ootEmptyType == emptyType
         elif splineType is not None:
             cond = obj.ootSplineProperty.splineType == splineType
+
+        if parentObj is not None:
+            cond = cond and obj.parent is not None and obj.parent.name == parentObj.name
 
         if obj.type == objType and cond:
             ret.append(obj)
