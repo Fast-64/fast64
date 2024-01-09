@@ -2803,6 +2803,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
             if len(context.selected_objects) == 0:
                 raise PluginError("Object not selected.")
             obj = bpy.data.objects.get(self.export_obj, None) or context.active_object
+            self.export_obj = ""
             if obj.type != "MESH" and not (
                 obj.type == "EMPTY" and (obj.sm64_obj_type == "None" or obj.sm64_obj_type == "Switch")
             ):
@@ -2977,6 +2978,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
             if len(context.selected_objects) == 0:
                 raise PluginError("Armature not selected.")
             armatureObj = bpy.data.objects.get(self.export_obj, None) or context.active_object
+            self.export_obj = ""
             if armatureObj.type != "ARMATURE":
                 raise PluginError("Armature not selected.")
 
@@ -3176,9 +3178,6 @@ class SM64_ExportGeolayoutPanel(SM64_Panel):
         col = self.layout.column()
         propsGeoE = col.operator(SM64_ExportGeolayoutArmature.bl_idname)
         propsGeoE = col.operator(SM64_ExportGeolayoutObject.bl_idname)
-
-        # c exporting moved to combined object export
-
         if context.scene.fast64.sm64.exportType == "Insertable Binary":
             col.prop(context.scene, "geoInsertableBinaryPath")
         else:
@@ -3240,14 +3239,6 @@ def sm64_geo_writer_register():
     bpy.types.Scene.geoSeparateTextureDef = bpy.props.BoolProperty(name="Save texture.inc.c separately")
     bpy.types.Scene.geoInsertableBinaryPath = bpy.props.StringProperty(name="Filepath", subtype="FILE_PATH")
     bpy.types.Scene.geoIsSegPtr = bpy.props.BoolProperty(name="Is Segmented Address")
-    bpy.types.Scene.geoName = bpy.props.StringProperty(name="Directory Name", default="mario")
-    bpy.types.Scene.geoGroupName = bpy.props.StringProperty(name="Name", default="group0")
-    bpy.types.Scene.geoExportHeaderType = bpy.props.EnumProperty(
-        name="Header Export", items=enumExportHeaderType, default="Actor"
-    )
-    bpy.types.Scene.geoCustomExport = bpy.props.BoolProperty(name="Custom Export Path")
-    bpy.types.Scene.geoLevelName = bpy.props.StringProperty(name="Level", default="bob")
-    bpy.types.Scene.geoLevelOption = bpy.props.EnumProperty(items=enumLevelNames, name="Level", default="bob")
     bpy.types.Scene.replaceStarRefs = bpy.props.BoolProperty(
         name="Replace old DL references in other actors", default=True
     )
@@ -3258,7 +3249,6 @@ def sm64_geo_writer_register():
         name="Replace old DL references in other actors", default=True
     )
     bpy.types.Scene.modifyOldGeo = bpy.props.BoolProperty(name="Rename old geolayout to avoid conflicts", default=True)
-    bpy.types.Scene.geoStructName = bpy.props.StringProperty(name="Geolayout Name", default="mario_geo")
 
 
 def sm64_geo_writer_unregister():
@@ -3279,14 +3269,7 @@ def sm64_geo_writer_unregister():
     del bpy.types.Scene.geoSeparateTextureDef
     del bpy.types.Scene.geoInsertableBinaryPath
     del bpy.types.Scene.geoIsSegPtr
-    del bpy.types.Scene.geoName
-    del bpy.types.Scene.geoGroupName
-    del bpy.types.Scene.geoExportHeaderType
-    del bpy.types.Scene.geoCustomExport
-    del bpy.types.Scene.geoLevelName
-    del bpy.types.Scene.geoLevelOption
     del bpy.types.Scene.replaceStarRefs
     del bpy.types.Scene.replaceTransparentStarRefs
     del bpy.types.Scene.replaceCapRefs
     del bpy.types.Scene.modifyOldGeo
-    del bpy.types.Scene.geoStructName

@@ -512,7 +512,7 @@ class SM64_ExportCollision(bpy.types.Operator):
             if len(context.selected_objects) == 0:
                 raise PluginError("Object not selected.")
             obj = bpy.data.objects.get(self.export_obj, None) or context.active_object
-
+            self.export_obj = ""
             scale_value = bpy.context.scene.blenderToSM64Scale
             final_transform = mathutils.Matrix.Diagonal(
                 mathutils.Vector((scale_value, scale_value, scale_value))
@@ -637,9 +637,6 @@ class SM64_ExportCollisionPanel(SM64_Panel):
         propsColE = col.operator(SM64_ExportCollision.bl_idname)
 
         col.prop(context.scene, "colIncludeChildren")
-
-        # c exporting moved to combined object export panel
-
         if context.scene.fast64.sm64.exportType == "Insertable Binary":
             col.prop(context.scene, "colInsertableBinaryPath")
         else:
@@ -674,7 +671,6 @@ def sm64_col_register():
         register_class(cls)
 
     # Collision
-    bpy.types.Scene.colExportPath = bpy.props.StringProperty(name="Directory", subtype="FILE_PATH")
     bpy.types.Scene.colExportLevel = bpy.props.EnumProperty(
         items=level_enums, name="Level Used By Collision", default="WF"
     )
@@ -684,15 +680,6 @@ def sm64_col_register():
     bpy.types.Scene.colEndAddr = bpy.props.StringProperty(name="Start Address", default="11FFF00")
     bpy.types.Scene.colIncludeChildren = bpy.props.BoolProperty(name="Include child objects", default=True)
     bpy.types.Scene.colInsertableBinaryPath = bpy.props.StringProperty(name="Filepath", subtype="FILE_PATH")
-    bpy.types.Scene.colExportRooms = bpy.props.BoolProperty(name="Export Rooms", default=False)
-    bpy.types.Scene.colName = bpy.props.StringProperty(name="Name", default="mario")
-    bpy.types.Scene.colCustomExport = bpy.props.BoolProperty(name="Custom Export Path")
-    bpy.types.Scene.colExportHeaderType = bpy.props.EnumProperty(
-        items=enumExportHeaderType, name="Header Export", default="Actor"
-    )
-    bpy.types.Scene.colGroupName = bpy.props.StringProperty(name="Group Name", default="group0")
-    bpy.types.Scene.colLevelName = bpy.props.StringProperty(name="Level", default="bob")
-    bpy.types.Scene.colLevelOption = bpy.props.EnumProperty(items=enumLevelNames, name="Level", default="bob")
 
     bpy.types.Material.collision_type = bpy.props.EnumProperty(
         name="Collision Type", items=enumCollisionType, default="SURFACE_DEFAULT"
@@ -715,20 +702,12 @@ def sm64_col_register():
 
 def sm64_col_unregister():
     # Collision
-    del bpy.types.Scene.colExportPath
     del bpy.types.Scene.colExportLevel
     del bpy.types.Scene.addr_0x2A
     del bpy.types.Scene.set_addr_0x2A
     del bpy.types.Scene.colStartAddr
     del bpy.types.Scene.colEndAddr
     del bpy.types.Scene.colInsertableBinaryPath
-    del bpy.types.Scene.colExportRooms
-    del bpy.types.Scene.colName
-    del bpy.types.Scene.colCustomExport
-    del bpy.types.Scene.colExportHeaderType
-    del bpy.types.Scene.colGroupName
-    del bpy.types.Scene.colLevelName
-    del bpy.types.Scene.colLevelOption
 
     del bpy.types.Material.collision_type
     del bpy.types.Material.collision_type_simple
