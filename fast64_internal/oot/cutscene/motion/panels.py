@@ -1,6 +1,6 @@
 from bpy.types import Panel
 from bpy.utils import register_class, unregister_class
-from .properties import OOTCSMotionCameraShotProperty, OOTCSMotionCameraShotPointProperty
+from .properties import CutsceneCmdCameraShotProperty, CutsceneCmdCameraShotPointProperty
 
 
 class OOT_CSMotionCameraShotPanel(Panel):
@@ -16,8 +16,8 @@ class OOT_CSMotionCameraShotPanel(Panel):
         layout = self.layout
 
         if obj.type == "ARMATURE":
-            camShotProp: OOTCSMotionCameraShotProperty = obj.data.ootCamShotProp
-            camShotPointProp: OOTCSMotionCameraShotPointProperty = None
+            camShotProp: CutsceneCmdCameraShotProperty = obj.data.ootCamShotProp
+            camShotPointProp: CutsceneCmdCameraShotPointProperty = None
             activeBone = editBone = None
 
             box = layout.box()

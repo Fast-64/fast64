@@ -252,6 +252,7 @@ def ootFlipbookAnimUpdate(self, armatureObj: bpy.types.Object, segment: str, ind
 
 # END GAME SPECIFIC CALLBACKS
 
+
 # we use a handler since update functions are not called when a property is animated.
 @persistent
 def flipbookAnimHandler(dummy):
