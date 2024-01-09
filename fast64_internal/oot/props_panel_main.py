@@ -1,7 +1,6 @@
 import bpy
 from bpy.utils import register_class, unregister_class
 from ..utility import prop_split, gammaInverse
-from .oot_constants import ootEnumEmptyType
 from .oot_utility import getSceneObj, getRoomObj
 from .scene.properties import OOTSceneProperties
 from .room.properties import OOTObjectProperty, OOTRoomHeaderProperty, OOTAlternateRoomHeaderProperty
@@ -9,8 +8,8 @@ from .collision.properties import OOTWaterBoxProperty
 from .cutscene.properties import OOTCutsceneProperty
 from .cutscene.motion.properties import (
     OOTCutsceneMotionProperty,
-    OOTCSMotionActorCueListProperty,
-    OOTCSMotionActorCueProperty,
+    CutsceneCmdActorCueListProperty,
+    CutsceneCmdActorCueProperty,
 )
 
 from .actor.properties import (
@@ -18,6 +17,28 @@ from .actor.properties import (
     OOTTransitionActorProperty,
     OOTEntranceProperty,
 )
+
+# Make sure to add exceptions in utility.py - selectMeshChildrenOnly
+ootEnumEmptyType = [
+    ("None", "None", "None"),
+    ("Scene", "Scene", "Scene"),
+    ("Room", "Room", "Room"),
+    ("Actor", "Actor", "Actor"),
+    ("Transition Actor", "Transition Actor", "Transition Actor"),
+    ("Entrance", "Entrance", "Entrance"),
+    ("Water Box", "Water Box", "Water Box"),
+    ("Cull Group", "Custom Cull Group", "Cull Group"),
+    ("LOD", "LOD Group", "LOD Group"),
+    ("Cutscene", "Cutscene Main", "Cutscene"),
+    ("CS Actor Cue List", "CS Actor Cue List", "CS Actor Cue List"),
+    ("CS Actor Cue", "CS Actor Cue", "CS Actor Cue"),
+    ("CS Player Cue List", "CS Player Cue List", "CS Player Cue List"),
+    ("CS Player Cue", "CS Player Cue", "CS Player Cue"),
+    ("CS Actor Cue Preview", "CS Actor Cue Preview", "CS Actor Cue Preview"),
+    ("CS Player Cue Preview", "CS Player Cue Preview", "CS Player Cue Preview"),
+    ("CS Dummy Cue", "CS Dummy Cue", "CS Dummy Cue"),
+    # ('Camera Volume', 'Camera Volume', 'Camera Volume'),
+]
 
 
 def drawSceneHeader(box: bpy.types.UILayout, obj: bpy.types.Object):
@@ -96,7 +117,7 @@ class OOTObjectPanel(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.gameEditorMode == "OOT" and (context.object is not None and context.object.data is None)
+        return context.scene.gameEditorMode == "OOT" and (context.object is not None and context.object.type == "EMPTY")
 
     def draw(self, context):
         prop_split(self.layout, context.scene, "gameEditorMode", "Game")
@@ -156,12 +177,12 @@ class OOTObjectPanel(bpy.types.Panel):
             "CS Player Cue Preview",
         ]:
             labelPrefix = "Player" if "Player" in obj.ootEmptyType else "Actor"
-            actorCueListProp: OOTCSMotionActorCueListProperty = obj.ootCSMotionProperty.actorCueListProp
+            actorCueListProp: CutsceneCmdActorCueListProperty = obj.ootCSMotionProperty.actorCueListProp
             actorCueListProp.draw_props(box, obj.ootEmptyType == f"CS {labelPrefix} Cue Preview", labelPrefix, obj.name)
 
         elif obj.ootEmptyType in ["CS Actor Cue", "CS Player Cue", "CS Dummy Cue"]:
             labelPrefix = "Player" if obj.parent.ootEmptyType == "CS Player Cue List" else "Actor"
-            actorCueProp: OOTCSMotionActorCueProperty = obj.ootCSMotionProperty.actorCueProp
+            actorCueProp: CutsceneCmdActorCueProperty = obj.ootCSMotionProperty.actorCueProp
             actorCueProp.draw_props(box, labelPrefix, obj.ootEmptyType == "CS Dummy Cue", obj.name)
 
         elif obj.ootEmptyType == "None":
@@ -177,6 +198,8 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
             if obj.type == "EMPTY":
                 if obj.ootEmptyType == "Room":
                     OOTObjectProperty.upgrade_object(obj)
+                if obj.ootEmptyType in {"Entrance", "Transition Actor"}:
+                    OOTActorProperty.upgrade_object(obj)
                 if any(obj.name.startswith(elem) for elem in ["ActionList.", "Point.", "Preview."]):
                     OOTCutsceneMotionProperty.upgrade_object(obj)
 
@@ -188,8 +211,14 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
                         else:
                             print("WARNING: An Actor Cue has been detected outside an Actor Cue List: " + obj.name)
             elif obj.type == "ARMATURE":
-                if obj.parent.name.startswith("Cutscene.") or obj.parent.ootEmptyType == "Cutscene":
+                parentObj = obj.parent
+                if parentObj is not None and (
+                    parentObj.name.startswith("Cutscene.") or parentObj.ootEmptyType == "Cutscene"
+                ):
                     OOTCutsceneMotionProperty.upgrade_object(obj)
+
+                if obj.ootEmptyType == "Cutscene":
+                    OOTCutsceneProperty.upgrade_object(obj)
 
 
 class OOTCullGroupProperty(bpy.types.PropertyGroup):

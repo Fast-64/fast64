@@ -16,6 +16,7 @@ from typing import Tuple, Union, Iterable
 from ..f3d.f3d_bleed import BleedGraphics
 
 from ..f3d.f3d_gbi import (
+    get_F3D_GBI,
     GbiMacro,
     GfxTag,
     FMaterial,
@@ -524,7 +525,7 @@ def exportF3DtoInsertableBinary(filepath, transformMatrix, obj, includeChildren)
 
     data, startRAM = getBinaryBank0F3DData(fModel, 0, [0, 0xFFFFFF])
     # must happen after getBinaryBank0F3DData
-    address_ptrs = fModel.get_ptr_addresses(f3dType)
+    address_ptrs = fModel.get_ptr_addresses(get_F3D_GBI())
 
     writeInsertableFile(filepath, insertableBinaryTypes["Display List"], address_ptrs, fMesh.draw.startAddress, data)
 
@@ -566,7 +567,7 @@ class SM64_ExportDL(bpy.types.Operator):
             if len(allObjs) == 0:
                 raise PluginError("No objects selected.")
             obj = context.selected_objects[0]
-            if not isinstance(obj.data, bpy.types.Mesh):
+            if obj.type != "MESH":
                 raise PluginError("Object is not a mesh.")
 
             # T, R, S = obj.matrix_world.decompose()

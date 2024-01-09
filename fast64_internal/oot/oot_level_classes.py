@@ -1,5 +1,9 @@
-import bpy, os, shutil
+import bpy
+import os
+import shutil
+
 from typing import Optional
+from bpy.types import Object
 from ..utility import PluginError, toAlnum, indent
 from .oot_collision_classes import OOTCollision
 from .oot_model_classes import OOTModel
@@ -111,16 +115,10 @@ class OOTScene(OOTCommonCommands):
         self.cameraList = []
 
         self.writeCutscene = False
-        self.csWriteType = "Embedded"
+        self.csWriteType = "Object"
+        self.csName = ""
         self.csWriteCustom = ""
-        self.csWriteObject = None
-        self.csEndFrame = 100
-        self.csWriteTerminator = False
-        self.csTermIdx = 0
-        self.csTermStart = 99
-        self.csTermEnd = 100
-        self.csLists = []
-        self.extraCutscenes = []
+        self.extraCutscenes: list[Object] = []
 
         self.sceneTableEntry = OOTSceneTableEntry()
 
@@ -160,9 +158,6 @@ class OOTScene(OOTCommonCommands):
 
     def cameraListName(self):
         return self.sceneName() + "_cameraList"
-
-    def cutsceneDataName(self, headerIndex):
-        return self.sceneName() + "_header" + format(headerIndex, "02") + "_cutscene"
 
     def alternateHeadersName(self):
         return self.sceneName() + "_alternateHeaders"

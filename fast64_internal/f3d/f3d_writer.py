@@ -1,4 +1,4 @@
-from typing import Union, Optional, Callable, Any
+from typing import Union, Optional, Callable, Any, List
 from dataclasses import dataclass
 import functools
 import bpy, mathutils, os, re, copy, math
@@ -7,10 +7,10 @@ from math import ceil
 from bpy.utils import register_class, unregister_class
 
 from .f3d_enums import *
-from .f3d_constants import *
 from .f3d_material import (
     all_combiner_uses,
     getMaterialScrollDimensions,
+    getZMode,
     isTexturePointSampled,
     RDPSettings,
 )
@@ -304,8 +304,7 @@ def saveMeshWithLargeTexturesByFaces(
             texDimensions,
             material,
             currentGroupIndex,
-            triGroup.triList,
-            triGroup.vertexList,
+            triGroup,
             copy.deepcopy(existingVertData),
             copy.deepcopy(matRegionDict),
         )
@@ -453,8 +452,9 @@ def exportF3DCommon(obj, fModel, transformMatrix, includeChildren, name, DLForma
     try:
         infoDict = getInfoDict(tempObj)
         triConverterInfo = TriangleConverterInfo(tempObj, None, fModel.f3d, transformMatrix, infoDict)
+        revert_materials = fModel.matWriteMethod == GfxMatWriteMethod.WriteDifferingAndRevert
         fMeshes = saveStaticModel(
-            triConverterInfo, fModel, tempObj, transformMatrix, name, convertTextureData, True, None
+            triConverterInfo, fModel, tempObj, transformMatrix, name, convertTextureData, revert_materials, None
         )
         cleanupCombineObj(tempObj, meshList)
         obj.select_set(True)
@@ -497,7 +497,14 @@ def revertMatAndEndDraw(gfxList, otherCommands):
             DPPipeSync(),
             SPSetGeometryMode(["G_LIGHTING"]),
             SPClearGeometryMode(["G_TEXTURE_GEN"]),
-            DPSetCombineMode(*S_SHADED_SOLID),
+            DPSetCombineMode(
+                *(
+                    ["0", "0", "0", "SHADE"]
+                    + ["0", "0", "0", "ENVIRONMENT"]
+                    + ["0", "0", "0", "SHADE"]
+                    + ["0", "0", "0", "ENVIRONMENT"]
+                )
+            ),
             SPTexture(0xFFFF, 0xFFFF, 0, 0, 0),
         ]
         + otherCommands
@@ -633,8 +640,7 @@ def saveMeshByFaces(
         texDimensions,
         material,
         currentGroupIndex,
-        triGroup.triList,
-        triGroup.vertexList,
+        triGroup,
         copy.deepcopy(existingVertData),
         copy.deepcopy(matRegionDict),
     )
@@ -794,8 +800,7 @@ class TriangleConverter:
         texDimensions: tuple[int, int],
         material: bpy.types.Material,
         currentGroupIndex,
-        triList,
-        vtxList,
+        triGroup: FTriGroup,
         existingVertexData: list[BufferVertex],
         existingVertexMaterialRegions,
     ):
@@ -811,9 +816,11 @@ class TriangleConverter:
         self.bufferStart = len(self.vertBuffer)
         self.vertexBufferTriangles = []  # [(index0, index1, index2)]
 
-        self.triList = triList
-        self.vtxList = vtxList
+        self.triGroup = triGroup
+        self.triList = triGroup.triList
+        self.vtxList = triGroup.vertexList
 
+        self.material = material
         uv_data = triConverterInfo.obj.data.uv_layers["UVMap"].data
         self.convertInfo = LoopConvertInfo(uv_data, triConverterInfo.obj, material)
         self.texDimensions = texDimensions
@@ -900,11 +907,135 @@ class TriangleConverter:
             bufferStart = bufferEnd
 
         # Load triangles
-        self.triList.commands.extend(
-            createTriangleCommands(
-                self.vertexBufferTriangles, self.vertBuffer, not self.triConverterInfo.f3d.F3D_OLD_GBI
-            )
+        triCmds = createTriangleCommands(
+            self.vertexBufferTriangles, self.vertBuffer, not self.triConverterInfo.f3d.F3D_OLD_GBI
         )
+        if not self.material.f3d_mat.use_cel_shading:
+            self.triList.commands.extend(triCmds)
+        else:
+            if len(triCmds) <= 2:
+                self.writeCelLevels(triCmds=triCmds)
+            else:
+                celTriList = self.triGroup.add_cel_tri_list()
+                celTriList.commands.extend(triCmds)
+                celTriList.commands.append(SPEndDisplayList())
+                self.writeCelLevels(celTriList=celTriList)
+
+    def writeCelLevels(self, celTriList: Optional[GfxList] = None, triCmds: Optional[List[GbiMacro]] = None) -> None:
+        assert (celTriList == None) != (triCmds == None)
+        f3dMat = self.material.f3d_mat
+        cel = f3dMat.cel_shading
+        f3d = get_F3D_GBI()
+
+        # Don't want to have to change back and forth arbitrarily between decal and
+        # opaque mode. So if you're using both lighter and darker, need to do those
+        # first before switching to decal.
+        if getZMode(self.material) != "ZMODE_OPA":
+            raise PluginError(
+                f"Material {self.material.name} with cel shading: zmode in blender / rendermode must be opaque.",
+                icon="ERROR",
+            )
+        wroteLighter = wroteDarker = usesDecal = False
+        if len(cel.levels) == 0:
+            raise PluginError(f"Material {self.material.name} with cel shading has no cel levels")
+        for level in cel.levels:
+            if level.threshMode == "Darker":
+                if wroteDarker:
+                    usesDecal = True
+                elif usesDecal:
+                    raise PluginError(
+                        f"Material {self.material.name}: must use Lighter and Darker cel levels before duplicating either of them"
+                    )
+                wroteDarker = True
+            else:
+                if wroteLighter:
+                    usesDecal = True
+                elif usesDecal:
+                    raise PluginError(
+                        f"Material {self.material.name}: must use Lighter and Darker cel levels before duplicating either of them"
+                    )
+                wroteLighter = True
+
+        # Because this might not be the first tri list in the object with this
+        # material, we have to set things even if they were set up already in
+        # the material.
+        wroteLighter = wroteDarker = wroteOpaque = wroteDecal = False
+        lastDarker = None
+        for level in cel.levels:
+            darker = level.threshMode == "Darker"
+            self.triList.commands.append(DPPipeSync())
+            if usesDecal:
+                if not wroteOpaque:
+                    wroteOpaque = True
+                    self.triList.commands.append(SPSetOtherMode("G_SETOTHERMODE_L", 10, 2, ["ZMODE_OPA"]))
+                if not wroteDecal and (darker and wroteDarker or not darker and wroteLighter):
+                    wroteDecal = True
+                    self.triList.commands.append(SPSetOtherMode("G_SETOTHERMODE_L", 10, 2, ["ZMODE_DEC"]))
+            if darker:
+                wroteDarker = True
+            else:
+                wroteLighter = True
+
+            if lastDarker != darker:
+                lastDarker = darker
+                # Set up CC.
+                ccSettings = []
+                for prop in ["A", "B", "C", "D"]:
+                    ccSettings.append(getattr(f3dMat.combiner1, prop))
+                ccSettings.extend(["1", "SHADE"] if darker else ["SHADE", "0"])
+                ccSettings.extend([cel.cutoutSource, "0"])
+                if f3dMat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
+                    for prop in ["A", "B", "C", "D", "A_alpha", "B_alpha", "C_alpha", "D_alpha"]:
+                        ccSettings.append(getattr(f3dMat.combiner2, prop))
+                else:
+                    ccSettings *= 2
+                self.triList.commands.append(DPSetCombineMode(*ccSettings))
+
+            # Set up tint color and level
+            if level.tintType == "Fixed":
+                color = exportColor(level.tintFixedColor)
+                if cel.tintPipeline == "CC":
+                    self.triList.commands.append(
+                        DPSetPrimColor(0, 0, color[0], color[1], color[2], level.tintFixedLevel)
+                    )
+                else:
+                    self.triList.commands.append(DPSetFogColor(color[0], color[1], color[2], level.tintFixedLevel))
+            elif level.tintType == "Segment":
+                self.triList.commands.append(
+                    SPDisplayList(
+                        GfxList(
+                            f"{level.tintSegmentNum:#04x}{level.tintSegmentOffset * 8:06x}",
+                            GfxListTag.Material,
+                            DLFormat.Static,
+                        )
+                    )
+                )
+            elif level.tintType == "Light":
+                if cel.tintPipeline == "CC":
+                    self.triList.commands.append(SPLightToPrimColor(level.tintLightSlot, level.tintFixedLevel, 0, 0))
+                else:
+                    self.triList.commands.append(SPLightToFogColor(level.tintLightSlot, level.tintFixedLevel))
+            else:
+                raise PluginError("Unknown tint type")
+
+            # Set up threshold
+            self.triList.commands.append(
+                DPSetBlendColor(255, 255, 255, 0x100 - level.threshold if darker else level.threshold)
+            )
+            self.triList.commands.append(
+                SPAlphaCompareCull(
+                    "G_ALPHA_COMPARE_CULL_ABOVE" if darker else "G_ALPHA_COMPARE_CULL_BELOW", level.threshold
+                )
+            )
+
+            # Draw tris, inline or by call
+            if triCmds is not None:
+                self.triList.commands.extend(triCmds)
+            else:
+                self.triList.commands.append(SPDisplayList(celTriList))
+
+        # Disable alpha compare culling for future DLs
+        self.triList.commands.append(SPAlphaCompareCull("G_ALPHA_COMPARE_CULL_DISABLE", 0))
 
     def addFace(self, face, stOffset):
         triIndices = []
@@ -1153,14 +1284,16 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             SPAmbOcclusion(
                 min(round(f3dMat.ao_ambient * 2**16), 0xFFFF),
                 min(round(f3dMat.ao_directional * 2**16), 0xFFFF),
+                min(round(f3dMat.ao_point * 2**16), 0xFFFF),
             )
         )
 
     if f3dMat.set_fresnel:
-        offset = min(round(f3dMat.fresnel_lo * 2**15), 0x7FFF)
-        scalePre = 256.0 / (f3dMat.fresnel_hi - f3dMat.fresnel_lo)
-        scale = max(min(round(scalePre), 0x7FFF), -0x8000)
-        fMaterial.mat_only_DL.commands.append(SPFresnel(offset, scale))
+        dotMin = round(f3dMat.fresnel_lo * 0x7FFF)
+        dotMax = round(f3dMat.fresnel_hi * 0x7FFF)
+        scale = max(min(0x3F8000 // (dotMax - dotMin), 0x7FFF), -0x8000)
+        offset = max(min(-(0x7F * dotMin) // (dotMax - dotMin), 0x7FFF), -0x8000)
+        fMaterial.mat_only_DL.commands.append(SPFresnel(scale, offset))
 
     if f3dMat.set_attroffs_st:
         fMaterial.mat_only_DL.commands.append(
@@ -1247,7 +1380,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         fMaterial.mat_only_DL.commands.extend([SPSetLights(fLights)])  # TODO: handle synching: NO NEED?
 
     if useDict["Key"] and f3dMat.set_key:
-        if material.mat_ver == 4:
+        if material.mat_ver >= 4:
             center = f3dMat.key_center
         else:
             center = nodes["Chroma Key Center"].outputs[0].default_value
@@ -1321,7 +1454,7 @@ def saveLightsDefinition(fModel, fMaterial, material, lightsName):
 
     if material.use_default_lighting:
         lights.a = Ambient(exportColor(material.ambient_light_color))
-        lights.l.append(Light(exportColor(material.default_light_color), [0x28, 0x28, 0x28]))
+        lights.l.append(Light(exportColor(material.default_light_color), [0x49, 0x49, 0x49]))
     else:
         lights.a = Ambient(exportColor(material.ambient_light_color))
 
@@ -1378,12 +1511,14 @@ def saveGeoModeCommon(saveFunc: Callable, settings: RDPSettings, defaults: RDPSe
     saveFunc(settings.g_cull_front, defaults.g_cull_front, "G_CULL_FRONT", *args)
     saveFunc(settings.g_cull_back, defaults.g_cull_back, "G_CULL_BACK", *args)
     if bpy.context.scene.f3d_type == "F3DEX3":
-        saveFunc(settings.g_attroffset_st_enable, defaults.g_attroffset_st_enable, "G_ATTROFFSET_ST_ENABLE", *args)
+        saveFunc(settings.g_ambocclusion, defaults.g_ambocclusion, "G_AMBOCCLUSION", *args)
         saveFunc(settings.g_attroffset_z_enable, defaults.g_attroffset_z_enable, "G_ATTROFFSET_Z_ENABLE", *args)
+        saveFunc(settings.g_attroffset_st_enable, defaults.g_attroffset_st_enable, "G_ATTROFFSET_ST_ENABLE", *args)
         saveFunc(settings.g_packed_normals, defaults.g_packed_normals, "G_PACKED_NORMALS", *args)
         saveFunc(settings.g_lighttoalpha, defaults.g_lighttoalpha, "G_LIGHTTOALPHA", *args)
-        saveFunc(settings.g_ambocclusion, defaults.g_ambocclusion, "G_AMBOCCLUSION", *args)
-        saveFunc(settings.g_fresnel, defaults.g_fresnel, "G_FRESNEL", *args)
+        saveFunc(settings.g_lighting_specular, defaults.g_lighting_specular, "G_LIGHTING_SPECULAR", *args)
+        saveFunc(settings.g_fresnel_color, defaults.g_fresnel_color, "G_FRESNEL_COLOR", *args)
+        saveFunc(settings.g_fresnel_alpha, defaults.g_fresnel_alpha, "G_FRESNEL_ALPHA", *args)
     saveFunc(settings.g_fog, defaults.g_fog, "G_FOG", *args)
     saveFunc(settings.g_lighting, defaults.g_lighting, "G_LIGHTING", *args)
     saveFunc(settings.g_tex_gen, defaults.g_tex_gen, "G_TEXTURE_GEN", *args)
@@ -1703,7 +1838,7 @@ class F3D_ExportDL(bpy.types.Operator):
             if len(allObjs) == 0:
                 raise PluginError("No objects selected.")
             obj = context.selected_objects[0]
-            if not isinstance(obj.data, bpy.types.Mesh):
+            if obj.type != "MESH":
                 raise PluginError("Object is not a mesh.")
 
             scaleValue = bpy.context.scene.blenderF3DScale

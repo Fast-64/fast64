@@ -29,14 +29,14 @@ def getActorEntry(actor: OOTActor):
 def getActorList(outRoom: OOTRoom, headerIndex: int):
     """Returns the actor list for the current header"""
     actorList = CData()
-    listName = f"ActorEntry {outRoom.actorListName(headerIndex)}"
+    declarationBase = f"ActorEntry {outRoom.actorListName(headerIndex)}"
 
     # .h
-    actorList.header = f"extern {listName}[];\n"
+    actorList.header = f"extern {declarationBase}[];\n"
 
     # .c
     actorList.source = (
-        (f"{listName}[{outRoom.getActorLengthDefineName(headerIndex)}]" + " = {\n")
+        (f"{declarationBase}[{outRoom.getActorLengthDefineName(headerIndex)}]" + " = {\n")
         + "\n".join(getActorEntry(actor) for actor in outRoom.actorList)
         + "};\n\n"
     )
@@ -72,14 +72,14 @@ def getTransitionActorEntry(transActor: OOTTransitionActor):
 def getTransitionActorList(outScene: OOTScene, headerIndex: int):
     """Returns the transition actor list for the current header"""
     transActorList = CData()
-    listName = f"TransitionActorEntry {outScene.transitionActorListName(headerIndex)}"
+    declarationBase = f"TransitionActorEntry {outScene.transitionActorListName(headerIndex)}"
 
     # .h
-    transActorList.header = f"extern {listName}[];\n"
+    transActorList.header = f"extern {declarationBase}[];\n"
 
     # .c
     transActorList.source = (
-        (f"{listName}[]" + " = {\n")
+        (f"{declarationBase}[]" + " = {\n")
         + "\n".join(getTransitionActorEntry(transActor) for transActor in outScene.transitionActorList)
         + "};\n\n"
     )
@@ -93,14 +93,14 @@ def getTransitionActorList(outScene: OOTScene, headerIndex: int):
 def getSpawnActorList(outScene: OOTScene, headerIndex: int):
     """Returns the spawn actor list for the current header"""
     spawnActorList = CData()
-    listName = f"ActorEntry {outScene.startPositionsName(headerIndex)}"
+    declarationBase = f"ActorEntry {outScene.startPositionsName(headerIndex)}"
 
     # .h
-    spawnActorList.header = f"extern {listName}[];\n"
+    spawnActorList.header = f"extern {declarationBase}[];\n"
 
     # .c
     spawnActorList.source = (
-        (f"{listName}[]" + " = {\n")
+        (f"{declarationBase}[]" + " = {\n")
         + "".join(getActorEntry(spawnActor) for spawnActor in outScene.startPositions.values())
         + "};\n\n"
     )
@@ -116,14 +116,14 @@ def getSpawnEntry(entrance: OOTEntrance):
 def getSpawnList(outScene: OOTScene, headerIndex: int):
     """Returns the spawn list for the current header"""
     spawnList = CData()
-    listName = f"Spawn {outScene.entranceListName(headerIndex)}"
+    declarationBase = f"Spawn {outScene.entranceListName(headerIndex)}"
 
     # .h
-    spawnList.header = f"extern {listName}[];\n"
+    spawnList.header = f"extern {declarationBase}[];\n"
 
     # .c
     spawnList.source = (
-        (f"{listName}[]" + " = {\n")
+        (f"{declarationBase}[]" + " = {\n")
         + (indent + "// { Spawn Actor List Index, Room Index }\n")
         + "".join(getSpawnEntry(entrance) for entrance in outScene.entranceList)
         + "};\n\n"

@@ -99,7 +99,7 @@ def cmdToPositiveInt(cmd):
 
 
 def parseF3DBinary(romfile, startAddress, scene, bMesh, obj, transformMatrix, groupName, segmentData, vertexBuffer):
-    f3d = F3D("F3D", False)
+    f3d = F3D("F3D")
     currentAddress = startAddress
     romfile.seek(currentAddress)
     command = romfile.read(8)
@@ -513,13 +513,13 @@ class F3DContext:
 
         # Here these are ints, but when parsing the values will be normalized.
         self.lights.l = [
-            Light([0, 0, 0], [0x28, 0x28, 0x28]),
-            Light([0, 0, 0], [0x28, 0x28, 0x28]),
-            Light([0, 0, 0], [0x28, 0x28, 0x28]),
-            Light([0, 0, 0], [0x28, 0x28, 0x28]),
-            Light([0, 0, 0], [0x28, 0x28, 0x28]),
-            Light([0, 0, 0], [0x28, 0x28, 0x28]),
-            Light([0, 0, 0], [0x28, 0x28, 0x28]),
+            Light([0, 0, 0], [0x49, 0x49, 0x49]),
+            Light([0, 0, 0], [0x49, 0x49, 0x49]),
+            Light([0, 0, 0], [0x49, 0x49, 0x49]),
+            Light([0, 0, 0], [0x49, 0x49, 0x49]),
+            Light([0, 0, 0], [0x49, 0x49, 0x49]),
+            Light([0, 0, 0], [0x49, 0x49, 0x49]),
+            Light([0, 0, 0], [0x49, 0x49, 0x49]),
         ]
         self.lights.a = Ambient([0, 0, 0])
         self.numLights: int = 0
@@ -579,13 +579,13 @@ class F3DContext:
 
         self.lights = Lights("lights_context", self.f3d)
         self.lights.l = [
-            Light([0, 0, 0], [0x28, 0x28, 0x28]),
-            Light([0, 0, 0], [0x28, 0x28, 0x28]),
-            Light([0, 0, 0], [0x28, 0x28, 0x28]),
-            Light([0, 0, 0], [0x28, 0x28, 0x28]),
-            Light([0, 0, 0], [0x28, 0x28, 0x28]),
-            Light([0, 0, 0], [0x28, 0x28, 0x28]),
-            Light([0, 0, 0], [0x28, 0x28, 0x28]),
+            Light([0, 0, 0], [0x49, 0x49, 0x49]),
+            Light([0, 0, 0], [0x49, 0x49, 0x49]),
+            Light([0, 0, 0], [0x49, 0x49, 0x49]),
+            Light([0, 0, 0], [0x49, 0x49, 0x49]),
+            Light([0, 0, 0], [0x49, 0x49, 0x49]),
+            Light([0, 0, 0], [0x49, 0x49, 0x49]),
+            Light([0, 0, 0], [0x49, 0x49, 0x49]),
         ]
         self.lights.a = Ambient([0, 0, 0])
         self.numLights = 0
@@ -882,18 +882,22 @@ class F3DContext:
         if bitFlags & self.f3d.G_CULL_BACK:
             mat.rdp_settings.g_cull_back = value
         if self.f3d.F3DEX_GBI_3:
-            if bitFlags & self.f3d.G_ATTROFFSET_ST_ENABLE:
-                mat.rdp_settings.g_attroffset_st_enable = value
+            if bitFlags & self.f3d.G_AMBOCCLUSION:
+                mat.rdp_settings.g_ambocclusion = value
             if bitFlags & self.f3d.G_ATTROFFSET_Z_ENABLE:
                 mat.rdp_settings.g_attroffset_z_enable = value
+            if bitFlags & self.f3d.G_ATTROFFSET_ST_ENABLE:
+                mat.rdp_settings.g_attroffset_st_enable = value
             if bitFlags & self.f3d.G_PACKED_NORMALS:
                 mat.rdp_settings.g_packed_normals = value
             if bitFlags & self.f3d.G_LIGHTTOALPHA:
                 mat.rdp_settings.g_lighttoalpha = value
-            if bitFlags & self.f3d.G_AMBOCCLUSION:
-                mat.rdp_settings.g_ambocclusion = value
-            if bitFlags & self.f3d.G_FRESNEL:
-                mat.rdp_settings.g_fresnel = value
+            if bitFlags & self.f3d.G_LIGHTING_SPECULAR:
+                mat.rdp_settings.g_lighting_specular = value
+            if bitFlags & self.f3d.G_FRESNEL_COLOR:
+                mat.rdp_settings.g_fresnel_color = value
+            if bitFlags & self.f3d.G_FRESNEL_ALPHA:
+                mat.rdp_settings.g_fresnel_alpha = value
         if bitFlags & self.f3d.G_FOG:
             mat.rdp_settings.g_fog = value
         if bitFlags & self.f3d.G_LIGHTING:
@@ -919,19 +923,23 @@ class F3DContext:
         mat.rdp_settings.g_cull_front = bitFlags & self.f3d.G_CULL_FRONT != 0
         mat.rdp_settings.g_cull_back = bitFlags & self.f3d.G_CULL_BACK != 0
         if self.f3d.F3DEX_GBI_3:
-            mat.rdp_settings.g_attroffset_st_enable = bitFlags & self.f3d.G_ATTROFFSET_ST_ENABLE != 0
+            mat.rdp_settings.g_ambocclusion = bitFlags & self.f3d.G_AMBOCCLUSION != 0
             mat.rdp_settings.g_attroffset_z_enable = bitFlags & self.f3d.G_ATTROFFSET_Z_ENABLE != 0
+            mat.rdp_settings.g_attroffset_st_enable = bitFlags & self.f3d.G_ATTROFFSET_ST_ENABLE != 0
             mat.rdp_settings.g_packed_normals = bitFlags & self.f3d.G_PACKED_NORMALS != 0
             mat.rdp_settings.g_lighttoalpha = bitFlags & self.f3d.G_LIGHTTOALPHA != 0
-            mat.rdp_settings.g_ambocclusion = bitFlags & self.f3d.G_AMBOCCLUSION != 0
-            mat.rdp_settings.g_fresnel = bitFlags & self.f3d.G_FRESNEL != 0
+            mat.rdp_settings.g_lighting_specular = bitFlags & self.f3d.G_LIGHTING_SPECULAR != 0
+            mat.rdp_settings.g_fresnel_color = bitFlags & self.f3d.G_FRESNEL_COLOR != 0
+            mat.rdp_settings.g_fresnel_alpha = bitFlags & self.f3d.G_FRESNEL_ALPHA != 0
         else:
-            mat.rdp_settings.g_attroffset_st_enable = False
+            mat.rdp_settings.g_ambocclusion = False
             mat.rdp_settings.g_attroffset_z_enable = False
+            mat.rdp_settings.g_attroffset_st_enable = False
             mat.rdp_settings.g_packed_normals = False
             mat.rdp_settings.g_lighttoalpha = False
-            mat.rdp_settings.g_ambocclusion = False
-            mat.rdp_settings.g_fresnel = False
+            mat.rdp_settings.g_lighting_specular = False
+            mat.rdp_settings.g_fresnel_color = False
+            mat.rdp_settings.g_fresnel_alpha = False
         mat.rdp_settings.g_fog = bitFlags & self.f3d.G_FOG != 0
         mat.rdp_settings.g_lighting = bitFlags & self.f3d.G_LIGHTING != 0
         mat.rdp_settings.g_tex_gen = bitFlags & self.f3d.G_TEXTURE_GEN != 0
@@ -1273,7 +1281,7 @@ class F3DContext:
             lightList.append(Light(color, direction))
 
         while len(lightList) < 7:
-            lightList.append(Light(Vector([0, 0, 0]), Vector([0x28, 0x28, 0x28])))
+            lightList.append(Light(Vector([0, 0, 0]), Vector([0x49, 0x49, 0x49])))
 
         # normally a and l are Ambient and Light objects,
         # but here they will be a color and blender light object array.
@@ -1579,17 +1587,35 @@ class F3DContext:
                     self.setLightColor(dlData, command)
                 elif command.name[:13] == "gsSPSetLights":
                     self.setLights(dlData, command)
+                elif command.name == "gsSPAmbOcclusionAmb":
+                    mat.ao_ambient = float_from_u16_str(command.params[0])
+                    mat.set_ao = True
+                elif command.name == "gsSPAmbOcclusionDir":
+                    mat.ao_directional = float_from_u16_str(command.params[0])
+                    mat.set_ao = True
+                elif command.name == "gsSPAmbOcclusionPoint":
+                    mat.ao_point = float_from_u16_str(command.params[0])
+                    mat.set_ao = True
+                elif command.name == "gsSPAmbOcclusionAmbDir":
+                    mat.ao_ambient = float_from_u16_str(command.params[0])
+                    mat.ao_directional = float_from_u16_str(command.params[1])
+                    mat.set_ao = True
+                elif command.name == "gsSPAmbOcclusionDirPoint":
+                    mat.ao_directional = float_from_u16_str(command.params[0])
+                    mat.ao_point = float_from_u16_str(command.params[1])
+                    mat.set_ao = True
                 elif command.name == "gsSPAmbOcclusion":
-                    mat.ao_ambient = float(int(command.params[0], 0)) / (2**16)
-                    mat.ao_directional = float(int(command.params[1], 0)) / (2**16)
+                    mat.ao_ambient = float_from_u16_str(command.params[0])
+                    mat.ao_directional = float_from_u16_str(command.params[1])
+                    mat.ao_point = float_from_u16_str(command.params[2])
                     mat.set_ao = True
                 elif command.name == "gsSPFresnel":
-                    offset = min(float(int(command.params[0], 0)) / (2**15), 1.0)
-                    scale = int(command.params[1], 0)
-                    scaleInt = scale - 0x10000 if scale >= 0x8000 else scale
-                    scale = float(scaleInt) / (2**8)
-                    mat.fresnel_lo = offset
-                    mat.fresnel_hi = (1.0 / scale) + offset
+                    scale = int_from_s16_str(command.params[0])
+                    offset = int_from_s16_str(command.params[1])
+                    dotMax = ((0x7F - offset) << 15) // scale
+                    dotMin = ((0x00 - offset) << 15) // scale
+                    mat.fresnel_hi = dotMax / float(0x7FFF)
+                    mat.fresnel_lo = dotMin / float(0x7FFF)
                     mat.set_fresnel = True
                 elif command.name == "gsSPAttrOffsetST":
                     mat.attroffs_st = [

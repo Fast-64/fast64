@@ -3,10 +3,12 @@ import bpy
 from mathutils import Vector
 from bpy.ops import mesh, object, curve
 from bpy.types import Operator, Object, Context
-from bpy.props import FloatProperty, StringProperty
+from bpy.props import FloatProperty, StringProperty, EnumProperty, BoolProperty
 from ...operators import AddWaterBox, addMaterialByName
 from ...utility import parentObject, setOrigin
 from ..cutscene.motion.utility import setupCutscene, createNewCameraShot
+from ..oot_utility import getNewPath
+from .quick_import import QuickImportAborted, quick_import_exec
 
 
 class OOT_AddWaterBox(AddWaterBox):
@@ -95,6 +97,7 @@ class OOT_AddScene(Operator):
         roomObj = context.view_layer.objects.active
         roomObj.ootEmptyType = "Room"
         roomObj.name = "Room"
+        entranceObj.ootEntranceProperty.tiedRoom = roomObj
         parentObject(roomObj, planeObj)
 
         location += Vector([0, 0, 2])
@@ -181,22 +184,47 @@ class OOT_AddCutscene(Operator):
 class OOT_AddPath(Operator):
     bl_idname = "object.oot_add_path"
     bl_label = "Add Path"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
+    bl_options = {"REGISTER", "UNDO"}
+
+    isClosedShape: BoolProperty(name="", default=True)
+    pathType: EnumProperty(
+        name="",
+        items=[
+            ("Line", "Line", "Line"),
+            ("Square", "Square", "Square"),
+            ("Triangle", "Triangle", "Triangle"),
+            ("Trapezium", "Trapezium", "Trapezium"),
+        ],
+        default="Line",
+    )
 
     def execute(self, context):
         if context.mode != "OBJECT":
             object.mode_set(mode="OBJECT")
         object.select_all(action="DESELECT")
 
-        location = Vector(context.scene.cursor.location)
-        curve.primitive_nurbs_path_add(radius=1, align="WORLD", location=location[:])
-        pathObj = context.view_layer.objects.active
-        pathObj.name = "New Path"
+        pathObj = getNewPath(self.pathType, self.isClosedShape)
+        activeObj = context.view_layer.objects.active
+        if activeObj.type == "EMPTY" and activeObj.ootEmptyType == "Scene":
+            pathObj.parent = activeObj
 
         object.select_all(action="DESELECT")
         pathObj.select_set(True)
         context.view_layer.objects.active = pathObj
         return {"FINISHED"}
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self, width=320)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.label(text="Path Settings")
+        props = [("Path Type", "pathType"), ("Closed Shape", "isClosedShape")]
+
+        for desc, propName in props:
+            split = layout.split(factor=0.30)
+            split.label(text=desc)
+            split.prop(self, propName)
 
 
 class OOTClearTransformAndLock(Operator):
@@ -228,3 +256,40 @@ class OOTClearTransformAndLock(Operator):
             return {"FINISHED"}
         except:
             return {"CANCELLED"}
+
+
+class OOTQuickImport(Operator):
+    bl_idname = "object.oot_quick_import"
+    bl_label = "Quick Import"
+    bl_options = {"REGISTER", "UNDO"}
+    bl_description = (
+        "Import (almost) anything by inputting a symbol name from an object."
+        " This operator automatically finds the file to import from (within objects)"
+    )
+
+    sym_name: StringProperty(
+        name="Symbol name",
+        description=(
+            "Which symbol to import."
+            " This may be a display list (e.g. gBoomerangDL), "
+            "a skeleton (e.g. object_daiku_Skel_007958), "
+            "an animation (with the appropriate skeleton selected, e.g. object_daiku_Anim_008164)"
+        ),
+    )
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context):
+        self.layout.prop(self, "sym_name", text="Symbol")
+
+    def execute(self, context: Context):
+        try:
+            quick_import_exec(
+                context,
+                self.sym_name,
+            )
+        except QuickImportAborted as e:
+            self.report({"ERROR"}, e.message)
+            return {"CANCELLED"}
+        return {"FINISHED"}

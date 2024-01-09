@@ -268,7 +268,7 @@ enumBlendColor = [
         "Input (CC/Blender)",
         "First cycle: Color Combiner RGB, Second cycle: Blender numerator from first cycle",
     ),
-    ("G_BL_CLR_MEM", "Framebuffer Color", "Framebuffer Color (Memory)"),
+    ("G_BL_CLR_MEM", "Framebuffer Color", "Framebuffer (Memory) Color"),
     ("G_BL_CLR_BL", "Blend Color", "Blend Color Register"),
     ("G_BL_CLR_FOG", "Fog Color", "Fog Color Register"),
 ]
@@ -276,13 +276,13 @@ enumBlendColor = [
 enumBlendAlpha = [
     ("G_BL_A_IN", "Color Combiner Alpha", "Color Combiner Alpha"),
     ("G_BL_A_FOG", "Fog Alpha", "Fog Color Register Alpha"),
-    ("G_BL_A_SHADE", "Shade Alpha", "Stepped Shade Alpha"),
+    ("G_BL_A_SHADE", "Shade Alpha", "Stepped Shade Alpha from RSP, often fog"),
     ("G_BL_0", "0", "0"),
 ]
 
 enumBlendMix = [
     ("G_BL_1MA", "1 - A", "1 - A, where A is selected above"),
-    ("G_BL_A_MEM", "Framebuffer Alpha", "Framebuffer (Memory) Alpha"),
+    ("G_BL_A_MEM", "Framebuffer Alpha", "Framebuffer (Memory) Alpha (Coverage)"),
     ("G_BL_1", "1", "1"),
     ("G_BL_0", "0", "0"),
 ]
@@ -389,4 +389,46 @@ enumF3D = [
 enumLargeEdges = [
     ("Clamp", "Clamp", "Clamp outside image bounds"),
     ("Wrap", "Wrap", "Wrap outside image bounds (more expensive)"),
+]
+
+enumCelThreshMode = [
+    (
+        "Lighter",
+        "Lighter",
+        "This cel level is drawn when the lighting level per-pixel is LIGHTER than (>=) the threshold",
+    ),
+    ("Darker", "Darker", "This cel level is drawn when the lighting level per-pixel is DARKER than (<) the threshold"),
+]
+
+enumCelTintPipeline = [
+    (
+        "CC",
+        "CC (tint in Prim Color)",
+        "Cel shading puts tint color in Prim Color and tint level in Prim Alpha. Set up CC color to LERP between source color and tint color based on tint level, or multiply source color by tint color. Source may be Tex 0 or Env Color",
+    ),
+    (
+        "Blender",
+        "Blender (tint in Fog Color)",
+        "Cel shading puts tint color in Fog Color and tint level in Fog Alpha. Set up blender to LERP between CC output and tint color based on tint level. Then set CC to Tex 0 * shade color (vertex colors)",
+    ),
+]
+
+enumCelCutoutSource = [
+    (
+        "TEXEL0",
+        "Texture 0",
+        "Cel shading material has binary alpha cutout from Texture 0 alpha. Does not work with I4 or I8 formats",
+    ),
+    (
+        "TEXEL1",
+        "Texture 1",
+        "Cel shading material has binary alpha cutout from Texture 1 alpha. Does not work with I4 or I8 formats",
+    ),
+    ("ENVIRONMENT", "None / Env Alpha", "Make sure your material writes env color, and set env alpha to opaque (255)"),
+]
+
+enumCelTintType = [
+    ("Fixed", "Fixed", "Fixed tint color and level stored directly in DL"),
+    ("Segment", "Segment", "Call a segmented DL to set the tint, can change at runtime"),
+    ("Light", "From Light", "Automatically load tint color from selectable light slot. Tint level stored in DL"),
 ]

@@ -23,11 +23,16 @@ class DLFormat(enum.Enum):
     Dynamic = 2
 
 
-class GfxListTag(enum.Enum):
+class GfxListTag(enum.IntFlag):
     Geometry = 1
     Material = 2
-    MaterialRevert = 3
-    Draw = 3
+    MaterialRevert = 4
+    Draw = 4
+    NoExport = 16
+
+    @property
+    def Export(self):
+        return not self & GfxListTag.NoExport
 
 
 class GfxTag(enum.Flag):
@@ -177,12 +182,9 @@ class F3D:
             self.G_QUAD = 0x07
 
             if F3DEX_GBI_3:
-                self.G_RETURNNONEVISIBLE = 0xD4
-                self.G_BOUNDINGVERTS = 0xD5
-                self.G_POPBRANCHCALL = 0x08
-                self.G_TRISTRIP = 0x09
-                self.G_TRIFAN = 0x0A
-                self.G_LIGHTTORDP = 0x0B
+                self.G_TRISTRIP = 0x08
+                self.G_TRIFAN = 0x09
+                self.G_LIGHTTORDP = 0x0A
             else:
                 self.G_SPECIAL_1 = 0xD5
                 self.G_SPECIAL_2 = 0xD4
@@ -337,12 +339,14 @@ class F3D:
             self.G_CLIPPING = 0x00000000
 
         if F3DEX_GBI_3:
+            self.G_AMBOCCLUSION = 0x00000040
+            self.G_ATTROFFSET_Z_ENABLE = 0x00000080
             self.G_ATTROFFSET_ST_ENABLE = 0x00000100
-            self.G_ATTROFFSET_Z_ENABLE = 0x00000800
-            self.G_PACKED_NORMALS = 0x00001000
-            self.G_LIGHTTOALPHA = 0x00002000
-            self.G_AMBOCCLUSION = 0x00004000
-            self.G_FRESNEL = 0x00008000
+            self.G_PACKED_NORMALS = 0x00000800
+            self.G_LIGHTTOALPHA = 0x00001000
+            self.G_LIGHTING_SPECULAR = 0x00002000
+            self.G_FRESNEL_COLOR = 0x00004000
+            self.G_FRESNEL_ALPHA = 0x00008000
             self.G_LIGHTING_POSITIONAL = 0x00400000  # Ignored, always on
 
         self.allGeomModeFlags = {
@@ -363,12 +367,14 @@ class F3D:
         }
         if F3DEX_GBI_3:
             self.allGeomModeFlags |= {
-                "G_ATTROFFSET_ST_ENABLE",
+                "G_AMBOCCLUSION",
                 "G_ATTROFFSET_Z_ENABLE",
+                "G_ATTROFFSET_ST_ENABLE",
                 "G_PACKED_NORMALS",
                 "G_LIGHTTOALPHA",
-                "G_AMBOCCLUSION",
-                "G_FRESNEL",
+                "G_LIGHTING_SPECULAR",
+                "G_FRESNEL_COLOR",
+                "G_FRESNEL_ALPHA",
             }
 
         self.G_FOG_H = self.G_FOG / 0x10000
@@ -1431,9 +1437,6 @@ class F3D:
             self.G_ALPHA_COMPARE_CULL_BELOW = 1
             self.G_ALPHA_COMPARE_CULL_ABOVE = -1
 
-            self.G_BOUNDINGVERTS_REPLACE = 0
-            self.G_BOUNDINGVERTS_PUSH = -1
-
         # Some structs here
 
         self.G_MAXZ = 0x03FF  # 10 bits of integer screen-Z precision
@@ -1498,9 +1501,7 @@ class F3D:
         else:
             self.G_MW_MATRIX = 0x00  # NOTE: also used by movemem
         self.G_MW_NUMLIGHT = 0x02
-        if F3DEX_GBI_3:
-            self.G_MW_PERSPNORM = 0x04
-        else:
+        if not F3DEX_GBI_3:
             self.G_MW_CLIP = 0x04
         self.G_MW_SEGMENT = 0x06
         self.G_MW_FOG = 0x08
@@ -1511,6 +1512,9 @@ class F3D:
             else:
                 self.G_MW_POINTS = 0x0C
             self.G_MW_PERSPNORM = 0x0E
+
+        if F3DEX_GBI_3:
+            self.G_MW_HALFWORD_FLAG = 0x8000
 
         # These are offsets from the address in the dmem table
 
@@ -1613,13 +1617,17 @@ class F3D:
         self.G_MWO_POINT_ZSCREEN = 0x1C
 
         if F3DEX_GBI_3:
-            self.G_MWO_AMB_OCCLUSION = 0x00
-            self.G_MWO_FRESNEL = 0x04
-            self.G_MWO_ATTR_OFFSET_ST = 0x08
-            self.G_MWO_ATTR_OFFSET_Z = 0x0C
-            self.G_MWO_NORMALS_MODE = 0x0E
-            self.G_MWO_ALPHA_COMPARE_CULL = 0x12
-            self.G_MWO_BOUNDING_FLAGS = 0x18
+            self.G_MWO_AO_AMBIENT = 0x00
+            self.G_MWO_AO_DIRECTIONAL = 0x02
+            self.G_MWO_AO_POINT = 0x04
+            self.G_MWO_PERSPNORM = 0x06
+            self.G_MWO_FRESNEL_SCALE = 0x0C
+            self.G_MWO_FRESNEL_OFFSET = 0x0E
+            self.G_MWO_ATTR_OFFSET_S = 0x10
+            self.G_MWO_ATTR_OFFSET_T = 0x12
+            self.G_MWO_ATTR_OFFSET_Z = 0x14
+            self.G_MWO_ALPHA_COMPARE_CULL = 0x16
+            self.G_MWO_NORMALS_MODE = 0x18
 
         # Texturing macros
 
@@ -1766,10 +1774,10 @@ def _SHIFTL(value, amount, mask):
 MTX_SIZE = 64
 VTX_SIZE = 16
 GFX_SIZE = 8
-VP_SIZE = 8
-LIGHT_SIZE = 16  # 12, but padded to 64bit alignment
+VP_SIZE = 16  # it's 16 bytes but vanilla GBI has only one s64 for alignment, not two
+LIGHT_SIZE = 16
 AMBIENT_SIZE = 8
-HILITE_SIZE = 16
+HILITE_SIZE = 16  # 8 in F3DEX3, but this variable is not used in fast64
 
 
 class ExportCData:
@@ -2669,7 +2677,7 @@ class FModel:
         data = CScrollData()
         for fMaterial, _ in self.materials.values():
             fMaterial: FMaterial
-            if fMaterial.material:
+            if fMaterial.material.tag.Export:
                 data.append(gfxFormatter.gfxScrollToC(fMaterial.material, self.f3d))
         for fMesh in self.meshes.values():
             fMesh: FMesh
@@ -2911,6 +2919,13 @@ class FTriGroup:
         self.fMaterial = fMaterial
         self.vertexList = VtxList(name + "_vtx_" + str(index))
         self.triList = GfxList(name + "_tri_" + str(index), GfxListTag.Geometry, DLFormat.Static)
+        self.celTriLists = []
+        self.celTriListBaseName = f"{name}_tri_{index}_cel"
+
+    def add_cel_tri_list(self):
+        ret = GfxList(f"{self.celTriListBaseName}{len(self.celTriLists)}", GfxListTag.Geometry, DLFormat.Static)
+        self.celTriLists.append(ret)
+        return ret
 
     def get_ptr_addresses(self, f3d):
         return self.triList.get_ptr_addresses(f3d)
@@ -2921,13 +2936,17 @@ class FTriGroup:
         return startAddress, addrRange[1]
 
     def save_binary(self, romfile, f3d, segments):
+        for celTriList in self.celTriLists:
+            celTriList.save_binary(romfile, f3d, segments)
         self.triList.save_binary(romfile, f3d, segments)
         self.vertexList.save_binary(romfile)
 
     def to_c(self, f3d, gfxFormatter):
         data = CData()
         data.append(self.vertexList.to_c())
-        if self.triList:
+        for celTriList in self.celTriLists:
+            data.append(celTriList.to_c(f3d))
+        if self.triList.tag.Export:
             data.append(self.triList.to_c(f3d))
         return data
 
@@ -3027,7 +3046,7 @@ class FMaterial:
 
     def get_ptr_addresses(self, f3d):
         addresses = self.material.get_ptr_addresses(f3d)
-        if self.revert is not None:
+        if self.revert is not None and self.revert.tag.Export:
             addresses.extend(self.revert.get_ptr_addresses(f3d))
         return addresses
 
@@ -3045,9 +3064,9 @@ class FMaterial:
 
     def to_c(self, f3d):
         data = CData()
-        if self.material:
+        if self.material.tag.Export:
             data.append(self.material.to_c(f3d))
-        if self.revert is not None:
+        if self.revert is not None and self.revert.tag.Export:
             data.append(self.revert.to_c(f3d))
         return data
 
@@ -3513,10 +3532,18 @@ def gsImmp21(c, p0, p1, dat):
 
 
 def gsMoveWd(index, offset, data, f3d):
+    if f3d.F3DEX_GBI_3:
+        offset &= 0xFFF
     if f3d.F3DEX_GBI_2:
         return gsDma1p(f3d.G_MOVEWORD, data, offset, index)
     else:
         return gsImmp21(f3d.G_MOVEWORD, offset, index, data)
+
+
+def gsMoveHalfwd(index, offset, data, f3d):
+    if not f3d.F3DEX_GBI_3:
+        raise PluginError("gsMoveHalfwd requires F3DEX3 microcode")
+    return gsDma1p(f3d.G_MOVEWORD, data, (offset & 0xFFF) | f3d.G_MW_HALFWORD_FLAG, index)
 
 
 # SPSprite2DScaleFlip
@@ -3710,30 +3737,112 @@ class SPClipRatio(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class SPAmbOcclusion(GbiMacro):
+class SPAmbOcclusionAmb(GbiMacro):
+    amb: int
+    _hex = 4
+
+    def to_binary(self, f3d, segments):
+        if not f3d.F3DEX_GBI_3:
+            raise PluginError("SPAmbOcclusionAmb requires F3DEX3 microcode")
+        return gsMoveHalfwd(f3d.G_MW_FX, f3d.G_MWO_AO_AMBIENT, self.amb, f3d)
+
+
+@dataclass(unsafe_hash=True)
+class SPAmbOcclusionDir(GbiMacro):
+    dir: int
+    _hex = 4
+
+    def to_binary(self, f3d, segments):
+        if not f3d.F3DEX_GBI_3:
+            raise PluginError("SPAmbOcclusionDir requires F3DEX3 microcode")
+        return gsMoveHalfwd(f3d.G_MW_FX, f3d.G_MWO_AO_DIRECTIONAL, self.dir, f3d)
+
+
+@dataclass(unsafe_hash=True)
+class SPAmbOcclusionPoint(GbiMacro):
+    point: int
+    _hex = 4
+
+    def to_binary(self, f3d, segments):
+        if not f3d.F3DEX_GBI_3:
+            raise PluginError("SPAmbOcclusionPoint requires F3DEX3 microcode")
+        return gsMoveHalfwd(f3d.G_MW_FX, f3d.G_MWO_AO_POINT, self.point, f3d)
+
+
+@dataclass(unsafe_hash=True)
+class SPAmbOcclusionAmbDir(GbiMacro):
     amb: int
     dir: int
     _hex = 4
 
     def to_binary(self, f3d, segments):
         if not f3d.F3DEX_GBI_3:
-            raise PluginError("SPAmbOcclusion requires F3DEX3 microcode")
+            raise PluginError("SPAmbOcclusionAmbDir requires F3DEX3 microcode")
+        return gsMoveWd(f3d.G_MW_FX, f3d.G_MWO_AO_AMBIENT, (_SHIFTL(self.amb, 16, 16) | _SHIFTL(self.dir, 0, 16)), f3d)
+
+
+@dataclass(unsafe_hash=True)
+class SPAmbOcclusionDirPoint(GbiMacro):
+    dir: int
+    point: int
+    _hex = 4
+
+    def to_binary(self, f3d, segments):
+        if not f3d.F3DEX_GBI_3:
+            raise PluginError("SPAmbOcclusionDirPoint requires F3DEX3 microcode")
         return gsMoveWd(
-            f3d.G_MW_FX, f3d.G_MWO_AMB_OCCLUSION, (_SHIFTL(self.amb, 16, 16) | _SHIFTL(self.dir, 0, 16)), f3d
+            f3d.G_MW_FX, f3d.G_MWO_AO_DIRECTIONAL, (_SHIFTL(self.dir, 16, 16) | _SHIFTL(self.point, 0, 16)), f3d
         )
 
 
 @dataclass(unsafe_hash=True)
-class SPFresnel(GbiMacro):
-    offset: int
+class SPAmbOcclusion(GbiMacro):
+    amb: int
+    dir: int
+    point: int
+    _hex = 4
+
+    def to_binary(self, f3d, segments):
+        if not f3d.F3DEX_GBI_3:
+            raise PluginError("SPAmbOcclusion requires F3DEX3 microcode")
+        return SPAmbOcclusionAmbDir(self.amb, self.dir).to_binary(f3d, segments) + SPAmbOcclusionPoint(
+            self.point
+        ).to_binary(f3d, segments)
+
+
+@dataclass(unsafe_hash=True)
+class SPFresnelScale(GbiMacro):
     scale: int
+    _hex = 4
+
+    def to_binary(self, f3d, segments):
+        if not f3d.F3DEX_GBI_3:
+            raise PluginError("SPFresnelScale requires F3DEX3 microcode")
+        return gsMoveHalfwd(f3d.G_MW_FX, f3d.G_MWO_FRESNEL_SCALE, self.scale, f3d)
+
+
+@dataclass(unsafe_hash=True)
+class SPFresnelOffset(GbiMacro):
+    offset: int
+    _hex = 4
+
+    def to_binary(self, f3d, segments):
+        if not f3d.F3DEX_GBI_3:
+            raise PluginError("SPFresnelOffset requires F3DEX3 microcode")
+        return gsMoveHalfwd(f3d.G_MW_FX, f3d.G_MWO_FRESNEL_OFFSET, self.offset, f3d)
+
+
+@dataclass(unsafe_hash=True)
+class SPFresnel(GbiMacro):
+    scale: int
+    offset: int
     _hex = 4
 
     def to_binary(self, f3d, segments):
         if not f3d.F3DEX_GBI_3:
             raise PluginError("SPFresnel requires F3DEX3 microcode")
         return gsMoveWd(
-            f3d.G_MW_FX, f3d.G_MWO_FRESNEL, (_SHIFTL(self.offset, 16, 16) | _SHIFTL(self.scale, 0, 16)), f3d
+            f3d.G_MW_FX, f3d.G_MWO_FRESNEL_SCALE, (_SHIFTL(self.scale, 16, 16) | _SHIFTL(self.offset, 0, 16)), f3d
         )
 
 
@@ -3746,7 +3855,7 @@ class SPAttrOffsetST(GbiMacro):
     def to_binary(self, f3d, segments):
         if not f3d.F3DEX_GBI_3:
             raise PluginError("SPAttrOffsetST requires F3DEX3 microcode")
-        return gsMoveWd(f3d.G_MW_FX, f3d.G_MWO_ATTR_OFFSET_ST, (_SHIFTL(self.s, 16, 16) | _SHIFTL(self.t, 0, 16)), f3d)
+        return gsMoveWd(f3d.G_MW_FX, f3d.G_MWO_ATTR_OFFSET_S, (_SHIFTL(self.s, 16, 16) | _SHIFTL(self.t, 0, 16)), f3d)
 
 
 @dataclass(unsafe_hash=True)
@@ -3761,29 +3870,41 @@ class SPAttrOffsetZ(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class SPNormalsMode(GbiMacro):
-    mode: int
-
-    def to_binary(self, f3d, segments):
-        if not f3d.F3DEX_GBI_3:
-            raise PluginError("SPNormalsMode requires F3DEX3 microcode")
-        return gsMoveWd(f3d.G_MW_FX, f3d.G_MWO_NORMALS_MODE, mode, f3d)
-
-
-# F3DEX3 TODO: SPMITMatrix
-
-
-@dataclass(unsafe_hash=True)
 class SPAlphaCompareCull(GbiMacro):
-    mode: int
+    mode: str
     thresh: int
 
     def to_binary(self, f3d, segments):
         if not f3d.F3DEX_GBI_3:
             raise PluginError("SPAlphaCompareCull requires F3DEX3 microcode")
-        return gsMoveWd(
-            f3d.G_MW_FX, f3d.G_MWO_ALPHA_COMPARE_CULL, (_SHIFTL(self.mode, 24, 8) | _SHIFTL(self.thresh, 16, 8)), f3d
+        if self.mode == "G_ALPHA_COMPARE_CULL_DISABLE":
+            modeVal = f3d.G_ALPHA_COMPARE_CULL_DISABLE
+        elif self.mode == "G_ALPHA_COMPARE_CULL_BELOW":
+            modeVal = f3d.G_ALPHA_COMPARE_CULL_BELOW
+        elif self.mode == "G_ALPHA_COMPARE_CULL_ABOVE":
+            modeVal = f3d.G_ALPHA_COMPARE_CULL_ABOVE
+        return gsMoveHalfwd(
+            f3d.G_MW_FX, f3d.G_MWO_ALPHA_COMPARE_CULL, (_SHIFTL(modeVal, 8, 8) | _SHIFTL(self.thresh, 0, 8)), f3d
         )
+
+
+@dataclass(unsafe_hash=True)
+class SPNormalsMode(GbiMacro):
+    mode: str
+
+    def to_binary(self, f3d, segments):
+        if not f3d.F3DEX_GBI_3:
+            raise PluginError("SPNormalsMode requires F3DEX3 microcode")
+        if self.mode == "G_NORMALS_MODE_FAST":
+            modeVal = f3d.G_NORMALS_MODE_FAST
+        elif self.mode == "G_NORMALS_MODE_AUTO":
+            modeVal = f3d.G_NORMALS_MODE_AUTO
+        elif self.mode == "G_NORMALS_MODE_MANUAL":
+            modeVal = f3d.G_NORMALS_MODE_MANUAL
+        return gsMoveHalfwd(f3d.G_MW_FX, f3d.G_MWO_NORMALS_MODE, modeVal & 0xFF, f3d)
+
+
+# SPMITMatrix (F3DEX3)
 
 
 @dataclass(unsafe_hash=True)
@@ -3832,9 +3953,6 @@ class SPBranchLessZraw(GbiMacro):
     def size(self, f3d):
         return GFX_SIZE * 2
 
-
-# F3DEX3 TODO: SPWFarThreshold, SPBoundingVerts, SPReturnNoneVisible,
-# SPPopBranchNotVisible, SPPopCallVisible, SPLoadBoundingFlags
 
 # SPLoadUcode (RSP)
 
@@ -3893,7 +4011,7 @@ class SPLightColor(GbiMacro):
     col: int
 
     def to_binary(self, f3d, segments):
-        return gsMoveWd(f3d.G_MW_LIGHTCOL, f3d.getLightMWO_a(self.n), self.col, f3d), +gsMoveWd(
+        return gsMoveWd(f3d.G_MW_LIGHTCOL, f3d.getLightMWO_a(self.n), self.col, f3d) + gsMoveWd(
             f3d.G_MW_LIGHTCOL, f3d.getLightMWO_b(self.n), self.col, f3d
         )
 
@@ -4086,7 +4204,10 @@ class SPPerspNormalize(GbiMacro):
     s: int
 
     def to_binary(self, f3d, segments):
-        return gsMoveWd(f3d.G_MW_PERSPNORM, 0, (self.s), f3d)
+        if f3d.F3DEX_GBI_3:
+            return gsMoveHalfwd(f3d.G_MW_FX, G_MWO_PERSPNORM, (self.s), f3d)
+        else:
+            return gsMoveWd(f3d.G_MW_PERSPNORM, 0, (self.s), f3d)
 
 
 # SPPopMatrixN
@@ -4671,14 +4792,14 @@ class SPLightToPrimColor(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class SPLightToEnvColor(GbiMacro):
+class SPLightToFogColor(GbiMacro):
     light: int
     alpha: int
 
     def to_binary(self, f3d, segments):
         if not f3d.F3DEX_GBI_3:
-            raise PluginError("SPLightToEnvColor requires F3DEX3 microcode")
-        word0 = _SHIFTL(f3d.G_SETENVCOLOR, 24, 8)
+            raise PluginError("SPLightToFogColor requires F3DEX3 microcode")
+        word0 = _SHIFTL(f3d.G_SETFOGCOLOR, 24, 8)
         return SPLightToRDP(self.light, self.alpha, word0).to_binary(f3d, segments)
 
 
@@ -4765,9 +4886,6 @@ class DPSetTile(GbiMacro):
 
     def is_LOADTILE(self, f3d):
         return self.tile == f3d.G_TX_LOADTILE
-
-
-# F3DEX3 TODO: DPLoadBlockTag and putting tag values in DPLoadBlock
 
 
 @dataclass(unsafe_hash=True)

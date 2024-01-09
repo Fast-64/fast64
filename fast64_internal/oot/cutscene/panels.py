@@ -6,6 +6,14 @@ from ...panels import OOT_Panel
 from .operators import OOT_ExportCutscene, OOT_ExportAllCutscenes, OOT_ImportCutscene
 
 
+class OoT_PreviewSettingsPanel(OOT_Panel):
+    bl_idname = "OOT_PT_preview_settings"
+    bl_label = "OOT CS Preview Settings"
+
+    def draw(self, context):
+        context.scene.ootPreviewSettingsProperty.draw_props(self.layout)
+
+
 class OOT_CutscenePanel(OOT_Panel):
     bl_idname = "OOT_PT_export_cutscene"
     bl_label = "OOT Cutscene Exporter"
@@ -51,13 +59,17 @@ class OOT_CutscenePanel(OOT_Panel):
         col.operator(OOT_ImportCutscene.bl_idname)
 
 
-oot_cutscene_panel_classes = (OOT_CutscenePanel,)
+oot_cutscene_panel_classes = (
+    OoT_PreviewSettingsPanel,
+    OOT_CutscenePanel,
+)
 
 
 def cutscene_panels_register():
     Scene.useDecompFeatures = BoolProperty(
         name="Use Decomp for Export", description="Use names and macros from decomp when exporting", default=True
     )
+
     Scene.exportMotionOnly = BoolProperty(
         name="Export Motion Data Only",
         description=(
