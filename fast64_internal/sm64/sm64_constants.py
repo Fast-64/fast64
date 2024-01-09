@@ -1909,63 +1909,99 @@ enumPresetBehaviors = [
 ]
 
 behaviorPresetContents = {
-    'Static Solid Object': (
+    "Static Solid Object": (
         ("BEGIN", ("OBJ_LIST_SURFACE",)),
-        ("OR_INT", ("oFlags", "OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE",)),
+        (
+            "OR_INT",
+            (
+                "oFlags",
+                "OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE",
+            ),
+        ),
         ("LOAD_COLLISION_DATA", ("inherit",)),
         ("BEGIN_LOOP", ()),
-            ("CALL_NATIVE", ("load_object_collision_model",)),
+        ("CALL_NATIVE", ("load_object_collision_model",)),
         ("END_LOOP", ("")),
     ),
-    'Rotating Solid Object': (
+    "Rotating Solid Object": (
         ("BEGIN", ("OBJ_LIST_SURFACE",)),
-        ("OR_INT", ("oFlags", "OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE",)),
+        (
+            "OR_INT",
+            (
+                "oFlags",
+                "OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE",
+            ),
+        ),
         ("LOAD_COLLISION_DATA", ("inherit",)),
         ("BEGIN_LOOP", ()),
-            ("ADD_INT", ("oFaceAngleYaw", "200")),
-            ("CALL_NATIVE", ("load_object_collision_model",)),
+        ("ADD_INT", ("oFaceAngleYaw", "200")),
+        ("CALL_NATIVE", ("load_object_collision_model",)),
         ("END_LOOP", ("")),
     ),
-    'Moving Solid Object': (
+    "Moving Solid Object": (
         ("BEGIN", ("OBJ_LIST_SURFACE",)),
-        ("OR_INT", ("oFlags", "OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE",)),
+        (
+            "OR_INT",
+            (
+                "oFlags",
+                "OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE",
+            ),
+        ),
         ("LOAD_COLLISION_DATA", ("inherit",)),
         ("BEGIN_LOOP", ()),
-            ("CALL_NATIVE", ("bhv_ssl_moving_pyramid_wall_loop",)),
+        ("CALL_NATIVE", ("bhv_ssl_moving_pyramid_wall_loop",)),
         ("END_LOOP", ("")),
     ),
-    'Pole-like': (
+    "Pole-like": (
         ("BEGIN", ("OBJ_LIST_POLELIKE",)),
-        ("OR_INT", ("oFlags", "OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE",)),
+        (
+            "OR_INT",
+            (
+                "oFlags",
+                "OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE",
+            ),
+        ),
         ("SET_INTERACT_TYPE", ("INTERACT_POLE",)),
         ("SET_HITBOX", ("inherit", "inherit")),
         ("CALL_NATIVE", ("bhv_pole_init",)),
         ("SET_INT", ("oIntangibleTimer", "0")),
         ("BEGIN_LOOP", ()),
-            ("CALL_NATIVE", ("bhv_pole_base_loop",)),
+        ("CALL_NATIVE", ("bhv_pole_base_loop",)),
         ("END_LOOP", ("")),
     ),
-    'Flame-like': (
+    "Flame-like": (
         ("BEGIN", ("OBJ_LIST_LEVEL",)),
         ("BILLBOARD", ()),
-        ("OR_INT", ("oFlags", "OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE",)),
+        (
+            "OR_INT",
+            (
+                "oFlags",
+                "OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE",
+            ),
+        ),
         ("SET_INTERACT_TYPE", ("INTERACT_FLAME",)),
         ("SET_HITBOX", ("inherit", "inherit")),
         ("SET_INT", ("oIntangibleTimer", "0")),
         ("BEGIN_LOOP", ()),
-            ("SET_INT", ("oInteractStatus", "0")),
-            ("ANIMATE_TEXTURE", ("oAnimState", "2")),
+        ("SET_INT", ("oInteractStatus", "0")),
+        ("ANIMATE_TEXTURE", ("oAnimState", "2")),
         ("END_LOOP", ("")),
     ),
-    'Talking NPC': (
+    "Talking NPC": (
         ("BEGIN", ("OBJ_LIST_GENACTOR",)),
-        ("OR_INT", ("oFlags", "OBJ_FLAG_COMPUTE_ANGLE_TO_MARIO | OBJ_FLAG_COMPUTE_DIST_TO_MARIO | OBJ_FLAG_SET_FACE_YAW_TO_MOVE_YAW | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE")),
+        (
+            "OR_INT",
+            (
+                "oFlags",
+                "OBJ_FLAG_COMPUTE_ANGLE_TO_MARIO | OBJ_FLAG_COMPUTE_DIST_TO_MARIO | OBJ_FLAG_SET_FACE_YAW_TO_MOVE_YAW | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE",
+            ),
+        ),
         ("SET_INTERACT_TYPE", ("INTERACT_TEXT",)),
         ("SET_HITBOX", ("inherit", "inherit")),
         ("SET_INT", ("oInteractionSubtype", "INT_SUBTYPE_SIGN")),
         ("BEGIN_LOOP", ()),
-            ("SET_INT", ("oIntangibleTimer", "0")),
-            ("SET_INT", ("oInteractStatus", "0")),
+        ("SET_INT", ("oIntangibleTimer", "0")),
+        ("SET_INT", ("oInteractStatus", "0")),
         ("END_LOOP", ("")),
     ),
 }
@@ -2020,7 +2056,7 @@ groups_obj_export = [
     ("group15", "group15", "Castle Objects (MIPS, Toad etc.)"),
     ("group16", "group16", "Ice Objects (Chill Bully, Moneybags)"),
     ("group17", "group17", "Cave Objects (Swoop, Scuttlebug, Dorrie etc.)"),
-    ("Custom", "Custom", "Custom")
+    ("Custom", "Custom", "Custom"),
 ]
 
 marioAnimations = [

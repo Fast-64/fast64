@@ -336,7 +336,12 @@ class LevelScript:
 
     def sub_script_to_c(self, root_persistent_block):
         result = ""
-        if not any([f"const LevelScript {self.name}[]" in line for line in root_persistent_block.get(PersistentBlocks.scripts, [])]):
+        if not any(
+            [
+                f"const LevelScript {self.name}[]" in line
+                for line in root_persistent_block.get(PersistentBlocks.scripts, [])
+            ]
+        ):
             result = f"const LevelScript {self.name}[] = {{\n{macrosToString(self.macros)}\n}};\n"
         for sub_script in self.sub_scripts:
             result += sub_script.sub_script_to_c(result, root_persistent_block)

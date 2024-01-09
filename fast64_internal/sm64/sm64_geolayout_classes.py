@@ -226,7 +226,7 @@ class Geolayout:
             if node.has_data():
                 return True
         return False
-    
+
     def to_binary(self, segmentData):
         endCmd = GEO_END if self.isStartGeo else GEO_RETURN
         data = bytearray(0)
@@ -347,7 +347,7 @@ class TransformNode:
             if child.has_data():
                 return True
         return False
-    
+
     def size(self):
         size = self.node.size() if self.node is not None else 0
         if len(self.children) > 0 and type(self.node) in nodeGroupClasses:

@@ -407,13 +407,7 @@ def addCullCommand(obj, fMesh, transformMatrix, matWriteMethod):
     # if the object has a specifically set culling bounds, use that instead
     for vertexPos in obj.get("culling_bounds", obj.bound_box):
         fMesh.cullVertexList.vertices.append(
-            F3DVert(
-                Vector(vertexPos),
-                [0, 0],
-                Vector([0, 0, 0]),
-                None,
-                0.0,
-            ).toVtx(
+            F3DVert(Vector(vertexPos), [0, 0], Vector([0, 0, 0]), None, 0.0,).toVtx(
                 obj.data,
                 [32, 32],
                 transformMatrix,

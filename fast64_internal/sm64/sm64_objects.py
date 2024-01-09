@@ -1710,7 +1710,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         # make sure you have a bhv script
         if len(props.behavior_script) == 0:
             raise PluginError("Behavior must have more than 0 cmds to export")
-        
+
         # exporting bhv header
         self.export_behavior_header(context, props)
         # export the behavior script itself
@@ -1838,7 +1838,6 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         except Exception as e:
             raisePluginError(self, e)
             return {"CANCELLED"}
-
 
         props.context_obj = None
         # you've done it!~
