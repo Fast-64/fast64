@@ -339,10 +339,10 @@ def saveStaticModel(
         if face.material_index not in faces_by_mat:
             faces_by_mat[face.material_index] = []
         faces_by_mat[face.material_index].append(face)
-    
+
     # sort by material slot
-    faces_by_mat = {mat_index:faces_by_mat[mat_index] for mat_index, _ in enumerate(obj.material_slots)}
-    
+    faces_by_mat = {mat_index: faces_by_mat[mat_index] for mat_index, _ in enumerate(obj.material_slots)}
+
     fMeshes = {}
     for material_index, faces in faces_by_mat.items():
         material = obj.material_slots[material_index].material
@@ -410,13 +410,7 @@ def addCullCommand(obj, fMesh, transformMatrix, matWriteMethod):
     # if the object has a specifically set culling bounds, use that instead
     for vertexPos in obj.get("culling_bounds", obj.bound_box):
         fMesh.cullVertexList.vertices.append(
-            F3DVert(
-                Vector(vertexPos),
-                [0, 0],
-                Vector([0, 0, 0]),
-                None,
-                0.0,
-            ).toVtx(
+            F3DVert(Vector(vertexPos), [0, 0], Vector([0, 0, 0]), None, 0.0,).toVtx(
                 obj.data,
                 [32, 32],
                 transformMatrix,
