@@ -183,11 +183,11 @@ def rendermode_preset_to_advanced(material: bpy.types.Material):
     """
     settings = material.f3d_mat.rdp_settings
     f3d = get_F3D_GBI()
-    
+
     if settings.rendermode_advanced_enabled:
         # Already in advanced mode, don't overwrite this with the preset
         return
-    
+
     def get_with_default(preset, default):
         # Use the default either if we are not setting rendermode, or if the
         # preset is not in the GBI. We do want to set the advanced settings
@@ -195,7 +195,7 @@ def rendermode_preset_to_advanced(material: bpy.types.Material):
         if not settings.set_rendermode:
             return default
         return getattr(f3d, preset, default)
-    
+
     is_one_cycle = settings.g_mdsft_cycletype == "G_CYC_1CYCLE"
     if is_one_cycle:
         r = get_with_default(settings.rendermode_preset_cycle_1, f3d.G_RM_AA_ZB_OPA_SURF)
@@ -207,7 +207,7 @@ def rendermode_preset_to_advanced(material: bpy.types.Material):
         r1 = get_with_default(settings.rendermode_preset_cycle_1, f3d.G_RM_FOG_SHADE_A)
         r2 = get_with_default(settings.rendermode_preset_cycle_2, f3d.G_RM_AA_ZB_OPA_SURF2)
         r = r1 | r2
-    
+
     settings.aa_en = (r & f3d.AA_EN) != 0
     settings.z_cmp = (r & f3d.Z_CMP) != 0
     settings.z_upd = (r & f3d.Z_UPD) != 0
@@ -218,7 +218,7 @@ def rendermode_preset_to_advanced(material: bpy.types.Material):
     settings.cvg_x_alpha = (r & f3d.CVG_X_ALPHA) != 0
     settings.alpha_cvg_sel = (r & f3d.ALPHA_CVG_SEL) != 0
     settings.force_bl = (r & f3d.FORCE_BL) != 0
-    
+
     settings.blend_p1 = f3d.blendColorDict[(r1 >> 30) & 3]
     settings.blend_p2 = f3d.blendColorDict[(r2 >> 28) & 3]
     settings.blend_a1 = f3d.blendAlphaDict[(r1 >> 26) & 3]
@@ -229,36 +229,25 @@ def rendermode_preset_to_advanced(material: bpy.types.Material):
     settings.blend_b2 = f3d.blendMixDict[(r2 >> 16) & 3]
 
 
-def does_blender_use_color(
-    settings: "RDPSettings",
-    color: str,
-    default_for_no_rendermode: bool = False
-) -> bool:
+def does_blender_use_color(settings: "RDPSettings", color: str, default_for_no_rendermode: bool = False) -> bool:
     if not settings.set_rendermode:
         return default_for_no_rendermode
     is_one_cycle = settings.g_mdsft_cycletype == "G_CYC_1CYCLE"
     return (
-        settings.blend_p1 == color or settings.blend_m1 == color
+        settings.blend_p1 == color
+        or settings.blend_m1 == color
         or (is_one_cycle and (settings.blend_p2 == color or settings.blend_m2 == color))
     )
-    
 
-def does_blender_use_alpha(
-    settings: "RDPSettings",
-    alpha: str,
-    default_for_no_rendermode: bool = False
-) -> bool:
+
+def does_blender_use_alpha(settings: "RDPSettings", alpha: str, default_for_no_rendermode: bool = False) -> bool:
     if not settings.set_rendermode:
         return default_for_no_rendermode
     is_one_cycle = settings.g_mdsft_cycletype == "G_CYC_1CYCLE"
     return settings.blend_a1 == alpha or (is_one_cycle and settings.blend_a2 == alpha)
 
 
-def does_blender_use_mix(
-    settings: "RDPSettings",
-    mix: str,
-    default_for_no_rendermode: bool = False
-) -> bool:
+def does_blender_use_mix(settings: "RDPSettings", mix: str, default_for_no_rendermode: bool = False) -> bool:
     if not settings.set_rendermode:
         return default_for_no_rendermode
     is_one_cycle = settings.g_mdsft_cycletype == "G_CYC_1CYCLE"
@@ -266,13 +255,7 @@ def does_blender_use_mix(
 
 
 def is_blender_lerp(
-    settings: "RDPSettings",
-    cycle: int,
-    p: str,
-    a: str,
-    m: str,
-    b: str,
-    default_for_no_rendermode: bool = False
+    settings: "RDPSettings", cycle: int, p: str, a: str, m: str, b: str, default_for_no_rendermode: bool = False
 ) -> bool:
     assert cycle in {1, 2, -1}  # -1 = last cycle
     if cycle == -1:
@@ -301,7 +284,7 @@ def is_blender_doing_fog(settings: "RDPSettings") -> bool:
         "G_BL_1MA",
         # if NOT setting rendermode, it is more likely that the user is setting
         # rendermodes in code, so to be safe we'll enable fog
-        True
+        True,
     )
 
 
@@ -311,8 +294,7 @@ def get_blend_method(material: bpy.types.Material) -> str:
         return drawLayerSM64Alpha[material.f3d_mat.draw_layer.sm64]
     if settings.cvg_x_alpha:
         return "CLIP"
-    if settings.force_bl and is_blender_lerp(settings, -1,
-        "G_BL_CLR_IN", "G_BL_A_IN", "G_BL_CLR_MEM", "G_BL_1MA"):
+    if settings.force_bl and is_blender_lerp(settings, -1, "G_BL_CLR_IN", "G_BL_A_IN", "G_BL_CLR_MEM", "G_BL_1MA"):
         return "BLEND"
     return "OPAQUE"
 
@@ -849,21 +831,27 @@ class F3DPanel(Panel):
                     prop_split(renderGroup, material.rdp_settings, "rendermode_preset_cycle_2", "Render Mode Cycle 2")
                     no_flags_2 = material.rdp_settings.rendermode_preset_cycle_2 in f3d.rendermodePresetsWithoutFlags
                     if no_flags_1 and no_flags_2:
-                        multilineLabel(renderGroup.box(),
+                        multilineLabel(
+                            renderGroup.box(),
                             "Invalid combination of rendermode presets.\n"
                             + "Neither of these presets sets the rendermode flags.",
-                            "ERROR")
+                            "ERROR",
+                        )
                     elif not no_flags_1 and not no_flags_2:
-                        multilineLabel(renderGroup.box(),
+                        multilineLabel(
+                            renderGroup.box(),
                             "Invalid combination of rendermode presets.\n"
                             + "Both of these presets set the rendermode flags.",
-                            "ERROR")
+                            "ERROR",
+                        )
                 else:
                     if no_flags_1:
-                        multilineLabel(renderGroup.box(),
+                        multilineLabel(
+                            renderGroup.box(),
                             "Invalid rendermode preset in 1-cycle.\n"
                             + "This preset does not set the rendermode flags.",
-                            "ERROR")
+                            "ERROR",
+                        )
             else:
                 prop_split(renderGroup, material.rdp_settings, "aa_en", "Antialiasing")
                 prop_split(renderGroup, material.rdp_settings, "z_cmp", "Z Testing")
@@ -906,16 +894,16 @@ class F3DPanel(Panel):
                 ):
                     multilineLabel(
                         renderGroup.box(),
-                        "RDP silicon bug: Framebuffer color / alpha in blender\n" +
-                        "cycle 1 is broken, actually value from PREVIOUS pixel.",
-                        'ORPHAN_DATA'
+                        "RDP silicon bug: Framebuffer color / alpha in blender\n"
+                        + "cycle 1 is broken, actually value from PREVIOUS pixel.",
+                        "ORPHAN_DATA",
                     )
                 if material.rdp_settings.blend_a2 == "G_BL_A_SHADE":
                     multilineLabel(
                         renderGroup.box(),
-                        "RDP silicon bug: Shade alpha in blender cycle 2\n" +
-                        "is broken, actually shade alpha from NEXT pixel.",
-                        'ORPHAN_DATA'
+                        "RDP silicon bug: Shade alpha in blender cycle 2\n"
+                        + "is broken, actually shade alpha from NEXT pixel.",
+                        "ORPHAN_DATA",
                     )
 
             renderGroup.enabled = material.rdp_settings.set_rendermode
@@ -1007,7 +995,7 @@ class F3DPanel(Panel):
         cel = material.f3d_mat.cel_shading
         prop_split(inputGroup.row(), cel, "tintPipeline", "Tint pipeline:")
         prop_split(inputGroup.row(), cel, "cutoutSource", "Cutout:")
-        
+
         if material.f3d_mat.rdp_settings.zmode != "ZMODE_OPA":
             inputGroup.label(text="zmode in blender / rendermode must be opaque.", icon="ERROR")
 
@@ -1440,7 +1428,7 @@ def update_rendermode_preset(self, context):
     with F3DMaterial_UpdateLock(get_material_from_context(context)) as material:
         if material:
             rendermode_preset_to_advanced(material)
-    
+
     update_node_values_with_preset(self, context)
 
 
