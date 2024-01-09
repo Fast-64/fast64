@@ -334,10 +334,12 @@ class LevelScript:
         self.sub_scripts.append(new_script := LevelScript(name))
         return new_script
 
-    def sub_script_to_c(self):
-        result = f"const LevelScript {self.name}[] = {{\n{macrosToString(self.macros)}\n}};\n"
+    def sub_script_to_c(self, root_persistent_block):
+        result = ""
+        if not any([f"const LevelScript {self.name}[]" in line for line in root_persistent_block.get(PersistentBlocks.scripts, [])]):
+            result = f"const LevelScript {self.name}[] = {{\n{macrosToString(self.macros)}\n}};\n"
         for sub_script in self.sub_scripts:
-            result += sub_script.sub_script_to_c(result)
+            result += sub_script.sub_script_to_c(result, root_persistent_block)
         return result
 
     def to_c(self, areaString):
@@ -365,7 +367,7 @@ class LevelScript:
                     # persistent block
                     f"{self.get_persistent_block(PersistentBlocks.scripts)}\n",
                     # sub scripts referenced in previous level script in the same file
-                    "".join([script.sub_script_to_c() for script in self.sub_scripts]),
+                    "".join([script.sub_script_to_c(self.persistentBlocks) for script in self.sub_scripts]),
                     # main level script entry
                     f"const LevelScript level_{self.name}_entry[] = {{",
                     "\tINIT_LEVEL(),",
