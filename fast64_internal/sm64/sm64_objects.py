@@ -1726,7 +1726,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         match_line, sig_insert_line, default_line = self.find_export_lines(
             bhv_data_lines, match_str=export_bhv_name, fast64_signature=fast64_sig, alt_condition=last_bhv_define
         )
-        
+
         if match_line:
             for j, line in enumerate(bhv_data_lines[match_line + 1 :]):
                 if "BehaviorScript" in line:
@@ -1750,7 +1750,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             bhv_macro = f"\t{bhv_cmd.macro}({args}),\n"
             bhv_data_lines.insert(export_line + 2 + j, bhv_macro)
         bhv_data_lines.insert(export_line + 3 + j, "};\n\n")
-        
+
         self.write_file_lines(behavior_data, bhv_data_lines)
         # exporting bhv header
         self.export_behavior_header(context, props)
@@ -1764,7 +1764,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         if not props.col_object and not props.gfx_object:
             raise PluginError("No export object selected")
         if context.active_object.type == "EMPTY" and context.active_object.sm64_obj_type == "Level Root":
-            raise PluginError("Cannot export levels with \"Export Object\" Operator")
+            raise PluginError('Cannot export levels with "Export Object" Operator')
 
     def get_export_objects(self, context, props):
         if not props.export_all_selected:
@@ -2068,7 +2068,6 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
 
         if self.export_header_type == "Custom":
             prop_split(box, self, "custom_export_path", "Custom Path")
-
 
         elif self.export_header_type == "Actor":
             prop_split(box, self, "group_name", "Group Name")

@@ -221,7 +221,7 @@ class SM64_Properties(PropertyGroup):
     goal: EnumProperty(items=sm64GoalTypeEnum, name="Export Goal", default="All")
 
     combined_export: bpy.props.PointerProperty(type=SM64_CombinedObjectProperties)
-    
+
     @staticmethod
     def upgrade_changed_props():
         if bpy.context.scene.fast64.sm64.version != SM64_Properties.cur_version:
