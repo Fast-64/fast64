@@ -117,7 +117,7 @@ class SceneExporter:
         self.textureExportSettings.includeDir = sceneInclude
         self.textureExportSettings.exportPath = self.path
         self.sceneFile = self.scene.getNewSceneFile(self.path, self.isSingleFile, self.textureExportSettings)
-        self.hasSceneTextures = len(self.sceneFile.sceneTextures) > 0
+        self.hasSceneTextures = self.sceneFile.sceneTextures is not None and len(self.sceneFile.sceneTextures) > 0
 
         if not isCustomExport:
             writeTextureArraysExistingScene(self.scene.model, exportPath, sceneInclude + self.sceneName + "_scene.h")

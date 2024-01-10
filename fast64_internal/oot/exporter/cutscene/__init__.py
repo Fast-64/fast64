@@ -85,7 +85,7 @@ class Cutscene:
                 declarationBase
                 + " = {\n"
                 + (indent + f"CS_BEGIN_CUTSCENE({self.totalEntries}, {self.frameCount}),\n")
-                + (self.data.destination.getCmd() if self.motionOnly else "")
+                + (self.data.destination.getCmd() if self.data.destination is not None else "")
                 + "".join(entry.getCmd() for curList in dataListNames for entry in getattr(self.data, curList))
                 + (indent + "CS_END(),\n")
                 + "};\n\n"
@@ -138,6 +138,8 @@ class SceneCutscene(Base):
 
     def getCmd(self):
         """Returns the cutscene data scene command"""
+        if len(self.entries) == 0:
+            raise PluginError("ERROR: Cutscene entry list is empty!")
 
         # entry No. 0 is always self.csObj
         return indent + f"SCENE_CMD_CUTSCENE_DATA({self.entries[0].name}),\n"

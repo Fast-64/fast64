@@ -76,7 +76,9 @@ class Spec:
                 includeDir = f"build/{getSceneDirFromLevelName(sceneName)}"
 
             sceneName = exporter.scene.name
-            sceneTexturesSeg = indent + f'include "{includeDir}/{sceneName}_tex.o"\n'
+            sceneTexturesSeg = (
+                (indent + f'include "{includeDir}/{sceneName}_tex.o"\n') if exporter.hasSceneTextures else ""
+            )
             if exporter.isSingleFile:
                 specEntries.insert(
                     firstIndex,
@@ -110,8 +112,7 @@ class Spec:
                     + (indent + f'include "{includeDir}/{sceneName}_col.o"\n')
                 )
 
-                if exporter.hasSceneTextures:
-                    sceneSegInclude += sceneTexturesSeg
+                sceneSegInclude += sceneTexturesSeg
 
                 if exporter.hasCutscenes:
                     for i in range(len(exporter.sceneFile.sceneCutscenes)):

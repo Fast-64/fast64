@@ -189,6 +189,7 @@ class Scene(Base):
                     self.altHeader.adultNight,
                 ]
             )
+            headers.extend(self.altHeader.cutscenes)
 
         for curHeader in headers:
             if curHeader is not None:
