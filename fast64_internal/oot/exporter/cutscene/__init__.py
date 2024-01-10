@@ -1,3 +1,5 @@
+import bpy
+
 from dataclasses import dataclass, field
 from typing import Optional
 from bpy.types import Object
@@ -19,9 +21,9 @@ from .data import CutsceneData
 class Cutscene:
     """This class defines a cutscene, including its data and its informations"""
 
-    name: str
     csObj: Object
     useMacros: bool
+    name: Optional[str] = None
     motionOnly: bool = False
     data: Optional[CutsceneData] = None
     totalEntries: int = 0
@@ -31,6 +33,8 @@ class Cutscene:
     def __post_init__(self):
         # when csObj is None it means we're in import context
         if self.csObj is not None and self.data is None:
+            if self.name is None:
+                self.name = self.csObj.name.removeprefix("Cutscene.").replace(".", "_")
             self.data = CutsceneData(self.csObj, self.useMacros, self.motionOnly)
             self.totalEntries = self.data.totalEntries
             self.frameCount = self.data.frameCount
@@ -127,15 +131,13 @@ class SceneCutscene(Base):
                     csWriteCustom = getCustomProperty(self.props, "csWriteCustom")
 
                 if self.props.writeCutscene:
-                    self.entries.append(Cutscene(self.getCutsceneName(csObj, csWriteCustom), csObj, self.useMacros))
-
-    def getCutsceneName(self, csObj: Object, customName: Optional[str] = None) -> str:
-        """Returns the cutscene's name"""
-
-        return customName if customName is not None else csObj.name.removeprefix("Cutscene.")
+                    # if csWriteCustom is None then the name will auto-set from the csObj passed in the class
+                    self.entries.append(
+                        Cutscene(csObj, self.useMacros, csWriteCustom, bpy.context.scene.exportMotionOnly)
+                    )
 
     def getCmd(self):
         """Returns the cutscene data scene command"""
 
-        csDataName = self.getCutsceneName(self.csObj)
-        return indent + f"SCENE_CMD_CUTSCENE_DATA({csDataName}),\n"
+        # entry No. 0 is always self.csObj
+        return indent + f"SCENE_CMD_CUTSCENE_DATA({self.entries[0].name}),\n"
