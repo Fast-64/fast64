@@ -947,7 +947,7 @@ def parsePathList(
     pathData = getDataMatch(sceneData, pathListName, "Path", "path list")
     pathList = [value.replace("{", "").strip() for value in pathData.split("},") if value.strip() != ""]
     for pathEntry in pathList:
-        numPoints, pathName = [value.strip() for value in pathEntry.split(",")]
+        _, pathName = [value.strip() for value in pathEntry.split(",")]
         parsePath(sceneObj, sceneData, pathName, headerIndex, sharedSceneData)
 
 

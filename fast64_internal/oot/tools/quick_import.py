@@ -40,7 +40,7 @@ def quick_import_exec(context: bpy.types.Context, sym_name: str):
 
     all_found_defs: dict[Path, list[tuple[str, str]]] = dict()
 
-    for dirpath, dirnames, filenames in os.walk(assets_objects_dir_p):
+    for dirpath, _, filenames in os.walk(assets_objects_dir_p):
         dirpath_p = Path(dirpath)
         for filename in filenames:
             file_p = dirpath_p / filename
