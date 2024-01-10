@@ -384,7 +384,7 @@ def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren
     try:
         addCollisionTriangles(tempObj, collisionDict, includeChildren, transformMatrix, areaIndex)
         if not collisionDict:
-            raise PluginError("No collision data to export, col export cancelled")
+            raise PluginError("No collision data to export")
         cleanupDuplicatedObjects(allObjs)
         obj.select_set(True)
         bpy.context.view_layer.objects.active = obj

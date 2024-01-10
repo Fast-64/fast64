@@ -221,26 +221,7 @@ class SM64_Properties(PropertyGroup):
     goal: EnumProperty(items=sm64GoalTypeEnum, name="Export Goal", default="All")
 
     combined_export: bpy.props.PointerProperty(type=SM64_CombinedObjectProperties)
-
-    # TODO: Utilize these across all exports
-    # C exporting
-    # useCustomExportLocation = BoolProperty(name = 'Use Custom Export Path')
-    # customExportPath: StringProperty(name = 'Custom Export Path', subtype = 'FILE_PATH')
-    # exportLocation: EnumProperty(items = enumExportHeaderType, name = 'Export Location', default = 'Actor')
-    # useSelectedObjectName = BoolProperty(name = 'Use Name From Selected Object', default=False)
-    # exportName: StringProperty(name='Name', default='mario')
-    # exportGeolayoutName: StringProperty(name='Name', default='mario_geo')
-
-    # Actor exports
-    # exportGroup: StringProperty(name='Group', default='group0')
-
-    # Level exports
-    # exportLevelName: StringProperty(name = 'Level', default = 'bob')
-    # exportLevelOption: EnumProperty(items = enumLevelNames, name = 'Level', default = 'bob')
-
-    # Insertable Binary
-    # exportInsertableBinaryPath: StringProperty(name = 'Filepath', subtype = 'FILE_PATH')
-
+    
     @staticmethod
     def upgrade_changed_props():
         if bpy.context.scene.fast64.sm64.version != SM64_Properties.cur_version:

@@ -127,12 +127,7 @@ class ZoomOutMasks:
         self.originalData = originalData
 
     def to_c(self):
-        result = ""
-        # result += 'u8 sZoomOutAreaMasks[] = {\n'
-        result += "\n"
-        result += macrosToString(self.masks)
-        # result += '};\n'
-        return result
+        return f"{macrosToString(self.masks)}\n"
 
     def write(self, filepath):
         matchResult = re.search(
@@ -199,9 +194,9 @@ class CourseDefines:
 
     def to_c(self):
         result = self.headerInfo
-        result += macrosToString(self.courses, tabDepth=0)
-        result += "DEFINE_COURSES_END()\n"
-        result += macrosToString(self.bonusCourses, tabDepth=0)
+        result += macrosToString(self.courses, tabDepth=0, comma = False)
+        result += "\nDEFINE_COURSES_END()\n"
+        result += macrosToString(self.bonusCourses, tabDepth=0, comma = False)
         return result
 
     def write(self, filepath):
@@ -241,7 +236,7 @@ class LevelDefines:
 
     def to_c(self):
         result = self.headerInfo
-        result += macrosToString(self.defineMacros, tabDepth=0)
+        result += macrosToString(self.defineMacros, tabDepth=0, comma = False)
         return result
 
     def write(self, filepath, headerPath):
@@ -357,7 +352,8 @@ class LevelScript:
                 None,
                 (
                     # all the includes
-                    "#include <ultra64.h>" '#include "sm64.h"',
+                    "#include <ultra64.h>",
+                    '#include "sm64.h"',
                     '#include "behavior_data.h"',
                     '#include "model_ids.h"',
                     '#include "seq_ids.h"',
@@ -518,13 +514,13 @@ def stringToMacros(data):
     return macroData
 
 
-def macroToString(macro_cmd):
-    return f"{macro_cmd.function}({', '.join(macro_cmd.args)}), {macro_cmd.comment}"
+def macroToString(macro_cmd, comma = True):
+    return f"{macro_cmd.function}({', '.join(macro_cmd.args)}){',' if comma else ''} {macro_cmd.comment}"
 
 
-def macrosToString(macro_cmds, tabDepth=1):
+def macrosToString(macro_cmds, tabDepth=1, comma = True):
     tabs = "\t" * tabDepth
-    return "\n".join([f"{tabs}{macroToString(macro_cmd)}" for macro_cmd in macro_cmds])
+    return "\n".join([f"{tabs}{macroToString(macro_cmd, comma = comma)}" for macro_cmd in macro_cmds])
 
 
 def setStartLevel(basePath, levelEnum):
@@ -738,7 +734,7 @@ class SM64OptionalFileStatus:
 
 
 def export_area_c(
-    obj, level_data, area_root, prev_level_script, transformMatrix, levelName, level_dir, fModel, DLFormat, savePNG
+    obj, level_data, area_root, prev_level_script, transformMatrix, level_name, level_dir, fModel, DLFormat, savePNG
 ):
     areaName = f"area_{area_root.areaIndex}"
     areaDir = os.path.join(level_dir, areaName)
@@ -749,14 +745,14 @@ def export_area_c(
     uses_env_fx = envOption != "ENVFX_MODE_NONE"
 
     def include_proto(file_name):
-        return f'#include "levels/{levelName}/{areaName}/{file_name}"\n'
+        return f'#include "levels/{level_name}/{areaName}/{file_name}"\n'
 
     # Write geolayout
     geolayoutGraph, fModel = convertObjectToGeolayout(
         obj,
         transformMatrix,
         area_root.areaCamera,
-        f"{levelName}_{areaName}",
+        f"{level_name}_{areaName}",
         fModel,
         area_root,
         DLFormat,
@@ -770,7 +766,7 @@ def export_area_c(
     # Write collision, rooms MUST be done first
     setRooms(area_root)
     collision = exportCollisionCommon(
-        area_root, transformMatrix, True, True, f"{levelName}_{areaName}", area_root.areaIndex
+        area_root, transformMatrix, True, True, f"{level_name}_{areaName}", area_root.areaIndex
     )
     collisionC = collision.to_c()
     saveDataToFile(os.path.join(areaDir, "collision.inc.c"), collisionC.source)
@@ -786,7 +782,7 @@ def export_area_c(
 
     # Get area
     area = exportAreaCommon(
-        area_root, transformMatrix, geolayoutGraph.startGeolayout, collision, f"{levelName}_{areaName}"
+        area_root, transformMatrix, geolayoutGraph.startGeolayout, collision, f"{level_name}_{areaName}"
     )
     if area.mario_start is not None:
         prev_level_script.marioStart = area.mario_start
@@ -933,7 +929,7 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
                 shutil.rmtree(os.path.join(level_dir, folder))
 
     def include_proto(file_name):
-        return f'#include "levels/{level_name}/{file_name}/"\n'
+        return f'#include "levels/{level_name}/{file_name}"\n'
 
     gfxFormatter = SM64GfxFormatter(ScrollMethod.Vertex)
     exportData = fModel.to_c(TextureExportSettings(savePNG, savePNG, f"levels/{level_name}", level_dir), gfxFormatter)
