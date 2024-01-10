@@ -1,8 +1,9 @@
 import bpy
 
-from bpy.types import Object, PropertyGroup, UILayout
+from bpy.types import Object, PropertyGroup, UILayout, Scene
 from bpy.utils import register_class, unregister_class
 from bpy.props import EnumProperty, StringProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
+from bpy.app.handlers import persistent
 from ...utility import prop_split, label_split
 from ..oot_constants import ootData, ootEnumCamTransition
 from ..oot_upgrade import upgradeActors
@@ -167,22 +168,7 @@ class OOTTransitionActorProperty(PropertyGroup):
     cameraTransitionBackCustom: StringProperty(default="0x00")
     isRoomTransition: BoolProperty(name="Is Room Transition", default=True)
 
-    # internal usage only
-    isFromRoomSet: BoolProperty(name="isFromRoomSet", default=False, get=lambda self: self.updateFromRoom())
-
     actor: PointerProperty(type=OOTActorProperty)
-
-    def updateFromRoom(self):
-        if self.fromRoom is None:
-            for obj in bpy.data.objects:
-                if (
-                    obj.type == "EMPTY"
-                    and obj.ootEmptyType == "Room"
-                    and bpy.context.view_layer.objects.active in obj.children_recursive
-                ):
-                    self.fromRoom = obj
-                    return True
-        return False
 
     def isRoomEmptyObject(self, obj: Object):
         return obj.type == "EMPTY" and obj.ootEmptyType == "Room"
@@ -220,9 +206,6 @@ class OOTTransitionActorProperty(PropertyGroup):
 
         headerProps: OOTActorHeaderProperty = self.actor.headerSettings
         headerProps.draw_props(actorIDBox, "Transition Actor", altSceneProp, objName)
-
-        # execute fromRoom get function
-        _ = self.isFromRoomSet
 
 
 class OOTEntranceProperty(PropertyGroup):
@@ -268,6 +251,17 @@ classes = (
 )
 
 
+@persistent
+def actorHandler(_: Scene):
+    for parentObj in bpy.data.objects:
+        if parentObj.type == "EMPTY" and parentObj.ootEmptyType == "Room":
+            for obj in parentObj.children_recursive:
+                if obj.type == "EMPTY" and obj.ootEmptyType == "Transition Actor":
+                    transActorProp = obj.ootTransitionActorProperty
+                    if transActorProp.fromRoom is None:
+                        transActorProp.fromRoom = parentObj
+
+
 def actor_props_register():
     for cls in classes:
         register_class(cls)
@@ -275,6 +269,8 @@ def actor_props_register():
     Object.ootActorProperty = PointerProperty(type=OOTActorProperty)
     Object.ootTransitionActorProperty = PointerProperty(type=OOTTransitionActorProperty)
     Object.ootEntranceProperty = PointerProperty(type=OOTEntranceProperty)
+
+    bpy.app.handlers.depsgraph_update_pre.append(actorHandler)
 
 
 def actor_props_unregister():
@@ -284,3 +280,6 @@ def actor_props_unregister():
 
     for cls in reversed(classes):
         unregister_class(cls)
+
+    if actorHandler in bpy.app.handlers.depsgraph_update_pre:
+        bpy.app.handlers.depsgraph_update_pre.remove(actorHandler)
