@@ -1,6 +1,9 @@
+import bpy
+
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from bpy.types import Object, CollectionProperty
+from ..utility import PluginError
 from .data import OoT_ObjectData
 from .oot_utility import getEvalParams
 from .oot_constants import ootData
@@ -83,24 +86,22 @@ def convertOldDataToEnumData(data, oldDataToEnumData: list[Cutscene_UpgradeData]
         if csUpgradeData.oldPropName in data:
             # get the old data
             oldData = data[csUpgradeData.oldPropName]
+            isUpgraded = False
 
             # if anything goes wrong there set the value to custom to avoid any data loss
             try:
                 if isinstance(oldData, str):
                     # get the value, doing an eval for strings
-                    # account for custom elements in the enums by adding 1
-                    value = int(getEvalParams(oldData), base=16) + 1
+                    value = int(getEvalParams(oldData), base=16)
 
                     # special cases for ocarina action enum
                     # since we don't have everything the value need to be shifted
                     if csUpgradeData.newPropName == "ocarinaAction":
-                        if value in [0x00, 0x01, 0x0E] or value > 0x1A:
+                        if value in [0x00, 0x01, 0x0E, 0x1B]:
                             raise IndexError
 
-                        if value > 0x0E:
-                            value -= 1
-
-                        value -= 2
+                        # account for custom elements in the enums by adding 1
+                        value += 1
 
                     if csUpgradeData.newPropName == "csSeqID":
                         # the old fade out value is wrong, it assumes it's a seq id
@@ -109,24 +110,22 @@ def convertOldDataToEnumData(data, oldDataToEnumData: list[Cutscene_UpgradeData]
                         # @TODO: find a way to check properly which seq command it is
                         raise NotImplementedError
                 elif isinstance(oldData, int):
-                    # account for custom elements in the enums by adding 1
-                    value = oldData + 1
+                    value = oldData
 
                     # another special case, this time for the misc enum
                     if csUpgradeData.newPropName == "csMiscType":
                         if value in [0x00, 0x04, 0x05]:
                             raise IndexError
 
-                        if value > 0x05:
-                            value -= 2
-
-                        value -= 1
+                    # account for custom elements in the enums by adding 1
+                    value += 1
                 else:
                     raise NotImplementedError
 
                 # if the value is in the list find the identifier
                 if value < len(csUpgradeData.enumData):
                     setattr(data, csUpgradeData.newPropName, csUpgradeData.enumData[value][0])
+                    isUpgraded = True
                 else:
                     # else raise an error to default to custom
                     raise IndexError
@@ -138,8 +137,12 @@ def convertOldDataToEnumData(data, oldDataToEnumData: list[Cutscene_UpgradeData]
                 if csUpgradeData.newPropName == "csSeqID":
                     setattr(data, "csSeqPlayer", "Custom")
                     setattr(data, "csSeqPlayerCustom", str(oldData))
+                isUpgraded = True
 
-            del data[csUpgradeData.oldPropName]
+            if isUpgraded:
+                del data[csUpgradeData.oldPropName]
+            else:
+                raise PluginError(f"ERROR: ``{csUpgradeData.newPropName}`` did not upgrade properly!")
 
 
 def upgradeCutsceneSubProps(csListSubProp):
