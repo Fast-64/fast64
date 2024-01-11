@@ -127,7 +127,7 @@ class ZoomOutMasks:
         self.originalData = originalData
 
     def to_c(self):
-        return f"{macrosToString(self.masks)}\n"
+        return f"\n{macrosToString(self.masks)}\n"
 
     def write(self, filepath):
         matchResult = re.search(
@@ -194,9 +194,9 @@ class CourseDefines:
 
     def to_c(self):
         result = self.headerInfo
-        result += macrosToString(self.courses, tabDepth=0, comma = False)
+        result += macrosToString(self.courses, tabDepth=0, comma=False)
         result += "\nDEFINE_COURSES_END()\n"
-        result += macrosToString(self.bonusCourses, tabDepth=0, comma = False)
+        result += macrosToString(self.bonusCourses, tabDepth=0, comma=False)
         return result
 
     def write(self, filepath):
@@ -236,7 +236,7 @@ class LevelDefines:
 
     def to_c(self):
         result = self.headerInfo
-        result += macrosToString(self.defineMacros, tabDepth=0, comma = False)
+        result += macrosToString(self.defineMacros, tabDepth=0, comma=False)
         return result
 
     def write(self, filepath, headerPath):
@@ -514,11 +514,11 @@ def stringToMacros(data):
     return macroData
 
 
-def macroToString(macro_cmd, comma = True):
+def macroToString(macro_cmd, comma=True):
     return f"{macro_cmd.function}({', '.join(macro_cmd.args)}){',' if comma else ''} {macro_cmd.comment}"
 
 
-def macrosToString(macro_cmds, tabDepth=1, comma = True):
+def macrosToString(macro_cmds, tabDepth=1, comma=True):
     tabs = "\t" * tabDepth
     return "\n".join([f"{tabs}{macroToString(macro_cmd, comma = comma)}" for macro_cmd in macro_cmds])
 

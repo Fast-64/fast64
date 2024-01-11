@@ -508,8 +508,6 @@ class SM64_ExportCollision(bpy.types.Operator):
             obj = None
             if context.mode != "OBJECT":
                 raise PluginError("Operator can only be used in object mode.")
-            if len(context.selected_objects) == 0:
-                raise PluginError("Object not selected.")
             obj = bpy.data.objects.get(self.export_obj, None) or context.active_object
             self.export_obj = ""
             scale_value = bpy.context.scene.blenderToSM64Scale

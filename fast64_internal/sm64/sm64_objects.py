@@ -37,6 +37,7 @@ from .sm64_constants import (
     enumPresetBehaviors,
     behaviorMacroArguments,
     behaviorPresetContents,
+    obj_field_enums,
     groupsSeg5,
     groupsSeg6,
     groups_obj_export,
@@ -1446,6 +1447,9 @@ class RemoveBehavior(bpy.types.Operator):
 class BehaviorScriptProperty(bpy.types.PropertyGroup):
     expand: bpy.props.BoolProperty(name="Expand")
     macro: bpy.props.EnumProperty(items=enumBehaviorMacros, name="Behavior Macro", default="BEGIN")
+    object_fields: bpy.props.EnumProperty(items=obj_field_enums, name="Object Fields", default="oFlags")
+    object_fields1: bpy.props.EnumProperty(items=obj_field_enums, name="Object Fields 1", default="oPosX")
+    object_fields2: bpy.props.EnumProperty(items=obj_field_enums, name="Object Fields 2", default="oPosX")
     # there are anywhere from 0 to 3 arguments for a bhv, rather than make a new prop
     # group and collection prop, I'll just have static props and choose to use
     # arguments as needed
@@ -1461,7 +1465,6 @@ class BehaviorScriptProperty(bpy.types.PropertyGroup):
     # some objects have cmds that make sense to dynamically inherit it from export properties
     # load collision,  or set model ID are easy examples
     inherit_from_export: bpy.props.BoolProperty(name="Inherit From Export")
-
     _inheritable_macros = {
         "LOAD_COLLISION_DATA",
         "SET_MODEL",
@@ -1485,7 +1488,21 @@ class BehaviorScriptProperty(bpy.types.PropertyGroup):
     @property
     def macro_args(self):
         if self.bhv_args:
-            return [getattr(self, field) for field, arg_name in zip(self.arg_fields, self.bhv_args)]
+            return [
+                getattr(self, *self.field_or_enum(field, arg_name))
+                for field, arg_name in zip(self.arg_fields, self.bhv_args)
+            ]
+
+    def field_or_enum(self, field, arg_name):
+        if "Field" in arg_name:
+            digit = search[0][-1] if (search := findall("Field\s\d", arg_name)) else ""
+            enum = f"object_fields{digit}"
+            if getattr(self, enum) == "Custom":
+                return field, enum
+            else:
+                return enum, None
+        else:
+            return field, None
 
     def get_inherit_args(self, context, props):
         if self.macro not in self._inheritable_macros:
@@ -1500,8 +1517,16 @@ class BehaviorScriptProperty(bpy.types.PropertyGroup):
             return props.collision_name
         return self.macro_args
 
+    def get_args(self, context, props):
+        if self.inherit_from_export:
+            return self.get_inherit_args(context, props)
+        elif self.macro_args:
+            return ", ".join(self.macro_args)
+        else:
+            return ""
+
     def draw(self, layout, index):
-        box = layout.column().box()
+        box = layout.box().column()
         box.prop(
             self,
             "expand",
@@ -1518,7 +1543,15 @@ class BehaviorScriptProperty(bpy.types.PropertyGroup):
                     prop_split(box, self, f"arg_{j + 1}", f"arg_{j + 1}")
             elif self.bhv_args and not self.inherit_from_export:
                 for field, arg_name in zip(self.arg_fields, self.bhv_args):
-                    prop_split(box, self, field, arg_name)
+                    draw_field, draw_enum = self.field_or_enum(field, arg_name)
+                    if draw_enum:
+                        split_1 = box.split(factor=0.45)
+                        split_2 = split_1.split(factor=0.45)
+                        split_2.label(text=arg_name)
+                        split_2.prop(self, draw_enum, text="")
+                        split_1.prop(self, draw_field, text="")
+                    else:
+                        prop_split(box, self, draw_field, arg_name)
             row = box.row()
             row.operator("bone.add_behavior_script", text="Add Bhv Cmd").option = index + 1
             row.operator("bone.remove_behavior_script", text="Remove Bhv Cmd").option = index
@@ -1726,7 +1759,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         match_line, sig_insert_line, default_line = self.find_export_lines(
             bhv_data_lines, match_str=export_bhv_name, fast64_signature=fast64_sig, alt_condition=last_bhv_define
         )
-        
+
         if match_line:
             for j, line in enumerate(bhv_data_lines[match_line + 1 :]):
                 if "BehaviorScript" in line:
@@ -1741,16 +1774,10 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         bhv_data_lines.insert(export_line + 1, export_bhv_name)
 
         for j, bhv_cmd in enumerate(props.behavior_script):
-            if bhv_cmd.inherit_from_export:
-                args = bhv_cmd.get_inherit_args(context, props)
-            elif bhv_cmd.macro_args:
-                args = ", ".join(bhv_cmd.macro_args)
-            else:
-                args = ""
-            bhv_macro = f"\t{bhv_cmd.macro}({args}),\n"
+            bhv_macro = f"\t{bhv_cmd.macro}({bhv_cmd.get_args(context, props)}),\n"
             bhv_data_lines.insert(export_line + 2 + j, bhv_macro)
         bhv_data_lines.insert(export_line + 3 + j, "};\n\n")
-        
+
         self.write_file_lines(behavior_data, bhv_data_lines)
         # exporting bhv header
         self.export_behavior_header(context, props)
@@ -1764,7 +1791,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         if not props.col_object and not props.gfx_object:
             raise PluginError("No export object selected")
         if context.active_object.type == "EMPTY" and context.active_object.sm64_obj_type == "Level Root":
-            raise PluginError("Cannot export levels with \"Export Object\" Operator")
+            raise PluginError('Cannot export levels with "Export Object" Operator')
 
     def get_export_objects(self, context, props):
         if not props.export_all_selected:
@@ -2068,7 +2095,6 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
 
         if self.export_header_type == "Custom":
             prop_split(box, self, "custom_export_path", "Custom Path")
-
 
         elif self.export_header_type == "Actor":
             prop_split(box, self, "group_name", "Group Name")

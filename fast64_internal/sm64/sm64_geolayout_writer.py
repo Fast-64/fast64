@@ -2807,8 +2807,6 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
             obj = None
             if context.mode != "OBJECT":
                 raise PluginError("Operator can only be used in object mode.")
-            if len(context.selected_objects) == 0:
-                raise PluginError("Object not selected.")
             obj = bpy.data.objects.get(self.export_obj, None) or context.active_object
             self.export_obj = ""
             if obj.type != "MESH" and not (
@@ -2982,8 +2980,6 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
             armatureObj = None
             if context.mode != "OBJECT":
                 raise PluginError("Operator can only be used in object mode.")
-            if len(context.selected_objects) == 0:
-                raise PluginError("Armature not selected.")
             armatureObj = bpy.data.objects.get(self.export_obj, None) or context.active_object
             self.export_obj = ""
             if armatureObj.type != "ARMATURE":
