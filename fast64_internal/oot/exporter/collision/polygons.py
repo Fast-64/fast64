@@ -18,6 +18,14 @@ class CollisionPoly:
     useMacros: bool
     type: Optional[int] = None
 
+    def __post_init__(self):
+        if self.normal[0] == self.normal[2] == 0.0:
+            raise PluginError("ERROR: Normal X and Z are both 0, this will result in a crash in-game.")
+
+        for i, val in enumerate(self.normal):
+            if val < -1.0 or val > 1.0:
+                raise PluginError(f"ERROR: Invalid value for normal {['X', 'Y', 'Z'][i]}! (``{val}``)")
+
     def getFlags_vIA(self):
         """Returns the value of ``flags_vIA``"""
 
@@ -56,7 +64,7 @@ class CollisionPoly:
                     self.getFlags_vIA(),
                     self.getFlags_vIB(),
                     f"COLPOLY_VTX_INDEX({vtxId})" if self.useMacros else f"{vtxId} & 0x1FFF",
-                    ", ".join(f"COLPOLY_SNORMAL({val})" for val in self.normal),
+                    ("{ " + ", ".join(f"COLPOLY_SNORMAL({val})" for val in self.normal) + " }"),
                     f"{self.dist}",
                 )
             )

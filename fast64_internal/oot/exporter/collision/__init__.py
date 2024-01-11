@@ -100,6 +100,15 @@ class CollisionBase(Base):
                     )
                     distance = convertIntTo2sComplement(distance, 2, True)
 
+                    # TODO: can this be improved?
+                    nx = (y2 - y1) * (z3 - z2) - (z2 - z1) * (y3 - y2)
+                    ny = (z2 - z1) * (x3 - x2) - (x2 - x1) * (z3 - z2)
+                    nz = (x2 - x1) * (y3 - y2) - (y2 - y1) * (x3 - x2)
+                    magSqr = nx * nx + ny * ny + nz * nz
+                    if magSqr <= 0:
+                        print("INFO: Ignore denormalized triangle.")
+                        continue
+
                     indices: list[int] = []
                     for pos in [(x1, y1, z1), (x2, y2, z2), (x3, y3, z3)]:
                         vertexIndex = self.getVertexIndex(pos, vertexList)
@@ -157,7 +166,7 @@ class CollisionBase(Base):
                         self.useMacros,
                     )
 
-                    if surfaceType not in colPolyFromSurfaceType:
+                    if surfaceType not in colPolyFromSurfaceType.keys():
                         colPolyFromSurfaceType[surfaceType] = []
 
                     colPolyFromSurfaceType[surfaceType].append(
