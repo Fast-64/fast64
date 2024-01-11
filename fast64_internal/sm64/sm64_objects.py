@@ -1463,7 +1463,7 @@ class BehaviorScriptProperty(bpy.types.PropertyGroup):
     arg_7: bpy.props.StringProperty(name="Argument 7")
     arg_8: bpy.props.StringProperty(name="Argument 8")
     # some objects have cmds that make sense to dynamically inherit it from export properties
-    # load collision,  or set model ID are easy examples
+    # load collision, or set model ID are easy examples
     inherit_from_export: bpy.props.BoolProperty(name="Inherit From Export")
     _inheritable_macros = {
         "LOAD_COLLISION_DATA",
@@ -2074,7 +2074,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         if self.level_name == "custom":
             prop_split(box, self, "custom_export_name", "Level Name")
         self.draw_level_path(box.box())
-        box.separator()
+        col.separator()
         # object exports
         box = col.box()
         if not self.export_col and not self.export_bhv and not self.export_gfx:

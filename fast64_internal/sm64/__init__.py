@@ -227,6 +227,14 @@ class SM64_Properties(PropertyGroup):
         if bpy.context.scene.fast64.sm64.version != SM64_Properties.cur_version:
             bpy.context.scene.fast64.sm64.exportType = get_legacy_export_type()
             bpy.context.scene.fast64.sm64.version = SM64_Properties.cur_version
+        # props upgrade for combined export panel
+        if hasattr(bpy.context.scene, "geoName"):
+            combined_props = bpy.context.scene.fast64.sm64.combined_export
+            combined_props.export_header_type = bpy.context.scene.geoExportHeaderType
+            combined_props.custom_export_name = bpy.context.scene.geoLevelName
+            combined_props.custom_export_path = bpy.context.scene.geoExportPath
+            combined_props.level_name = bpy.context.scene.geoLevelOption
+            combined_props.object_name = bpy.context.scene.geoName
 
 
 sm64_classes = (
