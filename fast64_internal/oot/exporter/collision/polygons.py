@@ -19,9 +19,6 @@ class CollisionPoly:
     type: Optional[int] = None
 
     def __post_init__(self):
-        if self.normal[0] == self.normal[2] == 0.0:
-            raise PluginError("ERROR: Normal X and Z are both 0, this will result in a crash in-game.")
-
         for i, val in enumerate(self.normal):
             if val < -1.0 or val > 1.0:
                 raise PluginError(f"ERROR: Invalid value for normal {['X', 'Y', 'Z'][i]}! (``{val}``)")
