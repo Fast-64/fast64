@@ -37,7 +37,7 @@ def file_register():
     Scene.ootDecompPath = StringProperty(name="Decomp Folder", subtype="FILE_PATH")
 
     Scene.useDecompFeatures = BoolProperty(
-        name="Use Decomp for CS Export", description="Use names and macros from decomp when exporting", default=True
+        name="Use decomp for export", description="Use names and macros from decomp when exporting", default=True
     )
 
     Scene.exportMotionOnly = BoolProperty(

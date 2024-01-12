@@ -74,11 +74,11 @@ class SceneFile:
                 roomData.roomModel = self.getSourceWithSceneInclude(sceneInclude, roomData.roomModel)
 
         self.sceneMain = self.getSourceWithSceneInclude(
-            sceneInclude if not self.singleFileExport else csInclude, self.sceneMain
+            sceneInclude if not self.hasCutscenes else csInclude, self.sceneMain
         )
-        self.sceneTextures = self.getSourceWithSceneInclude(sceneInclude, self.sceneTextures)
 
         if not self.singleFileExport:
+            self.sceneTextures = self.getSourceWithSceneInclude(sceneInclude, self.sceneTextures)
             self.sceneCollision = self.getSourceWithSceneInclude(sceneInclude, self.sceneCollision)
             if self.hasCutscenes:
                 for i in range(len(self.sceneCutscenes)):
@@ -97,15 +97,16 @@ class SceneFile:
             if self.hasCutscenes:
                 self.sceneMain += "".join(cs for cs in self.sceneCutscenes)
             self.sceneMain += self.sceneCollision
+            if self.hasSceneTextures:
+                self.sceneMain += self.sceneTextures
         else:
             sceneMainPath = f"{self.name}_main.c"
             writeFile(os.path.join(self.path, f"{self.name}_col.c"), self.sceneCollision)
             if self.hasCutscenes:
                 for i, cs in enumerate(self.sceneCutscenes):
                     writeFile(os.path.join(self.path, f"{self.name}_cs_{i}.c"), cs)
-
-        if self.hasSceneTextures:
-            writeFile(os.path.join(self.path, f"{self.name}_tex.c"), self.sceneTextures)
+            if self.hasSceneTextures:
+                writeFile(os.path.join(self.path, f"{self.name}_tex.c"), self.sceneTextures)
 
         writeFile(os.path.join(self.path, sceneMainPath), self.sceneMain)
 

@@ -49,6 +49,7 @@ class SceneTransitionActors(Base):
 
     def __post_init__(self):
         actorObjList = getObjectList(self.sceneObj.children_recursive, "EMPTY", "Transition Actor")
+        actorObjList.sort(key=lambda obj: obj.ootTransitionActorProperty.fromRoom.ootRoomHeader.roomIndex)
         for obj in actorObjList:
             roomObj = self.getRoomObjectFromChild(obj)
             if roomObj is None:
