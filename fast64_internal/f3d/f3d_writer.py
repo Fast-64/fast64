@@ -1111,7 +1111,7 @@ def getLoopNormal(loop: bpy.types.MeshLoop) -> Vector:
 
 @functools.lru_cache(0)
 def is3_2_or_above():
-    return bpy.app.version[0] >= 3 and bpy.app.version[1] >= 2
+    return bpy.app.version >= (3, 2, 0)
 
 
 def getLoopColor(loop: bpy.types.MeshLoop, mesh: bpy.types.Mesh) -> Vector:
