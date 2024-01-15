@@ -76,7 +76,7 @@ class CameraInfo:
 class BgCamInformations(Base):
     """This class defines the array of camera informations and the array of the associated data"""
 
-    sceneObj: Object
+    dataHolder: Object
     transform: Matrix
     name: str
     posDataName: str
@@ -90,7 +90,7 @@ class BgCamInformations(Base):
     def initCrawlspaceList(self):
         """Returns a list of crawlspace data from every splines objects with the type 'Crawlspace'"""
 
-        crawlspaceObjList = getObjectList(self.sceneObj.children_recursive, "CURVE", splineType="Crawlspace")
+        crawlspaceObjList = getObjectList(self.dataHolder.children_recursive, "CURVE", splineType="Crawlspace")
         for obj in crawlspaceObjList:
             if self.validateCurveData(obj):
                 self.crawlspacePosList.append(
@@ -106,7 +106,7 @@ class BgCamInformations(Base):
     def initBgCamInfoList(self):
         """Returns a list of camera informations from camera objects"""
 
-        camObjList = getObjectList(self.sceneObj.children_recursive, "CAMERA")
+        camObjList = getObjectList(self.dataHolder.children_recursive, "CAMERA")
         camPosData: dict[int, CameraData] = {}
         camInfoData: dict[int, CameraInfo] = {}
 
@@ -124,7 +124,7 @@ class BgCamInformations(Base):
 
                 # Camera faces opposite direction
                 pos, rot, _, _ = self.getConvertedTransformWithOrientation(
-                    self.transform, self.sceneObj, camObj, Quaternion((0, 1, 0), math.radians(180.0))
+                    self.transform, self.dataHolder, camObj, Quaternion((0, 1, 0), math.radians(180.0))
                 )
 
                 fov = math.degrees(camObj.data.angle)

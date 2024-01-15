@@ -71,9 +71,9 @@ class Base:
         return value if value != "Custom" else getattr(data, f"{propName}Custom")
 
     def getConvertedTransformWithOrientation(
-        self, transform: Matrix, sceneObj: Object, obj: Object, orientation: Quaternion | Matrix
+        self, transform: Matrix, dataHolder: Object, obj: Object, orientation: Quaternion | Matrix
     ):
-        relativeTransform = transform @ sceneObj.matrix_world.inverted() @ obj.matrix_world
+        relativeTransform = transform @ dataHolder.matrix_world.inverted() @ obj.matrix_world
         blenderTranslation, blenderRotation, scale = relativeTransform.decompose()
         rotation = blenderRotation @ orientation
         convertedTranslation = ootConvertTranslation(blenderTranslation)
@@ -81,14 +81,14 @@ class Base:
 
         return convertedTranslation, convertedRotation, scale, rotation
 
-    def getConvertedTransform(self, transform: Matrix, sceneObj: Object, obj: Object, handleOrientation: bool):
+    def getConvertedTransform(self, transform: Matrix, dataHolder: Object, obj: Object, handleOrientation: bool):
         # Hacky solution to handle Z-up to Y-up conversion
         # We cannot apply rotation to empty, as that modifies scale
         if handleOrientation:
             orientation = Quaternion((1, 0, 0), radians(90.0))
         else:
             orientation = Matrix.Identity(4)
-        return self.getConvertedTransformWithOrientation(transform, sceneObj, obj, orientation)
+        return self.getConvertedTransformWithOrientation(transform, dataHolder, obj, orientation)
 
     def getAltHeaderListCmd(self, altName: str):
         """Returns the scene alternate header list command"""

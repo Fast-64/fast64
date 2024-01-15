@@ -46,8 +46,10 @@ class Scene(Base):
 
         self.colHeader = CollisionHeader(
             self.sceneObj,
+            None,
             self.transform,
             self.useMacros,
+            True,
             f"{self.name}_collisionHeader",
             self.name,
         )

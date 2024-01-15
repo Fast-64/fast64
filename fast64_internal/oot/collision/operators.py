@@ -1,11 +1,11 @@
 import bpy, os, mathutils
-from bpy.types import Operator, Mesh
+from bpy.types import Operator
 from bpy.utils import register_class, unregister_class
 from bpy.ops import object
 from mathutils import Matrix
-from ..oot_collision import exportCollisionCommon, ootCollisionToC
 from ..oot_collision_classes import OOTCollision, OOTCameraData
 from .properties import OOTCollisionExportSettings
+from ..exporter.collision import CollisionHeader
 
 from ...utility import (
     PluginError,
@@ -31,7 +31,6 @@ from ..oot_utility import (
 def exportCollisionToC(
     originalObj: bpy.types.Object, transformMatrix: mathutils.Matrix, exportSettings: OOTCollisionExportSettings
 ):
-    includeChildren = exportSettings.includeChildren
     name = toAlnum(originalObj.name)
     isCustomExport = exportSettings.customExport
     folderName = exportSettings.folder
@@ -50,29 +49,38 @@ def exportCollisionToC(
         restoreHiddenState(hiddenState)
 
     try:
-        exportCollisionCommon(collision, obj, transformMatrix, includeChildren, name)
-        ootCleanupScene(originalObj, allObjs)
+        if not obj.ignore_collision:
+            # get C data
+            colData = CData()
+            colData.source = '#include "ultra64.h"\n#include "z64.h"\n#include "macros.h"\n'
+            if not isCustomExport:
+                colData.source += f'#include "{folderName}.h"\n\n'
+            else:
+                colData.source += "\n"
+            colData.append(
+                CollisionHeader(
+                    None,
+                    obj,
+                    transformMatrix,
+                    bpy.context.scene.useDecompFeatures,
+                    exportSettings.includeChildren,
+                    f"{name}_collisionHeader",
+                    name,
+                ).getC()
+            )
+
+            # write file
+            path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, True)
+            filename = exportSettings.filename if exportSettings.isCustomFilename else f"{name}_collision"
+            writeCData(colData, os.path.join(path, f"{filename}.h"), os.path.join(path, f"{filename}.c"))
+            if not isCustomExport:
+                addIncludeFiles(folderName, path, name)
+        else:
+            raise PluginError("ERROR: The selected mesh object ignores collision!")
     except Exception as e:
-        ootCleanupScene(originalObj, allObjs)
         raise Exception(str(e))
-
-    collisionC = ootCollisionToC(collision)
-
-    data = CData()
-    data.source += '#include "ultra64.h"\n#include "z64.h"\n#include "macros.h"\n'
-    if not isCustomExport:
-        data.source += '#include "' + folderName + '.h"\n\n'
-    else:
-        data.source += "\n"
-
-    data.append(collisionC)
-
-    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, True)
-    filename = exportSettings.filename if exportSettings.isCustomFilename else f"{name}_collision"
-    writeCData(data, os.path.join(path, f"{filename}.h"), os.path.join(path, f"{filename}.c"))
-
-    if not isCustomExport:
-        addIncludeFiles(folderName, path, name)
+    finally:
+        ootCleanupScene(originalObj, allObjs)
 
 
 class OOT_ExportCollision(Operator):

@@ -81,7 +81,7 @@ class WaterBox:
 class WaterBoxes(Base):
     """This class defines the array of waterboxes"""
 
-    sceneObj: Object
+    dataHolder: Object
     transform: Matrix
     name: str
     useMacros: bool
@@ -89,14 +89,15 @@ class WaterBoxes(Base):
     waterboxList: list[WaterBox] = field(default_factory=list)
 
     def __post_init__(self):
-        waterboxObjList = getObjectList(self.sceneObj.children_recursive, "EMPTY", "Water Box")
+        waterboxObjList = getObjectList(self.dataHolder.children_recursive, "EMPTY", "Water Box")
         for waterboxObj in waterboxObjList:
             emptyScale = waterboxObj.empty_display_size
-            pos, _, scale, orientedRot = self.getConvertedTransform(self.transform, self.sceneObj, waterboxObj, True)
+            pos, _, scale, orientedRot = self.getConvertedTransform(self.transform, self.dataHolder, waterboxObj, True)
             checkIdentityRotation(waterboxObj, orientedRot, False)
 
             wboxProp = waterboxObj.ootWaterBoxProperty
-            roomObj = self.getRoomObjectFromChild(waterboxObj)
+            # temp solution
+            roomObj = self.getRoomObjectFromChild(waterboxObj) if self.dataHolder.type == "EMPTY" else None
             self.waterboxList.append(
                 WaterBox(
                     pos,

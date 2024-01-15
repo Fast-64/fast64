@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from mathutils import Matrix, Vector
 from bpy.types import Mesh, Object
 from bpy.ops import object
+from typing import Optional
 from ....utility import PluginError, CData, indent
 from ...oot_utility import convertIntTo2sComplement
 from ..base import Base
@@ -18,9 +19,11 @@ from .vertex import Vertex, Vertices
 class CollisionBase(Base):
     """This class hosts different functions used to convert mesh data"""
 
-    sceneObj: Object
+    sceneObj: Optional[Object]
+    meshObj: Optional[Object]
     transform: Matrix
     useMacros: bool
+    includeChildren: bool
 
     def updateBounds(self, position: tuple[int, int, int], colBounds: list[tuple[int, int, int]]):
         """This is used to update the scene's boundaries"""
@@ -46,26 +49,35 @@ class CollisionBase(Base):
                 return i
         return None
 
-    def getMeshObjects(self, parentObj: Object, curTransform: Matrix, transformFromMeshObj: dict[Object, Matrix]):
+    def getMeshObjects(self, dataHolder: Object, curTransform: Matrix, transformFromMeshObj: dict[Object, Matrix]):
         """Returns and updates a dictionnary containing mesh objects associated with their correct transforms"""
 
-        objList: list[Object] = parentObj.children
-        for obj in objList:
-            newTransform = curTransform @ obj.matrix_local
+        if self.includeChildren:
+            for obj in dataHolder.children:
+                newTransform = curTransform @ obj.matrix_local
 
-            if obj.type == "MESH" and not obj.ignore_collision:
-                transformFromMeshObj[obj] = newTransform
+                if obj.type == "MESH" and not obj.ignore_collision:
+                    transformFromMeshObj[obj] = newTransform
 
-            if len(obj.children) > 0:
-                self.getMeshObjects(obj, newTransform, transformFromMeshObj)
+                if len(obj.children) > 0:
+                    self.getMeshObjects(obj, newTransform, transformFromMeshObj)
 
         return transformFromMeshObj
+
+    def getDataHolder(self):
+        if self.sceneObj is not None:
+            return self.sceneObj
+        elif self.meshObj is not None:
+            return self.meshObj
+        else:
+            raise PluginError("ERROR: Object not found.")
 
     def getCollisionData(self):
         """Returns collision data, surface types and vertex positions from mesh objects"""
 
         object.select_all(action="DESELECT")
-        self.sceneObj.select_set(True)
+        dataHolder = self.getDataHolder()
+        dataHolder.select_set(True)
 
         colPolyFromSurfaceType: dict[SurfaceType, list[CollisionPoly]] = {}
         surfaceList: list[SurfaceType] = []
@@ -74,7 +86,9 @@ class CollisionBase(Base):
         colBounds: list[tuple[int, int, int]] = []
 
         transformFromMeshObj: dict[Object, Matrix] = {}
-        transformFromMeshObj = self.getMeshObjects(self.sceneObj, self.transform, transformFromMeshObj)
+        if dataHolder.type == "MESH" and not dataHolder.ignore_collision:
+            transformFromMeshObj[dataHolder] = self.transform
+        transformFromMeshObj = self.getMeshObjects(dataHolder, self.transform, transformFromMeshObj)
         for meshObj, transform in transformFromMeshObj.items():
             # Note: ``isinstance``only used to get the proper type hints
             if not meshObj.ignore_collision and isinstance(meshObj.data, Mesh):
@@ -100,7 +114,6 @@ class CollisionBase(Base):
                     )
                     distance = convertIntTo2sComplement(distance, 2, True)
 
-                    # TODO: can this be improved?
                     nx = (y2 - y1) * (z3 - z2) - (z2 - z1) * (y3 - y2)
                     ny = (z2 - z1) * (x3 - x2) - (x2 - x1) * (z3 - z2)
                     nz = (x2 - x1) * (y3 - y2) - (y2 - y1) * (x3 - x2)
@@ -211,6 +224,7 @@ class CollisionHeader(CollisionBase):
     def __post_init__(self):
         # Ideally everything would be separated but this is complicated since it's all tied together
         colBounds, vertexList, polyList, surfaceTypeList = self.getCollisionData()
+        dataHolder = self.getDataHolder()
 
         self.minBounds = colBounds[0]
         self.maxBounds = colBounds[1]
@@ -218,9 +232,9 @@ class CollisionHeader(CollisionBase):
         self.collisionPoly = CollisionPolygons(f"{self.sceneName}_polygons", polyList)
         self.surfaceType = SurfaceTypes(f"{self.sceneName}_polygonTypes", surfaceTypeList)
         self.bgCamInfo = BgCamInformations(
-            self.sceneObj, self.transform, f"{self.sceneName}_bgCamInfo", f"{self.sceneName}_camPosData"
+            dataHolder, self.transform, f"{self.sceneName}_bgCamInfo", f"{self.sceneName}_camPosData"
         )
-        self.waterbox = WaterBoxes(self.sceneObj, self.transform, f"{self.sceneName}_waterBoxes", self.useMacros)
+        self.waterbox = WaterBoxes(dataHolder, self.transform, f"{self.sceneName}_waterBoxes", self.useMacros)
 
     def getCmd(self):
         """Returns the collision header scene command"""
