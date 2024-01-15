@@ -522,6 +522,15 @@ def ootConvertScene(originalSceneObj, transformMatrix, sceneName, DLFormat, conv
                 roomIndex = roomHeader.roomIndex
                 if roomIndex in processedRooms:
                     raise PluginError("Error: room index " + str(roomIndex) + " is used more than once.")
+
+                hasMesh = False
+                for childObj in roomObj.children_recursive:
+                    if childObj.type == "MESH":
+                        hasMesh = True
+                        break
+                if not hasMesh:
+                    raise PluginError(f"ERROR: Room No.{roomIndex} don't have mesh objects!")
+
                 processedRooms.add(roomIndex)
                 room = scene.addRoom(roomIndex, sceneName, roomHeader.roomShape)
                 readRoomData(sceneName, room, roomHeader, roomObj.ootAlternateRoomHeaders)
