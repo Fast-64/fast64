@@ -529,7 +529,7 @@ def ootConvertScene(originalSceneObj, transformMatrix, sceneName, DLFormat, conv
                         hasMesh = True
                         break
                 if not hasMesh:
-                    raise PluginError(f"ERROR: Room No.{roomIndex} don't have mesh objects!")
+                    raise PluginError(f"ERROR: Room No.{roomIndex} has no mesh objects!")
 
                 processedRooms.add(roomIndex)
                 room = scene.addRoom(roomIndex, sceneName, roomHeader.roomShape)
