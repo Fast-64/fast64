@@ -1,10 +1,15 @@
+import bpy
 import math
+
 from bpy.props import StringProperty, PointerProperty, IntProperty, EnumProperty, BoolProperty, FloatProperty
-from bpy.types import PropertyGroup, Camera, Object, Material, UILayout
+from bpy.types import PropertyGroup, Object, Material, UILayout, Scene
 from bpy.utils import register_class, unregister_class
+from bpy.app.handlers import persistent
 from ...utility import prop_split
 from ..oot_utility import drawEnumWithCustom
 from ..oot_constants import ootEnumSceneID
+from ..oot_upgrade import upgradeWaterboxes
+
 from ..oot_collision_classes import (
     ootEnumFloorSetting,
     ootEnumWallSetting,
@@ -130,10 +135,23 @@ class OOTWaterBoxProperty(PropertyGroup):
     camera: IntProperty(name="Camera", min=0)
     flag19: BoolProperty(name="Flag 19", default=False)
 
+    tiedRoom: PointerProperty(
+        name="Room",
+        description="Room where the Waterbox is located. No room means the waterbox is tied to the scene.",
+        type=Object,
+        poll=lambda _, obj: obj.type == "EMPTY" and obj.ootEmptyType == "Room",
+    )
+
+    @staticmethod
+    def upgrade_object(obj: Object):
+        print(f"Processing '{obj.name}'...")
+        upgradeWaterboxes(obj)
+
     def draw_props(self, layout: UILayout):
         box = layout.column()
-        prop_split(box, self, "lighting", "Lighting")
-        prop_split(box, self, "camera", "Camera")
+        prop_split(box, self, "lighting", "Light Index")
+        prop_split(box, self, "camera", "Camera Index")
+        prop_split(box, self, "tiedRoom", "Room")
         box.prop(self, "flag19")
         box.label(text="Defined by top face of box empty.")
         box.label(text="No rotation allowed.")
@@ -147,6 +165,33 @@ oot_col_classes = (
 )
 
 
+@persistent
+def waterboxHandler(_: Scene):
+    def updateTiedRoom(parentObj: Object, isScene: bool):
+        for obj in parentObj.children_recursive:
+            if obj.type == "EMPTY":
+                if obj.ootEmptyType == "Water Box":
+                    waterboxProp = obj.ootWaterBoxProperty
+                    if not isScene and waterboxProp.tiedRoom is None:
+                        waterboxProp.tiedRoom = parentObj
+                    elif isScene and waterboxProp.tiedRoom is not None:
+                        # case where parent is a scene and waterbox is a room's child
+                        foundRoom = False
+                        for o in bpy.data.objects:
+                            if o.type == "EMPTY" and o.ootEmptyType == "Room" and obj in o.children_recursive:
+                                foundRoom = True
+                                break
+                        if not foundRoom:
+                            waterboxProp.tiedRoom = None
+
+    for parentObj in bpy.data.objects:
+        if parentObj.type == "EMPTY":
+            if parentObj.ootEmptyType == "Room":
+                updateTiedRoom(parentObj, False)
+            elif parentObj.ootEmptyType == "Scene":
+                updateTiedRoom(parentObj, True)
+
+
 def collision_props_register():
     for cls in oot_col_classes:
         register_class(cls)
@@ -155,6 +200,8 @@ def collision_props_register():
     Object.ootCameraPositionProperty = PointerProperty(type=OOTCameraPositionProperty)
     Material.ootCollisionProperty = PointerProperty(type=OOTMaterialCollisionProperty)
     Object.ootWaterBoxProperty = PointerProperty(type=OOTWaterBoxProperty)
+
+    bpy.app.handlers.depsgraph_update_pre.append(waterboxHandler)
 
 
 def collision_props_unregister():
@@ -165,3 +212,6 @@ def collision_props_unregister():
 
     for cls in reversed(oot_col_classes):
         unregister_class(cls)
+
+    if waterboxHandler in bpy.app.handlers.depsgraph_update_pre:
+        bpy.app.handlers.depsgraph_update_pre.remove(waterboxHandler)
