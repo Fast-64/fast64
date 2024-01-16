@@ -13,7 +13,7 @@ from .sm64_f3d_writer import SM64Model, SM64GfxFormatter
 from .sm64_texscroll import modifyTexScrollFiles, modifyTexScrollHeadersGroup
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_rom_tweaks import ExtendBank0x04
-from .sm64_utility import starSelectWarning
+from .sm64_utility import export_rom_checks, starSelectWarning
 
 from ..utility import (
     PluginError,
@@ -49,7 +49,6 @@ from ..utility import (
     getPathAndLevel,
     applyBasicTweaks,
     tempName,
-    checkExpanded,
     getAddressFromRAMAddress,
     prop_split,
     customExportWarning,
@@ -1765,7 +1764,8 @@ def processBone(
             obj,
             armatureObj.data,
             fModel.f3d,
-            mathutils.Matrix.Scale(bpy.context.scene.blenderToSM64Scale, 4) @ bone.matrix_local.inverted(),
+            mathutils.Matrix.Scale(bpy.context.scene.fast64.sm64.blender_to_sm64_scale, 4)
+            @ bone.matrix_local.inverted(),
             infoDict,
         )
         fMeshes, fSkinnedMeshes, usedDrawLayers = saveModelGivenVertexGroup(
@@ -2301,7 +2301,7 @@ def saveModelGivenVertexGroup(
         print("No vert indices in " + vertexGroup)
         return None, None, None
 
-    transformMatrix = mathutils.Matrix.Scale(bpy.context.scene.blenderToSM64Scale, 4)
+    transformMatrix = mathutils.Matrix.Scale(bpy.context.scene.fast64.sm64.blender_to_sm64_scale, 4)
     if parentGroup is None:
         parentMatrix = transformMatrix
     else:
@@ -2818,7 +2818,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
             # 	context.scene.saveCameraSettings else None
 
             finalTransform = mathutils.Matrix.Identity(4)
-            scaleValue = bpy.context.scene.blenderToSM64Scale
+            scaleValue = bpy.context.scene.fast64.sm64.blender_to_sm64_scale
             finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((scaleValue, scaleValue, scaleValue))).to_4x4()
         except Exception as e:
             raisePluginError(self, e)
@@ -2832,7 +2832,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
 
             saveTextures = bpy.context.scene.saveTextures
 
-            if context.scene.fast64.sm64.exportType == "C":
+            if context.scene.fast64.sm64.export_type == "C":
                 exportPath, levelName = getPathAndLevel(
                     context.scene.geoCustomExport,
                     context.scene.geoExportPath,
@@ -2858,7 +2858,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                     DLFormat.Static,
                 )
                 self.report({"INFO"}, "Success!")
-            elif context.scene.fast64.sm64.exportType == "Insertable Binary":
+            elif context.scene.fast64.sm64.export_type == "Insertable Binary":
                 exportGeolayoutObjectInsertableBinary(
                     obj,
                     finalTransform,
@@ -2867,17 +2867,17 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                 )
                 self.report({"INFO"}, "Success! Data at " + context.scene.geoInsertableBinaryPath)
             else:
-                tempROM = tempName(context.scene.outputRom)
-                checkExpanded(bpy.path.abspath(context.scene.exportRom))
-                romfileExport = open(bpy.path.abspath(context.scene.exportRom), "rb")
-                shutil.copy(bpy.path.abspath(context.scene.exportRom), bpy.path.abspath(tempROM))
+                tempROM = tempName(context.scene.fast64.sm64.output_rom)
+                export_rom_checks(bpy.path.abspath(context.scene.fast64.sm64.export_rom))
+                romfileExport = open(bpy.path.abspath(context.scene.fast64.sm64.export_rom), "rb")
+                shutil.copy(bpy.path.abspath(context.scene.fast64.sm64.export_rom), bpy.path.abspath(tempROM))
                 romfileExport.close()
                 romfileOutput = open(bpy.path.abspath(tempROM), "rb+")
 
                 levelParsed = parseLevelAtPointer(romfileOutput, level_pointers[context.scene.levelGeoExport])
                 segmentData = levelParsed.segmentData
 
-                if context.scene.extendBank4:
+                if context.scene.fast64.sm64.extend_bank_4:
                     ExtendBank0x04(romfileOutput, segmentData, defaultExtendSegment4)
 
                 exportRange = [int(context.scene.geoExportStart, 16), int(context.scene.geoExportEnd, 16)]
@@ -2917,9 +2917,9 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                 obj.select_set(True)
                 context.view_layer.objects.active = obj
 
-                if os.path.exists(bpy.path.abspath(context.scene.outputRom)):
-                    os.remove(bpy.path.abspath(context.scene.outputRom))
-                os.rename(bpy.path.abspath(tempROM), bpy.path.abspath(context.scene.outputRom))
+                if os.path.exists(bpy.path.abspath(context.scene.fast64.sm64.output_rom)):
+                    os.remove(bpy.path.abspath(context.scene.fast64.sm64.output_rom))
+                os.rename(bpy.path.abspath(tempROM), bpy.path.abspath(context.scene.fast64.sm64.output_rom))
 
                 if context.scene.geoUseBank0:
                     self.report(
@@ -2957,7 +2957,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
             self.cleanup_temp_object_data()
             applyRotation([obj], math.radians(-90), "X")
 
-            if context.scene.fast64.sm64.exportType == "Binary":
+            if context.scene.fast64.sm64.export_type == "Binary":
                 if romfileOutput is not None:
                     romfileOutput.close()
                 if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
@@ -3032,7 +3032,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
             obj.select_set(True)
             bpy.context.view_layer.objects.active = obj
             bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
-            if context.scene.fast64.sm64.exportType == "C":
+            if context.scene.fast64.sm64.export_type == "C":
                 exportPath, levelName = getPathAndLevel(
                     context.scene.geoCustomExport,
                     context.scene.geoExportPath,
@@ -3062,7 +3062,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                 )
                 starSelectWarning(self, fileStatus)
                 self.report({"INFO"}, "Success!")
-            elif context.scene.fast64.sm64.exportType == "Insertable Binary":
+            elif context.scene.fast64.sm64.export_type == "Insertable Binary":
                 exportGeolayoutArmatureInsertableBinary(
                     armatureObj,
                     obj,
@@ -3072,17 +3072,17 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                 )
                 self.report({"INFO"}, "Success! Data at " + context.scene.geoInsertableBinaryPath)
             else:
-                tempROM = tempName(context.scene.outputRom)
-                checkExpanded(bpy.path.abspath(context.scene.exportRom))
-                romfileExport = open(bpy.path.abspath(context.scene.exportRom), "rb")
-                shutil.copy(bpy.path.abspath(context.scene.exportRom), bpy.path.abspath(tempROM))
+                tempROM = tempName(context.scene.fast64.sm64.output_rom)
+                export_rom_checks(bpy.path.abspath(context.scene.fast64.sm64.export_rom))
+                romfileExport = open(bpy.path.abspath(context.scene.fast64.sm64.export_rom), "rb")
+                shutil.copy(bpy.path.abspath(context.scene.fast64.sm64.export_rom), bpy.path.abspath(tempROM))
                 romfileExport.close()
                 romfileOutput = open(bpy.path.abspath(tempROM), "rb+")
 
                 levelParsed = parseLevelAtPointer(romfileOutput, level_pointers[context.scene.levelGeoExport])
                 segmentData = levelParsed.segmentData
 
-                if context.scene.extendBank4:
+                if context.scene.fast64.sm64.extend_bank_4:
                     ExtendBank0x04(romfileOutput, segmentData, defaultExtendSegment4)
 
                 exportRange = [int(context.scene.geoExportStart, 16), int(context.scene.geoExportEnd, 16)]
@@ -3124,9 +3124,9 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                 armatureObj.select_set(True)
                 context.view_layer.objects.active = armatureObj
 
-                if os.path.exists(bpy.path.abspath(context.scene.outputRom)):
-                    os.remove(bpy.path.abspath(context.scene.outputRom))
-                os.rename(bpy.path.abspath(tempROM), bpy.path.abspath(context.scene.outputRom))
+                if os.path.exists(bpy.path.abspath(context.scene.fast64.sm64.output_rom)):
+                    os.remove(bpy.path.abspath(context.scene.fast64.sm64.output_rom))
+                os.rename(bpy.path.abspath(tempROM), bpy.path.abspath(context.scene.fast64.sm64.output_rom))
 
                 if context.scene.geoUseBank0:
                     self.report(
@@ -3162,7 +3162,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 
             applyRotation([armatureObj] + linkedArmatures, math.radians(-90), "X")
 
-            if context.scene.fast64.sm64.exportType == "Binary":
+            if context.scene.fast64.sm64.export_type == "Binary":
                 if romfileOutput is not None:
                     romfileOutput.close()
                 if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
@@ -3177,7 +3177,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 class SM64_ExportGeolayoutPanel(SM64_Panel):
     bl_idname = "SM64_PT_export_geolayout"
     bl_label = "SM64 Geolayout Exporter"
-    goal = "Export Object/Actor/Anim"
+    goal = "Object/Actor/Anim"
 
     # called every frame
     def draw(self, context):
@@ -3185,7 +3185,7 @@ class SM64_ExportGeolayoutPanel(SM64_Panel):
         propsGeoE = col.operator(SM64_ExportGeolayoutArmature.bl_idname)
         propsGeoE = col.operator(SM64_ExportGeolayoutObject.bl_idname)
 
-        if context.scene.fast64.sm64.exportType == "C":
+        if context.scene.fast64.sm64.export_type == "C":
             if context.scene.saveTextures:
                 if context.scene.geoCustomExport:
                     prop_split(col, context.scene, "geoTexDir", "Texture Include Path")
@@ -3278,7 +3278,7 @@ class SM64_ExportGeolayoutPanel(SM64_Panel):
                 )
 
             # extendedRAMLabel(col)
-        elif context.scene.fast64.sm64.exportType == "Insertable Binary":
+        elif context.scene.fast64.sm64.export_type == "Insertable Binary":
             col.prop(context.scene, "geoInsertableBinaryPath")
         else:
             prop_split(col, context.scene, "geoExportStart", "Start Address")

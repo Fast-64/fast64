@@ -2100,10 +2100,6 @@ def load_handler(dummy):
 
 bpy.app.handlers.load_post.append(load_handler)
 
-# bpy.context.mode returns the keys here, while the values are required by bpy.ops.object.mode_set
-BLENDER_MODE_TO_MODE_SET = {"PAINT_VERTEX": "VERTEX_PAINT", "EDIT_MESH": "EDIT"}
-get_mode_set_from_context_mode = lambda mode: BLENDER_MODE_TO_MODE_SET.get(mode, "OBJECT")
-
 SCENE_PROPERTIES_VERSION = 1
 
 
@@ -2293,6 +2289,20 @@ def addColorAttributesToModel(obj: Object):
         bpy.ops.object.mode_set(mode=get_mode_set_from_context_mode(prevMode))
 
 
+def add_f3d_mat_to_obj(obj: bpy.types.Object, material, index=None):
+    # add material to object
+    if obj is not None:
+        addColorAttributesToModel(obj)
+        if index is None:
+            obj.data.materials.append(material)
+            if bpy.context.object is not None:
+                bpy.context.object.active_material_index = len(obj.material_slots) - 1
+        else:
+            obj.material_slots[index].material = material
+            if bpy.context.object is not None:
+                bpy.context.object.active_material_index = index
+
+
 def createF3DMat(obj: Object | None, preset="Shaded Solid", index=None):
     # link all node_groups + material from addon's data .blend
     link_f3d_material_library()
@@ -2307,17 +2317,7 @@ def createF3DMat(obj: Object | None, preset="Shaded Solid", index=None):
 
     createScenePropertiesForMaterial(material)
 
-    # add material to object
-    if obj is not None:
-        addColorAttributesToModel(obj)
-        if index is None:
-            obj.data.materials.append(material)
-            if bpy.context.object is not None:
-                bpy.context.object.active_material_index = len(obj.material_slots) - 1
-        else:
-            obj.material_slots[index].material = material
-            if bpy.context.object is not None:
-                bpy.context.object.active_material_index = index
+    add_f3d_mat_to_obj(obj, material, index)
 
     material.is_f3d = True
     material.mat_ver = 5
@@ -3418,10 +3418,6 @@ def getOptimalFormat(tex, curFormat, isMultitexture):
     return texFormat
 
 
-def getCurrentPresetDir():
-    return "f3d/" + bpy.context.scene.gameEditorMode.lower()
-
-
 # modules/bpy_types.py -> Menu
 class MATERIAL_MT_f3d_presets(Menu):
     bl_label = "F3D Material Presets"
@@ -3441,12 +3437,19 @@ class MATERIAL_MT_f3d_presets(Menu):
         ext_valid = getattr(self, "preset_extensions", {".py", ".xml"})
         props_default = getattr(self, "preset_operator_defaults", None)
         add_operator = getattr(self, "preset_add_operator", None)
-        presetDir = getCurrentPresetDir()
+
+        game = bpy.context.scene.gameEditorMode.lower()
         paths = bpy.utils.preset_paths("f3d/user")
         if not bpy.context.scene.f3dUserPresetsOnly:
-            paths += bpy.utils.preset_paths(presetDir)
-            if bpy.context.scene.f3d_type == "F3DEX3":
-                paths += bpy.utils.preset_paths(f"{presetDir}_f3dex3")
+            if game == "sm64":
+                if bpy.context.scene.fast64.sm64.lighting_engine_presets:
+                    paths += bpy.utils.preset_paths("f3d/sm64_lighting_engine")
+                else:
+                    paths += bpy.utils.preset_paths("f3d/sm64")
+            elif game == "oot":
+                paths += bpy.utils.preset_paths("f3d/oot")
+                if bpy.context.scene.f3d_type == "F3DEX3":
+                    paths += bpy.utils.preset_paths("f3d/oot_f3dex3")
         self.path_menu(
             paths,
             self.preset_operator,
