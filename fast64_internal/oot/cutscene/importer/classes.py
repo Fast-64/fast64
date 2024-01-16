@@ -1,7 +1,7 @@
 import bpy
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 from bpy.types import Object, Armature
 from ....utility import PluginError
 from ..motion.utility import setupCutscene, getBlenderPosition, getInteger
@@ -46,8 +46,9 @@ class PropertyData:
 class CutsceneImport(CutsceneObjectFactory):
     """This class contains functions to create the new cutscene Blender data"""
 
-    filePath: str  # used when importing from the panel
-    fileData: str  # used when importing the cutscenes when importing a scene
+    filePath: Optional[str]  # used when importing from the panel
+    fileData: Optional[str]  # used when importing the cutscenes when importing a scene
+    csName: Optional[str]  # used when import a specific cutscene
 
     def getCmdParams(self, data: str, cmdName: str, paramNumber: int):
         """Returns the list of every parameter of the given command"""
@@ -86,6 +87,13 @@ class CutsceneImport(CutsceneObjectFactory):
         for oldName in oldNames:
             fileData = fileData.replace(f"{oldName}(", f"{ootCSLegacyToNewCmdNames[oldName]}(")
 
+        # make a list of existing cutscene names, to skip importing them if found
+        existingCutsceneNames = [
+            csObj.name.removeprefix("Cutscene.")
+            for csObj in bpy.data.objects
+            if csObj.type == "EMPTY" and csObj.ootEmptyType == "Cutscene"
+        ]
+
         # parse cutscenes
         fileLines = fileData.split("\n")
         csData = []
@@ -94,6 +102,10 @@ class CutsceneImport(CutsceneObjectFactory):
         for line in fileLines:
             if not line.startswith("//") and not line.startswith("/*"):
                 if "CutsceneData " in line:
+                    # split with "[" just in case the array has a set size
+                    csName = line.split(" ")[1].split("[")[0]
+                    if csName in existingCutsceneNames:
+                        continue
                     foundCutscene = True
 
                 if foundCutscene:
@@ -102,7 +114,8 @@ class CutsceneImport(CutsceneObjectFactory):
                         line += fileLines[fileLines.index(line) + 1].strip()
 
                     if len(csData) == 0 or "CS_" in line:
-                        csData.append(line)
+                        if self.csName is None or self.csName == csName:
+                            csData.append(line)
 
                     if "};" in line:
                         foundCutscene = False

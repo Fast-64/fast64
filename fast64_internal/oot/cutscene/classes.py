@@ -55,7 +55,7 @@ class CutsceneCmdCamPoint(CutsceneCmdBase):
 class CutsceneCmdActorCue(CutsceneCmdBase):
     """This class contains a single Actor Cue command data"""
 
-    actionID: Optional[int] = None
+    actionID: Optional[int | str] = None
     rot: list[str] = field(default_factory=list)
     startPos: list[int] = field(default_factory=list)
     endPos: list[int] = field(default_factory=list)
@@ -65,7 +65,10 @@ class CutsceneCmdActorCue(CutsceneCmdBase):
         if self.params is not None:
             self.startFrame = getInteger(self.params[1])
             self.endFrame = getInteger(self.params[2])
-            self.actionID = getInteger(self.params[0])
+            try:
+                self.actionID = getInteger(self.params[0])
+            except ValueError:
+                self.actionID = self.params[0]
             self.rot = [getRotation(self.params[3]), getRotation(self.params[4]), getRotation(self.params[5])]
             self.startPos = [getInteger(self.params[6]), getInteger(self.params[7]), getInteger(self.params[8])]
             self.endPos = [getInteger(self.params[9]), getInteger(self.params[10]), getInteger(self.params[11])]
