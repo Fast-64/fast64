@@ -173,29 +173,30 @@ class OOT_ExportScene(Operator):
             bootOptions = context.scene.fast64.oot.bootupSceneOptions
             hackerFeaturesEnabled = context.scene.fast64.oot.hackerFeaturesEnabled
 
-            if settings.useNewExporter:
-                SceneExporter(
-                    exportInfo,
-                    obj,
-                    exportInfo.name,
-                    context.scene.ootBlenderScale,
-                    finalTransform,
-                    bpy.context.scene.saveTextures,
-                    bootOptions if hackerFeaturesEnabled else None,
-                    settings.singleFile,
-                    TextureExportSettings(False, context.scene.saveTextures, None, None),
-                    context.scene.useDecompFeatures if not hackerFeaturesEnabled else hackerFeaturesEnabled,
-                ).export()
-            else:
-                ootExportSceneToC(
-                    obj,
-                    finalTransform,
-                    levelName,
-                    DLFormat.Static,
-                    context.scene.saveTextures,
-                    exportInfo,
-                    bootOptions if hackerFeaturesEnabled else None,
-                )
+            # keeping this on purpose, will be removed once old code is cleaned-up
+            # if settings.useNewExporter:
+            SceneExporter(
+                exportInfo,
+                obj,
+                exportInfo.name,
+                context.scene.ootBlenderScale,
+                finalTransform,
+                bpy.context.scene.saveTextures,
+                bootOptions if hackerFeaturesEnabled else None,
+                settings.singleFile,
+                TextureExportSettings(False, context.scene.saveTextures, None, None),
+                context.scene.useDecompFeatures if not hackerFeaturesEnabled else hackerFeaturesEnabled,
+            ).export()
+            # else:
+            #     ootExportSceneToC(
+            #         obj,
+            #         finalTransform,
+            #         levelName,
+            #         DLFormat.Static,
+            #         context.scene.saveTextures,
+            #         exportInfo,
+            #         bootOptions if hackerFeaturesEnabled else None,
+            #     )
 
             self.report({"INFO"}, "Success!")
 

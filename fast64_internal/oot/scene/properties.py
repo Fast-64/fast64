@@ -489,7 +489,8 @@ class OOTExportSceneSettingsProperty(PropertyGroup):
     )
     option: EnumProperty(items=ootEnumSceneID, default="SCENE_DEKU_TREE")
 
-    useNewExporter: BoolProperty(name="Use Experimental Exporter", default=True)
+    # keeping this on purpose, will be removed once old code is cleaned-up
+    useNewExporter: BoolProperty(name="Use New Exporter", default=True)
 
     def draw_props(self, layout: UILayout):
         if self.customExport:
@@ -505,7 +506,7 @@ class OOTExportSceneSettingsProperty(PropertyGroup):
 
         layout.prop(self, "singleFile")
         layout.prop(self, "customExport")
-        layout.prop(self, "useNewExporter")
+        # layout.prop(self, "useNewExporter")
 
 
 class OOTImportSceneSettingsProperty(PropertyGroup):
