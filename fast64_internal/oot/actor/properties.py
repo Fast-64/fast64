@@ -4,9 +4,10 @@ from bpy.types import Object, PropertyGroup, UILayout, Scene
 from bpy.utils import register_class, unregister_class
 from bpy.props import EnumProperty, StringProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
 from bpy.app.handlers import persistent
-from ...utility import prop_split, label_split
+from ...utility import prop_split
 from ..oot_constants import ootData, ootEnumCamTransition
 from ..oot_upgrade import upgradeActors
+from ..oot_utility import updateTiedRoom
 from ..scene.properties import OOTAlternateSceneHeaderProperty
 from ..room.properties import OOTAlternateRoomHeaderProperty
 from .operators import OOT_SearchActorIDEnumOperator
@@ -253,13 +254,8 @@ classes = (
 
 @persistent
 def actorHandler(_: Scene):
-    for parentObj in bpy.data.objects:
-        if parentObj.type == "EMPTY" and parentObj.ootEmptyType == "Room":
-            for obj in parentObj.children_recursive:
-                if obj.type == "EMPTY" and obj.ootEmptyType == "Transition Actor":
-                    transActorProp = obj.ootTransitionActorProperty
-                    if transActorProp.fromRoom is None:
-                        transActorProp.fromRoom = parentObj
+    updateTiedRoom("Transition Actor", "ootTransitionActorProperty", "fromRoom")
+    updateTiedRoom("Entrance", "ootEntranceProperty", "tiedRoom")
 
 
 def actor_props_register():

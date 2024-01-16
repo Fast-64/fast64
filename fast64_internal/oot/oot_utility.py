@@ -5,7 +5,7 @@ import re
 
 from ast import parse, Expression, Num, UnaryOp, USub, Invert, BinOp
 from mathutils import Vector
-from bpy.types import Object
+from bpy.types import Object, Scene
 from bpy.utils import register_class, unregister_class
 from typing import Callable
 from .oot_constants import ootSceneIDToName
@@ -939,3 +939,38 @@ def getNewPath(type: str, isClosedShape: bool):
     bpy.context.view_layer.active_layer_collection.collection.objects.link(newPath)
 
     return newPath
+
+
+def updateTiedRoom(emptyType: str, propName: str, ptrName: str):
+    """Used by handlers to update the tied room object
+
+    Parameters:
+    - ``emptyType``: the OoT empty type name (Water Box, Transition Actor, Entrance, ...)
+    - ``propName``: the properties name to get or set tied room objects
+    - ``ptrName``: the pointer property name
+    """
+
+    def updateTiedRoom(parentObj: Object, isScene: bool):
+        for obj in parentObj.children_recursive:
+            if obj.type == "EMPTY":
+                if obj.ootEmptyType == emptyType:
+                    prop = getattr(obj, propName)
+                    tiedRoom = getattr(prop, ptrName)
+                    if not isScene and tiedRoom is None:
+                        setattr(prop, ptrName, parentObj)
+                    elif isScene and tiedRoom is not None:
+                        # case where parent is a scene and the object is a room's child
+                        foundRoom = False
+                        for o in bpy.data.objects:
+                            if o.type == "EMPTY" and o.ootEmptyType == "Room" and obj in o.children_recursive:
+                                foundRoom = True
+                                break
+                        if not foundRoom:
+                            setattr(prop, ptrName, None)
+
+    for parentObj in bpy.data.objects:
+        if parentObj.type == "EMPTY":
+            if parentObj.ootEmptyType == "Room":
+                updateTiedRoom(parentObj, False)
+            elif parentObj.ootEmptyType == "Scene":
+                updateTiedRoom(parentObj, True)
