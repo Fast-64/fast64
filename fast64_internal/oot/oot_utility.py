@@ -941,7 +941,7 @@ def getNewPath(type: str, isClosedShape: bool):
     return newPath
 
 
-def updateTiedRoom(emptyType: str, propName: str, ptrName: str):
+def updateTiedRoom(scene: Scene, emptyType: str, propName: str, ptrName: str):
     """Used by handlers to update the tied room object
 
     Parameters:
@@ -949,6 +949,9 @@ def updateTiedRoom(emptyType: str, propName: str, ptrName: str):
     - ``propName``: the properties name to get or set tied room objects
     - ``ptrName``: the pointer property name
     """
+
+    if scene.gameEditorMode != "OOT":
+        return
 
     def updateTiedRoom(parentObj: Object, isScene: bool):
         for obj in parentObj.children_recursive:

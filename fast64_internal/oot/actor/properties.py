@@ -253,9 +253,9 @@ classes = (
 
 
 @persistent
-def actorHandler(_: Scene):
-    updateTiedRoom("Transition Actor", "ootTransitionActorProperty", "fromRoom")
-    updateTiedRoom("Entrance", "ootEntranceProperty", "tiedRoom")
+def actorHandler(scene: Scene):
+    updateTiedRoom(scene ,"Transition Actor", "ootTransitionActorProperty", "fromRoom")
+    updateTiedRoom(scene ,"Entrance", "ootEntranceProperty", "tiedRoom")
 
 
 def actor_props_register():
