@@ -140,25 +140,25 @@ def getInfoDict(obj):
     return infoDict
 
 
-def getSTUVRepeats(tex_prop: "TextureProperty"):
+def getSTUVRepeats(tex_prop: "TextureProperty") -> tuple[float, float]:
     SShift, TShift = 2**tex_prop.S.shift, 2**tex_prop.T.shift
     sMirrorScale = 2 if tex_prop.S.mirror else 1
     tMirrorScale = 2 if tex_prop.T.mirror else 1
     return (SShift * sMirrorScale, TShift * tMirrorScale)
 
 
-def getUVInterval(f3dMat) -> tuple[float, float]:
+def getUVInterval(f3dMat):
     useDict = all_combiner_uses(f3dMat)
 
     if useDict["Texture 0"] and f3dMat.tex0.tex_set:
         tex0UVInterval = getSTUVRepeats(f3dMat.tex0)
     else:
-        tex0UVInterval = (1, 1)
+        tex0UVInterval = (1.0, 1.0)
 
     if useDict["Texture 1"] and f3dMat.tex1.tex_set:
         tex1UVInterval = getSTUVRepeats(f3dMat.tex1)
     else:
-        tex1UVInterval = (1, 1)
+        tex1UVInterval = (1.0, 1.0)
 
     return (max(tex0UVInterval[0], tex1UVInterval[0]), max(tex0UVInterval[1], tex1UVInterval[1]))
 
