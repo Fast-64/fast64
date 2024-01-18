@@ -210,8 +210,6 @@ def ootConvertArmatureToSkeletonWithMesh(
 def ootConvertArmatureToC(
     originalArmatureObj: bpy.types.Object,
     convertTransformMatrix: mathutils.Matrix,
-    f3dType: str,
-    isHWv1: bool,
     DLFormat: DLFormat,
     savePNG: bool,
     drawLayer: str,
@@ -240,7 +238,7 @@ def ootConvertArmatureToC(
     removeVanillaData = settings.removeVanillaData
     optimize = settings.optimize
 
-    fModel = OOTModel(f3dType, isHWv1, skeletonName, DLFormat, drawLayer)
+    fModel = OOTModel(skeletonName, DLFormat, drawLayer)
     skeleton, fModel = ootConvertArmatureToSkeletonWithMesh(
         originalArmatureObj, convertTransformMatrix, fModel, skeletonName, not savePNG, drawLayer, optimize
     )
