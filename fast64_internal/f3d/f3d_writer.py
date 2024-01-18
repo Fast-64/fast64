@@ -140,8 +140,8 @@ def getInfoDict(obj):
     return infoDict
 
 
-def getSTUVRepeats(tex_prop: "TextureProperty") :
-    SShift, TShift = 2 ** tex_prop.S.shift, 2 ** tex_prop.T.shift
+def getSTUVRepeats(tex_prop: "TextureProperty"):
+    SShift, TShift = 2**tex_prop.S.shift, 2**tex_prop.T.shift
     sMirrorScale = 2 if tex_prop.S.mirror else 1
     tMirrorScale = 2 if tex_prop.T.mirror else 1
     return (SShift * sMirrorScale, TShift * tMirrorScale)
@@ -149,7 +149,7 @@ def getSTUVRepeats(tex_prop: "TextureProperty") :
 
 def getUVInterval(f3dMat) -> tuple[float, float]:
     useDict = all_combiner_uses(f3dMat)
-    
+
     if useDict["Texture 0"] and f3dMat.tex0.tex_set:
         tex0UVInterval = getSTUVRepeats(f3dMat.tex0)
     else:
@@ -204,7 +204,6 @@ def fixLargeUVs(obj):
         uvOffset = [0, 0]
 
         for i in range(2):
-
             # Move any UVs close to or straddling edge
             minDiff = (-cellSize[i] + 2) - minUV[i]
             if minDiff > 0:
@@ -1144,7 +1143,6 @@ def is3_2_or_above():
 
 
 def getLoopColor(loop: bpy.types.MeshLoop, mesh, mat_ver):
-
     color_layer = getColorLayer(mesh, layer="Col")
     alpha_layer = getColorLayer(mesh, layer="Alpha")
 
@@ -1840,7 +1838,6 @@ def getWriteMethodFromEnum(enumVal):
 def exportF3DtoC(
     dirPath, obj, DLFormat, transformMatrix, f3dType, isHWv1, texDir, savePNG, texSeparate, name, matWriteMethod
 ):
-
     inline = bpy.context.scene.exportInlineF3D
     fModel = FModel(f3dType, isHWv1, name, DLFormat, matWriteMethod if not inline else GfxMatWriteMethod.WriteAll)
     fMeshes = exportF3DCommon(obj, fModel, transformMatrix, True, name, DLFormat, not savePNG)
