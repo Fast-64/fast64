@@ -38,6 +38,7 @@ from .sm64_constants import (
     behaviorMacroArguments,
     behaviorPresetContents,
     obj_field_enums,
+    obj_group_enums,
     groupsSeg5,
     groupsSeg6,
     groups_obj_export,
@@ -1450,6 +1451,7 @@ class BehaviorScriptProperty(bpy.types.PropertyGroup):
     object_fields: bpy.props.EnumProperty(items=obj_field_enums, name="Object Fields", default="oFlags")
     object_fields1: bpy.props.EnumProperty(items=obj_field_enums, name="Object Fields 1", default="oPosX")
     object_fields2: bpy.props.EnumProperty(items=obj_field_enums, name="Object Fields 2", default="oPosX")
+    object_group: bpy.props.EnumProperty(items=obj_group_enums, name="Object Group", default="OBJ_LIST_GENACTOR")
     # there are anywhere from 0 to 3 arguments for a bhv, rather than make a new prop
     # group and collection prop, I'll just have static props and choose to use
     # arguments as needed
@@ -1494,6 +1496,12 @@ class BehaviorScriptProperty(bpy.types.PropertyGroup):
             ]
 
     def field_or_enum(self, field, arg_name):
+        if self.macro == "BEGIN":
+            enum = "object_group"
+            if self.object_group == "Custom":
+                return field, enum
+            else:
+                return enum, None
         if "Field" in arg_name:
             digit = search[0][-1] if (search := findall("Field\s\d", arg_name)) else ""
             enum = f"object_fields{digit}"
@@ -1788,14 +1796,14 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             raise PluginError("Operator can only be used in object mode.")
         if context.scene.fast64.sm64.exportType != "C":
             raise PluginError("Combined Object Export only supports C exporting")
-        if not props.col_object and not props.gfx_object:
+        if not props.col_object and not props.gfx_object and not props.bhv_object:
             raise PluginError("No export object selected")
         if context.active_object.type == "EMPTY" and context.active_object.sm64_obj_type == "Level Root":
             raise PluginError('Cannot export levels with "Export Object" Operator')
 
     def get_export_objects(self, context, props):
         if not props.export_all_selected:
-            return {props.col_object, props.gfx_object}
+            return {props.col_object, props.gfx_object, props.bhv_object}.difference({None})
 
         def obj_root(object, context):
             while object.parent and object.parent in context.selected_objects:
@@ -1843,8 +1851,10 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
                 else:
                     bpy.ops.object.sm64_export_geolayout_object(export_obj=obj.name)
                 # write model ID, behavior, and level script load
-                self.export_model_id(context, props, index)
-                self.export_script_load(context, props)
+                if props.export_script_loads and props.model_id != 0:
+                    print(index)
+                    self.export_model_id(context, props, index)
+                    self.export_script_load(context, props)
         except Exception as e:
             # pass on multiple export, throw on singular
             if not props.export_all_selected:
@@ -1855,6 +1865,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         try:
             self.verify_context(context, props)
             actor_objs = self.get_export_objects(context, props)
+            print(actor_objs)
             for index, obj in enumerate(actor_objs):
                 props.context_obj = obj
                 self.execute_col(props, obj)
@@ -1906,7 +1917,9 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
 
     # common export opts
     custom_export_name: bpy.props.StringProperty(name="custom")  # for custom level or custom group
-    model_id: bpy.props.IntProperty(name="Model ID Num", default=0xFF, min=0)
+    model_id: bpy.props.IntProperty(
+        name="Model ID Num", default=0xE2, min=0, description="Export model ID number. A model ID of 0 exports nothing"
+    )
     object_name: bpy.props.StringProperty(name="Actor Name", default="")
 
     # collision export options
@@ -1933,6 +1946,11 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         default=False,
         description="Export geo layouts for linked or selected mesh that have collision data",
     )
+    export_script_loads: bpy.props.BoolProperty(
+        name="Export Script Loads",
+        default=False,
+        description="Exports the Model ID and adds a level script load in the appropriate place",
+    )
     export_all_selected: bpy.props.BoolProperty(
         name="Export All Selected",
         default=False,
@@ -1951,6 +1969,8 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
     # is this abuse of properties?
     @property
     def col_object(self):
+        if not self.export_col:
+            return None
         if self.export_all_selected:
             return self.context_obj or bpy.context.active_object
         else:
@@ -1958,10 +1978,21 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
 
     @property
     def gfx_object(self):
+        if not self.export_gfx:
+            return None
         if self.export_all_selected:
             return self.context_obj or bpy.context.active_object
         else:
             return self.graphics_object or bpy.context.active_object
+
+    @property
+    def bhv_object(self):
+        if not self.export_bhv:
+            return None
+        if self.export_all_selected:
+            return self.context_obj or bpy.context.active_object
+        else:
+            return self.col_object or self.gfx_object or bpy.context.active_object
 
     @property
     def group_num(self):
@@ -1990,7 +2021,12 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
 
     @property
     def obj_name_bhv(self):
-        return self.obj_name_col or self.obj_name_gfx
+        if self.export_all_selected:
+            return self.bhv_object.name
+        if not self.object_name and not self.bhv_object:
+            return ""
+        else:
+            return self.object_name or self.bhv_object.name
 
     @property
     def bhv_name(self):
@@ -2027,7 +2063,9 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         split.prop(self, "export_gfx")
         if not self.export_all_selected:
             split.prop(self, "export_bhv")
-        layout.prop(self, "export_all_selected")
+        row = layout.row()
+        row.prop(self, "export_all_selected")
+        row.prop(self, "export_script_loads")
         self.draw_obj_name(layout)
 
     def draw_level_path(self, layout):
@@ -2107,7 +2145,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
             prop_split(box, self, "collision_object", "Collision Obj")
         if self.export_gfx and not self.export_all_selected:
             prop_split(box, self, "graphics_object", "Geo Layout Obj")
-        if self.export_gfx:
+        if self.export_gfx and self.export_script_loads:
             prop_split(box, self, "model_id", "Model ID Num")
 
         # behavior options
