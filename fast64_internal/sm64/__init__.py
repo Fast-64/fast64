@@ -6,7 +6,7 @@ from bpy.path import abspath
 from ..panels import SM64_Panel, sm64GoalTypeEnum, sm64GoalImport
 from ..render_settings import on_update_render_settings
 from .sm64_level_parser import parseLevelAtPointer
-from .sm64_constants import level_enums, level_pointers, defaultExtendSegment4
+from .sm64_constants import level_enums, level_pointers, defaultExtendSegment4, enumLevelNames
 
 from ..utility import (
     prop_split,
@@ -15,6 +15,7 @@ from ..utility import (
     encodeSegmentedAddr,
     raisePluginError,
     enumExportType,
+    enumExportHeaderType,
     enumCompressionFormat,
 )
 
@@ -213,7 +214,7 @@ class SM64_Properties(PropertyGroup):
     """Global SM64 Scene Properties found under scene.fast64.sm64"""
 
     version: IntProperty(name="SM64_Properties Version", default=0)
-    cur_version = 1  # version after property migration
+    cur_version = 2  # version after property migration
 
     # UI Selection
     showImportingMenus: BoolProperty(name="Show Importing Menus", default=False)
@@ -227,18 +228,22 @@ class SM64_Properties(PropertyGroup):
         if bpy.context.scene.fast64.sm64.version != SM64_Properties.cur_version:
             bpy.context.scene.fast64.sm64.exportType = get_legacy_export_type()
             bpy.context.scene.fast64.sm64.version = SM64_Properties.cur_version
-        # props upgrade for combined export panel
-        if bpy.context.scene.get("geoName", None):
+            # props upgrade for combined export panel
             combined_props = bpy.context.scene.fast64.sm64.combined_export
             old_scene_props_to_new = {
-                "geoExportHeaderType": "export_header_type",
                 "geoLevelName": "custom_export_name",
                 "geoExportPath": "custom_export_path",
-                "geoLevelOption": "level_name",
                 "geoName": "object_name",
             }
             for old, new in old_scene_props_to_new.items():
                 setattr(combined_props, new, bpy.context.scene.get(old, getattr(combined_props, new)))
+            export_type = bpy.context.scene.get("geoExportHeaderType", None)
+            if export_type is not None:
+                combined_props.export_header_type = enumExportHeaderType[export_type][0]
+
+            level_name = bpy.context.scene.get("geoLevelOption", None)
+            if level_name is not None:
+                combined_props.level_name = enumLevelNames[level_name][0]
 
 
 sm64_classes = (
