@@ -1,16 +1,12 @@
 import bpy
 from bpy.utils import register_class, unregister_class
 from . import addon_updater_ops
-from .fast64_internal.operators import AddWaterBox
-from .fast64_internal.panels import SM64_Panel
-from .fast64_internal.utility import PluginError, raisePluginError, attemptModifierApply, prop_split, multilineLabel
+from .fast64_internal.utility import prop_split, multilineLabel
 
 from .fast64_internal.sm64 import sm64_register, sm64_unregister
 from .fast64_internal.sm64.settings.properties import SM64_Properties
 from .fast64_internal.sm64.sm64_geolayout_bone import SM64_BoneProperties
 from .fast64_internal.sm64.sm64_objects import SM64_ObjectProperties
-from .fast64_internal.sm64.sm64_geolayout_utility import createBoneGroups
-from .fast64_internal.sm64.sm64_geolayout_parser import generateMetarig
 
 from .fast64_internal.oot import OOT_Properties, oot_register, oot_unregister
 from .fast64_internal.oot.props_panel_main import OOT_ObjectProperties
