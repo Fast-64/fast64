@@ -3394,9 +3394,9 @@ def getOptimalFormat(tex, curFormat, isMultitexture):
                 hasAlpha1bit = True
             pixelValues.add(getRGBA16Tuple(color))
 
-    tex_size = tex.size[0] * tex.size[1]
+    n_size = tex.size[0] * tex.size[1]
     if isGreyscale:
-        if tex_size > 4096:
+        if n_size > 4096:
             if not hasAlpha1bit:
                 texFormat = "I4"
             else:
@@ -3408,9 +3408,9 @@ def getOptimalFormat(tex, curFormat, isMultitexture):
                 texFormat = "IA8"
     else:
         prefer_ci_over_rgba = bpy.context.scene.fast64.settings.prefer_ci_over_rgba
-        if (prefer_ci_over_rgba and len(pixelValues) <= 16) or (len(pixelValues) <= 16 and tex_size > 2048):
+        if (prefer_ci_over_rgba and len(pixelValues) <= 16) or (len(pixelValues) <= 16 and n_size > 2048):
             texFormat = "CI4"
-        elif prefer_ci_over_rgba and len(pixelValues) <= 256 and tex_size <= 2048:
+        elif prefer_ci_over_rgba and len(pixelValues) <= 256 and n_size <= 2048:
             texFormat = "CI8"
         else:
             texFormat = "RGBA16"
