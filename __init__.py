@@ -5,7 +5,8 @@ from .fast64_internal.operators import AddWaterBox
 from .fast64_internal.panels import SM64_Panel
 from .fast64_internal.utility import PluginError, raisePluginError, attemptModifierApply, prop_split, multilineLabel
 
-from .fast64_internal.sm64 import SM64_Properties, sm64_register, sm64_unregister
+from .fast64_internal.sm64 import sm64_register, sm64_unregister
+from .fast64_internal.sm64.settings.properties import SM64_Properties
 from .fast64_internal.sm64.sm64_geolayout_bone import SM64_BoneProperties
 from .fast64_internal.sm64.sm64_objects import SM64_ObjectProperties
 from .fast64_internal.sm64.sm64_geolayout_utility import createBoneGroups
@@ -52,97 +53,6 @@ gameEditorEnum = (
     ("SM64", "SM64", "Super Mario 64"),
     ("OOT", "OOT", "Ocarina Of Time"),
 )
-
-
-class AddBoneGroups(bpy.types.Operator):
-    # set bl_ properties
-    bl_description = (
-        "Add bone groups respresenting other node types in " + "SM64 geolayouts (ex. Shadow, Switch, Function)."
-    )
-    bl_idname = "object.add_bone_groups"
-    bl_label = "Add Bone Groups"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
-
-    # Called on demand (i.e. button press, menu item)
-    # Can also be called from operator search menu (Spacebar)
-    def execute(self, context):
-        try:
-            if context.mode != "OBJECT" and context.mode != "POSE":
-                raise PluginError("Operator can only be used in object or pose mode.")
-            elif context.mode == "POSE":
-                bpy.ops.object.mode_set(mode="OBJECT")
-
-            if len(context.selected_objects) == 0:
-                raise PluginError("Armature not selected.")
-            elif type(context.selected_objects[0].data) is not bpy.types.Armature:
-                raise PluginError("Armature not selected.")
-
-            armatureObj = context.selected_objects[0]
-            createBoneGroups(armatureObj)
-        except Exception as e:
-            raisePluginError(self, e)
-            return {"CANCELLED"}
-
-        self.report({"INFO"}, "Created bone groups.")
-        return {"FINISHED"}  # must return a set
-
-
-class CreateMetarig(bpy.types.Operator):
-    # set bl_ properties
-    bl_description = (
-        "SM64 imported armatures are usually not good for "
-        + "rigging. There are often intermediate bones between deform bones "
-        + "and they don't usually point to their children. This operator "
-        + "creates a metarig on armature layer 4 useful for IK."
-    )
-    bl_idname = "object.create_metarig"
-    bl_label = "Create Animatable Metarig"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
-
-    # Called on demand (i.e. button press, menu item)
-    # Can also be called from operator search menu (Spacebar)
-    def execute(self, context):
-        try:
-            if context.mode != "OBJECT":
-                bpy.ops.object.mode_set(mode="OBJECT")
-
-            if len(context.selected_objects) == 0:
-                raise PluginError("Armature not selected.")
-            elif type(context.selected_objects[0].data) is not bpy.types.Armature:
-                raise PluginError("Armature not selected.")
-
-            armatureObj = context.selected_objects[0]
-            generateMetarig(armatureObj)
-        except Exception as e:
-            raisePluginError(self, e)
-            return {"CANCELLED"}
-
-        self.report({"INFO"}, "Created metarig.")
-        return {"FINISHED"}  # must return a set
-
-
-class SM64_AddWaterBox(AddWaterBox):
-    bl_idname = "object.sm64_add_water_box"
-
-    scale: bpy.props.FloatProperty(default=10)
-    preset: bpy.props.StringProperty(default="Shaded Solid")
-    matName: bpy.props.StringProperty(default="sm64_water_mat")
-
-    def setEmptyType(self, emptyObj):
-        emptyObj.sm64_obj_type = "Water Box"
-
-
-class SM64_ArmatureToolsPanel(SM64_Panel):
-    bl_idname = "SM64_PT_armature_tools"
-    bl_label = "SM64 Tools"
-
-    # called every frame
-    def draw(self, context):
-        col = self.layout.column()
-        col.operator(ArmatureApplyWithMeshOperator.bl_idname)
-        col.operator(AddBoneGroups.bl_idname)
-        col.operator(CreateMetarig.bl_idname)
-        col.operator(SM64_AddWaterBox.bl_idname)
 
 
 class F3D_GlobalSettingsPanel(bpy.types.Panel):
@@ -388,13 +298,9 @@ classes = (
     Fast64_Properties,
     Fast64_BoneProperties,
     Fast64_ObjectProperties,
-    AddBoneGroups,
-    CreateMetarig,
-    SM64_AddWaterBox,
     # Fast64_GlobalObjectPanel,
     F3D_GlobalSettingsPanel,
     Fast64_GlobalSettingsPanel,
-    SM64_ArmatureToolsPanel,
     Fast64_GlobalToolsPanel,
     UpgradeF3DMaterialsDialog,
 )
