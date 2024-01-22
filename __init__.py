@@ -268,7 +268,10 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
         ],
         default="intersect_action_and_scene",
     )
-    prefer_ci_over_rgba: bpy.props.BoolProperty(name="Prefer Color Indexed Over RGBA")
+    prefer_ci_over_rgba: bpy.props.BoolProperty(
+        name="Prefer CI Over RGBA",
+        description="When enabled, fast64 will use ci instead of rgba even if the texture fits as an rgba16 for performance.",
+    )
 
 
 class Fast64_Properties(bpy.types.PropertyGroup):
