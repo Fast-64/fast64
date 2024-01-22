@@ -322,16 +322,16 @@ def upgradeActors(actorObj: Object):
                     break
 
             if "dontTransition" in transActorProp:
-                transActorProp.isRoomTransition = actorObj["ootTransitionActorProperty"]["dontTransition"] == False
-                del actorObj["ootTransitionActorProperty"]["dontTransition"]
+                transActorProp.isRoomTransition = transActorProp["dontTransition"] == False
+                del transActorProp["dontTransition"]
             elif transActorProp.fromRoom is not None:
                 for obj in bpy.data.objects:
                     if (
-                        obj.name != transActorProp.fromRoom.name
+                        obj != transActorProp.fromRoom
                         and obj.type == "EMPTY"
                         and obj.ootEmptyType == "Room"
-                        and obj.ootRoomHeader.roomIndex == actorObj["ootTransitionActorProperty"]["roomIndex"]
+                        and obj.ootRoomHeader.roomIndex == transActorProp["roomIndex"]
                     ):
                         transActorProp.toRoom = obj
-                        del actorObj["ootTransitionActorProperty"]["roomIndex"]
+                        del transActorProp["roomIndex"]
                         break
