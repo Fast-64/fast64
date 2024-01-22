@@ -7,7 +7,7 @@ from bpy.app.handlers import persistent
 from ...utility import prop_split
 from ..oot_constants import ootData, ootEnumCamTransition
 from ..oot_upgrade import upgradeActors
-from ..oot_utility import updateTiedRoom
+from ..oot_utility import updateHandlerTiedRoom
 from ..scene.properties import OOTAlternateSceneHeaderProperty
 from ..room.properties import OOTAlternateRoomHeaderProperty
 from .operators import OOT_SearchActorIDEnumOperator
@@ -254,8 +254,8 @@ classes = (
 
 @persistent
 def actorHandler(scene: Scene):
-    updateTiedRoom(scene, "Transition Actor", "ootTransitionActorProperty", "fromRoom")
-    updateTiedRoom(scene, "Entrance", "ootEntranceProperty", "tiedRoom")
+    updateHandlerTiedRoom(scene, "Transition Actor", "ootTransitionActorProperty", "fromRoom")
+    updateHandlerTiedRoom(scene, "Entrance", "ootEntranceProperty", "tiedRoom")
 
 
 def actor_props_register():

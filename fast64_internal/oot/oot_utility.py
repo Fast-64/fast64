@@ -941,7 +941,7 @@ def getNewPath(type: str, isClosedShape: bool):
     return newPath
 
 
-def updateTiedRoom(scene: Scene, emptyType: str, propName: str, ptrName: str):
+def updateHandlerTiedRoom(scene: Scene, emptyType: str, propName: str, ptrName: str):
     """Used by handlers to update the tied room object
 
     Parameters:
