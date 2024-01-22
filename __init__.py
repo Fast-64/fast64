@@ -270,7 +270,7 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
     )
     prefer_ci_over_rgba: bpy.props.BoolProperty(
         name="Prefer CI Over RGBA",
-        description="When enabled, fast64 will use ci instead of rgba even if the texture fits as an rgba16 for performance.",
+        description="When enabled, fast64 will default colored textures that fit ci requirements to ci instead of rgba even if the texture fits as an rgba16 for the sake of performance",
     )
 
 
