@@ -23,7 +23,6 @@ class OOTCollisionExportSettings(PropertyGroup):
     )
     filename: StringProperty(name="Filename")
     exportPath: StringProperty(name="Directory", subtype="FILE_PATH")
-    exportLevel: EnumProperty(items=ootEnumSceneID, name="Level Used By Collision", default="SCENE_DEKU_TREE")
     includeChildren: BoolProperty(name="Include child objects", default=True)
     levelName: StringProperty(name="Name", default="SCENE_DEKU_TREE")
     customExport: BoolProperty(

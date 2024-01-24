@@ -21,12 +21,6 @@ from .oot_utility import (
 )
 
 
-def drawCameraPosProperty(layout, cameraRefProp, index, headerIndex, objName):
-    camBox = layout.box().column()
-    prop_split(camBox, cameraRefProp, "camera", "Camera " + str(index))
-    drawCollectionOps(camBox, index, "Camera Position", headerIndex, objName)
-
-
 # water boxes handled by level writer
 def exportCollisionCommon(collision, obj, transformMatrix, includeChildren, name):
     bpy.ops.object.select_all(action="DESELECT")
