@@ -341,7 +341,11 @@ def saveStaticModel(
         faces_by_mat[face.material_index].append(face)
 
     # sort by material slot
-    faces_by_mat = {mat_index: faces_by_mat[mat_index] for mat_index, _ in enumerate(obj.material_slots) if mat_index in faces_by_mat}
+    faces_by_mat = {
+        mat_index: faces_by_mat[mat_index]
+        for mat_index, _ in enumerate(obj.material_slots)
+        if mat_index in faces_by_mat
+    }
 
     fMeshes = {}
     for material_index, faces in faces_by_mat.items():
