@@ -30,6 +30,7 @@ for each sub element (of <Actor>) mentioned below:
 * Name -> display name (in the UI)
 * TiedActorTypes -> optional, used to use this property for the current actor type (see en_rd for an example)
 * Target -> optional, defines which variable should be used to store this parameter (actor.home.rot.X-Y-Z, actor.params), if none then Params is used by default
+* ValueRange -> optionnal, used for actors that have parameters that shared the same location but does different things depending on the value (see en_wood02)
 
 - <Bool> -> adds a bool property (checkbox)
 - <Enum> -> adds an enum property, different from <Type> (use this if you want multiple <Type> enums for now)
@@ -69,6 +70,7 @@ for each sub element (of <Actor>) mentioned below:
       <Item Params="0002"> Rises from Ground //Pair with 0001</Item>
       <Item Params="0003"> Drops From Sky on Approach</Item>
       <Item Params="0004"> Rises from Ground, Mini-Boss Theme</Item>
+      <Item Params="0005"> Unknown </Item>
     </Type>
   </Actor>
   <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_GIRLA" Key="en_girla" Name="Shops" Index="3">
@@ -88,7 +90,7 @@ for each sub element (of <Actor>) mentioned below:
     </Type>
   </Actor>
   <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_EN_LIGHT" Key="en_light" Name="Flame" Index="5">
-    <Type Index="1">
+    <Type Index="1" Mask="0x000F">
       <Item Params="0000"> Large Orange Flame</Item>
       <Item Params="0001"> Large Orange Flame</Item>
       <Item Params="0002"> Large Blue Flame</Item>
@@ -105,9 +107,11 @@ for each sub element (of <Actor>) mentioned below:
       <Item Params="000D"> Large Pale Purple Flame</Item>
       <Item Params="000E"> Large Pale Indigo Flame</Item>
       <Item Params="000F"> Large Pale Blue Flame</Item>
-      <Item Params="83F0"> Candle Flame</Item>
-      <Item Params="FFFF"> Faint Blue Aura</Item>
     </Type>
+    <Flag Index="1" Mask="0x03F0" Name="Switch (Shrink)" Type="Switch"/>
+    <Bool Index="1" Mask="0x0400" Name="Use Shriking Mode"/>
+    <Bool Index="2" Mask="0x0800" Name="Is Lit (used with shrink)"/>
+    <Bool Index="3" Mask="0x8000" Name="Is Candle (dangeon_keep)"/>
   </Actor>
   <Actor Category="ACTORCAT_DOOR" ID="ACTOR_EN_DOOR" Key="en_door" Name="Wooden Door" Index="6">
     <Type Index="1" Mask="0x0380">
@@ -565,10 +569,11 @@ Out-of-bounds Plane (typ.)</Notes>
   <Actor Category="ACTORCAT_BG" ID="ACTOR_EN_HORSE_GANON" Key="en_horse_ganon" Name="Ganondorf's Horse" ObjectKey="obj_horse_ganon" Index="57">
   </Actor>
   <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_HIDAN_ROCK" Key="bg_hidan_rock" Name="Fire Temple Stone Block" ObjectKey="obj_hidan_objects" Index="58">
-    <Type Index="1">
+    <Type Index="1" Mask="0x00FF">
       <Item Params="0000"> Large Face Cube //Pushable</Item>
       <Item Params="0001"> Squat Cube //Shakes and flies into the air when you land on it</Item>
     </Type>
+    <Flag Index="1" Mask="0xFF00" Name="Switch Flag" Type="Switch"/>
   </Actor>
   <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_HIDAN_RSEKIZOU" Key="bg_hidan_rsekizou" Name="Spinning Flame Thrower Statue" ObjectKey="obj_hidan_objects" Index="59">
   </Actor>
@@ -866,34 +871,36 @@ Use with actors 008C and 008B for the cutscene to work
   </Actor>
   <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_WOOD02" Key="en_wood02" Name="Greenery" ObjectKey="obj_wood02" Index="105">
     <Type Index="1" Mask="0x00FF">
-      <Item Params="0000"> Large tree</Item>
-      <Item Params="0001"> Medium tree</Item>
-      <Item Params="0002"> Small tree</Item>
-      <Item Params="0003"> Group of trees</Item>
-      <Item Params="0004"> Medium tree</Item>
-      <Item Params="0005"> Medium tree, dark brown trunk, greener leaves</Item>
-      <Item Params="0006"> Group of trees, dark brown trunk, yellow leaves</Item>
-      <Item Params="0007"> Medium tree, dark brown trunk, yellow leaves</Item>
-      <Item Params="0008"> Group of trees, dark brown trunk, greener leaves</Item>
-      <Item Params="0009"> Medium tree, dark brown trunk, greener leaves</Item>
-      <Item Params="000A"> Ugly tree from Kakariko Village</Item>
-      <Item Params="000B"> Bush</Item>
-      <Item Params="000C"> Large bush</Item>
-      <Item Params="000D"> Group of bushes</Item>
-      <Item Params="000E"> Bush</Item>
-      <Item Params="000F"> Group of large bushes</Item>
-      <Item Params="0010"> Large bush</Item>
-      <Item Params="0011"> Dark bush</Item>
-      <Item Params="0012"> Large dark bush</Item>
-      <Item Params="0013"> Group of dark bushes</Item>
-      <Item Params="0014"> Dark bush</Item>
-      <Item Params="0015"> Group of large dark bushes</Item>
-      <Item Params="0016"> Large dark bush</Item>
-      <Item Params="0019"> Dancing dark bush //Disappears after several repetitions</Item>
+      <Item Params="0000"> Large Conical Tree</Item>
+      <Item Params="0001"> Medium Conical Tree</Item>
+      <Item Params="0002"> Small Conical Tree</Item>
+      <Item Params="0003"> Conical Tree Spawner</Item>
+      <Item Params="0004"> Conical Tree Spawned</Item>
+      <Item Params="0005"> Oval Green Tree</Item>
+      <Item Params="0006"> Oval Yellow Tree Spawner</Item>
+      <Item Params="0007"> Oval Yellow Tree Spawned</Item>
+      <Item Params="0008"> Oval Green Tree Spawner</Item>
+      <Item Params="0009"> Oval Green Tree Spawned</Item>
+      <Item Params="000A"> Adult Kakariko Tree</Item>
+      <Item Params="000B"> Small Bush</Item>
+      <Item Params="000C"> Large Bush</Item>
+      <Item Params="000D"> Small Bush Spawner</Item>
+      <Item Params="000E"> Small Bush Spawned</Item>
+      <Item Params="000F"> Large Bush Spawner</Item>
+      <Item Params="0010"> Large Bush Spawned</Item>
+      <Item Params="0011"> Small Black Bush</Item>
+      <Item Params="0012"> Large Black Bush</Item>
+      <Item Params="0013"> Small Black Bush Spawner</Item>
+      <Item Params="0014"> Small Black Bush Spawned</Item>
+      <Item Params="0015"> Large Black Bush Spawner</Item>
+      <Item Params="0016"> Large Black Bush Spawned</Item>
+      <Item Params="0017"> Green leaf</Item>
+      <Item Params="0018"> Yellow leaf</Item>
     </Type>
-    <Property Index="1" Mask="0xFF00" Name="Gold Skulltula Low Byte" Target="Params"/>
+    <Property Index="1" Mask="0xFF00" Name="Gold Skulltula Low Byte" Target="Params" ValueRange="100-255"/>
     <Property Index="2" Mask="0x00FF" Name="Gold Skulltula High Byte" Target="ZRot"/>
-    <Collectible Index="1" Mask="0xFF00" Name="Collectible Drop" Target="Params" Type="Drop"/>
+    <!-- note about Collectible Drop: code checks up to 0x64 but there's only 0x18 items -->
+    <Collectible Index="1" Mask="0xFF00" Name="Collectible Drop" Target="Params" Type="Drop" ValueRange="0-24"/>
     <Notes>+0xFF00 = Controls item(s) dropped (trees only)
 -0000 Random
 -0800 Deku seeds
@@ -1029,9 +1036,9 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
     </Type>
   </Actor>
   <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_HIDAN_FWBIG" Key="bg_hidan_fwbig" Name="Large Firewall" ObjectKey="obj_hidan_objects" Index="120">
-    <Type Index="1">
+    <Type Index="1" Mask="0xFF00">
       <Item Params="0000"> Stationary with switch and hardcoded camera cutscene</Item>
-      <Item Params="0100"> Follows you</Item>
+      <Item Params="0100"> Follows Player</Item>
     </Type>
     <Flag Index="1" Mask="0x00FF" Type="Switch"/>
   </Actor>
@@ -1112,12 +1119,12 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
 </Notes>
   </Actor>
   <Actor Category="ACTORCAT_NPC" HasEnum="True" ID="ACTOR_EN_SW" Key="en_sw" Name="Skullwalltula/Golden Skulltula" ObjectKey="obj_st" Index="128">
-    <Type Index="1" Mask="0xE000">
+    <Type Index="1" Mask="0x8000">
       <Item Params="0000"> Skullwalltula</Item>
       <Item Params="8000"> Gold Skulltula</Item>
     </Type>
     <Bool Index="1" Mask="0x2000" Name="Spawns at night" TiedActorTypes="8000"/>
-    <Property Index="1" Mask="0x00FF" Name="Skulltula Flag"/>
+    <Property Index="1" Mask="0x00FF" Name="Skulltula Flag" TiedActorTypes="8000"/>
     <Enum Index="1" Mask="0x1F00" Name="Location" Target="Params" TiedActorTypes="8000">
       <Item Name="Deku Tree" Value="0x01"/>
       <Item Name="Dodongo's Cavern" Value="0x02"/>
@@ -1167,9 +1174,8 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
       <Item Params="0200"> Appears on explosion or Megaton Hammer</Item>
     </Type>
     <Bool Index="1" Mask="0xF000" Name="Is Small Fairy Fountain" Target="Params"/>
-    <ChestContent Mask="0x00E0" Target="Params"/>
     <Flag Index="1" Mask="0x001F" Target="Params" Type="Chest"/>
-    <Enum Index="1" Mask="0x000F" Name="Destination" Target="ZRot" TiedActorTypes="0000,0100,0200">
+    <Enum Index="1" Mask="0x000F" Name="Destination" Target="ZRot">
       <Item Name="Generic Grotto" Value="0x00"/>
       <Item Name="Big Skulltula" Value="0x01"/>
       <Item Name="Heart Piece Scrub" Value="0x02"/>
@@ -1184,6 +1190,16 @@ ZROT 0x00FF = Gold Skulltula spawn var high byte (See Gold Skulltula Actor 0095)
       <Item Name="Tektite" Value="0x0B"/>
       <Item Name="Forest Stage" Value="0x0C"/>
       <Item Name="Cow" Value="0x0D"/>
+    </Enum>
+    <Enum Index="2" Mask="0x00E0" Name="Chest Content" Target="Params">
+      <Item Name="Blue Rupee" Value="0x00"/>
+      <Item Name="Red Rupee" Value="0x01"/>
+      <Item Name="Gold Rupee" Value="0x02"/>
+      <Item Name="Bombs (20)" Value="0x03"/>
+      <Item Name="Bombs (1)" Value="0x04"/>
+      <Item Name="Bombs (1)" Value="0x05"/>
+      <Item Name="Bombs (1)" Value="0x06"/>
+      <Item Name="Bombs (1)" Value="0x07"/>
     </Enum>
   </Actor>
   <Actor Category="ACTORCAT_BG" ID="ACTOR_BG_SPOT02_OBJECTS" Key="bg_spot02_objects" Name="Graveyard Objects" ObjectKey="obj_spot02_objects" Index="135">
@@ -2630,11 +2646,7 @@ ROTZ 0x0001 = Behavior after colliding with Link
     </Type>
   </Actor>
   <Actor Category="ACTORCAT_ENEMY" ID="ACTOR_EN_PO_FIELD" Key="en_po_field" Name="Hyrule Field Poes/Big Poes" ObjectKey="obj_po_field" Index="334">
-    <Type Index="1">
-      <Item Params="0000"> Big Poe</Item>
-      <Item Params="FFFF"> Normal poe, circles around you</Item>
-    </Type>
-    <Flag Index="1" Mask="0x003F" Name="Switch Flag ? (big poe)" Type="Switch"/>
+    <Flag Index="1" Mask="0x00FF" Name="Switch Flag (Big Poe)" Type="Switch"/>
   </Actor>
   <Actor Category="ACTORCAT_ITEMACTION" ID="ACTOR_EFC_ERUPC" Key="efc_erupc" Name="Lava Sprites" ObjectKey="obj_efc_erupc" Index="335">
   </Actor>
@@ -3343,12 +3355,12 @@ Z ROTATION +0x3F = Collectible Flag</Notes>
     </Type>
   </Actor>
   <Actor Category="ACTORCAT_PROP" ID="ACTOR_BG_ICE_SHUTTER" Key="bg_ice_shutter" Name="2D Ice Bars" ObjectKey="obj_ice_objects" Index="415">
-    <Type Index="1">
-      <Item Params="FF00"> vertical, clear flag</Item>
+    <Type Index="1" Mask="0x00FF">
+      <Item Params="0000"> vertical, clear flag</Item>
       <Item Params="0001"> vertical, switch softlock</Item>
-      <Item Params="FF02"> horizontal, clear flag</Item>
+      <Item Params="0002"> horizontal, clear flag</Item>
     </Type>
-    <Flag Index="1" Mask="0x3F00" Name="Switch Flag (type 1)" Type="Switch"/>
+    <Flag Index="1" Mask="0x3F00" Name="Switch Flag" TiedActorTypes="0001" Type="Switch"/>
     <Notes>+0x3F00 switchflag</Notes>
   </Actor>
   <Actor Category="ACTORCAT_PROP" ID="ACTOR_EN_KAKASI2" Key="en_kakasi2" Name="Scarecrow Song Spot" ObjectKey="obj_ka" Index="416">

@@ -198,7 +198,7 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
             if obj.type == "EMPTY":
                 if obj.ootEmptyType == "Room":
                     OOTObjectProperty.upgrade_object(obj)
-                if obj.ootEmptyType in {"Entrance", "Transition Actor"}:
+                if obj.ootEmptyType in {"Actor", "Entrance", "Transition Actor"}:
                     OOTActorProperty.upgrade_object(obj)
                 if any(obj.name.startswith(elem) for elem in ["ActionList.", "Point.", "Preview."]):
                     OOTCutsceneMotionProperty.upgrade_object(obj)

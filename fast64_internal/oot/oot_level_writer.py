@@ -1,4 +1,5 @@
 import bpy, os, math, mathutils
+from bpy.types import Object
 from ..f3d.f3d_gbi import TextureExportSettings
 from ..f3d.f3d_writer import TriangleConverterInfo, saveStaticModel, getInfoDict
 from .scene.properties import OOTSceneProperties, OOTSceneHeaderProperty, OOTAlternateSceneHeaderProperty
@@ -10,6 +11,7 @@ from .oot_collision import OOTCameraData, exportCollisionCommon
 from .oot_collision_classes import OOTCameraPosData, OOTWaterBox, OOTCrawlspaceData, decomp_compat_map_CameraSType
 from .oot_object import addMissingObjectsToAllRoomHeaders
 from .oot_f3d_writer import writeTextureArraysNew, writeTextureArraysExisting1D
+from .actor.properties import OOTActorProperty
 
 from ..utility import (
     PluginError,
@@ -741,7 +743,21 @@ def ootProcessLOD(
     DLGroup.addDLCall(transparentLOD.draw, "Transparent")
 
 
-def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
+def getActorRotation(actorProp: OOTActorProperty, blendRots: list[int]):
+    # Figure out which rotation to export, Blender's or the override
+    override = "Override" if actorProp.actorID == "Custom" else ""
+    overrideRots = [getattr(actorProp, f"rot{override}{rot}") for rot in ["X", "Y", "Z"]]
+    exportRots = [f"DEG_TO_BINANG({(rot * (180 / 0x8000)):.3f})" for rot in blendRots]
+    if actorProp.actorID == "Custom":
+        exportRots = overrideRots if actorProp.rotOverride else exportRots
+    else:
+        for i, rot in enumerate(["X", "Y", "Z"]):
+            if getattr(actorProp, f"isRot{rot}"):
+                exportRots[i] = overrideRots[i]
+    return exportRots
+
+
+def ootProcessEmpties(scene, room, sceneObj, obj: Object, transformMatrix):
     translation, rotation, scale, orientedRotation = getConvertedTransform(transformMatrix, sceneObj, obj, True)
 
     if obj.type == "EMPTY":
@@ -754,11 +770,6 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
             # and not the identifier as defined by the first element of the tuple. Therefore, we need to check if
             # the current Actor has the ID `None` to avoid export issues.
             if actorProp.actorID != "None":
-                if actorProp.rotOverride:
-                    actorRot = ", ".join([actorProp.rotOverrideX, actorProp.rotOverrideY, actorProp.rotOverrideZ])
-                else:
-                    actorRot = ", ".join(f"DEG_TO_BINANG({(rot * (180 / 0x8000)):.3f})" for rot in rotation)
-
                 actorName = (
                     ootData.actorData.actorsByID[actorProp.actorID].name.replace(
                         f" - {actorProp.actorID.removeprefix('ACTOR_')}", ""
@@ -773,8 +784,8 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
                         actorName,
                         getCustomProperty(actorProp, "actorID"),
                         translation,
-                        actorRot,
-                        actorProp.actorParam,
+                        ", ".join(getActorRotation(actorProp, rotation)),
+                        actorProp.params if actorProp.actorID != "Custom" else actorProp.actorParam,
                     ),
                     actorProp,
                     "actorList",
@@ -801,6 +812,7 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
                     else "Custom Actor"
                 )
 
+                actorProp = transActorProp.actor
                 addActor(
                     scene,
                     OOTTransitionActor(
@@ -812,7 +824,7 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
                         back[1],
                         translation,
                         rotation[1],  # TODO: Correct axis?
-                        transActorProp.actor.actorParam,
+                        actorProp.params if actorProp.actorID != "Custom" else actorProp.actorParam,
                     ),
                     transActorProp.actor,
                     "transitionActorList",
@@ -836,7 +848,7 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
                     "ACTOR_PLAYER" if not entranceProp.customActor else entranceProp.actor.actorIDCustom,
                     translation,
                     ", ".join(f"DEG_TO_BINANG({(rot * (180 / 0x8000)):.3f})" for rot in rotation),
-                    entranceProp.actor.actorParam,
+                    actorProp.params if not entranceProp.customActor else actorProp.actorParam,
                 ),
                 entranceProp.actor,
                 obj.name,

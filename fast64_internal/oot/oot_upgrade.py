@@ -1,3 +1,5 @@
+import bpy
+
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from bpy.types import Object, CollectionProperty
@@ -303,26 +305,55 @@ def upgradeCutsceneMotion(csMotionObj: Object):
 # Actors
 #####################################
 def upgradeActors(actorObj: Object):
-    if actorObj.ootEmptyType == "Entrance":
-        entranceProp = actorObj.ootEntranceProperty
-
-        for obj in bpy.data.objects:
-            if obj.type == "EMPTY" and obj.ootEmptyType == "Room":
-                if actorObj in obj.children_recursive:
-                    entranceProp.tiedRoom = obj
-                    break
+    # parameters
+    actorProp = None
+    if actorObj.ootEmptyType == "Actor":
+        actorProp = actorObj.ootActorProperty
     elif actorObj.ootEmptyType == "Transition Actor":
-        transActorProp = actorObj.ootTransitionActorProperty
-        transActorProp.isRoomTransition = actorObj["ootTransitionActorProperty"]["dontTransition"] == False
-        del actorObj["ootTransitionActorProperty"]["dontTransition"]
+        actorProp = actorObj.ootTransitionActorProperty.actor
+    elif actorObj.ootEmptyType == "Entrance":
+        actorProp = actorObj.ootEntranceProperty.actor
 
-        if transActorProp.isRoomTransition:
+    if actorProp is not None:
+        isCustom = False
+        if actorObj.ootEmptyType == "Entrance":
+            isCustom = actorObj.ootEntranceProperty.customActor
+        else:
+            isCustom = actorProp.actorID == "Custom"
+
+        if not isCustom:
+            actorProp.params = actorProp.actorParam
+            actorProp.actorParam = "0x0000"
+
+            if actorObj.ootEmptyType == "Actor" and actorProp.rotOverride:
+                actorProp.rotX = actorProp.rotOverrideX
+                actorProp.rotY = actorProp.rotOverrideY
+                actorProp.rotZ = actorProp.rotOverrideZ
+                actorProp.rotOverrideX = "0x0000"
+                actorProp.rotOverrideY = "0x0000"
+                actorProp.rotOverrideZ = "0x0000"
+
+        # room indices
+        if actorObj.ootEmptyType == "Entrance":
+            entranceProp = actorObj.ootEntranceProperty
+
             for obj in bpy.data.objects:
-                if obj.type == "EMPTY":
-                    if obj.ootEmptyType == "Room":
-                        if actorObj in obj.children_recursive:
-                            transActorProp.fromRoom = obj
+                if obj.type == "EMPTY" and obj.ootEmptyType == "Room":
+                    if actorObj in obj.children_recursive:
+                        entranceProp.tiedRoom = obj
+                        break
+        elif actorObj.ootEmptyType == "Transition Actor":
+            transActorProp = actorObj.ootTransitionActorProperty
+            transActorProp.isRoomTransition = actorObj["ootTransitionActorProperty"]["dontTransition"] == False
+            del actorObj["ootTransitionActorProperty"]["dontTransition"]
 
-                        if obj.ootRoomHeader.roomIndex == actorObj["ootTransitionActorProperty"]["roomIndex"]:
-                            transActorProp.toRoom = obj
-                            del actorObj["ootTransitionActorProperty"]["roomIndex"]
+            if transActorProp.isRoomTransition:
+                for obj in bpy.data.objects:
+                    if obj.type == "EMPTY":
+                        if obj.ootEmptyType == "Room":
+                            if actorObj in obj.children_recursive:
+                                transActorProp.fromRoom = obj
+
+                            if obj.ootRoomHeader.roomIndex == actorObj["ootTransitionActorProperty"]["roomIndex"]:
+                                transActorProp.toRoom = obj
+                                del actorObj["ootTransitionActorProperty"]["roomIndex"]
