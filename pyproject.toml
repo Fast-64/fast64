@@ -3,6 +3,11 @@
 # See https://black.readthedocs.io/en/stable/usage_and_configuration/the_basics.html
 # or `black --help` for what can go here
 
+# Require black version to be 23.x.y
+required-version = '23'
+# Install such a version with:
+# pip install 'black>=23,<24'
+
 line-length = 120
 
 target-version = [
