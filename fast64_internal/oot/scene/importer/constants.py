@@ -1,0 +1,25 @@
+headerNames = ["childDayHeader", "childNightHeader", "adultDayHeader", "adultNightHeader"]
+
+actorsWithRotAsParam = {
+    "ACTOR_EN_BOX": "Z",
+    "ACTOR_EN_WOOD02": "Z",
+    "ACTOR_DOOR_ANA": "Z",
+    "ACTOR_EN_ENCOUNT1": "Z",
+    "ACTOR_EN_MA1": "Z",
+    "ACTOR_EN_WONDER_ITEM": "Z",
+    "ACTOR_EN_WONDER_TALK": "Z",
+    "ACTOR_EN_WONDER_TALK2": "Z",
+    "ACTOR_OBJ_BEAN": "Z",
+    "ACTOR_EN_OKARINA_TAG": "Z",
+    "ACTOR_EN_GOROIWA": "Z",
+    "ACTOR_EN_DAIKU": "Z",
+    "ACTOR_EN_SIOFUKI": "XYZ",
+    "ACTOR_ELF_MSG2": "XYZ",
+    "ACTOR_OBJ_MAKEOSHIHIKI": "Z",
+    "ACTOR_EN_GELDB": "Z",
+    "ACTOR_OBJ_KIBAKO2": "XZ",
+    "ACTOR_EN_GO2": "Z",
+    "ACTOR_EN_KAKASI2": "Z",
+    "ACTOR_EN_KAKASI3": "Z",
+    "ACTOR_OBJ_TIMEBLOCK": "Z",
+}
