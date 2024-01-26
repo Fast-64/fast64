@@ -91,13 +91,25 @@ https://b3d.interplanety.org/en/using-microsoft-visual-studio-code-as-external-i
 
 #### Formatting
 
-We use [Black](https://black.readthedocs.io/en/stable/index.html).
+We use [Black](https://black.readthedocs.io/en/stable/index.html), version 23.
 
-To make VS Code use it, change the `python.formatting.provider` setting to "black". VS Code will ask you to install Black if not already installed.
+To install it, run `pip install 'black>=23,<24'`.
+
+To make VS Code use it, change the `python.formatting.provider` setting to "black".
 
 To format the whole repo, run `black .` (or `python3 -m black .` depending on how it is installed) from the root of the repo.
 
 The (minimal) configuration for Black is in `/pyproject.toml`.
+
+There is a GitHub action set up to check that PRs and the main branch are formatted: `/.github/workflows/black-lint.yml`
+
+If you see a message such as
+
+```
+Oh no! 💥 💔 💥 The required version `23` does not match the running version `24.1.0`!
+```
+
+Make sure the `black --version` is 23. Install a 23 version with `pip install 'black>=23,<24'`.
 
 #### Updater notes
 
