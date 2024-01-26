@@ -544,9 +544,8 @@ def ootConvertScene(originalSceneObj, transformMatrix, sceneName, DLFormat, conv
                 room.mesh.terminateDLs()
                 room.mesh.removeUnusedEntries()
                 ootProcessEmpties(scene, room, sceneObj, roomObj, transformMatrix)
-            elif obj.type == "EMPTY" and obj.ootEmptyType == "Water Box":
-                # 0x3F = -1 in 6bit value
-                ootProcessWaterBox(sceneObj, obj, transformMatrix, scene, 0x3F)
+            elif obj.type == "EMPTY" and obj.ootEmptyType == "Water Box" and obj.ootWaterBoxProperty.tiedRoom is None:
+                ootProcessWaterBox(sceneObj, obj, transformMatrix, scene)
             elif obj.type == "CAMERA":
                 camPosProp = obj.ootCameraPositionProperty
                 readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix)
@@ -841,8 +840,8 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
                 entranceProp.actor,
                 obj.name,
             )
-        elif obj.ootEmptyType == "Water Box":
-            ootProcessWaterBox(sceneObj, obj, transformMatrix, scene, room.roomIndex)
+        elif obj.ootEmptyType == "Water Box" and obj.ootWaterBoxProperty.tiedRoom is not None:
+            ootProcessWaterBox(sceneObj, obj, transformMatrix, scene)
     elif obj.type == "CAMERA":
         camPosProp = obj.ootCameraPositionProperty
         readCamPos(camPosProp, obj, scene, sceneObj, transformMatrix)
@@ -856,14 +855,15 @@ def ootProcessEmpties(scene, room, sceneObj, obj, transformMatrix):
         ootProcessEmpties(scene, room, sceneObj, childObj, transformMatrix)
 
 
-def ootProcessWaterBox(sceneObj, obj, transformMatrix, scene, roomIndex):
-    translation, rotation, scale, orientedRotation = getConvertedTransform(transformMatrix, sceneObj, obj, True)
+def ootProcessWaterBox(sceneObj, obj, transformMatrix, scene):
+    translation, _, scale, orientedRotation = getConvertedTransform(transformMatrix, sceneObj, obj, True)
 
     checkIdentityRotation(obj, orientedRotation, False)
     waterBoxProp = obj.ootWaterBoxProperty
     scene.collision.waterBoxes.append(
         OOTWaterBox(
-            roomIndex,
+            # 0x3F = -1 in 6bit value
+            (waterBoxProp.tiedRoom.ootRoomHeader.roomIndex if waterBoxProp.tiedRoom is not None else 0x3F),
             getCustomProperty(waterBoxProp, "lighting"),
             getCustomProperty(waterBoxProp, "camera"),
             waterBoxProp.flag19,

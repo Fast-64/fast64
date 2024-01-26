@@ -1,3 +1,5 @@
+import bpy
+
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from bpy.types import Object, CollectionProperty
@@ -326,3 +328,18 @@ def upgradeActors(actorObj: Object):
                         if obj.ootRoomHeader.roomIndex == actorObj["ootTransitionActorProperty"]["roomIndex"]:
                             transActorProp.toRoom = obj
                             del actorObj["ootTransitionActorProperty"]["roomIndex"]
+
+
+#####################################
+# Waterboxes
+#####################################
+def upgradeWaterboxes(waterboxObj: Object):
+    waterboxProp = waterboxObj.ootWaterBoxProperty
+    for obj in bpy.data.objects:
+        if (
+            obj.type == "EMPTY"
+            and obj.ootEmptyType == "Room"
+            and waterboxObj in obj.children_recursive
+            and waterboxProp.tiedRoom is None
+        ):
+            waterboxProp.tiedRoom = obj
