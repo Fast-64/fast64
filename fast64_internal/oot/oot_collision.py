@@ -4,6 +4,7 @@ from ..utility import (
     PluginError,
     CData,
     prop_split,
+    selectSingleObject,
 )
 
 from .oot_collision_classes import (
@@ -23,8 +24,7 @@ from .oot_utility import (
 
 # water boxes handled by level writer
 def exportCollisionCommon(collision, obj, transformMatrix, includeChildren, name):
-    bpy.ops.object.select_all(action="DESELECT")
-    obj.select_set(True)
+    selectSingleObject(obj)
 
     # dict of collisionType : faces
     collisionDict = {}

@@ -31,6 +31,7 @@ from ..utility import (
     decompFolderMessage,
     makeWriteInfoBox,
     writeMaterialFiles,
+    setActiveObject,
 )
 
 from ..f3d.f3d_gbi import (
@@ -745,7 +746,6 @@ def exportLevelC(obj, transformMatrix, levelName, exportDir, savePNG, customExpo
             raise PluginError(child.name + " shares the same area index as " + areaDict[child.areaIndex].name)
         # if child.areaCamera is None:
         #    raise PluginError(child.name + ' does not have an area camera set.')
-        # setOrigin(obj, child)
         areaDict[child.areaIndex] = child
 
         areaIndex = child.areaIndex
@@ -1205,8 +1205,7 @@ class SM64_ExportLevel(ObjectDataExporter):
             applyRotation([obj], math.radians(-90), "X")
             self.cleanup_temp_object_data()
 
-            obj.select_set(True)
-            context.view_layer.objects.active = obj
+            setActiveObject(obj)
             self.reset_warnings()
             raisePluginError(self, e)
             return {"CANCELLED"}  # must return a set

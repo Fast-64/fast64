@@ -58,6 +58,9 @@ from ..utility import (
     writeBoxExportType,
     enumExportHeaderType,
     geoNodeRotateOrder,
+    setActiveObject,
+    selectSingleObject,
+    deselectAllObjects,
 )
 
 from ..f3d.f3d_bleed import (
@@ -294,12 +297,10 @@ def replaceDLReferenceInGeo(geoPath, pattern, replacement):
 
 def prepareGeolayoutExport(armatureObj, obj):
     # Make object and armature space the same.
-    setOrigin(armatureObj, obj)
+    setOrigin(obj, armatureObj.location)
 
     # Apply armature scale.
-    bpy.ops.object.select_all(action="DESELECT")
-    armatureObj.select_set(True)
-    bpy.context.view_layer.objects.active = armatureObj
+    selectSingleObject(armatureObj)
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True, properties=False)
 
 
@@ -489,12 +490,10 @@ def convertObjectToGeolayout(
             convertTextureData,
         )
         cleanupDuplicatedObjects(allObjs)
-        rootObj.select_set(True)
-        bpy.context.view_layer.objects.active = rootObj
+        setActiveObject(rootObj)
     except Exception as e:
         cleanupDuplicatedObjects(allObjs)
-        rootObj.select_set(True)
-        bpy.context.view_layer.objects.active = rootObj
+        setActiveObject(rootObj)
         raise Exception(str(e))
 
     appendRevertToGeolayout(geolayoutGraph, fModel)
@@ -2913,9 +2912,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                     )
 
                 romfileOutput.close()
-                bpy.ops.object.select_all(action="DESELECT")
-                obj.select_set(True)
-                context.view_layer.objects.active = obj
+                selectSingleObject(obj)
 
                 if os.path.exists(bpy.path.abspath(context.scene.outputRom)):
                     os.remove(bpy.path.abspath(context.scene.outputRom))
@@ -3026,11 +3023,10 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
             applyRotation([armatureObj] + linkedArmatures, math.radians(90), "X")
 
             # You must ALSO apply object rotation after armature rotation.
-            bpy.ops.object.select_all(action="DESELECT")
+            deselectAllObjects()
             for linkedArmature, linkedMesh in linkedArmatureDict.items():
                 linkedMesh.select_set(True)
-            obj.select_set(True)
-            bpy.context.view_layer.objects.active = obj
+            setActiveObject(obj)
             bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
             if context.scene.fast64.sm64.exportType == "C":
                 exportPath, levelName = getPathAndLevel(
@@ -3120,9 +3116,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                     )
 
                 romfileOutput.close()
-                bpy.ops.object.select_all(action="DESELECT")
-                armatureObj.select_set(True)
-                context.view_layer.objects.active = armatureObj
+                selectSingleObject(armatureObj)
 
                 if os.path.exists(bpy.path.abspath(context.scene.outputRom)):
                     os.remove(bpy.path.abspath(context.scene.outputRom))
@@ -3168,8 +3162,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                 if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
                     os.remove(bpy.path.abspath(tempROM))
             if armatureObj is not None:
-                armatureObj.select_set(True)
-                context.view_layer.objects.active = armatureObj
+                setActiveObject(armatureObj)
             raisePluginError(self, e)
             return {"CANCELLED"}  # must return a set
 

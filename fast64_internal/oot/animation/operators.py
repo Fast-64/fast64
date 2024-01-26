@@ -3,7 +3,7 @@ from bpy.types import Scene, Operator, Armature
 from bpy.props import StringProperty, BoolProperty
 from bpy.utils import register_class, unregister_class
 from bpy.ops import object
-from ...utility import PluginError, toAlnum, writeCData, raisePluginError
+from ...utility import PluginError, toAlnum, writeCData, raisePluginError, selectSingleObject
 from .properties import OOTAnimExportSettingsProperty, OOTAnimImportSettingsProperty
 
 from ..oot_anim import (
@@ -157,9 +157,7 @@ class OOT_ImportAnim(Operator):
                 object.mode_set(mode="OBJECT")
 
             # We need to apply scale otherwise translation imports won't be correct.
-            object.select_all(action="DESELECT")
-            armatureObj.select_set(True)
-            context.view_layer.objects.active = armatureObj
+            selectSingleObject(armatureObj)
             object.transform_apply(location=False, rotation=False, scale=True, properties=False)
 
         except Exception as e:

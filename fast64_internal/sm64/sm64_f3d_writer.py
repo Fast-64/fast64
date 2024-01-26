@@ -341,13 +341,13 @@ def exportTexRectCommon(texProp, name, convertTextureData):
 
 def sm64ExportF3DtoC(
     basePath,
-    obj,
+    obj: bpy.types.Object,
     DLFormat,
     transformMatrix,
     texDir,
     savePNG,
     texSeparate,
-    includeChildren,
+    includeChildren: bool,
     name,
     levelName,
     groupName,

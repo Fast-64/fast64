@@ -1,6 +1,11 @@
 import bpy, math, mathutils
 from bpy.utils import register_class, unregister_class
 
+from .utility import (
+    deselectAllObjects,
+    selectSingleObject,
+)
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -81,14 +86,12 @@ def armatureApplyWithMesh(armatureObj: bpy.types.Object, context: bpy.types.Cont
         if armatureModifier is None:
             continue
 
-        bpy.ops.object.select_all(action="DESELECT")
-        context.view_layer.objects.active = child
+        selectSingleObject(child)
         bpy.ops.object.modifier_copy(modifier=armatureModifier.name)
         print(len(child.modifiers))
         attemptModifierApply(armatureModifier)
 
-    bpy.ops.object.select_all(action="DESELECT")
-    context.view_layer.objects.active = armatureObj
+    selectSingleObject(armatureObj)
     bpy.ops.object.mode_set(mode="POSE")
     bpy.ops.pose.armature_apply()
     if context.mode != "OBJECT":

@@ -8,7 +8,7 @@ from bpy.utils import register_class, unregister_class
 from bpy.ops import object
 from mathutils import Matrix, Vector
 from ...f3d.f3d_gbi import DLFormat
-from ...utility import PluginError, raisePluginError, ootGetSceneOrRoomHeader
+from ...utility import PluginError, raisePluginError, ootGetSceneOrRoomHeader, deselectAllObjects, setActiveObject
 from ..oot_utility import ExportInfo, sceneNameFromID
 from ..oot_level_writer import ootExportSceneToC
 from ..oot_constants import ootEnumMusicSeq, ootEnumSceneID
@@ -115,7 +115,7 @@ class OOT_ImportScene(Operator):
         try:
             if context.mode != "OBJECT":
                 object.mode_set(mode="OBJECT")
-            object.select_all(action="DESELECT")
+            deselectAllObjects()
 
             run_ops_without_view_layer_update(parseSceneFunc)
 
@@ -187,9 +187,8 @@ class OOT_ExportScene(Operator):
             for elem in context.selectable_objects:
                 elem.select_set(False)
 
-            context.view_layer.objects.active = activeObj
             if activeObj is not None:
-                activeObj.select_set(True)
+                setActiveObject(activeObj)
 
             return {"FINISHED"}
 
@@ -199,9 +198,8 @@ class OOT_ExportScene(Operator):
             # don't select the scene
             for elem in context.selectable_objects:
                 elem.select_set(False)
-            context.view_layer.objects.active = activeObj
             if activeObj is not None:
-                activeObj.select_set(True)
+                setActiveObject(activeObj)
             raisePluginError(self, e)
             return {"CANCELLED"}
 

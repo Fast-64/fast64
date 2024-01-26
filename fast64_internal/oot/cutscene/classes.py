@@ -5,6 +5,7 @@ from bpy.types import Object
 from typing import Optional
 from ..oot_constants import ootData
 from .motion.utility import getBlenderPosition, getBlenderRotation, getRotation, getInteger
+from ...utility import setActiveObject
 
 
 # NOTE: ``paramNumber`` is the expected number of parameters inside the parsed commands,
@@ -493,8 +494,7 @@ class CutsceneObjectFactory:
         newObj = bpy.data.objects.new(name=name, object_data=data)
         bpy.context.view_layer.active_layer_collection.collection.objects.link(newObj)
         if selectObject:
-            newObj.select_set(True)
-            bpy.context.view_layer.objects.active = newObj
+            setActiveObject(newObj)
         newObj.parent = parentObj
         newObj.location = [0.0, 0.0, 0.0]
         newObj.rotation_euler = [0.0, 0.0, 0.0]
