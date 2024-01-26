@@ -383,9 +383,6 @@ class OOTRoom(OOTCommonCommands):
         self.showInvisibleActors = False
         self.linkIdleMode = None
 
-        self.customBehaviourX = None
-        self.customBehaviourY = None
-
         # Wind
         self.setWind = False
         self.windVector = [0, 0, 0]
