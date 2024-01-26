@@ -334,14 +334,21 @@ def saveStaticModel(
 
     # checkForF3DMaterial(obj)
 
-    facesByMat = {}
+    faces_by_mat = {}
     for face in obj.data.loop_triangles:
-        if face.material_index not in facesByMat:
-            facesByMat[face.material_index] = []
-        facesByMat[face.material_index].append(face)
+        if face.material_index not in faces_by_mat:
+            faces_by_mat[face.material_index] = []
+        faces_by_mat[face.material_index].append(face)
+
+    # sort by material slot
+    faces_by_mat = {
+        mat_index: faces_by_mat[mat_index]
+        for mat_index, _ in enumerate(obj.material_slots)
+        if mat_index in faces_by_mat
+    }
 
     fMeshes = {}
-    for material_index, faces in facesByMat.items():
+    for material_index, faces in faces_by_mat.items():
         material = obj.material_slots[material_index].material
 
         if drawLayerField is not None and material.mat_ver > 3:
@@ -1111,7 +1118,7 @@ def getLoopNormal(loop: bpy.types.MeshLoop) -> Vector:
 
 @functools.lru_cache(0)
 def is3_2_or_above():
-    return bpy.app.version[0] >= 3 and bpy.app.version[1] >= 2
+    return bpy.app.version >= (3, 2, 0)
 
 
 def getLoopColor(loop: bpy.types.MeshLoop, mesh: bpy.types.Mesh) -> Vector:
