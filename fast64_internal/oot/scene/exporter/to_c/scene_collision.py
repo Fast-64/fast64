@@ -1,4 +1,4 @@
-from ....oot_collision import ootCollisionToC
+from ....collision.exporter.to_c import ootCollisionToC
 from ....oot_level_classes import OOTScene
 
 
