@@ -12,7 +12,7 @@ from .polygons import CollisionPoly, CollisionPolygons
 from .surface import SurfaceType, SurfaceTypes
 from .camera import BgCamInformations
 from .waterbox import WaterBoxes
-from .vertex import Vertex, Vertices
+from .vertex import CollisionVertex, CollisionVertices
 
 
 @dataclass
@@ -41,8 +41,8 @@ class CollisionBase(Base):
             if position[i] > maxBounds[i]:
                 maxBounds[i] = position[i]
 
-    def getVertexIndex(self, vertexPos: tuple[int, int, int], vertexList: list[Vertex]):
-        """Returns the index of a Vertex based on position data, returns None if no match found"""
+    def getVertexIndex(self, vertexPos: tuple[int, int, int], vertexList: list[CollisionVertex]):
+        """Returns the index of a CollisionVertex based on position data, returns None if no match found"""
 
         for i in range(len(vertexList)):
             if vertexList[i].pos == vertexPos:
@@ -82,7 +82,7 @@ class CollisionBase(Base):
         colPolyFromSurfaceType: dict[SurfaceType, list[CollisionPoly]] = {}
         surfaceList: list[SurfaceType] = []
         polyList: list[CollisionPoly] = []
-        vertexList: list[Vertex] = []
+        vertexList: list[CollisionVertex] = []
         colBounds: list[tuple[int, int, int]] = []
 
         transformFromMeshObj: dict[Object, Matrix] = {}
@@ -126,7 +126,7 @@ class CollisionBase(Base):
                     for pos in [(x1, y1, z1), (x2, y2, z2), (x3, y3, z3)]:
                         vertexIndex = self.getVertexIndex(pos, vertexList)
                         if vertexIndex is None:
-                            vertexList.append(Vertex(pos))
+                            vertexList.append(CollisionVertex(pos))
                             indices.append(len(vertexList) - 1)
                         else:
                             indices.append(vertexIndex)
@@ -215,7 +215,7 @@ class CollisionHeader(CollisionBase):
 
     minBounds: tuple[int, int, int] = None
     maxBounds: tuple[int, int, int] = None
-    vertices: Vertices = None
+    vertices: CollisionVertices = None
     collisionPoly: CollisionPolygons = None
     surfaceType: SurfaceTypes = None
     bgCamInfo: BgCamInformations = None
@@ -228,7 +228,7 @@ class CollisionHeader(CollisionBase):
 
         self.minBounds = colBounds[0]
         self.maxBounds = colBounds[1]
-        self.vertices = Vertices(f"{self.sceneName}_vertices", vertexList)
+        self.vertices = CollisionVertices(f"{self.sceneName}_vertices", vertexList)
         self.collisionPoly = CollisionPolygons(f"{self.sceneName}_polygons", polyList)
         self.surfaceType = SurfaceTypes(f"{self.sceneName}_polygonTypes", surfaceTypeList)
         self.bgCamInfo = BgCamInformations(

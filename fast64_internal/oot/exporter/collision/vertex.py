@@ -3,7 +3,7 @@ from ....utility import CData, indent
 
 
 @dataclass
-class Vertex:
+class CollisionVertex:
     """This class defines a vertex data"""
 
     pos: tuple[int, int, int]
@@ -15,11 +15,11 @@ class Vertex:
 
 
 @dataclass
-class Vertices:
+class CollisionVertices:
     """This class defines the array of vertices"""
 
     name: str
-    vertexList: list[Vertex]
+    vertexList: list[CollisionVertex]
 
     def getC(self):
         vertData = CData()
