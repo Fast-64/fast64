@@ -177,23 +177,6 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
             col.box().label(text="Width/height must be < 1024. Must be png format.")
 
 
-class Fast64_GlobalObjectPanel(bpy.types.Panel):
-    bl_label = "Global Object Inspector"
-    bl_idname = "OBJECT_PT_OOT_Global_Object_Inspector"
-    bl_space_type = "PROPERTIES"
-    bl_region_type = "WINDOW"
-    bl_context = "object"
-    bl_options = {"HIDE_HEADER"}
-
-    @classmethod
-    def poll(cls, context):
-        return context.object is not None and context.object.type == "EMPTY"
-
-    def draw(self, context):
-        box = self.layout
-        prop_split(box, context.scene, "gameEditorMode", "Game")
-
-
 class Fast64_GlobalSettingsPanel(bpy.types.Panel):
     bl_idname = "FAST64_PT_global_settings"
     bl_label = "Fast64 Global Settings"
@@ -391,7 +374,6 @@ classes = (
     AddBoneGroups,
     CreateMetarig,
     SM64_AddWaterBox,
-    # Fast64_GlobalObjectPanel,
     F3D_GlobalSettingsPanel,
     Fast64_GlobalSettingsPanel,
     SM64_ArmatureToolsPanel,
