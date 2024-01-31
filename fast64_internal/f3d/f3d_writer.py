@@ -75,12 +75,71 @@ class MeshInfo:
         self.vertexGroupInfo = None
 
 
-def getInfoDict(obj):
+def get_original_name(obj: bpy.types.Object):
+    return getattr(obj, "original_name", obj.name)
+
+
+def getInfoDict(obj: bpy.types.Object):
+    try:
+        return getInfoDict_impl(obj)
+    except:
+        print(f"Error in getInfoDict_impl(obj name = {get_original_name(obj)!r})")
+        raise
+
+
+def check_face_materials(
+    obj_name: str,
+    material_slots: "bpy.types.bpy_prop_collection[bpy.types.MaterialSlot]",
+    faces: "bpy.types.MeshPolygons | bpy.types.MeshLoopTriangles",
+):
+    """
+    Check if all faces are correctly assigned to a F3D material
+    Raise a PluginError with a helpful message if not.
+
+    Somehow these two different collections of faces MeshPolygons and MeshLoopTriangles
+    behave differently / store different info, fast64 uses both so check both
+    """
+    for face in faces:
+        material_index = face.material_index
+        if material_index >= len(material_slots):
+            # Not supposed to be possible with how Blender behaves when removing material slots,
+            # but has happened to some people somehow.
+            raise PluginError(
+                f"Mesh object {obj_name} has faces"
+                " with an invalid material slot assigned."
+                " Assign the faces to a valid slot."
+                f" (0-indexed: slot {material_index}, aka the {material_index+1}th slot)."
+            )
+        material = material_slots[material_index].material
+        if material is None:
+            raise PluginError(
+                f"Mesh object {obj_name} has faces"
+                f" assigned to a material slot which isn't set to any material."
+                " Set a material for the slot or assign the faces to an actual material."
+                f" (0-indexed: slot {material_index}, aka the {material_index+1}th slot)."
+            )
+        if not material.is_f3d:
+            raise PluginError(
+                f"Mesh object {obj_name} has faces"
+                f" assigned to a material which is not a F3D material: {material.name}"
+            )
+
+
+def getInfoDict_impl(obj: bpy.types.Object):
+    mesh: bpy.types.Mesh = obj.data
+    material_slots = obj.material_slots
+    if len(mesh.materials) == 0 or len(material_slots) == 0:
+        raise PluginError(f"Mesh object {get_original_name(obj)} does not have any Fast3D materials.")
+
+    # check mesh.polygons, used by fixLargeUVs
+    check_face_materials(get_original_name(obj), material_slots, mesh.polygons)
     fixLargeUVs(obj)
-    obj.data.calc_loop_triangles()
-    obj.data.calc_normals_split()
-    if len(obj.data.materials) == 0:
-        raise PluginError("Mesh does not have any Fast3D materials.")
+
+    mesh.calc_loop_triangles()
+    # check mesh.loop_triangles (now that we computed them), used below
+    check_face_materials(get_original_name(obj), material_slots, mesh.loop_triangles)
+
+    mesh.calc_normals_split()
 
     infoDict = MeshInfo()
 
@@ -90,7 +149,6 @@ def getInfoDict(obj):
     edgeValidDict = infoDict.edgeValid
     validNeighborDict = infoDict.validNeighbors
 
-    mesh: bpy.types.Mesh = obj.data
     uv_data: bpy.types.bpy_prop_collection | list[bpy.types.MeshUVLoop] = None
     if len(obj.data.uv_layers) == 0:
         uv_data = obj.data.uv_layers.new().data
@@ -100,12 +158,15 @@ def getInfoDict(obj):
             if uv_layer.name == "UVMap":
                 uv_data = uv_layer.data
         if uv_data is None:
-            raise PluginError("Object '" + obj.name + "' does not have a UV layer named 'UVMap.'")
+            raise PluginError("Object '" + get_original_name(obj) + "' does not have a UV layer named 'UVMap.'")
     for face in mesh.loop_triangles:
         validNeighborDict[face] = []
         material = obj.material_slots[face.material_index].material
         if material is None:
-            raise PluginError("There are some faces on your mesh that are assigned to an empty material slot.")
+            raise PluginError(
+                f"There are some faces on your mesh object {get_original_name(obj)}"
+                " that are assigned to an empty material slot."
+            )
         for vertIndex in face.vertices:
             if vertIndex not in vertDict:
                 vertDict[vertIndex] = []
@@ -149,11 +210,11 @@ def fixLargeUVs(obj):
             if uv_layer.name == "UVMap":
                 uv_data = uv_layer.data
         if uv_data is None:
-            raise PluginError("Object '" + obj.name + "' does not have a UV layer named 'UVMap.'")
+            raise PluginError("Object '" + get_original_name(obj) + "' does not have a UV layer named 'UVMap.'")
 
     texSizeDict = {}
     if len(obj.data.materials) == 0:
-        raise PluginError(f"{obj.name}: This object needs an f3d material on it.")
+        raise PluginError(f"{get_original_name(obj)}: This object needs an f3d material on it.")
 
         # Don't get tex dimensions here, as it also processes unused materials.
         # texSizeDict[material] = getTexDimensions(material)
@@ -161,7 +222,10 @@ def fixLargeUVs(obj):
     for polygon in mesh.polygons:
         material = obj.material_slots[polygon.material_index].material
         if material is None:
-            raise PluginError("There are some faces on your mesh that are assigned to an empty material slot.")
+            raise PluginError(
+                f"There are some faces on your mesh object {get_original_name(obj)}"
+                " that are assigned to an empty material slot."
+            )
 
         if material not in texSizeDict:
             texSizeDict[material] = getTexDimensions(material)
