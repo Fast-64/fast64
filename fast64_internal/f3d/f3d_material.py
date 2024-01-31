@@ -189,11 +189,9 @@ def rendermode_preset_to_advanced(material: bpy.types.Material):
         return
 
     def get_with_default(preset, default):
-        # Use the default either if we are not setting rendermode, or if the
-        # preset is not in the GBI. We do want to set the advanced settings
-        # even if not setting rendermode, because they are read for nodes preview.
-        if not settings.set_rendermode:
-            return default
+        # Use the material's settings even if we are not setting rendermode.
+        # This allows the user to enable setting rendermode, set it up as they
+        # want, then disable it, and have it still previewed that way.
         return getattr(f3d, preset, default)
 
     is_two_cycle = settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
@@ -273,7 +271,7 @@ def is_blender_lerp(
     )
 
 
-def is_blender_doing_fog(settings: "RDPSettings") -> bool:
+def is_blender_doing_fog(settings: "RDPSettings", default_for_no_rendermode: bool) -> bool:
     return is_blender_lerp(
         settings,
         # If 2 cycle, fog must be in first cycle.
@@ -285,9 +283,7 @@ def is_blender_doing_fog(settings: "RDPSettings") -> bool:
         # is color in and 1-A.
         "G_BL_CLR_IN",
         "G_BL_1MA",
-        # if NOT setting rendermode, it is more likely that the user is setting
-        # rendermodes in code, so to be safe we'll enable fog
-        True,
+        default_for_no_rendermode,
     )
 
 
@@ -1557,9 +1553,12 @@ def update_fog_nodes(material: Material, context: Context):
     nodes["Shade Color"].inputs["Fog"].default_value = int(shade_alpha_is_fog)
 
     fogBlender: ShaderNodeGroup = nodes["FogBlender"]
+    # if NOT setting rendermode, it is more likely that the user is setting
+    # rendermodes in code, so to be safe we'll enable fog. Plus we are checking
+    # that fog is enabled in the geometry mode, so if so that's probably the intent.
     fogBlender.node_tree = bpy.data.node_groups[
         "FogBlender_On"
-        if shade_alpha_is_fog and is_blender_doing_fog(material.f3d_mat.rdp_settings)
+        if shade_alpha_is_fog and is_blender_doing_fog(material.f3d_mat.rdp_settings, True)
         else "FogBlender_Off"
     ]
 
