@@ -1,124 +1,130 @@
 import os
 import bpy
+import enum
 
 from dataclasses import dataclass, field
 from typing import Optional
 from .....utility import PluginError, writeFile, indent
 from ....oot_utility import ExportInfo, getSceneDirFromLevelName
-from ....oot_level_classes import OOTScene
+
+
+class CommandType(enum.Enum):
+    """This class defines the different spec command types"""
+
+    NAME = 0
+    COMPRESS = 1
+    AFTER = 2
+    FLAGS = 3
+    ALIGN = 4
+    ADDRESS = 5
+    ROMALIGN = 6
+    INCLUDE = 7
+    INCLUDE_DATA_WITH_RODATA = 8
+    NUMBER = 9
+    PAD_TEXT = 10
+
+    @staticmethod
+    def from_string(value: str):
+        """Returns one of the enum values from a string"""
+
+        return getattr(CommandType, value.upper())
+
+
+@dataclass
+class SpecEntryCommand:
+    """This class defines a single spec command"""
+
+    type: CommandType
+    content: str = ""
+    prefix: str = ""
+    suffix: str = ""
+
+    def to_c(self):
+        return self.prefix + indent + f"{self.type.name.lower()} {self.content}".strip() + self.suffix + "\n"
 
 
 @dataclass
 class SpecEntry:
     """Defines an entry of ``spec``"""
 
-    original: Optional[list[str]]  # the original lines from the parsed file
-    segmentName: str = ""
-    isCompressed: bool = False
-    romalign: Optional[str] = None
-    number: Optional[int] = None
-    files: list[tuple[str, str, str]] = field(default_factory=list)  # (prefix, command, file)
-    address: Optional[str] = None
-    after: Optional[str] = None
-    align: Optional[str] = None
-    flags: Optional[str] = None
-    pad_text: Optional[str] = None
-    prefix: str = ""
-    suffix: Optional[str] = None
-    contentSuffix: Optional[str] = None
+    original: Optional[list[str]] = field(default_factory=list)  # the original lines from the parsed file
+    commands: list[SpecEntryCommand] = field(default_factory=list)  # list of the different spec commands
+    segmentName: str = ""  # the name of the current segment
+    prefix: str = ""  # data between two commands
+    suffix: str = ""  # remaining data after the entry (used for the last entry)
+    contentSuffix: str = ""  # remaining data after the last command in the current entry
 
     def __post_init__(self):
-        if self.prefix == "\n":
-            self.prefix = ""
-
         if self.original is not None:
+            # parse the commands from the existing data
             prefix = ""
-            content = None
             for line in self.original:
                 line = line.strip()
-                if not line.startswith("#") and not "pad_text" in line and line != "\n":
-                    split = line.split(" ")
-                    command = split[0]
-                    if len(split) > 2:
-                        content = " ".join(elem for i, elem in enumerate(split) if i > 0)
-                    elif len(split) > 1:
-                        content = split[1]
-                    match command:
-                        case "compress":
-                            self.isCompressed = True
-                        case "name" | "after" | "flags" | "align" | "address" | "romalign":
-                            if content is not None:
-                                setattr(self, "segmentName" if command == "name" else command, content)
-                        case "include" | "include_data_with_rodata":
-                            if content is not None:
-                                self.files.append(
-                                    (
-                                        (prefix + ("\n" if len(prefix) > 0 else "")) if prefix != "\n" else "",
-                                        command,
-                                        content,
-                                    )
-                                )
-                        case "number":
-                            if content is not None:
-                                self.number = int(content)
-                        case _:
-                            raise PluginError(f"ERROR: Unknown spec command: `{command}`")
-                    prefix = ""
-                else:
-                    prefix += (indent if "pad_text" in line else "") + line
+                if line != "\n":
+                    if not line.startswith("#"):
+                        split = line.split(" ")
+                        command = split[0]
+                        if len(split) > 2:
+                            content = " ".join(elem for i, elem in enumerate(split) if i > 0)
+                        elif len(split) > 1:
+                            content = split[1]
+                        elif command == "name":
+                            content = self.segmentName
+                        else:
+                            content = ""
+
+                        self.commands.append(
+                            SpecEntryCommand(
+                                CommandType.from_string(command),
+                                content,
+                                (prefix + ("\n" if len(prefix) > 0 else "")) if prefix != "\n" else "",
+                            )
+                        )
+                        prefix = ""
+                    else:
+                        prefix += line
+            # if there's a prefix it's the remaining data after the last entry
             if len(prefix) > 0:
-                self.contentSuffix = f"{prefix}\n"
+                self.contentSuffix = prefix
+
+        if len(self.segmentName) == 0 and len(self.commands[0].content) > 0:
+            self.segmentName = self.commands[0].content
+        else:
+            raise PluginError("ERROR: The segment name can't be set!")
 
     def to_c(self):
         return (
-            self.prefix
+            (self.prefix if len(self.prefix) > 0 else "\n")
             + "beginseg\n"
-            + f"".join(
-                (
-                    (indent + f"name {self.segmentName}\n"),
-                    (indent + "compress\n" if self.isCompressed else ""),
-                    (indent + f"after {self.after}\n" if self.after is not None else ""),
-                    (indent + f"flags {self.flags}\n" if self.flags is not None else ""),
-                    (indent + f"align {self.align}\n" if self.align is not None else ""),
-                    (indent + f"address {self.address}\n" if self.address is not None else ""),
-                    (indent + f"romalign {self.romalign}\n" if self.romalign is not None else ""),
-                    "".join(prefix + indent + f"{command} {file}\n" for prefix, command, file in self.files),
-                    (indent + f"number {self.number}\n" if self.number is not None else ""),
-                )
-            )
-            + (self.contentSuffix if self.contentSuffix is not None else "")
+            + "".join(cmd.to_c() for cmd in self.commands)
+            + (f"{self.contentSuffix}\n" if len(self.contentSuffix) > 0 else "")
             + "endseg"
-            + ("\n" + self.suffix if self.suffix is not None else "")
+            + (self.suffix if self.suffix == "\n" else f"\n{self.suffix}\n" if len(self.suffix) > 0 else "")
         )
 
 
 @dataclass
 class SpecFile:
-    exportPath: str
-    # exportName: Optional[str]
-    exportInfo: ExportInfo
-    scene: OOTScene
-    cutsceneTotal: int
-    isSingleFile: bool
-    entries: list[SpecEntry] = field(default_factory=list)
+    """This class defines the spec's file data"""
+
+    exportPath: str  # path to the spec file
+    entries: list[SpecEntry] = field(default_factory=list)  # list of the different spec entries
 
     def __post_init__(self):
         # read the file's data
         try:
-            with open(os.path.join(self.exportPath, "spec"), "r") as fileData:
-                # data = fileData.read()
-                # fileData.seek(0)
+            with open(self.exportPath, "r") as fileData:
                 lines = fileData.readlines()
         except FileNotFoundError:
             raise PluginError("ERROR: Can't find spec!")
 
-        # parse the entries and populate the list of entries (``self.entries``)
         prefix = ""
         parsedLines = []
         assert len(lines) > 0
         for line in lines:
-            # skip the lines before an entry, create one from the file's data
-            # and add the skipped lines as a prefix of the current entry
+            # if we're inside a spec entry or if the lines between two entries do not contains these characters
+            # fill the ``parsedLine`` list if it's inside a segment
+            # when we reach the end of the current segment add a new ``SpecEntry`` to ``self.entries``
             isNotEmptyOrNewline = len(line) > 0 and line != "\n"
             if (
                 len(parsedLines) > 0
@@ -137,91 +143,117 @@ class SpecFile:
                     prefix = ""
                     parsedLines = []
             else:
-                # else, if between 2 segments and the line is a preprocessor command
+                # else, if between 2 segments and the line is something we don't need
                 prefix += line
+        # set the last's entry's suffix to the remaining prefix
         self.entries[-1].suffix = prefix.removesuffix("\n")
 
     def find(self, segmentName: str):
+        """Returns an entry from a segment name, returns ``None`` if nothing was found"""
+
         for i, entry in enumerate(self.entries):
             if entry.segmentName == segmentName:
                 return self.entries[i]
         return None
 
     def append(self, entry: SpecEntry):
+        """Appends an entry to the list"""
+
+        # prefix/suffix shenanigans
+        lastEntry = self.entries[-1]
+        if len(lastEntry.suffix) > 0:
+            entry.prefix = f"{lastEntry.suffix}\n\n"
+            lastEntry.suffix = ""
         self.entries.append(entry)
 
     def remove(self, segmentName: str):
+        """Removes an entry from a segment name"""
+
+        # prefix/suffix shenanigans
         entry = self.find(segmentName)
         if entry is not None:
-            lastEntry = self.entries[self.entries.index(entry) - 1]
             if len(entry.prefix) > 0 and entry.prefix != "\n":
+                lastEntry = self.entries[self.entries.index(entry) - 1]
                 lastEntry.suffix = (lastEntry.suffix if lastEntry.suffix is not None else "") + entry.prefix[:-2]
             self.entries.remove(entry)
 
     def to_c(self):
-        return (
-            "".join(
-                (("\n" * (1 if len(entry.prefix) > 0 else 2)) if i > 0 else "") + entry.to_c()
-                for i, entry in enumerate(self.entries)
-            )
-            + "\n"
-        )
+        return "\n".join(entry.to_c() for entry in self.entries)
 
 
 def editSpecFile(
-    scene: Optional[OOTScene], exportInfo: ExportInfo, hasSceneTextures: bool, hasSceneCutscenes: bool, csTotal: int
+    isScene: bool, exportInfo: ExportInfo, hasSceneTex: bool, hasSceneCS: bool, roomTotal: int, csTotal: int
 ):
-    specFile = SpecFile(
-        exportInfo.exportPath,
-        exportInfo,
-        scene,
-        csTotal,
-        bpy.context.scene.ootSceneExportSettings.singleFile,
-    )
+    # get the spec's data
+    specFile = SpecFile(os.path.join(exportInfo.exportPath, "spec"))
 
-    sceneName = scene.name if scene is not None else exportInfo.name
+    # get the scene and current segment name and remove the scene
+    sceneName = exportInfo.name
     segmentName = f"{sceneName}_scene"
     specFile.remove(f'"{segmentName}"')
     for entry in specFile.entries:
-        if entry.segmentName.startswith(f'"{sceneName}'):
+        if entry.segmentName.startswith(f'"{sceneName}_'):
             specFile.remove(entry.segmentName)
 
-    if scene is not None:
+    if isScene:
+        isSingleFile = bpy.context.scene.ootSceneExportSettings.singleFile
         includeDir = "$(BUILD_DIR)/"
         if exportInfo.customSubPath is not None:
             includeDir += f"{exportInfo.customSubPath + sceneName}"
         else:
             includeDir += f"{getSceneDirFromLevelName(sceneName)}"
 
-        if specFile.isSingleFile:
-            files = [("", "include", f'"{includeDir}/{segmentName}.o"')]
+        sceneCmds = [
+            SpecEntryCommand(CommandType.NAME, f'"{segmentName}"'),
+            SpecEntryCommand(CommandType.COMPRESS),
+            SpecEntryCommand(CommandType.ROMALIGN, "0x1000"),
+        ]
+
+        # scene
+        if isSingleFile:
+            sceneCmds.append(SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{segmentName}.o"'))
         else:
-            files = [
-                ("", "include", f'"{includeDir}/{segmentName}_main.o"'),
-                ("", "include", f'"{includeDir}/{segmentName}_col.o"'),
-            ]
+            sceneCmds.extend(
+                [
+                    SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{segmentName}_main.o"'),
+                    SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{segmentName}_col.o"'),
+                ]
+            )
 
-            if hasSceneTextures:
-                files.append(("", "include", f'"{includeDir}/{segmentName}_tex.o"'))
+            if hasSceneTex:
+                sceneCmds.append(SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{segmentName}_tex.o"'))
 
-            if hasSceneCutscenes:
-                for i in range(specFile.cutsceneTotal):
-                    files.append(("", "include", f'"{includeDir}/{segmentName}_cs_{i}.o"'))
+            if hasSceneCS:
+                for i in range(csTotal):
+                    sceneCmds.append(SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{segmentName}_cs_{i}.o"'))
 
-        specFile.append(SpecEntry(None, f'"{segmentName}"', True, "0x1000", 2, files))
+        sceneCmds.append(SpecEntryCommand(CommandType.NUMBER, "2"))
+        specFile.append(SpecEntry(None, sceneCmds))
 
-        for i in range(len(scene.rooms)):
+        # rooms
+        for i in range(roomTotal):
             segmentName = f"{sceneName}_room_{i}"
 
-            if specFile.isSingleFile:
-                files = [("", "include", f'"{includeDir}/{segmentName}.o"')]
+            roomCmds = [
+                SpecEntryCommand(CommandType.NAME, f'"{segmentName}"'),
+                SpecEntryCommand(CommandType.COMPRESS),
+                SpecEntryCommand(CommandType.ROMALIGN, "0x1000"),
+            ]
+
+            if isSingleFile:
+                roomCmds.append(SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{segmentName}.o"'))
             else:
-                files = [
-                    ("", "include", f'"{includeDir}/{segmentName}_main.o"'),
-                    ("", "include", f'"{includeDir}/{segmentName}_model_info.o"'),
-                    ("", "include", f'"{includeDir}/{segmentName}_model.o"'),
-                ]
+                roomCmds.extend(
+                    [
+                        SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{segmentName}_main.o"'),
+                        SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{segmentName}_model_info.o"'),
+                        SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{segmentName}_model.o"'),
+                    ]
+                )
 
-            specFile.append(SpecEntry(None, f'"{segmentName}"', True, "0x1000", 3, files))
+            roomCmds.append(SpecEntryCommand(CommandType.NUMBER, "3"))
+            specFile.append(SpecEntry(None, roomCmds))
+        specFile.entries[-1].suffix = "\n"
 
-    writeFile(os.path.join(exportInfo.exportPath, "spec"), specFile.to_c())
+    # finally, write the spec file
+    writeFile(specFile.exportPath, specFile.to_c())
