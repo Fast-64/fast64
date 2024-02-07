@@ -230,7 +230,9 @@ def writeTextureArraysExistingScene(fModel: OOTModel, exportPath: str, sceneIncl
 
 def writeOtherSceneProperties(scene, exportInfo, levelC):
     modifySceneTable(scene, exportInfo)
-    editSpecFile(scene, exportInfo, levelC)
+    editSpecFile(
+        scene, exportInfo, levelC.sceneTexturesIsUsed(), levelC.sceneCutscenesIsUsed(), len(levelC.sceneCutscenesC)
+    )
     modifySceneFiles(scene, exportInfo)
 
 
