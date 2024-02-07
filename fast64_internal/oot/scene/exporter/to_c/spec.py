@@ -36,7 +36,7 @@ class SpecEntry:
             content = None
             for line in self.original:
                 line = line.strip()
-                if not line.startswith("#") and not "pad_text" in line:
+                if not line.startswith("#") and not "pad_text" in line and line != "\n":
                     split = line.split(" ")
                     command = split[0]
                     if len(split) > 2:
@@ -65,7 +65,7 @@ class SpecEntry:
                             raise PluginError(f"ERROR: Unknown spec command: `{command}`")
                     prefix = ""
                 else:
-                    prefix += line
+                    prefix += (indent if "pad_text" in line else "") + line
             if len(prefix) > 0:
                 self.contentSuffix = f"{prefix}\n"
 
@@ -98,8 +98,6 @@ class SpecFile:
     # exportName: Optional[str]
     exportInfo: ExportInfo
     scene: OOTScene
-    hasSceneTextures: bool
-    hasSceneCutscenes: bool
     cutsceneTotal: int
     isSingleFile: bool
     entries: list[SpecEntry] = field(default_factory=list)
@@ -121,26 +119,25 @@ class SpecFile:
         for line in lines:
             # skip the lines before an entry, create one from the file's data
             # and add the skipped lines as a prefix of the current entry
+            isNotEmptyOrNewline = len(line) > 0 and line != "\n"
             if (
-                not line.startswith(" *")  # multi-line comments
-                and "/*\n" not in line  # multi-line comments
-                and line != "\n"
-                and line != ""
+                len(parsedLines) > 0
+                or not line.startswith(" *")
+                and "/*\n" not in line
+                and not line.startswith("#")
+                and isNotEmptyOrNewline
             ):
-                if len(parsedLines) > 0 or not line.startswith("#"):
-                    if "beginseg" not in line and "endseg" not in line:
-                        # if inside a segment, between beginseg and endseg
-                        parsedLines.append(line)
-                    elif "endseg" in line:
-                        # else, if the line has endseg in it (> if we reached the end of the current segment)
-                        entry = SpecEntry(parsedLines, prefix=prefix)
-                        self.entries.append(entry)
-                        prefix = ""
-                        parsedLines = []
-                elif line.startswith("#") and len(parsedLines) == 0:
-                    # else, if between 2 segments and the line is a preprocessor command
-                    prefix += line
+                if "beginseg" not in line and "endseg" not in line:
+                    # if inside a segment, between beginseg and endseg
+                    parsedLines.append(line)
+                elif "endseg" in line:
+                    # else, if the line has endseg in it (> if we reached the end of the current segment)
+                    entry = SpecEntry(parsedLines, prefix=prefix)
+                    self.entries.append(entry)
+                    prefix = ""
+                    parsedLines = []
             else:
+                # else, if between 2 segments and the line is a preprocessor command
                 prefix += line
         self.entries[-1].suffix = prefix.removesuffix("\n")
 
@@ -156,8 +153,9 @@ class SpecFile:
     def remove(self, segmentName: str):
         entry = self.find(segmentName)
         if entry is not None:
-            if not "_room_" in segmentName:
-                self.entries[-2].suffix = entry.prefix
+            lastEntry = self.entries[self.entries.index(entry) - 1]
+            if len(entry.prefix) > 0 and entry.prefix != "\n":
+                lastEntry.suffix = (lastEntry.suffix if lastEntry.suffix is not None else "") + entry.prefix[:-2]
             self.entries.remove(entry)
 
     def to_c(self):
@@ -177,17 +175,15 @@ def editSpecFile(
         exportInfo.exportPath,
         exportInfo,
         scene,
-        hasSceneTextures,
-        hasSceneCutscenes,
         csTotal,
         bpy.context.scene.ootSceneExportSettings.singleFile,
     )
 
     sceneName = scene.name if scene is not None else exportInfo.name
     segmentName = f"{sceneName}_scene"
-    specFile.remove(segmentName)
+    specFile.remove(f'"{segmentName}"')
     for entry in specFile.entries:
-        if entry.segmentName.startswith(sceneName):
+        if entry.segmentName.startswith(f'"{sceneName}'):
             specFile.remove(entry.segmentName)
 
     if scene is not None:
@@ -205,20 +201,20 @@ def editSpecFile(
                 ("", "include", f'"{includeDir}/{segmentName}_col.o"'),
             ]
 
-            if specFile.hasSceneTextures:
+            if hasSceneTextures:
                 files.append(("", "include", f'"{includeDir}/{segmentName}_tex.o"'))
 
-            if specFile.hasSceneCutscenes:
+            if hasSceneCutscenes:
                 for i in range(specFile.cutsceneTotal):
                     files.append(("", "include", f'"{includeDir}/{segmentName}_cs_{i}.o"'))
 
-        specFile.append(SpecEntry(None, segmentName, True, "0x1000", 2, files))
+        specFile.append(SpecEntry(None, f'"{segmentName}"', True, "0x1000", 2, files))
 
         for i in range(len(scene.rooms)):
             segmentName = f"{sceneName}_room_{i}"
 
             if specFile.isSingleFile:
-                files = [("", '"include", f"{includeDir}/{segmentName}.o"')]
+                files = [("", "include", f'"{includeDir}/{segmentName}.o"')]
             else:
                 files = [
                     ("", "include", f'"{includeDir}/{segmentName}_main.o"'),
@@ -226,6 +222,6 @@ def editSpecFile(
                     ("", "include", f'"{includeDir}/{segmentName}_model.o"'),
                 ]
 
-            specFile.append(SpecEntry(None, segmentName, True, "0x1000", 3, files))
+            specFile.append(SpecEntry(None, f'"{segmentName}"', True, "0x1000", 3, files))
 
     writeFile(os.path.join(exportInfo.exportPath, "spec"), specFile.to_c())
