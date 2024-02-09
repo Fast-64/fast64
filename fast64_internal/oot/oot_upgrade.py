@@ -314,17 +314,36 @@ def upgradeActors(actorObj: Object):
                     entranceProp.tiedRoom = obj
                     break
     elif actorObj.ootEmptyType == "Transition Actor":
+        # get room parent
+        roomParent = None
+        for obj in bpy.data.objects:
+            if obj.type == "EMPTY" and obj.ootEmptyType == "Room" and actorObj in obj.children_recursive:
+                roomParent = obj
+                break
+
+        # if it's ``None`` then this door actor is not parented to a room
+        if roomParent is None:
+            print("WARNING: Ignoring Door Actor not parented to a room")
+            return
+
         transActorProp = actorObj.ootTransitionActorProperty
-        transActorProp.isRoomTransition = actorObj["ootTransitionActorProperty"]["dontTransition"] == False
-        del actorObj["ootTransitionActorProperty"]["dontTransition"]
+        if "dontTransition" in transActorProp or "roomIndex" in transActorProp:
+            # look for old data since we don't want to overwrite newer existing data
+            transActorProp.fromRoom = roomParent
 
-        if transActorProp.isRoomTransition:
+        # upgrade old props if present
+        if "dontTransition" in transActorProp:
+            transActorProp.isRoomTransition = transActorProp["dontTransition"] == False
+            del transActorProp["dontTransition"]
+
+        if "roomIndex" in transActorProp:
             for obj in bpy.data.objects:
-                if obj.type == "EMPTY":
-                    if obj.ootEmptyType == "Room":
-                        if actorObj in obj.children_recursive:
-                            transActorProp.fromRoom = obj
-
-                        if obj.ootRoomHeader.roomIndex == actorObj["ootTransitionActorProperty"]["roomIndex"]:
-                            transActorProp.toRoom = obj
-                            del actorObj["ootTransitionActorProperty"]["roomIndex"]
+                if (
+                    obj != transActorProp.fromRoom
+                    and obj.type == "EMPTY"
+                    and obj.ootEmptyType == "Room"
+                    and obj.ootRoomHeader.roomIndex == transActorProp["roomIndex"]
+                ):
+                    transActorProp.toRoom = obj
+                    del transActorProp["roomIndex"]
+                    break
