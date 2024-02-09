@@ -23,10 +23,10 @@ class Cutscene:
 
     csObj: Object
     useMacros: bool
+    name: str = str()
+    motionOnly: bool = False
 
-    name: str = field(init=False)
-    motionOnly: bool = field(init=False, default=False)
-    data: CutsceneData = field(init=False)
+    data: Optional[CutsceneData] = field(init=False, default=None)
     totalEntries: int = field(init=False)
     frameCount: int = field(init=False)
     paramNumber: int = field(init=False, default=2)

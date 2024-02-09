@@ -8,7 +8,6 @@ from ...room.properties import OOTRoomHeaderProperty
 from ...oot_object import addMissingObjectsToAllRoomHeadersNew
 from ...oot_level_classes import OOTRoomMesh
 from ...oot_model_classes import OOTModel, OOTGfxFormatter
-from ...oot_level_writer import BoundingBox, ootProcessMesh
 from ...oot_utility import CullGroup
 from ..classes import RoomFile
 from ..base import Base, altHeaderList
@@ -49,6 +48,8 @@ class Room(Base):
         )
 
     def __post_init__(self):
+        from ...oot_level_writer import BoundingBox, ootProcessMesh  # circular import fix
+
         mainHeaderProps = self.roomObj.ootRoomHeader
         altHeader = RoomAlternateHeader(f"{self.name}_alternateHeaders")
         altProp = self.roomObj.ootAlternateRoomHeaders

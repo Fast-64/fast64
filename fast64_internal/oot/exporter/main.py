@@ -7,10 +7,8 @@ from bpy.types import Object
 from typing import Optional
 from ...f3d.f3d_gbi import DLFormat, TextureExportSettings
 from ..scene.properties import OOTBootupSceneOptions
-from ..scene.exporter.to_c import setBootupScene
 from ..oot_model_classes import OOTModel
 from ..oot_f3d_writer import writeTextureArraysNew
-from ..oot_level_writer import writeTextureArraysExistingScene
 from .scene import Scene
 from .other import Files
 from .classes import SceneFile
@@ -100,6 +98,9 @@ class SceneExporter:
 
     def export(self):
         """Main function"""
+        # circular import fixes
+        from ..scene.exporter.to_c import setBootupScene
+        from ..oot_level_writer import writeTextureArraysExistingScene
 
         checkObjectReference(self.originalSceneObj, "Scene object")
         isCustomExport = self.exportInfo.isCustomExportPath
