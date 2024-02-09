@@ -7,7 +7,7 @@ from ....utility import PluginError, CData, indent
 from ...oot_utility import getObjectList
 from ...collision.constants import decomp_compat_map_CameraSType
 from ...collision.properties import OOTCameraPositionProperty
-from ..base import Base
+from ..base import Utility
 
 
 @dataclass
@@ -72,7 +72,7 @@ class CameraInfo:
 
 
 @dataclass
-class BgCamInformations(Base):
+class BgCamInformations:
     """This class defines the array of camera informations and the array of the associated data"""
 
     dataHolder: Object
@@ -91,7 +91,7 @@ class BgCamInformations(Base):
 
         crawlspaceObjList = getObjectList(self.dataHolder.children_recursive, "CURVE", splineType="Crawlspace")
         for obj in crawlspaceObjList:
-            if self.validateCurveData(obj):
+            if Utility.validateCurveData(obj):
                 points = [
                     [round(value) for value in self.transform @ obj.matrix_world @ point.co]
                     for point in obj.data.splines[0].points
@@ -123,7 +123,7 @@ class BgCamInformations(Base):
                     raise PluginError(f"ERROR: Repeated camera position index: {camProp.index} for {camObj.name}")
 
                 # Camera faces opposite direction
-                pos, rot, _, _ = self.getConvertedTransformWithOrientation(
+                pos, rot, _, _ = Utility.getConvertedTransformWithOrientation(
                     self.transform, self.dataHolder, camObj, Quaternion((0, 1, 0), math.radians(180.0))
                 )
 

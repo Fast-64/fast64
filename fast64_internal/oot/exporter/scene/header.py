@@ -4,7 +4,7 @@ from mathutils import Matrix
 from bpy.types import Object
 from ....utility import CData
 from ...scene.properties import OOTSceneHeaderProperty
-from ..base import Base
+from ..base import Utility
 from ..cutscene import SceneCutscene
 from .general import SceneLighting, SceneInfos, SceneExits
 from .actors import SceneTransitionActors, SceneEntranceActors, SceneSpawns
@@ -12,7 +12,7 @@ from .pathways import ScenePathways
 
 
 @dataclass
-class SceneHeader(Base):
+class SceneHeader(Utility):
     """This class defines a scene header"""
 
     props: OOTSceneHeaderProperty

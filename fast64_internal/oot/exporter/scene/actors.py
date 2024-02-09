@@ -6,7 +6,7 @@ from ....utility import PluginError, CData, indent
 from ...oot_utility import getObjectList
 from ...oot_constants import ootData
 from ...scene.properties import OOTSceneHeaderProperty
-from ..base import Base, Actor
+from ..base import Utility, Actor
 
 
 @dataclass
@@ -38,7 +38,7 @@ class TransitionActor(Actor):
 
 
 @dataclass
-class SceneTransitionActors(Base):
+class SceneTransitionActors:
     props: OOTSceneHeaderProperty
     name: str
     sceneObj: Object
@@ -51,18 +51,14 @@ class SceneTransitionActors(Base):
         actorObjList = getObjectList(self.sceneObj.children_recursive, "EMPTY", "Transition Actor")
         actorObjList.sort(key=lambda obj: obj.ootTransitionActorProperty.fromRoom.ootRoomHeader.roomIndex)
         for obj in actorObjList:
-            roomObj = self.getRoomObjectFromChild(obj)
-            if roomObj is None:
-                raise PluginError("ERROR: Room Object not found!")
-            self.roomIndex = roomObj.ootRoomHeader.roomIndex
-
             transActorProp = obj.ootTransitionActorProperty
+            self.roomIndex = transActorProp.fromRoom.roomIndex
 
             if (
-                self.isCurrentHeaderValid(transActorProp.actor.headerSettings, self.headerIndex)
+                Utility.isCurrentHeaderValid(transActorProp.actor.headerSettings, self.headerIndex)
                 and transActorProp.actor.actorID != "None"
             ):
-                pos, rot, _, _ = self.getConvertedTransform(self.transform, self.sceneObj, obj, True)
+                pos, rot, _, _ = Utility.getConvertedTransform(self.transform, self.sceneObj, obj, True)
                 transActor = TransitionActor()
 
                 if transActorProp.isRoomTransition:
@@ -72,8 +68,8 @@ class SceneTransitionActors(Base):
                     toIndex = transActorProp.toRoom.ootRoomHeader.roomIndex
                 else:
                     fromIndex = toIndex = self.roomIndex
-                front = (fromIndex, self.getPropValue(transActorProp, "cameraTransitionFront"))
-                back = (toIndex, self.getPropValue(transActorProp, "cameraTransitionBack"))
+                front = (fromIndex, Utility.getPropValue(transActorProp, "cameraTransitionFront"))
+                back = (toIndex, Utility.getPropValue(transActorProp, "cameraTransitionBack"))
 
                 if transActorProp.actor.actorID == "Custom":
                     transActor.id = transActorProp.actor.actorIDCustom
@@ -131,7 +127,7 @@ class EntranceActor(Actor):
 
 
 @dataclass
-class SceneEntranceActors(Base):
+class SceneEntranceActors:
     props: OOTSceneHeaderProperty
     name: str
     sceneObj: Object
@@ -146,16 +142,12 @@ class SceneEntranceActors(Base):
         entranceActorFromIndex: dict[int, EntranceActor] = {}
         actorObjList = getObjectList(self.sceneObj.children_recursive, "EMPTY", "Entrance")
         for obj in actorObjList:
-            roomObj = self.getRoomObjectFromChild(obj)
-            if roomObj is None:
-                raise PluginError("ERROR: Room Object not found!")
-
             entranceProp = obj.ootEntranceProperty
             if (
-                self.isCurrentHeaderValid(entranceProp.actor.headerSettings, self.headerIndex)
+                Utility.isCurrentHeaderValid(entranceProp.actor.headerSettings, self.headerIndex)
                 and entranceProp.actor.actorID != "None"
             ):
-                pos, rot, _, _ = self.getConvertedTransform(self.transform, self.sceneObj, obj, True)
+                pos, rot, _, _ = Utility.getConvertedTransform(self.transform, self.sceneObj, obj, True)
                 entranceActor = EntranceActor()
 
                 entranceActor.name = (
@@ -211,7 +203,7 @@ class SceneEntranceActors(Base):
 
 
 @dataclass
-class SceneSpawns(Base):
+class SceneSpawns(Utility):
     """This class handles scene actors (transition actors and entrance actors)"""
 
     props: OOTSceneHeaderProperty

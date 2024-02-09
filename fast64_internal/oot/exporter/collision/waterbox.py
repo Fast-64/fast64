@@ -4,7 +4,7 @@ from mathutils import Matrix
 from bpy.types import Object
 from ...oot_utility import getObjectList
 from ....utility import CData, checkIdentityRotation, indent
-from ..base import Base
+from ..base import Utility
 
 
 @dataclass
@@ -79,7 +79,7 @@ class WaterBox:
 
 
 @dataclass
-class WaterBoxes(Base):
+class WaterBoxes:
     """This class defines the array of waterboxes"""
 
     dataHolder: Object
@@ -93,12 +93,23 @@ class WaterBoxes(Base):
         waterboxObjList = getObjectList(self.dataHolder.children_recursive, "EMPTY", "Water Box")
         for waterboxObj in waterboxObjList:
             emptyScale = waterboxObj.empty_display_size
-            pos, _, scale, orientedRot = self.getConvertedTransform(self.transform, self.dataHolder, waterboxObj, True)
+            pos, _, scale, orientedRot = Utility.getConvertedTransform(
+                self.transform, self.dataHolder, waterboxObj, True
+            )
             checkIdentityRotation(waterboxObj, orientedRot, False)
 
             wboxProp = waterboxObj.ootWaterBoxProperty
+
             # temp solution
-            roomObj = self.getRoomObjectFromChild(waterboxObj) if self.dataHolder.type == "EMPTY" else None
+            roomObj = None
+            if self.dataHolder.type == "EMPTY" and self.dataHolder.ootEmptyType == "Scene":
+                for obj in self.dataHolder.children_recursive:
+                    if obj.type == "EMPTY" and obj.ootEmptyType == "Room":
+                        for o in obj.children_recursive:
+                            if o == waterboxObj:
+                                roomObj = obj
+                                break
+
             self.waterboxList.append(
                 WaterBox(
                     pos,

@@ -4,7 +4,7 @@ from bpy.types import Object
 from ....utility import PluginError, CData, indent
 from ...oot_utility import getObjectList
 from ...scene.properties import OOTSceneHeaderProperty
-from ..base import Base
+from ..base import Utility
 
 
 @dataclass
@@ -37,7 +37,7 @@ class Path:
 
 
 @dataclass
-class ScenePathways(Base):
+class ScenePathways:
     """This class hosts pathways array data"""
 
     props: OOTSceneHeaderProperty
@@ -56,7 +56,7 @@ class ScenePathways(Base):
             relativeTransform = self.transform @ self.sceneObj.matrix_world.inverted() @ obj.matrix_world
             pathProps = obj.ootSplineProperty
             isHeaderValid = self.isCurrentHeaderValid(pathProps.headerSettings, self.headerIndex)
-            if isHeaderValid and self.validateCurveData(obj):
+            if isHeaderValid and Utility.validateCurveData(obj):
                 if pathProps.index not in pathFromIndex:
                     pathFromIndex[pathProps.index] = Path(
                         f"{self.name}List{pathProps.index:02}",

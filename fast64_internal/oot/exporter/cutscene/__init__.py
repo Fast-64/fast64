@@ -6,7 +6,7 @@ from bpy.types import Object
 from ....utility import PluginError, CData, indent
 from ...oot_utility import getCustomProperty
 from ...scene.properties import OOTSceneHeaderProperty
-from ..base import Base
+from ..base import Utility
 from .data import CutsceneData
 
 
@@ -97,7 +97,7 @@ class Cutscene:
 
 
 @dataclass
-class SceneCutscene(Base):
+class SceneCutscene(Utility):
     """This class hosts cutscene data"""
 
     props: OOTSceneHeaderProperty

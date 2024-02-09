@@ -32,7 +32,7 @@ from ..oot_utility import (
 
 
 @dataclass
-class SceneExporter:
+class SceneExport:
     """This class is the main exporter class, it handles generating the C data and writing the files"""
 
     exportInfo: ExportInfo

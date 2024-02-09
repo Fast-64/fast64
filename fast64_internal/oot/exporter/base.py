@@ -11,22 +11,11 @@ from ..actor.properties import OOTActorHeaderProperty
 altHeaderList = ["childNight", "adultDay", "adultNight"]
 
 
-@dataclass
-class Base:
-    """This class hosts common data used across different sub-systems of this exporter"""
+class Utility:
+    """This class hosts different functions used across different sub-systems of this exporter"""
 
-    def getRoomObjectFromChild(self, childObj: Object) -> Object | None:
-        """Returns the room empty object from one of its child"""
-
-        # Note: temporary solution until PRs #243 & #255 are merged
-        for obj in self.sceneObj.children_recursive:
-            if obj.type == "EMPTY" and obj.ootEmptyType == "Room":
-                for o in obj.children_recursive:
-                    if o == childObj:
-                        return obj
-        return None
-
-    def validateCurveData(self, curveObj: Object):
+    @staticmethod
+    def validateCurveData(curveObj: Object):
         """Performs safety checks related to curve objects"""
 
         curveData = curveObj.data
@@ -40,12 +29,14 @@ class Base:
 
         return True
 
-    def roundPosition(self, position) -> tuple[int, int, int]:
+    @staticmethod
+    def roundPosition(position) -> tuple[int, int, int]:
         """Returns the rounded position values"""
 
         return (round(position[0]), round(position[1]), round(position[2]))
 
-    def isCurrentHeaderValid(self, headerSettings: OOTActorHeaderProperty, headerIndex: int):
+    @staticmethod
+    def isCurrentHeaderValid(headerSettings: OOTActorHeaderProperty, headerIndex: int):
         """Checks if the an alternate header can be used"""
 
         preset = headerSettings.sceneSetupPreset
@@ -64,14 +55,16 @@ class Base:
 
         return False
 
-    def getPropValue(self, data, propName: str):
+    @staticmethod
+    def getPropValue(data, propName: str):
         """Returns a property's value based on if the value is 'Custom'"""
 
         value = getattr(data, propName)
         return value if value != "Custom" else getattr(data, f"{propName}Custom")
 
+    @staticmethod
     def getConvertedTransformWithOrientation(
-        self, transform: Matrix, dataHolder: Object, obj: Object, orientation: Quaternion | Matrix
+        transform: Matrix, dataHolder: Object, obj: Object, orientation: Quaternion | Matrix
     ):
         relativeTransform = transform @ dataHolder.matrix_world.inverted() @ obj.matrix_world
         blenderTranslation, blenderRotation, scale = relativeTransform.decompose()
@@ -81,21 +74,24 @@ class Base:
 
         return convertedTranslation, convertedRotation, scale, rotation
 
-    def getConvertedTransform(self, transform: Matrix, dataHolder: Object, obj: Object, handleOrientation: bool):
+    @staticmethod
+    def getConvertedTransform(transform: Matrix, dataHolder: Object, obj: Object, handleOrientation: bool):
         # Hacky solution to handle Z-up to Y-up conversion
         # We cannot apply rotation to empty, as that modifies scale
         if handleOrientation:
             orientation = Quaternion((1, 0, 0), radians(90.0))
         else:
             orientation = Matrix.Identity(4)
-        return self.getConvertedTransformWithOrientation(transform, dataHolder, obj, orientation)
+        return Utility.getConvertedTransformWithOrientation(transform, dataHolder, obj, orientation)
 
-    def getAltHeaderListCmd(self, altName: str):
+    @staticmethod
+    def getAltHeaderListCmd(altName: str):
         """Returns the scene alternate header list command"""
 
         return indent + f"SCENE_CMD_ALTERNATE_HEADER_LIST({altName}),\n"
 
-    def getEndCmd(self):
+    @staticmethod
+    def getEndCmd():
         """Returns the scene end command"""
 
         return indent + "SCENE_CMD_END(),\n"

@@ -7,7 +7,7 @@ from bpy.ops import object
 from typing import Optional
 from ....utility import PluginError, CData, indent
 from ...oot_utility import convertIntTo2sComplement
-from ..base import Base
+from ..base import Utility
 from .polygons import CollisionPoly, CollisionPolygons
 from .surface import SurfaceType, SurfaceTypes
 from .camera import BgCamInformations
@@ -16,7 +16,7 @@ from .vertex import CollisionVertex, CollisionVertices
 
 
 @dataclass
-class CollisionBase(Base):
+class CollisionBase:
     """This class hosts different functions used to convert mesh data"""
 
     sceneObj: Optional[Object]
@@ -101,9 +101,9 @@ class CollisionBase(Base):
 
                     # get bounds and vertices data
                     planePoint = transform @ meshObj.data.vertices[face.vertices[0]].co
-                    (x1, y1, z1) = self.roundPosition(planePoint)
-                    (x2, y2, z2) = self.roundPosition(transform @ meshObj.data.vertices[face.vertices[1]].co)
-                    (x3, y3, z3) = self.roundPosition(transform @ meshObj.data.vertices[face.vertices[2]].co)
+                    (x1, y1, z1) = Utility.roundPosition(planePoint)
+                    (x2, y2, z2) = Utility.roundPosition(transform @ meshObj.data.vertices[face.vertices[1]].co)
+                    (x3, y3, z3) = Utility.roundPosition(transform @ meshObj.data.vertices[face.vertices[2]].co)
                     self.updateBounds((x1, y1, z1), colBounds)
                     self.updateBounds((x2, y2, z2), colBounds)
                     self.updateBounds((x3, y3, z3), colBounds)
@@ -158,19 +158,19 @@ class CollisionBase(Base):
 
                     # get surface type and collision poly data
                     useConveyor = colProp.conveyorOption != "None"
-                    conveyorSpeed = int(self.getPropValue(colProp, "conveyorSpeed"), base=16) if useConveyor else 0
+                    conveyorSpeed = int(Utility.getPropValue(colProp, "conveyorSpeed"), base=16) if useConveyor else 0
                     shouldKeepMomentum = colProp.conveyorKeepMomentum if useConveyor else False
                     surfaceType = SurfaceType(
                         colProp.cameraID,
                         colProp.exitID,
-                        int(self.getPropValue(colProp, "floorProperty"), base=16),
+                        int(Utility.getPropValue(colProp, "floorProperty"), base=16),
                         0,  # unused?
-                        int(self.getPropValue(colProp, "wallSetting"), base=16),
-                        int(self.getPropValue(colProp, "floorSetting"), base=16),
+                        int(Utility.getPropValue(colProp, "wallSetting"), base=16),
+                        int(Utility.getPropValue(colProp, "floorSetting"), base=16),
                         colProp.decreaseHeight,
                         colProp.eponaBlock,
-                        int(self.getPropValue(colProp, "sound"), base=16),
-                        int(self.getPropValue(colProp, "terrain"), base=16),
+                        int(Utility.getPropValue(colProp, "sound"), base=16),
+                        int(Utility.getPropValue(colProp, "terrain"), base=16),
                         colProp.lightingSetting,
                         int(colProp.echo, base=16),
                         colProp.hookshotable,

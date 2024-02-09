@@ -14,7 +14,7 @@ from ..oot_level_writer import ootExportSceneToC
 from ..oot_constants import ootEnumMusicSeq, ootEnumSceneID
 from ..oot_level_parser import parseScene
 from .exporter.to_c import clearBootupScene, modifySceneTable, editSpecFile, deleteSceneFiles
-from ..exporter import SceneExporter
+from ..exporter import SceneExport
 
 
 def ootRemoveSceneC(exportInfo):
@@ -175,7 +175,7 @@ class OOT_ExportScene(Operator):
 
             # keeping this on purpose, will be removed once old code is cleaned-up
             # if settings.useNewExporter:
-            SceneExporter(
+            SceneExport(
                 exportInfo,
                 obj,
                 exportInfo.name,

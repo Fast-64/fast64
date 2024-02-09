@@ -10,13 +10,13 @@ from ...oot_level_classes import OOTRoomMesh
 from ...oot_model_classes import OOTModel, OOTGfxFormatter
 from ...oot_utility import CullGroup
 from ..classes import RoomFile
-from ..base import Base, altHeaderList
+from ..base import Utility, altHeaderList
 from .header import RoomAlternateHeader, RoomHeader
 from .shape import RoomShape
 
 
 @dataclass
-class Room(Base):
+class Room:
     """This class defines a room"""
 
     name: str
@@ -79,7 +79,7 @@ class Room(Base):
 
         # Mesh stuff
         self.mesh = OOTRoomMesh(self.name, self.roomShapeType, self.model)
-        pos, _, scale, _ = Base().getConvertedTransform(self.transform, self.sceneObj, self.roomObj, True)
+        pos, _, scale, _ = Utility.getConvertedTransform(self.transform, self.sceneObj, self.roomObj, True)
         cullGroup = CullGroup(pos, scale, self.roomObj.ootRoomHeader.defaultCullDistance)
         DLGroup = self.mesh.addMeshGroup(cullGroup).DLGroup
         boundingBox = BoundingBox()
@@ -126,12 +126,12 @@ class Room(Base):
         # .c
         cmdListData.source = (
             (f"{listName}[]" + " = {\n")
-            + (self.getAltHeaderListCmd(self.altHeader.name) if hasAltHeaders else "")
+            + (Utility.getAltHeaderListCmd(self.altHeader.name) if hasAltHeaders else "")
             + self.roomShape.getCmd()
             + curHeader.infos.getCmds()
             + (curHeader.objects.getCmd() if len(curHeader.objects.objectList) > 0 else "")
             + (curHeader.actors.getCmd() if len(curHeader.actors.actorList) > 0 else "")
-            + self.getEndCmd()
+            + Utility.getEndCmd()
             + "};\n\n"
         )
 

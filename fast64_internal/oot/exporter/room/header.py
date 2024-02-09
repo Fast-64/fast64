@@ -6,19 +6,19 @@ from ....utility import CData, indent
 from ...oot_utility import getObjectList
 from ...oot_constants import ootData
 from ...room.properties import OOTRoomHeaderProperty
-from ..base import Base, Actor
+from ..base import Utility, Actor
 
 
 @dataclass
-class HeaderBase(Base):
+class HeaderBase:
     """Defines the base of a room header"""
 
-    name: Optional[str] = None
+    name: str = str()
     props: Optional[OOTRoomHeaderProperty] = None
     sceneObj: Optional[Object] = None
     roomObj: Optional[Object] = None
-    transform: Optional[Matrix] = None
-    headerIndex: Optional[int] = None
+    transform: Matrix = Matrix()
+    headerIndex: int = 0
 
 
 @dataclass
@@ -55,8 +55,8 @@ class RoomInfos(HeaderBase):
     def __post_init__(self):
         self.index = self.props.roomIndex
         self.roomShape = self.props.roomShape
-        self.roomBehavior = self.getPropValue(self.props, "roomBehaviour")
-        self.playerIdleType = self.getPropValue(self.props, "linkIdleMode")
+        self.roomBehavior = Utility.getPropValue(self.props, "roomBehaviour")
+        self.playerIdleType = Utility.getPropValue(self.props, "linkIdleMode")
         self.disableWarpSongs = self.props.disableWarpSongs
         self.showInvisActors = self.props.showInvisibleActors
         self.disableSky = self.props.disableSkybox
@@ -143,7 +143,7 @@ class RoomActors(HeaderBase):
         actorObjList = getObjectList(self.sceneObj.children_recursive, "EMPTY", "Actor", parentObj=self.roomObj)
         for obj in actorObjList:
             actorProp = obj.ootActorProperty
-            if not self.isCurrentHeaderValid(actorProp.headerSettings, self.headerIndex):
+            if not Utility.isCurrentHeaderValid(actorProp.headerSettings, self.headerIndex):
                 continue
 
             # The Actor list is filled with ``("None", f"{i} (Deleted from the XML)", "None")`` for
@@ -152,7 +152,7 @@ class RoomActors(HeaderBase):
             # and not the identifier as defined by the first element of the tuple. Therefore, we need to check if
             # the current Actor has the ID `None` to avoid export issues.
             if actorProp.actorID != "None":
-                pos, rot, _, _ = self.getConvertedTransform(self.transform, self.sceneObj, obj, True)
+                pos, rot, _, _ = Utility.getConvertedTransform(self.transform, self.sceneObj, obj, True)
                 actor = Actor()
 
                 if actorProp.actorID == "Custom":

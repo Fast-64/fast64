@@ -7,14 +7,14 @@ from ....f3d.f3d_gbi import TextureExportSettings, ScrollMethod
 from ...scene.properties import OOTSceneHeaderProperty
 from ...oot_model_classes import OOTModel, OOTGfxFormatter
 from ..classes import SceneFile
-from ..base import Base, altHeaderList
+from ..base import Utility, altHeaderList
 from ..collision import CollisionHeader
 from .header import SceneAlternateHeader, SceneHeader
 from .rooms import RoomEntries
 
 
 @dataclass
-class Scene(Base):
+class Scene:
     """This class defines a scene"""
 
     sceneObj: Object
@@ -118,7 +118,7 @@ class Scene(Base):
         # .c
         cmdListData.source = (
             (f"{listName}[]" + " = {\n")
-            + (self.getAltHeaderListCmd(self.altHeader.name) if hasAltHeaders else "")
+            + (Utility.getAltHeaderListCmd(self.altHeader.name) if hasAltHeaders else "")
             + self.colHeader.getCmd()
             + self.rooms.getCmd()
             + curHeader.infos.getCmds(curHeader.lighting)
@@ -129,7 +129,7 @@ class Scene(Base):
             + curHeader.entranceActors.getCmd()
             + (curHeader.exits.getCmd() if len(curHeader.exits.exitList) > 0 else "")
             + (curHeader.cutscene.getCmd() if len(curHeader.cutscene.entries) > 0 else "")
-            + self.getEndCmd()
+            + Utility.getEndCmd()
             + "};\n\n"
         )
 

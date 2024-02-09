@@ -3,7 +3,7 @@ from typing import Optional
 from bpy.types import Object
 from ....utility import PluginError, CData, exportColor, ootGetBaseOrCustomLight, indent
 from ...scene.properties import OOTSceneHeaderProperty, OOTLightProperty
-from ..base import Base
+from ..base import Utility
 
 
 @dataclass
@@ -82,7 +82,7 @@ class EnvLightSettings:
 
 
 @dataclass
-class SceneLighting(Base):
+class SceneLighting:
     """This class hosts lighting data"""
 
     props: OOTSceneHeaderProperty
@@ -92,7 +92,7 @@ class SceneLighting(Base):
     settings: list[EnvLightSettings] = field(init=False, default_factory=list)
 
     def __post_init__(self):
-        self.envLightMode = self.getPropValue(self.props, "skyboxLighting")
+        self.envLightMode = Utility.getPropValue(self.props, "skyboxLighting")
         lightList: list[OOTLightProperty] = []
 
         if self.envLightMode == "LIGHT_MODE_TIME":
@@ -144,7 +144,7 @@ class SceneLighting(Base):
 
 
 @dataclass
-class SceneInfos(Base):
+class SceneInfos:
     """This class stores various scene header informations"""
 
     props: OOTSceneHeaderProperty
@@ -178,18 +178,18 @@ class SceneInfos(Base):
     sceneCamType: str = field(init=False)
 
     def __post_init__(self):
-        self.keepObjectID = self.getPropValue(self.props, "globalObject")
-        self.naviHintType = self.getPropValue(self.props, "naviCup")
-        self.drawConfig = self.getPropValue(self.props.sceneTableEntry, "drawConfig")
+        self.keepObjectID = Utility.getPropValue(self.props, "globalObject")
+        self.naviHintType = Utility.getPropValue(self.props, "naviCup")
+        self.drawConfig = Utility.getPropValue(self.props.sceneTableEntry, "drawConfig")
         self.appendNullEntrance = self.props.appendNullEntrance
         self.useDummyRoomList = self.sceneObj.fast64.oot.scene.write_dummy_room_list
-        self.skyboxID = self.getPropValue(self.props, "skyboxID")
-        self.skyboxConfig = self.getPropValue(self.props, "skyboxCloudiness")
-        self.sequenceID = self.getPropValue(self.props, "musicSeq")
-        self.ambienceID = self.getPropValue(self.props, "nightSeq")
-        self.specID = self.getPropValue(self.props, "audioSessionPreset")
-        self.worldMapLocation = self.getPropValue(self.props, "mapLocation")
-        self.sceneCamType = self.getPropValue(self.props, "cameraMode")
+        self.skyboxID = Utility.getPropValue(self.props, "skyboxID")
+        self.skyboxConfig = Utility.getPropValue(self.props, "skyboxCloudiness")
+        self.sequenceID = Utility.getPropValue(self.props, "musicSeq")
+        self.ambienceID = Utility.getPropValue(self.props, "nightSeq")
+        self.specID = Utility.getPropValue(self.props, "audioSessionPreset")
+        self.worldMapLocation = Utility.getPropValue(self.props, "mapLocation")
+        self.sceneCamType = Utility.getPropValue(self.props, "cameraMode")
 
     def getCmds(self, lights: SceneLighting):
         """Returns the sound settings, misc settings, special files and skybox settings scene commands"""
@@ -209,7 +209,7 @@ class SceneInfos(Base):
 
 
 @dataclass
-class SceneExits(Base):
+class SceneExits(Utility):
     """This class hosts exit data"""
 
     props: OOTSceneHeaderProperty
