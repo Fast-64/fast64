@@ -105,11 +105,11 @@ class Base:
 class Actor:
     """Defines an Actor"""
 
-    name: Optional[str] = None
-    id: Optional[str] = None
-    pos: list[int] = field(default_factory=list)
-    rot: Optional[str] = None
-    params: Optional[str] = None
+    name: Optional[str] = field(init=False, default=None)
+    id: Optional[str] = field(init=False, default=None)
+    pos: list[int] = field(init=False, default_factory=list)
+    rot: Optional[str] = field(init=False, default=None)
+    params: Optional[str] = field(init=False, default=None)
 
     def getActorEntry(self):
         """Returns a single actor entry"""

@@ -5,7 +5,7 @@ from mathutils import Quaternion, Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
 from ...oot_utility import getObjectList
-from ...oot_collision_classes import decomp_compat_map_CameraSType
+from ...collision.constants import decomp_compat_map_CameraSType
 from ...collision.properties import OOTCameraPositionProperty
 from ..base import Base
 
@@ -16,10 +16,8 @@ class CrawlspaceCamera:
 
     points: list[tuple[int, int, int]]
     camIndex: int
-    arrayIndex: int = 0
 
-    def __post_init__(self):
-        self.points = [self.points[0], self.points[0], self.points[0], self.points[1], self.points[1], self.points[1]]
+    arrayIndex: int = field(init=False, default=0)
 
     def getDataEntryC(self):
         """Returns an entry for the camera data array"""
@@ -59,8 +57,9 @@ class CameraInfo:
     count: int
     data: CameraData
     camIndex: int
-    arrayIndex: int = 0
-    hasPosData: bool = False
+
+    arrayIndex: int = field(init=False, default=0)
+    hasPosData: bool = field(init=False)
 
     def __post_init__(self):
         self.hasPosData = self.data is not None
@@ -81,11 +80,11 @@ class BgCamInformations(Base):
     name: str
     posDataName: str
 
-    bgCamInfoList: list[CameraInfo] = field(default_factory=list)
-    crawlspacePosList: list[CrawlspaceCamera] = field(default_factory=list)
-    arrayIdx: int = 0
-    crawlspaceCount: int = 6
-    camFromIndex: dict[int, CameraInfo | CrawlspaceCamera] = field(default_factory=dict)
+    bgCamInfoList: list[CameraInfo] = field(init=False, default_factory=list)
+    crawlspacePosList: list[CrawlspaceCamera] = field(init=False, default_factory=list)
+    arrayIdx: int = field(init=False, default=0)
+    crawlspaceCount: int = field(init=False, default=6)
+    camFromIndex: dict[int, CameraInfo | CrawlspaceCamera] = field(init=False, default_factory=dict)
 
     def initCrawlspaceList(self):
         """Returns a list of crawlspace data from every splines objects with the type 'Crawlspace'"""
@@ -93,12 +92,13 @@ class BgCamInformations(Base):
         crawlspaceObjList = getObjectList(self.dataHolder.children_recursive, "CURVE", splineType="Crawlspace")
         for obj in crawlspaceObjList:
             if self.validateCurveData(obj):
+                points = [
+                    [round(value) for value in self.transform @ obj.matrix_world @ point.co]
+                    for point in obj.data.splines[0].points
+                ]
                 self.crawlspacePosList.append(
                     CrawlspaceCamera(
-                        [
-                            [round(value) for value in self.transform @ obj.matrix_world @ point.co]
-                            for point in obj.data.splines[0].points
-                        ],
+                        [points[0], points[0], points[0], points[1], points[1], points[1]],
                         obj.ootSplineProperty.index,
                     )
                 )

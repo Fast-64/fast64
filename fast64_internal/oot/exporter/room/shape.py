@@ -47,12 +47,12 @@ class RoomShapeImageMultiBgEntry:
     height: int
     otherModeFlags: str
 
-    unk_00: int = 130
-    unk_0C: int = 0
-    tlut: str = "NULL"
-    format: str = "G_IM_FMT_RGBA"
-    size: str = "G_IM_SIZ_16b"
-    tlutCount: int = 0
+    unk_00: int = field(init=False, default=130)
+    unk_0C: int = field(init=False, default=0)
+    tlut: str = field(init=False, default="NULL")
+    format: str = field(init=False, default="G_IM_FMT_RGBA")
+    size: str = field(init=False, default="G_IM_SIZ_16b")
+    tlutCount: int = field(init=False, default=0)
 
     def getEntryC(self):
         return (
@@ -79,7 +79,8 @@ class RoomShapeImageMultiBg(RoomShapeBase):
     """This class defines the multiple background image array"""
 
     name: str
-    entries: list[RoomShapeImageMultiBgEntry] = field(default_factory=list)
+
+    entries: list[RoomShapeImageMultiBgEntry] = field(init=False, default_factory=list)
 
     def __post_init__(self):
         for i, bgImg in enumerate(self.mesh.bgImages):
@@ -109,7 +110,8 @@ class RoomShapeDLists:
     name: str
     isArray: bool
     mesh: OOTRoomMesh
-    entries: list[RoomShapeDListsEntry] = field(default_factory=list)
+
+    entries: list[RoomShapeDListsEntry] = field(init=False, default_factory=list)
 
     def __post_init__(self):
         for meshGrp in self.mesh.meshEntries:
@@ -150,11 +152,11 @@ class RoomShapeImageSingle(RoomShapeImageBase):
     height: int
     otherModeFlags: str
 
-    unk_0C: int = 0
-    tlut: str = "NULL"
-    format: str = "G_IM_FMT_RGBA"
-    size: str = "G_IM_SIZ_16b"
-    tlutCount: int = 0
+    unk_0C: int = field(init=False, default=0)
+    tlut: str = field(init=False, default="NULL")
+    format: str = field(init=False, default="G_IM_FMT_RGBA")
+    size: str = field(init=False, default="G_IM_SIZ_16b")
+    tlutCount: int = field(init=False, default=0)
 
     def getC(self):
         """Returns the single background image mode variable"""
@@ -245,11 +247,11 @@ class RoomShape(RoomShapeBase):
     sceneName: str
     roomName: str
 
-    dl: Optional[RoomShapeDLists] = None
-    normal: Optional[RoomShapeNormal] = None
-    single: Optional[RoomShapeImageSingle] = None
-    multiImg: Optional[RoomShapeImageMultiBg] = None
-    multi: Optional[RoomShapeImageMulti] = None
+    dl: Optional[RoomShapeDLists] = field(init=False, default=None)
+    normal: Optional[RoomShapeNormal] = field(init=False, default=None)
+    single: Optional[RoomShapeImageSingle] = field(init=False, default=None)
+    multiImg: Optional[RoomShapeImageMultiBg] = field(init=False, default=None)
+    multi: Optional[RoomShapeImageMulti] = field(init=False, default=None)
 
     def __post_init__(self):
         name = f"{self.roomName}_shapeHeader"

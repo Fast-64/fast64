@@ -1,7 +1,7 @@
 import bpy
 import os
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from mathutils import Matrix
 from bpy.types import Object
 from typing import Optional
@@ -47,14 +47,14 @@ class SceneExporter:
     isSingleFile: bool
     textureExportSettings: TextureExportSettings
     useMacros: bool
-    dlFormat: DLFormat = DLFormat.Static
 
-    sceneObj: Optional[Object] = None
-    scene: Optional[Scene] = None
-    path: Optional[str] = None
-    sceneFile: Optional[SceneFile] = None
-    hasCutscenes: bool = False
-    hasSceneTextures: bool = False
+    dlFormat: DLFormat = field(init=False, default=DLFormat.Static)
+    sceneObj: Optional[Object] = field(init=False, default=None)
+    scene: Optional[Scene] = field(init=False, default=None)
+    path: Optional[str] = field(init=False, default=None)
+    sceneFile: Optional[SceneFile] = field(init=False, default=None)
+    hasCutscenes: bool = field(init=False, default=False)
+    hasSceneTextures: bool = field(init=False, default=False)
 
     def getNewScene(self):
         """Returns and creates scene data"""

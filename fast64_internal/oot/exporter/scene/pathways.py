@@ -46,7 +46,7 @@ class ScenePathways(Base):
     transform: Matrix
     headerIndex: int
 
-    pathList: list[Path] = field(default_factory=list)
+    pathList: list[Path] = field(init=False, default_factory=list)
 
     def __post_init__(self):
         pathFromIndex: dict[int, Path] = {}

@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 from mathutils import Vector
 from ....utility import PluginError, CData, indent
@@ -16,7 +16,8 @@ class CollisionPoly:
     normal: Vector
     dist: int
     useMacros: bool
-    type: Optional[int] = None
+
+    type: Optional[int] = field(init=False, default=None)
 
     def __post_init__(self):
         for i, val in enumerate(self.normal):

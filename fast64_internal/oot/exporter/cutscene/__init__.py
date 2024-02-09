@@ -23,18 +23,18 @@ class Cutscene:
 
     csObj: Object
     useMacros: bool
-    name: Optional[str] = None
-    motionOnly: bool = False
-    data: Optional[CutsceneData] = None
-    totalEntries: int = 0
-    frameCount: int = 0
-    paramNumber: int = 2
+
+    name: str = field(init=False)
+    motionOnly: bool = field(init=False, default=False)
+    data: CutsceneData = field(init=False)
+    totalEntries: int = field(init=False)
+    frameCount: int = field(init=False)
+    paramNumber: int = field(init=False, default=2)
 
     def __post_init__(self):
         # when csObj is None it means we're in import context
         if self.csObj is not None and self.data is None:
-            if self.name is None:
-                self.name = self.csObj.name.removeprefix("Cutscene.").replace(".", "_")
+            self.name = self.csObj.name.removeprefix("Cutscene.").replace(".", "_")
             self.data = CutsceneData(self.csObj, self.useMacros, self.motionOnly)
             self.totalEntries = self.data.totalEntries
             self.frameCount = self.data.frameCount
@@ -104,9 +104,9 @@ class SceneCutscene(Base):
     headerIndex: int
     useMacros: bool
 
-    entries: list[Cutscene] = field(default_factory=list)
-    csObj: Optional[Object] = None
-    cutsceneObjects: list[Object] = field(default_factory=list)
+    entries: list[Cutscene] = field(init=False, default_factory=list)
+    csObj: Object = field(init=False)
+    cutsceneObjects: list[Object] = field(init=False, default_factory=list)
 
     def __post_init__(self):
         self.csObj: Object = self.props.csWriteObject

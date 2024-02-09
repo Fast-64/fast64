@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 from ....utility import CData, indent
 
@@ -7,6 +7,7 @@ from ....utility import CData, indent
 class SurfaceType:
     """This class defines a single surface type"""
 
+    # surface type 0
     bgCamIndex: int
     exitIndex: int
     floorType: int
@@ -16,6 +17,7 @@ class SurfaceType:
     isSoft: bool
     isHorseBlocked: bool
 
+    # surface type 1
     material: int
     floorEffect: int
     lightSetting: int
@@ -25,17 +27,14 @@ class SurfaceType:
     conveyorDirection: int
     isWallDamage: bool  # unk27
 
-    conveyorKeepMomentum: bool
     useMacros: bool
-    isSoftC: Optional[str] = None
-    isHorseBlockedC: Optional[str] = None
-    canHookshotC: Optional[str] = None
-    isWallDamageC: Optional[str] = None
+
+    isSoftC: str = field(init=False)
+    isHorseBlockedC: str = field(init=False)
+    canHookshotC: str = field(init=False)
+    isWallDamageC: str = field(init=False)
 
     def __post_init__(self):
-        if self.conveyorKeepMomentum:
-            self.conveyorSpeed += 4
-
         self.isSoftC = "1" if self.isSoft else "0"
         self.isHorseBlockedC = "1" if self.isHorseBlocked else "0"
         self.canHookshotC = "1" if self.canHookshot else "0"

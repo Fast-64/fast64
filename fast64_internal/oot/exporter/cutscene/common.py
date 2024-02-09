@@ -9,7 +9,7 @@ from ...cutscene.motion.utility import getInteger
 class CutsceneCmdBase:
     """This class contains common Cutscene data"""
 
-    params: list[str]
+    params: Optional[list[str]]
 
     startFrame: Optional[int] = None
     endFrame: Optional[int] = None

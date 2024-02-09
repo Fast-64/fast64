@@ -22,14 +22,14 @@ class SceneHeader(Base):
     headerIndex: int
     useMacros: bool
 
-    infos: Optional[SceneInfos] = None
-    lighting: Optional[SceneLighting] = None
-    cutscene: Optional[SceneCutscene] = None
-    exits: Optional[SceneExits] = None
-    transitionActors: Optional[SceneTransitionActors] = None
-    entranceActors: Optional[SceneEntranceActors] = None
-    spawns: Optional[SceneSpawns] = None
-    path: Optional[ScenePathways] = None
+    infos: Optional[SceneInfos] = field(init=False, default=None)
+    lighting: Optional[SceneLighting] = field(init=False, default=None)
+    cutscene: Optional[SceneCutscene] = field(init=False, default=None)
+    exits: Optional[SceneExits] = field(init=False, default=None)
+    transitionActors: Optional[SceneTransitionActors] = field(init=False, default=None)
+    entranceActors: Optional[SceneEntranceActors] = field(init=False, default=None)
+    spawns: Optional[SceneSpawns] = field(init=False, default=None)
+    path: Optional[ScenePathways] = field(init=False, default=None)
 
     def __post_init__(self):
         self.infos = SceneInfos(self.props, self.sceneObj)
@@ -82,7 +82,8 @@ class SceneAlternateHeader:
     """This class stores alternate header data for the scene"""
 
     name: str
-    childNight: Optional[SceneHeader] = None
-    adultDay: Optional[SceneHeader] = None
-    adultNight: Optional[SceneHeader] = None
-    cutscenes: list[SceneHeader] = field(default_factory=list)
+
+    childNight: Optional[SceneHeader] = field(init=False, default=None)
+    adultDay: Optional[SceneHeader] = field(init=False, default=None)
+    adultNight: Optional[SceneHeader] = field(init=False, default=None)
+    cutscenes: list[SceneHeader] = field(init=False, default_factory=list)

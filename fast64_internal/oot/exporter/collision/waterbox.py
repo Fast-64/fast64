@@ -22,14 +22,15 @@ class WaterBox:
     setFlag19: bool
 
     useMacros: bool
-    xMin: Optional[int] = None
-    ySurface: Optional[int] = None
-    zMin: Optional[int] = None
-    xLength: Optional[int] = None
-    zLength: Optional[int] = None
 
-    setFlag19C: Optional[str] = None
-    roomIndexC: Optional[str] = None
+    xMin: int = field(init=False)
+    ySurface: int = field(init=False)
+    zMin: int = field(init=False)
+    xLength: int = field(init=False)
+    zLength: int = field(init=False)
+
+    setFlag19C: str = field(init=False)
+    roomIndexC: str = field(init=False)
 
     def __post_init__(self):
         self.setFlag19C = "1" if self.setFlag19 else "0"
@@ -86,7 +87,7 @@ class WaterBoxes(Base):
     name: str
     useMacros: bool
 
-    waterboxList: list[WaterBox] = field(default_factory=list)
+    waterboxList: list[WaterBox] = field(init=False, default_factory=list)
 
     def __post_init__(self):
         waterboxObjList = getObjectList(self.dataHolder.children_recursive, "EMPTY", "Water Box")

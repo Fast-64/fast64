@@ -9,10 +9,10 @@ from .common import CutsceneCmdBase
 class CutsceneCmdStartStopSeq(CutsceneCmdBase):
     """This class contains Start/Stop Seq command data"""
 
-    isLegacy: Optional[bool] = None
-    seqId: Optional[str] = None
-    paramNumber: int = 11
-    type: Optional[str] = None  # "start" or "stop"
+    isLegacy: bool = field(init=False, default=False)
+    seqId: Optional[str] = field(init=False, default=None)
+    paramNumber: int = field(init=False, default=11)
+    type: Optional[str] = field(init=False, default=None)  # "start" or "stop"
 
     def __post_init__(self):
         if self.params is not None:
@@ -31,9 +31,9 @@ class CutsceneCmdStartStopSeq(CutsceneCmdBase):
 class CutsceneCmdFadeSeq(CutsceneCmdBase):
     """This class contains Fade Seq command data"""
 
-    seqPlayer: Optional[str] = None
-    paramNumber: int = 11
-    enumKey: str = "csFadeOutSeqPlayer"
+    seqPlayer: str = field(init=False, default=str())
+    paramNumber: int = field(init=False, default=11)
+    enumKey: str = field(init=False, default="csFadeOutSeqPlayer")
 
     def __post_init__(self):
         if self.params is not None:
@@ -50,11 +50,11 @@ class CutsceneCmdFadeSeq(CutsceneCmdBase):
 class CutsceneCmdStartStopSeqList(CutsceneCmdBase):
     """This class contains Start/Stop Seq List command data"""
 
-    entryTotal: Optional[int] = None
-    type: Optional[str] = None  # "start" or "stop"
-    entries: list[CutsceneCmdStartStopSeq] = field(default_factory=list)
-    paramNumber: int = 1
-    listName: str = "seqList"
+    entryTotal: int = field(init=False, default=0)
+    type: str = field(init=False, default=str())  # "start" or "stop"
+    entries: list[CutsceneCmdStartStopSeq] = field(init=False, default_factory=list)
+    paramNumber: int = field(init=False, default=1)
+    listName: str = field(init=False, default="seqList")
 
     def __post_init__(self):
         if self.params is not None:
@@ -63,8 +63,6 @@ class CutsceneCmdStartStopSeqList(CutsceneCmdBase):
     def getCmd(self):
         if len(self.entries) == 0:
             raise PluginError("ERROR: Entry list is empty!")
-        if self.type is None:
-            raise PluginError("ERROR: Seq Type is None!")
         return self.getGenericListCmd(f"CS_{self.type.upper()}_SEQ_LIST", self.entryTotal) + "".join(
             entry.getCmd() for entry in self.entries
         )
@@ -74,10 +72,10 @@ class CutsceneCmdStartStopSeqList(CutsceneCmdBase):
 class CutsceneCmdFadeSeqList(CutsceneCmdBase):
     """This class contains Fade Seq List command data"""
 
-    entryTotal: Optional[int] = None
-    entries: list[CutsceneCmdFadeSeq] = field(default_factory=list)
-    paramNumber: int = 1
-    listName: str = "fadeSeqList"
+    entryTotal: int = field(init=False, default=0)
+    entries: list[CutsceneCmdFadeSeq] = field(init=False, default_factory=list)
+    paramNumber: int = field(init=False, default=1)
+    listName: str = field(init=False, default="fadeSeqList")
 
     def __post_init__(self):
         if self.params is not None:

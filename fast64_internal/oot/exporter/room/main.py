@@ -1,11 +1,10 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
 from ....f3d.f3d_gbi import ScrollMethod, TextureExportSettings
 from ...room.properties import OOTRoomHeaderProperty
-from ...oot_constants import ootData
 from ...oot_object import addMissingObjectsToAllRoomHeadersNew
 from ...oot_level_classes import OOTRoomMesh
 from ...oot_model_classes import OOTModel, OOTGfxFormatter
@@ -31,11 +30,11 @@ class Room(Base):
     sceneName: str
     saveTexturesAsPNG: bool
 
-    mainHeader: Optional[RoomHeader] = None
-    altHeader: Optional[RoomAlternateHeader] = None
-    mesh: Optional[OOTRoomMesh] = None
-    roomShape: Optional[RoomShape] = None
-    hasAlternateHeaders: bool = False
+    mainHeader: Optional[RoomHeader] = field(init=False, default=None)
+    altHeader: Optional[RoomAlternateHeader] = field(init=False, default=None)
+    mesh: Optional[OOTRoomMesh] = field(init=False, default=None)
+    roomShape: Optional[RoomShape] = field(init=False, default=None)
+    hasAlternateHeaders: bool = field(init=False)
 
     def getNewRoomHeader(self, headerProp: OOTRoomHeaderProperty, headerIndex: int = 0):
         """Returns a new room header with the informations from the scene empty object"""

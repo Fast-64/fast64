@@ -15,7 +15,6 @@ class RoomFile:
     roomModelInfo: Optional[str] = None
     singleFileExport: bool = False
     path: Optional[str] = None
-
     header: str = ""
 
     def write(self):
@@ -46,8 +45,8 @@ class SceneFile:
     path: Optional[str] = None
     header: str = ""
 
-    hasCutscenes: bool = False
-    hasSceneTextures: bool = False
+    hasCutscenes: bool = field(init=False)
+    hasSceneTextures: bool = field(init=False)
 
     def __post_init__(self):
         self.hasCutscenes = len(self.sceneCutscenes) > 0

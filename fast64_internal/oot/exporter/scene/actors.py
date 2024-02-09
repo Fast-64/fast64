@@ -13,11 +13,11 @@ from ..base import Base, Actor
 class TransitionActor(Actor):
     """Defines a Transition Actor"""
 
-    isRoomTransition: Optional[bool] = None
-    roomFrom: Optional[int] = None
-    roomTo: Optional[int] = None
-    cameraFront: Optional[str] = None
-    cameraBack: Optional[str] = None
+    isRoomTransition: Optional[bool] = field(init=False, default=None)
+    roomFrom: Optional[int] = field(init=False, default=None)
+    roomTo: Optional[int] = field(init=False, default=None)
+    cameraFront: Optional[str] = field(init=False, default=None)
+    cameraBack: Optional[str] = field(init=False, default=None)
 
     def getEntryC(self):
         """Returns a single transition actor entry"""
@@ -45,7 +45,7 @@ class SceneTransitionActors(Base):
     transform: Matrix
     headerIndex: int
 
-    entries: list[TransitionActor] = field(default_factory=list)
+    entries: list[TransitionActor] = field(init=False, default_factory=list)
 
     def __post_init__(self):
         actorObjList = getObjectList(self.sceneObj.children_recursive, "EMPTY", "Transition Actor")
@@ -121,8 +121,8 @@ class SceneTransitionActors(Base):
 class EntranceActor(Actor):
     """Defines an Entrance Actor"""
 
-    roomIndex: Optional[int] = None
-    spawnIndex: Optional[int] = None
+    roomIndex: Optional[int] = field(init=False, default=None)
+    spawnIndex: Optional[int] = field(init=False, default=None)
 
     def getEntryC(self):
         """Returns a single spawn entry"""
@@ -138,7 +138,7 @@ class SceneEntranceActors(Base):
     transform: Matrix
     headerIndex: int
 
-    entries: list[EntranceActor] = field(default_factory=list)
+    entries: list[EntranceActor] = field(init=False, default_factory=list)
 
     def __post_init__(self):
         """Returns the entrance actor list based on empty objects with the type 'Entrance'"""

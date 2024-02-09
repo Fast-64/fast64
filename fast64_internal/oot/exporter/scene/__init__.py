@@ -1,6 +1,7 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from mathutils import Matrix
 from bpy.types import Object
+from typing import Optional
 from ....utility import PluginError, CData, indent
 from ....f3d.f3d_gbi import TextureExportSettings, ScrollMethod
 from ...scene.properties import OOTSceneHeaderProperty
@@ -23,11 +24,11 @@ class Scene(Base):
     saveTexturesAsPNG: bool
     model: OOTModel
 
-    mainHeader: SceneHeader = None
-    altHeader: SceneAlternateHeader = None
-    rooms: RoomEntries = None
-    colHeader: CollisionHeader = None
-    hasAlternateHeaders: bool = False
+    mainHeader: Optional[SceneHeader] = field(init=False, default=None)
+    altHeader: Optional[SceneAlternateHeader] = field(init=False, default=None)
+    rooms: Optional[RoomEntries] = field(init=False, default=None)
+    colHeader: Optional[CollisionHeader] = field(init=False, default=None)
+    hasAlternateHeaders: bool = field(init=False, default=False)
 
     def getNewSceneHeader(self, headerProp: OOTSceneHeaderProperty, headerIndex: int = 0):
         """Returns a scene header"""

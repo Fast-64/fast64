@@ -19,7 +19,7 @@ class RoomEntries:
     transform: Matrix
     saveTexturesAsPNG: bool
 
-    entries: list[Room] = field(default_factory=list)
+    entries: list[Room] = field(init=False, default_factory=list)
 
     def __post_init__(self):
         """Returns the room list from empty objects with the type 'Room'"""

@@ -1,6 +1,6 @@
 import math
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from mathutils import Matrix, Vector
 from bpy.types import Mesh, Object
 from bpy.ops import object
@@ -158,6 +158,8 @@ class CollisionBase(Base):
 
                     # get surface type and collision poly data
                     useConveyor = colProp.conveyorOption != "None"
+                    conveyorSpeed = int(self.getPropValue(colProp, "conveyorSpeed"), base=16) if useConveyor else 0
+                    shouldKeepMomentum = colProp.conveyorKeepMomentum if useConveyor else False
                     surfaceType = SurfaceType(
                         colProp.cameraID,
                         colProp.exitID,
@@ -172,10 +174,9 @@ class CollisionBase(Base):
                         colProp.lightingSetting,
                         int(colProp.echo, base=16),
                         colProp.hookshotable,
-                        int(self.getPropValue(colProp, "conveyorSpeed"), base=16) if useConveyor else 0,
+                        conveyorSpeed + (4 if shouldKeepMomentum else 0),
                         int(colProp.conveyorRotation / (2 * math.pi) * 0x3F) if useConveyor else 0,
                         colProp.isWallDamage,
-                        colProp.conveyorKeepMomentum if useConveyor else False,
                         self.useMacros,
                     )
 
@@ -213,13 +214,13 @@ class CollisionHeader(CollisionBase):
     name: str
     sceneName: str
 
-    minBounds: tuple[int, int, int] = None
-    maxBounds: tuple[int, int, int] = None
-    vertices: CollisionVertices = None
-    collisionPoly: CollisionPolygons = None
-    surfaceType: SurfaceTypes = None
-    bgCamInfo: BgCamInformations = None
-    waterbox: WaterBoxes = None
+    minBounds: tuple[int, int, int] = field(init=False)
+    maxBounds: tuple[int, int, int] = field(init=False)
+    vertices: CollisionVertices = field(init=False)
+    collisionPoly: CollisionPolygons = field(init=False)
+    surfaceType: SurfaceTypes = field(init=False)
+    bgCamInfo: BgCamInformations = field(init=False)
+    waterbox: WaterBoxes = field(init=False)
 
     def __post_init__(self):
         # Ideally everything would be separated but this is complicated since it's all tied together

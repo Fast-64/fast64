@@ -67,30 +67,31 @@ class CutsceneData:
     csObj: Object
     useMacros: bool
     motionOnly: bool
-    csObjects: dict[str, list[Object]] = field(default_factory=dict)
-    csProp: Optional["OOTCutsceneProperty"] = None
-    totalEntries: int = 0
-    frameCount: int = 0
-    motionFrameCount: int = 0
-    camEndFrame: int = 0
 
-    destination: Optional[CutsceneCmdDestination] = None
-    actorCueList: list[CutsceneCmdActorCueList] = field(default_factory=list)
-    playerCueList: list[CutsceneCmdActorCueList] = field(default_factory=list)
-    camEyeSplineList: list[CutsceneCmdCamEyeSpline] = field(default_factory=list)
-    camATSplineList: list[CutsceneCmdCamATSpline] = field(default_factory=list)
-    camEyeSplineRelPlayerList: list[CutsceneCmdCamEyeSplineRelToPlayer] = field(default_factory=list)
-    camATSplineRelPlayerList: list[CutsceneCmdCamATSplineRelToPlayer] = field(default_factory=list)
-    camEyeList: list[CutsceneCmdCamEye] = field(default_factory=list)
-    camATList: list[CutsceneCmdCamAT] = field(default_factory=list)
-    textList: list[CutsceneCmdTextList] = field(default_factory=list)
-    miscList: list[CutsceneCmdMiscList] = field(default_factory=list)
-    rumbleList: list[CutsceneCmdRumbleControllerList] = field(default_factory=list)
-    transitionList: list[CutsceneCmdTransition] = field(default_factory=list)
-    lightSettingsList: list[CutsceneCmdLightSettingList] = field(default_factory=list)
-    timeList: list[CutsceneCmdTimeList] = field(default_factory=list)
-    seqList: list[CutsceneCmdStartStopSeqList] = field(default_factory=list)
-    fadeSeqList: list[CutsceneCmdFadeSeqList] = field(default_factory=list)
+    csObjects: dict[str, list[Object]] = field(init=False, default_factory=dict)
+    csProp: "OOTCutsceneProperty" = field(init=False)
+    totalEntries: int = field(init=False, default=0)
+    frameCount: int = field(init=False, default=0)
+    motionFrameCount: int = field(init=False, default=0)
+    camEndFrame: int = field(init=False, default=0)
+
+    destination: Optional[CutsceneCmdDestination] = field(init=False, default=None)
+    actorCueList: list[CutsceneCmdActorCueList] = field(init=False, default_factory=list)
+    playerCueList: list[CutsceneCmdActorCueList] = field(init=False, default_factory=list)
+    camEyeSplineList: list[CutsceneCmdCamEyeSpline] = field(init=False, default_factory=list)
+    camATSplineList: list[CutsceneCmdCamATSpline] = field(init=False, default_factory=list)
+    camEyeSplineRelPlayerList: list[CutsceneCmdCamEyeSplineRelToPlayer] = field(init=False, default_factory=list)
+    camATSplineRelPlayerList: list[CutsceneCmdCamATSplineRelToPlayer] = field(init=False, default_factory=list)
+    camEyeList: list[CutsceneCmdCamEye] = field(init=False, default_factory=list)
+    camATList: list[CutsceneCmdCamAT] = field(init=False, default_factory=list)
+    textList: list[CutsceneCmdTextList] = field(init=False, default_factory=list)
+    miscList: list[CutsceneCmdMiscList] = field(init=False, default_factory=list)
+    rumbleList: list[CutsceneCmdRumbleControllerList] = field(init=False, default_factory=list)
+    transitionList: list[CutsceneCmdTransition] = field(init=False, default_factory=list)
+    lightSettingsList: list[CutsceneCmdLightSettingList] = field(init=False, default_factory=list)
+    timeList: list[CutsceneCmdTimeList] = field(init=False, default_factory=list)
+    seqList: list[CutsceneCmdStartStopSeqList] = field(init=False, default_factory=list)
+    fadeSeqList: list[CutsceneCmdFadeSeqList] = field(init=False, default_factory=list)
 
     def __post_init__(self):
         self.csProp: "OOTCutsceneProperty" = self.csObj.ootCutsceneProperty
@@ -295,8 +296,6 @@ class CutsceneData:
         return newCamData
 
     def setCameraShotData(self):
-        """Returns every Camera Shot commands"""
-
         shotObjects = self.csObjects["camShot"]
 
         if len(shotObjects) > 0:
@@ -365,7 +364,8 @@ class CutsceneData:
                     isFadeOutSeq = entry.listType == "FadeOutSeqList"
                     cmdList = cmdToClass[entry.listType](None)
                     cmdList.entryTotal = len(entry.seqList)
-                    cmdList.type = "start" if entry.listType == "StartSeqList" else "stop"
+                    if not isFadeOutSeq:
+                        cmdList.type = "start" if entry.listType == "StartSeqList" else "stop"
                     for elem in entry.seqList:
                         data = cmdToClass[entry.listType.removesuffix("List")](None, elem.startFrame, elem.endFrame)
                         if isFadeOutSeq:
@@ -398,7 +398,7 @@ class CutsceneData:
                             case "LightSettingsList":
                                 cmdList.entries.append(
                                     CutsceneCmdLightSetting(
-                                        None, elem.startFrame, elem.endFrame, None, elem.lightSettingsIndex
+                                        None, elem.startFrame, elem.endFrame, False, elem.lightSettingsIndex
                                     )
                                 )
                             case "TimeList":

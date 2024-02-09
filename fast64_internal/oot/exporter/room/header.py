@@ -27,30 +27,30 @@ class RoomInfos(HeaderBase):
 
     ### General ###
 
-    index: Optional[int] = None
-    roomShape: Optional[str] = None
+    index: int = field(init=False)
+    roomShape: str = field(init=False)
 
     ### Behavior ###
 
-    roomBehavior: Optional[str] = None
-    playerIdleType: Optional[str] = None
-    disableWarpSongs: Optional[bool] = None
-    showInvisActors: Optional[bool] = None
+    roomBehavior: str = field(init=False)
+    playerIdleType: str = field(init=False)
+    disableWarpSongs: bool = field(init=False)
+    showInvisActors: bool = field(init=False)
 
     ### Skybox And Time ###
 
-    disableSky: Optional[bool] = None
-    disableSunMoon: Optional[bool] = None
-    hour: Optional[int] = None
-    minute: Optional[int] = None
-    timeSpeed: Optional[float] = None
-    echo: Optional[str] = None
+    disableSky: bool = field(init=False)
+    disableSunMoon: bool = field(init=False)
+    hour: int = field(init=False)
+    minute: int = field(init=False)
+    timeSpeed: float = field(init=False)
+    echo: str = field(init=False)
 
     ### Wind ###
 
-    setWind: Optional[bool] = None
-    direction: tuple[int, int, int] = None
-    strength: Optional[int] = None
+    setWind: bool = field(init=False)
+    direction: tuple[int, int, int] = field(init=False)
+    strength: int = field(init=False)
 
     def __post_init__(self):
         self.index = self.props.roomIndex
@@ -94,7 +94,7 @@ class RoomInfos(HeaderBase):
 class RoomObjects(HeaderBase):
     """This class defines an OoT object array"""
 
-    objectList: list[str] = field(default_factory=list)
+    objectList: list[str] = field(init=False, default_factory=list)
 
     def __post_init__(self):
         for objProp in self.props.objectList:
@@ -137,7 +137,7 @@ class RoomObjects(HeaderBase):
 class RoomActors(HeaderBase):
     """This class defines an OoT actor array"""
 
-    actorList: list[Actor] = field(default_factory=list)
+    actorList: list[Actor] = field(init=False, default_factory=list)
 
     def __post_init__(self):
         actorObjList = getObjectList(self.sceneObj.children_recursive, "EMPTY", "Actor", parentObj=self.roomObj)
@@ -210,9 +210,9 @@ class RoomActors(HeaderBase):
 class RoomHeader(HeaderBase):
     """This class defines a room header"""
 
-    infos: Optional[RoomInfos] = None
-    objects: Optional[RoomObjects] = None
-    actors: Optional[RoomActors] = None
+    infos: Optional[RoomInfos] = field(init=False, default=None)
+    objects: Optional[RoomObjects] = field(init=False, default=None)
+    actors: Optional[RoomActors] = field(init=False, default=None)
 
     def __post_init__(self):
         self.infos = RoomInfos(None, self.props)
@@ -242,7 +242,8 @@ class RoomAlternateHeader:
     """This class stores alternate header data"""
 
     name: str
-    childNight: Optional[RoomHeader] = None
-    adultDay: Optional[RoomHeader] = None
-    adultNight: Optional[RoomHeader] = None
-    cutscenes: list[RoomHeader] = field(default_factory=list)
+
+    childNight: Optional[RoomHeader] = field(init=False, default=None)
+    adultDay: Optional[RoomHeader] = field(init=False, default=None)
+    adultNight: Optional[RoomHeader] = field(init=False, default=None)
+    cutscenes: list[RoomHeader] = field(init=False, default_factory=list)

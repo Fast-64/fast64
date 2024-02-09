@@ -14,7 +14,8 @@ class CutsceneCmdCamPoint(CutsceneCmdBase):
     frame: Optional[int] = None
     viewAngle: Optional[float] = None
     pos: list[int] = field(default_factory=list)
-    paramNumber: int = 8
+
+    paramNumber: int = field(init=False, default=8)
 
     def __post_init__(self):
         if self.params is not None:
@@ -46,9 +47,9 @@ class CutsceneCmdCamPoint(CutsceneCmdBase):
 class CutsceneCmdCamEyeSpline(CutsceneCmdBase):
     """This class contains the Camera Eye Spline data"""
 
-    entries: list[CutsceneCmdCamPoint] = field(default_factory=list)
-    paramNumber: int = 2
-    listName: str = "camEyeSplineList"
+    entries: list[CutsceneCmdCamPoint] = field(init=False, default_factory=list)
+    paramNumber: int = field(init=False, default=2)
+    listName: str = field(init=False, default="camEyeSplineList")
 
     def __post_init__(self):
         if self.params is not None:
@@ -67,9 +68,9 @@ class CutsceneCmdCamEyeSpline(CutsceneCmdBase):
 class CutsceneCmdCamATSpline(CutsceneCmdBase):
     """This class contains the Camera AT (look-at) Spline data"""
 
-    entries: list[CutsceneCmdCamPoint] = field(default_factory=list)
-    paramNumber: int = 2
-    listName: str = "camATSplineList"
+    entries: list[CutsceneCmdCamPoint] = field(init=False, default_factory=list)
+    paramNumber: int = field(init=False, default=2)
+    listName: str = field(init=False, default="camATSplineList")
 
     def __post_init__(self):
         if self.params is not None:
@@ -88,9 +89,9 @@ class CutsceneCmdCamATSpline(CutsceneCmdBase):
 class CutsceneCmdCamEyeSplineRelToPlayer(CutsceneCmdBase):
     """This class contains the Camera Eye Spline Relative to the Player data"""
 
-    entries: list[CutsceneCmdCamPoint] = field(default_factory=list)
-    paramNumber: int = 2
-    listName: str = "camEyeSplineRelPlayerList"
+    entries: list[CutsceneCmdCamPoint] = field(init=False, default_factory=list)
+    paramNumber: int = field(init=False, default=2)
+    listName: str = field(init=False, default="camEyeSplineRelPlayerList")
 
     def __post_init__(self):
         if self.params is not None:
@@ -109,9 +110,9 @@ class CutsceneCmdCamEyeSplineRelToPlayer(CutsceneCmdBase):
 class CutsceneCmdCamATSplineRelToPlayer(CutsceneCmdBase):
     """This class contains the Camera AT Spline Relative to the Player data"""
 
-    entries: list[CutsceneCmdCamPoint] = field(default_factory=list)
-    paramNumber: int = 2
-    listName: str = "camATSplineRelPlayerList"
+    entries: list[CutsceneCmdCamPoint] = field(init=False, default_factory=list)
+    paramNumber: int = field(init=False, default=2)
+    listName: str = field(init=False, default="camATSplineRelPlayerList")
 
     def __post_init__(self):
         if self.params is not None:
@@ -131,9 +132,9 @@ class CutsceneCmdCamEye(CutsceneCmdBase):
     """This class contains a single Camera Eye point"""
 
     # This feature is not used in the final game and lacks polish, it is recommended to use splines in all cases.
-    entries: list = field(default_factory=list)
-    paramNumber: int = 2
-    listName: str = "camEyeList"
+    entries: list = field(init=False, default_factory=list)
+    paramNumber: int = field(init=False, default=2)
+    listName: str = field(init=False, default="camEyeList")
 
     def __post_init__(self):
         if self.params is not None:
@@ -149,9 +150,9 @@ class CutsceneCmdCamAT(CutsceneCmdBase):
     """This class contains a single Camera AT point"""
 
     # This feature is not used in the final game and lacks polish, it is recommended to use splines in all cases.
-    entries: list = field(default_factory=list)
-    paramNumber: int = 2
-    listName: str = "camATList"
+    entries: list = field(init=False, default_factory=list)
+    paramNumber: int = field(init=False, default=2)
+    listName: str = field(init=False, default="camATList")
 
     def __post_init__(self):
         if self.params is not None:

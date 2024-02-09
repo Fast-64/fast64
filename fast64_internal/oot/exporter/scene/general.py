@@ -88,8 +88,8 @@ class SceneLighting(Base):
     props: OOTSceneHeaderProperty
     name: str
 
-    envLightMode: Optional[str] = None
-    settings: list[EnvLightSettings] = field(default_factory=list)
+    envLightMode: str = field(init=False)
+    settings: list[EnvLightSettings] = field(init=False, default_factory=list)
 
     def __post_init__(self):
         self.envLightMode = self.getPropValue(self.props, "skyboxLighting")
@@ -152,30 +152,30 @@ class SceneInfos(Base):
 
     ### General ###
 
-    keepObjectID: Optional[str] = None
-    naviHintType: Optional[str] = None
-    drawConfig: Optional[str] = None
-    appendNullEntrance: Optional[bool] = None
-    useDummyRoomList: Optional[bool] = None
+    keepObjectID: str = field(init=False)
+    naviHintType: str = field(init=False)
+    drawConfig: str = field(init=False)
+    appendNullEntrance: bool = field(init=False)
+    useDummyRoomList: bool = field(init=False)
 
     ### Skybox And Sound ###
 
     # Skybox
-    skyboxID: Optional[str] = None
-    skyboxConfig: Optional[str] = None
+    skyboxID: str = field(init=False)
+    skyboxConfig: str = field(init=False)
 
     # Sound
-    sequenceID: Optional[str] = None
-    ambienceID: Optional[str] = None
-    specID: Optional[str] = None
+    sequenceID: str = field(init=False)
+    ambienceID: str = field(init=False)
+    specID: str = field(init=False)
 
     ### Camera And World Map ###
 
     # World Map
-    worldMapLocation: Optional[str] = None
+    worldMapLocation: str = field(init=False)
 
     # Camera
-    sceneCamType: Optional[str] = None
+    sceneCamType: str = field(init=False)
 
     def __post_init__(self):
         self.keepObjectID = self.getPropValue(self.props, "globalObject")
@@ -214,7 +214,8 @@ class SceneExits(Base):
 
     props: OOTSceneHeaderProperty
     name: str
-    exitList: list[tuple[int, str]] = field(default_factory=list)
+
+    exitList: list[tuple[int, str]] = field(init=False, default_factory=list)
 
     def __post_init__(self):
         # TODO: proper implementation of exits

@@ -9,12 +9,13 @@ from .common import CutsceneCmdBase
 class CutsceneCmdText(CutsceneCmdBase):
     """This class contains Text command data"""
 
-    textId: Optional[int] = None
-    type: Optional[str] = None
-    altTextId1: Optional[int] = None
-    altTextId2: Optional[int] = None
-    paramNumber: int = 6
-    id: str = "Text"
+    textId: int = 0
+    type: str = str()
+    altTextId1: int = 0
+    altTextId2: int = 0
+
+    paramNumber: int = field(init=False, default=6)
+    id: str = field(init=False, default="Text")
 
     def __post_init__(self):
         if self.params is not None:
@@ -27,14 +28,6 @@ class CutsceneCmdText(CutsceneCmdBase):
 
     def getCmd(self):
         self.validateFrames()
-        if self.textId is None:
-            raise PluginError("ERROR: ``textId`` is None!")
-        if self.type is None:
-            raise PluginError("ERROR: ``type`` is None!")
-        if self.altTextId1 is None:
-            raise PluginError("ERROR: ``altTextId1`` is None!")
-        if self.altTextId2 is None:
-            raise PluginError("ERROR: ``altTextId2`` is None!")
         return indent * 3 + (
             f"CS_TEXT("
             + f"{self.textId}, {self.startFrame}, {self.endFrame}, {self.type}, {self.altTextId1}, {self.altTextId2}"
@@ -46,8 +39,8 @@ class CutsceneCmdText(CutsceneCmdBase):
 class CutsceneCmdTextNone(CutsceneCmdBase):
     """This class contains Text None command data"""
 
-    paramNumber: int = 2
-    id: str = "None"
+    paramNumber: int = field(init=False, default=2)
+    id: str = field(init=False, default="None")
 
     def __post_init__(self):
         if self.params is not None:
@@ -63,10 +56,11 @@ class CutsceneCmdTextNone(CutsceneCmdBase):
 class CutsceneCmdTextOcarinaAction(CutsceneCmdBase):
     """This class contains Text Ocarina Action command data"""
 
-    ocarinaActionId: Optional[str] = None
-    messageId: Optional[int] = None
-    paramNumber: int = 4
-    id: str = "OcarinaAction"
+    ocarinaActionId: str = str()
+    messageId: int = 0
+
+    paramNumber: int = field(init=False, default=4)
+    id: str = field(init=False, default="OcarinaAction")
 
     def __post_init__(self):
         if self.params is not None:
@@ -92,10 +86,12 @@ class CutsceneCmdTextOcarinaAction(CutsceneCmdBase):
 class CutsceneCmdTextList(CutsceneCmdBase):
     """This class contains Text List command data"""
 
-    entryTotal: Optional[int] = None
-    entries: list[CutsceneCmdText | CutsceneCmdTextNone | CutsceneCmdTextOcarinaAction] = field(default_factory=list)
-    paramNumber: int = 1
-    listName: str = "textList"
+    entryTotal: int = field(init=False, default=0)
+    entries: list[CutsceneCmdText | CutsceneCmdTextNone | CutsceneCmdTextOcarinaAction] = field(
+        init=False, default_factory=list
+    )
+    paramNumber: int = field(init=False, default=1)
+    listName: str = field(init=False, default="textList")
 
     def __post_init__(self):
         if self.params is not None:

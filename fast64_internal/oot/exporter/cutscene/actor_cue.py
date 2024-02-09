@@ -15,7 +15,8 @@ class CutsceneCmdActorCue(CutsceneCmdBase):
     startPos: list[int] = field(default_factory=list)
     endPos: list[int] = field(default_factory=list)
     isPlayer: bool = False
-    paramNumber: int = 15
+
+    paramNumber: int = field(init=False, default=15)
 
     def __post_init__(self):
         if self.params is not None:
@@ -53,9 +54,10 @@ class CutsceneCmdActorCueList(CutsceneCmdBase):
     isPlayer: bool = False
     commandType: Optional[str] = None
     entryTotal: Optional[int] = None
-    entries: list[CutsceneCmdActorCue] = field(default_factory=list)
-    paramNumber: int = 2
-    listName: str = "actorCueList"
+
+    entries: list[CutsceneCmdActorCue] = field(init=False, default_factory=list)
+    paramNumber: int = field(init=False, default=2)
+    listName: str = field(init=False, default="actorCueList")
 
     def __post_init__(self):
         if self.params is not None:
