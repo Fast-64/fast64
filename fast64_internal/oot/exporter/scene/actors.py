@@ -48,12 +48,20 @@ class SceneTransitionActors:
     entries: list[TransitionActor] = field(init=False, default_factory=list)
 
     def __post_init__(self):
+        # we need to get the corresponding room index if a transition actor
+        # do not change rooms
+        roomObjList = getObjectList(self.sceneObj.children_recursive, "EMPTY", "Room")
+        actorToRoom: dict[Object, Object] = {}
+        for obj in roomObjList:
+            for childObj in obj.children_recursive:
+                if childObj.type == "EMPTY" and childObj.ootEmptyType == "Transition Actor":
+                    actorToRoom[childObj] = obj
+
         actorObjList = getObjectList(self.sceneObj.children_recursive, "EMPTY", "Transition Actor")
-        actorObjList.sort(key=lambda obj: obj.ootTransitionActorProperty.fromRoom.ootRoomHeader.roomIndex)
+        actorObjList.sort(key=lambda obj: actorToRoom[obj].ootRoomHeader.roomIndex)
+
         for obj in actorObjList:
             transActorProp = obj.ootTransitionActorProperty
-            self.roomIndex = transActorProp.fromRoom.roomIndex
-
             if (
                 Utility.isCurrentHeaderValid(transActorProp.actor.headerSettings, self.headerIndex)
                 and transActorProp.actor.actorID != "None"
@@ -67,7 +75,7 @@ class SceneTransitionActors:
                     fromIndex = transActorProp.fromRoom.ootRoomHeader.roomIndex
                     toIndex = transActorProp.toRoom.ootRoomHeader.roomIndex
                 else:
-                    fromIndex = toIndex = self.roomIndex
+                    fromIndex = toIndex = actorToRoom[obj].ootRoomHeader.roomIndex
                 front = (fromIndex, Utility.getPropValue(transActorProp, "cameraTransitionFront"))
                 back = (toIndex, Utility.getPropValue(transActorProp, "cameraTransitionBack"))
 

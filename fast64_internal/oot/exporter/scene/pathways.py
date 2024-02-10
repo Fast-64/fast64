@@ -55,7 +55,7 @@ class ScenePathways:
         for obj in pathObjList:
             relativeTransform = self.transform @ self.sceneObj.matrix_world.inverted() @ obj.matrix_world
             pathProps = obj.ootSplineProperty
-            isHeaderValid = self.isCurrentHeaderValid(pathProps.headerSettings, self.headerIndex)
+            isHeaderValid = Utility.isCurrentHeaderValid(pathProps.headerSettings, self.headerIndex)
             if isHeaderValid and Utility.validateCurveData(obj):
                 if pathProps.index not in pathFromIndex:
                     pathFromIndex[pathProps.index] = Path(

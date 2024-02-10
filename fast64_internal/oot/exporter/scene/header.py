@@ -12,7 +12,7 @@ from .pathways import ScenePathways
 
 
 @dataclass
-class SceneHeader(Utility):
+class SceneHeader:
     """This class defines a scene header"""
 
     props: OOTSceneHeaderProperty
