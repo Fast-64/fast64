@@ -2103,6 +2103,7 @@ def update_preset_manual_v4(material, preset):
         material.f3d_update_flag = True
         with bpy.context.temp_override(material=material):
             bpy.ops.script.execute_preset(filepath=findF3DPresetPath(preset), menu_idname="MATERIAL_MT_f3d_presets")
+        rendermode_preset_to_advanced(material)
         material.f3d_update_flag = False
 
 
