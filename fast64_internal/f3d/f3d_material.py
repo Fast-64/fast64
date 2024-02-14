@@ -255,7 +255,7 @@ def does_blender_use_mix(settings: "RDPSettings", mix: str, default_for_no_rende
     return settings.blend_b1 == mix or (is_two_cycle and settings.blend_b2 == mix)
 
 
-def is_blender_lerp(
+def is_blender_equation_equal(
     settings: "RDPSettings", cycle: int, p: str, a: str, m: str, b: str, default_for_no_rendermode: bool = False
 ) -> bool:
     assert cycle in {1, 2, -1}  # -1 = last cycle
@@ -272,7 +272,7 @@ def is_blender_lerp(
 
 
 def is_blender_doing_fog(settings: "RDPSettings", default_for_no_rendermode: bool) -> bool:
-    return is_blender_lerp(
+    return is_blender_equation_equal(
         settings,
         # If 2 cycle, fog must be in first cycle.
         1,
@@ -293,7 +293,9 @@ def get_blend_method(material: bpy.types.Material) -> str:
         return drawLayerSM64Alpha[material.f3d_mat.draw_layer.sm64]
     if settings.cvg_x_alpha:
         return "CLIP"
-    if settings.force_bl and is_blender_lerp(settings, -1, "G_BL_CLR_IN", "G_BL_A_IN", "G_BL_CLR_MEM", "G_BL_1MA"):
+    if settings.force_bl and is_blender_equation_equal(
+        settings, -1, "G_BL_CLR_IN", "G_BL_A_IN", "G_BL_CLR_MEM", "G_BL_1MA"
+    ):
         return "BLEND"
     return "OPAQUE"
 
