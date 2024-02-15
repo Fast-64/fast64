@@ -1409,6 +1409,14 @@ class F3D:
         self.G_RM_FOG_PRIM_A = GBL_c1(G_BL_CLR_FOG, G_BL_A_FOG, G_BL_CLR_IN, G_BL_1MA)
         self.G_RM_PASS = GBL_c1(G_BL_CLR_IN, G_BL_0, G_BL_CLR_IN, G_BL_1)
 
+        self.rendermodePresetsWithoutFlags = {
+            "G_RM_NOOP",
+            "G_RM_NOOP2",
+            "G_RM_FOG_SHADE_A",
+            "G_RM_FOG_PRIM_A",
+            "G_RM_PASS",
+        }
+
         # G_SETCONVERT: K0-5
 
         self.G_CV_K0 = 175
