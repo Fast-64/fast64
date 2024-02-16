@@ -1,9 +1,15 @@
-import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operator
+import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operator, idprop
+from pathlib import Path
 from math import pi, ceil, degrees, radians, copysign
 from mathutils import *
 from .utility_anim import *
 from typing import Callable, Iterable, Any, Tuple, Optional
 from bpy.types import UILayout
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from fast64_internal.f3d.f3d_gbi import FModel
 
 CollectionProperty = Any  # collection prop as defined by using bpy.props.CollectionProperty
 
@@ -51,34 +57,91 @@ enumCompressionFormat = [
 ]
 
 
-def isPowerOf2(n):
+def isPowerOf2(n: int | float) -> bool:
+    """Check if a number is a power of 2
+
+    Args:
+        n (int | float): Number to check
+
+    Returns:
+        bool: True if n is a power of 2
+    """
     return (n & (n - 1) == 0) and n != 0
 
 
-def log2iRoundDown(n):
+def log2iRoundDown(n: int | float) -> int:
+    """Calculate the log base 2 of a number, rounding down
+    
+    Args:
+        n (int | float): Number to calculate log base 2 of
+        
+    Returns:
+        int: Log base 2 of n, rounded down
+    """
     assert n > 0
     return int(math.floor(math.log2(n)))
 
 
-def log2iRoundUp(n):
+def log2iRoundUp(n: int | float) -> int:
+    """Calculate the log base 2 of a number, rounding up
+
+    Args:
+        n (int | float): Number to calculate log base 2 of
+
+    Returns:
+        int: Log base 2 of n, rounded up
+    """
     assert n > 0
     return int(math.ceil(math.log2(n)))
 
 
-def roundDownToPowerOf2(n):
+def roundDownToPowerOf2(n: int | float) -> int:
+    """Round a number log2 down to the nearest power of 2
+    
+    Args:
+        n (int | float): Number to round down
+
+    Returns:
+        int: Nearest power of 2
+    """
     return 1 << log2iRoundDown(n)
 
 
-def roundUpToPowerOf2(n):
+def roundUpToPowerOf2(n: int | float) -> int:
+    """Round a number log 2 up to the nearest power of 2
+
+    Args:
+        n (int | float): Number to round up
+
+    Returns:
+        int: Nearest power of 2
+    """
     return 1 << log2iRoundUp(n)
 
 
-def getDeclaration(data, name):
+def getDeclaration(data: str, name: str) -> re.Match | None:
+    """Get a declaration from a string
+
+    Args:
+        data (str): String to search
+        name (str): Name of declaration
+
+    Returns:
+        re.Match | None: Match object if found, None otherwise
+    """
     matchResult = re.search("extern\s*[A-Za-z0-9\_]*\s*" + re.escape(name) + "\s*(\[[^;\]]*\])?;\s*", data, re.DOTALL)
     return matchResult
 
 
-def hexOrDecInt(value):
+def hexOrDecInt(value: str | int | float) -> int:
+    """Convert a string to an int, handling hex and binary
+
+    Args:
+        value (str | int | float): Value to convert
+
+    Returns:
+        int: Converted value
+    """
     if isinstance(value, int):
         return value
     elif "<<" in value:
@@ -93,14 +156,33 @@ def hexOrDecInt(value):
         return int(value)
 
 
-def getOrMakeVertexGroup(obj, groupName):
+def getOrMakeVertexGroup(obj: bpy.types.Object, groupName: str) -> bpy.types.VertexGroup:
+    """Get a vertex group from an object, creating it if it doesn't exist
+
+    Args:
+        obj (bpy.types.Object): Object to get vertex group from
+        groupName (str): Name of vertex group
+
+    Returns:
+        bpy.types.VertexGroup: Vertex group
+    """
     for group in obj.vertex_groups:
         if group.name == groupName:
             return group
     return obj.vertex_groups.new(name=groupName)
 
 
-def unhideAllAndGetHiddenState(scene):
+def unhideAllAndGetHiddenState(scene: bpy.types.Scene) -> Tuple[list[bpy.types.Object], list[bpy.types.Collection]]:
+    """Unhide all objects and collections, and return the hidden state
+       Will switch to object mode if not already in it
+    
+    Args:
+        scene (bpy.types.Scene): Scene to unhide objects in
+
+    Returns:
+        Tuple[list[bpy.types.Object], list[bpy.types.Collection]]: Hidden objects and collections
+    """
+    
     hiddenObjs = []
     for obj in scene.objects:
         if obj.hide_get():
@@ -126,7 +208,13 @@ def unhideAllAndGetHiddenState(scene):
     return hiddenState
 
 
-def restoreHiddenState(hiddenState):
+def restoreHiddenState(hiddenState: Tuple[list[bpy.types.Object], list[bpy.types.Collection]]) -> None:
+    """Restore the hidden state of objects and collections
+        Expects the the output returned by unhideAllAndGetHiddenState
+
+    Args:
+        hiddenState (Tuple[list[bpy.types.Object], list[bpy.types.Collection]]): Hidden objects and collections
+    """
     # as returned by unhideAllAndGetHiddenState
     (hiddenObjs, hiddenLayerCols) = hiddenState
 
@@ -137,20 +225,43 @@ def restoreHiddenState(hiddenState):
         layerCol.hide_viewport = True
 
 
-def readFile(filepath):
+def readFile(filepath: str | Path) -> str:
+    """Read a file and return its contents
+
+    Args:
+        filepath (str): Path to file
+
+    Returns:
+        str: File contents
+    """
     datafile = open(filepath, "r", newline="\n", encoding="utf-8")
     data = datafile.read()
     datafile.close()
     return data
 
 
-def writeFile(filepath, data):
+def writeFile(filepath: str, data: str) -> None:
+    """Write data to a file
+
+    Args:
+        filepath (str): Path to file
+        data (str): Data to write
+    """
     datafile = open(filepath, "w", newline="\n", encoding="utf-8")
     datafile.write(data)
     datafile.close()
 
 
-def checkObjectReference(obj, title):
+def checkObjectReference(obj: bpy.types.Object, title: str) -> None:
+    """Check if an object is in the current view layer
+
+    Args:
+        obj (bpy.types.Object): Object to check
+        title (str): Title of error message
+
+    Raises:
+        PluginError: If object is not in the current view layer
+    """
     if obj.name not in bpy.context.view_layer.objects:
         raise PluginError(
             title + " not in current view layer.\n The object is either in a different view layer or is deleted."
@@ -158,12 +269,24 @@ def checkObjectReference(obj, title):
 
 
 def selectSingleObject(obj: bpy.types.Object):
+    """Select a single object and make it active
+        First deselects all objects before selecting the one provided
+        
+    Args:
+        obj (bpy.types.Object): Object to select
+    """
     bpy.ops.object.select_all(action="DESELECT")
     obj.select_set(True)
     bpy.context.view_layer.objects.active = obj
 
 
-def parentObject(parent, child):
+def parentObject(parent: bpy.types.Object, child: bpy.types.Object) -> None:
+    """Link two objects together, making the parent the active object
+
+    Args:
+        parent (bpy.types.Object): Parent object
+        child (bpy.types.Object): Child object
+    """
     bpy.ops.object.select_all(action="DESELECT")
 
     child.select_set(True)
@@ -172,7 +295,18 @@ def parentObject(parent, child):
     bpy.ops.object.parent_set(type="OBJECT", keep_transform=True)
 
 
-def getFMeshName(vertexGroup, namePrefix, drawLayer, isSkinned):
+def getFMeshName(vertexGroup: str, namePrefix: str, drawLayer: int, isSkinned: bool) -> str:
+    """Get a formatted mesh name
+
+    Args:
+        vertexGroup (str): Vertex group name
+        namePrefix (str): Name prefix
+        drawLayer (int): Draw layer
+        isSkinned (bool): Whether the mesh is skinned
+
+    Returns:
+        str: Formatted mesh name
+    """
     fMeshName = toAlnum(namePrefix + ("_" if namePrefix != "" else "") + vertexGroup)
     if isSkinned:
         fMeshName += "_skinned"
@@ -182,7 +316,17 @@ def getFMeshName(vertexGroup, namePrefix, drawLayer, isSkinned):
     return fMeshName
 
 
-def checkUniqueBoneNames(fModel, name, vertexGroup):
+def checkUniqueBoneNames(fModel: FModel, name: str, vertexGroup: str) -> None:
+    """Check if a bone name is unique
+
+    Args:
+        fModel (FModel): FModel to check
+        name (str): Bone name
+        vertexGroup (str): Vertex group name
+
+    Raises:
+        PluginError: If the bone name is not unique
+    """
     if name in fModel.meshes:
         raise PluginError(
             vertexGroup
@@ -192,21 +336,45 @@ def checkUniqueBoneNames(fModel, name, vertexGroup):
         )
 
 
-def getGroupIndexFromname(obj, name):
+def getGroupIndexFromname(obj: bpy.types.Object, name: str) -> int | None:
+    """Get the index of a vertex group from its name
+
+    Args:
+        obj (bpy.types.Object): Object to get vertex group from
+        name (str): Name of vertex group
+
+    Returns:
+        int | None: Index of vertex group, or None if not found
+    """
     for group in obj.vertex_groups:
         if group.name == name:
             return group.index
     return None
 
 
-def getGroupNameFromIndex(obj, index):
+def getGroupNameFromIndex(obj: bpy.types.Object, index: int) -> str | None:
+    """Get the name of a vertex group from its index
+
+    Args:
+        obj (bpy.types.Object): Object to get vertex group from
+        index (int): Index of vertex group
+
+    Returns:
+        str | None: Name of vertex group, or None if not found
+    """
     for group in obj.vertex_groups:
         if group.index == index:
             return group.name
     return None
 
 
-def copyPropertyCollection(oldProp, newProp):
+def copyPropertyCollection(oldProp: bpy.types.CollectionProperty, newProp: bpy.types.CollectionProperty) -> None:
+    """Copy a property collection to a new one
+
+    Args:
+        oldProp (bpy.types.CollectionProperty): Old property collection
+        newProp (bpy.types.CollectionProperty): New property collection
+    """
     newProp.clear()
     for item in oldProp:
         newItem = newProp.add()
@@ -218,7 +386,13 @@ def copyPropertyCollection(oldProp, newProp):
             newItem = item
 
 
-def copyPropertyGroup(oldProp, newProp):
+def copyPropertyGroup(oldProp: bpy.types.PropertyGroup, newProp: bpy.types.PropertyGroup) -> None:
+    """Copy a property group to a new one
+
+    Args:
+        oldProp (bpy.types.PropertyGroup): Old property group
+        newProp (bpy.types.PropertyGroup): New property group
+    """
     for sub_value_attr in oldProp.bl_rna.properties.keys():
         if sub_value_attr == "rna_type":
             continue
@@ -232,8 +406,17 @@ def copyPropertyGroup(oldProp, newProp):
             setattr(newProp, sub_value_attr, sub_value)
 
 
-def get_attr_or_property(prop: dict | object, attr: str, newProp: dict | object):
-    """Safely get an attribute or old dict property"""
+def get_attr_or_property(prop: dict[str, Any] | bpy.types.Property, attr: str, newProp: dict[str, Any] | bpy.types.Property) -> Any:
+    """Safely get an attribute or old dict property, and map it to a new property if necessary
+
+    Args:
+        prop (dict[str, Any] | bpy.types.Property): Property to get from
+        attr (str): Attribute to get
+        newProp (dict[str, Any] | bpy.types.Property): New property to map to
+
+    Returns:
+        Any: Value of attribute or property
+    """
     val = getattr(prop, attr, prop.get(attr))
 
     # might be a dead enum that needs to be mapped back
@@ -249,8 +432,15 @@ def get_attr_or_property(prop: dict | object, attr: str, newProp: dict | object)
     return val
 
 
-def iter_prop(prop):
-    """Return iterable keys or attributes"""
+def iter_prop(prop: bpy.types.PropertyGroup | bpy.types.CollectionProperty | idprop.types.IDPropertyGroup) -> Iterable[str]:
+    """Return iterable keys or attributes of a property group
+
+    Args:
+        prop (bpy.types.PropertyGroup | bpy.types.CollectionProperty | idprop.types.IDPropertyGroup): Property group to iterate
+
+    Returns:
+        Iterable[str]: Iterable keys or attributes
+    """
     if isinstance(prop, bpy.types.PropertyGroup):
         return prop.bl_rna.properties.keys()
     elif type(prop).__name__ == "bpy_prop_collection_idprop":
@@ -261,8 +451,13 @@ def iter_prop(prop):
     return prop
 
 
-def recursiveCopyOldPropertyGroup(oldProp, newProp):
-    """Recursively go through an old property group, copying to the new one"""
+def recursiveCopyOldPropertyGroup(oldProp: bpy.types.PropertyGroup, newProp: bpy.types.PropertyGroup) -> None:
+    """Recursively go through an old property group, copying to the new one
+
+    Args:
+        oldProp (bpy.types.PropertyGroup): Old property group
+        newProp (bpy.types.PropertyGroup): New property group
+    """
     for sub_value_attr in iter_prop(oldProp):
         if sub_value_attr == "rna_type":
             continue
@@ -278,7 +473,16 @@ def recursiveCopyOldPropertyGroup(oldProp, newProp):
             setattr(newProp, sub_value_attr, sub_value)
 
 
-def propertyCollectionEquals(oldProp, newProp):
+def propertyCollectionEquals(oldProp: bpy.types.CollectionProperty, newProp: bpy.types.CollectionProperty) -> bool:
+    """Check if two property collections are equal
+
+    Args:
+        oldProp (bpy.types.CollectionProperty): Old property collection
+        newProp (bpy.types.CollectionProperty): New property collection
+
+    Returns:
+        bool: True if the collections are equal
+    """
     if len(oldProp) != len(newProp):
         print("Unequal size: " + str(oldProp) + " " + str(len(oldProp)) + ", " + str(newProp) + str(len(newProp)))
         return False
@@ -305,7 +509,16 @@ def propertyCollectionEquals(oldProp, newProp):
     return equivalent
 
 
-def propertyGroupEquals(oldProp, newProp):
+def propertyGroupEquals(oldProp: bpy.types.PropertyGroup, newProp: bpy.types.PropertyGroup) -> bool:
+    """Check if two property groups are equal
+
+    Args:
+        oldProp (bpy.types.PropertyGroup): Old property group
+        newProp (bpy.types.PropertyGroup): New property group
+
+    Returns:
+        bool: True if the groups are equal
+    """
     equivalent = True
     for sub_value_attr in oldProp.bl_rna.properties.keys():
         if sub_value_attr == "rna_type":
@@ -332,7 +545,14 @@ def propertyGroupEquals(oldProp, newProp):
     return equivalent
 
 
-def writeCData(data, headerPath, sourcePath):
+def writeCData(data: "CData", headerPath: str, sourcePath :str) -> None:
+    """Write C data to a header and source file
+
+    Args:
+        data (CData): Data to write
+        headerPath (str): Path to header file
+        sourcePath (str): Path to source file
+    """
     sourceFile = open(sourcePath, "w", newline="\n", encoding="utf-8")
     sourceFile.write(data.source)
     sourceFile.close()
@@ -342,24 +562,48 @@ def writeCData(data, headerPath, sourcePath):
     headerFile.close()
 
 
-def writeCDataSourceOnly(data, sourcePath):
+def writeCDataSourceOnly(data: "CData", sourcePath: str) -> None:
+    """Write C data to a source file
+
+    Args:
+        data (CData): Data to write
+        sourcePath (str): Path to source file
+    """
     sourceFile = open(sourcePath, "w", newline="\n", encoding="utf-8")
     sourceFile.write(data.source)
     sourceFile.close()
 
 
-def writeCDataHeaderOnly(data, headerPath):
+def writeCDataHeaderOnly(data: "CData", headerPath: str) -> None:
+    """Write C data to a header file
+
+    Args:
+        data (CData): Data to write
+        headerPath (str): Path to header file
+    """
     headerFile = open(headerPath, "w", newline="\n", encoding="utf-8")
     headerFile.write(data.header)
     headerFile.close()
 
 
 class CData:
+    """Class to hold C data, with a header and source file
+    
+    Attributes:
+        source (str): Source file contents
+        header (str): Header file contents
+    """
     def __init__(self):
+        """Initialize the CData class"""
         self.source = ""
         self.header = ""
 
-    def append(self, other):
+    def append(self, other: "CData") -> None:
+        """Append another CData to this one
+
+        Args:
+            other (CData): Data to append
+        """
         self.source += other.source
         self.header += other.header
 
@@ -376,27 +620,56 @@ class CScrollData(CData):
 
         CData.__init__(self)
 
-    def append(self, other):
+    def append(self, other: "CScrollData" | CData) -> None:
+        """Append another CData or CScrollData to this one
+
+        Args:
+            other (CScrollData&quot; | CData): Data to append
+        """
         if isinstance(other, CScrollData):
             self.functionCalls.extend(other.functionCalls)
         CData.append(self, other)
 
-    def hasScrolling(self):
+    def hasScrolling(self) -> bool:
+        """Check if there are any function calls
+
+        Returns:
+            bool: True if there are function calls
+        """
         return len(self.functionCalls) > 0
 
 
-def getObjectFromData(data):
+# ! Seemingly unused
+def getObjectFromData(data: bpy.types.Object) -> bpy.types.Object | None:
+    """Get an object from bpy based on its data
+
+    Args:
+        data (bpy.types.Object): Data to get object from
+
+    Returns:
+        bpy.types.Object | None: Object if found, None otherwise
+    """
     for obj in bpy.data.objects:
         if obj.data == data:
             return obj
     return None
 
 
-def getTabbedText(text, tabCount):
+def getTabbedText(text: str, tabCount: int) -> str:
+    """Replace newlines with a newline and tabs
+
+    Args:
+        text (str): Text to replace
+        tabCount (int): Number of tabs
+
+    Returns:
+        str: Tabbed text
+    """
     return text.replace("\n", "\n" + "\t" * tabCount)
 
 
-def extendedRAMLabel(layout):
+# ! Seemingly unused
+def extendedRAMLabel(layout: bpy.types.UILayout) -> None:
     return
     infoBox = layout.box()
     infoBox.label(text="Be sure to add: ")
@@ -405,7 +678,15 @@ def extendedRAMLabel(layout):
     infoBox.label(text="Extended RAM prevents crashes.")
 
 
-def checkExpanded(filepath):
+def checkExpanded(filepath: str) -> None:
+    """Check if a ROM is expanded
+
+    Args:
+        filepath (str): Path to ROM
+
+    Raises:
+        PluginError: If the ROM is not expanded
+    """
     size = os.path.getsize(filepath)
     if size < 9000000:  # check if 8MB
         raise PluginError(
@@ -1200,7 +1481,14 @@ def prop_split(layout, data, field, name, **prop_kwargs):
     split.prop(data, field, text="", **prop_kwargs)
 
 
-def multilineLabel(layout: UILayout, text: str, icon: str = "NONE"):
+def multilineLabel(layout: UILayout, text: str, icon: str = "NONE") -> None:
+    """Draws a multiline label in the layout.
+
+    Args:
+        layout (UILayout): The layout to draw the label in.
+        text (str): The text to draw.
+        icon (str, optional): The icon to use. Defaults to "NONE".
+    """
     layout = layout.column()
     for i, line in enumerate(text.split("\n")):
         r = layout.row()
@@ -1208,7 +1496,16 @@ def multilineLabel(layout: UILayout, text: str, icon: str = "NONE"):
         r.scale_y = 0.75
 
 
-def toAlnum(name, exceptions=[]):
+def toAlnum(name: str, exceptions: list[str] = []) -> str | None:
+    """Converts a string to an alphanumeric string, replacing non-alphanumeric characters with underscores.
+
+    Args:
+        name (str): The string to convert.
+        exceptions (list[str], optional): A list of exceptions to not convert. Defaults to [].
+
+    Returns:
+        str | None: The converted string.
+    """
     if name is None or name == "":
         return None
     for i in range(len(name)):
