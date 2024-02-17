@@ -1,6 +1,6 @@
 # Fast64
 
-This requires Blender 3.2+.
+This requires Blender 3.2+. Blender 4.0+ is recommended.
 
 Forked from [kurethedead/fast64 on BitBucket](https://bitbucket.org/kurethedead/fast64/src).
 
@@ -22,7 +22,7 @@ Thanks to InTheBeef for LowPolySkinnedMario.
 ### Discord Server
 We have a Discord server for support as well as development [here](https://discord.gg/ny7PDcN2x8).
 
-### Table of Contents
+### Links to Docs / Guides for Each Game
 1. [ Super Mario 64 ](/fast64_internal/sm64/README.md)
 2. [ Ocarina Of Time ](/fast64_internal/oot/README.md)
 
@@ -47,6 +47,21 @@ There may occur cases where code is formatted differently based on the code use 
 
 ### Converting To F3D v5 Materials
 A new optimized shader graph was introduced to decrease processing times for material creation and exporting. If you have a project that still uses old materials, you may want to convert them to v5. To convert an old project, click the "Recreate F3D Materials As V5" operator near the top of the Fast64 tab in 3D view. This may take a while depending on the number of materials in the project. Then go to the outliner, change the display mode to "Orphan Data" (broken heart icon), then click "Purge" in the top right corner. Purge multiple times until all of the old node groups are gone.
+
+### F3DEX3 Features
+
+Fast64 supports exporting data for [F3DEX3](https://github.com/HackerN64/F3DEX3), a modded microcode which brings many new features and higher performance. **Preview of these new features in the 3D view is not currently supported**, but they will be exported correctly. To modify the vertex colors of an object with a material which is using packed normals (shading/lighting and vertex colors together), temporarily switch to a vertex colored preset or uncheck `Lighting` in the material geometry mode settings. Once the vertex colors are painted how you want them, re-enable `Lighting` and `Packed Normals`.
+
+Selecting F3DEX3 as your microcode unlocks a large number of additional presets based on F3DEX3 features. For more information on all these features, see the F3DEX3 readme, GBI, and [these videos](https://www.youtube.com/playlist?list=PLU2OUGtyQi6QswDQOXWIMaYFUcgQ9Psvm). The preset names get very long and are abbreviated as follows:
+- `Shaded`: Computes lighting, which normally affects shade color.
+- `Vcol`: Vertex colors are enabled in addition to lighting; normally these are multiplied together to become shade color.
+- `Ao`: Ambient occlusion.
+- `Cel`: Cel shading. If followed by a number, this is the number of cel levels.
+- `Ltcol`: Cel shading tints are loaded from light colors.
+- `Blend` vs. `Mul` for cel shading: Whether to apply the tint in the blender with linear interpolation, or by multiplication in the CC. The latter sometimes looks better, but does not support vertex colors.
+- `Lerp` vs. `Mult` for multitexture (water): Whether the two textures are combined by linear interpolation or multiplication.
+
+For cel shading, it is recommended to start with one of the cel shading presets, then modify the settings under the `Use Cel Shading` panel. Hover over each UI control for additional information about how that setting works.
 
 ### Updater
 
@@ -76,13 +91,25 @@ https://b3d.interplanety.org/en/using-microsoft-visual-studio-code-as-external-i
 
 #### Formatting
 
-We use [Black](https://black.readthedocs.io/en/stable/index.html).
+We use [Black](https://black.readthedocs.io/en/stable/index.html), version 23.
 
-To make VS Code use it, change the `python.formatting.provider` setting to "black". VS Code will ask you to install Black if not already installed.
+To install it, run `pip install 'black>=23,<24'`.
+
+To make VS Code use it, change the `python.formatting.provider` setting to "black".
 
 To format the whole repo, run `black .` (or `python3 -m black .` depending on how it is installed) from the root of the repo.
 
 The (minimal) configuration for Black is in `/pyproject.toml`.
+
+There is a GitHub action set up to check that PRs and the main branch are formatted: `/.github/workflows/black-lint.yml`
+
+If you see a message such as
+
+```
+Oh no! 💥 💔 💥 The required version `23` does not match the running version `24.1.0`!
+```
+
+Make sure the `black --version` is 23. Install a 23 version with `pip install 'black>=23,<24'`.
 
 #### Updater notes
 

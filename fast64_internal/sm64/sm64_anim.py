@@ -33,6 +33,7 @@ from ..utility import (
     decompFolderMessage,
     makeWriteInfoBox,
     writeBoxExportType,
+    stashActionInArmature,
     enumExportHeaderType,
 )
 
@@ -254,7 +255,6 @@ def exportAnimationC(armatureObj, loopAnim, dirPath, dirName, groupName, customE
 
     # if animation header isn´t already in the table then add it.
     if sm64_anim.header.name not in stringData:
-
         # search for the NULL value which represents the end of the table
         # (this value is not present in vanilla animation tables)
         footerIndex = stringData.rfind("\tNULL,\n")
@@ -294,7 +294,6 @@ def exportAnimationC(armatureObj, loopAnim, dirPath, dirName, groupName, customE
 
 
 def exportAnimationBinary(romfile, exportRange, armatureObj, DMAAddresses, segmentData, isDMA, loopAnim):
-
     startAddress = get64bitAlignedAddr(exportRange[0])
     sm64_anim = exportAnimationCommon(armatureObj, loopAnim, armatureObj.name)
 
@@ -348,7 +347,10 @@ def exportAnimationInsertableBinary(filepath, armatureObj, isDMA, loopAnim):
 def exportAnimationCommon(armatureObj, loopAnim, name):
     if armatureObj.animation_data is None or armatureObj.animation_data.action is None:
         raise PluginError("No active animation selected.")
+
     anim = armatureObj.animation_data.action
+    stashActionInArmature(armatureObj, anim)
+
     sm64_anim = SM64_Animation(toAlnum(name + "_" + anim.name))
 
     nodeCount = len(armatureObj.data.bones)
@@ -445,14 +447,10 @@ def convertAnimationData(anim, armatureObj, *, frame_start, frame_count):
     currentFrame = bpy.context.scene.frame_current
     for frame in range(frame_start, frame_start + frame_count):
         bpy.context.scene.frame_set(frame)
-        rootBone = armatureObj.data.bones[animBones[0]]
         rootPoseBone = armatureObj.pose.bones[animBones[0]]
 
-        # Hacky solution to handle Z-up to Y-up conversion
         translation = (
-            rootBone.matrix.to_4x4().inverted()
-            @ mathutils.Matrix.Scale(bpy.context.scene.blenderToSM64Scale, 4)
-            @ rootPoseBone.matrix
+            mathutils.Matrix.Scale(bpy.context.scene.blenderToSM64Scale, 4) @ rootPoseBone.matrix_basis
         ).decompose()[0]
         saveTranslationFrame(translationData, translation)
 
@@ -544,6 +542,8 @@ def importAnimationToBlender(romfile, startAddress, armatureObj, segmentData, is
 
     if armatureObj.animation_data is None:
         armatureObj.animation_data_create()
+
+    stashActionInArmature(armatureObj, anim)
     armatureObj.animation_data.action = anim
 
 
@@ -692,7 +692,7 @@ def readValueIndex(romfile, startAddress):
 
     # multiply 2 because value is the index in array of shorts (???)
     startOffset = int.from_bytes(romfile.read(2), "big") * 2
-    #print(str(hex(startAddress)) + ": " + str(numFrames) + " " + str(startOffset))
+    # print(str(hex(startAddress)) + ": " + str(numFrames) + " " + str(startOffset))
     return SM64_AnimIndex(numFrames, startOffset)
 
 
@@ -948,10 +948,12 @@ class SM64_ImportAnimMario(bpy.types.Operator):
             if len(context.selected_objects) == 0:
                 raise PluginError("Armature not selected.")
             armatureObj = context.active_object
-            if type(armatureObj.data) is not bpy.types.Armature:
+            if armatureObj.type != "ARMATURE":
                 raise PluginError("Armature not selected.")
 
-            importAnimationToBlender(romfileSrc, animStart, armatureObj, segmentData, context.scene.isDMAImport, "sm64_anim")
+            importAnimationToBlender(
+                romfileSrc, animStart, armatureObj, segmentData, context.scene.isDMAImport, "sm64_anim"
+            )
             romfileSrc.close()
             self.report({"INFO"}, "Success!")
         except Exception as e:
@@ -982,12 +984,12 @@ class SM64_ImportAllMarioAnims(bpy.types.Operator):
             if len(context.selected_objects) == 0:
                 raise PluginError("Armature not selected.")
             armatureObj = context.active_object
-            if type(armatureObj.data) is not bpy.types.Armature:
+            if armatureObj.type != "ARMATURE":
                 raise PluginError("Armature not selected.")
 
             for adress, animName in marioAnimations:
                 importAnimationToBlender(romfileSrc, adress, armatureObj, {}, context.scene.isDMAImport, animName)
-                
+
             romfileSrc.close()
             self.report({"INFO"}, "Success!")
         except Exception as e:
@@ -1007,8 +1009,8 @@ class SM64_ImportAnimPanel(SM64_Panel):
     # called every frame
     def draw(self, context):
         col = self.layout.column()
-        propsAnimImport = col.operator(SM64_ImportAnimMario.bl_idname)  
-        propsMarioAnimsImport = col.operator(SM64_ImportAllMarioAnims.bl_idname)  
+        propsAnimImport = col.operator(SM64_ImportAnimMario.bl_idname)
+        propsMarioAnimsImport = col.operator(SM64_ImportAllMarioAnims.bl_idname)
 
         col.prop(context.scene, "isDMAImport")
         if not context.scene.isDMAImport:

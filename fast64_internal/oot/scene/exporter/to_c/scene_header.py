@@ -59,14 +59,14 @@ def getLightSettingsEntry(light: OOTLight, lightMode: str, isLightingCustom: boo
 
 def getLightSettings(outScene: OOTScene, headerIndex: int):
     lightSettingsData = CData()
-    lightName = f"EnvLightSettings {outScene.lightListName(headerIndex)}[{len(outScene.lights)}]"
+    declarationBase = f"EnvLightSettings {outScene.lightListName(headerIndex)}[{len(outScene.lights)}]"
 
     # .h
-    lightSettingsData.header = f"extern {lightName};\n"
+    lightSettingsData.header = f"extern {declarationBase};\n"
 
     # .c
     lightSettingsData.source = (
-        (lightName + " = {\n")
+        (declarationBase + " = {\n")
         + "".join(
             getLightSettingsEntry(light, outScene.skyboxLighting, outScene.isSkyboxLightingCustom, i)
             for i, light in enumerate(outScene.lights)
@@ -90,14 +90,14 @@ def getSceneModel(outScene: OOTScene, textureExportSettings: TextureExportSettin
 #############
 def getExitList(outScene: OOTScene, headerIndex: int):
     exitList = CData()
-    listName = f"u16 {outScene.exitListName(headerIndex)}[{len(outScene.exitList)}]"
+    declarationBase = f"u16 {outScene.exitListName(headerIndex)}[{len(outScene.exitList)}]"
 
     # .h
-    exitList.header = f"extern {listName};\n"
+    exitList.header = f"extern {declarationBase};\n"
 
     # .c
     exitList.source = (
-        (listName + " = {\n")
+        (declarationBase + " = {\n")
         # @TODO: use the enum name instead of the raw index
         + "\n".join(indent + f"{exitEntry.index}," for exitEntry in outScene.exitList)
         + "\n};\n\n"
@@ -111,7 +111,7 @@ def getExitList(outScene: OOTScene, headerIndex: int):
 #############
 def getRoomList(outScene: OOTScene):
     roomList = CData()
-    listName = f"RomFile {outScene.roomListName()}[]"
+    declarationBase = f"RomFile {outScene.roomListName()}[]"
 
     # generating segment rom names for every room
     segNames = []
@@ -120,7 +120,7 @@ def getRoomList(outScene: OOTScene):
         segNames.append((f"_{roomName}SegmentRomStart", f"_{roomName}SegmentRomEnd"))
 
     # .h
-    roomList.header += f"extern {listName};\n"
+    roomList.header += f"extern {declarationBase};\n"
 
     if not outScene.write_dummy_room_list:
         # Write externs for rom segments
@@ -129,7 +129,7 @@ def getRoomList(outScene: OOTScene):
         )
 
     # .c
-    roomList.source = listName + " = {\n"
+    roomList.source = declarationBase + " = {\n"
 
     if outScene.write_dummy_room_list:
         roomList.source = (
@@ -207,9 +207,9 @@ def getSceneData(outScene: OOTScene):
 
             if i == 0:
                 if outScene.hasAlternateHeaders():
-                    altHeaderListName = f"SceneCmd* {outScene.alternateHeadersName()}[]"
-                    sceneC.header += f"extern {altHeaderListName};\n"
-                    sceneC.source += altHeaderListName + " = {\n" + altHeaderPtrs + "\n};\n\n"
+                    declarationBase = f"SceneCmd* {outScene.alternateHeadersName()}[]"
+                    sceneC.header += f"extern {declarationBase};\n"
+                    sceneC.source += declarationBase + " = {\n" + altHeaderPtrs + "\n};\n\n"
 
                 # Write the room segment list
                 sceneC.append(getRoomList(outScene))

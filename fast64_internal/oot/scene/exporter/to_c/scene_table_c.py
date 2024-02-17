@@ -32,11 +32,26 @@ def getSceneTable(exportPath):
         with open(os.path.join(exportPath, "include/tables/scene_table.h")) as fileData:
             # keep the relevant data and do some formatting
             for i, line in enumerate(fileData):
+                # remove empty lines from the file
+                if not line.strip():
+                    continue
+
                 if not bpy.context.scene.fast64.oot.hackerFeaturesEnabled or getHackerOoTCheck(line):
-                    if not (line.startswith("/**") or line.startswith(" *")):
+                    if not (
+                        # Detects the multiline comment at the top of the file:
+                        (line.startswith("/**") or line.startswith(" *"))
+                        # Detects single line comments:
+                        # (meant to detect the built-in single-line comments
+                        #  "// Debug-only scenes" and "// Added scenes")
+                        or line.startswith("//")
+                    ):
                         dataList.append(line[(line.find("(") + 1) :].rstrip(")\n").replace(" ", "").split(","))
                     else:
-                        fileHeader += line
+                        # Only keep comments before the data (as indicated by dataList being empty).
+                        # This prevents duplicating the built-in single-line comments to the header.
+                        # It also means other handwritten single-line comments are removed from the file.
+                        if not dataList:
+                            fileHeader += line
                 if line.startswith("/* 0x"):
                     startIndex = line.find("SCENE_")
                     sceneNames.append(line[startIndex : line.find(",", startIndex)])

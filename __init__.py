@@ -3,7 +3,7 @@ from bpy.utils import register_class, unregister_class
 from . import addon_updater_ops
 from .fast64_internal.operators import AddWaterBox
 from .fast64_internal.panels import SM64_Panel
-from .fast64_internal.utility import PluginError, raisePluginError, attemptModifierApply, prop_split
+from .fast64_internal.utility import PluginError, raisePluginError, attemptModifierApply, prop_split, multilineLabel
 
 from .fast64_internal.sm64 import SM64_Properties, sm64_register, sm64_unregister
 from .fast64_internal.sm64.sm64_geolayout_bone import SM64_BoneProperties
@@ -41,7 +41,7 @@ from .fast64_internal.render_settings import (
 # info about add on
 bl_info = {
     "name": "Fast64",
-    "version": (2, 1, 0),
+    "version": (2, 2, 0),
     "author": "kurethedead",
     "location": "3DView",
     "description": "Plugin for exporting F3D display lists and other game data related to Nintendo 64 games.",
@@ -162,32 +162,20 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
         col = self.layout.column()
         col.scale_y = 1.1  # extra padding
         prop_split(col, context.scene, "f3d_type", "F3D Microcode")
-        col.prop(context.scene, "isHWv1")
         col.prop(context.scene, "saveTextures")
         col.prop(context.scene, "f3d_simple", text="Simple Material UI")
         col.prop(context.scene, "generateF3DNodeGraph", text="Generate F3D Node Graph For Materials")
         col.prop(context.scene, "exportInlineF3D", text="Bleed and Inline Material Exports")
+        if context.scene.exportInlineF3D:
+            multilineLabel(
+                col.box(),
+                "While inlining, all meshes will be restored to world default values.\n         You can configure these values in the world properties tab.",
+                icon="INFO",
+            )
         col.prop(context.scene, "decomp_compatible", invert_checkbox=True, text="Homebrew Compatibility")
         col.prop(context.scene, "ignoreTextureRestrictions")
         if context.scene.ignoreTextureRestrictions:
             col.box().label(text="Width/height must be < 1024. Must be png format.")
-
-
-class Fast64_GlobalObjectPanel(bpy.types.Panel):
-    bl_label = "Global Object Inspector"
-    bl_idname = "OBJECT_PT_OOT_Global_Object_Inspector"
-    bl_space_type = "PROPERTIES"
-    bl_region_type = "WINDOW"
-    bl_context = "object"
-    bl_options = {"HIDE_HEADER"}
-
-    @classmethod
-    def poll(cls, context):
-        return context.object is not None and context.object.data is None
-
-    def draw(self, context):
-        box = self.layout
-        prop_split(box, context.scene, "gameEditorMode", "Game")
 
 
 class Fast64_GlobalSettingsPanel(bpy.types.Panel):
@@ -345,7 +333,7 @@ class UpgradeF3DMaterialsDialog(bpy.types.Operator):
             bpy.ops.object.mode_set(mode="OBJECT")
 
         upgradeF3DVersionAll(
-            [obj for obj in bpy.data.objects if isinstance(obj.data, bpy.types.Mesh)],
+            [obj for obj in bpy.data.objects if obj.type == "MESH"],
             list(bpy.data.armatures),
             MatUpdateConvert.version,
         )
@@ -387,7 +375,6 @@ classes = (
     AddBoneGroups,
     CreateMetarig,
     SM64_AddWaterBox,
-    # Fast64_GlobalObjectPanel,
     F3D_GlobalSettingsPanel,
     Fast64_GlobalSettingsPanel,
     SM64_ArmatureToolsPanel,
@@ -428,7 +415,6 @@ def gameEditorUpdate(self, context):
 # register operators and panels here
 # append menu layout drawing function to an existing window
 def register():
-
     if bpy.app.version < (3, 2, 0):
         msg = "\n".join(
             (
@@ -474,8 +460,11 @@ def register():
     bpy.types.Scene.saveTextures = bpy.props.BoolProperty(name="Save Textures As PNGs (Breaks CI Textures)")
     bpy.types.Scene.generateF3DNodeGraph = bpy.props.BoolProperty(name="Generate F3D Node Graph", default=True)
     bpy.types.Scene.exportHiddenGeometry = bpy.props.BoolProperty(name="Export Hidden Geometry", default=True)
-    bpy.types.Scene.exportInlineF3D = bpy.props.BoolProperty(name="Bleed and Inline Material Exports", \
-    description = "Inlines and bleeds materials in a single mesh. GeoLayout + Armature exports bleed over entire model", default=False)
+    bpy.types.Scene.exportInlineF3D = bpy.props.BoolProperty(
+        name="Bleed and Inline Material Exports",
+        description="Inlines and bleeds materials in a single mesh. GeoLayout + Armature exports bleed over entire model",
+        default=False,
+    )
     bpy.types.Scene.blenderF3DScale = bpy.props.FloatProperty(
         name="F3D Blender Scale", default=100, update=on_update_render_settings
     )

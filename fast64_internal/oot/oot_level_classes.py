@@ -1,7 +1,11 @@
-import bpy, os, shutil
+import bpy
+import os
+import shutil
+
 from typing import Optional
+from bpy.types import Object
 from ..utility import PluginError, toAlnum, indent
-from .oot_collision_classes import OOTCollision
+from .collision.exporter import OOTCollision
 from .oot_model_classes import OOTModel
 from ..f3d.f3d_gbi import (
     SPDisplayList,
@@ -111,16 +115,10 @@ class OOTScene(OOTCommonCommands):
         self.cameraList = []
 
         self.writeCutscene = False
-        self.csWriteType = "Embedded"
+        self.csWriteType = "Object"
+        self.csName = ""
         self.csWriteCustom = ""
-        self.csWriteObject = None
-        self.csEndFrame = 100
-        self.csWriteTerminator = False
-        self.csTermIdx = 0
-        self.csTermStart = 99
-        self.csTermEnd = 100
-        self.csLists = []
-        self.extraCutscenes = []
+        self.extraCutscenes: list[Object] = []
 
         self.sceneTableEntry = OOTSceneTableEntry()
 
@@ -160,9 +158,6 @@ class OOTScene(OOTCommonCommands):
 
     def cameraListName(self):
         return self.sceneName() + "_cameraList"
-
-    def cutsceneDataName(self, headerIndex):
-        return self.sceneName() + "_header" + format(headerIndex, "02") + "_cutscene"
 
     def alternateHeadersName(self):
         return self.sceneName() + "_alternateHeaders"
@@ -210,9 +205,7 @@ class OOTScene(OOTCommonCommands):
             count = count + 1
 
     def addRoom(self, roomIndex, roomName, roomShape):
-        roomModel = self.model.addSubModel(
-            OOTModel(self.model.f3d.F3D_VER, self.model.f3d._HW_VERSION_1, roomName + "_dl", self.model.DLFormat, None)
-        )
+        roomModel = self.model.addSubModel(OOTModel(roomName + "_dl", self.model.DLFormat, None))
         room = OOTRoom(roomIndex, roomName, roomModel, roomShape)
         if roomIndex in self.rooms:
             raise PluginError("Repeat room index " + str(roomIndex) + " for " + str(roomName))
@@ -389,9 +382,6 @@ class OOTRoom(OOTCommonCommands):
         self.disableWarpSongs = False
         self.showInvisibleActors = False
         self.linkIdleMode = None
-
-        self.customBehaviourX = None
-        self.customBehaviourY = None
 
         # Wind
         self.setWind = False

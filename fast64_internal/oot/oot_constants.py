@@ -9,71 +9,15 @@ ootEnumRoomShapeType = [
     ("ROOM_SHAPE_TYPE_CULLABLE", "Cullable", "Cullable"),
 ]
 
-ootRoomShapeStructs = [
-    "RoomShapeNormal",
-    "RoomShapeImage",
-    "RoomShapeCullable",
-]
-
-ootRoomShapeEntryStructs = [
-    "RoomShapeDListsEntry",
-    "RoomShapeDListsEntry",
-    "RoomShapeCullableEntry",
-]
-
-
-ootEnumSceneMenu = [
-    ("General", "General", "General"),
-    ("Lighting", "Lighting", "Lighting"),
-    ("Cutscene", "Cutscene", "Cutscene"),
-    ("Exits", "Exits", "Exits"),
-    ("Alternate", "Alternate", "Alternate"),
-]
-
-ootEnumRenderScene = [
-    ("General", "General", "General"),
-    ("Alternate", "Alternate", "Alternate"),
-]
-
-ootEnumSceneMenuAlternate = [
-    ("General", "General", "General"),
-    ("Lighting", "Lighting", "Lighting"),
-    ("Cutscene", "Cutscene", "Cutscene"),
-    ("Exits", "Exits", "Exits"),
-]
-
-ootEnumRoomMenu = [
-    ("General", "General", "General"),
-    ("Objects", "Objects", "Objects"),
-    ("Alternate", "Alternate", "Alternate"),
-]
-
-ootEnumRoomMenuAlternate = [
-    ("General", "General", "General"),
-    ("Objects", "Objects", "Objects"),
-]
-
 ootEnumHeaderMenu = [
     ("Child Night", "Child Night", "Child Night"),
     ("Adult Day", "Adult Day", "Adult Day"),
     ("Adult Night", "Adult Night", "Adult Night"),
     ("Cutscene", "Cutscene", "Cutscene"),
 ]
-
 ootEnumHeaderMenuComplete = [
     ("Child Day", "Child Day", "Child Day"),
-    ("Child Night", "Child Night", "Child Night"),
-    ("Adult Day", "Adult Day", "Adult Day"),
-    ("Adult Night", "Adult Night", "Adult Night"),
-    ("Cutscene", "Cutscene", "Cutscene"),
-]
-
-ootEnumLightGroupMenu = [
-    ("Dawn", "Dawn", "Dawn"),
-    ("Day", "Day", "Day"),
-    ("Dusk", "Dusk", "Dusk"),
-    ("Night", "Night", "Night"),
-]
+] + ootEnumHeaderMenu
 
 ootEnumLinkIdle = [
     ("Custom", "Custom", "Custom"),
@@ -85,21 +29,6 @@ ootEnumLinkIdle = [
     ("0x09", "Brandish Sword", "Brandish Sword"),
     ("0x0A", "Adjust Tunic", "Adjust Tunic"),
     ("0xFF", "Hops On Epona", "Hops On Epona"),
-]
-
-# Make sure to add exceptions in utility.py - selectMeshChildrenOnly
-ootEnumEmptyType = [
-    ("None", "None", "None"),
-    ("Scene", "Scene", "Scene"),
-    ("Room", "Room", "Room"),
-    ("Actor", "Actor", "Actor"),
-    ("Transition Actor", "Transition Actor", "Transition Actor"),
-    ("Entrance", "Entrance", "Entrance"),
-    ("Water Box", "Water Box", "Water Box"),
-    ("Cull Group", "Custom Cull Group", "Cull Group"),
-    ("LOD", "LOD Group", "LOD Group"),
-    ("Cutscene", "Cutscene", "Cutscene"),
-    # ('Camera Volume', 'Camera Volume', 'Camera Volume'),
 ]
 
 ootEnumCloudiness = [
@@ -189,114 +118,124 @@ ootEnumAudioSessionPreset = [
 ]
 
 ootEnumMusicSeq = [
+    # see https://github.com/zeldaret/oot/blob/9f09505d34619883748a7dab05071883281c14fd/include/sequence.h#L4-L118
     ("Custom", "Custom", "Custom"),
-    ("0x02", "Hyrule Field", "Hyrule Field"),
-    ("0x03", "Hyrule Field (Initial Segment From Loading Area)", "Hyrule Field (Initial Segment From Loading Area)"),
-    ("0x04", "Hyrule Field (Moving Segment 1)", "Hyrule Field (Moving Segment 1)"),
-    ("0x05", "Hyrule Field (Moving Segment 2)", "Hyrule Field (Moving Segment 2)"),
-    ("0x06", "Hyrule Field (Moving Segment 3)", "Hyrule Field (Moving Segment 3)"),
-    ("0x07", "Hyrule Field (Moving Segment 4)", "Hyrule Field (Moving Segment 4)"),
-    ("0x08", "Hyrule Field (Moving Segment 5)", "Hyrule Field (Moving Segment 5)"),
-    ("0x09", "Hyrule Field (Moving Segment 6)", "Hyrule Field (Moving Segment 6)"),
-    ("0x0A", "Hyrule Field (Moving Segment 7)", "Hyrule Field (Moving Segment 7)"),
-    ("0x0B", "Hyrule Field (Moving Segment 8)", "Hyrule Field (Moving Segment 8)"),
-    ("0x0C", "Hyrule Field (Moving Segment 9)", "Hyrule Field (Moving Segment 9)"),
-    ("0x0D", "Hyrule Field (Moving Segment 10)", "Hyrule Field (Moving Segment 10)"),
-    ("0x0E", "Hyrule Field (Moving Segment 11)", "Hyrule Field (Moving Segment 11)"),
-    ("0x0F", "Hyrule Field (Enemy Approaches)", "Hyrule Field (Enemy Approaches)"),
-    ("0x10", "Hyrule Field (Enemy Near Segment 1)", "Hyrule Field (Enemy Near Segment 1)"),
-    ("0x11", "Hyrule Field (Enemy Near Segment 2)", "Hyrule Field (Enemy Near Segment 2)"),
-    ("0x12", "Hyrule Field (Enemy Near Segment 3)", "Hyrule Field (Enemy Near Segment 3)"),
-    ("0x13", "Hyrule Field (Enemy Near Segment 4)", "Hyrule Field (Enemy Near Segment 4)"),
-    ("0x14", "Hyrule Field (Standing Still Segment 1)", "Hyrule Field (Standing Still Segment 1)"),
-    ("0x15", "Hyrule Field (Standing Still Segment 2)", "Hyrule Field (Standing Still Segment 2)"),
-    ("0x16", "Hyrule Field (Standing Still Segment 3)", "Hyrule Field (Standing Still Segment 3)"),
-    ("0x17", "Hyrule Field (Standing Still Segment 4)", "Hyrule Field (Standing Still Segment 4)"),
-    ("0x18", "Dodongo's Cavern", "Dodongo's Cavern"),
-    ("0x19", "Kakariko Village (Adult)", "Kakariko Village (Adult)"),
-    ("0x1A", "Enemy Battle", "Enemy Battle"),
-    ("0x1B", "Boss Battle 00", "Boss Battle 00"),
-    ("0x1C", "Inside the Deku Tree", "Inside the Deku Tree"),
-    ("0x1D", "Market", "Market"),
-    ("0x1E", "Title Theme", "Title Theme"),
-    ("0x1F", "Link's House", "Link's House"),
-    ("0x20", "Game Over", "Game Over"),
-    ("0x21", "Boss Clear", "Boss Clear"),
-    ("0x22", "Item Get", "Item Get"),
-    ("0x23", "Opening Ganon", "Opening Ganon"),
-    ("0x24", "Heart Get", "Heart Get"),
-    ("0x25", "Prelude Of Light", "Prelude Of Light"),
-    ("0x26", "Inside Jabu-Jabu's Belly", "Inside Jabu-Jabu's Belly"),
-    ("0x27", "Kakariko Village (Child)", "Kakariko Village (Child)"),
-    ("0x28", "Great Fairy's Fountain", "Great Fairy's Fountain"),
-    ("0x29", "Zelda's Theme", "Zelda's Theme"),
-    ("0x2A", "Fire Temple", "Fire Temple"),
-    ("0x2B", "Open Treasure Chest", "Open Treasure Chest"),
-    ("0x2C", "Forest Temple", "Forest Temple"),
-    ("0x2D", "Hyrule Castle Courtyard", "Hyrule Castle Courtyard"),
-    ("0x2E", "Ganondorf's Theme", "Ganondorf's Theme"),
-    ("0x2F", "Lon Lon Ranch", "Lon Lon Ranch"),
-    ("0x30", "Goron City", "Goron City "),
-    ("0x31", "Hyrule Field Morning Theme", "Hyrule Field Morning Theme"),
-    ("0x32", "Spiritual Stone Get", "Spiritual Stone Get"),
-    ("0x33", "Bolero of Fire", "Bolero of Fire"),
-    ("0x34", "Minuet of Woods", "Minuet of Woods"),
-    ("0x35", "Serenade of Water", "Serenade of Water"),
-    ("0x36", "Requiem of Spirit", "Requiem of Spirit"),
-    ("0x37", "Nocturne of Shadow", "Nocturne of Shadow"),
-    ("0x38", "Mini-Boss Battle", "Mini-Boss Battle"),
-    ("0x39", "Obtain Small Item", "Obtain Small Item"),
-    ("0x3A", "Temple of Time", "Temple of Time"),
-    ("0x3B", "Escape from Lon Lon Ranch", "Escape from Lon Lon Ranch"),
-    ("0x3C", "Kokiri Forest", "Kokiri Forest"),
-    ("0x3D", "Obtain Fairy Ocarina", "Obtain Fairy Ocarina"),
-    ("0x3E", "Lost Woods", "Lost Woods"),
-    ("0x3F", "Spirit Temple", "Spirit Temple"),
-    ("0x40", "Horse Race", "Horse Race"),
-    ("0x41", "Horse Race Goal", "Horse Race Goal"),
-    ("0x42", "Ingo's Theme", "Ingo's Theme"),
-    ("0x43", "Obtain Medallion", "Obtain Medallion"),
-    ("0x44", "Ocarina Saria's Song", "Ocarina Saria's Song"),
-    ("0x45", "Ocarina Epona's Song", "Ocarina Epona's Song"),
-    ("0x46", "Ocarina Zelda's Lullaby", "Ocarina Zelda's Lullaby"),
-    ("0x47", "Sun's Song", "Sun's Song"),
-    ("0x48", "Song of Time", "Song of Time"),
-    ("0x49", "Song of Storms", "Song of Storms"),
-    ("0x4A", "Fairy Flying", "Fairy Flying"),
-    ("0x4B", "Deku Tree", "Deku Tree"),
-    ("0x4C", "Windmill Hut", "Windmill Hut"),
-    ("0x4D", "Legend of Hyrule", "Legend of Hyrule"),
-    ("0x4E", "Shooting Gallery", "Shooting Gallery"),
-    ("0x4F", "Sheik's Theme", "Sheik's Theme"),
-    ("0x50", "Zora's Domain", "Zora's Domain"),
-    ("0x51", "Enter Zelda", "Enter Zelda"),
-    ("0x52", "Goodbye to Zelda", "Goodbye to Zelda"),
-    ("0x53", "Master Sword", "Master Sword"),
-    ("0x54", "Ganon Intro", "Ganon Intro"),
-    ("0x55", "Shop", "Shop"),
-    ("0x56", "Chamber of the Sages", "Chamber of the Sages"),
-    ("0x57", "File Select", "File Select"),
-    ("0x58", "Ice Cavern", "Ice Cavern"),
-    ("0x59", "Open Door of Temple of Time", "Open Door of Temple of Time"),
-    ("0x5A", "Kaepora Gaebora's Theme", "Kaepora Gaebora's Theme"),
-    ("0x5B", "Shadow Temple", "Shadow Temple"),
-    ("0x5C", "Water Temple", "Water Temple"),
-    ("0x5D", "Ganon's Castle Bridge", "Ganon's Castle Bridge"),
-    ("0x5E", "Ocarina of Time", "Ocarina of Time"),
-    ("0x5F", "Gerudo Valley", "Gerudo Valley"),
-    ("0x60", "Potion Shop", "Potion Shop"),
-    ("0x61", "Kotake & Koume's Theme", "Kotake & Koume's Theme"),
-    ("0x62", "Escape from Ganon's Castle", "Escape from Ganon's Castle"),
-    ("0x63", "Ganon's Castle Under Ground", "Ganon's Castle Under Ground"),
-    ("0x64", "Ganondorf Battle", "Ganondorf Battle"),
-    ("0x65", "Ganon Battle", "Ganon Battle"),
-    ("0x66", "Seal of Six Sages", "Seal of Six Sages"),
-    ("0x67", "End Credits I", "End Credits I"),
-    ("0x68", "End Credits II", "End Credits II"),
-    ("0x69", "End Credits III", "End Credits III"),
-    ("0x6A", "End Credits IV", "End Credits IV"),
-    ("0x6B", "King Dodongo & Volvagia Boss Battle", "King Dodongo & Volvagia Boss Battle"),
-    ("0x6C", "Mini-Game", "Mini-Game"),
+    ("NA_BGM_GENERAL_SFX", "General Sound Effects", "General Sound Effects"),
+    ("NA_BGM_NATURE_AMBIENCE", "Nature Ambiance", "Nature Ambiance"),
+    ("NA_BGM_FIELD_LOGIC", "Hyrule Field", "Hyrule Field"),
+    (
+        "NA_BGM_FIELD_INIT",
+        "Hyrule Field (Initial Segment From Loading Area)",
+        "Hyrule Field (Initial Segment From Loading Area)",
+    ),
+    ("NA_BGM_FIELD_DEFAULT_1", "Hyrule Field (Moving Segment 1)", "Hyrule Field (Moving Segment 1)"),
+    ("NA_BGM_FIELD_DEFAULT_2", "Hyrule Field (Moving Segment 2)", "Hyrule Field (Moving Segment 2)"),
+    ("NA_BGM_FIELD_DEFAULT_3", "Hyrule Field (Moving Segment 3)", "Hyrule Field (Moving Segment 3)"),
+    ("NA_BGM_FIELD_DEFAULT_4", "Hyrule Field (Moving Segment 4)", "Hyrule Field (Moving Segment 4)"),
+    ("NA_BGM_FIELD_DEFAULT_5", "Hyrule Field (Moving Segment 5)", "Hyrule Field (Moving Segment 5)"),
+    ("NA_BGM_FIELD_DEFAULT_6", "Hyrule Field (Moving Segment 6)", "Hyrule Field (Moving Segment 6)"),
+    ("NA_BGM_FIELD_DEFAULT_7", "Hyrule Field (Moving Segment 7)", "Hyrule Field (Moving Segment 7)"),
+    ("NA_BGM_FIELD_DEFAULT_8", "Hyrule Field (Moving Segment 8)", "Hyrule Field (Moving Segment 8)"),
+    ("NA_BGM_FIELD_DEFAULT_9", "Hyrule Field (Moving Segment 9)", "Hyrule Field (Moving Segment 9)"),
+    ("NA_BGM_FIELD_DEFAULT_A", "Hyrule Field (Moving Segment 10)", "Hyrule Field (Moving Segment 10)"),
+    ("NA_BGM_FIELD_DEFAULT_B", "Hyrule Field (Moving Segment 11)", "Hyrule Field (Moving Segment 11)"),
+    ("NA_BGM_FIELD_ENEMY_INIT", "Hyrule Field (Enemy Approaches)", "Hyrule Field (Enemy Approaches)"),
+    ("NA_BGM_FIELD_ENEMY_1", "Hyrule Field (Enemy Near Segment 1)", "Hyrule Field (Enemy Near Segment 1)"),
+    ("NA_BGM_FIELD_ENEMY_2", "Hyrule Field (Enemy Near Segment 2)", "Hyrule Field (Enemy Near Segment 2)"),
+    ("NA_BGM_FIELD_ENEMY_3", "Hyrule Field (Enemy Near Segment 3)", "Hyrule Field (Enemy Near Segment 3)"),
+    ("NA_BGM_FIELD_ENEMY_4", "Hyrule Field (Enemy Near Segment 4)", "Hyrule Field (Enemy Near Segment 4)"),
+    ("NA_BGM_FIELD_STILL_1", "Hyrule Field (Standing Still Segment 1)", "Hyrule Field (Standing Still Segment 1)"),
+    ("NA_BGM_FIELD_STILL_2", "Hyrule Field (Standing Still Segment 2)", "Hyrule Field (Standing Still Segment 2)"),
+    ("NA_BGM_FIELD_STILL_3", "Hyrule Field (Standing Still Segment 3)", "Hyrule Field (Standing Still Segment 3)"),
+    ("NA_BGM_FIELD_STILL_4", "Hyrule Field (Standing Still Segment 4)", "Hyrule Field (Standing Still Segment 4)"),
+    ("NA_BGM_DUNGEON", "Dodongo's Cavern", "Dodongo's Cavern"),
+    ("NA_BGM_KAKARIKO_ADULT", "Kakariko Village (Adult)", "Kakariko Village (Adult)"),
+    ("NA_BGM_ENEMY", "Enemy Battle", "Enemy Battle"),
+    ("NA_BGM_BOSS", "Boss Battle 00", "Boss Battle 00"),
+    ("NA_BGM_INSIDE_DEKU_TREE", "Inside the Deku Tree", "Inside the Deku Tree"),
+    ("NA_BGM_MARKET", "Market", "Market"),
+    ("NA_BGM_TITLE", "Title Theme", "Title Theme"),
+    ("NA_BGM_LINK_HOUSE", "Link's House", "Link's House"),
+    ("NA_BGM_GAME_OVER", "Game Over", "Game Over"),
+    ("NA_BGM_BOSS_CLEAR", "Boss Clear", "Boss Clear"),
+    ("NA_BGM_ITEM_GET", "Item Get", "Item Get"),
+    ("NA_BGM_OPENING_GANON", "Opening Ganon", "Opening Ganon"),
+    ("NA_BGM_HEART_GET", "Heart Get", "Heart Get"),
+    ("NA_BGM_OCA_LIGHT", "Prelude Of Light", "Prelude Of Light"),
+    ("NA_BGM_JABU_JABU", "Inside Jabu-Jabu's Belly", "Inside Jabu-Jabu's Belly"),
+    ("NA_BGM_KAKARIKO_KID", "Kakariko Village (Child)", "Kakariko Village (Child)"),
+    ("NA_BGM_GREAT_FAIRY", "Great Fairy's Fountain", "Great Fairy's Fountain"),
+    ("NA_BGM_ZELDA_THEME", "Zelda's Theme", "Zelda's Theme"),
+    ("NA_BGM_FIRE_TEMPLE", "Fire Temple", "Fire Temple"),
+    ("NA_BGM_OPEN_TRE_BOX", "Open Treasure Chest", "Open Treasure Chest"),
+    ("NA_BGM_FOREST_TEMPLE", "Forest Temple", "Forest Temple"),
+    ("NA_BGM_COURTYARD", "Hyrule Castle Courtyard", "Hyrule Castle Courtyard"),
+    ("NA_BGM_GANON_TOWER", "Ganondorf's Theme", "Ganondorf's Theme"),
+    ("NA_BGM_LONLON", "Lon Lon Ranch", "Lon Lon Ranch"),
+    ("NA_BGM_GORON_CITY", "Goron City", "Goron City"),
+    ("NA_BGM_FIELD_MORNING", "Hyrule Field Morning Theme", "Hyrule Field Morning Theme"),
+    ("NA_BGM_SPIRITUAL_STONE", "Spiritual Stone Get", "Spiritual Stone Get"),
+    ("NA_BGM_OCA_BOLERO", "Bolero of Fire", "Bolero of Fire"),
+    ("NA_BGM_OCA_MINUET", "Minuet of Woods", "Minuet of Woods"),
+    ("NA_BGM_OCA_SERENADE", "Serenade of Water", "Serenade of Water"),
+    ("NA_BGM_OCA_REQUIEM", "Requiem of Spirit", "Requiem of Spirit"),
+    ("NA_BGM_OCA_NOCTURNE", "Nocturne of Shadow", "Nocturne of Shadow"),
+    ("NA_BGM_MINI_BOSS", "Mini-Boss Battle", "Mini-Boss Battle"),
+    ("NA_BGM_SMALL_ITEM_GET", "Obtain Small Item", "Obtain Small Item"),
+    ("NA_BGM_TEMPLE_OF_TIME", "Temple of Time", "Temple of Time"),
+    ("NA_BGM_EVENT_CLEAR", "Escape from Lon Lon Ranch", "Escape from Lon Lon Ranch"),
+    ("NA_BGM_KOKIRI", "Kokiri Forest", "Kokiri Forest"),
+    ("NA_BGM_OCA_FAIRY_GET", "Obtain Fairy Ocarina", "Obtain Fairy Ocarina"),
+    ("NA_BGM_SARIA_THEME", "Lost Woods", "Lost Woods"),
+    ("NA_BGM_SPIRIT_TEMPLE", "Spirit Temple", "Spirit Temple"),
+    ("NA_BGM_HORSE", "Horse Race", "Horse Race"),
+    ("NA_BGM_HORSE_GOAL", "Horse Race Goal", "Horse Race Goal"),
+    ("NA_BGM_INGO", "Ingo's Theme", "Ingo's Theme"),
+    ("NA_BGM_MEDALLION_GET", "Obtain Medallion", "Obtain Medallion"),
+    ("NA_BGM_OCA_SARIA", "Ocarina Saria's Song", "Ocarina Saria's Song"),
+    ("NA_BGM_OCA_EPONA", "Ocarina Epona's Song", "Ocarina Epona's Song"),
+    ("NA_BGM_OCA_ZELDA", "Ocarina Zelda's Lullaby", "Ocarina Zelda's Lullaby"),
+    ("NA_BGM_OCA_SUNS", "Sun's Song", "Sun's Song"),
+    ("NA_BGM_OCA_TIME", "Song of Time", "Song of Time"),
+    ("NA_BGM_OCA_STORM", "Song of Storms", "Song of Storms"),
+    ("NA_BGM_NAVI_OPENING", "Fairy Flying", "Fairy Flying"),
+    ("NA_BGM_DEKU_TREE_CS", "Deku Tree", "Deku Tree"),
+    ("NA_BGM_WINDMILL", "Windmill Hut", "Windmill Hut"),
+    ("NA_BGM_HYRULE_CS", "Legend of Hyrule", "Legend of Hyrule"),
+    ("NA_BGM_MINI_GAME", "Shooting Gallery", "Shooting Gallery"),
+    ("NA_BGM_SHEIK", "Sheik's Theme", "Sheik's Theme"),
+    ("NA_BGM_ZORA_DOMAIN", "Zora's Domain", "Zora's Domain"),
+    ("NA_BGM_APPEAR", "Enter Zelda", "Enter Zelda"),
+    ("NA_BGM_ADULT_LINK", "Goodbye to Zelda", "Goodbye to Zelda"),
+    ("NA_BGM_MASTER_SWORD", "Master Sword", "Master Sword"),
+    ("NA_BGM_INTRO_GANON", "Ganon Intro", "Ganon Intro"),
+    ("NA_BGM_SHOP", "Shop", "Shop"),
+    ("NA_BGM_CHAMBER_OF_SAGES", "Chamber of the Sages", "Chamber of the Sages"),
+    ("NA_BGM_FILE_SELECT", "File Select", "File Select"),
+    ("NA_BGM_ICE_CAVERN", "Ice Cavern", "Ice Cavern"),
+    ("NA_BGM_DOOR_OF_TIME", "Open Door of Temple of Time", "Open Door of Temple of Time"),
+    ("NA_BGM_OWL", "Kaepora Gaebora's Theme", "Kaepora Gaebora's Theme"),
+    ("NA_BGM_SHADOW_TEMPLE", "Shadow Temple", "Shadow Temple"),
+    ("NA_BGM_WATER_TEMPLE", "Water Temple", "Water Temple"),
+    ("NA_BGM_BRIDGE_TO_GANONS", "Ganon's Castle Bridge", "Ganon's Castle Bridge"),
+    ("NA_BGM_OCARINA_OF_TIME", "Ocarina of Time", "Ocarina of Time"),
+    ("NA_BGM_GERUDO_VALLEY", "Gerudo Valley", "Gerudo Valley"),
+    ("NA_BGM_POTION_SHOP", "Potion Shop", "Potion Shop"),
+    ("NA_BGM_KOTAKE_KOUME", "Kotake & Koume's Theme", "Kotake & Koume's Theme"),
+    ("NA_BGM_ESCAPE", "Escape from Ganon's Castle", "Escape from Ganon's Castle"),
+    ("NA_BGM_UNDERGROUND", "Ganon's Castle Under Ground", "Ganon's Castle Under Ground"),
+    ("NA_BGM_GANONDORF_BOSS", "Ganondorf Battle", "Ganondorf Battle"),
+    ("NA_BGM_GANON_BOSS", "Ganon Battle", "Ganon Battle"),
+    ("NA_BGM_END_DEMO", "Seal of Six Sages", "Seal of Six Sages"),
+    ("NA_BGM_STAFF_1", "End Credits I", "End Credits I"),
+    ("NA_BGM_STAFF_2", "End Credits II", "End Credits II"),
+    ("NA_BGM_STAFF_3", "End Credits III", "End Credits III"),
+    ("NA_BGM_STAFF_4", "End Credits IV", "End Credits IV"),
+    ("NA_BGM_FIRE_BOSS", "King Dodongo & Volvagia Boss Battle", "King Dodongo & Volvagia Boss Battle"),
+    ("NA_BGM_TIMED_MINI_GAME", "Mini-Game", "Mini-Game"),
+    ("NA_BGM_CUTSCENE_EFFECTS", "Various Cutscene Sounds", "Various Cutscene Sounds"),
+    ("NA_BGM_NO_MUSIC", "No Music", "No Music"),
+    ("NA_BGM_NATURE_SFX_RAIN", "Nature Ambiance: Rain", "Nature Ambiance: Rain"),
 ]
 
 ootEnumNightSeq = [
@@ -346,22 +285,6 @@ ootEnumNaviHints = [
     ("0x00", "None", "None"),
     ("0x01", "Overworld", "elf_message_field"),
     ("0x02", "Dungeon", "elf_message_ydan"),
-]
-
-ootEnumTransitionAnims = [
-    ("Custom", "Custom", "Custom"),
-    ("0x00", "Spiky", "Spiky"),
-    ("0x01", "Triforce", "Triforce"),
-    ("0x02", "Slow Black Fade", "Slow Black Fade"),
-    ("0x03", "Slow Day/White, Slow Night/Black Fade", "Slow Day/White, Slow Night/Black Fade"),
-    ("0x04", "Fast Day/Black, Slow Night/Black Fade", "Fast Day/Black, Slow Night/Black Fade"),
-    ("0x05", "Fast Day/White, Slow Night/Black Fade", "Fast Day/White, Slow Night/Black Fade"),
-    ("0x06", "Very Slow Day/White, Slow Night/Black Fade", "Very Slow Day/White, Slow Night/Black Fade"),
-    ("0x07", "Very Slow Day/White, Slow Night/Black Fade", "Very Slow Day/White, Slow Night/Black Fade"),
-    ("0x0E", "Slow Sandstorm Fade", "Slow Sandstorm Fade"),
-    ("0x0F", "Fast Sandstorm Fade", "Fast Sandstorm Fade"),
-    ("0x20", "Iris Fade", "Iris Fade"),
-    ("0x2C", "Shortcut Transition", "Shortcut Transition"),
 ]
 
 # The order of this list matters (normal OoT scene order as defined by ``scene_table.h``)
@@ -599,6 +522,7 @@ ootSceneIDToName = {
     "SCENE_SASATEST": "sasatest",
     "SCENE_TESTROOM": "testroom",
 }
+ootSceneNameToID = {val: key for key, val in ootSceneIDToName.items()}
 
 ootEnumCamTransition = [
     ("Custom", "Custom", "Custom"),
@@ -607,7 +531,7 @@ ootEnumCamTransition = [
     # ("0xFF", "0xFF", "0xFF"),
 ]
 
-# see curRoom.unk_03
+# see curRoom.behaviorType1
 ootEnumRoomBehaviour = [
     ("Custom", "Custom", "Custom"),
     ("0x00", "Default", "Default"),
@@ -616,17 +540,6 @@ ootEnumRoomBehaviour = [
     ("0x03", "Disable Color Dither", "Disable Color Dither"),
     ("0x04", "(?) Horse Camera Related", "(?) Horse Camera Related"),
     ("0x05", "Disable Darker Screen Effect (NL/Spins)", "Disable Darker Screen Effect (NL/Spins)"),
-]
-
-ootEnumExitIndex = [
-    ("Custom", "Custom", "Custom"),
-    ("Default", "Default", "Default"),
-]
-
-ootEnumSceneSetupPreset = [
-    ("Custom", "Custom", "Custom"),
-    ("All Scene Setups", "All Scene Setups", "All Scene Setups"),
-    ("All Non-Cutscene Scene Setups", "All Non-Cutscene Scene Setups", "All Non-Cutscene Scene Setups"),
 ]
 
 ootEnumDrawConfig = [
@@ -689,5 +602,3 @@ ootEnumDrawConfig = [
     ("SDC_GANONS_TOWER_COLLAPSE_INTERIOR", "Ganon's Tower (Collapsing) (Ganon Sonogo)", "Ganon Sonogo"),
     ("SDC_INSIDE_GANONS_CASTLE_COLLAPSE", "Inside Ganon's Castle (Collapsing) (Ganontika Sonogo)", "Ganontika Sonogo"),
 ]
-
-ootSceneNameToID = {val: key for key, val in ootSceneIDToName.items()}

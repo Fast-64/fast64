@@ -171,7 +171,11 @@ enumCombKey = [
 
 enumTextConv = [
     ("G_TC_CONV", "Convert", "Convert YUV to RGB"),
-    ("G_TC_FILTCONV", "Filter And Convert", "Applies chosen filter on cycle 1 and converts YUB to RGB in the second cycle"),
+    (
+        "G_TC_FILTCONV",
+        "Filter And Convert",
+        "Applies chosen filter on cycle 1 and converts YUB to RGB in the second cycle",
+    ),
     ("G_TC_FILT", "Filter", "Applies chosen filter on textures with no color conversion"),
 ]
 
@@ -189,11 +193,19 @@ enumTextLUT = [
 
 enumTextLOD = [
     ("G_TL_TILE", "Tile", "Shows selected color combiner tiles"),
-    ("G_TL_LOD", "LoD", "Enables LoD calculations, LoD tile is base tile + clamp(log2(texel/pixel)), remainder of log2(texel/pixel) ratio gets stored to LoD Fraction in the color combiner"),
+    (
+        "G_TL_LOD",
+        "LoD",
+        "Enables LoD calculations, LoD tile is base tile + clamp(log2(texel/pixel)), remainder of log2(texel/pixel) ratio gets stored to LoD Fraction in the color combiner",
+    ),
 ]
 
 enumTextDetail = [
-    ("G_TD_CLAMP", "Clamp", "Shows base tile for texel0 and texel 1 when magnifying (>1 texel/pixel), else shows LoD tiles"),
+    (
+        "G_TD_CLAMP",
+        "Clamp",
+        "Shows base tile for texel0 and texel 1 when magnifying (>1 texel/pixel), else shows LoD tiles",
+    ),
     ("G_TD_SHARPEN", "Sharpen", "Sharpens pixel colors when magnifying (<1 texel/pixel), always shows LoD tiles"),
     ("G_TD_DETAIL", "Detail", "Shows base tile when magnifying (<1 texel/pixel), else shows LoD tiles + 1"),
 ]
@@ -213,8 +225,16 @@ enumCycleType = [
 enumColorDither = [("G_CD_DISABLE", "Disable", "Disable"), ("G_CD_ENABLE", "Enable", "Enable")]
 
 enumPipelineMode = [
-    ("G_PM_1PRIMITIVE", "1 Primitive", "Adds in pipe sync after every tri draw. Adds significant amounts of lag. Only use in vanilla SM64 hacking projects"),
-    ("G_PM_NPRIMITIVE", "N Primitive", "No additional syncs are added after tri draws. Default option for every game but vanilla SM64"),
+    (
+        "G_PM_1PRIMITIVE",
+        "1 Primitive",
+        "Adds in pipe sync after every tri draw. Adds significant amounts of lag. Only use in vanilla SM64 hacking projects",
+    ),
+    (
+        "G_PM_NPRIMITIVE",
+        "N Primitive",
+        "No additional syncs are added after tri draws. Default option for every game but vanilla SM64",
+    ),
 ]
 
 enumAlphaCompare = [
@@ -248,7 +268,7 @@ enumBlendColor = [
         "Input (CC/Blender)",
         "First cycle: Color Combiner RGB, Second cycle: Blender numerator from first cycle",
     ),
-    ("G_BL_CLR_MEM", "Framebuffer Color", "Framebuffer Color (Memory)"),
+    ("G_BL_CLR_MEM", "Framebuffer Color", "Framebuffer (Memory) Color"),
     ("G_BL_CLR_BL", "Blend Color", "Blend Color Register"),
     ("G_BL_CLR_FOG", "Fog Color", "Fog Color Register"),
 ]
@@ -256,13 +276,13 @@ enumBlendColor = [
 enumBlendAlpha = [
     ("G_BL_A_IN", "Color Combiner Alpha", "Color Combiner Alpha"),
     ("G_BL_A_FOG", "Fog Alpha", "Fog Color Register Alpha"),
-    ("G_BL_A_SHADE", "Shade Alpha", "Stepped Shade Alpha"),
+    ("G_BL_A_SHADE", "Shade Alpha", "Stepped Shade Alpha from RSP, often fog"),
     ("G_BL_0", "0", "0"),
 ]
 
 enumBlendMix = [
     ("G_BL_1MA", "1 - A", "1 - A, where A is selected above"),
-    ("G_BL_A_MEM", "Framebuffer Alpha", "Framebuffer (Memory) Alpha"),
+    ("G_BL_A_MEM", "Framebuffer Alpha", "Framebuffer (Memory) Alpha (Coverage)"),
     ("G_BL_1", "1", "1"),
     ("G_BL_0", "0", "0"),
 ]
@@ -357,15 +377,58 @@ maxTexelCount = {
 }
 
 enumF3D = [
-    ("F3D", "F3D", "F3D"),
-    ("F3DEX/LX", "F3DEX/LX", "F3DEX/LX"),
+    ("F3D", "F3D", "Original microcode used in SM64"),
+    ("F3DEX/LX", "F3DEX/LX", "F3DEX version 1"),
     ("F3DLX.Rej", "F3DLX.Rej", "F3DLX.Rej"),
     ("F3DLP.Rej", "F3DLP.Rej", "F3DLP.Rej"),
-    ("F3DEX2/LX2", "F3DEX2/LX2", "F3DEX2/LX2"),
-    ("F3DEX2.Rej/LX2.Rej", "F3DEX2.Rej/LX2.Rej", "F3DEX2.Rej/LX2.Rej"),
+    ("F3DEX2/LX2", "F3DEX2/LX2/ZEX", "Family of microcodes used in later N64 games including OoT and MM"),
+    ("F3DEX2.Rej/LX2.Rej", "F3DEX2.Rej/LX2.Rej", "Variant of F3DEX2 family using vertex rejection instead of clipping"),
+    ("F3DEX3", "F3DEX3", "Custom microcode by Sauraen"),
 ]
 
 enumLargeEdges = [
     ("Clamp", "Clamp", "Clamp outside image bounds"),
     ("Wrap", "Wrap", "Wrap outside image bounds (more expensive)"),
+]
+
+enumCelThreshMode = [
+    (
+        "Lighter",
+        "Lighter",
+        "This cel level is drawn when the lighting level per-pixel is LIGHTER than (>=) the threshold",
+    ),
+    ("Darker", "Darker", "This cel level is drawn when the lighting level per-pixel is DARKER than (<) the threshold"),
+]
+
+enumCelTintPipeline = [
+    (
+        "CC",
+        "CC (tint in Prim Color)",
+        "Cel shading puts tint color in Prim Color and tint level in Prim Alpha. Set up CC color to LERP between source color and tint color based on tint level, or multiply source color by tint color. Source may be Tex 0 or Env Color",
+    ),
+    (
+        "Blender",
+        "Blender (tint in Fog Color)",
+        "Cel shading puts tint color in Fog Color and tint level in Fog Alpha. Set up blender to LERP between CC output and tint color based on tint level. Then set CC to Tex 0 * shade color (vertex colors)",
+    ),
+]
+
+enumCelCutoutSource = [
+    (
+        "TEXEL0",
+        "Texture 0",
+        "Cel shading material has binary alpha cutout from Texture 0 alpha. Does not work with I4 or I8 formats",
+    ),
+    (
+        "TEXEL1",
+        "Texture 1",
+        "Cel shading material has binary alpha cutout from Texture 1 alpha. Does not work with I4 or I8 formats",
+    ),
+    ("ENVIRONMENT", "None / Env Alpha", "Make sure your material writes env color, and set env alpha to opaque (255)"),
+]
+
+enumCelTintType = [
+    ("Fixed", "Fixed", "Fixed tint color and level stored directly in DL"),
+    ("Segment", "Segment", "Call a segmented DL to set the tint, can change at runtime"),
+    ("Light", "From Light", "Automatically load tint color from selectable light slot. Tint level stored in DL"),
 ]

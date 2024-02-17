@@ -95,11 +95,11 @@ def ootGetLinkData(basePath: str) -> str:
 
 
 class OOTModel(FModel):
-    def __init__(self, f3dType, isHWv1, name, DLFormat, drawLayerOverride):
+    def __init__(self, name, DLFormat, drawLayerOverride):
         self.drawLayerOverride = drawLayerOverride
         self.flipbooks: list[TextureFlipbook] = []
 
-        FModel.__init__(self, f3dType, isHWv1, name, DLFormat, GfxMatWriteMethod.WriteAll)
+        FModel.__init__(self, name, DLFormat, GfxMatWriteMethod.WriteAll)
 
     # Since dynamic textures are handled by scene draw config, flipbooks should only belong to scene model.
     # Thus we have this function.
@@ -126,7 +126,7 @@ class OOTModel(FModel):
     def addFlipbookWithRepeatCheck(self, flipbook: TextureFlipbook):
         model = self.getFlipbookOwner()
 
-        def raiseErr(submsg):
+        def raiseErr(subMsg):
             raise PluginError(
                 f"There are two flipbooks {subMsg} trying to write to the same texture array "
                 + f"named: {flipbook.name}.\nMake sure that this flipbook name is unique, or "
@@ -298,12 +298,6 @@ class OOTModel(FModel):
         if contextObj is not None and hasattr(contextObj, "ootDynamicTransform"):
             if contextObj.ootDynamicTransform.billboard:
                 fMesh.draw.commands.append(SPMatrix("0x01000000", "G_MTX_MODELVIEW | G_MTX_NOPUSH | G_MTX_MUL"))
-
-
-class OOTDynamicMaterialDrawLayer:
-    def __init__(self, opaque, transparent):
-        self.opaque = opaque
-        self.transparent = transparent
 
 
 class OOTGfxFormatter(GfxFormatter):
@@ -490,7 +484,6 @@ class OOTF3DContext(F3DContext):
         tlut: bpy.types.Image,
         index: int,
     ):
-
         flipbook = getattr(material.flipbookGroup, "flipbook" + str(index))
         if usesFlipbook(material, flipbook, index, True, ootFlipbookReferenceIsValid):
             # Don't apply TLUT to texProp.tex, as it is the same texture as the first flipbook texture.
@@ -509,8 +502,3 @@ def clearOOTFlipbookProperty(flipbookProp):
     flipbookProp.name = "sFlipbookTextures"
     flipbookProp.exportMode = "Array"
     flipbookProp.textures.clear()
-
-
-def clearOOTMaterialDrawLayerProperty(matDrawLayerProp):
-    for i in range(0x08, 0x0E):
-        setattr(matDrawLayerProp, "segment" + format(i, "X"), False)
