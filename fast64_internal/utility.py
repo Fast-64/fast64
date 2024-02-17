@@ -3,10 +3,10 @@ from pathlib import Path
 from math import pi, ceil, degrees, radians, copysign
 from mathutils import *
 from .utility_anim import *
-from typing import Callable, Iterable, Any, Tuple, Optional
+from typing import Callable, Iterable, Any, Tuple, Optional, Annotated
 from bpy.types import UILayout
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union, Generator
 
 if TYPE_CHECKING:
     from fast64_internal.f3d.f3d_gbi import FModel
@@ -240,11 +240,11 @@ def readFile(filepath: str | Path) -> str:
     return data
 
 
-def writeFile(filepath: str, data: str) -> None:
+def writeFile(filepath: str | Path, data: str) -> None:
     """Write data to a file
 
     Args:
-        filepath (str): Path to file
+        filepath (str | Path): Path to file
         data (str): Data to write
     """
     datafile = open(filepath, "w", newline="\n", encoding="utf-8")
@@ -316,7 +316,7 @@ def getFMeshName(vertexGroup: str, namePrefix: str, drawLayer: int, isSkinned: b
     return fMeshName
 
 
-def checkUniqueBoneNames(fModel: FModel, name: str, vertexGroup: str) -> None:
+def checkUniqueBoneNames(fModel: "FModel", name: str, vertexGroup: str) -> None:
     """Check if a bone name is unique
 
     Args:
@@ -545,13 +545,13 @@ def propertyGroupEquals(oldProp: bpy.types.PropertyGroup, newProp: bpy.types.Pro
     return equivalent
 
 
-def writeCData(data: "CData", headerPath: str, sourcePath :str) -> None:
+def writeCData(data: "CData", headerPath: str | Path, sourcePath :str | Path) -> None:
     """Write C data to a header and source file
 
     Args:
         data (CData): Data to write
-        headerPath (str): Path to header file
-        sourcePath (str): Path to source file
+        headerPath (str | Path): Path to header file
+        sourcePath (str | Path): Path to source file
     """
     sourceFile = open(sourcePath, "w", newline="\n", encoding="utf-8")
     sourceFile.write(data.source)
@@ -562,24 +562,24 @@ def writeCData(data: "CData", headerPath: str, sourcePath :str) -> None:
     headerFile.close()
 
 
-def writeCDataSourceOnly(data: "CData", sourcePath: str) -> None:
+def writeCDataSourceOnly(data: "CData", sourcePath: str | Path) -> None:
     """Write C data to a source file
 
     Args:
         data (CData): Data to write
-        sourcePath (str): Path to source file
+        sourcePath (str | Path): Path to source file
     """
     sourceFile = open(sourcePath, "w", newline="\n", encoding="utf-8")
     sourceFile.write(data.source)
     sourceFile.close()
 
 
-def writeCDataHeaderOnly(data: "CData", headerPath: str) -> None:
+def writeCDataHeaderOnly(data: "CData", headerPath: str | Path) -> None:
     """Write C data to a header file
 
     Args:
         data (CData): Data to write
-        headerPath (str): Path to header file
+        headerPath (str | Path): Path to header file
     """
     headerFile = open(headerPath, "w", newline="\n", encoding="utf-8")
     headerFile.write(data.header)
@@ -620,7 +620,7 @@ class CScrollData(CData):
 
         CData.__init__(self)
 
-    def append(self, other: "CScrollData" | CData) -> None:
+    def append(self, other: Union["CScrollData", CData]) -> None:
         """Append another CData or CScrollData to this one
 
         Args:
@@ -678,11 +678,11 @@ def extendedRAMLabel(layout: bpy.types.UILayout) -> None:
     infoBox.label(text="Extended RAM prevents crashes.")
 
 
-def checkExpanded(filepath: str) -> None:
+def checkExpanded(filepath: str | Path) -> None:
     """Check if a ROM is expanded
 
     Args:
-        filepath (str): Path to ROM
+        filepath (str | Path): Path to ROM
 
     Raises:
         PluginError: If the ROM is not expanded
@@ -696,7 +696,18 @@ def checkExpanded(filepath: str) -> None:
         )
 
 
-def getPathAndLevel(customExport, exportPath, levelName, levelOption):
+def getPathAndLevel(customExport: bool, exportPath: str | Path, levelName: str, levelOption: str) -> Tuple[str, str]:
+    """Get the export path and level name
+
+    Args:
+        customExport (bool): Whether to use custom export path
+        exportPath (str | Path): Export path
+        levelName (str): Level name
+        levelOption (str): Level option
+
+    Returns:
+        Tuple[str, str]: Export path and level name
+    """
     if customExport:
         exportPath = bpy.path.abspath(exportPath)
         levelName = levelName
@@ -709,7 +720,18 @@ def getPathAndLevel(customExport, exportPath, levelName, levelOption):
     return exportPath, levelName
 
 
-def findStartBones(armatureObj):
+def findStartBones(armatureObj: bpy.types.Armature) -> list[str]:
+    """Find the start bones of an armature
+
+    Args:
+        armatureObj (bpy.types.Armature): Armature to find start bones of
+
+    Raises:
+        PluginError: If no start bones are found
+
+    Returns:
+        list[str]: Start bones
+    """
     noParentBones = sorted(
         [
             bone.name
@@ -743,8 +765,19 @@ def findStartBones(armatureObj):
             + 'and that any bones not related to a hierarchy have their geolayout command set to "Ignore".'
         )
 
+# ? Duplicate of readFile()? 
+def getDataFromFile(filepath: str | Path) -> str:
+    """Get data from a file
 
-def getDataFromFile(filepath):
+    Args:
+        filepath (str | Path): Path to file
+
+    Raises:
+        PluginError: If the file does not exist
+
+    Returns:
+        str: File data
+    """
     if not os.path.exists(filepath):
         raise PluginError('Path "' + filepath + '" does not exist.')
     dataFile = open(filepath, "r", newline="\n")
@@ -752,19 +785,38 @@ def getDataFromFile(filepath):
     dataFile.close()
     return data
 
+# ? Duplicate of writeFile()?
+def saveDataToFile(filepath: str | Path, data: str) -> None:
+    """Save data to a file
 
-def saveDataToFile(filepath, data):
+    Args:
+        filepath (str | Path): Path to file
+        data (str): Data to save
+    """
     dataFile = open(filepath, "w", newline="\n")
     dataFile.write(data)
     dataFile.close()
 
 
-def applyBasicTweaks(baseDir):
+def applyBasicTweaks(baseDir: str | Path) -> None:
+    """Apply basic tweaks to the base directory
+
+    Args:
+        baseDir (str | Path): Base directory
+    """
     enableExtendedRAM(baseDir)
     return
 
 
-def enableExtendedRAM(baseDir):
+def enableExtendedRAM(baseDir: str | Path) -> None:
+    """Enable extended RAM in segments.h
+
+    Args:
+        baseDir (str | Path): Base directory
+
+    Raises:
+        PluginError: If extended RAM cannot be enabled
+    """
     segmentPath = os.path.join(baseDir, "include/segments.h")
 
     segmentFile = open(segmentPath, "r", newline="\n")
@@ -788,14 +840,36 @@ def enableExtendedRAM(baseDir):
         segmentFile.close()
 
 
-def writeMaterialHeaders(exportDir, matCInclude, matHInclude):
+def writeMaterialHeaders(exportDir: str | Path, matCInclude: str, matHInclude: str) -> None:
+    """Write material headers to matreials.c and materials.h
+
+    Args:
+        exportDir (str | Path): Export directory
+        matCInclude (str): Material header to include in materials.c
+        matHInclude (str): Material header to include in materials.h
+    """
     writeIfNotFound(os.path.join(exportDir, "src/game/materials.c"), "\n" + matCInclude, "")
     writeIfNotFound(os.path.join(exportDir, "src/game/materials.h"), "\n" + matHInclude, "#endif")
 
 
 def writeMaterialFiles(
-    exportDir, assetDir, headerInclude, matHInclude, headerDynamic, dynamic_data, geoString, customExport
-):
+    exportDir: str | Path, assetDir: str | Path, headerInclude: str, matHInclude: str, headerDynamic: str , dynamic_data: str, geoString: str, customExport: bool
+) -> str:
+    """Write material files
+
+    Args:
+        exportDir (str | Path): Export directory, used if customExport is False
+        assetDir (str | Path): Asset directory
+        headerInclude (str): Header to include
+        matHInclude (str): Material header to include
+        headerDynamic (str): Header from CData
+        dynamic_data (str): Source from CData
+        geoString (str): Geo string
+        customExport (bool): Whether to use custom export path
+
+    Returns:
+        str: matHInclude + '\\n\\n' + geoString
+    """
     if not customExport:
         writeMaterialBase(exportDir)
     levelMatCPath = os.path.join(assetDir, "material.inc.c")
@@ -813,7 +887,12 @@ def writeMaterialFiles(
     return matHInclude + "\n\n" + geoString
 
 
-def writeMaterialBase(baseDir):
+def writeMaterialBase(baseDir: str | Path) -> None:
+    """Write material base files
+
+    Args:
+        baseDir (str | Path): Base directory
+    """
     matHPath = os.path.join(baseDir, "src/game/materials.h")
     if not os.path.exists(matHPath):
         matHFile = open(matHPath, "w", newline="\n")
@@ -840,7 +919,15 @@ def writeMaterialBase(baseDir):
         matCFile.close()
 
 
-def getRGBA16Tuple(color):
+def getRGBA16Tuple(color: mathutils.Color | Annotated[Iterable[int], 4] | Vector) -> int:
+    """Get an RGBA16 tuple from a color
+
+    Args:
+        color (mathutils.Color | Annotated[Iterable[int], 4] | Vector): Color to convert
+
+    Returns:
+        int: RGBA16 tuple
+    """
     return (
         ((int(round(color[0] * 0x1F)) & 0x1F) << 11)
         | ((int(round(color[1] * 0x1F)) & 0x1F) << 6)
@@ -852,19 +939,45 @@ def getRGBA16Tuple(color):
 RGB_TO_LUM_COEF = mathutils.Vector([0.2126729, 0.7151522, 0.0721750])
 
 
-def colorToLuminance(color: mathutils.Color | list[float] | Vector):
-    # https://github.com/blender/blender/blob/594f47ecd2d5367ca936cf6fc6ec8168c2b360d0/intern/cycles/render/shader.cpp#L387
-    # These coefficients are used by Blender, so we use them as well for parity between Fast64 exports and Blender color conversions
+def colorToLuminance(color: mathutils.Color | Annotated[Iterable[int], 4] | Vector) -> float:
+    """Convert a color to luminance using RGB coefficients
+
+        https://github.com/blender/blender/blob/594f47ecd2d5367ca936cf6fc6ec8168c2b360d0/intern/cycles/render/shader.cpp#L387
+        
+        These coefficients are used by Blender, so we use them as well for parity between Fast64 exports and Blender color conversions
+    
+    Args:
+        color (mathutils.Color | Annotated[Iterable[int], 4] | Vector): Color to convert
+
+    Returns:
+        float: Luminance value
+    """
     return RGB_TO_LUM_COEF.dot(color[:3])
 
 
-def getIA16Tuple(color):
+def getIA16Tuple(color: mathutils.Color | Annotated[Iterable[int], 4] | Vector) -> int:
+    """Get a packed IA16 integer from a color
+
+    Args:
+        color (mathutils.Color | Annotated[Iterable[int], 4] | Vector): Color to convert
+
+    Returns:
+        int: Packed IA16 integer
+    """
     intensity = colorToLuminance(color[0:3])
     alpha = color[3]
     return (int(round(intensity * 0xFF)) << 8) | int(alpha * 0xFF)
 
 
-def convertRadiansToS16(value):
+def convertRadiansToS16(value: int | float) -> str:
+    """Convert radians to S16 hex string
+
+    Args:
+        value (int | float): Value to convert
+
+    Returns:
+        str: S16 hex string
+    """
     value = math.degrees(value)
     # ??? Why is this negative?
     # TODO: Figure out why this has to be this way
@@ -872,17 +985,55 @@ def convertRadiansToS16(value):
     return hex(round(value / 360 * 0xFFFF))
 
 
-def cast_integer(value: int, bits: int, signed: bool):
+def cast_integer(value: int, bits: int, signed: bool) -> int:
+    """Cast an integer to a different number of bits, and optionally sign it
+
+    Args:
+        value (int): Integer to cast
+        bits (int): Number of bits to cast to
+        signed (bool): Whether to sign the integer
+
+    Returns:
+        int: Casted integer
+    """
     wrap = 1 << bits
     value %= wrap
     return value - wrap if signed and value & (1 << (bits - 1)) else value
 
 
-to_s16 = lambda x: cast_integer(round(x), 16, True)
-radians_to_s16 = lambda d: to_s16(d * 0x10000 / (2 * math.pi))
+def to_s16(value: int | float) -> int:
+    """Convert a value to a signed 16-bit integer
+
+    Args:
+        value (int | float): Value to convert
+
+    Returns:
+        int: Signed 16-bit integer
+    """
+    return cast_integer(round(value), 16, True)
+
+
+def radians_to_s16(value: int | float) -> int:
+    """Convert radians to a signed 16-bit integer
+
+    Args:
+        value (int | float): Value to convert
+
+    Returns:
+        int: Signed 16-bit integer
+    """
+    return to_s16(value * 0x10000 / (2 * math.pi))
 
 
 def int_from_s16(value: int) -> int:
+    """Convert a signed 16-bit integer to an integer
+
+    Args:
+        value (int): Value to convert
+
+    Returns:
+        int: Converted integer
+    """
     value &= 0xFFFF
     if value >= 0x8000:
         value -= 0x10000
@@ -890,22 +1041,54 @@ def int_from_s16(value: int) -> int:
 
 
 def int_from_s16_str(value: str) -> int:
+    """Convert a signed 16-bit integer string to an integer
+
+    Args:
+        value (str): Value to convert
+
+    Returns:
+        int: Converted integer
+    """
     return int_from_s16(int(value, 0))
 
 
 def float_from_u16_str(value: str) -> float:
+    """Convert an unsigned 16-bit integer string to a float
+
+    Args:
+        value (str): Value to convert
+
+    Returns:
+        float: Converted float
+    """
     return float(int(value, 0)) / (2**16)
 
 
-def decompFolderMessage(layout):
+def decompFolderMessage(layout: bpy.types.UILayout) -> None:
+    """Display a message about the decomp folder
+
+    Args:
+        layout (bpy.types.UILayout): Layout to display message in
+    """
     layout.box().label(text="This will export to your decomp folder.")
 
 
-def customExportWarning(layout):
+def customExportWarning(layout: bpy.types.UILayout) -> None:
+    """Display a warning about custom export
+
+    Args:
+        layout (bpy.types.UILayout): Layout to display warning in
+    """
     layout.box().label(text="This will not write any headers/dependencies.")
 
 
-def raisePluginError(operator, exception):
+def raisePluginError(operator: bpy.types.Operator, exception: Exception) -> None:
+    """Report an error to Blender operator
+
+    Args:
+        operator (bpy.types.Operator): Operator to report error to
+        exception (Exception): Exception to report
+    """
     print(traceback.format_exc())
     if bpy.context.scene.fullTraceback:
         operator.report({"ERROR"}, traceback.format_exc())
@@ -913,7 +1096,15 @@ def raisePluginError(operator, exception):
         operator.report({"ERROR"}, str(exception))
 
 
-def highlightWeightErrors(obj, elements, elementType):
+# ? Not entirely certain that `elements` is the correct type
+def highlightWeightErrors(obj: bpy.types.Object, elements: Iterable[bpy.types.MeshVertex], elementType: str) -> None:
+    """Highlight weight errors in Blender
+
+    Args:
+        obj (bpy.types.Object): Object to highlight weights on
+        elements (Iterable[bpy.types.MeshVertex]): Elements to highlight
+        elementType (str): Type of element to highlight
+    """
     return  # Doesn't work currently
     if bpy.context.mode != "OBJECT":
         bpy.ops.object.mode_set(mode="OBJECT")
@@ -929,7 +1120,18 @@ def highlightWeightErrors(obj, elements, elementType):
         element.select = True
 
 
-def checkIdentityRotation(obj, rotation, allowYaw):
+def checkIdentityRotation(obj: bpy.types.Object, rotation: mathutils.Quaternion | mathutils.Matrix, allowYaw: bool) -> None:
+    """Check a rotation diff's X, Y, and Z axises are all less than 0.001
+        Unless allowYaw is True, in which case only X and Z are checked
+        
+    Args:
+        obj (bpy.types.Object): Object to specify in error
+        rotation (mathutils.Quaternion | mathutils.Matrix): Rotation to check
+        allowYaw (bool): Whether to allow yaw (Effectively excludes Y axis from check)
+
+    Raises:
+        PluginError: If the rotation's diff is too high
+    """
     rotationDiff = rotation.to_euler()
     if abs(rotationDiff.x) > 0.001 or (not allowYaw and abs(rotationDiff.y) > 0.001) or abs(rotationDiff.z) > 0.001:
         raise PluginError(
@@ -947,7 +1149,14 @@ def checkIdentityRotation(obj, rotation, allowYaw):
         )
 
 
-def setOrigin(target, obj):
+# ? I would personally argue that these arguments should be swapped
+def setOrigin(target: bpy.types.Object, obj: bpy.types.Object) -> None:
+    """Set the origin of an object to another object
+
+    Args:
+        target (bpy.types.Object): Target to set origin to
+        obj (bpy.types.Object): Object to set origin of
+    """
     bpy.ops.object.select_all(action="DESELECT")
     obj.select_set(True)
     bpy.context.view_layer.objects.active = obj
@@ -957,18 +1166,43 @@ def setOrigin(target, obj):
     bpy.ops.object.select_all(action="DESELECT")
 
 
-def checkIfPathExists(filePath):
+def checkIfPathExists(filePath: str | Path) -> None:
+    """Check if a file path exists
+
+    Args:
+        filePath (str | Path): Path to check
+
+    Raises:
+        PluginError: If the file path does not exist
+    """
     if not os.path.exists(filePath):
         raise PluginError(filePath + " does not exist.")
 
 
-def makeWriteInfoBox(layout):
+def makeWriteInfoBox(layout: bpy.types.UILayout) -> bpy.types.UILayout:
+    """Make a write info box
+
+    Args:
+        layout (bpy.types.UILayout): Layout to make box in
+
+    Returns:
+        bpy.types.UILayout: Box layout
+    """
     writeBox = layout.box()
     writeBox.label(text="Along with header edits, this will write to:")
     return writeBox
 
 
-def writeBoxExportType(writeBox, headerType, name, levelName, levelOption):
+def writeBoxExportType(writeBox: bpy.types.UILayout, headerType: str, name: str, levelName: str, levelOption: str) -> None:
+    """Sets the label of a write box based on parameters
+
+    Args:
+        writeBox (bpy.types.UILayout): Box layout
+        headerType (str): Type of header
+        name (str): Name of object
+        levelName (str): Name of level
+        levelOption (str): Level option
+    """
     if headerType == "Actor":
         writeBox.label(text="actors/" + toAlnum(name))
     elif headerType == "Level":
@@ -977,7 +1211,20 @@ def writeBoxExportType(writeBox, headerType, name, levelName, levelOption):
         writeBox.label(text="levels/" + toAlnum(levelName) + "/" + toAlnum(name))
 
 
-def getExportDir(customExport, dirPath, headerType, levelName, texDir, dirName):
+def getExportDir(customExport: bpy.types.BoolProperty, dirPath: str | Path, headerType: str, levelName: str, texDir: str, dirName: str) -> Tuple[str, str]:
+    """Get the export directory and texture directory
+
+    Args:
+        customExport (bpy.types.BoolProperty): Whether to use custom export path
+        dirPath (str | Path): Directory path
+        headerType (str): Type of header, either "Actor" or "Level"
+        levelName (str): Name of level, used if customExport is False and headerType is "Level"
+        texDir (str): Texture directory, used if customExport is False
+        dirName (str): Directory name, used if customExport is False and headerType is "Actor"
+
+    Returns:
+        Tuple[str, str]: Export directory and texture directory
+    """
     # Get correct directory from decomp base, and overwrite texDir
     if not customExport:
         if headerType == "Actor":
@@ -990,12 +1237,28 @@ def getExportDir(customExport, dirPath, headerType, levelName, texDir, dirName):
     return dirPath, texDir
 
 
-def overwriteData(headerRegex, name, value, filePath, writeNewBeforeString, isFunction):
+def overwriteData(headerRegex: str, name: str, value: str, filePath: str | Path, writeNewBeforeString: str, isFunction: bool) -> None:
+    """Finds a regex match in a file, and overwrites the match with a new value
+
+    Args:
+        headerRegex (str): Header to match
+        name (str): Name of file to match
+        value (str): Value to overwrite with
+        filePath (str | Path): Path to file to overwrite
+        writeNewBeforeString (str): A string to splice into the file should the regex not match
+        isFunction (bool): Whether the value is a function
+
+    Raises:
+        PluginError: Raised if regex does not match
+        PluginError: Raised if the file does not exist
+    """
     if os.path.exists(filePath):
+        # Get the file data
         dataFile = open(filePath, "r")
         data = dataFile.read()
         dataFile.close()
 
+        # Find the match
         matchResult = re.search(
             headerRegex
             + re.escape(name)
@@ -1003,16 +1266,23 @@ def overwriteData(headerRegex, name, value, filePath, writeNewBeforeString, isFu
             data,
             re.DOTALL,
         )
+        
+        # If a match was found, replace the matched data with the new value
         if matchResult:
             data = data[: matchResult.start(0)] + value + data[matchResult.end(0) :]
         else:
+            # If the regex did not match, see if we can find writeNewBeforeString in the data
             if writeNewBeforeString is not None:
                 cmdPos = data.find(writeNewBeforeString)
                 if cmdPos == -1:
                     raise PluginError("Could not find '" + writeNewBeforeString + "'.")
+                # If we did find writeNewBeforeString, write the new value before it along with a newline
                 data = data[:cmdPos] + value + "\n" + data[cmdPos:]
             else:
+                # If we writeNewBeforeString is None, write the new value at the end of the file
                 data += "\n" + value
+                
+        # Write the new data to the file
         dataFile = open(filePath, "w", newline="\n")
         dataFile.write(data)
         dataFile.close()
@@ -1020,7 +1290,18 @@ def overwriteData(headerRegex, name, value, filePath, writeNewBeforeString, isFu
         raise PluginError(filePath + " does not exist.")
 
 
-def writeIfNotFound(filePath, stringValue, footer):
+def writeIfNotFound(filePath: str, stringValue: str, footer: str) -> None:
+    """Write a string to a file if it is not found in the file
+
+    Args:
+        filePath (str): Path to file
+        stringValue (str): String to write
+        footer (str): Footer to write after the string
+
+    Raises:
+        PluginError: Footer does not exist
+        PluginError: File does not exist
+    """
     if os.path.exists(filePath):
         fileData = open(filePath, "r")
         fileData.seek(0)
@@ -1041,7 +1322,13 @@ def writeIfNotFound(filePath, stringValue, footer):
         raise PluginError(filePath + " does not exist.")
 
 
-def deleteIfFound(filePath, stringValue):
+def deleteIfFound(filePath: str | Path, stringValue: str) -> None:
+    """Delete a string from a file if it is found in the file
+
+    Args:
+        filePath (str | Path): Path to file
+        stringValue (str): String to delete
+    """
     if os.path.exists(filePath):
         fileData = open(filePath, "r")
         fileData.seek(0)
@@ -1054,39 +1341,79 @@ def deleteIfFound(filePath, stringValue):
         fileData.close()
 
 
-def yield_children(obj: bpy.types.Object):
+def yield_children(obj: bpy.types.Object) -> Generator[bpy.type.Object, None, None]:
+    """Generator that recursively iterates through all children of an object tree
+
+    Args:
+        obj (bpy.types.Object): Object to iterate through
+
+    Yields:
+        Generator[bpy.type.Object, None, None]: Yielded Object
+    """
     yield obj
     if obj.children:
         for o in obj.children:
             yield from yield_children(o)
 
 
-def store_original_mtx():
+def store_original_mtx() -> None:
+    """Store the original matrix of an object in its local space"""
     active_obj = bpy.context.view_layer.objects.active
     for obj in yield_children(active_obj):
         obj["original_mtx"] = obj.matrix_local
 
 
+# ? Unsure what `bounds` is supposed to be, other than an iterator of something
+# ? Pretty sure it's an iterator of Vectors, but not enough to document it
 def rotate_bounds(bounds, mtx: mathutils.Matrix):
     return [(mtx @ mathutils.Vector(b)).to_tuple() for b in bounds]
 
 
-def obj_scale_is_unified(obj):
-    """Combine scale values into a set to ensure all values are the same"""
+def obj_scale_is_unified(obj: bpy.types.Object) -> bool:
+    """Combine scale values into a set to ensure all values are the same
+
+    Args:
+        obj (bpy.types.Object): Object to check scale of
+
+    Returns:
+        bool: True if all scale values are the same
+    """
     return len(set(obj.scale)) == 1
 
 
-def translation_rotation_from_mtx(mtx: mathutils.Matrix):
-    """Strip scale from matrix"""
+def translation_rotation_from_mtx(mtx: mathutils.Matrix) -> mathutils.Matrix:
+    """Strip scale from matrix
+
+    Args:
+        mtx (mathutils.Matrix): Matrix to strip scale from
+
+    Returns:
+        mathutils.Matrix: Matrix with scale stripped
+    """
     t, r, _ = mtx.decompose()
     return Matrix.Translation(t) @ r.to_matrix().to_4x4()
 
 
-def scale_mtx_from_vector(scale: mathutils.Vector):
+def scale_mtx_from_vector(scale: mathutils.Vector) -> mathutils.Matrix:
+    """Create a scale matrix from a vector
+
+    Args:
+        scale (mathutils.Vector): Scale vector
+
+    Returns:
+        mathutils.Matrix: Scale matrix in a 4x4 format
+    """
     return mathutils.Matrix.Diagonal(scale[0:3]).to_4x4()
 
 
-def copy_object_and_apply(obj: bpy.types.Object, apply_scale=False, apply_modifiers=False):
+def copy_object_and_apply(obj: bpy.types.Object, apply_scale: bool = False, apply_modifiers: bool = False) -> None:
+    """Copy an object and apply transformations
+
+    Args:
+        obj (bpy.types.Object): Object to copy
+        apply_scale (bool, optional): Whether to apply scale. Defaults to False.
+        apply_modifiers (bool, optional): Whether to apply modifiers. Defaults to False.
+    """
     if apply_scale or apply_modifiers:
         # it's a unique mesh, use object name
         obj["instanced_mesh_name"] = obj.name
@@ -1130,10 +1457,13 @@ def copy_object_and_apply(obj: bpy.types.Object, apply_scale=False, apply_modifi
     obj_copy["culling_bounds"] = rotate_bounds(obj_copy.bound_box, bounds_mtx)
 
 
-def store_original_meshes(add_warning: Callable[[str], None]):
+def store_original_meshes(add_warning: Callable[[str], None]) -> None:
     """
     - Creates new objects at 0, 0, 0 with shared mesh
     - Original mesh name is saved to each object
+
+    Args:
+        add_warning (Callable[[str], None]): Function to add a warning
     """
     instanced_meshes = set()
     active_obj = bpy.context.view_layer.objects.active
@@ -1167,13 +1497,26 @@ def store_original_meshes(add_warning: Callable[[str], None]):
     bpy.context.view_layer.objects.active = active_obj
 
 
-def get_obj_temp_mesh(obj):
+def get_obj_temp_mesh(obj: bpy.types.Object) -> Optional[bpy.types.Object]:
+    """Attempt to find a temp mesh object that was created for instancing
+
+    Args:
+        obj (bpy.types.Object): Object to find temp mesh of
+
+    Returns:
+        Optional[bpy.types.Object]: Temp mesh object
+    """
     for o in bpy.data.objects:
         if o.get("temp_export") and o.get("instanced_mesh_name") == obj.get("instanced_mesh_name"):
             return o
 
 
-def apply_objects_modifiers_and_transformations(allObjs: Iterable[bpy.types.Object]):
+def apply_objects_modifiers_and_transformations(allObjs: Iterable[bpy.types.Object]) -> None:
+    """Iterate through object and apply defined modifiers and transformations
+
+    Args:
+        allObjs (Iterable[bpy.types.Object]): Objects to apply modifiers and transformations to
+    """
     # first apply modifiers so that any objects that affect each other are taken into consideration
     for selectedObj in allObjs:
         bpy.ops.object.select_all(action="DESELECT")
@@ -1192,7 +1535,23 @@ def apply_objects_modifiers_and_transformations(allObjs: Iterable[bpy.types.Obje
         bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
 
 
-def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
+# ? Unsure if areaIndex is an `int`. Basing it off use context and the fact that it's used as an index
+def duplicateHierarchy(obj: bpy.types.Object, ignoreAttr: str, includeEmpties: bool, areaIndex: int | None) -> Tuple[bpy.types.Object, Iterable[bpy.types.Object]] | None:
+    """Duplicate a hierarchy of objects
+    - Gives the options to ignore certain attributes and include empties
+
+    Args:
+        obj (bpy.types.Object): Object hierarchy to duplicate
+        ignoreAttr (str): Attribute to ignore
+        includeEmpties (bool): Whether to include empties
+        areaIndex (int | None): Area index to exclude
+
+    Raises:
+        Exception: If an error occurs during duplication
+
+    Returns:
+        Tuple[bpy.types.Object, Iterable[bpy.types.Object]] | None: Active object and all duplicated selected objects
+    """
     # Duplicate objects to apply scale / modifiers / linked data
     bpy.ops.object.select_all(action="DESELECT")
     selectMeshChildrenOnly(obj, None, includeEmpties, areaIndex)
@@ -1229,7 +1588,17 @@ def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
 enumSM64PreInlineGeoLayoutObjects = {"Geo ASM", "Geo Branch", "Geo Displaylist", "Custom Geo Command"}
 
 
-def checkIsSM64PreInlineGeoLayout(sm64_obj_type):
+def checkIsSM64PreInlineGeoLayout(sm64_obj_type: str) -> bool:
+    """Check if a string is a valid pre-inline geolayout type
+
+    Args:
+        sm64_obj_type (str): Input string
+        
+            - Valid Geo Layouts: "Geo ASM" | "Geo Branch" | "Geo Displaylist" | "Custom Geo Command"
+
+    Returns:
+        bool: True if the string is a valid pre-inline geolayout type
+    """
     return sm64_obj_type in enumSM64PreInlineGeoLayoutObjects
 
 
@@ -1246,14 +1615,36 @@ enumSM64InlineGeoLayoutObjects = {
 }
 
 
-def checkIsSM64InlineGeoLayout(sm64_obj_type):
+def checkIsSM64InlineGeoLayout(sm64_obj_type: str) -> bool:
+    """Check if a string is an inline geolayout type
+    
+    Args:
+        sm64_obj_type (str): Input string
+        
+            - Valid Geo Layouts: "Geo ASM" | "Geo Branch" | "Geo Translate/Rotate" | "Geo Translate Node" | 
+            "Geo Rotation Node" | "Geo Billboard" | "Geo Scale" | "Geo Displaylist" | "Custom Geo Command"
+
+    Returns:
+        bool: True if the string is a valid inline geolayout type
+    """
     return sm64_obj_type in enumSM64InlineGeoLayoutObjects
 
 
 enumSM64EmptyWithGeolayout = {"None", "Level Root", "Area Root", "Switch"}
 
 
-def checkSM64EmptyUsesGeoLayout(sm64_obj_type):
+def checkSM64EmptyUsesGeoLayout(sm64_obj_type: str) -> bool:
+    """Check if a string is a valid empty type that uses a geolayout
+
+    Args:
+        sm64_obj_type (str): Input string
+        
+            - Valid Empty Types: "None" | "Level Root" | "Area Root" | "Switch"
+
+    Returns:
+        bool: True if the string is a valid empty type that uses a geolayout
+    """
+    # ? With the current values, checkIsSM64InlineGeoLayout will always return False. Is it necessary?
     return sm64_obj_type in enumSM64EmptyWithGeolayout or checkIsSM64InlineGeoLayout(sm64_obj_type)
 
 
@@ -1274,7 +1665,7 @@ def selectMeshChildrenOnly(obj, ignoreAttr, includeEmpties, areaIndex):
         selectMeshChildrenOnly(child, ignoreAttr, includeEmpties, areaIndex)
 
 
-def cleanupDuplicatedObjects(selected_objects):
+def cleanupDuplicatedObjects(selected_objects: Iterable[bpy.types.Object]) -> None:
     meshData = []
     for selectedObj in selected_objects:
         if selectedObj.type == "MESH":
