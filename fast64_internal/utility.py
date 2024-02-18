@@ -59,77 +59,34 @@ enumCompressionFormat = [
 
 
 def isPowerOf2(n: int | float) -> bool:
-    """Check if a number is a power of 2
-
-    Args:
-        n (int | float): Number to check
-
-    Returns:
-        bool: True if n is a power of 2
-    """
+    """Check if a number is a power of 2"""
     return (n & (n - 1) == 0) and n != 0
 
 
 def log2iRoundDown(n: int | float) -> int:
-    """Calculate the log base 2 of a number, rounding down
-
-    Args:
-        n (int | float): Number to calculate log base 2 of
-
-    Returns:
-        int: Log base 2 of n, rounded down
-    """
+    """Calculate the log base 2 of a number, rounding down"""
     assert n > 0
     return int(math.floor(math.log2(n)))
 
 
 def log2iRoundUp(n: int | float) -> int:
-    """Calculate the log base 2 of a number, rounding up
-
-    Args:
-        n (int | float): Number to calculate log base 2 of
-
-    Returns:
-        int: Log base 2 of n, rounded up
-    """
+    """Calculate the log base 2 of a number, rounding up"""
     assert n > 0
     return int(math.ceil(math.log2(n)))
 
 
 def roundDownToPowerOf2(n: int | float) -> int:
-    """Round a number log2 down to the nearest power of 2
-
-    Args:
-        n (int | float): Number to round down
-
-    Returns:
-        int: Nearest power of 2
-    """
+    """Round a number log2 down to the nearest power of 2"""
     return 1 << log2iRoundDown(n)
 
 
 def roundUpToPowerOf2(n: int | float) -> int:
-    """Round a number log 2 up to the nearest power of 2
-
-    Args:
-        n (int | float): Number to round up
-
-    Returns:
-        int: Nearest power of 2
-    """
+    """Round a number log 2 up to the nearest power of 2"""
     return 1 << log2iRoundUp(n)
 
 
 def getDeclaration(data: str, name: str) -> re.Match | None:
-    """Get a declaration from a string
-
-    Args:
-        data (str): String to search
-        name (str): Name of declaration
-
-    Returns:
-        re.Match | None: Match object if found, None otherwise
-    """
+    """Get an extern declaration from a string"""
     matchResult = re.search("extern\s*[A-Za-z0-9\_]*\s*" + re.escape(name) + "\s*(\[[^;\]]*\])?;\s*", data, re.DOTALL)
     return matchResult
 
@@ -227,14 +184,7 @@ def restoreHiddenState(hiddenState: Tuple[list[bpy.types.Object], list[bpy.types
 
 
 def readFile(filepath: str | Path) -> str:
-    """Read a file and return its contents
-
-    Args:
-        filepath (str): Path to file
-
-    Returns:
-        str: File contents
-    """
+    """Read a file and return its contents"""
     datafile = open(filepath, "r", newline="\n", encoding="utf-8")
     data = datafile.read()
     datafile.close()
@@ -242,12 +192,7 @@ def readFile(filepath: str | Path) -> str:
 
 
 def writeFile(filepath: str | Path, data: str) -> None:
-    """Write data to a file
-
-    Args:
-        filepath (str | Path): Path to file
-        data (str): Data to write
-    """
+    """Write data to a file"""
     datafile = open(filepath, "w", newline="\n", encoding="utf-8")
     datafile.write(data)
     datafile.close()
@@ -568,24 +513,14 @@ def writeCData(data: "CData", headerPath: str | Path, sourcePath: str | Path) ->
 
 
 def writeCDataSourceOnly(data: "CData", sourcePath: str | Path) -> None:
-    """Write C data to a source file
-
-    Args:
-        data (CData): Data to write
-        sourcePath (str | Path): Path to source file
-    """
+    """Write C source data to a source file"""
     sourceFile = open(sourcePath, "w", newline="\n", encoding="utf-8")
     sourceFile.write(data.source)
     sourceFile.close()
 
 
 def writeCDataHeaderOnly(data: "CData", headerPath: str | Path) -> None:
-    """Write C data to a header file
-
-    Args:
-        data (CData): Data to write
-        headerPath (str | Path): Path to header file
-    """
+    """Write C header data to a header file"""
     headerFile = open(headerPath, "w", newline="\n", encoding="utf-8")
     headerFile.write(data.header)
     headerFile.close()
@@ -627,21 +562,13 @@ class CScrollData(CData):
         CData.__init__(self)
 
     def append(self, other: Union["CScrollData", CData]) -> None:
-        """Append another CData or CScrollData to this one
-
-        Args:
-            other (CScrollData&quot; | CData): Data to append
-        """
+        """Append another CData or CScrollData to this one"""
         if isinstance(other, CScrollData):
             self.functionCalls.extend(other.functionCalls)
         CData.append(self, other)
 
     def hasScrolling(self) -> bool:
-        """Check if there are any function calls
-
-        Returns:
-            bool: True if there are function calls
-        """
+        """Check if there are any function calls"""
         return len(self.functionCalls) > 0
 
 
@@ -662,15 +589,7 @@ def getObjectFromData(data: bpy.types.Object) -> bpy.types.Object | None:
 
 
 def getTabbedText(text: str, tabCount: int) -> str:
-    """Replace newlines with a newline and tabs
-
-    Args:
-        text (str): Text to replace
-        tabCount (int): Number of tabs
-
-    Returns:
-        str: Tabbed text
-    """
+    """Replace newlines with a newline and tabs"""
     return text.replace("\n", "\n" + "\t" * tabCount)
 
 
@@ -795,23 +714,14 @@ def getDataFromFile(filepath: str | Path) -> str:
 
 # ? Duplicate of writeFile()?
 def saveDataToFile(filepath: str | Path, data: str) -> None:
-    """Save data to a file
-
-    Args:
-        filepath (str | Path): Path to file
-        data (str): Data to save
-    """
+    """Save data to a file"""
     dataFile = open(filepath, "w", newline="\n")
     dataFile.write(data)
     dataFile.close()
 
 
 def applyBasicTweaks(baseDir: str | Path) -> None:
-    """Apply basic tweaks to the base directory
-
-    Args:
-        baseDir (str | Path): Base directory
-    """
+    """Apply basic tweaks to the base directory"""
     enableExtendedRAM(baseDir)
     return
 
@@ -1029,26 +939,12 @@ def to_s16(value: int | float) -> int:
 
 
 def radians_to_s16(value: int | float) -> int:
-    """Convert radians to a signed 16-bit integer
-
-    Args:
-        value (int | float): Value to convert
-
-    Returns:
-        int: Signed 16-bit integer
-    """
+    """Convert radians to a signed 16-bit integer"""
     return to_s16(value * 0x10000 / (2 * math.pi))
 
 
 def int_from_s16(value: int) -> int:
-    """Convert a signed 16-bit integer to an integer
-
-    Args:
-        value (int): Value to convert
-
-    Returns:
-        int: Converted integer
-    """
+    """Convert a signed 16-bit integer to an integer"""
     value &= 0xFFFF
     if value >= 0x8000:
         value -= 0x10000
@@ -1056,54 +952,27 @@ def int_from_s16(value: int) -> int:
 
 
 def int_from_s16_str(value: str) -> int:
-    """Convert a signed 16-bit integer string to an integer
-
-    Args:
-        value (str): Value to convert
-
-    Returns:
-        int: Converted integer
-    """
+    """Convert a signed 16-bit integer string to an integer"""
     return int_from_s16(int(value, 0))
 
 
 def float_from_u16_str(value: str) -> float:
-    """Convert an unsigned 16-bit integer string to a float
-
-    Args:
-        value (str): Value to convert
-
-    Returns:
-        float: Converted float
-    """
+    """Convert an unsigned 16-bit integer string to a float"""
     return float(int(value, 0)) / (2**16)
 
 
 def decompFolderMessage(layout: bpy.types.UILayout) -> None:
-    """Display a message about the decomp folder
-
-    Args:
-        layout (bpy.types.UILayout): Layout to display message in
-    """
+    """Display a message about the decomp folder"""
     layout.box().label(text="This will export to your decomp folder.")
 
 
 def customExportWarning(layout: bpy.types.UILayout) -> None:
-    """Display a warning about custom export
-
-    Args:
-        layout (bpy.types.UILayout): Layout to display warning in
-    """
+    """Display a warning about custom export"""
     layout.box().label(text="This will not write any headers/dependencies.")
 
 
 def raisePluginError(operator: bpy.types.Operator, exception: Exception) -> None:
-    """Report an error to Blender operator
-
-    Args:
-        operator (bpy.types.Operator): Operator to report error to
-        exception (Exception): Exception to report
-    """
+    """Report an error to Blender operator"""
     print(traceback.format_exc())
     if bpy.context.scene.fullTraceback:
         operator.report({"ERROR"}, traceback.format_exc())
@@ -1184,14 +1053,7 @@ def setOrigin(target: bpy.types.Object, obj: bpy.types.Object) -> None:
 
 
 def checkIfPathExists(filePath: str | Path) -> None:
-    """Check if a file path exists
-
-    Args:
-        filePath (str | Path): Path to check
-
-    Raises:
-        PluginError: If the file path does not exist
-    """
+    """Check if a file path exists"""
     if not os.path.exists(filePath):
         raise PluginError(filePath + " does not exist.")
 
@@ -1370,14 +1232,7 @@ def deleteIfFound(filePath: str | Path, stringValue: str) -> None:
 
 
 def yield_children(obj: bpy.types.Object) -> Generator[bpy.types.Object, None, None]:
-    """Generator that recursively iterates through all children of an object tree
-
-    Args:
-        obj (bpy.types.Object): Object to iterate through
-
-    Yields:
-        Generator[bpy.type.Object, None, None]: Yielded Object
-    """
+    """Generator that recursively iterates through all children of an object tree"""
     yield obj
     if obj.children:
         for o in obj.children:
@@ -1398,14 +1253,7 @@ def rotate_bounds(bounds, mtx: mathutils.Matrix):
 
 
 def obj_scale_is_unified(obj: bpy.types.Object) -> bool:
-    """Combine scale values into a set to ensure all values are the same
-
-    Args:
-        obj (bpy.types.Object): Object to check scale of
-
-    Returns:
-        bool: True if all scale values are the same
-    """
+    """Combine scale values into a set to ensure all values are the same"""
     return len(set(obj.scale)) == 1
 
 
@@ -2102,64 +1950,29 @@ def getNameFromPath(path: str, removeExtension: bool = False) -> str:
 
 
 def gammaCorrect(linearColor: mathutils.Color | Annotated[Iterable[int], 4] | Vector) -> list[mathutils.Color]:
-    """Gamma corrects a linear color, converting it from linear to sRGB
-
-    Args:
-        linearColor (mathutils.Color | Annotated[Iterable[int], 4] | Vector): The linear color to gamma correct.
-
-    Returns:
-        list[mathutils.Color]: The gamma corrected linear color as a list.
-    """
+    """Gamma corrects a linear color, converting it from linear to sRGB"""
     return list(mathutils.Color(linearColor[:3]).from_scene_linear_to_srgb())
 
 
 def gammaCorrectValue(linearValue: int | float) -> float:
-    """Gamma corrects a linear value, converting it from linear to sRGB
-
-    Args:
-        linearValue (int | float): The linear value to gamma correct.
-
-    Returns:
-        float: The gamma corrected linear value.
-    """
+    """Gamma corrects a linear value, converting it from linear to sRGB"""
     # doesn't need to use `colorToLuminance` since all values are the same
     return mathutils.Color((linearValue, linearValue, linearValue)).from_scene_linear_to_srgb().v
 
 
 def gammaInverse(sRGBColor: mathutils.Color | Annotated[Iterable[int], 4] | Vector) -> list[mathutils.Color]:
-    """Gamma inverses an sRGB color, converting it from sRGB to linear
-
-    Args:
-        sRGBColor (mathutils.Color | Annotated[Iterable[int], 4] | Vector): The sRGB color to gamma inverse.
-
-    Returns:
-        list[mathutils.Color]: The gamma inversed sRGB color as a list.
-    """
+    """Gamma inverses an sRGB color, converting it from sRGB to linear"""
     return list(mathutils.Color(sRGBColor[:3]).from_srgb_to_scene_linear())
 
 
 def gammaInverseValue(sRGBValue: int | float) -> float:
-    """Gamma inverses an sRGB value, converting it from sRGB to linear
-
-    Args:
-        sRGBValue (int | float): The sRGB value to gamma inverse.
-
-    Returns:
-        float: The gamma inversed sRGB value.
-    """
+    """Gamma inverses an sRGB value, converting it from sRGB to linear"""
     # doesn't need to use `colorToLuminance` since all values are the same
     return mathutils.Color((sRGBValue, sRGBValue, sRGBValue)).from_srgb_to_scene_linear().v
 
 
 def exportColor(lightColor: mathutils.Color | Annotated[Iterable[int], 4] | Vector) -> list[int]:
-    """Exports a color to a list of 8-bit integers
-
-    Args:
-        lightColor (mathutils.Color | Annotated[Iterable[int], 4] | Vector): The color to export.
-
-    Returns:
-        list[int]: The exported color as a list of 8-bit integers.
-    """
+    """Exports a color to a list of 8-bit integers"""
     return [scaleToU8(value) for value in gammaCorrect(lightColor)]
 
 
@@ -2172,67 +1985,28 @@ def printBlenderMessage(msgSet, message, blenderOp):
 
 
 def bytesToInt(value: bytes) -> int:
-    """Converts a byte value to an integer, using big-endian byte order
-
-    Args:
-        value (bytes): The byte value to convert.
-
-    Returns:
-        int: The converted integer.
-    """
+    """Converts a byte value to an integer, using big-endian byte order"""
     return int.from_bytes(value, "big")
 
 
 def bytesToHex(value: bytes, byteSize: int = 4) -> str:
-    """Converts a byte value to a hexadecimal string, using big-endian byte order
-
-    Args:
-        value (bytes): The byte value to convert.
-        byteSize (int, optional): Minimum byte size to pad to. Defaults to 4.
-
-    Returns:
-        str: The converted hexadecimal string.
-    """
+    """Converts a byte value to a hexadecimal string, using big-endian byte order"""
     return format(bytesToInt(value), "#0" + str(byteSize * 2 + 2) + "x")
 
 
 def bytesToHexClean(value: bytes, byteSize: int = 4) -> str:
     """Converts a byte value to a hexadecimal string, using big-endian byte order
-        Removes the '0x' prefix
-
-    Args:
-        value (bytes): The byte value to convert.
-        byteSize (int, optional): Minimum byte size to pad to. Defaults to 4.
-
-    Returns:
-        str: The converted hexadecimal string.
-    """
+        Removes the '0x' prefix"""
     return format(bytesToInt(value), "0" + str(byteSize * 2) + "x")
 
 
 def intToHex(value: int, byteSize: int = 4) -> str:
-    """Converts an integer to a hexadecimal string, using big-endian byte order
-
-    Args:
-        value (int): The integer to convert.
-        byteSize (int, optional): Minimum byte size to pad to. Defaults to 4.
-
-    Returns:
-        str: The converted hexadecimal string.
-    """
+    """Converts an integer to a hexadecimal string, using big-endian byte order"""
     return format(value, "#0" + str(byteSize * 2 + 2) + "x")
 
 
 def intToBytes(value: int, byteSize: int) -> bytes:
-    """Converts an integer to a byte value, using big-endian byte order
-
-    Args:
-        value (int): The integer to convert.
-        byteSize (int): The size of the byte value to return.
-
-    Returns:
-        bytes: The converted byte value.
-    """
+    """Converts an integer to a byte value, using big-endian byte order"""
     return bytes.fromhex(intToHex(value, byteSize)[2:])
 
 
@@ -2300,40 +2074,18 @@ def getSegment(address: int, segmentData: dict[int, tuple[int, int]]) -> int:
 
 # Position
 def readVectorFromShorts(command: bytes, offset: int) -> list[float]:
-    """Reads a vector from a series of shorts, in signed big endian byte order
-
-    Args:
-        command (bytes): The command to read from.
-        offset (int): The offset to read from the command
-
-    Returns:
-        list[float]: A list of floats representing the read vector.
-    """
+    """Reads a vector from a series of shorts, in signed big endian byte order"""
     return [readFloatFromShort(command, valueOffset) for valueOffset in range(offset, offset + 6, 2)]
 
 
 # ? Given this looks like it's specific to SM64, it may be worth moving it to a more specific module
 def readFloatFromShort(command: bytes, offset: int) -> float:
-    """Reads a float from a short data type, in signed big endian byte order
-
-    Args:
-        command (bytes): The command to read from.
-        offset (int): The offset to read from the command
-
-    Returns:
-        float: The read float.
-    """
+    """Reads a float from a short data type, in signed big endian byte order"""
     return int.from_bytes(command[offset : offset + 2], "big", signed=True) / bpy.context.scene.blenderToSM64Scale
 
 
 def writeVectorToShorts(command: bytes, offset: int, values: Iterable[float]) -> None:
-    """Writes a vector to a series of shorts, in signed big endian byte order
-
-    Args:
-        command (bytes): The command to write to.
-        offset (int): The offset to write to in the command.
-        values (Iterable[float]): The values to write to the command.
-    """
+    """Writes a vector to a series of shorts, in signed big endian byte order"""
     for i in range(3):
         valueOffset = offset + i * 2
         writeFloatToShort(command, valueOffset, values[i])
@@ -2341,40 +2093,20 @@ def writeVectorToShorts(command: bytes, offset: int, values: Iterable[float]) ->
 
 def writeFloatToShort(command: bytes, offset: int, value: float) -> None:
     """Writes a float to a short data type, in signed big endian byte order
-        Converts the float to an integer before writing
-
-    Args:
-        command (bytes): The command to write to.
-        offset (int): The offset to write to in the command.
-        value (float): The value to write to the command.
-    """
+        Converts the float to an integer before writing"""
     command[offset : offset + 2] = int(round(value * bpy.context.scene.blenderToSM64Scale)).to_bytes(
         2, "big", signed=True
     )
 
 
 def convertFloatToShort(value: float) -> int:
-    """Converts a float to an int multiplied by the bpy.context.scene.blenderToSM64Scale
-
-    Args:
-        value (float): The value to convert
-
-    Returns:
-        int: The converted value
-    """
+    """Converts a float to an int multiplied by the bpy.context.scene.blenderToSM64Scale"""
     return int(round((value * bpy.context.scene.blenderToSM64Scale)))
 
 
 def convertEulerFloatToShort(value: float) -> int:
     """Converts a euler float to an int
-        Does this by running the float through math.degrees, then rounding it
-
-    Args:
-        value (float): The value to convert
-
-    Returns:
-        int: The converted value
-    """
+        Does this by running the float through math.degrees, then rounding it """
     return int(round(degrees(value)))
 
 
@@ -2385,52 +2117,24 @@ def convertEulerFloatToShort(value: float) -> int:
 # Zero rotation starts at Z+ on an XZ plane and goes counterclockwise.
 # 2**16 - 1 is the last value before looping around again.
 def readEulerVectorFromShorts(command: bytes, offset: int) -> list[float]:
-    """Reads an euler vector from a series of shorts, in signed big endian byte order
-
-    Args:
-        command (bytes): The command to read from.
-        offset (int): The offset to read from the command
-
-    Returns:
-        list[float]: A list of floats representing the read euler vector.
-    """
+    """Reads an euler vector from a series of shorts, in signed big endian byte order"""
     return [readEulerFloatFromShort(command, valueOffset) for valueOffset in range(offset, offset + 6, 2)]
 
 
 def readEulerFloatFromShort(command: bytes, offset: int) -> float:
-    """Reads an euler float from a short data type, in signed big endian byte order
-
-    Args:
-        command (bytes): The command to read from.
-        offset (int): The offset to read from the command
-
-    Returns:
-        float: The read euler float.
-    """
+    """Reads an euler float from a short data type, in signed big endian byte order"""
     return radians(int.from_bytes(command[offset : offset + 2], "big", signed=True))
 
 
 def writeEulerVectorToShorts(command: bytes, offset: int, values: Iterable[float]) -> None:
-    """Writes an euler vector to a series of shorts, in signed big endian byte order
-
-    Args:
-        command (bytes): The command to write to.
-        offset (int): The offset to write to in the command.
-        values (Iterable[float]): The values to write to the command.
-    """
+    """Writes an euler vector to a series of shorts, in signed big endian byte order"""
     for i in range(3):
         valueOffset = offset + i * 2
         writeEulerFloatToShort(command, valueOffset, values[i])
 
 
 def writeEulerFloatToShort(command: bytes, offset: int, value: float) -> None:
-    """Writes an euler float to a short data type, in signed big endian byte order
-
-    Args:
-        command (bytes): The command to write to.
-        offset (int): The offset to write to in the command.
-        value (float): The value to write to the command.
-    """
+    """Writes an euler float to a short data type, in signed big endian byte order"""
     command[offset : offset + 2] = int(round(degrees(value))).to_bytes(2, "big", signed=True)
 
 
@@ -2473,28 +2177,14 @@ def convert32to16bitRGBA(oldPixel: bytes) -> bytes:
 # ! Seemingly unused
 # convert normalized RGB values to bytes (0-255)
 def convertRGB(normalizedRGB: Annotated[Iterable[float], 3]) -> bytearray:
-    """Converts normalized RGB values to bytes (0-255)
-
-    Args:
-        normalizedRGB (Annotated[Iterable[int], 3]): The normalized RGB values to convert.
-
-    Returns:
-        bytearray: The converted RGB values as bytes (0-255).
-    """
+    """Converts normalized RGB values to bytes (0-255)"""
     return bytearray([int(normalizedRGB[0] * 255), int(normalizedRGB[1] * 255), int(normalizedRGB[2] * 255)])
 
 
 # ! Seemingly unused
 # convert normalized RGB values to bytes (0-255)
 def convertRGBA(normalizedRGBA: Annotated[Iterable[float], 4]) -> bytearray:
-    """Converts normalized RGBA values to bytes (0-255)
-
-    Args:
-        normalizedRGBA (Annotated[Iterable[float], 4]): The normalized RGBA values to convert.
-
-    Returns:
-        bytearray: The converted RGBA values as bytes (0-255).
-    """
+    """Converts normalized RGBA values to bytes (0-255)"""
     return bytearray(
         [
             int(normalizedRGBA[0] * 255),
@@ -2507,15 +2197,7 @@ def convertRGBA(normalizedRGBA: Annotated[Iterable[float], 4]) -> bytearray:
 
 # ! Seemingly unused
 def vector3ComponentMultiply(a: mathutils.Vector, b: mathutils.Vector) -> mathutils.Vector:
-    """Multiplies the components of two vectors together
-
-    Args:
-        a (mathutils.Vector): The first vector to multiply.
-        b (mathutils.Vector): The second vector to multiply.
-
-    Returns:
-        mathutils.Vector: The multiplied vector.
-    """
+    """Multiplies the components of two vectors together"""
     return mathutils.Vector((a.x * b.x, a.y * b.y, a.z * b.z))
 
 
@@ -2564,14 +2246,7 @@ def convertFloatToFixed16Bytes(value: float) -> bytes:
 
 
 def convertFloatToFixed16(value: float) -> int:
-    """Converts a float to a fixed 16-bit integer
-
-    Args:
-        value (float): The value to convert.
-
-    Returns:
-        int: The converted value.
-    """
+    """Converts a float to a fixed 16-bit integer"""
     return int(round(value * (2**5)))
 
     # We want support for large textures with 32 bit UVs
@@ -2584,26 +2259,12 @@ def convertFloatToFixed16(value: float) -> int:
 def scaleToU8(val: float) -> int:
     """Scales a value to an 8-bit integer
         Effectively it lets you enter a decimal value between 0 and 1,
-        then it will scale it to 0-255
-
-    Args:
-        val (float): The value to scale
-
-    Returns:
-        int: The scaled value
-    """
+        then it will scale it to 0-255"""
     return min(int(round(val * 0xFF)), 255)
 
 
 def normToSigned8Vector(normal: mathutils.Vector) -> list[int]:
-    """Converts a normal to a signed 8-bit vector
-
-    Args:
-        normal (mathutils.Vector): The normal to convert.
-
-    Returns:
-        list[int]: The converted normal.
-    """
+    """Converts a normal to a signed 8-bit vector"""
     return [int.from_bytes(int(value * 127).to_bytes(1, "big", signed=True), "big") for value in normal]
 
 
@@ -2633,14 +2294,7 @@ def unpackNormalS8(packedNormal: int) -> Tuple[int, int, int]:
 
 
 def unpackNormal(packedNormal: int) -> Vector:
-    """Convert constant-L1 norm to standard L2 norm
-
-    Args:
-        packedNormal (int): The packed normal to unpack.
-
-    Returns:
-        Vector: The unpacked normal.
-    """
+    """Convert constant-L1 norm to standard L2 norm"""
     # Convert constant-L1 norm to standard L2 norm
     return Vector(unpackNormalS8(packedNormal)).normalized()
 
@@ -2693,42 +2347,17 @@ def getRgbNormalSettings(f3d_mat: "F3DMaterialProperty") -> Tuple[bool, bool, bo
 
 # ! Seemingly unused
 def byteMask(data: int, offset: int, amount: int) -> int:
-    """Masks a value with a given offset and amount
-
-    Args:
-        data (int): The data to mask.
-        offset (int): The offset to mask with.
-        amount (int): The amount to mask with.
-
-    Returns:
-        int: The masked value.
-    """
+    """Masks a value with a given offset and amount"""
     return bitMask(data, offset * 8, amount * 8)
 
 
 def bitMask(data: int, offset: int, amount: int) -> int:
-    """Masks a value with a given offset and amount
-
-    Args:
-        data (int): The data to mask.
-        offset (int): The offset to mask with.
-        amount (int): The amount to mask with.
-
-    Returns:
-        int: The masked value.
-    """
+    """Masks a value with a given offset and amount"""
     return (~(-1 << amount) << offset & data) >> offset
 
 
 def read16bitRGBA(data: int) -> Annotated[list[float], 4]:
-    """Reads a 16-bit RGBA color from a 16-bit integer
-
-    Args:
-        data (int): The 16-bit integer to read from.
-
-    Returns:
-        Annotated[list[float], 4]: The read 16-bit RGBA color.
-    """
+    """Reads a 16-bit RGBA color from a 16-bit integer"""
     r = bitMask(data, 11, 5) / ((2**5) - 1)
     g = bitMask(data, 6, 5) / ((2**5) - 1)
     b = bitMask(data, 1, 5) / ((2**5) - 1)
@@ -2738,52 +2367,23 @@ def read16bitRGBA(data: int) -> Annotated[list[float], 4]:
 
 
 def join_c_args(args: Iterable[str]) -> str:
-    """Joins C arguments into a string
-
-    Args:
-        args (Iterable[str]): The arguments to join.
-
-    Returns:
-        str: The joined arguments.
-    """
+    """Joins C arguments into a string"""
     return ", ".join(args)
 
 
 def translate_blender_to_n64(translate: mathutils.Vector) -> mathutils.Vector:
-    """Converts a translation from Blender to N64 space
-
-    Args:
-        translate (mathutils.Vector): The translation to convert.
-
-    Returns:
-        mathutils.Vector: The converted translation.
-    """
+    """Converts a translation from Blender to N64 space"""
     return transform_mtx_blender_to_n64() @ translate
 
 
 def rotate_quat_blender_to_n64(rotation: mathutils.Quaternion) -> mathutils.Quaternion:
-    """Converts a quaternion rotation from Blender to N64 space
-
-    Args:
-        rotation (mathutils.Quaternion): The rotation to convert.
-
-    Returns:
-        mathutils.Quaternion: The converted rotation.
-    """
+    """Converts a quaternion rotation from Blender to N64 space"""
     new_rot = transform_mtx_blender_to_n64() @ rotation.to_matrix().to_4x4() @ transform_mtx_blender_to_n64().inverted()
     return new_rot.to_quaternion()
 
 
 def all_values_equal_x(vals: Iterable[Any], test: Any) -> bool:
-    """Check if all values in an iterable are equal to a test value
-
-    Args:
-        vals (Iterable[Any]): The values to check.
-        test (Any): The value to test against.
-
-    Returns:
-        bool: Whether all values are equal to the test value.
-    """
+    """Check if all values in an iterable are equal to a test value"""
     return len(set(vals) - set([test])) == 0
 
 
@@ -2922,14 +2522,7 @@ def ootGetBaseOrCustomLight(
 
 
 def getTextureSuffixFromFormat(texFmt: str) -> str:
-    """Performs .lower() on the provided string and returns it.
-
-    Args:
-        texFmt (str): The texture format string to convert.
-
-    Returns:
-        str: The converted texture format string.
-    """
+    """Performs .lower() on the provided string and returns it."""
     # if texFmt == "RGBA16":
     #     return "rgb5a1"
     return texFmt.lower()
