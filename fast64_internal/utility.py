@@ -72,10 +72,10 @@ def isPowerOf2(n: int | float) -> bool:
 
 def log2iRoundDown(n: int | float) -> int:
     """Calculate the log base 2 of a number, rounding down
-    
+
     Args:
         n (int | float): Number to calculate log base 2 of
-        
+
     Returns:
         int: Log base 2 of n, rounded down
     """
@@ -98,7 +98,7 @@ def log2iRoundUp(n: int | float) -> int:
 
 def roundDownToPowerOf2(n: int | float) -> int:
     """Round a number log2 down to the nearest power of 2
-    
+
     Args:
         n (int | float): Number to round down
 
@@ -176,14 +176,14 @@ def getOrMakeVertexGroup(obj: bpy.types.Object, groupName: str) -> bpy.types.Ver
 def unhideAllAndGetHiddenState(scene: bpy.types.Scene) -> Tuple[list[bpy.types.Object], list[bpy.types.Collection]]:
     """Unhide all objects and collections, and return the hidden state
        Will switch to object mode if not already in it
-    
+
     Args:
         scene (bpy.types.Scene): Scene to unhide objects in
 
     Returns:
         Tuple[list[bpy.types.Object], list[bpy.types.Collection]]: Hidden objects and collections
     """
-    
+
     hiddenObjs = []
     for obj in scene.objects:
         if obj.hide_get():
@@ -272,7 +272,7 @@ def checkObjectReference(obj: bpy.types.Object, title: str) -> None:
 def selectSingleObject(obj: bpy.types.Object):
     """Select a single object and make it active
         First deselects all objects before selecting the one provided
-        
+
     Args:
         obj (bpy.types.Object): Object to select
     """
@@ -407,7 +407,9 @@ def copyPropertyGroup(oldProp: bpy.types.PropertyGroup, newProp: bpy.types.Prope
             setattr(newProp, sub_value_attr, sub_value)
 
 
-def get_attr_or_property(prop: dict[str, Any] | bpy.types.Property, attr: str, newProp: dict[str, Any] | bpy.types.Property) -> Any:
+def get_attr_or_property(
+    prop: dict[str, Any] | bpy.types.Property, attr: str, newProp: dict[str, Any] | bpy.types.Property
+) -> Any:
     """Safely get an attribute or old dict property, and map it to a new property if necessary
 
     Args:
@@ -433,7 +435,9 @@ def get_attr_or_property(prop: dict[str, Any] | bpy.types.Property, attr: str, n
     return val
 
 
-def iter_prop(prop: bpy.types.PropertyGroup | bpy.types.CollectionProperty | idprop.types.IDPropertyGroup) -> Iterable[str]:
+def iter_prop(
+    prop: bpy.types.PropertyGroup | bpy.types.CollectionProperty | idprop.types.IDPropertyGroup,
+) -> Iterable[str]:
     """Return iterable keys or attributes of a property group
 
     Args:
@@ -546,7 +550,7 @@ def propertyGroupEquals(oldProp: bpy.types.PropertyGroup, newProp: bpy.types.Pro
     return equivalent
 
 
-def writeCData(data: "CData", headerPath: str | Path, sourcePath :str | Path) -> None:
+def writeCData(data: "CData", headerPath: str | Path, sourcePath: str | Path) -> None:
     """Write C data to a header and source file
 
     Args:
@@ -589,11 +593,12 @@ def writeCDataHeaderOnly(data: "CData", headerPath: str | Path) -> None:
 
 class CData:
     """Class to hold C data, with a header and source file
-    
+
     Attributes:
         source (str): Source file contents
         header (str): Header file contents
     """
+
     def __init__(self):
         """Initialize the CData class"""
         self.source = ""
@@ -766,7 +771,8 @@ def findStartBones(armatureObj: bpy.types.Armature) -> list[str]:
             + 'and that any bones not related to a hierarchy have their geolayout command set to "Ignore".'
         )
 
-# ? Duplicate of readFile()? 
+
+# ? Duplicate of readFile()?
 def getDataFromFile(filepath: str | Path) -> str:
     """Get data from a file
 
@@ -785,6 +791,7 @@ def getDataFromFile(filepath: str | Path) -> str:
     data = dataFile.read()
     dataFile.close()
     return data
+
 
 # ? Duplicate of writeFile()?
 def saveDataToFile(filepath: str | Path, data: str) -> None:
@@ -854,7 +861,14 @@ def writeMaterialHeaders(exportDir: str | Path, matCInclude: str, matHInclude: s
 
 
 def writeMaterialFiles(
-    exportDir: str | Path, assetDir: str | Path, headerInclude: str, matHInclude: str, headerDynamic: str , dynamic_data: str, geoString: str, customExport: bool
+    exportDir: str | Path,
+    assetDir: str | Path,
+    headerInclude: str,
+    matHInclude: str,
+    headerDynamic: str,
+    dynamic_data: str,
+    geoString: str,
+    customExport: bool,
 ) -> str:
     """Write material files
 
@@ -944,9 +958,9 @@ def colorToLuminance(color: mathutils.Color | Annotated[Iterable[int], 4] | Vect
     """Convert a color to luminance using RGB coefficients
 
         https://github.com/blender/blender/blob/594f47ecd2d5367ca936cf6fc6ec8168c2b360d0/intern/cycles/render/shader.cpp#L387
-        
+
         These coefficients are used by Blender, so we use them as well for parity between Fast64 exports and Blender color conversions
-    
+
     Args:
         color (mathutils.Color | Annotated[Iterable[int], 4] | Vector): Color to convert
 
@@ -1121,10 +1135,12 @@ def highlightWeightErrors(obj: bpy.types.Object, elements: Iterable[bpy.types.Me
         element.select = True
 
 
-def checkIdentityRotation(obj: bpy.types.Object, rotation: mathutils.Quaternion | mathutils.Matrix, allowYaw: bool) -> None:
+def checkIdentityRotation(
+    obj: bpy.types.Object, rotation: mathutils.Quaternion | mathutils.Matrix, allowYaw: bool
+) -> None:
     """Check a rotation diff's X, Y, and Z axises are all less than 0.001
         Unless allowYaw is True, in which case only X and Z are checked
-        
+
     Args:
         obj (bpy.types.Object): Object to specify in error
         rotation (mathutils.Quaternion | mathutils.Matrix): Rotation to check
@@ -1194,7 +1210,9 @@ def makeWriteInfoBox(layout: bpy.types.UILayout) -> bpy.types.UILayout:
     return writeBox
 
 
-def writeBoxExportType(writeBox: bpy.types.UILayout, headerType: str, name: str, levelName: str, levelOption: str) -> None:
+def writeBoxExportType(
+    writeBox: bpy.types.UILayout, headerType: str, name: str, levelName: str, levelOption: str
+) -> None:
     """Sets the label of a write box based on parameters
 
     Args:
@@ -1212,7 +1230,14 @@ def writeBoxExportType(writeBox: bpy.types.UILayout, headerType: str, name: str,
         writeBox.label(text="levels/" + toAlnum(levelName) + "/" + toAlnum(name))
 
 
-def getExportDir(customExport: bpy.types.BoolProperty, dirPath: str | Path, headerType: str, levelName: str, texDir: str, dirName: str) -> Tuple[str, str]:
+def getExportDir(
+    customExport: bpy.types.BoolProperty,
+    dirPath: str | Path,
+    headerType: str,
+    levelName: str,
+    texDir: str,
+    dirName: str,
+) -> Tuple[str, str]:
     """Get the export directory and texture directory
 
     Args:
@@ -1238,7 +1263,9 @@ def getExportDir(customExport: bpy.types.BoolProperty, dirPath: str | Path, head
     return dirPath, texDir
 
 
-def overwriteData(headerRegex: str, name: str, value: str, filePath: str | Path, writeNewBeforeString: str, isFunction: bool) -> None:
+def overwriteData(
+    headerRegex: str, name: str, value: str, filePath: str | Path, writeNewBeforeString: str, isFunction: bool
+) -> None:
     """Finds a regex match in a file, and overwrites the match with a new value
 
     Args:
@@ -1267,7 +1294,7 @@ def overwriteData(headerRegex: str, name: str, value: str, filePath: str | Path,
             data,
             re.DOTALL,
         )
-        
+
         # If a match was found, replace the matched data with the new value
         if matchResult:
             data = data[: matchResult.start(0)] + value + data[matchResult.end(0) :]
@@ -1282,7 +1309,7 @@ def overwriteData(headerRegex: str, name: str, value: str, filePath: str | Path,
             else:
                 # If we writeNewBeforeString is None, write the new value at the end of the file
                 data += "\n" + value
-                
+
         # Write the new data to the file
         dataFile = open(filePath, "w", newline="\n")
         dataFile.write(data)
@@ -1537,7 +1564,9 @@ def apply_objects_modifiers_and_transformations(allObjs: Iterable[bpy.types.Obje
 
 
 # ? Unsure if areaIndex is an `int`. Basing it off use context and the fact that it's labeled as an index
-def duplicateHierarchy(obj: bpy.types.Object, ignoreAttr: str, includeEmpties: bool, areaIndex: int | None) -> Tuple[bpy.types.Object, Iterable[bpy.types.Object]] | None:
+def duplicateHierarchy(
+    obj: bpy.types.Object, ignoreAttr: str, includeEmpties: bool, areaIndex: int | None
+) -> Tuple[bpy.types.Object, Iterable[bpy.types.Object]] | None:
     """Duplicate a hierarchy of objects
     - Gives the options to ignore certain attributes and include empties
 
@@ -1594,7 +1623,7 @@ def checkIsSM64PreInlineGeoLayout(sm64_obj_type: str) -> bool:
 
     Args:
         sm64_obj_type (str): Input string
-        
+
             - Valid Geo Layouts: "Geo ASM" | "Geo Branch" | "Geo Displaylist" | "Custom Geo Command"
 
     Returns:
@@ -1618,11 +1647,11 @@ enumSM64InlineGeoLayoutObjects = {
 
 def checkIsSM64InlineGeoLayout(sm64_obj_type: str) -> bool:
     """Check if a string is an inline geolayout type
-    
+
     Args:
         sm64_obj_type (str): Input string
-        
-            - Valid Geo Layouts: "Geo ASM" | "Geo Branch" | "Geo Translate/Rotate" | "Geo Translate Node" | 
+
+            - Valid Geo Layouts: "Geo ASM" | "Geo Branch" | "Geo Translate/Rotate" | "Geo Translate Node" |
             "Geo Rotation Node" | "Geo Billboard" | "Geo Scale" | "Geo Displaylist" | "Custom Geo Command"
 
     Returns:
@@ -1639,7 +1668,7 @@ def checkSM64EmptyUsesGeoLayout(sm64_obj_type: str) -> bool:
 
     Args:
         sm64_obj_type (str): Input string
-        
+
             - Valid Empty Types: "None" | "Level Root" | "Area Root" | "Switch"
 
     Returns:
@@ -1716,7 +1745,9 @@ def cleanupTempMeshes():
 
 
 # ? Unsure if areaIndex is an `int`. Basing it off use context and the fact that it's labeled as an index
-def combineObjects(obj: bpy.types.Object, includeChildren: bool, ignoreAttr: str, areaIndex: int | None) -> Tuple[bpy.types.Object, Iterable[bpy.types.Mesh]] | Tuple[None, list]:
+def combineObjects(
+    obj: bpy.types.Object, includeChildren: bool, ignoreAttr: str, areaIndex: int | None
+) -> Tuple[bpy.types.Object, Iterable[bpy.types.Mesh]] | Tuple[None, list]:
     """Combine objects into a joined mesh, then return the joined mesh and a list of the original meshes
 
     Args:
@@ -1800,19 +1831,21 @@ def cleanupCombineObj(tempObj: bpy.types.Object, meshList: Iterable[bpy.types.Me
     # bpy.context.view_layer.objects.active = obj
 
 
-def writeInsertableFile(filepath: str | Path, dataType: Literal[0, 1, 2, 3], address_ptrs: Iterable[int], startPtr: int, data: bytes) -> None:
+def writeInsertableFile(
+    filepath: str | Path, dataType: Literal[0, 1, 2, 3], address_ptrs: Iterable[int], startPtr: int, data: bytes
+) -> None:
     """Writes a file in a format that can be inserted into the ROM
 
     Args:
         filepath (str | Path): Path to write file to
         dataType (Literal[0, 1, 2, 3]): Type of data as defined by sm64_constants.insertableBinaryTypes
-        
+
             - 0: Display List
             - 1: Geolayout
             - 2: Animation
             - 3: Collision
-            
-        address_ptrs (Iterable[int]): Iterable of address pointers to write 
+
+        address_ptrs (Iterable[int]): Iterable of address pointers to write
         startPtr (int): Start address pointer
         data (bytes): Byte data to write to file
     """
@@ -2166,7 +2199,7 @@ def bytesToHex(value: bytes, byteSize: int = 4) -> str:
 def bytesToHexClean(value: bytes, byteSize: int = 4) -> str:
     """Converts a byte value to a hexadecimal string, using big-endian byte order
         Removes the '0x' prefix
-        
+
     Args:
         value (bytes): The byte value to convert.
         byteSize (int, optional): Minimum byte size to pad to. Defaults to 4.
@@ -2207,7 +2240,7 @@ def intToBytes(value: int, byteSize: int) -> bytes:
 # returns an integer, usually used for file seeking positions
 def decodeSegmentedAddr(address: bytes, segmentData: dict[int, tuple[int, int]]) -> int:
     """Decodes a segmented address to an integer
-    
+
     Args:
         address (bytes): The segmented address to decode.
         segmentData (dict[int, tuple[int, int]]): The segment data to use for decoding.
@@ -2309,7 +2342,7 @@ def writeVectorToShorts(command: bytes, offset: int, values: Iterable[float]) ->
 def writeFloatToShort(command: bytes, offset: int, value: float) -> None:
     """Writes a float to a short data type, in signed big endian byte order
         Converts the float to an integer before writing
-        
+
     Args:
         command (bytes): The command to write to.
         offset (int): The offset to write to in the command.
@@ -2550,7 +2583,7 @@ def convertFloatToFixed16(value: float) -> int:
 
 def scaleToU8(val: float) -> int:
     """Scales a value to an 8-bit integer
-        Effectively it lets you enter a decimal value between 0 and 1, 
+        Effectively it lets you enter a decimal value between 0 and 1,
         then it will scale it to 0-255
 
     Args:
@@ -2849,7 +2882,9 @@ def ootGetSceneOrRoomHeader(parent: bpy.types.PointerProperty, idx: int, isRoom:
         return altHeaders.cutsceneHeaders[idx - 4]
 
 
-def ootGetBaseOrCustomLight(prop: bpy.types.Property, idx: int, toExport: bool, errIfMissing: bool) -> Tuple[mathutils.Vector, mathutils.Vector]:
+def ootGetBaseOrCustomLight(
+    prop: bpy.types.Property, idx: int, toExport: bool, errIfMissing: bool
+) -> Tuple[mathutils.Vector, mathutils.Vector]:
     """Gets the base or custom light from an OoT scene lighting property
 
     Args:
