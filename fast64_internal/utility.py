@@ -1342,7 +1342,7 @@ def deleteIfFound(filePath: str | Path, stringValue: str) -> None:
         fileData.close()
 
 
-def yield_children(obj: bpy.types.Object) -> Generator[bpy.type.Object, None, None]:
+def yield_children(obj: bpy.types.Object) -> Generator[bpy.types.Object, None, None]:
     """Generator that recursively iterates through all children of an object tree
 
     Args:
