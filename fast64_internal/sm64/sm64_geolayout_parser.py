@@ -1562,8 +1562,7 @@ class SM64_ImportGeolayout(bpy.types.Operator):
             bpy.ops.object.select_all(action="DESELECT")
             if armatureObj is not None:
                 for armatureMeshGroup in armatureMeshGroups:
-                    armatureMeshGroup[0].select_set(True)
-                doRotation(math.radians(-90), "X")
+                    doRotation(armatureMeshGroup[0], math.radians(-90), "X")
 
                 for armatureMeshGroup in armatureMeshGroups:
                     bpy.ops.object.select_all(action="DESELECT")
@@ -1571,8 +1570,6 @@ class SM64_ImportGeolayout(bpy.types.Operator):
                     bpy.context.view_layer.objects.active = armatureMeshGroup[0]
                     bpy.ops.object.make_single_user(obdata=True)
                     bpy.ops.object.transform_apply(location=False, rotation=True, scale=False, properties=False)
-            else:
-                doRotation(math.radians(-90), "X")
             bpy.ops.object.select_all(action="DESELECT")
             # objs[-1].select_set(True)
 
