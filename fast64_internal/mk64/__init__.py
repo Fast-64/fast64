@@ -1,15 +1,13 @@
-import math
 import bpy
 from bpy_types import PropertyGroup
-import mathutils
 from ..f3d.f3d_gbi import get_F3D_GBI
 from ..f3d.f3d_material import createF3DMat
-from ..f3d.f3d_parser import F3DContext, getImportData, importMeshC
+from ..f3d.f3d_parser import getImportData, importMeshC
 from ..panels import MK64_Panel
 from ..utility import prop_split
 from bpy.utils import register_class, unregister_class
 from ..utility import raisePluginError
-from .f3d_course_parser import processCommands, parseCourseVtx
+from .f3d_course_parser import MK64F3DContext, parseCourseVtx
 
 
 class MK64_Properties(PropertyGroup):
@@ -54,14 +52,13 @@ class MK64_ImportCourseDL(bpy.types.Operator):
 
             data = getImportData(paths)
 
-            f3d_context = F3DContext(get_F3D_GBI(), basePath, createF3DMat(None))
+            f3d_context = MK64F3DContext(get_F3D_GBI(), basePath, createF3DMat(None))
             if "course_displaylists" in importPath or "course_data" in importPath:
                 vertexPath = importPath.replace("course_displaylists", "course_vertices").replace(
                     "course_data", "course_vertices"
                 )
                 print(vertexPath)
                 f3d_context.vertexData["0x4000000"] = parseCourseVtx(vertexPath, f3d_context.f3d)
-            f3d_context.processCommands = processCommands.__get__(f3d_context, F3DContext)
 
             importMeshC(
                 data,
