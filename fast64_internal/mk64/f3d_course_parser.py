@@ -10,14 +10,14 @@ from ..utility import PluginError, float_from_u16_str, gammaInverseValue, int_fr
 
 def courseVertexFormatPatterns():
     # position, uv, color/normal
-    return [
+    return (
         # decomp format
-        "\{\s*"
-        + "\{+([^,\}]*),([^,\}]*),([^,\}]*)\}\s*,\s*"
-        + "\{([^,\}]*),([^,\}]*)\}\s*,\s*"
-        + "\{MACRO_COLOR_FLAG\(([^,\}]*),([^,\}]*),([^,\}]*),([^,\}])*\),([^,\}]*)\}\s*"
-        + "\}",
-    ][0]
+        r"\{\s*"
+        r"\{+([^,\}]*),([^,\}]*),([^,\}]*)\}\s*,\s*"
+        r"\{([^,\}]*),([^,\}]*)\}\s*,\s*"
+        r"\{MACRO_COLOR_FLAG\(([^,\}]*),([^,\}]*),([^,\}]*),([^,\}])*\),([^,\}]*)\}\s*"
+        r"\}"
+    )
 
 
 def parseCourseVtx(path: str, f3d):

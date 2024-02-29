@@ -18,7 +18,7 @@ class MK64_Properties(PropertyGroup):
 
 class MK64_ImportCourseDL(bpy.types.Operator):
     # set bl_ properties
-    bl_idname = "object.f3d_course_import_dl"
+    bl_idname = "object.fast64_mk64_course_import_dl"
     bl_label = "Import Course DL"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
