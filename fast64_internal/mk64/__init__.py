@@ -92,10 +92,6 @@ class MK64_ImportCourseDLPanel(MK64_Panel):
     bl_options = set()  # default to open
     bl_order = 0  # force to front
 
-    @classmethod
-    def poll(cls, context):
-        return context.scene.gameEditorMode == "MK64"
-
     # called every frame
     def draw(self, context):
         col = self.layout.column()
