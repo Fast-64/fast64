@@ -4,44 +4,22 @@ from bpy_types import PropertyGroup
 import mathutils
 from ..f3d.f3d_gbi import get_F3D_GBI
 from ..f3d.f3d_material import createF3DMat
-from ..f3d.f3d_parser import F3DContext, getImportData, parseF3D
+from ..f3d.f3d_parser import F3DContext, getImportData, importMeshC
 from ..panels import MK64_Panel
-from ..utility import applyRotation, prop_split
+from ..utility import prop_split
 from bpy.utils import register_class, unregister_class
 from ..utility import raisePluginError
+from .f3d_course_parser import processCommands, parseCourseVtx
 
 class MK64_Properties(PropertyGroup):
     """Global MK64 Scene Properties found under scene.fast64.mk64"""
 
     version: bpy.props.IntProperty(name="MK64_Properties Version", default=0)
 
-def importMeshC(
-    data: str,
-    name: str,
-    scale: float,
-    removeDoubles: bool,
-    importNormals: bool,
-    drawLayer: str,
-    f3dContext: F3DContext,
-    callClearMaterial: bool = True,
-) -> bpy.types.Object:
-    mesh = bpy.data.meshes.new(name + "_mesh")
-    obj = bpy.data.objects.new(name + "_mesh", mesh)
-    bpy.context.collection.objects.link(obj)
-
-    f3dContext.mat().draw_layer.oot = drawLayer
-    transformMatrix = mathutils.Matrix.Scale(1 / scale, 4)
-
-    parseF3D(data, name, transformMatrix, name, name, "oot", drawLayer, f3dContext, True)
-    f3dContext.createMesh(obj, removeDoubles, importNormals, callClearMaterial)
-
-    applyRotation([obj], math.radians(-90), "X")
-    return obj
-
 class MK64_ImportCourseDL(bpy.types.Operator):
     # set bl_ properties
-    bl_idname = "object.f3d_import_dl"
-    bl_label = "Import DL"
+    bl_idname = "object.f3d_course_import_dl"
+    bl_label = "Import Course DL"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
     # Called on demand (i.e. button press, menu item)
@@ -61,7 +39,22 @@ class MK64_ImportCourseDL(bpy.types.Operator):
             importNormals = context.scene.DLImportNormals
             drawLayer = context.scene.DLImportDrawLayer
 
-            data = getImportData([importPath])
+            paths = [importPath]
+
+            if "course_data" in importPath:
+                paths += [importPath.replace("course_data", "course_displaylists")]
+            
+            paths += [importPath.replace("course_data.inc", "course_textures.linkonly").replace("course_displaylists.inc", "course_textures.linkonly")]
+
+            data = getImportData(paths)
+
+
+            f3d_context = F3DContext(get_F3D_GBI(), basePath, createF3DMat(None))
+            if "course_displaylists" in importPath or "course_data" in importPath:
+                vertexPath = importPath.replace("course_displaylists", "course_vertices").replace("course_data", "course_vertices")
+                print(vertexPath)
+                f3d_context.vertexData["0x4000000"] = parseCourseVtx(vertexPath, f3d_context.f3d)
+            f3d_context.processCommands = processCommands.__get__(f3d_context, F3DContext)
 
             importMeshC(
                 data,
@@ -70,7 +63,7 @@ class MK64_ImportCourseDL(bpy.types.Operator):
                 removeDoubles,
                 importNormals,
                 drawLayer,
-                F3DContext(get_F3D_GBI(), basePath, createF3DMat(None)),
+                f3d_context,
             )
 
             self.report({"INFO"}, "Success!")
