@@ -46,7 +46,8 @@ class OOT_Panel(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         return context.scene.gameEditorMode == "OOT"
-    
+
+
 class MK64_Panel(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"

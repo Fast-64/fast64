@@ -11,10 +11,12 @@ from bpy.utils import register_class, unregister_class
 from ..utility import raisePluginError
 from .f3d_course_parser import processCommands, parseCourseVtx
 
+
 class MK64_Properties(PropertyGroup):
     """Global MK64 Scene Properties found under scene.fast64.mk64"""
 
     version: bpy.props.IntProperty(name="MK64_Properties Version", default=0)
+
 
 class MK64_ImportCourseDL(bpy.types.Operator):
     # set bl_ properties
@@ -43,15 +45,20 @@ class MK64_ImportCourseDL(bpy.types.Operator):
 
             if "course_data" in importPath:
                 paths += [importPath.replace("course_data", "course_displaylists")]
-            
-            paths += [importPath.replace("course_data.inc", "course_textures.linkonly").replace("course_displaylists.inc", "course_textures.linkonly")]
+
+            paths += [
+                importPath.replace("course_data.inc", "course_textures.linkonly").replace(
+                    "course_displaylists.inc", "course_textures.linkonly"
+                )
+            ]
 
             data = getImportData(paths)
 
-
             f3d_context = F3DContext(get_F3D_GBI(), basePath, createF3DMat(None))
             if "course_displaylists" in importPath or "course_data" in importPath:
-                vertexPath = importPath.replace("course_displaylists", "course_vertices").replace("course_data", "course_vertices")
+                vertexPath = importPath.replace("course_displaylists", "course_vertices").replace(
+                    "course_data", "course_vertices"
+                )
                 print(vertexPath)
                 f3d_context.vertexData["0x4000000"] = parseCourseVtx(vertexPath, f3d_context.f3d)
             f3d_context.processCommands = processCommands.__get__(f3d_context, F3DContext)
@@ -108,8 +115,6 @@ class MK64_ImportCourseDLPanel(MK64_Panel):
         # 	'DLImportOtherFiles', context.scene, 'DLImportOtherFilesIndex')
 
 
-
-
 mk64_classes = (MK64_Properties,)
 
 mk64_panel_classes = (
@@ -117,19 +122,23 @@ mk64_panel_classes = (
     MK64_ImportCourseDLPanel,
 )
 
+
 def mk64_panel_register():
     for cls in mk64_panel_classes:
         register_class(cls)
 
+
 def mk64_panel_unregister():
     for cls in mk64_panel_classes:
         unregister_class(cls)
+
 
 def mk64_register(registerPanels):
     for cls in mk64_classes:
         register_class(cls)
     if registerPanels:
         mk64_panel_register()
+
 
 def mk64_unregister(registerPanel):
     for cls in reversed(mk64_classes):

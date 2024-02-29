@@ -7,16 +7,18 @@ from ..f3d.f3d_parser import F3DParsedCommands, ParsedMacro, math_eval, parseDLD
 from ..f3d.f3d_writer import F3DVert
 from ..utility import PluginError, float_from_u16_str, gammaInverseValue, int_from_s16_str, readFile, unpackNormal
 
+
 def courseVertexFormatPatterns():
-        # position, uv, color/normal
-        return [
-            # decomp format
-            "\{\s*"
-            + "\{+([^,\}]*),([^,\}]*),([^,\}]*)\}\s*,\s*"
-            + "\{([^,\}]*),([^,\}]*)\}\s*,\s*"
-            + "\{MACRO_COLOR_FLAG\(([^,\}]*),([^,\}]*),([^,\}]*),([^,\}])*\),([^,\}]*)\}\s*"
-            + "\}",
-        ][0]
+    # position, uv, color/normal
+    return [
+        # decomp format
+        "\{\s*"
+        + "\{+([^,\}]*),([^,\}]*),([^,\}]*)\}\s*,\s*"
+        + "\{([^,\}]*),([^,\}]*)\}\s*,\s*"
+        + "\{MACRO_COLOR_FLAG\(([^,\}]*),([^,\}]*),([^,\}]*),([^,\}])*\),([^,\}]*)\}\s*"
+        + "\}",
+    ][0]
+
 
 def parseCourseVtx(path: str, f3d):
     data = readFile(path)
@@ -35,6 +37,7 @@ def parseCourseVtx(path: str, f3d):
         )
     return vertexData
 
+
 def getVertexDataStart(vertexDataParam: str, f3d: F3D):
     matchResult = re.search(r"\&?([A-Za-z0-9\_]*)\s*(\[([^\]]*)\])?\s*(\+(.*))?", vertexDataParam)
     if matchResult is None:
@@ -45,13 +48,14 @@ def getVertexDataStart(vertexDataParam: str, f3d: F3D):
         offset += math_eval(matchResult.group(3), f3d)
     if matchResult.group(5):
         offset += math_eval(matchResult.group(5), f3d)
-    
+
     name = matchResult.group(1)
 
     if matchResult.group(1).startswith("0x04"):
-        offset = (int(matchResult.group(1), 16) - 0x04000000)//16
+        offset = (int(matchResult.group(1), 16) - 0x04000000) // 16
         name = hex(0x04000000)
     return name, offset
+
 
 def processCommands(self, dlData: str, dlName: str, dlCommands: "list[ParsedMacro]"):
     callStack = [F3DParsedCommands(dlName, dlCommands, 0)]
