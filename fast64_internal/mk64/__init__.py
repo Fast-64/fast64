@@ -1,5 +1,5 @@
 import bpy
-from bpy_types import PropertyGroup
+from bpy.types import PropertyGroup
 from ..f3d.f3d_gbi import get_F3D_GBI
 from ..f3d.f3d_material import createF3DMat
 from ..f3d.f3d_parser import getImportData, importMeshC
