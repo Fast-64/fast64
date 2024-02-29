@@ -9,7 +9,6 @@ sm64GoalTypeEnum = [
     ("Export UI Image", "Export UI Image", "Export UI Image"),
 ]
 
-
 class SM64_Panel(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
@@ -46,3 +45,13 @@ class OOT_Panel(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         return context.scene.gameEditorMode == "OOT"
+    
+class MK64_Panel(bpy.types.Panel):
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "MK64"
+    bl_options = {"DEFAULT_CLOSED"}
+
+    @classmethod
+    def poll(cls, context):
+        return context.scene.gameEditorMode == "MK64"
