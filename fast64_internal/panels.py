@@ -9,6 +9,7 @@ sm64GoalTypeEnum = [
     ("Export UI Image", "Export UI Image", "Export UI Image"),
 ]
 
+
 class SM64_Panel(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
