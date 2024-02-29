@@ -3,7 +3,7 @@ import traceback
 from mathutils import Vector
 from ..f3d.f3d_gbi import F3D
 from ..f3d.f3d_material import RDPSettings
-from ..f3d.f3d_parser import F3DContext, F3DParsedCommands, ParsedMacro, math_eval, parseDLData
+from ..f3d.f3d_parser import F3DParsedCommands, ParsedMacro, math_eval, parseDLData, parseVertexData
 from ..f3d.f3d_writer import F3DVert
 from ..utility import PluginError, float_from_u16_str, gammaInverseValue, int_from_s16_str, readFile, unpackNormal
 
@@ -52,48 +52,6 @@ def getVertexDataStart(vertexDataParam: str, f3d: F3D):
         offset = (int(matchResult.group(1), 16) - 0x04000000)//16
         name = hex(0x04000000)
     return name, offset
-
-def parseVertexData(dlData: str, vertexDataName: str, f3dContext: F3DContext):
-    if vertexDataName in f3dContext.vertexData:
-        return f3dContext.vertexData[vertexDataName]
-
-    matchResult = re.search(
-        r"Vtx\s*" + re.escape(vertexDataName) + r"\s*\[\s*[0-9x]*\s*\]\s*=\s*\{([^;]*);", dlData, re.DOTALL
-    )
-    if matchResult is None:
-        raise PluginError("Cannot find vertex list named " + vertexDataName)
-    data = matchResult.group(1)
-
-    pathMatch = re.search(r'\#include\s*"([^"]*)"', data)
-    if pathMatch is not None:
-        path = pathMatch.group(1)
-        data = readFile(f3dContext.getVTXPathFromInclude(path))
-
-    f3d = f3dContext.f3d
-    patterns = f3dContext.vertexFormatPatterns(data)
-    vertexData = []
-    for pattern in patterns:
-        # For this step, store rgb/normal as rgb and packed normal as normal.
-        for match in re.finditer(pattern, data, re.DOTALL):
-            values = [math_eval(g, f3d) for g in match.groups()]
-            if len(values) == 9:
-                # A format without the flag / packed normal
-                values = values[0:3] + [0] + values[3:9]
-            vertexData.append(
-                F3DVert(
-                    Vector(values[0:3]),
-                    Vector(values[4:6]),
-                    Vector(values[6:9]),
-                    unpackNormal(values[3]),
-                    values[9],
-                )
-            )
-        if len(vertexData) > 0:
-            break
-    f3dContext.vertexData[vertexDataName] = vertexData
-
-    return f3dContext.vertexData[vertexDataName]
-
 
 def processCommands(self, dlData: str, dlName: str, dlCommands: "list[ParsedMacro]"):
     callStack = [F3DParsedCommands(dlName, dlCommands, 0)]
