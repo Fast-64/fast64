@@ -357,17 +357,22 @@ class BleedGraphics:
 
     # remove syncs if first material, or if no gsDP cmds in material
     def optimize_syncs(self, cmd_list: GfxList, bleed_state: int):
+        no_syncs_needed = {"DPSetPrimColor"}  # will not affect rdp
+        syncs_needed = {"SPSetOtherMode"}  # will affect rdp
         if bleed_state == self.bleed_start:
             while DPPipeSync() in cmd_list.commands:
                 cmd_list.commands.remove(DPPipeSync())
         for cmd in cmd_list.commands:
+            cmd_name = type(cmd).__name__
             if cmd == DPPipeSync():
                 continue
-            if "DP" in type(cmd).__name__ and type(cmd).__name__ != "DPSetPrimColor":
+            if "DP" in cmd_name and cmd_name not in no_syncs_needed:
+                return
+            if cmd_name in syncs_needed:
                 return
         while DPPipeSync() in cmd_list.commands:
             cmd_list.commands.remove(DPPipeSync())
-    
+
     def create_reset_cmds(self, reset_cmd_dict: dict[GbiMacro], default_render_mode: list[str]):
         reset_cmds = []
         for cmd_type, cmd_use in reset_cmd_dict.items():
