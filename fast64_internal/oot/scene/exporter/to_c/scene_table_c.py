@@ -1,283 +1,318 @@
-import os, bpy
+import os
+import enum
+import bpy
+
+from dataclasses import dataclass, field
+from typing import Optional
 from .....utility import PluginError, writeFile
 from ....oot_constants import ootEnumSceneID, ootSceneNameToID
 from ....oot_utility import getCustomProperty, ExportInfo
+from ....oot_level_classes import OOTScene
 
 
-def getSceneNameSettings(scene):
-    if scene is not None:
-        return bpy.context.scene.ootSceneExportSettings.option
-    else:
-        return bpy.context.scene.ootSceneRemoveSettings.option
+ADDED_SCENES_COMMENT = "// Added scenes"
 
 
-def getHackerOoTCheck(line: str):
-    return (
-        line != "\n"
-        and '#include "config.h"\n' not in line
-        and "#ifdef INCLUDE_TEST_SCENES" not in line
-        and "#endif" not in line
-        and not line.startswith("// ")
-    )
+class SceneIndexType(enum.IntEnum):
+    """Used to figure out the value of ``selectedSceneIndex``"""
+
+    # this is using negative numbers since this is used as a return type if the scene index wasn't found
+    CUSTOM = -1  # custom scene
+    VANILLA_REMOVED = -2  # vanilla scene that was removed, this is to know if it should insert an entry
 
 
-def getSceneTable(exportPath):
-    """Read and remove unwanted stuff from ``scene_table.h``"""
-    dataList = []
-    sceneNames = []
-    fileHeader = ""
+@dataclass
+class SceneTableEntry:
+    """Defines an entry of ``scene_table.h``"""
 
-    # read the scene table
-    try:
-        with open(os.path.join(exportPath, "include/tables/scene_table.h")) as fileData:
-            # keep the relevant data and do some formatting
-            for i, line in enumerate(fileData):
-                # remove empty lines from the file
-                if not line.strip():
-                    continue
+    index: int
+    original: Optional[str]  # the original line from the parsed file
+    scene: Optional[OOTScene] = None
+    exportName: Optional[str] = None
+    prefix: Optional[str] = None  # ifdefs, endifs, comments etc, everything before the current entry
+    suffix: Optional[str] = None  # remaining data after the last entry
+    parsed: Optional[str] = None
 
-                if not bpy.context.scene.fast64.oot.hackerFeaturesEnabled or getHackerOoTCheck(line):
-                    if not (
-                        # Detects the multiline comment at the top of the file:
-                        (line.startswith("/**") or line.startswith(" *"))
-                        # Detects single line comments:
-                        # (meant to detect the built-in single-line comments
-                        #  "// Debug-only scenes" and "// Added scenes")
-                        or line.startswith("//")
-                    ):
-                        dataList.append(line[(line.find("(") + 1) :].rstrip(")\n").replace(" ", "").split(","))
-                    else:
-                        # Only keep comments before the data (as indicated by dataList being empty).
-                        # This prevents duplicating the built-in single-line comments to the header.
-                        # It also means other handwritten single-line comments are removed from the file.
-                        if not dataList:
-                            fileHeader += line
-                if line.startswith("/* 0x"):
-                    startIndex = line.find("SCENE_")
-                    sceneNames.append(line[startIndex : line.find(",", startIndex)])
-    except FileNotFoundError:
-        raise PluginError("ERROR: Can't find scene_table.h!")
+    # macro parameters
+    specName: Optional[str] = None  # name of the scene segment in spec
+    titleCardName: Optional[str] = None  # name of the title card segment in spec, or `none` for no title card
+    enumValue: Optional[str] = None  # enum value for this scene
+    drawConfigIdx: Optional[str] = None  # scene draw config index
+    unk1: Optional[str] = None
+    unk2: Optional[str] = None
 
-    # return the parsed data, the header comment and the comment mentionning debug scenes
-    return dataList, fileHeader, sceneNames
+    def __post_init__(self):
+        # parse the entry parameters from file data or an ``OOTScene``
+        macroStart = "DEFINE_SCENE("
+        if self.original is not None and macroStart in self.original:
+            # remove the index and the macro's name with the parenthesis
+            index = self.original.index(macroStart) + len(macroStart)
+            self.parsed = self.original[index:].removesuffix(")\n")
 
+            parameters = self.parsed.split(", ")
+            assert len(parameters) == 6
+            self.setParameters(*parameters)
+        elif self.scene is not None:
+            self.setParametersFromScene()
 
-def getSceneIndex(sceneNameList, sceneName):
-    """Returns the index (int) of the chosen scene, returns None if ``Custom`` is chosen"""
-    if sceneName == "Custom":
-        return None
+    def setParameters(
+        self, specName: str, titleCardName: str, enumValue: str, drawConfigIdx: str, unk1: str = "0", unk2: str = "0"
+    ):
+        """Sets the entry's parameters"""
+        self.specName = specName
+        self.titleCardName = titleCardName
+        self.enumValue = enumValue
+        self.drawConfigIdx = drawConfigIdx
+        self.unk1 = unk1
+        self.unk2 = unk2
 
-    if sceneNameList is not None:
-        for i in range(len(sceneNameList)):
-            if sceneNameList[i] == sceneName:
-                return i
+    def setParametersFromScene(self, scene: Optional[OOTScene] = None):
+        """Use the ``OOTScene`` data to set the entry's parameters"""
+        scene = self.scene if scene is None else scene
+        # TODO: Implement title cards
+        name = scene.name if scene is not None else self.exportName
+        self.setParameters(
+            f"{scene.name.lower()}_scene",
+            "none",
+            ootSceneNameToID.get(name, f"SCENE_{name.upper()}"),
+            getCustomProperty(scene.sceneTableEntry, "drawConfig"),
+        )
 
-    # intended return value to check if the chosen scene was removed
-    return None
-
-
-def getOriginalIndex(sceneName):
-    """
-    Returns the index of a specific scene defined by which one the user chose
-        or by the ``sceneName`` parameter if it's not set to ``None``
-    """
-    i = 0
-
-    if sceneName != "Custom":
-        for elem in ootEnumSceneID:
-            if elem[0] == sceneName:
-                # returns i - 1 because the first entry is the ``Custom`` option
-                return i - 1
-            i += 1
-
-    raise PluginError("ERROR: Scene Index not found!")
+    def to_c(self):
+        """Returns the entry as C code"""
+        return (
+            (self.prefix if self.prefix is not None else "")
+            + f"/* 0x{self.index:02X} */ "
+            + f"DEFINE_SCENE({self.specName}, {self.titleCardName}, {self.enumValue}, "
+            + f"{self.drawConfigIdx}, {self.unk1}, {self.unk2})\n"
+            + (self.suffix if self.suffix is not None else "")
+        )
 
 
-def getInsertionIndex(scene, sceneNames, sceneName, index, mode):
-    """Returns the index to know where to insert data"""
-    # special case where the scene is "Inside the Great Deku Tree"
-    # since it's the first scene simply return 0
-    if sceneName == "SCENE_DEKU_TREE":
-        return 0
+@dataclass
+class SceneTable:
+    """Defines a ``scene_table.h`` file data"""
 
-    # if index is None this means this is looking for ``original_scene_index - 1``
-    # else, this means the table is shifted
-    if index is None:
-        currentIndex = getOriginalIndex(sceneName)
-    else:
-        currentIndex = index
+    exportPath: str
+    exportName: Optional[str]
+    selectedSceneEnumValue: Optional[str]
+    entries: list[SceneTableEntry] = field(default_factory=list)
+    sceneEnumValues: list[str] = field(default_factory=list)  # existing values in ``scene_table.h``
+    isFirstCustom: bool = False  # if true, adds the "Added Scenes" comment to the C data
+    selectedSceneIndex: int = 0
+    customSceneIndex: Optional[int] = None  # None if the selected custom scene isn't in the table yet
 
-    for i in range(len(sceneNames)):
-        if sceneNames[i] == ootEnumSceneID[currentIndex][0]:
-            # return an index to insert new data
-            if mode == "INSERT":
-                return i + 1
-            # return an index to insert a comment
-            elif mode == "EXPORT":
-                return i if not sceneName in sceneNames and sceneName != getSceneNameSettings(scene) else i + 1
-            # same but don't check for chosen scene
-            elif mode == "REMOVE":
-                return i if not sceneName in sceneNames else i + 1
+    def __post_init__(self):
+        # read the file's data
+        try:
+            with open(self.exportPath) as fileData:
+                data = fileData.read()
+                fileData.seek(0)
+                lines = fileData.readlines()
+        except FileNotFoundError:
+            raise PluginError("ERROR: Can't find scene_table.h!")
+
+        # parse the entries and populate the list of entries (``self.entries``)
+        prefix = ""
+        self.isFirstCustom = ADDED_SCENES_COMMENT not in data
+        entryIndex = 0  # we don't use ``enumerate`` since not every line is an actual entry
+        assert len(lines) > 0
+        for line in lines:
+            # skip the lines before an entry, create one from the file's data
+            # and add the skipped lines as a prefix of the current entry
+            if (
+                not line.startswith("#")  # ifdefs or endifs
+                and not line.startswith(" *")  # multi-line comments
+                and "//" not in line  # single line comments
+                and "/**" not in line  # multi-line comments
+                and line != "\n"
+                and line != ""
+            ):
+                entry = SceneTableEntry(entryIndex, line, prefix=prefix)
+                self.entries.append(entry)
+                self.sceneEnumValues.append(entry.enumValue)
+                prefix = ""
+                entryIndex += 1
             else:
-                raise NotImplementedError
+                prefix += line
 
-    # if the index hasn't been found yet, do it again but decrement the index
-    return getInsertionIndex(scene, sceneNames, sceneName, currentIndex - 1, mode)
+        # add whatever's after the last entry
+        if len(prefix) > 0 and prefix != "\n":
+            self.entries[-1].suffix = prefix
 
+        # get the scene index for the scene chosen by the user
+        if self.selectedSceneEnumValue is not None:
+            self.selectedSceneIndex = self.getIndexFromEnumValue()
 
-def getSceneParams(scene, exportInfo, sceneNames):
-    """Returns the parameters that needs to be set in ``DEFINE_SCENE()``"""
-    # in order to replace the values of ``unk10``, ``unk12`` and basically every parameters from ``DEFINE_SCENE``,
-    # you just have to make it return something other than None, not necessarily a string
-    sceneIndex = getSceneIndex(sceneNames, getSceneNameSettings(scene))
-    sceneName = sceneTitle = sceneID = sceneUnk10 = sceneUnk12 = None
-    name = scene.name if scene is not None else exportInfo.name
+        # dictionary of entries from spec names
+        self.entryBySpecName = {entry.specName: entry for entry in self.entries}
 
-    # if the index is None then this is a custom scene
-    if sceneIndex is None and scene is not None:
-        sceneName = scene.name.lower() + "_scene"
-        sceneTitle = "none"
-        sceneID = ootSceneNameToID.get(name, f"SCENE_{name.upper()}")
-        sceneUnk10 = sceneUnk12 = 0
+        # set the custom scene index
+        if self.selectedSceneIndex == SceneIndexType.CUSTOM:
+            entry = self.entryBySpecName.get(f"{self.exportName}_scene")
+            if entry is not None:
+                self.customSceneIndex = entry.index
 
-    return sceneName, sceneTitle, sceneID, sceneUnk10, sceneUnk12, sceneIndex
+    def getIndexFromEnumValue(self):
+        """Returns the index (int) of the chosen scene if vanilla and found, else return an enum value from ``SceneIndexType``"""
+        if self.selectedSceneEnumValue == "Custom":
+            return SceneIndexType.CUSTOM
+        for i in range(len(self.sceneEnumValues)):
+            if self.sceneEnumValues[i] == self.selectedSceneEnumValue:
+                return i
+        # if the index is not found and it's not a custom export it means it's a vanilla scene that was removed
+        return SceneIndexType.VANILLA_REMOVED
 
+    def getOriginalIndex(self):
+        """
+        Returns the index of a specific scene defined by which one the user chose
+        or by the ``sceneName`` parameter if it's not set to ``None``
+        """
+        i = 0
+        if self.selectedSceneEnumValue != "Custom":
+            for elem in ootEnumSceneID:
+                if elem[0] == self.selectedSceneEnumValue:
+                    # returns i - 1 because the first entry is the ``Custom`` option
+                    return i - 1
+                i += 1
+        raise PluginError("ERROR: Scene Index not found!")
 
-def sceneTableToC(data, header, sceneNames, scene):
-    """Converts the Scene Table to C code"""
-    # start the data with the header comment explaining the format of the file
-    fileData = header
+    def getInsertionIndex(self, index: Optional[int] = None) -> int:
+        """Returns the index to know where to insert data"""
+        # special case where the scene is "Inside the Great Deku Tree"
+        # since it's the first scene simply return 0
+        if self.selectedSceneEnumValue == "SCENE_DEKU_TREE":
+            return 0
 
-    # determine if this function is called by 'Remove Scene' or 'Export Scene'
-    mode = "EXPORT" if scene is not None else "REMOVE"
+        # if index is None this means this is looking for ``original_scene_index - 1``
+        # else, this means the table is shifted
+        if index is None:
+            currentIndex = self.getOriginalIndex()
+        else:
+            currentIndex = index
 
-    # get the index of the last non-debug scene
-    lastNonDebugSceneIdx = getInsertionIndex(scene, sceneNames, "SCENE_OUTSIDE_GANONS_CASTLE", None, mode)
-    lastSceneIdx = getInsertionIndex(scene, sceneNames, "SCENE_TESTROOM", None, mode)
+        for i in range(len(self.sceneEnumValues)):
+            if self.sceneEnumValues[i] == ootEnumSceneID[currentIndex][0]:
+                return i + 1
 
-    # add the actual lines with the same formatting
-    for i in range(len(data)):
-        # adds the "// Debug-only scenes"
-        # if both lastScene indexes are the same values this means there's no debug scene
-        if ((i - 1) == lastNonDebugSceneIdx) and (lastSceneIdx != lastNonDebugSceneIdx):
-            fileData += "// Debug-only scenes\n"
+        # if the index hasn't been found yet, do it again but decrement the index
+        return self.getInsertionIndex(currentIndex - 1)
 
-        # add a comment to show when it's new scenes
-        if (i - 1) == lastSceneIdx:
-            fileData += "// Added scenes\n"
+    def updateEntryIndex(self):
+        """Updates every entry index so they follow each other"""
+        for i, entry in enumerate(self.entries):
+            if entry.index != i:
+                entry.index = i
 
-        fileData += f"/* 0x{i:02X} */ DEFINE_SCENE("
-        fileData += ", ".join(str(d) for d in data[i])
+    def getIndex(self):
+        """Returns the selected scene index if it's a vanilla one, else returns the custom scene index"""
+        assert self.selectedSceneIndex != SceneIndexType.VANILLA_REMOVED
 
-        fileData += ")\n"
+        # this function's usage makes ``customSceneIndex is None`` impossible
+        if self.selectedSceneIndex < 0 and self.customSceneIndex is not None:
+            raise PluginError("ERROR: Custom Scene Index is None!")
 
-    # return the string containing the file data to write
-    return fileData
+        return self.selectedSceneIndex if self.selectedSceneIndex >= 0 else self.customSceneIndex
+
+    def append(self, entry: SceneTableEntry):
+        """Appends an entry to the scene table, only used by custom scenes"""
+        # add the "added scenes" comment if it's not already there
+        if self.isFirstCustom:
+            entry.prefix = f"\n{ADDED_SCENES_COMMENT}\n"
+            self.isFirstCustom = False
+
+        if entry not in self.entries:
+            if entry.index >= 0:
+                self.customSceneIndex = entry.index
+                self.entries.append(entry)
+            else:
+                raise PluginError(f"ERROR: (Append) The index is not valid! ({entry.index})")
+        else:
+            raise PluginError("ERROR: (Append) Entry already in the table!")
+
+    def insert(self, entry: SceneTableEntry):
+        """Inserts an entry in the scene table, only used by non-custom scenes"""
+        if not entry in self.entries:
+            if entry.index >= 0:
+                if entry.index < len(self.entries):
+                    nextEntry = self.entries[entry.index]  # the next entry is at the insertion index
+
+                    # move the next entry's prefix to the one we're going to insert
+                    if len(nextEntry.prefix) > 0 and not "INCLUDE_TEST_SCENES" in nextEntry.prefix:
+                        entry.prefix = nextEntry.prefix
+                        nextEntry.prefix = ""
+
+                self.entries.insert(entry.index, entry)
+            else:
+                raise PluginError(f"ERROR: (Insert) The index is not valid! ({entry.index})")
+        else:
+            raise PluginError("ERROR: (Insert) Entry already in the table!")
+
+    def remove(self, index: int):
+        """Removes an entry from the scene table"""
+        isCustom = index == SceneIndexType.CUSTOM
+        if index >= 0 or isCustom:
+            entry = self.entries[self.getIndex()]
+
+            # move the prefix of the entry to remove to the next entry
+            # if there's no next entry this prefix becomes the suffix of the last entry
+            if len(entry.prefix) > 0:
+                nextIndex = index + 1
+                if not isCustom and nextIndex < len(self.entries):
+                    self.entries[nextIndex].prefix = entry.prefix
+                else:
+                    previousIndex = entry.index - 1
+                    if entry.index == len(self.entries) - 1 and ADDED_SCENES_COMMENT in entry.prefix:
+                        entry.prefix = entry.prefix.removesuffix(f"\n{ADDED_SCENES_COMMENT}\n")
+                    self.entries[previousIndex].suffix = entry.prefix
+
+            self.entries.remove(entry)
+        elif index == SceneIndexType.VANILLA_REMOVED:
+            raise PluginError("INFO: This scene was already removed.")
+        else:
+            raise PluginError("ERROR: Unexpected scene index value.")
+
+    def to_c(self):
+        """Returns the scene table as C code"""
+        return "".join(entry.to_c() for entry in self.entries)
 
 
 def getDrawConfig(sceneName: str):
     """Read draw config from scene table"""
-    fileData, header, sceneNames = getSceneTable(bpy.path.abspath(bpy.context.scene.ootDecompPath))
+    sceneTable = SceneTable(
+        os.path.join(bpy.path.abspath(bpy.context.scene.ootDecompPath), "include/tables/scene_table.h"), None, None
+    )
 
-    for sceneEntry in fileData:
-        if sceneEntry[0] == f"{sceneName}_scene":
-            return sceneEntry[3]
+    entry = sceneTable.entryBySpecName.get(f"{sceneName}_scene")
+    if entry is not None:
+        return entry.drawConfigIdx
 
-    raise PluginError(f"Scene name {sceneName} not found in scene table.")
-
-
-def addHackerOoTData(fileData: str):
-    """Reads the file and adds HackerOoT's modifications to the scene table file"""
-    newFileData = ['#include "config.h"\n\n']
-
-    for line in fileData.splitlines():
-        if "// Debug-only scenes" in line:
-            newFileData.append("\n#ifdef INCLUDE_TEST_SCENES\n")
-
-        if "// Added scenes" in line:
-            newFileData.append("#endif\n\n")
-
-        newFileData.append(f"{line}\n")
-
-    if not "// Added scenes" in fileData:
-        newFileData.append("#endif\n")
-
-    return "".join(newFileData)
+    raise PluginError(f"ERROR: Scene name {sceneName} not found in scene table.")
 
 
-def modifySceneTable(scene, exportInfo: ExportInfo):
-    """Edit the scene table with the new data"""
-    exportPath = exportInfo.exportPath
-    # the list ``sceneNames`` needs to be synced with ``fileData``
-    fileData, header, sceneNames = getSceneTable(exportPath)
-    sceneName, sceneTitle, sceneID, sceneUnk10, sceneUnk12, sceneIndex = getSceneParams(scene, exportInfo, sceneNames)
+def modifySceneTable(scene: Optional[OOTScene], exportInfo: ExportInfo):
+    """Remove, append, insert or update the scene table entry of the selected scene"""
+    sceneTable = SceneTable(
+        os.path.join(exportInfo.exportPath, "include/tables/scene_table.h"),
+        exportInfo.name if exportInfo.option == "Custom" else None,
+        exportInfo.option,
+    )
 
     if scene is None:
-        sceneDrawConfig = None
+        # remove mode
+        sceneTable.remove(sceneTable.selectedSceneIndex)
+    elif sceneTable.selectedSceneIndex == SceneIndexType.CUSTOM and sceneTable.customSceneIndex is None:
+        # custom mode: new custom scene
+        sceneTable.append(SceneTableEntry(len(sceneTable.entries) - 1, None, scene, exportInfo.name))
+    elif sceneTable.selectedSceneIndex == SceneIndexType.VANILLA_REMOVED:
+        # insert mode
+        sceneTable.insert(SceneTableEntry(sceneTable.getInsertionIndex(), None, scene, exportInfo.name))
     else:
-        sceneDrawConfig = getCustomProperty(scene.sceneTableEntry, "drawConfig")
+        # update mode (for both vanilla and custom scenes since they already exist in the table)
+        sceneTable.entries[sceneTable.getIndex()].setParametersFromScene(scene)
 
-    # ``DEFINE_SCENE()`` parameters
-    sceneParams = [sceneName, sceneTitle, sceneID, sceneDrawConfig, sceneUnk10, sceneUnk12]
-
-    # check if it's a custom scene name
-    # sceneIndex can be None and ootSceneOption not "Custom",
-    # that means the selected scene has been removed from the table
-    # however if the scene variable is not None
-    # set it to "INSERT" because we need to insert the scene in the right place
-    if sceneIndex is None and getSceneNameSettings(scene) == "Custom":
-        mode = "CUSTOM"
-    elif sceneIndex is None and scene is not None:
-        mode = "INSERT"
-    elif sceneIndex is not None:
-        mode = "NORMAL"
-    else:
-        mode = None
-
-    if mode is not None:
-        # if so, check if the custom scene already exists in the data
-        # if it already exists set mode to NORMAL to consider it like a normal scene
-        if mode == "CUSTOM":
-            exportName = exportInfo.name.lower()
-            for i in range(len(fileData)):
-                if fileData[i][0] == exportName + "_scene":
-                    sceneIndex = i
-                    mode = "NORMAL"
-                    break
-        else:
-            exportName = exportInfo.name
-
-        # edit the current data or append new one if we are in a ``Custom`` context
-        if mode == "NORMAL":
-            for i in range(6):
-                if sceneParams[i] is not None and fileData[sceneIndex][i] != sceneParams[i]:
-                    fileData[sceneIndex][i] = sceneParams[i]
-        elif mode == "CUSTOM":
-            sceneNames.append(sceneParams[2])
-            fileData.append(sceneParams)
-            sceneIndex = len(fileData) - 1
-        elif mode == "INSERT":
-            # if this the user chose a vanilla scene, removed it and want to export
-            # insert the data in the normal location
-            # shifted index = vanilla index - (vanilla last scene index - new last scene index)
-            index = getInsertionIndex(scene, sceneNames, sceneID, None, mode)
-            sceneNames.insert(index, sceneParams[2])
-            fileData.insert(index, sceneParams)
-
-    # remove the scene data if scene is None (`Remove Scene` button)
-    if scene is None:
-        if sceneIndex is not None:
-            sceneNames.pop(sceneIndex)
-            fileData.pop(sceneIndex)
-        else:
-            raise PluginError("ERROR: Scene not found in ``scene_table.h``!")
-
-    # get the new file data
-    newFileData = sceneTableToC(fileData, header, sceneNames, scene)
-
-    # apply HackerOoT changes if needed
-    if bpy.context.scene.fast64.oot.hackerFeaturesEnabled:
-        newFileData = addHackerOoTData(newFileData)
+    # update the indices
+    sceneTable.updateEntryIndex()
 
     # write the file with the final data
-    writeFile(os.path.join(exportPath, "include/tables/scene_table.h"), newFileData)
+    writeFile(sceneTable.exportPath, sceneTable.to_c())
