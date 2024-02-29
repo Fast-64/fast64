@@ -94,7 +94,7 @@ class MK64_ImportCourseDLPanel(MK64_Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.gameEditorMode == "SM64"
+        return context.scene.gameEditorMode == "MK64"
 
     # called every frame
     def draw(self, context):

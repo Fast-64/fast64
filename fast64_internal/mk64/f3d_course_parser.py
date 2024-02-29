@@ -39,7 +39,7 @@ def parseCourseVtx(path: str, f3d):
 
 
 class MK64F3DContext(F3DContext):
-    def getVertexDataStart(vertexDataParam: str, f3d: F3D):
+    def getVertexDataStart(self, vertexDataParam: str, f3d: F3D):
         matchResult = re.search(r"\&?([A-Za-z0-9\_]*)\s*(\[([^\]]*)\])?\s*(\+(.*))?", vertexDataParam)
         if matchResult is None:
             raise PluginError("SPVertex param " + vertexDataParam + " is malformed.")
