@@ -15,11 +15,10 @@ from fast64_internal.f3d.f3d_writer import exportF3DtoC, getWriteMethodFromEnum
 
 register()
 
+
 def purge_orphans():
     if bpy.app.version >= (3, 0, 0):
-        bpy.ops.outliner.orphans_purge(
-            do_local_ids=True, do_linked_ids=True, do_recursive=True
-        )
+        bpy.ops.outliner.orphans_purge(do_local_ids=True, do_linked_ids=True, do_recursive=True)
     else:
         # call purge_orphans() recursively until there are no more orphan data blocks to purge
         result = bpy.ops.outliner.orphans_purge()
@@ -56,6 +55,7 @@ def clean_scene():
     bpy.context.scene.world = bpy.data.worlds["World"]
 
     purge_orphans()
+
 
 clean_scene()
 
