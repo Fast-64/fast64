@@ -1,7 +1,7 @@
 import bpy
 from bpy.types import PropertyGroup
-from ..f3d.f3d_gbi import get_F3D_GBI
 from ..f3d.f3d_material import createF3DMat
+from ..f3d.f3d_gbi import get_F3D_GBI
 from ..f3d.f3d_parser import getImportData, importMeshC
 from ..panels import MK64_Panel
 from ..utility import prop_split
@@ -15,6 +15,9 @@ class MK64_Properties(PropertyGroup):
 
     version: bpy.props.IntProperty(name="MK64_Properties Version", default=0)
     cur_version = 0
+
+    # Import Course DL
+    EnableRenderModeDefault: bpy.props.BoolProperty(name="Enable Render Mode by Default", default=True)
 
     @staticmethod
     def upgrade_changed_props():
@@ -58,7 +61,11 @@ class MK64_ImportCourseDL(bpy.types.Operator):
 
             data = getImportData(paths)
 
-            f3d_context = MK64F3DContext(get_F3D_GBI(), basePath, createF3DMat(None))
+            material = createF3DMat(None)
+
+            material.f3d_mat.rdp_settings.set_rendermode = context.scene.fast64.mk64.EnableRenderModeDefault
+
+            f3d_context = MK64F3DContext(get_F3D_GBI(), basePath, material)
             if "course_displaylists" in importPath or "course_data" in importPath:
                 vertexPath = importPath.replace("course_displaylists", "course_vertices").replace(
                     "course_data", "course_vertices"
@@ -105,6 +112,9 @@ class MK64_ImportCourseDLPanel(MK64_Panel):
         prop_split(col, context.scene, "DLImportDrawLayer", "Draw Layer")
         col.prop(context.scene, "DLRemoveDoubles")
         col.prop(context.scene, "DLImportNormals")
+
+        mk64Props = context.scene.fast64.mk64
+        prop_split(col, mk64Props, "EnableRenderModeDefault", "Enable Render Mode by Default")
 
         box = col.box().column()
         box.label(text="All data must be contained within file.")
