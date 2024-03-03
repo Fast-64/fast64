@@ -6,7 +6,7 @@ from bpy.path import abspath
 from ..panels import SM64_Panel, sm64GoalTypeEnum, sm64GoalImport
 from ..render_settings import on_update_render_settings
 from .sm64_level_parser import parseLevelAtPointer
-from .sm64_constants import level_enums, level_pointers, defaultExtendSegment4
+from .sm64_constants import level_enums, level_pointers, defaultExtendSegment4, enumLevelNames
 
 from ..utility import (
     prop_split,
@@ -15,6 +15,7 @@ from ..utility import (
     encodeSegmentedAddr,
     raisePluginError,
     enumExportType,
+    enumExportHeaderType,
     enumCompressionFormat,
 )
 
@@ -40,6 +41,7 @@ from .sm64_camera import (
 )
 
 from .sm64_objects import (
+    SM64_CombinedObjectProperties,
     sm64_obj_panel_register,
     sm64_obj_panel_unregister,
     sm64_obj_register,
@@ -61,8 +63,6 @@ from .sm64_geolayout_writer import (
 )
 
 from .sm64_level_writer import (
-    sm64_level_panel_register,
-    sm64_level_panel_unregister,
     sm64_level_register,
     sm64_level_unregister,
 )
@@ -94,7 +94,6 @@ from .sm64_anim import (
     sm64_anim_register,
     sm64_anim_unregister,
 )
-
 
 enumRefreshVer = [
     ("Refresh 3", "Refresh 3", "Refresh 3"),
@@ -215,37 +214,36 @@ class SM64_Properties(PropertyGroup):
     """Global SM64 Scene Properties found under scene.fast64.sm64"""
 
     version: IntProperty(name="SM64_Properties Version", default=0)
-    cur_version = 1  # version after property migration
+    cur_version = 2  # version after property migration
 
     # UI Selection
     showImportingMenus: BoolProperty(name="Show Importing Menus", default=False)
     exportType: EnumProperty(items=enumExportType, name="Export Type", default="C")
     goal: EnumProperty(items=sm64GoalTypeEnum, name="Export Goal", default="All")
 
-    # TODO: Utilize these across all exports
-    # C exporting
-    # useCustomExportLocation = BoolProperty(name = 'Use Custom Export Path')
-    # customExportPath: StringProperty(name = 'Custom Export Path', subtype = 'FILE_PATH')
-    # exportLocation: EnumProperty(items = enumExportHeaderType, name = 'Export Location', default = 'Actor')
-    # useSelectedObjectName = BoolProperty(name = 'Use Name From Selected Object', default=False)
-    # exportName: StringProperty(name='Name', default='mario')
-    # exportGeolayoutName: StringProperty(name='Name', default='mario_geo')
-
-    # Actor exports
-    # exportGroup: StringProperty(name='Group', default='group0')
-
-    # Level exports
-    # exportLevelName: StringProperty(name = 'Level', default = 'bob')
-    # exportLevelOption: EnumProperty(items = enumLevelNames, name = 'Level', default = 'bob')
-
-    # Insertable Binary
-    # exportInsertableBinaryPath: StringProperty(name = 'Filepath', subtype = 'FILE_PATH')
+    combined_export: bpy.props.PointerProperty(type=SM64_CombinedObjectProperties)
 
     @staticmethod
     def upgrade_changed_props():
         if bpy.context.scene.fast64.sm64.version != SM64_Properties.cur_version:
             bpy.context.scene.fast64.sm64.exportType = get_legacy_export_type()
             bpy.context.scene.fast64.sm64.version = SM64_Properties.cur_version
+            # props upgrade for combined export panel
+            combined_props = bpy.context.scene.fast64.sm64.combined_export
+            old_scene_props_to_new = {
+                "geoLevelName": "custom_export_name",
+                "geoExportPath": "custom_export_path",
+                "geoName": "object_name",
+            }
+            for old, new in old_scene_props_to_new.items():
+                setattr(combined_props, new, bpy.context.scene.get(old, getattr(combined_props, new)))
+            export_type = bpy.context.scene.get("geoExportHeaderType", None)
+            if export_type is not None:
+                combined_props.export_header_type = enumExportHeaderType[export_type][0]
+
+            level_name = bpy.context.scene.get("geoLevelOption", None)
+            if level_name is not None:
+                combined_props.level_name = enumLevelNames[level_name][0]
 
 
 sm64_classes = (
@@ -270,7 +268,6 @@ def sm64_panel_register():
     sm64_obj_panel_register()
     sm64_geo_parser_panel_register()
     sm64_geo_writer_panel_register()
-    sm64_level_panel_register()
     sm64_spline_panel_register()
     sm64_dl_writer_panel_register()
     sm64_dl_parser_panel_register()
@@ -287,7 +284,6 @@ def sm64_panel_unregister():
     sm64_obj_panel_unregister()
     sm64_geo_parser_panel_unregister()
     sm64_geo_writer_panel_unregister()
-    sm64_level_panel_unregister()
     sm64_spline_panel_unregister()
     sm64_dl_writer_panel_unregister()
     sm64_dl_parser_panel_unregister()
@@ -295,9 +291,6 @@ def sm64_panel_unregister():
 
 
 def sm64_register(registerPanels):
-    for cls in sm64_classes:
-        register_class(cls)
-
     sm64_col_register()  # register first, so panel goes above mat panel
     sm64_bone_register()
     sm64_cam_register()
@@ -309,6 +302,9 @@ def sm64_register(registerPanels):
     sm64_dl_writer_register()
     sm64_dl_parser_register()
     sm64_anim_register()
+
+    for cls in sm64_classes:
+        register_class(cls)
 
     if registerPanels:
         sm64_panel_register()
@@ -339,9 +335,6 @@ def sm64_register(registerPanels):
 
 
 def sm64_unregister(unregisterPanels):
-    for cls in reversed(sm64_classes):
-        unregister_class(cls)
-
     sm64_col_unregister()  # register first, so panel goes above mat panel
     sm64_bone_unregister()
     sm64_cam_unregister()
@@ -353,6 +346,9 @@ def sm64_unregister(unregisterPanels):
     sm64_dl_writer_unregister()
     sm64_dl_parser_unregister()
     sm64_anim_unregister()
+
+    for cls in reversed(sm64_classes):
+        unregister_class(cls)
 
     if unregisterPanels:
         sm64_panel_unregister()
