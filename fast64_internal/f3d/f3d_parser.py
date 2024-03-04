@@ -2222,6 +2222,9 @@ def parseMacroArgs(data: str):
             params.append(param)
             start = end + 1
 
+    if len(data) == 1:
+        return [data]
+
     return params
 
 
