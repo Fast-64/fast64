@@ -383,7 +383,14 @@ class OOTF3DContext(F3DContext):
         except:
             if name == "gEmptyDL":
                 return None
-            return name
+            else:
+                def clear_segment_attrs(obj):
+                    for attr_name in dir(obj):
+                        setattr(obj, attr_name, False)
+
+                clear_segment_attrs(self.materialContext.ootMaterial.opaque)
+                clear_segment_attrs(self.materialContext.ootMaterial.transparent)
+                return name
         else:
             segment = pointer >> 24
             if segment >= 0x08 and segment <= 0x0D:
@@ -391,7 +398,6 @@ class OOTF3DContext(F3DContext):
                 setattr(self.materialContext.ootMaterial.transparent, "segment" + format(segment, "1X"), True)
                 self.materialChanged = True
             return None
-        return name
 
     def processTextureName(self, textureName):
         try:
