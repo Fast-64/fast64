@@ -230,24 +230,6 @@ def rendermode_preset_to_advanced(material: bpy.types.Material):
     settings.blend_b2 = f3d.blendMixDict[(r2 >> 16) & 3]
 
 
-def does_blender_use_color(settings: "RDPSettings", color: str, default_for_no_rendermode: bool = False) -> bool:
-    if not settings.set_rendermode:
-        return default_for_no_rendermode
-    is_two_cycle = settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
-    return (
-        settings.blend_p1 == color
-        or settings.blend_m1 == color
-        or (is_two_cycle and (settings.blend_p2 == color or settings.blend_m2 == color))
-    )
-
-
-def does_blender_use_alpha(settings: "RDPSettings", alpha: str, default_for_no_rendermode: bool = False) -> bool:
-    if not settings.set_rendermode:
-        return default_for_no_rendermode
-    is_two_cycle = settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
-    return settings.blend_a1 == alpha or (is_two_cycle and settings.blend_a2 == alpha)
-
-
 def does_blender_use_mix(settings: "RDPSettings", mix: str, default_for_no_rendermode: bool = False) -> bool:
     if not settings.set_rendermode:
         return default_for_no_rendermode
@@ -450,7 +432,7 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             shadeInCC = ccUse["Shade"] or ccUse["Shade Alpha"]
             if settings.set_rendermode:
                 blendWarnings = True
-                shadeInBlender = does_blender_use_alpha(settings, "G_BL_A_SHADE")
+                shadeInBlender = settings.does_blender_use_input("G_BL_A_SHADE")
                 zInBlender = settings.z_cmp or settings.z_upd
 
         inputGroup.prop(settings, "g_shade_smooth")
@@ -959,11 +941,7 @@ class F3DPanel(Panel):
             if f3dMat.set_attroffs_z:
                 prop_split(inputGroup.row(), f3dMat, "attroffs_z", "Z Attr Offset")
 
-        if (
-            f3dMat.rdp_settings.g_fog
-            or does_blender_use_color(f3dMat.rdp_settings, "G_BL_CLR_FOG")
-            or does_blender_use_alpha(f3dMat.rdp_settings, "G_BL_A_FOG")
-        ):
+        if f3dMat.rdp_settings.using_fog:
             if showCheckBox or f3dMat.set_fog:
                 inputGroup = inputCol.column()
             if showCheckBox:
@@ -1070,7 +1048,7 @@ class F3DPanel(Panel):
         settings = f3dMat.rdp_settings
         isF3DEX3 = bpy.context.scene.f3d_type == "F3DEX3"
         lightFxPrereq = isF3DEX3 and settings.g_lighting
-        anyUseShadeAlpha = useDict["Shade Alpha"] or does_blender_use_alpha(settings, "G_BL_A_SHADE")
+        anyUseShadeAlpha = useDict["Shade Alpha"] or settings.does_blender_use_input("G_BL_A_SHADE")
 
         g_lighting = settings.g_lighting
         g_fog = settings.g_fog
@@ -3230,6 +3208,29 @@ class RDPSettings(PropertyGroup):
         items=enumBlendMix,
         update=update_node_values_with_preset,
     )
+
+    @property
+    def using_fog(self):
+        return self.g_fog or any(["FOG" in input for input in self.blend_inputs])
+
+    @property
+    def blend_color_inputs(self):
+        return (getattr(self, f"blend_{val}") for val in ("p1", "p2", "m1", "m2"))
+
+    @property
+    def blend_alpha_inputs(self):
+        return (getattr(self, f"blend_{val}") for val in ("a1", "a2", "b1", "b2"))
+
+    @property
+    def blend_inputs(self):
+        return self.blend_color_inputs
+        return self.blend_alpha_inputs
+
+    def does_blender_use_input(setting: str) -> bool:
+        for input in self.blend_inputs:
+            if setting == input:
+                return True
+        return False
 
     def key(self):
         setRM = self.set_rendermode
