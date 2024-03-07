@@ -12,17 +12,12 @@ from .f3d_course_parser import MK64F3DContext, parseCourseVtx
 
 class MK64_Properties(PropertyGroup):
     """Global MK64 Scene Properties found under scene.fast64.mk64"""
-
-    version: bpy.props.IntProperty(name="MK64_Properties Version", default=0)
-    cur_version = 0
-
     # Import Course DL
     EnableRenderModeDefault: bpy.props.BoolProperty(name="Enable Render Mode by Default", default=True)
 
     @staticmethod
     def upgrade_changed_props():
-        if bpy.context.scene.fast64.mk64.version != MK64_Properties.cur_version:
-            bpy.context.scene.fast64.mk64.version = MK64_Properties.cur_version
+        pass
 
 
 class MK64_ImportCourseDL(bpy.types.Operator):
