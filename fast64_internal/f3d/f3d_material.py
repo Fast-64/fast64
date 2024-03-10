@@ -3226,7 +3226,7 @@ class RDPSettings(PropertyGroup):
         return self.blend_color_inputs
         return self.blend_alpha_inputs
 
-    def does_blender_use_input(setting: str) -> bool:
+    def does_blender_use_input(self, setting: str) -> bool:
         for input in self.blend_inputs:
             if setting == input:
                 return True
