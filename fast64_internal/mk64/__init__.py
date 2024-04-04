@@ -46,10 +46,10 @@ class MK64_ImportCourseDL(bpy.types.Operator):
             paths = [importPath]
 
             if "course_data" in importPath:
-                paths += [importPath.replace("course_data", "course_displaylists")]
+                paths += [importPath.replace("course_data", "course_displaylists.inc")]
 
             paths += [
-                importPath.replace("course_data.inc", "course_textures.linkonly").replace(
+                importPath.replace("course_data", "course_textures.linkonly").replace(
                     "course_displaylists.inc", "course_textures.linkonly"
                 )
             ]
@@ -62,8 +62,8 @@ class MK64_ImportCourseDL(bpy.types.Operator):
 
             f3d_context = MK64F3DContext(get_F3D_GBI(), basePath, material)
             if "course_displaylists" in importPath or "course_data" in importPath:
-                vertexPath = importPath.replace("course_displaylists", "course_vertices").replace(
-                    "course_data", "course_vertices"
+                vertexPath = importPath.replace("course_displaylists.inc", "course_vertices.inc").replace(
+                    "course_data", "course_vertices.inc"
                 )
                 print(vertexPath)
                 f3d_context.vertexData["0x4000000"] = parseCourseVtx(vertexPath, f3d_context.f3d)
