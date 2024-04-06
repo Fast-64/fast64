@@ -209,13 +209,20 @@ class Fast64_GlobalSettingsPanel(bpy.types.Panel):
     def draw(self, context):
         col = self.layout.column()
         col.scale_y = 1.1  # extra padding
-        prop_split(col, context.scene, "gameEditorMode", "Game")
-        col.prop(context.scene, "exportHiddenGeometry")
-        col.prop(context.scene, "fullTraceback")
+
+        scene = context.scene
+        fast64_settings: Fast64Settings_Properties = scene.fast64.settings
+
+        prop_split(col, scene, "gameEditorMode", "Game")
+        col.prop(scene, "exportHiddenGeometry")
+        col.prop(scene, "fullTraceback")
+        prop_split(col, fast64_settings, "anim_range_choice", "Anim Range")
+
         col.separator()
-        col.prop(context.scene.fast64.settings, "auto_pick_texture_format")
-        col.prop(context.scene.fast64.settings, "prefer_rgba_over_ci")
-        prop_split(col, context.scene.fast64.settings, "anim_range_choice", "Anim Range")
+
+        col.prop(fast64_settings, "auto_pick_texture_format")
+        if fast64_settings.auto_pick_texture_format:
+            col.prop(fast64_settings, "prefer_rgba_over_ci")
 
 
 class Fast64_GlobalToolsPanel(bpy.types.Panel):
