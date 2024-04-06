@@ -212,7 +212,9 @@ class Fast64_GlobalSettingsPanel(bpy.types.Panel):
         prop_split(col, context.scene, "gameEditorMode", "Game")
         col.prop(context.scene, "exportHiddenGeometry")
         col.prop(context.scene, "fullTraceback")
-        col.prop(context.scene.fast64.settings, "prefer_ci_over_rgba")
+        col.separator()
+        col.prop(context.scene.fast64.settings, "auto_pick_texture_format")
+        col.prop(context.scene.fast64.settings, "prefer_rgba_over_ci")
         prop_split(col, context.scene.fast64.settings, "anim_range_choice", "Anim Range")
 
 
@@ -268,11 +270,15 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
         ],
         default="intersect_action_and_scene",
     )
-    prefer_ci_over_rgba: bpy.props.BoolProperty(
-        name="Prefer CI Over RGBA",
-        description="When enabled, fast64 will default colored textures that fit ci requirements to ci instead of rgba even if the texture fits as an rgba16 for the sake of performance",
+    auto_pick_texture_format: bpy.props.BoolProperty(
+        name="Auto Pick Texture Format",
+        description="When enabled, fast64 will try to pick the best texture format whenever a texture is selected.",
+        default=True,
     )
-
+    prefer_rgba_over_ci: bpy.props.BoolProperty(
+        name="Prefer RGBA Over CI",
+        description="When enabled, fast64 will default colored textures's format to RGBA even if they fit CI requirements, with the exception of textures that would not fit into TMEM otherwise",
+    )
 
 class Fast64_Properties(bpy.types.PropertyGroup):
     """
