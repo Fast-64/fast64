@@ -280,6 +280,7 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
         description="When enabled, fast64 will default colored textures's format to RGBA even if they fit CI requirements, with the exception of textures that would not fit into TMEM otherwise",
     )
 
+
 class Fast64_Properties(bpy.types.PropertyGroup):
     """
     Properties in scene.fast64.
