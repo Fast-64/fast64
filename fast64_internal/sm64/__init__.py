@@ -1,11 +1,3 @@
-from bpy.types import Scene
-from bpy.props import BoolProperty, StringProperty, EnumProperty, FloatProperty
-
-from ..render_settings import on_update_render_settings
-
-from .sm64_constants import level_enums, defaultExtendSegment4
-
-from .settings.constants import enumRefreshVer, enumCompressionFormat
 from .settings import (
     settings_props_register,
     settings_props_unregister,
@@ -148,30 +140,6 @@ def sm64_register(registerPanels):
     if registerPanels:
         sm64_panel_register()
 
-    Scene.importRom = StringProperty(name="Import ROM", subtype="FILE_PATH")
-    Scene.exportRom = StringProperty(name="Export ROM", subtype="FILE_PATH")
-    Scene.outputRom = StringProperty(name="Output ROM", subtype="FILE_PATH")
-    Scene.extendBank4 = BoolProperty(
-        name="Extend Bank 4 on Export?",
-        default=True,
-        description="Sets bank 4 range to ("
-        + hex(defaultExtendSegment4[0])
-        + ", "
-        + hex(defaultExtendSegment4[1])
-        + ") and copies data from old bank",
-    )
-    Scene.convertibleAddr = StringProperty(name="Address")
-    Scene.levelConvert = EnumProperty(items=level_enums, name="Level", default="IC")
-    Scene.refreshVer = EnumProperty(items=enumRefreshVer, name="Refresh", default="Refresh 13")
-    Scene.disableScroll = BoolProperty(name="Disable Scrolling Textures")
-
-    Scene.blenderToSM64Scale = FloatProperty(
-        name="Blender To SM64 Scale", default=100, update=on_update_render_settings
-    )
-    Scene.decompPath = StringProperty(name="Decomp Folder", subtype="FILE_PATH")
-
-    Scene.compressionFormat = EnumProperty(items=enumCompressionFormat, name="Compression", default="mio0")
-
 
 def sm64_unregister(unregisterPanels):
     tools_operators_unregister()
@@ -190,18 +158,3 @@ def sm64_unregister(unregisterPanels):
 
     if unregisterPanels:
         sm64_panel_unregister()
-
-    del Scene.importRom
-    del Scene.exportRom
-    del Scene.outputRom
-    del Scene.extendBank4
-
-    del Scene.convertibleAddr
-    del Scene.levelConvert
-    del Scene.refreshVer
-
-    del Scene.disableScroll
-
-    del Scene.blenderToSM64Scale
-    del Scene.decompPath
-    del Scene.compressionFormat
