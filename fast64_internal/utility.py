@@ -39,6 +39,7 @@ enumExportHeaderType = [
     ("Level", "Level Data", "Headers are written to a specific level in levels/"),
 ]
 
+
 def isPowerOf2(n):
     return (n & (n - 1) == 0) and n != 0
 

@@ -10,6 +10,7 @@ from ..sm64_constants import (
 )
 from .constants import enumRefreshVer, enumExportType, enumCompressionFormat, sm64GoalTypeEnum
 
+
 def get_legacy_export_type():
     legacy_export_types = ("C", "Binary", "Insertable Binary")
     scene = bpy.context.scene
