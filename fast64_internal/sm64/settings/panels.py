@@ -33,7 +33,6 @@ class SM64_GeneralSettingsPanel(SM64_Panel):
     def draw(self, context: Context):
         col = self.layout.column()
         sm64_props = context.scene.fast64.sm64
-        sm64_props = context.scene.fast64.sm64
 
         if sm64_props.export_type == "C":
             # If the repo settings tab is open, we pass show_repo_settings as False

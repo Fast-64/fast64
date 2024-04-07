@@ -138,7 +138,7 @@ Sets bank 4 range to ({hex(defaultExtendSegment4[0])}, {hex(defaultExtendSegment
             try:
                 export_rom_checks(abspath(self.export_rom))
             except Exception as e:
-                multilineLabel(layout.box(), str(e), "ERROR")
+                multilineLabel(col.box(), str(e), "ERROR")
             col.prop(self, "output_rom")
             col.prop(self, "extend_bank_4")
         elif not self.is_binary_export():
@@ -165,7 +165,7 @@ Sets bank 4 range to ({hex(defaultExtendSegment4[0])}, {hex(defaultExtendSegment
             try:
                 import_rom_checks(abspath(self.import_rom))
             except Exception as e:
-                multilineLabel(layout.box(), str(e), "ERROR")
+                multilineLabel(col.box(), str(e), "ERROR")
 
 
 classes = (SM64_Properties,)
