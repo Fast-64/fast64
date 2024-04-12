@@ -1933,23 +1933,90 @@ def update_tex_values_index(self: Material, *, texProperty: "TextureProperty", t
                     tex_I_node.node_tree = desired_node
 
 
+def get_color_info_from_tex(tex: bpy.types.Image):
+    is_greyscale, has_alpha_4_bit, has_alpha_1_bit = True, False, False
+    rgba_colors: set[int] = set()
+
+    pixels, channel_count = tex.pixels, tex.channels
+
+    for x in range(tex.size[0]):
+        for y in range(tex.size[1]):  # N64 is -Y, Blender is +Y, in this context this doesn´t matter
+            pixel_color = [1, 1, 1, 1]
+            for field in range(channel_count):
+                pixel_color[field] = pixels[(y * tex.size[0] + x) * channel_count + field]
+            rgba_colors.add(getRGBA16Tuple(pixel_color))
+
+            if not (pixel_color[0] == pixel_color[1] and pixel_color[1] == pixel_color[2]):
+                is_greyscale = False
+
+            if pixel_color[3] < 0.9375:
+                has_alpha_4_bit = True
+            if pixel_color[3] < 0.5:
+                has_alpha_1_bit = True
+
+    return is_greyscale, has_alpha_1_bit, has_alpha_4_bit, rgba_colors
+
+
+def get_optimal_format(tex: bpy.types.Image | None, prefer_rgba_over_ci: bool):
+    if not tex:
+        return "RGBA16"
+
+    n_size = tex.size[0] * tex.size[1]
+    if n_size > 8192:  # Image is too big
+        return "RGBA16"
+
+    is_greyscale, has_alpha_1_bit, has_alpha_4_bit, rgba_colors = get_color_info_from_tex(tex)
+
+    if is_greyscale:
+        if n_size > 4096:
+            if has_alpha_1_bit:
+                return "IA4"
+            return "I4"
+
+        if has_alpha_4_bit:
+            return "IA8"
+
+        return "I8"
+    else:
+        if len(rgba_colors) <= 16 and (not prefer_rgba_over_ci or n_size > 2048):
+            return "CI4"
+        if not prefer_rgba_over_ci and len(rgba_colors) <= 256:
+            return "CI8"
+
+    return "RGBA16"
+
+
 def update_tex_values_and_formats(self, context):
     with F3DMaterial_UpdateLock(get_material_from_context(context)) as material:
         if not material:
             return
 
-        f3d_mat = context.material.f3d_mat
-        useDict = all_combiner_uses(f3d_mat)
-        isMultiTexture = (
-            useDict["Texture 0"]
-            and f3d_mat.tex0.tex is not None
-            and useDict["Texture 1"]
-            and f3d_mat.tex1.tex is not None
-        )
-        if self.tex is not None:
-            self.tex_format = getOptimalFormat(self.tex, self.tex_format, isMultiTexture)
+        settings_props = context.scene.fast64.settings
+        if not settings_props.auto_pick_texture_format:
+            update_tex_values_manual(material, context)
+            return
 
-        update_tex_values_manual(context.material, context)
+        f3d_mat: F3DMaterialProperty = material.f3d_mat
+        useDict = all_combiner_uses(f3d_mat)
+        tex0_props = f3d_mat.tex0
+        tex1_props = f3d_mat.tex1
+
+        tex0, tex1 = tex0_props.tex if useDict["Texture 0"] else None, (
+            tex1_props.tex if useDict["Texture 1"] else None
+        )
+
+        if tex0:
+            tex0_props.tex_format = get_optimal_format(tex0, settings_props.prefer_rgba_over_ci)
+        if tex1:
+            tex1_props.tex_format = get_optimal_format(tex1, settings_props.prefer_rgba_over_ci)
+
+        if tex0 and tex1:
+            if tex0_props.tex_format.startswith("CI") and not tex1_props.tex_format.startswith("CI"):
+                tex0_props.tex_format = "RGBA16"
+            elif tex1_props.tex_format.startswith("CI") and not tex0_props.tex_format.startswith("CI"):
+                tex1_props.tex_format = "RGBA16"
+
+        update_tex_values_manual(material, context)
 
 
 def update_tex_values(self, context):
@@ -3405,57 +3472,6 @@ class CelLevelRemove(bpy.types.Operator):
         levels = celGetMaterialLevels(self.materialName)
         levels.remove(len(levels) - 1)
         return {"FINISHED"}
-
-
-def getOptimalFormat(tex, curFormat, isMultitexture):
-    texFormat = "RGBA16"
-    if isMultitexture:
-        return curFormat
-    if tex.size[0] * tex.size[1] > 8192:  # Image too big
-        return curFormat
-
-    isGreyscale = True
-    hasAlpha4bit = False
-    hasAlpha1bit = False
-    pixelValues = []
-
-    # N64 is -Y, Blender is +Y
-    pixels = tex.pixels[:]
-    for j in reversed(range(tex.size[1])):
-        for i in range(tex.size[0]):
-            color = [1, 1, 1, 1]
-            for field in range(tex.channels):
-                color[field] = pixels[(j * tex.size[0] + i) * tex.channels + field]
-            if not (color[0] == color[1] and color[1] == color[2]):
-                isGreyscale = False
-            if color[3] < 0.9375:
-                hasAlpha4bit = True
-            if color[3] < 0.5:
-                hasAlpha1bit = True
-            pixelColor = getRGBA16Tuple(color)
-            if pixelColor not in pixelValues:
-                pixelValues.append(pixelColor)
-
-    if isGreyscale:
-        if tex.size[0] * tex.size[1] > 4096:
-            if not hasAlpha1bit:
-                texFormat = "I4"
-            else:
-                texFormat = "IA4"
-        else:
-            if not hasAlpha4bit:
-                texFormat = "I8"
-            else:
-                texFormat = "IA8"
-    else:
-        if len(pixelValues) <= 16:
-            texFormat = "CI4"
-        elif len(pixelValues) <= 256 and tex.size[0] * tex.size[1] <= 2048:
-            texFormat = "CI8"
-        else:
-            texFormat = "RGBA16"
-
-    return texFormat
 
 
 def getCurrentPresetDir():
