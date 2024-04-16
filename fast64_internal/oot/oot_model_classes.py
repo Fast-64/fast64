@@ -300,12 +300,6 @@ class OOTModel(FModel):
                 fMesh.draw.commands.append(SPMatrix("0x01000000", "G_MTX_MODELVIEW | G_MTX_NOPUSH | G_MTX_MUL"))
 
 
-class OOTDynamicMaterialDrawLayer:
-    def __init__(self, opaque, transparent):
-        self.opaque = opaque
-        self.transparent = transparent
-
-
 class OOTGfxFormatter(GfxFormatter):
     def __init__(self, scrollMethod):
         GfxFormatter.__init__(self, scrollMethod, 64, None)
@@ -410,7 +404,7 @@ class OOTF3DContext(F3DContext):
             # 	print("Unhandled OOT pointer: " + textureName)
 
     def getMaterialKey(self, material: bpy.types.Material):
-        return (material.ootMaterial.key(), material.f3d_mat.key())
+        return (material.ootMaterial.key(), super().getMaterialKey(material))
 
     def clearGeometry(self):
         self.dlList = []
@@ -508,8 +502,3 @@ def clearOOTFlipbookProperty(flipbookProp):
     flipbookProp.name = "sFlipbookTextures"
     flipbookProp.exportMode = "Array"
     flipbookProp.textures.clear()
-
-
-def clearOOTMaterialDrawLayerProperty(matDrawLayerProp):
-    for i in range(0x08, 0x0E):
-        setattr(matDrawLayerProp, "segment" + format(i, "X"), False)
