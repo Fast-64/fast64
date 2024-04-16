@@ -48,9 +48,9 @@ def editSpecFile(scene: OOTScene, exportInfo: ExportInfo, sceneC: OOTSceneC):
     sceneSpecEntries = getSceneSpecEntries(specEntries, sceneName)
 
     if exportInfo.customSubPath is not None:
-        includeDir = f"build/{exportInfo.customSubPath + sceneName}/{sceneName}"
+        includeDir = f"$(BUILD)/{exportInfo.customSubPath + sceneName}/{sceneName}"
     else:
-        includeDir = f"build/{getSceneDirFromLevelName(sceneName)}/{sceneName}"
+        includeDir = f"$(BUILD)/{getSceneDirFromLevelName(sceneName)}/{sceneName}"
 
     if len(sceneSpecEntries) > 0:
         firstIndex = specEntries.index(sceneSpecEntries[0])
