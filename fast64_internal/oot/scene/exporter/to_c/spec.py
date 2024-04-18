@@ -27,7 +27,10 @@ class CommandType(enum.Enum):
     def from_string(value: str):
         """Returns one of the enum values from a string"""
 
-        return getattr(CommandType, value.upper())
+        cmdType = CommandType._member_map_.get(value.upper())
+        if cmdType is None:
+            raise PluginError(f"ERROR: Can't find value: ``{value}`` in the enum!")
+        return cmdType
 
 
 @dataclass
@@ -60,8 +63,12 @@ class SpecEntry:
             prefix = ""
             for line in self.original:
                 line = line.strip()
+                dontHaveComments = (
+                    not line.startswith("// ") and not line.startswith("/* ") and not line.startswith(" */")
+                )
+
                 if line != "\n":
-                    if not line.startswith("#"):
+                    if not line.startswith("#") and dontHaveComments:
                         split = line.split(" ")
                         command = split[0]
                         if len(split) > 2:
@@ -82,7 +89,7 @@ class SpecEntry:
                         )
                         prefix = ""
                     else:
-                        prefix += line
+                        prefix += (f"\n{indent}" if not dontHaveComments else "") + line
             # if there's a prefix it's the remaining data after the last entry
             if len(prefix) > 0:
                 self.contentSuffix = prefix
