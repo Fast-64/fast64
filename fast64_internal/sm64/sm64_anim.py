@@ -447,14 +447,10 @@ def convertAnimationData(anim, armatureObj, *, frame_start, frame_count):
     currentFrame = bpy.context.scene.frame_current
     for frame in range(frame_start, frame_start + frame_count):
         bpy.context.scene.frame_set(frame)
-        rootBone = armatureObj.data.bones[animBones[0]]
         rootPoseBone = armatureObj.pose.bones[animBones[0]]
 
-        # Hacky solution to handle Z-up to Y-up conversion
         translation = (
-            rootBone.matrix.to_4x4().inverted()
-            @ mathutils.Matrix.Scale(bpy.context.scene.blenderToSM64Scale, 4)
-            @ rootPoseBone.matrix
+            mathutils.Matrix.Scale(bpy.context.scene.blenderToSM64Scale, 4) @ rootPoseBone.matrix_basis
         ).decompose()[0]
         saveTranslationFrame(translationData, translation)
 

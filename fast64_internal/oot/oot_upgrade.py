@@ -2,6 +2,7 @@ import bpy
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
+import bpy
 from bpy.types import Object, CollectionProperty
 from .data import OoT_ObjectData
 from .oot_utility import getEvalParams
@@ -333,27 +334,46 @@ def upgradeActors(actorObj: Object):
                 actorProp.rotOverrideY = "0x0000"
                 actorProp.rotOverrideZ = "0x0000"
 
-        # room indices
-        if actorObj.ootEmptyType == "Entrance":
-            entranceProp = actorObj.ootEntranceProperty
+    # room stuff
+    if actorObj.ootEmptyType == "Entrance":
+        entranceProp = actorObj.ootEntranceProperty
 
+        for obj in bpy.data.objects:
+            if obj.type == "EMPTY" and obj.ootEmptyType == "Room":
+                if actorObj in obj.children_recursive:
+                    entranceProp.tiedRoom = obj
+                    break
+    elif actorObj.ootEmptyType == "Transition Actor":
+        # get room parent
+        roomParent = None
+        for obj in bpy.data.objects:
+            if obj.type == "EMPTY" and obj.ootEmptyType == "Room" and actorObj in obj.children_recursive:
+                roomParent = obj
+                break
+
+        # if it's ``None`` then this door actor is not parented to a room
+        if roomParent is None:
+            print("WARNING: Ignoring Door Actor not parented to a room")
+            return
+
+        transActorProp = actorObj.ootTransitionActorProperty
+        if "dontTransition" in transActorProp or "roomIndex" in transActorProp:
+            # look for old data since we don't want to overwrite newer existing data
+            transActorProp.fromRoom = roomParent
+
+        # upgrade old props if present
+        if "dontTransition" in transActorProp:
+            transActorProp.isRoomTransition = transActorProp["dontTransition"] == False
+            del transActorProp["dontTransition"]
+
+        if "roomIndex" in transActorProp:
             for obj in bpy.data.objects:
-                if obj.type == "EMPTY" and obj.ootEmptyType == "Room":
-                    if actorObj in obj.children_recursive:
-                        entranceProp.tiedRoom = obj
-                        break
-        elif actorObj.ootEmptyType == "Transition Actor":
-            transActorProp = actorObj.ootTransitionActorProperty
-            transActorProp.isRoomTransition = actorObj["ootTransitionActorProperty"]["dontTransition"] == False
-            del actorObj["ootTransitionActorProperty"]["dontTransition"]
-
-            if transActorProp.isRoomTransition:
-                for obj in bpy.data.objects:
-                    if obj.type == "EMPTY":
-                        if obj.ootEmptyType == "Room":
-                            if actorObj in obj.children_recursive:
-                                transActorProp.fromRoom = obj
-
-                            if obj.ootRoomHeader.roomIndex == actorObj["ootTransitionActorProperty"]["roomIndex"]:
-                                transActorProp.toRoom = obj
-                                del actorObj["ootTransitionActorProperty"]["roomIndex"]
+                if (
+                    obj != transActorProp.fromRoom
+                    and obj.type == "EMPTY"
+                    and obj.ootEmptyType == "Room"
+                    and obj.ootRoomHeader.roomIndex == transActorProp["roomIndex"]
+                ):
+                    transActorProp.toRoom = obj
+                    del transActorProp["roomIndex"]
+                    break

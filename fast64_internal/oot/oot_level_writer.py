@@ -7,11 +7,18 @@ from .room.properties import OOTRoomHeaderProperty, OOTAlternateRoomHeaderProper
 from .oot_constants import ootData
 from .oot_spline import assertCurveValid, ootConvertPath
 from .oot_model_classes import OOTModel
-from .oot_collision import OOTCameraData, exportCollisionCommon
-from .oot_collision_classes import OOTCameraPosData, OOTWaterBox, OOTCrawlspaceData, decomp_compat_map_CameraSType
 from .oot_object import addMissingObjectsToAllRoomHeaders
 from .oot_f3d_writer import writeTextureArraysNew, writeTextureArraysExisting1D
 from .actor.properties import OOTActorProperty
+from .collision.constants import decomp_compat_map_CameraSType
+
+from .collision.exporter import (
+    OOTCameraData,
+    OOTCameraPosData,
+    OOTWaterBox,
+    OOTCrawlspaceData,
+    exportCollisionCommon,
+)
 
 from ..utility import (
     PluginError,
