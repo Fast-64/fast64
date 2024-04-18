@@ -209,7 +209,7 @@ class SceneTable:
         assert self.selectedSceneIndex != SceneIndexType.VANILLA_REMOVED
 
         # this function's usage makes ``customSceneIndex is None`` impossible
-        if self.selectedSceneIndex < 0 and self.customSceneIndex is not None:
+        if self.selectedSceneIndex < 0 and self.customSceneIndex is None:
             raise PluginError("ERROR: Custom Scene Index is None!")
 
         return self.selectedSceneIndex if self.selectedSceneIndex >= 0 else self.customSceneIndex
