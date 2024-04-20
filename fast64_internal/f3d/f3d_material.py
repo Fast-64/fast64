@@ -1735,8 +1735,9 @@ def update_node_values_of_material(material: Material, context):
     else:
         nodes["UV"].node_tree = bpy.data.node_groups["UV"]
 
+    # This is a temporary measure to be able to see the vertex colors in packed materials.
     if bpy.context.scene.f3d_type == "F3DEX3" and f3dMat.rdp_settings.g_packed_normals:
-        nodes["Shade Color"].node_tree = bpy.data.node_groups["ShdCol_V"] # This is a temporary measure to be able to see the vertex colors in packed materials.
+        nodes["Shade Color"].node_tree = bpy.data.node_groups["ShdCol_V"]
     elif f3dMat.rdp_settings.g_lighting:
         nodes["Shade Color"].node_tree = bpy.data.node_groups["ShdCol_L"]
     else:
