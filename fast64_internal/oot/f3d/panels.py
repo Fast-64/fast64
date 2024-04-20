@@ -33,6 +33,8 @@ class OOT_DisplayListPanel(Panel):
         # prop_split(box, obj, "ootDrawLayer", "Draw Layer")
         box.prop(obj, "ignore_render")
         box.prop(obj, "ignore_collision")
+        if get_F3D_GBI().F3DEX_GBI_3:
+            box.prop(obj, "is_occlusion_planes")
 
         if not (obj.parent is not None and isinstance(obj.parent.data, Armature)):
             actorScaleBox = box.box().column()
