@@ -1742,7 +1742,6 @@ def update_node_values_of_material(material: Material, context):
     else:
         nodes["Shade Color"].node_tree = bpy.data.node_groups["ShdCol_V"]
 
-
     update_light_colors(material, context)
 
     combiner_inputs = nodes["CombinerInputs"].inputs
