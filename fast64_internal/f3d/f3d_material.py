@@ -2169,11 +2169,26 @@ def update_preset_manual_v4(material, preset):
     if preset == "Shaded Texture":
         preset = "sm64_shaded_texture"
     if preset.lower() != "custom":
-        material.f3d_update_flag = True
-        with bpy.context.temp_override(material=material):
-            bpy.ops.script.execute_preset(filepath=findF3DPresetPath(preset), menu_idname="MATERIAL_MT_f3d_presets")
-        rendermode_preset_to_advanced(material)
-        material.f3d_update_flag = False
+        material_apply_preset(material, findF3DPresetPath(preset))
+
+
+def material_apply_preset(material, filepath):
+    material.f3d_update_flag = True
+    with bpy.context.temp_override(material=material):
+        bpy.ops.script.execute_preset(filepath=filepath, menu_idname="MATERIAL_MT_f3d_presets")
+
+    # Since the material preset is executed under f3d_update_flag,
+    # it setting the rendermode presets does not propagate to the individual
+    # rendermode values.
+    # So manually call the function to propagate the preset.
+    # Also that function will set props, which results in the material preset name
+    # being set to Custom (as if changed by the user).
+    # So save the preset name and restore it after the rendermode propagation.
+    savedPresetName = material.f3d_mat.presetName
+    rendermode_preset_to_advanced(material)
+    material.f3d_mat.presetName = savedPresetName
+
+    material.f3d_update_flag = False
 
 
 def has_f3d_nodes(material: Material):
@@ -3478,10 +3493,21 @@ def getCurrentPresetDir():
     return "f3d/" + bpy.context.scene.gameEditorMode.lower()
 
 
+class ApplyMaterialPresetOperator(Operator):
+    bl_idname = "material.f3d_preset_apply"
+    bl_label = "Apply F3D Material Preset"
+
+    filepath: bpy.props.StringProperty()
+
+    def execute(self, context: Context):
+        material_apply_preset(context.material, self.filepath)
+        return {"FINISHED"}
+
+
 # modules/bpy_types.py -> Menu
 class MATERIAL_MT_f3d_presets(Menu):
     bl_label = "F3D Material Presets"
-    preset_operator = "script.execute_preset"
+    preset_operator = ApplyMaterialPresetOperator.bl_idname
 
     def draw(self, _context):
         """
@@ -4380,6 +4406,7 @@ mat_classes = (
     UnlinkF3DImage0,
     UnlinkF3DImage1,
     DrawLayerProperty,
+    ApplyMaterialPresetOperator,
     MATERIAL_MT_f3d_presets,
     AddPresetF3D,
     F3DPanel,
