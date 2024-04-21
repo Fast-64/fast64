@@ -9,6 +9,7 @@ from .oot_model_classes import OOTModel
 from .oot_object import addMissingObjectsToAllRoomHeaders
 from .oot_f3d_writer import writeTextureArraysNew, writeTextureArraysExisting1D
 from .collision.constants import decomp_compat_map_CameraSType
+from ..f3d.occlusion_planes.exporter import addOcclusionQuads
 
 from .collision.exporter import (
     OOTCameraData,
@@ -85,6 +86,8 @@ def ootCreateSceneHeader(levelC):
     if levelC.sceneTexturesIsUsed():
         sceneHeader.append(levelC.sceneTexturesC)
     sceneHeader.append(levelC.sceneCollisionC)
+    if levelC.sceneOcclusionIsUsed():
+        sceneHeader.append(levelC.sceneOcclusionPlaneCandidatesC)
     if levelC.sceneCutscenesIsUsed():
         for i in range(len(levelC.sceneCutscenesC)):
             sceneHeader.append(levelC.sceneCutscenesC[i])
@@ -105,6 +108,8 @@ def ootCombineSceneFiles(levelC):
     if levelC.sceneTexturesIsUsed():
         sceneC.append(levelC.sceneTexturesC)
     sceneC.append(levelC.sceneCollisionC)
+    if levelC.sceneOcclusionIsUsed():
+        sceneC.append(levelC.sceneOcclusionPlaneCandidatesC)
     if levelC.sceneCutscenesIsUsed():
         for i in range(len(levelC.sceneCutscenesC)):
             sceneC.append(levelC.sceneCutscenesC[i])
@@ -168,6 +173,11 @@ def ootExportSceneToC(originalSceneObj, transformMatrix, sceneName, DLFormat, sa
             ootPreprendSceneIncludes(scene, levelC.sceneCollisionC),
             os.path.join(levelPath, scene.sceneName() + "_col.c"),
         )
+        if levelC.sceneOcclusionIsUsed():
+            writeCDataSourceOnly(
+                ootPreprendSceneIncludes(scene, levelC.sceneOcclusionPlaneCandidatesC),
+                os.path.join(levelPath, scene.sceneName() + "_occ.c"),
+            )
         if levelC.sceneCutscenesIsUsed():
             for i in range(len(levelC.sceneCutscenesC)):
                 writeCDataSourceOnly(
@@ -566,6 +576,8 @@ def ootConvertScene(originalSceneObj, transformMatrix, sceneName, DLFormat, conv
         scene.validateIndices()
         scene.sortEntrances()
         exportCollisionCommon(scene.collision, sceneObj, transformMatrix, True, sceneName)
+        if bpy.context.scene.f3d_type == "F3DEX3":
+            addOcclusionQuads(sceneObj, scene.occlusion_planes, True, transformMatrix)
 
         ootCleanupScene(originalSceneObj, allObjs)
 

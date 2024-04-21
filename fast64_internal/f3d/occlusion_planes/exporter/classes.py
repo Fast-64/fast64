@@ -4,11 +4,14 @@ from typing import List
 
 @dataclass
 class OcclusionPlaneCandidate:
-    v0, v1, v2, v3: Vector
+    v0: Vector
+    v1: Vector
+    v2: Vector
+    v3: Vector
     weight: float
 
 
 class OcclusionPlaneCandidatesList:
-    def __init__(self):
+    def __init__(self, ownerName):
         self.planes: List[OcclusionPlaneCandidate] = []
-        self.name: str = ""
+        self.name: str = ownerName + "_occlusionPlaneCandidates"

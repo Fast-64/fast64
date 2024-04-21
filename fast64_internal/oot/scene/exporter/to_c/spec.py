@@ -98,6 +98,9 @@ def editSpecFile(scene: OOTScene, exportInfo: ExportInfo, sceneC: OOTSceneC):
             if sceneC is not None:
                 if sceneC.sceneTexturesIsUsed():
                     sceneSegInclude += indent + f'include "{includeDir}_scene_tex.o"\n'
+                    
+                if sceneC.sceneOcclusionIsUsed():
+                    sceneSegInclude += indent + f'include "{includeDir}_scene_occ.o"\n'
 
                 if sceneC.sceneCutscenesIsUsed():
                     for i in range(len(sceneC.sceneCutscenesC)):

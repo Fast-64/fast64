@@ -253,7 +253,7 @@ class GeolayoutObjectPanel(Panel):
         col.prop(obj, "ignore_collision")
         if bpy.context.scene.f3d_type == "F3DEX3":
             box.prop(obj, "is_occlusion_planes")
-            if not obj.ignore_render or not obj.ignore_collision:
+            if obj.is_occlusion_planes and (not obj.ignore_render or not obj.ignore_collision):
                 box.label(icon="INFO", text="Suggest Ignore Render & Ignore Collision.")
         col.prop(obj, "use_f3d_culling")
         if context.scene.exportInlineF3D:

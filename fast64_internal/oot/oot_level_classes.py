@@ -13,6 +13,7 @@ from ..f3d.f3d_gbi import (
     GfxListTag,
     GfxList,
 )
+from ..f3d.occlusion_planes.exporter import OcclusionPlaneCandidatesList
 
 
 class OOTCommonCommands:
@@ -88,6 +89,7 @@ class OOTScene(OOTCommonCommands):
         self.lights = []
         self.model = model
         self.collision = OOTCollision(self.name)
+        self.occlusion_planes = OcclusionPlaneCandidatesList(self.name)
 
         self.globalObject = None
         self.naviCup = None

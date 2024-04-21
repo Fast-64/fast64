@@ -24,6 +24,10 @@ def getColHeaderCmd(outScene: OOTScene):
     return indent + f"SCENE_CMD_COL_HEADER(&{outScene.collision.headerName()})"
 
 
+def getOcclusionPlaneCandidatesListCmd(outScene: OOTScene):
+    return indent + f"SCENE_CMD_OCCLUSION_PLANE_CANDIDATES_LIST({outScene.occlusion_planes.name})"
+
+
 def getSpawnListCmd(outScene: OOTScene, headerIndex: int):
     return (
         indent + "SCENE_CMD_ENTRANCE_LIST("
@@ -99,6 +103,9 @@ def getSceneCommandList(outScene: OOTScene, headerIndex: int):
 
     if outScene.writeCutscene:
         getCmdFunc2ArgList.append(getCutsceneDataCmd)
+        
+    if len(outScene.occlusion_planes.planes) > 0:
+        getCmdFunc1ArgList.append(getOcclusionPlaneCandidatesListCmd)
 
     sceneCmdData = (
         (outScene.getAltHeaderListCmd(outScene.alternateHeadersName()) if outScene.hasAlternateHeaders() else "")

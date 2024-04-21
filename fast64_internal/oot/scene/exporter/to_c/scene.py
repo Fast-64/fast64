@@ -1,5 +1,6 @@
 from .....utility import CData, PluginError
 from .....f3d.f3d_gbi import TextureExportSettings
+from .....f3d.occlusion_planes.exporter.to_c import occCandidatesListToC
 from ....oot_level_classes import OOTScene
 from .scene_header import getSceneData, getSceneModel
 from .scene_collision import getSceneCollision
@@ -15,6 +16,9 @@ class OOTSceneC:
     def sceneCutscenesIsUsed(self):
         return len(self.sceneCutscenesC) > 0
 
+    def sceneOcclusionIsUsed(self):
+        return len(self.sceneOcclusionPlaneCandidatesC.source) > 0
+
     def __init__(self):
         # Main header file for both the scene and room(s)
         self.header = CData()
@@ -23,6 +27,7 @@ class OOTSceneC:
         self.sceneMainC = CData()
         self.sceneTexturesC = CData()
         self.sceneCollisionC = CData()
+        self.sceneOcclusionPlaneCandidatesC = CData()
         self.sceneCutscenesC = []
 
         # Files for room segments
@@ -38,6 +43,7 @@ def getSceneC(outScene: OOTScene, textureExportSettings: TextureExportSettings):
     sceneC.sceneMainC = getSceneData(outScene)
     sceneC.sceneTexturesC = getSceneModel(outScene, textureExportSettings)
     sceneC.sceneCollisionC = getSceneCollision(outScene)
+    sceneC.sceneOcclusionPlaneCandidatesC = occCandidatesListToC(outScene.occlusion_planes)
     sceneC.sceneCutscenesC = getSceneCutscenes(outScene)
 
     for outRoom in outScene.rooms.values():
