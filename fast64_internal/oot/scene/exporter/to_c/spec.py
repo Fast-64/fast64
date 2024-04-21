@@ -209,8 +209,8 @@ def editSpecFile(
 
     # get the scene and current segment name and remove the scene
     sceneName = exportInfo.name
-    segmentName = f"{sceneName}_scene"
-    specFile.remove(f'"{segmentName}"')
+    sceneSegmentName = f"{sceneName}_scene"
+    specFile.remove(f'"{sceneSegmentName}"')
 
     # mark the other scene elements to remove (like rooms)
     segmentsToRemove: list[str] = []
@@ -232,50 +232,50 @@ def editSpecFile(
             includeDir += f"{getSceneDirFromLevelName(sceneName)}"
 
         sceneCmds = [
-            SpecEntryCommand(CommandType.NAME, f'"{segmentName}"'),
+            SpecEntryCommand(CommandType.NAME, f'"{sceneSegmentName}"'),
             SpecEntryCommand(CommandType.COMPRESS),
             SpecEntryCommand(CommandType.ROMALIGN, "0x1000"),
         ]
 
         # scene
         if isSingleFile:
-            sceneCmds.append(SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{segmentName}.o"'))
+            sceneCmds.append(SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{sceneSegmentName}.o"'))
         else:
             sceneCmds.extend(
                 [
-                    SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{segmentName}_main.o"'),
-                    SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{segmentName}_col.o"'),
+                    SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{sceneSegmentName}_main.o"'),
+                    SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{sceneSegmentName}_col.o"'),
                 ]
             )
 
             if hasSceneTex:
-                sceneCmds.append(SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{segmentName}_tex.o"'))
+                sceneCmds.append(SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{sceneSegmentName}_tex.o"'))
 
             if hasSceneCS:
                 for i in range(csTotal):
-                    sceneCmds.append(SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{segmentName}_cs_{i}.o"'))
+                    sceneCmds.append(SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{sceneSegmentName}_cs_{i}.o"'))
 
         sceneCmds.append(SpecEntryCommand(CommandType.NUMBER, "2"))
         specFile.append(SpecEntry(None, sceneCmds))
 
         # rooms
         for i in range(roomTotal):
-            segmentName = f"{sceneName}_room_{i}"
+            roomSegmentName = f"{sceneName}_room_{i}"
 
             roomCmds = [
-                SpecEntryCommand(CommandType.NAME, f'"{segmentName}"'),
+                SpecEntryCommand(CommandType.NAME, f'"{roomSegmentName}"'),
                 SpecEntryCommand(CommandType.COMPRESS),
                 SpecEntryCommand(CommandType.ROMALIGN, "0x1000"),
             ]
 
             if isSingleFile:
-                roomCmds.append(SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{segmentName}.o"'))
+                roomCmds.append(SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{roomSegmentName}.o"'))
             else:
                 roomCmds.extend(
                     [
-                        SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{segmentName}_main.o"'),
-                        SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{segmentName}_model_info.o"'),
-                        SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{segmentName}_model.o"'),
+                        SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{roomSegmentName}_main.o"'),
+                        SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{roomSegmentName}_model_info.o"'),
+                        SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{roomSegmentName}_model.o"'),
                     ]
                 )
 
