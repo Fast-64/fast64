@@ -202,6 +202,8 @@ class SpecFile:
 def editSpecFile(
     isScene: bool, exportInfo: ExportInfo, hasSceneTex: bool, hasSceneCS: bool, roomTotal: int, csTotal: int
 ):
+    global buildDirectory
+
     # get the spec's data
     specFile = SpecFile(os.path.join(exportInfo.exportPath, "spec"))
 
@@ -214,7 +216,6 @@ def editSpecFile(
             specFile.remove(entry.segmentName)
 
     if isScene:
-        global buildDirectory
         assert buildDirectory is not None
         isSingleFile = bpy.context.scene.ootSceneExportSettings.singleFile
         includeDir = f"{buildDirectory}/"
