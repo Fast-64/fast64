@@ -2215,7 +2215,8 @@ def load_handler(dummy):
 
                 lib.filepath = new_lib_path
                 lib.reload()
-            bpy.context.scene["f3d_lib_dir"] = None  # force node reload!
+            bpy.context.scene["f3d_lib_dir_node"] = None  # force node reload!
+            bpy.context.scene["f3d_lib_dir_material"] = None  # force material reload!
             link_f3d_material_library()
 
     for mat in bpy.data.materials:
@@ -2352,18 +2353,23 @@ def link_f3d_material_library():
     with bpy.data.libraries.load(dir) as (data_from, data_to):
         dirMat = os.path.join(dir, "Material")
         dirNode = os.path.join(dir, "NodeTree")
-        for mat in data_from.materials:
-            if mat is not None:
-                bpy.ops.wm.link(filepath=os.path.join(dirMat, mat), directory=dirMat, filename=mat)
 
         # linking is SUPER slow, this only links if the scene hasnt been linked yet
-        # in future updates, this will likely need to be something numerated so if more nodes are added then they will be linked
-        if bpy.context.scene.get("f3d_lib_dir") != dirNode:
+        # in future updates, this will likely need to be something numerated so if more nodes are added then 
+        # they will be linked
+
+        if bpy.context.scene.get("f3d_lib_dir_material") != dirMat:
+            for mat in data_from.materials:
+                if mat is not None:
+                    bpy.ops.wm.link(filepath=os.path.join(dirMat, mat), directory=dirMat, filename=mat)
+            bpy.context.scene["f3d_lib_dir_material"] = dirMat
+
+        if bpy.context.scene.get("f3d_lib_dir_node") != dirNode:
             # link groups after to bring extra node_groups
             for node_group in data_from.node_groups:
                 if node_group is not None:
                     bpy.ops.wm.link(filepath=os.path.join(dirNode, node_group), directory=dirNode, filename=node_group)
-            bpy.context.scene["f3d_lib_dir"] = dirNode
+            bpy.context.scene["f3d_lib_dir_node"] = dirNode
 
     # TODO: Figure out a better way to save the user's old mode
     if prevMode != "OBJECT":
