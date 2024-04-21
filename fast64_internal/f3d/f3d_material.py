@@ -2355,7 +2355,7 @@ def link_f3d_material_library():
         dirNode = os.path.join(dir, "NodeTree")
 
         # linking is SUPER slow, this only links if the scene hasnt been linked yet
-        # in future updates, this will likely need to be something numerated so if more nodes are added then 
+        # in future updates, this will likely need to be something numerated so if more nodes are added then
         # they will be linked
 
         if bpy.context.scene.get("f3d_lib_dir_material") != dirMat:
