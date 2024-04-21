@@ -8,6 +8,10 @@ from .....utility import PluginError, writeFile, indent
 from ....oot_utility import ExportInfo, getSceneDirFromLevelName
 
 
+# either "$(BUILD_DIR)", "$(BUILD)" or "build"
+buildDirectory = None
+
+
 class CommandType(enum.Enum):
     """This class defines the different spec command types"""
 
@@ -59,6 +63,7 @@ class SpecEntry:
 
     def __post_init__(self):
         if self.original is not None:
+            global buildDirectory
             # parse the commands from the existing data
             prefix = ""
             for line in self.original:
@@ -80,6 +85,9 @@ class SpecEntry:
                         else:
                             content = ""
 
+                        if buildDirectory is None and (content.startswith('"build') or content.startswith('"$(BUILD')):
+                            buildDirectory = content.split("/")[0].removeprefix('"')
+
                         self.commands.append(
                             SpecEntryCommand(
                                 CommandType.from_string(command),
@@ -89,6 +97,9 @@ class SpecEntry:
                         )
                         prefix = ""
                     else:
+                        if prefix.startswith("#") and line.startswith("#"):
+                            # add newline if there's two consecutive preprocessor directives
+                            prefix += "\n"
                         prefix += (f"\n{indent}" if not dontHaveComments else "") + line
             # if there's a prefix it's the remaining data after the last entry
             if len(prefix) > 0:
@@ -203,8 +214,10 @@ def editSpecFile(
             specFile.remove(entry.segmentName)
 
     if isScene:
+        global buildDirectory
+        assert buildDirectory is not None
         isSingleFile = bpy.context.scene.ootSceneExportSettings.singleFile
-        includeDir = "$(BUILD_DIR)/"
+        includeDir = f"{buildDirectory}/"
         if exportInfo.customSubPath is not None:
             includeDir += f"{exportInfo.customSubPath + sceneName}"
         else:
