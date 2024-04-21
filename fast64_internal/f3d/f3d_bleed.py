@@ -5,6 +5,7 @@ import bpy
 
 from dataclasses import dataclass, field
 
+from ..utility import create_or_get_world
 from .f3d_gbi import (
     GfxTag,
     GfxListTag,
@@ -65,7 +66,7 @@ class BleedGraphics:
         self.build_default_othermodes()
 
     def build_default_geo(self):
-        defaults = bpy.context.scene.world.rdp_defaults
+        defaults = create_or_get_world(bpy.context.scene).rdp_defaults
 
         setGeo = SPSetGeometryMode([])
         clearGeo = SPClearGeometryMode([])
@@ -93,7 +94,7 @@ class BleedGraphics:
         self.default_clear_geo = clearGeo
 
     def build_default_othermodes(self):
-        defaults = bpy.context.scene.world.rdp_defaults
+        defaults = create_or_get_world(bpy.context.scene).rdp_defaults
 
         othermode_H = SPSetOtherMode("G_SETOTHERMODE_H", 4, 20 - self.is_f3d_old, [])
         # if the render mode is set, it will be consider non-default a priori

@@ -47,7 +47,6 @@ from ..f3d.f3d_gbi import (
 )
 
 from ..utility import (
-    CData,
     CScrollData,
     PluginError,
     raisePluginError,
@@ -74,6 +73,7 @@ from ..utility import (
     makeWriteInfoBox,
     writeBoxExportType,
     enumExportHeaderType,
+    create_or_get_world,
 )
 
 from .sm64_constants import (
@@ -106,8 +106,9 @@ class SM64Model(FModel):
         return int(obj.draw_layer_static)
 
     def getRenderMode(self, drawLayer):
-        cycle1 = getattr(bpy.context.scene.world, "draw_layer_" + str(drawLayer) + "_cycle_1")
-        cycle2 = getattr(bpy.context.scene.world, "draw_layer_" + str(drawLayer) + "_cycle_2")
+        world = create_or_get_world(bpy.context.scene)
+        cycle1 = getattr(world, "draw_layer_" + str(drawLayer) + "_cycle_1")
+        cycle2 = getattr(world, "draw_layer_" + str(drawLayer) + "_cycle_2")
         return [cycle1, cycle2]
 
 
@@ -871,9 +872,10 @@ class SM64_DrawLayersPanel(bpy.types.Panel):
 
     def draw(self, context):
         world = context.scene.world
-        layout = self.layout
+        if not world:
+            return
 
-        inputGroup = layout.column()
+        inputGroup = self.layout.column()
         inputGroup.prop(
             world, "menu_layers", text="Draw Layers", icon="TRIA_DOWN" if world.menu_layers else "TRIA_RIGHT"
         )

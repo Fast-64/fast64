@@ -1381,7 +1381,7 @@ def ui_procAnim(material, layout, useTex0, useTex1, title, useDropdown):
 
 
 def update_node_values(self, context, update_preset):
-    if hasattr(context.scene, "world") and self == context.scene.world.rdp_defaults:
+    if hasattr(context.scene, "world") and self == create_or_get_world(context.scene).rdp_defaults:
         pass
 
     with F3DMaterial_UpdateLock(get_material_from_context(context)) as material:
@@ -3391,6 +3391,9 @@ class DefaultRDPSettingsPanel(Panel):
     def draw(self, context):
         world = context.scene.world
         layout = self.layout
+        if not world:
+            layout.box().label(text="No world in current scene, fast64 will pick/create one when needed", icon="INFO")
+            return
         layout.box().label(text="RDP Default Settings")
         layout.label(text="If a material setting is a same as a default setting, then it won't be set.")
         ui_geo_mode(world.rdp_defaults, world, layout, True)
