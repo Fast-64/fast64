@@ -277,3 +277,6 @@ def editSpecFile(
 
     # finally, write the spec file
     writeFile(specFile.exportPath, specFile.to_c())
+
+    # reset build directory name so it can update properly on the next run
+    buildDirectory = None
