@@ -253,7 +253,9 @@ def editSpecFile(
 
             if hasSceneCS:
                 for i in range(csTotal):
-                    sceneCmds.append(SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{sceneSegmentName}_cs_{i}.o"'))
+                    sceneCmds.append(
+                        SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{sceneSegmentName}_cs_{i}.o"')
+                    )
 
         sceneCmds.append(SpecEntryCommand(CommandType.NUMBER, "2"))
         specFile.append(SpecEntry(None, sceneCmds))
