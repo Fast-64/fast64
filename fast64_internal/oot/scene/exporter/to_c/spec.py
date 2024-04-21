@@ -211,9 +211,16 @@ def editSpecFile(
     sceneName = exportInfo.name
     segmentName = f"{sceneName}_scene"
     specFile.remove(f'"{segmentName}"')
+
+    # mark the other scene elements to remove (like rooms)
+    segmentsToRemove: list[str] = []
     for entry in specFile.entries:
         if entry.segmentName.startswith(f'"{sceneName}_'):
-            specFile.remove(entry.segmentName)
+            segmentsToRemove.append(entry.segmentName)
+
+    # remove the segments
+    for segmentName in segmentsToRemove:
+        specFile.remove(segmentName)
 
     if isScene:
         assert buildDirectory is not None
