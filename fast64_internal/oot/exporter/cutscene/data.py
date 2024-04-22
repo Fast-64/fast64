@@ -65,50 +65,54 @@ class CutsceneData:
     """This class defines the command data inside a cutscene"""
 
     csObj: Object
+    csObjects: dict[str, list[Object]]
+    csProp: "OOTCutsceneProperty"
     useMacros: bool
     motionOnly: bool
 
-    csObjects: dict[str, list[Object]] = field(init=False, default_factory=dict)
-    csProp: "OOTCutsceneProperty" = field(init=False)
-    totalEntries: int = field(init=False, default=0)
-    frameCount: int = field(init=False, default=0)
-    motionFrameCount: int = field(init=False, default=0)
-    camEndFrame: int = field(init=False, default=0)
-
-    destination: Optional[CutsceneCmdDestination] = field(init=False, default=None)
-    actorCueList: list[CutsceneCmdActorCueList] = field(init=False, default_factory=list)
-    playerCueList: list[CutsceneCmdActorCueList] = field(init=False, default_factory=list)
-    camEyeSplineList: list[CutsceneCmdCamEyeSpline] = field(init=False, default_factory=list)
-    camATSplineList: list[CutsceneCmdCamATSpline] = field(init=False, default_factory=list)
-    camEyeSplineRelPlayerList: list[CutsceneCmdCamEyeSplineRelToPlayer] = field(init=False, default_factory=list)
-    camATSplineRelPlayerList: list[CutsceneCmdCamATSplineRelToPlayer] = field(init=False, default_factory=list)
-    camEyeList: list[CutsceneCmdCamEye] = field(init=False, default_factory=list)
-    camATList: list[CutsceneCmdCamAT] = field(init=False, default_factory=list)
-    textList: list[CutsceneCmdTextList] = field(init=False, default_factory=list)
-    miscList: list[CutsceneCmdMiscList] = field(init=False, default_factory=list)
-    rumbleList: list[CutsceneCmdRumbleControllerList] = field(init=False, default_factory=list)
-    transitionList: list[CutsceneCmdTransition] = field(init=False, default_factory=list)
-    lightSettingsList: list[CutsceneCmdLightSettingList] = field(init=False, default_factory=list)
-    timeList: list[CutsceneCmdTimeList] = field(init=False, default_factory=list)
-    seqList: list[CutsceneCmdStartStopSeqList] = field(init=False, default_factory=list)
-    fadeSeqList: list[CutsceneCmdFadeSeqList] = field(init=False, default_factory=list)
-
-    def __post_init__(self):
-        self.csProp: "OOTCutsceneProperty" = self.csObj.ootCutsceneProperty
-        self.csObjects = {
+    @staticmethod
+    def new(csObj: Object, useMacros: bool, motionOnly: bool):
+        csProp: "OOTCutsceneProperty" = csObj.ootCutsceneProperty
+        csObjects = {
             "CS Actor Cue List": [],
             "CS Player Cue List": [],
             "camShot": [],
         }
 
-        for obj in self.csObj.children_recursive:
-            if obj.type == "EMPTY" and obj.ootEmptyType in self.csObjects.keys():
-                self.csObjects[obj.ootEmptyType].append(obj)
+        for obj in csObj.children_recursive:
+            if obj.type == "EMPTY" and obj.ootEmptyType in csObjects.keys():
+                csObjects[obj.ootEmptyType].append(obj)
             elif obj.type == "ARMATURE":
-                self.csObjects["camShot"].append(obj)
+                csObjects["camShot"].append(obj)
+        csObjects["camShot"].sort(key=lambda obj: obj.name)
 
-        self.csObjects["camShot"].sort(key=lambda obj: obj.name)
-        self.setCutsceneData()
+        newCutsceneData = CutsceneData(csObj, csObjects, csProp, useMacros, motionOnly)
+        newCutsceneData.setCutsceneData()
+        return newCutsceneData
+
+    def __post_init__(self):
+        self.totalEntries = 0
+        self.frameCount = 0
+        self.motionFrameCount = 0
+        self.camEndFrame = 0
+
+        self.destination: Optional[CutsceneCmdDestination] = None
+        self.actorCueList: list[CutsceneCmdActorCueList] = []
+        self.playerCueList: list[CutsceneCmdActorCueList] = []
+        self.camEyeSplineList: list[CutsceneCmdCamEyeSpline] = []
+        self.camATSplineList: list[CutsceneCmdCamATSpline] = []
+        self.camEyeSplineRelPlayerList: list[CutsceneCmdCamEyeSplineRelToPlayer] = []
+        self.camATSplineRelPlayerList: list[CutsceneCmdCamATSplineRelToPlayer] = []
+        self.camEyeList: list[CutsceneCmdCamEye] = []
+        self.camATList: list[CutsceneCmdCamAT] = []
+        self.textList: list[CutsceneCmdTextList] = []
+        self.miscList: list[CutsceneCmdMiscList] = []
+        self.rumbleList: list[CutsceneCmdRumbleControllerList] = []
+        self.transitionList: list[CutsceneCmdTransition] = []
+        self.lightSettingsList: list[CutsceneCmdLightSettingList] = []
+        self.timeList: list[CutsceneCmdTimeList] = []
+        self.seqList: list[CutsceneCmdStartStopSeqList] = []
+        self.fadeSeqList: list[CutsceneCmdFadeSeqList] = []
 
     def getOoTRotation(self, obj: Object):
         """Returns the converted Blender rotation"""

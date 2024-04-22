@@ -21,23 +21,25 @@ from .data import CutsceneData
 class Cutscene:
     """This class defines a cutscene, including its data and its informations"""
 
+    name: str
     csObj: Object
+    data: CutsceneData
+    totalEntries: int
+    frameCount: int
     useMacros: bool
-    name: str = str()
-    motionOnly: bool = False
+    motionOnly: bool
 
-    data: Optional[CutsceneData] = field(init=False, default=None)
-    totalEntries: int = field(init=False)
-    frameCount: int = field(init=False)
-    paramNumber: int = field(init=False, default=2)
+    @staticmethod
+    def new(name: Optional[str], csObj: Optional[Object], useMacros: bool, motionOnly: bool):
+        # when csObj is None it means we're in import context
+        if csObj is not None:
+            if name is None:
+                name = csObj.name.removeprefix("Cutscene.").replace(".", "_")
+            data = CutsceneData.new(csObj, useMacros, motionOnly)
+            return Cutscene(name, csObj, data, data.totalEntries, data.frameCount, useMacros, motionOnly)
 
     def __post_init__(self):
-        # when csObj is None it means we're in import context
-        if self.csObj is not None and self.data is None:
-            self.name = self.csObj.name.removeprefix("Cutscene.").replace(".", "_")
-            self.data = CutsceneData(self.csObj, self.useMacros, self.motionOnly)
-            self.totalEntries = self.data.totalEntries
-            self.frameCount = self.data.frameCount
+        self.paramNumber = 2
 
     def getC(self):
         """Returns the cutscene data"""
@@ -100,23 +102,19 @@ class Cutscene:
 class SceneCutscene(Utility):
     """This class hosts cutscene data"""
 
-    props: OOTSceneHeaderProperty
-    headerIndex: int
-    useMacros: bool
+    entries: list[Cutscene]
 
-    entries: list[Cutscene] = field(init=False, default_factory=list)
-    csObj: Object = field(init=False)
-    cutsceneObjects: list[Object] = field(init=False, default_factory=list)
+    @staticmethod
+    def new(props: OOTSceneHeaderProperty, headerIndex: int, useMacros: bool):
+        csObj: Object = props.csWriteObject
+        cutsceneObjects: list[Object] = [csObj for csObj in props.extraCutscenes]
+        entries: list[Cutscene] = []
 
-    def __post_init__(self):
-        self.csObj: Object = self.props.csWriteObject
-        self.cutsceneObjects = [csObj for csObj in self.props.extraCutscenes]
-
-        if self.headerIndex > 0 and len(self.cutsceneObjects) > 0:
+        if headerIndex > 0 and len(cutsceneObjects) > 0:
             raise PluginError("ERROR: Extra cutscenes can only belong to the main header!")
 
-        self.cutsceneObjects.insert(0, self.csObj)
-        for csObj in self.cutsceneObjects:
+        cutsceneObjects.insert(0, csObj)
+        for csObj in cutsceneObjects:
             if csObj is not None:
                 if csObj.ootEmptyType != "Cutscene":
                     raise PluginError(
@@ -125,16 +123,17 @@ class SceneCutscene(Utility):
                 elif csObj.parent is not None:
                     raise PluginError("ERROR: Cutscene empty object should not be parented to anything")
 
-                writeType = self.props.csWriteType
+                writeType = props.csWriteType
                 csWriteCustom = None
                 if writeType == "Custom":
-                    csWriteCustom = getCustomProperty(self.props, "csWriteCustom")
+                    csWriteCustom = getCustomProperty(props, "csWriteCustom")
 
-                if self.props.writeCutscene:
+                if props.writeCutscene:
                     # if csWriteCustom is None then the name will auto-set from the csObj passed in the class
-                    self.entries.append(
-                        Cutscene(csObj, self.useMacros, csWriteCustom, bpy.context.scene.exportMotionOnly)
+                    entries.append(
+                        Cutscene.new(csWriteCustom, csObj, useMacros, bpy.context.scene.exportMotionOnly)
                     )
+        return SceneCutscene(entries)
 
     def getCmd(self):
         """Returns the cutscene data scene command"""

@@ -34,11 +34,11 @@ class SceneHeader:
             name,
             SceneInfos.new(props, sceneObj),
             SceneLighting.new(f"{name}_lightSettings", props),
-            SceneCutscene(props, headerIndex, useMacros),
+            SceneCutscene.new(props, headerIndex, useMacros),
             SceneExits.new(f"{name}_exitList", props),
             SceneTransitionActors.new(f"{name}_transitionActors", sceneObj, transform, headerIndex),
             entranceActors,
-            SceneSpawns(None, f"{name}_entranceList", entranceActors.entries),
+            SceneSpawns(f"{name}_entranceList", entranceActors.entries),
             ScenePathways.new(f"{name}_pathway", sceneObj, transform, headerIndex),
         )
 

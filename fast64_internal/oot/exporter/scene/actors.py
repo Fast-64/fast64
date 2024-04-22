@@ -208,7 +208,6 @@ class SceneEntranceActors:
 class SceneSpawns(Utility):
     """This class handles scene actors (transition actors and entrance actors)"""
 
-    props: OOTSceneHeaderProperty
     name: str
     entries: list[EntranceActor]
 
