@@ -130,9 +130,7 @@ class SceneCutscene(Utility):
 
                 if props.writeCutscene:
                     # if csWriteCustom is None then the name will auto-set from the csObj passed in the class
-                    entries.append(
-                        Cutscene.new(csWriteCustom, csObj, useMacros, bpy.context.scene.exportMotionOnly)
-                    )
+                    entries.append(Cutscene.new(csWriteCustom, csObj, useMacros, bpy.context.scene.exportMotionOnly))
         return SceneCutscene(entries)
 
     def getCmd(self):
