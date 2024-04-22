@@ -26,7 +26,16 @@ class WaterBox:
     useMacros: bool
 
     @staticmethod
-    def new(position: tuple[int, int, int], scale: float, emptyDisplaySize: float, bgCamIndex: int, lightIndex: int, roomIndex: int, setFlag19: bool, useMacros: bool):
+    def new(
+        position: tuple[int, int, int],
+        scale: float,
+        emptyDisplaySize: float,
+        bgCamIndex: int,
+        lightIndex: int,
+        roomIndex: int,
+        setFlag19: bool,
+        useMacros: bool,
+    ):
         # The scale ordering is due to the fact that scaling happens AFTER rotation.
         # Thus the translation uses Y-up, while the scale uses Z-up.
         xMax = round(position[0] + scale[0] * emptyDisplaySize)
@@ -35,8 +44,8 @@ class WaterBox:
         zMin = round(position[2] - scale[1] * emptyDisplaySize)
 
         return WaterBox(
-            bgCamIndex, 
-            lightIndex, 
+            bgCamIndex,
+            lightIndex,
             f"0x{roomIndex:02X}" if roomIndex == 0x3F else f"{roomIndex}",
             "1" if setFlag19 else "0",
             xMin,
@@ -44,7 +53,7 @@ class WaterBox:
             zMin,
             xMax - xMin,
             zMax - zMin,
-            useMacros
+            useMacros,
         )
 
     def getProperties(self):
@@ -91,9 +100,7 @@ class WaterBoxes:
         waterboxObjList = getObjectList(dataHolder.children_recursive, "EMPTY", "Water Box")
         for waterboxObj in waterboxObjList:
             emptyScale = waterboxObj.empty_display_size
-            pos, _, scale, orientedRot = Utility.getConvertedTransform(
-                transform, dataHolder, waterboxObj, True
-            )
+            pos, _, scale, orientedRot = Utility.getConvertedTransform(transform, dataHolder, waterboxObj, True)
             checkIdentityRotation(waterboxObj, orientedRot, False)
 
             wboxProp = waterboxObj.ootWaterBoxProperty

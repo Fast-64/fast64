@@ -46,7 +46,9 @@ class CollisionUtility:
         return None
 
     @staticmethod
-    def getMeshObjects(dataHolder: Object, curTransform: Matrix, transformFromMeshObj: dict[Object, Matrix], includeChildren: bool):
+    def getMeshObjects(
+        dataHolder: Object, curTransform: Matrix, transformFromMeshObj: dict[Object, Matrix], includeChildren: bool
+    ):
         """Returns and updates a dictionnary containing mesh objects associated with their correct transforms"""
 
         if includeChildren:
@@ -71,7 +73,9 @@ class CollisionUtility:
             raise PluginError("ERROR: Object not found.")
 
     @staticmethod
-    def getCollisionData(sceneObj: Optional[Object], meshObj: Optional[Object], transform: Matrix, useMacros: bool, includeChildren: bool):
+    def getCollisionData(
+        sceneObj: Optional[Object], meshObj: Optional[Object], transform: Matrix, useMacros: bool, includeChildren: bool
+    ):
         """Returns collision data, surface types and vertex positions from mesh objects"""
 
         object.select_all(action="DESELECT")
@@ -87,7 +91,9 @@ class CollisionUtility:
         transformFromMeshObj: dict[Object, Matrix] = {}
         if dataHolder.type == "MESH" and not dataHolder.ignore_collision:
             transformFromMeshObj[dataHolder] = transform
-        transformFromMeshObj = CollisionUtility.getMeshObjects(dataHolder, transform, transformFromMeshObj, includeChildren)
+        transformFromMeshObj = CollisionUtility.getMeshObjects(
+            dataHolder, transform, transformFromMeshObj, includeChildren
+        )
         for meshObj, transform in transformFromMeshObj.items():
             # Note: ``isinstance``only used to get the proper type hints
             if not meshObj.ignore_collision and isinstance(meshObj.data, Mesh):
@@ -220,9 +226,19 @@ class CollisionHeader:
     waterbox: WaterBoxes
 
     @staticmethod
-    def new(name: str, sceneName: str, sceneObj: Optional[Object], meshObj: Optional[Object], transform: Matrix, useMacros: bool, includeChildren: bool):
+    def new(
+        name: str,
+        sceneName: str,
+        sceneObj: Optional[Object],
+        meshObj: Optional[Object],
+        transform: Matrix,
+        useMacros: bool,
+        includeChildren: bool,
+    ):
         # Ideally everything would be separated but this is complicated since it's all tied together
-        colBounds, vertexList, polyList, surfaceTypeList = CollisionUtility.getCollisionData(sceneObj, meshObj, transform, useMacros, includeChildren)
+        colBounds, vertexList, polyList, surfaceTypeList = CollisionUtility.getCollisionData(
+            sceneObj, meshObj, transform, useMacros, includeChildren
+        )
         dataHolder = CollisionUtility.getDataHolder(sceneObj, meshObj)
 
         return CollisionHeader(

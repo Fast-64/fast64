@@ -272,9 +272,7 @@ class RoomShape:
 
                 if len(mesh.bgImages) > 1:
                     multiImg = RoomShapeImageMultiBg.new(f"{roomName}_shapeMultiBg", mesh)
-                    multi = RoomShapeImageMulti(
-                        name, type, "ROOM_SHAPE_IMAGE_AMOUNT_MULTI", dlName, multiImg.name
-                    )
+                    multi = RoomShapeImageMulti(name, type, "ROOM_SHAPE_IMAGE_AMOUNT_MULTI", dlName, multiImg.name)
                 else:
                     bgImg = mesh.bgImages[0]
                     single = RoomShapeImageSingle(

@@ -28,7 +28,17 @@ class Room:
     hasAlternateHeaders: bool
 
     @staticmethod
-    def new(name: str, transform: Matrix, sceneObj: Object, roomObj: Object, roomShapeType: str, model: OOTModel, roomIndex: int, sceneName: str, saveTexturesAsPNG: bool):
+    def new(
+        name: str,
+        transform: Matrix,
+        sceneObj: Object,
+        roomObj: Object,
+        roomShapeType: str,
+        model: OOTModel,
+        roomIndex: int,
+        sceneName: str,
+        saveTexturesAsPNG: bool,
+    ):
         from ...oot_level_writer import BoundingBox, ootProcessMesh  # circular import fix
 
         i = 0

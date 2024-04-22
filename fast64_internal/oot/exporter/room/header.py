@@ -215,7 +215,14 @@ class RoomHeader:
     actors: Optional[RoomActors]
 
     @staticmethod
-    def new(name: str, props: Optional[OOTRoomHeaderProperty], sceneObj: Optional[Object], roomObj: Optional[Object], transform: Matrix, headerIndex: int):
+    def new(
+        name: str,
+        props: Optional[OOTRoomHeaderProperty],
+        sceneObj: Optional[Object],
+        roomObj: Optional[Object],
+        transform: Matrix,
+        headerIndex: int,
+    ):
         return RoomHeader(
             name,
             RoomInfos.new(props),

@@ -134,7 +134,6 @@ class EntranceActor(Actor):
 
 @dataclass
 class SceneEntranceActors:
-
     name: str
     entries: list[EntranceActor]
 

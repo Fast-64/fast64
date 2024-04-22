@@ -77,7 +77,7 @@ class SceneExport:
                 self.transform,
                 self.useMacros,
                 self.saveTexturesAsPNG,
-                OOTModel(f"{sceneName}_dl", self.dlFormat, False)
+                OOTModel(f"{sceneName}_dl", self.dlFormat, False),
             )
             newScene.validateScene()
 

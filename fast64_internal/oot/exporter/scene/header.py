@@ -26,7 +26,9 @@ class SceneHeader:
     path: Optional[ScenePathways]
 
     @staticmethod
-    def new(name: str, props: OOTSceneHeaderProperty, sceneObj: Object, transform: Matrix, headerIndex: int, useMacros: bool):
+    def new(
+        name: str, props: OOTSceneHeaderProperty, sceneObj: Object, transform: Matrix, headerIndex: int, useMacros: bool
+    ):
         entranceActors = SceneEntranceActors.new(f"{name}_playerEntryList", sceneObj, transform, headerIndex)
         return SceneHeader(
             name,
