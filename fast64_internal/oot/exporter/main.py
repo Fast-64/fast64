@@ -71,13 +71,13 @@ class SceneExport:
 
         try:
             sceneName = f"{toAlnum(self.sceneName)}_scene"
-            newScene = Scene(
+            newScene = Scene.new(
+                sceneName,
                 self.sceneObj,
                 self.transform,
                 self.useMacros,
-                sceneName,
                 self.saveTexturesAsPNG,
-                OOTModel(f"{sceneName}_dl", self.dlFormat, False),
+                OOTModel(f"{sceneName}_dl", self.dlFormat, False)
             )
             newScene.validateScene()
 

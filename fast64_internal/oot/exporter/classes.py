@@ -45,9 +45,6 @@ class SceneFile:
     path: Optional[str] = None
     header: str = ""
 
-    hasCutscenes: bool = field(init=False)
-    hasSceneTextures: bool = field(init=False)
-
     def __post_init__(self):
         self.hasCutscenes = len(self.sceneCutscenes) > 0
         self.hasSceneTextures = len(self.sceneTextures) > 0

@@ -4,8 +4,8 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from ...oot_utility import getSceneDirFromLevelName
-from .scene_table import SceneTable
-from .spec import Spec
+from .scene_table import SceneTableUtility
+from .spec import SpecUtility
 
 if TYPE_CHECKING:
     from ..main import SceneExport
@@ -34,5 +34,5 @@ class Files:  # TODO: find a better name
     def editFiles(self):
         """Edits decomp files"""
         self.modifySceneFiles()
-        Spec().editSpec(self.exporter)
-        SceneTable().editSceneTable(self.exporter)
+        SpecUtility.editSpec(self.exporter)
+        SceneTableUtility.editSceneTable(self.exporter)

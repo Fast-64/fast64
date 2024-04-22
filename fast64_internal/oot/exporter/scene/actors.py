@@ -39,34 +39,31 @@ class TransitionActor(Actor):
 
 @dataclass
 class SceneTransitionActors:
-    props: OOTSceneHeaderProperty
     name: str
-    sceneObj: Object
-    transform: Matrix
-    headerIndex: int
+    entries: list[TransitionActor]
 
-    entries: list[TransitionActor] = field(init=False, default_factory=list)
-
-    def __post_init__(self):
+    @staticmethod
+    def new(name: str, sceneObj: Object, transform: Matrix, headerIndex: int):
         # we need to get the corresponding room index if a transition actor
         # do not change rooms
-        roomObjList = getObjectList(self.sceneObj.children_recursive, "EMPTY", "Room")
+        roomObjList = getObjectList(sceneObj.children_recursive, "EMPTY", "Room")
         actorToRoom: dict[Object, Object] = {}
         for obj in roomObjList:
             for childObj in obj.children_recursive:
                 if childObj.type == "EMPTY" and childObj.ootEmptyType == "Transition Actor":
                     actorToRoom[childObj] = obj
 
-        actorObjList = getObjectList(self.sceneObj.children_recursive, "EMPTY", "Transition Actor")
+        actorObjList = getObjectList(sceneObj.children_recursive, "EMPTY", "Transition Actor")
         actorObjList.sort(key=lambda obj: actorToRoom[obj].ootRoomHeader.roomIndex)
 
+        entries: list[TransitionActor] = []
         for obj in actorObjList:
             transActorProp = obj.ootTransitionActorProperty
             if (
-                Utility.isCurrentHeaderValid(transActorProp.actor.headerSettings, self.headerIndex)
+                Utility.isCurrentHeaderValid(transActorProp.actor.headerSettings, headerIndex)
                 and transActorProp.actor.actorID != "None"
             ):
-                pos, rot, _, _ = Utility.getConvertedTransform(self.transform, self.sceneObj, obj, True)
+                pos, rot, _, _ = Utility.getConvertedTransform(transform, sceneObj, obj, True)
                 transActor = TransitionActor()
 
                 if transActorProp.isRoomTransition:
@@ -97,7 +94,8 @@ class SceneTransitionActors:
                 transActor.params = transActorProp.actor.actorParam
                 transActor.roomFrom, transActor.cameraFront = front
                 transActor.roomTo, transActor.cameraBack = back
-                self.entries.append(transActor)
+                entries.append(transActor)
+        return SceneTransitionActors(name, entries)
 
     def getCmd(self):
         """Returns the transition actor list scene command"""
@@ -136,26 +134,23 @@ class EntranceActor(Actor):
 
 @dataclass
 class SceneEntranceActors:
-    props: OOTSceneHeaderProperty
+
     name: str
-    sceneObj: Object
-    transform: Matrix
-    headerIndex: int
+    entries: list[EntranceActor]
 
-    entries: list[EntranceActor] = field(init=False, default_factory=list)
-
-    def __post_init__(self):
+    @staticmethod
+    def new(name: str, sceneObj: Object, transform: Matrix, headerIndex: int):
         """Returns the entrance actor list based on empty objects with the type 'Entrance'"""
 
         entranceActorFromIndex: dict[int, EntranceActor] = {}
-        actorObjList = getObjectList(self.sceneObj.children_recursive, "EMPTY", "Entrance")
+        actorObjList = getObjectList(sceneObj.children_recursive, "EMPTY", "Entrance")
         for obj in actorObjList:
             entranceProp = obj.ootEntranceProperty
             if (
-                Utility.isCurrentHeaderValid(entranceProp.actor.headerSettings, self.headerIndex)
+                Utility.isCurrentHeaderValid(entranceProp.actor.headerSettings, headerIndex)
                 and entranceProp.actor.actorID != "None"
             ):
-                pos, rot, _, _ = Utility.getConvertedTransform(self.transform, self.sceneObj, obj, True)
+                pos, rot, _, _ = Utility.getConvertedTransform(transform, sceneObj, obj, True)
                 entranceActor = EntranceActor()
 
                 entranceActor.name = (
@@ -185,7 +180,7 @@ class SceneEntranceActors:
         if list(entranceActorFromIndex.keys()) != list(range(len(entranceActorFromIndex))):
             raise PluginError("ERROR: The spawn indices are not consecutive!")
 
-        self.entries = list(entranceActorFromIndex.values())
+        return SceneEntranceActors(name, list(entranceActorFromIndex.values()))
 
     def getCmd(self):
         """Returns the spawn list scene command"""

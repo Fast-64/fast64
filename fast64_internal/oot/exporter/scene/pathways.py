@@ -40,26 +40,22 @@ class Path:
 class ScenePathways:
     """This class hosts pathways array data"""
 
-    props: OOTSceneHeaderProperty
     name: str
-    sceneObj: Object
-    transform: Matrix
-    headerIndex: int
+    pathList: list[Path]
 
-    pathList: list[Path] = field(init=False, default_factory=list)
-
-    def __post_init__(self):
+    @staticmethod
+    def new(name: str, sceneObj: Object, transform: Matrix, headerIndex: int):
         pathFromIndex: dict[int, Path] = {}
-        pathObjList = getObjectList(self.sceneObj.children_recursive, "CURVE", splineType="Path")
+        pathObjList = getObjectList(sceneObj.children_recursive, "CURVE", splineType="Path")
 
         for obj in pathObjList:
-            relativeTransform = self.transform @ self.sceneObj.matrix_world.inverted() @ obj.matrix_world
+            relativeTransform = transform @ sceneObj.matrix_world.inverted() @ obj.matrix_world
             pathProps = obj.ootSplineProperty
-            isHeaderValid = Utility.isCurrentHeaderValid(pathProps.headerSettings, self.headerIndex)
+            isHeaderValid = Utility.isCurrentHeaderValid(pathProps.headerSettings, headerIndex)
             if isHeaderValid and Utility.validateCurveData(obj):
                 if pathProps.index not in pathFromIndex:
                     pathFromIndex[pathProps.index] = Path(
-                        f"{self.name}List{pathProps.index:02}",
+                        f"{name}List{pathProps.index:02}",
                         [relativeTransform @ point.co.xyz for point in obj.data.splines[0].points],
                     )
                 else:
@@ -69,7 +65,7 @@ class ScenePathways:
         if list(pathFromIndex.keys()) != list(range(len(pathFromIndex))):
             raise PluginError("ERROR: Path indices are not consecutive!")
 
-        self.pathList = list(pathFromIndex.values())
+        return ScenePathways(name, list(pathFromIndex.values()))
 
     def getCmd(self):
         """Returns the path list scene command"""

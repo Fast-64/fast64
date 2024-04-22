@@ -963,17 +963,24 @@ def getObjectList(
 
     ret: list[Object] = []
     for obj in objList:
-        cond = True
+        if obj.type == objType:
+            cond = True
 
-        if emptyType is not None:
-            cond = obj.ootEmptyType == emptyType
-        elif splineType is not None:
-            cond = obj.ootSplineProperty.splineType == splineType
+            if emptyType is not None:
+                cond = obj.ootEmptyType == emptyType
+            elif splineType is not None:
+                cond = obj.ootSplineProperty.splineType == splineType
 
-        if parentObj is not None:
-            cond = cond and obj.parent is not None and obj.parent.name == parentObj.name
+            if parentObj is not None:
+                if emptyType == "Actor" and obj.ootEmptyType == "Room":
+                    for o in obj.children_recursive:
+                        if o.type == objType and o.ootEmptyType == emptyType:
+                            ret.append(o)
+                    continue
+                else:
+                    cond = cond and obj.parent is not None and obj.parent.name == parentObj.name
 
-        if obj.type == objType and cond:
-            ret.append(obj)
+            if cond:
+                ret.append(obj)
     ret.sort(key=lambda o: o.name)
     return ret

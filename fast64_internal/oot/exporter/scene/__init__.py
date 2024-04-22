@@ -17,61 +17,52 @@ from .rooms import RoomEntries
 class Scene:
     """This class defines a scene"""
 
-    sceneObj: Object
-    transform: Matrix
-    useMacros: bool
     name: str
-    saveTexturesAsPNG: bool
     model: OOTModel
+    mainHeader: Optional[SceneHeader]
+    altHeader: Optional[SceneAlternateHeader]
+    rooms: Optional[RoomEntries]
+    colHeader: Optional[CollisionHeader]
+    hasAlternateHeaders: bool
 
-    mainHeader: Optional[SceneHeader] = field(init=False, default=None)
-    altHeader: Optional[SceneAlternateHeader] = field(init=False, default=None)
-    rooms: Optional[RoomEntries] = field(init=False, default=None)
-    colHeader: Optional[CollisionHeader] = field(init=False, default=None)
-    hasAlternateHeaders: bool = field(init=False, default=False)
-
-    def getNewSceneHeader(self, headerProp: OOTSceneHeaderProperty, headerIndex: int = 0):
-        """Returns a scene header"""
-
-        return SceneHeader(
-            headerProp,
-            f"{self.name}_header{headerIndex:02}",
-            self.sceneObj,
-            self.transform,
-            headerIndex,
-            self.useMacros,
+    @staticmethod
+    def new(name: str, sceneObj: Object, transform: Matrix, useMacros: bool, saveTexturesAsPNG: bool, model: OOTModel):
+        i = 0
+        rooms = RoomEntries.new(
+            f"{name}_roomList", name.removesuffix("_scene"), model, sceneObj, transform, saveTexturesAsPNG
         )
 
-    def __post_init__(self):
-        self.rooms = RoomEntries(f"{self.name}_roomList", self, self.sceneObj, self.transform, self.saveTexturesAsPNG)
-
-        self.colHeader = CollisionHeader(
-            self.sceneObj,
+        colHeader = CollisionHeader.new(
+            f"{name}_collisionHeader",
+            name,
+            sceneObj,
             None,
-            self.transform,
-            self.useMacros,
+            transform,
+            useMacros,
             True,
-            f"{self.name}_collisionHeader",
-            self.name,
         )
 
-        self.mainHeader = self.getNewSceneHeader(self.sceneObj.ootSceneHeader)
-        self.hasAlternateHeaders = False
-        altHeader = SceneAlternateHeader(f"{self.name}_alternateHeaders")
-        altProp = self.sceneObj.ootAlternateSceneHeaders
+        mainHeader = SceneHeader.new(f"{name}_header{i:02}", sceneObj.ootSceneHeader, sceneObj, transform, i, useMacros)
+        hasAlternateHeaders = False
+        altHeader = SceneAlternateHeader(f"{name}_alternateHeaders")
+        altProp = sceneObj.ootAlternateSceneHeaders
 
         for i, header in enumerate(altHeaderList, 1):
             altP: OOTSceneHeaderProperty = getattr(altProp, f"{header}Header")
             if not altP.usePreviousHeader:
-                setattr(altHeader, header, self.getNewSceneHeader(altP, i))
-                self.hasAlternateHeaders = True
+                setattr(
+                    altHeader, header, SceneHeader.new(f"{name}_header{i:02}", altP, sceneObj, transform, i, useMacros)
+                )
+                hasAlternateHeaders = True
 
         altHeader.cutscenes = [
-            self.getNewSceneHeader(csHeader, i) for i, csHeader in enumerate(altProp.cutsceneHeaders, 4)
+            SceneHeader.new(f"{name}_header{i:02}", csHeader, sceneObj, transform, i, useMacros)
+            for i, csHeader in enumerate(altProp.cutsceneHeaders, 4)
         ]
 
-        self.hasAlternateHeaders = True if len(altHeader.cutscenes) > 0 else self.hasAlternateHeaders
-        self.altHeader = altHeader if self.hasAlternateHeaders else None
+        hasAlternateHeaders = True if len(altHeader.cutscenes) > 0 else hasAlternateHeaders
+        altHeader = altHeader if hasAlternateHeaders else None
+        return Scene(name, model, mainHeader, altHeader, rooms, colHeader, hasAlternateHeaders)
 
     def validateRoomIndices(self):
         """Checks if there are multiple rooms with the same room index"""

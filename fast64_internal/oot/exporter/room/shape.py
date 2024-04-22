@@ -8,15 +8,6 @@ from ...room.properties import OOTRoomHeaderProperty
 
 
 @dataclass
-class RoomShapeBase:
-    """This class defines the basic informations of a non-image room shape"""
-
-    type: str
-    props: OOTRoomHeaderProperty
-    mesh: OOTRoomMesh
-
-
-@dataclass
 class RoomShapeImageBase:
     """This class defines the basic informations shared by other image classes"""
 
@@ -75,20 +66,22 @@ class RoomShapeImageMultiBgEntry:
 
 
 @dataclass
-class RoomShapeImageMultiBg(RoomShapeBase):
+class RoomShapeImageMultiBg:
     """This class defines the multiple background image array"""
 
     name: str
+    entries: list[RoomShapeImageMultiBgEntry]
 
-    entries: list[RoomShapeImageMultiBgEntry] = field(init=False, default_factory=list)
-
-    def __post_init__(self):
-        for i, bgImg in enumerate(self.mesh.bgImages):
-            self.entries.append(
+    @staticmethod
+    def new(name: str, mesh: OOTRoomMesh):
+        entries: list[RoomShapeImageMultiBgEntry] = []
+        for i, bgImg in enumerate(mesh.bgImages):
+            entries.append(
                 RoomShapeImageMultiBgEntry(
                     i, bgImg.name, bgImg.image.size[0], bgImg.image.size[1], bgImg.otherModeFlags
                 )
             )
+        return RoomShapeImageMultiBg(name, entries)
 
     def getC(self):
         infoData = CData()
@@ -109,18 +102,19 @@ class RoomShapeDLists:
 
     name: str
     isArray: bool
-    mesh: OOTRoomMesh
+    entries: list[RoomShapeDListsEntry]
 
-    entries: list[RoomShapeDListsEntry] = field(init=False, default_factory=list)
-
-    def __post_init__(self):
-        for meshGrp in self.mesh.meshEntries:
-            self.entries.append(
+    @staticmethod
+    def new(name: str, isArray: bool, mesh: OOTRoomMesh):
+        entries: list[RoomShapeDListsEntry] = []
+        for meshGrp in mesh.meshEntries:
+            entries.append(
                 RoomShapeDListsEntry(
                     meshGrp.DLGroup.opaque.name if meshGrp.DLGroup.opaque is not None else "NULL",
                     meshGrp.DLGroup.transparent.name if meshGrp.DLGroup.transparent is not None else "NULL",
                 )
             )
+        return RoomShapeDLists(name, isArray, entries)
 
     def getC(self):
         infoData = CData()
@@ -241,49 +235,51 @@ class RoomShapeNormal:
 
 
 @dataclass
-class RoomShape(RoomShapeBase):
+class RoomShape:
     """This class hosts every type of room shape"""
 
-    sceneName: str
-    roomName: str
+    dl: Optional[RoomShapeDLists]
+    normal: Optional[RoomShapeNormal]
+    single: Optional[RoomShapeImageSingle]
+    multiImg: Optional[RoomShapeImageMultiBg]
+    multi: Optional[RoomShapeImageMulti]
 
-    dl: Optional[RoomShapeDLists] = field(init=False, default=None)
-    normal: Optional[RoomShapeNormal] = field(init=False, default=None)
-    single: Optional[RoomShapeImageSingle] = field(init=False, default=None)
-    multiImg: Optional[RoomShapeImageMultiBg] = field(init=False, default=None)
-    multi: Optional[RoomShapeImageMulti] = field(init=False, default=None)
+    @staticmethod
+    def new(type: str, props: OOTRoomHeaderProperty, mesh: OOTRoomMesh, sceneName: str, roomName: str):
+        name = f"{roomName}_shapeHeader"
+        dlName = f"{roomName}_shapeDListEntry"
+        normal = None
+        single = None
+        multiImg = None
+        multi = None
 
-    def __post_init__(self):
-        name = f"{self.roomName}_shapeHeader"
-        dlName = f"{self.roomName}_shapeDListEntry"
-
-        match self.type:
+        match type:
             case "ROOM_SHAPE_TYPE_NORMAL":
-                self.normal = RoomShapeNormal(name, self.type, dlName)
+                normal = RoomShapeNormal(name, type, dlName)
             case "ROOM_SHAPE_TYPE_IMAGE":
-                for bgImage in self.props.bgImageList:
+                for bgImage in props.bgImageList:
                     if bgImage.image is None:
                         raise PluginError(
                             'A room is has room shape "Image" but does not have an image set in one of its BG images.'
                         )
-                    self.mesh.bgImages.append(
+                    mesh.bgImages.append(
                         OOTBGImage(
-                            toAlnum(self.sceneName + "_bg_" + bgImage.image.name),
+                            toAlnum(sceneName + "_bg_" + bgImage.image.name),
                             bgImage.image,
                             bgImage.otherModeFlags,
                         )
                     )
 
-                if len(self.mesh.bgImages) > 1:
-                    self.multiImg = RoomShapeImageMultiBg(None, None, self.mesh, f"{self.roomName}_shapeMultiBg")
-                    self.multi = RoomShapeImageMulti(
-                        name, self.type, "ROOM_SHAPE_IMAGE_AMOUNT_MULTI", dlName, self.multiImg.name
+                if len(mesh.bgImages) > 1:
+                    multiImg = RoomShapeImageMultiBg.new(f"{roomName}_shapeMultiBg", mesh)
+                    multi = RoomShapeImageMulti(
+                        name, type, "ROOM_SHAPE_IMAGE_AMOUNT_MULTI", dlName, multiImg.name
                     )
                 else:
-                    bgImg = self.mesh.bgImages[0]
-                    self.single = RoomShapeImageSingle(
+                    bgImg = mesh.bgImages[0]
+                    single = RoomShapeImageSingle(
                         name,
-                        self.type,
+                        type,
                         "ROOM_SHAPE_IMAGE_AMOUNT_SINGLE",
                         dlName,
                         bgImg.name,
@@ -292,8 +288,8 @@ class RoomShape(RoomShapeBase):
                         bgImg.otherModeFlags,
                     )
             case _:
-                raise PluginError(f"ERROR: Room Shape not supported: {self.type}")
-        self.dl = RoomShapeDLists(dlName, self.normal is not None, self.mesh)
+                raise PluginError(f"ERROR: Room Shape not supported: {type}")
+        return RoomShape(RoomShapeDLists.new(dlName, normal is not None, mesh), normal, single, multiImg, multi)
 
     def getName(self):
         """Returns the correct room shape name based on the type used"""

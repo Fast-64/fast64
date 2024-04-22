@@ -85,28 +85,28 @@ class EnvLightSettings:
 class SceneLighting:
     """This class hosts lighting data"""
 
-    props: OOTSceneHeaderProperty
     name: str
+    envLightMode: str
+    settings: list[EnvLightSettings]
 
-    envLightMode: str = field(init=False)
-    settings: list[EnvLightSettings] = field(init=False, default_factory=list)
-
-    def __post_init__(self):
-        self.envLightMode = Utility.getPropValue(self.props, "skyboxLighting")
+    @staticmethod
+    def new(name: str, props: OOTSceneHeaderProperty):
+        envLightMode = Utility.getPropValue(props, "skyboxLighting")
         lightList: list[OOTLightProperty] = []
+        settings: list[EnvLightSettings] = []
 
-        if self.envLightMode == "LIGHT_MODE_TIME":
-            todLights = self.props.timeOfDayLights
+        if envLightMode == "LIGHT_MODE_TIME":
+            todLights = props.timeOfDayLights
             lightList = [todLights.dawn, todLights.day, todLights.dusk, todLights.night]
         else:
-            lightList = self.props.lightList
+            lightList = props.lightList
 
         for lightProp in lightList:
             light1 = ootGetBaseOrCustomLight(lightProp, 0, True, True)
             light2 = ootGetBaseOrCustomLight(lightProp, 1, True, True)
-            self.settings.append(
+            settings.append(
                 EnvLightSettings(
-                    self.envLightMode,
+                    envLightMode,
                     exportColor(lightProp.ambient),
                     light1[0],
                     light1[1],
@@ -118,6 +118,7 @@ class SceneLighting:
                     lightProp.transitionSpeed,
                 )
             )
+        return SceneLighting(name, envLightMode, settings)
 
     def getCmd(self):
         """Returns the env light settings scene command"""
@@ -147,49 +148,49 @@ class SceneLighting:
 class SceneInfos:
     """This class stores various scene header informations"""
 
-    props: OOTSceneHeaderProperty
-    sceneObj: Object
-
     ### General ###
 
-    keepObjectID: str = field(init=False)
-    naviHintType: str = field(init=False)
-    drawConfig: str = field(init=False)
-    appendNullEntrance: bool = field(init=False)
-    useDummyRoomList: bool = field(init=False)
+    keepObjectID: str
+    naviHintType: str
+    drawConfig: str
+    appendNullEntrance: bool
+    useDummyRoomList: bool
 
     ### Skybox And Sound ###
 
     # Skybox
-    skyboxID: str = field(init=False)
-    skyboxConfig: str = field(init=False)
+    skyboxID: str
+    skyboxConfig: str
 
     # Sound
-    sequenceID: str = field(init=False)
-    ambienceID: str = field(init=False)
-    specID: str = field(init=False)
+    sequenceID: str
+    ambienceID: str
+    specID: str
 
     ### Camera And World Map ###
 
     # World Map
-    worldMapLocation: str = field(init=False)
+    worldMapLocation: str
 
     # Camera
-    sceneCamType: str = field(init=False)
+    sceneCamType: str
 
-    def __post_init__(self):
-        self.keepObjectID = Utility.getPropValue(self.props, "globalObject")
-        self.naviHintType = Utility.getPropValue(self.props, "naviCup")
-        self.drawConfig = Utility.getPropValue(self.props.sceneTableEntry, "drawConfig")
-        self.appendNullEntrance = self.props.appendNullEntrance
-        self.useDummyRoomList = self.sceneObj.fast64.oot.scene.write_dummy_room_list
-        self.skyboxID = Utility.getPropValue(self.props, "skyboxID")
-        self.skyboxConfig = Utility.getPropValue(self.props, "skyboxCloudiness")
-        self.sequenceID = Utility.getPropValue(self.props, "musicSeq")
-        self.ambienceID = Utility.getPropValue(self.props, "nightSeq")
-        self.specID = Utility.getPropValue(self.props, "audioSessionPreset")
-        self.worldMapLocation = Utility.getPropValue(self.props, "mapLocation")
-        self.sceneCamType = Utility.getPropValue(self.props, "cameraMode")
+    @staticmethod
+    def new(props: OOTSceneHeaderProperty, sceneObj: Object):
+        return SceneInfos(
+            Utility.getPropValue(props, "globalObject"),
+            Utility.getPropValue(props, "naviCup"),
+            Utility.getPropValue(props.sceneTableEntry, "drawConfig"),
+            props.appendNullEntrance,
+            sceneObj.fast64.oot.scene.write_dummy_room_list,
+            Utility.getPropValue(props, "skyboxID"),
+            Utility.getPropValue(props, "skyboxCloudiness"),
+            Utility.getPropValue(props, "musicSeq"),
+            Utility.getPropValue(props, "nightSeq"),
+            Utility.getPropValue(props, "audioSessionPreset"),
+            Utility.getPropValue(props, "mapLocation"),
+            Utility.getPropValue(props, "cameraMode"),
+        )
 
     def getCmds(self, lights: SceneLighting):
         """Returns the sound settings, misc settings, special files and skybox settings scene commands"""
@@ -212,18 +213,19 @@ class SceneInfos:
 class SceneExits(Utility):
     """This class hosts exit data"""
 
-    props: OOTSceneHeaderProperty
     name: str
+    exitList: list[tuple[int, str]]
 
-    exitList: list[tuple[int, str]] = field(init=False, default_factory=list)
-
-    def __post_init__(self):
+    @staticmethod
+    def new(name: str, props: OOTSceneHeaderProperty):
         # TODO: proper implementation of exits
 
-        for i, exitProp in enumerate(self.props.exitList):
+        exitList: list[tuple[int, str]] = []
+        for i, exitProp in enumerate(props.exitList):
             if exitProp.exitIndex != "Custom":
                 raise PluginError("ERROR: Exits are unfinished, please use 'Custom'.")
-            self.exitList.append((i, exitProp.exitIndexCustom))
+            exitList.append((i, exitProp.exitIndexCustom))
+        return SceneExits(name, exitList)
 
     def getCmd(self):
         """Returns the exit list scene command"""

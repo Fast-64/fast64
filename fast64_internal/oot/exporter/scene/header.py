@@ -15,38 +15,30 @@ from .pathways import ScenePathways
 class SceneHeader:
     """This class defines a scene header"""
 
-    props: OOTSceneHeaderProperty
     name: str
-    sceneObj: Object
-    transform: Matrix
-    headerIndex: int
-    useMacros: bool
+    infos: Optional[SceneInfos]
+    lighting: Optional[SceneLighting]
+    cutscene: Optional[SceneCutscene]
+    exits: Optional[SceneExits]
+    transitionActors: Optional[SceneTransitionActors]
+    entranceActors: Optional[SceneEntranceActors]
+    spawns: Optional[SceneSpawns]
+    path: Optional[ScenePathways]
 
-    infos: Optional[SceneInfos] = field(init=False, default=None)
-    lighting: Optional[SceneLighting] = field(init=False, default=None)
-    cutscene: Optional[SceneCutscene] = field(init=False, default=None)
-    exits: Optional[SceneExits] = field(init=False, default=None)
-    transitionActors: Optional[SceneTransitionActors] = field(init=False, default=None)
-    entranceActors: Optional[SceneEntranceActors] = field(init=False, default=None)
-    spawns: Optional[SceneSpawns] = field(init=False, default=None)
-    path: Optional[ScenePathways] = field(init=False, default=None)
-
-    def __post_init__(self):
-        self.infos = SceneInfos(self.props, self.sceneObj)
-        self.lighting = SceneLighting(self.props, f"{self.name}_lightSettings")
-        self.cutscene = SceneCutscene(self.props, self.headerIndex, self.useMacros)
-        self.exits = SceneExits(self.props, f"{self.name}_exitList")
-
-        self.transitionActors = SceneTransitionActors(
-            None, f"{self.name}_transitionActors", self.sceneObj, self.transform, self.headerIndex
+    @staticmethod
+    def new(name: str, props: OOTSceneHeaderProperty, sceneObj: Object, transform: Matrix, headerIndex: int, useMacros: bool):
+        entranceActors = SceneEntranceActors.new(f"{name}_playerEntryList", sceneObj, transform, headerIndex)
+        return SceneHeader(
+            name,
+            SceneInfos.new(props, sceneObj),
+            SceneLighting.new(f"{name}_lightSettings", props),
+            SceneCutscene(props, headerIndex, useMacros),
+            SceneExits.new(f"{name}_exitList", props),
+            SceneTransitionActors.new(f"{name}_transitionActors", sceneObj, transform, headerIndex),
+            entranceActors,
+            SceneSpawns(None, f"{name}_entranceList", entranceActors.entries),
+            ScenePathways.new(f"{name}_pathway", sceneObj, transform, headerIndex),
         )
-
-        self.entranceActors = SceneEntranceActors(
-            None, f"{self.name}_playerEntryList", self.sceneObj, self.transform, self.headerIndex
-        )
-
-        self.spawns = SceneSpawns(None, f"{self.name}_entranceList", self.entranceActors.entries)
-        self.path = ScenePathways(self.props, f"{self.name}_pathway", self.sceneObj, self.transform, self.headerIndex)
 
     def getC(self):
         """Returns the ``CData`` containing the header's data"""

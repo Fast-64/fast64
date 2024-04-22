@@ -17,9 +17,8 @@ class CollisionPoly:
     dist: int
     useMacros: bool
 
-    type: Optional[int] = field(init=False, default=None)
-
     def __post_init__(self):
+        self.type: Optional[int] = None
         for i, val in enumerate(self.normal):
             if val < -1.0 or val > 1.0:
                 raise PluginError(f"ERROR: Invalid value for normal {['X', 'Y', 'Z'][i]}! (``{val}``)")

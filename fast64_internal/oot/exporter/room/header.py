@@ -10,64 +10,55 @@ from ..base import Utility, Actor
 
 
 @dataclass
-class HeaderBase:
-    """Defines the base of a room header"""
-
-    name: str = str()
-    props: Optional[OOTRoomHeaderProperty] = None
-    sceneObj: Optional[Object] = None
-    roomObj: Optional[Object] = None
-    transform: Matrix = Matrix()
-    headerIndex: int = 0
-
-
-@dataclass
-class RoomInfos(HeaderBase):
+class RoomInfos:
     """This class stores various room header informations"""
 
     ### General ###
 
-    index: int = field(init=False)
-    roomShape: str = field(init=False)
+    index: int
+    roomShape: str
 
     ### Behavior ###
 
-    roomBehavior: str = field(init=False)
-    playerIdleType: str = field(init=False)
-    disableWarpSongs: bool = field(init=False)
-    showInvisActors: bool = field(init=False)
+    roomBehavior: str
+    playerIdleType: str
+    disableWarpSongs: bool
+    showInvisActors: bool
 
     ### Skybox And Time ###
 
-    disableSky: bool = field(init=False)
-    disableSunMoon: bool = field(init=False)
-    hour: int = field(init=False)
-    minute: int = field(init=False)
-    timeSpeed: float = field(init=False)
-    echo: str = field(init=False)
+    disableSky: bool
+    disableSunMoon: bool
+    hour: int
+    minute: int
+    timeSpeed: float
+    echo: str
 
     ### Wind ###
 
-    setWind: bool = field(init=False)
-    direction: tuple[int, int, int] = field(init=False)
-    strength: int = field(init=False)
+    setWind: bool
+    direction: tuple[int, int, int]
+    strength: int
 
-    def __post_init__(self):
-        self.index = self.props.roomIndex
-        self.roomShape = self.props.roomShape
-        self.roomBehavior = Utility.getPropValue(self.props, "roomBehaviour")
-        self.playerIdleType = Utility.getPropValue(self.props, "linkIdleMode")
-        self.disableWarpSongs = self.props.disableWarpSongs
-        self.showInvisActors = self.props.showInvisibleActors
-        self.disableSky = self.props.disableSkybox
-        self.disableSunMoon = self.props.disableSunMoon
-        self.hour = 0xFF if self.props.leaveTimeUnchanged else self.props.timeHours
-        self.minute = 0xFF if self.props.leaveTimeUnchanged else self.props.timeMinutes
-        self.timeSpeed = max(-128, min(127, round(self.props.timeSpeed * 0xA)))
-        self.echo = self.props.echo
-        self.setWind = self.props.setWind
-        self.direction = [d for d in self.props.windVector] if self.props.setWind else None
-        self.strength = self.props.windStrength if self.props.setWind else None
+    @staticmethod
+    def new(props: Optional[OOTRoomHeaderProperty]):
+        return RoomInfos(
+            props.roomIndex,
+            props.roomShape,
+            Utility.getPropValue(props, "roomBehaviour"),
+            Utility.getPropValue(props, "linkIdleMode"),
+            props.disableWarpSongs,
+            props.showInvisibleActors,
+            props.disableSkybox,
+            props.disableSunMoon,
+            0xFF if props.leaveTimeUnchanged else props.timeHours,
+            0xFF if props.leaveTimeUnchanged else props.timeMinutes,
+            max(-128, min(127, round(props.timeSpeed * 0xA))),
+            props.echo,
+            props.setWind,
+            [d for d in props.windVector] if props.setWind else None,
+            props.windStrength if props.setWind else None,
+        )
 
     def getCmds(self):
         """Returns the echo settings, room behavior, skybox disables and time settings room commands"""
@@ -91,17 +82,21 @@ class RoomInfos(HeaderBase):
 
 
 @dataclass
-class RoomObjects(HeaderBase):
+class RoomObjects:
     """This class defines an OoT object array"""
 
-    objectList: list[str] = field(init=False, default_factory=list)
+    name: str
+    objectList: list[str]
 
-    def __post_init__(self):
-        for objProp in self.props.objectList:
+    @staticmethod
+    def new(name: str, props: Optional[OOTRoomHeaderProperty]):
+        objectList: list[str] = []
+        for objProp in props.objectList:
             if objProp.objectKey == "Custom":
-                self.objectList.append(objProp.objectIDCustom)
+                objectList.append(objProp.objectIDCustom)
             else:
-                self.objectList.append(ootData.objectData.objectsByKey[objProp.objectKey].id)
+                objectList.append(ootData.objectData.objectsByKey[objProp.objectKey].id)
+        return RoomObjects(name, objectList)
 
     def getDefineName(self):
         """Returns the name of the define for the total of entries in the object list"""
@@ -134,16 +129,19 @@ class RoomObjects(HeaderBase):
 
 
 @dataclass
-class RoomActors(HeaderBase):
+class RoomActors:
     """This class defines an OoT actor array"""
 
-    actorList: list[Actor] = field(init=False, default_factory=list)
+    name: str
+    actorList: list[Actor]
 
-    def __post_init__(self):
-        actorObjList = getObjectList(self.sceneObj.children_recursive, "EMPTY", "Actor", parentObj=self.roomObj)
+    @staticmethod
+    def new(name: str, sceneObj: Optional[Object], roomObj: Optional[Object], transform: Matrix, headerIndex: int):
+        actorList: list[Actor] = []
+        actorObjList = getObjectList(sceneObj.children_recursive, "EMPTY", "Actor", parentObj=roomObj)
         for obj in actorObjList:
             actorProp = obj.ootActorProperty
-            if not Utility.isCurrentHeaderValid(actorProp.headerSettings, self.headerIndex):
+            if not Utility.isCurrentHeaderValid(actorProp.headerSettings, headerIndex):
                 continue
 
             # The Actor list is filled with ``("None", f"{i} (Deleted from the XML)", "None")`` for
@@ -152,7 +150,7 @@ class RoomActors(HeaderBase):
             # and not the identifier as defined by the first element of the tuple. Therefore, we need to check if
             # the current Actor has the ID `None` to avoid export issues.
             if actorProp.actorID != "None":
-                pos, rot, _, _ = Utility.getConvertedTransform(self.transform, self.sceneObj, obj, True)
+                pos, rot, _, _ = Utility.getConvertedTransform(transform, sceneObj, obj, True)
                 actor = Actor()
 
                 if actorProp.actorID == "Custom":
@@ -175,7 +173,8 @@ class RoomActors(HeaderBase):
 
                 actor.pos = pos
                 actor.params = actorProp.actorParam
-                self.actorList.append(actor)
+                actorList.append(actor)
+        return RoomActors(name, actorList)
 
     def getDefineName(self):
         """Returns the name of the define for the total of entries in the actor list"""
@@ -207,18 +206,21 @@ class RoomActors(HeaderBase):
 
 
 @dataclass
-class RoomHeader(HeaderBase):
+class RoomHeader:
     """This class defines a room header"""
 
-    infos: Optional[RoomInfos] = field(init=False, default=None)
-    objects: Optional[RoomObjects] = field(init=False, default=None)
-    actors: Optional[RoomActors] = field(init=False, default=None)
+    name: str
+    infos: Optional[RoomInfos]
+    objects: Optional[RoomObjects]
+    actors: Optional[RoomActors]
 
-    def __post_init__(self):
-        self.infos = RoomInfos(None, self.props)
-        self.objects = RoomObjects(f"{self.name}_objectList", self.props)
-        self.actors = RoomActors(
-            f"{self.name}_actorList", None, self.sceneObj, self.roomObj, self.transform, self.headerIndex
+    @staticmethod
+    def new(name: str, props: Optional[OOTRoomHeaderProperty], sceneObj: Optional[Object], roomObj: Optional[Object], transform: Matrix, headerIndex: int):
+        return RoomHeader(
+            name,
+            RoomInfos.new(props),
+            RoomObjects.new(f"{name}_objectList", props),
+            RoomActors.new(f"{name}_actorList", sceneObj, roomObj, transform, headerIndex),
         )
 
     def getHeaderDefines(self):

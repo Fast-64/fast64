@@ -14,19 +14,14 @@ if TYPE_CHECKING:
 @dataclass
 class RoomEntries:
     name: str
-    scene: "Scene"
-    sceneObj: Object
-    transform: Matrix
-    saveTexturesAsPNG: bool
+    entries: list[Room]
 
-    entries: list[Room] = field(init=False, default_factory=list)
-
-    def __post_init__(self):
+    @staticmethod
+    def new(name: str, sceneName: str, model: OOTModel, sceneObj: Object, transform: Matrix, saveTexturesAsPNG: bool):
         """Returns the room list from empty objects with the type 'Room'"""
 
-        sceneName = self.scene.name.removesuffix("_scene")
         roomDict: dict[int, Room] = {}
-        roomObjs = getObjectList(self.sceneObj.children_recursive, "EMPTY", "Room")
+        roomObjs = getObjectList(sceneObj.children_recursive, "EMPTY", "Room")
 
         if len(roomObjs) == 0:
             raise PluginError("ERROR: The scene has no child empties with the 'Room' empty type.")
@@ -39,25 +34,25 @@ class RoomEntries:
                 raise PluginError(f"ERROR: Room index {roomIndex} used more than once!")
 
             roomName = f"{sceneName}_room_{roomIndex}"
-            roomDict[roomIndex] = Room(
+            roomDict[roomIndex] = Room.new(
                 roomName,
-                self.transform,
-                self.sceneObj,
+                transform,
+                sceneObj,
                 roomObj,
                 roomHeader.roomShape,
-                self.scene.model.addSubModel(
+                model.addSubModel(
                     OOTModel(
                         f"{roomName}_dl",
-                        self.scene.model.DLFormat,
+                        model.DLFormat,
                         None,
                     )
                 ),
                 roomIndex,
                 sceneName,
-                self.saveTexturesAsPNG,
+                saveTexturesAsPNG,
             )
 
-        self.entries = [roomDict[i] for i in range(min(roomDict.keys()), len(roomDict))]
+        return RoomEntries(name, [roomDict[i] for i in range(min(roomDict.keys()), len(roomDict))])
 
     def getCmd(self):
         """Returns the room list scene command"""

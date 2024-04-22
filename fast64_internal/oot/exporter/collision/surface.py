@@ -29,11 +29,6 @@ class SurfaceType:
 
     useMacros: bool
 
-    isSoftC: str = field(init=False)
-    isHorseBlockedC: str = field(init=False)
-    canHookshotC: str = field(init=False)
-    isWallDamageC: str = field(init=False)
-
     def __post_init__(self):
         self.isSoftC = "1" if self.isSoft else "0"
         self.isHorseBlockedC = "1" if self.isHorseBlocked else "0"

@@ -11,41 +11,41 @@ from ..base import Utility
 class WaterBox:
     """This class defines waterbox data"""
 
-    position: tuple[int, int, int]
-    scale: float
-    emptyDisplaySize: float
-
     # Properties
     bgCamIndex: int
     lightIndex: int
-    roomIndex: int
-    setFlag19: bool
+    roomIndexC: str
+    setFlag19C: str
+
+    xMin: int
+    ySurface: int
+    zMin: int
+    xLength: int
+    zLength: int
 
     useMacros: bool
 
-    xMin: int = field(init=False)
-    ySurface: int = field(init=False)
-    zMin: int = field(init=False)
-    xLength: int = field(init=False)
-    zLength: int = field(init=False)
-
-    setFlag19C: str = field(init=False)
-    roomIndexC: str = field(init=False)
-
-    def __post_init__(self):
-        self.setFlag19C = "1" if self.setFlag19 else "0"
-        self.roomIndexC = f"0x{self.roomIndex:02X}" if self.roomIndex == 0x3F else f"{self.roomIndex}"
-
+    @staticmethod
+    def new(position: tuple[int, int, int], scale: float, emptyDisplaySize: float, bgCamIndex: int, lightIndex: int, roomIndex: int, setFlag19: bool, useMacros: bool):
         # The scale ordering is due to the fact that scaling happens AFTER rotation.
         # Thus the translation uses Y-up, while the scale uses Z-up.
-        xMax = round(self.position[0] + self.scale[0] * self.emptyDisplaySize)
-        zMax = round(self.position[2] + self.scale[1] * self.emptyDisplaySize)
+        xMax = round(position[0] + scale[0] * emptyDisplaySize)
+        zMax = round(position[2] + scale[1] * emptyDisplaySize)
+        xMin = round(position[0] - scale[0] * emptyDisplaySize)
+        zMin = round(position[2] - scale[1] * emptyDisplaySize)
 
-        self.xMin = round(self.position[0] - self.scale[0] * self.emptyDisplaySize)
-        self.ySurface = round(self.position[1] + self.scale[2] * self.emptyDisplaySize)
-        self.zMin = round(self.position[2] - self.scale[1] * self.emptyDisplaySize)
-        self.xLength = xMax - self.xMin
-        self.zLength = zMax - self.zMin
+        return WaterBox(
+            bgCamIndex, 
+            lightIndex, 
+            f"0x{roomIndex:02X}" if roomIndex == 0x3F else f"{roomIndex}",
+            "1" if setFlag19 else "0",
+            xMin,
+            round(position[1] + scale[2] * emptyDisplaySize),
+            zMin,
+            xMax - xMin,
+            zMax - zMin,
+            useMacros
+        )
 
     def getProperties(self):
         """Returns the waterbox properties"""
@@ -82,19 +82,17 @@ class WaterBox:
 class WaterBoxes:
     """This class defines the array of waterboxes"""
 
-    dataHolder: Object
-    transform: Matrix
     name: str
-    useMacros: bool
+    waterboxList: list[WaterBox]
 
-    waterboxList: list[WaterBox] = field(init=False, default_factory=list)
-
-    def __post_init__(self):
-        waterboxObjList = getObjectList(self.dataHolder.children_recursive, "EMPTY", "Water Box")
+    @staticmethod
+    def new(name: str, dataHolder: Object, transform: Matrix, useMacros: bool):
+        waterboxList: list[WaterBox] = []
+        waterboxObjList = getObjectList(dataHolder.children_recursive, "EMPTY", "Water Box")
         for waterboxObj in waterboxObjList:
             emptyScale = waterboxObj.empty_display_size
             pos, _, scale, orientedRot = Utility.getConvertedTransform(
-                self.transform, self.dataHolder, waterboxObj, True
+                transform, dataHolder, waterboxObj, True
             )
             checkIdentityRotation(waterboxObj, orientedRot, False)
 
@@ -102,16 +100,16 @@ class WaterBoxes:
 
             # temp solution
             roomObj = None
-            if self.dataHolder.type == "EMPTY" and self.dataHolder.ootEmptyType == "Scene":
-                for obj in self.dataHolder.children_recursive:
+            if dataHolder.type == "EMPTY" and dataHolder.ootEmptyType == "Scene":
+                for obj in dataHolder.children_recursive:
                     if obj.type == "EMPTY" and obj.ootEmptyType == "Room":
                         for o in obj.children_recursive:
                             if o == waterboxObj:
                                 roomObj = obj
                                 break
 
-            self.waterboxList.append(
-                WaterBox(
+            waterboxList.append(
+                WaterBox.new(
                     pos,
                     scale,
                     emptyScale,
@@ -119,9 +117,10 @@ class WaterBoxes:
                     wboxProp.lighting,
                     roomObj.ootRoomHeader.roomIndex if roomObj is not None else 0x3F,
                     wboxProp.flag19,
-                    self.useMacros,
+                    useMacros,
                 )
             )
+        return WaterBoxes(name, waterboxList)
 
     def getC(self):
         wboxData = CData()

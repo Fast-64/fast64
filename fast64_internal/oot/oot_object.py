@@ -56,17 +56,11 @@ def addMissingObjectsToRoomHeaderNew(roomObj: Object, curHeader, headerIndex: in
                             addMissingObjectToProp(roomObj, headerIndex, objKey)
 
 
-def addMissingObjectsToAllRoomHeadersNew(roomObj: Object, room):
+def addMissingObjectsToAllRoomHeadersNew(roomObj: Object, headers: list):
     """
     Adds missing objects (required by actors) to all headers of a room,
     both to the roomObj empty and the exported room
     """
-    headers = [room.mainHeader]
-    if room.altHeader is not None:
-        headers.extend([room.altHeader.childNight, room.altHeader.adultDay, room.altHeader.adultNight])
-        if len(room.altHeader.cutscenes) > 0:
-            headers.extend(room.altHeader.cutscenes)
-
     for i, curHeader in enumerate(headers):
         if curHeader is not None:
             addMissingObjectsToRoomHeaderNew(roomObj, curHeader, i)
