@@ -45,7 +45,7 @@ class CutsceneCmdLightSetting(CutsceneCmdBase):
 
     def getCmd(self):
         self.validateFrames(False)
-        return indent * 3 + (f"CS_LIGHT_SETTING({self.lightSetting}, {self.startFrame}" + ", 0" * 9 + "),\n")
+        return indent * 3 + (f"CS_LIGHT_SETTING({self.lightSetting}, {self.startFrame}" + ", 0" * 12 + "),\n")
 
 
 @dataclass
