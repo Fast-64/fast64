@@ -18,7 +18,7 @@ from .exporter.to_c import clearBootupScene, modifySceneTable, editSpecFile, del
 
 def ootRemoveSceneC(exportInfo):
     modifySceneTable(None, exportInfo)
-    editSpecFile(None, exportInfo, None)
+    editSpecFile(False, exportInfo, False, False, False, 0, 0)
     deleteSceneFiles(exportInfo)
 
 
@@ -169,6 +169,7 @@ class OOT_ExportScene(Operator):
                     subfolder = None
                 exportInfo = ExportInfo(False, bpy.path.abspath(context.scene.ootDecompPath), subfolder, levelName)
 
+            exportInfo.option = option
             bootOptions = context.scene.fast64.oot.bootupSceneOptions
             hackerFeaturesEnabled = context.scene.fast64.oot.hackerFeaturesEnabled
             ootExportSceneToC(
@@ -228,6 +229,7 @@ class OOT_RemoveScene(Operator):
             levelName = sceneNameFromID(option)
             subfolder = None
         exportInfo = ExportInfo(False, abspath(context.scene.ootDecompPath), subfolder, levelName)
+        exportInfo.option = option
 
         ootRemoveSceneC(exportInfo)
 

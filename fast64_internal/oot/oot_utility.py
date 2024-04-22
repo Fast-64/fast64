@@ -7,7 +7,7 @@ from ast import parse, Expression, Num, UnaryOp, USub, Invert, BinOp
 from mathutils import Vector
 from bpy.types import Object
 from bpy.utils import register_class, unregister_class
-from typing import Callable
+from typing import Callable, Optional
 from .oot_constants import ootSceneIDToName
 
 from ..utility import (
@@ -214,6 +214,7 @@ class ExportInfo:
         self.exportPath = exportPath
         self.customSubPath = customSubPath
         self.name = name
+        self.option: Optional[str] = None
 
 
 class OOTObjectCategorizer:
