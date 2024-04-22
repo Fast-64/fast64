@@ -10,7 +10,6 @@ from .f3d_enums import *
 from .f3d_material import (
     all_combiner_uses,
     getMaterialScrollDimensions,
-    getZMode,
     isTexturePointSampled,
     RDPSettings,
 )
@@ -139,7 +138,9 @@ def getInfoDict_impl(obj: bpy.types.Object):
     # check mesh.loop_triangles (now that we computed them), used below
     check_face_materials(get_original_name(obj), material_slots, mesh.loop_triangles)
 
-    mesh.calc_normals_split()
+    # in blender version 4.1 func was removed, in 4.1+ normals are always calculated
+    if bpy.app.version < (4, 1, 0):
+        mesh.calc_normals_split()
 
     infoDict = MeshInfo()
 
@@ -200,6 +201,29 @@ def getInfoDict_impl(obj: bpy.types.Object):
     return infoDict
 
 
+def getSTUVRepeats(tex_prop: "TextureProperty") -> tuple[float, float]:
+    SShift, TShift = 2**tex_prop.S.shift, 2**tex_prop.T.shift
+    sMirrorScale = 2 if tex_prop.S.mirror else 1
+    tMirrorScale = 2 if tex_prop.T.mirror else 1
+    return (SShift * sMirrorScale, TShift * tMirrorScale)
+
+
+def getUVInterval(f3dMat):
+    useDict = all_combiner_uses(f3dMat)
+
+    if useDict["Texture 0"] and f3dMat.tex0.tex_set:
+        tex0UVInterval = getSTUVRepeats(f3dMat.tex0)
+    else:
+        tex0UVInterval = (1.0, 1.0)
+
+    if useDict["Texture 1"] and f3dMat.tex1.tex_set:
+        tex1UVInterval = getSTUVRepeats(f3dMat.tex1)
+    else:
+        tex1UVInterval = (1.0, 1.0)
+
+    return (max(tex0UVInterval[0], tex1UVInterval[0]), max(tex0UVInterval[1], tex1UVInterval[1]))
+
+
 def fixLargeUVs(obj):
     mesh = obj.data
     if len(obj.data.uv_layers) == 0:
@@ -232,12 +256,9 @@ def fixLargeUVs(obj):
         if material.f3d_mat.use_large_textures:
             continue
 
-        f3dMat = material.f3d_mat
-
-        UVinterval = [
-            2 if f3dMat.tex0.S.mirror or f3dMat.tex1.S.mirror else 1,
-            2 if f3dMat.tex0.T.mirror or f3dMat.tex1.T.mirror else 1,
-        ]
+        # To prevent wrong UVs when wrapping UVs into valid bounds,
+        # we need to account for the highest texture shift and if mirroring is active.
+        UVinterval = getUVInterval(material.f3d_mat)
 
         size = texSizeDict[material]
         if size[0] == 0 or size[1] == 0:
@@ -998,7 +1019,7 @@ class TriangleConverter:
         # Don't want to have to change back and forth arbitrarily between decal and
         # opaque mode. So if you're using both lighter and darker, need to do those
         # first before switching to decal.
-        if getZMode(self.material) != "ZMODE_OPA":
+        if f3dMat.rdp_settings.zmode != "ZMODE_OPA":
             raise PluginError(
                 f"Material {self.material.name} with cel shading: zmode in blender / rendermode must be opaque.",
                 icon="ERROR",

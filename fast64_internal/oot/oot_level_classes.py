@@ -79,7 +79,7 @@ class OOTSceneTableEntry:
 
 class OOTScene(OOTCommonCommands):
     def __init__(self, name, model):
-        self.name = toAlnum(name)
+        self.name: str = toAlnum(name)
         self.write_dummy_room_list = False
         self.rooms = {}
         self.transitionActorList = set()
