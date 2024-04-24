@@ -1242,6 +1242,13 @@ def gammaInverseValue(sRGBValue):
     return mathutils.Color((sRGBValue, sRGBValue, sRGBValue)).from_srgb_to_scene_linear().v
 
 
+def to_clean_gamma_corrected(color, hasAlpha=False) -> list:
+    correct_color = [round(channel, 4) for channel in gammaCorrect(color)]
+    if hasAlpha:
+        correct_color.append(color[3])
+    return correct_color
+
+
 def exportColor(lightColor):
     return [scaleToU8(value) for value in gammaCorrect(lightColor)]
 
@@ -1622,3 +1629,49 @@ binOps = {
     ast.BitAnd: operator.and_,
     ast.BitXor: operator.xor,
 }
+
+
+def prop_group_to_json(
+    prop_group, blacklist: list[str] = None, whitelist: list[str] = None, correct_colors: bool = True
+):
+    def prop_to_json(prop):
+        if isinstance(prop, list) or type(prop).__name__ == "bpy_prop_collection_idprop":
+            prop = list(prop)
+            for index, value in enumerate(prop):
+                prop[index] = prop_to_json(value)
+            return prop
+        elif isinstance(prop, Color):
+            return [round(c, 4) for c in (gammaCorrect(prop) if correct_colors else prop)]
+        elif hasattr(prop, "to_list"):  # for IDPropertyArray classes
+            return prop.to_list()
+        elif hasattr(prop, "to_dict"):
+            return prop.to_dict()
+        else:
+            return prop
+
+    data = {}
+    for prop in iter_prop(prop_group):
+        if (blacklist and prop in blacklist) or (whitelist and prop not in whitelist) or prop in {"rna_type", "name"}:
+            continue
+        value = prop_to_json(getattr(prop_group, prop))
+        if value is not None:
+            data[prop] = value
+    return data
+
+
+def json_to_prop_group(
+    prop_group, data: dict, blacklist: list[str] = None, whitelist: list[str] = None, correct_colors: bool = True
+):
+    for prop in prop_group.keys():
+        if (blacklist and prop in blacklist) or (whitelist and prop not in whitelist):
+            continue
+        default = getattr(prop_group, prop)
+        if hasattr(default, "from_dict"):
+            default.from_dict(data.get(prop, None))
+        if isinstance(default, Color):
+            if correct_colors:
+                setattr(prop_group, gammaInverse(data.get(prop, default), data.get(prop, default)))
+            else:
+                setattr(prop_group, prop, data.get(prop, default))
+        else:
+            setattr(prop_group, prop, data.get(prop, default))
