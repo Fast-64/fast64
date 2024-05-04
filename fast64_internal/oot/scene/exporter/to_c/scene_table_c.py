@@ -29,6 +29,7 @@ class SceneTableEntry:
     original: Optional[str]  # the original line from the parsed file
     scene: Optional[OOTScene] = None
     exportName: Optional[str] = None
+    isCustomScene: bool = False
     prefix: Optional[str] = None  # ifdefs, endifs, comments etc, everything before the current entry
     suffix: Optional[str] = None  # remaining data after the last entry
     parsed: Optional[str] = None
@@ -72,7 +73,7 @@ class SceneTableEntry:
         # TODO: Implement title cards
         name = scene.name if scene is not None else self.exportName
         self.setParameters(
-            f"{scene.name.lower()}_scene",
+            f"{scene.name.lower() if self.isCustomScene else scene.name}_scene",
             "none",
             ootSceneNameToID.get(name, f"SCENE_{name.upper()}"),
             getCustomProperty(scene.sceneTableEntry, "drawConfig"),
@@ -134,6 +135,9 @@ class SceneTable:
                 prefix = ""
                 entryIndex += 1
             else:
+                if prefix.startswith("#") and line.startswith("#"):
+                    # add newline if there's two consecutive preprocessor directives
+                    prefix += "\n"
                 prefix += line
 
         # add whatever's after the last entry
@@ -303,10 +307,10 @@ def modifySceneTable(scene: Optional[OOTScene], exportInfo: ExportInfo):
         sceneTable.remove(sceneTable.selectedSceneIndex)
     elif sceneTable.selectedSceneIndex == SceneIndexType.CUSTOM and sceneTable.customSceneIndex is None:
         # custom mode: new custom scene
-        sceneTable.append(SceneTableEntry(len(sceneTable.entries) - 1, None, scene, exportInfo.name))
+        sceneTable.append(SceneTableEntry(len(sceneTable.entries) - 1, None, scene, exportInfo.name, True))
     elif sceneTable.selectedSceneIndex == SceneIndexType.VANILLA_REMOVED:
         # insert mode
-        sceneTable.insert(SceneTableEntry(sceneTable.getInsertionIndex(), None, scene, exportInfo.name))
+        sceneTable.insert(SceneTableEntry(sceneTable.getInsertionIndex(), None, scene, exportInfo.name, False))
     else:
         # update mode (for both vanilla and custom scenes since they already exist in the table)
         sceneTable.entries[sceneTable.getIndex()].setParametersFromScene(scene)

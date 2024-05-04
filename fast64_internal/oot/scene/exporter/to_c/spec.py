@@ -162,6 +162,9 @@ class SpecFile:
                     parsedLines = []
             else:
                 # else, if between 2 segments and the line is something we don't need
+                if prefix.startswith("#") and line.startswith("#"):
+                    # add newline if there's two consecutive preprocessor directives
+                    prefix += "\n"
                 prefix += line
         # set the last's entry's suffix to the remaining prefix
         self.entries[-1].suffix = prefix.removesuffix("\n")
