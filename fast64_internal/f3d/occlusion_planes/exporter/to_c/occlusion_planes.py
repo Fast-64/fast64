@@ -5,13 +5,13 @@ from .....utility import CData
 
 
 def occVertexToC(vertex: Vector):
-    return "\t\t{" + ", ".join([str(int(round(a))) for a in vertex]) + "},\n"
+    return "\t\t\t{" + ", ".join([str(int(round(a))) for a in vertex]) + "},\n"
 
 
 def occCandidateToC(candidate: OcclusionPlaneCandidate):
-    return "\t{\n" + "".join(map(occVertexToC, [
+    return "\t{\n\t\t{\n" + "".join(map(occVertexToC, [
         candidate.v0, candidate.v1, candidate.v2, candidate.v3
-    ])) + "\t\t" + str(candidate.weight) + "f\n\t},\n"
+    ])) + "\t\t},\n\t\t" + str(candidate.weight) + "f\n\t},\n"
 
 
 def occCandidatesListToC(candidatesList: OcclusionPlaneCandidatesList):
