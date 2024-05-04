@@ -25,7 +25,7 @@ def getColHeaderCmd(outScene: OOTScene):
 
 
 def getOcclusionPlaneCandidatesListCmd(outScene: OOTScene):
-    return indent + f"SCENE_CMD_OCCLUSION_PLANE_CANDIDATES_LIST({outScene.occlusion_planes.name})"
+    return indent + f"SCENE_CMD_OCCLUSION_PLANE_CANDIDATES_LIST({len(outScene.occlusion_planes.planes)}, {outScene.occlusion_planes.name})"
 
 
 def getSpawnListCmd(outScene: OOTScene, headerIndex: int):
