@@ -1604,10 +1604,10 @@ def ootGetBaseOrCustomLight(prop, idx, toExport: bool, errIfMissing: bool):
         if light is None:
             if errIfMissing:
                 raise PluginError("Error: Diffuse " + str(idx) + " light object not set in a scene lighting property.")
-            else:
-                col = light.color
-                lightObj = lightDataToObj(light)
-                dir = getObjDirectionVec(lightObj, toExport)
+        else:
+            col = light.color
+            lightObj = lightDataToObj(light)
+            dir = getObjDirectionVec(lightObj, toExport)
     col = mathutils.Vector(tuple(c for c in col))
     if toExport:
         col, dir = exportColor(col), normToSigned8Vector(dir)
