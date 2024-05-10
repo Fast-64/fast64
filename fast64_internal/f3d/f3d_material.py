@@ -1559,9 +1559,11 @@ def update_fog_nodes(material: Material, context: Context):
     # rendermodes in code, so to be safe we'll enable fog. Plus we are checking
     # that fog is enabled in the geometry mode, so if so that's probably the intent.
     fogBlender.node_tree = bpy.data.node_groups[
-        "FogBlender_On"
-        if shade_alpha_is_fog and is_blender_doing_fog(material.f3d_mat.rdp_settings, True)
-        else "FogBlender_Off"
+        (
+            "FogBlender_On"
+            if shade_alpha_is_fog and is_blender_doing_fog(material.f3d_mat.rdp_settings, True)
+            else "FogBlender_Off"
+        )
     ]
 
     if shade_alpha_is_fog:
@@ -1593,7 +1595,7 @@ def update_noise_nodes(material: Material):
         nodes["F3DNoiseFactor"].node_tree = noise_group
 
 
-def update_combiner_connections(material: Material, context: Context, combiner: (int | None) = None):
+def update_combiner_connections(material: Material, context: Context, combiner: int | None = None):
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
 
     update_noise_nodes(material)
@@ -4161,23 +4163,25 @@ class F3DMaterialProperty(PropertyGroup):
             self.use_large_textures,
             self.use_cel_shading,
             self.cel_shading.tintPipeline if self.use_cel_shading else None,
-            tuple(
-                [
-                    (
-                        c.threshMode,
-                        c.threshold,
-                        c.tintType,
-                        c.tintFixedLevel,
-                        c.tintFixedColor,
-                        c.tintSegmentNum,
-                        c.tintSegmentOffset,
-                        c.tintLightSlot,
-                    )
-                    for c in self.cel_shading.levels
-                ]
-            )
-            if self.use_cel_shading
-            else None,
+            (
+                tuple(
+                    [
+                        (
+                            c.threshMode,
+                            c.threshold,
+                            c.tintType,
+                            c.tintFixedLevel,
+                            c.tintFixedColor,
+                            c.tintSegmentNum,
+                            c.tintSegmentOffset,
+                            c.tintLightSlot,
+                        )
+                        for c in self.cel_shading.levels
+                    ]
+                )
+                if self.use_cel_shading
+                else None
+            ),
             self.use_default_lighting,
             self.set_blend,
             self.set_prim,
@@ -4203,9 +4207,11 @@ class F3DMaterialProperty(PropertyGroup):
             round(self.k5, 4) if self.set_k0_5 else None,
             self.combiner1.key() if self.set_combiner else None,
             self.combiner2.key() if self.set_combiner else None,
-            tuple([round(value, 4) for value in (self.ao_ambient, self.ao_directional, self.ao_point)])
-            if self.set_ao
-            else None,
+            (
+                tuple([round(value, 4) for value in (self.ao_ambient, self.ao_directional, self.ao_point)])
+                if self.set_ao
+                else None
+            ),
             tuple([round(value, 4) for value in (self.fresnel_lo, self.fresnel_hi)]) if self.set_fresnel else None,
             tuple([round(value, 4) for value in self.attroffs_st]) if self.set_attroffs_st else None,
             self.attroffs_z if self.set_attroffs_z else None,
@@ -4213,9 +4219,11 @@ class F3DMaterialProperty(PropertyGroup):
             tuple([round(value, 4) for value in self.fog_position]) if self.set_fog else None,
             tuple([round(value, 4) for value in self.default_light_color]) if useDefaultLighting else None,
             self.set_ambient_from_light if useDefaultLighting else None,
-            tuple([round(value, 4) for value in self.ambient_light_color])
-            if useDefaultLighting and not self.set_ambient_from_light
-            else None,
+            (
+                tuple([round(value, 4) for value in self.ambient_light_color])
+                if useDefaultLighting and not self.set_ambient_from_light
+                else None
+            ),
             self.f3d_light1 if not useDefaultLighting else None,
             self.f3d_light2 if not useDefaultLighting else None,
             self.f3d_light3 if not useDefaultLighting else None,

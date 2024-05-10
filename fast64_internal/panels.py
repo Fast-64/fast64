@@ -25,8 +25,8 @@ class SM64_Panel(bpy.types.Panel):
         elif cls.import_panel and not sm64_props.show_importing_menus:
             return False
 
-        sceneGoal = sm64_props.goal
-        return sceneGoal == "All" or sceneGoal == cls.goal
+        scene_goal = sm64_props.goal
+        return scene_goal == "All" or scene_goal == cls.goal
 
 
 class OOT_Panel(bpy.types.Panel):
