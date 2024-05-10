@@ -1187,7 +1187,7 @@ def multilineLabel(layout: UILayout, text: str, icon: str = "NONE"):
     layout = layout.column()
     for i, line in enumerate(text.split("\n")):
         r = layout.row()
-        r.label(text = line, icon = icon if i == 0 else "NONE")
+        r.label(text=line, icon=icon if i == 0 else "NONE")
         r.scale_y = 0.75
 
 

@@ -184,18 +184,18 @@ class SM64_CreateSimpleLevel(Operator):
 
         example_mat.name = "Grass Example"
         example_mat.f3d_mat.default_light_color = (0, 1, 0, 1)
-        example_mat.collision_type_simple = example_mat.collision_type = example_mat.collision_custom = (
-            "SURFACE_NOISE_DEFAULT"
-        )
+        example_mat.collision_type_simple = (
+            example_mat.collision_type
+        ) = example_mat.collision_custom = "SURFACE_NOISE_DEFAULT"
 
         preset = getDefaultMaterialPreset("Shaded Solid")
 
         if self.add_death_plane:
             death_mat = createF3DMat(None, preset)
             death_mat.name = "Death Plane"
-            death_mat.collision_type_simple = death_mat.collision_type = death_mat.collision_custom = (
-                "SURFACE_DEATH_PLANE"
-            )
+            death_mat.collision_type_simple = (
+                death_mat.collision_type
+            ) = death_mat.collision_custom = "SURFACE_DEATH_PLANE"
 
         scale = context.scene.fast64.sm64.blender_to_sm64_scale
         mario_scale = (50 / scale, 50 / scale, 160 / 2 / scale)

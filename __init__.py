@@ -153,7 +153,7 @@ class Fast64_GlobalSettingsPanel(bpy.types.Panel):
         col.prop(fast64_settings, "auto_pick_texture_format")
         if fast64_settings.auto_pick_texture_format:
             col.prop(fast64_settings, "prefer_rgba_over_ci")
-            
+
         self.draw_repo_settings(col.box(), context)
 
 
