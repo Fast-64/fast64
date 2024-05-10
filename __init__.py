@@ -1,15 +1,23 @@
 import bpy
 from bpy.utils import register_class, unregister_class
-from . import addon_updater_ops
-from .fast64_internal.operators import AddWaterBox
-from .fast64_internal.panels import SM64_Panel
-from .fast64_internal.utility import PluginError, raisePluginError, attemptModifierApply, prop_split, multilineLabel
+from bpy.path import abspath
 
-from .fast64_internal.sm64 import SM64_Properties, sm64_register, sm64_unregister
+from . import addon_updater_ops
+
+from .fast64_internal.utility import filepath_ui_warnings, prop_split, multilineLabel
+
+from .fast64_internal.repo_settings import (
+    SM64_LoadRepoSettings,
+    SM64_SaveRepoSettings,
+    load_repo_settings,
+    repo_settings_operators_register,
+    repo_settings_operators_unregister,
+)
+
+from .fast64_internal.sm64.settings.properties import SM64_Properties
+from .fast64_internal.sm64 import sm64_register, sm64_unregister
 from .fast64_internal.sm64.sm64_geolayout_bone import SM64_BoneProperties
 from .fast64_internal.sm64.sm64_objects import SM64_ObjectProperties
-from .fast64_internal.sm64.sm64_geolayout_utility import createBoneGroups
-from .fast64_internal.sm64.sm64_geolayout_parser import generateMetarig
 
 from .fast64_internal.oot import OOT_Properties, oot_register, oot_unregister
 from .fast64_internal.oot.props_panel_main import OOT_ObjectProperties
@@ -52,97 +60,6 @@ gameEditorEnum = (
     ("SM64", "SM64", "Super Mario 64"),
     ("OOT", "OOT", "Ocarina Of Time"),
 )
-
-
-class AddBoneGroups(bpy.types.Operator):
-    # set bl_ properties
-    bl_description = (
-        "Add bone groups respresenting other node types in " + "SM64 geolayouts (ex. Shadow, Switch, Function)."
-    )
-    bl_idname = "object.add_bone_groups"
-    bl_label = "Add Bone Groups"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
-
-    # Called on demand (i.e. button press, menu item)
-    # Can also be called from operator search menu (Spacebar)
-    def execute(self, context):
-        try:
-            if context.mode != "OBJECT" and context.mode != "POSE":
-                raise PluginError("Operator can only be used in object or pose mode.")
-            elif context.mode == "POSE":
-                bpy.ops.object.mode_set(mode="OBJECT")
-
-            if len(context.selected_objects) == 0:
-                raise PluginError("Armature not selected.")
-            elif type(context.selected_objects[0].data) is not bpy.types.Armature:
-                raise PluginError("Armature not selected.")
-
-            armatureObj = context.selected_objects[0]
-            createBoneGroups(armatureObj)
-        except Exception as e:
-            raisePluginError(self, e)
-            return {"CANCELLED"}
-
-        self.report({"INFO"}, "Created bone groups.")
-        return {"FINISHED"}  # must return a set
-
-
-class CreateMetarig(bpy.types.Operator):
-    # set bl_ properties
-    bl_description = (
-        "SM64 imported armatures are usually not good for "
-        + "rigging. There are often intermediate bones between deform bones "
-        + "and they don't usually point to their children. This operator "
-        + "creates a metarig on armature layer 4 useful for IK."
-    )
-    bl_idname = "object.create_metarig"
-    bl_label = "Create Animatable Metarig"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
-
-    # Called on demand (i.e. button press, menu item)
-    # Can also be called from operator search menu (Spacebar)
-    def execute(self, context):
-        try:
-            if context.mode != "OBJECT":
-                bpy.ops.object.mode_set(mode="OBJECT")
-
-            if len(context.selected_objects) == 0:
-                raise PluginError("Armature not selected.")
-            elif type(context.selected_objects[0].data) is not bpy.types.Armature:
-                raise PluginError("Armature not selected.")
-
-            armatureObj = context.selected_objects[0]
-            generateMetarig(armatureObj)
-        except Exception as e:
-            raisePluginError(self, e)
-            return {"CANCELLED"}
-
-        self.report({"INFO"}, "Created metarig.")
-        return {"FINISHED"}  # must return a set
-
-
-class SM64_AddWaterBox(AddWaterBox):
-    bl_idname = "object.sm64_add_water_box"
-
-    scale: bpy.props.FloatProperty(default=10)
-    preset: bpy.props.StringProperty(default="Shaded Solid")
-    matName: bpy.props.StringProperty(default="sm64_water_mat")
-
-    def setEmptyType(self, emptyObj):
-        emptyObj.sm64_obj_type = "Water Box"
-
-
-class SM64_ArmatureToolsPanel(SM64_Panel):
-    bl_idname = "SM64_PT_armature_tools"
-    bl_label = "SM64 Tools"
-
-    # called every frame
-    def draw(self, context):
-        col = self.layout.column()
-        col.operator(ArmatureApplyWithMeshOperator.bl_idname)
-        col.operator(AddBoneGroups.bl_idname)
-        col.operator(CreateMetarig.bl_idname)
-        col.operator(SM64_AddWaterBox.bl_idname)
 
 
 class F3D_GlobalSettingsPanel(bpy.types.Panel):
@@ -188,6 +105,37 @@ class Fast64_GlobalSettingsPanel(bpy.types.Panel):
     def poll(cls, context):
         return True
 
+    def draw_repo_settings(self, layout, context):
+        col = layout.column()
+
+        scene = context.scene
+        fast64_settings = scene.fast64.settings
+
+        col.prop(
+            fast64_settings,
+            "repo_settings_tab",
+            text="Repo Settings",
+            icon="TRIA_DOWN" if fast64_settings.repo_settings_tab else "TRIA_RIGHT",
+        )
+        if not fast64_settings.repo_settings_tab:
+            return
+
+        col.box().label(text="World defaults will be saved and loaded.")
+
+        prop_split(col, fast64_settings, "repo_settings_path", "Repo Settings Path")
+
+        path = abspath(fast64_settings.repo_settings_path)
+        if filepath_ui_warnings(col, path):
+            load_op = col.operator(SM64_LoadRepoSettings.bl_idname)
+            load_op.path = fast64_settings.repo_settings_path
+
+        save_op = col.operator(SM64_SaveRepoSettings.bl_idname)
+        save_op.path = fast64_settings.repo_settings_path
+
+        prop_split(col, scene, "f3d_type", "F3D Microcode")
+        col.prop(scene, "saveTextures")
+        col.prop(fast64_settings, "auto_repo_load_settings")
+
     # called every frame
     def draw(self, context):
         col = self.layout.column()
@@ -199,13 +147,14 @@ class Fast64_GlobalSettingsPanel(bpy.types.Panel):
         prop_split(col, scene, "gameEditorMode", "Game")
         col.prop(scene, "exportHiddenGeometry")
         col.prop(scene, "fullTraceback")
-        prop_split(col, fast64_settings, "anim_range_choice", "Anim Range")
 
-        col.separator()
+        prop_split(col, fast64_settings, "anim_range_choice", "Anim Range")
 
         col.prop(fast64_settings, "auto_pick_texture_format")
         if fast64_settings.auto_pick_texture_format:
             col.prop(fast64_settings, "prefer_rgba_over_ci")
+
+        self.draw_repo_settings(col.box(), context)
 
 
 class Fast64_GlobalToolsPanel(bpy.types.Panel):
@@ -226,6 +175,10 @@ class Fast64_GlobalToolsPanel(bpy.types.Panel):
         # col.operator(CreateMetarig.bl_idname)
         ui_oplargetexture(col, context)
         addon_updater_ops.update_notice_box_ui(self, context)
+
+
+def repo_path_update(self, context):
+    load_repo_settings(context.scene, abspath(self.repo_settings_path), True)
 
 
 class Fast64Settings_Properties(bpy.types.PropertyGroup):
@@ -268,6 +221,16 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
     prefer_rgba_over_ci: bpy.props.BoolProperty(
         name="Prefer RGBA Over CI",
         description="When enabled, fast64 will default colored textures's format to RGBA even if they fit CI requirements, with the exception of textures that would not fit into TMEM otherwise",
+    )
+
+    repo_settings_tab: bpy.props.BoolProperty(default=True)
+    repo_settings_path: bpy.props.StringProperty(
+        name="Repo Settings Path", subtype="FILE_PATH", update=repo_path_update
+    )
+    auto_repo_load_settings: bpy.props.BoolProperty(
+        name="Auto Load Repo's Settings",
+        description="When enabled, this will make fast64 automatically load repo settings if they are found after picking a decomp path",
+        default=True,
     )
 
 
@@ -390,12 +353,8 @@ classes = (
     Fast64_Properties,
     Fast64_BoneProperties,
     Fast64_ObjectProperties,
-    AddBoneGroups,
-    CreateMetarig,
-    SM64_AddWaterBox,
     F3D_GlobalSettingsPanel,
     Fast64_GlobalSettingsPanel,
-    SM64_ArmatureToolsPanel,
     Fast64_GlobalToolsPanel,
     UpgradeF3DMaterialsDialog,
 )
@@ -456,6 +415,8 @@ def register():
     bsdf_conv_register()
     sm64_register(True)
     oot_register(True)
+
+    repo_settings_operators_register()
 
     for cls in classes:
         register_class(cls)
@@ -519,6 +480,8 @@ def unregister():
     del bpy.types.Scene.fast64
     del bpy.types.Bone.fast64
     del bpy.types.Object.fast64
+
+    repo_settings_operators_unregister()
 
     for cls in classes:
         unregister_class(cls)

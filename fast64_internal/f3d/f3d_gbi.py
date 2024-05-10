@@ -2328,6 +2328,7 @@ class FModel:
         self.LODGroups: dict[str, FLODGroup] = {}
         self.DLFormat: "DLFormat" = DLFormat
         self.matWriteMethod: GfxMatWriteMethod = matWriteMethod
+        self.no_light_direction = False
         self.global_data: FGlobalData = FGlobalData()
         self.texturesSavedLastExport: int = 0  # hacky
 
@@ -4010,16 +4011,19 @@ class SPAmbient(SPLight):
 class SPLightColor(GbiMacro):
     # n is macro name (string)
     n: str
-    col: int
+    col: Sequence[int]
+
+    def color_to_int(self):
+        return self.col[0] * 0x1000000 + self.col[1] * 0x10000 + self.col[2] * 0x100 + 0xFF
 
     def to_binary(self, f3d, segments):
-        return gsMoveWd(f3d.G_MW_LIGHTCOL, f3d.getLightMWO_a(self.n), self.col, f3d) + gsMoveWd(
+        return gsMoveWd(f3d.G_MW_LIGHTCOL, f3d.getLightMWO_a(self.n), self.color_to_int(), f3d) + gsMoveWd(
             f3d.G_MW_LIGHTCOL, f3d.getLightMWO_b(self.n), self.col, f3d
         )
 
     def to_c(self, static=True):
         header = "gsSPLightColor(" if static else "gSPLightColor(glistp++, "
-        return header + str(self.n) + ", 0x" + format(self.col, "08X") + ")"
+        return header + f"{self.n}, 0x" + format(self.color_to_int(), "08X") + ")"
 
 
 @dataclass(unsafe_hash=True)

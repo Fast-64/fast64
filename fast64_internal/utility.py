@@ -33,22 +33,15 @@ axis_enums = [
     ("-Y", "-Y", "-Y"),
 ]
 
-enumExportType = [
-    ("C", "C", "C"),
-    ("Binary", "Binary", "Binary"),
-    ("Insertable Binary", "Insertable Binary", "Insertable Binary"),
-]
-
 enumExportHeaderType = [
     # ('None', 'None', 'Headers are not written'),
     ("Actor", "Actor Data", "Headers are written to a group in actors/"),
     ("Level", "Level Data", "Headers are written to a specific level in levels/"),
 ]
 
-enumCompressionFormat = [
-    ("mio0", "MIO0", "MIO0"),
-    ("yay0", "YAY0", "YAY0"),
-]
+# bpy.context.mode returns the keys here, while the values are required by bpy.ops.object.mode_set
+BLENDER_MODE_TO_MODE_SET = {"PAINT_VERTEX": "VERTEX_PAINT", "EDIT_MESH": "EDIT"}
+get_mode_set_from_context_mode = lambda mode: BLENDER_MODE_TO_MODE_SET.get(mode, "OBJECT")
 
 
 def isPowerOf2(n):
@@ -405,22 +398,12 @@ def extendedRAMLabel(layout):
     infoBox.label(text="Extended RAM prevents crashes.")
 
 
-def checkExpanded(filepath):
-    size = os.path.getsize(filepath)
-    if size < 9000000:  # check if 8MB
-        raise PluginError(
-            "ROM at "
-            + filepath
-            + " is too small. You may be using an unexpanded ROM. You can expand a ROM by opening it in SM64 Editor or ROM Manager."
-        )
-
-
 def getPathAndLevel(customExport, exportPath, levelName, levelOption):
     if customExport:
         exportPath = bpy.path.abspath(exportPath)
         levelName = levelName
     else:
-        exportPath = bpy.path.abspath(bpy.context.scene.decompPath)
+        exportPath = bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path)
         if levelOption == "custom":
             levelName = levelName
         else:
@@ -479,8 +462,8 @@ def saveDataToFile(filepath, data):
 
 
 def applyBasicTweaks(baseDir):
-    enableExtendedRAM(baseDir)
-    return
+    if bpy.context.scene.fast64.sm64.force_extended_ram:
+        enableExtendedRAM(baseDir)
 
 
 def enableExtendedRAM(baseDir):
@@ -1208,6 +1191,64 @@ def multilineLabel(layout: UILayout, text: str, icon: str = "NONE"):
         r.scale_y = 0.75
 
 
+def directory_path_checks(
+    directory_path: str,
+    empty_error: str = "Empty path.",
+    doesnt_exist_error: str = "Directory does not exist.",
+    not_a_directory_error: str = "Path is not a folder.",
+):
+    if directory_path == "":
+        raise PluginError(empty_error)
+    elif not os.path.exists(directory_path):
+        raise PluginError(doesnt_exist_error)
+    elif not os.path.isdir(directory_path):
+        raise PluginError(not_a_directory_error)
+
+
+def directory_ui_warnings(
+    layout: bpy.types.UILayout,
+    directory_path: str,
+    empty_error: str = "Empty path.",
+    doesnt_exist_error: str = "Directory does not exist.",
+    not_a_directory_error: str = "Path is not a folder.",
+) -> bool:
+    try:
+        directory_path_checks(directory_path, empty_error, doesnt_exist_error, not_a_directory_error)
+        return True
+    except Exception as e:
+        multilineLabel(layout.box(), str(e), "ERROR")
+        return False
+
+
+def filepath_checks(
+    filepath: str,
+    empty_error: str = "Empty path.",
+    doesnt_exist_error: str = "File does not exist.",
+    not_a_file_error: str = "Path is not a file.",
+):
+    if filepath == "":
+        raise PluginError(empty_error)
+    elif not os.path.exists(filepath):
+        raise PluginError(doesnt_exist_error)
+    elif not os.path.isfile(filepath):
+        raise PluginError(not_a_file_error)
+
+
+def filepath_ui_warnings(
+    layout: bpy.types.UILayout,
+    filepath: str,
+    empty_error: str = "Empty path.",
+    doesnt_exist_error: str = "File does not exist.",
+    not_a_file_error: str = "Path is not a file.",
+) -> bool:
+    try:
+        filepath_checks(filepath, empty_error, doesnt_exist_error, not_a_file_error)
+        return True
+    except Exception as e:
+        multilineLabel(layout.box(), str(e), "ERROR")
+        return False
+
+
 def toAlnum(name, exceptions=[]):
     if name is None or name == "":
         return None
@@ -1318,7 +1359,10 @@ def readVectorFromShorts(command, offset):
 
 
 def readFloatFromShort(command, offset):
-    return int.from_bytes(command[offset : offset + 2], "big", signed=True) / bpy.context.scene.blenderToSM64Scale
+    return (
+        int.from_bytes(command[offset : offset + 2], "big", signed=True)
+        / bpy.context.scene.fast64.sm64.blender_to_sm64_scale
+    )
 
 
 def writeVectorToShorts(command, offset, values):
@@ -1328,13 +1372,13 @@ def writeVectorToShorts(command, offset, values):
 
 
 def writeFloatToShort(command, offset, value):
-    command[offset : offset + 2] = int(round(value * bpy.context.scene.blenderToSM64Scale)).to_bytes(
+    command[offset : offset + 2] = int(round(value * bpy.context.scene.fast64.sm64.blender_to_sm64_scale)).to_bytes(
         2, "big", signed=True
     )
 
 
 def convertFloatToShort(value):
-    return int(round((value * bpy.context.scene.blenderToSM64Scale)))
+    return int(round((value * bpy.context.scene.fast64.sm64.blender_to_sm64_scale)))
 
 
 def convertEulerFloatToShort(value):
@@ -1538,7 +1582,7 @@ def all_values_equal_x(vals: Iterable, test):
 def get_blender_to_game_scale(context):
     match context.scene.gameEditorMode:
         case "SM64":
-            return context.scene.blenderToSM64Scale
+            return context.scene.fast64.sm64.blender_to_sm64_scale
         case "OOT":
             return context.scene.ootBlenderScale
         case "F3D":
