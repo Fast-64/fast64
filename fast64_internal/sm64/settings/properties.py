@@ -69,7 +69,6 @@ Sets bank 4 range to ({hex(defaultExtendSegment4[0])}, {hex(defaultExtendSegment
     compression_format: EnumProperty(items=enum_compression_formats, name="Compression", default="mio0")
     force_extended_ram: BoolProperty(name="Force Extended Ram", default=True)
     matstack_fix: BoolProperty(name="Matstack Fix", description="Exports account for matstack fix requirements")
-    lighting_engine_presets: BoolProperty(name="Lighting Engine Presets")
 
     def is_binary_export(self):
         return self.export_type in ["Binary", "Insertable Binary"]
@@ -155,7 +154,6 @@ Sets bank 4 range to ({hex(defaultExtendSegment4[0])}, {hex(defaultExtendSegment
                 prop_split(col, self, "refresh_version", "Refresh (Function Map)")
                 col.prop(self, "force_extended_ram")
                 col.prop(self, "matstack_fix")
-                col.prop(self, "lighting_engine_presets")
 
         col.separator()
 
