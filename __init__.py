@@ -1,12 +1,5 @@
 import bpy
 from bpy.utils import register_class, unregister_class
-<<<<<<< HEAD
-from . import addon_updater_ops
-from .fast64_internal.utility import prop_split, multilineLabel
-
-from .fast64_internal.sm64 import sm64_register, sm64_unregister
-from .fast64_internal.sm64.settings.properties import SM64_Properties
-=======
 from bpy.path import abspath
 
 from . import addon_updater_ops
@@ -23,7 +16,6 @@ from .fast64_internal.repo_settings import (
 
 from .fast64_internal.sm64.settings.properties import SM64_Properties
 from .fast64_internal.sm64 import sm64_register, sm64_unregister
->>>>>>> 1ccf49f (General settings rework, tools rework, level layout operator, etc)
 from .fast64_internal.sm64.sm64_geolayout_bone import SM64_BoneProperties
 from .fast64_internal.sm64.sm64_objects import SM64_ObjectProperties
 
@@ -348,10 +340,6 @@ classes = (
     Fast64_Properties,
     Fast64_BoneProperties,
     Fast64_ObjectProperties,
-<<<<<<< HEAD
-=======
-    # Fast64_GlobalObjectPanel,
->>>>>>> 1ccf49f (General settings rework, tools rework, level layout operator, etc)
     F3D_GlobalSettingsPanel,
     Fast64_GlobalSettingsPanel,
     Fast64_GlobalToolsPanel,
