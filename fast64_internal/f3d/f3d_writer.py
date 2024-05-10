@@ -138,7 +138,9 @@ def getInfoDict_impl(obj: bpy.types.Object):
     # check mesh.loop_triangles (now that we computed them), used below
     check_face_materials(get_original_name(obj), material_slots, mesh.loop_triangles)
 
-    mesh.calc_normals_split()
+    # in blender version 4.1 func was removed, in 4.1+ normals are always calculated
+    if bpy.app.version < (4, 1, 0):
+        mesh.calc_normals_split()
 
     infoDict = MeshInfo()
 

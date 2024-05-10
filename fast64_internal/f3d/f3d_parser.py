@@ -2204,13 +2204,11 @@ def parseMacroList(data: str):
 
 
 def parseMacroArgs(data: str):
-    end = 0
     start = 0
     params: "list[str]" = []
     parenthesesCount = 0
 
-    while end < len(data) - 1:
-        end += 1
+    for end in range(len(data)):
         if data[end] == "(":
             parenthesesCount += 1
         elif data[end] == ")":
