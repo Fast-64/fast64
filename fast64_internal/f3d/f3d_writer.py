@@ -1327,7 +1327,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 
     # Checking for f3dMat.rdp_settings.g_lighting here will prevent accidental exports,
     # There may be some edge case where this isn't desired.
-    if useDict["Shade"] and f3dMat.set_lights and f3dMat.rdp_settings.g_lighting:
+    if useDict["Shade"] and f3dMat.rdp_settings.g_lighting and f3dMat.set_lights:
         fLights = saveLightsDefinition(fModel, fMaterial, f3dMat, materialName + "_lights")
         fMaterial.mat_only_DL.commands.extend([SPSetLights(fLights)])
 

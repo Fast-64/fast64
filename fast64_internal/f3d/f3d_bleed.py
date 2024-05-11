@@ -357,7 +357,7 @@ class BleedGraphics:
 
     # remove syncs if first material, or if no gsDP cmds in material
     def optimize_syncs(self, cmd_list: GfxList, bleed_state: int):
-        no_syncs_needed = {"DPSetPrimColor"}  # will not affect rdp
+        no_syncs_needed = {"DPSetPrimColor", "DPSetPrimDepth"}  # will not affect rdp
         syncs_needed = {"SPSetOtherMode"}  # will affect rdp
         if bleed_state == self.bleed_start:
             while DPPipeSync() in cmd_list.commands:
