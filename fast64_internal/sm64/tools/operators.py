@@ -1,7 +1,7 @@
 import bpy
 
 from bpy.utils import register_class, unregister_class
-from bpy.types import Context
+from bpy.types import Context, Object
 from bpy.props import EnumProperty, BoolProperty, IntProperty, FloatProperty, StringProperty
 from bpy.path import abspath
 
@@ -60,7 +60,7 @@ class SM64_AddrConv(OperatorBase):
             ptr = int.from_bytes(encodeSegmentedAddr(address, segmentData), "big")
             self.report({"INFO"}, "Segmented pointer is 0x" + format(ptr, "08X"))
         else:
-            raise PluginError("Undefined address conversion option")
+            raise NotImplementedError(f"Non implement conversion option {self.converion}")
 
 
 class SM64_AddBoneGroups(OperatorBase):
@@ -75,10 +75,12 @@ class SM64_AddBoneGroups(OperatorBase):
     def execute_operator(self, context: Context):
         if len(context.selected_objects) == 0:
             raise PluginError("Armature not selected.")
-        elif type(context.selected_objects[0].data) is not bpy.types.Armature:
-            raise PluginError("Armature not selected.")
+        elif len(context.selected_objects) > 1:
+            raise PluginError("More than one object selected.")
+        elif context.selected_objects[0].type != "ARMATURE":
+            raise PluginError("Selected object is not an armature.")
 
-        armature_obj = context.selected_objects[0]
+        armature_obj: Object = context.selected_objects[0]
         createBoneGroups(armature_obj)
 
         self.report({"INFO"}, "Created bone groups.")
@@ -104,7 +106,7 @@ class SM64_CreateMetarig(OperatorBase):
         elif context.selected_objects[0].type != "ARMATURE":
             raise PluginError("Selected object is not an armature.")
 
-        armature_obj = context.selected_objects[0]
+        armature_obj: Object = context.selected_objects[0]
         generateMetarig(armature_obj)
 
         self.report({"INFO"}, "Created metarig.")
@@ -120,8 +122,14 @@ def get_clean_obj_duplicate_name(name: str):
     return name
 
 
-def create_sm64_empty(name: str, obj_type: str, location=(0.0, 0.0, 0.0), rotation=(0.0, 0.0, 0.0)):
-    bpy.ops.object.empty_add(type="CUBE", align="CURSOR", location=location, rotation=rotation)
+def create_sm64_empty(
+    name: str,
+    obj_type: str,
+    empty_type: str = "CUBE",
+    location=(0.0, 0.0, 0.0),
+    rotation=(0.0, 0.0, 0.0),
+) -> Object:
+    bpy.ops.object.empty_add(type=empty_type, align="CURSOR", location=location, rotation=rotation)
     obj = bpy.context.view_layer.objects.active
     obj.name, obj.sm64_obj_type = get_clean_obj_duplicate_name(name), obj_type
     return obj
@@ -130,7 +138,8 @@ def create_sm64_empty(name: str, obj_type: str, location=(0.0, 0.0, 0.0), rotati
 class SM64_CreateSimpleLevel(OperatorBase):
     bl_idname = "scene.sm64_create_simple_level"
     bl_label = "Create SM64 Level Layout"
-    bl_description = "Creates a simple SM64 level layout with a user defined area amount and death plane"
+    bl_description = "Creates a simple SM64 level layout"
+    "with a user defined area amount and death plane"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
     context_mode = "OBJECT"
 
@@ -251,8 +260,8 @@ class SM64_AddWaterBox(AddWaterBox):
     preset: StringProperty(default="Shaded Solid")
     matName: StringProperty(default="sm64_water_mat")
 
-    def setEmptyType(self, emptyObj):
-        emptyObj.sm64_obj_type = "Water Box"
+    def setEmptyType(self, empty_object: Object):
+        empty_object.sm64_obj_type = "Water Box"
 
 
 classes = (
