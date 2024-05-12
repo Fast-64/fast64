@@ -137,7 +137,7 @@ def create_sm64_empty(
 
 class SM64_CreateSimpleLevel(OperatorBase):
     bl_idname = "scene.sm64_create_simple_level"
-    bl_label = "Create SM64 Level Layout"
+    bl_label = "Create Level Layout"
     bl_description = "Creates a simple SM64 level layout"
     "with a user defined area amount and death plane"
     bl_options = {"REGISTER", "UNDO", "PRESET"}

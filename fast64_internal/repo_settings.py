@@ -1,11 +1,12 @@
 import json
 from typing import Any
 from bpy.utils import register_class, unregister_class
-from bpy.types import Context, Operator, Scene
+from bpy.types import Context, Scene
 from bpy.props import StringProperty
 from bpy.path import abspath
 
 from .utility import filepath_checks
+from .operators import OperatorBase
 from .sm64.settings.repo_settings import load_sm64_repo_settings, save_sm64_repo_settings
 
 
