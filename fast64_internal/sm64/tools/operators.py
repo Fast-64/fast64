@@ -42,22 +42,21 @@ class SM64_AddrConv(OperatorBase):
         sm64_props = context.scene.fast64.sm64
 
         import_rom_path = abspath(sm64_props.import_rom)
-
         import_rom_checks(import_rom_path)
-        if not self.address:
+
+        address = int(self.address, 0)
+        if not address:
             raise PluginError("Empty address")
 
         with open(import_rom_path, "rb") as romfile:
-            levelParsed = parseLevelAtPointer(romfile, level_pointers[scene.fast64.sm64.level_convert])
-        segmentData = levelParsed.segmentData
-
-        address = int(self.address, 16)
+            level_parsed = parseLevelAtPointer(romfile, level_pointers[sm64_props.level_convert])
+        segment_data = level_parsed.segmentData
 
         if self.conversion_option == "SEGMENTED_TO_VIRTUAL":
-            ptr = decodeSegmentedAddr(address.to_bytes(4, "big"), segmentData)
+            ptr = decodeSegmentedAddr(address.to_bytes(4, "big"), segment_data)
             self.report({"INFO"}, "Virtual pointer is 0x" + format(ptr, "08X"))
         elif self.conversion_option == "VIRTUAL_TO_SEGMENTED":
-            ptr = int.from_bytes(encodeSegmentedAddr(address, segmentData), "big")
+            ptr = int.from_bytes(encodeSegmentedAddr(address, segment_data), "big")
             self.report({"INFO"}, "Segmented pointer is 0x" + format(ptr, "08X"))
         else:
             raise NotImplementedError(f"Non implement conversion option {self.conversion_option}")

@@ -36,12 +36,13 @@ class SM64_ToolsPanel(SM64_Panel):
             col = col.column()
             col.enabled = False
 
-        prop_split(col, sm64_props, "convertible_addr", "Address")
         prop_split(col, sm64_props, "level_convert", "Level")
-        seg_to_virt_op = col.operator(SM64_AddrConv.bl_idname, text="Convert Segmented To Virtual")
+        prop_split(col, sm64_props, "convertible_addr", "Address")
+        split = col.split()
+        seg_to_virt_op = SM64_AddrConv.draw_props(split, text="Segmented To Virtual")
         seg_to_virt_op.conversion_option = "SEGMENTED_TO_VIRTUAL"
         seg_to_virt_op.address = sm64_props.convertible_addr
-        virt_to_seg_op = col.operator(SM64_AddrConv.bl_idname, text="Convert Virtual To Segmented")
+        virt_to_seg_op = SM64_AddrConv.draw_props(split, text="Virtual To Segmented")
         virt_to_seg_op.conversion_option = "VIRTUAL_TO_SEGMENTED"
         virt_to_seg_op.address = sm64_props.convertible_addr
 
