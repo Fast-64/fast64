@@ -1,4 +1,5 @@
 import bpy, mathutils, math
+from bpy.types import Operator, Context, UILayout
 from bpy.utils import register_class, unregister_class
 from .utility import *
 from .f3d.f3d_material import *
@@ -18,6 +19,16 @@ class OperatorBase(Operator):
     execute_operator() and catches exceptions for raisePluginError()"""
 
     context_mode: str | None = None
+    icon: str = ""
+
+    @classmethod
+    def draw_props(cls, layout: UILayout, icon: str = "", **prop_kwargs):
+        icon = icon if icon else cls.icon
+        if icon:
+            op = layout.operator(cls.bl_idname, icon=icon, **prop_kwargs)
+        else:
+            op = layout.operator(cls.bl_idname, **prop_kwargs)
+        return op
 
     def execute_operator(self, context: Context):
         raise NotImplementedError()
@@ -41,6 +52,7 @@ class AddWaterBox(OperatorBase):
     bl_label = "Add Water Box"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
     context_mode = "OBJECT"
+    icon = "CUBE"
 
     scale: bpy.props.FloatProperty(default=10)
     preset: bpy.props.StringProperty(default="Shaded Solid")

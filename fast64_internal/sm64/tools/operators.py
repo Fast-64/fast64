@@ -60,7 +60,7 @@ class SM64_AddrConv(OperatorBase):
             ptr = int.from_bytes(encodeSegmentedAddr(address, segmentData), "big")
             self.report({"INFO"}, "Segmented pointer is 0x" + format(ptr, "08X"))
         else:
-            raise NotImplementedError(f"Non implement conversion option {self.converion}")
+            raise NotImplementedError(f"Non implement conversion option {self.conversion_option}")
 
 
 class SM64_AddBoneGroups(OperatorBase):
@@ -71,6 +71,7 @@ class SM64_AddBoneGroups(OperatorBase):
     bl_label = "Add Bone Groups"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
     context_mode = "OBJECT"
+    icon = "GROUP_BONE"
 
     def execute_operator(self, context: Context):
         if len(context.selected_objects) == 0:
@@ -97,6 +98,7 @@ class SM64_CreateMetarig(OperatorBase):
     bl_label = "Create Animatable Metarig"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
     context_mode = "OBJECT"
+    icon = "BONE_DATA"
 
     def execute_operator(self, context: Context):
         if len(context.selected_objects) == 0:
@@ -142,6 +144,7 @@ class SM64_CreateSimpleLevel(OperatorBase):
     "with a user defined area amount and death plane"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
     context_mode = "OBJECT"
+    icon = "CUBE"
 
     area_amount: IntProperty(name="Area Amount", default=1, min=1, max=8)
     add_death_plane: BoolProperty(name="Add Death Plane")

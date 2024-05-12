@@ -19,12 +19,12 @@ class SM64_ToolsPanel(SM64_Panel):
         col = self.layout.column()
 
         col.label(text="Misc Tools", icon="TOOL_SETTINGS")
-        col.operator(SM64_CreateSimpleLevel.bl_idname)
-        col.operator(SM64_AddWaterBox.bl_idname)
+        SM64_CreateSimpleLevel.draw_props(col)
+        SM64_AddWaterBox.draw_props(col)
 
         col.label(text="Armature Tools", icon="ARMATURE_DATA")
-        col.operator(SM64_AddBoneGroups.bl_idname)
-        col.operator(SM64_CreateMetarig.bl_idname)
+        SM64_AddBoneGroups.draw_props(col)
+        SM64_CreateMetarig.draw_props(col)
 
         if not sm64_props.show_importing_menus:
             return
