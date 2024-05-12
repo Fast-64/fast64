@@ -120,9 +120,7 @@ def get_clean_obj_duplicate_name(name: str):
     return name
 
 
-def create_sm64_empty(
-    name: str, obj_type: str, location=(0.0, 0.0, 0.0), rotation=(0.0, 0.0, 0.0)
-):
+def create_sm64_empty(name: str, obj_type: str, location=(0.0, 0.0, 0.0), rotation=(0.0, 0.0, 0.0)):
     bpy.ops.object.empty_add(type="CUBE", align="CURSOR", location=location, rotation=rotation)
     obj = bpy.context.view_layer.objects.active
     obj.name, obj.sm64_obj_type = get_clean_obj_duplicate_name(name), obj_type

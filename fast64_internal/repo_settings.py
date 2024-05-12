@@ -5,13 +5,9 @@ from bpy.types import Context, Operator, Scene
 from bpy.props import StringProperty
 from bpy.path import abspath
 
+from .utility import filepath_checks
 from .sm64.settings.repo_settings import load_sm64_repo_settings, save_sm64_repo_settings
 
-from .utility import (
-    PluginError,
-    filepath_checks,
-    raisePluginError,
-)
 
 cur_repo_settings_version = 1.0
 
@@ -115,15 +111,15 @@ def load_repo_settings(scene: Scene, path: str, skip_if_no_auto_load: bool = Fal
         with open(abspath(path), "r", encoding="utf-8") as json_file:
             data = json.load(json_file)
     except Exception as exc:
-        raise PluginError(f"Failed to load repo settings json. ({str(exc)})")
+        raise Exception(f"Failed to load repo settings json. ({str(exc)})")
 
     if skip_if_no_auto_load and not data.get("auto_load_settings", True):
         return
 
     # Some future proofing
     if data.get("version", cur_repo_settings_version) > cur_repo_settings_version:
-        raise PluginError(
-            "This repo settings file is using a version higher than this fast64 version supports."
+        raise ValueError(
+            "This repo settings file is using a version higher than this fast64 version supports.",
         )
     scene.fast64.settings.auto_repo_load_settings = data.get(
         "auto_load_settings", scene.fast64.settings.auto_repo_load_settings
@@ -165,7 +161,7 @@ def save_repo_settings(scene: Scene, path: str):
     data: dict[str, Any] = {}
     rdp_defaults_data: dict[str, Any] = {}
 
-    data["version"] = cur_repo_settings_version  # Just in case something about the settings significantly changes
+    data["version"] = cur_repo_settings_version
     data["auto_load_settings"] = scene.fast64.settings.auto_repo_load_settings
 
     data["rdp_defaults"] = rdp_defaults_data
@@ -194,7 +190,7 @@ def save_repo_settings(scene: Scene, path: str):
     if scene.gameEditorMode == "SM64":
         data["sm64"] = save_sm64_repo_settings(scene)
 
-    with open(abspath(path), "w") as json_file:
+    with open(abspath(path), "w", encoding="utf-8") as json_file:
         json.dump(data, json_file, indent=2)
 
 
