@@ -27,7 +27,7 @@ class SM64_ToolsPanel(SM64_Panel):
 
         if not sm64_props.show_importing_menus:
             return
-        col.label(text="Address Converter", icon="VIEWZOOM")
+        col.label(text="Address Converter", icon="MEMORY")
 
         if not import_rom_ui_warnings(col, sm64_props.import_rom):
             col = col.column()
