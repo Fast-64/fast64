@@ -1,7 +1,7 @@
 import os
 import bpy
 from bpy.types import PropertyGroup, UILayout, Scene, Context
-from bpy.props import BoolProperty, StringProperty, EnumProperty, IntProperty, FloatProperty, PointerProperty
+from bpy.props import BoolProperty, StringProperty, EnumProperty, IntProperty, FloatProperty
 from bpy.path import abspath
 from bpy.utils import register_class, unregister_class
 
@@ -14,7 +14,7 @@ from ..sm64_constants import (
     enum_compression_formats,
     enum_sm64_goal_type,
 )
-from ..sm64_utility import export_rom_checks, import_rom_checks
+from ..sm64_utility import export_rom_ui_warnings, import_rom_ui_warnings
 from ...utility import (
     directory_path_checks,
     directory_ui_warnings,
@@ -134,10 +134,7 @@ Sets bank 4 range to ({hex(defaultExtendSegment4[0])}, {hex(defaultExtendSegment
 
         if self.export_type == "Binary":
             col.prop(self, "export_rom")
-            try:
-                export_rom_checks(abspath(self.export_rom))
-            except Exception as e:
-                multilineLabel(col.box(), str(e), "ERROR")
+            export_rom_ui_warnings(col, self.export_rom)
             col.prop(self, "output_rom")
             col.prop(self, "extend_bank_4")
         elif not self.is_binary_export():
@@ -160,10 +157,7 @@ Sets bank 4 range to ({hex(defaultExtendSegment4[0])}, {hex(defaultExtendSegment
         col.prop(self, "show_importing_menus")
         if self.show_importing_menus:
             prop_split(col, self, "import_rom", "Import ROM")
-            try:
-                import_rom_checks(abspath(self.import_rom))
-            except Exception as e:
-                multilineLabel(col.box(), str(e), "ERROR")
+            import_rom_ui_warnings(col, self.import_rom)
 
 
 classes = (SM64_Properties,)

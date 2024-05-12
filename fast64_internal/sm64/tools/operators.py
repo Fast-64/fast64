@@ -39,7 +39,7 @@ class SM64_AddrConv(OperatorBase):
 
     def execute_operator(self, context: Context):
         scene = context.scene
-        sm64_props = context.scene.fast64.sm64
+        sm64_props = scene.fast64.sm64
 
         import_rom_path = abspath(sm64_props.import_rom)
         import_rom_checks(import_rom_path)

@@ -1,6 +1,8 @@
 import os
+from bpy.types import UILayout
+from bpy.path import abspath
 
-from ..utility import PluginError, filepath_checks
+from ..utility import PluginError, filepath_checks, multilineLabel
 
 
 def starSelectWarning(operator, fileStatus):
@@ -23,29 +25,47 @@ def getMemoryCFilePath(decompDir):
     return os.path.join(decompDir, relPath)
 
 
-def import_rom_checks(filepath: str):
+def import_rom_checks(rom: os.PathLike):
     filepath_checks(
-        filepath,
+        rom,
         empty_error="Import ROM path is empty.",
         doesnt_exist_error="Import ROM path does not exist.",
         not_a_file_error="Import ROM path is not a file.",
     )
-    check_expanded(filepath)
+    check_expanded(rom)
 
 
-def export_rom_checks(filepath: str):
+def export_rom_checks(rom: os.PathLike):
     filepath_checks(
-        filepath,
+        rom,
         empty_error="Export ROM path is empty.",
         doesnt_exist_error="Export ROM path does not exist.",
         not_a_file_error="Export ROM path is not a file.",
     )
-    check_expanded(filepath)
+    check_expanded(rom)
 
 
-def check_expanded(filepath: str):
-    size = os.path.getsize(filepath)
+def import_rom_ui_warnings(layout: UILayout, rom: os.PathLike) -> bool:
+    try:
+        import_rom_checks(abspath(rom))
+        return True
+    except Exception as exc:
+        multilineLabel(layout.box(), str(exc), "ERROR")
+        return False
+
+
+def export_rom_ui_warnings(layout: UILayout, rom: os.PathLike) -> bool:
+    try:
+        export_rom_checks(abspath(rom))
+        return True
+    except Exception as exc:
+        multilineLabel(layout.box(), str(exc), "ERROR")
+        return False
+
+
+def check_expanded(rom: os.PathLike):
+    size = os.path.getsize(rom)
     if size < 9000000:  # check if 8MB
         raise PluginError(
-            f"ROM at {filepath} is too small.\nYou may be using an unexpanded ROM.\nYou can expand a ROM by opening it in SM64 Editor or ROM Manager."
+            f"ROM at {rom} is too small.\nYou may be using an unexpanded ROM.\nYou can expand a ROM by opening it in SM64 Editor or ROM Manager."
         )

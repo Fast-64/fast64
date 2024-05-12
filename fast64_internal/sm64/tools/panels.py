@@ -1,10 +1,9 @@
 from bpy.utils import register_class, unregister_class
-from bpy.path import abspath
 
 from ...panels import SM64_Panel
-from ...utility import multilineLabel, prop_split, string_int_warning
+from ...utility import prop_split, string_int_warning
 
-from ..sm64_utility import import_rom_checks
+from ..sm64_utility import import_rom_ui_warnings
 
 from .operators import SM64_AddrConv, SM64_CreateSimpleLevel, SM64_AddWaterBox, SM64_AddBoneGroups, SM64_CreateMetarig
 
@@ -29,13 +28,10 @@ class SM64_ToolsPanel(SM64_Panel):
         if not sm64_props.show_importing_menus:
             return
         col.label(text="Address Converter", icon="VIEWZOOM")
-        try:
-            import_rom_checks(abspath(sm64_props.import_rom))
-        except Exception as e:
-            multilineLabel(col.box(), str(e), "ERROR")
+
+        if not import_rom_ui_warnings(col, sm64_props.import_rom):
             col = col.column()
             col.enabled = False
-
         prop_split(col, sm64_props, "level_convert", "Level")
         prop_split(col, sm64_props, "convertible_addr", "Address")
         if string_int_warning(col, sm64_props.convertible_addr):
