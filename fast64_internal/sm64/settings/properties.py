@@ -123,11 +123,9 @@ Sets bank 4 range to ({hex(defaultExtendSegment4[0])}, {hex(defaultExtendSegment
 
     def draw_props(self, layout: UILayout, show_repo_settings: bool = True):
         col = layout.column()
-        col.scale_y = 1.1
 
         prop_split(col, self, "goal", "Goal")
         prop_split(col, self, "export_type", "Export type")
-
         col.separator()
 
         prop_split(col, self, "blender_to_sm64_scale", "Blender To SM64 Scale")
@@ -138,10 +136,8 @@ Sets bank 4 range to ({hex(defaultExtendSegment4[0])}, {hex(defaultExtendSegment
             col.prop(self, "output_rom")
             col.prop(self, "extend_bank_4")
         elif not self.is_binary_export():
-            # C and (in the future) glTF
             prop_split(col, self, "decomp_path", "Decomp Path")
             directory_ui_warnings(col, abspath(self.decomp_path))
-
         col.separator()
 
         if not self.is_binary_export():
@@ -151,7 +147,6 @@ Sets bank 4 range to ({hex(defaultExtendSegment4[0])}, {hex(defaultExtendSegment
                 prop_split(col, self, "refresh_version", "Refresh (Function Map)")
                 col.prop(self, "force_extended_ram")
                 col.prop(self, "matstack_fix")
-
         col.separator()
 
         col.prop(self, "show_importing_menus")
