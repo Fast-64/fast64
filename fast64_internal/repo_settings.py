@@ -77,7 +77,7 @@ rm_rdp_properties = [
 ]
 
 
-class SM64_SaveRepoSettings(Operator):
+class SM64_SaveRepoSettings(OperatorBase):
     bl_idname = "scene.sm64_save_repo_settings"
     bl_label = "Save Repo Settings"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
@@ -85,16 +85,12 @@ class SM64_SaveRepoSettings(Operator):
 
     path: StringProperty(name="Settings File Path", subtype="FILE_PATH")
 
-    def execute(self, context: Context):
-        try:
-            save_repo_settings(context.scene, self.path)
-            return {"FINISHED"}
-        except Exception as e:
-            raisePluginError(self, e)
-            return {"CANCELLED"}
+    def execute_operator(self, context: Context):
+        save_repo_settings(context.scene, self.path)
+        self.report({"INFO"}, "Saved repo settings")
 
 
-class SM64_LoadRepoSettings(Operator):
+class SM64_LoadRepoSettings(OperatorBase):
     bl_idname = "scene.sm64_load_repo_settings"
     bl_label = "Load Repo Settings"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
@@ -102,13 +98,9 @@ class SM64_LoadRepoSettings(Operator):
 
     path: StringProperty(name="Settings File Path", subtype="FILE_PATH")
 
-    def execute(self, context: Context):
-        try:
-            load_repo_settings(context.scene, self.path)
-            return {"FINISHED"}
-        except Exception as e:
-            raisePluginError(self, e)
-            return {"CANCELLED"}
+    def execute_operator(self, context: Context):
+        load_repo_settings(context.scene, self.path)
+        self.report({"INFO"}, "Loaded repo settings")
 
 
 def load_repo_settings(scene: Scene, path: str, skip_if_no_auto_load: bool = False):
@@ -120,10 +112,10 @@ def load_repo_settings(scene: Scene, path: str, skip_if_no_auto_load: bool = Fal
     )
 
     try:
-        with open(abspath(path), "r") as json_file:
+        with open(abspath(path), "r", encoding="utf-8") as json_file:
             data = json.load(json_file)
-    except Exception as e:
-        raise PluginError(f"Failed to load repo settings json. ({str(e)})")
+    except Exception as exc:
+        raise PluginError(f"Failed to load repo settings json. ({str(exc)})")
 
     if skip_if_no_auto_load and not data.get("auto_load_settings", True):
         return
@@ -131,7 +123,7 @@ def load_repo_settings(scene: Scene, path: str, skip_if_no_auto_load: bool = Fal
     # Some future proofing
     if data.get("version", cur_repo_settings_version) > cur_repo_settings_version:
         raise PluginError(
-            "This repo settings file is using a version higher than this fast64 version supports, please update to avoid any issues."
+            "This repo settings file is using a version higher than this fast64 version supports."
         )
     scene.fast64.settings.auto_repo_load_settings = data.get(
         "auto_load_settings", scene.fast64.settings.auto_repo_load_settings

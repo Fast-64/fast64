@@ -13,11 +13,34 @@ def addMaterialByName(obj, matName, preset):
         material.name = matName
 
 
-class AddWaterBox(bpy.types.Operator):
-    # set bl_ properties
+class OperatorBase(Operator):
+    """Base class for operators, keeps track of context mode and sets it back after running
+    execute_operator() and catches exceptions for raisePluginError()"""
+
+    context_mode: str | None = None
+
+    def execute_operator(self, context: Context):
+        raise NotImplementedError()
+
+    def execute(self, context: Context):
+        starting_context_mode = context.mode
+        try:
+            if self.context_mode:
+                bpy.ops.object.mode_set(mode=self.context_mode)
+            self.execute_operator(context)
+            return {"FINISHED"}
+        except Exception as exc:
+            raisePluginError(self, exc)
+            return {"CANCELLED"}
+        finally:
+            bpy.ops.object.mode_set(mode=get_mode_set_from_context_mode(starting_context_mode))
+
+
+class AddWaterBox(OperatorBase):
     bl_idname = "object.add_water_box"
     bl_label = "Add Water Box"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
+    context_mode = "OBJECT"
 
     scale: bpy.props.FloatProperty(default=10)
     preset: bpy.props.StringProperty(default="Shaded Solid")
@@ -26,10 +49,7 @@ class AddWaterBox(bpy.types.Operator):
     def setEmptyType(self, emptyObj):
         return None
 
-    def execute(self, context):
-        if context.mode != "OBJECT":
-            bpy.ops.object.mode_set(mode="OBJECT")
-
+    def execute_operator(self, context):
         bpy.ops.object.select_all(action="DESELECT")
 
         location = mathutils.Vector(bpy.context.scene.cursor.location)
@@ -48,7 +68,7 @@ class AddWaterBox(bpy.types.Operator):
 
         parentObject(planeObj, emptyObj)
 
-        return {"FINISHED"}
+        self.report({"INFO"}, "Water box added.")
 
 
 class WarningOperator(bpy.types.Operator):

@@ -1,17 +1,15 @@
 import bpy
 
 from bpy.utils import register_class, unregister_class
-from bpy.types import Operator
+from bpy.types import Context
 from bpy.props import EnumProperty, BoolProperty, IntProperty, FloatProperty, StringProperty
 from bpy.path import abspath
 
-from ...operators import AddWaterBox
+from ...operators import OperatorBase, AddWaterBox
 from ...utility import (
     PluginError,
     decodeSegmentedAddr,
     encodeSegmentedAddr,
-    raisePluginError,
-    get_mode_set_from_context_mode,
 )
 
 from ..sm64_constants import level_pointers, levelIDNames
@@ -29,7 +27,7 @@ enum_address_conversion_options = [
 ]
 
 
-class SM64_AddrConv(Operator):
+class SM64_AddrConv(OperatorBase):
     bl_idname = "scene.sm64_addr_conv"
     bl_label = "Convert SM64 Address"
     bl_description = "Converts an SM64 address from segmented to virtual or from virtual to segmented"
@@ -39,7 +37,7 @@ class SM64_AddrConv(Operator):
     conversion_option: EnumProperty(name="Conversion type", items=enum_address_conversion_options)
     address: StringProperty(name="Address")
 
-    def execute_operator(self, context):
+    def execute_operator(self, context: Context):
         scene = context.scene
         sm64_props = context.scene.fast64.sm64
 
@@ -64,46 +62,29 @@ class SM64_AddrConv(Operator):
         else:
             raise PluginError("Undefined address conversion option")
 
-    def execute(self, context):
-        try:
-            self.execute_operator(context)
-            return {"FINISHED"}
-        except Exception as e:
-            raisePluginError(self, e)
-            return {"CANCELLED"}
 
-
-class SM64_AddBoneGroups(Operator):
+class SM64_AddBoneGroups(OperatorBase):
     bl_description = (
         "Add bone groups respresenting other node types in " + "SM64 geolayouts (ex. Shadow, Switch, Function)."
     )
     bl_idname = "object.add_bone_groups"
     bl_label = "Add Bone Groups"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
+    context_mode = "OBJECT"
 
-    def execute(self, context):
-        try:
-            if context.mode != "OBJECT" and context.mode != "POSE":
-                raise PluginError("Operator can only be used in object or pose mode.")
-            elif context.mode == "POSE":
-                bpy.ops.object.mode_set(mode="OBJECT")
+    def execute_operator(self, context: Context):
+        if len(context.selected_objects) == 0:
+            raise PluginError("Armature not selected.")
+        elif type(context.selected_objects[0].data) is not bpy.types.Armature:
+            raise PluginError("Armature not selected.")
 
-            if len(context.selected_objects) == 0:
-                raise PluginError("Armature not selected.")
-            elif type(context.selected_objects[0].data) is not bpy.types.Armature:
-                raise PluginError("Armature not selected.")
-
-            armatureObj = context.selected_objects[0]
-            createBoneGroups(armatureObj)
-        except Exception as e:
-            raisePluginError(self, e)
-            return {"CANCELLED"}
+        armature_obj = context.selected_objects[0]
+        createBoneGroups(armature_obj)
 
         self.report({"INFO"}, "Created bone groups.")
-        return {"FINISHED"}  # must return a set
 
 
-class SM64_CreateMetarig(Operator):
+class SM64_CreateMetarig(OperatorBase):
     bl_description = (
         "SM64 imported armatures are usually not good for "
         + "rigging. There are often intermediate bones between deform bones "
@@ -113,33 +94,20 @@ class SM64_CreateMetarig(Operator):
     bl_idname = "object.sm64_create_metarig"
     bl_label = "Create Animatable Metarig"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
+    context_mode = "OBJECT"
 
-    def execute_operator(self, context):
+    def execute_operator(self, context: Context):
         if len(context.selected_objects) == 0:
             raise PluginError("Armature not selected.")
         elif len(context.selected_objects) > 1:
             raise PluginError("More than one object selected.")
-        elif type(context.selected_objects[0].data) is not bpy.types.Armature:
+        elif context.selected_objects[0].type != "ARMATURE":
             raise PluginError("Selected object is not an armature.")
 
-        armatureObj = context.selected_objects[0]
-        generateMetarig(armatureObj)
+        armature_obj = context.selected_objects[0]
+        generateMetarig(armature_obj)
 
         self.report({"INFO"}, "Created metarig.")
-
-    def execute(self, context):
-        starting_context_mode = context.mode
-        if context.mode != "OBJECT":
-            bpy.ops.object.mode_set(mode="OBJECT")
-
-        try:
-            self.execute_operator(context)
-            return {"FINISHED"}
-        except Exception as e:
-            raisePluginError(self, e)
-            return {"CANCELLED"}
-        finally:
-            bpy.ops.object.mode_set(mode=get_mode_set_from_context_mode(starting_context_mode))
 
 
 def get_clean_obj_duplicate_name(name: str):
@@ -153,20 +121,20 @@ def get_clean_obj_duplicate_name(name: str):
 
 
 def create_sm64_empty(
-    name: str, type: str, empty_type: str = "CUBE", location=(0.0, 0.0, 0.0), rotation=(0.0, 0.0, 0.0)
+    name: str, obj_type: str, location=(0.0, 0.0, 0.0), rotation=(0.0, 0.0, 0.0)
 ):
-    bpy.ops.object.empty_add(type=empty_type, align="CURSOR", location=location, rotation=rotation)
-    object = bpy.context.view_layer.objects.active
-    object.name, object.sm64_obj_type = get_clean_obj_duplicate_name(name), type
+    bpy.ops.object.empty_add(type="CUBE", align="CURSOR", location=location, rotation=rotation)
+    obj = bpy.context.view_layer.objects.active
+    obj.name, obj.sm64_obj_type = get_clean_obj_duplicate_name(name), obj_type
+    return obj
 
-    return object
 
-
-class SM64_CreateSimpleLevel(Operator):
+class SM64_CreateSimpleLevel(OperatorBase):
     bl_idname = "scene.sm64_create_simple_level"
     bl_label = "Create SM64 Level Layout"
     bl_description = "Creates a simple SM64 level layout with a user defined area amount and death plane"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
+    context_mode = "OBJECT"
 
     area_amount: IntProperty(name="Area Amount", default=1, min=1, max=8)
     add_death_plane: BoolProperty(name="Add Death Plane")
@@ -276,21 +244,6 @@ class SM64_CreateSimpleLevel(Operator):
         bpy.ops.object.select_all(action="DESELECT")
         level_object.select_set(True)
         bpy.context.view_layer.objects.active = level_object
-
-    def execute(self, context):
-        starting_context_mode = context.mode
-        if context.mode != "OBJECT":
-            bpy.ops.object.mode_set(mode="OBJECT")
-
-        bpy.ops.object.select_all(action="DESELECT")
-        try:
-            self.execute_operator(context)
-            return {"FINISHED"}
-        except Exception as e:
-            raisePluginError(self, e)
-            return {"CANCELLED"}
-        finally:
-            bpy.ops.object.mode_set(mode=get_mode_set_from_context_mode(starting_context_mode))
 
 
 class SM64_AddWaterBox(AddWaterBox):
