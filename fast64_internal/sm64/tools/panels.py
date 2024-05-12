@@ -2,7 +2,7 @@ from bpy.utils import register_class, unregister_class
 from bpy.path import abspath
 
 from ...panels import SM64_Panel
-from ...utility import multilineLabel, prop_split
+from ...utility import multilineLabel, prop_split, string_int_warning
 
 from ..sm64_utility import import_rom_checks
 
@@ -38,12 +38,13 @@ class SM64_ToolsPanel(SM64_Panel):
 
         prop_split(col, sm64_props, "level_convert", "Level")
         prop_split(col, sm64_props, "convertible_addr", "Address")
-        address = sm64_props.convertible_addr
-        split = col.split()
-        to_virt_op = SM64_AddrConv.draw_props(split, text="Segmented To Virtual")
-        to_virt_op.conversion_option, to_virt_op.address = "SEGMENTED_TO_VIRTUAL", address
-        to_virt_op = SM64_AddrConv.draw_props(split, text="Virtual To Segmented")
-        to_virt_op.conversion_option, to_virt_op.address = "VIRTUAL_TO_SEGMENTED", address
+        if string_int_warning(col, sm64_props.convertible_addr):
+            address = sm64_props.convertible_addr
+            split = col.split()
+            to_virt_op = SM64_AddrConv.draw_props(split, text="Segmented To Virtual")
+            to_virt_op.option, to_virt_op.address = "SEGMENTED_TO_VIRTUAL", address
+            to_virt_op = SM64_AddrConv.draw_props(split, text="Virtual To Segmented")
+            to_virt_op.option, to_virt_op.address = "VIRTUAL_TO_SEGMENTED", address
 
 
 classes = (SM64_ToolsPanel,)

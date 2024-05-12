@@ -34,7 +34,7 @@ class SM64_AddrConv(OperatorBase):
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
     # Using an enum here looks cleaner when using this outside of the context of the SM64 panel
-    conversion_option: EnumProperty(name="Conversion type", items=enum_address_conversion_options)
+    option: EnumProperty(name="Conversion type", items=enum_address_conversion_options)
     address: StringProperty(name="Address")
 
     def execute_operator(self, context: Context):
@@ -52,14 +52,14 @@ class SM64_AddrConv(OperatorBase):
             level_parsed = parseLevelAtPointer(romfile, level_pointers[sm64_props.level_convert])
         segment_data = level_parsed.segmentData
 
-        if self.conversion_option == "SEGMENTED_TO_VIRTUAL":
+        if self.option == "SEGMENTED_TO_VIRTUAL":
             ptr = decodeSegmentedAddr(address.to_bytes(4, "big"), segment_data)
             self.report({"INFO"}, "Virtual pointer is 0x" + format(ptr, "08X"))
-        elif self.conversion_option == "VIRTUAL_TO_SEGMENTED":
+        elif self.option == "VIRTUAL_TO_SEGMENTED":
             ptr = int.from_bytes(encodeSegmentedAddr(address, segment_data), "big")
             self.report({"INFO"}, "Segmented pointer is 0x" + format(ptr, "08X"))
         else:
-            raise NotImplementedError(f"Non implement conversion option {self.conversion_option}")
+            raise NotImplementedError(f"Non implement conversion option {self.option}")
 
 
 class SM64_AddBoneGroups(OperatorBase):

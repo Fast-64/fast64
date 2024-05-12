@@ -1249,6 +1249,28 @@ def filepath_ui_warnings(
         return False
 
 
+def is_valid_int(value: str):
+    try:
+        int(value, 0)
+        return True
+    except ValueError as exc:
+        return False
+
+
+def string_int_warning(layout: UILayout, value: str):
+    if value:
+        if is_valid_int(value):
+            return True
+        multilineLabel(
+            layout.box(),
+            "Invalid integer\nUse 0x for hexadecimal, 0b for binary, don´t use decimals",
+            "ERROR",
+        )
+    else:
+        layout.box().label(text="Empty Number", icon="ERROR")
+    return False
+
+
 def toAlnum(name, exceptions=[]):
     if name is None or name == "":
         return None
