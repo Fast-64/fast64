@@ -63,6 +63,28 @@ def export_rom_ui_warnings(layout: UILayout, rom: os.PathLike) -> bool:
         return False
 
 
+def is_valid_int(value: str):
+    try:
+        int(value, 0)
+        return True
+    except ValueError as exc:
+        return False
+
+
+def string_int_warning(layout: UILayout, value: str):
+    if value:
+        if is_valid_int(value):
+            return True
+        multilineLabel(
+            layout.box(),
+            "Invalid integer\nUse 0x for hexadecimal, 0b for binary, don´t use decimals",
+            "ERROR",
+        )
+    else:
+        layout.box().label(text="Empty Number", icon="ERROR")
+    return False
+
+
 def check_expanded(rom: os.PathLike):
     size = os.path.getsize(rom)
     if size < 9000000:  # check if 8MB
