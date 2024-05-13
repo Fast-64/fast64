@@ -3,7 +3,7 @@ from bpy.utils import register_class, unregister_class
 from ...panels import SM64_Panel
 from ...utility import prop_split
 
-from ..sm64_utility import import_rom_ui_warnings. string_int_warning
+from ..sm64_utility import import_rom_ui_warnings, string_int_warning
 
 from .operators import SM64_AddrConv, SM64_CreateSimpleLevel, SM64_AddWaterBox, SM64_AddBoneGroups, SM64_CreateMetarig
 
