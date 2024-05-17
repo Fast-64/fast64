@@ -25,10 +25,8 @@ class OperatorBase(Operator):
     def draw_props(cls, layout: UILayout, icon: str = "", **prop_kwargs):
         icon = icon if icon else cls.icon
         if icon:
-            op = layout.operator(cls.bl_idname, icon=icon, **prop_kwargs)
-        else:
-            op = layout.operator(cls.bl_idname, **prop_kwargs)
-        return op
+            prop_kwargs["icon"] = icon
+        return layout.operator(cls.bl_idname, **prop_kwargs)
 
     def execute_operator(self, context: Context):
         raise NotImplementedError()
