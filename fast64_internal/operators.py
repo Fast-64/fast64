@@ -22,15 +22,11 @@ class OperatorBase(Operator):
     icon: str = ""
 
     @classmethod
-    def draw_operator(cls, layout: UILayout, **prop_kwargs):
-        icon = prop_kwargs.get("icon", cls.icon)
+    def draw_props(cls, layout: UILayout, icon: str = "", **prop_kwargs):
+        icon = icon if icon else cls.icon
         if icon:
             prop_kwargs["icon"] = icon
         return layout.operator(cls.bl_idname, **prop_kwargs)
-
-    @classmethod
-    def draw_props(cls, layout: UILayout, **prop_kwargs):
-        return cls.draw_operator(layout, **prop_kwargs)
 
     def execute_operator(self, context: Context):
         raise NotImplementedError()
