@@ -3,6 +3,11 @@
 # See https://black.readthedocs.io/en/stable/usage_and_configuration/the_basics.html
 # or `black --help` for what can go here
 
+# Require black version to be 23.x.y
+required-version = '23'
+# Install such a version with:
+# pip install 'black>=23,<24'
+
 line-length = 120
 
 target-version = [
@@ -12,7 +17,11 @@ target-version = [
 # What files to exclude when running Black on directories (for example `black .`)
 # Use forward slashes for directory delimiters, even on Windows
 # This is a regular expression, escape dots with a backslash like '\.'
-# Note: All whitespace seems to be trimmed (thankfully), probably by Black?
+# Note: This is a verbose regex (whitespace and "comments" are ignored)
+#       https://docs.python.org/3/library/re.html#re.VERBOSE
 extend-exclude = '''
-^/fast64_internal/f3d/f3d_constants\.py
+^(
+# Addon updater is copied from another repo
+/addon_updater\.py | /addon_updater_ops\.py
+)$
 '''

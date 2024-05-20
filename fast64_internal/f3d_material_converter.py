@@ -118,7 +118,7 @@ def set_best_draw_layer_for_materials():
             mat.f3d_mat.draw_layer.sm64 = obj.draw_layer_static
 
             if len(obj.vertex_groups) == 0:
-                continue # object doesn't have vertex groups
+                continue  # object doesn't have vertex groups
 
             # get vertex group in the polygon
             group = get_group_from_polygon(obj, p)
@@ -202,7 +202,6 @@ def convertBSDFtoF3D(obj, index, material, materialDict):
 
     elif "Principled BSDF" in material.node_tree.nodes:
         tex0Node = material.node_tree.nodes["Principled BSDF"].inputs["Base Color"]
-        tex1Node = material.node_tree.nodes["Principled BSDF"].inputs["Subsurface Color"]
         if len(tex0Node.links) == 0:
             newMaterial = createF3DMat(obj, preset=getDefaultMaterialPreset("Shaded Solid"), index=index)
             f3dMat = newMaterial.f3d_mat if newMaterial.mat_ver > 3 else newMaterial
@@ -226,8 +225,6 @@ def convertBSDFtoF3D(obj, index, material, materialDict):
                 newMaterial = createF3DMat(obj, preset=presetName, index=index)
                 f3dMat = newMaterial.f3d_mat if newMaterial.mat_ver > 3 else newMaterial
                 f3dMat.tex0.tex = tex0Node.links[0].from_node.image
-                if len(tex1Node.links) > 0 and isinstance(tex1Node.links[0].from_node, bpy.types.ShaderNodeTexImage):
-                    f3dMat.tex1.tex = tex1Node.links[0].from_node.image
                 updateMatWithName(newMaterial, material, materialDict)
             else:
                 print("Principled BSDF material does not have an Image Node attached to its Base Color.")

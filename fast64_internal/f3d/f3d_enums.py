@@ -330,6 +330,7 @@ enumRenderModesCycle2 = [
     ("G_RM_ZB_CLD_SURF2", "Cloud (No AA)", "G_RM_ZB_CLD_SURF2"),
     ("G_RM_ZB_OVL_SURF2", "Overlay (No AA)", "G_RM_ZB_OVL_SURF2"),
     ("G_RM_AA_ZB_TEX_TERR2", "Terrain", "G_RM_AA_ZB_TEX_TERR2"),
+    ("G_RM_OPA_SURF2", "Opaque (No AA, No ZBuf)", "G_RM_OPA_SURF2"),
 ]
 
 enumTexFormat = [
@@ -392,18 +393,38 @@ enumLargeEdges = [
 ]
 
 enumCelThreshMode = [
-    ("Lighter", "Lighter", "This cel level is drawn when the lighting level per-pixel is LIGHTER than (>=) the threshold"),
+    (
+        "Lighter",
+        "Lighter",
+        "This cel level is drawn when the lighting level per-pixel is LIGHTER than (>=) the threshold",
+    ),
     ("Darker", "Darker", "This cel level is drawn when the lighting level per-pixel is DARKER than (<) the threshold"),
 ]
 
 enumCelTintPipeline = [
-    ("CC", "CC (tint in Prim Color)", "Cel shading puts tint color in Prim Color and tint level in Prim Alpha. Set up CC color to LERP between source color and tint color based on tint level, or multiply source color by tint color. Source may be Tex 0 or Env Color"),
-    ("Blender", "Blender (tint in Fog Color)", "Cel shading puts tint color in Fog Color and tint level in Fog Alpha. Set up blender to LERP between CC output and tint color based on tint level. Then set CC to Tex 0 * shade color (vertex colors)"),
+    (
+        "CC",
+        "CC (tint in Prim Color)",
+        "Cel shading puts tint color in Prim Color and tint level in Prim Alpha. Set up CC color to LERP between source color and tint color based on tint level, or multiply source color by tint color. Source may be Tex 0 or Env Color",
+    ),
+    (
+        "Blender",
+        "Blender (tint in Fog Color)",
+        "Cel shading puts tint color in Fog Color and tint level in Fog Alpha. Set up blender to LERP between CC output and tint color based on tint level. Then set CC to Tex 0 * shade color (vertex colors)",
+    ),
 ]
 
 enumCelCutoutSource = [
-    ("TEXEL0", "Texture 0", "Cel shading material has binary alpha cutout from Texture 0 alpha. Does not work with I4 or I8 formats"),
-    ("TEXEL1", "Texture 1", "Cel shading material has binary alpha cutout from Texture 1 alpha. Does not work with I4 or I8 formats"),
+    (
+        "TEXEL0",
+        "Texture 0",
+        "Cel shading material has binary alpha cutout from Texture 0 alpha. Does not work with I4 or I8 formats",
+    ),
+    (
+        "TEXEL1",
+        "Texture 1",
+        "Cel shading material has binary alpha cutout from Texture 1 alpha. Does not work with I4 or I8 formats",
+    ),
     ("ENVIRONMENT", "None / Env Alpha", "Make sure your material writes env color, and set env alpha to opaque (255)"),
 ]
 

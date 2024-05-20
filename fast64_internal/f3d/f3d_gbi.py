@@ -29,11 +29,10 @@ class GfxListTag(enum.IntFlag):
     MaterialRevert = 4
     Draw = 4
     NoExport = 16
-    
+
     @property
     def Export(self):
         return not self & GfxListTag.NoExport
-    
 
 
 class GfxTag(enum.Flag):
@@ -1409,6 +1408,14 @@ class F3D:
         self.G_RM_FOG_SHADE_A = GBL_c1(G_BL_CLR_FOG, G_BL_A_SHADE, G_BL_CLR_IN, G_BL_1MA)
         self.G_RM_FOG_PRIM_A = GBL_c1(G_BL_CLR_FOG, G_BL_A_FOG, G_BL_CLR_IN, G_BL_1MA)
         self.G_RM_PASS = GBL_c1(G_BL_CLR_IN, G_BL_0, G_BL_CLR_IN, G_BL_1)
+
+        self.rendermodePresetsWithoutFlags = {
+            "G_RM_NOOP",
+            "G_RM_NOOP2",
+            "G_RM_FOG_SHADE_A",
+            "G_RM_FOG_PRIM_A",
+            "G_RM_PASS",
+        }
 
         # G_SETCONVERT: K0-5
 
@@ -2938,7 +2945,7 @@ class FTriGroup:
 
     def save_binary(self, romfile, f3d, segments):
         for celTriList in self.celTriLists:
-            celTriList.save_binary(romfile, f3d, segments);
+            celTriList.save_binary(romfile, f3d, segments)
         self.triList.save_binary(romfile, f3d, segments)
         self.vertexList.save_binary(romfile)
 
@@ -3038,12 +3045,6 @@ class FMaterial:
         self.scrollData.tile_scroll_tex1.s = tex1.tile_scroll.s
         self.scrollData.tile_scroll_tex1.t = tex1.tile_scroll.t
         self.scrollData.tile_scroll_tex1.interval = tex1.tile_scroll.interval
-
-    def sets_rendermode(self):
-        for command in self.material.commands:
-            if isinstance(command, DPSetRenderMode):
-                return True
-        return False
 
     def get_ptr_addresses(self, f3d):
         addresses = self.material.get_ptr_addresses(f3d)
@@ -3779,9 +3780,7 @@ class SPAmbOcclusionAmbDir(GbiMacro):
     def to_binary(self, f3d, segments):
         if not f3d.F3DEX_GBI_3:
             raise PluginError("SPAmbOcclusionAmbDir requires F3DEX3 microcode")
-        return gsMoveWd(
-            f3d.G_MW_FX, f3d.G_MWO_AO_AMBIENT, (_SHIFTL(self.amb, 16, 16) | _SHIFTL(self.dir, 0, 16)), f3d
-        )
+        return gsMoveWd(f3d.G_MW_FX, f3d.G_MWO_AO_AMBIENT, (_SHIFTL(self.amb, 16, 16) | _SHIFTL(self.dir, 0, 16)), f3d)
 
 
 @dataclass(unsafe_hash=True)
@@ -3808,8 +3807,9 @@ class SPAmbOcclusion(GbiMacro):
     def to_binary(self, f3d, segments):
         if not f3d.F3DEX_GBI_3:
             raise PluginError("SPAmbOcclusion requires F3DEX3 microcode")
-        return SPAmbOcclusionAmbDir(self.amb, self.dir).to_binary(f3d, segments) + \
-            SPAmbOcclusionPoint(self.point).to_binary(f3d, segments)
+        return SPAmbOcclusionAmbDir(self.amb, self.dir).to_binary(f3d, segments) + SPAmbOcclusionPoint(
+            self.point
+        ).to_binary(f3d, segments)
 
 
 @dataclass(unsafe_hash=True)
@@ -3820,9 +3820,7 @@ class SPFresnelScale(GbiMacro):
     def to_binary(self, f3d, segments):
         if not f3d.F3DEX_GBI_3:
             raise PluginError("SPFresnelScale requires F3DEX3 microcode")
-        return gsMoveHalfwd(
-            f3d.G_MW_FX, f3d.G_MWO_FRESNEL_SCALE, self.scale, f3d
-        )
+        return gsMoveHalfwd(f3d.G_MW_FX, f3d.G_MWO_FRESNEL_SCALE, self.scale, f3d)
 
 
 @dataclass(unsafe_hash=True)
@@ -3833,9 +3831,7 @@ class SPFresnelOffset(GbiMacro):
     def to_binary(self, f3d, segments):
         if not f3d.F3DEX_GBI_3:
             raise PluginError("SPFresnelOffset requires F3DEX3 microcode")
-        return gsMoveHalfwd(
-            f3d.G_MW_FX, f3d.G_MWO_FRESNEL_OFFSET, self.offset, f3d
-        )
+        return gsMoveHalfwd(f3d.G_MW_FX, f3d.G_MWO_FRESNEL_OFFSET, self.offset, f3d)
 
 
 @dataclass(unsafe_hash=True)
