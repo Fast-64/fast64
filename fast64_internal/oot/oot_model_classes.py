@@ -384,6 +384,7 @@ class OOTF3DContext(F3DContext):
             if name == "gEmptyDL":
                 return None
             else:
+
                 def clear_segment_attrs(obj):
                     for attr_name in dir(obj):
                         setattr(obj, attr_name, False)
