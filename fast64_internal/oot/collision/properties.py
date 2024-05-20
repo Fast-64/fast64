@@ -5,7 +5,7 @@ from bpy.utils import register_class, unregister_class
 from ...utility import prop_split
 from ..oot_utility import drawEnumWithCustom
 from ..oot_constants import ootEnumSceneID
-from ..oot_collision_classes import (
+from .constants import (
     ootEnumFloorSetting,
     ootEnumWallSetting,
     ootEnumFloorProperty,
@@ -23,7 +23,6 @@ class OOTCollisionExportSettings(PropertyGroup):
     )
     filename: StringProperty(name="Filename")
     exportPath: StringProperty(name="Directory", subtype="FILE_PATH")
-    exportLevel: EnumProperty(items=ootEnumSceneID, name="Level Used By Collision", default="SCENE_DEKU_TREE")
     includeChildren: BoolProperty(name="Include child objects", default=True)
     levelName: StringProperty(name="Name", default="SCENE_DEKU_TREE")
     customExport: BoolProperty(

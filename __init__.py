@@ -177,23 +177,6 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
             col.box().label(text="Width/height must be < 1024. Must be png format.")
 
 
-class Fast64_GlobalObjectPanel(bpy.types.Panel):
-    bl_label = "Global Object Inspector"
-    bl_idname = "OBJECT_PT_OOT_Global_Object_Inspector"
-    bl_space_type = "PROPERTIES"
-    bl_region_type = "WINDOW"
-    bl_context = "object"
-    bl_options = {"HIDE_HEADER"}
-
-    @classmethod
-    def poll(cls, context):
-        return context.object is not None and context.object.type == "EMPTY"
-
-    def draw(self, context):
-        box = self.layout
-        prop_split(box, context.scene, "gameEditorMode", "Game")
-
-
 class Fast64_GlobalSettingsPanel(bpy.types.Panel):
     bl_idname = "FAST64_PT_global_settings"
     bl_label = "Fast64 Global Settings"
@@ -209,10 +192,20 @@ class Fast64_GlobalSettingsPanel(bpy.types.Panel):
     def draw(self, context):
         col = self.layout.column()
         col.scale_y = 1.1  # extra padding
-        prop_split(col, context.scene, "gameEditorMode", "Game")
-        col.prop(context.scene, "exportHiddenGeometry")
-        col.prop(context.scene, "fullTraceback")
-        prop_split(col, context.scene.fast64.settings, "anim_range_choice", "Anim Range")
+
+        scene = context.scene
+        fast64_settings: Fast64Settings_Properties = scene.fast64.settings
+
+        prop_split(col, scene, "gameEditorMode", "Game")
+        col.prop(scene, "exportHiddenGeometry")
+        col.prop(scene, "fullTraceback")
+        prop_split(col, fast64_settings, "anim_range_choice", "Anim Range")
+
+        col.separator()
+
+        col.prop(fast64_settings, "auto_pick_texture_format")
+        if fast64_settings.auto_pick_texture_format:
+            col.prop(fast64_settings, "prefer_rgba_over_ci")
 
 
 class Fast64_GlobalToolsPanel(bpy.types.Panel):
@@ -266,6 +259,15 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
             ),
         ],
         default="intersect_action_and_scene",
+    )
+    auto_pick_texture_format: bpy.props.BoolProperty(
+        name="Auto Pick Texture Format",
+        description="When enabled, fast64 will try to pick the best texture format whenever a texture is selected.",
+        default=True,
+    )
+    prefer_rgba_over_ci: bpy.props.BoolProperty(
+        name="Prefer RGBA Over CI",
+        description="When enabled, fast64 will default colored textures's format to RGBA even if they fit CI requirements, with the exception of textures that would not fit into TMEM otherwise",
     )
 
 
@@ -391,7 +393,6 @@ classes = (
     AddBoneGroups,
     CreateMetarig,
     SM64_AddWaterBox,
-    # Fast64_GlobalObjectPanel,
     F3D_GlobalSettingsPanel,
     Fast64_GlobalSettingsPanel,
     SM64_ArmatureToolsPanel,

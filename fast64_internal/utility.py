@@ -2,7 +2,7 @@ import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operato
 from math import pi, ceil, degrees, radians, copysign
 from mathutils import *
 from .utility_anim import *
-from typing import Callable, Iterable, Any, Tuple, Optional
+from typing import Callable, Iterable, Any, Tuple, Union
 from bpy.types import UILayout
 
 CollectionProperty = Any  # collection prop as defined by using bpy.props.CollectionProperty
@@ -78,7 +78,7 @@ def getDeclaration(data, name):
     return matchResult
 
 
-def hexOrDecInt(value):
+def hexOrDecInt(value: Union[int, str]) -> int:
     if isinstance(value, int):
         return value
     elif "<<" in value:
@@ -1604,10 +1604,10 @@ def ootGetBaseOrCustomLight(prop, idx, toExport: bool, errIfMissing: bool):
         if light is None:
             if errIfMissing:
                 raise PluginError("Error: Diffuse " + str(idx) + " light object not set in a scene lighting property.")
-            else:
-                col = light.color
-                lightObj = lightDataToObj(light)
-                dir = getObjDirectionVec(lightObj, toExport)
+        else:
+            col = light.color
+            lightObj = lightDataToObj(light)
+            dir = getObjDirectionVec(lightObj, toExport)
     col = mathutils.Vector(tuple(c for c in col))
     if toExport:
         col, dir = exportColor(col), normToSigned8Vector(dir)

@@ -20,19 +20,6 @@ from .utility import (
 )
 
 
-def getActorCueList(operator: Operator, context: Context) -> Object | None:
-    cueListObj = activeObj = context.view_layer.objects.active
-
-    if activeObj.ootEmptyType == "CS Actor Cue" and activeObj.parent.ootEmptyType == "CS Actor Cue List":
-        cueListObj = activeObj.parent
-
-    if not cueListObj.ootEmptyType == "CS Actor Cue List" and cueListObj.parent.ootEmptyType == "Cutscene":
-        operator.report({"WARNING"}, "Select an action list or action point.")
-        return None
-
-    return cueListObj
-
-
 def createNewActorCueList(csObj: Object, isPlayer: bool):
     """Creates a new Actor or Player Cue List and adds one basic cue and the dummy one"""
     objFactory = CutsceneObjectFactory()
