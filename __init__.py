@@ -4,11 +4,10 @@ from bpy.path import abspath
 
 from . import addon_updater_ops
 
-from .fast64_internal.utility import filepath_ui_warnings, prop_split, multilineLabel
+from .fast64_internal.utility import prop_split, multilineLabel, draw_and_check_tab
 
 from .fast64_internal.repo_settings import (
-    SM64_LoadRepoSettings,
-    SM64_SaveRepoSettings,
+    draw_repo_settings,
     load_repo_settings,
     repo_settings_operators_register,
     repo_settings_operators_unregister,
@@ -105,37 +104,6 @@ class Fast64_GlobalSettingsPanel(bpy.types.Panel):
     def poll(cls, context):
         return True
 
-    def draw_repo_settings(self, layout, context):
-        col = layout.column()
-
-        scene = context.scene
-        fast64_settings = scene.fast64.settings
-
-        col.prop(
-            fast64_settings,
-            "repo_settings_tab",
-            text="Repo Settings",
-            icon="TRIA_DOWN" if fast64_settings.repo_settings_tab else "TRIA_RIGHT",
-        )
-        if not fast64_settings.repo_settings_tab:
-            return
-
-        col.box().label(text="World defaults will be saved and loaded.")
-
-        prop_split(col, fast64_settings, "repo_settings_path", "Repo Settings Path")
-
-        path = abspath(fast64_settings.repo_settings_path)
-        if filepath_ui_warnings(col, path):
-            load_op = col.operator(SM64_LoadRepoSettings.bl_idname)
-            load_op.path = fast64_settings.repo_settings_path
-
-        save_op = col.operator(SM64_SaveRepoSettings.bl_idname)
-        save_op.path = fast64_settings.repo_settings_path
-
-        prop_split(col, scene, "f3d_type", "F3D Microcode")
-        col.prop(scene, "saveTextures")
-        col.prop(fast64_settings, "auto_repo_load_settings")
-
     # called every frame
     def draw(self, context):
         col = self.layout.column()
@@ -150,11 +118,13 @@ class Fast64_GlobalSettingsPanel(bpy.types.Panel):
 
         prop_split(col, fast64_settings, "anim_range_choice", "Anim Range")
 
-        col.prop(fast64_settings, "auto_pick_texture_format")
-        if fast64_settings.auto_pick_texture_format:
-            col.prop(fast64_settings, "prefer_rgba_over_ci")
+        if not fast64_settings.repo_settings_tab:
+            col.prop(fast64_settings, "auto_pick_texture_format")
+            if fast64_settings.auto_pick_texture_format:
+                col.prop(fast64_settings, "prefer_rgba_over_ci")
 
-        self.draw_repo_settings(col.box(), context)
+        if draw_and_check_tab(col, fast64_settings, "repo_settings_tab", icon="PROPERTIES"):
+            draw_repo_settings(col.box(), context)
 
 
 class Fast64_GlobalToolsPanel(bpy.types.Panel):
@@ -223,9 +193,9 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
         description="When enabled, fast64 will default colored textures's format to RGBA even if they fit CI requirements, with the exception of textures that would not fit into TMEM otherwise",
     )
 
-    repo_settings_tab: bpy.props.BoolProperty(default=True)
+    repo_settings_tab: bpy.props.BoolProperty(default=True, name="Repo Settings")
     repo_settings_path: bpy.props.StringProperty(
-        name="Repo Settings Path", subtype="FILE_PATH", update=repo_path_update
+        name="Path", subtype="FILE_PATH", update=repo_path_update
     )
     auto_repo_load_settings: bpy.props.BoolProperty(
         name="Auto Load Repo's Settings",

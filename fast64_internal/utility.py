@@ -2,7 +2,7 @@ import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operato
 from math import pi, ceil, degrees, radians, copysign
 from mathutils import *
 from .utility_anim import *
-from typing import Callable, Iterable, Any, Tuple, Union
+from typing import Callable, Iterable, Any, Optional, Tuple, Union
 from bpy.types import UILayout
 
 CollectionProperty = Any  # collection prop as defined by using bpy.props.CollectionProperty
@@ -1191,6 +1191,19 @@ def multilineLabel(layout: UILayout, text: str, icon: str = "NONE"):
         r.scale_y = 0.75
 
 
+def draw_and_check_tab(
+    layout: UILayout, data, proprety: str, text: Optional[str] = None, icon: Optional[str] = None
+) -> bool:
+    row = layout.row(align=True)
+    tab = getattr(data, proprety)
+    tria_icon = "TRIA_DOWN" if tab else "TRIA_RIGHT"
+    if icon is not None:
+        row.prop(data, proprety, icon=tria_icon, text="")
+    row.prop(data, proprety, icon=tria_icon if icon is None else icon, text=text)
+    layout.separator()
+    return tab
+
+
 def directory_path_checks(
     directory_path: str,
     empty_error: str = "Empty path.",
@@ -1243,6 +1256,27 @@ def filepath_ui_warnings(
 ) -> bool:
     try:
         filepath_checks(filepath, empty_error, doesnt_exist_error, not_a_file_error)
+        return True
+    except Exception as e:
+        multilineLabel(layout.box(), str(e), "ERROR")
+        return False
+
+
+def path_checks(filepath: str, empty_error: str = "Empty path.", doesnt_exist_error: str = "Path does not exist."):
+    if filepath == "":
+        raise PluginError(empty_error)
+    elif not os.path.exists(filepath):
+        raise PluginError(doesnt_exist_error)
+
+
+def path_ui_warnings(
+    layout: bpy.types.UILayout,
+    filepath: str,
+    empty_error: str = "Empty path.",
+    doesnt_exist_error: str = "Path does not exist.",
+) -> bool:
+    try:
+        path_checks(filepath, empty_error, doesnt_exist_error)
         return True
     except Exception as e:
         multilineLabel(layout.box(), str(e), "ERROR")

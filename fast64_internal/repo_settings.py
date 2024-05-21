@@ -7,10 +7,13 @@ from bpy.types import Context, Scene
 from bpy.props import StringProperty
 from bpy.path import abspath
 
-from .utility import filepath_checks
+from .utility import filepath_checks, prop_split, filepath_ui_warnings
 from .operators import OperatorBase
 from .sm64.settings.repo_settings import load_sm64_repo_settings, save_sm64_repo_settings
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .f3d.f3d_material import RDPSettings
 
 CUR_VERSION = 1.0
 
@@ -71,30 +74,32 @@ rm_rdp_properties = [
 ]
 
 
-class SM64_SaveRepoSettings(OperatorBase):
-    bl_idname = "scene.sm64_save_repo_settings"
+class SaveRepoSettings(OperatorBase):
+    bl_idname = "scene.save_repo_settings"
     bl_label = "Save Repo Settings"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
     bl_description = "Save repo settings to a file"
+    icon = "FILE_TICK"
 
     path: StringProperty(name="Settings File Path", subtype="FILE_PATH")
 
     def execute_operator(self, context: Context):
         save_repo_settings(context.scene, self.path)
-        self.report({"INFO"}, "Saved repo settings")
+        self.report({"INFO"}, f"Saved repo settings to {self.path}")
 
 
-class SM64_LoadRepoSettings(OperatorBase):
-    bl_idname = "scene.sm64_load_repo_settings"
+class LoadRepoSettings(OperatorBase):
+    bl_idname = "scene.load_repo_settings"
     bl_label = "Load Repo Settings"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
     bl_description = "Load repo settings to a file"
+    icon = "IMPORT"
 
     path: StringProperty(name="Settings File Path", subtype="FILE_PATH")
 
     def execute_operator(self, context: Context):
         load_repo_settings(context.scene, self.path)
-        self.report({"INFO"}, "Loaded repo settings")
+        self.report({"INFO"}, f"Loaded repo settings from {self.path}")
 
 
 def load_repo_settings(scene: Scene, path: os.PathLike, skip_if_no_auto_load = False):
@@ -119,60 +124,59 @@ def load_repo_settings(scene: Scene, path: os.PathLike, skip_if_no_auto_load = F
         raise ValueError(
             "This repo settings file is using a version higher than this fast64 version supports.",
         )
-    scene.fast64.settings.auto_repo_load_settings = data.get(
-        "auto_load_settings", scene.fast64.settings.auto_repo_load_settings
+        
+    fast64_settings = scene.fast64.settings
+    fast64_settings.auto_repo_load_settings = data.get(
+        "auto_load_settings", fast64_settings.auto_repo_load_settings
+    )
+    fast64_settings.auto_pick_texture_format = data.get(
+        "auto_pick_texture_format", fast64_settings.auto_pick_texture_format
+    )
+    fast64_settings.prefer_rgba_over_ci = data.get(
+        "prefer_rgba_over_ci", fast64_settings.prefer_rgba_over_ci
     )
     scene.f3d_type = data.get("microcode", scene.f3d_type)
     scene.saveTextures = data.get("save_textures", scene.saveTextures)
 
-    world = scene.world
-    rdp_defaults = world.rdp_defaults
-
-    rdp_defaults_data = data["rdp_defaults"]
-
+    rdp_defaults: RDPSettings = scene.world.rdp_defaults
+    rdp_defaults_data = data.get("rdp_defaults", {})
     for key in primitive_rdp_properties:
         if key in rdp_defaults_data:
             setattr(rdp_defaults, key, rdp_defaults_data[key])
 
-    if "prim_depth" in rdp_defaults_data:
-        prim_depth = rdp_defaults_data["prim_depth"]
-        if "z" in prim_depth:
-            rdp_defaults.prim_depth.z = prim_depth["z"]
-        if "dz" in prim_depth:
-            rdp_defaults.prim_depth.dz = prim_depth["dz"]
-
-    if "render_mode" in rdp_defaults_data:
-        rdp_rm_defaults_data = rdp_defaults_data["render_mode"]
-        if "advanced_render_mode" in rdp_rm_defaults_data:
-            rdp_defaults.rendermode_advanced_enabled = rdp_rm_defaults_data["advanced_render_mode"]
-        for key in rm_rdp_properties:
-            if key in rdp_rm_defaults_data:
-                setattr(rdp_defaults, key, rdp_rm_defaults_data[key])
-        if "preset_cycle_1" in rdp_rm_defaults_data:
-            rdp_defaults.rendermode_preset_cycle_1 = rdp_rm_defaults_data["preset_cycle_1"]
-        if "preset_cycle_2" in rdp_rm_defaults_data:
-            rdp_defaults.rendermode_preset_cycle_2 = rdp_rm_defaults_data["preset_cycle_2"]
+    prim_depth = rdp_defaults_data.get("prim_depth", {})
+    rdp_defaults.prim_depth.z = prim_depth.get("z", rdp_defaults.prim_depth.z)
+    rdp_defaults.prim_depth.dz = prim_depth.get("dz", rdp_defaults.prim_depth.dz)
+    
+    render_mode = rdp_defaults_data.get("render_mode", {})
+    rdp_defaults.rendermode_advanced_enabled = render_mode.get("advanced", rdp_defaults.rendermode_advanced_enabled)
+    for key in rm_rdp_properties:
+        if key in render_mode:
+            setattr(rdp_defaults, key, render_mode[key])
+    rdp_defaults.rendermode_preset_cycle_1 = render_mode.get("preset_cycle_1", rdp_defaults.rendermode_preset_cycle_1)
+    rdp_defaults.rendermode_preset_cycle_2 = render_mode.get("preset_cycle_2", rdp_defaults.rendermode_preset_cycle_2)
 
     if scene.gameEditorMode == "SM64":
         load_sm64_repo_settings(scene, data.get("sm64", {}))
 
 
 def save_repo_settings(scene: Scene, path: os.PathLike):
-    data: dict[str, Any] = {}
-    rdp_defaults_data: dict[str, Any] = {}
+    fast64_settings = scene.fast64.settings
+    data = {}
+    rdp_defaults_data = {}
 
-    data["version"] = cur_repo_settings_version
-    data["auto_load_settings"] = scene.fast64.settings.auto_repo_load_settings
+    data["version"] = CUR_VERSION
+    data["auto_load_settings"] = fast64_settings.auto_repo_load_settings
     data["microcode"] = scene.f3d_type
     data["save_textures"] = scene.saveTextures
+    data["auto_pick_texture_format"] = fast64_settings.auto_pick_texture_format
+    data["prefer_rgba_over_ci"] = fast64_settings.prefer_rgba_over_ci
     data["rdp_defaults"] = rdp_defaults_data
     
     if scene.gameEditorMode == "SM64":
         data["sm64"] = save_sm64_repo_settings(scene)
 
-    world = scene.world
-    rdp_defaults = world.rdp_defaults
-
+    rdp_defaults: RDPSettings = scene.world.rdp_defaults
     for key in primitive_rdp_properties:
         rdp_defaults_data[key] = getattr(rdp_defaults, key)
 
@@ -180,24 +184,44 @@ def save_repo_settings(scene: Scene, path: os.PathLike):
         rdp_defaults_data["prim_depth"] = {"z": rdp_defaults.prim_depth.z, "dz": rdp_defaults.prim_depth.dz}
 
     if not rdp_defaults.set_rendermode:
-        rdp_rm_defaults_data: dict[str, Any] = {}
-        rdp_rm_defaults_data["advanced_render_mode"] = rdp_defaults.rendermode_advanced_enabled
+        render_mode = {}
+        render_mode["advanced"] = rdp_defaults.rendermode_advanced_enabled
         if not rdp_defaults.rendermode_advanced_enabled:
             for key in rm_rdp_properties:
-                rdp_rm_defaults_data[key] = getattr(rdp_defaults, key)
+                render_mode[key] = getattr(rdp_defaults, key)
         else:
-            rdp_rm_defaults_data["preset_cycle_1"] = rdp_defaults.rendermode_preset_cycle_1
-            rdp_rm_defaults_data["preset_cycle_2"] = rdp_defaults.rendermode_preset_cycle_2
+            render_mode["preset_cycle_1"] = rdp_defaults.rendermode_preset_cycle_1
+            render_mode["preset_cycle_2"] = rdp_defaults.rendermode_preset_cycle_2
 
-        rdp_defaults_data["render_mode"] = rdp_rm_defaults_data
+        rdp_defaults_data["render_mode"] = render_mode
 
     with open(abspath(path), "w", encoding="utf-8") as json_file:
         json.dump(data, json_file, indent=2)
 
 
+def draw_repo_settings(layout, context):
+    col = layout.column()
+    scene = context.scene
+    fast64_settings = scene.fast64.settings
+    prop_split(col, fast64_settings, "repo_settings_path", "Repo Settings Path")
+    path = abspath(fast64_settings.repo_settings_path)
+    if filepath_ui_warnings(col, path):
+        load_op = LoadRepoSettings.draw_props(col)
+        load_op.path = fast64_settings.repo_settings_path
+    save_op = SaveRepoSettings.draw_props(col)
+    save_op.path = path
+
+    col.prop(fast64_settings, "auto_repo_load_settings")
+    prop_split(col, scene, "f3d_type", "F3D Microcode")
+    col.prop(scene, "saveTextures")
+    col.prop(fast64_settings, "auto_pick_texture_format")
+    col.prop(fast64_settings, "prefer_rgba_over_ci")
+    col.box().label(text="World defaults will be saved and loaded.")
+
+
 classes = (
-    SM64_SaveRepoSettings,
-    SM64_LoadRepoSettings,
+    SaveRepoSettings,
+    LoadRepoSettings,
 )
 
 
