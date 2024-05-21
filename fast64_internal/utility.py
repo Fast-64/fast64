@@ -1622,22 +1622,21 @@ def getTextureSuffixFromFormat(texFmt):
 
 def create_or_get_world(scene: Scene) -> World:
     """
-    Given a scene, this function will:
-    - If the scene has a selected world, it will return the world selected in the scene.
-    - If bpy.data.worlds is not empty, it will return the first world in bpy.data.worlds.
-    - If bpy.data.worlds is empty, it will create a world named "Fast64" and return it.
+    Given a scene, this function will return:
+    - The world selected in the scene if the scene has a selected world.
+    - The first world in bpy.data.worlds if the current file has a world. (Which it almost always does because of the f3d nodes library)
+    - Create a world named "Fast64" and return it if no world exits.
     This function does not assign any world to the scene.
     """
     if scene.world:
         return scene.world
-    elif bpy.data.worlds:
+    if bpy.data.worlds:
         world: World = bpy.data.worlds.values()[0]
         print(f'No world selected in scene, selected the first one found in this file "{world.name}".')
         return bpy.data.worlds.values()[0]
-    else:
-        # Almost never reached because the node library has its own world
-        print(f'No world in this file, creating world named "Fast64".')
-        return bpy.data.worlds.new("Fast64")
+    # Almost never reached because the node library has its own world
+    print(f'No world in this file, creating world named "Fast64".')
+    return bpy.data.worlds.new("Fast64")
 
 
 binOps = {
