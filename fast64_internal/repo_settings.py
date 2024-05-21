@@ -13,11 +13,6 @@ from .sm64.settings.repo_settings import load_sm64_repo_settings, save_sm64_repo
 cur_repo_settings_version = 1.0
 
 
-repo_properties = {
-    "microcode": ("f3d_type",),
-    "save_textures": ("saveTextures",),
-}
-
 primitive_rdp_properties = [
     "g_zbuffer",
     "g_shade",
@@ -125,6 +120,8 @@ def load_repo_settings(scene: Scene, path: str, skip_if_no_auto_load: bool = Fal
     scene.fast64.settings.auto_repo_load_settings = data.get(
         "auto_load_settings", scene.fast64.settings.auto_repo_load_settings
     )
+    scene.f3d_type = data.get("microcode", scene.f3d_type)
+    scene.saveTextures = data.get("save_textures", scene.saveTextures)
 
     world = scene.world
     rdp_defaults = world.rdp_defaults
@@ -164,8 +161,12 @@ def save_repo_settings(scene: Scene, path: str):
 
     data["version"] = cur_repo_settings_version
     data["auto_load_settings"] = scene.fast64.settings.auto_repo_load_settings
-
+    data["microcode"] = scene.f3d_type
+    data["save_textures"] = scene.saveTextures
     data["rdp_defaults"] = rdp_defaults_data
+    
+    if scene.gameEditorMode == "SM64":
+        data["sm64"] = save_sm64_repo_settings(scene)
 
     world = scene.world
     rdp_defaults = world.rdp_defaults
@@ -187,9 +188,6 @@ def save_repo_settings(scene: Scene, path: str):
             rdp_rm_defaults_data["preset_cycle_2"] = rdp_defaults.rendermode_preset_cycle_2
 
         rdp_defaults_data["render_mode"] = rdp_rm_defaults_data
-
-    if scene.gameEditorMode == "SM64":
-        data["sm64"] = save_sm64_repo_settings(scene)
 
     with open(abspath(path), "w", encoding="utf-8") as json_file:
         json.dump(data, json_file, indent=2)
