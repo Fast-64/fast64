@@ -18,7 +18,7 @@ class SM64_GeneralSettingsPanel(SM64_Panel):
             # because we want to draw those specfic properties in the repo settings box
             sm64_props.draw_props(col, not sm64_props.sm64_repo_settings_tab)
             col.separator()
-            draw_repo_settings(context.scene, col.box())
+            draw_repo_settings(context.scene, col)
         else:
             sm64_props.draw_props(col, True)
 

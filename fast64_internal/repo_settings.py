@@ -6,8 +6,9 @@ from bpy.types import Context, Scene, UILayout
 from bpy.props import StringProperty
 from bpy.path import abspath
 
-from .utility import filepath_checks, prop_split, filepath_ui_warnings
+from .utility import filepath_checks, prop_split, filepath_ui_warnings, draw_and_check_tab
 from .operators import OperatorBase
+from .f3d.f3d_material import ui_geo_mode, ui_upper_mode, ui_lower_mode, ui_other
 from .sm64.settings.repo_settings import load_sm64_repo_settings, save_sm64_repo_settings
 
 from typing import TYPE_CHECKING
@@ -202,6 +203,8 @@ def draw_repo_settings(layout: UILayout, context: Context):
     col = layout.column()
     scene = context.scene
     fast64_settings = scene.fast64.settings
+    if not draw_and_check_tab(col, fast64_settings, "repo_settings_tab", icon="PROPERTIES"):
+        return
     prop_split(col, fast64_settings, "repo_settings_path", "Repo Settings Path")
     path = abspath(fast64_settings.repo_settings_path)
     if filepath_ui_warnings(col, path):
@@ -215,7 +218,16 @@ def draw_repo_settings(layout: UILayout, context: Context):
     col.prop(scene, "saveTextures")
     col.prop(fast64_settings, "auto_pick_texture_format")
     col.prop(fast64_settings, "prefer_rgba_over_ci")
-    col.box().label(text="World defaults will be saved and loaded.")
+    col.separator()
+
+    world = scene.world
+    rdp_defaults = world.rdp_defaults
+    col.box().label(text="RDP Default Settings", icon="WORLD")
+    col.label(text="If a material setting is a same as a default setting, then it won't be set.")
+    ui_geo_mode(rdp_defaults, world, col, True)
+    ui_upper_mode(rdp_defaults, world, col, True)
+    ui_lower_mode(rdp_defaults, world, col, True)
+    ui_other(rdp_defaults, world, col, True)
 
 
 classes = (
