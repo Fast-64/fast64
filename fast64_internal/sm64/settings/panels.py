@@ -1,24 +1,9 @@
 from bpy.utils import register_class, unregister_class
-from bpy.types import Scene, Context, UILayout
+from bpy.types import Context
 
-from ...utility import prop_split, draw_and_check_tab
 from ...panels import SM64_Panel
 
-
-def draw_repo_settings(scene: Scene, layout: UILayout):
-    col = layout.column()
-    sm64_props = scene.fast64.sm64
-
-    if not draw_and_check_tab(col, sm64_props, "sm64_repo_settings_tab", icon="PROPERTIES"):
-        return
-
-    col.label(text="SM64")
-    prop_split(col, sm64_props, "compression_format", "Compression Format")
-    prop_split(col, sm64_props, "refresh_version", "Refresh (Function Map)")
-    col.prop(sm64_props, "force_extended_ram")
-    col.prop(sm64_props, "matstack_fix")
-    col.label(text="See fast64 repo settings for general settings", icon="INFO")
-
+from .repo_settings import draw_repo_settings
 
 class SM64_GeneralSettingsPanel(SM64_Panel):
     bl_idname = "SM64_PT_general_settings"

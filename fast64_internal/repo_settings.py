@@ -1,9 +1,8 @@
 import json
 import os
-from typing import Any
 
 from bpy.utils import register_class, unregister_class
-from bpy.types import Context, Scene
+from bpy.types import Context, Scene, UILayout
 from bpy.props import StringProperty
 from bpy.path import abspath
 
@@ -199,7 +198,7 @@ def save_repo_settings(scene: Scene, path: os.PathLike):
         json.dump(data, json_file, indent=2)
 
 
-def draw_repo_settings(layout, context):
+def draw_repo_settings(layout: UILayout, context: Context):
     col = layout.column()
     scene = context.scene
     fast64_settings = scene.fast64.settings
