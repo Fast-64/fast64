@@ -1,5 +1,7 @@
 import json
+import os
 from typing import Any
+
 from bpy.utils import register_class, unregister_class
 from bpy.types import Context, Scene
 from bpy.props import StringProperty
@@ -10,7 +12,7 @@ from .operators import OperatorBase
 from .sm64.settings.repo_settings import load_sm64_repo_settings, save_sm64_repo_settings
 
 
-cur_repo_settings_version = 1.0
+CUR_VERSION = 1.0
 
 
 primitive_rdp_properties = [
@@ -95,7 +97,7 @@ class SM64_LoadRepoSettings(OperatorBase):
         self.report({"INFO"}, "Loaded repo settings")
 
 
-def load_repo_settings(scene: Scene, path: str, skip_if_no_auto_load: bool = False):
+def load_repo_settings(scene: Scene, path: os.PathLike, skip_if_no_auto_load = False):
     filepath_checks(
         abspath(path),
         empty_error="Repo settings file path is empty.",
@@ -113,7 +115,7 @@ def load_repo_settings(scene: Scene, path: str, skip_if_no_auto_load: bool = Fal
         return
 
     # Some future proofing
-    if data.get("version", cur_repo_settings_version) > cur_repo_settings_version:
+    if data.get("version", CUR_VERSION) > CUR_VERSION: # Assuming latest should be fine
         raise ValueError(
             "This repo settings file is using a version higher than this fast64 version supports.",
         )
@@ -155,7 +157,7 @@ def load_repo_settings(scene: Scene, path: str, skip_if_no_auto_load: bool = Fal
         load_sm64_repo_settings(scene, data.get("sm64", {}))
 
 
-def save_repo_settings(scene: Scene, path: str):
+def save_repo_settings(scene: Scene, path: os.PathLike):
     data: dict[str, Any] = {}
     rdp_defaults_data: dict[str, Any] = {}
 
