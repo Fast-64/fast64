@@ -18,7 +18,7 @@ class OperatorBase(Operator):
     """Base class for operators, keeps track of context mode and sets it back after running
     execute_operator() and catches exceptions for raisePluginError()"""
 
-    context_mode: str | None = None
+    context_mode: str = ""
     icon: str = ""
 
     @classmethod
@@ -33,8 +33,9 @@ class OperatorBase(Operator):
 
     def execute(self, context: Context):
         starting_context_mode = context.mode
+        starting_mode_set = get_mode_set_from_context_mode(starting_context_mode)
         try:
-            if self.context_mode:
+            if self.context_mode and self.context_mode != starting_mode_set:
                 bpy.ops.object.mode_set(mode=self.context_mode)
             self.execute_operator(context)
             return {"FINISHED"}
@@ -42,7 +43,8 @@ class OperatorBase(Operator):
             raisePluginError(self, exc)
             return {"CANCELLED"}
         finally:
-            bpy.ops.object.mode_set(mode=get_mode_set_from_context_mode(starting_context_mode))
+            if self.context_mode != starting_mode_set:
+                bpy.ops.object.mode_set(mode=starting_mode_set)
 
 
 class AddWaterBox(OperatorBase):

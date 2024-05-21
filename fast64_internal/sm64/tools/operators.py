@@ -150,7 +150,7 @@ class SM64_CreateSimpleLevel(OperatorBase):
     set_as_start_level: BoolProperty(name="Set As Start Level")
     respawn_in_level: BoolProperty(name="Respawn In The Same Level")
 
-    def execute_operator(self, context):
+    def execute_operator(self, context: Context):
         scene = context.scene
 
         level_object = create_sm64_empty("Level", "Level Root", "PLAIN_AXES", (0, 0, 0))
