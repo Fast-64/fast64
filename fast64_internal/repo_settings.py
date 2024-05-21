@@ -170,7 +170,8 @@ def save_repo_settings(scene: Scene, path: os.PathLike):
     data["microcode"] = scene.f3d_type
     data["save_textures"] = scene.saveTextures
     data["auto_pick_texture_format"] = fast64_settings.auto_pick_texture_format
-    data["prefer_rgba_over_ci"] = fast64_settings.prefer_rgba_over_ci
+    if fast64_settings.auto_pick_texture_format:
+        data["prefer_rgba_over_ci"] = fast64_settings.prefer_rgba_over_ci
     data["rdp_defaults"] = rdp_defaults_data
     
     if scene.gameEditorMode == "SM64":
@@ -217,7 +218,8 @@ def draw_repo_settings(layout: UILayout, context: Context):
     prop_split(col, scene, "f3d_type", "F3D Microcode")
     col.prop(scene, "saveTextures")
     col.prop(fast64_settings, "auto_pick_texture_format")
-    col.prop(fast64_settings, "prefer_rgba_over_ci")
+    if fast64_settings.auto_pick_texture_format:
+        col.prop(fast64_settings, "prefer_rgba_over_ci")
     col.separator()
 
     world = scene.world
