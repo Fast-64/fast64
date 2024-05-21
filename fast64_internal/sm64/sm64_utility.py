@@ -2,7 +2,7 @@ import os
 from bpy.types import UILayout
 from bpy.path import abspath
 
-from ..utility import PluginError, filepath_checks, multilineLabel
+from ..utility import PluginError, filepath_checks, multilineLabel, prop_split
 
 
 def starSelectWarning(operator, fileStatus):
@@ -77,12 +77,16 @@ def string_int_warning(layout: UILayout, value: str):
             return True
         multilineLabel(
             layout.box(),
-            "Invalid integer\nUse 0x for hexadecimal, 0b for binary, don´t use decimals",
+            "Invalid integer\nUse 0x for hexadecimal, 0b for bytes.\nDon´t use decimals, don´t use trailing zeros.",
             "ERROR",
         )
     else:
         layout.box().label(text="Empty Number", icon="ERROR")
     return False
+
+def string_int_prop(layout: UILayout, data, prop: str, name: str, **prop_args):
+    prop_split(layout, data, prop, name, **prop_args)
+    return string_int_warning(layout, getattr(data, prop))
 
 
 def check_expanded(rom: os.PathLike):

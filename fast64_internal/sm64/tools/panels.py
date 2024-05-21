@@ -3,7 +3,7 @@ from bpy.utils import register_class, unregister_class
 from ...panels import SM64_Panel
 from ...utility import prop_split
 
-from ..sm64_utility import import_rom_ui_warnings, string_int_warning
+from ..sm64_utility import import_rom_ui_warnings, string_int_prop
 
 from .operators import SM64_AddrConv, SM64_CreateSimpleLevel, SM64_AddWaterBox, SM64_AddBoneGroups, SM64_CreateMetarig
 
@@ -33,8 +33,7 @@ class SM64_ToolsPanel(SM64_Panel):
             col = col.column()
             col.enabled = False
         prop_split(col, sm64_props, "level_convert", "Level")
-        prop_split(col, sm64_props, "convertible_addr", "Address")
-        if string_int_warning(col, sm64_props.convertible_addr):
+        if string_int_prop(col, sm64_props, "convertible_addr", "Address"):
             address = sm64_props.convertible_addr
             split = col.split()
             to_virt_op = SM64_AddrConv.draw_props(split, text="Segmented To Virtual")
