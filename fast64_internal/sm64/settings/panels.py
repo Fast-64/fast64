@@ -5,6 +5,7 @@ from ...panels import SM64_Panel
 
 from .repo_settings import draw_repo_settings
 
+
 class SM64_GeneralSettingsPanel(SM64_Panel):
     bl_idname = "SM64_PT_general_settings"
     bl_label = "SM64 General Settings"

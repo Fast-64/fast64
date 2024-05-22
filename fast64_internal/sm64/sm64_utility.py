@@ -84,6 +84,7 @@ def string_int_warning(layout: UILayout, value: str):
         layout.box().label(text="Empty Number", icon="ERROR")
     return False
 
+
 def string_int_prop(layout: UILayout, data, prop: str, name: str, **prop_args):
     prop_split(layout, data, prop, name, **prop_args)
     return string_int_warning(layout, getattr(data, prop))

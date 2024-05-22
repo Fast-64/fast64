@@ -12,6 +12,7 @@ from .f3d.f3d_material import ui_geo_mode, ui_upper_mode, ui_lower_mode, ui_othe
 from .sm64.settings.repo_settings import load_sm64_repo_settings, save_sm64_repo_settings
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from .f3d.f3d_material import RDPSettings
 
@@ -102,7 +103,7 @@ class LoadRepoSettings(OperatorBase):
         self.report({"INFO"}, f"Loaded repo settings from {self.path}")
 
 
-def load_repo_settings(scene: Scene, path: os.PathLike, skip_if_no_auto_load = False):
+def load_repo_settings(scene: Scene, path: os.PathLike, skip_if_no_auto_load=False):
     filepath_checks(
         abspath(path),
         empty_error="Repo settings file path is empty.",
@@ -120,21 +121,17 @@ def load_repo_settings(scene: Scene, path: os.PathLike, skip_if_no_auto_load = F
         return
 
     # Some future proofing
-    if data.get("version", CUR_VERSION) > CUR_VERSION: # Assuming latest should be fine
+    if data.get("version", CUR_VERSION) > CUR_VERSION:  # Assuming latest should be fine
         raise ValueError(
             "This repo settings file is using a version higher than this fast64 version supports.",
         )
-        
+
     fast64_settings = scene.fast64.settings
-    fast64_settings.auto_repo_load_settings = data.get(
-        "auto_load_settings", fast64_settings.auto_repo_load_settings
-    )
+    fast64_settings.auto_repo_load_settings = data.get("auto_load_settings", fast64_settings.auto_repo_load_settings)
     fast64_settings.auto_pick_texture_format = data.get(
         "auto_pick_texture_format", fast64_settings.auto_pick_texture_format
     )
-    fast64_settings.prefer_rgba_over_ci = data.get(
-        "prefer_rgba_over_ci", fast64_settings.prefer_rgba_over_ci
-    )
+    fast64_settings.prefer_rgba_over_ci = data.get("prefer_rgba_over_ci", fast64_settings.prefer_rgba_over_ci)
     scene.f3d_type = data.get("microcode", scene.f3d_type)
     scene.saveTextures = data.get("save_textures", scene.saveTextures)
 
@@ -147,7 +144,7 @@ def load_repo_settings(scene: Scene, path: os.PathLike, skip_if_no_auto_load = F
     prim_depth = rdp_defaults_data.get("prim_depth", {})
     rdp_defaults.prim_depth.z = prim_depth.get("z", rdp_defaults.prim_depth.z)
     rdp_defaults.prim_depth.dz = prim_depth.get("dz", rdp_defaults.prim_depth.dz)
-    
+
     render_mode = rdp_defaults_data.get("render_mode", {})
     rdp_defaults.rendermode_advanced_enabled = render_mode.get("advanced", rdp_defaults.rendermode_advanced_enabled)
     for key in rm_rdp_properties:
@@ -173,7 +170,7 @@ def save_repo_settings(scene: Scene, path: os.PathLike):
     if fast64_settings.auto_pick_texture_format:
         data["prefer_rgba_over_ci"] = fast64_settings.prefer_rgba_over_ci
     data["rdp_defaults"] = rdp_defaults_data
-    
+
     if scene.gameEditorMode == "SM64":
         data["sm64"] = save_sm64_repo_settings(scene)
 

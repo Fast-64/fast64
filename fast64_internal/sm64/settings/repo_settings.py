@@ -4,6 +4,7 @@ from bpy.types import Scene, UILayout
 
 from ...utility import draw_and_check_tab, prop_split
 
+
 def save_sm64_repo_settings(scene: Scene):
     data: dict[str, Any] = {}
 

@@ -193,9 +193,7 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
     )
 
     repo_settings_tab: bpy.props.BoolProperty(default=True, name="Repo Settings")
-    repo_settings_path: bpy.props.StringProperty(
-        name="Path", subtype="FILE_PATH", update=repo_path_update
-    )
+    repo_settings_path: bpy.props.StringProperty(name="Path", subtype="FILE_PATH", update=repo_path_update)
     auto_repo_load_settings: bpy.props.BoolProperty(
         name="Auto Load Repo's Settings",
         description="When enabled, this will make fast64 automatically load repo settings if they are found after picking a decomp path",
