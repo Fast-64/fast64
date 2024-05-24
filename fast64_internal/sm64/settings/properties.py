@@ -1,13 +1,13 @@
 import os
 import bpy
 from bpy.types import PropertyGroup, UILayout, Scene, Context
-from bpy.props import BoolProperty, StringProperty, EnumProperty, IntProperty, FloatProperty
+from bpy.props import BoolProperty, StringProperty, EnumProperty, IntProperty, FloatProperty, PointerProperty
 from bpy.path import abspath
 from bpy.utils import register_class, unregister_class
 
 from ...render_settings import on_update_render_settings
+from ...utility import directory_path_checks, directory_ui_warnings, prop_split
 from ..sm64_constants import (
-    level_enums,
     enum_refresh_versions,
     defaultExtendSegment4,
     enum_export_type,
@@ -15,12 +15,7 @@ from ..sm64_constants import (
     enum_sm64_goal_type,
 )
 from ..sm64_utility import export_rom_ui_warnings, import_rom_ui_warnings
-from ...utility import (
-    directory_path_checks,
-    directory_ui_warnings,
-    multilineLabel,
-    prop_split,
-)
+from ..tools import SM64_AddrConvProperties
 
 
 def decomp_path_update(self, context: Context):
@@ -30,7 +25,7 @@ def decomp_path_update(self, context: Context):
             os.path.dirname(abspath(self.decomp_path)), "fast64.json"
         )
     except:
-        return
+        pass  # Silently fail
 
 
 class SM64_Properties(PropertyGroup):
@@ -44,32 +39,42 @@ class SM64_Properties(PropertyGroup):
     export_type: EnumProperty(items=enum_export_type, name="Export Type", default="C")
     goal: EnumProperty(items=enum_sm64_goal_type, name="Goal", default="All")
 
+    blender_to_sm64_scale: FloatProperty(
+        name="Blender To SM64 Scale",
+        default=100,
+        update=on_update_render_settings,
+    )
+    import_rom: StringProperty(name="Import ROM", subtype="FILE_PATH")
+
     export_rom: StringProperty(name="Export ROM", subtype="FILE_PATH")
     output_rom: StringProperty(name="Output ROM", subtype="FILE_PATH")
-
     extend_bank_4: BoolProperty(
         name="Extend Bank 4 on Export?",
         default=True,
-        description=f"\
-Sets bank 4 range to ({hex(defaultExtendSegment4[0])}, {hex(defaultExtendSegment4[1])}) and copies data from old bank",
+        description=f"Sets bank 4 range to ({hex(defaultExtendSegment4[0])}, "
+        f"{hex(defaultExtendSegment4[1])}) and copies data from old bank",
     )
 
-    import_rom: StringProperty(name="Import ROM", subtype="FILE_PATH")
-    convertible_addr: StringProperty(name="Address")
-    level_convert: EnumProperty(items=level_enums, name="Level", default="IC")
-    clipboard: BoolProperty(name="Copy to Clipboard", default=True)
-
-    decomp_path: StringProperty(name="Decomp Folder", subtype="FILE_PATH", update=decomp_path_update)
-
-    blender_to_sm64_scale: FloatProperty(name="Blender To SM64 Scale", default=100, update=on_update_render_settings)
-
+    address_converter: PointerProperty(type=SM64_AddrConvProperties)
     # C
+    decomp_path: StringProperty(
+        name="Decomp Folder",
+        subtype="FILE_PATH",
+        update=decomp_path_update,
+    )
     sm64_repo_settings_tab: BoolProperty(default=True, name="SM64 Repo Settings")
     disable_scroll: BoolProperty(name="Disable Scrolling Textures")
     refresh_version: EnumProperty(items=enum_refresh_versions, name="Refresh", default="Refresh 13")
-    compression_format: EnumProperty(items=enum_compression_formats, name="Compression", default="mio0")
+    compression_format: EnumProperty(
+        items=enum_compression_formats,
+        name="Compression",
+        default="mio0",
+    )
     force_extended_ram: BoolProperty(name="Force Extended Ram", default=True)
-    matstack_fix: BoolProperty(name="Matstack Fix", description="Exports account for matstack fix requirements")
+    matstack_fix: BoolProperty(
+        name="Matstack Fix",
+        description="Exports account for matstack fix requirements",
+    )
 
     @property
     def binary_export(self):

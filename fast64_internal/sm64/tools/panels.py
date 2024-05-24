@@ -1,22 +1,19 @@
 from bpy.utils import register_class, unregister_class
 
 from ...panels import SM64_Panel
-from ...utility import prop_split
 
-from ..sm64_utility import import_rom_ui_warnings, string_int_prop
+from .operators import SM64_CreateSimpleLevel, SM64_AddWaterBox, SM64_AddBoneGroups, SM64_CreateMetarig
 
-from .operators import SM64_AddrConv, SM64_CreateSimpleLevel, SM64_AddWaterBox, SM64_AddBoneGroups, SM64_CreateMetarig
-
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from ..settings.properties import SM64_Properties
 
 class SM64_ToolsPanel(SM64_Panel):
     bl_idname = "SM64_PT_tools"
     bl_label = "SM64 Tools"
 
     def draw(self, context):
-        sm64_props = context.scene.fast64.sm64
-
         col = self.layout.column()
-
         col.label(text="Misc Tools", icon="TOOL_SETTINGS")
         SM64_CreateSimpleLevel.draw_props(col)
         SM64_AddWaterBox.draw_props(col)
@@ -25,20 +22,11 @@ class SM64_ToolsPanel(SM64_Panel):
         SM64_AddBoneGroups.draw_props(col)
         SM64_CreateMetarig.draw_props(col)
 
+        sm64_props: SM64_Properties = context.scene.fast64.sm64
         if not sm64_props.show_importing_menus:
             return
         col.label(text="Address Converter", icon="MEMORY")
-
-        if not import_rom_ui_warnings(col, sm64_props.import_rom):
-            col = col.column()
-            col.enabled = False
-        prop_split(col, sm64_props, "level_convert", "Level")
-        if string_int_prop(col, sm64_props, "convertible_addr", "Address"):
-            col.prop(sm64_props, "clipboard")
-            split = col.split()
-            args = {"addr": sm64_props.convertible_addr, "clipboard": sm64_props.clipboard}
-            SM64_AddrConv.draw_props(split, text="Segmented to Virtual", option="TO_VIR", **args)
-            SM64_AddrConv.draw_props(split, text="Virtual To Segmented", option="TO_SEG", **args)
+        sm64_props.address_converter.draw_props(col.box(), sm64_props.import_rom)
 
 
 classes = (SM64_ToolsPanel,)

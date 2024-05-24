@@ -10,7 +10,7 @@ from ...utility import PluginError, decodeSegmentedAddr, encodeSegmentedAddr
 from ...f3d.f3d_material import getDefaultMaterialPreset, createF3DMat, add_f3d_mat_to_obj
 from ...utility import parentObject, intToHex, bytesToHex
 
-from ..sm64_constants import level_pointers, levelIDNames
+from ..sm64_constants import level_pointers, levelIDNames, level_enums
 from ..sm64_utility import import_rom_checks, int_from_str
 from ..sm64_level_parser import parseLevelAtPointer
 from ..sm64_geolayout_utility import createBoneGroups
@@ -28,23 +28,21 @@ class SM64_AddrConv(OperatorBase):
     bl_description = "Converts a segmented address to a virtual address or viseversa"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
-    # Using an enum here looks cleaner when using this outside of the context of the SM64 panel
+    rom: StringProperty(name="ROM", subtype="FILE_PATH")
+    # Using an enum here looks cleaner when using this as an operator
     option: EnumProperty(name="Conversion type", items=enum_address_conversion_options)
+    level: EnumProperty(items=level_enums, name="Level", default="IC")
     addr: StringProperty(name="Address")
     clipboard: BoolProperty(name="Copy to clipboard", default=True)
     result: StringProperty(name="Result")
 
     def execute_operator(self, context: Context):
-        scene = context.scene
-        sm64_props = scene.fast64.sm64
-
-        import_rom_path = abspath(sm64_props.import_rom)
-        import_rom_checks(import_rom_path)
-
         addr = int_from_str(self.addr)
+        import_rom_path = abspath(self.rom)
+        import_rom_checks(import_rom_path)
         with open(import_rom_path, "rb") as romfile:
-            level_parsed = parseLevelAtPointer(romfile, level_pointers[sm64_props.level_convert])
-        segment_data = level_parsed.segmentData
+            level_parsed = parseLevelAtPointer(romfile, level_pointers[self.level])
+            segment_data = level_parsed.segmentData
         if self.option == "TO_VIR":
             result = intToHex(decodeSegmentedAddr(addr.to_bytes(4, "big"), segment_data))
             self.report({"INFO"}, f"Virtual pointer is {result}")
