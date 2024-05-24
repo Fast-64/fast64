@@ -383,6 +383,8 @@ def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren
     tempObj, allObjs = duplicateHierarchy(obj, None, True, areaIndex)
     try:
         addCollisionTriangles(tempObj, collisionDict, includeChildren, transformMatrix, areaIndex)
+        if not collisionDict:
+            raise PluginError("No collision data to export")
         cleanupDuplicatedObjects(allObjs)
         obj.select_set(True)
         bpy.context.view_layer.objects.active = obj
@@ -494,30 +496,24 @@ class SM64_ExportCollision(bpy.types.Operator):
     # set bl_ properties
     bl_idname = "object.sm64_export_collision"
     bl_label = "Export Collision"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
+    bl_options = {"REGISTER", "UNDO"}
+
+    export_obj: bpy.props.StringProperty()
 
     def execute(self, context):
         romfileOutput = None
         tempROM = None
+        props = context.scene.fast64.sm64.combined_export
         try:
             obj = None
             if context.mode != "OBJECT":
                 raise PluginError("Operator can only be used in object mode.")
-            if len(context.selected_objects) == 0:
-                raise PluginError("Object not selected.")
-            obj = context.active_object
-            # if type(obj.data) is not bpy.types.Mesh:
-            # 	raise PluginError("Mesh not selected.")
-
-            # T, R, S = obj.matrix_world.decompose()
-            # objTransform = R.to_matrix().to_4x4() @ \
-            # 	mathutils.Matrix.Diagonal(S).to_4x4()
-            # finalTransform = (blenderToSM64Rotation * \
-            # 	(bpy.context.scene.blenderToSM64Scale)).to_4x4()
-            # finalTransform = mathutils.Matrix.Identity(4)
-
-            scaleValue = bpy.context.scene.blenderToSM64Scale
-            finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((scaleValue, scaleValue, scaleValue))).to_4x4()
+            obj = bpy.data.objects.get(self.export_obj, None) or context.active_object
+            self.export_obj = ""
+            scale_value = bpy.context.scene.blenderToSM64Scale
+            final_transform = mathutils.Matrix.Diagonal(
+                mathutils.Vector((scale_value, scale_value, scale_value))
+            ).to_4x4()
         except Exception as e:
             raisePluginError(self, e)
             return {"CANCELLED"}
@@ -525,32 +521,32 @@ class SM64_ExportCollision(bpy.types.Operator):
         try:
             applyRotation([obj], math.radians(90), "X")
             if context.scene.fast64.sm64.exportType == "C":
-                exportPath, levelName = getPathAndLevel(
-                    context.scene.colCustomExport,
-                    context.scene.colExportPath,
-                    context.scene.colLevelName,
-                    context.scene.colLevelOption,
+                export_path, level_name = getPathAndLevel(
+                    props.export_header_type == "Custom",
+                    props.custom_export_path,
+                    props.custom_export_name,
+                    props.level_name,
                 )
-                if not context.scene.colCustomExport:
-                    applyBasicTweaks(exportPath)
+                if not props.export_header_type == "Custom":
+                    applyBasicTweaks(export_path)
                 exportCollisionC(
                     obj,
-                    finalTransform,
-                    exportPath,
+                    final_transform,
+                    export_path,
                     False,
-                    context.scene.colIncludeChildren,
-                    bpy.context.scene.colName,
-                    context.scene.colCustomExport,
-                    context.scene.colExportRooms,
-                    context.scene.colExportHeaderType,
-                    context.scene.colGroupName,
-                    levelName,
+                    props.include_children,
+                    props.obj_name_col,
+                    props.export_header_type == "Custom",
+                    props.export_rooms,
+                    props.export_header_type,
+                    props.group_name,
+                    level_name,
                 )
                 self.report({"INFO"}, "Success!")
             elif context.scene.fast64.sm64.exportType == "Insertable Binary":
                 exportCollisionInsertableBinary(
                     obj,
-                    finalTransform,
+                    final_transform,
                     bpy.path.abspath(context.scene.colInsertableBinaryPath),
                     False,
                     context.scene.colIncludeChildren,
@@ -572,7 +568,7 @@ class SM64_ExportCollision(bpy.types.Operator):
 
                 addrRange = exportCollisionBinary(
                     obj,
-                    finalTransform,
+                    final_transform,
                     romfileOutput,
                     int(context.scene.colStartAddr, 16),
                     int(context.scene.colEndAddr, 16),
@@ -628,41 +624,17 @@ class SM64_ExportCollisionPanel(SM64_Panel):
     bl_label = "SM64 Collision Exporter"
     goal = "Export Object/Actor/Anim"
 
+    @classmethod
+    def poll(cls, context):
+        return context.scene.fast64.sm64.exportType != "C"
+
     # called every frame
     def draw(self, context):
         col = self.layout.column()
         propsColE = col.operator(SM64_ExportCollision.bl_idname)
 
         col.prop(context.scene, "colIncludeChildren")
-
-        if context.scene.fast64.sm64.exportType == "C":
-            col.prop(context.scene, "colExportRooms")
-            col.prop(context.scene, "colCustomExport")
-            if context.scene.colCustomExport:
-                col.prop(context.scene, "colExportPath")
-                prop_split(col, context.scene, "colName", "Name")
-                customExportWarning(col)
-            else:
-                prop_split(col, context.scene, "colExportHeaderType", "Export Type")
-                prop_split(col, context.scene, "colName", "Name")
-                if context.scene.colExportHeaderType == "Actor":
-                    prop_split(col, context.scene, "colGroupName", "Group Name")
-                elif context.scene.colExportHeaderType == "Level":
-                    prop_split(col, context.scene, "colLevelOption", "Level")
-                    if context.scene.colLevelOption == "custom":
-                        prop_split(col, context.scene, "colLevelName", "Level Name")
-
-                decompFolderMessage(col)
-                writeBox = makeWriteInfoBox(col)
-                writeBoxExportType(
-                    writeBox,
-                    context.scene.colExportHeaderType,
-                    context.scene.colName,
-                    context.scene.colLevelName,
-                    context.scene.colLevelOption,
-                )
-
-        elif context.scene.fast64.sm64.exportType == "Insertable Binary":
+        if context.scene.fast64.sm64.exportType == "Insertable Binary":
             col.prop(context.scene, "colInsertableBinaryPath")
         else:
             prop_split(col, context.scene, "colStartAddr", "Start Address")
@@ -696,7 +668,6 @@ def sm64_col_register():
         register_class(cls)
 
     # Collision
-    bpy.types.Scene.colExportPath = bpy.props.StringProperty(name="Directory", subtype="FILE_PATH")
     bpy.types.Scene.colExportLevel = bpy.props.EnumProperty(
         items=level_enums, name="Level Used By Collision", default="WF"
     )
@@ -706,15 +677,6 @@ def sm64_col_register():
     bpy.types.Scene.colEndAddr = bpy.props.StringProperty(name="Start Address", default="11FFF00")
     bpy.types.Scene.colIncludeChildren = bpy.props.BoolProperty(name="Include child objects", default=True)
     bpy.types.Scene.colInsertableBinaryPath = bpy.props.StringProperty(name="Filepath", subtype="FILE_PATH")
-    bpy.types.Scene.colExportRooms = bpy.props.BoolProperty(name="Export Rooms", default=False)
-    bpy.types.Scene.colName = bpy.props.StringProperty(name="Name", default="mario")
-    bpy.types.Scene.colCustomExport = bpy.props.BoolProperty(name="Custom Export Path")
-    bpy.types.Scene.colExportHeaderType = bpy.props.EnumProperty(
-        items=enumExportHeaderType, name="Header Export", default="Actor"
-    )
-    bpy.types.Scene.colGroupName = bpy.props.StringProperty(name="Group Name", default="group0")
-    bpy.types.Scene.colLevelName = bpy.props.StringProperty(name="Level", default="bob")
-    bpy.types.Scene.colLevelOption = bpy.props.EnumProperty(items=enumLevelNames, name="Level", default="bob")
 
     bpy.types.Material.collision_type = bpy.props.EnumProperty(
         name="Collision Type", items=enumCollisionType, default="SURFACE_DEFAULT"
@@ -737,20 +699,12 @@ def sm64_col_register():
 
 def sm64_col_unregister():
     # Collision
-    del bpy.types.Scene.colExportPath
     del bpy.types.Scene.colExportLevel
     del bpy.types.Scene.addr_0x2A
     del bpy.types.Scene.set_addr_0x2A
     del bpy.types.Scene.colStartAddr
     del bpy.types.Scene.colEndAddr
     del bpy.types.Scene.colInsertableBinaryPath
-    del bpy.types.Scene.colExportRooms
-    del bpy.types.Scene.colName
-    del bpy.types.Scene.colCustomExport
-    del bpy.types.Scene.colExportHeaderType
-    del bpy.types.Scene.colGroupName
-    del bpy.types.Scene.colLevelName
-    del bpy.types.Scene.colLevelOption
 
     del bpy.types.Material.collision_type
     del bpy.types.Material.collision_type_simple
