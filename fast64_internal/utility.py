@@ -33,21 +33,10 @@ axis_enums = [
     ("-Y", "-Y", "-Y"),
 ]
 
-enumExportType = [
-    ("C", "C", "C"),
-    ("Binary", "Binary", "Binary"),
-    ("Insertable Binary", "Insertable Binary", "Insertable Binary"),
-]
-
 enumExportHeaderType = [
     # ('None', 'None', 'Headers are not written'),
     ("Actor", "Actor Data", "Headers are written to a group in actors/"),
     ("Level", "Level Data", "Headers are written to a specific level in levels/"),
-]
-
-enumCompressionFormat = [
-    ("mio0", "MIO0", "MIO0"),
-    ("yay0", "YAY0", "YAY0"),
 ]
 
 
