@@ -94,8 +94,11 @@ def string_int_warning(layout: UILayout, value: str) -> bool:
         return False
 
 
-def string_int_prop(layout: UILayout, data, prop: str, name: str, **prop_kwargs):
-    prop_split(layout, data, prop, name, **prop_kwargs)
+def string_int_prop(layout: UILayout, data, prop: str, name="", split=True, **prop_kwargs):
+    if split:
+        prop_split(layout, data, prop, name, **prop_kwargs)
+    else:
+        layout.prop(data, prop, text=name, **prop_kwargs)
     return string_int_warning(layout, getattr(data, prop))
 
 

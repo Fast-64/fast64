@@ -24,8 +24,9 @@ class SM64_AddrConvProperties(PropertyGroup):
         picked_rom = abspath(self.rom if self.rom else import_rom)
         if not import_rom_ui_warnings(col, picked_rom):
             return
-        prop_split(col, self, "level", "Level")
-        if string_int_prop(col, self, "address", "Address"):
+        split = col.split()
+        split.prop(self, "level")
+        if string_int_prop(split, self, "address", split=False):
             col.prop(self, "clipboard")
             split = col.split()
             args = {"rom": picked_rom, "level": self.level, "addr": self.address, "clipboard": self.clipboard}
