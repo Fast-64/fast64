@@ -5,8 +5,10 @@ from ...panels import SM64_Panel
 from .operators import SM64_CreateSimpleLevel, SM64_AddWaterBox, SM64_AddBoneGroups, SM64_CreateMetarig
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from ..settings.properties import SM64_Properties
+
 
 class SM64_ToolsPanel(SM64_Panel):
     bl_idname = "SM64_PT_tools"
