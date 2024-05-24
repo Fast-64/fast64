@@ -63,30 +63,39 @@ def export_rom_ui_warnings(layout: UILayout, rom: os.PathLike) -> bool:
         return False
 
 
-def is_valid_int(value: str):
+def int_from_str(value: str):
+    """Better errors than int(x, 0), supports hex, binary, octal and decimal."""
+    bases = {
+        "0x": (16, "hexadecimal value. \nOnly use characters [0-F] when representing base 16."),
+        "0b": (2, "binary value. \nOnly use 0 or 1 when representing base 2."),
+        "0o": (8, "octal value. \nOnly use characters [0-7] when representing base 8."),
+    }
+    decimal = (10, "decimal value. \nUse 0x for hexadecimal, 0b for binary, and 0o for octal.")
+
+    value = value.strip()
+    prefix = value[:2].lower() if len(value) > 1 else ""
+    number_part = value[2:] if prefix else value
+    if not number_part:
+        raise ValueError("Empty value.")
+
+    base_and_error = bases.get(prefix, decimal)
     try:
-        int(value, 0)
-        return True
+        return int(number_part, base_and_error[0])
     except ValueError as exc:
+        raise ValueError(f"{value} is not a valid " + base_and_error[1]) from exc
+
+
+def string_int_warning(layout: UILayout, value: str) -> bool:
+    try:
+        int_from_str(value)
+        return True
+    except Exception as exc:
+        multilineLabel(layout.box(), str(exc), "ERROR")
         return False
 
 
-def string_int_warning(layout: UILayout, value: str):
-    if value:
-        if is_valid_int(value):
-            return True
-        multilineLabel(
-            layout.box(),
-            "Invalid integer\nUse 0x for hexadecimal, 0b for bytes.\nDon´t use decimals, don´t use trailing zeros.",
-            "ERROR",
-        )
-    else:
-        layout.box().label(text="Empty Number", icon="ERROR")
-    return False
-
-
-def string_int_prop(layout: UILayout, data, prop: str, name: str, **prop_args):
-    prop_split(layout, data, prop, name, **prop_args)
+def string_int_prop(layout: UILayout, data, prop: str, name: str, **prop_kwargs):
+    prop_split(layout, data, prop, name, **prop_kwargs)
     return string_int_warning(layout, getattr(data, prop))
 
 

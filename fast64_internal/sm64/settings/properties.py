@@ -57,6 +57,7 @@ Sets bank 4 range to ({hex(defaultExtendSegment4[0])}, {hex(defaultExtendSegment
     import_rom: StringProperty(name="Import ROM", subtype="FILE_PATH")
     convertible_addr: StringProperty(name="Address")
     level_convert: EnumProperty(items=level_enums, name="Level", default="IC")
+    clipboard: BoolProperty(name="Copy to Clipboard", default=True)
 
     decomp_path: StringProperty(name="Decomp Folder", subtype="FILE_PATH", update=decomp_path_update)
 

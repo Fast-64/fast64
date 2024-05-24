@@ -34,12 +34,11 @@ class SM64_ToolsPanel(SM64_Panel):
             col.enabled = False
         prop_split(col, sm64_props, "level_convert", "Level")
         if string_int_prop(col, sm64_props, "convertible_addr", "Address"):
-            address = sm64_props.convertible_addr
+            col.prop(sm64_props, "clipboard")
             split = col.split()
-            to_virt_op = SM64_AddrConv.draw_props(split, text="Segmented To Virtual")
-            to_virt_op.option, to_virt_op.address = "SEGMENTED_TO_VIRTUAL", address
-            to_virt_op = SM64_AddrConv.draw_props(split, text="Virtual To Segmented")
-            to_virt_op.option, to_virt_op.address = "VIRTUAL_TO_SEGMENTED", address
+            args = {"addr": sm64_props.convertible_addr, "clipboard": sm64_props.clipboard}
+            SM64_AddrConv.draw_props(split, text="Segmented to Virtual", option="TO_VIR", **args)
+            SM64_AddrConv.draw_props(split, text="Virtual To Segmented", option="TO_SEG", **args)
 
 
 classes = (SM64_ToolsPanel,)

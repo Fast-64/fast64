@@ -6,36 +6,33 @@ from bpy.props import EnumProperty, BoolProperty, IntProperty, FloatProperty, St
 from bpy.path import abspath
 
 from ...operators import OperatorBase, AddWaterBox
-from ...utility import (
-    PluginError,
-    decodeSegmentedAddr,
-    encodeSegmentedAddr,
-)
+from ...utility import PluginError, decodeSegmentedAddr, encodeSegmentedAddr
+from ...f3d.f3d_material import getDefaultMaterialPreset, createF3DMat, add_f3d_mat_to_obj
+from ...utility import parentObject, intToHex, bytesToHex
 
 from ..sm64_constants import level_pointers, levelIDNames
-from ..sm64_utility import import_rom_checks
+from ..sm64_utility import import_rom_checks, int_from_str
 from ..sm64_level_parser import parseLevelAtPointer
 from ..sm64_geolayout_utility import createBoneGroups
 from ..sm64_geolayout_parser import generateMetarig
 
-from ...f3d.f3d_material import getDefaultMaterialPreset, createF3DMat, add_f3d_mat_to_obj
-from ...utility import parentObject
-
 enum_address_conversion_options = [
-    ("SEGMENTED_TO_VIRTUAL", "Segmented To Virtual", "Convert address from segmented to virtual"),
-    ("VIRTUAL_TO_SEGMENTED", "Virtual To Segmented", "Convert address from virtual to segmented"),
+    ("TO_VIR", "Segmented To Virtual", "Convert address from segmented to virtual"),
+    ("TO_SEG", "Virtual To Segmented", "Convert address from virtual to segmented"),
 ]
 
 
 class SM64_AddrConv(OperatorBase):
     bl_idname = "scene.sm64_addr_conv"
     bl_label = "Convert SM64 Address"
-    bl_description = "Converts an SM64 address from segmented to virtual or from virtual to segmented"
+    bl_description = "Converts a segmented address to a virtual address or viseversa"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
     # Using an enum here looks cleaner when using this outside of the context of the SM64 panel
     option: EnumProperty(name="Conversion type", items=enum_address_conversion_options)
-    address: StringProperty(name="Address")
+    addr: StringProperty(name="Address")
+    clipboard: BoolProperty(name="Copy to clipboard", default=True)
+    result: StringProperty(name="Result")
 
     def execute_operator(self, context: Context):
         scene = context.scene
@@ -44,22 +41,21 @@ class SM64_AddrConv(OperatorBase):
         import_rom_path = abspath(sm64_props.import_rom)
         import_rom_checks(import_rom_path)
 
-        address = int(self.address, 0)
-        if not address:
-            raise PluginError("Empty address")
-
+        addr = int_from_str(self.addr)
         with open(import_rom_path, "rb") as romfile:
             level_parsed = parseLevelAtPointer(romfile, level_pointers[sm64_props.level_convert])
         segment_data = level_parsed.segmentData
-
-        if self.option == "SEGMENTED_TO_VIRTUAL":
-            ptr = decodeSegmentedAddr(address.to_bytes(4, "big"), segment_data)
-            self.report({"INFO"}, "Virtual pointer is 0x" + format(ptr, "08X"))
-        elif self.option == "VIRTUAL_TO_SEGMENTED":
-            ptr = int.from_bytes(encodeSegmentedAddr(address, segment_data), "big")
-            self.report({"INFO"}, "Segmented pointer is 0x" + format(ptr, "08X"))
+        if self.option == "TO_VIR":
+            result = intToHex(decodeSegmentedAddr(addr.to_bytes(4, "big"), segment_data))
+            self.report({"INFO"}, f"Virtual pointer is {result}")
+        elif self.option == "TO_SEG":
+            result = bytesToHex(encodeSegmentedAddr(addr, segment_data))
+            self.report({"INFO"}, f"Segmented pointer is {result}")
         else:
             raise NotImplementedError(f"Non implement conversion option {self.option}")
+        self.result = result
+        if self.clipboard:
+            context.window_manager.clipboard = result
 
 
 class SM64_AddBoneGroups(OperatorBase):
