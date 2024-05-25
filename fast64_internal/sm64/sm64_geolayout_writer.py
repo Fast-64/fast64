@@ -2818,7 +2818,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
             # 	context.scene.saveCameraSettings else None
 
             finalTransform = mathutils.Matrix.Identity(4)
-            scaleValue = bpy.context.scene.fast64.sm64.blender_to_sm64_scale
+            scaleValue = context.scene.fast64.sm64.blender_to_sm64_scale
             finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((scaleValue, scaleValue, scaleValue))).to_4x4()
         except Exception as e:
             raisePluginError(self, e)

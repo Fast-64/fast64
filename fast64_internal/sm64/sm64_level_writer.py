@@ -1153,7 +1153,7 @@ class SM64_ExportLevel(ObjectDataExporter):
                     raise PluginError("Cannot find level empty.")
                 selectSingleObject(obj)
 
-            scaleValue = bpy.context.scene.fast64.sm64.blender_to_sm64_scale
+            scaleValue = context.scene.fast64.sm64.blender_to_sm64_scale
             finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((scaleValue, scaleValue, scaleValue))).to_4x4()
 
         except Exception as e:

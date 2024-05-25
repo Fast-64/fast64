@@ -7,15 +7,11 @@ from bpy.utils import register_class, unregister_class
 
 from ...render_settings import on_update_render_settings
 from ...utility import directory_path_checks, directory_ui_warnings, prop_split
-from ..sm64_constants import (
-    enum_refresh_versions,
-    defaultExtendSegment4,
-    enum_export_type,
-    enum_compression_formats,
-    enum_sm64_goal_type,
-)
+from ..sm64_constants import defaultExtendSegment4
 from ..sm64_utility import export_rom_ui_warnings, import_rom_ui_warnings
 from ..tools import SM64_AddrConvProperties
+
+from .constants import enum_refresh_versions, enum_compression_formats, enum_export_type, enum_sm64_goal_type
 
 
 def decomp_path_update(self, context: Context):

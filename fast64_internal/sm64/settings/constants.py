@@ -1,23 +1,23 @@
-sm64GoalTypeEnum = [
+enum_sm64_goal_type = [
     ("All", "All", "All"),
-    ("Export Object/Actor/Anim", "Export Object/Actor/Anim", "Export Object/Actor/Anim"),
-    ("Export Level", "Export Level", "Export Level"),
-    ("Export Displaylist", "Export Displaylist", "Export Displaylist"),
-    ("Export UI Image", "Export UI Image", "Export UI Image"),
+    ("Object/Actor/Anim", "Object/Actor/Anim", "Object/Actor/Anim"),
+    ("Level", "Level", "Level"),
+    ("Displaylist", "Displaylist", "Displaylist"),
+    ("UI Image", "UI Image", "UI Image"),
 ]
 
-enumExportType = [
+enum_export_type = [
     ("C", "C", "C"),
     ("Binary", "Binary", "Binary"),
     ("Insertable Binary", "Insertable Binary", "Insertable Binary"),
 ]
 
-enumCompressionFormat = [
+enum_compression_formats = [
     ("mio0", "MIO0", "MIO0"),
     ("yay0", "YAY0", "YAY0"),
 ]
 
-enumRefreshVer = [
+enum_refresh_versions = [
     ("Refresh 3", "Refresh 3", "Refresh 3"),
     ("Refresh 4", "Refresh 4", "Refresh 4"),
     ("Refresh 5", "Refresh 5", "Refresh 5"),
