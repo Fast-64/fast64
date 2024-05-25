@@ -1206,83 +1206,69 @@ def draw_and_check_tab(
     return tab
 
 
+def run_and_draw_errors(layout: UILayout, func, *args):
+    try:
+        func(*args)
+        return True
+    except Exception as e:
+        multilineLabel(layout.box(), str(e), "ERROR")
+        return False
+
+
+def path_checks(path: str, empty="Empty path.", doesnt_exist="Path {}does not exist.", include_path=True):
+    path_in_error = f'"{path}" ' if include_path else ""
+    if path == "":
+        raise PluginError(empty)
+    elif not os.path.exists(path):
+        raise FileNotFoundError(doesnt_exist.format(path_in_error))
+
+
+def path_ui_warnings(layout: bpy.types.UILayout, path: str, empty="Empty path.", doesnt_exist="Path does not exist."):
+    return run_and_draw_errors(layout, path_checks, path, empty, doesnt_exist, False)
+
+
 def directory_path_checks(
-    directory_path: str,
-    empty_error: str = "Empty path.",
-    doesnt_exist_error: str = "Directory does not exist.",
-    not_a_directory_error: str = "Path is not a folder.",
+    path: str,
+    empty="Empty path.",
+    doesnt_exist="Directory {}does not exist.",
+    not_a_directory="Path {}is not a folder.",
+    include_path=True,
 ):
-    if directory_path == "":
-        raise PluginError(empty_error)
-    elif not os.path.exists(directory_path):
-        raise PluginError(doesnt_exist_error)
-    elif not os.path.isdir(directory_path):
-        raise PluginError(not_a_directory_error)
+    path_checks(path, empty, doesnt_exist, include_path)
+    if not os.path.isdir(path):
+        raise NotADirectoryError(not_a_directory.format(f'"{path}" ' if include_path else ""))
 
 
 def directory_ui_warnings(
     layout: bpy.types.UILayout,
-    directory_path: str,
-    empty_error: str = "Empty path.",
-    doesnt_exist_error: str = "Directory does not exist.",
-    not_a_directory_error: str = "Path is not a folder.",
-) -> bool:
-    try:
-        directory_path_checks(directory_path, empty_error, doesnt_exist_error, not_a_directory_error)
-        return True
-    except Exception as e:
-        multilineLabel(layout.box(), str(e), "ERROR")
-        return False
+    path: str,
+    empty="Empty path.",
+    doesnt_exist="Directory does not exist.",
+    not_a_directory="Path is not a folder.",
+):
+    return run_and_draw_errors(layout, directory_path_checks, path, empty, doesnt_exist, not_a_directory, False)
 
 
 def filepath_checks(
-    filepath: str,
-    empty_error: str = "Empty path.",
-    doesnt_exist_error: str = "File does not exist.",
-    not_a_file_error: str = "Path is not a file.",
+    path: str,
+    empty="Empty path.",
+    doesnt_exist="File {}does not exist.",
+    not_a_file="Path {}is not a file.",
+    include_path=True,
 ):
-    if filepath == "":
-        raise PluginError(empty_error)
-    elif not os.path.exists(filepath):
-        raise PluginError(doesnt_exist_error)
-    elif not os.path.isfile(filepath):
-        raise PluginError(not_a_file_error)
+    path_checks(path, empty, doesnt_exist, include_path)
+    if not os.path.isfile(path):
+        raise IsADirectoryError(not_a_file.format(f'"{path}" ' if include_path else ""))
 
 
 def filepath_ui_warnings(
     layout: bpy.types.UILayout,
-    filepath: str,
-    empty_error: str = "Empty path.",
-    doesnt_exist_error: str = "File does not exist.",
-    not_a_file_error: str = "Path is not a file.",
-) -> bool:
-    try:
-        filepath_checks(filepath, empty_error, doesnt_exist_error, not_a_file_error)
-        return True
-    except Exception as e:
-        multilineLabel(layout.box(), str(e), "ERROR")
-        return False
-
-
-def path_checks(filepath: str, empty_error: str = "Empty path.", doesnt_exist_error: str = "Path does not exist."):
-    if filepath == "":
-        raise PluginError(empty_error)
-    elif not os.path.exists(filepath):
-        raise PluginError(doesnt_exist_error)
-
-
-def path_ui_warnings(
-    layout: bpy.types.UILayout,
-    filepath: str,
-    empty_error: str = "Empty path.",
-    doesnt_exist_error: str = "Path does not exist.",
-) -> bool:
-    try:
-        path_checks(filepath, empty_error, doesnt_exist_error)
-        return True
-    except Exception as e:
-        multilineLabel(layout.box(), str(e), "ERROR")
-        return False
+    path: str,
+    empty="Empty path.",
+    doesnt_exist="File does not exist.",
+    not_a_file="Path is not a file.",
+):
+    return run_and_draw_errors(layout, filepath_checks, path, empty, doesnt_exist, not_a_file, False)
 
 
 def toAlnum(name, exceptions=[]):
