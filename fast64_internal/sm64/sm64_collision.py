@@ -512,8 +512,17 @@ class SM64_ExportCollision(bpy.types.Operator):
             if len(context.selected_objects) == 0:
                 raise PluginError("Object not selected.")
             obj = context.active_object
+            # if type(obj.data) is not bpy.types.Mesh:
+            # 	raise PluginError("Mesh not selected.")
 
-            scaleValue = bpy.context.scene.fast64.sm64.blender_to_sm64_scale
+            # T, R, S = obj.matrix_world.decompose()
+            # objTransform = R.to_matrix().to_4x4() @ \
+            # 	mathutils.Matrix.Diagonal(S).to_4x4()
+            # finalTransform = (blenderToSM64Rotation * \
+            # 	(bpy.context.scene.blenderToSM64Scale)).to_4x4()
+            # finalTransform = mathutils.Matrix.Identity(4)
+
+            scaleValue = context.scene.fast64.sm64.blender_to_sm64_scale
             finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((scaleValue, scaleValue, scaleValue))).to_4x4()
         except Exception as e:
             raisePluginError(self, e)

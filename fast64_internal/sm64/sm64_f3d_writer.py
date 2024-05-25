@@ -570,7 +570,7 @@ class SM64_ExportDL(bpy.types.Operator):
             if obj.type != "MESH":
                 raise PluginError("Object is not a mesh.")
 
-            scaleValue = bpy.context.scene.fast64.sm64.blender_to_sm64_scale
+            scaleValue = context.scene.fast64.sm64.blender_to_sm64_scale
             finalTransform = Matrix.Diagonal(Vector((scaleValue, scaleValue, scaleValue))).to_4x4()
 
         except Exception as e:
