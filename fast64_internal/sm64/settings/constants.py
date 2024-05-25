@@ -29,11 +29,3 @@ enum_refresh_versions = [
     ("Refresh 12", "Refresh 12", "Refresh 12"),
     ("Refresh 13", "Refresh 13", "Refresh 13"),
 ]
-
-draw_layer_enums = [
-    ("1", "Solid", "0x01"),
-    ("2", "Solid Decal", "0x02"),
-    ("4", "Transparent (No Blending)", "0x04"),
-    ("5", "Transparent (Blending Front)", "0x05"),
-    ("6", "Transparent (Blending Back)", "0x06"),
-]

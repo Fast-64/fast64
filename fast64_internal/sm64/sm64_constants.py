@@ -35,15 +35,6 @@ commonGeolayoutPointers = {
 }
 
 
-draw_layer_enums = [
-    ("1", "Solid", "0x01"),
-    ("2", "Solid Decal", "0x02"),
-    ("4", "Transparent (No Blending)", "0x04"),
-    ("5", "Transparent (Blending Front)", "0x05"),
-    ("6", "Transparent (Blending Back)", "0x06"),
-]
-
-
 level_enums = [
     ("HH", "Big Boo's Haunt", "HH"),  # Originally Haunted House
     ("CCM", "Cool Cool Mountain", "CCM"),
