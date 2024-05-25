@@ -34,6 +34,7 @@ commonGeolayoutPointers = {
     "Lakitu": [1985520, "CC"],
 }
 
+
 enum_sm64_goal_type = [
     ("All", "All", "All"),
     ("Object/Actor/Anim", "Object/Actor/Anim", "Object/Actor/Anim"),

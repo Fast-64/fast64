@@ -39,6 +39,7 @@ enumExportHeaderType = [
     ("Level", "Level Data", "Headers are written to a specific level in levels/"),
 ]
 
+
 # bpy.context.mode returns the keys here, while the values are required by bpy.ops.object.mode_set
 BLENDER_MODE_TO_MODE_SET = {"PAINT_VERTEX": "VERTEX_PAINT", "EDIT_MESH": "EDIT"}
 get_mode_set_from_context_mode = lambda mode: BLENDER_MODE_TO_MODE_SET.get(mode, "OBJECT")
@@ -1683,10 +1684,10 @@ def ootGetBaseOrCustomLight(prop, idx, toExport: bool, errIfMissing: bool):
         if light is None:
             if errIfMissing:
                 raise PluginError("Error: Diffuse " + str(idx) + " light object not set in a scene lighting property.")
-            else:
-                col = light.color
-                lightObj = lightDataToObj(light)
-                dir = getObjDirectionVec(lightObj, toExport)
+        else:
+            col = light.color
+            lightObj = lightDataToObj(light)
+            dir = getObjDirectionVec(lightObj, toExport)
     col = mathutils.Vector(tuple(c for c in col))
     if toExport:
         col, dir = exportColor(col), normToSigned8Vector(dir)

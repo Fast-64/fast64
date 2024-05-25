@@ -785,7 +785,7 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
     )
 
     # Hacky solution to handle Z-up to Y-up conversion
-    rotation = originalRotation @ mathutils.Quaternion((1, 0, 0), math.radians(90.0))
+    rotation = (originalRotation @ mathutils.Quaternion((1, 0, 0), math.radians(90.0))).to_euler("ZXY")
 
     if obj.type == "EMPTY":
         if obj.sm64_obj_type == "Area Root" and obj.areaIndex != area.index:
@@ -798,7 +798,7 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
                     SM64_Special_Object(
                         preset,
                         translation,
-                        rotation.to_euler() if obj.sm64_obj_set_yaw else None,
+                        rotation if obj.sm64_obj_set_yaw else None,
                         obj.fast64.sm64.game_object.get_behavior_params()
                         if (obj.sm64_obj_set_yaw and obj.sm64_obj_set_bparam)
                         else None,
@@ -820,7 +820,7 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
                     SM64_Object(
                         modelID,
                         translation,
-                        rotation.to_euler(),
+                        rotation,
                         behaviour,
                         obj.fast64.sm64.game_object.get_behavior_params(),
                         get_act_string(obj),
@@ -832,12 +832,12 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
                     SM64_Macro_Object(
                         macro,
                         translation,
-                        rotation.to_euler(),
+                        rotation,
                         obj.fast64.sm64.game_object.get_behavior_params() if obj.sm64_obj_set_bparam else None,
                     )
                 )
             elif obj.sm64_obj_type == "Mario Start":
-                mario_start = SM64_Mario_Start(obj.sm64_obj_mario_start_area, translation, rotation.to_euler())
+                mario_start = SM64_Mario_Start(obj.sm64_obj_mario_start_area, translation, rotation)
                 area.objects.append(mario_start)
                 area.mario_start = mario_start
             elif obj.sm64_obj_type == "Trajectory":
@@ -857,7 +857,7 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
                         triggerIndex,
                         obj.cameraVolumeFunction,
                         translation,
-                        rotation.to_euler(),
+                        rotation,
                         scale,
                         obj.empty_display_size,
                     )

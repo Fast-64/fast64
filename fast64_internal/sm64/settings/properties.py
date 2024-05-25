@@ -173,3 +173,4 @@ def settings_props_register():
 def settings_props_unregister():
     for cls in reversed(classes):
         unregister_class(cls)
+
