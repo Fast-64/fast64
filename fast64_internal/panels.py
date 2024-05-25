@@ -7,7 +7,12 @@ class SM64_Panel(bpy.types.Panel):
     bl_category = "SM64"
     bl_options = {"DEFAULT_CLOSED"}
 
-    # goal refers to the selected enum_sm64_goal_type, a different selection than this goal will filter this panel out
+    # If bl_context is 'object' and object_type is defined, only show if the object is in the types
+    bl_context = ""
+    object_type: list | None = None
+
+    # goal refers to the selected enum_sm64_goal_type in SM64_Properties,
+    # a different selection than this goal will filter this panel out
     goal = None
     # if this is True, the panel is hidden whenever the scene's export_type is not 'C'
     decomp_only = False
@@ -15,6 +20,9 @@ class SM64_Panel(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
+        if cls.bl_context == "object":
+            if cls.object_type and context.object.type not in cls.object_type:
+                return False
         sm64_props = context.scene.fast64.sm64
         if context.scene.gameEditorMode != "SM64":
             return False
