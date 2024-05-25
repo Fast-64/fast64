@@ -106,9 +106,9 @@ class LoadRepoSettings(OperatorBase):
 def load_repo_settings(scene: Scene, path: os.PathLike, skip_if_no_auto_load=False):
     filepath_checks(
         abspath(path),
-        empty_error="Repo settings file path is empty.",
-        doesnt_exist_error="Repo settings file path does not exist.",
-        not_a_file_error="Repo settings file path is not a file.",
+        "Repo settings file path is empty.",
+        "Repo settings file path {}does not exist.",
+        "Repo settings file path {}is not a file.",
     )
 
     try:

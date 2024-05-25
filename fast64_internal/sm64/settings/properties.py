@@ -11,17 +11,17 @@ from ..sm64_constants import defaultExtendSegment4
 from ..sm64_utility import export_rom_ui_warnings, import_rom_ui_warnings
 from ..tools import SM64_AddrConvProperties
 
-from .constants import enum_refresh_versions, enum_compression_formats, enum_export_type, enum_sm64_goal_type
+from .constants import (
+    enum_refresh_versions,
+    enum_compression_formats,
+    enum_export_type,
+    enum_sm64_goal_type,
+)
 
 
 def decomp_path_update(self, context: Context):
-    try:
-        directory_path_checks(abspath(self.decomp_path))
-        context.scene.fast64.settings.repo_settings_path = os.path.join(
-            os.path.dirname(abspath(self.decomp_path)), "fast64.json"
-        )
-    except:
-        pass  # Silently fail
+    directory_path_checks(abspath(self.decomp_path))
+    context.scene.fast64.settings.repo_settings_path = os.path.join(abspath(self.decomp_path), "fast64.json")
 
 
 class SM64_Properties(PropertyGroup):
