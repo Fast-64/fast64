@@ -1699,3 +1699,42 @@ binOps = {
     ast.BitAnd: operator.and_,
     ast.BitXor: operator.xor,
 }
+
+
+def prop_group_to_json(prop_group, blacklist: list[str] = None):
+    """https://github.com/KhronosGroup/glTF-Blender-IO/blob/main/addons/io_scene_gltf2/blender/com/gltf2_blender_extras.py"""
+
+    def prop_to_json(prop):
+        if isinstance(prop, (bpy.types.ID, str, int, float)):
+            return prop
+        elif isinstance(prop, list):
+            prop = list(prop)
+            for index in range(len(prop)):
+                prop[index] = prop_to_json(prop[index])
+            return prop
+        elif hasattr(prop, "to_list"):  # for IDPropertyArray classes
+            return prop.to_list()
+        elif hasattr(prop, "to_dict"):
+            return prop.to_dict()
+        else:
+            raise PluginError("Unsupported property type: " + str(type(prop)))
+
+    data = {}
+    for prop in prop_group.keys():
+        if blacklist and prop in blacklist:
+            continue
+        value = prop_to_json(getattr(prop_group, prop))
+        if value is not None:
+            data[prop] = value
+    return data if data else None
+
+
+def json_to_prop_group(prop_group, data: dict, blacklist: list[str] = None):
+    for prop in prop_group.keys():
+        if blacklist and prop in blacklist:
+            continue
+        default = getattr(prop_group, prop)
+        if hasattr(default, "to_dict"):
+            default.from_dict(data.get(prop, None))
+        else:
+            setattr(prop_group, prop, data.get(prop, default))

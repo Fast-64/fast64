@@ -2966,8 +2966,14 @@ class PrimDepthSettings(PropertyGroup):
         ),
     )
 
+    def to_dict(self):
+        return prop_group_to_json(self)
+
+    def from_dict(self, data: dict):
+        json_to_prop_group(self, data)
+
     def key(self):
-        return (self.z, self.dz)
+        return frozenset(self.to_dict().items())
 
 
 class RDPSettings(PropertyGroup):
@@ -3318,64 +3324,64 @@ class RDPSettings(PropertyGroup):
         update=update_node_values_with_preset,
     )
 
+    rm_properties = [
+        "aa_en",
+        "z_cmp",
+        "z_upd",
+        "im_rd",
+        "clr_on_cvg",
+        "cvg_dst",
+        "zmode",
+        "cvg_x_alpha",
+        "alpha_cvg_sel",
+        "force_bl",
+        "blend_p1",
+        "blend_p2",
+        "blend_m1",
+        "blend_m2",
+        "blend_a1",
+        "blend_a2",
+        "blend_b1",
+        "blend_b2",
+    ]
+    black_list = rm_properties + [
+        "prim_depth",
+        "rendermode_preset_cycle_1",
+        "rendermode_preset_cycle_2",
+        "rendermode_advanced_enabled",
+    ]
+
+    def to_dict(self):
+        data = prop_group_to_json(self, self.black_list)
+        if self.g_mdsft_zsrcsel == "G_ZS_PRIM":
+            data["prim_depth"] = self.prim_depth.to_dict()
+        if self.set_rendermode:
+            render_mode = {}
+            render_mode["advanced"] = self.rendermode_advanced_enabled
+            if self.rendermode_advanced_enabled:
+                for prop in self.rm_properties:
+                    render_mode[prop] = getattr(self, prop)
+            else:
+                render_mode["preset_cycle_1"] = self.rendermode_preset_cycle_1
+                render_mode["preset_cycle_2"] = self.rendermode_preset_cycle_2
+            data["render_mode"] = render_mode
+        return data
+
+    def from_dict(self, data: dict):
+        json_to_prop_group(self, data, self.black_list)
+        self.prim_depth.from_dict(data.get("prim_depth", {}))
+        if self.set_rendermode:
+            render_mode = data.get("render_mode", {})
+            self.rendermode_advanced_enabled = render_mode.get("advanced", self.rendermode_advanced_enabled)
+            if self.rendermode_advanced_enabled:
+                for prop in self.rm_properties:
+                    setattr(self, prop, render_mode.get(prop, getattr(self, prop)))
+            else:
+                self.rendermode_preset_cycle_1 = render_mode.get("preset_cycle_1", self.rendermode_preset_cycle_1)
+                self.rendermode_preset_cycle_2 = render_mode.get("preset_cycle_2", self.rendermode_preset_cycle_2)
+
     def key(self):
-        setRM = self.set_rendermode
-        rmAdv = self.rendermode_advanced_enabled
-        prim = self.g_mdsft_zsrcsel == "G_ZS_PRIM"
-        return (
-            self.g_zbuffer,
-            self.g_shade,
-            self.g_cull_front,
-            self.g_cull_back,
-            self.g_attroffset_st_enable,
-            self.g_attroffset_z_enable,
-            self.g_packed_normals,
-            self.g_lighttoalpha,
-            self.g_ambocclusion,
-            self.g_fog,
-            self.g_lighting,
-            self.g_tex_gen,
-            self.g_tex_gen_linear,
-            self.g_lod,
-            self.g_shade_smooth,
-            self.g_clipping,
-            self.g_mdsft_alpha_dither,
-            self.g_mdsft_rgb_dither,
-            self.g_mdsft_combkey,
-            self.g_mdsft_textconv,
-            self.g_mdsft_text_filt,
-            self.g_mdsft_textlod,
-            self.g_mdsft_textdetail,
-            self.g_mdsft_textpersp,
-            self.g_mdsft_cycletype,
-            self.g_mdsft_color_dither,
-            self.g_mdsft_pipeline,
-            self.g_mdsft_alpha_compare,
-            self.g_mdsft_zsrcsel,
-            self.prim_depth.key() if prim else None,
-            self.clip_ratio,
-            self.set_rendermode,
-            self.aa_en if setRM and rmAdv else None,
-            self.z_cmp if setRM and rmAdv else None,
-            self.z_upd if setRM and rmAdv else None,
-            self.im_rd if setRM and rmAdv else None,
-            self.clr_on_cvg if setRM and rmAdv else None,
-            self.cvg_dst if setRM and rmAdv else None,
-            self.zmode if setRM and rmAdv else None,
-            self.cvg_x_alpha if setRM and rmAdv else None,
-            self.alpha_cvg_sel if setRM and rmAdv else None,
-            self.force_bl if setRM and rmAdv else None,
-            self.blend_p1 if setRM and rmAdv else None,
-            self.blend_p2 if setRM and rmAdv else None,
-            self.blend_m1 if setRM and rmAdv else None,
-            self.blend_m2 if setRM and rmAdv else None,
-            self.blend_a1 if setRM and rmAdv else None,
-            self.blend_a2 if setRM and rmAdv else None,
-            self.blend_b1 if setRM and rmAdv else None,
-            self.blend_b2 if setRM and rmAdv else None,
-            self.rendermode_preset_cycle_1 if setRM and not rmAdv else None,
-            self.rendermode_preset_cycle_2 if setRM and not rmAdv else None,
-        )
+        return frozenset(self.to_dict().items())
 
 
 class DefaultRDPSettingsPanel(Panel):

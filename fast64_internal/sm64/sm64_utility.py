@@ -69,11 +69,11 @@ def export_rom_checks(rom: os.PathLike, include_path=True):
 
 
 def import_rom_ui_warnings(layout: UILayout, rom: os.PathLike):
-    run_and_draw_errors(layout, import_rom_checks, rom, False)
+    return run_and_draw_errors(layout, import_rom_checks, rom, False)
 
 
 def export_rom_ui_warnings(layout: UILayout, rom: os.PathLike):
-    run_and_draw_errors(layout, export_rom_checks, rom, False)
+    return run_and_draw_errors(layout, export_rom_checks, rom, False)
 
 
 def int_from_str(value: str):
