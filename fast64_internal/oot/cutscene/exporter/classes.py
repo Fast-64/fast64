@@ -32,6 +32,10 @@ from ..classes import (
 )
 
 
+def cs_export_float(v: float):
+    return f"{v:f}f"
+
+
 class CutsceneCmdToC:
     """This class contains functions to create the cutscene commands"""
 
@@ -102,7 +106,7 @@ class CutsceneCmdToC:
             + "".join(f"{rot}, " for rot in actorCue.rot)
             + "".join(f"{pos}, " for pos in actorCue.startPos)
             + "".join(f"{pos}, " for pos in actorCue.endPos)
-            + "0.0f, 0.0f, 0.0f),\n"
+            + f"{cs_export_float(0)}, {cs_export_float(0)}, {cs_export_float(0)}),\n"
         )
 
     def getCamListCmd(self, cmdName: str, startFrame: int, endFrame: int):
@@ -133,7 +137,7 @@ class CutsceneCmdToC:
     def getCamPointCmd(self, camPoint: CutsceneCmdCamPoint):
         return indent * 3 + (
             f"CS_CAM_POINT("
-            + f"{camPoint.continueFlag}, {camPoint.camRoll}, {camPoint.frame}, {camPoint.viewAngle}f, "
+            + f"{camPoint.continueFlag}, {camPoint.camRoll}, {camPoint.frame}, {cs_export_float(camPoint.viewAngle)}, "
             + "".join(f"{pos}, " for pos in camPoint.pos)
             + "0),\n"
         )

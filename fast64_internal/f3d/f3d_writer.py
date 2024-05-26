@@ -138,7 +138,9 @@ def getInfoDict_impl(obj: bpy.types.Object):
     # check mesh.loop_triangles (now that we computed them), used below
     check_face_materials(get_original_name(obj), material_slots, mesh.loop_triangles)
 
-    mesh.calc_normals_split()
+    # in blender version 4.1 func was removed, in 4.1+ normals are always calculated
+    if bpy.app.version < (4, 1, 0):
+        mesh.calc_normals_split()
 
     infoDict = MeshInfo()
 
@@ -1313,12 +1315,26 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         + (("_layer" + str(drawLayer)) if f3dMat.rdp_settings.set_rendermode and drawLayer is not None else "")
         + (("_area" + str(areaIndex)) if f3dMat.set_fog and f3dMat.use_global_fog and areaKey is not None else "")
     )
-    fMaterial = fModel.addMaterial(materialName)
-    fMaterial.mat_only_DL.commands.append(DPPipeSync())
-    fMaterial.revert.commands.append(DPPipeSync())
 
     if not material.is_f3d:
         raise PluginError("Material named " + material.name + " is not an F3D material.")
+    fMaterial = fModel.addMaterial(materialName)
+    useDict = all_combiner_uses(f3dMat)
+
+    defaults = bpy.context.scene.world.rdp_defaults
+    if fModel.f3d.F3DEX_GBI_2:
+        saveGeoModeDefinitionF3DEX2(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
+    else:
+        saveGeoModeDefinition(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
+
+    # Checking for f3dMat.rdp_settings.g_lighting here will prevent accidental exports,
+    # There may be some edge case where this isn't desired.
+    if useDict["Shade"] and f3dMat.rdp_settings.g_lighting and f3dMat.set_lights:
+        fLights = saveLightsDefinition(fModel, fMaterial, f3dMat, materialName + "_lights")
+        fMaterial.mat_only_DL.commands.extend([SPSetLights(fLights)])
+
+    fMaterial.mat_only_DL.commands.append(DPPipeSync())
+    fMaterial.revert.commands.append(DPPipeSync())
 
     fMaterial.getScrollData(material, getMaterialScrollDimensions(f3dMat))
 
@@ -1410,20 +1426,12 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             ]
         )
 
-    useDict = all_combiner_uses(f3dMat)
     multitexManager = MultitexManager(material, fMaterial, fModel)
-
     # Set othermode
     if drawLayer is not None:
         defaultRM = fModel.getRenderMode(drawLayer)
     else:
         defaultRM = None
-
-    defaults = bpy.context.scene.world.rdp_defaults
-    if fModel.f3d.F3DEX_GBI_2:
-        saveGeoModeDefinitionF3DEX2(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
-    else:
-        saveGeoModeDefinition(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
     saveOtherModeHDefinition(
         fMaterial,
         f3dMat.rdp_settings,
@@ -1459,12 +1467,6 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     if useDict["Environment"] and f3dMat.set_env:
         color = exportColor(f3dMat.env_color[0:3]) + [scaleToU8(f3dMat.env_color[3])]
         fMaterial.mat_only_DL.commands.append(DPSetEnvColor(*color))
-
-    # Checking for f3dMat.rdp_settings.g_lighting here will prevent accidental exports,
-    # There may be some edge case where this isn't desired.
-    if useDict["Shade"] and f3dMat.set_lights and f3dMat.rdp_settings.g_lighting:
-        fLights = saveLightsDefinition(fModel, fMaterial, f3dMat, materialName + "_lights")
-        fMaterial.mat_only_DL.commands.extend([SPSetLights(fLights)])  # TODO: handle synching: NO NEED?
 
     if useDict["Key"] and f3dMat.set_key:
         if material.mat_ver >= 4:
