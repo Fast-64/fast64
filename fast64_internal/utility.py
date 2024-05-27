@@ -772,7 +772,9 @@ def yield_children(obj: bpy.types.Object):
 def store_original_mtx():
     active_obj = bpy.context.view_layer.objects.active
     for obj in yield_children(active_obj):
-        obj["original_mtx"] = obj.matrix_local
+        # negative scales produce a rotation, we need to remove that since
+        # scales will be applied to the transform for each object
+        obj["original_mtx"] = Matrix.LocRotScale(obj.location, obj.rotation_euler, None)
 
 
 def rotate_bounds(bounds, mtx: mathutils.Matrix):
@@ -800,8 +802,6 @@ def copy_object_and_apply(obj: bpy.types.Object, apply_scale=False, apply_modifi
         obj["instanced_mesh_name"] = obj.name
 
         obj.original_name = obj.name
-        if apply_scale:
-            obj["original_mtx"] = translation_rotation_from_mtx(mathutils.Matrix(obj["original_mtx"]))
 
     obj_copy = obj.copy()
     obj_copy.data = obj_copy.data.copy()
