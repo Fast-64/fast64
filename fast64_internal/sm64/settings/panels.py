@@ -12,14 +12,16 @@ class SM64_GeneralSettingsPanel(SM64_Panel):
 
     def draw(self, context: Context):
         col = self.layout.column()
-        sm64_props = context.scene.fast64.sm64
+        scene = context.scene
+        sm64_props = scene.fast64.sm64
 
         if sm64_props.export_type == "C":
             # If the repo settings tab is open, we pass show_repo_settings as False
             # because we want to draw those specfic properties in the repo settings box
-            sm64_props.draw_props(col, not sm64_props.sm64_repo_settings_tab)
+            draw_repo_settings(scene, col.box())
             col.separator()
-            draw_repo_settings(context.scene, col)
+
+            sm64_props.draw_props(col, not sm64_props.sm64_repo_settings_tab)
         else:
             sm64_props.draw_props(col, True)
 

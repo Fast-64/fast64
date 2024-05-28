@@ -34,8 +34,9 @@ class OperatorBase(Operator):
         raise NotImplementedError()
 
     def execute(self, context: Context):
-        starting_context_mode = context.mode
-        starting_mode_set = get_mode_set_from_context_mode(starting_context_mode)
+        starting_mode = context.mode
+        starting_mode_set = get_mode_set_from_context_mode(starting_mode)
+        starting_object = context.object
         try:
             if self.context_mode and self.context_mode != starting_mode_set:
                 bpy.ops.object.mode_set(mode=self.context_mode)
@@ -45,7 +46,10 @@ class OperatorBase(Operator):
             raisePluginError(self, exc)
             return {"CANCELLED"}
         finally:
-            if self.context_mode != starting_mode_set:
+            if starting_mode != context.mode:
+                if starting_mode != "OBJECT" and starting_object:
+                    context.view_layer.objects.active = starting_object
+                    starting_object.select_set(True)
                 bpy.ops.object.mode_set(mode=starting_mode_set)
 
 

@@ -39,10 +39,23 @@ enumExportHeaderType = [
     ("Level", "Level Data", "Headers are written to a specific level in levels/"),
 ]
 
-
 # bpy.context.mode returns the keys here, while the values are required by bpy.ops.object.mode_set
-BLENDER_MODE_TO_MODE_SET = {"PAINT_VERTEX": "VERTEX_PAINT", "EDIT_MESH": "EDIT"}
-get_mode_set_from_context_mode = lambda mode: BLENDER_MODE_TO_MODE_SET.get(mode, "OBJECT")
+CONTEXT_MODE_TO_MODE_SET = {
+    "PAINT_VERTEX": "VERTEX_PAINT",
+    "PAINT_WEIGHT": "WEIGHT_PAINT",
+    "PAINT_TEXTURE": "TEXTURE_PAINT",
+    "PARTICLE": "PARTICLE_EDIT",
+    "EDIT_GREASE_PENCIL": "EDIT_GPENCIL",
+}
+
+
+def get_mode_set_from_context_mode(context_mode: str):
+    if context_mode in CONTEXT_MODE_TO_MODE_SET:
+        return CONTEXT_MODE_TO_MODE_SET[context_mode]
+    elif context_mode.startswith("EDIT"):
+        return "EDIT"
+    else:
+        return context_mode
 
 
 def isPowerOf2(n):

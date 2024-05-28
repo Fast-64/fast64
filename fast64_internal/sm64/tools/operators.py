@@ -25,7 +25,7 @@ enum_address_conversion_options = [
 class SM64_AddrConv(OperatorBase):
     bl_idname = "scene.sm64_addr_conv"
     bl_label = "Convert SM64 Address"
-    bl_description = "Converts a segmented address to a virtual address or viseversa"
+    bl_description = "Converts a segmented address to a virtual address or vice versa"
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
     rom: StringProperty(name="ROM", subtype="FILE_PATH")

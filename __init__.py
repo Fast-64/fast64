@@ -118,12 +118,11 @@ class Fast64_GlobalSettingsPanel(bpy.types.Panel):
 
         prop_split(col, fast64_settings, "anim_range_choice", "Anim Range")
 
+        draw_repo_settings(col.box(), context)
         if not fast64_settings.repo_settings_tab:
             col.prop(fast64_settings, "auto_pick_texture_format")
             if fast64_settings.auto_pick_texture_format:
                 col.prop(fast64_settings, "prefer_rgba_over_ci")
-
-        draw_repo_settings(col, context)
 
 
 class Fast64_GlobalToolsPanel(bpy.types.Panel):

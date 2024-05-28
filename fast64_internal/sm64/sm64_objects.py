@@ -736,12 +736,10 @@ def exportAreaCommon(areaObj, transformMatrix, geolayout, collision, name):
 # These are all done in reference to refresh 8
 def handleRefreshDiffModelIDs(modelID):
     refresh_version = bpy.context.scene.fast64.sm64.refresh_version
-    if refresh_version == "Refresh 8" or refresh_version == "Refresh 7":
-        pass
-    elif refresh_version == "Refresh 6":
+    if refresh_version == "Refresh 6":
         if modelID == "MODEL_TWEESTER":
             modelID = "MODEL_TORNADO"
-    elif refresh_version == "Refresh 5" or refresh_version == "Refresh 4" or refresh_version == "Refresh 3":
+    elif refresh_version == {"Refresh 3", "Refresh 4", "Refresh 5"}:
         if modelID == "MODEL_TWEESTER":
             modelID = "MODEL_TORNADO"
         elif modelID == "MODEL_WAVE_TRAIL":
@@ -752,19 +750,6 @@ def handleRefreshDiffModelIDs(modelID):
             modelID = "MODEL_SPOT_ON_GROUND"
 
     return modelID
-
-
-def handleRefreshDiffSpecials(preset):
-    if bpy.context.scene.fast64.sm64.refresh_version in {
-        "Refresh 8",
-        "Refresh 7",
-        "Refresh 6",
-        "Refresh 5",
-        "Refresh 4",
-        "Refresh 3",
-    }:
-        pass
-    return preset
 
 
 def start_process_sm64_objects(obj, area, transformMatrix, specialsOnly):
@@ -793,7 +778,6 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
         if specialsOnly:
             if obj.sm64_obj_type == "Special":
                 preset = obj.sm64_special_enum if obj.sm64_special_enum != "Custom" else obj.sm64_obj_preset
-                preset = handleRefreshDiffSpecials(preset)
                 area.specials.append(
                     SM64_Special_Object(
                         preset,

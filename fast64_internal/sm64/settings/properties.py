@@ -20,8 +20,11 @@ from .constants import (
 
 
 def decomp_path_update(self, context: Context):
+    fast64_settings = context.scene.fast64.settings
+    if fast64_settings.repo_settings_path:
+        return
     directory_path_checks(abspath(self.decomp_path))
-    context.scene.fast64.settings.repo_settings_path = os.path.join(abspath(self.decomp_path), "fast64.json")
+    fast64_settings.repo_settings_path = os.path.join(abspath(self.decomp_path), "fast64.json")
 
 
 class SM64_Properties(PropertyGroup):
@@ -66,7 +69,11 @@ class SM64_Properties(PropertyGroup):
         name="Compression",
         default="mio0",
     )
-    force_extended_ram: BoolProperty(name="Force Extended Ram", default=True)
+    force_extended_ram: BoolProperty(
+        name="Force Extended Ram",
+        default=True,
+        description="USE_EXT_RAM will be defined in include/segments.h on export, increasing the available RAM by 4MB but requiring the expansion pack, this prevents crashes from running out of RAM",
+    )
     matstack_fix: BoolProperty(
         name="Matstack Fix",
         description="Exports account for matstack fix requirements",
