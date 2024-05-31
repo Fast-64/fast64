@@ -33,21 +33,10 @@ axis_enums = [
     ("-Y", "-Y", "-Y"),
 ]
 
-enumExportType = [
-    ("C", "C", "C"),
-    ("Binary", "Binary", "Binary"),
-    ("Insertable Binary", "Insertable Binary", "Insertable Binary"),
-]
-
 enumExportHeaderType = [
     # ('None', 'None', 'Headers are not written'),
     ("Actor", "Actor Data", "Headers are written to a group in actors/"),
     ("Level", "Level Data", "Headers are written to a specific level in levels/"),
-]
-
-enumCompressionFormat = [
-    ("mio0", "MIO0", "MIO0"),
-    ("yay0", "YAY0", "YAY0"),
 ]
 
 
@@ -1604,10 +1593,10 @@ def ootGetBaseOrCustomLight(prop, idx, toExport: bool, errIfMissing: bool):
         if light is None:
             if errIfMissing:
                 raise PluginError("Error: Diffuse " + str(idx) + " light object not set in a scene lighting property.")
-            else:
-                col = light.color
-                lightObj = lightDataToObj(light)
-                dir = getObjDirectionVec(lightObj, toExport)
+        else:
+            col = light.color
+            lightObj = lightDataToObj(light)
+            dir = getObjDirectionVec(lightObj, toExport)
     col = mathutils.Vector(tuple(c for c in col))
     if toExport:
         col, dir = exportColor(col), normToSigned8Vector(dir)
