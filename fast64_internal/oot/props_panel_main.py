@@ -200,6 +200,8 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
                     OOTObjectProperty.upgrade_object(obj)
                 if obj.ootEmptyType in {"Actor", "Entrance", "Transition Actor"}:
                     OOTActorProperty.upgrade_object(obj)
+                if obj.ootEmptyType == "Cutscene":
+                    OOTCutsceneProperty.upgrade_object(obj)
                 if any(obj.name.startswith(elem) for elem in ["ActionList.", "Point.", "Preview."]):
                     OOTCutsceneMotionProperty.upgrade_object(obj)
 
@@ -216,9 +218,6 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
                     parentObj.name.startswith("Cutscene.") or parentObj.ootEmptyType == "Cutscene"
                 ):
                     OOTCutsceneMotionProperty.upgrade_object(obj)
-
-                if obj.ootEmptyType == "Cutscene":
-                    OOTCutsceneProperty.upgrade_object(obj)
 
 
 class OOTCullGroupProperty(bpy.types.PropertyGroup):
