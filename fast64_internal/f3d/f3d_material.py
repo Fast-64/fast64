@@ -3296,26 +3296,23 @@ class RDPSettings(PropertyGroup):
 
     @property
     def using_fog(self):
-        return self.g_fog or any(["FOG" in input for input in self.blend_inputs])
+        return self.g_fog or self.does_blender_use_input("G_BL_CLR_FOG") or self.does_blender_use_input("G_BL_A_FOG")
 
     @property
     def blend_color_inputs(self):
-        return (getattr(self, f"blend_{val}") for val in ("p1", "p2", "m1", "m2"))
+        yield from (getattr(self, f"blend_{val}") for val in ("p1", "p2", "m1", "m2"))
 
     @property
     def blend_alpha_inputs(self):
-        return (getattr(self, f"blend_{val}") for val in ("a1", "a2", "b1", "b2"))
+        yield from (getattr(self, f"blend_{val}") for val in ("a1", "a2", "b1", "b2"))
 
     @property
     def blend_inputs(self):
-        return self.blend_color_inputs
-        return self.blend_alpha_inputs
+        yield from self.blend_color_inputs
+        yield from self.blend_alpha_inputs
 
     def does_blender_use_input(self, setting: str) -> bool:
-        for input in self.blend_inputs:
-            if setting == input:
-                return True
-        return False
+        return any(input == setting for input in self.blend_inputs)
 
     def key(self):
         setRM = self.set_rendermode
