@@ -144,7 +144,7 @@ class F3D:
         F3DEX_GBI_3 = self.F3DEX_GBI_3 = isUcodeF3DEX3(F3D_VER)
         F3DLP_GBI = self.F3DLP_GBI = self.F3DEX_GBI
         self.F3D_OLD_GBI = not (F3DEX_GBI or F3DEX_GBI_2 or F3DEX_GBI_3)
-        self.F3DZEX_AC_EXT = F3D_VER == "F3DZEX (AC)"
+        F3DZEX_AC_EXT = self.F3DZEX_AC_EXT = (F3D_VER == "F3DZEX (AC)")
 
         # F3DEX2 is F3DEX1 and F3DEX3 is F3DEX2, but F3DEX3 is not F3DEX1
         if F3DEX_GBI_2:
@@ -188,7 +188,7 @@ class F3D:
                 self.G_TRIFAN = 0x09
                 self.G_LIGHTTORDP = 0x0A
             else:
-                if self.F3DZEX_AC_EXT:
+                if F3DZEX_AC_EXT:
                     self.G_TRIN = 0x09
                     self.G_TRIN_INDEPEND = 0x0A
 
@@ -343,8 +343,7 @@ class F3D:
         self.G_LOD = 0x00100000  # NOT IMPLEMENTED
         if F3DEX_GBI or F3DLP_GBI:
             self.G_CLIPPING = 0x00800000
-            if self.F3DZEX_AC_EXT:
-                self.G_LIGHTING_POSITIONAL = 0x400000
+            if F3DZEX_AC_EXT:
                 self.G_DECAL_LEQUAL = 0x00000000
                 self.G_DECAL_GEQUAL = 0x00000010
                 self.G_DECAL_EQUAL = 0x00000020
@@ -363,7 +362,8 @@ class F3D:
             self.G_LIGHTING_SPECULAR = 0x00002000
             self.G_FRESNEL_COLOR = 0x00004000
             self.G_FRESNEL_ALPHA = 0x00008000
-            self.G_LIGHTING_POSITIONAL = 0x00400000  # Ignored, always on
+        if F3DZEX_AC_EXT or F3DEX_GBI_3:
+            self.G_LIGHTING_POSITIONAL = 0x00400000
 
         self.allGeomModeFlags = {
             "G_ZBUFFER",
