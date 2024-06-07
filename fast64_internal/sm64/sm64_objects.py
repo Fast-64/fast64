@@ -821,7 +821,7 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
                     )
                 )
             elif obj.sm64_obj_type == "Water Box":
-                checkIdentityRotation(obj, rotation, False)
+                checkIdentityRotation(obj, rotation.to_quaternion(), False)
                 area.water_boxes.append(CollisionWaterBox(obj.waterBoxType, translation, scale, obj.empty_display_size))
         else:
             if obj.sm64_obj_type == "Object":
