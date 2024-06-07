@@ -1230,18 +1230,33 @@ def createTriangleCommands(triangles, vertexBuffer, triConverterInfo):
     triangles = copy.deepcopy(triangles)
     commands = []
 
-    def getIndices(tri):
-        return [vertexBuffer.index(v) for v in tri]
+    def getIndices(*tris):
+        return [vertexBuffer.index(v) for tri in tris for v in tri]
+
+    def get_n_tris_indices(triangles: list, i: int, n: int): # Includes dummy data to fill out the command
+        if len(triangles) - i >= n:
+            return getIndices(*triangles[i:i+n])
+        indices = getIndices(*triangles[i:])
+        while len(indices) < n * 3:
+            indices.extend((0, 0, 0))
+        return indices
 
     t = 0
+    if triConverterInfo.f3d.F3DZEX_AC_EXT:
+        commands.append(SPNTrianglesInit_5b(len(triangles), *get_n_tris_indices(triangles, 0, 3)))
+        t += 3
+        while t < len(triangles):
+            commands.append(SP5bitTriangles( *get_n_tris_indices(triangles, t, 4)))
+            t += 4
+        return commands
+
     while t < len(triangles):
-        firstTriIndices = getIndices(triangles[t])
-        t += 1
-        if not triConverterInfo.f3d.F3D_OLD_GBI and t < len(triangles):
-            commands.append(SP2Triangles(*firstTriIndices, 0, *getIndices(triangles[t]), 0))
-            t += 1
+        if not triConverterInfo.f3d.F3D_OLD_GBI and t + 1 < len(triangles):
+            commands.append(SP2Triangles(*getIndices(triangles[t]), 0, *getIndices(triangles[t + 1]), 0))
+            t += 2
         else:
-            commands.append(SP1Triangle(*firstTriIndices, 0))
+            commands.append(SP1Triangle(*getIndices(triangles[t]), 0))
+            t += 1
 
     return commands
 

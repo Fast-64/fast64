@@ -144,7 +144,7 @@ class F3D:
         F3DEX_GBI_3 = self.F3DEX_GBI_3 = isUcodeF3DEX3(F3D_VER)
         F3DLP_GBI = self.F3DLP_GBI = self.F3DEX_GBI
         self.F3D_OLD_GBI = not (F3DEX_GBI or F3DEX_GBI_2 or F3DEX_GBI_3)
-        F3DZEX_AC_EXT = F3D_VER == "F3DZEX (AC)"
+        self.F3DZEX_AC_EXT = F3D_VER == "F3DZEX (AC)"
 
         # F3DEX2 is F3DEX1 and F3DEX3 is F3DEX2, but F3DEX3 is not F3DEX1
         if F3DEX_GBI_2:
@@ -188,7 +188,7 @@ class F3D:
                 self.G_TRIFAN = 0x09
                 self.G_LIGHTTORDP = 0x0A
             else:
-                if F3DZEX_AC_EXT:
+                if self.F3DZEX_AC_EXT:
                     self.G_TRIN = 0x09
                     self.G_TRIN_INDEPEND = 0x0A
 
