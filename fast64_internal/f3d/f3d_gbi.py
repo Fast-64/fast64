@@ -343,6 +343,14 @@ class F3D:
         self.G_LOD = 0x00100000  # NOT IMPLEMENTED
         if F3DEX_GBI or F3DLP_GBI:
             self.G_CLIPPING = 0x00800000
+            if self.F3DZEX_AC_EXT:
+                self.G_LIGHTING_POSITIONAL = 0x400000
+                self.G_DECAL_LEQUAL = 0x00000000
+                self.G_DECAL_GEQUAL = 0x00000010
+                self.G_DECAL_EQUAL = 0x00000020
+                self.G_DECAL_ALWAYS = 0x00000030
+                self.G_DECAL_SPECIAL = 0x00000040
+                self.G_DECAL_ALL = self.G_DECAL_ALWAYS | self.G_DECAL_SPECIAL
         else:
             self.G_CLIPPING = 0x00000000
 
