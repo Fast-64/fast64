@@ -132,7 +132,8 @@ def isUcodeF3DEX2(F3D_VER: str) -> bool:
 
 def isUcodeF3DEX3(F3D_VER: str) -> bool:
     return F3D_VER == "F3DEX3"
-
+def isUcodePointLit(F3D_VER: str) -> bool:
+    return F3D_VER == {"F3DEX3", "F3DZEX (AC)"}
 
 class F3D:
     """NOTE: do not initialize this class manually! use get_F3D_GBI so that the single instance is cached from the microcode type."""
@@ -145,6 +146,7 @@ class F3D:
         F3DLP_GBI = self.F3DLP_GBI = self.F3DEX_GBI
         self.F3D_OLD_GBI = not (F3DEX_GBI or F3DEX_GBI_2 or F3DEX_GBI_3)
         F3DZEX_AC_EXT = self.F3DZEX_AC_EXT = F3D_VER == "F3DZEX (AC)"
+        F3D_POINT_LIT = self.F3D_POINT_LIT = F3D_VER == isUcodePointLit(F3D_VER)
 
         # F3DEX2 is F3DEX1 and F3DEX3 is F3DEX2, but F3DEX3 is not F3DEX1
         if F3DEX_GBI_2:
@@ -362,8 +364,6 @@ class F3D:
             self.G_LIGHTING_SPECULAR = 0x00002000
             self.G_FRESNEL_COLOR = 0x00004000
             self.G_FRESNEL_ALPHA = 0x00008000
-        if F3DZEX_AC_EXT or F3DEX_GBI_3:
-            self.G_LIGHTING_POSITIONAL = 0x00400000
 
         self.allGeomModeFlags = {
             "G_ZBUFFER",
@@ -378,7 +378,6 @@ class F3D:
             "G_TEXTURE_GEN_LINEAR",
             "G_LOD",
             "G_SHADING_SMOOTH",
-            "G_LIGHTING_POSITIONAL",
             "G_CLIPPING",
         }
         if F3DEX_GBI_3:
@@ -401,6 +400,9 @@ class F3D:
                 "G_DECAL_SPECIAL",
                 "G_DECAL_ALL",
             }
+        if F3D_POINT_LIT:
+            self.G_LIGHTING_POSITIONAL = 0x00400000
+            self.allGeomModeFlags.add("G_LIGHTING_POSITIONAL")
 
         self.G_FOG_H = self.G_FOG / 0x10000
         self.G_LIGHTING_H = self.G_LIGHTING / 0x10000

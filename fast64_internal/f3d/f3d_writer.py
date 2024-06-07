@@ -1642,6 +1642,8 @@ def saveGeoModeCommon(saveFunc: Callable, settings: RDPSettings, defaults: RDPSe
     saveFunc(settings.g_shade_smooth, defaults.g_shade_smooth, "G_SHADING_SMOOTH", *args)
     if isUcodeF3DEX1(bpy.context.scene.f3d_type):
         saveFunc(settings.g_clipping, defaults.g_clipping, "G_CLIPPING", *args)
+    if isUcodePointLit(bpy.context.scene.f3d_type):
+        saveFunc(settings.g_lighting_positional, defaults.g_lighting_positional, "G_LIGHTING_POSITIONAL", *args)
 
 
 def saveGeoModeDefinitionF3DEX2(fMaterial, settings, defaults, matWriteMethod):

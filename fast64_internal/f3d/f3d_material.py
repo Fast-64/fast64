@@ -441,6 +441,7 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             return c
 
         isF3DEX3 = bpy.context.scene.f3d_type == "F3DEX3"
+        isF3DZEX_AC = bpy.context.scene.f3d_type == "F3DZEX (AC)"
         lightFxPrereq = isF3DEX3 and settings.g_lighting
         ccWarnings = shadeInCC = False
         blendWarnings = shadeInBlender = zInBlender = False
@@ -459,6 +460,8 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
         if c is not None:
             if ccWarnings and not shadeInCC and not settings.g_tex_gen:
                 c.label(text="Shade not used in CC, can disable lighting.", icon="INFO")
+            if isF3DZEX_AC:
+                c.prop(settings, "g_lighting_positional")
             if isF3DEX3:
                 c.prop(settings, "g_packed_normals")
                 c.prop(settings, "g_lighting_specular")
@@ -513,13 +516,12 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
         elif blendWarnings and not shadeInBlender and settings.g_fog:
             c.label(text="Fog not used in rendermode / blender, can disable.", icon="INFO")
 
-        if bpy.context.scene.f3d_type == "F3DZEX (AC)":
+        if isF3DZEX_AC:
             c = indentGroup(inputGroup, "Decals:", True)
             c.prop(settings, "g_decal_gequal")
             c.prop(settings, "g_decal_equal")
             c.prop(settings, "g_decal_special")
-
-        if isF3DEX3:
+        elif isF3DEX3:
             c = indentGroup(inputGroup, "Attribute offsets:", True)
             c.prop(settings, "g_attroffset_st_enable")
             c.prop(settings, "g_attroffset_z_enable")
@@ -3110,6 +3112,12 @@ class RDPSettings(PropertyGroup):
         update=update_node_values_with_preset,
         description="F3DEX1/LX only, exact function unknown",
     )
+    g_lighting_positional: bpy.props.BoolProperty(
+        name="Positional Lighting",
+        default=False, # TODO: Check with sauren that this should be defaulted to false
+        update=update_node_values_with_preset,
+        description="F3DZEX (AC): Enables positional lights",
+    )
 
     # upper half mode
     # v2 only
@@ -3365,6 +3373,7 @@ class RDPSettings(PropertyGroup):
             self.g_lod,
             self.g_shade_smooth,
             self.g_clipping,
+            self.g_lighting_positional,
             self.g_mdsft_alpha_dither,
             self.g_mdsft_rgb_dither,
             self.g_mdsft_combkey,
