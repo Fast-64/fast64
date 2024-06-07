@@ -52,7 +52,17 @@ from .f3d_gbi import (
     GbiMacro,
 )
 
-TRI_CMDS = [SP2Triangles, SP1Triangle, SPLine3D, SPLineW3D, SPNTrianglesInit_5b, SP5bitTriangles, SPNTrianglesInit_7b, SP7bitTriangles]
+TRI_CMDS = [
+    SP2Triangles,
+    SP1Triangle,
+    SPLine3D,
+    SPLineW3D,
+    SPNTrianglesInit_5b,
+    SP5bitTriangles,
+    SPNTrianglesInit_7b,
+    SP7bitTriangles,
+]
+
 
 class BleedGraphics:
     # bleed_state "enums"
@@ -437,7 +447,8 @@ class BleedGraphics:
             DPLoadBlock,
             DPLoadTile,
             DPLoadTLUTCmd,
-            DPFullSync, *TRI_CMDS
+            DPFullSync,
+            *TRI_CMDS,
         ]:
             return False
 
