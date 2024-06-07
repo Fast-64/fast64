@@ -1243,19 +1243,20 @@ def createTriangleCommands(triangles, vertexBuffer, triConverterInfo):
 
     t = 0
     if triConverterInfo.f3d.F3DZEX_AC_EXT:
-        init_5b = False
-        while t < len(triangles):
-            if init_5b and t + 3 < len(triangles): # If we already have an init command and there is at least 4 tris left
-                commands.append(SP5bitTriangles( *get_n_tris_indices(triangles, t, 4)))
-                t += 4
-            elif t + 2 < len(triangles): # If there is at least 3 tris left
-                commands.append(SPNTrianglesInit_5b(len(triangles), *get_n_tris_indices(triangles, t, 3)))
-                init_5b = True
-                t += 3
-            else: # If there is atleast 2 tris left
-                commands.append(SPNTrianglesInit_7b(len(triangles), *get_n_tris_indices(triangles, t, 2)))
-                t += 2
-                init_5b = False
+        left = (len(triangles) - 3) % 4
+        tri_5_bit_len = len(triangles) - left
+        if len(triangles) <= 2:
+            commands.append(SPNTrianglesInit_7b(len(triangles), *get_n_tris_indices(triangles, t, 2)))
+            return commands
+        commands.append(SPNTrianglesInit_5b(tri_5_bit_len, *get_n_tris_indices(triangles, t, 3)))
+        t += 3
+        while t < tri_5_bit_len:
+            commands.append(SP5bitTriangles( *get_n_tris_indices(triangles, t, 4)))
+            t += 4
+        if left == 3:
+            commands.append(SPNTrianglesInit_5b(left, *get_n_tris_indices(triangles, t, 3)))
+        elif left > 0:
+            commands.append(SPNTrianglesInit_7b(left, *get_n_tris_indices(triangles, t, 2)))
         return commands
 
     while t < len(triangles):
