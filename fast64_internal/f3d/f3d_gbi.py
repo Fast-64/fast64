@@ -3766,6 +3766,7 @@ class SP5bitTriangles(GbiMacro):
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
+# The 7b tri commands aren't split in the gbi?
 @dataclass(unsafe_hash=True)
 class SPNTrianglesInit_7b(GbiMacro):
     n: int
@@ -3779,10 +3780,10 @@ class SPNTrianglesInit_7b(GbiMacro):
     def to_binary(self, f3d, segments):
         if f3d.F3DZEX_AC_EXT:
             words = (
-                gsSPNTriangles(n),
+                _SHIFTL(gsSPNTriangles(self.n, f3d), 0, 32),
                 (
-                    _SHIFTL(gsSPNTriangleData2(v3, v4, v5, f3d), 22, 21)
-                    | _SHIFTL(gsSPNTriangleData2(v0, v1, v2, f3d), 1, 21)
+                    _SHIFTL(gsSPNTriangleData2(self.v3, self.v4, self.v5, f3d), 22, 21)
+                    | _SHIFTL(gsSPNTriangleData2(self.v0, self.v1, self.v2, f3d), 1, 21)
                     | _SHIFTL(f3d.G_VTX_MODE_7bit, 0, 1)
                 ),
             )
@@ -3806,11 +3807,11 @@ class SP7bitTriangles(GbiMacro):
 
     def to_binary(self, f3d, segments):
         if f3d.F3DZEX_AC_EXT:
-            result = ( # This is how the macro is implemented
-                (gsSPNTriangleData2(self.v6, self.v7, self.v8, f3d) << 43) |
-                (gsSPNTriangleData2(self.v3, self.v4, self.v5, f3d) << 22) |
-                (gsSPNTriangleData2(self.v0, self.v1, self.v2, f3d) << 1) |
-                G_VTX_MODE_7bit
+            result = (  # This is how the macro is implemented
+                (gsSPNTriangleData2(self.v6, self.v7, self.v8, f3d) << 43)
+                | (gsSPNTriangleData2(self.v3, self.v4, self.v5, f3d) << 22)
+                | (gsSPNTriangleData2(self.v0, self.v1, self.v2, f3d) << 1)
+                | G_VTX_MODE_7bit
             )
         else:
             raise PluginError("SP7bitTriangles not available in F3DZEX (AC).")
