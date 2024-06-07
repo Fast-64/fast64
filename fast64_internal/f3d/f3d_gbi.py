@@ -144,6 +144,7 @@ class F3D:
         F3DEX_GBI_3 = self.F3DEX_GBI_3 = isUcodeF3DEX3(F3D_VER)
         F3DLP_GBI = self.F3DLP_GBI = self.F3DEX_GBI
         self.F3D_OLD_GBI = not (F3DEX_GBI or F3DEX_GBI_2 or F3DEX_GBI_3)
+        F3DZEX_AC_EXT = F3D_VER == "F3DZEX (AC)"
 
         # F3DEX2 is F3DEX1 and F3DEX3 is F3DEX2, but F3DEX3 is not F3DEX1
         if F3DEX_GBI_2:
@@ -187,6 +188,12 @@ class F3D:
                 self.G_TRIFAN = 0x09
                 self.G_LIGHTTORDP = 0x0A
             else:
+                if F3DZEX_AC_EXT:
+                    self.G_TRIN = 0x09
+                    self.G_TRIN_INDEPEND = 0x0A
+
+                    self.G_VTX_MODE_5bit = 0x00
+                    self.G_VTX_MODE_7bit = 0x01
                 self.G_SPECIAL_1 = 0xD5
                 self.G_SPECIAL_2 = 0xD4
                 self.G_SPECIAL_3 = 0xD3
@@ -1778,6 +1785,10 @@ def get_F3D_GBI() -> F3D:
 
 def _SHIFTL(value, amount, mask):
     return (int(value) & ((1 << mask) - 1)) << amount
+
+
+def _SHIFTR(value, amount, mask):
+    return (int(value) >> amount) & ((1 << mask) - 1)
 
 
 MTX_SIZE = 64
@@ -3572,6 +3583,18 @@ def _gsSP1Triangle_w1f(v0, v1, v2, flag, f3d):
         return _SHIFTL((flag), 24, 8) | _SHIFTL((v0) * 10, 16, 8) | _SHIFTL((v1) * 10, 8, 8) | _SHIFTL((v2) * 10, 0, 8)
 
 
+def gsSPNTriangles(n: int, f3d):
+    return _SHIFTL(G_TRIN_INDEPEND, 24, 8) | _SHIFTL(n - 1, 17, 7)
+
+
+def gsSPNTriangleData1(v0: int, v1: int, v2: int, f3d):  # 5 bits per vertex id (32)
+    return _SHIFTL(v2, 10, 5) | _SHIFTL(v1, 5, 5) | _SHIFTL(v0, 0, 5)
+
+
+def gsSPNTriangleData2(v0: int, v1: int, v2: int, f3d):  # 7 bits per vertex id (128)
+    return _SHIFTL(v2, 14, 7) | _SHIFTL(v1, 7, 7) | _SHIFTL(v0, 0, 7)
+
+
 def _gsSPLine3D_w1(v0, v1, wd):
     return _SHIFTL((v0) * 2, 16, 8) | _SHIFTL((v1) * 2, 8, 8) | _SHIFTL((wd), 0, 8)
 
@@ -3680,6 +3703,119 @@ class SP2Triangles(GbiMacro):
             raise PluginError("SP2Triangles not available in Fast3D.")
 
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
+
+
+@dataclass(unsafe_hash=True)
+class SPNTrianglesInit_5b(GbiMacro):
+    n: int
+    v0: int
+    v1: int
+    v2: int
+    v3: int
+    v4: int
+    v5: int
+    v6: int
+    v7: int
+    v8: int
+
+    def to_binary(self, f3d, segments):
+        if f3d.F3DZEX_AC_EXT:
+            words = (
+                _SHIFTL(G_TRIN_INDEPEND, 24, 8)
+                | _SHIFTL(self.n - 1, 17, 7)
+                | _SHIFTL(gsSPNTriangleData1(self.v6, self.v7, self.v8, f3d), 2, 15)
+                | _SHIFTL(_SHIFTR(gsSPNTriangleData1(self.v3, self.v4, self.v5, f3d), 13, 2), 0, 2),
+                _SHIFTL(gsSPNTriangleData1(self.v3, self.v4, self.v5, f3d), 19, 13)
+                | _SHIFTL(gsSPNTriangleData1(self.v0, self.v1, self.v2, f3d), 4, 15)
+                | _SHIFTL(f3d.G_VTX_MODE_5bit, 0, 1),
+            )
+        else:
+            raise PluginError("SPNTrianglesInit_5b only available in F3DZEX (AC).")
+
+        return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
+
+
+@dataclass(unsafe_hash=True)
+class SP5bitTriangles(GbiMacro):
+    v0: int
+    v1: int
+    v2: int
+    v3: int
+    v4: int
+    v5: int
+    v6: int
+    v7: int
+    v8: int
+    v9: int
+    v10: int
+    v11: int
+
+    def to_binary(self, f3d, segments):
+        if f3d.F3DZEX_AC_EXT:
+            words = (
+                _SHIFTL(gsSPNTriangleData1(self.v9, self.v10, self.v11, f3d), 17, 15)
+                | _SHIFTL(gsSPNTriangleData1(self.v6, self.v7, self.v8, f3d), 2, 15)
+                | _SHIFTL(_SHIFTR(gsSPNTriangleData1(self.v3, self.v4, self.v5, f3d), 13, 2), 0, 2),
+                _SHIFTL(gsSPNTriangleData1(self.v3, self.v4, self.v5, f3d), 19, 13)
+                | _SHIFTL(gsSPNTriangleData1(self.v0, self.v1, self.v2, f3d), 4, 15)
+                | _SHIFTL(f3d.G_VTX_MODE_5bit, 0, 1),
+            )
+        else:
+            raise PluginError("SP5bitTriangles not available in F3DZEX (AC).")
+
+        return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
+
+
+@dataclass(unsafe_hash=True)
+class SPNTrianglesInit_7b(GbiMacro):
+    n: int
+    v0: int
+    v1: int
+    v2: int
+    v3: int
+    v4: int
+    v5: int
+
+    def to_binary(self, f3d, segments):
+        if f3d.F3DZEX_AC_EXT:
+            words = (
+                gsSPNTriangles(n),
+                (
+                    _SHIFTL(gsSPNTriangleData2(v3, v4, v5, f3d), 22, 21)
+                    | _SHIFTL(gsSPNTriangleData2(v0, v1, v2, f3d), 1, 21)
+                    | _SHIFTL(f3d.G_VTX_MODE_7bit, 0, 1)
+                ),
+            )
+        else:
+            raise PluginError("SPNTrianglesInit_7b only available in F3DZEX (AC).")
+
+        return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
+
+
+@dataclass(unsafe_hash=True)
+class SP7bitTriangles(GbiMacro):
+    v0: int
+    v1: int
+    v2: int
+    v3: int
+    v4: int
+    v5: int
+    v6: int
+    v7: int
+    v8: int
+
+    def to_binary(self, f3d, segments):
+        if f3d.F3DZEX_AC_EXT:
+            result = ( # This is how the macro is implemented
+                (gsSPNTriangleData2(self.v6, self.v7, self.v8, f3d) << 43) |
+                (gsSPNTriangleData2(self.v3, self.v4, self.v5, f3d) << 22) |
+                (gsSPNTriangleData2(self.v0, self.v1, self.v2, f3d) << 1) |
+                G_VTX_MODE_7bit
+            )
+        else:
+            raise PluginError("SP7bitTriangles not available in F3DZEX (AC).")
+
+        return result.to_bytes(8, "big")
 
 
 # F3DEX3 TODO: Encoding of _g*SP5Triangles commands (SPTriangleStrip, SPTriangleFan)

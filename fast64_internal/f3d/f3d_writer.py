@@ -996,9 +996,7 @@ class TriangleConverter:
             bufferStart = bufferEnd
 
         # Load triangles
-        triCmds = createTriangleCommands(
-            self.vertexBufferTriangles, self.vertBuffer, not self.triConverterInfo.f3d.F3D_OLD_GBI
-        )
+        triCmds = createTriangleCommands(self.vertexBufferTriangles, self.vertBuffer, self.triConverterInfo)
         if not self.material.f3d_mat.use_cel_shading:
             self.triList.commands.extend(triCmds)
         else:
@@ -1228,7 +1226,7 @@ def getLoopColor(loop: bpy.types.MeshLoop, mesh: bpy.types.Mesh) -> Vector:
     return mathutils.Vector((normalizedRGB[0], normalizedRGB[1], normalizedRGB[2], normalizedA))
 
 
-def createTriangleCommands(triangles, vertexBuffer, useSP2Triangle):
+def createTriangleCommands(triangles, vertexBuffer, triConverterInfo):
     triangles = copy.deepcopy(triangles)
     commands = []
 
@@ -1239,7 +1237,7 @@ def createTriangleCommands(triangles, vertexBuffer, useSP2Triangle):
     while t < len(triangles):
         firstTriIndices = getIndices(triangles[t])
         t += 1
-        if useSP2Triangle and t < len(triangles):
+        if not triConverterInfo.f3d.F3D_OLD_GBI and t < len(triangles):
             commands.append(SP2Triangles(*firstTriIndices, 0, *getIndices(triangles[t]), 0))
             t += 1
         else:
