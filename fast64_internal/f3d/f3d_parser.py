@@ -1836,7 +1836,9 @@ class F3DContext:
         # else:
 
         if importNormals:
-            mesh.use_auto_smooth = True
+            # Changed in Blender 4.1: "Meshes now always use custom normals if they exist." (and use_auto_smooth was removed)
+            if bpy.app.version < (4, 1, 0):
+                mesh.use_auto_smooth = True
             mesh.normals_split_custom_set([f3dVert.normal for f3dVert in self.verts])
 
         for groupName, indices in self.limbGroups.items():
@@ -2204,13 +2206,11 @@ def parseMacroList(data: str):
 
 
 def parseMacroArgs(data: str):
-    end = 0
     start = 0
     params: "list[str]" = []
     parenthesesCount = 0
 
-    while end < len(data) - 1:
-        end += 1
+    for end in range(len(data)):
         if data[end] == "(":
             parenthesesCount += 1
         elif data[end] == ")":
