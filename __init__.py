@@ -308,6 +308,10 @@ def upgrade_changed_props():
     SM64_Properties.upgrade_changed_props()
     SM64_ObjectProperties.upgrade_changed_props()
     OOT_ObjectProperties.upgrade_changed_props()
+    for scene in bpy.data.scenes:
+        if scene.get("decomp_compatible", False):
+            scene.gameEditorMode = "Homebrew"
+            del scene["decomp_compatible"]
 
 
 def upgrade_scene_props_node():
