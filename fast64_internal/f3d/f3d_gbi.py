@@ -144,7 +144,7 @@ class F3D:
         F3DEX_GBI_3 = self.F3DEX_GBI_3 = isUcodeF3DEX3(F3D_VER)
         F3DLP_GBI = self.F3DLP_GBI = self.F3DEX_GBI
         self.F3D_OLD_GBI = not (F3DEX_GBI or F3DEX_GBI_2 or F3DEX_GBI_3)
-        F3DZEX_AC_EXT = self.F3DZEX_AC_EXT = (F3D_VER == "F3DZEX (AC)")
+        F3DZEX_AC_EXT = self.F3DZEX_AC_EXT = F3D_VER == "F3DZEX (AC)"
 
         # F3DEX2 is F3DEX1 and F3DEX3 is F3DEX2, but F3DEX3 is not F3DEX1
         if F3DEX_GBI_2:
@@ -347,7 +347,7 @@ class F3D:
                 self.G_DECAL_LEQUAL = 0x00000000
                 self.G_DECAL_GEQUAL = 0x00000010
                 self.G_DECAL_EQUAL = 0x00000020
-                self.G_DECAL_ALWAYS = 0x00000030
+                self.G_DECAL_ALWAYS = self.G_DECAL_GEQUAL | self.G_DECAL_LEQUAL
                 self.G_DECAL_SPECIAL = 0x00000040
                 self.G_DECAL_ALL = self.G_DECAL_ALWAYS | self.G_DECAL_SPECIAL
         else:
@@ -391,6 +391,15 @@ class F3D:
                 "G_LIGHTING_SPECULAR",
                 "G_FRESNEL_COLOR",
                 "G_FRESNEL_ALPHA",
+            }
+        elif F3DZEX_AC_EXT:
+            self.allGeomModeFlags |= {
+                "G_DECAL_LEQUAL",
+                "G_DECAL_GEQUAL",
+                "G_DECAL_EQUAL",
+                "G_DECAL_ALWAYS",
+                "G_DECAL_SPECIAL",
+                "G_DECAL_ALL",
             }
 
         self.G_FOG_H = self.G_FOG / 0x10000
@@ -3818,10 +3827,10 @@ class SP7bitTriangles(GbiMacro):
             words = (
                 (
                     _SHIFTL(gsSPNTriangleData2(self.v6, self.v7, self.v8, f3d), 11, 21)
-                    | _SHIFTR(gsSPNTriangleData2(self.v3, self.v4, self.v5, f3d), 21 - 10, 10) # Upper 10 bits
+                    | _SHIFTR(gsSPNTriangleData2(self.v3, self.v4, self.v5, f3d), 21 - 10, 10)  # Upper 10 bits
                 ),
                 (
-                    _SHIFTL(gsSPNTriangleData2(self.v3, self.v4, self.v5, f3d), 32 - 11, 11) # Lower 11 bits
+                    _SHIFTL(gsSPNTriangleData2(self.v3, self.v4, self.v5, f3d), 32 - 11, 11)  # Lower 11 bits
                     | _SHIFTR(gsSPNTriangleData2(self.v0, self.v1, self.v2, f3d), 1, 21)
                     | _SHIFTL(f3d.G_VTX_MODE_7bit, 0, 1)
                 ),

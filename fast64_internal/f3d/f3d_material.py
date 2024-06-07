@@ -513,6 +513,12 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
         elif blendWarnings and not shadeInBlender and settings.g_fog:
             c.label(text="Fog not used in rendermode / blender, can disable.", icon="INFO")
 
+        if bpy.context.scene.f3d_type == "F3DZEX (AC)":
+            c = indentGroup(inputGroup, "Decals:", True)
+            c.prop(settings, "g_decal_gequal")
+            c.prop(settings, "g_decal_equal")
+            c.prop(settings, "g_decal_special")
+
         if isF3DEX3:
             c = indentGroup(inputGroup, "Attribute offsets:", True)
             c.prop(settings, "g_attroffset_st_enable")
@@ -2999,6 +3005,25 @@ class RDPSettings(PropertyGroup):
         update=update_node_values_with_preset,
         description="F3DEX3: Enables offsets to vertex ST values, usually for UV scrolling",
     )
+    # AC Decal Modes
+    g_decal_gequal: bpy.props.BoolProperty(
+        name="Greater or Equal",
+        default=False,
+        update=update_node_values_with_preset,
+        description="F3DZEX (AC): Render with a positive offset (closer to the camera) instead of the default negative offset",  # TODO: Double check
+    )
+    g_decal_equal: bpy.props.BoolProperty(
+        name="Equal",
+        default=False,
+        update=update_node_values_with_preset,
+        description="F3DZEX (AC): Render with no offset",  # TODO: Double check
+    )
+    g_decal_special: bpy.props.BoolProperty(
+        name="Special",
+        default=False,
+        update=update_node_values_with_preset,
+        description="F3DZEX (AC): ",  # TODO: Write description
+    )
     # v1/2 difference
     g_cull_front: bpy.props.BoolProperty(
         name="Cull Front",
@@ -3323,6 +3348,9 @@ class RDPSettings(PropertyGroup):
         return (
             self.g_zbuffer,
             self.g_shade,
+            self.g_decal_gequal,
+            self.g_decal_equal,
+            self.g_decal_special,
             self.g_cull_front,
             self.g_cull_back,
             self.g_attroffset_st_enable,

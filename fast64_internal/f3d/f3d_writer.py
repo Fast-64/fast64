@@ -1233,9 +1233,9 @@ def createTriangleCommands(triangles, vertexBuffer, triConverterInfo):
     def getIndices(*tris):
         return [vertexBuffer.index(v) for tri in tris for v in tri]
 
-    def get_n_tris_indices(triangles: list, i: int, n: int): # Includes dummy data to fill out the command
+    def get_n_tris_indices(triangles: list, i: int, n: int):  # Includes dummy data to fill out the command
         if len(triangles) - i >= n:
-            return getIndices(*triangles[i:i+n])
+            return getIndices(*triangles[i : i + n])
         indices = getIndices(*triangles[i:])
         while len(indices) < n * 3:
             indices.extend((0, 0, 0))
@@ -1251,7 +1251,7 @@ def createTriangleCommands(triangles, vertexBuffer, triConverterInfo):
         commands.append(SPNTrianglesInit_5b(tri_5_bit_len, *get_n_tris_indices(triangles, t, 3)))
         t += 3
         while t < tri_5_bit_len:
-            commands.append(SP5bitTriangles( *get_n_tris_indices(triangles, t, 4)))
+            commands.append(SP5bitTriangles(*get_n_tris_indices(triangles, t, 4)))
             t += 4
         if left == 3:
             commands.append(SPNTrianglesInit_5b(left, *get_n_tris_indices(triangles, t, 3)))
@@ -1630,6 +1630,10 @@ def saveGeoModeCommon(saveFunc: Callable, settings: RDPSettings, defaults: RDPSe
         saveFunc(settings.g_lighting_specular, defaults.g_lighting_specular, "G_LIGHTING_SPECULAR", *args)
         saveFunc(settings.g_fresnel_color, defaults.g_fresnel_color, "G_FRESNEL_COLOR", *args)
         saveFunc(settings.g_fresnel_alpha, defaults.g_fresnel_alpha, "G_FRESNEL_ALPHA", *args)
+    elif bpy.context.scene.f3d_type == "F3DZEX (AC)":
+        saveFunc(settings.g_decal_gequal, defaults.g_decal_gequal, "G_DECAL_GEQUAL", *args)
+        saveFunc(settings.g_decal_equal, defaults.g_decal_equal, "G_DECAL_EQUAL", *args)
+        saveFunc(settings.g_decal_special, defaults.g_decal_special, "G_DECAL_SPECIAL", *args)
     saveFunc(settings.g_fog, defaults.g_fog, "G_FOG", *args)
     saveFunc(settings.g_lighting, defaults.g_lighting, "G_LIGHTING", *args)
     saveFunc(settings.g_tex_gen, defaults.g_tex_gen, "G_TEXTURE_GEN", *args)
