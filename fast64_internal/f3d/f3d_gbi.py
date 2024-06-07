@@ -3807,16 +3807,21 @@ class SP7bitTriangles(GbiMacro):
 
     def to_binary(self, f3d, segments):
         if f3d.F3DZEX_AC_EXT:
-            result = (  # This is how the macro is implemented
-                (gsSPNTriangleData2(self.v6, self.v7, self.v8, f3d) << 43)
-                | (gsSPNTriangleData2(self.v3, self.v4, self.v5, f3d) << 22)
-                | (gsSPNTriangleData2(self.v0, self.v1, self.v2, f3d) << 1)
-                | G_VTX_MODE_7bit
+            words = (
+                (
+                    _SHIFTL(gsSPNTriangleData2(self.v6, self.v7, self.v8, f3d), 11, 21)
+                    | _SHIFTR(gsSPNTriangleData2(self.v3, self.v4, self.v5, f3d), 21 - 10, 10) # Upper 10 bits
+                ),
+                (
+                    _SHIFTL(gsSPNTriangleData2(self.v3, self.v4, self.v5, f3d), 32 - 11, 11) # Lower 11 bits
+                    | _SHIFTR(gsSPNTriangleData2(self.v0, self.v1, self.v2, f3d), 1, 21)
+                    | _SHIFTL(f3d.G_VTX_MODE_7bit, 0, 1)
+                ),
             )
         else:
             raise PluginError("SP7bitTriangles not available in F3DZEX (AC).")
 
-        return result.to_bytes(8, "big")
+        return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
 # F3DEX3 TODO: Encoding of _g*SP5Triangles commands (SPTriangleStrip, SPTriangleFan)
