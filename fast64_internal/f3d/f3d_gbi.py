@@ -3584,7 +3584,7 @@ def _gsSP1Triangle_w1f(v0, v1, v2, flag, f3d):
 
 
 def gsSPNTriangles(n: int, f3d):
-    return _SHIFTL(G_TRIN_INDEPEND, 24, 8) | _SHIFTL(n - 1, 17, 7)
+    return _SHIFTL(f3d.G_TRIN_INDEPEND, 24, 8) | _SHIFTL(n - 1, 17, 7)
 
 
 def gsSPNTriangleData1(v0: int, v1: int, v2: int, f3d):  # 5 bits per vertex id (32)
@@ -3721,7 +3721,7 @@ class SPNTrianglesInit_5b(GbiMacro):
     def to_binary(self, f3d, segments):
         if f3d.F3DZEX_AC_EXT:
             words = (
-                _SHIFTL(G_TRIN_INDEPEND, 24, 8)
+                _SHIFTL(f3d.G_TRIN_INDEPEND, 24, 8)
                 | _SHIFTL(self.n - 1, 17, 7)
                 | _SHIFTL(gsSPNTriangleData1(self.v6, self.v7, self.v8, f3d), 2, 15)
                 | _SHIFTL(_SHIFTR(gsSPNTriangleData1(self.v3, self.v4, self.v5, f3d), 13, 2), 0, 2),
