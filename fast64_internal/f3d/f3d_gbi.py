@@ -132,8 +132,11 @@ def isUcodeF3DEX2(F3D_VER: str) -> bool:
 
 def isUcodeF3DEX3(F3D_VER: str) -> bool:
     return F3D_VER == "F3DEX3"
-def isUcodePointLit(F3D_VER: str) -> bool:
-    return F3D_VER == {"F3DEX3", "F3DZEX (AC)"}
+
+
+def is_ucode_point_lit(F3D_VER: str) -> bool:
+    return F3D_VER in {"F3DEX3", "F3DZEX (AC)"}
+
 
 class F3D:
     """NOTE: do not initialize this class manually! use get_F3D_GBI so that the single instance is cached from the microcode type."""
@@ -146,7 +149,7 @@ class F3D:
         F3DLP_GBI = self.F3DLP_GBI = self.F3DEX_GBI
         self.F3D_OLD_GBI = not (F3DEX_GBI or F3DEX_GBI_2 or F3DEX_GBI_3)
         F3DZEX_AC_EXT = self.F3DZEX_AC_EXT = F3D_VER == "F3DZEX (AC)"
-        F3D_POINT_LIT = self.F3D_POINT_LIT = F3D_VER == isUcodePointLit(F3D_VER)
+        F3D_POINT_LIT = self.F3D_POINT_LIT = F3D_VER == is_ucode_point_lit(F3D_VER)
 
         # F3DEX2 is F3DEX1 and F3DEX3 is F3DEX2, but F3DEX3 is not F3DEX1
         if F3DEX_GBI_2:

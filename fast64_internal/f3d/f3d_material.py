@@ -3114,7 +3114,7 @@ class RDPSettings(PropertyGroup):
     )
     g_lighting_positional: bpy.props.BoolProperty(
         name="Positional Lighting",
-        default=False, # TODO: Check with sauren that this should be defaulted to false
+        default=False,  # TODO: Check with sauren that this should be defaulted to false
         update=update_node_values_with_preset,
         description="F3DZEX (AC): Enables positional lights",
     )

@@ -50,6 +50,7 @@ from .f3d_gbi import (
     GfxList,
     FTriGroup,
     GbiMacro,
+    is_ucode_point_lit,
 )
 
 TRI_CMDS = [
@@ -102,7 +103,12 @@ class BleedGraphics:
         place_in_flaglist(defaults.g_shade_smooth, "G_SHADING_SMOOTH", setGeo, clearGeo)
         if bpy.context.scene.f3d_type == "F3DEX_GBI_2" or bpy.context.scene.f3d_type == "F3DEX_GBI":
             place_in_flaglist(defaults.g_clipping, "G_CLIPPING", setGeo, clearGeo)
-
+        if is_ucode_point_lit(bpy.context.scene.f3d_type):
+            place_in_flaglist(defaults.g_lighting_positional, "G_LIGHTING_POSITIONAL", setGeo, clearGeo)
+        if bpy.context.scene.f3d_type == "F3DZEX (AC)":
+            place_in_flaglist(defaults.g_decal_gequal, "G_DECAL_GEQUAL", setGeo, clearGeo)
+            place_in_flaglist(defaults.g_decal_equal, "G_DECAL_EQUAL", setGeo, clearGeo)
+            place_in_flaglist(defaults.g_decal_special, "G_DECAL_SPECIAL", setGeo, clearGeo)
         self.default_load_geo = SPLoadGeometryMode(setGeo.flagList)
         self.default_set_geo = setGeo
         self.default_clear_geo = clearGeo
