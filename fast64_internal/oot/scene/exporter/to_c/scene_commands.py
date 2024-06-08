@@ -24,10 +24,6 @@ def getColHeaderCmd(outScene: OOTScene):
     return indent + f"SCENE_CMD_COL_HEADER(&{outScene.collision.headerName()})"
 
 
-def getOcclusionPlaneCandidatesListCmd(outScene: OOTScene):
-    return indent + f"SCENE_CMD_OCCLUSION_PLANE_CANDIDATES_LIST({len(outScene.occlusion_planes.planes)}, {outScene.occlusion_planes.name})"
-
-
 def getSpawnListCmd(outScene: OOTScene, headerIndex: int):
     return (
         indent + "SCENE_CMD_ENTRANCE_LIST("
@@ -104,13 +100,10 @@ def getSceneCommandList(outScene: OOTScene, headerIndex: int):
     if outScene.writeCutscene:
         getCmdFunc2ArgList.append(getCutsceneDataCmd)
         
-    if len(outScene.occlusion_planes.planes) > 0:
-        getCmdFunc1ArgList.append(getOcclusionPlaneCandidatesListCmd)
-
     sceneCmdData = (
         (outScene.getAltHeaderListCmd(outScene.alternateHeadersName()) if outScene.hasAlternateHeaders() else "")
-        + (",\n".join(getCmd(outScene) for getCmd in getCmdFunc1ArgList) + ",\n")
-        + (",\n".join(getCmd(outScene, headerIndex) for getCmd in getCmdFunc2ArgList) + ",\n")
+        + "".join(getCmd(outScene) + ",\n" for getCmd in getCmdFunc1ArgList)
+        + "".join(getCmd(outScene, headerIndex) + ",\n" for getCmd in getCmdFunc2ArgList)
         + outScene.getEndCmd()
     )
 

@@ -376,7 +376,7 @@ class OOTRoom(OOTCommonCommands):
         self.ownerName = toAlnum(name)
         self.index = index
         self.actorList = set()
-        self.occlusion_planes = OcclusionPlaneCandidatesList(self.name)
+        self.occlusion_planes = OcclusionPlaneCandidatesList(self.roomName())
         self.mesh = OOTRoomMesh(self.roomName(), roomShape, model)
 
         # Room behaviour
