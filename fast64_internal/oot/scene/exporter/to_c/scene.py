@@ -16,9 +16,6 @@ class OOTSceneC:
     def sceneCutscenesIsUsed(self):
         return len(self.sceneCutscenesC) > 0
 
-    def sceneOcclusionIsUsed(self):
-        return len(self.sceneOcclusionPlaneCandidatesC.source) > 0
-
     def __init__(self):
         # Main header file for both the scene and room(s)
         self.header = CData()
@@ -27,11 +24,11 @@ class OOTSceneC:
         self.sceneMainC = CData()
         self.sceneTexturesC = CData()
         self.sceneCollisionC = CData()
-        self.sceneOcclusionPlaneCandidatesC = CData()
         self.sceneCutscenesC = []
 
         # Files for room segments
         self.roomMainC = {}
+        self.roomOcclusionPlanesC = {}
         self.roomShapeInfoC = {}
         self.roomModelC = {}
 
@@ -43,7 +40,6 @@ def getSceneC(outScene: OOTScene, textureExportSettings: TextureExportSettings):
     sceneC.sceneMainC = getSceneData(outScene)
     sceneC.sceneTexturesC = getSceneModel(outScene, textureExportSettings)
     sceneC.sceneCollisionC = getSceneCollision(outScene)
-    sceneC.sceneOcclusionPlaneCandidatesC = occCandidatesListToC(outScene.occlusion_planes)
     sceneC.sceneCutscenesC = getSceneCutscenes(outScene)
 
     for outRoom in outScene.rooms.values():
@@ -56,6 +52,7 @@ def getSceneC(outScene: OOTScene, textureExportSettings: TextureExportSettings):
             raise PluginError(f"Error: Room {outRoom.index} has no mesh children.")
 
         sceneC.roomMainC[outRoomName] = getRoomData(outRoom)
+        sceneC.roomOcclusionPlanesC[outRoomName] = occCandidatesListToC(outRoom.occlusion_planes)
         sceneC.roomShapeInfoC[outRoomName] = roomShapeInfo
         sceneC.roomModelC[outRoomName] = roomModel
 

@@ -86,8 +86,6 @@ def ootCreateSceneHeader(levelC):
     if levelC.sceneTexturesIsUsed():
         sceneHeader.append(levelC.sceneTexturesC)
     sceneHeader.append(levelC.sceneCollisionC)
-    if levelC.sceneOcclusionIsUsed():
-        sceneHeader.append(levelC.sceneOcclusionPlaneCandidatesC)
     if levelC.sceneCutscenesIsUsed():
         for i in range(len(levelC.sceneCutscenesC)):
             sceneHeader.append(levelC.sceneCutscenesC[i])
@@ -108,8 +106,6 @@ def ootCombineSceneFiles(levelC):
     if levelC.sceneTexturesIsUsed():
         sceneC.append(levelC.sceneTexturesC)
     sceneC.append(levelC.sceneCollisionC)
-    if levelC.sceneOcclusionIsUsed():
-        sceneC.append(levelC.sceneOcclusionPlaneCandidatesC)
     if levelC.sceneCutscenesIsUsed():
         for i in range(len(levelC.sceneCutscenesC)):
             sceneC.append(levelC.sceneCutscenesC[i])
@@ -154,6 +150,7 @@ def ootExportSceneToC(originalSceneObj, transformMatrix, sceneName, DLFormat, sa
         for i in range(len(scene.rooms)):
             roomC = CData()
             roomC.append(levelC.roomMainC[scene.rooms[i].roomName()])
+            roomC.append(levelC.roomOcclusionPlanesC[scene.rooms[i].roomName()])
             roomC.append(levelC.roomShapeInfoC[scene.rooms[i].roomName()])
             roomC.append(levelC.roomModelC[scene.rooms[i].roomName()])
             writeCDataSourceOnly(
@@ -173,11 +170,6 @@ def ootExportSceneToC(originalSceneObj, transformMatrix, sceneName, DLFormat, sa
             ootPreprendSceneIncludes(scene, levelC.sceneCollisionC),
             os.path.join(levelPath, scene.sceneName() + "_col.c"),
         )
-        if levelC.sceneOcclusionIsUsed():
-            writeCDataSourceOnly(
-                ootPreprendSceneIncludes(scene, levelC.sceneOcclusionPlaneCandidatesC),
-                os.path.join(levelPath, scene.sceneName() + "_occ.c"),
-            )
         if levelC.sceneCutscenesIsUsed():
             for i in range(len(levelC.sceneCutscenesC)):
                 writeCDataSourceOnly(
@@ -190,6 +182,11 @@ def ootExportSceneToC(originalSceneObj, transformMatrix, sceneName, DLFormat, sa
             writeCDataSourceOnly(
                 ootPreprendSceneIncludes(scene, roomMainC), os.path.join(levelPath, roomName + "_main.c")
             )
+        for roomName, roomOcclusionPlanesC in levelC.roomOcclusionPlanesC.items():
+            if len(roomOcclusionPlanesC.source) > 0:
+                writeCDataSourceOnly(
+                    ootPreprendSceneIncludes(scene, roomOcclusionPlanesC), os.path.join(levelPath, roomName + "_occ.c")
+                )
         for roomName, roomShapeInfoC in levelC.roomShapeInfoC.items():
             writeCDataSourceOnly(
                 ootPreprendSceneIncludes(scene, roomShapeInfoC), os.path.join(levelPath, roomName + "_model_info.c")
@@ -244,10 +241,10 @@ def writeOtherSceneProperties(scene, exportInfo, levelC):
         True,
         exportInfo,
         levelC.sceneTexturesIsUsed(),
-        levelC.sceneOcclusionIsUsed(),
         levelC.sceneCutscenesIsUsed(),
         len(scene.rooms),
         len(levelC.sceneCutscenesC),
+        [len(occ.source) > 0 for occ in levelC.roomOcclusionPlanesC],
     )
     modifySceneFiles(scene, exportInfo)
 
@@ -566,6 +563,9 @@ def ootConvertScene(originalSceneObj, transformMatrix, sceneName, DLFormat, conv
                 cullGroup.position = centroid
                 cullGroup.cullDepth = radius
 
+                if bpy.context.scene.f3d_type == "F3DEX3":
+                    addOcclusionQuads(obj, room.occlusion_planes, True, transformMatrix)
+                
                 room.mesh.terminateDLs()
                 room.mesh.removeUnusedEntries()
                 ootProcessEmpties(scene, room, sceneObj, roomObj, transformMatrix)
@@ -584,8 +584,6 @@ def ootConvertScene(originalSceneObj, transformMatrix, sceneName, DLFormat, conv
         scene.validateIndices()
         scene.sortEntrances()
         exportCollisionCommon(scene.collision, sceneObj, transformMatrix, True, sceneName)
-        if bpy.context.scene.f3d_type == "F3DEX3":
-            addOcclusionQuads(sceneObj, scene.occlusion_planes, True, transformMatrix)
 
         ootCleanupScene(originalSceneObj, allObjs)
 

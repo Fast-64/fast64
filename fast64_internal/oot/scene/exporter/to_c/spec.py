@@ -203,7 +203,7 @@ class SpecFile:
 
 
 def editSpecFile(
-    isScene: bool, exportInfo: ExportInfo, hasSceneTex: bool, hasSceneOcclusion: bool, hasSceneCS: bool, roomTotal: int, csTotal: int
+    isScene: bool, exportInfo: ExportInfo, hasSceneTex: bool, hasSceneCS: bool, roomTotal: int, csTotal: int, roomIndexHasOcclusion: List[bool],
 ):
     global buildDirectory
 
@@ -254,9 +254,6 @@ def editSpecFile(
             if hasSceneTex:
                 sceneCmds.append(SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{sceneSegmentName}_tex.o"'))
 
-            if hasSceneOcclusion:
-                sceneCmds.append(SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{sceneSegmentName}_occ.o"'))
-
             if hasSceneCS:
                 for i in range(csTotal):
                     sceneCmds.append(
@@ -286,6 +283,8 @@ def editSpecFile(
                         SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{roomSegmentName}_model.o"'),
                     ]
                 )
+                if roomIndexHasOcclusion[i]:
+                    roomCmds.append(SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{roomSegmentName}_occ.o"'))
 
             roomCmds.append(SpecEntryCommand(CommandType.NUMBER, "3"))
             specFile.append(SpecEntry(None, roomCmds))

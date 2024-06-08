@@ -89,7 +89,6 @@ class OOTScene(OOTCommonCommands):
         self.lights = []
         self.model = model
         self.collision = OOTCollision(self.name)
-        self.occlusion_planes = OcclusionPlaneCandidatesList(self.name)
 
         self.globalObject = None
         self.naviCup = None
@@ -377,6 +376,7 @@ class OOTRoom(OOTCommonCommands):
         self.ownerName = toAlnum(name)
         self.index = index
         self.actorList = set()
+        self.occlusion_planes = OcclusionPlaneCandidatesList(self.name)
         self.mesh = OOTRoomMesh(self.roomName(), roomShape, model)
 
         # Room behaviour
