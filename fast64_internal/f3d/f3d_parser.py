@@ -902,6 +902,9 @@ class F3DContext:
                 rdp_settings.g_decal_equal = value
             if bitFlags & self.f3d.G_DECAL_SPECIAL:
                 rdp_settings.g_decal_special = value
+        if self.f3d.F3D_POINT_LIT:
+            if bitFlags & self.f3d.G_LIGHTING_POSITIONAL:
+                rdp_settings.g_lighting_positional = value
         if bitFlags & self.f3d.G_FOG:
             rdp_settings.g_fog = value
         if bitFlags & self.f3d.G_LIGHTING:
@@ -916,8 +919,6 @@ class F3DContext:
             rdp_settings.g_shade_smooth = value
         if bitFlags & self.f3d.G_CLIPPING:
             rdp_settings.g_clipping = value
-        if bitFlags & self.f3d.G_LIGHTING_POSITIONAL:
-            rdp_settings.g_lighting_positional = value
 
     def loadGeoFlags(self, command: "ParsedMacro"):
         mat = self.mat()
@@ -956,6 +957,10 @@ class F3DContext:
             rdp_settings.g_gequal = False
             rdp_settings.g_equal = False
             rdp_settings.g_decal_special = False
+        if self.f3d.F3D_POINT_LIT:
+            rdp_settings.g_lighting_positional = bitFlags & self.f3d.G_LIGHTING_POSITIONAL != 0
+        else:
+            rdp_settings.g_lighting_positional = False
 
         rdp_settings.g_fog = bitFlags & self.f3d.G_FOG != 0
         rdp_settings.g_lighting = bitFlags & self.f3d.G_LIGHTING != 0
@@ -964,8 +969,6 @@ class F3DContext:
         rdp_settings.g_lod = bitFlags & self.f3d.G_LOD != 0
         rdp_settings.g_shade_smooth = bitFlags & self.f3d.G_SHADING_SMOOTH != 0
         rdp_settings.g_clipping = bitFlags & self.f3d.G_CLIPPING != 0
-        if self.f3d.F3D_POINT_LIT:
-            rdp_settings.g_lighting_positional = bitFlags & self.f3d.G_LIGHTING_POSITIONAL != 0
 
     def setCombineLerp(self, lerp0, lerp1):
         mat = self.mat()
