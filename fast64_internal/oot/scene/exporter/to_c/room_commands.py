@@ -46,13 +46,13 @@ def getRoomShapeCmd(outRoom: OOTRoom):
 def getObjectListCmd(outRoom: OOTRoom, headerIndex: int):
     return (
         indent + "SCENE_CMD_OBJECT_LIST("
-    ) + f"{outRoom.getObjectLengthDefineName(headerIndex)}, {outRoom.objectListName(headerIndex)}),\n"
+    ) + f"{outRoom.getObjectLengthDefineName(headerIndex)}, {outRoom.objectListName(headerIndex)})"
 
 
 def getActorListCmd(outRoom: OOTRoom, headerIndex: int):
     return (
         indent + "SCENE_CMD_ACTOR_LIST("
-    ) + f"{outRoom.getActorLengthDefineName(headerIndex)}, {outRoom.actorListName(headerIndex)}),\n"
+    ) + f"{outRoom.getActorLengthDefineName(headerIndex)}, {outRoom.actorListName(headerIndex)})"
 
 
 def getRoomCommandList(outRoom: OOTRoom, headerIndex: int):

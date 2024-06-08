@@ -3,7 +3,7 @@ import bpy
 import enum
 
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import List, Optional
 from .....utility import PluginError, writeFile, indent
 from ....oot_utility import ExportInfo, getSceneDirFromLevelName
 

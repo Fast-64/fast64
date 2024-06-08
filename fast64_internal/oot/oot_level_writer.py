@@ -91,6 +91,8 @@ def ootCreateSceneHeader(levelC):
             sceneHeader.append(levelC.sceneCutscenesC[i])
     for roomName, roomMainC in levelC.roomMainC.items():
         sceneHeader.append(roomMainC)
+    for roomName, roomOcclusionPlanesC in levelC.roomOcclusionPlanesC.items():
+        sceneHeader.append(roomOcclusionPlanesC)
     for roomName, roomShapeInfoC in levelC.roomShapeInfoC.items():
         sceneHeader.append(roomShapeInfoC)
     for roomName, roomModelC in levelC.roomModelC.items():
@@ -244,7 +246,7 @@ def writeOtherSceneProperties(scene, exportInfo, levelC):
         levelC.sceneCutscenesIsUsed(),
         len(scene.rooms),
         len(levelC.sceneCutscenesC),
-        [len(occ.source) > 0 for occ in levelC.roomOcclusionPlanesC],
+        [len(occ.source) > 0 for occ in levelC.roomOcclusionPlanesC.values()],
     )
     modifySceneFiles(scene, exportInfo)
 
