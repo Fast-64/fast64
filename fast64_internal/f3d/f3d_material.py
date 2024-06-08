@@ -3120,7 +3120,7 @@ class RDPSettings(PropertyGroup):
         name="Positional Lighting",
         default=True,
         update=update_node_values_with_preset,
-        description="F3DEX/ZEX: Enables positional lights",
+        description="F3DEX/ZEX: Enables calculating shade color using positional lights along with directional, ignored in F3DEX3",
     )
 
     # upper half mode
