@@ -369,6 +369,11 @@ class F3D:
                 self.G_SPECIAL_NONE = 0
                 self.G_SPECIAL_UNKNOWN = 1
                 self.G_SPECIAL_TA_MODE = 2
+                self.TA_ADJUST_MODE_VARS = {
+                    "0": 0,
+                    "G_TA_N64": 0,
+                    "G_TA_DOLPHIN": 1,
+                }
         else:
             self.G_CLIPPING = 0x00000000
 
@@ -5091,7 +5096,12 @@ class DPSetTextureAdjustMode(GbiMacro):
 
     def to_binary(self, f3d, segments):
         if f3d.F3DZEX_AC_EXT:
-            words = (_SHIFTL(f3d.G_SPECIAL_1, 24, 8) | _SHIFTL(G_SPECIAL_TA_MODE, 16, 8) | _SHIFTL(mode, 0, 16), 0)
+            words = (
+                _SHIFTL(f3d.G_SPECIAL_1, 24, 8)
+                | _SHIFTL(f3d.G_SPECIAL_TA_MODE, 16, 8)
+                | _SHIFTL(f3d.TA_ADJUST_MODE_VARS[mode], 0, 16),
+                0,
+            )
         else:
             raise PluginError("DPSetTextureAdjustMode only available in F3DZEX (AC).")
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
