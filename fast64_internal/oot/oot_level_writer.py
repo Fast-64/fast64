@@ -566,7 +566,7 @@ def ootConvertScene(originalSceneObj, transformMatrix, sceneName, DLFormat, conv
                 cullGroup.cullDepth = radius
 
                 if bpy.context.scene.f3d_type == "F3DEX3":
-                    addOcclusionQuads(obj, room.occlusion_planes, True, transformMatrix)
+                    addOcclusionQuads(obj, room.occlusion_planes, True, transformMatrix @ sceneObj.matrix_world.inverted())
                 
                 room.mesh.terminateDLs()
                 room.mesh.removeUnusedEntries()

@@ -9,7 +9,7 @@ def addOcclusionQuads(
     obj: bpy.types.Object,
     candidatesList: OcclusionPlaneCandidatesList,
     includeChildren: bool,
-    transformMatrix: Matrix
+    transformRelToScene: Matrix
 ):
     if obj.type == "MESH" and obj.is_occlusion_planes:
         mesh = obj.data
@@ -26,7 +26,7 @@ def addOcclusionQuads(
                 loop = mesh.loops[loopIndex]
                 color = color_layer[loop.index].color
                 totalColor += Vector((color[0], color[1], color[2]))
-                verts.append(transformMatrix @ mesh.vertices[loop.vertex_index].co)
+                verts.append(transformRelToScene @ obj.matrix_world @ mesh.vertices[loop.vertex_index].co)
             totalColor *= 0.25
             weight = (totalColor[0] + totalColor[1] + totalColor[2]) / 3.0
             # Check that the quad is planar. Are the normals to the two tris forming
@@ -56,4 +56,4 @@ def addOcclusionQuads(
     
     if includeChildren:
         for child in obj.children:
-            addOcclusionQuads(child, candidatesList, includeChildren, transformMatrix @ child.matrix_local)
+            addOcclusionQuads(child, candidatesList, includeChildren, transformRelToScene)
