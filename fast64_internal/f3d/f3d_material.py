@@ -465,7 +465,7 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
                 c.prop(settings, "g_packed_normals")
                 c.prop(settings, "g_lighting_specular")
                 c.prop(settings, "g_ambocclusion")
-            elif is_point_lit: # Draw this flag in Not Useful for f3dex3
+            elif is_point_lit:  # Draw this flag in Not Useful for f3dex3
                 c.prop(settings, "g_lighting_positional")
             d = indentGroup(c, "g_tex_gen", False)
             if d is not None:
