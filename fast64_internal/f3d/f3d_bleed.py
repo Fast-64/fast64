@@ -32,15 +32,18 @@ from .f3d_gbi import (
     SPSetOtherMode,
     DPLoadBlock,
     DPLoadTLUTCmd,
+    DPLoadTLUT_Dolphin,
     DPFullSync,
     DPSetRenderMode,
     DPSetTextureLUT,
     DPSetCycleType,
     DPSetTextureImage,
+    DPSetTextureImage_Dolphin,
     DPPipeSync,
     DPLoadSync,
     DPTileSync,
     DPSetTile,
+    DPSetTile_Dolphin,
     DPLoadTile,
     FModel,
     FMesh,
@@ -206,12 +209,12 @@ class BleedGraphics:
         tmem_dict = dict()
         tile_dict = {i: 0 for i in range(8)}  # an assumption that hopefully never needs correction
         for cmd in cmd_list.commands:
-            if type(cmd) == DPSetTextureImage:
+            if type(cmd) in (DPSetTextureImage, DPSetTextureImage_Dolphin):
                 im_buffer = cmd
                 continue
-            if type(cmd) == DPSetTile:
+            if type(cmd) in (DPSetTile, DPSetTile_Dolphin):
                 tile_dict[cmd.tile] = cmd.tmem
-            if type(cmd) in (DPLoadTLUTCmd, DPLoadTile, DPLoadBlock):
+            if type(cmd) in (DPLoadTLUTCmd, DPLoadTLUT_Dolphin, DPLoadTile, DPLoadBlock):
                 tmem_dict[tile_dict[cmd.tile]] = im_buffer
                 continue
         return tmem_dict
@@ -238,9 +241,9 @@ class BleedGraphics:
                     commands_bled.commands[j] = None
                     rm_load = True
                     continue
-                if rm_load and type(cmd) == DPSetTile:
+                if rm_load and type(cmd) in (DPSetTile, DPSetTile_Dolphin):
                     commands_bled.commands[j] = None
-                if rm_load and type(cmd) in (DPLoadTLUTCmd, DPLoadTile, DPLoadBlock):
+                if rm_load and type(cmd) in (DPLoadTLUTCmd, DPLoadTLUT_Dolphin, DPLoadTile, DPLoadBlock):
                     commands_bled.commands[j] = None
                     rm_load = None
                     continue
@@ -450,9 +453,11 @@ class BleedGraphics:
             SPModifyVertex,
             SPEndDisplayList,
             DPSetTextureImage,
+            DPSetTextureImage_Dolphin,
             DPLoadBlock,
             DPLoadTile,
             DPLoadTLUTCmd,
+            DPLoadTLUT_Dolphin,
             DPFullSync,
             *TRI_CMDS,
         ]:
