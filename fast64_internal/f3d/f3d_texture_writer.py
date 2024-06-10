@@ -206,7 +206,10 @@ def maybeSaveSingleLargeTextureSetup(
             sm = 2 if is4bit else 4
             nocm = ["G_TX_WRAP", "G_TX_NOMIRROR"]
             if curImgSet != i:
-                gfxOut.commands.append(DPSetTextureImage(fmt, siz, wid, fImage))
+                if f3d.F3DZEX_AC_EXT:
+                    gfxOut.commands.append(DPSetTextureImage_Dolphin(fmt, siz, texDimensions[1], wid, fImage))
+                else:
+                    gfxOut.commands.append(DPSetTextureImage(fmt, siz, wid, fImage))
 
             def loadOneOrTwoS(tmemBase, tidxBase, TL, TH):
                 if line != curTileLines[tidxBase]:
@@ -953,9 +956,11 @@ def saveTextureLoadOnly(
 
     # LoadTile will pad rows to 64 bit word alignment, while
     # LoadBlock assumes this is already done.
-    useLoadBlock = canUseLoadBlock(fImage, texProp.tex_format, f3d)
+    is_f3dzex_ac_ext = not f3d.F3DZEX_AC_EXT
+    useLoadBlock = canUseLoadBlock(fImage, texProp.tex_format, f3d) and is_f3dzex_ac_ext
     line = 0 if useLoadBlock else getTileLine(fImage, SL, SH, siz, f3d)
     wid = 1 if useLoadBlock else fImage.width
+    height = 1 if useLoadBlock else fImage.height
 
     if siz == "G_IM_SIZ_4b":
         if useLoadBlock:
@@ -963,7 +968,7 @@ def saveTextureLoadOnly(
             dxt = f3d.CALC_DXT_4b(fImage.width)
             siz = "G_IM_SIZ_16b"
             loadCommand = DPLoadBlock(loadtile, 0, 0, dxs, dxt)
-        else:
+        elif is_f3dzex_ac_ext:
             sl2 = int(SL * (2 ** (f3d.G_TEXTURE_IMAGE_FRAC - 1)))
             sh2 = int(SH * (2 ** (f3d.G_TEXTURE_IMAGE_FRAC - 1)))
             siz = "G_IM_SIZ_8b"
@@ -978,14 +983,18 @@ def saveTextureLoadOnly(
             dxt = f3d.CALC_DXT(fImage.width, f3d.G_IM_SIZ_VARS[siz + "_BYTES"])
             siz += "_LOAD_BLOCK"
             loadCommand = DPLoadBlock(loadtile, 0, 0, dxs, dxt)
-        else:
+        elif is_f3dzex_ac_ext:
             loadCommand = DPLoadTile(loadtile, sl, tl, sh, th)
 
     if not omitSetTextureImage:
-        gfxOut.commands.append(DPSetTextureImage(fmt, siz, wid, fImage))
-    if not omitSetTile:
-        gfxOut.commands.append(DPSetTile(fmt, siz, line, tmem, loadtile, 0, nocm, 0, 0, nocm, 0, 0))
-    gfxOut.commands.append(loadCommand)
+        if f3d.F3DZEX_AC_EXT:
+            gfxOut.commands.append(DPSetTextureImage_Dolphin(fmt, siz, height, wid, fImage))
+        else:
+            gfxOut.commands.append(DPSetTextureImage(fmt, siz, wid, fImage))
+    if is_f3dzex_ac_ext:
+        if not omitSetTile:
+            gfxOut.commands.append(DPSetTile(fmt, siz, line, tmem, loadtile, 0, nocm, 0, 0, nocm, 0, 0))
+        gfxOut.commands.append(loadCommand)
 
 
 def saveTextureTile(
@@ -1029,8 +1038,16 @@ def saveTextureTile(
     SL, _, SH, _, sl, tl, sh, th = getTileSizeSettings(texProp, tileSettings, f3d)
     line = getTileLine(fImage, SL, SH, siz, f3d)
 
-    tileCommand = DPSetTile(fmt, siz, line, tmem, rendertile, pal, cmt, maskt, shiftt, cms, masks, shifts)
-    tileSizeCommand = DPSetTileSize(rendertile, sl, tl, sh, th)
+    if f3d.F3DZEX_AC_EXT:
+        if (clamp_S and mirror_S) or (clamp_T and mirror_T):
+            raise PluginError("Clamp + mirror not supported in F3DZEX (AC)\n")
+        wrap_s = "GX_CLAMP" if clamp_S else "GX_MIRROR" if mirror_S else "GX_REPEAT"
+        wrap_t = "GX_CLAMP" if clamp_T else "GX_MIRROR" if mirror_T else "GX_REPEAT"
+        tileCommand = DPSetTile_Dolphin(fmt, rendertile, f3d.G_DOLPHIN_TLUT_DEFAULT_MODE, wrap_s, wrap_t, shifts, shiftt)
+        tileSizeCommand = DPSetTileSize(rendertile, sl, tl, fImage.width, fImage.height)
+    else:
+        tileCommand = DPSetTile(fmt, siz, line, tmem, rendertile, pal, cmt, maskt, shiftt, cms, masks, shifts)
+        tileSizeCommand = DPSetTileSize(rendertile, sl, tl, sh, th)
 
     scrollInfo = getattr(fMaterial.scrollData, f"tile_scroll_tex{rendertile}")
     if scrollInfo.s or scrollInfo.t:

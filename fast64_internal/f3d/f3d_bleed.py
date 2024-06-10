@@ -212,7 +212,7 @@ class BleedGraphics:
             if type(cmd) in (DPSetTextureImage, DPSetTextureImage_Dolphin):
                 im_buffer = cmd
                 continue
-            if type(cmd) in (DPSetTile, DPSetTile_Dolphin):
+            if type(cmd) == DPSetTile:
                 tile_dict[cmd.tile] = cmd.tmem
             if type(cmd) in (DPLoadTLUTCmd, DPLoadTLUT_Dolphin, DPLoadTile, DPLoadBlock):
                 tmem_dict[tile_dict[cmd.tile]] = im_buffer
