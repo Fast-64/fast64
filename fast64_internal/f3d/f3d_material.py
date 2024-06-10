@@ -303,7 +303,10 @@ def get_blend_method(material: bpy.types.Material) -> str:
 def update_blend_method(material: Material, context):
     material.blend_method = get_blend_method(material)
     if material.blend_method == "CLIP":
-        material.alpha_threshold = 0.125
+        if context.scene.f3d_type == "F3DZEX (AC)" and material.f3d_mat.rdp_settings.is_emu64_texedge:
+            material.alpha_threshold = material.f3d_mat.tex_edge_alpha
+        else:
+            material.alpha_threshold = 0.125
 
 
 class DrawLayerProperty(PropertyGroup):
@@ -630,18 +633,13 @@ def ui_other(settings, dataHolder, layout, useDropdown):
             prop_input.enabled = dataHolder.set_blend
             if bpy.context.scene.f3d_type == "F3DZEX (AC)":
                 tex_edge_alpha_group = layout.column()
-                is_tex_edge_mode = (
-                    (settings.aa_en and settings.cvg_x_alpha and settings.alpha_cvg_sel)
-                    and settings.cvg_dst == "CVG_DST_CLAMP"
-                    and settings.zmode == "ZMODE_OPA"
-                )
                 tex_edge_alpha_row = tex_edge_alpha_group.row()
                 prop_input_name = tex_edge_alpha_row.column()
                 prop_input = tex_edge_alpha_row.column()
                 prop_input_name.prop(dataHolder, "set_tex_edge_alpha", text="Tex Edge Alpha")
                 prop_input.prop(dataHolder, "tex_edge_alpha", text="")
                 prop_input.enabled = dataHolder.set_tex_edge_alpha
-                if not is_tex_edge_mode:
+                if not settings.is_emu64_texedge:
                     tex_edge_alpha_group.label(text="Material is not recognised as Tex Edge", icon="INFO")
 
 
@@ -3368,6 +3366,16 @@ class RDPSettings(PropertyGroup):
         update=update_node_values_with_preset,
     )
 
+    @property
+    def is_emu64_texedge(self):
+        return (
+            self.aa_en
+            and self.cvg_x_alpha
+            and self.alpha_cvg_sel
+            and self.cvg_dst == "CVG_DST_CLAMP"
+            and self.zmode == "ZMODE_OPA"
+        )
+
     def key(self):
         setRM = self.set_rendermode
         rmAdv = self.rendermode_advanced_enabled
@@ -4014,9 +4022,9 @@ class F3DMaterialProperty(PropertyGroup):
         name="Tex Edge Alpha",
         min=0,
         max=1,
-        step=100.0/255.0,
-        default=144.0/255.0,
-        update=update_node_values_with_preset, # TODO: This shouldnt need to actually interact with the nodes, maybe implement?
+        step=100.0 / 255.0,
+        default=144.0 / 255.0,
+        update=update_node_values_with_preset,  # TODO: This shouldnt need to actually interact with the nodes, maybe implement?
         description="F3DZEX (AC): Alpha threshold for tex edge (cutout) materials, displays only alpha values greater or equal.",
     )
     prim_color: bpy.props.FloatVectorProperty(

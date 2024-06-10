@@ -1718,7 +1718,7 @@ class F3DContext:
                 elif command.name == "gsDPSetBlendColor":
                     mat.blend_color = self.gammaInverseParam(command.params)
                     mat.set_blend = True
-                elif command.name == "gsDPSetTexEdgeAlpha": # F3DEX (AC)
+                elif command.name == "gsDPSetTexEdgeAlpha":  # F3DEX (AC)
                     mat.tex_edge_alpha = math_eval(command.params[0], self.f3d) / 255
                     mat.set_tex_edge_alpha = True
                 elif command.name == "gsDPSetFogColor":
