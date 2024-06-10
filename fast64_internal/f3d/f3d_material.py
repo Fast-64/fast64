@@ -628,6 +628,21 @@ def ui_other(settings, dataHolder, layout, useDropdown):
             prop_input_name.prop(dataHolder, "set_blend", text="Blend Color")
             prop_input.prop(dataHolder, "blend_color", text="")
             prop_input.enabled = dataHolder.set_blend
+            if bpy.context.scene.f3d_type == "F3DZEX (AC)":
+                tex_edge_alpha_group = layout.column()
+                is_tex_edge_mode = (
+                    (settings.aa_en and settings.cvg_x_alpha and settings.alpha_cvg_sel)
+                    and settings.cvg_dst == "CVG_DST_CLAMP"
+                    and settings.zmode == "ZMODE_OPA"
+                )
+                tex_edge_alpha_row = tex_edge_alpha_group.row()
+                prop_input_name = tex_edge_alpha_row.column()
+                prop_input = tex_edge_alpha_row.column()
+                prop_input_name.prop(dataHolder, "set_tex_edge_alpha", text="Tex Edge Alpha")
+                prop_input.prop(dataHolder, "tex_edge_alpha", text="")
+                prop_input.enabled = dataHolder.set_tex_edge_alpha
+                if not is_tex_edge_mode:
+                    tex_edge_alpha_group.label(text="Material is not recognised as Tex Edge", icon="INFO")
 
 
 def tmemUsageUI(layout, textureProp):
@@ -3965,6 +3980,10 @@ class F3DMaterialProperty(PropertyGroup):
         default=False,
         update=update_node_values_with_preset,
     )
+    set_tex_edge_alpha: bpy.props.BoolProperty(
+        default=False,
+        update=update_node_values_with_preset,
+    )
     set_key: bpy.props.BoolProperty(
         default=True,
         update=update_node_values_with_preset,
@@ -3990,6 +4009,15 @@ class F3DMaterialProperty(PropertyGroup):
         min=0,
         max=1,
         default=(0, 0, 0, 1),
+    )
+    tex_edge_alpha: bpy.props.FloatProperty(
+        name="Tex Edge Alpha",
+        min=0,
+        max=1,
+        step=100.0/255.0,
+        default=144.0/255.0,
+        update=update_node_values_with_preset, # TODO: This shouldnt need to actually interact with the nodes, maybe implement?
+        description="F3DZEX (AC): Used in the second comparison for GXSetAlphaCompare with GX_GEQUAL when the using a tex edge material",
     )
     prim_color: bpy.props.FloatVectorProperty(
         name="Primitive Color",
@@ -4263,6 +4291,7 @@ class F3DMaterialProperty(PropertyGroup):
             else None,
             self.use_default_lighting,
             self.set_blend,
+            self.set_tex_edge_alpha,
             self.set_prim,
             self.set_env,
             self.set_key,
@@ -4271,6 +4300,7 @@ class F3DMaterialProperty(PropertyGroup):
             self.set_lights,
             self.set_fog,
             tuple([round(value, 4) for value in self.blend_color]) if self.set_blend else None,
+            round(self.tex_edge_alpha, 4) if self.set_tex_edge_alpha else None,
             tuple([round(value, 4) for value in self.prim_color]) if self.set_prim else None,
             round(self.prim_lod_frac, 4) if self.set_prim else None,
             round(self.prim_lod_min, 4) if self.set_prim else None,
