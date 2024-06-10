@@ -4017,7 +4017,7 @@ class F3DMaterialProperty(PropertyGroup):
         step=100.0/255.0,
         default=144.0/255.0,
         update=update_node_values_with_preset, # TODO: This shouldnt need to actually interact with the nodes, maybe implement?
-        description="F3DZEX (AC): Used in the second comparison for GXSetAlphaCompare with GX_GEQUAL when the using a tex edge material",
+        description="F3DZEX (AC): Alpha threshold for tex edge (cutout) materials, displays only alpha values greater or equal.",
     )
     prim_color: bpy.props.FloatVectorProperty(
         name="Primitive Color",
