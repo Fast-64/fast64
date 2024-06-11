@@ -5164,7 +5164,7 @@ class DPSetTile(GbiMacro):
 class DPSetTile_Dolphin(GbiMacro):
     fmt: str
     tile: int
-    tlut_name: int
+    name: int
     wrap_s: int
     wrap_t: int
     shift_s: int
@@ -5177,7 +5177,7 @@ class DPSetTile_Dolphin(GbiMacro):
                     _SHIFTL(f3d.G_SETTILE_DOLPHIN, 24, 8)
                     | _SHIFTL(f3d.G_IM_FMT_VARS[self.fmt], 20, 4)
                     | _SHIFTL(self.tile, 16, 3)
-                    | _SHIFTL(self.tlut_name, 12, 4)
+                    | _SHIFTL(self.name, 12, 4)
                     | _SHIFTL(f3d.GX_WRAP_MODE_VARS[self.wrap_s], 10, 2)
                     | _SHIFTL(f3d.GX_WRAP_MODE_VARS[self.wrap_t], 8, 2)
                     | _SHIFTL(self.shift_s, 4, 4)
@@ -5534,7 +5534,7 @@ class DPLoadTextureBlock_4b_Dolphin(GbiMacro):
                 f3d, segments
             )
         else:
-            raise PluginError("gsDPLoadTextureBlock_4b_Dolphin only available in F3DZEX (AC).")
+            raise PluginError("DPLoadTextureBlock_4b_Dolphin only available in F3DZEX (AC).")
 
     def size(self, f3d):
         return GFX_SIZE * 2
@@ -5781,7 +5781,7 @@ class DPLoadTLUT(GbiMacro):
 
 @dataclass(unsafe_hash=True)
 class DPLoadTLUT_Dolphin(GbiMacro):
-    name: int
+    tlut_name: int
     count: int
     unk: int  # Always 1?
     addr: FImage
@@ -5791,7 +5791,7 @@ class DPLoadTLUT_Dolphin(GbiMacro):
             words = (
                 _SHIFTL(f3d.G_LOADTLUT, 24, 8)
                 | _SHIFTL(f3d.G_TLUT_DOLPHIN, 22, 2)
-                | _SHIFTL(self.name, 16, 4)
+                | _SHIFTL(self.tlut_name, 16, 4)
                 | _SHIFTL(self.unk, 14, 2)
                 | _SHIFTL(self.count, 0, 14),
                 self.addr,

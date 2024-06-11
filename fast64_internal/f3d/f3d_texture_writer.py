@@ -533,7 +533,7 @@ class TexInfo:
         loadGfx = fMaterial.texture_DL
         f3d = fModel.f3d
         if self.loadPal:
-            savePaletteLoad(loadGfx, fPalette, self.palFormat, self.palAddr, self.palLen, 5 - self.indexInMat, f3d)
+            savePaletteLoad(loadGfx, fPalette, self.palIndex, self.palFormat, self.palAddr, self.palLen, 5 - self.indexInMat, f3d)
         if self.doTexLoad:
             saveTextureLoadOnly(fImage, loadGfx, self.texProp, None, 7 - self.indexInMat, self.texAddr, f3d)
         if self.doTexTile:
@@ -625,7 +625,16 @@ class MultitexManager:
         # Determine how to arrange / load palette entries into upper half of tmem
         if self.isCI:
             assert self.ti0.useTex or self.ti1.useTex
-            if not self.ti1.useTex:
+            if fModel.f3d.F3DZEX_AC_EXT: # TODO: This is kinda hacky, and the AC has palletes reserved for enviromental stuff apperantly?
+                if self.ti0.useTex:
+                    self.ti0.palIndex = 15
+                    self.ti0.palLen = len(self.ti0.pal)
+                    self.ti0.loadPal = True
+                if self.ti1.useTex:
+                    self.ti1.palIndex = 14
+                    self.ti1.palLen = len(self.ti1.pal)
+                    self.ti1.loadPal = True
+            elif not self.ti1.useTex:
                 self.ti0.loadPal = True
             elif not self.ti0.useTex:
                 self.ti1.loadPal = True
@@ -763,7 +772,7 @@ class MultitexManager:
         fMaterial.texPaletteIndex = [self.ti0.palIndex, self.ti1.palIndex]
         self.ti0.palBaseName = self.ti0.getPaletteName()
         self.ti1.palBaseName = self.ti1.getPaletteName()
-        if self.isCI and self.ti0.useTex and self.ti1.useTex and not self.ti1.loadPal:
+        if not fModel.f3d.F3DZEX_AC_EXT and self.isCI and self.ti0.useTex and self.ti1.useTex and not self.ti1.loadPal:
             self.ti0.palBaseName = self.ti0.palBaseName + "_x_" + self.ti1.palBaseName
             self.ti1.pal = self.ti0.pal
 
@@ -1043,8 +1052,8 @@ def saveTextureTile(
             raise PluginError("Clamp + mirror not supported in F3DZEX (AC)\n")
         wrap_s = "GX_CLAMP" if clamp_S else "GX_MIRROR" if mirror_S else "GX_REPEAT"
         wrap_t = "GX_CLAMP" if clamp_T else "GX_MIRROR" if mirror_T else "GX_REPEAT"
-        tileCommand = DPSetTile_Dolphin(fmt, rendertile, f3d.G_DOLPHIN_TLUT_DEFAULT_MODE, wrap_s, wrap_t, shifts, shiftt)
-        tileSizeCommand = DPSetTileSize(rendertile, sl, tl, fImage.width, fImage.height)
+        tileCommand = DPSetTile_Dolphin(fmt, rendertile, pal, wrap_s, wrap_t, shifts, shiftt)
+        tileSizeCommand = DPSetTileSize_Dolphin(rendertile, sl, tl, fImage.width, fImage.height)
     else:
         tileCommand = DPSetTile(fmt, siz, line, tmem, rendertile, pal, cmt, maskt, shiftt, cms, masks, shifts)
         tileSizeCommand = DPSetTileSize(rendertile, sl, tl, sh, th)
@@ -1068,6 +1077,7 @@ def saveTextureTile(
 def savePaletteLoad(
     gfxOut: GfxList,
     fPalette: FImage,
+    palIndex: int,
     palFormat: str,
     palAddr: int,
     palLen: int,
@@ -1077,6 +1087,11 @@ def savePaletteLoad(
     assert 0 <= palAddr < 256 and (palAddr & 0xF) == 0
     palFmt = texFormatOf[palFormat]
     nocm = ["G_TX_WRAP", "G_TX_NOMIRROR"]
+    if f3d.F3DZEX_AC_EXT:
+        gfxOut.commands.append(
+            DPLoadTLUT_Dolphin(palIndex, palLen - 1, 1, fPalette)
+        )
+        return
     gfxOut.commands.extend(
         [
             DPSetTextureImage(palFmt, "G_IM_SIZ_16b", 1, fPalette),

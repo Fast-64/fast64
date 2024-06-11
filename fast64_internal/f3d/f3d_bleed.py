@@ -212,11 +212,14 @@ class BleedGraphics:
             if type(cmd) in (DPSetTextureImage, DPSetTextureImage_Dolphin):
                 im_buffer = cmd
                 continue
+            elif type(cmd) == DPSetTile_Dolphin:
+                tmem_dict[cmd.name + 15] = im_buffer
+            elif type(cmd) == DPLoadTLUT_Dolphin:
+                tmem_dict[cmd.tlut_name] = cmd # loadtlut_dolphin loads on its own
             if type(cmd) == DPSetTile:
                 tile_dict[cmd.tile] = cmd.tmem
-            if type(cmd) in (DPLoadTLUTCmd, DPLoadTLUT_Dolphin, DPLoadTile, DPLoadBlock):
+            if type(cmd) in (DPLoadTLUTCmd, DPLoadTile, DPLoadBlock):
                 tmem_dict[tile_dict[cmd.tile]] = im_buffer
-                continue
         return tmem_dict
 
     def bleed_textures(self, cur_fmat: FMaterial, last_mat: FMaterial, bleed_state: int):
@@ -241,7 +244,7 @@ class BleedGraphics:
                     commands_bled.commands[j] = None
                     rm_load = True
                     continue
-                if rm_load and type(cmd) in (DPSetTile, DPSetTile_Dolphin):
+                if rm_load and type(cmd) == DPSetTile:
                     commands_bled.commands[j] = None
                 if rm_load and type(cmd) in (DPLoadTLUTCmd, DPLoadTLUT_Dolphin, DPLoadTile, DPLoadBlock):
                     commands_bled.commands[j] = None
