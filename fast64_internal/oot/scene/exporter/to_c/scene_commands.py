@@ -99,7 +99,7 @@ def getSceneCommandList(outScene: OOTScene, headerIndex: int):
 
     if outScene.writeCutscene:
         getCmdFunc2ArgList.append(getCutsceneDataCmd)
-        
+
     sceneCmdData = (
         (outScene.getAltHeaderListCmd(outScene.alternateHeadersName()) if outScene.hasAlternateHeaders() else "")
         + "".join(getCmd(outScene) + ",\n" for getCmd in getCmdFunc1ArgList)

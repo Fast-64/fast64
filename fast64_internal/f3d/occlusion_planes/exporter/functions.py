@@ -5,23 +5,28 @@ from ....utility import PluginError
 from .classes import OcclusionPlaneCandidate, OcclusionPlaneCandidatesList
 from ...f3d_writer import getColorLayer
 
+
 def addOcclusionQuads(
     obj: bpy.types.Object,
     candidatesList: OcclusionPlaneCandidatesList,
     includeChildren: bool,
-    transformRelToScene: Matrix
+    transformRelToScene: Matrix,
 ):
     if obj.type == "MESH" and obj.is_occlusion_planes:
         mesh = obj.data
         color_layer = getColorLayer(mesh, layer="Col")
         if not color_layer:
-            raise PluginError(f"Occlusion planes mesh {obj.name} must have a vertex colors layer named \"Col\", which you paint the weight for each plane into.")
+            raise PluginError(
+                f'Occlusion planes mesh {obj.name} must have a vertex colors layer named "Col", which you paint the weight for each plane into.'
+            )
         for polygon in mesh.polygons:
             # Weight is the average of R, G, and B across the four corners
             totalColor = Vector((0.0, 0.0, 0.0))
             verts = []
             if polygon.loop_total != 4:
-                raise PluginError(f"Occlusion planes mesh {obj.name} contains a polygon with {polygon.loop_total} verts. Occlusion planes must be quads.")
+                raise PluginError(
+                    f"Occlusion planes mesh {obj.name} contains a polygon with {polygon.loop_total} verts. Occlusion planes must be quads."
+                )
             for loopIndex in polygon.loop_indices:
                 loop = mesh.loops[loopIndex]
                 color = color_layer[loop.index].color
@@ -37,7 +42,11 @@ def addOcclusionQuads(
             edge3 = (verts[3] - verts[0]).normalized()
             normal1 = edge1.cross(midA)
             normal2 = midA.cross(edge3)
-            if normal1.length > 0.001 and normal2.length > 0.001 and normal1.normalized().dot(normal2.normalized()) < 0.999:
+            if (
+                normal1.length > 0.001
+                and normal2.length > 0.001
+                and normal1.normalized().dot(normal2.normalized()) < 0.999
+            ):
                 raise PluginError(f"Occlusion planes mesh {obj.name} contains a quad which is not planar (flat).")
             # Check that the quad is convex. Are the cross products at each corner
             # all pointing in the same direction?
@@ -51,9 +60,8 @@ def addOcclusionQuads(
             cross0 = edge30.cross(edge01)
             if cross0.dot(cross1) < 0.0 or cross0.dot(cross2) < 0.0 or cross0.dot(cross3) < 0.0:
                 raise PluginError(f"Occlusion planes mesh {obj.name} contains a quad which is not convex.")
-            candidatesList.planes.append(OcclusionPlaneCandidate(
-                verts[0], verts[1], verts[2], verts[3], weight))
-    
+            candidatesList.planes.append(OcclusionPlaneCandidate(verts[0], verts[1], verts[2], verts[3], weight))
+
     if includeChildren:
         for child in obj.children:
             addOcclusionQuads(child, candidatesList, includeChildren, transformRelToScene)

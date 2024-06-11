@@ -36,7 +36,10 @@ def getWindSettingsCmd(outRoom: OOTRoom):
 
 
 def getOcclusionPlaneCandidatesListCmd(outRoom: OOTRoom):
-    return indent + f"SCENE_CMD_OCCLUSION_PLANE_CANDIDATES_LIST({len(outRoom.occlusion_planes.planes)}, {outRoom.occlusion_planes.name})"
+    return (
+        indent
+        + f"SCENE_CMD_OCCLUSION_PLANE_CANDIDATES_LIST({len(outRoom.occlusion_planes.planes)}, {outRoom.occlusion_planes.name})"
+    )
 
 
 def getRoomShapeCmd(outRoom: OOTRoom):
@@ -66,18 +69,18 @@ def getRoomCommandList(outRoom: OOTRoom, headerIndex: int):
         getTimeSettingsCmd,
         getRoomShapeCmd,
     ]
-    
+
     getCmdFunc2ArgList = []
-    
+
     if outRoom.setWind:
         getCmdFunc1ArgList.append(getWindSettingsCmd)
-    
+
     if len(outRoom.occlusion_planes.planes) > 0:
         getCmdFunc1ArgList.append(getOcclusionPlaneCandidatesListCmd)
-    
+
     if len(outRoom.objectIDList) > 0:
         getCmdFunc2ArgList.append(getObjectListCmd)
-    
+
     if len(outRoom.actorList) > 0:
         getCmdFunc2ArgList.append(getActorListCmd)
 

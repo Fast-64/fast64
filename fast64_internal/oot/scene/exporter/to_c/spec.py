@@ -203,7 +203,13 @@ class SpecFile:
 
 
 def editSpecFile(
-    isScene: bool, exportInfo: ExportInfo, hasSceneTex: bool, hasSceneCS: bool, roomTotal: int, csTotal: int, roomIndexHasOcclusion: List[bool],
+    isScene: bool,
+    exportInfo: ExportInfo,
+    hasSceneTex: bool,
+    hasSceneCS: bool,
+    roomTotal: int,
+    csTotal: int,
+    roomIndexHasOcclusion: List[bool],
 ):
     global buildDirectory
 

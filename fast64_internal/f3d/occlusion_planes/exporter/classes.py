@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from mathutils import Vector
 from typing import List
 
+
 @dataclass
 class OcclusionPlaneCandidate:
     v0: Vector
