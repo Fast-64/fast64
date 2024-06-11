@@ -1621,7 +1621,8 @@ def saveGeoModeCommon(saveFunc: Callable, settings: RDPSettings, defaults: RDPSe
     saveFunc(settings.g_shade, defaults.g_shade, "G_SHADE", *args)
     saveFunc(settings.g_cull_front, defaults.g_cull_front, "G_CULL_FRONT", *args)
     saveFunc(settings.g_cull_back, defaults.g_cull_back, "G_CULL_BACK", *args)
-    if bpy.context.scene.f3d_type == "F3DEX3":
+    f3d = get_F3D_GBI()
+    if f3d.F3DEX_GBI_3:
         saveFunc(settings.g_ambocclusion, defaults.g_ambocclusion, "G_AMBOCCLUSION", *args)
         saveFunc(settings.g_attroffset_z_enable, defaults.g_attroffset_z_enable, "G_ATTROFFSET_Z_ENABLE", *args)
         saveFunc(settings.g_attroffset_st_enable, defaults.g_attroffset_st_enable, "G_ATTROFFSET_ST_ENABLE", *args)
@@ -1630,7 +1631,7 @@ def saveGeoModeCommon(saveFunc: Callable, settings: RDPSettings, defaults: RDPSe
         saveFunc(settings.g_lighting_specular, defaults.g_lighting_specular, "G_LIGHTING_SPECULAR", *args)
         saveFunc(settings.g_fresnel_color, defaults.g_fresnel_color, "G_FRESNEL_COLOR", *args)
         saveFunc(settings.g_fresnel_alpha, defaults.g_fresnel_alpha, "G_FRESNEL_ALPHA", *args)
-    elif bpy.context.scene.f3d_type == "F3DZEX (AC)":
+    elif f3d.F3DZEX_AC_EXT:
         saveFunc(settings.g_decal_gequal, defaults.g_decal_gequal, "G_DECAL_GEQUAL", *args)
         saveFunc(settings.g_decal_equal, defaults.g_decal_equal, "G_DECAL_EQUAL", *args)
         saveFunc(settings.g_decal_special, defaults.g_decal_special, "G_DECAL_SPECIAL", *args)
@@ -1640,9 +1641,9 @@ def saveGeoModeCommon(saveFunc: Callable, settings: RDPSettings, defaults: RDPSe
     saveFunc(settings.g_tex_gen_linear, defaults.g_tex_gen_linear, "G_TEXTURE_GEN_LINEAR", *args)
     saveFunc(settings.g_lod, defaults.g_lod, "G_LOD", *args)
     saveFunc(settings.g_shade_smooth, defaults.g_shade_smooth, "G_SHADING_SMOOTH", *args)
-    if isUcodeF3DEX1(bpy.context.scene.f3d_type):
+    if f3d.F3DEX_GBI:
         saveFunc(settings.g_clipping, defaults.g_clipping, "G_CLIPPING", *args)
-    if is_ucode_point_lit(bpy.context.scene.f3d_type):
+    if f3d.POINT_LIT_GBI:
         saveFunc(settings.g_lighting_positional, defaults.g_lighting_positional, "G_LIGHTING_POSITIONAL", *args)
 
 

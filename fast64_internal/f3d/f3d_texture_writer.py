@@ -533,7 +533,9 @@ class TexInfo:
         loadGfx = fMaterial.texture_DL
         f3d = fModel.f3d
         if self.loadPal:
-            savePaletteLoad(loadGfx, fPalette, self.palIndex, self.palFormat, self.palAddr, self.palLen, 5 - self.indexInMat, f3d)
+            savePaletteLoad(
+                loadGfx, fPalette, self.palIndex, self.palFormat, self.palAddr, self.palLen, 5 - self.indexInMat, f3d
+            )
         if self.doTexLoad:
             saveTextureLoadOnly(fImage, loadGfx, self.texProp, None, 7 - self.indexInMat, self.texAddr, f3d)
         if self.doTexTile:
@@ -625,7 +627,9 @@ class MultitexManager:
         # Determine how to arrange / load palette entries into upper half of tmem
         if self.isCI:
             assert self.ti0.useTex or self.ti1.useTex
-            if fModel.f3d.F3DZEX_AC_EXT: # TODO: This is kinda hacky, and the AC has palletes reserved for enviromental stuff apperantly?
+            if (
+                fModel.f3d.F3DZEX_AC_EXT
+            ):  # TODO: This is kinda hacky, and the AC has palletes reserved for enviromental stuff apperantly?
                 if self.ti0.useTex:
                     self.ti0.palIndex = 15
                     self.ti0.palLen = len(self.ti0.pal)
@@ -1088,9 +1092,7 @@ def savePaletteLoad(
     palFmt = texFormatOf[palFormat]
     nocm = ["G_TX_WRAP", "G_TX_NOMIRROR"]
     if f3d.F3DZEX_AC_EXT:
-        gfxOut.commands.append(
-            DPLoadTLUT_Dolphin(palIndex, palLen - 1, 1, fPalette)
-        )
+        gfxOut.commands.append(DPLoadTLUT_Dolphin(palIndex, palLen - 1, 1, fPalette))
         return
     gfxOut.commands.extend(
         [

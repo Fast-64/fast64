@@ -12,6 +12,7 @@ from .fast64_internal.oot import OOT_Properties, oot_register, oot_unregister
 from .fast64_internal.oot.props_panel_main import OOT_ObjectProperties
 from .fast64_internal.utility_anim import utility_anim_register, utility_anim_unregister, ArmatureApplyWithMeshOperator
 
+from .fast64_internal.f3d.f3d_gbi import isUcodeF3DEX2, ucode_can_point_lit, ucode_always_point_lit
 from .fast64_internal.f3d.f3d_material import mat_register, mat_unregister
 from .fast64_internal.f3d.f3d_render_engine import render_engine_register, render_engine_unregister
 from .fast64_internal.f3d.f3d_writer import f3d_writer_register, f3d_writer_unregister
@@ -66,7 +67,10 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
     def draw(self, context):
         col = self.layout.column()
         col.scale_y = 1.1  # extra padding
+        fast64_settings = context.scene.fast64.settings
         prop_split(col, context.scene, "f3d_type", "F3D Microcode")
+        if ucode_can_point_lit(context.scene.f3d_type) and not ucode_always_point_lit(context.scene.f3d_type):
+            col.prop(fast64_settings, "point_lit")
         col.prop(context.scene, "saveTextures")
         col.prop(context.scene, "f3d_simple", text="Simple Material UI")
         col.prop(context.scene, "generateF3DNodeGraph", text="Generate F3D Node Graph For Materials")
@@ -174,6 +178,10 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
     prefer_rgba_over_ci: bpy.props.BoolProperty(
         name="Prefer RGBA Over CI",
         description="When enabled, fast64 will default colored textures's format to RGBA even if they fit CI requirements, with the exception of textures that would not fit into TMEM otherwise",
+    )
+    point_lit: bpy.props.BoolProperty(
+        name="Supports Point Ligthing",
+        description="When enabled, fast64 will export expecting a gbi that supports point lighting, such as Majora's Mask's ucode",
     )
 
 

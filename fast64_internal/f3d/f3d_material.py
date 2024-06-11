@@ -30,7 +30,7 @@ from bpy.utils import register_class, unregister_class
 from mathutils import Color
 
 from .f3d_enums import *
-from .f3d_gbi import get_F3D_GBI, GBL_c1, GBL_c2, enumTexScroll, isUcodeF3DEX1, is_ucode_point_lit
+from .f3d_gbi import get_F3D_GBI, GBL_c1, GBL_c2, enumTexScroll
 from .f3d_material_presets import *
 from ..utility import *
 from ..render_settings import Fast64RenderSettings_Properties, update_scene_props_from_render_settings
@@ -443,10 +443,9 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             c = c.column(align=True)
             return c
 
-        isF3DEX3 = bpy.context.scene.f3d_type == "F3DEX3"
-        is_f3dzex_ac = bpy.context.scene.f3d_type == "F3DZEX (AC)"
-        is_point_lit = is_ucode_point_lit(bpy.context.scene.f3d_type)
-        lightFxPrereq = isF3DEX3 and settings.g_lighting
+        f3d = get_F3D_GBI()
+
+        lightFxPrereq = f3d.F3DEX_GBI_3 and settings.g_lighting
         ccWarnings = shadeInCC = False
         blendWarnings = shadeInBlender = zInBlender = False
         if isinstance(dataHolder, F3DMaterialProperty):
@@ -464,11 +463,11 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
         if c is not None:
             if ccWarnings and not shadeInCC and not settings.g_tex_gen:
                 c.label(text="Shade not used in CC, can disable lighting.", icon="INFO")
-            if isF3DEX3:
+            if f3d.F3DEX_GBI_3:
                 c.prop(settings, "g_packed_normals")
                 c.prop(settings, "g_lighting_specular")
                 c.prop(settings, "g_ambocclusion")
-            elif is_point_lit:  # Draw this flag in Not Useful for f3dex3
+            elif f3d.POINT_LIT_GBI:  # Draw this flag in Not Useful for f3dex3
                 c.prop(settings, "g_lighting_positional")
             d = indentGroup(c, "g_tex_gen", False)
             if d is not None:
@@ -520,12 +519,12 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
         elif blendWarnings and not shadeInBlender and settings.g_fog:
             c.label(text="Fog not used in rendermode / blender, can disable.", icon="INFO")
 
-        if is_f3dzex_ac:
+        if f3d.F3DZEX_AC_EXT:
             c = indentGroup(inputGroup, "Decals:", True)
             c.prop(settings, "g_decal_gequal")
             c.prop(settings, "g_decal_equal")
             c.prop(settings, "g_decal_special")
-        elif isF3DEX3:
+        elif f3d.F3DEX_GBI_3:
             c = indentGroup(inputGroup, "Attribute offsets:", True)
             c.prop(settings, "g_attroffset_st_enable")
             c.prop(settings, "g_attroffset_z_enable")
@@ -556,9 +555,9 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
 
         c = indentGroup(inputGroup, "Not useful:", True)
         c.prop(settings, "g_lod")
-        if isUcodeF3DEX1(bpy.context.scene.f3d_type):
+        if f3d.F3DEX_GBI:
             c.prop(settings, "g_clipping")
-        elif isF3DEX3:
+        elif f3d.F3DEX_GBI_3:
             c.prop(settings, "g_lighting_positional")
             c.label(text="Always enabled in F3DEX3", icon="INFO")
 

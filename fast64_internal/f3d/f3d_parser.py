@@ -903,7 +903,7 @@ class F3DContext:
                 rdp_settings.g_decal_equal = value
             if bitFlags & self.f3d.G_DECAL_SPECIAL:
                 rdp_settings.g_decal_special = value
-        if self.f3d.F3D_POINT_LIT:
+        if self.f3d.POINT_LIT_GBI:
             if bitFlags & self.f3d.G_LIGHTING_POSITIONAL:
                 rdp_settings.g_lighting_positional = value
         if bitFlags & self.f3d.G_FOG:
@@ -958,7 +958,7 @@ class F3DContext:
             rdp_settings.g_gequal = False
             rdp_settings.g_equal = False
             rdp_settings.g_decal_special = False
-        if self.f3d.F3D_POINT_LIT:
+        if self.f3d.POINT_LIT_GBI:
             rdp_settings.g_lighting_positional = bitFlags & self.f3d.G_LIGHTING_POSITIONAL != 0
         else:
             rdp_settings.g_lighting_positional = False

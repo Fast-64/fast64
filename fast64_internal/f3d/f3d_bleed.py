@@ -53,7 +53,7 @@ from .f3d_gbi import (
     GfxList,
     FTriGroup,
     GbiMacro,
-    is_ucode_point_lit,
+    get_F3D_GBI,
 )
 
 TRI_CMDS = [
@@ -78,8 +78,7 @@ class BleedGraphics:
     def __init__(self):
         self.bled_gfx_lists = dict()
         # build world default cmds to compare against, f3d types needed for reset cmd building
-        self.is_f3d_old = bpy.context.scene.f3d_type == "F3D"
-        self.is_f3dex2 = "F3DEX2" in bpy.context.scene.f3d_type
+        self.f3d = get_F3D_GBI()
         self.build_default_geo()
         self.build_default_othermodes()
 
@@ -104,11 +103,11 @@ class BleedGraphics:
         place_in_flaglist(defaults.g_tex_gen, "G_TEXTURE_GEN", setGeo, clearGeo)
         place_in_flaglist(defaults.g_tex_gen_linear, "G_TEXTURE_GEN_LINEAR", setGeo, clearGeo)
         place_in_flaglist(defaults.g_shade_smooth, "G_SHADING_SMOOTH", setGeo, clearGeo)
-        if bpy.context.scene.f3d_type == "F3DEX_GBI_2" or bpy.context.scene.f3d_type == "F3DEX_GBI":
+        if self.f3d.F3D_OLD_GBI:
             place_in_flaglist(defaults.g_clipping, "G_CLIPPING", setGeo, clearGeo)
-        if is_ucode_point_lit(bpy.context.scene.f3d_type):
+        if self.f3d.POINT_LIT_GBI:
             place_in_flaglist(defaults.g_lighting_positional, "G_LIGHTING_POSITIONAL", setGeo, clearGeo)
-        if bpy.context.scene.f3d_type == "F3DZEX (AC)":
+        if self.f3d.F3DZEX_AC_EXT:
             place_in_flaglist(defaults.g_decal_gequal, "G_DECAL_GEQUAL", setGeo, clearGeo)
             place_in_flaglist(defaults.g_decal_equal, "G_DECAL_EQUAL", setGeo, clearGeo)
             place_in_flaglist(defaults.g_decal_special, "G_DECAL_SPECIAL", setGeo, clearGeo)
@@ -119,9 +118,9 @@ class BleedGraphics:
     def build_default_othermodes(self):
         defaults = bpy.context.scene.world.rdp_defaults
 
-        othermode_H = SPSetOtherMode("G_SETOTHERMODE_H", 4, 20 - self.is_f3d_old, [])
+        othermode_H = SPSetOtherMode("G_SETOTHERMODE_H", 4, 20 - self.f3d.F3D_OLD_GBI, [])
         # if the render mode is set, it will be consider non-default a priori
-        othermode_L = SPSetOtherMode("G_SETOTHERMODE_L", 0, 3 - self.is_f3d_old, [])
+        othermode_L = SPSetOtherMode("G_SETOTHERMODE_L", 0, 3 - self.f3d.F3D_OLD_GBI, [])
 
         othermode_L.flagList.append(defaults.g_mdsft_alpha_compare)
         othermode_L.flagList.append(defaults.g_mdsft_zsrcsel)
@@ -215,7 +214,7 @@ class BleedGraphics:
             elif type(cmd) == DPSetTile_Dolphin:
                 tmem_dict[cmd.name + 15] = im_buffer
             elif type(cmd) == DPLoadTLUT_Dolphin:
-                tmem_dict[cmd.tlut_name] = cmd # loadtlut_dolphin loads on its own
+                tmem_dict[cmd.tlut_name] = cmd  # loadtlut_dolphin loads on its own
             if type(cmd) == DPSetTile:
                 tile_dict[cmd.tile] = cmd.tmem
             if type(cmd) in (DPLoadTLUTCmd, DPLoadTile, DPLoadBlock):
@@ -432,7 +431,7 @@ class BleedGraphics:
                         SPSetOtherMode(
                             "G_SETOTHERMODE_L",
                             0,
-                            32 - self.is_f3d_old,
+                            32 - self.f3d.F3D_OLD_GBI,
                             [*self.default_othermode_L.flagList, *default_render_mode],
                         )
                     )
