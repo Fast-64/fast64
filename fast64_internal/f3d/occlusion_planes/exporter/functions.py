@@ -1,7 +1,7 @@
 import bpy
 from mathutils import Vector, Matrix
 
-from ....utility import PluginError
+from ....utility import PluginError, colorToLuminance, gammaCorrect
 from .classes import OcclusionPlaneCandidate, OcclusionPlaneCandidatesList
 from ...f3d_writer import getColorLayer
 
@@ -20,8 +20,8 @@ def addOcclusionQuads(
                 f'Occlusion planes mesh {obj.name} must have a vertex colors layer named "Col", which you paint the weight for each plane into.'
             )
         for polygon in mesh.polygons:
-            # Weight is the average of R, G, and B across the four corners
-            totalColor = Vector((0.0, 0.0, 0.0))
+            # Weight is the average of the luminance across the four corners
+            weight = 0.0
             verts = []
             if polygon.loop_total != 4:
                 raise PluginError(
@@ -29,11 +29,9 @@ def addOcclusionQuads(
                 )
             for loopIndex in polygon.loop_indices:
                 loop = mesh.loops[loopIndex]
-                color = color_layer[loop.index].color
-                totalColor += Vector((color[0], color[1], color[2]))
+                weight += colorToLuminance(gammaCorrect(color_layer[loop.index].color))
                 verts.append(transformRelToScene @ obj.matrix_world @ mesh.vertices[loop.vertex_index].co)
-            totalColor *= 0.25
-            weight = (totalColor[0] + totalColor[1] + totalColor[2]) / 3.0
+            weight *= 0.25
             # Check that the quad is planar. Are the normals to the two tris forming
             # halves of the quad pointing in the same direction? If either tri is
             # degenerate, it's OK.
