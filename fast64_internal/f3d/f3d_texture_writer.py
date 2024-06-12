@@ -776,7 +776,7 @@ class MultitexManager:
         fMaterial.texPaletteIndex = [self.ti0.palIndex, self.ti1.palIndex]
         self.ti0.palBaseName = self.ti0.getPaletteName()
         self.ti1.palBaseName = self.ti1.getPaletteName()
-        if not fModel.f3d.F3DZEX_AC_EXT and self.isCI and self.ti0.useTex and self.ti1.useTex and not self.ti1.loadPal:
+        if self.isCI and self.ti0.useTex and self.ti1.useTex and not self.ti1.loadPal:
             self.ti0.palBaseName = self.ti0.palBaseName + "_x_" + self.ti1.palBaseName
             self.ti1.pal = self.ti0.pal
 
