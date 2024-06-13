@@ -3006,13 +3006,13 @@ class RDPSettings(PropertyGroup):
         name="Greater or Equal",
         default=False,
         update=update_node_values_with_preset,
-        description="F3DZEX (AC): Render with a positive offset (closer to the camera) instead of the default negative offset",  # TODO: Double check
+        description="F3DZEX (AC): Render with a positive offset (closer to the camera) instead of the default negative offset",
     )
     g_decal_equal: bpy.props.BoolProperty(
         name="Equal",
         default=False,
         update=update_node_values_with_preset,
-        description="F3DZEX (AC): Render with no offset",  # TODO: Double check
+        description="F3DZEX (AC): Render with no offset and the equal compare mode",
     )
     g_decal_special: bpy.props.BoolProperty(
         name="Special",
@@ -4021,8 +4021,8 @@ class F3DMaterialProperty(PropertyGroup):
         max=1,
         step=100.0 / 255.0,
         default=144.0 / 255.0,
-        update=update_node_values_with_preset,  # TODO: This shouldnt need to actually interact with the nodes, maybe implement?
-        description="F3DZEX (AC): Alpha threshold for tex edge (cutout) materials, displays only alpha values greater or equal.",
+        update=update_node_values_with_preset,
+        description="F3DZEX (AC): Alpha threshold for tex edge (cutout) materials, displays only alpha values greater or equal",
     )
     prim_color: bpy.props.FloatVectorProperty(
         name="Primitive Color",
