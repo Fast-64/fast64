@@ -969,8 +969,8 @@ def saveTextureLoadOnly(
 
     # LoadTile will pad rows to 64 bit word alignment, while
     # LoadBlock assumes this is already done.
-    is_f3dzex_ac_ext = not f3d.F3DZEX_AC_EXT
-    useLoadBlock = canUseLoadBlock(fImage, texProp.tex_format, f3d) and is_f3dzex_ac_ext
+    needs_load = not f3d.F3DZEX_AC_EXT
+    useLoadBlock = canUseLoadBlock(fImage, texProp.tex_format, f3d) and needs_load
     line = 0 if useLoadBlock else getTileLine(fImage, SL, SH, siz, f3d)
     wid = 1 if useLoadBlock else fImage.width
     height = 1 if useLoadBlock else fImage.height
@@ -981,7 +981,7 @@ def saveTextureLoadOnly(
             dxt = f3d.CALC_DXT_4b(fImage.width)
             siz = "G_IM_SIZ_16b"
             loadCommand = DPLoadBlock(loadtile, 0, 0, dxs, dxt)
-        elif is_f3dzex_ac_ext:
+        elif needs_load:
             sl2 = int(SL * (2 ** (f3d.G_TEXTURE_IMAGE_FRAC - 1)))
             sh2 = int(SH * (2 ** (f3d.G_TEXTURE_IMAGE_FRAC - 1)))
             siz = "G_IM_SIZ_8b"
@@ -996,7 +996,7 @@ def saveTextureLoadOnly(
             dxt = f3d.CALC_DXT(fImage.width, f3d.G_IM_SIZ_VARS[siz + "_BYTES"])
             siz += "_LOAD_BLOCK"
             loadCommand = DPLoadBlock(loadtile, 0, 0, dxs, dxt)
-        elif is_f3dzex_ac_ext:
+        elif needs_load:
             loadCommand = DPLoadTile(loadtile, sl, tl, sh, th)
 
     if not omitSetTextureImage:
@@ -1004,7 +1004,7 @@ def saveTextureLoadOnly(
             gfxOut.commands.append(DPSetTextureImage_Dolphin(fmt, siz, height, wid, fImage))
         else:
             gfxOut.commands.append(DPSetTextureImage(fmt, siz, wid, fImage))
-    if is_f3dzex_ac_ext:
+    if needs_load:
         if not omitSetTile:
             gfxOut.commands.append(DPSetTile(fmt, siz, line, tmem, loadtile, 0, nocm, 0, 0, nocm, 0, 0))
         gfxOut.commands.append(loadCommand)
@@ -1053,7 +1053,7 @@ def saveTextureTile(
 
     if f3d.F3DZEX_AC_EXT:
         if (clamp_S and mirror_S) or (clamp_T and mirror_T):
-            raise PluginError("Clamp + mirror not supported in F3DZEX (AC)\n")
+            raise PluginError("Clamp + mirror not supported in F3DZEX (AC)")
         wrap_s = "GX_CLAMP" if clamp_S else "GX_MIRROR" if mirror_S else "GX_REPEAT"
         wrap_t = "GX_CLAMP" if clamp_T else "GX_MIRROR" if mirror_T else "GX_REPEAT"
         tileCommand = DPSetTile_Dolphin(fmt, rendertile, pal, wrap_s, wrap_t, shifts, shiftt)
@@ -1092,6 +1092,8 @@ def savePaletteLoad(
     palFmt = texFormatOf[palFormat]
     nocm = ["G_TX_WRAP", "G_TX_NOMIRROR"]
     if f3d.F3DZEX_AC_EXT:
+        if palFormat != "RGBA16":
+            raise PluginError("Only RGBA16 palette format supported in F3DZEX (AC)")
         gfxOut.commands.append(DPLoadTLUT_Dolphin(palIndex, palLen - 1, 1, fPalette))
         return
     gfxOut.commands.extend(
