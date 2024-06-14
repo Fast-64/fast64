@@ -2766,7 +2766,8 @@ def ui_image(
         prop_split(prop_input, textureProp, "tex_format", name="Format")
         if textureProp.tex_format[:2] == "CI":
             prop_split(prop_input, textureProp, "ci_format", name="CI Format")
-
+            if not bpy.context.scene.f3d_type != "F3DZEX (AC)" and textureProp.ci_format == "IA16":
+                multilineLabel(prop_input, text="IA16 not supported in F3DZEX (AC).\nWill export as a non color indexed", icon="ERROR")
         if not isLarge:
             if width > 0 and height > 0:
                 texelsPerWord = 64 // texBitSizeInt[textureProp.tex_format]

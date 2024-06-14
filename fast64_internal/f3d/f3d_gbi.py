@@ -5789,7 +5789,7 @@ class DPLoadTLUT(GbiMacro):
 class DPLoadTLUT_Dolphin(GbiMacro):
     tlut_name: int
     count: int
-    unk: int  # Always 1?
+    unk: int  # Always 1? Possibly dropped support for ia16
     addr: FImage
 
     def to_binary(self, f3d, segments):
