@@ -2703,6 +2703,7 @@ def ui_image(
     name: str,
     showCheckBox: bool,
 ):
+    is_fdzex_ac = bpy.context.scene.f3d_type == "F3DZEX (AC)"
     inputGroup = layout.box().column()
 
     inputGroup.prop(
@@ -2766,25 +2767,22 @@ def ui_image(
         prop_split(prop_input, textureProp, "tex_format", name="Format")
         if textureProp.tex_format[:2] == "CI":
             prop_split(prop_input, textureProp, "ci_format", name="CI Format")
-            if not bpy.context.scene.f3d_type != "F3DZEX (AC)" and textureProp.ci_format == "IA16":
-                multilineLabel(prop_input, text="IA16 not supported in F3DZEX (AC).\nWill export as a non color indexed", icon="ERROR")
+            if is_fdzex_ac and textureProp.ci_format == "IA16":
+                multilineLabel(
+                    prop_input,
+                    text="IA16 not supported in F3DZEX (AC).\nWill export as a non color indexed",
+                    icon="ERROR",
+                )
         if not isLarge:
+            s, t = textureProp.S, textureProp.T
             if width > 0 and height > 0:
                 texelsPerWord = 64 // texBitSizeInt[textureProp.tex_format]
                 if width % texelsPerWord != 0:
                     msg = prop_input.box().column()
                     msg.label(text=f"Suggest {textureProp.tex_format} tex be multiple ", icon="INFO")
                     msg.label(text=f"of {texelsPerWord} pixels wide for fast loading.")
-                warnClampS = (
-                    not isPowerOf2(width)
-                    and not textureProp.S.clamp
-                    and (not textureProp.autoprop or textureProp.S.mask != 0)
-                )
-                warnClampT = (
-                    not isPowerOf2(height)
-                    and not textureProp.T.clamp
-                    and (not textureProp.autoprop or textureProp.T.mask != 0)
-                )
+                warnClampS = not isPowerOf2(width) and not s.clamp and (not textureProp.autoprop or s.mask != 0)
+                warnClampT = not isPowerOf2(height) and not t.clamp and (not textureProp.autoprop or t.mask != 0)
                 if warnClampS or warnClampT:
                     msg = prop_input.box().column()
                     msg.label(text=f"Clamping required for non-power-of-2 image", icon="ERROR")
@@ -2792,31 +2790,37 @@ def ui_image(
 
             texFieldSettings = prop_input.column()
             clampSettings = texFieldSettings.row()
-            clampSettings.prop(textureProp.S, "clamp", text="Clamp S")
-            clampSettings.prop(textureProp.T, "clamp", text="Clamp T")
+            clampSettings.prop(s, "clamp", text="Clamp S")
+            clampSettings.prop(t, "clamp", text="Clamp T")
 
             mirrorSettings = texFieldSettings.row()
-            mirrorSettings.prop(textureProp.S, "mirror", text="Mirror S")
-            mirrorSettings.prop(textureProp.T, "mirror", text="Mirror T")
+            mirrorSettings.prop(s, "mirror", text="Mirror S")
+            mirrorSettings.prop(t, "mirror", text="Mirror T")
+
+            if is_fdzex_ac and ((s.clamp and s.mirror) or (t.clamp and t.mirror)):
+                texFieldSettings.box().label(
+                    text="Clamping + mirroring are not supported in F3DZEX (AC).",
+                    icon="ERROR",
+                )
 
             prop_input.prop(textureProp, "autoprop", text="Auto Set Other Properties")
 
             if not textureProp.autoprop:
                 mask = prop_input.row()
-                mask.prop(textureProp.S, "mask", text="Mask S")
-                mask.prop(textureProp.T, "mask", text="Mask T")
+                mask.prop(s, "mask", text="Mask S")
+                mask.prop(t, "mask", text="Mask T")
 
                 shift = prop_input.row()
-                shift.prop(textureProp.S, "shift", text="Shift S")
-                shift.prop(textureProp.T, "shift", text="Shift T")
+                shift.prop(s, "shift", text="Shift S")
+                shift.prop(t, "shift", text="Shift T")
 
                 low = prop_input.row()
-                low.prop(textureProp.S, "low", text="S Low")
-                low.prop(textureProp.T, "low", text="T Low")
+                low.prop(s, "low", text="S Low")
+                low.prop(t, "low", text="T Low")
 
                 high = prop_input.row()
-                high.prop(textureProp.S, "high", text="S High")
-                high.prop(textureProp.T, "high", text="T High")
+                high.prop(s, "high", text="S High")
+                high.prop(t, "high", text="T High")
 
 
 class CombinerProperty(PropertyGroup):
