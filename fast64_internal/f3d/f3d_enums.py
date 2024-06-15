@@ -185,6 +185,11 @@ enumTextFilt = [
     ("G_TF_BILERP", "Bilinear", "Standard N64 filtering with 3 point sample"),
 ]
 
+enumTextAdjust = [
+    ("G_TA_N64", "N64", "Center origin"),
+    ("G_TA_DOLPHIN", "Dolphin", "Top left"),
+]
+
 enumTextLUT = [
     ("G_TT_NONE", "None", "None"),
     ("G_TT_RGBA16", "RGBA16", "RGBA16"),

@@ -1860,6 +1860,8 @@ def saveOtherDefinition(fMaterial, material, defaults):
     if bpy.context.scene.f3d_type == "F3DZEX (AC)":
         if material.set_tex_edge_alpha:
             fMaterial.mat_only_DL.commands.append(DPSetTexEdgeAlpha(int(material.tex_edge_alpha * 255)))
+        if material.set_bilerp_text_adjust:
+            fMaterial.mat_only_DL.commands.append(DPSetTextureAdjustMode(material.bilerp_text_adjust))
 
 
 enumMatWriteMethod = [

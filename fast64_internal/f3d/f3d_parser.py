@@ -1721,6 +1721,9 @@ class F3DContext:
                 elif command.name == "gsDPSetTexEdgeAlpha":  # F3DEX (AC)
                     mat.tex_edge_alpha = math_eval(command.params[0], self.f3d) / 255
                     mat.set_tex_edge_alpha = True
+                elif command.name == "gsDPSetTextureAdjustMode":
+                    mat.bilerp_text_adjust = command.params[0]
+                    mat.set_bilerp_text_adjust = True
                 elif command.name == "gsDPSetFogColor":
                     mat.fog_color = self.gammaInverseParam(command.params)
                     mat.set_fog = True

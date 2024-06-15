@@ -605,16 +605,22 @@ def ui_other(settings, dataHolder, layout, useDropdown):
     if not useDropdown or dataHolder.menu_other:
         clipRatioGroup = inputGroup.column()
         prop_split(clipRatioGroup, settings, "clip_ratio", "Clip Ratio")
-
         if isinstance(dataHolder, Material) or isinstance(dataHolder, F3DMaterialProperty):
-            blend_color_group = layout.row()
+            blend_color_group = inputGroup.row()
             prop_input_name = blend_color_group.column()
             prop_input = blend_color_group.column()
             prop_input_name.prop(dataHolder, "set_blend", text="Blend Color")
             prop_input.prop(dataHolder, "blend_color", text="")
             prop_input.enabled = dataHolder.set_blend
             if bpy.context.scene.f3d_type == "F3DZEX (AC)":
-                tex_edge_alpha_group = layout.column()
+                bilerp_text_adjust_row = inputGroup.row()
+                prop_input_name = bilerp_text_adjust_row.column()
+                prop_input = bilerp_text_adjust_row.column()
+                prop_input_name.prop(dataHolder, "set_bilerp_text_adjust", text="Bilerp Adjust Mode")
+                prop_input.prop(dataHolder, "bilerp_text_adjust", text="")
+                prop_input.enabled = dataHolder.set_bilerp_text_adjust
+
+                tex_edge_alpha_group = inputGroup.column()
                 tex_edge_alpha_row = tex_edge_alpha_group.row()
                 prop_input_name = tex_edge_alpha_row.column()
                 prop_input = tex_edge_alpha_row.column()
@@ -3419,6 +3425,8 @@ class RDPSettings(PropertyGroup):
             self.g_mdsft_zsrcsel,
             self.prim_depth.key() if prim else None,
             self.clip_ratio,
+            self.set_bilerp_text_adjust,
+            self.bilerp_text_adjust,
             self.set_rendermode,
             self.aa_en if setRM and rmAdv else None,
             self.z_cmp if setRM and rmAdv else None,
@@ -3995,6 +4003,10 @@ class F3DMaterialProperty(PropertyGroup):
         default=False,
         update=update_node_values_with_preset,
     )
+    set_bilerp_text_adjust: bpy.props.BoolProperty(
+        default=False,
+        update=update_node_values_with_preset,
+    )
     set_key: bpy.props.BoolProperty(
         default=True,
         update=update_node_values_with_preset,
@@ -4029,6 +4041,13 @@ class F3DMaterialProperty(PropertyGroup):
         default=144.0 / 255.0,
         update=update_node_values_with_preset,
         description="F3DZEX (AC): Alpha threshold for tex edge (cutout) materials, displays only alpha values greater or equal",
+    )
+    bilerp_text_adjust: bpy.props.EnumProperty(
+        name="Bilerp Adjust Mode",
+        items=enumTextAdjust,
+        default="G_TA_N64",
+        update=update_node_values_without_preset,
+        description="F3DZEX (AC): Changes bilerp filter origin",
     )
     prim_color: bpy.props.FloatVectorProperty(
         name="Primitive Color",
