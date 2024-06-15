@@ -1053,7 +1053,7 @@ def saveTextureTile(
 
     if f3d.F3DZEX_AC_EXT:
         if (clamp_S and mirror_S) or (clamp_T and mirror_T):
-            raise PluginError(f"In material {fMaterial.name}: Clamp + mirror not supported in F3DZEX (AC)")
+            raise PluginError("Clamp + mirror not supported in F3DZEX (AC)")
         wrap_s = "GX_CLAMP" if clamp_S else "GX_MIRROR" if mirror_S else "GX_REPEAT"
         wrap_t = "GX_CLAMP" if clamp_T else "GX_MIRROR" if mirror_T else "GX_REPEAT"
         tileCommand = DPSetTile_Dolphin(fmt, rendertile, pal, wrap_s, wrap_t, shifts, shiftt)
