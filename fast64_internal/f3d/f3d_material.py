@@ -503,8 +503,9 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
 
         if f3d.F3DZEX_AC_EXT:
             c = indentGroup(inputGroup, "Decals:", True)
-            c.prop(settings, "g_decal_gequal")
             c.prop(settings, "g_decal_equal")
+            if not settings.g_decal_equal:
+                c.prop(settings, "g_decal_gequal")
             c.prop(settings, "g_decal_special")
         elif f3d.F3DEX_GBI_3:
             c = indentGroup(inputGroup, "Attribute offsets:", True)
