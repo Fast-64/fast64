@@ -2771,7 +2771,7 @@ def ui_image(
             if is_fdzex_ac and textureProp.ci_format == "IA16":
                 multilineLabel(
                     prop_input,
-                    text="IA16 not supported in F3DZEX (AC).", # TODO: Figure out a good fallback
+                    text="IA16 not supported in F3DZEX (AC).",  # TODO: Figure out a good fallback
                     icon="ERROR",
                 )
         if not isLarge:

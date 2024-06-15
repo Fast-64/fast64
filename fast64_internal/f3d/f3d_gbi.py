@@ -4608,6 +4608,23 @@ class DPSetTextureFilter(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
+class DPSetTextureAdjustMode(GbiMacro):
+    mode: str
+
+    def to_binary(self, f3d, segments):
+        if f3d.F3DZEX_AC_EXT:
+            words = (
+                _SHIFTL(f3d.G_SPECIAL_1, 24, 8)
+                | _SHIFTL(f3d.G_SPECIAL_TA_MODE, 16, 8)
+                | _SHIFTL(f3d.TA_ADJUST_MODE_VARS[mode], 0, 16),
+                0,
+            )
+        else:
+            raise PluginError("DPSetTextureAdjustMode only available in F3DZEX (AC).")
+        return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
+
+
+@dataclass(unsafe_hash=True)
 class DPSetTextureConvert(GbiMacro):
     # mode is a string
     mode: str
@@ -5093,23 +5110,6 @@ class DPSetTileSize_Dolphin(GbiMacro):
             )
         else:
             raise PluginError("DPSetTileSize_Dolphin only available in F3DZEX (AC).")
-        return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
-
-
-@dataclass(unsafe_hash=True)
-class DPSetTextureAdjustMode(GbiMacro):
-    mode: str
-
-    def to_binary(self, f3d, segments):
-        if f3d.F3DZEX_AC_EXT:
-            words = (
-                _SHIFTL(f3d.G_SPECIAL_1, 24, 8)
-                | _SHIFTL(f3d.G_SPECIAL_TA_MODE, 16, 8)
-                | _SHIFTL(f3d.TA_ADJUST_MODE_VARS[mode], 0, 16),
-                0,
-            )
-        else:
-            raise PluginError("DPSetTextureAdjustMode only available in F3DZEX (AC).")
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
