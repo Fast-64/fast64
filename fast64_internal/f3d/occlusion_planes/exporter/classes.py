@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from mathutils import Vector
 from typing import List
 
-from .....utility import CData, indent
+from ....utility import CData, indent
 
 
 @dataclass
@@ -43,5 +43,5 @@ class OcclusionPlaneCandidatesList:
         if len(self.planes) > 0:
             name = "OcclusionPlaneCandidate " + self.name + "[" + str(len(self.planes)) + "]"
             cdata.header = "extern " + name + ";\n"
-            cdata.source = name + " = {\n" + "".join(occCandidateToC(candidate) for candidate in self.planes) + "};\n\n"
+            cdata.source = name + " = {\n" + "".join(candidate.to_c() for candidate in self.planes) + "};\n\n"
         return cdata
