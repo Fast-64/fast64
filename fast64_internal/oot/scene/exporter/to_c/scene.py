@@ -1,6 +1,5 @@
 from .....utility import CData, PluginError
 from .....f3d.f3d_gbi import TextureExportSettings
-from .....f3d.occlusion_planes.exporter.to_c import occCandidatesListToC
 from ....oot_level_classes import OOTScene
 from .scene_header import getSceneData, getSceneModel
 from .scene_collision import getSceneCollision
@@ -52,7 +51,7 @@ def getSceneC(outScene: OOTScene, textureExportSettings: TextureExportSettings):
             raise PluginError(f"Error: Room {outRoom.index} has no mesh children.")
 
         sceneC.roomMainC[outRoomName] = getRoomData(outRoom)
-        sceneC.roomOcclusionPlanesC[outRoomName] = occCandidatesListToC(outRoom.occlusion_planes)
+        sceneC.roomOcclusionPlanesC[outRoomName] = outRoom.occlusion_planes.to_c()
         sceneC.roomShapeInfoC[outRoomName] = roomShapeInfo
         sceneC.roomModelC[outRoomName] = roomModel
 
