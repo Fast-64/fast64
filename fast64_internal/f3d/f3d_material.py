@@ -1693,7 +1693,7 @@ def get_color_input_update_callback(attr_name="", prefix=""):
 
 
 def update_node_values_of_material(material: Material, context):
-    nodes = material.node_tree.nodes
+    fixBlenderColorspace(context)
 
     update_blend_method(material, context)
     if not has_f3d_nodes(material):
@@ -1704,6 +1704,8 @@ def update_node_values_of_material(material: Material, context):
     update_combiner_connections(material, context)
 
     set_output_node_groups(material)
+
+    nodes = material.node_tree.nodes
 
     if f3dMat.rdp_settings.g_tex_gen:
         if f3dMat.rdp_settings.g_tex_gen_linear:
@@ -2178,8 +2180,9 @@ def has_f3d_nodes(material: Material):
 
 @persistent
 def load_handler(dummy):
-    logger.info("Checking for base F3D material library.")
+    fixBlenderColorspace(bpy.context)
 
+    logger.info("Checking for base F3D material library.")
     for lib in bpy.data.libraries:
         lib_path = bpy.path.abspath(lib.filepath)
 
@@ -2397,6 +2400,7 @@ def addColorAttributesToModel(obj: Object):
 
 
 def createF3DMat(obj: Object | None, preset="Shaded Solid", index=None):
+    fixBlenderColorspace(bpy.context)
     # link all node_groups + material from addon's data .blend
     link_f3d_material_library()
 
