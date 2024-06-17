@@ -3371,7 +3371,7 @@ class GbiMacro:
 
     def getattr_virtual(self, field, static):
         if hasattr(field, "name"):
-            if self._segptrs and not static and bpy.context.scene.decomp_compatible:
+            if self._segptrs and not static and bpy.context.scene.gameEditorMode == "Homebrew":
                 return f"segmented_to_virtual({field.name})"
             if self._ptr_amp:
                 return f"&{field.name}"
@@ -3441,7 +3441,7 @@ class SPVertex(GbiMacro):
 
     def to_c(self, static=True):
         header = "gsSPVertex(" if static else "gSPVertex(glistp++, "
-        if not static and bpy.context.scene.decomp_compatible:
+        if not static and bpy.context.scene.gameEditorMode == "Homebrew":
             header += "segmented_to_virtual(" + self.vertList.name + " + " + str(self.offset) + ")"
         else:
             header += self.vertList.name + " + " + str(self.offset)
@@ -3479,7 +3479,7 @@ class SPDisplayList(GbiMacro):
             return "gsSPDisplayList(" + self.displayList.name + ")"
         elif self.displayList.DLFormat == DLFormat.Static:
             header = "gSPDisplayList(glistp++, "
-            if bpy.context.scene.decomp_compatible:
+            if bpy.context.scene.gameEditorMode == "Homebrew":
                 return header + "segmented_to_virtual(" + self.displayList.name + "))"
             else:
                 return header + self.displayList.name + ")"
@@ -4064,7 +4064,7 @@ class SPSetLights(GbiMacro):
     def to_c(self, static=True):
         n = len(self.lights.l)
         header = f"gsSPSetLights{n}(" if static else f"gSPSetLights{n}(glistp++, "
-        if not static and bpy.context.scene.decomp_compatible:
+        if not static and bpy.context.scene.gameEditorMode == "Homebrew":
             header += f"(*(Lights{n}*) segmented_to_virtual(&{self.lights.name}))"
         else:
             header += self.lights.name

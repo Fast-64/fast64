@@ -632,6 +632,7 @@ def parseLevelScript(filepath, levelName):
                 or macroCmd[0] == "LOAD_YAY0"
                 or macroCmd[0] == "LOAD_YAY0_TEXTURE"
                 or macroCmd[0] == "LOAD_RAW"
+                or macroCmd[0] == "LOAD_VANILLA_OBJECTS"
             ):
                 levelscript.segmentLoads.append(macroCmd)
             elif macroCmd[0] == "JUMP_LINK":

@@ -13,6 +13,7 @@ from ..f3d.f3d_gbi import (
     GfxListTag,
     GfxList,
 )
+from ..f3d.occlusion_planes.exporter import OcclusionPlaneCandidatesList
 
 
 class OOTCommonCommands:
@@ -375,6 +376,7 @@ class OOTRoom(OOTCommonCommands):
         self.ownerName = toAlnum(name)
         self.index = index
         self.actorList = set()
+        self.occlusion_planes = OcclusionPlaneCandidatesList(self.roomName())
         self.mesh = OOTRoomMesh(self.roomName(), roomShape, model)
 
         # Room behaviour

@@ -262,13 +262,14 @@ enumPuppycamFlags = [
 
 
 class SM64_Object:
-    def __init__(self, model, position, rotation, behaviour, bparam, acts):
+    def __init__(self, model, position, rotation, behaviour, bparam, acts, name):
         self.model = model
         self.behaviour = behaviour
         self.bparam = bparam
         self.acts = acts
         self.position = position
         self.rotation = rotation
+        self.name = name  # to sort by when exporting
 
     def to_c(self):
         if self.acts == 0x1F:
@@ -325,6 +326,7 @@ class SM64_Whirpool:
         self.condition = condition
         self.strength = strength
         self.position = position
+        self.name = "whirlpool"  # for sorting
 
     def to_c(self):
         return (
@@ -453,6 +455,7 @@ class SM64_Mario_Start:
         self.area = area
         self.position = position
         self.rotation = rotation
+        self.name = "Mario"  # for sorting
 
     def to_c(self):
         return (
@@ -500,7 +503,8 @@ class SM64_Area:
         data += "\tAREA(" + str(self.index) + ", " + self.geolayout.name + "),\n"
         for warpNode in self.warpNodes:
             data += "\t\t" + warpNode + ",\n"
-        for obj in self.objects:
+        # export objects in name order
+        for obj in sorted(self.objects, key=(lambda obj: obj.name)):
             data += "\t\t" + obj.to_c() + ",\n"
         data += "\t\tTERRAIN(" + self.collision.name + "),\n"
         if includeRooms:
@@ -789,7 +793,7 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
                     )
                 )
             elif obj.sm64_obj_type == "Water Box":
-                checkIdentityRotation(obj, rotation, False)
+                checkIdentityRotation(obj, rotation.to_quaternion(), False)
                 area.water_boxes.append(CollisionWaterBox(obj.waterBoxType, translation, scale, obj.empty_display_size))
         else:
             if obj.sm64_obj_type == "Object":
@@ -808,6 +812,7 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
                         behaviour,
                         obj.fast64.sm64.game_object.get_behavior_params(),
                         get_act_string(obj),
+                        obj.name,
                     )
                 )
             elif obj.sm64_obj_type == "Macro":
