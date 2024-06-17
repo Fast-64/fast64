@@ -126,6 +126,7 @@ class SM64_Properties(PropertyGroup):
             sm64_props: SM64_Properties = scene.fast64.sm64
             if sm64_props.version == 0:
                 sm64_props.export_type = sm64_props.get_legacy_export_type(scene)
+                self.version = 1
                 print("Upgraded global SM64 settings to version 1")
             if sm64_props.version == 1:
                 sm64_props.upgrade_version_1(scene)
