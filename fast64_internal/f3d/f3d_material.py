@@ -24,6 +24,7 @@ from bpy.types import (
     UILayout,
     VIEW3D_HT_header,
     World,
+    Event
 )
 from bl_operators.presets import AddPresetBase
 from bpy.utils import register_class, unregister_class
@@ -1693,7 +1694,7 @@ def get_color_input_update_callback(attr_name="", prefix=""):
 
 
 def update_node_values_of_material(material: Material, context):
-    fixBlenderColorspace(context)
+    bpy.ops.dialog.update_colorspace("INVOKE_DEFAULT")
 
     update_blend_method(material, context)
     if not has_f3d_nodes(material):
@@ -2180,8 +2181,6 @@ def has_f3d_nodes(material: Material):
 
 @persistent
 def load_handler(dummy):
-    fixBlenderColorspace(bpy.context)
-
     logger.info("Checking for base F3D material library.")
     for lib in bpy.data.libraries:
         lib_path = bpy.path.abspath(lib.filepath)
@@ -2400,7 +2399,6 @@ def addColorAttributesToModel(obj: Object):
 
 
 def createF3DMat(obj: Object | None, preset="Shaded Solid", index=None):
-    fixBlenderColorspace(bpy.context)
     # link all node_groups + material from addon's data .blend
     link_f3d_material_library()
 
@@ -2442,6 +2440,59 @@ def reloadDefaultF3DPresets():
     for material in bpy.data.materials:
         if material.f3d_mat.presetName in presetNameToFilename:
             update_preset_manual_v4(material, presetNameToFilename[material.f3d_mat.presetName])
+
+
+class UpdateColorSpacePopup(Operator):
+    bl_label = "Update Color Space"
+    bl_idname = "dialog.update_colorspace"
+    bl_description = "Update color space"
+    bl_options = {"UNDO"}
+
+    already_invoked = False # HACK: used to prevent multiple dialogs from popping up
+
+    def invoke(self, context: Context, event: Event):
+        if UpdateColorSpacePopup.already_invoked:
+            return {"FINISHED"}
+        scene = context.scene
+        view_settings = scene.view_settings
+        # Check if color space is correct
+        if (
+            not scene.dont_ask_colorspace and
+            scene.display_settings.display_device != "sRGB"
+            or view_settings.view_transform != "Standard"
+            or view_settings.look != "None"
+            or view_settings.exposure != 0.0
+            or view_settings.gamma != 1.0
+        ):
+            UpdateColorSpacePopup.already_invoked = True
+            return context.window_manager.invoke_props_dialog(self, width=400)
+
+        return {"FINISHED"}
+
+    def draw(self, context: Context):
+        col = self.layout.column()
+        col.prop(context.scene, "dont_ask_colorspace")
+        multilineLabel(col, f"The current scene \"{context.scene.name}\" does not use the same color space as n64.\nWould you like to update it?", icon="INFO")
+
+    def cancel(self, context: Context):
+        UpdateColorSpacePopup.already_invoked = False
+        return {"CANCELLED"}
+
+    def execute(self, context):
+        try:
+            scene = context.scene
+            scene.display_settings.display_device = "sRGB"
+            scene.view_settings.view_transform = "Standard"
+            scene.view_settings.look = "None"
+            scene.view_settings.exposure = 0.0
+            scene.view_settings.gamma = 1.0
+            self.report({"INFO"}, "Updated color space.")
+            return {"FINISHED"}
+        except Exception as exc:
+            raisePluginError(self, exc)
+            return {"CANCELLED"}
+        finally:
+            UpdateColorSpacePopup.already_invoked = False
 
 
 class CreateFast3DMaterial(Operator):
@@ -4408,6 +4459,7 @@ def draw_f3d_render_settings(self, context):
 
 
 mat_classes = (
+    UpdateColorSpacePopup,
     UnlinkF3DImage0,
     UnlinkF3DImage1,
     DrawLayerProperty,
@@ -4495,6 +4547,7 @@ def mat_register():
 
     Scene.f3dUserPresetsOnly = bpy.props.BoolProperty(name="User Presets Only")
     Scene.f3d_simple = bpy.props.BoolProperty(name="Display Simple", default=True)
+    Scene.dont_ask_colorspace = bpy.props.BoolProperty(name="Don´t ask again")
 
     Object.use_f3d_culling = bpy.props.BoolProperty(
         name="Enable Culling (Applies to F3DEX and up)",
@@ -4525,6 +4578,7 @@ def mat_unregister():
     del Material.mat_ver
     del Material.f3d_update_flag
     del Scene.f3d_simple
+    del Scene.dont_ask_colorspace
     del Object.ignore_render
     del Object.ignore_collision
     del Object.bleed_independently

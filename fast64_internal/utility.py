@@ -1246,15 +1246,6 @@ def exportColor(lightColor):
     return [scaleToU8(value) for value in gammaCorrect(lightColor)]
 
 
-def fixBlenderColorspace(context):
-    for scene in context.blend_data.scenes:
-        scene.display_settings.display_device = "sRGB"
-        scene.view_settings.view_transform = "Standard"
-        scene.view_settings.look = "None"
-        scene.view_settings.exposure = 0.0
-        scene.view_settings.gamma = 1.0
-
-
 def printBlenderMessage(msgSet, message, blenderOp):
     if blenderOp is not None:
         blenderOp.report(msgSet, message)
