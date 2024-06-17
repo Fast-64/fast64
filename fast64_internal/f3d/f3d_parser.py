@@ -529,6 +529,8 @@ class F3DContext:
         self.numLights: int = 0
         self.lightData: dict[Light, bpy.types.Object] = {}  # Light : blender light object
 
+        self.ac_pal_dict: dict[int, int] = {} # F3DZEX (AC)
+
     """
     Restarts context, but keeps cached materials/textures.
     Warning: calls initContext, make sure to save/restore preserved fields
@@ -1551,6 +1553,27 @@ class F3DContext:
         if invalidIndicesDetected:
             print("Invalid LUT Indices detected.")
 
+    def load_dolphin_tlut(self, params):
+        tlut_name = math_eval(params[0], self.f3d)
+        # count = math_eval(params[1], self.f3d) # TODO: This should be passed in to the parse texture data function
+        texture_name = math_eval(params[3], self.f3d)
+
+        self.ac_pal_dict[tlut_name] = texture_name
+        self.materialChanged = True
+    def set_texture_image_dolphin(self, params):
+        tileSettings = self.getTileSettings(0)
+        tileSettings.fmt = getTileFormat(params[0], self.f3d)
+        tileSettings.siz = getTileSize(params[1], self.f3d)
+        #height: int
+        #width: int
+        #image: FImage
+    def set_tile_size_dolphin(self, params):
+        pass
+        
+    def load_dolphin_4b_texture_block(self, params):
+        self.set_texture_image_dolphin(params)
+        self.set_tile_size_dolphin(params)
+    
     def processCommands(self, dlData: str, dlName: str, dlCommands: "list[ParsedMacro]"):
         callStack = [F3DParsedCommands(dlName, dlCommands, 0)]
         while len(callStack) > 0:
@@ -1766,6 +1789,10 @@ class F3DContext:
                     self.loadTile(command.params)
                 elif command.name == "gsDPLoadTLUTCmd":
                     self.loadTLUT(command.params, dlData)
+                elif command.name == "gsDPLoadTLUT_Dolphin":
+                    self.load_dolphin_tlut(command.params)
+                elif command.name == "gsDPLoadTextureBlock_4b_Dolphin":
+                    self.load_dolphin_4b_texture_block(command.params)
 
                 # This all ignores S/T high/low values
                 # This is pretty bad/confusing

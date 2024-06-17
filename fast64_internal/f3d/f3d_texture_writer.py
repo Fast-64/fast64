@@ -1056,7 +1056,7 @@ def saveTextureTile(
             raise PluginError("Clamp + mirror not supported in F3DZEX (AC)")
         wrap_s = "GX_CLAMP" if clamp_S else "GX_MIRROR" if mirror_S else "GX_REPEAT"
         wrap_t = "GX_CLAMP" if clamp_T else "GX_MIRROR" if mirror_T else "GX_REPEAT"
-        tileCommand = DPSetTile_Dolphin(fmt, rendertile, pal, wrap_s, wrap_t, shifts, shiftt)
+        tileCommand = DPSetTile_Dolphin("G_DOLPHIN_TLUT_DEFAULT_MODE", rendertile, pal, wrap_s, wrap_t, shifts, shiftt)
         tileSizeCommand = DPSetTileSize_Dolphin(rendertile, sl, tl, fImage.width, fImage.height)
     else:
         tileCommand = DPSetTile(fmt, siz, line, tmem, rendertile, pal, cmt, maskt, shiftt, cms, masks, shifts)
