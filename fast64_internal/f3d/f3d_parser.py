@@ -783,7 +783,7 @@ class F3DContext:
 
         if texProp.tex_format[:2] == "CI":
             # Only handles TLUT at 256
-            if self.f3d.F3DZEX_AC_EXT: 
+            if self.f3d.F3DZEX_AC_EXT:
                 tlutName = self.ac_pal_dict.get(self.getTileSettings(index).palette, None)
             else:
                 tlutName = self.tmemDict.get(256, None)
@@ -1600,7 +1600,9 @@ class F3DContext:
             lut_tile_settings: DPSetTile = copy.copy(tile_settings)
             lut_tile_settings.fmt = "G_IM_FMT_RGBA"
             lut_tile_settings.siz = "G_IM_SIZ_16b"
-            tlut = self.loadTexture(dlData, self.ac_pal_dict[tile_settings.palette], [0, 0, 16, 16], lut_tile_settings, True)
+            tlut = self.loadTexture(
+                dlData, self.ac_pal_dict[tile_settings.palette], [0, 0, 16, 16], lut_tile_settings, True
+            )
 
         tile_settings.masks = log2iRoundUp(self.set_img.width)
         tile_settings.maskt = log2iRoundUp(self.set_img.height)

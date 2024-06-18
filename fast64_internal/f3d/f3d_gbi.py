@@ -5708,11 +5708,7 @@ class DPLoadTextureTile_4b_Dolphin(GbiMacro):
         if f3d.F3DZEX_AC_EXT:
             return DPSetTextureImage_Dolphin(self.fmt, f3d.G_IM_SIZ_4b, self.height, self.width, self.img).to_binary(
                 f3d, segments
-            ) + DPSetTile_Dolphin(
-                "G_DOLPHIN_TLUT_DEFAULT_MODE", 0, 0, 0, 0, 0, 0
-            ).to_binary(
-                f3d, segments
-            )
+            ) + DPSetTile_Dolphin("G_DOLPHIN_TLUT_DEFAULT_MODE", 0, 0, 0, 0, 0, 0).to_binary(f3d, segments)
         else:
             raise PluginError("DPLoadTextureTile_4b_Dolphin only available in F3DZEX (AC).")
 

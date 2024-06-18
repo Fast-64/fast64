@@ -638,6 +638,12 @@ class MultitexManager:
                     self.ti1.palIndex = 14
                     self.ti1.palLen = len(self.ti1.pal)
                     self.ti1.loadPal = True
+                if (self.ti0.useTex and self.ti0.palFormat != "RGBA16") or (
+                    self.ti1.useTex and self.ti1.palFormat != "RGBA16"
+                ):
+                    raise PluginError(
+                        f"In material {material.name}: Only RGBA16 palette format supported in F3DZEX (AC)"
+                    )
             elif not self.ti1.useTex:
                 self.ti0.loadPal = True
             elif not self.ti0.useTex:
@@ -1094,8 +1100,7 @@ def savePaletteLoad(
     palFmt = texFormatOf[palFormat]
     nocm = ["G_TX_WRAP", "G_TX_NOMIRROR"]
     if f3d.F3DZEX_AC_EXT:
-        if palFormat != "RGBA16":
-            raise PluginError("Only RGBA16 palette format supported in F3DZEX (AC)")
+        assert palFormat == "RGBA16"
         gfxOut.commands.append(DPLoadTLUT_Dolphin(palIndex, palLen - 1, 1, fPalette))
         return
     gfxOut.commands.extend(
