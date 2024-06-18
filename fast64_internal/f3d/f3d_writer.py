@@ -1979,7 +1979,7 @@ class F3D_ExportDL(bpy.types.Operator):
             texDir = bpy.context.scene.DLTexDir
             savePNG = bpy.context.scene.saveTextures
             separateTexDef = bpy.context.scene.DLSeparateTextureDef
-            DLName = bpy.context.scene.DLName
+            DLName = toAlnum(bpy.context.scene.DLName)
             matWriteMethod = getWriteMethodFromEnum(context.scene.matWriteMethod)
 
             exportF3DtoC(

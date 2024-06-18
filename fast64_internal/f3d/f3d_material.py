@@ -4635,6 +4635,7 @@ def mat_register():
         default=10,
     )
     Object.f3d_lod_always_render_farthest = bpy.props.BoolProperty(name="Always Render Farthest LOD")
+    Object.is_occlusion_planes = bpy.props.BoolProperty(name="Is Occlusion Planes")
 
     VIEW3D_HT_header.append(draw_f3d_render_settings)
 
@@ -4655,6 +4656,7 @@ def mat_unregister():
     del Scene.f3dUserPresetsOnly
     del Object.f3d_lod_z
     del Object.f3d_lod_always_render_farthest
+    del Object.is_occlusion_planes
 
     for cls in reversed(mat_classes):
         unregister_class(cls)

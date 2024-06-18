@@ -49,6 +49,7 @@ bl_info = {
 gameEditorEnum = (
     ("SM64", "SM64", "Super Mario 64"),
     ("OOT", "OOT", "Ocarina Of Time"),
+    ("Homebrew", "Homebrew", "Homebrew"),
 )
 
 
@@ -318,6 +319,10 @@ def upgrade_changed_props():
     SM64_Properties.upgrade_changed_props()
     SM64_ObjectProperties.upgrade_changed_props()
     OOT_ObjectProperties.upgrade_changed_props()
+    for scene in bpy.data.scenes:
+        if scene.get("decomp_compatible", False):
+            scene.gameEditorMode = "Homebrew"
+            del scene["decomp_compatible"]
 
 
 def upgrade_scene_props_node():
@@ -380,7 +385,6 @@ def register():
 
     # ROM
 
-    bpy.types.Scene.decomp_compatible = bpy.props.BoolProperty(name="Decomp Compatibility", default=True)
     bpy.types.Scene.ignoreTextureRestrictions = bpy.props.BoolProperty(name="Ignore Texture Restrictions")
     bpy.types.Scene.fullTraceback = bpy.props.BoolProperty(name="Show Full Error Traceback", default=False)
     bpy.types.Scene.gameEditorMode = bpy.props.EnumProperty(
@@ -420,7 +424,6 @@ def unregister():
     render_engine_unregister()
 
     del bpy.types.Scene.fullTraceback
-    del bpy.types.Scene.decomp_compatible
     del bpy.types.Scene.ignoreTextureRestrictions
     del bpy.types.Scene.saveTextures
     del bpy.types.Scene.gameEditorMode
