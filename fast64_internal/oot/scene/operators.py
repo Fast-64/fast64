@@ -7,13 +7,14 @@ from bpy.props import EnumProperty, IntProperty, StringProperty
 from bpy.utils import register_class, unregister_class
 from bpy.ops import object
 from mathutils import Matrix, Vector
-from ...f3d.f3d_gbi import DLFormat
+from ...f3d.f3d_gbi import TextureExportSettings, DLFormat
 from ...utility import PluginError, raisePluginError, ootGetSceneOrRoomHeader
 from ..oot_utility import ExportInfo, sceneNameFromID
 from ..oot_level_writer import ootExportSceneToC
 from ..oot_constants import ootEnumMusicSeq, ootEnumSceneID
 from ..oot_level_parser import parseScene
 from .exporter.to_c import clearBootupScene, modifySceneTable, editSpecFile, deleteSceneFiles
+from ..exporter import SceneExport
 
 
 def ootRemoveSceneC(exportInfo):
@@ -172,15 +173,31 @@ class OOT_ExportScene(Operator):
             exportInfo.option = option
             bootOptions = context.scene.fast64.oot.bootupSceneOptions
             hackerFeaturesEnabled = context.scene.fast64.oot.hackerFeaturesEnabled
-            ootExportSceneToC(
-                obj,
-                finalTransform,
-                levelName,
-                DLFormat.Static,
-                context.scene.saveTextures,
+
+            # keeping this on purpose, will be removed once old code is cleaned-up
+            # if settings.useNewExporter:
+            SceneExport(
                 exportInfo,
+                obj,
+                exportInfo.name,
+                context.scene.ootBlenderScale,
+                finalTransform,
+                bpy.context.scene.saveTextures,
                 bootOptions if hackerFeaturesEnabled else None,
-            )
+                settings.singleFile,
+                TextureExportSettings(False, context.scene.saveTextures, None, None),
+                context.scene.useDecompFeatures if not hackerFeaturesEnabled else hackerFeaturesEnabled,
+            ).export()
+            # else:
+            #     ootExportSceneToC(
+            #         obj,
+            #         finalTransform,
+            #         levelName,
+            #         DLFormat.Static,
+            #         context.scene.saveTextures,
+            #         exportInfo,
+            #         bootOptions if hackerFeaturesEnabled else None,
+            #     )
 
             self.report({"INFO"}, "Success!")
 

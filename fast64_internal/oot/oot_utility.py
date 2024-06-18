@@ -7,6 +7,7 @@ from ast import parse, Expression, Num, UnaryOp, USub, Invert, BinOp
 from mathutils import Vector
 from bpy.types import Object
 from bpy.utils import register_class, unregister_class
+from bpy.types import Object
 from typing import Callable, Optional
 from .oot_constants import ootSceneIDToName
 
@@ -213,7 +214,7 @@ class ExportInfo:
         self.isCustomExportPath = isCustomExport
         self.exportPath = exportPath
         self.customSubPath = customSubPath
-        self.name = name
+        self.name: str = name
         self.option: Optional[str] = None
 
 
@@ -247,7 +248,7 @@ class OOTObjectCategorizer:
 
 
 # This also sets all origins relative to the scene object.
-def ootDuplicateHierarchy(obj, ignoreAttr, includeEmpties, objectCategorizer):
+def ootDuplicateHierarchy(obj, ignoreAttr, includeEmpties, objectCategorizer) -> tuple[Object, list[Object]]:
     # Duplicate objects to apply scale / modifiers / linked data
     bpy.ops.object.select_all(action="DESELECT")
     ootSelectMeshChildrenOnly(obj, includeEmpties)
@@ -940,3 +941,46 @@ def getNewPath(type: str, isClosedShape: bool):
     bpy.context.view_layer.active_layer_collection.collection.objects.link(newPath)
 
     return newPath
+
+
+def getObjectList(
+    objList: list[Object],
+    objType: str,
+    emptyType: Optional[str] = None,
+    splineType: Optional[str] = None,
+    parentObj: Object = None,
+):
+    """
+    Returns a list containing objects matching ``objType``. Sorts by object name.
+
+    Parameters:
+    - ``objList``: the list of objects to iterate through, usually ``obj.children_recursive``
+    - ``objType``: the object's type (``EMPTY``, ``CURVE``, etc.)
+    - ``emptyType``: optional, filters the object by the given empty type
+    - ``splineType``: optional, filters the object by the given spline type
+    - ``parentObj``: optional, checks if the found object is parented to ``parentObj``
+    """
+
+    ret: list[Object] = []
+    for obj in objList:
+        if obj.type == objType:
+            cond = True
+
+            if emptyType is not None:
+                cond = obj.ootEmptyType == emptyType
+            elif splineType is not None:
+                cond = obj.ootSplineProperty.splineType == splineType
+
+            if parentObj is not None:
+                if emptyType == "Actor" and obj.ootEmptyType == "Room":
+                    for o in obj.children_recursive:
+                        if o.type == objType and o.ootEmptyType == emptyType:
+                            ret.append(o)
+                    continue
+                else:
+                    cond = cond and obj.parent is not None and obj.parent.name == parentObj.name
+
+            if cond:
+                ret.append(obj)
+    ret.sort(key=lambda o: o.name)
+    return ret
