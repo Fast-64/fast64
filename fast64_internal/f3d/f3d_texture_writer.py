@@ -480,7 +480,10 @@ class TexInfo:
                 fMaterial, material, self.indexInMat
             )
             if self.isTexRef:
-                if self.flipbook is not None:
+                if fModel.f3d.F3DZEX_AC_EXT and self.texProp.use_pal_index:
+                    self.palLen = 16 if self.texFormat == "CI4" else 256
+                    self.palIndex = int(self.texProp.pal_index, 0)
+                elif self.flipbook is not None:
                     self.palLen = len(self.pal)
                 else:
                     self.palLen = self.texProp.pal_reference_size
@@ -633,7 +636,7 @@ class MultitexManager:
                 non_rgba = False
                 if self.ti0.useTex:
                     if self.ti0.pal:
-                        self.ti0.palIndex = 15 # The default pallete index in AC is 15
+                        self.ti0.palIndex = 15  # The default pallete index in AC is 15
                         self.ti0.palLen = len(self.ti0.pal)
                         self.ti0.loadPal = True
                         non_rgba = self.ti0.palFormat != "RGBA16"
@@ -1063,7 +1066,7 @@ def saveTextureTile(
     if f3d.F3DZEX_AC_EXT:
         if (clamp_S and mirror_S) or (clamp_T and mirror_T):
             raise PluginError("Clamp + mirror not supported in F3DZEX (AC)")
-        if not tileSettings and (log2iRoundUp(fImage.width) != masks or log2iRoundUp(fImage.height) != maskt):
+        if tileSettings and (log2iRoundUp(fImage.width) != masks or log2iRoundUp(fImage.height) != maskt):
             raise PluginError("Mask is not emulated in emu64, non default values are not supported")
         wrap_s = "GX_CLAMP" if clamp_S else "GX_MIRROR" if mirror_S else "GX_REPEAT"
         wrap_t = "GX_CLAMP" if clamp_T else "GX_MIRROR" if mirror_T else "GX_REPEAT"

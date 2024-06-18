@@ -2635,6 +2635,14 @@ class TextureProperty(PropertyGroup):
         min=1,
         default=16,
     )
+    use_pal_index: bpy.props.BoolProperty(
+        name="Palette Index Reference", description="F3DZEX (AC): Reference an already loaded palette"
+    )
+    pal_index: bpy.props.StringProperty(
+        name="Palette Index",
+        default="0x03",
+        description="F3DZEX (AC): The palette's index. Defaults to the grass pallete index (3)",
+    )
 
     menu: bpy.props.BoolProperty()
     tex_set: bpy.props.BoolProperty(
@@ -2674,6 +2682,8 @@ class TextureProperty(PropertyGroup):
             self.tex_reference_size if texSet and useRef else None,
             self.pal_reference if texSet and useRef and isCI else None,
             self.pal_reference_size if texSet and useRef and isCI else None,
+            self.use_pal_index if texSet and useRef and isCI else None,
+            self.pal_index if self.use_pal_index and texSet and useRef and isCI else None,
         )
 
 
@@ -2732,8 +2742,13 @@ def ui_image(
             prop_split(prop_input, textureProp, "tex_reference", "Texture Reference")
             prop_split(prop_input, textureProp, "tex_reference_size", "Texture Size")
             if textureProp.tex_format[:2] == "CI":
+                if is_fdzex_ac:
+                    row = prop_input.row()
+                    row.prop(textureProp, "use_pal_index")
+                    if textureProp.use_pal_index:
+                        row.prop(textureProp, "pal_index", text="")
                 flipbook = getattr(material.flipbookGroup, "flipbook" + texIndex)
-                if flipbook is None or not flipbook.enable:
+                if (not is_fdzex_ac or not textureProp.use_pal_index) and (flipbook is None or not flipbook.enable):
                     prop_split(prop_input, textureProp, "pal_reference", "Palette Reference")
                     prop_split(prop_input, textureProp, "pal_reference_size", "Palette Size")
 
@@ -3652,6 +3667,8 @@ class AddPresetF3D(AddPresetBase, Operator):
         "f3d_mat.tex0.tex_reference_size",
         "f3d_mat.tex0.pal_reference",
         "f3d_mat.tex0.pal_reference_size",
+        "f3d_mat.tex0.use_pal_index",
+        "f3d_mat.tex0.pal_index",
         "f3d_mat.tex0.S",
         "f3d_mat.tex0.T",
         "f3d_mat.tex0.menu",
@@ -3669,6 +3686,8 @@ class AddPresetF3D(AddPresetBase, Operator):
         "f3d_mat.tex1.tex_reference_size",
         "f3d_mat.tex1.pal_reference",
         "f3d_mat.tex1.pal_reference_size",
+        "f3d_mat.tex1.use_pal_index",
+        "f3d_mat.tex1.pal_index",
         "f3d_mat.tex1.S",
         "f3d_mat.tex1.T",
         "f3d_mat.tex1.menu",
