@@ -630,17 +630,20 @@ class MultitexManager:
             if (
                 fModel.f3d.F3DZEX_AC_EXT
             ):  # TODO: This is kinda hacky, and the AC has palletes reserved for enviromental stuff apperantly?
+                non_rgba = False
                 if self.ti0.useTex:
-                    self.ti0.palIndex = 15
-                    self.ti0.palLen = len(self.ti0.pal)
-                    self.ti0.loadPal = True
+                    if self.ti0.pal:
+                        self.ti0.palIndex = 15
+                        self.ti0.palLen = len(self.ti0.pal)
+                        self.ti0.loadPal = True
+                        non_rgba = self.ti0.palFormat != "RGBA16"
                 if self.ti1.useTex:
-                    self.ti1.palIndex = 14
-                    self.ti1.palLen = len(self.ti1.pal)
-                    self.ti1.loadPal = True
-                if (self.ti0.useTex and self.ti0.palFormat != "RGBA16") or (
-                    self.ti1.useTex and self.ti1.palFormat != "RGBA16"
-                ):
+                    if self.ti1.pal:
+                        self.ti1.palIndex = 14
+                        self.ti1.palLen = len(self.ti1.pal)
+                        self.ti1.loadPal = True
+                        non_rgba = self.ti1.palFormat != "RGBA16"
+                if non_rgba:
                     raise PluginError(
                         f"In material {material.name}: Only RGBA16 palette format supported in F3DZEX (AC)"
                     )
