@@ -5699,36 +5699,22 @@ class DPLoadTextureTile_4b(GbiMacro):
 
 @dataclass(unsafe_hash=True)
 class DPLoadTextureTile_4b_Dolphin(GbiMacro):
-    timg: FImage
+    img: FImage
     fmt: str
     width: int
     height: int
-    pal: int
-    ws: int
-    wt: int
-    ss: int
-    st: int
 
     def to_binary(self, f3d, segments):
         if f3d.F3DZEX_AC_EXT:
-            return DPSetTextureImage_Dolphin(self.fmt, f3d.G_IM_SIZ_4b, self.height, self.width, self.timg).to_binary(
+            return DPSetTextureImage_Dolphin(self.fmt, f3d.G_IM_SIZ_4b, self.height, self.width, self.img).to_binary(
                 f3d, segments
             ) + DPSetTile_Dolphin(
-                "G_DOLPHIN_TLUT_DEFAULT_MODE", 0, self.pal, self.ws, self.wt, self.ss, self.st
+                "G_DOLPHIN_TLUT_DEFAULT_MODE", 0, 0, 0, 0, 0, 0
             ).to_binary(
                 f3d, segments
             )
         else:
             raise PluginError("DPLoadTextureTile_4b_Dolphin only available in F3DZEX (AC).")
-
-    def to_c(self, static=True):
-        if static:
-            return f"gsDPLoadTextureTile_4b_Dolphin({', '.join( self.getargs(static) )})"
-        else:
-            assert not any(
-                (self.pal, self.ws, self.wt, self.ss, self.st)
-            ), "Static DPLoadTextureTile_4b_Dolphin does not support pal, ws, wt, ss, st being non zero"
-            return f"gDPLoadTextureTile_4b_Dolphin(glistp++, {', '.join( self.getargs(static)[:4] )})"
 
     def size(self, f3d):
         return GFX_SIZE * 2
