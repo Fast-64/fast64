@@ -633,13 +633,13 @@ class MultitexManager:
                 non_rgba = False
                 if self.ti0.useTex:
                     if self.ti0.pal:
-                        self.ti0.palIndex = 15
+                        self.ti0.palIndex = 15 # The default pallete index in AC is 15
                         self.ti0.palLen = len(self.ti0.pal)
                         self.ti0.loadPal = True
                         non_rgba = self.ti0.palFormat != "RGBA16"
                 if self.ti1.useTex:
                     if self.ti1.pal:
-                        self.ti1.palIndex = 14
+                        self.ti1.palIndex = 15 - 1
                         self.ti1.palLen = len(self.ti1.pal)
                         self.ti1.loadPal = True
                         non_rgba = self.ti1.palFormat != "RGBA16"
