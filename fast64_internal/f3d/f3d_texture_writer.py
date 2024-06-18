@@ -206,7 +206,7 @@ def maybeSaveSingleLargeTextureSetup(
             sm = 2 if is4bit else 4
             nocm = ["G_TX_WRAP", "G_TX_NOMIRROR"]
             if curImgSet != i:
-                if f3d.F3DZEX_AC_EXT:
+                if fModel.f3d.F3DZEX_AC_EXT:
                     gfxOut.commands.append(DPSetTextureImage_Dolphin(fmt, siz, texDimensions[1], wid, fImage))
                 else:
                     gfxOut.commands.append(DPSetTextureImage(fmt, siz, wid, fImage))
