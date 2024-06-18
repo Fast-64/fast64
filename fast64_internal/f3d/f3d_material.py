@@ -2806,7 +2806,7 @@ def ui_image(
 
             if is_fdzex_ac and ((s.clamp and s.mirror) or (t.clamp and t.mirror)):
                 texFieldSettings.box().label(
-                    text="Clamping + mirroring are not supported in F3DZEX (AC).",
+                    text="Clamp + mirror not supported in F3DZEX (AC).",
                     icon="ERROR",
                 )
 
@@ -2816,6 +2816,10 @@ def ui_image(
                 mask = prop_input.row()
                 mask.prop(s, "mask", text="Mask S")
                 mask.prop(t, "mask", text="Mask T")
+                if is_fdzex_ac and (log2iRoundUp(width) != s.mask or log2iRoundUp(height) != t.mask):
+                    prop_input.box().label(
+                        text="Mask is not emulated in emu64, non default values are not supported",icon="ERROR",
+                    )
 
                 shift = prop_input.row()
                 shift.prop(s, "shift", text="Shift S")
