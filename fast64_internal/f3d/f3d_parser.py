@@ -963,12 +963,12 @@ class F3DContext:
             rdp_settings.g_fresnel_color = False
             rdp_settings.g_fresnel_alpha = False
         if self.f3d.F3DZEX_AC_EXT:
-            rdp_settings.g_gequal = bitFlags & self.f3d.G_DECAL_GEQUAL != 0
-            rdp_settings.g_equal = bitFlags & self.f3d.G_DECAL_EQUAL != 0
+            rdp_settings.g_decal_gequal = bitFlags & self.f3d.G_DECAL_GEQUAL != 0
+            rdp_settings.g_decal_equal = bitFlags & self.f3d.G_DECAL_EQUAL != 0
             rdp_settings.g_decal_special = bitFlags & self.f3d.G_DECAL_SPECIAL != 0
         else:
-            rdp_settings.g_gequal = False
-            rdp_settings.g_equal = False
+            rdp_settings.g_decal_gequal = False
+            rdp_settings.g_decal_equal = False
             rdp_settings.g_decal_special = False
         if self.f3d.POINT_LIT_GBI:
             rdp_settings.g_lighting_positional = bitFlags & self.f3d.G_LIGHTING_POSITIONAL != 0
@@ -1623,7 +1623,14 @@ class F3DContext:
                 self.addTriangle(command.params[0:3], dlData)
             elif command.name == "gsSP2Triangles":
                 self.addTriangle(command.params[0:3] + command.params[4:7], dlData)
-            # TODO: Parse Animal Crossing's F3DZEX extended 5/7 bit tri commands
+            elif command.name == "gsSPNTrianglesInit_5b":
+                self.addTriangle(command.params[1:10], dlData)
+            elif command.name == "gsSPNTrianglesInit_7b":
+                self.addTriangle(command.params[1:7], dlData)
+            elif command.name == "gsSPNTriangles_5b":
+                self.addTriangle(command.params[1:12], dlData)
+            elif command.name == "gsSPNTriangles_7b":
+                self.addTriangle(command.params[1:9], dlData)
             elif command.name == "gsSPDisplayList" or command.name.startswith("gsSPBranch"):
                 newDLName = self.processDLName(command.params[0])
                 if newDLName is not None:
