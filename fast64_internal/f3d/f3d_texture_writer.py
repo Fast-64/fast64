@@ -632,7 +632,7 @@ class MultitexManager:
             assert self.ti0.useTex or self.ti1.useTex
             if (
                 fModel.f3d.F3DZEX_AC_EXT
-            ):  # TODO: This is kinda hacky, and the AC has palletes reserved for enviromental stuff apperantly?
+            ):
                 non_rgba = False
                 if self.ti0.useTex:
                     if self.ti0.pal:
