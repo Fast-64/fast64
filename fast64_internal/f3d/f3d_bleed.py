@@ -456,6 +456,7 @@ class BleedGraphics:
             SPEndDisplayList,
             DPSetTextureImage,
             DPSetTextureImage_Dolphin,
+            DPSetTile_Dolphin,
             DPLoadBlock,
             DPLoadTile,
             DPLoadTLUTCmd,

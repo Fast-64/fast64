@@ -12,6 +12,7 @@ from .f3d_material import (
     F3DMaterialProperty,
     update_node_values_of_material,
     F3DMaterialHash,
+    texBitSizeInt,
 )
 from .f3d_writer import BufferVertex, F3DVert
 from ..utility import *
@@ -531,9 +532,6 @@ class F3DContext:
 
         self.ac_pal_dict: dict[int, int] = {}  # F3DZEX (AC)
         self.set_img = DPSetTextureImage_Dolphin("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 0, 0, None)
-        self.texture_info: list[DPSetTextureImage_Dolphin] = [
-            DPSetTextureImage_Dolphin("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 0, 0, None) for i in range(8)
-        ]
 
     """
     Restarts context, but keeps cached materials/textures.
@@ -602,9 +600,6 @@ class F3DContext:
 
         self.ac_pal_dict: dict[int, int] = {}  # F3DZEX (AC)
         self.set_img = DPSetTextureImage_Dolphin("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 0, 0, None)
-        self.texture_info: list[DPSetTextureImage_Dolphin] = [
-            DPSetTextureImage_Dolphin("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 0, 0, None) for i in range(8)
-        ]
 
         mat.presetName = "Custom"
 
@@ -716,19 +711,11 @@ class F3DContext:
         if self.materialChanged:
             region = None
 
-            tileSettings = self.tileSettings[0]
-            tileSizeSettings = self.tileSizes[0]
-            if tileSettings.tmem in self.tmemDict:
-                textureName = self.tmemDict[tileSettings.tmem]
-                self.loadTexture(dlData, textureName, region, tileSettings, False)
-                self.applyTileToMaterial(0, tileSettings, tileSizeSettings, dlData)
-
-            tileSettings = self.tileSettings[1]
-            tileSizeSettings = self.tileSizes[1]
-            if tileSettings.tmem in self.tmemDict:
-                textureName = self.tmemDict[tileSettings.tmem]
-                self.loadTexture(dlData, textureName, region, tileSettings, False)
-                self.applyTileToMaterial(1, tileSettings, tileSizeSettings, dlData)
+            for tileSettings, tileSizeSettings in zip(self.tileSettings[:2], self.tileSizes[:2]):
+                if tileSettings.tmem in self.tmemDict:
+                    textureName = self.tmemDict[tileSettings.tmem]
+                    self.loadTexture(dlData, textureName, region, tileSettings, False)
+                    self.applyTileToMaterial(tileSettings.tile, tileSettings, tileSizeSettings, dlData)
 
             self.applyLights()
 
@@ -796,8 +783,11 @@ class F3DContext:
 
         if texProp.tex_format[:2] == "CI":
             # Only handles TLUT at 256
-            tlutName = self.tmemDict[256]
-            if 256 in self.tmemDict and tlutName is not None:
+            if self.f3d.F3DZEX_AC_EXT: 
+                tlutName = self.ac_pal_dict.get(self.getTileSettings(index).palette, None)
+            else:
+                tlutName = self.tmemDict.get(256, None)
+            if tlutName is not None:
                 tlut = self.textureData[tlutName]
                 # print(f"TLUT: {tlutName}, {isinstance(tlut, F3DTextureReference)}")
                 if isinstance(tlut, F3DTextureReference) or texProp.use_tex_reference:
@@ -1565,7 +1555,8 @@ class F3DContext:
 
     def load_dolphin_tlut(self, params):  # gsDPLoadTLUT_Dolphin
         tlut_name = math_eval(params[0], self.f3d)
-        self.ac_pal_dict[tlut_name] = params[3]
+        texture_name = params[3]
+        self.ac_pal_dict[tlut_name] = texture_name
         self.materialChanged = True
 
     def set_texture_image_dolphin(self, params):  # DPSetTextureImage_Dolphin
@@ -1573,28 +1564,46 @@ class F3DContext:
         self.set_img.siz = getTileSize(params[1], self.f3d)
         self.set_img.height = math_eval(params[2], self.f3d)
         self.set_img.width = math_eval(params[3], self.f3d)
-        self.set_img.image, self.currentTextureName = params[4]
+        self.set_img.image = self.currentTextureName = params[4]
         self.materialChanged = True
 
     def set_tile_size_dolphin(self, params):  # DPSetTileSize_Dolphin
-        tileSizeSettings = self.getTileSizeSettings(params[0])
+        tile_size = self.getTileSizeSettings(params[0])
 
         dimensions = [0, 0, 0, 0]
         for i in range(1, 5):
             dimensions[i - 1] = math_eval(params[i], self.f3d)
 
-        tileSizeSettings.uls = dimensions[0]
-        tileSizeSettings.ult = dimensions[1]
-        tileSizeSettings.lrs = dimensions[2]
-        tileSizeSettings.lrt = dimensions[3]
+        tile_size.uls = dimensions[0]
+        tile_size.ult = dimensions[1]
+        tile_size.lrs = dimensions[2]
+        tile_size.lrt = dimensions[3]
 
-    def load_dolphin_4b_texture_block(self, params):
+    def load_dolphin_4b_texture_block(self, params):  # gsDPLoadTextureBlock_4b_Dolphin
         self.set_texture_image_dolphin(params)
         self.set_tile_size_dolphin(params)
 
-    def set_tile_dolphin(self, params):  # DPSetTile_Dolphin
+    def set_tile_dolphin(self, params, dlData):  # DPSetTile_Dolphin
         tile = self.getTileIndex(params[1])
-        self.texture_info[tile] = self.set_img
+        tile_settings: DPSetTile = self.tileSettings[tile]
+        self.tmemDict[tile] = self.set_img.image
+        tile_settings.fmt = self.set_img.fmt
+        tile_settings.siz = self.set_img.siz
+        tile_settings.palette = math_eval(params[2], self.f3d)
+
+        actual_fmt = tile_settings.fmt[8:].replace("_", "") + tile_settings.siz[8:-1].replace("_", "")
+        texelsPerWord = 64 // texBitSizeInt[actual_fmt]
+        assert self.set_img.width % texelsPerWord == 0
+        tile_settings.line = self.set_img.width // texelsPerWord
+
+        if tile_settings.palette in self.ac_pal_dict:
+            lut_tile_settings: DPSetTile = copy.copy(tile_settings)
+            lut_tile_settings.fmt = "G_IM_FMT_RGBA"
+            lut_tile_settings.siz = "G_IM_SIZ_16b"
+            tlut = self.loadTexture(dlData, self.ac_pal_dict[tile_settings.palette], [0, 0, 16, 16], lut_tile_settings, True)
+
+        tile_settings.masks = log2iRoundUp(self.set_img.width)
+        tile_settings.maskt = log2iRoundUp(self.set_img.height)
         tile_size: DPSetTileSize = self.tileSizes[tile]
         tile_size.uls = 0
         tile_size.ult = 0
@@ -1825,6 +1834,10 @@ class F3DContext:
                     self.set_tile_dolphin(command.params, dlData)
                 elif command.name == "gsDPLoadTLUT_Dolphin":
                     self.load_dolphin_tlut(command.params)
+                elif command.name == "gsDPSetTextureImage_Dolphin":
+                    self.set_texture_image_dolphin(command.params)
+                elif command.name == "gsDPSetTileSize_Dolphin":
+                    self.set_tile_size_dolphin(command.params)
                 elif command.name == "gsDPLoadTextureBlock_4b_Dolphin":
                     self.load_dolphin_4b_texture_block(command.params)
 
