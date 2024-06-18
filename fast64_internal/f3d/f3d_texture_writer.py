@@ -630,9 +630,7 @@ class MultitexManager:
         # Determine how to arrange / load palette entries into upper half of tmem
         if self.isCI:
             assert self.ti0.useTex or self.ti1.useTex
-            if (
-                fModel.f3d.F3DZEX_AC_EXT
-            ):
+            if fModel.f3d.F3DZEX_AC_EXT:
                 non_rgba = False
                 if self.ti0.useTex:
                     if self.ti0.pal:
