@@ -4833,8 +4833,6 @@ class DPSetTextureImage_Dolphin(GbiMacro):
     height: int
     width: int
     image: FImage
-    # TODO: Should this use segmented to virtual?
-    # _segptrs = True  # calls segmented_to_virtual on name when needed
 
     def to_binary(self, f3d, segments):
         if f3d.F3DZEX_AC_EXT:
@@ -5095,12 +5093,9 @@ class DPSetTileSize_Dolphin(GbiMacro):
     height: int
 
     def to_binary(self, f3d, segments):
-        # TODO: This is how emu64 converts n64 to dolphin
-        # u32 s_len = (settilesize->sh - settilesize->sl) / 4;
-        # u32 t_len = (settilesize->th - settilesize->tl) / 4;
         if f3d.F3DZEX_AC_EXT:
             words = (
-                (_SHIFTL(G_SETTILESIZE, 24, 8) | _SHIFTL(self.s, 10, 14) | _SHIFTL(self.width - 1, 0, 10)),
+                (_SHIFTL(f3d.G_SETTILESIZE, 24, 8) | _SHIFTL(self.s, 10, 14) | _SHIFTL(self.width - 1, 0, 10)),
                 (
                     _SHIFTL(1, 31, 1)
                     | _SHIFTL(self.tile, 24, 3)
@@ -5168,7 +5163,7 @@ class DPSetTile(GbiMacro):
 
 @dataclass(unsafe_hash=True)
 class DPSetTile_Dolphin(GbiMacro):
-    d_fmt: str # Always G_DOLPHIN_TLUT_DEFAULT_MODE (15)?
+    d_fmt: str  # Always G_DOLPHIN_TLUT_DEFAULT_MODE (15)?
     tile: int
     name: int
     wrap_s: int
@@ -5178,7 +5173,7 @@ class DPSetTile_Dolphin(GbiMacro):
 
     def to_binary(self, f3d, segments):
         if f3d.F3DZEX_AC_EXT:
-            assert(self.d_fmt == f3d.G_DOLPHIN_TLUT_DEFAULT_MODE)
+            assert self.d_fmt == f3d.G_DOLPHIN_TLUT_DEFAULT_MODE
             words = (
                 (
                     _SHIFTL(f3d.G_SETTILE_DOLPHIN, 24, 8)
@@ -5718,7 +5713,11 @@ class DPLoadTextureTile_4b_Dolphin(GbiMacro):
         if f3d.F3DZEX_AC_EXT:
             return DPSetTextureImage_Dolphin(self.fmt, f3d.G_IM_SIZ_4b, self.height, self.width, self.timg).to_binary(
                 f3d, segments
-            ) + DPSetTile_Dolphin("G_DOLPHIN_TLUT_DEFAULT_MODE", 0, self.pal, self.ws, self.wt, self.ss, self.st).to_binary(f3d, segments)
+            ) + DPSetTile_Dolphin(
+                "G_DOLPHIN_TLUT_DEFAULT_MODE", 0, self.pal, self.ws, self.wt, self.ss, self.st
+            ).to_binary(
+                f3d, segments
+            )
         else:
             raise PluginError("DPLoadTextureTile_4b_Dolphin only available in F3DZEX (AC).")
 
@@ -5726,12 +5725,13 @@ class DPLoadTextureTile_4b_Dolphin(GbiMacro):
         if static:
             return f"gsDPLoadTextureTile_4b_Dolphin({', '.join( self.getargs(static) )})"
         else:
-            assert not any((self.pal, self.ws, self.wt, self.ss, self.st)), "Static DPLoadTextureTile_4b_Dolphin does not support pal, ws, wt, ss, st being non zero"
+            assert not any(
+                (self.pal, self.ws, self.wt, self.ss, self.st)
+            ), "Static DPLoadTextureTile_4b_Dolphin does not support pal, ws, wt, ss, st being non zero"
             return f"gDPLoadTextureTile_4b_Dolphin(glistp++, {', '.join( self.getargs(static)[:4] )})"
 
     def size(self, f3d):
         return GFX_SIZE * 2
-        
 
 
 # gsDPLoadMultiTile_4b

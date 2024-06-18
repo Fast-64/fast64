@@ -529,7 +529,11 @@ class F3DContext:
         self.numLights: int = 0
         self.lightData: dict[Light, bpy.types.Object] = {}  # Light : blender light object
 
-        self.ac_pal_dict: dict[int, int] = {} # F3DZEX (AC)
+        self.ac_pal_dict: dict[int, int] = {}  # F3DZEX (AC)
+        self.set_img = DPSetTextureImage_Dolphin("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 0, 0, None)
+        self.texture_info: list[DPSetTextureImage_Dolphin] = [
+            DPSetTextureImage_Dolphin("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 0, 0, None) for i in range(8)
+        ]
 
     """
     Restarts context, but keeps cached materials/textures.
@@ -595,6 +599,12 @@ class F3DContext:
         ]
         self.lights.a = Ambient([0, 0, 0])
         self.numLights = 0
+
+        self.ac_pal_dict: dict[int, int] = {}  # F3DZEX (AC)
+        self.set_img = DPSetTextureImage_Dolphin("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 0, 0, None)
+        self.texture_info: list[DPSetTextureImage_Dolphin] = [
+            DPSetTextureImage_Dolphin("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 0, 0, None) for i in range(8)
+        ]
 
         mat.presetName = "Custom"
 
@@ -1553,27 +1563,42 @@ class F3DContext:
         if invalidIndicesDetected:
             print("Invalid LUT Indices detected.")
 
-    def load_dolphin_tlut(self, params):
+    def load_dolphin_tlut(self, params):  # gsDPLoadTLUT_Dolphin
         tlut_name = math_eval(params[0], self.f3d)
-        # count = math_eval(params[1], self.f3d) # TODO: This should be passed in to the parse texture data function
-        texture_name = math_eval(params[3], self.f3d)
-
-        self.ac_pal_dict[tlut_name] = texture_name
+        self.ac_pal_dict[tlut_name] = params[3]
         self.materialChanged = True
-    def set_texture_image_dolphin(self, params):
-        tileSettings = self.getTileSettings(0)
-        tileSettings.fmt = getTileFormat(params[0], self.f3d)
-        tileSettings.siz = getTileSize(params[1], self.f3d)
-        #height: int
-        #width: int
-        #image: FImage
-    def set_tile_size_dolphin(self, params):
-        pass
-        
+
+    def set_texture_image_dolphin(self, params):  # DPSetTextureImage_Dolphin
+        self.set_img.fmt = getTileFormat(params[0], self.f3d)
+        self.set_img.siz = getTileSize(params[1], self.f3d)
+        self.set_img.height = math_eval(params[2], self.f3d)
+        self.set_img.width = math_eval(params[3], self.f3d)
+        self.set_img.image, self.currentTextureName = params[4]
+        self.materialChanged = True
+
+    def set_tile_size_dolphin(self, params):  # DPSetTileSize_Dolphin
+        tileSizeSettings = self.getTileSizeSettings(params[0])
+
+        dimensions = [0, 0, 0, 0]
+        for i in range(1, 5):
+            dimensions[i - 1] = math_eval(params[i], self.f3d)
+
+        tileSizeSettings.uls = dimensions[0]
+        tileSizeSettings.ult = dimensions[1]
+        tileSizeSettings.lrs = dimensions[2]
+        tileSizeSettings.lrt = dimensions[3]
+
     def load_dolphin_4b_texture_block(self, params):
         self.set_texture_image_dolphin(params)
         self.set_tile_size_dolphin(params)
-    
+
+    def set_tile_dolphin(self, params):  # DPSetTile_Dolphin
+        tile = self.getTileIndex(params[1])
+        self.texture_info[tile] = self.set_img
+        tile_size: DPSetTileSize = self.tileSizes[tile]
+        tile_size.uls = 0
+        tile_size.ult = 0
+
     def processCommands(self, dlData: str, dlName: str, dlCommands: "list[ParsedMacro]"):
         callStack = [F3DParsedCommands(dlName, dlCommands, 0)]
         while len(callStack) > 0:
@@ -1789,6 +1814,8 @@ class F3DContext:
                     self.loadTile(command.params)
                 elif command.name == "gsDPLoadTLUTCmd":
                     self.loadTLUT(command.params, dlData)
+                elif command.name == "gsDPSetTile_Dolphin":
+                    self.set_tile_dolphin(command.params, dlData)
                 elif command.name == "gsDPLoadTLUT_Dolphin":
                     self.load_dolphin_tlut(command.params)
                 elif command.name == "gsDPLoadTextureBlock_4b_Dolphin":
