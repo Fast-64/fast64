@@ -2790,11 +2790,7 @@ def ui_image(
         if textureProp.tex_format[:2] == "CI":
             prop_split(prop_input, textureProp, "ci_format", name="CI Format")
             if is_fdzex_ac and textureProp.ci_format == "IA16":
-                multilineLabel(
-                    prop_input,
-                    text="IA16 not supported in F3DZEX (AC).",  # TODO: Figure out a good fallback
-                    icon="ERROR",
-                )
+                multilineLabel(prop_input, text="IA16 not supported in F3DZEX (AC).", icon="ERROR")
         if not isLarge:
             s, t = textureProp.S, textureProp.T
             if width > 0 and height > 0:
