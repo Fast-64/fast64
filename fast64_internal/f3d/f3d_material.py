@@ -3,6 +3,7 @@ import bpy, math, os
 from bpy.types import (
     Attribute,
     Context,
+    Event,
     Image,
     Light,
     Material,
@@ -24,7 +25,6 @@ from bpy.types import (
     UILayout,
     VIEW3D_HT_header,
     World,
-    Event,
 )
 from bl_operators.presets import AddPresetBase
 from bpy.utils import register_class, unregister_class
