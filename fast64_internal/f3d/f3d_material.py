@@ -503,11 +503,30 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
 
         if f3d.F3DZEX_AC_EXT:
             c = indentGroup(inputGroup, "Decals:", True)
-            if blendWarnings and settings.zmode != "ZMODE_DEC":
-                c.label(text="Non-decal rendermode / blender, these will be ignored.", icon="INFO")
             c.prop(settings, "g_decal_equal")
             c.prop(settings, "g_decal_gequal")
             c.prop(settings, "g_decal_special")
+            # These decal modes are not as clear as others, so we give the user a bit more info
+            if not settings.g_decal_equal and not settings.g_decal_gequal:
+                compare_mode = "GX_LEQUAL"
+            elif settings.g_decal_gequal and not settings.g_decal_equal:
+                compare_mode = "GX_GEQUAL"
+            elif settings.g_decal_equal and not settings.g_decal_gequal:
+                compare_mode = "GX_EQUAL"
+            else:
+                compare_mode = "GX_ALWAYS"
+            decal_mode_info = f"Compare mode = {compare_mode}"
+            if not settings.g_decal_equal:
+                decal_mode_info += "\nDepth offset " + ("towards" if settings.g_decal_gequal else "away from") + " the camera"
+            if settings.g_decal_special:
+                decal_mode_info += "\nBlend mode: "
+                if settings.g_decal_gequal:
+                    decal_mode_info += "GX_BM_NONE, GX_BL_ONE, GX_BL_ZERO, GX_LO_NOOP"
+                else:
+                    decal_mode_info += "GX_BM_BLEND, GX_BL_DSTALPHA, GX_BL_INVDSTALPHA, GX_LO_NOOP"
+            if blendWarnings and settings.zmode != "ZMODE_DEC":
+                decal_mode_info = "Non-decal rendermode / blender, these will be ignored."
+            multilineLabel(c, decal_mode_info, icon="INFO")
         elif f3d.F3DEX_GBI_3:
             c = indentGroup(inputGroup, "Attribute offsets:", True)
             c.prop(settings, "g_attroffset_st_enable")
