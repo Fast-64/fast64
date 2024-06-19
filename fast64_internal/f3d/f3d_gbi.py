@@ -68,6 +68,7 @@ vertexBufferSize = {
     "F3DLX.Rej": (64, 32),
     "F3DLP.Rej": (80, 32),
     "F3DEX2/LX2": (32, 32),
+    "F3DEX2/LX2 (Point Lit)": (32, 32),
     "F3DZEX (AC)": (32, 32),
     "F3DEX2.Rej/LX2.Rej": (64, 64),
     "F3DEX3": (56, 56),
@@ -127,29 +128,21 @@ def isUcodeF3DEX1(F3D_VER: str) -> bool:
 
 
 def isUcodeF3DEX2(F3D_VER: str) -> bool:
-    return F3D_VER in {"F3DEX2.Rej/LX2.Rej", "F3DEX2/LX2", "F3DZEX (AC)"}
+    return F3D_VER in {"F3DEX2.Rej/LX2.Rej", "F3DEX2/LX2", "F3DEX2/LX2 (Point Lit)", "F3DZEX (AC)"}
 
 
 def isUcodeF3DEX3(F3D_VER: str) -> bool:
     return F3D_VER == "F3DEX3"
 
 
-def ucode_can_point_lit(F3D_VER: str) -> bool:
-    return isUcodeF3DEX2(F3D_VER) or ucode_always_point_lit(F3D_VER)
-
-
-def ucode_always_point_lit(F3D_VER: str) -> bool:
-    return F3D_VER in {"F3DEX3", "F3DZEX (AC)"}
-
-
-def is_ucode_point_lit(F3D_VER: str, POINT_LIT_IF_SUPPORTED: bool) -> bool:
-    return ucode_always_point_lit(F3D_VER) or (ucode_can_point_lit(F3D_VER) and POINT_LIT_IF_SUPPORTED)
+def is_ucode_point_lit(F3D_VER: str) -> bool:
+    return F3D_VER in {"F3DEX3", "F3DZEX (AC)", "F3DEX2/LX2 (Point Lit)"}
 
 
 class F3D:
     """NOTE: do not initialize this class manually! use get_F3D_GBI so that the single instance is cached from the microcode type."""
 
-    def __init__(self, F3D_VER, POINT_LIT_IF_SUPPORTED):
+    def __init__(self, F3D_VER):
         self.F3D_VER = F3D_VER
         F3DEX_GBI = self.F3DEX_GBI = isUcodeF3DEX1(F3D_VER)
         F3DEX_GBI_2 = self.F3DEX_GBI_2 = isUcodeF3DEX2(F3D_VER)
@@ -157,7 +150,7 @@ class F3D:
         F3DLP_GBI = self.F3DLP_GBI = self.F3DEX_GBI
         self.F3D_OLD_GBI = not (F3DEX_GBI or F3DEX_GBI_2 or F3DEX_GBI_3)
         F3DZEX_AC_EXT = self.F3DZEX_AC_EXT = F3D_VER == "F3DZEX (AC)"
-        POINT_LIT_GBI = self.POINT_LIT_GBI = is_ucode_point_lit(F3D_VER, POINT_LIT_IF_SUPPORTED)
+        POINT_LIT_GBI = self.POINT_LIT_GBI = is_ucode_point_lit(F3D_VER)
 
         # F3DEX2 is F3DEX1 and F3DEX3 is F3DEX2, but F3DEX3 is not F3DEX1
         if F3DEX_GBI_2:
@@ -1813,21 +1806,20 @@ class F3D:
         return (self.G_INPUT_BUFFER_CMDS - remainderCommands) << 3
 
 
-g_F3D = {"GBI": None, "f3d_type": None, "point_lit": None}
+g_F3D = {"GBI": None, "f3d_type": None}
 
 
-def get_cached_F3D_GBI(f3d_type: str, point_lit: bool) -> F3D:
+def get_cached_F3D_GBI(f3d_type: str) -> F3D:
     """Get constructed/cached F3D class"""
-    if g_F3D["GBI"] is None or f3d_type != g_F3D["f3d_type"] or point_lit != g_F3D["point_lit"]:
+    if g_F3D["GBI"] is None or f3d_type != g_F3D["f3d_type"]:
         g_F3D["f3d_type"] = f3d_type
-        g_F3D["point_lit"] = point_lit
-        g_F3D["GBI"] = F3D(f3d_type, point_lit)
+        g_F3D["GBI"] = F3D(f3d_type)
     return g_F3D["GBI"]
 
 
 def get_F3D_GBI() -> F3D:
     """Gets cached F3D class and automatically supplies params"""
-    return get_cached_F3D_GBI(bpy.context.scene.f3d_type, bpy.context.scene.fast64.settings.point_lit)
+    return get_cached_F3D_GBI(bpy.context.scene.f3d_type)
 
 
 def _SHIFTL(value, amount, mask):
