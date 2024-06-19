@@ -354,7 +354,7 @@ class F3D:
                 self.G_DECAL_LEQUAL = 0x00000000
                 self.G_DECAL_GEQUAL = 0x00000010
                 self.G_DECAL_EQUAL = 0x00000020
-                self.G_DECAL_ALWAYS = self.G_DECAL_GEQUAL | self.G_DECAL_LEQUAL
+                self.G_DECAL_ALWAYS = self.G_DECAL_GEQUAL | self.G_DECAL_EQUAL
                 self.G_DECAL_SPECIAL = 0x00000040
                 self.G_DECAL_ALL = self.G_DECAL_ALWAYS | self.G_DECAL_SPECIAL
                 self.G_TLUT_DOLPHIN = 2
