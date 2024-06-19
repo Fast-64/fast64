@@ -67,7 +67,6 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
     def draw(self, context):
         col = self.layout.column()
         col.scale_y = 1.1  # extra padding
-        fast64_settings = context.scene.fast64.settings
         prop_split(col, context.scene, "f3d_type", "F3D Microcode")
         col.prop(context.scene, "saveTextures")
         col.prop(context.scene, "f3d_simple", text="Simple Material UI")
