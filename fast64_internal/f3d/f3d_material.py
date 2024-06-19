@@ -503,9 +503,10 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
 
         if f3d.F3DZEX_AC_EXT:
             c = indentGroup(inputGroup, "Decals:", True)
+            if blendWarnings and settings.zmode != "ZMODE_DEC":
+                c.label(text="Non-decal rendermode / blender, these will be ignored.", icon="INFO")
             c.prop(settings, "g_decal_equal")
-            if not settings.g_decal_equal:
-                c.prop(settings, "g_decal_gequal")
+            c.prop(settings, "g_decal_gequal")
             c.prop(settings, "g_decal_special")
         elif f3d.F3DEX_GBI_3:
             c = indentGroup(inputGroup, "Attribute offsets:", True)
@@ -3030,23 +3031,25 @@ class RDPSettings(PropertyGroup):
         description="F3DEX3: Enables offsets to vertex ST values, usually for UV scrolling",
     )
     # AC Decal Modes
-    g_decal_gequal: bpy.props.BoolProperty(
-        name="Greater or Equal",
-        default=False,
-        update=update_node_values_with_preset,
-        description="F3DZEX (AC): Render with a positive offset (closer to the camera) instead of the default negative offset",
-    )
     g_decal_equal: bpy.props.BoolProperty(
         name="Equal",
         default=False,
         update=update_node_values_with_preset,
-        description="F3DZEX (AC): Render with no offset and the equal compare mode",
+        description="F3DZEX (AC): Disables any offset and uses the equal compare mode",
+    )
+    g_decal_gequal: bpy.props.BoolProperty(
+        name="Greater or Equal",
+        default=False,
+        update=update_node_values_with_preset,
+        description="F3DZEX (AC): When enabled, the greater or equal compare mode is used, "
+        "if Equal is disabled a positive offset is also used (closer to the camera).\n"
+        "When disabled, the default negative offset and less or equal compare mode are used.",
     )
     g_decal_special: bpy.props.BoolProperty(
         name="Special",
         default=False,
         update=update_node_values_with_preset,
-        description="F3DZEX (AC): ",  # TODO: Write description
+        description="F3DZEX (AC): Apropriately sets decal blend modes",
     )
     # v1/2 difference
     g_cull_front: bpy.props.BoolProperty(
