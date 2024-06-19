@@ -78,7 +78,6 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
                 "While inlining, all meshes will be restored to world default values.\n         You can configure these values in the world properties tab.",
                 icon="INFO",
             )
-        col.prop(context.scene, "decomp_compatible", invert_checkbox=True, text="Homebrew Compatibility")
         if context.scene.f3d_type == "F3DZEX (AC)":
             col.box().label(text="Emu64 supports ignore texture restrictions!", icon="INFO")
         col.prop(context.scene, "ignoreTextureRestrictions")
