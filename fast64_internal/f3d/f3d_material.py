@@ -3043,7 +3043,7 @@ class RDPSettings(PropertyGroup):
         update=update_node_values_with_preset,
         description="F3DZEX (AC): When enabled, the greater or equal compare mode is used, "
         "if Equal is disabled a positive offset is also used (closer to the camera).\n"
-        "When disabled, the default negative offset and less or equal compare mode are used.",
+        "When disabled, the default negative offset and less or equal compare mode are used",
     )
     g_decal_special: bpy.props.BoolProperty(
         name="Special",
