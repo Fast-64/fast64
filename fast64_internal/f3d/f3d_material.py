@@ -24,7 +24,7 @@ from bpy.types import (
     UILayout,
     VIEW3D_HT_header,
     World,
-    Event
+    Event,
 )
 from bl_operators.presets import AddPresetBase
 from bpy.utils import register_class, unregister_class
@@ -2448,7 +2448,7 @@ class UpdateColorSpacePopup(Operator):
     bl_description = "Update color space"
     bl_options = {"UNDO"}
 
-    already_invoked = False # HACK: used to prevent multiple dialogs from popping up
+    already_invoked = False  # HACK: used to prevent multiple dialogs from popping up
 
     def invoke(self, context: Context, event: Event):
         if UpdateColorSpacePopup.already_invoked:
@@ -2456,8 +2456,7 @@ class UpdateColorSpacePopup(Operator):
         scene = context.scene
         view_settings = scene.view_settings
         # Check if color space is correct
-        if (
-            not scene.dont_ask_colorspace and
+        if not scene.dont_ask_colorspace and (
             scene.display_settings.display_device != "sRGB"
             or view_settings.view_transform != "Standard"
             or view_settings.look != "None"
@@ -2471,12 +2470,15 @@ class UpdateColorSpacePopup(Operator):
 
     def draw(self, context: Context):
         col = self.layout.column()
+        multilineLabel(
+            col,
+            f'The colorspace for the current scene "{context.scene.name}"\nwill cause inaccurate preview compared to N64.\nWould you like to update it?',
+            icon="INFO",
+        )
         col.prop(context.scene, "dont_ask_colorspace")
-        multilineLabel(col, f"The current scene \"{context.scene.name}\" does not use the same color space as n64.\nWould you like to update it?", icon="INFO")
 
     def cancel(self, context: Context):
         UpdateColorSpacePopup.already_invoked = False
-        return {"CANCELLED"}
 
     def execute(self, context):
         try:
@@ -4547,7 +4549,7 @@ def mat_register():
 
     Scene.f3dUserPresetsOnly = bpy.props.BoolProperty(name="User Presets Only")
     Scene.f3d_simple = bpy.props.BoolProperty(name="Display Simple", default=True)
-    Scene.dont_ask_colorspace = bpy.props.BoolProperty(name="Don´t ask again")
+    Scene.dont_ask_colorspace = bpy.props.BoolProperty(name="Don't ask again")
 
     Object.use_f3d_culling = bpy.props.BoolProperty(
         name="Enable Culling (Applies to F3DEX and up)",

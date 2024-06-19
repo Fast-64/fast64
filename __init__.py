@@ -323,7 +323,8 @@ def upgrade_scene_props_node():
 
 @bpy.app.handlers.persistent
 def after_load(_a, _b):
-    bpy.ops.dialog.update_colorspace("INVOKE_DEFAULT")
+    if any(mat.is_f3d for mat in bpy.data.materials):
+        bpy.ops.dialog.update_colorspace("INVOKE_DEFAULT")
     upgrade_changed_props()
     upgrade_scene_props_node()
     resync_scene_props()
