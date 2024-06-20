@@ -12,6 +12,7 @@ from .f3d_course_parser import MK64F3DContext, parseCourseVtx
 
 class MK64_Properties(PropertyGroup):
     """Global MK64 Scene Properties found under scene.fast64.mk64"""
+
     # Import Course DL
     EnableRenderModeDefault: bpy.props.BoolProperty(name="Enable Render Mode by Default", default=True)
 
