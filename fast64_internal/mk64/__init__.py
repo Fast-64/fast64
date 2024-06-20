@@ -1,13 +1,13 @@
 import bpy
 from bpy.types import PropertyGroup, Operator
+from bpy.utils import register_class, unregister_class
+from .f3d_course_parser import MK64F3DContext, parseCourseVtx
 from ..f3d.f3d_material import createF3DMat
 from ..f3d.f3d_gbi import get_F3D_GBI
 from ..f3d.f3d_parser import getImportData, importMeshC
 from ..panels import MK64_Panel
 from ..utility import prop_split
-from bpy.utils import register_class, unregister_class
 from ..utility import raisePluginError
-from .f3d_course_parser import MK64F3DContext, parseCourseVtx
 
 
 class MK64_Properties(PropertyGroup):
