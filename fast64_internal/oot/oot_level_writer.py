@@ -9,6 +9,7 @@ from .oot_model_classes import OOTModel
 from .oot_object import addMissingObjectsToAllRoomHeaders
 from .oot_f3d_writer import writeTextureArraysNew, writeTextureArraysExisting1D
 from .collision.constants import decomp_compat_map_CameraSType
+from ..f3d.occlusion_planes.exporter import addOcclusionQuads
 
 from .collision.exporter import (
     OOTCameraData,
@@ -90,6 +91,8 @@ def ootCreateSceneHeader(levelC):
             sceneHeader.append(levelC.sceneCutscenesC[i])
     for roomName, roomMainC in levelC.roomMainC.items():
         sceneHeader.append(roomMainC)
+    for roomName, roomOcclusionPlanesC in levelC.roomOcclusionPlanesC.items():
+        sceneHeader.append(roomOcclusionPlanesC)
     for roomName, roomShapeInfoC in levelC.roomShapeInfoC.items():
         sceneHeader.append(roomShapeInfoC)
     for roomName, roomModelC in levelC.roomModelC.items():
@@ -149,6 +152,7 @@ def ootExportSceneToC(originalSceneObj, transformMatrix, sceneName, DLFormat, sa
         for i in range(len(scene.rooms)):
             roomC = CData()
             roomC.append(levelC.roomMainC[scene.rooms[i].roomName()])
+            roomC.append(levelC.roomOcclusionPlanesC[scene.rooms[i].roomName()])
             roomC.append(levelC.roomShapeInfoC[scene.rooms[i].roomName()])
             roomC.append(levelC.roomModelC[scene.rooms[i].roomName()])
             writeCDataSourceOnly(
@@ -180,6 +184,11 @@ def ootExportSceneToC(originalSceneObj, transformMatrix, sceneName, DLFormat, sa
             writeCDataSourceOnly(
                 ootPreprendSceneIncludes(scene, roomMainC), os.path.join(levelPath, roomName + "_main.c")
             )
+        for roomName, roomOcclusionPlanesC in levelC.roomOcclusionPlanesC.items():
+            if len(roomOcclusionPlanesC.source) > 0:
+                writeCDataSourceOnly(
+                    ootPreprendSceneIncludes(scene, roomOcclusionPlanesC), os.path.join(levelPath, roomName + "_occ.c")
+                )
         for roomName, roomShapeInfoC in levelC.roomShapeInfoC.items():
             writeCDataSourceOnly(
                 ootPreprendSceneIncludes(scene, roomShapeInfoC), os.path.join(levelPath, roomName + "_model_info.c")
@@ -230,7 +239,15 @@ def writeTextureArraysExistingScene(fModel: OOTModel, exportPath: str, sceneIncl
 
 def writeOtherSceneProperties(scene, exportInfo, levelC):
     modifySceneTable(scene, exportInfo)
-    editSpecFile(scene, exportInfo, levelC)
+    editSpecFile(
+        True,
+        exportInfo,
+        levelC.sceneTexturesIsUsed(),
+        levelC.sceneCutscenesIsUsed(),
+        len(scene.rooms),
+        len(levelC.sceneCutscenesC),
+        [len(occ.source) > 0 for occ in levelC.roomOcclusionPlanesC.values()],
+    )
     modifySceneFiles(scene, exportInfo)
 
 
@@ -547,6 +564,11 @@ def ootConvertScene(originalSceneObj, transformMatrix, sceneName, DLFormat, conv
                 centroid, radius = boundingBox.getEnclosingSphere()
                 cullGroup.position = centroid
                 cullGroup.cullDepth = radius
+
+                if bpy.context.scene.f3d_type == "F3DEX3":
+                    addOcclusionQuads(
+                        obj, room.occlusion_planes, True, transformMatrix @ sceneObj.matrix_world.inverted()
+                    )
 
                 room.mesh.terminateDLs()
                 room.mesh.removeUnusedEntries()

@@ -102,8 +102,8 @@ def getSceneCommandList(outScene: OOTScene, headerIndex: int):
 
     sceneCmdData = (
         (outScene.getAltHeaderListCmd(outScene.alternateHeadersName()) if outScene.hasAlternateHeaders() else "")
-        + (",\n".join(getCmd(outScene) for getCmd in getCmdFunc1ArgList) + ",\n")
-        + (",\n".join(getCmd(outScene, headerIndex) for getCmd in getCmdFunc2ArgList) + ",\n")
+        + "".join(getCmd(outScene) + ",\n" for getCmd in getCmdFunc1ArgList)
+        + "".join(getCmd(outScene, headerIndex) + ",\n" for getCmd in getCmdFunc2ArgList)
         + outScene.getEndCmd()
     )
 
