@@ -1,5 +1,5 @@
 import bpy
-from bpy.types import PropertyGroup
+from bpy.types import PropertyGroup, Operator
 from ..f3d.f3d_material import createF3DMat
 from ..f3d.f3d_gbi import get_F3D_GBI
 from ..f3d.f3d_parser import getImportData, importMeshC
@@ -21,7 +21,7 @@ class MK64_Properties(PropertyGroup):
         pass
 
 
-class MK64_ImportCourseDL(bpy.types.Operator):
+class MK64_ImportCourseDL(Operator):
     # set bl_ properties
     bl_idname = "object.fast64_mk64_course_import_dl"
     bl_label = "Import Course DL"
