@@ -90,8 +90,8 @@ class MK64_ImportCourseDL(Operator):
 
 
 class MK64_ImportCourseDLPanel(MK64_Panel):
-    bl_idname = "MK64_import_course_DL_panel_settings"
-    bl_label = "MK64 Import Course DL Panel Settings"
+    bl_idname = "MK64_PT_import_course_DL"
+    bl_label = "MK64 Import Course DL"
     bl_options = set()  # default to open
     bl_order = 0  # force to front
 
