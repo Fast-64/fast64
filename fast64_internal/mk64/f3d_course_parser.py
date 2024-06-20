@@ -42,7 +42,7 @@ class MK64F3DContext(F3DContext):
     def getVertexDataStart(self, vertexDataParam: str, f3d: F3D):
         matchResult = re.search(r"\&?([A-Za-z0-9\_]*)\s*(\[([^\]]*)\])?\s*(\+(.*))?", vertexDataParam)
         if matchResult is None:
-            raise PluginError("SPVertex param " + vertexDataParam + " is malformed.")
+            raise PluginError(f"SPVertex param {vertexDataParam} is malformed.")
 
         offset = 0
         if matchResult.group(3):
