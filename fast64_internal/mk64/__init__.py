@@ -116,9 +116,6 @@ class MK64_ImportCourseDLPanel(MK64_Panel):
         box.label(text="All data must be contained within file.")
         box.label(text="The only exception are pngs converted to inc.c.")
 
-        # col.template_list('F3D_UL_ImportDLPathList', '', context.scene,
-        # 	'DLImportOtherFiles', context.scene, 'DLImportOtherFilesIndex')
-
 
 mk64_classes = (MK64_Properties,)
 
