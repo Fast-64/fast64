@@ -644,6 +644,8 @@ def ui_other(settings, dataHolder, layout, useDropdown):
                 prop_input_name.prop(dataHolder, "set_bilerp_text_adjust", text="Bilerp Adjust Mode")
                 prop_input.prop(dataHolder, "bilerp_text_adjust", text="")
                 prop_input.enabled = dataHolder.set_bilerp_text_adjust
+                if dataHolder.set_bilerp_text_adjust and settings.g_mdsft_text_filt != "G_TF_BILERP":
+                    bilerp_text_adjust_row.label(text="Material is not recognised as Bilerp", icon="INFO")
 
                 tex_edge_alpha_group = inputGroup.column()
                 tex_edge_alpha_row = tex_edge_alpha_group.row()
@@ -652,7 +654,7 @@ def ui_other(settings, dataHolder, layout, useDropdown):
                 prop_input_name.prop(dataHolder, "set_tex_edge_alpha", text="Tex Edge Alpha")
                 prop_input.prop(dataHolder, "tex_edge_alpha", text="")
                 prop_input.enabled = dataHolder.set_tex_edge_alpha
-                if not settings.is_emu64_texedge:
+                if dataHolder.set_tex_edge_alpha and not settings.is_emu64_texedge:
                     tex_edge_alpha_group.label(text="Material is not recognised as Tex Edge", icon="INFO")
 
 
