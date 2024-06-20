@@ -637,25 +637,26 @@ def ui_other(settings, dataHolder, layout, useDropdown):
             prop_input_name.prop(dataHolder, "set_blend", text="Blend Color")
             prop_input.prop(dataHolder, "blend_color", text="")
             prop_input.enabled = dataHolder.set_blend
-            if bpy.context.scene.f3d_type == "F3DZEX (AC)":
-                bilerp_text_adjust_row = inputGroup.row()
-                prop_input_name = bilerp_text_adjust_row.column()
-                prop_input = bilerp_text_adjust_row.column()
-                prop_input_name.prop(dataHolder, "set_bilerp_text_adjust", text="Bilerp Adjust Mode")
-                prop_input.prop(dataHolder, "bilerp_text_adjust", text="")
-                prop_input.enabled = dataHolder.set_bilerp_text_adjust
-                if dataHolder.set_bilerp_text_adjust and settings.g_mdsft_text_filt != "G_TF_BILERP":
-                    bilerp_text_adjust_row.label(text="Material is not recognised as Bilerp", icon="INFO")
 
-                tex_edge_alpha_group = inputGroup.column()
-                tex_edge_alpha_row = tex_edge_alpha_group.row()
-                prop_input_name = tex_edge_alpha_row.column()
-                prop_input = tex_edge_alpha_row.column()
-                prop_input_name.prop(dataHolder, "set_tex_edge_alpha", text="Tex Edge Alpha")
-                prop_input.prop(dataHolder, "tex_edge_alpha", text="")
-                prop_input.enabled = dataHolder.set_tex_edge_alpha
+            if bpy.context.scene.f3d_type == "F3DZEX (AC)":
+                inputGroup.separator()
+                adjust_group = inputGroup.column()
+                adjust_row = adjust_group.row()
+                adjust_row.prop(dataHolder, "set_bilerp_text_adjust", text="Bilerp Adjust Mode")
+                prop_value = adjust_row.column()
+                prop_value.enabled = dataHolder.set_bilerp_text_adjust
+                prop_value.prop(dataHolder, "bilerp_text_adjust", text="")
+                if dataHolder.set_bilerp_text_adjust and settings.g_mdsft_text_filt != "G_TF_BILERP":
+                    adjust_group.label(text="Texture filter is not bilerp.", icon="INFO")
+
+                alpha_group = inputGroup.column()
+                alpha_row = alpha_group.row()
+                alpha_row.prop(dataHolder, "set_tex_edge_alpha", text="Tex Edge Alpha")
+                prop_value = alpha_row.column()
+                prop_value.enabled = dataHolder.set_tex_edge_alpha
+                prop_value.prop(dataHolder, "tex_edge_alpha", text="")
                 if dataHolder.set_tex_edge_alpha and not settings.is_emu64_texedge:
-                    tex_edge_alpha_group.label(text="Material is not recognised as Tex Edge", icon="INFO")
+                    alpha_group.label(text="Render mode is not recognised as tex edge.", icon="INFO")
 
 
 def tmemUsageUI(layout, textureProp):
