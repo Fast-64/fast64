@@ -1,13 +1,6 @@
 import bpy
 
 sm64GoalImport = "Import"  # Not in enum, separate UI option
-sm64GoalTypeEnum = [
-    ("All", "All", "All"),
-    ("Export Object/Actor/Anim", "Export Object/Actor/Anim", "Export Object/Actor/Anim"),
-    ("Export Level", "Export Level", "Export Level"),
-    ("Export Displaylist", "Export Displaylist", "Export Displaylist"),
-    ("Export UI Image", "Export UI Image", "Export UI Image"),
-]
 
 
 class SM64_Panel(bpy.types.Panel):

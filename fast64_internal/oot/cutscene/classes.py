@@ -7,6 +7,10 @@ from ..oot_constants import ootData
 from .motion.utility import getBlenderPosition, getBlenderRotation, getRotation, getInteger
 
 
+def cs_import_float(v_str: str):
+    return float(v_str.removesuffix("f"))
+
+
 # NOTE: ``paramNumber`` is the expected number of parameters inside the parsed commands,
 # this account for the unused parameters. Every classes are based on the commands arguments from ``z64cutscene_commands.h``
 
@@ -47,7 +51,7 @@ class CutsceneCmdCamPoint(CutsceneCmdBase):
             self.continueFlag = self.params[0]
             self.camRoll = getInteger(self.params[1])
             self.frame = getInteger(self.params[2])
-            self.viewAngle = float(self.params[3][:-1])
+            self.viewAngle = cs_import_float(self.params[3])
             self.pos = [getInteger(self.params[4]), getInteger(self.params[5]), getInteger(self.params[6])]
 
 
@@ -55,7 +59,7 @@ class CutsceneCmdCamPoint(CutsceneCmdBase):
 class CutsceneCmdActorCue(CutsceneCmdBase):
     """This class contains a single Actor Cue command data"""
 
-    actionID: Optional[int] = None
+    actionID: Optional[int | str] = None
     rot: list[str] = field(default_factory=list)
     startPos: list[int] = field(default_factory=list)
     endPos: list[int] = field(default_factory=list)
@@ -65,7 +69,10 @@ class CutsceneCmdActorCue(CutsceneCmdBase):
         if self.params is not None:
             self.startFrame = getInteger(self.params[1])
             self.endFrame = getInteger(self.params[2])
-            self.actionID = getInteger(self.params[0])
+            try:
+                self.actionID = getInteger(self.params[0])
+            except ValueError:
+                self.actionID = self.params[0]
             self.rot = [getRotation(self.params[3]), getRotation(self.params[4]), getRotation(self.params[5])]
             self.startPos = [getInteger(self.params[6]), getInteger(self.params[7]), getInteger(self.params[8])]
             self.endPos = [getInteger(self.params[9]), getInteger(self.params[10]), getInteger(self.params[11])]
@@ -298,7 +305,7 @@ class CutsceneCmdLightSetting(CutsceneCmdBase):
 
     isLegacy: Optional[bool] = None
     lightSetting: Optional[int] = None
-    paramNumber: int = 11
+    paramNumber: int = 14
 
     def __post_init__(self):
         if self.params is not None:

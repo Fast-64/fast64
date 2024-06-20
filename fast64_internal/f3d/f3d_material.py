@@ -230,24 +230,6 @@ def rendermode_preset_to_advanced(material: bpy.types.Material):
     settings.blend_b2 = f3d.blendMixDict[(r2 >> 16) & 3]
 
 
-def does_blender_use_color(settings: "RDPSettings", color: str, default_for_no_rendermode: bool = False) -> bool:
-    if not settings.set_rendermode:
-        return default_for_no_rendermode
-    is_two_cycle = settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
-    return (
-        settings.blend_p1 == color
-        or settings.blend_m1 == color
-        or (is_two_cycle and (settings.blend_p2 == color or settings.blend_m2 == color))
-    )
-
-
-def does_blender_use_alpha(settings: "RDPSettings", alpha: str, default_for_no_rendermode: bool = False) -> bool:
-    if not settings.set_rendermode:
-        return default_for_no_rendermode
-    is_two_cycle = settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
-    return settings.blend_a1 == alpha or (is_two_cycle and settings.blend_a2 == alpha)
-
-
 def does_blender_use_mix(settings: "RDPSettings", mix: str, default_for_no_rendermode: bool = False) -> bool:
     if not settings.set_rendermode:
         return default_for_no_rendermode
@@ -450,7 +432,7 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             shadeInCC = ccUse["Shade"] or ccUse["Shade Alpha"]
             if settings.set_rendermode:
                 blendWarnings = True
-                shadeInBlender = does_blender_use_alpha(settings, "G_BL_A_SHADE")
+                shadeInBlender = settings.does_blender_use_input("G_BL_A_SHADE")
                 zInBlender = settings.z_cmp or settings.z_upd
 
         inputGroup.prop(settings, "g_shade_smooth")
@@ -959,11 +941,7 @@ class F3DPanel(Panel):
             if f3dMat.set_attroffs_z:
                 prop_split(inputGroup.row(), f3dMat, "attroffs_z", "Z Attr Offset")
 
-        if (
-            f3dMat.rdp_settings.g_fog
-            or does_blender_use_color(f3dMat.rdp_settings, "G_BL_CLR_FOG")
-            or does_blender_use_alpha(f3dMat.rdp_settings, "G_BL_A_FOG")
-        ):
+        if f3dMat.rdp_settings.using_fog:
             if showCheckBox or f3dMat.set_fog:
                 inputGroup = inputCol.column()
             if showCheckBox:
@@ -1070,7 +1048,7 @@ class F3DPanel(Panel):
         settings = f3dMat.rdp_settings
         isF3DEX3 = bpy.context.scene.f3d_type == "F3DEX3"
         lightFxPrereq = isF3DEX3 and settings.g_lighting
-        anyUseShadeAlpha = useDict["Shade Alpha"] or does_blender_use_alpha(settings, "G_BL_A_SHADE")
+        anyUseShadeAlpha = useDict["Shade Alpha"] or settings.does_blender_use_input("G_BL_A_SHADE")
 
         g_lighting = settings.g_lighting
         g_fog = settings.g_fog
@@ -1735,7 +1713,10 @@ def update_node_values_of_material(material: Material, context):
     else:
         nodes["UV"].node_tree = bpy.data.node_groups["UV"]
 
-    if f3dMat.rdp_settings.g_lighting:
+    # This is a temporary measure to be able to see the vertex colors in packed materials.
+    if bpy.context.scene.f3d_type == "F3DEX3" and f3dMat.rdp_settings.g_packed_normals:
+        nodes["Shade Color"].node_tree = bpy.data.node_groups["ShdCol_V"]
+    elif f3dMat.rdp_settings.g_lighting:
         nodes["Shade Color"].node_tree = bpy.data.node_groups["ShdCol_L"]
     else:
         nodes["Shade Color"].node_tree = bpy.data.node_groups["ShdCol_V"]
@@ -1933,23 +1914,90 @@ def update_tex_values_index(self: Material, *, texProperty: "TextureProperty", t
                     tex_I_node.node_tree = desired_node
 
 
+def get_color_info_from_tex(tex: bpy.types.Image):
+    is_greyscale, has_alpha_4_bit, has_alpha_1_bit = True, False, False
+    rgba_colors: set[int] = set()
+
+    pixels, channel_count = tex.pixels, tex.channels
+
+    for x in range(tex.size[0]):
+        for y in range(tex.size[1]):  # N64 is -Y, Blender is +Y, in this context this doesn´t matter
+            pixel_color = [1, 1, 1, 1]
+            for field in range(channel_count):
+                pixel_color[field] = pixels[(y * tex.size[0] + x) * channel_count + field]
+            rgba_colors.add(getRGBA16Tuple(pixel_color))
+
+            if not (pixel_color[0] == pixel_color[1] and pixel_color[1] == pixel_color[2]):
+                is_greyscale = False
+
+            if pixel_color[3] < 0.9375:
+                has_alpha_4_bit = True
+            if pixel_color[3] < 0.5:
+                has_alpha_1_bit = True
+
+    return is_greyscale, has_alpha_1_bit, has_alpha_4_bit, rgba_colors
+
+
+def get_optimal_format(tex: bpy.types.Image | None, prefer_rgba_over_ci: bool):
+    if not tex:
+        return "RGBA16"
+
+    n_size = tex.size[0] * tex.size[1]
+    if n_size > 8192:  # Image is too big
+        return "RGBA16"
+
+    is_greyscale, has_alpha_1_bit, has_alpha_4_bit, rgba_colors = get_color_info_from_tex(tex)
+
+    if is_greyscale:
+        if n_size > 4096:
+            if has_alpha_1_bit:
+                return "IA4"
+            return "I4"
+
+        if has_alpha_4_bit:
+            return "IA8"
+
+        return "I8"
+    else:
+        if len(rgba_colors) <= 16 and (not prefer_rgba_over_ci or n_size > 2048):
+            return "CI4"
+        if not prefer_rgba_over_ci and len(rgba_colors) <= 256:
+            return "CI8"
+
+    return "RGBA16"
+
+
 def update_tex_values_and_formats(self, context):
     with F3DMaterial_UpdateLock(get_material_from_context(context)) as material:
         if not material:
             return
 
-        f3d_mat = context.material.f3d_mat
-        useDict = all_combiner_uses(f3d_mat)
-        isMultiTexture = (
-            useDict["Texture 0"]
-            and f3d_mat.tex0.tex is not None
-            and useDict["Texture 1"]
-            and f3d_mat.tex1.tex is not None
-        )
-        if self.tex is not None:
-            self.tex_format = getOptimalFormat(self.tex, self.tex_format, isMultiTexture)
+        settings_props = context.scene.fast64.settings
+        if not settings_props.auto_pick_texture_format:
+            update_tex_values_manual(material, context)
+            return
 
-        update_tex_values_manual(context.material, context)
+        f3d_mat: F3DMaterialProperty = material.f3d_mat
+        useDict = all_combiner_uses(f3d_mat)
+        tex0_props = f3d_mat.tex0
+        tex1_props = f3d_mat.tex1
+
+        tex0, tex1 = tex0_props.tex if useDict["Texture 0"] else None, (
+            tex1_props.tex if useDict["Texture 1"] else None
+        )
+
+        if tex0:
+            tex0_props.tex_format = get_optimal_format(tex0, settings_props.prefer_rgba_over_ci)
+        if tex1:
+            tex1_props.tex_format = get_optimal_format(tex1, settings_props.prefer_rgba_over_ci)
+
+        if tex0 and tex1:
+            if tex0_props.tex_format.startswith("CI") and not tex1_props.tex_format.startswith("CI"):
+                tex0_props.tex_format = "RGBA16"
+            elif tex1_props.tex_format.startswith("CI") and not tex0_props.tex_format.startswith("CI"):
+                tex1_props.tex_format = "RGBA16"
+
+        update_tex_values_manual(material, context)
 
 
 def update_tex_values(self, context):
@@ -2102,11 +2150,26 @@ def update_preset_manual_v4(material, preset):
     if preset == "Shaded Texture":
         preset = "sm64_shaded_texture"
     if preset.lower() != "custom":
-        material.f3d_update_flag = True
-        with bpy.context.temp_override(material=material):
-            bpy.ops.script.execute_preset(filepath=findF3DPresetPath(preset), menu_idname="MATERIAL_MT_f3d_presets")
-        rendermode_preset_to_advanced(material)
-        material.f3d_update_flag = False
+        material_apply_preset(material, findF3DPresetPath(preset))
+
+
+def material_apply_preset(material, filepath):
+    material.f3d_update_flag = True
+    with bpy.context.temp_override(material=material):
+        bpy.ops.script.execute_preset(filepath=filepath, menu_idname="MATERIAL_MT_f3d_presets")
+
+    # Since the material preset is executed under f3d_update_flag,
+    # it setting the rendermode presets does not propagate to the individual
+    # rendermode values.
+    # So manually call the function to propagate the preset.
+    # Also that function will set props, which results in the material preset name
+    # being set to Custom (as if changed by the user).
+    # So save the preset name and restore it after the rendermode propagation.
+    savedPresetName = material.f3d_mat.presetName
+    rendermode_preset_to_advanced(material)
+    material.f3d_mat.presetName = savedPresetName
+
+    material.f3d_update_flag = False
 
 
 def has_f3d_nodes(material: Material):
@@ -3231,6 +3294,26 @@ class RDPSettings(PropertyGroup):
         update=update_node_values_with_preset,
     )
 
+    @property
+    def using_fog(self):
+        return self.g_fog or self.does_blender_use_input("G_BL_CLR_FOG") or self.does_blender_use_input("G_BL_A_FOG")
+
+    @property
+    def blend_color_inputs(self):
+        yield from (getattr(self, f"blend_{val}") for val in ("p1", "p2", "m1", "m2"))
+
+    @property
+    def blend_alpha_inputs(self):
+        yield from (getattr(self, f"blend_{val}") for val in ("a1", "a2", "b1", "b2"))
+
+    @property
+    def blend_inputs(self):
+        yield from self.blend_color_inputs
+        yield from self.blend_alpha_inputs
+
+    def does_blender_use_input(self, setting: str) -> bool:
+        return any(input == setting for input in self.blend_inputs)
+
     def key(self):
         setRM = self.set_rendermode
         rmAdv = self.rendermode_advanced_enabled
@@ -3407,65 +3490,25 @@ class CelLevelRemove(bpy.types.Operator):
         return {"FINISHED"}
 
 
-def getOptimalFormat(tex, curFormat, isMultitexture):
-    texFormat = "RGBA16"
-    if isMultitexture:
-        return curFormat
-    if tex.size[0] * tex.size[1] > 8192:  # Image too big
-        return curFormat
-
-    isGreyscale = True
-    hasAlpha4bit = False
-    hasAlpha1bit = False
-    pixelValues = []
-
-    # N64 is -Y, Blender is +Y
-    pixels = tex.pixels[:]
-    for j in reversed(range(tex.size[1])):
-        for i in range(tex.size[0]):
-            color = [1, 1, 1, 1]
-            for field in range(tex.channels):
-                color[field] = pixels[(j * tex.size[0] + i) * tex.channels + field]
-            if not (color[0] == color[1] and color[1] == color[2]):
-                isGreyscale = False
-            if color[3] < 0.9375:
-                hasAlpha4bit = True
-            if color[3] < 0.5:
-                hasAlpha1bit = True
-            pixelColor = getRGBA16Tuple(color)
-            if pixelColor not in pixelValues:
-                pixelValues.append(pixelColor)
-
-    if isGreyscale:
-        if tex.size[0] * tex.size[1] > 4096:
-            if not hasAlpha1bit:
-                texFormat = "I4"
-            else:
-                texFormat = "IA4"
-        else:
-            if not hasAlpha4bit:
-                texFormat = "I8"
-            else:
-                texFormat = "IA8"
-    else:
-        if len(pixelValues) <= 16:
-            texFormat = "CI4"
-        elif len(pixelValues) <= 256 and tex.size[0] * tex.size[1] <= 2048:
-            texFormat = "CI8"
-        else:
-            texFormat = "RGBA16"
-
-    return texFormat
-
-
 def getCurrentPresetDir():
     return "f3d/" + bpy.context.scene.gameEditorMode.lower()
+
+
+class ApplyMaterialPresetOperator(Operator):
+    bl_idname = "material.f3d_preset_apply"
+    bl_label = "Apply F3D Material Preset"
+
+    filepath: bpy.props.StringProperty()
+
+    def execute(self, context: Context):
+        material_apply_preset(context.material, self.filepath)
+        return {"FINISHED"}
 
 
 # modules/bpy_types.py -> Menu
 class MATERIAL_MT_f3d_presets(Menu):
     bl_label = "F3D Material Presets"
-    preset_operator = "script.execute_preset"
+    preset_operator = ApplyMaterialPresetOperator.bl_idname
 
     def draw(self, _context):
         """
@@ -4364,6 +4407,7 @@ mat_classes = (
     UnlinkF3DImage0,
     UnlinkF3DImage1,
     DrawLayerProperty,
+    ApplyMaterialPresetOperator,
     MATERIAL_MT_f3d_presets,
     AddPresetF3D,
     F3DPanel,
@@ -4464,6 +4508,7 @@ def mat_register():
         default=10,
     )
     Object.f3d_lod_always_render_farthest = bpy.props.BoolProperty(name="Always Render Farthest LOD")
+    Object.is_occlusion_planes = bpy.props.BoolProperty(name="Is Occlusion Planes")
 
     VIEW3D_HT_header.append(draw_f3d_render_settings)
 
@@ -4484,6 +4529,7 @@ def mat_unregister():
     del Scene.f3dUserPresetsOnly
     del Object.f3d_lod_z
     del Object.f3d_lod_always_render_farthest
+    del Object.is_occlusion_planes
 
     for cls in reversed(mat_classes):
         unregister_class(cls)

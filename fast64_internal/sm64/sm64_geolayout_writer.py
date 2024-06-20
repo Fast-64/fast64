@@ -343,34 +343,49 @@ def appendRevertToGeolayout(geolayoutGraph, fModel):
     revertMatAndEndDraw(materialRevert, [DPSetEnvColor(0xFF, 0xFF, 0xFF, 0xFF), DPSetAlphaCompare("G_AC_NONE")])
 
     # walk the geo layout graph to find the last used DL for each layer
-    last_gfx_list = dict()
-
-    def walk(node, last_gfx_list):
+    # each switch child will be considered a last used DL, unless subsequent
+    # DL is drawn outside switch root
+    def walk(node, last_gfx_list: list[dict]):
         base_node = node.node
         if type(base_node) == JumpNode:
             if base_node.geolayout:
                 for node in base_node.geolayout.nodes:
                     last_gfx_list = walk(node, last_gfx_list)
-            else:
-                last_materials = dict()
         fMesh = getattr(base_node, "fMesh", None)
         if fMesh:
             cmd_list = fMesh.drawMatOverrides.get(base_node.override_hash, None) or fMesh.draw
-            last_gfx_list[base_node.drawLayer] = cmd_list
+            for draw_layer_dict in last_gfx_list:
+                draw_layer_dict[base_node.drawLayer] = cmd_list
+        switch_gfx_lists = []
         for child in node.children:
-            last_gfx_list = walk(child, last_gfx_list)
+            if type(base_node) == SwitchNode:
+                switch_gfx_lists.extend(walk(child, [dict()]))
+            else:
+                last_gfx_list = walk(child, last_gfx_list)
+        # update the non switch nodes with the last switch node of each layer drawn
+        # that node will be overridden by at least one of the switch nodes
+        # for that layer, later items in the list will cover unique switch nodes
+        if switch_gfx_lists:
+            for draw_layer_dict in last_gfx_list:
+                draw_layer_dict.update(switch_gfx_lists[-1])
+            last_gfx_list.extend(switch_gfx_lists)
         return last_gfx_list
 
     for node in geolayoutGraph.startGeolayout.nodes:
-        last_gfx_list = walk(node, last_gfx_list)
+        last_gfx_list = walk(node, [dict()])
 
-    # Revert settings in each draw layer
-    for gfx_list in last_gfx_list.values():
-        # remove SPEndDisplayList from gfx_list, materialRevert has its own SPEndDisplayList cmd
-        while SPEndDisplayList() in gfx_list.commands:
-            gfx_list.commands.remove(SPEndDisplayList())
+    # Revert settings in each unique draw layer
+    reverted_gfx_lists = set()
+    for draw_layer_dict in last_gfx_list:
+        for gfx_list in draw_layer_dict.values():
+            if gfx_list in reverted_gfx_lists:
+                continue
+            # remove SPEndDisplayList from gfx_list, materialRevert has its own SPEndDisplayList cmd
+            while SPEndDisplayList() in gfx_list.commands:
+                gfx_list.commands.remove(SPEndDisplayList())
 
-        gfx_list.commands.extend(materialRevert.commands)
+            gfx_list.commands.extend(materialRevert.commands)
+            reverted_gfx_lists.add(gfx_list)
 
 
 # Convert to Geolayout
