@@ -14,7 +14,7 @@ class MK64_Properties(PropertyGroup):
     """Global MK64 Scene Properties found under scene.fast64.mk64"""
 
     # Import Course DL
-    EnableRenderModeDefault: bpy.props.BoolProperty(name="Enable Render Mode by Default", default=True)
+    EnableRenderModeDefault: bpy.props.BoolProperty(name="Set Render Mode by Default", default=True)
 
     @staticmethod
     def upgrade_changed_props():
