@@ -26,6 +26,8 @@ class CommandType(enum.Enum):
     INCLUDE_DATA_WITH_RODATA = 8
     NUMBER = 9
     PAD_TEXT = 10
+    INCLUDE_DATA_ONLY_WITHIN_RODATA = 11
+    INCLUDE_NO_DATA = 12
 
     @staticmethod
     def from_string(value: str):
@@ -218,7 +220,7 @@ def editSpecFile(
     # mark the other scene elements to remove (like rooms)
     segmentsToRemove: list[str] = []
     for entry in specFile.entries:
-        if entry.segmentName.startswith(f'"{sceneName}_'):
+        if entry.segmentName.startswith(f'"{sceneName}_scene') or entry.segmentName.startswith(f'"{sceneName}_room'):
             segmentsToRemove.append(entry.segmentName)
 
     # remove the segments
@@ -232,7 +234,7 @@ def editSpecFile(
         if exportInfo.customSubPath is not None:
             includeDir += f"{exportInfo.customSubPath + sceneName}"
         else:
-            includeDir += f"{getSceneDirFromLevelName(sceneName)}"
+            includeDir += f"{getSceneDirFromLevelName(sceneName, False)}"
 
         sceneCmds = [
             SpecEntryCommand(CommandType.NAME, f'"{sceneSegmentName}"'),
