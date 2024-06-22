@@ -1,7 +1,8 @@
+import bpy
 import os
+
 from bpy.types import UILayout
 from bpy.utils import register_class, unregister_class
-from ...utility import customExportWarning, prop_split
 from ...panels import OOT_Panel
 from ..oot_constants import ootEnumSceneID
 from ..oot_utility import getEnumName
@@ -10,7 +11,6 @@ from .properties import (
     OOTImportSceneSettingsProperty,
     OOTRemoveSceneSettingsProperty,
     OOTBootupSceneOptions,
-    OOTSceneCommon,
 )
 
 from .operators import (
@@ -82,7 +82,9 @@ class OOT_ExportScenePanel(OOT_Panel):
 
         if removeSettings.option == "Custom":
             exportPath = (
-                context.scene.ootDecompPath + f"assets/scenes/{removeSettings.subFolder}/{removeSettings.name}/"
+                context.scene.ootDecompPath
+                + f"/extracted/{bpy.context.scene.fast64.oot.oot_version}/"
+                + f"assets/scenes/{removeSettings.subFolder}/{removeSettings.name}/"
             )
 
             if not os.path.exists(exportPath):

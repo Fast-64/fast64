@@ -306,7 +306,14 @@ def exportCollisionToC(
 
     data.append(collisionC)
 
-    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, True)
+    path = ootGetPath(
+        exportPath,
+        isCustomExport,
+        f"extracted/{bpy.context.scene.fast64.oot.oot_version}/assets/objects/",
+        folderName,
+        False,
+        True,
+    )
     filename = exportSettings.filename if exportSettings.isCustomFilename else f"{name}_collision"
     writeCData(data, os.path.join(path, f"{filename}.h"), os.path.join(path, f"{filename}.c"))
 

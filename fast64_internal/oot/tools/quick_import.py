@@ -35,7 +35,7 @@ def quick_import_exec(context: bpy.types.Context, sym_name: str):
 
     sym_def_pattern = re.compile(rf"([^\s]+)\s+{sym_name}\s*(\[[^\]]*\])?\s*=")
 
-    base_dir_p = Path(context.scene.ootDecompPath)
+    base_dir_p = Path(context.scene.ootDecompPath) / f"extracted/{context.scene.fast64.oot.oot_version}"
     assets_objects_dir_p = base_dir_p / "assets" / "objects"
 
     all_found_defs: dict[Path, list[tuple[str, str]]] = dict()

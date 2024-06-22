@@ -1,4 +1,6 @@
-from bpy.types import Armature, PropertyGroup, Object, Bone, UILayout
+import bpy
+
+from bpy.types import PropertyGroup, Object, Bone, UILayout
 from bpy.props import EnumProperty, PointerProperty, StringProperty, FloatProperty, BoolProperty, IntProperty
 from bpy.utils import register_class, unregister_class
 from ...f3d.f3d_material import ootEnumDrawLayers
@@ -66,7 +68,7 @@ class OOTSkeletonExportSettings(PropertyGroup):
     flipbookArrayIndex2D: IntProperty(name="Index if 2D Array", default=0, min=0)
     customAssetIncludeDir: StringProperty(
         name="Asset Include Directory",
-        default="assets/objects/object_geldb",
+        default="extracted/gc-eu-mq-dbg/assets/objects/object_geldb",
         description="Used in #include for including image files",
     )
     optimize: BoolProperty(

@@ -204,7 +204,9 @@ def parseScene(
         subfolder = None
     else:
         if option == "Custom":
-            subfolder = "assets/scenes/" + settings.subFolder + "/"
+            subfolder = (
+                f"extracted/{bpy.context.scene.fast64.oot.oot_version}/assets/scenes/" + settings.subFolder + "/"
+            )
         else:
             sceneName = sceneNameFromID(option)
             subfolder = None

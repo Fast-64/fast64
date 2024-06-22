@@ -58,6 +58,14 @@ from .tools import (
     oot_operator_unregister,
 )
 
+oot_versions_items = [
+    ("Custom", "Custom", "Custom"),
+    ("hackeroot-mq", "HackerOoT", "hackeroot-mq"),  # TODO: force this value if HackerOoT features are enabled?
+    ("gc-eu-mq-dbg", "gc-eu-mq-dbg", "gc-eu-mq-dbg"),
+    ("gc-eu-mq", "gc-eu-mq", "gc-eu-mq"),
+    ("gc-eu", "gc-eu", "gc-eu"),
+]
+
 
 class OOT_Properties(bpy.types.PropertyGroup):
     """Global OOT Scene Properties found under scene.fast64.oot"""
@@ -75,6 +83,7 @@ class OOT_Properties(bpy.types.PropertyGroup):
     animExportSettings: bpy.props.PointerProperty(type=OOTAnimExportSettingsProperty)
     animImportSettings: bpy.props.PointerProperty(type=OOTAnimImportSettingsProperty)
     collisionExportSettings: bpy.props.PointerProperty(type=OOTCollisionExportSettings)
+    oot_version: bpy.props.EnumProperty(name="OoT Version", items=oot_versions_items, default="gc-eu-mq-dbg")
 
 
 oot_classes = (OOT_Properties,)

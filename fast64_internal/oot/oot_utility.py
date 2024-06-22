@@ -157,6 +157,7 @@ ootSceneTest_levels = [
     "testroom",
 ]
 
+# NOTE: the "extracted/VERSION/" part is added in ``getSceneDirFromLevelName``
 ootSceneDirs = {
     "assets/scenes/dungeons/": ootSceneDungeons,
     "assets/scenes/indoors/": ootSceneIndoors,
@@ -204,7 +205,7 @@ def addIncludeFilesExtension(objectName, objectPath, assetName, extension):
 def getSceneDirFromLevelName(name):
     for sceneDir, dirLevels in ootSceneDirs.items():
         if name in dirLevels:
-            return sceneDir + name
+            return f"extracted/{bpy.context.scene.fast64.oot.oot_version}/" + sceneDir + name
     return None
 
 
@@ -376,7 +377,15 @@ def ootGetObjectPath(isCustomExport, exportPath, folderName):
         filepath = exportPath
     else:
         filepath = os.path.join(
-            ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False), folderName + ".c"
+            ootGetPath(
+                exportPath,
+                isCustomExport,
+                f"extracted/{bpy.context.scene.fast64.oot.oot_version}/assets/objects/",
+                folderName,
+                False,
+                False,
+            ),
+            folderName + ".c",
         )
     return filepath
 
