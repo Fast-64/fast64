@@ -307,6 +307,35 @@ def upgradeCutsceneMotion(csMotionObj: Object):
 # Actors
 #####################################
 def upgradeActors(actorObj: Object):
+    # parameters
+    actorProp = None
+    if actorObj.ootEmptyType == "Actor":
+        actorProp = actorObj.ootActorProperty
+    elif actorObj.ootEmptyType == "Transition Actor":
+        actorProp = actorObj.ootTransitionActorProperty.actor
+    elif actorObj.ootEmptyType == "Entrance":
+        actorProp = actorObj.ootEntranceProperty.actor
+
+    if actorProp is not None:
+        isCustom = False
+        if actorObj.ootEmptyType == "Entrance":
+            isCustom = actorObj.ootEntranceProperty.customActor
+        else:
+            isCustom = actorProp.actorID == "Custom"
+
+        if not isCustom:
+            actorProp.params = actorProp.actorParam
+            actorProp.actorParam = "0x0000"
+
+            if actorObj.ootEmptyType == "Actor" and actorProp.rotOverride:
+                actorProp.rotX = actorProp.rotOverrideX
+                actorProp.rotY = actorProp.rotOverrideY
+                actorProp.rotZ = actorProp.rotOverrideZ
+                actorProp.rotOverrideX = "0x0000"
+                actorProp.rotOverrideY = "0x0000"
+                actorProp.rotOverrideZ = "0x0000"
+
+    # room stuff
     if actorObj.ootEmptyType == "Entrance":
         entranceProp = actorObj.ootEntranceProperty
 
