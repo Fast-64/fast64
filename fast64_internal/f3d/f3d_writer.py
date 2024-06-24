@@ -1409,7 +1409,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     if f3dMat.set_attroffs_z:
         fMaterial.mat_only_DL.commands.append(SPAttrOffsetZ(f3dMat.attroffs_z))
 
-    if f3dMat.set_fog:
+    if f3dMat.set_fog and f3dMat.rdp_settings.using_fog:
         if f3dMat.use_global_fog and fModel.global_data.getCurrentAreaData() is not None:
             fogData = fModel.global_data.getCurrentAreaData().fog_data
             fog_position = fogData.position
@@ -1945,7 +1945,7 @@ class F3D_ExportDL(bpy.types.Operator):
             texDir = bpy.context.scene.DLTexDir
             savePNG = bpy.context.scene.saveTextures
             separateTexDef = bpy.context.scene.DLSeparateTextureDef
-            DLName = bpy.context.scene.DLName
+            DLName = toAlnum(bpy.context.scene.DLName)
             matWriteMethod = getWriteMethodFromEnum(context.scene.matWriteMethod)
 
             exportF3DtoC(

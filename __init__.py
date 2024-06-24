@@ -48,6 +48,7 @@ bl_info = {
 gameEditorEnum = (
     ("SM64", "SM64", "Super Mario 64"),
     ("OOT", "OOT", "Ocarina Of Time"),
+    ("Homebrew", "Homebrew", "Homebrew"),
 )
 
 
@@ -77,7 +78,6 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
                 "While inlining, all meshes will be restored to world default values.\n         You can configure these values in the world properties tab.",
                 icon="INFO",
             )
-        col.prop(context.scene, "decomp_compatible", invert_checkbox=True, text="Homebrew Compatibility")
         col.prop(context.scene, "ignoreTextureRestrictions")
         if context.scene.ignoreTextureRestrictions:
             col.box().label(text="Width/height must be < 1024. Must be png format.")
@@ -308,6 +308,10 @@ def upgrade_changed_props():
     SM64_Properties.upgrade_changed_props()
     SM64_ObjectProperties.upgrade_changed_props()
     OOT_ObjectProperties.upgrade_changed_props()
+    for scene in bpy.data.scenes:
+        if scene.get("decomp_compatible", False):
+            scene.gameEditorMode = "Homebrew"
+            del scene["decomp_compatible"]
 
 
 def upgrade_scene_props_node():
@@ -370,7 +374,6 @@ def register():
 
     # ROM
 
-    bpy.types.Scene.decomp_compatible = bpy.props.BoolProperty(name="Decomp Compatibility", default=True)
     bpy.types.Scene.ignoreTextureRestrictions = bpy.props.BoolProperty(name="Ignore Texture Restrictions")
     bpy.types.Scene.fullTraceback = bpy.props.BoolProperty(name="Show Full Error Traceback", default=False)
     bpy.types.Scene.gameEditorMode = bpy.props.EnumProperty(
@@ -410,7 +413,6 @@ def unregister():
     render_engine_unregister()
 
     del bpy.types.Scene.fullTraceback
-    del bpy.types.Scene.decomp_compatible
     del bpy.types.Scene.ignoreTextureRestrictions
     del bpy.types.Scene.saveTextures
     del bpy.types.Scene.gameEditorMode
