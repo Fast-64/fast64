@@ -1979,6 +1979,8 @@ def parseVertexData(dlData: str, vertexDataName: str, f3dContext: F3DContext):
     pathMatch = re.search(r'\#include\s*"([^"]*)"', data)
     if pathMatch is not None:
         path = pathMatch.group(1)
+        if bpy.context.scene.gameEditorMode == "OOT":
+            path = f"extracted/{bpy.context.scene.fast64.oot.oot_version}/{path}"
         data = readFile(f3dContext.getVTXPathFromInclude(path))
 
     f3d = f3dContext.f3d
@@ -2081,6 +2083,8 @@ def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, wi
     pathMatch = re.search(r'\#include\s*"(.*?)"', data, re.DOTALL)
     if pathMatch is not None:
         path = pathMatch.group(1)
+        if bpy.context.scene.gameEditorMode == "OOT":
+            path = f"extracted/{bpy.context.scene.fast64.oot.oot_version}/{path}"
         originalImage = bpy.data.images.load(f3dContext.getImagePathFromInclude(path))
         image = originalImage.copy()
         image.pack()
@@ -2268,18 +2272,21 @@ def importMeshC(
     f3dContext: F3DContext,
     callClearMaterial: bool = True,
 ) -> bpy.types.Object:
-    mesh = bpy.data.meshes.new(name + "_mesh")
-    obj = bpy.data.objects.new(name + "_mesh", mesh)
-    bpy.context.collection.objects.link(obj)
+    if bpy.context.scene.gameEditorMode == "OOT":
+        mesh = bpy.data.meshes.new(name + "_mesh")
+        obj = bpy.data.objects.new(name + "_mesh", mesh)
+        bpy.context.collection.objects.link(obj)
 
-    f3dContext.mat().draw_layer.oot = drawLayer
-    transformMatrix = mathutils.Matrix.Scale(1 / scale, 4)
+        f3dContext.mat().draw_layer.oot = drawLayer
+        transformMatrix = mathutils.Matrix.Scale(1 / scale, 4)
 
-    parseF3D(data, name, transformMatrix, name, name, "oot", drawLayer, f3dContext, True)
-    f3dContext.createMesh(obj, removeDoubles, importNormals, callClearMaterial)
+        parseF3D(data, name, transformMatrix, name, name, "oot", drawLayer, f3dContext, True)
+        f3dContext.createMesh(obj, removeDoubles, importNormals, callClearMaterial)
 
-    applyRotation([obj], math.radians(-90), "X")
-    return obj
+        applyRotation([obj], math.radians(-90), "X")
+        return obj
+    else:
+        raise PluginError("ERROR: This function has not been implemented yet for this game.")
 
 
 class F3D_ImportDL(bpy.types.Operator):
