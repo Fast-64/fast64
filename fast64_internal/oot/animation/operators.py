@@ -36,7 +36,7 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
         path = ootGetPath(
             exportPath,
             settings.isCustom,
-            f"extracted/{bpy.context.scene.fast64.oot.oot_version}/assets/misc/link_animetion",
+            f"{bpy.context.scene.fast64.oot.get_extracted_path()}/assets/misc/link_animetion",
             settings.folderName if settings.isCustom else "",
             False,
             False,
@@ -44,7 +44,7 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
         headerPath = ootGetPath(
             exportPath,
             settings.isCustom,
-            f"extracted/{bpy.context.scene.fast64.oot.oot_version}/assets/objects/gameplay_keep",
+            f"{bpy.context.scene.fast64.oot.get_extracted_path()}/assets/objects/gameplay_keep",
             settings.folderName if settings.isCustom else "",
             False,
             False,
@@ -69,7 +69,7 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
         path = ootGetPath(
             exportPath,
             settings.isCustom,
-            f"extracted/{bpy.context.scene.fast64.oot.oot_version}/assets/objects/",
+            f"{bpy.context.scene.fast64.oot.get_extracted_path()}/assets/objects/",
             settings.folderName,
             False,
             False,
@@ -93,11 +93,11 @@ def ootImportAnimationC(
             basePath = bpy.path.abspath(bpy.context.scene.ootDecompPath)
             animFilepath = os.path.join(
                 basePath,
-                f"extracted/{bpy.context.scene.fast64.oot.oot_version}/assets/misc/link_animetion/link_animetion.c",
+                f"{bpy.context.scene.fast64.oot.get_extracted_path()}/assets/misc/link_animetion/link_animetion.c",
             )
             animHeaderFilepath = os.path.join(
                 basePath,
-                f"extracted/{bpy.context.scene.fast64.oot.oot_version}/assets/objects/gameplay_keep/gameplay_keep.c",
+                f"{bpy.context.scene.fast64.oot.get_extracted_path()}/assets/objects/gameplay_keep/gameplay_keep.c",
             )
         else:
             animFilepath = filepath

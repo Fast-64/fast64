@@ -83,7 +83,7 @@ class OOT_ExportScenePanel(OOT_Panel):
         if removeSettings.option == "Custom":
             exportPath = (
                 context.scene.ootDecompPath
-                + f"/extracted/{bpy.context.scene.fast64.oot.oot_version}/"
+                + context.scene.fast64.oot.get_extracted_path()
                 + f"assets/scenes/{removeSettings.subFolder}/{removeSettings.name}/"
             )
 

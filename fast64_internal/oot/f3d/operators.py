@@ -68,7 +68,7 @@ def ootConvertMeshToC(
     else:
         data.source += "\n"
 
-    extracted = f"extracted/{bpy.context.scene.fast64.oot.oot_version}"
+    extracted = bpy.context.scene.fast64.oot.get_extracted_path()
     path = ootGetPath(exportPath, isCustomExport, f"{extracted}/assets/objects/", folderName, False, True)
     includeDir = settings.customAssetIncludeDir if settings.isCustom else f"{extracted}/assets/objects/{folderName}"
     exportData = fModel.to_c(

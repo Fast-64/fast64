@@ -84,6 +84,10 @@ class OOT_Properties(bpy.types.PropertyGroup):
     animImportSettings: bpy.props.PointerProperty(type=OOTAnimImportSettingsProperty)
     collisionExportSettings: bpy.props.PointerProperty(type=OOTCollisionExportSettings)
     oot_version: bpy.props.EnumProperty(name="OoT Version", items=oot_versions_items, default="gc-eu-mq-dbg")
+    oot_version_custom: bpy.props.StringProperty(name="Custom Version")
+
+    def get_extracted_path(self):
+        return f"extracted/{self.oot_version if self.oot_version != 'Custom' else self.oot_version_custom}/"
 
 
 oot_classes = (OOT_Properties,)

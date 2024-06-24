@@ -309,7 +309,7 @@ def exportCollisionToC(
     path = ootGetPath(
         exportPath,
         isCustomExport,
-        f"extracted/{bpy.context.scene.fast64.oot.oot_version}/assets/objects/",
+        f"{bpy.context.scene.fast64.oot.get_extracted_path()}/assets/objects/",
         folderName,
         False,
         True,

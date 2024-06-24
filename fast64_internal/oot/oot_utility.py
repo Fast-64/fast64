@@ -203,7 +203,7 @@ def addIncludeFilesExtension(objectName, objectPath, assetName, extension):
 
 
 def getSceneDirFromLevelName(name: str, include_extracted: bool = True):
-    extracted = f"extracted/{bpy.context.scene.fast64.oot.oot_version}/" if include_extracted else ""
+    extracted = bpy.context.scene.fast64.oot.get_extracted_path() if include_extracted else ""
     for sceneDir, dirLevels in ootSceneDirs.items():
         if name in dirLevels:
             return extracted + sceneDir + name
@@ -381,7 +381,7 @@ def ootGetObjectPath(isCustomExport, exportPath, folderName):
             ootGetPath(
                 exportPath,
                 isCustomExport,
-                f"extracted/{bpy.context.scene.fast64.oot.oot_version}/assets/objects/",
+                f"{bpy.context.scene.fast64.oot.get_extracted_path()}/assets/objects/",
                 folderName,
                 False,
                 False,
