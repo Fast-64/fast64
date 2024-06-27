@@ -3405,10 +3405,6 @@ class DefaultRDPSettingsPanel(Panel):
     bl_context = "world"
     bl_options = {"HIDE_HEADER"}
 
-    @classmethod
-    def poll(cls, context):
-        return context.scene.gameEditorMode != "OOT"
-
     def draw(self, context):
         world = context.scene.world
         layout = self.layout
