@@ -137,7 +137,7 @@ class OOTDynamicMaterialProperty(PropertyGroup):
             return
 
         suffix = "(" + drawLayerSuffix[drawLayer] + ")"
-        layout.box().column().label(text="OOT Dynamic Material Properties " + suffix)
+        layout.label(text=drawLayerSuffix[drawLayer] + " Draw Layer", icon="INFO")
         layout.label(text="See gSPSegment calls in z_scene_table.c.")
         layout.label(text="Based off draw config index in gSceneTable.")
         dynMatLayerProp: OOTDynamicMaterialDrawLayerProperty = getattr(self, drawLayer.lower())
@@ -148,7 +148,6 @@ class OOTDynamicMaterialProperty(PropertyGroup):
 
 
 class OOTDefaultRenderModesProperty(PropertyGroup):
-    expandTab: BoolProperty()
     opaqueCycle1: StringProperty(default="G_RM_AA_ZB_OPA_SURF")
     opaqueCycle2: StringProperty(default="G_RM_AA_ZB_OPA_SURF2")
     transparentCycle1: StringProperty(default="G_RM_AA_ZB_XLU_SURF")
@@ -158,19 +157,12 @@ class OOTDefaultRenderModesProperty(PropertyGroup):
 
     def draw_props(self, layout: UILayout):
         inputGroup = layout.column()
-        inputGroup.prop(
-            self,
-            "expandTab",
-            text="Default Render Modes",
-            icon="TRIA_DOWN" if self.expandTab else "TRIA_RIGHT",
-        )
-        if self.expandTab:
-            prop_split(inputGroup, self, "opaqueCycle1", "Opaque Cycle 1")
-            prop_split(inputGroup, self, "opaqueCycle2", "Opaque Cycle 2")
-            prop_split(inputGroup, self, "transparentCycle1", "Transparent Cycle 1")
-            prop_split(inputGroup, self, "transparentCycle2", "Transparent Cycle 2")
-            prop_split(inputGroup, self, "overlayCycle1", "Overlay Cycle 1")
-            prop_split(inputGroup, self, "overlayCycle2", "Overlay Cycle 2")
+        prop_split(inputGroup, self, "opaqueCycle1", "Opaque Cycle 1")
+        prop_split(inputGroup, self, "opaqueCycle2", "Opaque Cycle 2")
+        prop_split(inputGroup, self, "transparentCycle1", "Transparent Cycle 1")
+        prop_split(inputGroup, self, "transparentCycle2", "Transparent Cycle 2")
+        prop_split(inputGroup, self, "overlayCycle1", "Overlay Cycle 1")
+        prop_split(inputGroup, self, "overlayCycle2", "Overlay Cycle 2")
 
 
 oot_dl_writer_classes = (

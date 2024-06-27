@@ -6,43 +6,40 @@ from .operators import OOT_ExportCollision
 
 
 class OOT_CameraPosPanel(Panel):
-    bl_label = "Camera Position Inspector"
+    bl_label = "OOT Camera Position Inspector"
     bl_idname = "OBJECT_PT_OOT_Camera_Position_Inspector"
+    bl_parent_id = "OBJECT_PT_context_object"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "object"
-    bl_options = {"HIDE_HEADER"}
 
     @classmethod
     def poll(cls, context):
         return context.scene.gameEditorMode == "OOT" and isinstance(context.object.data, Camera)
 
     def draw(self, context):
-        box = self.layout.box().column()
+        col = self.layout.column()
         obj = context.object
 
-        box.box().label(text="Camera Data")
         camPosProps: OOTCameraPositionProperty = obj.ootCameraPositionProperty
-        camPosProps.draw_props(box, obj)
+        camPosProps.draw_props(col, obj)
 
 
 class OOT_CollisionPanel(Panel):
-    bl_label = "Collision Inspector"
+    bl_label = "OOT Collision Inspector"
     bl_idname = "MATERIAL_PT_OOT_Collision_Inspector"
+    bl_parent_id = "EEVEE_MATERIAL_PT_context_material"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "material"
-    bl_options = {"HIDE_HEADER"}
 
     @classmethod
     def poll(cls, context):
         return context.scene.gameEditorMode == "OOT" and context.material is not None
 
     def draw(self, context):
-        box = self.layout.box().column()
-
         collisionProp: OOTMaterialCollisionProperty = context.material.ootCollisionProperty
-        collisionProp.draw_props(box)
+        collisionProp.draw_props(self.layout.column())
 
 
 class OOT_ExportCollisionPanel(OOT_Panel):

@@ -860,10 +860,10 @@ class ExportTexRectDrawPanel(SM64_Panel):
 class SM64_DrawLayersPanel(bpy.types.Panel):
     bl_label = "SM64 Draw Layers"
     bl_idname = "WORLD_PT_SM64_Draw_Layers_Panel"
+    bl_parent_id = "WORLD_PT_context_world"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "world"
-    bl_options = {"HIDE_HEADER"}
 
     @classmethod
     def poll(cls, context):
@@ -874,18 +874,13 @@ class SM64_DrawLayersPanel(bpy.types.Panel):
         layout = self.layout
 
         inputGroup = layout.column()
-        inputGroup.prop(
-            world, "menu_layers", text="Draw Layers", icon="TRIA_DOWN" if world.menu_layers else "TRIA_RIGHT"
-        )
-        if world.menu_layers:
-            for i in range(8):
-                drawLayerUI(inputGroup, i, world)
+        for i in range(8):
+            drawLayerUI(inputGroup, i, world)
 
 
 def drawLayerUI(layout, drawLayer, world):
-    box = layout.box()
-    box.label(text="Layer " + str(drawLayer))
-    row = box.row()
+    layout.label(text="Layer " + str(drawLayer))
+    row = layout.row()
     row.prop(world, "draw_layer_" + str(drawLayer) + "_cycle_1", text="")
     row.prop(world, "draw_layer_" + str(drawLayer) + "_cycle_2", text="")
 
@@ -893,10 +888,10 @@ def drawLayerUI(layout, drawLayer, world):
 class SM64_MaterialPanel(bpy.types.Panel):
     bl_label = "SM64 Material"
     bl_idname = "MATERIAL_PT_SM64_Material_Inspector"
+    bl_parent_id = "EEVEE_MATERIAL_PT_context_material"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "material"
-    bl_options = {"HIDE_HEADER"}
 
     @classmethod
     def poll(cls, context):

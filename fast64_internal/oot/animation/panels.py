@@ -8,11 +8,11 @@ from .properties import OOTAnimExportSettingsProperty, OOTAnimImportSettingsProp
 
 class OOT_LinkAnimPanel(Panel):
     bl_idname = "OOT_PT_link_anim"
+    bl_parent_id = "OBJECT_PT_context_object"
     bl_label = "OOT Link Animation Properties"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "object"
-    bl_options = {"HIDE_HEADER"}
 
     @classmethod
     def poll(cls, context):
@@ -25,8 +25,7 @@ class OOT_LinkAnimPanel(Panel):
 
     # called every frame
     def draw(self, context):
-        col = self.layout.box().column()
-        col.box().label(text="OOT Link Animation Inspector")
+        col = self.layout.column()
         linkTextureAnim: OOTLinkTextureAnimProperty = context.object.ootLinkTextureAnim
         linkTextureAnim.draw_props(col)
         col.label(text="Index 0 is for auto, flipbook starts at index 1.", icon="INFO")

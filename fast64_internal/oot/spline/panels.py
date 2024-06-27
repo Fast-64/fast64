@@ -9,10 +9,10 @@ from .properties import OOTSplineProperty
 class OOTSplinePanel(Panel):
     bl_label = "Spline Inspector"
     bl_idname = "OBJECT_PT_OOT_Spline_Inspector"
+    bl_parent_id = "OBJECT_PT_context_object"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "object"
-    bl_options = {"HIDE_HEADER"}
 
     @classmethod
     def poll(cls, context):
@@ -21,16 +21,15 @@ class OOTSplinePanel(Panel):
         )
 
     def draw(self, context):
-        box = self.layout.box().column()
-        box.box().label(text="OOT Spline Inspector")
+        col = self.layout.column()
         curve = context.object.data
         if curve.splines[0].type != "NURBS":
-            box.label(text="Only NURBS curves are compatible.")
+            col.label(text="Only NURBS curves are compatible.")
         else:
             sceneObj = getSceneObj(context.object)
             altSceneProp = sceneObj.ootAlternateSceneHeaders if sceneObj is not None else None
             splineProp: OOTSplineProperty = context.object.ootSplineProperty
-            splineProp.draw_props(box, altSceneProp, context.object.name)
+            splineProp.draw_props(col, altSceneProp, context.object.name)
 
 
 oot_spline_panel_classes = (OOTSplinePanel,)

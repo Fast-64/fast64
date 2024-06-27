@@ -196,12 +196,12 @@ class Collision:
 
 
 class SM64CollisionPanel(bpy.types.Panel):
-    bl_label = "Collision Inspector"
+    bl_label = "SM64 Collision Inspector"
     bl_idname = "MATERIAL_PT_SM64_Collision_Inspector"
+    bl_parent_id = "EEVEE_MATERIAL_PT_context_material"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "material"
-    bl_options = {"HIDE_HEADER"}
 
     @classmethod
     def poll(cls, context):
@@ -215,32 +215,32 @@ class SM64CollisionPanel(bpy.types.Panel):
         box.label(text="Second byte is a rotation value.")
 
     def draw(self, context):
-        box = self.layout.box()
+        col = self.layout.column()
         # box.label(text = 'Collision Inspector')
         material = context.material
         if not material.collision_all_options:
-            prop_split(box, material, "collision_type_simple", "SM64 Collision Type")
+            prop_split(col, material, "collision_type_simple", "SM64 Collision Type")
             if material.collision_type_simple == "Custom":
-                prop_split(box, material, "collision_custom", "Collision Value")
+                prop_split(col, material, "collision_custom", "Collision Value")
             # if material.collision_type_simple in specialSurfaces:
             # 	prop_split(box, material, 'collision_param', 'Parameter')
             # 	self.paramInfo(box)
         else:
-            prop_split(box, material, "collision_type", "SM64 Collision Type All")
+            prop_split(col, material, "collision_type", "SM64 Collision Type All")
             if material.collision_type == "Custom":
-                prop_split(box, material, "collision_custom", "Collision Value")
+                prop_split(col, material, "collision_custom", "Collision Value")
             # if material.collision_type in specialSurfaces:
             # 	prop_split(box, material, 'collision_param', 'Parameter')
             # 	self.paramInfo(box)
 
-        split = box.split(factor=0.5)
+        split = col.split(factor=0.5)
         split.label(text="")
         split.prop(material, "collision_all_options")
 
-        box.prop(material, "use_collision_param")
+        col.prop(material, "use_collision_param")
         if material.use_collision_param:
-            prop_split(box, material, "collision_param", "Parameter")
-            self.paramInfo(box)
+            prop_split(col, material, "collision_param", "Parameter")
+            self.paramInfo(col)
 
         # infoBox = box.box()
         # infoBox.label(text = \

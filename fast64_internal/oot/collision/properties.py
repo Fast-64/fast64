@@ -59,8 +59,6 @@ class OOTCameraPositionProperty(PropertyGroup):
 
 
 class OOTMaterialCollisionProperty(PropertyGroup):
-    expandTab: BoolProperty()
-
     ignoreCameraCollision: BoolProperty()
     ignoreActorCollision: BoolProperty()
     ignoreProjectileCollision: BoolProperty()
@@ -90,38 +88,31 @@ class OOTMaterialCollisionProperty(PropertyGroup):
     sound: EnumProperty(items=ootEnumCollisionSound, default="0x00")
 
     def draw_props(self, layout: UILayout):
-        layout.prop(
-            self,
-            "expandTab",
-            text="OOT Collision Properties",
-            icon="TRIA_DOWN" if self.expandTab else "TRIA_RIGHT",
-        )
-        if self.expandTab:
-            prop_split(layout, self, "exitID", "Exit ID")
-            prop_split(layout, self, "cameraID", "Camera ID")
-            prop_split(layout, self, "echo", "Echo")
-            prop_split(layout, self, "lightingSetting", "Lighting")
-            drawEnumWithCustom(layout, self, "terrain", "Terrain", "")
-            drawEnumWithCustom(layout, self, "sound", "Sound", "")
+        prop_split(layout, self, "exitID", "Exit ID")
+        prop_split(layout, self, "cameraID", "Camera ID")
+        prop_split(layout, self, "echo", "Echo")
+        prop_split(layout, self, "lightingSetting", "Lighting")
+        drawEnumWithCustom(layout, self, "terrain", "Terrain", "")
+        drawEnumWithCustom(layout, self, "sound", "Sound", "")
 
-            layout.prop(self, "eponaBlock", text="Blocks Epona")
-            layout.prop(self, "decreaseHeight", text="Decrease Height 1 Unit")
-            layout.prop(self, "isWallDamage", text="Is Wall Damage")
-            layout.prop(self, "hookshotable", text="Hookshotable")
+        layout.prop(self, "eponaBlock", text="Blocks Epona")
+        layout.prop(self, "decreaseHeight", text="Decrease Height 1 Unit")
+        layout.prop(self, "isWallDamage", text="Is Wall Damage")
+        layout.prop(self, "hookshotable", text="Hookshotable")
 
-            drawEnumWithCustom(layout, self, "floorSetting", "Floor Setting", "")
-            drawEnumWithCustom(layout, self, "wallSetting", "Wall Setting", "")
-            drawEnumWithCustom(layout, self, "floorProperty", "Floor Property", "")
+        drawEnumWithCustom(layout, self, "floorSetting", "Floor Setting", "")
+        drawEnumWithCustom(layout, self, "wallSetting", "Wall Setting", "")
+        drawEnumWithCustom(layout, self, "floorProperty", "Floor Property", "")
 
-            layout.prop(self, "ignoreCameraCollision", text="Ignore Camera Collision")
-            layout.prop(self, "ignoreActorCollision", text="Ignore Actor Collision")
-            layout.prop(self, "ignoreProjectileCollision", text="Ignore Projectile Collision")
-            prop_split(layout, self, "conveyorOption", "Conveyor Option")
-            if self.conveyorOption != "None":
-                prop_split(layout, self, "conveyorRotation", "Conveyor Rotation")
-                drawEnumWithCustom(layout, self, "conveyorSpeed", "Conveyor Speed", "")
-                if self.conveyorSpeed != "Custom":
-                    layout.prop(self, "conveyorKeepMomentum", text="Keep Momentum")
+        layout.prop(self, "ignoreCameraCollision", text="Ignore Camera Collision")
+        layout.prop(self, "ignoreActorCollision", text="Ignore Actor Collision")
+        layout.prop(self, "ignoreProjectileCollision", text="Ignore Projectile Collision")
+        prop_split(layout, self, "conveyorOption", "Conveyor Option")
+        if self.conveyorOption != "None":
+            prop_split(layout, self, "conveyorRotation", "Conveyor Rotation")
+            drawEnumWithCustom(layout, self, "conveyorSpeed", "Conveyor Speed", "")
+            if self.conveyorSpeed != "Custom":
+                layout.prop(self, "conveyorKeepMomentum", text="Keep Momentum")
 
 
 class OOTWaterBoxProperty(PropertyGroup):

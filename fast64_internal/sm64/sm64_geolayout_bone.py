@@ -82,7 +82,6 @@ enumMatOverrideOptions = [
 
 
 def drawGeoInfo(panel: Panel, bone: Bone):
-    panel.layout.box().label(text="Geolayout Inspector")
     if bone is None:
         panel.layout.label(text="Edit geolayout properties in Pose mode.")
         return
@@ -158,10 +157,10 @@ def drawGeoInfo(panel: Panel, bone: Bone):
 class GeolayoutBonePanel(Panel):
     bl_label = "Geolayout Inspector"
     bl_idname = "BONE_PT_SM64_Geolayout_Inspector"
+    bl_parent_id = "BONE_PT_context_bone"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "bone"
-    bl_options = {"HIDE_HEADER"}
 
     @classmethod
     def poll(cls, context):
@@ -172,12 +171,12 @@ class GeolayoutBonePanel(Panel):
 
 
 class GeolayoutArmaturePanel(Panel):
-    bl_label = "Geolayout Armature Inspector"
+    bl_label = "SM64 Geolayout Armature Inspector"
     bl_idname = "OBJECT_PT_SM64_Armature_Geolayout_Inspector"
+    bl_parent_id = "OBJECT_PT_context_object"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "object"
-    bl_options = {"HIDE_HEADER"}
 
     @classmethod
     def poll(cls, context):
@@ -189,8 +188,7 @@ class GeolayoutArmaturePanel(Panel):
 
     def draw(self, context):
         obj = context.object
-        col = self.layout.column().box()
-        col.box().label(text="Armature Geolayout Inspector")
+        col = self.layout.column()
 
         col.prop(obj, "use_render_area")
         if obj.use_render_area:
@@ -206,12 +204,12 @@ def drawLayerWarningBox(layout, prop, data):
 
 
 class GeolayoutObjectPanel(Panel):
-    bl_label = "Object Geolayout Inspector"
-    bl_idname = "OBJECT_PT_SM64_Object_Geolayout_Inspector"
+    bl_label = "SM64 Object Geolayout"
+    bl_idname = "OBJECT_PT_SM64_Geolayout"
+    bl_parent_id = "OBJECT_PT_context_object"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "object"
-    bl_options = {"HIDE_HEADER"}
 
     @classmethod
     def poll(cls, context):
@@ -223,8 +221,7 @@ class GeolayoutObjectPanel(Panel):
 
     def draw(self, context):
         obj = context.object
-        col = self.layout.column().box()
-        col.box().label(text="Object Geolayout Inspector")
+        col = self.layout.column()
 
         prop_split(col, obj, "geo_cmd_static", "Geolayout Command")
         drawLayerWarningBox(col, obj, "draw_layer_static")

@@ -1084,12 +1084,12 @@ class SearchSpecialEnumOperator(bpy.types.Operator):
 
 
 class SM64ObjectPanel(bpy.types.Panel):
-    bl_label = "Object Inspector"
+    bl_label = "SM64 Object Inspector"
     bl_idname = "OBJECT_PT_SM64_Object_Inspector"
+    bl_parent_id = "OBJECT_PT_context_object"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "object"
-    bl_options = {"HIDE_HEADER"}
 
     @classmethod
     def poll(cls, context):
@@ -1187,114 +1187,112 @@ class SM64ObjectPanel(bpy.types.Panel):
 
     def draw(self, context):
         prop_split(self.layout, context.scene, "gameEditorMode", "Game")
-        box = self.layout.box().column()
-        column = self.layout.box().column()  # added just for puppycam trigger importing
-        box.box().label(text="SM64 Object Inspector")
+        col = self.layout.column()
         obj = context.object
-        prop_split(box, obj, "sm64_obj_type", "Object Type")
+        prop_split(col, obj, "sm64_obj_type", "Object Type")
         if obj.sm64_obj_type == "Object":
-            prop_split(box, obj, "sm64_model_enum", "Model")
+            prop_split(col, obj, "sm64_model_enum", "Model")
             if obj.sm64_model_enum == "Custom":
-                prop_split(box, obj, "sm64_obj_model", "Model ID")
-            box.operator(SearchModelIDEnumOperator.bl_idname, icon="VIEWZOOM")
-            box.box().label(text="Model IDs defined in include/model_ids.h.")
-            prop_split(box, obj, "sm64_behaviour_enum", "Behaviour")
+                prop_split(col, obj, "sm64_obj_model", "Model ID")
+            col.operator(SearchModelIDEnumOperator.bl_idname, icon="VIEWZOOM")
+            col.box().label(text="Model IDs defined in include/model_ids.h.")
+            prop_split(col, obj, "sm64_behaviour_enum", "Behaviour")
             if obj.sm64_behaviour_enum == "Custom":
-                prop_split(box, obj, "sm64_obj_behaviour", "Behaviour Name")
-            box.operator(SearchBehaviourEnumOperator.bl_idname, icon="VIEWZOOM")
-            behaviourLabel = box.box()
+                prop_split(col, obj, "sm64_obj_behaviour", "Behaviour Name")
+            col.operator(SearchBehaviourEnumOperator.bl_idname, icon="VIEWZOOM")
+            behaviourLabel = col.box()
             behaviourLabel.label(text="Behaviours defined in include/behaviour_data.h.")
             behaviourLabel.label(text="Actual contents in data/behaviour_data.c.")
-            self.draw_behavior_params(obj, box)
-            self.draw_acts(obj, box)
+            self.draw_behavior_params(obj, col)
+            self.draw_acts(obj, col)
 
         elif obj.sm64_obj_type == "Macro":
-            prop_split(box, obj, "sm64_macro_enum", "Preset")
+            prop_split(col, obj, "sm64_macro_enum", "Preset")
             if obj.sm64_macro_enum == "Custom":
-                prop_split(box, obj, "sm64_obj_preset", "Preset Name")
-            box.operator(SearchMacroEnumOperator.bl_idname, icon="VIEWZOOM")
-            box.box().label(text="Macro presets defined in include/macro_preset_names.h.")
-            box.prop(obj, "sm64_obj_set_bparam", text="Set Behaviour Parameter")
+                prop_split(col, obj, "sm64_obj_preset", "Preset Name")
+            col.operator(SearchMacroEnumOperator.bl_idname, icon="VIEWZOOM")
+            col.box().label(text="Macro presets defined in include/macro_preset_names.h.")
+            col.prop(obj, "sm64_obj_set_bparam", text="Set Behaviour Parameter")
             if obj.sm64_obj_set_bparam:
-                self.draw_behavior_params(obj, box)
+                self.draw_behavior_params(obj, col)
 
         elif obj.sm64_obj_type == "Special":
-            prop_split(box, obj, "sm64_special_enum", "Preset")
+            prop_split(col, obj, "sm64_special_enum", "Preset")
             if obj.sm64_special_enum == "Custom":
-                prop_split(box, obj, "sm64_obj_preset", "Preset Name")
-            box.operator(SearchSpecialEnumOperator.bl_idname, icon="VIEWZOOM")
-            box.box().label(text="Special presets defined in include/special_preset_names.h.")
-            box.prop(obj, "sm64_obj_set_yaw", text="Set Yaw")
+                prop_split(col, obj, "sm64_obj_preset", "Preset Name")
+            col.operator(SearchSpecialEnumOperator.bl_idname, icon="VIEWZOOM")
+            col.box().label(text="Special presets defined in include/special_preset_names.h.")
+            col.prop(obj, "sm64_obj_set_yaw", text="Set Yaw")
             if obj.sm64_obj_set_yaw:
-                box.prop(obj, "sm64_obj_set_bparam", text="Set Behaviour Parameter")
+                col.prop(obj, "sm64_obj_set_bparam", text="Set Behaviour Parameter")
                 if obj.sm64_obj_set_bparam:
-                    self.draw_behavior_params(obj, box)
+                    self.draw_behavior_params(obj, col)
 
         elif obj.sm64_obj_type == "Mario Start":
-            prop_split(box, obj, "sm64_obj_mario_start_area", "Area")
+            prop_split(col, obj, "sm64_obj_mario_start_area", "Area")
 
         elif obj.sm64_obj_type == "Trajectory":
             pass
 
         elif obj.sm64_obj_type == "Whirlpool":
-            prop_split(box, obj, "whirpool_index", "Index")
-            prop_split(box, obj, "whirpool_condition", "Condition")
-            prop_split(box, obj, "whirpool_strength", "Strength")
+            prop_split(col, obj, "whirpool_index", "Index")
+            prop_split(col, obj, "whirpool_condition", "Condition")
+            prop_split(col, obj, "whirpool_strength", "Strength")
             pass
 
-        elif obj.sm64_obj_type == "Water Box":
-            prop_split(box, obj, "waterBoxType", "Water Box Type")
-            box.box().label(text="Water box area defined by top face of box shaped empty.")
-            box.box().label(text="No rotation allowed.")
+        elif obj.sm64_obj_type == "Water col":
+            prop_split(col, obj, "watercolType", "Water col Type")
+            col.box().label(text="Water col area defined by top face of col shaped empty.")
+            col.box().label(text="No rotation allowed.")
 
         elif obj.sm64_obj_type == "Level Root":
             levelObj = obj.fast64.sm64.level
             if obj.useBackgroundColor:
-                prop_split(box, obj, "backgroundColor", "Background Color")
-                box.prop(obj, "useBackgroundColor")
+                prop_split(col, obj, "backgroundColor", "Background Color")
+                col.prop(obj, "useBackgroundColor")
             else:
-                # prop_split(box, obj, 'backgroundID', 'Background ID')
-                prop_split(box, obj, "background", "Background")
+                # prop_split(col, obj, 'backgroundID', 'Background ID')
+                prop_split(col, obj, "background", "Background")
                 if obj.background == "CUSTOM":
-                    prop_split(box, levelObj, "backgroundID", "Custom ID")
-                    prop_split(box, levelObj, "backgroundSegment", "Custom Background Segment")
-                    segmentExportBox = box.box()
-                    segmentExportBox.label(
+                    prop_split(col, levelObj, "backgroundID", "Custom ID")
+                    prop_split(col, levelObj, "backgroundSegment", "Custom Background Segment")
+                    segmentExportcol = col.box()
+                    segmentExportcol.label(
                         text=f"Exported Segment: _{levelObj.backgroundSegment}_{context.scene.compressionFormat}SegmentRomStart"
                     )
-                box.prop(obj, "useBackgroundColor")
-                # box.box().label(text = 'Background IDs defined in include/geo_commands.h.')
-            box.prop(obj, "actSelectorIgnore")
-            box.prop(obj, "setAsStartLevel")
-            grid = box.grid_flow(columns=2)
+                col.prop(obj, "useBackgroundColor")
+                # col.box().label(text = 'Background IDs defined in include/geo_commands.h.')
+            col.prop(obj, "actSelectorIgnore")
+            col.prop(obj, "setAsStartLevel")
+            grid = col.grid_flow(columns=2)
             obj.fast64.sm64.segment_loads.draw(grid)
-            prop_split(box, obj, "acousticReach", "Acoustic Reach")
-            obj.starGetCutscenes.draw(box)
+            prop_split(col, obj, "acousticReach", "Acoustic Reach")
+            obj.starGetCutscenes.draw(col)
 
         elif obj.sm64_obj_type == "Area Root":
             # Code that used to be in area inspector
-            prop_split(box, obj, "areaIndex", "Area Index")
-            box.prop(obj, "noMusic", text="Disable Music")
+            prop_split(col, obj, "areaIndex", "Area Index")
+            col.prop(obj, "noMusic", text="Disable Music")
             if not obj.noMusic:
-                prop_split(box, obj, "music_preset", "Music Preset")
-                prop_split(box, obj, "musicSeqEnum", "Music Sequence")
+                prop_split(col, obj, "music_preset", "Music Preset")
+                prop_split(col, obj, "musicSeqEnum", "Music Sequence")
                 if obj.musicSeqEnum == "Custom":
-                    prop_split(box, obj, "music_seq", "")
+                    prop_split(col, obj, "music_seq", "")
 
-            prop_split(box, obj, "terrainEnum", "Terrain")
+            prop_split(col, obj, "terrainEnum", "Terrain")
             if obj.terrainEnum == "Custom":
-                prop_split(box, obj, "terrain_type", "")
-            prop_split(box, obj, "envOption", "Environment Type")
+                prop_split(col, obj, "terrain_type", "")
+            prop_split(col, obj, "envOption", "Environment Type")
             if obj.envOption == "Custom":
-                prop_split(box, obj, "envType", "")
-            prop_split(box, obj, "camOption", "Camera Type")
+                prop_split(col, obj, "envType", "")
+            prop_split(col, obj, "camOption", "Camera Type")
             if obj.camOption == "Custom":
-                prop_split(box, obj, "camType", "")
-            camBox = box.box()
+                prop_split(col, obj, "camType", "")
+            camBox = col.box()
             camBox.label(text="Warning: Camera modes can be overriden by area specific camera code.")
             camBox.label(text="Check the switch statment in camera_course_processing() in src/game/camera.c.")
 
-            fogBox = box.box()
+            fogBox = col.box()
             fogInfoBox = fogBox.box()
             fogInfoBox.label(text="Warning: Fog only applies to materials that:")
             fogInfoBox.label(text="- use fog")
@@ -1303,28 +1301,28 @@ class SM64ObjectPanel(bpy.types.Panel):
             prop_split(fogBox, obj, "area_fog_position", "Area Fog Position")
 
             if obj.areaIndex == 1 or obj.areaIndex == 2 or obj.areaIndex == 3:
-                prop_split(box, obj, "echoLevel", "Echo Level")
+                prop_split(col, obj, "echoLevel", "Echo Level")
 
             if obj.areaIndex == 1 or obj.areaIndex == 2 or obj.areaIndex == 3 or obj.areaIndex == 4:
-                box.prop(obj, "zoomOutOnPause")
+                col.prop(obj, "zoomOutOnPause")
 
-            box.prop(obj.fast64.sm64.area, "disable_background")
+            col.prop(obj.fast64.sm64.area, "disable_background")
 
-            areaLayout = box.box()
+            areaLayout = col.box()
             areaLayout.enabled = not obj.fast64.sm64.area.disable_background
             areaLayout.prop(obj, "areaOverrideBG")
             if obj.areaOverrideBG:
                 prop_split(areaLayout, obj, "areaBGColor", "Background Color")
 
-            box.prop(obj, "showStartDialog")
+            col.prop(obj, "showStartDialog")
             if obj.showStartDialog:
-                prop_split(box, obj, "startDialog", "Start Dialog")
-                dialogBox = box.box()
+                prop_split(col, obj, "startDialog", "Start Dialog")
+                dialogBox = col.box()
                 dialogBox.label(text="See text/us/dialogs.h for values.")
                 dialogBox.label(text="See load_level_init_text() in src/game/level_update.c for conditions.")
-            box.prop(obj, "enableRoomSwitch")
+            col.prop(obj, "enableRoomSwitch")
             if obj.enableRoomSwitch:
-                infoBox = box.box()
+                infoBox = col.box()
                 infoBox.label(
                     text="Every child hierarchy of the area root will be treated as its own room (except for the first one.)"
                 )
@@ -1332,65 +1330,65 @@ class SM64ObjectPanel(bpy.types.Panel):
                     text='You can use empties with the "None" type as empty geolayout nodes to group related geometry under.'
                 )
                 infoBox.label(text="Children will ordered alphabetically, with the first child being always visible.")
-            box.prop(obj, "useDefaultScreenRect")
+            col.prop(obj, "useDefaultScreenRect")
             if not obj.useDefaultScreenRect:
-                prop_split(box, obj, "screenPos", "Screen Position")
-                prop_split(box, obj, "screenSize", "Screen Size")
+                prop_split(col, obj, "screenPos", "Screen Position")
+                prop_split(col, obj, "screenSize", "Screen Size")
 
-            prop_split(box, obj, "clipPlanes", "Clip Planes")
+            prop_split(col, obj, "clipPlanes", "Clip Planes")
 
-            box.label(text="Warp Nodes")
-            box.operator(AddWarpNode.bl_idname).option = len(obj.warpNodes)
+            col.label(text="Warp Nodes")
+            col.operator(AddWarpNode.bl_idname).option = len(obj.warpNodes)
             for i in range(len(obj.warpNodes)):
-                drawWarpNodeProperty(box, obj.warpNodes[i], i)
+                drawWarpNodeProperty(col, obj.warpNodes[i], i)
 
         elif obj.sm64_obj_type == "Camera Volume":
-            prop_split(box, obj, "cameraVolumeFunction", "Camera Function")
-            box.prop(obj, "cameraVolumeGlobal")
-            box.box().label(text="Only vertical axis rotation allowed.")
+            prop_split(col, obj, "cameraVolumeFunction", "Camera Function")
+            col.prop(obj, "cameraVolumeGlobal")
+            col.box().label(text="Only vertical axis rotation allowed.")
 
         elif obj.sm64_obj_type == "Puppycam Volume":
             puppycamProp = obj.puppycamProp
-            prop_split(column, puppycamProp, "puppycamVolumeFunction", "Puppycam Function")
-            column.prop(puppycamProp, "puppycamVolumePermaswap")
-            column.prop(puppycamProp, "puppycamUseFlags")
+            prop_split(col, puppycamProp, "puppycamVolumeFunction", "Puppycam Function")
+            col.prop(puppycamProp, "puppycamVolumePermaswap")
+            col.prop(puppycamProp, "puppycamUseFlags")
 
-            column.prop(puppycamProp, "puppycamUseEmptiesForPos")
+            col.prop(puppycamProp, "puppycamUseEmptiesForPos")
 
             if puppycamProp.puppycamUseEmptiesForPos:
-                column.label(text="Fixed Camera Position (Optional)")
-                column.prop_search(puppycamProp, "puppycamCamPos", bpy.data, "objects", text="")
+                col.label(text="Fixed Camera Position (Optional)")
+                col.prop_search(puppycamProp, "puppycamCamPos", bpy.data, "objects", text="")
 
-                column.label(text="Fixed Camera Focus (Optional)")
-                column.prop_search(puppycamProp, "puppycamCamFocus", bpy.data, "objects", text="")
+                col.label(text="Fixed Camera Focus (Optional)")
+                col.prop_search(puppycamProp, "puppycamCamFocus", bpy.data, "objects", text="")
             else:
-                column.label(text="Fixed Camera Position (Optional)")
-                column.prop(puppycamProp, "puppycamCamera")
+                col.label(text="Fixed Camera Position (Optional)")
+                col.prop(puppycamProp, "puppycamCamera")
                 if puppycamProp.puppycamCamera is not None:
-                    column.box().label(text="FOV not exported, only for preview camera.")
-                    prop_split(column, puppycamProp, "puppycamFOV", "Camera FOV")
-                    column.operator("mesh.puppycam_setup_camera", text="Setup Camera", icon="VIEW_CAMERA")
+                    col.box().label(text="FOV not exported, only for preview camera.")
+                    prop_split(col, puppycamProp, "puppycamFOV", "Camera FOV")
+                    col.operator("mesh.puppycam_setup_camera", text="Setup Camera", icon="VIEW_CAMERA")
 
             if puppycamProp.puppycamUseFlags:
                 for i, flagSet in enumerate(enumPuppycamFlags):
-                    column.prop(puppycamProp, flagSet[0])
+                    col.prop(puppycamProp, flagSet[0])
             else:
-                prop_split(column, puppycamProp, "puppycamMode", "Camera Mode")
+                prop_split(col, puppycamProp, "puppycamMode", "Camera Mode")
                 if puppycamProp.puppycamMode == "Custom":
-                    prop_split(column, puppycamProp, "puppycamType", "")
+                    prop_split(col, puppycamProp, "puppycamType", "")
 
-            column.box().label(text="No rotation allowed.")
+            col.box().label(text="No rotation allowed.")
 
         elif obj.sm64_obj_type == "Switch":
-            prop_split(box, obj, "switchFunc", "Function")
-            prop_split(box, obj, "switchParam", "Parameter")
-            box.box().label(text="Children will ordered alphabetically.")
+            prop_split(col, obj, "switchFunc", "Function")
+            prop_split(col, obj, "switchParam", "Parameter")
+            col.box().label(text="Children will ordered alphabetically.")
 
         elif obj.sm64_obj_type in inlineGeoLayoutObjects:
-            self.draw_inline_obj(box, obj)
+            self.draw_inline_obj(col, obj)
 
         elif obj.sm64_obj_type == "None":
-            box.box().label(text="This can be used as an empty transform node in a geolayout hierarchy.")
+            col.box().label(text="This can be used as an empty transform node in a geolayout hierarchy.")
 
     def draw_acts(self, obj, layout):
         layout.label(text="Acts")

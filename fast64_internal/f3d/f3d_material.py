@@ -619,10 +619,10 @@ def tmemUsageUI(layout, textureProp):
 class F3DPanel(Panel):
     bl_label = "F3D Material"
     bl_idname = "MATERIAL_PT_F3D_Inspector"
+    bl_parent_id = "EEVEE_MATERIAL_PT_context_material"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "material"
-    bl_options = {"HIDE_HEADER"}
 
     def ui_prop(self, material, layout, name, setName, setProp, showCheckBox):
         nodes = material.node_tree.nodes
@@ -1242,8 +1242,6 @@ class F3DPanel(Panel):
         settings = f3dMat.rdp_settings
         layout.prop(context.scene, "f3d_simple", text="Show Simplified UI")
         layout = layout.box()
-        titleCol = layout.column()
-        titleCol.box().label(text="F3D Material Inspector")
 
         presetCol = layout.column()
         split = presetCol.split(factor=0.33)
@@ -3377,10 +3375,10 @@ class RDPSettings(PropertyGroup):
 class DefaultRDPSettingsPanel(Panel):
     bl_label = "RDP Default Settings"
     bl_idname = "WORLD_PT_RDP_Default_Inspector"
+    bl_parent_id = "WORLD_PT_context_world"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "world"
-    bl_options = {"HIDE_HEADER"}
 
     @classmethod
     def poll(cls, context):
@@ -3389,7 +3387,6 @@ class DefaultRDPSettingsPanel(Panel):
     def draw(self, context):
         world = context.scene.world
         layout = self.layout
-        layout.box().label(text="RDP Default Settings")
         layout.label(text="If a material setting is a same as a default setting, then it won't be set.")
         ui_geo_mode(world.rdp_defaults, world, layout, True)
         ui_upper_mode(world.rdp_defaults, world, layout, True)
@@ -4481,7 +4478,6 @@ def mat_register():
     World.menu_upper = bpy.props.BoolProperty()
     World.menu_lower = bpy.props.BoolProperty()
     World.menu_other = bpy.props.BoolProperty()
-    World.menu_layers = bpy.props.BoolProperty()
 
     Material.is_f3d = bpy.props.BoolProperty()
     Material.mat_ver = bpy.props.IntProperty(default=1)

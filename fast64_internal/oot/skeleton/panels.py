@@ -8,11 +8,11 @@ from .operators import OOT_ImportSkeleton, OOT_ExportSkeleton
 
 class OOT_SkeletonPanel(Panel):
     bl_idname = "OOT_PT_skeleton"
+    bl_parent_id = "OBJECT_PT_context_object"
     bl_label = "OOT Skeleton Properties"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "object"
-    bl_options = {"HIDE_HEADER"}
 
     @classmethod
     def poll(cls, context):
@@ -25,8 +25,7 @@ class OOT_SkeletonPanel(Panel):
 
     # called every frame
     def draw(self, context):
-        col = self.layout.box().column()
-        col.box().label(text="OOT Skeleton Inspector")
+        col = self.layout.column()
         prop_split(col, context.object, "ootDrawLayer", "Draw Layer")
         context.object.ootSkeleton.draw_props(col)
 
@@ -35,11 +34,11 @@ class OOT_SkeletonPanel(Panel):
 
 class OOT_BonePanel(Panel):
     bl_idname = "OOT_PT_bone"
+    bl_parent_id = "BONE_PT_context_bone"
     bl_label = "OOT Bone Properties"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "bone"
-    bl_options = {"HIDE_HEADER"}
 
     @classmethod
     def poll(cls, context):
@@ -47,8 +46,7 @@ class OOT_BonePanel(Panel):
 
     # called every frame
     def draw(self, context):
-        col = self.layout.box().column()
-        col.box().label(text="OOT Bone Inspector")
+        col = self.layout.column()
         context.bone.ootBone.draw_props(col)
 
 

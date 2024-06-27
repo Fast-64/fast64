@@ -211,7 +211,6 @@ def drawFlipbookGroupProperty(
     checkFlipbookReference: Callable[[str], bool],
     drawFlipbookRequirementMessage: Callable[[bpy.types.UILayout], None],
 ):
-    layout.box().column().label(text="Flipbook Properties")
     if drawFlipbookRequirementMessage is not None:
         drawFlipbookRequirementMessage(layout)
     for i in range(2):
@@ -275,12 +274,12 @@ def flipbookAnimHandler(dummy):
 
 
 class Flipbook_MaterialPanel(bpy.types.Panel):
-    bl_label = "Flipbook Material"
+    bl_label = "OOT Flipbook Properties"
     bl_idname = "MATERIAL_PT_Flipbook_Material_Inspector"
+    bl_parent_id = "EEVEE_MATERIAL_PT_context_material"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "material"
-    bl_options = {"HIDE_HEADER"}
 
     @classmethod
     def poll(cls, context):
@@ -298,7 +297,7 @@ class Flipbook_MaterialPanel(bpy.types.Panel):
             checkFlipbookReference = None
             drawFlipbookRequirementMessage = None
 
-        drawFlipbookGroupProperty(col.box().column(), mat, checkFlipbookReference, drawFlipbookRequirementMessage)
+        drawFlipbookGroupProperty(col, mat, checkFlipbookReference, drawFlipbookRequirementMessage)
 
 
 def setTexNodeImage(material: bpy.types.Material, texIndex: int, flipbookIndex: int):
