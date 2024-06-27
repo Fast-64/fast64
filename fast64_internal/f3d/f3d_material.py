@@ -3407,7 +3407,7 @@ class DefaultRDPSettingsPanel(Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.gameEditorMode in {"SM64", "Homebrew"}
+        return context.scene.gameEditorMode != "OOT"
 
     def draw(self, context):
         world = context.scene.world
