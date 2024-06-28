@@ -1288,13 +1288,13 @@ class F3DMeshPanel(Panel):
         return context.object.type == "MESH"
 
     def draw(self, context):
-        is_f3dex = get_F3D_GBI().F3DEX_GBI
+        new_gbi = not get_F3D_GBI().F3D_OLD_GBI
         col = self.layout.box().column()
         col.box().label(text=self.bl_label, icon="MESH_DATA")
         row = col.row()
-        row.enabled = is_f3dex
+        row.enabled = new_gbi
         row.prop(context.object, "use_f3d_culling")
-        if not is_f3dex:
+        if not new_gbi:
             col.label(text="Only available in F3DEX and up", icon="INFO")
 
 
