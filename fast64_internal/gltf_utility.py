@@ -23,3 +23,8 @@ class GlTF2SubExtension:
             extension=data,
             required=False,
         )
+
+    def get_gltf2_extension(self, gltf_prop):
+        if gltf_prop.extensions is None:
+            return None
+        return gltf_prop.extensions.get(self.extension_name, None)

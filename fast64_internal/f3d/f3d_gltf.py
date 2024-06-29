@@ -149,4 +149,7 @@ class Fast64Extension(GlTF2SubExtension):
     # Importing
 
     def gather_import_node_after_hook(self, vnode, gltf_node, blender_object, gltf):
-        print("Placeholder")
+        data = self.get_gltf2_extension(gltf_node)
+        if data is None:
+            return
+        blender_object.use_f3d_culling = data.get("use_culling", True)
