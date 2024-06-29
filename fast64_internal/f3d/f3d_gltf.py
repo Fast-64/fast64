@@ -111,6 +111,14 @@ class Fast64Extension(GlTF2SubExtension):
         source = get_gltf_image_from_blender_image(f3d_texture.tex.name, export_settings)
         sampler = self.sampler_from_f3d(f3d_mat, f3d_texture)
         return gltf2_io.Texture(extensions=None, extras=None, name=None, sampler=sampler, source=source)
+    
+    def f3d_texture_to_glTF2_texture_info(self, f3d_mat, f3d_texture, export_settings):
+        return gltf2_io.TextureInfo(
+            extensions=None,
+            extras=None,
+            index=self.f3d_texture_to_gltf2_texture(f3d_mat, f3d_texture, export_settings),
+            tex_coord=None, # TODO: Should s and t be stored here?
+        )
 
     def gather_material_hook(self, gltf2_material, blender_material, export_settings):
         if not blender_material.is_f3d:
@@ -125,19 +133,18 @@ class Fast64Extension(GlTF2SubExtension):
         data.update(f3d_mat.rdp_settings.to_dict())
         data["textureSettings"] = f3d_mat.extra_texture_settings_to_dict()
 
-        textures = []
+        textures = {}
         data["textures"] = textures
         pbr = gltf2_material.pbr_metallic_roughness
-        if use_dict["Texture 0"] and f3d_mat.tex0.tex:
-            textures.append(self.f3d_texture_to_gltf2_texture(f3d_mat, f3d_mat.tex0, export_settings))
-        if use_dict["Texture 1"] and f3d_mat.tex1.tex:
-            textures.append(self.f3d_texture_to_gltf2_texture(f3d_mat, f3d_mat.tex1, export_settings))
-        pbr.base_color_texture = gltf2_io.TextureInfo(
-            extensions={},
-            extras=None,
-            index=textures[0 if f3d_mat.uv_basis == "TEXEL0" else 1],
-            tex_coord=None,
-        )
+        if use_dict["Texture 0"]:
+            textures["0"] = self.f3d_texture_to_glTF2_texture_info(f3d_mat, f3d_mat.tex0, export_settings)
+        if use_dict["Texture 1"]:
+            textures["1"] = self.f3d_texture_to_glTF2_texture_info(f3d_mat, f3d_mat.tex1, export_settings)
+        if f3d_mat.is_multi_tex:
+            pbr.base_color_texture = textures["0"] if f3d_mat.uv_basis == "TEXEL0" else textures["1"]
+            pbr.metallic_roughness_texture = textures["1"] if f3d_mat.uv_basis == "TEXEL0" else textures["0"]
+        else:
+            pbr.base_color_texture = textures.values()[0]
         self.append_gltf2_extension(gltf2_material, data)
 
     def gather_node_hook(self, gltf2_node, blender_object, export_settings):
@@ -160,6 +167,8 @@ class Fast64Extension(GlTF2SubExtension):
         f3d_mat.extra_texture_settings_from_dict(data.get("textureSettings", {}))
 
         # TODO: Textures
+        for tex in data.get("textures", []):
+            print(tex)
 
         blender_material.is_f3d = True
         blender_material.mat_ver = 5
