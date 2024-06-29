@@ -61,7 +61,7 @@ def load_repo_settings(scene: Scene, path: os.PathLike, skip_if_no_auto_load=Fal
     except Exception as exc:
         raise Exception(f"Failed to load repo settings json. ({str(exc)})") from exc
 
-    if skip_if_no_auto_load and not data.get("auto_load_settings", True):
+    if skip_if_no_auto_load and not data.get("autoLoad", True):
         return
 
     # Some future proofing
@@ -71,15 +71,15 @@ def load_repo_settings(scene: Scene, path: os.PathLike, skip_if_no_auto_load=Fal
         )
 
     fast64_settings = scene.fast64.settings
-    fast64_settings.auto_repo_load_settings = data.get("auto_load_settings", fast64_settings.auto_repo_load_settings)
+    fast64_settings.auto_repo_load_settings = data.get("autoLoad", fast64_settings.auto_repo_load_settings)
     fast64_settings.auto_pick_texture_format = data.get(
-        "auto_pick_texture_format", fast64_settings.auto_pick_texture_format
+        "autoPickTextureFormat", fast64_settings.auto_pick_texture_format
     )
-    fast64_settings.prefer_rgba_over_ci = data.get("prefer_rgba_over_ci", fast64_settings.prefer_rgba_over_ci)
+    fast64_settings.prefer_rgba_over_ci = data.get("preferRGBAOverCI", fast64_settings.prefer_rgba_over_ci)
     scene.f3d_type = data.get("microcode", scene.f3d_type)
-    scene.saveTextures = data.get("save_textures", scene.saveTextures)
+    scene.saveTextures = data.get("saveTextures", scene.saveTextures)
     rdp_defaults: RDPSettings = scene.world.rdp_defaults
-    rdp_defaults.from_dict(data.get("rdp_defaults", {}))
+    rdp_defaults.from_dict(data.get("rdpDefaults", {}))
 
     if scene.gameEditorMode == "SM64":
         load_sm64_repo_settings(scene, data.get("sm64", {}))
@@ -90,14 +90,14 @@ def save_repo_settings(scene: Scene, path: os.PathLike):
     data = {}
 
     data["version"] = CUR_VERSION
-    data["auto_load_settings"] = fast64_settings.auto_repo_load_settings
+    data["autoLoad"] = fast64_settings.auto_repo_load_settings
     data["microcode"] = scene.f3d_type
-    data["save_textures"] = scene.saveTextures
-    data["auto_pick_texture_format"] = fast64_settings.auto_pick_texture_format
+    data["saveTextures"] = scene.saveTextures
+    data["autoPickTextureFormat"] = fast64_settings.auto_pick_texture_format
     if fast64_settings.auto_pick_texture_format:
-        data["prefer_rgba_over_ci"] = fast64_settings.prefer_rgba_over_ci
+        data["preferRGBAOverCI"] = fast64_settings.prefer_rgba_over_ci
     rdp_defaults: RDPSettings = scene.world.rdp_defaults
-    data["rdp_defaults"] = rdp_defaults.to_dict()
+    data["rdpDefaults"] = rdp_defaults.to_dict()
 
     if scene.gameEditorMode == "SM64":
         data["sm64"] = save_sm64_repo_settings(scene)
