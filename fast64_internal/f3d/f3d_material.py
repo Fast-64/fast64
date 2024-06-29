@@ -4480,7 +4480,7 @@ class F3DMaterialProperty(PropertyGroup):
 
     def lights_from_dict(self, data: dict):
         lights = data.get("lights", [])
-        if len(lights) == 1 and not lights[0].get("direction", None):  # Default lighting
+        if len(lights) == 1 and not "direction" in lights[0] and "color" in lights[0]:  # Default lighting
             self.use_default_lighting = True
             self.default_light_color = gammaInverse(
                 lights[0]["color"] + [1.0], True
