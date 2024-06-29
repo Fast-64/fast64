@@ -115,6 +115,17 @@ class Fast64Extension(GlTF2SubExtension):
         sampler = self.sampler_from_f3d(f3d_mat, f3d_texture)
         return gltf2_io.Texture(extensions=None, extras=None, name=None, sampler=sampler, source=source)
 
+    def gltf2_texture_to_f3d_texture(self, gltf2_texture, gltf, f3d_mat, f3d_tex):
+        if gltf2_texture.sampler is not None:
+            sampler = gltf.data.samplers[gltf2_texture.sampler]
+            self.sampler_to_f3d(sampler, f3d_mat, f3d_tex)
+        if gltf2_texture.source is not None:
+            BlenderImage.create(gltf, gltf2_texture.source)
+            img = gltf.data.images[gltf2_texture.source]
+            blender_image_name = img.blender_image_name
+            if blender_image_name:
+                f3d_tex.tex = bpy.data.images[blender_image_name]
+
     def f3d_texture_to_glTF2_texture_info(self, f3d_mat, f3d_texture, export_settings):
         return gltf2_io.TextureInfo(
             extensions=None,
@@ -169,19 +180,10 @@ class Fast64Extension(GlTF2SubExtension):
         f3d_mat.rdp_settings.from_dict(data)
         f3d_mat.extra_texture_settings_from_dict(data.get("textureSettings", {}))
 
-        # TODO: Textures
         for num, tex_info in data.get("textures", {}).items():
             f3d_tex = f3d_mat.tex0 if num == "0" else f3d_mat.tex1
-            texture = gltf.data.textures[tex_info.get("index", 0)]
-            if texture.sampler is not None:
-                sampler = gltf.data.samplers[texture.sampler]
-                self.sampler_to_f3d(sampler, f3d_mat, f3d_tex)
-            if texture.source is not None:
-                BlenderImage.create(gltf, texture.source)
-                img = gltf.data.images[texture.source]
-                blender_image_name = img.blender_image_name
-                if blender_image_name:
-                    f3d_tex.tex = bpy.data.images[blender_image_name]
+            gltf2_texture = gltf.data.textures[tex_info.get("index", 0)]
+            self.gltf2_texture_to_f3d_texture(gltf2_texture, gltf, f3d_mat, f3d_tex)
 
         blender_material.is_f3d = True
         blender_material.mat_ver = 5

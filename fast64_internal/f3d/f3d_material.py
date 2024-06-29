@@ -2672,6 +2672,7 @@ class TextureProperty(PropertyGroup):
         self.pal_reference_size = data.get("palleteCount", self.pal_reference_size)
 
     def to_dict(self):
+        """Does not include actual texture and tile scroll""" # TODO: Should it include tile scroll?
         data = {
             "set": self.tex_set,
             "format": self.format_to_dict(),
@@ -2682,6 +2683,7 @@ class TextureProperty(PropertyGroup):
         return data
 
     def from_dict(self, data: dict):
+        """Does not include actual texture and tile scroll"""
         self.tex_set = data.get("set", self.tex_set)
         self.format_from_dict(data.get("format", {}))
         fields = data.get("fields", [])
