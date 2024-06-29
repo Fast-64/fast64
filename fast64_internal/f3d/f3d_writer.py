@@ -1323,9 +1323,9 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
 
     defaults = bpy.context.scene.world.rdp_defaults
     if fModel.f3d.F3DEX_GBI_2:
-        saveGeoModeDefinitionF3DEX2(fModel.f3d, fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
+        saveGeoModeDefinitionF3DEX2(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
     else:
-        saveGeoModeDefinition(fModel.f3d, fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
+        saveGeoModeDefinition(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
 
     # Checking for f3dMat.rdp_settings.g_lighting here will prevent accidental exports,
     # There may be some edge case where this isn't desired.
@@ -1432,7 +1432,6 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         defaultRM = fModel.getRenderMode(drawLayer)
     else:
         defaultRM = None
-
     saveOtherModeHDefinition(
         fMaterial,
         f3dMat.rdp_settings,
