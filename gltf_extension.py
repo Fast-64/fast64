@@ -1,5 +1,6 @@
 import traceback
 import bpy
+from io_scene_gltf2.io.com.gltf2_io_extensions import Extension
 
 # Original implementation from github.com/Mr-Wiseguy/gltf64-blender
 
@@ -30,20 +31,7 @@ def exception_handler_decorator(message_template=""):
     return decorator
 
 
-class glTF2ExportUserExtension:
-    def __init__(self):
-        from io_scene_gltf2.io.com.gltf2_io_extensions import Extension
-
-        self.Extension = Extension
-        settings = bpy.context.scene.fast64.settings.glTF
-        self.verbose = settings.verbose
-
-        self.sub_extensions = []
-        if settings.export_f3d:
-            from .fast64_internal.f3d.f3d_gltf import Fast64Extension
-
-            self.sub_extensions.append(Fast64Extension(self))
-
+class GlTF2Extension:
     def call_hooks(self, hook: str, *args):
         exceptions = []
         for extension in self.sub_extensions:
@@ -55,6 +43,19 @@ class glTF2ExportUserExtension:
         for e in exceptions:
             raise e
 
+    def __init__(self):
+        self.Extension = Extension
+        self.settings = bpy.context.scene.fast64.settings.glTF
+        self.verbose = self.settings.verbose
+
+        self.sub_extensions = []
+        if self.settings.export_f3d:
+            from .fast64_internal.f3d.f3d_gltf import Fast64Extension
+
+            self.sub_extensions.append(Fast64Extension(self))
+
+
+class glTF2ExportUserExtension(GlTF2Extension):
     @exception_handler_decorator('Object "{args[1].name}"')
     def gather_node_hook(self, gltf2_node, blender_object, export_settings):
         self.call_hooks("gather_node_hook", gltf2_node, blender_object, export_settings)
@@ -62,6 +63,12 @@ class glTF2ExportUserExtension:
     @exception_handler_decorator('Material "{args[1].name}""')
     def gather_material_hook(self, gltf2_material, blender_material, export_settings):
         self.call_hooks("gather_material_hook", gltf2_material, blender_material, export_settings)
+
+
+class glTF2ImportUserExtension(GlTF2Extension):
+    @exception_handler_decorator('Object "{args[2].name}"')
+    def gather_import_node_after_hook(self, vnode, gltf_node, blender_object, gltf):
+        print("glTF2ImportUserExtension: gather_import_node_after_hook")
 
 
 class Fast64GlTFSettings(bpy.types.PropertyGroup):
