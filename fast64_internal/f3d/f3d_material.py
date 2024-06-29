@@ -3413,7 +3413,7 @@ class RDPSettings(PropertyGroup):
 
     def attributes_from_dict(self, data: dict, info: dict):
         for key, attr, default in info:
-            self[attr] = data.get(key, default)
+            setattr(self, attr, data.get(key, default))
 
     geo_mode_all_attributes = [
         ("zBuffer", "g_zbuffer", False),
