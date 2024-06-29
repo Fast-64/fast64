@@ -1228,9 +1228,11 @@ def gammaCorrect(linear_color: list, include_alpha=False, round_color=False) -> 
     return [
         round(channel, 4) if round_color else channel
         for channel in (
-            list(mathutils.Color(
-                linear_color[:3],
-            ).from_scene_linear_to_srgb())
+            list(
+                mathutils.Color(
+                    linear_color[:3],
+                ).from_scene_linear_to_srgb()
+            )
             + ([linear_color[3] if len(linear_color) > 3 else 1.0] if include_alpha else [])
         )
     ]

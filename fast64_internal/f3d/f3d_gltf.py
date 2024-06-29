@@ -111,13 +111,13 @@ class Fast64Extension(GlTF2SubExtension):
         source = get_gltf_image_from_blender_image(f3d_texture.tex.name, export_settings)
         sampler = self.sampler_from_f3d(f3d_mat, f3d_texture)
         return gltf2_io.Texture(extensions=None, extras=None, name=None, sampler=sampler, source=source)
-    
+
     def f3d_texture_to_glTF2_texture_info(self, f3d_mat, f3d_texture, export_settings):
         return gltf2_io.TextureInfo(
             extensions=None,
             extras=None,
             index=self.f3d_texture_to_gltf2_texture(f3d_mat, f3d_texture, export_settings),
-            tex_coord=None, # TODO: Convert high and low to tex_coords
+            tex_coord=None,  # TODO: Convert high and low to tex_coords
         )
 
     def gather_material_hook(self, gltf2_material, blender_material, export_settings):
