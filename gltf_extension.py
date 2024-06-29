@@ -1,6 +1,8 @@
 import traceback
-import bpy
 from io_scene_gltf2.io.com.gltf2_io_extensions import Extension
+import bpy
+from bpy.types import PropertyGroup, UILayout, Panel. Context
+from bpy.props import BoolProperty
 
 # Original implementation from github.com/Mr-Wiseguy/gltf64-blender
 
@@ -49,7 +51,7 @@ class GlTF2Extension:
         self.verbose = self.settings.verbose
 
         self.sub_extensions = []
-        if self.settings.export_f3d:
+        if self.settings.f3d:
             from .fast64_internal.f3d.f3d_gltf import Fast64Extension
 
             self.sub_extensions.append(Fast64Extension(self))
@@ -71,26 +73,25 @@ class glTF2ImportUserExtension(GlTF2Extension):
         print("glTF2ImportUserExtension: gather_import_node_after_hook")
 
 
-class Fast64GlTFSettings(bpy.types.PropertyGroup):
-    export_f3d: bpy.props.BoolProperty(default=True, name="Export F3D extension (EXT_fast64)")
-    export_game: bpy.props.BoolProperty(default=True, name="Export current game mode")
-    verbose: bpy.props.BoolProperty(
-        name="Verbose", description="Print all appended extension data, useful for troubleshooting"
-    )
+class Fast64GlTFSettings(PropertyGroup):
+    verbose: BoolProperty(name="Verbose", description="Print all appended extension data, useful for troubleshooting")
+    f3d: BoolProperty(default=True, name="Export F3D extension (EXT_fast64)")
+    game: BoolProperty(default=True, name="Export current game mode")
 
-    def draw_props(self, scene, layout: bpy.types.UILayout):
+    def draw_props(self, scene, layout: UILayout, show_import=False):
         col = layout.column()
+        operation_text = "Import" if show_import else "Export"
         col.prop(self, "verbose")
-        col.prop(self, "export_f3d")
+        col.prop(self, "f3d", text=f"{operation_text} F3D extension (EXT_fast64)")
         if scene.gameEditorMode == "Homebrew":
             return
         if scene.gameEditorMode not in GAME_MODES:
             col.label(text="Current game mode not implemented", icon="INFO")
         else:
-            col.prop(self, "export_game", text=f"Export {GAME_MODES[scene.gameEditorMode]} extension")
+            col.prop(self, "export_game", text=f"{operation_text} {GAME_MODES[scene.gameEditorMode]} extension")
 
 
-class Fast64GlTFPanel(bpy.types.Panel):
+class Fast64GlTFPanel(Panel):
     bl_idname = "GLTF_F3D_PT_export"
     bl_space_type = "FILE_BROWSER"
     bl_region_type = "TOOL_PROPS"
@@ -99,16 +100,14 @@ class Fast64GlTFPanel(bpy.types.Panel):
     bl_options = {"DEFAULT_CLOSED"}
 
     @classmethod
-    def poll(cls, context):
-        sfile = context.space_data
-        operator = sfile.active_operator
+    def poll(cls, context: Context):
+        operator_idname = context.space_data.active_operator.bl_idname
+        return operator_idname in ["EXPORT_SCENE_OT_gltf", "IMPORT_SCENE_OT_gltf"]
 
-        return operator.bl_idname == "EXPORT_SCENE_OT_gltf"
-
-    def draw(self, context):
-        layout = self.layout
-        layout.use_property_decorate = False  # No animation.
-        context.scene.fast64.settings.glTF.draw_props(context.scene, layout)
+    def draw(self, context: Context):
+        is_import = context.space_data.active_operator.bl_idname == "IMPORT_SCENE_OT_gltf"
+        self.layout.use_property_decorate = False  # No animation.
+        context.scene.fast64.settings.glTF.draw_props(context.scene, self.layout, is_import)
 
 
 classes = (
