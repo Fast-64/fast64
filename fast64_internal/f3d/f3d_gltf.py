@@ -148,6 +148,12 @@ class Fast64Extension(GlTF2SubExtension):
 
     # Importing
 
+    def gather_import_material_after_hook(self, gltf_material, vertex_color, blender_mat, gltf):
+        data = self.get_gltf2_extension(gltf_material)
+        if data is None:
+            return
+        
+
     def gather_import_node_after_hook(self, vnode, gltf_node, blender_object, gltf):
         data = self.get_gltf2_extension(gltf_node)
         if data is None:

@@ -1,3 +1,4 @@
+from pprint import pprint
 class GlTF2SubExtension:
     extension_name: str = None
 
@@ -12,8 +13,6 @@ class GlTF2SubExtension:
         if not any(data):
             return
         if self.extension.verbose:
-            from pprint import pprint
-
             pprint(data)
 
         if gltf_prop.extensions is None:
@@ -27,4 +26,7 @@ class GlTF2SubExtension:
     def get_gltf2_extension(self, gltf_prop):
         if gltf_prop.extensions is None:
             return None
-        return gltf_prop.extensions.get(self.extension_name, None)
+        data = gltf_prop.extensions.get(self.extension_name, None)
+        if self.extension.verbose and data is not None:
+            pprint(data)
+        return data
