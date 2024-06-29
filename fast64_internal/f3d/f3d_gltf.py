@@ -15,7 +15,7 @@ if bpy.app.version >= (3, 6, 0):
 
     if bpy.app.version >= (3, 6, 5):
         from io_scene_gltf2.blender.exp.material.gltf2_blender_gather_image import __is_blender_image_a_webp
-    from io_scene_gltf2.blender.exp.material.extensions import gltf2_blender_image
+    from io_scene_gltf2.blender.exp.material.extensions.gltf2_blender_image import ExportImage
 else:
     from io_scene_gltf2.blender.exp.gltf2_blender_gather_image import (
         __gather_name,
@@ -24,8 +24,10 @@ else:
         __gather_buffer_view,
         __is_blender_image_a_jpeg,
     )
-    from io_scene_gltf2.blender.exp import gltf2_blender_image
+    from io_scene_gltf2.blender.exp.gltf2_blender_image import ExportImage
+
 from io_scene_gltf2.io.com import gltf2_io
+from io_scene_gltf2.blender.imp.gltf2_blender_image import BlenderImage
 from io_scene_gltf2.io.com.gltf2_io_constants import TextureFilter, TextureWrap
 
 
@@ -54,7 +56,7 @@ def __get_mime_type_of_image(name: str, export_settings):
 
 
 def get_gltf_image_from_blender_image(blender_image_name, export_settings):
-    image_data = gltf2_blender_image.ExportImage.from_blender_image(bpy.data.images[blender_image_name])
+    image_data = ExportImage.from_blender_image(bpy.data.images[blender_image_name])
 
     if bpy.app.version > (4, 1, 0):
         name = __gather_name(image_data, None, export_settings)
@@ -174,6 +176,12 @@ class Fast64Extension(GlTF2SubExtension):
             if texture.sampler is not None:
                 sampler = gltf.data.samplers[texture.sampler]
                 self.sampler_to_f3d(sampler, f3d_mat, f3d_tex)
+            if texture.source is not None:
+                BlenderImage.create(gltf, texture.source)
+                img = gltf.data.images[texture.source]
+                blender_image_name = img.blender_image_name
+                if blender_image_name:
+                    f3d_tex.tex = bpy.data.images[blender_image_name]
 
         blender_material.is_f3d = True
         blender_material.mat_ver = 5
