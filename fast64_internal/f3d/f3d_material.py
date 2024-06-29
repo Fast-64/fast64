@@ -2672,7 +2672,7 @@ class TextureProperty(PropertyGroup):
         self.pal_reference_size = data.get("palleteCount", self.pal_reference_size)
 
     def to_dict(self):
-        """Does not include actual texture and tile scroll""" # TODO: Should it include tile scroll?
+        """Does not include actual texture and tile scroll"""  # TODO: Should it include tile scroll?
         data = {
             "set": self.tex_set,
             "format": self.format_to_dict(),
@@ -4487,7 +4487,7 @@ class F3DMaterialProperty(PropertyGroup):
                     )
 
         if not (use_dict["Shade"] and self.rdp_settings.g_lighting and self.set_lights):
-            return None
+            return {}
         lights: list[dict[str, list[float]]] = []
         ambient = gammaCorrect(self.ambient_light_color, round_color=True)
         if self.use_default_lighting:
