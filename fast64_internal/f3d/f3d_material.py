@@ -2675,7 +2675,7 @@ class TextureProperty(PropertyGroup):
         return (
             (
                 self.tex,
-                frozenset(self.format_to_dict().items),
+                frozenset(self.format_to_dict().items()),
                 str(self.S.to_dict(self.autoprop)),
                 str(self.T.to_dict(self.autoprop)),
                 self.tile_scroll.key(),
