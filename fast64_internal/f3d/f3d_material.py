@@ -2686,11 +2686,16 @@ class TextureProperty(PropertyGroup):
         """Does not include actual texture and tile scroll"""
         self.tex_set = data.get("set", self.tex_set)
         self.format_from_dict(data.get("format", {}))
+
         fields = data.get("fields", [])
         if len(fields) >= 1:
             self.S.from_dict(fields[0])
         if len(fields) >= 2:
             self.T.from_dict(fields[1])
+        self.autoprop = not any(
+            advanced_prop in field for field in fields for advanced_prop in {"low", "high", "mask", "shift"}
+        )
+
         self.use_tex_reference = "reference" in data
         if self.use_tex_reference:
             self.reference_from_dict(data["reference"])
