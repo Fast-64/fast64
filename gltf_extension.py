@@ -81,18 +81,29 @@ class Fast64GlTFSettings(PropertyGroup):
     verbose: BoolProperty(name="Verbose", description="Print all appended extension data, useful for troubleshooting")
     f3d: BoolProperty(default=True, name="Export F3D extension (EXT_fast64)")
     game: BoolProperty(default=True, name="Export current game mode")
+    on_invalid: bpy.props.EnumProperty(
+        name="On Invalid",
+        items=[
+            ("IGNORE", "Ignore", "Ignore when something is invalid", "CANCEL", 0),
+            ("WARN", "Warn", "Warn when something is invalid", "INFO", 1),
+            ("ERROR", "Error", "Error when something is invalid", "ERROR", 2),
+        ],
+        default="ERROR",
+    )
 
-    def draw_props(self, scene, layout: UILayout, show_import=False):
+    def draw_props(self, scene, layout: UILayout, import_context=False):
         col = layout.column()
-        operation_text = "Import" if show_import else "Export"
+        operation_text = "Import" if import_context else "Export"
         col.prop(self, "verbose")
         col.prop(self, "f3d", text=f"{operation_text} F3D extension (EXT_fast64)")
-        if scene.gameEditorMode == "Homebrew":
-            return
-        if scene.gameEditorMode not in GAME_MODES:
-            col.label(text="Current game mode not implemented", icon="INFO")
-        else:
-            col.prop(self, "export_game", text=f"{operation_text} {GAME_MODES[scene.gameEditorMode]} extension")
+        game_mode = scene.gameEditorMode
+        if game_mode != "Homebrew":
+            if game_mode not in GAME_MODES:
+                col.label(text="Current game mode not implemented", icon="INFO")
+            else:
+                col.prop(self, "game", text=f"{operation_text} {GAME_MODES[game_mode]} extension")
+        if not import_context and (self.f3d or (self.game and game_mode in GAME_MODES)):
+            col.prop(self, "on_invalid")
 
 
 class Fast64GlTFPanel(Panel):
