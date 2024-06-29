@@ -1,7 +1,7 @@
 import traceback
 from io_scene_gltf2.io.com.gltf2_io_extensions import Extension
 import bpy
-from bpy.types import PropertyGroup, UILayout, Panel. Context
+from bpy.types import PropertyGroup, UILayout, Panel, Context
 from bpy.props import BoolProperty
 
 # Original implementation from github.com/Mr-Wiseguy/gltf64-blender
@@ -70,7 +70,7 @@ class glTF2ExportUserExtension(GlTF2Extension):
 class glTF2ImportUserExtension(GlTF2Extension):
     @exception_handler_decorator('Object "{args[2].name}"')
     def gather_import_node_after_hook(self, vnode, gltf_node, blender_object, gltf):
-        print("glTF2ImportUserExtension: gather_import_node_after_hook")
+        self.call_hooks("gather_import_node_after_hook", vnode, gltf_node, blender_object, gltf)
 
 
 class Fast64GlTFSettings(PropertyGroup):
