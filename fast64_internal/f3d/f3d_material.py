@@ -3372,7 +3372,7 @@ class RDPSettings(PropertyGroup):
             data.update(self.attributes_to_dict(self.geo_mode_f3dex3_attributes))
         return data
 
-    def geo_mode_from_dict(self, data: list):
+    def geo_mode_from_dict(self, data: dict):
         self.attributes_from_dict(data, self.geo_mode_attributes)
 
     other_mode_h_attributes = [
@@ -3450,7 +3450,7 @@ class RDPSettings(PropertyGroup):
 
         render_mode = data.get("renderMode", {})
         blender = render_mode.get("blender", [])
-        flags = render_mode.get("flags", [])
+        flags = render_mode.get("flags", {})
         if render_mode:
             self.set_rendermode = True
         if not render_mode.get("presets", None) and (flags or blender):
@@ -3494,7 +3494,7 @@ class RDPSettings(PropertyGroup):
         return data
 
     def from_dict(self, data: dict):
-        self.geo_mode_from_dict(data.get("geometryMode", []))
+        self.geo_mode_from_dict(data.get("geometryMode", {}))
         self.other_mode_h_from_dict(data.get("otherModeH", {}))
         self.other_mode_l_from_dict(data.get("otherModeL", {}))
         self.other_from_dict(data.get("other", {}))
