@@ -1694,7 +1694,7 @@ def get_color_input_update_callback(attr_name="", prefix=""):
 
 
 def update_node_values_of_material(material: Material, context):
-    bpy.ops.dialog.update_colorspace("INVOKE_DEFAULT")
+    check_or_ask_color_management(context)
 
     update_blend_method(material, context)
     if not has_f3d_nodes(material):
@@ -2442,43 +2442,58 @@ def reloadDefaultF3DPresets():
             update_preset_manual_v4(material, presetNameToFilename[material.f3d_mat.presetName])
 
 
-class UpdateColorSpacePopup(Operator):
-    bl_label = "Update Color Space"
-    bl_idname = "dialog.update_colorspace"
-    bl_description = "Update color space"
+def check_or_ask_color_management(context: Context):
+    scene = context.scene
+    fast64_props: "Fast64_Properties" = scene.fast64
+    fast64settings_props: "Fast64Settings_Properties" = fast64_props.settings
+    view_settings = scene.view_settings
+    # Check if color management settings are correct
+    if not fast64settings_props.dont_ask_color_management and (
+        scene.display_settings.display_device != "sRGB"
+        or view_settings.view_transform != "Standard"
+        or view_settings.look != "None"
+        or view_settings.exposure != 0.0
+        or view_settings.gamma != 1.0
+    ):
+        bpy.ops.dialog.fast64_update_color_management("INVOKE_DEFAULT")
+
+
+class UpdateColorManagementPopup(Operator):
+    bl_label = "Update Color Management"
+    bl_idname = "dialog.fast64_update_color_management"
+    bl_description = "Update color management settings to help material preview accuracy"
     bl_options = {"UNDO"}
 
     already_invoked = False  # HACK: used to prevent multiple dialogs from popping up
 
     def invoke(self, context: Context, event: Event):
-        if UpdateColorSpacePopup.already_invoked:
+        if UpdateColorManagementPopup.already_invoked:
             return {"FINISHED"}
-        scene = context.scene
-        view_settings = scene.view_settings
-        # Check if color space is correct
-        if not scene.dont_ask_colorspace and (
-            scene.display_settings.display_device != "sRGB"
-            or view_settings.view_transform != "Standard"
-            or view_settings.look != "None"
-            or view_settings.exposure != 0.0
-            or view_settings.gamma != 1.0
-        ):
-            UpdateColorSpacePopup.already_invoked = True
-            return context.window_manager.invoke_props_dialog(self, width=400)
-
-        return {"FINISHED"}
+        UpdateColorManagementPopup.already_invoked = True
+        return context.window_manager.invoke_props_dialog(self, width=400)
 
     def draw(self, context: Context):
         col = self.layout.column()
         multilineLabel(
             col,
-            f'The colorspace for the current scene "{context.scene.name}"\nwill cause inaccurate preview compared to N64.\nWould you like to update it?',
+            (
+                (
+                    f'The color management settings for the current scene "{context.scene.name}"\n'
+                    # use is_library_indirect to not count the scene from f3d_material_library.blend and other "external" scenes
+                    if len([_s for _s in bpy.data.scenes if not _s.is_library_indirect]) >= 2
+                    else "The color management settings\n"
+                )
+                + "will cause inaccurate preview compared to N64.\n"
+                + "Would you like to update it?"
+            ),
             icon="INFO",
         )
-        col.prop(context.scene, "dont_ask_colorspace")
+        fast64_props: "Fast64_Properties" = context.scene.fast64
+        fast64settings_props: "Fast64Settings_Properties" = fast64_props.settings
+        col.prop(fast64settings_props, "dont_ask_color_management", text="Don't ask again")
 
     def cancel(self, context: Context):
-        UpdateColorSpacePopup.already_invoked = False
+        UpdateColorManagementPopup.already_invoked = False
 
     def execute(self, context):
         try:
@@ -2488,13 +2503,13 @@ class UpdateColorSpacePopup(Operator):
             scene.view_settings.look = "None"
             scene.view_settings.exposure = 0.0
             scene.view_settings.gamma = 1.0
-            self.report({"INFO"}, "Updated color space.")
+            self.report({"INFO"}, "Updated color management settings.")
             return {"FINISHED"}
         except Exception as exc:
             raisePluginError(self, exc)
             return {"CANCELLED"}
         finally:
-            UpdateColorSpacePopup.already_invoked = False
+            UpdateColorManagementPopup.already_invoked = False
 
 
 class CreateFast3DMaterial(Operator):
@@ -4461,7 +4476,7 @@ def draw_f3d_render_settings(self, context):
 
 
 mat_classes = (
-    UpdateColorSpacePopup,
+    UpdateColorManagementPopup,
     UnlinkF3DImage0,
     UnlinkF3DImage1,
     DrawLayerProperty,
@@ -4549,7 +4564,6 @@ def mat_register():
 
     Scene.f3dUserPresetsOnly = bpy.props.BoolProperty(name="User Presets Only")
     Scene.f3d_simple = bpy.props.BoolProperty(name="Display Simple", default=True)
-    Scene.dont_ask_colorspace = bpy.props.BoolProperty(name="Don't ask again")
 
     Object.use_f3d_culling = bpy.props.BoolProperty(
         name="Enable Culling (Applies to F3DEX and up)",
@@ -4580,7 +4594,6 @@ def mat_unregister():
     del Material.mat_ver
     del Material.f3d_update_flag
     del Scene.f3d_simple
-    del Scene.dont_ask_colorspace
     del Object.ignore_render
     del Object.ignore_collision
     del Object.bleed_independently
