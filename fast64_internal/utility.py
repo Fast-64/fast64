@@ -1224,8 +1224,16 @@ def getNameFromPath(path, removeExtension=False):
     return toAlnum(name, ["-", "."])
 
 
-def gammaCorrect(linearColor):
-    return list(mathutils.Color(linearColor[:3]).from_scene_linear_to_srgb())
+def gammaCorrect(linear_color: list, include_alpha=False, round_color=False) -> list:
+    return [
+        round(channel, 4) if round_color else channel
+        for channel in (
+            mathutils.Color(
+                linear_color[:3],
+            ).from_scene_linear_to_srgb()
+            + ([linear_color[3]] if include_alpha else [])
+        )
+    ]
 
 
 def gammaCorrectValue(linearValue):
@@ -1240,13 +1248,6 @@ def gammaInverse(sRGBColor, includeAlpha=False):
 def gammaInverseValue(sRGBValue):
     # doesn't need to use `colorToLuminance` since all values are the same
     return mathutils.Color((sRGBValue, sRGBValue, sRGBValue)).from_srgb_to_scene_linear().v
-
-
-def to_clean_gamma_corrected(color, has_alpha=False) -> list:
-    correct_color = [round(channel, 4) for channel in gammaCorrect(color)]
-    if has_alpha:
-        correct_color.append(color[3])
-    return correct_color
 
 
 def exportColor(lightColor):

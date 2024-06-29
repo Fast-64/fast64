@@ -4468,9 +4468,9 @@ class F3DMaterialProperty(PropertyGroup):
         if not (use_dict["Shade"] and self.rdp_settings.g_lighting and self.set_lights):
             return None
         lights: list[dict[str, list[float]]] = []
-        ambient = to_clean_gamma_corrected(self.ambient_light_color)
+        ambient = gammaCorrect(self.ambient_light_color, round_color=True)
         if self.use_default_lighting:
-            lights.append({"color": to_clean_gamma_corrected(self.default_light_color)})
+            lights.append({"color": gammaCorrect(self.default_light_color, round_color=True)})
             if self.set_ambient_from_light:
                 ambient = None
         else:
@@ -4498,18 +4498,21 @@ class F3DMaterialProperty(PropertyGroup):
     def colors_to_dict(self, f3d, use_dict: dict[str]):
         data = {}
         if use_dict["Environment"]:
-            data["environment"] = {"set": self.set_env, "color": to_clean_gamma_corrected(self.env_color, True)}
+            data["environment"] = {
+                "set": self.set_env,
+                "color": gammaCorrect(self.env_color, include_alpha=True, round_color=True),
+            }
         if use_dict["Primitive"]:
             data["primitive"] = {
                 "set": self.set_prim,
-                "color": to_clean_gamma_corrected(self.prim_color, True),
+                "color": gammaCorrect(self.prim_color, include_alpha=True, round_color=True),
                 "minLoDRatio": self.prim_lod_min,
                 "loDFraction": self.prim_lod_frac,
             }
         if use_dict["Key"]:
             data["key"] = {
                 "set": self.set_key,
-                "center": to_clean_gamma_corrected(self.key_center),
+                "center": gammaCorrect(self.key_center, round_color=True),
                 "scale": list(self.key_scale),
                 "width": list(self.key_width),
             }
@@ -4521,12 +4524,15 @@ class F3DMaterialProperty(PropertyGroup):
         if self.rdp_settings.using_fog:
             data["fog"] = {
                 "set": self.set_fog,
-                "color": to_clean_gamma_corrected(self.fog_color),
+                "color": gammaCorrect(self.fog_color, round_color=True),
                 "range": list(self.fog_position),
             }
         if self.rdp_settings.g_lighting:
             data["lighting"] = {"set": self.set_lights, **self.lights_to_dict(use_dict)}
-        data["blend"] = {"set": self.set_blend, "color": to_clean_gamma_corrected(self.blend_color, True)}
+        data["blend"] = {
+            "set": self.set_blend,
+            "color": gammaCorrect(self.blend_color, include_alpha=True, round_color=True),
+        }
         if f3d.F3DEX_GBI_3:
             data.update(self.f3dex3_colors_to_dict())
         return data
