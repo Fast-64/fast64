@@ -4403,9 +4403,9 @@ class F3DMaterialProperty(PropertyGroup):
         self.set_combiner = data.get("set", self.set_combiner)
         cycles = data.get("cycles", [])
         if len(cycles) >= 1:
-            self.combiner1.from_dict(data[0])
+            self.combiner1.from_dict(cycles[0])
         if len(cycles) >= 2:
-            self.combiner2.from_dict(data[1])
+            self.combiner2.from_dict(cycles[1])
 
     def f3dex3_colors_to_dict(self):
         data = {}
@@ -4482,14 +4482,18 @@ class F3DMaterialProperty(PropertyGroup):
         lights = data.get("lights", [])
         if len(lights) == 1 and not lights[0].get("direction", None):  # Default lighting
             self.use_default_lighting = True
-            self.default_light_color = gammaCorrect(lights[0]["color"])
+            self.default_light_color = gammaInverse(
+                lights[0]["color"] + [1.0], True
+            )  # HACK: Fast64 includes alpha in color
         else:
             self.use_default_lighting = False
         # TODO: Figure out conversion for object lights
         ambient = data.get("ambientColor", [])
         self.set_ambient_from_light = bool(ambient)
         if ambient:
-            self.ambient_light_color = gammaInverse(ambient)
+            self.ambient_light_color = gammaInverse(
+                ambient + [1.0], True
+            )  # HACK: Fast64 includes alpha in ambient color
 
     def colors_to_dict(self, f3d, use_dict: dict[str]):
         data = {}
@@ -4530,18 +4534,21 @@ class F3DMaterialProperty(PropertyGroup):
     def colors_from_dict(self, data: dict):
         enviroment = data.get("environment", {})
         self.set_env = enviroment.get("set", self.set_env)
-        self.env_color = gammaInverse(enviroment.get("color", gammaCorrect(self.env_color)))
+        if "color" in enviroment:
+            self.env_color = gammaInverse(enviroment.get("color"), True)
         primitive = data.get("primitive", {})
         self.set_prim = primitive.get("set", self.set_prim)
-        self.prim_color, self.prim_lod_min, self.prim_lod_frac = (
-            gammaInverse(primitive.get("color", gammaCorrect(self.prim_color))),
+        if "color" in primitive:
+            self.prim_color = gammaInverse(primitive.get("color"), True)
+        self.prim_lod_min, self.prim_lod_frac = (
             primitive.get("minLoDRatio", self.prim_lod_min),
             primitive.get("loDFraction", self.prim_lod_frac),
         )
         key = data.get("key", {})
         self.set_key = key.get("set", self.set_key)
-        self.key_center, self.key_scale, self.key_width = (
-            gammaInverse(key.get("center", gammaCorrect(self.key_center))),
+        if "center" in key:
+            self.key_center = gammaInverse(key.get("center") + [1.0], True)  # HACK: Fast64 includes alpha in key center
+        self.key_scale, self.key_width = (
             key.get("scale", list(self.key_scale)),
             key.get("width", list(self.key_width)),
         )
@@ -4552,12 +4559,13 @@ class F3DMaterialProperty(PropertyGroup):
         )
         fog = data.get("fog", {})
         self.set_fog = fog.get("set", self.set_fog)
-        self.fog_color, self.fog_position = gammaInverse(fog.get("color", gammaCorrect(self.fog_color))), fog.get(
-            "range", list(self.fog_position)
-        )
+        if "color" in fog:
+            self.fog_color = gammaInverse(fog.get("color") + [1.0], True)  # HACK: Fast64 includes alpha in fog color
+        self.fog_position = fog.get("range", list(self.fog_position))
         blend = data.get("blend", {})
         self.set_blend = blend.get("set", self.set_blend)
-        self.blend_color = gammaInverse(blend.get("color", gammaCorrect(self.blend_color)))
+        if "color" in blend:
+            self.blend_color = gammaInverse(blend.get("color"), True)
         lighting = data.get("lighting", {})
         self.set_lights = lighting.get("set", self.set_lights)
         self.lights_from_dict(lighting)

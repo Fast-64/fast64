@@ -59,20 +59,20 @@ class GlTF2Extension:
 
 class glTF2ExportUserExtension(GlTF2Extension):
     @exception_handler_decorator('Object "{args[1].name}"')
-    def gather_node_hook(self, gltf2_node, blender_object, export_settings):
+    def gather_node_hook(extension, gltf2_node, blender_object, export_settings):
         self.call_hooks("gather_node_hook", gltf2_node, blender_object, export_settings)
 
     @exception_handler_decorator('Material "{args[1].name}""')
-    def gather_material_hook(self, gltf2_material, blender_material, export_settings):
+    def gather_material_hook(extension, gltf2_material, blender_material, export_settings):
         self.call_hooks("gather_material_hook", gltf2_material, blender_material, export_settings)
 
 
 class glTF2ImportUserExtension(GlTF2Extension):
-    @exception_handler_decorator('Material "{args[3].name}""')
+    @exception_handler_decorator('Material "{args[2].name}""')
     def gather_import_material_after_hook(self, gltf_material, vertex_color, blender_mat, gltf):
         self.call_hooks("gather_import_material_after_hook", gltf_material, vertex_color, blender_mat, gltf)
 
-    @exception_handler_decorator('Object "{args[2].name}"')
+    @exception_handler_decorator('Object "{args[1].name}"')
     def gather_import_node_after_hook(self, vnode, gltf_node, blender_object, gltf):
         self.call_hooks("gather_import_node_after_hook", vnode, gltf_node, blender_object, gltf)
 

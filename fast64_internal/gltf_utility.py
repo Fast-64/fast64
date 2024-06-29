@@ -1,4 +1,6 @@
 from pprint import pprint
+
+
 class GlTF2SubExtension:
     extension_name: str = None
 

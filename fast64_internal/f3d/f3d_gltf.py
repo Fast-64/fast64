@@ -1,6 +1,6 @@
 from ..gltf_utility import GlTF2SubExtension
 from .f3d_gbi import F3D, get_F3D_GBI
-from .f3d_material import all_combiner_uses
+from .f3d_material import all_combiner_uses, createScenePropertiesForMaterial, link_f3d_material_library
 
 import bpy
 
@@ -148,11 +148,24 @@ class Fast64Extension(GlTF2SubExtension):
 
     # Importing
 
-    def gather_import_material_after_hook(self, gltf_material, vertex_color, blender_mat, gltf):
+    def gather_import_material_after_hook(self, gltf_material, vertex_color, blender_material, gltf):
         data = self.get_gltf2_extension(gltf_material)
         if data is None:
             return
-        
+
+        f3d_mat = blender_material.f3d_mat
+        f3d_mat.combiner_from_dict(data.get("combiner", {}))
+        f3d_mat.colors_from_dict(data.get("colors", {}))
+        f3d_mat.rdp_settings.from_dict(data)
+        f3d_mat.extra_texture_settings_from_dict(data.get("textureSettings", {}))
+
+        # TODO: Textures
+
+        blender_material.is_f3d = True
+        blender_material.mat_ver = 5
+
+        # TODO: Figure out a workaround for the nodes, this will fail for now
+        createScenePropertiesForMaterial(blender_material)
 
     def gather_import_node_after_hook(self, vnode, gltf_node, blender_object, gltf):
         data = self.get_gltf2_extension(gltf_node)
