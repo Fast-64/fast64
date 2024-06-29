@@ -3390,16 +3390,16 @@ class RDPSettings(PropertyGroup):
             self[attr] = data.get(key, default)
 
     geo_mode_all_attributes = [
-    ("zBuffer", "g_zbuffer", False),
-    ("shade", "g_shade", False),
-    ("cullFront", "g_cull_front", False),
-    ("cullBack", "g_cull_back", False),
-    ("fog", "g_fog", False),
-    ("lighting", "g_lighting", False),
-    ("texGen", "g_tex_gen", False),
-    ("texGenLinear", "g_tex_gen_linear", False),
-    ("lod", "g_lod", False),
-    ("shadeSmooth", "g_shade_smooth", False),
+        ("zBuffer", "g_zbuffer", False),
+        ("shade", "g_shade", False),
+        ("cullFront", "g_cull_front", False),
+        ("cullBack", "g_cull_back", False),
+        ("fog", "g_fog", False),
+        ("lighting", "g_lighting", False),
+        ("texGen", "g_tex_gen", False),
+        ("texGenLinear", "g_tex_gen_linear", False),
+        ("lod", "g_lod", False),
+        ("shadeSmooth", "g_shade_smooth", False),
     ]
 
     geo_mode_f3dex_attributes = [
@@ -3436,7 +3436,7 @@ class RDPSettings(PropertyGroup):
         ("chromaKey", "g_mdsft_combkey", "G_CK_NONE"),
         ("textureConvert", "g_mdsft_textconv", "G_TC_CONV"),
         ("textureFilter", "g_mdsft_text_filt", "G_TF_POINT"),
-        #("lutFormat", "g_mdsft_textlut", "G_TT_NONE")
+        # ("lutFormat", "g_mdsft_textlut", "G_TT_NONE")
         ("textureLoD", "g_mdsft_textlod", "G_TL_TILE"),
         ("textureDetail", "g_mdsft_textdetail", "G_TD_CLAMP"),
         ("perspectiveCorrection", "g_mdsft_textpersp", "G_TP_NONE"),
