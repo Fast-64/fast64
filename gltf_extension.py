@@ -5,11 +5,10 @@ import bpy
 
 # Changes made from the original glTF64:
 # Property names (keys) now all use the glTF standard naming, camelCase.
-# Full fast64 material support
-# Extendability improvements
+# Full fast64 material support.
+# Extendability improvements.
+# Doesn´t use world defaults, as those should be left to the repo to handle.
 
-# TODO:
-# Improve the materials to make them as accurate as glTf allows outside of an n64 rendering context.
 
 GAME_MODES = {
     # "SM64": "EXT_SM64",
@@ -56,45 +55,9 @@ class glTF2ExportUserExtension:
         for e in exceptions:
             raise e
 
-    @exception_handler_decorator('Asset "{args[0].name}"')
-    def gather_asset_hook(self, gltf2_asset, export_settings):
-        self.call_hooks("gather_asset_hook", gltf2_asset, export_settings)
-
-    @exception_handler_decorator()
-    def gather_gltf_extensions_hook(self, gltf2_plan, export_settings):
-        self.call_hooks("gather_gltf_extensions_hook", gltf2_plan, export_settings)
-
-    @exception_handler_decorator('Scene "{args[1].name}"')
-    def gather_scene_hook(self, gltf2_scene, blender_scene, export_settings):
-        self.call_hooks("gather_scene_hook", gltf2_scene, blender_scene, export_settings)
-
     @exception_handler_decorator('Object "{args[1].name}"')
     def gather_node_hook(self, gltf2_node, blender_object, export_settings):
         self.call_hooks("gather_node_hook", gltf2_node, blender_object, export_settings)
-
-    @exception_handler_decorator('Mesh "{args[1].name}"')
-    def gather_mesh_hook(self, *args):
-        assert len(args) >= 6
-        gltf2_mesh, blender_mesh, blender_object, vertex_groups, modifiers, *last_args = args
-        materials, export_settings = last_args[-2:]
-        self.call_hooks(
-            "gather_mesh_hook",
-            gltf2_mesh,
-            blender_mesh,
-            blender_object,
-            vertex_groups,
-            modifiers,
-            materials,
-            export_settings,
-        )
-
-    @exception_handler_decorator('Object "{args[1].name}"')
-    def gather_skin_hook(self, gltf2_skin, blender_object, export_settings):
-        self.call_hooks("gather_skin_hook", gltf2_skin, blender_object, export_settings)
-
-    @exception_handler_decorator('Bone "{args[1].name}"')
-    def gather_joint_hook(self, gltf2_node, blender_bone, export_settings):
-        self.call_hooks("gather_joint_hook", gltf2_node, blender_bone, export_settings)
 
     @exception_handler_decorator('Material "{args[1].name}""')
     def gather_material_hook(self, gltf2_material, blender_material, export_settings):
