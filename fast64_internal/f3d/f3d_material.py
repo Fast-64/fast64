@@ -4482,18 +4482,14 @@ class F3DMaterialProperty(PropertyGroup):
         lights = data.get("lights", [])
         if len(lights) == 1 and not "direction" in lights[0] and "color" in lights[0]:  # Default lighting
             self.use_default_lighting = True
-            self.default_light_color = gammaInverse(
-                lights[0]["color"] + [1.0], True
-            )  # HACK: Fast64 includes alpha in color
+            self.default_light_color = gammaInverse(lights[0]["color"], True)
         else:
             self.use_default_lighting = False
         # TODO: Figure out conversion for object lights
         ambient = data.get("ambientColor", [])
         self.set_ambient_from_light = bool(ambient)
         if ambient:
-            self.ambient_light_color = gammaInverse(
-                ambient + [1.0], True
-            )  # HACK: Fast64 includes alpha in ambient color
+            self.ambient_light_color = gammaInverse(ambient, True)
 
     def colors_to_dict(self, f3d, use_dict: dict[str]):
         data = {}
@@ -4553,7 +4549,7 @@ class F3DMaterialProperty(PropertyGroup):
         key = data.get("key", {})
         self.set_key = key.get("set", self.set_key)
         if "center" in key:
-            self.key_center = gammaInverse(key.get("center") + [1.0], True)  # HACK: Fast64 includes alpha in key center
+            self.key_center = gammaInverse(key.get("center"), True)
         self.key_scale, self.key_width = (
             key.get("scale", list(self.key_scale)),
             key.get("width", list(self.key_width)),
@@ -4566,7 +4562,7 @@ class F3DMaterialProperty(PropertyGroup):
         fog = data.get("fog", {})
         self.set_fog = fog.get("set", self.set_fog)
         if "color" in fog:
-            self.fog_color = gammaInverse(fog.get("color") + [1.0], True)  # HACK: Fast64 includes alpha in fog color
+            self.fog_color = gammaInverse(fog.get("color"), True)
         self.fog_position = fog.get("range", list(self.fog_position))
         blend = data.get("blend", {})
         self.set_blend = blend.get("set", self.set_blend)

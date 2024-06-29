@@ -1231,7 +1231,7 @@ def gammaCorrect(linear_color: list, include_alpha=False, round_color=False) -> 
             mathutils.Color(
                 linear_color[:3],
             ).from_scene_linear_to_srgb()
-            + ([linear_color[3]] if include_alpha else [])
+            + ([linear_color[3] if len(linear_color) > 3 else 1.0] if include_alpha else [])
         )
     ]
 
@@ -1241,8 +1241,10 @@ def gammaCorrectValue(linearValue):
     return mathutils.Color((linearValue, linearValue, linearValue)).from_scene_linear_to_srgb().v
 
 
-def gammaInverse(sRGBColor, includeAlpha=False):
-    return list(mathutils.Color(sRGBColor[:3]).from_srgb_to_scene_linear()) + ([sRGBColor[3]] if includeAlpha else [])
+def gammaInverse(s_rgb_color: list, include_alpha=False):
+    return list(mathutils.Color(s_rgb_color[:3]).from_srgb_to_scene_linear()) + (
+        [s_rgb_color[3] if len(s_rgb_color) > 3 else 1.0] if include_alpha else []
+    )
 
 
 def gammaInverseValue(sRGBValue):
