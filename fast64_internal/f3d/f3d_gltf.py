@@ -117,7 +117,7 @@ class Fast64Extension(GlTF2SubExtension):
             extensions=None,
             extras=None,
             index=self.f3d_texture_to_gltf2_texture(f3d_mat, f3d_texture, export_settings),
-            tex_coord=None, # TODO: Should s and t be stored here?
+            tex_coord=None, # TODO: Convert high and low to tex_coords
         )
 
     def gather_material_hook(self, gltf2_material, blender_material, export_settings):
@@ -141,8 +141,8 @@ class Fast64Extension(GlTF2SubExtension):
         if use_dict["Texture 1"]:
             textures["1"] = self.f3d_texture_to_glTF2_texture_info(f3d_mat, f3d_mat.tex1, export_settings)
         if f3d_mat.is_multi_tex:
-            pbr.base_color_texture = textures["0"] if f3d_mat.uv_basis == "TEXEL0" else textures["1"]
-            pbr.metallic_roughness_texture = textures["1"] if f3d_mat.uv_basis == "TEXEL0" else textures["0"]
+            pbr.base_color_texture = textures["0"]
+            pbr.metallic_roughness_texture = textures["1"]
         else:
             pbr.base_color_texture = textures.values()[0]
         self.append_gltf2_extension(gltf2_material, data)
