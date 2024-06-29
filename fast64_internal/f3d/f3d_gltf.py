@@ -76,10 +76,6 @@ class Fast64Extension(GlTF2SubExtension):
         self.f3d: F3D = get_F3D_GBI()
 
     def sampler_from_f3d(self, f3d_mat, f3d_tex):
-        data = {"format": f3d_tex.format_to_dict(), "set": f3d_tex.tex_set}
-        if f3d_tex.use_tex_reference:
-            data["reference"] = f3d_tex.reference_to_dict()
-        data["fields"] = fields = []
         wrap = []
         for field in ["S", "T"]:
             field_prop = getattr(f3d_tex, field)
@@ -90,7 +86,6 @@ class Fast64Extension(GlTF2SubExtension):
                 if field_prop.mirror
                 else TextureWrap.Repeat
             )
-            fields.append(field_prop.to_dict(f3d_tex.autoprop))
 
         use_nearest = f3d_mat.rdp_settings.g_mdsft_text_filt == "G_TF_POINT"
         mag_filter = TextureFilter.Nearest if use_nearest else TextureFilter.Linear
@@ -104,8 +99,14 @@ class Fast64Extension(GlTF2SubExtension):
             wrap_s=wrap[0],
             wrap_t=wrap[1],
         )
-        self.append_gltf2_extension(sampler, data)
+        self.append_gltf2_extension(sampler, f3d_tex.to_dict())
         return sampler
+
+    def sampler_to_f3d(self, gltf2_sampler, f3d_mat, f3d_tex):
+        data = self.get_gltf2_extension(gltf2_sampler)
+        if data is None:
+            return
+        f3d_tex.from_dict(data)
 
     def f3d_texture_to_gltf2_texture(self, f3d_mat, f3d_texture, export_settings):
         source = get_gltf_image_from_blender_image(f3d_texture.tex.name, export_settings)
@@ -167,14 +168,18 @@ class Fast64Extension(GlTF2SubExtension):
         f3d_mat.extra_texture_settings_from_dict(data.get("textureSettings", {}))
 
         # TODO: Textures
-        for tex in data.get("textures", []):
-            print(tex)
+        for num, tex_info in data.get("textures", {}).items():
+            f3d_tex = f3d_mat.tex0 if num == "0" else f3d_mat.tex1
+            texture = gltf.data.textures[tex_info.get("index", 0)]
+            if texture.sampler is not None:
+                sampler = gltf.data.samplers[texture.sampler]
+                self.sampler_to_f3d(sampler, f3d_mat, f3d_tex)
 
         blender_material.is_f3d = True
         blender_material.mat_ver = 5
 
         # TODO: Figure out a workaround for the nodes, this will fail for now
-        createScenePropertiesForMaterial(blender_material)
+        # createScenePropertiesForMaterial(blender_material)
 
     def gather_import_node_after_hook(self, vnode, gltf_node, blender_object, gltf):
         data = self.get_gltf2_extension(gltf_node)

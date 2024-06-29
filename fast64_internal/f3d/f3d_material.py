@@ -2656,7 +2656,7 @@ class TextureProperty(PropertyGroup):
         return data
 
     def format_from_dict(self, data: dict):
-        self.format = data.get("texture", self.format_type) + str(data.get("size", self.format_size))
+        self.tex_format = data.get("texture", self.format_type) + str(data.get("size", self.format_size))
         self.ci_format = data.get("palette", self.ci_format)
 
     def reference_to_dict(self):
@@ -2671,15 +2671,34 @@ class TextureProperty(PropertyGroup):
         self.pal_reference = data.get("pallete", self.pal_reference)
         self.pal_reference_size = data.get("palleteCount", self.pal_reference_size)
 
+    def to_dict(self):
+        data = {
+            "set": self.tex_set,
+            "format": self.format_to_dict(),
+            "fields": (self.S.to_dict(self.autoprop), self.T.to_dict(self.autoprop)),
+        }
+        if self.use_tex_reference:
+            data["reference"] = self.reference_to_dict()
+        return data
+
+    def from_dict(self, data: dict):
+        self.tex_set = data.get("set", self.tex_set)
+        self.format_from_dict(data.get("format", {}))
+        fields = data.get("fields", [])
+        if len(fields) >= 1:
+            self.S.from_dict(fields[0])
+        if len(fields) >= 2:
+            self.T.from_dict(fields[1])
+        self.use_tex_reference = "reference" in data
+        if self.use_tex_reference:
+            self.reference_from_dict(data["reference"])
+
     def key(self):
         return (
             (
                 self.tex,
-                frozenset(self.format_to_dict().items()),
-                str(self.S.to_dict(self.autoprop)),
-                str(self.T.to_dict(self.autoprop)),
+                str(self.to_dict()),
                 self.tile_scroll.key(),
-                frozenset(self.reference_to_dict().items()) if self.use_tex_reference else None,
             )
             if self.tex_set
             else None
