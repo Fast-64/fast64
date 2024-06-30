@@ -7,6 +7,7 @@ from .f3d_material import (
     all_combiner_uses,
     createScenePropertiesForMaterial,
     link_f3d_material_library,
+    update_node_values,
     F3DMaterialProperty,
     TextureProperty,
 )
@@ -299,7 +300,17 @@ class Fast64Extension(GlTF2SubExtension):
         except Exception as exc:
             raise Exception("Error creating scene properties, node tree may be invalid") from exc
 
-        # TODO: Cause a reload here PLEASE
+        # HACK: The simplest way to cause a reload here is to have a valid material context
+        gltf_temp_obj = bpy.data.objects["##gltf-import:tmp-object##"]
+        bpy.context.scene.collection.objects.link(gltf_temp_obj)
+        try:
+            bpy.context.view_layer.objects.active = gltf_temp_obj
+            gltf_temp_obj.active_material = blender_material
+            update_node_values(blender_material, bpy.context, True)
+        finally:
+            bpy.context.scene.collection.objects.unlink(gltf_temp_obj)
+        
+
 
     def gather_import_node_after_hook(self, _vnode, gltf_node, blender_object, _gltf):
         data = self.get_gltf2_extension(gltf_node)
