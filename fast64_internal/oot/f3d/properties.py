@@ -1,3 +1,5 @@
+import bpy
+
 from bpy.types import PropertyGroup, Object, World, Material, UILayout
 from bpy.props import PointerProperty, StringProperty, BoolProperty, EnumProperty, IntProperty, FloatProperty
 from bpy.utils import register_class, unregister_class
@@ -22,7 +24,7 @@ class OOTDLExportSettings(PropertyGroup):
     flipbookArrayIndex2D: IntProperty(name="Index if 2D Array", default=0, min=0)
     customAssetIncludeDir: StringProperty(
         name="Asset Include Directory",
-        default="assets/objects/gameplay_keep",
+        default="extracted/gc-eu-mq-dbg/assets/objects/gameplay_keep",
         description="Used in #include for including image files",
     )
 
