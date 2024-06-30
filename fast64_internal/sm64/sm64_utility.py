@@ -87,7 +87,7 @@ def int_from_str(value: str):
 
     value = value.strip()
     prefix = value[:2].lower() if len(value) > 1 else ""
-    number_part = value[2:] if prefix else value
+    number_part = value[2:] if prefix in bases else value
     if not number_part:
         raise ValueError("Empty value.")
 
