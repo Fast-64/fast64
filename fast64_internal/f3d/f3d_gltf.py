@@ -42,10 +42,10 @@ from io_scene_gltf2.io.com.gltf2_io_constants import TextureFilter, TextureWrap
 EXCLUDE_FROM_NODE = (
     "rna_type",
     "type",
-    "dimensions",
     "inputs",
-    "interface",
     "outputs",
+    "dimensions",
+    "interface",
     "internal_links",
     "texture_mapping",
     "color_mapping",
@@ -211,6 +211,9 @@ class Fast64Extension(GlTF2SubExtension):
             blender_image_name = img.blender_image_name
             if blender_image_name:
                 f3d_tex.tex = bpy.data.images[blender_image_name]
+                f3d_tex.tex.colorspace_settings.is_data = False
+                f3d_tex.tex.colorspace_settings.name = "sRGB"
+                
 
     def f3d_to_glTF2_texture_info(
         self,
