@@ -9,6 +9,7 @@ from .f3d_material import (
     link_f3d_material_library,
     update_node_values,
     update_tex_values_and_formats,
+    update_rendermode_preset,
     F3DMaterialProperty,
     TextureProperty,
 )
@@ -211,7 +212,6 @@ class Fast64Extension(GlTF2SubExtension):
             blender_image_name = img.blender_image_name
             if blender_image_name:
                 f3d_tex.tex = bpy.data.images[blender_image_name]
-                f3d_tex.tex.colorspace_settings.is_data = False
                 f3d_tex.tex.colorspace_settings.name = "sRGB"
                 
 
@@ -318,6 +318,7 @@ class Fast64Extension(GlTF2SubExtension):
             gltf_temp_obj.active_material = blender_material
             update_node_values(blender_material, bpy.context, True)
             update_tex_values_and_formats(blender_material, bpy.context)
+            update_rendermode_preset(blender_material, bpy.context)
         finally:
             bpy.context.view_layer.objects.active = None
             bpy.context.scene.collection.objects.unlink(gltf_temp_obj)
