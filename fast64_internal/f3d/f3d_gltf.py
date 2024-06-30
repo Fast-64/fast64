@@ -8,6 +8,7 @@ from .f3d_material import (
     createScenePropertiesForMaterial,
     link_f3d_material_library,
     update_node_values,
+    update_tex_values_and_formats,
     F3DMaterialProperty,
     TextureProperty,
 )
@@ -200,7 +201,7 @@ class Fast64Extension(GlTF2SubExtension):
             source=source,
         )
 
-    def gltf2_texture_to_f3d_texture(self, gltf2_texture, gltf, f3d_tex: TextureProperty):
+    def gltf2_to_f3d_texture(self, gltf2_texture, gltf, f3d_tex: TextureProperty):
         if gltf2_texture.sampler is not None:
             sampler = gltf.data.samplers[gltf2_texture.sampler]
             self.sampler_to_f3d(sampler, f3d_tex)
@@ -269,25 +270,7 @@ class Fast64Extension(GlTF2SubExtension):
         data = self.get_gltf2_extension(gltf_material)
         if data is None:
             return
-        try:
-            f3d_mat: F3DMaterialProperty = blender_material.f3d_mat
-            f3d_mat.combiner_from_dict(data.get("combiner", {}))
-            f3d_mat.colors_from_dict(data.get("colors", {}))
-            f3d_mat.rdp_settings.from_dict(data)
-            f3d_mat.extra_texture_settings_from_dict(data.get("textureSettings", {}))
-
-            for num, tex_info in data.get("textures", {}).items():
-                index = tex_info["index"]
-                self.print_verbose(f"Importing f3d texture {index}")
-                gltf2_texture = gltf.data.textures[index]
-                f3d_tex = f3d_mat.tex0 if num == "0" else f3d_mat.tex1
-                self.gltf2_texture_to_f3d_texture(gltf2_texture, gltf, f3d_tex)
-
-            blender_material.is_f3d = True
-            blender_material.mat_ver = 5
-        except Exception as exc:
-            raise Exception("Failed to import fast64 extension data") from exc
-
+        
         try:
             self.print_verbose("Copying f3d node tree")
             node_tree_copy(self.base_node_tree, blender_material.node_tree)
@@ -298,6 +281,32 @@ class Fast64Extension(GlTF2SubExtension):
         except Exception as exc:
             raise Exception("Error creating scene properties, node tree may be invalid") from exc
 
+        try:
+            blender_material.is_f3d = True
+            blender_material.mat_ver = 5
+            blender_material.f3d_update_flag = True
+
+            f3d_mat: F3DMaterialProperty = blender_material.f3d_mat
+            f3d_mat.combiner_from_dict(data.get("combiner", {}))
+            f3d_mat.colors_from_dict(data.get("colors", {}))
+            f3d_mat.rdp_settings.from_dict(data)
+            f3d_mat.extra_texture_settings_from_dict(data.get("textureSettings", {}))
+
+            for num, tex_info in data.get("textures", {}).items():
+                index = tex_info["index"]
+                self.print_verbose(f"Importing f3d texture {index}")
+                gltf2_texture = gltf.data.textures[index]
+                if num == "0":
+                    self.gltf2_to_f3d_texture(gltf2_texture, gltf, f3d_mat.tex0)
+                elif num == "1":
+                    self.gltf2_to_f3d_texture(gltf2_texture, gltf, f3d_mat.tex1)
+                else:
+                    raise Exception("Fast64 does not support more than 2 textures")
+        except Exception as exc:
+            raise Exception("Failed to import fast64 extension data") from exc
+        finally:
+            blender_material.f3d_update_flag = False
+
         # HACK: The simplest way to cause a reload here is to have a valid material context
         gltf_temp_obj = bpy.data.objects["##gltf-import:tmp-object##"]
         bpy.context.scene.collection.objects.link(gltf_temp_obj)
@@ -305,6 +314,7 @@ class Fast64Extension(GlTF2SubExtension):
             bpy.context.view_layer.objects.active = gltf_temp_obj
             gltf_temp_obj.active_material = blender_material
             update_node_values(blender_material, bpy.context, True)
+            update_tex_values_and_formats(blender_material, bpy.context)
         finally:
             bpy.context.view_layer.objects.active = None
             bpy.context.scene.collection.objects.unlink(gltf_temp_obj)
