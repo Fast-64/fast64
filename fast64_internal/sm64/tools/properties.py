@@ -1,11 +1,11 @@
 from os import PathLike
 
 from bpy.path import abspath
-from bpy.types import PropertyGroup, UILayout
+from bpy.types import PropertyGroup, UILayout, Scene
 from bpy.props import StringProperty, EnumProperty, BoolProperty
 from bpy.utils import register_class, unregister_class
 
-from ...utility import prop_split
+from ...utility import prop_split, intToHex
 from ..sm64_utility import string_int_prop, import_rom_ui_warnings
 from ..sm64_constants import level_enums
 
@@ -17,6 +17,14 @@ class SM64_AddrConvProperties(PropertyGroup):
     address: StringProperty(name="Address")
     level: EnumProperty(items=level_enums, name="Level", default="IC")
     clipboard: BoolProperty(name="Copy to Clipboard", default=True)
+
+    def upgrade_changed_props(self, scene: Scene):
+        old_address = scene.pop("convertibleAddr", None)
+        if old_address is not None:
+            self.address = intToHex(int(old_address, 16))
+        old_level = scene.pop("level", None)
+        if old_level is not None:
+            self["level"] = old_level
 
     def draw_props(self, layout: UILayout, import_rom: PathLike = None):
         col = layout.column()

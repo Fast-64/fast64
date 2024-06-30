@@ -98,8 +98,6 @@ class SM64_Properties(PropertyGroup):
             "importRom": "import_rom",
             "exportRom": "export_rom",
             "outputRom": "output_rom",
-            "convertibleAddr": "convertible_addr",
-            "levelConvert": "level_convert",
             "disableScroll": "disable_scroll",
             "blenderToSM64Scale": "blender_to_sm64_scale",
             "decompPath": "decomp_path",
@@ -131,6 +129,7 @@ class SM64_Properties(PropertyGroup):
             if sm64_props.version == 1:
                 sm64_props.upgrade_version_1(scene)
                 print("Upgraded global SM64 settings to version 2")
+            sm64_props.address_converter.upgrade_changed_props(scene)
 
     def draw_props(self, layout: UILayout, show_repo_settings: bool = True):
         col = layout.column()
