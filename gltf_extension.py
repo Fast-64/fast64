@@ -58,6 +58,8 @@ class GlTF2Extension:
 
 
 class glTF2ExportUserExtension(GlTF2Extension):
+    importing = False
+
     @exception_handler_decorator('Object "{args[1].name}"')
     def gather_node_hook(self, gltf2_node, blender_object, export_settings):
         self.call_hooks("gather_node_hook", gltf2_node, blender_object, export_settings)
@@ -68,6 +70,8 @@ class glTF2ExportUserExtension(GlTF2Extension):
 
 
 class glTF2ImportUserExtension(GlTF2Extension):
+    importing = True
+
     @exception_handler_decorator('Material "{args[2].name}""')
     def gather_import_material_after_hook(self, gltf_material, vertex_color, blender_mat, gltf):
         self.call_hooks("gather_import_material_after_hook", gltf_material, vertex_color, blender_mat, gltf)

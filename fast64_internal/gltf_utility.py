@@ -11,11 +11,14 @@ class GlTF2SubExtension:
         self.extension = extension
         self.post_init()
 
+    def print_verbose(self, content):
+        if self.extension.verbose:
+            pprint(content)
+
     def append_gltf2_extension(self, gltf_prop, data: dict):
         if not any(data):
             return
-        if self.extension.verbose:
-            pprint(data)
+        self.print_verbose(data)
 
         if gltf_prop.extensions is None:
             gltf_prop.extensions = {}
@@ -29,6 +32,6 @@ class GlTF2SubExtension:
         if gltf_prop.extensions is None:
             return None
         data = gltf_prop.extensions.get(self.extension_name, None)
-        if self.extension.verbose and data is not None:
-            pprint(data)
+        if any(data):
+            self.print_verbose(data)
         return data
