@@ -3,6 +3,7 @@ import bpy, math, os
 from bpy.types import (
     Attribute,
     Context,
+    Event,
     Image,
     Light,
     Material,
@@ -1693,7 +1694,7 @@ def get_color_input_update_callback(attr_name="", prefix=""):
 
 
 def update_node_values_of_material(material: Material, context):
-    nodes = material.node_tree.nodes
+    check_or_ask_color_management(context)
 
     update_blend_method(material, context)
     if not has_f3d_nodes(material):
@@ -1704,6 +1705,8 @@ def update_node_values_of_material(material: Material, context):
     update_combiner_connections(material, context)
 
     set_output_node_groups(material)
+
+    nodes = material.node_tree.nodes
 
     if f3dMat.rdp_settings.g_tex_gen:
         if f3dMat.rdp_settings.g_tex_gen_linear:
@@ -2179,7 +2182,6 @@ def has_f3d_nodes(material: Material):
 @persistent
 def load_handler(dummy):
     logger.info("Checking for base F3D material library.")
-
     for lib in bpy.data.libraries:
         lib_path = bpy.path.abspath(lib.filepath)
 
@@ -2438,6 +2440,76 @@ def reloadDefaultF3DPresets():
     for material in bpy.data.materials:
         if material.f3d_mat.presetName in presetNameToFilename:
             update_preset_manual_v4(material, presetNameToFilename[material.f3d_mat.presetName])
+
+
+def check_or_ask_color_management(context: Context):
+    scene = context.scene
+    fast64_props: "Fast64_Properties" = scene.fast64
+    fast64settings_props: "Fast64Settings_Properties" = fast64_props.settings
+    view_settings = scene.view_settings
+    # Check if color management settings are correct
+    if not fast64settings_props.dont_ask_color_management and (
+        scene.display_settings.display_device != "sRGB"
+        or view_settings.view_transform != "Standard"
+        or view_settings.look != "None"
+        or view_settings.exposure != 0.0
+        or view_settings.gamma != 1.0
+    ):
+        bpy.ops.dialog.fast64_update_color_management("INVOKE_DEFAULT")
+
+
+class UpdateColorManagementPopup(Operator):
+    bl_label = "Update Color Management"
+    bl_idname = "dialog.fast64_update_color_management"
+    bl_description = "Update color management settings to help material preview accuracy"
+    bl_options = {"UNDO"}
+
+    already_invoked = False  # HACK: used to prevent multiple dialogs from popping up
+
+    def invoke(self, context: Context, event: Event):
+        if UpdateColorManagementPopup.already_invoked:
+            return {"FINISHED"}
+        UpdateColorManagementPopup.already_invoked = True
+        return context.window_manager.invoke_props_dialog(self, width=400)
+
+    def draw(self, context: Context):
+        col = self.layout.column()
+        multilineLabel(
+            col,
+            (
+                (
+                    f'The color management settings for the current scene "{context.scene.name}"\n'
+                    # use is_library_indirect to not count the scene from f3d_material_library.blend and other "external" scenes
+                    if len([_s for _s in bpy.data.scenes if not _s.is_library_indirect]) >= 2
+                    else "The color management settings\n"
+                )
+                + "will cause inaccurate preview compared to N64.\n"
+                + "Would you like to update it?"
+            ),
+            icon="INFO",
+        )
+        fast64_props: "Fast64_Properties" = context.scene.fast64
+        fast64settings_props: "Fast64Settings_Properties" = fast64_props.settings
+        col.prop(fast64settings_props, "dont_ask_color_management", text="Don't ask again")
+
+    def cancel(self, context: Context):
+        UpdateColorManagementPopup.already_invoked = False
+
+    def execute(self, context):
+        try:
+            scene = context.scene
+            scene.display_settings.display_device = "sRGB"
+            scene.view_settings.view_transform = "Standard"
+            scene.view_settings.look = "None"
+            scene.view_settings.exposure = 0.0
+            scene.view_settings.gamma = 1.0
+            self.report({"INFO"}, "Updated color management settings.")
+            return {"FINISHED"}
+        except Exception as exc:
+            raisePluginError(self, exc)
+            return {"CANCELLED"}
+        finally:
+            UpdateColorManagementPopup.already_invoked = False
 
 
 class CreateFast3DMaterial(Operator):
@@ -4404,6 +4476,7 @@ def draw_f3d_render_settings(self, context):
 
 
 mat_classes = (
+    UpdateColorManagementPopup,
     UnlinkF3DImage0,
     UnlinkF3DImage1,
     DrawLayerProperty,

@@ -12,7 +12,7 @@ from .fast64_internal.oot import OOT_Properties, oot_register, oot_unregister
 from .fast64_internal.oot.props_panel_main import OOT_ObjectProperties
 from .fast64_internal.utility_anim import utility_anim_register, utility_anim_unregister, ArmatureApplyWithMeshOperator
 
-from .fast64_internal.f3d.f3d_material import mat_register, mat_unregister
+from .fast64_internal.f3d.f3d_material import mat_register, mat_unregister, check_or_ask_color_management
 from .fast64_internal.f3d.f3d_render_engine import render_engine_register, render_engine_unregister
 from .fast64_internal.f3d.f3d_writer import f3d_writer_register, f3d_writer_unregister
 from .fast64_internal.f3d.f3d_parser import f3d_parser_register, f3d_parser_unregister
@@ -175,6 +175,7 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
         name="Prefer RGBA Over CI",
         description="When enabled, fast64 will default colored textures's format to RGBA even if they fit CI requirements, with the exception of textures that would not fit into TMEM otherwise",
     )
+    dont_ask_color_management: bpy.props.BoolProperty(name="Don't ask to set color management properties")
 
 
 class Fast64_Properties(bpy.types.PropertyGroup):
@@ -323,6 +324,8 @@ def upgrade_scene_props_node():
 
 @bpy.app.handlers.persistent
 def after_load(_a, _b):
+    if any(mat.is_f3d for mat in bpy.data.materials):
+        check_or_ask_color_management(bpy.context)
     upgrade_changed_props()
     upgrade_scene_props_node()
     resync_scene_props()
