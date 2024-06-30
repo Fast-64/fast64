@@ -6402,7 +6402,8 @@ homebrew_and_oot = {
 material_presets = {
     "homebrew": homebrew_and_oot,
     "oot": {
-        f"oot_{key}": value + 'f3d_mat.presetName = "Oot " +  f3d_mat.presetName' for key, value in homebrew_and_oot.items()
+        f"oot_{key}": value + 'f3d_mat.presetName = "Oot " +  f3d_mat.presetName'
+        for key, value in homebrew_and_oot.items()
     },
     "oot_f3dex3": {
         "oot_cel_4_blend_tex_vcol_ao": oot_cel_4_blend_tex_vcol_ao,
