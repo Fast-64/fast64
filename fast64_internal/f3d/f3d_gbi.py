@@ -1806,7 +1806,10 @@ class F3D:
         return (self.G_INPUT_BUFFER_CMDS - remainderCommands) << 3
 
 
-g_F3D = {"GBI": None, "f3d_type": None}
+g_F3D = {
+    "GBI": None,
+    "f3d_type": None,
+}
 
 
 def get_cached_F3D_GBI(f3d_type: str) -> F3D:
