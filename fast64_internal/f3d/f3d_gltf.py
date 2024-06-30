@@ -65,10 +65,8 @@ EXCLUDE_FROM_INPUT_OUTPUT = (
 
 def node_tree_copy(src: NodeTree, dst: NodeTree):
     def copy_attributes(src, dst, excludes=None):
-        fails = []
-        attributes = (
-            attr.identifier for attr in src.bl_rna.properties if not excludes or attr.identifier not in excludes
-        )
+        fails, excludes = [], excludes if excludes else []
+        attributes = (attr.identifier for attr in src.bl_rna.properties if attr.identifier not in excludes)
         for attr in attributes:
             try:
                 setattr(dst, attr, getattr(src, attr))
@@ -308,9 +306,8 @@ class Fast64Extension(GlTF2SubExtension):
             gltf_temp_obj.active_material = blender_material
             update_node_values(blender_material, bpy.context, True)
         finally:
+            bpy.context.view_layer.objects.active = None
             bpy.context.scene.collection.objects.unlink(gltf_temp_obj)
-        
-
 
     def gather_import_node_after_hook(self, _vnode, gltf_node, blender_object, _gltf):
         data = self.get_gltf2_extension(gltf_node)
