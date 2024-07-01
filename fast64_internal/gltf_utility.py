@@ -1,4 +1,13 @@
 from pprint import pprint
+import addon_utils
+
+
+def find_glTF2_addon():
+    for mod in addon_utils.modules():
+        if mod.__name__ == "io_scene_gltf2":
+            return mod
+    else:
+        raise ValueError("glTF2 addon not found")
 
 
 class GlTF2SubExtension:

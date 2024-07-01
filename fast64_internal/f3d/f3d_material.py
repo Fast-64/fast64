@@ -4487,11 +4487,7 @@ class F3DMaterialProperty(PropertyGroup):
         return use_dict["Texture 0"] and use_dict["Texture 1"]
 
     def get_uv_basis(self):
-        return self.uv_basis if (
-            self.is_multi_tex
-            and self.tex0.is_set
-            and self.tex1.is_set
-        ) else None
+        return self.uv_basis if (self.is_multi_tex and self.tex0.is_set and self.tex1.is_set) else None
 
     def combiner_to_dict(self):
         cycles = [self.combiner1.to_dict()]

@@ -49,7 +49,6 @@ class GlTF2Extension:
         self.Extension = Extension
         self.settings = bpy.context.scene.fast64.settings.glTF
         self.verbose = self.settings.verbose
-
         self.sub_extensions = []
         if self.settings.f3d:
             from .fast64_internal.f3d.f3d_gltf import Fast64Extension

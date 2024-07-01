@@ -1,7 +1,7 @@
 import bpy
 from bpy.types import Image, NodeTree
 
-from ..gltf_utility import GlTF2SubExtension
+from ..gltf_utility import GlTF2SubExtension, find_glTF2_addon
 from .f3d_gbi import F3D, get_F3D_GBI
 from .f3d_material import (
     all_combiner_uses,
@@ -14,9 +14,13 @@ from .f3d_material import (
     TextureProperty,
 )
 
-# TODO: Check glTF addon version instead
-if bpy.app.version >= (3, 6, 0):
-    if bpy.app.version >= (3, 6, 5):
+# We import at the time of export or import, so we can assume the addon already is loaded,
+# this also makes it easy to be fully sure we get the correct version
+GLTF2_ADDDON = find_glTF2_addon()
+GLTF2_ADDON_VERSION = GLTF2_ADDDON.bl_info.get("version", (-1, -1, -1))
+
+if GLTF2_ADDON_VERSION >= (3, 6, 0):
+    if GLTF2_ADDON_VERSION:
         from io_scene_gltf2.blender.exp.material.gltf2_blender_gather_image import __is_blender_image_a_webp
     from io_scene_gltf2.blender.exp.material.gltf2_blender_gather_image import (
         __gather_name,
@@ -98,7 +102,7 @@ def node_tree_copy(src: NodeTree, dst: NodeTree):
 
 
 def is_blender_image_a_webp(image: Image) -> bool:
-    if bpy.data.version < (3, 6, 5):
+    if GLTF2_ADDON_VERSION < (3, 6, 5):
         return False
     return __is_blender_image_a_webp(image)
 
