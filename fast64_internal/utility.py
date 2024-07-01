@@ -1224,18 +1224,8 @@ def getNameFromPath(path, removeExtension=False):
     return toAlnum(name, ["-", "."])
 
 
-def gammaCorrect(linear_color: list, include_alpha=False, round_color=False) -> list:
-    return [
-        round(channel, 4) if round_color else channel
-        for channel in (
-            list(
-                mathutils.Color(
-                    linear_color[:3],
-                ).from_scene_linear_to_srgb()
-            )
-            + ([linear_color[3] if len(linear_color) > 3 else 1.0] if include_alpha else [])
-        )
-    ]
+def gammaCorrect(linearColor):
+    return list(mathutils.Color(linearColor[:3]).from_scene_linear_to_srgb())
 
 
 def gammaCorrectValue(linearValue):
@@ -1243,10 +1233,8 @@ def gammaCorrectValue(linearValue):
     return mathutils.Color((linearValue, linearValue, linearValue)).from_scene_linear_to_srgb().v
 
 
-def gammaInverse(s_rgb_color: list, include_alpha=False):
-    return list(mathutils.Color(s_rgb_color[:3]).from_srgb_to_scene_linear()) + (
-        [s_rgb_color[3] if len(s_rgb_color) > 3 else 1.0] if include_alpha else []
-    )
+def gammaInverse(sRGBColor):
+    return list(mathutils.Color(sRGBColor[:3]).from_srgb_to_scene_linear())
 
 
 def gammaInverseValue(sRGBValue):
@@ -1256,6 +1244,13 @@ def gammaInverseValue(sRGBValue):
 
 def exportColor(lightColor):
     return [scaleToU8(value) for value in gammaCorrect(lightColor)]
+
+
+def get_clean_color(srgb: list, include_alpha=False, round_color=True) -> list:
+    return [
+        round(channel, 4) if round_color else channel
+        for channel in list(srgb[:4 if include_alpha else 3])
+    ]
 
 
 def printBlenderMessage(msgSet, message, blenderOp):
@@ -1641,11 +1636,8 @@ binOps = {
 }
 
 
-def prop_group_to_json(
-    prop_group, blacklist: list[str] = None, whitelist: list[str] = None, correct_colors: bool = True
-):
+def prop_group_to_json(prop_group, blacklist: list[str] = None, whitelist: list[str] = None):
     blacklist = ["rna_type", "name"] + (blacklist or [])
-
     def prop_to_json(prop):
         if isinstance(prop, list) or type(prop).__name__ == "bpy_prop_collection_idprop":
             prop = list(prop)
@@ -1653,7 +1645,7 @@ def prop_group_to_json(
                 prop[index] = prop_to_json(value)
             return prop
         elif isinstance(prop, Color):
-            return [round(c, 4) for c in (gammaCorrect(prop) if correct_colors else prop)]
+            return get_clean_color(prop)
         elif hasattr(prop, "to_list"):  # for IDPropertyArray classes
             return prop.to_list()
         elif hasattr(prop, "to_dict"):
@@ -1672,7 +1664,7 @@ def prop_group_to_json(
 
 
 def json_to_prop_group(
-    prop_group, data: dict, blacklist: list[str] = None, whitelist: list[str] = None, correct_colors: bool = True
+    prop_group, data: dict, blacklist: list[str] = None, whitelist: list[str] = None
 ):
     blacklist = ["rna_type", "name"] + (blacklist or [])
     for prop in iter_prop(prop_group):
@@ -1681,10 +1673,5 @@ def json_to_prop_group(
         default = getattr(prop_group, prop)
         if hasattr(default, "from_dict"):
             default.from_dict(data.get(prop, None))
-        if isinstance(default, Color):
-            if correct_colors:
-                setattr(prop_group, gammaInverse(data.get(prop, default), data.get(prop, default)))
-            else:
-                setattr(prop_group, prop, data.get(prop, default))
         else:
             setattr(prop_group, prop, data.get(prop, default))

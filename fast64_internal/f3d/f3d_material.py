@@ -4583,9 +4583,9 @@ class F3DMaterialProperty(PropertyGroup):
         if not (use_dict["Shade"] and self.rdp_settings.g_lighting and self.set_lights):
             return {}
         lights: list[dict[str, list[float]]] = []
-        ambient = gammaCorrect(self.ambient_light_color, round_color=True)
+        ambient = get_clean_color(self.ambient_light_color, True)
         if self.use_default_lighting:
-            lights.append({"color": gammaCorrect(self.default_light_color, round_color=True)})
+            lights.append({"color": get_clean_color(self.default_light_color, True)})
             if self.set_ambient_from_light:
                 ambient = None
         else:
@@ -4597,33 +4597,33 @@ class F3DMaterialProperty(PropertyGroup):
         lights = data.get("lights", [])
         if len(lights) == 1 and not "direction" in lights[0] and "color" in lights[0]:  # Default lighting
             self.use_default_lighting = True
-            self.default_light_color = gammaInverse(lights[0]["color"], True)
+            self.default_light_color = lights[0]["color"] + [1.0]
         else:
             self.use_default_lighting = False
         # TODO: Figure out conversion for object lights
         ambient = data.get("ambientColor", [])
         self.set_ambient_from_light = bool(ambient)
         if ambient:
-            self.ambient_light_color = gammaInverse(ambient, True)
+            self.ambient_light_color = ambient + [1.0]
 
     def colors_to_dict(self, f3d, use_dict: dict[str]):
         data = {}
         if use_dict["Environment"]:
             data["environment"] = {
                 "set": self.set_env,
-                "color": gammaCorrect(self.env_color, include_alpha=True, round_color=True),
+                "color": get_clean_color(self.env_color, include_alpha=True),
             }
         if use_dict["Primitive"]:
             data["primitive"] = {
                 "set": self.set_prim,
-                "color": gammaCorrect(self.prim_color, include_alpha=True, round_color=True),
+                "color": get_clean_color(self.prim_color, include_alpha=True),
                 "minLoDRatio": self.prim_lod_min,
                 "loDFraction": self.prim_lod_frac,
             }
         if use_dict["Key"]:
             data["key"] = {
                 "set": self.set_key,
-                "center": gammaCorrect(self.key_center, round_color=True),
+                "center": get_clean_color(self.key_center),
                 "scale": list(self.key_scale),
                 "width": list(self.key_width),
             }
@@ -4635,14 +4635,14 @@ class F3DMaterialProperty(PropertyGroup):
         if self.rdp_settings.using_fog:
             data["fog"] = {
                 "set": self.set_fog,
-                "color": gammaCorrect(self.fog_color, round_color=True),
+                "color": get_clean_color(self.fog_color),
                 "range": list(self.fog_position),
             }
         if self.rdp_settings.g_lighting:
             data["lighting"] = {"set": self.set_lights, **self.lights_to_dict(use_dict)}
         data["blend"] = {
             "set": self.set_blend,
-            "color": gammaCorrect(self.blend_color, include_alpha=True, round_color=True),
+            "color": get_clean_color(self.blend_color, include_alpha=True),
         }
         if f3d.F3DEX_GBI_3:
             data.update(self.f3dex3_colors_to_dict())
@@ -4652,11 +4652,11 @@ class F3DMaterialProperty(PropertyGroup):
         enviroment = data.get("environment", {})
         self.set_env = enviroment.get("set", self.set_env)
         if "color" in enviroment:
-            self.env_color = gammaInverse(enviroment.get("color"), True)
+            self.env_color = enviroment.get("color")
         primitive = data.get("primitive", {})
         self.set_prim = primitive.get("set", self.set_prim)
         if "color" in primitive:
-            self.prim_color = gammaInverse(primitive.get("color"), True)
+            self.prim_color = primitive.get("color")
         self.prim_lod_min, self.prim_lod_frac = (
             primitive.get("minLoDRatio", self.prim_lod_min),
             primitive.get("loDFraction", self.prim_lod_frac),
@@ -4664,7 +4664,7 @@ class F3DMaterialProperty(PropertyGroup):
         key = data.get("key", {})
         self.set_key = key.get("set", self.set_key)
         if "center" in key:
-            self.key_center = gammaInverse(key.get("center"), True)
+            self.key_center = key.get("center") + [1.0]
         self.key_scale, self.key_width = (
             key.get("scale", list(self.key_scale)),
             key.get("width", list(self.key_width)),
@@ -4677,12 +4677,12 @@ class F3DMaterialProperty(PropertyGroup):
         fog = data.get("fog", {})
         self.set_fog = fog.get("set", self.set_fog)
         if "color" in fog:
-            self.fog_color = gammaInverse(fog.get("color"), True)
+            self.fog_color = fog.get("color") + [1.0]
         self.fog_position = fog.get("range", list(self.fog_position))
         blend = data.get("blend", {})
         self.set_blend = blend.get("set", self.set_blend)
         if "color" in blend:
-            self.blend_color = gammaInverse(blend.get("color"), True)
+            self.blend_color = blend.get("color")
         lighting = data.get("lighting", {})
         self.set_lights = lighting.get("set", self.set_lights)
         self.lights_from_dict(lighting)
