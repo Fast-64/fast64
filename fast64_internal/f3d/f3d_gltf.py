@@ -304,7 +304,7 @@ class Fast64Extension(GlTF2SubExtension):
         return gltf2_io.Texture(
             extensions=None,
             extras=None,
-            name=None,
+            name=source.name if source else None,
             sampler=sampler,
             source=source,
         )
