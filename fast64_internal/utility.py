@@ -1644,6 +1644,8 @@ binOps = {
 def prop_group_to_json(
     prop_group, blacklist: list[str] = None, whitelist: list[str] = None, correct_colors: bool = True
 ):
+    blacklist = ["rna_type", "name"] + (blacklist or [])
+
     def prop_to_json(prop):
         if isinstance(prop, list) or type(prop).__name__ == "bpy_prop_collection_idprop":
             prop = list(prop)
@@ -1661,7 +1663,7 @@ def prop_group_to_json(
 
     data = {}
     for prop in iter_prop(prop_group):
-        if (blacklist and prop in blacklist) or (whitelist and prop not in whitelist) or prop in {"rna_type", "name"}:
+        if prop in blacklist or (whitelist and prop not in whitelist):
             continue
         value = prop_to_json(getattr(prop_group, prop))
         if value is not None:
@@ -1672,8 +1674,9 @@ def prop_group_to_json(
 def json_to_prop_group(
     prop_group, data: dict, blacklist: list[str] = None, whitelist: list[str] = None, correct_colors: bool = True
 ):
-    for prop in prop_group.keys():
-        if (blacklist and prop in blacklist) or (whitelist and prop not in whitelist):
+    blacklist = ["rna_type", "name"] + (blacklist or [])
+    for prop in iter_prop(prop_group):
+        if prop in blacklist or (whitelist and prop not in whitelist):
             continue
         default = getattr(prop_group, prop)
         if hasattr(default, "from_dict"):
