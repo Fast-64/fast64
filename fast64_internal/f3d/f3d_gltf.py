@@ -371,9 +371,9 @@ class Fast64Extension(GlTF2SubExtension):
         if use_dict["Texture 1"]:
             textures["1"] = self.f3d_to_glTF2_texture_info(f3d_mat, f3d_mat.tex1, export_settings)
         self.append_gltf2_extension(gltf2_material, data)
-
-        pbr = gltf2_material.pbr_metallic_roughness
+        
         # glTF Standard
+        pbr = gltf2_material.pbr_metallic_roughness
         if f3d_mat.is_multi_tex:
             pbr.base_color_texture = textures["0"]
             pbr.metallic_roughness_texture = textures["1"]
@@ -386,7 +386,7 @@ class Fast64Extension(GlTF2SubExtension):
 
     def gather_node_hook(self, gltf2_node, blender_object, _export_settings: dict):
         data = {}
-        if self.f3d.F3DEX_GBI or self.f3d.F3DEX_GBI_2:
+        if not self.f3d.F3D_OLD_GBI:
             data["use_culling"] = blender_object.use_f3d_culling
         self.append_gltf2_extension(gltf2_node, data)
 
