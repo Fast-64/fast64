@@ -192,7 +192,10 @@ class Fast64Extension(GlTF2SubExtension):
         f3d_texture,
         export_settings: dict,
     ):
-        source = get_gltf_image_from_blender_image(f3d_texture.tex.name, export_settings)
+        if f3d_texture.tex is not None:
+            source = get_gltf_image_from_blender_image(f3d_texture.tex.name, export_settings)
+        else:
+            source = None
         sampler = self.sampler_from_f3d(f3d_mat, f3d_texture)
         return gltf2_io.Texture(
             extensions=None,
@@ -213,7 +216,6 @@ class Fast64Extension(GlTF2SubExtension):
             if blender_image_name:
                 f3d_tex.tex = bpy.data.images[blender_image_name]
                 f3d_tex.tex.colorspace_settings.name = "sRGB"
-                
 
     def f3d_to_glTF2_texture_info(
         self,
@@ -225,7 +227,7 @@ class Fast64Extension(GlTF2SubExtension):
             extensions=None,
             extras=None,
             index=self.f3d_to_gltf2_texture(f3d_mat, f3d_texture, export_settings),
-            tex_coord=None,  # TODO: Convert high and low to tex_coords
+            tex_coord=None,  # TODO: Convert high/low and shift to tex_coords
         )
 
     def gather_material_hook(self, gltf2_material, blender_material, export_settings: dict):
@@ -248,12 +250,14 @@ class Fast64Extension(GlTF2SubExtension):
             textures["0"] = self.f3d_to_glTF2_texture_info(f3d_mat, f3d_mat.tex0, export_settings)
         if use_dict["Texture 1"]:
             textures["1"] = self.f3d_to_glTF2_texture_info(f3d_mat, f3d_mat.tex1, export_settings)
+        self.append_gltf2_extension(gltf2_material, data)
+
+        # glTF Standard
         if f3d_mat.is_multi_tex:
             pbr.base_color_texture = textures["0"]
             pbr.metallic_roughness_texture = textures["1"]
         else:
             pbr.base_color_texture = textures.values()[0]
-        self.append_gltf2_extension(gltf2_material, data)
 
     def gather_node_hook(self, gltf2_node, blender_object, _export_settings: dict):
         data = {}
@@ -273,7 +277,7 @@ class Fast64Extension(GlTF2SubExtension):
         data = self.get_gltf2_extension(gltf_material)
         if data is None:
             return
-        
+
         try:
             self.print_verbose("Copying f3d node tree")
             node_tree_copy(self.base_node_tree, blender_material.node_tree)

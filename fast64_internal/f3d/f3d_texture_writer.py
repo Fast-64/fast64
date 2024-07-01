@@ -791,15 +791,17 @@ class MultitexManager:
         elif not useLargeTextures or self.ti0.tmemSize + self.ti1.tmemSize <= tmemSize:
             self.ti1.texAddr = self.ti0.tmemSize
             tmemOccupied = self.ti0.tmemSize + self.ti1.tmemSize
-            if not self.ti0.useTex and not self.ti1.useTex:
-                self.texDimensions = [32, 32]
-                fMaterial.largeTexFmt = "RGBA16"
-            elif not self.ti1.useTex or f3dMat.uv_basis == "TEXEL0":
+            uv_basis = f3dMat.get_uv_basis()
+            if uv_basis == "TEXEL0":
                 self.texDimensions = self.ti0.imageDims
                 fMaterial.largeTexFmt = self.ti0.texFormat
-            else:
+            elif uv_basis == "TEXEL1":
                 self.texDimensions = self.ti1.imageDims
                 fMaterial.largeTexFmt = self.ti1.texFormat
+            else:
+                self.texDimensions = [32, 32]
+                fMaterial.largeTexFmt = "RGBA16"
+
         else:  # useLargeTextures
             if self.ti0.useTex and self.ti1.useTex:
                 tmemOccupied = tmemSize

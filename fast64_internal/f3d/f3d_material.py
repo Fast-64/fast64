@@ -1075,9 +1075,7 @@ class F3DPanel(Panel):
             noticeBox.label(text='They must be called "Col" and "Alpha".', icon="IMAGE_ALPHA")
 
     def checkDrawMixedCIWarning(self, layout, useDict, f3dMat):
-        useTex0 = useDict["Texture 0"] and f3dMat.tex0.tex_set
-        useTex1 = useDict["Texture 1"] and f3dMat.tex1.tex_set
-        if not useTex0 or not useTex1:
+        if not (f3dMat.is_multi_tex and (f3dMat.tex0.tex_set and f3dMat.tex1.tex_set)):
             return
         isTex0CI = f3dMat.tex0.tex_format[:2] == "CI"
         isTex1CI = f3dMat.tex1.tex_format[:2] == "CI"
@@ -1094,8 +1092,6 @@ class F3DPanel(Panel):
 
         self.checkDrawLayersWarnings(f3dMat, useDict, layout)
 
-        useMultitexture = useDict["Texture 0"] and useDict["Texture 1"] and f3dMat.tex0.tex_set and f3dMat.tex1.tex_set
-
         self.checkDrawMixedCIWarning(inputCol, useDict, f3dMat)
         canUseLargeTextures = material.mat_ver > 3 and material.f3d_mat.use_large_textures
         if useDict["Texture 0"] and f3dMat.tex0.tex_set:
@@ -1104,7 +1100,7 @@ class F3DPanel(Panel):
         if useDict["Texture 1"] and f3dMat.tex1.tex_set:
             ui_image(canUseLargeTextures, inputCol, material, f3dMat.tex1, "Texture 1", False)
 
-        if useMultitexture:
+        if f3dMat.get_uv_basis():
             inputCol.prop(f3dMat, "uv_basis", text="UV Basis")
 
         if useDict["Texture"]:
@@ -1183,8 +1179,6 @@ class F3DPanel(Panel):
 
             inputCol = layout.column()
 
-            useMultitexture = useDict["Texture 0"] and useDict["Texture 1"]
-
             self.checkDrawMixedCIWarning(inputCol, useDict, f3dMat)
             canUseLargeTextures = material.mat_ver > 3 and material.f3d_mat.use_large_textures
             if useDict["Texture 0"]:
@@ -1193,7 +1187,7 @@ class F3DPanel(Panel):
             if useDict["Texture 1"]:
                 ui_image(canUseLargeTextures, inputCol, material, f3dMat.tex1, "Texture 1", True)
 
-            if useMultitexture:
+            if f3dMat.get_uv_basis():
                 inputCol.prop(f3dMat, "uv_basis", text="UV Basis")
 
             if useDict["Texture"]:
@@ -2017,14 +2011,12 @@ def update_tex_values(self, context):
 
 
 def get_tex_basis_size(f3d_mat: "F3DMaterialProperty"):
-    tex_size = None
-    if f3d_mat.tex0.tex is not None and f3d_mat.tex1.tex is not None:
-        return f3d_mat.tex0.tex.size if f3d_mat.uv_basis == "TEXEL0" else f3d_mat.tex1.tex.size
-    elif f3d_mat.tex0.tex is not None:
-        return f3d_mat.tex0.tex.size
-    elif f3d_mat.tex1.tex is not None:
-        return f3d_mat.tex1.tex.size
-    return tex_size
+    useDict, tex_dimensions = all_combiner_uses(f3d_mat), [32, 32]
+    if useDict["Texture 0"] and f3d_mat.tex0.is_set:
+        tex_dimensions = tex0_dimensions = f3d_mat.tex0.get_tex_size()
+    if useDict["Texture 1"] and f3d_mat.tex1.is_set:
+        tex_dimensions = f3d_mat.tex1.get_tex_size()
+    return tex0_dimensions if f3d_mat.get_uv_basis() == "TEXEL0" else tex_dimensions
 
 
 def get_tex_gen_size(tex_size: list[int | float]):
@@ -2069,10 +2061,10 @@ def update_tex_values_manual(material: Material, context, prop_path=None):
             texture_inputs["1 T TexSize"].default_value = f3dMat.tex1.tex.size[0]
 
     uv_basis: ShaderNodeGroup = nodes["UV Basis"]
-    if f3dMat.uv_basis == "TEXEL0":
-        uv_basis.node_tree = bpy.data.node_groups["UV Basis 0"]
-    else:
+    if f3dMat.get_uv_basis() == "TEXEL1":
         uv_basis.node_tree = bpy.data.node_groups["UV Basis 1"]
+    else:
+        uv_basis.node_tree = bpy.data.node_groups["UV Basis 0"]
 
     if not isTexGen:
         uv_basis.inputs["S Scale"].default_value = f3dMat.tex_scale[0]
@@ -2705,6 +2697,10 @@ class TextureProperty(PropertyGroup):
     def is_ci(self):
         return self.tex_format.startswith("CI")
 
+    @property
+    def is_set(self):
+        return self.tex_set and (self.use_tex_reference or self.tex is not None)
+
     def get_tex_size(self) -> list[int]:
         if self.tex or self.use_tex_reference:
             if self.tex is not None:
@@ -2863,8 +2859,7 @@ def ui_image(
             availTmem = 512
             if textureProp.tex_format[:2] == "CI":
                 availTmem /= 2
-            useDict = all_combiner_uses(material.f3d_mat)
-            if useDict["Texture 0"] and useDict["Texture 1"]:
+            if material.f3d_mat.is_multi_tex:
                 availTmem /= 2
             isLarge = getTmemWordUsage(textureProp.tex_format, width, height) > availTmem
         else:
@@ -4489,7 +4484,14 @@ class F3DMaterialProperty(PropertyGroup):
     @property
     def is_multi_tex(self):
         use_dict = all_combiner_uses(self)
-        return use_dict["Texture 0"] and use_dict["Texture 1"] and self.tex0.tex_set and self.tex1.tex_set
+        return use_dict["Texture 0"] and use_dict["Texture 1"]
+
+    def get_uv_basis(self):
+        return self.uv_basis if (
+            self.is_multi_tex
+            and self.tex0.is_set
+            and self.tex1.is_set
+        ) else None
 
     def combiner_to_dict(self):
         cycles = [self.combiner1.to_dict()]
@@ -4677,8 +4679,7 @@ class F3DMaterialProperty(PropertyGroup):
             data["scale"] = [round(value, 4) for value in self.tex_scale]
         if self.use_large_textures:
             data["large"] = {"edges": self.large_edges}
-        if self.is_multi_tex:
-            data["uvBasis"] = self.uv_basis
+        data["uvBasis"] = self.get_uv_basis()
         return data
 
     def extra_texture_settings_from_dict(self, data):
