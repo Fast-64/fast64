@@ -281,11 +281,11 @@ class Fast64Extension(GlTF2SubExtension):
             wrap_s=wrap[0],
             wrap_t=wrap[1],
         )
-        self.append_gltf2_extension(sampler, f3d_tex.to_dict())
+        self.append_extension(sampler, f3d_tex.to_dict())
         return sampler
 
     def sampler_to_f3d(self, gltf2_sampler, f3d_tex: TextureProperty):
-        data = self.get_gltf2_extension(gltf2_sampler)
+        data = self.get_extension(gltf2_sampler)
         if data is None:
             return
         f3d_tex.from_dict(data)
@@ -293,14 +293,14 @@ class Fast64Extension(GlTF2SubExtension):
     def f3d_to_gltf2_texture(
         self,
         f3d_mat: F3DMaterialProperty,
-        f3d_texture,
+        f3d_tex: TextureProperty,
         export_settings: dict,
     ):
-        if f3d_texture.tex is not None:
-            source = get_gltf_image_from_blender_image(f3d_texture.tex.name, export_settings)
+        if f3d_tex.tex is not None:
+            source = get_gltf_image_from_blender_image(f3d_tex.tex.name, export_settings)
         else:
             source = None
-        sampler = self.sampler_from_f3d(f3d_mat, f3d_texture)
+        sampler = self.sampler_from_f3d(f3d_mat, f3d_tex)
         return gltf2_io.Texture(
             extensions=None,
             extras=None,
@@ -324,32 +324,32 @@ class Fast64Extension(GlTF2SubExtension):
     def f3d_to_glTF2_texture_info(
         self,
         f3d_mat: F3DMaterialProperty,
-        f3d_texture: TextureProperty,
+        f3d_tex: TextureProperty,
         export_settings: dict,
     ):
-        def to_offset(low, tex_size):
-            return trunc_10_2(low) * (1.0 / tex_size)
-
-        transform = {}
-        tex_size = f3d_texture.get_tex_size()
-        offset = [to_offset(f3d_texture.S.low, tex_size[0]), to_offset(f3d_texture.T.low, tex_size[1])]
-        if offset != [0.0, 0.0]:
-            transform = {"offset": offset}
-        scale = 2.0 ** (f3d_texture.S.shift * -1.0), 2.0 ** (f3d_texture.T.shift * -1.0)
-        if scale != (1.0, 1.0):
-            transform["scale"] = scale
-        return gltf2_io.TextureInfo(
-            extensions={
-                "KHR_texture_transform": self.extension.Extension(
-                    name="KHR_texture_transform", extension=transform, required=False
-                )
-            }
-            if transform
-            else None,
+        tex_info = gltf2_io.TextureInfo(
+            extensions=None,
             extras=None,
-            index=self.f3d_to_gltf2_texture(f3d_mat, f3d_texture, export_settings),
+            index=self.f3d_to_gltf2_texture(f3d_mat, f3d_tex, export_settings),
             tex_coord=None,
         )
+
+        def to_offset(low: float, tex_size: int):
+            return trunc_10_2(low) * (1.0 / tex_size)
+
+        transform_data = {}
+        size = f3d_tex.get_tex_size()
+        offset = [to_offset(f3d_tex.S.low, size[0]), to_offset(f3d_tex.T.low, size[1])]
+        if offset != [0.0, 0.0]:
+            transform_data = {"offset": offset}
+
+        scale = [2.0 ** (f3d_tex.S.shift * -1.0), 2.0 ** (f3d_tex.T.shift * -1.0)]
+        if scale != [1.0, 1.0]:
+            transform_data["scale"] = scale
+
+        if transform_data:
+            self.append_extension(tex_info, transform_data, "KHR_texture_transform")
+        return tex_info
 
     def gather_material_hook(self, gltf2_material, blender_material, export_settings: dict):
         if not blender_material.is_f3d:
@@ -370,8 +370,8 @@ class Fast64Extension(GlTF2SubExtension):
             textures["0"] = self.f3d_to_glTF2_texture_info(f3d_mat, f3d_mat.tex0, export_settings)
         if use_dict["Texture 1"]:
             textures["1"] = self.f3d_to_glTF2_texture_info(f3d_mat, f3d_mat.tex1, export_settings)
-        self.append_gltf2_extension(gltf2_material, data)
-        
+        self.append_extension(gltf2_material, data)
+
         # glTF Standard
         pbr = gltf2_material.pbr_metallic_roughness
         if f3d_mat.is_multi_tex:
@@ -382,13 +382,13 @@ class Fast64Extension(GlTF2SubExtension):
         pbr.base_color_factor = get_fake_color(data)
 
         if not f3d_mat.rdp_settings.g_lighting:
-            self.append_gltf2_extension(gltf2_material, {}, extension_name="KHR_materials_unlit")
+            self.append_extension(gltf2_material, name="KHR_materials_unlit", skip_if_empty=False)
 
     def gather_node_hook(self, gltf2_node, blender_object, _export_settings: dict):
         data = {}
         if not self.f3d.F3D_OLD_GBI:
             data["use_culling"] = blender_object.use_f3d_culling
-        self.append_gltf2_extension(gltf2_node, data)
+        self.append_extension(gltf2_node, data)
 
     # Importing
 
@@ -399,7 +399,7 @@ class Fast64Extension(GlTF2SubExtension):
         blender_material,
         gltf,
     ):
-        data = self.get_gltf2_extension(gltf_material)
+        data = self.get_extension(gltf_material)
         if data is None:
             return
 
@@ -453,7 +453,7 @@ class Fast64Extension(GlTF2SubExtension):
             bpy.context.scene.collection.objects.unlink(gltf_temp_obj)
 
     def gather_import_node_after_hook(self, _vnode, gltf_node, blender_object, _gltf):
-        data = self.get_gltf2_extension(gltf_node)
+        data = self.get_extension(gltf_node)
         if data is None:
             return
         blender_object.use_f3d_culling = data.get("use_culling", True)

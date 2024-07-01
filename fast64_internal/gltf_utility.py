@@ -25,18 +25,22 @@ class GlTF2SubExtension:
         if self.extension.verbose:
             pprint(content)
 
-    def append_gltf2_extension(self, gltf_prop, data: dict, extension_name=None, required=False):
-        self.print_verbose(f"Appending {self.extension_name} extension: {data}")
+    def append_extension(self, gltf_prop, data: dict = None, name=None, required=False, skip_if_empty=True):
+        if skip_if_empty and not data:
+            return
+        name = name if name else self.extension_name
+        self.print_verbose(f"Appending {name} extension")
+        if data:
+            self.print_verbose(data)
         if gltf_prop.extensions is None:
             gltf_prop.extensions = {}
-        extension_name = extension_name if extension_name else self.extension_name
-        gltf_prop.extensions[extension_name] = self.extension.Extension(
-            name=extension_name,
-            extension=data,
+        gltf_prop.extensions[name] = self.extension.Extension(
+            name=name,
+            extension=data if data else {},
             required=required if required else self.required,
         )
 
-    def get_gltf2_extension(self, gltf_prop, extension_name=None):
+    def get_extension(self, gltf_prop, extension_name=None):
         if gltf_prop.extensions is None:
             return None
         extension_name = extension_name if extension_name else self.extension_name
