@@ -255,7 +255,6 @@ class GeolayoutObjectPanel(Panel):
             box.prop(obj, "is_occlusion_planes")
             if obj.is_occlusion_planes and (not obj.ignore_render or not obj.ignore_collision):
                 box.label(icon="INFO", text="Suggest Ignore Render & Ignore Collision.")
-        col.prop(obj, "use_f3d_culling")
         if context.scene.exportInlineF3D:
             col.prop(obj, "bleed_independently")
         if obj_scale_is_unified(obj) and len(obj.modifiers) == 0:
