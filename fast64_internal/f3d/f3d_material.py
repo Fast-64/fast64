@@ -1270,6 +1270,29 @@ class F3DPanel(Panel):
             r.label(text="Use Cel Shading (requires F3DEX3)", icon="TRIA_RIGHT")
 
 
+class F3DMeshPanel(Panel):
+    bl_label = "F3D Mesh Inspector"
+    bl_idname = "F3D_PT_Mesh_Inspector"
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_context = "object"
+    bl_options = {"HIDE_HEADER"}
+
+    @classmethod
+    def poll(cls, context):
+        return context.object.type == "MESH"
+
+    def draw(self, context):
+        new_gbi = not get_F3D_GBI().F3D_OLD_GBI
+        col = self.layout.box().column()
+        col.box().label(text=self.bl_label, icon="MESH_DATA")
+        row = col.row()
+        row.enabled = new_gbi
+        row.prop(context.object, "use_f3d_culling")
+        if not new_gbi:
+            col.label(text="Only available in F3DEX and up", icon="INFO")
+
+
 def ui_tileScroll(tex, name, layout):
     row = layout.row()
     row.label(text=name)
@@ -3659,10 +3682,6 @@ class DefaultRDPSettingsPanel(Panel):
     bl_context = "world"
     bl_options = {"HIDE_HEADER"}
 
-    @classmethod
-    def poll(cls, context):
-        return context.scene.gameEditorMode == "SM64"
-
     def draw(self, context):
         world = context.scene.world
         layout = self.layout
@@ -4862,6 +4881,7 @@ mat_classes = (
     ReloadDefaultF3DPresets,
     UpdateF3DNodes,
     F3DRenderSettingsPanel,
+    F3DMeshPanel,
 )
 
 
@@ -4926,8 +4946,7 @@ def mat_register():
     Scene.f3d_simple = bpy.props.BoolProperty(name="Display Simple", default=True)
 
     Object.use_f3d_culling = bpy.props.BoolProperty(
-        name="Enable Culling (Applies to F3DEX and up)",
-        default=True,
+        name="Use Culling", description="F3DEX: Adds culling vertices", default=True
     )
     Object.ignore_render = bpy.props.BoolProperty(name="Ignore Render")
     Object.ignore_collision = bpy.props.BoolProperty(name="Ignore Collision")

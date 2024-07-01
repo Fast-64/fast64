@@ -448,7 +448,7 @@ def saveStaticModel(
             fMesh = fModel.addMesh(obj.original_name, ownerName, drawLayerName, False, obj)
             fMeshes[drawLayer] = fMesh
 
-            if obj.use_f3d_culling and (fModel.f3d.F3DEX_GBI or fModel.f3d.F3DEX_GBI_2):
+            if obj.use_f3d_culling and not fModel.f3d.F3D_OLD_GBI:
                 addCullCommand(obj, fMesh, transformMatrix, fModel.matWriteMethod)
         else:
             fMesh = fMeshes[drawLayer]
