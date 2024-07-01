@@ -241,7 +241,7 @@ class Fast64Extension(GlTF2SubExtension):
         data["combiner"] = f3d_mat.combiner_to_dict()
         data["colors"] = f3d_mat.colors_to_dict(self.f3d, use_dict)
         data.update(f3d_mat.rdp_settings.to_dict())
-        data["textureSettings"] = f3d_mat.extra_texture_settings_to_dict()
+        data["extraTextureSettings"] = f3d_mat.extra_texture_settings_to_dict()
 
         textures = {}
         data["textures"] = textures
@@ -297,7 +297,7 @@ class Fast64Extension(GlTF2SubExtension):
             f3d_mat.combiner_from_dict(data.get("combiner", {}))
             f3d_mat.colors_from_dict(data.get("colors", {}))
             f3d_mat.rdp_settings.from_dict(data)
-            f3d_mat.extra_texture_settings_from_dict(data.get("textureSettings", {}))
+            f3d_mat.extra_texture_settings_from_dict(data.get("extraTextureSettings", {}))
 
             for num, tex_info in data.get("textures", {}).items():
                 index = tex_info["index"]
