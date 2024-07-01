@@ -487,9 +487,9 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             c.label(text="Fog overrides Light-to-Alpha.", icon="ERROR")
         if lightFxPrereq and settings.g_fresnel_alpha and settings.g_lighttoalpha:
             c.label(text="Fresnel Alpha overrides Light-to-Alpha.", icon="ERROR")
-        if shadowMapInShadeAlpha and ccUse["Shade Alpha"]:
+        if shadowMapInShadeAlpha and ccWarnings and ccUse["Shade Alpha"]:
             c.label(text="Shadow map = shade alpha used in CC, probably wrong.", icon="INFO")
-        if settings.g_fog and ccUse["Shade Alpha"]:
+        if settings.g_fog and ccWarnings and ccUse["Shade Alpha"]:
             c.label(text="Fog = shade alpha used in CC, probably wrong.", icon="INFO")
         if blendWarnings and shadeInBlender and not settings.g_fog:
             c.label(text="Rendermode uses shade alpha, probably fog.", icon="INFO")
