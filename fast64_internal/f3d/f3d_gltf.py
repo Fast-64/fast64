@@ -343,7 +343,9 @@ class Fast64Extension(GlTF2SubExtension):
                 "KHR_texture_transform": self.extension.Extension(
                     name="KHR_texture_transform", extension=transform, required=False
                 )
-            } if transform else None,
+            }
+            if transform
+            else None,
             extras=None,
             index=self.f3d_to_gltf2_texture(f3d_mat, f3d_texture, export_settings),
             tex_coord=None,
