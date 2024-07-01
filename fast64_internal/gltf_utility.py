@@ -26,8 +26,7 @@ class GlTF2SubExtension:
             pprint(content)
 
     def append_gltf2_extension(self, gltf_prop, data: dict, extension_name=None, required=False):
-        self.print_verbose(data)
-
+        self.print_verbose(f"Appending {self.extension_name} extension: {data}")
         if gltf_prop.extensions is None:
             gltf_prop.extensions = {}
         extension_name = extension_name if extension_name else self.extension_name

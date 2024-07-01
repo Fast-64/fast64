@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import math
 import bpy
 from bpy.types import Image, NodeTree
 
@@ -6,6 +7,7 @@ from ..gltf_utility import GlTF2SubExtension, find_glTF2_addon
 from .f3d_gbi import F3D, get_F3D_GBI
 from .f3d_material import (
     all_combiner_uses,
+    trunc_10_2,
     createScenePropertiesForMaterial,
     link_f3d_material_library,
     update_node_values,
@@ -109,31 +111,29 @@ class Color:
     g: float = 0.0
     b: float = 0.0
     a: float = 0.0
-    
+
     def wrap(self, min_value: float, max_value: float):
         def wrap_value(value, min_value=min_value, max_value=max_value):
             range_width = max_value - min_value
             return ((value - min_value) % range_width) + min_value
-        return Color(
-            wrap_value(self.r),
-            wrap_value(self.g),
-            wrap_value(self.b),
-            wrap_value(self.a)
-        )
+
+        return Color(wrap_value(self.r), wrap_value(self.g), wrap_value(self.b), wrap_value(self.a))
 
     def to_clean_list(self):
         def round_and_clamp(value):
-            return round(max(min(value, 1.0), 0.0), 4) 
+            return round(max(min(value, 1.0), 0.0), 4)
+
         return [round_and_clamp(self.r), round_and_clamp(self.g), round_and_clamp(self.b), round_and_clamp(self.a)]
 
     def __sub__(self, other):
         return Color(self.r - other.r, self.g - other.g, self.b - other.b, self.a - other.a)
-    
+
     def __add__(self, other):
         return Color(self.r + other.r, self.g + other.g, self.b + other.b, self.a + other.a)
 
     def __mul__(self, other):
         return Color(self.r * other.r, self.g * other.g, self.b * other.b, self.a * other.a)
+
 
 def get_color_component(inp: str, colors: dict, previous_alpha: float) -> float:
     if inp == "0":
@@ -159,11 +159,10 @@ def get_color_component(inp: str, colors: dict, previous_alpha: float) -> float:
         if inp == "K5":
             return values[5]
 
-def get_color_from_input(
-    inp: str, previous_color: Color, data: dict, is_alpha: bool, default_color: Color
-) -> Color:
+
+def get_color_from_input(inp: str, previous_color: Color, data: dict, is_alpha: bool, default_color: Color) -> Color:
     colors = data["colors"]
-    
+
     if inp == "COMBINED" and not is_alpha:
         return previous_color
     elif inp == "CENTER":
@@ -188,18 +187,20 @@ def fake_color_from_cycle(cycle, previous_color, data, is_alpha=False):
         for inp, default_color in zip(cycle, default_colors)
     ]
     sign_extended_c = c.wrap(-1.0, 1.0001)
-    unwrapped_result = ((a - b) * sign_extended_c + d)
+    unwrapped_result = (a - b) * sign_extended_c + d
     result = unwrapped_result.wrap(-0.5, 1.5)
     if is_alpha:
         result = Color(previous_color.r, previous_color.g, previous_color.b, result.a)
     return result
 
+
 def get_fake_color(data: dict):
     fake_color = Color()
-    for cycle in data["combiner"]["cycles"]: # Try to emulate solid colors
+    for cycle in data["combiner"]["cycles"]:  # Try to emulate solid colors
         fake_color = fake_color_from_cycle(cycle["color"], fake_color, data)
         fake_color = fake_color_from_cycle(cycle["alpha"], fake_color, data, True)
     return fake_color.to_clean_list()
+
 
 def is_blender_image_a_webp(image: Image) -> bool:
     if GLTF2_ADDON_VERSION < (3, 6, 5):
@@ -327,11 +328,26 @@ class Fast64Extension(GlTF2SubExtension):
         f3d_texture: TextureProperty,
         export_settings: dict,
     ):
+        def to_offset(low, tex_size):
+            return trunc_10_2(low) * (1.0 / tex_size)
+
+        transform = {}
+        tex_size = f3d_texture.get_tex_size()
+        offset = [to_offset(f3d_texture.S.low, tex_size[0]), to_offset(f3d_texture.T.low, tex_size[1])]
+        if offset != [0.0, 0.0]:
+            transform = {"offset": offset}
+        scale = 2.0 ** (f3d_texture.S.shift * -1.0), 2.0 ** (f3d_texture.T.shift * -1.0)
+        if scale != (1.0, 1.0):
+            transform["scale"] = scale
         return gltf2_io.TextureInfo(
-            extensions=None,
+            extensions={
+                "KHR_texture_transform": self.extension.Extension(
+                    name="KHR_texture_transform", extension=transform, required=False
+                )
+            } if transform else None,
             extras=None,
             index=self.f3d_to_gltf2_texture(f3d_mat, f3d_texture, export_settings),
-            tex_coord=None,  # TODO: Convert high/low and shift to tex_coords
+            tex_coord=None,
         )
 
     def gather_material_hook(self, gltf2_material, blender_material, export_settings: dict):
@@ -361,7 +377,7 @@ class Fast64Extension(GlTF2SubExtension):
             pbr.base_color_texture = textures["0"]
             pbr.metallic_roughness_texture = textures["1"]
         elif textures:
-            pbr.base_color_texture = textures.values()[0]
+            pbr.base_color_texture = list(textures.values())[0]
         pbr.base_color_factor = get_fake_color(data)
 
         if not f3d_mat.rdp_settings.g_lighting:
