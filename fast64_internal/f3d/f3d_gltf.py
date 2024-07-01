@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-import math
 import bpy
 from bpy.types import Image, NodeTree
 
