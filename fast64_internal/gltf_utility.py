@@ -12,6 +12,7 @@ def find_glTF2_addon():
 
 class GlTF2SubExtension:
     extension_name: str = None
+    required: bool = False
 
     def post_init(self):
         pass
@@ -24,23 +25,23 @@ class GlTF2SubExtension:
         if self.extension.verbose:
             pprint(content)
 
-    def append_gltf2_extension(self, gltf_prop, data: dict):
-        if not any(data):
-            return
+    def append_gltf2_extension(self, gltf_prop, data: dict, extension_name=None, required=False):
         self.print_verbose(data)
 
         if gltf_prop.extensions is None:
             gltf_prop.extensions = {}
-        gltf_prop.extensions[self.extension_name] = self.extension.Extension(
-            name=self.extension_name,
+        extension_name = extension_name if extension_name else self.extension_name
+        gltf_prop.extensions[extension_name] = self.extension.Extension(
+            name=extension_name,
             extension=data,
-            required=False,
+            required=required if required else self.required,
         )
 
-    def get_gltf2_extension(self, gltf_prop):
+    def get_gltf2_extension(self, gltf_prop, extension_name=None):
         if gltf_prop.extensions is None:
             return None
-        data = gltf_prop.extensions.get(self.extension_name, None)
+        extension_name = extension_name if extension_name else self.extension_name
+        data = gltf_prop.extensions.get(extension_name, None)
         if any(data):
             self.print_verbose(data)
         return data

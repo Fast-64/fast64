@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import bpy
 from bpy.types import Image, NodeTree
 
@@ -100,6 +101,105 @@ def node_tree_copy(src: NodeTree, dst: NodeTree):
         for src_output, dst_output in zip(src_node.outputs, dst_node.outputs):  # Copy all outputs
             copy_attributes(src_output, dst_output, excludes=EXCLUDE_FROM_INPUT_OUTPUT)
 
+
+# Ideally we'd use mathutils.Color here but it does not support alpha (and mul for some reason)
+@dataclass
+class Color:
+    r: float = 0.0
+    g: float = 0.0
+    b: float = 0.0
+    a: float = 0.0
+    
+    def wrap(self, min_value: float, max_value: float):
+        def wrap_value(value, min_value=min_value, max_value=max_value):
+            range_width = max_value - min_value
+            return ((value - min_value) % range_width) + min_value
+        return Color(
+            wrap_value(self.r),
+            wrap_value(self.g),
+            wrap_value(self.b),
+            wrap_value(self.a)
+        )
+
+    def to_clean_list(self):
+        def round_and_clamp(value):
+            return round(max(min(value, 1.0), 0.0), 4) 
+        return [round_and_clamp(self.r), round_and_clamp(self.g), round_and_clamp(self.b), round_and_clamp(self.a)]
+
+    def __sub__(self, other):
+        return Color(self.r - other.r, self.g - other.g, self.b - other.b, self.a - other.a)
+    
+    def __add__(self, other):
+        return Color(self.r + other.r, self.g + other.g, self.b + other.b, self.a + other.a)
+
+    def __mul__(self, other):
+        return Color(self.r * other.r, self.g * other.g, self.b * other.b, self.a * other.a)
+
+def get_color_component(inp: str, colors: dict, previous_alpha: float) -> float:
+    if inp == "0":
+        return 0.0
+    elif inp == "1":
+        return 1.0
+    elif inp.startswith("COMBINED"):
+        return previous_alpha
+    elif inp == "LOD_FRACTION":
+        return 0.0  # Fast64 always uses black, let's do that for now
+    elif inp.startswith("PRIM"):
+        prim = colors["primitive"]
+        if inp == "PRIM_LOD_FRAC":
+            return prim["loDFraction"]
+        if inp == "PRIMITIVE_ALPHA":
+            return prim["color"][3]
+    elif inp == "ENV_ALPHA":
+        return colors["environment"]["color"][3]
+    elif inp.startswith("K"):
+        values = colors["convert"]["values"]
+        if inp == "K4":
+            return values[4]
+        if inp == "K5":
+            return values[5]
+
+def get_color_from_input(
+    inp: str, previous_color: Color, data: dict, is_alpha: bool, default_color: Color
+) -> Color:
+    colors = data["colors"]
+    
+    if inp == "COMBINED" and not is_alpha:
+        return previous_color
+    elif inp == "CENTER":
+        return Color(*colors["key"]["center"], 1.0)
+    elif inp == "SCALE":
+        return Color(*colors["key"]["scale"], 1.0)
+    elif inp == "PRIMITIVE":
+        return Color(*colors["primitive"]["color"])
+    elif inp == "ENVIRONMENT":
+        return Color(*colors["environment"]["color"])
+    else:
+        value = get_color_component(inp, colors, previous_color.a)
+        if value:
+            return Color(value, value, value, value)
+        return default_color
+
+
+def fake_color_from_cycle(cycle, previous_color, data, is_alpha=False):
+    default_colors = [Color(1.0, 1.0, 1.0, 1.0), Color(), Color(1.0, 1.0, 1.0, 1.0), Color()]
+    a, b, c, d = [
+        get_color_from_input(inp, previous_color, data, is_alpha, default_color)
+        for inp, default_color in zip(cycle, default_colors)
+    ]
+    sign_extended_c = c.wrap(-1.0, 1.0001)
+    unwrapped_result = ((a - b) * sign_extended_c + d)
+    result = unwrapped_result.wrap(-0.5, 1.5)
+    if is_alpha:
+        result = Color(previous_color.r, previous_color.g, previous_color.b, result.a)
+    return result
+
+def get_fake_color(data: dict):
+    fake_color = Color()
+    for cycle in data["combiner"]["cycles"]: # Try to emulate solid colors
+        fake_color = fake_color_from_cycle(cycle["color"], fake_color, data)
+        fake_color = fake_color_from_cycle(cycle["alpha"], fake_color, data, True)
+    return fake_color.to_clean_list()
 
 def is_blender_image_a_webp(image: Image) -> bool:
     if GLTF2_ADDON_VERSION < (3, 6, 5):
@@ -249,19 +349,23 @@ class Fast64Extension(GlTF2SubExtension):
 
         textures = {}
         data["textures"] = textures
-        pbr = gltf2_material.pbr_metallic_roughness
         if use_dict["Texture 0"]:
             textures["0"] = self.f3d_to_glTF2_texture_info(f3d_mat, f3d_mat.tex0, export_settings)
         if use_dict["Texture 1"]:
             textures["1"] = self.f3d_to_glTF2_texture_info(f3d_mat, f3d_mat.tex1, export_settings)
         self.append_gltf2_extension(gltf2_material, data)
 
+        pbr = gltf2_material.pbr_metallic_roughness
         # glTF Standard
         if f3d_mat.is_multi_tex:
             pbr.base_color_texture = textures["0"]
             pbr.metallic_roughness_texture = textures["1"]
-        else:
+        elif textures:
             pbr.base_color_texture = textures.values()[0]
+        pbr.base_color_factor = get_fake_color(data)
+
+        if not f3d_mat.rdp_settings.g_lighting:
+            self.append_gltf2_extension(gltf2_material, {}, extension_name="KHR_materials_unlit")
 
     def gather_node_hook(self, gltf2_node, blender_object, _export_settings: dict):
         data = {}
