@@ -206,7 +206,10 @@ def maybeSaveSingleLargeTextureSetup(
             sm = 2 if is4bit else 4
             nocm = ["G_TX_WRAP", "G_TX_NOMIRROR"]
             if curImgSet != i:
-                gfxOut.commands.append(DPSetTextureImage(fmt, siz, wid, fImage))
+                if fModel.f3d.F3DZEX_AC_EXT:
+                    gfxOut.commands.append(DPSetTextureImage_Dolphin(fmt, siz, texDimensions[1], wid, fImage))
+                else:
+                    gfxOut.commands.append(DPSetTextureImage(fmt, siz, wid, fImage))
 
             def loadOneOrTwoS(tmemBase, tidxBase, TL, TH):
                 if line != curTileLines[tidxBase]:
@@ -477,7 +480,10 @@ class TexInfo:
                 fMaterial, material, self.indexInMat
             )
             if self.isTexRef:
-                if self.flipbook is not None:
+                if fModel.f3d.F3DZEX_AC_EXT and self.texProp.use_pal_index:
+                    self.palLen = 16 if self.texFormat == "CI4" else 256
+                    self.palIndex = int(self.texProp.pal_index, 0)
+                elif self.flipbook is not None:
                     self.palLen = len(self.pal)
                 else:
                     self.palLen = self.texProp.pal_reference_size
@@ -530,7 +536,9 @@ class TexInfo:
         loadGfx = fMaterial.texture_DL
         f3d = fModel.f3d
         if self.loadPal:
-            savePaletteLoad(loadGfx, fPalette, self.palFormat, self.palAddr, self.palLen, 5 - self.indexInMat, f3d)
+            savePaletteLoad(
+                loadGfx, fPalette, self.palIndex, self.palFormat, self.palAddr, self.palLen, 5 - self.indexInMat, f3d
+            )
         if self.doTexLoad:
             saveTextureLoadOnly(fImage, loadGfx, self.texProp, None, 7 - self.indexInMat, self.texAddr, f3d)
         if self.doTexTile:
@@ -622,7 +630,25 @@ class MultitexManager:
         # Determine how to arrange / load palette entries into upper half of tmem
         if self.isCI:
             assert self.ti0.useTex or self.ti1.useTex
-            if not self.ti1.useTex:
+            if fModel.f3d.F3DZEX_AC_EXT:
+                non_rgba = False
+                if self.ti0.useTex:
+                    if self.ti0.pal:
+                        self.ti0.palIndex = 15  # The default pallete index in AC is 15
+                        self.ti0.palLen = len(self.ti0.pal)
+                        self.ti0.loadPal = True
+                        non_rgba = self.ti0.palFormat != "RGBA16"
+                if self.ti1.useTex:
+                    if self.ti1.pal:
+                        self.ti1.palIndex = 15 - 1
+                        self.ti1.palLen = len(self.ti1.pal)
+                        self.ti1.loadPal = True
+                        non_rgba = self.ti1.palFormat != "RGBA16"
+                if non_rgba:
+                    raise PluginError(
+                        f"In material {material.name}: Only RGBA16 palette format supported in F3DZEX (AC)"
+                    )
+            elif not self.ti1.useTex:
                 self.ti0.loadPal = True
             elif not self.ti0.useTex:
                 self.ti1.loadPal = True
@@ -953,9 +979,11 @@ def saveTextureLoadOnly(
 
     # LoadTile will pad rows to 64 bit word alignment, while
     # LoadBlock assumes this is already done.
-    useLoadBlock = canUseLoadBlock(fImage, texProp.tex_format, f3d)
+    needs_load = not f3d.F3DZEX_AC_EXT
+    useLoadBlock = canUseLoadBlock(fImage, texProp.tex_format, f3d) and needs_load
     line = 0 if useLoadBlock else getTileLine(fImage, SL, SH, siz, f3d)
     wid = 1 if useLoadBlock else fImage.width
+    height = 1 if useLoadBlock else fImage.height
 
     if siz == "G_IM_SIZ_4b":
         if useLoadBlock:
@@ -963,7 +991,7 @@ def saveTextureLoadOnly(
             dxt = f3d.CALC_DXT_4b(fImage.width)
             siz = "G_IM_SIZ_16b"
             loadCommand = DPLoadBlock(loadtile, 0, 0, dxs, dxt)
-        else:
+        elif needs_load:
             sl2 = int(SL * (2 ** (f3d.G_TEXTURE_IMAGE_FRAC - 1)))
             sh2 = int(SH * (2 ** (f3d.G_TEXTURE_IMAGE_FRAC - 1)))
             siz = "G_IM_SIZ_8b"
@@ -978,14 +1006,18 @@ def saveTextureLoadOnly(
             dxt = f3d.CALC_DXT(fImage.width, f3d.G_IM_SIZ_VARS[siz + "_BYTES"])
             siz += "_LOAD_BLOCK"
             loadCommand = DPLoadBlock(loadtile, 0, 0, dxs, dxt)
-        else:
+        elif needs_load:
             loadCommand = DPLoadTile(loadtile, sl, tl, sh, th)
 
     if not omitSetTextureImage:
-        gfxOut.commands.append(DPSetTextureImage(fmt, siz, wid, fImage))
-    if not omitSetTile:
-        gfxOut.commands.append(DPSetTile(fmt, siz, line, tmem, loadtile, 0, nocm, 0, 0, nocm, 0, 0))
-    gfxOut.commands.append(loadCommand)
+        if f3d.F3DZEX_AC_EXT:
+            gfxOut.commands.append(DPSetTextureImage_Dolphin(fmt, siz, height, wid, fImage))
+        else:
+            gfxOut.commands.append(DPSetTextureImage(fmt, siz, wid, fImage))
+    if needs_load:
+        if not omitSetTile:
+            gfxOut.commands.append(DPSetTile(fmt, siz, line, tmem, loadtile, 0, nocm, 0, 0, nocm, 0, 0))
+        gfxOut.commands.append(loadCommand)
 
 
 def saveTextureTile(
@@ -1029,8 +1061,18 @@ def saveTextureTile(
     SL, _, SH, _, sl, tl, sh, th = getTileSizeSettings(texProp, tileSettings, f3d)
     line = getTileLine(fImage, SL, SH, siz, f3d)
 
-    tileCommand = DPSetTile(fmt, siz, line, tmem, rendertile, pal, cmt, maskt, shiftt, cms, masks, shifts)
-    tileSizeCommand = DPSetTileSize(rendertile, sl, tl, sh, th)
+    if f3d.F3DZEX_AC_EXT:
+        if (clamp_S and mirror_S) or (clamp_T and mirror_T):
+            raise PluginError("Clamp + mirror not supported in F3DZEX (AC)")
+        if tileSettings and (log2iRoundUp(fImage.width) != masks or log2iRoundUp(fImage.height) != maskt):
+            raise PluginError("Mask is not emulated in emu64, non default values are not supported")
+        wrap_s = "GX_CLAMP" if clamp_S else "GX_MIRROR" if mirror_S else "GX_REPEAT"
+        wrap_t = "GX_CLAMP" if clamp_T else "GX_MIRROR" if mirror_T else "GX_REPEAT"
+        tileCommand = DPSetTile_Dolphin("G_DOLPHIN_TLUT_DEFAULT_MODE", rendertile, pal, wrap_s, wrap_t, shifts, shiftt)
+        tileSizeCommand = DPSetTileSize_Dolphin(rendertile, sl, tl, (sh - sl) // 4 + 1, (th - tl) // 4 + 1)
+    else:
+        tileCommand = DPSetTile(fmt, siz, line, tmem, rendertile, pal, cmt, maskt, shiftt, cms, masks, shifts)
+        tileSizeCommand = DPSetTileSize(rendertile, sl, tl, sh, th)
 
     scrollInfo = getattr(fMaterial.scrollData, f"tile_scroll_tex{rendertile}")
     if scrollInfo.s or scrollInfo.t:
@@ -1051,6 +1093,7 @@ def saveTextureTile(
 def savePaletteLoad(
     gfxOut: GfxList,
     fPalette: FImage,
+    palIndex: int,
     palFormat: str,
     palAddr: int,
     palLen: int,
@@ -1060,6 +1103,10 @@ def savePaletteLoad(
     assert 0 <= palAddr < 256 and (palAddr & 0xF) == 0
     palFmt = texFormatOf[palFormat]
     nocm = ["G_TX_WRAP", "G_TX_NOMIRROR"]
+    if f3d.F3DZEX_AC_EXT:
+        assert palFormat == "RGBA16"
+        gfxOut.commands.append(DPLoadTLUT_Dolphin(palIndex, palLen - 1, 1, fPalette))
+        return
     gfxOut.commands.extend(
         [
             DPSetTextureImage(palFmt, "G_IM_SIZ_16b", 1, fPalette),

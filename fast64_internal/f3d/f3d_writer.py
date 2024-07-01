@@ -996,9 +996,7 @@ class TriangleConverter:
             bufferStart = bufferEnd
 
         # Load triangles
-        triCmds = createTriangleCommands(
-            self.vertexBufferTriangles, self.vertBuffer, not self.triConverterInfo.f3d.F3D_OLD_GBI
-        )
+        triCmds = createTriangleCommands(self.vertexBufferTriangles, self.vertBuffer, self.triConverterInfo)
         if not self.material.f3d_mat.use_cel_shading:
             self.triList.commands.extend(triCmds)
         else:
@@ -1228,22 +1226,46 @@ def getLoopColor(loop: bpy.types.MeshLoop, mesh: bpy.types.Mesh) -> Vector:
     return mathutils.Vector((normalizedRGB[0], normalizedRGB[1], normalizedRGB[2], normalizedA))
 
 
-def createTriangleCommands(triangles, vertexBuffer, useSP2Triangle):
+def createTriangleCommands(triangles, vertexBuffer, triConverterInfo):
     triangles = copy.deepcopy(triangles)
     commands = []
 
-    def getIndices(tri):
-        return [vertexBuffer.index(v) for v in tri]
+    def getIndices(*tris):
+        return [vertexBuffer.index(v) for tri in tris for v in tri]
+
+    def get_n_tris_indices(triangles: list, i: int, n: int):  # Includes dummy data to fill out the command
+        if len(triangles) - i >= n:
+            return getIndices(*triangles[i : i + n])
+        indices = getIndices(*triangles[i:])
+        while len(indices) < n * 3:
+            indices.extend((0, 0, 0))
+        return indices
 
     t = 0
+    if triConverterInfo.f3d.F3DZEX_AC_EXT:
+        left = (len(triangles) - 3) % 4
+        tri_5_bit_len = len(triangles) - left
+        if len(triangles) <= 2:
+            commands.append(SPNTrianglesInit_7b(len(triangles), *get_n_tris_indices(triangles, t, 2)))
+            return commands
+        commands.append(SPNTrianglesInit_5b(tri_5_bit_len, *get_n_tris_indices(triangles, t, 3)))
+        t += 3
+        while t < tri_5_bit_len:
+            commands.append(SP5bitTriangles(*get_n_tris_indices(triangles, t, 4)))
+            t += 4
+        if left == 3:
+            commands.append(SPNTrianglesInit_5b(left, *get_n_tris_indices(triangles, t, 3)))
+        elif left > 0:
+            commands.append(SPNTrianglesInit_7b(left, *get_n_tris_indices(triangles, t, 2)))
+        return commands
+
     while t < len(triangles):
-        firstTriIndices = getIndices(triangles[t])
-        t += 1
-        if useSP2Triangle and t < len(triangles):
-            commands.append(SP2Triangles(*firstTriIndices, 0, *getIndices(triangles[t]), 0))
-            t += 1
+        if not triConverterInfo.f3d.F3D_OLD_GBI and t + 1 < len(triangles):
+            commands.append(SP2Triangles(*getIndices(triangles[t]), 0, *getIndices(triangles[t + 1]), 0))
+            t += 2
         else:
-            commands.append(SP1Triangle(*firstTriIndices, 0))
+            commands.append(SP1Triangle(*getIndices(triangles[t]), 0))
+            t += 1
 
     return commands
 
@@ -1599,7 +1621,8 @@ def saveGeoModeCommon(saveFunc: Callable, settings: RDPSettings, defaults: RDPSe
     saveFunc(settings.g_shade, defaults.g_shade, "G_SHADE", *args)
     saveFunc(settings.g_cull_front, defaults.g_cull_front, "G_CULL_FRONT", *args)
     saveFunc(settings.g_cull_back, defaults.g_cull_back, "G_CULL_BACK", *args)
-    if bpy.context.scene.f3d_type == "F3DEX3":
+    f3d = get_F3D_GBI()
+    if f3d.F3DEX_GBI_3:
         saveFunc(settings.g_ambocclusion, defaults.g_ambocclusion, "G_AMBOCCLUSION", *args)
         saveFunc(settings.g_attroffset_z_enable, defaults.g_attroffset_z_enable, "G_ATTROFFSET_Z_ENABLE", *args)
         saveFunc(settings.g_attroffset_st_enable, defaults.g_attroffset_st_enable, "G_ATTROFFSET_ST_ENABLE", *args)
@@ -1608,14 +1631,20 @@ def saveGeoModeCommon(saveFunc: Callable, settings: RDPSettings, defaults: RDPSe
         saveFunc(settings.g_lighting_specular, defaults.g_lighting_specular, "G_LIGHTING_SPECULAR", *args)
         saveFunc(settings.g_fresnel_color, defaults.g_fresnel_color, "G_FRESNEL_COLOR", *args)
         saveFunc(settings.g_fresnel_alpha, defaults.g_fresnel_alpha, "G_FRESNEL_ALPHA", *args)
+    elif f3d.F3DZEX_AC_EXT:
+        saveFunc(settings.g_decal_gequal, defaults.g_decal_gequal, "G_DECAL_GEQUAL", *args)
+        saveFunc(settings.g_decal_equal, defaults.g_decal_equal, "G_DECAL_EQUAL", *args)
+        saveFunc(settings.g_decal_special, defaults.g_decal_special, "G_DECAL_SPECIAL", *args)
     saveFunc(settings.g_fog, defaults.g_fog, "G_FOG", *args)
     saveFunc(settings.g_lighting, defaults.g_lighting, "G_LIGHTING", *args)
     saveFunc(settings.g_tex_gen, defaults.g_tex_gen, "G_TEXTURE_GEN", *args)
     saveFunc(settings.g_tex_gen_linear, defaults.g_tex_gen_linear, "G_TEXTURE_GEN_LINEAR", *args)
     saveFunc(settings.g_lod, defaults.g_lod, "G_LOD", *args)
     saveFunc(settings.g_shade_smooth, defaults.g_shade_smooth, "G_SHADING_SMOOTH", *args)
-    if isUcodeF3DEX1(bpy.context.scene.f3d_type):
+    if f3d.F3DEX_GBI:
         saveFunc(settings.g_clipping, defaults.g_clipping, "G_CLIPPING", *args)
+    if f3d.POINT_LIT_GBI:
+        saveFunc(settings.g_lighting_positional, defaults.g_lighting_positional, "G_LIGHTING_POSITIONAL", *args)
 
 
 def saveGeoModeDefinitionF3DEX2(fMaterial, settings, defaults, matWriteMethod):
@@ -1828,6 +1857,11 @@ def saveOtherDefinition(fMaterial, material, defaults):
                 int(material.blend_color[3] * 255),
             )
         )
+    if bpy.context.scene.f3d_type == "F3DZEX (AC)":
+        if material.set_tex_edge_alpha:
+            fMaterial.mat_only_DL.commands.append(DPSetTexEdgeAlpha(int(material.tex_edge_alpha * 255)))
+        if material.set_bilerp_text_adjust:
+            fMaterial.mat_only_DL.commands.append(DPSetTextureAdjustMode(material.bilerp_text_adjust))
 
 
 enumMatWriteMethod = [

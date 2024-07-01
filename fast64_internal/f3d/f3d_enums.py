@@ -185,6 +185,11 @@ enumTextFilt = [
     ("G_TF_BILERP", "Bilinear", "Standard N64 filtering with 3 point sample"),
 ]
 
+enumTextAdjust = [
+    ("G_TA_N64", "N64", "Center origin"),
+    ("G_TA_DOLPHIN", "Dolphin", "Top left"),
+]
+
 enumTextLUT = [
     ("G_TT_NONE", "None", "None"),
     ("G_TT_RGBA16", "RGBA16", "RGBA16"),
@@ -382,9 +387,15 @@ enumF3D = [
     ("F3DEX/LX", "F3DEX/LX", "F3DEX version 1"),
     ("F3DLX.Rej", "F3DLX.Rej", "F3DLX.Rej"),
     ("F3DLP.Rej", "F3DLP.Rej", "F3DLP.Rej"),
-    ("F3DEX2/LX2", "F3DEX2/LX2/ZEX", "Family of microcodes used in later N64 games including OoT and MM"),
+    ("F3DEX2/LX2", "F3DEX2/LX2/ZEX", "Family of microcodes used in later N64 games including OoT"),
     ("F3DEX2.Rej/LX2.Rej", "F3DEX2.Rej/LX2.Rej", "Variant of F3DEX2 family using vertex rejection instead of clipping"),
+    (
+        "F3DEX2/LX2 (Point Lit)",
+        "F3DEX2/LX2 (Point Lit)",
+        "Variant of F3DEX2 family with support for point lighting used in a few games including MM",
+    ),
     ("F3DEX3", "F3DEX3", "Custom microcode by Sauraen"),
+    ("F3DZEX (AC)", "F3DZEX (AC)", "Microcode used in Animal Crossing (GC), extended version of F3DZEX"),
 ]
 
 enumLargeEdges = [

@@ -31,7 +31,7 @@ from bpy.utils import register_class, unregister_class
 from mathutils import Color
 
 from .f3d_enums import *
-from .f3d_gbi import get_F3D_GBI, GBL_c1, GBL_c2, enumTexScroll, isUcodeF3DEX1
+from .f3d_gbi import get_F3D_GBI, GBL_c1, GBL_c2, enumTexScroll
 from .f3d_material_presets import *
 from ..utility import *
 from ..render_settings import Fast64RenderSettings_Properties, update_scene_props_from_render_settings
@@ -286,7 +286,10 @@ def get_blend_method(material: bpy.types.Material) -> str:
 def update_blend_method(material: Material, context):
     material.blend_method = get_blend_method(material)
     if material.blend_method == "CLIP":
-        material.alpha_threshold = 0.125
+        if context.scene.f3d_type == "F3DZEX (AC)" and material.f3d_mat.rdp_settings.is_emu64_texedge:
+            material.alpha_threshold = material.f3d_mat.tex_edge_alpha
+        else:
+            material.alpha_threshold = 0.125
 
 
 class DrawLayerProperty(PropertyGroup):
@@ -423,8 +426,9 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             c = c.column(align=True)
             return c
 
-        isF3DEX3 = bpy.context.scene.f3d_type == "F3DEX3"
-        lightFxPrereq = isF3DEX3 and settings.g_lighting
+        f3d = get_F3D_GBI()
+
+        lightFxPrereq = f3d.F3DEX_GBI_3 and settings.g_lighting
         ccWarnings = shadeInCC = False
         blendWarnings = shadeInBlender = zInBlender = False
         if isinstance(dataHolder, F3DMaterialProperty):
@@ -442,10 +446,12 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
         if c is not None:
             if ccWarnings and not shadeInCC and not settings.g_tex_gen:
                 c.label(text="Shade not used in CC, can disable lighting.", icon="INFO")
-            if isF3DEX3:
+            if f3d.F3DEX_GBI_3:
                 c.prop(settings, "g_packed_normals")
                 c.prop(settings, "g_lighting_specular")
                 c.prop(settings, "g_ambocclusion")
+            elif f3d.POINT_LIT_GBI:  # Draw this flag in Not Useful for f3dex3
+                c.prop(settings, "g_lighting_positional")
             d = indentGroup(c, "g_tex_gen", False)
             if d is not None:
                 d.prop(settings, "g_tex_gen_linear")
@@ -496,7 +502,38 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
         elif blendWarnings and not shadeInBlender and settings.g_fog:
             c.label(text="Fog not used in rendermode / blender, can disable.", icon="INFO")
 
-        if isF3DEX3:
+        if f3d.F3DZEX_AC_EXT:
+            c = indentGroup(inputGroup, "Decals:", True)
+            c.prop(settings, "g_decal_equal")
+            c.prop(settings, "g_decal_gequal")
+            c.prop(settings, "g_decal_special")
+            # These decal modes are not as clear as others, so we give the user a bit more info
+            if not settings.g_decal_equal and not settings.g_decal_gequal:
+                compare_mode = "GX_LEQUAL"
+            elif settings.g_decal_gequal and not settings.g_decal_equal:
+                compare_mode = "GX_GEQUAL"
+            elif settings.g_decal_equal and not settings.g_decal_gequal:
+                compare_mode = "GX_EQUAL"
+            else:
+                compare_mode = "GX_ALWAYS"
+            decal_mode_info = f"Compare mode = {compare_mode}"
+
+            if settings.g_decal_special:
+                decal_mode_info += "\nBlend mode = "
+                if settings.g_decal_gequal:
+                    decal_mode_info += "GX_BM_NONE, GX_BL_ONE, GX_BL_ZERO, GX_LO_NOOP"
+                else:
+                    decal_mode_info += "GX_BM_BLEND, GX_BL_DSTALPHA, GX_BL_INVDSTALPHA, GX_LO_NOOP"
+
+            if not settings.g_decal_equal:
+                decal_mode_info += (
+                    "\nDepth offset " + ("towards" if settings.g_decal_gequal else "away from") + " the camera"
+                )
+
+            if blendWarnings and settings.zmode != "ZMODE_DEC":
+                decal_mode_info = "Non-decal rendermode / blender, these will be ignored."
+            multilineLabel(c, decal_mode_info, icon="INFO")
+        elif f3d.F3DEX_GBI_3:
             c = indentGroup(inputGroup, "Attribute offsets:", True)
             c.prop(settings, "g_attroffset_st_enable")
             c.prop(settings, "g_attroffset_z_enable")
@@ -527,8 +564,11 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
 
         c = indentGroup(inputGroup, "Not useful:", True)
         c.prop(settings, "g_lod")
-        if isUcodeF3DEX1(bpy.context.scene.f3d_type):
+        if f3d.F3DEX_GBI:
             c.prop(settings, "g_clipping")
+        elif f3d.F3DEX_GBI_3:
+            c.prop(settings, "g_lighting_positional")
+            c.label(text="Always enabled in F3DEX3", icon="INFO")
 
 
 def ui_upper_mode(settings, dataHolder, layout: UILayout, useDropdown):
@@ -591,14 +631,31 @@ def ui_other(settings, dataHolder, layout, useDropdown):
     if not useDropdown or dataHolder.menu_other:
         clipRatioGroup = inputGroup.column()
         prop_split(clipRatioGroup, settings, "clip_ratio", "Clip Ratio")
-
         if isinstance(dataHolder, Material) or isinstance(dataHolder, F3DMaterialProperty):
-            blend_color_group = layout.row()
+            blend_color_group = inputGroup.row()
             prop_input_name = blend_color_group.column()
             prop_input = blend_color_group.column()
             prop_input_name.prop(dataHolder, "set_blend", text="Blend Color")
             prop_input.prop(dataHolder, "blend_color", text="")
             prop_input.enabled = dataHolder.set_blend
+
+            if bpy.context.scene.f3d_type == "F3DZEX (AC)":
+                inputGroup.separator()
+                adjust_row = inputGroup.row()
+                adjust_row.prop(dataHolder, "set_bilerp_text_adjust", text="Bilerp Adjust Mode")
+                prop_value = adjust_row.column()
+                prop_value.enabled = dataHolder.set_bilerp_text_adjust
+                prop_value.prop(dataHolder, "bilerp_text_adjust", text="")
+                if dataHolder.set_bilerp_text_adjust and settings.g_mdsft_text_filt != "G_TF_BILERP":
+                    inputGroup.label(text="Texture filter is not bilerp.", icon="INFO")
+
+                alpha_row = inputGroup.row()
+                alpha_row.prop(dataHolder, "set_tex_edge_alpha", text="Tex Edge Alpha")
+                prop_value = alpha_row.column()
+                prop_value.enabled = dataHolder.set_tex_edge_alpha
+                prop_value.prop(dataHolder, "tex_edge_alpha", text="")
+                if dataHolder.set_tex_edge_alpha and not settings.is_emu64_texedge:
+                    inputGroup.label(text="Render mode is not recognised as tex edge.", icon="INFO")
 
 
 def tmemUsageUI(layout, textureProp):
@@ -2699,6 +2756,14 @@ class TextureProperty(PropertyGroup):
         min=1,
         default=16,
     )
+    use_pal_index: bpy.props.BoolProperty(
+        name="Palette Index Reference", description="F3DZEX (AC): Reference an already loaded palette"
+    )
+    pal_index: bpy.props.StringProperty(
+        name="Palette Index",
+        default="0x03",
+        description="F3DZEX (AC): The palette's index. Defaults to the grass pallete index (3)",
+    )
 
     menu: bpy.props.BoolProperty()
     tex_set: bpy.props.BoolProperty(
@@ -2738,6 +2803,8 @@ class TextureProperty(PropertyGroup):
             self.tex_reference_size if texSet and useRef else None,
             self.pal_reference if texSet and useRef and isCI else None,
             self.pal_reference_size if texSet and useRef and isCI else None,
+            self.use_pal_index if texSet and useRef and isCI else None,
+            self.pal_index if self.use_pal_index and texSet and useRef and isCI else None,
         )
 
 
@@ -2774,6 +2841,7 @@ def ui_image(
     name: str,
     showCheckBox: bool,
 ):
+    is_fdzex_ac = bpy.context.scene.f3d_type == "F3DZEX (AC)"
     inputGroup = layout.box().column()
 
     inputGroup.prop(
@@ -2795,8 +2863,13 @@ def ui_image(
             prop_split(prop_input, textureProp, "tex_reference", "Texture Reference")
             prop_split(prop_input, textureProp, "tex_reference_size", "Texture Size")
             if textureProp.tex_format[:2] == "CI":
+                if is_fdzex_ac:
+                    row = prop_input.row()
+                    row.prop(textureProp, "use_pal_index")
+                    if textureProp.use_pal_index:
+                        row.prop(textureProp, "pal_index", text="")
                 flipbook = getattr(material.flipbookGroup, "flipbook" + texIndex)
-                if flipbook is None or not flipbook.enable:
+                if (not is_fdzex_ac or not textureProp.use_pal_index) and (flipbook is None or not flipbook.enable):
                     prop_split(prop_input, textureProp, "pal_reference", "Palette Reference")
                     prop_split(prop_input, textureProp, "pal_reference_size", "Palette Size")
 
@@ -2837,24 +2910,18 @@ def ui_image(
         prop_split(prop_input, textureProp, "tex_format", name="Format")
         if textureProp.tex_format[:2] == "CI":
             prop_split(prop_input, textureProp, "ci_format", name="CI Format")
-
+            if is_fdzex_ac and textureProp.ci_format == "IA16":
+                multilineLabel(prop_input, text="IA16 not supported in F3DZEX (AC).", icon="ERROR")
         if not isLarge:
+            s, t = textureProp.S, textureProp.T
             if width > 0 and height > 0:
                 texelsPerWord = 64 // texBitSizeInt[textureProp.tex_format]
                 if width % texelsPerWord != 0:
                     msg = prop_input.box().column()
                     msg.label(text=f"Suggest {textureProp.tex_format} tex be multiple ", icon="INFO")
                     msg.label(text=f"of {texelsPerWord} pixels wide for fast loading.")
-                warnClampS = (
-                    not isPowerOf2(width)
-                    and not textureProp.S.clamp
-                    and (not textureProp.autoprop or textureProp.S.mask != 0)
-                )
-                warnClampT = (
-                    not isPowerOf2(height)
-                    and not textureProp.T.clamp
-                    and (not textureProp.autoprop or textureProp.T.mask != 0)
-                )
+                warnClampS = not isPowerOf2(width) and not s.clamp and (not textureProp.autoprop or s.mask != 0)
+                warnClampT = not isPowerOf2(height) and not t.clamp and (not textureProp.autoprop or t.mask != 0)
                 if warnClampS or warnClampT:
                     msg = prop_input.box().column()
                     msg.label(text=f"Clamping required for non-power-of-2 image", icon="ERROR")
@@ -2862,31 +2929,42 @@ def ui_image(
 
             texFieldSettings = prop_input.column()
             clampSettings = texFieldSettings.row()
-            clampSettings.prop(textureProp.S, "clamp", text="Clamp S")
-            clampSettings.prop(textureProp.T, "clamp", text="Clamp T")
+            clampSettings.prop(s, "clamp", text="Clamp S")
+            clampSettings.prop(t, "clamp", text="Clamp T")
 
             mirrorSettings = texFieldSettings.row()
-            mirrorSettings.prop(textureProp.S, "mirror", text="Mirror S")
-            mirrorSettings.prop(textureProp.T, "mirror", text="Mirror T")
+            mirrorSettings.prop(s, "mirror", text="Mirror S")
+            mirrorSettings.prop(t, "mirror", text="Mirror T")
+
+            if is_fdzex_ac and ((s.clamp and s.mirror) or (t.clamp and t.mirror)):
+                texFieldSettings.box().label(
+                    text="Clamp + mirror not supported in F3DZEX (AC).",
+                    icon="ERROR",
+                )
 
             prop_input.prop(textureProp, "autoprop", text="Auto Set Other Properties")
 
             if not textureProp.autoprop:
                 mask = prop_input.row()
-                mask.prop(textureProp.S, "mask", text="Mask S")
-                mask.prop(textureProp.T, "mask", text="Mask T")
+                mask.prop(s, "mask", text="Mask S")
+                mask.prop(t, "mask", text="Mask T")
+                if is_fdzex_ac and (log2iRoundUp(width) != s.mask or log2iRoundUp(height) != t.mask):
+                    prop_input.box().label(
+                        text="Mask is not emulated in emu64, non default values are not supported",
+                        icon="ERROR",
+                    )
 
                 shift = prop_input.row()
-                shift.prop(textureProp.S, "shift", text="Shift S")
-                shift.prop(textureProp.T, "shift", text="Shift T")
+                shift.prop(s, "shift", text="Shift S")
+                shift.prop(t, "shift", text="Shift T")
 
                 low = prop_input.row()
-                low.prop(textureProp.S, "low", text="S Low")
-                low.prop(textureProp.T, "low", text="T Low")
+                low.prop(s, "low", text="S Low")
+                low.prop(t, "low", text="T Low")
 
                 high = prop_input.row()
-                high.prop(textureProp.S, "high", text="S High")
-                high.prop(textureProp.T, "high", text="T High")
+                high.prop(s, "high", text="S High")
+                high.prop(t, "high", text="T High")
 
 
 class CombinerProperty(PropertyGroup):
@@ -3072,6 +3150,27 @@ class RDPSettings(PropertyGroup):
         update=update_node_values_with_preset,
         description="F3DEX3: Enables offsets to vertex ST values, usually for UV scrolling",
     )
+    # AC Decal Modes
+    g_decal_equal: bpy.props.BoolProperty(
+        name="Equal",
+        default=False,
+        update=update_node_values_with_preset,
+        description="F3DZEX (AC): Disables any offset and uses the equal compare mode",
+    )
+    g_decal_gequal: bpy.props.BoolProperty(
+        name="Greater or Equal",
+        default=False,
+        update=update_node_values_with_preset,
+        description="F3DZEX (AC): When enabled, the greater or equal compare mode is used, "
+        "if Equal is disabled a positive offset is also used (closer to the camera).\n"
+        "When disabled, the default negative offset and less or equal compare mode are used",
+    )
+    g_decal_special: bpy.props.BoolProperty(
+        name="Special",
+        default=False,
+        update=update_node_values_with_preset,
+        description="F3DZEX (AC): Apropriately sets decal blend modes",
+    )
     # v1/2 difference
     g_cull_front: bpy.props.BoolProperty(
         name="Cull Front",
@@ -3157,6 +3256,12 @@ class RDPSettings(PropertyGroup):
         default=False,
         update=update_node_values_with_preset,
         description="F3DEX1/LX only, exact function unknown",
+    )
+    g_lighting_positional: bpy.props.BoolProperty(
+        name="Positional Lighting",
+        default=True,
+        update=update_node_values_with_preset,
+        description="F3DEX/ZEX: Enables calculating shade color using positional lights along with directional, ignored in F3DEX3",
     )
 
     # upper half mode
@@ -3409,6 +3514,16 @@ class RDPSettings(PropertyGroup):
     def does_blender_use_input(self, setting: str) -> bool:
         return any(input == setting for input in self.blend_inputs)
 
+    @property
+    def is_emu64_texedge(self):
+        return (
+            self.aa_en
+            and self.cvg_x_alpha
+            and self.alpha_cvg_sel
+            and self.cvg_dst == "CVG_DST_CLAMP"
+            and self.zmode == "ZMODE_OPA"
+        )
+
     def key(self):
         setRM = self.set_rendermode
         rmAdv = self.rendermode_advanced_enabled
@@ -3416,6 +3531,9 @@ class RDPSettings(PropertyGroup):
         return (
             self.g_zbuffer,
             self.g_shade,
+            self.g_decal_gequal,
+            self.g_decal_equal,
+            self.g_decal_special,
             self.g_cull_front,
             self.g_cull_back,
             self.g_attroffset_st_enable,
@@ -3430,6 +3548,7 @@ class RDPSettings(PropertyGroup):
             self.g_lod,
             self.g_shade_smooth,
             self.g_clipping,
+            self.g_lighting_positional,
             self.g_mdsft_alpha_dither,
             self.g_mdsft_rgb_dither,
             self.g_mdsft_combkey,
@@ -3663,6 +3782,8 @@ class AddPresetF3D(AddPresetBase, Operator):
         "f3d_mat.tex0.tex_reference_size",
         "f3d_mat.tex0.pal_reference",
         "f3d_mat.tex0.pal_reference_size",
+        "f3d_mat.tex0.use_pal_index",
+        "f3d_mat.tex0.pal_index",
         "f3d_mat.tex0.S",
         "f3d_mat.tex0.T",
         "f3d_mat.tex0.menu",
@@ -3680,6 +3801,8 @@ class AddPresetF3D(AddPresetBase, Operator):
         "f3d_mat.tex1.tex_reference_size",
         "f3d_mat.tex1.pal_reference",
         "f3d_mat.tex1.pal_reference_size",
+        "f3d_mat.tex1.use_pal_index",
+        "f3d_mat.tex1.pal_index",
         "f3d_mat.tex1.S",
         "f3d_mat.tex1.T",
         "f3d_mat.tex1.menu",
@@ -4013,6 +4136,14 @@ class F3DMaterialProperty(PropertyGroup):
         default=False,
         update=update_node_values_with_preset,
     )
+    set_tex_edge_alpha: bpy.props.BoolProperty(
+        default=False,
+        update=update_node_values_with_preset,
+    )
+    set_bilerp_text_adjust: bpy.props.BoolProperty(
+        default=False,
+        update=update_node_values_with_preset,
+    )
     set_key: bpy.props.BoolProperty(
         default=True,
         update=update_node_values_with_preset,
@@ -4038,6 +4169,22 @@ class F3DMaterialProperty(PropertyGroup):
         min=0,
         max=1,
         default=(0, 0, 0, 1),
+    )
+    tex_edge_alpha: bpy.props.FloatProperty(
+        name="Tex Edge Alpha",
+        min=0,
+        max=1,
+        step=100.0 / 255.0,
+        default=144.0 / 255.0,
+        update=update_node_values_with_preset,
+        description="F3DZEX (AC): Alpha threshold for tex edge (cutout) materials, displays only alpha values greater or equal",
+    )
+    bilerp_text_adjust: bpy.props.EnumProperty(
+        name="Bilerp Adjust Mode",
+        items=enumTextAdjust,
+        default="G_TA_N64",
+        update=update_node_values_without_preset,
+        description="F3DZEX (AC): Changes bilerp filter origin",
     )
     prim_color: bpy.props.FloatVectorProperty(
         name="Primitive Color",
@@ -4311,6 +4458,8 @@ class F3DMaterialProperty(PropertyGroup):
             else None,
             self.use_default_lighting,
             self.set_blend,
+            self.set_tex_edge_alpha,
+            self.set_bilerp_text_adjust,
             self.set_prim,
             self.set_env,
             self.set_key,
@@ -4319,6 +4468,8 @@ class F3DMaterialProperty(PropertyGroup):
             self.set_lights,
             self.set_fog,
             tuple([round(value, 4) for value in self.blend_color]) if self.set_blend else None,
+            round(self.tex_edge_alpha, 4) if self.set_tex_edge_alpha else None,
+            self.bilerp_text_adjust if self.set_bilerp_text_adjust else None,
             tuple([round(value, 4) for value in self.prim_color]) if self.set_prim else None,
             round(self.prim_lod_frac, 4) if self.set_prim else None,
             round(self.prim_lod_min, 4) if self.set_prim else None,
