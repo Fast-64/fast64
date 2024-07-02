@@ -1247,10 +1247,7 @@ def exportColor(lightColor):
 
 
 def get_clean_color(srgb: list, include_alpha=False, round_color=True) -> list:
-    return [
-        round(channel, 4) if round_color else channel
-        for channel in list(srgb[:4 if include_alpha else 3])
-    ]
+    return [round(channel, 4) if round_color else channel for channel in list(srgb[: 4 if include_alpha else 3])]
 
 
 def printBlenderMessage(msgSet, message, blenderOp):
@@ -1663,9 +1660,7 @@ def prop_group_to_json(prop_group, blacklist: list[str] = None, whitelist: list[
     return data
 
 
-def json_to_prop_group(
-    prop_group, data: dict, blacklist: list[str] = None, whitelist: list[str] = None
-):
+def json_to_prop_group(prop_group, data: dict, blacklist: list[str] = None, whitelist: list[str] = None):
     blacklist = ["rna_type", "name"] + (blacklist or [])
     for prop in iter_prop(prop_group):
         if prop in blacklist or (whitelist and prop not in whitelist):
