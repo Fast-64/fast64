@@ -1,7 +1,14 @@
 import bpy, shutil, os, math, mathutils
 from bpy.utils import register_class, unregister_class
 from io import BytesIO
-from .sm64_constants import level_enums, level_pointers, enumLevelNames, insertableBinaryTypes, defaultExtendSegment4
+from .sm64_constants import (
+    level_enums,
+    level_pointers,
+    enumLevelNames,
+    insertableBinaryTypes,
+    defaultExtendSegment4,
+)
+from .sm64_utility import export_rom_checks
 from .sm64_objects import SM64_Area, start_process_sm64_objects
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_rom_tweaks import ExtendBank0x04
@@ -25,7 +32,6 @@ from ..utility import (
     getPathAndLevel,
     applyBasicTweaks,
     tempName,
-    checkExpanded,
     bytesToHex,
     applyRotation,
     customExportWarning,
@@ -516,7 +522,7 @@ class SM64_ExportCollision(bpy.types.Operator):
             # 	(bpy.context.scene.blenderToSM64Scale)).to_4x4()
             # finalTransform = mathutils.Matrix.Identity(4)
 
-            scaleValue = bpy.context.scene.blenderToSM64Scale
+            scaleValue = context.scene.fast64.sm64.blender_to_sm64_scale
             finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((scaleValue, scaleValue, scaleValue))).to_4x4()
         except Exception as e:
             raisePluginError(self, e)
@@ -524,7 +530,7 @@ class SM64_ExportCollision(bpy.types.Operator):
 
         try:
             applyRotation([obj], math.radians(90), "X")
-            if context.scene.fast64.sm64.exportType == "C":
+            if context.scene.fast64.sm64.export_type == "C":
                 exportPath, levelName = getPathAndLevel(
                     context.scene.colCustomExport,
                     context.scene.colExportPath,
@@ -547,7 +553,7 @@ class SM64_ExportCollision(bpy.types.Operator):
                     levelName,
                 )
                 self.report({"INFO"}, "Success!")
-            elif context.scene.fast64.sm64.exportType == "Insertable Binary":
+            elif context.scene.fast64.sm64.export_type == "Insertable Binary":
                 exportCollisionInsertableBinary(
                     obj,
                     finalTransform,
@@ -557,17 +563,17 @@ class SM64_ExportCollision(bpy.types.Operator):
                 )
                 self.report({"INFO"}, "Success! Collision at " + context.scene.colInsertableBinaryPath)
             else:
-                tempROM = tempName(context.scene.outputRom)
-                checkExpanded(bpy.path.abspath(context.scene.exportRom))
-                romfileExport = open(bpy.path.abspath(context.scene.exportRom), "rb")
-                shutil.copy(bpy.path.abspath(context.scene.exportRom), bpy.path.abspath(tempROM))
+                tempROM = tempName(context.scene.fast64.sm64.output_rom)
+                export_rom_checks(bpy.path.abspath(context.scene.fast64.sm64.export_rom))
+                romfileExport = open(bpy.path.abspath(context.scene.fast64.sm64.export_rom), "rb")
+                shutil.copy(bpy.path.abspath(context.scene.fast64.sm64.export_rom), bpy.path.abspath(tempROM))
                 romfileExport.close()
                 romfileOutput = open(bpy.path.abspath(tempROM), "rb+")
 
                 levelParsed = parseLevelAtPointer(romfileOutput, level_pointers[context.scene.colExportLevel])
                 segmentData = levelParsed.segmentData
 
-                if context.scene.extendBank4:
+                if context.scene.fast64.sm64.extend_bank_4:
                     ExtendBank0x04(romfileOutput, segmentData, defaultExtendSegment4)
 
                 addrRange = exportCollisionBinary(
@@ -588,9 +594,9 @@ class SM64_ExportCollision(bpy.types.Operator):
 
                 romfileOutput.close()
 
-                if os.path.exists(bpy.path.abspath(context.scene.outputRom)):
-                    os.remove(bpy.path.abspath(context.scene.outputRom))
-                os.rename(bpy.path.abspath(tempROM), bpy.path.abspath(context.scene.outputRom))
+                if os.path.exists(bpy.path.abspath(context.scene.fast64.sm64.output_rom)):
+                    os.remove(bpy.path.abspath(context.scene.fast64.sm64.output_rom))
+                os.rename(bpy.path.abspath(tempROM), bpy.path.abspath(context.scene.fast64.sm64.output_rom))
 
                 self.report(
                     {"INFO"},
@@ -612,7 +618,7 @@ class SM64_ExportCollision(bpy.types.Operator):
 
             applyRotation([obj], math.radians(-90), "X")
 
-            if context.scene.fast64.sm64.exportType == "Binary":
+            if context.scene.fast64.sm64.export_type == "Binary":
                 if romfileOutput is not None:
                     romfileOutput.close()
                 if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
@@ -626,7 +632,7 @@ class SM64_ExportCollision(bpy.types.Operator):
 class SM64_ExportCollisionPanel(SM64_Panel):
     bl_idname = "SM64_PT_export_collision"
     bl_label = "SM64 Collision Exporter"
-    goal = "Export Object/Actor/Anim"
+    goal = "Object/Actor/Anim"
 
     # called every frame
     def draw(self, context):
@@ -635,7 +641,7 @@ class SM64_ExportCollisionPanel(SM64_Panel):
 
         col.prop(context.scene, "colIncludeChildren")
 
-        if context.scene.fast64.sm64.exportType == "C":
+        if context.scene.fast64.sm64.export_type == "C":
             col.prop(context.scene, "colExportRooms")
             col.prop(context.scene, "colCustomExport")
             if context.scene.colCustomExport:
@@ -662,7 +668,7 @@ class SM64_ExportCollisionPanel(SM64_Panel):
                     context.scene.colLevelOption,
                 )
 
-        elif context.scene.fast64.sm64.exportType == "Insertable Binary":
+        elif context.scene.fast64.sm64.export_type == "Insertable Binary":
             col.prop(context.scene, "colInsertableBinaryPath")
         else:
             prop_split(col, context.scene, "colStartAddr", "Start Address")

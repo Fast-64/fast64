@@ -1,63 +1,168 @@
+import os
 import bpy
-from bpy.types import PropertyGroup, Scene
-from bpy.props import BoolProperty, StringProperty, EnumProperty, IntProperty, FloatProperty
+from bpy.types import PropertyGroup, UILayout, Scene, Context
+from bpy.props import BoolProperty, StringProperty, EnumProperty, IntProperty, FloatProperty, PointerProperty
+from bpy.path import abspath
 from bpy.utils import register_class, unregister_class
 
 from ...render_settings import on_update_render_settings
-from ..sm64_constants import (
-    level_enums,
-    defaultExtendSegment4,
+from ...utility import directory_path_checks, directory_ui_warnings, prop_split
+from ..sm64_constants import defaultExtendSegment4
+from ..sm64_utility import export_rom_ui_warnings, import_rom_ui_warnings
+from ..tools import SM64_AddrConvProperties
+
+from .constants import (
+    enum_refresh_versions,
+    enum_compression_formats,
+    enum_export_type,
+    enum_sm64_goal_type,
 )
-from .constants import enumRefreshVer, enumExportType, enumCompressionFormat, sm64GoalTypeEnum
 
 
-def get_legacy_export_type():
-    legacy_export_types = ("C", "Binary", "Insertable Binary")
-    scene = bpy.context.scene
-
-    for exportKey in ["animExportType", "colExportType", "DLExportType", "geoExportType"]:
-        eType = scene.pop(exportKey, None)
-        if eType is not None and legacy_export_types[eType] != "C":
-            return legacy_export_types[eType]
-
-    return "C"
+def decomp_path_update(self, context: Context):
+    fast64_settings = context.scene.fast64.settings
+    if fast64_settings.repo_settings_path:
+        return
+    directory_path_checks(abspath(self.decomp_path))
+    fast64_settings.repo_settings_path = os.path.join(abspath(self.decomp_path), "fast64.json")
 
 
 class SM64_Properties(PropertyGroup):
     """Global SM64 Scene Properties found under scene.fast64.sm64"""
 
     version: IntProperty(name="SM64_Properties Version", default=0)
-    cur_version = 1  # version after property migration
+    cur_version = 2  # version after property migration
 
     # UI Selection
-    showImportingMenus: BoolProperty(name="Show Importing Menus", default=False)
-    exportType: EnumProperty(items=enumExportType, name="Export Type", default="C")
-    goal: EnumProperty(items=sm64GoalTypeEnum, name="Export Goal", default="All")
+    show_importing_menus: BoolProperty(name="Show Importing Menus", default=False)
+    export_type: EnumProperty(items=enum_export_type, name="Export Type", default="C")
+    goal: EnumProperty(items=enum_sm64_goal_type, name="Goal", default="All")
 
-    # TODO: Utilize these across all exports
-    # C exporting
-    # useCustomExportLocation = BoolProperty(name = 'Use Custom Export Path')
-    # customExportPath: StringProperty(name = 'Custom Export Path', subtype = 'FILE_PATH')
-    # exportLocation: EnumProperty(items = enumExportHeaderType, name = 'Export Location', default = 'Actor')
-    # useSelectedObjectName = BoolProperty(name = 'Use Name From Selected Object', default=False)
-    # exportName: StringProperty(name='Name', default='mario')
-    # exportGeolayoutName: StringProperty(name='Name', default='mario_geo')
+    blender_to_sm64_scale: FloatProperty(
+        name="Blender To SM64 Scale",
+        default=100,
+        update=on_update_render_settings,
+    )
+    import_rom: StringProperty(name="Import ROM", subtype="FILE_PATH")
 
-    # Actor exports
-    # exportGroup: StringProperty(name='Group', default='group0')
+    export_rom: StringProperty(name="Export ROM", subtype="FILE_PATH")
+    output_rom: StringProperty(name="Output ROM", subtype="FILE_PATH")
+    extend_bank_4: BoolProperty(
+        name="Extend Bank 4 on Export?",
+        default=True,
+        description=f"Sets bank 4 range to ({hex(defaultExtendSegment4[0])}, "
+        f"{hex(defaultExtendSegment4[1])}) and copies data from old bank",
+    )
 
-    # Level exports
-    # exportLevelName: StringProperty(name = 'Level', default = 'bob')
-    # exportLevelOption: EnumProperty(items = enumLevelNames, name = 'Level', default = 'bob')
+    address_converter: PointerProperty(type=SM64_AddrConvProperties)
+    # C
+    decomp_path: StringProperty(
+        name="Decomp Folder",
+        subtype="FILE_PATH",
+        update=decomp_path_update,
+    )
+    sm64_repo_settings_tab: BoolProperty(default=True, name="SM64 Repo Settings")
+    disable_scroll: BoolProperty(name="Disable Scrolling Textures")
+    refresh_version: EnumProperty(items=enum_refresh_versions, name="Refresh", default="Refresh 13")
+    compression_format: EnumProperty(
+        items=enum_compression_formats,
+        name="Compression",
+        default="mio0",
+    )
+    force_extended_ram: BoolProperty(
+        name="Force Extended Ram",
+        default=True,
+        description="USE_EXT_RAM will be defined in include/segments.h on export, increasing the available RAM by 4MB but requiring the expansion pack, this prevents crashes from running out of RAM",
+    )
+    matstack_fix: BoolProperty(
+        name="Matstack Fix",
+        description="Exports account for matstack fix requirements",
+    )
 
-    # Insertable Binary
-    # exportInsertableBinaryPath: StringProperty(name = 'Filepath', subtype = 'FILE_PATH')
+    @property
+    def binary_export(self):
+        return self.export_type in ["Binary", "Insertable Binary"]
+
+    def get_legacy_export_type(self, scene: Scene):
+        legacy_export_types = ("C", "Binary", "Insertable Binary")
+
+        for export_key in ["animExportType", "colExportType", "DLExportType", "geoExportType"]:
+            export_type = legacy_export_types[scene.get(export_key, 0)]
+            if export_type != "C":
+                return export_type
+
+        return "C"
+
+    def upgrade_version_1(self, scene: Scene):
+        old_scene_props_to_new = {
+            "importRom": "import_rom",
+            "exportRom": "export_rom",
+            "outputRom": "output_rom",
+            "disableScroll": "disable_scroll",
+            "blenderToSM64Scale": "blender_to_sm64_scale",
+            "decompPath": "decomp_path",
+            "extendBank4": "extend_bank_4",
+        }
+        for old, new in old_scene_props_to_new.items():
+            setattr(self, new, scene.get(old, getattr(self, new)))
+
+        refresh_version = scene.get("refreshVer", None)
+        if refresh_version is not None:
+            self.refresh_version = enum_refresh_versions[refresh_version][0]
+
+        self.show_importing_menus = self.get("showImportingMenus", self.show_importing_menus)
+
+        export_type = self.get("exportType", None)
+        if export_type is not None:
+            self.export_type = enum_export_type[export_type][0]
+
+        self.version = 2
 
     @staticmethod
     def upgrade_changed_props():
-        if bpy.context.scene.fast64.sm64.version != SM64_Properties.cur_version:
-            bpy.context.scene.fast64.sm64.exportType = get_legacy_export_type()
-            bpy.context.scene.fast64.sm64.version = SM64_Properties.cur_version
+        for scene in bpy.data.scenes:
+            sm64_props: SM64_Properties = scene.fast64.sm64
+            if sm64_props.version == 0:
+                sm64_props.export_type = sm64_props.get_legacy_export_type(scene)
+                sm64_props.version = 1
+                print("Upgraded global SM64 settings to version 1")
+            if sm64_props.version == 1:
+                sm64_props.upgrade_version_1(scene)
+                print("Upgraded global SM64 settings to version 2")
+            sm64_props.address_converter.upgrade_changed_props(scene)
+
+    def draw_props(self, layout: UILayout, show_repo_settings: bool = True):
+        col = layout.column()
+
+        prop_split(col, self, "goal", "Goal")
+        prop_split(col, self, "export_type", "Export type")
+        col.separator()
+
+        prop_split(col, self, "blender_to_sm64_scale", "Blender To SM64 Scale")
+
+        if self.export_type == "Binary":
+            col.prop(self, "export_rom")
+            export_rom_ui_warnings(col, self.export_rom)
+            col.prop(self, "output_rom")
+            col.prop(self, "extend_bank_4")
+        elif not self.binary_export:
+            prop_split(col, self, "decomp_path", "Decomp Path")
+            directory_ui_warnings(col, abspath(self.decomp_path))
+        col.separator()
+
+        if not self.binary_export:
+            col.prop(self, "disable_scroll")
+            if show_repo_settings:
+                prop_split(col, self, "compression_format", "Compression Format")
+                prop_split(col, self, "refresh_version", "Refresh (Function Map)")
+                col.prop(self, "force_extended_ram")
+                col.prop(self, "matstack_fix")
+        col.separator()
+
+        col.prop(self, "show_importing_menus")
+        if self.show_importing_menus:
+            prop_split(col, self, "import_rom", "Import ROM")
+            import_rom_ui_warnings(col, self.import_rom)
 
 
 classes = (SM64_Properties,)
@@ -67,45 +172,7 @@ def settings_props_register():
     for cls in classes:
         register_class(cls)
 
-    Scene.importRom = StringProperty(name="Import ROM", subtype="FILE_PATH")
-    Scene.exportRom = StringProperty(name="Export ROM", subtype="FILE_PATH")
-    Scene.outputRom = StringProperty(name="Output ROM", subtype="FILE_PATH")
-    Scene.extendBank4 = BoolProperty(
-        name="Extend Bank 4 on Export?",
-        default=True,
-        description="Sets bank 4 range to ("
-        + hex(defaultExtendSegment4[0])
-        + ", "
-        + hex(defaultExtendSegment4[1])
-        + ") and copies data from old bank",
-    )
-    Scene.convertibleAddr = StringProperty(name="Address")
-    Scene.levelConvert = EnumProperty(items=level_enums, name="Level", default="IC")
-    Scene.refreshVer = EnumProperty(items=enumRefreshVer, name="Refresh", default="Refresh 13")
-    Scene.disableScroll = BoolProperty(name="Disable Scrolling Textures")
-    Scene.blenderToSM64Scale = FloatProperty(
-        name="Blender To SM64 Scale", default=100, update=on_update_render_settings
-    )
-    Scene.decompPath = StringProperty(name="Decomp Folder", subtype="FILE_PATH")
-
-    Scene.compressionFormat = EnumProperty(items=enumCompressionFormat, name="Compression", default="mio0")
-
 
 def settings_props_unregister():
     for cls in reversed(classes):
         unregister_class(cls)
-
-    del Scene.importRom
-    del Scene.exportRom
-    del Scene.outputRom
-    del Scene.extendBank4
-
-    del Scene.convertibleAddr
-    del Scene.levelConvert
-    del Scene.refreshVer
-
-    del Scene.disableScroll
-
-    del Scene.blenderToSM64Scale
-    del Scene.decompPath
-    del Scene.compressionFormat
