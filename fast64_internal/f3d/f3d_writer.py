@@ -9,6 +9,7 @@ from bpy.utils import register_class, unregister_class
 from .f3d_enums import *
 from .f3d_material import (
     all_combiner_uses,
+    get_tex_basis_size,
     getMaterialScrollDimensions,
     isTexturePointSampled,
     RDPSettings,
@@ -1257,34 +1258,14 @@ defaultLighting = [
 
 def getTexDimensions(material):
     f3dMat = material.f3d_mat
-
-    texDimensions0 = None
-    texDimensions1 = None
     useDict = all_combiner_uses(f3dMat)
-    if useDict["Texture 0"] and f3dMat.tex0.tex_set:
-        if f3dMat.tex0.use_tex_reference:
-            texDimensions0 = f3dMat.tex0.tex_reference_size
-        else:
-            if f3dMat.tex0.tex is None:
-                raise PluginError('In material "' + material.name + '", a texture has not been set.')
-            texDimensions0 = f3dMat.tex0.tex.size[0], f3dMat.tex0.tex.size[1]
-    if useDict["Texture 1"] and f3dMat.tex1.tex_set:
-        if f3dMat.tex1.use_tex_reference:
-            texDimensions1 = f3dMat.tex1.tex_reference_size
-        else:
-            if f3dMat.tex1.tex is None:
-                raise PluginError('In material "' + material.name + '", a texture has not been set.')
-            texDimensions1 = f3dMat.tex1.tex.size[0], f3dMat.tex1.tex.size[1]
 
-    if texDimensions0 is not None and texDimensions1 is not None:
-        texDimensions = texDimensions0 if f3dMat.uv_basis == "TEXEL0" else texDimensions1
-    elif texDimensions0 is not None:
-        texDimensions = texDimensions0
-    elif texDimensions1 is not None:
-        texDimensions = texDimensions1
-    else:
-        texDimensions = [32, 32]
-    return texDimensions
+    if useDict["Texture 0"] and f3dMat.tex0.tex_set and not f3dMat.tex0.is_set_and_has_tex:
+        raise PluginError('In material "' + material.name + '", texture 0 has not been set.')
+    if useDict["Texture 1"] and f3dMat.tex1.tex_set and not f3dMat.tex1.is_set_and_has_tex:
+        raise PluginError('In material "' + material.name + '", texture 1 has not been set.')
+
+    return get_tex_basis_size(f3dMat)
 
 
 def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):

@@ -1075,9 +1075,7 @@ class F3DPanel(Panel):
             noticeBox.label(text='They must be called "Col" and "Alpha".', icon="IMAGE_ALPHA")
 
     def checkDrawMixedCIWarning(self, layout, useDict, f3dMat):
-        useTex0 = useDict["Texture 0"] and f3dMat.tex0.tex_set
-        useTex1 = useDict["Texture 1"] and f3dMat.tex1.tex_set
-        if not useTex0 or not useTex1:
+        if not (f3dMat.is_multi_tex and (f3dMat.tex0.tex_set and f3dMat.tex1.tex_set)):
             return
         isTex0CI = f3dMat.tex0.tex_format[:2] == "CI"
         isTex1CI = f3dMat.tex1.tex_format[:2] == "CI"
@@ -1094,8 +1092,6 @@ class F3DPanel(Panel):
 
         self.checkDrawLayersWarnings(f3dMat, useDict, layout)
 
-        useMultitexture = useDict["Texture 0"] and useDict["Texture 1"] and f3dMat.tex0.tex_set and f3dMat.tex1.tex_set
-
         self.checkDrawMixedCIWarning(inputCol, useDict, f3dMat)
         canUseLargeTextures = material.mat_ver > 3 and material.f3d_mat.use_large_textures
         if useDict["Texture 0"] and f3dMat.tex0.tex_set:
@@ -1104,7 +1100,7 @@ class F3DPanel(Panel):
         if useDict["Texture 1"] and f3dMat.tex1.tex_set:
             ui_image(canUseLargeTextures, inputCol, material, f3dMat.tex1, "Texture 1", False)
 
-        if useMultitexture:
+        if f3dMat.get_uv_basis():
             inputCol.prop(f3dMat, "uv_basis", text="UV Basis")
 
         if useDict["Texture"]:
@@ -1183,8 +1179,6 @@ class F3DPanel(Panel):
 
             inputCol = layout.column()
 
-            useMultitexture = useDict["Texture 0"] and useDict["Texture 1"]
-
             self.checkDrawMixedCIWarning(inputCol, useDict, f3dMat)
             canUseLargeTextures = material.mat_ver > 3 and material.f3d_mat.use_large_textures
             if useDict["Texture 0"]:
@@ -1193,7 +1187,7 @@ class F3DPanel(Panel):
             if useDict["Texture 1"]:
                 ui_image(canUseLargeTextures, inputCol, material, f3dMat.tex1, "Texture 1", True)
 
-            if useMultitexture:
+            if f3dMat.get_uv_basis():
                 inputCol.prop(f3dMat, "uv_basis", text="UV Basis")
 
             if useDict["Texture"]:
@@ -2040,14 +2034,12 @@ def update_tex_values(self, context):
 
 
 def get_tex_basis_size(f3d_mat: "F3DMaterialProperty"):
-    tex_size = None
-    if f3d_mat.tex0.tex is not None and f3d_mat.tex1.tex is not None:
-        return f3d_mat.tex0.tex.size if f3d_mat.uv_basis == "TEXEL0" else f3d_mat.tex1.tex.size
-    elif f3d_mat.tex0.tex is not None:
-        return f3d_mat.tex0.tex.size
-    elif f3d_mat.tex1.tex is not None:
-        return f3d_mat.tex1.tex.size
-    return tex_size
+    useDict, tex_dimensions = all_combiner_uses(f3d_mat), [32, 32]
+    if useDict["Texture 0"] and f3d_mat.tex0.is_set:
+        tex_dimensions = tex0_dimensions = f3d_mat.tex0.get_tex_size()
+    if useDict["Texture 1"] and f3d_mat.tex1.is_set:
+        tex_dimensions = f3d_mat.tex1.get_tex_size()
+    return tex0_dimensions if f3d_mat.get_uv_basis() == "TEXEL0" else tex_dimensions
 
 
 def get_tex_gen_size(tex_size: list[int | float]):
@@ -2092,10 +2084,10 @@ def update_tex_values_manual(material: Material, context, prop_path=None):
             texture_inputs["1 T TexSize"].default_value = f3dMat.tex1.tex.size[0]
 
     uv_basis: ShaderNodeGroup = nodes["UV Basis"]
-    if f3dMat.uv_basis == "TEXEL0":
-        uv_basis.node_tree = bpy.data.node_groups["UV Basis 0"]
-    else:
+    if f3dMat.get_uv_basis() == "TEXEL1":
         uv_basis.node_tree = bpy.data.node_groups["UV Basis 1"]
+    else:
+        uv_basis.node_tree = bpy.data.node_groups["UV Basis 0"]
 
     if not isTexGen:
         uv_basis.inputs["S Scale"].default_value = f3dMat.tex_scale[0]
@@ -2639,8 +2631,14 @@ class TextureFieldProperty(PropertyGroup):
         update=update_tex_field_prop,
     )
 
+    def to_dict(self, autoprop=False):
+        return prop_group_to_json(self, ["low", "high", "mask", "shift"] if autoprop else None)
+
+    def from_dict(self, data: dict):
+        json_to_prop_group(self, data)
+
     def key(self):
-        return (self.clamp, self.mirror, round(self.low * 4), round(self.high * 4), self.mask, self.shift)
+        return frozenset(self.to_dict().items())
 
 
 class SetTileSizeScrollProperty(PropertyGroup):
@@ -2648,8 +2646,14 @@ class SetTileSizeScrollProperty(PropertyGroup):
     t: bpy.props.IntProperty(min=-4095, max=4095, default=0)
     interval: bpy.props.IntProperty(min=1, soft_max=1000, default=1)
 
+    def to_dict(self):
+        return prop_group_to_json(self)
+
+    def from_dict(self, data: dict):
+        json_to_prop_group(self, data)
+
     def key(self):
-        return (self.s, self.t, self.interval)
+        return frozenset(self.to_dict().items())
 
 
 class TextureProperty(PropertyGroup):
@@ -2712,6 +2716,14 @@ class TextureProperty(PropertyGroup):
     )
     tile_scroll: bpy.props.PointerProperty(type=SetTileSizeScrollProperty)
 
+    @property
+    def is_ci(self):
+        return self.tex_format.startswith("CI")
+
+    @property
+    def is_set(self):
+        return self.tex_set and (self.use_tex_reference or self.tex is not None)
+
     def get_tex_size(self) -> list[int]:
         if self.tex or self.use_tex_reference:
             if self.tex is not None:
@@ -2720,24 +2732,74 @@ class TextureProperty(PropertyGroup):
                 return self.tex_reference_size
         return [0, 0]
 
+    @property
+    def format_type(self):
+        return texFormatOf[self.tex_format][len("G_IM_FMT_") :]
+
+    @property
+    def format_size(self):
+        return bitSizeDict[texBitSizeF3D[self.tex_format]]
+
+    def format_to_dict(self):
+        data = {"texture": self.format_type, "size": self.format_size}
+        if self.tex_format.startswith("CI"):
+            data["palette"] = self.ci_format
+        return data
+
+    def format_from_dict(self, data: dict):
+        self.tex_format = data.get("texture", self.format_type) + str(data.get("size", self.format_size))
+        self.ci_format = data.get("palette", self.ci_format)
+
+    def reference_to_dict(self):
+        data = {"texture": self.tex_reference, "size": list(self.tex_reference_size)}
+        if self.is_ci:
+            data["pallete"], data["palleteCount"] = self.pal_reference, self.pal_reference_size
+        return data
+
+    def reference_from_dict(self, data: dict):
+        self.tex_reference = data.get("texture", self.tex_reference)
+        self.tex_reference_size = data.get("size", self.tex_reference_size)
+        self.pal_reference = data.get("pallete", self.pal_reference)
+        self.pal_reference_size = data.get("palleteCount", self.pal_reference_size)
+
+    def to_dict(self):
+        """Does not include actual texture and tile scroll"""  # TODO: Should it include tile scroll?
+        data = {
+            "set": self.tex_set,
+            "format": self.format_to_dict(),
+            "fields": (self.S.to_dict(self.autoprop), self.T.to_dict(self.autoprop)),
+        }
+        if self.use_tex_reference:
+            data["reference"] = self.reference_to_dict()
+        return data
+
+    def from_dict(self, data: dict):
+        """Does not include actual texture and tile scroll"""
+        self.tex_set = data.get("set", self.tex_set)
+        self.format_from_dict(data.get("format", {}))
+
+        fields = data.get("fields", [])
+        if len(fields) >= 1:
+            self.S.from_dict(fields[0])
+        if len(fields) >= 2:
+            self.T.from_dict(fields[1])
+        self.autoprop = not any(
+            advanced_prop in field for field in fields for advanced_prop in {"low", "high", "mask", "shift"}
+        )
+
+        self.use_tex_reference = "reference" in data
+        if self.use_tex_reference:
+            self.reference_from_dict(data["reference"])
+
     def key(self):
-        texSet = self.tex_set
-        isCI = self.tex_format == "CI8" or self.tex_format == "CI4"
-        useRef = self.use_tex_reference
         return (
-            self.tex_set,
-            self.tex if texSet else None,
-            self.tex_format if texSet else None,
-            self.ci_format if texSet and isCI else None,
-            self.S.key() if texSet else None,
-            self.T.key() if texSet else None,
-            self.autoprop if texSet else None,
-            self.tile_scroll.key() if texSet else None,
-            self.use_tex_reference if texSet else None,
-            self.tex_reference if texSet and useRef else None,
-            self.tex_reference_size if texSet and useRef else None,
-            self.pal_reference if texSet and useRef and isCI else None,
-            self.pal_reference_size if texSet and useRef and isCI else None,
+            (
+                self.tex,
+                str(self.to_dict()),
+                self.tile_scroll.key(),
+            )
+            if self.tex_set
+            else None
         )
 
 
@@ -2820,8 +2882,7 @@ def ui_image(
             availTmem = 512
             if textureProp.tex_format[:2] == "CI":
                 availTmem /= 2
-            useDict = all_combiner_uses(material.f3d_mat)
-            if useDict["Texture 0"] and useDict["Texture 1"]:
+            if material.f3d_mat.is_multi_tex:
                 availTmem /= 2
             isLarge = getTmemWordUsage(textureProp.tex_format, width, height) > availTmem
         else:
@@ -2954,17 +3015,37 @@ class CombinerProperty(PropertyGroup):
         update=update_combiner_connections_and_preset,
     )
 
+    def to_dict(self):
+        return {
+            "color": [
+                self.A,
+                self.B,
+                self.C,
+                self.D,
+            ],
+            "alpha": [
+                self.A_alpha,
+                self.B_alpha,
+                self.C_alpha,
+                self.D_alpha,
+            ],
+        }
+
+    def from_dict(self, data: dict):
+        default = self.to_dict()
+        color = data.get("color", default["color"])
+        alpha = data.get("alpha", default["alpha"])
+        self.A = color[0]
+        self.B = color[1]
+        self.C = color[2]
+        self.D = color[3]
+        self.A_alpha = alpha[0]
+        self.B_alpha = alpha[1]
+        self.C_alpha = alpha[2]
+        self.D_alpha = alpha[3]
+
     def key(self):
-        return (
-            self.A,
-            self.B,
-            self.C,
-            self.D,
-            self.A_alpha,
-            self.B_alpha,
-            self.C_alpha,
-            self.D_alpha,
-        )
+        return frozenset(self.to_dict().items())
 
 
 class ProceduralAnimProperty(PropertyGroup):
@@ -2977,18 +3058,16 @@ class ProceduralAnimProperty(PropertyGroup):
     animate: bpy.props.BoolProperty()
     animType: bpy.props.EnumProperty(name="Type", items=enumTexScroll)
 
+    def to_dict(self):
+        if not self.animate:
+            return None
+        return prop_group_to_json(self, "animate")
+
+    def from_dict(self, data: dict):
+        json_to_prop_group(self, data, "animate")
+
     def key(self):
-        anim = self.animate
-        return (
-            self.animate,
-            round(self.speed, 4) if anim else None,
-            round(self.amplitude, 4) if anim else None,
-            round(self.frequency, 4) if anim else None,
-            round(self.spaceFrequency, 4) if anim else None,
-            round(self.offset, 4) if anim else None,
-            round(self.noiseAmplitude, 4) if anim else None,
-            self.animType if anim else None,
-        )
+        return frozenset(self.to_dict().items())
 
 
 class ProcAnimVectorProperty(PropertyGroup):
@@ -2999,15 +3078,14 @@ class ProcAnimVectorProperty(PropertyGroup):
     angularSpeed: bpy.props.FloatProperty(default=1, name="Angular Speed")
     menu: bpy.props.BoolProperty()
 
+    def to_dict(self):
+        return prop_group_to_json(self)
+
+    def from_dict(self, data: dict):
+        json_to_prop_group(self, data)
+
     def key(self):
-        return (
-            self.x.key(),
-            self.y.key(),
-            self.z.key(),
-            round(self.pivot[0], 4),
-            round(self.pivot[1], 4),
-            round(self.angularSpeed, 4),
-        )
+        return frozenset(self.to_dict().items())
 
 
 class PrimDepthSettings(PropertyGroup):
@@ -3037,8 +3115,14 @@ class PrimDepthSettings(PropertyGroup):
         ),
     )
 
+    def to_dict(self):
+        return prop_group_to_json(self)
+
+    def from_dict(self, data: dict):
+        json_to_prop_group(self, data)
+
     def key(self):
-        return (self.z, self.dz)
+        return frozenset(self.to_dict().items())
 
 
 class RDPSettings(PropertyGroup):
@@ -3409,64 +3493,183 @@ class RDPSettings(PropertyGroup):
     def does_blender_use_input(self, setting: str) -> bool:
         return any(input == setting for input in self.blend_inputs)
 
-    def key(self):
-        setRM = self.set_rendermode
-        rmAdv = self.rendermode_advanced_enabled
-        prim = self.g_mdsft_zsrcsel == "G_ZS_PRIM"
-        return (
-            self.g_zbuffer,
-            self.g_shade,
-            self.g_cull_front,
-            self.g_cull_back,
-            self.g_attroffset_st_enable,
-            self.g_attroffset_z_enable,
-            self.g_packed_normals,
-            self.g_lighttoalpha,
-            self.g_ambocclusion,
-            self.g_fog,
-            self.g_lighting,
-            self.g_tex_gen,
-            self.g_tex_gen_linear,
-            self.g_lod,
-            self.g_shade_smooth,
-            self.g_clipping,
-            self.g_mdsft_alpha_dither,
-            self.g_mdsft_rgb_dither,
-            self.g_mdsft_combkey,
-            self.g_mdsft_textconv,
-            self.g_mdsft_text_filt,
-            self.g_mdsft_textlod,
-            self.g_mdsft_textdetail,
-            self.g_mdsft_textpersp,
-            self.g_mdsft_cycletype,
-            self.g_mdsft_color_dither,
-            self.g_mdsft_pipeline,
-            self.g_mdsft_alpha_compare,
-            self.g_mdsft_zsrcsel,
-            self.prim_depth.key() if prim else None,
-            self.clip_ratio,
-            self.set_rendermode,
-            self.aa_en if setRM and rmAdv else None,
-            self.z_cmp if setRM and rmAdv else None,
-            self.z_upd if setRM and rmAdv else None,
-            self.im_rd if setRM and rmAdv else None,
-            self.clr_on_cvg if setRM and rmAdv else None,
-            self.cvg_dst if setRM and rmAdv else None,
-            self.zmode if setRM and rmAdv else None,
-            self.cvg_x_alpha if setRM and rmAdv else None,
-            self.alpha_cvg_sel if setRM and rmAdv else None,
-            self.force_bl if setRM and rmAdv else None,
-            self.blend_p1 if setRM and rmAdv else None,
-            self.blend_p2 if setRM and rmAdv else None,
-            self.blend_m1 if setRM and rmAdv else None,
-            self.blend_m2 if setRM and rmAdv else None,
-            self.blend_a1 if setRM and rmAdv else None,
-            self.blend_a2 if setRM and rmAdv else None,
-            self.blend_b1 if setRM and rmAdv else None,
-            self.blend_b2 if setRM and rmAdv else None,
-            self.rendermode_preset_cycle_1 if setRM and not rmAdv else None,
-            self.rendermode_preset_cycle_2 if setRM and not rmAdv else None,
+    def attributes_to_dict(self, info: dict):
+        data = {}
+        for key, attr, default in info:
+            value = getattr(self, attr)
+            if value != default:
+                data[key] = value
+        return data
+
+    def attributes_from_dict(self, data: dict, info: dict):
+        for key, attr, default in info:
+            setattr(self, attr, data.get(key, default))
+
+    geo_mode_all_attributes = [
+        ("zBuffer", "g_zbuffer", False),
+        ("shade", "g_shade", False),
+        ("cullFront", "g_cull_front", False),
+        ("cullBack", "g_cull_back", False),
+        ("fog", "g_fog", False),
+        ("lighting", "g_lighting", False),
+        ("texGen", "g_tex_gen", False),
+        ("texGenLinear", "g_tex_gen_linear", False),
+        ("lod", "g_lod", False),
+        ("shadeSmooth", "g_shade_smooth", False),
+    ]
+
+    geo_mode_f3dex_attributes = [
+        ("clipping", "g_clipping", False),
+    ]
+
+    geo_mode_f3dex3_attributes = [
+        ("ambientOcclusion", "g_ambocclusion", False),
+        ("attroffsetZ", "g_attroffset_z_enable", False),
+        ("attroffsetST", "g_attroffset_st_enable", False),
+        ("packedNormals", "g_packed_normals", False),
+        ("lightToAlpha", "g_lighttoalpha", False),
+        ("specularLighting", "g_lighting_specular", False),
+        ("fresnelToColor", "g_fresnel_color", False),
+        ("fresnelToAlpha", "g_fresnel_alpha", False),
+    ]
+    geo_mode_attributes = geo_mode_all_attributes + geo_mode_f3dex_attributes + geo_mode_f3dex3_attributes
+
+    def geo_mode_to_dict(self, f3d=None):
+        f3d = f3d if f3d else get_F3D_GBI()
+        data = self.attributes_to_dict(self.geo_mode_all_attributes)
+        if f3d.F3DEX_GBI or f3d.F3DLP_GBI:
+            data.update(self.attributes_to_dict(self.geo_mode_f3dex_attributes))
+        if f3d.F3DEX_GBI_3:
+            data.update(self.attributes_to_dict(self.geo_mode_f3dex3_attributes))
+        return data
+
+    def geo_mode_from_dict(self, data: dict):
+        self.attributes_from_dict(data, self.geo_mode_attributes)
+
+    other_mode_h_attributes = [
+        ("alphaDither", "g_mdsft_alpha_dither", "G_AD_PATTERN"),
+        ("colorDither", "g_mdsft_rgb_dither", "G_CD_MAGICSQ"),
+        ("chromaKey", "g_mdsft_combkey", "G_CK_NONE"),
+        ("textureConvert", "g_mdsft_textconv", "G_TC_CONV"),
+        ("textureFilter", "g_mdsft_text_filt", "G_TF_POINT"),
+        # ("lutFormat", "g_mdsft_textlut", "G_TT_NONE")
+        ("textureLoD", "g_mdsft_textlod", "G_TL_TILE"),
+        ("textureDetail", "g_mdsft_textdetail", "G_TD_CLAMP"),
+        ("perspectiveCorrection", "g_mdsft_textpersp", "G_TP_NONE"),
+        ("cycleType", "g_mdsft_cycletype", "G_CYC_1CYCLE"),
+        ("pipelineMode", "g_mdsft_pipeline", "G_PM_NPRIMITIVE"),
+    ]
+
+    def other_mode_h_to_dict(self):
+        return self.attributes_to_dict(self.other_mode_h_attributes)
+
+    def other_mode_h_from_dict(self, data: dict):
+        self.attributes_from_dict(data, self.other_mode_h_attributes)
+
+    other_mode_l_attributes = [
+        ("alphaCompare", "g_mdsft_alpha_compare", "G_AC_NONE"),
+        ("zSourceSelection", "g_mdsft_zsrcsel", "G_ZS_PIXEL"),
+    ]
+
+    rendermode_flag_attributes = [
+        ("aa", "aa_en", False),
+        ("zTest", "z_cmp", False),
+        ("zWrite", "z_upd", False),
+        ("colorOnCvg", "clr_on_cvg", False),
+        ("alphaOnCvg", "alpha_cvg_sel", False),
+        ("mulCvgXAlpha", "cvg_x_alpha", False),
+        ("forceBlend", "force_bl", False),
+        ("readFB", "im_rd", False),
+        ("cvgDst", "cvg_dst", "CVG_DST_CLAMP"),
+        ("zMode", "zmode", "ZMODE_OPA"),
+    ]
+
+    def other_mode_l_to_dict(self):
+        data = self.attributes_to_dict(self.other_mode_l_attributes)
+        if self.g_mdsft_zsrcsel == "G_ZS_PRIM":
+            data["primDepth"] = self.prim_depth.to_dict()
+        if self.set_rendermode:
+            two_cycle = self.g_mdsft_cycletype == "G_CYC_2CYCLE"
+            if self.rendermode_advanced_enabled:
+                blender_data = []
+                for i in range(2 if two_cycle else 1):
+                    num = i + 1
+                    color_attrs, alpha_attrs = (f"blend_p{num}", f"blend_m{num}"), (f"blend_a{num}", f"blend_b{num}")
+                    blender_data.append(
+                        {
+                            "color": (getattr(self, color_attrs[0]), getattr(self, color_attrs[1])),
+                            "alpha": (getattr(self, alpha_attrs[0]), getattr(self, alpha_attrs[1])),
+                        }
+                    )
+                data["renderMode"] = {
+                    "flags": self.attributes_to_dict(self.rendermode_flag_attributes),
+                    "blender": blender_data,
+                }
+            else:
+                data["renderMode"] = {
+                    "presets": [self.rendermode_preset_cycle_1]
+                    + ([self.rendermode_preset_cycle_2] if two_cycle else [])
+                }
+
+        return data
+
+    def other_mode_l_from_dict(self, data: dict):
+        self.attributes_from_dict(data, self.other_mode_l_attributes)
+        self.prim_depth.from_dict(data.get("primDepth", {}))
+
+        render_mode = data.get("renderMode", {})
+        blender = render_mode.get("blender", [])
+        flags = render_mode.get("flags", {})
+        if render_mode:
+            self.set_rendermode = True
+        if not render_mode.get("presets", None) and (flags or blender):
+            self.rendermode_advanced_enabled = True
+
+        self.rendermode_preset_cycle_1, self.rendermode_preset_cycle_2 = render_mode.get(
+            "presets", [self.rendermode_preset_cycle_1, self.rendermode_preset_cycle_2]
         )
+
+        self.attributes_from_dict(flags, self.rendermode_flag_attributes)
+        color_attrs = ("blend_p", "blend_m")
+        alpha_attrs = ("blend_a", "blend_b")
+        for i, cycle in enumerate(blender * 2 if len(blender) == 1 else blender):
+            num = str(i + 1)
+            color_attrs, alpha_attrs = (f"blend_p{num}", f"blend_m{num}"), (f"blend_a{num}", f"blend_b{num}")
+            self[color_attrs[0]], self[color_attrs[1]] = cycle.get(
+                "color", [self.get(color_attrs[0]), self.get(color_attrs[1])]
+            )
+            self[alpha_attrs[0]], self[alpha_attrs[1]] = cycle.get(
+                "alpha", [self.get(alpha_attrs[0]), self.get(alpha_attrs[1])]
+            )
+
+    def other_to_dict(self):
+        data = {}
+        if self.clip_ratio != 1.0:
+            data["clipRatio"] = self.clip_ratio
+        if self.g_mdsft_textlod == "G_TL_LOD" and self.num_textures_mipmapped != 1:
+            data["mipmapCount"] = self.num_textures_mipmapped
+        return data
+
+    def other_from_dict(self, data: dict):
+        self.clip_ratio = data.get("clipRatio", self.clip_ratio)
+        self.num_textures_mipmapped = data.get("mipmapCount", self.num_textures_mipmapped)
+
+    def to_dict(self, f3d=None):
+        data = {}
+        data["geometryMode"] = self.geo_mode_to_dict(f3d)
+        data["otherModeH"] = self.other_mode_h_to_dict()
+        data["otherModeL"] = self.other_mode_l_to_dict()
+        data["other"] = self.other_to_dict()
+        return data
+
+    def from_dict(self, data: dict):
+        self.geo_mode_from_dict(data.get("geometryMode", {}))
+        self.other_mode_h_from_dict(data.get("otherModeH", {}))
+        self.other_mode_l_from_dict(data.get("otherModeL", {}))
+        self.other_from_dict(data.get("other", {}))
+
+    def key(self):
+        return str(self.to_dict().items())
 
 
 class DefaultRDPSettingsPanel(Panel):
@@ -3536,6 +3739,15 @@ class CelLevelProperty(PropertyGroup):
         default=1,
     )
 
+    def to_dict(self):
+        return prop_group_to_json(self)
+
+    def from_dict(self, data: dict):
+        json_to_prop_group(self, data)
+
+    def key(self):
+        return str(self.to_dict().items())
+
 
 class CelShadingProperty(PropertyGroup):
     tintPipeline: bpy.props.EnumProperty(items=enumCelTintPipeline, name="Tint pipeline", default="CC")
@@ -3546,6 +3758,15 @@ class CelShadingProperty(PropertyGroup):
         update=update_cel_cutout_source,
     )
     levels: bpy.props.CollectionProperty(type=CelLevelProperty, name="Cel levels")
+
+    def to_dict(self):
+        return prop_group_to_json(self)
+
+    def from_dict(self, data: dict):
+        json_to_prop_group(self, data)
+
+    def key(self):
+        return str(self.to_dict().items())
 
 
 def celGetMaterialLevels(materialName):
@@ -4277,83 +4498,220 @@ class F3DMaterialProperty(PropertyGroup):
     use_cel_shading: bpy.props.BoolProperty(name="Use Cel Shading", update=update_cel_cutout_source)
     cel_shading: bpy.props.PointerProperty(type=CelShadingProperty)
 
+    @property
+    def is_multi_tex(self):
+        use_dict = all_combiner_uses(self)
+        return use_dict["Texture 0"] and use_dict["Texture 1"]
+
+    def get_uv_basis(self):
+        return self.uv_basis if (self.is_multi_tex and self.tex0.is_set and self.tex1.is_set) else None
+
+    def combiner_to_dict(self):
+        cycles = [self.combiner1.to_dict()]
+        if self.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
+            cycles.append(self.combiner2.to_dict())
+        return {"set": self.set_combiner, "cycles": cycles}
+
+    def combiner_from_dict(self, data: dict):
+        self.set_combiner = data.get("set", self.set_combiner)
+        cycles = data.get("cycles", [])
+        if len(cycles) >= 1:
+            self.combiner1.from_dict(cycles[0])
+        if len(cycles) >= 2:
+            self.combiner2.from_dict(cycles[1])
+
+    def f3dex3_colors_to_dict(self):
+        data = {}
+        rdp = self.rdp_settings
+        if rdp.g_ambocclusion:
+            data["ao"] = {
+                "set": self.set_ao,
+                "ambient": self.ao_ambient,
+                "directional": self.ao_directional,
+                "point": self.ao_point,
+            }
+        if rdp.g_fresnel_color or rdp.g_fresnel_alpha:
+            data["fresnel"] = {"set": self.set_fresnel, "low": self.fresnel_lo, "high": self.fresnel_hi}
+        attr_offset = {}
+        if rdp.g_attroffset_st_enable:
+            attr_offset["st"] = {"set": self.set_attroffs_st, "value": list(self.attroffs_st)}
+        if rdp.g_attroffset_z_enable:
+            attr_offset["z"] = {"set": self.set_attroffs_z, "value": self.attroffs_z}
+        if attr_offset:
+            data["attrOffset"] = attr_offset
+        if self.use_cel_shading:
+            data["celShading"] = self.cel_shading.to_dict()
+        return data
+
+    def f3dex3_colors_from_dict(self, data: dict):
+        ao = data.get("ao", {})
+        self.set_ao = ao.get("set", self.set_ao)
+        self.ao_ambient = ao.get("ambient", self.ao_ambient)
+        self.ao_directional = ao.get("directional", self.ao_directional)
+        self.ao_point = ao.get("point", self.ao_point)
+        fresnel = data.get("fresnel", {})
+        self.set_fresnel = fresnel.get("set", self.set_fresnel)
+        self.fresnel_lo = fresnel.get("low", self.fresnel_lo)
+        self.fresnel_hi = fresnel.get("high", self.fresnel_hi)
+        attr_offset = data.get("attrOffset", {})
+        st_attr_offset = attr_offset.get("st", {})
+        self.set_attroffs_st = st_attr_offset.get("set", self.set_attroffs_st)
+        self.attroffs_st = st_attr_offset.get("value", self.attroffs_st)
+        z_attr_offset = attr_offset.get("z", {})
+        self.set_attroffs_z = z_attr_offset.get("set", self.set_attroffs_z)
+        self.attroffs_z = z_attr_offset.get("value", self.attroffs_z)
+        cel_shading = data.get("celShading", {})
+        if cel_shading:
+            self.use_cel_shading = True
+            self.cel_shading.from_dict(cel_shading)
+
+    def lights_to_dict(self, use_dict: dict[str]):
+        def add_fast64_f3d_light_to_list(light: bpy.types.Light, lights):
+            if light is None:
+                return
+            for obj in bpy.context.scene.objects:
+                if obj.data == light.original:
+                    lights.append(
+                        {
+                            "color": list(light.color),
+                            "direction": list(getObjDirectionVec(obj, True)),
+                        }
+                    )
+
+        if not (use_dict["Shade"] and self.rdp_settings.g_lighting and self.set_lights):
+            return {}
+        lights: list[dict[str, list[float]]] = []
+        ambient = get_clean_color(self.ambient_light_color, True)
+        if self.use_default_lighting:
+            lights.append({"color": get_clean_color(self.default_light_color, True)})
+            if self.set_ambient_from_light:
+                ambient = None
+        else:
+            for i in range(1, 8):
+                add_fast64_f3d_light_to_list(self.get(f"f3d_light{str(i)}"), lights)
+        return {"lights": lights, "ambientColor": ambient}
+
+    def lights_from_dict(self, data: dict):
+        lights = data.get("lights", [])
+        if len(lights) == 1 and not "direction" in lights[0] and "color" in lights[0]:  # Default lighting
+            self.use_default_lighting = True
+            self.default_light_color = lights[0]["color"] + [1.0]
+        else:
+            self.use_default_lighting = False
+        # TODO: Figure out conversion for object lights
+        ambient = data.get("ambientColor", [])
+        self.set_ambient_from_light = bool(ambient)
+        if ambient:
+            self.ambient_light_color = ambient + [1.0]
+
+    def colors_to_dict(self, f3d, use_dict: dict[str]):
+        data = {}
+        if use_dict["Environment"]:
+            data["environment"] = {
+                "set": self.set_env,
+                "color": get_clean_color(self.env_color, include_alpha=True),
+            }
+        if use_dict["Primitive"]:
+            data["primitive"] = {
+                "set": self.set_prim,
+                "color": get_clean_color(self.prim_color, include_alpha=True),
+                "minLoDRatio": self.prim_lod_min,
+                "loDFraction": self.prim_lod_frac,
+            }
+        if use_dict["Key"]:
+            data["key"] = {
+                "set": self.set_key,
+                "center": get_clean_color(self.key_center),
+                "scale": list(self.key_scale),
+                "width": list(self.key_width),
+            }
+        if use_dict["Convert"]:
+            data["convert"] = {
+                "set": self.set_k0_5,
+                "values": [round(k, 4) for k in (self.k0, self.k1, self.k2, self.k3, self.k4, self.k5)],
+            }
+        if self.rdp_settings.using_fog:
+            data["fog"] = {
+                "set": self.set_fog,
+                "color": get_clean_color(self.fog_color),
+                "range": list(self.fog_position),
+            }
+        if self.rdp_settings.g_lighting:
+            data["lighting"] = {"set": self.set_lights, **self.lights_to_dict(use_dict)}
+        data["blend"] = {
+            "set": self.set_blend,
+            "color": get_clean_color(self.blend_color, include_alpha=True),
+        }
+        if f3d.F3DEX_GBI_3:
+            data.update(self.f3dex3_colors_to_dict())
+        return data
+
+    def colors_from_dict(self, data: dict):
+        enviroment = data.get("environment", {})
+        self.set_env = enviroment.get("set", self.set_env)
+        if "color" in enviroment:
+            self.env_color = enviroment.get("color")
+        primitive = data.get("primitive", {})
+        self.set_prim = primitive.get("set", self.set_prim)
+        if "color" in primitive:
+            self.prim_color = primitive.get("color")
+        self.prim_lod_min, self.prim_lod_frac = (
+            primitive.get("minLoDRatio", self.prim_lod_min),
+            primitive.get("loDFraction", self.prim_lod_frac),
+        )
+        key = data.get("key", {})
+        self.set_key = key.get("set", self.set_key)
+        if "center" in key:
+            self.key_center = key.get("center") + [1.0]
+        self.key_scale, self.key_width = (
+            key.get("scale", list(self.key_scale)),
+            key.get("width", list(self.key_width)),
+        )
+        convert = data.get("convert", {})
+        self.set_k0_5 = convert.get("set", self.set_k0_5)
+        self.k0, self.k1, self.k2, self.k3, self.k4, self.k5 = convert.get(
+            "values", [self.k0, self.k1, self.k2, self.k3, self.k4, self.k5]
+        )
+        fog = data.get("fog", {})
+        self.set_fog = fog.get("set", self.set_fog)
+        if "color" in fog:
+            self.fog_color = fog.get("color") + [1.0]
+        self.fog_position = fog.get("range", list(self.fog_position))
+        blend = data.get("blend", {})
+        self.set_blend = blend.get("set", self.set_blend)
+        if "color" in blend:
+            self.blend_color = blend.get("color")
+        lighting = data.get("lighting", {})
+        self.set_lights = lighting.get("set", self.set_lights)
+        self.lights_from_dict(lighting)
+        self.f3dex3_colors_from_dict(data)
+
+    def extra_texture_settings_to_dict(self):
+        data = {}
+        if not self.scale_autoprop:
+            data["scale"] = [round(value, 4) for value in self.tex_scale]
+        if self.use_large_textures:
+            data["large"] = {"edges": self.large_edges}
+        data["uvBasis"] = self.get_uv_basis()
+        return data
+
+    def extra_texture_settings_from_dict(self, data):
+        self.tex_scale = data.get("scale", self.tex_scale)
+        self.use_large_textures = "large" in data
+        if self.use_large_textures:
+            self.large_edges = data["large"].get("edges", self.large_edges)
+
     def key(self) -> F3DMaterialHash:
-        useDefaultLighting = self.set_lights and self.use_default_lighting
         return (
-            self.scale_autoprop,
-            self.uv_basis,
             self.UVanim0.key(),
             self.UVanim1.key(),
-            tuple([round(value, 4) for value in self.tex_scale]),
             self.tex0.key(),
             self.tex1.key(),
             self.rdp_settings.key(),
             self.draw_layer.key(),
-            self.use_large_textures,
-            self.use_cel_shading,
-            self.cel_shading.tintPipeline if self.use_cel_shading else None,
-            tuple(
-                [
-                    (
-                        c.threshMode,
-                        c.threshold,
-                        c.tintType,
-                        c.tintFixedLevel,
-                        c.tintFixedColor,
-                        c.tintSegmentNum,
-                        c.tintSegmentOffset,
-                        c.tintLightSlot,
-                    )
-                    for c in self.cel_shading.levels
-                ]
-            )
-            if self.use_cel_shading
-            else None,
-            self.use_default_lighting,
-            self.set_blend,
-            self.set_prim,
-            self.set_env,
-            self.set_key,
-            self.set_k0_5,
-            self.set_combiner,
-            self.set_lights,
-            self.set_fog,
-            tuple([round(value, 4) for value in self.blend_color]) if self.set_blend else None,
-            tuple([round(value, 4) for value in self.prim_color]) if self.set_prim else None,
-            round(self.prim_lod_frac, 4) if self.set_prim else None,
-            round(self.prim_lod_min, 4) if self.set_prim else None,
-            tuple([round(value, 4) for value in self.env_color]) if self.set_env else None,
-            tuple([round(value, 4) for value in self.key_center]) if self.set_key else None,
-            tuple([round(value, 4) for value in self.key_scale]) if self.set_key else None,
-            tuple([round(value, 4) for value in self.key_width]) if self.set_key else None,
-            round(self.k0, 4) if self.set_k0_5 else None,
-            round(self.k1, 4) if self.set_k0_5 else None,
-            round(self.k2, 4) if self.set_k0_5 else None,
-            round(self.k3, 4) if self.set_k0_5 else None,
-            round(self.k4, 4) if self.set_k0_5 else None,
-            round(self.k5, 4) if self.set_k0_5 else None,
-            self.combiner1.key() if self.set_combiner else None,
-            self.combiner2.key() if self.set_combiner else None,
-            tuple([round(value, 4) for value in (self.ao_ambient, self.ao_directional, self.ao_point)])
-            if self.set_ao
-            else None,
-            tuple([round(value, 4) for value in (self.fresnel_lo, self.fresnel_hi)]) if self.set_fresnel else None,
-            tuple([round(value, 4) for value in self.attroffs_st]) if self.set_attroffs_st else None,
-            self.attroffs_z if self.set_attroffs_z else None,
-            tuple([round(value, 4) for value in self.fog_color]) if self.set_fog else None,
-            tuple([round(value, 4) for value in self.fog_position]) if self.set_fog else None,
-            tuple([round(value, 4) for value in self.default_light_color]) if useDefaultLighting else None,
-            self.set_ambient_from_light if useDefaultLighting else None,
-            tuple([round(value, 4) for value in self.ambient_light_color])
-            if useDefaultLighting and not self.set_ambient_from_light
-            else None,
-            self.f3d_light1 if not useDefaultLighting else None,
-            self.f3d_light2 if not useDefaultLighting else None,
-            self.f3d_light3 if not useDefaultLighting else None,
-            self.f3d_light4 if not useDefaultLighting else None,
-            self.f3d_light5 if not useDefaultLighting else None,
-            self.f3d_light6 if not useDefaultLighting else None,
-            self.f3d_light7 if not useDefaultLighting else None,
+            str(self.extra_texture_settings_to_dict().items()),
+            str(self.cel_shading.to_dict()) if self.use_cel_shading else None,
+            str(self.colors_to_dict(get_F3D_GBI(), all_combiner_uses(self))),
         )
 
 

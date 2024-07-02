@@ -1246,6 +1246,10 @@ def exportColor(lightColor):
     return [scaleToU8(value) for value in gammaCorrect(lightColor)]
 
 
+def get_clean_color(srgb: list, include_alpha=False, round_color=True) -> list:
+    return [round(channel, 4) if round_color else channel for channel in list(srgb[: 4 if include_alpha else 3])]
+
+
 def printBlenderMessage(msgSet, message, blenderOp):
     if blenderOp is not None:
         blenderOp.report(msgSet, message)
@@ -1543,6 +1547,11 @@ def get_material_from_context(context: bpy.types.Context):
     try:
         if type(getattr(context, "material", None)) == bpy.types.Material:
             return context.material
+        elif (
+            type(getattr(context, "object", None)) == bpy.types.Object
+            and type(getattr(context.object, "active_material", None)) == bpy.types.Material
+        ):
+            return context.object.active_material
         return context.material_slot.material
     except:
         return None
@@ -1622,3 +1631,42 @@ binOps = {
     ast.BitAnd: operator.and_,
     ast.BitXor: operator.xor,
 }
+
+
+def prop_group_to_json(prop_group, blacklist: list[str] = None, whitelist: list[str] = None):
+    blacklist = ["rna_type", "name"] + (blacklist or [])
+    def prop_to_json(prop):
+        if isinstance(prop, list) or type(prop).__name__ == "bpy_prop_collection_idprop":
+            prop = list(prop)
+            for index, value in enumerate(prop):
+                prop[index] = prop_to_json(value)
+            return prop
+        elif isinstance(prop, Color):
+            return get_clean_color(prop)
+        elif hasattr(prop, "to_list"):  # for IDPropertyArray classes
+            return prop.to_list()
+        elif hasattr(prop, "to_dict"):
+            return prop.to_dict()
+        else:
+            return prop
+
+    data = {}
+    for prop in iter_prop(prop_group):
+        if prop in blacklist or (whitelist and prop not in whitelist):
+            continue
+        value = prop_to_json(getattr(prop_group, prop))
+        if value is not None:
+            data[prop] = value
+    return data
+
+
+def json_to_prop_group(prop_group, data: dict, blacklist: list[str] = None, whitelist: list[str] = None):
+    blacklist = ["rna_type", "name"] + (blacklist or [])
+    for prop in iter_prop(prop_group):
+        if prop in blacklist or (whitelist and prop not in whitelist):
+            continue
+        default = getattr(prop_group, prop)
+        if hasattr(default, "from_dict"):
+            default.from_dict(data.get(prop, None))
+        else:
+            setattr(prop_group, prop, data.get(prop, default))
