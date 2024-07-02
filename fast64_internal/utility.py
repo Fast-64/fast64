@@ -3,7 +3,7 @@ from math import pi, ceil, degrees, radians, copysign
 from mathutils import *
 from .utility_anim import *
 from typing import Callable, Iterable, Any, Tuple, Union
-from bpy.types import UILayout
+from bpy.types import UILayout, Scene, World
 
 CollectionProperty = Any  # collection prop as defined by using bpy.props.CollectionProperty
 
@@ -1607,6 +1607,25 @@ def getTextureSuffixFromFormat(texFmt):
     # if texFmt == "RGBA16":
     #     return "rgb5a1"
     return texFmt.lower()
+
+
+def create_or_get_world(scene: Scene) -> World:
+    """
+    Given a scene, this function will return:
+    - The world selected in the scene if the scene has a selected world.
+    - The first world in bpy.data.worlds if the current file has a world. (Which it almost always does because of the f3d nodes library)
+    - Create a world named "Fast64" and return it if no world exits.
+    This function does not assign any world to the scene.
+    """
+    if scene.world:
+        return scene.world
+    if bpy.data.worlds:
+        world: World = bpy.data.worlds.values()[0]
+        print(f'No world selected in scene, selected the first one found in this file "{world.name}".')
+        return bpy.data.worlds.values()[0]
+    # Almost never reached because the node library has its own world
+    print(f'No world in this file, creating world named "Fast64".')
+    return bpy.data.worlds.new("Fast64")
 
 
 binOps = {
