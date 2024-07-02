@@ -3332,7 +3332,7 @@ class RDPSettings(PropertyGroup):
 
     def attributes_from_dict(self, data: dict, info: dict):
         for key, attr, default in info:
-            self[attr] = data.get(key, default)
+            setattr(self, attr, data.get(key, default))
 
     geo_mode_all_attributes = [
         ("zBuffer", "g_zbuffer", False),
@@ -3416,7 +3416,7 @@ class RDPSettings(PropertyGroup):
     def other_mode_l_to_dict(self):
         data = self.attributes_to_dict(self.other_mode_l_attributes)
         if self.g_mdsft_zsrcsel == "G_ZS_PRIM":
-            data["primDepth"] = {"z": self.prim_depth.z, "deltaZ": self.prim_depth.dz}
+            data["primDepth"] = self.prim_depth.to_dict()
         if self.set_rendermode:
             two_cycle = self.g_mdsft_cycletype == "G_CYC_2CYCLE"
             if self.rendermode_advanced_enabled:
@@ -3444,9 +3444,7 @@ class RDPSettings(PropertyGroup):
 
     def other_mode_l_from_dict(self, data: dict):
         self.attributes_from_dict(data, self.other_mode_l_attributes)
-        prim_depth = data.get("primDepth", {})
-        self.prim_depth.z = prim_depth.get("z", self.prim_depth.z)
-        self.prim_depth.dz = prim_depth.get("deltaZ", self.prim_depth.dz)
+        self.prim_depth.from_dict(data.get("primDepth", {}))
 
         render_mode = data.get("renderMode", {})
         blender = render_mode.get("blender", [])
