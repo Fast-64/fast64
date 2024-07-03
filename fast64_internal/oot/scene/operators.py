@@ -163,7 +163,9 @@ class OOT_ExportScene(Operator):
                 exportInfo = ExportInfo(True, bpy.path.abspath(settings.exportPath), None, levelName)
             else:
                 if option == "Custom":
-                    subfolder = "assets/scenes/" + settings.subFolder + "/"
+                    subfolder = (
+                        context.scene.fast64.oot.get_extracted_path() + "assets/scenes/" + settings.subFolder + "/"
+                    )
                 else:
                     levelName = sceneNameFromID(option)
                     subfolder = None

@@ -64,6 +64,7 @@ oot_versions_items = [
     ("gc-eu-mq-dbg", "gc-eu-mq-dbg", "gc-eu-mq-dbg"),
     ("gc-eu-mq", "gc-eu-mq", "gc-eu-mq"),
     ("gc-eu", "gc-eu", "gc-eu"),
+    ("legacy", "Legacy", "Older Decomp Version"),
 ]
 
 
@@ -87,7 +88,10 @@ class OOT_Properties(bpy.types.PropertyGroup):
     oot_version_custom: bpy.props.StringProperty(name="Custom Version")
 
     def get_extracted_path(self):
-        return f"extracted/{self.oot_version if self.oot_version != 'Custom' else self.oot_version_custom}/"
+        if self.oot_version == "legacy":
+            return "./"
+        else:
+            return f"extracted/{self.oot_version if self.oot_version != 'Custom' else self.oot_version_custom}/"
 
 
 oot_classes = (OOT_Properties,)
