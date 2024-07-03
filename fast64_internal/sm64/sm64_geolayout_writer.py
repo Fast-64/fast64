@@ -2715,7 +2715,7 @@ def saveSkinnedMeshByMaterial(
         else:
             drawLayerKey = None
 
-        materialKey = (material, drawLayerKey, fModel.global_data.getCurrentAreaKey(material))
+        materialKey = (material, drawLayerKey, fModel.global_data.getCurrentAreaKey(f3dMat))
         fMaterial, texDimensions = fModel.getMaterialAndHandleShared(materialKey)
         isPointSampled = isTexturePointSampled(material)
 
