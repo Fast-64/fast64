@@ -8,7 +8,7 @@ from ..f3d.f3d_writer import exportF3DCommon
 from ..f3d.f3d_texture_writer import TexInfo
 from ..f3d.f3d_material import TextureProperty, tmemUsageUI, all_combiner_uses, ui_procAnim
 from .sm64_texscroll import modifyTexScrollFiles, modifyTexScrollHeadersGroup
-from .sm64_utility import starSelectWarning
+from .sm64_utility import export_rom_checks, starSelectWarning
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_rom_tweaks import ExtendBank0x04
 from typing import Tuple, Union, Iterable
@@ -64,7 +64,6 @@ from ..utility import (
     writeInsertableFile,
     getPathAndLevel,
     applyBasicTweaks,
-    checkExpanded,
     tempName,
     getAddressFromRAMAddress,
     bytesToHex,
@@ -101,6 +100,7 @@ enumHUDPaths = {
 class SM64Model(FModel):
     def __init__(self, name, DLFormat, matWriteMethod):
         FModel.__init__(self, name, DLFormat, matWriteMethod)
+        self.no_light_direction = bpy.context.scene.fast64.sm64.matstack_fix
 
     def getDrawLayerV3(self, obj):
         return int(obj.draw_layer_static)
@@ -571,14 +571,7 @@ class SM64_ExportDL(bpy.types.Operator):
             if obj.type != "MESH":
                 raise PluginError("Object is not a mesh.")
 
-            # T, R, S = obj.matrix_world.decompose()
-            # objTransform = R.to_matrix().to_4x4() @ \
-            # 	Matrix.Diagonal(S).to_4x4()
-
-            # finalTransform = (blenderToSM64Rotation * \
-            # 	(bpy.context.scene.blenderToSM64Scale)).to_4x4()
-            # finalTransform = Matrix.Identity(4)
-            scaleValue = bpy.context.scene.blenderToSM64Scale
+            scaleValue = context.scene.fast64.sm64.blender_to_sm64_scale
             finalTransform = Matrix.Diagonal(Vector((scaleValue, scaleValue, scaleValue))).to_4x4()
 
         except Exception as e:
@@ -587,7 +580,7 @@ class SM64_ExportDL(bpy.types.Operator):
 
         try:
             applyRotation([obj], radians(90), "X")
-            if context.scene.fast64.sm64.exportType == "C":
+            if context.scene.fast64.sm64.export_type == "C":
                 exportPath, levelName = getPathAndLevel(
                     context.scene.DLCustomExport,
                     context.scene.DLExportPath,
@@ -615,7 +608,7 @@ class SM64_ExportDL(bpy.types.Operator):
                 starSelectWarning(self, fileStatus)
                 self.report({"INFO"}, "Success!")
 
-            elif context.scene.fast64.sm64.exportType == "Insertable Binary":
+            elif context.scene.fast64.sm64.export_type == "Insertable Binary":
                 exportF3DtoInsertableBinary(
                     bpy.path.abspath(context.scene.DLInsertableBinaryPath),
                     finalTransform,
@@ -624,16 +617,16 @@ class SM64_ExportDL(bpy.types.Operator):
                 )
                 self.report({"INFO"}, "Success! DL at " + context.scene.DLInsertableBinaryPath + ".")
             else:
-                checkExpanded(bpy.path.abspath(context.scene.exportRom))
-                tempROM = tempName(context.scene.outputRom)
-                romfileExport = open(bpy.path.abspath(context.scene.exportRom), "rb")
-                shutil.copy(bpy.path.abspath(context.scene.exportRom), bpy.path.abspath(tempROM))
+                export_rom_checks(bpy.path.abspath(context.scene.fast64.sm64.export_rom))
+                tempROM = tempName(context.scene.fast64.sm64.output_rom)
+                romfileExport = open(bpy.path.abspath(context.scene.fast64.sm64.export_rom), "rb")
+                shutil.copy(bpy.path.abspath(context.scene.fast64.sm64.export_rom), bpy.path.abspath(tempROM))
                 romfileExport.close()
                 romfileOutput = open(bpy.path.abspath(tempROM), "rb+")
 
                 levelParsed = parseLevelAtPointer(romfileOutput, level_pointers[context.scene.levelDLExport])
                 segmentData = levelParsed.segmentData
-                if context.scene.extendBank4:
+                if context.scene.fast64.sm64.extend_bank_4:
                     ExtendBank0x04(romfileOutput, segmentData, defaultExtendSegment4)
 
                 if context.scene.DLUseBank0:
@@ -660,9 +653,9 @@ class SM64_ExportDL(bpy.types.Operator):
                     romfileOutput.write(segPointerData)
 
                 romfileOutput.close()
-                if os.path.exists(bpy.path.abspath(context.scene.outputRom)):
-                    os.remove(bpy.path.abspath(context.scene.outputRom))
-                os.rename(bpy.path.abspath(tempROM), bpy.path.abspath(context.scene.outputRom))
+                if os.path.exists(bpy.path.abspath(context.scene.fast64.sm64.output_rom)):
+                    os.remove(bpy.path.abspath(context.scene.fast64.sm64.output_rom))
+                os.rename(bpy.path.abspath(tempROM), bpy.path.abspath(context.scene.fast64.sm64.output_rom))
 
                 if context.scene.DLUseBank0:
                     self.report(
@@ -694,7 +687,7 @@ class SM64_ExportDL(bpy.types.Operator):
             if context.mode != "OBJECT":
                 bpy.ops.object.mode_set(mode="OBJECT")
             applyRotation([obj], radians(-90), "X")
-            if context.scene.fast64.sm64.exportType == "Binary":
+            if context.scene.fast64.sm64.export_type == "Binary":
                 if romfileOutput is not None:
                     romfileOutput.close()
                 if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
@@ -706,14 +699,14 @@ class SM64_ExportDL(bpy.types.Operator):
 class SM64_ExportDLPanel(SM64_Panel):
     bl_idname = "SM64_PT_export_dl"
     bl_label = "SM64 DL Exporter"
-    goal = "Export Displaylist"
+    goal = "Displaylist"
 
     # called every frame
     def draw(self, context):
         col = self.layout.column()
         propsDLE = col.operator(SM64_ExportDL.bl_idname)
 
-        if context.scene.fast64.sm64.exportType == "C":
+        if context.scene.fast64.sm64.export_type == "C":
             col.prop(context.scene, "DLExportisStatic")
 
             col.prop(context.scene, "DLCustomExport")
@@ -746,7 +739,7 @@ class SM64_ExportDLPanel(SM64_Panel):
                     context.scene.DLLevelOption,
                 )
 
-        elif context.scene.fast64.sm64.exportType == "Insertable Binary":
+        elif context.scene.fast64.sm64.export_type == "Insertable Binary":
             col.prop(context.scene, "DLInsertableBinaryPath")
         else:
             prop_split(col, context.scene, "DLExportStart", "Start Address")
@@ -778,9 +771,9 @@ class ExportTexRectDraw(bpy.types.Operator):
                 if context.scene.TexRectCustomExport:
                     exportPath = context.scene.TexRectExportPath
                 else:
-                    if context.scene.decompPath == "":
+                    if context.scene.fast64.sm64.decomp_path == "":
                         raise PluginError("Decomp path has not been set in File Settings.")
-                    exportPath = context.scene.decompPath
+                    exportPath = context.scene.fast64.sm64.decomp_path
                 if not context.scene.TexRectCustomExport:
                     applyBasicTweaks(exportPath)
                 exportTexRectToC(
@@ -815,7 +808,7 @@ class UnlinkTexRect(bpy.types.Operator):
 class ExportTexRectDrawPanel(SM64_Panel):
     bl_idname = "TEXTURE_PT_export_texrect"
     bl_label = "SM64 UI Image Exporter"
-    goal = "Export UI Image"
+    goal = "UI Image"
     decomp_only = True
 
     # called every frame

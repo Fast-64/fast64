@@ -27,6 +27,7 @@ class OOTSceneC:
 
         # Files for room segments
         self.roomMainC = {}
+        self.roomOcclusionPlanesC = {}
         self.roomShapeInfoC = {}
         self.roomModelC = {}
 
@@ -50,6 +51,7 @@ def getSceneC(outScene: OOTScene, textureExportSettings: TextureExportSettings):
             raise PluginError(f"Error: Room {outRoom.index} has no mesh children.")
 
         sceneC.roomMainC[outRoomName] = getRoomData(outRoom)
+        sceneC.roomOcclusionPlanesC[outRoomName] = outRoom.occlusion_planes.to_c()
         sceneC.roomShapeInfoC[outRoomName] = roomShapeInfo
         sceneC.roomModelC[outRoomName] = roomModel
 

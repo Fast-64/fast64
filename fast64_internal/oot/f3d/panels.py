@@ -1,3 +1,4 @@
+import bpy
 from bpy.types import Panel, Mesh, Armature
 from bpy.utils import register_class, unregister_class
 from ...panels import OOT_Panel
@@ -33,6 +34,10 @@ class OOT_DisplayListPanel(Panel):
         # prop_split(box, obj, "ootDrawLayer", "Draw Layer")
         box.prop(obj, "ignore_render")
         box.prop(obj, "ignore_collision")
+        if bpy.context.scene.f3d_type == "F3DEX3":
+            box.prop(obj, "is_occlusion_planes")
+            if obj.is_occlusion_planes and (not obj.ignore_render or not obj.ignore_collision):
+                box.label(icon="INFO", text="Suggest Ignore Render & Ignore Collision.")
 
         if not (obj.parent is not None and isinstance(obj.parent.data, Armature)):
             actorScaleBox = box.box().column()

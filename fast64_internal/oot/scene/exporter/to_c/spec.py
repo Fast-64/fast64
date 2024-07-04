@@ -3,7 +3,7 @@ import bpy
 import enum
 
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import List, Optional
 from .....utility import PluginError, writeFile, indent
 from ....oot_utility import ExportInfo, getSceneDirFromLevelName
 
@@ -203,7 +203,13 @@ class SpecFile:
 
 
 def editSpecFile(
-    isScene: bool, exportInfo: ExportInfo, hasSceneTex: bool, hasSceneCS: bool, roomTotal: int, csTotal: int
+    isScene: bool,
+    exportInfo: ExportInfo,
+    hasSceneTex: bool,
+    hasSceneCS: bool,
+    roomTotal: int,
+    csTotal: int,
+    roomIndexHasOcclusion: List[bool],
 ):
     global buildDirectory
 
@@ -283,6 +289,8 @@ def editSpecFile(
                         SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{roomSegmentName}_model.o"'),
                     ]
                 )
+                if roomIndexHasOcclusion[i]:
+                    roomCmds.append(SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{roomSegmentName}_occ.o"'))
 
             roomCmds.append(SpecEntryCommand(CommandType.NUMBER, "3"))
             specFile.append(SpecEntry(None, roomCmds))
