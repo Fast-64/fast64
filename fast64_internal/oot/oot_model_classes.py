@@ -2,7 +2,7 @@ import bpy, os, re, mathutils
 from typing import Union
 from ..f3d.f3d_parser import F3DContext, F3DTextureReference, getImportData
 from ..f3d.f3d_material import TextureProperty, createF3DMat, texFormatOf, texBitSizeF3D
-from ..utility import PluginError, CData, hexOrDecInt, getNameFromPath, getTextureSuffixFromFormat, toAlnum
+from ..utility import PluginError, hexOrDecInt, create_or_get_world
 from ..f3d.flipbook import TextureFlipbook, FlipbookProperty, usesFlipbook, ootFlipbookReferenceIsValid
 
 from ..f3d.f3d_writer import VertexGroupInfo, TriangleConverterInfo
@@ -118,7 +118,7 @@ class OOTModel(FModel):
             drawLayerUsed = self.drawLayerOverride
         else:
             drawLayerUsed = drawLayer
-        defaultRenderModes = bpy.context.scene.world.ootDefaultRenderModes
+        defaultRenderModes = create_or_get_world(bpy.context.scene).ootDefaultRenderModes
         cycle1 = getattr(defaultRenderModes, drawLayerUsed.lower() + "Cycle1")
         cycle2 = getattr(defaultRenderModes, drawLayerUsed.lower() + "Cycle2")
         return [cycle1, cycle2]
