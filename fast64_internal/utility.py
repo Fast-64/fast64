@@ -1635,6 +1635,7 @@ binOps = {
 
 def prop_group_to_json(prop_group, blacklist: list[str] = None, whitelist: list[str] = None):
     blacklist = ["rna_type", "name"] + (blacklist or [])
+
     def prop_to_json(prop):
         if isinstance(prop, list) or type(prop).__name__ == "bpy_prop_collection_idprop":
             prop = list(prop)
