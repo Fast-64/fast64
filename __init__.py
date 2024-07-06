@@ -1,7 +1,17 @@
 import bpy
 from bpy.utils import register_class, unregister_class
+from bpy.path import abspath
+
 from . import addon_updater_ops
-from .fast64_internal.utility import prop_split, multilineLabel
+
+from .fast64_internal.utility import prop_split, multilineLabel, draw_and_check_tab
+
+from .fast64_internal.repo_settings import (
+    draw_repo_settings,
+    load_repo_settings,
+    repo_settings_operators_register,
+    repo_settings_operators_unregister,
+)
 
 from .fast64_internal.sm64 import sm64_register, sm64_unregister
 from .fast64_internal.sm64.settings.properties import SM64_Properties
@@ -113,13 +123,14 @@ class Fast64_GlobalSettingsPanel(bpy.types.Panel):
         prop_split(col, scene, "gameEditorMode", "Game")
         col.prop(scene, "exportHiddenGeometry")
         col.prop(scene, "fullTraceback")
+
         prop_split(col, fast64_settings, "anim_range_choice", "Anim Range")
 
-        col.separator()
-
-        col.prop(fast64_settings, "auto_pick_texture_format")
-        if fast64_settings.auto_pick_texture_format:
-            col.prop(fast64_settings, "prefer_rgba_over_ci")
+        draw_repo_settings(col.box(), context)
+        if not fast64_settings.repo_settings_tab:
+            col.prop(fast64_settings, "auto_pick_texture_format")
+            if fast64_settings.auto_pick_texture_format:
+                col.prop(fast64_settings, "prefer_rgba_over_ci")
 
 
 class Fast64_GlobalToolsPanel(bpy.types.Panel):
@@ -140,6 +151,10 @@ class Fast64_GlobalToolsPanel(bpy.types.Panel):
         # col.operator(CreateMetarig.bl_idname)
         ui_oplargetexture(col, context)
         addon_updater_ops.update_notice_box_ui(self, context)
+
+
+def repo_path_update(self, context):
+    load_repo_settings(context.scene, abspath(self.repo_settings_path), True)
 
 
 class Fast64Settings_Properties(bpy.types.PropertyGroup):
@@ -186,6 +201,14 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
         description="When enabled, fast64 will default colored textures's format to RGBA even if they fit CI requirements, with the exception of textures that would not fit into TMEM otherwise",
     )
     dont_ask_color_management: bpy.props.BoolProperty(name="Don't ask to set color management properties")
+
+    repo_settings_tab: bpy.props.BoolProperty(default=True, name="Repo Settings")
+    repo_settings_path: bpy.props.StringProperty(name="Path", subtype="FILE_PATH", update=repo_path_update)
+    auto_repo_load_settings: bpy.props.BoolProperty(
+        name="Auto Load Repo's Settings",
+        description="When enabled, this will make fast64 automatically load repo settings if they are found after picking a decomp path",
+        default=True,
+    )
 
 
 class Fast64_Properties(bpy.types.PropertyGroup):
@@ -377,6 +400,8 @@ def register():
     oot_register(True)
     gltf_extension_register()
 
+    repo_settings_operators_register()
+
     for cls in classes:
         register_class(cls)
 
@@ -438,6 +463,8 @@ def unregister():
     del bpy.types.Scene.fast64
     del bpy.types.Bone.fast64
     del bpy.types.Object.fast64
+
+    repo_settings_operators_unregister()
 
     for cls in classes:
         unregister_class(cls)

@@ -2,7 +2,7 @@ import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operato
 from math import pi, ceil, degrees, radians, copysign
 from mathutils import *
 from .utility_anim import *
-from typing import Callable, Iterable, Any, Tuple, Union
+from typing import Callable, Iterable, Any, Optional, Tuple, Union
 from bpy.types import UILayout
 
 CollectionProperty = Any  # collection prop as defined by using bpy.props.CollectionProperty
@@ -38,6 +38,24 @@ enumExportHeaderType = [
     ("Actor", "Actor Data", "Headers are written to a group in actors/"),
     ("Level", "Level Data", "Headers are written to a specific level in levels/"),
 ]
+
+# bpy.context.mode returns the keys here, while the values are required by bpy.ops.object.mode_set
+CONTEXT_MODE_TO_MODE_SET = {
+    "PAINT_VERTEX": "VERTEX_PAINT",
+    "PAINT_WEIGHT": "WEIGHT_PAINT",
+    "PAINT_TEXTURE": "TEXTURE_PAINT",
+    "PARTICLE": "PARTICLE_EDIT",
+    "EDIT_GREASE_PENCIL": "EDIT_GPENCIL",
+}
+
+
+def get_mode_set_from_context_mode(context_mode: str):
+    if context_mode in CONTEXT_MODE_TO_MODE_SET:
+        return CONTEXT_MODE_TO_MODE_SET[context_mode]
+    elif context_mode.startswith("EDIT"):
+        return "EDIT"
+    else:
+        return context_mode
 
 
 def isPowerOf2(n):
@@ -394,22 +412,12 @@ def extendedRAMLabel(layout):
     infoBox.label(text="Extended RAM prevents crashes.")
 
 
-def checkExpanded(filepath):
-    size = os.path.getsize(filepath)
-    if size < 9000000:  # check if 8MB
-        raise PluginError(
-            "ROM at "
-            + filepath
-            + " is too small. You may be using an unexpanded ROM. You can expand a ROM by opening it in SM64 Editor or ROM Manager."
-        )
-
-
 def getPathAndLevel(customExport, exportPath, levelName, levelOption):
     if customExport:
         exportPath = bpy.path.abspath(exportPath)
         levelName = levelName
     else:
-        exportPath = bpy.path.abspath(bpy.context.scene.decompPath)
+        exportPath = bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path)
         if levelOption == "custom":
             levelName = levelName
         else:
@@ -468,8 +476,8 @@ def saveDataToFile(filepath, data):
 
 
 def applyBasicTweaks(baseDir):
-    enableExtendedRAM(baseDir)
-    return
+    if bpy.context.scene.fast64.sm64.force_extended_ram:
+        enableExtendedRAM(baseDir)
 
 
 def enableExtendedRAM(baseDir):
@@ -1197,6 +1205,85 @@ def multilineLabel(layout: UILayout, text: str, icon: str = "NONE"):
         r.scale_y = 0.75
 
 
+def draw_and_check_tab(
+    layout: UILayout, data, proprety: str, text: Optional[str] = None, icon: Optional[str] = None
+) -> bool:
+    row = layout.row(align=True)
+    tab = getattr(data, proprety)
+    tria_icon = "TRIA_DOWN" if tab else "TRIA_RIGHT"
+    if icon is not None:
+        row.prop(data, proprety, icon=tria_icon, text="")
+    row.prop(data, proprety, icon=tria_icon if icon is None else icon, text=text)
+    if tab:
+        layout.separator()
+    return tab
+
+
+def run_and_draw_errors(layout: UILayout, func, *args):
+    try:
+        func(*args)
+        return True
+    except Exception as e:
+        multilineLabel(layout.box(), str(e), "ERROR")
+        return False
+
+
+def path_checks(path: str, empty="Empty path.", doesnt_exist="Path {}does not exist.", include_path=True):
+    path_in_error = f'"{path}" ' if include_path else ""
+    if path == "":
+        raise PluginError(empty)
+    elif not os.path.exists(path):
+        raise FileNotFoundError(doesnt_exist.format(path_in_error))
+
+
+def path_ui_warnings(layout: bpy.types.UILayout, path: str, empty="Empty path.", doesnt_exist="Path does not exist."):
+    return run_and_draw_errors(layout, path_checks, path, empty, doesnt_exist, False)
+
+
+def directory_path_checks(
+    path: str,
+    empty="Empty path.",
+    doesnt_exist="Directory {}does not exist.",
+    not_a_directory="Path {}is not a folder.",
+    include_path=True,
+):
+    path_checks(path, empty, doesnt_exist, include_path)
+    if not os.path.isdir(path):
+        raise NotADirectoryError(not_a_directory.format(f'"{path}" ' if include_path else ""))
+
+
+def directory_ui_warnings(
+    layout: bpy.types.UILayout,
+    path: str,
+    empty="Empty path.",
+    doesnt_exist="Directory does not exist.",
+    not_a_directory="Path is not a folder.",
+):
+    return run_and_draw_errors(layout, directory_path_checks, path, empty, doesnt_exist, not_a_directory, False)
+
+
+def filepath_checks(
+    path: str,
+    empty="Empty path.",
+    doesnt_exist="File {}does not exist.",
+    not_a_file="Path {}is not a file.",
+    include_path=True,
+):
+    path_checks(path, empty, doesnt_exist, include_path)
+    if not os.path.isfile(path):
+        raise IsADirectoryError(not_a_file.format(f'"{path}" ' if include_path else ""))
+
+
+def filepath_ui_warnings(
+    layout: bpy.types.UILayout,
+    path: str,
+    empty="Empty path.",
+    doesnt_exist="File does not exist.",
+    not_a_file="Path is not a file.",
+):
+    return run_and_draw_errors(layout, filepath_checks, path, empty, doesnt_exist, not_a_file, False)
+
+
 def toAlnum(name, exceptions=[]):
     if name is None or name == "":
         return None
@@ -1311,7 +1398,10 @@ def readVectorFromShorts(command, offset):
 
 
 def readFloatFromShort(command, offset):
-    return int.from_bytes(command[offset : offset + 2], "big", signed=True) / bpy.context.scene.blenderToSM64Scale
+    return (
+        int.from_bytes(command[offset : offset + 2], "big", signed=True)
+        / bpy.context.scene.fast64.sm64.blender_to_sm64_scale
+    )
 
 
 def writeVectorToShorts(command, offset, values):
@@ -1321,13 +1411,13 @@ def writeVectorToShorts(command, offset, values):
 
 
 def writeFloatToShort(command, offset, value):
-    command[offset : offset + 2] = int(round(value * bpy.context.scene.blenderToSM64Scale)).to_bytes(
+    command[offset : offset + 2] = int(round(value * bpy.context.scene.fast64.sm64.blender_to_sm64_scale)).to_bytes(
         2, "big", signed=True
     )
 
 
 def convertFloatToShort(value):
-    return int(round((value * bpy.context.scene.blenderToSM64Scale)))
+    return int(round((value * bpy.context.scene.fast64.sm64.blender_to_sm64_scale)))
 
 
 def convertEulerFloatToShort(value):
@@ -1531,7 +1621,7 @@ def all_values_equal_x(vals: Iterable, test):
 def get_blender_to_game_scale(context):
     match context.scene.gameEditorMode:
         case "SM64":
-            return context.scene.blenderToSM64Scale
+            return context.scene.fast64.sm64.blender_to_sm64_scale
         case "OOT":
             return context.scene.ootBlenderScale
         case "F3D":

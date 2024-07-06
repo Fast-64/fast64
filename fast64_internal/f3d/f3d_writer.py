@@ -1311,8 +1311,14 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     # Checking for f3dMat.rdp_settings.g_lighting here will prevent accidental exports,
     # There may be some edge case where this isn't desired.
     if useDict["Shade"] and f3dMat.rdp_settings.g_lighting and f3dMat.set_lights:
-        fLights = saveLightsDefinition(fModel, fMaterial, f3dMat, materialName + "_lights")
-        fMaterial.mat_only_DL.commands.extend([SPSetLights(fLights)])
+        if fModel.no_light_direction:
+            fLights = getLightDefinitions(fModel, f3dMat)
+
+            for i, light in enumerate(fLights.l + [fLights.a]):
+                fMaterial.mat_only_DL.commands.extend([SPLightColor(f"LIGHT_{i + 1}", light.color)])
+        else:
+            fLights = saveLightsDefinition(fModel, fMaterial, f3dMat, materialName + "_lights")
+            fMaterial.mat_only_DL.commands.extend([SPSetLights(fLights)])
 
     fMaterial.mat_only_DL.commands.append(DPPipeSync())
     fMaterial.revert.commands.append(DPPipeSync())
@@ -1515,11 +1521,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     return fMaterial, texDimensions
 
 
-def saveLightsDefinition(fModel, fMaterial, material, lightsName):
-    lights = fModel.getLightAndHandleShared(lightsName)
-    if lights is not None:
-        return lights
-
+def getLightDefinitions(fModel, material, lightsName=""):
     lights = Lights(toAlnum(lightsName), fModel.f3d)
 
     if material.use_default_lighting:
@@ -1542,6 +1544,16 @@ def saveLightsDefinition(fModel, fMaterial, material, lightsName):
             addLightDefinition(material, material.f3d_light6, lights)
         if material.f3d_light7 is not None:
             addLightDefinition(material, material.f3d_light7, lights)
+
+    return lights
+
+
+def saveLightsDefinition(fModel, fMaterial, material, lightsName):
+    lights = fModel.getLightAndHandleShared(lightsName)
+    if lights is not None:
+        return lights
+
+    lights = getLightDefinitions(fModel, material, lightsName)
 
     if lightsName in fModel.lights:
         raise PluginError("Duplicate light name.")

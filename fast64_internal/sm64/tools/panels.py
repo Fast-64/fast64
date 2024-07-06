@@ -1,41 +1,37 @@
 from bpy.utils import register_class, unregister_class
 
-from ...utility import prop_split
-from ...utility_anim import ArmatureApplyWithMeshOperator
-from ...panels import SM64_Panel, sm64GoalImport
+from ...panels import SM64_Panel
 
-from .operators import AddBoneGroups, CreateMetarig, SM64_AddWaterBox, SM64_AddrConv
+from .operators import SM64_CreateSimpleLevel, SM64_AddWaterBox, SM64_AddBoneGroups, SM64_CreateMetarig
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..settings.properties import SM64_Properties
 
 
-class SM64_ArmatureToolsPanel(SM64_Panel):
-    bl_idname = "SM64_PT_armature_tools"
+class SM64_ToolsPanel(SM64_Panel):
+    bl_idname = "SM64_PT_tools"
     bl_label = "SM64 Tools"
 
-    # called every frame
     def draw(self, context):
         col = self.layout.column()
-        col.operator(ArmatureApplyWithMeshOperator.bl_idname)
-        col.operator(AddBoneGroups.bl_idname)
-        col.operator(CreateMetarig.bl_idname)
-        col.operator(SM64_AddWaterBox.bl_idname)
+        col.label(text="Misc Tools", icon="TOOL_SETTINGS")
+        SM64_CreateSimpleLevel.draw_props(col)
+        SM64_AddWaterBox.draw_props(col)
+
+        col.label(text="Armature Tools", icon="ARMATURE_DATA")
+        SM64_AddBoneGroups.draw_props(col)
+        SM64_CreateMetarig.draw_props(col)
+
+        sm64_props: SM64_Properties = context.scene.fast64.sm64
+        if not sm64_props.show_importing_menus:
+            return
+        col.label(text="Address Converter", icon="MEMORY")
+        sm64_props.address_converter.draw_props(col.box(), sm64_props.import_rom)
 
 
-class SM64_AddressConvertPanel(SM64_Panel):
-    bl_idname = "SM64_PT_addr_conv"
-    bl_label = "SM64 Address Converter"
-    goal = sm64GoalImport
-
-    def draw(self, context):
-        col = self.layout.column()
-        segToVirtOp = col.operator(SM64_AddrConv.bl_idname, text="Convert Segmented To Virtual")
-        segToVirtOp.segToVirt = True
-        virtToSegOp = col.operator(SM64_AddrConv.bl_idname, text="Convert Virtual To Segmented")
-        virtToSegOp.segToVirt = False
-        prop_split(col, context.scene, "convertibleAddr", "Address")
-        col.prop(context.scene, "levelConvert")
-
-
-classes = (SM64_ArmatureToolsPanel, SM64_AddressConvertPanel)
+classes = (SM64_ToolsPanel,)
 
 
 def tools_panels_register():
