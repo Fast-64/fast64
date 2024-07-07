@@ -4644,7 +4644,7 @@ class F3DMaterialProperty(PropertyGroup):
                 "loDFraction": self.prim_lod_frac,
             }
         if use_dict["Key"]:
-            data["key"] = {
+            data["chromaKey"] = {
                 "set": self.set_key,
                 "center": get_clean_color(self.key_center),
                 "scale": list(self.key_scale),
@@ -4682,7 +4682,7 @@ class F3DMaterialProperty(PropertyGroup):
             primitive.get("minLoDRatio", self.prim_lod_min),
             primitive.get("loDFraction", self.prim_lod_frac),
         )
-        key = data.get("key", {})
+        key = data.get("chromaKey", {})
         self.set_key = key.get("set", self.set_key)
         if "center" in key:
             self.key_center = key.get("center") + [1.0]

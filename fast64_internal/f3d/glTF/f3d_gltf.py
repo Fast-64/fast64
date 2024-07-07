@@ -169,9 +169,9 @@ def get_color_from_input(inp: str, previous_color: Color, data: dict, is_alpha: 
     if inp == "COMBINED" and not is_alpha:
         return previous_color
     elif inp == "CENTER":
-        return Color(*data["key"]["center"], 1.0)
+        return Color(*data["chromaKey"]["center"], 1.0)
     elif inp == "SCALE":
-        return Color(*coldataors["key"]["scale"], 1.0)
+        return Color(*data["chromaKey"]["scale"], 1.0)
     elif inp == "PRIMITIVE":
         return Color(*data["primitive"]["color"])
     elif inp == "ENVIRONMENT":

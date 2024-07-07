@@ -44,7 +44,7 @@
         },
         "environment": {
             "type": "object",
-            "description": "The environment color",
+            "description": "The environment color, available in the combiner as the color inputs ENVIRONMENT and ENV_ALPHA",
             "properties": {
                 "set": {
                     "type": "boolean",
@@ -52,23 +52,23 @@
                 },
                 "color": {
                     "type": "array",
-                    "description": "The value is linear instead of sRGB, it must be converted to sRGB for n64.",
+                    "description": "The color is linear instead of sRGB, it must be converted to sRGB for n64.",
                     "items": {
                         "type": "number",
                         "minimum": 0.0
                     },
                     "default": [
-                        0.0,
-                        0.0,
-                        0.0,
-                        0.0
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0
                     ]
                 }
             }
         },
         "primitive": {
             "type": "object",
-            "description": "The primitive color, available in the combiner as the color inputs PRIMITIVE, PRIMITIVE_ALPHA and PRIM_LOD_FRAC",
+            "description": "The primitive color values, available in the combiner as the color inputs PRIMITIVE, PRIMITIVE_ALPHA and PRIM_LOD_FRAC",
             "properties": {
                 "set": {
                     "type": "boolean",
@@ -76,16 +76,16 @@
                 },
                 "color": {
                     "type": "array",
-                    "description": "The value is linear instead of sRGB, it must be converted to sRGB for n64.",
+                    "description": "The color is linear instead of sRGB, it must be converted to sRGB for n64.",
                     "items": {
                         "type": "number",
                         "minimum": 0.0
                     },
                     "default": [
-                        0.0,
-                        0.0,
-                        0.0,
-                        0.0
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0
                     ]
                 },
                 "minLoDRatio": {
@@ -97,6 +97,58 @@
                     "type": "number",
                     "minimum": 0.0,
                     "maximum": 1.0
+                }
+            }
+        },
+        "chromaKey": {
+            "type": "object",
+            "description": "The chroma key values, available in the combiner as the color inputs CENTER and SCALE",
+            "properties": {
+                "set": {
+                    "type": "boolean",
+                    "description": "When toggled the material should update the chroma key values and set the h othermode for chroma keying (G_MDSFT_COMBKEY)"
+                },
+                "center": {
+                    "type": "array",
+                    "description": "Defines the color intensity at which the key is active. The color is linear instead of sRGB, it must be converted to sRGB for n64.",
+                    "items": {
+                        "type": "number",
+                        "minimum": 0.0,
+                        "maximum": 1.0
+                    },
+                    "default": [
+                        1.0,
+                        1.0,
+                        1.0
+                    ]
+                },
+                "scale": {
+                    "type": "array",
+                    "description": "For hard edge keying, set scale to maximum",
+                    "items": {
+                        "type": "number",
+                        "minimum": 0.0,
+                        "maximum": 1.0
+                    },
+                    "default": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ]
+                },
+                "width": {
+                    "type": "array",
+                    "description": "Size of half the key window. If width > 255, then keying is disabled for that channel",
+                    "items": {
+                        "type": "number",
+                        "minimum": 0.0,
+                        "maximum": 16.0
+                    },
+                    "default": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ]
                 }
             }
         }
