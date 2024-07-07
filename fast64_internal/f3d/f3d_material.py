@@ -4708,6 +4708,16 @@ class F3DMaterialProperty(PropertyGroup):
         self.set_lights = lighting.get("set", self.set_lights)
         self.lights_from_dict(lighting)
 
+    def colors_to_dict(self, f3d, use_dict: dict[str]):
+        f3d = f3d if f3d else get_F3D_GBI()
+        data = {self.f3d_colors_to_dict(use_dict)}
+        if f3d.F3DEX_GBI_3:
+            data.update(self.f3dex3_colors_to_dict(f3d))
+
+    def colors_from_dict(self, data: dict):
+        self.f3d_colors_from_dict(data)
+        self.f3dex3_colors_from_dict(data)
+
     def extra_texture_settings_to_dict(self):
         data = {}
         if not self.scale_autoprop:

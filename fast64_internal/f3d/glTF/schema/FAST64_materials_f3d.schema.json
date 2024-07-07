@@ -1,0 +1,104 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema",
+    "title": "FAST64_materials_f3d glTF Material Extension",
+    "type": "object",
+    "description": "glTF extension that provides a representation of F3d fast64 material data.",
+    "allOf": [
+        {
+            "$ref": "glTFProperty.schema.json"
+        }
+    ],
+    "properties": {
+        "combiner": {
+            "type": "object",
+            "description": "The n64 color combiner lerp inputs",
+            "properties": {
+                "set": {
+                    "type": "boolean",
+                    "description": "When toggled the material should update the combiner lerp inputs"
+                },
+                "cycles": {
+                    "type": "array",
+                    "description": "Can have one or two cycles depending on geometry mode.",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "color": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "default": "0"
+                                }
+                            },
+                            "alpha": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "default": "0"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "environment": {
+            "type": "object",
+            "description": "The environment color",
+            "properties": {
+                "set": {
+                    "type": "boolean",
+                    "description": "When toggled the material should update the current environment color"
+                },
+                "color": {
+                    "type": "array",
+                    "description": "The value is linear instead of sRGB, it must be converted to sRGB for n64.",
+                    "items": {
+                        "type": "number",
+                        "minimum": 0.0
+                    },
+                    "default": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0
+                    ]
+                }
+            }
+        },
+        "primitive": {
+            "type": "object",
+            "description": "The primitive color, available in the combiner as the color inputs PRIMITIVE, PRIMITIVE_ALPHA and PRIM_LOD_FRAC",
+            "properties": {
+                "set": {
+                    "type": "boolean",
+                    "description": "When toggled the material should update the current primitive color"
+                },
+                "color": {
+                    "type": "array",
+                    "description": "The value is linear instead of sRGB, it must be converted to sRGB for n64.",
+                    "items": {
+                        "type": "number",
+                        "minimum": 0.0
+                    },
+                    "default": [
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0
+                    ]
+                },
+                "minLoDRatio": {
+                    "type": "number",
+                    "minimum": 0.0,
+                    "maximum": 1.0
+                },
+                "loDFraction": {
+                    "type": "number",
+                    "minimum": 0.0,
+                    "maximum": 1.0
+                }
+            }
+        }
+    }
+}
