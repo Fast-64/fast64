@@ -83,10 +83,12 @@ def on_update_oot_render_settings(self, context: bpy.types.Context):
         renderSettings.light1Direction = -renderSettings.light0Direction
         renderSettings.fogPreviewColor = interpColors(la.fogColor, lb.fogColor, fade)
         renderSettings.fogPreviewPosition = (  # fogFar is always 1000 in OoT
-            la.fogNear + int(float(lb.fogNear - la.fogNear) * fade), 1000
+            la.fogNear + int(float(lb.fogNear - la.fogNear) * fade),
+            1000,
         )
         renderSettings.clippingPlanes = (  # zNear seems to always be 10 in OoT
-            10.0, la.zFar + float(lb.zFar - la.zFar) * fade
+            10.0,
+            la.zFar + float(lb.zFar - la.zFar) * fade,
         )
 
 

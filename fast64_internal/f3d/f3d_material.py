@@ -1702,11 +1702,18 @@ def update_node_values_of_material(material: Material, context):
         nodes["UV"].node_tree = bpy.data.node_groups["UV"]
 
     shdcol_inputs = nodes["Shade Color"].inputs
-    for propName in ["g_ambocclusion", "g_packed_normals", "g_lighttoalpha",
-        "g_lighting_specular", "g_fresnel_color", "g_fresnel_alpha",
-        "g_fog", "g_lighting"]:
+    for propName in [
+        "g_ambocclusion",
+        "g_packed_normals",
+        "g_lighttoalpha",
+        "g_lighting_specular",
+        "g_fresnel_color",
+        "g_fresnel_alpha",
+        "g_fog",
+        "g_lighting",
+    ]:
         shdcol_inputs[propName.upper()].default_value = getattr(f3dMat.rdp_settings, propName)
-    
+
     shdcol_inputs["AO Ambient"].default_value = f3dMat.ao_ambient
     shdcol_inputs["AO Directional"].default_value = f3dMat.ao_directional
     shdcol_inputs["AO Point"].default_value = f3dMat.ao_point
@@ -2254,7 +2261,7 @@ def createOrUpdateSceneProperties():
         _nodeFogFar: NodeSocketFloat = tree_interface.new_socket(
             "FogFar", socket_type="NodeSocketFloat", in_out="OUTPUT"
         )
-        
+
         _nodeAmbientColor: NodeSocketColor = tree_interface.new_socket(
             "AmbientColor", socket_type="NodeSocketColor", in_out="OUTPUT"
         )
@@ -2285,17 +2292,13 @@ def createOrUpdateSceneProperties():
         _nodeBlender_Game_Scale: NodeSocketFloat = new_group.outputs.new("NodeSocketFloat", "Blender_Game_Scale")
         _nodeFogNear: NodeSocketInt = new_group.outputs.new("NodeSocketInt", "FogNear")
         _nodeFogFar: NodeSocketInt = new_group.outputs.new("NodeSocketInt", "FogFar")
-        
+
         _nodeAmbientColor: NodeSocketColor = new_group.outputs.new("NodeSocketColor", "AmbientColor")
         _nodeLight0Color: NodeSocketColor = new_group.outputs.new("NodeSocketColor", "Light0Color")
-        _nodeLight0Dir: NodeSocketVectorDirection = new_group.outputs.new(
-            "NodeSocketVectorDirection", "Light0Dir"
-        )
+        _nodeLight0Dir: NodeSocketVectorDirection = new_group.outputs.new("NodeSocketVectorDirection", "Light0Dir")
         _nodeLight0Size: NodeSocketInt = new_group.outputs.new("NodeSocketInt", "Light0Size")
         _nodeLight1Color: NodeSocketColor = new_group.outputs.new("NodeSocketColor", "Light1Color")
-        _nodeLight1Dir: NodeSocketVectorDirection = new_group.outputs.new(
-            "NodeSocketVectorDirection", "Light1Dir"
-        )
+        _nodeLight1Dir: NodeSocketVectorDirection = new_group.outputs.new("NodeSocketVectorDirection", "Light1Dir")
         _nodeLight1Size: NodeSocketInt = new_group.outputs.new("NodeSocketInt", "Light1Size")
 
     # Set outputs from render settings
@@ -2316,7 +2319,7 @@ def createScenePropertiesForMaterial(material: Material):
     scene_props.name = "SceneProperties"
     scene_props.location = (-320, -23)
     scene_props.node_tree = bpy.data.node_groups["SceneProperties"]
-    
+
     # Fog links to reroutes and the CalcFog block
     node_tree.links.new(scene_props.outputs["FogEnable"], node_tree.nodes["FogEnable"].inputs[0])
     node_tree.links.new(scene_props.outputs["FogColor"], node_tree.nodes["FogColor"].inputs[0])
