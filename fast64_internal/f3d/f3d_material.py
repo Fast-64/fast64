@@ -4611,7 +4611,7 @@ class F3DMaterialProperty(PropertyGroup):
         if ambient:
             self.ambient_light_color = ambient + [1.0]
 
-    def colors_to_dict(self, f3d, use_dict: dict[str]):
+    def f3d_colors_to_dict(self, use_dict: dict[str]):
         data = {}
         if use_dict["Environment"]:
             data["environment"] = {
@@ -4649,11 +4649,9 @@ class F3DMaterialProperty(PropertyGroup):
             "set": self.set_blend,
             "color": get_clean_color(self.blend_color, include_alpha=True),
         }
-        if f3d.F3DEX_GBI_3:
-            data.update(self.f3dex3_colors_to_dict())
         return data
 
-    def colors_from_dict(self, data: dict):
+    def f3d_colors_from_dict(self, data: dict):
         enviroment = data.get("environment", {})
         self.set_env = enviroment.get("set", self.set_env)
         if "color" in enviroment:
@@ -4691,7 +4689,6 @@ class F3DMaterialProperty(PropertyGroup):
         lighting = data.get("lighting", {})
         self.set_lights = lighting.get("set", self.set_lights)
         self.lights_from_dict(lighting)
-        self.f3dex3_colors_from_dict(data)
 
     def extra_texture_settings_to_dict(self):
         data = {}

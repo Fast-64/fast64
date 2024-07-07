@@ -2,9 +2,9 @@ from dataclasses import dataclass
 import bpy
 from bpy.types import Image, NodeTree
 
-from ..gltf_utility import GlTF2SubExtension, find_glTF2_addon
-from .f3d_gbi import F3D, get_F3D_GBI
-from .f3d_material import (
+from ...gltf_utility import GlTF2SubExtension, find_glTF2_addon
+from ..f3d_gbi import F3D, get_F3D_GBI
+from ..f3d_material import (
     all_combiner_uses,
     trunc_10_2,
     createScenePropertiesForMaterial,
@@ -45,6 +45,11 @@ else:
 from io_scene_gltf2.io.com import gltf2_io
 from io_scene_gltf2.blender.imp.gltf2_blender_image import BlenderImage
 from io_scene_gltf2.io.com.gltf2_io_constants import TextureFilter, TextureWrap
+
+MATERIAL_EXTENSION_NAME = "FAST64_materials_f3d"
+EX3_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3dex3"
+SAMPLER_EXTENSION_NAME = "FAST64_sampler_f3d"
+MESH_EXTENSION_NAME = "FAST64_mesh_f3d_new"
 
 EXCLUDE_FROM_NODE = (
     "rna_type",
@@ -160,20 +165,18 @@ def get_color_component(inp: str, colors: dict, previous_alpha: float) -> float:
 
 
 def get_color_from_input(inp: str, previous_color: Color, data: dict, is_alpha: bool, default_color: Color) -> Color:
-    colors = data["colors"]
-
     if inp == "COMBINED" and not is_alpha:
         return previous_color
     elif inp == "CENTER":
-        return Color(*colors["key"]["center"], 1.0)
+        return Color(*data["key"]["center"], 1.0)
     elif inp == "SCALE":
-        return Color(*colors["key"]["scale"], 1.0)
+        return Color(*coldataors["key"]["scale"], 1.0)
     elif inp == "PRIMITIVE":
-        return Color(*colors["primitive"]["color"])
+        return Color(*data["primitive"]["color"])
     elif inp == "ENVIRONMENT":
-        return Color(*colors["environment"]["color"])
+        return Color(*data["environment"]["color"])
     else:
-        value = get_color_component(inp, colors, previous_color.a)
+        value = get_color_component(inp, data, previous_color.a)
         if value:
             return Color(value, value, value, value)
         return default_color
@@ -241,8 +244,9 @@ def get_gltf_image_from_blender_image(blender_image_name: str, export_settings: 
     return image
 
 
-class Fast64Extension(GlTF2SubExtension):
-    extension_name = "EXT_fast64"
+class F3DExtensions(GlTF2SubExtension):
+    f3d: F3D = None
+    base_node_tree: NodeTree = None
 
     def post_init(self):
         self.f3d: F3D = get_F3D_GBI()
@@ -281,11 +285,11 @@ class Fast64Extension(GlTF2SubExtension):
             wrap_s=wrap[0],
             wrap_t=wrap[1],
         )
-        self.append_extension(sampler, f3d_tex.to_dict())
+        self.append_extension(sampler, SAMPLER_EXTENSION_NAME, f3d_tex.to_dict())
         return sampler
 
     def sampler_to_f3d(self, gltf2_sampler, f3d_tex: TextureProperty):
-        data = self.get_extension(gltf2_sampler)
+        data = self.get_extension(gltf2_sampler, SAMPLER_EXTENSION_NAME)
         if data is None:
             return
         f3d_tex.from_dict(data)
@@ -348,7 +352,7 @@ class Fast64Extension(GlTF2SubExtension):
             transform_data["scale"] = scale
 
         if transform_data:
-            self.append_extension(tex_info, transform_data, "KHR_texture_transform")
+            self.append_extension(tex_info, "KHR_texture_transform", transform_data)
         return tex_info
 
     def gather_material_hook(self, gltf2_material, blender_material, export_settings: dict):
@@ -360,9 +364,9 @@ class Fast64Extension(GlTF2SubExtension):
         use_dict = all_combiner_uses(f3d_mat)
 
         data["combiner"] = f3d_mat.combiner_to_dict()
-        data["colors"] = f3d_mat.colors_to_dict(self.f3d, use_dict)
+        data.update(f3d_mat.f3d_colors_to_dict(use_dict))
         data.update(f3d_mat.rdp_settings.to_dict())
-        data["extraTextureSettings"] = f3d_mat.extra_texture_settings_to_dict()
+        data.update(f3d_mat.extra_texture_settings_to_dict())
 
         textures = {}
         data["textures"] = textures
@@ -370,7 +374,15 @@ class Fast64Extension(GlTF2SubExtension):
             textures["0"] = self.f3d_to_glTF2_texture_info(f3d_mat, f3d_mat.tex0, export_settings)
         if use_dict["Texture 1"]:
             textures["1"] = self.f3d_to_glTF2_texture_info(f3d_mat, f3d_mat.tex1, export_settings)
-        self.append_extension(gltf2_material, data)
+        self.append_extension(gltf2_material, MATERIAL_EXTENSION_NAME, data)
+
+        # F3DEX3
+        if self.f3d.F3DEX_GBI_3:
+            self.append_extension(
+                gltf2_material,
+                EX3_MATERIAL_EXTENSION_NAME,
+                f3d_mat.f3dex3_colors_to_dict(),
+            )
 
         # glTF Standard
         pbr = gltf2_material.pbr_metallic_roughness
@@ -382,13 +394,13 @@ class Fast64Extension(GlTF2SubExtension):
         pbr.base_color_factor = get_fake_color(data)
 
         if not f3d_mat.rdp_settings.g_lighting:
-            self.append_extension(gltf2_material, name="KHR_materials_unlit", skip_if_empty=False)
+            self.append_extension(gltf2_material, "KHR_materials_unlit")
 
     def gather_node_hook(self, gltf2_node, blender_object, _export_settings: dict):
         data = {}
-        if not self.f3d.F3D_OLD_GBI:
+        if not self.f3d.F3D_OLD_GBI and gltf2_node.mesh:
             data["use_culling"] = blender_object.use_f3d_culling
-        self.append_extension(gltf2_node, data)
+            self.append_extension(gltf2_node.mesh, MESH_EXTENSION_NAME, data)
 
     # Importing
 
@@ -399,7 +411,7 @@ class Fast64Extension(GlTF2SubExtension):
         blender_material,
         gltf,
     ):
-        data = self.get_extension(gltf_material)
+        data = self.get_extension(gltf_material, MATERIAL_EXTENSION_NAME)
         if data is None:
             return
 
@@ -420,9 +432,14 @@ class Fast64Extension(GlTF2SubExtension):
 
             f3d_mat: F3DMaterialProperty = blender_material.f3d_mat
             f3d_mat.combiner_from_dict(data.get("combiner", {}))
-            f3d_mat.colors_from_dict(data.get("colors", {}))
+            f3d_mat.f3d_colors_from_dict(data)
             f3d_mat.rdp_settings.from_dict(data)
-            f3d_mat.extra_texture_settings_from_dict(data.get("extraTextureSettings", {}))
+            f3d_mat.extra_texture_settings_from_dict(data)
+
+            # F3DEX3
+            ex3_data = self.get_extension(gltf_material, EX3_MATERIAL_EXTENSION_NAME)
+            if ex3_data is not None:
+                f3d_mat.f3dex3_colors_from_dict(ex3_data)
 
             for num, tex_info in data.get("textures", {}).items():
                 index = tex_info["index"]
@@ -453,7 +470,7 @@ class Fast64Extension(GlTF2SubExtension):
             bpy.context.scene.collection.objects.unlink(gltf_temp_obj)
 
     def gather_import_node_after_hook(self, _vnode, gltf_node, blender_object, _gltf):
-        data = self.get_extension(gltf_node)
+        data = self.get_extension(gltf_node, MESH_EXTENSION_NAME)
         if data is None:
             return
         blender_object.use_f3d_culling = data.get("use_culling", True)

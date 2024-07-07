@@ -11,7 +11,6 @@ def find_glTF2_addon():
 
 
 class GlTF2SubExtension:
-    extension_name: str = None
     required: bool = False
 
     def post_init(self):
@@ -25,10 +24,9 @@ class GlTF2SubExtension:
         if self.extension.verbose:
             pprint(content)
 
-    def append_extension(self, gltf_prop, data: dict = None, name=None, required=False, skip_if_empty=True):
-        if skip_if_empty and not data:
+    def append_extension(self, gltf_prop, name: str, data: dict = None, required=False, skip_if_empty=True):
+        if skip_if_empty and not data and data is not None:  # If none, assume it shouldn´t skip
             return
-        name = name if name else self.extension_name
         self.print_verbose(f"Appending {name} extension")
         if data:
             self.print_verbose(data)
@@ -40,11 +38,10 @@ class GlTF2SubExtension:
             required=required if required else self.required,
         )
 
-    def get_extension(self, gltf_prop, extension_name=None):
+    def get_extension(self, gltf_prop, name: str):
         if gltf_prop.extensions is None:
             return None
-        extension_name = extension_name if extension_name else self.extension_name
-        data = gltf_prop.extensions.get(extension_name, None)
+        data = gltf_prop.extensions.get(name, None)
         if any(data):
             self.print_verbose(data)
         return data

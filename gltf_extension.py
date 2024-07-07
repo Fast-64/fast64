@@ -4,18 +4,21 @@ import bpy
 from bpy.types import PropertyGroup, UILayout, Panel, Context
 from bpy.props import BoolProperty
 
+from .fast64_internal.utility import multilineLabel
+
 # Original implementation from github.com/Mr-Wiseguy/gltf64-blender
 
 # Changes made from the original glTF64:
 # Property names (keys) now all use the glTF standard naming, camelCase.
+# Extension names all follow the glTF2 naming convention, PREFIX_scope_feature.
 # Full fast64 material support.
 # Extendability improvements.
 # Doesn´t use world defaults, as those should be left to the repo to handle.
 
 
 GAME_MODES = {
-    # "SM64": "EXT_SM64",
-    # "OOT": "EXT_OOT",
+    # "SM64": {"FAST64_node_sm64"},
+    # "OOT": {"FAST64_node_oot"},
 }
 
 
@@ -51,9 +54,9 @@ class GlTF2Extension:
         self.verbose = self.settings.verbose
         self.sub_extensions = []
         if self.settings.f3d:
-            from .fast64_internal.f3d.f3d_gltf import Fast64Extension
+            from .fast64_internal.f3d.glTF.f3d_gltf import F3DExtensions
 
-            self.sub_extensions.append(Fast64Extension(self))
+            self.sub_extensions.append(F3DExtensions(self))
 
 
 class glTF2ExportUserExtension(GlTF2Extension):
@@ -98,13 +101,15 @@ class Fast64GlTFSettings(PropertyGroup):
         col = layout.column()
         operation_text = "Import" if import_context else "Export"
         col.prop(self, "verbose")
-        col.prop(self, "f3d", text=f"{operation_text} F3D extension (EXT_fast64)")
+        col.prop(self, "f3d", text=f"{operation_text} F3D extensions")
+        multilineLabel(col.box(), "FAST64_materials_f3d,\nFAST64_materials_f3dex3,\nFAST64_texture_f3d,\nFAST64_mesh_f3d_new")
         game_mode = scene.gameEditorMode
         if game_mode != "Homebrew":
             if game_mode not in GAME_MODES:
                 col.label(text="Current game mode not implemented", icon="INFO")
             else:
-                col.prop(self, "game", text=f"{operation_text} {GAME_MODES[game_mode]} extension")
+                col.prop(self, "game", text=f"{operation_text} {game_mode} extensions")
+                multilineLabel(col.box(), ",\n".join(GAME_MODES[game_mode]))
         if not import_context and (self.f3d or (self.game and game_mode in GAME_MODES)):
             col.prop(self, "on_invalid")
 
