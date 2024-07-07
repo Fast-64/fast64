@@ -1646,11 +1646,11 @@ def update_light_colors(material, context):
             light0 = f3dMat.f3d_light1.color if f3dMat.f3d_light1 is not None else [1.0, 1.0, 1.0, 1.0]
             light1 = f3dMat.f3d_light2.color if f3dMat.f3d_light2 is not None else light1
 
-        nodes["Shade Color"].inputs["Ambient Color"].default_value = gammaCorrectAlpha1Tuple(f3dMat.ambient_light_color)
+        nodes["Shade Color"].inputs["AmbientColor"].default_value = gammaCorrectAlpha1Tuple(f3dMat.ambient_light_color)
         nodes["Shade Color"].inputs["Light0Color"].default_value = gammaCorrectAlpha1Tuple(light0)
         nodes["Shade Color"].inputs["Light1Color"].default_value = gammaCorrectAlpha1Tuple(light1)
     else:
-        nodes["Shade Color"].inputs["Ambient Color"].default_value = (0.5, 0.5, 0.5, 1.0)
+        nodes["Shade Color"].inputs["AmbientColor"].default_value = (0.5, 0.5, 0.5, 1.0)
         nodes["Shade Color"].inputs["Light0Color"].default_value = (1.0, 1.0, 1.0, 1.0)
         nodes["Shade Color"].inputs["Light1Color"].default_value = (0.0, 0.0, 0.0, 1.0)
         link_if_none_exist(material, nodes["AmbientColorOut"].outputs[0], nodes["Shade Color"].inputs["AmbientColor"])
@@ -2320,7 +2320,7 @@ def createScenePropertiesForMaterial(material: Material):
     # create a new group node to hold the tree
     scene_props = node_tree.nodes.new(type="ShaderNodeGroup")
     scene_props.name = "SceneProperties"
-    scene_props.location = (-420, -360)
+    scene_props.location = (-320, -23)
     scene_props.node_tree = bpy.data.node_groups["SceneProperties"]
     
     # Fog links to reroutes and the CalcFog block
@@ -2448,7 +2448,7 @@ def createF3DMat(obj: Object | None, preset="Shaded Solid", index=None):
                 bpy.context.object.active_material_index = index
 
     material.is_f3d = True
-    material.mat_ver = 5
+    material.mat_ver = 6
 
     update_preset_manual_v4(material, preset)
 

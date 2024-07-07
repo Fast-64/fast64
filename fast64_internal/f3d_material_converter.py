@@ -283,7 +283,7 @@ class BSDFConvert(bpy.types.Operator):
 
 class MatUpdateConvert(bpy.types.Operator):
     # set bl_ properties
-    version = 5
+    version = 6
     bl_idname = "object.convert_f3d_update"
     bl_label = "Recreate F3D Materials As v" + str(version)
     bl_options = {"REGISTER", "UNDO", "PRESET"}

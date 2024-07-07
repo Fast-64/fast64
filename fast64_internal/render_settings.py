@@ -71,7 +71,7 @@ def on_update_oot_render_settings(self, context: bpy.types.Context):
         renderSettings.light0Color = col0a + (col0b - col0a) * fade
         col1a, _ = ootGetBaseOrCustomLight(la, 1, False, False)
         col1b, _ = ootGetBaseOrCustomLight(lb, 1, False, False)
-        renderSettings.light1Color = col1a * fa + col1b * fb
+        renderSettings.light1Color = col1a + (col1b - col1a) * fade
         sint, cost = math.sin(math.tau * t / 24.0), math.cos(math.tau * t / 24.0)
         renderSettings.light0Direction = mathutils.Vector(
             (
@@ -159,8 +159,9 @@ def poll_oot_scene(self, object):
 
 
 def resync_scene_props():
-    # Lighting space needs to be updated due to the nodes being shared and reloaded
-    update_lighting_space(bpy.context.scene.fast64.renderSettings)
+    if "GetSpecularNormal" in bpy.data.node_groups:
+        # Lighting space needs to be updated due to the nodes being shared and reloaded
+        update_lighting_space(bpy.context.scene.fast64.renderSettings)
 
 
 class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
