@@ -61,8 +61,7 @@ Written against the glTF 2.0 spec.
 
 ## Overview
 
-This extension implements a representation of how individual textures are sampled on n64, including shift, mask, low and high values, clamp and mirror, format and reference information. Storing the reference in the sampler may seem like a weird pick, but storing it as an extension in the texture info would just be one more extension for no functional gain, it may be moved there if texture format is aswell which I'm considering.
-TODO: Better description
+This extension implements a representation of how individual textures are sampled on n64, including shift, mask, low and high values, clamp and mirror, format and reference information.
 
 ### JSON Schema
 
@@ -96,7 +95,7 @@ Written against the glTF 2.0 spec.
 
 ## Overview
 
-This extension implements f3dex1 material features, which only differs in the inclusion of the G_CLIPPING geometry mode, it mostly exists for completeness as G_CLIPPING is on by default and is crucial in performance.
+This extension implements f3dex1 material features, which only differs in the inclusion of the G_CLIPPING geometry mode, it mostly exists for completeness as G_CLIPPING is on by default and is crucial for performance.
 
 ### JSON Schema
 
