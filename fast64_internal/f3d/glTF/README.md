@@ -65,7 +65,7 @@ This extension implements a representation of how individual textures are sample
 
 ### JSON Schema
 
-- [material.FAST64_materials_f3d.schema.json](schema/FAST64_materials_f3d.schema.json)
+- [material.FAST64_sampler_f3d.schema.json](schema/FAST64_sampler_f3d.schema.json)
 
 ## Known Implementations
 
@@ -99,7 +99,7 @@ This extension implements f3dex1 material features, which only differs in the in
 
 ### JSON Schema
 
-- [material.FAST64_materials_f3dex1.schema.json](schema/FAST64_materials_f3d.schema.json)
+- [material.FAST64_materials_f3dex1.schema.json](schema/FAST64_materials_f3dex1.schema.json)
 
 ## Known Implementations
 
