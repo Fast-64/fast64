@@ -1554,7 +1554,7 @@ def update_fog_nodes(material: Material, context: Context):
             remove_first_link_if_exists(material, nodes["CalcFog"].inputs["FogNear"].links)
             remove_first_link_if_exists(material, nodes["CalcFog"].inputs["FogFar"].links)
 
-        fogBlender.inputs["Fog Color"].default_value = f3dMat.fog_color
+        fogBlender.inputs["Fog Color"].default_value = gammaCorrectAlpha1Tuple(f3dMat.fog_color)
         nodes["CalcFog"].inputs["FogNear"].default_value = f3dMat.fog_position[0]
         nodes["CalcFog"].inputs["FogFar"].default_value = f3dMat.fog_position[1]
 
@@ -1661,13 +1661,7 @@ def update_light_colors(material, context):
 def update_color_node(combiner_inputs, color: Color, prefix: str):
     """Function for updating either Prim or Env colors"""
     # TODO: feature to toggle gamma correction
-    corrected_prim = gammaCorrect(color)
-    combiner_inputs[f"{prefix} Color"].default_value = (
-        corrected_prim[0],
-        corrected_prim[1],
-        corrected_prim[2],
-        1.0,
-    )
+    combiner_inputs[f"{prefix} Color"].default_value = gammaCorrectAlpha1Tuple(color)
     combiner_inputs[f"{prefix} Alpha"].default_value = color[3]
 
 
@@ -4413,7 +4407,7 @@ class F3DRenderSettingsPanel(Panel):
                         else:
                             numLightsNeeded = 1
                             if header.skyboxLighting == "Custom":
-                                r2 = b.row()
+                                r2 = b.row().split(factor=0.4)
                                 r2.prop(renderSettings, "ootForceTimeOfDay")
                                 if renderSettings.ootForceTimeOfDay:
                                     r2.label(text="Light Index sets first of four lights.", icon="INFO")

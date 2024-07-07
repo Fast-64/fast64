@@ -100,20 +100,20 @@ def update_scene_props_from_render_settings(
     renderSettings: "Fast64RenderSettings_Properties",
 ):
     sceneOutputs.inputs["FogEnable"].default_value = int(renderSettings.enableFogPreview)
-    sceneOutputs.inputs["FogColor"].default_value = tuple(c for c in renderSettings.fogPreviewColor)
+    sceneOutputs.inputs["FogColor"].default_value = gammaCorrectAlpha1Tuple(renderSettings.fogPreviewColor)
     sceneOutputs.inputs["F3D_NearClip"].default_value = float(renderSettings.clippingPlanes[0])
     sceneOutputs.inputs["F3D_FarClip"].default_value = float(renderSettings.clippingPlanes[1])
     sceneOutputs.inputs["Blender_Game_Scale"].default_value = float(get_blender_to_game_scale(context))
     sceneOutputs.inputs["FogNear"].default_value = renderSettings.fogPreviewPosition[0]
     sceneOutputs.inputs["FogFar"].default_value = renderSettings.fogPreviewPosition[1]
 
-    sceneOutputs.inputs["AmbientColor"].default_value = tuple(c for c in renderSettings.ambientColor)
-    sceneOutputs.inputs["Light0Color"].default_value = tuple(c for c in renderSettings.light0Color)
+    sceneOutputs.inputs["AmbientColor"].default_value = gammaCorrectAlpha1Tuple(renderSettings.ambientColor)
+    sceneOutputs.inputs["Light0Color"].default_value = gammaCorrectAlpha1Tuple(renderSettings.light0Color)
     sceneOutputs.inputs["Light0Dir"].default_value = tuple(
         d for d in (mathutils.Vector(renderSettings.light0Direction) @ transform_mtx_blender_to_n64())
     )
     sceneOutputs.inputs["Light0Size"].default_value = renderSettings.light0SpecSize
-    sceneOutputs.inputs["Light1Color"].default_value = tuple(c for c in renderSettings.light1Color)
+    sceneOutputs.inputs["Light1Color"].default_value = gammaCorrectAlpha1Tuple(renderSettings.light1Color)
     sceneOutputs.inputs["Light1Dir"].default_value = tuple(
         d for d in (mathutils.Vector(renderSettings.light1Direction) @ transform_mtx_blender_to_n64())
     )
