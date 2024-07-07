@@ -19,23 +19,148 @@
                 },
                 "cycles": {
                     "type": "array",
+                    "minItems": 1,
+                    "maxItems": 2,
                     "description": "Can have one or two cycles depending on geometry mode.",
                     "items": {
                         "type": "object",
                         "properties": {
                             "color": {
                                 "type": "array",
-                                "items": {
-                                    "type": "string",
-                                    "default": "0"
-                                }
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "prefixItems": [
+                                    {
+                                        "type": "string",
+                                        "default": "0",
+                                        "enum": [
+                                            "COMBINED",
+                                            "TEXEL0",
+                                            "TEXEL1",
+                                            "PRIMITIVE",
+                                            "SHADE",
+                                            "ENVIRONMENT",
+                                            "1",
+                                            "NOISE",
+                                            "0"
+                                        ]
+                                    },
+                                    {
+                                        "type": "string",
+                                        "default": "0",
+                                        "enum": [
+                                            "COMBINED",
+                                            "TEXEL0",
+                                            "TEXEL1",
+                                            "PRIMITIVE",
+                                            "SHADE",
+                                            "ENVIRONMENT",
+                                            "CENTER",
+                                            "K4",
+                                            "0"
+                                        ]
+                                    },
+                                    {
+                                        "type": "string",
+                                        "default": "0",
+                                        "enum": [
+                                            "COMBINED",
+                                            "TEXEL0",
+                                            "TEXEL1",
+                                            "PRIMITIVE",
+                                            "SHADE",
+                                            "ENVIRONMENT",
+                                            "SCALE",
+                                            "COMBINED_ALPHA",
+                                            "TEXEL0_ALPHA",
+                                            "TEXEL1_ALPHA",
+                                            "PRIMITIVE_ALPHA",
+                                            "SHADE_ALPHA",
+                                            "ENV_ALPHA",
+                                            "LOD_FRACTION",
+                                            "PRIM_LOD_FRAC",
+                                            "K5",
+                                            "0"
+                                        ]
+                                    },
+                                    {
+                                        "type": "string",
+                                        "default": "0",
+                                        "enum": [
+                                            "COMBINED",
+                                            "TEXEL0",
+                                            "TEXEL1",
+                                            "PRIMITIVE",
+                                            "SHADE",
+                                            "ENVIRONMENT",
+                                            "1",
+                                            "0"
+                                        ]
+                                    }
+                                ]
                             },
                             "alpha": {
                                 "type": "array",
-                                "items": {
-                                    "type": "string",
-                                    "default": "0"
-                                }
+                                "minItems": 4,
+                                "maxItems": 4,
+                                "prefixItems": [
+                                    {
+                                        "type": "string",
+                                        "default": "0",
+                                        "enum": [
+                                            "COMBINED",
+                                            "TEXEL0",
+                                            "TEXEL1",
+                                            "PRIMITIVE",
+                                            "SHADE",
+                                            "ENVIRONMENT",
+                                            "1",
+                                            "0"
+                                        ]
+                                    },
+                                    {
+                                        "type": "string",
+                                        "default": "0",
+                                        "enum": [
+                                            "COMBINED",
+                                            "TEXEL0",
+                                            "TEXEL1",
+                                            "PRIMITIVE",
+                                            "SHADE",
+                                            "ENVIRONMENT",
+                                            "1",
+                                            "0"
+                                        ]
+                                    },
+                                    {
+                                        "type": "string",
+                                        "default": "0",
+                                        "enum": [
+                                            "LOD_FRACTION",
+                                            "TEXEL0",
+                                            "TEXEL1",
+                                            "PRIMITIVE",
+                                            "SHADE",
+                                            "ENVIRONMENT",
+                                            "PRIM_LOD_FRAC",
+                                            "0"
+                                        ]
+                                    },
+                                    {
+                                        "type": "string",
+                                        "default": "0",
+                                        "enum": [
+                                            "COMBINED",
+                                            "TEXEL0",
+                                            "TEXEL1",
+                                            "PRIMITIVE",
+                                            "SHADE",
+                                            "ENVIRONMENT",
+                                            "1",
+                                            "0"
+                                        ]
+                                    }
+                                ]
                             }
                         }
                     }
