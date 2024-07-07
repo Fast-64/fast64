@@ -10,7 +10,6 @@ def on_update_sm64_render_settings(self, context: bpy.types.Context):
         area: bpy.types.Object = renderSettings.sm64Area
         renderSettings.fogPreviewColor = tuple(c for c in area.area_fog_color)
         renderSettings.fogPreviewPosition = tuple(round(p) for p in area.area_fog_position)
-
         renderSettings.clippingPlanes = tuple(float(p) for p in area.clipPlanes)
 
 
@@ -38,7 +37,8 @@ def on_update_oot_render_settings(self, context: bpy.types.Context):
         renderSettings.light1Color = tuple(c for c in col1)
         renderSettings.light1Direction = tuple(d for d in dir1)
         renderSettings.fogPreviewColor = tuple(c for c in l.fogColor)
-        renderSettings.fogPreviewPosition = (l.fogNear, l.fogFar)
+        renderSettings.fogPreviewPosition = (l.fogNear, 1000)  # fogFar is always 1000 in OoT
+        renderSettings.clippingPlanes = (10.0, l.zFar)  # zNear seems to always be 10 in OoT
     else:
         if lMode == "LIGHT_MODE_TIME":
             tod = header.timeOfDayLights
@@ -81,10 +81,12 @@ def on_update_oot_render_settings(self, context: bpy.types.Context):
             )
         ).normalized()
         renderSettings.light1Direction = -renderSettings.light0Direction
-        renderSettings.fogColor = interpColors(la.fogColor, lb.fogColor, fade)
-        renderSettings.fogPreviewPosition = (
-            la.fogNear + int(float(lb.fogNear - la.fogNear) * fade),
-            la.fogFar + int(float(lb.fogFar - la.fogFar) * fade),
+        renderSettings.fogPreviewColor = interpColors(la.fogColor, lb.fogColor, fade)
+        renderSettings.fogPreviewPosition = (  # fogFar is always 1000 in OoT
+            la.fogNear + int(float(lb.fogNear - la.fogNear) * fade), 1000
+        )
+        renderSettings.clippingPlanes = (  # zNear seems to always be 10 in OoT
+            10.0, la.zFar + float(lb.zFar - la.zFar) * fade
         )
 
 
@@ -239,7 +241,7 @@ class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
     )
     # Fog Preview is int because values reflect F3D values
     fogPreviewPosition: bpy.props.IntVectorProperty(
-        name="Fog Position", size=2, min=0, max=0x7FFFFFFF, default=(985, 1000), update=on_update_render_preview_nodes
+        name="Fog Position", size=2, min=0, max=1000, default=(985, 1000), update=on_update_render_preview_nodes
     )
     # Clipping planes are float because values reflect F3D values
     clippingPlanes: bpy.props.FloatVectorProperty(

@@ -30,7 +30,7 @@ def getLightSettingsEntry(light: OOTLight, lightMode: str, isLightingCustom: boo
 
     fogData = [
         (light.getBlendFogNear(), "Blend Rate & Fog Near"),
-        (f"{light.fogFar}", "Fog Far"),
+        (f"{light.zFar}", "Z Far"),
     ]
 
     lightDescs = ["Dawn", "Day", "Dusk", "Night"]
