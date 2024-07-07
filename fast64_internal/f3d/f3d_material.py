@@ -4651,7 +4651,7 @@ class F3DMaterialProperty(PropertyGroup):
                 "width": list(self.key_width),
             }
         if use_dict["Convert"]:
-            data["convert"] = {
+            data["yuvConvert"] = {
                 "set": self.set_k0_5,
                 "values": [round(k, 4) for k in (self.k0, self.k1, self.k2, self.k3, self.k4, self.k5)],
             }
@@ -4690,7 +4690,7 @@ class F3DMaterialProperty(PropertyGroup):
             key.get("scale", list(self.key_scale)),
             key.get("width", list(self.key_width)),
         )
-        convert = data.get("convert", {})
+        convert = data.get("yuvConvert", {})
         self.set_k0_5 = convert.get("set", self.set_k0_5)
         self.k0, self.k1, self.k2, self.k3, self.k4, self.k5 = convert.get(
             "values", [self.k0, self.k1, self.k2, self.k3, self.k4, self.k5]

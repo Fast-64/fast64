@@ -158,7 +158,7 @@ def get_color_component(inp: str, colors: dict, previous_alpha: float) -> float:
     elif inp == "ENV_ALPHA":
         return colors["environment"]["color"][3]
     elif inp.startswith("K"):
-        values = colors["convert"]["values"]
+        values = colors["yuvConvert"]["values"]
         if inp == "K4":
             return values[4]
         if inp == "K5":

@@ -180,7 +180,8 @@
                     "description": "The color is linear instead of sRGB, it must be converted to sRGB for n64.",
                     "items": {
                         "type": "number",
-                        "minimum": 0.0
+                        "minimum": 0.0,
+                        "maximum": 1.0
                     },
                     "default": [
                         1.0,
@@ -204,7 +205,8 @@
                     "description": "The color is linear instead of sRGB, it must be converted to sRGB for n64.",
                     "items": {
                         "type": "number",
-                        "minimum": 0.0
+                        "minimum": 0.0,
+                        "maximum": 1.0
                     },
                     "default": [
                         1.0,
@@ -273,6 +275,34 @@
                         0.0,
                         0.0,
                         0.0
+                    ]
+                }
+            }
+        },
+        "yuvConvert": {
+            "type": "object",
+            "description": "The yuv to rgb coefficients, available in the combiner as the color inputs K4 and K5",
+            "properties": {
+                "set": {
+                    "type": "boolean",
+                    "description": "When toggled the material should update the yuv to rgb coefficients and set the h othermode for texture conversion (G_TC_FILTCONV)"
+                },
+                "center": {
+                    "type": "array",
+                    "minItems": 6,
+                    "maxItems": 6,
+                    "items": {
+                        "type": "number",
+                        "minimum": -1.0,
+                        "maximum": 1.0
+                    },
+                    "default": [
+                        0.6863,
+                        -0.1686,
+                        -0.3490,
+                        0.8706,
+                        0.4475,
+                        0.1647
                     ]
                 }
             }
