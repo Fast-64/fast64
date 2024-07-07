@@ -9,8 +9,7 @@
 
 ---
 
-<a id="FAST64_materials_f3d"></a>
-# FAST64_materials_f3d
+<h1 id="FAST64_materials_f3d">FAST64_materials_f3d</h1>
 
 ## Contributors
 
@@ -44,8 +43,8 @@ This extension implements a representation of fast64 material data, which itself
 * [Latest N64 Documentation](https://ultra64.ca/files/documentation/online-manuals/man-v5-2/allman52/)
 
 ---
-<a id="FAST64_sampler_f3d"></a>
-# FAST64_sampler_f3d
+
+<h1 id="FAST64_sampler_f3d">FAST64_sampler_f3d</h1>
 
 ## Contributors
 
@@ -78,8 +77,7 @@ This extension implements a representation of how individual textures are sample
 
 ---
 
-<a id="FAST64_materials_f3dex1"></a>
-# FAST64_materials_f3dex1
+<h1 id="FAST64_materials_f3dex1">FAST64_materials_f3dex1</h1>
 
 ## Contributors
 
@@ -110,8 +108,8 @@ This extension implements f3dex1 material features, which only differs in the in
 * [gSPSetGeometryMode Documentation](https://ultra64.ca/files/documentation/online-manuals/man-v5-2/allman52/n64man/gsp/gSPSetGeometryMode.htm)
 
 ---
-<a id="FAST64_materials_f3dex3"></a>
-# FAST64_materials_f3dex3
+
+<h1 id="FAST64_materials_f3dex3">FAST64_materials_f3dex3</h1>
 
 ## Contributors
 
@@ -142,8 +140,8 @@ This extension implements F3DEX3 material features such as ambient occulsion, fr
 - [F3DEX3's Documentation](https://hackern64.github.io/F3DEX3/)
 
 ---
-<a id="FAST64_mesh_f3d_new"></a>
-# FAST64_mesh_f3d_new
+
+<h1 id="FAST64_mesh_f3d_new">FAST64_mesh_f3d_new</h1>
 
 ## Contributors
 
