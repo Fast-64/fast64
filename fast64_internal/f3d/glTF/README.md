@@ -171,4 +171,4 @@ This extension implements f3dex and up vertex based culling, which fast64 repres
 
 ## Resources
 
-- [F3DEX3's Documentation](https://hackern64.github.io/F3DEX3/)
+- [gSPCullDisplayList Documentation](https://ultra64.ca/files/documentation/online-manuals/man-v5-2/allman52/n64man/gsp/gSPCullDisplayList.htm)
