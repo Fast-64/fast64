@@ -1228,6 +1228,12 @@ def gammaCorrect(linearColor):
     return list(mathutils.Color(linearColor[:3]).from_scene_linear_to_srgb())
 
 
+def gammaCorrectAlpha1Tuple(linearColor):
+    correct = gammaCorrect(linearColor)
+    correct.append(1.0)
+    return tuple(c for c in correct)
+
+
 def gammaCorrectValue(linearValue):
     # doesn't need to use `colorToLuminance` since all values are the same
     return mathutils.Color((linearValue, linearValue, linearValue)).from_scene_linear_to_srgb().v
