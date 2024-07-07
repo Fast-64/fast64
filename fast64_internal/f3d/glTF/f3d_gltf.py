@@ -47,6 +47,7 @@ from io_scene_gltf2.blender.imp.gltf2_blender_image import BlenderImage
 from io_scene_gltf2.io.com.gltf2_io_constants import TextureFilter, TextureWrap
 
 MATERIAL_EXTENSION_NAME = "FAST64_materials_f3d"
+EX1_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3dex1"
 EX3_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3dex3"
 SAMPLER_EXTENSION_NAME = "FAST64_sampler_f3d"
 MESH_EXTENSION_NAME = "FAST64_mesh_f3d_new"
@@ -361,11 +362,19 @@ class F3DExtensions(GlTF2SubExtension):
         data = {}
 
         f3d_mat: F3DMaterialProperty = blender_material.f3d_mat
+        rdp = f3d_mat.rdp_settings
         use_dict = all_combiner_uses(f3d_mat)
 
         data["combiner"] = f3d_mat.combiner_to_dict()
         data.update(f3d_mat.f3d_colors_to_dict(use_dict))
-        data.update(f3d_mat.rdp_settings.to_dict())
+        data.update(
+            {
+                "geometryMode": rdp.f3d_geo_mode_to_dict(),
+                "otherModeH": rdp.other_mode_h_to_dict(),
+                "otherModeL": rdp.other_mode_l_to_dict(),
+                "other": rdp.other_to_dict(),
+            }
+        )
         data.update(f3d_mat.extra_texture_settings_to_dict())
 
         textures = {}
@@ -376,12 +385,20 @@ class F3DExtensions(GlTF2SubExtension):
             textures["1"] = self.f3d_to_glTF2_texture_info(f3d_mat, f3d_mat.tex1, export_settings)
         self.append_extension(gltf2_material, MATERIAL_EXTENSION_NAME, data)
 
+        # F3DEX1
+        if self.f3d.F3DEX_GBI:
+            self.append_extension(
+                gltf2_material,
+                EX1_MATERIAL_EXTENSION_NAME,
+                {"geometryMode": rdp.f3dex1_geo_mode_to_dict()},
+            )
+
         # F3DEX3
         if self.f3d.F3DEX_GBI_3:
             self.append_extension(
                 gltf2_material,
                 EX3_MATERIAL_EXTENSION_NAME,
-                f3d_mat.f3dex3_colors_to_dict(),
+                {"geometryMode": rdp.f3dex3_geo_mode_to_dict(), **f3d_mat.f3dex3_colors_to_dict()},
             )
 
         # glTF Standard
@@ -436,9 +453,15 @@ class F3DExtensions(GlTF2SubExtension):
             f3d_mat.rdp_settings.from_dict(data)
             f3d_mat.extra_texture_settings_from_dict(data)
 
+            # F3DEX1
+            ex1_data = self.get_extension(gltf_material, EX1_MATERIAL_EXTENSION_NAME)
+            if ex1_data is not None:
+                f3d_mat.rdp_settings.f3dex1_geo_mode_from_dict(ex1_data.get("geometryMode", {}))
+
             # F3DEX3
             ex3_data = self.get_extension(gltf_material, EX3_MATERIAL_EXTENSION_NAME)
             if ex3_data is not None:
+                f3d_mat.rdp_settings.f3dex3_geo_mode_from_dict(ex3_data.get("geometryMode", {}))
                 f3d_mat.f3dex3_colors_from_dict(ex3_data)
 
             for num, tex_info in data.get("textures", {}).items():

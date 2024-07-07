@@ -102,7 +102,10 @@ class Fast64GlTFSettings(PropertyGroup):
         operation_text = "Import" if import_context else "Export"
         col.prop(self, "verbose")
         col.prop(self, "f3d", text=f"{operation_text} F3D extensions")
-        multilineLabel(col.box(), "FAST64_materials_f3d,\nFAST64_materials_f3dex3,\nFAST64_texture_f3d,\nFAST64_mesh_f3d_new")
+        multilineLabel(
+            col.box(),
+            "FAST64_materials_f3d,\nFAST64_materials_f3dex1\nFAST64_materials_f3dex3,\nFAST64_texture_f3d,\nFAST64_mesh_f3d_new",
+        )
         game_mode = scene.gameEditorMode
         if game_mode != "Homebrew":
             if game_mode not in GAME_MODES:
