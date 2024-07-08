@@ -183,6 +183,8 @@
                         "minimum": 0.0,
                         "maximum": 1.0
                     },
+                    "minItems": 4,
+                    "maxItems": 4,
                     "default": [
                         1.0,
                         1.0,
@@ -208,6 +210,8 @@
                         "minimum": 0.0,
                         "maximum": 1.0
                     },
+                    "minItems": 4,
+                    "maxItems": 4,
                     "default": [
                         1.0,
                         1.0,
@@ -243,6 +247,8 @@
                         "minimum": 0.0,
                         "maximum": 1.0
                     },
+                    "minItems": 3,
+                    "maxItems": 3,
                     "default": [
                         1.0,
                         1.0,
@@ -257,6 +263,8 @@
                         "minimum": 0.0,
                         "maximum": 1.0
                     },
+                    "minItems": 3,
+                    "maxItems": 3,
                     "default": [
                         0.0,
                         0.0,
@@ -271,6 +279,8 @@
                         "minimum": 0.0,
                         "maximum": 16.0
                     },
+                    "minItems": 3,
+                    "maxItems": 3,
                     "default": [
                         0.0,
                         0.0,
@@ -287,7 +297,7 @@
                     "type": "boolean",
                     "description": "When toggled the material should update the yuv to rgb coefficients and set the h othermode for texture conversion (G_TC_FILTCONV)"
                 },
-                "center": {
+                "values": {
                     "type": "array",
                     "minItems": 6,
                     "maxItems": 6,
@@ -303,6 +313,46 @@
                         0.8706,
                         0.4475,
                         0.1647
+                    ]
+                }
+            }
+        },
+        "fog": {
+            "type": "object",
+            "description": "",
+            "properties": {
+                "set": {
+                    "type": "boolean",
+                    "description": "When toggled the material should update the fog color and position"
+                },
+                "color": {
+                    "type": "array",
+                    "description": "The color is linear instead of sRGB, it must be converted to sRGB for n64.",
+                    "items": {
+                        "type": "number",
+                        "minimum": 0.0,
+                        "maximum": 1.0
+                    },
+                    "minItems": 3,
+                    "maxItems": 3,
+                    "default": [
+                        1.0,
+                        1.0,
+                        1.0
+                    ]
+                },
+                "range": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 65536
+                    },
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "default": [
+                        985,
+                        1000
                     ]
                 }
             }
