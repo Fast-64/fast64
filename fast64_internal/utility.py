@@ -281,8 +281,16 @@ def recursiveCopyOldPropertyGroup(oldProp, newProp):
         ):
             newCollection = getattr(newProp, sub_value_attr)
             recursiveCopyOldPropertyGroup(sub_value, newCollection)
-        else:
-            setattr(newProp, sub_value_attr, sub_value)
+        elif not isinstance(getattr(newProp, sub_value_attr), bpy.types.PropertyGroup) and not type(
+            getattr(newProp, sub_value_attr, None)
+        ).__name__ in (
+            "bpy_prop_collection_idprop",
+            "IDPropertyGroup",
+        ):
+            try:
+                setattr(newProp, sub_value_attr, sub_value)
+            except Exception as e:
+                print(e)
 
 
 def propertyCollectionEquals(oldProp, newProp):

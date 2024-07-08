@@ -35,7 +35,7 @@ from .f3d_gbi import get_F3D_GBI, GBL_c1, GBL_c2, enumTexScroll, isUcodeF3DEX1
 from .f3d_material_presets import *
 from ..utility import *
 from ..render_settings import Fast64RenderSettings_Properties, update_scene_props_from_render_settings
-from .f3d_material_helpers import F3DMaterial_UpdateLock
+from .f3d_material_helpers import F3DMaterial_UpdateLock, node_tree_copy
 from bpy.app.handlers import persistent
 from typing import Generator, Optional, Tuple, Any, Dict, Union
 
@@ -1246,6 +1246,15 @@ class F3DPanel(Panel):
         titleCol = layout.column()
         titleCol.box().label(text="F3D Material Inspector")
 
+        if material.mat_ver < 5:
+            box = layout.box().column()
+            box.label(
+                text=f"Material version is outdated (V{material.mat_ver})",
+                icon="ORPHAN_DATA",
+            )
+            box.operator("object.convert_f3d_update")
+            return
+
         presetCol = layout.column()
         split = presetCol.split(factor=0.33)
         split.label(text="Preset")
@@ -1274,6 +1283,8 @@ class F3DPanel(Panel):
             r = layout.row()
             r.enabled = False
             r.label(text="Use Cel Shading (requires F3DEX3)", icon="TRIA_RIGHT")
+
+        layout.operator(RecreateF3DNodes.bl_idname)
 
 
 class F3DMeshPanel(Panel):
@@ -1393,6 +1404,12 @@ def update_node_values(self, context, update_preset):
         update_node_values_of_material(material, context)
         if update_preset:
             material.f3d_mat.presetName = "Custom"
+
+
+def update_all_node_values(material, context):
+    update_node_values_without_preset(material, context)
+    update_tex_values_and_formats(material, context)
+    update_rendermode_preset(material, context)
 
 
 def update_node_values_with_preset(self, context):
@@ -1923,9 +1940,6 @@ def update_tex_values_index(self: Material, *, texProperty: "TextureProperty", t
 
     if tex_size:  # only returns tex size if a texture is being set
         if tex_size[0] > 0 and tex_size[1] > 0:
-            if texProperty.autoprop:
-                setAutoProp(texProperty.S, tex_size[0])
-                setAutoProp(texProperty.T, tex_size[1])
             update_tex_values_field(self, texProperty, tex_size, texIndex)
 
             texFormat = texProperty.tex_format
@@ -2371,6 +2385,15 @@ def link_f3d_material_library():
         bpy.ops.object.mode_set(mode=get_mode_set_from_context_mode(prevMode))
 
 
+def get_f3d_node_tree() -> bpy.types.NodeTree:
+    try:
+        link_f3d_material_library()
+        mat = bpy.data.materials["fast64_f3d_material_library_beefwashere"]
+        return mat.node_tree.copy()
+    finally:
+        bpy.data.materials.remove(mat)
+
+
 def shouldConvOrCreateColorAttribute(mesh: Mesh, attr_name="Col"):
     has_attr, conv_attr = False, False
     if attr_name in mesh.attributes:
@@ -2537,6 +2560,24 @@ class UpdateColorManagementPopup(Operator):
             UpdateColorManagementPopup.already_invoked = False
 
 
+class RecreateF3DNodes(Operator):
+    bl_idname = "material.recreate_f3d_nodes"
+    bl_label = "Recreate F3D Shader Nodes"
+    bl_options = {"REGISTER", "UNDO", "PRESET"}
+    bl_description = "Recreates the node tree for f3d materials, use if material preview is broken."
+
+    def execute(self, context):
+        material = context.material
+        if material is None:
+            self.report({"ERROR"}, "No active material.")
+        else:
+            node_tree_copy(get_f3d_node_tree(), material.node_tree)
+            update_all_node_values(material, context)
+            createScenePropertiesForMaterial(material)
+            self.report({"INFO"}, "Success!")
+        return {"FINISHED"}
+
+
 class CreateFast3DMaterial(Operator):
     bl_idname = "object.create_f3d_mat"
     bl_label = "Create Fast3D Material"
@@ -2598,10 +2639,8 @@ def toggle_auto_prop(self, context: Context):
         tex_property, tex_index = get_tex_prop_from_path(material, prop_path)
         if tex_property.autoprop:
             tex_size = tuple([s for s in tex_property.get_tex_size()])
-
-            setAutoProp(tex_property.S, tex_size[0])
-            setAutoProp(tex_property.T, tex_size[1])
-            update_tex_values_field(material, tex_property, tex_size, tex_index)
+            if tex_size[0] > 0 and tex_size[1] > 0:
+                update_tex_values_field(material, tex_property, tex_size, tex_index)
 
         set_texture_settings_node(material)
 
@@ -3997,38 +4036,34 @@ class AddPresetF3D(AddPresetBase, Operator):
 
 
 def convertToNewMat(material, oldMat):
-    material.f3d_mat.presetName = oldMat.get("presetName", "Custom")
+    material.f3d_mat.presetName = oldMat.pop("presetName", "Custom")
 
-    material.f3d_mat.scale_autoprop = oldMat.get("scale_autoprop", material.f3d_mat.scale_autoprop)
-    material.f3d_mat.uv_basis = oldMat.get("uv_basis", material.f3d_mat.uv_basis)
+    material.f3d_mat.scale_autoprop = oldMat.pop("scale_autoprop", material.f3d_mat.scale_autoprop)
+    material.f3d_mat.uv_basis = oldMat.pop("uv_basis", material.f3d_mat.uv_basis)
 
     # Combiners
-    if "combiner1" in oldMat:
-        recursiveCopyOldPropertyGroup(oldMat["combiner1"], material.f3d_mat.combiner1)
-    if "combiner2" in oldMat:
-        recursiveCopyOldPropertyGroup(oldMat["combiner2"], material.f3d_mat.combiner2)
+    recursiveCopyOldPropertyGroup(oldMat.pop("combiner1", {}), material.f3d_mat.combiner1)
+    recursiveCopyOldPropertyGroup(oldMat.pop("combiner2", {}), material.f3d_mat.combiner2)
 
     # Texture animation
-    material.f3d_mat.menu_procAnim = oldMat.get("menu_procAnim", material.f3d_mat.menu_procAnim)
-    if "UVanim" in oldMat:
-        recursiveCopyOldPropertyGroup(oldMat["UVanim"], material.f3d_mat.UVanim0)
-    if "UVanim_tex1" in oldMat:
-        recursiveCopyOldPropertyGroup(oldMat["UVanim_tex1"], material.f3d_mat.UVanim1)
+    material.f3d_mat.menu_procAnim = oldMat.pop("menu_procAnim", material.f3d_mat.menu_procAnim)
+    recursiveCopyOldPropertyGroup(oldMat.pop("UVanim", {}), material.f3d_mat.UVanim0)
+    recursiveCopyOldPropertyGroup(oldMat.pop("UVanim_tex1", {}), material.f3d_mat.UVanim1)
 
     # material textures
-    material.f3d_mat.tex_scale = oldMat.get("tex_scale", material.f3d_mat.tex_scale)
-    recursiveCopyOldPropertyGroup(oldMat["tex0"], material.f3d_mat.tex0)
-    recursiveCopyOldPropertyGroup(oldMat["tex1"], material.f3d_mat.tex1)
+    material.f3d_mat.tex_scale = oldMat.pop("tex_scale", material.f3d_mat.tex_scale)
+    recursiveCopyOldPropertyGroup(oldMat.pop("tex0", {}), material.f3d_mat.tex0)
+    recursiveCopyOldPropertyGroup(oldMat.pop("tex1", {}), material.f3d_mat.tex1)
 
     # Should Set?
-    material.f3d_mat.set_prim = oldMat.get("set_prim", material.f3d_mat.set_prim)
-    material.f3d_mat.set_lights = oldMat.get("set_lights", material.f3d_mat.set_lights)
-    material.f3d_mat.set_env = oldMat.get("set_env", material.f3d_mat.set_env)
-    material.f3d_mat.set_blend = oldMat.get("set_blend", material.f3d_mat.set_blend)
-    material.f3d_mat.set_key = oldMat.get("set_key", material.f3d_mat.set_key)
-    material.f3d_mat.set_k0_5 = oldMat.get("set_k0_5", material.f3d_mat.set_k0_5)
-    material.f3d_mat.set_combiner = oldMat.get("set_combiner", material.f3d_mat.set_combiner)
-    material.f3d_mat.use_default_lighting = oldMat.get("use_default_lighting", material.f3d_mat.use_default_lighting)
+    material.f3d_mat.set_prim = oldMat.pop("set_prim", material.f3d_mat.set_prim)
+    material.f3d_mat.set_lights = oldMat.pop("set_lights", material.f3d_mat.set_lights)
+    material.f3d_mat.set_env = oldMat.pop("set_env", material.f3d_mat.set_env)
+    material.f3d_mat.set_blend = oldMat.pop("set_blend", material.f3d_mat.set_blend)
+    material.f3d_mat.set_key = oldMat.pop("set_key", material.f3d_mat.set_key)
+    material.f3d_mat.set_k0_5 = oldMat.pop("set_k0_5", material.f3d_mat.set_k0_5)
+    material.f3d_mat.set_combiner = oldMat.pop("set_combiner", material.f3d_mat.set_combiner)
+    material.f3d_mat.use_default_lighting = oldMat.pop("use_default_lighting", material.f3d_mat.use_default_lighting)
 
     # Colors
     nodes = oldMat.node_tree.nodes
@@ -4040,52 +4075,51 @@ def convertToNewMat(material, oldMat):
         prim = nodes["Primitive Color"].outputs[0].default_value
         env = nodes["Environment Color"].outputs[0].default_value
 
-    material.f3d_mat.blend_color = oldMat.get("blend_color", material.f3d_mat.blend_color)
+    material.f3d_mat.blend_color = oldMat.pop("blend_color", material.f3d_mat.blend_color)
     material.f3d_mat.prim_color = prim
     material.f3d_mat.env_color = env
     if "Chroma Key Center" in nodes:
         material.f3d_mat.key_center = nodes["Chroma Key Center"].outputs[0].default_value
 
     # Chroma
-    material.f3d_mat.key_scale = oldMat.get("key_scale", material.f3d_mat.key_scale)
-    material.f3d_mat.key_width = oldMat.get("key_width", material.f3d_mat.key_width)
+    material.f3d_mat.key_scale = oldMat.pop("key_scale", material.f3d_mat.key_scale)
+    material.f3d_mat.key_width = oldMat.pop("key_width", material.f3d_mat.key_width)
 
     # Convert
-    material.f3d_mat.k0 = oldMat.get("k0", material.f3d_mat.k0)
-    material.f3d_mat.k1 = oldMat.get("k1", material.f3d_mat.k1)
-    material.f3d_mat.k2 = oldMat.get("k2", material.f3d_mat.k2)
-    material.f3d_mat.k3 = oldMat.get("k3", material.f3d_mat.k3)
-    material.f3d_mat.k4 = oldMat.get("k4", material.f3d_mat.k4)
-    material.f3d_mat.k5 = oldMat.get("k5", material.f3d_mat.k5)
+    material.f3d_mat.k0 = oldMat.pop("k0", material.f3d_mat.k0)
+    material.f3d_mat.k1 = oldMat.pop("k1", material.f3d_mat.k1)
+    material.f3d_mat.k2 = oldMat.pop("k2", material.f3d_mat.k2)
+    material.f3d_mat.k3 = oldMat.pop("k3", material.f3d_mat.k3)
+    material.f3d_mat.k4 = oldMat.pop("k4", material.f3d_mat.k4)
+    material.f3d_mat.k5 = oldMat.pop("k5", material.f3d_mat.k5)
 
     # Prim
-    material.f3d_mat.prim_lod_frac = oldMat.get("prim_lod_frac", material.f3d_mat.prim_lod_frac)
-    material.f3d_mat.prim_lod_min = oldMat.get("prim_lod_min", material.f3d_mat.prim_lod_min)
+    material.f3d_mat.prim_lod_frac = oldMat.pop("prim_lod_frac", material.f3d_mat.prim_lod_frac)
+    material.f3d_mat.prim_lod_min = oldMat.pop("prim_lod_min", material.f3d_mat.prim_lod_min)
 
     # lights
-    material.f3d_mat.default_light_color = oldMat.get("default_light_color", material.f3d_mat.default_light_color)
-    material.f3d_mat.ambient_light_color = oldMat.get("ambient_light_color", material.f3d_mat.ambient_light_color)
+    material.f3d_mat.default_light_color = oldMat.pop("default_light_color", material.f3d_mat.default_light_color)
+    material.f3d_mat.ambient_light_color = oldMat.pop("ambient_light_color", material.f3d_mat.ambient_light_color)
     for i in range(1, 8):
-        old_light = oldMat.get(f"f3d_light{str(i)}")
+        old_light = oldMat.pop(f"f3d_light{str(i)}", None)
         # can be a broken property with V1 materials (IDPropertyGroup), thankfully this isnt typical to see when upgrading but
         # this method is safer
         if type(old_light) is Light:
             setattr(material.f3d_mat, f"f3d_light{str(i)}", old_light)
 
     # Fog Properties
-    material.f3d_mat.fog_color = oldMat.get("fog_color", material.f3d_mat.fog_color)
-    material.f3d_mat.fog_position = oldMat.get("fog_position", material.f3d_mat.fog_position)
-    material.f3d_mat.set_fog = oldMat.get("set_fog", material.f3d_mat.set_fog)
-    material.f3d_mat.use_global_fog = oldMat.get("use_global_fog", material.f3d_mat.use_global_fog)
+    material.f3d_mat.fog_color = oldMat.pop("fog_color", material.f3d_mat.fog_color)
+    material.f3d_mat.fog_position = oldMat.pop("fog_position", material.f3d_mat.fog_position)
+    material.f3d_mat.set_fog = oldMat.pop("set_fog", material.f3d_mat.set_fog)
+    material.f3d_mat.use_global_fog = oldMat.pop("use_global_fog", material.f3d_mat.use_global_fog)
 
     # geometry mode
-    material.f3d_mat.menu_geo = oldMat.get("menu_geo", material.f3d_mat.menu_geo)
-    material.f3d_mat.menu_upper = oldMat.get("menu_upper", material.f3d_mat.menu_upper)
-    material.f3d_mat.menu_lower = oldMat.get("menu_lower", material.f3d_mat.menu_lower)
-    material.f3d_mat.menu_other = oldMat.get("menu_other", material.f3d_mat.menu_other)
-    material.f3d_mat.menu_lower_render = oldMat.get("menu_lower_render", material.f3d_mat.menu_lower_render)
-    if "rdp_settings" in oldMat:
-        recursiveCopyOldPropertyGroup(oldMat["rdp_settings"], material.f3d_mat.rdp_settings)
+    material.f3d_mat.menu_geo = oldMat.pop("menu_geo", material.f3d_mat.menu_geo)
+    material.f3d_mat.menu_upper = oldMat.pop("menu_upper", material.f3d_mat.menu_upper)
+    material.f3d_mat.menu_lower = oldMat.pop("menu_lower", material.f3d_mat.menu_lower)
+    material.f3d_mat.menu_other = oldMat.pop("menu_other", material.f3d_mat.menu_other)
+    material.f3d_mat.menu_lower_render = oldMat.pop("menu_lower_render", material.f3d_mat.menu_lower_render)
+    recursiveCopyOldPropertyGroup(oldMat.pop("rdp_settings", {}), material.f3d_mat.rdp_settings)
 
 
 class F3DMaterialProperty(PropertyGroup):
@@ -4642,6 +4676,7 @@ mat_classes = (
     AddPresetF3D,
     F3DPanel,
     CreateFast3DMaterial,
+    RecreateF3DNodes,
     TextureFieldProperty,
     SetTileSizeScrollProperty,
     TextureProperty,
