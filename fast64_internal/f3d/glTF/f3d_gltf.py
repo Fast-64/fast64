@@ -140,7 +140,7 @@ class Color:
         return Color(self.r * other.r, self.g * other.g, self.b * other.b, self.a * other.a)
 
 
-def get_color_component(inp: str, colors: dict, previous_alpha: float) -> float:
+def get_color_component(inp: str, data: dict, previous_alpha: float) -> float:
     if inp == "0":
         return 0.0
     elif inp == "1":
@@ -150,15 +150,15 @@ def get_color_component(inp: str, colors: dict, previous_alpha: float) -> float:
     elif inp == "LOD_FRACTION":
         return 0.0  # Fast64 always uses black, let's do that for now
     elif inp.startswith("PRIM"):
-        prim = colors["primitive"]
+        prim = data["primitive"]
         if inp == "PRIM_LOD_FRAC":
             return prim["loDFraction"]
         if inp == "PRIMITIVE_ALPHA":
             return prim["color"][3]
     elif inp == "ENV_ALPHA":
-        return colors["environment"]["color"][3]
+        return data["environment"]["color"][3]
     elif inp.startswith("K"):
-        values = colors["yuvConvert"]["values"]
+        values = data["yuvConvert"]["values"]
         if inp == "K4":
             return values[4]
         if inp == "K5":
@@ -183,7 +183,7 @@ def get_color_from_input(inp: str, previous_color: Color, data: dict, is_alpha: 
         return default_color
 
 
-def fake_color_from_cycle(cycle, previous_color, data, is_alpha=False):
+def fake_color_from_cycle(cycle: list[str], previous_color: Color, data: dict, is_alpha=False):
     default_colors = [Color(1.0, 1.0, 1.0, 1.0), Color(), Color(1.0, 1.0, 1.0, 1.0), Color()]
     a, b, c, d = [
         get_color_from_input(inp, previous_color, data, is_alpha, default_color)
