@@ -267,7 +267,7 @@ class MatUpdateConvert(bpy.types.Operator):
     version = 5
     bl_idname = "object.convert_f3d_update"
     bl_label = "Recreate F3D Materials As v" + str(version)
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
+    bl_options = {"UNDO"}
 
     update_conv_all: bpy.props.BoolProperty(default=True)
 
