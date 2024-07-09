@@ -251,6 +251,8 @@ def get_attr_or_property(prop: dict | object, attr: str, newProp: dict | object)
                 # change type hint to proper type
                 newPropDef: bpy.types.EnumProperty = newPropDef
                 return newPropDef.enum_items[val].identifier
+            elif "Bool" in newPropDef.bl_rna.name: # Should be "Boolean Definition"
+                return bool(val)
         except Exception as e:
             pass
     return val
@@ -274,19 +276,15 @@ def recursiveCopyOldPropertyGroup(oldProp, newProp):
         if sub_value_attr == "rna_type":
             continue
         sub_value = get_attr_or_property(oldProp, sub_value_attr, newProp)
+        new_value = get_attr_or_property(newProp, sub_value_attr, newProp)
 
-        if isinstance(sub_value, bpy.types.PropertyGroup) or type(sub_value).__name__ in (
+        if isinstance(new_value, bpy.types.PropertyGroup) or type(new_value).__name__ in (
             "bpy_prop_collection_idprop",
             "IDPropertyGroup",
         ):
             newCollection = getattr(newProp, sub_value_attr)
             recursiveCopyOldPropertyGroup(sub_value, newCollection)
-        elif not isinstance(getattr(newProp, sub_value_attr), bpy.types.PropertyGroup) and not type(
-            getattr(newProp, sub_value_attr, None)
-        ).__name__ in (
-            "bpy_prop_collection_idprop",
-            "IDPropertyGroup",
-        ):
+        else:
             try:
                 setattr(newProp, sub_value_attr, sub_value)
             except Exception as e:
