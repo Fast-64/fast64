@@ -63,7 +63,7 @@ class SM64_Properties(PropertyGroup):
     )
     sm64_repo_settings_tab: BoolProperty(default=True, name="SM64 Repo Settings")
     disable_scroll: BoolProperty(name="Disable Scrolling Textures")
-    refresh_version: EnumProperty(items=enum_refresh_versions, name="Refresh", default="Refresh 13")
+    refresh_version: EnumProperty(items=enum_refresh_versions, name="Refresh", default="Refresh 16")
     compression_format: EnumProperty(
         items=enum_compression_formats,
         name="Compression",
