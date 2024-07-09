@@ -143,7 +143,7 @@ def convertF3DtoNewVersion(
             oldPreset = material.get("f3d_preset")
 
         update_preset_manual_v4(material, getV4PresetName(oldPreset))
-        material.is_f3d = False # TODO: We can´t just lock, so make this temporarly false
+        material.is_f3d = False  # TODO: We can´t just lock, so make this temporarly false
         # Convert before node tree changes, as old materials store some values in the actual nodes
         if material.mat_ver <= 3:
             convertToNewMat(material, material)
