@@ -143,14 +143,15 @@ def convertF3DtoNewVersion(
             oldPreset = material.get("f3d_preset")
 
         update_preset_manual_v4(material, getV4PresetName(oldPreset))
-        material.is_f3d = False  # TODO: We can´t just lock, so make this temporarly false
+        # HACK: We can´t just lock, so make is_f3d temporarly false
+        material.is_f3d, material.f3d_update_flag = False, True
         # Convert before node tree changes, as old materials store some values in the actual nodes
         if material.mat_ver <= 3:
             convertToNewMat(material, material)
 
         node_tree_copy(f3d_node_tree, material.node_tree)
 
-        material.is_f3d = True
+        material.is_f3d, material.f3d_update_flag = True, False
         material.mat_ver = 5
 
         with bpy.context.temp_override(material=material):
