@@ -4658,7 +4658,7 @@ class F3DMaterialProperty(PropertyGroup):
         if self.rdp_settings.using_fog:
             data["fog"] = {
                 "set": self.set_fog,
-                "color": get_clean_color(self.fog_color),
+                "color": get_clean_color(self.fog_color, include_alpha=True),
                 "range": list(self.fog_position),
             }
         if self.rdp_settings.g_lighting:
@@ -4698,7 +4698,7 @@ class F3DMaterialProperty(PropertyGroup):
         fog = data.get("fog", {})
         self.set_fog = fog.get("set", self.set_fog)
         if "color" in fog:
-            self.fog_color = fog.get("color") + [1.0]
+            self.fog_color = fog.get("color")
         self.fog_position = fog.get("range", list(self.fog_position))
         blend = data.get("blend", {})
         self.set_blend = blend.get("set", self.set_blend)
