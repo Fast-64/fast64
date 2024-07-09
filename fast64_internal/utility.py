@@ -251,7 +251,7 @@ def get_attr_or_property(prop: dict | object, attr: str, newProp: dict | object)
                 # change type hint to proper type
                 newPropDef: bpy.types.EnumProperty = newPropDef
                 return newPropDef.enum_items[val].identifier
-            elif "Bool" in newPropDef.bl_rna.name: # Should be "Boolean Definition"
+            elif "Bool" in newPropDef.bl_rna.name:  # Should be "Boolean Definition"
                 return bool(val)
         except Exception as e:
             pass
