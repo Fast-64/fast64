@@ -202,7 +202,7 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
         default=True,
     )
 
-    internal_game_update_ver: bpy.props.IntProperty(default=0) # Internal
+    internal_game_update_ver: bpy.props.IntProperty(default=0)
 
 
 class Fast64_Properties(bpy.types.PropertyGroup):
