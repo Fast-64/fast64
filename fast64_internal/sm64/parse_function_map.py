@@ -14,7 +14,10 @@ def parse_func_map():
     nextLine = mapfile.readline()
     while nextLine != "" and nextLine != "Linker script and memory map\n":
         nextLine = mapfile.readline()
-    while nextLine != "" and nextLine != " build/us/src/menu/level_select_menu.o(.text)\n":
+    while nextLine != "" and nextLine not in {
+        " build/us/src/menu/level_select_menu.o(.text)\n",
+        " build/us/src/menu/title_screen.o(.text)\n",
+    }:
         if nextLine[:17] == " " * 16 + "0":
             outfile.write('\t\t"' + nextLine[26:34] + '" : ')
             searchName = nextLine[34:]
