@@ -176,21 +176,7 @@
                     "description": "When toggled the material should update the current environment color"
                 },
                 "color": {
-                    "type": "array",
-                    "description": "The color is linear instead of sRGB, it must be converted to sRGB for n64.",
-                    "items": {
-                        "type": "number",
-                        "minimum": 0.0,
-                        "maximum": 1.0
-                    },
-                    "minItems": 4,
-                    "maxItems": 4,
-                    "default": [
-                        1.0,
-                        1.0,
-                        1.0,
-                        1.0
-                    ]
+                    "$ref": "color.schema.json"
                 }
             }
         },
@@ -203,21 +189,7 @@
                     "description": "When toggled the material should update the current primitive color"
                 },
                 "color": {
-                    "type": "array",
-                    "description": "The color is linear instead of sRGB, it must be converted to sRGB for n64.",
-                    "items": {
-                        "type": "number",
-                        "minimum": 0.0,
-                        "maximum": 1.0
-                    },
-                    "minItems": 4,
-                    "maxItems": 4,
-                    "default": [
-                        1.0,
-                        1.0,
-                        1.0,
-                        1.0
-                    ]
+                    "$ref": "color.schema.json"
                 },
                 "minLoDRatio": {
                     "type": "number",
@@ -240,20 +212,8 @@
                     "description": "When toggled the material should update the chroma key values and set the h othermode for chroma keying (G_MDSFT_COMBKEY)"
                 },
                 "center": {
-                    "type": "array",
-                    "description": "Defines the color intensity at which the key is active. The color is linear instead of sRGB, it must be converted to sRGB for n64.",
-                    "items": {
-                        "type": "number",
-                        "minimum": 0.0,
-                        "maximum": 1.0
-                    },
-                    "minItems": 3,
-                    "maxItems": 3,
-                    "default": [
-                        1.0,
-                        1.0,
-                        1.0
-                    ]
+                    "description": "Defines the color intensity at which the key is active.",
+                    "$ref": "solid_color.schema.json"
                 },
                 "scale": {
                     "type": "array",
@@ -326,21 +286,7 @@
                     "description": "When toggled the material should update the fog color and position"
                 },
                 "color": {
-                    "type": "array",
-                    "description": "The color is linear instead of sRGB, it must be converted to sRGB for n64.",
-                    "items": {
-                        "type": "number",
-                        "minimum": 0.0,
-                        "maximum": 1.0
-                    },
-                    "minItems": 4,
-                    "maxItems": 4,
-                    "default": [
-                        1.0,
-                        1.0,
-                        1.0,
-                        1.0
-                    ]
+                    "$ref": "color.schema.json"
                 },
                 "range": {
                     "type": "array",
