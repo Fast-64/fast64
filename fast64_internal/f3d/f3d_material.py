@@ -3596,6 +3596,31 @@ class RDPSettings(PropertyGroup):
         return str(self.to_dict().items())
 
 
+def draw_rdp_world_defaults(layout: UILayout, scene: Scene):
+    world = scene.world
+    if not world:
+        layout.box().label(text="No World Selected In Scene", icon="WORLD")
+        return
+    rdp_defaults = world.rdp_defaults
+    col = layout.column()
+    col.box().label(text="RDP Default Settings", icon="WORLD")
+    multilineLabel(
+        col,
+        text="If a material setting is the same as the default setting\n"
+        "it won't be set, otherwise a revert will be added.",
+    )
+    if scene.gameEditorMode == "Homebrew":
+        multilineLabel(
+            col.box(),
+            text="Homebrew mode defaults to ucode defaults,\nmake sure to set your own.",
+            icon="INFO",
+        )
+    ui_geo_mode(rdp_defaults, world, col, True)
+    ui_upper_mode(rdp_defaults, world, col, True)
+    ui_lower_mode(rdp_defaults, world, col, True)
+    ui_other(rdp_defaults, world, col, True)
+
+
 class DefaultRDPSettingsPanel(Panel):
     bl_label = "RDP Default Settings"
     bl_idname = "WORLD_PT_RDP_Default_Inspector"
@@ -3605,14 +3630,7 @@ class DefaultRDPSettingsPanel(Panel):
     bl_options = {"HIDE_HEADER"}
 
     def draw(self, context):
-        world = context.scene.world
-        layout = self.layout
-        layout.box().label(text="RDP Default Settings")
-        layout.label(text="If a material setting is a same as a default setting, then it won't be set.")
-        ui_geo_mode(world.rdp_defaults, world, layout, True)
-        ui_upper_mode(world.rdp_defaults, world, layout, True)
-        ui_lower_mode(world.rdp_defaults, world, layout, True)
-        ui_other(world.rdp_defaults, world, layout, True)
+        draw_rdp_world_defaults(self.layout, context.scene)
 
 
 class CelLevelProperty(PropertyGroup):

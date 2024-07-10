@@ -2016,8 +2016,8 @@ sm64_world_defaults = {
     },
     "otherModeH": {
         "textureFilter": "G_TF_BILERP",
-        "pipelineMode": "G_PM_1PRIMITIVE",
         "perspectiveCorrection": "G_TP_PERSP",
         "textureConvert": "G_TC_FILT",
+        "pipelineMode": "G_PM_1PRIMITIVE",
     },
 }
