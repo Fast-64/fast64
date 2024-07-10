@@ -2005,3 +2005,19 @@ marioAnimations = [
     (5737600, "207 - Forwards spinning flip"),
     (5740584, "208 - Triple jump fly"),
 ]
+
+sm64_world_defaults = {
+    "geometryMode": {
+        "zBuffer": True,
+        "shade": True,
+        "cullBack": True,
+        "lighting": True,
+        "shadeSmooth": True,
+    },
+    "otherModeH": {
+        "textureFilter": "G_TF_BILERP",
+        "pipelineMode": "G_PM_1PRIMITIVE",
+        "perspectiveCorrection": "G_TP_PERSP",
+        "textureConvert": "G_TC_FILT",
+    },
+}

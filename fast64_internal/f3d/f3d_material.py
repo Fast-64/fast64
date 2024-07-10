@@ -3052,13 +3052,13 @@ class PrimDepthSettings(PropertyGroup):
 class RDPSettings(PropertyGroup):
     g_zbuffer: bpy.props.BoolProperty(
         name="Z Buffer",
-        default=True,
+        default=False,
         update=update_node_values_with_preset,
         description="Enables calculation of Z value for primitives. Disable if not reading or writing Z-Buffer in the blender",
     )
     g_shade: bpy.props.BoolProperty(
         name="Shading",
-        default=True,
+        default=False,
         update=update_node_values_with_preset,
         description="Computes shade coordinates for primitives. Disable if not using lighting, vertex colors or fog",
     )
@@ -3090,7 +3090,7 @@ class RDPSettings(PropertyGroup):
     # v1/2 difference
     g_cull_back: bpy.props.BoolProperty(
         name="Cull Back",
-        default=True,
+        default=False,
         update=update_node_values_with_preset,
         description="Disables drawing of back faces",
     )
@@ -3132,7 +3132,7 @@ class RDPSettings(PropertyGroup):
     )
     g_lighting: bpy.props.BoolProperty(
         name="Lighting",
-        default=True,
+        default=False,
         update=update_node_values_with_preset,
         description="Enables calculating shade color using lights. Turn off for vertex colors as shade color",
     )
@@ -3156,13 +3156,13 @@ class RDPSettings(PropertyGroup):
     )
     g_shade_smooth: bpy.props.BoolProperty(
         name="Smooth Shading",
-        default=True,
+        default=False,
         update=update_node_values_with_preset,
         description="Shades primitive smoothly using interpolation between shade values for each vertex (Gouraud shading)",
     )
     g_clipping: bpy.props.BoolProperty(
         name="Clipping",
-        default=False,
+        default=True,
         update=update_node_values_with_preset,
         description="F3DEX1/LX only, exact function unknown",
     )
@@ -3194,14 +3194,14 @@ class RDPSettings(PropertyGroup):
     g_mdsft_textconv: bpy.props.EnumProperty(
         name="Texture Convert",
         items=enumTextConv,
-        default="G_TC_FILT",
+        default="G_TC_CONV",
         update=update_node_values_with_preset,
         description="Sets the function of the texture convert unit, to do texture filtering, YUV to RGB conversion, or both",
     )
     g_mdsft_text_filt: bpy.props.EnumProperty(
         name="Texture Filter",
         items=enumTextFilt,
-        default="G_TF_BILERP",
+        default="G_TF_POINT",
         update=update_node_values_without_preset,
         description="Applies your choice of filtering to texels",
     )
@@ -3235,7 +3235,7 @@ class RDPSettings(PropertyGroup):
     g_mdsft_textpersp: bpy.props.EnumProperty(
         name="Texture Perspective Correction",
         items=enumTextPersp,
-        default="G_TP_PERSP",
+        default="G_TP_NONE",
         update=update_node_values_with_preset,
         description="Turns on/off texture perspective correction",
     )
@@ -3257,7 +3257,7 @@ class RDPSettings(PropertyGroup):
     g_mdsft_pipeline: bpy.props.EnumProperty(
         name="Pipeline Span Buffer Coherency",
         items=enumPipelineMode,
-        default="G_PM_1PRIMITIVE",
+        default="G_PM_NPRIMITIVE",
         update=update_node_values_with_preset,
         description="Changes primitive rasterization timing by adding syncs after tri draws. Vanilla SM64 has synchronization issues which could cause a crash if not using 1 prim. For any modern SM64 hacking project or other game N-prim should always be used",
     )
@@ -3443,7 +3443,7 @@ class RDPSettings(PropertyGroup):
     ]
 
     geo_mode_f3dex_attributes = [
-        ("clipping", "g_clipping", False),
+        ("clipping", "g_clipping", True),
     ]
 
     geo_mode_f3dex3_attributes = [
@@ -3471,7 +3471,7 @@ class RDPSettings(PropertyGroup):
         self.attributes_from_dict(data, self.geo_mode_attributes)
 
     other_mode_h_attributes = [
-        ("alphaDither", "g_mdsft_alpha_dither", "G_AD_PATTERN"),
+        ("alphaDither", "g_mdsft_alpha_dither", "G_AD_DISABLE"),
         ("colorDither", "g_mdsft_rgb_dither", "G_CD_MAGICSQ"),
         ("chromaKey", "g_mdsft_combkey", "G_CK_NONE"),
         ("textureConvert", "g_mdsft_textconv", "G_TC_CONV"),

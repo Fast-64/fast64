@@ -14,11 +14,13 @@ from .fast64_internal.repo_settings import (
 )
 
 from .fast64_internal.sm64 import sm64_register, sm64_unregister
+from .fast64_internal.sm64.sm64_constants import sm64_world_defaults
 from .fast64_internal.sm64.settings.properties import SM64_Properties
 from .fast64_internal.sm64.sm64_geolayout_bone import SM64_BoneProperties
 from .fast64_internal.sm64.sm64_objects import SM64_ObjectProperties
 
 from .fast64_internal.oot import OOT_Properties, oot_register, oot_unregister
+from .fast64_internal.oot.oot_constants import oot_world_defaults
 from .fast64_internal.oot.props_panel_main import OOT_ObjectProperties
 from .fast64_internal.utility_anim import utility_anim_register, utility_anim_unregister, ArmatureApplyWithMeshOperator
 
@@ -200,6 +202,8 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
         default=True,
     )
 
+    internal_game_update_ver: bpy.props.IntProperty(default=0) # Internal
+
 
 class Fast64_Properties(bpy.types.PropertyGroup):
     """
@@ -333,6 +337,9 @@ def upgrade_changed_props():
     SM64_ObjectProperties.upgrade_changed_props()
     OOT_ObjectProperties.upgrade_changed_props()
     for scene in bpy.data.scenes:
+        if scene.fast64.settings.internal_game_update_ver != 1:
+            gameEditorUpdate(scene, bpy.context)
+            scene.fast64.settings.internal_game_update_ver = 1
         if scene.get("decomp_compatible", False):
             scene.gameEditorMode = "Homebrew"
             del scene["decomp_compatible"]
@@ -355,10 +362,15 @@ def after_load(_a, _b):
 
 
 def gameEditorUpdate(self, context):
+    world_defaults = {}
     if self.gameEditorMode == "SM64":
-        self.f3d_type = "F3D"
+        self.f3d_type, world_defaults = "F3D", sm64_world_defaults
     elif self.gameEditorMode == "OOT":
-        self.f3d_type = "F3DEX2/LX2"
+        self.f3d_type, world_defaults = "F3DEX2/LX2", oot_world_defaults
+    elif self.gameEditorMode == "Homebrew":
+        self.f3d_type, world_defaults = "F3D", {}  # This will set some pretty bad defaults, but trust the user
+    if self.world:
+        self.world.rdp_defaults.from_dict(world_defaults)
 
 
 # called on add-on enabling
