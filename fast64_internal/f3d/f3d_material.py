@@ -3510,14 +3510,14 @@ class RDPSettings(PropertyGroup):
     geo_mode_all_attributes = [
         ("zBuffer", "g_zbuffer", False),
         ("shade", "g_shade", False),
+        ("shadeSmooth", "g_shade_smooth", False),
         ("cullFront", "g_cull_front", False),
         ("cullBack", "g_cull_back", False),
         ("fog", "g_fog", False),
         ("lighting", "g_lighting", False),
         ("texGen", "g_tex_gen", False),
         ("texGenLinear", "g_tex_gen_linear", False),
-        ("lod", "g_lod", False),
-        ("shadeSmooth", "g_shade_smooth", False),
+        ("loD", "g_lod", False),
     ]
 
     geo_mode_f3dex_attributes = [

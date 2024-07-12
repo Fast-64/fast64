@@ -333,6 +333,61 @@
                     "description": "Defaults to the main light's color devided by 4.672"
                 }
             }
+        },
+        "geometryMode": {
+            "type": "object",
+            "properties": {
+                "zBuffer": {
+                    "type": "boolean",
+                    "description": "Enables calculation of Z value for primitives. Disable if not reading or writing Z-Buffer in the blender",
+                    "default": false
+                },
+                "shade": {
+                    "type": "boolean",
+                    "description": "EComputes shade coordinates for primitives. Disable if not using lighting, vertex colors or fog",
+                    "default": false
+                },
+                "shadeSmooth": {
+                    "type": "boolean",
+                    "description": "Shades primitive smoothly using interpolation between shade values for each vertex (Gouraud shading)",
+                    "default": false
+                },
+                "cullFront": {
+                    "type": "boolean",
+                    "description": "Cull front faces",
+                    "default": false
+                },
+                "cullBack": {
+                    "type": "boolean",
+                    "description": "Cull back faces",
+                    "default": false
+                },
+                "fog": {
+                    "type": "boolean",
+                    "description": "Turns on/off fog calculation. Fog variable gets stored into shade alpha",
+                    "default": false
+                },
+                "lighting": {
+                    "type": "boolean",
+                    "description": "Enables calculating shade color using lights. Turn off for vertex colors as shade color",
+                    "default": false
+                },
+                "texGen": {
+                    "type": "boolean",
+                    "description": "Generates texture coordinates for reflection mapping based on vertex normals and lookat direction. On a skybox texture, maps the sky to the center of the texture and the ground to a circle inscribed in the border. Requires lighting enabled to use",
+                    "default": false
+                },
+                "texGenLinear": {
+                    "type": "boolean",
+                    "description": "Modifies the texgen mapping; enable with texgen. Use a normal panorama image for the texture, with the sky at the top and the ground at the bottom. Requires lighting enabled to use",
+                    "default": false
+                },
+                "loD": {
+                    "type": "boolean",
+                    "description": "Not implemented in any known microcodes. No effect whether enabled or disabled",
+                    "default": false
+                }
+            }
         }
     }
 }
