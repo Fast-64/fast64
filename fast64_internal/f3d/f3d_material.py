@@ -416,8 +416,6 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
                 c.label(text=textOrProp)
             else:
                 c.prop(settings, textOrProp)
-                if not getattr(settings, textOrProp):
-                    return None
             c = c.split(factor=0.1)
             c.label(text="")
             c = c.column(align=True)
@@ -439,16 +437,18 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
         inputGroup.prop(settings, "g_shade_smooth")
 
         c = indentGroup(inputGroup, "g_lighting", False)
-        if c is not None:
-            if ccWarnings and not shadeInCC and not settings.g_tex_gen:
-                c.label(text="Shade not used in CC, can disable lighting.", icon="INFO")
-            if isF3DEX3:
-                c.prop(settings, "g_packed_normals")
-                c.prop(settings, "g_lighting_specular")
-                c.prop(settings, "g_ambocclusion")
-            d = indentGroup(c, "g_tex_gen", False)
-            if d is not None:
-                d.prop(settings, "g_tex_gen_linear")
+        if ccWarnings and not shadeInCC and not settings.g_tex_gen:
+            c.label(text="Shade not used in CC, can disable lighting.", icon="INFO")
+        if not settings.g_lighting:
+            c.label(text="Lighting disabled, following properties will do nothing.", icon="INFO")
+        if isF3DEX3:
+            c.prop(settings, "g_packed_normals")
+            c.prop(settings, "g_lighting_specular")
+            c.prop(settings, "g_ambocclusion")
+        d = indentGroup(c, "g_tex_gen", False)
+        d.prop(settings, "g_tex_gen_linear")
+        if not settings.g_tex_gen and settings.g_tex_gen_linear:
+            d.label(text="Texture UV Generation is disabled, linear will do nothing.", icon="INFO")
 
         if lightFxPrereq and settings.g_fresnel_color:
             shadeColorLabel = "Fresnel"
@@ -1733,7 +1733,7 @@ def update_node_values_of_material(material: Material, context):
 
     nodes = material.node_tree.nodes
 
-    if f3dMat.rdp_settings.g_tex_gen:
+    if f3dMat.rdp_settings.g_lighting and f3dMat.rdp_settings.g_tex_gen:
         if f3dMat.rdp_settings.g_tex_gen_linear:
             nodes["UV"].node_tree = bpy.data.node_groups["UV_EnvMap_Linear"]
         else:
@@ -2074,7 +2074,8 @@ def update_tex_values_manual(material: Material, context, prop_path=None):
     elif texture_settings.mute:
         texture_settings.mute = False
 
-    isTexGen = f3dMat.rdp_settings.g_tex_gen  # linear requires tex gen to be enabled as well
+    # linear requires tex gen to be enabled as well
+    isTexGen = f3dMat.rdp_settings.g_lighting and f3dMat.rdp_settings.g_texture_gen
 
     if f3dMat.scale_autoprop:
         if isTexGen:
