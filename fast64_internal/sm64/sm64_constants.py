@@ -34,6 +34,7 @@ commonGeolayoutPointers = {
     "Lakitu": [1985520, "CC"],
 }
 
+
 level_enums = [
     ("HH", "Big Boo's Haunt", "HH"),  # Originally Haunted House
     ("CCM", "Cool Cool Mountain", "CCM"),
