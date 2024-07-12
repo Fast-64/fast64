@@ -154,9 +154,9 @@ def convertF3DtoNewVersion(
         material.is_f3d, material.f3d_update_flag = True, False
         material.mat_ver = 5
 
+        createScenePropertiesForMaterial(material)
         with bpy.context.temp_override(material=material):
             update_all_node_values(material, bpy.context)  # Reload everything
-        createScenePropertiesForMaterial(material)
 
     except Exception as exc:
         print("Failed to upgrade", material.name)

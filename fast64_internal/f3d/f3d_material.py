@@ -2572,8 +2572,8 @@ class RecreateF3DNodes(Operator):
             self.report({"ERROR"}, "No active material.")
         else:
             node_tree_copy(get_f3d_node_tree(), material.node_tree)
-            update_all_node_values(material, context)
             createScenePropertiesForMaterial(material)
+            update_all_node_values(material, context)
             self.report({"INFO"}, "Success!")
         return {"FINISHED"}
 
