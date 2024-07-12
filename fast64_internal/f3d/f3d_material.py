@@ -3567,7 +3567,7 @@ class RDPSettings(PropertyGroup):
         self.attributes_from_dict(data, self.geo_mode_attributes)
 
     other_mode_h_attributes = [
-        ("alphaDither", "g_mdsft_alpha_dither", "G_AD_PATTERN"),
+        ("alphaDither", "g_mdsft_alpha_dither", "G_AD_DISABLE"),
         ("colorDither", "g_mdsft_rgb_dither", "G_CD_MAGICSQ"),
         ("chromaKey", "g_mdsft_combkey", "G_CK_NONE"),
         ("textureConvert", "g_mdsft_textconv", "G_TC_CONV"),

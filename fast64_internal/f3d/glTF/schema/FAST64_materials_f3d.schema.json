@@ -388,6 +388,111 @@
                     "default": false
                 }
             }
+        },
+        "otherModeH": {
+            "type": "object",
+            "properties": {
+                "alphaDither": {
+                    "type": "string",
+                    "description": "Applies your choice dithering type to output framebuffer alpha. Dithering is used to convert high precision source colors into lower precision framebuffer values",
+                    "default": "G_AD_DISABLE",
+                    "enum": [
+                        "G_AD_PATTERN",
+                        "G_AD_NOTPATTERN",
+                        "G_AD_NOISE",
+                        "G_AD_DISABLE"
+                    ]
+                },
+                "colorDither": {
+                    "type": "string",
+                    "description": "Applies your choice dithering type to output framebuffer color. Dithering is used to convert high precision source colors into lower precision framebuffer values",
+                    "default": "G_CD_MAGICSQ",
+                    "enum": [
+                        "G_CD_MAGICSQ",
+                        "G_CD_BAYER",
+                        "G_CD_NOISE",
+                        "G_CD_DISABLE",
+                        "G_CD_ENABLE"
+                    ]
+                },
+                "chromaKey": {
+                    "type": "string",
+                    "description": "Turns on/off the chroma key. Chroma key requires a special setup to work properly",
+                    "default": "G_CK_NONE",
+                    "enum": [
+                        "G_CK_NONE",
+                        "G_CK_KEY"
+                    ]
+                },
+                "textureConvert": {
+                    "type": "string",
+                    "description": "Sets the function of the texture convert unit, to do texture filtering, YUV to RGB conversion, or both",
+                    "default": "G_TC_CONV",
+                    "enum": [
+                        "G_TC_CONV",
+                        "G_TC_FILTCONV",
+                        "G_TC_FILT"
+                    ]
+                },
+                "textureFilter": {
+                    "type": "string",
+                    "description": "Applies your choice of filtering to texels",
+                    "default": "G_TF_POINT",
+                    "enum": [
+                        "G_TF_POINT",
+                        "G_TF_AVERAGE",
+                        "G_TF_BILERP"
+                    ]
+                },
+                "textureLoD": {
+                    "type": "string",
+                    "description": "Turns on/off the use of LoD on textures. LoD textures change the used tile based on the texel/pixel ratio",
+                    "default": "G_TL_TILE",
+                    "enum": [
+                        "G_TL_TILE",
+                        "G_TL_LOD"
+                    ]
+                },
+                "textureDetail": {
+                    "type": "string",
+                    "description": "Changes type of LoD usage. Affects how tiles are selected based on texel magnification. Only works when G_TL_LOD is selected",
+                    "default": "G_TD_CLAMP",
+                    "enum": [
+                        "G_TD_CLAMP",
+                        "G_TD_SHARPEN",
+                        "G_TD_DETAIL"
+                    ]
+                },
+                "perspectiveCorrection": {
+                    "type": "string",
+                    "description": "ATurns on/off texture perspective correction",
+                    "default": "G_TP_NONE",
+                    "enum": [
+                        "G_TP_NONE",
+                        "G_TP_PERSP"
+                    ]
+                },
+                "cycleType": {
+                    "type": "string",
+                    "description": "Changes RDP pipeline configuration. For normal textured triangles use one or two cycle mode",
+                    "default": "G_CYC_1CYCLE",
+                    "enum": [
+                        "G_CYC_1CYCLE",
+                        "G_CYC_2CYCLES",
+                        "G_CYC_COPY",
+                        "G_CYC_FILL"
+                    ]
+                },
+                "pipelineMode": {
+                    "type": "string",
+                    "description": "Changes primitive rasterization timing by adding syncs after tri draws.",
+                    "default": "G_PM_1PASS",
+                    "enum": [
+                        "G_PM_1PRIMITIVE",
+                        "G_PM_NPRIMITIVE"
+                    ]
+                }
+            }
         }
     }
 }
