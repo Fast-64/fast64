@@ -493,6 +493,23 @@
                     ]
                 }
             }
+        },
+        "other": {
+            "type": "object",
+            "properties": {
+                "clipRatio": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 32767,
+                    "default": 1
+                },
+                "mipmapCount": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 8,
+                    "default": 2
+                }
+            }
         }
     }
 }
