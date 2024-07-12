@@ -279,7 +279,7 @@
         },
         "fog": {
             "type": "object",
-            "description": "The fog color and range, updates SHADE_ALPHA in the combiner",
+            "description": "The fog color and range",
             "properties": {
                 "set": {
                     "type": "boolean",
