@@ -4591,24 +4591,23 @@ class F3DMaterialProperty(PropertyGroup):
             self.cel_shading.from_dict(cel_shading)
 
     def lights_to_dict(self, use_dict: dict[str]):
-        def add_fast64_f3d_light_to_list(light: bpy.types.Light, lights):
+        if not (use_dict["Shade"] and self.rdp_settings.g_lighting and self.set_lights):
+            return {}
+        lights = []
+        def add_fast64_f3d_light_to_list(light: bpy.types.Light, light_list: list = lights):
             if light is None:
                 return
             for obj in bpy.context.scene.objects:
                 if obj.data == light.original:
-                    lights.append(
+                    light_list.append(
                         {
-                            "color": list(light.color),
+                            "color": get_clean_color(light.color),
                             "direction": list(getObjDirectionVec(obj, True)),
                         }
                     )
-
-        if not (use_dict["Shade"] and self.rdp_settings.g_lighting and self.set_lights):
-            return {}
-        lights: list[dict[str, list[float]]] = []
         ambient = get_clean_color(self.ambient_light_color, True)
         if self.use_default_lighting:
-            lights.append({"color": get_clean_color(self.default_light_color, True)})
+            lights.append({"color": get_clean_color(self.default_light_color)})
             if self.set_ambient_from_light:
                 ambient = None
         else:
@@ -4662,7 +4661,7 @@ class F3DMaterialProperty(PropertyGroup):
                 "range": list(self.fog_position),
             }
         if self.rdp_settings.g_lighting:
-            data["lighting"] = {"set": self.set_lights, **self.lights_to_dict(use_dict)}
+            data["lights"] = {"set": self.set_lights, **self.lights_to_dict(use_dict)}
         data["blend"] = {
             "set": self.set_blend,
             "color": get_clean_color(self.blend_color, include_alpha=True),
@@ -4704,7 +4703,7 @@ class F3DMaterialProperty(PropertyGroup):
         self.set_blend = blend.get("set", self.set_blend)
         if "color" in blend:
             self.blend_color = blend.get("color")
-        lighting = data.get("lighting", {})
+        lighting = data.get("lights", {})
         self.set_lights = lighting.get("set", self.set_lights)
         self.lights_from_dict(lighting)
 

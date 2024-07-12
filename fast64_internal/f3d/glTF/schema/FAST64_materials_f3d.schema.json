@@ -279,7 +279,7 @@
         },
         "fog": {
             "type": "object",
-            "description": "",
+            "description": "The fog color and range, updates SHADE_ALPHA in the combiner",
             "properties": {
                 "set": {
                     "type": "boolean",
@@ -301,6 +301,36 @@
                         985,
                         1000
                     ]
+                }
+            }
+        },
+        "blend": {
+            "type": "object",
+            "description": "The blend color, used in the blenderer as the input G_BL_CLR_BL",
+            "properties": {
+                "set": {
+                    "type": "boolean",
+                    "description": "When toggled the material should update the current blend color"
+                },
+                "color": {
+                    "$ref": "color.schema.json"
+                }
+            }
+        },
+        "lights": {
+            "type": "object",
+            "description": "The lighting data for the material",
+            "properties": {
+                "set": {
+                    "type": "boolean",
+                    "description": "When toggled the material should update the lighting data"
+                },
+                "lights": {
+                    "$ref": "f3d_light.schema.json"
+                },
+                "ambientColor": {
+                    "$ref": "color.schema.json",
+                    "description": "Defaults to the main light's color devided by 4.672"
                 }
             }
         }

@@ -1,0 +1,64 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema",
+    "title": "F3D Light",
+    "type": "object",
+    "description": "glTF extension that provides a representation of F3D light data. Color must be set, direction and positional are both optional but can´t be both set.",
+    "required": [
+        "color"
+    ],
+    "color": {
+        "$ref": "color.schema.json"
+    },
+    "direction": {
+        "type": "array",
+        "description": "The light's quaternion rotation in the order (x, y, z, w), where w is the scalar.",
+        "items": {
+            "type": "number"
+        },
+        "minItems": 4,
+        "maxItems": 4,
+        "default": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+        ]
+    },
+    "positional": {
+        "position": {
+            "type": "array",
+            "description": "The light's position in the order (x, y, z).",
+            "items": {
+                "type": "number"
+            },
+            "minItems": 3,
+            "maxItems": 3,
+            "default": [
+                0.0,
+                0.0,
+                0.0
+            ]
+        },
+        "constant_attenuation": {
+            "type": "integer",
+            "description": "The light's constant attenuation factor. Must be greater than 0 for the light to be recognized as a point light.",
+            "minimum": 1,
+            "maximum": 255,
+            "default": 1.0
+        },
+        "linear_attenuation": {
+            "type": "integer",
+            "description": "The light's linear attenuation factor.",
+            "minimum": 0,
+            "maximum": 255,
+            "default": 0.0
+        },
+        "quadratic_attenuation": {
+            "type": "number",
+            "description": "The light's quadratic attenuation factor.",
+            "minimum": 0,
+            "maximum": 255,
+            "default": 0.0
+        }
+    }
+}
