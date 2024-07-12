@@ -4594,6 +4594,7 @@ class F3DMaterialProperty(PropertyGroup):
         if not (use_dict["Shade"] and self.rdp_settings.g_lighting and self.set_lights):
             return {}
         lights = []
+
         def add_fast64_f3d_light_to_list(light: bpy.types.Light, light_list: list = lights):
             if light is None:
                 return
@@ -4605,6 +4606,7 @@ class F3DMaterialProperty(PropertyGroup):
                             "direction": list(getObjDirectionVec(obj, True)),
                         }
                     )
+
         ambient = get_clean_color(self.ambient_light_color, True)
         if self.use_default_lighting:
             lights.append({"color": get_clean_color(self.default_light_color)})
