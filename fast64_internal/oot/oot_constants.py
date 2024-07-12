@@ -609,7 +609,7 @@ oot_world_defaults = {
         "textureFilter": "G_TF_BILERP",
         "perspectiveCorrection": "G_TP_PERSP",
         "textureConvert": "G_TC_FILT",
-        "cycleType": "G_CYC_2CYCLE",
+        "cycleType": "G_CYC_FILL",
         "pipelineMode": "G_PM_NPRIMITIVE",
     },
 }
