@@ -11,7 +11,7 @@
     "properties": {
         "set": {
             "type": "boolean",
-            "description": "Actually load the texture image."
+            "description": "When toggled the material should actually load the texture source."
         },
         "format": {
             "type": "object",
