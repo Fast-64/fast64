@@ -469,8 +469,11 @@ class F3DGlTFSettings(PropertyGroup):
         if not self.f3d:
             return
 
-        gbi = get_F3D_GBI()
+        gbi, scene = get_F3D_GBI(), bpy.context.scene
         box = col.box().column()
+        box.label(
+            text=f"Current scene microcode: {scene.bl_rna.properties['f3d_type'].enum_items[scene.f3d_type].name}"
+        )
         extensions = [MATERIAL_EXTENSION_NAME, SAMPLER_EXTENSION_NAME, MESH_EXTENSION_NAME]
         if gbi.F3DEX_GBI:
             extensions.append(EX1_MATERIAL_EXTENSION_NAME)
