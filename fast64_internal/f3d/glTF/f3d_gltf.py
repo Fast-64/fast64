@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 import bpy
-from bpy.types import Image, NodeTree
+from bpy.types import NodeTree
 
-from ...gltf_utility import GlTF2SubExtension, find_glTF2_addon
+from ...gltf_utility import GlTF2SubExtension, get_gltf_image_from_blender_image
 from ..f3d_gbi import F3D, get_F3D_GBI
 from ..f3d_material import (
     all_combiner_uses,
@@ -18,29 +18,6 @@ from ..f3d_material import (
 
 # We import at the time of export or import, so we can assume the addon already is loaded,
 # this also makes it easy to be fully sure we get the correct version
-GLTF2_ADDDON = find_glTF2_addon()
-GLTF2_ADDON_VERSION = GLTF2_ADDDON.bl_info.get("version", (-1, -1, -1))
-
-if GLTF2_ADDON_VERSION >= (3, 6, 0):
-    if GLTF2_ADDON_VERSION:
-        from io_scene_gltf2.blender.exp.material.gltf2_blender_gather_image import __is_blender_image_a_webp
-    from io_scene_gltf2.blender.exp.material.gltf2_blender_gather_image import (
-        __gather_name,
-        __make_image,
-        __gather_uri,
-        __gather_buffer_view,
-        __is_blender_image_a_jpeg,
-    )
-    from io_scene_gltf2.blender.exp.material.extensions.gltf2_blender_image import ExportImage
-else:
-    from io_scene_gltf2.blender.exp.gltf2_blender_gather_image import (
-        __gather_name,
-        __make_image,
-        __gather_uri,
-        __gather_buffer_view,
-        __is_blender_image_a_jpeg,
-    )
-    from io_scene_gltf2.blender.exp.gltf2_blender_image import ExportImage
 
 from io_scene_gltf2.io.com import gltf2_io
 from io_scene_gltf2.blender.imp.gltf2_blender_image import BlenderImage
@@ -205,46 +182,6 @@ def get_fake_color(data: dict):
     return fake_color.to_clean_list()
 
 
-def is_blender_image_a_webp(image: Image) -> bool:
-    if GLTF2_ADDON_VERSION < (3, 6, 5):
-        return False
-    return __is_blender_image_a_webp(image)
-
-
-def __get_mime_type_of_image(name: str, export_settings: dict):
-    image = bpy.data.images[name]
-    if image.channels == 4:  # Has alpha channel, doesn´t actually check for transparency
-        if is_blender_image_a_webp(image):
-            return "image/webp"
-        return "image/png"
-
-    if export_settings["gltf_image_format"] == "AUTO":
-        if __is_blender_image_a_jpeg(image):
-            return "image/jpeg"
-        elif is_blender_image_a_webp(image):
-            return "image/webp"
-        return "image/png"
-
-    elif export_settings["gltf_image_format"] == "JPEG":
-        return "image/jpeg"
-
-
-def get_gltf_image_from_blender_image(blender_image_name: str, export_settings: dict):
-    image_data = ExportImage.from_blender_image(bpy.data.images[blender_image_name])
-
-    if bpy.app.version > (4, 1, 0):
-        name = __gather_name(image_data, None, export_settings)
-    else:
-        name = __gather_name(image_data, export_settings)
-    mime_type = __get_mime_type_of_image(blender_image_name, export_settings)
-
-    uri = __gather_uri(image_data, mime_type, name, export_settings)
-    buffer_view = __gather_buffer_view(image_data, mime_type, name, export_settings)
-
-    image = __make_image(buffer_view, None, None, mime_type, name, uri, export_settings)
-    return image
-
-
 class F3DExtensions(GlTF2SubExtension):
     f3d: F3D = None
     base_node_tree: NodeTree = None
@@ -260,7 +197,7 @@ class F3DExtensions(GlTF2SubExtension):
             self.base_node_tree = mat.node_tree.copy()
             bpy.data.materials.remove(mat)
         except Exception as exc:
-            raise Exception("Failed to import f3d material node tree") from exc
+            raise ImportError("Failed to import f3d material node tree") from exc
 
     def sampler_from_f3d(self, f3d_mat: F3DMaterialProperty, f3d_tex: TextureProperty):
         wrap = []
