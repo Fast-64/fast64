@@ -330,7 +330,7 @@
                 },
                 "ambientColor": {
                     "$ref": "color.schema.json",
-                    "description": "Defaults to the main light's color devided by 4.672"
+                    "description": "Defaults to the main light's color divided by 4.672"
                 }
             }
         },
