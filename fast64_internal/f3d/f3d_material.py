@@ -4549,7 +4549,7 @@ class F3DMaterialProperty(PropertyGroup):
         data = {}
         rdp = self.rdp_settings
         if rdp.g_ambocclusion:
-            data["ao"] = {
+            data["ambientOcclusion"] = {
                 "set": self.set_ao,
                 "ambient": self.ao_ambient,
                 "directional": self.ao_directional,
@@ -4563,13 +4563,13 @@ class F3DMaterialProperty(PropertyGroup):
         if rdp.g_attroffset_z_enable:
             attr_offset["z"] = {"set": self.set_attroffs_z, "value": self.attroffs_z}
         if attr_offset:
-            data["attrOffset"] = attr_offset
+            data["attributeOffset"] = attr_offset
         if self.use_cel_shading:
             data["celShading"] = self.cel_shading.to_dict()
         return data
 
     def f3dex3_colors_from_dict(self, data: dict):
-        ao = data.get("ao", {})
+        ao = data.get("ambientOcclusion", {})
         self.set_ao = ao.get("set", self.set_ao)
         self.ao_ambient = ao.get("ambient", self.ao_ambient)
         self.ao_directional = ao.get("directional", self.ao_directional)
@@ -4578,7 +4578,7 @@ class F3DMaterialProperty(PropertyGroup):
         self.set_fresnel = fresnel.get("set", self.set_fresnel)
         self.fresnel_lo = fresnel.get("low", self.fresnel_lo)
         self.fresnel_hi = fresnel.get("high", self.fresnel_hi)
-        attr_offset = data.get("attrOffset", {})
+        attr_offset = data.get("attributeOffset", {})
         st_attr_offset = attr_offset.get("st", {})
         self.set_attroffs_st = st_attr_offset.get("set", self.set_attroffs_st)
         self.attroffs_st = st_attr_offset.get("value", self.attroffs_st)
