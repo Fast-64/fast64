@@ -28,7 +28,7 @@ Written against the glTF 2.0 spec.
 
 This extension implements a representation of fast64 material data, which itself is an abstraction of the F3D microcode, properties from other revisions are implemented in seperate extensions:
 
-- [F3DEX1](#FAST64_materials_f3dlx)
+- [F3DLX](#FAST64_materials_f3dlx)
 - [F3DEX3](#FAST64_materials_f3dex3)
 
 ### JSON Schema
