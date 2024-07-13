@@ -16,9 +16,6 @@ from ..f3d_material import (
     TextureProperty,
 )
 
-# We import at the time of export or import, so we can assume the addon already is loaded,
-# this also makes it easy to be fully sure we get the correct version
-
 from io_scene_gltf2.io.com import gltf2_io
 from io_scene_gltf2.blender.imp.gltf2_blender_image import BlenderImage
 from io_scene_gltf2.io.com.gltf2_io_constants import TextureFilter, TextureWrap
@@ -28,6 +25,7 @@ EX1_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3dlx"
 EX3_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3dex3"
 SAMPLER_EXTENSION_NAME = "FAST64_sampler_f3d"
 MESH_EXTENSION_NAME = "FAST64_mesh_f3d_new"
+NEW_MESH_EXTENSION_NAME = "FAST64_mesh_f3d_new"
 
 EXCLUDE_FROM_NODE = (
     "rna_type",
@@ -353,7 +351,17 @@ class F3DExtensions(GlTF2SubExtension):
         data = {}
         if not self.f3d.F3D_OLD_GBI and gltf2_node.mesh:
             data["use_culling"] = blender_object.use_f3d_culling
-            self.append_extension(gltf2_node.mesh, MESH_EXTENSION_NAME, data)
+            self.append_extension(
+                gltf2_node.mesh,
+                MESH_EXTENSION_NAME,
+                {
+                    "extensions": {
+                        NEW_MESH_EXTENSION_NAME: self.extension.Extension(
+                            name=NEW_MESH_EXTENSION_NAME, extension=data, required=False
+                        )
+                    }
+                },
+            )
 
     # Importing
 
@@ -430,4 +438,7 @@ class F3DExtensions(GlTF2SubExtension):
         data = self.get_extension(gltf_node, MESH_EXTENSION_NAME)
         if data is None:
             return
-        blender_object.use_f3d_culling = data.get("use_culling", True)
+
+        new_data = data.get("extensions", {}).get(NEW_MESH_EXTENSION_NAME, None)
+        if new_data:
+            blender_object.use_f3d_culling = new_data.get("use_culling", True)

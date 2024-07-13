@@ -2,7 +2,7 @@
     "$schema": "http://json-schema.org/draft-04/schema",
     "title": "FAST64_materials_f3d glTF Material Extension",
     "type": "object",
-    "description": "glTF extension that provides a representation of F3d fast64 material data.",
+    "description": "glTF extension that provides a representation of fast64 F3D material data.",
     "allOf": [
         {
             "$ref": "glTFProperty.schema.json"
