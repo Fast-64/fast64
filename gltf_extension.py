@@ -17,12 +17,6 @@ from .fast64_internal.f3d.glTF.f3d_gltf import F3DGlTFSettings
 # Doesn´t use world defaults, as those should be left to the repo to handle.
 
 
-GAME_MODES = {
-    # "SM64": {"FAST64_node_sm64"},
-    # "OOT": {"FAST64_node_oot"},
-}
-
-
 def exception_handler_decorator(message_template=""):
     def decorator(method):
         def wrapper(self, *args, **kwargs):
@@ -92,17 +86,20 @@ class Fast64GlTFSettings(PropertyGroup):
     def draw_props(self, scene, layout: UILayout, import_context=False):
         col = layout.column()
         col.prop(self, "verbose")
+        col.separator()
+
         self.f3d.draw_props(col.box(), import_context)
+        col.separator()
 
         game_mode = scene.gameEditorMode
-        if game_mode != "Homebrew":
-            col.separator()
-            operation_text = "Import" if import_context else "Export"
-            if game_mode not in GAME_MODES:
-                col.label(text="Current game mode not implemented", icon="INFO")
+        if game_mode == "Homebrew":
+            col.box().label(text="Homebrew mode does not implement any extensions", icon="INFO")
+        else:
+            game_props = getattr(self, game_mode, None)
+            if game_props:
+                game_props.draw_props(col, import_context)
             else:
-                col.prop(self, "game", text=f"{operation_text} {game_mode} extensions")
-                multilineLabel(col.box(), ",\n".join(GAME_MODES[game_mode]))
+                col.label(text=f"Current game mode ({game_mode}) not implemented", icon="INFO")
 
 
 class Fast64GlTFPanel(Panel):
