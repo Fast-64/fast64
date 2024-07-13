@@ -3,7 +3,8 @@
 - F3D (General F3D properties)
   - [F3D (FAST64_materials_f3d)](#FAST64_materials_f3d)
   - [F3D (FAST64_sampler_f3d)](#FAST64_sampler_f3d)
-- [F3DEX1 (FAST64_materials_f3dlx)](#FAST64_materials_f3dlx)
+  - [F3D (FAST64_mesh_f3d)](#FAST64_mesh_f3d)
+- [F3DLX (FAST64_materials_f3dlx)](#FAST64_materials_f3dlx)
 - [F3DEX3 (FAST64_materials_f3dex3)](#FAST64_materials_f3dex3)
 - [F3DEX and up (FAST64_mesh_f3d_new)](#FAST64_mesh_f3d_new)
 
@@ -74,6 +75,36 @@ This extension implements a representation of how individual textures are sample
 
 * TODO: Add more resources here
 * [Texture Mapping Documentation](https://ultra64.ca/files/documentation/online-manuals/man/pro-man/pro13/index.html)
+
+---
+
+<h1 id="FAST64_mesh_f3d">FAST64_mesh_f3d</h1>
+
+## Contributors
+
+* [@Lilaa3](https://github.com/Lilaa3)
+
+## Status
+
+Draft
+
+## Dependencies
+
+Written against the glTF 2.0 spec.
+
+## Overview
+
+This extension implements a representation of fast64 mesh data, currently only contains one propertie from post F3DLX microcodes, which is implemented in a seperate extension:
+
+- [F3DEX and up](#FAST64_mesh_f3d_new)
+
+### JSON Schema
+
+- [material.FAST64_mesh_f3d.schema.json](schema/FAST64_mesh_f3d.schema.json)
+
+## Known Implementations
+
+* No current implementations
 
 ---
 
