@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 import bpy
-from bpy.types import NodeTree
+from bpy.types import NodeTree, PropertyGroup, UILayout
+from bpy.props import BoolProperty
+
+from ...utility import multilineLabel
 
 from ...gltf_utility import GlTF2SubExtension, get_gltf_image_from_blender_image
 from ..f3d_gbi import F3D, get_F3D_GBI
@@ -24,7 +27,7 @@ MATERIAL_EXTENSION_NAME = "FAST64_materials_f3d"
 EX1_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3dlx"
 EX3_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3dex3"
 SAMPLER_EXTENSION_NAME = "FAST64_sampler_f3d"
-MESH_EXTENSION_NAME = "FAST64_mesh_f3d_new"
+MESH_EXTENSION_NAME = "FAST64_mesh_f3d"
 NEW_MESH_EXTENSION_NAME = "FAST64_mesh_f3d_new"
 
 EXCLUDE_FROM_NODE = (
@@ -442,3 +445,42 @@ class F3DExtensions(GlTF2SubExtension):
         new_data = data.get("extensions", {}).get(NEW_MESH_EXTENSION_NAME, None)
         if new_data:
             blender_object.use_f3d_culling = new_data.get("use_culling", True)
+MATERIAL_EXTENSION_NAME = "FAST64_materials_f3d"
+EX1_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3dlx"
+EX3_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3dex3"
+SAMPLER_EXTENSION_NAME = "FAST64_sampler_f3d"
+MESH_EXTENSION_NAME = "FAST64_mesh_f3d"
+NEW_MESH_EXTENSION_NAME = "FAST64_mesh_f3d_new"
+
+class F3DGlTFSettings(PropertyGroup):
+    f3d: BoolProperty(default=True, name="Export F3D extensions")
+    game: BoolProperty(default=True, name="Export current game mode")
+    texture_set: BoolProperty(
+        name="No Image", description="Raise an error when a texture needs to be set but there is no image", default=True
+    )
+    texture_limitations: BoolProperty(name="Texture Limitations", default=True)
+    def draw_props(self, layout: UILayout, import_context=False):
+        col = layout.column()
+        col.prop(self, "f3d", text=f"{'Import' if import_context else 'Export'} F3D extensions")
+        if not self.f3d:
+            return
+
+        gbi = get_F3D_GBI()
+        box = col.box().column()
+        extensions = [MATERIAL_EXTENSION_NAME, SAMPLER_EXTENSION_NAME, MESH_EXTENSION_NAME]
+        if gbi.F3DEX_GBI:
+            extensions.append(EX1_MATERIAL_EXTENSION_NAME)
+        if gbi.F3DEX_GBI_3:
+            extensions.append(EX3_MATERIAL_EXTENSION_NAME)
+        if not gbi.F3D_OLD_GBI:
+            extensions.append(NEW_MESH_EXTENSION_NAME)
+        multilineLabel(
+            box,
+            ",\n".join(extensions),
+        )
+
+        box = col.box().column()
+        box.box().label(text="Errors", icon="ERROR")
+        row = box.row()
+        row.prop(self, "texture_set", toggle=True)
+        row.prop(self, "texture_limitations", toggle=True)
