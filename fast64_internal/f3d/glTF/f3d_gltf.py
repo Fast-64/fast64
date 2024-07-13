@@ -445,12 +445,15 @@ class F3DExtensions(GlTF2SubExtension):
         new_data = data.get("extensions", {}).get(NEW_MESH_EXTENSION_NAME, None)
         if new_data:
             blender_object.use_f3d_culling = new_data.get("use_culling", True)
+
+
 MATERIAL_EXTENSION_NAME = "FAST64_materials_f3d"
 EX1_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3dlx"
 EX3_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3dex3"
 SAMPLER_EXTENSION_NAME = "FAST64_sampler_f3d"
 MESH_EXTENSION_NAME = "FAST64_mesh_f3d"
 NEW_MESH_EXTENSION_NAME = "FAST64_mesh_f3d_new"
+
 
 class F3DGlTFSettings(PropertyGroup):
     f3d: BoolProperty(default=True, name="Export F3D extensions")
@@ -459,6 +462,7 @@ class F3DGlTFSettings(PropertyGroup):
         name="No Image", description="Raise an error when a texture needs to be set but there is no image", default=True
     )
     texture_limitations: BoolProperty(name="Texture Limitations", default=True)
+
     def draw_props(self, layout: UILayout, import_context=False):
         col = layout.column()
         col.prop(self, "f3d", text=f"{'Import' if import_context else 'Export'} F3D extensions")
@@ -474,13 +478,10 @@ class F3DGlTFSettings(PropertyGroup):
             extensions.append(EX3_MATERIAL_EXTENSION_NAME)
         if not gbi.F3D_OLD_GBI:
             extensions.append(NEW_MESH_EXTENSION_NAME)
-        multilineLabel(
-            box,
-            ",\n".join(extensions),
-        )
+        multilineLabel(box, ",\n".join(extensions))
 
         box = col.box().column()
-        box.box().label(text="Errors", icon="ERROR")
+        box.box().label(text="Raise Errors:", icon="ERROR")
         row = box.row()
         row.prop(self, "texture_set", toggle=True)
         row.prop(self, "texture_limitations", toggle=True)

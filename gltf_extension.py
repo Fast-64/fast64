@@ -88,13 +88,12 @@ class Fast64GlTFSettings(PropertyGroup):
     verbose: BoolProperty(name="Verbose", description="Print all appended extension data, useful for troubleshooting")
     f3d: PointerProperty(type=F3DGlTFSettings)
     game: BoolProperty(default=True, name="Export current game mode")
-    
 
     def draw_props(self, scene, layout: UILayout, import_context=False):
         col = layout.column()
         col.prop(self, "verbose")
         self.f3d.draw_props(col.box(), import_context)
-        
+
         game_mode = scene.gameEditorMode
         if game_mode != "Homebrew":
             col.separator()
