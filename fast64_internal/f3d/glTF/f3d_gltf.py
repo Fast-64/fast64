@@ -470,9 +470,9 @@ class F3DGlTFSettings(PropertyGroup):
             return
 
         gbi, scene = get_F3D_GBI(), bpy.context.scene
-        box = col.box().column()
-        box.label(
-            text=f"Current scene microcode: {scene.bl_rna.properties['f3d_type'].enum_items[scene.f3d_type].name}"
+        col.box().label(
+            text=f"Scene Microcode: {scene.bl_rna.properties['f3d_type'].enum_items[scene.f3d_type].name}",
+            icon="INFO",
         )
         extensions = [MATERIAL_EXTENSION_NAME, SAMPLER_EXTENSION_NAME, MESH_EXTENSION_NAME]
         if gbi.F3DEX_GBI:
@@ -481,7 +481,8 @@ class F3DGlTFSettings(PropertyGroup):
             extensions.append(EX3_MATERIAL_EXTENSION_NAME)
         if not gbi.F3D_OLD_GBI:
             extensions.append(NEW_MESH_EXTENSION_NAME)
-        multilineLabel(box, ",\n".join(extensions))
+        multilineLabel(col.box(), ",\n".join(extensions))
+        col.separator()
 
         box = col.box().column()
         box.box().label(text="Raise Errors:", icon="ERROR")
