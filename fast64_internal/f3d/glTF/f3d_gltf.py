@@ -453,11 +453,11 @@ class F3DExtensions(GlTF2SubExtension):
             f3d_mat.extra_texture_settings_from_dict(data)
 
             ex1_data = data.get("extensions", {}).get(EX1_MATERIAL_EXTENSION_NAME, None)
-            if ex1_data is not None: # F3DLX
+            if ex1_data is not None:  # F3DLX
                 f3d_mat.rdp_settings.f3dex1_geo_mode_from_dict(ex1_data.get("geometryMode", {}))
 
             ex3_data = data.get("extensions", {}).get(EX3_MATERIAL_EXTENSION_NAME, None)
-            if ex3_data is not None: # F3DEX3
+            if ex3_data is not None:  # F3DEX3
                 f3d_mat.rdp_settings.f3dex3_geo_mode_from_dict(ex3_data.get("geometryMode", {}))
                 f3d_mat.f3dex3_colors_from_dict(ex3_data)
 

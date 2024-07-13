@@ -510,6 +510,17 @@
                     "default": 2
                 }
             }
+        },
+        "extensions": {
+            "type": "object",
+            "properties": {
+                "FAST64_materials_f3dlx": {
+                    "$ref": "FAST64_materials_f3dlx.schema.json"
+                },
+                "FAST64_materials_f3dex3": {
+                    "$ref": "FAST64_materials_f3dex3.schema.json"
+                }
+            }
         }
     }
 }

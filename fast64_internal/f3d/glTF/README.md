@@ -89,7 +89,7 @@ Draft
 
 ## Dependencies
 
-Written against the glTF 2.0 spec.
+Extension of FAST64_materials_f3d
 
 ## Overview
 
@@ -121,7 +121,7 @@ Draft
 
 ## Dependencies
 
-Written against the glTF 2.0 spec.
+Extension of FAST64_materials_f3d
 
 ## Overview
 
