@@ -383,23 +383,22 @@ class F3DExtensions(GlTF2SubExtension):
             textures["0"] = self.f3d_to_glTF2_texture_info(f3d_mat, f3d_mat.tex0, export_settings)
         if use_dict["Texture 1"]:
             textures["1"] = self.f3d_to_glTF2_texture_info(f3d_mat, f3d_mat.tex1, export_settings)
+
+        data["extensions"] = {}
+        if self.f3d.F3DEX_GBI:  # F3DLX
+            data["extensions"][EX1_MATERIAL_EXTENSION_NAME] = self.extension.Extension(
+                name=EX1_MATERIAL_EXTENSION_NAME,
+                extension={"geometryMode": rdp.f3dlx_geo_mode_to_dict()},
+                required=False,
+            )
+        if self.f3d.F3DEX_GBI_3:  # F3DEX3
+            data["extensions"][EX3_MATERIAL_EXTENSION_NAME] = self.extension.Extension(
+                name=EX3_MATERIAL_EXTENSION_NAME,
+                extension={"geometryMode": rdp.f3dex3_geo_mode_to_dict(), **f3d_mat.f3dex3_colors_to_dict()},
+                required=False,
+            )
+
         self.append_extension(gltf2_material, MATERIAL_EXTENSION_NAME, data)
-
-        # F3DEX1
-        if self.f3d.F3DEX_GBI:
-            self.append_extension(
-                gltf2_material,
-                EX1_MATERIAL_EXTENSION_NAME,
-                {"geometryMode": rdp.f3dex1_geo_mode_to_dict()},
-            )
-
-        # F3DEX3
-        if self.f3d.F3DEX_GBI_3:
-            self.append_extension(
-                gltf2_material,
-                EX3_MATERIAL_EXTENSION_NAME,
-                {"geometryMode": rdp.f3dex3_geo_mode_to_dict(), **f3d_mat.f3dex3_colors_to_dict()},
-            )
 
         # glTF Standard
         pbr = gltf2_material.pbr_metallic_roughness
@@ -453,14 +452,12 @@ class F3DExtensions(GlTF2SubExtension):
             f3d_mat.rdp_settings.from_dict(data)
             f3d_mat.extra_texture_settings_from_dict(data)
 
-            # F3DEX1
-            ex1_data = self.get_extension(gltf_material, EX1_MATERIAL_EXTENSION_NAME)
-            if ex1_data is not None:
+            ex1_data = data.get("extensions", {}).get(EX1_MATERIAL_EXTENSION_NAME, None)
+            if ex1_data is not None: # F3DLX
                 f3d_mat.rdp_settings.f3dex1_geo_mode_from_dict(ex1_data.get("geometryMode", {}))
 
-            # F3DEX3
-            ex3_data = self.get_extension(gltf_material, EX3_MATERIAL_EXTENSION_NAME)
-            if ex3_data is not None:
+            ex3_data = data.get("extensions", {}).get(EX3_MATERIAL_EXTENSION_NAME, None)
+            if ex3_data is not None: # F3DEX3
                 f3d_mat.rdp_settings.f3dex3_geo_mode_from_dict(ex3_data.get("geometryMode", {}))
                 f3d_mat.f3dex3_colors_from_dict(ex3_data)
 

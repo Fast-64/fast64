@@ -3542,7 +3542,7 @@ class RDPSettings(PropertyGroup):
     def f3d_geo_mode_from_dict(self, data: dict):
         self.attributes_from_dict(data, self.geo_mode_all_attributes)
 
-    def f3dex1_geo_mode_to_dict(self):
+    def f3dlx_geo_mode_to_dict(self):
         return self.attributes_to_dict(self.geo_mode_f3dex_attributes)
 
     def f3dex1_geo_mode_from_dict(self, data: dict):
@@ -3558,7 +3558,7 @@ class RDPSettings(PropertyGroup):
         f3d = f3d if f3d else get_F3D_GBI()
         data = self.f3d_geo_mode_to_dict()
         if f3d.F3DEX_GBI or f3d.F3DLP_GBI:
-            data.update(self.f3dex1_geo_mode_to_dict())
+            data.update(self.f3dlx_geo_mode_to_dict())
         if f3d.F3DEX_GBI_3:
             data.update(self.f3dex3_geo_mode_to_dict())
         return data

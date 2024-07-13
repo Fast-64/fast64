@@ -37,6 +37,7 @@ class GlTF2SubExtension:
             extension=data if data else {},
             required=required if required else self.required,
         )
+        return gltf_prop.extensions[name]
 
     def get_extension(self, gltf_prop, name: str):
         if gltf_prop.extensions is None:
