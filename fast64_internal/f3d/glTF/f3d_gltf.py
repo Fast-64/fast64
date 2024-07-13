@@ -47,7 +47,7 @@ from io_scene_gltf2.blender.imp.gltf2_blender_image import BlenderImage
 from io_scene_gltf2.io.com.gltf2_io_constants import TextureFilter, TextureWrap
 
 MATERIAL_EXTENSION_NAME = "FAST64_materials_f3d"
-EX1_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3dex1"
+EX1_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3dlx"
 EX3_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3dex3"
 SAMPLER_EXTENSION_NAME = "FAST64_sampler_f3d"
 MESH_EXTENSION_NAME = "FAST64_mesh_f3d_new"

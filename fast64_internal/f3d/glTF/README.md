@@ -3,7 +3,7 @@
 - F3D (General F3D properties)
   - [F3D (FAST64_materials_f3d)](#FAST64_materials_f3d)
   - [F3D (FAST64_sampler_f3d)](#FAST64_sampler_f3d)
-- [F3DEX1 (FAST64_materials_f3dex1)](#FAST64_materials_f3dex1)
+- [F3DEX1 (FAST64_materials_f3dlx)](#FAST64_materials_f3dlx)
 - [F3DEX3 (FAST64_materials_f3dex3)](#FAST64_materials_f3dex3)
 - [F3DEX and up (FAST64_mesh_f3d_new)](#FAST64_mesh_f3d_new)
 
@@ -27,7 +27,7 @@ Written against the glTF 2.0 spec.
 
 This extension implements a representation of fast64 material data, which itself is an abstraction of the F3D microcode, properties from other revisions are implemented in seperate extensions:
 
-- [F3DEX1](#FAST64_materials_f3dex1)
+- [F3DEX1](#FAST64_materials_f3dlx)
 - [F3DEX3](#FAST64_materials_f3dex3)
 
 ### JSON Schema
@@ -77,7 +77,7 @@ This extension implements a representation of how individual textures are sample
 
 ---
 
-<h1 id="FAST64_materials_f3dex1">FAST64_materials_f3dex1</h1>
+<h1 id="FAST64_materials_f3dlx">FAST64_materials_f3dlx</h1>
 
 ## Contributors
 
@@ -97,7 +97,7 @@ This extension implements f3dex1 material features, which only differs in the in
 
 ### JSON Schema
 
-- [material.FAST64_materials_f3dex1.schema.json](schema/FAST64_materials_f3dex1.schema.json)
+- [material.FAST64_materials_f3dlx.schema.json](schema/FAST64_materials_f3dlx.schema.json)
 
 ## Known Implementations
 
@@ -125,7 +125,7 @@ Written against the glTF 2.0 spec.
 
 ## Overview
 
-This extension implements F3DEX3 material features such as ambient occulsion, fresnel, attribute offsets and cel shading. F3DEX3 is based of F3DEX2 but does not include G_CLIPPING as an optional geometry mode, fast64 will never export both FAST64_materials_f3dex1 and FAST64_materials_f3dex3.
+This extension implements F3DEX3 material features such as ambient occulsion, fresnel, attribute offsets and cel shading. F3DEX3 is based of F3DEX2 but does not include G_CLIPPING as an optional geometry mode, fast64 will never export both FAST64_materials_f3dlx and FAST64_materials_f3dex3.
 
 ### JSON Schema
 

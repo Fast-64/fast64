@@ -1,0 +1,23 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema",
+    "title": "FAST64_materials_f3d glTF Material Extension",
+    "type": "object",
+    "description": "",
+    "allOf": [
+        {
+            "$ref": "glTFProperty.schema.json"
+        }
+    ],
+    "properties": {
+        "geometryMode": {
+            "type": "object",
+            "properties": {
+                "clipping": {
+                    "type": "boolean",
+                    "description": "This mode is enabled in the initial state. When disabled, clipping is not performed",
+                    "default": true
+                }
+            }
+        }
+    }
+}
