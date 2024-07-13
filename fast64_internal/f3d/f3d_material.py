@@ -2765,7 +2765,7 @@ class TextureProperty(PropertyGroup):
         self.pal_reference_size = data.get("palleteCount", self.pal_reference_size)
 
     def to_dict(self):
-        """Does not include actual texture and tile scroll"""  # TODO: Should it include tile scroll?
+        """Does not include actual texture and tile scroll"""
         data = {
             "set": self.tex_set,
             "format": self.format_to_dict(),
@@ -2781,10 +2781,8 @@ class TextureProperty(PropertyGroup):
         self.format_from_dict(data.get("format", {}))
 
         fields = data.get("fields", [])
-        if len(fields) >= 1:
-            self.S.from_dict(fields[0])
-        if len(fields) >= 2:
-            self.T.from_dict(fields[1])
+        self.S.from_dict(fields[0] if len(fields) >= 1 else {})
+        self.T.from_dict(fields[1] if len(fields) >= 2 else {})
         self.autoprop = not any(
             advanced_prop in field for field in fields for advanced_prop in {"low", "high", "mask", "shift"}
         )
@@ -4725,7 +4723,7 @@ class F3DMaterialProperty(PropertyGroup):
             data["scale"] = [round(value, 4) for value in self.tex_scale]
         if self.use_large_textures:
             data["large"] = {"edges": self.large_edges}
-        data["uvBasis"] = self.get_uv_basis()
+        data["uvBasis"] = int(self.get_uv_basis().lstrip("TEXEL"))
         return data
 
     def extra_texture_settings_from_dict(self, data):
@@ -4733,6 +4731,7 @@ class F3DMaterialProperty(PropertyGroup):
         self.use_large_textures = "large" in data
         if self.use_large_textures:
             self.large_edges = data["large"].get("edges", self.large_edges)
+        self.uv_basis = "TEXEL" + data.get("uvBasis", 0)
 
     def key(self) -> F3DMaterialHash:
         return (

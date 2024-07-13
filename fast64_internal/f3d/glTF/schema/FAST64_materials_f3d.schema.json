@@ -511,6 +511,27 @@
                 }
             }
         },
+        "textures": {
+            "type": "array",
+            "description": "Array of texture info objects for each tile, could support up to 8 tiles in the future",
+            "minItems": 0,
+            "maxItems": 2,
+            "items": {
+                "allOf": [
+                    {
+                        "$ref": "textureInfo.schema.json"
+                    }
+                ]
+            }
+        },
+        "uvBasis": {
+            "type": "integer",
+            "default": 0,
+            "enum": [
+                0,
+                1
+            ]
+        },
         "extensions": {
             "type": "object",
             "properties": {

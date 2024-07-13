@@ -1,0 +1,112 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema",
+    "title": "FAST64_sampler_f3d glTF Sampler Extension",
+    "type": "object",
+    "description": "glTF extension that provides a representation of fast64 F3D texture samplers.",
+    "allOf": [
+        {
+            "$ref": "glTFProperty.schema.json"
+        }
+    ],
+    "properties": {
+        "set": {
+            "type": "boolean",
+            "description": "Actually load the texture image."
+        },
+        "format": {
+            "type": "object",
+            "properties": {
+                "texture": {
+                    "type": "string",
+                    "enum": [
+                        "I",
+                        "IA",
+                        "CI",
+                        "RGBA",
+                        "YUV"
+                    ],
+                    "default": "RGBA"
+                },
+                "size": {
+                    "type": "integer",
+                    "minimum": 4,
+                    "maximum": 32,
+                    "default": 16
+                },
+                "palette": {
+                    "type": "string",
+                    "enum": [
+                        "IA",
+                        "RGBA"
+                    ],
+                    "default": "RGBA"
+                }
+            },
+            "required": [
+                "texture",
+                "size"
+            ]
+        },
+        "fields": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+                "type": "object",
+                "properties": {
+                    "clamp": {
+                        "type": "boolean",
+                        "default": true
+                    },
+                    "mirror": {
+                        "type": "boolean",
+                        "default": false
+                    }
+                },
+                "required": [
+                    "clamp",
+                    "mirror"
+                ]
+            }
+        },
+        "reference": {
+            "type": "object",
+            "properties": {
+                "texture": {
+                    "type": "string",
+                    "default": "0x08000000"
+                },
+                "size": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    },
+                    "minItems": 2,
+                    "maxItems": 2,
+                    "default": [
+                        32,
+                        32
+                    ]
+                },
+                "pallete": {
+                    "type": "string",
+                    "default": "0x08000000"
+                },
+                "palleteCount": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "default": 16
+                }
+            },
+            "required": [
+                "texture",
+                "size"
+            ]
+        }
+    },
+    "required": [
+        "set",
+        "format",
+        "fields"
+    ]
+}
