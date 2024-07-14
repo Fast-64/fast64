@@ -184,15 +184,16 @@ def get_fake_color(data: dict):
 
 
 class F3DExtensions(GlTF2SubExtension):
-    f3d: F3D = None
+    gbi: F3D = None
     base_node_tree: NodeTree = None
 
     def post_init(self):
-        self.f3d: F3D = get_F3D_GBI()
+        self.settings = self.extension.settings.f3d
+        self.gbi: F3D = get_F3D_GBI()
         if not self.extension.importing:
             return
         try:
-            self.print_verbose("Linking f3d material library")
+            self.print_verbose("Linking gbo material library")
             link_f3d_material_library()
             mat = bpy.data.materials["fast64_f3d_material_library_beefwashere"]
             self.base_node_tree = mat.node_tree.copy()
@@ -242,6 +243,8 @@ class F3DExtensions(GlTF2SubExtension):
         if f3d_tex.tex is not None:
             source = get_gltf_image_from_blender_image(f3d_tex.tex.name, export_settings)
         else:
+            if f3d_tex.tex_set and self.settings.raise_on_no_image:
+                raise ValueError("Error: No image found for texture.")
             source = None
         sampler = self.sampler_from_f3d(f3d_mat, f3d_tex)
         return gltf2_io.Texture(
@@ -323,13 +326,13 @@ class F3DExtensions(GlTF2SubExtension):
             textures["1"] = self.f3d_to_glTF2_texture_info(f3d_mat, f3d_mat.tex1, export_settings)
 
         data["extensions"] = {}
-        if self.f3d.F3DEX_GBI:  # F3DLX
+        if self.gbi.F3DEX_GBI:  # F3DLX
             data["extensions"][EX1_MATERIAL_EXTENSION_NAME] = self.extension.Extension(
                 name=EX1_MATERIAL_EXTENSION_NAME,
                 extension={"geometryMode": rdp.f3dlx_geo_mode_to_dict()},
                 required=False,
             )
-        if self.f3d.F3DEX_GBI_3:  # F3DEX3
+        if self.gbi.F3DEX_GBI_3:  # F3DEX3
             data["extensions"][EX3_MATERIAL_EXTENSION_NAME] = self.extension.Extension(
                 name=EX3_MATERIAL_EXTENSION_NAME,
                 extension={"geometryMode": rdp.f3dex3_geo_mode_to_dict(), **f3d_mat.f3dex3_colors_to_dict()},
@@ -352,7 +355,7 @@ class F3DExtensions(GlTF2SubExtension):
 
     def gather_node_hook(self, gltf2_node, blender_object, _export_settings: dict):
         data = {}
-        if not self.f3d.F3D_OLD_GBI and gltf2_node.mesh:
+        if not self.gbi.F3D_OLD_GBI and gltf2_node.mesh:
             data["use_culling"] = blender_object.use_f3d_culling
             self.append_extension(
                 gltf2_node.mesh,
@@ -456,17 +459,17 @@ NEW_MESH_EXTENSION_NAME = "FAST64_mesh_f3d_new"
 
 
 class F3DGlTFSettings(PropertyGroup):
-    f3d: BoolProperty(default=True, name="Export F3D extensions")
+    use: BoolProperty(default=True, name="Export/Import F3D extensions")
     game: BoolProperty(default=True, name="Export current game mode")
-    texture_set: BoolProperty(
+    raise_on_no_image: BoolProperty(
         name="No Image", description="Raise an error when a texture needs to be set but there is no image", default=True
     )
     texture_limitations: BoolProperty(name="Texture Limitations", default=True)
 
     def draw_props(self, layout: UILayout, import_context=False):
         col = layout.column()
-        col.prop(self, "f3d", text=f"{'Import' if import_context else 'Export'} F3D extensions")
-        if not self.f3d:
+        col.prop(self, "use", text=f"{'Import' if import_context else 'Export'} F3D extensions")
+        if not self.use:
             return
 
         gbi, scene = get_F3D_GBI(), bpy.context.scene
@@ -487,5 +490,5 @@ class F3DGlTFSettings(PropertyGroup):
         box = col.box().column()
         box.box().label(text="Raise Errors:", icon="ERROR")
         row = box.row()
-        row.prop(self, "texture_set", toggle=True)
+        row.prop(self, "raise_on_no_image", toggle=True)
         row.prop(self, "texture_limitations", toggle=True)

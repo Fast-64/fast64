@@ -5,7 +5,7 @@ from bpy.types import PropertyGroup, UILayout, Panel, Context
 from bpy.props import BoolProperty, PointerProperty
 
 from .fast64_internal.utility import multilineLabel
-from .fast64_internal.f3d.glTF.f3d_gltf import F3DGlTFSettings
+from .fast64_internal.f3d.glTF.f3d_gltf import F3DGlTFSettings, F3DExtensions
 
 # Original implementation from github.com/Mr-Wiseguy/gltf64-blender
 
@@ -31,17 +31,28 @@ def exception_handler_decorator(message_template=""):
     return decorator
 
 
+def error_popup_handler(error_msg):
+    def handler(self, context):
+        multilineLabel(self.layout, error_msg)
+        self.layout.alert = True
+
+    return handler
+
+
 class GlTF2Extension:
     def call_hooks(self, hook: str, *args):
-        exceptions = []
         for extension in self.sub_extensions:
             try:
                 if hasattr(extension, hook):
                     getattr(extension, hook)(*args)
-            except Exception as e:
-                exceptions.append(e)
-        for e in exceptions:
-            raise e
+            except Exception as exc:
+                bpy.context.window_manager.popup_menu(
+                    error_popup_handler(traceback.format_exc()),
+                    title=f"Error in {extension.__class__.__name__}.{hook}:",
+                    icon="ERROR",
+                )
+                print(f"Error in {extension.__class__.__name__}.{hook}: {exc}")
+                raise
 
     def __init__(self):
         self.Extension = Extension
@@ -49,8 +60,6 @@ class GlTF2Extension:
         self.verbose = self.settings.verbose
         self.sub_extensions = []
         if self.settings.f3d:
-            from .fast64_internal.f3d.glTF.f3d_gltf import F3DExtensions
-
             self.sub_extensions.append(F3DExtensions(self))
 
 
