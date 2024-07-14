@@ -249,13 +249,14 @@ class F3DExtensions(GlTF2SubExtension):
             source = get_gltf_image_from_blender_image(img.name, export_settings)
 
             if self.settings.raise_texture_limitations and f3d_tex.tex_set and not f3d_tex.use_tex_reference:
-                tmem_usage = getTmemWordUsage(f3d_tex.tex_format, img.size[0], img.size[1]) * 8
+                tex_size = f3d_tex.get_tex_size()
+                tmem_usage = getTmemWordUsage(f3d_tex.tex_format, *tex_size) * 8
                 tmem_max = getTmemMax(f3d_tex.tex_format)
 
                 if f3d_mat.use_large_textures:
-                    if img.size[0] > 1024 or img.size[1] > 1024:
+                    if tex_size[0] > 1024 or tex_size[1] > 1024:
                         raise ValueError("Texture size (even large textures) limited to 1024 pixels in each dimension.")
-                if tmem_usage > tmem_max:
+                elif tmem_usage > tmem_max:
                     raise ValueError(
                         f"Texture is too large: {tmem_usage} / {tmem_max} bytes. Note that width needs to be padded to 64-bit boundaries."
                     )
@@ -348,17 +349,34 @@ class F3DExtensions(GlTF2SubExtension):
         tex0, tex1 = f3d_mat.tex0, f3d_mat.tex1
         if self.settings.raise_texture_limitations and f3d_mat.is_multi_tex and (tex0.tex_set & tex1.tex_set):
             both_reference = tex0.use_tex_reference and tex1.use_tex_reference
+            same_textures = (both_reference and tex0.tex_reference == tex1.tex_reference) or not both_reference and tex0.tex == tex1.tex
             both_ci8 = tex0.tex_format == tex1.tex_format == "CI8"
-            if (both_reference and tex0.tex_reference == tex1.tex_reference) and (
-                list(tex0.tex_reference_size) != list(tex1.tex_reference_size)
-            ):
+            tex0_size, tex1_size = tex0.get_tex_size(), tex1.get_tex_size()
+            if (both_reference and tex0.tex_reference == tex1.tex_reference) and (tex0_size != tex1_size):
                 raise ValueError("Textures with the same reference must have the same size.")
+
+            if f3d_mat.use_large_textures:
+                if same_textures:
+                    raise ValueError("Using the same texture for Tex0 and Tex1 is not compatible with large textures.")
+                if self.settings.raise_large_multitex:
+                    tmem_size = (256 if tex0.is_ci and tex1.is_ci else 512) // 2
+
+                    if (
+                        getTmemWordUsage(tex0.tex_format, *tex0_size) > tmem_size
+                        and getTmemWordUsage(tex1.tex_format, *tex1_size) > tmem_size
+                    ):
+                        raise ValueError("Multitexture with two large textures is not currently supported.")
+
             if tex0.is_ci != tex1.is_ci:
                 raise ValueError("N64 does not support CI + non-CI texture. Must be both CI or neither CI.")
             elif tex0.is_ci and tex1.is_ci:
                 if tex0.ci_format != tex1.ci_format:
                     raise ValueError("Both CI textures must use the same palette format (usually RGBA16).")
-                if both_reference and tex0.pal_reference == tex1.pal_reference and tex0.pal_reference_size != tex1.pal_reference_size:
+                if (
+                    both_reference
+                    and tex0.pal_reference == tex1.pal_reference
+                    and tex0.pal_reference_size != tex1.pal_reference_size
+                ):
                     raise ValueError("Textures with the same palette reference must have the same palette size.")
                 if not both_reference and both_ci8:
                     # TODO: If flipbook is ever implemented, check if the reference is set by the flipbook
@@ -523,6 +541,7 @@ class F3DGlTFSettings(PropertyGroup):
         name="No Image", description="Raise an error when a texture needs to be set but there is no image", default=True
     )
     raise_texture_limitations: BoolProperty(name="Texture Limitations", default=True)
+    raise_large_multitex: BoolProperty(name="Large Multitex", description="Raise an error when a multitexture has two large textures.", default=True)
 
     # TODO: Large texture mode errors
     def draw_props(self, layout: UILayout, import_context=False):
@@ -551,4 +570,6 @@ class F3DGlTFSettings(PropertyGroup):
         row = box.row()
         row.prop(self, "raise_on_no_image", toggle=True)
         row.prop(self, "raise_texture_limitations", toggle=True)
-        row.prop(self, "raise_merge_palletes", toggle=True)
+        texture_limits_col = row.column()
+        texture_limits_col.enabled = self.raise_texture_limitations
+        texture_limits_col.prop(self, "raise_large_multitex", toggle=True)
