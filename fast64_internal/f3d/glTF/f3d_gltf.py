@@ -244,7 +244,7 @@ class F3DExtensions(GlTF2SubExtension):
             source = get_gltf_image_from_blender_image(f3d_tex.tex.name, export_settings)
         else:
             if f3d_tex.tex_set and self.settings.raise_on_no_image:
-                raise ValueError("Error: No image found for texture.")
+                raise ValueError("No image found for texture.")
             source = None
         sampler = self.sampler_from_f3d(f3d_mat, f3d_tex)
         return gltf2_io.Texture(

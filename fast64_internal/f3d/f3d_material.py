@@ -4723,7 +4723,9 @@ class F3DMaterialProperty(PropertyGroup):
             data["scale"] = [round(value, 4) for value in self.tex_scale]
         if self.use_large_textures:
             data["large"] = {"edges": self.large_edges}
-        data["uvBasis"] = int(self.get_uv_basis().lstrip("TEXEL"))
+        uv_basis = self.get_uv_basis()
+        if uv_basis:
+            data["uvBasis"] = int(uv_basis.lstrip("TEXEL"))
         return data
 
     def extra_texture_settings_from_dict(self, data):

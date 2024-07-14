@@ -17,20 +17,6 @@ from .fast64_internal.f3d.glTF.f3d_gltf import F3DGlTFSettings, F3DExtensions
 # Doesn´t use world defaults, as those should be left to the repo to handle.
 
 
-def exception_handler_decorator(message_template=""):
-    def decorator(method):
-        def wrapper(self, *args, **kwargs):
-            try:
-                return method(self, *args, **kwargs)
-            except Exception as exc:
-                message = message_template.format(self=self, args=args, kwargs=kwargs)
-                raise Exception(f"{message}\n" + traceback.format_exc()) from exc
-
-        return wrapper
-
-    return decorator
-
-
 def error_popup_handler(error_msg):
     def handler(self, context):
         multilineLabel(self.layout, error_msg)
@@ -40,19 +26,21 @@ def error_popup_handler(error_msg):
 
 
 class GlTF2Extension:
-    def call_hooks(self, hook: str, *args):
+    def call_hooks(self, hook: str, message_template: str, *args):
         for extension in self.sub_extensions:
             try:
                 if hasattr(extension, hook):
                     getattr(extension, hook)(*args)
             except Exception as exc:
-                bpy.context.window_manager.popup_menu(
-                    error_popup_handler(traceback.format_exc()),
-                    title=f"Error in {extension.__class__.__name__}.{hook}:",
-                    icon="ERROR",
-                )
-                print(f"Error in {extension.__class__.__name__}.{hook}: {exc}")
-                raise
+                wm = bpy.context.window_manager
+                message = f"Error in {message_template.format(self=self, args=args)}"
+                error_location = f"{extension.__class__.__name__}.{hook}"
+                simple_error = f"{message}: {str(exc)}"
+                full_error = f"{simple_error}, {error_location}:\n{traceback.format_exc().rstrip()}"
+
+                wm.popup_menu(error_popup_handler(full_error), title=simple_error, icon="ERROR")
+                print(full_error)
+                raise Exception from exc
 
     def __init__(self):
         self.Extension = Extension
@@ -66,25 +54,32 @@ class GlTF2Extension:
 class glTF2ExportUserExtension(GlTF2Extension):
     importing = False
 
-    @exception_handler_decorator('Object "{args[1].name}"')
     def gather_node_hook(self, gltf2_node, blender_object, export_settings):
-        self.call_hooks("gather_node_hook", gltf2_node, blender_object, export_settings)
+        self.call_hooks("gather_node_hook", 'Object "{args[1].name}"', gltf2_node, blender_object, export_settings)
 
-    @exception_handler_decorator('Material "{args[1].name}""')
     def gather_material_hook(self, gltf2_material, blender_material, export_settings):
-        self.call_hooks("gather_material_hook", gltf2_material, blender_material, export_settings)
+        self.call_hooks(
+            "gather_material_hook", 'Material "{args[1].name}"', gltf2_material, blender_material, export_settings
+        )
 
 
 class glTF2ImportUserExtension(GlTF2Extension):
     importing = True
 
-    @exception_handler_decorator('Material "{args[2].name}""')
     def gather_import_material_after_hook(self, gltf_material, vertex_color, blender_mat, gltf):
-        self.call_hooks("gather_import_material_after_hook", gltf_material, vertex_color, blender_mat, gltf)
+        self.call_hooks(
+            "gather_import_material_after_hook",
+            'Material "{args[2].name}""',
+            gltf_material,
+            vertex_color,
+            blender_mat,
+            gltf,
+        )
 
-    @exception_handler_decorator('Object "{args[1].name}"')
     def gather_import_node_after_hook(self, vnode, gltf_node, blender_object, gltf):
-        self.call_hooks("gather_import_node_after_hook", vnode, gltf_node, blender_object, gltf)
+        self.call_hooks(
+            "gather_import_node_after_hook", 'Object "{args[1].name}"', vnode, gltf_node, blender_object, gltf
+        )
 
 
 class Fast64GlTFSettings(PropertyGroup):
