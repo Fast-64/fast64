@@ -512,11 +512,11 @@
             }
         },
         "textures": {
-            "type": "array",
-            "description": "Array of texture info objects for each tile, could support up to 8 tiles in the future",
+            "type": "object",
+            "description": "Dict of texture info objects for each tile, could support up to 8 tiles in the future",
             "minItems": 0,
             "maxItems": 2,
-            "items": {
+            "additionalProperties": {
                 "allOf": [
                     {
                         "$ref": "textureInfo.schema.json"

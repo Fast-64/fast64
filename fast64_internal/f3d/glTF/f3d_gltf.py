@@ -9,6 +9,9 @@ from ...gltf_utility import GlTF2SubExtension, get_gltf_image_from_blender_image
 from ..f3d_gbi import F3D, get_F3D_GBI
 from ..f3d_material import (
     all_combiner_uses,
+    get_color_info_from_tex,
+    getTmemMax,
+    getTmemWordUsage,
     trunc_10_2,
     createScenePropertiesForMaterial,
     link_f3d_material_library,
@@ -184,6 +187,7 @@ def get_fake_color(data: dict):
 
 
 class F3DExtensions(GlTF2SubExtension):
+    settings: "F3DGlTFSettings" = None
     gbi: F3D = None
     base_node_tree: NodeTree = None
 
@@ -240,11 +244,29 @@ class F3DExtensions(GlTF2SubExtension):
         f3d_tex: TextureProperty,
         export_settings: dict,
     ):
-        if f3d_tex.tex is not None:
-            source = get_gltf_image_from_blender_image(f3d_tex.tex.name, export_settings)
+        img = f3d_tex.tex
+        if img is not None:
+            source = get_gltf_image_from_blender_image(img.name, export_settings)
+
+            if self.settings.raise_texture_limitations and f3d_tex.tex_set and not f3d_tex.use_tex_reference:
+                tmem_usage = getTmemWordUsage(f3d_tex.tex_format, img.size[0], img.size[1]) * 8
+                tmem_max = getTmemMax(f3d_tex.tex_format)
+
+                if f3d_mat.use_large_textures:
+                    if img.size[0] > 1024 or img.size[1] > 1024:
+                        raise ValueError("Texture size (even large textures) limited to 1024 pixels in each dimension.")
+                if tmem_usage > tmem_max:
+                    raise ValueError(
+                        f"Texture is too large: {tmem_usage} / {tmem_max} bytes. Note that width needs to be padded to 64-bit boundaries."
+                    )
+                if f3d_tex.is_ci:
+                    _, _, _, rgba_colors = get_color_info_from_tex(img)
+                    if len(rgba_colors) > 2**f3d_tex.format_size:
+                        raise ValueError(f"Too many colors for {f3d_tex.tex_format}: {len(rgba_colors)}")
+
         else:
-            if f3d_tex.tex_set and self.settings.raise_on_no_image:
-                raise ValueError("No image found for texture.")
+            if f3d_tex.tex_set and not img and self.settings.raise_on_no_image:
+                raise ValueError("No image set.")
             source = None
         sampler = self.sampler_from_f3d(f3d_mat, f3d_tex)
         return gltf2_io.Texture(
@@ -271,12 +293,17 @@ class F3DExtensions(GlTF2SubExtension):
         self,
         f3d_mat: F3DMaterialProperty,
         f3d_tex: TextureProperty,
+        num: int,
         export_settings: dict,
     ):
+        try:
+            texture = self.f3d_to_gltf2_texture(f3d_mat, f3d_tex, export_settings)
+        except Exception as exc:
+            raise ValueError(f"Failed to create texture {num}: {str(exc)}") from exc
         tex_info = gltf2_io.TextureInfo(
+            index=texture,
             extensions=None,
             extras=None,
-            index=self.f3d_to_gltf2_texture(f3d_mat, f3d_tex, export_settings),
             tex_coord=None,
         )
 
@@ -318,12 +345,43 @@ class F3DExtensions(GlTF2SubExtension):
         )
         data.update(f3d_mat.extra_texture_settings_to_dict())
 
+        tex0, tex1 = f3d_mat.tex0, f3d_mat.tex1
+        if self.settings.raise_texture_limitations and f3d_mat.is_multi_tex and (tex0.tex_set & tex1.tex_set):
+            both_reference = tex0.use_tex_reference and tex1.use_tex_reference
+            both_ci8 = tex0.tex_format == tex1.tex_format == "CI8"
+            if (both_reference and tex0.tex_reference == tex1.tex_reference) and (
+                list(tex0.tex_reference_size) != list(tex1.tex_reference_size)
+            ):
+                raise ValueError("Textures with the same reference must have the same size.")
+            if tex0.is_ci != tex1.is_ci:
+                raise ValueError("N64 does not support CI + non-CI texture. Must be both CI or neither CI.")
+            elif tex0.is_ci and tex1.is_ci:
+                if tex0.ci_format != tex1.ci_format:
+                    raise ValueError("Both CI textures must use the same palette format (usually RGBA16).")
+                if both_reference and tex0.pal_reference == tex1.pal_reference and tex0.pal_reference_size != tex1.pal_reference_size:
+                    raise ValueError("Textures with the same palette reference must have the same palette size.")
+                if not both_reference and both_ci8:
+                    # TODO: If flipbook is ever implemented, check if the reference is set by the flipbook
+                    raise ValueError(
+                        "Can't have two CI8 textures where only one is a reference; no way to assign the palette."
+                    )
+                if both_reference and both_ci8 and tex0.pal_reference != tex1.pal_reference:
+                    raise ValueError("Can't have two CI8 textures with different palette references.")
+
+                # TODO: When porting ac f3dzex, skip this check
+                rgba_colors = get_color_info_from_tex(tex0.tex)[3]
+                rgba_colors.update(get_color_info_from_tex(tex1.tex)[3])
+                if len(rgba_colors) > 256:
+                    raise ValueError(
+                        f"The two CI textures together contain a total of {len(rgba_colors)} colors, which can't fit in a CI8 palette (256)."
+                    )
+
         textures = {}
         data["textures"] = textures
         if use_dict["Texture 0"]:
-            textures["0"] = self.f3d_to_glTF2_texture_info(f3d_mat, f3d_mat.tex0, export_settings)
+            textures[0] = self.f3d_to_glTF2_texture_info(f3d_mat, f3d_mat.tex0, 0, export_settings)
         if use_dict["Texture 1"]:
-            textures["1"] = self.f3d_to_glTF2_texture_info(f3d_mat, f3d_mat.tex1, export_settings)
+            textures[1] = self.f3d_to_glTF2_texture_info(f3d_mat, f3d_mat.tex1, 1, export_settings)
 
         data["extensions"] = {}
         if self.gbi.F3DEX_GBI:  # F3DLX
@@ -344,8 +402,8 @@ class F3DExtensions(GlTF2SubExtension):
         # glTF Standard
         pbr = gltf2_material.pbr_metallic_roughness
         if f3d_mat.is_multi_tex:
-            pbr.base_color_texture = textures["0"]
-            pbr.metallic_roughness_texture = textures["1"]
+            pbr.base_color_texture = textures[0]
+            pbr.metallic_roughness_texture = textures[1]
         elif textures:
             pbr.base_color_texture = list(textures.values())[0]
         pbr.base_color_factor = get_fake_color(data)
@@ -464,8 +522,9 @@ class F3DGlTFSettings(PropertyGroup):
     raise_on_no_image: BoolProperty(
         name="No Image", description="Raise an error when a texture needs to be set but there is no image", default=True
     )
-    texture_limitations: BoolProperty(name="Texture Limitations", default=True)
+    raise_texture_limitations: BoolProperty(name="Texture Limitations", default=True)
 
+    # TODO: Large texture mode errors
     def draw_props(self, layout: UILayout, import_context=False):
         col = layout.column()
         col.prop(self, "use", text=f"{'Import' if import_context else 'Export'} F3D extensions")
@@ -491,4 +550,5 @@ class F3DGlTFSettings(PropertyGroup):
         box.box().label(text="Raise Errors:", icon="ERROR")
         row = box.row()
         row.prop(self, "raise_on_no_image", toggle=True)
-        row.prop(self, "texture_limitations", toggle=True)
+        row.prop(self, "raise_texture_limitations", toggle=True)
+        row.prop(self, "raise_merge_palletes", toggle=True)
