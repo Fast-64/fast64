@@ -11,6 +11,7 @@ from ..f3d_material import (
     get_color_info_from_tex,
     getTmemMax,
     getTmemWordUsage,
+    rendermode_presets_checks,
     trunc_10_2,
     createScenePropertiesForMaterial,
     link_f3d_material_library,
@@ -389,6 +390,16 @@ class F3DExtensions(GlTF2SubExtension):
 
         f3d_mat: F3DMaterialProperty = blender_material.f3d_mat
         rdp = f3d_mat.rdp_settings
+
+        if (
+            self.settings.raise_texture_limits
+            and f3d_mat.is_multi_tex
+            and (f3d_mat.tex0.tex_set & f3d_mat.tex1.tex_set)
+        ):
+            self.multitex_checks(f3d_mat)
+        if self.settings.raise_invalid_render_mode:
+            rendermode_presets_checks(f3d_mat)
+
         use_dict = all_combiner_uses(f3d_mat)
 
         data["combiner"] = f3d_mat.combiner_to_dict()
@@ -402,13 +413,6 @@ class F3DExtensions(GlTF2SubExtension):
             }
         )
         data.update(f3d_mat.extra_texture_settings_to_dict())
-
-        if (
-            self.settings.raise_texture_limits
-            and f3d_mat.is_multi_tex
-            and (f3d_mat.tex0.tex_set & f3d_mat.tex1.tex_set)
-        ):
-            self.multitex_checks(f3d_mat)
 
         textures = {}
         data["textures"] = textures
@@ -565,7 +569,14 @@ class F3DGlTFSettings(PropertyGroup):
     )
     raise_texture_limits: BoolProperty(name="Texture Limits", default=True)
     raise_large_multitex: BoolProperty(
-        name="Large Multitex", description="Raise an error when a multitexture has two large textures.", default=True
+        name="Large Multitex",
+        description="Raise an error when a multitexture has two large textures. This can theoretically be supported",
+        default=True,
+    )
+    raise_invalid_render_mode: BoolProperty(
+        name="Invalid Render Mode",
+        description="Raise an error when a material uses an invalid combination of rendermode presets. Does not raise in the normal exporter",
+        default=True,
     )
 
     # TODO: Optional render mode preset errors like in the original glTF64
@@ -599,3 +610,6 @@ class F3DGlTFSettings(PropertyGroup):
         texture_limits_col = row.column()
         texture_limits_col.enabled = self.raise_texture_limits
         texture_limits_col.prop(self, "raise_large_multitex", toggle=True)
+
+        row = box.row()
+        row.prop(self, "raise_invalid_render_mode", toggle=True)

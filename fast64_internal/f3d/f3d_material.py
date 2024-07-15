@@ -613,6 +613,28 @@ def tmemUsageUI(layout, textureProp):
             tmemSizeWarning.label(text="Note that width will be internally padded to 64 bit boundaries.")
 
 
+def rendermode_presets_checks(material: "F3DMaterialProperty"):
+    rdp: RDPSettings = material.rdp_settings
+
+    f3d = get_F3D_GBI()
+    no_flags_1 = rdp.rendermode_preset_cycle_1 in f3d.rendermodePresetsWithoutFlags
+    if rdp.g_mdsft_cycletype == "G_CYC_2CYCLE":
+        no_flags_2 = rdp.rendermode_preset_cycle_2 in f3d.rendermodePresetsWithoutFlags
+        if no_flags_1 and no_flags_2:
+            raise PluginError(
+                "Invalid combination of rendermode presets.\n" "Neither of these presets sets the rendermode flags."
+            )
+        elif not no_flags_1 and not no_flags_2:
+            raise PluginError(
+                "Invalid combination of rendermode presets.\n" "Both of these presets set the rendermode flags."
+            )
+    else:
+        if no_flags_1:
+            raise PluginError(
+                "Invalid rendermode preset in 1-cycle.\n" "This preset does not set the rendermode flags."
+            )
+
+
 # UI Assumptions:
 # shading = 1
 # lighting = 1
@@ -808,34 +830,13 @@ class F3DPanel(Panel):
             renderGroup = inputGroup.column()
             renderGroup.prop(material.rdp_settings, "rendermode_advanced_enabled", text="Show Advanced Settings")
             if not material.rdp_settings.rendermode_advanced_enabled:
-                f3d = get_F3D_GBI()
                 prop_split(renderGroup, material.rdp_settings, "rendermode_preset_cycle_1", "Render Mode")
-                no_flags_1 = material.rdp_settings.rendermode_preset_cycle_1 in f3d.rendermodePresetsWithoutFlags
                 if is_two_cycle:
                     prop_split(renderGroup, material.rdp_settings, "rendermode_preset_cycle_2", "Render Mode Cycle 2")
-                    no_flags_2 = material.rdp_settings.rendermode_preset_cycle_2 in f3d.rendermodePresetsWithoutFlags
-                    if no_flags_1 and no_flags_2:
-                        multilineLabel(
-                            renderGroup.box(),
-                            "Invalid combination of rendermode presets.\n"
-                            + "Neither of these presets sets the rendermode flags.",
-                            "ERROR",
-                        )
-                    elif not no_flags_1 and not no_flags_2:
-                        multilineLabel(
-                            renderGroup.box(),
-                            "Invalid combination of rendermode presets.\n"
-                            + "Both of these presets set the rendermode flags.",
-                            "ERROR",
-                        )
-                else:
-                    if no_flags_1:
-                        multilineLabel(
-                            renderGroup.box(),
-                            "Invalid rendermode preset in 1-cycle.\n"
-                            + "This preset does not set the rendermode flags.",
-                            "ERROR",
-                        )
+                try:
+                    rendermode_presets_checks(material)
+                except Exception as e:
+                    multilineLabel(renderGroup.box(), text=str(e), icon="ERROR")
             else:
                 prop_split(renderGroup, material.rdp_settings, "aa_en", "Antialiasing")
                 prop_split(renderGroup, material.rdp_settings, "z_cmp", "Z Testing")

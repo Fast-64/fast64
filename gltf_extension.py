@@ -17,10 +17,12 @@ from .fast64_internal.f3d.glTF.f3d_gltf import F3DGlTFSettings, F3DExtensions
 # Doesn´t use world defaults, as those should be left to the repo to handle.
 
 
-def error_popup_handler(error_msg):
+def error_popup_handler(simple_error: str, full_error: str):
     def handler(self, context):
-        multilineLabel(self.layout, error_msg)
-        self.layout.alert = True
+        col = self.layout.column()
+        multilineLabel(col, simple_error, icon="INFO")
+        col.separator()
+        multilineLabel(col, full_error)
 
     return handler
 
@@ -35,10 +37,9 @@ class GlTF2Extension:
                 wm = bpy.context.window_manager
                 message = f"Error in {message_template.format(self=self, args=args)}"
                 error_location = f"{extension.__class__.__name__}.{hook}"
-                simple_error = f"{message}: {str(exc)}"
-                full_error = f"{simple_error}, {error_location}:\n{traceback.format_exc().rstrip()}"
+                full_error = f"{error_location}:\n{traceback.format_exc().rstrip()}"
 
-                wm.popup_menu(error_popup_handler(full_error), title=simple_error, icon="ERROR")
+                wm.popup_menu(error_popup_handler(str(exc), full_error), title=message, icon="ERROR")
                 print(full_error)
                 raise Exception from exc
 
