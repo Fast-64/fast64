@@ -881,6 +881,32 @@ class TriangleConverterInfo:
         return self.transformMatrix @ groupMatrix
 
 
+def cel_shading_checks(f3d_mat):
+    cel = f3d_mat.cel_shading
+    if f3d_mat.rdp_settings.zmode != "ZMODE_OPA":
+        raise PluginError("When using cel shading, the zmode in the blender / rendermode must be opaque.")
+    if len(cel.levels) == 0:
+        raise PluginError("Cel shading has no cel levels")
+
+    # Don't want to have to change back and forth arbitrarily between decal and
+    # opaque mode. So if you're using both lighter and darker, need to do those
+    # first before switching to decal.
+    wrote_dark = wrote_light = uses_decal = False
+    for level in cel.levels:
+        if level.threshMode == "Darker":
+            if wrote_dark:
+                uses_decal = True
+                continue
+            wrote_dark = True
+        else:
+            if wrote_light:
+                uses_decal = True
+                continue
+            wrote_light = True
+        if uses_decal:
+            raise PluginError("Must use Lighter and Darker cel levels before duplicating either of them")
+
+
 # existingVertexData is used for cases where we want to assume the presence of vertex data
 # loaded in from a previous matrix transform (ex. sm64 skinning)
 class TriangleConverter:
@@ -1017,34 +1043,10 @@ class TriangleConverter:
         cel = f3dMat.cel_shading
         f3d = get_F3D_GBI()
 
-        # Don't want to have to change back and forth arbitrarily between decal and
-        # opaque mode. So if you're using both lighter and darker, need to do those
-        # first before switching to decal.
-        if f3dMat.rdp_settings.zmode != "ZMODE_OPA":
-            raise PluginError(
-                f"Material {self.material.name} with cel shading: zmode in blender / rendermode must be opaque.",
-                icon="ERROR",
-            )
-        wroteLighter = wroteDarker = usesDecal = False
-        if len(cel.levels) == 0:
-            raise PluginError(f"Material {self.material.name} with cel shading has no cel levels")
-        for level in cel.levels:
-            if level.threshMode == "Darker":
-                if wroteDarker:
-                    usesDecal = True
-                elif usesDecal:
-                    raise PluginError(
-                        f"Material {self.material.name}: must use Lighter and Darker cel levels before duplicating either of them"
-                    )
-                wroteDarker = True
-            else:
-                if wroteLighter:
-                    usesDecal = True
-                elif usesDecal:
-                    raise PluginError(
-                        f"Material {self.material.name}: must use Lighter and Darker cel levels before duplicating either of them"
-                    )
-                wroteLighter = True
+        try:
+            cel_shading_checks(f3dMat)
+        except Exception as exc:
+            raise PluginError(f"Material {self.material.name}: {str(e)}") from exc
 
         # Because this might not be the first tri list in the object with this
         # material, we have to set things even if they were set up already in
@@ -1260,9 +1262,9 @@ def getTexDimensions(material):
     f3dMat = material.f3d_mat
     useDict = all_combiner_uses(f3dMat)
 
-    if useDict["Texture 0"] and f3dMat.tex0.tex_set and not f3dMat.tex0.is_set_and_has_tex:
+    if useDict["Texture 0"] and f3dMat.tex0.tex_set and not f3dMat.tex0.tex:
         raise PluginError('In material "' + material.name + '", texture 0 has not been set.')
-    if useDict["Texture 1"] and f3dMat.tex1.tex_set and not f3dMat.tex1.is_set_and_has_tex:
+    if useDict["Texture 1"] and f3dMat.tex1.tex_set and not f3dMat.tex1.tex:
         raise PluginError('In material "' + material.name + '", texture 1 has not been set.')
 
     return get_tex_basis_size(f3dMat)
