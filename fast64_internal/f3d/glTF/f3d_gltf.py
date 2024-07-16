@@ -116,7 +116,11 @@ def uvmap_check(obj: Object, mesh: Mesh):
 
 
 def large_tex_checks(obj: Object, mesh: Mesh):
-    """See TileLoad.initWithFace for the usual exporter version of this function"""
+    """
+    See TileLoad.initWithFace for the usual exporter version of this function
+    This strips out any exporting and focous on just error checking
+    """
+
     large_props_dict = {}
     for mat in mesh.materials:  # Cache info on any large tex material that needs to be checked
         if not mat.is_f3d or not mat.f3d_mat.use_large_textures:
@@ -196,6 +200,11 @@ def large_tex_checks(obj: Object, mesh: Mesh):
         tmem_usage = get_tmem_usage(sh - sl + 1, th - tl + 1)
         return tmem_usage <= large_props["large_tex_words"]
 
+    if not large_props_dict:
+        return
+
+    if "UVMap" not in obj.data.uv_layers:
+        raise PluginError('Cannot do large texture checks without a "UVMap" uvmap layer.')
     uv_data = obj.data.uv_layers["UVMap"].data
     for face in mesh.loop_triangles:
         mat_name = obj.material_slots[face.material_index].material.name
