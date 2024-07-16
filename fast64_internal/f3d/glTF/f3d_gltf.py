@@ -137,15 +137,16 @@ def large_tex_checks(obj: Object, mesh: Mesh):
             continue
         texture = textures[0]
 
-        tmem = sum(getTmemWordUsage(tex.tex_format, *tex.get_tex_size()) for tex in textures)
+        tex_sizes = [tex.get_tex_size() for tex in textures]
+        tmem = sum(getTmemWordUsage(tex.tex_format, *size) for tex, size in zip(textures, tex_sizes))
         tmem_size = 256 if texture.is_ci else 512
         if tmem <= tmem_size:
             continue  # Can fit in TMEM without large mode, so skip
-
+        widths, heights = zip(*tex_sizes)
         large_props_dict[mat.name] = {
             "clamp": f3d_mat.large_edges == "Clamp",
             "point": f3d_mat.rdp_settings.g_mdsft_text_filt == "G_TF_POINT",
-            "dimensions": get_tex_basis_size(f3d_mat),
+            "dimensions": (min(widths), min(heights)),
             "format": texture.tex_format,
             "texels_per_word": 64 // sum(texture.format_size for texture in textures),
             "is_4bit": any(tex.format_size == 4 for tex in textures),
