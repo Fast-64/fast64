@@ -15,7 +15,7 @@ from ..f3d_material import (
     rendermode_presets_checks,
     trunc_10_2,
     createScenePropertiesForMaterial,
-    link_f3d_material_library,
+    get_f3d_node_tree,
     update_all_node_values,
     F3DMaterialProperty,
     RDPSettings,
@@ -80,7 +80,13 @@ def large_tex_checks(obj: Object, mesh: Mesh):
         texture = textures[0]
 
         tex_sizes = [tex.get_tex_size() for tex in textures]
-        tmem = sum(getTmemWordUsage(tex.tex_format, *size) for tex, size in zip(textures, tex_sizes))
+        tmem = sum(
+            getTmemWordUsage(tex.tex_format, *size)
+            for tex, size in zip(
+                textures,
+                tex_sizes,
+            )
+        )
         tmem_size = 256 if texture.is_ci else 512
         if tmem <= tmem_size:
             continue  # Can fit in TMEM without large mode, so skip
@@ -294,11 +300,8 @@ class F3DExtensions(GlTF2SubExtension):
         if not self.extension.importing:
             return
         try:
-            self.print_verbose("Linking F3D material library")
-            link_f3d_material_library()
-            mat = bpy.data.materials["fast64_f3d_material_library_beefwashere"]
-            self.base_node_tree = mat.node_tree.copy()
-            bpy.data.materials.remove(mat)
+            self.print_verbose("Linking F3D material library and caching F3D node tree")
+            self.base_node_tree = get_f3d_node_tree()
         except Exception as exc:
             raise PluginError(f"Failed to import F3D node tree: {str(exc)}") from exc
 

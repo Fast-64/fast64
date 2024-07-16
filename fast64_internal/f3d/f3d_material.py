@@ -2367,6 +2367,15 @@ def link_f3d_material_library():
         bpy.ops.object.mode_set(mode=get_mode_set_from_context_mode(prevMode))
 
 
+def get_f3d_node_tree() -> bpy.types.NodeTree:
+    try:
+        link_f3d_material_library()
+        mat = bpy.data.materials["fast64_f3d_material_library_beefwashere"]
+        return mat.node_tree.copy()
+    finally:
+        bpy.data.materials.remove(mat)
+
+
 def shouldConvOrCreateColorAttribute(mesh: Mesh, attr_name="Col"):
     has_attr, conv_attr = False, False
     if attr_name in mesh.attributes:
