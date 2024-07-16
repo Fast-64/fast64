@@ -168,16 +168,16 @@ def large_tex_checks(obj: Object, mesh: Mesh):
         if sh >= 1024 or th >= 1024:
             raise PluginError(
                 f"Large texture material {mat_name} has a face that needs"
-                + f" to cover texels {sl}-{sh} x {tl}-{th}"
-                + f" (image dims are {dimensions}), but image space"
-                + " only goes up to 1024 so this cannot be represented."
+                f" to cover texels {sl}-{sh} x {tl}-{th}"
+                f" (image dims are {dimensions}), but image space"
+                " only goes up to 1024 so this cannot be represented."
             )
         else:
             raise PluginError(
                 f"Large texture material {mat_name} has a face that needs"
-                + f" to cover texels {sl}-{sh} x {tl}-{th}"
-                + f" ({sh-sl+1} x {th-tl+1} texels) "
-                + f"in format {large_props['format']}, which can't fit in TMEM."
+                f" to cover texels {sl}-{sh} x {tl}-{th}"
+                f" ({sh-sl+1} x {th-tl+1} texels) "
+                f"in format {large_props['format']}, which can't fit in TMEM."
             )
 
 
@@ -200,7 +200,12 @@ class Color:
         def round_and_clamp(value):
             return round(max(min(value, 1.0), 0.0), 4)
 
-        return [round_and_clamp(self.r), round_and_clamp(self.g), round_and_clamp(self.b), round_and_clamp(self.a)]
+        return [
+            round_and_clamp(self.r),
+            round_and_clamp(self.g),
+            round_and_clamp(self.b),
+            round_and_clamp(self.a),
+        ]
 
     def __sub__(self, other):
         return Color(self.r - other.r, self.g - other.g, self.b - other.b, self.a - other.a)
@@ -295,7 +300,7 @@ class F3DExtensions(GlTF2SubExtension):
             self.base_node_tree = mat.node_tree.copy()
             bpy.data.materials.remove(mat)
         except Exception as exc:
-            raise ImportError("Failed to import f3d material node tree") from exc
+            raise PluginError(f"Failed to import F3D node tree: {str(exc)}") from exc
 
     def sampler_from_f3d(self, f3d_mat: F3DMaterialProperty, f3d_tex: TextureProperty):
         wrap = []
@@ -613,17 +618,6 @@ class F3DExtensions(GlTF2SubExtension):
             return
 
         try:
-            self.print_verbose("Copying f3d node tree")
-            node_tree_copy(self.base_node_tree, blender_material.node_tree)
-        except Exception as exc:
-            raise Exception("Error copying node tree, material may not render correctly") from exc
-        try:
-            createScenePropertiesForMaterial(blender_material)
-        except Exception as exc:
-            raise Exception("Error creating scene properties, node tree may be invalid") from exc
-
-        try:
-            blender_material.mat_ver = 5
             blender_material.f3d_update_flag = True
 
             f3d_mat: F3DMaterialProperty = blender_material.f3d_mat
@@ -643,24 +637,33 @@ class F3DExtensions(GlTF2SubExtension):
 
             for num, tex_info in data.get("textures", {}).items():
                 index = tex_info["index"]
-                self.print_verbose(f"Importing f3d texture {index}")
+                self.print_verbose(f"Importing F3D texture {index}")
                 gltf2_texture = gltf.data.textures[index]
                 if num == "0":
                     self.gltf2_to_f3d_texture(gltf2_texture, gltf, f3d_mat.tex0)
                 elif num == "1":
                     self.gltf2_to_f3d_texture(gltf2_texture, gltf, f3d_mat.tex1)
                 else:
-                    raise Exception("Fast64 does not support more than 2 textures")
+                    raise PluginError("Fast64 currently only supports the first two textures")
         except Exception as exc:
-            raise Exception("Failed to import fast64 extension data") from exc
+            raise Exception(  # pylint: disable=broad-exception-raised
+                f"Failed to import fast64 extension data:\n{str(exc)}",
+            ) from exc
         finally:
             blender_material.f3d_update_flag = False
         blender_material.is_f3d = True
+        blender_material.mat_ver = 5
 
-        # TODO: Update this after upgrade fixes pr
-        with bpy.context.temp_override(material=blender_material):
+        self.print_verbose("Copying F3D node tree, creating scene properties and updating all nodes")
+        try:
+            node_tree_copy(self.base_node_tree, blender_material.node_tree)
             createScenePropertiesForMaterial(blender_material)
-            update_all_node_values(blender_material, bpy.context)
+            with bpy.context.temp_override(material=blender_material):
+                update_all_node_values(blender_material, bpy.context)
+        except Exception as exc:
+            raise Exception(  # pylint: disable=broad-exception-raised
+                f"Error creating F3D node tree:\n{str(exc)}",
+            ) from exc
 
     def gather_import_node_after_hook(self, _vnode, gltf_node, blender_object, _gltf):
         data = self.get_extension(gltf_node, MESH_EXTENSION_NAME)
@@ -701,7 +704,7 @@ class F3DGlTFSettings(PropertyGroup):
     )
     raise_non_f3d_mat: BoolProperty(
         name="Non F3D Mat",
-        description="Raise an error when a material is not an f3d material. Useful for tiny3d",
+        description="Raise an error when a material is not an F3D material. Useful for tiny3d",
         default=False,
     )
     raise_bad_mat_slot: BoolProperty(
@@ -711,7 +714,7 @@ class F3DGlTFSettings(PropertyGroup):
     )
     raise_no_uvmap: BoolProperty(
         name="No UVMap",
-        description="Raise an error when a mesh with f3d materials has no uv layer named UVMap",
+        description="Raise an error when a mesh with F3D materials has no uv layer named UVMap",
         default=True,
     )
 
