@@ -19,5 +19,6 @@
                 }
             }
         }
-    }
+    },
+    "additionalProperties": false
 }

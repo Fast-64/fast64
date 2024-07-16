@@ -1757,7 +1757,35 @@ def json_to_prop_group(prop_group, data: dict, blacklist: list[str] = None, whit
         if prop in blacklist or (whitelist and prop not in whitelist):
             continue
         default = getattr(prop_group, prop)
-        if hasattr(default, "from_dict"):
-            default.from_dict(data.get(prop, None))
+        if isinstance(default, list) or type(default).__name__ == "bpy_prop_collection_idprop":
+            if prop in data:
+                default.clear()
+            for element in data.get(prop, default):
+                default.add()
+                if hasattr(default[-1], "from_dict"):
+                    default[-1].from_dict(element)
+                else:
+                    json_to_prop_group(default[-1], element, blacklist, whitelist)
+        elif hasattr(default, "from_dict"):
+            default.from_dict(data.get(prop, {}))
         else:
             setattr(prop_group, prop, data.get(prop, default))
+
+
+def fix_invalid_props(prop_group):
+    """Fixes simple invalid values like deprecated enums and values that are out of range."""
+    for prop_attr in iter_prop(prop_group):
+        if prop_attr in {"rna_type", "name"}:
+            continue
+        prop_value = getattr(prop_group, prop_attr)
+        prop_def: bpy.types.Property = prop_group.bl_rna.properties[prop_attr]
+        if prop_def.type == "COLLECTION":
+            for element in prop_value:
+                fix_invalid_props(element)
+        elif prop_def.type == "POINTER" and isinstance(prop_value, bpy.types.PropertyGroup):
+            fix_invalid_props(prop_value)
+        elif prop_def.type == "ENUM":
+            if prop_value not in [enum.identifier for enum in prop_def.enum_items]:
+                prop_group[prop_attr] = prop_def.default
+        else:  # Sets this again, ensures ints, floats and colors are within their range
+            prop_group[prop_attr] = prop_value

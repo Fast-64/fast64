@@ -58,5 +58,6 @@
             "maximum": 255,
             "default": 0
         }
-    }
+    },
+    "additionalProperties": false
 }

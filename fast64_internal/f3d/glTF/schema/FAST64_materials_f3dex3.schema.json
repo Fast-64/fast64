@@ -9,6 +9,35 @@
         }
     ],
     "properties": {
+        "celShading": {
+            "type": "object",
+            "properties": {
+                "tintPipeline": {
+                    "type": "string",
+                    "enum": [
+                        "CC",
+                        "TINT"
+                    ],
+                    "default": "CC"
+                },
+                "cutoutSource": {
+                    "type": "string",
+                    "enum": [
+                        "TEXEL0",
+                        "TEXEL1",
+                        "ENVIRONMENT"
+                    ],
+                    "default": "ENVIRONMENT"
+                },
+                "levels": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "f3dex3_cel_level.schema.json"
+                    },
+                    "minItems": 1
+                }
+            }
+        },
         "ambientOcclusion": {
             "type": "object",
             "properties": {
@@ -153,5 +182,6 @@
                 }
             }
         }
-    }
+    },
+    "additionalProperties": false
 }

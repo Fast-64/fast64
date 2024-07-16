@@ -833,10 +833,7 @@ class F3DPanel(Panel):
                 prop_split(renderGroup, material.rdp_settings, "rendermode_preset_cycle_1", "Render Mode")
                 if is_two_cycle:
                     prop_split(renderGroup, material.rdp_settings, "rendermode_preset_cycle_2", "Render Mode Cycle 2")
-                try:
-                    rendermode_presets_checks(material)
-                except Exception as e:
-                    multilineLabel(renderGroup.box(), text=str(e), icon="ERROR")
+                run_and_draw_errors(renderGroup, rendermode_presets_checks, material)
             else:
                 prop_split(renderGroup, material.rdp_settings, "aa_en", "Antialiasing")
                 prop_split(renderGroup, material.rdp_settings, "z_cmp", "Z Testing")
@@ -2730,9 +2727,9 @@ class TextureProperty(PropertyGroup):
     def get_tex_size(self) -> list[int]:
         if self.tex or self.use_tex_reference:
             if self.tex is not None:
-                return self.tex.size
+                return list(self.tex.size)
             else:
-                return self.tex_reference_size
+                return list(self.tex_reference_size)
         return [0, 0]
 
     @property
@@ -3062,10 +3059,10 @@ class ProceduralAnimProperty(PropertyGroup):
     def to_dict(self):
         if not self.animate:
             return None
-        return prop_group_to_json(self, "animate")
+        return prop_group_to_json(self, ["animate"])
 
     def from_dict(self, data: dict):
-        json_to_prop_group(self, data, "animate")
+        json_to_prop_group(self, data, ["animate"])
 
     def key(self):
         return frozenset(self.to_dict().items())
@@ -3759,10 +3756,30 @@ class CelLevelProperty(PropertyGroup):
     )
 
     def to_dict(self):
-        return prop_group_to_json(self)
+        tint_data = {}
+        data = {"thresholdMode": self.threshMode.upper(), "threshold": self.threshold, "tint": tint_data}
+        tint_data["type"] = self.tintType.upper()
+        if self.tintType == "Fixed":
+            tint_data["level"] = self.tintFixedLevel
+            tint_data["color"] = get_clean_color(self.tintFixedColor)
+        elif self.tintType == "Segment":
+            tint_data["segment"] = self.tintSegmentNum
+            tint_data["offset"] = self.tintSegmentOffset
+        elif self.tintType == "Light":
+            tint_data["level"] = self.tintFixedLevel
+            tint_data["light"] = self.tintLightSlot
+        return data
 
     def from_dict(self, data: dict):
-        json_to_prop_group(self, data)
+        self.threshMode = data.get("thresholdMode", "LIGHTER").lower().capitalize()
+        self.threshold = data.get("threshold", 128)
+        tint = data.get("tint", {})
+        self.tintType = tint.get("type", "FIXED").lower().capitalize()
+        self.tintFixedLevel = tint.get("level", 50)
+        self.tintFixedColor = tint.get("color", [0.0, 0.0, 0.0])
+        self.tintSegmentNum = tint.get("segment", 8)
+        self.tintSegmentOffset = tint.get("offset", 0)
+        self.tintLightSlot = tint.get("light", 1)
 
     def key(self):
         return str(self.to_dict().items())
@@ -4606,7 +4623,7 @@ class F3DMaterialProperty(PropertyGroup):
                         }
                     )
 
-        ambient = get_clean_color(self.ambient_light_color, True)
+        ambient = get_clean_color(self.ambient_light_color)
         if self.use_default_lighting:
             lights.append({"color": get_clean_color(self.default_light_color)})
             if self.set_ambient_from_light:
@@ -4655,13 +4672,15 @@ class F3DMaterialProperty(PropertyGroup):
                 "set": self.set_k0_5,
                 "values": [round(k, 4) for k in (self.k0, self.k1, self.k2, self.k3, self.k4, self.k5)],
             }
-        if self.rdp_settings.using_fog:
+
+        rdp = self.rdp_settings
+        if rdp.using_fog:
             data["fog"] = {
                 "set": self.set_fog,
                 "color": get_clean_color(self.fog_color, include_alpha=True),
                 "range": list(self.fog_position),
             }
-        if self.rdp_settings.g_lighting:
+        if rdp.g_lighting and rdp.g_shade and use_dict["Shade"]:
             data["lights"] = {"set": self.set_lights, **self.lights_to_dict(use_dict)}
         data["blend"] = {
             "set": self.set_blend,
@@ -4734,7 +4753,7 @@ class F3DMaterialProperty(PropertyGroup):
         self.use_large_textures = "large" in data
         if self.use_large_textures:
             self.large_edges = data["large"].get("edges", self.large_edges)
-        self.uv_basis = "TEXEL" + data.get("uvBasis", 0)
+        self.uv_basis = "TEXEL" + str(data.get("uvBasis", 0))
 
     def key(self) -> F3DMaterialHash:
         return (

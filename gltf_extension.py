@@ -4,7 +4,7 @@ import bpy
 from bpy.types import PropertyGroup, UILayout, Panel, Context
 from bpy.props import BoolProperty, PointerProperty
 
-from .fast64_internal.utility import multilineLabel
+from .fast64_internal.utility import multilineLabel, prop_group_to_json, json_to_prop_group
 from .fast64_internal.f3d.glTF.f3d_gltf import F3DGlTFSettings, F3DExtensions
 
 # Original implementation from github.com/Mr-Wiseguy/gltf64-blender
@@ -88,10 +88,22 @@ class Fast64GlTFSettings(PropertyGroup):
     f3d: PointerProperty(type=F3DGlTFSettings)
     game: BoolProperty(default=True, name="Export current game mode")
 
+    def to_dict(self):
+        return prop_group_to_json(self)
+
+    def from_dict(self, data: dict):
+        json_to_prop_group(self, data)
+
     def draw_props(self, scene, layout: UILayout, import_context=False):
         col = layout.column()
-        col.prop(self, "verbose")
+        multilineLabel(
+            col,
+            "TIP: Create a repo settings file in the\nfast64 tab to save these settings for your\nrepo.",
+            icon="INFO",
+        )
         col.separator()
+
+        col.prop(self, "verbose")
 
         self.f3d.draw_props(col.box(), import_context)
         col.separator()

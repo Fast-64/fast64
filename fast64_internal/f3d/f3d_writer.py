@@ -1046,7 +1046,7 @@ class TriangleConverter:
         try:
             cel_shading_checks(f3dMat)
         except Exception as exc:
-            raise PluginError(f"Material {self.material.name}: {str(e)}") from exc
+            raise PluginError(f"Material {self.material.name}: {str(exc)}") from exc
 
         # Because this might not be the first tri list in the object with this
         # material, we have to set things even if they were set up already in

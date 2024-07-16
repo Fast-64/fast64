@@ -3,7 +3,7 @@ import bpy
 from bpy.types import NodeTree, PropertyGroup, UILayout
 from bpy.props import BoolProperty
 
-from ...utility import multilineLabel, PluginError
+from ...utility import multilineLabel, PluginError, fix_invalid_props
 from ...gltf_utility import GlTF2SubExtension, get_gltf_image_from_blender_image
 from ..f3d_gbi import F3D, get_F3D_GBI
 from ..f3d_material import (
@@ -195,6 +195,7 @@ class F3DExtensions(GlTF2SubExtension):
     def post_init(self):
         self.settings = self.extension.settings.f3d
         self.gbi: F3D = get_F3D_GBI()
+
         if not self.extension.importing:
             return
         try:
@@ -316,9 +317,10 @@ class F3DExtensions(GlTF2SubExtension):
 
         transform_data = {}
         size = f3d_tex.get_tex_size()
-        offset = [to_offset(f3d_tex.S.low, size[0]), to_offset(f3d_tex.T.low, size[1])]
-        if offset != [0.0, 0.0]:
-            transform_data = {"offset": offset}
+        if size != [0, 0]:
+            offset = [to_offset(f3d_tex.S.low, size[0]), to_offset(f3d_tex.T.low, size[1])]
+            if offset != [0.0, 0.0]:
+                transform_data = {"offset": offset}
 
         scale = [2.0 ** (f3d_tex.S.shift * -1.0), 2.0 ** (f3d_tex.T.shift * -1.0)]
         if scale != [1.0, 1.0]:
@@ -385,10 +387,15 @@ class F3DExtensions(GlTF2SubExtension):
 
     def gather_material_hook(self, gltf2_material, blender_material, export_settings: dict):
         if not blender_material.is_f3d:
+            if self.settings.raise_non_f3d_mat:
+                raise PluginError(
+                    'Material is not an F3D material. Turn off "Non F3D Material" to ignore.',
+                )
             return
         data = {}
 
         f3d_mat: F3DMaterialProperty = blender_material.f3d_mat
+        fix_invalid_props(f3d_mat)  # This fixes all enums that are not valid, and colors out of range
         rdp = f3d_mat.rdp_settings
 
         if (
@@ -429,10 +436,8 @@ class F3DExtensions(GlTF2SubExtension):
                 required=False,
             )
         if self.gbi.F3DEX_GBI_3:  # F3DEX3
-            # TODO: Write cel shading level schema
             if f3d_mat.use_cel_shading:
                 cel_shading_checks(f3d_mat)
-                # TODO: Should stuff like unknow types in enum props be checked for?
             data["extensions"][EX3_MATERIAL_EXTENSION_NAME] = self.extension.Extension(
                 name=EX3_MATERIAL_EXTENSION_NAME,
                 extension={
@@ -563,7 +568,7 @@ NEW_MESH_EXTENSION_NAME = "FAST64_mesh_f3d_new"
 
 class F3DGlTFSettings(PropertyGroup):
     use: BoolProperty(default=True, name="Export/Import F3D extensions")
-    game: BoolProperty(default=True, name="Export current game mode")
+
     raise_on_no_image: BoolProperty(
         name="No Image", description="Raise an error when a texture needs to be set but there is no image", default=True
     )
@@ -578,9 +583,32 @@ class F3DGlTFSettings(PropertyGroup):
         description="Raise an error when a material uses an invalid combination of rendermode presets. Does not raise in the normal exporter",
         default=True,
     )
+    raise_non_f3d_mat: BoolProperty(
+        name="Non F3D Material",
+        description="Raise an error when a material is not an f3d material. Useful for tiny3d",
+        default=False,
+    )
 
-    # TODO: Optional render mode preset errors like in the original glTF64
     # TODO: Large texture mode errors and other per mesh stuff
+
+    def to_dict(self):
+        return {
+            "use": self.use,
+            "raiseOnNoImage": self.raise_on_no_image,
+            "raiseTextureLimits": self.raise_texture_limits,
+            "raiseLargeMultitex": self.raise_large_multitex,
+            "raiseInvalidRenderMode": self.raise_invalid_render_mode,
+            "raiseNonF3DMat": self.raise_non_f3d_mat,
+        }
+
+    def from_dict(self, data: dict):
+        self.use = data.get("use", self.use)
+        self.raise_on_no_image = data.get("raiseOnNoImage", self.raise_on_no_image)
+        self.raise_texture_limits = data.get("raiseTextureLimits", self.raise_texture_limits)
+        self.raise_large_multitex = data.get("raiseLargeMultitex", self.raise_large_multitex)
+        self.raise_invalid_render_mode = data.get("raiseInvalidRenderMode", self.raise_invalid_render_mode)
+        self.raise_non_f3d_mat = data.get("raiseNonF3DMat", self.raise_non_f3d_mat)
+
     def draw_props(self, layout: UILayout, import_context=False):
         col = layout.column()
         col.prop(self, "use", text=f"{'Import' if import_context else 'Export'} F3D extensions")
@@ -604,6 +632,7 @@ class F3DGlTFSettings(PropertyGroup):
 
         box = col.box().column()
         box.box().label(text="Raise Errors:", icon="ERROR")
+
         row = box.row()
         row.prop(self, "raise_on_no_image", toggle=True)
         row.prop(self, "raise_texture_limits", toggle=True)
@@ -613,3 +642,4 @@ class F3DGlTFSettings(PropertyGroup):
 
         row = box.row()
         row.prop(self, "raise_invalid_render_mode", toggle=True)
+        row.prop(self, "raise_non_f3d_mat", toggle=True)

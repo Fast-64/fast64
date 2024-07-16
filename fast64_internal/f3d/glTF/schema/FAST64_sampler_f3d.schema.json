@@ -108,5 +108,6 @@
         "set",
         "format",
         "fields"
-    ]
+    ],
+    "additionalProperties": false
 }

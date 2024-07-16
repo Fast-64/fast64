@@ -543,5 +543,6 @@
                 }
             }
         }
-    }
+    },
+    "additionalProperties": false
 }
