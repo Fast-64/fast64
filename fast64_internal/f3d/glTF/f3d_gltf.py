@@ -498,6 +498,8 @@ class F3DExtensions(GlTF2SubExtension):
             if self.settings.raise_large_multitex:
                 if tex0_tmem > tmem_size // 2 and tex1_tmem > tmem_size // 2:
                     raise PluginError("Multitexture with two large textures is not currently supported.")
+                elif same_textures:
+                    raise PluginError("Using the same texture for Tex0 and Tex1 is not compatible with large textures.")
         elif not same_textures and tex0_tmem + tex1_tmem > tmem_size:
             raise PluginError(
                 "Textures are too big. Max TMEM size is 4k bytes, ex. 2 32x32 RGBA 16 bit textures. Note that width needs to be padded to 64-bit boundaries."
@@ -546,7 +548,7 @@ class F3DExtensions(GlTF2SubExtension):
         if self.settings.raise_texture_limits:
             if f3d_mat.is_multi_tex and (f3d_mat.tex0.tex_set and f3d_mat.tex1.tex_set):
                 self.multitex_checks(f3d_mat)
-        if self.settings.raise_invalid_render_mode:
+        if self.settings.raise_rendermode:
             if rdp.set_rendermode and not rdp.rendermode_advanced_enabled:
                 rendermode_presets_checks(f3d_mat)
 
@@ -742,8 +744,8 @@ class F3DGlTFSettings(PropertyGroup):
         description="Raise an error when a polygon's textures in large texture mode can´t fit in one full TMEM load",
         default=True,
     )
-    raise_invalid_render_mode: BoolProperty(
-        name="Invalid Render Mode",
+    raise_rendermode: BoolProperty(
+        name="Rendermode",
         description="Raise an error when a material uses an invalid combination of rendermode presets. Does not raise in the normal exporter",
         default=True,
     )
@@ -771,7 +773,7 @@ class F3DGlTFSettings(PropertyGroup):
             "raiseTextureLimits": self.raise_texture_limits,
             "raiseLargeMultitex": self.raise_large_multitex,
             "raiseLargeTex": self.raise_large_tex,
-            "raiseInvalidRenderMode": self.raise_invalid_render_mode,
+            "raiseRenderMode": self.raise_rendermode,
             "raiseNonF3DMat": self.raise_non_f3d_mat,
             "raiseBadMatSlot": self.raise_bad_mat_slot,
             "raiseNoUVMap": self.raise_no_uvmap,
@@ -782,7 +784,7 @@ class F3DGlTFSettings(PropertyGroup):
         self.raise_texture_limits = data.get("raiseTextureLimits", self.raise_texture_limits)
         self.raise_large_multitex = data.get("raiseLargeMultitex", self.raise_large_multitex)
         self.raise_large_tex = data.get("raiseLargeTex", self.raise_large_tex)
-        self.raise_invalid_render_mode = data.get("raiseInvalidRenderMode", self.raise_invalid_render_mode)
+        self.raise_rendermode = data.get("raiseRenderMode", self.raise_rendermode)
         self.raise_non_f3d_mat = data.get("raiseNonF3DMat", self.raise_non_f3d_mat)
         self.raise_bad_mat_slot = data.get("raiseBadMatSlot", self.raise_bad_mat_slot)
         self.raise_no_uvmap = data.get("raiseNoUVMap", self.raise_no_uvmap)
@@ -822,7 +824,7 @@ class F3DGlTFSettings(PropertyGroup):
         limits_row.prop(self, "raise_large_tex", toggle=True)
 
         row = box.row()
-        row.prop(self, "raise_invalid_render_mode", toggle=True)
+        row.prop(self, "raise_rendermode", toggle=True)
         row.prop(self, "raise_non_f3d_mat", toggle=True)
         row.prop(self, "raise_no_uvmap", toggle=True)
 
