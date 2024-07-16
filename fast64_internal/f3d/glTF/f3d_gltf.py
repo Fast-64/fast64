@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from math import ceil, floor
 import bpy
-from bpy.types import NodeTree, PropertyGroup, UILayout, Object, Mesh, Material
+from bpy.types import NodeTree, PropertyGroup, UILayout, Object, Mesh
 from bpy.props import BoolProperty
 
 from ...utility import multilineLabel, PluginError, fix_invalid_props
@@ -16,14 +16,12 @@ from ..f3d_material import (
     trunc_10_2,
     createScenePropertiesForMaterial,
     link_f3d_material_library,
-    update_node_values,
-    update_tex_values_and_formats,
-    update_rendermode_preset,
-    get_tex_basis_size,
+    update_all_node_values,
     F3DMaterialProperty,
     RDPSettings,
     TextureProperty,
 )
+from ..f3d_material_helpers import node_tree_copy
 from ..f3d_writer import cel_shading_checks, check_face_materials
 from ..f3d_texture_writer import UVtoSTLarge
 
@@ -37,62 +35,6 @@ EX3_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3dex3"
 SAMPLER_EXTENSION_NAME = "FAST64_sampler_f3d"
 MESH_EXTENSION_NAME = "FAST64_mesh_f3d"
 NEW_MESH_EXTENSION_NAME = "FAST64_mesh_f3d_new"
-
-EXCLUDE_FROM_NODE = (
-    "rna_type",
-    "type",
-    "inputs",
-    "outputs",
-    "dimensions",
-    "interface",
-    "internal_links",
-    "texture_mapping",
-    "color_mapping",
-    "image_user",
-)
-EXCLUDE_FROM_INPUT_OUTPUT = (
-    "rna_type",
-    "label",
-    "identifier",
-    "is_output",
-    "is_linked",
-    "is_multi_input",
-    "node",
-    "bl_idname",
-    "default_value",
-)
-
-
-def node_tree_copy(src: NodeTree, dst: NodeTree):
-    def copy_attributes(src, dst, excludes=None):
-        fails, excludes = [], excludes if excludes else []
-        attributes = (attr.identifier for attr in src.bl_rna.properties if attr.identifier not in excludes)
-        for attr in attributes:
-            try:
-                setattr(dst, attr, getattr(src, attr))
-            except Exception as exc:  # pylint: disable=broad-except
-                fails.append(exc)
-        if fails:
-            raise AttributeError("Failed to copy all attributes: " + str(fails))
-
-    dst.nodes.clear()
-    dst.links.clear()
-
-    node_mapping = {}  # To not have to look up the new node for linking
-    for src_node in src.nodes:  # Copy all nodes
-        new_node = dst.nodes.new(src_node.bl_idname)
-        copy_attributes(src_node, new_node, excludes=EXCLUDE_FROM_NODE)
-        node_mapping[src_node] = new_node
-    for src_node, dst_node in node_mapping.items():
-        for i, src_input in enumerate(src_node.inputs):  # Link all nodes
-            for link in src_input.links:
-                connected_node = dst.nodes[link.from_node.name]
-                dst.links.new(connected_node.outputs[link.from_socket.name], dst_node.inputs[i])
-
-        for src_input, dst_input in zip(src_node.inputs, dst_node.inputs):  # Copy all inputs
-            copy_attributes(src_input, dst_input, excludes=EXCLUDE_FROM_INPUT_OUTPUT)
-        for src_output, dst_output in zip(src_node.outputs, dst_node.outputs):  # Copy all outputs
-            copy_attributes(src_output, dst_output, excludes=EXCLUDE_FROM_INPUT_OUTPUT)
 
 
 def uvmap_check(obj: Object, mesh: Mesh):
@@ -125,7 +67,7 @@ def large_tex_checks(obj: Object, mesh: Mesh):
     for mat in mesh.materials:  # Cache info on any large tex material that needs to be checked
         if not mat.is_f3d or not mat.f3d_mat.use_large_textures:
             continue
-        f3d_mat = mat.f3d_mat
+        f3d_mat: F3DMaterialProperty = mat.f3d_mat
         use_dict = all_combiner_uses(f3d_mat)
         textures = []
         if use_dict["Texture 0"] and f3d_mat.tex0.tex_set:
@@ -154,7 +96,7 @@ def large_tex_checks(obj: Object, mesh: Mesh):
         }
 
     def get_low(large_props, value, field):
-        value = int(floor(value))
+        value = floor(value)
         if large_props["clamp"]:
             value = min(max(value, 0), large_props["dimensions"][field] - 1)
         if large_props["is_4bit"] and field == 0:
@@ -163,7 +105,7 @@ def large_tex_checks(obj: Object, mesh: Mesh):
         return value
 
     def get_high(large_props, value, field):
-        value = int(ceil(value)) - (1 if large_props["point"] else 0)
+        value = ceil(value) - (1 if large_props["point"] else 0)
         if large_props["clamp"]:
             value = min(max(value, 0), large_props["dimensions"][field] - 1)
         if large_props["is_4bit"] and field == 0:
@@ -367,14 +309,14 @@ class F3DExtensions(GlTF2SubExtension):
                 else TextureWrap.Repeat
             )
 
-        use_nearest = f3d_mat.rdp_settings.g_mdsft_text_filt == "G_TF_POINT"
-        mag_filter = TextureFilter.Nearest if use_nearest else TextureFilter.Linear
-        min_filter = TextureFilter.NearestMipmapNearest if use_nearest else TextureFilter.LinearMipmapLinear
+        nearest = f3d_mat.rdp_settings.g_mdsft_text_filt == "G_TF_POINT"
+        mag_f = TextureFilter.Nearest if nearest else TextureFilter.Linear
+        min_f = TextureFilter.NearestMipmapNearest if nearest else TextureFilter.LinearMipmapLinear
         sampler = gltf2_io.Sampler(
             extensions=None,
             extras=None,
-            mag_filter=mag_filter,
-            min_filter=min_filter,
+            mag_filter=mag_f,
+            min_filter=min_f,
             name=None,
             wrap_s=wrap[0],
             wrap_t=wrap[1],
@@ -398,27 +340,28 @@ class F3DExtensions(GlTF2SubExtension):
         if img is not None:
             source = get_gltf_image_from_blender_image(img.name, export_settings)
 
-            if self.settings.raise_texture_limits and f3d_tex.tex_set and not f3d_tex.use_tex_reference:
+            if self.settings.raise_texture_limits and f3d_tex.tex_set:
                 tex_size = f3d_tex.get_tex_size()
                 tmem_usage = getTmemWordUsage(f3d_tex.tex_format, *tex_size) * 8
                 tmem_max = getTmemMax(f3d_tex.tex_format)
 
-                if f3d_mat.use_large_textures:
-                    if tex_size[0] > 1024 or tex_size[1] > 1024:
-                        raise PluginError(
-                            "Texture size (even large textures) limited to 1024 pixels in each dimension."
-                        )
-                elif tmem_usage > tmem_max:
+                if f3d_mat.use_large_textures and tex_size[0] > 1024 or tex_size[1] > 1024:
                     raise PluginError(
-                        f"Texture is too large: {tmem_usage} / {tmem_max} bytes. Note that width needs to be padded to 64-bit boundaries."
+                        "Texture size (even large textures) limited to 1024 pixels in each dimension.",
                     )
-                if f3d_tex.is_ci:
+                if not f3d_mat.use_large_textures and tmem_usage > tmem_max:
+                    raise PluginError(
+                        f"Texture is too large: {tmem_usage} / {tmem_max} bytes.\n"
+                        "Note that width needs to be padded to 64-bit boundaries."
+                    )
+                if f3d_tex.is_ci and not f3d_tex.use_tex_reference:
                     _, _, _, rgba_colors = get_color_info_from_tex(img)
                     if len(rgba_colors) > 2**f3d_tex.format_size:
-                        raise PluginError(f"Too many colors for {f3d_tex.tex_format}: {len(rgba_colors)}")
-
-        else:
-            if f3d_tex.tex_set and not f3d_tex.use_tex_reference and not img:
+                        raise PluginError(
+                            f"Too many colors for {f3d_tex.tex_format}: {len(rgba_colors)}",
+                        )
+        else:  # Image isn´t set
+            if f3d_tex.tex_set and not f3d_tex.use_tex_reference:
                 raise PluginError("Non texture reference must have an image.")
             source = None
         sampler = self.sampler_from_f3d(f3d_mat, f3d_tex)
@@ -481,57 +424,66 @@ class F3DExtensions(GlTF2SubExtension):
     def multitex_checks(self, f3d_mat: F3DMaterialProperty):
         tex0, tex1 = f3d_mat.tex0, f3d_mat.tex1
         both_reference = tex0.use_tex_reference and tex1.use_tex_reference
-        same_textures = (
-            (both_reference and tex0.tex_reference == tex1.tex_reference) or not both_reference and tex0.tex == tex1.tex
-        )
         both_ci8 = tex0.tex_format == tex1.tex_format == "CI8"
+        same_reference = both_reference and tex0.tex_reference == tex1.tex_reference
+        same_textures = same_reference or (not both_reference and tex0.tex == tex1.tex)
+
         tex0_size, tex1_size = tex0.get_tex_size(), tex1.get_tex_size()
         tex0_tmem, tex1_tmem = (
             getTmemWordUsage(tex0.tex_format, *tex0_size),
             getTmemWordUsage(tex1.tex_format, *tex1_size),
         )
+        tmem = tex0_tmem if same_textures else tex0_tmem + tex1_tmem
         tmem_size = 256 if tex0.is_ci and tex1.is_ci else 512
 
-        if (both_reference and tex0.tex_reference == tex1.tex_reference) and (tex0_size != tex1_size):
+        if same_reference and tex0_size != tex1_size:
             raise PluginError("Textures with the same reference must have the same size.")
-
-        if f3d_mat.use_large_textures:
-            if self.settings.raise_large_multitex:
-                if tex0_tmem > tmem_size // 2 and tex1_tmem > tmem_size // 2:
-                    raise PluginError("Multitexture with two large textures is not currently supported.")
-                elif same_textures:
-                    raise PluginError("Using the same texture for Tex0 and Tex1 is not compatible with large textures.")
-        elif not same_textures and tex0_tmem + tex1_tmem > tmem_size:
+        if self.settings.raise_large_multitex and f3d_mat.use_large_textures:
+            if tex0_tmem > tmem_size // 2 and tex1_tmem > tmem_size // 2:
+                raise PluginError("Cannot multitexture with two large textures.")
+            if same_textures:
+                raise PluginError(
+                    "Cannot use the same texture for Tex 0 and 1 when using large textures.",
+                )
+        if not f3d_mat.use_large_textures and tmem > tmem_size:
             raise PluginError(
-                "Textures are too big. Max TMEM size is 4k bytes, ex. 2 32x32 RGBA 16 bit textures. Note that width needs to be padded to 64-bit boundaries."
+                "Textures are too big. Max TMEM size is 4kb, ex. 2 32x32 RGBA 16 bit textures.\n"
+                "Note that width needs to be padded to 64-bit boundaries.",
             )
 
         if tex0.is_ci != tex1.is_ci:
-            raise PluginError("N64 does not support CI + non-CI texture. Must be both CI or neither CI.")
-        elif tex0.is_ci and tex1.is_ci:
-            if tex0.ci_format != tex1.ci_format:
-                raise PluginError("Both CI textures must use the same palette format (usually RGBA16).")
-            if (
-                both_reference
-                and tex0.pal_reference == tex1.pal_reference
-                and tex0.pal_reference_size != tex1.pal_reference_size
-            ):
-                raise PluginError("Textures with the same palette reference must have the same palette size.")
-            if not both_reference and both_ci8:
-                # TODO: If flipbook is ever implemented, check if the reference is set by the flipbook
-                raise PluginError(
-                    "Can't have two CI8 textures where only one is a reference; no way to assign the palette."
-                )
-            if both_reference and both_ci8 and tex0.pal_reference != tex1.pal_reference:
-                raise PluginError("Can't have two CI8 textures with different palette references.")
+            raise PluginError("Can't have a CI + non-CI texture. Must be both or neither CI.")
+        elif not tex0.is_ci or not tex1.is_ci:
+            return
 
-            # TODO: When porting ac f3dzex, skip this check
-            rgba_colors = get_color_info_from_tex(tex0.tex)[3]
-            rgba_colors.update(get_color_info_from_tex(tex1.tex)[3])
-            if len(rgba_colors) > 256:
-                raise PluginError(
-                    f"The two CI textures together contain a total of {len(rgba_colors)} colors, which can't fit in a CI8 palette (256)."
-                )
+        # CI multitextures
+        same_pal_reference = both_reference and tex0.pal_reference == tex1.pal_reference
+        if tex0.ci_format != tex1.ci_format:
+            raise PluginError(
+                "Both CI textures must use the same palette format (usually RGBA16).",
+            )
+        if same_pal_reference and tex0.pal_reference_size != tex1.pal_reference_size:
+            raise PluginError(
+                "Textures with the same palette reference must have the same palette size.",
+            )
+        if tex0.use_tex_reference != tex1.use_tex_reference and both_ci8:
+            # TODO: If flipbook is ever implemented, check if the reference is set by the flipbook
+            # Theoretically possible if there was an option to have half the palette for each
+            raise PluginError(
+                "Can't have two CI8 textures where only one is a reference; "
+                "no way to assign the palette."  # pylint: disable=line-too-long
+            )
+        if both_reference and both_ci8 and not same_pal_reference:
+            raise PluginError("Can't have two CI8 textures with different palette references.")
+
+        # TODO: When porting ac f3dzex, skip this check
+        rgba_colors = get_color_info_from_tex(tex0.tex)[3]
+        rgba_colors.update(get_color_info_from_tex(tex1.tex)[3])
+        if len(rgba_colors) > 256:
+            raise PluginError(
+                f"The two CI textures together contain a total of {len(rgba_colors)} colors,\n"
+                "which can't fit in a CI8 palette (256)."
+            )
 
     def gather_material_hook(self, gltf2_material, blender_material, export_settings: dict):
         if not blender_material.is_f3d:
@@ -543,7 +495,7 @@ class F3DExtensions(GlTF2SubExtension):
         data = {}
 
         f3d_mat: F3DMaterialProperty = blender_material.f3d_mat
-        fix_invalid_props(f3d_mat)  # This fixes all enums that are not valid, and colors out of range
+        fix_invalid_props(f3d_mat)
         rdp: RDPSettings = f3d_mat.rdp_settings
 
         if self.settings.raise_texture_limits:
@@ -570,9 +522,9 @@ class F3DExtensions(GlTF2SubExtension):
         textures = {}
         data["textures"] = textures
         if use_dict["Texture 0"]:
-            textures[0] = self.f3d_to_glTF2_texture_info(f3d_mat, f3d_mat.tex0, 0, export_settings)
+            textures["0"] = self.f3d_to_glTF2_texture_info(f3d_mat, f3d_mat.tex0, 0, export_settings)
         if use_dict["Texture 1"]:
-            textures[1] = self.f3d_to_glTF2_texture_info(f3d_mat, f3d_mat.tex1, 1, export_settings)
+            textures["1"] = self.f3d_to_glTF2_texture_info(f3d_mat, f3d_mat.tex1, 1, export_settings)
 
         data["extensions"] = {}
         if self.gbi.F3DEX_GBI:  # F3DLX
@@ -598,8 +550,8 @@ class F3DExtensions(GlTF2SubExtension):
         # glTF Standard
         pbr = gltf2_material.pbr_metallic_roughness
         if f3d_mat.is_multi_tex:
-            pbr.base_color_texture = textures[0]
-            pbr.metallic_roughness_texture = textures[1]
+            pbr.base_color_texture = textures["0"]
+            pbr.metallic_roughness_texture = textures["1"]
         elif textures:
             pbr.base_color_texture = list(textures.values())[0]
         pbr.base_color_factor = get_fake_color(data)
@@ -623,16 +575,16 @@ class F3DExtensions(GlTF2SubExtension):
         if self.settings.raise_large_tex:
             large_tex_checks(blender_object, blender_mesh)
 
-        data = {}
-        if not self.gbi.F3D_OLD_GBI:
-            data["use_culling"] = blender_object.use_f3d_culling
+        if not self.gbi.F3D_OLD_GBI and not blender_object.use_f3d_culling:
             self.append_extension(
                 gltf2_mesh,
                 MESH_EXTENSION_NAME,
                 {
                     "extensions": {
                         NEW_MESH_EXTENSION_NAME: self.extension.Extension(
-                            name=NEW_MESH_EXTENSION_NAME, extension=data, required=False
+                            name=NEW_MESH_EXTENSION_NAME,
+                            extension={"use_culling": False},
+                            required=False,
                         )
                     }
                 },
@@ -640,7 +592,12 @@ class F3DExtensions(GlTF2SubExtension):
 
     def gather_node_hook(self, gltf2_node, blender_object, _export_settings: dict):
         if gltf2_node.mesh:  # HACK: gather_mesh_hook is broken in 3.2, no blender object included
-            self.gather_mesh_hook(gltf2_node.mesh, blender_object.data, blender_object, _export_settings)
+            self.gather_mesh_hook(
+                gltf2_node.mesh,
+                blender_object.data,
+                blender_object,
+                _export_settings,
+            )
 
     # Importing
 
@@ -666,7 +623,6 @@ class F3DExtensions(GlTF2SubExtension):
             raise Exception("Error creating scene properties, node tree may be invalid") from exc
 
         try:
-            blender_material.is_f3d = True
             blender_material.mat_ver = 5
             blender_material.f3d_update_flag = True
 
@@ -699,19 +655,12 @@ class F3DExtensions(GlTF2SubExtension):
             raise Exception("Failed to import fast64 extension data") from exc
         finally:
             blender_material.f3d_update_flag = False
+        blender_material.is_f3d = True
 
-        # HACK: The simplest way to cause a reload here is to have a valid material context
-        gltf_temp_obj = bpy.data.objects["##gltf-import:tmp-object##"]
-        bpy.context.scene.collection.objects.link(gltf_temp_obj)
-        try:
-            bpy.context.view_layer.objects.active = gltf_temp_obj
-            gltf_temp_obj.active_material = blender_material
-            update_node_values(blender_material, bpy.context, True)
-            update_tex_values_and_formats(blender_material, bpy.context)
-            update_rendermode_preset(blender_material, bpy.context)
-        finally:
-            bpy.context.view_layer.objects.active = None
-            bpy.context.scene.collection.objects.unlink(gltf_temp_obj)
+        # TODO: Update this after upgrade fixes pr
+        with bpy.context.temp_override(material=blender_material):
+            createScenePropertiesForMaterial(blender_material)
+            update_all_node_values(blender_material, bpy.context)
 
     def gather_import_node_after_hook(self, _vnode, gltf_node, blender_object, _gltf):
         data = self.get_extension(gltf_node, MESH_EXTENSION_NAME)
@@ -766,8 +715,6 @@ class F3DGlTFSettings(PropertyGroup):
         default=True,
     )
 
-    # TODO: Large texture mode errors and other per mesh stuff
-
     def to_dict(self):
         return {
             "use": self.use,
@@ -809,11 +756,10 @@ class F3DGlTFSettings(PropertyGroup):
         if not gbi.F3D_OLD_GBI:
             extensions.append(NEW_MESH_EXTENSION_NAME)
         multilineLabel(col.box(), ",\n".join(extensions))
-        col.separator()
 
         if import_context:
             return
-
+        col.separator()
         box = col.box().column()
         box.box().label(text="Raise Errors:", icon="ERROR")
 

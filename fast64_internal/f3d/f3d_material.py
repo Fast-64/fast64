@@ -1387,6 +1387,12 @@ def update_node_values(self, context, update_preset):
             material.f3d_mat.presetName = "Custom"
 
 
+def update_all_node_values(material, context):
+    update_node_values_without_preset(material, context)
+    update_tex_values_and_formats(material, context)
+    update_rendermode_preset(material, context)
+
+
 def update_node_values_with_preset(self, context):
     update_node_values(self, context, update_preset=True)
 
@@ -4742,7 +4748,7 @@ class F3DMaterialProperty(PropertyGroup):
         if not self.scale_autoprop:
             data["scale"] = [round(value, 4) for value in self.tex_scale]
         if self.use_large_textures:
-            data["large"] = {"edges": self.large_edges}
+            data["largeTextureMode"] = {"edges": self.large_edges.upper()}
         uv_basis = self.get_uv_basis()
         if uv_basis:
             data["uvBasis"] = int(uv_basis.lstrip("TEXEL"))
@@ -4750,9 +4756,9 @@ class F3DMaterialProperty(PropertyGroup):
 
     def extra_texture_settings_from_dict(self, data):
         self.tex_scale = data.get("scale", self.tex_scale)
-        self.use_large_textures = "large" in data
-        if self.use_large_textures:
-            self.large_edges = data["large"].get("edges", self.large_edges)
+        large_mode = data.get("largeTextureMode", {})
+        self.use_large_textures = bool(large_mode)
+        self.large_edges = large_mode.get("edges", self.large_edges.upper()).lower().capitalize()
         self.uv_basis = "TEXEL" + str(data.get("uvBasis", 0))
 
     def key(self) -> F3DMaterialHash:

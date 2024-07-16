@@ -1637,11 +1637,6 @@ def get_material_from_context(context: bpy.types.Context):
     try:
         if type(getattr(context, "material", None)) == bpy.types.Material:
             return context.material
-        elif (
-            type(getattr(context, "object", None)) == bpy.types.Object
-            and type(getattr(context.object, "active_material", None)) == bpy.types.Material
-        ):
-            return context.object.active_material
         return context.material_slot.material
     except:
         return None

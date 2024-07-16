@@ -527,10 +527,23 @@
         "uvBasis": {
             "type": "integer",
             "default": 0,
-            "enum": [
-                0,
-                1
-            ]
+            "minimum": 0,
+            "maximum": 1
+        },
+        "large": {
+            "type": "object",
+            "description": "Settings for large textures, if property exits large texture mode is being used",
+            "properties": {
+                "edges": {
+                    "type": "string",
+                    "description": "Clamp outside image bounds or wrap outside image bounds (more expensive)",
+                    "enum": [
+                        "CLAMP",
+                        "WRAP"
+                    ],
+                    "default": "CLAMP"
+                }
+            }
         },
         "extensions": {
             "type": "object",
