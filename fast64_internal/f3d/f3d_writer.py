@@ -91,6 +91,7 @@ def check_face_materials(
     obj_name: str,
     material_slots: "bpy.types.bpy_prop_collection[bpy.types.MaterialSlot]",
     faces: "bpy.types.MeshPolygons | bpy.types.MeshLoopTriangles",
+    requires_f3d: bool = True,
 ):
     """
     Check if all faces are correctly assigned to a F3D material
@@ -118,7 +119,7 @@ def check_face_materials(
                 " Set a material for the slot or assign the faces to an actual material."
                 f" (0-indexed: slot {material_index}, aka the {material_index+1}th slot)."
             )
-        if not material.is_f3d:
+        if requires_f3d and not material.is_f3d:
             raise PluginError(
                 f"Mesh object {obj_name} has faces"
                 f" assigned to a material which is not a F3D material: {material.name}"

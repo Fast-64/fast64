@@ -1,6 +1,7 @@
 from dataclasses import dataclass
+from math import ceil, floor
 import bpy
-from bpy.types import NodeTree, PropertyGroup, UILayout
+from bpy.types import NodeTree, PropertyGroup, UILayout, Object, Mesh, Material
 from bpy.props import BoolProperty
 
 from ...utility import multilineLabel, PluginError, fix_invalid_props
@@ -18,10 +19,13 @@ from ..f3d_material import (
     update_node_values,
     update_tex_values_and_formats,
     update_rendermode_preset,
+    get_tex_basis_size,
     F3DMaterialProperty,
+    RDPSettings,
     TextureProperty,
 )
-from ..f3d_writer import cel_shading_checks
+from ..f3d_writer import cel_shading_checks, check_face_materials
+from ..f3d_texture_writer import UVtoSTLarge
 
 from io_scene_gltf2.io.com import gltf2_io
 from io_scene_gltf2.blender.imp.gltf2_blender_image import BlenderImage
@@ -89,6 +93,140 @@ def node_tree_copy(src: NodeTree, dst: NodeTree):
             copy_attributes(src_input, dst_input, excludes=EXCLUDE_FROM_INPUT_OUTPUT)
         for src_output, dst_output in zip(src_node.outputs, dst_node.outputs):  # Copy all outputs
             copy_attributes(src_output, dst_output, excludes=EXCLUDE_FROM_INPUT_OUTPUT)
+
+
+def uvmap_check(obj: Object, mesh: Mesh):
+    has_f3d_mat = False
+    for material in obj.material_slots:  # Check if any slot is F3D
+        if material.material.is_f3d:
+            has_f3d_mat = True
+            break
+    if has_f3d_mat:  # If any slot is F3D check if the mesh uses the material
+        has_f3d_mat = False
+        for poly in mesh.polygons:
+            if obj.material_slots[poly.material_index].material.is_f3d:
+                has_f3d_mat = True
+                break
+    if has_f3d_mat:  # Finally, if there is a F3D material check if the mesh has a uvmap
+        for layer in mesh.uv_layers:
+            if layer.name == "UVMap":
+                break
+        else:
+            raise PluginError('Object with F3D materials does not have a "UVMap" uvmap layer.')
+
+
+def large_tex_checks(obj: Object, mesh: Mesh):
+    """See TileLoad.initWithFace for the usual exporter version of this function"""
+    large_props_dict = {}
+    for mat in mesh.materials:  # Cache info on any large tex material that needs to be checked
+        if not mat.is_f3d or not mat.f3d_mat.use_large_textures:
+            continue
+        f3d_mat = mat.f3d_mat
+        use_dict = all_combiner_uses(f3d_mat)
+        textures = []
+        if use_dict["Texture 0"] and f3d_mat.tex0.tex_set:
+            textures.append(f3d_mat.tex0)
+        if use_dict["Texture 1"] and f3d_mat.tex1.tex_set:
+            textures.append(f3d_mat.tex1)
+
+        if len(textures) == 0:
+            continue
+        texture = textures[0]
+
+        tmem = sum(getTmemWordUsage(tex.tex_format, *tex.get_tex_size()) for tex in textures)
+        tmem_size = 256 if texture.is_ci else 512
+        if tmem <= tmem_size:
+            continue  # Can fit in TMEM without large mode, so skip
+
+        large_props_dict[mat.name] = {
+            "clamp": f3d_mat.large_edges == "Clamp",
+            "point": f3d_mat.rdp_settings.g_mdsft_text_filt == "G_TF_POINT",
+            "dimensions": get_tex_basis_size(f3d_mat),
+            "format": texture.tex_format,
+            "texels_per_word": 64 // sum(texture.format_size for texture in textures),
+            "is_4bit": any(tex.format_size == 4 for tex in textures),
+            "large_tex_words": tmem_size,
+        }
+
+    def get_low(large_props, value, field):
+        value = int(floor(value))
+        if large_props["clamp"]:
+            value = min(max(value, 0), large_props["dimensions"][field] - 1)
+        if large_props["is_4bit"] and field == 0:
+            # Must start on an even texel (round down)
+            value &= ~1
+        return value
+
+    def get_high(large_props, value, field):
+        value = int(ceil(value)) - (1 if large_props["point"] else 0)
+        if large_props["clamp"]:
+            value = min(max(value, 0), large_props["dimensions"][field] - 1)
+        if large_props["is_4bit"] and field == 0:
+            value |= 1
+        return value
+
+    def fix_region(large_props, sl, sh, tl, th):
+        dimensions = large_props["dimensions"]
+        assert sl <= sh and tl <= th
+        soffset = int(floor(sl / dimensions[0])) * dimensions[0]
+        toffset = int(floor(tl / dimensions[1])) * dimensions[1]
+        sl -= soffset
+        sh -= soffset
+        tl -= toffset
+        th -= toffset
+        assert 0 <= sl < dimensions[0] and 0 <= tl < dimensions[1]
+
+        if sh >= 1024 or th >= 1024:
+            return False
+        texels_per_word = large_props["texels_per_word"]
+        if sh >= dimensions[0]:
+            if texels_per_word > dimensions[0]:
+                raise PluginError(f"Large texture must be at least {texels_per_word} wide.")
+            sl -= dimensions[0]
+            sl = int(floor(sl / texels_per_word)) * texels_per_word
+            sl += dimensions[0]
+        if th >= dimensions[1]:
+            tl -= dimensions[1]
+            tl = int(floor(tl / 2.0)) * 2
+            tl += dimensions[1]
+
+        def get_tmem_usage(width, height, texels_per_word=texels_per_word):
+            return (width + texels_per_word - 1) // texels_per_word * height
+
+        tmem_usage = get_tmem_usage(sh - sl + 1, th - tl + 1)
+        return tmem_usage <= large_props["large_tex_words"]
+
+    uv_data = obj.data.uv_layers["UVMap"].data
+    for face in mesh.loop_triangles:
+        mat_name = obj.material_slots[face.material_index].material.name
+        large_props = large_props_dict.get(mat_name)
+        if large_props is None:
+            continue
+        dimensions = large_props["dimensions"]
+        face_uvs = [UVtoSTLarge(obj, loop_index, uv_data, dimensions) for loop_index in face.loops]
+        sl, sh, tl, th = 1000000, -1, 1000000, -1
+        for point in face_uvs:
+            sl = min(sl, get_low(large_props, point[0], 0))
+            sh = max(sh, get_high(large_props, point[0], 0))
+            tl = min(tl, get_low(large_props, point[1], 1))
+            th = max(th, get_high(large_props, point[1], 1))
+
+        if fix_region(large_props, sl, sh, tl, th):
+            continue  # Region fits in TMEM
+        if sh >= 1024 or th >= 1024:
+            raise PluginError(
+                f"Large texture material {mat_name} has a face that needs"
+                + f" to cover texels {sl}-{sh} x {tl}-{th}"
+                + f" (image dims are {dimensions}), but image space"
+                + " only goes up to 1024 so this cannot be represented."
+            )
+        else:
+            raise PluginError(
+                f"Large texture material {mat_name} has a face that needs"
+                + f" to cover texels {sl}-{sh} x {tl}-{th}"
+                + f" ({sh-sl+1} x {th-tl+1} texels) "
+                + f"in format {large_props['format']}, which can't fit in TMEM."
+            )
 
 
 # Ideally we'd use mathutils.Color here but it does not support alpha (and mul for some reason)
@@ -199,7 +337,7 @@ class F3DExtensions(GlTF2SubExtension):
         if not self.extension.importing:
             return
         try:
-            self.print_verbose("Linking gbo material library")
+            self.print_verbose("Linking F3D material library")
             link_f3d_material_library()
             mat = bpy.data.materials["fast64_f3d_material_library_beefwashere"]
             self.base_node_tree = mat.node_tree.copy()
@@ -270,8 +408,8 @@ class F3DExtensions(GlTF2SubExtension):
                         raise PluginError(f"Too many colors for {f3d_tex.tex_format}: {len(rgba_colors)}")
 
         else:
-            if f3d_tex.tex_set and not img and self.settings.raise_on_no_image:
-                raise PluginError("No image set.")
+            if f3d_tex.tex_set and not f3d_tex.use_tex_reference and not img:
+                raise PluginError("Non texture reference must have an image.")
             source = None
         sampler = self.sampler_from_f3d(f3d_mat, f3d_tex)
         return gltf2_io.Texture(
@@ -348,8 +486,6 @@ class F3DExtensions(GlTF2SubExtension):
             raise PluginError("Textures with the same reference must have the same size.")
 
         if f3d_mat.use_large_textures:
-            if same_textures:
-                raise PluginError("Using the same texture for Tex0 and Tex1 is not compatible with large textures.")
             if self.settings.raise_large_multitex:
                 if tex0_tmem > tmem_size // 2 and tex1_tmem > tmem_size // 2:
                     raise PluginError("Multitexture with two large textures is not currently supported.")
@@ -396,16 +532,14 @@ class F3DExtensions(GlTF2SubExtension):
 
         f3d_mat: F3DMaterialProperty = blender_material.f3d_mat
         fix_invalid_props(f3d_mat)  # This fixes all enums that are not valid, and colors out of range
-        rdp = f3d_mat.rdp_settings
+        rdp: RDPSettings = f3d_mat.rdp_settings
 
-        if (
-            self.settings.raise_texture_limits
-            and f3d_mat.is_multi_tex
-            and (f3d_mat.tex0.tex_set & f3d_mat.tex1.tex_set)
-        ):
-            self.multitex_checks(f3d_mat)
+        if self.settings.raise_texture_limits:
+            if f3d_mat.is_multi_tex and (f3d_mat.tex0.tex_set and f3d_mat.tex1.tex_set):
+                self.multitex_checks(f3d_mat)
         if self.settings.raise_invalid_render_mode:
-            rendermode_presets_checks(f3d_mat)
+            if rdp.set_rendermode and not rdp.rendermode_advanced_enabled:
+                rendermode_presets_checks(f3d_mat)
 
         use_dict = all_combiner_uses(f3d_mat)
 
@@ -461,12 +595,27 @@ class F3DExtensions(GlTF2SubExtension):
         if not f3d_mat.rdp_settings.g_lighting:
             self.append_extension(gltf2_material, "KHR_materials_unlit")
 
-    def gather_node_hook(self, gltf2_node, blender_object, _export_settings: dict):
+    def gather_mesh_hook(self, gltf2_mesh, blender_mesh, blender_object, _export_settings: dict):
+        if self.settings.raise_bad_mat_slot:
+            material_slots = blender_object.material_slots
+            if len(blender_mesh.materials) == 0 or len(material_slots) == 0:
+                raise PluginError("Object does not have any materials.")
+            check_face_materials(
+                blender_object.name,
+                material_slots,
+                blender_mesh.polygons,
+                self.settings.raise_non_f3d_mat,
+            )
+        if self.settings.raise_no_uvmap:
+            uvmap_check(blender_object, blender_mesh)
+        if self.settings.raise_large_tex:
+            large_tex_checks(blender_object, blender_mesh)
+
         data = {}
-        if not self.gbi.F3D_OLD_GBI and gltf2_node.mesh:
+        if not self.gbi.F3D_OLD_GBI:
             data["use_culling"] = blender_object.use_f3d_culling
             self.append_extension(
-                gltf2_node.mesh,
+                gltf2_mesh,
                 MESH_EXTENSION_NAME,
                 {
                     "extensions": {
@@ -476,6 +625,10 @@ class F3DExtensions(GlTF2SubExtension):
                     }
                 },
             )
+
+    def gather_node_hook(self, gltf2_node, blender_object, _export_settings: dict):
+        if gltf2_node.mesh:  # HACK: gather_mesh_hook is broken in 3.2, no blender object included
+            self.gather_mesh_hook(gltf2_node.mesh, blender_object.data, blender_object, _export_settings)
 
     # Importing
 
@@ -569,13 +722,15 @@ NEW_MESH_EXTENSION_NAME = "FAST64_mesh_f3d_new"
 class F3DGlTFSettings(PropertyGroup):
     use: BoolProperty(default=True, name="Export/Import F3D extensions")
 
-    raise_on_no_image: BoolProperty(
-        name="No Image", description="Raise an error when a texture needs to be set but there is no image", default=True
-    )
-    raise_texture_limits: BoolProperty(name="Texture Limits", default=True)
+    raise_texture_limits: BoolProperty(name="Tex Limits", default=True)
     raise_large_multitex: BoolProperty(
         name="Large Multitex",
         description="Raise an error when a multitexture has two large textures. This can theoretically be supported",
+        default=True,
+    )
+    raise_large_tex: BoolProperty(
+        name="Large Tex",
+        description="Raise an error when a polygon's textures in large texture mode can´t fit in one full TMEM load",
         default=True,
     )
     raise_invalid_render_mode: BoolProperty(
@@ -584,9 +739,19 @@ class F3DGlTFSettings(PropertyGroup):
         default=True,
     )
     raise_non_f3d_mat: BoolProperty(
-        name="Non F3D Material",
+        name="Non F3D Mat",
         description="Raise an error when a material is not an f3d material. Useful for tiny3d",
         default=False,
+    )
+    raise_bad_mat_slot: BoolProperty(
+        name="Bad Slot",
+        description="Raise an error when the mesh has no materials, a face's material slot is empty or invalid",
+        default=False,
+    )
+    raise_no_uvmap: BoolProperty(
+        name="No UVMap",
+        description="Raise an error when a mesh with f3d materials has no uv layer named UVMap",
+        default=True,
     )
 
     # TODO: Large texture mode errors and other per mesh stuff
@@ -594,20 +759,24 @@ class F3DGlTFSettings(PropertyGroup):
     def to_dict(self):
         return {
             "use": self.use,
-            "raiseOnNoImage": self.raise_on_no_image,
             "raiseTextureLimits": self.raise_texture_limits,
             "raiseLargeMultitex": self.raise_large_multitex,
+            "raiseLargeTex": self.raise_large_tex,
             "raiseInvalidRenderMode": self.raise_invalid_render_mode,
             "raiseNonF3DMat": self.raise_non_f3d_mat,
+            "raiseBadMatSlot": self.raise_bad_mat_slot,
+            "raiseNoUVMap": self.raise_no_uvmap,
         }
 
     def from_dict(self, data: dict):
         self.use = data.get("use", self.use)
-        self.raise_on_no_image = data.get("raiseOnNoImage", self.raise_on_no_image)
         self.raise_texture_limits = data.get("raiseTextureLimits", self.raise_texture_limits)
         self.raise_large_multitex = data.get("raiseLargeMultitex", self.raise_large_multitex)
+        self.raise_large_tex = data.get("raiseLargeTex", self.raise_large_tex)
         self.raise_invalid_render_mode = data.get("raiseInvalidRenderMode", self.raise_invalid_render_mode)
         self.raise_non_f3d_mat = data.get("raiseNonF3DMat", self.raise_non_f3d_mat)
+        self.raise_bad_mat_slot = data.get("raiseBadMatSlot", self.raise_bad_mat_slot)
+        self.raise_no_uvmap = data.get("raiseNoUVMap", self.raise_no_uvmap)
 
     def draw_props(self, layout: UILayout, import_context=False):
         col = layout.column()
@@ -630,16 +799,23 @@ class F3DGlTFSettings(PropertyGroup):
         multilineLabel(col.box(), ",\n".join(extensions))
         col.separator()
 
+        if import_context:
+            return
+
         box = col.box().column()
         box.box().label(text="Raise Errors:", icon="ERROR")
 
         row = box.row()
-        row.prop(self, "raise_on_no_image", toggle=True)
         row.prop(self, "raise_texture_limits", toggle=True)
-        texture_limits_col = row.column()
-        texture_limits_col.enabled = self.raise_texture_limits
-        texture_limits_col.prop(self, "raise_large_multitex", toggle=True)
+        limits_row = row.row()
+        limits_row.enabled = self.raise_texture_limits
+        limits_row.prop(self, "raise_large_multitex", toggle=True)
+        limits_row.prop(self, "raise_large_tex", toggle=True)
 
         row = box.row()
         row.prop(self, "raise_invalid_render_mode", toggle=True)
         row.prop(self, "raise_non_f3d_mat", toggle=True)
+        row.prop(self, "raise_no_uvmap", toggle=True)
+
+        row = box.row()
+        row.prop(self, "raise_bad_mat_slot", toggle=True)
