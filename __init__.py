@@ -345,10 +345,28 @@ def upgrade_scene_props_node():
         bpy.ops.dialog.upgrade_f3d_materials("INVOKE_DEFAULT")
 
 
+def cleanup_nodes_4_2_0():
+    for mat in bpy.data.materials:
+        if not mat.is_f3d:
+            continue
+        to_remove = set()
+        for node in mat.node_tree.nodes:
+            if node.bl_idname == "ShaderNodeLightPath":
+                to_remove.add(node)
+            if node.bl_idname == "ShaderNodeMixShader" and node.label == "Disable Shadow":
+                to_remove.add(node)
+            if node.bl_idname == "ShaderNodeBsdfTransparent":
+                to_remove.add(node)
+        for node in to_remove:
+            mat.node_tree.nodes.remove(node)
+
+
 @bpy.app.handlers.persistent
 def after_load(_a, _b):
     if any(mat.is_f3d for mat in bpy.data.materials):
         check_or_ask_color_management(bpy.context)
+    if bpy.app.version >= (4, 2, 0):
+        cleanup_nodes_4_2_0()
     upgrade_changed_props()
     upgrade_scene_props_node()
     resync_scene_props()
