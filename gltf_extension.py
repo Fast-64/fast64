@@ -17,10 +17,12 @@ from .fast64_internal.f3d.glTF.f3d_gltf import F3DGlTFSettings, F3DGlTFPanel, F3
 # Doesn´t use world defaults, as those should be left to the repo to handle.
 
 
-# HACK: For 4.1 and 4.2 we need to disable all F3D nodes,
-# otherwise an infinite recursion occurs in texture gathering
-# this is also restored in gather_gltf_extensions_hook (glTF2_post_export_callback can fail)
 def set_use_nodes_in_f3d_materials(use: bool):
+    """
+    HACK: For 4.1 and 4.2 we need to disable all F3D nodes,
+    otherwise an infinite recursion occurs in texture gathering
+    this is also called in gather_gltf_extensions_hook (glTF2_post_export_callback can fail)
+    """
     if GLTF2_ADDON_VERSION >= (4, 1, 0):
         for mat in bpy.data.materials:
             if mat.is_f3d and mat.mat_ver == 5:
@@ -98,7 +100,7 @@ class glTF2ExportUserExtension(GlTF2Extension):
             export_settings,
         )
 
-    def gather_gltf_extensions_hook(self, gltf, export_settings):
+    def gather_gltf_extensions_hook(self, _gltf, _export_settings):
         set_use_nodes_in_f3d_materials(True)
 
 
@@ -118,10 +120,19 @@ class glTF2ImportUserExtension(GlTF2Extension):
     def gather_import_node_after_hook(self, vnode, gltf_node, blender_object, gltf):
         self.call_hooks(
             "gather_import_node_after_hook",
-            'Object "{args[1].name}"',
+            'Object "{args[2].name}"',
             vnode,
             gltf_node,
             blender_object,
+            gltf,
+        )
+
+    def gather_import_mesh_after_hook(self, gltf_mesh, blender_mesh, gltf):
+        self.call_hooks(
+            "gather_import_mesh_after_hook",
+            'Mesh "{args[1].name}"',
+            gltf_mesh,
+            blender_mesh,
             gltf,
         )
 

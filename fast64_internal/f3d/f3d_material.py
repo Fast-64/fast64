@@ -3656,9 +3656,11 @@ class RDPSettings(PropertyGroup):
         if not render_mode.get("presets", None) and (flags or blender):
             self.rendermode_advanced_enabled = True
 
-        self.rendermode_preset_cycle_1, self.rendermode_preset_cycle_2 = render_mode.get(
-            "presets", [self.rendermode_preset_cycle_1, self.rendermode_preset_cycle_2]
-        )
+        presets = render_mode.get("presets", [])
+        if len(presets) >= 1:
+            self.rendermode_preset_cycle_1 = presets[0]
+        if len(presets) >= 2:
+            self.rendermode_preset_cycle_2 = presets[1]
 
         self.attributes_from_dict(flags, self.rendermode_flag_attributes)
         color_attrs = ("blend_p", "blend_m")
