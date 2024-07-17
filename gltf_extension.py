@@ -63,7 +63,7 @@ class GlTF2Extension:
                     icon="ERROR",
                 )
                 print(full_error)
-                raise Exception from exc  # pylint: disable=broad-exception-raised
+                # TODO: Force glTF exports and imports to fail somehow?
 
     def __init__(self):
         from io_scene_gltf2.io.com.gltf2_io_extensions import Extension

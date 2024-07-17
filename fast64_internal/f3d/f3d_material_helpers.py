@@ -59,6 +59,7 @@ EXCLUDE_FROM_INPUT_OUTPUT = (
     "node",
     "bl_idname",
     "default_value",
+    "is_unavailable",
 )
 
 
