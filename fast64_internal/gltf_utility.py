@@ -72,7 +72,7 @@ def get_gltf_image_from_blender_image(blender_image_name: str, export_settings: 
 
     uri = __gather_uri(image_data, mime_type, name, export_settings)
     buffer_view = __gather_buffer_view(image_data, mime_type, name, export_settings)
-    
+
     if GLTF2_ADDON_VERSION >= (3, 3, 0):
         buffer_view, _factor_buffer_view = buffer_view
 
