@@ -4,7 +4,7 @@ from bpy.types import PropertyGroup, UILayout, Panel, Context
 from bpy.props import BoolProperty, PointerProperty
 
 from .fast64_internal.utility import multilineLabel, prop_group_to_json, json_to_prop_group
-from .fast64_internal.gltf_utility import is_import_context, get_gltf_settings
+from .fast64_internal.gltf_utility import GLTF2_ADDON_VERSION, get_gltf_settings
 from .fast64_internal.f3d.glTF.f3d_gltf import F3DGlTFSettings, F3DGlTFPanel, F3DExtensions
 
 # Original implementation from github.com/Mr-Wiseguy/gltf64-blender
@@ -15,6 +15,24 @@ from .fast64_internal.f3d.glTF.f3d_gltf import F3DGlTFSettings, F3DGlTFPanel, F3
 # Full fast64 material support.
 # Extendability improvements.
 # Doesn´t use world defaults, as those should be left to the repo to handle.
+
+
+# HACK: For 4.1 and 4.2 we need to disable all F3D nodes,
+# otherwise an infinite recursion occurs in texture gathering
+# this is also restored in gather_gltf_extensions_hook (glTF2_post_export_callback can fail)
+def set_use_nodes_in_f3d_materials(use: bool):
+    if GLTF2_ADDON_VERSION >= (4, 1, 0):
+        for mat in bpy.data.materials:
+            if mat.is_f3d and mat.mat_ver == 5:
+                mat.use_nodes = use
+
+
+def glTF2_pre_export_callback(_gltf):
+    set_use_nodes_in_f3d_materials(False)
+
+
+def glTF2_post_export_callback(_gltf):
+    set_use_nodes_in_f3d_materials(True)
 
 
 def error_popup_handler(simple_error: str, full_error: str):
@@ -55,7 +73,7 @@ class GlTF2Extension:
         self.settings = bpy.context.scene.fast64.settings.glTF
         self.verbose = self.settings.verbose
         self.sub_extensions = []
-        if self.settings.f3d:
+        if self.settings.f3d.use:
             self.sub_extensions.append(F3DExtensions(self))
 
 
@@ -81,9 +99,7 @@ class glTF2ExportUserExtension(GlTF2Extension):
         )
 
     def gather_gltf_extensions_hook(self, gltf, export_settings):
-        for mat in bpy.data.materials:
-            if mat.is_f3d and mat.mat_ver == 5:
-                mat.use_nodes = True
+        set_use_nodes_in_f3d_materials(True)
 
 
 class glTF2ImportUserExtension(GlTF2Extension):
@@ -108,14 +124,6 @@ class glTF2ImportUserExtension(GlTF2Extension):
             blender_object,
             gltf,
         )
-
-
-# HACK: For 4.1 and 4.2 we need to disable all F3D nodes,
-# otherwise an infinite recursion occurs in texture gathering
-def glTF2_pre_export_callback(gltf):
-    for mat in bpy.data.materials:
-        if mat.is_f3d and mat.mat_ver == 5:
-            mat.use_nodes = False
 
 
 class Fast64GlTFSettings(PropertyGroup):
