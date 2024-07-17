@@ -39,11 +39,19 @@ class GlTF2Extension:
                 error_location = f"{extension.__class__.__name__}.{hook}"
                 full_error = f"{error_location}:\n{traceback.format_exc().rstrip()}"
 
-                wm.popup_menu(error_popup_handler(str(exc), full_error), title=message, icon="ERROR")
+                wm.popup_menu(
+                    error_popup_handler(str(exc), full_error),
+                    title=message,
+                    icon="ERROR",
+                )
                 print(full_error)
-                raise Exception from exc
+                raise Exception from exc  # pylint: disable=broad-exception-raised
 
     def __init__(self):
+        from io_scene_gltf2.io.com.gltf2_io_extensions import Extension
+
+        self.Extension = Extension
+
         self.settings = bpy.context.scene.fast64.settings.glTF
         self.verbose = self.settings.verbose
         self.sub_extensions = []
@@ -72,6 +80,11 @@ class glTF2ExportUserExtension(GlTF2Extension):
             export_settings,
         )
 
+    def gather_gltf_extensions_hook(self, gltf, export_settings):
+        for mat in bpy.data.materials:
+            if mat.is_f3d and mat.mat_ver == 5:
+                mat.use_nodes = True
+
 
 class glTF2ImportUserExtension(GlTF2Extension):
     importing = True
@@ -97,6 +110,14 @@ class glTF2ImportUserExtension(GlTF2Extension):
         )
 
 
+# HACK: For 4.1 and 4.2 we need to disable all F3D nodes,
+# otherwise an infinite recursion occurs in texture gathering
+def glTF2_pre_export_callback(gltf):
+    for mat in bpy.data.materials:
+        if mat.is_f3d and mat.mat_ver == 5:
+            mat.use_nodes = False
+
+
 class Fast64GlTFSettings(PropertyGroup):
     verbose: BoolProperty(
         name="Verbose",
@@ -111,7 +132,7 @@ class Fast64GlTFSettings(PropertyGroup):
     def from_dict(self, data: dict):
         json_to_prop_group(self, data)
 
-    def draw_props(self, scene, layout: UILayout, import_context=False):
+    def draw_props(self, scene, layout: UILayout):
         col = layout.column()
         multilineLabel(
             col,
@@ -126,9 +147,17 @@ class Fast64GlTFSettings(PropertyGroup):
 
         game_mode = scene.gameEditorMode
         if game_mode == "Homebrew":
-            multilineLabel(col.box(), "Homebrew mode does not\nimplement any extensions", icon="INFO")
+            multilineLabel(
+                col.box(),
+                "Homebrew mode does not\nimplement any extensions",
+                icon="INFO",
+            )
         elif not getattr(self, game_mode.lower(), None):
-            multilineLabel(col.box(), f"Current game mode ({game_mode})\nnot implemented", icon="INFO")
+            multilineLabel(
+                col.box(),
+                f"Current game mode ({game_mode})\nnot implemented",
+                icon="INFO",
+            )
 
 
 class Fast64GlTFPanel(Panel):
@@ -145,11 +174,7 @@ class Fast64GlTFPanel(Panel):
 
     def draw(self, context: Context):
         self.layout.use_property_decorate = False  # No animation.
-        get_gltf_settings(context).draw_props(
-            context.scene,
-            self.layout,
-            is_import_context(context),
-        )
+        get_gltf_settings(context).draw_props(context.scene, self.layout)
 
 
 classes = (F3DGlTFSettings, Fast64GlTFPanel, Fast64GlTFSettings, F3DGlTFPanel)

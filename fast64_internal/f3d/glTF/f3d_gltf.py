@@ -1,17 +1,11 @@
 from dataclasses import dataclass
 from math import ceil, floor
 import bpy
-from bpy.types import NodeTree, PropertyGroup, UILayout, Object, Mesh, Context, Panel
+from bpy.types import NodeTree, Object, Mesh, Material, Context, Panel, PropertyGroup, UILayout
 from bpy.props import BoolProperty
 
 from ...utility import multilineLabel, prop_split, PluginError, fix_invalid_props
-from ...gltf_utility import (
-    GlTF2SubExtension,
-    get_gltf_image_from_blender_image,
-    get_gltf_settings,
-    is_import_context,
-    Extension,
-)
+from ...gltf_utility import GlTF2SubExtension, get_gltf_image_from_blender_image, get_gltf_settings, is_import_context
 from ..f3d_gbi import F3D, get_F3D_GBI
 from ..f3d_material import (
     all_combiner_uses,
@@ -46,6 +40,8 @@ NEW_MESH_EXTENSION_NAME = "FAST64_mesh_f3d_new"
 def uvmap_check(obj: Object, mesh: Mesh):
     has_f3d_mat = False
     for material in obj.material_slots:  # Check if any slot is F3D
+        if material.material is None:
+            continue
         if material.material.is_f3d:
             has_f3d_mat = True
             break
@@ -71,6 +67,8 @@ def large_tex_checks(obj: Object, mesh: Mesh):
 
     large_props_dict = {}
     for mat in mesh.materials:  # Cache info on any large tex material that needs to be checked
+        if not mat:
+            continue
         if not mat.is_f3d or not mat.f3d_mat.use_large_textures:
             continue
         f3d_mat: F3DMaterialProperty = mat.f3d_mat
@@ -500,14 +498,17 @@ class F3DExtensions(GlTF2SubExtension):
                 "which can't fit in a CI8 palette (256)."
             )
 
-    def gather_material_hook(self, gltf2_material, blender_material, export_settings: dict):
+    def gather_material_hook(self, gltf2_material, blender_material: Material, export_settings: dict):
         if not blender_material.is_f3d:
             if self.settings.raise_non_f3d_mat:
                 raise PluginError(
                     'Material is not an F3D material. Turn off "Non F3D Material" to ignore.',
                 )
             return
-        data = {}
+        if blender_material.mat_ver < 5:
+            raise PluginError(
+                f"Material is an F3D material but its version is too old ({blender_material.mat_ver}).",
+            )
 
         f3d_mat: F3DMaterialProperty = blender_material.f3d_mat
         fix_invalid_props(f3d_mat)
@@ -521,7 +522,7 @@ class F3DExtensions(GlTF2SubExtension):
                 rendermode_presets_checks(f3d_mat)
 
         use_dict = all_combiner_uses(f3d_mat)
-
+        data = {}
         data["combiner"] = f3d_mat.combiner_to_dict()
         data.update(f3d_mat.f3d_colors_to_dict(use_dict))
         data.update(
@@ -537,13 +538,23 @@ class F3DExtensions(GlTF2SubExtension):
         textures = {}
         data["textures"] = textures
         if use_dict["Texture 0"]:
-            textures["0"] = self.f3d_to_glTF2_texture_info(f3d_mat, f3d_mat.tex0, 0, export_settings)
+            textures["0"] = self.f3d_to_glTF2_texture_info(
+                f3d_mat,
+                f3d_mat.tex0,
+                0,
+                export_settings,
+            )
         if use_dict["Texture 1"]:
-            textures["1"] = self.f3d_to_glTF2_texture_info(f3d_mat, f3d_mat.tex1, 1, export_settings)
+            textures["1"] = self.f3d_to_glTF2_texture_info(
+                f3d_mat,
+                f3d_mat.tex1,
+                1,
+                export_settings,
+            )
 
         data["extensions"] = {}
         if self.gbi.F3DEX_GBI:  # F3DLX
-            data["extensions"][EX1_MATERIAL_EXTENSION_NAME] = Extension(
+            data["extensions"][EX1_MATERIAL_EXTENSION_NAME] = self.extension.Extension(
                 name=EX1_MATERIAL_EXTENSION_NAME,
                 extension={"geometryMode": rdp.f3dlx_geo_mode_to_dict()},
                 required=False,
@@ -551,7 +562,7 @@ class F3DExtensions(GlTF2SubExtension):
         if self.gbi.F3DEX_GBI_3:  # F3DEX3
             if f3d_mat.use_cel_shading:
                 cel_shading_checks(f3d_mat)
-            data["extensions"][EX3_MATERIAL_EXTENSION_NAME] = Extension(
+            data["extensions"][EX3_MATERIAL_EXTENSION_NAME] = self.extension.Extension(
                 name=EX3_MATERIAL_EXTENSION_NAME,
                 extension={
                     "geometryMode": rdp.f3dex3_geo_mode_to_dict(),
@@ -575,6 +586,7 @@ class F3DExtensions(GlTF2SubExtension):
             self.append_extension(gltf2_material, "KHR_materials_unlit")
 
     def gather_mesh_hook(self, gltf2_mesh, blender_mesh, blender_object, _export_settings: dict):
+        # TODO: Check if there is no issues with text and curves
         if self.settings.raise_bad_mat_slot:
             material_slots = blender_object.material_slots
             if len(blender_mesh.materials) == 0 or len(material_slots) == 0:
@@ -620,7 +632,7 @@ class F3DExtensions(GlTF2SubExtension):
         self,
         gltf_material,
         _vertex_color,
-        blender_material,
+        blender_material: Material,
         gltf,
     ):
         data = self.get_extension(gltf_material, MATERIAL_EXTENSION_NAME)
@@ -664,7 +676,9 @@ class F3DExtensions(GlTF2SubExtension):
         blender_material.is_f3d = True
         blender_material.mat_ver = 5
 
-        self.print_verbose("Copying F3D node tree, creating scene properties and updating all nodes")
+        self.print_verbose(
+            "Copying F3D node tree, creating scene properties and updating all nodes",
+        )
         try:
             node_tree_copy(self.base_node_tree, blender_material.node_tree)
             createScenePropertiesForMaterial(blender_material)
@@ -679,7 +693,6 @@ class F3DExtensions(GlTF2SubExtension):
         data = self.get_extension(gltf_node, MESH_EXTENSION_NAME)
         if data is None:
             return
-
         new_data = data.get("extensions", {}).get(NEW_MESH_EXTENSION_NAME, None)
         if new_data:
             blender_object.use_f3d_culling = new_data.get("use_culling", True)
@@ -696,30 +709,38 @@ NEW_MESH_EXTENSION_NAME = "FAST64_mesh_f3d_new"
 class F3DGlTFSettings(PropertyGroup):
     use: BoolProperty(default=True, name="Export/Import F3D extensions")
 
-    raise_texture_limits: BoolProperty(name="Tex Limits", default=True)
+    raise_texture_limits: BoolProperty(
+        name="Tex Limits",
+        description="Raises errors when texture limits are exceeded,\n"
+        "such as texture resolution, pallete size, format conflicts, etc",
+        default=True,
+    )
     raise_large_multitex: BoolProperty(
         name="Large Multi",
-        description="Raise an error when a multitexture has two large textures. This can theoretically be supported",
+        description="Raise an error when a multitexture has two large textures.\n"
+        "This can theoretically be supported",
         default=True,
     )
     raise_large_tex: BoolProperty(
         name="Large Tex",
-        description="Raise an error when a polygon's textures in large texture mode can´t fit in one full TMEM load",
+        description="Raise an error when a polygon's textures in large texture mode can´t fit in\n"
+        "one full TMEM load",
         default=True,
     )
     raise_rendermode: BoolProperty(
         name="Rendermode",
-        description="Raise an error when a material uses an invalid combination of rendermode presets. Does not raise in the normal exporter",
+        description="Raise an error when a material uses an invalid combination of rendermode presets.\n"
+        "Does not raise in the normal exporter",
         default=True,
     )
     raise_non_f3d_mat: BoolProperty(
-        name="Non F3D Mat",
+        name="Non F3D",
         description="Raise an error when a material is not an F3D material. Useful for tiny3d",
         default=False,
     )
     raise_bad_mat_slot: BoolProperty(
         name="Bad Slot",
-        description="Raise an error when the mesh has no materials, a face's material slot is empty or invalid",
+        description="Raise an error when the mesh has no materials, " "a face's material slot is empty or invalid",
         default=False,
     )
     raise_no_uvmap: BoolProperty(

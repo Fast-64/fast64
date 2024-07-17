@@ -1782,5 +1782,5 @@ def fix_invalid_props(prop_group):
         elif prop_def.type == "ENUM":
             if prop_value not in [enum.identifier for enum in prop_def.enum_items]:
                 prop_group[prop_attr] = prop_def.default
-        else:  # Sets this again, ensures ints, floats and colors are within their range
+        elif prop_value is not None:  # Sets this again, ensures ints, floats and colors are within their range
             prop_group[prop_attr] = prop_value
