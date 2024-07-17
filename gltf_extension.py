@@ -1,11 +1,11 @@
 import traceback
-from io_scene_gltf2.io.com.gltf2_io_extensions import Extension
 import bpy
 from bpy.types import PropertyGroup, UILayout, Panel, Context
 from bpy.props import BoolProperty, PointerProperty
 
 from .fast64_internal.utility import multilineLabel, prop_group_to_json, json_to_prop_group
-from .fast64_internal.f3d.glTF.f3d_gltf import F3DGlTFSettings, F3DExtensions
+from .fast64_internal.gltf_utility import is_import_context, get_gltf_settings
+from .fast64_internal.f3d.glTF.f3d_gltf import F3DGlTFSettings, F3DGlTFPanel, F3DExtensions
 
 # Original implementation from github.com/Mr-Wiseguy/gltf64-blender
 
@@ -18,7 +18,7 @@ from .fast64_internal.f3d.glTF.f3d_gltf import F3DGlTFSettings, F3DExtensions
 
 
 def error_popup_handler(simple_error: str, full_error: str):
-    def handler(self, context):
+    def handler(self, _context):
         col = self.layout.column()
         multilineLabel(col, simple_error, icon="INFO")
         col.separator()
@@ -44,7 +44,6 @@ class GlTF2Extension:
                 raise Exception from exc
 
     def __init__(self):
-        self.Extension = Extension
         self.settings = bpy.context.scene.fast64.settings.glTF
         self.verbose = self.settings.verbose
         self.sub_extensions = []
@@ -56,11 +55,21 @@ class glTF2ExportUserExtension(GlTF2Extension):
     importing = False
 
     def gather_node_hook(self, gltf2_node, blender_object, export_settings):
-        self.call_hooks("gather_node_hook", 'Object "{args[1].name}"', gltf2_node, blender_object, export_settings)
+        self.call_hooks(
+            "gather_node_hook",
+            'Object "{args[1].name}"',
+            gltf2_node,
+            blender_object,
+            export_settings,
+        )
 
     def gather_material_hook(self, gltf2_material, blender_material, export_settings):
         self.call_hooks(
-            "gather_material_hook", 'Material "{args[1].name}"', gltf2_material, blender_material, export_settings
+            "gather_material_hook",
+            'Material "{args[1].name}"',
+            gltf2_material,
+            blender_material,
+            export_settings,
         )
 
 
@@ -79,12 +88,20 @@ class glTF2ImportUserExtension(GlTF2Extension):
 
     def gather_import_node_after_hook(self, vnode, gltf_node, blender_object, gltf):
         self.call_hooks(
-            "gather_import_node_after_hook", 'Object "{args[1].name}"', vnode, gltf_node, blender_object, gltf
+            "gather_import_node_after_hook",
+            'Object "{args[1].name}"',
+            vnode,
+            gltf_node,
+            blender_object,
+            gltf,
         )
 
 
 class Fast64GlTFSettings(PropertyGroup):
-    verbose: BoolProperty(name="Verbose", description="Print all appended extension data, useful for troubleshooting")
+    verbose: BoolProperty(
+        name="Verbose",
+        description="Print all appended extension data, useful for troubleshooting",
+    )
     f3d: PointerProperty(type=F3DGlTFSettings)
     game: BoolProperty(default=True, name="Export current game mode")
 
@@ -98,34 +115,28 @@ class Fast64GlTFSettings(PropertyGroup):
         col = layout.column()
         multilineLabel(
             col,
-            "TIP: Create a repo settings file in the\nfast64 tab to save these settings for your\nrepo.",
+            "TIP: Create a repo settings file in the\n"
+            "fast64 tab to save these settings for your\n"
+            "repo.",  # pylint: disable=line-too-long
             icon="INFO",
         )
         col.separator()
 
         col.prop(self, "verbose")
 
-        self.f3d.draw_props(col.box(), import_context)
-        col.separator()
-
         game_mode = scene.gameEditorMode
         if game_mode == "Homebrew":
-            col.box().label(text="Homebrew mode does not implement any extensions", icon="INFO")
-        else:
-            game_props = getattr(self, game_mode, None)
-            if game_props:
-                game_props.draw_props(col, import_context)
-            else:
-                col.label(text=f"Current game mode ({game_mode}) not implemented", icon="INFO")
+            multilineLabel(col.box(), "Homebrew mode does not\nimplement any extensions", icon="INFO")
+        elif not getattr(self, game_mode.lower(), None):
+            multilineLabel(col.box(), f"Current game mode ({game_mode})\nnot implemented", icon="INFO")
 
 
 class Fast64GlTFPanel(Panel):
-    bl_idname = "GLTF_F3D_PT_export"
+    bl_idname = "GLTF_PT_Fast64"
     bl_space_type = "FILE_BROWSER"
     bl_region_type = "TOOL_PROPS"
     bl_label = "Fast64"
     bl_parent_id = "FILE_PT_operator"
-    bl_options = {"DEFAULT_CLOSED"}
 
     @classmethod
     def poll(cls, context: Context):
@@ -133,16 +144,15 @@ class Fast64GlTFPanel(Panel):
         return operator_idname in ["EXPORT_SCENE_OT_gltf", "IMPORT_SCENE_OT_gltf"]
 
     def draw(self, context: Context):
-        is_import = context.space_data.active_operator.bl_idname == "IMPORT_SCENE_OT_gltf"
         self.layout.use_property_decorate = False  # No animation.
-        context.scene.fast64.settings.glTF.draw_props(context.scene, self.layout, is_import)
+        get_gltf_settings(context).draw_props(
+            context.scene,
+            self.layout,
+            is_import_context(context),
+        )
 
 
-classes = (
-    F3DGlTFSettings,
-    Fast64GlTFPanel,
-    Fast64GlTFSettings,
-)
+classes = (F3DGlTFSettings, Fast64GlTFPanel, Fast64GlTFSettings, F3DGlTFPanel)
 
 
 def gltf_extension_register():

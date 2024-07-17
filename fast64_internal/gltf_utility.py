@@ -35,6 +35,7 @@ else:
         __is_blender_image_a_jpeg,
     )
     from io_scene_gltf2.blender.exp.gltf2_blender_image import ExportImage
+from io_scene_gltf2.io.com.gltf2_io_extensions import Extension
 
 
 def is_blender_image_a_webp(image: Image) -> bool:
@@ -99,7 +100,7 @@ class GlTF2SubExtension:
             self.print_verbose(data)
         if gltf_prop.extensions is None:
             gltf_prop.extensions = {}
-        gltf_prop.extensions[name] = self.extension.Extension(
+        gltf_prop.extensions[name] = Extension(
             name=name,
             extension=data if data else {},
             required=required if required else self.required,
@@ -113,3 +114,11 @@ class GlTF2SubExtension:
         if any(data):
             self.print_verbose(data)
         return data
+
+
+def get_gltf_settings(context):
+    return context.scene.fast64.settings.glTF
+
+
+def is_import_context(context):
+    return context.space_data.active_operator.bl_idname == "IMPORT_SCENE_OT_gltf"

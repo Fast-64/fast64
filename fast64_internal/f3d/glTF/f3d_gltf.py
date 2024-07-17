@@ -1,11 +1,17 @@
 from dataclasses import dataclass
 from math import ceil, floor
 import bpy
-from bpy.types import NodeTree, PropertyGroup, UILayout, Object, Mesh
+from bpy.types import NodeTree, PropertyGroup, UILayout, Object, Mesh, Context, Panel
 from bpy.props import BoolProperty
 
-from ...utility import multilineLabel, PluginError, fix_invalid_props
-from ...gltf_utility import GlTF2SubExtension, get_gltf_image_from_blender_image
+from ...utility import multilineLabel, prop_split, PluginError, fix_invalid_props
+from ...gltf_utility import (
+    GlTF2SubExtension,
+    get_gltf_image_from_blender_image,
+    get_gltf_settings,
+    is_import_context,
+    Extension,
+)
 from ..f3d_gbi import F3D, get_F3D_GBI
 from ..f3d_material import (
     all_combiner_uses,
@@ -446,6 +452,7 @@ class F3DExtensions(GlTF2SubExtension):
 
         if same_reference and tex0_size != tex1_size:
             raise PluginError("Textures with the same reference must have the same size.")
+
         if self.settings.raise_large_multitex and f3d_mat.use_large_textures:
             if tex0_tmem > tmem_size // 2 and tex1_tmem > tmem_size // 2:
                 raise PluginError("Cannot multitexture with two large textures.")
@@ -461,7 +468,7 @@ class F3DExtensions(GlTF2SubExtension):
 
         if tex0.is_ci != tex1.is_ci:
             raise PluginError("Can't have a CI + non-CI texture. Must be both or neither CI.")
-        elif not tex0.is_ci or not tex1.is_ci:
+        if not (tex0.is_ci and tex1.is_ci):
             return
 
         # CI multitextures
@@ -536,7 +543,7 @@ class F3DExtensions(GlTF2SubExtension):
 
         data["extensions"] = {}
         if self.gbi.F3DEX_GBI:  # F3DLX
-            data["extensions"][EX1_MATERIAL_EXTENSION_NAME] = self.extension.Extension(
+            data["extensions"][EX1_MATERIAL_EXTENSION_NAME] = Extension(
                 name=EX1_MATERIAL_EXTENSION_NAME,
                 extension={"geometryMode": rdp.f3dlx_geo_mode_to_dict()},
                 required=False,
@@ -544,7 +551,7 @@ class F3DExtensions(GlTF2SubExtension):
         if self.gbi.F3DEX_GBI_3:  # F3DEX3
             if f3d_mat.use_cel_shading:
                 cel_shading_checks(f3d_mat)
-            data["extensions"][EX3_MATERIAL_EXTENSION_NAME] = self.extension.Extension(
+            data["extensions"][EX3_MATERIAL_EXTENSION_NAME] = Extension(
                 name=EX3_MATERIAL_EXTENSION_NAME,
                 extension={
                     "geometryMode": rdp.f3dex3_geo_mode_to_dict(),
@@ -691,7 +698,7 @@ class F3DGlTFSettings(PropertyGroup):
 
     raise_texture_limits: BoolProperty(name="Tex Limits", default=True)
     raise_large_multitex: BoolProperty(
-        name="Large Multitex",
+        name="Large Multi",
         description="Raise an error when a multitexture has two large textures. This can theoretically be supported",
         default=True,
     )
@@ -745,23 +752,25 @@ class F3DGlTFSettings(PropertyGroup):
 
     def draw_props(self, layout: UILayout, import_context=False):
         col = layout.column()
-        col.prop(self, "use", text=f"{'Import' if import_context else 'Export'} F3D extensions")
+        action = "Import" if import_context else "Export"
         if not self.use:
+            col.box().label(text="Not enabled", icon="ERROR")
             return
 
-        gbi, scene = get_F3D_GBI(), bpy.context.scene
-        col.box().label(
-            text=f"Scene Microcode: {scene.bl_rna.properties['f3d_type'].enum_items[scene.f3d_type].name}",
-            icon="INFO",
-        )
+        if not import_context:
+            scene = bpy.context.scene
+            prop_split(col, scene, "f3d_type", "Scene Microcode")
+            if not scene.f3d_type:
+                col.box().label(text="No microcode selected", icon="ERROR")
+            gbi = get_F3D_GBI()
         extensions = [MATERIAL_EXTENSION_NAME, SAMPLER_EXTENSION_NAME, MESH_EXTENSION_NAME]
-        if gbi.F3DEX_GBI:
+        if import_context or gbi.F3DEX_GBI:
             extensions.append(EX1_MATERIAL_EXTENSION_NAME)
-        if gbi.F3DEX_GBI_3:
+        if import_context or gbi.F3DEX_GBI_3:
             extensions.append(EX3_MATERIAL_EXTENSION_NAME)
-        if not gbi.F3D_OLD_GBI:
+        if import_context or not gbi.F3D_OLD_GBI:
             extensions.append(NEW_MESH_EXTENSION_NAME)
-        multilineLabel(col.box(), ",\n".join(extensions))
+        multilineLabel(col.box(), f"Will {action}:\n" + ",\n".join(extensions), icon=action.upper())
 
         if import_context:
             return
@@ -769,17 +778,39 @@ class F3DGlTFSettings(PropertyGroup):
         box = col.box().column()
         box.box().label(text="Raise Errors:", icon="ERROR")
 
-        row = box.row()
+        row = box.row(align=True)
         row.prop(self, "raise_texture_limits", toggle=True)
-        limits_row = row.row()
+        limits_row = row.row(align=True)
         limits_row.enabled = self.raise_texture_limits
         limits_row.prop(self, "raise_large_multitex", toggle=True)
         limits_row.prop(self, "raise_large_tex", toggle=True)
 
-        row = box.row()
+        row = box.row(align=True)
         row.prop(self, "raise_rendermode", toggle=True)
         row.prop(self, "raise_non_f3d_mat", toggle=True)
         row.prop(self, "raise_no_uvmap", toggle=True)
 
-        row = box.row()
+        row = box.split(factor=1.0 / 3.0, align=True)
         row.prop(self, "raise_bad_mat_slot", toggle=True)
+
+
+class F3DGlTFPanel(Panel):
+    bl_idname = "GLTF_PT_F3D"
+    bl_space_type = "FILE_BROWSER"
+    bl_region_type = "TOOL_PROPS"
+    bl_label = ""
+    bl_parent_id = "GLTF_PT_Fast64"
+    bl_options = {"DEFAULT_CLOSED"}
+
+    def draw_header(self, context: Context):
+        row = self.layout.row()
+        row.separator(factor=0.25)
+        row.prop(
+            context.scene.fast64.settings.glTF.f3d,
+            "use",
+            text=("Import" if is_import_context(context) else "Export") + " F3D extensions",
+        )
+
+    def draw(self, context: Context):
+        self.layout.use_property_decorate = False  # No animation.
+        get_gltf_settings(context).f3d.draw_props(self.layout, is_import_context(context))
