@@ -1,9 +1,8 @@
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 from bpy.types import Object
 from ....utility import PluginError, CData, exportColor, ootGetBaseOrCustomLight, indent
 from ...scene.properties import OOTSceneHeaderProperty, OOTLightProperty
-from ..base import Utility
+from ..utility import Utility
 
 
 @dataclass

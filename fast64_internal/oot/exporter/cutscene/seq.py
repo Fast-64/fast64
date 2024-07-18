@@ -14,11 +14,13 @@ class CutsceneCmdStartStopSeq(CutsceneCmdBase):
     paramNumber: int = field(init=False, default=11)
     type: Optional[str] = field(init=False, default=None)  # "start" or "stop"
 
-    def __post_init__(self):
-        if self.params is not None:
-            self.startFrame = getInteger(self.params[1])
-            self.endFrame = getInteger(self.params[2])
-            self.seqId = self.getEnumValue("seqId", 0, self.isLegacy)
+    @staticmethod
+    def from_params(params: list[str], isLegacy: bool):
+        return CutsceneCmdFadeSeq(
+            getInteger(params[1]),
+            getInteger(params[2]),
+            CutsceneCmdBase.getEnumValue("seqId", params[0], isLegacy)
+        )
 
     def getCmd(self):
         self.validateFrames()
@@ -35,11 +37,13 @@ class CutsceneCmdFadeSeq(CutsceneCmdBase):
     paramNumber: int = field(init=False, default=11)
     enumKey: str = field(init=False, default="csFadeOutSeqPlayer")
 
-    def __post_init__(self):
-        if self.params is not None:
-            self.startFrame = getInteger(self.params[1])
-            self.endFrame = getInteger(self.params[2])
-            self.seqPlayer = self.getEnumValue(self.enumKey, 0)
+    @staticmethod
+    def from_params(params: list[str], enumKey: str):
+        return CutsceneCmdFadeSeq(
+            getInteger(params[1]),
+            getInteger(params[2]),
+            CutsceneCmdBase.getEnumValue(enumKey, params[0])
+        )
 
     def getCmd(self):
         self.validateFrames()
@@ -56,9 +60,11 @@ class CutsceneCmdStartStopSeqList(CutsceneCmdBase):
     paramNumber: int = field(init=False, default=1)
     listName: str = field(init=False, default="seqList")
 
-    def __post_init__(self):
-        if self.params is not None:
-            self.entryTotal = getInteger(self.params[0])
+    @staticmethod
+    def from_params(params: list[str]):
+        new = CutsceneCmdStartStopSeqList()
+        new.entryTotal = getInteger(params[0])
+        return new
 
     def getCmd(self):
         if len(self.entries) == 0:
@@ -77,9 +83,11 @@ class CutsceneCmdFadeSeqList(CutsceneCmdBase):
     paramNumber: int = field(init=False, default=1)
     listName: str = field(init=False, default="fadeSeqList")
 
-    def __post_init__(self):
-        if self.params is not None:
-            self.entryTotal = getInteger(self.params[0])
+    @staticmethod
+    def from_params(params: list[str]):
+        new = CutsceneCmdFadeSeqList()
+        new.entryTotal = getInteger(params[0])
+        return new
 
     def getCmd(self):
         if len(self.entries) == 0:

@@ -6,7 +6,6 @@ from bpy.types import Object
 from ....utility import PluginError, CData, indent
 from ...oot_utility import getCustomProperty
 from ...scene.properties import OOTSceneHeaderProperty
-from ..base import Utility
 from .data import CutsceneData
 
 
@@ -22,12 +21,13 @@ class Cutscene:
     """This class defines a cutscene, including its data and its informations"""
 
     name: str
-    csObj: Object
     data: CutsceneData
     totalEntries: int
     frameCount: int
     useMacros: bool
     motionOnly: bool
+
+    paramNumber: int = field(init=False, default=2)
 
     @staticmethod
     def new(name: Optional[str], csObj: Optional[Object], useMacros: bool, motionOnly: bool):
@@ -36,10 +36,7 @@ class Cutscene:
             if name is None:
                 name = csObj.name.removeprefix("Cutscene.").replace(".", "_")
             data = CutsceneData.new(csObj, useMacros, motionOnly)
-            return Cutscene(name, csObj, data, data.totalEntries, data.frameCount, useMacros, motionOnly)
-
-    def __post_init__(self):
-        self.paramNumber = 2
+            return Cutscene(name, data, data.totalEntries, data.frameCount, useMacros, motionOnly)
 
     def getC(self):
         """Returns the cutscene data"""
@@ -99,7 +96,7 @@ class Cutscene:
 
 
 @dataclass
-class SceneCutscene(Utility):
+class SceneCutscene:
     """This class hosts cutscene data"""
 
     entries: list[Cutscene]
@@ -130,7 +127,7 @@ class SceneCutscene(Utility):
 
                 if props.writeCutscene:
                     # if csWriteCustom is None then the name will auto-set from the csObj passed in the class
-                    entries.append(Cutscene.new(csWriteCustom, csObj, useMacros, bpy.context.scene.exportMotionOnly))
+                    entries.append(Cutscene.new(csWriteCustom, csObj, useMacros, bpy.context.scene.fast64.oot.exportMotionOnly))
         return SceneCutscene(entries)
 
     def getCmd(self):

@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from mathutils import Matrix
 from bpy.types import Object
 from typing import Optional
@@ -6,8 +6,8 @@ from ....utility import PluginError, CData, indent
 from ....f3d.f3d_gbi import TextureExportSettings, ScrollMethod
 from ...scene.properties import OOTSceneHeaderProperty
 from ...oot_model_classes import OOTModel, OOTGfxFormatter
-from ..classes import SceneFile
-from ..base import Utility, altHeaderList
+from ..file import SceneFile
+from ..utility import Utility, altHeaderList
 from ..collision import CollisionHeader
 from .header import SceneAlternateHeader, SceneHeader
 from .rooms import RoomEntries
@@ -36,7 +36,6 @@ class Scene:
             f"{name}_collisionHeader",
             name,
             sceneObj,
-            None,
             transform,
             useMacros,
             True,

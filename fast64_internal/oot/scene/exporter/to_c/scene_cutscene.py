@@ -16,7 +16,7 @@ def getCutsceneC(csName: str):
     csData.source = (
         declarationBase
         + " = {\n"
-        + getNewCutsceneExport(csName, bpy.context.scene.exportMotionOnly).getExportData()
+        + getNewCutsceneExport(csName, bpy.context.scene.fast64.oot.exportMotionOnly).getExportData()
         + "};\n\n"
     )
 

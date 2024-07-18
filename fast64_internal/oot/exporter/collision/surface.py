@@ -29,11 +29,17 @@ class SurfaceType:
 
     useMacros: bool
 
-    def __post_init__(self):
-        self.isSoftC = "1" if self.isSoft else "0"
-        self.isHorseBlockedC = "1" if self.isHorseBlocked else "0"
-        self.canHookshotC = "1" if self.canHookshot else "0"
-        self.isWallDamageC = "1" if self.isWallDamage else "0"
+    def getIsSoftC(self):
+        return "1" if self.isSoft else "0"
+
+    def getIsHorseBlockedC(self):
+        return "1" if self.isHorseBlocked else "0"
+
+    def getCanHookshotC(self):
+        return "1" if self.canHookshot else "0"
+
+    def getIsWallDamageC(self):
+        return "1" if self.isWallDamage else "0"
 
     def getSurfaceType0(self):
         """Returns surface type properties for the first element of the data array"""
@@ -42,7 +48,7 @@ class SurfaceType:
             return (
                 ("SURFACETYPE0(")
                 + f"{self.bgCamIndex}, {self.exitIndex}, {self.floorType}, {self.unk18}, "
-                + f"{self.wallType}, {self.floorProperty}, {self.isSoftC}, {self.isHorseBlockedC}"
+                + f"{self.wallType}, {self.floorProperty}, {self.getIsSoftC()}, {self.getIsHorseBlockedC()}"
                 + ")"
             )
         else:
@@ -51,8 +57,8 @@ class SurfaceType:
                 + " | ".join(
                     prop
                     for prop in [
-                        f"(({self.isHorseBlockedC} & 1) << 31)",
-                        f"(({self.isSoftC} & 1) << 30)",
+                        f"(({self.getIsHorseBlockedC()} & 1) << 31)",
+                        f"(({self.getIsSoftC()} & 1) << 30)",
                         f"(({self.floorProperty} & 0x0F) << 26)",
                         f"(({self.wallType} & 0x1F) << 21)",
                         f"(({self.unk18} & 0x07) << 18)",
@@ -71,7 +77,7 @@ class SurfaceType:
             return (
                 ("SURFACETYPE1(")
                 + f"{self.material}, {self.floorEffect}, {self.lightSetting}, {self.echo}, "
-                + f"{self.canHookshotC}, {self.conveyorSpeed}, {self.conveyorDirection}, {self.isWallDamageC}"
+                + f"{self.getCanHookshotC()}, {self.conveyorSpeed}, {self.conveyorDirection}, {self.getIsWallDamageC()}"
                 + ")"
             )
         else:
@@ -80,10 +86,10 @@ class SurfaceType:
                 + " | ".join(
                     prop
                     for prop in [
-                        f"(({self.isWallDamageC} & 1) << 27)",
+                        f"(({self.getIsWallDamageC()} & 1) << 27)",
                         f"(({self.conveyorDirection} & 0x3F) << 21)",
                         f"(({self.conveyorSpeed} & 0x07) << 18)",
-                        f"(({self.canHookshotC} & 1) << 17)",
+                        f"(({self.getCanHookshotC()} & 1) << 17)",
                         f"(({self.echo} & 0x3F) << 11)",
                         f"(({self.lightSetting} & 0x1F) << 6)",
                         f"(({self.floorEffect} & 0x03) << 4)",

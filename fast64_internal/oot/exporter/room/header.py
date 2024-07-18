@@ -6,7 +6,8 @@ from ....utility import CData, indent
 from ...oot_utility import getObjectList
 from ...oot_constants import ootData
 from ...room.properties import OOTRoomHeaderProperty
-from ..base import Utility, Actor
+from ..utility import Utility
+from ..actor import Actor
 
 
 @dataclass
@@ -203,7 +204,6 @@ class RoomActors:
         )
 
         return actorList
-
 
 @dataclass
 class RoomHeader:

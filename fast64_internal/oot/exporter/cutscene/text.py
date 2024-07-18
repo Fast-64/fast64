@@ -9,22 +9,24 @@ from .common import CutsceneCmdBase
 class CutsceneCmdText(CutsceneCmdBase):
     """This class contains Text command data"""
 
-    textId: int = 0
-    type: str = str()
-    altTextId1: int = 0
-    altTextId2: int = 0
+    textId: int
+    type: str
+    altTextId1: int
+    altTextId2: int
 
     paramNumber: int = field(init=False, default=6)
     id: str = field(init=False, default="Text")
 
-    def __post_init__(self):
-        if self.params is not None:
-            self.startFrame = getInteger(self.params[1])
-            self.endFrame = getInteger(self.params[2])
-            self.textId = getInteger(self.params[0])
-            self.type = self.getEnumValue("csTextType", 3)
-            self.altTextId1 = getInteger(self.params[4])
-            self.altTextId2 = getInteger(self.params[5])
+    @staticmethod
+    def from_params(params: list[str]):
+        return CutsceneCmdText(
+            getInteger(params[1]),
+            getInteger(params[2]),
+            getInteger(params[0]),
+            CutsceneCmdBase.getEnumValue("csTextType", params[3]),
+            getInteger(params[4]),
+            getInteger(params[5]),
+        )
 
     def getCmd(self):
         self.validateFrames()
@@ -42,10 +44,9 @@ class CutsceneCmdTextNone(CutsceneCmdBase):
     paramNumber: int = field(init=False, default=2)
     id: str = field(init=False, default="None")
 
-    def __post_init__(self):
-        if self.params is not None:
-            self.startFrame = getInteger(self.params[0])
-            self.endFrame = getInteger(self.params[1])
+    @staticmethod
+    def from_params(params: list[str]):
+        return CutsceneCmdTextNone(getInteger(params[0]), getInteger(params[1]))
 
     def getCmd(self):
         self.validateFrames()
@@ -56,25 +57,23 @@ class CutsceneCmdTextNone(CutsceneCmdBase):
 class CutsceneCmdTextOcarinaAction(CutsceneCmdBase):
     """This class contains Text Ocarina Action command data"""
 
-    ocarinaActionId: str = str()
-    messageId: int = 0
+    ocarinaActionId: str
+    messageId: int
 
     paramNumber: int = field(init=False, default=4)
     id: str = field(init=False, default="OcarinaAction")
 
-    def __post_init__(self):
-        if self.params is not None:
-            self.startFrame = getInteger(self.params[1])
-            self.endFrame = getInteger(self.params[2])
-            self.ocarinaActionId = self.getEnumValue("ocarinaSongActionId", 0)
-            self.messageId = getInteger(self.params[3])
+    @staticmethod
+    def from_params(params: list[str]):
+        return CutsceneCmdTextOcarinaAction(
+            getInteger(params[1]),
+            getInteger(params[2]),
+            CutsceneCmdBase.getEnumValue("ocarinaSongActionId", params[0]),
+            getInteger(params[3]),
+        )
 
     def getCmd(self):
         self.validateFrames()
-        if self.ocarinaActionId is None:
-            raise PluginError("ERROR: ``ocarinaActionId`` is None!")
-        if self.messageId is None:
-            raise PluginError("ERROR: ``messageId`` is None!")
         return indent * 3 + (
             f"CS_TEXT_OCARINA_ACTION("
             + f"{self.ocarinaActionId}, {self.startFrame}, {self.endFrame}, {self.messageId}"
@@ -93,13 +92,16 @@ class CutsceneCmdTextList(CutsceneCmdBase):
     paramNumber: int = field(init=False, default=1)
     listName: str = field(init=False, default="textList")
 
-    def __post_init__(self):
-        if self.params is not None:
-            self.entryTotal = getInteger(self.params[0])
+    @staticmethod
+    def from_params(params: list[str]):
+        new = CutsceneCmdTextList()
+        new.entryTotal = getInteger(params[0])
+        return new
 
     def getCmd(self):
         if len(self.entries) == 0:
             raise PluginError("ERROR: Entry list is empty!")
+
         return self.getGenericListCmd("CS_TEXT_LIST", self.entryTotal) + "".join(
             entry.getCmd() for entry in self.entries
         )

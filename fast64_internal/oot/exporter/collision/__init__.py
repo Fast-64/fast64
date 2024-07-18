@@ -1,13 +1,13 @@
 import math
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from mathutils import Matrix, Vector
 from bpy.types import Mesh, Object
 from bpy.ops import object
 from typing import Optional
 from ....utility import PluginError, CData, indent
 from ...oot_utility import convertIntTo2sComplement
-from ..base import Utility
+from ..utility import Utility
 from .polygons import CollisionPoly, CollisionPolygons
 from .surface import SurfaceType, SurfaceTypes
 from .camera import BgCamInformations
@@ -64,22 +64,12 @@ class CollisionUtility:
         return transformFromMeshObj
 
     @staticmethod
-    def getDataHolder(sceneObj: Optional[Object], meshObj: Optional[Object]):
-        if sceneObj is not None:
-            return sceneObj
-        elif meshObj is not None:
-            return meshObj
-        else:
-            raise PluginError("ERROR: Object not found.")
-
-    @staticmethod
     def getCollisionData(
-        sceneObj: Optional[Object], meshObj: Optional[Object], transform: Matrix, useMacros: bool, includeChildren: bool
+        dataHolder: Optional[Object], transform: Matrix, useMacros: bool, includeChildren: bool
     ):
         """Returns collision data, surface types and vertex positions from mesh objects"""
 
         object.select_all(action="DESELECT")
-        dataHolder = CollisionUtility.getDataHolder(sceneObj, meshObj)
         dataHolder.select_set(True)
 
         colPolyFromSurfaceType: dict[SurfaceType, list[CollisionPoly]] = {}
@@ -229,17 +219,15 @@ class CollisionHeader:
     def new(
         name: str,
         sceneName: str,
-        sceneObj: Optional[Object],
-        meshObj: Optional[Object],
+        dataHolder: Object,
         transform: Matrix,
         useMacros: bool,
         includeChildren: bool,
     ):
         # Ideally everything would be separated but this is complicated since it's all tied together
         colBounds, vertexList, polyList, surfaceTypeList = CollisionUtility.getCollisionData(
-            sceneObj, meshObj, transform, useMacros, includeChildren
+            dataHolder, transform, useMacros, includeChildren
         )
-        dataHolder = CollisionUtility.getDataHolder(sceneObj, meshObj)
 
         return CollisionHeader(
             name,

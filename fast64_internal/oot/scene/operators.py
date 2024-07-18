@@ -186,7 +186,7 @@ class OOT_ExportScene(Operator):
                 bootOptions if hackerFeaturesEnabled else None,
                 settings.singleFile,
                 TextureExportSettings(False, context.scene.saveTextures, None, None),
-                context.scene.useDecompFeatures if not hackerFeaturesEnabled else hackerFeaturesEnabled,
+                context.scene.fast64.oot.useDecompFeatures if not hackerFeaturesEnabled else hackerFeaturesEnabled,
             ).export()
             # else:
             #     ootExportSceneToC(

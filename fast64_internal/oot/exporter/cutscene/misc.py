@@ -9,20 +9,18 @@ from .common import CutsceneCmdBase
 class CutsceneCmdMisc(CutsceneCmdBase):
     """This class contains a single misc command entry"""
 
-    type: Optional[str] = None  # see ``CutsceneMiscType`` in decomp
+    type: str  # see ``CutsceneMiscType`` in decomp
 
     paramNumber: int = field(init=False, default=14)
 
-    def __post_init__(self):
-        if self.params is not None:
-            self.startFrame = getInteger(self.params[1])
-            self.endFrame = getInteger(self.params[2])
-            self.type = self.getEnumValue("csMiscType", 0)
+    @staticmethod
+    def from_params(params: list[str]):
+        return CutsceneCmdMisc(
+            getInteger(params[1]), getInteger(params[2]), CutsceneCmdBase.getEnumValue("csMiscType", params[0])
+        )
 
     def getCmd(self):
         self.validateFrames()
-        if self.type is None:
-            raise PluginError("ERROR: Misc Type is None!")
         return indent * 3 + (f"CS_MISC({self.type}, {self.startFrame}, {self.endFrame}" + ", 0" * 11 + "),\n")
 
 
@@ -30,18 +28,20 @@ class CutsceneCmdMisc(CutsceneCmdBase):
 class CutsceneCmdLightSetting(CutsceneCmdBase):
     """This class contains Light Setting command data"""
 
-    isLegacy: bool = False
-    lightSetting: int = 0
+    isLegacy: bool
+    lightSetting: int
 
     paramNumber: int = field(init=False, default=11)
 
-    def __post_init__(self):
-        if self.params is not None:
-            self.startFrame = getInteger(self.params[1])
-            self.endFrame = getInteger(self.params[2])
-            self.lightSetting = getInteger(self.params[0])
-            if self.isLegacy:
-                self.lightSetting -= 1
+    @staticmethod
+    def from_params(params: list[str], isLegacy: bool):
+        lightSetting = getInteger(params[0])
+        return CutsceneCmdLightSetting(
+            getInteger(params[1]),
+            getInteger(params[2]),
+            isLegacy,
+            lightSetting - 1 if isLegacy else lightSetting
+        )
 
     def getCmd(self):
         self.validateFrames(False)
@@ -52,17 +52,19 @@ class CutsceneCmdLightSetting(CutsceneCmdBase):
 class CutsceneCmdTime(CutsceneCmdBase):
     """This class contains Time Ocarina Action command data"""
 
-    hour: int = 0
-    minute: int = 0
+    hour: int
+    minute: int
 
     paramNumber: int = field(init=False, default=5)
 
-    def __post_init__(self):
-        if self.params is not None:
-            self.startFrame = getInteger(self.params[1])
-            self.endFrame = getInteger(self.params[2])
-            self.hour = getInteger(self.params[3])
-            self.minute = getInteger(self.params[4])
+    @staticmethod
+    def from_params(params: list[str]):
+        return CutsceneCmdTime(
+            getInteger(params[1]),
+            getInteger(params[2]),
+            getInteger(params[3]),
+            getInteger(params[4]),
+        )
 
     def getCmd(self):
         self.validateFrames(False)
@@ -73,19 +75,21 @@ class CutsceneCmdTime(CutsceneCmdBase):
 class CutsceneCmdRumbleController(CutsceneCmdBase):
     """This class contains Rumble Controller command data"""
 
-    sourceStrength: int = 0
-    duration: int = 0
-    decreaseRate: int = 0
+    sourceStrength: int
+    duration: int
+    decreaseRate: int
 
     paramNumber: int = field(init=False, default=8)
 
-    def __post_init__(self):
-        if self.params is not None:
-            self.startFrame = getInteger(self.params[1])
-            self.endFrame = getInteger(self.params[2])
-            self.sourceStrength = getInteger(self.params[3])
-            self.duration = getInteger(self.params[4])
-            self.decreaseRate = getInteger(self.params[5])
+    @staticmethod
+    def from_params(params: list[str]):
+        return CutsceneCmdRumbleController(
+            getInteger(params[1]),
+            getInteger(params[2]),
+            getInteger(params[3]),
+            getInteger(params[4]),
+            getInteger(params[5]),
+        )
 
     def getCmd(self):
         self.validateFrames(False)
@@ -104,9 +108,11 @@ class CutsceneCmdMiscList(CutsceneCmdBase):
     paramNumber: int = field(init=False, default=1)
     listName: str = field(init=False, default="miscList")
 
-    def __post_init__(self):
-        if self.params is not None:
-            self.entryTotal = getInteger(self.params[0])
+    @staticmethod
+    def from_params(params: list[str]):
+        new = CutsceneCmdMiscList()
+        new.entryTotal = getInteger(params[0])
+        return new
 
     def getCmd(self):
         if len(self.entries) == 0:
@@ -125,9 +131,11 @@ class CutsceneCmdLightSettingList(CutsceneCmdBase):
     paramNumber: int = field(init=False, default=1)
     listName: str = field(init=False, default="lightSettingsList")
 
-    def __post_init__(self):
-        if self.params is not None:
-            self.entryTotal = getInteger(self.params[0])
+    @staticmethod
+    def from_params(params: list[str]):
+        new = CutsceneCmdLightSettingList()
+        new.entryTotal = getInteger(params[0])
+        return new
 
     def getCmd(self):
         if len(self.entries) == 0:
@@ -146,9 +154,11 @@ class CutsceneCmdTimeList(CutsceneCmdBase):
     paramNumber: int = field(init=False, default=1)
     listName: str = field(init=False, default="timeList")
 
-    def __post_init__(self):
-        if self.params is not None:
-            self.entryTotal = getInteger(self.params[0])
+    @staticmethod
+    def from_params(params: list[str]):
+        new = CutsceneCmdTimeList()
+        new.entryTotal = getInteger(params[0])
+        return new
 
     def getCmd(self):
         if len(self.entries) == 0:
@@ -167,9 +177,11 @@ class CutsceneCmdRumbleControllerList(CutsceneCmdBase):
     paramNumber: int = field(init=False, default=1)
     listName: str = field(init=False, default="rumbleList")
 
-    def __post_init__(self):
-        if self.params is not None:
-            self.entryTotal = getInteger(self.params[0])
+    @staticmethod
+    def from_params(params: list[str]):
+        new = CutsceneCmdRumbleControllerList()
+        new.entryTotal = getInteger(params[0])
+        return new
 
     def getCmd(self):
         if len(self.entries) == 0:
@@ -183,20 +195,19 @@ class CutsceneCmdRumbleControllerList(CutsceneCmdBase):
 class CutsceneCmdDestination(CutsceneCmdBase):
     """This class contains Destination command data"""
 
-    id: Optional[str] = None
+    id: str
 
     paramNumber: int = field(init=False, default=3)
     listName: str = field(init=False, default="destination")
 
-    def __post_init__(self):
-        if self.params is not None:
-            self.id = self.getEnumValue("csDestination", 0)
-            self.startFrame = getInteger(self.params[1])
+    @staticmethod
+    def from_params(params: list[str]):
+        return CutsceneCmdDestination(
+            getInteger(params[1]), None, CutsceneCmdBase.getEnumValue("csDestination", params[0])
+        )
 
     def getCmd(self):
         self.validateFrames(False)
-        if self.id is None:
-            raise PluginError("ERROR: Destination ID is None!")
         return indent * 2 + f"CS_DESTINATION({self.id}, {self.startFrame}, 0),\n"
 
 
@@ -204,19 +215,17 @@ class CutsceneCmdDestination(CutsceneCmdBase):
 class CutsceneCmdTransition(CutsceneCmdBase):
     """This class contains Transition command data"""
 
-    type: Optional[str] = None
+    type: str
 
     paramNumber: int = field(init=False, default=3)
     listName: str = field(init=False, default="transitionList")
 
-    def __post_init__(self):
-        if self.params is not None:
-            self.startFrame = getInteger(self.params[1])
-            self.endFrame = getInteger(self.params[2])
-            self.type = self.getEnumValue("csTransitionType", 0)
+    @staticmethod
+    def from_params(params: list[str]):
+        return CutsceneCmdTransition(
+            getInteger(params[1]), getInteger(params[2]), CutsceneCmdBase.getEnumValue("csTransitionType", params[0])
+        )
 
     def getCmd(self):
         self.validateFrames()
-        if self.type is None:
-            raise PluginError("ERROR: Transition type is None!")
         return indent * 2 + f"CS_TRANSITION({self.type}, {self.startFrame}, {self.endFrame}),\n"

@@ -6,7 +6,6 @@ from dataclasses import dataclass, field
 from typing import Optional, TYPE_CHECKING
 from ....utility import PluginError, writeFile
 from ...oot_constants import ootEnumSceneID, ootSceneNameToID
-from ...oot_utility import getCustomProperty, ExportInfo
 
 if TYPE_CHECKING:
     from ..main import SceneExport
@@ -31,6 +30,7 @@ class SceneTableEntry:
     original: Optional[str]  # the original line from the parsed file
     exporter: Optional["SceneExport"] = None
     exportName: Optional[str] = None
+    isCustomScene: bool = False
     prefix: Optional[str] = None  # ifdefs, endifs, comments etc, everything before the current entry
     suffix: Optional[str] = None  # remaining data after the last entry
     parsed: Optional[str] = None
@@ -74,7 +74,7 @@ class SceneTableEntry:
         # TODO: Implement title cards
         name = exporter.scene.name if exporter is not None else self.exportName
         self.setParameters(
-            f"{exporter.scene.name.lower()}_scene",
+            f"{exporter.scene.name.lower() if self.isCustomScene else exporter.scene.name}_scene",
             "none",
             ootSceneNameToID.get(name, f"SCENE_{name.upper()}"),
             exporter.scene.mainHeader.infos.drawConfig,
@@ -120,6 +120,8 @@ class SceneTable:
         entryIndex = 0  # we don't use ``enumerate`` since not every line is an actual entry
         assert len(lines) > 0
         for line in lines:
+            line = line.strip()
+
             # skip the lines before an entry, create one from the file's data
             # and add the skipped lines as a prefix of the current entry
             if (
@@ -136,6 +138,9 @@ class SceneTable:
                 prefix = ""
                 entryIndex += 1
             else:
+                if prefix.startswith("#") and line.startswith("#"):
+                    # add newline if there's two consecutive preprocessor directives
+                    prefix += "\n"
                 prefix += line
 
         # add whatever's after the last entry
@@ -309,10 +314,10 @@ class SceneTableUtility:
             sceneTable.remove(sceneTable.selectedSceneIndex)
         elif sceneTable.selectedSceneIndex == SceneIndexType.CUSTOM and sceneTable.customSceneIndex is None:
             # custom mode: new custom scene
-            sceneTable.append(SceneTableEntry(len(sceneTable.entries) - 1, None, exporter, exporter.exportInfo.name))
+            sceneTable.append(SceneTableEntry(len(sceneTable.entries) - 1, None, exporter, exporter.exportInfo.name, True))
         elif sceneTable.selectedSceneIndex == SceneIndexType.VANILLA_REMOVED:
             # insert mode
-            sceneTable.insert(SceneTableEntry(sceneTable.getInsertionIndex(), None, exporter, exporter.exportInfo.name))
+            sceneTable.insert(SceneTableEntry(sceneTable.getInsertionIndex(), None, exporter, exporter.exportInfo.name, False))
         else:
             # update mode (for both vanilla and custom scenes since they already exist in the table)
             sceneTable.entries[sceneTable.getIndex()].setParametersFromScene(exporter)

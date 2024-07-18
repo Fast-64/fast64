@@ -1,7 +1,6 @@
 import os
 
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 from ...utility import writeFile
 
 
@@ -10,12 +9,12 @@ class RoomFile:
     """This class hosts the C data for every room files"""
 
     name: str
-    roomMain: Optional[str] = None
-    roomModel: Optional[str] = None
-    roomModelInfo: Optional[str] = None
-    singleFileExport: bool = False
-    path: Optional[str] = None
-    header: str = ""
+    roomMain: str
+    roomModel: str
+    roomModelInfo: str
+    singleFileExport: bool
+    path: str
+    header: str
 
     def write(self):
         """Writes the room files"""
@@ -36,18 +35,20 @@ class SceneFile:
     """This class hosts the C data for every scene files"""
 
     name: str
-    sceneMain: Optional[str] = None
-    sceneCollision: Optional[str] = None
-    sceneCutscenes: list[str] = field(default_factory=list)
-    sceneTextures: Optional[str] = None
-    roomList: dict[int, RoomFile] = field(default_factory=dict)
-    singleFileExport: bool = False
-    path: Optional[str] = None
-    header: str = ""
+    sceneMain: str
+    sceneCollision: str
+    sceneCutscenes: list[str]
+    sceneTextures: str
+    roomList: dict[int, RoomFile]
+    singleFileExport: bool
+    path: str
+    header: str
 
-    def __post_init__(self):
-        self.hasCutscenes = len(self.sceneCutscenes) > 0
-        self.hasSceneTextures = len(self.sceneTextures) > 0
+    def hasCutscenes(self):
+        return len(self.sceneCutscenes) > 0
+    
+    def hasSceneTextures(self):
+        return len(self.sceneTextures) > 0
 
     def getSourceWithSceneInclude(self, sceneInclude: str, source: str):
         """Returns the source with the includes if missing"""
@@ -70,13 +71,13 @@ class SceneFile:
                 roomData.roomModel = self.getSourceWithSceneInclude(sceneInclude, roomData.roomModel)
 
         self.sceneMain = self.getSourceWithSceneInclude(
-            sceneInclude if not self.hasCutscenes else csInclude, self.sceneMain
+            sceneInclude if not self.hasCutscenes() else csInclude, self.sceneMain
         )
 
         if not self.singleFileExport:
             self.sceneTextures = self.getSourceWithSceneInclude(sceneInclude, self.sceneTextures)
             self.sceneCollision = self.getSourceWithSceneInclude(sceneInclude, self.sceneCollision)
-            if self.hasCutscenes:
+            if self.hasCutscenes():
                 for i in range(len(self.sceneCutscenes)):
                     self.sceneCutscenes[i] = self.getSourceWithSceneInclude(csInclude, self.sceneCutscenes[i])
 
@@ -90,18 +91,18 @@ class SceneFile:
 
         if self.singleFileExport:
             sceneMainPath = f"{self.name}.c"
-            if self.hasCutscenes:
+            if self.hasCutscenes():
                 self.sceneMain += "".join(cs for cs in self.sceneCutscenes)
             self.sceneMain += self.sceneCollision
-            if self.hasSceneTextures:
+            if self.hasSceneTextures():
                 self.sceneMain += self.sceneTextures
         else:
             sceneMainPath = f"{self.name}_main.c"
             writeFile(os.path.join(self.path, f"{self.name}_col.c"), self.sceneCollision)
-            if self.hasCutscenes:
+            if self.hasCutscenes():
                 for i, cs in enumerate(self.sceneCutscenes):
                     writeFile(os.path.join(self.path, f"{self.name}_cs_{i}.c"), cs)
-            if self.hasSceneTextures:
+            if self.hasSceneTextures():
                 writeFile(os.path.join(self.path, f"{self.name}_tex.c"), self.sceneTextures)
 
         writeFile(os.path.join(self.path, sceneMainPath), self.sceneMain)

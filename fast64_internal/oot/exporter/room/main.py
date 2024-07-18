@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
@@ -9,8 +9,8 @@ from ...oot_object import addMissingObjectsToAllRoomHeadersNew
 from ...oot_level_classes import OOTRoomMesh
 from ...oot_model_classes import OOTModel, OOTGfxFormatter
 from ...oot_utility import CullGroup
-from ..classes import RoomFile
-from ..base import Utility, altHeaderList
+from ..file import RoomFile
+from ..utility import Utility, altHeaderList
 from .header import RoomAlternateHeader, RoomHeader
 from .shape import RoomShape
 

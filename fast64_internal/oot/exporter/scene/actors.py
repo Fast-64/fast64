@@ -5,8 +5,8 @@ from bpy.types import Object
 from ....utility import PluginError, CData, indent
 from ...oot_utility import getObjectList
 from ...oot_constants import ootData
-from ...scene.properties import OOTSceneHeaderProperty
-from ..base import Utility, Actor
+from ..utility import Utility
+from ..actor import Actor
 
 
 @dataclass

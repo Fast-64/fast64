@@ -1,5 +1,6 @@
 import bpy
 import os
+import traceback
 
 from dataclasses import dataclass, field
 from mathutils import Matrix
@@ -10,8 +11,8 @@ from ..scene.properties import OOTBootupSceneOptions
 from ..oot_model_classes import OOTModel
 from ..oot_f3d_writer import writeTextureArraysNew
 from .scene import Scene
-from .other import Files
-from .classes import SceneFile
+from .decomp_edit import Files
+from .file import SceneFile
 
 from ...utility import (
     PluginError,
@@ -132,7 +133,7 @@ class SceneExport:
             room.mesh.copyBgImages(self.path)
 
         if not isCustomExport:
-            Files(self).editFiles()
+            Files.editFiles(self)
 
         if self.hackerootBootOption is not None and self.hackerootBootOption.bootToScene:
             setBootupScene(

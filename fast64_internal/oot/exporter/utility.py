@@ -1,5 +1,3 @@
-from dataclasses import dataclass, field
-from typing import Optional
 from math import radians
 from mathutils import Quaternion, Matrix
 from bpy.types import Object
@@ -96,30 +94,3 @@ class Utility:
 
         return indent + "SCENE_CMD_END(),\n"
 
-
-@dataclass
-class Actor:
-    """Defines an Actor"""
-
-    name: Optional[str] = field(init=False, default=None)
-    id: Optional[str] = field(init=False, default=None)
-    pos: list[int] = field(init=False, default_factory=list)
-    rot: Optional[str] = field(init=False, default=None)
-    params: Optional[str] = field(init=False, default=None)
-
-    def getActorEntry(self):
-        """Returns a single actor entry"""
-
-        posData = "{ " + ", ".join(f"{round(p)}" for p in self.pos) + " }"
-        rotData = "{ " + self.rot + " }"
-
-        actorInfos = [self.id, posData, rotData, self.params]
-        infoDescs = ["Actor ID", "Position", "Rotation", "Parameters"]
-
-        return (
-            indent
-            + (f"// {self.name}\n" + indent if self.name != "" else "")
-            + "{\n"
-            + ",\n".join((indent * 2) + f"/* {desc:10} */ {info}" for desc, info in zip(infoDescs, actorInfos))
-            + ("\n" + indent + "},\n")
-        )

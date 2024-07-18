@@ -297,14 +297,13 @@ def exportCollisionToC(
             else:
                 colData.source += "\n"
             colData.append(
-                CollisionHeader(
-                    None,
-                    obj,
-                    transformMatrix,
-                    bpy.context.scene.useDecompFeatures,
-                    exportSettings.includeChildren,
+                CollisionHeader.new(
                     f"{name}_collisionHeader",
                     name,
+                    obj,
+                    transformMatrix,
+                    bpy.context.scene.fast64.oot.useDecompFeatures,
+                    exportSettings.includeChildren
                 ).getC()
             )
 

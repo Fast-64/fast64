@@ -180,11 +180,11 @@ class OOT_ExportCutscene(Operator):
             cpath, hpath, headerfilename = checkGetFilePaths(context)
             csdata = ootCutsceneIncludes(headerfilename)
 
-            if context.scene.exportMotionOnly:
+            if context.scene.fast64.oot.exportMotionOnly:
                 # TODO: improve this
                 csdata.append(insertCutsceneData(cpath, activeObj.name.removeprefix("Cutscene.")))
             else:
-                csdata.append(Cutscene(activeObj, context.scene.useDecompFeatures).getC())
+                csdata.append(Cutscene(activeObj, context.scene.fast64.oot.useDecompFeatures).getC())
             writeCData(csdata, hpath, cpath)
 
             self.report({"INFO"}, "Successfully exported cutscene")
@@ -214,10 +214,10 @@ class OOT_ExportAllCutscenes(Operator):
                         print(f"Parent: {obj.parent.name}, Object: {obj.name}")
                         raise PluginError("Cutscene object must not be parented to anything")
 
-                    if context.scene.exportMotionOnly:
+                    if context.scene.fast64.oot.exportMotionOnly:
                         raise PluginError("ERROR: Not implemented yet.")
                     else:
-                        csdata.append(Cutscene(obj, context.scene.useDecompFeatures).getC())
+                        csdata.append(Cutscene(obj, context.scene.fast64.oot.useDecompFeatures).getC())
                     count += 1
 
             if count == 0:

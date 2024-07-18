@@ -9,10 +9,8 @@ from ...cutscene.motion.utility import getInteger
 class CutsceneCmdBase:
     """This class contains common Cutscene data"""
 
-    params: Optional[list[str]]
-
-    startFrame: Optional[int] = None
-    endFrame: Optional[int] = None
+    startFrame: Optional[int]
+    endFrame: Optional[int]
 
     def validateFrames(self, checkEndFrame: bool = True):
         if self.startFrame is None:
@@ -20,15 +18,16 @@ class CutsceneCmdBase:
         if checkEndFrame and self.endFrame is None:
             raise PluginError("ERROR: End Frame is None!")
 
-    def getEnumValue(self, enumKey: str, index: int, isSeqLegacy: bool = False):
+    @staticmethod
+    def getEnumValue(enumKey: str, value: str, isSeqLegacy: bool = False):
         enum = ootData.enumData.enumByKey[enumKey]
-        item = enum.itemById.get(self.params[index])
+        item = enum.itemById.get(value)
         if item is None:
-            setting = getInteger(self.params[index])
+            setting = getInteger(value)
             if isSeqLegacy:
                 setting -= 1
             item = enum.itemByIndex.get(setting)
-        return item.key if item is not None else self.params[index]
+        return item.key if item is not None else value
 
     def getGenericListCmd(self, cmdName: str, entryTotal: int):
         if entryTotal is None:

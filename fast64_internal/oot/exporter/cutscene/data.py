@@ -2,8 +2,8 @@ import bpy
 import math
 
 from dataclasses import dataclass, field
-from typing import Optional, TYPE_CHECKING
-from bpy.types import Object
+from typing import TYPE_CHECKING
+from bpy.types import Object, Bone
 from ....utility import PluginError
 from ...oot_constants import ootData
 from .actor_cue import CutsceneCmdActorCueList, CutsceneCmdActorCue
@@ -64,11 +64,30 @@ cmdToList = {
 class CutsceneData:
     """This class defines the command data inside a cutscene"""
 
-    csObj: Object
-    csObjects: dict[str, list[Object]]
-    csProp: "OOTCutsceneProperty"
     useMacros: bool
     motionOnly: bool
+
+    totalEntries: int = field(init=False, default=0)
+    frameCount: int = field(init=False, default=0)
+    motionFrameCount: int = field(init=False, default=0)
+    camEndFrame: int = field(init=False, default=0)
+    destination: CutsceneCmdDestination = field(init=False, default=None)
+    actorCueList: list[CutsceneCmdActorCueList] = field(init=False, default_factory=list)
+    playerCueList: list[CutsceneCmdActorCueList] = field(init=False, default_factory=list)
+    camEyeSplineList: list[CutsceneCmdCamEyeSpline] = field(init=False, default_factory=list)
+    camATSplineList: list[CutsceneCmdCamATSpline] = field(init=False, default_factory=list)
+    camEyeSplineRelPlayerList: list[CutsceneCmdCamEyeSplineRelToPlayer] = field(init=False, default_factory=list)
+    camATSplineRelPlayerList: list[CutsceneCmdCamATSplineRelToPlayer] = field(init=False, default_factory=list)
+    camEyeList: list[CutsceneCmdCamEye] = field(init=False, default_factory=list)
+    camATList: list[CutsceneCmdCamAT] = field(init=False, default_factory=list)
+    textList: list[CutsceneCmdTextList] = field(init=False, default_factory=list)
+    miscList: list[CutsceneCmdMiscList] = field(init=False, default_factory=list)
+    rumbleList: list[CutsceneCmdRumbleControllerList] = field(init=False, default_factory=list)
+    transitionList: list[CutsceneCmdTransition] = field(init=False, default_factory=list)
+    lightSettingsList: list[CutsceneCmdLightSettingList] = field(init=False, default_factory=list)
+    timeList: list[CutsceneCmdTimeList] = field(init=False, default_factory=list)
+    seqList: list[CutsceneCmdStartStopSeqList] = field(init=False, default_factory=list)
+    fadeSeqList: list[CutsceneCmdFadeSeqList] = field(init=False, default_factory=list)
 
     @staticmethod
     def new(csObj: Object, useMacros: bool, motionOnly: bool):
@@ -86,33 +105,9 @@ class CutsceneData:
                 csObjects["camShot"].append(obj)
         csObjects["camShot"].sort(key=lambda obj: obj.name)
 
-        newCutsceneData = CutsceneData(csObj, csObjects, csProp, useMacros, motionOnly)
-        newCutsceneData.setCutsceneData()
+        newCutsceneData = CutsceneData(useMacros, motionOnly)
+        newCutsceneData.setCutsceneData(csObjects, csProp)
         return newCutsceneData
-
-    def __post_init__(self):
-        self.totalEntries = 0
-        self.frameCount = 0
-        self.motionFrameCount = 0
-        self.camEndFrame = 0
-
-        self.destination: Optional[CutsceneCmdDestination] = None
-        self.actorCueList: list[CutsceneCmdActorCueList] = []
-        self.playerCueList: list[CutsceneCmdActorCueList] = []
-        self.camEyeSplineList: list[CutsceneCmdCamEyeSpline] = []
-        self.camATSplineList: list[CutsceneCmdCamATSpline] = []
-        self.camEyeSplineRelPlayerList: list[CutsceneCmdCamEyeSplineRelToPlayer] = []
-        self.camATSplineRelPlayerList: list[CutsceneCmdCamATSplineRelToPlayer] = []
-        self.camEyeList: list[CutsceneCmdCamEye] = []
-        self.camATList: list[CutsceneCmdCamAT] = []
-        self.textList: list[CutsceneCmdTextList] = []
-        self.miscList: list[CutsceneCmdMiscList] = []
-        self.rumbleList: list[CutsceneCmdRumbleControllerList] = []
-        self.transitionList: list[CutsceneCmdTransition] = []
-        self.lightSettingsList: list[CutsceneCmdLightSettingList] = []
-        self.timeList: list[CutsceneCmdTimeList] = []
-        self.seqList: list[CutsceneCmdStartStopSeqList] = []
-        self.fadeSeqList: list[CutsceneCmdFadeSeqList] = []
 
     def getOoTRotation(self, obj: Object):
         """Returns the converted Blender rotation"""
@@ -150,11 +145,11 @@ class CutsceneData:
         item = ootData.enumData.enumByKey[enumKey].itemByKey.get(getattr(owner, propName))
         return item.id if item is not None else getattr(owner, f"{propName}Custom")
 
-    def setActorCueListData(self, isPlayer: bool):
+    def setActorCueListData(self, csObjects: dict[str, list[Object]], isPlayer: bool):
         """Returns the Actor Cue List commands from the corresponding objects"""
 
         playerOrActor = f"{'Player' if isPlayer else 'Actor'}"
-        actorCueListObjects = self.csObjects[f"CS {playerOrActor} Cue List"]
+        actorCueListObjects = csObjects[f"CS {playerOrActor} Cue List"]
         actorCueListObjects.sort(key=lambda o: o.ootCSMotionProperty.actorCueProp.cueStartFrame)
 
         self.totalEntries += len(actorCueListObjects)
@@ -178,7 +173,7 @@ class CutsceneData:
 
             # ignoring dummy cue
             newActorCueList = CutsceneCmdActorCueList(
-                None, isPlayer=isPlayer, entryTotal=entryTotal - 1, commandType=commandType
+                None, None, isPlayer, commandType, entryTotal - 1
             )
 
             for i, childObj in enumerate(obj.children, 1):
@@ -197,7 +192,6 @@ class CutsceneData:
 
                     newActorCueList.entries.append(
                         CutsceneCmdActorCue(
-                            None,
                             startFrame,
                             endFrame,
                             actionID,
@@ -210,7 +204,7 @@ class CutsceneData:
 
             self.actorCueList.append(newActorCueList)
 
-    def getCameraShotPointData(self, bones, useAT: bool):
+    def getCameraShotPointData(self, bones: list[Bone], useAT: bool):
         """Returns the Camera Point data from the bone data"""
 
         shotPoints: list[CutsceneCmdCamPoint] = []
@@ -226,7 +220,6 @@ class CutsceneData:
                 CutsceneCmdCamPoint(
                     None,
                     None,
-                    None,
                     ("CS_CAM_CONTINUE" if self.useMacros else "0"),
                     bone.ootCamShotPointProp.shotPointRoll if useAT else 0,
                     bone.ootCamShotPointProp.shotPointFrame,
@@ -237,7 +230,7 @@ class CutsceneData:
 
         # NOTE: because of the game's bug explained in the importer we need to add an extra dummy point when exporting
         shotPoints.append(
-            CutsceneCmdCamPoint(None, None, None, "CS_CAM_STOP" if self.useMacros else "-1", 0, 0, 0.0, [0, 0, 0])
+            CutsceneCmdCamPoint(None, None, "CS_CAM_STOP" if self.useMacros else "-1", 0, 0, 0.0, [0, 0, 0])
         )
         return shotPoints
 
@@ -278,29 +271,25 @@ class CutsceneData:
     def getNewCamData(self, shotObj: Object, useAT: bool):
         """Returns the Camera Shot data from the corresponding Armatures"""
 
-        newCamData = self.getCamClassOrList(True, shotObj.data.ootCamShotProp.shotCamMode, useAT)(None)
-        newCamData.entries = self.getCameraShotPointData(shotObj.data.bones, useAT)
+        entries = self.getCameraShotPointData(shotObj.data.bones, useAT)
         startFrame = shotObj.data.ootCamShotProp.shotStartFrame
 
         # "fake" end frame
         endFrame = (
             startFrame
-            + max(2, sum(point.frame for point in newCamData.entries))
-            + (newCamData.entries[-2].frame if useAT else 1)
+            + max(2, sum(point.frame for point in entries))
+            + (entries[-2].frame if useAT else 1)
         )
 
         if not useAT:
-            for pointData in newCamData.entries:
+            for pointData in entries:
                 pointData.frame = 0
             self.camEndFrame = endFrame
 
-        newCamData.startFrame = startFrame
-        newCamData.endFrame = endFrame
+        return self.getCamClassOrList(True, shotObj.data.ootCamShotProp.shotCamMode, useAT)(startFrame, endFrame, entries)
 
-        return newCamData
-
-    def setCameraShotData(self):
-        shotObjects = self.csObjects["camShot"]
+    def setCameraShotData(self, csObjects: dict[str, list[Object]]):
+        shotObjects = csObjects["camShot"]
 
         if len(shotObjects) > 0:
             motionFrameCount = -1
@@ -321,7 +310,6 @@ class CutsceneData:
         match textEntry.textboxType:
             case "Text":
                 return CutsceneCmdText(
-                    None,
                     textEntry.startFrame,
                     textEntry.endFrame,
                     textEntry.textID,
@@ -330,10 +318,9 @@ class CutsceneData:
                     textEntry.bottomOptionTextID,
                 )
             case "None":
-                return CutsceneCmdTextNone(None, textEntry.startFrame, textEntry.endFrame)
+                return CutsceneCmdTextNone(textEntry.startFrame, textEntry.endFrame)
             case "OcarinaAction":
                 return CutsceneCmdTextOcarinaAction(
-                    None,
                     textEntry.startFrame,
                     textEntry.endFrame,
                     self.getEnumValueFromProp("ocarinaSongActionId", textEntry, "ocarinaAction"),
@@ -341,37 +328,36 @@ class CutsceneData:
                 )
         raise PluginError("ERROR: Unknown text type!")
 
-    def setCutsceneData(self):
-        self.setActorCueListData(True)
-        self.setActorCueListData(False)
-        self.setCameraShotData()
+    def setCutsceneData(self, csObjects: dict[str, list[Object]], csProp: "OOTCutsceneProperty"):
+        self.setActorCueListData(csObjects, True)
+        self.setActorCueListData(csObjects, False)
+        self.setCameraShotData(csObjects)
 
         # don't process the cutscene empty if we don't want its data
         if self.motionOnly:
             return
 
-        if self.csProp.csUseDestination:
+        if csProp.csUseDestination:
             self.destination = CutsceneCmdDestination(
+                csProp.csDestinationStartFrame,
                 None,
-                self.csProp.csDestinationStartFrame,
-                None,
-                self.getEnumValueFromProp("csDestination", self.csProp, "csDestination"),
+                self.getEnumValueFromProp("csDestination", csProp, "csDestination"),
             )
             self.totalEntries += 1
 
-        self.frameCount = self.csProp.csEndFrame
-        self.totalEntries += len(self.csProp.csLists)
+        self.frameCount = csProp.csEndFrame
+        self.totalEntries += len(csProp.csLists)
 
-        for entry in self.csProp.csLists:
+        for entry in csProp.csLists:
             match entry.listType:
                 case "StartSeqList" | "StopSeqList" | "FadeOutSeqList":
                     isFadeOutSeq = entry.listType == "FadeOutSeqList"
-                    cmdList = cmdToClass[entry.listType](None)
+                    cmdList = cmdToClass[entry.listType](None, None)
                     cmdList.entryTotal = len(entry.seqList)
                     if not isFadeOutSeq:
                         cmdList.type = "start" if entry.listType == "StartSeqList" else "stop"
                     for elem in entry.seqList:
-                        data = cmdToClass[entry.listType.removesuffix("List")](None, elem.startFrame, elem.endFrame)
+                        data = cmdToClass[entry.listType.removesuffix("List")](elem.startFrame, elem.endFrame)
                         if isFadeOutSeq:
                             data.seqPlayer = self.getEnumValueFromProp("csFadeOutSeqPlayer", elem, "csSeqPlayer")
                         else:
@@ -385,7 +371,6 @@ class CutsceneData:
                 case "Transition":
                     self.transitionList.append(
                         CutsceneCmdTransition(
-                            None,
                             entry.transitionStartFrame,
                             entry.transitionEndFrame,
                             self.getEnumValueFromProp("csTransitionType", entry, "transitionType"),
@@ -393,7 +378,7 @@ class CutsceneData:
                     )
                 case _:
                     curList = getattr(entry, (entry.listType[0].lower() + entry.listType[1:]))
-                    cmdList = cmdToClass[entry.listType](None)
+                    cmdList = cmdToClass[entry.listType](None, None)
                     cmdList.entryTotal = len(curList)
                     for elem in curList:
                         match entry.listType:
@@ -402,17 +387,16 @@ class CutsceneData:
                             case "LightSettingsList":
                                 cmdList.entries.append(
                                     CutsceneCmdLightSetting(
-                                        None, elem.startFrame, elem.endFrame, False, elem.lightSettingsIndex
+                                        elem.startFrame, elem.endFrame, False, elem.lightSettingsIndex
                                     )
                                 )
                             case "TimeList":
                                 cmdList.entries.append(
-                                    CutsceneCmdTime(None, elem.startFrame, elem.endFrame, elem.hour, elem.minute)
+                                    CutsceneCmdTime(elem.startFrame, elem.endFrame, elem.hour, elem.minute)
                                 )
                             case "MiscList":
                                 cmdList.entries.append(
                                     CutsceneCmdMisc(
-                                        None,
                                         elem.startFrame,
                                         elem.endFrame,
                                         self.getEnumValueFromProp("csMiscType", elem, "csMiscType"),
@@ -421,7 +405,6 @@ class CutsceneData:
                             case "RumbleList":
                                 cmdList.entries.append(
                                     CutsceneCmdRumbleController(
-                                        None,
                                         elem.startFrame,
                                         elem.endFrame,
                                         elem.rumbleSourceStrength,

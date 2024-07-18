@@ -22,8 +22,8 @@ class OOT_FileSettingsPanel(OOT_Panel):
         col.prop(context.scene.fast64.oot, "hackerFeaturesEnabled")
 
         if not context.scene.fast64.oot.hackerFeaturesEnabled:
-            col.prop(context.scene, "useDecompFeatures")
-        col.prop(context.scene, "exportMotionOnly")
+            col.prop(context.scene.fast64.oot, "useDecompFeatures")
+        col.prop(context.scene.fast64.oot, "exportMotionOnly")
 
 
 oot_classes = (OOT_FileSettingsPanel,)
@@ -36,25 +36,10 @@ def file_register():
     Scene.ootBlenderScale = FloatProperty(name="Blender To OOT Scale", default=10, update=on_update_render_settings)
     Scene.ootDecompPath = StringProperty(name="Decomp Folder", subtype="FILE_PATH")
 
-    Scene.useDecompFeatures = BoolProperty(
-        name="Use decomp for export", description="Use names and macros from decomp when exporting", default=True
-    )
-
-    Scene.exportMotionOnly = BoolProperty(
-        name="Export CS Motion Data Only",
-        description=(
-            "Export everything or only the camera and actor motion data.\n"
-            + "This will insert the data into the cutscene."
-        ),
-        default=False,
-    )
-
 
 def file_unregister():
     for cls in reversed(oot_classes):
         unregister_class(cls)
 
-    del Scene.exportMotionOnly
-    del Scene.useDecompFeatures
     del Scene.ootBlenderScale
     del Scene.ootDecompPath

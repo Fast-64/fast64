@@ -7,7 +7,7 @@ from ....utility import PluginError, CData, indent
 from ...oot_utility import getObjectList
 from ...collision.constants import decomp_compat_map_CameraSType
 from ...collision.properties import OOTCameraPositionProperty
-from ..base import Utility
+from ..utility import Utility
 
 
 @dataclass
