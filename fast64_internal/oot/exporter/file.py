@@ -75,8 +75,11 @@ class SceneFile:
         )
 
         if not self.singleFileExport:
-            self.sceneTextures = self.getSourceWithSceneInclude(sceneInclude, self.sceneTextures)
             self.sceneCollision = self.getSourceWithSceneInclude(sceneInclude, self.sceneCollision)
+
+            if self.hasSceneTextures():
+                self.sceneTextures = self.getSourceWithSceneInclude(sceneInclude, self.sceneTextures)
+
             if self.hasCutscenes():
                 for i in range(len(self.sceneCutscenes)):
                     self.sceneCutscenes[i] = self.getSourceWithSceneInclude(csInclude, self.sceneCutscenes[i])
@@ -91,9 +94,12 @@ class SceneFile:
 
         if self.singleFileExport:
             sceneMainPath = f"{self.name}.c"
+
             if self.hasCutscenes():
                 self.sceneMain += "".join(cs for cs in self.sceneCutscenes)
+
             self.sceneMain += self.sceneCollision
+
             if self.hasSceneTextures():
                 self.sceneMain += self.sceneTextures
         else:

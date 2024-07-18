@@ -120,8 +120,6 @@ class SceneTable:
         entryIndex = 0  # we don't use ``enumerate`` since not every line is an actual entry
         assert len(lines) > 0
         for line in lines:
-            line = line.strip()
-
             # skip the lines before an entry, create one from the file's data
             # and add the skipped lines as a prefix of the current entry
             if (
@@ -130,7 +128,7 @@ class SceneTable:
                 and "//" not in line  # single line comments
                 and "/**" not in line  # multi-line comments
                 and line != "\n"
-                and line != ""
+                and line.strip() != ""
             ):
                 entry = SceneTableEntry(entryIndex, line, prefix=prefix)
                 self.entries.append(entry)

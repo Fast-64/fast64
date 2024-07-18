@@ -5,7 +5,7 @@ import enum
 from dataclasses import dataclass, field
 from typing import Optional, TYPE_CHECKING
 from ....utility import PluginError, writeFile, indent
-from ...oot_utility import getSceneDirFromLevelName
+from ...oot_utility import ExportInfo, getSceneDirFromLevelName
 
 if TYPE_CHECKING:
     from ..main import SceneExport
@@ -29,6 +29,8 @@ class CommandType(enum.Enum):
     INCLUDE_DATA_WITH_RODATA = 8
     NUMBER = 9
     PAD_TEXT = 10
+    INCLUDE_DATA_ONLY_WITHIN_RODATA = 11
+    INCLUDE_NO_DATA = 12
 
     @staticmethod
     def from_string(value: str):
@@ -53,21 +55,23 @@ class SpecEntryCommand:
         return self.prefix + indent + f"{self.type.name.lower()} {self.content}".strip() + self.suffix + "\n"
 
 
+@dataclass
 class SpecEntry:
     """Defines an entry of ``spec``"""
 
-    def __init__(self, commands: list[SpecEntryCommand] = [], original: Optional[list[str]] = None, prefix=str()):
-        self.commands = commands  # list of the different spec commands
-        self.segmentName = str()  # the name of the current segment
-        self.prefix = prefix  # data between two commands
-        self.suffix = str()  # remaining data after the entry (used for the last entry)
-        self.contentSuffix = str()  # remaining data after the last command in the current entry
+    original: Optional[list[str]] = field(default_factory=list)  # the original lines from the parsed file
+    commands: list[SpecEntryCommand] = field(default_factory=list)  # list of the different spec commands
+    segmentName: str = ""  # the name of the current segment
+    prefix: str = ""  # data between two commands
+    suffix: str = ""  # remaining data after the entry (used for the last entry)
+    contentSuffix: str = ""  # remaining data after the last command in the current entry
 
-        if original is not None:
+    def __post_init__(self):
+        if self.original is not None:
             global buildDirectory
             # parse the commands from the existing data
             prefix = ""
-            for line in original:
+            for line in self.original:
                 line = line.strip()
                 dontHaveComments = (
                     not line.startswith("// ") and not line.startswith("/* ") and not line.startswith(" */")
@@ -122,15 +126,17 @@ class SpecEntry:
         )
 
 
+@dataclass
 class SpecFile:
     """This class defines the spec's file data"""
 
-    def __init__(self, exportPath: str):
-        self.entries: list[SpecEntry] = []  # list of the different spec entries
+    exportPath: str  # path to the spec file
+    entries: list[SpecEntry] = field(default_factory=list)  # list of the different spec entries
 
+    def __post_init__(self):
         # read the file's data
         try:
-            with open(exportPath, "r") as fileData:
+            with open(self.exportPath, "r") as fileData:
                 lines = fileData.readlines()
         except FileNotFoundError:
             raise PluginError("ERROR: Can't find spec!")
@@ -155,7 +161,7 @@ class SpecFile:
                     parsedLines.append(line)
                 elif "endseg" in line:
                     # else, if the line has endseg in it (> if we reached the end of the current segment)
-                    entry = SpecEntry(original=parsedLines, prefix=prefix)
+                    entry = SpecEntry(parsedLines, prefix=prefix)
                     self.entries.append(entry)
                     prefix = ""
                     parsedLines = []
@@ -194,7 +200,7 @@ class SpecFile:
         if entry is not None:
             if len(entry.prefix) > 0 and entry.prefix != "\n":
                 lastEntry = self.entries[self.entries.index(entry) - 1]
-                lastEntry.suffix = (lastEntry.suffix if lastEntry.suffix is not None else "") + entry.prefix[:-2]
+                lastEntry.suffix = (lastEntry.suffix if lastEntry.suffix is not None else "") + entry.prefix[:-1]
             self.entries.remove(entry)
 
     def to_c(self):
@@ -274,7 +280,7 @@ class SpecUtility:
                         )
 
             sceneCmds.append(SpecEntryCommand(CommandType.NUMBER, "2"))
-            specFile.append(SpecEntry(sceneCmds))
+            specFile.append(SpecEntry(None, sceneCmds))
 
             # rooms
             for i in range(roomTotal):
@@ -297,13 +303,8 @@ class SpecUtility:
                         ]
                     )
 
-                    if exporter.roomIndexHasOcclusion[i]:
-                        roomCmds.append(
-                            SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{roomSegmentName}_occ.o"')
-                        )
-
                 roomCmds.append(SpecEntryCommand(CommandType.NUMBER, "3"))
-                specFile.append(SpecEntry(roomCmds))
+                specFile.append(SpecEntry(None, roomCmds))
             specFile.entries[-1].suffix = "\n"
 
         # finally, write the spec file
