@@ -56,12 +56,12 @@ class SpecEntryCommand:
 class SpecEntry:
     """Defines an entry of ``spec``"""
 
-    def __init__(self, commands: list[SpecEntryCommand] = [], original: Optional[list[str]] = None, prefix = str()):
-        self.commands = commands # list of the different spec commands
-        self.segmentName = str() # the name of the current segment
-        self.prefix = prefix # data between two commands
-        self.suffix = str() # remaining data after the entry (used for the last entry)
-        self.contentSuffix = str() # remaining data after the last command in the current entry
+    def __init__(self, commands: list[SpecEntryCommand] = [], original: Optional[list[str]] = None, prefix=str()):
+        self.commands = commands  # list of the different spec commands
+        self.segmentName = str()  # the name of the current segment
+        self.prefix = prefix  # data between two commands
+        self.suffix = str()  # remaining data after the entry (used for the last entry)
+        self.contentSuffix = str()  # remaining data after the last command in the current entry
 
         if original is not None:
             global buildDirectory
@@ -298,7 +298,9 @@ class SpecUtility:
                     )
 
                     if exporter.roomIndexHasOcclusion[i]:
-                        roomCmds.append(SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{roomSegmentName}_occ.o"'))
+                        roomCmds.append(
+                            SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{roomSegmentName}_occ.o"')
+                        )
 
                 roomCmds.append(SpecEntryCommand(CommandType.NUMBER, "3"))
                 specFile.append(SpecEntry(roomCmds))

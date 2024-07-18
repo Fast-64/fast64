@@ -172,9 +172,7 @@ class CutsceneData:
                 commandType = ootData.enumData.enumByKey["csCmd"].itemByKey[commandType].id
 
             # ignoring dummy cue
-            newActorCueList = CutsceneCmdActorCueList(
-                None, None, isPlayer, commandType, entryTotal - 1
-            )
+            newActorCueList = CutsceneCmdActorCueList(None, None, isPlayer, commandType, entryTotal - 1)
 
             for i, childObj in enumerate(obj.children, 1):
                 startFrame = childObj.ootCSMotionProperty.actorCueProp.cueStartFrame
@@ -275,18 +273,16 @@ class CutsceneData:
         startFrame = shotObj.data.ootCamShotProp.shotStartFrame
 
         # "fake" end frame
-        endFrame = (
-            startFrame
-            + max(2, sum(point.frame for point in entries))
-            + (entries[-2].frame if useAT else 1)
-        )
+        endFrame = startFrame + max(2, sum(point.frame for point in entries)) + (entries[-2].frame if useAT else 1)
 
         if not useAT:
             for pointData in entries:
                 pointData.frame = 0
             self.camEndFrame = endFrame
 
-        return self.getCamClassOrList(True, shotObj.data.ootCamShotProp.shotCamMode, useAT)(startFrame, endFrame, entries)
+        return self.getCamClassOrList(True, shotObj.data.ootCamShotProp.shotCamMode, useAT)(
+            startFrame, endFrame, entries
+        )
 
     def setCameraShotData(self, csObjects: dict[str, list[Object]]):
         shotObjects = csObjects["camShot"]

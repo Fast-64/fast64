@@ -93,4 +93,3 @@ class Utility:
         """Returns the scene end command"""
 
         return indent + "SCENE_CMD_END(),\n"
-

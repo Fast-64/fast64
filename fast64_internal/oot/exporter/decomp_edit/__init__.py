@@ -10,7 +10,6 @@ if TYPE_CHECKING:
     from ..main import SceneExport
 
 
-
 class Files:  # TODO: find a better name
     """This class handles editing decomp files"""
 

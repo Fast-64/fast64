@@ -37,10 +37,7 @@ class CutsceneCmdLightSetting(CutsceneCmdBase):
     def from_params(params: list[str], isLegacy: bool):
         lightSetting = getInteger(params[0])
         return CutsceneCmdLightSetting(
-            getInteger(params[1]),
-            getInteger(params[2]),
-            isLegacy,
-            lightSetting - 1 if isLegacy else lightSetting
+            getInteger(params[1]), getInteger(params[2]), isLegacy, lightSetting - 1 if isLegacy else lightSetting
         )
 
     def getCmd(self):

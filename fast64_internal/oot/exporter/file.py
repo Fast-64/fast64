@@ -46,7 +46,7 @@ class SceneFile:
 
     def hasCutscenes(self):
         return len(self.sceneCutscenes) > 0
-    
+
     def hasSceneTextures(self):
         return len(self.sceneTextures) > 0
 

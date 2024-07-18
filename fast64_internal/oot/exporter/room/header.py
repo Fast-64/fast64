@@ -205,6 +205,7 @@ class RoomActors:
 
         return actorList
 
+
 @dataclass
 class RoomHeader:
     """This class defines a room header"""

@@ -2,6 +2,7 @@ from ...utility import indent
 
 # this file is not inside the room folder since the scene data can have actors too
 
+
 class Actor:
     """Defines an Actor"""
 

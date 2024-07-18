@@ -64,9 +64,7 @@ class CollisionUtility:
         return transformFromMeshObj
 
     @staticmethod
-    def getCollisionData(
-        dataHolder: Optional[Object], transform: Matrix, useMacros: bool, includeChildren: bool
-    ):
+    def getCollisionData(dataHolder: Optional[Object], transform: Matrix, useMacros: bool, includeChildren: bool):
         """Returns collision data, surface types and vertex positions from mesh objects"""
 
         object.select_all(action="DESELECT")

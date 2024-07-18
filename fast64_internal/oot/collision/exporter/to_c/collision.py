@@ -303,7 +303,7 @@ def exportCollisionToC(
                     obj,
                     transformMatrix,
                     bpy.context.scene.fast64.oot.useDecompFeatures,
-                    exportSettings.includeChildren
+                    exportSettings.includeChildren,
                 ).getC()
             )
 

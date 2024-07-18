@@ -314,10 +314,14 @@ class SceneTableUtility:
             sceneTable.remove(sceneTable.selectedSceneIndex)
         elif sceneTable.selectedSceneIndex == SceneIndexType.CUSTOM and sceneTable.customSceneIndex is None:
             # custom mode: new custom scene
-            sceneTable.append(SceneTableEntry(len(sceneTable.entries) - 1, None, exporter, exporter.exportInfo.name, True))
+            sceneTable.append(
+                SceneTableEntry(len(sceneTable.entries) - 1, None, exporter, exporter.exportInfo.name, True)
+            )
         elif sceneTable.selectedSceneIndex == SceneIndexType.VANILLA_REMOVED:
             # insert mode
-            sceneTable.insert(SceneTableEntry(sceneTable.getInsertionIndex(), None, exporter, exporter.exportInfo.name, False))
+            sceneTable.insert(
+                SceneTableEntry(sceneTable.getInsertionIndex(), None, exporter, exporter.exportInfo.name, False)
+            )
         else:
             # update mode (for both vanilla and custom scenes since they already exist in the table)
             sceneTable.entries[sceneTable.getIndex()].setParametersFromScene(exporter)

@@ -112,7 +112,7 @@ class CutsceneCmdCamATSplineRelToPlayer(CutsceneCmdBase):
 
     @staticmethod
     def from_params(params: list[str]):
-        return CutsceneCmdCamATSplineRelToPlayer(getInteger(params[0]), getInteger(params[1])) 
+        return CutsceneCmdCamATSplineRelToPlayer(getInteger(params[0]), getInteger(params[1]))
 
     def getCmd(self):
         if len(self.entries) == 0:
