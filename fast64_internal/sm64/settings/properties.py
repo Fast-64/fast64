@@ -94,27 +94,28 @@ class SM64_Properties(PropertyGroup):
             "decompPath": "decomp_path",
             "extendBank4": "extend_bank_4",
             "refreshVer": "refresh_version",
-            "showImportingMenus": "show_importing_menus",
             "exportType": "export_type",
         }
         for scene in bpy.data.scenes:
             sm64_props: SM64_Properties = scene.fast64.sm64
-            if sm64_props.version != SM64_Properties.cur_version:
-                upgrade_old_prop(
-                    sm64_props,
-                    "export_type",
-                    scene,
-                    {
-                        "animExportType",
-                        "colExportType",
-                        "DLExportType",
-                        "geoExportType",
-                    },
-                )
-                for old, new in old_scene_props_to_new.items():
-                    upgrade_old_prop(sm64_props, new, scene, old)
-                sm64_props.version = SM64_Properties.cur_version
             sm64_props.address_converter.upgrade_changed_props(scene)
+            if sm64_props.version == SM64_Properties.cur_version:
+                continue
+            upgrade_old_prop(
+                sm64_props,
+                "export_type",
+                scene,
+                {
+                    "animExportType",
+                    "colExportType",
+                    "DLExportType",
+                    "geoExportType",
+                },
+            )
+            for old, new in old_scene_props_to_new.items():
+                upgrade_old_prop(sm64_props, new, scene, old)
+            upgrade_old_prop(sm64_props, "show_importing_menus", sm64_props, "showImportingMenus")
+            sm64_props.version = SM64_Properties.cur_version
 
     def draw_props(self, layout: UILayout, show_repo_settings: bool = True):
         col = layout.column()
