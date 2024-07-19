@@ -460,7 +460,7 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
         else:
             shadeColorLabel = "Lighting"
         if isF3DEX3:
-            c = indentGroup(inputGroup, f"Shade color = {shadeColorLabel}:", True, settings.g_lighting)
+            c = indentGroup(inputGroup, f"Shade color = {shadeColorLabel}:", True)
             c.prop(settings, "g_fresnel_color")
         else:
             inputGroup.label(text=f"Shade color = {shadeColorLabel}:")
