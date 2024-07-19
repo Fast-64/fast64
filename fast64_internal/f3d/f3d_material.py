@@ -3570,7 +3570,7 @@ class RDPSettings(PropertyGroup):
             and self.cvg_dst == "CVG_DST_CLAMP"
             and self.zmode == "ZMODE_OPA"
         )
-    
+
     @property
     def is_emu64_texedge(self):
         return (
@@ -3626,8 +3626,9 @@ class RDPSettings(PropertyGroup):
         ("decalEqual", "g_decal_equal", False),
         ("decalSpecial", "g_decal_special", False),
     ]
-    geo_mode_attributes = (geo_mode_all_attributes + geo_mode_f3dex_attributes + geo_mode_f3dex3_attributes +     geo_mode_f3dzex_ac_attributes
-)
+    geo_mode_attributes = (
+        geo_mode_all_attributes + geo_mode_f3dex_attributes + geo_mode_f3dex3_attributes + geo_mode_f3dzex_ac_attributes
+    )
 
     def geo_mode_to_dict(self, f3d=None):
         f3d = f3d if f3d else get_F3D_GBI()
