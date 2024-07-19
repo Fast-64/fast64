@@ -1795,6 +1795,7 @@ def upgrade_old_prop(
 ):
     try:
         new_prop_def = new_loc.bl_rna.properties[new_prop]
+        new_prop_value = getattr(new_loc, new_prop)
         assert not old_enum or new_prop_def.type == "ENUM"
         assert not (old_enum and fix_forced_base_16)
 
@@ -1813,6 +1814,14 @@ def upgrade_old_prop(
                 if old_value >= len(new_prop_def.enum_items):
                     raise ValueError(f"({old_value}) not in {new_prop}´s enum items")
                 old_value = new_prop_def.enum_items[old_value].identifier
+        elif isinstance(new_prop_value, bpy.types.PropertyGroup):
+            recursiveCopyOldPropertyGroup(old_value, new_prop_value)
+            print(f"Upgraded {new_prop} from old location {old_loc} with props {old_props} via recursive group copy")
+            return True
+        elif isinstance(new_prop_value, bpy.types.Collection):
+            copyPropertyCollection(old_value, new_prop_value)
+            print(f"Upgraded {new_prop} from old location {old_loc} with props {old_props} via collection copy")
+            return True
         elif fix_forced_base_16:
             try:
                 if not isinstance(old_value, str):

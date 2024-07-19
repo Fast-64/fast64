@@ -4035,91 +4035,73 @@ class AddPresetF3D(AddPresetBase, Operator):
         return {"FINISHED"}
 
 
-def convertToNewMat(material, oldMat):
-    material.f3d_mat.presetName = oldMat.pop("presetName", "Custom")
-
-    material.f3d_mat.scale_autoprop = oldMat.pop("scale_autoprop", material.f3d_mat.scale_autoprop)
-    material.f3d_mat.uv_basis = oldMat.pop("uv_basis", material.f3d_mat.uv_basis)
-
-    # Combiners
-    recursiveCopyOldPropertyGroup(oldMat.pop("combiner1", {}), material.f3d_mat.combiner1)
-    recursiveCopyOldPropertyGroup(oldMat.pop("combiner2", {}), material.f3d_mat.combiner2)
-
-    # Texture animation
-    material.f3d_mat.menu_procAnim = oldMat.pop("menu_procAnim", material.f3d_mat.menu_procAnim)
-    recursiveCopyOldPropertyGroup(oldMat.pop("UVanim", {}), material.f3d_mat.UVanim0)
-    recursiveCopyOldPropertyGroup(oldMat.pop("UVanim_tex1", {}), material.f3d_mat.UVanim1)
-
-    # material textures
-    material.f3d_mat.tex_scale = oldMat.pop("tex_scale", material.f3d_mat.tex_scale)
-    recursiveCopyOldPropertyGroup(oldMat.pop("tex0", {}), material.f3d_mat.tex0)
-    recursiveCopyOldPropertyGroup(oldMat.pop("tex1", {}), material.f3d_mat.tex1)
-
-    # Should Set?
-    material.f3d_mat.set_prim = oldMat.pop("set_prim", material.f3d_mat.set_prim)
-    material.f3d_mat.set_lights = oldMat.pop("set_lights", material.f3d_mat.set_lights)
-    material.f3d_mat.set_env = oldMat.pop("set_env", material.f3d_mat.set_env)
-    material.f3d_mat.set_blend = oldMat.pop("set_blend", material.f3d_mat.set_blend)
-    material.f3d_mat.set_key = oldMat.pop("set_key", material.f3d_mat.set_key)
-    material.f3d_mat.set_k0_5 = oldMat.pop("set_k0_5", material.f3d_mat.set_k0_5)
-    material.f3d_mat.set_combiner = oldMat.pop("set_combiner", material.f3d_mat.set_combiner)
-    material.f3d_mat.use_default_lighting = oldMat.pop("use_default_lighting", material.f3d_mat.use_default_lighting)
+def convertToNewMat(material):
+    old_to_new_props = {
+        "presetName": "presetName",
+        "scale_autoprop": "scale_autoprop",
+        "uv_basis": "uv_basis",
+        "combiner1": "combiner1",
+        "combiner2": "combiner2",
+        "menu_procAnim": "menu_procAnim",
+        "UVanim0": "UVanim",
+        "UVanim1": "UVanim_tex1",
+        "tex_scale": "tex_scale",
+        "tex0": "tex0",
+        "tex1": "tex1",
+        "set_prim": "set_prim",
+        "set_lights": "set_lights",
+        "set_env": "set_env",
+        "set_blend": "set_blend",
+        "set_key": "set_key",
+        "set_k0_5": "set_k0_5",
+        "set_combiner": "set_combiner",
+        "use_default_lighting": "use_default_lighting",
+        "blend_color": "blend_color",
+        "key_scale": "key_scale",
+        "key_width": "key_width",
+        "k0": "k0",
+        "k1": "k1",
+        "k2": "k2",
+        "k3": "k3",
+        "k4": "k4",
+        "k5": "k5",
+        "prim_lod_frac": "prim_lod_frac",
+        "prim_lod_min": "prim_lod_min",
+        "default_light_color": "default_light_color",
+        "ambient_light_color": "ambient_light_color",
+        "fog_color": "fog_color",
+        "fog_position": "fog_position",
+        "set_fog": "set_fog",
+        "use_global_fog": "use_global_fog",
+        "menu_geo": "menu_geo",
+        "menu_upper": "menu_upper",
+        "menu_lower": "menu_lower",
+        "menu_other": "menu_other",
+        "menu_lower_render": "menu_lower_render",
+        "rdp_settings": "rdp_settings",
+    }
+    for new, old in old_to_new_props.items():
+        upgrade_old_prop(material.f3d_mat, new, material, old)
 
     # Colors
-    nodes = oldMat.node_tree.nodes
+    nodes = material.node_tree.nodes
 
-    if oldMat.mat_ver == 3:
+    if material.mat_ver == 3:
         prim = nodes["Primitive Color Output"].inputs[0].default_value
         env = nodes["Environment Color Output"].inputs[0].default_value
     else:
         prim = nodes["Primitive Color"].outputs[0].default_value
         env = nodes["Environment Color"].outputs[0].default_value
 
-    material.f3d_mat.blend_color = oldMat.pop("blend_color", material.f3d_mat.blend_color)
     material.f3d_mat.prim_color = prim
     material.f3d_mat.env_color = env
     if "Chroma Key Center" in nodes:
         material.f3d_mat.key_center = nodes["Chroma Key Center"].outputs[0].default_value
 
-    # Chroma
-    material.f3d_mat.key_scale = oldMat.pop("key_scale", material.f3d_mat.key_scale)
-    material.f3d_mat.key_width = oldMat.pop("key_width", material.f3d_mat.key_width)
-
-    # Convert
-    material.f3d_mat.k0 = oldMat.pop("k0", material.f3d_mat.k0)
-    material.f3d_mat.k1 = oldMat.pop("k1", material.f3d_mat.k1)
-    material.f3d_mat.k2 = oldMat.pop("k2", material.f3d_mat.k2)
-    material.f3d_mat.k3 = oldMat.pop("k3", material.f3d_mat.k3)
-    material.f3d_mat.k4 = oldMat.pop("k4", material.f3d_mat.k4)
-    material.f3d_mat.k5 = oldMat.pop("k5", material.f3d_mat.k5)
-
-    # Prim
-    material.f3d_mat.prim_lod_frac = oldMat.pop("prim_lod_frac", material.f3d_mat.prim_lod_frac)
-    material.f3d_mat.prim_lod_min = oldMat.pop("prim_lod_min", material.f3d_mat.prim_lod_min)
-
     # lights
-    material.f3d_mat.default_light_color = oldMat.pop("default_light_color", material.f3d_mat.default_light_color)
-    material.f3d_mat.ambient_light_color = oldMat.pop("ambient_light_color", material.f3d_mat.ambient_light_color)
     for i in range(1, 8):
-        old_light = oldMat.pop(f"f3d_light{str(i)}", None)
-        # can be a broken property with V1 materials (IDPropertyGroup), thankfully this isnt typical to see when upgrading but
-        # this method is safer
-        if type(old_light) is Light:
-            setattr(material.f3d_mat, f"f3d_light{str(i)}", old_light)
-
-    # Fog Properties
-    material.f3d_mat.fog_color = oldMat.pop("fog_color", material.f3d_mat.fog_color)
-    material.f3d_mat.fog_position = oldMat.pop("fog_position", material.f3d_mat.fog_position)
-    material.f3d_mat.set_fog = oldMat.pop("set_fog", material.f3d_mat.set_fog)
-    material.f3d_mat.use_global_fog = oldMat.pop("use_global_fog", material.f3d_mat.use_global_fog)
-
-    # geometry mode
-    material.f3d_mat.menu_geo = oldMat.pop("menu_geo", material.f3d_mat.menu_geo)
-    material.f3d_mat.menu_upper = oldMat.pop("menu_upper", material.f3d_mat.menu_upper)
-    material.f3d_mat.menu_lower = oldMat.pop("menu_lower", material.f3d_mat.menu_lower)
-    material.f3d_mat.menu_other = oldMat.pop("menu_other", material.f3d_mat.menu_other)
-    material.f3d_mat.menu_lower_render = oldMat.pop("menu_lower_render", material.f3d_mat.menu_lower_render)
-    recursiveCopyOldPropertyGroup(oldMat.pop("rdp_settings", {}), material.f3d_mat.rdp_settings)
+        light_attr = f"f3d_light{str(i)}"
+        upgrade_old_prop(material.f3d_mat, light_attr, material, light_attr)
 
 
 class F3DMaterialProperty(PropertyGroup):
