@@ -45,6 +45,12 @@ In F3D material properties, you can enable "Large Texture Mode". This will let y
 ### Decomp vs Homebrew Compatibility
 There may occur cases where code is formatted differently based on the code use case. In the tools panel under the Fast64 File Settings subheader, you can toggle homebrew compatibility.
 
+### glTF 2.0 Support
+Fast64 supports several extensions for glTF 2.0 that can be exported and imported via the glTF 2.0 io addon integrated in blender via hooks. It also implements hacks for broken versions of the addon.
+
+Currently only basic F3D data is supported, but extensions for game modes like SM64 and OOT can be added in the future.
+See the [F3D glTF README](/fast64_internal/f3d/glTF/README.md) for details and schemas.
+
 ### Converting To F3D v5 Materials
 A new optimized shader graph was introduced to decrease processing times for material creation and exporting. If you have a project that still uses old materials, you may want to convert them to v5. To convert an old project, click the "Recreate F3D Materials As V5" operator near the top of the Fast64 tab in 3D view. This may take a while depending on the number of materials in the project. Then go to the outliner, change the display mode to "Orphan Data" (broken heart icon), then click "Purge" in the top right corner. Purge multiple times until all of the old node groups are gone.
 
