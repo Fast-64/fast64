@@ -1,14 +1,16 @@
 # This is not in the f3d package since copying materials requires copying collision settings from all games as well.
 
-import bpy, math
+import bpy
 from bpy.utils import register_class, unregister_class
 from .f3d.f3d_material import *
-from .sm64.sm64_collision import CollisionSettings
+from .f3d.f3d_material_helpers import node_tree_copy
 from .utility import *
 from bl_operators.presets import AddPresetBase
 
 
-def upgradeF3DVersionAll(objs, armatures, version):
+def upgradeF3DVersionAll(objs, version):
+    f3d_node_tree = get_f3d_node_tree()
+
     # Remove original v2 node groups so that they can be recreated.
     deleteGroups = []
     for node_tree in bpy.data.node_groups:
@@ -23,33 +25,15 @@ def upgradeF3DVersionAll(objs, armatures, version):
     # handles cases where materials are used in multiple objects
     materialDict = {}
     for obj in objs:
-        upgradeF3DVersionOneObject(obj, materialDict, version)
-
-    for armature in armatures:
-        for bone in armature.bones:
-            if bone.geo_cmd == "Switch":
-                for switchOption in bone.switch_options:
-                    if switchOption.switchType == "Material":
-                        if switchOption.materialOverride in materialDict:
-                            switchOption.materialOverride = materialDict[switchOption.materialOverride]
-                        for i in range(len(switchOption.specificOverrideArray)):
-                            material = switchOption.specificOverrideArray[i].material
-                            if material in materialDict:
-                                switchOption.specificOverrideArray[i].material = materialDict[material]
-                        for i in range(len(switchOption.specificIgnoreArray)):
-                            material = switchOption.specificIgnoreArray[i].material
-                            if material in materialDict:
-                                switchOption.specificIgnoreArray[i].material = materialDict[material]
+        upgradeF3DVersionOneObject(obj, materialDict, f3d_node_tree)
 
 
-def upgradeF3DVersionOneObject(obj, materialDict, version):
+def upgradeF3DVersionOneObject(obj, materialDict, f3d_node_tree: bpy.types.NodeTree):
     for index in range(len(obj.material_slots)):
         material = obj.material_slots[index].material
-        if material is not None and material.is_f3d:
-            if material in materialDict:
-                obj.material_slots[index].material = materialDict[material]
-            else:
-                convertF3DtoNewVersion(obj, index, material, materialDict, version)
+        if material is not None and material.is_f3d and material not in materialDict:
+            convertF3DtoNewVersion(obj, index, material, f3d_node_tree)
+            materialDict[material] = material
 
 
 V4PresetName = {
@@ -113,9 +97,10 @@ def set_best_draw_layer_for_materials():
             mat: bpy.types.Material = obj.material_slots[p.material_index].material
             if not has_valid_mat_ver(mat) or mat.mat_ver >= 4 or mat.name in finished_mats:
                 continue
-
+            mat.f3d_update_flag = True
             # default to object's draw layer
-            mat.f3d_mat.draw_layer.sm64 = obj.draw_layer_static
+            with bpy.context.temp_override(material=mat):
+                mat.f3d_mat.draw_layer.sm64 = obj.draw_layer_static
 
             if len(obj.vertex_groups) == 0:
                 continue  # object doesn't have vertex groups
@@ -126,8 +111,10 @@ def set_best_draw_layer_for_materials():
                 # check for matching bone from group name
                 bone = bone_map.get(group.name)
                 if bone is not None:
+                    mat.f3d_update_flag = True
                     # override material draw later with bone's draw layer
-                    mat.f3d_mat.draw_layer.sm64 = bone.draw_layer
+                    with bpy.context.temp_override(material=mat):
+                        mat.f3d_mat.draw_layer.sm64 = bone.draw_layer
             finished_mats.add(mat.name)
 
     for obj in objects:
@@ -138,11 +125,15 @@ def set_best_draw_layer_for_materials():
             if not has_valid_mat_ver(mat) or mat.mat_ver >= 4 or mat.name in finished_mats:
                 continue
 
-            mat.f3d_mat.draw_layer.sm64 = obj.draw_layer_static
+            mat.f3d_update_flag = True
+            with bpy.context.temp_override(material=mat):
+                mat.f3d_mat.draw_layer.sm64 = obj.draw_layer_static
             finished_mats.add(mat.name)
 
 
-def convertF3DtoNewVersion(obj: bpy.types.Object | bpy.types.Bone, index, material, materialDict, version):
+def convertF3DtoNewVersion(
+    obj: bpy.types.Object | bpy.types.Bone, index: int, material, f3d_node_tree: bpy.types.NodeTree
+):
     try:
         if not has_valid_mat_ver(material):
             return
@@ -151,27 +142,25 @@ def convertF3DtoNewVersion(obj: bpy.types.Object | bpy.types.Bone, index, materi
         else:
             oldPreset = material.get("f3d_preset")
 
-        newMat = createF3DMat(obj, preset=getV4PresetName(oldPreset), index=index)
+        update_preset_manual_v4(material, getV4PresetName(oldPreset))
+        # HACK: We can´t just lock, so make is_f3d temporarly false
+        material.is_f3d, material.f3d_update_flag = False, True
+        # Convert before node tree changes, as old materials store some values in the actual nodes
+        if material.mat_ver <= 3:
+            convertToNewMat(material, material)
 
-        if material.mat_ver > 3:
-            copyPropertyGroup(material.f3d_mat, newMat.f3d_mat)
-        else:
-            convertToNewMat(newMat, material)
+        node_tree_copy(f3d_node_tree, material.node_tree)
 
-        newMat.f3d_mat.draw_layer.sm64 = material.f3d_mat.draw_layer.sm64
+        material.is_f3d, material.f3d_update_flag = True, False
+        material.mat_ver = 5
 
-        copyPropertyGroup(material.ootMaterial, newMat.ootMaterial)
-        copyPropertyGroup(material.flipbookGroup, newMat.flipbookGroup)
-        copyPropertyGroup(material.ootCollisionProperty, newMat.ootCollisionProperty)
+        createScenePropertiesForMaterial(material)
+        with bpy.context.temp_override(material=material):
+            update_all_node_values(material, bpy.context)  # Reload everything
 
-        colSettings = CollisionSettings()
-        colSettings.load(material)
-        colSettings.apply(newMat)
-
-        updateMatWithNewVersionName(newMat, material, materialDict, version)
     except Exception as exc:
         print("Failed to upgrade", material.name)
-        print(exc)
+        traceback.print_exc()
 
 
 def convertAllBSDFtoF3D(objs, renameUV):
@@ -238,14 +227,6 @@ def updateMatWithName(f3dMat, oldMat, materialDict):
     materialDict[oldMat] = f3dMat
 
 
-def updateMatWithNewVersionName(f3dMat, oldMat, materialDict, version):
-    name = oldMat.name
-    f3dMat.name = name
-    oldMat.name = name + "_v" + str(oldMat.mat_ver)
-    update_preset_manual(f3dMat, bpy.context)
-    materialDict[oldMat] = f3dMat
-
-
 class BSDFConvert(bpy.types.Operator):
     # set bl_ properties
     bl_idname = "object.convert_bsdf"
@@ -286,7 +267,9 @@ class MatUpdateConvert(bpy.types.Operator):
     version = 6
     bl_idname = "object.convert_f3d_update"
     bl_label = "Recreate F3D Materials As v" + str(version)
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
+    bl_options = {"UNDO"}
+
+    update_conv_all: bpy.props.BoolProperty(default=True)
 
     # Called on demand (i.e. button press, menu item)
     # Can also be called from operator search menu (Spacebar)
@@ -295,10 +278,9 @@ class MatUpdateConvert(bpy.types.Operator):
             if context.mode != "OBJECT":
                 raise PluginError("Operator can only be used in object mode.")
 
-            if context.scene.update_conv_all:
+            if self.update_conv_all:
                 upgradeF3DVersionAll(
                     [obj for obj in bpy.data.objects if obj.type == "MESH"],
-                    bpy.data.armatures,
                     self.version,
                 )
             else:
@@ -308,7 +290,7 @@ class MatUpdateConvert(bpy.types.Operator):
                     raise PluginError("Mesh not selected.")
 
                 obj = context.selected_objects[0]
-                upgradeF3DVersionOneObject(obj, {}, self.version)
+                upgradeF3DVersionOneObject(obj, {}, get_f3d_node_tree())
 
         except Exception as e:
             raisePluginError(self, e)
@@ -336,7 +318,8 @@ class F3DMaterialConverterPanel(bpy.types.Panel):
         self.layout.operator(BSDFConvert.bl_idname)
         self.layout.prop(context.scene, "bsdf_conv_all")
         self.layout.prop(context.scene, "rename_uv_maps")
-        self.layout.operator(MatUpdateConvert.bl_idname)
+        op = self.layout.operator(MatUpdateConvert.bl_idname)
+        op.update_conv_all = context.scene.update_conv_all
         self.layout.prop(context.scene, "update_conv_all")
         self.layout.operator(ReloadDefaultF3DPresets.bl_idname)
 

@@ -80,7 +80,6 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
         prop_split(col, context.scene, "f3d_type", "F3D Microcode")
         col.prop(context.scene, "saveTextures")
         col.prop(context.scene, "f3d_simple", text="Simple Material UI")
-        col.prop(context.scene, "generateF3DNodeGraph", text="Generate F3D Node Graph For Materials")
         col.prop(context.scene, "exportInlineF3D", text="Bleed and Inline Material Exports")
         if context.scene.exportInlineF3D:
             multilineLabel(
@@ -243,22 +242,7 @@ class UpgradeF3DMaterialsDialog(bpy.types.Operator):
         layout = self.layout
         if self.done:
             layout.label(text="Success!")
-            box = layout.box()
-            box.label(text="Materials were successfully upgraded.")
-            box.label(text="Please purge your remaining materials.")
-
-            purge_box = box.box()
-            purge_box.scale_y = 0.25
-            purge_box.separator(factor=0.5)
-            purge_box.label(text="How to purge:")
-            purge_box.separator(factor=0.5)
-            purge_box.label(text="Go to the outliner, change the display mode")
-            purge_box.label(text='to "Orphan Data" (broken heart icon)')
-            purge_box.separator(factor=0.25)
-            purge_box.label(text='Click "Purge" in the top right corner.')
-            purge_box.separator(factor=0.25)
-            purge_box.label(text="Purge multiple times until the node groups")
-            purge_box.label(text="are gone.")
+            layout.label(text="Materials were successfully upgraded.")
             layout.separator(factor=0.25)
             layout.label(text="You may click anywhere to close this dialog.")
             return
@@ -282,7 +266,6 @@ class UpgradeF3DMaterialsDialog(bpy.types.Operator):
 
         upgradeF3DVersionAll(
             [obj for obj in bpy.data.objects if obj.type == "MESH"],
-            list(bpy.data.armatures),
             MatUpdateConvert.version,
         )
         self.done = True
@@ -408,7 +391,6 @@ def register():
         name="Game", default="SM64", items=gameEditorEnum, update=gameEditorUpdate
     )
     bpy.types.Scene.saveTextures = bpy.props.BoolProperty(name="Save Textures As PNGs (Breaks CI Textures)")
-    bpy.types.Scene.generateF3DNodeGraph = bpy.props.BoolProperty(name="Generate F3D Node Graph", default=True)
     bpy.types.Scene.exportHiddenGeometry = bpy.props.BoolProperty(name="Export Hidden Geometry", default=True)
     bpy.types.Scene.exportInlineF3D = bpy.props.BoolProperty(
         name="Bleed and Inline Material Exports",
@@ -444,7 +426,6 @@ def unregister():
     del bpy.types.Scene.ignoreTextureRestrictions
     del bpy.types.Scene.saveTextures
     del bpy.types.Scene.gameEditorMode
-    del bpy.types.Scene.generateF3DNodeGraph
     del bpy.types.Scene.exportHiddenGeometry
     del bpy.types.Scene.blenderF3DScale
 
