@@ -411,14 +411,14 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
     if not useDropdown or dataHolder.menu_geo:
         disable_dependent = False  # Don't disable dependent props in world defaults
 
-        def indentGroup(
-            parent: UILayout, textOrProp: Union[str, "F3DMaterialProperty"], isText: bool, enable=True
-        ) -> UILayout:
+        def indentGroup(parent: UILayout, textOrProp: Union[str, "F3DMaterialProperty"], isText: bool) -> UILayout:
             c = parent.column(align=True)
             if isText:
                 c.label(text=textOrProp)
+                enable = True
             else:
                 c.prop(settings, textOrProp)
+                enable = getattr(settings, textOrProp)
             c = c.split(factor=0.1)
             c.label(text="")
             c = c.column(align=True)
@@ -441,14 +441,14 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
 
         inputGroup.prop(settings, "g_shade_smooth")
 
-        c = indentGroup(inputGroup, "g_lighting", False, settings.g_lighting)
+        c = indentGroup(inputGroup, "g_lighting", False)
         if ccWarnings and not shadeInCC and settings.g_lighting and not settings.g_tex_gen:
             multilineLabel(c, "Shade not used in CC, can disable\nlighting.", icon="INFO")
         if isF3DEX3:
             c.prop(settings, "g_packed_normals")
             c.prop(settings, "g_lighting_specular")
             c.prop(settings, "g_ambocclusion")
-        d = indentGroup(c, "g_tex_gen", False, settings.g_tex_gen)
+        d = indentGroup(c, "g_tex_gen", False)
         d.prop(settings, "g_tex_gen_linear")
 
         if lightFxPrereq and settings.g_fresnel_color:
