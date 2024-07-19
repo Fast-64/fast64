@@ -1027,7 +1027,7 @@ class TriangleConverter:
         triCmds = createTriangleCommands(
             self.vertexBufferTriangles, self.vertBuffer, not self.triConverterInfo.f3d.F3D_OLD_GBI
         )
-        if not self.material.f3d_mat.use_cel_shading:
+        if not self.triConverterInfo.f3d.F3DEX_GBI_3 or not self.material.f3d_mat.use_cel_shading:
             self.triList.commands.extend(triCmds)
         else:
             if len(triCmds) <= 2:
