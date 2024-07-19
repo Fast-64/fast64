@@ -531,7 +531,7 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
                 )
 
             if blendWarnings and settings.zmode != "ZMODE_DEC":
-                decal_mode_info = "Non-decal rendermode / blender, these will be ignored."
+                decal_mode_info = "Non-decal rendermode, these will be ignored."
             multilineLabel(c, decal_mode_info, icon="INFO")
         elif f3d.F3DEX_GBI_3:
             c = indentGroup(inputGroup, "Attribute offsets:", True)
