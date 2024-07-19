@@ -1802,19 +1802,18 @@ def upgrade_old_prop(
         if old_value is None:
             return False
 
-        if old_enum:
-            assert isinstance(old_value, int)
-            if old_value >= len(old_enum):
-                raise ValueError(f"({old_value}) not in {old_enum}")
-            old_value = old_enum[old_value]
-        elif new_prop_def.type == "ENUM":
+        if new_prop_def.type == "ENUM":
             if not isinstance(old_value, int):
                 raise ValueError(f"({old_value}) not an int, but {new_prop} is an enum")
-            if old_value >= len(new_prop_def.enum_items):
-                raise ValueError(f"({old_value}) not in {new_prop}´s enum items")
-            old_value = new_prop_def.enum_items[old_value].identifier
-
-        if fix_forced_base_16:
+            if old_enum:
+                if old_value >= len(old_enum):
+                    raise ValueError(f"({old_value}) not in {old_enum}")
+                old_value = old_enum[old_value]
+            else:
+                if old_value >= len(new_prop_def.enum_items):
+                    raise ValueError(f"({old_value}) not in {new_prop}´s enum items")
+                old_value = new_prop_def.enum_items[old_value].identifier
+        elif fix_forced_base_16:
             try:
                 if not isinstance(old_value, str):
                     raise ValueError(f"({old_value}) not a string")
