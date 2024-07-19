@@ -448,6 +448,7 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             c.prop(settings, "g_packed_normals")
             c.prop(settings, "g_lighting_specular")
             c.prop(settings, "g_ambocclusion")
+            c.prop(settings, "g_fresnel_color")
         d = indentGroup(c, "g_tex_gen", False)
         d.prop(settings, "g_tex_gen_linear")
 
@@ -459,11 +460,7 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             shadeColorLabel = "Lighting * vertex color"
         else:
             shadeColorLabel = "Lighting"
-        if isF3DEX3:
-            c = indentGroup(inputGroup, f"Shade color = {shadeColorLabel}:", True)
-            c.prop(settings, "g_fresnel_color")
-        else:
-            inputGroup.label(text=f"Shade color = {shadeColorLabel}:")
+        inputGroup.label(text=f"Shade color = {shadeColorLabel}:")
 
         shadowMapInShadeAlpha = False
         if settings.g_fog:
