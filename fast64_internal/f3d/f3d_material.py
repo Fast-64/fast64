@@ -546,6 +546,9 @@ def ui_upper_mode(settings, dataHolder, layout: UILayout, useDropdown):
         prop_split(inputGroup, settings, "g_mdsft_combkey", "Chroma Key")
         prop_split(inputGroup, settings, "g_mdsft_textconv", "Texture Convert")
         prop_split(inputGroup, settings, "g_mdsft_text_filt", "Texture Filter")
+        textlut_col = inputGroup.column()
+        textlut_col.enabled = not isinstance(dataHolder, F3DMaterialProperty)
+        prop_split(textlut_col, settings, "g_mdsft_textlut", "Texture LUT")
         prop_split(inputGroup, settings, "g_mdsft_textlod", "Texture LOD (Mipmapping)")
         if settings.g_mdsft_textlod == "G_TL_LOD":
             inputGroup.prop(settings, "num_textures_mipmapped", text="Number of Mipmaps")
@@ -2090,6 +2093,13 @@ def update_tex_values_manual(material: Material, context, prop_path=None):
 
     isTexGen = f3dMat.rdp_settings.g_tex_gen  # linear requires tex gen to be enabled as well
 
+    textures = [f3dMat.tex0] if useDict["Texture 0"] else []
+    textures += [f3dMat.tex1] if useDict["Texture 1"] else []
+    ci_formats = list(set(tex.ci_format for tex in textures if tex.tex_format.startswith("CI")))
+    if len(ci_formats) != 1:  # if more than one ci format or no ci format textures
+        ci_formats = ["NONE"]
+    f3dMat.rdp_settings.g_mdsft_textlut = "G_TT_" + ci_formats[0]
+
     if f3dMat.scale_autoprop:
         if isTexGen:
             tex_size = get_tex_basis_size(f3dMat)
@@ -3515,7 +3525,7 @@ class RDPSettings(PropertyGroup):
         ("chromaKey", "g_mdsft_combkey", "G_CK_NONE"),
         ("textureConvert", "g_mdsft_textconv", "G_TC_CONV"),
         ("textureFilter", "g_mdsft_text_filt", "G_TF_POINT"),
-        # ("lutFormat", "g_mdsft_textlut", "G_TT_NONE")
+        ("lutFormat", "g_mdsft_textlut", "G_TT_NONE"),
         ("textureLoD", "g_mdsft_textlod", "G_TL_TILE"),
         ("textureDetail", "g_mdsft_textdetail", "G_TD_CLAMP"),
         ("perspectiveCorrection", "g_mdsft_textpersp", "G_TP_NONE"),

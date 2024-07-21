@@ -1700,7 +1700,7 @@ def saveOtherModeHDefinitionIndividual(fMaterial, settings, tlut, defaults):
     saveModeSetting(fMaterial, settings.g_mdsft_combkey, defaults.g_mdsft_combkey, DPSetCombineKey)
     saveModeSetting(fMaterial, settings.g_mdsft_textconv, defaults.g_mdsft_textconv, DPSetTextureConvert)
     saveModeSetting(fMaterial, settings.g_mdsft_text_filt, defaults.g_mdsft_text_filt, DPSetTextureFilter)
-    saveModeSetting(fMaterial, tlut, "G_TT_NONE", DPSetTextureLUT)
+    saveModeSetting(fMaterial, tlut, defaults.g_mdsft_textlut, DPSetTextureLUT)
     saveModeSetting(fMaterial, settings.g_mdsft_textlod, defaults.g_mdsft_textlod, DPSetTextureLOD)
     saveModeSetting(fMaterial, settings.g_mdsft_textdetail, defaults.g_mdsft_textdetail, DPSetTextureDetail)
     saveModeSetting(fMaterial, settings.g_mdsft_textpersp, defaults.g_mdsft_textpersp, DPSetTexturePersp)
