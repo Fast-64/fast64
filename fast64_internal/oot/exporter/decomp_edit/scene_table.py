@@ -184,8 +184,8 @@ class SceneTable:
             if self.sceneEnumValues[i] == ootEnumSceneID[currentIndex][0]:
                 return i + 1
 
-        # if the index hasn't been found yet, do it again but decrement the index
-        return self.getInsertionIndex(currentIndex - 1)
+        # if the index hasn't been found yet, throw an error
+        raise PluginError("ERROR: the insertion index was not found")
 
     def getIndex(self) -> int:
         """Returns the selected scene index if it's a vanilla one, else returns the custom scene index"""
