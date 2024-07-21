@@ -113,14 +113,10 @@ def update_scene_props_from_render_settings(
 
     sceneOutputs.inputs["AmbientColor"].default_value = gammaCorrectAlpha1Tuple(renderSettings.ambientColor)
     sceneOutputs.inputs["Light0Color"].default_value = gammaCorrectAlpha1Tuple(renderSettings.light0Color)
-    sceneOutputs.inputs["Light0Dir"].default_value = tuple(
-        d for d in (mathutils.Vector(renderSettings.light0Direction) @ transform_mtx_blender_to_n64())
-    )
+    sceneOutputs.inputs["Light0Dir"].default_value = renderSettings.light0Direction
     sceneOutputs.inputs["Light0Size"].default_value = renderSettings.light0SpecSize
     sceneOutputs.inputs["Light1Color"].default_value = gammaCorrectAlpha1Tuple(renderSettings.light1Color)
-    sceneOutputs.inputs["Light1Dir"].default_value = tuple(
-        d for d in (mathutils.Vector(renderSettings.light1Direction) @ transform_mtx_blender_to_n64())
-    )
+    sceneOutputs.inputs["Light1Dir"].default_value = renderSettings.light1Direction
     sceneOutputs.inputs["Light1Size"].default_value = renderSettings.light1SpecSize
 
     update_lighting_space(renderSettings)
