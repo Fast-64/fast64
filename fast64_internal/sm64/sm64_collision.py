@@ -519,7 +519,7 @@ class SM64_ExportCollision(bpy.types.Operator):
                     props.export_header_type == "Custom",
                     props.export_rooms,
                     props.export_header_type,
-                    props.group_name,
+                    props.export_group_name,
                     level_name,
                 )
                 self.report({"INFO"}, "Success!")

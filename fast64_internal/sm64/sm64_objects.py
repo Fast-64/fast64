@@ -1828,7 +1828,6 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
                     bpy.ops.object.sm64_export_geolayout_object(export_obj=obj.name)
                 # write model ID, behavior, and level script load
                 if props.export_script_loads and props.model_id != 0:
-                    print(index)
                     self.export_model_id(context, props, index)
                     self.export_script_load(context, props)
         except Exception as e:
@@ -1842,7 +1841,6 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             self.verify_context(context, props)
             actor_objs = self.get_export_objects(context, props)
 
-            print(actor_objs)
             for index, obj in enumerate(actor_objs):
                 props.context_obj = obj
                 self.execute_col(props, obj)
@@ -2028,9 +2026,15 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
 
     @property
     def export_level_name(self):
-        if self.level_name == "custom":
+        if self.level_name == "Custom":
             return self.custom_export_name
         return self.level_name
+
+    @property
+    def export_group_name(self):
+        if self.group_name == "Custom":
+            return self.custom_export_name
+        return self.group_name
 
     # remove user prefixes/naming that I will be adding, such as _col, _geo etc.
     def filter_name(self, name):
@@ -2058,11 +2062,11 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
                 box.prop(self, "graphics_object", icon_only=True)
             if self.export_script_loads:
                 box.prop(self, "model_id", text="Model ID")
-        row = layout.row()
-        row.prop(self, "export_all_selected")
-        row.prop(self, "use_name_filtering")
+        col = layout.column()
+        col.prop(self, "export_all_selected")
+        col.prop(self, "use_name_filtering")
         if not self.export_all_selected:
-            row.prop(self, "export_bhv")
+            col.prop(self, "export_bhv")
         self.draw_obj_name(layout)
 
     def draw_level_path(self, layout):
@@ -2070,25 +2074,25 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
             export_path = f"{toAlnum(self.custom_export_path)}/"
         else:
             export_path = f"/levels/{toAlnum(self.level_name)}/"
-        layout.label(text=f"Level export location is: {export_path}")
+        layout.label(text=f"Level export path: {export_path}")
 
     def draw_col_names(self, layout):
         if self.export_header_type == "Actor":
-            layout.label(text=f"Col object will export to /actors/{toAlnum(self.obj_name_col)}(.c, .h)")
+            layout.label(text=f"Collision path: /actors/{toAlnum(self.obj_name_col)}(.c, .h)")
         else:
             self.draw_level_path(layout)
-        layout.label(text=f"Collision name will be: {self.collision_name}")
+        layout.label(text=f"Collision name: {self.collision_name}")
         if self.export_rooms:
-            layout.label(text=f"Rooms name will be: {self.collision_name}_rooms")
+            layout.label(text=f"Rooms name: {self.collision_name}_rooms")
 
     def draw_gfx_names(self, layout):
         if self.export_header_type == "Actor":
-            layout.label(text=f"Geolayout will export to /actors/{toAlnum(self.obj_name_gfx)}(.c, .h, _geo.c)")
+            layout.label(text=f"Geolayout path: /actors/{toAlnum(self.obj_name_gfx)}(.c, .h, _geo.c)")
         else:
             self.draw_level_path(layout)
-        layout.label(text=f"GeoLayout name will be: {self.geo_name}")
+        layout.label(text=f"GeoLayout name: {self.geo_name}")
         if self.export_script_loads:
-            layout.label(text=f"Model ID will be: {self.model_id_define}")
+            layout.label(text=f"Model ID: {self.model_id_define}")
 
     def draw_obj_name(self, layout):
         split_1 = layout.split(factor=0.45)
@@ -2114,7 +2118,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         box = col.box()
         box.operator("object.sm64_export_level", text="Export Level")
         prop_split(box, self, "level_name", "Level")
-        if self.level_name == "custom":
+        if self.level_name == "Custom":
             prop_split(box, self, "custom_export_name", "Level Name")
         self.draw_level_path(box.box())
         col.separator()
@@ -2179,7 +2183,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
             self.draw_col_names(info_box)
 
         if self.obj_name_bhv:
-            info_box.label(text=f"Behavior name will be: {self.bhv_name}")
+            info_box.label(text=f"Behavior name: {self.bhv_name}")
 
 
 class SM64_CombinedObjectPanel(SM64_Panel):
@@ -2269,7 +2273,7 @@ class WarpNodeProperty(bpy.types.PropertyGroup):
             elif self.warpType == "Painting":
                 cmd = "PAINTING_WARP_NODE"
 
-            if self.destLevelEnum == "custom":
+            if self.destLevelEnum == "Custom":
                 destLevel = self.destLevel
             else:
                 destLevel = levelIDNames[self.destLevelEnum]
@@ -2357,7 +2361,7 @@ def drawWarpNodeProperty(layout, warpNode, index):
         else:
             prop_split(box, warpNode, "warpID", "Warp ID")
             prop_split(box, warpNode, "destLevelEnum", "Destination Level")
-            if warpNode.destLevelEnum == "custom":
+            if warpNode.destLevelEnum == "Custom":
                 prop_split(box, warpNode, "destLevel", "")
             prop_split(box, warpNode, "destArea", "Destination Area")
             prop_split(box, warpNode, "destNode", "Destination Node")

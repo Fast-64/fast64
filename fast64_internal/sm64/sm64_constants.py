@@ -70,7 +70,7 @@ level_enums = [
 ]
 
 enumLevelNames = [
-    ("custom", "Custom", "Custom"),
+    ("Custom", "Custom", "Custom"),
     ("bbh", "Big Boo's Haunt", "Big Boo's Haunt"),
     ("bitdw", "Bowser In The Dark World", "Bowser In The Dark World"),
     ("bitfs", "Bowser In The Fire Sea", "Bowser In The Fire Sea"),
@@ -2117,6 +2117,7 @@ groupsSeg6 = [
 # groups you can use for the combined object export
 groups_obj_export = [
     ("common0", "common0", "chuckya, boxes, blue coin switch"),
+    ("common1", "common1", "warp pipe, particles, trees, star, door"),
     ("group0", "group0", "Mario, particles etc."),
     ("group1", "group1", "Ground objects (Thwomp, Heave-Ho, Hoot etc.)"),
     ("group2", "group2", "Bully/Blargg"),

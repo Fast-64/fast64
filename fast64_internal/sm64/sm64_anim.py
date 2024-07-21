@@ -883,7 +883,7 @@ class SM64_ExportAnimPanel(SM64_Panel):
                     prop_split(col, context.scene, "animGroupName", "Group Name")
                 elif context.scene.animExportHeaderType == "Level":
                     prop_split(col, context.scene, "animLevelOption", "Level")
-                    if context.scene.animLevelOption == "custom":
+                    if context.scene.animLevelOption == "Custom":
                         prop_split(col, context.scene, "animLevelName", "Level Name")
 
                 decompFolderMessage(col)

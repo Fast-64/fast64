@@ -424,7 +424,7 @@ def getPathAndLevel(customExport, exportPath, levelName, levelOption):
         levelName = levelName
     else:
         exportPath = bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path)
-        if levelOption == "custom":
+        if levelOption == "Custom":
             levelName = levelName
         else:
             levelName = levelOption
@@ -694,7 +694,7 @@ def writeBoxExportType(writeBox, headerType, name, levelName, levelOption):
     if headerType == "Actor":
         writeBox.label(text="actors/" + toAlnum(name))
     elif headerType == "Level":
-        if levelOption != "custom":
+        if levelOption != "Custom":
             levelName = levelOption
         writeBox.label(text="levels/" + toAlnum(levelName) + "/" + toAlnum(name))
 
