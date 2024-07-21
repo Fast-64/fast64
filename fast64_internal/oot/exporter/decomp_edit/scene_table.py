@@ -5,6 +5,7 @@ import bpy
 from dataclasses import dataclass, field
 from typing import Optional, TYPE_CHECKING
 from ....utility import PluginError, writeFile
+from ...oot_utility import ExportInfo
 from ...oot_constants import ootEnumSceneID, ootSceneNameToID
 
 if TYPE_CHECKING:
@@ -26,68 +27,54 @@ class SceneIndexType(enum.IntEnum):
 class SceneTableEntry:
     """Defines an entry of ``scene_table.h``"""
 
-    index: int
-    original: Optional[str]  # the original line from the parsed file
-    exporter: Optional["SceneExport"] = None
-    exportName: Optional[str] = None
-    isCustomScene: bool = False
-    prefix: Optional[str] = None  # ifdefs, endifs, comments etc, everything before the current entry
-    suffix: Optional[str] = None  # remaining data after the last entry
-    parsed: Optional[str] = None
-
     # macro parameters
-    specName: Optional[str] = None  # name of the scene segment in spec
-    titleCardName: Optional[str] = None  # name of the title card segment in spec, or `none` for no title card
-    enumValue: Optional[str] = None  # enum value for this scene
-    drawConfigIdx: Optional[str] = None  # scene draw config index
-    unk1: Optional[str] = None
-    unk2: Optional[str] = None
+    specName: str  # name of the scene segment in spec
+    titleCardName: str  # name of the title card segment in spec, or `none` for no title card
+    enumValue: str  # enum value for this scene
+    drawConfigIdx: str  # scene draw config index
+    unk1: str
+    unk2: str
 
-    def __post_init__(self):
-        # parse the entry parameters from file data or an ``OOTScene``
-        macroStart = "DEFINE_SCENE("
-        if self.original is not None and macroStart in self.original:
+    prefix: str = str()  # ifdefs, endifs, comments etc, everything before the current entry
+    suffix: str = str()  # remaining data after the last entry
+
+    @staticmethod
+    def from_line(original_line: str, prefix: str):
+        macro_start = "DEFINE_SCENE("
+
+        if macro_start in original_line:
             # remove the index and the macro's name with the parenthesis
-            index = self.original.index(macroStart) + len(macroStart)
-            self.parsed = self.original[index:].removesuffix(")\n")
+            index = original_line.index(macro_start) + len(macro_start)
+            parsed = original_line[index:].removesuffix(")\n")
 
-            parameters = self.parsed.split(", ")
-            assert len(parameters) == 6
-            self.setParameters(*parameters)
-        elif self.exporter is not None:
-            self.setParametersFromScene()
+            params = parsed.split(", ")
+            assert len(params) == 6
 
-    def setParameters(
-        self, specName: str, titleCardName: str, enumValue: str, drawConfigIdx: str, unk1: str = "0", unk2: str = "0"
-    ):
-        """Sets the entry's parameters"""
-        self.specName = specName
-        self.titleCardName = titleCardName
-        self.enumValue = enumValue
-        self.drawConfigIdx = drawConfigIdx
-        self.unk1 = unk1
-        self.unk2 = unk2
+            return SceneTableEntry(*params, prefix)
+        else:
+            raise PluginError("ERROR: This line is not a scene table entry!")
 
-    def setParametersFromScene(self, exporter: Optional["SceneExport"] = None):
-        """Use the ``OOTScene`` data to set the entry's parameters"""
-        exporter = self.exporter if exporter is None else exporter
+    @staticmethod
+    def from_scene(exporter: "SceneExport", export_name: str, is_custom_scene: bool):
         # TODO: Implement title cards
-        name = exporter.scene.name if exporter is not None else self.exportName
-        self.setParameters(
-            f"{exporter.scene.name.lower() if self.isCustomScene else exporter.scene.name}_scene",
+        scene_name = exporter.scene.name.lower() if is_custom_scene else export_name
+        return SceneTableEntry(
+            scene_name if scene_name.endswith("_scene") else f"{scene_name}_scene",
             "none",
-            ootSceneNameToID.get(name, f"SCENE_{name.upper()}"),
+            ootSceneNameToID.get(export_name, f"SCENE_{export_name.upper()}"),
             exporter.scene.mainHeader.infos.drawConfig,
+            "0",
+            "0",
         )
 
-    def to_c(self):
+    def to_c(self, index: int):
         """Returns the entry as C code"""
         return (
-            (self.prefix if self.prefix is not None else "")
-            + f"/* 0x{self.index:02X} */ "
+            self.prefix
+            + f"/* 0x{index:02X} */ "
             + f"DEFINE_SCENE({self.specName}, {self.titleCardName}, {self.enumValue}, "
             + f"{self.drawConfigIdx}, {self.unk1}, {self.unk2})\n"
-            + (self.suffix if self.suffix is not None else "")
+            + self.suffix
         )
 
 
@@ -117,8 +104,9 @@ class SceneTable:
         # parse the entries and populate the list of entries (``self.entries``)
         prefix = ""
         self.isFirstCustom = ADDED_SCENES_COMMENT not in data
-        entryIndex = 0  # we don't use ``enumerate`` since not every line is an actual entry
+
         assert len(lines) > 0
+
         for line in lines:
             # skip the lines before an entry, create one from the file's data
             # and add the skipped lines as a prefix of the current entry
@@ -130,15 +118,11 @@ class SceneTable:
                 and line != "\n"
                 and line.strip() != ""
             ):
-                entry = SceneTableEntry(entryIndex, line, prefix=prefix)
+                entry = SceneTableEntry.from_line(line, prefix)
                 self.entries.append(entry)
                 self.sceneEnumValues.append(entry.enumValue)
                 prefix = ""
-                entryIndex += 1
             else:
-                if prefix.startswith("#") and line.startswith("#"):
-                    # add newline if there's two consecutive preprocessor directives
-                    prefix += "\n"
                 prefix += line
 
         # add whatever's after the last entry
@@ -156,7 +140,7 @@ class SceneTable:
         if self.selectedSceneIndex == SceneIndexType.CUSTOM:
             entry = self.entryBySpecName.get(f"{self.exportName}_scene")
             if entry is not None:
-                self.customSceneIndex = entry.index
+                self.customSceneIndex = self.entries.index(entry)
 
     def getIndexFromEnumValue(self):
         """Returns the index (int) of the chosen scene if vanilla and found, else return an enum value from ``SceneIndexType``"""
@@ -203,13 +187,7 @@ class SceneTable:
         # if the index hasn't been found yet, do it again but decrement the index
         return self.getInsertionIndex(currentIndex - 1)
 
-    def updateEntryIndex(self):
-        """Updates every entry index so they follow each other"""
-        for i, entry in enumerate(self.entries):
-            if entry.index != i:
-                entry.index = i
-
-    def getIndex(self):
+    def getIndex(self) -> int:
         """Returns the selected scene index if it's a vanilla one, else returns the custom scene index"""
         assert self.selectedSceneIndex != SceneIndexType.VANILLA_REMOVED
 
@@ -219,7 +197,7 @@ class SceneTable:
 
         return self.selectedSceneIndex if self.selectedSceneIndex >= 0 else self.customSceneIndex
 
-    def append(self, entry: SceneTableEntry):
+    def append(self, entry: SceneTableEntry, index: int):
         """Appends an entry to the scene table, only used by custom scenes"""
         # add the "added scenes" comment if it's not already there
         if self.isFirstCustom:
@@ -227,29 +205,29 @@ class SceneTable:
             self.isFirstCustom = False
 
         if entry not in self.entries:
-            if entry.index >= 0:
-                self.customSceneIndex = entry.index
+            if index >= 0:
+                self.customSceneIndex = index
                 self.entries.append(entry)
             else:
-                raise PluginError(f"ERROR: (Append) The index is not valid! ({entry.index})")
+                raise PluginError(f"ERROR: (Append) The index is not valid! ({index})")
         else:
             raise PluginError("ERROR: (Append) Entry already in the table!")
 
-    def insert(self, entry: SceneTableEntry):
+    def insert(self, entry: SceneTableEntry, index: int):
         """Inserts an entry in the scene table, only used by non-custom scenes"""
         if not entry in self.entries:
-            if entry.index >= 0:
-                if entry.index < len(self.entries):
-                    nextEntry = self.entries[entry.index]  # the next entry is at the insertion index
+            if index >= 0:
+                if index < len(self.entries):
+                    nextEntry = self.entries[index]  # the next entry is at the insertion index
 
                     # move the next entry's prefix to the one we're going to insert
                     if len(nextEntry.prefix) > 0 and not "INCLUDE_TEST_SCENES" in nextEntry.prefix:
                         entry.prefix = nextEntry.prefix
                         nextEntry.prefix = ""
 
-                self.entries.insert(entry.index, entry)
+                self.entries.insert(index, entry)
             else:
-                raise PluginError(f"ERROR: (Insert) The index is not valid! ({entry.index})")
+                raise PluginError(f"ERROR: (Insert) The index is not valid! ({index})")
         else:
             raise PluginError("ERROR: (Insert) Entry already in the table!")
 
@@ -257,7 +235,8 @@ class SceneTable:
         """Removes an entry from the scene table"""
         isCustom = index == SceneIndexType.CUSTOM
         if index >= 0 or isCustom:
-            entry = self.entries[self.getIndex()]
+            idx = self.getIndex()
+            entry = self.entries[idx]
 
             # move the prefix of the entry to remove to the next entry
             # if there's no next entry this prefix becomes the suffix of the last entry
@@ -266,8 +245,8 @@ class SceneTable:
                 if not isCustom and nextIndex < len(self.entries):
                     self.entries[nextIndex].prefix = entry.prefix
                 else:
-                    previousIndex = entry.index - 1
-                    if entry.index == len(self.entries) - 1 and ADDED_SCENES_COMMENT in entry.prefix:
+                    previousIndex = idx - 1
+                    if idx == len(self.entries) - 1 and ADDED_SCENES_COMMENT in entry.prefix:
                         entry.prefix = entry.prefix.removesuffix(f"\n{ADDED_SCENES_COMMENT}\n")
                     self.entries[previousIndex].suffix = entry.prefix
 
@@ -279,7 +258,7 @@ class SceneTable:
 
     def to_c(self):
         """Returns the scene table as C code"""
-        return "".join(entry.to_c() for entry in self.entries)
+        return "".join(entry.to_c(i) for i, entry in enumerate(self.entries))
 
 
 class SceneTableUtility:
@@ -299,12 +278,12 @@ class SceneTableUtility:
         raise PluginError(f"ERROR: Scene name {sceneName} not found in scene table.")
 
     @staticmethod
-    def editSceneTable(exporter: Optional["SceneExport"]):
+    def editSceneTable(exporter: Optional["SceneExport"], exportInfo: ExportInfo):
         """Remove, append, insert or update the scene table entry of the selected scene"""
         sceneTable = SceneTable(
-            os.path.join(exporter.exportInfo.exportPath, "include/tables/scene_table.h"),
-            exporter.exportInfo.name if exporter.exportInfo.option == "Custom" else None,
-            exporter.exportInfo.option,
+            os.path.join(exportInfo.exportPath, "include/tables/scene_table.h"),
+            exportInfo.name if exportInfo.option == "Custom" else None,
+            exportInfo.option,
         )
 
         if exporter is None:
@@ -313,19 +292,21 @@ class SceneTableUtility:
         elif sceneTable.selectedSceneIndex == SceneIndexType.CUSTOM and sceneTable.customSceneIndex is None:
             # custom mode: new custom scene
             sceneTable.append(
-                SceneTableEntry(len(sceneTable.entries) - 1, None, exporter, exporter.exportInfo.name, True)
+                SceneTableEntry.from_scene(exporter, exporter.exportInfo.name, True), len(sceneTable.entries) - 1
             )
         elif sceneTable.selectedSceneIndex == SceneIndexType.VANILLA_REMOVED:
             # insert mode
             sceneTable.insert(
-                SceneTableEntry(sceneTable.getInsertionIndex(), None, exporter, exporter.exportInfo.name, False)
+                SceneTableEntry.from_scene(exporter, exporter.exportInfo.name, False), sceneTable.getInsertionIndex()
             )
         else:
             # update mode (for both vanilla and custom scenes since they already exist in the table)
-            sceneTable.entries[sceneTable.getIndex()].setParametersFromScene(exporter)
-
-        # update the indices
-        sceneTable.updateEntryIndex()
+            index = sceneTable.getIndex()
+            entry = sceneTable.entries[index]
+            new_entry = SceneTableEntry.from_scene(exporter, exporter.scene.name, False)
+            new_entry.prefix = entry.prefix
+            new_entry.suffix = entry.suffix
+            sceneTable.entries[index] = new_entry
 
         # write the file with the final data
         writeFile(sceneTable.exportPath, sceneTable.to_c())

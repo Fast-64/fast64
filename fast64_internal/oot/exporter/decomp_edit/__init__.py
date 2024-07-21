@@ -34,4 +34,4 @@ class Files:  # TODO: find a better name
 
         Files.modifySceneFiles(exporter)
         SpecUtility.editSpec(exporter)
-        SceneTableUtility.editSceneTable(exporter)
+        SceneTableUtility.editSceneTable(exporter, exporter.exportInfo)

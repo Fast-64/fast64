@@ -1,13 +1,11 @@
 import os
 import bpy
-import enum
 import re
 
 from dataclasses import dataclass, field
 from typing import Optional, TYPE_CHECKING
 from ....utility import PluginError, writeFile, indent
-from ...oot_utility import ExportInfo, getSceneDirFromLevelName
-from collections import OrderedDict
+from ...oot_utility import getSceneDirFromLevelName
 
 if TYPE_CHECKING:
     from ..main import SceneExport
