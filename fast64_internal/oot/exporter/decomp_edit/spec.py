@@ -1,219 +1,202 @@
 import os
 import bpy
 import enum
+import re
 
 from dataclasses import dataclass, field
 from typing import Optional, TYPE_CHECKING
 from ....utility import PluginError, writeFile, indent
 from ...oot_utility import ExportInfo, getSceneDirFromLevelName
+from collections import OrderedDict
 
 if TYPE_CHECKING:
     from ..main import SceneExport
-
-
-# either "$(BUILD_DIR)", "$(BUILD)" or "build"
-buildDirectory = None
-
-
-class CommandType(enum.Enum):
-    """This class defines the different spec command types"""
-
-    NAME = 0
-    COMPRESS = 1
-    AFTER = 2
-    FLAGS = 3
-    ALIGN = 4
-    ADDRESS = 5
-    ROMALIGN = 6
-    INCLUDE = 7
-    INCLUDE_DATA_WITH_RODATA = 8
-    NUMBER = 9
-    PAD_TEXT = 10
-    INCLUDE_DATA_ONLY_WITHIN_RODATA = 11
-    INCLUDE_NO_DATA = 12
-
-    @staticmethod
-    def from_string(value: str):
-        """Returns one of the enum values from a string"""
-
-        cmdType = CommandType._member_map_.get(value.upper())
-        if cmdType is None:
-            raise PluginError(f"ERROR: Can't find value: ``{value}`` in the enum!")
-        return cmdType
-
-
+    
 @dataclass
-class SpecEntryCommand:
+class SpecCommand:
     """This class defines a single spec command"""
 
-    type: CommandType
-    content: str = ""
-    prefix: str = ""
-    suffix: str = ""
+    type: str
+    content : str = ""
+    comment : str = ""
 
     def to_c(self):
-        return self.prefix + indent + f"{self.type.name.lower()} {self.content}".strip() + self.suffix + "\n"
-
+        comment = f" //{self.comment}" if self.comment != "" else ""
+        
+        # Note: This is a hacky way of handling internal preprocessor directives, which would be parsed as if they were commands.
+        # This is fine as long you are not trying to modify this spec entry, and currently there are no internal preprocessor directives
+        # in scene segments anyway.
+        
+        indent_string = indent if not self.type.startswith('#') else ''
+        content = f" {self.content.strip()}" if self.content != "" else ""
+        return f"{indent_string}{self.type}{content}{comment}\n"
 
 @dataclass
 class SpecEntry:
     """Defines an entry of ``spec``"""
 
-    original: Optional[list[str]] = field(default_factory=list)  # the original lines from the parsed file
-    commands: list[SpecEntryCommand] = field(default_factory=list)  # list of the different spec commands
-    segmentName: str = ""  # the name of the current segment
-    prefix: str = ""  # data between two commands
-    suffix: str = ""  # remaining data after the entry (used for the last entry)
-    contentSuffix: str = ""  # remaining data after the last command in the current entry
-
-    def __post_init__(self):
-        if self.original is not None:
-            global buildDirectory
-            # parse the commands from the existing data
-            prefix = ""
-            for line in self.original:
-                line = line.strip()
-                dontHaveComments = (
-                    not line.startswith("// ") and not line.startswith("/* ") and not line.startswith(" */")
-                )
-
-                if line != "\n":
-                    if not line.startswith("#") and dontHaveComments:
-                        split = line.split(" ")
-                        command = split[0]
-                        if len(split) > 2:
-                            content = " ".join(elem for i, elem in enumerate(split) if i > 0)
-                        elif len(split) > 1:
-                            content = split[1]
-                        elif command == "name":
-                            content = self.segmentName
-                        else:
-                            content = ""
-
-                        if buildDirectory is None and (content.startswith('"build') or content.startswith('"$(BUILD')):
-                            buildDirectory = content.split("/")[0].removeprefix('"')
-
-                        self.commands.append(
-                            SpecEntryCommand(
-                                CommandType.from_string(command),
-                                content,
-                                (prefix + ("\n" if len(prefix) > 0 else "")) if prefix != "\n" else "",
-                            )
-                        )
-                        prefix = ""
-                    else:
-                        if prefix.startswith("#") and line.startswith("#"):
-                            # add newline if there's two consecutive preprocessor directives
-                            prefix += "\n"
-                        prefix += (f"\n{indent}" if not dontHaveComments else "") + line
-            # if there's a prefix it's the remaining data after the last entry
-            if len(prefix) > 0:
-                self.contentSuffix = prefix
-
-        if len(self.segmentName) == 0 and len(self.commands[0].content) > 0:
-            self.segmentName = self.commands[0].content
-        else:
-            raise PluginError("ERROR: The segment name can't be set!")
+    commands: list[SpecCommand]
+    
+    @staticmethod
+    def new(original : list[str]):
+        commands: list[SpecCommand] = []
+        for line in original:
+            comment = ""
+            if '//' in line:
+                comment = line[line.index('//') + len("//") : ]
+                line = line[:line.index('//')].strip()
+            split = line.split(" ")
+            commands.append(SpecCommand(split[0], " ".join(split[1:]) if len(split) > 1 else "", comment))
+        
+        return SpecEntry(commands)
+    
+    def get_name(self) -> Optional[str]:
+        """Returns segment name"""
+        for command in self.commands:
+            if command.type == "name":
+                return command.content
+        return ""
 
     def to_c(self):
         return (
-            (self.prefix if len(self.prefix) > 0 else "\n")
-            + "beginseg\n"
-            + "".join(cmd.to_c() for cmd in self.commands)
-            + (f"{self.contentSuffix}\n" if len(self.contentSuffix) > 0 else "")
+            "beginseg\n"
+            + "".join(command.to_c() for command in self.commands)
             + "endseg"
-            + (self.suffix if self.suffix == "\n" else f"\n{self.suffix}\n" if len(self.suffix) > 0 else "")
         )
-
+    
+@dataclass
+class SpecSection:
+    """Defines an 'section' of ``spec``, which is a list of segment definitions that are optionally surrounded by a preprocessor directive"""
+    
+    directive : Optional[str]
+    entries : list[SpecEntry] = field(default_factory=list)
+    
+    def to_c(self):
+        directive = f"{self.directive}\n" if self.directive else ""
+        terminator = "\n#endif" if self.directive and self.directive.startswith("#if") else ""
+        entry_string = '\n\n'.join(entry.to_c() for entry in self.entries)
+        return f"{directive}{entry_string}{terminator}\n\n"
 
 @dataclass
 class SpecFile:
     """This class defines the spec's file data"""
 
-    exportPath: str  # path to the spec file
-    entries: list[SpecEntry] = field(default_factory=list)  # list of the different spec entries
+    header : str # contents of file before scene segment definitions
+    build_directory : Optional[str]
+    sections: list[SpecSection] = field(default_factory=list)  # list of the different spec entries
 
-    def __post_init__(self):
+    @staticmethod
+    def new(export_path : str):
         # read the file's data
+        data = ""
         try:
-            with open(self.exportPath, "r") as fileData:
-                lines = fileData.readlines()
+            with open(export_path, "r") as file_data:
+                data = file_data.read()
         except FileNotFoundError:
             raise PluginError("ERROR: Can't find spec!")
-
-        prefix = ""
-        parsedLines = []
-        assert len(lines) > 0
-        for line in lines:
-            # if we're inside a spec entry or if the lines between two entries do not contains these characters
-            # fill the ``parsedLine`` list if it's inside a segment
-            # when we reach the end of the current segment add a new ``SpecEntry`` to ``self.entries``
-            isNotEmptyOrNewline = len(line) > 0 and line != "\n"
-            if (
-                len(parsedLines) > 0
-                or not line.startswith(" *")
-                and "/*\n" not in line
-                and not line.startswith("#")
-                and isNotEmptyOrNewline
-            ):
-                if "beginseg" not in line and "endseg" not in line:
-                    # if inside a segment, between beginseg and endseg
-                    parsedLines.append(line)
-                elif "endseg" in line:
-                    # else, if the line has endseg in it (> if we reached the end of the current segment)
-                    entry = SpecEntry(parsedLines, prefix=prefix)
-                    self.entries.append(entry)
-                    prefix = ""
-                    parsedLines = []
+        
+        # Find first instance of "/assets/scenes/", indicating a scene file
+        first_scene_include_index = data.index("/assets/scenes/")
+        if first_scene_include_index == -1:
+            return SpecFile(data, None, []) # No scene files found - add to end
+        
+        # Get build directory, which is text right before /assets/scenes/...
+        build_directory = None
+        for dir in ["$(BUILD_DIR)", "build"]:
+            if data[:first_scene_include_index].endswith(dir):
+                build_directory = dir
+           
+        # Go backwards up to previous "endseg" definition  
+        try:   
+            header_endseg_index = data[:first_scene_include_index].rfind("endseg")
+        except ValueError:
+            raise PluginError("endseg not found, scene segements cannot be the first segments in spec file")
+        
+        header = data[:header_endseg_index + len("endseg")]
+        
+        # This technically includes data after scene segments
+        # However, as long as we don't have to modify them, they should be fine
+        lines = data[header_endseg_index + len("endseg"):].split("\n")
+        lines = list(filter(None, lines)) # removes empty lines
+        lines = [line.strip() for line in lines]
+        
+        sections : list[SpecSection] = []
+        current_section : Optional[SpecSection] = None
+        while len(lines) > 0:
+            line = lines.pop(0)
+            if line.startswith("#if"): 
+                if current_section: # handles non-directive section preceding directive section
+                    sections.append(current_section)        
+                current_section = SpecSection(line)
+            elif line.startswith("#endif"):
+                sections.append(current_section)
+                current_section = None # handles back-to-back directive sections
+            elif line.startswith("beginseg"):
+                if not current_section:
+                    current_section = SpecSection(None)
+                segment_lines = []
+                while len(lines) > 0 and not lines[0].startswith("endseg"):
+                    next_line = lines.pop(0)
+                    segment_lines.append(next_line)
+                if len(lines) == 0:
+                    raise PluginError("In spec file, a beginseg was found unterminated.")
+                lines.pop(0) # remove endseg line
+                current_section.entries.append(SpecEntry.new(segment_lines))
             else:
-                # else, if between 2 segments and the line is something we don't need
-                if prefix.startswith("#") and line.startswith("#"):
-                    # add newline if there's two consecutive preprocessor directives
-                    prefix += "\n"
-                prefix += line
-        # set the last's entry's suffix to the remaining prefix
-        self.entries[-1].suffix = prefix.removesuffix("\n")
+                # This code should ignore any other line, including comments.
+                pass
+            
+        
+        if current_section:
+            sections.append(current_section) # add last section if non-directive    
+                
+        return SpecFile(header, build_directory, sections)
+    
+    def get_entries_flattened(self):
+        '''
+        Returns all entries as a single array, without sections. 
+        This is a copy of the data and modifying this will not change the spec file internally.
+        '''
+        return [entry for section in self.sections for entry in section.entries]
 
-    def find(self, segmentName: str):
+    def find(self, segment_name: str) -> SpecEntry:
         """Returns an entry from a segment name, returns ``None`` if nothing was found"""
-
-        for i, entry in enumerate(self.entries):
-            if entry.segmentName == segmentName:
-                return self.entries[i]
+        
+        for entry in self.get_entries_flattened():
+            if entry.get_name() == segment_name:
+                return entry
         return None
 
     def append(self, entry: SpecEntry):
         """Appends an entry to the list"""
+        
+        if len(self.sections) > 0 and self.sections[-1].directive is None:
+            self.sections[-1].entries.append(entry)
+        else:
+            section = SpecSection(None, [entry])
+            self.sections.append(section)
+            
 
-        # prefix/suffix shenanigans
-        lastEntry = self.entries[-1]
-        if len(lastEntry.suffix) > 0:
-            entry.prefix = f"{lastEntry.suffix}\n\n"
-            lastEntry.suffix = ""
-        self.entries.append(entry)
-
-    def remove(self, segmentName: str):
+    def remove(self, segment_name: str):
         """Removes an entry from a segment name"""
-
-        # prefix/suffix shenanigans
-        entry = self.find(segmentName)
-        if entry is not None:
-            if len(entry.prefix) > 0 and entry.prefix != "\n":
-                lastEntry = self.entries[self.entries.index(entry) - 1]
-                lastEntry.suffix = (lastEntry.suffix if lastEntry.suffix is not None else "") + entry.prefix[:-1]
-            self.entries.remove(entry)
+        for i in range(len(self.sections)):
+            section = self.sections[i]
+            for j in range(len(section.entries)):
+                entry = section.entries[j]
+                if entry.get_name() == segment_name:
+                    section.entries.remove(entry)
+                    if len(section.entries) == 0:
+                        self.sections.remove(section)
+                    return
 
     def to_c(self):
-        return "\n".join(entry.to_c() for entry in self.entries)
-
+        return f"{self.header}\n\n" + "".join(section.to_c() for section in self.sections)
 
 class SpecUtility:
     """This class hosts different functions to edit the spec file"""
 
     @staticmethod
     def editSpec(exporter: "SceneExport"):
-        global buildDirectory
-
         isScene = True
         exportInfo = exporter.exportInfo
         hasSceneTex = exporter.hasSceneTextures
@@ -227,7 +210,9 @@ class SpecUtility:
                 csTotal += len(cs.cutscene.entries)
 
         # get the spec's data
-        specFile = SpecFile(os.path.join(exportInfo.exportPath, "spec"))
+        exportPath = os.path.join(exportInfo.exportPath, "spec")
+        specFile = SpecFile.new(exportPath)
+        build_directory = specFile.build_directory
 
         # get the scene and current segment name and remove the scene
         sceneName = exportInfo.name
@@ -236,79 +221,77 @@ class SpecUtility:
 
         # mark the other scene elements to remove (like rooms)
         segmentsToRemove: list[str] = []
-        for entry in specFile.entries:
-            if entry.segmentName.startswith(f'"{sceneName}_'):
-                segmentsToRemove.append(entry.segmentName)
+        for entry in specFile.get_entries_flattened():
+            # Note: you cannot do startswith(sceneName), ex. entra vs entra_n
+            if entry.get_name() == f'"{sceneName}_scene"' or \
+                re.match(f'^\"{sceneName}\_room\_[0-9]+\"$', entry.get_name()):
+                segmentsToRemove.append(entry.get_name())
 
         # remove the segments
         for segmentName in segmentsToRemove:
             specFile.remove(segmentName)
 
         if isScene:
-            assert buildDirectory is not None
+            assert build_directory is not None
             isSingleFile = bpy.context.scene.ootSceneExportSettings.singleFile
-            includeDir = f"{buildDirectory}/"
+            includeDir = f"{build_directory}/"
             if exportInfo.customSubPath is not None:
                 includeDir += f"{exportInfo.customSubPath + sceneName}"
             else:
                 includeDir += f"{getSceneDirFromLevelName(sceneName)}"
 
             sceneCmds = [
-                SpecEntryCommand(CommandType.NAME, f'"{sceneSegmentName}"'),
-                SpecEntryCommand(CommandType.COMPRESS),
-                SpecEntryCommand(CommandType.ROMALIGN, "0x1000"),
+                SpecCommand("name", f'"{sceneSegmentName}"'),
+                SpecCommand("compress", ""),
+                SpecCommand("romalign", "0x1000"),
             ]
 
             # scene
             if isSingleFile:
-                sceneCmds.append(SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{sceneSegmentName}.o"'))
+                sceneCmds.append(SpecCommand("include", f'"{includeDir}/{sceneSegmentName}.o"'))
             else:
                 sceneCmds.extend(
                     [
-                        SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{sceneSegmentName}_main.o"'),
-                        SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{sceneSegmentName}_col.o"'),
+                        SpecCommand("include", f'"{includeDir}/{sceneSegmentName}_main.o"'),
+                        SpecCommand("include", f'"{includeDir}/{sceneSegmentName}_col.o"'),
                     ]
                 )
 
                 if hasSceneTex:
-                    sceneCmds.append(SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{sceneSegmentName}_tex.o"'))
+                    sceneCmds.append(SpecCommand("include", f'"{includeDir}/{sceneSegmentName}_tex.o"'))
 
                 if hasSceneCS:
                     for i in range(csTotal):
                         sceneCmds.append(
-                            SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{sceneSegmentName}_cs_{i}.o"')
+                            SpecCommand("include", f'"{includeDir}/{sceneSegmentName}_cs_{i}.o"')
                         )
 
-            sceneCmds.append(SpecEntryCommand(CommandType.NUMBER, "2"))
-            specFile.append(SpecEntry(None, sceneCmds))
+            sceneCmds.append(SpecCommand("number", "2"))
+            specFile.append(SpecEntry(sceneCmds))
 
             # rooms
             for i in range(roomTotal):
                 roomSegmentName = f"{sceneName}_room_{i}"
 
                 roomCmds = [
-                    SpecEntryCommand(CommandType.NAME, f'"{roomSegmentName}"'),
-                    SpecEntryCommand(CommandType.COMPRESS),
-                    SpecEntryCommand(CommandType.ROMALIGN, "0x1000"),
+                    SpecCommand("name", f'"{roomSegmentName}"'),
+                    SpecCommand("compress"),
+                    SpecCommand("romalign", "0x1000"),
                 ]
 
                 if isSingleFile:
-                    roomCmds.append(SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{roomSegmentName}.o"'))
+                    roomCmds.append(SpecCommand("include", f'"{includeDir}/{roomSegmentName}.o"'))
                 else:
                     roomCmds.extend(
                         [
-                            SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{roomSegmentName}_main.o"'),
-                            SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{roomSegmentName}_model_info.o"'),
-                            SpecEntryCommand(CommandType.INCLUDE, f'"{includeDir}/{roomSegmentName}_model.o"'),
+                            SpecCommand("include", f'"{includeDir}/{roomSegmentName}_main.o"'),
+                            SpecCommand("include", f'"{includeDir}/{roomSegmentName}_model_info.o"'),
+                            SpecCommand("include", f'"{includeDir}/{roomSegmentName}_model.o"'),
                         ]
                     )
 
-                roomCmds.append(SpecEntryCommand(CommandType.NUMBER, "3"))
-                specFile.append(SpecEntry(None, roomCmds))
-            specFile.entries[-1].suffix = "\n"
+                roomCmds.append(SpecCommand("number", "3"))
+                specFile.append(SpecEntry(roomCmds))
 
         # finally, write the spec file
-        writeFile(specFile.exportPath, specFile.to_c())
-
-        # reset build directory name so it can update properly on the next run
-        buildDirectory = None
+        writeFile(exportPath, specFile.to_c())
