@@ -2095,7 +2095,7 @@ def update_tex_values_manual(material: Material, context, prop_path=None):
 
     textures = [f3dMat.tex0] if useDict["Texture 0"] else []
     textures += [f3dMat.tex1] if useDict["Texture 1"] else []
-    ci_formats = list(set(tex.ci_format for tex in textures if tex.tex_format.startswith("CI")))
+    ci_formats = list(set(tex.ci_format if tex.tex_format.startswith("CI") else "NONE" for tex in textures))
     if len(ci_formats) != 1:  # if more than one ci format or no ci format textures
         ci_formats = ["NONE"]
     f3dMat.rdp_settings.g_mdsft_textlut = "G_TT_" + ci_formats[0]
