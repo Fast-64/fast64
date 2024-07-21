@@ -11,6 +11,7 @@ from .f3d_material import (
     all_combiner_uses,
     getMaterialScrollDimensions,
     isTexturePointSampled,
+    get_textlut_mode,
     RDPSettings,
 )
 from .f3d_texture_writer import MultitexManager, TileLoad, maybeSaveSingleLargeTextureSetup
@@ -1440,7 +1441,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     saveOtherModeHDefinition(
         fMaterial,
         f3dMat.rdp_settings,
-        multitexManager.getTT(),
+        get_textlut_mode(f3dMat),
         defaults,
         fModel.matWriteMethod,
         fModel.f3d,
