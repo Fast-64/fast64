@@ -3554,6 +3554,7 @@ class RDPSettings(PropertyGroup):
         data = self.attributes_to_dict(self.other_mode_h_attributes)
         if lut_format:
             data["lutFormat"] = lut_format
+        return data
 
     def other_mode_h_from_dict(self, data: dict):
         self.attributes_from_dict(data, self.other_mode_h_attributes)
