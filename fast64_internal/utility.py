@@ -2,7 +2,7 @@ import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operato
 from math import pi, ceil, degrees, radians, copysign
 from mathutils import *
 from .utility_anim import *
-from typing import Callable, Iterable, Any, Tuple, Optional
+from typing import Callable, Iterable, Any, Optional, Tuple, Union
 from bpy.types import UILayout
 
 CollectionProperty = Any  # collection prop as defined by using bpy.props.CollectionProperty
@@ -33,22 +33,29 @@ axis_enums = [
     ("-Y", "-Y", "-Y"),
 ]
 
-enumExportType = [
-    ("C", "C", "C"),
-    ("Binary", "Binary", "Binary"),
-    ("Insertable Binary", "Insertable Binary", "Insertable Binary"),
-]
-
 enumExportHeaderType = [
     # ('None', 'None', 'Headers are not written'),
     ("Actor", "Actor Data", "Headers are written to a group in actors/"),
     ("Level", "Level Data", "Headers are written to a specific level in levels/"),
 ]
 
-enumCompressionFormat = [
-    ("mio0", "MIO0", "MIO0"),
-    ("yay0", "YAY0", "YAY0"),
-]
+# bpy.context.mode returns the keys here, while the values are required by bpy.ops.object.mode_set
+CONTEXT_MODE_TO_MODE_SET = {
+    "PAINT_VERTEX": "VERTEX_PAINT",
+    "PAINT_WEIGHT": "WEIGHT_PAINT",
+    "PAINT_TEXTURE": "TEXTURE_PAINT",
+    "PARTICLE": "PARTICLE_EDIT",
+    "EDIT_GREASE_PENCIL": "EDIT_GPENCIL",
+}
+
+
+def get_mode_set_from_context_mode(context_mode: str):
+    if context_mode in CONTEXT_MODE_TO_MODE_SET:
+        return CONTEXT_MODE_TO_MODE_SET[context_mode]
+    elif context_mode.startswith("EDIT"):
+        return "EDIT"
+    else:
+        return context_mode
 
 
 def isPowerOf2(n):
@@ -78,7 +85,7 @@ def getDeclaration(data, name):
     return matchResult
 
 
-def hexOrDecInt(value):
+def hexOrDecInt(value: Union[int, str]) -> int:
     if isinstance(value, int):
         return value
     elif "<<" in value:
@@ -244,6 +251,8 @@ def get_attr_or_property(prop: dict | object, attr: str, newProp: dict | object)
                 # change type hint to proper type
                 newPropDef: bpy.types.EnumProperty = newPropDef
                 return newPropDef.enum_items[val].identifier
+            elif "Bool" in newPropDef.bl_rna.name:  # Should be "Boolean Definition"
+                return bool(val)
         except Exception as e:
             pass
     return val
@@ -267,15 +276,19 @@ def recursiveCopyOldPropertyGroup(oldProp, newProp):
         if sub_value_attr == "rna_type":
             continue
         sub_value = get_attr_or_property(oldProp, sub_value_attr, newProp)
+        new_value = get_attr_or_property(newProp, sub_value_attr, newProp)
 
-        if isinstance(sub_value, bpy.types.PropertyGroup) or type(sub_value).__name__ in (
+        if isinstance(new_value, bpy.types.PropertyGroup) or type(new_value).__name__ in (
             "bpy_prop_collection_idprop",
             "IDPropertyGroup",
         ):
             newCollection = getattr(newProp, sub_value_attr)
             recursiveCopyOldPropertyGroup(sub_value, newCollection)
         else:
-            setattr(newProp, sub_value_attr, sub_value)
+            try:
+                setattr(newProp, sub_value_attr, sub_value)
+            except Exception as e:
+                print(e)
 
 
 def propertyCollectionEquals(oldProp, newProp):
@@ -405,22 +418,12 @@ def extendedRAMLabel(layout):
     infoBox.label(text="Extended RAM prevents crashes.")
 
 
-def checkExpanded(filepath):
-    size = os.path.getsize(filepath)
-    if size < 9000000:  # check if 8MB
-        raise PluginError(
-            "ROM at "
-            + filepath
-            + " is too small. You may be using an unexpanded ROM. You can expand a ROM by opening it in SM64 Editor or ROM Manager."
-        )
-
-
 def getPathAndLevel(customExport, exportPath, levelName, levelOption):
     if customExport:
         exportPath = bpy.path.abspath(exportPath)
         levelName = levelName
     else:
-        exportPath = bpy.path.abspath(bpy.context.scene.decompPath)
+        exportPath = bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path)
         if levelOption == "custom":
             levelName = levelName
         else:
@@ -479,8 +482,8 @@ def saveDataToFile(filepath, data):
 
 
 def applyBasicTweaks(baseDir):
-    enableExtendedRAM(baseDir)
-    return
+    if bpy.context.scene.fast64.sm64.force_extended_ram:
+        enableExtendedRAM(baseDir)
 
 
 def enableExtendedRAM(baseDir):
@@ -783,7 +786,9 @@ def yield_children(obj: bpy.types.Object):
 def store_original_mtx():
     active_obj = bpy.context.view_layer.objects.active
     for obj in yield_children(active_obj):
-        obj["original_mtx"] = obj.matrix_local
+        # negative scales produce a rotation, we need to remove that since
+        # scales will be applied to the transform for each object
+        obj["original_mtx"] = Matrix.LocRotScale(obj.location, obj.rotation_euler, None)
 
 
 def rotate_bounds(bounds, mtx: mathutils.Matrix):
@@ -811,8 +816,6 @@ def copy_object_and_apply(obj: bpy.types.Object, apply_scale=False, apply_modifi
         obj["instanced_mesh_name"] = obj.name
 
         obj.original_name = obj.name
-        if apply_scale:
-            obj["original_mtx"] = translation_rotation_from_mtx(mathutils.Matrix(obj["original_mtx"]))
 
     obj_copy = obj.copy()
     obj_copy.data = obj_copy.data.copy()
@@ -1208,6 +1211,85 @@ def multilineLabel(layout: UILayout, text: str, icon: str = "NONE"):
         r.scale_y = 0.75
 
 
+def draw_and_check_tab(
+    layout: UILayout, data, proprety: str, text: Optional[str] = None, icon: Optional[str] = None
+) -> bool:
+    row = layout.row(align=True)
+    tab = getattr(data, proprety)
+    tria_icon = "TRIA_DOWN" if tab else "TRIA_RIGHT"
+    if icon is not None:
+        row.prop(data, proprety, icon=tria_icon, text="")
+    row.prop(data, proprety, icon=tria_icon if icon is None else icon, text=text)
+    if tab:
+        layout.separator()
+    return tab
+
+
+def run_and_draw_errors(layout: UILayout, func, *args):
+    try:
+        func(*args)
+        return True
+    except Exception as e:
+        multilineLabel(layout.box(), str(e), "ERROR")
+        return False
+
+
+def path_checks(path: str, empty="Empty path.", doesnt_exist="Path {}does not exist.", include_path=True):
+    path_in_error = f'"{path}" ' if include_path else ""
+    if path == "":
+        raise PluginError(empty)
+    elif not os.path.exists(path):
+        raise FileNotFoundError(doesnt_exist.format(path_in_error))
+
+
+def path_ui_warnings(layout: bpy.types.UILayout, path: str, empty="Empty path.", doesnt_exist="Path does not exist."):
+    return run_and_draw_errors(layout, path_checks, path, empty, doesnt_exist, False)
+
+
+def directory_path_checks(
+    path: str,
+    empty="Empty path.",
+    doesnt_exist="Directory {}does not exist.",
+    not_a_directory="Path {}is not a folder.",
+    include_path=True,
+):
+    path_checks(path, empty, doesnt_exist, include_path)
+    if not os.path.isdir(path):
+        raise NotADirectoryError(not_a_directory.format(f'"{path}" ' if include_path else ""))
+
+
+def directory_ui_warnings(
+    layout: bpy.types.UILayout,
+    path: str,
+    empty="Empty path.",
+    doesnt_exist="Directory does not exist.",
+    not_a_directory="Path is not a folder.",
+):
+    return run_and_draw_errors(layout, directory_path_checks, path, empty, doesnt_exist, not_a_directory, False)
+
+
+def filepath_checks(
+    path: str,
+    empty="Empty path.",
+    doesnt_exist="File {}does not exist.",
+    not_a_file="Path {}is not a file.",
+    include_path=True,
+):
+    path_checks(path, empty, doesnt_exist, include_path)
+    if not os.path.isfile(path):
+        raise IsADirectoryError(not_a_file.format(f'"{path}" ' if include_path else ""))
+
+
+def filepath_ui_warnings(
+    layout: bpy.types.UILayout,
+    path: str,
+    empty="Empty path.",
+    doesnt_exist="File does not exist.",
+    not_a_file="Path is not a file.",
+):
+    return run_and_draw_errors(layout, filepath_checks, path, empty, doesnt_exist, not_a_file, False)
+
+
 def toAlnum(name, exceptions=[]):
     if name is None or name == "":
         return None
@@ -1255,6 +1337,10 @@ def gammaInverseValue(sRGBValue):
 
 def exportColor(lightColor):
     return [scaleToU8(value) for value in gammaCorrect(lightColor)]
+
+
+def get_clean_color(srgb: list, include_alpha=False, round_color=True) -> list:
+    return [round(channel, 4) if round_color else channel for channel in list(srgb[: 4 if include_alpha else 3])]
 
 
 def printBlenderMessage(msgSet, message, blenderOp):
@@ -1318,7 +1404,10 @@ def readVectorFromShorts(command, offset):
 
 
 def readFloatFromShort(command, offset):
-    return int.from_bytes(command[offset : offset + 2], "big", signed=True) / bpy.context.scene.blenderToSM64Scale
+    return (
+        int.from_bytes(command[offset : offset + 2], "big", signed=True)
+        / bpy.context.scene.fast64.sm64.blender_to_sm64_scale
+    )
 
 
 def writeVectorToShorts(command, offset, values):
@@ -1328,13 +1417,13 @@ def writeVectorToShorts(command, offset, values):
 
 
 def writeFloatToShort(command, offset, value):
-    command[offset : offset + 2] = int(round(value * bpy.context.scene.blenderToSM64Scale)).to_bytes(
+    command[offset : offset + 2] = int(round(value * bpy.context.scene.fast64.sm64.blender_to_sm64_scale)).to_bytes(
         2, "big", signed=True
     )
 
 
 def convertFloatToShort(value):
-    return int(round((value * bpy.context.scene.blenderToSM64Scale)))
+    return int(round((value * bpy.context.scene.fast64.sm64.blender_to_sm64_scale)))
 
 
 def convertEulerFloatToShort(value):
@@ -1538,7 +1627,7 @@ def all_values_equal_x(vals: Iterable, test):
 def get_blender_to_game_scale(context):
     match context.scene.gameEditorMode:
         case "SM64":
-            return context.scene.blenderToSM64Scale
+            return context.scene.fast64.sm64.blender_to_sm64_scale
         case "OOT":
             return context.scene.ootBlenderScale
         case "F3D":
@@ -1604,10 +1693,10 @@ def ootGetBaseOrCustomLight(prop, idx, toExport: bool, errIfMissing: bool):
         if light is None:
             if errIfMissing:
                 raise PluginError("Error: Diffuse " + str(idx) + " light object not set in a scene lighting property.")
-            else:
-                col = light.color
-                lightObj = lightDataToObj(light)
-                dir = getObjDirectionVec(lightObj, toExport)
+        else:
+            col = light.color
+            lightObj = lightDataToObj(light)
+            dir = getObjDirectionVec(lightObj, toExport)
     col = mathutils.Vector(tuple(c for c in col))
     if toExport:
         col, dir = exportColor(col), normToSigned8Vector(dir)
@@ -1633,3 +1722,43 @@ binOps = {
     ast.BitAnd: operator.and_,
     ast.BitXor: operator.xor,
 }
+
+
+def prop_group_to_json(prop_group, blacklist: list[str] = None, whitelist: list[str] = None):
+    blacklist = ["rna_type", "name"] + (blacklist or [])
+
+    def prop_to_json(prop):
+        if isinstance(prop, list) or type(prop).__name__ == "bpy_prop_collection_idprop":
+            prop = list(prop)
+            for index, value in enumerate(prop):
+                prop[index] = prop_to_json(value)
+            return prop
+        elif isinstance(prop, Color):
+            return get_clean_color(prop)
+        elif hasattr(prop, "to_list"):  # for IDPropertyArray classes
+            return prop.to_list()
+        elif hasattr(prop, "to_dict"):
+            return prop.to_dict()
+        else:
+            return prop
+
+    data = {}
+    for prop in iter_prop(prop_group):
+        if prop in blacklist or (whitelist and prop not in whitelist):
+            continue
+        value = prop_to_json(getattr(prop_group, prop))
+        if value is not None:
+            data[prop] = value
+    return data
+
+
+def json_to_prop_group(prop_group, data: dict, blacklist: list[str] = None, whitelist: list[str] = None):
+    blacklist = ["rna_type", "name"] + (blacklist or [])
+    for prop in iter_prop(prop_group):
+        if prop in blacklist or (whitelist and prop not in whitelist):
+            continue
+        default = getattr(prop_group, prop)
+        if hasattr(default, "from_dict"):
+            default.from_dict(data.get(prop, None))
+        else:
+            setattr(prop_group, prop, data.get(prop, default))

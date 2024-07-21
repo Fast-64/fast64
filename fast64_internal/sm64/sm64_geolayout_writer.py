@@ -13,7 +13,7 @@ from .sm64_f3d_writer import SM64Model, SM64GfxFormatter
 from .sm64_texscroll import modifyTexScrollFiles, modifyTexScrollHeadersGroup
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_rom_tweaks import ExtendBank0x04
-from .sm64_utility import starSelectWarning
+from .sm64_utility import export_rom_checks, starSelectWarning
 
 from ..utility import (
     PluginError,
@@ -49,7 +49,6 @@ from ..utility import (
     getPathAndLevel,
     applyBasicTweaks,
     tempName,
-    checkExpanded,
     getAddressFromRAMAddress,
     prop_split,
     customExportWarning,
@@ -343,34 +342,49 @@ def appendRevertToGeolayout(geolayoutGraph, fModel):
     revertMatAndEndDraw(materialRevert, [DPSetEnvColor(0xFF, 0xFF, 0xFF, 0xFF), DPSetAlphaCompare("G_AC_NONE")])
 
     # walk the geo layout graph to find the last used DL for each layer
-    last_gfx_list = dict()
-
-    def walk(node, last_gfx_list):
+    # each switch child will be considered a last used DL, unless subsequent
+    # DL is drawn outside switch root
+    def walk(node, last_gfx_list: list[dict]):
         base_node = node.node
         if type(base_node) == JumpNode:
             if base_node.geolayout:
                 for node in base_node.geolayout.nodes:
                     last_gfx_list = walk(node, last_gfx_list)
-            else:
-                last_materials = dict()
         fMesh = getattr(base_node, "fMesh", None)
         if fMesh:
             cmd_list = fMesh.drawMatOverrides.get(base_node.override_hash, None) or fMesh.draw
-            last_gfx_list[base_node.drawLayer] = cmd_list
+            for draw_layer_dict in last_gfx_list:
+                draw_layer_dict[base_node.drawLayer] = cmd_list
+        switch_gfx_lists = []
         for child in node.children:
-            last_gfx_list = walk(child, last_gfx_list)
+            if type(base_node) == SwitchNode:
+                switch_gfx_lists.extend(walk(child, [dict()]))
+            else:
+                last_gfx_list = walk(child, last_gfx_list)
+        # update the non switch nodes with the last switch node of each layer drawn
+        # that node will be overridden by at least one of the switch nodes
+        # for that layer, later items in the list will cover unique switch nodes
+        if switch_gfx_lists:
+            for draw_layer_dict in last_gfx_list:
+                draw_layer_dict.update(switch_gfx_lists[-1])
+            last_gfx_list.extend(switch_gfx_lists)
         return last_gfx_list
 
     for node in geolayoutGraph.startGeolayout.nodes:
-        last_gfx_list = walk(node, last_gfx_list)
+        last_gfx_list = walk(node, [dict()])
 
-    # Revert settings in each draw layer
-    for gfx_list in last_gfx_list.values():
-        # remove SPEndDisplayList from gfx_list, materialRevert has its own SPEndDisplayList cmd
-        while SPEndDisplayList() in gfx_list.commands:
-            gfx_list.commands.remove(SPEndDisplayList())
+    # Revert settings in each unique draw layer
+    reverted_gfx_lists = set()
+    for draw_layer_dict in last_gfx_list:
+        for gfx_list in draw_layer_dict.values():
+            if gfx_list in reverted_gfx_lists:
+                continue
+            # remove SPEndDisplayList from gfx_list, materialRevert has its own SPEndDisplayList cmd
+            while SPEndDisplayList() in gfx_list.commands:
+                gfx_list.commands.remove(SPEndDisplayList())
 
-        gfx_list.commands.extend(materialRevert.commands)
+            gfx_list.commands.extend(materialRevert.commands)
+            reverted_gfx_lists.add(gfx_list)
 
 
 # Convert to Geolayout
@@ -489,7 +503,7 @@ def convertObjectToGeolayout(
             convertTextureData,
         )
         if not meshGeolayout.has_data():
-            raise "No gfx data to export, gfx export cancelled"
+            raise PluginError("No gfx data to export, gfx export cancelled")
     except Exception as e:
         raise Exception(str(e))
     finally:
@@ -1326,7 +1340,7 @@ def processMesh(
     isRoot: bool,
     convertTextureData: bool,
 ):
-    # finalTransform = copy.deepcopy(transformMatrix)
+    # final_transform = copy.deepcopy(transformMatrix)
 
     useGeoEmpty = obj.type == "EMPTY" and checkSM64EmptyUsesGeoLayout(obj.sm64_obj_type)
 
@@ -1626,7 +1640,7 @@ def processBone(
 ):
     bone = armatureObj.data.bones[boneName]
     poseBone = armatureObj.pose.bones[boneName]
-    finalTransform = copy.deepcopy(transformMatrix)
+    final_transform = copy.deepcopy(transformMatrix)
     materialOverrides = copy.copy(materialOverrides)
 
     if bone.geo_cmd == "Ignore":
@@ -1676,7 +1690,7 @@ def processBone(
                 node = DisplayListWithOffsetNode(int(bone.draw_layer), hasDL, translate)
                 lastTranslateName = boneName
 
-        finalTransform = transformMatrix @ translation
+        final_transform = transformMatrix @ translation
 
     elif bone.geo_cmd == "CustomNonAnimated":
         if bone.fast64.sm64.custom_geo_cmd_macro == "":
@@ -1709,32 +1723,32 @@ def processBone(
             node = TranslateRotateNode(drawLayer, fieldLayout, hasDL, translate, rotate)
 
             if node.fieldLayout == 0:
-                finalTransform = transformMatrix @ translation @ rotation
+                final_transform = transformMatrix @ translation @ rotation
                 lastTranslateName = boneName
                 lastRotateName = boneName
             elif node.fieldLayout == 1:
-                finalTransform = transformMatrix @ translation
+                final_transform = transformMatrix @ translation
                 lastTranslateName = boneName
             elif node.fieldLayout == 2:
-                finalTransform = transformMatrix @ rotation
+                final_transform = transformMatrix @ rotation
                 lastRotateName = boneName
             else:
                 yRot = rotate.to_euler().y
                 rotation = mathutils.Euler((0, yRot, 0)).to_matrix().to_4x4()
-                finalTransform = transformMatrix @ rotation
+                final_transform = transformMatrix @ rotation
                 lastRotateName = boneName
 
         elif bone.geo_cmd == "Translate":
             node = TranslateNode(int(bone.draw_layer), hasDL, translate)
-            finalTransform = transformMatrix @ translation
+            final_transform = transformMatrix @ translation
             lastTranslateName = boneName
         elif bone.geo_cmd == "Rotate":
             node = RotateNode(int(bone.draw_layer), hasDL, rotate)
-            finalTransform = transformMatrix @ rotation
+            final_transform = transformMatrix @ rotation
             lastRotateName = boneName
         elif bone.geo_cmd == "Billboard":
             node = BillboardNode(int(bone.draw_layer), hasDL, translate)
-            finalTransform = transformMatrix @ translation
+            final_transform = transformMatrix @ translation
             lastTranslateName = boneName
         elif bone.geo_cmd == "DisplayList":
             node = DisplayListNode(int(bone.draw_layer))
@@ -1751,7 +1765,7 @@ def processBone(
             node = ShadowNode(shadowType, shadowSolidity, shadowScale)
         elif bone.geo_cmd == "Scale":
             node = ScaleNode(int(bone.draw_layer), bone.geo_scale, hasDL)
-            finalTransform = transformMatrix @ mathutils.Matrix.Scale(node.scaleValue, 4)
+            final_transform = transformMatrix @ mathutils.Matrix.Scale(node.scaleValue, 4)
         elif bone.geo_cmd == "StartRenderArea":
             node = StartRenderAreaNode(bone.culling_radius)
         else:
@@ -1765,7 +1779,8 @@ def processBone(
             obj,
             armatureObj.data,
             fModel.f3d,
-            mathutils.Matrix.Scale(bpy.context.scene.blenderToSM64Scale, 4) @ bone.matrix_local.inverted(),
+            mathutils.Matrix.Scale(bpy.context.scene.fast64.sm64.blender_to_sm64_scale, 4)
+            @ bone.matrix_local.inverted(),
             infoDict,
         )
         fMeshes, fSkinnedMeshes, usedDrawLayers = saveModelGivenVertexGroup(
@@ -1865,7 +1880,7 @@ def processBone(
                     name,
                     obj,
                     armatureObj,
-                    finalTransform,
+                    final_transform,
                     lastTranslateName,
                     lastRotateName,
                     lastDeformName,
@@ -1901,7 +1916,7 @@ def processBone(
                     name,
                     obj,
                     armatureObj,
-                    finalTransform,
+                    final_transform,
                     lastTranslateName,
                     lastRotateName,
                     lastDeformName,
@@ -1991,7 +2006,7 @@ def processBone(
                         name,
                         optionObj,
                         optionArmature,
-                        finalTransform,
+                        final_transform,
                         optionBone.name,
                         optionBone.name,
                         optionBone.name,
@@ -2301,7 +2316,7 @@ def saveModelGivenVertexGroup(
         print("No vert indices in " + vertexGroup)
         return None, None, None
 
-    transformMatrix = mathutils.Matrix.Scale(bpy.context.scene.blenderToSM64Scale, 4)
+    transformMatrix = mathutils.Matrix.Scale(bpy.context.scene.fast64.sm64.blender_to_sm64_scale, 4)
     if parentGroup is None:
         parentMatrix = transformMatrix
     else:
@@ -2700,7 +2715,7 @@ def saveSkinnedMeshByMaterial(
         else:
             drawLayerKey = None
 
-        materialKey = (material, drawLayerKey, fModel.global_data.getCurrentAreaKey(material))
+        materialKey = (material, drawLayerKey, fModel.global_data.getCurrentAreaKey(f3dMat))
         fMaterial, texDimensions = fModel.getMaterialAndHandleShared(materialKey)
         isPointSampled = isTexturePointSampled(material)
 
@@ -2815,7 +2830,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                 raise PluginError('Selected object must be a mesh or an empty with the "None" or "Switch" type.')
 
             final_transform = mathutils.Matrix.Identity(4)
-            scaleValue = bpy.context.scene.blenderToSM64Scale
+            scaleValue = context.scene.fast64.sm64.blender_to_sm64_scale
             final_transform = mathutils.Matrix.Diagonal(mathutils.Vector((scaleValue, scaleValue, scaleValue))).to_4x4()
         except Exception as e:
             raisePluginError(self, e)
@@ -2828,7 +2843,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
             applyRotation([obj], math.radians(90), "X")
             save_textures = bpy.context.scene.saveTextures
 
-            if context.scene.fast64.sm64.exportType == "C":
+            if context.scene.fast64.sm64.export_type == "C":
                 export_path, level_name = getPathAndLevel(
                     props.export_header_type == "Custom",
                     props.custom_export_path,
@@ -2854,7 +2869,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                     DLFormat.Static,
                 )
                 self.report({"INFO"}, "Success!")
-            elif context.scene.fast64.sm64.exportType == "Insertable Binary":
+            elif context.scene.fast64.sm64.export_type == "Insertable Binary":
                 exportGeolayoutObjectInsertableBinary(
                     obj,
                     final_transform,
@@ -2863,17 +2878,17 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                 )
                 self.report({"INFO"}, "Success! Data at " + context.scene.geoInsertableBinaryPath)
             else:
-                tempROM = tempName(context.scene.outputRom)
-                checkExpanded(bpy.path.abspath(context.scene.exportRom))
-                romfileExport = open(bpy.path.abspath(context.scene.exportRom), "rb")
-                shutil.copy(bpy.path.abspath(context.scene.exportRom), bpy.path.abspath(tempROM))
+                tempROM = tempName(context.scene.fast64.sm64.output_rom)
+                export_rom_checks(bpy.path.abspath(context.scene.fast64.sm64.export_rom))
+                romfileExport = open(bpy.path.abspath(context.scene.fast64.sm64.export_rom), "rb")
+                shutil.copy(bpy.path.abspath(context.scene.fast64.sm64.export_rom), bpy.path.abspath(tempROM))
                 romfileExport.close()
                 romfileOutput = open(bpy.path.abspath(tempROM), "rb+")
 
                 levelParsed = parseLevelAtPointer(romfileOutput, level_pointers[context.scene.levelGeoExport])
                 segmentData = levelParsed.segmentData
 
-                if context.scene.extendBank4:
+                if context.scene.fast64.sm64.extend_bank_4:
                     ExtendBank0x04(romfileOutput, segmentData, defaultExtendSegment4)
 
                 exportRange = [int(context.scene.geoExportStart, 16), int(context.scene.geoExportEnd, 16)]
@@ -2913,9 +2928,9 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                 obj.select_set(True)
                 context.view_layer.objects.active = obj
 
-                if os.path.exists(bpy.path.abspath(context.scene.outputRom)):
-                    os.remove(bpy.path.abspath(context.scene.outputRom))
-                os.rename(bpy.path.abspath(tempROM), bpy.path.abspath(context.scene.outputRom))
+                if os.path.exists(bpy.path.abspath(context.scene.fast64.sm64.output_rom)):
+                    os.remove(bpy.path.abspath(context.scene.fast64.sm64.output_rom))
+                os.rename(bpy.path.abspath(tempROM), bpy.path.abspath(context.scene.fast64.sm64.output_rom))
 
                 if context.scene.geoUseBank0:
                     self.report(
@@ -2953,7 +2968,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
             self.cleanup_temp_object_data()
             applyRotation([obj], math.radians(-90), "X")
 
-            if context.scene.fast64.sm64.exportType == "Binary":
+            if context.scene.fast64.sm64.export_type == "Binary":
                 if romfileOutput is not None:
                     romfileOutput.close()
                 if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
@@ -3025,7 +3040,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
             obj.select_set(True)
             bpy.context.view_layer.objects.active = obj
             bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
-            if context.scene.fast64.sm64.exportType == "C":
+            if context.scene.fast64.sm64.export_type == "C":
                 export_path, level_name = getPathAndLevel(
                     props.export_header_type == "Custom",
                     props.custom_export_path,
@@ -3055,7 +3070,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                 )
                 starSelectWarning(self, fileStatus)
                 self.report({"INFO"}, "Success!")
-            elif context.scene.fast64.sm64.exportType == "Insertable Binary":
+            elif context.scene.fast64.sm64.export_type == "Insertable Binary":
                 exportGeolayoutArmatureInsertableBinary(
                     armatureObj,
                     obj,
@@ -3065,17 +3080,17 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                 )
                 self.report({"INFO"}, "Success! Data at " + context.scene.geoInsertableBinaryPath)
             else:
-                tempROM = tempName(context.scene.outputRom)
-                checkExpanded(bpy.path.abspath(context.scene.exportRom))
-                romfileExport = open(bpy.path.abspath(context.scene.exportRom), "rb")
-                shutil.copy(bpy.path.abspath(context.scene.exportRom), bpy.path.abspath(tempROM))
+                tempROM = tempName(context.scene.fast64.sm64.output_rom)
+                export_rom_checks(bpy.path.abspath(context.scene.fast64.sm64.export_rom))
+                romfileExport = open(bpy.path.abspath(context.scene.fast64.sm64.export_rom), "rb")
+                shutil.copy(bpy.path.abspath(context.scene.fast64.sm64.export_rom), bpy.path.abspath(tempROM))
                 romfileExport.close()
                 romfileOutput = open(bpy.path.abspath(tempROM), "rb+")
 
                 levelParsed = parseLevelAtPointer(romfileOutput, level_pointers[context.scene.levelGeoExport])
                 segmentData = levelParsed.segmentData
 
-                if context.scene.extendBank4:
+                if context.scene.fast64.sm64.extend_bank_4:
                     ExtendBank0x04(romfileOutput, segmentData, defaultExtendSegment4)
 
                 exportRange = [int(context.scene.geoExportStart, 16), int(context.scene.geoExportEnd, 16)]
@@ -3117,9 +3132,9 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                 armatureObj.select_set(True)
                 context.view_layer.objects.active = armatureObj
 
-                if os.path.exists(bpy.path.abspath(context.scene.outputRom)):
-                    os.remove(bpy.path.abspath(context.scene.outputRom))
-                os.rename(bpy.path.abspath(tempROM), bpy.path.abspath(context.scene.outputRom))
+                if os.path.exists(bpy.path.abspath(context.scene.fast64.sm64.output_rom)):
+                    os.remove(bpy.path.abspath(context.scene.fast64.sm64.output_rom))
+                os.rename(bpy.path.abspath(tempROM), bpy.path.abspath(context.scene.fast64.sm64.output_rom))
 
                 if context.scene.geoUseBank0:
                     self.report(
@@ -3155,7 +3170,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 
             applyRotation([armatureObj] + linkedArmatures, math.radians(-90), "X")
 
-            if context.scene.fast64.sm64.exportType == "Binary":
+            if context.scene.fast64.sm64.export_type == "Binary":
                 if romfileOutput is not None:
                     romfileOutput.close()
                 if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
@@ -3170,18 +3185,18 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
 class SM64_ExportGeolayoutPanel(SM64_Panel):
     bl_idname = "SM64_PT_export_geolayout"
     bl_label = "SM64 Geolayout Exporter"
-    goal = "Export Object/Actor/Anim"
+    goal = "Object/Actor/Anim"
 
     @classmethod
     def poll(cls, context):
-        return context.scene.fast64.sm64.exportType != "C"
+        return context.scene.fast64.sm64.export_type != "C"
 
     # called every frame
     def draw(self, context):
         col = self.layout.column()
         propsGeoE = col.operator(SM64_ExportGeolayoutArmature.bl_idname)
         propsGeoE = col.operator(SM64_ExportGeolayoutObject.bl_idname)
-        if context.scene.fast64.sm64.exportType == "Insertable Binary":
+        if context.scene.fast64.sm64.export_type == "Insertable Binary":
             col.prop(context.scene, "geoInsertableBinaryPath")
         else:
             prop_split(col, context.scene, "geoExportStart", "Start Address")

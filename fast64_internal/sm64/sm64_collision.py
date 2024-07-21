@@ -1,7 +1,14 @@
 import bpy, shutil, os, math, mathutils
 from bpy.utils import register_class, unregister_class
 from io import BytesIO
-from .sm64_constants import level_enums, level_pointers, enumLevelNames, insertableBinaryTypes, defaultExtendSegment4
+from .sm64_constants import (
+    level_enums,
+    level_pointers,
+    enumLevelNames,
+    insertableBinaryTypes,
+    defaultExtendSegment4,
+)
+from .sm64_utility import export_rom_checks
 from .sm64_objects import SM64_Area, start_process_sm64_objects
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_rom_tweaks import ExtendBank0x04
@@ -25,7 +32,6 @@ from ..utility import (
     getPathAndLevel,
     applyBasicTweaks,
     tempName,
-    checkExpanded,
     bytesToHex,
     applyRotation,
     customExportWarning,
@@ -466,32 +472,6 @@ def collisionVertIndex(vert, vertArray):
     return None
 
 
-class CollisionSettings:
-    def __init__(self):
-        self.collision_type = "SURFACE_DEFAULT"
-        self.collision_type_simple = "SURFACE_DEFAULT"
-        self.collision_custom = "SURFACE_DEFAULT"
-        self.collision_all_options = False
-        self.use_collision_param = False
-        self.collision_param = "0x0000"
-
-    def load(self, material):
-        self.collision_type = material.collision_type
-        self.collision_type_simple = material.collision_type_simple
-        self.collision_custom = material.collision_custom
-        self.collision_all_options = material.collision_all_options
-        self.use_collision_param = material.use_collision_param
-        self.collision_param = material.collision_param
-
-    def apply(self, material):
-        material.collision_type = self.collision_type
-        material.collision_type_simple = self.collision_type_simple
-        material.collision_custom = self.collision_custom
-        material.collision_all_options = self.collision_all_options
-        material.use_collision_param = self.use_collision_param
-        material.collision_param = self.collision_param
-
-
 class SM64_ExportCollision(bpy.types.Operator):
     # set bl_ properties
     bl_idname = "object.sm64_export_collision"
@@ -510,7 +490,7 @@ class SM64_ExportCollision(bpy.types.Operator):
                 raise PluginError("Operator can only be used in object mode.")
             obj = bpy.data.objects.get(self.export_obj, None) or context.active_object
             self.export_obj = ""
-            scale_value = bpy.context.scene.blenderToSM64Scale
+            scale_value = context.scene.fast64.sm64.blender_to_sm64_scale
             final_transform = mathutils.Matrix.Diagonal(
                 mathutils.Vector((scale_value, scale_value, scale_value))
             ).to_4x4()
@@ -520,7 +500,7 @@ class SM64_ExportCollision(bpy.types.Operator):
 
         try:
             applyRotation([obj], math.radians(90), "X")
-            if context.scene.fast64.sm64.exportType == "C":
+            if context.scene.fast64.sm64.export_type == "C":
                 export_path, level_name = getPathAndLevel(
                     props.export_header_type == "Custom",
                     props.custom_export_path,
@@ -543,7 +523,7 @@ class SM64_ExportCollision(bpy.types.Operator):
                     level_name,
                 )
                 self.report({"INFO"}, "Success!")
-            elif context.scene.fast64.sm64.exportType == "Insertable Binary":
+            elif context.scene.fast64.sm64.export_type == "Insertable Binary":
                 exportCollisionInsertableBinary(
                     obj,
                     final_transform,
@@ -553,17 +533,17 @@ class SM64_ExportCollision(bpy.types.Operator):
                 )
                 self.report({"INFO"}, "Success! Collision at " + context.scene.colInsertableBinaryPath)
             else:
-                tempROM = tempName(context.scene.outputRom)
-                checkExpanded(bpy.path.abspath(context.scene.exportRom))
-                romfileExport = open(bpy.path.abspath(context.scene.exportRom), "rb")
-                shutil.copy(bpy.path.abspath(context.scene.exportRom), bpy.path.abspath(tempROM))
+                tempROM = tempName(context.scene.fast64.sm64.output_rom)
+                export_rom_checks(bpy.path.abspath(context.scene.fast64.sm64.export_rom))
+                romfileExport = open(bpy.path.abspath(context.scene.fast64.sm64.export_rom), "rb")
+                shutil.copy(bpy.path.abspath(context.scene.fast64.sm64.export_rom), bpy.path.abspath(tempROM))
                 romfileExport.close()
                 romfileOutput = open(bpy.path.abspath(tempROM), "rb+")
 
                 levelParsed = parseLevelAtPointer(romfileOutput, level_pointers[context.scene.colExportLevel])
                 segmentData = levelParsed.segmentData
 
-                if context.scene.extendBank4:
+                if context.scene.fast64.sm64.extend_bank_4:
                     ExtendBank0x04(romfileOutput, segmentData, defaultExtendSegment4)
 
                 addrRange = exportCollisionBinary(
@@ -584,9 +564,9 @@ class SM64_ExportCollision(bpy.types.Operator):
 
                 romfileOutput.close()
 
-                if os.path.exists(bpy.path.abspath(context.scene.outputRom)):
-                    os.remove(bpy.path.abspath(context.scene.outputRom))
-                os.rename(bpy.path.abspath(tempROM), bpy.path.abspath(context.scene.outputRom))
+                if os.path.exists(bpy.path.abspath(context.scene.fast64.sm64.output_rom)):
+                    os.remove(bpy.path.abspath(context.scene.fast64.sm64.output_rom))
+                os.rename(bpy.path.abspath(tempROM), bpy.path.abspath(context.scene.fast64.sm64.output_rom))
 
                 self.report(
                     {"INFO"},
@@ -608,7 +588,7 @@ class SM64_ExportCollision(bpy.types.Operator):
 
             applyRotation([obj], math.radians(-90), "X")
 
-            if context.scene.fast64.sm64.exportType == "Binary":
+            if context.scene.fast64.sm64.export_type == "Binary":
                 if romfileOutput is not None:
                     romfileOutput.close()
                 if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
@@ -622,11 +602,11 @@ class SM64_ExportCollision(bpy.types.Operator):
 class SM64_ExportCollisionPanel(SM64_Panel):
     bl_idname = "SM64_PT_export_collision"
     bl_label = "SM64 Collision Exporter"
-    goal = "Export Object/Actor/Anim"
+    goal = "Object/Actor/Anim"
 
     @classmethod
     def poll(cls, context):
-        return context.scene.fast64.sm64.exportType != "C"
+        return context.scene.fast64.sm64.export_type != "C"
 
     # called every frame
     def draw(self, context):
@@ -634,7 +614,7 @@ class SM64_ExportCollisionPanel(SM64_Panel):
         propsColE = col.operator(SM64_ExportCollision.bl_idname)
 
         col.prop(context.scene, "colIncludeChildren")
-        if context.scene.fast64.sm64.exportType == "Insertable Binary":
+        if context.scene.fast64.sm64.export_type == "Insertable Binary":
             col.prop(context.scene, "colInsertableBinaryPath")
         else:
             prop_split(col, context.scene, "colStartAddr", "Start Address")

@@ -5,7 +5,7 @@ import shutil
 from typing import Optional
 from bpy.types import Object
 from ..utility import PluginError, toAlnum, indent
-from .oot_collision_classes import OOTCollision
+from .collision.exporter import OOTCollision
 from .oot_model_classes import OOTModel
 from ..f3d.f3d_gbi import (
     SPDisplayList,
@@ -13,6 +13,7 @@ from ..f3d.f3d_gbi import (
     GfxListTag,
     GfxList,
 )
+from ..f3d.occlusion_planes.exporter import OcclusionPlaneCandidatesList
 
 
 class OOTCommonCommands:
@@ -79,7 +80,7 @@ class OOTSceneTableEntry:
 
 class OOTScene(OOTCommonCommands):
     def __init__(self, name, model):
-        self.name = toAlnum(name)
+        self.name: str = toAlnum(name)
         self.write_dummy_room_list = False
         self.rooms = {}
         self.transitionActorList = set()
@@ -375,6 +376,7 @@ class OOTRoom(OOTCommonCommands):
         self.ownerName = toAlnum(name)
         self.index = index
         self.actorList = set()
+        self.occlusion_planes = OcclusionPlaneCandidatesList(self.roomName())
         self.mesh = OOTRoomMesh(self.roomName(), roomShape, model)
 
         # Room behaviour
@@ -382,9 +384,6 @@ class OOTRoom(OOTCommonCommands):
         self.disableWarpSongs = False
         self.showInvisibleActors = False
         self.linkIdleMode = None
-
-        self.customBehaviourX = None
-        self.customBehaviourY = None
 
         # Wind
         self.setWind = False
