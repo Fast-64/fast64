@@ -460,7 +460,7 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             shadeColorLabel = "Lighting * vertex color"
         else:
             shadeColorLabel = "Lighting"
-        inputGroup.label(text=f"Shade color = {shadeColorLabel}:")
+        inputGroup.label(text=f"Shade color = {shadeColorLabel}")
 
         shadowMapInShadeAlpha = False
         if settings.g_fog:
