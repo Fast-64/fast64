@@ -149,10 +149,10 @@ class SpecFile:
 
         return SpecFile(header, build_directory, sections)
 
-    def get_entries_flattened(self):
+    def get_entries_flattened(self) -> list[SpecEntry]:
         """
         Returns all entries as a single array, without sections.
-        This is a copy of the data and modifying this will not change the spec file internally.
+        This is a shallow copy of the data and adding/removing from this list not change the spec file internally.
         """
         return [entry for section in self.sections for entry in section.entries]
 
@@ -193,7 +193,7 @@ class SpecUtility:
     """This class hosts different functions to edit the spec file"""
 
     @staticmethod
-    def editSpec(exporter: "SceneExport"):
+    def edit_spec(exporter: "SceneExport"):
         isScene = True
         exportInfo = exporter.exportInfo
         hasSceneTex = exporter.hasSceneTextures

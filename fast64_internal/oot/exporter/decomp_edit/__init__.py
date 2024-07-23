@@ -33,5 +33,10 @@ class Files:  # TODO: find a better name
         """Edits decomp files"""
 
         Files.modifySceneFiles(exporter)
-        SpecUtility.editSpec(exporter)
-        SceneTableUtility.editSceneTable(exporter, exporter.exportInfo)
+        SpecUtility.edit_spec(exporter)
+        SceneTableUtility.edit_scene_table(
+            exporter.exportInfo.exportPath,
+            exporter.exportInfo.name,
+            exporter.exportInfo.option,
+            exporter.scene.mainHeader.infos.drawConfig,
+        )
