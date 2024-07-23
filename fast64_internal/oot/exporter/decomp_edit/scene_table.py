@@ -21,6 +21,10 @@ def get_original_index(enum_value: str) -> Optional[int]:
     return None
 
 
+def get_scene_enum_from_name(scene_name: str):
+    return ootSceneNameToID.get(scene_name, f"SCENE_{scene_name.upper()}")
+
+
 @dataclass
 class SceneTableEntry:
     """Defines an entry of ``scene_table.h``"""
@@ -55,7 +59,7 @@ class SceneTableEntry:
         return SceneTableEntry(
             scene_name if scene_name.endswith("_scene") else f"{scene_name}_scene",
             "none",
-            ootSceneNameToID.get(scene_name, f"SCENE_{scene_name.upper()}"),
+            get_scene_enum_from_name(scene_name),
             draw_config,
             "0",
             "0",
@@ -261,10 +265,11 @@ class SceneTableUtility:
         raise PluginError(f"ERROR: Scene name {scene_name} not found in scene table.")
 
     @staticmethod
-    def edit_scene_table(export_path: str, export_name: str, export_enum: str, draw_config: str):
+    def edit_scene_table(export_path: str, export_name: str, draw_config: str):
         """Update the scene table entry of the selected scene"""
         path = os.path.join(export_path, "include/tables/scene_table.h")
         scene_table = SceneTable.new(path)
+        export_enum = get_scene_enum_from_name(export_name)
 
         scene_table.update(SceneTableEntry.from_scene(export_name, draw_config), export_enum)
 
@@ -272,10 +277,11 @@ class SceneTableUtility:
         writeFile(path, scene_table.to_c())
 
     @staticmethod
-    def delete_scene_table_entry(export_path: str, export_enum: str):
+    def delete_scene_table_entry(export_path: str, export_name: str):
         """Remove the scene table entry of the selected scene"""
         path = os.path.join(export_path, "include/tables/scene_table.h")
         scene_table = SceneTable.new(path)
+        export_enum = get_scene_enum_from_name(export_name)
 
         scene_table.remove(export_enum)
 

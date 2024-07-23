@@ -14,13 +14,7 @@ from ..oot_level_writer import ootExportSceneToC
 from ..oot_constants import ootEnumMusicSeq, ootEnumSceneID
 from ..oot_level_parser import parseScene
 from .exporter.to_c import clearBootupScene, modifySceneTable, editSpecFile, deleteSceneFiles
-from ..exporter import SceneExport
-
-
-def ootRemoveSceneC(exportInfo):
-    modifySceneTable(None, exportInfo)
-    editSpecFile(False, exportInfo, False, False, 0, 0)
-    deleteSceneFiles(exportInfo)
+from ..exporter import SceneExport, Files
 
 
 def run_ops_without_view_layer_update(func):
@@ -248,7 +242,7 @@ class OOT_RemoveScene(Operator):
         exportInfo = ExportInfo(False, abspath(context.scene.ootDecompPath), subfolder, levelName)
         exportInfo.option = option
 
-        ootRemoveSceneC(exportInfo)
+        Files.remove_scene(exportInfo)
 
         self.report({"INFO"}, "Success!")
         return {"FINISHED"}

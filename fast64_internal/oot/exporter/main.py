@@ -133,7 +133,7 @@ class SceneExport:
             room.mesh.copyBgImages(self.path)
 
         if not isCustomExport:
-            Files.editFiles(self)
+            Files.add_scene_edits(self)
 
         if self.hackerootBootOption is not None and self.hackerootBootOption.bootToScene:
             setBootupScene(
