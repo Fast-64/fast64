@@ -1,16 +1,10 @@
 import os
-import enum
 import bpy
 
 from dataclasses import dataclass, field
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 from ....utility import PluginError, writeFile
-from ...oot_utility import ExportInfo
 from ...oot_constants import ootEnumSceneID, ootSceneNameToID
-
-if TYPE_CHECKING:
-    from ..main import SceneExport
-
 
 ADDED_SCENES_COMMENT = "// Added scenes"
 
