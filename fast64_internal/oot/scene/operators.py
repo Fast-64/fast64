@@ -163,7 +163,7 @@ class OOT_ExportScene(Operator):
                 exportInfo = ExportInfo(True, bpy.path.abspath(settings.exportPath), None, levelName)
             else:
                 if option == "Custom":
-                    subfolder = context.scene.fast64.oot.get_extracted_path() + f"assets/scenes/{settings.subFolder}/"
+                    subfolder = f"{context.scene.fast64.oot.get_extracted_path()}/assets/scenes/{settings.subFolder}/"
                 else:
                     levelName = sceneNameFromID(option)
                     subfolder = None
@@ -224,7 +224,7 @@ class OOT_RemoveScene(Operator):
             return {"FINISHED"}
 
         if option == "Custom":
-            subfolder = f"{context.scene.fast64.oot.get_extracted_path()}/assets/scenes/" + settings.subFolder + "/"
+            subfolder = f"{context.scene.fast64.oot.get_extracted_path()}/assets/scenes/{settings.subFolder}/"
         else:
             levelName = sceneNameFromID(option)
             subfolder = None

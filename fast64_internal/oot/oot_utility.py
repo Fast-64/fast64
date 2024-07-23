@@ -206,7 +206,7 @@ def getSceneDirFromLevelName(name: str, include_extracted: bool = True):
     extracted = bpy.context.scene.fast64.oot.get_extracted_path() if include_extracted else ""
     for sceneDir, dirLevels in ootSceneDirs.items():
         if name in dirLevels:
-            return extracted + sceneDir + name
+            return f"{extracted}/" + sceneDir + name
     return None
 
 

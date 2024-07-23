@@ -89,9 +89,9 @@ class OOT_Properties(bpy.types.PropertyGroup):
 
     def get_extracted_path(self):
         if self.oot_version == "legacy":
-            return "./"
+            return "."
         else:
-            return f"extracted/{self.oot_version if self.oot_version != 'Custom' else self.oot_version_custom}/"
+            return f"extracted/{self.oot_version if self.oot_version != 'Custom' else self.oot_version_custom}"
 
 
 oot_classes = (OOT_Properties,)

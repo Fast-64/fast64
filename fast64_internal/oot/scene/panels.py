@@ -84,7 +84,7 @@ class OOT_ExportScenePanel(OOT_Panel):
             exportPath = (
                 context.scene.ootDecompPath
                 + context.scene.fast64.oot.get_extracted_path()
-                + f"assets/scenes/{removeSettings.subFolder}/{removeSettings.name}/"
+                + f"/assets/scenes/{removeSettings.subFolder}/{removeSettings.name}/"
             )
 
             if not os.path.exists(exportPath):
