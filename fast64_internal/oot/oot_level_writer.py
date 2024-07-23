@@ -368,7 +368,7 @@ def getLightData(lightProp):
     light.fogColor = exportColor(lightProp.fogColor)
     light.fogNear = lightProp.fogNear
     light.transitionSpeed = lightProp.transitionSpeed
-    light.zFar = lightProp.zFar
+    light.z_far = lightProp.z_far
     return light
 
 

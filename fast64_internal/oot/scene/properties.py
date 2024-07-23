@@ -178,7 +178,7 @@ class OOTLightProperty(PropertyGroup):
     )
     fogNear: IntProperty(name="", default=993, min=0, max=2**10 - 1, update=on_update_oot_render_settings)
     transitionSpeed: IntProperty(name="", default=1, min=0, max=63, update=on_update_oot_render_settings)
-    zFar: IntProperty(name="", default=0x3200, min=0, max=2**15 - 1, update=on_update_oot_render_settings)
+    z_far: IntProperty(name="", default=0x3200, min=0, max=2**15 - 1, update=on_update_oot_render_settings)
     expandTab: BoolProperty(name="Expand Tab")
 
     def draw_props(
@@ -213,7 +213,7 @@ class OOTLightProperty(PropertyGroup):
 
             prop_split(box, self, "fogColor", "Fog Color")
             prop_split(box, self, "fogNear", "Fog Near (Fog Far=1000)")
-            prop_split(box, self, "zFar", "Z Far (Draw Distance)")
+            prop_split(box, self, "z_far", "Z Far (Draw Distance)")
             prop_split(box, self, "transitionSpeed", "Transition Speed")
 
 

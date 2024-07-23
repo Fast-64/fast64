@@ -38,7 +38,7 @@ def on_update_oot_render_settings(self, context: bpy.types.Context):
         renderSettings.light1Direction = tuple(d for d in dir1)
         renderSettings.fogPreviewColor = tuple(c for c in l.fogColor)
         renderSettings.fogPreviewPosition = (l.fogNear, 1000)  # fogFar is always 1000 in OoT
-        renderSettings.clippingPlanes = (10.0, l.zFar)  # zNear seems to always be 10 in OoT
+        renderSettings.clippingPlanes = (10.0, l.z_far)  # zNear seems to always be 10 in OoT
     else:
         if lMode == "LIGHT_MODE_TIME":
             tod = header.timeOfDayLights
@@ -76,8 +76,8 @@ def on_update_oot_render_settings(self, context: bpy.types.Context):
         renderSettings.light0Direction = mathutils.Vector(
             (
                 sint * 120.0 / 127.0,
+                cost * 20.0 / 127.0,
                 -cost * 120.0 / 127.0,
-                -cost * 20.0 / 127.0,
             )
         ).normalized()
         renderSettings.light1Direction = -renderSettings.light0Direction
@@ -88,7 +88,7 @@ def on_update_oot_render_settings(self, context: bpy.types.Context):
         )
         renderSettings.clippingPlanes = (  # zNear seems to always be 10 in OoT
             10.0,
-            la.zFar + float(lb.zFar - la.zFar) * fade,
+            la.z_far + float(lb.z_far - la.z_far) * fade,
         )
 
 
@@ -104,18 +104,18 @@ def update_scene_props_from_render_settings(
     renderSettings: "Fast64RenderSettings_Properties",
 ):
     sceneOutputs.inputs["FogEnable"].default_value = int(renderSettings.enableFogPreview)
-    sceneOutputs.inputs["FogColor"].default_value = gammaCorrectAlpha1Tuple(renderSettings.fogPreviewColor)
+    sceneOutputs.inputs["FogColor"].default_value = s_rgb_alpha_1_tuple(renderSettings.fogPreviewColor)
     sceneOutputs.inputs["F3D_NearClip"].default_value = float(renderSettings.clippingPlanes[0])
     sceneOutputs.inputs["F3D_FarClip"].default_value = float(renderSettings.clippingPlanes[1])
     sceneOutputs.inputs["Blender_Game_Scale"].default_value = float(get_blender_to_game_scale(context))
     sceneOutputs.inputs["FogNear"].default_value = renderSettings.fogPreviewPosition[0]
     sceneOutputs.inputs["FogFar"].default_value = renderSettings.fogPreviewPosition[1]
 
-    sceneOutputs.inputs["AmbientColor"].default_value = gammaCorrectAlpha1Tuple(renderSettings.ambientColor)
-    sceneOutputs.inputs["Light0Color"].default_value = gammaCorrectAlpha1Tuple(renderSettings.light0Color)
+    sceneOutputs.inputs["AmbientColor"].default_value = s_rgb_alpha_1_tuple(renderSettings.ambientColor)
+    sceneOutputs.inputs["Light0Color"].default_value = s_rgb_alpha_1_tuple(renderSettings.light0Color)
     sceneOutputs.inputs["Light0Dir"].default_value = renderSettings.light0Direction
     sceneOutputs.inputs["Light0Size"].default_value = renderSettings.light0SpecSize
-    sceneOutputs.inputs["Light1Color"].default_value = gammaCorrectAlpha1Tuple(renderSettings.light1Color)
+    sceneOutputs.inputs["Light1Color"].default_value = s_rgb_alpha_1_tuple(renderSettings.light1Color)
     sceneOutputs.inputs["Light1Dir"].default_value = renderSettings.light1Direction
     sceneOutputs.inputs["Light1Size"].default_value = renderSettings.light1SpecSize
 
@@ -199,7 +199,7 @@ class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
         size=3,
         min=-1,
         max=1,
-        default=mathutils.Vector((0.5, 0.5, 1)).normalized(),  # pre normalized
+        default=mathutils.Vector((1.0, -1.0, 1.0)).normalized(),  # pre normalized
         update=on_update_render_preview_nodes,
     )
     light0SpecSize: bpy.props.IntProperty(
@@ -224,7 +224,7 @@ class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
         size=3,
         min=-1,
         max=1,
-        default=mathutils.Vector((-1.0, 0.0, 0.5)).normalized(),  # pre normalized
+        default=mathutils.Vector((-1.0, 1.0, -1.0)).normalized(),  # pre normalized
         update=on_update_render_preview_nodes,
     )
     light1SpecSize: bpy.props.IntProperty(

@@ -1080,7 +1080,7 @@ def parseLightList(
         blendFogShort = hexOrDecInt(lightParams[18])
         fogNear = blendFogShort & ((1 << 10) - 1)
         transitionSpeed = blendFogShort >> 10
-        zFar = hexOrDecInt(lightParams[19])
+        z_far = hexOrDecInt(lightParams[19])
 
         lightHeader = sceneHeader.lightList.add()
         lightHeader.ambient = ambientColor + (1,)
@@ -1097,7 +1097,7 @@ def parseLightList(
 
         lightHeader.fogColor = fogColor + (1,)
         lightHeader.fogNear = fogNear
-        lightHeader.zFar = zFar
+        lightHeader.z_far = z_far
         lightHeader.transitionSpeed = transitionSpeed
 
         index += 1

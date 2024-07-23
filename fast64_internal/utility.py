@@ -1321,7 +1321,7 @@ def gammaCorrect(linearColor):
     return list(mathutils.Color(linearColor[:3]).from_scene_linear_to_srgb())
 
 
-def gammaCorrectAlpha1Tuple(linearColor):
+def s_rgb_alpha_1_tuple(linearColor):
     correct = gammaCorrect(linearColor)
     correct.append(1.0)
     return tuple(c for c in correct)
@@ -1693,7 +1693,7 @@ def ootGetBaseOrCustomLight(prop, idx, toExport: bool, errIfMissing: bool):
     # code without circular dependencies.
     assert idx in {0, 1}
     col = getattr(prop, "diffuse" + str(idx))
-    dir = (mathutils.Vector((1.0, 1.0, 1.0)) * (1.0 if idx == 0 else -1.0)).normalized()
+    dir = (mathutils.Vector((1.0, -1.0, 1.0)) * (1.0 if idx == 0 else -1.0)).normalized()
     if getattr(prop, "useCustomDiffuse" + str(idx)):
         light = getattr(prop, "diffuse" + str(idx) + "Custom")
         if light is None:

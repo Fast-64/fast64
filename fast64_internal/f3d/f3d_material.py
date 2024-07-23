@@ -39,6 +39,8 @@ from .f3d_material_helpers import F3DMaterial_UpdateLock, node_tree_copy
 from bpy.app.handlers import persistent
 from typing import Generator, Optional, Tuple, Any, Dict, Union
 
+F3D_MAT_CUR_VERSION = 6  # Increment this when changing the nodes
+
 F3DMaterialHash = Any  # giant tuple
 
 logging.basicConfig(format="%(asctime)s: %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p")
@@ -1597,7 +1599,7 @@ def update_fog_nodes(material: Material, context: Context):
             remove_first_link_if_exists(material, nodes["CalcFog"].inputs["FogNear"].links)
             remove_first_link_if_exists(material, nodes["CalcFog"].inputs["FogFar"].links)
 
-        fogBlender.inputs["Fog Color"].default_value = gammaCorrectAlpha1Tuple(f3dMat.fog_color)
+        fogBlender.inputs["Fog Color"].default_value = s_rgb_alpha_1_tuple(f3dMat.fog_color)
         nodes["CalcFog"].inputs["FogNear"].default_value = f3dMat.fog_position[0]
         nodes["CalcFog"].inputs["FogFar"].default_value = f3dMat.fog_position[1]
 
@@ -1689,9 +1691,9 @@ def update_light_colors(material, context):
             light0 = f3dMat.f3d_light1.color if f3dMat.f3d_light1 is not None else [1.0, 1.0, 1.0, 1.0]
             light1 = f3dMat.f3d_light2.color if f3dMat.f3d_light2 is not None else light1
 
-        nodes["Shade Color"].inputs["AmbientColor"].default_value = gammaCorrectAlpha1Tuple(f3dMat.ambient_light_color)
-        nodes["Shade Color"].inputs["Light0Color"].default_value = gammaCorrectAlpha1Tuple(light0)
-        nodes["Shade Color"].inputs["Light1Color"].default_value = gammaCorrectAlpha1Tuple(light1)
+        nodes["Shade Color"].inputs["AmbientColor"].default_value = s_rgb_alpha_1_tuple(f3dMat.ambient_light_color)
+        nodes["Shade Color"].inputs["Light0Color"].default_value = s_rgb_alpha_1_tuple(light0)
+        nodes["Shade Color"].inputs["Light1Color"].default_value = s_rgb_alpha_1_tuple(light1)
     else:
         nodes["Shade Color"].inputs["AmbientColor"].default_value = (0.5, 0.5, 0.5, 1.0)
         nodes["Shade Color"].inputs["Light0Color"].default_value = (1.0, 1.0, 1.0, 1.0)
@@ -1704,7 +1706,7 @@ def update_light_colors(material, context):
 def update_color_node(combiner_inputs, color: Color, prefix: str):
     """Function for updating either Prim or Env colors"""
     # TODO: feature to toggle gamma correction
-    combiner_inputs[f"{prefix} Color"].default_value = gammaCorrectAlpha1Tuple(color)
+    combiner_inputs[f"{prefix} Color"].default_value = s_rgb_alpha_1_tuple(color)
     combiner_inputs[f"{prefix} Alpha"].default_value = color[3]
 
 
@@ -2495,7 +2497,7 @@ def createF3DMat(obj: Object | None, preset="Shaded Solid", index=None):
     add_f3d_mat_to_obj(obj, material, index)
 
     material.is_f3d = True
-    material.mat_ver = 6
+    material.mat_ver = F3D_MAT_CUR_VERSION
 
     update_preset_manual_v4(material, preset)
 
