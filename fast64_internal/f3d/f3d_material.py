@@ -116,14 +116,14 @@ drawLayerOOTtoSM64 = {
 }
 
 drawLayerSM64Alpha = {
-    "0": "OPAQUE",
-    "1": "OPAQUE",
-    "2": "OPAQUE",
-    "3": "OPAQUE",
+    "0": "OPA",
+    "1": "OPA",
+    "2": "OPA",
+    "3": "OPA",
     "4": "CLIP",
-    "5": "BLEND",
-    "6": "BLEND",
-    "7": "BLEND",
+    "5": "XLU",
+    "6": "XLU",
+    "7": "XLU",
 }
 
 enumF3DMenu = [
@@ -272,7 +272,7 @@ def is_blender_doing_fog(settings: "RDPSettings", default_for_no_rendermode: boo
     )
 
 
-def get_blend_method(material: bpy.types.Material) -> str:
+def get_output_method(material: bpy.types.Material) -> str:
     settings = material.f3d_mat.rdp_settings
     if not settings.set_rendermode:
         return drawLayerSM64Alpha[material.f3d_mat.draw_layer.sm64]
@@ -281,14 +281,17 @@ def get_blend_method(material: bpy.types.Material) -> str:
     if settings.force_bl and is_blender_equation_equal(
         settings, -1, "G_BL_CLR_IN", "G_BL_A_IN", "G_BL_CLR_MEM", "G_BL_1MA"
     ):
-        return "BLEND"
-    return "OPAQUE"
+        return "XLU"
+    return "OPA"
 
 
 def update_blend_method(material: Material, context):
-    material.blend_method = get_blend_method(material)
-    if material.blend_method == "CLIP":
-        material.alpha_threshold = 0.125
+    if bpy.app.version >= (4, 2, 0):
+        material.surface_render_method = "BLENDED"
+    elif get_output_method(material) == "OPA":
+        material.blend_method = "OPAQUE"
+    else:
+        material.blend_method = "BLEND"
 
 
 class DrawLayerProperty(PropertyGroup):
@@ -1649,20 +1652,28 @@ def update_combiner_connections(material: Material, context: Context, combiner: 
 
 def set_output_node_groups(material: Material):
     nodes = material.node_tree.nodes
-    f3dMat: "F3DMaterialProperty" = material.f3d_mat
-    is_two_cycle = f3dMat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
-
     output_node = nodes["OUTPUT"]
-    if is_two_cycle:
-        if material.blend_method == "OPAQUE":
-            output_node.node_tree = bpy.data.node_groups["OUTPUT_2CYCLE_OPA"]
-        else:
-            output_node.node_tree = bpy.data.node_groups["OUTPUT_2CYCLE_XLU"]
-    else:
-        if material.blend_method == "OPAQUE":
-            output_node.node_tree = bpy.data.node_groups["OUTPUT_1CYCLE_OPA"]
-        else:
-            output_node.node_tree = bpy.data.node_groups["OUTPUT_1CYCLE_XLU"]
+    f3dMat: "F3DMaterialProperty" = material.f3d_mat
+    cycle = f3dMat.rdp_settings.g_mdsft_cycletype.lstrip("G_CYC_").rstrip("_CYCLE")
+    output_method = get_output_method(material)
+
+    output_group_name = f"OUTPUT_{cycle}CYCLE_{output_method}"
+    output_group = bpy.data.node_groups[output_group_name]
+    output_node.node_tree = output_group
+
+    for inp in output_node.inputs:
+        remove_first_link_if_exists(material, inp.links)
+    output_node.inputs["Cycle_C_1"].default_value = (0.0, 0.0, 0.0, 1.0)
+    output_node.inputs["Cycle_A_1"].default_value = 0.5
+    output_node.inputs["Cycle_C_2"].default_value = (0.0, 0.0, 0.0, 1.0)
+    output_node.inputs["Cycle_A_2"].default_value = 0.5
+    if output_method == "CLIP":
+        output_node.inputs["Alpha Threshold"].default_value = 0.125
+    material.node_tree.links.new(nodes["Cycle_1"].outputs["Color"], output_node.inputs["Cycle_C_1"])
+    material.node_tree.links.new(nodes["Cycle_1"].outputs["Alpha"], output_node.inputs["Cycle_A_1"])
+    material.node_tree.links.new(nodes["FogBlender"].outputs["Color"], output_node.inputs["Cycle_C_2"])
+    material.node_tree.links.new(nodes["Cycle_2"].outputs["Alpha"], output_node.inputs["Cycle_A_2"])
+    material.node_tree.links.new(output_node.outputs[0], nodes["Material Output F3D"].inputs[0])
 
 
 def update_light_colors(material, context):
