@@ -2,7 +2,7 @@
 # Setting f3d_mat.rdp_settings.rendermode_preset_cycle_1/2 will be propagated to the individual rendermode props
 # f3d_mat.presetName is set last because changing any prop sets the preset to Custom
 
-oot_shaded_environment_mapped = """
+shaded_environment_mapped = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -112,10 +112,10 @@ f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-f3d_mat.presetName = 'Oot Shaded Environment Mapped'
+f3d_mat.presetName = 'Shaded Environment Mapped'
 """
 
-oot_shaded_environment_mapped_transparent = """
+shaded_environment_mapped_transparent = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -225,10 +225,10 @@ f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-f3d_mat.presetName = 'Oot Shaded Environment Mapped Transparent'
+f3d_mat.presetName = 'Shaded Environment Mapped Transparent'
 """
 
-oot_shaded_multitexture_lerp = """
+shaded_multitexture_lerp = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -338,10 +338,10 @@ f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-f3d_mat.presetName = 'Oot Shaded Multitexture Lerp'
+f3d_mat.presetName = 'Shaded Multitexture Lerp'
 """
 
-oot_shaded_multitexture_lerp_transparent = """
+shaded_multitexture_lerp_transparent = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -451,10 +451,10 @@ f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-f3d_mat.presetName = 'Oot Shaded Multitexture Lerp Transparent'
+f3d_mat.presetName = 'Shaded Multitexture Lerp Transparent'
 """
 
-oot_shaded_solid = """
+shaded_solid = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -564,10 +564,10 @@ f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-f3d_mat.presetName = 'Oot Shaded Solid'
+f3d_mat.presetName = 'Shaded Solid'
 """
 
-oot_shaded_solid_transparent = """
+shaded_solid_transparent = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -677,10 +677,10 @@ f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-f3d_mat.presetName = 'Oot Shaded Solid Transparent'
+f3d_mat.presetName = 'Shaded Solid Transparent'
 """
 
-oot_shaded_texture = """
+shaded_texture = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -790,10 +790,10 @@ f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-f3d_mat.presetName = 'Oot Shaded Texture'
+f3d_mat.presetName = 'Shaded Texture'
 """
 
-oot_shaded_texture_cutout = """
+shaded_texture_cutout = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -903,10 +903,10 @@ f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-f3d_mat.presetName = 'Oot Shaded Texture Cutout'
+f3d_mat.presetName = 'Shaded Texture Cutout'
 """
 
-oot_shaded_texture_transparent = """
+shaded_texture_transparent = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -1016,10 +1016,10 @@ f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-f3d_mat.presetName = 'Oot Shaded Texture Transparent'
+f3d_mat.presetName = 'Shaded Texture Transparent'
 """
 
-oot_unlit_texture = """
+unlit_texture = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -1129,10 +1129,10 @@ f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-f3d_mat.presetName = 'Oot Unlit Texture'
+f3d_mat.presetName = 'Unlit Texture'
 """
 
-oot_unlit_texture_cutout = """
+unlit_texture_cutout = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -1242,10 +1242,10 @@ f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-f3d_mat.presetName = 'Oot Unlit Texture Cutout'
+f3d_mat.presetName = 'Unlit Texture Cutout'
 """
 
-oot_unlit_texture_transparent = """
+unlit_texture_transparent = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -1355,10 +1355,10 @@ f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-f3d_mat.presetName = 'Oot Unlit Texture Transparent'
+f3d_mat.presetName = 'Unlit Texture Transparent'
 """
 
-oot_vertex_colored_texture = """
+vertex_colored_texture = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -1468,10 +1468,10 @@ f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-f3d_mat.presetName = 'Oot Vertex Colored Texture'
+f3d_mat.presetName = 'Vertex Colored Texture'
 """
 
-oot_vertex_colored_texture_cutout = """
+vertex_colored_texture_cutout = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -1581,10 +1581,10 @@ f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-f3d_mat.presetName = 'Oot Vertex Colored Texture Cutout'
+f3d_mat.presetName = 'Vertex Colored Texture Cutout'
 """
 
-oot_vertex_colored_texture_transparent = """
+vertex_colored_texture_transparent = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
@@ -1694,7 +1694,7 @@ f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-f3d_mat.presetName = 'Oot Vertex Colored Texture Transparent'
+f3d_mat.presetName = 'Vertex Colored Texture Transparent'
 """
 
 sm64_decal = """
@@ -2944,7 +2944,7 @@ f3d_mat.combiner1.D = 'TEXEL0'
 f3d_mat.combiner1.A_alpha = '0'
 f3d_mat.combiner1.B_alpha = '0'
 f3d_mat.combiner1.C_alpha = '0'
-f3d_mat.combiner1.D_alpha = 'ENVIRONMENT'
+f3d_mat.combiner1.D_alpha = 'TEXEL0'
 f3d_mat.combiner2.name = ''
 f3d_mat.combiner2.A = '0'
 f3d_mat.combiner2.B = '0'
@@ -3265,7 +3265,7 @@ f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
 f3d_mat.presetName = 'Sm64 Vertex Colored Texture Transparent'
 """
 
-oot_shaded_multitexture_lerp_transparent_vertex_alpha = """
+shaded_multitexture_lerp_transparent_vertex_alpha = """
 
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
@@ -3376,10 +3376,10 @@ f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-f3d_mat.presetName = 'Oot Shaded Multitexture Lerp Transparent Vertex Alpha'
+f3d_mat.presetName = 'Shaded Multitexture Lerp Transparent Vertex Alpha'
 """
 
-oot_shaded_texture_transparent_vertex_alpha = """
+shaded_texture_transparent_vertex_alpha = """
 
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
@@ -3490,7 +3490,7 @@ f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
-f3d_mat.presetName = 'Oot Shaded Texture Transparent Vertex Alpha'
+f3d_mat.presetName = 'Shaded Texture Transparent Vertex Alpha'
 """
 
 oot_cel_4_blend_tex_vcol_ao = """
@@ -6380,25 +6380,30 @@ f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
 f3d_mat.presetName = 'Oot Water Mult Specular Fresnel'
 """
 
+homebrew_and_oot = {
+    "shaded_environment_mapped": shaded_environment_mapped,
+    "shaded_environment_mapped_transparent": shaded_environment_mapped_transparent,
+    "shaded_multitexture_lerp": shaded_multitexture_lerp,
+    "shaded_multitexture_lerp_transparent": shaded_multitexture_lerp_transparent,
+    "shaded_solid": shaded_solid,
+    "shaded_multitexture_lerp_transparent_vertex_alpha": shaded_multitexture_lerp_transparent_vertex_alpha,
+    "shaded_solid_transparent": shaded_solid_transparent,
+    "shaded_texture": shaded_texture,
+    "shaded_texture_cutout": shaded_texture_cutout,
+    "shaded_texture_transparent": shaded_texture_transparent,
+    "shaded_texture_transparent_vertex_alpha": shaded_texture_transparent_vertex_alpha,
+    "unlit_texture": unlit_texture,
+    "unlit_texture_cutout": unlit_texture_cutout,
+    "unlit_texture_transparent": unlit_texture_transparent,
+    "vertex_colored_texture": vertex_colored_texture,
+    "vertex_colored_texture_cutout": vertex_colored_texture_cutout,
+    "vertex_colored_texture_transparent": vertex_colored_texture_transparent,
+}
 material_presets = {
+    "homebrew": homebrew_and_oot,
     "oot": {
-        "oot_shaded_environment_mapped": oot_shaded_environment_mapped,
-        "oot_shaded_environment_mapped_transparent": oot_shaded_environment_mapped_transparent,
-        "oot_shaded_multitexture_lerp": oot_shaded_multitexture_lerp,
-        "oot_shaded_multitexture_lerp_transparent": oot_shaded_multitexture_lerp_transparent,
-        "oot_shaded_multitexture_lerp_transparent_vertex_alpha": oot_shaded_multitexture_lerp_transparent_vertex_alpha,
-        "oot_shaded_solid": oot_shaded_solid,
-        "oot_shaded_solid_transparent": oot_shaded_solid_transparent,
-        "oot_shaded_texture": oot_shaded_texture,
-        "oot_shaded_texture_cutout": oot_shaded_texture_cutout,
-        "oot_shaded_texture_transparent": oot_shaded_texture_transparent,
-        "oot_shaded_texture_transparent_vertex_alpha": oot_shaded_texture_transparent_vertex_alpha,
-        "oot_unlit_texture": oot_unlit_texture,
-        "oot_unlit_texture_cutout": oot_unlit_texture_cutout,
-        "oot_unlit_texture_transparent": oot_unlit_texture_transparent,
-        "oot_vertex_colored_texture": oot_vertex_colored_texture,
-        "oot_vertex_colored_texture_cutout": oot_vertex_colored_texture_cutout,
-        "oot_vertex_colored_texture_transparent": oot_vertex_colored_texture_transparent,
+        f"oot_{key}": value + 'f3d_mat.presetName = "Oot " +  f3d_mat.presetName'
+        for key, value in homebrew_and_oot.items()
     },
     "oot_f3dex3": {
         "oot_cel_4_blend_tex_vcol_ao": oot_cel_4_blend_tex_vcol_ao,

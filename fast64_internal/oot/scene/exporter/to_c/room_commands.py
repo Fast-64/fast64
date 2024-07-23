@@ -35,6 +35,13 @@ def getWindSettingsCmd(outRoom: OOTRoom):
     )
 
 
+def getOcclusionPlaneCandidatesListCmd(outRoom: OOTRoom):
+    return (
+        indent
+        + f"SCENE_CMD_OCCLUSION_PLANE_CANDIDATES_LIST({len(outRoom.occlusion_planes.planes)}, {outRoom.occlusion_planes.name})"
+    )
+
+
 def getRoomShapeCmd(outRoom: OOTRoom):
     return indent + f"SCENE_CMD_ROOM_SHAPE(&{outRoom.mesh.headerName()})"
 
@@ -42,20 +49,20 @@ def getRoomShapeCmd(outRoom: OOTRoom):
 def getObjectListCmd(outRoom: OOTRoom, headerIndex: int):
     return (
         indent + "SCENE_CMD_OBJECT_LIST("
-    ) + f"{outRoom.getObjectLengthDefineName(headerIndex)}, {outRoom.objectListName(headerIndex)}),\n"
+    ) + f"{outRoom.getObjectLengthDefineName(headerIndex)}, {outRoom.objectListName(headerIndex)})"
 
 
 def getActorListCmd(outRoom: OOTRoom, headerIndex: int):
     return (
         indent + "SCENE_CMD_ACTOR_LIST("
-    ) + f"{outRoom.getActorLengthDefineName(headerIndex)}, {outRoom.actorListName(headerIndex)}),\n"
+    ) + f"{outRoom.getActorLengthDefineName(headerIndex)}, {outRoom.actorListName(headerIndex)})"
 
 
 def getRoomCommandList(outRoom: OOTRoom, headerIndex: int):
     cmdListData = CData()
     declarationBase = f"SceneCmd {outRoom.roomName()}_header{headerIndex:02}"
 
-    getCmdFuncList = [
+    getCmdFunc1ArgList = [
         getEchoSettingsCmd,
         getRoomBehaviourCmd,
         getSkyboxDisablesCmd,
@@ -63,12 +70,24 @@ def getRoomCommandList(outRoom: OOTRoom, headerIndex: int):
         getRoomShapeCmd,
     ]
 
+    getCmdFunc2ArgList = []
+
+    if outRoom.setWind:
+        getCmdFunc1ArgList.append(getWindSettingsCmd)
+
+    if len(outRoom.occlusion_planes.planes) > 0:
+        getCmdFunc1ArgList.append(getOcclusionPlaneCandidatesListCmd)
+
+    if len(outRoom.objectIDList) > 0:
+        getCmdFunc2ArgList.append(getObjectListCmd)
+
+    if len(outRoom.actorList) > 0:
+        getCmdFunc2ArgList.append(getActorListCmd)
+
     roomCmdData = (
         (outRoom.getAltHeaderListCmd(outRoom.alternateHeadersName()) if outRoom.hasAlternateHeaders() else "")
-        + (",\n".join(getCmd(outRoom) for getCmd in getCmdFuncList) + ",\n")
-        + (getWindSettingsCmd(outRoom) if outRoom.setWind else "")
-        + (getObjectListCmd(outRoom, headerIndex) if len(outRoom.objectIDList) > 0 else "")
-        + (getActorListCmd(outRoom, headerIndex) if len(outRoom.actorList) > 0 else "")
+        + "".join(getCmd(outRoom) + ",\n" for getCmd in getCmdFunc1ArgList)
+        + "".join(getCmd(outRoom, headerIndex) + ",\n" for getCmd in getCmdFunc2ArgList)
         + outRoom.getEndCmd()
     )
 
