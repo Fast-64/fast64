@@ -126,8 +126,7 @@ class SceneTable:
         sections: list[SceneTableSection] = []
         current_section: Optional[SceneTableSection] = None
 
-        while len(lines) > 0:
-            line = lines.pop(0)
+        for line in lines:
             if line.startswith("#if"):
                 if current_section:  # handles non-directive section preceding directive section
                     sections.append(current_section)
