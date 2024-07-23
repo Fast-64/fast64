@@ -8,7 +8,7 @@ from ....utility import PluginError, writeFile, indent
 from ...oot_utility import getSceneDirFromLevelName
 
 if TYPE_CHECKING:
-    from ..main import SceneExport
+    from ...exporter import ExportInfo, Scene, SceneFile
 
 
 @dataclass
@@ -51,10 +51,10 @@ class SpecEntry:
         return SpecEntry(commands)
 
     def get_name(self) -> Optional[str]:
-        """Returns segment name"""
+        """Returns segment name, with quotes removed"""
         for command in self.commands:
             if command.type == "name":
-                return command.content
+                return command.content.replace('"', "")
         return ""
 
     def to_c(self):
@@ -149,10 +149,10 @@ class SpecFile:
 
         return SpecFile(header, build_directory, sections)
 
-    def get_entries_flattened(self):
+    def get_entries_flattened(self) -> list[SpecEntry]:
         """
         Returns all entries as a single array, without sections.
-        This is a copy of the data and modifying this will not change the spec file internally.
+        This is a shallow copy of the data and adding/removing from this list not change the spec file internally.
         """
         return [entry for section in self.sections for entry in section.entries]
 
@@ -193,17 +193,39 @@ class SpecUtility:
     """This class hosts different functions to edit the spec file"""
 
     @staticmethod
-    def editSpec(exporter: "SceneExport"):
-        isScene = True
-        exportInfo = exporter.exportInfo
-        hasSceneTex = exporter.hasSceneTextures
-        hasSceneCS = exporter.hasCutscenes
-        roomTotal = len(exporter.scene.rooms.entries)
+    def remove_segments(export_path: str, scene_name: str):
+        path = os.path.join(export_path, "spec")
+        spec_file = SpecFile.new(path)
+        SpecUtility.remove_segments_from_spec(spec_file, scene_name)
+        writeFile(path, spec_file.to_c())
+
+    @staticmethod
+    def remove_segments_from_spec(spec_file: SpecFile, scene_name: str):
+        # get the scene and current segment name and remove the scene
+        scene_segment_name = f"{scene_name}_scene"
+        spec_file.remove(scene_segment_name)
+
+        # mark the other scene elements to remove (like rooms)
+        segments_to_remove: list[str] = []
+        for entry in spec_file.get_entries_flattened():
+            # Note: you cannot do startswith(scene_name), ex. entra vs entra_n
+            if entry.get_name() == f"{scene_name}_scene" or re.match(f"^{scene_name}\_room\_[0-9]+$", entry.get_name()):
+                segments_to_remove.append(entry.get_name())
+
+        # remove the segments
+        for segment_name in segments_to_remove:
+            spec_file.remove(segment_name)
+
+    @staticmethod
+    def add_segments(exportInfo: "ExportInfo", scene: "Scene", sceneFile: "SceneFile"):
+        hasSceneTex = sceneFile.hasSceneTextures()
+        hasSceneCS = sceneFile.hasCutscenes()
+        roomTotal = len(scene.rooms.entries)
         csTotal = 0
 
-        csTotal += len(exporter.scene.mainHeader.cutscene.entries)
-        if exporter.scene.altHeader is not None:
-            for cs in exporter.scene.altHeader.cutscenes:
+        csTotal += len(scene.mainHeader.cutscene.entries)
+        if scene.altHeader is not None:
+            for cs in scene.altHeader.cutscenes:
                 csTotal += len(cs.cutscene.entries)
 
         # get the spec's data
@@ -214,80 +236,66 @@ class SpecUtility:
         # get the scene and current segment name and remove the scene
         sceneName = exportInfo.name
         sceneSegmentName = f"{sceneName}_scene"
-        specFile.remove(f'"{sceneSegmentName}"')
+        SpecUtility.remove_segments_from_spec(specFile, exportInfo.name)
 
-        # mark the other scene elements to remove (like rooms)
-        segmentsToRemove: list[str] = []
-        for entry in specFile.get_entries_flattened():
-            # Note: you cannot do startswith(sceneName), ex. entra vs entra_n
-            if entry.get_name() == f'"{sceneName}_scene"' or re.match(
-                f'^"{sceneName}\_room\_[0-9]+"$', entry.get_name()
-            ):
-                segmentsToRemove.append(entry.get_name())
+        assert build_directory is not None
+        isSingleFile = bpy.context.scene.ootSceneExportSettings.singleFile
+        includeDir = f"{build_directory}/"
+        if exportInfo.customSubPath is not None:
+            includeDir += f"{exportInfo.customSubPath + sceneName}"
+        else:
+            includeDir += f"{getSceneDirFromLevelName(sceneName)}"
 
-        # remove the segments
-        for segmentName in segmentsToRemove:
-            specFile.remove(segmentName)
+        sceneCmds = [
+            SpecCommand("name", f'"{sceneSegmentName}"'),
+            SpecCommand("compress", ""),
+            SpecCommand("romalign", "0x1000"),
+        ]
 
-        if isScene:
-            assert build_directory is not None
-            isSingleFile = bpy.context.scene.ootSceneExportSettings.singleFile
-            includeDir = f"{build_directory}/"
-            if exportInfo.customSubPath is not None:
-                includeDir += f"{exportInfo.customSubPath + sceneName}"
-            else:
-                includeDir += f"{getSceneDirFromLevelName(sceneName)}"
+        # scene
+        if isSingleFile:
+            sceneCmds.append(SpecCommand("include", f'"{includeDir}/{sceneSegmentName}.o"'))
+        else:
+            sceneCmds.extend(
+                [
+                    SpecCommand("include", f'"{includeDir}/{sceneSegmentName}_main.o"'),
+                    SpecCommand("include", f'"{includeDir}/{sceneSegmentName}_col.o"'),
+                ]
+            )
 
-            sceneCmds = [
-                SpecCommand("name", f'"{sceneSegmentName}"'),
-                SpecCommand("compress", ""),
+            if hasSceneTex:
+                sceneCmds.append(SpecCommand("include", f'"{includeDir}/{sceneSegmentName}_tex.o"'))
+
+            if hasSceneCS:
+                for i in range(csTotal):
+                    sceneCmds.append(SpecCommand("include", f'"{includeDir}/{sceneSegmentName}_cs_{i}.o"'))
+
+        sceneCmds.append(SpecCommand("number", "2"))
+        specFile.append(SpecEntry(sceneCmds))
+
+        # rooms
+        for i in range(roomTotal):
+            roomSegmentName = f"{sceneName}_room_{i}"
+
+            roomCmds = [
+                SpecCommand("name", f'"{roomSegmentName}"'),
+                SpecCommand("compress"),
                 SpecCommand("romalign", "0x1000"),
             ]
 
-            # scene
             if isSingleFile:
-                sceneCmds.append(SpecCommand("include", f'"{includeDir}/{sceneSegmentName}.o"'))
+                roomCmds.append(SpecCommand("include", f'"{includeDir}/{roomSegmentName}.o"'))
             else:
-                sceneCmds.extend(
+                roomCmds.extend(
                     [
-                        SpecCommand("include", f'"{includeDir}/{sceneSegmentName}_main.o"'),
-                        SpecCommand("include", f'"{includeDir}/{sceneSegmentName}_col.o"'),
+                        SpecCommand("include", f'"{includeDir}/{roomSegmentName}_main.o"'),
+                        SpecCommand("include", f'"{includeDir}/{roomSegmentName}_model_info.o"'),
+                        SpecCommand("include", f'"{includeDir}/{roomSegmentName}_model.o"'),
                     ]
                 )
 
-                if hasSceneTex:
-                    sceneCmds.append(SpecCommand("include", f'"{includeDir}/{sceneSegmentName}_tex.o"'))
-
-                if hasSceneCS:
-                    for i in range(csTotal):
-                        sceneCmds.append(SpecCommand("include", f'"{includeDir}/{sceneSegmentName}_cs_{i}.o"'))
-
-            sceneCmds.append(SpecCommand("number", "2"))
-            specFile.append(SpecEntry(sceneCmds))
-
-            # rooms
-            for i in range(roomTotal):
-                roomSegmentName = f"{sceneName}_room_{i}"
-
-                roomCmds = [
-                    SpecCommand("name", f'"{roomSegmentName}"'),
-                    SpecCommand("compress"),
-                    SpecCommand("romalign", "0x1000"),
-                ]
-
-                if isSingleFile:
-                    roomCmds.append(SpecCommand("include", f'"{includeDir}/{roomSegmentName}.o"'))
-                else:
-                    roomCmds.extend(
-                        [
-                            SpecCommand("include", f'"{includeDir}/{roomSegmentName}_main.o"'),
-                            SpecCommand("include", f'"{includeDir}/{roomSegmentName}_model_info.o"'),
-                            SpecCommand("include", f'"{includeDir}/{roomSegmentName}_model.o"'),
-                        ]
-                    )
-
-                roomCmds.append(SpecCommand("number", "3"))
-                specFile.append(SpecEntry(roomCmds))
+            roomCmds.append(SpecCommand("number", "3"))
+            specFile.append(SpecEntry(roomCmds))
 
         # finally, write the spec file
         writeFile(exportPath, specFile.to_c())

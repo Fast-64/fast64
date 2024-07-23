@@ -9,18 +9,12 @@ from bpy.ops import object
 from mathutils import Matrix, Vector
 from ...f3d.f3d_gbi import TextureExportSettings, DLFormat
 from ...utility import PluginError, raisePluginError, ootGetSceneOrRoomHeader
-from ..oot_utility import ExportInfo, sceneNameFromID
+from ..oot_utility import ExportInfo, RemoveInfo, sceneNameFromID
 from ..oot_level_writer import ootExportSceneToC
 from ..oot_constants import ootEnumMusicSeq, ootEnumSceneID
 from ..oot_level_parser import parseScene
 from .exporter.to_c import clearBootupScene, modifySceneTable, editSpecFile, deleteSceneFiles
-from ..exporter import SceneExport
-
-
-def ootRemoveSceneC(exportInfo):
-    modifySceneTable(None, exportInfo)
-    editSpecFile(False, exportInfo, False, False, 0, 0)
-    deleteSceneFiles(exportInfo)
+from ..exporter import SceneExport, Files
 
 
 def run_ops_without_view_layer_update(func):
@@ -160,44 +154,40 @@ class OOT_ExportScene(Operator):
             settings = context.scene.ootSceneExportSettings
             levelName = settings.name
             option = settings.option
-            if settings.customExport:
-                exportInfo = ExportInfo(True, bpy.path.abspath(settings.exportPath), None, levelName)
-            else:
-                if option == "Custom":
-                    subfolder = "assets/scenes/" + settings.subFolder + "/"
-                else:
-                    levelName = sceneNameFromID(option)
-                    subfolder = None
-                exportInfo = ExportInfo(False, bpy.path.abspath(context.scene.ootDecompPath), subfolder, levelName)
 
-            exportInfo.option = option
             bootOptions = context.scene.fast64.oot.bootupSceneOptions
             hackerFeaturesEnabled = context.scene.fast64.oot.hackerFeaturesEnabled
 
-            # keeping this on purpose, will be removed once old code is cleaned-up
-            # if settings.useNewExporter:
-            SceneExport(
-                exportInfo,
-                obj,
-                exportInfo.name,
-                context.scene.ootBlenderScale,
-                finalTransform,
+            if settings.customExport:
+                isCustomExport = True
+                exportPath = bpy.path.abspath(settings.exportPath)
+                customSubPath = None
+            else:
+                if option == "Custom":
+                    customSubPath = "assets/scenes/" + settings.subFolder + "/"
+                else:
+                    levelName = sceneNameFromID(option)
+                    customSubPath = None
+                isCustomExport = False
+                exportPath = bpy.path.abspath(context.scene.ootDecompPath)
+
+            exportInfo = ExportInfo(
+                isCustomExport,
+                exportPath,
+                customSubPath,
+                levelName,
+                option,
                 bpy.context.scene.saveTextures,
-                bootOptions if hackerFeaturesEnabled else None,
                 settings.singleFile,
-                TextureExportSettings(False, context.scene.saveTextures, None, None),
                 context.scene.fast64.oot.useDecompFeatures if not hackerFeaturesEnabled else hackerFeaturesEnabled,
-            ).export()
-            # else:
-            #     ootExportSceneToC(
-            #         obj,
-            #         finalTransform,
-            #         levelName,
-            #         DLFormat.Static,
-            #         context.scene.saveTextures,
-            #         exportInfo,
-            #         bootOptions if hackerFeaturesEnabled else None,
-            #     )
+                bootOptions if hackerFeaturesEnabled else None,
+            )
+
+            SceneExport.export(
+                obj,
+                finalTransform,
+                exportInfo,
+            )
 
             self.report({"INFO"}, "Success!")
 
@@ -245,10 +235,9 @@ class OOT_RemoveScene(Operator):
         else:
             levelName = sceneNameFromID(option)
             subfolder = None
-        exportInfo = ExportInfo(False, abspath(context.scene.ootDecompPath), subfolder, levelName)
-        exportInfo.option = option
+        removeInfo = RemoveInfo(abspath(context.scene.ootDecompPath), subfolder, levelName)
 
-        ootRemoveSceneC(exportInfo)
+        Files.remove_scene(removeInfo)
 
         self.report({"INFO"}, "Success!")
         return {"FINISHED"}
