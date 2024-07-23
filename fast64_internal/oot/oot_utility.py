@@ -10,6 +10,7 @@ from bpy.utils import register_class, unregister_class
 from bpy.types import Object
 from typing import Callable, Optional
 from .oot_constants import ootSceneIDToName
+from dataclasses import dataclass, field
 
 from ..utility import (
     PluginError,
@@ -209,13 +210,52 @@ def getSceneDirFromLevelName(name):
     return None
 
 
+@dataclass
 class ExportInfo:
-    def __init__(self, isCustomExport, exportPath, customSubPath, name):
-        self.isCustomExportPath = isCustomExport
-        self.exportPath = exportPath
-        self.customSubPath = customSubPath
-        self.name: str = name
-        self.option: Optional[str] = None
+    """Contains all parameters used for a scene export. Any new parameters for scene export should be added here."""
+
+    isCustomExportPath: bool
+    """Whether or not we are exporting to a known decomp repo"""
+
+    exportPath: str
+    """Either the decomp repo root, or a specified custom folder (if ``isCustomExportPath`` is true)"""
+
+    customSubPath: Optional[str]
+    """If ``isCustomExportPath``, then this is the relative path used for writing filepaths in files like spec.
+    For decomp repos, the relative path is automatically determined and thus this will be ``None``."""
+
+    name: str
+    """ The name of the scene, similar to the folder names of scenes in decomp.
+    If ``option`` is not "Custom", then this is usually overriden by the name derived from ``option`` before being passed in."""
+
+    option: str
+    """ The scene enum value that we are exporting to (can be Custom)"""
+
+    saveTexturesAsPNG: bool
+    """ Whether to write textures as C data or as .png files."""
+
+    isSingleFile: bool
+    """ Whether to export scene files as a single file or as multiple."""
+
+    useMacros: bool
+    """ Whether to use macros or numeric/binary representations of certain values."""
+
+    hackerootBootOption: "OOTBootupSceneOptions"
+    """ Options for setting the bootup scene in HackerOoT."""
+
+
+@dataclass
+class RemoveInfo:
+    """Contains all parameters used for a scene removal."""
+
+    exportPath: str
+    """The path to the decomp repo root"""
+
+    customSubPath: Optional[str]
+    """The relative path to the scene directory, if a custom scene is being removed"""
+
+    name: str
+    """The name of the level to remove"""
 
 
 class OOTObjectCategorizer:

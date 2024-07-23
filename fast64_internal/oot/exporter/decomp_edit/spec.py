@@ -8,7 +8,7 @@ from ....utility import PluginError, writeFile, indent
 from ...oot_utility import getSceneDirFromLevelName
 
 if TYPE_CHECKING:
-    from ..main import SceneExport
+    from ...exporter import ExportInfo, Scene, SceneFile
 
 
 @dataclass
@@ -193,12 +193,14 @@ class SpecUtility:
     """This class hosts different functions to edit the spec file"""
 
     @staticmethod
-    def remove_segments(export_path: str, scene_name: str, write_to_file: bool):
-        print(f"Remove segments: {scene_name}, {export_path}")
-        # get the spec's data
+    def remove_segments(export_path: str, scene_name: str):
         path = os.path.join(export_path, "spec")
         spec_file = SpecFile.new(path)
+        SpecUtility.remove_segments_from_spec(spec_file, scene_name)
+        writeFile(path, spec_file.to_c())
 
+    @staticmethod
+    def remove_segments_from_spec(spec_file: SpecFile, scene_name: str):
         # get the scene and current segment name and remove the scene
         scene_segment_name = f"{scene_name}_scene"
         spec_file.remove(scene_segment_name)
@@ -214,21 +216,16 @@ class SpecUtility:
         for segment_name in segments_to_remove:
             spec_file.remove(segment_name)
 
-        # finally, write the spec file
-        if write_to_file:
-            writeFile(path, spec_file.to_c())
-
     @staticmethod
-    def add_segments(exporter: "SceneExport"):
-        exportInfo = exporter.exportInfo
-        hasSceneTex = exporter.hasSceneTextures
-        hasSceneCS = exporter.hasCutscenes
-        roomTotal = len(exporter.scene.rooms.entries)
+    def add_segments(exportInfo: "ExportInfo", scene: "Scene", sceneFile: "SceneFile"):
+        hasSceneTex = sceneFile.hasSceneTextures()
+        hasSceneCS = sceneFile.hasCutscenes()
+        roomTotal = len(scene.rooms.entries)
         csTotal = 0
 
-        csTotal += len(exporter.scene.mainHeader.cutscene.entries)
-        if exporter.scene.altHeader is not None:
-            for cs in exporter.scene.altHeader.cutscenes:
+        csTotal += len(scene.mainHeader.cutscene.entries)
+        if scene.altHeader is not None:
+            for cs in scene.altHeader.cutscenes:
                 csTotal += len(cs.cutscene.entries)
 
         # get the spec's data
@@ -239,7 +236,7 @@ class SpecUtility:
         # get the scene and current segment name and remove the scene
         sceneName = exportInfo.name
         sceneSegmentName = f"{sceneName}_scene"
-        SpecUtility.remove_segments(exportInfo.exportPath, exportInfo.name, False)
+        SpecUtility.remove_segments_from_spec(specFile, exportInfo.name)
 
         assert build_directory is not None
         isSingleFile = bpy.context.scene.ootSceneExportSettings.singleFile
