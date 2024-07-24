@@ -2,8 +2,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 from ....utility import PluginError, CData, toAlnum, indent
 from ....f3d.f3d_gbi import TextureExportSettings
-from ...oot_level_classes import OOTRoomMesh
-from ...oot_level_classes import OOTBGImage
+from ...oot_level_classes import OOTRoomMesh, OOTBGImage
 from ...room.properties import OOTRoomHeaderProperty
 
 

@@ -8,7 +8,7 @@ from typing import Optional
 from ...f3d.f3d_gbi import DLFormat, TextureExportSettings
 from ..scene.properties import OOTBootupSceneOptions
 from ..oot_model_classes import OOTModel
-from ..oot_f3d_writer import writeTextureArraysNew
+from ..oot_f3d_writer import writeTextureArraysNew, writeTextureArraysExisting1D
 from .scene import Scene
 from .decomp_edit import Files
 from .file import SceneFile
@@ -19,17 +19,38 @@ from ...utility import (
     unhideAllAndGetHiddenState,
     restoreHiddenState,
     toAlnum,
+    readFile,
+    writeFile,
 )
 
 from ..oot_utility import (
     ExportInfo,
-    RemoveInfo,
     OOTObjectCategorizer,
     ootDuplicateHierarchy,
     ootCleanupScene,
     getSceneDirFromLevelName,
     ootGetPath,
 )
+
+
+def writeTextureArraysExistingScene(fModel: OOTModel, exportPath: str, sceneInclude: str):
+    drawConfigPath = os.path.join(exportPath, "src/code/z_scene_table.c")
+    drawConfigData = readFile(drawConfigPath)
+    newData = drawConfigData
+
+    if f'#include "{sceneInclude}"' not in newData:
+        additionalIncludes = f'#include "{sceneInclude}"\n'
+    else:
+        additionalIncludes = ""
+
+    for flipbook in fModel.flipbooks:
+        if flipbook.exportMode == "Array":
+            newData = writeTextureArraysExisting1D(newData, flipbook, additionalIncludes)
+        else:
+            raise PluginError("Scenes can only use array flipbooks.")
+
+    if newData != drawConfigData:
+        writeFile(drawConfigPath, newData)
 
 
 class SceneExport:
@@ -74,8 +95,7 @@ class SceneExport:
     def export(originalSceneObj: Object, transform: Matrix, exportInfo: ExportInfo):
         """Main function"""
         # circular import fixes
-        from ..scene.exporter.to_c import setBootupScene
-        from ..oot_level_writer import writeTextureArraysExistingScene
+        from .decomp_edit.config import Config
 
         checkObjectReference(originalSceneObj, "Scene object")
         scene = SceneExport.create_scene(originalSceneObj, transform, exportInfo)
@@ -112,7 +132,7 @@ class SceneExport:
 
         hackerootBootOption = exportInfo.hackerootBootOption
         if hackerootBootOption is not None and hackerootBootOption.bootToScene:
-            setBootupScene(
+            Config.setBootupScene(
                 os.path.join(exportPath, "include/config/config_debug.h")
                 if not isCustomExport
                 else os.path.join(path, "config_bootup.h"),

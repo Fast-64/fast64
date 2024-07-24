@@ -8,7 +8,7 @@ from ..f3d.flipbook import TextureFlipbook
 from .collision.properties import OOTMaterialCollisionProperty
 from .oot_model_classes import OOTF3DContext
 from .oot_f3d_writer import getColliderMat
-from .scene.exporter.to_c import getDrawConfig
+from .exporter.decomp_edit.scene_table import SceneTableUtility
 from .scene.properties import OOTSceneHeaderProperty, OOTLightProperty, OOTImportSceneSettingsProperty
 from .room.properties import OOTRoomHeaderProperty
 from .actor.properties import OOTActorProperty, OOTActorHeaderProperty
@@ -241,7 +241,7 @@ def parseScene(
     f3dContext.addMatrix("&gMtxClear", mathutils.Matrix.Scale(1 / bpy.context.scene.ootBlenderScale, 4))
 
     if not settings.isCustomDest:
-        drawConfigName = getDrawConfig(sceneName)
+        drawConfigName = SceneTableUtility.get_draw_config(sceneName)
         drawConfigData = readFile(os.path.join(importPath, "src/code/z_scene_table.c"))
         parseDrawConfig(drawConfigName, sceneData, drawConfigData, f3dContext)
 
@@ -273,7 +273,10 @@ def parseScene(
 
     if not settings.isCustomDest:
         setCustomProperty(
-            sceneObj.ootSceneHeader.sceneTableEntry, "drawConfig", getDrawConfig(sceneName), ootEnumDrawConfig
+            sceneObj.ootSceneHeader.sceneTableEntry,
+            "drawConfig",
+            SceneTableUtility.get_draw_config(sceneName),
+            ootEnumDrawConfig,
         )
 
     if bpy.context.scene.fast64.oot.headerTabAffectsVisibility:

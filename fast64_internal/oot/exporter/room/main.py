@@ -2,10 +2,10 @@ from dataclasses import dataclass
 from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
-from ....utility import PluginError, CData, indent
+from ....utility import PluginError, CData, indent, readFile, writeFile
 from ....f3d.f3d_gbi import ScrollMethod, TextureExportSettings
 from ...room.properties import OOTRoomHeaderProperty
-from ...oot_object import addMissingObjectsToAllRoomHeadersNew
+from ...oot_object import addMissingObjectsToAllRoomHeaders
 from ...oot_level_classes import OOTRoomMesh
 from ...oot_model_classes import OOTModel, OOTGfxFormatter
 from ...oot_utility import CullGroup
@@ -13,6 +13,7 @@ from ..file import RoomFile
 from ..utility import Utility, altHeaderList
 from .header import RoomAlternateHeader, RoomHeader
 from .shape import RoomShape
+from .mesh import ootProcessMesh, BoundingBox
 
 
 @dataclass
@@ -39,8 +40,6 @@ class Room:
         sceneName: str,
         saveTexturesAsPNG: bool,
     ):
-        from ...oot_level_writer import BoundingBox, ootProcessMesh  # circular import fix
-
         i = 0
         mainHeaderProps = roomObj.ootRoomHeader
         altHeader = RoomAlternateHeader(f"{name}_alternateHeaders")
@@ -95,7 +94,7 @@ class Room:
             headers.extend([altHeader.childNight, altHeader.adultDay, altHeader.adultNight])
             if len(altHeader.cutscenes) > 0:
                 headers.extend(altHeader.cutscenes)
-        addMissingObjectsToAllRoomHeadersNew(roomObj, headers)
+        addMissingObjectsToAllRoomHeaders(roomObj, headers)
 
         # Mesh stuff
         mesh = OOTRoomMesh(name, roomShapeType, model)
