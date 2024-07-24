@@ -409,18 +409,20 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             icon="TRIA_DOWN" if dataHolder.menu_geo else "TRIA_RIGHT",
         )
     if not useDropdown or dataHolder.menu_geo:
+        disable_dependent = False  # Don't disable dependent props in world defaults
 
         def indentGroup(parent: UILayout, textOrProp: Union[str, "F3DMaterialProperty"], isText: bool) -> UILayout:
             c = parent.column(align=True)
             if isText:
                 c.label(text=textOrProp)
+                enable = True
             else:
                 c.prop(settings, textOrProp)
-                if not getattr(settings, textOrProp):
-                    return None
+                enable = getattr(settings, textOrProp)
             c = c.split(factor=0.1)
             c.label(text="")
             c = c.column(align=True)
+            c.enabled = enable or not disable_dependent
             return c
 
         isF3DEX3 = bpy.context.scene.f3d_type == "F3DEX3"
@@ -431,6 +433,7 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             ccWarnings = True
             ccUse = all_combiner_uses(dataHolder)
             shadeInCC = ccUse["Shade"] or ccUse["Shade Alpha"]
+            disable_dependent = True
             if settings.set_rendermode:
                 blendWarnings = True
                 shadeInBlender = settings.does_blender_use_input("G_BL_A_SHADE")
@@ -439,16 +442,15 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
         inputGroup.prop(settings, "g_shade_smooth")
 
         c = indentGroup(inputGroup, "g_lighting", False)
-        if c is not None:
-            if ccWarnings and not shadeInCC and not settings.g_tex_gen:
-                c.label(text="Shade not used in CC, can disable lighting.", icon="INFO")
-            if isF3DEX3:
-                c.prop(settings, "g_packed_normals")
-                c.prop(settings, "g_lighting_specular")
-                c.prop(settings, "g_ambocclusion")
-            d = indentGroup(c, "g_tex_gen", False)
-            if d is not None:
-                d.prop(settings, "g_tex_gen_linear")
+        if ccWarnings and not shadeInCC and settings.g_lighting and not settings.g_tex_gen:
+            multilineLabel(c, "Shade not used in CC, can disable\nlighting.", icon="INFO")
+        if isF3DEX3:
+            c.prop(settings, "g_packed_normals")
+            c.prop(settings, "g_lighting_specular")
+            c.prop(settings, "g_ambocclusion")
+            c.prop(settings, "g_fresnel_color")
+        d = indentGroup(c, "g_tex_gen", False)
+        d.prop(settings, "g_tex_gen_linear")
 
         if lightFxPrereq and settings.g_fresnel_color:
             shadeColorLabel = "Fresnel"
@@ -458,11 +460,7 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             shadeColorLabel = "Lighting * vertex color"
         else:
             shadeColorLabel = "Lighting"
-        if lightFxPrereq:
-            c = indentGroup(inputGroup, f"Shade color = {shadeColorLabel}:", True)
-            c.prop(settings, "g_fresnel_color")
-        else:
-            inputGroup.column().label(text=f"Shade color = {shadeColorLabel}")
+        inputGroup.label(text=f"Shade color = {shadeColorLabel}")
 
         shadowMapInShadeAlpha = False
         if settings.g_fog:
@@ -477,9 +475,11 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
         else:
             shadeAlphaLabel = "Vtx alpha"
         c = indentGroup(inputGroup, f"Shade alpha = {shadeAlphaLabel}:", True)
-        if lightFxPrereq:
-            c.prop(settings, "g_lighttoalpha")
-            c.prop(settings, "g_fresnel_alpha")
+        if isF3DEX3:
+            lighting_group = c.column(align=True)
+            lighting_group.enabled = settings.g_lighting or not disable_dependent
+            lighting_group.prop(settings, "g_lighttoalpha")
+            lighting_group.prop(settings, "g_fresnel_alpha")
         c.prop(settings, "g_fog")
         if lightFxPrereq and settings.g_fog and settings.g_fresnel_alpha:
             c.label(text="Fog overrides Fresnel Alpha.", icon="ERROR")
@@ -1750,7 +1750,7 @@ def update_node_values_of_material(material: Material, context):
 
     nodes = material.node_tree.nodes
 
-    if f3dMat.rdp_settings.g_tex_gen:
+    if f3dMat.rdp_settings.g_lighting and f3dMat.rdp_settings.g_tex_gen:
         if f3dMat.rdp_settings.g_tex_gen_linear:
             nodes["UV"].node_tree = bpy.data.node_groups["UV_EnvMap_Linear"]
         else:
@@ -2088,7 +2088,8 @@ def update_tex_values_manual(material: Material, context, prop_path=None):
     elif texture_settings.mute:
         texture_settings.mute = False
 
-    isTexGen = f3dMat.rdp_settings.g_tex_gen  # linear requires tex gen to be enabled as well
+    # linear requires tex gen to be enabled as well
+    isTexGen = f3dMat.rdp_settings.g_lighting and f3dMat.rdp_settings.g_tex_gen
 
     if f3dMat.scale_autoprop:
         if isTexGen:
