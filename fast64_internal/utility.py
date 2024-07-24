@@ -1322,9 +1322,9 @@ def gammaCorrect(linearColor):
 
 
 def s_rgb_alpha_1_tuple(linearColor):
-    correct = gammaCorrect(linearColor)
-    correct.append(1.0)
-    return tuple(c for c in correct)
+    s_rgb = gammaCorrect(linearColor)
+    s_rgb.append(1.0)
+    return tuple(s for s in s_rgb)
 
 
 def gammaCorrectValue(linearValue):
