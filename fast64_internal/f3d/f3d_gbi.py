@@ -70,6 +70,7 @@ vertexBufferSize = {
     "F3DEX2/LX2": (32, 32),
     "F3DEX2.Rej/LX2.Rej": (64, 64),
     "F3DEX3": (56, 56),
+    "T3D": (70, 70),
 }
 
 drawLayerRenderMode = {
@@ -133,6 +134,14 @@ def isUcodeF3DEX3(F3D_VER: str) -> bool:
     return F3D_VER == "F3DEX3"
 
 
+def is_ucode_t3d(UCODE_VER: str) -> bool:
+    return UCODE_VER == "T3D"
+
+
+def is_ucode_f3d(UCODE_VER: str) -> bool:
+    return UCODE_VER not in {"T3D"}
+
+
 class F3D:
     """NOTE: do not initialize this class manually! use get_F3D_GBI so that the single instance is cached from the microcode type."""
 
@@ -143,6 +152,7 @@ class F3D:
         F3DEX_GBI_3 = self.F3DEX_GBI_3 = isUcodeF3DEX3(F3D_VER)
         F3DLP_GBI = self.F3DLP_GBI = self.F3DEX_GBI
         self.F3D_OLD_GBI = not (F3DEX_GBI or F3DEX_GBI_2 or F3DEX_GBI_3)
+        self.F3D_GBI = is_ucode_f3d(F3D_VER)
 
         # F3DEX2 is F3DEX1 and F3DEX3 is F3DEX2, but F3DEX3 is not F3DEX1
         if F3DEX_GBI_2:
@@ -2320,6 +2330,10 @@ class FModel:
         self.materialRevert: Union[GfxList, None] = None
         # F3D library
         self.f3d: F3D = get_F3D_GBI()
+        if not self.f3d.F3D_GBI:
+            raise PluginError(
+                f"Current microcode {self.f3d.F3D_VER} is not part of the f3d family of microcodes, fast64 cannot export it"
+            )
         # array of FModel
         self.subModels: list[FModel] = []
         self.parentModel: Union[FModel, None] = None
