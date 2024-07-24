@@ -1,0 +1,67 @@
+{
+  "version": 1.0,
+  "autoLoad": false,
+  "microcode": "F3D",
+  "saveTextures": false,
+  "autoPickTextureFormat": true,
+  "preferRGBAOverCI": false,
+  "rdpDefaults": {
+    "geometryMode": {
+      "zBuffer": true,
+      "shade": true,
+      "cullBack": true,
+      "fog": true,
+      "lighting": true,
+      "shadeSmooth": true
+    },
+    "otherModeH": {
+      "alphaDither": "G_AD_NOISE",
+      "textureConvert": "G_TC_FILT",
+      "textureFilter": "G_TF_BILERP",
+      "perspectiveCorrection": "G_TP_PERSP",
+      "pipelineMode": "G_PM_1PRIMITIVE"
+    },
+    "otherModeL": {},
+    "other": {}
+  },
+  "sm64": {
+    "draw_layers": {
+      "0": {
+        "cycle_1": "G_RM_ZB_OPA_SURF",
+        "cycle_2": "G_RM_ZB_OPA_SURF2"
+      },
+      "1": {
+        "cycle_1": "G_RM_AA_ZB_OPA_SURF",
+        "cycle_2": "G_RM_AA_ZB_OPA_SURF2"
+      },
+      "2": {
+        "cycle_1": "G_RM_AA_ZB_OPA_DECAL",
+        "cycle_2": "G_RM_AA_ZB_OPA_DECAL2"
+      },
+      "3": {
+        "cycle_1": "G_RM_AA_ZB_OPA_INTER",
+        "cycle_2": "G_RM_AA_ZB_OPA_INTER2"
+      },
+      "4": {
+        "cycle_1": "G_RM_AA_ZB_TEX_EDGE",
+        "cycle_2": "G_RM_AA_ZB_TEX_EDGE2"
+      },
+      "5": {
+        "cycle_1": "G_RM_AA_ZB_XLU_SURF",
+        "cycle_2": "G_RM_AA_ZB_XLU_SURF2"
+      },
+      "6": {
+        "cycle_1": "G_RM_AA_ZB_XLU_DECAL",
+        "cycle_2": "G_RM_AA_ZB_XLU_DECAL2"
+      },
+      "7": {
+        "cycle_1": "G_RM_AA_ZB_XLU_INTER",
+        "cycle_2": "G_RM_AA_ZB_XLU_INTER2"
+      }
+    },
+    "refresh_version": "Refresh 13",
+    "compression_format": "mio0",
+    "force_extended_ram": true,
+    "matstack_fix": false
+  }
+}

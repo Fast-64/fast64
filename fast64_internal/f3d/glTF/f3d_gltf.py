@@ -528,8 +528,8 @@ class F3DExtensions(GlTF2SubExtension):
         data.update(
             {
                 "geometryMode": rdp.f3d_geo_mode_to_dict(),
-                "otherModeH": rdp.other_mode_h_to_dict(),
-                "otherModeL": rdp.other_mode_l_to_dict(),
+                "otherModeH": rdp.other_mode_h_to_dict(True),
+                "otherModeL": rdp.other_mode_l_to_dict(True),
                 "other": rdp.other_to_dict(),
             }
         )

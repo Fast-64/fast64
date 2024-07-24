@@ -149,6 +149,44 @@ defaultMaterialPresets = {
     "Shaded Texture": {"SM64": "Shaded Texture", "OOT": "oot_shaded_texture"},
 }
 
+F3D_GEO_MODES = {
+    "zBuffer": "g_zbuffer",
+    "shade": "g_shade",
+    "cullFront": "g_cull_front",
+    "cullBack": "g_cull_back",
+    "fog": "g_fog",
+    "lighting": "g_lighting",
+    "texGen": "g_tex_gen",
+    "texGenLinear": "g_tex_gen_linear",
+    "lod": "g_lod",
+    "shadeSmooth": "g_shade_smooth",
+}
+
+F3DLX_GEO_MODES = {
+    "clipping": "g_clipping",
+}
+
+F3DEX3_GEO_MODES = {
+    "ambientOcclusion": "g_ambocclusion",
+    "attroffsetZ": "g_attroffset_z_enable",
+    "attroffsetST": "g_attroffset_st_enable",
+    "packedNormals": "g_packed_normals",
+    "lightToAlpha": "g_lighttoalpha",
+    "specularLighting": "g_lighting_specular",
+    "fresnelToColor": "g_fresnel_color",
+    "fresnelToAlpha": "g_fresnel_alpha",
+}
+
+
+def geo_modes_in_ucode(UCODE_VER: str):
+    geo_modes = {}
+    geo_modes.update(F3D_GEO_MODES)
+    if isUcodeF3DEX1(UCODE_VER):
+        geo_modes.update(F3DLX_GEO_MODES)
+    if isUcodeF3DEX3(UCODE_VER):
+        geo_modes.update(F3DEX3_GEO_MODES)
+    return geo_modes
+
 
 def getDefaultMaterialPreset(category):
     game = bpy.context.scene.gameEditorMode
@@ -3530,100 +3568,87 @@ class RDPSettings(PropertyGroup):
     def does_blender_use_input(self, setting: str) -> bool:
         return any(input == setting for input in self.blend_inputs)
 
-    def attributes_to_dict(self, info: dict):
+    def attributes_to_dict(self, info: dict, remove_prefix=False):
         data = {}
-        for key, attr, default in info:
+        for args in info:
+            key, attr, default = args[:3]
             value = getattr(self, attr)
             if value != default:
+                if remove_prefix and len(args) == 4 and value.startswith(args[3]):
+                    value = value[len(args[3]) :]
                 data[key] = value
         return data
 
     def attributes_from_dict(self, data: dict, info: dict):
-        for key, attr, default in info:
-            setattr(self, attr, data.get(key, default))
+        for args in info:
+            key, attr, default = args[:3]
+            value = data.get(key, default)
+            if len(args) == 4:
+                prefix = args[3]
+                if not value.startswith(prefix):
+                    value = prefix + value
+            setattr(self, attr, value)
 
-    geo_mode_all_attributes = [
-        ("zBuffer", "g_zbuffer", False),
-        ("shade", "g_shade", False),
-        ("shadeSmooth", "g_shade_smooth", False),
-        ("cullFront", "g_cull_front", False),
-        ("cullBack", "g_cull_back", False),
-        ("fog", "g_fog", False),
-        ("lighting", "g_lighting", False),
-        ("texGen", "g_tex_gen", False),
-        ("texGenLinear", "g_tex_gen_linear", False),
-        ("loD", "g_lod", False),
-    ]
-
-    geo_mode_f3dex_attributes = [
-        ("clipping", "g_clipping", False),
-    ]
-
-    geo_mode_f3dex3_attributes = [
-        ("ambientOcclusion", "g_ambocclusion", False),
-        ("attroffsetZ", "g_attroffset_z_enable", False),
-        ("attroffsetST", "g_attroffset_st_enable", False),
-        ("packedNormals", "g_packed_normals", False),
-        ("lightToAlpha", "g_lighttoalpha", False),
-        ("specularLighting", "g_lighting_specular", False),
-        ("fresnelToColor", "g_fresnel_color", False),
-        ("fresnelToAlpha", "g_fresnel_alpha", False),
-    ]
-    geo_mode_attributes = geo_mode_all_attributes + geo_mode_f3dex_attributes + geo_mode_f3dex3_attributes
-
-    def f3d_geo_mode_to_dict(self):
-        return self.attributes_to_dict(self.geo_mode_all_attributes)
-
-    def f3d_geo_mode_from_dict(self, data: dict):
-        self.attributes_from_dict(data, self.geo_mode_all_attributes)
-
-    def f3dlx_geo_mode_to_dict(self):
-        return self.attributes_to_dict(self.geo_mode_f3dex_attributes)
-
-    def f3dex1_geo_mode_from_dict(self, data: dict):
-        self.attributes_from_dict(data, self.geo_mode_f3dex_attributes)
-
-    def f3dex3_geo_mode_to_dict(self):
-        return self.attributes_to_dict(self.geo_mode_f3dex3_attributes)
-
-    def f3dex3_geo_mode_from_dict(self, data: dict):
-        self.attributes_from_dict(data, self.geo_mode_f3dex3_attributes)
-
-    def geo_mode_to_dict(self, f3d=None):
-        f3d = f3d if f3d else get_F3D_GBI()
-        data = self.f3d_geo_mode_to_dict()
-        if f3d.F3DEX_GBI or f3d.F3DLP_GBI:
-            data.update(self.f3dlx_geo_mode_to_dict())
-        if f3d.F3DEX_GBI_3:
-            data.update(self.f3dex3_geo_mode_to_dict())
+    def geo_mode_dict_to_dict(self, modes: dict):
+        data = {}
+        for key, attr in modes.items():
+            if getattr(self, attr):
+                data[key] = True
         return data
 
+    def geo_mode_dict_from_dict(self, data: dict, modes: dict):
+        for key, attr in modes.items():
+            setattr(self, attr, data.get(key, False))
+
+    geo_mode_attributes = {**F3D_GEO_MODES, **F3DLX_GEO_MODES, **F3DEX3_GEO_MODES}
+
+    def f3d_geo_mode_to_dict(self):
+        return self.geo_mode_dict_to_dict(F3D_GEO_MODES)
+
+    def f3d_geo_mode_from_dict(self, data: dict):
+        self.geo_mode_dict_from_dict(data, F3D_GEO_MODES)
+
+    def f3dlx_geo_mode_to_dict(self):
+        return self.geo_mode_dict_to_dict(F3DLX_GEO_MODES)
+
+    def f3dex1_geo_mode_from_dict(self, data: dict):
+        self.geo_mode_dict_from_dict(data, F3DLX_GEO_MODES)
+
+    def f3dex3_geo_mode_to_dict(self):
+        return self.geo_mode_dict_to_dict(F3DEX3_GEO_MODES)
+
+    def f3dex3_geo_mode_from_dict(self, data: dict):
+        self.geo_mode_dict_from_dict(data, F3DEX3_GEO_MODES)
+
+    def geo_mode_to_dict(self):
+        return self.geo_mode_dict_to_dict(self.geo_mode_attributes)
+
     def geo_mode_from_dict(self, data: dict):
-        self.attributes_from_dict(data, self.geo_mode_attributes)
+        self.geo_mode_dict_from_dict(data, self.geo_mode_attributes)
 
     other_mode_h_attributes = [
-        ("alphaDither", "g_mdsft_alpha_dither", "G_AD_DISABLE"),
-        ("colorDither", "g_mdsft_rgb_dither", "G_CD_MAGICSQ"),
-        ("chromaKey", "g_mdsft_combkey", "G_CK_NONE"),
-        ("textureConvert", "g_mdsft_textconv", "G_TC_CONV"),
-        ("textureFilter", "g_mdsft_text_filt", "G_TF_POINT"),
-        # ("lutFormat", "g_mdsft_textlut", "G_TT_NONE")
-        ("textureLoD", "g_mdsft_textlod", "G_TL_TILE"),
-        ("textureDetail", "g_mdsft_textdetail", "G_TD_CLAMP"),
-        ("perspectiveCorrection", "g_mdsft_textpersp", "G_TP_NONE"),
-        ("cycleType", "g_mdsft_cycletype", "G_CYC_1CYCLE"),
-        ("pipelineMode", "g_mdsft_pipeline", "G_PM_NPRIMITIVE"),
+        ("alphaDither", "g_mdsft_alpha_dither", "G_AD_DISABLE", "G_AD_"),
+        ("colorDither", "g_mdsft_rgb_dither", "G_CD_MAGICSQ", "G_CD_"),
+        ("chromaKey", "g_mdsft_combkey", "G_CK_NONE", "G_CK_"),
+        ("textureConvert", "g_mdsft_textconv", "G_TC_CONV", "G_TC_"),
+        ("textureFilter", "g_mdsft_text_filt", "G_TF_POINT", "G_TF_"),
+        # ("lutFormat", "g_mdsft_textlut", "G_TT_NONE", "G_TT_")
+        ("textureLoD", "g_mdsft_textlod", "G_TL_TILE", "G_TL_"),
+        ("textureDetail", "g_mdsft_textdetail", "G_TD_CLAMP", "G_TD_"),
+        ("perspectiveCorrection", "g_mdsft_textpersp", "G_TP_NONE", "G_TP_"),
+        ("cycleType", "g_mdsft_cycletype", "G_CYC_1CYCLE", "G_CYC_"),
+        ("pipelineMode", "g_mdsft_pipeline", "G_PM_NPRIMITIVE", "G_PM_"),
     ]
 
-    def other_mode_h_to_dict(self):
-        return self.attributes_to_dict(self.other_mode_h_attributes)
+    def other_mode_h_to_dict(self, remove_prefix=False):
+        return self.attributes_to_dict(self.other_mode_h_attributes, remove_prefix)
 
     def other_mode_h_from_dict(self, data: dict):
         self.attributes_from_dict(data, self.other_mode_h_attributes)
 
     other_mode_l_attributes = [
-        ("alphaCompare", "g_mdsft_alpha_compare", "G_AC_NONE"),
-        ("zSourceSelection", "g_mdsft_zsrcsel", "G_ZS_PIXEL"),
+        ("alphaCompare", "g_mdsft_alpha_compare", "G_AC_NONE", "G_AC_"),
+        ("zSourceSelection", "g_mdsft_zsrcsel", "G_ZS_PIXEL", "G_ZS_"),
     ]
 
     rendermode_flag_attributes = [
@@ -3635,12 +3660,13 @@ class RDPSettings(PropertyGroup):
         ("mulCvgXAlpha", "cvg_x_alpha", False),
         ("forceBlend", "force_bl", False),
         ("readFB", "im_rd", False),
-        ("cvgDst", "cvg_dst", "CVG_DST_CLAMP"),
-        ("zMode", "zmode", "ZMODE_OPA"),
+        ("cvgDst", "cvg_dst", "CVG_DST_CLAMP", "CVG_DST_"),
+        ("zMode", "zmode", "ZMODE_OPA", "ZMODE_"),
     ]
 
-    def other_mode_l_to_dict(self):
-        data = self.attributes_to_dict(self.other_mode_l_attributes)
+    def other_mode_l_to_dict(self, remove_prefix=False):
+        c_prefix_len, a_prefix_len = (len("G_BL_CLR_") if remove_prefix else 0), (len("G_BL_") if remove_prefix else 0)
+        data = self.attributes_to_dict(self.other_mode_l_attributes, remove_prefix)
         if self.g_mdsft_zsrcsel == "G_ZS_PRIM":
             data["primDepth"] = self.prim_depth.to_dict()
         if self.set_rendermode:
@@ -3649,15 +3675,12 @@ class RDPSettings(PropertyGroup):
                 blender_data = []
                 for i in range(2 if two_cycle else 1):
                     num = i + 1
-                    color_attrs, alpha_attrs = (f"blend_p{num}", f"blend_m{num}"), (f"blend_a{num}", f"blend_b{num}")
-                    blender_data.append(
-                        {
-                            "color": (getattr(self, color_attrs[0]), getattr(self, color_attrs[1])),
-                            "alpha": (getattr(self, alpha_attrs[0]), getattr(self, alpha_attrs[1])),
-                        }
-                    )
+                    c_attrs, a_attrs = (f"blend_p{num}", f"blend_m{num}"), (f"blend_a{num}", f"blend_b{num}")
+                    colors = [getattr(self, c_attr)[c_prefix_len:] for c_attr in c_attrs]
+                    alphas = [getattr(self, a_attr)[a_prefix_len:] for a_attr in a_attrs]
+                    blender_data.append({"color": colors, "alpha": alphas})
                 data["renderMode"] = {
-                    "flags": self.attributes_to_dict(self.rendermode_flag_attributes),
+                    "flags": self.attributes_to_dict(self.rendermode_flag_attributes, remove_prefix),
                     "blender": blender_data,
                 }
             else:
@@ -3669,6 +3692,10 @@ class RDPSettings(PropertyGroup):
         return data
 
     def other_mode_l_from_dict(self, data: dict):
+        c_prefix = "G_BL_CLR_"
+        a_prefix = "G_BL_"
+        c_prefix_len, a_prefix_len = len(c_prefix), len(a_prefix)
+
         self.attributes_from_dict(data, self.other_mode_l_attributes)
         self.prim_depth.from_dict(data.get("primDepth", {}))
 
@@ -3691,13 +3718,15 @@ class RDPSettings(PropertyGroup):
         alpha_attrs = ("blend_a", "blend_b")
         for i, cycle in enumerate(blender * 2 if len(blender) == 1 else blender):
             num = str(i + 1)
-            color_attrs, alpha_attrs = (f"blend_p{num}", f"blend_m{num}"), (f"blend_a{num}", f"blend_b{num}")
-            self[color_attrs[0]], self[color_attrs[1]] = cycle.get(
-                "color", [self.get(color_attrs[0]), self.get(color_attrs[1])]
-            )
-            self[alpha_attrs[0]], self[alpha_attrs[1]] = cycle.get(
-                "alpha", [self.get(alpha_attrs[0]), self.get(alpha_attrs[1])]
-            )
+            c_attrs, a_attrs = (f"blend_p{num}", f"blend_m{num}"), (f"blend_a{num}", f"blend_b{num}")
+            colors = cycle.get("color", [getattr(self, c_attrs[0]), getattr(self, c_attrs[1])])
+            colors = [c_prefix + (c[c_prefix_len:] if c.startswith(c_prefix) else c) for c in colors]
+            alphas = cycle.get("alpha", [getattr(self, a_attrs[0]), getattr(self, a_attrs[1])])
+            alphas = [a_prefix + (a[a_prefix_len:] if a.startswith(a_prefix) else a) for a in alphas]
+            setattr(self, c_attrs[0], colors[0])
+            setattr(self, c_attrs[1], colors[1])
+            setattr(self, a_attrs[0], alphas[0])
+            setattr(self, a_attrs[1], alphas[1])
 
     def other_to_dict(self):
         data = {}
@@ -3713,7 +3742,7 @@ class RDPSettings(PropertyGroup):
 
     def to_dict(self, f3d=None):
         data = {}
-        data["geometryMode"] = self.geo_mode_to_dict(f3d)
+        data["geometryMode"] = self.geo_mode_to_dict()
         data["otherModeH"] = self.other_mode_h_to_dict()
         data["otherModeL"] = self.other_mode_l_to_dict()
         data["other"] = self.other_to_dict()
