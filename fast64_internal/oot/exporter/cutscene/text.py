@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import Optional
 from ....utility import PluginError, indent
 from ...cutscene.motion.utility import getInteger
 from .common import CutsceneCmdBase

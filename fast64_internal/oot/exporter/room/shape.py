@@ -1,3 +1,7 @@
+import bpy
+import shutil
+import os
+
 from dataclasses import dataclass, field
 from typing import Optional
 from ....utility import PluginError, CData, toAlnum, indent
@@ -5,7 +9,6 @@ from ....f3d.f3d_gbi import SPDisplayList, SPEndDisplayList, GfxListTag, GfxList
 from ....f3d.f3d_writer import TriangleConverterInfo, saveStaticModel, getInfoDict
 from ...room.properties import OOTRoomHeaderProperty, OOTBGProperty
 from ...oot_model_classes import OOTModel
-import bpy, shutil, os
 from ..utility import Utility
 from bpy.types import Object
 from mathutils import Matrix, Vector

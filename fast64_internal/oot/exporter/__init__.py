@@ -1,17 +1,13 @@
 import bpy
 import os
-import traceback
 
 from mathutils import Matrix
 from bpy.types import Object
-from typing import Optional
 from ...f3d.f3d_gbi import DLFormat, TextureExportSettings
-from ..scene.properties import OOTBootupSceneOptions
 from ..oot_model_classes import OOTModel
 from ..oot_f3d_writer import writeTextureArraysNew, writeTextureArraysExisting1D
 from .scene import Scene
 from .decomp_edit import Files
-from .file import SceneFile
 
 from ...utility import (
     PluginError,

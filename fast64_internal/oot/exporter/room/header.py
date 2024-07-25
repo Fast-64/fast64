@@ -8,7 +8,6 @@ from ...oot_constants import ootData
 from ...room.properties import OOTRoomHeaderProperty
 from ..utility import Utility
 from ..actor import Actor
-from .shape import RoomShape
 
 
 @dataclass

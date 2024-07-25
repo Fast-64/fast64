@@ -1,4 +1,6 @@
-import os, re
+import os
+import re
+
 from ....utility import PluginError, readFile, writeFile
 from ...scene.properties import OOTBootupSceneOptions
 

@@ -8,7 +8,7 @@ from mathutils import Vector
 from bpy.types import Object
 from bpy.utils import register_class, unregister_class
 from bpy.types import Object
-from typing import Callable, Optional
+from typing import Callable, Optional, TYPE_CHECKING
 from .oot_constants import ootSceneIDToName
 from dataclasses import dataclass
 
@@ -25,6 +25,9 @@ from ..utility import (
     hexOrDecInt,
     binOps,
 )
+
+if TYPE_CHECKING:
+    from .scene.properties import OOTBootupSceneOptions
 
 
 def isPathObject(obj: bpy.types.Object) -> bool:

@@ -3,12 +3,11 @@ import bpy
 import re
 
 from dataclasses import dataclass, field
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 from ....utility import PluginError, writeFile, indent
-from ...oot_utility import getSceneDirFromLevelName
-
-if TYPE_CHECKING:
-    from ...exporter import ExportInfo, Scene, SceneFile
+from ...oot_utility import ExportInfo, getSceneDirFromLevelName
+from ..scene import Scene
+from ..file import SceneFile
 
 
 @dataclass
