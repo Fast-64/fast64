@@ -28,7 +28,7 @@ Written against the glTF 2.0 spec.
 
 ## Overview
 
-This extension implements a representation of fast64 material data, which itself is an abstraction of the n64's basic rendering properties, properties in individual microcodes are implemented in seperate extensions:
+This extension implements a representation of the n64's basic rendering properties present in fast64 materials, properties in individual microcodes are implemented in seperate extensions:
 
 - [F3D](#FAST64_materials_f3d)
   - [F3DLX](#FAST64_materials_f3dlx)
@@ -162,7 +162,7 @@ Extension of [FAST64_materials_f3d](#FAST64_materials_f3d)
 
 ## Overview
 
-This extension implements f3dex1 material features, which only differs in the inclusion of the G_CLIPPING geometry mode, it mostly exists for completeness as G_CLIPPING is on by default and is crucial for performance.
+This extension implements F3DLX material features, which only differs in the inclusion of the G_CLIPPING geometry mode, it mostly exists for completeness as G_CLIPPING is on by default and is crucial for performance.
 
 ### JSON Schema
 
