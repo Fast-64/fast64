@@ -32,7 +32,7 @@ from io_scene_gltf2.io.com.gltf2_io_constants import TextureFilter, TextureWrap
 MATERIAL_EXTENSION_NAME = "FAST64_materials_f3d"
 EX1_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3dlx"
 EX3_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3dex3"
-SAMPLER_EXTENSION_NAME = "FAST64_sampler_f3d"
+SAMPLER_EXTENSION_NAME = "FAST64_sampler_n64"
 MESH_EXTENSION_NAME = "FAST64_mesh_f3d"
 NEW_MESH_EXTENSION_NAME = "FAST64_mesh_f3d_new"
 
@@ -522,21 +522,19 @@ class F3DExtensions(GlTF2SubExtension):
                 rendermode_presets_checks(f3d_mat)
 
         use_dict = all_combiner_uses(f3d_mat)
-        data = {}
-        data["combiner"] = f3d_mat.combiner_to_dict()
-        data.update(f3d_mat.f3d_colors_to_dict(use_dict))
-        data.update(
-            {
-                "geometryMode": rdp.f3d_geo_mode_to_dict(),
-                "otherModeH": rdp.other_mode_h_to_dict(True),
-                "otherModeL": rdp.other_mode_l_to_dict(True),
-                "other": rdp.other_to_dict(),
-            }
-        )
-        data.update(f3d_mat.extra_texture_settings_to_dict())
+        n64_data = {
+            "combiner": f3d_mat.combiner_to_dict(),
+            **f3d_mat.n64_colors_to_dict(use_dict),
+            "otherModes": ({**rdp.other_mode_h_to_dict(True), **rdp.other_mode_l_to_dict(True)}),
+        }
+        if rdp.g_mdsft_zsrcsel == "G_ZS_PRIM":
+            n64_data["primDepth"] = rdp.prim_depth.to_dict()
+        if rdp.g_mdsft_textlod == "G_TL_LOD":
+            n64_data.update({"mipmapCount": rdp.num_textures_mipmapped})
+        n64_data.update(f3d_mat.extra_texture_settings_to_dict())
 
         textures = {}
-        data["textures"] = textures
+        n64_data["textures"] = textures
         if use_dict["Texture 0"]:
             textures["0"] = self.f3d_to_glTF2_texture_info(
                 f3d_mat,
@@ -551,10 +549,14 @@ class F3DExtensions(GlTF2SubExtension):
                 1,
                 export_settings,
             )
+        n64_data["extensions"] = {}
 
-        data["extensions"] = {}
+        f3d_data = {"geometryMode": rdp.f3d_geo_mode_to_dict()}
+        if rdp.clip_ratio != 2:
+            f3d_data["clipRatio"] = rdp.clip_ratio
+        f3d_data.update({**f3d_mat.f3d_colors_to_dict(use_dict), "extensions": {}})
         if self.gbi.F3DEX_GBI:  # F3DLX
-            data["extensions"][EX1_MATERIAL_EXTENSION_NAME] = self.extension.Extension(
+            f3d_data["extensions"][EX1_MATERIAL_EXTENSION_NAME] = self.extension.Extension(
                 name=EX1_MATERIAL_EXTENSION_NAME,
                 extension={"geometryMode": rdp.f3dlx_geo_mode_to_dict()},
                 required=False,
@@ -562,7 +564,7 @@ class F3DExtensions(GlTF2SubExtension):
         if self.gbi.F3DEX_GBI_3:  # F3DEX3
             if f3d_mat.use_cel_shading:
                 cel_shading_checks(f3d_mat)
-            data["extensions"][EX3_MATERIAL_EXTENSION_NAME] = self.extension.Extension(
+            f3d_data["extensions"][EX3_MATERIAL_EXTENSION_NAME] = self.extension.Extension(
                 name=EX3_MATERIAL_EXTENSION_NAME,
                 extension={
                     "geometryMode": rdp.f3dex3_geo_mode_to_dict(),
@@ -571,7 +573,13 @@ class F3DExtensions(GlTF2SubExtension):
                 required=False,
             )
 
-        self.append_extension(gltf2_material, MATERIAL_EXTENSION_NAME, data)
+        n64_data["extensions"][F3D_MATERIAL_EXTENSION_NAME] = self.extension.Extension(
+            name=F3D_MATERIAL_EXTENSION_NAME,
+            extension=f3d_data,
+            required=False,
+        )
+
+        self.append_extension(gltf2_material, MATERIAL_EXTENSION_NAME, n64_data)
 
         # glTF Standard
         pbr = gltf2_material.pbr_metallic_roughness
@@ -580,7 +588,7 @@ class F3DExtensions(GlTF2SubExtension):
             pbr.metallic_roughness_texture = textures["1"]
         elif textures:
             pbr.base_color_texture = list(textures.values())[0]
-        pbr.base_color_factor = get_fake_color(data)
+        pbr.base_color_factor = get_fake_color(n64_data)
 
         if not f3d_mat.rdp_settings.g_lighting:
             self.append_extension(gltf2_material, "KHR_materials_unlit")
@@ -635,29 +643,25 @@ class F3DExtensions(GlTF2SubExtension):
         blender_material: Material,
         gltf,
     ):
-        data = self.get_extension(gltf_material, MATERIAL_EXTENSION_NAME)
-        if data is None:
+        n64_data = self.get_extension(gltf_material, MATERIAL_EXTENSION_NAME)
+        if n64_data is None:
             return
 
         try:
             blender_material.f3d_update_flag = True
 
             f3d_mat: F3DMaterialProperty = blender_material.f3d_mat
-            f3d_mat.combiner_from_dict(data.get("combiner", {}))
-            f3d_mat.f3d_colors_from_dict(data)
-            f3d_mat.rdp_settings.from_dict(data)
-            f3d_mat.extra_texture_settings_from_dict(data)
+            rdp: RDPSettings = f3d_mat.rdp_settings
+            f3d_mat.combiner_from_dict(n64_data.get("combiner", {}))
+            f3d_mat.n64_colors_from_dict(n64_data)
+            other_modes = n64_data.get("otherModes", {})
+            rdp.other_mode_h_from_dict(other_modes)
+            rdp.other_mode_l_from_dict(other_modes)
+            rdp.prim_depth.from_dict(n64_data.get("primDepth", {}))
+            f3d_mat.extra_texture_settings_from_dict(n64_data)
+            rdp.num_textures_mipmapped = n64_data.get("mipmapCount", 2)
 
-            ex1_data = data.get("extensions", {}).get(EX1_MATERIAL_EXTENSION_NAME, None)
-            if ex1_data is not None:  # F3DLX
-                f3d_mat.rdp_settings.f3dex1_geo_mode_from_dict(ex1_data.get("geometryMode", {}))
-
-            ex3_data = data.get("extensions", {}).get(EX3_MATERIAL_EXTENSION_NAME, None)
-            if ex3_data is not None:  # F3DEX3
-                f3d_mat.rdp_settings.f3dex3_geo_mode_from_dict(ex3_data.get("geometryMode", {}))
-                f3d_mat.f3dex3_colors_from_dict(ex3_data)
-
-            for num, tex_info in data.get("textures", {}).items():
+            for num, tex_info in n64_data.get("textures", {}).items():
                 index = tex_info["index"]
                 self.print_verbose(f"Importing F3D texture {index}")
                 gltf2_texture = gltf.data.textures[index]
@@ -667,6 +671,21 @@ class F3DExtensions(GlTF2SubExtension):
                     self.gltf2_to_f3d_texture(gltf2_texture, gltf, f3d_mat.tex1)
                 else:
                     raise PluginError("Fast64 currently only supports the first two textures")
+
+            f3d_data = n64_data.get("extensions", {}).get(F3D_MATERIAL_EXTENSION_NAME, None)
+            if f3d_data:
+                rdp.clip_ratio = f3d_data.get("clipRatio", 2)
+                f3d_mat.f3d_colors_from_dict(f3d_data)
+                rdp.f3d_geo_mode_from_dict(f3d_data.get("geometryMode", []))
+
+                ex1_data = f3d_data.get("extensions", {}).get(EX1_MATERIAL_EXTENSION_NAME, None)
+                if ex1_data is not None:  # F3DLX
+                    f3d_mat.rdp_settings.f3dex1_geo_mode_from_dict(ex1_data.get("geometryMode", {}))
+
+                ex3_data = f3d_data.get("extensions", {}).get(EX3_MATERIAL_EXTENSION_NAME, None)
+                if ex3_data is not None:  # F3DEX3
+                    f3d_mat.rdp_settings.f3dex3_geo_mode_from_dict(ex3_data.get("geometryMode", {}))
+                    f3d_mat.f3dex3_colors_from_dict(ex3_data)
         except Exception as exc:
             raise Exception(  # pylint: disable=broad-exception-raised
                 f"Failed to import fast64 extension data:\n{str(exc)}",
@@ -698,10 +717,11 @@ class F3DExtensions(GlTF2SubExtension):
             blender_object.use_f3d_culling = new_data.get("use_culling", True)
 
 
-MATERIAL_EXTENSION_NAME = "FAST64_materials_f3d"
+MATERIAL_EXTENSION_NAME = "FAST64_materials_n64"
+F3D_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3d"
 EX1_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3dlx"
 EX3_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3dex3"
-SAMPLER_EXTENSION_NAME = "FAST64_sampler_f3d"
+SAMPLER_EXTENSION_NAME = "FAST64_sampler_n64"
 MESH_EXTENSION_NAME = "FAST64_mesh_f3d"
 NEW_MESH_EXTENSION_NAME = "FAST64_mesh_f3d_new"
 
@@ -784,7 +804,7 @@ class F3DGlTFSettings(PropertyGroup):
             if not scene.f3d_type:
                 col.box().label(text="No microcode selected", icon="ERROR")
             gbi = get_F3D_GBI()
-        extensions = [MATERIAL_EXTENSION_NAME, SAMPLER_EXTENSION_NAME, MESH_EXTENSION_NAME]
+        extensions = [MATERIAL_EXTENSION_NAME, SAMPLER_EXTENSION_NAME, MESH_EXTENSION_NAME, F3D_MATERIAL_EXTENSION_NAME]
         if import_context or gbi.F3DEX_GBI:
             extensions.append(EX1_MATERIAL_EXTENSION_NAME)
         if import_context or gbi.F3DEX_GBI_3:

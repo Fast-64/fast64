@@ -1,16 +1,18 @@
 ## Extension Index:
 
-- F3D (General F3D properties)
-  - [F3D (FAST64_materials_f3d)](#FAST64_materials_f3d)
-  - [F3D (FAST64_sampler_f3d)](#FAST64_sampler_f3d)
-  - [F3D (FAST64_mesh_f3d)](#FAST64_mesh_f3d)
-- [F3DLX (FAST64_materials_f3dlx)](#FAST64_materials_f3dlx)
-- [F3DEX3 (FAST64_materials_f3dex3)](#FAST64_materials_f3dex3)
-- [F3DEX and up (FAST64_mesh_f3d_new)](#FAST64_mesh_f3d_new)
+- [N64 Material (FAST64_materials_n64](#FAST64_materials_n64)
+- [N64 Sampler (FAST64_sampler_n64)](#FAST64_sampler_n64)
+- F3D
+  - [F3D Material Properties (FAST64_materials_f3d)](#FAST64_materials_f3d)
+  - [F3D Mesh Properties (FAST64_mesh_f3d)](#FAST64_mesh_f3d)
+  - Revisions
+    - [F3DLX Material Properties (FAST64_materials_f3dlx)](#FAST64_materials_f3dlx)
+    - [F3DEX3 Material Properties (FAST64_materials_f3dex3)](#FAST64_materials_f3dex3)
+    - [F3DEX and up Mesh Properties (FAST64_mesh_f3d_new)](#FAST64_mesh_f3d_new)
 
 ---
 
-<h1 id="FAST64_materials_f3d">FAST64_materials_f3d</h1>
+<h1 id="FAST64_materials_n64">FAST64_materials_n64</h1>
 
 ## Contributors
 
@@ -26,14 +28,15 @@ Written against the glTF 2.0 spec.
 
 ## Overview
 
-This extension implements a representation of fast64 material data, which itself is an abstraction of the F3D microcode, properties from other revisions are implemented in seperate extensions:
+This extension implements a representation of fast64 material data, which itself is an abstraction of the n64's basic rendering properties, properties in individual microcodes are implemented in seperate extensions:
 
-- [F3DLX](#FAST64_materials_f3dlx)
-- [F3DEX3](#FAST64_materials_f3dex3)
+- [F3D](#FAST64_materials_f3d)
+  - [F3DLX](#FAST64_materials_f3dlx)
+  - [F3DEX3](#FAST64_materials_f3dex3)
 
 ### JSON Schema
 
-- [material.FAST64_materials_f3d.schema.json](schema/FAST64_materials_f3d.schema.json)
+- [material.FAST64_materials_n64.schema.json](schema/FAST64_materials_n64.schema.json)
 
 ## Known Implementations
 
@@ -45,7 +48,7 @@ This extension implements a representation of fast64 material data, which itself
 
 ---
 
-<h1 id="FAST64_sampler_f3d">FAST64_sampler_f3d</h1>
+<h1 id="FAST64_sampler_n64">FAST64_sampler_n64</h1>
 
 ## Contributors
 
@@ -65,7 +68,7 @@ This extension implements a representation of how individual textures are sample
 
 ### JSON Schema
 
-- [material.FAST64_sampler_f3d.schema.json](schema/FAST64_sampler_f3d.schema.json)
+- [material.FAST64_sampler_n64.schema.json](schema/FAST64_sampler_n64.schema.json)
 
 ## Known Implementations
 
@@ -75,6 +78,41 @@ This extension implements a representation of how individual textures are sample
 
 * TODO: Add more resources here
 * [Texture Mapping Documentation](https://ultra64.ca/files/documentation/online-manuals/man/pro-man/pro13/index.html)
+
+---
+
+<h1 id="FAST64_materials_f3d">FAST64_materials_f3d</h1>
+
+## Contributors
+
+* [@Lilaa3](https://github.com/Lilaa3)
+
+## Status
+
+Draft
+
+## Dependencies
+
+Extension of [FAST64_materials_n64](#FAST64_materials_n64)
+
+## Overview
+
+This extension implements an abstraction of F3D material features, properties from other revisions are implemented in seperate extensions:
+
+- [F3DLX](#FAST64_materials_f3dlx)
+- [F3DEX3](#FAST64_materials_f3dex3)
+
+### JSON Schema
+
+- [material.FAST64_materials_f3d.schema.json](schema/FAST64_materials_f3d.schema.json)
+
+## Known Implementations
+
+* No current implementations
+
+## Resources
+
+* [Latest N64 Documentation](https://ultra64.ca/files/documentation/online-manuals/man-v5-2/allman52/)
 
 ---
 
@@ -120,7 +158,7 @@ Draft
 
 ## Dependencies
 
-Extension of FAST64_materials_f3d
+Extension of [FAST64_materials_f3d](#FAST64_materials_f3d)
 
 ## Overview
 
@@ -152,7 +190,7 @@ Draft
 
 ## Dependencies
 
-Extension of FAST64_materials_f3d
+Extension of [FAST64_materials_f3d](#FAST64_materials_f3d)
 
 ## Overview
 
@@ -184,7 +222,7 @@ Draft
 
 ## Dependencies
 
-Written against the glTF 2.0 spec.
+Extension of [FAST64_mesh_f3d](#FAST64_mesh_f3d)
 
 ## Overview
 

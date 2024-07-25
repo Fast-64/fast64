@@ -158,7 +158,7 @@ F3D_GEO_MODES = {
     "lighting": "g_lighting",
     "texGen": "g_tex_gen",
     "texGenLinear": "g_tex_gen_linear",
-    "lod": "g_lod",
+    "loD": "g_lod",
     "shadeSmooth": "g_shade_smooth",
 }
 
@@ -3697,7 +3697,6 @@ class RDPSettings(PropertyGroup):
         c_prefix_len, a_prefix_len = len(c_prefix), len(a_prefix)
 
         self.attributes_from_dict(data, self.other_mode_l_attributes)
-        self.prim_depth.from_dict(data.get("primDepth", {}))
 
         render_mode = data.get("renderMode", {})
         blender = render_mode.get("blender", [])
@@ -3730,9 +3729,9 @@ class RDPSettings(PropertyGroup):
 
     def other_to_dict(self):
         data = {}
-        if self.clip_ratio != 1.0:
+        if self.clip_ratio != 2:
             data["clipRatio"] = self.clip_ratio
-        if self.g_mdsft_textlod == "G_TL_LOD" and self.num_textures_mipmapped != 1:
+        if self.g_mdsft_textlod == "G_TL_LOD":
             data["mipmapCount"] = self.num_textures_mipmapped
         return data
 
@@ -3745,6 +3744,8 @@ class RDPSettings(PropertyGroup):
         data["geometryMode"] = self.geo_mode_to_dict()
         data["otherModeH"] = self.other_mode_h_to_dict()
         data["otherModeL"] = self.other_mode_l_to_dict()
+        if self.g_mdsft_zsrcsel == "G_ZS_PRIM":
+            data["primDepth"] = self.prim_depth.to_dict()
         data["other"] = self.other_to_dict()
         return data
 
@@ -3752,6 +3753,7 @@ class RDPSettings(PropertyGroup):
         self.geo_mode_from_dict(data.get("geometryMode", {}))
         self.other_mode_h_from_dict(data.get("otherModeH", {}))
         self.other_mode_l_from_dict(data.get("otherModeL", {}))
+        self.prim_depth.from_dict(data.get("primDepth", {}))
         self.other_from_dict(data.get("other", {}))
 
     def key(self):
@@ -4713,6 +4715,17 @@ class F3DMaterialProperty(PropertyGroup):
 
     def f3d_colors_to_dict(self, use_dict: dict[str]):
         data = {}
+        if self.rdp_settings.g_lighting and self.rdp_settings.g_shade and use_dict["Shade"]:
+            data["lights"] = {"set": self.set_lights, **self.lights_to_dict(use_dict)}
+        return data
+
+    def f3d_colors_from_dict(self, data: dict):
+        lighting = data.get("lights", {})
+        self.set_lights = lighting.get("set", self.set_lights)
+        self.lights_from_dict(lighting)
+
+    def n64_colors_to_dict(self, use_dict: dict[str]):
+        data = {}
         if use_dict["Environment"]:
             data["environment"] = {
                 "set": self.set_env,
@@ -4741,19 +4754,17 @@ class F3DMaterialProperty(PropertyGroup):
         rdp = self.rdp_settings
         if rdp.using_fog:
             data["fog"] = {
-                "set": self.set_fog,
+                "set": self.set_fog,  # TODO: get sm64 area fog improvements merged then update this
                 "color": get_clean_color(self.fog_color, include_alpha=True),
                 "range": list(self.fog_position),
             }
-        if rdp.g_lighting and rdp.g_shade and use_dict["Shade"]:
-            data["lights"] = {"set": self.set_lights, **self.lights_to_dict(use_dict)}
         data["blend"] = {
             "set": self.set_blend,
             "color": get_clean_color(self.blend_color, include_alpha=True),
         }
         return data
 
-    def f3d_colors_from_dict(self, data: dict):
+    def n64_colors_from_dict(self, data: dict):
         enviroment = data.get("environment", {})
         self.set_env = enviroment.get("set", self.set_env)
         if "color" in enviroment:
@@ -4788,13 +4799,10 @@ class F3DMaterialProperty(PropertyGroup):
         self.set_blend = blend.get("set", self.set_blend)
         if "color" in blend:
             self.blend_color = blend.get("color")
-        lighting = data.get("lights", {})
-        self.set_lights = lighting.get("set", self.set_lights)
-        self.lights_from_dict(lighting)
 
     def colors_to_dict(self, f3d, use_dict: dict[str]):
         f3d = f3d if f3d else get_F3D_GBI()
-        data = {self.f3d_colors_to_dict(use_dict)}
+        data = {**self.n64_colors_to_dict(use_dict), **self.f3d_colors_to_dict(use_dict)}
         if f3d.F3DEX_GBI_3:
             data.update(self.f3dex3_colors_to_dict(f3d))
 
@@ -4805,7 +4813,7 @@ class F3DMaterialProperty(PropertyGroup):
     def extra_texture_settings_to_dict(self):
         data = {}
         if not self.scale_autoprop:
-            data["scale"] = [round(value, 4) for value in self.tex_scale]
+            data["textureScale"] = [round(value, 4) for value in self.tex_scale]
         if self.use_large_textures:
             data["largeTextureMode"] = {"edges": self.large_edges.upper()}
         uv_basis = self.get_uv_basis()
@@ -4814,7 +4822,7 @@ class F3DMaterialProperty(PropertyGroup):
         return data
 
     def extra_texture_settings_from_dict(self, data):
-        self.tex_scale = data.get("scale", self.tex_scale)
+        self.tex_scale = data.get("textureScale", self.tex_scale)
         large_mode = data.get("largeTextureMode", {})
         self.use_large_textures = bool(large_mode)
         self.large_edges = large_mode.get("edges", self.large_edges.upper()).lower().capitalize()

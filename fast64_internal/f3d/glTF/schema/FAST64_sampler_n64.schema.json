@@ -1,6 +1,6 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema",
-    "title": "FAST64_sampler_f3d glTF Sampler Extension",
+    "title": "FAST64_sampler_n64 glTF Sampler Extension",
     "type": "object",
     "description": "glTF extension that provides a representation of fast64 F3D texture samplers.",
     "allOf": [
