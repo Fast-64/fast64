@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
@@ -126,7 +126,7 @@ class Room:
         cmdListData.source = (
             (f"{listName}[]" + " = {\n")
             + (Utility.getAltHeaderListCmd(self.altHeader.name) if hasAltHeaders else "")
-            + self.roomShape.get_cmd()
+            + self.roomShape.get_cmds()
             + curHeader.infos.getCmds()
             + (curHeader.objects.getCmd() if len(curHeader.objects.objectList) > 0 else "")
             + (curHeader.actors.getCmd() if len(curHeader.actors.actorList) > 0 else "")

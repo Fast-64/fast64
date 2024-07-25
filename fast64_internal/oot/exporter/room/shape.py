@@ -9,6 +9,7 @@ import bpy, shutil, os
 from ..utility import Utility
 from bpy.types import Object
 from mathutils import Matrix, Vector
+from ....f3d.occlusion_planes.exporter import addOcclusionQuads, OcclusionPlaneCandidatesList
 
 from ...oot_utility import (
     CullGroup,
@@ -74,6 +75,13 @@ class RoomShape:  # previously OOTRoomMesh
     """Name of RoomShapeDListsEntry list"""
 
     dl_entries: list[RoomShapeDListsEntry] = field(init=False, default_factory=list)
+    """List of DL entries"""
+
+    occlusion_planes: OcclusionPlaneCandidatesList = field(init=False)
+    """F3DEX3 occlusion planes"""
+
+    def __post_init__(self):
+        self.occlusion_planes = OcclusionPlaneCandidatesList(self.name)
 
     def to_c_dl_entries(self):
         """Converts list of dl entries to c. This is usually appended to end of CData in to_c()."""
@@ -119,10 +127,18 @@ class RoomShape:  # previously OOTRoomMesh
         for entry in self.dl_entries:
             entry.terminate_dls()
 
-    def get_cmd(self) -> str:
-        """Returns the room shape room command"""
+    def get_occlusion_planes_cmd(self):
+        return (
+            indent
+            + f"SCENE_CMD_OCCLUSION_PLANE_CANDIDATES_LIST({len(self.occlusion_planes.planes)}, {self.occlusion_planes.name}),\n"
+        )
 
-        return indent + f"SCENE_CMD_ROOM_SHAPE(&{self.name}),\n"
+    def get_cmds(self) -> str:
+        """Returns the room shape room commands"""
+        cmds = indent + f"SCENE_CMD_ROOM_SHAPE(&{self.name}),\n"
+        if len(self.occlusion_planes.planes) > 0:
+            cmds += self.get_occlusion_planes_cmd()
+        return cmds
 
     def copy_bg_images(self, export_path: str):
         return  # by default, do nothing
@@ -156,6 +172,7 @@ class RoomShapeNormal(RoomShape):
             + "\n};\n\n"
         )
 
+        info_data.append(self.occlusion_planes.to_c())
         info_data.append(self.to_c_dl_entries())
 
         return info_data
@@ -336,6 +353,7 @@ class RoomShapeImageSingle(RoomShapeImageBase):
             + f"\n}};\n\n"
         )
 
+        info_data.append(self.occlusion_planes.to_c())
         info_data.append(self.to_c_dl_entries())
 
         return info_data
@@ -393,6 +411,7 @@ class RoomShapeImageMulti(RoomShapeImageBase):
             + ",\n};\n\n"
         )
 
+        info_data.append(self.occlusion_planes.to_c())
         info_data.append(self.to_c_bg_entries())
         info_data.append(self.to_c_dl_entries())
 
@@ -481,6 +500,7 @@ class RoomShapeCullable(RoomShape):
             + "\n};\n\n"
         )
 
+        info_data.append(self.occlusion_planes.to_c())
         info_data.append(self.to_c_dl_entries())
 
         return info_data
@@ -536,6 +556,9 @@ class RoomShapeUtility:
         )
         if isinstance(dl_entry, RoomShapeCullableEntry):
             dl_entry.bounds_sphere_center, dl_entry.bounds_sphere_radius = boundingBox.getEnclosingSphere()
+
+        if bpy.context.scene.f3d_type == "F3DEX3":
+            addOcclusionQuads(roomObj, room_shape.occlusion_planes, True, transform @ sceneObj.matrix_world.inverted())
 
         room_shape.terminate_dls()
         room_shape.remove_unused_entries()
