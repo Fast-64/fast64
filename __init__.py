@@ -323,11 +323,12 @@ def upgrade_changed_props():
             del scene["decomp_compatible"]
 
         settings = scene.fast64.renderSettings
-        if hasattr(settings, "lightColor"):
-            settings.light0Color = settings.lightColor
-            del settings.lightColor
-            settings.light0Direction = settings.lightDirection
-            del settings.lightDirection
+        light0Color = settings.pop("lightColor", None)
+        if light0Color is not None:
+            settings.light0Color = light0Color
+        light0Direction = settings.pop("lightDirection", None)
+        if light0Direction is not None:
+            settings.light0Direction = light0Direction
 
 
 def upgrade_scene_props_node():
