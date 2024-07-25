@@ -125,7 +125,7 @@ class SceneExport:
 
         sceneFile.write()
         for room in scene.rooms.entries:
-            room.mesh.copyBgImages(path)
+            room.roomShape.copy_bg_images(path)
 
         if not isCustomExport:
             Files.add_scene_edits(exportInfo, scene, sceneFile)

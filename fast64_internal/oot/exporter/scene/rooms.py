@@ -52,6 +52,10 @@ class RoomEntries:
                 saveTexturesAsPNG,
             )
 
+        for i in range(min(roomDict.keys()), len(roomDict)):
+            if i not in roomDict:
+                raise PluginError(f"Room indices are not consecutive. Missing room index: {i}")
+
         return RoomEntries(name, [roomDict[i] for i in range(min(roomDict.keys()), len(roomDict))])
 
     def getCmd(self):
