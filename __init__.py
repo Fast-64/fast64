@@ -322,6 +322,13 @@ def upgrade_changed_props():
             scene.gameEditorMode = "Homebrew"
             del scene["decomp_compatible"]
 
+        settings = scene.fast64.renderSettings
+        if hasattr(settings, "lightColor"):
+            settings.light0Color = settings.lightColor
+            del settings.lightColor
+            settings.light0Direction = settings.lightDirection
+            del settings.lightDirection
+
 
 def upgrade_scene_props_node():
     """update f3d materials with SceneProperties node"""

@@ -215,7 +215,7 @@ class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
         size=4,
         min=0,
         max=1,
-        default=(0, 0, 1, 1),
+        default=(0, 0, 0, 1),
         update=on_update_render_preview_nodes,
     )
     light1Direction: bpy.props.FloatVectorProperty(
