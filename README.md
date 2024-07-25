@@ -48,7 +48,7 @@ There may occur cases where code is formatted differently based on the code use 
 ### glTF 2.0 Support
 Fast64 supports several extensions for glTF 2.0 that can be exported and imported via the glTF 2.0 io addon integrated in blender via hooks. It also implements hacks for broken versions of the addon.
 
-Currently only basic F3D data is supported, but extensions for game modes like SM64 and OOT can be added in the future.
+Currently only basic n64 material properties and F3D properties are supported, but extensions for game modes like SM64 and OOT can be added in the future.
 See the [F3D glTF README](/fast64_internal/f3d/glTF/README.md) for details and schemas.
 
 ### Converting To F3D v5 Materials

@@ -3701,10 +3701,8 @@ class RDPSettings(PropertyGroup):
         render_mode = data.get("renderMode", {})
         blender = render_mode.get("blender", [])
         flags = render_mode.get("flags", {})
-        if render_mode:
-            self.set_rendermode = True
-        if not render_mode.get("presets", None) and (flags or blender):
-            self.rendermode_advanced_enabled = True
+        self.set_rendermode = bool(render_mode)
+        self.rendermode_advanced_enabled = bool(blender or flags)
 
         presets = render_mode.get("presets", [])
         if len(presets) >= 1:
@@ -3713,15 +3711,19 @@ class RDPSettings(PropertyGroup):
             self.rendermode_preset_cycle_2 = presets[1]
 
         self.attributes_from_dict(flags, self.rendermode_flag_attributes)
+
         color_attrs = ("blend_p", "blend_m")
         alpha_attrs = ("blend_a", "blend_b")
-        for i, cycle in enumerate(blender * 2 if len(blender) == 1 else blender):
+        blender = blender[:2] if len(blender) > 1 else blender * 2
+        for i, cycle in enumerate(blender):
             num = str(i + 1)
             c_attrs, a_attrs = (f"blend_p{num}", f"blend_m{num}"), (f"blend_a{num}", f"blend_b{num}")
             colors = cycle.get("color", [getattr(self, c_attrs[0]), getattr(self, c_attrs[1])])
-            colors = [c_prefix + (c[c_prefix_len:] if c.startswith(c_prefix) else c) for c in colors]
             alphas = cycle.get("alpha", [getattr(self, a_attrs[0]), getattr(self, a_attrs[1])])
-            alphas = [a_prefix + (a[a_prefix_len:] if a.startswith(a_prefix) else a) for a in alphas]
+
+            # Add back prefix if not there
+            colors = [(c_prefix + c) if not c.startswith(c_prefix) else c for c in colors]
+            alphas = [(a_prefix + a) if not a.startswith(a_prefix) else a for a in alphas]
             setattr(self, c_attrs[0], colors[0])
             setattr(self, c_attrs[1], colors[1])
             setattr(self, a_attrs[0], alphas[0])
