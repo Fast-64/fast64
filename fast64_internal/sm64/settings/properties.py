@@ -20,11 +20,12 @@ from .constants import (
 
 
 def decomp_path_update(self, context: Context):
-    fast64_settings = context.scene.fast64.settings
-    if fast64_settings.repo_settings_path:
-        return
-    directory_path_checks(abspath(self.decomp_path))
-    fast64_settings.repo_settings_path = os.path.join(abspath(self.decomp_path), "fast64.json")
+    if context.scene.gameEditorMode == "SM64":
+        fast64_settings = context.scene.fast64.settings
+        if fast64_settings.repo_settings_path:
+            return
+        directory_path_checks(abspath(self.decomp_path))
+        fast64_settings.repo_settings_path = os.path.join(abspath(self.decomp_path), "fast64.json")
 
 
 class SM64_Properties(PropertyGroup):
