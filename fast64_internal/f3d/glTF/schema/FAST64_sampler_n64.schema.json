@@ -25,6 +25,7 @@
                         "RGBA",
                         "YUV"
                     ],
+                    "description": "The texture format, CI and YUV rely on other modes textureConvert and textureLUT",
                     "default": "RGBA"
                 },
                 "size": {

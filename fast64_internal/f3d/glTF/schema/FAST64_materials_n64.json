@@ -381,6 +381,16 @@
                         "LOD"
                     ]
                 },
+                "textureLUT": {
+                    "type": "string",
+                    "description": "Changes texture look up table (LUT) behavior. This property is auto set by fast64",
+                    "default": "NONE",
+                    "enum": [
+                        "NONE",
+                        "RGBA16",
+                        "IA16"
+                    ]
+                },
                 "textureDetail": {
                     "type": "string",
                     "description": "Changes type of LoD usage. Affects how tiles are selected based on texel magnification. Only works when G_TL_LOD is selected",

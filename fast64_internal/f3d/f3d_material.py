@@ -3632,7 +3632,7 @@ class RDPSettings(PropertyGroup):
         ("chromaKey", "g_mdsft_combkey", "G_CK_NONE", "G_CK_"),
         ("textureConvert", "g_mdsft_textconv", "G_TC_CONV", "G_TC_"),
         ("textureFilter", "g_mdsft_text_filt", "G_TF_POINT", "G_TF_"),
-        # ("lutFormat", "g_mdsft_textlut", "G_TT_NONE", "G_TT_")
+        # ("lutFormat", "g_mdsft_textlut", "G_TT_NONE", "G_TT_") # TODO: Get tlut changes pr merged before glTF
         ("textureLoD", "g_mdsft_textlod", "G_TL_TILE", "G_TL_"),
         ("textureDetail", "g_mdsft_textdetail", "G_TD_CLAMP", "G_TD_"),
         ("perspectiveCorrection", "g_mdsft_textpersp", "G_TP_NONE", "G_TP_"),

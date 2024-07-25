@@ -44,7 +44,7 @@ This extension implements a representation of the n64's basic rendering properti
 
 ## Resources
 
-* [Latest N64 Documentation](https://ultra64.ca/files/documentation/online-manuals/man-v5-2/allman52/)
+* [RDP Command Documentation](https://n64brew.dev/wiki/Reality_Display_Processor/Commands)
 
 ---
 
@@ -76,8 +76,8 @@ This extension implements a representation of how individual textures are sample
 
 ## Resources
 
-* TODO: Add more resources here
 * [Texture Mapping Documentation](https://ultra64.ca/files/documentation/online-manuals/man/pro-man/pro13/index.html)
+* [Load Tile RDP Command Documentation](https://n64brew.dev/wiki/Reality_Display_Processor/Commands#0x35_-_Set_Tile)
 
 ---
 
