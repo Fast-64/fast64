@@ -14,6 +14,7 @@ from ..utility import (
     all_values_equal_x,
     checkIsSM64PreInlineGeoLayout,
     prop_split,
+    upgrade_old_prop,
 )
 
 from .sm64_constants import (
@@ -1715,12 +1716,8 @@ class SM64_GeoASMProperties(bpy.types.PropertyGroup):
     @staticmethod
     def upgrade_object(obj: bpy.types.Object):
         geo_asm = obj.fast64.sm64.geo_asm
-
-        func = obj.get("geoASMFunc") or obj.get("geo_func") or geo_asm.func
-        geo_asm.func = func
-
-        param = obj.get("geoASMParam") or obj.get("func_param") or geo_asm.param
-        geo_asm.param = str(param)
+        upgrade_old_prop(geo_asm, "func", obj, {"geoASMFunc", "geo_func"})
+        upgrade_old_prop(geo_asm, "param", obj, {"geoASMParam", "func_param"})
 
 
 class SM64_AreaProperties(bpy.types.PropertyGroup):
@@ -1771,11 +1768,7 @@ class SM64_GameObjectProperties(bpy.types.PropertyGroup):
     def upgrade_object(obj):
         game_object: SM64_GameObjectProperties = obj.fast64.sm64.game_object
 
-        game_object.bparams = obj.get("sm64_obj_bparam", game_object.bparams)
-
-        # delete legacy property
-        if "sm64_obj_bparam" in obj:
-            del obj["sm64_obj_bparam"]
+        upgrade_old_prop(game_object, "bparams", obj, "sm64_obj_bparam")
 
         # get combined bparams, if they arent the default value then return because they have been set
         combined_bparams = game_object.get_combined_bparams()

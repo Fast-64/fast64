@@ -1,4 +1,4 @@
-from bpy.types import Operator, Mesh
+from bpy.types import Operator
 from bpy.utils import register_class, unregister_class
 from bpy.ops import object
 from mathutils import Matrix

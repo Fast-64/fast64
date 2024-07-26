@@ -414,18 +414,20 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             icon="TRIA_DOWN" if dataHolder.menu_geo else "TRIA_RIGHT",
         )
     if not useDropdown or dataHolder.menu_geo:
+        disable_dependent = False  # Don't disable dependent props in world defaults
 
         def indentGroup(parent: UILayout, textOrProp: Union[str, "F3DMaterialProperty"], isText: bool) -> UILayout:
             c = parent.column(align=True)
             if isText:
                 c.label(text=textOrProp)
+                enable = True
             else:
                 c.prop(settings, textOrProp)
-                if not getattr(settings, textOrProp):
-                    return None
+                enable = getattr(settings, textOrProp)
             c = c.split(factor=0.1)
             c.label(text="")
             c = c.column(align=True)
+            c.enabled = enable or not disable_dependent
             return c
 
         isF3DEX3 = bpy.context.scene.f3d_type == "F3DEX3"
@@ -436,6 +438,7 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             ccWarnings = True
             ccUse = all_combiner_uses(dataHolder)
             shadeInCC = ccUse["Shade"] or ccUse["Shade Alpha"]
+            disable_dependent = True
             if settings.set_rendermode:
                 blendWarnings = True
                 shadeInBlender = settings.does_blender_use_input("G_BL_A_SHADE")
@@ -444,16 +447,15 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
         inputGroup.prop(settings, "g_shade_smooth")
 
         c = indentGroup(inputGroup, "g_lighting", False)
-        if c is not None:
-            if ccWarnings and not shadeInCC and not settings.g_tex_gen:
-                c.label(text="Shade not used in CC, can disable lighting.", icon="INFO")
-            if isF3DEX3:
-                c.prop(settings, "g_packed_normals")
-                c.prop(settings, "g_lighting_specular")
-                c.prop(settings, "g_ambocclusion")
-            d = indentGroup(c, "g_tex_gen", False)
-            if d is not None:
-                d.prop(settings, "g_tex_gen_linear")
+        if ccWarnings and not shadeInCC and settings.g_lighting and not settings.g_tex_gen:
+            multilineLabel(c, "Shade not used in CC, can disable\nlighting.", icon="INFO")
+        if isF3DEX3:
+            c.prop(settings, "g_packed_normals")
+            c.prop(settings, "g_lighting_specular")
+            c.prop(settings, "g_ambocclusion")
+            c.prop(settings, "g_fresnel_color")
+        d = indentGroup(c, "g_tex_gen", False)
+        d.prop(settings, "g_tex_gen_linear")
 
         if lightFxPrereq and settings.g_fresnel_color:
             shadeColorLabel = "Fresnel"
@@ -463,11 +465,7 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             shadeColorLabel = "Lighting * vertex color"
         else:
             shadeColorLabel = "Lighting"
-        if lightFxPrereq:
-            c = indentGroup(inputGroup, f"Shade color = {shadeColorLabel}:", True)
-            c.prop(settings, "g_fresnel_color")
-        else:
-            inputGroup.column().label(text=f"Shade color = {shadeColorLabel}")
+        inputGroup.label(text=f"Shade color = {shadeColorLabel}")
 
         shadowMapInShadeAlpha = False
         if settings.g_fog:
@@ -482,9 +480,11 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
         else:
             shadeAlphaLabel = "Vtx alpha"
         c = indentGroup(inputGroup, f"Shade alpha = {shadeAlphaLabel}:", True)
-        if lightFxPrereq:
-            c.prop(settings, "g_lighttoalpha")
-            c.prop(settings, "g_fresnel_alpha")
+        if isF3DEX3:
+            lighting_group = c.column(align=True)
+            lighting_group.enabled = settings.g_lighting or not disable_dependent
+            lighting_group.prop(settings, "g_lighttoalpha")
+            lighting_group.prop(settings, "g_fresnel_alpha")
         c.prop(settings, "g_fog")
         if lightFxPrereq and settings.g_fog and settings.g_fresnel_alpha:
             c.label(text="Fog overrides Fresnel Alpha.", icon="ERROR")
@@ -1751,7 +1751,7 @@ def update_node_values_of_material(material: Material, context):
 
     nodes = material.node_tree.nodes
 
-    if f3dMat.rdp_settings.g_tex_gen:
+    if f3dMat.rdp_settings.g_lighting and f3dMat.rdp_settings.g_tex_gen:
         if f3dMat.rdp_settings.g_tex_gen_linear:
             nodes["UV"].node_tree = bpy.data.node_groups["UV_EnvMap_Linear"]
         else:
@@ -2100,7 +2100,8 @@ def update_tex_values_manual(material: Material, context, prop_path=None):
     elif texture_settings.mute:
         texture_settings.mute = False
 
-    isTexGen = f3dMat.rdp_settings.g_tex_gen  # linear requires tex gen to be enabled as well
+    # linear requires tex gen to be enabled as well
+    isTexGen = f3dMat.rdp_settings.g_lighting and f3dMat.rdp_settings.g_tex_gen
 
     if f3dMat.scale_autoprop:
         if isTexGen:
@@ -4070,91 +4071,73 @@ class AddPresetF3D(AddPresetBase, Operator):
         return {"FINISHED"}
 
 
-def convertToNewMat(material, oldMat):
-    material.f3d_mat.presetName = oldMat.pop("presetName", "Custom")
-
-    material.f3d_mat.scale_autoprop = oldMat.pop("scale_autoprop", material.f3d_mat.scale_autoprop)
-    material.f3d_mat.uv_basis = oldMat.pop("uv_basis", material.f3d_mat.uv_basis)
-
-    # Combiners
-    recursiveCopyOldPropertyGroup(oldMat.pop("combiner1", {}), material.f3d_mat.combiner1)
-    recursiveCopyOldPropertyGroup(oldMat.pop("combiner2", {}), material.f3d_mat.combiner2)
-
-    # Texture animation
-    material.f3d_mat.menu_procAnim = oldMat.pop("menu_procAnim", material.f3d_mat.menu_procAnim)
-    recursiveCopyOldPropertyGroup(oldMat.pop("UVanim", {}), material.f3d_mat.UVanim0)
-    recursiveCopyOldPropertyGroup(oldMat.pop("UVanim_tex1", {}), material.f3d_mat.UVanim1)
-
-    # material textures
-    material.f3d_mat.tex_scale = oldMat.pop("tex_scale", material.f3d_mat.tex_scale)
-    recursiveCopyOldPropertyGroup(oldMat.pop("tex0", {}), material.f3d_mat.tex0)
-    recursiveCopyOldPropertyGroup(oldMat.pop("tex1", {}), material.f3d_mat.tex1)
-
-    # Should Set?
-    material.f3d_mat.set_prim = oldMat.pop("set_prim", material.f3d_mat.set_prim)
-    material.f3d_mat.set_lights = oldMat.pop("set_lights", material.f3d_mat.set_lights)
-    material.f3d_mat.set_env = oldMat.pop("set_env", material.f3d_mat.set_env)
-    material.f3d_mat.set_blend = oldMat.pop("set_blend", material.f3d_mat.set_blend)
-    material.f3d_mat.set_key = oldMat.pop("set_key", material.f3d_mat.set_key)
-    material.f3d_mat.set_k0_5 = oldMat.pop("set_k0_5", material.f3d_mat.set_k0_5)
-    material.f3d_mat.set_combiner = oldMat.pop("set_combiner", material.f3d_mat.set_combiner)
-    material.f3d_mat.use_default_lighting = oldMat.pop("use_default_lighting", material.f3d_mat.use_default_lighting)
+def convertToNewMat(material):
+    old_to_new_props = {
+        "presetName": "presetName",
+        "scale_autoprop": "scale_autoprop",
+        "uv_basis": "uv_basis",
+        "combiner1": "combiner1",
+        "combiner2": "combiner2",
+        "menu_procAnim": "menu_procAnim",
+        "UVanim0": "UVanim",
+        "UVanim1": "UVanim_tex1",
+        "tex_scale": "tex_scale",
+        "tex0": "tex0",
+        "tex1": "tex1",
+        "set_prim": "set_prim",
+        "set_lights": "set_lights",
+        "set_env": "set_env",
+        "set_blend": "set_blend",
+        "set_key": "set_key",
+        "set_k0_5": "set_k0_5",
+        "set_combiner": "set_combiner",
+        "use_default_lighting": "use_default_lighting",
+        "blend_color": "blend_color",
+        "key_scale": "key_scale",
+        "key_width": "key_width",
+        "k0": "k0",
+        "k1": "k1",
+        "k2": "k2",
+        "k3": "k3",
+        "k4": "k4",
+        "k5": "k5",
+        "prim_lod_frac": "prim_lod_frac",
+        "prim_lod_min": "prim_lod_min",
+        "default_light_color": "default_light_color",
+        "ambient_light_color": "ambient_light_color",
+        "fog_color": "fog_color",
+        "fog_position": "fog_position",
+        "set_fog": "set_fog",
+        "use_global_fog": "use_global_fog",
+        "menu_geo": "menu_geo",
+        "menu_upper": "menu_upper",
+        "menu_lower": "menu_lower",
+        "menu_other": "menu_other",
+        "menu_lower_render": "menu_lower_render",
+        "rdp_settings": "rdp_settings",
+    }
+    for new, old in old_to_new_props.items():
+        upgrade_old_prop(material.f3d_mat, new, material, old)
 
     # Colors
-    nodes = oldMat.node_tree.nodes
+    nodes = material.node_tree.nodes
 
-    if oldMat.mat_ver == 3:
+    if material.mat_ver == 3:
         prim = nodes["Primitive Color Output"].inputs[0].default_value
         env = nodes["Environment Color Output"].inputs[0].default_value
     else:
         prim = nodes["Primitive Color"].outputs[0].default_value
         env = nodes["Environment Color"].outputs[0].default_value
 
-    material.f3d_mat.blend_color = oldMat.pop("blend_color", material.f3d_mat.blend_color)
     material.f3d_mat.prim_color = prim
     material.f3d_mat.env_color = env
     if "Chroma Key Center" in nodes:
         material.f3d_mat.key_center = nodes["Chroma Key Center"].outputs[0].default_value
 
-    # Chroma
-    material.f3d_mat.key_scale = oldMat.pop("key_scale", material.f3d_mat.key_scale)
-    material.f3d_mat.key_width = oldMat.pop("key_width", material.f3d_mat.key_width)
-
-    # Convert
-    material.f3d_mat.k0 = oldMat.pop("k0", material.f3d_mat.k0)
-    material.f3d_mat.k1 = oldMat.pop("k1", material.f3d_mat.k1)
-    material.f3d_mat.k2 = oldMat.pop("k2", material.f3d_mat.k2)
-    material.f3d_mat.k3 = oldMat.pop("k3", material.f3d_mat.k3)
-    material.f3d_mat.k4 = oldMat.pop("k4", material.f3d_mat.k4)
-    material.f3d_mat.k5 = oldMat.pop("k5", material.f3d_mat.k5)
-
-    # Prim
-    material.f3d_mat.prim_lod_frac = oldMat.pop("prim_lod_frac", material.f3d_mat.prim_lod_frac)
-    material.f3d_mat.prim_lod_min = oldMat.pop("prim_lod_min", material.f3d_mat.prim_lod_min)
-
     # lights
-    material.f3d_mat.default_light_color = oldMat.pop("default_light_color", material.f3d_mat.default_light_color)
-    material.f3d_mat.ambient_light_color = oldMat.pop("ambient_light_color", material.f3d_mat.ambient_light_color)
     for i in range(1, 8):
-        old_light = oldMat.pop(f"f3d_light{str(i)}", None)
-        # can be a broken property with V1 materials (IDPropertyGroup), thankfully this isnt typical to see when upgrading but
-        # this method is safer
-        if type(old_light) is Light:
-            setattr(material.f3d_mat, f"f3d_light{str(i)}", old_light)
-
-    # Fog Properties
-    material.f3d_mat.fog_color = oldMat.pop("fog_color", material.f3d_mat.fog_color)
-    material.f3d_mat.fog_position = oldMat.pop("fog_position", material.f3d_mat.fog_position)
-    material.f3d_mat.set_fog = oldMat.pop("set_fog", material.f3d_mat.set_fog)
-    material.f3d_mat.use_global_fog = oldMat.pop("use_global_fog", material.f3d_mat.use_global_fog)
-
-    # geometry mode
-    material.f3d_mat.menu_geo = oldMat.pop("menu_geo", material.f3d_mat.menu_geo)
-    material.f3d_mat.menu_upper = oldMat.pop("menu_upper", material.f3d_mat.menu_upper)
-    material.f3d_mat.menu_lower = oldMat.pop("menu_lower", material.f3d_mat.menu_lower)
-    material.f3d_mat.menu_other = oldMat.pop("menu_other", material.f3d_mat.menu_other)
-    material.f3d_mat.menu_lower_render = oldMat.pop("menu_lower_render", material.f3d_mat.menu_lower_render)
-    recursiveCopyOldPropertyGroup(oldMat.pop("rdp_settings", {}), material.f3d_mat.rdp_settings)
+        light_attr = f"f3d_light{str(i)}"
+        upgrade_old_prop(material.f3d_mat, light_attr, material, light_attr)
 
 
 class F3DMaterialProperty(PropertyGroup):

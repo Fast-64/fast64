@@ -148,7 +148,7 @@ def convertF3DtoNewVersion(
         material.is_f3d, material.f3d_update_flag = False, True
         # Convert before node tree changes, as old materials store some values in the actual nodes
         if material.mat_ver <= 3:
-            convertToNewMat(material, material)
+            convertToNewMat(material)
 
         node_tree_copy(f3d_node_tree, material.node_tree)
 
