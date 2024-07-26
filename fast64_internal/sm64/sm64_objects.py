@@ -1487,8 +1487,8 @@ class BehaviorScriptProperty(bpy.types.PropertyGroup):
             return field, None
 
     def get_inherit_args(self, context, props):
-        if self.macro not in self._inheritable_macros:
-            return self.macro_args
+        assert self.macro in self._inheritable_macros
+
         if self.macro == "SET_MODEL":
             if not props.export_gfx:
                 raise PluginError("Can't inherit model without exporting gfx data")
