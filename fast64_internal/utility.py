@@ -1321,6 +1321,12 @@ def gammaCorrect(linearColor):
     return list(mathutils.Color(linearColor[:3]).from_scene_linear_to_srgb())
 
 
+def s_rgb_alpha_1_tuple(linearColor):
+    s_rgb = gammaCorrect(linearColor)
+    s_rgb.append(1.0)
+    return tuple(s for s in s_rgb)
+
+
 def gammaCorrectValue(linearValue):
     # doesn't need to use `colorToLuminance` since all values are the same
     return mathutils.Color((linearValue, linearValue, linearValue)).from_scene_linear_to_srgb().v
@@ -1687,14 +1693,14 @@ def ootGetBaseOrCustomLight(prop, idx, toExport: bool, errIfMissing: bool):
     # code without circular dependencies.
     assert idx in {0, 1}
     col = getattr(prop, "diffuse" + str(idx))
-    dir = (mathutils.Vector((1.0, 1.0, 1.0)) * (1.0 if idx == 0 else -1.0)).normalized()
+    dir = (mathutils.Vector((1.0, -1.0, 1.0)) * (1.0 if idx == 0 else -1.0)).normalized()
     if getattr(prop, "useCustomDiffuse" + str(idx)):
         light = getattr(prop, "diffuse" + str(idx) + "Custom")
         if light is None:
             if errIfMissing:
                 raise PluginError("Error: Diffuse " + str(idx) + " light object not set in a scene lighting property.")
         else:
-            col = light.color
+            col = tuple(c for c in light.color) + (1.0,)
             lightObj = lightDataToObj(light)
             dir = getObjDirectionVec(lightObj, toExport)
     col = mathutils.Vector(tuple(c for c in col))

@@ -39,6 +39,8 @@ from .f3d_material_helpers import F3DMaterial_UpdateLock, node_tree_copy
 from bpy.app.handlers import persistent
 from typing import Generator, Optional, Tuple, Any, Dict, Union
 
+F3D_MAT_CUR_VERSION = 6  # Increment this when changing the nodes
+
 F3DMaterialHash = Any  # giant tuple
 
 logging.basicConfig(format="%(asctime)s: %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p")
@@ -114,14 +116,14 @@ drawLayerOOTtoSM64 = {
 }
 
 drawLayerSM64Alpha = {
-    "0": "OPAQUE",
-    "1": "OPAQUE",
-    "2": "OPAQUE",
-    "3": "OPAQUE",
+    "0": "OPA",
+    "1": "OPA",
+    "2": "OPA",
+    "3": "OPA",
     "4": "CLIP",
-    "5": "BLEND",
-    "6": "BLEND",
-    "7": "BLEND",
+    "5": "XLU",
+    "6": "XLU",
+    "7": "XLU",
 }
 
 enumF3DMenu = [
@@ -270,7 +272,7 @@ def is_blender_doing_fog(settings: "RDPSettings", default_for_no_rendermode: boo
     )
 
 
-def get_blend_method(material: bpy.types.Material) -> str:
+def get_output_method(material: bpy.types.Material) -> str:
     settings = material.f3d_mat.rdp_settings
     if not settings.set_rendermode:
         return drawLayerSM64Alpha[material.f3d_mat.draw_layer.sm64]
@@ -279,14 +281,17 @@ def get_blend_method(material: bpy.types.Material) -> str:
     if settings.force_bl and is_blender_equation_equal(
         settings, -1, "G_BL_CLR_IN", "G_BL_A_IN", "G_BL_CLR_MEM", "G_BL_1MA"
     ):
-        return "BLEND"
-    return "OPAQUE"
+        return "XLU"
+    return "OPA"
 
 
 def update_blend_method(material: Material, context):
-    material.blend_method = get_blend_method(material)
-    if material.blend_method == "CLIP":
-        material.alpha_threshold = 0.125
+    if bpy.app.version >= (4, 2, 0):
+        material.surface_render_method = "BLENDED"
+    elif get_output_method(material) == "OPA":
+        material.blend_method = "OPAQUE"
+    else:
+        material.blend_method = "BLEND"
 
 
 class DrawLayerProperty(PropertyGroup):
@@ -1571,8 +1576,6 @@ def update_fog_nodes(material: Material, context: Context):
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
     shade_alpha_is_fog = material.f3d_mat.rdp_settings.g_fog
 
-    nodes["Shade Color"].inputs["Fog"].default_value = int(shade_alpha_is_fog)
-
     fogBlender: ShaderNodeGroup = nodes["FogBlender"]
     # if NOT setting rendermode, it is more likely that the user is setting
     # rendermodes in code, so to be safe we'll enable fog. Plus we are checking
@@ -1599,7 +1602,7 @@ def update_fog_nodes(material: Material, context: Context):
             remove_first_link_if_exists(material, nodes["CalcFog"].inputs["FogNear"].links)
             remove_first_link_if_exists(material, nodes["CalcFog"].inputs["FogFar"].links)
 
-        fogBlender.inputs["Fog Color"].default_value = f3dMat.fog_color
+        fogBlender.inputs["Fog Color"].default_value = s_rgb_alpha_1_tuple(f3dMat.fog_color)
         nodes["CalcFog"].inputs["FogNear"].default_value = f3dMat.fog_position[0]
         nodes["CalcFog"].inputs["FogFar"].default_value = f3dMat.fog_position[1]
 
@@ -1649,20 +1652,28 @@ def update_combiner_connections(material: Material, context: Context, combiner: 
 
 def set_output_node_groups(material: Material):
     nodes = material.node_tree.nodes
-    f3dMat: "F3DMaterialProperty" = material.f3d_mat
-    is_two_cycle = f3dMat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
-
     output_node = nodes["OUTPUT"]
-    if is_two_cycle:
-        if material.blend_method == "OPAQUE":
-            output_node.node_tree = bpy.data.node_groups["OUTPUT_2CYCLE_OPA"]
-        else:
-            output_node.node_tree = bpy.data.node_groups["OUTPUT_2CYCLE_XLU"]
-    else:
-        if material.blend_method == "OPAQUE":
-            output_node.node_tree = bpy.data.node_groups["OUTPUT_1CYCLE_OPA"]
-        else:
-            output_node.node_tree = bpy.data.node_groups["OUTPUT_1CYCLE_XLU"]
+    f3dMat: "F3DMaterialProperty" = material.f3d_mat
+    cycle = f3dMat.rdp_settings.g_mdsft_cycletype.lstrip("G_CYC_").rstrip("_CYCLE")
+    output_method = get_output_method(material)
+
+    output_group_name = f"OUTPUT_{cycle}CYCLE_{output_method}"
+    output_group = bpy.data.node_groups[output_group_name]
+    output_node.node_tree = output_group
+
+    for inp in output_node.inputs:
+        remove_first_link_if_exists(material, inp.links)
+    output_node.inputs["Cycle_C_1"].default_value = (0.0, 0.0, 0.0, 1.0)
+    output_node.inputs["Cycle_A_1"].default_value = 0.5
+    output_node.inputs["Cycle_C_2"].default_value = (0.0, 0.0, 0.0, 1.0)
+    output_node.inputs["Cycle_A_2"].default_value = 0.5
+    if output_method == "CLIP":
+        output_node.inputs["Alpha Threshold"].default_value = 0.125
+    material.node_tree.links.new(nodes["Cycle_1"].outputs["Color"], output_node.inputs["Cycle_C_1"])
+    material.node_tree.links.new(nodes["Cycle_1"].outputs["Alpha"], output_node.inputs["Cycle_A_1"])
+    material.node_tree.links.new(nodes["FogBlender"].outputs["Color"], output_node.inputs["Cycle_C_2"])
+    material.node_tree.links.new(nodes["Cycle_2"].outputs["Alpha"], output_node.inputs["Cycle_A_2"])
+    material.node_tree.links.new(output_node.outputs[0], nodes["Material Output F3D"].inputs[0])
 
 
 def update_light_colors(material, context):
@@ -1680,43 +1691,33 @@ def update_light_colors(material, context):
         f3dMat.ambient_light_color = new_amb
 
     if f3dMat.set_lights:
-        remove_first_link_if_exists(material, nodes["Shade Color"].inputs["Shade Color"].links)
-        remove_first_link_if_exists(material, nodes["Shade Color"].inputs["Ambient Color"].links)
+        remove_first_link_if_exists(material, nodes["Shade Color"].inputs["AmbientColor"].links)
+        remove_first_link_if_exists(material, nodes["Shade Color"].inputs["Light0Color"].links)
+        remove_first_link_if_exists(material, nodes["Shade Color"].inputs["Light1Color"].links)
 
         # TODO: feature to toggle gamma correction
-        light = f3dMat.default_light_color
+        light0 = f3dMat.default_light_color
+        light1 = [0.0, 0.0, 0.0, 1.0]
         if not f3dMat.use_default_lighting:
-            if f3dMat.f3d_light1 is not None:
-                light = f3dMat.f3d_light1.color
-            else:
-                light = [1.0, 1.0, 1.0, 1.0]
+            light0 = f3dMat.f3d_light1.color if f3dMat.f3d_light1 is not None else [1.0, 1.0, 1.0, 1.0]
+            light1 = f3dMat.f3d_light2.color if f3dMat.f3d_light2 is not None else light1
 
-        corrected_col = gammaCorrect(light)
-        corrected_col.append(1.0)
-        corrected_amb = gammaCorrect(f3dMat.ambient_light_color)
-        corrected_amb.append(1.0)
-
-        nodes["Shade Color"].inputs["Shade Color"].default_value = tuple(c for c in corrected_col)
-        nodes["Shade Color"].inputs["Ambient Color"].default_value = tuple(c for c in corrected_amb)
+        nodes["Shade Color"].inputs["AmbientColor"].default_value = s_rgb_alpha_1_tuple(f3dMat.ambient_light_color)
+        nodes["Shade Color"].inputs["Light0Color"].default_value = s_rgb_alpha_1_tuple(light0)
+        nodes["Shade Color"].inputs["Light1Color"].default_value = s_rgb_alpha_1_tuple(light1)
     else:
-        col = [1.0, 1.0, 1.0, 1.0]
-        amb_col = [0.5, 0.5, 0.5, 1.0]
-        nodes["Shade Color"].inputs["Shade Color"].default_value = tuple(c for c in col)
-        nodes["Shade Color"].inputs["Ambient Color"].default_value = tuple(c for c in amb_col)
-        link_if_none_exist(material, nodes["ShadeColOut"].outputs[0], nodes["Shade Color"].inputs["Shade Color"])
-        link_if_none_exist(material, nodes["AmbientColOut"].outputs[0], nodes["Shade Color"].inputs["Ambient Color"])
+        nodes["Shade Color"].inputs["AmbientColor"].default_value = (0.5, 0.5, 0.5, 1.0)
+        nodes["Shade Color"].inputs["Light0Color"].default_value = (1.0, 1.0, 1.0, 1.0)
+        nodes["Shade Color"].inputs["Light1Color"].default_value = (0.0, 0.0, 0.0, 1.0)
+        link_if_none_exist(material, nodes["AmbientColorOut"].outputs[0], nodes["Shade Color"].inputs["AmbientColor"])
+        link_if_none_exist(material, nodes["Light0ColorOut"].outputs[0], nodes["Shade Color"].inputs["Light0Color"])
+        link_if_none_exist(material, nodes["Light1ColorOut"].outputs[0], nodes["Shade Color"].inputs["Light1Color"])
 
 
 def update_color_node(combiner_inputs, color: Color, prefix: str):
     """Function for updating either Prim or Env colors"""
     # TODO: feature to toggle gamma correction
-    corrected_prim = gammaCorrect(color)
-    combiner_inputs[f"{prefix} Color"].default_value = (
-        corrected_prim[0],
-        corrected_prim[1],
-        corrected_prim[2],
-        1.0,
-    )
+    combiner_inputs[f"{prefix} Color"].default_value = s_rgb_alpha_1_tuple(color)
     combiner_inputs[f"{prefix} Alpha"].default_value = color[3]
 
 
@@ -1758,13 +1759,24 @@ def update_node_values_of_material(material: Material, context):
     else:
         nodes["UV"].node_tree = bpy.data.node_groups["UV"]
 
-    # This is a temporary measure to be able to see the vertex colors in packed materials.
-    if bpy.context.scene.f3d_type == "F3DEX3" and f3dMat.rdp_settings.g_packed_normals:
-        nodes["Shade Color"].node_tree = bpy.data.node_groups["ShdCol_V"]
-    elif f3dMat.rdp_settings.g_lighting:
-        nodes["Shade Color"].node_tree = bpy.data.node_groups["ShdCol_L"]
-    else:
-        nodes["Shade Color"].node_tree = bpy.data.node_groups["ShdCol_V"]
+    shdcol_inputs = nodes["Shade Color"].inputs
+    for propName in [
+        "g_ambocclusion",
+        "g_packed_normals",
+        "g_lighttoalpha",
+        "g_lighting_specular",
+        "g_fresnel_color",
+        "g_fresnel_alpha",
+        "g_fog",
+        "g_lighting",
+    ]:
+        shdcol_inputs[propName.upper()].default_value = getattr(f3dMat.rdp_settings, propName)
+
+    shdcol_inputs["AO Ambient"].default_value = f3dMat.ao_ambient
+    shdcol_inputs["AO Directional"].default_value = f3dMat.ao_directional
+    shdcol_inputs["AO Point"].default_value = f3dMat.ao_point
+    shdcol_inputs["Fresnel Lo"].default_value = f3dMat.fresnel_lo
+    shdcol_inputs["Fresnel Hi"].default_value = f3dMat.fresnel_hi
 
     update_light_colors(material, context)
 
@@ -2245,7 +2257,7 @@ def load_handler(dummy):
 
 bpy.app.handlers.load_post.append(load_handler)
 
-SCENE_PROPERTIES_VERSION = 1
+SCENE_PROPERTIES_VERSION = 2
 
 
 def createOrUpdateSceneProperties():
@@ -2300,14 +2312,27 @@ def createOrUpdateSceneProperties():
         _nodeFogFar: NodeSocketFloat = tree_interface.new_socket(
             "FogFar", socket_type="NodeSocketFloat", in_out="OUTPUT"
         )
-        _nodeShadeColor: NodeSocketColor = tree_interface.new_socket(
-            "ShadeColor", socket_type="NodeSocketColor", in_out="OUTPUT"
-        )
+
         _nodeAmbientColor: NodeSocketColor = tree_interface.new_socket(
             "AmbientColor", socket_type="NodeSocketColor", in_out="OUTPUT"
         )
-        _nodeLightDirection: NodeSocketVector = tree_interface.new_socket(
-            "LightDirection", socket_type="NodeSocketVector", in_out="OUTPUT"
+        _nodeLight0Color: NodeSocketColor = tree_interface.new_socket(
+            "Light0Color", socket_type="NodeSocketColor", in_out="OUTPUT"
+        )
+        _nodeLight0Dir: NodeSocketVector = tree_interface.new_socket(
+            "Light0Dir", socket_type="NodeSocketVector", in_out="OUTPUT"
+        )
+        _nodeLight0Size: NodeSocketFloat = tree_interface.new_socket(
+            "Light0Size", socket_type="NodeSocketFloat", in_out="OUTPUT"
+        )
+        _nodeLight1Color: NodeSocketColor = tree_interface.new_socket(
+            "Light1Color", socket_type="NodeSocketColor", in_out="OUTPUT"
+        )
+        _nodeLight1Dir: NodeSocketVector = tree_interface.new_socket(
+            "Light1Dir", socket_type="NodeSocketVector", in_out="OUTPUT"
+        )
+        _nodeLight1Size: NodeSocketFloat = tree_interface.new_socket(
+            "Light1Size", socket_type="NodeSocketFloat", in_out="OUTPUT"
         )
 
     else:
@@ -2318,11 +2343,14 @@ def createOrUpdateSceneProperties():
         _nodeBlender_Game_Scale: NodeSocketFloat = new_group.outputs.new("NodeSocketFloat", "Blender_Game_Scale")
         _nodeFogNear: NodeSocketInt = new_group.outputs.new("NodeSocketInt", "FogNear")
         _nodeFogFar: NodeSocketInt = new_group.outputs.new("NodeSocketInt", "FogFar")
-        _nodeShadeColor: NodeSocketColor = new_group.outputs.new("NodeSocketColor", "ShadeColor")
+
         _nodeAmbientColor: NodeSocketColor = new_group.outputs.new("NodeSocketColor", "AmbientColor")
-        _nodeLightDirection: NodeSocketVectorDirection = new_group.outputs.new(
-            "NodeSocketVectorDirection", "LightDirection"
-        )
+        _nodeLight0Color: NodeSocketColor = new_group.outputs.new("NodeSocketColor", "Light0Color")
+        _nodeLight0Dir: NodeSocketVectorDirection = new_group.outputs.new("NodeSocketVectorDirection", "Light0Dir")
+        _nodeLight0Size: NodeSocketInt = new_group.outputs.new("NodeSocketInt", "Light0Size")
+        _nodeLight1Color: NodeSocketColor = new_group.outputs.new("NodeSocketColor", "Light1Color")
+        _nodeLight1Dir: NodeSocketVectorDirection = new_group.outputs.new("NodeSocketVectorDirection", "Light1Dir")
+        _nodeLight1Size: NodeSocketInt = new_group.outputs.new("NodeSocketInt", "Light1Size")
 
     # Set outputs from render settings
     sceneOutputs: NodeGroupOutput = new_group.nodes["Group Output"]
@@ -2340,22 +2368,29 @@ def createScenePropertiesForMaterial(material: Material):
     # create a new group node to hold the tree
     scene_props = node_tree.nodes.new(type="ShaderNodeGroup")
     scene_props.name = "SceneProperties"
-    scene_props.location = (-420, -360)
+    scene_props.location = (-320, -23)
     scene_props.node_tree = bpy.data.node_groups["SceneProperties"]
-    # link the new node to correct socket
+
+    # Fog links to reroutes and the CalcFog block
     node_tree.links.new(scene_props.outputs["FogEnable"], node_tree.nodes["FogEnable"].inputs[0])
     node_tree.links.new(scene_props.outputs["FogColor"], node_tree.nodes["FogColor"].inputs[0])
-    node_tree.links.new(scene_props.outputs["FogNear"], node_tree.nodes["CalcFog"].inputs["FogNear"])
-    node_tree.links.new(scene_props.outputs["FogFar"], node_tree.nodes["CalcFog"].inputs["FogFar"])
+    node_tree.links.new(scene_props.outputs["F3D_NearClip"], node_tree.nodes["CalcFog"].inputs["F3D_NearClip"])
+    node_tree.links.new(scene_props.outputs["F3D_FarClip"], node_tree.nodes["CalcFog"].inputs["F3D_FarClip"])
     node_tree.links.new(
         scene_props.outputs["Blender_Game_Scale"], node_tree.nodes["CalcFog"].inputs["Blender_Game_Scale"]
     )
-    node_tree.links.new(scene_props.outputs["F3D_NearClip"], node_tree.nodes["CalcFog"].inputs["F3D_NearClip"])
-    node_tree.links.new(scene_props.outputs["F3D_FarClip"], node_tree.nodes["CalcFog"].inputs["F3D_FarClip"])
+    node_tree.links.new(scene_props.outputs["FogNear"], node_tree.nodes["CalcFog"].inputs["FogNear"])
+    node_tree.links.new(scene_props.outputs["FogFar"], node_tree.nodes["CalcFog"].inputs["FogFar"])
 
-    node_tree.links.new(scene_props.outputs["ShadeColor"], node_tree.nodes["ShadeColor"].inputs[0])
+    # Lighting links to reroutes. The colors are connected to other reroutes for update_light_colors,
+    # the others go directly to the Shade Color block.
     node_tree.links.new(scene_props.outputs["AmbientColor"], node_tree.nodes["AmbientColor"].inputs[0])
-    node_tree.links.new(scene_props.outputs["LightDirection"], node_tree.nodes["LightDirection"].inputs[0])
+    node_tree.links.new(scene_props.outputs["Light0Color"], node_tree.nodes["Light0Color"].inputs[0])
+    node_tree.links.new(scene_props.outputs["Light0Dir"], node_tree.nodes["Light0Dir"].inputs[0])
+    node_tree.links.new(scene_props.outputs["Light0Size"], node_tree.nodes["Light0Size"].inputs[0])
+    node_tree.links.new(scene_props.outputs["Light1Color"], node_tree.nodes["Light1Color"].inputs[0])
+    node_tree.links.new(scene_props.outputs["Light1Dir"], node_tree.nodes["Light1Dir"].inputs[0])
+    node_tree.links.new(scene_props.outputs["Light1Size"], node_tree.nodes["Light1Size"].inputs[0])
 
 
 def link_f3d_material_library():
@@ -2474,7 +2509,7 @@ def createF3DMat(obj: Object | None, preset="Shaded Solid", index=None):
     add_f3d_mat_to_obj(obj, material, index)
 
     material.is_f3d = True
-    material.mat_ver = 5
+    material.mat_ver = F3D_MAT_CUR_VERSION
 
     update_preset_manual_v4(material, preset)
 
@@ -4577,6 +4612,7 @@ class F3DRenderSettingsPanel(Panel):
         layout = self.layout
         layout.ui_units_x = 16
         renderSettings = context.scene.fast64.renderSettings
+        isF3DEX3 = bpy.context.scene.f3d_type == "F3DEX3"
 
         globalSettingsBox = layout.box()
         labelbox = globalSettingsBox.box()
@@ -4591,8 +4627,14 @@ class F3DRenderSettingsPanel(Panel):
         globalSettingsBox.separator(factor=0.125)
         # TODO: (v5) add headings
         prop_split(globalSettingsBox, renderSettings, "ambientColor", "Ambient Light")
-        prop_split(globalSettingsBox, renderSettings, "lightColor", "Light Color")
-        prop_split(globalSettingsBox, renderSettings, "lightDirection", "Light Direction")
+        prop_split(globalSettingsBox, renderSettings, "light0Color", "Light 0 Color")
+        prop_split(globalSettingsBox, renderSettings, "light0Direction", "Light 0 Direction")
+        if isF3DEX3:
+            prop_split(globalSettingsBox, renderSettings, "light0SpecSize", "Light 0 Specular Size")
+        prop_split(globalSettingsBox, renderSettings, "light1Color", "Light 1 Color")
+        prop_split(globalSettingsBox, renderSettings, "light1Direction", "Light 1 Direction")
+        if isF3DEX3:
+            prop_split(globalSettingsBox, renderSettings, "light1SpecSize", "Light 1 Specular Size")
         prop_split(globalSettingsBox, renderSettings, "useWorldSpaceLighting", "Use World Space Lighting")
 
         if context.scene.gameEditorMode in ["SM64", "OOT"]:
@@ -4627,16 +4669,16 @@ class F3DRenderSettingsPanel(Panel):
                         else:
                             numLightsNeeded = 1
                             if header.skyboxLighting == "Custom":
-                                r2 = b.row()
+                                r2 = b.row().split(factor=0.4)
                                 r2.prop(renderSettings, "ootForceTimeOfDay")
                                 if renderSettings.ootForceTimeOfDay:
                                     r2.label(text="Light Index sets first of four lights.", icon="INFO")
                                     numLightsNeeded = 4
-                            if header.skyboxLighting != "0x00":
+                            if header.skyboxLighting != "LIGHT_MODE_TIME":
                                 r.prop(renderSettings, "ootLightIdx")
                                 if renderSettings.ootLightIdx + numLightsNeeded > len(header.lightList):
                                     b.label(text="Light does not exist.", icon="QUESTION")
-                            if header.skyboxLighting == "0x00" or (
+                            if header.skyboxLighting == "LIGHT_MODE_TIME" or (
                                 header.skyboxLighting == "Custom" and renderSettings.ootForceTimeOfDay
                             ):
                                 r.prop(renderSettings, "ootTime")
