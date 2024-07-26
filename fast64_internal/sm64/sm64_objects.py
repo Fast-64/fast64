@@ -1755,9 +1755,15 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             bhv_data_lines.insert(export_line, f"\n{fast64_sig}\n")
         bhv_data_lines.insert(export_line + 1, export_bhv_name)
 
+        indent_level = 1
+        tab_str = "\t"
         for j, bhv_cmd in enumerate(props.behavior_script):
-            bhv_macro = f"\t{bhv_cmd.macro}({bhv_cmd.get_args(context, props)}),\n"
+            if bhv_cmd.macro in {"END_REPEAT", "END_REPEAT_CONTINUE", "END_LOOP"}:
+                indent_level -= 1
+            bhv_macro = f"{tab_str*indent_level}{bhv_cmd.macro}({bhv_cmd.get_args(context, props)}),\n"
             bhv_data_lines.insert(export_line + 2 + j, bhv_macro)
+            if bhv_cmd.macro in {"BEGIN_REPEAT", "BEGIN_LOOP"}:
+                indent_level += 1
         bhv_data_lines.insert(export_line + 3 + j, "};\n\n")
 
         self.write_file_lines(behavior_data, bhv_data_lines)
