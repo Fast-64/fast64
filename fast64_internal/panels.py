@@ -16,6 +16,8 @@ class SM64_Panel(bpy.types.Panel):
     goal = "All"
     # if this is True, the panel is hidden whenever the scene's export_type is not 'C'
     decomp_only = False
+    # if this is True, the panel is hidden whenever the scene's export_type is 'C'
+    binary_only = False
     import_panel = False
 
     @classmethod
@@ -29,6 +31,8 @@ class SM64_Panel(bpy.types.Panel):
         elif cls.import_panel and not sm64_props.show_importing_menus:
             return False
         elif cls.decomp_only and sm64_props.export_type != "C":
+            return False
+        elif cls.binary_only and sm64_props.export_type == "C":
             return False
         scene_goal = sm64_props.goal
         return scene_goal == "All" or sm64_props.goal == cls.goal or cls.goal == "All"

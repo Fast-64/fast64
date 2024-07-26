@@ -1499,7 +1499,7 @@ class BehaviorScriptProperty(bpy.types.PropertyGroup):
         return self.macro_args
 
     def get_args(self, context, props):
-        if self.inherit_from_export:
+        if self.inherit_from_export and self.macro in self._inheritable_macros:
             return self.get_inherit_args(context, props)
         elif self.macro_args:
             return ", ".join(self.macro_args)
@@ -1522,7 +1522,7 @@ class BehaviorScriptProperty(bpy.types.PropertyGroup):
                 prop_split(box, self, "num_args", "Num Arguments")
                 for j in range(self.num_args):
                     prop_split(box, self, f"arg_{j + 1}", f"arg_{j + 1}")
-            elif self.bhv_args and not self.inherit_from_export:
+            elif self.bhv_args and not (self.inherit_from_export and self.macro in self._inheritable_macros):
                 for field, arg_name in zip(self.arg_fields, self.bhv_args):
                     draw_field, draw_enum = self.field_or_enum(field, arg_name)
                     if draw_enum:
@@ -1807,7 +1807,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         try:
             if props.export_col and props.obj_name_col and obj is props.col_object:
                 bpy.ops.object.sm64_export_collision(export_obj=obj.name)
-        except Exception as e:
+        except Exception as exc:
             # pass on multiple export, throw on singular
             if not props.export_all_selected:
                 raise Exception(exc) from exc
@@ -2067,7 +2067,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         col.prop(self, "use_name_filtering")
         if not self.export_all_selected:
             col.prop(self, "export_bhv")
-        self.draw_obj_name(layout)
+            self.draw_obj_name(layout)
 
     def draw_level_path(self, layout):
         if self.export_header_type == "Custom":
@@ -2189,6 +2189,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
 class SM64_CombinedObjectPanel(SM64_Panel):
     bl_idname = "SM64_PT_export_combined_object"
     bl_label = "SM64 Combined Exporter"
+    decomp_only = True
 
     def draw(self, context):
         col = self.layout.column()
