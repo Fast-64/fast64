@@ -2890,7 +2890,9 @@ ACTOR_PRESET_INFO = {
         decomp_path="actors/water_ring",
         level="WDW",
         animation=AnimInfo(
-            address=100745084, behaviours={"Water Ring (Jet Stream)": 318781264, "Water Ring (Manta Ray)": 13003798}, names=["Wobble"]
+            address=100745084,
+            behaviours={"Water Ring (Jet Stream)": 318781264, "Water Ring (Manta Ray)": 13003798},
+            names=["Wobble"],
         ),
         models=ModelInfo(model_id=(104, "MODEL_WATER_RING"), geolayout=218104852),
     ),
