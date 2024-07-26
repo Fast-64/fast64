@@ -1804,6 +1804,7 @@ class AnimInfo:
     size: int | None = None
     dma: bool = False
     directory: str | None = None
+    names: list[str] | None = None
 
     def __post_init__(self):
         assert self.address and isinstance(self.address, int)
@@ -1818,6 +1819,7 @@ class AnimInfo:
         assert self.size is None or isinstance(self.size, int)
         assert isinstance(self.dma, bool)
         assert self.directory is None or isinstance(self.directory, str)
+        assert self.names is None or all(isinstance(n, str) for n in self.names)
 
 
 @dataclasses.dataclass
@@ -1896,14 +1898,16 @@ ACTOR_PRESET_INFO = {
         decomp_path="actors/bird",
         level="CG",
         animation=AnimInfo(
-            address=83888616, behaviours={"Bird": 318788436, "End Birds 1": 318789212, "End Birds 2": 318789248}
+            address=83888616,
+            behaviours={"Bird": 318788436, "End Birds 1": 318789212, "End Birds 2": 318789248},
+            names=["Flying", "Gliding"],
         ),
         models=ModelInfo(model_id=(84, "MODEL_BIRDS"), geolayout=201326592),
     ),
     "Blargg": ActorPresetInfo(
         decomp_path="actors/blargg",
         level="LLL",
-        animation=AnimInfo(address=83911020),
+        animation=AnimInfo(address=83911020, names=["Idle", "Bite"]),
         models=ModelInfo(model_id=(84, "MODEL_BLARGG"), geolayout=201327168),
     ),
     "Blue Coin Switch": ActorPresetInfo(
@@ -1915,7 +1919,7 @@ ACTOR_PRESET_INFO = {
     "Blue Fish": ActorPresetInfo(
         decomp_path="actors/blue_fish",
         level="HH",
-        animation=AnimInfo(address=50447024, behaviours=318774060),
+        animation=AnimInfo(address=50447024, behaviours=318774060, names=["Swimming", "Diving"]),
         models={
             "Fish": ModelInfo(model_id=(185, "MODEL_FISH"), geolayout=369101892),
             "Fish (Shadow)": ModelInfo(model_id=(186, "MODEL_FISH_SHADOW"), geolayout=369101804),
@@ -1927,6 +1931,7 @@ ACTOR_PRESET_INFO = {
         animation=AnimInfo(
             address=134363500,
             behaviours={"Bobomb": 318779764, "Bobomb Buddy": 318779868, "Bobomb Buddy (Opens Cannon)": 318779944},
+            names=["Walking", "Strugling"],
         ),
         models={
             "Bobomb": ModelInfo(model_id=(188, "MODEL_BLACK_BOBOMB"), geolayout=251660216),
@@ -1954,7 +1959,7 @@ ACTOR_PRESET_INFO = {
     "Bookend Part": ActorPresetInfo(
         decomp_path="actors/bookend",
         level="HH",
-        animation=AnimInfo(address=83895616, behaviours=318787692),
+        animation=AnimInfo(address=83895616, behaviours=318787692, names=["Opening Mouth", "Bite", "Closed"]),
         models=ModelInfo(model_id=(88, "MODEL_BOOKEND_PART"), geolayout=201326592),
     ),
     "Metal Ball": ActorPresetInfo(
@@ -1968,7 +1973,40 @@ ACTOR_PRESET_INFO = {
     "Bowser": ActorPresetInfo(
         decomp_path="actors/bowser",
         level="BFB",
-        animation=AnimInfo(address=101021664, behaviours=318773328, size=27),
+        animation=AnimInfo(
+            address=101021664,
+            behaviours=318773328,
+            size=27,
+            names=[
+                "Stand Up",
+                "Stand Up (Unused)",
+                "Shaking",
+                "Grabbed",
+                "Broken Animation (Unused)",
+                "Fall Down",
+                "Fire Breath",
+                "Jump",
+                "Jump Stop",
+                "Jump Start",
+                "Dance",
+                "Fire Breath Up",
+                "Idle",
+                "Slow Gait",
+                "Look Down Stop Walk",
+                "Look Up Start Walk",
+                "Flip Down",
+                "Lay Down",
+                "Run Start",
+                "Run",
+                "Run Stop",
+                "Run Slip",
+                "Fire Breath Quick",
+                "Edge Move",
+                "Edge Stop",
+                "Flip",
+                "Stand Up From Flip",
+            ],
+        ),
         models={
             "Bowser": ModelInfo(model_id=(100, "MODEL_BOWSER"), geolayout=218106564),
             "Bowser (No Shadow)": ModelInfo(model_id=(105, "MODEL_BOWSER_NO_SHADOW"), geolayout=218106688),
@@ -1983,7 +2021,10 @@ ACTOR_PRESET_INFO = {
         decomp_path="actors/bowser_key",
         level="BFB",
         animation=AnimInfo(
-            address=50426576, behaviours={"Bowser Key": 318774196, "Bowser Key (Cutscene)": 318774228}, size=2
+            address=50426576,
+            behaviours={"Bowser Key": 318774196, "Bowser Key (Cutscene)": 318774228},
+            size=2,
+            names=["Unlock Door", "Course Exit"],
         ),
         models={
             "Bowser Key": ModelInfo(model_id=(204, "MODEL_BOWSER_KEY"), geolayout=369101444),
@@ -2002,7 +2043,7 @@ ACTOR_PRESET_INFO = {
     "Bub": ActorPresetInfo(
         decomp_path="actors/bub",
         level="THI",
-        animation=AnimInfo(address=100737876, behaviours=318775820),
+        animation=AnimInfo(address=100737876, behaviours=318775820, names=["Swimming"]),
         models=ModelInfo(model_id=(100, "MODEL_BUB"), geolayout=218104716),
     ),
     "Bubba": ActorPresetInfo(
@@ -2027,6 +2068,7 @@ ACTOR_PRESET_INFO = {
         animation=AnimInfo(
             address=83904268,
             behaviours={"Bully": 318781024, "Bully (With Minions)": 318781076, "Bully (Small)": 318780972},
+            names=["Patrol", "Chase", "Falling over (Unused)", "Knockback"],
         ),
         models=ModelInfo(model_id=(86, "MODEL_BULLY"), geolayout=201326592),
     ),
@@ -2039,7 +2081,10 @@ ACTOR_PRESET_INFO = {
         decomp_path="actors/butterfly",
         level="HH",
         animation=AnimInfo(
-            address=50353840, behaviours={"Butterfly": 318780348, "Triplet Butterfly": 318789016}, size=2
+            address=50353840,
+            behaviours={"Butterfly": 318780348, "Triplet Butterfly": 318789016},
+            size=2,
+            names=["Flying", "Resting"],
         ),
         models=ModelInfo(model_id=(187, "MODEL_BUTTERFLY"), geolayout=369098920),
     ),
@@ -2104,7 +2149,9 @@ ACTOR_PRESET_INFO = {
         decomp_path="actors/chilly_chief",
         level="SML",
         animation=AnimInfo(
-            address=100678036, behaviours={"Chilly Chief (Small)": 318781128, "Chilly Chief (Big)": 318781184}
+            address=100678036,
+            behaviours={"Chilly Chief (Small)": 318781128, "Chilly Chief (Big)": 318781184},
+            names=["Patrol", "Chase", "Falling over (Unused)", "Knockback"],
         ),
         models={
             "Chilly Chief (Small)": ModelInfo(model_id=(100, "MODEL_CHILL_BULLY"), geolayout=100677460),
@@ -2114,13 +2161,17 @@ ACTOR_PRESET_INFO = {
     "Chuckya": ActorPresetInfo(
         decomp_path="actors/chuckya",
         level="HH",
-        animation=AnimInfo(address=134266992, behaviours=318768424),
+        animation=AnimInfo(
+            address=134266992,
+            behaviours=318768424,
+            names=["Grab Mario", "Holding Mario", "Being Held", "Throwing", "Moving", "Balancing/Idle (Unused)"],
+        ),
         models=ModelInfo(model_id=(223, "MODEL_CHUCKYA"), geolayout=251658712),
     ),
     "Clam Shell": ActorPresetInfo(
         decomp_path="actors/clam",
         level="JRB",
-        animation=AnimInfo(address=83892036, behaviours=318788672),
+        animation=AnimInfo(address=83892036, behaviours=318788672, names=["Close", "Open"]),
         models=ModelInfo(model_id=(88, "MODEL_CLAM_SHELL"), geolayout=201326592),
     ),
     "Coin": ActorPresetInfo(
@@ -2138,7 +2189,7 @@ ACTOR_PRESET_INFO = {
     "Cyan Fish": ActorPresetInfo(
         decomp_path="actors/cyan_fish",
         level="WDW",
-        animation=AnimInfo(address=100721252),
+        animation=AnimInfo(address=100721252, names=["Swimming"]),
         models=ModelInfo(model_id=(103, "MODEL_CYAN_FISH"), geolayout=218104612),
     ),
     "Dirt": ActorPresetInfo(
@@ -2152,7 +2203,17 @@ ACTOR_PRESET_INFO = {
     "Door": ActorPresetInfo(
         decomp_path="actors/door",
         level="HH",
-        animation=AnimInfo(address=50419392, behaviours=318769932),
+        animation=AnimInfo(
+            address=50419392,
+            behaviours=318769932,
+            names=[
+                "Closed",
+                "Open and Close",
+                "Open and Close (Slower?)",
+                "Open and Close (Slower? Last 10 frames)",
+                "Open and Close (Last 10 frames)",
+            ],
+        ),
         models={
             "Castle Door": ModelInfo(
                 model_id=[
@@ -2192,13 +2253,14 @@ ACTOR_PRESET_INFO = {
     "Dorrie": ActorPresetInfo(
         decomp_path="actors/dorrie",
         level="HH",
-        animation=AnimInfo(address=100726328, behaviours=318787472, size=3),
+        animation=AnimInfo(
+            address=100726328, behaviours=318787472, size=3, names=["Idle", "Moving", "Lower and Raise Head"]
+        ),
         models=ModelInfo(model_id=(104, "MODEL_DORRIE"), geolayout=218104368),
     ),
     "Exclamation Box": ActorPresetInfo(
         decomp_path="actors/exclamation_box",
         level="HH",
-        animation=AnimInfo(address=83949244),
         models=ModelInfo(model_id=(137, "MODEL_EXCLAMATION_BOX"), geolayout=251659924),
     ),
     "Exclamation Box Outline": ActorPresetInfo(
@@ -2221,7 +2283,11 @@ ACTOR_PRESET_INFO = {
     "Eyerok": ActorPresetInfo(
         decomp_path="actors/eyerok",
         level="SSL",
-        animation=AnimInfo(address=83957476, behaviours=318788276),
+        animation=AnimInfo(
+            address=83957476,
+            behaviours=318788276,
+            names=["Recovering", "Death", "Idle", "Attacked", "Open", "Show Eye", "Sleep", "Close"],
+        ),
         models={
             "Eyerok Left Hand": ModelInfo(model_id=(88, "MODEL_EYEROK_LEFT_HAND"), geolayout=201328040),
             "Eyerok Right Hand": ModelInfo(model_id=(89, "MODEL_EYEROK_RIGHT_HAND"), geolayout=201328100),
@@ -2239,7 +2305,7 @@ ACTOR_PRESET_INFO = {
     "Fly Guy": ActorPresetInfo(
         decomp_path="actors/flyguy",
         level="SSL",
-        animation=AnimInfo(address=134290020, behaviours=318785244),
+        animation=AnimInfo(address=134290020, behaviours=318785244, names=["Flying"]),
         models=ModelInfo(model_id=(220, "MODEL_FLYGUY"), geolayout=251659544),
     ),
     "Fwoosh": ActorPresetInfo(
@@ -2248,7 +2314,7 @@ ACTOR_PRESET_INFO = {
     "Goomba": ActorPresetInfo(
         decomp_path="actors/goomba",
         level="HH",
-        animation=AnimInfo(address=134339148, behaviours=318785324),
+        animation=AnimInfo(address=134339148, behaviours=318785324, names=["Walking"]),
         models=ModelInfo(model_id=(192, "MODEL_GOOMBA"), geolayout=251660004),
     ),
     "Haunted Cage": ActorPresetInfo(
@@ -2262,13 +2328,13 @@ ACTOR_PRESET_INFO = {
     "Heave-Ho": ActorPresetInfo(
         decomp_path="actors/heave_ho",
         level="WDW",
-        animation=AnimInfo(address=83972940, behaviours=318772552),
+        animation=AnimInfo(address=83972940, behaviours=318772552, names=["Moving", "Throwing", "Stop"]),
         models=ModelInfo(model_id=(89, "MODEL_HEAVE_HO"), geolayout=201327244),
     ),
     "Hoot": ActorPresetInfo(
         decomp_path="actors/hoot",
-        level="WDW",
-        animation=AnimInfo(address=83908456, behaviours=318780396),
+        level="WF",
+        animation=AnimInfo(address=83908456, behaviours=318780396, names=["Flying", "Flying Fast"]),
         models=ModelInfo(model_id=(86, "MODEL_HOOT"), geolayout=201326616),
     ),
     "Bowser Impact Ring": ActorPresetInfo(
@@ -2284,19 +2350,69 @@ ACTOR_PRESET_INFO = {
     "King Bobomb": ActorPresetInfo(
         decomp_path="actors/bobomb",
         level="BOB",
-        animation=AnimInfo(address=83951152, behaviours=318767604, size=12),
+        animation=AnimInfo(
+            address=83951152,
+            behaviours=318767604,
+            size=12,
+            names=[
+                "Grab Mario",
+                "Holding Mario",
+                "Hit Ground",
+                "Unkwnown (Unused)",
+                "Stomp",
+                "Idle",
+                "Being Held",
+                "Landing",
+                "Jump",
+                "Throw Mario",
+                "Stand Up",
+                "Walking",
+            ],
+        ),
         models=ModelInfo(model_id=(86, "MODEL_KING_BOBOMB"), geolayout=201326592),
     ),
     "Klepto": ActorPresetInfo(
         decomp_path="actors/klepto",
         level="SSL",
-        animation=AnimInfo(address=83922172, behaviours=318788368),
+        animation=AnimInfo(
+            address=83922172,
+            behaviours=318788368,
+            names=[
+                "Dive",
+                "Struck By Mario",
+                "Dive at Mario",
+                "Dive at Mario 2",
+                "Dive at Mario 3",
+                "Dive at Mario 4",
+                "Dive Flap",
+                "Dive Flap 2",
+            ],
+        ),
         models=ModelInfo(model_id=(87, "MODEL_KLEPTO"), geolayout=201326592),
     ),
     "Koopa": ActorPresetInfo(
         decomp_path="actors/koopa",
         level="BOB",
-        animation=AnimInfo(address=100733796, behaviours=318784896),
+        animation=AnimInfo(
+            address=100733796,
+            behaviours=318784896,
+            names=[
+                "Falling Over (Unused Shelled Act 3)",
+                "Run Away",
+                "Laying (Unshelled)",
+                "Running",
+                "Run (Unused)",
+                "Laying (Shelled)",
+                "Stand Up",
+                "Stopped",
+                "Wake Up (Unused)",
+                "Walk",
+                "Walk Stop",
+                "Walk Start",
+                "Jump",
+                "Land",
+            ],
+        ),
         models={
             "Koopa (Without Shell)": ModelInfo(model_id=(191, "MODEL_KOOPA_WITHOUT_SHELL"), geolayout=218104016),
             "Koopa (With Shell)": ModelInfo(model_id=(104, "MODEL_KOOPA_WITH_SHELL"), geolayout=218104340),
@@ -2305,7 +2421,7 @@ ACTOR_PRESET_INFO = {
     "Koopa Flag": ActorPresetInfo(
         decomp_path="actors/koopa_flag",
         level="BOB",
-        animation=AnimInfo(address=100667432, behaviours=318785016),
+        animation=AnimInfo(address=100667432, behaviours=318785016, names=["Waving"]),
         models=ModelInfo(model_id=(106, "MODEL_KOOPA_FLAG"), geolayout=218103808),
     ),
     "Koopa Shell": ActorPresetInfo(
@@ -2321,14 +2437,18 @@ ACTOR_PRESET_INFO = {
         decomp_path="actors/lakitu_cameraman",
         level="IC",
         animation=AnimInfo(
-            address=100686072, behaviours={"Lakitu (Beginning)": 318789136, "Lakitu (Cameraman)": 318785876}
+            address=100686072,
+            behaviours={"Lakitu (Beginning)": 318789136, "Lakitu (Cameraman)": 318785876},
+            names=["Flying"],
         ),
         models=ModelInfo(model_id=(102, "MODEL_LAKITU"), geolayout=218103808),
     ),
     "Lakitu Enemy": ActorPresetInfo(
         decomp_path="actors/lakitu_enemy",
         level="THI",
-        animation=AnimInfo(address=83969236, behaviours=318785816),
+        animation=AnimInfo(
+            address=83969236, behaviours=318785816, names=["Flying", "No Spiny", "Throw Spiny", "Hold Spiny"]
+        ),
         models=ModelInfo(model_id=(84, "MODEL_ENEMY_LAKITU"), geolayout=201327036),
     ),
     "Leaves": ActorPresetInfo(
@@ -2337,13 +2457,13 @@ ACTOR_PRESET_INFO = {
     "Mad Piano": ActorPresetInfo(
         decomp_path="actors/mad_piano",
         level="HH",
-        animation=AnimInfo(address=83925780, behaviours=318787620),
+        animation=AnimInfo(address=83925780, behaviours=318787620, names=["Sleeping", "Chomping"]),
         models=ModelInfo(model_id=(87, "MODEL_MAD_PIANO"), geolayout=201327028),
     ),
     "Manta Ray": ActorPresetInfo(
         decomp_path="actors/manta",
         level="JRB",
-        animation=AnimInfo(address=83922612, behaviours=318784368),
+        animation=AnimInfo(address=83922612, behaviours=318784368, names=["Swimming"]),
         models=ModelInfo(model_id=(84, "MODEL_MANTA_RAY"), geolayout=83922196),
     ),
     "Mario": ActorPresetInfo(
@@ -2364,7 +2484,9 @@ ACTOR_PRESET_INFO = {
     "Mips": ActorPresetInfo(
         decomp_path="actors/mips",
         level="IC",
-        animation=AnimInfo(address=100751140, behaviours=318784764),
+        animation=AnimInfo(
+            address=100751140, behaviours=318784764, names=["Idle", "Hopping", "Thrown", "Thrown (Unused)", "Held"]
+        ),
         models=ModelInfo(model_id=(100, "MODEL_MIPS"), geolayout=218104904),
     ),
     "Mist": ActorPresetInfo(
@@ -2378,13 +2500,28 @@ ACTOR_PRESET_INFO = {
     "Moneybag": ActorPresetInfo(
         decomp_path="actors/moneybag",
         level="CCM",
-        animation=AnimInfo(address=100687452, behaviours=318781856),
+        animation=AnimInfo(address=100687452, behaviours=318781856, names=["Idle", "Prepare", "Jump", "Land", "Walk"]),
         models=ModelInfo(model_id=(102, "MODEL_MONEYBAG"), geolayout=218104048),
     ),
     "Monty Mole": ActorPresetInfo(
         decomp_path="actors/monty_mole",
         level="HMC",
-        animation=AnimInfo(address=83915336, behaviours=318786048),
+        animation=AnimInfo(
+            address=83915336,
+            behaviours=318786048,
+            names=[
+                "Jump Into Hole",
+                "Rise",
+                "Get Rock",
+                "Begin Jump Into Hole",
+                "Jump Out Of Hole Down",
+                "Unused 5",  # TODO: Figure out
+                "Unused 6",
+                "Unused 7",
+                "Throw Rock",
+                "Jump Out Of Hole Up",
+            ],
+        ),
         models=ModelInfo(model_id=(85, "MODEL_MONTY_MOLE"), geolayout=201326592),
     ),
     "Montey Mole Hole": ActorPresetInfo(
@@ -2415,7 +2552,22 @@ ACTOR_PRESET_INFO = {
     "Peach": ActorPresetInfo(
         decomp_path="actors/peach",
         level="CG",
-        animation=AnimInfo(address=84002060, behaviours={"Peach (Beginning)": 318789176, "Peach (End)": 318770860}),
+        animation=AnimInfo(
+            address=84002060,
+            behaviours={"Peach (Beginning)": 318789176, "Peach (End)": 318770860},
+            names=[
+                "Walking away",
+                "Walking away 2",
+                "Descend",
+                "Descend And Look Down",
+                "Look Up And Open Eyes",
+                "Mario",
+                "Power Of The Stars",
+                "Thanks To You",
+                "Kiss",
+                "Waving",
+            ],
+        ),
         models=ModelInfo(model_id=(222, "MODEL_PEACH"), geolayout=201327632),
     ),
     "Pebble": ActorPresetInfo(
@@ -2435,6 +2587,7 @@ ACTOR_PRESET_INFO = {
                 "Racing Penguin": 318788480,
             },
             size=5,
+            names=["Walk", "Dive Slide", "Stand Up", "Idle", "Walk"],
         ),
         models=ModelInfo(model_id=(87, "MODEL_PENGUIN"), geolayout=201326852),
         collision=CollisionInfo(address=83921800, c_name="penguin_seg5_collision_05008B88"),
@@ -2442,7 +2595,20 @@ ACTOR_PRESET_INFO = {
     "Piranha Plant": ActorPresetInfo(
         decomp_path="actors/piranha_plant",
         level="BOB",
-        animation=AnimInfo(address=100778780, behaviours={"Fire Piranha Plant": 318787872, "Piranha Plant": 318775228}),
+        animation=AnimInfo(
+            address=100778780,
+            behaviours={"Fire Piranha Plant": 318787872, "Piranha Plant": 318775228},
+            names=[
+                "Bite",
+                "Sleeping? (Unused)",
+                "Falling over",
+                "Bite (Unused)" "Grow" "Attacked",
+                "Stop Bitting",
+                "Sleeping (Unused)",
+                "Sleeping",
+                "Bite (Duplicate)",
+            ],
+        ),
         models=ModelInfo(model_id=(100, "MODEL_PIRANHA_PLANT"), geolayout=218104664),
     ),
     "Pokey": ActorPresetInfo(
@@ -2474,19 +2640,21 @@ ACTOR_PRESET_INFO = {
     "Scuttlebug": ActorPresetInfo(
         decomp_path="actors/scuttlebug",
         level="HH",
-        animation=AnimInfo(address=100749412, behaviours=318778204),
+        animation=AnimInfo(address=100749412, behaviours=318778204, names=["Walking"]),
         models=ModelInfo(model_id=(101, "MODEL_SCUTTLEBUG"), geolayout=218104724),
     ),
     "Seaweed": ActorPresetInfo(
         decomp_path="actors/seaweed",
         level="WDW",
-        animation=AnimInfo(address=100710604, behaviours=318779700, size=1),
+        animation=AnimInfo(address=100710604, behaviours=318779700, size=1, names=["Wave"]),
         models=ModelInfo(model_id=(193, "MODEL_SEAWEED"), geolayout=218104452),
     ),
     "Skeeter": ActorPresetInfo(
         decomp_path="actors/skeeter",
         level="WDW",
-        animation=AnimInfo(address=100695520, behaviours=318788712, size=4),
+        animation=AnimInfo(
+            address=100695520, behaviours=318788712, size=4, names=["Water Lunge", "Water Idle", "Walk", "Idle"]
+        ),
         models=ModelInfo(model_id=(105, "MODEL_SKEETER"), geolayout=218103808),
     ),
     "Boo Key (Beta)": ActorPresetInfo(
@@ -2500,7 +2668,9 @@ ACTOR_PRESET_INFO = {
     "Mr. Blizzard": ActorPresetInfo(
         decomp_path="actors/snowman",
         level="CCM",
-        animation=AnimInfo(address=83939608, behaviours={"Mr. Blizzard": 318787004}),
+        animation=AnimInfo(
+            address=83939608, behaviours={"Mr. Blizzard": 318787004}, names=["Spawn Snowball", "Throw Snowball"]
+        ),
         models={
             "Mr. Blizzard": ModelInfo(model_id=(86, "MODEL_MR_BLIZZARD"), geolayout=201327432),
             "Mr. Blizzard (Hidden)": ModelInfo(model_id=(85, "MODEL_MR_BLIZZARD_HIDDEN"), geolayout=201327132),
@@ -2528,7 +2698,7 @@ ACTOR_PRESET_INFO = {
     "Spiny": ActorPresetInfo(
         decomp_path="actors/spiny",
         level="THI",
-        animation=AnimInfo(address=83979948, behaviours={"Spiny": 318785992}),
+        animation=AnimInfo(address=83979948, behaviours={"Spiny": 318785992}, names=["Walk"]),
         models=ModelInfo(model_id=(86, "MODEL_SPINY"), geolayout=201327400),
     ),
     "Spiny Ball": ActorPresetInfo(
@@ -2560,13 +2730,13 @@ ACTOR_PRESET_INFO = {
     "Sushi Shark": ActorPresetInfo(
         decomp_path="actors/sushi",
         level="JRB",
-        animation=AnimInfo(address=83930708, behaviours=318776120, size=1),
+        animation=AnimInfo(address=83930708, behaviours=318776120, size=1, names=["Swimming", "Diving"]),
         models=ModelInfo(model_id=(86, "MODEL_SUSHI"), geolayout=201326696),
     ),
     "Swoop": ActorPresetInfo(
         decomp_path="actors/swoop",
         level="HH",
-        animation=AnimInfo(address=100692176, behaviours=318785176, size=2),
+        animation=AnimInfo(address=100692176, behaviours=318785176, size=2, names=["Idle", "Move"]),
         models=ModelInfo(model_id=(100, "MODEL_SWOOP"), geolayout=218104028),
     ),
     "Test Plataform": ActorPresetInfo(
@@ -2586,7 +2756,21 @@ ACTOR_PRESET_INFO = {
     "Toad": ActorPresetInfo(
         decomp_path="actors/toad",
         level="IC",
-        animation=AnimInfo(address=100727880, behaviours={"End Toad": 318770824, "Toad Message": 318779128}, size=8),
+        animation=AnimInfo(
+            address=100727880,
+            behaviours={"End Toad": 318770824, "Toad Message": 318779128},
+            size=8,
+            names=[
+                "Wave Then Run (West)",
+                "Walking (West)",
+                "Node Then Turn (East)",
+                "Walking (East)",
+                "Standing (West)",
+                "Standing (East)",
+                "Waving Both Arms (West)",
+                "Waving One Arm (East)",
+            ],
+        ),
         models=ModelInfo(model_id=(221, "MODEL_TOAD"), geolayout=218104084),
     ),
     "Tweester": ActorPresetInfo(
@@ -2630,13 +2814,36 @@ ACTOR_PRESET_INFO = {
     "Ukiki": ActorPresetInfo(
         decomp_path="actors/ukiki",
         level="HMC",
-        animation=AnimInfo(address=83974020, behaviours={"Ukiki": 318774448}),
+        animation=AnimInfo(
+            address=83974020,
+            behaviours={"Ukiki": 318774448},
+            names=[
+                "Run",
+                "Walk (Unused)",
+                "Apose (Unused)",
+                "Death (Unused)",
+                "Screech",
+                "Jump Clap",
+                "Hop (Unused)",
+                "Land",
+                "Jump",
+                "Itch",
+                "Handstand",
+                "Turn",
+                "Held",
+            ],
+        ),
         models=ModelInfo(model_id=(86, "MODEL_UKIKI"), geolayout=201326864),
     ),
     "Unagi": ActorPresetInfo(
         decomp_path="actors/unagi",
         level="JRB",
-        animation=AnimInfo(address=83974020, behaviours=318787392, size=7),
+        animation=AnimInfo(
+            address=83974020,
+            behaviours=318787392,
+            size=7,
+            names=["Yawn", "Bite", "Swimming", "Static Straight", "Idle", "Open Mouth", "Idle 2"],
+        ),
         models=ModelInfo(model_id=(85, "MODEL_UNAGI"), geolayout=201326860),
     ),
     "Walking Smoke": ActorPresetInfo(
@@ -2683,7 +2890,7 @@ ACTOR_PRESET_INFO = {
         decomp_path="actors/water_ring",
         level="WDW",
         animation=AnimInfo(
-            address=100745084, behaviours={"Water Ring (Jet Stream)": 318781264, "Water Ring (Manta Ray)": 13003798}
+            address=100745084, behaviours={"Water Ring (Jet Stream)": 318781264, "Water Ring (Manta Ray)": 13003798}, names=["Wobble"]
         ),
         models=ModelInfo(model_id=(104, "MODEL_WATER_RING"), geolayout=218104852),
     ),
@@ -2728,20 +2935,20 @@ ACTOR_PRESET_INFO = {
     "Whomp": ActorPresetInfo(
         decomp_path="actors/whomp",
         level="BOB",
-        animation=AnimInfo(address=100796932, behaviours=318778316, size=2),
+        animation=AnimInfo(address=100796932, behaviours=318778316, size=2, names=["Walk", "Jump"]),
         models=ModelInfo(model_id=(103, "MODEL_WHOMP"), geolayout=218104960),
         collision=CollisionInfo(address=100796940, c_name="whomp_seg6_collision_06020A0C"),
     ),
     "Wiggler Body": ActorPresetInfo(
         decomp_path="actors/wiggler_body",
         level="THI",
-        animation=AnimInfo(address=83937396, behaviours=318785760, size=1),
+        animation=AnimInfo(address=83937396, behaviours=318785760, size=1, names=["Walk"]),
         models=ModelInfo(model_id=(88, "MODEL_WIGGLER_BODY"), geolayout=83937144),
     ),
     "Wiggler Head": ActorPresetInfo(
         decomp_path="actors/wiggler_head",
         level="THI",
-        animation=AnimInfo(address=83946636, behaviours=318785688, size=1),
+        animation=AnimInfo(address=83946636, behaviours=318785688, size=1, names=["Walk"]),
         models=ModelInfo(model_id=(87, "MODEL_WIGGLER_HEAD"), geolayout=201326640),
     ),
     "Wooden Signpost": ActorPresetInfo(
@@ -2763,7 +2970,7 @@ ACTOR_PRESET_INFO = {
     "Yoshi": ActorPresetInfo(
         decomp_path="actors/yoshi",
         level="CG",
-        animation=AnimInfo(address=84034024, behaviours=318784824),
+        animation=AnimInfo(address=84034024, behaviours=318784824, names=["Idle", "Walk", "Jump"]),
         models=ModelInfo(model_id=(85, "MODEL_YOSHI"), geolayout=201327720),
     ),
     "Yoshi Egg": ActorPresetInfo(
@@ -2774,7 +2981,7 @@ ACTOR_PRESET_INFO = {
     "Castle Flag": ActorPresetInfo(
         decomp_path="levels/castle_grounds/areas/1/11",
         level="HH",
-        animation=AnimInfo(address=117492060, behaviours=318782552, size=1),
+        animation=AnimInfo(address=117492060, behaviours=318782552, size=1, names=["Wave"]),
         models=ModelInfo(model_id=(55, "MODEL_CASTLE_GROUNDS_FLAG"), geolayout=234882656),
     ),
 }
