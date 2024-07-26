@@ -136,7 +136,7 @@ def sm64_register(register_panels: bool):
     sm64_dl_parser_register()
     sm64_anim_register()
     settings_props_register()
-    
+
     if register_panels:
         sm64_panel_register()
 

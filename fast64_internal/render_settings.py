@@ -10,7 +10,6 @@ def on_update_sm64_render_settings(self, context: bpy.types.Context):
         area: bpy.types.Object = renderSettings.sm64Area
         renderSettings.fogPreviewColor = tuple(c for c in area.area_fog_color)
         renderSettings.fogPreviewPosition = tuple(round(p) for p in area.area_fog_position)
-
         renderSettings.clippingPlanes = tuple(float(p) for p in area.clipPlanes)
 
 
@@ -26,22 +25,22 @@ def on_update_oot_render_settings(self, context: bpy.types.Context):
     if header is None:
         return
     lMode = header.skyboxLighting
-    if lMode == "0x01" or (lMode == "Custom" and not renderSettings.ootForceTimeOfDay):
+    if lMode == "LIGHT_MODE_SETTINGS" or (lMode == "Custom" and not renderSettings.ootForceTimeOfDay):
         if renderSettings.ootLightIdx >= len(header.lightList):
             return
         l = header.lightList[renderSettings.ootLightIdx]
         renderSettings.ambientColor = tuple(c for c in l.ambient)
         col0, dir0 = ootGetBaseOrCustomLight(l, 0, False, False)
-        renderSettings.lightColor = tuple(c for c in col0)
-        renderSettings.lightDirection = tuple(d for d in dir0)
-        # TODO: Implement light1 into shader nodes
-        # col1, dir1 = ootGetBaseOrCustomLight(l, 1, False, False)
-        # renderSettings.light1Color = tuple(c for c in col1)
-        # renderSettings.light1Direction = tuple(d for d in dir1)
+        renderSettings.light0Color = tuple(c for c in col0)
+        renderSettings.light0Direction = tuple(d for d in dir0)
+        col1, dir1 = ootGetBaseOrCustomLight(l, 1, False, False)
+        renderSettings.light1Color = tuple(c for c in col1)
+        renderSettings.light1Direction = tuple(d for d in dir1)
         renderSettings.fogPreviewColor = tuple(c for c in l.fogColor)
-        renderSettings.fogPreviewPosition = (l.fogNear, l.fogFar)
+        renderSettings.fogPreviewPosition = (l.fogNear, 1000)  # fogFar is always 1000 in OoT
+        renderSettings.clippingPlanes = (10.0, l.z_far)  # zNear seems to always be 10 in OoT
     else:
-        if header.skyboxLighting == "0x00":
+        if lMode == "LIGHT_MODE_TIME":
             tod = header.timeOfDayLights
             lights = [tod.dawn, tod.day, tod.dusk, tod.night]
         else:
@@ -69,37 +68,34 @@ def on_update_oot_render_settings(self, context: bpy.types.Context):
         renderSettings.ambientColor = interpColors(la.ambient, lb.ambient, fade)
         col0a, _ = ootGetBaseOrCustomLight(la, 0, False, False)
         col0b, _ = ootGetBaseOrCustomLight(lb, 0, False, False)
-        renderSettings.lightColor = col0a + (col0b - col0a) * fade
-        # TODO: Implement light1 into shader nodes
-        # col1a, _ = ootGetBaseOrCustomLight(la, 1, False, False)
-        # col1b, _ = ootGetBaseOrCustomLight(lb, 1, False, False)
-        # renderSettings.light1Color = col1a * fa + col1b * fb
+        renderSettings.light0Color = col0a + (col0b - col0a) * fade
+        col1a, _ = ootGetBaseOrCustomLight(la, 1, False, False)
+        col1b, _ = ootGetBaseOrCustomLight(lb, 1, False, False)
+        renderSettings.light1Color = col1a + (col1b - col1a) * fade
         sint, cost = math.sin(math.tau * t / 24.0), math.cos(math.tau * t / 24.0)
-        renderSettings.lightDirection = mathutils.Vector(
+        renderSettings.light0Direction = mathutils.Vector(
             (
                 sint * 120.0 / 127.0,
+                cost * 20.0 / 127.0,
                 -cost * 120.0 / 127.0,
-                -cost * 20.0 / 127.0,
             )
         ).normalized()
-        # TODO: Implement light1 into shader nodes
-        # renderSettings.light1Direction = -renderSettings.lightDirection
-        renderSettings.fogColor = interpColors(la.fogColor, lb.fogColor, fade)
-        renderSettings.fogPreviewPosition = (
+        renderSettings.light1Direction = -renderSettings.light0Direction
+        renderSettings.fogPreviewColor = interpColors(la.fogColor, lb.fogColor, fade)
+        renderSettings.fogPreviewPosition = (  # fogFar is always 1000 in OoT
             la.fogNear + int(float(lb.fogNear - la.fogNear) * fade),
-            la.fogFar + int(float(lb.fogFar - la.fogFar) * fade),
+            1000,
+        )
+        renderSettings.clippingPlanes = (  # zNear seems to always be 10 in OoT
+            10.0,
+            la.z_far + float(lb.z_far - la.z_far) * fade,
         )
 
 
 def update_lighting_space(renderSettings: "Fast64RenderSettings_Properties"):
-    if renderSettings.useWorldSpaceLighting:
-        bpy.data.node_groups["ShdCol_L"].nodes["GeometryNormal"].node_tree = bpy.data.node_groups[
-            "GeometryNormal_WorldSpace"
-        ]
-    else:
-        bpy.data.node_groups["ShdCol_L"].nodes["GeometryNormal"].node_tree = bpy.data.node_groups[
-            "GeometryNormal_ViewSpace"
-        ]
+    bpy.data.node_groups["GetSpecularNormal"].nodes["GeometryNormal"].node_tree = bpy.data.node_groups[
+        "GeometryNormal_WorldSpace" if renderSettings.useWorldSpaceLighting else "GeometryNormal_ViewSpace"
+    ]
 
 
 def update_scene_props_from_render_settings(
@@ -107,25 +103,23 @@ def update_scene_props_from_render_settings(
     sceneOutputs: bpy.types.NodeGroupOutput,
     renderSettings: "Fast64RenderSettings_Properties",
 ):
-    enableFog = int(renderSettings.enableFogPreview)
-    sceneOutputs.inputs["FogEnable"].default_value = enableFog
-
-    sceneOutputs.inputs["FogColor"].default_value = tuple(c for c in renderSettings.fogPreviewColor)
+    sceneOutputs.inputs["FogEnable"].default_value = int(renderSettings.enableFogPreview)
+    sceneOutputs.inputs["FogColor"].default_value = s_rgb_alpha_1_tuple(renderSettings.fogPreviewColor)
+    sceneOutputs.inputs["F3D_NearClip"].default_value = float(renderSettings.clippingPlanes[0])
+    sceneOutputs.inputs["F3D_FarClip"].default_value = float(renderSettings.clippingPlanes[1])
+    sceneOutputs.inputs["Blender_Game_Scale"].default_value = float(get_blender_to_game_scale(context))
     sceneOutputs.inputs["FogNear"].default_value = renderSettings.fogPreviewPosition[0]
     sceneOutputs.inputs["FogFar"].default_value = renderSettings.fogPreviewPosition[1]
 
-    sceneOutputs.inputs["F3D_NearClip"].default_value = float(renderSettings.clippingPlanes[0])
-    sceneOutputs.inputs["F3D_FarClip"].default_value = float(renderSettings.clippingPlanes[1])
-
-    sceneOutputs.inputs["ShadeColor"].default_value = tuple(c for c in renderSettings.lightColor)
-    sceneOutputs.inputs["AmbientColor"].default_value = tuple(c for c in renderSettings.ambientColor)
-    sceneOutputs.inputs["LightDirection"].default_value = tuple(
-        d for d in (mathutils.Vector(renderSettings.lightDirection) @ transform_mtx_blender_to_n64())
-    )
+    sceneOutputs.inputs["AmbientColor"].default_value = s_rgb_alpha_1_tuple(renderSettings.ambientColor)
+    sceneOutputs.inputs["Light0Color"].default_value = s_rgb_alpha_1_tuple(renderSettings.light0Color)
+    sceneOutputs.inputs["Light0Dir"].default_value = renderSettings.light0Direction
+    sceneOutputs.inputs["Light0Size"].default_value = renderSettings.light0SpecSize
+    sceneOutputs.inputs["Light1Color"].default_value = s_rgb_alpha_1_tuple(renderSettings.light1Color)
+    sceneOutputs.inputs["Light1Dir"].default_value = renderSettings.light1Direction
+    sceneOutputs.inputs["Light1Size"].default_value = renderSettings.light1SpecSize
 
     update_lighting_space(renderSettings)
-
-    sceneOutputs.inputs["Blender_Game_Scale"].default_value = float(get_blender_to_game_scale(context))
 
 
 def on_update_render_preview_nodes(self, context: bpy.types.Context):
@@ -165,10 +159,9 @@ def poll_oot_scene(self, object):
 
 
 def resync_scene_props():
-    if "ShdCol_L" in bpy.data.node_groups and "GeometryNormal_WorldSpace" in bpy.data.node_groups:
-        renderSettings: "Fast64RenderSettings_Properties" = bpy.context.scene.fast64.renderSettings
+    if "GetSpecularNormal" in bpy.data.node_groups:
         # Lighting space needs to be updated due to the nodes being shared and reloaded
-        update_lighting_space(renderSettings)
+        update_lighting_space(bpy.context.scene.fast64.renderSettings)
 
 
 class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
@@ -191,8 +184,8 @@ class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
         default=(0.5, 0.5, 0.5, 1),
         update=on_update_render_preview_nodes,
     )
-    lightColor: bpy.props.FloatVectorProperty(
-        name="Light Color",
+    light0Color: bpy.props.FloatVectorProperty(
+        name="Light 0 Color",
         subtype="COLOR",
         size=4,
         min=0,
@@ -200,13 +193,45 @@ class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
         default=(1, 1, 1, 1),
         update=on_update_render_preview_nodes,
     )
-    lightDirection: bpy.props.FloatVectorProperty(
-        name="Light Direction",
+    light0Direction: bpy.props.FloatVectorProperty(
+        name="Light 0 Direction",
         subtype="DIRECTION",
         size=3,
         min=-1,
         max=1,
-        default=mathutils.Vector((0.5, 0.5, 1)).normalized(),  # pre normalized
+        default=mathutils.Vector((1.0, -1.0, 1.0)).normalized(),  # pre normalized
+        update=on_update_render_preview_nodes,
+    )
+    light0SpecSize: bpy.props.IntProperty(
+        name="Light 0 Specular Size",
+        min=1,
+        max=255,
+        default=3,
+        update=on_update_render_preview_nodes,
+    )
+    light1Color: bpy.props.FloatVectorProperty(
+        name="Light 1 Color",
+        subtype="COLOR",
+        size=4,
+        min=0,
+        max=1,
+        default=(0, 0, 0, 1),
+        update=on_update_render_preview_nodes,
+    )
+    light1Direction: bpy.props.FloatVectorProperty(
+        name="Light 1 Direction",
+        subtype="DIRECTION",
+        size=3,
+        min=-1,
+        max=1,
+        default=mathutils.Vector((-1.0, 1.0, -1.0)).normalized(),  # pre normalized
+        update=on_update_render_preview_nodes,
+    )
+    light1SpecSize: bpy.props.IntProperty(
+        name="Light 1 Specular Size",
+        min=1,
+        max=255,
+        default=3,
         update=on_update_render_preview_nodes,
     )
     useWorldSpaceLighting: bpy.props.BoolProperty(
@@ -214,7 +239,7 @@ class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
     )
     # Fog Preview is int because values reflect F3D values
     fogPreviewPosition: bpy.props.IntVectorProperty(
-        name="Fog Position", size=2, min=0, max=0x7FFFFFFF, default=(985, 1000), update=on_update_render_preview_nodes
+        name="Fog Position", size=2, min=0, max=1000, default=(985, 1000), update=on_update_render_preview_nodes
     )
     # Clipping planes are float because values reflect F3D values
     clippingPlanes: bpy.props.FloatVectorProperty(
