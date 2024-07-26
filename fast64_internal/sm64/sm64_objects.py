@@ -14,6 +14,7 @@ from ..utility import (
     all_values_equal_x,
     checkIsSM64PreInlineGeoLayout,
     prop_split,
+    upgrade_old_prop,
 )
 
 from .sm64_constants import (
@@ -646,7 +647,7 @@ class PuppycamVolume:
         # xyz, beginning and end
         self.begin = (position[0] - scale[0], position[1] - scale[2], position[2] - scale[1])
         self.end = (position[0] + scale[0], position[1] + scale[2], position[2] + scale[1])
-        camScaleValue = bpy.context.scene.blenderToSM64Scale
+        camScaleValue = bpy.context.scene.fast64.sm64.blender_to_sm64_scale
 
         # xyz for pos and focus obtained from chosen empties or from selected camera (32767 is ignore flag)
         if camPos != (32767, 32767, 32767):
@@ -739,16 +740,11 @@ def exportAreaCommon(areaObj, transformMatrix, geolayout, collision, name):
 
 # These are all done in reference to refresh 8
 def handleRefreshDiffModelIDs(modelID):
-    if bpy.context.scene.refreshVer == "Refresh 8" or bpy.context.scene.refreshVer == "Refresh 7":
-        pass
-    elif bpy.context.scene.refreshVer == "Refresh 6":
+    refresh_version = bpy.context.scene.fast64.sm64.refresh_version
+    if refresh_version == "Refresh 6":
         if modelID == "MODEL_TWEESTER":
             modelID = "MODEL_TORNADO"
-    elif (
-        bpy.context.scene.refreshVer == "Refresh 5"
-        or bpy.context.scene.refreshVer == "Refresh 4"
-        or bpy.context.scene.refreshVer == "Refresh 3"
-    ):
+    elif refresh_version == {"Refresh 3", "Refresh 4", "Refresh 5"}:
         if modelID == "MODEL_TWEESTER":
             modelID = "MODEL_TORNADO"
         elif modelID == "MODEL_WAVE_TRAIL":
@@ -759,32 +755,6 @@ def handleRefreshDiffModelIDs(modelID):
             modelID = "MODEL_SPOT_ON_GROUND"
 
     return modelID
-
-
-def handleRefreshDiffSpecials(preset):
-    if (
-        bpy.context.scene.refreshVer == "Refresh 8"
-        or bpy.context.scene.refreshVer == "Refresh 7"
-        or bpy.context.scene.refreshVer == "Refresh 6"
-        or bpy.context.scene.refreshVer == "Refresh 5"
-        or bpy.context.scene.refreshVer == "Refresh 4"
-        or bpy.context.scene.refreshVer == "Refresh 3"
-    ):
-        pass
-    return preset
-
-
-def handleRefreshDiffMacros(preset):
-    if (
-        bpy.context.scene.refreshVer == "Refresh 8"
-        or bpy.context.scene.refreshVer == "Refresh 7"
-        or bpy.context.scene.refreshVer == "Refresh 6"
-        or bpy.context.scene.refreshVer == "Refresh 5"
-        or bpy.context.scene.refreshVer == "Refresh 4"
-        or bpy.context.scene.refreshVer == "Refresh 3"
-    ):
-        pass
-    return preset
 
 
 def start_process_sm64_objects(obj, area, transformMatrix, specialsOnly):
@@ -813,7 +783,6 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
         if specialsOnly:
             if obj.sm64_obj_type == "Special":
                 preset = obj.sm64_special_enum if obj.sm64_special_enum != "Custom" else obj.sm64_obj_preset
-                preset = handleRefreshDiffSpecials(preset)
                 area.specials.append(
                     SM64_Special_Object(
                         preset,
@@ -825,14 +794,14 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
                     )
                 )
             elif obj.sm64_obj_type == "Water Box":
-                checkIdentityRotation(obj, rotation, False)
+                checkIdentityRotation(obj, rotation.to_quaternion(), False)
                 area.water_boxes.append(CollisionWaterBox(obj.waterBoxType, translation, scale, obj.empty_display_size))
         else:
             if obj.sm64_obj_type == "Object":
                 modelID = obj.sm64_model_enum if obj.sm64_model_enum != "Custom" else obj.sm64_obj_model
                 modelID = handleRefreshDiffModelIDs(modelID)
                 behaviour = (
-                    func_map[bpy.context.scene.refreshVer][obj.sm64_behaviour_enum]
+                    func_map[bpy.context.scene.fast64.sm64.refresh_version][obj.sm64_behaviour_enum]
                     if obj.sm64_behaviour_enum != "Custom"
                     else obj.sm64_obj_behaviour
                 )
@@ -1033,7 +1002,7 @@ class SearchBehaviourEnumOperator(bpy.types.Operator):
         context.object.sm64_behaviour_enum = self.sm64_behaviour_enum
         bpy.context.region.tag_redraw()
         name = (
-            func_map[context.scene.refreshVer][self.sm64_behaviour_enum]
+            func_map[context.scene.fast64.sm64.refresh_version][self.sm64_behaviour_enum]
             if self.sm64_behaviour_enum != "Custom"
             else "Custom"
         )
@@ -1260,7 +1229,7 @@ class SM64ObjectPanel(bpy.types.Panel):
                     prop_split(box, levelObj, "backgroundSegment", "Custom Background Segment")
                     segmentExportBox = box.box()
                     segmentExportBox.label(
-                        text=f"Exported Segment: _{levelObj.backgroundSegment}_{context.scene.compressionFormat}SegmentRomStart"
+                        text=f"Exported Segment: _{levelObj.backgroundSegment}_{context.scene.fast64.sm64.compression_format}SegmentRomStart"
                     )
                 box.prop(obj, "useBackgroundColor")
                 # box.box().label(text = 'Background IDs defined in include/geo_commands.h.')
@@ -1747,12 +1716,8 @@ class SM64_GeoASMProperties(bpy.types.PropertyGroup):
     @staticmethod
     def upgrade_object(obj: bpy.types.Object):
         geo_asm = obj.fast64.sm64.geo_asm
-
-        func = obj.get("geoASMFunc") or obj.get("geo_func") or geo_asm.func
-        geo_asm.func = func
-
-        param = obj.get("geoASMParam") or obj.get("func_param") or geo_asm.param
-        geo_asm.param = str(param)
+        upgrade_old_prop(geo_asm, "func", obj, {"geoASMFunc", "geo_func"})
+        upgrade_old_prop(geo_asm, "param", obj, {"geoASMParam", "func_param"})
 
 
 class SM64_AreaProperties(bpy.types.PropertyGroup):
@@ -1803,11 +1768,7 @@ class SM64_GameObjectProperties(bpy.types.PropertyGroup):
     def upgrade_object(obj):
         game_object: SM64_GameObjectProperties = obj.fast64.sm64.game_object
 
-        game_object.bparams = obj.get("sm64_obj_bparam", game_object.bparams)
-
-        # delete legacy property
-        if "sm64_obj_bparam" in obj:
-            del obj["sm64_obj_bparam"]
+        upgrade_old_prop(game_object, "bparams", obj, "sm64_obj_bparam")
 
         # get combined bparams, if they arent the default value then return because they have been set
         combined_bparams = game_object.get_combined_bparams()

@@ -2328,6 +2328,7 @@ class FModel:
         self.LODGroups: dict[str, FLODGroup] = {}
         self.DLFormat: "DLFormat" = DLFormat
         self.matWriteMethod: GfxMatWriteMethod = matWriteMethod
+        self.no_light_direction = False
         self.global_data: FGlobalData = FGlobalData()
         self.texturesSavedLastExport: int = 0  # hacky
 
@@ -3370,7 +3371,7 @@ class GbiMacro:
 
     def getattr_virtual(self, field, static):
         if hasattr(field, "name"):
-            if self._segptrs and not static and bpy.context.scene.decomp_compatible:
+            if self._segptrs and not static and bpy.context.scene.gameEditorMode == "Homebrew":
                 return f"segmented_to_virtual({field.name})"
             if self._ptr_amp:
                 return f"&{field.name}"
@@ -3440,7 +3441,7 @@ class SPVertex(GbiMacro):
 
     def to_c(self, static=True):
         header = "gsSPVertex(" if static else "gSPVertex(glistp++, "
-        if not static and bpy.context.scene.decomp_compatible:
+        if not static and bpy.context.scene.gameEditorMode == "Homebrew":
             header += "segmented_to_virtual(" + self.vertList.name + " + " + str(self.offset) + ")"
         else:
             header += self.vertList.name + " + " + str(self.offset)
@@ -3478,7 +3479,7 @@ class SPDisplayList(GbiMacro):
             return "gsSPDisplayList(" + self.displayList.name + ")"
         elif self.displayList.DLFormat == DLFormat.Static:
             header = "gSPDisplayList(glistp++, "
-            if bpy.context.scene.decomp_compatible:
+            if bpy.context.scene.gameEditorMode == "Homebrew":
                 return header + "segmented_to_virtual(" + self.displayList.name + "))"
             else:
                 return header + self.displayList.name + ")"
@@ -4010,16 +4011,19 @@ class SPAmbient(SPLight):
 class SPLightColor(GbiMacro):
     # n is macro name (string)
     n: str
-    col: int
+    col: Sequence[int]
+
+    def color_to_int(self):
+        return self.col[0] * 0x1000000 + self.col[1] * 0x10000 + self.col[2] * 0x100 + 0xFF
 
     def to_binary(self, f3d, segments):
-        return gsMoveWd(f3d.G_MW_LIGHTCOL, f3d.getLightMWO_a(self.n), self.col, f3d) + gsMoveWd(
+        return gsMoveWd(f3d.G_MW_LIGHTCOL, f3d.getLightMWO_a(self.n), self.color_to_int(), f3d) + gsMoveWd(
             f3d.G_MW_LIGHTCOL, f3d.getLightMWO_b(self.n), self.col, f3d
         )
 
     def to_c(self, static=True):
         header = "gsSPLightColor(" if static else "gSPLightColor(glistp++, "
-        return header + str(self.n) + ", 0x" + format(self.col, "08X") + ")"
+        return header + f"{self.n}, 0x" + format(self.color_to_int(), "08X") + ")"
 
 
 @dataclass(unsafe_hash=True)
@@ -4060,7 +4064,7 @@ class SPSetLights(GbiMacro):
     def to_c(self, static=True):
         n = len(self.lights.l)
         header = f"gsSPSetLights{n}(" if static else f"gSPSetLights{n}(glistp++, "
-        if not static and bpy.context.scene.decomp_compatible:
+        if not static and bpy.context.scene.gameEditorMode == "Homebrew":
             header += f"(*(Lights{n}*) segmented_to_virtual(&{self.lights.name}))"
         else:
             header += self.lights.name
