@@ -345,11 +345,9 @@ def after_load(_a, _b):
     if any(mat.is_f3d for mat in bpy.data.materials):
         check_or_ask_color_management(bpy.context)
         if not settings.internal_fixed_4_2 and bpy.app.version >= (4, 2, 0):
-            upgradeF3DVersionAll(  # TODO: Update function call post sauren's pr
-                [obj for obj in bpy.data.objects if obj.type == "MESH"],
-                5,
-            )
-    settings.internal_fixed_4_2 = True
+            upgrade_f3d_version_all_meshes()
+    if bpy.app.version >= (4, 2, 0):
+        settings.internal_fixed_4_2 = True
     upgrade_changed_props()
     upgrade_scene_props_node()
     resync_scene_props()
