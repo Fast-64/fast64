@@ -1404,6 +1404,8 @@ class WarpNodeProperty(bpy.types.PropertyGroup):
     expand: bpy.props.BoolProperty()
 
     def uses_area_nodes(self):
+        if self.instantWarpObject1 is None or self.instantWarpObject2 is None:
+            raise PluginError(f"Warp Start and Warp End in Warp Node {self.warpID} must have objects selected.")
         return (
             self.instantWarpObject1.sm64_obj_type == "Area Root"
             and self.instantWarpObject2.sm64_obj_type == "Area Root"

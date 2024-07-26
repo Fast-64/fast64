@@ -806,9 +806,13 @@ def exportLevelC(obj, transformMatrix, levelName, exportDir, savePNG, customExpo
             headerString += roomsC.header
 
         # Get area
-        area = exportAreaCommon(
-            child, transformMatrix, geolayoutGraph.startGeolayout, collision, levelName + "_" + areaName
-        )
+        try:
+            area = exportAreaCommon(
+                child, transformMatrix, geolayoutGraph.startGeolayout, collision, levelName + "_" + areaName
+            )
+        except Exception as exc:
+            raise PluginError(f"Error while creating area {child.areaIndex}: {str(exc)}") from exc
+
         if area.mario_start is not None:
             prevLevelScript.marioStart = area.mario_start
         persistentBlockString = prevLevelScript.get_persistent_block(
