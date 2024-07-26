@@ -113,7 +113,7 @@ class SceneLighting:
                     light2[1],
                     exportColor(lightProp.fogColor),
                     lightProp.fogNear,
-                    lightProp.fogFar,
+                    lightProp.z_far,
                     lightProp.transitionSpeed,
                 )
             )

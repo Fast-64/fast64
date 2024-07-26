@@ -8,13 +8,14 @@ from .utility import *
 from bl_operators.presets import AddPresetBase
 
 
-def upgradeF3DVersionAll(objs, version):
+def upgrade_f3d_version_all_meshes() -> None:
+    objs = [obj for obj in bpy.data.objects if obj.type == "MESH"]
     f3d_node_tree = get_f3d_node_tree()
 
     # Remove original v2 node groups so that they can be recreated.
     deleteGroups = []
     for node_tree in bpy.data.node_groups:
-        if node_tree.name[-6:] == "F3D v" + str(version):
+        if node_tree.name[-6:] == "F3D v" + str(F3D_MAT_CUR_VERSION):
             deleteGroups.append(node_tree)
     for deleteGroup in deleteGroups:
         bpy.data.node_groups.remove(deleteGroup)
@@ -152,7 +153,7 @@ def convertF3DtoNewVersion(
         node_tree_copy(f3d_node_tree, material.node_tree)
 
         material.is_f3d, material.f3d_update_flag = True, False
-        material.mat_ver = 5
+        material.mat_ver = F3D_MAT_CUR_VERSION
 
         createScenePropertiesForMaterial(material)
         with bpy.context.temp_override(material=material):
@@ -264,9 +265,8 @@ class BSDFConvert(bpy.types.Operator):
 
 class MatUpdateConvert(bpy.types.Operator):
     # set bl_ properties
-    version = 5
     bl_idname = "object.convert_f3d_update"
-    bl_label = "Recreate F3D Materials As v" + str(version)
+    bl_label = "Recreate F3D Materials As v" + str(F3D_MAT_CUR_VERSION)
     bl_options = {"UNDO"}
 
     update_conv_all: bpy.props.BoolProperty(default=True)
@@ -279,10 +279,7 @@ class MatUpdateConvert(bpy.types.Operator):
                 raise PluginError("Operator can only be used in object mode.")
 
             if self.update_conv_all:
-                upgradeF3DVersionAll(
-                    [obj for obj in bpy.data.objects if obj.type == "MESH"],
-                    self.version,
-                )
+                upgrade_f3d_version_all_meshes()
             else:
                 if len(context.selected_objects) == 0:
                     raise PluginError("Mesh not selected.")
