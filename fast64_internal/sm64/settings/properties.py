@@ -99,10 +99,12 @@ class SM64_Properties(PropertyGroup):
             "exportType": "export_type",
         }
         old_export_props_to_new = {
-            "geoLevelName": "custom_export_name",
-            "geoExportPath": "custom_export_path",
-            "geoName": "object_name",
-            "geoGroupName": "group_name",
+            "custom_export_name": {"geoLevelName", "colLevelName", "animLevelName"},
+            "custom_export_path": {"geoExportPath", "colExportPath", "animExportPath"},
+            "object_name": {"geoName", "colName", "animName"},
+            "group_name": {"geoGroupName", "colGroupName", "animGroupName"},
+            "level_name": {"levelOption", "geoLevelName", "colLevelName", "animLevelName"},
+            "export_header_type": {"geoExportHeaderType", "colExportHeaderType", "animExportHeaderType"},
         }
         for scene in bpy.data.scenes:
             sm64_props: SM64_Properties = scene.fast64.sm64
@@ -125,27 +127,7 @@ class SM64_Properties(PropertyGroup):
             upgrade_old_prop(sm64_props, "show_importing_menus", sm64_props, "showImportingMenus")
 
             combined_props = scene.fast64.sm64.combined_export
-            upgrade_old_prop(
-                combined_props,
-                "export_header_type",
-                scene,
-                {
-                    "geoExportHeaderType",
-                    "colExportHeaderType",
-                    "animExportHeaderType",
-                },
-            )
-            upgrade_old_prop(
-                combined_props,
-                "level_name",
-                scene,
-                {
-                    "geoLevelOption",
-                    "colLevelOption",
-                    "animLevelOption",
-                },
-            )
-            for old, new in old_export_props_to_new.items():
+            for new, old in old_export_props_to_new.items():
                 upgrade_old_prop(combined_props, new, scene, old)
             sm64_props.version = SM64_Properties.cur_version
 
