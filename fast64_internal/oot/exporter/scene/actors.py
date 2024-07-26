@@ -61,10 +61,7 @@ class SceneTransitionActors:
         for obj in actorObjList:
             transActorProp = obj.ootTransitionActorProperty
             actorProp: OOTActorProperty = transActorProp.actor
-            if (
-                Utility.isCurrentHeaderValid(actorProp.headerSettings, headerIndex)
-                and actorProp.actorID != "None"
-            ):
+            if Utility.isCurrentHeaderValid(actorProp.headerSettings, headerIndex) and actorProp.actorID != "None":
                 pos, rot, _, _ = Utility.getConvertedTransform(transform, sceneObj, obj, True)
                 transActor = TransitionActor()
 
@@ -148,10 +145,7 @@ class SceneEntranceActors:
         for obj in actorObjList:
             entranceProp = obj.ootEntranceProperty
             actorProp: OOTActorProperty = entranceProp.actor
-            if (
-                Utility.isCurrentHeaderValid(actorProp.headerSettings, headerIndex)
-                and actorProp.actorID != "None"
-            ):
+            if Utility.isCurrentHeaderValid(actorProp.headerSettings, headerIndex) and actorProp.actorID != "None":
                 pos, rot, _, _ = Utility.getConvertedTransform(transform, sceneObj, obj, True)
                 entranceActor = EntranceActor()
 
