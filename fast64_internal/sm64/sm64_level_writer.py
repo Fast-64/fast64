@@ -80,7 +80,7 @@ def createGeoFile(levelName, filepath):
 
 def createLevelDataFile(levelName, filepath):
     result = (
-        '#include <ultra64.h>\n'
+        "#include <ultra64.h>\n"
         + '#include "sm64.h"\n'
         + '#include "surface_terrains.h"\n'
         + '#include "moving_texture_macros.h"\n'
