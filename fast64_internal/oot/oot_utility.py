@@ -213,6 +213,12 @@ def getSceneDirFromLevelName(name):
     return None
 
 
+def ootStripComments(code: str) -> str:
+    code = re.sub(r"\/\*[^*]*\*+(?:[^/*][^*]*\*+)*\/", "", code)  # replace /* ... */ comments
+    # TODO: replace end of line (// ...) comments
+    return code
+
+
 @dataclass
 class ExportInfo:
     """Contains all parameters used for a scene export. Any new parameters for scene export should be added here."""

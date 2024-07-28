@@ -4,7 +4,7 @@ from ....f3d.f3d_parser import getImportData, parseF3D
 from ....utility import hexOrDecInt, applyRotation
 from ...oot_f3d_writer import ootReadActorScale
 from ...oot_model_classes import OOTF3DContext, ootGetIncludedAssetData
-from ...oot_utility import ootGetObjectPath, getOOTScale
+from ...oot_utility import ootGetObjectPath, getOOTScale, ootStripComments
 from ...oot_texture_array import ootReadTextureArrays
 from ..constants import ootSkeletonImportDict
 from ..properties import OOTSkeletonImportSettings
@@ -231,7 +231,7 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
 
     matchResult = ootGetLimbs(skeletonData, limbsName, False)
     limbsData = matchResult.group(2)
-    limbList = [entry.strip()[1:] for entry in limbsData.split(",") if entry.strip() != ""]
+    limbList = [entry.strip()[1:] for entry in ootStripComments(limbsData).split(",") if entry.strip() != ""]
 
     f3dContext = OOTF3DContext(get_F3D_GBI(), limbList, basePath)
     f3dContext.mat().draw_layer.oot = drawLayer
