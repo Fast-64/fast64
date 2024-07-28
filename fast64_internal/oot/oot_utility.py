@@ -8,7 +8,7 @@ from mathutils import Vector
 from bpy.types import Object
 from bpy.utils import register_class, unregister_class
 from bpy.types import Object
-from typing import Callable, Optional, TYPE_CHECKING
+from typing import Callable, Optional, TYPE_CHECKING, List
 from .oot_constants import ootSceneIDToName
 from dataclasses import dataclass
 
@@ -181,6 +181,43 @@ def sceneNameFromID(sceneID):
 
 def getOOTScale(actorScale: float) -> float:
     return bpy.context.scene.ootBlenderScale * actorScale
+
+
+@dataclass
+class OOTEnum:
+    """
+    Represents a enum parsed from C code
+    """
+
+    name: str
+    vals: List[str]
+
+    @staticmethod
+    def fromMatch(m: re.Match):
+        return OOTEnum(m.group("name"), OOTEnum.parseVals(m.group("vals")))
+
+    @staticmethod
+    def parseVals(valsCode: str) -> List[str]:
+        return [entry.strip() for entry in ootStripComments(valsCode).split(",")]
+
+    def indexOrNone(self, valueorNone: str):
+        return self.vals.index(valueorNone) if valueorNone in self.vals else None
+
+
+def ootGetEnums(code: str) -> List["OOTEnum"]:
+    return [
+        OOTEnum.fromMatch(m)
+        for m in re.finditer(
+            r"(?<!extern)\s*"
+            + r"typedef\s*enum\s*(?P<name>[A-Za-z0-9\_]+)"  # doesn't start with extern (is defined here)
+            + r"\s*\{"  # typedef enum gDekukButlerLimb
+            + r"(?P<vals>[^\}]*)"  # opening curly brace
+            + r"\s*\}"  # values
+            + r"\s*\1"  # closing curly brace
+            + r"\s*;",  # name again  # end statement
+            code,
+        )
+    ]
 
 
 def replaceMatchContent(data: str, newContent: str, match: re.Match, index: int) -> str:
@@ -421,12 +458,22 @@ def checkEmptyName(name):
         raise PluginError("No name entered for the exporter.")
 
 
-def ootGetObjectPath(isCustomExport, exportPath, folderName):
+def ootGetObjectPath(isCustomExport: bool, exportPath: str, folderName: str) -> str:
     if isCustomExport:
         filepath = exportPath
     else:
         filepath = os.path.join(
             ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False), folderName + ".c"
+        )
+    return filepath
+
+
+def ootGetObjectHeaderPath(isCustomExport: bool, exportPath: str, folderName: str) -> str:
+    if isCustomExport:
+        filepath = exportPath
+    else:
+        filepath = os.path.join(
+            ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False), folderName + ".h"
         )
     return filepath
 

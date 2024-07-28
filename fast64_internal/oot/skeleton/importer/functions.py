@@ -147,6 +147,9 @@ def ootBuildSkeleton(
 
     f3dContext.mat().draw_layer.oot = armatureObj.ootDrawLayer
 
+    # Parse enums, which may be used to link bones by index
+    enums = ootGetEnums(skeletonData)
+
     if overlayName is not None:
         ootReadTextureArrays(basePath, overlayName, skeletonName, f3dContext, isLink, flipbookArrayIndex2D)
 
@@ -216,7 +219,10 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
         isLink = False
         restPoseData = None
 
-    filepaths = [ootGetObjectPath(isCustomImport, importPath, folderName)]
+    filepaths = [
+        ootGetObjectPath(isCustomImport, importPath, folderName),
+        ootGetObjectHeaderPath(isCustomImport, importPath, folderName),
+    ]
 
     removeDoubles = importSettings.removeDoubles
     importNormals = importSettings.importNormals
