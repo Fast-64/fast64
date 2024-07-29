@@ -37,14 +37,14 @@ class MK64_ImportCourseDL(Operator):
 
         try:
             importSettings: MK64CourseDLImportSettings = context.scene.fast64.mk64.CourseDLImportSettings
-            name = importSettings.DLImportName
-            importPath = bpy.path.abspath(importSettings.DLImportPath)
-            basePath = bpy.path.abspath(importSettings.DLImportBasePath)
-            scaleValue = importSettings.blenderF3DScale
+            name = importSettings.name
+            importPath = bpy.path.abspath(importSettings.path)
+            basePath = bpy.path.abspath(importSettings.basePath)
+            scaleValue = importSettings.scale
 
-            removeDoubles = importSettings.DLRemoveDoubles
-            importNormals = importSettings.DLImportNormals
-            drawLayer = importSettings.DLImportDrawLayer
+            removeDoubles = importSettings.removeDoubles
+            importNormals = importSettings.importNormals
+            drawLayer = importSettings.drawLayer
 
             paths = [importPath]
 
@@ -61,7 +61,7 @@ class MK64_ImportCourseDL(Operator):
 
             material = createF3DMat(None)
             f3d_mat = material.f3d_mat
-            f3d_mat.rdp_settings.set_rendermode = importSettings.EnableRenderModeDefault
+            f3d_mat.rdp_settings.set_rendermode = importSettings.enableRenderModeDefault
             f3d_mat.combiner1.A = "TEXEL0"
             f3d_mat.combiner1.B = "0"
             f3d_mat.combiner1.C = "SHADE"
