@@ -1,5 +1,7 @@
 import bpy, os, math, re, shutil, mathutils
 from collections import defaultdict
+from typing import NamedTuple
+from dataclasses import dataclass
 from bpy.utils import register_class, unregister_class
 from ..panels import SM64_Panel
 from ..operators import ObjectDataExporter
@@ -31,6 +33,7 @@ from ..utility import (
     decompFolderMessage,
     makeWriteInfoBox,
     writeMaterialFiles,
+    getPathAndLevel,
 )
 
 from ..f3d.f3d_gbi import (
@@ -124,12 +127,7 @@ class ZoomOutMasks:
         self.originalData = originalData
 
     def to_c(self):
-        result = ""
-        # result += 'u8 sZoomOutAreaMasks[] = {\n'
-        result += "\n"
-        result += macrosToString(self.masks, True)
-        # result += '};\n'
-        return result
+        return f"\n{macrosToString(self.masks)}\n"
 
     def write(self, filepath):
         matchResult = re.search(
@@ -196,9 +194,9 @@ class CourseDefines:
 
     def to_c(self):
         result = self.headerInfo
-        result += macrosToString(self.courses, False, tabDepth=0)
-        result += "DEFINE_COURSES_END()\n"
-        result += macrosToString(self.bonusCourses, False, tabDepth=0)
+        result += macrosToString(self.courses, tabDepth=0, comma=False)
+        result += "\nDEFINE_COURSES_END()\n"
+        result += macrosToString(self.bonusCourses, tabDepth=0, comma=False)
         return result
 
     def write(self, filepath):
@@ -238,7 +236,7 @@ class LevelDefines:
 
     def to_c(self):
         result = self.headerInfo
-        result += macrosToString(self.defineMacros, False, tabDepth=0)
+        result += macrosToString(self.defineMacros, tabDepth=0, comma=False)
         return result
 
     def write(self, filepath, headerPath):
@@ -296,71 +294,100 @@ class PersistentBlocks:
         return {cls.includes: [], cls.scripts: [], cls.levelCommands: [], cls.areaCommands: defaultdict(list)}
 
 
+class Macro(NamedTuple):
+    function: str
+    args: list[str]
+    comment: str
+
+
+@dataclass
+class LevelData:
+    script_data: str = ""
+    area_data: str = ""
+    camera_data: str = ""
+    puppycam_data: str = ""
+    geo_data: str = ""
+    collision_data: str = ""
+    header_data: str = ""
+
+
 class LevelScript:
     def __init__(self, name):
         self.name = name
         self.segmentLoads = []
         self.mario = "MARIO(MODEL_MARIO, 0x00000001, bhvMario),"
+        self.macros = []
         self.levelFunctions = []
         self.modelLoads = []
         self.actorIncludes = []
         self.marioStart = None
         self.persistentBlocks = PersistentBlocks.new()
+        self.sub_scripts: LevelScript = []
+
+    # this is basically a smaller script jumped to from the main one
+    def add_subscript(self, name: str):
+        self.sub_scripts.append(new_script := LevelScript(name))
+        return new_script
+
+    def sub_script_to_c(self, root_persistent_block):
+        result = ""
+        if not any(
+            [
+                f"const LevelScript {self.name}[]" in line
+                for line in root_persistent_block.get(PersistentBlocks.scripts, [])
+            ]
+        ):
+            result = f"const LevelScript {self.name}[] = {{\n{macrosToString(self.macros)}\n}};\n"
+        for sub_script in self.sub_scripts:
+            result += sub_script.sub_script_to_c(result, root_persistent_block)
+        return result
 
     def to_c(self, areaString):
-        result = (
-            "#include <ultra64.h>\n"
-            + '#include "sm64.h"\n'
-            + '#include "behavior_data.h"\n'
-            + '#include "model_ids.h"\n'
-            + '#include "seq_ids.h"\n'
-            + '#include "dialog_ids.h"\n'
-            + '#include "segment_symbols.h"\n'
-            + '#include "level_commands.h"\n\n'
-            + '#include "game/level_update.h"\n\n'
-            + '#include "levels/scripts.h"\n\n'
-        )
-
-        for actorInclude in self.actorIncludes:
-            result += actorInclude + "\n"
-
-        result += f"\n{self.get_persistent_block(PersistentBlocks.includes)}\n\n"
-
-        result += '#include "make_const_nonconst.h"\n'
-        result += '#include "levels/' + self.name + '/header.h"\n\n'
-
-        result += f"{self.get_persistent_block(PersistentBlocks.scripts)}\n\n"
-
-        result += "const LevelScript level_" + self.name + "_entry[] = {\n"
-        result += "\tINIT_LEVEL(),\n"
-        for segmentLoad in self.segmentLoads:
-            result += "\t" + macroToString(segmentLoad, True) + "\n"
-        result += "\tALLOC_LEVEL_POOL(),\n"
-        result += "\t" + self.mario + "\n"
-        for levelFunction in self.levelFunctions:
-            result += "\t" + macroToString(levelFunction, True) + "\n"
-        for modelLoad in self.modelLoads:
-            result += "\t" + macroToString(modelLoad, True) + "\n"
-        result += "\n"
-
-        result += f"{self.get_persistent_block(PersistentBlocks.levelCommands, nTabs=1)}\n\n"
-
-        result += areaString
-
-        result += "\tFREE_LEVEL_POOL(),\n"
         if self.marioStart is not None:
-            result += "\t" + self.marioStart.to_c() + ",\n"
+            mario_start_macro = f"\t{self.marioStart.to_c()},"
         else:
-            result += "\tMARIO_POS(1, 0, 0, 0, 0),\n"
-        result += (
-            "\tCALL(0, lvl_init_or_update),\n"
-            + "\tCALL_LOOP(1, lvl_init_or_update),\n"
-            + "\tCLEAR_LEVEL(),\n"
-            + "\tSLEEP_BEFORE_EXIT(1),\n"
-            + "\tEXIT(),\n};\n"
+            mario_start_macro = "\tMARIO_POS(1, 0, 0, 0, 0),"
+        return "\n".join(
+            filter(
+                None,
+                (
+                    # all the includes
+                    "#include <ultra64.h>",
+                    '#include "sm64.h"',
+                    '#include "behavior_data.h"',
+                    '#include "model_ids.h"',
+                    '#include "seq_ids.h"',
+                    '#include "dialog_ids.h"',
+                    '#include "segment_symbols.h"',
+                    '#include "level_commands.h"\n',
+                    '#include "game/level_update.h"\n',
+                    '#include "levels/scripts.h"\n',
+                    "\n".join(self.actorIncludes),
+                    '#include "make_const_nonconst.h"',
+                    f'#include "levels/{self.name}/header.h"\n',
+                    # persistent block
+                    f"{self.get_persistent_block(PersistentBlocks.scripts)}\n",
+                    # sub scripts referenced in previous level script in the same file
+                    "".join([script.sub_script_to_c(self.persistentBlocks) for script in self.sub_scripts]),
+                    # main level script entry
+                    f"const LevelScript level_{self.name}_entry[] = {{",
+                    "\tINIT_LEVEL(),",
+                    macrosToString(self.segmentLoads),
+                    f"\tALLOC_LEVEL_POOL(),",
+                    f"\t{self.mario}",
+                    macrosToString(self.levelFunctions),
+                    macrosToString(self.modelLoads),
+                    f"{self.get_persistent_block(PersistentBlocks.levelCommands, nTabs=1)}\n",
+                    f"{areaString}\tFREE_LEVEL_POOL(),",
+                    mario_start_macro,
+                    "\tCALL(0, lvl_init_or_update),",
+                    "\tCALL_LOOP(1, lvl_init_or_update),",
+                    "\tCLEAR_LEVEL(),",
+                    "\tSLEEP_BEFORE_EXIT(1),",
+                    "\tEXIT(),\n};",
+                ),
+            )
         )
-
-        return result
 
     def get_persistent_block(self, retainType: str, nTabs=0, areaIndex: str = None):
         tabs = "\t" * nTabs
@@ -439,7 +466,7 @@ def replaceSegmentLoad(levelscript, segmentName, command, changedSegment):
         if segmentLoad[0] == command and segment == changedSegment:
             changedLoad = segmentLoad
     if changedLoad is None:
-        changedLoad = [command, [hex(changedSegment), "", ""], ""]
+        changedLoad = Macro(command, [hex(changedSegment), "", ""], "")
         levelscript.segmentLoads.append(changedLoad)
 
     changedLoad[1][1] = segmentName + "SegmentRomStart"
@@ -449,7 +476,7 @@ def replaceSegmentLoad(levelscript, segmentName, command, changedSegment):
 def replaceScriptLoads(levelscript, obj):
     newFuncs = []
     for jumpLink in levelscript.levelFunctions:
-        target = jumpLink[1][0]  # format is [macro, list[args], comment]
+        target = jumpLink.args[0]  # format is [macro, list[args], comment]
         if "script_func_global_" not in target:
             newFuncs.append(jumpLink)
             continue
@@ -465,14 +492,14 @@ def replaceScriptLoads(levelscript, obj):
         if newNum == "Do Not Write":
             newFuncs.append(jumpLink)
             continue
-        newFuncs.append(["JUMP_LINK", [newNum], jumpLink[2]])
+        newFuncs.append(Macro("JUMP_LINK", [newNum], jumpLink.comment))
     levelscript.levelFunctions = newFuncs
 
 
 def stringToMacros(data):
     macroData = []
     for matchResult in re.finditer("(\w*)\((((?!\)).)*)\),?(((?!\n)\s)*\/\/((?!\n).)*)?", data):
-        macro = matchResult.group(1)
+        function = matchResult.group(1)
         arguments = matchResult.group(2)
         if matchResult.group(4) is not None:
             comment = matchResult.group(4).strip()
@@ -482,26 +509,18 @@ def stringToMacros(data):
         arguments = arguments.split(",")
         for i in range(len(arguments)):
             arguments[i] = arguments[i].strip()
-
-        macroData.append([macro, arguments, comment])
+        macroData.append(Macro(function, arguments, comment))
 
     return macroData
 
 
-def macroToString(macroCmd, useComma):
-    result = macroCmd[0] + "("
-    for arg in macroCmd[1]:
-        result += arg + ", "
-    result = result[:-2] + ")" + ("," if useComma else "")
-    result += " " + macroCmd[2]
-    return result
+def macroToString(macro_cmd, comma=True):
+    return f"{macro_cmd.function}({', '.join(macro_cmd.args)}){',' if comma else ''} {macro_cmd.comment}"
 
 
-def macrosToString(macroCmds, useComma, tabDepth=1):
-    result = ""
-    for macroCmd in macroCmds:
-        result += "\t" * tabDepth + macroToString(macroCmd, useComma) + "\n"
-    return result
+def macrosToString(macro_cmds, tabDepth=1, comma=True):
+    tabs = "\t" * tabDepth
+    return "\n".join([f"{tabs}{macroToString(macro_cmd, comma = comma)}" for macro_cmd in macro_cmds])
 
 
 def setStartLevel(basePath, levelEnum):
@@ -608,47 +627,64 @@ def parseLevelScript(filepath, levelName):
     scriptPath = os.path.join(filepath, "script.c")
     scriptData = getDataFromFile(scriptPath)
 
-    levelscript = LevelScript(levelName)
+    level_script = LevelScript(levelName)
 
     for matchResult in re.finditer('#include\s*"actors/(\w*)\.h"', scriptData):
-        levelscript.actorIncludes.append(matchResult.group(0))
+        level_script.actorIncludes.append(matchResult.group(0))
 
-    matchResult = re.search(
+    def parse_macros(script_contents, level_script):
+        macro_data = stringToMacros(script_contents)
+        inArea = False
+        for macro_cmd in macro_data:
+            level_script.macros.append(macro_cmd)
+            if not inArea:
+                if macro_cmd.function in {
+                    "LOAD_MIO0",
+                    "LOAD_MIO0_TEXTURE",
+                    "LOAD_YAY0",
+                    "LOAD_YAY0_TEXTURE",
+                    "LOAD_RAW",
+                    "LOAD_VANILLA_OBJECTS",
+                }:
+                    level_script.segmentLoads.append(macro_cmd)
+                elif macro_cmd.function == "JUMP_LINK":
+                    level_script.levelFunctions.append(macro_cmd)
+                elif macro_cmd.function in {"LOAD_MODEL_FROM_GEO", "LOAD_MODEL_FROM_DL"}:
+                    level_script.modelLoads.append(macro_cmd)
+                elif macro_cmd.function == "MARIO":
+                    level_script.mario = macroToString(macro_cmd)
+
+            if macro_cmd.function == "AREA":
+                inArea = True
+            elif macro_cmd.function == "END_AREA":
+                inArea = False
+
+    # find JUMP_LINK's within the same script.c file and retain them
+    def parse_sub_scripts(scriptData, level_script):
+        for script_macro in level_script.levelFunctions:
+            script_ptr = script_macro.args[0]
+            match_result = re.search(
+                f"const\s*LevelScript\s*{script_ptr}\[\]\s*=\s*\{{" + "(((?!\}).)*)\}\s*;", scriptData, re.DOTALL
+            )
+            print(match_result, script_ptr)
+            if not match_result:
+                continue
+            sub_script = level_script.add_subscript(script_ptr)
+            parse_macros(match_result.group(1), sub_script)
+            parse_sub_scripts(scriptData, sub_script)
+
+    match_result = re.search(
         "const\s*LevelScript\s*level\_\w*\_entry\[\]\s*=\s*\{" + "(((?!\}).)*)\}\s*;", scriptData, re.DOTALL
     )
 
-    if matchResult is None:
+    if match_result is None:
         raise PluginError('Could not find entry levelscript in "' + scriptPath + '".')
 
-    scriptContents = matchResult.group(1)
+    parse_macros(match_result.group(1), level_script)
+    parseLevelPersistentBlocks(scriptData, level_script)
+    parse_sub_scripts(scriptData, level_script)
 
-    macroData = stringToMacros(scriptContents)
-    inArea = False
-    for macroCmd in macroData:
-        if not inArea:
-            if (
-                macroCmd[0] == "LOAD_MIO0"
-                or macroCmd[0] == "LOAD_MIO0_TEXTURE"
-                or macroCmd[0] == "LOAD_YAY0"
-                or macroCmd[0] == "LOAD_YAY0_TEXTURE"
-                or macroCmd[0] == "LOAD_RAW"
-                or macroCmd[0] == "LOAD_VANILLA_OBJECTS"
-            ):
-                levelscript.segmentLoads.append(macroCmd)
-            elif macroCmd[0] == "JUMP_LINK":
-                levelscript.levelFunctions.append(macroCmd)
-            elif macroCmd[0] in ["LOAD_MODEL_FROM_GEO", "LOAD_MODEL_FROM_DL"]:
-                levelscript.modelLoads.append(macroCmd)
-            elif macroCmd[0] == "MARIO":
-                levelscript.mario = macroToString(macroCmd, True)
-
-        if macroCmd[0] == "AREA":
-            inArea = True
-        elif macroCmd[0] == "END_AREA":
-            inArea = False
-
-    parseLevelPersistentBlocks(scriptData, levelscript)
-    return levelscript
+    return level_script
 
 
 def overwritePuppycamData(filePath, levelToReplace, newPuppycamTriggers):
@@ -698,33 +734,141 @@ class SM64OptionalFileStatus:
         self.starSelectC = False
 
 
-def exportLevelC(obj, transformMatrix, levelName, exportDir, savePNG, customExport, levelCameraVolumeName, DLFormat):
+def export_area_c(
+    obj, level_data, area_root, prev_level_script, transformMatrix, level_name, level_dir, fModel, DLFormat, savePNG
+):
+    areaName = f"area_{area_root.areaIndex}"
+    areaDir = os.path.join(level_dir, areaName)
+    if not os.path.exists(areaDir):
+        os.mkdir(areaDir)
+
+    envOption = area_root.envOption if area_root.envOption != "Custom" else area_root.envType
+    uses_env_fx = envOption != "ENVFX_MODE_NONE"
+
+    def include_proto(file_name):
+        return f'#include "levels/{level_name}/{areaName}/{file_name}"\n'
+
+    # Write geolayout
+    geolayoutGraph, fModel = convertObjectToGeolayout(
+        obj,
+        transformMatrix,
+        area_root.areaCamera,
+        f"{level_name}_{areaName}",
+        fModel,
+        area_root,
+        DLFormat,
+        not savePNG,
+    )
+    geolayoutGraphC = geolayoutGraph.to_c()
+    saveDataToFile(os.path.join(areaDir, "geo.inc.c"), geolayoutGraphC.source)
+    level_data.geo_data += include_proto("geo.inc.c")
+    level_data.header_data += geolayoutGraphC.header
+
+    # Write collision, rooms MUST be done first
+    setRooms(area_root)
+    collision = exportCollisionCommon(
+        area_root, transformMatrix, True, True, f"{level_name}_{areaName}", area_root.areaIndex
+    )
+    collisionC = collision.to_c()
+    saveDataToFile(os.path.join(areaDir, "collision.inc.c"), collisionC.source)
+    level_data.script_data += include_proto("collision.inc.c")
+    level_data.header_data += collisionC.header
+
+    # Write rooms
+    if area_root.enableRoomSwitch:
+        roomsC = collision.to_c_rooms()
+        saveDataToFile(os.path.join(areaDir, "room.inc.c"), roomsC.source)
+        level_data.script_data += include_proto("room.inc.c")
+        level_data.header_data += roomsC.header
+
+    # Get area
+    area = exportAreaCommon(
+        area_root, transformMatrix, geolayoutGraph.startGeolayout, collision, f"{level_name}_{areaName}"
+    )
+    if area.mario_start is not None:
+        prev_level_script.marioStart = area.mario_start
+    persistentBlockString = prev_level_script.get_persistent_block(
+        PersistentBlocks.areaCommands, nTabs=2, areaIndex=str(area.index)
+    )
+    level_data.area_data += area.to_c_script(area_root.enableRoomSwitch, persistentBlockString=persistentBlockString)
+    level_data.camera_data += area.to_c_camera_volumes()
+    level_data.puppycam_data += area.to_c_puppycam_volumes()
+
+    # Write macros
+    macrosC = area.to_c_macros()
+    saveDataToFile(os.path.join(areaDir, "macro.inc.c"), macrosC.source)
+    level_data.script_data += include_proto("macro.inc.c")
+    level_data.header_data += macrosC.header
+
+    # Write splines
+    splinesC = area.to_c_splines()
+    saveDataToFile(os.path.join(areaDir, "spline.inc.c"), splinesC.source)
+    level_data.script_data += include_proto("spline.inc.c")
+    level_data.header_data += splinesC.header
+
+    return level_data, fModel, uses_env_fx
+
+
+def export_level_script_c(obj, prev_level_script, level_name, level_data, level_dir, uses_env_fx):
+    compressionFmt = bpy.context.scene.fast64.sm64.compression_format
+    # replace level loads
+    replaceSegmentLoad(prev_level_script, f"_{level_name}_segment_7", f"LOAD_{compressionFmt.upper()}", 0x07)
+    if uses_env_fx:
+        replaceSegmentLoad(prev_level_script, f"_effect_{compressionFmt}", f"LOAD_{compressionFmt.upper()}", 0x0B)
+    if not obj.useBackgroundColor:
+        if obj.background == "CUSTOM":
+            segment = obj.fast64.sm64.level.backgroundSegment
+        else:
+            segment = f"{backgroundSegments[obj.background]}_skybox"
+        replaceSegmentLoad(prev_level_script, f"_{segment}_{compressionFmt}", f"LOAD_{compressionFmt.upper()}", 0x0A)
+
+    # replace actor loads
+    group_seg_loads = obj.fast64.sm64.segment_loads
+    if group_seg_loads.seg5_enum != "Do Not Write":
+        replaceSegmentLoad(
+            prev_level_script,
+            f"_{group_seg_loads.seg5}_{compressionFmt}",
+            f"LOAD_{compressionFmt.upper()}",
+            0x05,
+        )
+        replaceSegmentLoad(prev_level_script, f"_{group_seg_loads.seg5}_geo", "LOAD_RAW", 0x0C)
+    if group_seg_loads.seg6_enum != "Do Not Write":
+        replaceSegmentLoad(
+            prev_level_script,
+            f"_{group_seg_loads.seg6}_{compressionFmt}",
+            f"LOAD_{compressionFmt.upper()}",
+            0x06,
+        )
+        replaceSegmentLoad(prev_level_script, f"_{group_seg_loads.seg6}_geo", "LOAD_RAW", 0x0D)
+
+    # write data
+    replaceScriptLoads(prev_level_script, obj)
+    saveDataToFile(os.path.join(level_dir, "script.c"), prev_level_script.to_c(level_data.area_data))
+
+    return level_data
+
+
+def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExport, levelCameraVolumeName, DLFormat):
     fileStatus = SM64OptionalFileStatus()
 
     if customExport:
-        levelDir = os.path.join(exportDir, levelName)
+        level_dir = os.path.join(exportDir, level_name)
     else:
-        levelDir = os.path.join(exportDir, "levels/" + levelName)
+        level_dir = os.path.join(exportDir, "levels/" + level_name)
 
-    if customExport or not os.path.exists(os.path.join(levelDir, "script.c")):
-        prevLevelScript = LevelScript(levelName)
+    if customExport or not os.path.exists(os.path.join(level_dir, "script.c")):
+        prev_level_script = LevelScript(level_name)
     else:
-        prevLevelScript = parseLevelScript(levelDir, levelName)
+        prev_level_script = parseLevelScript(level_dir, level_name)
 
-    if not os.path.exists(levelDir):
-        os.mkdir(levelDir)
-    areaDict = {}
+    if not os.path.exists(level_dir):
+        os.mkdir(level_dir)
 
-    geoString = ""
-    levelDataString = ""
-    headerString = ""
-    areaString = ""
-    cameraVolumeString = "struct CameraTrigger " + levelCameraVolumeName + "[] = {\n"
-    puppycamVolumeString = ""
+    level_data = LevelData(camera_data=f"struct CameraTrigger {levelCameraVolumeName}[] = {{\n")
 
     inline = bpy.context.scene.exportInlineF3D
     fModel = SM64Model(
-        levelName + "_dl",
+        level_name + "_dl",
         DLFormat,
         GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
     )
@@ -732,172 +876,75 @@ def exportLevelC(obj, transformMatrix, levelName, exportDir, savePNG, customExpo
     if len(childAreas) == 0:
         raise PluginError("The level root has no child empties with the 'Area Root' object type.")
 
-    usesEnvFX = False
+    uses_env_fx = False
     echoLevels = ["0x00", "0x00", "0x00"]
     zoomFlags = [False, False, False, False]
 
     if bpy.context.scene.exportHiddenGeometry:
         hiddenState = unhideAllAndGetHiddenState(bpy.context.scene)
 
-    for child in childAreas:
-        if len(child.children) == 0:
-            raise PluginError("Area for " + child.name + " has no children.")
-        if child.areaIndex in areaDict:
-            raise PluginError(child.name + " shares the same area index as " + areaDict[child.areaIndex].name)
-        # if child.areaCamera is None:
-        #    raise PluginError(child.name + ' does not have an area camera set.')
-        # setOrigin(obj, child)
-        areaDict[child.areaIndex] = child
+    area_dict = {}
+    for area_root in childAreas:
+        # verify validity of level hierarchy
+        if len(area_root.children) == 0:
+            raise PluginError(f"Area for {area_root.name} has no children.")
+        if area_root.areaIndex in area_dict:
+            raise PluginError(f"{area_root.name} shares the same area index as {area_dict[area_root.areaIndex].name}")
+        area_dict[area_root.areaIndex] = area_root
+        # set echo/zoom vals
+        if area_root.areaIndex > 0 and area_root.areaIndex < 5:
+            zoomFlags[area_root.areaIndex - 1] = area_root.zoomOutOnPause
+            if area_root.areaIndex < 4:
+                echoLevels[area_root.areaIndex - 1] = area_root.echoLevel
 
-        areaIndex = child.areaIndex
-        areaName = "area_" + str(areaIndex)
-        areaDir = os.path.join(levelDir, areaName)
-        if not os.path.exists(areaDir):
-            os.mkdir(areaDir)
-
-        envOption = child.envOption if child.envOption != "Custom" else child.envType
-        usesEnvFX |= envOption != "ENVFX_MODE_NONE"
-
-        if child.areaIndex == 1 or child.areaIndex == 2 or child.areaIndex == 3:
-            echoLevels[child.areaIndex - 1] = child.echoLevel
-        if child.areaIndex == 1 or child.areaIndex == 2 or child.areaIndex == 3 or child.areaIndex == 4:
-            zoomFlags[child.areaIndex - 1] = child.zoomOutOnPause
-
-        # Needs to be done BEFORE collision parsing
-        setRooms(child)
-
-        geolayoutGraph, fModel = convertObjectToGeolayout(
+        # write area specific files
+        level_data, fModel, uses_env_fx = export_area_c(
             obj,
+            level_data,
+            area_root,
+            prev_level_script,
             transformMatrix,
-            child.areaCamera,
-            levelName + "_" + areaName,
+            level_name,
+            level_dir,
             fModel,
-            child,
             DLFormat,
-            not savePNG,
+            savePNG,
         )
-        geolayoutGraphC = geolayoutGraph.to_c()
 
-        # Write geolayout
-        geoFile = open(os.path.join(areaDir, "geo.inc.c"), "w", newline="\n")
-        geoFile.write(geolayoutGraphC.source)
-        geoFile.close()
-        geoString += '#include "levels/' + levelName + "/" + areaName + '/geo.inc.c"\n'
-        headerString += geolayoutGraphC.header
-
-        # Write collision
-        collision = exportCollisionCommon(
-            child, transformMatrix, True, True, levelName + "_" + areaName, child.areaIndex
-        )
-        collisionC = collision.to_c()
-        colFile = open(os.path.join(areaDir, "collision.inc.c"), "w", newline="\n")
-        colFile.write(collisionC.source)
-        colFile.close()
-        levelDataString += '#include "levels/' + levelName + "/" + areaName + '/collision.inc.c"\n'
-        headerString += collisionC.header
-
-        # Write rooms
-        if child.enableRoomSwitch:
-            roomsC = collision.to_c_rooms()
-            roomFile = open(os.path.join(areaDir, "room.inc.c"), "w", newline="\n")
-            roomFile.write(roomsC.source)
-            roomFile.close()
-            levelDataString += '#include "levels/' + levelName + "/" + areaName + '/room.inc.c"\n'
-            headerString += roomsC.header
-
-        # Get area
-        area = exportAreaCommon(
-            child, transformMatrix, geolayoutGraph.startGeolayout, collision, levelName + "_" + areaName
-        )
-        if area.mario_start is not None:
-            prevLevelScript.marioStart = area.mario_start
-        persistentBlockString = prevLevelScript.get_persistent_block(
-            PersistentBlocks.areaCommands, nTabs=2, areaIndex=str(area.index)
-        )
-        areaString += area.to_c_script(child.enableRoomSwitch, persistentBlockString=persistentBlockString)
-        cameraVolumeString += area.to_c_camera_volumes()
-        puppycamVolumeString += area.to_c_puppycam_volumes()
-
-        # Write macros
-        macroFile = open(os.path.join(areaDir, "macro.inc.c"), "w", newline="\n")
-        macrosC = area.to_c_macros()
-        macroFile.write(macrosC.source)
-        macroFile.close()
-        levelDataString += '#include "levels/' + levelName + "/" + areaName + '/macro.inc.c"\n'
-        headerString += macrosC.header
-
-        # Write splines
-        splineFile = open(os.path.join(areaDir, "spline.inc.c"), "w", newline="\n")
-        splinesC = area.to_c_splines()
-        splineFile.write(splinesC.source)
-        splineFile.close()
-        levelDataString += '#include "levels/' + levelName + "/" + areaName + '/spline.inc.c"\n'
-        headerString += splinesC.header
-
-    cameraVolumeString += "\tNULL_TRIGGER\n};"
+    level_data.camera_data += "\tNULL_TRIGGER\n};"
 
     # Generate levelscript string
-    compressionFmt = bpy.context.scene.compressionFormat
-    replaceSegmentLoad(prevLevelScript, f"_{levelName}_segment_7", f"LOAD_{compressionFmt.upper()}", 0x07)
-    if usesEnvFX:
-        replaceSegmentLoad(prevLevelScript, f"_effect_{compressionFmt}", f"LOAD_{compressionFmt.upper()}", 0x0B)
-    if not obj.useBackgroundColor:
-        segment = ""
-        if obj.background == "CUSTOM":
-            segment = obj.fast64.sm64.level.backgroundSegment
-        else:
-            segment = backgroundSegments[obj.background] + "_skybox"
-
-        replaceSegmentLoad(prevLevelScript, f"_{segment}_{compressionFmt}", f"LOAD_{compressionFmt.upper()}", 0x0A)
-    # actor groups
-    if obj.fast64.sm64.segment_loads.seg5_enum != "Do Not Write":
-        replaceSegmentLoad(
-            prevLevelScript,
-            f"_{obj.fast64.sm64.segment_loads.seg5}_{compressionFmt}",
-            f"LOAD_{compressionFmt.upper()}",
-            0x05,
-        )
-        replaceSegmentLoad(prevLevelScript, f"_{obj.fast64.sm64.segment_loads.seg5}_geo", "LOAD_RAW", 0x0C)
-    if obj.fast64.sm64.segment_loads.seg6_enum != "Do Not Write":
-        replaceSegmentLoad(
-            prevLevelScript,
-            f"_{obj.fast64.sm64.segment_loads.seg6}_{compressionFmt}",
-            f"LOAD_{compressionFmt.upper()}",
-            0x06,
-        )
-        replaceSegmentLoad(prevLevelScript, f"_{obj.fast64.sm64.segment_loads.seg6}_geo", "LOAD_RAW", 0x0D)
-    replaceScriptLoads(prevLevelScript, obj)
-    levelscriptString = prevLevelScript.to_c(areaString)
+    export_level_script_c(obj, prev_level_script, level_name, level_data, level_dir, uses_env_fx)
 
     if bpy.context.scene.exportHiddenGeometry:
         restoreHiddenState(hiddenState)
 
     # Remove old areas.
-    for f in os.listdir(levelDir):
-        if re.search("area\_\d+", f):
+    for folder in os.listdir(level_dir):
+        if re.search("area\_\d+", folder):
             existingArea = False
-            for index, areaObj in areaDict.items():
-                if f == "area_" + str(index):
+            for index, areaObj in area_dict.items():
+                if folder == f"area_{index}":
                     existingArea = True
             if not existingArea:
-                shutil.rmtree(os.path.join(levelDir, f))
+                shutil.rmtree(os.path.join(level_dir, folder))
+
+    def include_proto(file_name):
+        return f'#include "levels/{level_name}/{file_name}"\n'
 
     gfxFormatter = SM64GfxFormatter(ScrollMethod.Vertex)
-    exportData = fModel.to_c(TextureExportSettings(savePNG, savePNG, "levels/" + levelName, levelDir), gfxFormatter)
+    exportData = fModel.to_c(TextureExportSettings(savePNG, savePNG, f"levels/{level_name}", level_dir), gfxFormatter)
     staticData = exportData.staticData
     dynamicData = exportData.dynamicData
     texC = exportData.textureData
 
-    scrollData = fModel.to_c_scroll(levelName, gfxFormatter)
+    scrollData = fModel.to_c_scroll(level_name, gfxFormatter)
 
     if fModel.texturesSavedLastExport > 0:
-        levelDataString = '#include "levels/' + levelName + '/texture_include.inc.c"\n' + levelDataString
-        texPath = os.path.join(levelDir, "texture_include.inc.c")
-        texFile = open(texPath, "w", newline="\n")
-        texFile.write(texC.source)
-        texFile.close()
+        level_data.script_data = include_proto("texture_include.inc.c") + level_data.script_data
+        saveDataToFile(os.path.join(level_dir, "texture_include.inc.c"), texC.source)
 
-    modifyTexScrollFiles(exportDir, levelDir, scrollData)
+    modifyTexScrollFiles(exportDir, level_dir, scrollData)
 
     # Write materials
     if DLFormat == DLFormat.Static:
@@ -905,72 +952,54 @@ def exportLevelC(obj, transformMatrix, levelName, exportDir, savePNG, customExpo
     else:
         geoString = writeMaterialFiles(
             exportDir,
-            levelDir,
-            '#include "levels/' + levelName + '/header.h"',
-            '#include "levels/' + levelName + '/material.inc.h"',
+            level_dir,
+            include_proto("header.h"),
+            include_proto("material.inc.h"),
             dynamicData.header,
             dynamicData.source,
             geoString,
             customExport,
         )
 
-    modelPath = os.path.join(levelDir, "model.inc.c")
-    modelFile = open(modelPath, "w", newline="\n")
-    modelFile.write(staticData.source)
-    modelFile.close()
-
     fModel.freePalettes()
 
-    levelDataString += '#include "levels/' + levelName + '/model.inc.c"\n'
-    headerString += staticData.header
-    # headerString += '\nextern const LevelScript level_' + levelName + '_entry[];\n'
-    # headerString += '\n#endif\n'
+    level_data.script_data += include_proto("model.inc.c")
+    level_data.header_data += staticData.header
 
-    # Write geolayout
-    geoFile = open(os.path.join(levelDir, "geo.inc.c"), "w", newline="\n")
-    geoFile.write(geoString)
-    geoFile.close()
-
-    levelDataFile = open(os.path.join(levelDir, "leveldata.inc.c"), "w", newline="\n")
-    levelDataFile.write(levelDataString)
-    levelDataFile.close()
-
-    headerFile = open(os.path.join(levelDir, "header.inc.h"), "w", newline="\n")
-    headerFile.write(headerString)
-    headerFile.close()
-
-    scriptFile = open(os.path.join(levelDir, "script.c"), "w", newline="\n")
-    scriptFile.write(levelscriptString)
-    scriptFile.close()
+    # Write data
+    saveDataToFile(os.path.join(level_dir, "model.inc.c"), staticData.source)
+    saveDataToFile(os.path.join(level_dir, "geo.inc.c"), level_data.geo_data)
+    saveDataToFile(os.path.join(level_dir, "leveldata.inc.c"), level_data.script_data)
+    saveDataToFile(os.path.join(level_dir, "header.inc.h"), level_data.header_data)
 
     if customExport:
-        cameraVolumeString = (
-            "// Replace the level specific camera volume struct in src/game/camera.c with this.\n"
-            + "// Make sure to also add the struct name to the LEVEL_DEFINE in levels/level_defines.h.\n"
-            + cameraVolumeString
+        level_data.camera_data = "\n".join(
+            [
+                "// Replace the level specific camera volume struct in src/game/camera.c with this.",
+                "// Make sure to also add the struct name to the LEVEL_DEFINE in levels/level_defines.h.",
+                level_data.camera_data,
+            ]
         )
-        cameraFile = open(os.path.join(levelDir, "camera_trigger.inc.c"), "w", newline="\n")
-        cameraFile.write(cameraVolumeString)
-        cameraFile.close()
+        saveDataToFile(os.path.join(level_dir, "camera_trigger.inc.c"), level_data.camera_data)
 
-        hasPuppyCamData = puppycamVolumeString != ""
-        puppycamVolumeString = (
-            "// Put these structs into the newcam_fixedcam[] array in enhancements/puppycam_angles.inc.c. \n"
-            + puppycamVolumeString
+        hasPuppyCamData = level_data.puppycam_data != ""
+        level_data.puppycam_data = "\n".join(
+            [
+                "// Put these structs into the newcam_fixedcam[] array in enhancements/puppycam_angles.inc.c.",
+                level_data.puppycam_data,
+            ]
         )
 
         if hasPuppyCamData:
-            cameraFile = open(os.path.join(levelDir, "puppycam_trigger.inc.c"), "w", newline="\n")
-            cameraFile.write(puppycamVolumeString)
-            cameraFile.close()
+            saveDataToFile(os.path.join(level_dir, "puppycam_trigger.inc.c"), level_data.puppycam_data)
 
     if not customExport:
         if DLFormat != DLFormat.Static:
             # Write material headers
             writeMaterialHeaders(
                 exportDir,
-                '#include "levels/' + levelName + '/material.inc.c"',
-                '#include "levels/' + levelName + '/material.inc.h"',
+                include_proto("material.inc.c"),
+                include_proto("material.inc.h"),
             )
 
         # Export camera triggers
@@ -979,7 +1008,7 @@ def exportLevelC(obj, transformMatrix, levelName, exportDir, savePNG, customExpo
             overwriteData(
                 "struct\s*CameraTrigger\s*",
                 levelCameraVolumeName,
-                cameraVolumeString,
+                level_data.camera_data,
                 cameraPath,
                 "struct CameraTrigger *sCameraTriggers",
                 False,
@@ -989,13 +1018,13 @@ def exportLevelC(obj, transformMatrix, levelName, exportDir, savePNG, customExpo
         # Export puppycam triggers
         # If this isn't an ultrapuppycam repo, don't try and export ultrapuppycam triggers
         puppycamAnglesPath = os.path.join(exportDir, "enhancements/puppycam_angles.inc.c")
-        if os.path.exists(puppycamAnglesPath) and puppycamVolumeString != "":
-            overwritePuppycamData(puppycamAnglesPath, levelIDNames[levelName], puppycamVolumeString)
+        if os.path.exists(puppycamAnglesPath) and level_data.puppycam_data != "":
+            overwritePuppycamData(puppycamAnglesPath, levelIDNames[level_name], level_data.puppycam_data)
 
         levelHeadersPath = os.path.join(exportDir, "levels/level_headers.h.in")
         levelDefinesPath = os.path.join(exportDir, "levels/level_defines.h")
         levelDefines = parseLevelDefines(levelDefinesPath)
-        levelDefineMacro = levelDefines.getOrMakeMacroByLevelName(levelName)
+        levelDefineMacro = levelDefines.getOrMakeMacroByLevelName(level_name)
         levelIndex = levelDefines.defineMacros.index(levelDefineMacro)
         levelEnum = levelDefineMacro[1][levelDefineArgs["level enum"]]
 
@@ -1028,39 +1057,37 @@ def exportLevelC(obj, transformMatrix, levelName, exportDir, savePNG, customExpo
         if obj.setAsStartLevel:
             setStartLevel(exportDir, levelEnum)
 
-        geoPath = os.path.join(levelDir, "geo.c")
-        levelDataPath = os.path.join(levelDir, "leveldata.c")
-        headerPath = os.path.join(levelDir, "header.h")
+        geoPath = os.path.join(level_dir, "geo.c")
+        levelDataPath = os.path.join(level_dir, "leveldata.c")
+        headerPath = os.path.join(level_dir, "header.h")
 
         # Create files if not already existing
         if not os.path.exists(geoPath):
-            createGeoFile(levelName, geoPath)
+            createGeoFile(level_name, geoPath)
         if not os.path.exists(levelDataPath):
-            createLevelDataFile(levelName, levelDataPath)
+            createLevelDataFile(level_name, levelDataPath)
         if not os.path.exists(headerPath):
-            createHeaderFile(levelName, headerPath)
+            createHeaderFile(level_name, headerPath)
 
         # Write level data
-        writeIfNotFound(geoPath, '\n#include "levels/' + levelName + '/geo.inc.c"\n', "")
-        writeIfNotFound(levelDataPath, '\n#include "levels/' + levelName + '/leveldata.inc.c"\n', "")
-        writeIfNotFound(headerPath, '\n#include "levels/' + levelName + '/header.inc.h"\n', "#endif")
+        writeIfNotFound(geoPath, include_proto("geo.inc.c"), "")
+        writeIfNotFound(levelDataPath, include_proto("leveldata.inc.c"), "")
+        writeIfNotFound(headerPath, include_proto("header.inc.h"), "#endif")
 
         if fModel.texturesSavedLastExport == 0:
-            textureIncludePath = os.path.join(levelDir, "texture_include.inc.c")
+            textureIncludePath = os.path.join(level_dir, "texture_include.inc.c")
             if os.path.exists(textureIncludePath):
                 os.remove(textureIncludePath)
             # This one is for backwards compatibility purposes
-            deleteIfFound(
-                os.path.join(levelDir, "texture.inc.c"), '#include "levels/' + levelName + '/texture_include.inc.c"'
-            )
+            deleteIfFound(os.path.join(level_dir, "texture.inc.c"), include_proto("texture_include.inc.c"))
 
         # This one is for backwards compatibility purposes
-        deleteIfFound(levelDataPath, '#include "levels/' + levelName + '/texture_include.inc.c"')
+        deleteIfFound(levelDataPath, include_proto("texture_include.inc.c"))
 
-        texscrollIncludeC = '#include "levels/' + levelName + '/texscroll.inc.c"'
-        texscrollIncludeH = '#include "levels/' + levelName + '/texscroll.inc.h"'
-        texscrollGroup = levelName
-        texscrollGroupInclude = '#include "levels/' + levelName + '/header.h"'
+        texscrollIncludeC = include_proto("texscroll.inc.c")
+        texscrollIncludeH = include_proto("texscroll.inc.h")
+        texscrollGroup = level_name
+        texscrollGroupInclude = include_proto("header.h")
 
         texScrollFileStatus = modifyTexScrollHeadersGroup(
             exportDir,
@@ -1154,8 +1181,8 @@ class SM64_ExportLevel(ObjectDataExporter):
                     raise PluginError("Cannot find level empty.")
                 selectSingleObject(obj)
 
-            scaleValue = bpy.context.scene.blenderToSM64Scale
-            finalTransform = mathutils.Matrix.Diagonal(mathutils.Vector((scaleValue, scaleValue, scaleValue))).to_4x4()
+            scaleValue = context.scene.fast64.sm64.blender_to_sm64_scale
+            final_transform = mathutils.Matrix.Diagonal(mathutils.Vector((scaleValue, scaleValue, scaleValue))).to_4x4()
 
         except Exception as e:
             raisePluginError(self, e)
@@ -1164,27 +1191,28 @@ class SM64_ExportLevel(ObjectDataExporter):
             self.store_object_data()
 
             applyRotation([obj], math.radians(90), "X")
-            if context.scene.levelCustomExport:
-                exportPath = bpy.path.abspath(context.scene.levelExportPath)
-                levelName = context.scene.levelName
-                triggerName = "sCam" + context.scene.levelName.title().replace(" ", "").replace("_", "")
+
+            props = context.scene.fast64.sm64.combined_export
+            export_path, level_name = getPathAndLevel(
+                props.export_header_type == "Custom",
+                props.custom_export_path,
+                props.custom_export_name,
+                props.level_name,
+            )
+            if props.export_header_type == "Custom":
+                triggerName = "sCam" + level_name.title().replace(" ", "").replace("_", "")
             else:
-                exportPath = bpy.path.abspath(context.scene.decompPath)
-                if context.scene.levelOption == "custom":
-                    levelName = context.scene.levelName
-                    triggerName = "sCam" + context.scene.levelName.title().replace(" ", "").replace("_", "")
-                else:
-                    levelName = context.scene.levelOption
-                    triggerName = cameraTriggerNames[context.scene.levelOption]
-            if not context.scene.levelCustomExport:
-                applyBasicTweaks(exportPath)
+                triggerName = cameraTriggerNames[props.level_name]
+
+            if props.export_header_type != "Custom":
+                applyBasicTweaks(export_path)
             fileStatus = exportLevelC(
                 obj,
-                finalTransform,
-                levelName,
-                exportPath,
+                final_transform,
+                level_name,
+                export_path,
                 context.scene.saveTextures,
-                context.scene.levelCustomExport,
+                props.export_header_type == "Custom",
                 triggerName,
                 DLFormat.Static,
             )
@@ -1213,69 +1241,14 @@ class SM64_ExportLevel(ObjectDataExporter):
             return {"CANCELLED"}  # must return a set
 
 
-class SM64_ExportLevelPanel(SM64_Panel):
-    bl_idname = "SM64_PT_export_level"
-    bl_label = "SM64 Level Exporter"
-    goal = "Export Level"
-    decomp_only = True
-
-    # called every frame
-    def draw(self, context):
-        col = self.layout.column()
-        col.label(text="This is for decomp only.")
-        col.operator(SM64_ExportLevel.bl_idname)
-        col.prop(context.scene, "levelCustomExport")
-        if context.scene.levelCustomExport:
-            prop_split(col, context.scene, "levelExportPath", "Directory")
-            prop_split(col, context.scene, "levelName", "Name")
-            customExportWarning(col)
-        else:
-            col.prop(context.scene, "levelOption")
-            if context.scene.levelOption == "custom":
-                levelName = context.scene.levelName
-                box = col.box()
-                box.label(text="Adding levels may require modifying the save file format.")
-                box.label(text="Check src/game/save_file.c.")
-                prop_split(col, context.scene, "levelName", "Name")
-            else:
-                levelName = context.scene.levelOption
-            decompFolderMessage(col)
-            writeBox = makeWriteInfoBox(col)
-            writeBox.label(text="levels/" + toAlnum(levelName) + " (data).")
-            writeBox.label(text="src/game/camera.c (camera volume).")
-            writeBox.label(text="levels/level_defines.h (camera volume).")
-
-
 sm64_level_classes = (SM64_ExportLevel,)
-
-sm64_level_panel_classes = (SM64_ExportLevelPanel,)
-
-
-def sm64_level_panel_register():
-    for cls in sm64_level_panel_classes:
-        register_class(cls)
-
-
-def sm64_level_panel_unregister():
-    for cls in sm64_level_panel_classes:
-        unregister_class(cls)
 
 
 def sm64_level_register():
     for cls in sm64_level_classes:
         register_class(cls)
 
-    bpy.types.Scene.levelName = bpy.props.StringProperty(name="Name", default="bob")
-    bpy.types.Scene.levelOption = bpy.props.EnumProperty(name="Level", items=enumLevelNames, default="bob")
-    bpy.types.Scene.levelExportPath = bpy.props.StringProperty(name="Directory", subtype="FILE_PATH")
-    bpy.types.Scene.levelCustomExport = bpy.props.BoolProperty(name="Custom Export Path")
-
 
 def sm64_level_unregister():
     for cls in reversed(sm64_level_classes):
         unregister_class(cls)
-
-    del bpy.types.Scene.levelName
-    del bpy.types.Scene.levelExportPath
-    del bpy.types.Scene.levelCustomExport
-    del bpy.types.Scene.levelOption
