@@ -1,6 +1,7 @@
 import bpy
 from bpy.types import PropertyGroup, Operator
 from bpy.utils import register_class, unregister_class
+from .f3d.properties import MK64CourseDLImportSettings, f3d_props_register, f3d_props_unregister
 from .f3d_course_parser import MK64F3DContext, parseCourseVtx
 from ..f3d.f3d_material import createF3DMat
 from ..f3d.f3d_gbi import get_F3D_GBI
@@ -14,7 +15,7 @@ class MK64_Properties(PropertyGroup):
     """Global MK64 Scene Properties found under scene.fast64.mk64"""
 
     # Import Course DL
-    EnableRenderModeDefault: bpy.props.BoolProperty(name="Set Render Mode by Default", default=True)
+    CourseDLImportSettings: bpy.props.PointerProperty(type=MK64CourseDLImportSettings)
 
     @staticmethod
     def upgrade_changed_props():
@@ -35,14 +36,15 @@ class MK64_ImportCourseDL(Operator):
             bpy.ops.object.mode_set(mode="OBJECT")
 
         try:
-            name = context.scene.DLImportName
-            importPath = bpy.path.abspath(context.scene.DLImportPath)
-            basePath = bpy.path.abspath(context.scene.DLImportBasePath)
-            scaleValue = context.scene.blenderF3DScale
+            importSettings: MK64CourseDLImportSettings = context.scene.fast64.mk64.CourseDLImportSettings
+            name = importSettings.DLImportName
+            importPath = bpy.path.abspath(importSettings.DLImportPath)
+            basePath = bpy.path.abspath(importSettings.DLImportBasePath)
+            scaleValue = importSettings.blenderF3DScale
 
-            removeDoubles = context.scene.DLRemoveDoubles
-            importNormals = context.scene.DLImportNormals
-            drawLayer = context.scene.DLImportDrawLayer
+            removeDoubles = importSettings.DLRemoveDoubles
+            importNormals = importSettings.DLImportNormals
+            drawLayer = importSettings.DLImportDrawLayer
 
             paths = [importPath]
 
@@ -59,24 +61,24 @@ class MK64_ImportCourseDL(Operator):
 
             material = createF3DMat(None)
             f3d_mat = material.f3d_mat
-            f3d_mat.rdp_settings.set_rendermode = context.scene.fast64.mk64.EnableRenderModeDefault
-            f3d_mat.combiner1.A = 'TEXEL0'
-            f3d_mat.combiner1.B = '0'
-            f3d_mat.combiner1.C = 'SHADE'
-            f3d_mat.combiner1.D = '0'
-            f3d_mat.combiner1.A_alpha = 'TEXEL0'
-            f3d_mat.combiner1.B_alpha = '0'
-            f3d_mat.combiner1.C_alpha = 'SHADE'
-            f3d_mat.combiner1.D_alpha = '0'
-            f3d_mat.combiner2.name = ''
-            f3d_mat.combiner2.A = 'TEXEL0'
-            f3d_mat.combiner2.B = '0'
-            f3d_mat.combiner2.C = 'SHADE'
-            f3d_mat.combiner2.D = '0'
-            f3d_mat.combiner2.A_alpha = 'TEXEL0'
-            f3d_mat.combiner2.B_alpha = '0'
-            f3d_mat.combiner2.C_alpha = 'SHADE'
-            f3d_mat.combiner2.D_alpha = '0'
+            f3d_mat.rdp_settings.set_rendermode = importSettings.EnableRenderModeDefault
+            f3d_mat.combiner1.A = "TEXEL0"
+            f3d_mat.combiner1.B = "0"
+            f3d_mat.combiner1.C = "SHADE"
+            f3d_mat.combiner1.D = "0"
+            f3d_mat.combiner1.A_alpha = "TEXEL0"
+            f3d_mat.combiner1.B_alpha = "0"
+            f3d_mat.combiner1.C_alpha = "SHADE"
+            f3d_mat.combiner1.D_alpha = "0"
+            f3d_mat.combiner2.name = ""
+            f3d_mat.combiner2.A = "TEXEL0"
+            f3d_mat.combiner2.B = "0"
+            f3d_mat.combiner2.C = "SHADE"
+            f3d_mat.combiner2.D = "0"
+            f3d_mat.combiner2.A_alpha = "TEXEL0"
+            f3d_mat.combiner2.B_alpha = "0"
+            f3d_mat.combiner2.C_alpha = "SHADE"
+            f3d_mat.combiner2.D_alpha = "0"
 
             f3d_context = MK64F3DContext(get_F3D_GBI(), basePath, material)
             if "course_displaylists" in importPath or "course_data" in importPath:
@@ -118,16 +120,8 @@ class MK64_ImportCourseDLPanel(MK64_Panel):
         col.scale_y = 1.1  # extra padding
 
         col.operator(MK64_ImportCourseDL.bl_idname)
-        prop_split(col, context.scene, "DLImportName", "Name")
-        prop_split(col, context.scene, "DLImportPath", "File")
-        prop_split(col, context.scene, "DLImportBasePath", "Base Path")
-        prop_split(col, context.scene, "blenderF3DScale", "Scale")
-        prop_split(col, context.scene, "DLImportDrawLayer", "Draw Layer")
-        col.prop(context.scene, "DLRemoveDoubles")
-        col.prop(context.scene, "DLImportNormals")
-
-        mk64Props = context.scene.fast64.mk64
-        prop_split(col, mk64Props, "EnableRenderModeDefault", "Enable Render Mode by Default")
+        CourseDLImportSettings: MK64CourseDLImportSettings = context.scene.fast64.mk64.CourseDLImportSettings
+        CourseDLImportSettings.draw_props(col)
 
         box = col.box().column()
         box.label(text="All data must be contained within file.")
@@ -153,6 +147,7 @@ def mk64_panel_unregister():
 
 
 def mk64_register(registerPanels):
+    f3d_props_register()
     for cls in mk64_classes:
         register_class(cls)
     if registerPanels:
@@ -164,3 +159,4 @@ def mk64_unregister(registerPanel):
         unregister_class(cls)
     if registerPanel:
         mk64_panel_unregister()
+    f3d_props_unregister()
