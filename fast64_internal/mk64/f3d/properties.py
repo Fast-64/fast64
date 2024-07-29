@@ -13,7 +13,6 @@ class MK64CourseDLImportSettings(PropertyGroup):
     path: StringProperty(name="Directory", subtype="FILE_PATH")
     basePath: StringProperty(name="Directory", subtype="FILE_PATH")
     scale: FloatProperty(name="F3D Blender Scale", default=100, update=on_update_render_settings)
-    drawLayer: EnumProperty(name="Draw Layer", items=ootEnumDrawLayers)
     removeDoubles: BoolProperty(name="Remove Doubles", default=True)
     importNormals: BoolProperty(name="Import Normals", default=True)
     enableRenderModeDefault: BoolProperty(name="Set Render Mode by Default", default=True)
@@ -23,7 +22,6 @@ class MK64CourseDLImportSettings(PropertyGroup):
         prop_split(layout, self, "path", "File")
         prop_split(layout, self, "basePath", "Base Path")
         prop_split(layout, self, "scale", "Scale")
-        prop_split(layout, self, "drawLayer", "Draw Layer")
         layout.prop(self, "removeDoubles")
         layout.prop(self, "importNormals")
 
