@@ -2081,18 +2081,14 @@ def get_tex_gen_size(tex_size: list[int | float]):
     return (tex_size[0] - 1) / 1024, (tex_size[1] - 1) / 1024
 
 
-def get_textlut_mode(f3d_mat: "F3DMaterialProperty", none_if_not_set: bool = False):
+def get_textlut_mode(f3d_mat: "F3DMaterialProperty", inherit_from_tex: bool = False):
     use_dict = all_combiner_uses(f3d_mat)
     textures = [f3d_mat.tex0] if use_dict["Texture 0"] and f3d_mat.tex0.tex_set else []
     textures += [f3d_mat.tex1] if use_dict["Texture 1"] and f3d_mat.tex1.tex_set else []
-    if textures:
-        ci_formats = list(set(tex.ci_format if tex.tex_format.startswith("CI") else "NONE" for tex in textures))
-        if len(ci_formats) == 1:
-            return "G_TT_" + ci_formats[0]
-        elif len(ci_formats) == 0:
-            return "G_TT_NONE"
-    if not none_if_not_set:
-        return f3d_mat.rdp_settings.g_mdsft_textlut
+    tlut_modes = [tex.ci_format if tex.tex_format.startswith("CI") else "NONE" for tex in textures]
+    if tlut_modes and tlut_modes[0] == tlut_modes[-1]:
+        return "G_TT_" + tlut_modes[0]
+    return None if inherit_from_tex else f3d_mat.rdp_settings.g_mdsft_texlut
 
 
 def update_tex_values_manual(material: Material, context, prop_path=None):
