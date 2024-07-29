@@ -58,8 +58,25 @@ class MK64_ImportCourseDL(Operator):
             data = getImportData(paths)
 
             material = createF3DMat(None)
-
-            material.f3d_mat.rdp_settings.set_rendermode = context.scene.fast64.mk64.EnableRenderModeDefault
+            f3d_mat = material.f3d_mat
+            f3d_mat.rdp_settings.set_rendermode = context.scene.fast64.mk64.EnableRenderModeDefault
+            f3d_mat.combiner1.A = 'TEXEL0'
+            f3d_mat.combiner1.B = '0'
+            f3d_mat.combiner1.C = 'SHADE'
+            f3d_mat.combiner1.D = '0'
+            f3d_mat.combiner1.A_alpha = 'TEXEL0'
+            f3d_mat.combiner1.B_alpha = '0'
+            f3d_mat.combiner1.C_alpha = 'SHADE'
+            f3d_mat.combiner1.D_alpha = '0'
+            f3d_mat.combiner2.name = ''
+            f3d_mat.combiner2.A = 'TEXEL0'
+            f3d_mat.combiner2.B = '0'
+            f3d_mat.combiner2.C = 'SHADE'
+            f3d_mat.combiner2.D = '0'
+            f3d_mat.combiner2.A_alpha = 'TEXEL0'
+            f3d_mat.combiner2.B_alpha = '0'
+            f3d_mat.combiner2.C_alpha = 'SHADE'
+            f3d_mat.combiner2.D_alpha = '0'
 
             f3d_context = MK64F3DContext(get_F3D_GBI(), basePath, material)
             if "course_displaylists" in importPath or "course_data" in importPath:
