@@ -31,11 +31,14 @@ def getFrameData(filepath, animData, frameDataName):
     if matchResult is None:
         raise PluginError("Cannot find animation frame data named " + frameDataName + " in " + filepath)
     data = matchResult.group(1)
-    frameData = [
-        int.from_bytes([int(value.strip()[2:4], 16), int(value.strip()[4:6], 16)], "big", signed=True)
-        for value in data.split(",")
-        if value.strip() != ""
-    ]
+    frameData = []
+    for value in data.split(","):
+        value = value.strip()
+        if value != "":
+            isNegative = "-0x" in value
+            value = value.replace("-0x", "0x") if isNegative else value
+            valueInt = int.from_bytes([int(value[2:4], 16), int(value[4:6], 16)], "big", signed=True)
+            frameData.append(-valueInt if isNegative else valueInt)
 
     return frameData
 
