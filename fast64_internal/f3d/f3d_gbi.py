@@ -3779,7 +3779,7 @@ class SPNTrianglesInit_5b(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class SP5bitTriangles(GbiMacro):
+class SPNTriangles_5b(GbiMacro):
     v0: int
     v1: int
     v2: int
@@ -3804,7 +3804,7 @@ class SP5bitTriangles(GbiMacro):
                 | _SHIFTL(f3d.G_VTX_MODE_5bit, 0, 1),
             )
         else:
-            raise PluginError("SP5bitTriangles only available in F3DZEX (AC).")
+            raise PluginError("SPNTriangles_5b only available in F3DZEX (AC).")
 
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
@@ -3837,7 +3837,7 @@ class SPNTrianglesInit_7b(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class SP7bitTriangles(GbiMacro):
+class SPNTriangles_7b(GbiMacro):
     v0: int
     v1: int
     v2: int
@@ -3862,7 +3862,7 @@ class SP7bitTriangles(GbiMacro):
                 ),
             )
         else:
-            raise PluginError("SP7bitTriangles only available in F3DZEX (AC).")
+            raise PluginError("SPNTriangles_7b only available in F3DZEX (AC).")
 
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 

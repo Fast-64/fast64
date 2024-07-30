@@ -1250,10 +1250,10 @@ def createTriangleCommands(triangles, vertexBuffer, triConverterInfo):
         commands.append(SPNTrianglesInit_5b(tri_5_bit_len, *get_n_tris_indices(triangles, t, 3)))
         t += 3
         while t < tri_5_bit_len:
-            commands.append(SP5bitTriangles(*get_n_tris_indices(triangles, t, 4)))
+            commands.append(SPNTriangles_5b(*get_n_tris_indices(triangles, t, 4)))
             t += 4
         if left == 3:
-            commands.append(SPNTrianglesInit_5b(left, *get_n_tris_indices(triangles, t, 3)))
+            commands.append(SPNTriangles_7b(left, *get_n_tris_indices(triangles, t, 3)))
         elif left > 0:
             commands.append(SPNTrianglesInit_7b(left, *get_n_tris_indices(triangles, t, 2)))
         return commands

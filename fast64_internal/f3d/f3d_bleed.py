@@ -18,9 +18,9 @@ from .f3d_gbi import (
     SPLineW3D,
     SP2Triangles,
     SPNTrianglesInit_5b,
-    SP5bitTriangles,
+    SPNTriangles_5b,
     SPNTrianglesInit_7b,
-    SP7bitTriangles,
+    SPNTriangles_7b,
     SPCullDisplayList,
     SPSegment,
     SPBranchLessZraw,
@@ -62,9 +62,9 @@ TRI_CMDS = [
     SPLine3D,
     SPLineW3D,
     SPNTrianglesInit_5b,
-    SP5bitTriangles,
+    SPNTriangles_5b,
     SPNTrianglesInit_7b,
-    SP7bitTriangles,
+    SPNTriangles_7b,
 ]
 
 

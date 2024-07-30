@@ -532,6 +532,7 @@ class F3DContext:
 
         self.ac_pal_dict: dict[int, int] = {}  # F3DZEX (AC)
         self.set_img = DPSetTextureImage_Dolphin("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 0, 0, None)
+        self.tri_init_count = 0
 
     """
     Restarts context, but keeps cached materials/textures.
@@ -600,6 +601,7 @@ class F3DContext:
 
         self.ac_pal_dict: dict[int, int] = {}  # F3DZEX (AC)
         self.set_img = DPSetTextureImage_Dolphin("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 0, 0, None)
+        self.tri_init_count = 0
 
         mat.presetName = "Custom"
 
@@ -1635,13 +1637,19 @@ class F3DContext:
             elif command.name == "gsSP2Triangles":
                 self.addTriangle(command.params[0:3] + command.params[4:7], dlData)
             elif command.name == "gsSPNTrianglesInit_5b":
-                self.addTriangle(command.params[1:10], dlData)
+                self.tri_init_count = math_eval(command.params[0], self.f3d)
+                self.addTriangle(command.params[1 : max(10, self.tri_init_count)], dlData)
+                self.tri_init_count -= 3
             elif command.name == "gsSPNTrianglesInit_7b":
-                self.addTriangle(command.params[1:7], dlData)
+                self.tri_init_count = math_eval(command.params[0], self.f3d)
+                self.addTriangle(command.params[1 : max(7, self.tri_init_count)], dlData)
+                self.tri_init_count -= 2
             elif command.name == "gsSPNTriangles_5b":
-                self.addTriangle(command.params[1:12], dlData)
+                self.addTriangle(command.params[0 : max(12, self.tri_init_count * 3)], dlData)
+                self.tri_init_count -= 4
             elif command.name == "gsSPNTriangles_7b":
-                self.addTriangle(command.params[1:9], dlData)
+                self.addTriangle(command.params[0 : max(9, self.tri_init_count * 3)], dlData)
+                self.tri_init_count -= 3
             elif command.name == "gsSPDisplayList" or command.name.startswith("gsSPBranch"):
                 newDLName = self.processDLName(command.params[0])
                 if newDLName is not None:
