@@ -2143,6 +2143,7 @@ groups_obj_export = [
     ("Custom", "Custom", "Custom"),
 ]
 
+
 @dataclasses.dataclass
 class AnimInfo:
     address: int
