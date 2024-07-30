@@ -76,6 +76,19 @@ class OOT_Properties(bpy.types.PropertyGroup):
     animImportSettings: bpy.props.PointerProperty(type=OOTAnimImportSettingsProperty)
     collisionExportSettings: bpy.props.PointerProperty(type=OOTCollisionExportSettings)
 
+    useDecompFeatures: bpy.props.BoolProperty(
+        name="Use decomp for export", description="Use names and macros from decomp when exporting", default=True
+    )
+
+    exportMotionOnly: bpy.props.BoolProperty(
+        name="Export CS Motion Data Only",
+        description=(
+            "Export everything or only the camera and actor motion data.\n"
+            + "This will insert the data into the cutscene."
+        ),
+        default=False,
+    )
+
 
 oot_classes = (OOT_Properties,)
 

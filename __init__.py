@@ -22,7 +22,12 @@ from .fast64_internal.oot import OOT_Properties, oot_register, oot_unregister
 from .fast64_internal.oot.props_panel_main import OOT_ObjectProperties
 from .fast64_internal.utility_anim import utility_anim_register, utility_anim_unregister, ArmatureApplyWithMeshOperator
 
-from .fast64_internal.f3d.f3d_material import mat_register, mat_unregister, check_or_ask_color_management
+from .fast64_internal.f3d.f3d_material import (
+    F3D_MAT_CUR_VERSION,
+    mat_register,
+    mat_unregister,
+    check_or_ask_color_management,
+)
 from .fast64_internal.f3d.f3d_render_engine import render_engine_register, render_engine_unregister
 from .fast64_internal.f3d.f3d_writer import f3d_writer_register, f3d_writer_unregister
 from .fast64_internal.f3d.f3d_parser import f3d_parser_register, f3d_parser_unregister
@@ -31,7 +36,7 @@ from .fast64_internal.f3d.op_largetexture import op_largetexture_register, op_la
 
 from .fast64_internal.f3d_material_converter import (
     MatUpdateConvert,
-    upgradeF3DVersionAll,
+    upgrade_f3d_version_all_meshes,
     bsdf_conv_register,
     bsdf_conv_unregister,
     bsdf_conv_panel_regsiter,
@@ -266,10 +271,7 @@ class UpgradeF3DMaterialsDialog(bpy.types.Operator):
         if context.mode != "OBJECT":
             bpy.ops.object.mode_set(mode="OBJECT")
 
-        upgradeF3DVersionAll(
-            [obj for obj in bpy.data.objects if obj.type == "MESH"],
-            MatUpdateConvert.version,
-        )
+        upgrade_f3d_version_all_meshes()
         self.done = True
         return {"FINISHED"}
 
@@ -322,10 +324,18 @@ def upgrade_changed_props():
             scene.gameEditorMode = "Homebrew"
             del scene["decomp_compatible"]
 
+        settings = scene.fast64.renderSettings
+        light0Color = settings.pop("lightColor", None)
+        if light0Color is not None:
+            settings.light0Color = light0Color
+        light0Direction = settings.pop("lightDirection", None)
+        if light0Direction is not None:
+            settings.light0Direction = light0Direction
+
 
 def upgrade_scene_props_node():
     """update f3d materials with SceneProperties node"""
-    has_old_f3d_mats = any(mat.is_f3d and mat.mat_ver < MatUpdateConvert.version for mat in bpy.data.materials)
+    has_old_f3d_mats = any(mat.is_f3d and mat.mat_ver < F3D_MAT_CUR_VERSION for mat in bpy.data.materials)
     if has_old_f3d_mats:
         bpy.ops.dialog.upgrade_f3d_materials("INVOKE_DEFAULT")
 
