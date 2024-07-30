@@ -44,7 +44,7 @@ class MK64_ImportCourseDL(Operator):
 
             removeDoubles = importSettings.removeDoubles
             importNormals = importSettings.importNormals
-            drawLayer = ("Opaque", "Opaque", "Opaque")
+            drawLayer = "Opaque"
 
             paths = [importPath]
 
