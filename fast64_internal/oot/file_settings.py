@@ -1,5 +1,5 @@
 from bpy.utils import register_class, unregister_class
-from bpy.props import StringProperty, FloatProperty
+from bpy.props import StringProperty, FloatProperty, BoolProperty
 from bpy.types import Scene
 from ..utility import prop_split
 from ..render_settings import on_update_render_settings
@@ -23,6 +23,10 @@ class OOT_FileSettingsPanel(OOT_Panel):
         prop_split(col, context.scene.fast64.oot, "oot_version", "OoT Version")
         if context.scene.fast64.oot.oot_version == "Custom":
             prop_split(col, context.scene.fast64.oot, "oot_version_custom", "Custom Version")
+
+        if not context.scene.fast64.oot.hackerFeaturesEnabled:
+            col.prop(context.scene.fast64.oot, "useDecompFeatures")
+        col.prop(context.scene.fast64.oot, "exportMotionOnly")
 
 
 oot_classes = (OOT_FileSettingsPanel,)

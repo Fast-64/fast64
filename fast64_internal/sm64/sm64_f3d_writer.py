@@ -723,7 +723,7 @@ class SM64_ExportDLPanel(SM64_Panel):
                     prop_split(col, context.scene, "DLGroupName", "Group Name")
                 elif context.scene.DLExportHeaderType == "Level":
                     prop_split(col, context.scene, "DLLevelOption", "Level")
-                    if context.scene.DLLevelOption == "custom":
+                    if context.scene.DLLevelOption == "Custom":
                         prop_split(col, context.scene, "DLLevelName", "Level Name")
                 if context.scene.saveTextures:
                     col.prop(context.scene, "DLSeparateTextureDef")

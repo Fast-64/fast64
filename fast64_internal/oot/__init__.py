@@ -93,6 +93,19 @@ class OOT_Properties(bpy.types.PropertyGroup):
         else:
             return f"extracted/{self.oot_version if self.oot_version != 'Custom' else self.oot_version_custom}"
 
+    useDecompFeatures: bpy.props.BoolProperty(
+        name="Use decomp for export", description="Use names and macros from decomp when exporting", default=True
+    )
+
+    exportMotionOnly: bpy.props.BoolProperty(
+        name="Export CS Motion Data Only",
+        description=(
+            "Export everything or only the camera and actor motion data.\n"
+            + "This will insert the data into the cutscene."
+        ),
+        default=False,
+    )
+
 
 oot_classes = (OOT_Properties,)
 
