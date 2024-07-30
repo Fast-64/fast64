@@ -25,7 +25,7 @@ class MK64CourseDLImportSettings(PropertyGroup):
         layout.prop(self, "removeDoubles")
         layout.prop(self, "importNormals")
 
-        prop_split(layout, self, "enableRenderModeDefault", "Enable Render Mode by Default")
+        layout.prop(self, "enableRenderModeDefault")
 
 
 mk64_dl_writer_classes = [
