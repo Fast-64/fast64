@@ -69,7 +69,7 @@ vertexBufferSize = {
     "F3DLP.Rej": (80, 32),
     "F3DEX2/LX2": (32, 32),
     "F3DEX2/LX2 (Point Lit)": (32, 32),
-    "F3DZEX (AC)": (32, 32),
+    "F3DZEX (AC)": (2**7, 32),
     "F3DEX2.Rej/LX2.Rej": (64, 64),
     "F3DEX3": (56, 56),
 }

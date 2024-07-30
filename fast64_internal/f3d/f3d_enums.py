@@ -444,3 +444,13 @@ enumCelTintType = [
     ("Segment", "Segment", "Call a segmented DL to set the tint, can change at runtime"),
     ("Light", "From Light", "Automatically load tint color from selectable light slot. Tint level stored in DL"),
 ]
+
+enum_ac_tri_type = [
+    (
+        "Auto",
+        "Auto",
+        "Pick between 5b and 7b commands depending on triangle count, 7b can access more of the vertex buffer, 5b has smaller commands",
+    ),
+    ("5b", "5 Bit", "Always use 5b commands"),
+    ("7b", "7 Bit", "Always use 5b commands"),
+]
