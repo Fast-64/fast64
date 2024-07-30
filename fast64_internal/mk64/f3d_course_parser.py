@@ -1,11 +1,9 @@
 import re
-import traceback
 from mathutils import Vector
 from ..f3d.f3d_gbi import F3D
-from ..f3d.f3d_material import RDPSettings
-from ..f3d.f3d_parser import F3DContext, F3DParsedCommands, ParsedMacro, math_eval, parseDLData, parseVertexData
+from ..f3d.f3d_parser import F3DContext, math_eval
 from ..f3d.f3d_writer import F3DVert
-from ..utility import PluginError, float_from_u16_str, gammaInverseValue, int_from_s16_str, readFile, unpackNormal
+from ..utility import PluginError, readFile, unpackNormal
 
 
 def courseVertexFormatPatterns():
