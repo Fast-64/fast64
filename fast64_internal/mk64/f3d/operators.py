@@ -1,3 +1,4 @@
+import bpy
 from bpy.types import Operator
 from ..f3d_course_parser import MK64F3DContext, parseCourseVtx
 from ...f3d.f3d_material import createF3DMat
