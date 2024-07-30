@@ -449,8 +449,8 @@ enum_ac_tri_type = [
     (
         "Auto",
         "Auto",
-        "Pick between 5b and 7b commands depending on triangle count, 7b can access more of the vertex buffer, 5b has smaller commands",
+        "Pick between 5 bit and 7 bit commands depending on triangle count, 7 bit can access more of the vertex buffer, 5 bit has smaller commands",
     ),
-    ("5b", "5 Bit", "Always use 5b commands"),
-    ("7b", "7 Bit", "Always use 5b commands"),
+    ("5b", "5 Bit", "Always use 5 bit commands"),
+    ("7b", "7 Bit", "Always use 7 bit commands"),
 ]
