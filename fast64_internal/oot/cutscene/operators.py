@@ -8,12 +8,12 @@ from bpy.props import StringProperty, EnumProperty, IntProperty
 from bpy.types import Scene, Operator, Context
 from bpy.utils import register_class, unregister_class
 from ...utility import CData, PluginError, writeCData, raisePluginError
-from ..oot_utility import getCollection, getCutsceneName
+from ..oot_utility import getCollection
 from ..oot_constants import ootData
-from ..scene.exporter.to_c import getCutsceneC
 from .constants import ootEnumCSTextboxType, ootEnumCSListType
 from .importer import importCutsceneData
 from .exporter import getNewCutsceneExport
+from ..exporter.cutscene import Cutscene
 
 
 def checkGetFilePaths(context: Context):
@@ -180,10 +180,11 @@ class OOT_ExportCutscene(Operator):
             cpath, hpath, headerfilename = checkGetFilePaths(context)
             csdata = ootCutsceneIncludes(headerfilename)
 
-            if context.scene.exportMotionOnly:
+            if context.scene.fast64.oot.exportMotionOnly:
+                # TODO: improve this
                 csdata.append(insertCutsceneData(cpath, activeObj.name.removeprefix("Cutscene.")))
             else:
-                csdata.append(getCutsceneC(getCutsceneName(activeObj)))
+                csdata.append(Cutscene(activeObj, context.scene.fast64.oot.useDecompFeatures).getC())
             writeCData(csdata, hpath, cpath)
 
             self.report({"INFO"}, "Successfully exported cutscene")
@@ -213,10 +214,10 @@ class OOT_ExportAllCutscenes(Operator):
                         print(f"Parent: {obj.parent.name}, Object: {obj.name}")
                         raise PluginError("Cutscene object must not be parented to anything")
 
-                    if context.scene.exportMotionOnly:
+                    if context.scene.fast64.oot.exportMotionOnly:
                         raise PluginError("ERROR: Not implemented yet.")
                     else:
-                        csdata.append(getCutsceneC(getCutsceneName(obj)))
+                        csdata.append(Cutscene(obj, context.scene.fast64.oot.useDecompFeatures).getC())
                     count += 1
 
             if count == 0:

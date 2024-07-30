@@ -424,7 +424,7 @@ def getPathAndLevel(customExport, exportPath, levelName, levelOption):
         levelName = levelName
     else:
         exportPath = bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path)
-        if levelOption == "custom":
+        if levelOption == "Custom":
             levelName = levelName
         else:
             levelName = levelOption
@@ -694,7 +694,7 @@ def writeBoxExportType(writeBox, headerType, name, levelName, levelOption):
     if headerType == "Actor":
         writeBox.label(text="actors/" + toAlnum(name))
     elif headerType == "Level":
-        if levelOption != "custom":
+        if levelOption != "Custom":
             levelName = levelOption
         writeBox.label(text="levels/" + toAlnum(levelName) + "/" + toAlnum(name))
 
@@ -1321,6 +1321,12 @@ def gammaCorrect(linearColor):
     return list(mathutils.Color(linearColor[:3]).from_scene_linear_to_srgb())
 
 
+def s_rgb_alpha_1_tuple(linearColor):
+    s_rgb = gammaCorrect(linearColor)
+    s_rgb.append(1.0)
+    return tuple(s for s in s_rgb)
+
+
 def gammaCorrectValue(linearValue):
     # doesn't need to use `colorToLuminance` since all values are the same
     return mathutils.Color((linearValue, linearValue, linearValue)).from_scene_linear_to_srgb().v
@@ -1687,14 +1693,14 @@ def ootGetBaseOrCustomLight(prop, idx, toExport: bool, errIfMissing: bool):
     # code without circular dependencies.
     assert idx in {0, 1}
     col = getattr(prop, "diffuse" + str(idx))
-    dir = (mathutils.Vector((1.0, 1.0, 1.0)) * (1.0 if idx == 0 else -1.0)).normalized()
+    dir = (mathutils.Vector((1.0, -1.0, 1.0)) * (1.0 if idx == 0 else -1.0)).normalized()
     if getattr(prop, "useCustomDiffuse" + str(idx)):
         light = getattr(prop, "diffuse" + str(idx) + "Custom")
         if light is None:
             if errIfMissing:
                 raise PluginError("Error: Diffuse " + str(idx) + " light object not set in a scene lighting property.")
         else:
-            col = light.color
+            col = tuple(c for c in light.color) + (1.0,)
             lightObj = lightDataToObj(light)
             dir = getObjDirectionVec(lightObj, toExport)
     col = mathutils.Vector(tuple(c for c in col))
@@ -1804,9 +1810,13 @@ def upgrade_old_prop(
             return False
 
         if new_prop_def.type == "ENUM":
-            if not isinstance(old_value, int):
+            if isinstance(old_value, str):
+                new_enum_options = {enum_item.identifier for enum_item in new_prop_def.enum_items}
+                if old_value not in new_enum_options:
+                    return False
+            elif not isinstance(old_value, int):
                 raise ValueError(f"({old_value}) not an int, but {new_prop} is an enum")
-            if old_enum:
+            elif old_enum:
                 if old_value >= len(old_enum):
                     raise ValueError(f"({old_value}) not in {old_enum}")
                 old_value = old_enum[old_value]
