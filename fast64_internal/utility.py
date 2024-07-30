@@ -1762,3 +1762,16 @@ def json_to_prop_group(prop_group, data: dict, blacklist: list[str] = None, whit
             default.from_dict(data.get(prop, None))
         else:
             setattr(prop_group, prop, data.get(prop, default))
+
+
+def comment_remover(text):
+    # https://stackoverflow.com/a/241506
+    def replacer(match):
+        s = match.group(0)
+        if s.startswith("/"):
+            return " "  # note: a space and not an empty string
+        else:
+            return s
+
+    pattern = re.compile(r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"', re.DOTALL | re.MULTILINE)
+    return re.sub(pattern, replacer, text)

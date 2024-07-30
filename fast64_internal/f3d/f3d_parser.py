@@ -2390,7 +2390,7 @@ def importMeshC(
     f3dContext.mat().draw_layer.oot = drawLayer
     transformMatrix = mathutils.Matrix.Scale(1 / scale, 4)
 
-    parseF3D(data, name, transformMatrix, name, name, "oot", drawLayer, f3dContext, True)
+    parseF3D(comment_remover(data), name, transformMatrix, name, name, "oot", drawLayer, f3dContext, True)
     f3dContext.createMesh(obj, removeDoubles, importNormals, callClearMaterial)
 
     applyRotation([obj], math.radians(-90), "X")
