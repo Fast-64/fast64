@@ -2164,8 +2164,8 @@ class AnimInfo:
         )
         assert self.size is None or isinstance(self.size, int)
         assert isinstance(self.dma, bool)
-        assert self.directory is None or isinstance(self.directory, str)
-        assert self.names is None or all(isinstance(n, str) for n in self.names)
+        assert self.dma == False or isinstance(self.directory, str)
+        assert self.names is not None and all(isinstance(n, str) for n in self.names)
 
 
 @dataclasses.dataclass
@@ -2237,7 +2237,9 @@ ACTOR_PRESET_INFO = {
     "Amp": ActorPresetInfo(
         decomp_path="actors/amp",
         level="HH",
-        animation=AnimInfo(address=134234164, behaviours={"Circling Amp": 318780296, "Homing Amp": 318780244}),
+        animation=AnimInfo(
+            address=134234164, behaviours={"Circling Amp": 318780296, "Homing Amp": 318780244}, names=["Moving"]
+        ),
         models=ModelInfo(model_id=(194, "MODEL_AMP"), geolayout=251658280),
     ),
     "Bird": ActorPresetInfo(
@@ -2476,13 +2478,13 @@ ACTOR_PRESET_INFO = {
     "Chain Chomp": ActorPresetInfo(
         decomp_path="actors/chain_chomp",
         level="BOB",
-        animation=AnimInfo(address=100815224, behaviours=318785420),
+        animation=AnimInfo(address=100815224, behaviours=318785420, names=["Chomping"]),
         models=ModelInfo(model_id=(102, "MODEL_CHAIN_CHOMP"), geolayout=218105324),
     ),
     "Haunted Chair": ActorPresetInfo(
         decomp_path="actors/chair",
         level="HH",
-        animation=AnimInfo(address=83908484, behaviours=318787540),
+        animation=AnimInfo(address=83908484, behaviours=318787540, names=["Default Pose"]),
         models=ModelInfo(model_id=(86, "MODEL_HAUNTED_CHAIR"), geolayout=201326808),
     ),
     "Checkerboard Platform": ActorPresetInfo(
@@ -3252,7 +3254,7 @@ ACTOR_PRESET_INFO = {
     "Spindrift": ActorPresetInfo(
         decomp_path="actors/spindrift",
         level="CCM",
-        animation=AnimInfo(address=83897704, behaviours=318771892),
+        animation=AnimInfo(address=83897704, behaviours=318771892, names=["Flying"]),
         models=ModelInfo(model_id=(84, "MODEL_SPINDRIFT"), geolayout=201326592),
     ),
     "Spiny": ActorPresetInfo(
@@ -3261,10 +3263,10 @@ ACTOR_PRESET_INFO = {
         animation=AnimInfo(address=83979948, behaviours={"Spiny": 318785992}, names=["Walk"]),
         models=ModelInfo(model_id=(86, "MODEL_SPINY"), geolayout=201327400),
     ),
-    "Spiny Ball": ActorPresetInfo(
+    "Spiny Egg": ActorPresetInfo(
         decomp_path="actors/spiny_egg",
         level="THI",
-        animation=AnimInfo(address=83974116),
+        animation=AnimInfo(address=83974116, names=["Default"]),
         models=ModelInfo(model_id=(85, "MODEL_SPINY_BALL"), geolayout=201327248),
     ),
     "Springboard": ActorPresetInfo(
