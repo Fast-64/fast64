@@ -1243,19 +1243,16 @@ def createTriangleCommands(triangles, vertexBuffer, triConverterInfo):
     t = 0
     if triConverterInfo.f3d.F3DZEX_AC_EXT:
         left = (len(triangles) - 3) % 4
-        tri_5_bit_len = len(triangles) - left
         if len(triangles) <= 2:
             commands.append(SPNTrianglesInit_7b(len(triangles), *get_n_tris_indices(triangles, t, 2)))
             return commands
-        commands.append(SPNTrianglesInit_5b(tri_5_bit_len, *get_n_tris_indices(triangles, t, 3)))
+        commands.append(SPNTrianglesInit_5b(len(triangles), *get_n_tris_indices(triangles, t, 3)))
         t += 3
-        while t < tri_5_bit_len:
+        while t + 4 < len(triangles):
             commands.append(SPNTriangles_5b(*get_n_tris_indices(triangles, t, 4)))
             t += 4
-        if left == 3:
-            commands.append(SPNTriangles_7b(left, *get_n_tris_indices(triangles, t, 3)))
-        elif left > 0:
-            commands.append(SPNTrianglesInit_7b(left, *get_n_tris_indices(triangles, t, 2)))
+        if left > 0:
+            commands.append(SPNTriangles_7b(*get_n_tris_indices(triangles, t, 3)))
         return commands
 
     while t < len(triangles):
