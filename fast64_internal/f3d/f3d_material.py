@@ -213,7 +213,7 @@ def geo_modes_in_ucode(UCODE_VER: str):
 def sources_in_ucode(UCODE_VER: str):
     sources = ["Primitive", "Environment", "Key", "Convert", "Fog"]
     if not is_ucode_t3d(UCODE_VER) or is_ucode_f3d(UCODE_VER):
-        sources.extend(["Lighting"])
+        sources.extend(["Lighting", "Clip Ratio"])
     if isUcodeF3DEX3(UCODE_VER):
         sources.extend(["AO", "Fresnel", "ST Attr Offset", "Z Attr Offset"])
     return sources
@@ -688,7 +688,7 @@ def ui_other(settings, dataHolder, layout, useDropdown):
             dataHolder, "menu_other", text="Other Settings", icon="TRIA_DOWN" if dataHolder.menu_other else "TRIA_RIGHT"
         )
     if not useDropdown or dataHolder.menu_other:
-        if not is_ucode_t3d:
+        if "Clip Ratio" in sources_in_ucode(bpy.context.scene.f3d_type):
             clipRatioGroup = inputGroup.column()
             prop_split(clipRatioGroup, settings, "clip_ratio", "Clip Ratio")
 
@@ -1148,12 +1148,12 @@ class F3DPanel(Panel):
 
     def checkDrawLayersWarnings(self, f3dMat: "F3DMaterialProperty", useDict: Dict[str, bool], layout: UILayout):
         settings = f3dMat.rdp_settings
-        f3d = get_F3D_GBI()
+        f3d_type = bpy.context.scene.f3d_type
         anyUseShadeAlpha = useDict["Shade Alpha"] or settings.does_blender_use_input("G_BL_A_SHADE")
 
-        g_lighting = settings.is_geo_mode_on("g_lighting")
+        g_lighting = settings.is_geo_mode_on("g_lighting") or is_ucode_t3d(f3d_type)
         g_fog = settings.is_geo_mode_on("g_fog")
-        g_packed_normals = settings.is_geo_mode_on("g_packed_normals")
+        g_packed_normals = settings.is_geo_mode_on("g_packed_normals") or is_ucode_t3d(f3d_type)
         g_ambocclusion = settings.is_geo_mode_on("g_ambocclusion")
         g_lighttoalpha = settings.is_geo_mode_on("g_lighttoalpha")
         g_fresnel_color = settings.is_geo_mode_on("g_fresnel_color")
@@ -1859,9 +1859,8 @@ def update_node_values_of_material(material: Material, context):
 
     nodes = material.node_tree.nodes
 
-    lighting, tex_gen = settings.is_geo_mode_on("g_lighting"), settings.is_geo_mode_on("g_tex_gen")
-    if (not settings.has_prop_in_ucode("g_lighting") or lighting) and tex_gen:
-        if f3dMat.rdp_settings.g_tex_gen_linear:
+    if settings.geo_mode_on_or_missing("g_lighting") and settings.is_geo_mode_on("g_tex_gen"):
+        if settings.is_geo_mode_on("g_tex_gen_linear"):
             nodes["UV"].node_tree = bpy.data.node_groups["UV_EnvMap_Linear"]
         else:
             nodes["UV"].node_tree = bpy.data.node_groups["UV_EnvMap"]
@@ -1879,7 +1878,9 @@ def update_node_values_of_material(material: Material, context):
         "g_fog",
         "g_lighting",
     ]:
-        shdcol_inputs[propName.upper()].default_value = getattr(f3dMat.rdp_settings, propName)
+        shdcol_inputs[propName.upper()].default_value = f3dMat.rdp_settings.is_geo_mode_on(propName)
+    if is_ucode_t3d(bpy.context.scene.f3d_type):  # Tiny3d always uses lighting * vertex color
+        shdcol_inputs["G_LIGHTING"].default_value = shdcol_inputs["G_PACKED_NORMALS"].default_value = True
 
     shdcol_inputs["AO Ambient"].default_value = f3dMat.ao_ambient
     shdcol_inputs["AO Directional"].default_value = f3dMat.ao_directional
@@ -3603,6 +3604,9 @@ class RDPSettings(PropertyGroup):
 
     def is_geo_mode_on(self, prop: str) -> bool:
         return getattr(self, prop) if self.has_prop_in_ucode(prop) else False
+
+    def geo_mode_on_or_missing(self, prop: str) -> bool:
+        return self.is_geo_mode_on(prop) or not self.has_prop_in_ucode(prop)
 
     def are_geo_modes_on(self, props: list[str]) -> bool:
         return all(self.is_geo_mode_on(prop) for prop in props)
