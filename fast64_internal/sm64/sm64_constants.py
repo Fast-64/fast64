@@ -1,8 +1,7 @@
-# RAM address used in evaluating switch for hatless Mario
 import dataclasses
 from typing import Any
 
-
+# RAM address used in evaluating switch for hatless Mario
 marioHatSwitch = 0x80277740
 marioLowPolySwitch = 0x80277150
 
