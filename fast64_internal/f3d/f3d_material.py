@@ -483,7 +483,7 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
         else:
             shadeAlphaLabel = "Vtx alpha"
         c = indentGroup(inputGroup, f"Shade alpha = {shadeAlphaLabel}:", True)
-        if isF3DEX3:
+        if f3d.F3DEX_GBI_3:
             lighting_group = c.column(align=True)
             lighting_group.enabled = settings.g_lighting or not disable_dependent
             lighting_group.prop(settings, "g_lighttoalpha")
