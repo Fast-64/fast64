@@ -16,6 +16,7 @@ class MK64_Properties(PropertyGroup):
     def upgrade_changed_props():
         pass
 
+
 class MK64_ImportCourseDLPanel(MK64_Panel):
     bl_idname = "MK64_PT_import_course_DL"
     bl_label = "MK64 Import Course DL"
