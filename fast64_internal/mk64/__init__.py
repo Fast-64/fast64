@@ -1,40 +1,24 @@
 import bpy
+from bpy.props import FloatProperty
 from bpy.types import PropertyGroup
 from bpy.utils import register_class, unregister_class
 from .f3d.properties import MK64CourseDLImportSettings, f3d_props_register, f3d_props_unregister
 from .f3d.operators import MK64_ImportCourseDL
-from ..panels import MK64_Panel
+from .f3d.panels import MK64_ImportCourseDLPanel
+from ..render_settings import on_update_render_settings
 
 
 class MK64_Properties(PropertyGroup):
     """Global MK64 Scene Properties found under scene.fast64.mk64"""
 
     # Import Course DL
-    CourseDLImportSettings: bpy.props.PointerProperty(type=MK64CourseDLImportSettings)
+    course_DL_import_settings: bpy.props.PointerProperty(type=MK64CourseDLImportSettings)
+    scale: FloatProperty(name="F3D Blender Scale", default=100, update=on_update_render_settings)
+    
 
     @staticmethod
     def upgrade_changed_props():
         pass
-
-
-class MK64_ImportCourseDLPanel(MK64_Panel):
-    bl_idname = "MK64_PT_import_course_DL"
-    bl_label = "MK64 Import Course DL"
-    bl_options = set()  # default to open
-    bl_order = 0  # force to front
-
-    # called every frame
-    def draw(self, context):
-        col = self.layout.column()
-        col.scale_y = 1.1  # extra padding
-
-        col.operator(MK64_ImportCourseDL.bl_idname)
-        CourseDLImportSettings: MK64CourseDLImportSettings = context.scene.fast64.mk64.CourseDLImportSettings
-        CourseDLImportSettings.draw_props(col)
-
-        box = col.box().column()
-        box.label(text="All data must be contained within file.")
-        box.label(text="The only exception are pngs converted to inc.c.")
 
 
 mk64_classes = (MK64_Properties,)

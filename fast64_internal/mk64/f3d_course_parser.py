@@ -6,7 +6,7 @@ from ..f3d.f3d_writer import F3DVert
 from ..utility import PluginError, readFile, unpackNormal
 
 
-def courseVertexFormatPatterns():
+def course_vertex_format_patterns():
     # position, uv, color/normal
     return (
         # decomp format
@@ -18,9 +18,9 @@ def courseVertexFormatPatterns():
     )
 
 
-def parseCourseVtx(path: str, f3d):
+def parse_course_vtx(path: str, f3d):
     data = readFile(path)
-    pattern = courseVertexFormatPatterns()
+    pattern = course_vertex_format_patterns()
     vertexData = []
     for values in re.findall(pattern, data, re.DOTALL):
         values = [math_eval(g, f3d) for g in values]

@@ -1,6 +1,6 @@
 import bpy
 from bpy.types import Operator
-from ..f3d_course_parser import MK64F3DContext, parseCourseVtx
+from ..f3d_course_parser import MK64F3DContext, parse_course_vtx
 from ...f3d.f3d_material import createF3DMat
 from ...f3d.f3d_gbi import get_F3D_GBI
 from ...f3d.f3d_parser import getImportData, importMeshC
@@ -22,14 +22,14 @@ class MK64_ImportCourseDL(Operator):
             bpy.ops.object.mode_set(mode="OBJECT")
 
         try:
-            importSettings: MK64CourseDLImportSettings = context.scene.fast64.mk64.CourseDLImportSettings
+            importSettings: MK64CourseDLImportSettings = context.scene.fast64.mk64.course_DL_import_settings
             name = importSettings.name
             importPath = bpy.path.abspath(importSettings.path)
-            basePath = bpy.path.abspath(importSettings.basePath)
-            scaleValue = importSettings.scale
+            basePath = bpy.path.abspath(importSettings.base_path)
+            scaleValue = context.scene.fast64.mk64.scale
 
-            removeDoubles = importSettings.removeDoubles
-            importNormals = importSettings.importNormals
+            removeDoubles = importSettings.remove_doubles
+            importNormals = importSettings.import_normals
             drawLayer = "Opaque"
 
             paths = [importPath]
@@ -47,7 +47,7 @@ class MK64_ImportCourseDL(Operator):
 
             material = createF3DMat(None)
             f3d_mat = material.f3d_mat
-            f3d_mat.rdp_settings.set_rendermode = importSettings.enableRenderModeDefault
+            f3d_mat.rdp_settings.set_rendermode = importSettings.enable_render_Mode_Default
             f3d_mat.combiner1.A = "TEXEL0"
             f3d_mat.combiner1.B = "0"
             f3d_mat.combiner1.C = "SHADE"
@@ -72,7 +72,7 @@ class MK64_ImportCourseDL(Operator):
                     "course_data", "course_vertices.inc"
                 )
                 print(vertexPath)
-                f3d_context.vertexData["0x4000000"] = parseCourseVtx(vertexPath, f3d_context.f3d)
+                f3d_context.vertexData["0x4000000"] = parse_course_vtx(vertexPath, f3d_context.f3d)
 
             importMeshC(
                 data,
