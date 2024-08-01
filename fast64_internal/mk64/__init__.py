@@ -14,7 +14,6 @@ class MK64_Properties(PropertyGroup):
     # Import Course DL
     course_DL_import_settings: bpy.props.PointerProperty(type=MK64CourseDLImportSettings)
     scale: FloatProperty(name="F3D Blender Scale", default=100, update=on_update_render_settings)
-    
 
     @staticmethod
     def upgrade_changed_props():

@@ -3,6 +3,7 @@ from .operators import MK64_ImportCourseDL
 from ...panels import MK64_Panel
 from ...utility import prop_split
 
+
 class MK64_ImportCourseDLPanel(MK64_Panel):
     bl_idname = "MK64_PT_import_course_DL"
     bl_label = "MK64 Import Course DL"
