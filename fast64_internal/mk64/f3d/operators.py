@@ -1,6 +1,6 @@
 import bpy
 from bpy.types import Operator
-from ..f3d_course_parser import MK64F3DContext, parse_course_vtx
+from ..mk64_model_classes import MK64F3DContext, parse_course_vtx
 from ...f3d.f3d_material import createF3DMat
 from ...f3d.f3d_gbi import get_F3D_GBI
 from ...f3d.f3d_parser import getImportData, importMeshC
