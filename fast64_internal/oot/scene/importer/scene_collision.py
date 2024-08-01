@@ -11,7 +11,7 @@ from ...oot_utility import setCustomProperty, ootParseRotation
 from .utility import getDataMatch, getBits, checkBit, createCurveFromPoints, stripName
 from .classes import SharedSceneData
 
-from ...oot_collision_classes import (
+from ...collision.constants import (
     ootEnumFloorSetting,
     ootEnumWallSetting,
     ootEnumFloorProperty,

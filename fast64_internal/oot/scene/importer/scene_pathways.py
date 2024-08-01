@@ -6,7 +6,12 @@ from .classes import SharedSceneData
 
 
 def parsePath(
-    sceneObj: bpy.types.Object, sceneData: str, pathName: str, headerIndex: int, sharedSceneData: SharedSceneData
+    sceneObj: bpy.types.Object,
+    sceneData: str,
+    pathName: str,
+    headerIndex: int,
+    sharedSceneData: SharedSceneData,
+    orderIndex: int,
 ):
     pathData = getDataMatch(sceneData, pathName, "Vec3s", "path")
     pathPointsEntries = [value.replace("{", "").strip() for value in pathData.split("},") if value.strip() != ""]
@@ -20,6 +25,7 @@ def parsePath(
 
     curveObj = createCurveFromPoints(pathPoints, pathName)
     splineProp = curveObj.ootSplineProperty
+    splineProp.index = orderIndex
 
     unsetAllHeadersExceptSpecified(splineProp.headerSettings, headerIndex)
     sharedSceneData.pathDict[pathPoints] = curveObj
@@ -36,6 +42,6 @@ def parsePathList(
 ):
     pathData = getDataMatch(sceneData, pathListName, "Path", "path list")
     pathList = [value.replace("{", "").strip() for value in pathData.split("},") if value.strip() != ""]
-    for pathEntry in pathList:
+    for i, pathEntry in enumerate(pathList):
         numPoints, pathName = [value.strip() for value in pathEntry.split(",")]
-        parsePath(sceneObj, sceneData, pathName, headerIndex, sharedSceneData)
+        parsePath(sceneObj, sceneData, pathName, headerIndex, sharedSceneData, i)

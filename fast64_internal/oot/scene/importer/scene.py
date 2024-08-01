@@ -8,7 +8,7 @@ from ....f3d.f3d_parser import parseMatrices
 from ....f3d.f3d_gbi import get_F3D_GBI
 from ....f3d.flipbook import TextureFlipbook
 from ...oot_model_classes import OOTF3DContext
-from ..exporter.to_c import getDrawConfig
+from ...exporter.decomp_edit.scene_table import SceneTableUtility
 from ..properties import OOTImportSceneSettingsProperty
 from ...oot_constants import ootEnumDrawConfig
 from .scene_header import parseSceneCommands
@@ -121,7 +121,7 @@ def parseScene(
     f3dContext.addMatrix("&gMtxClear", mathutils.Matrix.Scale(1 / bpy.context.scene.ootBlenderScale, 4))
 
     if not settings.isCustomDest:
-        drawConfigName = getDrawConfig(sceneName)
+        drawConfigName = SceneTableUtility.get_draw_config(sceneName)
         drawConfigData = readFile(os.path.join(importPath, "src/code/z_scene_table.c"))
         parseDrawConfig(drawConfigName, sceneData, drawConfigData, f3dContext)
 
@@ -153,7 +153,10 @@ def parseScene(
 
     if not settings.isCustomDest:
         setCustomProperty(
-            sceneObj.ootSceneHeader.sceneTableEntry, "drawConfig", getDrawConfig(sceneName), ootEnumDrawConfig
+            sceneObj.ootSceneHeader.sceneTableEntry,
+            "drawConfig",
+            SceneTableUtility.get_draw_config(sceneName),
+            ootEnumDrawConfig,
         )
 
     if bpy.context.scene.fast64.oot.headerTabAffectsVisibility:

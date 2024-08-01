@@ -5,9 +5,10 @@ from bpy.path import abspath
 from bpy.utils import register_class, unregister_class
 from bpy.ops import object
 from bpy.props import StringProperty, EnumProperty, BoolProperty
-from ..panels import SM64_Panel, sm64GoalImport
+from ..panels import SM64_Panel
 from ..f3d.f3d_parser import F3DtoBlenderObject
 from .sm64_constants import level_enums, level_pointers
+from .sm64_utility import import_rom_checks
 from .sm64_level_parser import parseLevelAtPointer
 
 from ..utility import (
@@ -16,7 +17,6 @@ from ..utility import (
     raisePluginError,
     decodeSegmentedAddr,
     applyRotation,
-    checkExpanded,
     prop_split,
 )
 
@@ -38,8 +38,8 @@ class SM64_ImportDL(Operator):
             raisePluginError(self, e)
             return {"CANCELLED"}
         try:
-            checkExpanded(abspath(context.scene.importRom))
-            romfileSrc = open(abspath(context.scene.importRom), "rb")
+            import_rom_checks(abspath(context.scene.fast64.sm64.import_rom))
+            romfileSrc = open(abspath(context.scene.fast64.sm64.import_rom), "rb")
             levelParsed = parseLevelAtPointer(romfileSrc, level_pointers[context.scene.levelDLImport])
             segmentData = levelParsed.segmentData
             start = (
@@ -69,7 +69,7 @@ class SM64_ImportDL(Operator):
 class SM64_ImportDLPanel(SM64_Panel):
     bl_idname = "SM64_PT_import_dl"
     bl_label = "SM64 DL Importer"
-    goal = sm64GoalImport
+    import_panel = True
 
     # called every frame
     def draw(self, context):
