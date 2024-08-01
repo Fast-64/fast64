@@ -22,23 +22,23 @@ class MK64_ImportCourseDL(Operator):
             bpy.ops.object.mode_set(mode="OBJECT")
 
         try:
-            importSettings: MK64CourseDLImportSettings = context.scene.fast64.mk64.course_DL_import_settings
-            name = importSettings.name
-            importPath = bpy.path.abspath(importSettings.path)
-            basePath = bpy.path.abspath(importSettings.base_path)
-            scaleValue = context.scene.fast64.mk64.scale
+            import_settings: MK64CourseDLImportSettings = context.scene.fast64.mk64.course_DL_import_settings
+            name = import_settings.name
+            import_path = bpy.path.abspath(import_settings.path)
+            base_path = bpy.path.abspath(import_settings.base_path)
+            scale_value = context.scene.fast64.mk64.scale
 
-            removeDoubles = importSettings.remove_doubles
-            importNormals = importSettings.import_normals
-            drawLayer = "Opaque"
+            remove_doubles = import_settings.remove_doubles
+            import_normals = import_settings.import_normals
+            draw_layer = "Opaque"
 
-            paths = [importPath]
+            paths = [import_path]
 
-            if "course_data" in importPath:
-                paths += [importPath.replace("course_data", "course_displaylists.inc")]
+            if "course_data" in import_path:
+                paths += [import_path.replace("course_data", "course_displaylists.inc")]
 
             paths += [
-                importPath.replace("course_data", "course_textures.linkonly").replace(
+                import_path.replace("course_data", "course_textures.linkonly").replace(
                     "course_displaylists.inc", "course_textures.linkonly"
                 )
             ]
@@ -47,7 +47,7 @@ class MK64_ImportCourseDL(Operator):
 
             material = createF3DMat(None)
             f3d_mat = material.f3d_mat
-            f3d_mat.rdp_settings.set_rendermode = importSettings.enable_render_Mode_Default
+            f3d_mat.rdp_settings.set_rendermode = import_settings.enable_render_Mode_Default
             f3d_mat.combiner1.A = "TEXEL0"
             f3d_mat.combiner1.B = "0"
             f3d_mat.combiner1.C = "SHADE"
@@ -66,9 +66,9 @@ class MK64_ImportCourseDL(Operator):
             f3d_mat.combiner2.C_alpha = "SHADE"
             f3d_mat.combiner2.D_alpha = "0"
 
-            f3d_context = MK64F3DContext(get_F3D_GBI(), basePath, material)
-            if "course_displaylists" in importPath or "course_data" in importPath:
-                vertexPath = importPath.replace("course_displaylists.inc", "course_vertices.inc").replace(
+            f3d_context = MK64F3DContext(get_F3D_GBI(), base_path, material)
+            if "course_displaylists" in import_path or "course_data" in import_path:
+                vertexPath = import_path.replace("course_displaylists.inc", "course_vertices.inc").replace(
                     "course_data", "course_vertices.inc"
                 )
                 print(vertexPath)
@@ -77,10 +77,10 @@ class MK64_ImportCourseDL(Operator):
             importMeshC(
                 data,
                 name,
-                scaleValue,
-                removeDoubles,
-                importNormals,
-                drawLayer,
+                scale_value,
+                remove_doubles,
+                import_normals,
+                draw_layer,
                 f3d_context,
             )
 
