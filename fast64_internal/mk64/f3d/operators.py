@@ -68,11 +68,11 @@ class MK64_ImportCourseDL(Operator):
 
             f3d_context = MK64F3DContext(get_F3D_GBI(), base_path, material)
             if "course_displaylists" in import_path or "course_data" in import_path:
-                vertexPath = import_path.replace("course_displaylists.inc", "course_vertices.inc").replace(
+                vertex_path = import_path.replace("course_displaylists.inc", "course_vertices.inc").replace(
                     "course_data", "course_vertices.inc"
                 )
-                print(vertexPath)
-                f3d_context.vertexData["0x4000000"] = parse_course_vtx(vertexPath, f3d_context.f3d)
+                print(vertex_path)
+                f3d_context.vertexData["0x4000000"] = parse_course_vtx(vertex_path, f3d_context.f3d)
 
             importMeshC(
                 data,
