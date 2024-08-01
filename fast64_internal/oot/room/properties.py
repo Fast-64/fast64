@@ -104,13 +104,6 @@ class OOTRoomHeaderProperty(PropertyGroup):
         default=False,
     )
 
-    useCustomBehaviourX: BoolProperty(name="Use Custom Behaviour X")
-    useCustomBehaviourY: BoolProperty(name="Use Custom Behaviour Y")
-
-    customBehaviourX: StringProperty(name="Custom Behaviour X", default="0x00")
-
-    customBehaviourY: StringProperty(name="Custom Behaviour Y", default="0x00")
-
     setWind: BoolProperty(name="Set Wind")
     windVector: IntVectorProperty(name="Wind Vector", size=3, min=-127, max=127)
     windStrength: IntProperty(name="Wind Strength", min=0, max=255)

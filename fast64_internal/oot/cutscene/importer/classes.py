@@ -1,4 +1,5 @@
 import bpy
+import re
 
 from dataclasses import dataclass
 from typing import Optional, TYPE_CHECKING
@@ -54,7 +55,11 @@ class CutsceneImport(CutsceneObjectFactory):
         """Returns the list of every parameter of the given command"""
 
         parenthesis = "(" if not cmdName.endswith("(") else ""
-        params = data.strip().removeprefix(f"{cmdName}{parenthesis}").replace(" ", "").removesuffix(")").split(",")
+        data = data.strip().removeprefix(f"{cmdName}{parenthesis}").replace(" ", "").removesuffix(")")
+        if "CS_FLOAT" in data:
+            data = re.sub(r"CS_FLOAT\([a-fA-F0-9x]*,([0-9e+-.f]*)\)", r"\1", data, re.DOTALL)
+            data = re.sub(r"CS_FLOAT\([a-fA-F0-9x]*,([0-9e+-.f]*)", r"\1", data, re.DOTALL)
+        params = data.split(",")
         validTimeCmd = cmdName == "CS_TIME" and len(params) == 6 and paramNumber == 5
         if len(params) != paramNumber and not validTimeCmd:
             raise PluginError(
@@ -94,8 +99,11 @@ class CutsceneImport(CutsceneObjectFactory):
             if csObj.type == "EMPTY" and csObj.ootEmptyType == "Cutscene"
         ]
 
+        fileLines: list[str] = []
+        for line in fileData.split("\n"):
+            fileLines.append(line.strip())
+
         # parse cutscenes
-        fileLines = fileData.split("\n")
         csData = []
         cutsceneList: list[list[str]] = []
         foundCutscene = False
@@ -110,10 +118,11 @@ class CutsceneImport(CutsceneObjectFactory):
 
                 if foundCutscene:
                     sLine = line.strip()
-                    if not sLine.endswith("),") and sLine.endswith(","):
-                        line += fileLines[fileLines.index(line) + 1].strip()
+                    csCmd = sLine.split("(")[0]
+                    if "CutsceneData " not in line and "};" not in line and csCmd not in ootCutsceneCommandsC:
+                        csData[-1] += line
 
-                    if len(csData) == 0 or "CS_" in line:
+                    if len(csData) == 0 or sLine.startswith("CS_") and not sLine.startswith("CS_FLOAT"):
                         if self.csName is None or self.csName == csName:
                             csData.append(line)
 

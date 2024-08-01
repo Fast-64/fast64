@@ -8,7 +8,7 @@ from ..f3d.flipbook import TextureFlipbook
 from .collision.properties import OOTMaterialCollisionProperty
 from .oot_model_classes import OOTF3DContext
 from .oot_f3d_writer import getColliderMat
-from .scene.exporter.to_c import getDrawConfig
+from .exporter.decomp_edit.scene_table import SceneTableUtility
 from .scene.properties import OOTSceneHeaderProperty, OOTLightProperty, OOTImportSceneSettingsProperty
 from .room.properties import OOTRoomHeaderProperty
 from .actor.properties import OOTActorProperty, OOTActorHeaderProperty
@@ -45,7 +45,7 @@ from .oot_constants import (
 )
 
 
-from .oot_collision_classes import (
+from .collision.constants import (
     ootEnumCameraCrawlspaceSType,
     ootEnumFloorSetting,
     ootEnumWallSetting,
@@ -241,7 +241,7 @@ def parseScene(
     f3dContext.addMatrix("&gMtxClear", mathutils.Matrix.Scale(1 / bpy.context.scene.ootBlenderScale, 4))
 
     if not settings.isCustomDest:
-        drawConfigName = getDrawConfig(sceneName)
+        drawConfigName = SceneTableUtility.get_draw_config(sceneName)
         drawConfigData = readFile(os.path.join(importPath, "src/code/z_scene_table.c"))
         parseDrawConfig(drawConfigName, sceneData, drawConfigData, f3dContext)
 
@@ -273,7 +273,10 @@ def parseScene(
 
     if not settings.isCustomDest:
         setCustomProperty(
-            sceneObj.ootSceneHeader.sceneTableEntry, "drawConfig", getDrawConfig(sceneName), ootEnumDrawConfig
+            sceneObj.ootSceneHeader.sceneTableEntry,
+            "drawConfig",
+            SceneTableUtility.get_draw_config(sceneName),
+            ootEnumDrawConfig,
         )
 
     if bpy.context.scene.fast64.oot.headerTabAffectsVisibility:
@@ -946,9 +949,9 @@ def parsePathList(
 ):
     pathData = getDataMatch(sceneData, pathListName, "Path", "path list")
     pathList = [value.replace("{", "").strip() for value in pathData.split("},") if value.strip() != ""]
-    for pathEntry in pathList:
+    for i, pathEntry in enumerate(pathList):
         numPoints, pathName = [value.strip() for value in pathEntry.split(",")]
-        parsePath(sceneObj, sceneData, pathName, headerIndex, sharedSceneData)
+        parsePath(sceneObj, sceneData, pathName, headerIndex, sharedSceneData, i)
 
 
 def createCurveFromPoints(points: list[tuple[float, float, float]], name: str):
@@ -979,7 +982,12 @@ def createCurveFromPoints(points: list[tuple[float, float, float]], name: str):
 
 
 def parsePath(
-    sceneObj: bpy.types.Object, sceneData: str, pathName: str, headerIndex: int, sharedSceneData: SharedSceneData
+    sceneObj: bpy.types.Object,
+    sceneData: str,
+    pathName: str,
+    headerIndex: int,
+    sharedSceneData: SharedSceneData,
+    orderIndex: int,
 ):
     pathData = getDataMatch(sceneData, pathName, "Vec3s", "path")
     pathPointsEntries = [value.replace("{", "").strip() for value in pathData.split("},") if value.strip() != ""]
@@ -993,6 +1001,7 @@ def parsePath(
 
     curveObj = createCurveFromPoints(pathPoints, pathName)
     splineProp = curveObj.ootSplineProperty
+    splineProp.index = orderIndex
 
     unsetAllHeadersExceptSpecified(splineProp.headerSettings, headerIndex)
     sharedSceneData.pathDict[pathPoints] = curveObj
@@ -1080,7 +1089,7 @@ def parseLightList(
         blendFogShort = hexOrDecInt(lightParams[18])
         fogNear = blendFogShort & ((1 << 10) - 1)
         transitionSpeed = blendFogShort >> 10
-        fogFar = hexOrDecInt(lightParams[19])
+        z_far = hexOrDecInt(lightParams[19])
 
         lightHeader = sceneHeader.lightList.add()
         lightHeader.ambient = ambientColor + (1,)
@@ -1097,7 +1106,7 @@ def parseLightList(
 
         lightHeader.fogColor = fogColor + (1,)
         lightHeader.fogNear = fogNear
-        lightHeader.fogFar = fogFar
+        lightHeader.z_far = z_far
         lightHeader.transitionSpeed = transitionSpeed
 
         index += 1

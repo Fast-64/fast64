@@ -3,7 +3,7 @@ from bpy.props import EnumProperty, PointerProperty, StringProperty, IntProperty
 from bpy.utils import register_class, unregister_class
 from ...utility import prop_split
 from ..oot_utility import drawEnumWithCustom
-from ..oot_collision_classes import ootEnumCameraCrawlspaceSType
+from ..collision.constants import ootEnumCameraCrawlspaceSType
 from ..actor.properties import OOTActorHeaderProperty
 from ..scene.properties import OOTAlternateSceneHeaderProperty
 
@@ -19,14 +19,17 @@ class OOTSplineProperty(PropertyGroup):
     camSTypeCustom: StringProperty(default="CAM_SET_CRAWLSPACE")
 
     def draw_props(self, layout: UILayout, altSceneProp: OOTAlternateSceneHeaderProperty, objName: str):
+        camIndexName = ""
         prop_split(layout, self, "splineType", "Type")
         if self.splineType == "Path":
             headerProp: OOTActorHeaderProperty = self.headerSettings
             headerProp.draw_props(layout, "Curve", altSceneProp, objName)
+            camIndexName = "Path Index"
         elif self.splineType == "Crawlspace":
             layout.label(text="This counts as a camera for index purposes.", icon="INFO")
-            prop_split(layout, self, "index", "Index")
             drawEnumWithCustom(layout, self, "camSType", "Camera S Type", "")
+            camIndexName = "Camera Index"
+        prop_split(layout, self, "index", camIndexName)
 
 
 oot_spline_classes = (OOTSplineProperty,)

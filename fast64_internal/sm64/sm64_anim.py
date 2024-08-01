@@ -1,6 +1,6 @@
 import bpy, os, copy, shutil, mathutils, math
 from bpy.utils import register_class, unregister_class
-from ..panels import SM64_Panel, sm64GoalImport
+from ..panels import SM64_Panel
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_rom_tweaks import ExtendBank0x04
 from .sm64_geolayout_bone import animatableBoneTypes
@@ -25,7 +25,6 @@ from ..utility import (
     applyRotation,
     getPathAndLevel,
     applyBasicTweaks,
-    checkExpanded,
     tempName,
     bytesToHex,
     prop_split,
@@ -46,6 +45,8 @@ from .sm64_constants import (
     enumLevelNames,
     marioAnimations,
 )
+
+from .sm64_utility import export_rom_checks, import_rom_checks
 
 sm64_anim_types = {"ROTATE", "TRANSLATE"}
 
@@ -447,14 +448,10 @@ def convertAnimationData(anim, armatureObj, *, frame_start, frame_count):
     currentFrame = bpy.context.scene.frame_current
     for frame in range(frame_start, frame_start + frame_count):
         bpy.context.scene.frame_set(frame)
-        rootBone = armatureObj.data.bones[animBones[0]]
         rootPoseBone = armatureObj.pose.bones[animBones[0]]
 
-        # Hacky solution to handle Z-up to Y-up conversion
         translation = (
-            rootBone.matrix.to_4x4().inverted()
-            @ mathutils.Matrix.Scale(bpy.context.scene.blenderToSM64Scale, 4)
-            @ rootPoseBone.matrix
+            mathutils.Matrix.Scale(bpy.context.scene.fast64.sm64.blender_to_sm64_scale, 4) @ rootPoseBone.matrix_basis
         ).decompose()[0]
         saveTranslationFrame(translationData, translation)
 
@@ -621,7 +618,9 @@ def getKeyFramesTranslation(romfile, transformValuesStart, boneIndex):
     keyframes = []
     for frame in range(boneIndex.numFrames):
         romfile.seek(ptrToValue + frame * 2)
-        keyframes.append(int.from_bytes(romfile.read(2), "big", signed=True) / bpy.context.scene.blenderToSM64Scale)
+        keyframes.append(
+            int.from_bytes(romfile.read(2), "big", signed=True) / bpy.context.scene.fast64.sm64.blender_to_sm64_scale
+        )
 
     return keyframes
 
@@ -736,7 +735,7 @@ class SM64_ExportAnimMario(bpy.types.Operator):
             # Rotate all armatures 90 degrees
             applyRotation([armatureObj], math.radians(90), "X")
 
-            if context.scene.fast64.sm64.exportType == "C":
+            if context.scene.fast64.sm64.export_type == "C":
                 exportPath, levelName = getPathAndLevel(
                     context.scene.animCustomExport,
                     context.scene.animExportPath,
@@ -756,7 +755,7 @@ class SM64_ExportAnimMario(bpy.types.Operator):
                     levelName,
                 )
                 self.report({"INFO"}, "Success!")
-            elif context.scene.fast64.sm64.exportType == "Insertable Binary":
+            elif context.scene.fast64.sm64.export_type == "Insertable Binary":
                 exportAnimationInsertableBinary(
                     bpy.path.abspath(context.scene.animInsertableBinaryPath),
                     armatureObj,
@@ -765,17 +764,17 @@ class SM64_ExportAnimMario(bpy.types.Operator):
                 )
                 self.report({"INFO"}, "Success! Animation at " + context.scene.animInsertableBinaryPath)
             else:
-                checkExpanded(bpy.path.abspath(context.scene.exportRom))
-                tempROM = tempName(context.scene.outputRom)
-                romfileExport = open(bpy.path.abspath(context.scene.exportRom), "rb")
-                shutil.copy(bpy.path.abspath(context.scene.exportRom), bpy.path.abspath(tempROM))
+                export_rom_checks(bpy.path.abspath(context.scene.fast64.sm64.export_rom))
+                tempROM = tempName(context.scene.fast64.sm64.output_rom)
+                romfileExport = open(bpy.path.abspath(context.scene.fast64.sm64.export_rom), "rb")
+                shutil.copy(bpy.path.abspath(context.scene.fast64.sm64.export_rom), bpy.path.abspath(tempROM))
                 romfileExport.close()
                 romfileOutput = open(bpy.path.abspath(tempROM), "rb+")
 
                 # Note actual level doesn't matter for Mario, since he is in all of 	them
                 levelParsed = parseLevelAtPointer(romfileOutput, level_pointers[context.scene.levelAnimExport])
                 segmentData = levelParsed.segmentData
-                if context.scene.extendBank4:
+                if context.scene.fast64.sm64.extend_bank_4:
                     ExtendBank0x04(romfileOutput, segmentData, defaultExtendSegment4)
 
                 DMAAddresses = None
@@ -809,9 +808,9 @@ class SM64_ExportAnimMario(bpy.types.Operator):
                     segmentedPtr = None
 
                 romfileOutput.close()
-                if os.path.exists(bpy.path.abspath(context.scene.outputRom)):
-                    os.remove(bpy.path.abspath(context.scene.outputRom))
-                os.rename(bpy.path.abspath(tempROM), bpy.path.abspath(context.scene.outputRom))
+                if os.path.exists(bpy.path.abspath(context.scene.fast64.sm64.output_rom)):
+                    os.remove(bpy.path.abspath(context.scene.fast64.sm64.output_rom))
+                os.rename(bpy.path.abspath(tempROM), bpy.path.abspath(context.scene.fast64.sm64.output_rom))
 
                 if not context.scene.isDMAExport:
                     if context.scene.setAnimListIndex:
@@ -862,7 +861,7 @@ class SM64_ExportAnimMario(bpy.types.Operator):
 class SM64_ExportAnimPanel(SM64_Panel):
     bl_idname = "SM64_PT_export_anim"
     bl_label = "SM64 Animation Exporter"
-    goal = "Export Object/Actor/Anim"
+    goal = "Object/Actor/Anim"
 
     # called every frame
     def draw(self, context):
@@ -871,7 +870,7 @@ class SM64_ExportAnimPanel(SM64_Panel):
 
         col.prop(context.scene, "loopAnimation")
 
-        if context.scene.fast64.sm64.exportType == "C":
+        if context.scene.fast64.sm64.export_type == "C":
             col.prop(context.scene, "animCustomExport")
             if context.scene.animCustomExport:
                 col.prop(context.scene, "animExportPath")
@@ -884,7 +883,7 @@ class SM64_ExportAnimPanel(SM64_Panel):
                     prop_split(col, context.scene, "animGroupName", "Group Name")
                 elif context.scene.animExportHeaderType == "Level":
                     prop_split(col, context.scene, "animLevelOption", "Level")
-                    if context.scene.animLevelOption == "custom":
+                    if context.scene.animLevelOption == "Custom":
                         prop_split(col, context.scene, "animLevelName", "Level Name")
 
                 decompFolderMessage(col)
@@ -897,7 +896,7 @@ class SM64_ExportAnimPanel(SM64_Panel):
                     context.scene.animLevelOption,
                 )
 
-        elif context.scene.fast64.sm64.exportType == "Insertable Binary":
+        elif context.scene.fast64.sm64.export_type == "Insertable Binary":
             col.prop(context.scene, "isDMAExport")
             col.prop(context.scene, "animInsertableBinaryPath")
         else:
@@ -931,8 +930,8 @@ class SM64_ImportAnimMario(bpy.types.Operator):
     def execute(self, context):
         romfileSrc = None
         try:
-            checkExpanded(bpy.path.abspath(context.scene.importRom))
-            romfileSrc = open(bpy.path.abspath(context.scene.importRom), "rb")
+            import_rom_checks(bpy.path.abspath(context.scene.fast64.sm64.import_rom))
+            romfileSrc = open(bpy.path.abspath(context.scene.fast64.sm64.import_rom), "rb")
         except Exception as e:
             raisePluginError(self, e)
             return {"CANCELLED"}
@@ -979,8 +978,8 @@ class SM64_ImportAllMarioAnims(bpy.types.Operator):
     def execute(self, context):
         romfileSrc = None
         try:
-            checkExpanded(bpy.path.abspath(context.scene.importRom))
-            romfileSrc = open(bpy.path.abspath(context.scene.importRom), "rb")
+            import_rom_checks(bpy.path.abspath(context.scene.fast64.sm64.import_rom))
+            romfileSrc = open(bpy.path.abspath(context.scene.fast64.sm64.import_rom), "rb")
         except Exception as e:
             raisePluginError(self, e)
             return {"CANCELLED"}
@@ -1008,7 +1007,8 @@ class SM64_ImportAllMarioAnims(bpy.types.Operator):
 class SM64_ImportAnimPanel(SM64_Panel):
     bl_idname = "SM64_PT_import_anim"
     bl_label = "SM64 Animation Importer"
-    goal = sm64GoalImport
+    goal = "Object/Actor/Anim"
+    import_panel = True
 
     # called every frame
     def draw(self, context):

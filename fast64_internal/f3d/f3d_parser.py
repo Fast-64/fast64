@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Optional, Callable, Any, TYPE_CHECKING
 import bmesh, bpy, mathutils, re, math, traceback
 from mathutils import Vector
 from bpy.utils import register_class, unregister_class
@@ -17,6 +17,10 @@ from .f3d_writer import BufferVertex, F3DVert
 from ..utility import *
 import ast
 from .f3d_material_helpers import F3DMaterial_UpdateLock
+
+if TYPE_CHECKING:
+    from .f3d_material import RDPSettings
+
 
 colorCombinationCommands = [
     0x03,  # load lighting data
@@ -185,9 +189,9 @@ def getPosition(vertexBuffer, index):
     yBytes = vertexBuffer[yStart : yStart + 2]
     zBytes = vertexBuffer[zStart : zStart + 2]
 
-    x = int.from_bytes(xBytes, "big", signed=True) / bpy.context.scene.blenderToSM64Scale
-    y = int.from_bytes(yBytes, "big", signed=True) / bpy.context.scene.blenderToSM64Scale
-    z = int.from_bytes(zBytes, "big", signed=True) / bpy.context.scene.blenderToSM64Scale
+    x = int.from_bytes(xBytes, "big", signed=True) / bpy.context.scene.fast64.sm64.blender_to_sm64_scale
+    y = int.from_bytes(yBytes, "big", signed=True) / bpy.context.scene.fast64.sm64.blender_to_sm64_scale
+    z = int.from_bytes(zBytes, "big", signed=True) / bpy.context.scene.fast64.sm64.blender_to_sm64_scale
 
     return (x, y, z)
 
@@ -442,7 +446,7 @@ class F3DTextureReference:
 
 
 class F3DParsedCommands:
-    def __init__(self, name, commands, index):
+    def __init__(self, name: str, commands: "list[ParsedMacro]", index: int):
         self.name = name
         self.commands = commands
         self.index = index
@@ -471,7 +475,7 @@ class F3DContext:
         self.materials: list[bpy.types.Material] = []  # current material list
         self.materialDict: dict[F3DMaterialHash, bpy.types.Material] = {}  # cached materials for all imports
         self.triMatIndices: list[int] = []  # material indices per triangle
-        self.materialChanged: bool = True
+        self.materialChanged: bool = True  # indicates if the material changed since the last triangle
         self.lastMaterialIndex: bool = None
 
         self.vertexData: dict[str, list[F3DVert]] = {}  # c name : parsed data
@@ -548,7 +552,6 @@ class F3DContext:
     def clearMaterial(self):
         mat = self.mat()
 
-        mat.rdp_settings.sets_rendermode = False
         mat.set_prim = False
         mat.set_lights = False
         mat.set_env = False
@@ -698,7 +701,6 @@ class F3DContext:
 
     def addTriangle(self, indices, dlData):
         if self.materialChanged:
-            mat = self.mat()
             region = None
 
             tileSettings = self.tileSettings[0]
@@ -817,12 +819,7 @@ class F3DContext:
             else:
                 print("Ignoring TLUT.")
 
-    def postMaterialChanged(self):
-        return
-
     def addMaterial(self):
-        mat = self.mat()
-        combinerUses = all_combiner_uses(self.mat())
         self.applyTLUTToIndex(0)
         self.applyTLUTToIndex(1)
 
@@ -832,16 +829,14 @@ class F3DContext:
         materialCopy.f3d_update_flag = False
 
         with F3DMaterial_UpdateLock(materialCopy) as material:
+            assert material is not None
             update_node_values_of_material(material, bpy.context)
             material.f3d_mat.presetName = "Custom"
 
-        self.materials.append(material)
+        self.materials.append(materialCopy)
         self.materialDict[self.getMaterialKey(materialCopy)] = materialCopy
-        self.materialChanged = False
 
-        self.postMaterialChanged()
-
-    def getSizeMacro(self, size, suffix):
+    def getSizeMacro(self, size: str, suffix: str):
         if hasattr(self.f3d, size):
             return getattr(self.f3d, size + suffix)
         else:
@@ -869,84 +864,88 @@ class F3DContext:
             vtxPath = os.path.join(self.basePath, os.path.basename(path))
         return vtxPath
 
-    def setGeoFlags(self, command, value):
+    def setGeoFlags(self, command: "ParsedMacro", value: bool):
         mat = self.mat()
         bitFlags = math_eval(command.params[0], self.f3d)
+
+        rdp_settings: "RDPSettings" = mat.rdp_settings
 
         if bitFlags & self.f3d.G_ZBUFFER:
-            mat.rdp_settings.g_zbuffer = value
+            rdp_settings.g_zbuffer = value
         if bitFlags & self.f3d.G_SHADE:
-            mat.rdp_settings.g_shade = value
+            rdp_settings.g_shade = value
         if bitFlags & self.f3d.G_CULL_FRONT:
-            mat.rdp_settings.g_cull_front = value
+            rdp_settings.g_cull_front = value
         if bitFlags & self.f3d.G_CULL_BACK:
-            mat.rdp_settings.g_cull_back = value
+            rdp_settings.g_cull_back = value
         if self.f3d.F3DEX_GBI_3:
             if bitFlags & self.f3d.G_AMBOCCLUSION:
-                mat.rdp_settings.g_ambocclusion = value
+                rdp_settings.g_ambocclusion = value
             if bitFlags & self.f3d.G_ATTROFFSET_Z_ENABLE:
-                mat.rdp_settings.g_attroffset_z_enable = value
+                rdp_settings.g_attroffset_z_enable = value
             if bitFlags & self.f3d.G_ATTROFFSET_ST_ENABLE:
-                mat.rdp_settings.g_attroffset_st_enable = value
+                rdp_settings.g_attroffset_st_enable = value
             if bitFlags & self.f3d.G_PACKED_NORMALS:
-                mat.rdp_settings.g_packed_normals = value
+                rdp_settings.g_packed_normals = value
             if bitFlags & self.f3d.G_LIGHTTOALPHA:
-                mat.rdp_settings.g_lighttoalpha = value
+                rdp_settings.g_lighttoalpha = value
             if bitFlags & self.f3d.G_LIGHTING_SPECULAR:
-                mat.rdp_settings.g_lighting_specular = value
+                rdp_settings.g_lighting_specular = value
             if bitFlags & self.f3d.G_FRESNEL_COLOR:
-                mat.rdp_settings.g_fresnel_color = value
+                rdp_settings.g_fresnel_color = value
             if bitFlags & self.f3d.G_FRESNEL_ALPHA:
-                mat.rdp_settings.g_fresnel_alpha = value
+                rdp_settings.g_fresnel_alpha = value
         if bitFlags & self.f3d.G_FOG:
-            mat.rdp_settings.g_fog = value
+            rdp_settings.g_fog = value
         if bitFlags & self.f3d.G_LIGHTING:
-            mat.rdp_settings.g_lighting = value
+            rdp_settings.g_lighting = value
         if bitFlags & self.f3d.G_TEXTURE_GEN:
-            mat.rdp_settings.g_tex_gen = value
+            rdp_settings.g_tex_gen = value
         if bitFlags & self.f3d.G_TEXTURE_GEN_LINEAR:
-            mat.rdp_settings.g_tex_gen_linear = value
+            rdp_settings.g_tex_gen_linear = value
         if bitFlags & self.f3d.G_LOD:
-            mat.rdp_settings.g_lod = value
+            rdp_settings.g_lod = value
         if bitFlags & self.f3d.G_SHADING_SMOOTH:
-            mat.rdp_settings.g_shade_smooth = value
+            rdp_settings.g_shade_smooth = value
         if bitFlags & self.f3d.G_CLIPPING:
-            mat.rdp_settings.g_clipping = value
+            rdp_settings.g_clipping = value
 
-    def loadGeoFlags(self, command):
+    def loadGeoFlags(self, command: "ParsedMacro"):
         mat = self.mat()
 
         bitFlags = math_eval(command.params[0], self.f3d)
 
-        mat.rdp_settings.g_zbuffer = bitFlags & self.f3d.G_ZBUFFER != 0
-        mat.rdp_settings.g_shade = bitFlags & self.f3d.G_SHADE != 0
-        mat.rdp_settings.g_cull_front = bitFlags & self.f3d.G_CULL_FRONT != 0
-        mat.rdp_settings.g_cull_back = bitFlags & self.f3d.G_CULL_BACK != 0
+        rdp_settings: "RDPSettings" = mat.rdp_settings
+
+        rdp_settings.g_zbuffer = bitFlags & self.f3d.G_ZBUFFER != 0
+        rdp_settings.g_shade = bitFlags & self.f3d.G_SHADE != 0
+        rdp_settings.g_cull_front = bitFlags & self.f3d.G_CULL_FRONT != 0
+        rdp_settings.g_cull_back = bitFlags & self.f3d.G_CULL_BACK != 0
         if self.f3d.F3DEX_GBI_3:
-            mat.rdp_settings.g_ambocclusion = bitFlags & self.f3d.G_AMBOCCLUSION != 0
-            mat.rdp_settings.g_attroffset_z_enable = bitFlags & self.f3d.G_ATTROFFSET_Z_ENABLE != 0
-            mat.rdp_settings.g_attroffset_st_enable = bitFlags & self.f3d.G_ATTROFFSET_ST_ENABLE != 0
-            mat.rdp_settings.g_packed_normals = bitFlags & self.f3d.G_PACKED_NORMALS != 0
-            mat.rdp_settings.g_lighttoalpha = bitFlags & self.f3d.G_LIGHTTOALPHA != 0
-            mat.rdp_settings.g_lighting_specular = bitFlags & self.f3d.G_LIGHTING_SPECULAR != 0
-            mat.rdp_settings.g_fresnel_color = bitFlags & self.f3d.G_FRESNEL_COLOR != 0
-            mat.rdp_settings.g_fresnel_alpha = bitFlags & self.f3d.G_FRESNEL_ALPHA != 0
+            rdp_settings.g_ambocclusion = bitFlags & self.f3d.G_AMBOCCLUSION != 0
+            rdp_settings.g_attroffset_z_enable = bitFlags & self.f3d.G_ATTROFFSET_Z_ENABLE != 0
+            rdp_settings.g_attroffset_st_enable = bitFlags & self.f3d.G_ATTROFFSET_ST_ENABLE != 0
+            rdp_settings.g_packed_normals = bitFlags & self.f3d.G_PACKED_NORMALS != 0
+            rdp_settings.g_lighttoalpha = bitFlags & self.f3d.G_LIGHTTOALPHA != 0
+            rdp_settings.g_lighting_specular = bitFlags & self.f3d.G_LIGHTING_SPECULAR != 0
+            rdp_settings.g_fresnel_color = bitFlags & self.f3d.G_FRESNEL_COLOR != 0
+            rdp_settings.g_fresnel_alpha = bitFlags & self.f3d.G_FRESNEL_ALPHA != 0
         else:
-            mat.rdp_settings.g_ambocclusion = False
-            mat.rdp_settings.g_attroffset_z_enable = False
-            mat.rdp_settings.g_attroffset_st_enable = False
-            mat.rdp_settings.g_packed_normals = False
-            mat.rdp_settings.g_lighttoalpha = False
-            mat.rdp_settings.g_lighting_specular = False
-            mat.rdp_settings.g_fresnel_color = False
-            mat.rdp_settings.g_fresnel_alpha = False
-        mat.rdp_settings.g_fog = bitFlags & self.f3d.G_FOG != 0
-        mat.rdp_settings.g_lighting = bitFlags & self.f3d.G_LIGHTING != 0
-        mat.rdp_settings.g_tex_gen = bitFlags & self.f3d.G_TEXTURE_GEN != 0
-        mat.rdp_settings.g_tex_gen_linear = bitFlags & self.f3d.G_TEXTURE_GEN_LINEAR != 0
-        mat.rdp_settings.g_lod = bitFlags & self.f3d.G_LOD != 0
-        mat.rdp_settings.g_shade_smooth = bitFlags & self.f3d.G_SHADING_SMOOTH != 0
-        mat.rdp_settings.g_clipping = bitFlags & self.f3d.G_CLIPPING != 0
+            rdp_settings.g_ambocclusion = False
+            rdp_settings.g_attroffset_z_enable = False
+            rdp_settings.g_attroffset_st_enable = False
+            rdp_settings.g_packed_normals = False
+            rdp_settings.g_lighttoalpha = False
+            rdp_settings.g_lighting_specular = False
+            rdp_settings.g_fresnel_color = False
+            rdp_settings.g_fresnel_alpha = False
+        rdp_settings.g_fog = bitFlags & self.f3d.G_FOG != 0
+        rdp_settings.g_lighting = bitFlags & self.f3d.G_LIGHTING != 0
+        rdp_settings.g_tex_gen = bitFlags & self.f3d.G_TEXTURE_GEN != 0
+        rdp_settings.g_tex_gen_linear = bitFlags & self.f3d.G_TEXTURE_GEN_LINEAR != 0
+        rdp_settings.g_lod = bitFlags & self.f3d.G_LOD != 0
+        rdp_settings.g_shade_smooth = bitFlags & self.f3d.G_SHADING_SMOOTH != 0
+        rdp_settings.g_clipping = bitFlags & self.f3d.G_CLIPPING != 0
 
     def setCombineLerp(self, lerp0, lerp1):
         mat = self.mat()
@@ -1024,7 +1023,7 @@ class F3DContext:
         mat.combiner2.C_alpha = combinerCAlphaList[lerp1[6]]
         mat.combiner2.D_alpha = combinerDAlphaList[lerp1[7]]
 
-    def setCombineMode(self, command):
+    def setCombineMode(self, command: "ParsedMacro"):
         if not hasattr(self.f3d, command.params[0]) or not hasattr(self.f3d, command.params[1]):
             print("Unhandled combiner mode: " + command.params[0] + ", " + command.params[1])
             return
@@ -1049,15 +1048,14 @@ class F3DContext:
                 if texProp.tex_format[:2] == "CI":
                     texProp.tex_format = texProp.tex_format[1:]  # Cut off the C, so CI4->I4 and CI8->I8
 
-    def setOtherModeFlags(self, command):
-        mat = self.mat()
+    def setOtherModeFlags(self, command: "ParsedMacro"):
         mode = math_eval(command.params[0], self.f3d)
         if mode == self.f3d.G_SETOTHERMODE_H:
             self.setOtherModeFlagsH(command)
         else:
             self.setOtherModeFlagsL(command)
 
-    def setFlagsAttrs(self, command, database):
+    def setFlagsAttrs(self, command: "ParsedMacro", database: "dict[str, Union[list[str], Callable[[Any],None]]]"):
         mat = self.mat()
         flags = math_eval(command.params[3], self.f3d)
         shift = math_eval(command.params[1], self.f3d)
@@ -1074,7 +1072,7 @@ class F3DContext:
                 else:
                     raise PluginError(f"Internal error in setFlagsAttrs, type(fieldData) == {type(fieldData)}")
 
-    def setOtherModeFlagsH(self, command):
+    def setOtherModeFlagsH(self, command: "ParsedMacro"):
         otherModeH = {
             "G_MDSFT_ALPHADITHER": ["G_AD_PATTERN", "G_AD_NOTPATTERN", "G_AD_NOISE", "G_AD_DISABLE"],
             "G_MDSFT_RGBDITHER": ["G_CD_MAGICSQ", "G_CD_BAYER", "G_CD_NOISE", "G_CD_DISABLE"],
@@ -1101,7 +1099,7 @@ class F3DContext:
 
     # This only handles commonly used render mode presets (with macros),
     # and no render modes at all with raw bit data.
-    def setOtherModeFlagsL(self, command):
+    def setOtherModeFlagsL(self, command: "ParsedMacro"):
         otherModeL = {
             "G_MDSFT_ALPHACOMPARE": ["G_AC_NONE", "G_AC_THRESHOLD", "G_AC_THRESHOLD", "G_AC_DITHER"],
             "G_MDSFT_ZSRCSEL": ["G_ZS_PIXEL", "G_ZS_PRIM"],
@@ -1135,36 +1133,37 @@ class F3DContext:
             if rendermodeName1 is not None and rendermodeName2 is not None:
                 break
 
-        mat.rdp_settings.sets_rendermode = True
+        rdp_settings: "RDPSettings" = mat.rdp_settings
+
         if rendermodeName1 is not None and rendermodeName2 is not None:
-            mat.rdp_settings.rendermode_advanced_enabled = False
-            mat.rdp_settings.rendermode_preset_cycle_1 = rendermodeName1
-            mat.rdp_settings.rendermode_preset_cycle_2 = rendermodeName2
+            rdp_settings.rendermode_advanced_enabled = False
+            rdp_settings.rendermode_preset_cycle_1 = rendermodeName1
+            rdp_settings.rendermode_preset_cycle_2 = rendermodeName2
         else:
-            mat.rdp_settings.rendermode_advanced_enabled = True
+            rdp_settings.rendermode_advanced_enabled = True
 
-        mat.rdp_settings.aa_en = rendermode1 & self.f3d.AA_EN != 0
-        mat.rdp_settings.z_cmp = rendermode1 & self.f3d.Z_CMP != 0
-        mat.rdp_settings.z_upd = rendermode1 & self.f3d.Z_UPD != 0
-        mat.rdp_settings.im_rd = rendermode1 & self.f3d.IM_RD != 0
-        mat.rdp_settings.clr_on_cvg = rendermode1 & self.f3d.CLR_ON_CVG != 0
-        mat.rdp_settings.cvg_dst = self.f3d.cvgDstDict[rendermode1 & self.f3d.CVG_DST_SAVE]
-        mat.rdp_settings.zmode = self.f3d.zmodeDict[rendermode1 & self.f3d.ZMODE_DEC]
-        mat.rdp_settings.cvg_x_alpha = rendermode1 & self.f3d.CVG_X_ALPHA != 0
-        mat.rdp_settings.alpha_cvg_sel = rendermode1 & self.f3d.ALPHA_CVG_SEL != 0
-        mat.rdp_settings.force_bl = rendermode1 & self.f3d.FORCE_BL != 0
+        rdp_settings.aa_en = rendermode1 & self.f3d.AA_EN != 0
+        rdp_settings.z_cmp = rendermode1 & self.f3d.Z_CMP != 0
+        rdp_settings.z_upd = rendermode1 & self.f3d.Z_UPD != 0
+        rdp_settings.im_rd = rendermode1 & self.f3d.IM_RD != 0
+        rdp_settings.clr_on_cvg = rendermode1 & self.f3d.CLR_ON_CVG != 0
+        rdp_settings.cvg_dst = self.f3d.cvgDstDict[rendermode1 & self.f3d.CVG_DST_SAVE]
+        rdp_settings.zmode = self.f3d.zmodeDict[rendermode1 & self.f3d.ZMODE_DEC]
+        rdp_settings.cvg_x_alpha = rendermode1 & self.f3d.CVG_X_ALPHA != 0
+        rdp_settings.alpha_cvg_sel = rendermode1 & self.f3d.ALPHA_CVG_SEL != 0
+        rdp_settings.force_bl = rendermode1 & self.f3d.FORCE_BL != 0
 
-        mat.rdp_settings.blend_p1 = self.f3d.blendColorDict[rendermode1 >> 30 & 3]
-        mat.rdp_settings.blend_a1 = self.f3d.blendAlphaDict[rendermode1 >> 26 & 3]
-        mat.rdp_settings.blend_m1 = self.f3d.blendColorDict[rendermode1 >> 22 & 3]
-        mat.rdp_settings.blend_b1 = self.f3d.blendMixDict[rendermode1 >> 18 & 3]
+        rdp_settings.blend_p1 = self.f3d.blendColorDict[rendermode1 >> 30 & 3]
+        rdp_settings.blend_a1 = self.f3d.blendAlphaDict[rendermode1 >> 26 & 3]
+        rdp_settings.blend_m1 = self.f3d.blendColorDict[rendermode1 >> 22 & 3]
+        rdp_settings.blend_b1 = self.f3d.blendMixDict[rendermode1 >> 18 & 3]
 
-        mat.rdp_settings.blend_p2 = self.f3d.blendColorDict[rendermode2 >> 28 & 3]
-        mat.rdp_settings.blend_a2 = self.f3d.blendAlphaDict[rendermode2 >> 24 & 3]
-        mat.rdp_settings.blend_m2 = self.f3d.blendColorDict[rendermode2 >> 20 & 3]
-        mat.rdp_settings.blend_b2 = self.f3d.blendMixDict[rendermode2 >> 16 & 3]
+        rdp_settings.blend_p2 = self.f3d.blendColorDict[rendermode2 >> 28 & 3]
+        rdp_settings.blend_a2 = self.f3d.blendAlphaDict[rendermode2 >> 24 & 3]
+        rdp_settings.blend_m2 = self.f3d.blendColorDict[rendermode2 >> 20 & 3]
+        rdp_settings.blend_b2 = self.f3d.blendMixDict[rendermode2 >> 16 & 3]
 
-    def gammaInverseParam(self, color):
+    def gammaInverseParam(self, color: "list[str]"):
         return [gammaInverseValue(math_eval(value, self.f3d) / 255) for value in color[:3]] + [
             math_eval(color[3], self.f3d) / 255
         ]
@@ -1305,8 +1304,7 @@ class F3DContext:
     def getTileSizeSettings(self, value):
         return self.tileSizes[self.getTileIndex(value)]
 
-    def setTileSize(self, params):
-        mat = self.mat()
+    def setTileSize(self, params: "list[str | int]"):
         tileSizeSettings = self.getTileSizeSettings(params[0])
         tileSettings = self.getTileSettings(params[0])
 
@@ -1326,7 +1324,7 @@ class F3DContext:
         tileSizeSettings.lrs = dimensions[2]
         tileSizeSettings.lrt = dimensions[3]
 
-    def setTile(self, params, dlData):
+    def setTile(self, params: "list[str | int]", dlData: str):
         tileIndex = self.getTileIndex(params[4])
         tileSettings = self.getTileSettings(params[4])
         tileSettings.fmt = getTileFormat(params[0], self.f3d)
@@ -1360,10 +1358,11 @@ class F3DContext:
         self.tmemDict[tileSettings.tmem] = self.currentTextureName
         self.materialChanged = True
 
-    def loadMultiBlock(self, params, dlData, is4bit):
+    def loadMultiBlock(self, params: "list[str | int]", dlData: str, is4bit: bool):
         width = math_eval(params[5], self.f3d)
         height = math_eval(params[6], self.f3d)
         siz = params[4]
+        assert isinstance(siz, str)
         line = ((width * self.getSizeMacro(siz, "_LINE_BYTES")) + 7) >> 3 if not is4bit else ((width >> 1) + 7) >> 3
         tmem = params[1]
         tile = params[2]
@@ -1409,7 +1408,7 @@ class F3DContext:
             [tile, 0, 0, (width - 1) << self.f3d.G_TEXTURE_IMAGE_FRAC, (height - 1) << self.f3d.G_TEXTURE_IMAGE_FRAC]
         )
 
-    def loadTLUTPal(self, name, dlData, count):
+    def loadTLUTPal(self, name: str, dlData: str, count: int):
         # TODO: Doesn't handle loading palettes into not tmem 256
         self.currentTextureName = name
         self.setTile([0, 0, 0, 256, "G_TX_LOADTILE", 0, 0, 0, 0, 0, 0, 0], dlData)
@@ -1492,7 +1491,7 @@ class F3DContext:
             if siz == "G_IM_SIZ_4b":
                 width = (tileSettings.line * 8) * 2
             else:
-                width = int(ceil((tileSettings.line * 8) / self.f3d.G_IM_SIZ_VARS[siz + "_LINE_BYTES"]))
+                width = ceil((tileSettings.line * 8) / self.f3d.G_IM_SIZ_VARS[siz + "_LINE_BYTES"])
 
         # TODO: Textures are sometimes loaded in with different dimensions than for rendering.
         # This means width is incorrect?
@@ -1528,7 +1527,7 @@ class F3DContext:
         if invalidIndicesDetected:
             print("Invalid LUT Indices detected.")
 
-    def processCommands(self, dlData, dlName, dlCommands):
+    def processCommands(self, dlData: str, dlName: str, dlCommands: "list[ParsedMacro]"):
         callStack = [F3DParsedCommands(dlName, dlCommands, 0)]
         while len(callStack) > 0:
             currentCommandList = callStack[-1]
@@ -1552,7 +1551,7 @@ class F3DContext:
                 self.addTriangle(command.params[0:3], dlData)
             elif command.name == "gsSP2Triangles":
                 self.addTriangle(command.params[0:3] + command.params[4:7], dlData)
-            elif command.name == "gsSPDisplayList" or command.name[:10] == "gsSPBranch":
+            elif command.name == "gsSPDisplayList" or command.name.startswith("gsSPBranch"):
                 newDLName = self.processDLName(command.params[0])
                 if newDLName is not None:
                     newDLCommands = parseDLData(dlData, newDLName)
@@ -1560,7 +1559,7 @@ class F3DContext:
                     parsedCommands = F3DParsedCommands(newDLName, newDLCommands, -1)
                     if command.name == "gsSPDisplayList":
                         callStack.append(parsedCommands)
-                    elif command.name[:10] == "gsSPBranch":  # TODO: Handle BranchZ?
+                    elif command.name.startswith("gsSPBranch"):  # TODO: Handle BranchZ?
                         callStack = callStack[:-1]
                         callStack.append(parsedCommands)
             elif command.name == "gsSPEndDisplayList":
@@ -1573,12 +1572,12 @@ class F3DContext:
             mat = self.mat()
             try:
                 # Material Specific Commands
-                # materialChanged status will be reverted if none of these material changing commands are processed
-                prevMaterialChangedStatus = self.materialChanged
-                self.materialChanged = True
+                materialNotChanged = False
+
+                rdp_settings: "RDPSettings" = mat.rdp_settings
 
                 if command.name == "gsSPClipRatio":
-                    mat.clip_ratio = math_eval(command.params[0], self.f3d)
+                    rdp_settings.clip_ratio = math_eval(command.params[0], self.f3d)
                 elif command.name == "gsSPNumLights":
                     self.numLights = self.getLightCount(command.params[0])
                 elif command.name == "gsSPLight":
@@ -1642,7 +1641,7 @@ class F3DContext:
                             math_eval(command.params[1], self.f3d) / (2**16),
                         ]
                     # command.params[2] is "lod level", and for clarity we store this is the number of mipmapped textures (which is +1)
-                    mat.rdp_settings.num_textures_mipmapped = 1 + math_eval(command.params[2], self.f3d)
+                    rdp_settings.num_textures_mipmapped = 1 + math_eval(command.params[2], self.f3d)
                 elif command.name == "gsSPSetGeometryMode":
                     self.setGeoFlags(command, True)
                 elif command.name == "gsSPClearGeometryMode":
@@ -1652,31 +1651,31 @@ class F3DContext:
                 elif command.name == "gsSPSetOtherMode":
                     self.setOtherModeFlags(command)
                 elif command.name == "gsDPPipelineMode":
-                    mat.rdp_settings.g_mdsft_pipeline = command.params[0]
+                    rdp_settings.g_mdsft_pipeline = command.params[0]
                 elif command.name == "gsDPSetCycleType":
-                    mat.rdp_settings.g_mdsft_cycletype = command.params[0]
+                    rdp_settings.g_mdsft_cycletype = command.params[0]
                 elif command.name == "gsDPSetTexturePersp":
-                    mat.rdp_settings.g_mdsft_textpersp = command.params[0]
+                    rdp_settings.g_mdsft_textpersp = command.params[0]
                 elif command.name == "gsDPSetTextureDetail":
-                    mat.rdp_settings.g_mdsft_textdetail = command.params[0]
+                    rdp_settings.g_mdsft_textdetail = command.params[0]
                 elif command.name == "gsDPSetTextureLOD":
-                    mat.rdp_settings.g_mdsft_textlod = command.params[0]
+                    rdp_settings.g_mdsft_textlod = command.params[0]
                 elif command.name == "gsDPSetTextureLUT":
                     self.setTLUTMode(command.params[0])
                 elif command.name == "gsDPSetTextureFilter":
-                    mat.rdp_settings.g_mdsft_text_filt = command.params[0]
+                    rdp_settings.g_mdsft_text_filt = command.params[0]
                 elif command.name == "gsDPSetTextureConvert":
-                    mat.rdp_settings.g_mdsft_textconv = command.params[0]
+                    rdp_settings.g_mdsft_textconv = command.params[0]
                 elif command.name == "gsDPSetCombineKey":
-                    mat.rdp_settings.g_mdsft_combkey = command.params[0]
+                    rdp_settings.g_mdsft_combkey = command.params[0]
                 elif command.name == "gsDPSetColorDither":
-                    mat.rdp_settings.g_mdsft_color_dither = command.params[0]
+                    rdp_settings.g_mdsft_color_dither = command.params[0]
                 elif command.name == "gsDPSetAlphaDither":
-                    mat.rdp_settings.g_mdsft_alpha_dither = command.params[0]
+                    rdp_settings.g_mdsft_alpha_dither = command.params[0]
                 elif command.name == "gsDPSetAlphaCompare":
-                    mat.rdp_settings.g_mdsft_alpha_compare = command.params[0]
+                    rdp_settings.g_mdsft_alpha_compare = command.params[0]
                 elif command.name == "gsDPSetDepthSource":
-                    mat.rdp_settings.g_mdsft_zsrcsel = command.params[0]
+                    rdp_settings.g_mdsft_zsrcsel = command.params[0]
                 elif command.name == "gsDPSetRenderMode":
                     flags = math_eval(command.params[0] + " | " + command.params[1], self.f3d)
                     self.setRenderMode(flags)
@@ -1717,7 +1716,10 @@ class F3DContext:
                 elif command.name == "DPSetKeyGB":
                     mat.set_key = True
                 else:
-                    self.materialChanged = prevMaterialChangedStatus
+                    materialNotChanged = True
+
+                if not materialNotChanged:
+                    self.materialChanged = True
 
                 # Texture Commands
                 # Assume file texture load
@@ -1736,7 +1738,7 @@ class F3DContext:
 
                 # This all ignores S/T high/low values
                 # This is pretty bad/confusing
-                elif command.name[: len("gsDPLoadTextureBlock")] == "gsDPLoadTextureBlock":
+                elif command.name.startswith("gsDPLoadTextureBlock"):
                     is4bit = "4b" in command.name
                     if is4bit:
                         self.loadMultiBlock(
@@ -1751,13 +1753,13 @@ class F3DContext:
                         self.loadMultiBlock(
                             [command.params[0]] + [0, "G_TX_RENDERTILE"] + command.params[1:], dlData, False
                         )
-                elif command.name[: len("gsDPLoadMultiBlock")] == "gsDPLoadMultiBlock":
+                elif command.name.startswith("gsDPLoadMultiBlock"):
                     is4bit = "4b" in command.name
                     if is4bit:
                         self.loadMultiBlock(command.params[:4] + ["G_IM_SIZ_4b"] + command.params[4:], dlData, True)
                     else:
                         self.loadMultiBlock(command.params, dlData, False)
-                elif command.name[: len("gsDPLoadTextureTile")] == "gsDPLoadTextureTile":
+                elif command.name.startswith("gsDPLoadTextureTile"):
                     is4bit = "4b" in command.name
                     if is4bit:
                         self.loadMultiBlock(
@@ -1766,18 +1768,18 @@ class F3DContext:
                             + [command.params[1], "G_IM_SIZ_4b"]
                             + command.params[2:4]
                             + command.params[9:],
-                            "4b",
+                            "4b",  # FIXME extra argument?
                             dlData,
                             True,
                         )
                     else:
                         self.loadMultiBlock(
                             [command.params[0]] + [0, "G_TX_RENDERTILE"] + command.params[1:5] + command.params[9:],
-                            "4b",
+                            "4b",  # FIXME extra argument?
                             dlData,
                             False,
                         )
-                elif command.name[: len("gsDPLoadMultiTile")] == "gsDPLoadMultiTile":
+                elif command.name.startswith("gsDPLoadMultiTile"):
                     is4bit = "4b" in command.name
                     if is4bit:
                         self.loadMultiBlock(
@@ -1807,7 +1809,7 @@ class F3DContext:
 
     # override this to handle game specific DL calls.
     # return None to indicate DL call should be skipped.
-    def processDLName(self, name):
+    def processDLName(self, name: str) -> Optional[str]:
         return name
 
     def deleteMaterialContext(self):
@@ -1834,7 +1836,9 @@ class F3DContext:
         # else:
 
         if importNormals:
-            mesh.use_auto_smooth = True
+            # Changed in Blender 4.1: "Meshes now always use custom normals if they exist." (and use_auto_smooth was removed)
+            if bpy.app.version < (4, 1, 0):
+                mesh.use_auto_smooth = True
             mesh.normals_split_custom_set([f3dVert.normal for f3dVert in self.verts])
 
         for groupName, indices in self.limbGroups.items():
@@ -1891,7 +1895,7 @@ class F3DContext:
 
 
 class ParsedMacro:
-    def __init__(self, name, params):
+    def __init__(self, name: str, params: "list[str]"):
         self.name = name
         self.params = params
 
@@ -1932,8 +1936,8 @@ def parseF3D(
         f3dContext.clearMaterial()
 
 
-def parseDLData(dlData, dlName):
-    matchResult = re.search("Gfx\s*" + re.escape(dlName) + "\s*\[\s*\w*\s*\]\s*=\s*\{([^\}]*)\}", dlData)
+def parseDLData(dlData: str, dlName: str):
+    matchResult = re.search(r"Gfx\s*" + re.escape(dlName) + r"\s*\[\s*\w*\s*\]\s*=\s*\{([^\}]*)\}", dlData)
     if matchResult is None:
         raise PluginError("Cannot find display list named " + dlName)
 
@@ -1947,8 +1951,8 @@ def parseDLData(dlData, dlName):
     return dlCommands
 
 
-def getVertexDataStart(vertexDataParam, f3d):
-    matchResult = re.search("\&?([A-Za-z0-9\_]*)\s*(\[([^\]]*)\])?\s*(\+(.*))?", vertexDataParam)
+def getVertexDataStart(vertexDataParam: str, f3d: F3D):
+    matchResult = re.search(r"\&?([A-Za-z0-9\_]*)\s*(\[([^\]]*)\])?\s*(\+(.*))?", vertexDataParam)
     if matchResult is None:
         raise PluginError("SPVertex param " + vertexDataParam + " is malformed.")
 
@@ -1966,7 +1970,7 @@ def parseVertexData(dlData: str, vertexDataName: str, f3dContext: F3DContext):
         return f3dContext.vertexData[vertexDataName]
 
     matchResult = re.search(
-        "Vtx\s*" + re.escape(vertexDataName) + "\s*\[\s*[0-9x]*\s*\]\s*=\s*\{([^;]*);", dlData, re.DOTALL
+        r"Vtx\s*" + re.escape(vertexDataName) + r"\s*\[\s*[0-9x]*\s*\]\s*=\s*\{([^;]*);", dlData, re.DOTALL
     )
     if matchResult is None:
         raise PluginError("Cannot find vertex list named " + vertexDataName)
@@ -2008,7 +2012,7 @@ def parseLightsData(lightsData, lightsName, f3dContext):
     # 	return f3dContext.lightData[lightsName]
 
     matchResult = re.search(
-        "Lights([0-9n])\s*" + re.escape(lightsName) + "\s*=\s*gdSPDefLights[0-9]\s*\(([^\)]*)\)\s*;\s*",
+        r"Lights([0-9n])\s*" + re.escape(lightsName) + r"\s*=\s*gdSPDefLights[0-9]\s*\(([^\)]*)\)\s*;\s*",
         lightsData,
         re.DOTALL,
     )
@@ -2169,15 +2173,14 @@ def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, wi
     return image, loadedFromImageFile
 
 
-def parseMacroList(data):
+def parseMacroList(data: str):
     end = 0
     start = 0
     isCommand = True
-    commands = []
+    commands: "list[ParsedMacro]" = []
     parenthesesCount = 0
 
     command = None
-    params = None
     while end < len(data) - 1:
         end += 1
         if data[end] == "(":
@@ -2193,6 +2196,7 @@ def parseMacroList(data):
             start = end + 1
 
         elif not isCommand and parenthesesCount == 0:
+            assert command is not None  # due to isCommand
             params = parseMacroArgs(data[start:end])
             commands.append(ParsedMacro(command, params))
             isCommand = True
@@ -2201,14 +2205,12 @@ def parseMacroList(data):
     return commands
 
 
-def parseMacroArgs(data):
-    end = 0
+def parseMacroArgs(data: str):
     start = 0
-    params = []
+    params: "list[str]" = []
     parenthesesCount = 0
 
-    while end < len(data) - 1:
-        end += 1
+    for end in range(len(data)):
         if data[end] == "(":
             parenthesesCount += 1
         elif data[end] == ")":
@@ -2266,7 +2268,6 @@ def importMeshC(
     f3dContext: F3DContext,
     callClearMaterial: bool = True,
 ) -> bpy.types.Object:
-    # Create new skinned mesh
     mesh = bpy.data.meshes.new(name + "_mesh")
     obj = bpy.data.objects.new(name + "_mesh", mesh)
     bpy.context.collection.objects.link(obj)
