@@ -3598,7 +3598,7 @@ class RDPSettings(PropertyGroup):
 
 def draw_rdp_world_defaults(layout: UILayout, scene: Scene):
     world = scene.world
-    if not world:
+    if world is None:
         layout.box().label(text="No World Selected In Scene", icon="WORLD")
         return
     rdp_defaults = world.rdp_defaults

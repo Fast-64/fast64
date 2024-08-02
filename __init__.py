@@ -362,14 +362,17 @@ def after_load(_a, _b):
 
 
 def gameEditorUpdate(self, context):
-    world_defaults = {}
+    world_defaults = None
     if self.gameEditorMode == "SM64":
-        self.f3d_type, world_defaults = "F3D", sm64_world_defaults
+        self.f3d_type = "F3D"
+        world_defaults = sm64_world_defaults
     elif self.gameEditorMode == "OOT":
-        self.f3d_type, world_defaults = "F3DEX2/LX2", oot_world_defaults
+        self.f3d_type = "F3DEX2/LX2"
+        world_defaults = oot_world_defaults
     elif self.gameEditorMode == "Homebrew":
-        self.f3d_type, world_defaults = "F3D", {}  # This will set some pretty bad defaults, but trust the user
-    if self.world:
+        self.f3d_type = "F3D"
+        world_defaults = {}  # This will set some pretty bad defaults, but trust the user
+    if self.world is not None:
         self.world.rdp_defaults.from_dict(world_defaults)
 
 
