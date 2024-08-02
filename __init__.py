@@ -203,6 +203,7 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
         description="When enabled, this will make fast64 automatically load repo settings if they are found after picking a decomp path",
         default=True,
     )
+    internal_fixed_4_2: bpy.props.BoolProperty(default=False)
 
 
 class Fast64_Properties(bpy.types.PropertyGroup):
@@ -340,8 +341,13 @@ def upgrade_scene_props_node():
 
 @bpy.app.handlers.persistent
 def after_load(_a, _b):
+    settings = bpy.context.scene.fast64.settings
     if any(mat.is_f3d for mat in bpy.data.materials):
         check_or_ask_color_management(bpy.context)
+        if not settings.internal_fixed_4_2 and bpy.app.version >= (4, 2, 0):
+            upgrade_f3d_version_all_meshes()
+    if bpy.app.version >= (4, 2, 0):
+        settings.internal_fixed_4_2 = True
     upgrade_changed_props()
     upgrade_scene_props_node()
     resync_scene_props()
