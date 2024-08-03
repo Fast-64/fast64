@@ -24,7 +24,12 @@ from .fast64_internal.oot.oot_constants import oot_world_defaults
 from .fast64_internal.oot.props_panel_main import OOT_ObjectProperties
 from .fast64_internal.utility_anim import utility_anim_register, utility_anim_unregister, ArmatureApplyWithMeshOperator
 
-from .fast64_internal.f3d.f3d_material import mat_register, mat_unregister, check_or_ask_color_management
+from .fast64_internal.f3d.f3d_material import (
+    F3D_MAT_CUR_VERSION,
+    mat_register,
+    mat_unregister,
+    check_or_ask_color_management,
+)
 from .fast64_internal.f3d.f3d_render_engine import render_engine_register, render_engine_unregister
 from .fast64_internal.f3d.f3d_writer import f3d_writer_register, f3d_writer_unregister
 from .fast64_internal.f3d.f3d_parser import f3d_parser_register, f3d_parser_unregister
@@ -33,7 +38,7 @@ from .fast64_internal.f3d.op_largetexture import op_largetexture_register, op_la
 
 from .fast64_internal.f3d_material_converter import (
     MatUpdateConvert,
-    upgradeF3DVersionAll,
+    upgrade_f3d_version_all_meshes,
     bsdf_conv_register,
     bsdf_conv_unregister,
     bsdf_conv_panel_regsiter,
@@ -82,7 +87,6 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
         prop_split(col, context.scene, "f3d_type", "F3D Microcode")
         col.prop(context.scene, "saveTextures")
         col.prop(context.scene, "f3d_simple", text="Simple Material UI")
-        col.prop(context.scene, "generateF3DNodeGraph", text="Generate F3D Node Graph For Materials")
         col.prop(context.scene, "exportInlineF3D", text="Bleed and Inline Material Exports")
         if context.scene.exportInlineF3D:
             multilineLabel(
@@ -201,6 +205,7 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
         description="When enabled, this will make fast64 automatically load repo settings if they are found after picking a decomp path",
         default=True,
     )
+    internal_fixed_4_2: bpy.props.BoolProperty(default=False)
 
     internal_game_update_ver: bpy.props.IntProperty(default=0)
 
@@ -247,22 +252,7 @@ class UpgradeF3DMaterialsDialog(bpy.types.Operator):
         layout = self.layout
         if self.done:
             layout.label(text="Success!")
-            box = layout.box()
-            box.label(text="Materials were successfully upgraded.")
-            box.label(text="Please purge your remaining materials.")
-
-            purge_box = box.box()
-            purge_box.scale_y = 0.25
-            purge_box.separator(factor=0.5)
-            purge_box.label(text="How to purge:")
-            purge_box.separator(factor=0.5)
-            purge_box.label(text="Go to the outliner, change the display mode")
-            purge_box.label(text='to "Orphan Data" (broken heart icon)')
-            purge_box.separator(factor=0.25)
-            purge_box.label(text='Click "Purge" in the top right corner.')
-            purge_box.separator(factor=0.25)
-            purge_box.label(text="Purge multiple times until the node groups")
-            purge_box.label(text="are gone.")
+            layout.label(text="Materials were successfully upgraded.")
             layout.separator(factor=0.25)
             layout.label(text="You may click anywhere to close this dialog.")
             return
@@ -284,11 +274,7 @@ class UpgradeF3DMaterialsDialog(bpy.types.Operator):
         if context.mode != "OBJECT":
             bpy.ops.object.mode_set(mode="OBJECT")
 
-        upgradeF3DVersionAll(
-            [obj for obj in bpy.data.objects if obj.type == "MESH"],
-            list(bpy.data.armatures),
-            MatUpdateConvert.version,
-        )
+        upgrade_f3d_version_all_meshes()
         self.done = True
         return {"FINISHED"}
 
@@ -344,18 +330,31 @@ def upgrade_changed_props():
             scene.gameEditorMode = "Homebrew"
             del scene["decomp_compatible"]
 
+        settings = scene.fast64.renderSettings
+        light0Color = settings.pop("lightColor", None)
+        if light0Color is not None:
+            settings.light0Color = light0Color
+        light0Direction = settings.pop("lightDirection", None)
+        if light0Direction is not None:
+            settings.light0Direction = light0Direction
+
 
 def upgrade_scene_props_node():
     """update f3d materials with SceneProperties node"""
-    has_old_f3d_mats = any(mat.is_f3d and mat.mat_ver < MatUpdateConvert.version for mat in bpy.data.materials)
+    has_old_f3d_mats = any(mat.is_f3d and mat.mat_ver < F3D_MAT_CUR_VERSION for mat in bpy.data.materials)
     if has_old_f3d_mats:
         bpy.ops.dialog.upgrade_f3d_materials("INVOKE_DEFAULT")
 
 
 @bpy.app.handlers.persistent
 def after_load(_a, _b):
+    settings = bpy.context.scene.fast64.settings
     if any(mat.is_f3d for mat in bpy.data.materials):
         check_or_ask_color_management(bpy.context)
+        if not settings.internal_fixed_4_2 and bpy.app.version >= (4, 2, 0):
+            upgrade_f3d_version_all_meshes()
+    if bpy.app.version >= (4, 2, 0):
+        settings.internal_fixed_4_2 = True
     upgrade_changed_props()
     upgrade_scene_props_node()
     resync_scene_props()
@@ -423,7 +422,6 @@ def register():
         name="Game", default="SM64", items=gameEditorEnum, update=gameEditorUpdate
     )
     bpy.types.Scene.saveTextures = bpy.props.BoolProperty(name="Save Textures As PNGs (Breaks CI Textures)")
-    bpy.types.Scene.generateF3DNodeGraph = bpy.props.BoolProperty(name="Generate F3D Node Graph", default=True)
     bpy.types.Scene.exportHiddenGeometry = bpy.props.BoolProperty(name="Export Hidden Geometry", default=True)
     bpy.types.Scene.exportInlineF3D = bpy.props.BoolProperty(
         name="Bleed and Inline Material Exports",
@@ -459,7 +457,6 @@ def unregister():
     del bpy.types.Scene.ignoreTextureRestrictions
     del bpy.types.Scene.saveTextures
     del bpy.types.Scene.gameEditorMode
-    del bpy.types.Scene.generateF3DNodeGraph
     del bpy.types.Scene.exportHiddenGeometry
     del bpy.types.Scene.blenderF3DScale
 

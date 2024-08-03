@@ -44,6 +44,6 @@ def getNewCutsceneExport(csName: str, motionOnly: bool):
     # this allows us to change the exporter's variables to get what we need
     return CutsceneExport(
         getCutsceneObjects(csName),
-        bpy.context.scene.fast64.oot.hackerFeaturesEnabled or bpy.context.scene.useDecompFeatures,
+        bpy.context.scene.fast64.oot.hackerFeaturesEnabled or bpy.context.scene.fast64.oot.useDecompFeatures,
         motionOnly,
     )
