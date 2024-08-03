@@ -22,6 +22,8 @@ from .fast64_internal.oot import OOT_Properties, oot_register, oot_unregister
 from .fast64_internal.oot.props_panel_main import OOT_ObjectProperties
 from .fast64_internal.utility_anim import utility_anim_register, utility_anim_unregister, ArmatureApplyWithMeshOperator
 
+from .fast64_internal.mk64 import MK64_Properties, mk64_register, mk64_unregister
+
 from .fast64_internal.f3d.f3d_material import (
     F3D_MAT_CUR_VERSION,
     mat_register,
@@ -61,9 +63,10 @@ bl_info = {
 }
 
 gameEditorEnum = (
-    ("SM64", "SM64", "Super Mario 64"),
-    ("OOT", "OOT", "Ocarina Of Time"),
-    ("Homebrew", "Homebrew", "Homebrew"),
+    ("SM64", "SM64", "Super Mario 64", 0),
+    ("OOT", "OOT", "Ocarina Of Time", 1),
+    ("MK64", "MK64", "Mario Kart 64", 3),
+    ("Homebrew", "Homebrew", "Homebrew", 2),
 )
 
 
@@ -214,6 +217,7 @@ class Fast64_Properties(bpy.types.PropertyGroup):
 
     sm64: bpy.props.PointerProperty(type=SM64_Properties, name="SM64 Properties")
     oot: bpy.props.PointerProperty(type=OOT_Properties, name="OOT Properties")
+    mk64: bpy.props.PointerProperty(type=MK64_Properties, name="MK64 Properties")
     settings: bpy.props.PointerProperty(type=Fast64Settings_Properties, name="Fast64 Settings")
     renderSettings: bpy.props.PointerProperty(type=Fast64RenderSettings_Properties, name="Fast64 Render Settings")
 
@@ -316,6 +320,7 @@ classes = (
 def upgrade_changed_props():
     """Set scene properties after a scene loads, used for migrating old properties"""
     SM64_Properties.upgrade_changed_props()
+    MK64_Properties.upgrade_changed_props()
     SM64_ObjectProperties.upgrade_changed_props()
     OOT_ObjectProperties.upgrade_changed_props()
     for scene in bpy.data.scenes:
@@ -358,6 +363,8 @@ def gameEditorUpdate(self, context):
         self.f3d_type = "F3D"
     elif self.gameEditorMode == "OOT":
         self.f3d_type = "F3DEX2/LX2"
+    elif self.gameEditorMode == "MK64":
+        self.f3d_type = "F3DEX/LX"
 
 
 # called on add-on enabling
@@ -387,6 +394,7 @@ def register():
     bsdf_conv_register()
     sm64_register(True)
     oot_register(True)
+    mk64_register(True)
 
     repo_settings_operators_register()
 
@@ -433,6 +441,7 @@ def unregister():
     f3d_parser_unregister()
     sm64_unregister(True)
     oot_unregister(True)
+    mk64_unregister(True)
     mat_unregister()
     bsdf_conv_unregister()
     bsdf_conv_panel_unregsiter()
