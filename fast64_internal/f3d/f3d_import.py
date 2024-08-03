@@ -17,6 +17,7 @@ from numbers import Number
 from collections.abc import Sequence
 
 from ..f3d.f3d_material import F3DMaterialProperty, RDPSettings, TextureProperty
+from ..f3d.f3d_gbi import get_F3D_GBI
 
 from ..utility import hexOrDecInt
 from ..utility_importer import *
@@ -50,6 +51,11 @@ class Tile:
         self.TShift = 0
         self.Sflags = None
         self.Tflags = None
+        self.tmem = 0
+        
+    def eval_texture_format(self):
+        # make better
+        return f"{self.Fmt.replace('G_IM_FMT_','')}{self.Siz.replace('G_IM_SIZ_','').replace('b','')}"
 
 
 # this will hold texture properties, dataclass props
@@ -65,6 +71,9 @@ class Texture:
 
     def size(self):
         return self.Width, self.Height
+        
+    def eval_texture_format(self):
+        return f"{self.Fmt.replace('G_IM_FMT_','')}{self.Siz.replace('G_IM_SIZ_','').replace('b','')}"
 
 
 # This is a data storage class and mat to f3dmat converting class
@@ -75,6 +84,9 @@ class Mat:
         self.GeoSet = []
         self.GeoClear = []
         self.tiles = [Tile() for a in range(8)]
+        # dict[mem_offset] = tex
+        self.tmem = dict()
+        self.base_tile = 0
         self.tex0 = None
         self.tex1 = None
         self.num_lights = 1
@@ -184,7 +196,8 @@ class Mat:
 
     def apply_material_settings(self, mat: bpy.types.Material, tex_path: Path):
         f3d = mat.f3d_mat
-
+        
+        self.set_texture_tile_mapping()
         self.set_register_settings(mat, f3d)
         self.set_textures(f3d)
 
@@ -198,12 +211,25 @@ class Mat:
         self.set_combiner(f3d)
         self.set_render_mode(f3d)
 
+    # map tiles to locations in tmem
+    # this ignores the application of LoDs for magnification
+    # since fast64 uses tile0 as tex0 always, so to get expected
+    # results we need to start tex0 at the proper base tile
+    def set_texture_tile_mapping(self):
+        for index, tile in enumerate(self.tiles):
+            tex_index = index - self.base_tile
+            if tex_index < 0:
+                continue
+            tex = self.tmem.get(tile.tmem, None)
+            setattr(self, f"tex{tex_index}", tex)
+            print(f"tex{tex_index} attribute set to :{getattr(self, f'tex{tex_index}')}")
+    
     def set_textures(self, f3d: F3DMaterialProperty, tex_path: Path):
         self.set_tex_scale(f3d)
         if self.tex0 and self.set_tex:
-            self.set_tex_settings(f3d.tex0, self.load_texture(0, tex_path, self.tex0), self.tiles[0], self.tex0.Timg)
+            self.set_tex_settings(f3d.tex0, self.load_texture(0, tex_path, self.tex0), self.tiles[0 + self.base_tile], self.tex0.Timg)
         if self.tex1 and self.set_tex:
-            self.set_tex_settings(f3d.tex1, self.load_texture(0, tex_path, self.tex1), self.tiles[1], self.tex1.Timg)
+            self.set_tex_settings(f3d.tex1, self.load_texture(0, tex_path, self.tex1), self.tiles[1 + self.base_tile], self.tex1.Timg)
 
     def set_fog(self, f3d: F3DMaterialProperty):
         if hasattr(self, "fog_position"):
@@ -253,7 +279,7 @@ class Mat:
         tex_prop.tex_reference = str(tex_img)  # setting prop for hash purposes
         tex_prop.tex_set = True
         tex_prop.tex = image
-        tex_prop.tex_format = self.eval_texture_format(tile)
+        tex_prop.tex_format = tile.eval_texture_format()
         Sflags = self.eval_tile_flags(tile.Sflags)
         for f in Sflags:
             setattr(tex_prop.S, f, True)
@@ -340,33 +366,6 @@ class Mat:
                 x.append(z)
         return x
 
-    def eval_texture_format(self, tex: Texture):
-        GBIfmts = {
-            "G_IM_FMT_RGBA": "RGBA",
-            "RGBA": "RGBA",
-            "G_IM_FMT_CI": "CI",
-            "CI": "CI",
-            "G_IM_FMT_IA": "IA",
-            "IA": "IA",
-            "G_IM_FMT_I": "I",
-            "I": "I",
-            "0": "RGBA",
-            "2": "CI",
-            "3": "IA",
-            "4": "I",
-        }
-        GBIsiz = {
-            "G_IM_SIZ_4b": "4",
-            "G_IM_SIZ_8b": "8",
-            "G_IM_SIZ_16b": "16",
-            "G_IM_SIZ_32b": "32",
-            "0": "4",
-            "1": "8",
-            "2": "16",
-            "3": "32",
-        }
-        return GBIfmts.get(tex.Fmt, "RGBA") + GBIsiz.get(str(tex.Siz), "16")
-
 
 # handles DL import processing, specifically built to process each cmd into the mat class
 # should be inherited into a larger F3d class which wraps DL processing
@@ -381,6 +380,7 @@ class DL(DataParser):
         self.Lights1 = {}
         self.Textures = {}
         self.NewMat = 1
+        self.f3d_gbi = get_F3D_GBI()
         if not lastmat:
             self.LastMat = Mat()
             self.LastMat.name = 0
@@ -624,7 +624,7 @@ class DL(DataParser):
         self.LastMat.tex_scale = [
             ((0x10000 * (hexOrDecInt(a) < 0)) + hexOrDecInt(a)) / 0xFFFF for a in macro.args[0:2]
         ]  # signed half to unsigned half
-        self.LastMat.tile_root = self.eval_tile_enum(macro.args[-2])  # I don't think I'll actually use this
+        self.LastMat.base_tile = self.eval_tile_enum(macro.args[-2])
         return self.continue_parse
 
     # last tex is a palette
@@ -641,20 +641,16 @@ class DL(DataParser):
             return None
         return self.continue_parse
 
-    # tells us what tile the last loaded mat goes into
     def gsDPLoadBlock(self, macro: Macro):
-        try:
+        if hasattr(self.LastMat, "loadtex"):
             tex = self.LastMat.loadtex
             # these values aren't necessary when the texture is already in png format
             # tex.dxt = hexOrDecInt(args[4])
             # tex.texels = hexOrDecInt(args[3])
-            tile = self.eval_tile_enum(macro.args[0])
-            tex.tile = tile
-            if tile == 7:
-                self.LastMat.tex0 = tex
-            elif tile == 6:
-                self.LastMat.tex1 = tex
-        except:
+            tile_index = self.eval_tile_enum(macro.args[0])
+            tex.tile = self.LastMat.tiles[tile_index]
+            self.LastMat.tmem[tex.tile.tmem] = tex
+        else:
             print(
                 "**--Load block before set t img, DL is partial and missing context"
                 "likely static file meant to be used as a piece of a realtime system.\n"
@@ -666,10 +662,9 @@ class DL(DataParser):
     def gsDPSetTextureImage(self, macro: Macro):
         self.NewMat = 1
         Timg = macro.args[3]
-        Fmt = macro.args[1]
-        Siz = macro.args[2]
-        loadtex = Texture(Timg, Fmt, Siz)
-        self.LastMat.loadtex = loadtex
+        Fmt = macro.args[0]
+        Siz = macro.args[1]
+        self.LastMat.loadtex = Texture(Timg, Fmt, Siz)
         return self.continue_parse
 
     def gsDPSetTileSize(self, macro: Macro):
@@ -683,7 +678,8 @@ class DL(DataParser):
 
     def gsDPSetTile(self, macro: Macro):
         self.NewMat = 1
-        tile = self.LastMat.tiles[self.eval_tile_enum(macro.args[4].strip())]
+        tile = self.LastMat.tiles[self.eval_tile_enum(macro.args[4])]
+        tile.tmem = hexOrDecInt(macro.args[3])           
         tile.Fmt = macro.args[0].strip()
         tile.Siz = macro.args[1].strip()
         tile.Tflags = macro.args[6].strip()
@@ -694,6 +690,64 @@ class DL(DataParser):
         tile.SShift = self.eval_tile_enum(macro.args[11])
         return self.continue_parse
 
+    # combined macros
+    def gsDPLoadTextureBlock(self, macro: Macro):
+        # 0tex, 1fmt, 2siz, 3height, 4width, 5pal, 6flags, 8masks, 10shifts
+        args = macro.args
+        fmt = self.eval_timg_format(args[1])
+        siz = self.eval_timg_format(args[2])
+        self.gsDPSetTextureImage(macro.partial(fmt, siz, 1, args[0]))
+        self.gsDPSetTile(macro.partial(fmt, siz, 0, 0, 7, 0, args[7], args[9], args[11], args[6], args[8], args[10]))
+        # self.gsDPLoadSync(macro)
+        self.gsDPLoadBlock(macro.partial(7, 0, 0, 0, 0)) # I don't need args
+        # self.gsDPPipeSync(macro)
+        self.gsDPSetTile(macro.partial(fmt, siz, 0, 0, 0, args[5], args[7], args[9], args[11], args[6], args[8], args[10]))
+        self.gsDPSetTileSize(macro.partial(7, 0, 0, (hexOrDecInt(args[4]) - 1) << 2, (hexOrDecInt(args[3]) - 1) << 2))
+
+        return self.continue_parse
+        
+    def gsDPLoadTextureBlockS(self, macro: Macro):
+        # only changes dxt and that doesn't matter here
+        return self.gsDPLoadTextureBlock(macro)
+
+    def _gsDPLoadTextureBlock(self, macro: Macro):
+        # 0tex, 1tmem, 2fmt, 3siz, 4height, 5width, 6pal, 7flags, 9masks, 11shifts
+        args = macro.args
+        fmt = eval_timg_format(args[2])
+        siz = eval_timg_format(args[3])
+        self.gsDPSetTextureImage(macro.partial(fmt, siz, 1, args[0]))
+        self.gsDPSetTile(macro.partial(fmt, siz, 0, 0, 7, 0, args[8], args[10], args[12], args[7], args[9], args[11]))
+        # self.gsDPLoadSync(macro)
+        self.gsDPLoadBlock(macro.partial(7, 0, 0, 0, 0))
+        # self.gsDPPipeSync(macro)
+        self.gsDPSetTile(macro.partial(fmt, siz, 0, 0, 0, args[5], args[7], args[9], args[11], args[6], args[8], args[10]))
+        self.gsDPSetTileSize(macro.partial(7, 0, 0, (hexOrDecInt(args[4]) - 1) << 2, (hexOrDecInt(args[3]) - 1) << 2))
+        return self.continue_parse 
+        
+    def gsDPLoadTextureBlock_4b(self, macro: Macro):
+        # 0tex, 1fmt, 2height, 3width, 4pal, 5flags, 7masks, 9shifts
+        args = macro.args
+        fmt = eval_timg_format(args[1])
+        self.gsDPSetTextureImage(macro.partial(fmt, "G_IM_SIZ_16b", 1, args[0]))
+        self.gsDPSetTile(macro.partial(fmt, "G_IM_SIZ_16b", 0, 0, 7, 0, args[6], args[8], args[10], args[5], args[7], args[9]))
+        # self.gsDPLoadSync(macro)
+        self.gsDPLoadBlock(macro.partial(7, 0, 0, 0, 0))
+        # self.gsDPPipeSync(macro)
+        self.gsDPSetTile(macro.partial(fmt, "G_IM_SIZ_4b", 0, 0, 0, args[4], args[3], args[8], args[10], args[3], args[7], args[9]))
+        self.gsDPSetTileSize(macro.partial(7, 0, 0, (hexOrDecInt(args[4]) - 1) << 2, (hexOrDecInt(args[3]) - 1) << 2))
+        return self.continue_parse 
+        
+    def gsDPLoadTextureBlock_4bs(self, macro: Macro):
+        # only changes dxt and that doesn't matter here
+        return self.gsDPLoadTextureBlock_4b(macro)
+          
+        
+    # other stuff that probably doesn't matter since idk who uses these
+    # if they break make an issue
+    # _gsDPLoadTextureBlockTile
+    # gsDPLoadMultiBlock
+    # gsDPLoadMultiBlockS
+    
     # syncs need no processing
     def gsSPCullDisplayList(self, macro: Macro):
         return self.continue_parse
@@ -722,134 +776,32 @@ class DL(DataParser):
     def parse_tri(self, Tri: Sequence[int]):
         return [self.VertBuff[a] for a in Tri]
 
+    # if someone uses just the int these catch that
+    def eval_timg_format(self, fmt: str):
+        GBI_fmt_ints = {
+            "0": "G_IM_FMT_RGBA",
+            "1": "G_IM_FMT_YUV",
+            "2": "G_IM_FMT_CI",
+            "3": "G_IM_FMT_IA",
+            "4": "G_IM_FMT_I",
+        }
+        return GBI_fmt_ints.get(fmt, fmt)
+        
     def eval_image_frac(self, arg: Union[str, Number]):
         if type(arg) == int:
             return arg
         arg2 = arg.replace("G_TEXTURE_IMAGE_FRAC", "2")
+        # evals bad probably
         return eval(arg2)
 
     def eval_tile_enum(self, arg: Union[str, Number]):
-        # only 0 and 7 have enums, other stuff just uses int (afaik)
-        Tiles = {
-            "G_TX_LOADTILE": 7,
-            "G_TX_RENDERTILE": 0,
-            "G_TX_NOMASK": 0,
-            "G_TX_NOLOD": 0,
-        }
-        t = Tiles.get(arg)
-        if t == None:
-            t = hexOrDecInt(arg)
-        return t
+        if type(arg) is str:
+            # fix later
+            return getattr(self.f3d_gbi, arg, 0)
+        else:
+            return hexOrDecInt(arg)
 
     def eval_set_combine_macro(self, arg: str):
-        # two args
-        GBI_CC_Macros = {
-            "G_CC_PRIMITIVE": ["0", "0", "0", "PRIMITIVE", "0", "0", "0", "PRIMITIVE"],
-            "G_CC_SHADE": ["0", "0", "0", "SHADE", "0", "0", "0", "SHADE"],
-            "G_CC_MODULATEI": ["TEXEL0", "0", "SHADE", "0", "0", "0", "0", "SHADE"],
-            "G_CC_MODULATEIDECALA": ["TEXEL0", "0", "SHADE", "0", "0", "0", "0", "TEXEL0"],
-            "G_CC_MODULATEIFADE": ["TEXEL0", "0", "SHADE", "0", "0", "0", "0", "ENVIRONMENT"],
-            "G_CC_MODULATERGB": ["TEXEL0", "0", "SHADE", "0", "0", "0", "0", "SHADE"],
-            "G_CC_MODULATERGBDECALA": ["TEXEL0", "0", "SHADE", "0", "0", "0", "0", "TEXEL0"],
-            "G_CC_MODULATERGBFADE": ["TEXEL0", "0", "SHADE", "0", "0", "0", "0", "ENVIRONMENT"],
-            "G_CC_MODULATEIA": ["TEXEL0", "0", "SHADE", "0", "TEXEL0", "0", "SHADE", "0"],
-            "G_CC_MODULATEIFADEA": ["TEXEL0", "0", "SHADE", "0", "TEXEL0", "0", "ENVIRONMENT", "0"],
-            "G_CC_MODULATEFADE": ["TEXEL0", "0", "SHADE", "0", "ENVIRONMENT", "0", "TEXEL0", "0"],
-            "G_CC_MODULATERGBA": ["TEXEL0", "0", "SHADE", "0", "TEXEL0", "0", "SHADE", "0"],
-            "G_CC_MODULATERGBFADEA": ["TEXEL0", "0", "SHADE", "0", "ENVIRONMENT", "0", "TEXEL0", "0"],
-            "G_CC_MODULATEI_PRIM": ["TEXEL0", "0", "PRIMITIVE", "0", "0", "0", "0", "PRIMITIVE"],
-            "G_CC_MODULATEIA_PRIM": ["TEXEL0", "0", "PRIMITIVE", "0", "TEXEL0", "0", "PRIMITIVE", "0"],
-            "G_CC_MODULATEIDECALA_PRIM": ["TEXEL0", "0", "PRIMITIVE", "0", "0", "0", "0", "TEXEL0"],
-            "G_CC_MODULATERGB_PRIM": ["TEXEL0", "0", "PRIMITIVE", "0", "TEXEL0", "0", "PRIMITIVE", "0"],
-            "G_CC_MODULATERGBA_PRIM": ["TEXEL0", "0", "PRIMITIVE", "0", "TEXEL0", "0", "PRIMITIVE", "0"],
-            "G_CC_MODULATERGBDECALA_PRIM": ["TEXEL0", "0", "PRIMITIVE", "0", "0", "0", "0", "TEXEL0"],
-            "G_CC_FADE": ["SHADE", "0", "ENVIRONMENT", "0", "SHADE", "0", "ENVIRONMENT", "0"],
-            "G_CC_FADEA": ["TEXEL0", "0", "ENVIRONMENT", "0", "TEXEL0", "0", "ENVIRONMENT", "0"],
-            "G_CC_DECALRGB": ["0", "0", "0", "TEXEL0", "0", "0", "0", "SHADE"],
-            "G_CC_DECALRGBA": ["0", "0", "0", "TEXEL0", "0", "0", "0", "TEXEL0"],
-            "G_CC_DECALFADE": ["0", "0", "0", "TEXEL0", "0", "0", "0", "ENVIRONMENT"],
-            "G_CC_DECALFADEA": ["0", "0", "0", "TEXEL0", "TEXEL0", "0", "ENVIRONMENT", "0"],
-            "G_CC_BLENDI": ["ENVIRONMENT", "SHADE", "TEXEL0", "SHADE", "0", "0", "0", "SHADE"],
-            "G_CC_BLENDIA": ["ENVIRONMENT", "SHADE", "TEXEL0", "SHADE", "TEXEL0", "0", "SHADE", "0"],
-            "G_CC_BLENDIDECALA": ["ENVIRONMENT", "SHADE", "TEXEL0", "SHADE", "0", "0", "0", "TEXEL0"],
-            "G_CC_BLENDRGBA": ["TEXEL0", "SHADE", "TEXEL0_ALPHA", "SHADE", "0", "0", "0", "SHADE"],
-            "G_CC_BLENDRGBDECALA": ["TEXEL0", "SHADE", "TEXEL0_ALPHA", "SHADE", "0", "0", "0", "TEXEL0"],
-            "G_CC_BLENDRGBFADEA": ["TEXEL0", "SHADE", "TEXEL0_ALPHA", "SHADE", "0", "0", "0", "ENVIRONMENT"],
-            "G_CC_ADDRGB": ["TEXEL0", "0", "TEXEL0", "SHADE", "0", "0", "0", "SHADE"],
-            "G_CC_ADDRGBDECALA": ["TEXEL0", "0", "TEXEL0", "SHADE", "0", "0", "0", "TEXEL0"],
-            "G_CC_ADDRGBFADE": ["TEXEL0", "0", "TEXEL0", "SHADE", "0", "0", "0", "ENVIRONMENT"],
-            "G_CC_REFLECTRGB": ["ENVIRONMENT", "0", "TEXEL0", "SHADE", "0", "0", "0", "SHADE"],
-            "G_CC_REFLECTRGBDECALA": ["ENVIRONMENT", "0", "TEXEL0", "SHADE", "0", "0", "0", "TEXEL0"],
-            "G_CC_HILITERGB": ["PRIMITIVE", "SHADE", "TEXEL0", "SHADE", "0", "0", "0", "SHADE"],
-            "G_CC_HILITERGBA": ["PRIMITIVE", "SHADE", "TEXEL0", "SHADE", "PRIMITIVE", "SHADE", "TEXEL0", "SHADE"],
-            "G_CC_HILITERGBDECALA": ["PRIMITIVE", "SHADE", "TEXEL0", "SHADE", "0", "0", "0", "TEXEL0"],
-            "G_CC_SHADEDECALA": ["0", "0", "0", "SHADE", "0", "0", "0", "TEXEL0"],
-            "G_CC_SHADEFADEA": ["0", "0", "0", "SHADE", "0", "0", "0", "ENVIRONMENT"],
-            "G_CC_BLENDPE": ["PRIMITIVE", "ENVIRONMENT", "TEXEL0", "ENVIRONMENT", "TEXEL0", "0", "SHADE", "0"],
-            "G_CC_BLENDPEDECALA": ["PRIMITIVE", "ENVIRONMENT", "TEXEL0", "ENVIRONMENT", "0", "0", "0", "TEXEL0"],
-            "_G_CC_BLENDPE": ["ENVIRONMENT", "PRIMITIVE", "TEXEL0", "PRIMITIVE", "TEXEL0", "0", "SHADE", "0"],
-            "_G_CC_BLENDPEDECALA": ["ENVIRONMENT", "PRIMITIVE", "TEXEL0", "PRIMITIVE", "0", "0", "0", "TEXEL0"],
-            "_G_CC_TWOCOLORTEX": ["PRIMITIVE", "SHADE", "TEXEL0", "SHADE", "0", "0", "0", "SHADE"],
-            "_G_CC_SPARSEST": [
-                "PRIMITIVE",
-                "TEXEL0",
-                "LOD_FRACTION",
-                "TEXEL0",
-                "PRIMITIVE",
-                "TEXEL0",
-                "LOD_FRACTION",
-                "TEXEL0",
-            ],
-            "G_CC_TEMPLERP": [
-                "TEXEL1",
-                "TEXEL0",
-                "PRIM_LOD_FRAC",
-                "TEXEL0",
-                "TEXEL1",
-                "TEXEL0",
-                "PRIM_LOD_FRAC",
-                "TEXEL0",
-            ],
-            "G_CC_TRILERP": [
-                "TEXEL1",
-                "TEXEL0",
-                "LOD_FRACTION",
-                "TEXEL0",
-                "TEXEL1",
-                "TEXEL0",
-                "LOD_FRACTION",
-                "TEXEL0",
-            ],
-            "G_CC_INTERFERENCE": ["TEXEL0", "0", "TEXEL1", "0", "TEXEL0", "0", "TEXEL1", "0"],
-            "G_CC_1CYUV2RGB": ["TEXEL0", "K4", "K5", "TEXEL0", "0", "0", "0", "SHADE"],
-            "G_CC_YUV2RGB": ["TEXEL1", "K4", "K5", "TEXEL1", "0", "0", "0", "0"],
-            "G_CC_PASS2": ["0", "0", "0", "COMBINED", "0", "0", "0", "COMBINED"],
-            "G_CC_MODULATEI2": ["COMBINED", "0", "SHADE", "0", "0", "0", "0", "SHADE"],
-            "G_CC_MODULATEIA2": ["COMBINED", "0", "SHADE", "0", "COMBINED", "0", "SHADE", "0"],
-            "G_CC_MODULATERGB2": ["COMBINED", "0", "SHADE", "0", "0", "0", "0", "SHADE"],
-            "G_CC_MODULATERGBA2": ["COMBINED", "0", "SHADE", "0", "COMBINED", "0", "SHADE", "0"],
-            "G_CC_MODULATEI_PRIM2": ["COMBINED", "0", "PRIMITIVE", "0", "0", "0", "0", "PRIMITIVE"],
-            "G_CC_MODULATEIA_PRIM2": ["COMBINED", "0", "PRIMITIVE", "0", "COMBINED", "0", "PRIMITIVE", "0"],
-            "G_CC_MODULATERGB_PRIM2": ["COMBINED", "0", "PRIMITIVE", "0", "0", "0", "0", "PRIMITIVE"],
-            "G_CC_MODULATERGBA_PRIM2": ["COMBINED", "0", "PRIMITIVE", "0", "COMBINED", "0", "PRIMITIVE", "0"],
-            "G_CC_DECALRGB2": ["0", "0", "0", "COMBINED", "0", "0", "0", "SHADE"],
-            "G_CC_BLENDI2": ["ENVIRONMENT", "SHADE", "COMBINED", "SHADE", "0", "0", "0", "SHADE"],
-            "G_CC_BLENDIA2": ["ENVIRONMENT", "SHADE", "COMBINED", "SHADE", "COMBINED", "0", "SHADE", "0"],
-            "G_CC_CHROMA_KEY2": ["TEXEL0", "CENTER", "SCALE", "0", "0", "0", "0", "0"],
-            "G_CC_HILITERGB2": ["ENVIRONMENT", "COMBINED", "TEXEL0", "COMBINED", "0", "0", "0", "SHADE"],
-            "G_CC_HILITERGBA2": [
-                "ENVIRONMENT",
-                "COMBINED",
-                "TEXEL0",
-                "COMBINED",
-                "ENVIRONMENT",
-                "COMBINED",
-                "TEXEL0",
-                "COMBINED",
-            ],
-            "G_CC_HILITERGBDECALA2": ["ENVIRONMENT", "COMBINED", "TEXEL0", "COMBINED", "0", "0", "0", "TEXEL0"],
-            "G_CC_HILITERGBPASSA2": ["ENVIRONMENT", "COMBINED", "TEXEL0", "COMBINED", "0", "0", "0", "COMBINED"],
-        }
-        return GBI_CC_Macros.get(
+        return  getattr(self.f3d_gbi, 
             arg[0], ["TEXEL0", "0", "SHADE", "0", "TEXEL0", "0", "SHADE", "0"]
-        ) + GBI_CC_Macros.get(arg[1], ["TEXEL0", "0", "SHADE", "0", "TEXEL0", "0", "SHADE", "0"])
+        ) +  getattr(self.f3d_gbi, arg[1], ["TEXEL0", "0", "SHADE", "0", "TEXEL0", "0", "SHADE", "0"])

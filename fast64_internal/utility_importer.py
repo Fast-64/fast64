@@ -18,8 +18,12 @@ class Macro:
 
     # strip each arg
     def __post_init__(self):
-        self.args = [arg.strip() for arg in self.args]
+        self.args = [arg.strip() if type(arg) is str else arg for arg in self.args]
         self.cmd = self.cmd.strip()
+    
+    # make new macro that is the indices chosen or supplied args
+    def partial(self, *new_args: Any):
+        return Macro(self.cmd,(arg for arg in new_args))
 
 
 @dataclass
@@ -132,7 +136,7 @@ def parse_aggregate_file(dat: TextIO, filenames: Union[str, tuple[str]], root_pa
         if any(filename in c for filename in filenames)
     ]
     # deal with duplicate pathing (such as /actors/actors etc.)
-    Extra = root_path.relative_to(Path(bpy.path.abspath(bpy.context.scene.decompPath)))
+    Extra = root_path.relative_to(Path(bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path)))
     for e in Extra.parts:
         files = [c.replace(e + "/", "") for c in file_lines]
     if file_lines:

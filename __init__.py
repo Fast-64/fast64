@@ -1,22 +1,34 @@
 import bpy
 from bpy.utils import register_class, unregister_class
-from . import addon_updater_ops
-from .fast64_internal.operators import AddWaterBox
-from .fast64_internal.panels import SM64_Panel
-from .fast64_internal.utility import PluginError, raisePluginError, attemptModifierApply, prop_split, multilineLabel
+from bpy.path import abspath
 
-from .fast64_internal.sm64 import SM64_Properties, sm64_register, sm64_unregister
+from . import addon_updater_ops
+
+from .fast64_internal.utility import prop_split, multilineLabel, draw_and_check_tab
+
+from .fast64_internal.repo_settings import (
+    draw_repo_settings,
+    load_repo_settings,
+    repo_settings_operators_register,
+    repo_settings_operators_unregister,
+)
+
+from .fast64_internal.sm64 import sm64_register, sm64_unregister
+from .fast64_internal.sm64.settings.properties import SM64_Properties
 from .fast64_internal.sm64.sm64_geolayout_bone import SM64_BoneProperties
 from .fast64_internal.sm64.sm64_objects import SM64_ObjectProperties
-from .fast64_internal.sm64.sm64_geolayout_utility import createBoneGroups
-from .fast64_internal.sm64.sm64_geolayout_parser import generateMetarig
 from .fast64_internal.sm64.sm64_level_importer import sm64_import_register, sm64_import_unregister
 
 from .fast64_internal.oot import OOT_Properties, oot_register, oot_unregister
 from .fast64_internal.oot.props_panel_main import OOT_ObjectProperties
 from .fast64_internal.utility_anim import utility_anim_register, utility_anim_unregister, ArmatureApplyWithMeshOperator
 
-from .fast64_internal.f3d.f3d_material import mat_register, mat_unregister
+from .fast64_internal.f3d.f3d_material import (
+    F3D_MAT_CUR_VERSION,
+    mat_register,
+    mat_unregister,
+    check_or_ask_color_management,
+)
 from .fast64_internal.f3d.f3d_render_engine import render_engine_register, render_engine_unregister
 from .fast64_internal.f3d.f3d_writer import f3d_writer_register, f3d_writer_unregister
 from .fast64_internal.f3d.f3d_parser import f3d_parser_register, f3d_parser_unregister
@@ -25,7 +37,7 @@ from .fast64_internal.f3d.op_largetexture import op_largetexture_register, op_la
 
 from .fast64_internal.f3d_material_converter import (
     MatUpdateConvert,
-    upgradeF3DVersionAll,
+    upgrade_f3d_version_all_meshes,
     bsdf_conv_register,
     bsdf_conv_unregister,
     bsdf_conv_panel_regsiter,
@@ -52,98 +64,8 @@ bl_info = {
 gameEditorEnum = (
     ("SM64", "SM64", "Super Mario 64"),
     ("OOT", "OOT", "Ocarina Of Time"),
+    ("Homebrew", "Homebrew", "Homebrew"),
 )
-
-
-class AddBoneGroups(bpy.types.Operator):
-    # set bl_ properties
-    bl_description = (
-        "Add bone groups respresenting other node types in " + "SM64 geolayouts (ex. Shadow, Switch, Function)."
-    )
-    bl_idname = "object.add_bone_groups"
-    bl_label = "Add Bone Groups"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
-
-    # Called on demand (i.e. button press, menu item)
-    # Can also be called from operator search menu (Spacebar)
-    def execute(self, context):
-        try:
-            if context.mode != "OBJECT" and context.mode != "POSE":
-                raise PluginError("Operator can only be used in object or pose mode.")
-            elif context.mode == "POSE":
-                bpy.ops.object.mode_set(mode="OBJECT")
-
-            if len(context.selected_objects) == 0:
-                raise PluginError("Armature not selected.")
-            elif type(context.selected_objects[0].data) is not bpy.types.Armature:
-                raise PluginError("Armature not selected.")
-
-            armatureObj = context.selected_objects[0]
-            createBoneGroups(armatureObj)
-        except Exception as e:
-            raisePluginError(self, e)
-            return {"CANCELLED"}
-
-        self.report({"INFO"}, "Created bone groups.")
-        return {"FINISHED"}  # must return a set
-
-
-class CreateMetarig(bpy.types.Operator):
-    # set bl_ properties
-    bl_description = (
-        "SM64 imported armatures are usually not good for "
-        + "rigging. There are often intermediate bones between deform bones "
-        + "and they don't usually point to their children. This operator "
-        + "creates a metarig on armature layer 4 useful for IK."
-    )
-    bl_idname = "object.create_metarig"
-    bl_label = "Create Animatable Metarig"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
-
-    # Called on demand (i.e. button press, menu item)
-    # Can also be called from operator search menu (Spacebar)
-    def execute(self, context):
-        try:
-            if context.mode != "OBJECT":
-                bpy.ops.object.mode_set(mode="OBJECT")
-
-            if len(context.selected_objects) == 0:
-                raise PluginError("Armature not selected.")
-            elif type(context.selected_objects[0].data) is not bpy.types.Armature:
-                raise PluginError("Armature not selected.")
-
-            armatureObj = context.selected_objects[0]
-            generateMetarig(armatureObj)
-        except Exception as e:
-            raisePluginError(self, e)
-            return {"CANCELLED"}
-
-        self.report({"INFO"}, "Created metarig.")
-        return {"FINISHED"}  # must return a set
-
-
-class SM64_AddWaterBox(AddWaterBox):
-    bl_idname = "object.sm64_add_water_box"
-
-    scale: bpy.props.FloatProperty(default=10)
-    preset: bpy.props.StringProperty(default="Shaded Solid")
-    matName: bpy.props.StringProperty(default="sm64_water_mat")
-
-    def setEmptyType(self, emptyObj):
-        emptyObj.sm64_obj_type = "Water Box"
-
-
-class SM64_ArmatureToolsPanel(SM64_Panel):
-    bl_idname = "SM64_PT_armature_tools"
-    bl_label = "SM64 Tools"
-
-    # called every frame
-    def draw(self, context):
-        col = self.layout.column()
-        col.operator(ArmatureApplyWithMeshOperator.bl_idname)
-        col.operator(AddBoneGroups.bl_idname)
-        col.operator(CreateMetarig.bl_idname)
-        col.operator(SM64_AddWaterBox.bl_idname)
 
 
 class F3D_GlobalSettingsPanel(bpy.types.Panel):
@@ -164,7 +86,6 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
         prop_split(col, context.scene, "f3d_type", "F3D Microcode")
         col.prop(context.scene, "saveTextures")
         col.prop(context.scene, "f3d_simple", text="Simple Material UI")
-        col.prop(context.scene, "generateF3DNodeGraph", text="Generate F3D Node Graph For Materials")
         col.prop(context.scene, "exportInlineF3D", text="Bleed and Inline Material Exports")
         if context.scene.exportInlineF3D:
             multilineLabel(
@@ -172,7 +93,6 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
                 "While inlining, all meshes will be restored to world default values.\n         You can configure these values in the world properties tab.",
                 icon="INFO",
             )
-        col.prop(context.scene, "decomp_compatible", invert_checkbox=True, text="Homebrew Compatibility")
         col.prop(context.scene, "ignoreTextureRestrictions")
         if context.scene.ignoreTextureRestrictions:
             col.box().label(text="Width/height must be < 1024. Must be png format.")
@@ -193,10 +113,21 @@ class Fast64_GlobalSettingsPanel(bpy.types.Panel):
     def draw(self, context):
         col = self.layout.column()
         col.scale_y = 1.1  # extra padding
-        prop_split(col, context.scene, "gameEditorMode", "Game")
-        col.prop(context.scene, "exportHiddenGeometry")
-        col.prop(context.scene, "fullTraceback")
-        prop_split(col, context.scene.fast64.settings, "anim_range_choice", "Anim Range")
+
+        scene = context.scene
+        fast64_settings: Fast64Settings_Properties = scene.fast64.settings
+
+        prop_split(col, scene, "gameEditorMode", "Game")
+        col.prop(scene, "exportHiddenGeometry")
+        col.prop(scene, "fullTraceback")
+
+        prop_split(col, fast64_settings, "anim_range_choice", "Anim Range")
+
+        draw_repo_settings(col.box(), context)
+        if not fast64_settings.repo_settings_tab:
+            col.prop(fast64_settings, "auto_pick_texture_format")
+            if fast64_settings.auto_pick_texture_format:
+                col.prop(fast64_settings, "prefer_rgba_over_ci")
 
 
 class Fast64_GlobalToolsPanel(bpy.types.Panel):
@@ -217,6 +148,10 @@ class Fast64_GlobalToolsPanel(bpy.types.Panel):
         # col.operator(CreateMetarig.bl_idname)
         ui_oplargetexture(col, context)
         addon_updater_ops.update_notice_box_ui(self, context)
+
+
+def repo_path_update(self, context):
+    load_repo_settings(context.scene, abspath(self.repo_settings_path), True)
 
 
 class Fast64Settings_Properties(bpy.types.PropertyGroup):
@@ -250,6 +185,24 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
             ),
         ],
         default="intersect_action_and_scene",
+    )
+    auto_pick_texture_format: bpy.props.BoolProperty(
+        name="Auto Pick Texture Format",
+        description="When enabled, fast64 will try to pick the best texture format whenever a texture is selected.",
+        default=True,
+    )
+    prefer_rgba_over_ci: bpy.props.BoolProperty(
+        name="Prefer RGBA Over CI",
+        description="When enabled, fast64 will default colored textures's format to RGBA even if they fit CI requirements, with the exception of textures that would not fit into TMEM otherwise",
+    )
+    dont_ask_color_management: bpy.props.BoolProperty(name="Don't ask to set color management properties")
+
+    repo_settings_tab: bpy.props.BoolProperty(default=True, name="Repo Settings")
+    repo_settings_path: bpy.props.StringProperty(name="Path", subtype="FILE_PATH", update=repo_path_update)
+    auto_repo_load_settings: bpy.props.BoolProperty(
+        name="Auto Load Repo's Settings",
+        description="When enabled, this will make fast64 automatically load repo settings if they are found after picking a decomp path",
+        default=True,
     )
 
 
@@ -295,22 +248,7 @@ class UpgradeF3DMaterialsDialog(bpy.types.Operator):
         layout = self.layout
         if self.done:
             layout.label(text="Success!")
-            box = layout.box()
-            box.label(text="Materials were successfully upgraded.")
-            box.label(text="Please purge your remaining materials.")
-
-            purge_box = box.box()
-            purge_box.scale_y = 0.25
-            purge_box.separator(factor=0.5)
-            purge_box.label(text="How to purge:")
-            purge_box.separator(factor=0.5)
-            purge_box.label(text="Go to the outliner, change the display mode")
-            purge_box.label(text='to "Orphan Data" (broken heart icon)')
-            purge_box.separator(factor=0.25)
-            purge_box.label(text='Click "Purge" in the top right corner.')
-            purge_box.separator(factor=0.25)
-            purge_box.label(text="Purge multiple times until the node groups")
-            purge_box.label(text="are gone.")
+            layout.label(text="Materials were successfully upgraded.")
             layout.separator(factor=0.25)
             layout.label(text="You may click anywhere to close this dialog.")
             return
@@ -332,11 +270,7 @@ class UpgradeF3DMaterialsDialog(bpy.types.Operator):
         if context.mode != "OBJECT":
             bpy.ops.object.mode_set(mode="OBJECT")
 
-        upgradeF3DVersionAll(
-            [obj for obj in bpy.data.objects if obj.type == "MESH"],
-            list(bpy.data.armatures),
-            MatUpdateConvert.version,
-        )
+        upgrade_f3d_version_all_meshes()
         self.done = True
         return {"FINISHED"}
 
@@ -372,12 +306,8 @@ classes = (
     Fast64_Properties,
     Fast64_BoneProperties,
     Fast64_ObjectProperties,
-    AddBoneGroups,
-    CreateMetarig,
-    SM64_AddWaterBox,
     F3D_GlobalSettingsPanel,
     Fast64_GlobalSettingsPanel,
-    SM64_ArmatureToolsPanel,
     Fast64_GlobalToolsPanel,
     UpgradeF3DMaterialsDialog,
 )
@@ -388,17 +318,31 @@ def upgrade_changed_props():
     SM64_Properties.upgrade_changed_props()
     SM64_ObjectProperties.upgrade_changed_props()
     OOT_ObjectProperties.upgrade_changed_props()
+    for scene in bpy.data.scenes:
+        if scene.get("decomp_compatible", False):
+            scene.gameEditorMode = "Homebrew"
+            del scene["decomp_compatible"]
+
+        settings = scene.fast64.renderSettings
+        light0Color = settings.pop("lightColor", None)
+        if light0Color is not None:
+            settings.light0Color = light0Color
+        light0Direction = settings.pop("lightDirection", None)
+        if light0Direction is not None:
+            settings.light0Direction = light0Direction
 
 
 def upgrade_scene_props_node():
     """update f3d materials with SceneProperties node"""
-    has_old_f3d_mats = any(mat.is_f3d and mat.mat_ver < MatUpdateConvert.version for mat in bpy.data.materials)
+    has_old_f3d_mats = any(mat.is_f3d and mat.mat_ver < F3D_MAT_CUR_VERSION for mat in bpy.data.materials)
     if has_old_f3d_mats:
         bpy.ops.dialog.upgrade_f3d_materials("INVOKE_DEFAULT")
 
 
 @bpy.app.handlers.persistent
 def after_load(_a, _b):
+    if any(mat.is_f3d for mat in bpy.data.materials):
+        check_or_ask_color_management(bpy.context)
     upgrade_changed_props()
     upgrade_scene_props_node()
     resync_scene_props()
@@ -440,6 +384,8 @@ def register():
     oot_register(True)
     sm64_import_register()
 
+    repo_settings_operators_register()
+
     for cls in classes:
         register_class(cls)
 
@@ -451,14 +397,12 @@ def register():
 
     # ROM
 
-    bpy.types.Scene.decomp_compatible = bpy.props.BoolProperty(name="Decomp Compatibility", default=True)
     bpy.types.Scene.ignoreTextureRestrictions = bpy.props.BoolProperty(name="Ignore Texture Restrictions")
     bpy.types.Scene.fullTraceback = bpy.props.BoolProperty(name="Show Full Error Traceback", default=False)
     bpy.types.Scene.gameEditorMode = bpy.props.EnumProperty(
         name="Game", default="SM64", items=gameEditorEnum, update=gameEditorUpdate
     )
     bpy.types.Scene.saveTextures = bpy.props.BoolProperty(name="Save Textures As PNGs (Breaks CI Textures)")
-    bpy.types.Scene.generateF3DNodeGraph = bpy.props.BoolProperty(name="Generate F3D Node Graph", default=True)
     bpy.types.Scene.exportHiddenGeometry = bpy.props.BoolProperty(name="Export Hidden Geometry", default=True)
     bpy.types.Scene.exportInlineF3D = bpy.props.BoolProperty(
         name="Bleed and Inline Material Exports",
@@ -492,17 +436,17 @@ def unregister():
     render_engine_unregister()
 
     del bpy.types.Scene.fullTraceback
-    del bpy.types.Scene.decomp_compatible
     del bpy.types.Scene.ignoreTextureRestrictions
     del bpy.types.Scene.saveTextures
     del bpy.types.Scene.gameEditorMode
-    del bpy.types.Scene.generateF3DNodeGraph
     del bpy.types.Scene.exportHiddenGeometry
     del bpy.types.Scene.blenderF3DScale
 
     del bpy.types.Scene.fast64
     del bpy.types.Bone.fast64
     del bpy.types.Object.fast64
+
+    repo_settings_operators_unregister()
 
     for cls in classes:
         unregister_class(cls)

@@ -51,7 +51,7 @@ from ..utility import (
 from .sm64_constants import (
     enumVersionDefs,
     enumLevelNames,
-    all_groups,
+    groups_obj_export,
     group_0_geos,
     group_1_geos,
     group_2_geos,
@@ -204,7 +204,7 @@ class Area:
         else:
             Obj.fast64.sm64.game_object.bparams = args[7]
         Obj.sm64_obj_model = args[0]
-        loc = [eval(a.strip()) / self.scene.blenderToSM64Scale for a in args[1:4]]
+        loc = [eval(a.strip()) / self.scene.fast64.sm64.blender_to_sm64_scale for a in args[1:4]]
         # rotate to fit sm64s axis
         loc = [loc[0], -loc[2], loc[1]]
         Obj.location = loc
@@ -239,7 +239,7 @@ class Level(DataParser):
 
     def parse_level_script(self, entry: str, col: bpy.types.Collection = None):
         script_stream = self.scripts[entry]
-        scale = self.scene.blenderToSM64Scale
+        scale = self.scene.fast64.sm64.blender_to_sm64_scale
         if not col:
             col = self.scene.collection
         self.parse_stream_from_start(script_stream, entry, col)
@@ -365,8 +365,14 @@ class Level(DataParser):
 
     def LOAD_MIO0_TEXTURE(self, macro: Macro, col: bpy.types.Collection):
         return self.continue_parse
-
+        
     def LOAD_YAY0(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+        
+    def LOAD_YAY0_TEXTURE(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+        
+    def LOAD_VANILLA_OBJECTS(self, macro: Macro, col: bpy.types.Collection):
         return self.continue_parse
 
     def LOAD_RAW(self, macro: Macro, col: bpy.types.Collection):
@@ -551,12 +557,12 @@ class SM64_Material(Mat):
             Timg = textures.get(tex.Timg)[0]
             Timg = Timg.replace("#include ", "").replace('"', "").replace("'", "").replace("inc.c", "png")
             # deal with duplicate pathing (such as /actors/actors etc.)
-            Extra = path.relative_to(Path(bpy.path.abspath(bpy.context.scene.decompPath)))
+            Extra = path.relative_to(Path(bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path)))
             for e in Extra.parts:
                 Timg = Timg.replace(e + "/", "")
             # deal with actor import path not working for shared textures
             if "textures" in Timg:
-                fp = Path(bpy.path.abspath(bpy.context.scene.decompPath)) / Timg
+                fp = Path(bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path)) / Timg
             else:
                 fp = path / Timg
             return bpy.data.images.load(filepath=str(fp))
@@ -580,6 +586,8 @@ class SM64_Material(Mat):
             mat.blend_method == "BLEND"
 
     def apply_material_settings(self, mat: bpy.types.Material, textures: dict, tex_path: Path, layer: int):
+        self.set_texture_tile_mapping()
+        
         if bpy.context.scene.level_import.as_obj:
             return self.apply_PBSDF_Mat(mat, textures, tex_path, layer, self.tex0)
 
@@ -597,14 +605,14 @@ class SM64_Material(Mat):
             self.set_tex_settings(
                 f3d.tex0,
                 self.load_texture(bpy.context.scene.level_import.force_new_tex, textures, tex_path, self.tex0),
-                self.tiles[0],
+                self.tiles[0 + self.base_tile],
                 self.tex0.Timg,
             )
         if self.tex1 and self.set_tex:
             self.set_tex_settings(
                 f3d.tex1,
                 self.load_texture(bpy.context.scene.level_import.force_new_tex, textures, tex_path, self.tex1),
-                self.tiles[1],
+                self.tiles[1 + self.base_tile],
                 self.tex1.Timg,
             )
 
@@ -767,6 +775,7 @@ class ModelDat:
     vertex_group_name: str = None
     switch_index: int = 0
     armature_obj: bpy.types.Object = None
+    object: bpy.types.Object = None
 
 
 # base class for geo layouts and armatures
@@ -786,7 +795,6 @@ class GraphNodes(DataParser):
         self.children = []
         self.scene = scene
         self.stream = stream
-        self.render_range = None
         self.parent_transform = transform_mtx_blender_to_n64().inverted()
         self.last_transform = transform_mtx_blender_to_n64().inverted()
         self.name = name
@@ -1018,12 +1026,16 @@ class GraphNodes(DataParser):
         asm.func = macro.args[1]
         return self.continue_parse
 
-    # This has to be applied to meshes
-    def GEO_RENDER_RANGE(self, macro: Macro, depth: int):
-        self.render_range = macro.args
+    # these have no affect on the bpy
+    def GEO_NOP_1A(self, macro: Macro, depth: int):
         return self.continue_parse
 
-    # these have no affect on the bpy
+    def GEO_NOP_1E(self, macro: Macro, depth: int):
+        return self.continue_parse
+
+    def GEO_NOP_1F(self, macro: Macro, depth: int):
+        return self.continue_parse
+
     def GEO_NODE_START(self, macro: Macro, depth: int):
         return self.continue_parse
         
@@ -1036,13 +1048,32 @@ class GraphNodes(DataParser):
     def GEO_ZBUFFER(self, macro: Macro, depth: int):
         return self.continue_parse
 
-    def GEO_NODE_ORTHO(self, macro: Macro, depth: int):
-        return self.continue_parse
-
     def GEO_RENDER_OBJ(self, macro: Macro, depth: int):
         return self.continue_parse
 
+    # This should probably do something but I haven't coded it in yet
+    def GEO_COPY_VIEW(self, macro: Macro, depth: int):
+        return self.continue_parse
+    
+    def GEO_ASSIGN_AS_VIEW(self, macro: Macro, depth: int):
+        return self.continue_parse
+        
+    def GEO_UPDATE_NODE_FLAGS(self, macro: Macro, depth: int):
+        return self.continue_parse
+
+    def GEO_NODE_ORTHO(self, macro: Macro, depth: int):
+        return self.continue_parse
+        
     # These need special bhv for each type
+    def GEO_RENDER_RANGE(self, macro: Macro, depth: int):
+        raise Exception("you must call this function from a sublcass")
+        
+    def GEO_CULLING_RADIUS(self, macro: Macro, depth: int):
+        raise Exception("you must call this function from a sublcass")
+        
+    def GEO_HELD_OBJECT(self, macro: Macro, depth: int):
+        raise Exception("you must call this function from a sublcass")
+        
     def GEO_SCALE(self, macro: Macro, depth: int):
         raise Exception("you must call this function from a sublcass")
 
@@ -1053,6 +1084,9 @@ class GraphNodes(DataParser):
         raise Exception("you must call this function from a sublcass")
 
     def GEO_CAMERA(self, macro: Macro, depth: int):
+        raise Exception("you must call this function from a sublcass")
+        
+    def GEO_CAMERA_FRUSTRUM(self, macro: Macro, depth: int):
         raise Exception("you must call this function from a sublcass")
 
     def GEO_CAMERA_FRUSTUM_WITH_FUNC(self, macro: Macro, depth: int):
@@ -1086,11 +1120,17 @@ class GeoLayout(GraphNodes):
         col: bpy.types.Collection = None,
         geo_parent: GeoLayout = None,
         stream: Any = None,
+        pass_args: dict = None
     ):
         self.parent = root
         self.area_root = area_root  # for properties that can only be written to area
         self.root = root
         self.obj = None  # last object on this layer of the tree, will become parent of next child
+        # undetermined args to pass on in dict
+        if pass_args:
+            self.pass_args = pass_args
+        else:
+            self.pass_args = dict()
         if not col:
             col = area_root.users_collection[0]
         else:
@@ -1101,7 +1141,7 @@ class GeoLayout(GraphNodes):
         if not geo_obj:
             return
         geo_obj.matrix_world = (
-            geo_obj.matrix_world @ transform_matrix_to_bpy(transform) * (1 / self.scene.blenderToSM64Scale)
+            geo_obj.matrix_world @ transform_matrix_to_bpy(transform) * (1 / self.scene.fast64.sm64.blender_to_sm64_scale)
         )
 
     def set_geo_type(self, geo_obj: bpy.types.Object, geo_cmd: str):
@@ -1112,21 +1152,41 @@ class GeoLayout(GraphNodes):
 
     # make an empty node to act as the root of this geo layout
     # use this to hold a transform, or an actual cmd, otherwise rt is passed
-    def make_root(self, name: str, parent_obj: bpy.types.Object):
-        self.obj = bpy.data.objects.new(name, None)
+    def make_root(self, name: str, parent_obj: bpy.types.Object, mesh: bpy.types.Mesh):
+        self.obj = bpy.data.objects.new(name, mesh)
         self.col.objects.link(self.obj)
-        parentObject(parent_obj, self.obj)
+        # keep? I don't like this formulation
+        if parent_obj:
+            parentObject(parent_obj, self.obj, keep=1)
         return self.obj
 
-    def setup_geo_obj(self, obj_name: str, geo_cmd: str, layer: int = None):
-        geo_obj = self.make_root(f"{self.ordered_name} {obj_name}", self.root)
-        self.set_geo_type(geo_obj, "Geo Billboard")
+    def setup_geo_obj(self, obj_name: str, geo_cmd: str, layer: int = None, mesh: bpy.types.Mesh = None):
+        geo_obj = self.make_root(f"{self.ordered_name} {obj_name}", self.root, mesh)
+        if geo_cmd:
+            self.set_geo_type(geo_obj, geo_cmd)
         if layer:
             self.set_draw_layer(geo_obj, layer)
         return geo_obj
 
     def add_model(self, model_data: ModelDat, *args):
         self.models.append(model_data)
+        # add placeholder mesh
+        mesh = bpy.data.meshes.get("sm64_import_placeholder_mesh")
+        if not mesh:
+            mesh = bpy.data.meshes.new("sm64_import_placeholder_mesh")
+        geo_obj = self.setup_geo_obj(model_data.model_name, None, layer = model_data.layer, mesh = mesh)
+        geo_obj.ignore_collision = True
+        model_data.object = geo_obj
+        # check for mesh props
+        if render_range := self.pass_args.get("render_range", None):
+            geo_obj.use_render_range = True
+            geo_obj.render_range = render_range
+            del self.pass_args["render_range"]
+        if culling_radius := self.pass_args.get("culling_radius", None):
+            geo_obj.use_render_area = True
+            geo_obj.culling_radius = culling_radius 
+            del self.pass_args["culling_radius"]
+        return geo_obj
 
     def parse_level_geo(self, start: str, scene: bpy.types.Scene):
         geo_layout = self.geo_layouts.get(start)
@@ -1146,10 +1206,9 @@ class GeoLayout(GraphNodes):
         return self.continue_parse
 
     # shadows aren't naturally supported but we can emulate them with custom geo cmds
-    # note: possibly changed with fast64 updates
+    # change so this can be applied to mesh on root?
     def GEO_SHADOW(self, macro: Macro, depth: int):
         geo_obj = self.setup_geo_obj("shadow empty", self.shadow)
-        # probably won't work in armatures??
         geo_obj.customGeoCommand = "GEO_SHADOW"
         geo_obj.customGeoCommandArgs = ", ".join(macro.args)
         return self.continue_parse
@@ -1161,18 +1220,27 @@ class GeoLayout(GraphNodes):
         geo_obj.switchFunc = macro.args[1]
         return self.continue_parse
 
-    # This has to be applied to meshes
-    def GEO_RENDER_RANGE(self, macro: Macro, depth: int):
-        self.render_range = macro.args
-        return self.continue_parse
-
     # can only apply type to area root
     def GEO_CAMERA(self, macro: Macro, depth: int):
         self.area_root.camOption = "Custom"
         self.area_root.camType = macro.args[0]
         return self.continue_parse
+    
+    # can only apply to meshes
+    def GEO_RENDER_RANGE(self, macro: Macro, depth: int):
+        self.pass_args["render_range"] = [hexOrDecInt(range) / self.scene.fast64.sm64.blender_to_sm64_scale for range in macro.args]
+        return self.continue_parse
+
+    def GEO_CULLING_RADIUS(self, macro: Macro, depth: int):
+        self.pass_args["culling_radius"] = hexOrDecInt(macro.args[0]) / self.scene.fast64.sm64.blender_to_sm64_scale
+        return self.continue_parse
 
     # make better
+    def GEO_CAMERA_FRUSTRUM(self, macro: Macro, depth: int):
+        self.area_root.camOption = "Custom"
+        self.area_root.camType = macro.args[0]
+        return self.continue_parse
+
     def GEO_CAMERA_FRUSTUM_WITH_FUNC(self, macro: Macro, depth: int):
         self.area_root.camOption = "Custom"
         self.area_root.camType = macro.args[0]
@@ -1189,6 +1257,7 @@ class GeoLayout(GraphNodes):
                 col=self.col,
                 geo_parent=self,
                 stream=self.stream,
+                pass_args = self.pass_args
             )
         else:
             GeoChild = GeoLayout(
@@ -1200,6 +1269,7 @@ class GeoLayout(GraphNodes):
                 col=self.col,
                 geo_parent=self,
                 stream=self.stream,
+                pass_args = self.pass_args
             )
         GeoChild.parent_transform = self.last_transform
         GeoChild.parse_stream(self.geo_layouts.get(self.stream), self.stream, depth + 1)
@@ -1287,7 +1357,7 @@ class GeoArmature(GraphNodes):
         name = geo_bone.name
         self.enter_edit_mode(armature_obj := self.get_or_init_geo_armature())
         edit_bone = armature_obj.data.edit_bones.get(name, None)
-        location = transform_matrix_to_bpy(transform).to_translation() * (1 / self.scene.blenderToSM64Scale)
+        location = transform_matrix_to_bpy(transform).to_translation() * (1 / self.scene.fast64.sm64.blender_to_sm64_scale)
         print(edit_bone, name, armature_obj)
         edit_bone.head = location
         edit_bone.tail = location + Vector((0, 0, 1))
@@ -1357,6 +1427,19 @@ class GeoArmature(GraphNodes):
         geo_bone = self.setup_geo_obj("shadow", self.shadow)
         geo_bone.shadow_solidity = hexOrDecInt(macro.args[1]) / 255
         geo_bone.shadow_scale = hexOrDecInt(macro.args[2])
+        return self.continue_parse    
+
+    def GEO_RENDER_RANGE(self, macro: Macro, depth: int):
+        geo_bone = self.setup_geo_obj("render_range", self.render_area)
+        geo_bone.culling_radius = macro.args
+        return self.continue_parse
+        
+    # can switch children have their own culling radius? does it have to
+    # be on the root? this currently allows each independent geo to have one
+    def GEO_CULLING_RADIUS(self, macro: Macro, depth: int):
+        geo_armature = self.get_or_init_geo_armature()
+        geo_armature.use_render_area = True # cringe name, it is cull not render area
+        geo_armature.culling_radius = macro.args
         return self.continue_parse
 
     def GEO_SWITCH_CASE(self, macro: Macro, depth: int):
@@ -1387,6 +1470,10 @@ class GeoArmature(GraphNodes):
         geo_bone.geo_scale = scale
         return self.continue_parse
 
+    # add some stuff here
+    def GEO_HELD_OBJECT(self, macro: Macro, depth: int):
+        return self.continue_parse
+    
     def GEO_OPEN_NODE(self, macro: Macro, depth: int):
         if self.bone:
             GeoChild = GeoArmature(
@@ -1484,7 +1571,7 @@ def write_armature_to_bpy(
 
         obj = objects[0]
         parentObject(armature_obj, obj)
-        obj.scale *= 1 / scene.blenderToSM64Scale
+        obj.scale *= 1 / scene.fast64.sm64.blender_to_sm64_scale
         rotate_object(-90, obj)
         obj.ignore_collision = True
         # armature deform
@@ -1535,7 +1622,7 @@ def recurse_armature(
 
             obj = bpy.data.objects.new(f"{model_data.model_name} obj", mesh)
 
-            obj.matrix_world = transform_matrix_to_bpy(model_data.transform) * (1 / scene.blenderToSM64Scale)
+            obj.matrix_world = transform_matrix_to_bpy(model_data.transform) * (1 / scene.fast64.sm64.blender_to_sm64_scale)
 
             model_data.object = obj
             geo_armature.col.objects.link(obj)
@@ -1575,18 +1662,11 @@ def write_geo_to_bpy(
                 [verts, tris] = f3d_dat.get_f3d_data_from_model(model_data.model_name)
                 mesh.from_pydata(verts, [], tris)
 
-            obj = bpy.data.objects.new(f"{model_data.model_name} obj", mesh)
-            geo.col.objects.link(obj)
-            parentObject(geo.root, obj, keep=1)
-
-            obj.matrix_world = transform_matrix_to_bpy(model_data.transform) * (1 / scene.blenderToSM64Scale)
-
-            obj.ignore_collision = True
-            layer = geo.parse_layer(model_data.layer)
-            obj.draw_layer_static = layer
+            # swap out placeholder mesh data
+            model_data.object.data = mesh
 
             if name:
-                apply_mesh_data(f3d_dat, obj, mesh, layer, root_path, cleanup)
+                apply_mesh_data(f3d_dat, model_data.object, mesh, str(geo.parse_layer(model_data.layer)), root_path, cleanup)
 
     if not geo.children:
         return
@@ -1776,7 +1856,7 @@ def write_level_collision_to_bpy(lvl: Level, scene: bpy.types.Scene, cleanup: bo
             col = area.root.users_collection[0]
         else:
             col = create_collection(area.root.users_collection[0], col_name)
-        col_parser = Collision(area.ColFile, scene.blenderToSM64Scale)
+        col_parser = Collision(area.ColFile, scene.fast64.sm64.blender_to_sm64_scale)
         col_parser.parse_collision()
         name = "SM64 {} Area {} Col".format(scene.level_import.level, area_index)
         obj = col_parser.write_collision(scene, name, area.root, col=col)
@@ -1825,7 +1905,7 @@ class SM64_OT_Act_Import(Operator):
         scene = context.scene
         rt_col = context.collection
         scene.gameEditorMode = "SM64"
-        path = Path(bpy.path.abspath(scene.decompPath))
+        path = Path(bpy.path.abspath(scene.fast64.sm64.decomp_path))
         folder = path / scene.actor_import.folder_type
         layout_name = scene.actor_import.geo_layout
         prefix = scene.actor_import.prefix
@@ -1864,7 +1944,7 @@ class SM64_OT_Armature_Import(Operator):
         scene = context.scene
         rt_col = context.collection
         scene.gameEditorMode = "SM64"
-        path = Path(bpy.path.abspath(scene.decompPath))
+        path = Path(bpy.path.abspath(scene.fast64.sm64.decomp_path))
         folder = path / scene.actor_import.folder_type
         layout_name = scene.actor_import.geo_layout
         prefix = scene.actor_import.prefix
@@ -1911,7 +1991,7 @@ class SM64_OT_Lvl_Import(Operator):
 
         scene.gameEditorMode = "SM64"
         prefix = scene.level_import.prefix
-        path = Path(bpy.path.abspath(scene.decompPath))
+        path = Path(bpy.path.abspath(scene.fast64.sm64.decomp_path))
         level = path / "levels" / scene.level_import.level
         script = level / (prefix + "script.c")
         geo = level / (prefix + "geo.c")
@@ -1940,7 +2020,7 @@ class SM64_OT_Lvl_Gfx_Import(Operator):
 
         scene.gameEditorMode = "SM64"
         prefix = scene.level_import.prefix
-        path = Path(bpy.path.abspath(scene.decompPath))
+        path = Path(bpy.path.abspath(scene.fast64.sm64.decomp_path))
         level = path / "levels" / scene.level_import.level
         script = level / (prefix + "script.c")
         geo = level / (prefix + "geo.c")
@@ -1967,7 +2047,7 @@ class SM64_OT_Lvl_Col_Import(Operator):
 
         scene.gameEditorMode = "SM64"
         prefix = scene.level_import.prefix
-        path = Path(bpy.path.abspath(scene.decompPath))
+        path = Path(bpy.path.abspath(scene.fast64.sm64.decomp_path))
         level = path / "levels" / scene.level_import.level
         script = level / (prefix + "script.c")
         model = level / (prefix + "leveldata.c")
@@ -1991,7 +2071,7 @@ class SM64_OT_Obj_Import(Operator):
 
         scene.gameEditorMode = "SM64"
         prefix = scene.level_import.prefix
-        path = Path(bpy.path.abspath(scene.decompPath))
+        path = Path(bpy.path.abspath(scene.fast64.sm64.decomp_path))
         level = path / "levels" / scene.level_import.level
         script = level / (prefix + "script.c")
         lvl = parse_level_script(script, scene, col=col)  # returns level class
@@ -2020,7 +2100,7 @@ class ActorImport(PropertyGroup):
     group_preset: EnumProperty(
         name="group preset",
         description="The group you want to load geo from",
-        items=all_groups
+        items=groups_obj_export
     )
     group_0_geo_enum: EnumProperty(
         name="group 0 geos",
