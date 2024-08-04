@@ -80,7 +80,6 @@ class Texture:
 # used when importing for kirby
 class Mat:
     def __init__(self):
-        self.TwoCycle = False
         self.GeoSet = []
         self.GeoClear = []
         self.tiles = [Tile() for a in range(8)]
@@ -89,6 +88,7 @@ class Mat:
         self.base_tile = 0
         self.tex0 = None
         self.tex1 = None
+        self.other_mode = dict()
         self.num_lights = 1
         self.light_col = {}
         self.ambient_light = tuple()
@@ -209,7 +209,8 @@ class Mat:
         self.set_color_registers(f3d)
         self.set_geo_mode(f3d.rdp_settings, mat)
         self.set_combiner(f3d)
-        self.set_render_mode(f3d)
+        self.set_rendermode(f3d)
+        self.set_othermode(f3d)
 
     # map tiles to locations in tmem
     # this ignores the application of LoDs for magnification
@@ -222,7 +223,6 @@ class Mat:
                 continue
             tex = self.tmem.get(tile.tmem, None)
             setattr(self, f"tex{tex_index}", tex)
-            print(f"tex{tex_index} attribute set to :{getattr(self, f'tex{tex_index}')}")
     
     def set_textures(self, f3d: F3DMaterialProperty, tex_path: Path):
         self.set_tex_scale(f3d)
@@ -280,26 +280,22 @@ class Mat:
         tex_prop.tex_set = True
         tex_prop.tex = image
         tex_prop.tex_format = tile.eval_texture_format()
-        Sflags = self.eval_tile_flags(tile.Sflags)
-        for f in Sflags:
-            setattr(tex_prop.S, f, True)
-        Tflags = self.eval_tile_flags(tile.Tflags)
-        for f in Sflags:
-            setattr(tex_prop.T, f, True)
+        s_flags = self.eval_tile_flags(tile.Sflags)
+        tex_prop.S.mirror = "mirror" in s_flags
+        tex_prop.S.clamp = "clamp" in s_flags
+        t_flags = self.eval_tile_flags(tile.Tflags)
+        tex_prop.T.mirror = "mirror" in t_flags
+        tex_prop.T.clamp = "clamp" in t_flags
         tex_prop.S.low = tile.Slow
         tex_prop.T.low = tile.Tlow
         tex_prop.S.high = tile.Shigh
         tex_prop.T.high = tile.Thigh
         tex_prop.S.mask = tile.SMask
         tex_prop.T.mask = tile.TMask
-
-    # rework with combinatoric render mode draft PR
-    def set_render_mode(self, f3d: F3DMaterialProperty):
+        
+    # rework with new render mode stuffs
+    def set_rendermode(self, f3d: F3DMaterialProperty):
         rdp = f3d.rdp_settings
-        if self.TwoCycle:
-            rdp.g_mdsft_cycletype = "G_CYC_2CYCLE"
-        else:
-            rdp.g_mdsft_cycletype = "G_CYC_1CYCLE"
         if hasattr(self, "RenderMode"):
             rdp.set_rendermode = True
             # if the enum isn't there, then just print an error for now
@@ -309,6 +305,12 @@ class Mat:
                 # print(f"set render modes with render mode {self.RenderMode}")
             except:
                 print(f"could not set render modes with render mode {self.RenderMode}")
+    
+    def set_othermode(self, f3d: F3DMaterialProperty):
+        rdp = f3d.rdp_settings
+        for prop, val in self.other_mode.items():
+            setattr(rdp, prop, val)
+            # add in exception handling here
 
     def set_geo_mode(self, rdp: RDPSettings, mat: bpy.types.Material):
         # texture gen has a different name than gbi
@@ -448,6 +450,25 @@ class DL(DataParser):
         self.LastLoad = vertex_load_length
         return self.continue_parse
 
+    def gsSPModifyVertex(self, macro: Macro):
+        vtx = self.VertBuff[hexOrDecInt(macro.args[0])]
+        where = self.eval_modify_vtx(macro.args[1])
+        val = hexOrDecInt(macro.args[2])
+        # if it is None, something weird, or screenspace I won't edit it
+        if where == "ST":
+            uv = (val >> 16)& 0xFFFF, val & 0xFFFF
+            self.Verts.append(self.Verts[vtx])
+            self.UVs.append(uv)
+            self.VCs.append(self.VCs[vtx])
+            self.VertBuff[hexOrDecInt(macro.args[0])] = len(self.Verts)
+        elif where == "RGBA":
+            vertex_col = [(val >> 8*i)&0xFF for i in range(4)].reverse()
+            self.Verts.append(self.Verts[vtx])
+            self.UVs.append(self.UVs[vtx])
+            self.VCs.append(vertex_col)
+            self.VertBuff[hexOrDecInt(macro.args[0])] = len(self.Verts)
+        return self.continue_parse
+        
     def gsSP2Triangles(self, macro: Macro):
         self.make_new_material()
         args = [hexOrDecInt(a) for a in macro.args]
@@ -481,8 +502,7 @@ class DL(DataParser):
             self.LastMat.ambient_light = light.ambient
         else:
             num = re.search("_\d", macro.args[0]).group()[1]
-            if not num:
-                num = 1
+            num = int(num) if num else 1
             self.LastMat.light_col[num] = light.diffuse
         return self.continue_parse
 
@@ -490,23 +510,21 @@ class DL(DataParser):
     def gsSPNumLights(self, macro: Macro):
         self.NewMat = 1
         num = re.search("_\d", macro.args[0]).group()[1]
-        if not num:
-            num = 1
+        num = int(num) if num else 1
         self.LastMat.num_lights = num
         return self.continue_parse
 
     def gsSPLightColor(self, macro: Macro):
         self.NewMat = 1
         num = re.search("_\d", macro.args[0]).group()[1]
-        if not num:
-            num = 1
+        num = int(num) if num else 1
         self.LastMat.light_col[num] = eval(macro.args[-1]).to_bytes(4, "big")
         return self.continue_parse
-
+    
+    # not finished yet
     def gsSPSetLights0(self, macro: Macro):
         return self.continue_parse
 
-    # not finished yet
     def gsSPSetLights1(self, macro: Macro):
         return self.continue_parse
 
@@ -528,11 +546,65 @@ class DL(DataParser):
     def gsSPSetLights7(self, macro: Macro):
         return self.continue_parse
 
-    # upper/lower modes
-    def gsDPSetAlphaCompare(self, macro: Macro):
+    # some independent other mode settings
+    def gsDPSetTexturePersp(self, macro: Macro):
+        self.NewMat = 1
+        self.LastMat.other_mode["g_mdsft_textpersp"] = macro.args[0]
         return self.continue_parse
         
     def gsDPSetDepthSource(self, macro: Macro):
+        self.NewMat = 1
+        self.LastMat.other_mode["g_mdsft_zsrcsel"] = macro.args[0]
+        return self.continue_parse
+        
+    def gsDPSetColorDither(self, macro: Macro):
+        self.NewMat = 1
+        self.LastMat.other_mode["g_mdsft_rgb_dither"] = macro.args[0]
+        return self.continue_parse
+        
+    def gsDPSetAlphaDither(self, macro: Macro):
+        self.NewMat = 1
+        self.LastMat.other_mode["g_mdsft_alpha_dither"] = macro.args[0]
+        return self.continue_parse
+        
+    def gsDPSetCombineKey(self, macro: Macro):
+        self.NewMat = 1
+        self.LastMat.other_mode["g_mdsft_combkey"] = macro.args[0]
+        return self.continue_parse
+        
+    def gsDPSetTextureConvert(self, macro: Macro):
+        self.NewMat = 1
+        self.LastMat.other_mode["g_mdsft_textconv"] = macro.args[0]
+        return self.continue_parse
+        
+    def gsDPSetTextureFilter(self, macro: Macro):
+        self.NewMat = 1
+        self.LastMat.other_mode["g_mdsft_text_filt"] = macro.args[0]
+        return self.continue_parse
+        
+    def gsDPSetTextureLOD(self, macro: Macro):
+        self.NewMat = 1
+        self.LastMat.other_mode["g_mdsft_textlod"] = macro.args[0]
+        return self.continue_parse
+        
+    def gsDPSetTextureDetail(self, macro: Macro):
+        self.NewMat = 1
+        self.LastMat.other_mode["g_mdsft_textdetail"] = macro.args[0]
+        return self.continue_parse
+
+    def gsDPSetCycleType(self, macro: Macro):
+        self.NewMat = 1
+        self.LastMat.other_mode["g_mdsft_cycletype"] = macro.args[0]
+        return self.continue_parse
+        
+    def gsDPPipelineMode(self, macro: Macro):
+        self.NewMat = 1
+        self.LastMat.other_mode["g_mdsft_pipeline"] = macro.args[0]
+        return self.continue_parse
+        
+    def gsDPSetAlphaCompare(self, macro: Macro):
+        self.NewMat = 1
+        self.LastMat.other_mode["g_mdsft_alpha_compare"] = macro.args[0]
         return self.continue_parse
 
     def gsSPFogFactor(self, macro: Macro):
@@ -593,12 +665,6 @@ class DL(DataParser):
         self.LastMat.GeoSet.extend(argsS)
         return self.continue_parse
 
-    def gsDPSetCycleType(self, macro: Macro):
-        if "G_CYC_1CYCLE" in macro.args[0]:
-            self.LastMat.TwoCycle = False
-        if "G_CYC_2CYCLE" in macro.args[0]:
-            self.LastMat.TwoCycle = True
-        return self.continue_parse
 
     def gsDPSetCombineMode(self, macro: Macro):
         self.NewMat = 1

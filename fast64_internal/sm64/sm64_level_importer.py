@@ -47,10 +47,12 @@ from ..utility import (
     parentObject,
     GetEnums,
     create_collection,
+    read16bitRGBA,
 )
 from .sm64_constants import (
     enumVersionDefs,
     enumLevelNames,
+    enumSpecialsNames,
     groups_obj_export,
     group_0_geos,
     group_1_geos,
@@ -155,7 +157,7 @@ class Area:
         self.objects = []
         self.col = col
 
-    def add_warp(self, args: list[str]):
+    def add_warp(self, args: list[str], type: str):
         # set context to the root
         bpy.context.view_layer.objects.active = self.root
         # call fast64s warp node creation operator
@@ -170,6 +172,7 @@ class Area:
             level = Num2Name.get(eval(level))
             if not level:
                 level = "bob"
+        warp.warpType = type
         warp.destLevelEnum = level
         warp.destArea = args[2]
         chkpoint = args[-1].strip()
@@ -178,6 +181,17 @@ class Area:
             warp.warpFlagEnum = "WARP_NO_CHECKPOINT"
         else:
             warp.warpFlagEnum = "WARP_CHECKPOINT"
+    
+    def add_instant_warp(self, args: list[str]):
+        # set context to the root
+        bpy.context.view_layer.objects.active = self.root
+        # call fast64s warp node creation operator
+        bpy.ops.bone.add_warp_node()
+        warp = self.root.warpNodes[0]
+        warp.type = "Instant"
+        warp.warpID = args[0]
+        warp.destArea = args[1]
+        warp.instantOffset = [hexOrDecInt(val) for val in args[2:5]]
 
     def add_object(self, args: list[str]):
         self.objects.append(args)
@@ -190,6 +204,29 @@ class Area:
         for object_args in self.objects:
             self.place_object(object_args, col)
 
+    def write_special_objects(self, special_objs: list[str], col: bpy.types.Collection):
+        special_presets = {enum[0] for enum in enumSpecialsNames}
+        for special in special_objs:
+            obj = bpy.data.objects.new("Empty", None)
+            col.objects.link(obj)
+            parentObject(self.root, obj)
+            obj.name = f"Special Object {special[0]}"
+            obj.sm64_obj_type = "Special"
+            if special[0] in special_presets:
+                obj.sm64_special_enum = special[0]
+            else:
+                obj.sm64_special_enum = "Custom"
+                obj.sm64_obj_preset = special[0]
+            loc = [eval(a.strip()) / self.scene.fast64.sm64.blender_to_sm64_scale for a in special[1:4]]
+            # rotate to fit sm64s axis
+            obj.location = [loc[0], -loc[2], loc[1]]
+            obj.rotation_euler[2] = hexOrDecInt(special[4])
+            obj.sm64_obj_set_yaw = True
+            if special[5]:
+                obj.sm64_obj_set_bparam = True
+                obj.fast64.sm64.game_object.use_individual_params = False
+                obj.fast64.sm64.game_object.bparams = str(special[5])
+    
     def place_object(self, args: list[str], col: bpy.types.Collection):
         Obj = bpy.data.objects.new("Empty", None)
         col.objects.link(Obj)
@@ -206,8 +243,7 @@ class Area:
         Obj.sm64_obj_model = args[0]
         loc = [eval(a.strip()) / self.scene.fast64.sm64.blender_to_sm64_scale for a in args[1:4]]
         # rotate to fit sm64s axis
-        loc = [loc[0], -loc[2], loc[1]]
-        Obj.location = loc
+        Obj.location = [loc[0], -loc[2], loc[1]]
         # fast64 just rotations by 90 on x
         rot = Euler([math.radians(eval(a.strip())) for a in args[4:7]], "ZXY")
         rot = rotate_quat_n64_to_blender(rot).to_euler("XYZ")
@@ -284,7 +320,15 @@ class Level(DataParser):
 
     # Now deal with data cmds rather than flow control ones
     def WARP_NODE(self, macro: Macro, col: bpy.types.Collection):
-        self.areas[self.cur_area].add_warp(macro.args)
+        self.areas[self.cur_area].add_warp(macro.args, "Warp")
+        return self.continue_parse
+        
+    def PAINTING_WARP_NODE(self, macro: Macro, col: bpy.types.Collection):
+        self.areas[self.cur_area].add_warp(macro.args, "Painting")
+        return self.continue_parse
+        
+    def INSTANT_WARP(self, macro: Macro, col: bpy.types.Collection):
+        self.areas[self.cur_area].add_instant_warp(macro.args)
         return self.continue_parse
 
     def OBJECT_WITH_ACTS(self, macro: Macro, col: bpy.types.Collection):
@@ -342,6 +386,12 @@ class Level(DataParser):
 
     def SET_BACKGROUND_MUSIC(self, macro: Macro, col: bpy.types.Collection):
         return self.generic_music(macro, col)
+        
+    def SET_MENU_MUSIC_WITH_REVERB(self, macro: Macro, col: bpy.types.Collection):
+        return self.generic_music(macro, col)
+        
+    def SET_BACKGROUND_MUSIC_WITH_REVERB(self, macro: Macro, col: bpy.types.Collection):
+        return self.generic_music(macro, col)
 
     def SET_MENU_MUSIC(self, macro: Macro, col: bpy.types.Collection):
         return self.generic_music(macro, col)
@@ -349,15 +399,70 @@ class Level(DataParser):
     def generic_music(self, macro: Macro, col: bpy.types.Collection):
         root = self.areas[self.cur_area].root
         root.musicSeqEnum = "Custom"
-        root.music_seq = macro.args[-1]
+        root.music_seq = macro.args[1]
         return self.continue_parse
 
     # Don't support these for now
     def MACRO_OBJECTS(self, macro: Macro, col: bpy.types.Collection):
         return self.continue_parse
 
+    def WHIRLPOOL(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+        
+    def SET_ECHO(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+        
     def MARIO_POS(self, macro: Macro, col: bpy.types.Collection):
         return self.continue_parse
+        
+    def SET_REG(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+        
+    def GET_OR_SET(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+        
+    def CHANGE_AREA_SKYBOX(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+
+    # Don't support for now but maybe later
+    def JUMP_LINK_PUSH_ARG(self, macro: Macro, col: bpy.types.Collection):
+        raise Exception("no support yet woops")
+    
+    def JUMP_N_TIMES(self, macro: Macro, col: bpy.types.Collection):
+        raise Exception("no support yet woops")
+    
+    def LOOP_BEGIN(self, macro: Macro, col: bpy.types.Collection):
+        raise Exception("no support yet woops")
+    
+    def LOOP_UNTIL(self, macro: Macro, col: bpy.types.Collection):
+        raise Exception("no support yet woops")
+    
+    def JUMP_IF(self, macro: Macro, col: bpy.types.Collection):
+        raise Exception("no support yet woops")
+    
+    def JUMP_LINK_IF(self, macro: Macro, col: bpy.types.Collection):
+        raise Exception("no support yet woops")
+    
+    def SKIP_IF(self, macro: Macro, col: bpy.types.Collection):
+        raise Exception("no support yet woops")
+    
+    def SKIP(self, macro: Macro, col: bpy.types.Collection):
+        raise Exception("no support yet woops")
+    
+    def SKIP_NOP(self, macro: Macro, col: bpy.types.Collection):
+        raise Exception("no support yet woops")
+        
+    def LOAD_AREA(self, macro: Macro, col: bpy.types.Collection):
+        raise Exception("no support yet woops")
+        
+    def UNLOAD_AREA(self, macro: Macro, col: bpy.types.Collection):
+        raise Exception("no support yet woops")
+        
+    def UNLOAD_MARIO_AREA(self, macro: Macro, col: bpy.types.Collection):
+        raise Exception("no support yet woops")
+        
+    def UNLOAD_AREA(self, macro: Macro, col: bpy.types.Collection):
+        raise Exception("no support yet woops")
 
     # use group mapping to set groups eventually
     def LOAD_MIO0(self, macro: Macro, col: bpy.types.Collection):
@@ -366,6 +471,36 @@ class Level(DataParser):
     def LOAD_MIO0_TEXTURE(self, macro: Macro, col: bpy.types.Collection):
         return self.continue_parse
         
+    def LOAD_TITLE_SCREEN_BG(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+    
+    def LOAD_GODDARD(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+    
+    def LOAD_BEHAVIOR_DATA(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+    
+    def LOAD_COMMON0(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+    
+    def LOAD_GROUPB(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+    
+    def LOAD_GROUPA(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+    
+    def LOAD_EFFECTS(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+    
+    def LOAD_SKYBOX(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+    
+    def LOAD_TEXTURE_BIN(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+    
+    def LOAD_LEVEL_DATA(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+    
     def LOAD_YAY0(self, macro: Macro, col: bpy.types.Collection):
         return self.continue_parse
         
@@ -377,8 +512,60 @@ class Level(DataParser):
 
     def LOAD_RAW(self, macro: Macro, col: bpy.types.Collection):
         return self.continue_parse
+        
+    def LOAD_RAW_WITH_CODE(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+        
+    def LOAD_MARIO_HEAD(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
 
+    # throw exception saying I cannot process
+    def EXECUTE(self, macro: Macro, col: bpy.types.Collection):
+        raise Exception("Processing of EXECUTE macro is not currently supported")
+        
+    def EXIT_AND_EXECUTE(self, macro: Macro, col: bpy.types.Collection):
+        raise Exception("Processing of EXIT_AND_EXECUTE macro is not currently supported")
+        
+    def EXECUTE_WITH_CODE(self, macro: Macro, col: bpy.types.Collection):
+        raise Exception("Processing of EXECUTE_WITH_CODE macro is not currently supported")
+        
+    def EXIT_AND_EXECUTE_WITH_CODE(self, macro: Macro, col: bpy.types.Collection):
+        raise Exception("Processing of EXIT_AND_EXECUTE_WITH_CODE macro is not currently supported")
+    
     # not useful for bpy, dummy these script cmds
+    def CMD3A(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+        
+    def STOP_MUSIC(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+        
+    def GAMMA(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+        
+    def BLACKOUT(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+        
+    def TRANSITION(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+        
+    def NOP(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+        
+    def CMD23(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+        
+    def PUSH_POOL(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+        
+    def POP_POOL(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+        
+    def SLEEP(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+        
+    def ROOMS(self, macro: Macro, col: bpy.types.Collection):
+        return self.continue_parse
+        
     def MARIO(self, macro: Macro, col: bpy.types.Collection):
         return self.continue_parse
 
@@ -409,6 +596,11 @@ class Level(DataParser):
     def SLEEP_BEFORE_EXIT(self, macro: Macro, col: bpy.types.Collection):
         return self.continue_parse
 
+@dataclass
+class ColTri():
+    type: Any
+    verts: list[int]
+    special_param: Any = None
 
 class Collision(DataParser):
     def __init__(self, collision: list[str], scale: float):
@@ -416,10 +608,9 @@ class Collision(DataParser):
         self.scale = scale
         self.vertices = []
         # key=type,value=tri data
-        self.tris = {}
-        self.type = None
+        self.tris: list[ColTri] = []
+        self.type: str = None
         self.special_objects = []
-        self.tri_types = []
         self.water_boxes = []
         super().__init__()
 
@@ -450,53 +641,39 @@ class Collision(DataParser):
         if not col:
             col = scene.collection
         self.write_water_boxes(scene, parent, name, col)
-        mesh = bpy.data.meshes.new(name + " data")
-        tris = []
-        for t in self.tris.values():
-            # deal with special tris
-            if len(t[0]) > 3:
-                t = [a[0:3] for a in t]
-            tris.extend(t)
-        mesh.from_pydata(self.vertices, [], tris)
-
-        obj = bpy.data.objects.new(name + " Mesh", mesh)
+        mesh = bpy.data.meshes.new(f"{name} data")
+        mesh.from_pydata(self.vertices, [], [tri.verts for tri in self.tris])
+        obj = bpy.data.objects.new(f"{name} mesh", mesh)
         col.objects.link(obj)
         obj.ignore_render = True
         if parent:
             parentObject(parent, obj)
         rotate_object(-90, obj, world=1)
-        polys = obj.data.polygons
-        x = 0
         bpy.context.view_layer.objects.active = obj
-        max = len(polys)
-        for i, p in enumerate(polys):
-            a = self.tri_types[x][0]
-            if i >= a:
+        max = len(obj.data.polygons)
+        col_materials: dict[str, "mat_index"] = dict()
+        for i, (bpy_tri, col_tri) in enumerate(zip(obj.data.polygons, self.tris)):
+            if col_tri.type not in col_materials:
                 bpy.ops.object.create_f3d_mat()  # the newest mat should be in slot[-1]
-                mat = obj.data.materials[x]
+                mat = obj.data.materials[-1]
+                col_materials[col_tri.type] = len(obj.data.materials) - 1
+                # fix this
                 mat.collision_type_simple = "Custom"
-                mat.collision_custom = self.tri_types[x][1]
-                mat.name = "Sm64_Col_Mat_{}".format(self.tri_types[x][1])
-                color = ((max - a) / (max), (max + a) / (2 * max - a), a / max, 1)  # Just to give some variety
-                mat.f3d_mat.default_light_color = color
-                # check for param
-                if len(self.tri_types[x][2]) > 3:
+                mat.collision_custom = col_tri.type
+                mat.name = "Sm64_Col_Mat_{}".format(col_tri.type)
+                # Just to give some variety
+                mat.f3d_mat.default_light_color = [a / 255 for a in (hash(id(int(i))) & 0xFFFFFFFF).to_bytes(4, "big")]
+                if col_tri.special_param is not None:
                     mat.use_collision_param = True
-                    mat.collision_param = str(self.tri_types[x][2][3])
-                x += 1
-                with bpy.context.temp_override(material=mat):
-                    bpy.ops.material.update_f3d_nodes()
-            p.material_index = x - 1
+                    mat.collision_param = str(col_tri.special_param)
+                # I don't think I care about this. It makes program slow
+                # with bpy.context.temp_override(material=mat):
+                    # bpy.ops.material.update_f3d_nodes()
+            bpy_tri.material_index = col_materials[col_tri.type]
         return obj
 
     def parse_collision(self):
         self.parse_stream(self.collision, 0)
-        # This will keep track of how to assign mats
-        a = 0
-        for k, v in self.tris.items():
-            self.tri_types.append([a, k, v[0]])
-            a += len(v)
-        self.tri_types.append([a, 0])
 
     def COL_VERTEX(self, macro: Macro):
         self.vertices.append([eval(v) / self.scale for v in macro.args])
@@ -504,12 +681,14 @@ class Collision(DataParser):
 
     def COL_TRI_INIT(self, macro: Macro):
         self.type = macro.args[0]
-        if not self.tris.get(self.type):
-            self.tris[self.type] = []
         return self.continue_parse
 
     def COL_TRI(self, macro: Macro):
-        self.tris[self.type].append([eval(a) for a in macro.args])
+        self.tris.append(ColTri(self.type, [eval(a) for a in macro.args]))
+        return self.continue_parse
+        
+    def COL_TRI_SPECIAL(self, macro: Macro):
+        self.tris.append(ColTri(self.type, [eval(a) for a in macro.args[0:3]], special_param = eval(macro.args[3])))
         return self.continue_parse
 
     def COL_WATER_BOX(self, macro: Macro):
@@ -519,10 +698,14 @@ class Collision(DataParser):
 
     # not written out currently
     def SPECIAL_OBJECT(self, macro: Macro):
-        self.special_objects.append(macro.args)
+        self.special_objects.append((*macro.args, 0, 0))
         return self.continue_parse
 
     def SPECIAL_OBJECT_WITH_YAW(self, macro: Macro):
+        self.special_objects.append((*macro.args, 0))
+        return self.continue_parse
+        
+    def SPECIAL_OBJECT_WITH_YAW_AND_PARAM(self, macro: Macro):
         self.special_objects.append(macro.args)
         return self.continue_parse
 
@@ -1038,9 +1221,6 @@ class GraphNodes(DataParser):
 
     def GEO_NODE_START(self, macro: Macro, depth: int):
         return self.continue_parse
-        
-    def GEO_BACKGROUND(self, macro: Macro, depth: int):
-        return self.continue_parse
 
     def GEO_NODE_SCREEN_AREA(self, macro: Macro, depth: int):
         return self.continue_parse
@@ -1091,7 +1271,10 @@ class GraphNodes(DataParser):
 
     def GEO_CAMERA_FRUSTUM_WITH_FUNC(self, macro: Macro, depth: int):
         raise Exception("you must call this function from a sublcass")
-
+        
+    def GEO_BACKGROUND(self, macro: Macro, depth: int):
+        raise Exception("you must call this function from a sublcass")
+        
     def GEO_BACKGROUND_COLOR(self, macro: Macro, depth: int):
         raise Exception("you must call this function from a sublcass")
 
@@ -1224,6 +1407,28 @@ class GeoLayout(GraphNodes):
     def GEO_CAMERA(self, macro: Macro, depth: int):
         self.area_root.camOption = "Custom"
         self.area_root.camType = macro.args[0]
+        return self.continue_parse
+        
+    def GEO_BACKGROUND(self, macro: Macro, depth: int):
+        level_root = self.area_root.parent
+        # check if in enum
+        skybox_name = macro.args[0].replace("BACKGROUND_","")
+        bg_enums = {enum.identifier for enum in level_root.bl_rna.properties["background"].enum_items}
+        if skybox_name in bg_enums:
+            level_root.background = skybox_name
+        else:
+            level_root.background = "CUSTOM"
+            # this is cringe and should be changed
+            scene.fast64.sm64.level.backgroundID = macro.args[0]
+            # I don't have access to the bg segment, that is in level obj
+            scene.fast64.sm64.level.backgroundSegment = "unavailable srry :("
+            
+        return self.continue_parse
+    
+    def GEO_BACKGROUND_COLOR(self, macro: Macro, depth: int):
+        level_root = self.area_root.parent
+        level_root.useBackgroundColor = True
+        level_root.backgroundColor = read16bitRGBA(hexOrDecInt(macro.args[0]))
         return self.continue_parse
     
     # can only apply to meshes
@@ -1859,7 +2064,8 @@ def write_level_collision_to_bpy(lvl: Level, scene: bpy.types.Scene, cleanup: bo
         col_parser = Collision(area.ColFile, scene.fast64.sm64.blender_to_sm64_scale)
         col_parser.parse_collision()
         name = "SM64 {} Area {} Col".format(scene.level_import.level, area_index)
-        obj = col_parser.write_collision(scene, name, area.root, col=col)
+        obj = col_parser.write_collision(scene, name, area.root, col)
+        area.write_special_objects(col_parser.special_objects, col)
         # final operators to clean stuff up
         if cleanup:
             obj.data.validate()
@@ -1916,12 +2122,12 @@ class SM64_OT_Act_Import(Operator):
         else:
             geo_path = folder / (prefix + "geo.c")
             leveldat = folder / (prefix + "leveldata.c")
-        root_obj = bpy.data.objects.new("Empty", None)
-        root_obj.name = f"Actor {scene.actor_import.geo_layout}"
-        rt_col.objects.link(root_obj)
+        # root_obj = bpy.data.objects.new("Empty", None)
+        # root_obj.name = f"Actor {scene.actor_import.geo_layout}"
+        # rt_col.objects.link(root_obj)
 
         geo_layout = find_actor_models_from_geo(
-            geo_path, layout_name, scene, root_obj, folder, col=rt_col
+            geo_path, layout_name, scene, None, folder, col=rt_col
         )  # return geo layout class and write the geo layout
         models = construct_model_data_from_file(leveldat, scene, folder)
         # just a try, in case you are importing from not the base decomp repo
