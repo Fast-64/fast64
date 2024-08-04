@@ -6,7 +6,7 @@ import bpy
 from bpy.types import Object, CollectionProperty
 from ..utility import PluginError
 from .data import OoT_ObjectData
-from .oot_utility import getEvalParams
+from .oot_utility import getEvalParams, get_actor_prop_from_obj
 from .oot_constants import ootData
 from .cutscene.constants import ootEnumCSMotionCamMode
 
@@ -308,32 +308,25 @@ def upgradeCutsceneMotion(csMotionObj: Object):
 #####################################
 def upgradeActors(actorObj: Object):
     # parameters
-    actorProp = None
-    if actorObj.ootEmptyType == "Actor":
-        actorProp = actorObj.ootActorProperty
-    elif actorObj.ootEmptyType == "Transition Actor":
-        actorProp = actorObj.ootTransitionActorProperty.actor
-    elif actorObj.ootEmptyType == "Entrance":
-        actorProp = actorObj.ootEntranceProperty.actor
+    actorProp = get_actor_prop_from_obj(actorObj)
+    isCustom = False
 
-    if actorProp is not None:
-        isCustom = False
-        if actorObj.ootEmptyType == "Entrance":
-            isCustom = actorObj.ootEntranceProperty.customActor
-        else:
-            isCustom = actorProp.actorID == "Custom"
+    if actorObj.ootEmptyType == "Entrance":
+        isCustom = actorObj.ootEntranceProperty.customActor
+    else:
+        isCustom = actorProp.actorID == "Custom"
 
-        if not isCustom:
-            actorProp.params = actorProp.actorParam
-            actorProp.actorParam = "0x0000"
+    if not isCustom:
+        actorProp.params = actorProp.actorParam
+        actorProp.actorParam = "0x0000"
 
-            if actorObj.ootEmptyType == "Actor" and actorProp.rotOverride:
-                actorProp.rotX = actorProp.rotOverrideX
-                actorProp.rotY = actorProp.rotOverrideY
-                actorProp.rotZ = actorProp.rotOverrideZ
-                actorProp.rotOverrideX = "0x0000"
-                actorProp.rotOverrideY = "0x0000"
-                actorProp.rotOverrideZ = "0x0000"
+        if actorObj.ootEmptyType == "Actor" and actorProp.rotOverride:
+            actorProp.rotX = actorProp.rotOverrideX
+            actorProp.rotY = actorProp.rotOverrideY
+            actorProp.rotZ = actorProp.rotOverrideZ
+            actorProp.rotOverrideX = "0x0000"
+            actorProp.rotOverrideY = "0x0000"
+            actorProp.rotOverrideZ = "0x0000"
 
     # room stuff
     if actorObj.ootEmptyType == "Entrance":

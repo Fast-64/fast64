@@ -199,11 +199,6 @@ class OOTActorProperty(PropertyGroup):
         set=lambda self, value: self.setParamValue(value, "ZRot"),
     )
 
-    # internal usage only
-    isRotXUsedByActor: BoolProperty(name="", default=False, get=lambda self: self.isRotationUsedByActor("XRot"))
-    isRotYUsedByActor: BoolProperty(name="", default=False, get=lambda self: self.isRotationUsedByActor("YRot"))
-    isRotZUsedByActor: BoolProperty(name="", default=False, get=lambda self: self.isRotationUsedByActor("ZRot"))
-
     headerSettings: PointerProperty(type=OOTActorHeaderProperty)
     evalParams: BoolProperty(name="Eval Params", default=False)
 
@@ -214,12 +209,16 @@ class OOTActorProperty(PropertyGroup):
 
     def isRotationUsedByActor(self, target: str):
         actor = ootData.actorData.actorsByID[self.actorID]
-        curType = None
         for param in actor.params:
+            curType = None
+
             if param.type == "Type":
                 objName = getObjName(actor.key, param.type, param.subType, param.index)
                 curType = getEvalParamsInt(getattr(self, objName))
 
+            # the first parameter type is always the "Actor Type"
+            # because of that we need to make sure the current "Actor Type" value
+            # is included in type list of the property as not all properties are used sometimes
             if curType is not None and curType in param.tiedTypes or len(param.tiedTypes) == 0:
                 if param.target != "Params" and target == param.target:
                     return True
@@ -319,15 +318,18 @@ class OOTActorProperty(PropertyGroup):
 
         return paramString if not self.evalParams else getEvalParams(paramString)
 
-    def draw_params(self, layout: UILayout, objName: str):
+    def draw_params(self, layout: UILayout, obj: Object):
         actor = ootData.actorData.actorsByID[self.actorID]
-        curType = None
         for param in actor.params:
             propName = getObjName(actor.key, param.type, param.subType, param.index)
+            curType = None
 
             if param.type == "Type":
                 curType = getEvalParamsInt(getattr(self, propName))
 
+            # the first parameter type is always the "Actor Type"
+            # because of that we need to make sure the current "Actor Type" value
+            # is included in type list of the property as not all properties are used sometimes
             if curType is not None and curType in param.tiedTypes or param.type == "Type" or len(param.tiedTypes) == 0:
                 searchOp = itemName = None
                 labelName = ""
@@ -341,7 +343,7 @@ class OOTActorProperty(PropertyGroup):
                     itemName = ootData.actorData.messageItemsByKey[getattr(self, propName)].name
 
                 if param.type in ["ChestContent", "Message"] and searchOp is not None and itemName is not None:
-                    searchOp.objName = objName
+                    searchOp.objName = obj.name
                     searchOp.propName = propName
                     split = layout.split(factor=0.5)
                     split.label(text=labelName)
@@ -349,11 +351,11 @@ class OOTActorProperty(PropertyGroup):
                 else:
                     prop_split(layout, self, propName, param.name)
 
-    def draw_props(self, layout: UILayout, altRoomProp: OOTAlternateRoomHeaderProperty, objName: str):
+    def draw_props(self, layout: UILayout, altRoomProp: OOTAlternateRoomHeaderProperty, obj: Object):
         actorIDBox = layout.column()
         searchOp = actorIDBox.operator(OOT_SearchActorIDEnumOperator.bl_idname, icon="VIEWZOOM")
         searchOp.actorUser = "Actor"
-        searchOp.objName = objName
+        searchOp.objName = obj.name
 
         split = actorIDBox.split(factor=0.5)
 
@@ -365,7 +367,7 @@ class OOTActorProperty(PropertyGroup):
         split.label(text=getEnumName(ootData.actorData.ootEnumActorID, self.actorID))
 
         if self.actorID != "Custom":
-            self.draw_params(actorIDBox, objName)
+            self.draw_params(actorIDBox, obj)
         else:
             prop_split(actorIDBox, self, "actorIDCustom", "")
 
@@ -382,11 +384,11 @@ class OOTActorProperty(PropertyGroup):
         if self.rotOverride:
             rotationsUsedByActor = ["X", "Y", "Z"]
         elif self.actorID != "Custom":
-            if self.isRotXUsedByActor:
+            if self.isRotationUsedByActor("XRot"):
                 rotationsUsedByActor.append("X")
-            if self.isRotYUsedByActor:
+            if self.isRotationUsedByActor("YRot"):
                 rotationsUsedByActor.append("Y")
-            if self.isRotZUsedByActor:
+            if self.isRotationUsedByActor("ZRot"):
                 rotationsUsedByActor.append("Z")
 
         if self.actorID == "Custom":
@@ -399,7 +401,7 @@ class OOTActorProperty(PropertyGroup):
             prop_split(paramBox, self, f"rot{override}{rot}", f"Rot {rot}")
 
         headerProp: OOTActorHeaderProperty = self.headerSettings
-        headerProp.draw_props(actorIDBox, "Actor", altRoomProp, objName)
+        headerProp.draw_props(actorIDBox, "Actor", altRoomProp, obj.name)
 
 
 class OOTTransitionActorProperty(PropertyGroup):
@@ -422,7 +424,7 @@ class OOTTransitionActorProperty(PropertyGroup):
         actorIDBox = layout.column()
         searchOp = actorIDBox.operator(OOT_SearchActorIDEnumOperator.bl_idname, icon="VIEWZOOM")
         searchOp.actorUser = "Transition Actor"
-        searchOp.objName = objName
+        searchOp.objName = roomObj.name
 
         split = actorIDBox.split(factor=0.5)
         split.label(text="Actor ID")
@@ -431,7 +433,7 @@ class OOTTransitionActorProperty(PropertyGroup):
         if self.actor.actorID == "Custom":
             prop_split(actorIDBox, self.actor, "actorIDCustom", "")
         else:
-            self.actor.draw_params(actorIDBox, objName)
+            self.actor.draw_params(actorIDBox, roomObj)
 
         paramBox = actorIDBox.box()
         paramBox.label(text="Actor Parameter")
@@ -488,7 +490,7 @@ class OOTEntranceProperty(PropertyGroup):
             prop_split(box, entranceProp.actor, "actorIDCustom", "Actor ID Custom")
 
         if not self.customActor:
-            self.actor.draw_params(box, objName)
+            self.actor.draw_params(box, obj)
 
         paramBox = box.box()
         paramBox.label(text="Actor Parameter")

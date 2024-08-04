@@ -135,7 +135,7 @@ class OOTObjectPanel(bpy.types.Panel):
 
         if obj.ootEmptyType == "Actor":
             actorProp: OOTActorProperty = obj.ootActorProperty
-            actorProp.draw_props(box, altRoomProp, objName)
+            actorProp.draw_props(box, altRoomProp, obj)
 
         elif obj.ootEmptyType == "Transition Actor":
             transActorProp: OOTTransitionActorProperty = obj.ootTransitionActorProperty

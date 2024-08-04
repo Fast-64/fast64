@@ -28,6 +28,7 @@ from ..utility import (
 
 if TYPE_CHECKING:
     from .scene.properties import OOTBootupSceneOptions
+    from .actor.properties import OOTActorProperty
 
 
 def isPathObject(obj: bpy.types.Object) -> bool:
@@ -1056,3 +1057,25 @@ def getObjectList(
                 ret.append(obj)
     ret.sort(key=lambda o: o.name)
     return ret
+
+
+def get_actor_prop_from_obj(actor_obj: Object) -> "OOTActorProperty":
+    """
+    Returns the reference to `OOTActorProperty`
+
+    Parameters:
+    - `actor_obj`: the Blender object to use to find the actor properties
+    """
+
+    actor_prop = None
+
+    if actor_obj.ootEmptyType == "Actor":
+        actor_prop = actor_obj.ootActorProperty
+    elif actor_obj.ootEmptyType == "Transition Actor":
+        actor_prop = actor_obj.ootTransitionActorProperty.actor
+    elif actor_obj.ootEmptyType == "Entrance":
+        actor_prop = actor_obj.ootEntranceProperty.actor
+    else:
+        raise PluginError(f"ERROR: Empty type not supported: {actor_obj.ootEmptyType}")
+
+    return actor_prop
