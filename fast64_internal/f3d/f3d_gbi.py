@@ -2648,9 +2648,9 @@ class FModel:
         data = CData()
         for _, fImage in self.textures.items():
             if savePNG:
-                data.append(fImage.to_c_tex_separate(texDir, texArrayBitSize))
+                data.append(fImage.to_c_tex_separate(texDir, texArrayBitSize, self.f3d))
             else:
-                data.append(fImage.to_c(texArrayBitSize))
+                data.append(fImage.to_c(texArrayBitSize, self.f3d))
         return data
 
     def to_c_materials(self, gfxFormatter):
@@ -3311,20 +3311,22 @@ class FImage:
     def to_binary(self):
         return self.data
 
-    def to_c(self, texArrayBitSize):
-        return self.to_c_helper(self.to_c_data(texArrayBitSize), texArrayBitSize)
+    def to_c(self, texArrayBitSize, f3d):
+        return self.to_c_helper(self.to_c_data(texArrayBitSize), texArrayBitSize, f3d)
 
-    def to_c_tex_separate(self, texPath, texArrayBitSize):
-        return self.to_c_helper('#include "' + texPath + self.filename + '"', texArrayBitSize)
+    def to_c_tex_separate(self, texPath, texArrayBitSize, f3d):
+        return self.to_c_helper('#include "' + texPath + self.filename + '"', texArrayBitSize, f3d)
 
-    def to_c_helper(self, texData, bitsPerValue):
+    def to_c_helper(self, texData, bitsPerValue, f3d):
         code = CData()
         code.header = f"extern u{str(bitsPerValue)} {self.name}[];\n"
 
-        # This is to force 8 byte alignment
-        if bitsPerValue != 64:
+        if bitsPerValue != 64 and not f3d.F3DZEX_AC_EXT:  # This is to force 8 byte alignment
             code.source = f"Gfx {self.name}_aligner[] = {{gsSPEndDisplayList()}};\n"
-        code.source += f"u{str(bitsPerValue)} {self.name}[] = {{\n\t"
+        code.source += f"u{str(bitsPerValue)} {self.name}[] "
+        if f3d.F3DZEX_AC_EXT:  # Emu64 requires 32 BYTE alignments
+            code.source += "__attribute__((aligned(32))) "
+        code.source += "= {\n\t"
         code.source += texData
         code.source += "\n};\n\n"
         return code

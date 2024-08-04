@@ -489,7 +489,7 @@ class TexInfo:
                     self.palLen = self.texProp.pal_reference_size
             else:
                 assert self.flipbook is None
-                self.pal = getColorsUsedInImage(self.texProp.tex, self.palFormat)
+                self.pal = getColorsUsedInImage(self.texProp.tex, self.palFormat, fModel.f3d.F3DZEX_AC_EXT)
                 self.palLen = len(self.pal)
             if self.palLen > (16 if self.texFormat == "CI4" else 256):
                 raise PluginError(
@@ -559,7 +559,9 @@ class TexInfo:
                     fModel.writeTexRefNonCITextures(self.flipbook, self.texFormat)
             else:
                 if self.isTexCI:
-                    writeCITextureData(self.texProp.tex, fImage, self.pal, self.palFormat, self.texFormat)
+                    writeCITextureData(
+                        self.texProp.tex, fImage, self.pal, self.palFormat, self.texFormat, f3d.F3DZEX_AC_EXT
+                    )
                 else:
                     writeNonCITextureData(self.texProp.tex, fImage, self.texFormat)
 
@@ -1119,12 +1121,12 @@ def savePaletteLoad(
 # Functions for converting and writing texture and palette data
 
 
-def extractConvertCIPixel(image, pixels, i, j, palFormat):
+def extractConvertCIPixel(image, pixels, i, j, palFormat, use_argb):
     color = [1, 1, 1, 1]
     for field in range(image.channels):
         color[field] = pixels[(j * image.size[0] + i) * image.channels + field]
     if palFormat == "RGBA16":
-        pixelColor = getRGBA16Tuple(color)
+        pixelColor = get_rgb5a3_color(color) if use_argb else getRGBA16Tuple(color)
     elif palFormat == "IA16":
         pixelColor = getIA16Tuple(color)
     else:
@@ -1132,13 +1134,13 @@ def extractConvertCIPixel(image, pixels, i, j, palFormat):
     return pixelColor
 
 
-def getColorsUsedInImage(image, palFormat):
+def getColorsUsedInImage(image, palFormat, use_argb):
     palette = []
     # N64 is -Y, Blender is +Y
     pixels = image.pixels[:]
     for j in reversed(range(image.size[1])):
         for i in range(image.size[0]):
-            pixelColor = extractConvertCIPixel(image, pixels, i, j, palFormat)
+            pixelColor = extractConvertCIPixel(image, pixels, i, j, palFormat, use_argb)
             if pixelColor not in palette:
                 palette.append(pixelColor)
     return palette
@@ -1152,13 +1154,13 @@ def mergePalettes(pal0, pal1):
     return palette
 
 
-def getColorIndicesOfTexture(image, palette, palFormat):
+def getColorIndicesOfTexture(image, palette, palFormat, use_argb):
     texture = []
     # N64 is -Y, Blender is +Y
     pixels = image.pixels[:]
     for j in reversed(range(image.size[1])):
         for i in range(image.size[0]):
-            pixelColor = extractConvertCIPixel(image, pixels, i, j, palFormat)
+            pixelColor = extractConvertCIPixel(image, pixels, i, j, palFormat, use_argb)
             if pixelColor not in palette:
                 raise PluginError(f"Bug: {image.name} palette len {len(palette)} missing CI")
             texture.append(palette.index(pixelColor))
@@ -1186,16 +1188,12 @@ def writePaletteData(fPalette: FImage, palette: list[int]):
 
 
 def writeCITextureData(
-    image: bpy.types.Image,
-    fImage: FImage,
-    palette: list[int],
-    palFmt: str,
-    texFmt: str,
+    image: bpy.types.Image, fImage: FImage, palette: list[int], palFmt: str, texFmt: str, use_argb: bool
 ):
     if fImage.converted:
         return
 
-    texture = getColorIndicesOfTexture(image, palette, palFmt)
+    texture = getColorIndicesOfTexture(image, palette, palFmt, use_argb)
 
     if texFmt == "CI4":
         fImage.data = compactNibbleArray(texture, image.size[0], image.size[1])
