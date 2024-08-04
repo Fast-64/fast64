@@ -7,8 +7,10 @@ from ast import parse, Expression, Num, UnaryOp, USub, Invert, BinOp
 from mathutils import Vector
 from bpy.types import Object
 from bpy.utils import register_class, unregister_class
-from typing import Callable, Optional
+from bpy.types import Object
+from typing import Callable, Optional, TYPE_CHECKING, List
 from .oot_constants import ootSceneIDToName
+from dataclasses import dataclass
 
 from ..utility import (
     PluginError,
@@ -23,6 +25,9 @@ from ..utility import (
     hexOrDecInt,
     binOps,
 )
+
+if TYPE_CHECKING:
+    from .scene.properties import OOTBootupSceneOptions
 
 
 def isPathObject(obj: bpy.types.Object) -> bool:
@@ -178,6 +183,43 @@ def getOOTScale(actorScale: float) -> float:
     return bpy.context.scene.ootBlenderScale * actorScale
 
 
+@dataclass
+class OOTEnum:
+    """
+    Represents a enum parsed from C code
+    """
+
+    name: str
+    vals: List[str]
+
+    @staticmethod
+    def fromMatch(m: re.Match):
+        return OOTEnum(m.group("name"), OOTEnum.parseVals(m.group("vals")))
+
+    @staticmethod
+    def parseVals(valsCode: str) -> List[str]:
+        return [entry.strip() for entry in ootStripComments(valsCode).split(",")]
+
+    def indexOrNone(self, valueorNone: str):
+        return self.vals.index(valueorNone) if valueorNone in self.vals else None
+
+
+def ootGetEnums(code: str) -> List["OOTEnum"]:
+    return [
+        OOTEnum.fromMatch(m)
+        for m in re.finditer(
+            r"(?<!extern)\s*"
+            + r"typedef\s*enum\s*(?P<name>[A-Za-z0-9\_]+)"  # doesn't start with extern (is defined here)
+            + r"\s*\{"  # typedef enum gDekukButlerLimb
+            + r"(?P<vals>[^\}]*)"  # opening curly brace
+            + r"\s*\}"  # values
+            + r"\s*\1"  # closing curly brace
+            + r"\s*;",  # name again  # end statement
+            code,
+        )
+    ]
+
+
 def replaceMatchContent(data: str, newContent: str, match: re.Match, index: int) -> str:
     return data[: match.start(index)] + newContent + data[match.end(index) :]
 
@@ -208,13 +250,58 @@ def getSceneDirFromLevelName(name):
     return None
 
 
+def ootStripComments(code: str) -> str:
+    code = re.sub(r"\/\*[^*]*\*+(?:[^/*][^*]*\*+)*\/", "", code)  # replace /* ... */ comments
+    # TODO: replace end of line (// ...) comments
+    return code
+
+
+@dataclass
 class ExportInfo:
-    def __init__(self, isCustomExport, exportPath, customSubPath, name):
-        self.isCustomExportPath = isCustomExport
-        self.exportPath = exportPath
-        self.customSubPath = customSubPath
-        self.name = name
-        self.option: Optional[str] = None
+    """Contains all parameters used for a scene export. Any new parameters for scene export should be added here."""
+
+    isCustomExportPath: bool
+    """Whether or not we are exporting to a known decomp repo"""
+
+    exportPath: str
+    """Either the decomp repo root, or a specified custom folder (if ``isCustomExportPath`` is true)"""
+
+    customSubPath: Optional[str]
+    """If ``isCustomExportPath``, then this is the relative path used for writing filepaths in files like spec.
+    For decomp repos, the relative path is automatically determined and thus this will be ``None``."""
+
+    name: str
+    """ The name of the scene, similar to the folder names of scenes in decomp.
+    If ``option`` is not "Custom", then this is usually overriden by the name derived from ``option`` before being passed in."""
+
+    option: str
+    """ The scene enum value that we are exporting to (can be Custom)"""
+
+    saveTexturesAsPNG: bool
+    """ Whether to write textures as C data or as .png files."""
+
+    isSingleFile: bool
+    """ Whether to export scene files as a single file or as multiple."""
+
+    useMacros: bool
+    """ Whether to use macros or numeric/binary representations of certain values."""
+
+    hackerootBootOption: "OOTBootupSceneOptions"
+    """ Options for setting the bootup scene in HackerOoT."""
+
+
+@dataclass
+class RemoveInfo:
+    """Contains all parameters used for a scene removal."""
+
+    exportPath: str
+    """The path to the decomp repo root"""
+
+    customSubPath: Optional[str]
+    """The relative path to the scene directory, if a custom scene is being removed"""
+
+    name: str
+    """The name of the level to remove"""
 
 
 class OOTObjectCategorizer:
@@ -247,7 +334,7 @@ class OOTObjectCategorizer:
 
 
 # This also sets all origins relative to the scene object.
-def ootDuplicateHierarchy(obj, ignoreAttr, includeEmpties, objectCategorizer):
+def ootDuplicateHierarchy(obj, ignoreAttr, includeEmpties, objectCategorizer) -> tuple[Object, list[Object]]:
     # Duplicate objects to apply scale / modifiers / linked data
     bpy.ops.object.select_all(action="DESELECT")
     ootSelectMeshChildrenOnly(obj, includeEmpties)
@@ -371,12 +458,22 @@ def checkEmptyName(name):
         raise PluginError("No name entered for the exporter.")
 
 
-def ootGetObjectPath(isCustomExport, exportPath, folderName):
+def ootGetObjectPath(isCustomExport: bool, exportPath: str, folderName: str) -> str:
     if isCustomExport:
         filepath = exportPath
     else:
         filepath = os.path.join(
             ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False), folderName + ".c"
+        )
+    return filepath
+
+
+def ootGetObjectHeaderPath(isCustomExport: bool, exportPath: str, folderName: str) -> str:
+    if isCustomExport:
+        filepath = exportPath
+    else:
+        filepath = os.path.join(
+            ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False), folderName + ".h"
         )
     return filepath
 
@@ -940,3 +1037,46 @@ def getNewPath(type: str, isClosedShape: bool):
     bpy.context.view_layer.active_layer_collection.collection.objects.link(newPath)
 
     return newPath
+
+
+def getObjectList(
+    objList: list[Object],
+    objType: str,
+    emptyType: Optional[str] = None,
+    splineType: Optional[str] = None,
+    parentObj: Object = None,
+):
+    """
+    Returns a list containing objects matching ``objType``. Sorts by object name.
+
+    Parameters:
+    - ``objList``: the list of objects to iterate through, usually ``obj.children_recursive``
+    - ``objType``: the object's type (``EMPTY``, ``CURVE``, etc.)
+    - ``emptyType``: optional, filters the object by the given empty type
+    - ``splineType``: optional, filters the object by the given spline type
+    - ``parentObj``: optional, checks if the found object is parented to ``parentObj``
+    """
+
+    ret: list[Object] = []
+    for obj in objList:
+        if obj.type == objType:
+            cond = True
+
+            if emptyType is not None:
+                cond = obj.ootEmptyType == emptyType
+            elif splineType is not None:
+                cond = obj.ootSplineProperty.splineType == splineType
+
+            if parentObj is not None:
+                if emptyType == "Actor" and obj.ootEmptyType == "Room":
+                    for o in obj.children_recursive:
+                        if o.type == objType and o.ootEmptyType == emptyType:
+                            ret.append(o)
+                    continue
+                else:
+                    cond = cond and obj.parent is not None and obj.parent.name == parentObj.name
+
+            if cond:
+                ret.append(obj)
+    ret.sort(key=lambda o: o.name)
+    return ret
