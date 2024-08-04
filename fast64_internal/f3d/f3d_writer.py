@@ -1267,13 +1267,16 @@ def createTriangleCommands(triangles, vertexBuffer, ac_use_7b, triConverterInfo)
 
         return commands
 
-    while t < len(triangles):
-        if not triConverterInfo.f3d.F3D_OLD_GBI and t + 1 < len(triangles):
-            commands.append(SP2Triangles(*getIndices(triangles[t]), 0, *getIndices(triangles[t + 1]), 0))
-            t += 2
+    tri_index = 0
+    while tri_index < len(triangles):
+        if not triConverterInfo.f3d.F3D_OLD_GBI and tri_index + 1 < len(triangles):
+            commands.append(
+                SP2Triangles(*getIndices(triangles[tri_index]), 0, *getIndices(triangles[tri_index + 1]), 0)
+            )
+            tri_index += 2
         else:
-            commands.append(SP1Triangle(*getIndices(triangles[t]), 0))
-            t += 1
+            commands.append(SP1Triangle(*getIndices(triangles[tri_index]), 0))
+            tri_index += 1
 
     return commands
 
