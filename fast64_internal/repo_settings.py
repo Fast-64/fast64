@@ -119,7 +119,7 @@ def draw_repo_settings(layout: UILayout, context: Context):
     SaveRepoSettings.draw_props(col, path=path)
 
     col.prop(fast64_settings, "auto_repo_load_settings")
-    prop_split(col, scene, "f3d_type", "F3D Microcode")
+    prop_split(col, scene, "f3d_type", "Microcode")
     col.prop(scene, "saveTextures")
     col.prop(fast64_settings, "auto_pick_texture_format")
     if fast64_settings.auto_pick_texture_format:
