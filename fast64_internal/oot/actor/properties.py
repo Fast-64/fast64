@@ -1,7 +1,7 @@
 from bpy.types import Object, PropertyGroup, UILayout
 from bpy.utils import register_class, unregister_class
 from bpy.props import EnumProperty, StringProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
-from ...utility import prop_split, label_split
+from ...utility import PluginError, prop_split
 from ..oot_constants import ootData, ootEnumCamTransition
 from ..oot_upgrade import upgradeActors
 from ..scene.properties import OOTAlternateSceneHeaderProperty
@@ -31,9 +31,9 @@ ootEnumSceneSetupPreset = [
 ]
 
 
-def getObjName(actorKey: str, paramType: str, paramSubType: str, paramIndex: int):
-    flagTypeToObjName = {"Chest": "chestFlag", "Collectible": "collectibleFlag", "Switch": "switchFlag"}
-    paramTypeToObjName = {
+def get_prop_name(actor_key: str, param_type: str, param_subtype: str, param_index: int):
+    flag_to_prop_suffix = {"Chest": "chestFlag", "Collectible": "collectibleFlag", "Switch": "switchFlag"}
+    param_to_prop_suffix = {
         "Type": "type",
         "Property": "props",
         "Bool": "bool",
@@ -42,18 +42,19 @@ def getObjName(actorKey: str, paramType: str, paramSubType: str, paramIndex: int
         "Collectible": "collectibleDrop",
         "Message": "naviMsg",
     }
-    suffix = paramTypeToObjName[paramType] if paramType != "Flag" else flagTypeToObjName[paramSubType]
-    return f"{actorKey}.{suffix}{paramIndex}"  # e.g.: ``en_test.props1``
+    suffix = param_to_prop_suffix[param_type] if param_type != "Flag" else flag_to_prop_suffix[param_subtype]
+    return f"{actor_key}.{suffix}{param_index}"  # e.g.: ``en_test.props1``
 
 
 def initOOTActorProperties():
     """This function is used to edit the OOTActorProperty class"""
 
-    propAnnotations = getattr(OOTActorProperty, "__annotations__", None)
-    if propAnnotations is None:
-        OOTActorProperty.__annotations__ = propAnnotations = {}
+    prop_annotations = getattr(OOTActorProperty, "__annotations__", None)
 
-    paramTypeToEnumItems = {
+    if prop_annotations is None:
+        OOTActorProperty.__annotations__ = prop_annotations = {}
+
+    param_type_to_enum_items = {
         "ChestContent": ootData.actorData.ootEnumChestContent,
         "Collectible": ootData.actorData.ootEnumCollectibleItems,
         "Message": ootData.actorData.ootEnumNaviMessageData,
@@ -61,20 +62,20 @@ def initOOTActorProperties():
 
     for actor in ootData.actorData.actorList:
         for param in actor.params:
-            objName = getObjName(actor.key, param.type, param.subType, param.index)
-            enumItems = None
+            prop_name = get_prop_name(actor.key, param.type, param.subType, param.index)
+            enum_items = None
 
             if len(param.items) > 0:
-                enumItems = [(f"0x{val:04X}", name, f"0x{val:04X}") for val, name in param.items]
+                enum_items = [(f"0x{val:04X}", name, f"0x{val:04X}") for val, name in param.items]
             elif param.type in ["ChestContent", "Collectible", "Message"]:
-                enumItems = paramTypeToEnumItems[param.type]
+                enum_items = param_type_to_enum_items[param.type]
 
             if param.type in ["Property", "Flag"]:
-                propAnnotations[objName] = StringProperty(name="", default="0x0")
+                prop_annotations[prop_name] = StringProperty(name="", default="0x0")
             elif param.type == "Bool":
-                propAnnotations[objName] = BoolProperty(name="", default=False)
-            elif param.type in ["Type", "Enum", "ChestContent", "Collectible", "Message"] and enumItems is not None:
-                propAnnotations[objName] = EnumProperty(name="", items=enumItems, default=enumItems[0][0])
+                prop_annotations[prop_name] = BoolProperty(name="", default=False)
+            elif param.type in ["Type", "Enum", "ChestContent", "Collectible", "Message"] and enum_items is not None:
+                prop_annotations[prop_name] = EnumProperty(name="", items=enum_items, default=enum_items[0][0])
 
 
 class OOTActorHeaderItemProperty(PropertyGroup):
@@ -165,38 +166,39 @@ class OOTActorProperty(PropertyGroup):
     actor_id: EnumProperty(name="Actor", items=ootData.actorData.ootEnumActorID, default="ACTOR_PLAYER")
     actor_id_custom: StringProperty(name="Actor ID", default="ACTOR_PLAYER")
 
-    # used for actors with the id "Custom"
+    # only used for actors with the id "Custom"
+    # because of the get/set functions we need a way to input any value
     params_custom: StringProperty(name="Actor Parameter", default="0x0000")
     rot_override: BoolProperty(name="Override Rotation", default=False)
-    rot_override_x: StringProperty(name="Rot X", default="0x0000")
-    rot_override_y: StringProperty(name="Rot Y", default="0x0000")
-    rot_override_z: StringProperty(name="Rot Z", default="0x0000")
+    rot_x_custom: StringProperty(name="Rot X", default="0x0000")
+    rot_y_custom: StringProperty(name="Rot Y", default="0x0000")
+    rot_z_custom: StringProperty(name="Rot Z", default="0x0000")
 
     # non-custom actors
     params: StringProperty(
         name="Actor Parameter",
         default="0x0000",
-        get=lambda self: self.getParamValue("Params"),
-        set=lambda self, value: self.setParamValue(value, "Params"),
+        get=lambda self: self.get_param_value("Params"),
+        set=lambda self, value: self.set_param_value(value, "Params"),
     )
 
     rot_x: StringProperty(
         name="Rot X",
         default="0",
-        get=lambda self: self.getParamValue("XRot"),
-        set=lambda self, value: self.setParamValue(value, "XRot"),
+        get=lambda self: self.get_param_value("XRot"),
+        set=lambda self, value: self.set_param_value(value, "XRot"),
     )
     rot_y: StringProperty(
         name="Rot Y",
         default="0",
-        get=lambda self: self.getParamValue("YRot"),
-        set=lambda self, value: self.setParamValue(value, "YRot"),
+        get=lambda self: self.get_param_value("YRot"),
+        set=lambda self, value: self.set_param_value(value, "YRot"),
     )
     rot_z: StringProperty(
         name="Rot Z",
         default="0",
-        get=lambda self: self.getParamValue("ZRot"),
-        set=lambda self, value: self.setParamValue(value, "ZRot"),
+        get=lambda self: self.get_param_value("ZRot"),
+        set=lambda self, value: self.set_param_value(value, "ZRot"),
     )
 
     headerSettings: PointerProperty(type=OOTActorHeaderProperty)
@@ -207,155 +209,175 @@ class OOTActorProperty(PropertyGroup):
         print(f"Processing '{obj.name}'...")
         upgradeActors(obj)
 
-    def isRotationUsedByActor(self, target: str):
+    def is_rotation_used(self, target: str):
         actor = ootData.actorData.actorsByID[self.actor_id]
-        for param in actor.params:
-            curType = None
+        selected_type = None
 
+        for param in actor.params:
             if param.type == "Type":
-                objName = getObjName(actor.key, param.type, param.subType, param.index)
-                curType = getEvalParamsInt(getattr(self, objName))
+                prop_name = get_prop_name(actor.key, param.type, param.subType, param.index)
+                selected_type = getEvalParamsInt(getattr(self, prop_name))
 
             # the first parameter type is always the "Actor Type"
             # because of that we need to make sure the current "Actor Type" value
             # is included in type list of the property as not all properties are used sometimes
-            if curType is not None and curType in param.tiedTypes or len(param.tiedTypes) == 0:
+            if selected_type is not None and selected_type in param.tiedTypes or len(param.tiedTypes) == 0:
                 if param.target != "Params" and target == param.target:
                     return True
+
         return False
 
-    def isValueInRange(self, value: int, min: int, max: int):
+    def is_value_in_range(self, value: int, min: int, max: int):
         if min is not None and max is not None:
             return value >= min and value <= max
         return True
 
-    def setParamValue(self, value: str | bool, target: str):
+    def set_param_value(self, base_value: str | bool, target: str):
         actor = ootData.actorData.actorsByID[self.actor_id]
-        value = getEvalParamsInt(value)
-        foundType = None
+        base_value = getEvalParamsInt(base_value)
+        found_type = None
+
         for param in actor.params:
             if target == param.target:
                 shift = getShiftFromMask(param.mask)
                 if param.type != "Type":
-                    shiftedVal = (value & param.mask) >> shift
+                    value = (base_value & param.mask) >> shift
                 else:
-                    shiftedVal = value & param.mask
-                    foundType = shiftedVal
+                    value = base_value & param.mask
 
-                if "Rot" in target:
-                    foundType = getEvalParamsInt(getattr(self, getObjName(actor.key, "Type", None, 1)))
-
-                isInRange = self.isValueInRange(shiftedVal, param.valueRange[0], param.valueRange[1])
-                if isInRange and (foundType is not None and foundType in param.tiedTypes or len(param.tiedTypes) == 0):
-                    objName = getObjName(actor.key, param.type, param.subType, param.index)
-                    if param.type == "ChestContent":
-                        val = ootData.actorData.chestItemByValue[shiftedVal].key
-                    elif param.type == "Collectible":
-                        val = ootData.actorData.collectibleItemsByValue[shiftedVal].key
-                    elif param.type == "Message":
-                        val = ootData.actorData.messageItemsByValue[shiftedVal].key
-                    elif param.type == "Bool":
-                        val = bool(shiftedVal)
+                    if "Rot" in target:
+                        found_type = getEvalParamsInt(getattr(self, get_prop_name(actor.key, "Type", None, 1)))
                     else:
-                        val = f"0x{shiftedVal:04X}"
-                    setattr(self, objName, val)
+                        found_type = value
 
-    def getParamValue(self, target: str):
+                is_in_range = self.is_value_in_range(value, param.valueRange[0], param.valueRange[1])
+                found_type_in_tied_types = found_type is not None and found_type in param.tiedTypes
+
+                if is_in_range and (found_type_in_tied_types or len(param.tiedTypes) == 0):
+                    prop_name = get_prop_name(actor.key, param.type, param.subType, param.index)
+
+                    if param.type == "ChestContent":
+                        prop_value = ootData.actorData.chestItemByValue[value].key
+                    elif param.type == "Collectible":
+                        prop_value = ootData.actorData.collectibleItemsByValue[value].key
+                    elif param.type == "Message":
+                        prop_value = ootData.actorData.messageItemsByValue[value].key
+                    elif param.type == "Bool":
+                        prop_value = bool(value)
+                    else:
+                        prop_value = f"0x{value:04X}"
+
+                    try:
+                        setattr(self, prop_name, prop_value)
+                    except:
+                        raise PluginError(
+                            f"ERROR: invalid value '{prop_value}' ('{base_value}') for '{prop_name}'. "
+                            + "Maybe `ActorList.xml` is missing informations?"
+                        )
+
+    def get_param_value(self, target: str):
         actor = ootData.actorData.actorsByID[self.actor_id]
-        paramList = []
-        typeValue = None
+        param_list = []
+        type_value = None
+
         for param in actor.params:
             if target == param.target:
-                paramValue = None
-                curPropValue = getattr(self, getObjName(actor.key, param.type, param.subType, param.index))
+                param_val = None
+                cur_prop_value = getattr(self, get_prop_name(actor.key, param.type, param.subType, param.index))
 
                 if param.type not in ["Type", "ChestContent", "Collectible", "Message"]:
-                    paramValue = getEvalParamsInt(
-                        curPropValue if not param.type == "Bool" else "1" if curPropValue else "0"
+                    param_val = getEvalParamsInt(
+                        cur_prop_value if not param.type == "Bool" else "1" if cur_prop_value else "0"
                     )
                 else:
                     if param.type == "Type":
-                        typeValue = getEvalParamsInt(curPropValue)
+                        type_value = getEvalParamsInt(cur_prop_value)
                     else:
-                        paramValue = 0
+                        param_val = 0
+
                         if param.type == "ChestContent":
-                            paramValue = ootData.actorData.chestItemByKey[curPropValue].value
+                            param_val = ootData.actorData.chestItemByKey[cur_prop_value].value
                         elif param.type == "Collectible":
-                            paramValue = ootData.actorData.collectibleItemsByKey[curPropValue].value
+                            param_val = ootData.actorData.collectibleItemsByKey[cur_prop_value].value
                         elif param.type == "Message":
-                            paramValue = ootData.actorData.messageItemsByKey[curPropValue].value
+                            param_val = ootData.actorData.messageItemsByKey[cur_prop_value].value
 
                 if "Rot" in target:
-                    typeValue = getEvalParamsInt(getattr(self, getObjName(actor.key, "Type", None, 1)))
+                    type_value = getEvalParamsInt(getattr(self, get_prop_name(actor.key, "Type", None, 1)))
 
-                if typeValue is not None and typeValue in param.tiedTypes or len(param.tiedTypes) == 0:
-                    val = ((paramValue if paramValue is not None else -1) & param.mask) >> getShiftFromMask(param.mask)
-                    isInRange = self.isValueInRange(val, param.valueRange[0], param.valueRange[1])
-                    if isInRange and param.type != "Type" and paramValue is not None:
-                        value = getFormattedParams(param.mask, paramValue, param.type == "Bool")
+                if type_value is not None and type_value in param.tiedTypes or len(param.tiedTypes) == 0:
+                    val = ((param_val if param_val is not None else -1) & param.mask) >> getShiftFromMask(param.mask)
+                    is_in_range = self.is_value_in_range(val, param.valueRange[0], param.valueRange[1])
+
+                    if is_in_range and param.type != "Type" and param_val is not None:
+                        value = getFormattedParams(param.mask, param_val, param.type == "Bool")
+
                         if value is not None:
-                            paramList.append(value)
+                            param_list.append(value)
 
-        if len(paramList) > 0:
-            paramString = " | ".join(val for val in paramList)
+        if len(param_list) > 0:
+            param_str = " | ".join(val for val in param_list)
         else:
-            paramString = "0x0"
+            param_str = "0x0"
 
         if "Rot" in target:
-            typeValue = None
+            type_value = None
 
-        evalTypeValue = typeValue if typeValue is not None else 0
-        evalParamValue = getEvalParamsInt(paramString)
+        eval_type_value = type_value if type_value is not None else 0
+        eval_param_value = getEvalParamsInt(param_str)
 
-        if evalTypeValue and evalParamValue and typeValue is not None:
-            paramString = f"(0x{typeValue:04X} | ({paramString}))"
-        elif evalTypeValue and not evalParamValue and typeValue is not None:
-            paramString = f"0x{typeValue:04X}"
-        elif not evalTypeValue and evalParamValue:
-            paramString = f"({paramString})"
+        if eval_type_value and eval_param_value and type_value is not None:
+            param_str = f"(0x{type_value:04X} | ({param_str}))"
+        elif eval_type_value and not eval_param_value and type_value is not None:
+            param_str = f"0x{type_value:04X}"
+        elif not eval_type_value and eval_param_value:
+            param_str = f"({param_str})"
         else:
-            paramString = "0x0"
+            param_str = "0x0"
 
-        return paramString if not self.eval_params else getEvalParams(paramString)
+        return param_str if not self.eval_params else getEvalParams(param_str)
 
     def draw_params(self, layout: UILayout, obj: Object):
         actor = ootData.actorData.actorsByID[self.actor_id]
+        selected_type = None
+
         for param in actor.params:
-            propName = getObjName(actor.key, param.type, param.subType, param.index)
-            curType = None
+            prop_name = get_prop_name(actor.key, param.type, param.subType, param.index)
 
             if param.type == "Type":
-                curType = getEvalParamsInt(getattr(self, propName))
+                selected_type = getEvalParamsInt(getattr(self, prop_name))
 
             # the first parameter type is always the "Actor Type"
             # because of that we need to make sure the current "Actor Type" value
             # is included in type list of the property as not all properties are used sometimes
-            if curType is not None and curType in param.tiedTypes or param.type == "Type" or len(param.tiedTypes) == 0:
-                searchOp = itemName = None
-                labelName = ""
-                if param.type == "ChestContent":
-                    searchOp = layout.operator(OOT_SearchChestContentEnumOperator.bl_idname)
-                    labelName = "Chest Content"
-                    itemName = ootData.actorData.chestItemByKey[getattr(self, propName)].name
-                elif param.type == "Message":
-                    searchOp = layout.operator(OOT_SearchNaviMsgIDEnumOperator.bl_idname)
-                    labelName = "Navi Message ID"
-                    itemName = ootData.actorData.messageItemsByKey[getattr(self, propName)].name
+            is_type_in_tied_types = selected_type is not None and selected_type in param.tiedTypes
+            if is_type_in_tied_types or param.type == "Type" or len(param.tiedTypes) == 0:
+                search_op = item_name = None
+                label_name = ""
 
-                if param.type in ["ChestContent", "Message"] and searchOp is not None and itemName is not None:
-                    searchOp.objName = obj.name
-                    searchOp.propName = propName
+                if param.type == "ChestContent":
+                    search_op = layout.operator(OOT_SearchChestContentEnumOperator.bl_idname)
+                    label_name = "Chest Content"
+                    item_name = ootData.actorData.chestItemByKey[getattr(self, prop_name)].name
+                elif param.type == "Message":
+                    search_op = layout.operator(OOT_SearchNaviMsgIDEnumOperator.bl_idname)
+                    label_name = "Navi Message ID"
+                    item_name = ootData.actorData.messageItemsByKey[getattr(self, prop_name)].name
+
+                if param.type in ["ChestContent", "Message"] and search_op is not None and item_name is not None:
+                    search_op.obj_name = obj.name
+                    search_op.prop_name = prop_name
                     split = layout.split(factor=0.5)
-                    split.label(text=labelName)
-                    split.label(text=itemName)
+                    split.label(text=label_name)
+                    split.label(text=item_name)
                 else:
-                    prop_split(layout, self, propName, param.name)
+                    prop_split(layout, self, prop_name, param.name)
 
     def draw_props(self, layout: UILayout, altRoomProp: OOTAlternateRoomHeaderProperty, obj: Object):
         actorIDBox = layout.column()
         searchOp = actorIDBox.operator(OOT_SearchActorIDEnumOperator.bl_idname, icon="VIEWZOOM")
-        searchOp.actorUser = "Actor"
-        searchOp.objName = obj.name
+        searchOp.actor_user = "Actor"
+        searchOp.obj_name = obj.name
 
         split = actorIDBox.split(factor=0.5)
 
@@ -380,21 +402,21 @@ class OOTActorProperty(PropertyGroup):
         else:
             paramBox.prop(self, "params_custom", text="")
 
-        rotationsUsedByActor = []
+        rotations_used = []
         if self.rot_override:
-            rotationsUsedByActor = ["X", "Y", "Z"]
+            rotations_used = ["X", "Y", "Z"]
         elif self.actor_id != "Custom":
-            if self.isRotationUsedByActor("XRot"):
-                rotationsUsedByActor.append("X")
-            if self.isRotationUsedByActor("YRot"):
-                rotationsUsedByActor.append("Y")
-            if self.isRotationUsedByActor("ZRot"):
-                rotationsUsedByActor.append("Z")
+            if self.is_rotation_used("XRot"):
+                rotations_used.append("X")
+            if self.is_rotation_used("YRot"):
+                rotations_used.append("Y")
+            if self.is_rotation_used("ZRot"):
+                rotations_used.append("Z")
 
         if self.actor_id == "Custom":
             paramBox.prop(self, "rot_override", text="Override Rotation (ignore Blender rot)")
 
-        for rot in rotationsUsedByActor:
+        for rot in rotations_used:
             override = ""
             if self.actor_id == "Custom":
                 override = "Override"
@@ -423,8 +445,8 @@ class OOTTransitionActorProperty(PropertyGroup):
     ):
         actorIDBox = layout.column()
         searchOp = actorIDBox.operator(OOT_SearchActorIDEnumOperator.bl_idname, icon="VIEWZOOM")
-        searchOp.actorUser = "Transition Actor"
-        searchOp.objName = objName
+        searchOp.actor_user = "Transition Actor"
+        searchOp.obj_name = objName
 
         split = actorIDBox.split(factor=0.5)
         split.label(text="Actor ID")

@@ -140,15 +140,15 @@ class RoomActors:
     @staticmethod
     def get_rotation_values(actorProp: OOTActorProperty, blender_rot_values: list[int]):
         # Figure out which rotation to export, Blender's or the override
-        override = "Override" if actorProp.actor_id == "Custom" else ""
-        rot_values = [getattr(actorProp, f"rot{override}{rot}") for rot in ["X", "Y", "Z"]]
+        custom = "_custom" if actorProp.actor_id == "Custom" else ""
+        rot_values = [getattr(actorProp, f"rot_{rot}{custom}") for rot in ["x", "y", "z"]]
         export_rot_values = [f"DEG_TO_BINANG({(rot * (180 / 0x8000)):.3f})" for rot in blender_rot_values]
 
         if actorProp.actor_id == "Custom":
             export_rot_values = rot_values if actorProp.rot_override else export_rot_values
         else:
             for i, rot in enumerate(["X", "Y", "Z"]):
-                if getattr(actorProp, f"isRot{rot}UsedByActor"):
+                if actorProp.is_rotation_used(f"{rot}Rot"):
                     export_rot_values[i] = rot_values[i]
 
         assert len(export_rot_values) == 3

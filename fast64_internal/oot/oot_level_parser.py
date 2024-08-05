@@ -685,9 +685,9 @@ def handleActorWithRotAsParam(actorProp: OOTActorProperty, actorID: str, rotatio
             actorProp.rot_z = hex(rotation[2])
         else:
             actorProp.rot_override = True
-            actorProp.rot_override_x = hex(rotation[0])
-            actorProp.rot_override_y = hex(rotation[1])
-            actorProp.rot_override_z = hex(rotation[2])
+            actorProp.rot_x_custom = hex(rotation[0])
+            actorProp.rot_y_custom = hex(rotation[1])
+            actorProp.rot_z_custom = hex(rotation[2])
 
 
 def parseTransActorList(

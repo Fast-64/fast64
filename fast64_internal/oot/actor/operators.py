@@ -9,17 +9,17 @@ from ..oot_constants import ootData
 class OOT_SearchChestContentEnumOperator(Operator):
     bl_idname = "object.oot_search_chest_content_enum_operator"
     bl_label = "Select Chest Content"
-    bl_property = "chestContent"
+    bl_property = "chest_content"
     bl_options = {"REGISTER", "UNDO"}
 
-    chestContent: EnumProperty(items=ootData.actorData.ootEnumChestContent, default="item_heart")
-    objName: StringProperty()
-    propName: StringProperty()
+    chest_content: EnumProperty(items=ootData.actorData.ootEnumChestContent, default="item_heart")
+    obj_name: StringProperty()
+    prop_name: StringProperty()
 
     def execute(self, context):
-        setattr(bpy.data.objects[self.objName].ootActorProperty, self.propName, self.chestContent)
+        setattr(bpy.data.objects[self.obj_name].ootActorProperty, self.prop_name, self.chest_content)
         context.region.tag_redraw()
-        self.report({"INFO"}, "Selected: " + self.chestContent)
+        self.report({"INFO"}, f"Selected: {self.chest_content}")
         return {"FINISHED"}
 
     def invoke(self, context, event):
@@ -30,17 +30,17 @@ class OOT_SearchChestContentEnumOperator(Operator):
 class OOT_SearchNaviMsgIDEnumOperator(Operator):
     bl_idname = "object.oot_search_navi_msg_id_enum_operator"
     bl_label = "Select Message ID"
-    bl_property = "naviMsgID"
+    bl_property = "navi_msg_id"
     bl_options = {"REGISTER", "UNDO"}
 
-    naviMsgID: EnumProperty(items=ootData.actorData.ootEnumNaviMessageData, default="msg_00")
-    objName: StringProperty()
-    propName: StringProperty()
+    navi_msg_id: EnumProperty(items=ootData.actorData.ootEnumNaviMessageData, default="msg_00")
+    obj_name: StringProperty()
+    prop_name: StringProperty()
 
     def execute(self, context):
-        setattr(bpy.data.objects[self.objName].ootActorProperty, self.propName, self.naviMsgID)
+        setattr(bpy.data.objects[self.obj_name].ootActorProperty, self.prop_name, self.navi_msg_id)
         context.region.tag_redraw()
-        self.report({"INFO"}, "Selected: " + self.naviMsgID)
+        self.report({"INFO"}, f"Selected: {self.navi_msg_id}")
         return {"FINISHED"}
 
     def invoke(self, context, event):
@@ -54,21 +54,22 @@ class OOT_SearchActorIDEnumOperator(Operator):
     bl_property = "actor_id"
     bl_options = {"REGISTER", "UNDO"}
 
-    actor_id: EnumProperty(items=lambda self, context: ootData.actorData.getItems(self.actorUser))
-    actorUser: StringProperty(default="Actor")
-    objName: StringProperty()
+    actor_id: EnumProperty(items=lambda self, context: ootData.actorData.getItems(self.actor_user))
+    actor_user: StringProperty(default="Actor")
+    obj_name: StringProperty()
 
     def execute(self, context):
-        obj = bpy.data.objects[self.objName]
-        if self.actorUser == "Transition Actor":
+        obj = bpy.data.objects[self.obj_name]
+
+        if self.actor_user == "Transition Actor":
             obj.ootTransitionActorProperty.actor.actor_id = self.actor_id
-        elif self.actorUser == "Actor":
+        elif self.actor_user == "Actor":
             obj.ootActorProperty.actor_id = self.actor_id
         else:
-            raise PluginError("Invalid actor user for search: " + str(self.actorUser))
+            raise PluginError("Invalid actor user for search: " + str(self.actor_user))
 
         context.region.tag_redraw()
-        self.report({"INFO"}, "Selected: " + self.actor_id)
+        self.report({"INFO"}, f"Selected: {self.actor_id}")
         return {"FINISHED"}
 
     def invoke(self, context, event):

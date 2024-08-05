@@ -332,24 +332,18 @@ def upgradeActors(actorObj: Object):
 
         del actorProp["actorParam"]
 
-    if not isCustom:
-        if actorObj.ootEmptyType == "Actor":
+    if actorObj.ootEmptyType == "Actor":
+        custom = "_custom" if actorProp.actor_id == "Custom" else ""
+
+        if isCustom:
             if "rotOverride" in actorProp:
                 actorProp.rot_override = actorProp["rotOverride"]
                 del actorProp["rotOverride"]
 
-            if actorProp.rot_override:
-                if "rotOverrideX" in actorProp:
-                    actorProp.rot_x = actorProp["rotOverrideX"]
-                    del actorProp["rotOverrideX"]
-
-                if "rotOverrideY" in actorProp:
-                    actorProp.rot_y = actorProp["rotOverrideY"]
-                    del actorProp["rotOverrideY"]
-
-                if "rotOverrideZ" in actorProp:
-                    actorProp.rot_z = actorProp["rotOverrideZ"]
-                    del actorProp["rotOverrideZ"]
+        for rot in {"X", "Y", "Z"}:
+            if actorProp.is_rotation_used(f"{rot}Rot"):
+                if f"rotOverride{rot}" in actorProp:
+                    setattr(actorProp, f"rot_{rot.lower()}{custom}", actorProp[f"rotOverride{rot}"])
 
     # room stuff
     if actorObj.ootEmptyType == "Entrance":
