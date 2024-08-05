@@ -118,11 +118,11 @@ drawLayerOOTtoSM64 = {
 drawLayerSM64Alpha = {
     "0": "OPA",
     "1": "OPA",
-    "2": "OPA",
+    "2": "DECAL",
     "3": "OPA",
     "4": "CLIP",
     "5": "XLU",
-    "6": "XLU",
+    "6": "DECAL",
     "7": "XLU",
 }
 
@@ -286,12 +286,20 @@ def get_output_method(material: bpy.types.Material) -> str:
 
 
 def update_blend_method(material: Material, context):
+    blend_mode = get_output_method(material)
+    if material.f3d_mat.rdp_settings.zmode == "ZMODE_DEC":
+        blend_mode = "DECAL"
     if bpy.app.version >= (4, 2, 0):
-        material.surface_render_method = "BLENDED"
-    elif get_output_method(material) == "OPA":
+        if blend_mode == "DECAL":
+            material.surface_render_method = "BLENDED"
+        else:
+            material.surface_render_method = "HASHED"
+    elif blend_mode == "OPA":
         material.blend_method = "OPAQUE"
-    else:
+    elif blend_mode == "DECAL":
         material.blend_method = "BLEND"
+    else:
+        material.blend_method = "HASHED"
 
 
 class DrawLayerProperty(PropertyGroup):
