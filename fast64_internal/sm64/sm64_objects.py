@@ -1272,7 +1272,7 @@ class SM64ObjectPanel(bpy.types.Panel):
             fog_props.enabled = area_props.set_fog
             multilineLabel(
                 fog_props,
-                'Any material in the area can use "Set Area Fog" to\n'
+                'Any material in the area can use "Use Area\'s Fog" to\n'
                 "use the area's fog settings.\n"
                 "This is not the same as applying fog once for the\n"
                 "whole area, each material will have its own fog\n"
@@ -1745,7 +1745,7 @@ class SM64_AreaProperties(bpy.types.PropertyGroup):
     set_fog: bpy.props.BoolProperty(
         name="Set Fog Settings",
         default=True,
-        description='Any material in the area will use the area\'s fog if they have "Set Area Fog" enabled.\nThis is not the same as setting fog once for the whole area, each material will have its own fog applied as vanilla SM64 has no fog system',
+        description='Any material in the area will use the area\'s fog if they have "Use Area\'s Fog" enabled.\nThis is not the same as setting fog once for the whole area, each material will have its own fog applied as vanilla SM64 has no fog system',
     )
 
 
@@ -2034,6 +2034,7 @@ def sm64_obj_register():
         size=2,
         min=0,
         max=0x7FFFFFFF,
+        step=100,
         default=(985, 1000),
         update=sm64_on_update_area_render_settings,
     )
