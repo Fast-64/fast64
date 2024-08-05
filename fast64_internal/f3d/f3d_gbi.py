@@ -2232,7 +2232,7 @@ class FAreaData:
 
 class FGlobalData:
     def __init__(self):
-        # dict of area index : FFogData
+        # dict of area index : FAreaData
         self.area_data = {}
         self.current_area_index = 1
 
