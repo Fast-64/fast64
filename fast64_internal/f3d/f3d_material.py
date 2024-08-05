@@ -3127,13 +3127,13 @@ class PrimDepthSettings(PropertyGroup):
 class RDPSettings(PropertyGroup):
     g_zbuffer: bpy.props.BoolProperty(
         name="Z Buffer",
-        default=True,
+        default=False,
         update=update_node_values_with_preset,
         description="Enables calculation of Z value for primitives. Disable if not reading or writing Z-Buffer in the blender",
     )
     g_shade: bpy.props.BoolProperty(
         name="Shading",
-        default=True,
+        default=False,
         update=update_node_values_with_preset,
         description="Computes shade coordinates for primitives. Disable if not using lighting, vertex colors or fog",
     )
@@ -3165,7 +3165,7 @@ class RDPSettings(PropertyGroup):
     # v1/2 difference
     g_cull_back: bpy.props.BoolProperty(
         name="Cull Back",
-        default=True,
+        default=False,
         update=update_node_values_with_preset,
         description="Disables drawing of back faces",
     )
@@ -3207,7 +3207,7 @@ class RDPSettings(PropertyGroup):
     )
     g_lighting: bpy.props.BoolProperty(
         name="Lighting",
-        default=True,
+        default=False,
         update=update_node_values_with_preset,
         description="Enables calculating shade color using lights. Turn off for vertex colors as shade color",
     )
@@ -3231,13 +3231,13 @@ class RDPSettings(PropertyGroup):
     )
     g_shade_smooth: bpy.props.BoolProperty(
         name="Smooth Shading",
-        default=True,
+        default=False,
         update=update_node_values_with_preset,
         description="Shades primitive smoothly using interpolation between shade values for each vertex (Gouraud shading)",
     )
     g_clipping: bpy.props.BoolProperty(
         name="Clipping",
-        default=False,
+        default=True,
         update=update_node_values_with_preset,
         description="F3DEX1/LX only, exact function unknown",
     )
@@ -3247,7 +3247,7 @@ class RDPSettings(PropertyGroup):
     g_mdsft_alpha_dither: bpy.props.EnumProperty(
         name="Alpha Dither",
         items=enumAlphaDither,
-        default="G_AD_NOISE",
+        default="G_AD_DISABLE",
         update=update_node_values_with_preset,
         description="Applies your choice dithering type to output framebuffer alpha. Dithering is used to convert high precision source colors into lower precision framebuffer values",
     )
@@ -3269,14 +3269,14 @@ class RDPSettings(PropertyGroup):
     g_mdsft_textconv: bpy.props.EnumProperty(
         name="Texture Convert",
         items=enumTextConv,
-        default="G_TC_FILT",
+        default="G_TC_CONV",
         update=update_node_values_with_preset,
         description="Sets the function of the texture convert unit, to do texture filtering, YUV to RGB conversion, or both",
     )
     g_mdsft_text_filt: bpy.props.EnumProperty(
         name="Texture Filter",
         items=enumTextFilt,
-        default="G_TF_BILERP",
+        default="G_TF_POINT",
         update=update_node_values_without_preset,
         description="Applies your choice of filtering to texels",
     )
@@ -3310,7 +3310,7 @@ class RDPSettings(PropertyGroup):
     g_mdsft_textpersp: bpy.props.EnumProperty(
         name="Texture Perspective Correction",
         items=enumTextPersp,
-        default="G_TP_PERSP",
+        default="G_TP_NONE",
         update=update_node_values_with_preset,
         description="Turns on/off texture perspective correction",
     )
@@ -3332,7 +3332,7 @@ class RDPSettings(PropertyGroup):
     g_mdsft_pipeline: bpy.props.EnumProperty(
         name="Pipeline Span Buffer Coherency",
         items=enumPipelineMode,
-        default="G_PM_1PRIMITIVE",
+        default="G_PM_NPRIMITIVE",
         update=update_node_values_with_preset,
         description="Changes primitive rasterization timing by adding syncs after tri draws. Vanilla SM64 has synchronization issues which could cause a crash if not using 1 prim. For any modern SM64 hacking project or other game N-prim should always be used",
     )
@@ -3518,7 +3518,7 @@ class RDPSettings(PropertyGroup):
     ]
 
     geo_mode_f3dex_attributes = [
-        ("clipping", "g_clipping", False),
+        ("clipping", "g_clipping", True),
     ]
 
     geo_mode_f3dex3_attributes = [
@@ -3546,7 +3546,7 @@ class RDPSettings(PropertyGroup):
         self.attributes_from_dict(data, self.geo_mode_attributes)
 
     other_mode_h_attributes = [
-        ("alphaDither", "g_mdsft_alpha_dither", "G_AD_PATTERN"),
+        ("alphaDither", "g_mdsft_alpha_dither", "G_AD_DISABLE"),
         ("colorDither", "g_mdsft_rgb_dither", "G_CD_MAGICSQ"),
         ("chromaKey", "g_mdsft_combkey", "G_CK_NONE"),
         ("textureConvert", "g_mdsft_textconv", "G_TC_CONV"),
@@ -3671,6 +3671,31 @@ class RDPSettings(PropertyGroup):
         return str(self.to_dict().items())
 
 
+def draw_rdp_world_defaults(layout: UILayout, scene: Scene):
+    world = scene.world
+    if world is None:
+        layout.box().label(text="No World Selected In Scene", icon="WORLD")
+        return
+    rdp_defaults = world.rdp_defaults
+    col = layout.column()
+    col.box().label(text="RDP Default Settings", icon="WORLD")
+    multilineLabel(
+        col,
+        text="If a material setting is the same as the default setting\n"
+        "it won't be set, otherwise a revert will be added.",
+    )
+    if scene.gameEditorMode == "Homebrew":
+        multilineLabel(
+            col.box(),
+            text="Homebrew mode defaults to ucode defaults,\nmake sure to set your own.",
+            icon="INFO",
+        )
+    ui_geo_mode(rdp_defaults, world, col, True)
+    ui_upper_mode(rdp_defaults, world, col, True)
+    ui_lower_mode(rdp_defaults, world, col, True)
+    ui_other(rdp_defaults, world, col, True)
+
+
 class DefaultRDPSettingsPanel(Panel):
     bl_label = "RDP Default Settings"
     bl_idname = "WORLD_PT_RDP_Default_Inspector"
@@ -3680,14 +3705,7 @@ class DefaultRDPSettingsPanel(Panel):
     bl_options = {"HIDE_HEADER"}
 
     def draw(self, context):
-        world = context.scene.world
-        layout = self.layout
-        layout.box().label(text="RDP Default Settings")
-        layout.label(text="If a material setting is a same as a default setting, then it won't be set.")
-        ui_geo_mode(world.rdp_defaults, world, layout, True)
-        ui_upper_mode(world.rdp_defaults, world, layout, True)
-        ui_lower_mode(world.rdp_defaults, world, layout, True)
-        ui_other(world.rdp_defaults, world, layout, True)
+        draw_rdp_world_defaults(self.layout, context.scene)
 
 
 class CelLevelProperty(PropertyGroup):
