@@ -1585,24 +1585,22 @@ def update_fog_nodes(material: Material, context: Context):
 
     remove_first_link_if_exists(material, fogBlender.inputs["FogAmount"].links)
     if material.f3d_mat.rdp_settings.g_fog:
-        inherit_fog = f3dMat.use_global_fog or not f3dMat.set_fog
-        if inherit_fog:
-            link_if_none_exist(material, nodes["SceneProperties"].outputs["FogColor"], nodes["FogColor"].inputs[0])
-            link_if_none_exist(material, nodes["GlobalFogColor"].outputs[0], fogBlender.inputs["Fog Color"])
-            link_if_none_exist(
-                material, nodes["SceneProperties"].outputs["FogNear"], nodes["CalcFog"].inputs["FogNear"]
-            )
-            link_if_none_exist(material, nodes["SceneProperties"].outputs["FogFar"], nodes["CalcFog"].inputs["FogFar"])
-        else:
-            remove_first_link_if_exists(material, nodes["FogBlender"].inputs["Fog Color"].links)
-            remove_first_link_if_exists(material, nodes["CalcFog"].inputs["FogNear"].links)
-            remove_first_link_if_exists(material, nodes["CalcFog"].inputs["FogFar"].links)
         material.node_tree.links.new(nodes["CalcFog"].outputs["FogAmount"], fogBlender.inputs["FogAmount"])
-    else:
+    else: # If fog is not being calculated, pass in shade alpha
         material.node_tree.links.new(nodes["Shade Color"].outputs["Alpha"], fogBlender.inputs["FogAmount"])
-    fogBlender.inputs["Fog Color"].default_value = s_rgb_alpha_1_tuple(f3dMat.fog_color)
-    nodes["CalcFog"].inputs["FogNear"].default_value = f3dMat.fog_position[0]
-    nodes["CalcFog"].inputs["FogFar"].default_value = f3dMat.fog_position[1]
+
+    if f3dMat.use_global_fog or not f3dMat.set_fog: # Inherit fog
+        link_if_none_exist(material, nodes["SceneProperties"].outputs["FogColor"], nodes["FogColor"].inputs[0])
+        link_if_none_exist(material, nodes["GlobalFogColor"].outputs[0], fogBlender.inputs["Fog Color"])
+        link_if_none_exist(material, nodes["SceneProperties"].outputs["FogNear"], nodes["CalcFog"].inputs["FogNear"])
+        link_if_none_exist(material, nodes["SceneProperties"].outputs["FogFar"], nodes["CalcFog"].inputs["FogFar"])
+    else:
+        remove_first_link_if_exists(material, nodes["FogBlender"].inputs["Fog Color"].links)
+        remove_first_link_if_exists(material, nodes["CalcFog"].inputs["FogNear"].links)
+        remove_first_link_if_exists(material, nodes["CalcFog"].inputs["FogFar"].links)
+        fogBlender.inputs["Fog Color"].default_value = s_rgb_alpha_1_tuple(f3dMat.fog_color)
+        nodes["CalcFog"].inputs["FogNear"].default_value = f3dMat.fog_position[0]
+        nodes["CalcFog"].inputs["FogFar"].default_value = f3dMat.fog_position[1]
 
 
 def update_noise_nodes(material: Material):
