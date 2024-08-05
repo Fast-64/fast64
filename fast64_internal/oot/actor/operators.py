@@ -51,24 +51,24 @@ class OOT_SearchNaviMsgIDEnumOperator(Operator):
 class OOT_SearchActorIDEnumOperator(Operator):
     bl_idname = "object.oot_search_actor_id_enum_operator"
     bl_label = "Select Actor ID"
-    bl_property = "actorID"
+    bl_property = "actor_id"
     bl_options = {"REGISTER", "UNDO"}
 
-    actorID: EnumProperty(items=lambda self, context: ootData.actorData.getItems(self.actorUser))
+    actor_id: EnumProperty(items=lambda self, context: ootData.actorData.getItems(self.actorUser))
     actorUser: StringProperty(default="Actor")
     objName: StringProperty()
 
     def execute(self, context):
         obj = bpy.data.objects[self.objName]
         if self.actorUser == "Transition Actor":
-            obj.ootTransitionActorProperty.actor.actorID = self.actorID
+            obj.ootTransitionActorProperty.actor.actor_id = self.actor_id
         elif self.actorUser == "Actor":
-            obj.ootActorProperty.actorID = self.actorID
+            obj.ootActorProperty.actor_id = self.actor_id
         else:
             raise PluginError("Invalid actor user for search: " + str(self.actorUser))
 
         context.region.tag_redraw()
-        self.report({"INFO"}, "Selected: " + self.actorID)
+        self.report({"INFO"}, "Selected: " + self.actor_id)
         return {"FINISHED"}
 
     def invoke(self, context, event):

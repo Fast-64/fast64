@@ -314,19 +314,42 @@ def upgradeActors(actorObj: Object):
     if actorObj.ootEmptyType == "Entrance":
         isCustom = actorObj.ootEntranceProperty.customActor
     else:
-        isCustom = actorProp.actorID == "Custom"
+        if "actorID" in actorProp:
+            actorProp.actor_id = ootData.actorData.ootEnumActorID[actorProp["actorID"]][0]
+            del actorProp["actorID"]
+
+        if "actorIDCustom" in actorProp:
+            actorProp.actor_id_custom = actorProp["actorIDCustom"]
+            del actorProp["actorIDCustom"]
+
+        isCustom = actorProp.actor_id == "Custom"
+
+    if "actorParam" in actorProp:
+        if not isCustom:
+            actorProp.params = actorProp["actorParam"]
+        else:
+            actorProp.params_custom = actorProp["actorParam"]
+
+        del actorProp["actorParam"]
 
     if not isCustom:
-        actorProp.params = actorProp.actorParam
-        actorProp.actorParam = "0x0000"
+        if actorObj.ootEmptyType == "Actor":
+            if "rotOverride" in actorProp:
+                actorProp.rot_override = actorProp["rotOverride"]
+                del actorProp["rotOverride"]
 
-        if actorObj.ootEmptyType == "Actor" and actorProp.rotOverride:
-            actorProp.rotX = actorProp.rotOverrideX
-            actorProp.rotY = actorProp.rotOverrideY
-            actorProp.rotZ = actorProp.rotOverrideZ
-            actorProp.rotOverrideX = "0x0000"
-            actorProp.rotOverrideY = "0x0000"
-            actorProp.rotOverrideZ = "0x0000"
+            if actorProp.rot_override:
+                if "rotOverrideX" in actorProp:
+                    actorProp.rot_x = actorProp["rotOverrideX"]
+                    del actorProp["rotOverrideX"]
+
+                if "rotOverrideY" in actorProp:
+                    actorProp.rot_y = actorProp["rotOverrideY"]
+                    del actorProp["rotOverrideY"]
+
+                if "rotOverrideZ" in actorProp:
+                    actorProp.rot_z = actorProp["rotOverrideZ"]
+                    del actorProp["rotOverrideZ"]
 
     # room stuff
     if actorObj.ootEmptyType == "Entrance":

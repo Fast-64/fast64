@@ -140,12 +140,12 @@ class RoomActors:
     @staticmethod
     def get_rotation_values(actorProp: OOTActorProperty, blender_rot_values: list[int]):
         # Figure out which rotation to export, Blender's or the override
-        override = "Override" if actorProp.actorID == "Custom" else ""
+        override = "Override" if actorProp.actor_id == "Custom" else ""
         rot_values = [getattr(actorProp, f"rot{override}{rot}") for rot in ["X", "Y", "Z"]]
         export_rot_values = [f"DEG_TO_BINANG({(rot * (180 / 0x8000)):.3f})" for rot in blender_rot_values]
 
-        if actorProp.actorID == "Custom":
-            export_rot_values = rot_values if actorProp.rotOverride else export_rot_values
+        if actorProp.actor_id == "Custom":
+            export_rot_values = rot_values if actorProp.rot_override else export_rot_values
         else:
             for i, rot in enumerate(["X", "Y", "Z"]):
                 if getattr(actorProp, f"isRot{rot}UsedByActor"):
@@ -168,27 +168,27 @@ class RoomActors:
             # any data loss as Blender saves the index of the element in the Actor list used for the EnumProperty
             # and not the identifier as defined by the first element of the tuple. Therefore, we need to check if
             # the current Actor has the ID `None` to avoid export issues.
-            if actorProp.actorID != "None":
+            if actorProp.actor_id != "None":
                 pos, rot, _, _ = Utility.getConvertedTransform(transform, sceneObj, obj, True)
                 actor = Actor()
 
-                if actorProp.actorID == "Custom":
-                    actor.id = actorProp.actorIDCustom
+                if actorProp.actor_id == "Custom":
+                    actor.id = actorProp.actor_id_custom
                 else:
-                    actor.id = actorProp.actorID
+                    actor.id = actorProp.actor_id
 
                 actor.rot = ", ".join(RoomActors.get_rotation_values(actorProp, rot))
 
                 actor.name = (
-                    ootData.actorData.actorsByID[actorProp.actorID].name.replace(
-                        f" - {actorProp.actorID.removeprefix('ACTOR_')}", ""
+                    ootData.actorData.actorsByID[actorProp.actor_id].name.replace(
+                        f" - {actorProp.actor_id.removeprefix('ACTOR_')}", ""
                     )
-                    if actorProp.actorID != "Custom"
+                    if actorProp.actor_id != "Custom"
                     else "Custom Actor"
                 )
 
                 actor.pos = pos
-                actor.params = actorProp.actorParam
+                actor.params = actorProp.params_custom
                 actorList.append(actor)
         return RoomActors(name, actorList)
 

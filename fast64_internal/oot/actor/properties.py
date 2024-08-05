@@ -162,15 +162,15 @@ class OOTActorHeaderProperty(PropertyGroup):
 
 
 class OOTActorProperty(PropertyGroup):
-    actorID: EnumProperty(name="Actor", items=ootData.actorData.ootEnumActorID, default="ACTOR_PLAYER")
-    actorIDCustom: StringProperty(name="Actor ID", default="ACTOR_PLAYER")
+    actor_id: EnumProperty(name="Actor", items=ootData.actorData.ootEnumActorID, default="ACTOR_PLAYER")
+    actor_id_custom: StringProperty(name="Actor ID", default="ACTOR_PLAYER")
 
     # used for actors with the id "Custom"
-    actorParam: StringProperty(name="Actor Parameter", default="0x0000")
-    rotOverride: BoolProperty(name="Override Rotation", default=False)
-    rotOverrideX: StringProperty(name="Rot X", default="0x0000")
-    rotOverrideY: StringProperty(name="Rot Y", default="0x0000")
-    rotOverrideZ: StringProperty(name="Rot Z", default="0x0000")
+    params_custom: StringProperty(name="Actor Parameter", default="0x0000")
+    rot_override: BoolProperty(name="Override Rotation", default=False)
+    rot_override_x: StringProperty(name="Rot X", default="0x0000")
+    rot_override_y: StringProperty(name="Rot Y", default="0x0000")
+    rot_override_z: StringProperty(name="Rot Z", default="0x0000")
 
     # non-custom actors
     params: StringProperty(
@@ -180,19 +180,19 @@ class OOTActorProperty(PropertyGroup):
         set=lambda self, value: self.setParamValue(value, "Params"),
     )
 
-    rotX: StringProperty(
+    rot_x: StringProperty(
         name="Rot X",
         default="0",
         get=lambda self: self.getParamValue("XRot"),
         set=lambda self, value: self.setParamValue(value, "XRot"),
     )
-    rotY: StringProperty(
+    rot_y: StringProperty(
         name="Rot Y",
         default="0",
         get=lambda self: self.getParamValue("YRot"),
         set=lambda self, value: self.setParamValue(value, "YRot"),
     )
-    rotZ: StringProperty(
+    rot_z: StringProperty(
         name="Rot Z",
         default="0",
         get=lambda self: self.getParamValue("ZRot"),
@@ -200,7 +200,7 @@ class OOTActorProperty(PropertyGroup):
     )
 
     headerSettings: PointerProperty(type=OOTActorHeaderProperty)
-    evalParams: BoolProperty(name="Eval Params", default=False)
+    eval_params: BoolProperty(name="Eval Params", default=False)
 
     @staticmethod
     def upgrade_object(obj: Object):
@@ -208,7 +208,7 @@ class OOTActorProperty(PropertyGroup):
         upgradeActors(obj)
 
     def isRotationUsedByActor(self, target: str):
-        actor = ootData.actorData.actorsByID[self.actorID]
+        actor = ootData.actorData.actorsByID[self.actor_id]
         for param in actor.params:
             curType = None
 
@@ -230,7 +230,7 @@ class OOTActorProperty(PropertyGroup):
         return True
 
     def setParamValue(self, value: str | bool, target: str):
-        actor = ootData.actorData.actorsByID[self.actorID]
+        actor = ootData.actorData.actorsByID[self.actor_id]
         value = getEvalParamsInt(value)
         foundType = None
         for param in actor.params:
@@ -261,7 +261,7 @@ class OOTActorProperty(PropertyGroup):
                     setattr(self, objName, val)
 
     def getParamValue(self, target: str):
-        actor = ootData.actorData.actorsByID[self.actorID]
+        actor = ootData.actorData.actorsByID[self.actor_id]
         paramList = []
         typeValue = None
         for param in actor.params:
@@ -316,10 +316,10 @@ class OOTActorProperty(PropertyGroup):
         else:
             paramString = "0x0"
 
-        return paramString if not self.evalParams else getEvalParams(paramString)
+        return paramString if not self.eval_params else getEvalParams(paramString)
 
     def draw_params(self, layout: UILayout, obj: Object):
-        actor = ootData.actorData.actorsByID[self.actorID]
+        actor = ootData.actorData.actorsByID[self.actor_id]
         for param in actor.params:
             propName = getObjName(actor.key, param.type, param.subType, param.index)
             curType = None
@@ -359,31 +359,31 @@ class OOTActorProperty(PropertyGroup):
 
         split = actorIDBox.split(factor=0.5)
 
-        if self.actorID == "None":
+        if self.actor_id == "None":
             actorIDBox.box().label(text="This Actor was deleted from the XML file.")
             return
 
         split.label(text="Actor ID")
-        split.label(text=getEnumName(ootData.actorData.ootEnumActorID, self.actorID))
+        split.label(text=getEnumName(ootData.actorData.ootEnumActorID, self.actor_id))
 
-        if self.actorID != "Custom":
+        if self.actor_id != "Custom":
             self.draw_params(actorIDBox, obj)
         else:
-            prop_split(actorIDBox, self, "actorIDCustom", "")
+            prop_split(actorIDBox, self, "actor_id_custom", "")
 
         paramBox = actorIDBox.box()
         paramBox.label(text="Actor Parameter")
 
-        if self.actorID != "Custom":
-            paramBox.prop(self, "evalParams")
+        if self.actor_id != "Custom":
+            paramBox.prop(self, "eval_params")
             paramBox.prop(self, "params", text="")
         else:
-            paramBox.prop(self, "actorParam", text="")
+            paramBox.prop(self, "params_custom", text="")
 
         rotationsUsedByActor = []
-        if self.rotOverride:
+        if self.rot_override:
             rotationsUsedByActor = ["X", "Y", "Z"]
-        elif self.actorID != "Custom":
+        elif self.actor_id != "Custom":
             if self.isRotationUsedByActor("XRot"):
                 rotationsUsedByActor.append("X")
             if self.isRotationUsedByActor("YRot"):
@@ -391,12 +391,12 @@ class OOTActorProperty(PropertyGroup):
             if self.isRotationUsedByActor("ZRot"):
                 rotationsUsedByActor.append("Z")
 
-        if self.actorID == "Custom":
-            paramBox.prop(self, "rotOverride", text="Override Rotation (ignore Blender rot)")
+        if self.actor_id == "Custom":
+            paramBox.prop(self, "rot_override", text="Override Rotation (ignore Blender rot)")
 
         for rot in rotationsUsedByActor:
             override = ""
-            if self.actorID == "Custom":
+            if self.actor_id == "Custom":
                 override = "Override"
             prop_split(paramBox, self, f"rot{override}{rot}", f"Rot {rot}")
 
@@ -424,24 +424,24 @@ class OOTTransitionActorProperty(PropertyGroup):
         actorIDBox = layout.column()
         searchOp = actorIDBox.operator(OOT_SearchActorIDEnumOperator.bl_idname, icon="VIEWZOOM")
         searchOp.actorUser = "Transition Actor"
-        searchOp.objName = roomObj.name
+        searchOp.objName = objName
 
         split = actorIDBox.split(factor=0.5)
         split.label(text="Actor ID")
-        split.label(text=getEnumName(ootData.actorData.ootEnumActorID, self.actor.actorID))
+        split.label(text=getEnumName(ootData.actorData.ootEnumActorID, self.actor.actor_id))
 
-        if self.actor.actorID == "Custom":
-            prop_split(actorIDBox, self.actor, "actorIDCustom", "")
+        if self.actor.actor_id == "Custom":
+            prop_split(actorIDBox, self.actor, "actor_id_custom", "")
         else:
             self.actor.draw_params(actorIDBox, roomObj)
 
         paramBox = actorIDBox.box()
         paramBox.label(text="Actor Parameter")
-        if self.actor.actorID != "Custom":
-            paramBox.prop(self.actor, "evalParams")
+        if self.actor.actor_id != "Custom":
+            paramBox.prop(self.actor, "eval_params")
             paramBox.prop(self.actor, "params", text="")
         else:
-            paramBox.prop(self.actor, "actorParam", text="")
+            paramBox.prop(self.actor, "params_custom", text="")
 
         if roomObj is None:
             actorIDBox.label(text="This must be part of a Room empty's hierarchy.", icon="OUTLINER")
@@ -487,7 +487,7 @@ class OOTEntranceProperty(PropertyGroup):
 
         box.prop(entranceProp, "customActor")
         if entranceProp.customActor:
-            prop_split(box, entranceProp.actor, "actorIDCustom", "Actor ID Custom")
+            prop_split(box, entranceProp.actor, "actor_id_custom", "Actor ID Custom")
 
         if not self.customActor:
             self.actor.draw_params(box, obj)
@@ -495,10 +495,10 @@ class OOTEntranceProperty(PropertyGroup):
         paramBox = box.box()
         paramBox.label(text="Actor Parameter")
         if not self.customActor:
-            paramBox.prop(self.actor, "evalParams")
+            paramBox.prop(self.actor, "eval_params")
             paramBox.prop(self.actor, "params", text="")
         else:
-            paramBox.prop(self.actor, "actorParam", text="")
+            paramBox.prop(self.actor, "params_custom", text="")
 
         headerProps: OOTActorHeaderProperty = entranceProp.actor.headerSettings
         headerProps.draw_props(box, "Entrance", altSceneProp, objName)

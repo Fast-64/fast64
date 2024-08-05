@@ -680,14 +680,14 @@ def getDisplayNameFromActorID(actorID: str):
 def handleActorWithRotAsParam(actorProp: OOTActorProperty, actorID: str, rotation: list[int]):
     if actorID in actorsWithRotAsParam:
         if actorProp != "Custom":
-            actorProp.rotX = hex(rotation[0])
-            actorProp.rotY = hex(rotation[1])
-            actorProp.rotZ = hex(rotation[2])
+            actorProp.rot_x = hex(rotation[0])
+            actorProp.rot_y = hex(rotation[1])
+            actorProp.rot_z = hex(rotation[2])
         else:
-            actorProp.rotOverride = True
-            actorProp.rotOverrideX = hex(rotation[0])
-            actorProp.rotOverrideY = hex(rotation[1])
-            actorProp.rotOverrideZ = hex(rotation[2])
+            actorProp.rot_override = True
+            actorProp.rot_override_x = hex(rotation[0])
+            actorProp.rot_override_y = hex(rotation[1])
+            actorProp.rot_override_z = hex(rotation[2])
 
 
 def parseTransActorList(
@@ -707,8 +707,8 @@ def parseTransActorList(
 
         position = tuple([hexOrDecInt(value) for value in params[5:8]])
 
-        rotY = getEvalParams(params[8]) if "DEG_TO_BINANG" in params[8] else params[8]
-        rotation = tuple([0, hexOrDecInt(rotY), 0])
+        rot_y = getEvalParams(params[8]) if "DEG_TO_BINANG" in params[8] else params[8]
+        rotation = tuple([0, hexOrDecInt(rot_y), 0])
 
         roomIndexFront = hexOrDecInt(params[0])
         camFront = params[1]
@@ -750,11 +750,11 @@ def parseTransActorList(
             setCustomProperty(transActorProp, "cameraTransitionBack", camBack, ootEnumCamTransition)
 
             actorProp = transActorProp.actor
-            setCustomProperty(actorProp, "actorID", actorID, ootData.actorData.ootEnumActorID)
+            setCustomProperty(actorProp, "actor_id", actorID, ootData.actorData.ootEnumActorID)
             if actorProp != "Custom":
                 actorProp.params = actorParam
             else:
-                actorProp.actorParam = actorParam
+                actorProp.params_custom = actorParam
             handleActorWithRotAsParam(actorProp, actorID, rotation)
             unsetAllHeadersExceptSpecified(actorProp.headerSettings, headerIndex)
 
@@ -839,11 +839,11 @@ def parseSpawnList(
             spawnProp.spawnIndex = spawnIndex
             spawnProp.customActor = actorID != "ACTOR_PLAYER"
             actorProp = spawnProp.actor
-            setCustomProperty(actorProp, "actorID", actorID, ootData.actorData.ootEnumActorID)
+            setCustomProperty(actorProp, "actor_id", actorID, ootData.actorData.ootEnumActorID)
             if actorProp != "Custom":
                 actorProp.params = actorParam
             else:
-                actorProp.actorParam = actorParam
+                actorProp.params_custom = actorParam
             handleActorWithRotAsParam(actorProp, actorID, rotation)
             unsetAllHeadersExceptSpecified(actorProp.headerSettings, headerIndex)
 
@@ -905,11 +905,11 @@ def parseActorList(
             actorObj.name = getDisplayNameFromActorID(actorID)
             actorProp = actorObj.ootActorProperty
 
-            setCustomProperty(actorProp, "actorID", actorID, ootData.actorData.ootEnumActorID)
+            setCustomProperty(actorProp, "actor_id", actorID, ootData.actorData.ootEnumActorID)
             if actorProp != "Custom":
                 actorProp.params = actorParam
             else:
-                actorProp.actorParam = actorParam
+                actorProp.params_custom = actorParam
             handleActorWithRotAsParam(actorProp, actorID, rotation)
             unsetAllHeadersExceptSpecified(actorProp.headerSettings, headerIndex)
 

@@ -54,7 +54,7 @@ class OOT_AddDoor(Operator):
         emptyObj = context.view_layer.objects.active
         emptyObj.ootEmptyType = "Transition Actor"
         emptyObj.name = "Door Actor"
-        emptyObj.ootTransitionActorProperty.actor.actorID = "ACTOR_DOOR_SHUTTER"
+        emptyObj.ootTransitionActorProperty.actor.actor_id = "ACTOR_DOOR_SHUTTER"
         emptyObj.ootTransitionActorProperty.actor.params = "0x0000"
 
         parentObject(cubeObj, emptyObj)
