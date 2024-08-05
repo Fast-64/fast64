@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from typing import Sequence, Union, Tuple
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, fields, field
 import bpy, os, enum, copy
 from ..utility import *
 
@@ -3238,18 +3238,23 @@ class LookAt:
 
 
 # A palette is just a RGBA16 texture with width = 1.
+@dataclass
 class FImage:
-    def __init__(self, name, fmt, bitSize, width, height, filename):
-        self.name = name
-        self.fmt = fmt
-        self.bitSize = bitSize
-        self.width = width
-        self.height = height
+    name: str
+    fmt: str
+    bitSize: str
+    width: int
+    height: int
+    filename: str
+    data: bytearray = field(init=False, compare=False)
+    startAddress: int = field(init=False, compare=False)
+    isLargeTexture: bool = field(init=False, compare=False)
+    converted: bool = field(init=False, compare=False)
+
+    def __post_init__(self):
+        self.converted = self.isLargeTexture = False
         self.startAddress = 0
         self.data = bytearray(0)
-        self.filename = filename
-        self.converted = False
-        self.isLargeTexture = False
 
     def size(self):
         return len(self.data)
