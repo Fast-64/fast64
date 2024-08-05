@@ -1586,10 +1586,10 @@ def update_fog_nodes(material: Material, context: Context):
     remove_first_link_if_exists(material, fogBlender.inputs["FogAmount"].links)
     if material.f3d_mat.rdp_settings.g_fog:
         material.node_tree.links.new(nodes["CalcFog"].outputs["FogAmount"], fogBlender.inputs["FogAmount"])
-    else: # If fog is not being calculated, pass in shade alpha
+    else:  # If fog is not being calculated, pass in shade alpha
         material.node_tree.links.new(nodes["Shade Color"].outputs["Alpha"], fogBlender.inputs["FogAmount"])
 
-    if f3dMat.use_global_fog or not f3dMat.set_fog: # Inherit fog
+    if f3dMat.use_global_fog or not f3dMat.set_fog:  # Inherit fog
         link_if_none_exist(material, nodes["SceneProperties"].outputs["FogColor"], nodes["FogColor"].inputs[0])
         link_if_none_exist(material, nodes["GlobalFogColor"].outputs[0], fogBlender.inputs["Fog Color"])
         link_if_none_exist(material, nodes["SceneProperties"].outputs["FogNear"], nodes["CalcFog"].inputs["FogNear"])
