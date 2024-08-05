@@ -169,7 +169,7 @@ def update_draw_layer(self, context):
         set_output_node_groups(material)
 
 
-world_defaults_attrs = {
+world_layer_defaults_attrs = {
     "SM64": lambda world, layer: (
         getattr(world, f"draw_layer_{layer}_cycle_1", ""),
         getattr(world, f"draw_layer_{layer}_cycle_2", ""),
@@ -201,8 +201,8 @@ def rendermode_preset_to_advanced(material: bpy.types.Material):
         layer = getattr(f3d_mat.draw_layer, game_mode.lower(), None)
         if layer is None:  # Game mode has no layer, don´t change anything
             return
-        if scene.world is not None and game_mode in world_defaults_attrs:
-            cycle_1, cycle_2 = world_defaults_attrs[game_mode](scene.world, layer)
+        if scene.world is not None and game_mode in world_layer_defaults_attrs:
+            cycle_1, cycle_2 = world_layer_defaults_attrs[game_mode](scene.world, layer)
         else:  # If no world defaults for game mode, fallback on get_with_default default arg
             cycle_1, cycle_2 = default_draw_layers.get(game_mode, {}).get(layer, ("", ""))
         try:
