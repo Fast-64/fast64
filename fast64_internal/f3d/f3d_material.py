@@ -2088,7 +2088,7 @@ def get_textlut_mode(f3d_mat: "F3DMaterialProperty", inherit_from_tex: bool = Fa
     tlut_modes = [tex.ci_format if tex.tex_format.startswith("CI") else "NONE" for tex in textures]
     if tlut_modes and tlut_modes[0] == tlut_modes[-1]:
         return "G_TT_" + tlut_modes[0]
-    return None if inherit_from_tex else f3d_mat.rdp_settings.g_mdsft_texlut
+    return None if inherit_from_tex else f3d_mat.rdp_settings.g_mdsft_textlut
 
 
 def update_tex_values_manual(material: Material, context, prop_path=None):
