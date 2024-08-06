@@ -1,6 +1,7 @@
 from bpy.types import PropertyGroup, Object, World, Material, UILayout
 from bpy.props import PointerProperty, StringProperty, BoolProperty, EnumProperty, IntProperty, FloatProperty
 from bpy.utils import register_class, unregister_class
+from ...f3d.f3d_material import update_all_material_nodes
 from ...f3d.f3d_parser import ootEnumDrawLayers
 from ...utility import prop_split
 
@@ -149,12 +150,12 @@ class OOTDynamicMaterialProperty(PropertyGroup):
 
 class OOTDefaultRenderModesProperty(PropertyGroup):
     expandTab: BoolProperty()
-    opaqueCycle1: StringProperty(default="G_RM_AA_ZB_OPA_SURF")
-    opaqueCycle2: StringProperty(default="G_RM_AA_ZB_OPA_SURF2")
-    transparentCycle1: StringProperty(default="G_RM_AA_ZB_XLU_SURF")
-    transparentCycle2: StringProperty(default="G_RM_AA_ZB_XLU_SURF2")
-    overlayCycle1: StringProperty(default="G_RM_AA_ZB_OPA_SURF")
-    overlayCycle2: StringProperty(default="G_RM_AA_ZB_OPA_SURF2")
+    opaqueCycle1: StringProperty(default="G_RM_AA_ZB_OPA_SURF", update=update_all_material_nodes)
+    opaqueCycle2: StringProperty(default="G_RM_AA_ZB_OPA_SURF2", update=update_all_material_nodes)
+    transparentCycle1: StringProperty(default="G_RM_AA_ZB_XLU_SURF", update=update_all_material_nodes)
+    transparentCycle2: StringProperty(default="G_RM_AA_ZB_XLU_SURF2", update=update_all_material_nodes)
+    overlayCycle1: StringProperty(default="G_RM_AA_ZB_OPA_SURF", update=update_all_material_nodes)
+    overlayCycle2: StringProperty(default="G_RM_AA_ZB_OPA_SURF2", update=update_all_material_nodes)
 
     def draw_props(self, layout: UILayout):
         inputGroup = layout.column()

@@ -1440,6 +1440,12 @@ def update_all_node_values(material, context):
     update_rendermode_preset(material, context)
 
 
+def update_all_material_nodes(self, context):
+    for material in bpy.data.materials:
+        with context.temp_override(material=material):
+            update_all_node_values(material, context)
+
+
 def update_node_values_with_preset(self, context):
     update_node_values(self, context, update_preset=True)
 
@@ -4784,9 +4790,7 @@ def mat_register():
     savePresets()
 
     Scene.f3d_type = bpy.props.EnumProperty(
-        name="F3D Microcode",
-        items=enumF3D,
-        default="F3D",
+        name="F3D Microcode", items=enumF3D, default="F3D", update=update_all_material_nodes
     )
 
     # RDP Defaults
