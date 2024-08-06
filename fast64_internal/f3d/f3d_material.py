@@ -201,10 +201,13 @@ def rendermode_preset_to_advanced(material: bpy.types.Material):
         layer = getattr(f3d_mat.draw_layer, game_mode.lower(), None)
         if layer is None:  # Game mode has no layer, don´t change anything
             return
+
+        # If no world defaults for game mode, fallback on get_with_default default arg
+        cycle_1, cycle_2 = default_draw_layers.get(game_mode, {}).get(layer, ("", ""))
         if scene.world is not None and game_mode in world_layer_defaults_attrs:
-            cycle_1, cycle_2 = world_layer_defaults_attrs[game_mode](scene.world, layer)
-        else:  # If no world defaults for game mode, fallback on get_with_default default arg
-            cycle_1, cycle_2 = default_draw_layers.get(game_mode, {}).get(layer, ("", ""))
+            possible_cycle_1, possible_cycle_2 = world_layer_defaults_attrs[game_mode](scene.world, layer)
+            if getattr(f3d, possible_cycle_1, None) is not None and getattr(f3d, possible_cycle_2, None) is not None:
+                cycle_1, cycle_2 = possible_cycle_1, possible_cycle_2
         try:
             settings.rendermode_preset_cycle_1, settings.rendermode_preset_cycle_2 = cycle_1, cycle_2
         except TypeError as exc:
