@@ -551,6 +551,17 @@ def ui_upper_mode(settings, dataHolder, layout: UILayout, useDropdown):
         prop_split(inputGroup, settings, "g_mdsft_combkey", "Chroma Key")
         prop_split(inputGroup, settings, "g_mdsft_textconv", "Texture Convert")
         prop_split(inputGroup, settings, "g_mdsft_text_filt", "Texture Filter")
+        textlut_col = inputGroup.column()
+        tlut_mode = get_textlut_mode(dataHolder, True) if isinstance(dataHolder, F3DMaterialProperty) else None
+        if tlut_mode:
+            textlut_col.enabled = False
+            split = textlut_col.split(factor=0.5)
+            split.label(text="Texture LUT (Auto)")
+            box = split.box()
+            box.label(text={"G_TT_NONE": "None"}.get(tlut_mode, tlut_mode.lstrip("G_TT_")))
+            box.scale_y = 0.5
+        else:
+            prop_split(textlut_col, settings, "g_mdsft_textlut", "Texture LUT")
         prop_split(inputGroup, settings, "g_mdsft_textlod", "Texture LOD (Mipmapping)")
         if settings.g_mdsft_textlod == "G_TL_LOD":
             inputGroup.prop(settings, "num_textures_mipmapped", text="Number of Mipmaps")
@@ -2082,12 +2093,24 @@ def get_tex_gen_size(tex_size: list[int | float]):
     return (tex_size[0] - 1) / 1024, (tex_size[1] - 1) / 1024
 
 
+def get_textlut_mode(f3d_mat: "F3DMaterialProperty", inherit_from_tex: bool = False):
+    use_dict = all_combiner_uses(f3d_mat)
+    textures = [f3d_mat.tex0] if use_dict["Texture 0"] and f3d_mat.tex0.tex_set else []
+    textures += [f3d_mat.tex1] if use_dict["Texture 1"] and f3d_mat.tex1.tex_set else []
+    tlut_modes = [tex.ci_format if tex.tex_format.startswith("CI") else "NONE" for tex in textures]
+    if tlut_modes and tlut_modes[0] == tlut_modes[-1]:
+        return "G_TT_" + tlut_modes[0]
+    return None if inherit_from_tex else f3d_mat.rdp_settings.g_mdsft_textlut
+
+
 def update_tex_values_manual(material: Material, context, prop_path=None):
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
     nodes = material.node_tree.nodes
     texture_settings = nodes["TextureSettings"]
     texture_inputs: NodeInputs = texture_settings.inputs
     useDict = all_combiner_uses(f3dMat)
+
+    f3dMat.rdp_settings.g_mdsft_textlut = get_textlut_mode(f3dMat)
 
     tex0_used = useDict["Texture 0"] and f3dMat.tex0.tex is not None
     tex1_used = useDict["Texture 1"] and f3dMat.tex1.tex is not None
@@ -3551,7 +3574,7 @@ class RDPSettings(PropertyGroup):
         ("chromaKey", "g_mdsft_combkey", "G_CK_NONE"),
         ("textureConvert", "g_mdsft_textconv", "G_TC_CONV"),
         ("textureFilter", "g_mdsft_text_filt", "G_TF_POINT"),
-        # ("lutFormat", "g_mdsft_textlut", "G_TT_NONE")
+        ("lutFormat", "g_mdsft_textlut", "G_TT_NONE"),
         ("textureLoD", "g_mdsft_textlod", "G_TL_TILE"),
         ("textureDetail", "g_mdsft_textdetail", "G_TD_CLAMP"),
         ("perspectiveCorrection", "g_mdsft_textpersp", "G_TP_NONE"),
@@ -3559,8 +3582,11 @@ class RDPSettings(PropertyGroup):
         ("pipelineMode", "g_mdsft_pipeline", "G_PM_NPRIMITIVE"),
     ]
 
-    def other_mode_h_to_dict(self):
-        return self.attributes_to_dict(self.other_mode_h_attributes)
+    def other_mode_h_to_dict(self, lut_format=None):
+        data = self.attributes_to_dict(self.other_mode_h_attributes)
+        if lut_format:
+            data["lutFormat"] = lut_format
+        return data
 
     def other_mode_h_from_dict(self, data: dict):
         self.attributes_from_dict(data, self.other_mode_h_attributes)
