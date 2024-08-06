@@ -1218,17 +1218,17 @@ class SM64_ExportLevel(ObjectDataExporter):
 
             props = context.scene.fast64.sm64.combined_export
             export_path, level_name = getPathAndLevel(
-                props.export_header_type == "Custom",
+                props.level_name == "Custom",
                 props.custom_export_path,
                 props.custom_export_name,
                 props.level_name,
             )
-            if props.export_header_type == "Custom":
+            if props.level_name == "Custom":
                 triggerName = "sCam" + level_name.title().replace(" ", "").replace("_", "")
             else:
                 triggerName = cameraTriggerNames[props.level_name]
 
-            if props.export_header_type != "Custom":
+            if props.level_name != "Custom":
                 applyBasicTweaks(export_path)
             fileStatus = exportLevelC(
                 obj,
@@ -1236,7 +1236,7 @@ class SM64_ExportLevel(ObjectDataExporter):
                 level_name,
                 export_path,
                 context.scene.saveTextures,
-                props.export_header_type == "Custom",
+                props.level_name == "Custom",
                 triggerName,
                 DLFormat.Static,
             )
