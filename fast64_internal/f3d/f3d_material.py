@@ -308,16 +308,16 @@ def update_blend_method(material: Material, context):
     if material.f3d_mat.rdp_settings.zmode == "ZMODE_DEC":
         blend_mode = "DECAL"
     if bpy.app.version >= (4, 2, 0):
-        if blend_mode == "DECAL":
-            material.surface_render_method = "BLENDED"
-        else:
+        if blend_mode == "CLIP":
             material.surface_render_method = "HASHED"
+        else:
+            material.surface_render_method = "BLENDED"
     elif blend_mode == "OPA":
         material.blend_method = "OPAQUE"
-    elif blend_mode == "DECAL":
-        material.blend_method = "BLEND"
-    else:
+    elif blend_mode == "CLIP":
         material.blend_method = "HASHED"
+    else:
+        material.blend_method = "BLEND"
 
 
 class DrawLayerProperty(PropertyGroup):
