@@ -1070,13 +1070,13 @@ def getObjectList(
             if parentObj is not None:
                 if emptyType == "Actor" and obj.ootEmptyType == "Room":
                     for o in obj.children_recursive:
-                        if o.type == objType and o.ootEmptyType == emptyType:
+                        if o.type == objType and o.ootEmptyType == emptyType and o not in ret:
                             ret.append(o)
                     continue
                 else:
                     cond = cond and obj.parent is not None and obj.parent.name == parentObj.name
 
-            if cond:
+            if cond and obj not in ret:
                 ret.append(obj)
     ret.sort(key=lambda o: o.name)
     return ret

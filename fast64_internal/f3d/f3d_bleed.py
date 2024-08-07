@@ -35,8 +35,6 @@ from .f3d_gbi import (
     DPLoadTLUT_Dolphin,
     DPFullSync,
     DPSetRenderMode,
-    DPSetTextureLUT,
-    DPSetCycleType,
     DPSetTextureImage,
     DPSetTextureImage_Dolphin,
     DPPipeSync,
@@ -130,7 +128,7 @@ class BleedGraphics:
         othermode_H.flagList.append(defaults.g_mdsft_combkey)
         othermode_H.flagList.append(defaults.g_mdsft_textconv)
         othermode_H.flagList.append(defaults.g_mdsft_text_filt)
-        othermode_H.flagList.append("G_TT_NONE")
+        othermode_H.flagList.append(defaults.g_mdsft_textlut)
         othermode_H.flagList.append(defaults.g_mdsft_textlod)
         othermode_H.flagList.append(defaults.g_mdsft_textdetail)
         othermode_H.flagList.append(defaults.g_mdsft_textpersp)
@@ -416,10 +414,6 @@ class BleedGraphics:
             elif cmd_type == SPClearGeometryMode and cmd_use != self.default_clear_geo:
                 reset_cmds.append(self.default_clear_geo)
 
-            elif cmd_type == DPSetTextureLUT:
-                if cmd_use.mode != "G_TT_NONE":
-                    reset_cmds.append(cmd_type("G_TT_NONE"))
-
             elif cmd_type == "G_SETOTHERMODE_H":
                 if cmd_use != self.default_othermode_H:
                     reset_cmds.append(self.default_othermode_H)
@@ -550,21 +544,11 @@ class BleedGfxLists:
     bled_mats: GfxList = field(default_factory=list)
     bled_tex: GfxList = field(default_factory=list)
 
-    @property
-    def reset_command_dict(self):
-        return {
-            SPGeometryMode: (["G_TEXTURE_GEN"], ["G_LIGHTING"]),
-            DPSetCycleType: ("G_CYC_1CYCLE",),
-            DPSetTextureLUT: ("G_TT_NONE",),
-            DPSetRenderMode: (None, None),
-        }
-
     def add_reset_cmd(self, cmd: GbiMacro, reset_cmd_dict: dict[GbiMacro]):
         reset_cmd_list = (
             SPLoadGeometryMode,
             SPSetGeometryMode,
             SPClearGeometryMode,
-            DPSetTextureLUT,
             DPSetRenderMode,
         )
         # separate other mode H and othermode L

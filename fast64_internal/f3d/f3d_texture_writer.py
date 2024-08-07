@@ -622,9 +622,6 @@ class MultitexManager:
 
         self.palFormat = self.ti0.palFormat if self.ti0.useTex else self.ti1.palFormat
 
-    def getTT(self) -> str:
-        return "G_TT_NONE" if not self.isCI else ("G_TT_" + self.palFormat)
-
     def writeAll(
         self, material: bpy.types.Material, fMaterial: FMaterial, fModel: FModel, convertTextureData: bool
     ) -> None:
