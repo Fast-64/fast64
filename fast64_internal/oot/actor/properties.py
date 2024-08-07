@@ -291,6 +291,7 @@ class OOTActorProperty(PropertyGroup):
         actor = ootData.actorData.actorsByID[self.actor_id]
         param_list = []
         type_value = None
+        have_custom_value = False
 
         for param in actor.params:
             if target == param.target:
@@ -299,9 +300,18 @@ class OOTActorProperty(PropertyGroup):
                 cur_prop_value = getattr(self, prop_name)
 
                 if param.type not in {"Type", "Enum", "ChestContent", "Collectible", "Message"}:
-                    param_val = getEvalParamsInt(
-                        cur_prop_value if not param.type == "Bool" else "1" if cur_prop_value else "0"
-                    )
+                    if param.type == "Bool":
+                        value_to_eval = "1" if cur_prop_value else "0"
+                    else:
+                        value_to_eval = cur_prop_value
+
+                    # treat any invalid value as a custom value
+                    try:
+                        param_val = getEvalParamsInt(value_to_eval)
+                    except:
+                        param_list.append(value_to_eval)
+                        have_custom_value = True
+                        continue
                 else:
                     if cur_prop_value == "Custom":
                         cur_prop_value = getattr(self, f"{prop_name}_custom")
@@ -340,18 +350,31 @@ class OOTActorProperty(PropertyGroup):
             type_value = None
 
         eval_type_value = type_value if type_value is not None else 0
-        eval_param_value = getEvalParamsInt(param_str)
 
-        if eval_type_value and eval_param_value and type_value is not None:
+        # don't evaluate the params if there's a custom value
+        if not have_custom_value:
+            eval_param_value = getEvalParamsInt(param_str)
+        else:
+            eval_param_value = 0
+
+        if eval_type_value and (eval_param_value != 0 or have_custom_value) and type_value is not None:
             param_str = f"(0x{type_value:04X} | ({param_str}))"
-        elif eval_type_value and not eval_param_value and type_value is not None:
+        elif eval_type_value and not (eval_param_value != 0 or have_custom_value) and type_value is not None:
             param_str = f"0x{type_value:04X}"
-        elif not eval_type_value and eval_param_value:
+        elif not eval_type_value and (eval_param_value != 0 or have_custom_value):
             param_str = f"({param_str})"
         else:
             param_str = "0x0"
 
-        return param_str if not self.eval_params else getEvalParams(param_str)
+        if self.eval_params:
+            # return `param_str` if the eval failed
+            # should only happen if the user inputs invalid numbers (hex or dec)
+            try:
+                return getEvalParams(param_str)
+            except:
+                pass
+
+        return param_str
 
     def draw_params(self, layout: UILayout, obj: Object):
         actor = ootData.actorData.actorsByID[self.actor_id]
