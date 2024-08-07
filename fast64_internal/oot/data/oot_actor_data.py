@@ -151,6 +151,10 @@ class OoT_ActorData:
         self.ootEnumCollectibleItems = [(elem.key, elem.name, elem.key) for elem in self.collectibleItems]
         self.ootEnumNaviMessageData = [(elem.key, elem.name, elem.key) for elem in self.messageItems]
 
+        self.ootEnumChestContent.insert(0, ("Custom", "Custom Value", "Custom"))
+        self.ootEnumCollectibleItems.insert(0, ("Custom", "Custom Value", "Custom"))
+        self.ootEnumNaviMessageData.insert(0, ("Custom", "Custom Value", "Custom"))
+
     def getItems(self, actorUser: str):
         if actorUser == "Actor":
             return self.ootEnumActorID

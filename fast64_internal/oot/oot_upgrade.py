@@ -344,6 +344,7 @@ def upgradeActors(actorObj: Object):
             if actorProp.is_rotation_used(f"{rot}Rot"):
                 if f"rotOverride{rot}" in actorProp:
                     setattr(actorProp, f"rot_{rot.lower()}{custom}", actorProp[f"rotOverride{rot}"])
+                    del actorProp[f"rotOverride{rot}"]
 
     # room stuff
     if actorObj.ootEmptyType == "Entrance":

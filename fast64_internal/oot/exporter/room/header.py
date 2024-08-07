@@ -188,7 +188,7 @@ class RoomActors:
                 )
 
                 actor.pos = pos
-                actor.params = actorProp.params_custom
+                actor.params = actorProp.params if actorProp.actor_id != "Custom" else actorProp.params_custom
                 actorList.append(actor)
         return RoomActors(name, actorList)
 

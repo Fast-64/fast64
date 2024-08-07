@@ -67,15 +67,19 @@ def initOOTActorProperties():
 
             if len(param.items) > 0:
                 enum_items = [(f"0x{val:04X}", name, f"0x{val:04X}") for val, name in param.items]
-            elif param.type in ["ChestContent", "Collectible", "Message"]:
+                enum_items.insert(0, ("Custom", "Custom Value", "Custom"))
+            elif param.type in {"ChestContent", "Collectible", "Message"}:
                 enum_items = param_type_to_enum_items[param.type]
 
-            if param.type in ["Property", "Flag"]:
+            if param.type in {"Property", "Flag"}:
                 prop_annotations[prop_name] = StringProperty(name="", default="0x0")
             elif param.type == "Bool":
                 prop_annotations[prop_name] = BoolProperty(name="", default=False)
-            elif param.type in ["Type", "Enum", "ChestContent", "Collectible", "Message"] and enum_items is not None:
-                prop_annotations[prop_name] = EnumProperty(name="", items=enum_items, default=enum_items[0][0])
+            elif param.type in {"Type", "Enum", "ChestContent", "Collectible", "Message"} and enum_items is not None:
+                prop_annotations[prop_name] = EnumProperty(name="", items=enum_items, default=enum_items[1][0])
+
+            if param.type in {"Type", "Enum", "ChestContent", "Collectible", "Message"}:
+                prop_annotations[f"{prop_name}_custom"] = StringProperty(name="", default="0x0")
 
 
 class OOTActorHeaderItemProperty(PropertyGroup):
@@ -216,7 +220,12 @@ class OOTActorProperty(PropertyGroup):
         for param in actor.params:
             if param.type == "Type":
                 prop_name = get_prop_name(actor.key, param.type, param.subType, param.index)
-                selected_type = getEvalParamsInt(getattr(self, prop_name))
+                base_val = getattr(self, prop_name)
+
+                if base_val == "Custom":
+                    base_val = getattr(self, f"{prop_name}_custom")
+
+                selected_type = getEvalParamsInt(base_val)
 
             # the first parameter type is always the "Actor Type"
             # because of that we need to make sure the current "Actor Type" value
@@ -270,10 +279,13 @@ class OOTActorProperty(PropertyGroup):
                     try:
                         setattr(self, prop_name, prop_value)
                     except:
-                        raise PluginError(
-                            f"ERROR: invalid value '{prop_value}' ('{base_value}') for '{prop_name}'. "
-                            + "Maybe `ActorList.xml` is missing informations?"
-                        )
+                        if param.type in {"Type", "Enum", "ChestContent", "Collectible", "Message"}:
+                            setattr(self, prop_name, "Custom")
+                            setattr(self, f"{prop_name}_custom", prop_value)
+                            print(
+                                f"WARNING: invalid value '{prop_value}' ('{base_value}') for '{prop_name}'. "
+                                + "Maybe `ActorList.xml` is missing informations?"
+                            )
 
     def get_param_value(self, target: str):
         actor = ootData.actorData.actorsByID[self.actor_id]
@@ -283,14 +295,18 @@ class OOTActorProperty(PropertyGroup):
         for param in actor.params:
             if target == param.target:
                 param_val = None
-                cur_prop_value = getattr(self, get_prop_name(actor.key, param.type, param.subType, param.index))
+                prop_name = get_prop_name(actor.key, param.type, param.subType, param.index)
+                cur_prop_value = getattr(self, prop_name)
 
-                if param.type not in ["Type", "ChestContent", "Collectible", "Message"]:
+                if param.type not in {"Type", "Enum", "ChestContent", "Collectible", "Message"}:
                     param_val = getEvalParamsInt(
                         cur_prop_value if not param.type == "Bool" else "1" if cur_prop_value else "0"
                     )
                 else:
-                    if param.type == "Type":
+                    if cur_prop_value == "Custom":
+                        cur_prop_value = getattr(self, f"{prop_name}_custom")
+
+                    if param.type in {"Type", "Enum"}:
                         type_value = getEvalParamsInt(cur_prop_value)
                     else:
                         param_val = 0
@@ -345,7 +361,12 @@ class OOTActorProperty(PropertyGroup):
             prop_name = get_prop_name(actor.key, param.type, param.subType, param.index)
 
             if param.type == "Type":
-                selected_type = getEvalParamsInt(getattr(self, prop_name))
+                base_val = getattr(self, prop_name)
+
+                if base_val == "Custom":
+                    base_val = getattr(self, f"{prop_name}_custom")
+
+                selected_type = getEvalParamsInt(base_val)
 
             # the first parameter type is always the "Actor Type"
             # because of that we need to make sure the current "Actor Type" value
@@ -364,7 +385,7 @@ class OOTActorProperty(PropertyGroup):
                     label_name = "Navi Message ID"
                     item_name = ootData.actorData.messageItemsByKey[getattr(self, prop_name)].name
 
-                if param.type in ["ChestContent", "Message"] and search_op is not None and item_name is not None:
+                if param.type in {"ChestContent", "Message"} and search_op is not None and item_name is not None:
                     search_op.obj_name = obj.name
                     search_op.prop_name = prop_name
                     split = layout.split(factor=0.5)
@@ -372,6 +393,10 @@ class OOTActorProperty(PropertyGroup):
                     split.label(text=item_name)
                 else:
                     prop_split(layout, self, prop_name, param.name)
+
+                if param.type in {"Type", "Enum", "ChestContent", "Collectible", "Message"}:
+                    if getattr(self, prop_name) == "Custom":
+                        prop_split(layout, self, f"{prop_name}_custom", f"{param.name} Custom")
 
     def draw_props(self, layout: UILayout, altRoomProp: OOTAlternateRoomHeaderProperty, obj: Object):
         actorIDBox = layout.column()
