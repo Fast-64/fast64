@@ -69,7 +69,7 @@ vertexBufferSize = {
     "F3DLP.Rej": (80, 32),
     "F3DEX2/LX2": (32, 32),
     "F3DEX2/LX2 (Point Lit)": (32, 32),
-    "F3DZEX (AC)": (2**7, 32),
+    "F3DZEX2 (Emu64)": (2**7, 32),
     "F3DEX2.Rej/LX2.Rej": (64, 64),
     "F3DEX3": (56, 56),
 }
@@ -128,7 +128,7 @@ def isUcodeF3DEX1(F3D_VER: str) -> bool:
 
 
 def isUcodeF3DEX2(F3D_VER: str) -> bool:
-    return F3D_VER in {"F3DEX2.Rej/LX2.Rej", "F3DEX2/LX2", "F3DEX2/LX2 (Point Lit)", "F3DZEX (AC)"}
+    return F3D_VER in {"F3DEX2.Rej/LX2.Rej", "F3DEX2/LX2", "F3DEX2/LX2 (Point Lit)", "F3DZEX2 (Emu64)"}
 
 
 def isUcodeF3DEX3(F3D_VER: str) -> bool:
@@ -136,7 +136,7 @@ def isUcodeF3DEX3(F3D_VER: str) -> bool:
 
 
 def is_ucode_point_lit(F3D_VER: str) -> bool:
-    return F3D_VER in {"F3DEX3", "F3DZEX (AC)", "F3DEX2/LX2 (Point Lit)"}
+    return F3D_VER in {"F3DEX3", "F3DZEX2 (Emu64)", "F3DEX2/LX2 (Point Lit)"}
 
 
 class F3D:
@@ -149,7 +149,7 @@ class F3D:
         F3DEX_GBI_3 = self.F3DEX_GBI_3 = isUcodeF3DEX3(F3D_VER)
         F3DLP_GBI = self.F3DLP_GBI = self.F3DEX_GBI
         self.F3D_OLD_GBI = not (F3DEX_GBI or F3DEX_GBI_2 or F3DEX_GBI_3)
-        F3DZEX_AC_EXT = self.F3DZEX_AC_EXT = F3D_VER == "F3DZEX (AC)"
+        F3DZEX2_EMU64 = self.F3DZEX2_EMU64 = F3D_VER == "F3DZEX2 (Emu64)"
         POINT_LIT_GBI = self.POINT_LIT_GBI = is_ucode_point_lit(F3D_VER)
 
         # F3DEX2 is F3DEX1 and F3DEX3 is F3DEX2, but F3DEX3 is not F3DEX1
@@ -194,7 +194,7 @@ class F3D:
                 self.G_TRIFAN = 0x09
                 self.G_LIGHTTORDP = 0x0A
             else:
-                if F3DZEX_AC_EXT:
+                if F3DZEX2_EMU64:
                     self.G_TRIN = 0x09
                     self.G_TRIN_INDEPEND = 0x0A
                     self.G_SETTEXEDGEALPHA = 0xCE
@@ -350,7 +350,7 @@ class F3D:
         self.G_LOD = 0x00100000  # NOT IMPLEMENTED
         if F3DEX_GBI or F3DLP_GBI:
             self.G_CLIPPING = 0x00800000
-            if F3DZEX_AC_EXT:
+            if F3DZEX2_EMU64:
                 self.G_DECAL_LEQUAL = 0x00000000
                 self.G_DECAL_GEQUAL = 0x00000010
                 self.G_DECAL_EQUAL = 0x00000020
@@ -414,7 +414,7 @@ class F3D:
                 "G_FRESNEL_COLOR",
                 "G_FRESNEL_ALPHA",
             }
-        elif F3DZEX_AC_EXT:
+        elif F3DZEX2_EMU64:
             self.allGeomModeFlags |= {
                 "G_DECAL_LEQUAL",
                 "G_DECAL_GEQUAL",
@@ -3321,10 +3321,10 @@ class FImage:
         code = CData()
         code.header = f"extern u{str(bitsPerValue)} {self.name}[];\n"
 
-        if bitsPerValue != 64 and not f3d.F3DZEX_AC_EXT:  # This is to force 8 byte alignment
+        if bitsPerValue != 64 and not f3d.F3DZEX2_EMU64:  # This is to force 8 byte alignment
             code.source = f"Gfx {self.name}_aligner[] = {{gsSPEndDisplayList()}};\n"
         code.source += f"u{str(bitsPerValue)} {self.name}[] "
-        if f3d.F3DZEX_AC_EXT:  # Emu64 requires 32 BYTE alignments
+        if f3d.F3DZEX2_EMU64:  # Emu64 requires 32 BYTE alignments
             code.source += "__attribute__((aligned(32))) "
         code.source += "= {\n\t"
         code.source += texData
@@ -3764,7 +3764,7 @@ class SPNTrianglesInit_5b(GbiMacro):
     v8: int
 
     def to_binary(self, f3d, segments):
-        if f3d.F3DZEX_AC_EXT:
+        if f3d.F3DZEX2_EMU64:
             words = (
                 _SHIFTL(f3d.G_TRIN_INDEPEND, 24, 8)
                 | _SHIFTL(self.n - 1, 17, 7)
@@ -3775,7 +3775,7 @@ class SPNTrianglesInit_5b(GbiMacro):
                 | _SHIFTL(f3d.G_VTX_MODE_5bit, 0, 1),
             )
         else:
-            raise PluginError("SPNTrianglesInit_5b only available in F3DZEX (AC).")
+            raise PluginError("SPNTrianglesInit_5b only available in F3DZEX2 (Emu64).")
 
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
@@ -3796,7 +3796,7 @@ class SPNTriangles_5b(GbiMacro):
     v11: int
 
     def to_binary(self, f3d, segments):
-        if f3d.F3DZEX_AC_EXT:
+        if f3d.F3DZEX2_EMU64:
             words = (
                 _SHIFTL(gsSPNTriangleData1(self.v9, self.v10, self.v11, f3d), 17, 15)
                 | _SHIFTL(gsSPNTriangleData1(self.v6, self.v7, self.v8, f3d), 2, 15)
@@ -3806,7 +3806,7 @@ class SPNTriangles_5b(GbiMacro):
                 | _SHIFTL(f3d.G_VTX_MODE_5bit, 0, 1),
             )
         else:
-            raise PluginError("SPNTriangles_5b only available in F3DZEX (AC).")
+            raise PluginError("SPNTriangles_5b only available in F3DZEX2 (Emu64).")
 
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
@@ -3823,7 +3823,7 @@ class SPNTrianglesInit_7b(GbiMacro):
     v5: int
 
     def to_binary(self, f3d, segments):
-        if f3d.F3DZEX_AC_EXT:
+        if f3d.F3DZEX2_EMU64:
             words = (
                 _SHIFTL(gsSPNTriangles(self.n, f3d), 0, 32),
                 (
@@ -3833,7 +3833,7 @@ class SPNTrianglesInit_7b(GbiMacro):
                 ),
             )
         else:
-            raise PluginError("SPNTrianglesInit_7b only available in F3DZEX (AC).")
+            raise PluginError("SPNTrianglesInit_7b only available in F3DZEX2 (Emu64).")
 
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
@@ -3851,7 +3851,7 @@ class SPNTriangles_7b(GbiMacro):
     v8: int
 
     def to_binary(self, f3d, segments):
-        if f3d.F3DZEX_AC_EXT:
+        if f3d.F3DZEX2_EMU64:
             words = (
                 (
                     _SHIFTL(gsSPNTriangleData2(self.v6, self.v7, self.v8, f3d), 11, 21)
@@ -3864,7 +3864,7 @@ class SPNTriangles_7b(GbiMacro):
                 ),
             )
         else:
-            raise PluginError("SPNTriangles_7b only available in F3DZEX (AC).")
+            raise PluginError("SPNTriangles_7b only available in F3DZEX2 (Emu64).")
 
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
@@ -4613,7 +4613,7 @@ class DPSetTextureAdjustMode(GbiMacro):
     mode: str
 
     def to_binary(self, f3d, segments):
-        if f3d.F3DZEX_AC_EXT:
+        if f3d.F3DZEX2_EMU64:
             words = (
                 _SHIFTL(f3d.G_SPECIAL_1, 24, 8)
                 | _SHIFTL(f3d.G_SPECIAL_TA_MODE, 16, 8)
@@ -4621,7 +4621,7 @@ class DPSetTextureAdjustMode(GbiMacro):
                 0,
             )
         else:
-            raise PluginError("DPSetTextureAdjustMode only available in F3DZEX (AC).")
+            raise PluginError("DPSetTextureAdjustMode only available in F3DZEX2 (Emu64).")
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
@@ -4836,7 +4836,7 @@ class DPSetTextureImage_Dolphin(GbiMacro):
     image: FImage
 
     def to_binary(self, f3d, segments):
-        if f3d.F3DZEX_AC_EXT:
+        if f3d.F3DZEX2_EMU64:
             fmt = f3d.G_IM_FMT_VARS[self.fmt]
             siz = f3d.G_IM_SIZ_VARS[self.siz]
             image_ptr = int.from_bytes(encodeSegmentedAddr(self.image.startAddress, segments), "big")
@@ -4850,7 +4850,7 @@ class DPSetTextureImage_Dolphin(GbiMacro):
                 image_ptr,
             )
         else:
-            raise PluginError("DPSetTextureImage_Dolphin only available in F3DZEX (AC).")
+            raise PluginError("DPSetTextureImage_Dolphin only available in F3DZEX2 (Emu64).")
 
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
@@ -5046,10 +5046,10 @@ class DPSetTexEdgeAlpha(GbiMacro):
     alpha: int
 
     def to_binary(self, f3d, segments):
-        if f3d.F3DZEX_AC_EXT:
+        if f3d.F3DZEX2_EMU64:
             words = (_SHIFTL(f3d.G_SETTEXEDGEALPHA, 24, 8), _SHIFTL(self.alpha, 0, 8))
         else:
-            raise PluginError("DPSetTexEdgeAlpha only available in F3DZEX (AC).")
+            raise PluginError("DPSetTexEdgeAlpha only available in F3DZEX2 (Emu64).")
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
@@ -5094,7 +5094,7 @@ class DPSetTileSize_Dolphin(GbiMacro):
     height: int
 
     def to_binary(self, f3d, segments):
-        if f3d.F3DZEX_AC_EXT:
+        if f3d.F3DZEX2_EMU64:
             words = (
                 (_SHIFTL(f3d.G_SETTILESIZE, 24, 8) | _SHIFTL(self.s, 10, 14) | _SHIFTL(self.width - 1, 0, 10)),
                 (
@@ -5105,7 +5105,7 @@ class DPSetTileSize_Dolphin(GbiMacro):
                 ),
             )
         else:
-            raise PluginError("DPSetTileSize_Dolphin only available in F3DZEX (AC).")
+            raise PluginError("DPSetTileSize_Dolphin only available in F3DZEX2 (Emu64).")
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
@@ -5173,7 +5173,7 @@ class DPSetTile_Dolphin(GbiMacro):
     shift_t: int
 
     def to_binary(self, f3d, segments):
-        if f3d.F3DZEX_AC_EXT:
+        if f3d.F3DZEX2_EMU64:
             assert self.d_fmt == f3d.G_DOLPHIN_TLUT_DEFAULT_MODE
             words = (
                 (
@@ -5189,7 +5189,7 @@ class DPSetTile_Dolphin(GbiMacro):
                 0,
             )
         else:
-            raise PluginError("DPSetTile_Dolphin only available in F3DZEX (AC).")
+            raise PluginError("DPSetTile_Dolphin only available in F3DZEX2 (Emu64).")
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
@@ -5528,7 +5528,7 @@ class DPLoadTextureBlock_4b_Dolphin(GbiMacro):
     st: int
 
     def to_binary(self, f3d, segments):
-        if f3d.F3DZEX_AC_EXT:
+        if f3d.F3DZEX2_EMU64:
             return DPSetTextureImage_Dolphin(self.fmt, f3d.G_IM_SIZ_4b, self.height, self.width, self.timg).to_binary(
                 f3d, segments
             ) + DPSetTile_Dolphin(
@@ -5537,7 +5537,7 @@ class DPLoadTextureBlock_4b_Dolphin(GbiMacro):
                 f3d, segments
             )
         else:
-            raise PluginError("DPLoadTextureBlock_4b_Dolphin only available in F3DZEX (AC).")
+            raise PluginError("DPLoadTextureBlock_4b_Dolphin only available in F3DZEX2 (Emu64).")
 
     def size(self, f3d):
         return GFX_SIZE * 2
@@ -5706,12 +5706,12 @@ class DPLoadTextureTile_4b_Dolphin(GbiMacro):
     height: int
 
     def to_binary(self, f3d, segments):
-        if f3d.F3DZEX_AC_EXT:
+        if f3d.F3DZEX2_EMU64:
             return DPSetTextureImage_Dolphin(self.fmt, f3d.G_IM_SIZ_4b, self.height, self.width, self.img).to_binary(
                 f3d, segments
             ) + DPSetTile_Dolphin("G_DOLPHIN_TLUT_DEFAULT_MODE", 0, 0, 0, 0, 0, 0).to_binary(f3d, segments)
         else:
-            raise PluginError("DPLoadTextureTile_4b_Dolphin only available in F3DZEX (AC).")
+            raise PluginError("DPLoadTextureTile_4b_Dolphin only available in F3DZEX2 (Emu64).")
 
     def size(self, f3d):
         return GFX_SIZE * 2
@@ -5790,7 +5790,7 @@ class DPLoadTLUT_Dolphin(GbiMacro):
     addr: FImage
 
     def to_binary(self, f3d, segments):
-        if f3d.F3DZEX_AC_EXT:
+        if f3d.F3DZEX2_EMU64:
             words = (
                 _SHIFTL(f3d.G_LOADTLUT, 24, 8)
                 | _SHIFTL(f3d.G_TLUT_DOLPHIN, 22, 2)
@@ -5800,7 +5800,7 @@ class DPLoadTLUT_Dolphin(GbiMacro):
                 self.addr,
             )
         else:
-            raise PluginError("DPLoadTLUT_Dolphin only available in F3DZEX (AC).")
+            raise PluginError("DPLoadTLUT_Dolphin only available in F3DZEX2 (Emu64).")
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 

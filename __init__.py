@@ -89,7 +89,7 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
         col = self.layout.column()
         col.scale_y = 1.1  # extra padding
         prop_split(col, context.scene, "f3d_type", "F3D Microcode")
-        if context.scene.f3d_type == "F3DZEX (AC)":
+        if context.scene.f3d_type == "F3DZEX2 (Emu64)":
             prop_split(col, context.scene.fast64.settings, "ac_tri_type", "Triangle Export Type")
         col.prop(context.scene, "saveTextures")
         col.prop(context.scene, "f3d_simple", text="Simple Material UI")
@@ -100,7 +100,7 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
                 "While inlining, all meshes will be restored to world default values.\n         You can configure these values in the world properties tab.",
                 icon="INFO",
             )
-        if context.scene.f3d_type == "F3DZEX (AC)":
+        if context.scene.f3d_type == "F3DZEX2 (Emu64)":
             col.box().label(text="Emu64 supports ignore texture restrictions!", icon="INFO")
         col.prop(context.scene, "ignoreTextureRestrictions")
         if context.scene.ignoreTextureRestrictions:

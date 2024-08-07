@@ -105,7 +105,7 @@ class BleedGraphics:
             place_in_flaglist(defaults.g_clipping, "G_CLIPPING", setGeo, clearGeo)
         if self.f3d.POINT_LIT_GBI:
             place_in_flaglist(defaults.g_lighting_positional, "G_LIGHTING_POSITIONAL", setGeo, clearGeo)
-        if self.f3d.F3DZEX_AC_EXT:
+        if self.f3d.F3DZEX2_EMU64:
             place_in_flaglist(defaults.g_decal_gequal, "G_DECAL_GEQUAL", setGeo, clearGeo)
             place_in_flaglist(defaults.g_decal_equal, "G_DECAL_EQUAL", setGeo, clearGeo)
             place_in_flaglist(defaults.g_decal_special, "G_DECAL_SPECIAL", setGeo, clearGeo)

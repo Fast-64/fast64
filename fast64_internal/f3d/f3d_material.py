@@ -504,7 +504,7 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
         elif blendWarnings and not shadeInBlender and settings.g_fog:
             c.label(text="Fog not used in rendermode / blender, can disable.", icon="INFO")
 
-        if f3d.F3DZEX_AC_EXT:
+        if f3d.F3DZEX2_EMU64:
             c = indentGroup(inputGroup, "Decals:", True)
             c.prop(settings, "g_decal_equal")
             c.prop(settings, "g_decal_gequal")
@@ -652,7 +652,7 @@ def ui_other(settings, dataHolder, layout, useDropdown):
             prop_input.prop(dataHolder, "blend_color", text="")
             prop_input.enabled = dataHolder.set_blend
 
-            if bpy.context.scene.f3d_type == "F3DZEX (AC)":
+            if bpy.context.scene.f3d_type == "F3DZEX2 (Emu64)":
                 inputGroup.separator()
                 adjust_row = inputGroup.row()
                 adjust_row.prop(dataHolder, "set_bilerp_text_adjust", text="Bilerp Adjust Mode")
@@ -1734,7 +1734,7 @@ def set_output_node_groups(material: Material):
     output_node.inputs["Cycle_A_2"].default_value = 0.5
     if output_method == "CLIP":
         output_node.inputs["Alpha Threshold"].default_value = 0.125
-        if bpy.context.scene.f3d_type == "F3DZEX (AC)" and f3dMat.rdp_settings.is_emu64_texedge:
+        if bpy.context.scene.f3d_type == "F3DZEX2 (Emu64)" and f3dMat.rdp_settings.is_emu64_texedge:
             output_node.inputs["Alpha Threshold"].default_value = f3dMat.tex_edge_alpha
     material.node_tree.links.new(nodes["Cycle_1"].outputs["Color"], output_node.inputs["Cycle_C_1"])
     material.node_tree.links.new(nodes["Cycle_1"].outputs["Alpha"], output_node.inputs["Cycle_A_1"])
@@ -2856,12 +2856,12 @@ class TextureProperty(PropertyGroup):
         default=16,
     )
     use_pal_index: bpy.props.BoolProperty(
-        name="Palette Index Reference", description="F3DZEX (AC): Reference an already loaded palette"
+        name="Palette Index Reference", description="F3DZEX2 (Emu64): Reference an already loaded palette"
     )
     pal_index: bpy.props.StringProperty(
         name="Palette Index",
         default="0x03",
-        description="F3DZEX (AC): The palette's index. Defaults to the grass pallete index (3)",
+        description="F3DZEX2 (Emu64): The palette's index. Defaults to the grass pallete index (3)",
     )
 
     menu: bpy.props.BoolProperty()
@@ -2940,7 +2940,7 @@ def ui_image(
     name: str,
     showCheckBox: bool,
 ):
-    is_fdzex_ac = bpy.context.scene.f3d_type == "F3DZEX (AC)"
+    is_fdzex_ac = bpy.context.scene.f3d_type == "F3DZEX2 (Emu64)"
     inputGroup = layout.box().column()
 
     inputGroup.prop(
@@ -3010,7 +3010,7 @@ def ui_image(
         if textureProp.tex_format[:2] == "CI":
             prop_split(prop_input, textureProp, "ci_format", name="CI Format")
             if is_fdzex_ac and textureProp.ci_format == "IA16":
-                multilineLabel(prop_input, text="IA16 not supported in F3DZEX (AC).", icon="ERROR")
+                multilineLabel(prop_input, text="IA16 not supported in F3DZEX2 (Emu64).", icon="ERROR")
         if not isLarge:
             s, t = textureProp.S, textureProp.T
             if width > 0 and height > 0:
@@ -3037,7 +3037,7 @@ def ui_image(
 
             if is_fdzex_ac and ((s.clamp and s.mirror) or (t.clamp and t.mirror)):
                 texFieldSettings.box().label(
-                    text="Clamp + mirror not supported in F3DZEX (AC).",
+                    text="Clamp + mirror not supported in F3DZEX2 (Emu64).",
                     icon="ERROR",
                 )
 
@@ -3260,13 +3260,13 @@ class RDPSettings(PropertyGroup):
         name="Equal",
         default=False,
         update=update_node_values_with_preset,
-        description="F3DZEX (AC): Disables any offset and uses the equal compare mode",
+        description="F3DZEX2 (Emu64): Disables any offset and uses the equal compare mode",
     )
     g_decal_gequal: bpy.props.BoolProperty(
         name="Greater or Equal",
         default=False,
         update=update_node_values_with_preset,
-        description="F3DZEX (AC): When enabled, the greater or equal compare mode is used, "
+        description="F3DZEX2 (Emu64): When enabled, the greater or equal compare mode is used, "
         "if Equal is disabled a positive offset is also used (closer to the camera).\n"
         "When disabled, the default negative offset and less or equal compare mode are used",
     )
@@ -3274,7 +3274,7 @@ class RDPSettings(PropertyGroup):
         name="Special",
         default=False,
         update=update_node_values_with_preset,
-        description="F3DZEX (AC): Apropriately sets decal blend modes",
+        description="F3DZEX2 (Emu64): Apropriately sets decal blend modes",
     )
     # v1/2 difference
     g_cull_front: bpy.props.BoolProperty(
@@ -3695,7 +3695,7 @@ class RDPSettings(PropertyGroup):
             data.update(self.attributes_to_dict(self.geo_mode_f3dex_attributes))
         if f3d.F3DEX_GBI_3:
             data.update(self.attributes_to_dict(self.geo_mode_f3dex3_attributes))
-        if f3d.F3DZEX_AC_EXT:
+        if f3d.F3DZEX2_EMU64:
             data.update(self.attributes_to_dict(self.geo_mode_f3dzex_ac_attributes))
         return data
 
@@ -4420,14 +4420,14 @@ class F3DMaterialProperty(PropertyGroup):
         step=100.0 / 255.0,
         default=144.0 / 255.0,
         update=update_node_values_with_preset,
-        description="F3DZEX (AC): Alpha threshold for tex edge (cutout) materials, displays only alpha values greater or equal",
+        description="F3DZEX2 (Emu64): Alpha threshold for tex edge (cutout) materials, displays only alpha values greater or equal",
     )
     bilerp_text_adjust: bpy.props.EnumProperty(
         name="Bilerp Adjust Mode",
         items=enumTextAdjust,
         default="G_TA_N64",
         update=update_node_values_without_preset,
-        description="F3DZEX (AC): Changes bilerp filter origin",
+        description="F3DZEX2 (Emu64): Changes bilerp filter origin",
     )
     prim_color: bpy.props.FloatVectorProperty(
         name="Primitive Color",

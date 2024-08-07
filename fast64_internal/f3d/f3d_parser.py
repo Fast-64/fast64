@@ -530,7 +530,7 @@ class F3DContext:
         self.numLights: int = 0
         self.lightData: dict[Light, bpy.types.Object] = {}  # Light : blender light object
 
-        self.ac_pal_dict: dict[int, int] = {}  # F3DZEX (AC)
+        self.ac_pal_dict: dict[int, int] = {}  # F3DZEX2 (Emu64)
         self.set_img = DPSetTextureImage_Dolphin("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 0, 0, None)
         self.tri_init_count = 0
 
@@ -599,7 +599,7 @@ class F3DContext:
         self.lights.a = Ambient([0, 0, 0])
         self.numLights = 0
 
-        self.ac_pal_dict: dict[int, int] = {}  # F3DZEX (AC)
+        self.ac_pal_dict: dict[int, int] = {}  # F3DZEX2 (Emu64)
         self.set_img = DPSetTextureImage_Dolphin("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 0, 0, None)
         self.tri_init_count = 0
 
@@ -785,7 +785,7 @@ class F3DContext:
 
         if texProp.tex_format[:2] == "CI":
             # Only handles TLUT at 256
-            if self.f3d.F3DZEX_AC_EXT:
+            if self.f3d.F3DZEX2_EMU64:
                 tlutName = self.ac_pal_dict.get(self.getTileSettings(index).palette, None)
             else:
                 tlutName = self.tmemDict.get(256, None)
@@ -900,7 +900,7 @@ class F3DContext:
                 rdp_settings.g_fresnel_color = value
             if bitFlags & self.f3d.G_FRESNEL_ALPHA:
                 rdp_settings.g_fresnel_alpha = value
-        elif self.f3d.F3DZEX_AC_EXT:
+        elif self.f3d.F3DZEX2_EMU64:
             if bitFlags & self.f3d.G_DECAL_GEQUAL:
                 rdp_settings.g_decal_gequal = value
             if bitFlags & self.f3d.G_DECAL_EQUAL:
@@ -954,7 +954,7 @@ class F3DContext:
             rdp_settings.g_lighting_specular = False
             rdp_settings.g_fresnel_color = False
             rdp_settings.g_fresnel_alpha = False
-        if self.f3d.F3DZEX_AC_EXT:
+        if self.f3d.F3DZEX2_EMU64:
             rdp_settings.g_decal_gequal = bitFlags & self.f3d.G_DECAL_GEQUAL != 0
             rdp_settings.g_decal_equal = bitFlags & self.f3d.G_DECAL_EQUAL != 0
             rdp_settings.g_decal_special = bitFlags & self.f3d.G_DECAL_SPECIAL != 0

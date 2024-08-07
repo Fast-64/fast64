@@ -206,7 +206,7 @@ def maybeSaveSingleLargeTextureSetup(
             sm = 2 if is4bit else 4
             nocm = ["G_TX_WRAP", "G_TX_NOMIRROR"]
             if curImgSet != i:
-                if fModel.f3d.F3DZEX_AC_EXT:
+                if fModel.f3d.F3DZEX2_EMU64:
                     gfxOut.commands.append(DPSetTextureImage_Dolphin(fmt, siz, texDimensions[1], wid, fImage))
                 else:
                     gfxOut.commands.append(DPSetTextureImage(fmt, siz, wid, fImage))
@@ -480,7 +480,7 @@ class TexInfo:
                 fMaterial, material, self.indexInMat
             )
             if self.isTexRef:
-                if fModel.f3d.F3DZEX_AC_EXT and self.texProp.use_pal_index:
+                if fModel.f3d.F3DZEX2_EMU64 and self.texProp.use_pal_index:
                     self.palLen = 16 if self.texFormat == "CI4" else 256
                     self.palIndex = int(self.texProp.pal_index, 0)
                 elif self.flipbook is not None:
@@ -489,7 +489,7 @@ class TexInfo:
                     self.palLen = self.texProp.pal_reference_size
             else:
                 assert self.flipbook is None
-                self.pal = getColorsUsedInImage(self.texProp.tex, self.palFormat, fModel.f3d.F3DZEX_AC_EXT)
+                self.pal = getColorsUsedInImage(self.texProp.tex, self.palFormat, fModel.f3d.F3DZEX2_EMU64)
                 self.palLen = len(self.pal)
             if self.palLen > (16 if self.texFormat == "CI4" else 256):
                 raise PluginError(
@@ -560,7 +560,7 @@ class TexInfo:
             else:
                 if self.isTexCI:
                     writeCITextureData(
-                        self.texProp.tex, fImage, self.pal, self.palFormat, self.texFormat, f3d.F3DZEX_AC_EXT
+                        self.texProp.tex, fImage, self.pal, self.palFormat, self.texFormat, f3d.F3DZEX2_EMU64
                     )
                 else:
                     writeNonCITextureData(self.texProp.tex, fImage, self.texFormat)
@@ -629,7 +629,7 @@ class MultitexManager:
         # Determine how to arrange / load palette entries into upper half of tmem
         if self.isCI:
             assert self.ti0.useTex or self.ti1.useTex
-            if fModel.f3d.F3DZEX_AC_EXT:
+            if fModel.f3d.F3DZEX2_EMU64:
                 non_rgba = False
                 if self.ti0.useTex:
                     if self.ti0.pal:
@@ -645,7 +645,7 @@ class MultitexManager:
                         non_rgba = self.ti1.palFormat != "RGBA16"
                 if non_rgba:
                     raise PluginError(
-                        f"In material {material.name}: Only RGBA16 palette format supported in F3DZEX (AC)"
+                        f"In material {material.name}: Only RGBA16 palette format supported in F3DZEX2 (Emu64)"
                     )
             elif not self.ti1.useTex:
                 self.ti0.loadPal = True
@@ -978,7 +978,7 @@ def saveTextureLoadOnly(
 
     # LoadTile will pad rows to 64 bit word alignment, while
     # LoadBlock assumes this is already done.
-    needs_load = not f3d.F3DZEX_AC_EXT
+    needs_load = not f3d.F3DZEX2_EMU64
     useLoadBlock = canUseLoadBlock(fImage, texProp.tex_format, f3d) and needs_load
     line = 0 if useLoadBlock else getTileLine(fImage, SL, SH, siz, f3d)
     wid = 1 if useLoadBlock else fImage.width
@@ -1009,7 +1009,7 @@ def saveTextureLoadOnly(
             loadCommand = DPLoadTile(loadtile, sl, tl, sh, th)
 
     if not omitSetTextureImage:
-        if f3d.F3DZEX_AC_EXT:
+        if f3d.F3DZEX2_EMU64:
             gfxOut.commands.append(DPSetTextureImage_Dolphin(fmt, siz, height, wid, fImage))
         else:
             gfxOut.commands.append(DPSetTextureImage(fmt, siz, wid, fImage))
@@ -1060,9 +1060,9 @@ def saveTextureTile(
     SL, _, SH, _, sl, tl, sh, th = getTileSizeSettings(texProp, tileSettings, f3d)
     line = getTileLine(fImage, SL, SH, siz, f3d)
 
-    if f3d.F3DZEX_AC_EXT:
+    if f3d.F3DZEX2_EMU64:
         if (clamp_S and mirror_S) or (clamp_T and mirror_T):
-            raise PluginError("Clamp + mirror not supported in F3DZEX (AC)")
+            raise PluginError("Clamp + mirror not supported in F3DZEX2 (Emu64)")
         if tileSettings and (log2iRoundUp(fImage.width) != masks or log2iRoundUp(fImage.height) != maskt):
             raise PluginError("Mask is not emulated in emu64, non default values are not supported")
         wrap_s = "GX_CLAMP" if clamp_S else "GX_MIRROR" if mirror_S else "GX_REPEAT"
@@ -1102,7 +1102,7 @@ def savePaletteLoad(
     assert 0 <= palAddr < 256 and (palAddr & 0xF) == 0
     palFmt = texFormatOf[palFormat]
     nocm = ["G_TX_WRAP", "G_TX_NOMIRROR"]
-    if f3d.F3DZEX_AC_EXT:
+    if f3d.F3DZEX2_EMU64:
         assert palFormat == "RGBA16"
         gfxOut.commands.append(DPLoadTLUT_Dolphin(palIndex, palLen - 1, 1, fPalette))
         return

@@ -395,7 +395,7 @@ enumF3D = [
         "Variant of F3DEX2 family with support for point lighting used in a few games including MM",
     ),
     ("F3DEX3", "F3DEX3", "Custom microcode by Sauraen"),
-    ("F3DZEX (AC)", "F3DZEX (AC)", "Microcode used in Animal Crossing (GC), extended version of F3DZEX"),
+    ("F3DZEX2 (Emu64)", "F3DZEX2 (Emu64)", "Microcode used in Animal Crossing (GC), extended version of F3DZEX"),
 ]
 
 enumLargeEdges = [

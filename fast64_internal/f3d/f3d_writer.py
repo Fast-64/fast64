@@ -1125,7 +1125,7 @@ class TriangleConverter:
         self.triList.commands.append(SPAlphaCompareCull("G_ALPHA_COMPARE_CULL_DISABLE", 0))
 
     def get_best_load_size_and_tri_type(self, vertices_up_next: int):
-        if self.triConverterInfo.f3d.F3DZEX_AC_EXT:
+        if self.triConverterInfo.f3d.F3DZEX2_EMU64:
             setting = bpy.context.scene.fast64.settings.ac_tri_type
             if (setting == "Auto" and vertices_up_next > 2**5) or setting == "7b":
                 return True, 2**7
@@ -1245,7 +1245,7 @@ def createTriangleCommands(triangles, vertexBuffer, ac_use_7b, triConverterInfo)
     def getIndices(*tris):
         return [vertexBuffer.index(v) for tri in tris for v in tri]
 
-    if triConverterInfo.f3d.F3DZEX_AC_EXT:
+    if triConverterInfo.f3d.F3DZEX2_EMU64:
 
         def get_n_tris_indices(n: int, tri_index=0, triangles=triangles):  # Includes dummy data to fill out the command
             if len(triangles) - tri_index >= n:
@@ -1655,7 +1655,7 @@ def saveGeoModeCommon(saveFunc: Callable, settings: RDPSettings, defaults: RDPSe
         saveFunc(settings.g_lighting_specular, defaults.g_lighting_specular, "G_LIGHTING_SPECULAR", *args)
         saveFunc(settings.g_fresnel_color, defaults.g_fresnel_color, "G_FRESNEL_COLOR", *args)
         saveFunc(settings.g_fresnel_alpha, defaults.g_fresnel_alpha, "G_FRESNEL_ALPHA", *args)
-    elif f3d.F3DZEX_AC_EXT:
+    elif f3d.F3DZEX2_EMU64:
         saveFunc(settings.g_decal_gequal, defaults.g_decal_gequal, "G_DECAL_GEQUAL", *args)
         saveFunc(settings.g_decal_equal, defaults.g_decal_equal, "G_DECAL_EQUAL", *args)
         saveFunc(settings.g_decal_special, defaults.g_decal_special, "G_DECAL_SPECIAL", *args)
@@ -1881,7 +1881,7 @@ def saveOtherDefinition(fMaterial, material, defaults):
                 int(material.blend_color[3] * 255),
             )
         )
-    if bpy.context.scene.f3d_type == "F3DZEX (AC)":
+    if bpy.context.scene.f3d_type == "F3DZEX2 (Emu64)":
         if material.set_tex_edge_alpha:
             fMaterial.mat_only_DL.commands.append(DPSetTexEdgeAlpha(int(material.tex_edge_alpha * 255)))
         if material.set_bilerp_text_adjust:
