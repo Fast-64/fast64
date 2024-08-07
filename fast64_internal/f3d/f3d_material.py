@@ -509,7 +509,7 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             c.prop(settings, "g_decal_equal")
             c.prop(settings, "g_decal_gequal")
             c.prop(settings, "g_decal_special")
-            # These decal modes are not as clear as others, so we give the user a bit more info
+            # These geo modes are not as clear as others, so we give the user a bit more info
             if not settings.g_decal_equal and not settings.g_decal_gequal:
                 compare_mode = "GX_LEQUAL"
             elif settings.g_decal_gequal and not settings.g_decal_equal:
