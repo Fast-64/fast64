@@ -171,7 +171,7 @@ To be able to actually watch your cutscene you need to have a way to trigger it,
 - ``ENTR_SPOT00_3`` is the Hyrule Field entrance from Lost Woods, see ``entrance_table.h`` to view/add entrances
 - ``2`` means this cutscene can be watched as child AND as adult
 - ``EVENTCHKINF_A0`` is the flag set in the ``event_chk_inf`` table, this is a macro but you can use raw hex: ``0xA0``
-- ``gHyruleFieldIntroCs`` is the name of the array with the cutscene commands, as defined in ``assets/scenes/overworld/spot00_scene.c``, ``CutsceneData gHyruleFieldIntroCs[]``
+- ``gHyruleFieldIntroCs`` is the name of the array with the cutscene commands, as defined in ``extracted/VERSION/assets/scenes/overworld/spot00_scene.c``, ``CutsceneData gHyruleFieldIntroCs[]``
 4. Compile the game again and use the entrance you chose for ``sEntranceCutsceneTable`` and your cutscene should play.
 
 Alternatively, you can use the map select to watch your cutscene, though note that this won't make it watchable during normal gameplay:

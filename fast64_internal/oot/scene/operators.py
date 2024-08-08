@@ -230,7 +230,7 @@ class OOT_RemoveScene(Operator):
             return {"FINISHED"}
 
         if option == "Custom":
-            subfolder = "assets/scenes/" + settings.subFolder + "/"
+            subfolder = f"{context.scene.fast64.oot.get_extracted_path()}/assets/scenes/{settings.subFolder}/"
         else:
             levelName = sceneNameFromID(option)
             subfolder = None

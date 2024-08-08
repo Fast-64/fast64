@@ -20,6 +20,9 @@ class OOT_FileSettingsPanel(OOT_Panel):
         prop_split(col, context.scene, "ootDecompPath", "Decomp Path")
         col.prop(context.scene.fast64.oot, "headerTabAffectsVisibility")
         col.prop(context.scene.fast64.oot, "hackerFeaturesEnabled")
+        prop_split(col, context.scene.fast64.oot, "oot_version", "OoT Version")
+        if context.scene.fast64.oot.oot_version == "Custom":
+            prop_split(col, context.scene.fast64.oot, "oot_version_custom", "Custom Version")
 
         if not context.scene.fast64.oot.hackerFeaturesEnabled:
             col.prop(context.scene.fast64.oot, "useDecompFeatures")

@@ -68,8 +68,9 @@ def ootConvertMeshToC(
     else:
         data.source += "\n"
 
-    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, True)
-    includeDir = settings.customAssetIncludeDir if settings.isCustom else f"assets/objects/{folderName}"
+    extracted = bpy.context.scene.fast64.oot.get_extracted_path()
+    path = ootGetPath(exportPath, isCustomExport, f"{extracted}/assets/objects/", folderName, False, True)
+    includeDir = settings.customAssetIncludeDir if settings.isCustom else f"{extracted}/assets/objects/{folderName}"
     exportData = fModel.to_c(
         TextureExportSettings(False, saveTextures, includeDir, path), OOTGfxFormatter(ScrollMethod.Vertex)
     )
@@ -120,12 +121,12 @@ class OOT_ImportDL(Operator):
             flipbookArrayIndex2D = settings.flipbookArrayIndex2D if flipbookUses2DArray else None
 
             paths = [ootGetObjectPath(isCustomImport, importPath, folderName)]
-            data = getImportData(paths)
+            filedata = getImportData(paths)
             f3dContext = OOTF3DContext(get_F3D_GBI(), [name], basePath)
 
             scale = getOOTScale(settings.actorScale)
             if not isCustomImport:
-                data = ootGetIncludedAssetData(basePath, paths, data) + data
+                filedata = ootGetIncludedAssetData(basePath, paths, filedata) + filedata
 
                 if overlayName is not None:
                     ootReadTextureArrays(basePath, overlayName, name, f3dContext, False, flipbookArrayIndex2D)
@@ -133,7 +134,7 @@ class OOT_ImportDL(Operator):
                     scale = ootReadActorScale(basePath, overlayName, False)
 
             obj = importMeshC(
-                data,
+                filedata,
                 name,
                 scale,
                 removeDoubles,
