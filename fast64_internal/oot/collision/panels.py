@@ -1,8 +1,6 @@
 from bpy.types import Panel, Camera
 from bpy.utils import register_class, unregister_class
-from ...utility import prop_split
 from ...panels import OOT_Panel
-from ..oot_utility import drawEnumWithCustom
 from .properties import OOTCollisionExportSettings, OOTCameraPositionProperty, OOTMaterialCollisionProperty
 from .operators import OOT_ExportCollision
 
