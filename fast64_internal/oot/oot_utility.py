@@ -217,6 +217,7 @@ class ExportInfo:
         self.exportPath = exportPath
         self.customSubPath = customSubPath
         self.name = name
+        self.option: Optional[str] = None
 
 
 class OOTObjectCategorizer:

@@ -253,6 +253,8 @@ class BleedGraphics:
                 commands_bled.commands.remove(None)
         else:
             commands_bled = self.bleed_cmd_list(cur_fmat.mat_only_DL, bleed_state)
+        # some syncs may become redundant after bleeding
+        self.optimize_syncs(commands_bled, bleed_state)
         # remove SPEndDisplayList
         while SPEndDisplayList() in commands_bled.commands:
             commands_bled.commands.remove(SPEndDisplayList())
@@ -352,6 +354,24 @@ class BleedGraphics:
         cmd_list.commands.extend(fmesh_static_cmds)  # this is troublesome
         cmd_list.commands.append(SPEndDisplayList())
         self.bled_gfx_lists[cmd_list] = last_mat
+
+    # remove syncs if first material, or if no gsDP cmds in material
+    def optimize_syncs(self, cmd_list: GfxList, bleed_state: int):
+        no_syncs_needed = {"DPSetPrimColor", "DPSetPrimDepth"}  # will not affect rdp
+        syncs_needed = {"SPSetOtherMode"}  # will affect rdp
+        if bleed_state == self.bleed_start:
+            while DPPipeSync() in cmd_list.commands:
+                cmd_list.commands.remove(DPPipeSync())
+        for cmd in cmd_list.commands:
+            cmd_name = type(cmd).__name__
+            if cmd == DPPipeSync():
+                continue
+            if "DP" in cmd_name and cmd_name not in no_syncs_needed:
+                return
+            if cmd_name in syncs_needed:
+                return
+        while DPPipeSync() in cmd_list.commands:
+            cmd_list.commands.remove(DPPipeSync())
 
     def create_reset_cmds(self, reset_cmd_dict: dict[GbiMacro], default_render_mode: list[str]):
         reset_cmds = []
