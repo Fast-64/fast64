@@ -84,7 +84,7 @@ def createGeoFile(levelName, filepath):
 
 def createLevelDataFile(levelName, filepath):
     result = (
-        '#include <ultra64.h>"\n'
+        "#include <ultra64.h>\n"
         + '#include "sm64.h"\n'
         + '#include "surface_terrains.h"\n'
         + '#include "moving_texture_macros.h"\n'
@@ -497,21 +497,45 @@ def replaceScriptLoads(levelscript, obj):
     levelscript.levelFunctions = newFuncs
 
 
+STRING_TO_MACROS_PATTERN = re.compile(
+    r"""
+    .*?
+    (?P<macro_name>\w+)
+    \s*
+    \((?P<arguments> 
+        [^()]*
+        (?: # Non-capturing group for 1 depth parentheses
+            \(
+                .*?
+            \)
+            [^()]*
+        )*
+    )\)
+    (\s*,\s*|\s*)
+    (?P<comment> 
+        //.*$
+        |
+        /\*.*\*/ 
+    )?
+""",
+    re.VERBOSE | re.MULTILINE,
+)
+
+
 def stringToMacros(data):
     macroData = []
-    for matchResult in re.finditer("(\w*)\((((?!\)).)*)\),?(((?!\n)\s)*\/\/((?!\n).)*)?", data):
-        function = matchResult.group(1)
-        arguments = matchResult.group(2)
-        if matchResult.group(4) is not None:
-            comment = matchResult.group(4).strip()
-        else:
+    for matchResult in re.finditer(STRING_TO_MACROS_PATTERN, data):
+        function = matchResult.group("macro_name").strip()
+        arguments = matchResult.group("arguments").strip()
+        comment = matchResult.group("comment")
+        if comment is None:
             comment = ""
+        else:
+            comment = comment.strip()
         arguments = re.sub("\/\*(\*(?!\/)|[^*])*\*\/", "", arguments)
-        arguments = arguments.split(",")
-        for i in range(len(arguments)):
-            arguments[i] = arguments[i].strip()
-        macroData.append(Macro(function, arguments, comment))
+        arguments = [arg.strip() for arg in arguments.split(",")]
 
+        macroData.append(Macro(function, arguments, comment))
     return macroData
 
 
