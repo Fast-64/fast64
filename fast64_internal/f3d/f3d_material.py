@@ -2643,7 +2643,7 @@ class CreateFast3DMaterial(Operator):
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
     def execute(self, context):
-        obj = bpy.context.view_layer.objects.active
+        obj = getActiveObject()
         if obj is None:
             self.report({"ERROR"}, "No active object selected.")
         else:

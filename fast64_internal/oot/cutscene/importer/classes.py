@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from bpy.types import Object, Armature
-from ....utility import PluginError
+from ....utility import PluginError, deselectAllObjects
 from ..motion.utility import setupCutscene, getBlenderPosition, getInteger
 
 if TYPE_CHECKING:
@@ -530,7 +530,7 @@ class CutsceneImport(CutsceneObjectFactory):
 
             # Init camera + preview objects and setup the scene
             setupCutscene(csObj)
-            bpy.ops.object.select_all(action="DESELECT")
+            deselectAllObjects()
             print("Success!")
 
         # ``csNumber`` makes sure there's no duplicates

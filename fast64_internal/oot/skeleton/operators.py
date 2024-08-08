@@ -4,7 +4,7 @@ from bpy.utils import register_class, unregister_class
 from bpy.path import abspath
 from mathutils import Matrix
 from ...f3d.f3d_gbi import DLFormat
-from ...utility import PluginError, raisePluginError
+from ...utility import PluginError, raisePluginError, deselectAllObjects, selectSingleObject
 from ..oot_utility import getStartBone, getNextBone, getOOTScale
 from .exporter import ootConvertArmatureToC
 from .importer import ootImportSkeletonC
@@ -111,10 +111,9 @@ class OOT_ExportSkeleton(Operator):
 
         # Rotation must be applied before exporting skeleton.
         # For some reason this does not work if done on the duplicate generated later, so we have to do it before then.
-        object.select_all(action="DESELECT")
-        armatureObj.select_set(True)
+        selectSingleObject(armatureObj)
         object.transform_apply(location=False, rotation=True, scale=True, properties=False)
-        object.select_all(action="DESELECT")
+        deselectAllObjects()
 
         try:
             exportSettings: OOTSkeletonExportSettings = context.scene.fast64.oot.skeletonExportSettings

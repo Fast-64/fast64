@@ -33,6 +33,7 @@ from ..utility import (
     decompFolderMessage,
     makeWriteInfoBox,
     writeMaterialFiles,
+    setActiveObject,
     getPathAndLevel,
 )
 
@@ -1258,8 +1259,7 @@ class SM64_ExportLevel(ObjectDataExporter):
             applyRotation([obj], math.radians(-90), "X")
             self.cleanup_temp_object_data()
 
-            obj.select_set(True)
-            context.view_layer.objects.active = obj
+            setActiveObject(obj)
             self.reset_warnings()
             raisePluginError(self, e)
             return {"CANCELLED"}  # must return a set

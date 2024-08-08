@@ -7,6 +7,7 @@ from ...oot_upgrade import upgradeCutsceneMotion
 from ...oot_utility import getEnumName
 from ...oot_constants import ootData
 from ..constants import ootEnumCSMotionCamMode, ootEnumCSActorCueListCommandType
+from ....utility import getActiveObject
 
 from .operators import (
     CutsceneCmdAddActorCue,
@@ -18,7 +19,7 @@ from .operators import (
 
 
 def getNextCuesStartFrame(self):
-    curCueObj = bpy.context.view_layer.objects.active
+    curCueObj = getActiveObject()
     parentObj = curCueObj.parent
 
     if parentObj is not None and parentObj.ootEmptyType in ["CS Actor Cue List", "CS Player Cue List"]:
@@ -148,7 +149,7 @@ class CutsceneCmdCameraShotProperty(PropertyGroup):
 
     def getEndFrame(self, camShotObj: Object = None):
         if camShotObj is None:
-            camShotObj = bpy.context.view_layer.objects.active
+            camShotObj = getActiveObject()
 
         if camShotObj.type == "ARMATURE":
             boneFrameList: list[int] = [bone.ootCamShotPointProp.shotPointFrame for bone in camShotObj.data.bones]
@@ -215,7 +216,7 @@ class CutsceneCmdCameraShotPointProperty(PropertyGroup):
     def setValue(self, value, propName: str):
         setattr(self, propName, value)
 
-        activeObj = bpy.context.view_layer.objects.active
+        activeObj = getActiveObject()
         if activeObj.mode == "EDIT":
             bone = self.getBoneFromEditBone(activeObj, activeObj.data.edit_bones.active)
             if bone is not None:
