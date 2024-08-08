@@ -1,11 +1,6 @@
 import bpy, math, mathutils
 from bpy.utils import register_class, unregister_class
 
-from .utility import (
-    deselectAllObjects,
-    selectSingleObject,
-)
-
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -76,6 +71,8 @@ def attemptModifierApply(modifier):
 
 
 def armatureApplyWithMesh(armatureObj: bpy.types.Object, context: bpy.types.Context):
+    from .utility import selectSingleObject
+
     for child in armatureObj.children:
         if child.type != "MESH":
             continue

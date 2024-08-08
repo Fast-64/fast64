@@ -8,7 +8,7 @@ from bpy.path import abspath
 from ...operators import OperatorBase, AddWaterBox
 from ...utility import PluginError, decodeSegmentedAddr, encodeSegmentedAddr
 from ...f3d.f3d_material import getDefaultMaterialPreset, createF3DMat, add_f3d_mat_to_obj
-from ...utility import parentObject, intToHex, bytesToHex
+from ...utility import setParentObject, intToHex, bytesToHex
 
 from ..sm64_constants import level_pointers, levelIDNames, level_enums
 from ..sm64_utility import import_rom_checks, int_from_str
@@ -206,7 +206,7 @@ class SM64_CreateSimpleLevel(OperatorBase):
                 area_object.warpNodes[-1].destLevelEnum = "castle_inside"
                 area_object.warpNodes[-1].destNode = "0x64"
 
-            parentObject(level_object, area_object)
+            setParentObject(area_object, level_object)
 
             bpy.ops.mesh.primitive_plane_add(
                 size=1000 / scale, align="CURSOR", location=location_offset, rotation=(0, 0, 0)
@@ -215,7 +215,7 @@ class SM64_CreateSimpleLevel(OperatorBase):
             plane_object.name = get_clean_obj_duplicate_name("Level Mesh")
             plane_object.data.name = "Mesh"
             add_f3d_mat_to_obj(plane_object, example_mat)
-            parentObject(area_object, plane_object)
+            setParentObject(plane_object, area_object)
 
             if self.add_death_plane:
                 bpy.ops.mesh.primitive_plane_add(
@@ -226,17 +226,17 @@ class SM64_CreateSimpleLevel(OperatorBase):
                 death_plane_obj.data.name = "Death Plane"
                 death_plane_obj.ignore_render = True
                 add_f3d_mat_to_obj(death_plane_obj, death_mat)
-                parentObject(area_object, death_plane_obj)
+                setParentObject(death_plane_obj, area_object)
 
             if i == 0:
                 mario_start_object = create_sm64_empty(
                     "Hardcoded Level Start Position", "Mario Start", location=(0, y_offset, mario_height)
                 )
                 mario_start_object.scale = mario_scale
-                parentObject(area_object, mario_start_object)
+                setParentObject(mario_start_object, area_object)
 
             warp_object = create_sm64_empty("Warp", "Object", location=(0, y_offset, mario_height))
-            parentObject(area_object, warp_object)
+            setParentObject(warp_object, area_object)
             warp_object.scale = mario_scale
             warp_object.sm64_behaviour_enum, warp_object.sm64_obj_behaviour = "13002f74", "bhvSpinAirborneWarp"
             warp_game_object = warp_object.fast64.sm64.game_object
