@@ -221,6 +221,12 @@ class Geolayout:
             addresses.extend(ptrs)
         return addresses
 
+    def has_data(self):
+        for node in self.nodes:
+            if node.has_data():
+                return True
+        return False
+
     def to_binary(self, segmentData):
         endCmd = GEO_END if self.isStartGeo else GEO_RETURN
         data = bytearray(0)
@@ -330,6 +336,17 @@ class TransformNode:
                 addresses.extend(ptrs)
             address += 4
         return address, addresses
+
+    def has_data(self):
+        if self.node is not None:
+            if getattr(self.node, "hasDL", False):
+                return True
+            if type(self.node) in (JumpNode, SwitchNode, FunctionNode, ShadowNode, CustomNode, CustomAnimatedNode):
+                return True
+        for child in self.children:
+            if child.has_data():
+                return True
+        return False
 
     def size(self):
         size = self.node.size() if self.node is not None else 0
@@ -498,7 +515,7 @@ class GeoLayoutBleed(BleedGraphics):
 def convertAddrToFunc(addr):
     if addr == "":
         raise PluginError("Geolayout node cannot have an empty function name/address.")
-    refresh_func_map = func_map[bpy.context.scene.refreshVer]
+    refresh_func_map = func_map[bpy.context.scene.fast64.sm64.refresh_version]
     if addr.lower() in refresh_func_map:
         return refresh_func_map[addr.lower()]
     else:
@@ -1133,8 +1150,8 @@ class ZBufferNode:
 class CameraNode:
     def __init__(self, camType, position, lookAt):
         self.camType = camType
-        self.position = [int(round(value * bpy.context.scene.blenderToSM64Scale)) for value in position]
-        self.lookAt = [int(round(value * bpy.context.scene.blenderToSM64Scale)) for value in lookAt]
+        self.position = [int(round(value * bpy.context.scene.fast64.sm64.blender_to_sm64_scale)) for value in position]
+        self.lookAt = [int(round(value * bpy.context.scene.fast64.sm64.blender_to_sm64_scale)) for value in lookAt]
         self.geo_func = "80287D30"
         self.hasDL = False
 

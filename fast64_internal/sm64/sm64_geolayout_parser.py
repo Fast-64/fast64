@@ -1,11 +1,12 @@
 import bpy, mathutils, math, bmesh, copy
 from bpy.utils import register_class, unregister_class
 from ..f3d.f3d_parser import createBlankMaterial, parseF3DBinary
-from ..panels import SM64_Panel, sm64GoalImport
+from ..panels import SM64_Panel
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_constants import level_pointers, level_enums
 from .sm64_geolayout_bone import enumShadowType, animatableBoneTypes, enumBoneType
 from .sm64_geolayout_constants import getGeoLayoutCmdLength, nodeGroupCmds, GEO_BRANCH_STORE
+from .sm64_utility import import_rom_checks
 
 from ..utility import (
     PluginError,
@@ -17,7 +18,6 @@ from ..utility import (
     findStartBones,
     readEulerVectorFromShorts,
     readFloatFromShort,
-    checkExpanded,
     doRotation,
     prop_split,
     sm64BoneUp,
@@ -1388,7 +1388,7 @@ def parseStartWithRenderArea(
     commandSize = 4
     romfile.seek(currentAddress)
     command = romfile.read(commandSize)
-    cullingRadius = int.from_bytes(command[2:4], "big") / bpy.context.scene.blenderToSM64Scale
+    cullingRadius = int.from_bytes(command[2:4], "big") / bpy.context.scene.fast64.sm64.blender_to_sm64_scale
 
     if not ignoreNode:
         boneName = format(nodeIndex, "03") + "-start_render_area"
@@ -1523,7 +1523,6 @@ class SM64_ImportGeolayout(bpy.types.Operator):
             geoImportAddr = context.scene.geoImportAddr
             generateArmature = context.scene.generateArmature
             levelGeoImport = context.scene.levelGeoImport
-            importRom = context.scene.importRom
             ignoreSwitch = context.scene.ignoreSwitch
 
             # finalTransform = mathutils.Matrix.Rotation(math.radians(-90), 4, 'X')
@@ -1534,8 +1533,9 @@ class SM64_ImportGeolayout(bpy.types.Operator):
             raisePluginError(self, e)
             return {"CANCELLED"}
         try:
-            romfileSrc = open(bpy.path.abspath(importRom), "rb")
-            checkExpanded(bpy.path.abspath(importRom))
+            import_rom_checks(bpy.path.abspath(context.scene.fast64.sm64.import_rom))
+
+            romfileSrc = open(bpy.path.abspath(context.scene.fast64.sm64.import_rom), "rb")
 
             armatureObj = None
 
@@ -1590,7 +1590,8 @@ class SM64_ImportGeolayout(bpy.types.Operator):
 class SM64_ImportGeolayoutPanel(SM64_Panel):
     bl_idname = "SM64_PT_import_geolayout"
     bl_label = "SM64 Geolayout Importer"
-    goal = sm64GoalImport
+    goal = "Object/Actor/Anim"
+    import_panel = True
 
     # called every frame
     def draw(self, context):

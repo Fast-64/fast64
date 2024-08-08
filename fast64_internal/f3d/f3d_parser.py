@@ -188,9 +188,9 @@ def getPosition(vertexBuffer, index):
     yBytes = vertexBuffer[yStart : yStart + 2]
     zBytes = vertexBuffer[zStart : zStart + 2]
 
-    x = int.from_bytes(xBytes, "big", signed=True) / bpy.context.scene.blenderToSM64Scale
-    y = int.from_bytes(yBytes, "big", signed=True) / bpy.context.scene.blenderToSM64Scale
-    z = int.from_bytes(zBytes, "big", signed=True) / bpy.context.scene.blenderToSM64Scale
+    x = int.from_bytes(xBytes, "big", signed=True) / bpy.context.scene.fast64.sm64.blender_to_sm64_scale
+    y = int.from_bytes(yBytes, "big", signed=True) / bpy.context.scene.fast64.sm64.blender_to_sm64_scale
+    z = int.from_bytes(zBytes, "big", signed=True) / bpy.context.scene.fast64.sm64.blender_to_sm64_scale
 
     return (x, y, z)
 

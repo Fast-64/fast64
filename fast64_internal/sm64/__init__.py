@@ -8,6 +8,8 @@ from .settings import (
 from .tools import (
     tools_operators_register,
     tools_operators_unregister,
+    tools_props_register,
+    tools_props_unregister,
     tools_panels_register,
     tools_panels_unregister,
 )
@@ -34,6 +36,7 @@ from .sm64_camera import (
 )
 
 from .sm64_objects import (
+    SM64_CombinedObjectProperties,
     sm64_obj_panel_register,
     sm64_obj_panel_unregister,
     sm64_obj_register,
@@ -55,8 +58,6 @@ from .sm64_geolayout_writer import (
 )
 
 from .sm64_level_writer import (
-    sm64_level_panel_register,
-    sm64_level_panel_unregister,
     sm64_level_register,
     sm64_level_unregister,
 )
@@ -99,7 +100,6 @@ def sm64_panel_register():
     sm64_obj_panel_register()
     sm64_geo_parser_panel_register()
     sm64_geo_writer_panel_register()
-    sm64_level_panel_register()
     sm64_spline_panel_register()
     sm64_dl_writer_panel_register()
     sm64_dl_parser_panel_register()
@@ -115,16 +115,16 @@ def sm64_panel_unregister():
     sm64_obj_panel_unregister()
     sm64_geo_parser_panel_unregister()
     sm64_geo_writer_panel_unregister()
-    sm64_level_panel_unregister()
     sm64_spline_panel_unregister()
     sm64_dl_writer_panel_unregister()
     sm64_dl_parser_panel_unregister()
     sm64_anim_panel_unregister()
 
 
-def sm64_register(registerPanels):
+def sm64_register(register_panels: bool):
     tools_operators_register()
-    sm64_col_register()  # register first, so panel goes above mat panel
+    tools_props_register()
+    sm64_col_register()
     sm64_bone_register()
     sm64_cam_register()
     sm64_obj_register()
@@ -137,12 +137,13 @@ def sm64_register(registerPanels):
     sm64_anim_register()
     settings_props_register()
 
-    if registerPanels:
+    if register_panels:
         sm64_panel_register()
 
 
-def sm64_unregister(unregisterPanels):
+def sm64_unregister(unregister_panels: bool):
     tools_operators_unregister()
+    tools_props_unregister()
     sm64_col_unregister()
     sm64_bone_unregister()
     sm64_cam_unregister()
@@ -156,5 +157,5 @@ def sm64_unregister(unregisterPanels):
     sm64_anim_unregister()
     settings_props_unregister()
 
-    if unregisterPanels:
+    if unregister_panels:
         sm64_panel_unregister()
