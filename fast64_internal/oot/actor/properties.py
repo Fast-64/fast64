@@ -465,10 +465,8 @@ class OOTActorProperty(PropertyGroup):
             paramBox.prop(self, "rot_override", text="Override Rotation (ignore Blender rot)")
 
         for rot in rotations_used:
-            override = ""
-            if self.actor_id == "Custom":
-                override = "Override"
-            prop_split(paramBox, self, f"rot{override}{rot}", f"Rot {rot}")
+            custom = "_custom" if self.actor_id == "Custom" else ""
+            prop_split(paramBox, self, f"rot_{rot.lower()}{custom}", f"Rot {rot}")
 
         headerProp: OOTActorHeaderProperty = self.headerSettings
         headerProp.draw_props(actorIDBox, "Actor", altRoomProp, obj.name)

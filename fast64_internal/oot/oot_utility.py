@@ -917,11 +917,15 @@ def getEvalParamsInt(input: str):
         else:
             raise ValueError(f"Unsupported AST node {node}")
 
-    return _eval(node.body)
+    try:
+        return _eval(node.body)
+    except:
+        return None
 
 
 def getEvalParams(input: str):
-    return f"0x{getEvalParamsInt(input):X}"
+    num = getEvalParamsInt(input)
+    return f"0x{num:X}" if num is not None else None
 
 
 def getShiftFromMask(mask: int):

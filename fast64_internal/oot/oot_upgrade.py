@@ -326,10 +326,16 @@ def upgradeActors(actorObj: Object):
 
     if "actorParam" in actorProp:
         if not isCustom:
-            actorProp.params = actorProp["actorParam"]
-        else:
-            actorProp.params_custom = actorProp["actorParam"]
+            prop_name = "params"
 
+            if getEvalParams(actorProp["actorParam"]) is None:
+                actorProp.actor_id_custom = actorProp.actor_id
+                actorProp.actor_id = "Custom"
+                prop_name = "params_custom"
+        else:
+            prop_name = "params_custom"
+
+        setattr(actorProp, prop_name, actorProp["actorParam"])
         del actorProp["actorParam"]
 
     if actorObj.ootEmptyType == "Actor":
@@ -341,8 +347,17 @@ def upgradeActors(actorObj: Object):
                 del actorProp["rotOverride"]
 
         for rot in {"X", "Y", "Z"}:
-            if actorProp.is_rotation_used(f"{rot}Rot"):
+            if actorProp.actor_id == "Custom" or actorProp.is_rotation_used(f"{rot}Rot"):
                 if f"rotOverride{rot}" in actorProp:
+                    if getEvalParams(actorProp[f"rotOverride{rot}"]) is None:
+                        custom = "_custom"
+
+                        if actorProp.actor_id != "Custom":
+                            actorProp.actor_id_custom = actorProp.actor_id
+                            actorProp.params_custom = actorProp.params
+                            actorProp.actor_id = "Custom"
+                            actorProp.rot_override = True
+
                     setattr(actorProp, f"rot_{rot.lower()}{custom}", actorProp[f"rotOverride{rot}"])
                     del actorProp[f"rotOverride{rot}"]
 
