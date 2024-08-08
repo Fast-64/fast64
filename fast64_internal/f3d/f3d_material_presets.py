@@ -1,9 +1,12 @@
+# General comments
+# Setting f3d_mat.rdp_settings.rendermode_preset_cycle_1/2 will be propagated to the individual rendermode props
+# f3d_mat.presetName is set last because changing any prop sets the preset to Custom
+
 oot_shaded_environment_mapped = """
 import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Shaded Environment Mapped'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL0'
 f3d_mat.combiner1.B = '0'
@@ -104,29 +107,12 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_FOG_SHADE_A'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Shaded Environment Mapped'
 """
 
 oot_shaded_environment_mapped_transparent = """
@@ -134,7 +120,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Shaded Environment Mapped Transparent'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL0'
 f3d_mat.combiner1.B = '0'
@@ -235,29 +220,12 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_FOG_SHADE_A'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_XLU_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Shaded Environment Mapped Transparent'
 """
 
 oot_shaded_multitexture_lerp = """
@@ -265,7 +233,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Shaded Multitexture Lerp'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL1'
 f3d_mat.combiner1.B = 'TEXEL0'
@@ -366,29 +333,12 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_FOG_SHADE_A'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Shaded Multitexture Lerp'
 """
 
 oot_shaded_multitexture_lerp_transparent = """
@@ -396,7 +346,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Shaded Multitexture Lerp Transparent'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL1'
 f3d_mat.combiner1.B = 'TEXEL0'
@@ -497,29 +446,12 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_FOG_SHADE_A'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_XLU_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Shaded Multitexture Lerp Transparent'
 """
 
 oot_shaded_solid = """
@@ -527,7 +459,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Shaded Solid'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = '0'
 f3d_mat.combiner1.B = '0'
@@ -628,29 +559,12 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_FOG_SHADE_A'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Shaded Solid'
 """
 
 oot_shaded_solid_transparent = """
@@ -658,7 +572,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Shaded Solid Transparent'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = '0'
 f3d_mat.combiner1.B = '0'
@@ -759,29 +672,12 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_FOG_SHADE_A'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_XLU_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Shaded Solid Transparent'
 """
 
 oot_shaded_texture = """
@@ -789,7 +685,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Shaded Texture'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL0'
 f3d_mat.combiner1.B = '0'
@@ -890,29 +785,12 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_FOG_SHADE_A'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Shaded Texture'
 """
 
 oot_shaded_texture_cutout = """
@@ -920,7 +798,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Shaded Texture Cutout'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL0'
 f3d_mat.combiner1.B = '0'
@@ -1021,29 +898,12 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_FOG_SHADE_A'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_TEX_EDGE2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Shaded Texture Cutout'
 """
 
 oot_shaded_texture_transparent = """
@@ -1051,7 +911,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Shaded Texture Transparent'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL0'
 f3d_mat.combiner1.B = '0'
@@ -1152,29 +1011,12 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_FOG_SHADE_A'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_XLU_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Shaded Texture Transparent'
 """
 
 oot_unlit_texture = """
@@ -1182,7 +1024,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Unlit Texture'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = '0'
 f3d_mat.combiner1.B = '0'
@@ -1283,29 +1124,12 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_FOG_SHADE_A'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Unlit Texture'
 """
 
 oot_unlit_texture_cutout = """
@@ -1313,7 +1137,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Unlit Texture Cutout'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = '0'
 f3d_mat.combiner1.B = '0'
@@ -1414,29 +1237,12 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_FOG_SHADE_A'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_TEX_EDGE2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Unlit Texture Cutout'
 """
 
 oot_unlit_texture_transparent = """
@@ -1444,7 +1250,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Unlit Texture Transparent'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = '0'
 f3d_mat.combiner1.B = '0'
@@ -1545,29 +1350,12 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_FOG_SHADE_A'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_XLU_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Unlit Texture Transparent'
 """
 
 oot_vertex_colored_texture = """
@@ -1575,7 +1363,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Vertex Colored Texture'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL0'
 f3d_mat.combiner1.B = '0'
@@ -1676,29 +1463,12 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_FOG_SHADE_A'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Vertex Colored Texture'
 """
 
 oot_vertex_colored_texture_cutout = """
@@ -1706,7 +1476,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Vertex Colored Texture Cutout'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL0'
 f3d_mat.combiner1.B = '0'
@@ -1807,29 +1576,12 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_FOG_SHADE_A'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_TEX_EDGE2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Vertex Colored Texture Cutout'
 """
 
 oot_vertex_colored_texture_transparent = """
@@ -1837,7 +1589,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Vertex Colored Texture Transparent'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL0'
 f3d_mat.combiner1.B = '0'
@@ -1938,29 +1689,12 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_FOG_SHADE_A'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_XLU_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Vertex Colored Texture Transparent'
 """
 
 sm64_decal = """
@@ -1970,7 +1704,6 @@ f3d_mat = bpy.context.material.f3d_mat
 bpy.context.material.f3d_update_flag = True
 
 f3d_mat.name = ''
-f3d_mat.presetName = 'Sm64 Decal'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL0'
 f3d_mat.combiner1.B = 'SHADE'
@@ -2069,28 +1802,11 @@ f3d_mat.rdp_settings.set_rendermode = False
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_AA_ZB_OPA_SURF'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Sm64 Decal'
 """
 
 sm64_environment_map = """
@@ -2100,7 +1816,6 @@ f3d_mat = bpy.context.material.f3d_mat
 bpy.context.material.f3d_update_flag = True
 
 f3d_mat.name = ''
-f3d_mat.presetName = 'Sm64 Environment Map'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = '0'
 f3d_mat.combiner1.B = '0'
@@ -2199,28 +1914,11 @@ f3d_mat.rdp_settings.set_rendermode = False
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_AA_ZB_OPA_SURF'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Sm64 Environment Map'
 """
 
 sm64_fog_shaded_texture = """
@@ -2230,7 +1928,6 @@ f3d_mat = bpy.context.material.f3d_mat
 bpy.context.material.f3d_update_flag = True
 
 f3d_mat.name = ''
-f3d_mat.presetName = 'Sm64 Fog Shaded Texture'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL0'
 f3d_mat.combiner1.B = '0'
@@ -2329,28 +2026,11 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_FOG_SHADE_A'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Sm64 Fog Shaded Texture'
 """
 
 sm64_fog_shaded_texture_cutout = """
@@ -2360,7 +2040,6 @@ f3d_mat = bpy.context.material.f3d_mat
 bpy.context.material.f3d_update_flag = True
 
 f3d_mat.name = ''
-f3d_mat.presetName = 'Sm64 Fog Shaded Texture Cutout'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL0'
 f3d_mat.combiner1.B = '0'
@@ -2459,28 +2138,11 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_FOG_SHADE_A'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_TEX_EDGE2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.sm64 = '4'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Sm64 Fog Shaded Texture Cutout'
 """
 
 sm64_fog_shaded_texture_transparent = """
@@ -2490,7 +2152,6 @@ f3d_mat = bpy.context.material.f3d_mat
 bpy.context.material.f3d_update_flag = True
 
 f3d_mat.name = ''
-f3d_mat.presetName = 'Sm64 Fog Shaded Texture Transparent'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL0'
 f3d_mat.combiner1.B = '0'
@@ -2589,28 +2250,11 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_FOG_SHADE_A'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_XLU_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Sm64 Fog Shaded Texture Transparent'
 """
 
 sm64_shaded_noise = """
@@ -2620,7 +2264,6 @@ f3d_mat = bpy.context.material.f3d_mat
 bpy.context.material.f3d_update_flag = True
 
 f3d_mat.name = ''
-f3d_mat.presetName = 'Sm64 Shaded Noise'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'NOISE'
 f3d_mat.combiner1.B = '0'
@@ -2719,28 +2362,11 @@ f3d_mat.rdp_settings.set_rendermode = False
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_AA_ZB_OPA_SURF'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Sm64 Shaded Noise'
 """
 
 sm64_shaded_solid = """
@@ -2750,7 +2376,6 @@ f3d_mat = bpy.context.material.f3d_mat
 bpy.context.material.f3d_update_flag = True
 
 f3d_mat.name = ''
-f3d_mat.presetName = 'Sm64 Shaded Solid'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = '0'
 f3d_mat.combiner1.B = '0'
@@ -2849,28 +2474,11 @@ f3d_mat.rdp_settings.set_rendermode = False
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_AA_ZB_OPA_SURF'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Sm64 Shaded Solid'
 """
 
 sm64_shaded_texture = """
@@ -2880,7 +2488,6 @@ f3d_mat = bpy.context.material.f3d_mat
 bpy.context.material.f3d_update_flag = True
 
 f3d_mat.name = ''
-f3d_mat.presetName = 'Sm64 Shaded Texture'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL0'
 f3d_mat.combiner1.B = '0'
@@ -2979,28 +2586,11 @@ f3d_mat.rdp_settings.set_rendermode = False
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_AA_ZB_OPA_SURF'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Sm64 Shaded Texture'
 """
 
 sm64_shaded_texture_cutout = """
@@ -3010,7 +2600,6 @@ f3d_mat = bpy.context.material.f3d_mat
 bpy.context.material.f3d_update_flag = True
 
 f3d_mat.name = ''
-f3d_mat.presetName = 'Sm64 Shaded Texture Cutout'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL0'
 f3d_mat.combiner1.B = '0'
@@ -3109,28 +2698,11 @@ f3d_mat.rdp_settings.set_rendermode = False
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_AA_ZB_OPA_SURF'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.sm64 = '4'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Sm64 Shaded Texture Cutout'
 """
 
 sm64_shaded_texture_transparent = """
@@ -3140,7 +2712,6 @@ f3d_mat = bpy.context.material.f3d_mat
 bpy.context.material.f3d_update_flag = True
 
 f3d_mat.name = ''
-f3d_mat.presetName = 'Sm64 Shaded Texture Transparent'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL0'
 f3d_mat.combiner1.B = '0'
@@ -3239,28 +2810,11 @@ f3d_mat.rdp_settings.set_rendermode = False
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_AA_ZB_OPA_SURF'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Sm64 Shaded Texture Transparent'
 """
 
 sm64_unlit_texture = """
@@ -3270,7 +2824,6 @@ f3d_mat = bpy.context.material.f3d_mat
 bpy.context.material.f3d_update_flag = True
 
 f3d_mat.name = ''
-f3d_mat.presetName = 'Sm64 Unlit Texture'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = '0'
 f3d_mat.combiner1.B = '0'
@@ -3369,28 +2922,11 @@ f3d_mat.rdp_settings.set_rendermode = False
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_AA_ZB_OPA_SURF'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Sm64 Unlit Texture'
 """
 
 sm64_unlit_texture_cutout = """
@@ -3400,7 +2936,6 @@ f3d_mat = bpy.context.material.f3d_mat
 bpy.context.material.f3d_update_flag = True
 
 f3d_mat.name = ''
-f3d_mat.presetName = 'Sm64 Unlit Texture Cutout'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = '0'
 f3d_mat.combiner1.B = '0'
@@ -3499,28 +3034,11 @@ f3d_mat.rdp_settings.set_rendermode = False
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_AA_ZB_OPA_SURF'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.sm64 = '4'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Sm64 Unlit Texture Cutout'
 """
 
 sm64_vertex_colored_texture = """
@@ -3530,7 +3048,6 @@ f3d_mat = bpy.context.material.f3d_mat
 bpy.context.material.f3d_update_flag = True
 
 f3d_mat.name = ''
-f3d_mat.presetName = 'Sm64 Vertex Colored Texture'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL0'
 f3d_mat.combiner1.B = '0'
@@ -3629,28 +3146,11 @@ f3d_mat.rdp_settings.set_rendermode = False
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_AA_ZB_OPA_SURF'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Sm64 Vertex Colored Texture'
 """
 
 sm64_vertex_colored_texture_transparent = """
@@ -3660,7 +3160,6 @@ f3d_mat = bpy.context.material.f3d_mat
 bpy.context.material.f3d_update_flag = True
 
 f3d_mat.name = ''
-f3d_mat.presetName = 'Sm64 Vertex Colored Texture Transparent'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL0'
 f3d_mat.combiner1.B = '0'
@@ -3759,28 +3258,11 @@ f3d_mat.rdp_settings.set_rendermode = False
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_AA_ZB_OPA_SURF'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Sm64 Vertex Colored Texture Transparent'
 """
 
 oot_shaded_multitexture_lerp_transparent_vertex_alpha = """
@@ -3789,7 +3271,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Shaded Multitexture Lerp Transparent Vertex Alpha'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL1'
 f3d_mat.combiner1.B = 'TEXEL0'
@@ -3890,29 +3371,12 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_PASS'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_XLU_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Shaded Multitexture Lerp Transparent Vertex Alpha'
 """
 
 oot_shaded_texture_transparent_vertex_alpha = """
@@ -3921,7 +3385,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Shaded Texture Transparent Vertex Alpha'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL0'
 f3d_mat.combiner1.B = '0'
@@ -4022,29 +3485,12 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_PASS'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_XLU_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Shaded Texture Transparent Vertex Alpha'
 """
 
 oot_cel_4_blend_tex_vcol_ao = """
@@ -4052,7 +3498,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'OoT Cel Shaded 4 Blend Tex VCol AO'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL0'
 f3d_mat.combiner1.B = '0'
@@ -4165,24 +3610,6 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = True
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_AA_ZB_OPA_SURF'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = True
-f3d_mat.rdp_settings.z_cmp = True
-f3d_mat.rdp_settings.z_upd = True
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = True
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_FOG'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_FOG'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
@@ -4234,6 +3661,7 @@ item_sub_1.tintSegmentOffset = 0
 item_sub_1.tintLightSlot = 1
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'OoT Cel Shaded 4 Blend Tex VCol AO'
 """
 
 oot_cel_blend_tex_vcol_ltcol = """
@@ -4241,7 +3669,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'OoT Cel Shaded Blend Tex VCol LtCol'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL0'
 f3d_mat.combiner1.B = '0'
@@ -4354,24 +3781,6 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = True
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_AA_ZB_OPA_SURF'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = True
-f3d_mat.rdp_settings.z_cmp = True
-f3d_mat.rdp_settings.z_upd = True
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = True
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_FOG'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_FOG'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
@@ -4403,6 +3812,7 @@ item_sub_1.tintSegmentOffset = 0
 item_sub_1.tintLightSlot = 0
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'OoT Cel Shaded Blend Tex VCol LtCol'
 """
 
 oot_cel_blend_tex_vcol_ltcol_ao = """
@@ -4410,7 +3820,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'OoT Cel Shaded Blend Tex VCol LtCol AO'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL0'
 f3d_mat.combiner1.B = '0'
@@ -4523,24 +3932,6 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = True
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_AA_ZB_OPA_SURF'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = True
-f3d_mat.rdp_settings.z_cmp = True
-f3d_mat.rdp_settings.z_upd = True
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = True
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_FOG'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_FOG'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
@@ -4572,6 +3963,7 @@ item_sub_1.tintSegmentOffset = 0
 item_sub_1.tintLightSlot = 0
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'OoT Cel Shaded Blend Tex VCol LtCol AO'
 """
 
 oot_cel_blend_vcol = """
@@ -4579,7 +3971,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'OoT Cel Shaded Blend VCol'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = '0'
 f3d_mat.combiner1.B = '0'
@@ -4692,24 +4083,6 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = True
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_AA_ZB_OPA_SURF'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = True
-f3d_mat.rdp_settings.z_cmp = True
-f3d_mat.rdp_settings.z_upd = True
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = True
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_FOG'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_FOG'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
@@ -4741,6 +4114,7 @@ item_sub_1.tintSegmentOffset = 0
 item_sub_1.tintLightSlot = 1
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'OoT Cel Shaded Blend VCol'
 """
 
 oot_cel_mul_tex = """
@@ -4748,7 +4122,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'OoT Cel Shaded Mul Tex'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL0'
 f3d_mat.combiner1.B = '0'
@@ -4861,24 +4234,6 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = True
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_AA_ZB_OPA_SURF'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = True
-f3d_mat.rdp_settings.z_cmp = True
-f3d_mat.rdp_settings.z_upd = True
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_0'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
@@ -4910,6 +4265,7 @@ item_sub_1.tintSegmentOffset = 0
 item_sub_1.tintLightSlot = 1
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'OoT Cel Shaded Mul Tex'
 """
 
 oot_ghost_fresnel = """
@@ -4917,7 +4273,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Ghost Fresnel'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = '0'
 f3d_mat.combiner1.B = '0'
@@ -5030,24 +4385,6 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_PASS'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
@@ -5060,6 +4397,7 @@ f3d_mat.cel_shading.cutoutSource = 'ENVIRONMENT'
 f3d_mat.cel_shading.levels.clear()
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Ghost Fresnel'
 """
 
 oot_ghost_texture_fresnel = """
@@ -5067,7 +4405,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Ghost Texture Fresnel'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL0'
 f3d_mat.combiner1.B = '0'
@@ -5180,24 +4517,6 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_PASS'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
@@ -5210,6 +4529,7 @@ f3d_mat.cel_shading.cutoutSource = 'ENVIRONMENT'
 f3d_mat.cel_shading.levels.clear()
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Ghost Texture Fresnel'
 """
 
 oot_glass_specular_fresnel = """
@@ -5217,7 +4537,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Glass Specular Fresnel'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = '0'
 f3d_mat.combiner1.B = '0'
@@ -5330,24 +4649,6 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_PASS'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
@@ -5360,6 +4661,7 @@ f3d_mat.cel_shading.cutoutSource = 'ENVIRONMENT'
 f3d_mat.cel_shading.levels.clear()
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Glass Specular Fresnel'
 """
 
 oot_shaded_solid_ao = """
@@ -5367,7 +4669,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Shaded Solid Ao'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = '0'
 f3d_mat.combiner1.B = '0'
@@ -5480,24 +4781,6 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_FOG_SHADE_A'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
@@ -5510,6 +4793,7 @@ f3d_mat.cel_shading.cutoutSource = 'ENVIRONMENT'
 f3d_mat.cel_shading.levels.clear()
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Shaded Solid Ao'
 """
 
 oot_shaded_solid_ao_transparent = """
@@ -5517,7 +4801,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Shaded Solid Ao Transparent'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = '0'
 f3d_mat.combiner1.B = '0'
@@ -5630,24 +4913,6 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_FOG_SHADE_A'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_XLU_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
@@ -5660,6 +4925,7 @@ f3d_mat.cel_shading.cutoutSource = 'ENVIRONMENT'
 f3d_mat.cel_shading.levels.clear()
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Shaded Solid Ao Transparent'
 """
 
 oot_shaded_specular_vcol_texture = """
@@ -5667,7 +4933,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Shaded Specular Vcol Texture'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL0'
 f3d_mat.combiner1.B = '0'
@@ -5780,24 +5045,6 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_FOG_SHADE_A'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
@@ -5810,6 +5057,7 @@ f3d_mat.cel_shading.cutoutSource = 'ENVIRONMENT'
 f3d_mat.cel_shading.levels.clear()
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Shaded Specular Vcol Texture'
 """
 
 oot_shaded_vcol_multitexture_lerp_ao = """
@@ -5817,7 +5065,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Shaded Vcol Multitexture Lerp Ao'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL1'
 f3d_mat.combiner1.B = 'TEXEL0'
@@ -5930,24 +5177,6 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_FOG_SHADE_A'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
@@ -5960,6 +5189,7 @@ f3d_mat.cel_shading.cutoutSource = 'ENVIRONMENT'
 f3d_mat.cel_shading.levels.clear()
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Shaded Vcol Multitexture Lerp Ao'
 """
 
 oot_shaded_vcol_multitexture_lerp_ao_transparent = """
@@ -5967,7 +5197,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Shaded Vcol Multitexture Lerp Ao Transparent'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL1'
 f3d_mat.combiner1.B = 'TEXEL0'
@@ -6080,24 +5309,6 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_FOG_SHADE_A'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_XLU_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
@@ -6110,6 +5321,7 @@ f3d_mat.cel_shading.cutoutSource = 'ENVIRONMENT'
 f3d_mat.cel_shading.levels.clear()
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Shaded Vcol Multitexture Lerp Ao Transparent'
 """
 
 oot_shaded_vcol_multitexture_lerp_transparent_vertex_alpha = """
@@ -6117,7 +5329,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Shaded Vcol Multitexture Lerp Transparent Vertex Alpha'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL1'
 f3d_mat.combiner1.B = 'TEXEL0'
@@ -6230,24 +5441,6 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_PASS'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_XLU_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
@@ -6260,6 +5453,7 @@ f3d_mat.cel_shading.cutoutSource = 'ENVIRONMENT'
 f3d_mat.cel_shading.levels.clear()
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Shaded Vcol Multitexture Lerp Transparent Vertex Alpha'
 """
 
 oot_shaded_vcol_solid_ao = """
@@ -6267,7 +5461,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Shaded Vcol Solid Ao'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = '0'
 f3d_mat.combiner1.B = '0'
@@ -6380,24 +5573,6 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_FOG_SHADE_A'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
@@ -6410,6 +5585,7 @@ f3d_mat.cel_shading.cutoutSource = 'ENVIRONMENT'
 f3d_mat.cel_shading.levels.clear()
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Shaded Vcol Solid Ao'
 """
 
 oot_shaded_vcol_solid_ao_transparent = """
@@ -6417,7 +5593,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Shaded Vcol Solid Ao Transparent'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = '0'
 f3d_mat.combiner1.B = '0'
@@ -6530,24 +5705,6 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_FOG_SHADE_A'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_XLU_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
@@ -6560,6 +5717,7 @@ f3d_mat.cel_shading.cutoutSource = 'ENVIRONMENT'
 f3d_mat.cel_shading.levels.clear()
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Shaded Vcol Solid Ao Transparent'
 """
 
 oot_shaded_vcol_texture_ao = """
@@ -6567,7 +5725,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Shaded Vcol Texture Ao'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL0'
 f3d_mat.combiner1.B = '0'
@@ -6680,24 +5837,6 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_FOG_SHADE_A'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_OPA_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '1'
 f3d_mat.draw_layer.oot = 'Opaque'
@@ -6710,6 +5849,7 @@ f3d_mat.cel_shading.cutoutSource = 'ENVIRONMENT'
 f3d_mat.cel_shading.levels.clear()
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Shaded Vcol Texture Ao'
 """
 
 oot_shaded_vcol_texture_ao_transparent = """
@@ -6717,7 +5857,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Shaded Vcol Texture Ao Transparent'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL0'
 f3d_mat.combiner1.B = '0'
@@ -6830,24 +5969,6 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_FOG_SHADE_A'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_XLU_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
@@ -6860,6 +5981,7 @@ f3d_mat.cel_shading.cutoutSource = 'ENVIRONMENT'
 f3d_mat.cel_shading.levels.clear()
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Shaded Vcol Texture Ao Transparent'
 """
 
 oot_shaded_vcol_texture_transparent_vertex_alpha = """
@@ -6867,7 +5989,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Shaded Vcol Texture Transparent Vertex Alpha'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL0'
 f3d_mat.combiner1.B = '0'
@@ -6980,24 +6101,6 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = False
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_PASS'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_XLU_SURF2'
-f3d_mat.rdp_settings.aa_en = False
-f3d_mat.rdp_settings.z_cmp = False
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = False
-f3d_mat.rdp_settings.clr_on_cvg = False
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_CLAMP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_OPA'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = False
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
@@ -7010,6 +6113,7 @@ f3d_mat.cel_shading.cutoutSource = 'ENVIRONMENT'
 f3d_mat.cel_shading.levels.clear()
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Shaded Vcol Texture Transparent Vertex Alpha'
 """
 
 oot_water_lerp_specular_fresnel = """
@@ -7017,7 +6121,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Water Lerp Specular Fresnel'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL1'
 f3d_mat.combiner1.B = 'TEXEL0'
@@ -7130,24 +6233,6 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = True
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_NOOP'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_XLU_SURF2'
-f3d_mat.rdp_settings.aa_en = True
-f3d_mat.rdp_settings.z_cmp = True
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = True
-f3d_mat.rdp_settings.clr_on_cvg = True
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_WRAP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_INTER'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = True
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_MEM'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
@@ -7160,6 +6245,7 @@ f3d_mat.cel_shading.cutoutSource = 'ENVIRONMENT'
 f3d_mat.cel_shading.levels.clear()
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Water Lerp Specular Fresnel'
 """
 
 oot_water_mult_specular_fresnel = """
@@ -7167,7 +6253,6 @@ import bpy
 f3d_mat = bpy.context.material.f3d_mat
 
 bpy.context.material.f3d_update_flag = True
-f3d_mat.presetName = 'Oot Water Mult Specular Fresnel'
 f3d_mat.combiner1.name = ''
 f3d_mat.combiner1.A = 'TEXEL0'
 f3d_mat.combiner1.B = '0'
@@ -7280,24 +6365,6 @@ f3d_mat.rdp_settings.set_rendermode = True
 f3d_mat.rdp_settings.rendermode_advanced_enabled = True
 f3d_mat.rdp_settings.rendermode_preset_cycle_1 = 'G_RM_NOOP'
 f3d_mat.rdp_settings.rendermode_preset_cycle_2 = 'G_RM_AA_ZB_XLU_SURF2'
-f3d_mat.rdp_settings.aa_en = True
-f3d_mat.rdp_settings.z_cmp = True
-f3d_mat.rdp_settings.z_upd = False
-f3d_mat.rdp_settings.im_rd = True
-f3d_mat.rdp_settings.clr_on_cvg = True
-f3d_mat.rdp_settings.cvg_dst = 'CVG_DST_WRAP'
-f3d_mat.rdp_settings.zmode = 'ZMODE_INTER'
-f3d_mat.rdp_settings.cvg_x_alpha = False
-f3d_mat.rdp_settings.alpha_cvg_sel = False
-f3d_mat.rdp_settings.force_bl = True
-f3d_mat.rdp_settings.blend_p1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_p2 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m1 = 'G_BL_CLR_IN'
-f3d_mat.rdp_settings.blend_m2 = 'G_BL_CLR_MEM'
-f3d_mat.rdp_settings.blend_a1 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_a2 = 'G_BL_A_IN'
-f3d_mat.rdp_settings.blend_b1 = 'G_BL_1MA'
-f3d_mat.rdp_settings.blend_b2 = 'G_BL_1MA'
 f3d_mat.draw_layer.name = ''
 f3d_mat.draw_layer.sm64 = '5'
 f3d_mat.draw_layer.oot = 'Transparent'
@@ -7310,6 +6377,7 @@ f3d_mat.cel_shading.cutoutSource = 'ENVIRONMENT'
 f3d_mat.cel_shading.levels.clear()
 bpy.context.material.f3d_update_flag = False
 f3d_mat.use_default_lighting = f3d_mat.use_default_lighting # Force nodes update
+f3d_mat.presetName = 'Oot Water Mult Specular Fresnel'
 """
 
 material_presets = {
