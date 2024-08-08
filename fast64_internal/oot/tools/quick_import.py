@@ -91,7 +91,14 @@ def quick_import_exec(context: bpy.types.Context, sym_name: str):
     is_array = sym_def_array_decl != ""
     folder_name = sym_file_p.relative_to(found_dir_p).parts[0]
 
+    def raise_only_from_object(type: str):
+        if not is_sym_object:
+            raise QuickImportAborted(
+                f"Can only import {type} from an object ({sym_name} found in {sym_file_p.relative_to(base_dir_p)})"
+            )
+
     if sym_def_type == "Gfx" and is_array:
+        raise_only_from_object("Gfx[]")
         settings: OOTDLImportSettings = context.scene.fast64.oot.DLImportSettings
         settings.name = sym_name
         settings.folder = folder_name
@@ -99,6 +106,7 @@ def quick_import_exec(context: bpy.types.Context, sym_name: str):
         settings.isCustom = False
         bpy.ops.object.oot_import_dl()
     elif sym_def_type in {"SkeletonHeader", "FlexSkeletonHeader"} and not is_array:
+        raise_only_from_object(sym_def_type)
         settings: OOTSkeletonImportSettings = context.scene.fast64.oot.skeletonImportSettings
         settings.isCustom = False
         if sym_name == "gLinkAdultSkel":
@@ -112,6 +120,7 @@ def quick_import_exec(context: bpy.types.Context, sym_name: str):
             settings.actorOverlayName = ""
         bpy.ops.object.oot_import_skeleton()
     elif sym_def_type == "AnimationHeader" and not is_array:
+        raise_only_from_object(sym_def_type)
         settings: OOTAnimImportSettingsProperty = context.scene.fast64.oot.animImportSettings
         settings.isCustom = False
         settings.isLink = False
@@ -119,11 +128,10 @@ def quick_import_exec(context: bpy.types.Context, sym_name: str):
         settings.folderName = folder_name
         bpy.ops.object.oot_import_anim()
     elif sym_def_type == "CutsceneData" and is_array:
-        path = assets_scenes_dir_p / folder_name / sym_file_p
-        bpy.context.scene.ootCSNumber = importCutsceneData(f"{path}", None, sym_name)
+        bpy.context.scene.ootCSNumber = importCutsceneData(f"{sym_file_p}", None, sym_name)
     else:
         raise QuickImportAborted(
             f"Don't know how to import {sym_def_type}"
             + ("[]" if is_array else "")
-            + f" (symbol found in {folder_name})"
+            + f" (symbol found in {sym_file_p.relative_to(base_dir_p)})"
         )
