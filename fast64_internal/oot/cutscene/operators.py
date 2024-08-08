@@ -141,8 +141,8 @@ class OOTCSListAdd(Operator):
 
 class OOT_ImportCutscene(Operator):
     bl_idname = "object.oot_import_cutscenes"
-    bl_label = "Import All Cutscenes"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
+    bl_label = "Import Cutscenes"
+    bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
         try:
@@ -150,7 +150,8 @@ class OOT_ImportCutscene(Operator):
                 object.mode_set(mode="OBJECT")
 
             path = abspath(context.scene.ootCutsceneImportPath)
-            context.scene.ootCSNumber = importCutsceneData(path, None)
+            csName = context.scene.ootCSImportName if len(context.scene.ootCSImportName) > 0 else None
+            context.scene.ootCSNumber = importCutsceneData(path, None, csName)
 
             self.report({"INFO"}, "Successfully imported cutscenes")
             return {"FINISHED"}
@@ -296,12 +297,16 @@ def cutscene_ops_register():
     Scene.ootCutsceneExportPath = StringProperty(name="File", subtype="FILE_PATH")
     Scene.ootCutsceneImportPath = StringProperty(name="File", subtype="FILE_PATH")
     Scene.ootCSNumber = IntProperty(default=1, min=0)
+    Scene.ootCSImportName = StringProperty(
+        name="CS Name", description="Used to import a single cutscene, can be ``None``"
+    )
 
 
 def cutscene_ops_unregister():
     for cls in reversed(oot_cutscene_classes):
         unregister_class(cls)
 
+    del Scene.ootCSImportName
     del Scene.ootCSNumber
     del Scene.ootCutsceneImportPath
     del Scene.ootCutsceneExportPath
