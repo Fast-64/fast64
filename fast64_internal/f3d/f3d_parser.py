@@ -1835,7 +1835,9 @@ class F3DContext:
         # else:
 
         if importNormals:
-            mesh.use_auto_smooth = True
+            # Changed in Blender 4.1: "Meshes now always use custom normals if they exist." (and use_auto_smooth was removed)
+            if bpy.app.version < (4, 1, 0):
+                mesh.use_auto_smooth = True
             mesh.normals_split_custom_set([f3dVert.normal for f3dVert in self.verts])
 
         for groupName, indices in self.limbGroups.items():
