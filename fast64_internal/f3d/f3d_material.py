@@ -3,6 +3,7 @@ import bpy, math, os
 from bpy.types import (
     Attribute,
     Context,
+    Event,
     Image,
     Light,
     Material,
@@ -1275,6 +1276,29 @@ class F3DPanel(Panel):
             r.label(text="Use Cel Shading (requires F3DEX3)", icon="TRIA_RIGHT")
 
 
+class F3DMeshPanel(Panel):
+    bl_label = "F3D Mesh Inspector"
+    bl_idname = "F3D_PT_Mesh_Inspector"
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_context = "object"
+    bl_options = {"HIDE_HEADER"}
+
+    @classmethod
+    def poll(cls, context):
+        return context.object.type == "MESH"
+
+    def draw(self, context):
+        new_gbi = not get_F3D_GBI().F3D_OLD_GBI
+        col = self.layout.box().column()
+        col.box().label(text=self.bl_label, icon="MESH_DATA")
+        row = col.row()
+        row.enabled = new_gbi
+        row.prop(context.object, "use_f3d_culling")
+        if not new_gbi:
+            col.label(text="Only available in F3DEX and up", icon="INFO")
+
+
 def ui_tileScroll(tex, name, layout):
     row = layout.row()
     row.label(text=name)
@@ -1693,7 +1717,7 @@ def get_color_input_update_callback(attr_name="", prefix=""):
 
 
 def update_node_values_of_material(material: Material, context):
-    nodes = material.node_tree.nodes
+    check_or_ask_color_management(context)
 
     update_blend_method(material, context)
     if not has_f3d_nodes(material):
@@ -1704,6 +1728,8 @@ def update_node_values_of_material(material: Material, context):
     update_combiner_connections(material, context)
 
     set_output_node_groups(material)
+
+    nodes = material.node_tree.nodes
 
     if f3dMat.rdp_settings.g_tex_gen:
         if f3dMat.rdp_settings.g_tex_gen_linear:
@@ -2179,7 +2205,6 @@ def has_f3d_nodes(material: Material):
 @persistent
 def load_handler(dummy):
     logger.info("Checking for base F3D material library.")
-
     for lib in bpy.data.libraries:
         lib_path = bpy.path.abspath(lib.filepath)
 
@@ -2438,6 +2463,76 @@ def reloadDefaultF3DPresets():
     for material in bpy.data.materials:
         if material.f3d_mat.presetName in presetNameToFilename:
             update_preset_manual_v4(material, presetNameToFilename[material.f3d_mat.presetName])
+
+
+def check_or_ask_color_management(context: Context):
+    scene = context.scene
+    fast64_props: "Fast64_Properties" = scene.fast64
+    fast64settings_props: "Fast64Settings_Properties" = fast64_props.settings
+    view_settings = scene.view_settings
+    # Check if color management settings are correct
+    if not fast64settings_props.dont_ask_color_management and (
+        scene.display_settings.display_device != "sRGB"
+        or view_settings.view_transform != "Standard"
+        or view_settings.look != "None"
+        or view_settings.exposure != 0.0
+        or view_settings.gamma != 1.0
+    ):
+        bpy.ops.dialog.fast64_update_color_management("INVOKE_DEFAULT")
+
+
+class UpdateColorManagementPopup(Operator):
+    bl_label = "Update Color Management"
+    bl_idname = "dialog.fast64_update_color_management"
+    bl_description = "Update color management settings to help material preview accuracy"
+    bl_options = {"UNDO"}
+
+    already_invoked = False  # HACK: used to prevent multiple dialogs from popping up
+
+    def invoke(self, context: Context, event: Event):
+        if UpdateColorManagementPopup.already_invoked:
+            return {"FINISHED"}
+        UpdateColorManagementPopup.already_invoked = True
+        return context.window_manager.invoke_props_dialog(self, width=400)
+
+    def draw(self, context: Context):
+        col = self.layout.column()
+        multilineLabel(
+            col,
+            (
+                (
+                    f'The color management settings for the current scene "{context.scene.name}"\n'
+                    # use is_library_indirect to not count the scene from f3d_material_library.blend and other "external" scenes
+                    if len([_s for _s in bpy.data.scenes if not _s.is_library_indirect]) >= 2
+                    else "The color management settings\n"
+                )
+                + "will cause inaccurate preview compared to N64.\n"
+                + "Would you like to update it?"
+            ),
+            icon="INFO",
+        )
+        fast64_props: "Fast64_Properties" = context.scene.fast64
+        fast64settings_props: "Fast64Settings_Properties" = fast64_props.settings
+        col.prop(fast64settings_props, "dont_ask_color_management", text="Don't ask again")
+
+    def cancel(self, context: Context):
+        UpdateColorManagementPopup.already_invoked = False
+
+    def execute(self, context):
+        try:
+            scene = context.scene
+            scene.display_settings.display_device = "sRGB"
+            scene.view_settings.view_transform = "Standard"
+            scene.view_settings.look = "None"
+            scene.view_settings.exposure = 0.0
+            scene.view_settings.gamma = 1.0
+            self.report({"INFO"}, "Updated color management settings.")
+            return {"FINISHED"}
+        except Exception as exc:
+            raisePluginError(self, exc)
+            return {"CANCELLED"}
+        finally:
+            UpdateColorManagementPopup.already_invoked = False
 
 
 class CreateFast3DMaterial(Operator):
@@ -3381,10 +3476,6 @@ class DefaultRDPSettingsPanel(Panel):
     bl_region_type = "WINDOW"
     bl_context = "world"
     bl_options = {"HIDE_HEADER"}
-
-    @classmethod
-    def poll(cls, context):
-        return context.scene.gameEditorMode == "SM64"
 
     def draw(self, context):
         world = context.scene.world
@@ -4404,6 +4495,7 @@ def draw_f3d_render_settings(self, context):
 
 
 mat_classes = (
+    UpdateColorManagementPopup,
     UnlinkF3DImage0,
     UnlinkF3DImage1,
     DrawLayerProperty,
@@ -4429,6 +4521,7 @@ mat_classes = (
     ReloadDefaultF3DPresets,
     UpdateF3DNodes,
     F3DRenderSettingsPanel,
+    F3DMeshPanel,
 )
 
 
@@ -4493,8 +4586,7 @@ def mat_register():
     Scene.f3d_simple = bpy.props.BoolProperty(name="Display Simple", default=True)
 
     Object.use_f3d_culling = bpy.props.BoolProperty(
-        name="Enable Culling (Applies to F3DEX and up)",
-        default=True,
+        name="Use Culling", description="F3DEX: Adds culling vertices", default=True
     )
     Object.ignore_render = bpy.props.BoolProperty(name="Ignore Render")
     Object.ignore_collision = bpy.props.BoolProperty(name="Ignore Collision")
@@ -4508,6 +4600,7 @@ def mat_register():
         default=10,
     )
     Object.f3d_lod_always_render_farthest = bpy.props.BoolProperty(name="Always Render Farthest LOD")
+    Object.is_occlusion_planes = bpy.props.BoolProperty(name="Is Occlusion Planes")
 
     VIEW3D_HT_header.append(draw_f3d_render_settings)
 
@@ -4528,6 +4621,7 @@ def mat_unregister():
     del Scene.f3dUserPresetsOnly
     del Object.f3d_lod_z
     del Object.f3d_lod_always_render_farthest
+    del Object.is_occlusion_planes
 
     for cls in reversed(mat_classes):
         unregister_class(cls)

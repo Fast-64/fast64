@@ -18,7 +18,7 @@ from .exporter.to_c import clearBootupScene, modifySceneTable, editSpecFile, del
 
 def ootRemoveSceneC(exportInfo):
     modifySceneTable(None, exportInfo)
-    editSpecFile(False, exportInfo, False, False, 0, 0)
+    editSpecFile(False, exportInfo, False, False, 0, 0, [])
     deleteSceneFiles(exportInfo)
 
 
