@@ -454,7 +454,7 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, camera,
 
 # Camera is unused here
 def convertObjectToGeolayout(
-    obj, convertTransformMatrix, is_actor, name, fModel: FModel, areaObj, DLFormat, convertTextureData
+    obj, convertTransformMatrix, is_actor: bool, name, fModel: FModel, areaObj, DLFormat, convertTextureData
 ):
     inline = bpy.context.scene.exportInlineF3D
     if fModel is None:
