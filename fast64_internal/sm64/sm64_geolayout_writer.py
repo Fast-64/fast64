@@ -452,7 +452,6 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, camera,
     return geolayoutGraph, fModel
 
 
-# Camera is unused here
 def convertObjectToGeolayout(
     obj, convertTransformMatrix, is_actor: bool, name, fModel: FModel, areaObj, DLFormat, convertTextureData
 ):
