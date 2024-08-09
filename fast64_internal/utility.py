@@ -571,6 +571,14 @@ def getRGBA16Tuple(color):
     )
 
 
+def get_rgb5a3_color(color):
+    r, g, b, a = round(color[0] * 255), round(color[1] * 255), round(color[2] * 255), round(color[3] * 255)
+    if a == 255:  # Opaque, upper bit is 1
+        return (1 << 15) | ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3)
+    else:
+        return ((a >> 5) << 12) | ((r >> 4) << 8) | ((g >> 4) << 4) | (b >> 4)
+
+
 RGB_TO_LUM_COEF = mathutils.Vector([0.2126729, 0.7151522, 0.0721750])
 
 
@@ -1853,3 +1861,16 @@ def upgrade_old_prop(
         print(f"Failed to upgrade {new_prop} from old location {old_loc} with props {old_props}")
         traceback.print_exc()
         return False
+
+
+def comment_remover(text):
+    # https://stackoverflow.com/a/241506
+    def replacer(match):
+        s = match.group(0)
+        if s.startswith("/"):
+            return " "  # note: a space and not an empty string
+        else:
+            return s
+
+    pattern = re.compile(r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"', re.DOTALL | re.MULTILINE)
+    return re.sub(pattern, replacer, text)
