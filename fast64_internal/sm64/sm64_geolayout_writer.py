@@ -454,7 +454,7 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, camera,
 
 # Camera is unused here
 def convertObjectToGeolayout(
-    obj, convertTransformMatrix, camera, name, fModel: FModel, areaObj, DLFormat, convertTextureData
+    obj, convertTransformMatrix, is_actor, name, fModel: FModel, areaObj, DLFormat, convertTextureData
 ):
     inline = bpy.context.scene.exportInlineF3D
     if fModel is None:
@@ -502,7 +502,7 @@ def convertObjectToGeolayout(
             True,
             convertTextureData,
         )
-        if not meshGeolayout.has_data():
+        if is_actor and not meshGeolayout.has_data():
             raise PluginError("No gfx data to export, gfx export cancelled")
     except Exception as e:
         raise Exception(str(e))
@@ -579,7 +579,7 @@ def exportGeolayoutObjectC(
     DLFormat,
 ):
     geolayoutGraph, fModel = convertObjectToGeolayout(
-        obj, convertTransformMatrix, camera, dirName, None, None, DLFormat, not savePNG
+        obj, convertTransformMatrix, True, dirName, None, None, DLFormat, not savePNG
     )
 
     return saveGeolayoutC(
@@ -842,7 +842,7 @@ def exportGeolayoutArmatureInsertableBinary(armatureObj, obj, convertTransformMa
 
 def exportGeolayoutObjectInsertableBinary(obj, convertTransformMatrix, filepath, camera):
     geolayoutGraph, fModel = convertObjectToGeolayout(
-        obj, convertTransformMatrix, camera, obj.name, None, None, DLFormat.Static, True
+        obj, convertTransformMatrix, True, obj.name, None, None, DLFormat.Static, True
     )
 
     saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath)
@@ -893,7 +893,7 @@ def exportGeolayoutObjectBinaryBank0(
     camera,
 ):
     geolayoutGraph, fModel = convertObjectToGeolayout(
-        obj, convertTransformMatrix, camera, obj.name, None, None, DLFormat.Static, True
+        obj, convertTransformMatrix, True, obj.name, None, None, DLFormat.Static, True
     )
 
     return saveGeolayoutBinaryBank0(
@@ -976,7 +976,7 @@ def exportGeolayoutObjectBinary(
     camera,
 ):
     geolayoutGraph, fModel = convertObjectToGeolayout(
-        obj, convertTransformMatrix, camera, obj.name, None, None, DLFormat.Static, True
+        obj, convertTransformMatrix, True, obj.name, None, None, DLFormat.Static, True
     )
 
     return saveGeolayoutBinary(
