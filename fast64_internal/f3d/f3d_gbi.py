@@ -72,15 +72,26 @@ vertexBufferSize = {
     "F3DEX3": (56, 56),
 }
 
-drawLayerRenderMode = {
-    0: ("G_RM_ZB_OPA_SURF", "G_RM_NOOP2"),
-    1: ("G_RM_AA_ZB_OPA_SURF", "G_RM_NOOP2"),
-    2: ("G_RM_AA_ZB_OPA_DECAL", "G_RM_NOOP2"),
-    3: ("G_RM_AA_ZB_OPA_INTER", "G_RM_NOOP2"),
-    4: ("G_RM_AA_ZB_TEX_EDGE", "G_RM_NOOP2"),
-    5: ("G_RM_AA_ZB_XLU_SURF", "G_RM_NOOP2"),
-    6: ("G_RM_AA_ZB_XLU_DECAL", "G_RM_NOOP2"),
-    7: ("G_RM_AA_ZB_XLU_INTER", "G_RM_NOOP2"),
+sm64_default_draw_layers = {
+    "0": ("G_RM_ZB_OPA_SURF", "G_RM_NOOP2"),
+    "1": ("G_RM_AA_ZB_OPA_SURF", "G_RM_NOOP2"),
+    "2": ("G_RM_AA_ZB_OPA_DECAL", "G_RM_NOOP2"),
+    "3": ("G_RM_AA_ZB_OPA_INTER", "G_RM_NOOP2"),
+    "4": ("G_RM_AA_ZB_TEX_EDGE", "G_RM_NOOP2"),
+    "5": ("G_RM_AA_ZB_XLU_SURF", "G_RM_NOOP2"),
+    "6": ("G_RM_AA_ZB_XLU_DECAL", "G_RM_NOOP2"),
+    "7": ("G_RM_AA_ZB_XLU_INTER", "G_RM_NOOP2"),
+}
+
+oot_default_draw_layers = {
+    "Opaque": ("G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2"),
+    "Transparent": ("G_RM_AA_ZB_XLU_SURF", "G_RM_AA_ZB_XLU_SURF2"),
+    "Overlay": ("G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2"),
+}
+
+default_draw_layers = {
+    "SM64": sm64_default_draw_layers,
+    "OOT": oot_default_draw_layers,
 }
 
 CCMUXDict = {
