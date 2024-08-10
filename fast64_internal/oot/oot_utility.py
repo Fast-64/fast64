@@ -162,7 +162,7 @@ ootSceneTest_levels = [
     "testroom",
 ]
 
-# NOTE: the "extracted/VERSION/" part is added in ``getSceneDirFromLevelName``
+# NOTE: the "extracted/VERSION/" part is added in ``getSceneDirFromLevelName`` when needed
 ootSceneDirs = {
     "assets/scenes/dungeons/": ootSceneDungeons,
     "assets/scenes/indoors/": ootSceneIndoors,

@@ -68,8 +68,8 @@ def ootConvertMeshToC(
     else:
         data.source += "\n"
 
-    path = ootGetPath(exportPath, isCustomExport, "/assets/objects/", folderName, False, True)
-    includeDir = settings.customAssetIncludeDir if settings.isCustom else f"/assets/objects/{folderName}"
+    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, True)
+    includeDir = settings.customAssetIncludeDir if settings.isCustom else f"assets/objects/{folderName}"
     exportData = fModel.to_c(
         TextureExportSettings(False, saveTextures, includeDir, path), OOTGfxFormatter(ScrollMethod.Vertex)
     )
