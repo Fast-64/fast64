@@ -451,7 +451,7 @@ def convertAnimationData(anim, armatureObj, *, frame_start, frame_count):
         rootPoseBone = armatureObj.pose.bones[animBones[0]]
 
         translation = (
-            mathutils.Matrix.Scale(bpy.context.scene.blenderToSM64Scale, 4) @ rootPoseBone.matrix_basis
+            mathutils.Matrix.Scale(bpy.context.scene.fast64.sm64.blender_to_sm64_scale, 4) @ rootPoseBone.matrix_basis
         ).decompose()[0]
         saveTranslationFrame(translationData, translation)
 
