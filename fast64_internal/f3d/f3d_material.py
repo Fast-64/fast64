@@ -1325,10 +1325,7 @@ class F3DPanel(Panel):
             if useDict["Environment"]:
                 self.ui_env(material, inputCol, True)
 
-            if (
-                useDict["Shade"]
-                and "Lighting" in sources_in_ucode(bpy.context.scene.f3d_type)
-            ):
+            if useDict["Shade"] and "Lighting" in sources_in_ucode(bpy.context.scene.f3d_type):
                 self.ui_lights(f3dMat, inputCol, "Lighting", True)
 
             if useDict["Key"]:
