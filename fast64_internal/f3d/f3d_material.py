@@ -3645,7 +3645,7 @@ class RDPSettings(PropertyGroup):
         return data
 
     def geo_mode_from_dict(self, data: dict):
-        for key, attr in self.geo_mode_attribute.items():
+        for key, attr in self.geo_mode_attributes.items():
             setattr(self, attr, data.get(key, False))
 
     other_mode_h_attributes = [
