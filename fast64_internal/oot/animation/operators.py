@@ -19,7 +19,7 @@ from ..oot_utility import (
 
 def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSettingsProperty):
     path = bpy.path.abspath(settings.customPath)
-    exportPath = ootGetObjectPath(settings.isCustom, path, settings.folderName)
+    exportPath = ootGetObjectPath(settings.isCustom, path, settings.folderName, False)
 
     checkEmptyName(settings.folderName)
     checkEmptyName(armatureObj.name)
@@ -36,7 +36,7 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
         path = ootGetPath(
             exportPath,
             settings.isCustom,
-            f"{bpy.context.scene.fast64.oot.get_extracted_path()}/assets/misc/link_animetion",
+            "assets/misc/link_animetion",
             settings.folderName if settings.isCustom else "",
             False,
             False,
@@ -44,7 +44,7 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
         headerPath = ootGetPath(
             exportPath,
             settings.isCustom,
-            f"{bpy.context.scene.fast64.oot.get_extracted_path()}/assets/objects/gameplay_keep",
+            "assets/objects/gameplay_keep",
             settings.folderName if settings.isCustom else "",
             False,
             False,
@@ -66,14 +66,7 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
         ootAnim = ootExportNonLinkAnimation(armatureObj, convertTransformMatrix, name)
 
         ootAnimC = ootAnim.toC()
-        path = ootGetPath(
-            exportPath,
-            settings.isCustom,
-            f"{bpy.context.scene.fast64.oot.get_extracted_path()}/assets/objects/",
-            settings.folderName,
-            False,
-            False,
-        )
+        path = ootGetPath(exportPath, settings.isCustom, "assets/objects/", settings.folderName, True, False)
         writeCData(ootAnimC, os.path.join(path, filename + ".h"), os.path.join(path, filename + ".c"))
 
         if not settings.isCustom:
@@ -86,7 +79,7 @@ def ootImportAnimationC(
     actorScale: float,
 ):
     importPath = bpy.path.abspath(settings.customPath)
-    filepath = ootGetObjectPath(settings.isCustom, importPath, settings.folderName)
+    filepath = ootGetObjectPath(settings.isCustom, importPath, settings.folderName, True)
     if settings.isLink:
         numLimbs = 21
         if not settings.isCustom:

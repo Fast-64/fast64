@@ -68,7 +68,7 @@ class OOTSkeletonExportSettings(PropertyGroup):
     flipbookArrayIndex2D: IntProperty(name="Index if 2D Array", default=0, min=0)
     customAssetIncludeDir: StringProperty(
         name="Asset Include Directory",
-        default="extracted/gc-eu-mq-dbg/assets/objects/object_geldb",
+        default="assets/objects/object_geldb",
         description="Used in #include for including image files",
     )
     optimize: BoolProperty(

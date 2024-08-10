@@ -80,19 +80,6 @@ class OOT_ExportScenePanel(OOT_Panel):
         removeRow = removeBox.row()
         removeRow.operator(OOT_RemoveScene.bl_idname, text="Remove Scene")
 
-        if removeSettings.option == "Custom":
-            exportPath = (
-                context.scene.ootDecompPath
-                + context.scene.fast64.oot.get_extracted_path()
-                + f"/assets/scenes/{removeSettings.subFolder}/{removeSettings.name}/"
-            )
-
-            if not os.path.exists(exportPath):
-                removeRow.enabled = False
-                removeBox.label(text="This path doesn't exist.")
-            else:
-                removeRow.enabled = True
-
 
 classes = (OOT_ExportScenePanel,)
 

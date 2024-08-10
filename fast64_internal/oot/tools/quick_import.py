@@ -62,7 +62,7 @@ def quick_import_exec(context: bpy.types.Context, sym_name: str):
     # {Path('.../assets/objects/gameplay_field_keep/gameplay_field_keep.c'): [('SkeletonHeader', '')]}
 
     if len(all_found_defs) == 0:
-        raise QuickImportAborted(f"Couldn't find a definition of {sym_name}")
+        raise QuickImportAborted(f"Couldn't find a definition of {sym_name}, is the OoT Version correct?")
     if len(all_found_defs) > 1:
         raise QuickImportAborted(
             f"Found definitions of {sym_name} in several files: "

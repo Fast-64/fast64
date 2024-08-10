@@ -132,7 +132,7 @@ def ootProcessBone(
 def ootConvertArmatureToSkeleton(
     originalArmatureObj,
     convertTransformMatrix,
-    fModel,
+    fModel: OOTModel,
     name,
     convertTextureData,
     skeletonOnly,
@@ -280,9 +280,8 @@ def ootConvertArmatureToC(
     else:
         data.source += "\n"
 
-    extracted = bpy.context.scene.fast64.oot.get_extracted_path()
-    path = ootGetPath(exportPath, isCustomExport, f"{extracted}/assets/objects/", folderName, False, True)
-    includeDir = settings.customAssetIncludeDir if settings.isCustom else f"{extracted}/assets/objects/{folderName}"
+    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, True, True)
+    includeDir = settings.customAssetIncludeDir if settings.isCustom else f"assets/objects/{folderName}"
     exportData = fModel.to_c(
         TextureExportSettings(False, savePNG, includeDir, path), OOTGfxFormatter(ScrollMethod.Vertex)
     )

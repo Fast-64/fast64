@@ -214,7 +214,7 @@ def parseScene(
     if settings.isCustomDest is not None:
         importSubdir = subfolder
     if not settings.isCustomDest and subfolder is None:
-        importSubdir = os.path.dirname(getSceneDirFromLevelName(sceneName)) + "/"
+        importSubdir = os.path.dirname(getSceneDirFromLevelName(sceneName, True)) + "/"
 
     sceneFolderPath = ootGetPath(
         f"{importPath}/{bpy.context.scene.fast64.oot.get_extracted_path()}/",

@@ -60,10 +60,15 @@ from .tools import (
 
 oot_versions_items = [
     ("Custom", "Custom", "Custom"),
-    ("hackeroot-mq", "HackerOoT", "hackeroot-mq"),  # TODO: force this value if HackerOoT features are enabled?
-    ("gc-eu-mq-dbg", "gc-eu-mq-dbg", "gc-eu-mq-dbg"),
-    ("gc-eu-mq", "gc-eu-mq", "gc-eu-mq"),
+    ("gc-jp", "gc-jp", "gc-jp"),
+    ("gc-jp-mq", "gc-jp-mq", "gc-jp-mq"),
+    ("gc-jp-ce", "gc-jp-ce", "gc-jp-ce"),
+    ("gc-us", "gc-us", "gc-us"),
+    ("gc-us-mq", "gc-us-mq", "gc-us-mq"),
     ("gc-eu", "gc-eu", "gc-eu"),
+    ("gc-eu-mq", "gc-eu-mq", "gc-eu-mq"),
+    ("gc-eu-mq-dbg", "gc-eu-mq-dbg", "gc-eu-mq-dbg"),
+    ("hackeroot-mq", "HackerOoT", "hackeroot-mq"),  # TODO: force this value if HackerOoT features are enabled?
     ("legacy", "Legacy", "Older Decomp Version"),
 ]
 

@@ -68,9 +68,8 @@ def ootConvertMeshToC(
     else:
         data.source += "\n"
 
-    extracted = bpy.context.scene.fast64.oot.get_extracted_path()
-    path = ootGetPath(exportPath, isCustomExport, f"{extracted}/assets/objects/", folderName, False, True)
-    includeDir = settings.customAssetIncludeDir if settings.isCustom else f"{extracted}/assets/objects/{folderName}"
+    path = ootGetPath(exportPath, isCustomExport, "/assets/objects/", folderName, False, True)
+    includeDir = settings.customAssetIncludeDir if settings.isCustom else f"/assets/objects/{folderName}"
     exportData = fModel.to_c(
         TextureExportSettings(False, saveTextures, includeDir, path), OOTGfxFormatter(ScrollMethod.Vertex)
     )
@@ -120,7 +119,7 @@ class OOT_ImportDL(Operator):
             flipbookUses2DArray = settings.flipbookUses2DArray
             flipbookArrayIndex2D = settings.flipbookArrayIndex2D if flipbookUses2DArray else None
 
-            paths = [ootGetObjectPath(isCustomImport, importPath, folderName)]
+            paths = [ootGetObjectPath(isCustomImport, importPath, folderName, True)]
             filedata = getImportData(paths)
             f3dContext = OOTF3DContext(get_F3D_GBI(), [name], basePath)
 

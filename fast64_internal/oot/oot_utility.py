@@ -244,8 +244,8 @@ def addIncludeFilesExtension(objectName, objectPath, assetName, extension):
     saveDataToFile(path, data)
 
 
-def getSceneDirFromLevelName(name: str, include_extracted: bool = True):
-    extracted = bpy.context.scene.fast64.oot.get_extracted_path() if include_extracted else ""
+def getSceneDirFromLevelName(name: str, include_extracted: bool = False):
+    extracted = bpy.context.scene.fast64.oot.get_extracted_path() if include_extracted else "."
     for sceneDir, dirLevels in ootSceneDirs.items():
         if name in dirLevels:
             return f"{extracted}/" + sceneDir + name
@@ -460,7 +460,9 @@ def checkEmptyName(name):
         raise PluginError("No name entered for the exporter.")
 
 
-def ootGetObjectPath(isCustomExport: bool, exportPath: str, folderName: str) -> str:
+def ootGetObjectPath(isCustomExport: bool, exportPath: str, folderName: str, include_extracted: bool) -> str:
+    extracted = bpy.context.scene.fast64.oot.get_extracted_path() if include_extracted else "."
+
     if isCustomExport:
         filepath = exportPath
     else:
@@ -468,7 +470,7 @@ def ootGetObjectPath(isCustomExport: bool, exportPath: str, folderName: str) -> 
             ootGetPath(
                 exportPath,
                 isCustomExport,
-                f"{bpy.context.scene.fast64.oot.get_extracted_path()}/assets/objects/",
+                f"{extracted}/assets/objects/",
                 folderName,
                 False,
                 False,
