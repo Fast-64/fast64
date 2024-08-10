@@ -1624,7 +1624,7 @@ def update_fog_nodes(material: Material, context: Context):
     # rendermodes in code, so to be safe we'll enable fog. Plus we are checking
     # that fog is enabled in the geometry mode, so if so that's probably the intent.
     fogBlender.node_tree = bpy.data.node_groups[
-        ("FogBlender_On" if is_blender_doing_fog(material.f3d_mat.rdp_settings, True) else "FogBlender_Off")
+        ("FogBlender_On" if is_blender_doing_fog(material.f3d_mat.rdp_settings) else "FogBlender_Off")
     ]
 
     remove_first_link_if_exists(material, fogBlender.inputs["FogAmount"].links)
