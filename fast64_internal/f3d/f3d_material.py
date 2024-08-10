@@ -1840,7 +1840,6 @@ def update_node_values_of_material(material: Material, context):
     material.use_backface_culling = f3dMat.rdp_settings.g_cull_back
 
     update_tex_values_manual(material, context)
-    update_blend_method(material, context)
     update_fog_nodes(material, context)
 
 
