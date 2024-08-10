@@ -1233,7 +1233,6 @@ class F3DPanel(Panel):
         showLightProperty = (
             f3dMat.set_lights
             and "Lighting" in sources_in_ucode(bpy.context.scene.f3d_type)
-            and not inherit_light_and_fog()
             and f3dMat.rdp_settings.is_geo_mode_on("g_lighting")
             and f3dMat.rdp_settings.is_geo_mode_on("g_shade")
         )
@@ -1329,7 +1328,6 @@ class F3DPanel(Panel):
             if (
                 useDict["Shade"]
                 and "Lighting" in sources_in_ucode(bpy.context.scene.f3d_type)
-                and not inherit_light_and_fog()
             ):
                 self.ui_lights(f3dMat, inputCol, "Lighting", True)
 
