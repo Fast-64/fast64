@@ -1867,7 +1867,7 @@ def update_node_values_of_material(material: Material, context):
 
     nodes = material.node_tree.nodes
 
-    if settings.geo_mode_on_or_missing("g_lighting") and settings.is_geo_mode_on("g_tex_gen"):
+    if (settings.is_geo_mode_on("g_lighting") or inherit_light_and_fog()) and settings.is_geo_mode_on("g_tex_gen"):
         if settings.is_geo_mode_on("g_tex_gen_linear"):
             nodes["UV"].node_tree = bpy.data.node_groups["UV_EnvMap_Linear"]
         else:
@@ -3624,9 +3624,6 @@ class RDPSettings(PropertyGroup):
 
     def is_geo_mode_on(self, prop: str) -> bool:
         return getattr(self, prop) if self.has_prop_in_ucode(prop) else False
-
-    def geo_mode_on_or_missing(self, prop: str) -> bool:
-        return self.is_geo_mode_on(prop) or not self.has_prop_in_ucode(prop)
 
     def does_blender_use_input(self, setting: str) -> bool:
         return any(input == setting for input in self.blend_inputs)
