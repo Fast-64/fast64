@@ -822,6 +822,8 @@ class F3DPanel(Panel):
         return inputGroup
 
     def ui_lights(self, f3d_mat: "F3DMaterialProperty", layout: UILayout, name, showCheckBox):
+        if inherit_light_and_fog():
+            return
         inputGroup = layout.row()
         prop_input_left = inputGroup.column()
         prop_input = inputGroup.column()
@@ -830,9 +832,10 @@ class F3DPanel(Panel):
         else:
             prop_input_left.label(text=name)
 
-        prop_input_left.enabled = f3d_mat.rdp_settings.are_geo_modes_on(("g_lighting", "g_shade"))
+        settings = f3d_mat.rdp_settings
+        prop_input_left.enabled = settings.is_geo_mode_on("g_lighting") and settings.is_geo_mode_on("g_shade")
         lightSettings: UILayout = prop_input.column()
-        if f3d_mat.rdp_settings.g_lighting:
+        if settings.is_geo_mode_on("g_lighting"):
             prop_input_left.separator(factor=0.25)
             light_controls = prop_input_left.box()
             light_controls.enabled = f3d_mat.set_lights
@@ -861,8 +864,6 @@ class F3DPanel(Panel):
                     lightSettings.prop_search(f3d_mat, "f3d_light6", bpy.data, "lights", text="")
                 if f3d_mat.f3d_light6 is not None:
                     lightSettings.prop_search(f3d_mat, "f3d_light7", bpy.data, "lights", text="")
-
-            prop_input.enabled = f3d_mat.set_lights and f3d_mat.rdp_settings.g_lighting and f3d_mat.rdp_settings.g_shade
 
         return inputGroup
 
@@ -3626,9 +3627,6 @@ class RDPSettings(PropertyGroup):
 
     def geo_mode_on_or_missing(self, prop: str) -> bool:
         return self.is_geo_mode_on(prop) or not self.has_prop_in_ucode(prop)
-
-    def are_geo_modes_on(self, props: list[str]) -> bool:
-        return all(self.is_geo_mode_on(prop) for prop in props)
 
     def does_blender_use_input(self, setting: str) -> bool:
         return any(input == setting for input in self.blend_inputs)
