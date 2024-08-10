@@ -225,9 +225,8 @@ class BleedGraphics:
             for j, cmd in enumerate(cur_fmat.texture_DL.commands):
                 if not cmd:
                     continue  # some cmds are None from previous step
-                if self.bleed_individual_cmd(commands_bled, cmd, bleed_state):
-                    if cmd in last_mat.texture_DL.commands:
-                        commands_bled.commands[j] = None
+                if self.bleed_individual_cmd(commands_bled, cmd, bleed_state, last_mat.texture_DL.commands) is True:
+                    commands_bled.commands[j] = None
             # remove Nones from list
             while None in commands_bled.commands:
                 commands_bled.commands.remove(None)
@@ -438,6 +437,12 @@ class BleedGraphics:
         if not last_cmd_list:
             return self.bleed_self_conflict
 
+        # Don´t bleed if the cmd tags are not the same (these are not hashed)
+        if cmd in last_cmd_list:
+            last_equal_cmd = last_cmd_list[last_cmd_list.index(cmd)]
+            if last_equal_cmd.tags != cmd.tags:
+                return False
+
         # apply specific logic to these cmds, see functions below, otherwise default behavior is to bleed if cmd is in the last list
         bleed_func = getattr(self, (f"bleed_{type(cmd).__name__}"), None)
         if bleed_func:
@@ -478,10 +483,6 @@ class BleedGraphics:
                 return cmd == self.default_othermode_H
             else:
                 return cmd == self.default_othermode_L
-
-    # bleed if there are no tags to scroll and cmd was in last list
-    def bleed_DPSetTileSize(self, cmd_list: GfxList, cmd: GbiMacro, bleed_state: int, last_cmd_list: GfxList = None):
-        return cmd.tags != GfxTag.TileScroll0 and cmd.tags != GfxTag.TileScroll1 and cmd in last_cmd_list
 
     # At most, only one sync is needed after drawing tris. The f3d writer should
     # already have placed the appropriate sync type required. If a second sync is
