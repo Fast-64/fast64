@@ -2077,7 +2077,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
             self.draw_obj_name(layout)
 
     def draw_level_path(self, layout):
-        if self.export_header_type == "Custom":
+        if self.level_name == "Custom":
             export_path = f"{toAlnum(self.custom_export_path)}/"
         else:
             export_path = f"/levels/{toAlnum(self.level_name)}/"
