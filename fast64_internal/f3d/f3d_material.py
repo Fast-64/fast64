@@ -169,16 +169,20 @@ def update_draw_layer(self, context):
         set_output_node_groups(material)
 
 
-world_layer_defaults_attrs = {
-    "SM64": lambda world, layer: (
-        getattr(world, f"draw_layer_{layer}_cycle_1", ""),
-        getattr(world, f"draw_layer_{layer}_cycle_2", ""),
-    ),
-    "OOT": lambda world, layer: (
-        getattr(world.ootDefaultRenderModes, f"{layer.lower()}Cycle1", ""),
-        getattr(world.ootDefaultRenderModes, f"{layer.lower()}Cycle2", ""),
-    ),
-}
+def get_world_layer_defaults(scene, game_mode: str, layer: str):
+    world = scene.world
+    if world is None:
+        return default_draw_layers.get(game_mode, {}).get(layer, ("", ""))
+    if game_mode == "SM64":
+        return (
+            getattr(world, f"draw_layer_{layer}_cycle_1", ""),
+            getattr(world, f"draw_layer_{layer}_cycle_2", ""),
+        )
+    elif game_mode == "OOT":
+        return (
+            getattr(world.ootDefaultRenderModes, f"{layer.lower()}Cycle1", ""),
+            getattr(world.ootDefaultRenderModes, f"{layer.lower()}Cycle2", ""),
+        )
 
 
 def rendermode_preset_to_advanced(material: bpy.types.Material):
@@ -194,20 +198,17 @@ def rendermode_preset_to_advanced(material: bpy.types.Material):
         # Already in advanced mode, don't overwrite this with the preset
         return
 
-    if settings.set_rendermode:
-        cycle_1, cycle_2 = settings.rendermode_preset_cycle_1, settings.rendermode_preset_cycle_2
-    else:
+    cycle_1, cycle_2 = settings.rendermode_preset_cycle_1, settings.rendermode_preset_cycle_2
+    if not settings.set_rendermode:
         game_mode = scene.gameEditorMode
         layer = getattr(f3d_mat.draw_layer, game_mode.lower(), None)
         if layer is None:  # Game mode has no layer, don´t change anything
             return
 
         # If no world defaults for game mode, fallback on get_with_default default arg
-        cycle_1, cycle_2 = default_draw_layers.get(game_mode, {}).get(layer, ("", ""))
-        if scene.world is not None and game_mode in world_layer_defaults_attrs:
-            possible_cycle_1, possible_cycle_2 = world_layer_defaults_attrs[game_mode](scene.world, layer)
-            if getattr(f3d, possible_cycle_1, None) is not None and getattr(f3d, possible_cycle_2, None) is not None:
-                cycle_1, cycle_2 = possible_cycle_1, possible_cycle_2
+        possible_cycle_1, possible_cycle_2 = get_world_layer_defaults(scene, game_mode, layer)
+        if getattr(f3d, possible_cycle_1, None) is not None and getattr(f3d, possible_cycle_2, None) is not None:
+            cycle_1, cycle_2 = possible_cycle_1, possible_cycle_2
         try:
             settings.rendermode_preset_cycle_1, settings.rendermode_preset_cycle_2 = cycle_1, cycle_2
         except TypeError as exc:
