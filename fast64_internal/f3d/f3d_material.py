@@ -316,7 +316,7 @@ def update_blend_method(material: Material, context):
     elif blend_mode == "OPA":
         material.blend_method = "OPAQUE"
     elif blend_mode == "CLIP":
-        material.blend_method = "HASHED"
+        material.blend_method = "CLIP"
     else:
         material.blend_method = "BLEND"
 
