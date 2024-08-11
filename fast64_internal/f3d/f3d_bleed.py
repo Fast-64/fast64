@@ -437,12 +437,6 @@ class BleedGraphics:
         if not last_cmd_list:
             return self.bleed_self_conflict
 
-        # Don´t bleed if the cmd tags are not the same (these are not hashed)
-        if cmd in last_cmd_list:
-            last_equal_cmd = last_cmd_list[last_cmd_list.index(cmd)]
-            if last_equal_cmd.tags != cmd.tags:
-                return False
-
         # apply specific logic to these cmds, see functions below, otherwise default behavior is to bleed if cmd is in the last list
         bleed_func = getattr(self, (f"bleed_{type(cmd).__name__}"), None)
         if bleed_func:
@@ -483,6 +477,14 @@ class BleedGraphics:
                 return cmd == self.default_othermode_H
             else:
                 return cmd == self.default_othermode_L
+
+    # Don´t bleed if the cmd tags are not the same (these are not hashed)
+    def bleed_DPSetTileSize(self, cmd_list: GfxList, cmd: GbiMacro, bleed_state: int, last_cmd_list: GfxList = None):
+        if cmd in last_cmd_list:
+            last_size_cmd = last_cmd_list[last_cmd_list.index(cmd)]
+            if last_size_cmd.tags == cmd.tags:
+                return True
+        return False
 
     # At most, only one sync is needed after drawing tris. The f3d writer should
     # already have placed the appropriate sync type required. If a second sync is
