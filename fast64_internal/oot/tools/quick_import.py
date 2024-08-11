@@ -53,7 +53,8 @@ def quick_import_exec(context: bpy.types.Context, sym_name: str):
                 continue
             found_defs = sym_def_pattern.findall(source)
             print(file_p, f"{found_defs=}")
-            all_found_defs[file_p] = found_defs
+            if found_defs:
+                all_found_defs[file_p] = found_defs
 
     # Ideally if for example sym_name was gLinkAdultHookshotTipDL,
     # all_found_defs now contains:

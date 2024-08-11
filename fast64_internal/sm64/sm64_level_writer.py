@@ -524,7 +524,7 @@ STRING_TO_MACROS_PATTERN = re.compile(
 def stringToMacros(data):
     macroData = []
     for matchResult in re.finditer(STRING_TO_MACROS_PATTERN, data):
-        macro = matchResult.group("macro_name").strip()
+        function = matchResult.group("macro_name").strip()
         arguments = matchResult.group("arguments").strip()
         comment = matchResult.group("comment")
         if comment is None:
