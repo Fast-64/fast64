@@ -1,10 +1,10 @@
 import re
 import bpy
 
-from ....utility import parentObject, hexOrDecInt
-from ...scene.properties import OOTSceneHeaderProperty
-from ...oot_utility import setCustomProperty, getEvalParams
-from ...oot_constants import ootEnumCamTransition, ootData
+from ...utility import parentObject, hexOrDecInt
+from ..scene.properties import OOTSceneHeaderProperty
+from ..oot_utility import setCustomProperty, getEvalParams
+from ..oot_constants import ootEnumCamTransition, ootData
 from .classes import SharedSceneData
 from .constants import actorsWithRotAsParam
 

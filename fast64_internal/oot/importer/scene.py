@@ -3,19 +3,19 @@ import re
 import bpy
 import mathutils
 
-from ....utility import readFile, hexOrDecInt
-from ....f3d.f3d_parser import parseMatrices
-from ....f3d.f3d_gbi import get_F3D_GBI
-from ....f3d.flipbook import TextureFlipbook
-from ...oot_model_classes import OOTF3DContext
-from ...exporter.decomp_edit.scene_table import SceneTableUtility
-from ..properties import OOTImportSceneSettingsProperty
-from ...oot_constants import ootEnumDrawConfig
+from ...utility import readFile, hexOrDecInt
+from ...f3d.f3d_parser import parseMatrices
+from ...f3d.f3d_gbi import get_F3D_GBI
+from ...f3d.flipbook import TextureFlipbook
+from ..oot_model_classes import OOTF3DContext
+from ..exporter.decomp_edit.scene_table import SceneTableUtility
+from ..scene.properties import OOTImportSceneSettingsProperty
+from ..oot_constants import ootEnumDrawConfig
 from .scene_header import parseSceneCommands
 from .classes import SharedSceneData
-from ...cutscene.importer import importCutsceneData
+from ..cutscene.importer import importCutsceneData
 
-from ...oot_utility import (
+from ..oot_utility import (
     getSceneDirFromLevelName,
     setCustomProperty,
     sceneNameFromID,

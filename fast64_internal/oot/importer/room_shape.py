@@ -3,11 +3,11 @@ import re
 import bpy
 import mathutils
 
-from ....utility import parentObject, hexOrDecInt, yUpToZUp
-from ....f3d.f3d_parser import importMeshC
-from ...oot_model_classes import OOTF3DContext
-from ...room.properties import OOTRoomHeaderProperty
-from ...oot_constants import ootEnumRoomShapeType
+from ...utility import parentObject, hexOrDecInt, yUpToZUp
+from ...f3d.f3d_parser import importMeshC
+from ..oot_model_classes import OOTF3DContext
+from ..room.properties import OOTRoomHeaderProperty
+from ..oot_constants import ootEnumRoomShapeType
 from .classes import SharedSceneData
 from .utility import getDataMatch, stripName
 

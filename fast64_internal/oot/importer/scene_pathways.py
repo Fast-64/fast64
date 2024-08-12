@@ -1,6 +1,6 @@
 import bpy
 
-from ....utility import hexOrDecInt, parentObject
+from ...utility import hexOrDecInt, parentObject
 from .utility import getDataMatch, createCurveFromPoints, unsetAllHeadersExceptSpecified
 from .classes import SharedSceneData
 

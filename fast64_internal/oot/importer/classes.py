@@ -1,5 +1,5 @@
-from ....utility import PluginError
-from ...oot_utility import getHeaderSettings
+from ...utility import PluginError
+from ..oot_utility import getHeaderSettings
 from .constants import headerNames
 
 

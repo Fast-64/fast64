@@ -11,7 +11,7 @@ from ...f3d.f3d_gbi import TextureExportSettings, DLFormat
 from ...utility import PluginError, raisePluginError, ootGetSceneOrRoomHeader
 from ..oot_utility import ExportInfo, RemoveInfo, sceneNameFromID
 from ..oot_constants import ootEnumMusicSeq, ootEnumSceneID
-from .importer import parseScene
+from ..importer import parseScene
 from ..exporter.decomp_edit.config import Config
 from ..exporter import SceneExport, Files
 
