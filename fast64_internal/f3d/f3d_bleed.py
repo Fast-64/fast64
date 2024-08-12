@@ -478,8 +478,10 @@ class BleedGraphics:
             else:
                 return cmd == self.default_othermode_L
 
-    # Don´t bleed if the cmd tags are not the same (these are not hashed)
-    def bleed_DPSetTileSize(self, cmd_list: GfxList, cmd: GbiMacro, bleed_state: int, last_cmd_list: GfxList = None):
+    # Don´t bleed if the cmd is used for scrolling or if the last cmd's tags are not the same (those are not hashed)
+    def bleed_DPSetTileSize(self, _cmd_list: GfxList, cmd: GbiMacro, _bleed_state: int, last_cmd_list: GfxList = None):
+        if cmd.tags == GfxTag.TileScroll0 or cmd.tags == GfxTag.TileScroll1:
+            return False
         if cmd in last_cmd_list:
             last_size_cmd = last_cmd_list[last_cmd_list.index(cmd)]
             if last_size_cmd.tags == cmd.tags:
