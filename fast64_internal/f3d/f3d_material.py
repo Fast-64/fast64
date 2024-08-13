@@ -183,6 +183,10 @@ def get_world_layer_defaults(scene, game_mode: str, layer: str):
             getattr(world.ootDefaultRenderModes, f"{layer.lower()}Cycle1", ""),
             getattr(world.ootDefaultRenderModes, f"{layer.lower()}Cycle2", ""),
         )
+    else:
+        assert (
+            False
+        ), f"game_mode={game_mode} has no draw layer defaults, this function should not have been called at all with it"
 
 
 def rendermode_preset_to_advanced(material: bpy.types.Material):
@@ -195,7 +199,7 @@ def rendermode_preset_to_advanced(material: bpy.types.Material):
     f3d = get_F3D_GBI()
 
     if settings.rendermode_advanced_enabled and settings.set_rendermode:
-        # Already in advanced mode, don't overwrite this with the preset
+        # Rendermode is being set by the material and in advanced mode, don't overwrite any settings
         return
 
     cycle_1, cycle_2 = settings.rendermode_preset_cycle_1, settings.rendermode_preset_cycle_2
@@ -209,12 +213,16 @@ def rendermode_preset_to_advanced(material: bpy.types.Material):
         possible_cycle_1, possible_cycle_2 = get_world_layer_defaults(scene, game_mode, layer)
         if getattr(f3d, possible_cycle_1, None) is not None and getattr(f3d, possible_cycle_2, None) is not None:
             cycle_1, cycle_2 = possible_cycle_1, possible_cycle_2
+
+        # Some presets are not implemented in the blender enum, so print a warning and turn on advanced
         try:
             settings.rendermode_preset_cycle_1, settings.rendermode_preset_cycle_2 = cycle_1, cycle_2
+            settings.rendermode_advanced_enabled = False
         except TypeError as exc:
             print(
                 f"Render mode presets {cycle_1} or {cycle_2} probably not included in render mode preset enum:\n{exc}",
             )
+            settings.rendermode_advanced_enabled = True
 
     def get_with_default(preset, default):
         # Use the material's settings even if we are not setting rendermode.
@@ -1457,8 +1465,9 @@ def update_all_node_values(material, context):
 
 def update_all_material_nodes(self, context):
     for material in bpy.data.materials:
-        with context.temp_override(material=material):
-            update_all_node_values(material, context)
+        if material.is_f3d and material.mat_ver >= F3D_MAT_CUR_VERSION:
+            with context.temp_override(material=material):
+                update_all_node_values(material, context)
 
 
 def update_node_values_with_preset(self, context):
