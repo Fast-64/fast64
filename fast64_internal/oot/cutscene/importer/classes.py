@@ -120,7 +120,8 @@ class CutsceneImport(CutsceneObjectFactory):
                     sLine = line.strip()
                     csCmd = sLine.split("(")[0]
                     if "CutsceneData " not in line and "};" not in line and csCmd not in ootCutsceneCommandsC:
-                        csData[-1] += line
+                        if len(csData) > 0:
+                            csData[-1] += line
 
                     if len(csData) == 0 or sLine.startswith("CS_") and not sLine.startswith("CS_FLOAT"):
                         if self.csName is None or self.csName == csName:
