@@ -318,7 +318,7 @@ def update_blend_method(material: Material, context):
         blend_mode = "DECAL"
     if bpy.app.version >= (4, 2, 0):
         if blend_mode == "CLIP":
-            material.surface_render_method = "HASHED"
+            material.surface_render_method = "DITHERED"
         else:
             material.surface_render_method = "BLENDED"
     elif blend_mode == "OPA":
@@ -1712,6 +1712,9 @@ def set_output_node_groups(material: Material):
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
     cycle = f3dMat.rdp_settings.g_mdsft_cycletype.lstrip("G_CYC_").rstrip("_CYCLE")
     output_method = get_output_method(material)
+    if bpy.app.version < (4, 2, 0) and output_method == "CLIP":
+        output_method = "XLU"
+        material.alpha_threshold = 0.125
 
     output_group_name = f"OUTPUT_{cycle}CYCLE_{output_method}"
     output_group = bpy.data.node_groups[output_group_name]
