@@ -209,7 +209,6 @@ def rendermode_preset_to_advanced(material: bpy.types.Material):
         if layer is None:  # Game mode has no layer, don´t change anything
             return
 
-        # If no world defaults for game mode, fallback on get_with_default default arg
         possible_cycle_1, possible_cycle_2 = get_world_layer_defaults(scene, game_mode, layer)
         if getattr(f3d, possible_cycle_1, None) is not None and getattr(f3d, possible_cycle_2, None) is not None:
             cycle_1, cycle_2 = possible_cycle_1, possible_cycle_2
