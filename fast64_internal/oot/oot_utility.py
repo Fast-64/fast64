@@ -948,9 +948,9 @@ def getFormattedParams(mask: int, value: int, isBool: bool):
     if value == 0:
         return None
     elif not isBool:
-        return f"(({value} << {shift}) & 0x{mask:04X})" if shift > 0 else f"(0x{value:02X} & 0x{mask:04X})"
+        return f"((0x{value:02X} << {shift}) & 0x{mask:04X})" if shift > 0 else f"(0x{value:02X} & 0x{mask:04X})"
     else:
-        return f"({value} << {shift})" if shift > 0 else f"0x{value:04X}"
+        return f"(0x{value:02X} << {shift})" if shift > 0 else f"0x{value:02X}"
 
 
 def getNewPath(type: str, isClosedShape: bool):

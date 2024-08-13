@@ -305,16 +305,19 @@ class OOTActorProperty(PropertyGroup):
                     else:
                         value_to_eval = cur_prop_value
 
+                    param_val = getEvalParamsInt(value_to_eval)
+
                     # treat any invalid value as a custom value
-                    try:
-                        param_val = getEvalParamsInt(value_to_eval)
-                    except:
+                    if param_val is None:
                         param_list.append(value_to_eval)
                         have_custom_value = True
                         continue
                 else:
                     if cur_prop_value == "Custom":
                         cur_prop_value = getattr(self, f"{prop_name}_custom")
+                        param_list.append(cur_prop_value)
+                        have_custom_value = True
+                        continue
 
                     if param.type in {"Type", "Enum"}:
                         type_value = getEvalParamsInt(cur_prop_value)
