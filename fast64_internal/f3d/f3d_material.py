@@ -1470,6 +1470,13 @@ def update_all_material_nodes(self, context):
                 update_all_node_values(material, context)
 
 
+def update_world_default_rendermode(self, context):
+    for material in bpy.data.materials:
+        if material.is_f3d and material.mat_ver >= F3D_MAT_CUR_VERSION:
+            with context.temp_override(material=material):
+                update_rendermode_preset(material, context)
+
+
 def update_node_values_with_preset(self, context):
     update_node_values(self, context, update_preset=True)
 
