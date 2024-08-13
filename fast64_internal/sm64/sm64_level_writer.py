@@ -215,13 +215,13 @@ class CourseDefines:
             if bonusCourse[1][0] == courseEnum:
                 return bonusCourse
         if not isBonus:
-            macroCmd = ["DEFINE_COURSE", [courseEnum, "0x44444440"], ""]
+            macroCmd = Macro("DEFINE_COURSE", [courseEnum, "0x44444440"], "")
 
             self.courses.append(macroCmd)
             return macroCmd
 
         else:
-            macroCmd = ["DEFINE_BONUS_COURSE", [courseEnum, "0x44444440"], ""]
+            macroCmd = Macro("DEFINE_BONUS_COURSE", [courseEnum, "0x44444440"], "")
 
             self.bonusCourses.append(macroCmd)
             return macroCmd
@@ -255,7 +255,7 @@ class LevelDefines:
         for macro in self.defineMacros:
             if macro[0] == "DEFINE_LEVEL" and macro[1][3] == levelName:
                 return macro
-        macroCmd = [
+        macroCmd = Macro(
             "DEFINE_LEVEL",
             [
                 '"' + levelName.upper() + '"',
@@ -271,7 +271,7 @@ class LevelDefines:
                 "_",
             ],
             "",
-        ]
+        )
         self.newLevelAdded = True
         self.defineMacros.append(macroCmd)
         return macroCmd
@@ -1217,18 +1217,13 @@ class SM64_ExportLevel(ObjectDataExporter):
             applyRotation([obj], math.radians(90), "X")
 
             props = context.scene.fast64.sm64.combined_export
-            export_path, level_name = getPathAndLevel(
-                props.level_name == "Custom",
-                props.custom_export_path,
-                props.custom_export_name,
-                props.level_name,
-            )
-            if props.level_name == "Custom":
+            export_path, level_name = props.base_level_path, props.export_level_name
+            if props.is_custom_level:
                 triggerName = "sCam" + level_name.title().replace(" ", "").replace("_", "")
             else:
-                triggerName = cameraTriggerNames[props.level_name]
+                triggerName = cameraTriggerNames[level_name]
 
-            if props.level_name != "Custom":
+            if not props.non_decomp_level:
                 applyBasicTweaks(export_path)
             fileStatus = exportLevelC(
                 obj,
@@ -1236,7 +1231,7 @@ class SM64_ExportLevel(ObjectDataExporter):
                 level_name,
                 export_path,
                 context.scene.saveTextures,
-                props.level_name == "Custom",
+                props.non_decomp_level,
                 triggerName,
                 DLFormat.Static,
             )

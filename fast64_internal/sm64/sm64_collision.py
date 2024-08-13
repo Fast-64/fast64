@@ -505,7 +505,7 @@ class SM64_ExportCollision(bpy.types.Operator):
                     props.export_header_type == "Custom",
                     props.custom_export_path,
                     props.custom_export_name,
-                    props.level_name,
+                    props.actor_level_name,
                 )
                 if not props.export_header_type == "Custom":
                     applyBasicTweaks(export_path)

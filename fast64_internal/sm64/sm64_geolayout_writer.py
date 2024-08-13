@@ -2848,7 +2848,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                     props.export_header_type == "Custom",
                     props.custom_export_path,
                     props.custom_export_name,
-                    props.level_name,
+                    props.actor_level_name,
                 )
                 if not props.export_header_type == "Custom":
                     applyBasicTweaks(export_path)
@@ -3045,7 +3045,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                     props.export_header_type == "Custom",
                     props.custom_export_path,
                     props.custom_export_name,
-                    props.level_name,
+                    props.actor_level_name,
                 )
 
                 save_textures = bpy.context.scene.saveTextures
