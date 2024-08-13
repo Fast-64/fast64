@@ -213,15 +213,15 @@ def rendermode_preset_to_advanced(material: bpy.types.Material):
         if getattr(f3d, possible_cycle_1, None) is not None and getattr(f3d, possible_cycle_2, None) is not None:
             cycle_1, cycle_2 = possible_cycle_1, possible_cycle_2
 
-        # Some presets are not implemented in the blender enum, so print a warning and turn on advanced
-        try:
-            settings.rendermode_preset_cycle_1, settings.rendermode_preset_cycle_2 = cycle_1, cycle_2
-            settings.rendermode_advanced_enabled = False
-        except TypeError as exc:
-            print(
-                f"Render mode presets {cycle_1} or {cycle_2} probably not included in render mode preset enum:\n{exc}",
-            )
-            settings.rendermode_advanced_enabled = True
+            # Some presets are not implemented in the blender enum, so print a warning and turn on advanced
+            try:
+                settings.rendermode_preset_cycle_1, settings.rendermode_preset_cycle_2 = cycle_1, cycle_2
+                settings.rendermode_advanced_enabled = False
+            except TypeError as exc:
+                print(
+                    f"Render mode presets {cycle_1} or {cycle_2} probably not included in render mode preset enum:\n{exc}",
+                )
+                settings.rendermode_advanced_enabled = True
 
     def get_with_default(preset, default):
         # Use the material's settings even if we are not setting rendermode.
