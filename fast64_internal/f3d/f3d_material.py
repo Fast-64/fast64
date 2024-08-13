@@ -325,7 +325,7 @@ def update_blend_method(material: Material, context):
         material.blend_method = "OPAQUE"
     elif blend_mode == "CLIP":
         material.blend_method = "CLIP"
-    else:
+    elif blend_mode in {"XLU", "DECAL"}:
         material.blend_method = "BLEND"
 
 
