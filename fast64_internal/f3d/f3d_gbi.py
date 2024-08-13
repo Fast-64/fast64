@@ -3811,6 +3811,9 @@ class SPAmbOcclusion(GbiMacro):
         return SPAmbOcclusionAmbDir(self.amb, self.dir).to_binary(f3d, segments) + SPAmbOcclusionPoint(
             self.point
         ).to_binary(f3d, segments)
+    
+    def size(self, f3d):
+        return GFX_SIZE * 2
 
 
 @dataclass(unsafe_hash=True)
@@ -4024,6 +4027,9 @@ class SPLightColor(GbiMacro):
     def to_c(self, static=True):
         header = "gsSPLightColor(" if static else "gSPLightColor(glistp++, "
         return header + f"{self.n}, 0x" + format(self.color_to_int(), "08X") + ")"
+    
+    def size(self, _f3d):
+        return GFX_SIZE * 2
 
 
 @dataclass(unsafe_hash=True)
@@ -4211,7 +4217,7 @@ class SPPerspNormalize(GbiMacro):
 
     def to_binary(self, f3d, segments):
         if f3d.F3DEX_GBI_3:
-            return gsMoveHalfwd(f3d.G_MW_FX, G_MWO_PERSPNORM, (self.s), f3d)
+            return gsMoveHalfwd(f3d.G_MW_FX, f3d.G_MWO_PERSPNORM, (self.s), f3d)
         else:
             return gsMoveWd(f3d.G_MW_PERSPNORM, 0, (self.s), f3d)
 
@@ -4818,7 +4824,12 @@ class DPSetOtherMode(GbiMacro):
     mode1: list
 
     def to_binary(self, f3d, segments):
-        words = _SHIFTL(f3d.G_RDPSETOTHERMODE, 24, 8) | _SHIFTL(self.mode0, 0, 24), self.mode1
+        mode0 = mode1 = 0
+        for mode in self.mode0:
+            mode0 |= getattr(f3d, mode) if hasattr(f3d, str(mode)) else mode
+        for mode in self.mode1:
+            mode1 |= getattr(f3d, mode) if hasattr(f3d, str(mode)) else mode
+        words = _SHIFTL(f3d.G_RDPSETOTHERMODE, 24, 8) | _SHIFTL(mode0, 0, 24), mode1
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
@@ -4841,7 +4852,7 @@ class DPSetTileSize(GbiMacro):
         return gsDPLoadTileGeneric(f3d.G_SETTILESIZE, self.tile, self.uls, self.ult, self.lrs, self.lrt)
 
     def is_LOADTILE(self, f3d):
-        return self.t == f3d.G_TX_LOADTILE
+        return self.tile == f3d.G_TX_LOADTILE
 
 
 @dataclass(unsafe_hash=True)
