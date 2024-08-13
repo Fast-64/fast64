@@ -424,7 +424,7 @@ def getPathAndLevel(customExport, exportPath, levelName, levelOption):
         levelName = levelName
     else:
         exportPath = bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path)
-        if levelOption == "custom":
+        if levelOption == "Custom":
             levelName = levelName
         else:
             levelName = levelOption
@@ -694,7 +694,7 @@ def writeBoxExportType(writeBox, headerType, name, levelName, levelOption):
     if headerType == "Actor":
         writeBox.label(text="actors/" + toAlnum(name))
     elif headerType == "Level":
-        if levelOption != "custom":
+        if levelOption != "Custom":
             levelName = levelOption
         writeBox.label(text="levels/" + toAlnum(levelName) + "/" + toAlnum(name))
 
@@ -1715,6 +1715,21 @@ def getTextureSuffixFromFormat(texFmt):
     return texFmt.lower()
 
 
+def removeComments(text: str):
+    # https://stackoverflow.com/a/241506
+
+    def replacer(match: re.Match[str]):
+        s = match.group(0)
+        if s.startswith("/"):
+            return " "  # note: a space and not an empty string
+        else:
+            return s
+
+    pattern = re.compile(r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"', re.DOTALL | re.MULTILINE)
+
+    return re.sub(pattern, replacer, text)
+
+
 binOps = {
     ast.Add: operator.add,
     ast.Sub: operator.sub,
@@ -1810,9 +1825,13 @@ def upgrade_old_prop(
             return False
 
         if new_prop_def.type == "ENUM":
-            if not isinstance(old_value, int):
+            if isinstance(old_value, str):
+                new_enum_options = {enum_item.identifier for enum_item in new_prop_def.enum_items}
+                if old_value not in new_enum_options:
+                    return False
+            elif not isinstance(old_value, int):
                 raise ValueError(f"({old_value}) not an int, but {new_prop} is an enum")
-            if old_enum:
+            elif old_enum:
                 if old_value >= len(old_enum):
                     raise ValueError(f"({old_value}) not in {old_enum}")
                 old_value = old_enum[old_value]

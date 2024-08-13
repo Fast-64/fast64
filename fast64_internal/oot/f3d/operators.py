@@ -111,7 +111,7 @@ class OOT_ImportDL(Operator):
             folderName = settings.folder
             importPath = abspath(settings.customPath)
             isCustomImport = settings.isCustom
-            basePath = abspath(context.scene.ootDecompPath) if not isCustomImport else importPath
+            basePath = abspath(context.scene.ootDecompPath) if not isCustomImport else os.path.dirname(importPath)
             removeDoubles = settings.removeDoubles
             importNormals = settings.importNormals
             drawLayer = settings.drawLayer
