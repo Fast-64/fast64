@@ -67,6 +67,23 @@ def quick_import_exec(context: bpy.types.Context, sym_name: str):
         all_found_defs = get_found_defs(assets_scenes_dir_p, sym_name, sym_def_pattern)
 
     found_dir_p = assets_objects_dir_p if is_sym_object else assets_scenes_dir_p
+    all_found_defs: dict[Path, list[tuple[str, str]]] = dict()
+
+    for dirpath, dirnames, filenames in os.walk(found_dir_p):
+        dirpath_p = Path(dirpath)
+        for filename in filenames:
+            file_p = dirpath_p / filename
+            # Only look into C files
+            if file_p.suffix != ".c":
+                continue
+            source = file_p.read_text()
+            # Simple check to see if we should look into this file any further
+            if sym_name not in source:
+                continue
+            found_defs = sym_def_pattern.findall(source)
+            print(file_p, f"{found_defs=}")
+            if found_defs:
+                all_found_defs[file_p] = found_defs
 
     # Ideally if for example sym_name was gLinkAdultHookshotTipDL,
     # all_found_defs now contains:
