@@ -2226,6 +2226,7 @@ class ActorPresetInfo:
 
     @staticmethod
     def get_member_as_dict(name: str, member: Any | dict[str, Any]) -> dict[str, Any]:
+        """If member is a dict, returns it, otherwise returns {name: member}"""
         if isinstance(member, dict):
             return member
         elif member:
