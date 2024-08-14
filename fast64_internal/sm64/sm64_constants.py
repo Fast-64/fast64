@@ -3466,7 +3466,7 @@ ACTOR_PRESET_INFO = {
                 "Waving One Arm (East)",
             ],
         ),
-        models=ModelInfo(model_id=ModelIDInfo(221, "MODEL_TOAD"), geolayout=218104084),
+        models=ModelInfo(model_id=ModelIDInfo(221, "MODEL_TOAD"), geolayout=218104804),
     ),
     "Tweester/Tornado": ActorPresetInfo(
         decomp_path="actors/tornado",
