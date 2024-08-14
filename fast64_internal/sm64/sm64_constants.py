@@ -2239,16 +2239,17 @@ class CollisionInfo:
 @dataclasses.dataclass
 class ActorPresetInfo:
     # TODO: Pass in name?
-    decomp_path: str
-    # TODO: Use group instead of level
-    level: str = "HH"
+    decomp_path: str = None
+    level: str = None
+    group: str | None = None
     animation: DictOrVal[AnimInfo] = dataclasses.field(default_factory=dict)
     models: DictOrVal[ModelInfo] = dataclasses.field(default_factory=dict)
     collision: DictOrVal[CollisionInfo] = dataclasses.field(default_factory=dict)
 
     def __post_init__(self):
-        assert self.decomp_path and isinstance(self.decomp_path, str)
-        assert self.level and isinstance(self.level, str)
+        assert self.decomp_path is not None and isinstance(self.decomp_path, str)
+        assert self.level is not None and isinstance(self.level, str)
+        assert self.group is None or isinstance(self.group, str)
         assert validate_dict(self.animation, AnimInfo)
         assert validate_dict(self.models, ModelInfo)
         assert validate_dict(self.collision, CollisionInfo)
@@ -2261,6 +2262,7 @@ class ActorPresetInfo:
 ACTOR_PRESET_INFO = {
     "Amp": ActorPresetInfo(
         decomp_path="actors/amp",
+        group="common0",
         level="HH",
         animation=AnimInfo(
             address=134234164, behaviours={"Circling Amp": 318780296, "Homing Amp": 318780244}, names=["Moving"]
@@ -2269,6 +2271,7 @@ ACTOR_PRESET_INFO = {
     ),
     "Bird": ActorPresetInfo(
         decomp_path="actors/bird",
+        group="group10",
         level="CG",
         animation=AnimInfo(
             address=83888616,
@@ -2279,28 +2282,32 @@ ACTOR_PRESET_INFO = {
     ),
     "Blargg": ActorPresetInfo(
         decomp_path="actors/blargg",
+        group="group2",
         level="LLL",
         animation=AnimInfo(address=83911020, names=["Idle", "Bite"]),
         models=ModelInfo(model_id=ModelIDInfo(84, "MODEL_BLARGG"), geolayout=201327168),
     ),
     "Blue Coin Switch": ActorPresetInfo(
         decomp_path="actors/blue_coin_switch",
+        group="common0",
         level="HH",
         models=ModelInfo(model_id=ModelIDInfo(140, "MODEL_BLUE_COIN_SWITCH"), geolayout=251658240),
         collision=CollisionInfo(address=134221464, c_name="blue_coin_switch_seg8_collision_08000E98"),
     ),
     "Blue Fish": ActorPresetInfo(
         decomp_path="actors/blue_fish",
+        group="common1",
         level="HH",
         animation=AnimInfo(address=50447024, behaviours=318774060, names=["Swimming", "Diving"]),
         models={
             "Fish": ModelInfo(model_id=ModelIDInfo(185, "MODEL_FISH"), geolayout=369101892),
-            "Fish (Shadow)": ModelInfo(model_id=ModelIDInfo(186, "MODEL_FISH_SHADOW"), geolayout=369101804),
+            "Fish (With Shadow)": ModelInfo(model_id=ModelIDInfo(186, "MODEL_FISH_SHADOW"), geolayout=369101804),
         },
     ),
     "Bobomb": ActorPresetInfo(
         decomp_path="actors/bobomb",
-        level="HH",
+        group="common0",
+        level="BOB",
         animation=AnimInfo(
             address=134363500,
             behaviours={"Bobomb": 318779764, "Bobomb Buddy": 318779868, "Bobomb Buddy (Opens Cannon)": 318779944},
@@ -2313,6 +2320,7 @@ ACTOR_PRESET_INFO = {
     ),
     "Bowser Bomb": ActorPresetInfo(
         decomp_path="actors/bomb",
+        group="group12",
         level="BFB",
         models=ModelInfo(
             model_id=[ModelIDInfo(101, "MODEL_BOWSER_BOMB_CHILD_OBJ"), ModelIDInfo(179, "MODEL_BOWSER_BOMB")],
@@ -2321,27 +2329,32 @@ ACTOR_PRESET_INFO = {
     ),
     "Boo": ActorPresetInfo(
         decomp_path="actors/boo",
+        group="group9",
         level="HH",
         models=ModelInfo(model_id=ModelIDInfo(84, "MODEL_BOO"), geolayout=201327140),
     ),
-    "Boo Castle": ActorPresetInfo(
+    "Boo (Inside Castle)": ActorPresetInfo(
         decomp_path="actors/boo_castle",
+        group="group15",
         level="IC",
         models=ModelInfo(model_id=ModelIDInfo(101, "MODEL_BOO_CASTLE"), geolayout=218105264),
     ),
     "Bookend": ActorPresetInfo(
         decomp_path="actors/book",
+        group="group9",
         level="HH",
         models=ModelInfo(model_id=ModelIDInfo(89, "MODEL_BOOKEND"), geolayout=201326784),
     ),
     "Bookend Part": ActorPresetInfo(
         decomp_path="actors/bookend",
+        group="group9",
         level="HH",
         animation=AnimInfo(address=83895616, behaviours=318787692, names=["Opening Mouth", "Bite", "Closed"]),
         models=ModelInfo(model_id=ModelIDInfo(88, "MODEL_BOOKEND_PART"), geolayout=201326592),
     ),
     "Metal Ball": ActorPresetInfo(
         decomp_path="actors/bowling_ball",
+        group="common0",
         level="HH",
         models={
             "Bowling Ball": ModelInfo(model_id=ModelIDInfo(180, "MODEL_BOWLING_BALL"), geolayout=251659840),
@@ -2352,6 +2365,7 @@ ACTOR_PRESET_INFO = {
     ),
     "Bowser": ActorPresetInfo(
         decomp_path="actors/bowser",
+        group="group12",
         level="BFB",
         animation=AnimInfo(
             address=101021664,
@@ -2394,11 +2408,13 @@ ACTOR_PRESET_INFO = {
     ),
     "Bowser Flame": ActorPresetInfo(
         decomp_path="actors/bowser_flame",
+        group="group12",
         level="BFB",
         models=ModelInfo(model_id=ModelIDInfo(103, "MODEL_BOWSER_FLAMES"), geolayout=218103808),
     ),
     "Bowser Key": ActorPresetInfo(
         decomp_path="actors/bowser_key",
+        group="common1",
         level="BFB",
         animation=AnimInfo(
             address=50426576,
@@ -2415,6 +2431,7 @@ ACTOR_PRESET_INFO = {
     ),
     "Breakable Box": ActorPresetInfo(
         decomp_path="actors/breakable_box",
+        group="common0",
         level="HH",
         models={
             "Breakable Box": ModelInfo(model_id=ModelIDInfo(129, "MODEL_BREAKABLE_BOX"), geolayout=251659728),
@@ -2426,17 +2443,20 @@ ACTOR_PRESET_INFO = {
     ),
     "Bub": ActorPresetInfo(
         decomp_path="actors/bub",
-        level="THI",
+        group="group13",
+        level="DDD",
         animation=AnimInfo(address=100737876, behaviours=318775820, names=["Swimming"]),
         models=ModelInfo(model_id=ModelIDInfo(100, "MODEL_BUB"), geolayout=218104716),
     ),
     "Bubba": ActorPresetInfo(
         decomp_path="actors/bubba",
+        group="group11",
         level="THI",
         models=ModelInfo(model_id=ModelIDInfo(89, "MODEL_BUBBA"), geolayout=201326592),
     ),
     "Bubble": ActorPresetInfo(
         decomp_path="actors/bubble",
+        group="group0",
         level="HH",
         models={
             "Bubble": ModelInfo(model_id=ModelIDInfo(168, "MODEL_BUBBLE"), geolayout=385875968),
@@ -2445,11 +2465,13 @@ ACTOR_PRESET_INFO = {
     ),
     "Bullet Bill": ActorPresetInfo(
         decomp_path="actors/bullet_bill",
-        level="WDW",
+        group="group1",
+        level="WF",
         models=ModelInfo(model_id=ModelIDInfo(84, "MODEL_BULLET_BILL"), geolayout=201327204),
     ),
     "Bully": ActorPresetInfo(
         decomp_path="actors/bully",
+        group="group2",
         level="LLL",
         animation=AnimInfo(
             address=83904268,
@@ -2460,11 +2482,13 @@ ACTOR_PRESET_INFO = {
     ),
     "Burn Smoke": ActorPresetInfo(
         decomp_path="actors/burn_smoke",
+        group="group0",
         level="HH",
         models=ModelInfo(model_id=ModelIDInfo(148, "MODEL_BURN_SMOKE"), geolayout=385876100),
     ),
     "Butterfly": ActorPresetInfo(
         decomp_path="actors/butterfly",
+        group="common1",
         level="HH",
         animation=AnimInfo(
             address=50353840,
@@ -2476,16 +2500,19 @@ ACTOR_PRESET_INFO = {
     ),
     "Cannon Barrel": ActorPresetInfo(
         decomp_path="actors/cannon_barrel",
+        group="common0",
         level="HH",
         models=ModelInfo(model_id=ModelIDInfo(127, "MODEL_CANNON_BARREL"), geolayout=251658688),
     ),
     "Cannon Base": ActorPresetInfo(
         decomp_path="actors/cannon_base",
+        group="common0",
         level="HH",
         models=ModelInfo(model_id=ModelIDInfo(128, "MODEL_CANNON_BASE"), geolayout=251658664),
     ),
     "Cannon Lid": ActorPresetInfo(
         decomp_path="actors/cannon_lid",
+        group="common0",
         level="HH",
         collision=CollisionInfo(address=134236496, c_name="cannon_lid_seg8_collision_08004950"),
         models=ModelInfo(
@@ -2495,6 +2522,7 @@ ACTOR_PRESET_INFO = {
     ),
     "Cap Switch": ActorPresetInfo(
         decomp_path="actors/capswitch",
+        group="group8",
         level="VC",
         models={
             "Cap Switch": ModelInfo(model_id=ModelIDInfo(85, "MODEL_CAP_SWITCH"), geolayout=201326664),
@@ -2512,31 +2540,36 @@ ACTOR_PRESET_INFO = {
             "Cap Switch (Top)": CollisionInfo(address=83899464, c_name="capswitch_collision_05003448"),
         },
     ),
-    "Chain Ball": ActorPresetInfo(
+    "Chain Ball": ActorPresetInfo(  # also known as metallic ball
         decomp_path="actors/chain_ball",
+        group="group14",
         level="BOB",
         models=ModelInfo(model_id=ModelIDInfo(101, "MODEL_METALLIC_BALL"), geolayout=218105296),
     ),
     "Chain Chomp": ActorPresetInfo(
         decomp_path="actors/chain_chomp",
+        group="group14",
         level="BOB",
         animation=AnimInfo(address=100815224, behaviours=318785420, names=["Chomping"]),
         models=ModelInfo(model_id=ModelIDInfo(102, "MODEL_CHAIN_CHOMP"), geolayout=218105324),
     ),
     "Haunted Chair": ActorPresetInfo(
         decomp_path="actors/chair",
+        group="group9",
         level="HH",
         animation=AnimInfo(address=83908484, behaviours=318787540, names=["Default Pose"]),
         models=ModelInfo(model_id=ModelIDInfo(86, "MODEL_HAUNTED_CHAIR"), geolayout=201326808),
     ),
     "Checkerboard Platform": ActorPresetInfo(
         decomp_path="actors/checkerboard_platform",
+        group="common0",
         level="HH",
         models=ModelInfo(model_id=ModelIDInfo(202, "MODEL_CHECKERBOARD_PLATFORM"), geolayout=251659492),
         collision=CollisionInfo(address=134272784, c_name="checkerboard_platform_seg8_collision_0800D710"),
     ),
     "Chilly Chief": ActorPresetInfo(
         decomp_path="actors/chilly_chief",
+        group="group16",
         level="SML",
         animation=AnimInfo(
             address=100678036,
@@ -2550,6 +2583,7 @@ ACTOR_PRESET_INFO = {
     ),
     "Chuckya": ActorPresetInfo(
         decomp_path="actors/chuckya",
+        group="common0",
         level="HH",
         animation=AnimInfo(
             address=134266992,
@@ -2560,12 +2594,14 @@ ACTOR_PRESET_INFO = {
     ),
     "Clam Shell": ActorPresetInfo(
         decomp_path="actors/clam",
+        group="group4",
         level="JRB",
         animation=AnimInfo(address=83892036, behaviours=318788672, names=["Close", "Open"]),
         models=ModelInfo(model_id=ModelIDInfo(88, "MODEL_CLAM_SHELL"), geolayout=201326592),
     ),
     "Coin": ActorPresetInfo(
         decomp_path="actors/coin",
+        group="common1",
         level="HH",
         models={
             "Yellow Coin": ModelInfo(model_id=ModelIDInfo(116, "MODEL_YELLOW_COIN"), geolayout=369099068),
@@ -2584,20 +2620,23 @@ ACTOR_PRESET_INFO = {
     ),
     "Cyan Fish": ActorPresetInfo(
         decomp_path="actors/cyan_fish",
+        group="group13",
         level="WDW",
         animation=AnimInfo(address=100721252, names=["Swimming"]),
         models=ModelInfo(model_id=ModelIDInfo(103, "MODEL_CYAN_FISH"), geolayout=218104612),
     ),
     "Dirt": ActorPresetInfo(
         decomp_path="actors/dirt",
+        group="common1",
         level="HH",
         models={
             "Dirt": ModelInfo(model_id=ModelIDInfo(138, "MODEL_DIRT_ANIMATION"), geolayout=369102548),
-            "Cartoon Start (Unused)": ModelInfo(model_id=ModelIDInfo(139, "MODEL_CARTOON_STAR"), geolayout=369102628),
+            "(Unused) Cartoon Start": ModelInfo(model_id=ModelIDInfo(139, "MODEL_CARTOON_STAR"), geolayout=369102628),
         },
     ),
     "Door": ActorPresetInfo(
         decomp_path="actors/door",
+        group="common1",
         level="HH",
         animation=AnimInfo(
             address=50419392,
@@ -2654,7 +2693,8 @@ ACTOR_PRESET_INFO = {
     ),
     "Dorrie": ActorPresetInfo(
         decomp_path="actors/dorrie",
-        level="HH",
+        group="group17",
+        level="HMC",
         animation=AnimInfo(
             address=100726328, behaviours=318787472, size=3, names=["Idle", "Moving", "Lower and Raise Head"]
         ),
@@ -2662,11 +2702,13 @@ ACTOR_PRESET_INFO = {
     ),
     "Exclamation Box": ActorPresetInfo(
         decomp_path="actors/exclamation_box",
+        group="common0",
         level="HH",
         models=ModelInfo(model_id=ModelIDInfo(137, "MODEL_EXCLAMATION_BOX"), geolayout=251659924),
     ),
     "Exclamation Box Outline": ActorPresetInfo(
         decomp_path="actors/exclamation_box_outline",
+        group="common0",
         level="HH",
         models={
             "Exclamation Box Outline": ModelInfo(
@@ -2681,11 +2723,13 @@ ACTOR_PRESET_INFO = {
     ),
     "Explosion": ActorPresetInfo(
         decomp_path="actors/explosion",
+        group="common1",
         level="HH",
         models=ModelInfo(model_id=ModelIDInfo(205, "MODEL_EXPLOSION"), geolayout=369098816),
     ),
     "Eyerok": ActorPresetInfo(
         decomp_path="actors/eyerok",
+        group="group5",
         level="SSL",
         animation=AnimInfo(
             address=83957476,
@@ -2699,6 +2743,7 @@ ACTOR_PRESET_INFO = {
     ),
     "Flame": ActorPresetInfo(
         decomp_path="actors/flame",
+        group="common1",
         level="HH",
         models={
             "Red Flame (With Shadow)": ModelInfo(
@@ -2710,55 +2755,65 @@ ACTOR_PRESET_INFO = {
     ),
     "Fly Guy": ActorPresetInfo(
         decomp_path="actors/flyguy",
+        group="common0",
         level="SSL",
         animation=AnimInfo(address=134290020, behaviours=318785244, names=["Flying"]),
         models=ModelInfo(model_id=ModelIDInfo(220, "MODEL_FLYGUY"), geolayout=251659544),
     ),
     "Fwoosh": ActorPresetInfo(
         decomp_path="actors/fwoosh",
-        level="HMC",
+        group="group6",
+        level="TTM",
         models=ModelInfo(model_id=ModelIDInfo(87, "MODEL_FWOOSH"), geolayout=201327468),
     ),
     "Goomba": ActorPresetInfo(
         decomp_path="actors/goomba",
+        group="common0",
         level="HH",
         animation=AnimInfo(address=134339148, behaviours=318785324, names=["Walking"]),
         models=ModelInfo(model_id=ModelIDInfo(192, "MODEL_GOOMBA"), geolayout=251660004),
     ),
     "Haunted Cage": ActorPresetInfo(
         decomp_path="actors/haunted_cage",
+        group="group9",
         level="HH",
         models=ModelInfo(model_id=ModelIDInfo(90, "MODEL_HAUNTED_CAGE"), geolayout=201327220),
     ),
     "Heart": ActorPresetInfo(
         decomp_path="actors/heart",
+        group="common0",
         level="HH",
         models=ModelInfo(model_id=ModelIDInfo(120, "MODEL_HEART"), geolayout=251659516),
     ),
     "Heave-Ho": ActorPresetInfo(
         decomp_path="actors/heave_ho",
+        group="group1",
         level="WDW",
         animation=AnimInfo(address=83972940, behaviours=318772552, names=["Moving", "Throwing", "Stop"]),
         models=ModelInfo(model_id=ModelIDInfo(89, "MODEL_HEAVE_HO"), geolayout=201327244),
     ),
     "Hoot": ActorPresetInfo(
         decomp_path="actors/hoot",
+        group="group1",
         level="WF",
         animation=AnimInfo(address=83908456, behaviours=318780396, names=["Flying", "Flying Fast"]),
         models=ModelInfo(model_id=ModelIDInfo(86, "MODEL_HOOT"), geolayout=201326616),
     ),
     "Bowser Impact Ring": ActorPresetInfo(
         decomp_path="actors/impact_ring",
+        group="group12",
         level="BFB",
         models=ModelInfo(model_id=ModelIDInfo(104, "MODEL_BOWSER_WAVE"), geolayout=218103952),
     ),
     "Bowser Impact Smoke": ActorPresetInfo(
         decomp_path="actors/impact_smoke",
+        group="group12",
         level="BFB",
         models=ModelInfo(model_id=ModelIDInfo(102, "MODEL_BOWSER_SMOKE"), geolayout=218106876),
     ),
     "King Bobomb": ActorPresetInfo(
         decomp_path="actors/bobomb",
+        group="group3",
         level="BOB",
         animation=AnimInfo(
             address=83951152,
@@ -2783,6 +2838,7 @@ ACTOR_PRESET_INFO = {
     ),
     "Klepto": ActorPresetInfo(
         decomp_path="actors/klepto",
+        group="group5",
         level="SSL",
         animation=AnimInfo(
             address=83922172,
@@ -2802,6 +2858,7 @@ ACTOR_PRESET_INFO = {
     ),
     "Koopa": ActorPresetInfo(
         decomp_path="actors/koopa",
+        group="group14",
         level="BOB",
         animation=AnimInfo(
             address=100733796,
@@ -2832,12 +2889,14 @@ ACTOR_PRESET_INFO = {
     ),
     "Koopa Flag": ActorPresetInfo(
         decomp_path="actors/koopa_flag",
+        group="group14",
         level="BOB",
         animation=AnimInfo(address=100667432, behaviours=318785016, names=["Waving"]),
         models=ModelInfo(model_id=ModelIDInfo(106, "MODEL_KOOPA_FLAG"), geolayout=218103808),
     ),
     "Koopa Shell": ActorPresetInfo(
         decomp_path="actors/koopa_shell",
+        group="common0",
         level="BOB",
         models={
             "Koopa Shell": ModelInfo(model_id=ModelIDInfo(190, "MODEL_KOOPA_SHELL"), geolayout=251660976),
@@ -2845,8 +2904,9 @@ ACTOR_PRESET_INFO = {
             "(Unused) Koopa Shell 2": ModelInfo(geolayout=251661064),
         },
     ),
-    "Lakitu": ActorPresetInfo(
+    "Lakitu (Cameraman)": ActorPresetInfo(
         decomp_path="actors/lakitu_cameraman",
+        group="group15",
         level="IC",
         animation=AnimInfo(
             address=100686072,
@@ -2855,8 +2915,9 @@ ACTOR_PRESET_INFO = {
         ),
         models=ModelInfo(model_id=ModelIDInfo(102, "MODEL_LAKITU"), geolayout=218103808),
     ),
-    "Lakitu Enemy": ActorPresetInfo(
+    "Lakitu (Enemy)": ActorPresetInfo(
         decomp_path="actors/lakitu_enemy",
+        group="group11",
         level="THI",
         animation=AnimInfo(
             address=83969236, behaviours=318785816, names=["Flying", "No Spiny", "Throw Spiny", "Hold Spiny"]
@@ -2865,23 +2926,27 @@ ACTOR_PRESET_INFO = {
     ),
     "Leaves": ActorPresetInfo(
         decomp_path="actors/leaves",
+        group="common1",
         level="HH",
         models=ModelInfo(model_id=ModelIDInfo(162, "MODEL_LEAVES"), geolayout=369101964),
     ),
     "Mad Piano": ActorPresetInfo(
         decomp_path="actors/mad_piano",
+        group="group9",
         level="HH",
         animation=AnimInfo(address=83925780, behaviours=318787620, names=["Sleeping", "Chomping"]),
         models=ModelInfo(model_id=ModelIDInfo(87, "MODEL_MAD_PIANO"), geolayout=201327028),
     ),
     "Manta Ray": ActorPresetInfo(
         decomp_path="actors/manta",
+        group="group4",
         level="JRB",
         animation=AnimInfo(address=83922612, behaviours=318784368, names=["Swimming"]),
         models=ModelInfo(model_id=ModelIDInfo(84, "MODEL_MANTA_RAY"), geolayout=83922196),
     ),
     "Mario": ActorPresetInfo(
         decomp_path="actors/mario",
+        group="group0",
         level="HH",
         animation=AnimInfo(
             address=5160960,
@@ -3101,8 +3166,22 @@ ACTOR_PRESET_INFO = {
         ),
         models=ModelInfo(model_id=ModelIDInfo(1, "MODEL_MARIO"), geolayout=385887700),
     ),
+    "Mario's Cap": ActorPresetInfo(
+        decomp_path="actors/mario_cap",
+        group="common1",
+        level="HH",
+        models={
+            "Mario's Cap": ModelInfo(model_id=ModelIDInfo(136, "MODEL_MARIOS_CAP"), geolayout=369101988),
+            "Mario's Metal Cap": ModelInfo(model_id=ModelIDInfo(134, "MODEL_MARIOS_METAL_CAP"), geolayout=369102064),
+            "Mario's Wing Cap": ModelInfo(model_id=ModelIDInfo(135, "MODEL_MARIOS_WING_CAP"), geolayout=369102140),
+            "Mario's Winged Metal Cap": ModelInfo(
+                model_id=ModelIDInfo(133, "MODEL_MARIOS_WINGED_METAL_CAP"), geolayout=369102248
+            ),
+        },
+    ),
     "Metal Box": ActorPresetInfo(
         decomp_path="actors/metal_box",
+        group="common0",
         level="HH",
         models={
             "Metal Box": ModelInfo(model_id=ModelIDInfo(217, "MODEL_METAL_BOX"), geolayout=251660848),
@@ -3114,6 +3193,7 @@ ACTOR_PRESET_INFO = {
     ),
     "Mips": ActorPresetInfo(
         decomp_path="actors/mips",
+        group="group15",
         level="IC",
         animation=AnimInfo(
             address=100751140, behaviours=318784764, names=["Idle", "Hopping", "Thrown", "Thrown (Unused)", "Held"]
@@ -3122,6 +3202,7 @@ ACTOR_PRESET_INFO = {
     ),
     "Mist": ActorPresetInfo(
         decomp_path="actors/mist",
+        group="common1",
         level="HH",
         models={
             "Mist": ModelInfo(model_id=ModelIDInfo(142, "MODEL_MIST"), geolayout=369098752),
@@ -3130,12 +3211,14 @@ ACTOR_PRESET_INFO = {
     ),
     "Moneybag": ActorPresetInfo(
         decomp_path="actors/moneybag",
+        group="group16",
         level="CCM",
         animation=AnimInfo(address=100687452, behaviours=318781856, names=["Idle", "Prepare", "Jump", "Land", "Walk"]),
         models=ModelInfo(model_id=ModelIDInfo(102, "MODEL_MONEYBAG"), geolayout=218104048),
     ),
     "Monty Mole": ActorPresetInfo(
         decomp_path="actors/monty_mole",
+        group="group6",
         level="HMC",
         animation=AnimInfo(
             address=83915336,
@@ -3157,6 +3240,7 @@ ACTOR_PRESET_INFO = {
     ),
     "Montey Mole Hole": ActorPresetInfo(
         decomp_path="actors/monty_mole_hole",
+        group="group6",
         level="HMC",
         models=ModelInfo(
             model_id=ModelIDInfo(84, "MODEL_DL_MONTY_MOLE_HOLE"),
@@ -3165,26 +3249,31 @@ ACTOR_PRESET_INFO = {
     ),
     "Mr. I Eyeball": ActorPresetInfo(
         decomp_path="actors/mr_i_eyeball",
+        group="group16",
         level="HH",
         models=ModelInfo(model_id=ModelIDInfo(103, "MODEL_MR_I"), geolayout=218103808),
     ),
     "Mr. I Iris": ActorPresetInfo(
         decomp_path="actors/mr_i_iris",
+        group="group16",
         level="HH",
         models=ModelInfo(model_id=ModelIDInfo(102, "MODEL_MR_I_IRIS"), geolayout=218103836),
     ),
     "Mushroom 1up": ActorPresetInfo(
         decomp_path="actors/mushroom_1up",
+        group="common1",
         level="HH",
         models=ModelInfo(model_id=ModelIDInfo(212, "MODEL_1UP"), geolayout=369102468),
     ),
-    "Number": ActorPresetInfo(
+    "Orange Numbers": ActorPresetInfo(
         decomp_path="actors/number",
+        group="common1",
         level="HH",
         models=ModelInfo(model_id=ModelIDInfo(219, "MODEL_NUMBER"), geolayout=369102356),
     ),
     "Peach": ActorPresetInfo(
         decomp_path="actors/peach",
+        group="group10",
         level="CG",
         animation=AnimInfo(
             address=84002060,
@@ -3206,6 +3295,7 @@ ACTOR_PRESET_INFO = {
     ),
     "Pebble": ActorPresetInfo(
         decomp_path="actors/pebble",
+        group="common1",
         level="HH",
         models=ModelInfo(
             model_id=ModelIDInfo(161, "MODEL_PEBBLE"), displaylist=DisplaylistInfo(50449152, "pebble_seg3_dl_0301CB00")
@@ -3213,6 +3303,7 @@ ACTOR_PRESET_INFO = {
     ),
     "Penguin": ActorPresetInfo(
         decomp_path="actors/penguin",
+        group="group7",
         level="CCM",
         animation=AnimInfo(
             address=83921780,
@@ -3230,7 +3321,8 @@ ACTOR_PRESET_INFO = {
     ),
     "Piranha Plant": ActorPresetInfo(
         decomp_path="actors/piranha_plant",
-        level="BOB",
+        group="group14",
+        level="WF",
         animation=AnimInfo(
             address=100778780,
             behaviours={"Fire Piranha Plant": 318787872, "Piranha Plant": 318775228},
@@ -3251,6 +3343,7 @@ ACTOR_PRESET_INFO = {
     ),
     "Pokey": ActorPresetInfo(
         decomp_path="actors/pokey",
+        group="group5",
         level="SSL",
         models={
             "Pokey Head": ModelInfo(model_id=ModelIDInfo(84, "MODEL_POKEY_HEAD"), geolayout=201328144),
@@ -3259,19 +3352,33 @@ ACTOR_PRESET_INFO = {
     ),
     "Wooden Post": ActorPresetInfo(
         decomp_path="actors/poundable_pole",
+        group="common14",
         level="BOB",
         models=ModelInfo(model_id=ModelIDInfo(107, "MODEL_WOODEN_POST"), geolayout=218103992),
         collision=CollisionInfo(address=100672656, c_name="poundable_pole_collision_06002490"),
     ),
-    "Power Meter": ActorPresetInfo(decomp_path="actors/power_meter", level="HH"),
+    # Should the power meter be included?
+    "Power Meter": ActorPresetInfo(
+        decomp_path="actors/power_meter",
+        level="HH",
+        group="common1",
+        models={
+            "Power Meter (Base)": ModelInfo(displaylist=DisplaylistInfo(50500736, "dl_power_meter_base")),
+            "Power Meter (Health)": ModelInfo(
+                displaylist=DisplaylistInfo(50500976, "dl_power_meter_health_segments_begin")
+            ),
+        },
+    ),
     "Purple Switch": ActorPresetInfo(
         decomp_path="actors/purple_switch",
+        group="common0",
         level="HH",
         models=ModelInfo(model_id=ModelIDInfo(207, "MODEL_PURPLE_SWITCH"), geolayout=251659468),
         collision=CollisionInfo(address=134268840, c_name="purple_switch_seg8_collision_0800C7A8"),
     ),
     "Sand": ActorPresetInfo(
         decomp_path="actors/sand",
+        group="common1",
         level="HH",
         models=ModelInfo(
             model_id=ModelIDInfo(159, "MODEL_SAND_DUST"), displaylist=DisplaylistInfo(50511056, "sand_seg3_dl_0302BCD0")
@@ -3279,36 +3386,42 @@ ACTOR_PRESET_INFO = {
     ),
     "Scuttlebug": ActorPresetInfo(
         decomp_path="actors/scuttlebug",
-        level="HH",
+        group="group17",
+        level="HMC",
         animation=AnimInfo(address=100749412, behaviours=318778204, names=["Walking"]),
         models=ModelInfo(model_id=ModelIDInfo(101, "MODEL_SCUTTLEBUG"), geolayout=218104724),
     ),
     "Seaweed": ActorPresetInfo(
         decomp_path="actors/seaweed",
+        group="group13",
         level="WDW",
         animation=AnimInfo(address=100710604, behaviours=318779700, size=1, names=["Wave"]),
         models=ModelInfo(model_id=ModelIDInfo(193, "MODEL_SEAWEED"), geolayout=218104452),
     ),
     "Skeeter": ActorPresetInfo(
         decomp_path="actors/skeeter",
+        group="group13",
         level="WDW",
         animation=AnimInfo(
             address=100695520, behaviours=318788712, size=4, names=["Water Lunge", "Water Idle", "Walk", "Idle"]
         ),
         models=ModelInfo(model_id=ModelIDInfo(105, "MODEL_SKEETER"), geolayout=218103808),
     ),
-    "Boo Key (Beta)": ActorPresetInfo(
+    "(Beta) Boo Key": ActorPresetInfo(
         decomp_path="actors/small_key",
+        group="group9",
         level="HH",
         models=ModelInfo(model_id=ModelIDInfo(85, "MODEL_BETA_BOO_KEY"), geolayout=201326984),
     ),
-    "Smoke": ActorPresetInfo(
+    "(Unused) Smoke": ActorPresetInfo(  # TODO: double check
         decomp_path="actors/smoke",
+        group="group6",
         level="HMC",
-        models=ModelInfo(model_id=ModelIDInfo(150, "MODEL_SMOKE"), geolayout=83917560),
+        models=ModelInfo(displaylist=DisplaylistInfo(83917560, "smoke_seg5_dl_05007AF8")),
     ),
     "Mr. Blizzard": ActorPresetInfo(
         decomp_path="actors/snowman",
+        group="group7",
         level="CCM",
         animation=AnimInfo(
             address=83939608, behaviours={"Mr. Blizzard": 318787004}, names=["Spawn Snowball", "Throw Snowball"]
@@ -3322,39 +3435,46 @@ ACTOR_PRESET_INFO = {
     ),
     "Snufit": ActorPresetInfo(
         decomp_path="actors/snufit",
-        level="HH",
+        group="group17",
+        level="HMC",
         models=ModelInfo(model_id=ModelIDInfo(206, "MODEL_SNUFIT"), geolayout=218104224),
     ),
     "Sparkle": ActorPresetInfo(
         decomp_path="actors/sparkle",
+        group="group0",
         level="HH",
         models=ModelInfo(model_id=ModelIDInfo(149, "MODEL_SPARKLES"), geolayout=385876412),
     ),
     "Sparkle Animation": ActorPresetInfo(
         decomp_path="actors/sparkle_animation",
+        group="group0",
         level="HH",
         models=ModelInfo(model_id=ModelIDInfo(143, "MODEL_SPARKLES_ANIMATION"), geolayout=385876612),
     ),
     "Spindrift": ActorPresetInfo(
         decomp_path="actors/spindrift",
+        group="group7",
         level="CCM",
         animation=AnimInfo(address=83897704, behaviours=318771892, names=["Flying"]),
         models=ModelInfo(model_id=ModelIDInfo(84, "MODEL_SPINDRIFT"), geolayout=201326592),
     ),
     "Spiny": ActorPresetInfo(
         decomp_path="actors/spiny",
+        group="group11",
         level="THI",
         animation=AnimInfo(address=83979948, behaviours={"Spiny": 318785992}, names=["Walk"]),
         models=ModelInfo(model_id=ModelIDInfo(86, "MODEL_SPINY"), geolayout=201327400),
     ),
     "Spiny Egg": ActorPresetInfo(
         decomp_path="actors/spiny_egg",
+        group="group11",
         level="THI",
         animation=AnimInfo(address=83974116, names=["Default"]),
         models=ModelInfo(model_id=ModelIDInfo(85, "MODEL_SPINY_BALL"), geolayout=201327248),
     ),
     "Springboard": ActorPresetInfo(
         decomp_path="actors/springboard",
+        group="group8",
         level="VC",
         models={
             "Springboard Top": ModelInfo(model_id=ModelIDInfo(181, "MODEL_TRAMPOLINE"), geolayout=201326592),
@@ -3364,11 +3484,13 @@ ACTOR_PRESET_INFO = {
     ),
     "Star": ActorPresetInfo(
         decomp_path="actors/star",
+        group="common1",
         level="HH",
         models=ModelInfo(model_id=ModelIDInfo(122, "MODEL_STAR"), geolayout=369102496),
     ),
     "Small Water Splash": ActorPresetInfo(
         decomp_path="actors/stomp_smoke",
+        group="group0",
         level="HH",
         models={
             "Small Water Splash": ModelInfo(model_id=ModelIDInfo(165, "MODEL_SMALL_WATER_SPLASH"), geolayout=385876124),
@@ -3377,24 +3499,28 @@ ACTOR_PRESET_INFO = {
     ),
     "Sushi Shark": ActorPresetInfo(
         decomp_path="actors/sushi",
+        group="group4",
         level="JRB",
         animation=AnimInfo(address=83930708, behaviours=318776120, size=1, names=["Swimming", "Diving"]),
         models=ModelInfo(model_id=ModelIDInfo(86, "MODEL_SUSHI"), geolayout=201326696),
     ),
     "Swoop": ActorPresetInfo(
         decomp_path="actors/swoop",
-        level="HH",
+        group="group17",
+        level="HMC",
         animation=AnimInfo(address=100692176, behaviours=318785176, size=2, names=["Idle", "Move"]),
         models=ModelInfo(model_id=ModelIDInfo(100, "MODEL_SWOOP"), geolayout=218104028),
     ),
     "Test Plataform": ActorPresetInfo(
         decomp_path="actors/test_plataform",
+        group="common0",
         level="HH",
         collision=CollisionInfo(address=134374136, c_name="unknown_seg8_collision_080262F8"),
     ),
     "Thwomp": ActorPresetInfo(
         decomp_path="actors/thwomp",
-        level="WDW",
+        group="group1",
+        level="WF",
         models=ModelInfo(model_id=ModelIDInfo(88, "MODEL_THWOMP"), geolayout=201327176),
         collision={
             "Thwomp": CollisionInfo(address=83933136, c_name="thwomp_seg5_collision_0500B7D0"),
@@ -3403,6 +3529,7 @@ ACTOR_PRESET_INFO = {
     ),
     "Toad": ActorPresetInfo(
         decomp_path="actors/toad",
+        group="group15",
         level="IC",
         animation=AnimInfo(
             address=100727880,
@@ -3423,17 +3550,20 @@ ACTOR_PRESET_INFO = {
     ),
     "Tweester": ActorPresetInfo(
         decomp_path="actors/tornado",
+        group="group5",
         level="SSL",
         models=ModelInfo(model_id=ModelIDInfo(86, "MODEL_TWEESTER"), geolayout=83969584),
     ),
     "Transparent Star": ActorPresetInfo(
         decomp_path="actors/transperant_star",
+        group="common1",
         level="HH",
         models=ModelInfo(model_id=ModelIDInfo(121, "MODEL_TRANSPARENT_STAR"), geolayout=369102700),
     ),
     "Treasure Chest": ActorPresetInfo(
         decomp_path="actors/treasure_chest",
-        level="WDW",
+        group="group13",
+        level="JRB",
         models={
             "Treasure Chest Base": ModelInfo(
                 model_id=ModelIDInfo(101, "MODEL_TREASURE_CHEST_BASE"), geolayout=218104912
@@ -3443,6 +3573,7 @@ ACTOR_PRESET_INFO = {
     ),
     "Tree": ActorPresetInfo(
         decomp_path="actors/tree",
+        group="common1",
         level="HH",
         models={
             "Bubbly Tree": ModelInfo(
@@ -3456,7 +3587,7 @@ ACTOR_PRESET_INFO = {
                 geolayout=369102824,
             ),
             "Pine Tree": ModelInfo(model_id=ModelIDInfo(24, "MODEL_COURTYARD_SPIKY_TREE"), geolayout=369102848),
-            "Pine Tree (Unused)": ModelInfo(geolayout=369102896),
+            "(Unused) Pine Tree": ModelInfo(geolayout=369102896),
             "Snow Tree": ModelInfo(
                 model_id=[ModelIDInfo(25, "MODEL_CCM_SNOW_TREE"), ModelIDInfo(25, "MODEL_SL_SNOW_TREE")],
                 geolayout=369102872,
@@ -3466,7 +3597,8 @@ ACTOR_PRESET_INFO = {
     ),
     "Ukiki": ActorPresetInfo(
         decomp_path="actors/ukiki",
-        level="HMC",
+        group="group6",
+        level="TTM",
         animation=AnimInfo(
             address=83974020,
             behaviours={"Ukiki": 318774448},
@@ -3490,6 +3622,7 @@ ACTOR_PRESET_INFO = {
     ),
     "Unagi": ActorPresetInfo(
         decomp_path="actors/unagi",
+        group="group4",
         level="JRB",
         animation=AnimInfo(
             address=83974020,
@@ -3499,13 +3632,15 @@ ACTOR_PRESET_INFO = {
         ),
         models=ModelInfo(model_id=ModelIDInfo(85, "MODEL_UNAGI"), geolayout=201326860),
     ),
-    "Walking Smoke": ActorPresetInfo(
+    "Smoke": ActorPresetInfo(
         decomp_path="actors/walk_smoke",
+        group="group0",
         level="HH",
         models=ModelInfo(model_id=ModelIDInfo(150, "MODEL_SMOKE"), geolayout=385876024),
     ),
     "Warp Collision": ActorPresetInfo(
         decomp_path="actors/warp_collision",
+        group="common1",
         level="HH",
         collision={
             "Door": CollisionInfo(address=50450040, c_name="door_seg3_collision_0301CE78"),
@@ -3514,6 +3649,7 @@ ACTOR_PRESET_INFO = {
     ),
     "Warp Pipe": ActorPresetInfo(
         decomp_path="actors/warp_pipe",
+        group="common1",
         level="HH",
         models=ModelInfo(
             model_id=[
@@ -3528,6 +3664,7 @@ ACTOR_PRESET_INFO = {
     ),
     "Water Bomb": ActorPresetInfo(
         decomp_path="actors/water_bubble",
+        group="group3",
         level="BOB",
         models={
             "Water Bomb": ModelInfo(model_id=ModelIDInfo(84, "MODEL_WATER_BOMB"), geolayout=201327368),
@@ -3536,12 +3673,14 @@ ACTOR_PRESET_INFO = {
     ),
     "Water Mine": ActorPresetInfo(
         decomp_path="actors/water_mine",
+        group="group13",
         level="JRB",
         models=ModelInfo(model_id=ModelIDInfo(179, "MODEL_WATER_MINE"), geolayout=218104564),
     ),
     "Water Ring": ActorPresetInfo(
         decomp_path="actors/water_ring",
-        level="WDW",
+        group="group13",
+        level="DDD",
         animation=AnimInfo(
             address=100745084,
             behaviours={"Water Ring (Jet Stream)": 318781264, "Water Ring (Manta Ray)": 13003798},
@@ -3551,11 +3690,13 @@ ACTOR_PRESET_INFO = {
     ),
     "Water Splash": ActorPresetInfo(
         decomp_path="actors/water_splash",
+        group="group0",
         level="WDW",
-        models=ModelInfo(model_id=ModelIDInfo(167, "MODEL_WATER_SPLASH"), geolayout=218104564),
+        models=ModelInfo(model_id=ModelIDInfo(167, "MODEL_WATER_SPLASH"), geolayout=385876528),
     ),
     "Water Wave": ActorPresetInfo(
         decomp_path="actors/water_wave",
+        group="group0",
         level="HH",
         models={
             "Idle Water Wave": ModelInfo(model_id=ModelIDInfo(166, "MODEL_IDLE_WATER_WAVE"), geolayout=385876260),
@@ -3564,7 +3705,8 @@ ACTOR_PRESET_INFO = {
     ),
     "Whirlpool": ActorPresetInfo(
         decomp_path="actors/whirlpool",
-        level="JRB",
+        group="group4",
+        level="DDD",
         models=ModelInfo(
             model_id=ModelIDInfo(87, "MODEL_DL_WHIRLPOOL"),
             displaylist=DisplaylistInfo(83967160, "whirlpool_seg5_dl_05013CB8"),
@@ -3572,6 +3714,7 @@ ACTOR_PRESET_INFO = {
     ),
     "White Particle": ActorPresetInfo(
         decomp_path="actors/white_particle",
+        group="common1",
         level="HH",
         models={
             "White Particle": ModelInfo(model_id=ModelIDInfo(160, "MODEL_WHITE_PARTICLE"), geolayout=369102744),
@@ -3583,7 +3726,8 @@ ACTOR_PRESET_INFO = {
     ),
     "White Particle Small": ActorPresetInfo(
         decomp_path="actors/white_particle_small",
-        level="JRB",
+        group="group0",
+        level="HH",
         models={
             "White Particle Small": ModelInfo(
                 model_id=ModelIDInfo(164, "MODEL_WHITE_PARTICLE_SMALL"),
@@ -3596,47 +3740,55 @@ ACTOR_PRESET_INFO = {
     ),
     "Whomp": ActorPresetInfo(
         decomp_path="actors/whomp",
-        level="BOB",
+        group="group14",
+        level="WF",
         animation=AnimInfo(address=100796932, behaviours=318778316, size=2, names=["Walk", "Jump"]),
         models=ModelInfo(model_id=ModelIDInfo(103, "MODEL_WHOMP"), geolayout=218104960),
         collision=CollisionInfo(address=100796940, c_name="whomp_seg6_collision_06020A0C"),
     ),
     "Wiggler Body": ActorPresetInfo(
         decomp_path="actors/wiggler_body",
+        group="group11",
         level="THI",
         animation=AnimInfo(address=83937396, behaviours=318785760, size=1, names=["Walk"]),
         models=ModelInfo(model_id=ModelIDInfo(88, "MODEL_WIGGLER_BODY"), geolayout=83937144),
     ),
     "Wiggler Head": ActorPresetInfo(
         decomp_path="actors/wiggler_head",
+        group="group11",
         level="THI",
         animation=AnimInfo(address=83946636, behaviours=318785688, size=1, names=["Walk"]),
         models=ModelInfo(model_id=ModelIDInfo(87, "MODEL_WIGGLER_HEAD"), geolayout=201326640),
     ),
     "Wooden Signpost": ActorPresetInfo(
         decomp_path="actors/wooden_signpost",
+        group="common1",
         level="HH",
         models=ModelInfo(model_id=ModelIDInfo(124, "MODEL_WOODEN_SIGNPOST"), geolayout=369102772),
         collision=CollisionInfo(address=50519424, c_name="wooden_signpost_seg3_collision_0302DD80"),
     ),
     "Yellow Sphere (Bowser 1)": ActorPresetInfo(
         decomp_path="actors/yellow_sphere",
+        group="group12",
         level="BFB",
         models=ModelInfo(model_id=ModelIDInfo(3, "MODEL_LEVEL_GEOMETRY_03"), geolayout=218103984),
     ),
     "Yellow Sphere": ActorPresetInfo(
         decomp_path="actors/yellow_sphere_small",
+        group="group1",
         level="WDW",
         models=ModelInfo(model_id=ModelIDInfo(85, "MODEL_YELLOW_SPHERE"), geolayout=201326592),
     ),
     "Yoshi": ActorPresetInfo(
         decomp_path="actors/yoshi",
+        group="group10",
         level="CG",
         animation=AnimInfo(address=84034024, behaviours=318784824, names=["Idle", "Walk", "Jump"]),
         models=ModelInfo(model_id=ModelIDInfo(85, "MODEL_YOSHI"), geolayout=201327720),
     ),
-    "Yoshi Egg": ActorPresetInfo(
+    "(Unused) Yoshi Egg": ActorPresetInfo(
         decomp_path="actors/yoshi_egg",
+        group="group1",
         level="WDW",
         models=ModelInfo(model_id=ModelIDInfo(87, "MODEL_YOSHI_EGG"), geolayout=201327076),
     ),
