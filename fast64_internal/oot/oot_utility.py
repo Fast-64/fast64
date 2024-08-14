@@ -1044,17 +1044,19 @@ def getObjectList(
     objType: str,
     emptyType: Optional[str] = None,
     splineType: Optional[str] = None,
-    parentObj: Object = None,
+    parentObj: Optional[Object] = None,
+    room_index: Optional[int] = None,
 ):
     """
     Returns a list containing objects matching ``objType``. Sorts by object name.
 
     Parameters:
-    - ``objList``: the list of objects to iterate through, usually ``obj.children_recursive``
-    - ``objType``: the object's type (``EMPTY``, ``CURVE``, etc.)
-    - ``emptyType``: optional, filters the object by the given empty type
-    - ``splineType``: optional, filters the object by the given spline type
-    - ``parentObj``: optional, checks if the found object is parented to ``parentObj``
+    - `objList`: the list of objects to iterate through, usually ``obj.children_recursive``
+    - `objType`: the object's type (``EMPTY``, ``CURVE``, etc.)
+    - `emptyType`: optional, filters the object by the given empty type
+    - `splineType`: optional, filters the object by the given spline type
+    - `parentObj`: optional, checks if the found object is parented to ``parentObj``
+    - `room_index`: optional, the room index
     """
 
     ret: list[Object] = []
@@ -1068,13 +1070,13 @@ def getObjectList(
                 cond = obj.ootSplineProperty.splineType == splineType
 
             if parentObj is not None:
-                if emptyType == "Actor" and obj.ootEmptyType == "Room":
+                if emptyType == "Actor" and obj.ootEmptyType == "Room" and obj.ootRoomHeader.roomIndex == room_index:
                     for o in obj.children_recursive:
                         if o.type == objType and o.ootEmptyType == emptyType and o not in ret:
                             ret.append(o)
                     continue
                 else:
-                    cond = cond and obj.parent is not None and obj.parent.name == parentObj.name
+                    cond = cond and obj.parent is not None and obj.parent == parentObj
 
             if cond and obj not in ret:
                 ret.append(obj)
