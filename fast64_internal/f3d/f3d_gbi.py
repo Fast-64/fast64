@@ -3811,7 +3811,7 @@ class SPAmbOcclusion(GbiMacro):
         return SPAmbOcclusionAmbDir(self.amb, self.dir).to_binary(f3d, segments) + SPAmbOcclusionPoint(
             self.point
         ).to_binary(f3d, segments)
-    
+
     def size(self, f3d):
         return GFX_SIZE * 2
 
@@ -4027,7 +4027,7 @@ class SPLightColor(GbiMacro):
     def to_c(self, static=True):
         header = "gsSPLightColor(" if static else "gSPLightColor(glistp++, "
         return header + f"{self.n}, 0x" + format(self.color_to_int(), "08X") + ")"
-    
+
     def size(self, _f3d):
         return GFX_SIZE * 2
 
