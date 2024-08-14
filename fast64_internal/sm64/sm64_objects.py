@@ -2014,7 +2014,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
 
     @property
     def obj_name_bhv(self):
-        if self.export_all_selected:
+        if self.export_all_selected and self.bhv_object:
             return self.filter_name(self.bhv_object.name)
         if not self.object_name and not self.bhv_object:
             return ""
