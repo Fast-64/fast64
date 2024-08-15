@@ -260,7 +260,7 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
 
     filepaths = [
         ootGetObjectPath(isCustomImport, importPath, folderName, True),
-        ootGetObjectHeaderPath(isCustomImport, importPath, folderName),
+        ootGetObjectHeaderPath(isCustomImport, importPath, folderName, True),
     ]
 
     removeDoubles = importSettings.removeDoubles

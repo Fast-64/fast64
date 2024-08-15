@@ -480,12 +480,14 @@ def ootGetObjectPath(isCustomExport: bool, exportPath: str, folderName: str, inc
     return filepath
 
 
-def ootGetObjectHeaderPath(isCustomExport: bool, exportPath: str, folderName: str) -> str:
+def ootGetObjectHeaderPath(isCustomExport: bool, exportPath: str, folderName: str, include_extracted: bool) -> str:
+    extracted = bpy.context.scene.fast64.oot.get_extracted_path() if include_extracted else "."
     if isCustomExport:
         filepath = exportPath
     else:
         filepath = os.path.join(
-            ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False), folderName + ".h"
+            ootGetPath(exportPath, isCustomExport, f"{extracted}/assets/objects/", folderName, False, False),
+            folderName + ".h",
         )
     return filepath
 
