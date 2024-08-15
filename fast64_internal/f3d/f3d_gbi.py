@@ -3054,15 +3054,17 @@ class FMaterial:
         return addresses
 
     def set_addr(self, startAddress, f3d):
-        addrRange = self.material.set_addr(startAddress, f3d)
-        startAddress = addrRange[0]
-        if self.revert is not None:
+        addrRange = (startAddress, startAddress)
+        if self.material.tag.Export:
+            addrRange = self.material.set_addr(addrRange[1], f3d)
+        if self.revert is not None and self.revert.tag.Export:
             addrRange = self.revert.set_addr(addrRange[1], f3d)
         return startAddress, addrRange[1]
 
     def save_binary(self, romfile, f3d, segments):
-        self.material.save_binary(romfile, f3d, segments)
-        if self.revert is not None:
+        if self.material.tag.Export:
+            self.material.save_binary(romfile, f3d, segments)
+        if self.revert is not None and self.revert.tag.Export:
             self.revert.save_binary(romfile, f3d, segments)
 
     def to_c(self, f3d):
