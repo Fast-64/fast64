@@ -628,7 +628,7 @@ def saveGeolayoutC(
     elif headerType == "Level":
         scrollName = levelName + "_level_geo_" + dirName
     elif headerType == "Custom":
-        scrollName = "actor_geo_" + os.path.dirname(dirName)
+        scrollName = "geo_" + dirName
 
     gfxFormatter = SM64GfxFormatter(ScrollMethod.Vertex)
     if not customExport and headerType == "Level":
