@@ -2940,14 +2940,17 @@ class FTriGroup:
         return self.triList.get_ptr_addresses(f3d)
 
     def set_addr(self, startAddress, f3d):
-        addrRange = self.triList.set_addr(startAddress, f3d)
+        addrRange = (startAddress, startAddress)
+        if self.triList.tag.Export:
+            addrRange = self.triList.set_addr(startAddress, f3d)
         addrRange = self.vertexList.set_addr(addrRange[1])
         return startAddress, addrRange[1]
 
     def save_binary(self, romfile, f3d, segments):
         for celTriList in self.celTriLists:
             celTriList.save_binary(romfile, f3d, segments)
-        self.triList.save_binary(romfile, f3d, segments)
+        if self.triList.tag.Export:
+            self.triList.save_binary(romfile, f3d, segments)
         self.vertexList.save_binary(romfile)
 
     def to_c(self, f3d, gfxFormatter):
