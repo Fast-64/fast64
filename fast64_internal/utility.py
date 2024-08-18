@@ -1876,16 +1876,3 @@ def upgrade_old_prop(
         print(f"Failed to upgrade {new_prop} from old location {old_loc} with props {old_props}")
         traceback.print_exc()
         return False
-
-
-def comment_remover(text):
-    # https://stackoverflow.com/a/241506
-    def replacer(match):
-        s = match.group(0)
-        if s.startswith("/"):
-            return " "  # note: a space and not an empty string
-        else:
-            return s
-
-    pattern = re.compile(r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"', re.DOTALL | re.MULTILINE)
-    return re.sub(pattern, replacer, text)
