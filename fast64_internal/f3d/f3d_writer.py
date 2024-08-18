@@ -11,6 +11,7 @@ from .f3d_material import (
     all_combiner_uses,
     getMaterialScrollDimensions,
     isTexturePointSampled,
+    get_textlut_mode,
     RDPSettings,
 )
 from .f3d_texture_writer import MultitexManager, TileLoad, maybeSaveSingleLargeTextureSetup
@@ -999,7 +1000,7 @@ class TriangleConverter:
         triCmds = createTriangleCommands(
             self.vertexBufferTriangles, self.vertBuffer, not self.triConverterInfo.f3d.F3D_OLD_GBI
         )
-        if not self.material.f3d_mat.use_cel_shading:
+        if not self.triConverterInfo.f3d.F3DEX_GBI_3 or not self.material.f3d_mat.use_cel_shading:
             self.triList.commands.extend(triCmds)
         else:
             if len(triCmds) <= 2:
@@ -1021,8 +1022,7 @@ class TriangleConverter:
         # first before switching to decal.
         if f3dMat.rdp_settings.zmode != "ZMODE_OPA":
             raise PluginError(
-                f"Material {self.material.name} with cel shading: zmode in blender / rendermode must be opaque.",
-                icon="ERROR",
+                f"Material {self.material.name} with cel shading: zmode in blender / rendermode must be opaque."
             )
         wroteLighter = wroteDarker = usesDecal = False
         if len(cel.levels) == 0:
@@ -1441,7 +1441,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     saveOtherModeHDefinition(
         fMaterial,
         f3dMat.rdp_settings,
-        multitexManager.getTT(),
+        get_textlut_mode(f3dMat),
         defaults,
         fModel.matWriteMethod,
         fModel.f3d,
@@ -1701,7 +1701,7 @@ def saveOtherModeHDefinitionIndividual(fMaterial, settings, tlut, defaults):
     saveModeSetting(fMaterial, settings.g_mdsft_combkey, defaults.g_mdsft_combkey, DPSetCombineKey)
     saveModeSetting(fMaterial, settings.g_mdsft_textconv, defaults.g_mdsft_textconv, DPSetTextureConvert)
     saveModeSetting(fMaterial, settings.g_mdsft_text_filt, defaults.g_mdsft_text_filt, DPSetTextureFilter)
-    saveModeSetting(fMaterial, tlut, "G_TT_NONE", DPSetTextureLUT)
+    saveModeSetting(fMaterial, tlut, defaults.g_mdsft_textlut, DPSetTextureLUT)
     saveModeSetting(fMaterial, settings.g_mdsft_textlod, defaults.g_mdsft_textlod, DPSetTextureLOD)
     saveModeSetting(fMaterial, settings.g_mdsft_textdetail, defaults.g_mdsft_textdetail, DPSetTextureDetail)
     saveModeSetting(fMaterial, settings.g_mdsft_textpersp, defaults.g_mdsft_textpersp, DPSetTexturePersp)

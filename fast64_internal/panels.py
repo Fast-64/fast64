@@ -16,6 +16,8 @@ class SM64_Panel(bpy.types.Panel):
     goal = "All"
     # if this is True, the panel is hidden whenever the scene's export_type is not 'C'
     decomp_only = False
+    # if this is True, the panel is hidden whenever the scene's export_type is 'C'
+    binary_only = False
     import_panel = False
 
     @classmethod
@@ -30,6 +32,8 @@ class SM64_Panel(bpy.types.Panel):
             return False
         elif cls.decomp_only and sm64_props.export_type != "C":
             return False
+        elif cls.binary_only and sm64_props.export_type == "C":
+            return False
         scene_goal = sm64_props.goal
         return scene_goal == "All" or sm64_props.goal == cls.goal or cls.goal == "All"
 
@@ -43,3 +47,14 @@ class OOT_Panel(bpy.types.Panel):
     @classmethod
     def poll(cls, context):
         return context.scene.gameEditorMode == "OOT"
+
+
+class MK64_Panel(bpy.types.Panel):
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "MK64"
+    bl_options = {"DEFAULT_CLOSED"}
+
+    @classmethod
+    def poll(cls, context):
+        return context.scene.gameEditorMode == "MK64"

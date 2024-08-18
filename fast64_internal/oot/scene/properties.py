@@ -178,7 +178,7 @@ class OOTLightProperty(PropertyGroup):
     )
     fogNear: IntProperty(name="", default=993, min=0, max=2**10 - 1, update=on_update_oot_render_settings)
     transitionSpeed: IntProperty(name="", default=1, min=0, max=63, update=on_update_oot_render_settings)
-    fogFar: IntProperty(name="", default=0x3200, min=0, max=2**16 - 1, update=on_update_oot_render_settings)
+    z_far: IntProperty(name="", default=0x3200, min=0, max=2**15 - 1, update=on_update_oot_render_settings)
     expandTab: BoolProperty(name="Expand Tab")
 
     def draw_props(
@@ -212,8 +212,8 @@ class OOTLightProperty(PropertyGroup):
             box.prop(self, "useCustomDiffuse1")
 
             prop_split(box, self, "fogColor", "Fog Color")
-            prop_split(box, self, "fogNear", "Fog Near")
-            prop_split(box, self, "fogFar", "Fog Far")
+            prop_split(box, self, "fogNear", "Fog Near (Fog Far=1000)")
+            prop_split(box, self, "z_far", "Z Far (Draw Distance)")
             prop_split(box, self, "transitionSpeed", "Transition Speed")
 
 
@@ -489,6 +489,9 @@ class OOTExportSceneSettingsProperty(PropertyGroup):
     )
     option: EnumProperty(items=ootEnumSceneID, default="SCENE_DEKU_TREE")
 
+    # keeping this on purpose, will be removed once old code is cleaned-up
+    useNewExporter: BoolProperty(name="Use New Exporter", default=True)
+
     def draw_props(self, layout: UILayout):
         if self.customExport:
             prop_split(layout, self, "exportPath", "Directory")
@@ -503,6 +506,7 @@ class OOTExportSceneSettingsProperty(PropertyGroup):
 
         layout.prop(self, "singleFile")
         layout.prop(self, "customExport")
+        # layout.prop(self, "useNewExporter")
 
 
 class OOTImportSceneSettingsProperty(PropertyGroup):
