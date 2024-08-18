@@ -1723,6 +1723,21 @@ def getTextureSuffixFromFormat(texFmt):
     return texFmt.lower()
 
 
+def removeComments(text: str):
+    # https://stackoverflow.com/a/241506
+
+    def replacer(match: re.Match[str]):
+        s = match.group(0)
+        if s.startswith("/"):
+            return " "  # note: a space and not an empty string
+        else:
+            return s
+
+    pattern = re.compile(r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"', re.DOTALL | re.MULTILINE)
+
+    return re.sub(pattern, replacer, text)
+
+
 binOps = {
     ast.Add: operator.add,
     ast.Sub: operator.sub,

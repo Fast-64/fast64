@@ -144,7 +144,7 @@ def getTextureArrays(actorData: str, flipbookArrayIndex2D: int) -> dict[str, Tex
 
     if flipbookArrayIndex2D is not None:
         for texArray2DMatch in re.finditer(
-            r"void\s*\*\s*([0-9a-zA-Z\_]*)\s*\[\s*\]\s*\[[0-9a-fA-Fx]*\]\s*=\s*\{(.*?)\}\s*;",
+            r"void\s*\*\s*([0-9a-zA-Z\_]*)\s*\[\s*\]\s*\[[0-9a-zA-Z_]*\]\s*=\s*\{(.*?)\}\s*;",
             actorData,
             flags=re.DOTALL,
         ):
