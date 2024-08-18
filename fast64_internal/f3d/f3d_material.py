@@ -983,7 +983,9 @@ class F3DPanel(Panel):
                     else:
                         # show setting for preview
                         inputGroup.prop(f3dMat, "use_global_fog", text="Use Area's Fog")
-                        inputGroup.label(text="Preview only in this context, no area fog settings to pick up", icon="INFO")
+                        inputGroup.label(
+                            text="Preview only in this context, no area fog settings to pick up", icon="INFO"
+                        )
                 if draw_fog:
                     prop_split(inputGroup.row(), f3dMat, "fog_color", "Fog Color")
                     prop_split(inputGroup.row(), f3dMat, "fog_position", "Fog Range")
