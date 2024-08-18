@@ -4236,7 +4236,10 @@ def geoFlagListToWord(flagList, f3d):
         if name in f3d.allGeomModeFlags:
             word += getattr(f3d, name)
         else:
-            raise PluginError("Invalid geometry mode flag " + name)
+            try:  # Try to cast name to an int instead, if this fails raise an explicit error
+                word += int(name, 0)
+            except ValueError as e:
+                raise PluginError("Invalid geometry mode flag " + name) from e
 
     return word
 
