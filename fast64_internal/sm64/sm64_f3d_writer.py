@@ -377,6 +377,8 @@ def sm64ExportF3DtoC(
         scrollName = "actor_dl_" + name
     elif headerType == "Level":
         scrollName = levelName + "_level_dl_" + name
+    elif headerType == "Custom":
+        scrollName = "dl_" + name
 
     gfxFormatter = SM64GfxFormatter(ScrollMethod.Vertex)
     exportData = fModel.to_c(TextureExportSettings(texSeparate, savePNG, texDir, modelDirPath), gfxFormatter)
