@@ -2,7 +2,7 @@ import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operato
 from math import pi, ceil, degrees, radians, copysign
 from mathutils import *
 from .utility_anim import *
-from typing import Callable, Iterable, Any, Optional, Tuple, Union
+from typing import Callable, Iterable, Any, Optional, Tuple, TypeVar, Union
 from bpy.types import UILayout
 
 CollectionProperty = Any  # collection prop as defined by using bpy.props.CollectionProperty
@@ -424,7 +424,7 @@ def getPathAndLevel(customExport, exportPath, levelName, levelOption):
         levelName = levelName
     else:
         exportPath = bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path)
-        if levelOption == "custom":
+        if levelOption == "Custom":
             levelName = levelName
         else:
             levelName = levelOption
@@ -694,7 +694,7 @@ def writeBoxExportType(writeBox, headerType, name, levelName, levelOption):
     if headerType == "Actor":
         writeBox.label(text="actors/" + toAlnum(name))
     elif headerType == "Level":
-        if levelOption != "custom":
+        if levelOption != "Custom":
             levelName = levelOption
         writeBox.label(text="levels/" + toAlnum(levelName) + "/" + toAlnum(name))
 
@@ -1321,6 +1321,12 @@ def gammaCorrect(linearColor):
     return list(mathutils.Color(linearColor[:3]).from_scene_linear_to_srgb())
 
 
+def s_rgb_alpha_1_tuple(linearColor):
+    s_rgb = gammaCorrect(linearColor)
+    s_rgb.append(1.0)
+    return tuple(s for s in s_rgb)
+
+
 def gammaCorrectValue(linearValue):
     # doesn't need to use `colorToLuminance` since all values are the same
     return mathutils.Color((linearValue, linearValue, linearValue)).from_scene_linear_to_srgb().v
@@ -1687,14 +1693,14 @@ def ootGetBaseOrCustomLight(prop, idx, toExport: bool, errIfMissing: bool):
     # code without circular dependencies.
     assert idx in {0, 1}
     col = getattr(prop, "diffuse" + str(idx))
-    dir = (mathutils.Vector((1.0, 1.0, 1.0)) * (1.0 if idx == 0 else -1.0)).normalized()
+    dir = (mathutils.Vector((1.0, -1.0, 1.0)) * (1.0 if idx == 0 else -1.0)).normalized()
     if getattr(prop, "useCustomDiffuse" + str(idx)):
         light = getattr(prop, "diffuse" + str(idx) + "Custom")
         if light is None:
             if errIfMissing:
                 raise PluginError("Error: Diffuse " + str(idx) + " light object not set in a scene lighting property.")
         else:
-            col = light.color
+            col = tuple(c for c in light.color) + (1.0,)
             lightObj = lightDataToObj(light)
             dir = getObjDirectionVec(lightObj, toExport)
     col = mathutils.Vector(tuple(c for c in col))
@@ -1707,6 +1713,21 @@ def getTextureSuffixFromFormat(texFmt):
     # if texFmt == "RGBA16":
     #     return "rgb5a1"
     return texFmt.lower()
+
+
+def removeComments(text: str):
+    # https://stackoverflow.com/a/241506
+
+    def replacer(match: re.Match[str]):
+        s = match.group(0)
+        if s.startswith("/"):
+            return " "  # note: a space and not an empty string
+        else:
+            return s
+
+    pattern = re.compile(r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"', re.DOTALL | re.MULTILINE)
+
+    return re.sub(pattern, replacer, text)
 
 
 binOps = {
@@ -1762,3 +1783,88 @@ def json_to_prop_group(prop_group, data: dict, blacklist: list[str] = None, whit
             default.from_dict(data.get(prop, None))
         else:
             setattr(prop_group, prop, data.get(prop, default))
+
+
+T = TypeVar("T")
+SetOrVal = T | list[T]
+
+
+def get_first_set_prop(old_loc, old_props: SetOrVal[str]):
+    """Pops all old props and returns the first one that is set"""
+
+    def as_set(val: SetOrVal[T]) -> set[T]:
+        if isinstance(val, Iterable) and not isinstance(val, str):
+            return set(val)
+        else:
+            return {val}
+
+    result = None
+    for old_prop in as_set(old_props):
+        old_value = old_loc.pop(old_prop, None)
+        if old_value is not None:
+            result = old_value
+    return result
+
+
+def upgrade_old_prop(
+    new_loc,
+    new_prop: str,
+    old_loc,
+    old_props: SetOrVal[str],
+    old_enum: list[str] = None,
+    fix_forced_base_16=False,
+):
+    try:
+        new_prop_def = new_loc.bl_rna.properties[new_prop]
+        new_prop_value = getattr(new_loc, new_prop)
+        assert not old_enum or new_prop_def.type == "ENUM"
+        assert not (old_enum and fix_forced_base_16)
+
+        old_value = get_first_set_prop(old_loc, old_props)
+        if old_value is None:
+            return False
+
+        if new_prop_def.type == "ENUM":
+            if isinstance(old_value, str):
+                new_enum_options = {enum_item.identifier for enum_item in new_prop_def.enum_items}
+                if old_value not in new_enum_options:
+                    return False
+            elif not isinstance(old_value, int):
+                raise ValueError(f"({old_value}) not an int, but {new_prop} is an enum")
+            elif old_enum:
+                if old_value >= len(old_enum):
+                    raise ValueError(f"({old_value}) not in {old_enum}")
+                old_value = old_enum[old_value]
+            else:
+                if old_value >= len(new_prop_def.enum_items):
+                    raise ValueError(f"({old_value}) not in {new_prop}´s enum items")
+                old_value = new_prop_def.enum_items[old_value].identifier
+        elif isinstance(new_prop_value, bpy.types.PropertyGroup):
+            recursiveCopyOldPropertyGroup(old_value, new_prop_value)
+            print(f"Upgraded {new_prop} from old location {old_loc} with props {old_props} via recursive group copy")
+            return True
+        elif isinstance(new_prop_value, bpy.types.Collection):
+            copyPropertyCollection(old_value, new_prop_value)
+            print(f"Upgraded {new_prop} from old location {old_loc} with props {old_props} via collection copy")
+            return True
+        elif fix_forced_base_16:
+            try:
+                if not isinstance(old_value, str):
+                    raise ValueError(f"({old_value}) not a string")
+                old_value = int(old_value, 16)
+                if new_prop_def.type == "STRING":
+                    old_value = intToHex(old_value)
+            except ValueError as exc:
+                raise ValueError(f"({old_value}) not a valid base 16 integer") from exc
+
+        if new_prop_def.type == "STRING":
+            old_value = str(old_value)
+        if getattr(new_loc, new_prop, None) == old_value:
+            return False
+        setattr(new_loc, new_prop, old_value)
+        print(f'{new_prop} set to "{getattr(new_loc, new_prop)}"')
+        return True
+    except Exception as exc:
+        print(f"Failed to upgrade {new_prop} from old location {old_loc} with props {old_props}")
+        traceback.print_exc()
+        return False

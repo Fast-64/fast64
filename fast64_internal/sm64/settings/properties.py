@@ -1,13 +1,14 @@
 import os
 import bpy
-from bpy.types import PropertyGroup, UILayout, Scene, Context
+from bpy.types import PropertyGroup, UILayout, Context
 from bpy.props import BoolProperty, StringProperty, EnumProperty, IntProperty, FloatProperty, PointerProperty
 from bpy.path import abspath
 from bpy.utils import register_class, unregister_class
 
 from ...render_settings import on_update_render_settings
-from ...utility import directory_path_checks, directory_ui_warnings, prop_split
+from ...utility import directory_path_checks, directory_ui_warnings, prop_split, upgrade_old_prop
 from ..sm64_constants import defaultExtendSegment4
+from ..sm64_objects import SM64_CombinedObjectProperties
 from ..sm64_utility import export_rom_ui_warnings, import_rom_ui_warnings
 from ..tools import SM64_AddrConvProperties
 
@@ -31,12 +32,13 @@ class SM64_Properties(PropertyGroup):
     """Global SM64 Scene Properties found under scene.fast64.sm64"""
 
     version: IntProperty(name="SM64_Properties Version", default=0)
-    cur_version = 2  # version after property migration
+    cur_version = 3  # version after property migration
 
     # UI Selection
     show_importing_menus: BoolProperty(name="Show Importing Menus", default=False)
     export_type: EnumProperty(items=enum_export_type, name="Export Type", default="C")
     goal: EnumProperty(items=enum_sm64_goal_type, name="Goal", default="All")
+    combined_export: bpy.props.PointerProperty(type=SM64_CombinedObjectProperties)
 
     blender_to_sm64_scale: FloatProperty(
         name="Blender To SM64 Scale",
@@ -63,7 +65,7 @@ class SM64_Properties(PropertyGroup):
     )
     sm64_repo_settings_tab: BoolProperty(default=True, name="SM64 Repo Settings")
     disable_scroll: BoolProperty(name="Disable Scrolling Textures")
-    refresh_version: EnumProperty(items=enum_refresh_versions, name="Refresh", default="Refresh 13")
+    refresh_version: EnumProperty(items=enum_refresh_versions, name="Refresh", default="Refresh 16")
     compression_format: EnumProperty(
         items=enum_compression_formats,
         name="Compression",
@@ -83,17 +85,8 @@ class SM64_Properties(PropertyGroup):
     def binary_export(self):
         return self.export_type in ["Binary", "Insertable Binary"]
 
-    def get_legacy_export_type(self, scene: Scene):
-        legacy_export_types = ("C", "Binary", "Insertable Binary")
-
-        for export_key in ["animExportType", "colExportType", "DLExportType", "geoExportType"]:
-            export_type = legacy_export_types[scene.get(export_key, 0)]
-            if export_type != "C":
-                return export_type
-
-        return "C"
-
-    def upgrade_version_1(self, scene: Scene):
+    @staticmethod
+    def upgrade_changed_props():
         old_scene_props_to_new = {
             "importRom": "import_rom",
             "exportRom": "export_rom",
@@ -102,34 +95,41 @@ class SM64_Properties(PropertyGroup):
             "blenderToSM64Scale": "blender_to_sm64_scale",
             "decompPath": "decomp_path",
             "extendBank4": "extend_bank_4",
+            "refreshVer": "refresh_version",
+            "exportType": "export_type",
         }
-        for old, new in old_scene_props_to_new.items():
-            setattr(self, new, scene.get(old, getattr(self, new)))
-
-        refresh_version = scene.get("refreshVer", None)
-        if refresh_version is not None:
-            self.refresh_version = enum_refresh_versions[refresh_version][0]
-
-        self.show_importing_menus = self.get("showImportingMenus", self.show_importing_menus)
-
-        export_type = self.get("exportType", None)
-        if export_type is not None:
-            self.export_type = enum_export_type[export_type][0]
-
-        self.version = 2
-
-    @staticmethod
-    def upgrade_changed_props():
+        old_export_props_to_new = {
+            "custom_export_name": {"geoLevelName", "colLevelName", "animLevelName"},
+            "custom_export_path": {"geoExportPath", "colExportPath", "animExportPath"},
+            "object_name": {"geoName", "colName", "animName"},
+            "group_name": {"geoGroupName", "colGroupName", "animGroupName"},
+            "level_name": {"levelOption", "geoLevelOption", "colLevelOption", "animLevelOption"},
+            "export_header_type": {"geoExportHeaderType", "colExportHeaderType", "animExportHeaderType"},
+        }
         for scene in bpy.data.scenes:
             sm64_props: SM64_Properties = scene.fast64.sm64
-            if sm64_props.version == 0:
-                sm64_props.export_type = sm64_props.get_legacy_export_type(scene)
-                sm64_props.version = 1
-                print("Upgraded global SM64 settings to version 1")
-            if sm64_props.version == 1:
-                sm64_props.upgrade_version_1(scene)
-                print("Upgraded global SM64 settings to version 2")
             sm64_props.address_converter.upgrade_changed_props(scene)
+            if sm64_props.version == SM64_Properties.cur_version:
+                continue
+            upgrade_old_prop(
+                sm64_props,
+                "export_type",
+                scene,
+                {
+                    "animExportType",
+                    "colExportType",
+                    "DLExportType",
+                    "geoExportType",
+                },
+            )
+            for old, new in old_scene_props_to_new.items():
+                upgrade_old_prop(sm64_props, new, scene, old)
+            upgrade_old_prop(sm64_props, "show_importing_menus", sm64_props, "showImportingMenus")
+
+            combined_props = scene.fast64.sm64.combined_export
+            for new, old in old_export_props_to_new.items():
+                upgrade_old_prop(combined_props, new, scene, old)
+            sm64_props.version = SM64_Properties.cur_version
 
     def draw_props(self, layout: UILayout, show_repo_settings: bool = True):
         col = layout.column()
