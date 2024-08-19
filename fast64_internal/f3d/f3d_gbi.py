@@ -4826,9 +4826,9 @@ class DPSetOtherMode(GbiMacro):
     def to_binary(self, f3d, segments):
         mode0 = mode1 = 0
         for mode in self.mode0:
-            mode0 |= getattr(f3d, mode) if hasattr(f3d, str(mode)) else mode
+            mode0 |= getattr(f3d, str(mode), mode)
         for mode in self.mode1:
-            mode1 |= getattr(f3d, mode) if hasattr(f3d, str(mode)) else mode
+            mode1 |= getattr(f3d, str(mode), mode)
         words = _SHIFTL(f3d.G_RDPSETOTHERMODE, 24, 8) | _SHIFTL(mode0, 0, 24), mode1
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
