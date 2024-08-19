@@ -13,7 +13,7 @@ from .fast64_internal.repo_settings import (
     repo_settings_operators_unregister,
 )
 
-from .fast64_internal.sm64 import sm64_register, sm64_unregister
+from .fast64_internal.sm64 import sm64_register, sm64_unregister, SM64_WorldProperties
 from .fast64_internal.sm64.sm64_constants import sm64_world_defaults
 from .fast64_internal.sm64.settings.properties import SM64_Properties
 from .fast64_internal.sm64.sm64_geolayout_bone import SM64_BoneProperties
@@ -245,6 +245,19 @@ class Fast64_ObjectProperties(bpy.types.PropertyGroup):
     oot: bpy.props.PointerProperty(type=OOT_ObjectProperties, name="OOT Object Properties")
 
 
+class Fast64_WorldProperties(bpy.types.PropertyGroup):
+    """
+    Properties in world.fast64 (bpy.types.World)
+    All new world properties should be children of this property group.
+    """
+
+    sm64: bpy.props.PointerProperty(type=SM64_WorldProperties, name="SM64 World Properties")
+
+    @staticmethod
+    def upgrade_changed_props():
+        SM64_WorldProperties.upgrade_changed_props()
+
+
 class UpgradeF3DMaterialsDialog(bpy.types.Operator):
     bl_idname = "dialog.upgrade_f3d_materials"
     bl_label = "Upgrade F3D Materials"
@@ -314,6 +327,7 @@ classes = (
     Fast64_Properties,
     Fast64_BoneProperties,
     Fast64_ObjectProperties,
+    Fast64_WorldProperties,
     F3D_GlobalSettingsPanel,
     Fast64_GlobalSettingsPanel,
     Fast64_GlobalToolsPanel,
@@ -323,6 +337,7 @@ classes = (
 
 def upgrade_changed_props():
     """Set scene properties after a scene loads, used for migrating old properties"""
+    Fast64_WorldProperties.upgrade_changed_props()
     SM64_Properties.upgrade_changed_props()
     MK64_Properties.upgrade_changed_props()
     SM64_ObjectProperties.upgrade_changed_props()
@@ -443,6 +458,7 @@ def register():
     bpy.types.Scene.fast64 = bpy.props.PointerProperty(type=Fast64_Properties, name="Fast64 Properties")
     bpy.types.Bone.fast64 = bpy.props.PointerProperty(type=Fast64_BoneProperties, name="Fast64 Bone Properties")
     bpy.types.Object.fast64 = bpy.props.PointerProperty(type=Fast64_ObjectProperties, name="Fast64 Object Properties")
+    bpy.types.World.fast64 = bpy.props.PointerProperty(type=Fast64_WorldProperties, name="Fast64 World Properties")
 
     bpy.app.handlers.load_post.append(after_load)
 
@@ -472,6 +488,7 @@ def unregister():
     del bpy.types.Scene.fast64
     del bpy.types.Bone.fast64
     del bpy.types.Object.fast64
+    del bpy.types.World.fast64
 
     repo_settings_operators_unregister()
 

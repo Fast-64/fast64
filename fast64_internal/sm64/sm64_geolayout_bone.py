@@ -3,7 +3,7 @@ from bpy.ops import object
 from bpy.types import Bone, Object, Panel, Operator, Armature, Mesh, Material, PropertyGroup
 from bpy.utils import register_class, unregister_class
 from ..utility import PluginError, prop_split, obj_scale_is_unified
-from ..f3d.f3d_material import sm64EnumDrawLayers
+from ..f3d.f3d_material import get_sm64_draw_layers
 from .sm64_geolayout_utility import createBoneGroups, addBoneToGroup
 
 from bpy.props import (
@@ -274,7 +274,7 @@ class SwitchOptionProperty(PropertyGroup):
     specificOverrideArray: CollectionProperty(type=MaterialPointerProperty, name="Specified Materials To Override")
     specificIgnoreArray: CollectionProperty(type=MaterialPointerProperty, name="Specified Materials To Ignore")
     overrideDrawLayer: BoolProperty()
-    drawLayer: EnumProperty(items=sm64EnumDrawLayers, name="Draw Layer")
+    drawLayer: EnumProperty(items=get_sm64_draw_layers, name="Draw Layer")
     expand: BoolProperty()
 
 
@@ -506,7 +506,7 @@ def sm64_bone_register():
         name="Geolayout Command", items=enumBoneType, default="DisplayListWithOffset", update=updateBone
     )
 
-    Bone.draw_layer = EnumProperty(name="Draw Layer", items=sm64EnumDrawLayers, default="1")
+    Bone.draw_layer = EnumProperty(name="Draw Layer", items=get_sm64_draw_layers)
 
     # Scale
     Bone.geo_scale = FloatProperty(name="Scale", min=2 ** (-16), max=2 ** (16), default=1)
@@ -540,7 +540,7 @@ def sm64_bone_register():
 
     # Static Geolayout
     Object.geo_cmd_static = EnumProperty(name="Geolayout Command", items=enumGeoStaticType, default="Optimal")
-    Object.draw_layer_static = EnumProperty(name="Draw Layer", items=sm64EnumDrawLayers, default="1")
+    Object.draw_layer_static = EnumProperty(name="Draw Layer", items=get_sm64_draw_layers)
     Object.use_render_area = BoolProperty(name="Use Render Area")
     Object.culling_radius = FloatProperty(name="Culling Radius", default=10)
 

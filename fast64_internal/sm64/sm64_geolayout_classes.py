@@ -18,6 +18,7 @@ from ..utility import (
     join_c_args,
     radians_to_s16,
     geoNodeRotateOrder,
+    create_or_get_world,
 )
 from ..f3d.f3d_bleed import BleedGraphics
 from ..f3d.f3d_gbi import FModel
@@ -52,30 +53,16 @@ from .sm64_geolayout_constants import (
     GEO_SET_BG,
 )
 
-drawLayerNames = {
-    0: "LAYER_FORCE",
-    1: "LAYER_OPAQUE",
-    2: "LAYER_OPAQUE_DECAL",
-    3: "LAYER_OPAQUE_INTER",
-    4: "LAYER_ALPHA",
-    5: "LAYER_TRANSPARENT",
-    6: "LAYER_TRANSPARENT_DECAL",
-    7: "LAYER_TRANSPARENT_INTER",
-}
 
-
-def getDrawLayerName(drawLayer):
-    layer = drawLayer
-    if drawLayer is not None:
-        try:
-            # Cast draw layer to int so it can be mapped to a name
-            layer = int(drawLayer)
-        except ValueError:
-            pass
-    if layer in drawLayerNames:
-        return drawLayerNames[layer]
-    else:
-        return str(drawLayer)
+def getDrawLayerName(draw_layer: str):
+    layer_props = create_or_get_world(bpy.context.scene).fast64.sm64.draw_layers
+    if draw_layer in layer_props.layers_by_enum:
+        return draw_layer
+    try:
+        assert draw_layer in layer_props.layers_by_prop
+        return layer_props.layers_by_prop[draw_layer].enum
+    except ValueError:
+        raise PluginError(f"{draw_layer} is not a valid int")
 
 
 def addFuncAddress(command, func):

@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .f3d.f3d_material import RDPSettings
 
-CUR_VERSION = 1.0
+CUR_VERSION = 1.1
 
 
 class SaveRepoSettings(OperatorBase):

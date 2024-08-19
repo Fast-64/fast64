@@ -3,7 +3,7 @@ from math import pi, ceil, degrees, radians, copysign
 from mathutils import *
 from .utility_anim import *
 from typing import Callable, Iterable, Any, Optional, Tuple, TypeVar, Union
-from bpy.types import UILayout
+from bpy.types import UILayout, Scene, World
 
 CollectionProperty = Any  # collection prop as defined by using bpy.props.CollectionProperty
 
@@ -1868,3 +1868,30 @@ def upgrade_old_prop(
         print(f"Failed to upgrade {new_prop} from old location {old_loc} with props {old_props}")
         traceback.print_exc()
         return False
+
+
+WORLD_WARNING_COUNT = 0
+
+
+def create_or_get_world(scene: Scene) -> World:
+    """
+    Given a scene, this function will return:
+    - The world selected in the scene if the scene has a selected world.
+    - The first world in bpy.data.worlds if the current file has a world. (Which it almost always does because of the f3d nodes library)
+    - Create a world named "Fast64" and return it if no world exits.
+    This function does not assign any world to the scene.
+    """
+    global WORLD_WARNING_COUNT
+    if scene.world:
+        WORLD_WARNING_COUNT = 0
+        return scene.world
+    elif bpy.data.worlds:
+        world: World = bpy.data.worlds.values()[0]
+        if WORLD_WARNING_COUNT < 10:
+            print(f'No world selected in scene, selected the first one found in this file "{world.name}".')
+            WORLD_WARNING_COUNT += 1
+        return world
+    else:  # Almost never reached because the node library has its own world
+        WORLD_WARNING_COUNT = 0
+        print(f'No world in this file, creating world named "Fast64".')
+        return bpy.data.worlds.new("Fast64")

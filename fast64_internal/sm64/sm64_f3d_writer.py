@@ -3,12 +3,15 @@ from io import BytesIO
 from math import ceil, log, radians
 from mathutils import Matrix, Vector
 from bpy.utils import register_class, unregister_class
+from bpy.types import PropertyGroup, UILayout, World
+from bpy.props import StringProperty, BoolProperty, CollectionProperty, IntProperty
+
 from ..panels import SM64_Panel
 from ..f3d.f3d_writer import exportF3DCommon
 from ..f3d.f3d_texture_writer import TexInfo
 from ..f3d.f3d_material import TextureProperty, tmemUsageUI, all_combiner_uses, ui_procAnim
 from .sm64_texscroll import modifyTexScrollFiles, modifyTexScrollHeadersGroup
-from .sm64_utility import export_rom_checks, starSelectWarning
+from .sm64_utility import export_rom_checks, starSelectWarning, string_int_prop
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_rom_tweaks import ExtendBank0x04
 from typing import Tuple, Union, Iterable
@@ -50,12 +53,15 @@ from ..utility import (
     CData,
     CScrollData,
     PluginError,
+    copyPropertyGroup,
     raisePluginError,
     prop_split,
+    draw_and_check_tab,
     encodeSegmentedAddr,
     applyRotation,
     toAlnum,
     checkIfPathExists,
+    upgrade_old_prop,
     writeIfNotFound,
     overwriteData,
     getExportDir,
@@ -73,7 +79,9 @@ from ..utility import (
     makeWriteInfoBox,
     writeBoxExportType,
     enumExportHeaderType,
+    create_or_get_world,
 )
+from ..operators import OperatorBase
 
 from .sm64_constants import (
     level_enums,
@@ -101,14 +109,13 @@ class SM64Model(FModel):
     def __init__(self, name, DLFormat, matWriteMethod):
         FModel.__init__(self, name, DLFormat, matWriteMethod)
         self.no_light_direction = bpy.context.scene.fast64.sm64.matstack_fix
+        self.draw_layers = create_or_get_world(bpy.context.scene).fast64.sm64.draw_layers
 
     def getDrawLayerV3(self, obj):
         return int(obj.draw_layer_static)
 
     def getRenderMode(self, drawLayer):
-        cycle1 = getattr(bpy.context.scene.world, "draw_layer_" + str(drawLayer) + "_cycle_1")
-        cycle2 = getattr(bpy.context.scene.world, "draw_layer_" + str(drawLayer) + "_cycle_2")
-        return [cycle1, cycle2]
+        return self.draw_layers.layers_by_prop[drawLayer].preset
 
 
 class SM64GfxFormatter(GfxFormatter):
@@ -855,6 +862,7 @@ class ExportTexRectDrawPanel(SM64_Panel):
 class SM64_DrawLayersPanel(bpy.types.Panel):
     bl_label = "SM64 Draw Layers"
     bl_idname = "WORLD_PT_SM64_Draw_Layers_Panel"
+    bl_parent_id = "WORLD_PT_RDP_Default_Inspector"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "world"
@@ -862,27 +870,13 @@ class SM64_DrawLayersPanel(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.gameEditorMode == "SM64"
+        return context.scene.gameEditorMode == "SM64" and context.scene.world is not None
 
     def draw(self, context):
-        world = context.scene.world
-        layout = self.layout
-
-        inputGroup = layout.column()
-        inputGroup.prop(
-            world, "menu_layers", text="Draw Layers", icon="TRIA_DOWN" if world.menu_layers else "TRIA_RIGHT"
-        )
-        if world.menu_layers:
-            for i in range(8):
-                drawLayerUI(inputGroup, i, world)
-
-
-def drawLayerUI(layout, drawLayer, world):
-    box = layout.box()
-    box.label(text="Layer " + str(drawLayer))
-    row = box.row()
-    row.prop(world, "draw_layer_" + str(drawLayer) + "_cycle_1", text="")
-    row.prop(world, "draw_layer_" + str(drawLayer) + "_cycle_2", text="")
+        col = self.layout.column()
+        draw_layer_props = context.scene.world.fast64.sm64.draw_layers
+        if draw_and_check_tab(col, draw_layer_props, "tab"):
+            draw_layer_props.draw_props(col)
 
 
 class SM64_MaterialPanel(bpy.types.Panel):
@@ -912,7 +906,182 @@ class SM64_MaterialPanel(bpy.types.Panel):
             ui_procAnim(material, col, useDict["Texture 0"], useDict["Texture 1"], "SM64 UV Texture Scroll", False)
 
 
+class SM64_DrawLayerOps(OperatorBase):
+    bl_idname = "scene.sm64_draw_layer_ops"
+    bl_label = ""
+    bl_description = "Move, remove, clear or add draw layers to the world"
+    bl_options = {"UNDO"}
+
+    index: IntProperty()
+    op_name: StringProperty()
+
+    def execute_operator(self, context):
+        layer_props: SM64_DrawLayerProperties = context.scene.world.fast64.sm64.draw_layers
+        layers = layer_props.layers
+        if self.op_name == "ADD":
+            layers.add()
+            added_layer = layers[-1]
+            copyPropertyGroup(layers[self.index], added_layer)
+            layers.move(len(layers) - 1, self.index + 1)
+        elif self.op_name == "REMOVE":  # Upgrade all materials once this runs
+            layer_props.layers.remove(self.index)
+
+
+class SM64_DrawLayerProperties(PropertyGroup):
+    name: StringProperty(name="Name", default="Custom")
+    enum: StringProperty(name="Enum", default="LAYER_CUSTOM")
+    index: StringProperty(name="Index", default="0x08")
+    cycle_1: StringProperty(name="", default="G_RM_AA_ZB_OPA_SURF")
+    cycle_2: StringProperty(name="", default="G_RM_AA_ZB_OPA_SURF2")
+
+    @property
+    def preset(self):
+        return [self.cycle_1, self.cycle_2]
+
+    def to_dict(self):
+        return {"enum": self.enum, "index": self.index, "preset": self.preset}
+
+    def from_dict(self, data: dict):
+        self.enum = data.get("enum", "LAYER_CUSTOM")
+        self.index = data.get("index", "0x08")
+        self.cycle_1, self.cycle_2 = data.get("preset", ["G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2"])
+
+    def draw_props(self, layout: UILayout):
+        col = layout.column()
+        prop_split(col, self, "name", "Name")
+
+        row = col.row()
+        row.prop(self, "enum")
+        string_int_prop(row, self, "index", "Index", split=False)
+
+        split = col.split(factor=0.18)
+        split.label(text="Render Mode:")
+        row = split.row()
+        row.prop(self, "cycle_1")
+        row.prop(self, "cycle_2")
+
+
+class SM64_DrawLayersProperties(PropertyGroup):
+    internal_defaults_set: BoolProperty()
+    tab: BoolProperty(name="Draw Layers")
+    layers: CollectionProperty(type=SM64_DrawLayerProperties)
+
+    @property
+    def layers_by_enum(self):
+        return {layer.enum: layer for layer in self.layers}
+
+    @property
+    def layers_by_prop(self):
+        return {str(int(layer.index, 0)): layer for layer in self.layers}
+
+    @property
+    def layers_by_index(self):
+        return {int(layer.index, 0): layer for layer in self.layers}
+
+    def from_dict(self, data: dict):
+        self.layers.clear()
+        for name, layer in data.items():
+            self.layers.add()
+            self.layers[-1].from_dict(layer)
+            self.layers[-1].name = name
+
+    def to_dict(self):
+        layers = {}
+        layer: SM64_DrawLayerProperties
+        for layer in self.layers:
+            layers[layer.name] = layer.to_dict()
+        return layers
+
+    def to_enum(self):
+        return [
+            (
+                str(int(layer.index, 0)),
+                f"{name} ({layer.index})",
+                f"{layer.enum} ({layer.index})\n{layer.cycle_1}, {layer.cycle_2}",
+            )
+            for name, layer in self.layers.items()
+        ]
+
+    def populate(self, world: World | None = None):
+        """If a world is passed in, try to upgrade properties from it"""
+        if self.internal_defaults_set:
+            return
+        default_draw_layer_info = {
+            "Background": {
+                "enum": "LAYER_FORCE",
+                "index": "0x00",
+                "preset": ["G_RM_ZB_OPA_SURF", "G_RM_ZB_OPA_SURF2"],
+            },
+            "Opaque": {
+                "enum": "LAYER_OPAQUE",
+                "index": "0x01",
+                "preset": ["G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2"],
+            },
+            "Opaque Decal": {
+                "enum": "LAYER_OPAQUE_DECAL",
+                "index": "0x02",
+                "preset": ["G_RM_AA_ZB_OPA_DECAL", "G_RM_AA_ZB_OPA_DECAL2"],
+            },
+            "Opaque Intersecting": {
+                "enum": "LAYER_OPAQUE_INTER",
+                "index": "0x03",
+                "preset": ["G_RM_AA_ZB_OPA_INTER", "G_RM_AA_ZB_OPA_INTER2"],
+            },
+            "Cutout": {
+                "enum": "LAYER_ALPHA",
+                "index": "0x04",
+                "preset": ["G_RM_AA_ZB_TEX_EDGE", "G_RM_AA_ZB_TEX_EDGE2"],
+            },
+            "Transparent": {
+                "enum": "LAYER_TRANSPARENT",
+                "index": "0x05",
+                "preset": ["G_RM_AA_ZB_XLU_SURF", "G_RM_AA_ZB_XLU_SURF2"],
+            },
+            "Transparent Decal": {
+                "enum": "LAYER_TRANSPARENT_DECAL",
+                "index": "0x06",
+                "preset": ["G_RM_AA_ZB_XLU_DECAL", "G_RM_AA_ZB_XLU_DECAL2"],
+            },
+            "Transparent Intersecting": {
+                "enum": "LAYER_TRANSPARENT_INTER",
+                "index": "0x07",
+                "preset": ["G_RM_AA_ZB_XLU_INTER", "G_RM_AA_ZB_XLU_INTER2"],
+            },
+        }
+        self.from_dict(default_draw_layer_info)
+
+        if world is not None:
+            for i, layer in self.layers_by_index.items():
+                upgrade_old_prop(layer, "cycle_1", world, f"draw_layer_{i}_cycle_1")
+                upgrade_old_prop(layer, "cycle_2", world, f"draw_layer_{i}_cycle_2")
+        self.internal_defaults_set = True
+
+    @staticmethod
+    def upgrade_changed_props():
+        for world in bpy.data.worlds:
+            world.fast64.sm64.draw_layers.populate(world)
+
+    def draw_props(self, layout: UILayout):
+        col = layout.column()
+        draw_layer: SM64_DrawLayerProperties
+        # Enumerate, then sort by index
+        for i, draw_layer in sorted(enumerate(self.layers), key=lambda layer: layer[1].index):
+            box = col.box().column()
+            row = box.row()
+            SM64_DrawLayerOps.draw_props(row, "ADD", op_name="ADD", index=i)
+            SM64_DrawLayerOps.draw_props(row, "REMOVE", op_name="REMOVE", index=i)
+            draw_layer.draw_props(box)
+
+
+def populate_draw_layers(scene):
+    if scene.world is not None:
+        scene.world.fast64.sm64.draw_layers.populate()
+
+
 sm64_dl_writer_classes = (
+    SM64_DrawLayerOps,
+    SM64_DrawLayerProperties,
+    SM64_DrawLayersProperties,
     SM64_ExportDL,
     ExportTexRectDraw,
     UnlinkTexRect,
@@ -939,23 +1108,6 @@ def sm64_dl_writer_panel_unregister():
 def sm64_dl_writer_register():
     for cls in sm64_dl_writer_classes:
         register_class(cls)
-
-    bpy.types.World.draw_layer_0_cycle_1 = bpy.props.StringProperty(default="G_RM_ZB_OPA_SURF")
-    bpy.types.World.draw_layer_0_cycle_2 = bpy.props.StringProperty(default="G_RM_ZB_OPA_SURF2")
-    bpy.types.World.draw_layer_1_cycle_1 = bpy.props.StringProperty(default="G_RM_AA_ZB_OPA_SURF")
-    bpy.types.World.draw_layer_1_cycle_2 = bpy.props.StringProperty(default="G_RM_AA_ZB_OPA_SURF2")
-    bpy.types.World.draw_layer_2_cycle_1 = bpy.props.StringProperty(default="G_RM_AA_ZB_OPA_DECAL")
-    bpy.types.World.draw_layer_2_cycle_2 = bpy.props.StringProperty(default="G_RM_AA_ZB_OPA_DECAL2")
-    bpy.types.World.draw_layer_3_cycle_1 = bpy.props.StringProperty(default="G_RM_AA_ZB_OPA_INTER")
-    bpy.types.World.draw_layer_3_cycle_2 = bpy.props.StringProperty(default="G_RM_AA_ZB_OPA_INTER2")
-    bpy.types.World.draw_layer_4_cycle_1 = bpy.props.StringProperty(default="G_RM_AA_ZB_TEX_EDGE")
-    bpy.types.World.draw_layer_4_cycle_2 = bpy.props.StringProperty(default="G_RM_AA_ZB_TEX_EDGE2")
-    bpy.types.World.draw_layer_5_cycle_1 = bpy.props.StringProperty(default="G_RM_AA_ZB_XLU_SURF")
-    bpy.types.World.draw_layer_5_cycle_2 = bpy.props.StringProperty(default="G_RM_AA_ZB_XLU_SURF2")
-    bpy.types.World.draw_layer_6_cycle_1 = bpy.props.StringProperty(default="G_RM_AA_ZB_XLU_DECAL")
-    bpy.types.World.draw_layer_6_cycle_2 = bpy.props.StringProperty(default="G_RM_AA_ZB_XLU_DECAL2")
-    bpy.types.World.draw_layer_7_cycle_1 = bpy.props.StringProperty(default="G_RM_AA_ZB_XLU_INTER")
-    bpy.types.World.draw_layer_7_cycle_2 = bpy.props.StringProperty(default="G_RM_AA_ZB_XLU_INTER2")
 
     bpy.types.Scene.DLExportStart = bpy.props.StringProperty(name="Start", default="11D8930")
     bpy.types.Scene.DLExportEnd = bpy.props.StringProperty(name="End", default="11FFF00")
@@ -987,6 +1139,8 @@ def sm64_dl_writer_register():
     bpy.types.Scene.TexRectName = bpy.props.StringProperty(name="Name", default="render_hud_image")
     bpy.types.Scene.TexRectCustomExport = bpy.props.BoolProperty(name="Custom Export Path")
     bpy.types.Scene.TexRectExportType = bpy.props.EnumProperty(name="Export Type", items=enumHUDExportLocation)
+
+    bpy.app.handlers.depsgraph_update_post.append(populate_draw_layers)
 
 
 def sm64_dl_writer_unregister():
@@ -1021,3 +1175,6 @@ def sm64_dl_writer_unregister():
     del bpy.types.Scene.texrectImageTexture
     del bpy.types.Scene.TexRectCustomExport
     del bpy.types.Scene.TexRectExportType
+
+    if populate_draw_layers in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.remove(populate_draw_layers)
