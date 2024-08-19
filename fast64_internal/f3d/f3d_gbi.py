@@ -4321,9 +4321,9 @@ class SPSetOtherMode(GbiMacro):
     def to_binary(self, f3d, segments):
         data = 0
         for flag in self.flagList:
-            data |= getattr(f3d, flag) if hasattr(f3d, str(flag)) else flag
-        cmd = getattr(f3d, self.cmd) if hasattr(f3d, str(self.cmd)) else self.cmd
-        sft = getattr(f3d, self.sft) if hasattr(f3d, str(self.sft)) else self.sft
+            data |= getattr(f3d, str(flag), flag)
+        cmd = getattr(f3d, str(self.cmd), self.cmd)
+        sft = getattr(f3d, str(self.sft), self.sft)
         return gsSPSetOtherMode(cmd, sft, self.length, data, f3d)
 
 
