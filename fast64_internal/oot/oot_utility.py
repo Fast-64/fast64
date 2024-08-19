@@ -235,7 +235,11 @@ def addIncludeFilesExtension(objectName, objectPath, assetName, extension):
     if not os.path.exists(objectPath):
         raise PluginError(objectPath + " does not exist.")
     path = os.path.join(objectPath, objectName + "." + extension)
-    data = getDataFromFile(path)
+    if not os.path.exists(path):
+        # workaround for exporting to an object that doesn't exist in assets/
+        data = ""
+    else:
+        data = getDataFromFile(path)
 
     if include not in data:
         data += "\n" + include
