@@ -1883,7 +1883,7 @@ def create_or_get_world(scene: Scene) -> World:
     if bpy.data.worlds:
         world: World = bpy.data.worlds.values()[0]
         print(f'No world selected in scene, selected the first one found in this file "{world.name}".')
-        return bpy.data.worlds.values()[0]
+        return world
     # Almost never reached because the node library has its own world
     print(f'No world in this file, creating world named "Fast64".')
     return bpy.data.worlds.new("Fast64")
