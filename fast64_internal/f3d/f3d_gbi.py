@@ -3246,10 +3246,10 @@ class FImage:
     width: int
     height: int
     filename: str
-    data: bytearray = field(compare=False, default_factory=bytearray)
-    startAddress: int = field(compare=False, default=0)
-    isLargeTexture: bool = field(compare=False, default=False)
-    converted: bool = field(compare=False, default=False)
+    data: bytearray = field(init=False, compare=False, default_factory=bytearray)
+    startAddress: int = field(init=False, compare=False, default=0)
+    isLargeTexture: bool = field(init=False, compare=False, default=False)
+    converted: bool = field(init=False, compare=False, default=False)
 
     def size(self):
         return len(self.data)
