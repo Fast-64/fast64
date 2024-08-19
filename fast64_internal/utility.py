@@ -1870,6 +1870,9 @@ def upgrade_old_prop(
         return False
 
 
+WORLD_WARNING_COUNT = 0
+
+
 def create_or_get_world(scene: Scene) -> World:
     """
     Given a scene, this function will return:
@@ -1878,12 +1881,17 @@ def create_or_get_world(scene: Scene) -> World:
     - Create a world named "Fast64" and return it if no world exits.
     This function does not assign any world to the scene.
     """
+    global WORLD_WARNING_COUNT
     if scene.world:
+        WORLD_WARNING_COUNT = 0
         return scene.world
-    if bpy.data.worlds:
+    elif bpy.data.worlds:
         world: World = bpy.data.worlds.values()[0]
-        print(f'No world selected in scene, selected the first one found in this file "{world.name}".')
+        if WORLD_WARNING_COUNT < 10:
+            print(f'No world selected in scene, selected the first one found in this file "{world.name}".')
+            WORLD_WARNING_COUNT += 1
         return world
-    # Almost never reached because the node library has its own world
-    print(f'No world in this file, creating world named "Fast64".')
-    return bpy.data.worlds.new("Fast64")
+    else:  # Almost never reached because the node library has its own world
+        WORLD_WARNING_COUNT = 0
+        print(f'No world in this file, creating world named "Fast64".')
+        return bpy.data.worlds.new("Fast64")
