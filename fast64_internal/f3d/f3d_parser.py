@@ -1527,6 +1527,19 @@ class F3DContext:
         if invalidIndicesDetected:
             print("Invalid LUT Indices detected.")
 
+    def getVertexDataStart(self, vertexDataParam: str, f3d: F3D):
+        matchResult = re.search(r"\&?([A-Za-z0-9\_]*)\s*(\[([^\]]*)\])?\s*(\+(.*))?", vertexDataParam)
+        if matchResult is None:
+            raise PluginError("SPVertex param " + vertexDataParam + " is malformed.")
+
+        offset = 0
+        if matchResult.group(3):
+            offset += math_eval(matchResult.group(3), f3d)
+        if matchResult.group(5):
+            offset += math_eval(matchResult.group(5), f3d)
+
+        return matchResult.group(1), offset
+
     def processCommands(self, dlData: str, dlName: str, dlCommands: "list[ParsedMacro]"):
         callStack = [F3DParsedCommands(dlName, dlCommands, 0)]
         while len(callStack) > 0:
@@ -1540,7 +1553,7 @@ class F3DContext:
 
             # print(command.name + " " + str(command.params))
             if command.name == "gsSPVertex":
-                vertexDataName, vertexDataOffset = getVertexDataStart(command.params[0], self.f3d)
+                vertexDataName, vertexDataOffset = self.getVertexDataStart(command.params[0], self.f3d)
                 parseVertexData(dlData, vertexDataName, self)
                 self.addVertices(command.params[1], command.params[2], vertexDataName, vertexDataOffset)
             elif command.name == "gsSPMatrix":
@@ -1949,20 +1962,6 @@ def parseDLData(dlData: str, dlName: str):
 
     dlCommands = parseMacroList(dlCommandData)
     return dlCommands
-
-
-def getVertexDataStart(vertexDataParam: str, f3d: F3D):
-    matchResult = re.search(r"\&?([A-Za-z0-9\_]*)\s*(\[([^\]]*)\])?\s*(\+(.*))?", vertexDataParam)
-    if matchResult is None:
-        raise PluginError("SPVertex param " + vertexDataParam + " is malformed.")
-
-    offset = 0
-    if matchResult.group(3):
-        offset += math_eval(matchResult.group(3), f3d)
-    if matchResult.group(5):
-        offset += math_eval(matchResult.group(5), f3d)
-
-    return matchResult.group(1), offset
 
 
 def parseVertexData(dlData: str, vertexDataName: str, f3dContext: F3DContext):

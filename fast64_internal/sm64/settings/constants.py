@@ -28,4 +28,5 @@ enum_refresh_versions = [
     ("Refresh 11", "Refresh 11", "Refresh 11"),
     ("Refresh 12", "Refresh 12", "Refresh 12"),
     ("Refresh 13", "Refresh 13", "Refresh 13"),
+    ("Refresh 16", "Refresh 16", "Refresh 16"),
 ]

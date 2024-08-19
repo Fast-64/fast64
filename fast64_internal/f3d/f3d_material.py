@@ -551,6 +551,17 @@ def ui_upper_mode(settings, dataHolder, layout: UILayout, useDropdown):
         prop_split(inputGroup, settings, "g_mdsft_combkey", "Chroma Key")
         prop_split(inputGroup, settings, "g_mdsft_textconv", "Texture Convert")
         prop_split(inputGroup, settings, "g_mdsft_text_filt", "Texture Filter")
+        textlut_col = inputGroup.column()
+        tlut_mode = get_textlut_mode(dataHolder, True) if isinstance(dataHolder, F3DMaterialProperty) else None
+        if tlut_mode:
+            textlut_col.enabled = False
+            split = textlut_col.split(factor=0.5)
+            split.label(text="Texture LUT (Auto)")
+            box = split.box()
+            box.label(text={"G_TT_NONE": "None"}.get(tlut_mode, tlut_mode.lstrip("G_TT_")))
+            box.scale_y = 0.5
+        else:
+            prop_split(textlut_col, settings, "g_mdsft_textlut", "Texture LUT")
         prop_split(inputGroup, settings, "g_mdsft_textlod", "Texture LOD (Mipmapping)")
         if settings.g_mdsft_textlod == "G_TL_LOD":
             inputGroup.prop(settings, "num_textures_mipmapped", text="Number of Mipmaps")
@@ -1574,34 +1585,30 @@ def update_node_combiner(material, combinerInputs, cycleIndex):
 def update_fog_nodes(material: Material, context: Context):
     nodes = material.node_tree.nodes
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
-    shade_alpha_is_fog = material.f3d_mat.rdp_settings.g_fog
 
     fogBlender: ShaderNodeGroup = nodes["FogBlender"]
     # if NOT setting rendermode, it is more likely that the user is setting
     # rendermodes in code, so to be safe we'll enable fog. Plus we are checking
     # that fog is enabled in the geometry mode, so if so that's probably the intent.
     fogBlender.node_tree = bpy.data.node_groups[
-        (
-            "FogBlender_On"
-            if shade_alpha_is_fog and is_blender_doing_fog(material.f3d_mat.rdp_settings, True)
-            else "FogBlender_Off"
-        )
+        ("FogBlender_On" if is_blender_doing_fog(material.f3d_mat.rdp_settings, True) else "FogBlender_Off")
     ]
 
-    if shade_alpha_is_fog:
-        inherit_fog = f3dMat.use_global_fog or not f3dMat.set_fog
-        if inherit_fog:
-            link_if_none_exist(material, nodes["SceneProperties"].outputs["FogColor"], nodes["FogColor"].inputs[0])
-            link_if_none_exist(material, nodes["GlobalFogColor"].outputs[0], fogBlender.inputs["Fog Color"])
-            link_if_none_exist(
-                material, nodes["SceneProperties"].outputs["FogNear"], nodes["CalcFog"].inputs["FogNear"]
-            )
-            link_if_none_exist(material, nodes["SceneProperties"].outputs["FogFar"], nodes["CalcFog"].inputs["FogFar"])
-        else:
-            remove_first_link_if_exists(material, nodes["FogBlender"].inputs["Fog Color"].links)
-            remove_first_link_if_exists(material, nodes["CalcFog"].inputs["FogNear"].links)
-            remove_first_link_if_exists(material, nodes["CalcFog"].inputs["FogFar"].links)
+    remove_first_link_if_exists(material, fogBlender.inputs["FogAmount"].links)
+    if material.f3d_mat.rdp_settings.g_fog:
+        material.node_tree.links.new(nodes["CalcFog"].outputs["FogAmount"], fogBlender.inputs["FogAmount"])
+    else:  # If fog is not being calculated, pass in shade alpha
+        material.node_tree.links.new(nodes["Shade Color"].outputs["Alpha"], fogBlender.inputs["FogAmount"])
 
+    if f3dMat.use_global_fog or not f3dMat.set_fog:  # Inherit fog
+        link_if_none_exist(material, nodes["SceneProperties"].outputs["FogColor"], nodes["FogColor"].inputs[0])
+        link_if_none_exist(material, nodes["GlobalFogColor"].outputs[0], fogBlender.inputs["Fog Color"])
+        link_if_none_exist(material, nodes["SceneProperties"].outputs["FogNear"], nodes["CalcFog"].inputs["FogNear"])
+        link_if_none_exist(material, nodes["SceneProperties"].outputs["FogFar"], nodes["CalcFog"].inputs["FogFar"])
+    else:
+        remove_first_link_if_exists(material, nodes["FogBlender"].inputs["Fog Color"].links)
+        remove_first_link_if_exists(material, nodes["CalcFog"].inputs["FogNear"].links)
+        remove_first_link_if_exists(material, nodes["CalcFog"].inputs["FogFar"].links)
         fogBlender.inputs["Fog Color"].default_value = s_rgb_alpha_1_tuple(f3dMat.fog_color)
         nodes["CalcFog"].inputs["FogNear"].default_value = f3dMat.fog_position[0]
         nodes["CalcFog"].inputs["FogFar"].default_value = f3dMat.fog_position[1]
@@ -2082,12 +2089,24 @@ def get_tex_gen_size(tex_size: list[int | float]):
     return (tex_size[0] - 1) / 1024, (tex_size[1] - 1) / 1024
 
 
+def get_textlut_mode(f3d_mat: "F3DMaterialProperty", inherit_from_tex: bool = False):
+    use_dict = all_combiner_uses(f3d_mat)
+    textures = [f3d_mat.tex0] if use_dict["Texture 0"] and f3d_mat.tex0.tex_set else []
+    textures += [f3d_mat.tex1] if use_dict["Texture 1"] and f3d_mat.tex1.tex_set else []
+    tlut_modes = [tex.ci_format if tex.tex_format.startswith("CI") else "NONE" for tex in textures]
+    if tlut_modes and tlut_modes[0] == tlut_modes[-1]:
+        return "G_TT_" + tlut_modes[0]
+    return None if inherit_from_tex else f3d_mat.rdp_settings.g_mdsft_textlut
+
+
 def update_tex_values_manual(material: Material, context, prop_path=None):
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
     nodes = material.node_tree.nodes
     texture_settings = nodes["TextureSettings"]
     texture_inputs: NodeInputs = texture_settings.inputs
     useDict = all_combiner_uses(f3dMat)
+
+    f3dMat.rdp_settings.g_mdsft_textlut = get_textlut_mode(f3dMat)
 
     tex0_used = useDict["Texture 0"] and f3dMat.tex0.tex is not None
     tex1_used = useDict["Texture 1"] and f3dMat.tex1.tex is not None
@@ -3127,13 +3146,13 @@ class PrimDepthSettings(PropertyGroup):
 class RDPSettings(PropertyGroup):
     g_zbuffer: bpy.props.BoolProperty(
         name="Z Buffer",
-        default=True,
+        default=False,
         update=update_node_values_with_preset,
         description="Enables calculation of Z value for primitives. Disable if not reading or writing Z-Buffer in the blender",
     )
     g_shade: bpy.props.BoolProperty(
         name="Shading",
-        default=True,
+        default=False,
         update=update_node_values_with_preset,
         description="Computes shade coordinates for primitives. Disable if not using lighting, vertex colors or fog",
     )
@@ -3165,7 +3184,7 @@ class RDPSettings(PropertyGroup):
     # v1/2 difference
     g_cull_back: bpy.props.BoolProperty(
         name="Cull Back",
-        default=True,
+        default=False,
         update=update_node_values_with_preset,
         description="Disables drawing of back faces",
     )
@@ -3207,7 +3226,7 @@ class RDPSettings(PropertyGroup):
     )
     g_lighting: bpy.props.BoolProperty(
         name="Lighting",
-        default=True,
+        default=False,
         update=update_node_values_with_preset,
         description="Enables calculating shade color using lights. Turn off for vertex colors as shade color",
     )
@@ -3231,13 +3250,13 @@ class RDPSettings(PropertyGroup):
     )
     g_shade_smooth: bpy.props.BoolProperty(
         name="Smooth Shading",
-        default=True,
+        default=False,
         update=update_node_values_with_preset,
         description="Shades primitive smoothly using interpolation between shade values for each vertex (Gouraud shading)",
     )
     g_clipping: bpy.props.BoolProperty(
         name="Clipping",
-        default=False,
+        default=True,
         update=update_node_values_with_preset,
         description="F3DEX1/LX only, exact function unknown",
     )
@@ -3247,7 +3266,7 @@ class RDPSettings(PropertyGroup):
     g_mdsft_alpha_dither: bpy.props.EnumProperty(
         name="Alpha Dither",
         items=enumAlphaDither,
-        default="G_AD_NOISE",
+        default="G_AD_DISABLE",
         update=update_node_values_with_preset,
         description="Applies your choice dithering type to output framebuffer alpha. Dithering is used to convert high precision source colors into lower precision framebuffer values",
     )
@@ -3269,14 +3288,14 @@ class RDPSettings(PropertyGroup):
     g_mdsft_textconv: bpy.props.EnumProperty(
         name="Texture Convert",
         items=enumTextConv,
-        default="G_TC_FILT",
+        default="G_TC_CONV",
         update=update_node_values_with_preset,
         description="Sets the function of the texture convert unit, to do texture filtering, YUV to RGB conversion, or both",
     )
     g_mdsft_text_filt: bpy.props.EnumProperty(
         name="Texture Filter",
         items=enumTextFilt,
-        default="G_TF_BILERP",
+        default="G_TF_POINT",
         update=update_node_values_without_preset,
         description="Applies your choice of filtering to texels",
     )
@@ -3310,7 +3329,7 @@ class RDPSettings(PropertyGroup):
     g_mdsft_textpersp: bpy.props.EnumProperty(
         name="Texture Perspective Correction",
         items=enumTextPersp,
-        default="G_TP_PERSP",
+        default="G_TP_NONE",
         update=update_node_values_with_preset,
         description="Turns on/off texture perspective correction",
     )
@@ -3332,7 +3351,7 @@ class RDPSettings(PropertyGroup):
     g_mdsft_pipeline: bpy.props.EnumProperty(
         name="Pipeline Span Buffer Coherency",
         items=enumPipelineMode,
-        default="G_PM_1PRIMITIVE",
+        default="G_PM_NPRIMITIVE",
         update=update_node_values_with_preset,
         description="Changes primitive rasterization timing by adding syncs after tri draws. Vanilla SM64 has synchronization issues which could cause a crash if not using 1 prim. For any modern SM64 hacking project or other game N-prim should always be used",
     )
@@ -3518,7 +3537,7 @@ class RDPSettings(PropertyGroup):
     ]
 
     geo_mode_f3dex_attributes = [
-        ("clipping", "g_clipping", False),
+        ("clipping", "g_clipping", True),
     ]
 
     geo_mode_f3dex3_attributes = [
@@ -3546,12 +3565,12 @@ class RDPSettings(PropertyGroup):
         self.attributes_from_dict(data, self.geo_mode_attributes)
 
     other_mode_h_attributes = [
-        ("alphaDither", "g_mdsft_alpha_dither", "G_AD_PATTERN"),
+        ("alphaDither", "g_mdsft_alpha_dither", "G_AD_DISABLE"),
         ("colorDither", "g_mdsft_rgb_dither", "G_CD_MAGICSQ"),
         ("chromaKey", "g_mdsft_combkey", "G_CK_NONE"),
         ("textureConvert", "g_mdsft_textconv", "G_TC_CONV"),
         ("textureFilter", "g_mdsft_text_filt", "G_TF_POINT"),
-        # ("lutFormat", "g_mdsft_textlut", "G_TT_NONE")
+        ("lutFormat", "g_mdsft_textlut", "G_TT_NONE"),
         ("textureLoD", "g_mdsft_textlod", "G_TL_TILE"),
         ("textureDetail", "g_mdsft_textdetail", "G_TD_CLAMP"),
         ("perspectiveCorrection", "g_mdsft_textpersp", "G_TP_NONE"),
@@ -3559,8 +3578,11 @@ class RDPSettings(PropertyGroup):
         ("pipelineMode", "g_mdsft_pipeline", "G_PM_NPRIMITIVE"),
     ]
 
-    def other_mode_h_to_dict(self):
-        return self.attributes_to_dict(self.other_mode_h_attributes)
+    def other_mode_h_to_dict(self, lut_format=None):
+        data = self.attributes_to_dict(self.other_mode_h_attributes)
+        if lut_format:
+            data["lutFormat"] = lut_format
+        return data
 
     def other_mode_h_from_dict(self, data: dict):
         self.attributes_from_dict(data, self.other_mode_h_attributes)
@@ -3671,6 +3693,31 @@ class RDPSettings(PropertyGroup):
         return str(self.to_dict().items())
 
 
+def draw_rdp_world_defaults(layout: UILayout, scene: Scene):
+    world = scene.world
+    if world is None:
+        layout.box().label(text="No World Selected In Scene", icon="WORLD")
+        return
+    rdp_defaults = world.rdp_defaults
+    col = layout.column()
+    col.box().label(text="RDP Default Settings", icon="WORLD")
+    multilineLabel(
+        col,
+        text="If a material setting is the same as the default setting\n"
+        "it won't be set, otherwise a revert will be added.",
+    )
+    if scene.gameEditorMode == "Homebrew":
+        multilineLabel(
+            col.box(),
+            text="Homebrew mode defaults to ucode defaults,\nmake sure to set your own.",
+            icon="INFO",
+        )
+    ui_geo_mode(rdp_defaults, world, col, True)
+    ui_upper_mode(rdp_defaults, world, col, True)
+    ui_lower_mode(rdp_defaults, world, col, True)
+    ui_other(rdp_defaults, world, col, True)
+
+
 class DefaultRDPSettingsPanel(Panel):
     bl_label = "RDP Default Settings"
     bl_idname = "WORLD_PT_RDP_Default_Inspector"
@@ -3680,14 +3727,7 @@ class DefaultRDPSettingsPanel(Panel):
     bl_options = {"HIDE_HEADER"}
 
     def draw(self, context):
-        world = context.scene.world
-        layout = self.layout
-        layout.box().label(text="RDP Default Settings")
-        layout.label(text="If a material setting is a same as a default setting, then it won't be set.")
-        ui_geo_mode(world.rdp_defaults, world, layout, True)
-        ui_upper_mode(world.rdp_defaults, world, layout, True)
-        ui_lower_mode(world.rdp_defaults, world, layout, True)
-        ui_other(world.rdp_defaults, world, layout, True)
+        draw_rdp_world_defaults(self.layout, context.scene)
 
 
 class CelLevelProperty(PropertyGroup):
