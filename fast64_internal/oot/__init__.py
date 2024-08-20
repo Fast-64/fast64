@@ -58,6 +58,20 @@ from .tools import (
     oot_operator_unregister,
 )
 
+oot_versions_items = [
+    ("Custom", "Custom", "Custom"),
+    ("gc-jp", "gc-jp", "gc-jp"),
+    ("gc-jp-mq", "gc-jp-mq", "gc-jp-mq"),
+    ("gc-jp-ce", "gc-jp-ce", "gc-jp-ce"),
+    ("gc-us", "gc-us", "gc-us"),
+    ("gc-us-mq", "gc-us-mq", "gc-us-mq"),
+    ("gc-eu", "gc-eu", "gc-eu"),
+    ("gc-eu-mq", "gc-eu-mq", "gc-eu-mq"),
+    ("gc-eu-mq-dbg", "gc-eu-mq-dbg", "gc-eu-mq-dbg"),
+    ("hackeroot-mq", "HackerOoT", "hackeroot-mq"),  # TODO: force this value if HackerOoT features are enabled?
+    ("legacy", "Legacy", "Older Decomp Version"),
+]
+
 
 class OOT_Properties(bpy.types.PropertyGroup):
     """Global OOT Scene Properties found under scene.fast64.oot"""
@@ -75,6 +89,14 @@ class OOT_Properties(bpy.types.PropertyGroup):
     animExportSettings: bpy.props.PointerProperty(type=OOTAnimExportSettingsProperty)
     animImportSettings: bpy.props.PointerProperty(type=OOTAnimImportSettingsProperty)
     collisionExportSettings: bpy.props.PointerProperty(type=OOTCollisionExportSettings)
+    oot_version: bpy.props.EnumProperty(name="OoT Version", items=oot_versions_items, default="gc-eu-mq-dbg")
+    oot_version_custom: bpy.props.StringProperty(name="Custom Version")
+
+    def get_extracted_path(self):
+        if self.oot_version == "legacy":
+            return "."
+        else:
+            return f"extracted/{self.oot_version if self.oot_version != 'Custom' else self.oot_version_custom}"
 
     useDecompFeatures: bpy.props.BoolProperty(
         name="Use decomp for export", description="Use names and macros from decomp when exporting", default=True
