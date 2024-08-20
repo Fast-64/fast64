@@ -142,6 +142,7 @@ def update_draw_layer(self, context):
 
         material.f3d_mat.presetName = "Custom"
         update_blend_method(material, context)
+        update_fog_nodes(material, context)
         set_output_node_groups(material)
 
         drawLayer = material.f3d_mat.draw_layer
