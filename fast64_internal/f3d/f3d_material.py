@@ -4934,9 +4934,7 @@ def mat_register():
     savePresets()
 
     Scene.f3d_type = bpy.props.EnumProperty(
-        name="Microcode",
-        items=enumF3D,
-        default="F3D", update=update_all_material_nodes
+        name="Microcode", items=enumF3D, default="F3D", update=update_all_material_nodes
     )
 
     # RDP Defaults
