@@ -68,11 +68,11 @@ class AddWaterBox(OperatorBase):
         return None
 
     def execute_operator(self, context):
-        bpy.ops.object.select_all(action="DESELECT")
+        deselectAllObjects()
 
         location = mathutils.Vector(bpy.context.scene.cursor.location)
         bpy.ops.mesh.primitive_plane_add(size=2 * self.scale, enter_editmode=False, align="WORLD", location=location[:])
-        planeObj = context.view_layer.objects.active
+        planeObj = getActiveObject()
         planeObj.ignore_collision = True
         planeObj.name = "Water Box Mesh"
 
@@ -84,7 +84,7 @@ class AddWaterBox(OperatorBase):
         emptyObj.name = "Water Box"
         self.setEmptyType(emptyObj)
 
-        parentObject(planeObj, emptyObj)
+        setParentObject(emptyObj, planeObj)
 
         self.report({"INFO"}, "Water box added.")
 

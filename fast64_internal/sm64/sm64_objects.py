@@ -17,6 +17,7 @@ from ..utility import (
     all_values_equal_x,
     checkIsSM64PreInlineGeoLayout,
     prop_split,
+    selectSingleObject,
     multilineLabel,
     raisePluginError,
     enumExportHeaderType,
@@ -722,8 +723,7 @@ class PuppycamVolume:
 
 
 def exportAreaCommon(areaObj, transformMatrix, geolayout, collision, name):
-    bpy.ops.object.select_all(action="DESELECT")
-    areaObj.select_set(True)
+    selectSingleObject(areaObj)
 
     if not areaObj.noMusic:
         if areaObj.musicSeqEnum != "Custom":

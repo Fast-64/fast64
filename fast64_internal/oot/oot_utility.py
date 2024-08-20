@@ -24,6 +24,10 @@ from ..utility import (
     ootGetSceneOrRoomHeader,
     hexOrDecInt,
     binOps,
+    setActiveObject,
+    getActiveObject,
+    deselectAllObjects,
+    selectSingleObject,
 )
 
 if TYPE_CHECKING:
@@ -340,39 +344,37 @@ class OOTObjectCategorizer:
 
 
 # This also sets all origins relative to the scene object.
-def ootDuplicateHierarchy(obj, ignoreAttr, includeEmpties, objectCategorizer) -> tuple[Object, list[Object]]:
+def ootDuplicateHierarchy(
+    obj, ignoreAttr: Optional[str], includeEmpties, objectCategorizer
+) -> tuple[Object, list[Object]]:
     # Duplicate objects to apply scale / modifiers / linked data
-    bpy.ops.object.select_all(action="DESELECT")
+    deselectAllObjects()
     ootSelectMeshChildrenOnly(obj, includeEmpties)
-    obj.select_set(True)
-    bpy.context.view_layer.objects.active = obj
+    setActiveObject(obj)
     bpy.ops.object.duplicate()
     try:
-        tempObj = bpy.context.view_layer.objects.active
+        tempObj = getActiveObject()
         allObjs = bpy.context.selected_objects
         bpy.ops.object.make_single_user(obdata=True)
 
         objectCategorizer.sortObjects(allObjs)
         meshObjs = objectCategorizer.meshes
-        bpy.ops.object.select_all(action="DESELECT")
+        deselectAllObjects()
         for selectedObj in meshObjs:
             selectedObj.select_set(True)
         bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
 
         for selectedObj in meshObjs:
-            bpy.ops.object.select_all(action="DESELECT")
-            selectedObj.select_set(True)
-            bpy.context.view_layer.objects.active = selectedObj
+            selectSingleObject(selectedObj)
             for modifier in selectedObj.modifiers:
                 attemptModifierApply(modifier)
         for selectedObj in meshObjs:
-            setOrigin(obj, selectedObj)
+            setOrigin(selectedObj, obj.location)
         if ignoreAttr is not None:
             for selectedObj in meshObjs:
                 if getattr(selectedObj, ignoreAttr):
                     for child in selectedObj.children:
-                        bpy.ops.object.select_all(action="DESELECT")
-                        child.select_set(True)
+                        selectSingleObject(child)
                         bpy.ops.object.parent_clear(type="CLEAR_KEEP_TRANSFORM")
                         selectedObj.parent.select_set(True)
                         bpy.ops.object.parent_set(keep_transform=True)
@@ -412,16 +414,13 @@ def ootDuplicateHierarchy(obj, ignoreAttr, includeEmpties, objectCategorizer) ->
             # This is a relative transform we care about so the 90 degrees
             # doesn't matter (since they're both right-handed).
             print("Applying transform")
-            bpy.ops.object.select_all(action="DESELECT")
-            tempObj.select_set(True)
-            bpy.context.view_layer.objects.active = tempObj
+            selectSingleObject(tempObj)
             bpy.ops.object.transform_apply()
 
         return tempObj, allObjs
     except Exception as e:
         cleanupDuplicatedObjects(allObjs)
-        obj.select_set(True)
-        bpy.context.view_layer.objects.active = obj
+        setActiveObject(obj)
         raise Exception(str(e))
 
 
@@ -437,8 +436,7 @@ def ootSelectMeshChildrenOnly(obj, includeEmpties):
 
 def ootCleanupScene(originalSceneObj, allObjs):
     cleanupDuplicatedObjects(allObjs)
-    originalSceneObj.select_set(True)
-    bpy.context.view_layer.objects.active = originalSceneObj
+    setActiveObject(originalSceneObj)
 
 
 def getSceneObj(obj):

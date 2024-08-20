@@ -39,6 +39,8 @@ from ..utility import (
     makeWriteInfoBox,
     writeBoxExportType,
     enumExportHeaderType,
+    setActiveObject,
+    selectSingleObject,
 )
 
 
@@ -380,8 +382,7 @@ def exportCollisionInsertableBinary(obj, transformMatrix, filepath, includeSpeci
 
 
 def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren, name, areaIndex):
-    bpy.ops.object.select_all(action="DESELECT")
-    obj.select_set(True)
+    selectSingleObject(obj)
 
     # dict of collisionType : faces
     collisionDict = {}
@@ -392,12 +393,10 @@ def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren
         if not collisionDict:
             raise PluginError("No collision data to export")
         cleanupDuplicatedObjects(allObjs)
-        obj.select_set(True)
-        bpy.context.view_layer.objects.active = obj
+        setActiveObject(obj)
     except Exception as e:
         cleanupDuplicatedObjects(allObjs)
-        obj.select_set(True)
-        bpy.context.view_layer.objects.active = obj
+        setActiveObject(obj)
         raise Exception(str(e))
 
     collision = Collision(toAlnum(name) + "_collision")
@@ -593,8 +592,7 @@ class SM64_ExportCollision(bpy.types.Operator):
                     romfileOutput.close()
                 if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
                     os.remove(bpy.path.abspath(tempROM))
-            obj.select_set(True)
-            context.view_layer.objects.active = obj
+            setActiveObject(obj)
             raisePluginError(self, e)
             return {"CANCELLED"}  # must return a set
 

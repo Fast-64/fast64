@@ -5,7 +5,7 @@ from bpy.ops import mesh, object, curve
 from bpy.types import Operator, Object, Context
 from bpy.props import FloatProperty, StringProperty, EnumProperty, BoolProperty
 from ...operators import AddWaterBox, addMaterialByName
-from ...utility import parentObject, setOrigin
+from ...utility import setParentObject, setOrigin, deselectAllObjects, selectSingleObject
 from ..cutscene.motion.utility import setupCutscene, createNewCameraShot
 from ..oot_utility import getNewPath
 from .quick_import import QuickImportAborted, quick_import_exec
@@ -35,7 +35,7 @@ class OOT_AddDoor(Operator):
     def execute(self, context):
         if context.mode != "OBJECT":
             object.mode_set(mode="OBJECT")
-        object.select_all(action="DESELECT")
+        deselectAllObjects()
 
         objScale = (3 * self.scale, 1 * self.scale, 5 * self.scale)
 
@@ -57,9 +57,9 @@ class OOT_AddDoor(Operator):
         emptyObj.ootTransitionActorProperty.actor.actorID = "ACTOR_DOOR_SHUTTER"
         emptyObj.ootTransitionActorProperty.actor.actorParam = "0x0000"
 
-        parentObject(cubeObj, emptyObj)
+        setParentObject(emptyObj, cubeObj)
 
-        setOrigin(emptyObj, cubeObj)
+        setOrigin(cubeObj, emptyObj.location)
 
         return {"FINISHED"}
 
@@ -77,7 +77,7 @@ class OOT_AddScene(Operator):
     def execute(self, context):
         if context.mode != "OBJECT":
             object.mode_set(mode="OBJECT")
-        object.select_all(action="DESELECT")
+        deselectAllObjects()
 
         location = Vector(context.scene.cursor.location)
         mesh.primitive_plane_add(size=2 * self.scale, enter_editmode=False, align="WORLD", location=location[:])
@@ -90,7 +90,7 @@ class OOT_AddScene(Operator):
         entranceObj.ootEmptyType = "Entrance"
         entranceObj.name = "Entrance"
         entranceObj.ootEntranceProperty.actor.actorParam = "0x0FFF"
-        parentObject(planeObj, entranceObj)
+        setParentObject(entranceObj, planeObj)
 
         location += Vector([0, 0, 10])
         object.empty_add(type="SPHERE", radius=1, align="WORLD", location=location[:])
@@ -98,14 +98,14 @@ class OOT_AddScene(Operator):
         roomObj.ootEmptyType = "Room"
         roomObj.name = "Room"
         entranceObj.ootEntranceProperty.tiedRoom = roomObj
-        parentObject(roomObj, planeObj)
+        setParentObject(planeObj, roomObj)
 
         location += Vector([0, 0, 2])
         object.empty_add(type="SPHERE", radius=1, align="WORLD", location=location[:])
         sceneObj = context.view_layer.objects.active
         sceneObj.ootEmptyType = "Scene"
         sceneObj.name = "Scene"
-        parentObject(sceneObj, roomObj)
+        setParentObject(roomObj, sceneObj)
 
         context.scene.ootSceneExportObj = sceneObj
         context.scene.fast64.renderSettings.ootSceneObject = sceneObj
@@ -121,7 +121,7 @@ class OOT_AddRoom(Operator):
     def execute(self, context):
         if context.mode != "OBJECT":
             object.mode_set(mode="OBJECT")
-        object.select_all(action="DESELECT")
+        deselectAllObjects()
 
         location = Vector(context.scene.cursor.location)
         object.empty_add(type="SPHERE", radius=1, align="WORLD", location=location[:])
@@ -138,11 +138,9 @@ class OOT_AddRoom(Operator):
             while nextIndex in indices:
                 nextIndex += 1
             roomObj.ootRoomHeader.roomIndex = nextIndex
-            parentObject(sceneObj, roomObj)
+            setParentObject(roomObj, sceneObj)
 
-        object.select_all(action="DESELECT")
-        roomObj.select_set(True)
-        context.view_layer.objects.active = roomObj
+        selectSingleObject(roomObj)
         return {"FINISHED"}
 
 
@@ -156,7 +154,7 @@ class OOT_AddCutscene(Operator):
     def execute(self, context):
         if context.mode != "OBJECT":
             object.mode_set(mode="OBJECT")
-        object.select_all(action="DESELECT")
+        deselectAllObjects()
 
         object.empty_add(type="ARROWS", radius=1, align="WORLD")
         csObj = context.view_layer.objects.active
@@ -165,9 +163,7 @@ class OOT_AddCutscene(Operator):
         createNewCameraShot(csObj)
         setupCutscene(csObj)
 
-        object.select_all(action="DESELECT")
-        csObj.select_set(True)
-        context.view_layer.objects.active = csObj
+        selectSingleObject(csObj)
         return {"FINISHED"}
 
     def invoke(self, context, event):
@@ -201,16 +197,14 @@ class OOT_AddPath(Operator):
     def execute(self, context):
         if context.mode != "OBJECT":
             object.mode_set(mode="OBJECT")
-        object.select_all(action="DESELECT")
+        deselectAllObjects()
 
         pathObj = getNewPath(self.pathType, self.isClosedShape)
         activeObj = context.view_layer.objects.active
         if activeObj.type == "EMPTY" and activeObj.ootEmptyType == "Scene":
             pathObj.parent = activeObj
 
-        object.select_all(action="DESELECT")
-        pathObj.select_set(True)
-        context.view_layer.objects.active = pathObj
+        selectSingleObject(pathObj)
         return {"FINISHED"}
 
     def invoke(self, context, event):

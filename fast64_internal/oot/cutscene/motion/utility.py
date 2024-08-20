@@ -3,7 +3,7 @@ import bpy
 from struct import unpack
 from bpy.types import Object, Bone, Context, EditBone, Armature
 from mathutils import Vector
-from ....utility import yUpToZUp
+from ....utility import yUpToZUp, getActiveObject
 from ...oot_utility import ootParseRotation
 
 
@@ -123,7 +123,7 @@ def getCSMotionValidateObj(csObj: Object, obj: Object, target: str):
         return None
 
     if obj is None:
-        obj = bpy.context.view_layer.objects.active
+        obj = getActiveObject()
 
     if target is None or target != "Camera Shot":
         nonListTypes = ["CS Player Cue", "CS Actor Cue", "CS Dummy Cue", "Cutscene"]
