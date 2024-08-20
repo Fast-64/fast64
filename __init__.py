@@ -49,6 +49,7 @@ from .fast64_internal.f3d_material_converter import (
 
 from .fast64_internal.render_settings import (
     Fast64RenderSettings_Properties,
+    ManualUpdatePreviewOperator,
     resync_scene_props,
     on_update_render_settings,
 )
@@ -311,6 +312,7 @@ class ExampleAddonPreferences(bpy.types.AddonPreferences, addon_updater_ops.Addo
 classes = (
     Fast64Settings_Properties,
     Fast64RenderSettings_Properties,
+    ManualUpdatePreviewOperator,
     Fast64_Properties,
     Fast64_BoneProperties,
     Fast64_ObjectProperties,
