@@ -1,10 +1,12 @@
+import re
+from typing import List
 import mathutils, bpy, math
 from ....f3d.f3d_gbi import F3D, get_F3D_GBI
 from ....f3d.f3d_parser import getImportData, parseF3D
-from ....utility import hexOrDecInt, applyRotation
+from ....utility import hexOrDecInt, applyRotation, PluginError
 from ...oot_f3d_writer import ootReadActorScale
 from ...oot_model_classes import OOTF3DContext, ootGetIncludedAssetData
-from ...oot_utility import ootGetObjectPath, getOOTScale
+from ...oot_utility import OOTEnum, ootGetObjectPath, getOOTScale, ootGetObjectHeaderPath, ootGetEnums, ootStripComments
 from ...oot_texture_array import ootReadTextureArrays
 from ..constants import ootSkeletonImportDict
 from ..properties import OOTSkeletonImportSettings
@@ -58,6 +60,7 @@ def ootAddLimbRecursively(
     parentBoneName: str,
     f3dContext: OOTF3DContext,
     useFarLOD: bool,
+    enums: List["OOTEnum"],
 ):
     limbName = f3dContext.getLimbName(limbIndex)
     boneName = f3dContext.getBoneName(limbIndex)
@@ -82,9 +85,9 @@ def ootAddLimbRecursively(
 
     LIMB_DONE = 0xFF
     nextChildIndexStr = matchResult.group(4)
-    nextChildIndex = LIMB_DONE if nextChildIndexStr == "LIMB_DONE" else hexOrDecInt(nextChildIndexStr)
+    nextChildIndex = ootEvaluateLimbExpression(nextChildIndexStr, enums)
     nextSiblingIndexStr = matchResult.group(5)
-    nextSiblingIndex = LIMB_DONE if nextSiblingIndexStr == "LIMB_DONE" else hexOrDecInt(nextSiblingIndexStr)
+    nextSiblingIndex = ootEvaluateLimbExpression(nextSiblingIndexStr, enums)
 
     # str(limbIndex) + " " + str(translation) + " " + str(nextChildIndex) + " " + \
     # 	str(nextSiblingIndex) + " " + str(dlName))
@@ -102,15 +105,49 @@ def ootAddLimbRecursively(
 
     if nextChildIndex != LIMB_DONE:
         isLOD |= ootAddLimbRecursively(
-            nextChildIndex, skeletonData, obj, armatureObj, currentTransform, boneName, f3dContext, useFarLOD
+            nextChildIndex, skeletonData, obj, armatureObj, currentTransform, boneName, f3dContext, useFarLOD, enums
         )
 
     if nextSiblingIndex != LIMB_DONE:
         isLOD |= ootAddLimbRecursively(
-            nextSiblingIndex, skeletonData, obj, armatureObj, parentTransform, parentBoneName, f3dContext, useFarLOD
+            nextSiblingIndex,
+            skeletonData,
+            obj,
+            armatureObj,
+            parentTransform,
+            parentBoneName,
+            f3dContext,
+            useFarLOD,
+            enums,
         )
 
     return isLOD
+
+
+def ootEvaluateLimbExpression(expr: str, enums: List["OOTEnum"]) -> int:
+    """
+    Evaluate an expression used to define a limb index.
+    Limited support for expected expression values:
+    - "LIMB_DONE"
+    - int value
+    - hex value
+    - "<ENUM_VALUE> - 1"
+    """
+    LIMB_DONE = 0xFF
+
+    if expr == "LIMB_DONE":
+        return LIMB_DONE
+
+    m = re.search(r"(?P<val>[A-Za-z0-9\_]+)\s*-\s*1", expr)
+    if m is not None:
+        val = m.group("val")
+        index = next((enum.indexOrNone(val) for enum in enums if enum.indexOrNone(val) is not None), None)
+        if index is None:
+            raise PluginError(f"Couldn't find index for enum value {val}")
+
+        return index - 1
+
+    return hexOrDecInt(expr)
 
 
 def ootBuildSkeleton(
@@ -147,11 +184,16 @@ def ootBuildSkeleton(
 
     f3dContext.mat().draw_layer.oot = armatureObj.ootDrawLayer
 
+    # Parse enums, which may be used to link bones by index
+    enums = ootGetEnums(skeletonData)
+
     if overlayName is not None:
         ootReadTextureArrays(basePath, overlayName, skeletonName, f3dContext, isLink, flipbookArrayIndex2D)
 
     transformMatrix = mathutils.Matrix.Scale(1 / actorScale, 4)
-    isLOD = ootAddLimbRecursively(0, skeletonData, obj, armatureObj, transformMatrix, None, f3dContext, useFarLOD)
+    isLOD = ootAddLimbRecursively(
+        0, skeletonData, obj, armatureObj, transformMatrix, None, f3dContext, useFarLOD, enums
+    )
     for dlEntry in f3dContext.dlList:
         limbName = f3dContext.getLimbName(dlEntry.limbIndex)
         boneName = f3dContext.getBoneName(dlEntry.limbIndex)
@@ -216,7 +258,10 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
         isLink = False
         restPoseData = None
 
-    filepaths = [ootGetObjectPath(isCustomImport, importPath, folderName)]
+    filepaths = [
+        ootGetObjectPath(isCustomImport, importPath, folderName, True),
+        ootGetObjectHeaderPath(isCustomImport, importPath, folderName, True),
+    ]
 
     removeDoubles = importSettings.removeDoubles
     importNormals = importSettings.importNormals
@@ -231,7 +276,7 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
 
     matchResult = ootGetLimbs(skeletonData, limbsName, False)
     limbsData = matchResult.group(2)
-    limbList = [entry.strip()[1:] for entry in limbsData.split(",") if entry.strip() != ""]
+    limbList = [entry.strip()[1:] for entry in ootStripComments(limbsData).split(",") if entry.strip() != ""]
 
     f3dContext = OOTF3DContext(get_F3D_GBI(), limbList, basePath)
     f3dContext.mat().draw_layer.oot = drawLayer

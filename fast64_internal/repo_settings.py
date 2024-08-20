@@ -8,7 +8,7 @@ from bpy.path import abspath
 
 from .utility import filepath_checks, prop_split, filepath_ui_warnings, draw_and_check_tab
 from .operators import OperatorBase
-from .f3d.f3d_material import ui_geo_mode, ui_upper_mode, ui_lower_mode, ui_other
+from .f3d.f3d_material import draw_rdp_world_defaults
 from .sm64.settings.repo_settings import load_sm64_repo_settings, save_sm64_repo_settings
 
 from typing import TYPE_CHECKING
@@ -128,14 +128,7 @@ def draw_repo_settings(layout: UILayout, context: Context):
         col.prop(fast64_settings, "prefer_rgba_over_ci")
     col.separator()
 
-    world = scene.world
-    rdp_defaults = world.rdp_defaults
-    col.box().label(text="RDP Default Settings", icon="WORLD")
-    col.label(text="If a material setting is a same as a default setting, then it won't be set.")
-    ui_geo_mode(rdp_defaults, world, col, True)
-    ui_upper_mode(rdp_defaults, world, col, True)
-    ui_lower_mode(rdp_defaults, world, col, True)
-    ui_other(rdp_defaults, world, col, True)
+    draw_rdp_world_defaults(col, scene)
 
 
 classes = (SaveRepoSettings, LoadRepoSettings)

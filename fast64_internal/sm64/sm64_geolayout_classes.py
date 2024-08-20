@@ -221,6 +221,12 @@ class Geolayout:
             addresses.extend(ptrs)
         return addresses
 
+    def has_data(self):
+        for node in self.nodes:
+            if node.has_data():
+                return True
+        return False
+
     def to_binary(self, segmentData):
         endCmd = GEO_END if self.isStartGeo else GEO_RETURN
         data = bytearray(0)
@@ -330,6 +336,17 @@ class TransformNode:
                 addresses.extend(ptrs)
             address += 4
         return address, addresses
+
+    def has_data(self):
+        if self.node is not None:
+            if getattr(self.node, "hasDL", False):
+                return True
+            if type(self.node) in (JumpNode, SwitchNode, FunctionNode, ShadowNode, CustomNode, CustomAnimatedNode):
+                return True
+        for child in self.children:
+            if child.has_data():
+                return True
+        return False
 
     def size(self):
         size = self.node.size() if self.node is not None else 0

@@ -14,15 +14,24 @@ from .fast64_internal.repo_settings import (
 )
 
 from .fast64_internal.sm64 import sm64_register, sm64_unregister
+from .fast64_internal.sm64.sm64_constants import sm64_world_defaults
 from .fast64_internal.sm64.settings.properties import SM64_Properties
 from .fast64_internal.sm64.sm64_geolayout_bone import SM64_BoneProperties
 from .fast64_internal.sm64.sm64_objects import SM64_ObjectProperties
 
 from .fast64_internal.oot import OOT_Properties, oot_register, oot_unregister
+from .fast64_internal.oot.oot_constants import oot_world_defaults
 from .fast64_internal.oot.props_panel_main import OOT_ObjectProperties
 from .fast64_internal.utility_anim import utility_anim_register, utility_anim_unregister, ArmatureApplyWithMeshOperator
 
-from .fast64_internal.f3d.f3d_material import mat_register, mat_unregister, check_or_ask_color_management
+from .fast64_internal.mk64 import MK64_Properties, mk64_register, mk64_unregister
+
+from .fast64_internal.f3d.f3d_material import (
+    F3D_MAT_CUR_VERSION,
+    mat_register,
+    mat_unregister,
+    check_or_ask_color_management,
+)
 from .fast64_internal.f3d.f3d_render_engine import render_engine_register, render_engine_unregister
 from .fast64_internal.f3d.f3d_writer import f3d_writer_register, f3d_writer_unregister
 from .fast64_internal.f3d.f3d_parser import f3d_parser_register, f3d_parser_unregister
@@ -31,7 +40,7 @@ from .fast64_internal.f3d.op_largetexture import op_largetexture_register, op_la
 
 from .fast64_internal.f3d_material_converter import (
     MatUpdateConvert,
-    upgradeF3DVersionAll,
+    upgrade_f3d_version_all_meshes,
     bsdf_conv_register,
     bsdf_conv_unregister,
     bsdf_conv_panel_regsiter,
@@ -65,9 +74,10 @@ bl_info = {
 }
 
 gameEditorEnum = (
-    ("SM64", "SM64", "Super Mario 64"),
-    ("OOT", "OOT", "Ocarina Of Time"),
-    ("Homebrew", "Homebrew", "Homebrew"),
+    ("SM64", "SM64", "Super Mario 64", 0),
+    ("OOT", "OOT", "Ocarina Of Time", 1),
+    ("MK64", "MK64", "Mario Kart 64", 3),
+    ("Homebrew", "Homebrew", "Homebrew", 2),
 )
 
 
@@ -209,6 +219,9 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
         description="When enabled, this will make fast64 automatically load repo settings if they are found after picking a decomp path",
         default=True,
     )
+    internal_fixed_4_2: bpy.props.BoolProperty(default=False)
+
+    internal_game_update_ver: bpy.props.IntProperty(default=0)
 
 
 class Fast64_Properties(bpy.types.PropertyGroup):
@@ -219,6 +232,7 @@ class Fast64_Properties(bpy.types.PropertyGroup):
 
     sm64: bpy.props.PointerProperty(type=SM64_Properties, name="SM64 Properties")
     oot: bpy.props.PointerProperty(type=OOT_Properties, name="OOT Properties")
+    mk64: bpy.props.PointerProperty(type=MK64_Properties, name="MK64 Properties")
     settings: bpy.props.PointerProperty(type=Fast64Settings_Properties, name="Fast64 Settings")
     renderSettings: bpy.props.PointerProperty(type=Fast64RenderSettings_Properties, name="Fast64 Render Settings")
 
@@ -275,10 +289,7 @@ class UpgradeF3DMaterialsDialog(bpy.types.Operator):
         if context.mode != "OBJECT":
             bpy.ops.object.mode_set(mode="OBJECT")
 
-        upgradeF3DVersionAll(
-            [obj for obj in bpy.data.objects if obj.type == "MESH"],
-            MatUpdateConvert.version,
-        )
+        upgrade_f3d_version_all_meshes()
         self.done = True
         return {"FINISHED"}
 
@@ -324,35 +335,62 @@ classes = (
 def upgrade_changed_props():
     """Set scene properties after a scene loads, used for migrating old properties"""
     SM64_Properties.upgrade_changed_props()
+    MK64_Properties.upgrade_changed_props()
     SM64_ObjectProperties.upgrade_changed_props()
     OOT_ObjectProperties.upgrade_changed_props()
     for scene in bpy.data.scenes:
+        if scene.fast64.settings.internal_game_update_ver != 1:
+            gameEditorUpdate(scene, bpy.context)
+            scene.fast64.settings.internal_game_update_ver = 1
         if scene.get("decomp_compatible", False):
             scene.gameEditorMode = "Homebrew"
             del scene["decomp_compatible"]
 
+        settings = scene.fast64.renderSettings
+        light0Color = settings.pop("lightColor", None)
+        if light0Color is not None:
+            settings.light0Color = light0Color
+        light0Direction = settings.pop("lightDirection", None)
+        if light0Direction is not None:
+            settings.light0Direction = light0Direction
+
 
 def upgrade_scene_props_node():
     """update f3d materials with SceneProperties node"""
-    has_old_f3d_mats = any(mat.is_f3d and mat.mat_ver < MatUpdateConvert.version for mat in bpy.data.materials)
+    has_old_f3d_mats = any(mat.is_f3d and mat.mat_ver < F3D_MAT_CUR_VERSION for mat in bpy.data.materials)
     if has_old_f3d_mats:
         bpy.ops.dialog.upgrade_f3d_materials("INVOKE_DEFAULT")
 
 
 @bpy.app.handlers.persistent
 def after_load(_a, _b):
+    settings = bpy.context.scene.fast64.settings
     if any(mat.is_f3d for mat in bpy.data.materials):
         check_or_ask_color_management(bpy.context)
+        if not settings.internal_fixed_4_2 and bpy.app.version >= (4, 2, 0):
+            upgrade_f3d_version_all_meshes()
+    if bpy.app.version >= (4, 2, 0):
+        settings.internal_fixed_4_2 = True
     upgrade_changed_props()
     upgrade_scene_props_node()
     resync_scene_props()
 
 
 def gameEditorUpdate(self, context):
+    world_defaults = None
     if self.gameEditorMode == "SM64":
         self.f3d_type = "F3D"
+        world_defaults = sm64_world_defaults
     elif self.gameEditorMode == "OOT":
         self.f3d_type = "F3DEX2/LX2"
+        world_defaults = oot_world_defaults
+    elif self.gameEditorMode == "MK64":
+        self.f3d_type = "F3DEX/LX"
+    elif self.gameEditorMode == "Homebrew":
+        self.f3d_type = "F3D"
+        world_defaults = {}  # This will set some pretty bad defaults, but trust the user
+    if self.world is not None:
+        self.world.rdp_defaults.from_dict(world_defaults)
 
 
 # called on add-on enabling
@@ -382,6 +420,8 @@ def register():
     bsdf_conv_register()
     sm64_register(True)
     oot_register(True)
+    mk64_register(True)
+
     gltf_extension_register()
 
     repo_settings_operators_register()
@@ -429,6 +469,7 @@ def unregister():
     f3d_parser_unregister()
     sm64_unregister(True)
     oot_unregister(True)
+    mk64_unregister(True)
     mat_unregister()
     gltf_extension_unregister()
     bsdf_conv_unregister()
