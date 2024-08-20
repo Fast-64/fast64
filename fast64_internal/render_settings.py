@@ -212,70 +212,36 @@ class ManualUpdatePreviewOperator(bpy.types.Operator):
         return {"FINISHED"}
 
 
+def make_callback(update):
+    def on_update(self: "Fast64RenderSettings_Properties", context):
+        if not self.enableAutoUpdatePreview:
+            return
+        sceneOutputs = getSceneOutputs()
+        if sceneOutputs is not None:
+            update(sceneOutputs, self)
+
+    return on_update
+
+
 # These are all the callbacks that modify values in the scene properties node group
 # Since modifying node values turns out to be very slow,
 # we need one callback per prop in order to update the specific associated value.
 # fmt: off
-def on_update_render_preview_nodes_enableFogPreview(self, context):
-    if not self.enableAutoUpdatePreview: return
-    sceneOutputs = getSceneOutputs()
-    if sceneOutputs is not None: update_scene_props_from_render_settings_enableFogPreview(sceneOutputs, self)
-
-def on_update_render_preview_nodes_fogPreviewColor(self, context):
-    if not self.enableAutoUpdatePreview: return
-    sceneOutputs = getSceneOutputs()
-    if sceneOutputs is not None: update_scene_props_from_render_settings_fogPreviewColor(sceneOutputs, self)
-
-def on_update_render_preview_nodes_clippingPlanes(self, context):
-    if not self.enableAutoUpdatePreview: return
-    sceneOutputs = getSceneOutputs()
-    if sceneOutputs is not None: update_scene_props_from_render_settings_clippingPlanes(sceneOutputs, self)
-
-def on_update_render_preview_nodes_fogPreviewPosition(self, context):
-    if not self.enableAutoUpdatePreview: return
-    sceneOutputs = getSceneOutputs()
-    if sceneOutputs is not None: update_scene_props_from_render_settings_fogPreviewPosition(sceneOutputs, self)
-
-def on_update_render_preview_nodes_ambientColor(self, context):
-    if not self.enableAutoUpdatePreview: return
-    sceneOutputs = getSceneOutputs()
-    if sceneOutputs is not None: update_scene_props_from_render_settings_ambientColor(sceneOutputs, self)
-
-def on_update_render_preview_nodes_light0Color(self, context):
-    if not self.enableAutoUpdatePreview: return
-    sceneOutputs = getSceneOutputs()
-    if sceneOutputs is not None: update_scene_props_from_render_settings_light0Color(sceneOutputs, self)
-
-def on_update_render_preview_nodes_light0Direction(self, context):
-    if not self.enableAutoUpdatePreview: return
-    sceneOutputs = getSceneOutputs()
-    if sceneOutputs is not None: update_scene_props_from_render_settings_light0Direction(sceneOutputs, self)
-
-def on_update_render_preview_nodes_light0SpecSize(self, context):
-    if not self.enableAutoUpdatePreview: return
-    sceneOutputs = getSceneOutputs()
-    if sceneOutputs is not None: update_scene_props_from_render_settings_light0SpecSize(sceneOutputs, self)
-
-def on_update_render_preview_nodes_light1Color(self, context):
-    if not self.enableAutoUpdatePreview: return
-    sceneOutputs = getSceneOutputs()
-    if sceneOutputs is not None: update_scene_props_from_render_settings_light1Color(sceneOutputs, self)
-
-def on_update_render_preview_nodes_light1Direction(self, context):
-    if not self.enableAutoUpdatePreview: return
-    sceneOutputs = getSceneOutputs()
-    if sceneOutputs is not None: update_scene_props_from_render_settings_light1Direction(sceneOutputs, self)
-
-def on_update_render_preview_nodes_light1SpecSize(self, context):
-    if not self.enableAutoUpdatePreview: return
-    sceneOutputs = getSceneOutputs()
-    if sceneOutputs is not None: update_scene_props_from_render_settings_light1SpecSize(sceneOutputs, self)
-
-def on_update_render_preview_nodes_useWorldSpaceLighting(self, context):
-    if not self.enableAutoUpdatePreview: return
-    sceneOutputs = getSceneOutputs()
-    if sceneOutputs is not None: update_scene_props_from_render_settings_useWorldSpaceLighting(sceneOutputs, self)
+on_update_render_preview_nodes_enableFogPreview = make_callback(update_scene_props_from_render_settings_enableFogPreview)
+on_update_render_preview_nodes_fogPreviewColor = make_callback(update_scene_props_from_render_settings_fogPreviewColor)
+on_update_render_preview_nodes_clippingPlanes = make_callback(update_scene_props_from_render_settings_clippingPlanes)
+on_update_render_preview_nodes_fogPreviewPosition = make_callback(update_scene_props_from_render_settings_fogPreviewPosition)
+on_update_render_preview_nodes_ambientColor = make_callback(update_scene_props_from_render_settings_ambientColor)
+on_update_render_preview_nodes_light0Color = make_callback(update_scene_props_from_render_settings_light0Color)
+on_update_render_preview_nodes_light0Direction = make_callback(update_scene_props_from_render_settings_light0Direction)
+on_update_render_preview_nodes_light0SpecSize = make_callback(update_scene_props_from_render_settings_light0SpecSize)
+on_update_render_preview_nodes_light1Color = make_callback(update_scene_props_from_render_settings_light1Color)
+on_update_render_preview_nodes_light1Direction = make_callback(update_scene_props_from_render_settings_light1Direction)
+on_update_render_preview_nodes_light1SpecSize = make_callback(update_scene_props_from_render_settings_light1SpecSize)
+on_update_render_preview_nodes_useWorldSpaceLighting = make_callback(update_scene_props_from_render_settings_useWorldSpaceLighting)
 # fmt: on
+
+del make_callback
 
 
 def on_update_render_settings(self, context: bpy.types.Context):
