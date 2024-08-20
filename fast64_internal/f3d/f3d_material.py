@@ -31,7 +31,7 @@ from bpy.utils import register_class, unregister_class
 from mathutils import Color
 
 from .f3d_enums import *
-from .f3d_gbi import get_F3D_GBI, GBL_c1, GBL_c2, enumTexScroll, isUcodeF3DEX1
+from .f3d_gbi import get_F3D_GBI, enumTexScroll, isUcodeF3DEX1, default_draw_layers
 from .f3d_material_presets import *
 from ..utility import *
 from ..render_settings import Fast64RenderSettings_Properties, update_scene_props_from_render_settings
@@ -152,16 +152,56 @@ def update_draw_layer(self, context):
             drawLayer.sm64 = {"OPA": "1", "XLU": "5"}.get(output_method, "1")  # expects vanilla draw layers
 
 
+def get_world_layer_defaults(scene, game_mode: str, layer: str):
+    world = scene.world
+    if world is None:
+        return default_draw_layers.get(game_mode, {}).get(layer, ("", ""))
+    if game_mode == "SM64":
+        return world.fast64.sm64.draw_layers.layers_by_prop[layer].preset
+    elif game_mode == "OOT":
+        return (
+            getattr(world.ootDefaultRenderModes, f"{layer.lower()}Cycle1", ""),
+            getattr(world.ootDefaultRenderModes, f"{layer.lower()}Cycle2", ""),
+        )
+    else:
+        assert (
+            False
+        ), f"game_mode={game_mode} has no draw layer defaults, this function should not have been called at all with it"
+
+
 def rendermode_preset_to_advanced(material: bpy.types.Material):
     """
     Set all individual controls for the rendermode from the preset rendermode.
     """
-    settings = material.f3d_mat.rdp_settings
+    scene = bpy.context.scene
+    f3d_mat = material.f3d_mat
+    settings = f3d_mat.rdp_settings
     f3d = get_F3D_GBI()
 
-    if settings.rendermode_advanced_enabled:
-        # Already in advanced mode, don't overwrite this with the preset
+    if settings.rendermode_advanced_enabled and settings.set_rendermode:
+        # Rendermode is being set by the material and in advanced mode, don't overwrite any settings
         return
+
+    cycle_1, cycle_2 = settings.rendermode_preset_cycle_1, settings.rendermode_preset_cycle_2
+    if not settings.set_rendermode:
+        game_mode = scene.gameEditorMode
+        layer = getattr(f3d_mat.draw_layer, game_mode.lower(), None)
+        if layer is None:  # Game mode has no layer, don´t change anything
+            return
+
+        possible_cycle_1, possible_cycle_2 = get_world_layer_defaults(scene, game_mode, layer)
+        if getattr(f3d, possible_cycle_1, None) is not None and getattr(f3d, possible_cycle_2, None) is not None:
+            cycle_1, cycle_2 = possible_cycle_1, possible_cycle_2
+
+            # Some presets are not implemented in the blender enum, so print a warning and turn on advanced
+            try:
+                settings.rendermode_preset_cycle_1, settings.rendermode_preset_cycle_2 = cycle_1, cycle_2
+                settings.rendermode_advanced_enabled = False
+            except TypeError as exc:
+                print(
+                    f"Render mode presets {cycle_1} or {cycle_2} probably not included in render mode preset enum:\n{exc}",
+                )
+                settings.rendermode_advanced_enabled = True
 
     def get_with_default(preset, default):
         # Use the material's settings even if we are not setting rendermode.
@@ -171,11 +211,11 @@ def rendermode_preset_to_advanced(material: bpy.types.Material):
 
     is_two_cycle = settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
     if is_two_cycle:
-        r1 = get_with_default(settings.rendermode_preset_cycle_1, f3d.G_RM_FOG_SHADE_A)
-        r2 = get_with_default(settings.rendermode_preset_cycle_2, f3d.G_RM_AA_ZB_OPA_SURF2)
+        r1 = get_with_default(cycle_1, f3d.G_RM_FOG_SHADE_A)
+        r2 = get_with_default(cycle_2, f3d.G_RM_AA_ZB_OPA_SURF2)
         r = r1 | r2
     else:
-        r = get_with_default(settings.rendermode_preset_cycle_1, f3d.G_RM_AA_ZB_OPA_SURF)
+        r = get_with_default(cycle_1, f3d.G_RM_AA_ZB_OPA_SURF)
         r1 = r
         # The cycle 1 bits are copied to the cycle 2 bits at export if in 1-cycle mode
         # (the hardware requires them to be the same). So, here we also move the cycle 1
@@ -212,14 +252,10 @@ def does_blender_use_mix(settings: "RDPSettings", mix: str, default_for_no_rende
     return settings.blend_b1 == mix or (is_two_cycle and settings.blend_b2 == mix)
 
 
-def is_blender_equation_equal(
-    settings: "RDPSettings", cycle: int, p: str, a: str, m: str, b: str, default_for_no_rendermode: bool = False
-) -> bool:
+def is_blender_equation_equal(settings: "RDPSettings", cycle: int, p: str, a: str, m: str, b: str) -> bool:
     assert cycle in {1, 2, -1}  # -1 = last cycle
     if cycle == -1:
         cycle = 2 if settings.g_mdsft_cycletype == "G_CYC_2CYCLE" else 1
-    if not settings.set_rendermode:
-        return default_for_no_rendermode
     return (
         getattr(settings, f"blend_p{cycle}") == p
         and getattr(settings, f"blend_a{cycle}") == a
@@ -228,7 +264,7 @@ def is_blender_equation_equal(
     )
 
 
-def is_blender_doing_fog(settings: "RDPSettings", default_for_no_rendermode: bool) -> bool:
+def is_blender_doing_fog(settings: "RDPSettings") -> bool:
     return is_blender_equation_equal(
         settings,
         # If 2 cycle, fog must be in first cycle.
@@ -240,14 +276,12 @@ def is_blender_doing_fog(settings: "RDPSettings", default_for_no_rendermode: boo
         # is color in and 1-A.
         "G_BL_CLR_IN",
         "G_BL_1MA",
-        default_for_no_rendermode,
     )
 
 
 def get_output_method(material: bpy.types.Material) -> str:
+    rendermode_preset_to_advanced(material)  # Make sure advanced settings are updated
     settings = material.f3d_mat.rdp_settings
-    if not settings.set_rendermode:
-        return drawLayerSM64Alpha[material.f3d_mat.draw_layer.sm64]
     if settings.cvg_x_alpha:
         return "CLIP"
     if settings.force_bl and is_blender_equation_equal(
@@ -258,11 +292,19 @@ def get_output_method(material: bpy.types.Material) -> str:
 
 
 def update_blend_method(material: Material, context):
+    blend_mode = get_output_method(material)
+    if material.f3d_mat.rdp_settings.zmode == "ZMODE_DEC":
+        blend_mode = "DECAL"
     if bpy.app.version >= (4, 2, 0):
-        material.surface_render_method = "BLENDED"
-    elif get_output_method(material) == "OPA":
+        if blend_mode == "CLIP":
+            material.surface_render_method = "DITHERED"
+        else:
+            material.surface_render_method = "BLENDED"
+    elif blend_mode == "OPA":
         material.blend_method = "OPAQUE"
-    else:
+    elif blend_mode == "CLIP":
+        material.blend_method = "CLIP"
+    elif blend_mode in {"XLU", "DECAL"}:
         material.blend_method = "BLEND"
 
 
@@ -1382,7 +1424,7 @@ def ui_procAnim(material, layout, useTex0, useTex1, title, useDropdown):
 
 
 def update_node_values(self, context, update_preset):
-    if hasattr(context.scene, "world") and self == context.scene.world.rdp_defaults:
+    if hasattr(context.scene, "world") and self == create_or_get_world(context.scene).rdp_defaults:
         pass
 
     with F3DMaterial_UpdateLock(get_material_from_context(context)) as material:
@@ -1398,6 +1440,20 @@ def update_all_node_values(material, context):
     update_node_values_without_preset(material, context)
     update_tex_values_and_formats(material, context)
     update_rendermode_preset(material, context)
+
+
+def update_all_material_nodes(self, context):
+    for material in bpy.data.materials:
+        if material.is_f3d and material.mat_ver >= F3D_MAT_CUR_VERSION:
+            with context.temp_override(material=material):
+                update_all_node_values(material, context)
+
+
+def update_world_default_rendermode(self, context):
+    for material in bpy.data.materials:
+        if material.is_f3d and material.mat_ver >= F3D_MAT_CUR_VERSION:
+            with context.temp_override(material=material):
+                update_rendermode_preset(material, context)
 
 
 def update_node_values_with_preset(self, context):
@@ -1563,7 +1619,7 @@ def update_fog_nodes(material: Material, context: Context):
     # rendermodes in code, so to be safe we'll enable fog. Plus we are checking
     # that fog is enabled in the geometry mode, so if so that's probably the intent.
     fogBlender.node_tree = bpy.data.node_groups[
-        ("FogBlender_On" if is_blender_doing_fog(material.f3d_mat.rdp_settings, True) else "FogBlender_Off")
+        ("FogBlender_On" if is_blender_doing_fog(material.f3d_mat.rdp_settings) else "FogBlender_Off")
     ]
 
     remove_first_link_if_exists(material, fogBlender.inputs["FogAmount"].links)
@@ -1635,6 +1691,9 @@ def set_output_node_groups(material: Material):
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
     cycle = f3dMat.rdp_settings.g_mdsft_cycletype.lstrip("G_CYC_").rstrip("_CYCLE")
     output_method = get_output_method(material)
+    if bpy.app.version < (4, 2, 0) and output_method == "CLIP":
+        output_method = "XLU"
+        material.alpha_threshold = 0.125
 
     output_group_name = f"OUTPUT_{cycle}CYCLE_{output_method}"
     output_group = bpy.data.node_groups[output_group_name]
@@ -1779,7 +1838,6 @@ def update_node_values_of_material(material: Material, context):
     material.use_backface_culling = f3dMat.rdp_settings.g_cull_back
 
     update_tex_values_manual(material, context)
-    update_blend_method(material, context)
     update_fog_nodes(material, context)
 
 
@@ -4773,9 +4831,7 @@ def mat_register():
     savePresets()
 
     Scene.f3d_type = bpy.props.EnumProperty(
-        name="F3D Microcode",
-        items=enumF3D,
-        default="F3D",
+        name="F3D Microcode", items=enumF3D, default="F3D", update=update_all_material_nodes
     )
 
     # RDP Defaults

@@ -9,7 +9,13 @@ from bpy.props import StringProperty, BoolProperty, CollectionProperty, IntPrope
 from ..panels import SM64_Panel
 from ..f3d.f3d_writer import exportF3DCommon
 from ..f3d.f3d_texture_writer import TexInfo
-from ..f3d.f3d_material import TextureProperty, tmemUsageUI, all_combiner_uses, ui_procAnim
+from ..f3d.f3d_material import (
+    TextureProperty,
+    tmemUsageUI,
+    all_combiner_uses,
+    ui_procAnim,
+    update_world_default_rendermode,
+)
 from .sm64_texscroll import modifyTexScrollFiles, modifyTexScrollHeadersGroup
 from .sm64_utility import export_rom_checks, starSelectWarning, string_int_prop
 from .sm64_level_parser import parseLevelAtPointer
@@ -50,10 +56,10 @@ from ..f3d.f3d_gbi import (
 )
 
 from ..utility import (
-    CData,
     CScrollData,
     PluginError,
     copyPropertyGroup,
+    multilineLabel,
     raisePluginError,
     prop_split,
     draw_and_check_tab,
@@ -916,7 +922,9 @@ class SM64_DrawLayerOps(OperatorBase):
     op_name: StringProperty()
 
     def execute_operator(self, context):
-        layer_props: SM64_DrawLayerProperties = context.scene.world.fast64.sm64.draw_layers
+        layer_props: SM64_DrawLayersProperties = context.scene.world.fast64.sm64.draw_layers
+        if layer_props.lock:
+            raise PluginError("Draw layer operators are locked by default, unlock them by disabling the lock icon")
         layers = layer_props.layers
         if self.op_name == "ADD":
             layers.add()
@@ -930,9 +938,9 @@ class SM64_DrawLayerOps(OperatorBase):
 class SM64_DrawLayerProperties(PropertyGroup):
     name: StringProperty(name="Name", default="Custom")
     enum: StringProperty(name="Enum", default="LAYER_CUSTOM")
-    index: StringProperty(name="Index", default="0x08")
-    cycle_1: StringProperty(name="", default="G_RM_AA_ZB_OPA_SURF")
-    cycle_2: StringProperty(name="", default="G_RM_AA_ZB_OPA_SURF2")
+    index: StringProperty(name="Index", default="0x08", update=update_world_default_rendermode)
+    cycle_1: StringProperty(name="", default="G_RM_AA_ZB_OPA_SURF", update=update_world_default_rendermode)
+    cycle_2: StringProperty(name="", default="G_RM_AA_ZB_OPA_SURF2", update=update_world_default_rendermode)
 
     @property
     def preset(self):
@@ -964,6 +972,9 @@ class SM64_DrawLayerProperties(PropertyGroup):
 class SM64_DrawLayersProperties(PropertyGroup):
     internal_defaults_set: BoolProperty()
     tab: BoolProperty(name="Draw Layers")
+    lock: BoolProperty(
+        name="", default=True
+    )  # As custom draw layers are very niche, it's best to lock the operators by default
     layers: CollectionProperty(type=SM64_DrawLayerProperties)
 
     @property
@@ -1063,10 +1074,28 @@ class SM64_DrawLayersProperties(PropertyGroup):
 
     def draw_props(self, layout: UILayout):
         col = layout.column()
+        multilineLabel(
+            col,
+            "(This feature is for advanced users, use at your own risk)\n"
+            "Disable the lock to remove or add new draw layers.",
+            icon="ERROR",
+        )
+        col.row().prop(self, "lock", icon="LOCKED" if self.lock else "UNLOCKED")
+        if not self.lock:
+            multilineLabel(
+                col,
+                "These won´t modify your repo's draw layers automatically!\n"
+                "Tip: Use repo settings and custom presets to streamline your\n"
+                "custom draw layer.",
+                icon="INFO",
+            )
+        layers_col = col.column()
+        layers_col.enabled = not self.lock
+
         draw_layer: SM64_DrawLayerProperties
         # Enumerate, then sort by index
         for i, draw_layer in sorted(enumerate(self.layers), key=lambda layer: layer[1].index):
-            box = col.box().column()
+            box = layers_col.box().column()
             row = box.row()
             SM64_DrawLayerOps.draw_props(row, "ADD", op_name="ADD", index=i)
             SM64_DrawLayerOps.draw_props(row, "REMOVE", op_name="REMOVE", index=i)

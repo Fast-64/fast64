@@ -94,7 +94,10 @@ class OOT_DrawLayersPanel(Panel):
         return context.scene.gameEditorMode == "OOT"
 
     def draw(self, context):
-        ootDefaultRenderModeProp: OOTDefaultRenderModesProperty = context.scene.world.ootDefaultRenderModes
+        world = context.scene.world
+        if not world:
+            return
+        ootDefaultRenderModeProp: OOTDefaultRenderModesProperty = world.ootDefaultRenderModes
         ootDefaultRenderModeProp.draw_props(self.layout)
 
 
