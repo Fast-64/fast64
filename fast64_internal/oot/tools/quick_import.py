@@ -57,7 +57,7 @@ def quick_import_exec(context: bpy.types.Context, sym_name: str):
 
     sym_def_pattern = re.compile(rf"([^\s]+)\s+{sym_name}\s*(\[[^\]]*\])?\s*=")
 
-    base_dir_p = Path(context.scene.ootDecompPath)
+    base_dir_p = Path(context.scene.ootDecompPath) / context.scene.fast64.oot.get_extracted_path()
     assets_objects_dir_p = base_dir_p / "assets" / "objects"
     assets_scenes_dir_p = base_dir_p / "assets" / "scenes"
     is_sym_object = True
@@ -92,7 +92,7 @@ def quick_import_exec(context: bpy.types.Context, sym_name: str):
     # {Path('.../assets/objects/gameplay_field_keep/gameplay_field_keep.c'): [('SkeletonHeader', '')]}
 
     if len(all_found_defs) == 0:
-        raise QuickImportAborted(f"Couldn't find a definition of {sym_name}")
+        raise QuickImportAborted(f"Couldn't find a definition of {sym_name}, is the OoT Version correct?")
     if len(all_found_defs) > 1:
         raise QuickImportAborted(
             f"Found definitions of {sym_name} in several files: "
