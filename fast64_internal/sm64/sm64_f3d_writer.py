@@ -116,6 +116,10 @@ class SM64Model(FModel):
         FModel.__init__(self, name, DLFormat, matWriteMethod)
         self.no_light_direction = bpy.context.scene.fast64.sm64.matstack_fix
         self.draw_layers = create_or_get_world(bpy.context.scene).fast64.sm64.draw_layers
+        if self.draw_layers.repeated_indices:
+            raise PluginError(
+                f"World draw layers have repeated indexes: " + self.draw_layers.repeated_indices_str.replace("\n", " ")
+            )
 
     def getDrawLayerV3(self, obj):
         return int(obj.draw_layer_static)
@@ -938,7 +942,7 @@ class SM64_DrawLayerOps(OperatorBase):
 class SM64_DrawLayerProperties(PropertyGroup):
     name: StringProperty(name="Name", default="Custom")
     enum: StringProperty(name="Enum", default="LAYER_CUSTOM")
-    index: StringProperty(name="Index", default="0x08", update=update_world_default_rendermode)
+    str_index: StringProperty(name="Index", default="0x08", update=update_world_default_rendermode)
     cycle_1: StringProperty(name="", default="G_RM_AA_ZB_OPA_SURF", update=update_world_default_rendermode)
     cycle_2: StringProperty(name="", default="G_RM_AA_ZB_OPA_SURF2", update=update_world_default_rendermode)
 
@@ -946,12 +950,16 @@ class SM64_DrawLayerProperties(PropertyGroup):
     def preset(self):
         return [self.cycle_1, self.cycle_2]
 
+    @property
+    def index(self):
+        return int(self.str_index, 0)
+
     def to_dict(self):
-        return {"enum": self.enum, "index": self.index, "preset": self.preset}
+        return {"enum": self.enum, "index": self.str_index, "preset": self.preset}
 
     def from_dict(self, data: dict):
         self.enum = data.get("enum", "LAYER_CUSTOM")
-        self.index = data.get("index", "0x08")
+        self.str_index = data.get("index", "0x08")
         self.cycle_1, self.cycle_2 = data.get("preset", ["G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2"])
 
     def draw_props(self, layout: UILayout):
@@ -960,7 +968,7 @@ class SM64_DrawLayerProperties(PropertyGroup):
 
         row = col.row()
         row.prop(self, "enum")
-        string_int_prop(row, self, "index", "Index", split=False)
+        string_int_prop(row, self, "str_index", "Index", split=False)
 
         split = col.split(factor=0.18)
         split.label(text="Render Mode:")
@@ -978,16 +986,34 @@ class SM64_DrawLayersProperties(PropertyGroup):
     layers: CollectionProperty(type=SM64_DrawLayerProperties)
 
     @property
+    def repeated_indices(self) -> dict:
+        indices, repeated_indices = {}, {}
+        for layer in self.layers:
+            if layer.index in indices:
+                repeated_indices[layer.index] = indices[layer.index]
+                indices[layer.index].append(layer)
+            else:
+                indices[layer.index] = [layer]
+        return repeated_indices
+
+    @property
+    def repeated_indices_str(self) -> str:
+        return "\n".join(
+            f"{index}: [{', '.join([layer.name for layer in layers])}]"
+            for index, layers in self.repeated_indices.items()
+        )
+
+    @property
     def layers_by_enum(self):
         return {layer.enum: layer for layer in self.layers}
 
     @property
     def layers_by_prop(self):
-        return {str(int(layer.index, 0)): layer for layer in self.layers}
+        return {str(layer.index): layer for layer in self.layers}
 
     @property
     def layers_by_index(self):
-        return {int(layer.index, 0): layer for layer in self.layers}
+        return {layer.index: layer for layer in self.layers}
 
     def from_dict(self, data: dict):
         self.layers.clear()
@@ -1006,9 +1032,10 @@ class SM64_DrawLayersProperties(PropertyGroup):
     def to_enum(self):
         return [
             (
-                str(int(layer.index, 0)),
-                f"{name} ({layer.index})",
+                str(layer.index),
+                f"{name} ({layer.str_index})",
                 f"{layer.enum} ({layer.index})\n{layer.cycle_1}, {layer.cycle_2}",
+                layer.index,
             )
             for name, layer in self.layers.items()
         ]
@@ -1082,6 +1109,7 @@ class SM64_DrawLayersProperties(PropertyGroup):
         )
         col.row().prop(self, "lock", icon="LOCKED" if self.lock else "UNLOCKED")
         if not self.lock:
+            col.separator()
             multilineLabel(
                 col,
                 "These won´t modify your repo's draw layers automatically!\n"
@@ -1092,14 +1120,28 @@ class SM64_DrawLayersProperties(PropertyGroup):
         layers_col = col.column()
         layers_col.enabled = not self.lock
 
+        if self.repeated_indices:
+            col.separator()
+            error_box = layers_col.box()
+            error_box.alert = True
+            multilineLabel(error_box, text=f"Repeated indices:\n{self.repeated_indices_str}", icon="ERROR")
+            col.separator()
+
         draw_layer: SM64_DrawLayerProperties
         # Enumerate, then sort by index
         for i, draw_layer in sorted(enumerate(self.layers), key=lambda layer: layer[1].index):
-            box = layers_col.box().column()
-            row = box.row()
+            layer_box = layers_col.box().column()
+            if draw_layer.index in self.repeated_indices:
+                bad_layers = self.repeated_indices[draw_layer.index]
+                bad_layers.remove(draw_layer)
+                layer_box.alert = True
+                layer_box.box().label(
+                    text=f"Duplicate index at {', '.join(layer.name for layer in bad_layers)}", icon="ERROR"
+                )
+            row = layer_box.row()
             SM64_DrawLayerOps.draw_props(row, "ADD", op_name="ADD", index=i)
             SM64_DrawLayerOps.draw_props(row, "REMOVE", op_name="REMOVE", index=i)
-            draw_layer.draw_props(box)
+            draw_layer.draw_props(layer_box)
 
 
 def populate_draw_layers(scene):
