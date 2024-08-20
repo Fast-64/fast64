@@ -6,7 +6,13 @@ from bpy.utils import register_class, unregister_class
 from ..panels import SM64_Panel
 from ..f3d.f3d_writer import exportF3DCommon
 from ..f3d.f3d_texture_writer import TexInfo
-from ..f3d.f3d_material import TextureProperty, tmemUsageUI, all_combiner_uses, ui_procAnim
+from ..f3d.f3d_material import (
+    TextureProperty,
+    tmemUsageUI,
+    all_combiner_uses,
+    ui_procAnim,
+    update_world_default_rendermode,
+)
 from .sm64_texscroll import modifyTexScrollFiles, modifyTexScrollHeadersGroup
 from .sm64_utility import export_rom_checks, starSelectWarning
 from .sm64_level_parser import parseLevelAtPointer
@@ -942,22 +948,54 @@ def sm64_dl_writer_register():
     for cls in sm64_dl_writer_classes:
         register_class(cls)
 
-    bpy.types.World.draw_layer_0_cycle_1 = bpy.props.StringProperty(default="G_RM_ZB_OPA_SURF")
-    bpy.types.World.draw_layer_0_cycle_2 = bpy.props.StringProperty(default="G_RM_ZB_OPA_SURF2")
-    bpy.types.World.draw_layer_1_cycle_1 = bpy.props.StringProperty(default="G_RM_AA_ZB_OPA_SURF")
-    bpy.types.World.draw_layer_1_cycle_2 = bpy.props.StringProperty(default="G_RM_AA_ZB_OPA_SURF2")
-    bpy.types.World.draw_layer_2_cycle_1 = bpy.props.StringProperty(default="G_RM_AA_ZB_OPA_DECAL")
-    bpy.types.World.draw_layer_2_cycle_2 = bpy.props.StringProperty(default="G_RM_AA_ZB_OPA_DECAL2")
-    bpy.types.World.draw_layer_3_cycle_1 = bpy.props.StringProperty(default="G_RM_AA_ZB_OPA_INTER")
-    bpy.types.World.draw_layer_3_cycle_2 = bpy.props.StringProperty(default="G_RM_AA_ZB_OPA_INTER2")
-    bpy.types.World.draw_layer_4_cycle_1 = bpy.props.StringProperty(default="G_RM_AA_ZB_TEX_EDGE")
-    bpy.types.World.draw_layer_4_cycle_2 = bpy.props.StringProperty(default="G_RM_AA_ZB_TEX_EDGE2")
-    bpy.types.World.draw_layer_5_cycle_1 = bpy.props.StringProperty(default="G_RM_AA_ZB_XLU_SURF")
-    bpy.types.World.draw_layer_5_cycle_2 = bpy.props.StringProperty(default="G_RM_AA_ZB_XLU_SURF2")
-    bpy.types.World.draw_layer_6_cycle_1 = bpy.props.StringProperty(default="G_RM_AA_ZB_XLU_DECAL")
-    bpy.types.World.draw_layer_6_cycle_2 = bpy.props.StringProperty(default="G_RM_AA_ZB_XLU_DECAL2")
-    bpy.types.World.draw_layer_7_cycle_1 = bpy.props.StringProperty(default="G_RM_AA_ZB_XLU_INTER")
-    bpy.types.World.draw_layer_7_cycle_2 = bpy.props.StringProperty(default="G_RM_AA_ZB_XLU_INTER2")
+    bpy.types.World.draw_layer_0_cycle_1 = bpy.props.StringProperty(
+        default="G_RM_ZB_OPA_SURF", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_0_cycle_2 = bpy.props.StringProperty(
+        default="G_RM_ZB_OPA_SURF2", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_1_cycle_1 = bpy.props.StringProperty(
+        default="G_RM_AA_ZB_OPA_SURF", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_1_cycle_2 = bpy.props.StringProperty(
+        default="G_RM_AA_ZB_OPA_SURF2", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_2_cycle_1 = bpy.props.StringProperty(
+        default="G_RM_AA_ZB_OPA_DECAL", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_2_cycle_2 = bpy.props.StringProperty(
+        default="G_RM_AA_ZB_OPA_DECAL2", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_3_cycle_1 = bpy.props.StringProperty(
+        default="G_RM_AA_ZB_OPA_INTER", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_3_cycle_2 = bpy.props.StringProperty(
+        default="G_RM_AA_ZB_OPA_INTER2", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_4_cycle_1 = bpy.props.StringProperty(
+        default="G_RM_AA_ZB_TEX_EDGE", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_4_cycle_2 = bpy.props.StringProperty(
+        default="G_RM_AA_ZB_TEX_EDGE2", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_5_cycle_1 = bpy.props.StringProperty(
+        default="G_RM_AA_ZB_XLU_SURF", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_5_cycle_2 = bpy.props.StringProperty(
+        default="G_RM_AA_ZB_XLU_SURF2", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_6_cycle_1 = bpy.props.StringProperty(
+        default="G_RM_AA_ZB_XLU_DECAL", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_6_cycle_2 = bpy.props.StringProperty(
+        default="G_RM_AA_ZB_XLU_DECAL2", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_7_cycle_1 = bpy.props.StringProperty(
+        default="G_RM_AA_ZB_XLU_INTER", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_7_cycle_2 = bpy.props.StringProperty(
+        default="G_RM_AA_ZB_XLU_INTER2", update=update_world_default_rendermode
+    )
 
     bpy.types.Scene.DLExportStart = bpy.props.StringProperty(name="Start", default="11D8930")
     bpy.types.Scene.DLExportEnd = bpy.props.StringProperty(name="End", default="11FFF00")
