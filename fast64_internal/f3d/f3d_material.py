@@ -1410,7 +1410,7 @@ def ui_procAnim(material, layout, useTex0, useTex1, title, useDropdown):
 
 
 def update_node_values(self, context, update_preset):
-    if hasattr(context.scene, "world") and self == context.scene.world.rdp_defaults:
+    if hasattr(context.scene, "world") and self == create_or_get_world(context.scene).rdp_defaults:
         pass
 
     with F3DMaterial_UpdateLock(get_material_from_context(context)) as material:
