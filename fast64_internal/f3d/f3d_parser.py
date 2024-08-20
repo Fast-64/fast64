@@ -540,6 +540,8 @@ class F3DContext:
         savedTlutAppliedTextures = self.tlutAppliedTextures
         savedImagesDontApplyTlut = self.imagesDontApplyTlut
         savedLightData = self.lightData
+        savedMatrixData = self.matrixData
+        savedLimbToBoneName = self.limbToBoneName
 
         self.initContext()
 
@@ -548,6 +550,8 @@ class F3DContext:
         self.tlutAppliedTextures = savedTlutAppliedTextures
         self.imagesDontApplyTlut = savedImagesDontApplyTlut
         self.lightData = savedLightData
+        self.matrixData = savedMatrixData
+        self.limbToBoneName = savedLimbToBoneName
 
     def clearMaterial(self):
         mat = self.mat()
