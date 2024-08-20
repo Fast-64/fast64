@@ -3737,7 +3737,7 @@ class RDPSettings(PropertyGroup):
         ("chromaKey", "g_mdsft_combkey", "G_CK_NONE", "G_CK_"),
         ("textureConvert", "g_mdsft_textconv", "G_TC_CONV", "G_TC_"),
         ("textureFilter", "g_mdsft_text_filt", "G_TF_POINT", "G_TF_"),
-        # ("lutFormat", "g_mdsft_textlut", "G_TT_NONE", "G_TT_") # TODO: Get tlut changes pr merged before glTF
+        ("lutFormat", "g_mdsft_textlut", "G_TT_NONE", "G_TT_"),
         ("textureLoD", "g_mdsft_textlod", "G_TL_TILE", "G_TL_"),
         ("textureDetail", "g_mdsft_textdetail", "G_TD_CLAMP", "G_TD_"),
         ("perspectiveCorrection", "g_mdsft_textpersp", "G_TP_NONE", "G_TP_"),
@@ -3747,8 +3747,8 @@ class RDPSettings(PropertyGroup):
 
     def other_mode_h_to_dict(self, remove_prefix=False, lut_format=None):
         data = self.attributes_to_dict(self.other_mode_h_attributes, remove_prefix)
-        if lut_format:
-            data["lutFormat"] = lut_format
+        if lut_format is not None and lut_format != "G_TT_NONE":
+            data["lutFormat"] = lut_format[len("G_TT_") :] if remove_prefix else lut_format
         return data
 
     def other_mode_h_from_dict(self, data: dict):

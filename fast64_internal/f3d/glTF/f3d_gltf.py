@@ -17,6 +17,7 @@ from ..f3d_material import (
     createScenePropertiesForMaterial,
     get_f3d_node_tree,
     update_all_node_values,
+    get_textlut_mode,
     F3DMaterialProperty,
     RDPSettings,
     TextureProperty,
@@ -525,7 +526,12 @@ class F3DExtensions(GlTF2SubExtension):
         n64_data = {
             "combiner": f3d_mat.combiner_to_dict(),
             **f3d_mat.n64_colors_to_dict(use_dict),
-            "otherModes": ({**rdp.other_mode_h_to_dict(True), **rdp.other_mode_l_to_dict(True)}),
+            "otherModes": (
+                {
+                    **rdp.other_mode_h_to_dict(True, lut_format=get_textlut_mode(f3d_mat)),
+                    **rdp.other_mode_l_to_dict(True),
+                }
+            ),
         }
         if rdp.g_mdsft_zsrcsel == "G_ZS_PRIM":
             n64_data["primDepth"] = rdp.prim_depth.to_dict()
