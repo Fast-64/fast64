@@ -48,9 +48,12 @@ class OOT_CutscenePanel(OOT_Panel):
 
         importBox = layout.box()
         importBox.label(text="Cutscene Importer")
-        prop_split(importBox, context.scene, "ootCutsceneImportPath", "Import From")
+        prop_split(importBox, context.scene, "ootCSImportName", "Import")
+        prop_split(importBox, context.scene, "ootCutsceneImportPath", "From")
 
         col = importBox.column()
+        if len(context.scene.ootCSImportName) == 0:
+            col.label(text="All Cutscenes will be imported.")
         col.operator(OOT_ImportCutscene.bl_idname)
 
 
