@@ -568,7 +568,6 @@ def exportGeolayoutObjectC(
     texDir,
     savePNG,
     texSeparate,
-    camera,
     groupName,
     headerType,
     dirName,
@@ -891,7 +890,6 @@ def exportGeolayoutObjectBinaryBank0(
     modelID,
     textDumpFilePath,
     RAMAddr,
-    camera,
 ):
     geolayoutGraph, fModel = convertObjectToGeolayout(
         obj, convertTransformMatrix, True, obj.name, None, None, DLFormat.Static, True
@@ -974,7 +972,6 @@ def exportGeolayoutObjectBinary(
     levelCommandPos,
     modelID,
     textDumpFilePath,
-    camera,
 ):
     geolayoutGraph, fModel = convertObjectToGeolayout(
         obj, convertTransformMatrix, True, obj.name, None, None, DLFormat.Static, True
