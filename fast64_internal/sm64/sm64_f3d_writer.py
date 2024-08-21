@@ -981,8 +981,11 @@ class SM64_DrawLayersProperties(PropertyGroup):
     internal_defaults_set: BoolProperty()
     tab: BoolProperty(name="Draw Layers")
     lock: BoolProperty(
-        name="", default=True
-    )  # As custom draw layers are very niche, it's best to lock the operators by default
+        name="",
+        default=True,
+        description="(This feature is for advanced users, use at your own risk)\n"
+        "Disable the lock to remove or add new draw layers.",
+    )
     layers: CollectionProperty(type=SM64_DrawLayerProperties)
 
     @property
