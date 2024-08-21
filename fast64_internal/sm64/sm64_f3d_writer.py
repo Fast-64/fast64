@@ -1034,7 +1034,7 @@ class SM64_DrawLayersProperties(PropertyGroup):
             (
                 str(layer.index),
                 f"{name} ({layer.str_index})",
-                f"{layer.enum} ({layer.index})\n{layer.cycle_1}, {layer.cycle_2}",
+                f"{layer.enum} ({layer.str_index})\n{layer.cycle_1}, {layer.cycle_2}",
                 layer.index,
             )
             for name, layer in self.layers.items()
