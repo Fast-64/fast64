@@ -86,6 +86,7 @@ from ..utility import (
     writeBoxExportType,
     enumExportHeaderType,
     create_or_get_world,
+    intToHex,
 )
 from ..operators import OperatorBase
 
@@ -919,7 +920,7 @@ class SM64_MaterialPanel(bpy.types.Panel):
 class SM64_DrawLayerOps(OperatorBase):
     bl_idname = "scene.sm64_draw_layer_ops"
     bl_label = ""
-    bl_description = "Move, remove, clear or add draw layers to the world"
+    bl_description = "Remove or add draw layers to the world"
     bl_options = {"UNDO"}
 
     index: IntProperty()
@@ -933,10 +934,19 @@ class SM64_DrawLayerOps(OperatorBase):
         if self.op_name == "ADD":
             layers.add()
             added_layer = layers[-1]
-            copyPropertyGroup(layers[self.index], added_layer)
+            base_layer = layers[self.index]
+            copyPropertyGroup(base_layer, added_layer)
+            added_layer.name = f"{base_layer.name} (Copy)"
+            added_layer.enum = f"{base_layer.enum}_COPY"
+            added_layer.str_index = intToHex(layers[self.index].index + 1, 1)
             layers.move(len(layers) - 1, self.index + 1)
-        elif self.op_name == "REMOVE":  # Upgrade all materials once this runs
+        elif self.op_name == "REMOVE":
             layer_props.layers.remove(self.index)
+            layer_props.update_all_materials(self.index)
+        elif self.op_name == "DEFAULTS":
+            layer_props.populate(force_default=True)
+        else:
+            raise NotImplementedError(f'Unimplemented internal draw layer op "{self.op_name}"')
 
 
 class SM64_DrawLayerProperties(PropertyGroup):
@@ -1043,9 +1053,17 @@ class SM64_DrawLayersProperties(PropertyGroup):
             for name, layer in self.layers.items()
         ]
 
-    def populate(self, world: World | None = None):
+    def update_all_materials(self, layer_index=-1):
+        """Update draw layers in materials to ensure any removed draw layer is not being used"""
+        fallback = list(self.layers_by_prop.values())[0]
+        for material in bpy.data.materials:
+            if not material.is_f3d:
+                continue
+            material.f3d_mat.draw_layer.sm64 = str(self.layers_by_index.get(layer_index - 1, fallback).index)
+
+    def populate(self, world: World | None = None, force_default=False):
         """If a world is passed in, try to upgrade properties from it"""
-        if self.internal_defaults_set:
+        if self.internal_defaults_set and not force_default:
             return
         default_draw_layer_info = {
             "Background": {
@@ -1091,7 +1109,7 @@ class SM64_DrawLayersProperties(PropertyGroup):
         }
         self.from_dict(default_draw_layer_info)
 
-        if world is not None:
+        if world is not None and not force_default:
             for i, layer in self.layers_by_index.items():
                 upgrade_old_prop(layer, "cycle_1", world, f"draw_layer_{i}_cycle_1")
                 upgrade_old_prop(layer, "cycle_2", world, f"draw_layer_{i}_cycle_2")
@@ -1123,6 +1141,10 @@ class SM64_DrawLayersProperties(PropertyGroup):
         layers_col = col.column()
         layers_col.enabled = not self.lock
 
+        SM64_DrawLayerOps.draw_props(
+            layers_col.row(), "MODIFIER_OFF", text="Reset to vanilla SM64 defaults", op_name="DEFAULTS"
+        )
+
         if self.repeated_indices:
             col.separator()
             error_box = layers_col.box()
@@ -1143,7 +1165,7 @@ class SM64_DrawLayersProperties(PropertyGroup):
                 )
             row = layer_box.row()
             SM64_DrawLayerOps.draw_props(row, "ADD", op_name="ADD", index=i)
-            SM64_DrawLayerOps.draw_props(row, "REMOVE", op_name="REMOVE", index=i)
+            op = SM64_DrawLayerOps.draw_props(row, "REMOVE", enabled=len(self.layers) > 1, op_name="REMOVE", index=i)
             draw_layer.draw_props(layer_box)
 
 
