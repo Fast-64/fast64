@@ -200,6 +200,7 @@ def getSceneOutputs():
 class ManualUpdatePreviewOperator(bpy.types.Operator):
     bl_idname = "view3d.fast64_manual_update_preview"
     bl_label = "Update Preview"
+    bl_description = "Apply the F3D Render Settings to the view"
 
     def execute(self, context):
         sceneOutputs = getSceneOutputs()
@@ -286,6 +287,7 @@ def on_update_render_settings_enableAutoUpdatePreview(self, context):
 class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
     enableAutoUpdatePreview: bpy.props.BoolProperty(
         name="Auto Update Preview",
+        description="If enabled, the view will update automatically when changing render settings",
         default=True,
         update=on_update_render_settings_enableAutoUpdatePreview,
     )
