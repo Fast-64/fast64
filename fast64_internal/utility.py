@@ -788,7 +788,8 @@ def store_original_mtx():
     for obj in yield_children(active_obj):
         # negative scales produce a rotation, we need to remove that since
         # scales will be applied to the transform for each object
-        obj["original_mtx"] = Matrix.LocRotScale(obj.location, obj.rotation_euler, None)
+        loc, rot, _scale = obj.matrix_local.decompose()
+        obj["original_mtx"] = Matrix.LocRotScale(loc, rot, None)
 
 
 def rotate_bounds(bounds, mtx: mathutils.Matrix):
