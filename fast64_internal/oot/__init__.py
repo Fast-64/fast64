@@ -120,7 +120,9 @@ class OOT_Properties(bpy.types.PropertyGroup):
 
     def upgrade_changed_props():
         if "hackerFeaturesEnabled" in bpy.context.scene.fast64.oot:
-            bpy.context.scene.fast64.oot.feature_set = "hacker_oot" if bpy.context.scene.fast64.oot["hackerFeaturesEnabled"] else "decomp"
+            bpy.context.scene.fast64.oot.feature_set = (
+                "hacker_oot" if bpy.context.scene.fast64.oot["hackerFeaturesEnabled"] else "decomp"
+            )
             del bpy.context.scene.fast64.oot["hackerFeaturesEnabled"]
 
 
