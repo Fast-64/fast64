@@ -43,7 +43,7 @@ class OOT_ExportScenePanel(OOT_Panel):
             self.drawSceneSearchOp(exportBox, settings.option, "Export")
         settings.draw_props(exportBox)
 
-        if bpy.context.scene.fast64.oot.featureSet == "hacker_oot":
+        if bpy.context.scene.fast64.oot.feature_set == "hacker_oot":
             hackerOoTBox = exportBox.box().column()
             hackerOoTBox.label(text="HackerOoT Options")
 

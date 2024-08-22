@@ -155,7 +155,7 @@ class OOT_ExportScene(Operator):
             option = settings.option
 
             bootOptions = context.scene.fast64.oot.bootupSceneOptions
-            hackerFeaturesEnabled = bpy.context.scene.fast64.oot.featureSet == "hacker_oot"
+            hackerFeaturesEnabled = bpy.context.scene.fast64.oot.feature_set == "hacker_oot"
 
             if settings.customExport:
                 isCustomExport = True

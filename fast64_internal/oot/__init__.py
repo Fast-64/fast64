@@ -59,7 +59,7 @@ from .tools import (
 )
 
 
-featureSetEnum = (
+feature_set_enum = (
     ("decomp", "Decomp", "Decomp"),
     ("hacker_oot", "HackerOOT", "Hacker OOT"),
 )
@@ -84,7 +84,7 @@ class OOT_Properties(bpy.types.PropertyGroup):
     """Global OOT Scene Properties found under scene.fast64.oot"""
 
     version: bpy.props.IntProperty(name="OOT_Properties Version", default=0)
-    featureSet: bpy.props.EnumProperty(name="Feature Set", default="decomp", items=featureSetEnum)
+    feature_set: bpy.props.EnumProperty(name="Feature Set", default="decomp", items=feature_set_enum)
     headerTabAffectsVisibility: bpy.props.BoolProperty(
         default=False, name="Header Sets Actor Visibility", update=setAllActorsVisibility
     )
@@ -120,7 +120,7 @@ class OOT_Properties(bpy.types.PropertyGroup):
 
     def upgrade_changed_props():
         if "hackerFeaturesEnabled" in bpy.context.scene.fast64.oot:
-            bpy.context.scene.fast64.oot.featureSet = "hacker_oot" if bpy.context.scene.fast64.oot["hackerFeaturesEnabled"] else "decomp"
+            bpy.context.scene.fast64.oot.feature_set = "hacker_oot" if bpy.context.scene.fast64.oot["hackerFeaturesEnabled"] else "decomp"
             del bpy.context.scene.fast64.oot["hackerFeaturesEnabled"]
 
 

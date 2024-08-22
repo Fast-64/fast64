@@ -24,9 +24,9 @@ class OOT_FileSettingsPanel(OOT_Panel):
             prop_split(col, context.scene.fast64.oot, "oot_version_custom", "Custom Version")
 
         col.prop(context.scene.fast64.oot, "headerTabAffectsVisibility")
-        col.prop(context.scene.fast64.oot, "featureSet")
+        col.prop(context.scene.fast64.oot, "feature_set")
 
-        if bpy.context.scene.fast64.oot.featureSet == "decomp":
+        if bpy.context.scene.fast64.oot.feature_set == "decomp":
             col.prop(context.scene.fast64.oot, "useDecompFeatures")
         col.prop(context.scene.fast64.oot, "exportMotionOnly")
 
