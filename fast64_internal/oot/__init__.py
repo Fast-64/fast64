@@ -58,6 +58,13 @@ from .tools import (
     oot_operator_unregister,
 )
 
+
+featureSetEnum = (
+    ("decomp", "Decomp", "Decomp"),
+    ("hacker_oot", "HackerOOT", "Hacker OOT"),
+)
+
+
 oot_versions_items = [
     ("Custom", "Custom", "Custom"),
     ("gc-jp", "gc-jp", "gc-jp"),
@@ -77,7 +84,7 @@ class OOT_Properties(bpy.types.PropertyGroup):
     """Global OOT Scene Properties found under scene.fast64.oot"""
 
     version: bpy.props.IntProperty(name="OOT_Properties Version", default=0)
-    hackerFeaturesEnabled: bpy.props.BoolProperty(name="Enable HackerOOT Features")
+    featureSet: bpy.props.EnumProperty(name="Feature Set", default="decomp", items=featureSetEnum)
     headerTabAffectsVisibility: bpy.props.BoolProperty(
         default=False, name="Header Sets Actor Visibility", update=setAllActorsVisibility
     )
