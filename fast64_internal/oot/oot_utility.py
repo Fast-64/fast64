@@ -162,6 +162,7 @@ ootSceneTest_levels = [
     "testroom",
 ]
 
+# NOTE: the "extracted/VERSION/" part is added in ``getSceneDirFromLevelName`` when needed
 ootSceneDirs = {
     "assets/scenes/dungeons/": ootSceneDungeons,
     "assets/scenes/indoors/": ootSceneIndoors,
@@ -234,7 +235,11 @@ def addIncludeFilesExtension(objectName, objectPath, assetName, extension):
     if not os.path.exists(objectPath):
         raise PluginError(objectPath + " does not exist.")
     path = os.path.join(objectPath, objectName + "." + extension)
-    data = getDataFromFile(path)
+    if not os.path.exists(path):
+        # workaround for exporting to an object that doesn't exist in assets/
+        data = ""
+    else:
+        data = getDataFromFile(path)
 
     if include not in data:
         data += "\n" + include
@@ -243,10 +248,11 @@ def addIncludeFilesExtension(objectName, objectPath, assetName, extension):
     saveDataToFile(path, data)
 
 
-def getSceneDirFromLevelName(name):
+def getSceneDirFromLevelName(name: str, include_extracted: bool = False):
+    extracted = bpy.context.scene.fast64.oot.get_extracted_path() if include_extracted else "."
     for sceneDir, dirLevels in ootSceneDirs.items():
         if name in dirLevels:
-            return sceneDir + name
+            return f"{extracted}/" + sceneDir + name
     return None
 
 
@@ -458,22 +464,34 @@ def checkEmptyName(name):
         raise PluginError("No name entered for the exporter.")
 
 
-def ootGetObjectPath(isCustomExport: bool, exportPath: str, folderName: str) -> str:
+def ootGetObjectPath(isCustomExport: bool, exportPath: str, folderName: str, include_extracted: bool) -> str:
+    extracted = bpy.context.scene.fast64.oot.get_extracted_path() if include_extracted else "."
+
     if isCustomExport:
         filepath = exportPath
     else:
         filepath = os.path.join(
-            ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False), folderName + ".c"
+            ootGetPath(
+                exportPath,
+                isCustomExport,
+                f"{extracted}/assets/objects/",
+                folderName,
+                False,
+                False,
+            ),
+            folderName + ".c",
         )
     return filepath
 
 
-def ootGetObjectHeaderPath(isCustomExport: bool, exportPath: str, folderName: str) -> str:
+def ootGetObjectHeaderPath(isCustomExport: bool, exportPath: str, folderName: str, include_extracted: bool) -> str:
+    extracted = bpy.context.scene.fast64.oot.get_extracted_path() if include_extracted else "."
     if isCustomExport:
         filepath = exportPath
     else:
         filepath = os.path.join(
-            ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False), folderName + ".h"
+            ootGetPath(exportPath, isCustomExport, f"{extracted}/assets/objects/", folderName, False, False),
+            folderName + ".h",
         )
     return filepath
 
@@ -1044,17 +1062,19 @@ def getObjectList(
     objType: str,
     emptyType: Optional[str] = None,
     splineType: Optional[str] = None,
-    parentObj: Object = None,
+    parentObj: Optional[Object] = None,
+    room_index: Optional[int] = None,
 ):
     """
     Returns a list containing objects matching ``objType``. Sorts by object name.
 
     Parameters:
-    - ``objList``: the list of objects to iterate through, usually ``obj.children_recursive``
-    - ``objType``: the object's type (``EMPTY``, ``CURVE``, etc.)
-    - ``emptyType``: optional, filters the object by the given empty type
-    - ``splineType``: optional, filters the object by the given spline type
-    - ``parentObj``: optional, checks if the found object is parented to ``parentObj``
+    - `objList`: the list of objects to iterate through, usually ``obj.children_recursive``
+    - `objType`: the object's type (``EMPTY``, ``CURVE``, etc.)
+    - `emptyType`: optional, filters the object by the given empty type
+    - `splineType`: optional, filters the object by the given spline type
+    - `parentObj`: optional, checks if the found object is parented to ``parentObj``
+    - `room_index`: optional, the room index
     """
 
     ret: list[Object] = []
@@ -1068,13 +1088,13 @@ def getObjectList(
                 cond = obj.ootSplineProperty.splineType == splineType
 
             if parentObj is not None:
-                if emptyType == "Actor" and obj.ootEmptyType == "Room":
+                if emptyType == "Actor" and obj.ootEmptyType == "Room" and obj.ootRoomHeader.roomIndex == room_index:
                     for o in obj.children_recursive:
                         if o.type == objType and o.ootEmptyType == emptyType and o not in ret:
                             ret.append(o)
                     continue
                 else:
-                    cond = cond and obj.parent is not None and obj.parent.name == parentObj.name
+                    cond = cond and obj.parent is not None and obj.parent == parentObj
 
             if cond and obj not in ret:
                 ret.append(obj)

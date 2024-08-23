@@ -18,6 +18,11 @@ class OOT_FileSettingsPanel(OOT_Panel):
         prop_split(col, context.scene, "ootBlenderScale", "OOT Scene Scale")
 
         prop_split(col, context.scene, "ootDecompPath", "Decomp Path")
+
+        prop_split(col, context.scene.fast64.oot, "oot_version", "OoT Version")
+        if context.scene.fast64.oot.oot_version == "Custom":
+            prop_split(col, context.scene.fast64.oot, "oot_version_custom", "Custom Version")
+
         col.prop(context.scene.fast64.oot, "headerTabAffectsVisibility")
         col.prop(context.scene.fast64.oot, "hackerFeaturesEnabled")
 
