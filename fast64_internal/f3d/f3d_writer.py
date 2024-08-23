@@ -1416,8 +1416,9 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         fMaterial.mat_only_DL.commands.append(SPAttrOffsetZ(f3dMat.attroffs_z))
 
     if f3dMat.set_fog and f3dMat.rdp_settings.using_fog:
-        if f3dMat.use_global_fog and fModel.global_data.getCurrentAreaData() is not None:
-            fogData = fModel.global_data.getCurrentAreaData().fog_data
+        area = fModel.global_data.getCurrentAreaData()
+        if f3dMat.use_global_fog and area and area.fog_data:
+            fogData = area.fog_data
             fog_position = fogData.position
             fog_color = fogData.color
         else:
