@@ -498,24 +498,22 @@ def replaceScriptLoads(levelscript, obj):
 
 STRING_TO_MACROS_PATTERN = re.compile(
     r"""
-    .*?
-    (?P<macro_name>\w+)
-    \s*
-    \((?P<arguments> 
-        [^()]*
+    .*? # match as few chars as possible before macro name
+    (?P<macro_name>\w+) #group macro name matches 1+ word chars
+    \s* # allows any number of spaces after macro name
+    \((?P<arguments> # group <arguments> is inside first parenthesis
+        [^()]* # anything but ()
         (?: # Non-capturing group for 1 depth parentheses
-            \(
-                .*?
-            \)
+            \(.*?\) # captures parenthesis+any chars inside
             [^()]*
-        )*
+        )* # allows any number of inner parenthesis ()
     )\)
-    (\s*,\s*|\s*)
-    (?P<comment> 
-        //.*$
+    (\s*,\s*|\s*) # group of whitespace and comma and whitespace (??)
+    (?P<comment> # comment group
+        ([^\n]|\s*?\\\s*?\n)//.*$ # two // and any number of chars and str or line end
         |
-        /\*.*\*/ 
-    )?
+        ([^\n]|\s*?\\\s*?\n)/\*.*\*/ # a /*, any number of chars and a */
+    )? # 0 or 1 repetition of comments
 """,
     re.VERBOSE | re.MULTILINE,
 )
