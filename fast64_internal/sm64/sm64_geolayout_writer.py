@@ -2857,7 +2857,6 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                     bpy.context.scene.geoTexDir,
                     save_textures,
                     save_textures and bpy.context.scene.geoSeparateTextureDef,
-                    None,
                     props.export_group_name,
                     props.export_header_type,
                     props.obj_name_gfx,
@@ -2907,7 +2906,6 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                         *modelLoadInfo,
                         textDumpFilePath,
                         getAddressFromRAMAddress(int(context.scene.geoRAMAddr, 16)),
-                        None,
                     )
                 else:
                     addrRange, segPointer = exportGeolayoutObjectBinary(
@@ -2918,7 +2916,6 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                         segmentData,
                         *modelLoadInfo,
                         textDumpFilePath,
-                        None,
                     )
 
                 romfileOutput.close()
