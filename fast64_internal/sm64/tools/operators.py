@@ -189,7 +189,7 @@ class SM64_CreateSimpleLevel(OperatorBase):
             area_object.warpNodes.add()
             area_object.warpNodes[-1].warpID = "0x0A"  # Spin warp
             area_object.warpNodes[-1].destLevel = custom_level_id
-            area_object.warpNodes[-1].destLevelEnum = combined_export.level_name
+            area_object.warpNodes[-1].destLevelEnum = combined_export.export_level_name
             area_object.warpNodes[-1].destNode = "0x0A"
 
             area_object.warpNodes.add()
@@ -200,7 +200,7 @@ class SM64_CreateSimpleLevel(OperatorBase):
             area_object.warpNodes.add()
             area_object.warpNodes[-1].warpID = "0xF1"  # Death
             if self.respawn_in_level:
-                area_object.warpNodes[-1].destLevelEnum = combined_export.level_name
+                area_object.warpNodes[-1].destLevelEnum = combined_export.export_level_name
                 area_object.warpNodes[-1].destLevel = custom_level_id
                 area_object.warpNodes[-1].destNode = "0x0A"
             else:
