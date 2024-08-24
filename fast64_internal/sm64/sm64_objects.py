@@ -935,7 +935,7 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
                 area.puppycamVolumes.append(
                     PuppycamVolume(
                         triggerIndex,
-                        levelIDNames[bpy.data.scenes["Scene"].fast64.sm64.export_level_name],
+                        levelIDNames[bpy.context.scene.fast64.sm64.export_level_name],
                         puppycamProp.puppycamVolumePermaswap,
                         puppycamProp.puppycamVolumeFunction,
                         translation,
