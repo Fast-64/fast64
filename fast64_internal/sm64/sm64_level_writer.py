@@ -880,7 +880,7 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
     else:
         level_dir = os.path.join(exportDir, "levels/" + level_name)
 
-    if customExport or not os.path.exists(os.path.join(level_dir, "script.c")):
+    if not os.path.exists(os.path.join(level_dir, "script.c")):
         prev_level_script = LevelScript(level_name)
     else:
         prev_level_script = parseLevelScript(level_dir, level_name)
@@ -974,14 +974,14 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
     if DLFormat == DLFormat.Static:
         staticData.append(dynamicData)
     else:
-        geoString = writeMaterialFiles(
+        level_data.geo_data = writeMaterialFiles(
             exportDir,
             level_dir,
             include_proto("header.h"),
             include_proto("material.inc.h"),
             dynamicData.header,
             dynamicData.source,
-            geoString,
+            level_data.geo_data,
             customExport,
         )
 
