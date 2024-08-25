@@ -99,7 +99,7 @@ class SM64_Properties(PropertyGroup):
             "exportType": "export_type",
         }
         old_export_props_to_new = {
-            "custom_export_name": {"geoLevelName", "colLevelName", "animLevelName"},
+            "custom_group_name": {"geoLevelName", "colLevelName", "animLevelName"},
             "custom_export_path": {"geoExportPath", "colExportPath", "animExportPath"},
             "object_name": {"geoName", "colName", "animName"},
             "group_name": {"geoGroupName", "colGroupName", "animGroupName"},

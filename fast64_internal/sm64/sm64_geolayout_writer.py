@@ -2847,12 +2847,12 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
 
             if context.scene.fast64.sm64.export_type == "C":
                 export_path, level_name = getPathAndLevel(
-                    props.export_header_type == "Custom",
-                    props.custom_export_path,
-                    props.custom_export_name,
-                    props.actor_level_name,
+                    props.is_actor_custom_export,
+                    props.actor_custom_path,
+                    props.export_level_name,
+                    props.level_name,
                 )
-                if not props.export_header_type == "Custom":
+                if not props.is_actor_custom_export:
                     applyBasicTweaks(export_path)
                 exportGeolayoutObjectC(
                     obj,
@@ -2862,12 +2862,12 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                     save_textures,
                     save_textures and bpy.context.scene.geoSeparateTextureDef,
                     None,
-                    props.export_group_name,
+                    props.actor_group_name,
                     props.export_header_type,
                     props.obj_name_gfx,
                     props.geo_name,
                     level_name,
-                    props.export_header_type == "Custom",
+                    props.is_actor_custom_export,
                     DLFormat.Static,
                 )
                 self.report({"INFO"}, "Success!")
@@ -3044,14 +3044,14 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
             bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
             if context.scene.fast64.sm64.export_type == "C":
                 export_path, level_name = getPathAndLevel(
-                    props.export_header_type == "Custom",
-                    props.custom_export_path,
-                    props.custom_export_name,
-                    props.actor_level_name,
+                    props.is_actor_custom_export,
+                    props.actor_custom_path,
+                    props.export_level_name,
+                    props.level_name,
                 )
 
                 save_textures = bpy.context.scene.saveTextures
-                if not props.export_header_type == "Custom":
+                if not props.is_actor_custom_export:
                     applyBasicTweaks(export_path)
                 header, fileStatus = exportGeolayoutArmatureC(
                     armatureObj,
@@ -3062,12 +3062,12 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                     save_textures,
                     save_textures and bpy.context.scene.geoSeparateTextureDef,
                     None,
-                    props.export_group_name,
+                    props.actor_group_name,
                     props.export_header_type,
                     props.obj_name_gfx,
                     props.geo_name,
                     level_name,
-                    props.export_header_type == "Custom",
+                    props.is_actor_custom_export,
                     DLFormat.Static,
                 )
                 starSelectWarning(self, fileStatus)

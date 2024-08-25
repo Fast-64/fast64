@@ -418,17 +418,17 @@ def extendedRAMLabel(layout):
     infoBox.label(text="Extended RAM prevents crashes.")
 
 
-def getPathAndLevel(customExport, exportPath, levelName, levelOption):
-    if customExport:
-        exportPath = bpy.path.abspath(exportPath)
-        levelName = levelName
+def getPathAndLevel(is_custom_export, custom_export_path, custom_level_name, level_enum):
+    if is_custom_export:
+        export_path = bpy.path.abspath(custom_export_path)
+        level_name = custom_level_name
     else:
-        exportPath = bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path)
-        if levelOption == "Custom":
-            levelName = levelName
+        export_path = bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path)
+        if level_enum == "Custom":
+            level_name = custom_level_name
         else:
-            levelName = levelOption
-    return exportPath, levelName
+            level_name = level_enum
+    return export_path, level_name
 
 
 def findStartBones(armatureObj):
