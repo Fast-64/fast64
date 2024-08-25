@@ -92,75 +92,75 @@ def on_update_oot_render_settings(self, context: bpy.types.Context):
         )
 
 
-def update_scene_props_from_render_settings_enableFogPreview(
+def update_scene_props_from_rs_enableFogPreview(
     sceneOutputs: bpy.types.NodeGroupOutput, renderSettings: "Fast64RenderSettings_Properties"
 ):
     sceneOutputs.inputs["FogEnable"].default_value = int(renderSettings.enableFogPreview)
 
 
-def update_scene_props_from_render_settings_fogPreviewColor(
+def update_scene_props_from_rs_fogPreviewColor(
     sceneOutputs: bpy.types.NodeGroupOutput, renderSettings: "Fast64RenderSettings_Properties"
 ):
     sceneOutputs.inputs["FogColor"].default_value = s_rgb_alpha_1_tuple(renderSettings.fogPreviewColor)
 
 
-def update_scene_props_from_render_settings_clippingPlanes(
+def update_scene_props_from_rs_clippingPlanes(
     sceneOutputs: bpy.types.NodeGroupOutput, renderSettings: "Fast64RenderSettings_Properties"
 ):
     sceneOutputs.inputs["F3D_NearClip"].default_value = float(renderSettings.clippingPlanes[0])
     sceneOutputs.inputs["F3D_FarClip"].default_value = float(renderSettings.clippingPlanes[1])
 
 
-def update_scene_props_from_render_settings_fogPreviewPosition(
+def update_scene_props_from_rs_fogPreviewPosition(
     sceneOutputs: bpy.types.NodeGroupOutput, renderSettings: "Fast64RenderSettings_Properties"
 ):
     sceneOutputs.inputs["FogNear"].default_value = renderSettings.fogPreviewPosition[0]
     sceneOutputs.inputs["FogFar"].default_value = renderSettings.fogPreviewPosition[1]
 
 
-def update_scene_props_from_render_settings_ambientColor(
+def update_scene_props_from_rs_ambientColor(
     sceneOutputs: bpy.types.NodeGroupOutput, renderSettings: "Fast64RenderSettings_Properties"
 ):
     sceneOutputs.inputs["AmbientColor"].default_value = s_rgb_alpha_1_tuple(renderSettings.ambientColor)
 
 
-def update_scene_props_from_render_settings_light0Color(
+def update_scene_props_from_rs_light0Color(
     sceneOutputs: bpy.types.NodeGroupOutput, renderSettings: "Fast64RenderSettings_Properties"
 ):
     sceneOutputs.inputs["Light0Color"].default_value = s_rgb_alpha_1_tuple(renderSettings.light0Color)
 
 
-def update_scene_props_from_render_settings_light0Direction(
+def update_scene_props_from_rs_light0Direction(
     sceneOutputs: bpy.types.NodeGroupOutput, renderSettings: "Fast64RenderSettings_Properties"
 ):
     sceneOutputs.inputs["Light0Dir"].default_value = renderSettings.light0Direction
 
 
-def update_scene_props_from_render_settings_light0SpecSize(
+def update_scene_props_from_rs_light0SpecSize(
     sceneOutputs: bpy.types.NodeGroupOutput, renderSettings: "Fast64RenderSettings_Properties"
 ):
     sceneOutputs.inputs["Light0Size"].default_value = renderSettings.light0SpecSize
 
 
-def update_scene_props_from_render_settings_light1Color(
+def update_scene_props_from_rs_light1Color(
     sceneOutputs: bpy.types.NodeGroupOutput, renderSettings: "Fast64RenderSettings_Properties"
 ):
     sceneOutputs.inputs["Light1Color"].default_value = s_rgb_alpha_1_tuple(renderSettings.light1Color)
 
 
-def update_scene_props_from_render_settings_light1Direction(
+def update_scene_props_from_rs_light1Direction(
     sceneOutputs: bpy.types.NodeGroupOutput, renderSettings: "Fast64RenderSettings_Properties"
 ):
     sceneOutputs.inputs["Light1Dir"].default_value = renderSettings.light1Direction
 
 
-def update_scene_props_from_render_settings_light1SpecSize(
+def update_scene_props_from_rs_light1SpecSize(
     sceneOutputs: bpy.types.NodeGroupOutput, renderSettings: "Fast64RenderSettings_Properties"
 ):
     sceneOutputs.inputs["Light1Size"].default_value = renderSettings.light1SpecSize
 
 
-def update_scene_props_from_render_settings_useWorldSpaceLighting(renderSettings: "Fast64RenderSettings_Properties"):
+def update_scene_props_from_rs_useWorldSpaceLighting(renderSettings: "Fast64RenderSettings_Properties"):
     bpy.data.node_groups["GetSpecularNormal"].nodes["GeometryNormal"].node_tree = bpy.data.node_groups[
         "GeometryNormal_WorldSpace" if renderSettings.useWorldSpaceLighting else "GeometryNormal_ViewSpace"
     ]
@@ -170,18 +170,18 @@ def update_scene_props_from_render_settings(
     sceneOutputs: bpy.types.NodeGroupOutput,
     renderSettings: "Fast64RenderSettings_Properties",
 ):
-    update_scene_props_from_render_settings_enableFogPreview(sceneOutputs, renderSettings)
-    update_scene_props_from_render_settings_fogPreviewColor(sceneOutputs, renderSettings)
-    update_scene_props_from_render_settings_clippingPlanes(sceneOutputs, renderSettings)
-    update_scene_props_from_render_settings_fogPreviewPosition(sceneOutputs, renderSettings)
-    update_scene_props_from_render_settings_ambientColor(sceneOutputs, renderSettings)
-    update_scene_props_from_render_settings_light0Color(sceneOutputs, renderSettings)
-    update_scene_props_from_render_settings_light0Direction(sceneOutputs, renderSettings)
-    update_scene_props_from_render_settings_light0SpecSize(sceneOutputs, renderSettings)
-    update_scene_props_from_render_settings_light1Color(sceneOutputs, renderSettings)
-    update_scene_props_from_render_settings_light1Direction(sceneOutputs, renderSettings)
-    update_scene_props_from_render_settings_light1SpecSize(sceneOutputs, renderSettings)
-    update_scene_props_from_render_settings_useWorldSpaceLighting(renderSettings)
+    update_scene_props_from_rs_enableFogPreview(sceneOutputs, renderSettings)
+    update_scene_props_from_rs_fogPreviewColor(sceneOutputs, renderSettings)
+    update_scene_props_from_rs_clippingPlanes(sceneOutputs, renderSettings)
+    update_scene_props_from_rs_fogPreviewPosition(sceneOutputs, renderSettings)
+    update_scene_props_from_rs_ambientColor(sceneOutputs, renderSettings)
+    update_scene_props_from_rs_light0Color(sceneOutputs, renderSettings)
+    update_scene_props_from_rs_light0Direction(sceneOutputs, renderSettings)
+    update_scene_props_from_rs_light0SpecSize(sceneOutputs, renderSettings)
+    update_scene_props_from_rs_light1Color(sceneOutputs, renderSettings)
+    update_scene_props_from_rs_light1Direction(sceneOutputs, renderSettings)
+    update_scene_props_from_rs_light1SpecSize(sceneOutputs, renderSettings)
+    update_scene_props_from_rs_useWorldSpaceLighting(renderSettings)
 
     # TODO use a callback on the scale props to set this value
     sceneOutputs.inputs["Blender_Game_Scale"].default_value = float(get_blender_to_game_scale(bpy.context))
@@ -213,34 +213,32 @@ class ManualUpdatePreviewOperator(bpy.types.Operator):
         return {"FINISHED"}
 
 
-def make_callback(update):
-    def on_update(self: "Fast64RenderSettings_Properties", context):
+def make_callback(update_scene_props_from_rs_func):
+    def on_update_rs_func(self: "Fast64RenderSettings_Properties", context):
         if not self.enableAutoUpdatePreview:
             return
         sceneOutputs = getSceneOutputs()
         if sceneOutputs is not None:
-            update(sceneOutputs, self)
+            update_scene_props_from_rs_func(sceneOutputs, self)
 
-    return on_update
+    return on_update_rs_func
 
 
 # These are all the callbacks that modify values in the scene properties node group
 # Since modifying node values turns out to be very slow,
 # we need one callback per prop in order to update the specific associated value.
-# fmt: off
-on_update_render_preview_nodes_enableFogPreview = make_callback(update_scene_props_from_render_settings_enableFogPreview)
-on_update_render_preview_nodes_fogPreviewColor = make_callback(update_scene_props_from_render_settings_fogPreviewColor)
-on_update_render_preview_nodes_clippingPlanes = make_callback(update_scene_props_from_render_settings_clippingPlanes)
-on_update_render_preview_nodes_fogPreviewPosition = make_callback(update_scene_props_from_render_settings_fogPreviewPosition)
-on_update_render_preview_nodes_ambientColor = make_callback(update_scene_props_from_render_settings_ambientColor)
-on_update_render_preview_nodes_light0Color = make_callback(update_scene_props_from_render_settings_light0Color)
-on_update_render_preview_nodes_light0Direction = make_callback(update_scene_props_from_render_settings_light0Direction)
-on_update_render_preview_nodes_light0SpecSize = make_callback(update_scene_props_from_render_settings_light0SpecSize)
-on_update_render_preview_nodes_light1Color = make_callback(update_scene_props_from_render_settings_light1Color)
-on_update_render_preview_nodes_light1Direction = make_callback(update_scene_props_from_render_settings_light1Direction)
-on_update_render_preview_nodes_light1SpecSize = make_callback(update_scene_props_from_render_settings_light1SpecSize)
-on_update_render_preview_nodes_useWorldSpaceLighting = make_callback(update_scene_props_from_render_settings_useWorldSpaceLighting)
-# fmt: on
+on_update_rs_enableFogPreview = make_callback(update_scene_props_from_rs_enableFogPreview)
+on_update_rs_fogPreviewColor = make_callback(update_scene_props_from_rs_fogPreviewColor)
+on_update_rs_clippingPlanes = make_callback(update_scene_props_from_rs_clippingPlanes)
+on_update_rs_fogPreviewPosition = make_callback(update_scene_props_from_rs_fogPreviewPosition)
+on_update_rs_ambientColor = make_callback(update_scene_props_from_rs_ambientColor)
+on_update_rs_light0Color = make_callback(update_scene_props_from_rs_light0Color)
+on_update_rs_light0Direction = make_callback(update_scene_props_from_rs_light0Direction)
+on_update_rs_light0SpecSize = make_callback(update_scene_props_from_rs_light0SpecSize)
+on_update_rs_light1Color = make_callback(update_scene_props_from_rs_light1Color)
+on_update_rs_light1Direction = make_callback(update_scene_props_from_rs_light1Direction)
+on_update_rs_light1SpecSize = make_callback(update_scene_props_from_rs_light1SpecSize)
+on_update_rs_useWorldSpaceLighting = make_callback(update_scene_props_from_rs_useWorldSpaceLighting)
 
 del make_callback
 
@@ -275,7 +273,7 @@ def poll_oot_scene(self, object):
 def resync_scene_props():
     if "GetSpecularNormal" in bpy.data.node_groups:
         # Lighting space needs to be updated due to the nodes being shared and reloaded
-        update_scene_props_from_render_settings_useWorldSpaceLighting(bpy.context.scene.fast64.renderSettings)
+        update_scene_props_from_rs_useWorldSpaceLighting(bpy.context.scene.fast64.renderSettings)
 
 
 def on_update_render_settings_enableAutoUpdatePreview(self, context):
@@ -303,7 +301,7 @@ class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
         min=0,
         max=1,
         default=(1, 1, 1, 1),
-        update=on_update_render_preview_nodes_fogPreviewColor,
+        update=on_update_rs_fogPreviewColor,
     )
     ambientColor: bpy.props.FloatVectorProperty(
         name="Ambient Light",
@@ -312,7 +310,7 @@ class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
         min=0,
         max=1,
         default=(0.5, 0.5, 0.5, 1),
-        update=on_update_render_preview_nodes_ambientColor,
+        update=on_update_rs_ambientColor,
     )
     light0Color: bpy.props.FloatVectorProperty(
         name="Light 0 Color",
@@ -321,7 +319,7 @@ class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
         min=0,
         max=1,
         default=(1, 1, 1, 1),
-        update=on_update_render_preview_nodes_light0Color,
+        update=on_update_rs_light0Color,
     )
     light0Direction: bpy.props.FloatVectorProperty(
         name="Light 0 Direction",
@@ -330,14 +328,14 @@ class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
         min=-1,
         max=1,
         default=mathutils.Vector((1.0, -1.0, 1.0)).normalized(),  # pre normalized
-        update=on_update_render_preview_nodes_light0Direction,
+        update=on_update_rs_light0Direction,
     )
     light0SpecSize: bpy.props.IntProperty(
         name="Light 0 Specular Size",
         min=1,
         max=255,
         default=3,
-        update=on_update_render_preview_nodes_light0SpecSize,
+        update=on_update_rs_light0SpecSize,
     )
     light1Color: bpy.props.FloatVectorProperty(
         name="Light 1 Color",
@@ -346,7 +344,7 @@ class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
         min=0,
         max=1,
         default=(0, 0, 0, 1),
-        update=on_update_render_preview_nodes_light1Color,
+        update=on_update_rs_light1Color,
     )
     light1Direction: bpy.props.FloatVectorProperty(
         name="Light 1 Direction",
@@ -355,14 +353,14 @@ class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
         min=-1,
         max=1,
         default=mathutils.Vector((-1.0, 1.0, -1.0)).normalized(),  # pre normalized
-        update=on_update_render_preview_nodes_light1Direction,
+        update=on_update_rs_light1Direction,
     )
     light1SpecSize: bpy.props.IntProperty(
         name="Light 1 Specular Size",
         min=1,
         max=255,
         default=3,
-        update=on_update_render_preview_nodes_light1SpecSize,
+        update=on_update_rs_light1SpecSize,
     )
     useWorldSpaceLighting: bpy.props.BoolProperty(
         name="Use World Space Lighting",
@@ -376,7 +374,7 @@ class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
         min=0,
         max=1000,
         default=(985, 1000),
-        update=on_update_render_preview_nodes_fogPreviewPosition,
+        update=on_update_rs_fogPreviewPosition,
     )
     # Clipping planes are float because values reflect F3D values
     clippingPlanes: bpy.props.FloatVectorProperty(
@@ -384,7 +382,7 @@ class Fast64RenderSettings_Properties(bpy.types.PropertyGroup):
         size=2,
         min=0,
         default=(100, 30000),
-        update=on_update_render_preview_nodes_clippingPlanes,
+        update=on_update_rs_clippingPlanes,
     )
     useObjectRenderPreview: bpy.props.BoolProperty(
         name="Use Object Preview",
