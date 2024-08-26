@@ -1462,7 +1462,7 @@ def update_node_values(self, context, update_preset):
 
 def update_all_node_values(material, context):
     update_node_values_without_preset(material, context)
-    update_tex_values_and_formats(material, context)
+    update_tex_values_manual(material, context)
     update_rendermode_preset(material, context)
 
 

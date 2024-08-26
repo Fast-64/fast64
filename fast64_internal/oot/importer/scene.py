@@ -97,7 +97,7 @@ def parseScene(
         importSubdir = os.path.dirname(getSceneDirFromLevelName(sceneName, True)) + "/"
 
     sceneFolderPath = ootGetPath(
-        f"{importPath}/{bpy.context.scene.fast64.oot.get_extracted_path()}/",
+        importPath if settings.isCustomDest else f"{importPath}/{bpy.context.scene.fast64.oot.get_extracted_path()}/",
         settings.isCustomDest,
         importSubdir,
         sceneName,
