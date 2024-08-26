@@ -172,7 +172,8 @@ class OOTRoomHeaderProperty(PropertyGroup):
                 if self.roomShape == "ROOM_SHAPE_TYPE_IMAGE":
                     self.drawBGImageList(general, objName)
                 if self.roomShape == "ROOM_SHAPE_TYPE_CULLABLE":
-                    general.label(text="The 'Cullable' room shape type is for CPU culling, and requires meshes to be parented to Custom Cull Group empties.", icon="INFO")
+                    general.label(text="The 'Cullable' room shape type is for CPU culling,", icon="INFO")
+                    general.label(text="and requires meshes to be parented to Custom Cull Group empties.")
                     general.label(text="RSP culling is done automatically regardless of room shape.")
                     prop_split(general, self, "defaultCullDistance", "Default Cull (Blender Units)")
             # Behaviour
