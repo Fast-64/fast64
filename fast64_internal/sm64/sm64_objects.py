@@ -1682,7 +1682,8 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             export_line = default_line + 1 if default_line else len(script_lines)
             script_lines.insert(export_line, f"\nconst LevelScript {fast64_level_script}[] = {{\n")
             script_lines.insert(export_line + 1, script_load)
-            script_lines.insert(export_line + 2, "};\n")
+            script_lines.insert(export_line + 2, "\tRETURN(),\n")
+            script_lines.insert(export_line + 3, "};\n")
 
         # jump to custom level script array
         match_line, sig_insert_line, default_line = self.find_export_lines(
