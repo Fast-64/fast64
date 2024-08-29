@@ -953,8 +953,13 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
             if not existingArea:
                 shutil.rmtree(os.path.join(level_dir, folder))
 
-    def include_proto(file_name):
-        return f'#include "levels/{level_name}/{file_name}"\n'
+    def include_proto(file_name, new_line_first=False):
+        include = f'#include "levels/{level_name}/{file_name}"'
+        if new_line_first:
+            include = "\n" + include
+        else:
+            include += "\n"
+        return include
 
     gfxFormatter = SM64GfxFormatter(ScrollMethod.Vertex)
     exportData = fModel.to_c(TextureExportSettings(savePNG, savePNG, f"levels/{level_name}", level_dir), gfxFormatter)
@@ -1094,9 +1099,9 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
             createHeaderFile(level_name, headerPath)
 
         # Write level data
-        writeIfNotFound(geoPath, include_proto("geo.inc.c"), "")
-        writeIfNotFound(levelDataPath, include_proto("leveldata.inc.c"), "")
-        writeIfNotFound(headerPath, include_proto("header.inc.h"), "#endif")
+        writeIfNotFound(geoPath, include_proto("geo.inc.c", new_line_first=True), "")
+        writeIfNotFound(levelDataPath, include_proto("leveldata.inc.c", new_line_first=True), "")
+        writeIfNotFound(headerPath, include_proto("header.inc.h", new_line_first=True), "#endif")
 
         if fModel.texturesSavedLastExport == 0:
             textureIncludePath = os.path.join(level_dir, "texture_include.inc.c")
