@@ -110,7 +110,7 @@ def string_int_prop(layout: UILayout, data, prop: str, name="", split=True, **pr
     return string_int_warning(layout, getattr(data, prop))
 
 
-def convert_addr_to_func(addr):
+def convert_addr_to_func(addr: str):
     if addr == "":
         raise PluginError("Empty function name/address.")
     refresh_version: str = bpy.context.scene.fast64.sm64.refresh_version
