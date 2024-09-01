@@ -2,7 +2,6 @@ import math, bpy, mathutils
 from bpy.utils import register_class, unregister_class
 from re import findall, sub
 from pathlib import Path
-from .sm64_function_map import func_map
 from ..panels import SM64_Panel
 from ..operators import ObjectDataExporter
 
@@ -44,6 +43,7 @@ from .sm64_constants import (
     groupsSeg6,
     groups_obj_export,
 )
+from .sm64_utility import convert_addr_to_func
 
 from .sm64_spline import (
     assertCurveValid,
@@ -818,7 +818,7 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
                 modelID = obj.sm64_model_enum if obj.sm64_model_enum != "Custom" else obj.sm64_obj_model
                 modelID = handleRefreshDiffModelIDs(modelID)
                 behaviour = (
-                    func_map[bpy.context.scene.fast64.sm64.refresh_version][obj.sm64_behaviour_enum]
+                    convert_addr_to_func(obj.sm64_behaviour_enum)
                     if obj.sm64_behaviour_enum != "Custom"
                     else obj.sm64_obj_behaviour
                 )
@@ -1018,11 +1018,7 @@ class SearchBehaviourEnumOperator(bpy.types.Operator):
     def execute(self, context):
         context.object.sm64_behaviour_enum = self.sm64_behaviour_enum
         bpy.context.region.tag_redraw()
-        name = (
-            func_map[context.scene.fast64.sm64.refresh_version][self.sm64_behaviour_enum]
-            if self.sm64_behaviour_enum != "Custom"
-            else "Custom"
-        )
+        name = convert_addr_to_func(self.sm64_behaviour_enum) if self.sm64_behaviour_enum != "Custom" else "Custom"
         self.report({"INFO"}, "Selected: " + name)
         return {"FINISHED"}
 
