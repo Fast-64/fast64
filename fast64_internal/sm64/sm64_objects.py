@@ -1748,9 +1748,9 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         bhv_data_lines = open(behavior_data, "r").readlines()
 
         if props.export_header_type == "Actor":
-            include = f'#include "actors/{toAlnum(props.actor_group_name)}.h"'
+            include = f'#include "actors/{toAlnum(props.actor_group_name)}.h"\n'
         elif props.export_header_type == "Level" and not props.non_decomp_level:
-            include = f'#include "levels/{toAlnum(props.export_level_name)}/header.h"'
+            include = f'#include "levels/{toAlnum(props.export_level_name)}/header.h"\n'
         match_line, sig_insert_line, default_line = self.find_export_lines(
             bhv_data_lines,
             match_str=include,
@@ -1759,10 +1759,10 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         if match_line:
             bhv_data_lines[match_line] = include
         elif sig_insert_line:
-            bhv_data_lines.insert(sig_insert_line + 1, f"{include}\n")
+            bhv_data_lines.insert(sig_insert_line + 1, include)
         else:
             export_line = default_line + 1 if default_line else len(bhv_data_lines)
-            bhv_data_lines.insert(export_line, f"{include}\n")
+            bhv_data_lines.insert(export_line, include)
 
         export_bhv_name = f"const BehaviorScript {props.bhv_name}[] = {{\n"
         last_bhv_define = "#define SPAWN_WATER_DROPLET(dropletParams)"
