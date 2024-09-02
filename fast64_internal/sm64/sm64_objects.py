@@ -2132,7 +2132,10 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         box = split.box()
         box.prop(self, "export_gfx", toggle=1)
         if self.export_gfx:
-            box.prop(self, "export_script_loads")
+            if self.export_header_type != "Custom" and not (
+                self.export_header_type == "Actor" and self.group_name == "Custom"
+            ):
+                box.prop(self, "export_script_loads")
             if not self.export_all_selected:
                 box.prop(self, "graphics_object", icon_only=True)
             if self.export_script_loads:
