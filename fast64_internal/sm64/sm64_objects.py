@@ -2014,10 +2014,11 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
 
     @property
     def group_num(self):
-        if self.actor_group_name == "common0":
+        assert self.group_name != "Custom", "Cannot know the group level script num if the group is custom"
+        if self.group_name == "common0":
             return 1
         else:
-            return int(self.actor_group_name.removeprefix("group")) + 1
+            return int(self.group_name.removeprefix("group")) + 1
 
     @property
     def obj_name_col(self):
