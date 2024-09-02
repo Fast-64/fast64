@@ -1579,13 +1579,15 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         for j, line in enumerate(file_lines):
             if start_delim and start_delim in line:
                 search_sig = True
+                if not fast64_signature:
+                    insert_line = j
                 continue
             if search_sig and match_str and match_str in line:
                 match_line = j
                 break
             if search_sig and fast64_signature and fast64_signature in line:
                 insert_line = j
-            if search_sig and alt_condition is not None and alt_condition in line:
+            if alt_condition is not None and alt_condition in line:
                 alt_insert_line = j
             if end_delim and end_delim in line:
                 search_sig = False
@@ -1644,17 +1646,16 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         match_line, sig_insert_line, default_line = self.find_export_lines(
             script_lines,
             match_str=f"{props.model_id_define},",
-            alt_condition="LOAD_MODEL_FROM_GEO",
             start_delim=script_start,
             end_delim="};",
         )
 
         if match_line:
             script_lines[match_line] = script_load
-        elif default_line:
-            script_lines.insert(default_line + 1, script_load)
+        elif sig_insert_line:
+            script_lines.insert(sig_insert_line + 1, script_load)
         else:
-            PluginError(f"Could not find {script_start} in {script_path}")
+            raise PluginError(f"Could not find {script_start} in {script_path}")
 
         self.write_file_lines(script_path, script_lines)
 
@@ -1672,6 +1673,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             match_str=f"{props.model_id_define},",
             fast64_signature=f"const LevelScript {fast64_level_script}[]",
             alt_condition="#include ",
+            start_delim=f"const LevelScript {fast64_level_script}[]",
         )
 
         if match_line:
@@ -1690,7 +1692,6 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             script_lines,
             match_str=f"JUMP_LINK({fast64_level_script})",
             fast64_signature="JUMP_LINK(",
-            alt_condition="",
             start_delim="ALLOC_LEVEL_POOL(",
             end_delim="AREA(",
         )
