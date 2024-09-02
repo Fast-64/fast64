@@ -1638,7 +1638,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         script_lines = open(script_path, "r").readlines()
         script_load = f"    LOAD_MODEL_FROM_GEO({props.model_id_define}, {props.geo_name}),\n"
 
-        if props.group_name != "group0":
+        if props.actor_group_name != "group0":
             script_start = f"const LevelScript script_func_global_{props.group_num}[]"
         else:
             script_start = f"const LevelScript level_main_scripts_entry[]"
@@ -1746,6 +1746,24 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
 
         # add at top of bhvs, 3 lines after this is found
         bhv_data_lines = open(behavior_data, "r").readlines()
+
+        if props.export_header_type == "Actor":
+            include = f'#include "actors/{toAlnum(props.actor_group_name)}.h"'
+        elif props.export_header_type == "Level" and not props.non_decomp_level:
+            include = f'#include "levels/{toAlnum(props.export_level_name)}/header.h"'
+        match_line, sig_insert_line, default_line = self.find_export_lines(
+            bhv_data_lines,
+            match_str=include,
+            alt_condition='#include "',
+        )
+        if match_line:
+            bhv_data_lines[match_line] = include
+        elif sig_insert_line:
+            bhv_data_lines.insert(sig_insert_line + 1, f"{include}\n")
+        else:
+            export_line = default_line + 1 if default_line else len(bhv_data_lines)
+            bhv_data_lines.insert(export_line, f"{include}\n")
+
         export_bhv_name = f"const BehaviorScript {props.bhv_name}[] = {{\n"
         last_bhv_define = "#define SPAWN_WATER_DROPLET(dropletParams)"
         fast64_sig = "/* fast64 object exports get inserted here */"
@@ -1996,10 +2014,10 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
 
     @property
     def group_num(self):
-        if self.group_name == "common0":
+        if self.actor_group_name == "common0":
             return 1
         else:
-            return int(self.group_name.removeprefix("group")) + 1
+            return int(self.actor_group_name.removeprefix("group")) + 1
 
     @property
     def obj_name_col(self):
