@@ -1579,8 +1579,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         for j, line in enumerate(file_lines):
             if start_delim and start_delim in line:
                 search_sig = True
-                if not fast64_signature:
-                    insert_line = j
+                insert_line = j
                 continue
             if search_sig and match_str and match_str in line:
                 match_line = j
@@ -1674,6 +1673,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             fast64_signature=f"const LevelScript {fast64_level_script}[]",
             alt_condition="#include ",
             start_delim=f"const LevelScript {fast64_level_script}[]",
+            end_delim="RETURN()",
         )
 
         if match_line:
