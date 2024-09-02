@@ -1637,7 +1637,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         script_lines = open(script_path, "r").readlines()
         script_load = f"    LOAD_MODEL_FROM_GEO({props.model_id_define}, {props.geo_name}),\n"
 
-        if props.actor_group_name != "group0":
+        if props.group_num != 0:
             script_start = f"const LevelScript script_func_global_{props.group_num}[]"
         else:
             script_start = f"const LevelScript level_main_scripts_entry[]"
@@ -2014,8 +2014,11 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
 
     @property
     def group_num(self):
+        """0 represents script_func_global"""
         assert self.group_name != "Custom", "Cannot know the group level script num if the group is custom"
-        if self.group_name == "common0":
+        if self.group_name in {"common1", "group0"}:
+            return 0
+        elif self.group_name == "common0":
             return 1
         else:
             return int(self.group_name.removeprefix("group")) + 1
