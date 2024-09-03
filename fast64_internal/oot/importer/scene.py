@@ -84,7 +84,7 @@ def parseScene(
         subfolder = None
     else:
         if option == "Custom":
-            subfolder = "assets/scenes/" + settings.subFolder + "/"
+            subfolder = f"{bpy.context.scene.fast64.oot.get_extracted_path()}/assets/scenes/{settings.subFolder}/"
         else:
             sceneName = sceneNameFromID(option)
             subfolder = None
@@ -94,9 +94,16 @@ def parseScene(
     if settings.isCustomDest is not None:
         importSubdir = subfolder
     if not settings.isCustomDest and subfolder is None:
-        importSubdir = os.path.dirname(getSceneDirFromLevelName(sceneName)) + "/"
+        importSubdir = os.path.dirname(getSceneDirFromLevelName(sceneName, True)) + "/"
 
-    sceneFolderPath = ootGetPath(importPath, settings.isCustomDest, importSubdir, sceneName, False, True)
+    sceneFolderPath = ootGetPath(
+        importPath if settings.isCustomDest else f"{importPath}/{bpy.context.scene.fast64.oot.get_extracted_path()}/",
+        settings.isCustomDest,
+        importSubdir,
+        sceneName,
+        False,
+        True,
+    )
     filePath = os.path.join(sceneFolderPath, f"{sceneName}_scene.c")
     sceneData = readFile(filePath)
 

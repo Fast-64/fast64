@@ -5,6 +5,7 @@ import bpy
 
 from dataclasses import dataclass, field
 
+from ..utility import create_or_get_world
 from .f3d_gbi import (
     GfxTag,
     GfxListTag,
@@ -63,7 +64,7 @@ class BleedGraphics:
         self.build_default_othermodes()
 
     def build_default_geo(self):
-        defaults = bpy.context.scene.world.rdp_defaults
+        defaults = create_or_get_world(bpy.context.scene).rdp_defaults
 
         setGeo = SPSetGeometryMode([])
         clearGeo = SPClearGeometryMode([])
@@ -91,7 +92,7 @@ class BleedGraphics:
         self.default_clear_geo = clearGeo
 
     def build_default_othermodes(self):
-        defaults = bpy.context.scene.world.rdp_defaults
+        defaults = create_or_get_world(bpy.context.scene).rdp_defaults
 
         othermode_H = SPSetOtherMode("G_SETOTHERMODE_H", 4, 20 - self.is_f3d_old, [])
         # if the render mode is set, it will be consider non-default a priori
@@ -225,9 +226,8 @@ class BleedGraphics:
             for j, cmd in enumerate(cur_fmat.texture_DL.commands):
                 if not cmd:
                     continue  # some cmds are None from previous step
-                if self.bleed_individual_cmd(commands_bled, cmd, bleed_state):
-                    if cmd in last_mat.texture_DL.commands:
-                        commands_bled.commands[j] = None
+                if self.bleed_individual_cmd(commands_bled, cmd, bleed_state, last_mat.texture_DL.commands) is True:
+                    commands_bled.commands[j] = None
             # remove Nones from list
             while None in commands_bled.commands:
                 commands_bled.commands.remove(None)
@@ -479,9 +479,15 @@ class BleedGraphics:
             else:
                 return cmd == self.default_othermode_L
 
-    # bleed if there are no tags to scroll and cmd was in last list
-    def bleed_DPSetTileSize(self, cmd_list: GfxList, cmd: GbiMacro, bleed_state: int, last_cmd_list: GfxList = None):
-        return cmd.tags != GfxTag.TileScroll0 and cmd.tags != GfxTag.TileScroll1 and cmd in last_cmd_list
+    # Don´t bleed if the cmd is used for scrolling or if the last cmd's tags are not the same (those are not hashed)
+    def bleed_DPSetTileSize(self, _cmd_list: GfxList, cmd: GbiMacro, _bleed_state: int, last_cmd_list: GfxList = None):
+        if cmd.tags == GfxTag.TileScroll0 or cmd.tags == GfxTag.TileScroll1:
+            return False
+        if cmd in last_cmd_list:
+            last_size_cmd = last_cmd_list[last_cmd_list.index(cmd)]
+            if last_size_cmd.tags == cmd.tags:
+                return True
+        return False
 
     # At most, only one sync is needed after drawing tris. The f3d writer should
     # already have placed the appropriate sync type required. If a second sync is

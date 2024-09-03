@@ -273,7 +273,7 @@ def exportCollisionToC(
     name = toAlnum(originalObj.name)
     isCustomExport = exportSettings.customExport
     folderName = exportSettings.folder
-    exportPath = ootGetObjectPath(isCustomExport, bpy.path.abspath(exportSettings.exportPath), folderName)
+    exportPath = ootGetObjectPath(isCustomExport, bpy.path.abspath(exportSettings.exportPath), folderName, False)
 
     collision = OOTCollision(name)
     collision.cameraData = OOTCameraData(name)
