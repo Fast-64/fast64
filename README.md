@@ -75,15 +75,18 @@ Click the "Check now for fast64 update" button to check for updates.
 
 ![Updater preferences after clicking the "check for updates" button](/images/updater_after_check.png)
 
-Click "Install main / old version" and choose "Main" if it isn't already selected:
+From here you may update to a stable version, the latest version or even an older release.
+If you are encountering a bug try updating to latest as it may solve your issue.
 
-![Updater: install main](/images/updater_install_main.png)
+- To install a stable release, click the "Update now to (Version) (Stable)" button.
+- To install latest, click the "Install specific version (Latest or Older)" button, select main and click ok.
+- To install an older version, click the "Install specific version (Latest or Older)" button, select your desired version and click ok.
 
-Click OK, there should be a message "Addon successfully installed" and prompting you to restart Blender:
+After updating, there should be a message "Addon successfully installed" and prompting you to restart Blender:
 
 ![Updater: successful install, must restart](/images/updater_success_restart.png)
 
-Clicking the red button will close Blender. After restarting, fast64 will be up-to-date with the latest main revision.
+Clicking the red button will close Blender. After restarting, fast64 will be in your desired version, if not there may be permission issues causing the updater to fail, try to download your desired version from github instead.
 
 ### Fast64 Development
 If you'd like to develop in VSCode, follow this tutorial to get proper autocomplete. Skip the linter for now, we'll need to make sure the entire project gets linted before enabling autosave linting because the changes will be massive.
