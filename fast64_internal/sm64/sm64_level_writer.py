@@ -522,7 +522,6 @@ def stringToMacros(data):
 
 
 def macroToString(macro_cmd, comma=True):
-    print(macro_cmd)
     return f"{macro_cmd.function}({', '.join(macro_cmd.args)}){',' if comma else ''} {macro_cmd.comment}"
 
 
