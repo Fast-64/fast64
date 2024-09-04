@@ -8,12 +8,9 @@ Forked from [kurethedead/fast64 on BitBucket](https://bitbucket.org/kurethedead/
 
 This is a Blender plugin that allows one to export F3D display lists. It also has the ability to export assets for Super Mario 64 and Ocarina of Time decompilation projects. It supports custom color combiners / geometry modes / etc. It is also possible to use exported C code in homebrew applications.
 
-Make sure to save often, as this plugin is prone to crashing when creating materials / undoing material creation. This is a Blender issue.
+Make sure to save often, as this plugin is prone to crashing when creating materials / undoing material creation. [This is a Blender issue](https://developer.blender.org/T70574).
 
-<https://developer.blender.org/T70574>
-
-
-![alt-text](/images/mat_inspector.png)
+Fast64 features an updater, [follow these instructions to use it](#updater)
 
 ### Credits
 Thanks to anonymous_moose, Cheezepin, Rovert, and especially InTheBeef for testing.
