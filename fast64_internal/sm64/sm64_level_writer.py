@@ -148,22 +148,7 @@ class ZoomOutMasks:
     def updateMaskCount(self, levelCount):
         if len(self.masks) - 1 < int(levelCount / 2):
             while len(self.masks) - 1 < int(levelCount / 2):
-                self.masks.append(
-                    [
-                        "ZOOMOUT_AREA_MASK",
-                        [
-                            "0",
-                            "0",
-                            "0",
-                            "0",
-                            "0",
-                            "0",
-                            "0",
-                            "0",
-                        ],
-                        "",
-                    ]
-                )
+                self.masks.append(Macro("ZOOMOUT_AREA_MASK", ["0"] * 8, ""))
         else:
             self.masks = self.masks[: int(levelCount / 2) + 1]
 
