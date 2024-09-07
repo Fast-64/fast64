@@ -1636,7 +1636,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         if props.group_num != 0:
             script_start = f"const LevelScript script_func_global_{props.group_num}[]"
         else:
-            script_start = f"const LevelScript level_main_scripts_entry[]"
+            script_start = f"    ALLOC_LEVEL_POOL(),"
 
         match_line, sig_insert_line, default_line = self.find_export_lines(
             script_lines,
