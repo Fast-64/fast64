@@ -1633,24 +1633,34 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         script_lines = open(script_path, "r").readlines()
         script_load = f"    LOAD_MODEL_FROM_GEO({props.model_id_define}, {props.geo_name}),\n"
 
-        if props.group_num != 0:
-            script_start = f"const LevelScript script_func_global_{props.group_num}[]"
+        if props.group_num == 0:
+            script = "level_main_scripts_entry"
         else:
-            script_start = f"const LevelScript level_main_scripts_entry[]"
+            script = f"script_func_global_{props.group_num}"
 
         match_line, sig_insert_line, default_line = self.find_export_lines(
             script_lines,
             match_str=f"{props.model_id_define},",
-            start_delim=script_start,
+            start_delim=f"const LevelScript {script}[]",
             end_delim="};",
         )
 
         if match_line:
             script_lines[match_line] = script_load
+        elif sig_insert_line and props.group_num == 0:
+            for i, line in enumerate(script_lines[sig_insert_line:]):
+                if "ALLOC_LEVEL_POOL()" in line:
+                    script_lines.insert(sig_insert_line + i + 1, script_load)
+                    break
+                elif "FREE_LEVEL_POOL()" in line:
+                    script_lines.insert(sig_insert_line + i, script_load)
+                    break
+                elif "};" in line:
+                    raise PluginError(f"Could not find FREE_LEVEL_POOL() or ALLOC_LEVEL_POOL() in {script}")
         elif sig_insert_line:
             script_lines.insert(sig_insert_line + 1, script_load)
         else:
-            raise PluginError(f"Could not find {script_start} in {script_path}")
+            raise PluginError(f"Could not find {script} in {script_path}")
 
         self.write_file_lines(script_path, script_lines)
 
