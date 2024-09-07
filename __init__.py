@@ -385,7 +385,7 @@ def set_game_defaults(scene: bpy.types.Scene, set_ucode=True):
         f3d_type = "F3D"
         world_defaults = {}  # This will set some pretty bad defaults, but trust the user
     if set_ucode:
-        scene.ucode = f3d_type
+        scene.f3d_type = f3d_type
     if scene.world is not None:
         scene.world.rdp_defaults.from_dict(world_defaults)
 
