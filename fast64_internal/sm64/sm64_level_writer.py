@@ -1,3 +1,4 @@
+from pathlib import Path
 import bpy, os, math, re, shutil, mathutils
 from collections import defaultdict
 from typing import NamedTuple
@@ -11,11 +12,10 @@ from .sm64_collision import exportCollisionCommon
 from .sm64_f3d_writer import SM64Model, SM64GfxFormatter
 from .sm64_geolayout_writer import setRooms, convertObjectToGeolayout
 from .sm64_f3d_writer import modifyTexScrollFiles, modifyTexScrollHeadersGroup
-from .sm64_utility import cameraWarning, starSelectWarning
+from .sm64_utility import cameraWarning, starSelectWarning, write_includes, writeMaterialHeaders
 
 from ..utility import (
     PluginError,
-    writeIfNotFound,
     getDataFromFile,
     saveDataToFile,
     unhideAllAndGetHiddenState,
@@ -25,15 +25,8 @@ from ..utility import (
     deleteIfFound,
     applyBasicTweaks,
     applyRotation,
-    prop_split,
-    toAlnum,
-    writeMaterialHeaders,
     raisePluginError,
-    customExportWarning,
-    decompFolderMessage,
-    makeWriteInfoBox,
     writeMaterialFiles,
-    getPathAndLevel,
 )
 
 from ..f3d.f3d_gbi import (
@@ -71,9 +64,7 @@ def createGeoFile(levelName, filepath):
         + '#include "game/screen_transition.h"\n'
         + '#include "game/paintings.h"\n\n'
         + '#include "make_const_nonconst.h"\n\n'
-        + '#include "levels/'
-        + levelName
-        + '/header.h"\n\n'
+        + '#include "header.h"\n\n'
     )
 
     geoFile = open(filepath, "w", newline="\n")
@@ -1010,8 +1001,8 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
             # Write material headers
             writeMaterialHeaders(
                 exportDir,
-                include_proto("material.inc.c"),
-                include_proto("material.inc.h"),
+                f'"levels/{level_name}/material.inc.c"',
+                f'"levels/{level_name}/material.inc.h"',
             )
 
         # Export camera triggers
@@ -1082,9 +1073,9 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
             createHeaderFile(level_name, headerPath)
 
         # Write level data
-        writeIfNotFound(geoPath, include_proto("geo.inc.c", new_line_first=True), "")
-        writeIfNotFound(levelDataPath, include_proto("leveldata.inc.c", new_line_first=True), "")
-        writeIfNotFound(headerPath, include_proto("header.inc.h", new_line_first=True), "#endif")
+        write_includes(Path(geoPath), ['"geo.inc.c"'])
+        write_includes(Path(levelDataPath), ['"leveldata.inc.c"'])
+        write_includes(Path(headerPath), ['"header.inc.h"'], before_endif=True)
 
         if fModel.texturesSavedLastExport == 0:
             textureIncludePath = os.path.join(level_dir, "texture_include.inc.c")

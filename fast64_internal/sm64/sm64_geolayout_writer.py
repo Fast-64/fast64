@@ -1,4 +1,5 @@
 from __future__ import annotations
+from pathlib import Path
 
 import bpy, mathutils, math, copy, os, shutil, re
 from bpy.utils import register_class, unregister_class
@@ -13,7 +14,7 @@ from .sm64_f3d_writer import SM64Model, SM64GfxFormatter
 from .sm64_texscroll import modifyTexScrollFiles, modifyTexScrollHeadersGroup
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_rom_tweaks import ExtendBank0x04
-from .sm64_utility import export_rom_checks, starSelectWarning
+from .sm64_utility import export_rom_checks, starSelectWarning, update_actor_includes, writeMaterialHeaders
 
 from ..utility import (
     PluginError,
@@ -26,10 +27,8 @@ from ..utility import (
     getExportDir,
     toAlnum,
     writeMaterialFiles,
-    writeIfNotFound,
     get64bitAlignedAddr,
     encodeSegmentedAddr,
-    writeMaterialHeaders,
     writeInsertableFile,
     bytesToHex,
     checkSM64EmptyUsesGeoLayout,
@@ -659,38 +658,12 @@ def saveGeolayoutC(
     geoData = geolayoutGraph.to_c()
 
     if headerType == "Actor":
-        matCInclude = '#include "actors/' + dirName + '/material.inc.c"'
-        matHInclude = '#include "actors/' + dirName + '/material.inc.h"'
+        matCInclude = '"actors/' + dirName + '/material.inc.c"'
+        matHInclude = '"actors/' + dirName + '/material.inc.h"'
         headerInclude = '#include "actors/' + dirName + '/geo_header.h"'
-
-        if not customExport:
-            # Group name checking, before anything is exported to prevent invalid state on error.
-            if groupName == "" or groupName is None:
-                raise PluginError("Actor header type chosen but group name not provided.")
-
-            groupPathC = os.path.join(dirPath, groupName + ".c")
-            groupPathGeoC = os.path.join(dirPath, groupName + "_geo.c")
-            groupPathH = os.path.join(dirPath, groupName + ".h")
-
-            if not os.path.exists(groupPathC):
-                raise PluginError(
-                    groupPathC + ' not found.\n Most likely issue is that "' + groupName + '" is an invalid group name.'
-                )
-            elif not os.path.exists(groupPathGeoC):
-                raise PluginError(
-                    groupPathGeoC
-                    + ' not found.\n Most likely issue is that "'
-                    + groupName
-                    + '" is an invalid group name.'
-                )
-            elif not os.path.exists(groupPathH):
-                raise PluginError(
-                    groupPathH + ' not found.\n Most likely issue is that "' + groupName + '" is an invalid group name.'
-                )
-
     else:
-        matCInclude = '#include "levels/' + levelName + "/" + dirName + '/material.inc.c"'
-        matHInclude = '#include "levels/' + levelName + "/" + dirName + '/material.inc.h"'
+        matCInclude = '"levels/' + levelName + "/" + dirName + '/material.inc.c"'
+        matHInclude = '"levels/' + levelName + "/" + dirName + '/material.inc.h"'
         headerInclude = '#include "levels/' + levelName + "/" + dirName + '/geo_header.h"'
 
     modifyTexScrollFiles(exportDir, geoDirPath, scrollData)
@@ -736,6 +709,15 @@ def saveGeolayoutC(
     cDefFile.close()
 
     fileStatus = None
+    update_actor_includes(
+        headerType,
+        groupName,
+        Path(dirPath),
+        dirName,
+        [Path("model.inc.c")],
+        [Path("geo_header.h")],
+        [Path("geo.inc.c")],
+    )
     if not customExport:
         if headerType == "Actor":
             if dirName == "star" and bpy.context.scene.replaceStarRefs:
@@ -787,31 +769,12 @@ def saveGeolayoutC(
 				appendSecondaryGeolayout(geoDirPath, 'bully', 'bully_boss', 'GEO_SCALE(0x00, 0x2000), GEO_NODE_OPEN(),')
 			"""
 
-            # Write to group files
-            groupPathC = os.path.join(dirPath, groupName + ".c")
-            groupPathGeoC = os.path.join(dirPath, groupName + "_geo.c")
-            groupPathH = os.path.join(dirPath, groupName + ".h")
-
-            writeIfNotFound(groupPathC, '\n#include "' + dirName + '/model.inc.c"', "")
-            writeIfNotFound(groupPathGeoC, '\n#include "' + dirName + '/geo.inc.c"', "")
-            writeIfNotFound(groupPathH, '\n#include "' + dirName + '/geo_header.h"', "\n#endif")
-
             texscrollIncludeC = '#include "actors/' + dirName + '/texscroll.inc.c"'
             texscrollIncludeH = '#include "actors/' + dirName + '/texscroll.inc.h"'
             texscrollGroup = groupName
             texscrollGroupInclude = '#include "actors/' + groupName + '.h"'
 
         elif headerType == "Level":
-            groupPathC = os.path.join(dirPath, "leveldata.c")
-            groupPathGeoC = os.path.join(dirPath, "geo.c")
-            groupPathH = os.path.join(dirPath, "header.h")
-
-            writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + "/" + dirName + '/model.inc.c"', "")
-            writeIfNotFound(groupPathGeoC, '\n#include "levels/' + levelName + "/" + dirName + '/geo.inc.c"', "")
-            writeIfNotFound(
-                groupPathH, '\n#include "levels/' + levelName + "/" + dirName + '/geo_header.h"', "\n#endif"
-            )
-
             texscrollIncludeC = '#include "levels/' + levelName + "/" + dirName + '/texscroll.inc.c"'
             texscrollIncludeH = '#include "levels/' + levelName + "/" + dirName + '/texscroll.inc.h"'
             texscrollGroup = levelName

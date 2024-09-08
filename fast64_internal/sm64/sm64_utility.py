@@ -1,8 +1,19 @@
+from pathlib import Path
 import os
+import re
+
 import bpy
 from bpy.types import UILayout
 
-from ..utility import PluginError, filepath_checks, run_and_draw_errors, multilineLabel, prop_split
+from ..utility import (
+    PluginError,
+    filepath_checks,
+    removeComments,
+    run_and_draw_errors,
+    multilineLabel,
+    prop_split,
+    COMMENT_PATTERN,
+)
 from .sm64_function_map import func_map
 
 
@@ -122,3 +133,130 @@ def convert_addr_to_func(addr: str):
         return refresh_func_map[addr.lower()]
     else:
         return addr
+
+
+# \h is invalid because the python devs don´t believe in god
+INCLUDE_EXTERN_PATTERN = re.compile(
+    r"""
+    # expects comments to be removed before running, we don´t need index
+    ^\h*\#\h*include\h*(.*?)\h*$| # catch includes
+    extern\s*(.*?)\s*; # catch externs
+    """.replace(
+        r"\h", r"[^\v\S]"
+    ).replace(
+        "COMMENT_PATTERN", COMMENT_PATTERN.pattern
+    ),
+    re.MULTILINE | re.VERBOSE,
+)
+ENDIF_PATTERN = re.compile(
+    r"""
+    (?:COMMENT_PATTERN)*?| # can't be a negative lookbehind, size is unknown
+    (?P<endif>^\h*\#\h*endif) # catch endif
+    """.replace(
+        r"\h", r"[^\v\S]"
+    ).replace(
+        "COMMENT_PATTERN", COMMENT_PATTERN.pattern
+    ),
+    re.MULTILINE | re.VERBOSE,
+)
+
+
+def write_includes(
+    path: Path,
+    includes: list[str] = None,
+    externs: list[str] = None,
+    path_must_exist=False,
+    create_new=False,
+    before_endif=False,
+) -> bool:
+    """Smarter version of writeIfNotFound, handles comments and all kinds of weird formatting
+    but most importantly files without a trailing newline.
+    Returns true if something was added.
+    Example arguments: includes=['"mario/anims/data.inc.c"'],
+    externs=["const struct Animation *const mario_anims[]"]
+    """
+    assert not (path_must_exist and create_new), "path_must_exist and create_new"
+    if path_must_exist:
+        filepath_checks(path)
+    if not create_new and not includes and not externs:
+        return False
+    includes, externs = includes or [], externs or []
+
+    existing_includes = existing_externs = {}
+    if os.path.exists(path) and not create_new:
+        text = path.read_text()
+        commentless = removeComments(text)
+        if commentless and commentless[-1] not in {"\n", "\r"}:  # add end new line if not there
+            text += "\n"
+        matches = re.findall(INCLUDE_EXTERN_PATTERN, commentless)
+        if matches:
+            existing_includes, existing_externs = zip(*re.findall(INCLUDE_EXTERN_PATTERN, commentless))
+            existing_includes, existing_externs = set(existing_includes), set(existing_externs)
+        changed = False
+    else:
+        text, commentless = "", ""
+        changed = True
+
+    new_text = ""
+    for include in includes:
+        if include not in existing_includes:
+            new_text += f"#include {include}\n"
+            changed = True
+    for extern in externs:
+        if extern not in existing_externs:
+            new_text += f"extern {extern};\n"
+            changed = True
+    if not changed:
+        return False
+
+    pos = len(text)
+    if before_endif:  # don't error if there is no endif as the user may just be using #pragma once
+        for match in re.finditer(ENDIF_PATTERN, text):
+            if match.group("endif"):
+                pos = match.start()
+    text = text[:pos] + new_text + text[pos:]
+    path.write_text(text)
+    return True
+
+
+def update_actor_includes(
+    header_type: str,
+    group_name: str,
+    header_dir: Path,
+    dir_name: str,
+    data_includes: list[Path] = None,
+    header_includes: list[Path] = None,
+    geo_includes: list[Path] = None,
+):
+    data_includes, header_includes, geo_includes = data_includes or [], header_includes or [], geo_includes or []
+    if header_type == "Actor":
+        if not group_name:
+            raise PluginError("Empty group name")
+        data_path = header_dir / f"{group_name}.c"
+        header_path = header_dir / f"{group_name}.h"
+        geo_path = header_dir / f"{group_name}_geo.c"
+    elif header_type == "Level":
+        data_path = header_dir / "leveldata.c"
+        header_path = header_dir / "header.h"
+        geo_path = header_dir / "geo.c"
+    elif header_type == "Custom":
+        return  # Custom doesn't update includes
+    else:
+        raise PluginError(f'Unknown header type "{header_type}"')
+
+    if write_includes(data_path, [f'"{Path(dir_name) / include}"' for include in data_includes], path_must_exist=True):
+        print(f"Updated data includes at {header_path}.")
+    if write_includes(
+        header_path,
+        [f'"{Path(dir_name) / include}"' for include in header_includes],
+        path_must_exist=True,
+        before_endif=True,
+    ):
+        print(f"Updated header includes at {header_path}.")
+    if write_includes(geo_path, [f'"{Path(dir_name) / include}"' for include in geo_includes], path_must_exist=True):
+        print(f"Updated geo data at {geo_path}.")
+
+
+def writeMaterialHeaders(exportDir, matCInclude, matHInclude):
+    write_includes(Path(exportDir) / "src/game/materials.c", [matCInclude])
+    write_includes(Path(exportDir) / "src/game/materials.h", [matHInclude], before_endif=True)

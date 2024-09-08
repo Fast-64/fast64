@@ -1,7 +1,8 @@
+from pathlib import Path
 import os, re, bpy
-from ..utility import PluginError, writeIfNotFound, getDataFromFile, saveDataToFile, CScrollData, CData
+from ..utility import PluginError, getDataFromFile, saveDataToFile, CScrollData, CData
 from .c_templates.tile_scroll import tile_scroll_c, tile_scroll_h
-from .sm64_utility import getMemoryCFilePath
+from .sm64_utility import getMemoryCFilePath, write_includes
 
 # This is for writing framework for scroll code.
 # Actual scroll code found in f3d_gbi.py (FVertexScrollData)
@@ -78,7 +79,7 @@ def writeSegmentROMTable(baseDir):
         memFile.close()
 
     # Add extern definition of segment table
-    writeIfNotFound(os.path.join(baseDir, "src/game/memory.h"), "\nextern uintptr_t sSegmentROMTable[32];", "#endif")
+    write_includes(Path(baseDir) / "src/game/memory.h", externs=["uintptr_t sSegmentROMTable[32]"], before_endif=True)
 
 
 def writeScrollTextureCall(path, include, callString):
