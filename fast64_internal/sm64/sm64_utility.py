@@ -161,6 +161,15 @@ ENDIF_PATTERN = re.compile(
 )
 
 
+def find_includes_and_externs(text: str) -> tuple[set[str], set[str]]:
+    text = removeComments(text)
+    matches = re.findall(INCLUDE_EXTERN_PATTERN, text)
+    if matches:
+        existing_includes, existing_externs = zip(*re.findall(INCLUDE_EXTERN_PATTERN, text))
+        return set(existing_includes), set(existing_externs)
+    return {}, {}
+
+
 def write_includes(
     path: Path,
     includes: list[str] = None,
@@ -182,20 +191,15 @@ def write_includes(
         return False
     includes, externs = includes or [], externs or []
 
-    existing_includes = existing_externs = {}
     if os.path.exists(path) and not create_new:
         text = path.read_text()
         commentless = removeComments(text)
         if commentless and commentless[-1] not in {"\n", "\r"}:  # add end new line if not there
             text += "\n"
-        matches = re.findall(INCLUDE_EXTERN_PATTERN, commentless)
-        if matches:
-            existing_includes, existing_externs = zip(*re.findall(INCLUDE_EXTERN_PATTERN, commentless))
-            existing_includes, existing_externs = set(existing_includes), set(existing_externs)
         changed = False
     else:
-        text, commentless = "", ""
-        changed = True
+        text, commentless, changed = "", "", True
+    existing_includes, existing_externs = find_includes_and_externs(commentless)
 
     new_text = ""
     for include in includes:
