@@ -2104,21 +2104,21 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
             return self.custom_export_path
 
     @property
-    def level_directory(self):
+    def level_directory(self) -> Path:
         if self.non_decomp_level:
-            return self.custom_level_name
+            return Path(self.custom_level_name)
         level_name = self.custom_level_name if self.level_name == "Custom" else self.level_name
-        return os.path.join("/levels/", level_name)
+        return Path("levels") / level_name
 
     @property
     def base_level_path(self):
         if self.non_decomp_level:
-            return bpy.path.abspath(self.custom_level_path)
-        return bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path)
+            return Path(bpy.path.abspath(self.custom_level_path))
+        return Path(bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path))
 
     @property
     def full_level_path(self):
-        return os.path.join(self.base_level_path, self.level_directory)
+        return self.base_level_path / self.level_directory
 
     # remove user prefixes/naming that I will be adding, such as _col, _geo etc.
     def filter_name(self, name):
@@ -2156,8 +2156,21 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
             col.prop(self, "export_bhv")
             self.draw_obj_name(layout)
 
+    @property
+    def actor_names(self) -> list:
+        return list(dict.fromkeys(filter(None, [self.obj_name_col, self.obj_name_gfx])).keys())
+
+    @property
+    def export_locations(self) -> str | None:
+        names = self.actor_names
+        if len(names) > 1:
+            return f"({'/'.join(names)})"
+        elif len(names) == 1:
+            return names[0]
+        return None
+
     def draw_level_path(self, layout):
-        if not directory_ui_warnings(layout, bpy.path.abspath(self.base_level_path)):
+        if not directory_ui_warnings(layout, self.base_level_path):
             return
         if self.non_decomp_level:
             layout.label(text=f"Level export path: {self.full_level_path}")
@@ -2166,12 +2179,24 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         return True
 
     def draw_actor_path(self, layout):
-        actor_path = Path(bpy.context.scene.fast64.sm64.decomp_path) / "actors"
-        if not filepath_ui_warnings(layout, (actor_path / self.actor_group_name).with_suffix(".c")):
+        if self.export_locations is None:
             return
-        export_locations = ",".join({self.obj_name_col, self.obj_name_gfx})
-        # can this be more clear?
-        layout.label(text=f"Actor export path: actors/{export_locations}")
+        decomp_path = Path(bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path))
+        if self.export_header_type == "Actor":
+            actor_path = decomp_path / "actors"
+            if not filepath_ui_warnings(layout, (actor_path / self.actor_group_name).with_suffix(".c")):
+                return
+            layout.label(text=f"Actor export path: actors/{self.export_locations}/")
+        elif self.export_header_type == "Level":
+            if not directory_ui_warnings(layout, self.full_level_path):
+                return
+            level_path = self.full_level_path if self.non_decomp_level else self.level_directory
+            layout.label(text=f"Actor export path: {level_path / self.export_locations}/")
+        elif self.export_header_type == "Custom":
+            custom_path = Path(bpy.path.abspath(self.custom_export_path))
+            if not directory_ui_warnings(layout, custom_path):
+                return
+            layout.label(text=f"Actor export path: {custom_path / self.export_locations}/")
         return True
 
     def draw_col_names(self, layout):
@@ -2266,17 +2291,13 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
                 "Duplicates objects will be exported! Use with Caution.",
                 icon="ERROR",
             )
+            return
 
         info_box = box.box()
         info_box.scale_y = 0.5
 
-        if self.export_header_type == "Level":
-            if not self.draw_level_path(info_box):
-                return
-
-        elif self.export_header_type == "Actor":
-            if not self.draw_actor_path(info_box):
-                return
+        if not self.draw_actor_path(info_box):
+            return
 
         if self.obj_name_gfx and self.export_gfx:
             self.draw_gfx_names(info_box)
