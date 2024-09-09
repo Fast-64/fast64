@@ -1,14 +1,9 @@
 import os
+import bpy
 from bpy.types import UILayout
 
-from ..utility import (
-    PluginError,
-    filepath_checks,
-    filepath_ui_warnings,
-    run_and_draw_errors,
-    multilineLabel,
-    prop_split,
-)
+from ..utility import PluginError, filepath_checks, run_and_draw_errors, multilineLabel, prop_split
+from .sm64_function_map import func_map
 
 
 def starSelectWarning(operator, fileStatus):
@@ -113,3 +108,17 @@ def string_int_prop(layout: UILayout, data, prop: str, name="", split=True, **pr
     else:
         layout.prop(data, prop, text=name, **prop_kwargs)
     return string_int_warning(layout, getattr(data, prop))
+
+
+def convert_addr_to_func(addr: str):
+    if addr == "":
+        raise PluginError("Empty function name/address.")
+    refresh_version: str = bpy.context.scene.fast64.sm64.refresh_version
+    if refresh_version.startswith("HackerSM64"):  # hacker uses refresh 13
+        refresh_version = "Refresh 13"
+    assert refresh_version in func_map, "Refresh version not found in function map"
+    refresh_func_map = func_map[refresh_version]
+    if addr.lower() in refresh_func_map:
+        return refresh_func_map[addr.lower()]
+    else:
+        return addr

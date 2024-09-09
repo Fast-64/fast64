@@ -222,7 +222,6 @@ class OOT_RemoveScene(Operator):
 
     def execute(self, context):
         settings = context.scene.ootSceneRemoveSettings  # Type: OOTRemoveSceneSettingsProperty
-        levelName = settings.name
         option = settings.option
 
         if settings.customExport:
@@ -230,13 +229,14 @@ class OOT_RemoveScene(Operator):
             return {"FINISHED"}
 
         if option == "Custom":
-            subfolder = "assets/scenes/" + settings.subFolder + "/"
+            levelName = settings.name
+            subfolder = f"assets/scenes/{settings.subFolder}/"
         else:
             levelName = sceneNameFromID(option)
             subfolder = None
-        removeInfo = RemoveInfo(abspath(context.scene.ootDecompPath), subfolder, levelName)
 
-        Files.remove_scene(removeInfo)
+        # the scene files will be removed from `assets` if it's present
+        Files.remove_scene(RemoveInfo(abspath(context.scene.ootDecompPath), subfolder, levelName))
 
         self.report({"INFO"}, "Success!")
         return {"FINISHED"}

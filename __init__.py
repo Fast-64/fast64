@@ -56,7 +56,7 @@ from .fast64_internal.render_settings import (
 # info about add on
 bl_info = {
     "name": "Fast64",
-    "version": (2, 2, 0),
+    "version": (2, 3, 0),
     "author": "kurethedead",
     "location": "3DView",
     "description": "Plugin for exporting F3D display lists and other game data related to Nintendo 64 games.",
@@ -328,9 +328,10 @@ def upgrade_changed_props():
     SM64_ObjectProperties.upgrade_changed_props()
     OOT_ObjectProperties.upgrade_changed_props()
     for scene in bpy.data.scenes:
-        if scene.fast64.settings.internal_game_update_ver != 1:
-            gameEditorUpdate(scene, bpy.context)
-            scene.fast64.settings.internal_game_update_ver = 1
+        settings: Fast64Settings_Properties = scene.fast64.settings
+        if settings.internal_game_update_ver != 1:
+            set_game_defaults(scene, False)
+            settings.internal_game_update_ver = 1
         if scene.get("decomp_compatible", False):
             scene.gameEditorMode = "Homebrew"
             del scene["decomp_compatible"]
@@ -363,23 +364,34 @@ def after_load(_a, _b):
     upgrade_changed_props()
     upgrade_scene_props_node()
     resync_scene_props()
+    try:
+        if settings.repo_settings_path:
+            load_repo_settings(bpy.context.scene, abspath(settings.repo_settings_path), True)
+    except Exception as exc:
+        print(exc)
 
 
-def gameEditorUpdate(self, context):
+def set_game_defaults(scene: bpy.types.Scene, set_ucode=True):
     world_defaults = None
-    if self.gameEditorMode == "SM64":
-        self.f3d_type = "F3D"
+    if scene.gameEditorMode == "SM64":
+        f3d_type = "F3D"
         world_defaults = sm64_world_defaults
-    elif self.gameEditorMode == "OOT":
-        self.f3d_type = "F3DEX2/LX2"
+    elif scene.gameEditorMode == "OOT":
+        f3d_type = "F3DEX2/LX2"
         world_defaults = oot_world_defaults
-    elif self.gameEditorMode == "MK64":
-        self.f3d_type = "F3DEX/LX"
-    elif self.gameEditorMode == "Homebrew":
-        self.f3d_type = "F3D"
+    elif scene.gameEditorMode == "MK64":
+        f3d_type = "F3DEX/LX"
+    elif scene.gameEditorMode == "Homebrew":
+        f3d_type = "F3D"
         world_defaults = {}  # This will set some pretty bad defaults, but trust the user
-    if self.world is not None:
-        self.world.rdp_defaults.from_dict(world_defaults)
+    if set_ucode:
+        scene.f3d_type = f3d_type
+    if scene.world is not None:
+        scene.world.rdp_defaults.from_dict(world_defaults)
+
+
+def gameEditorUpdate(scene: bpy.types.Scene, _context):
+    set_game_defaults(scene)
 
 
 # called on add-on enabling

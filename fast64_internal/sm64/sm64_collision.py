@@ -331,34 +331,31 @@ def exportCollisionC(
     cDefFile.write(cDefine)
     cDefFile.close()
 
-    if not customExport:
-        if headerType == "Actor":
-            # Write to group files
-            if groupName == "" or groupName is None:
-                raise PluginError("Actor header type chosen but group name not provided.")
+    if headerType == "Actor":
+        # Write to group files
+        if groupName == "" or groupName is None:
+            raise PluginError("Actor header type chosen but group name not provided.")
 
-            groupPathC = os.path.join(dirPath, groupName + ".c")
-            groupPathH = os.path.join(dirPath, groupName + ".h")
+        groupPathC = os.path.join(dirPath, groupName + ".c")
+        groupPathH = os.path.join(dirPath, groupName + ".h")
 
-            writeIfNotFound(groupPathC, '\n#include "' + name + '/collision.inc.c"', "")
-            if writeRoomsFile:
-                writeIfNotFound(groupPathC, '\n#include "' + name + '/rooms.inc.c"', "")
-            else:
-                deleteIfFound(groupPathC, '\n#include "' + name + '/rooms.inc.c"')
-            writeIfNotFound(groupPathH, '\n#include "' + name + '/collision_header.h"', "\n#endif")
+        writeIfNotFound(groupPathC, '\n#include "' + name + '/collision.inc.c"', "")
+        if writeRoomsFile:
+            writeIfNotFound(groupPathC, '\n#include "' + name + '/rooms.inc.c"', "")
+        else:
+            deleteIfFound(groupPathC, '\n#include "' + name + '/rooms.inc.c"')
+        writeIfNotFound(groupPathH, '\n#include "' + name + '/collision_header.h"', "\n#endif")
 
-        elif headerType == "Level":
-            groupPathC = os.path.join(dirPath, "leveldata.c")
-            groupPathH = os.path.join(dirPath, "header.h")
+    elif headerType == "Level":
+        groupPathC = os.path.join(dirPath, "leveldata.c")
+        groupPathH = os.path.join(dirPath, "header.h")
 
-            writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + "/" + name + '/collision.inc.c"', "")
-            if writeRoomsFile:
-                writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + "/" + name + '/rooms.inc.c"', "")
-            else:
-                deleteIfFound(groupPathC, '\n#include "levels/' + levelName + "/" + name + '/rooms.inc.c"')
-            writeIfNotFound(
-                groupPathH, '\n#include "levels/' + levelName + "/" + name + '/collision_header.h"', "\n#endif"
-            )
+        writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + "/" + name + '/collision.inc.c"', "")
+        if writeRoomsFile:
+            writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + "/" + name + '/rooms.inc.c"', "")
+        else:
+            deleteIfFound(groupPathC, '\n#include "levels/' + levelName + "/" + name + '/rooms.inc.c"')
+        writeIfNotFound(groupPathH, '\n#include "levels/' + levelName + "/" + name + '/collision_header.h"', "\n#endif")
 
     return cDefine
 
@@ -502,12 +499,12 @@ class SM64_ExportCollision(bpy.types.Operator):
             applyRotation([obj], math.radians(90), "X")
             if context.scene.fast64.sm64.export_type == "C":
                 export_path, level_name = getPathAndLevel(
-                    props.export_header_type == "Custom",
-                    props.custom_export_path,
-                    props.custom_export_name,
+                    props.is_actor_custom_export,
+                    props.actor_custom_path,
+                    props.export_level_name,
                     props.level_name,
                 )
-                if not props.export_header_type == "Custom":
+                if not props.is_actor_custom_export:
                     applyBasicTweaks(export_path)
                 exportCollisionC(
                     obj,
@@ -516,10 +513,10 @@ class SM64_ExportCollision(bpy.types.Operator):
                     False,
                     props.include_children,
                     props.obj_name_col,
-                    props.export_header_type == "Custom",
+                    props.is_actor_custom_export,
                     props.export_rooms,
                     props.export_header_type,
-                    props.export_group_name,
+                    props.actor_group_name,
                     level_name,
                 )
                 self.report({"INFO"}, "Success!")
