@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import bpy
 from bpy.types import PropertyGroup, UILayout, Context
 from bpy.props import BoolProperty, StringProperty, EnumProperty, IntProperty, FloatProperty, PointerProperty
@@ -22,10 +23,10 @@ from .constants import (
 
 def decomp_path_update(self, context: Context):
     fast64_settings = context.scene.fast64.settings
-    if fast64_settings.repo_settings_path:
+    if fast64_settings.repo_settings_path and Path(abspath(fast64_settings.repo_settings_path)).exists():
         return
-    directory_path_checks(abspath(self.decomp_path))
-    fast64_settings.repo_settings_path = os.path.join(abspath(self.decomp_path), "fast64.json")
+    directory_path_checks(self.abs_decomp_path)
+    fast64_settings.repo_settings_path = str(self.abs_decomp_path / "fast64.json")
 
 
 class SM64_Properties(PropertyGroup):
@@ -83,7 +84,11 @@ class SM64_Properties(PropertyGroup):
 
     @property
     def binary_export(self):
-        return self.export_type in ["Binary", "Insertable Binary"]
+        return self.export_type in {"Binary", "Insertable Binary"}
+
+    @property
+    def abs_decomp_path(self) -> Path:
+        return Path(abspath(self.decomp_path))
 
     @staticmethod
     def upgrade_changed_props():
@@ -149,7 +154,7 @@ class SM64_Properties(PropertyGroup):
             col.prop(self, "extend_bank_4")
         elif not self.binary_export:
             prop_split(col, self, "decomp_path", "Decomp Path")
-            directory_ui_warnings(col, abspath(self.decomp_path))
+            directory_ui_warnings(col, self.abs_decomp_path)
         col.separator()
 
         if not self.binary_export:

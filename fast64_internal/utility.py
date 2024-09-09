@@ -423,7 +423,7 @@ def getPathAndLevel(is_custom_export, custom_export_path, custom_level_name, lev
         export_path = bpy.path.abspath(custom_export_path)
         level_name = custom_level_name
     else:
-        export_path = bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path)
+        export_path = str(bpy.context.scene.fast64.sm64.abs_decomp_path)
         if level_enum == "Custom":
             level_name = custom_level_name
         else:

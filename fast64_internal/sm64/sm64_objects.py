@@ -1548,7 +1548,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
 
     # exports the model ID load into the appropriate script.c location
     def export_script_load(self, context, props):
-        decomp_path = Path(bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path))
+        decomp_path = bpy.context.scene.fast64.sm64.abs_decomp_path
         if props.export_header_type == "Level":
             # for some reason full_level_path doesn't work here
             if props.non_decomp_level:
@@ -1594,7 +1594,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         if props.non_decomp_level:
             return
         # check if model_ids.h exists
-        decomp_path = Path(bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path))
+        decomp_path = bpy.context.scene.fast64.sm64.abs_decomp_path
         model_ids = decomp_path / "include" / "model_ids.h"
         if not model_ids.exists():
             PluginError("Could not find model_ids.h")
@@ -1711,7 +1711,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
 
     def export_behavior_header(self, context, props):
         # check if behavior_header.h exists
-        decomp_path = Path(bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path))
+        decomp_path = bpy.context.scene.fast64.sm64.abs_decomp_path
         behavior_header = decomp_path / "include" / "behavior_data.h"
         if not behavior_header.exists():
             PluginError("Could not find behavior_data.h")
@@ -1745,7 +1745,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             raise PluginError("Behavior must have more than 0 cmds to export")
 
         # export the behavior script itself
-        decomp_path = Path(bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path))
+        decomp_path = bpy.context.scene.fast64.sm64.abs_decomp_path
         behavior_data = decomp_path / "data" / "behavior_data.c"
         if not behavior_data.exists():
             PluginError("Could not find behavior_data.c")
@@ -2114,7 +2114,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
     def base_level_path(self):
         if self.non_decomp_level:
             return Path(bpy.path.abspath(self.custom_level_path))
-        return Path(bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path))
+        return bpy.context.scene.fast64.sm64.abs_decomp_path
 
     @property
     def full_level_path(self):
@@ -2181,7 +2181,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
     def draw_actor_path(self, layout):
         if self.export_locations is None:
             return
-        decomp_path = Path(bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path))
+        decomp_path = bpy.context.scene.fast64.sm64.abs_decomp_path
         if self.export_header_type == "Actor":
             actor_path = decomp_path / "actors"
             if not filepath_ui_warnings(layout, (actor_path / self.actor_group_name).with_suffix(".c")):
