@@ -531,6 +531,26 @@ class TexInfo:
             return self.flipbook.name
         return getImageName(self.texProp.tex)
 
+    def setup_single_tex(self, is_ci: bool, use_large_tex: bool):
+        is_large = False
+        tmem_size = 256 if is_ci else 512
+        if is_ci:
+            assert self.useTex  # should this be here?
+            if self.useTex:
+                self.loadPal = True
+            self.palBaseName = self.getPaletteName()
+        if self.tmemSize >= tmem_size:
+            if use_large_tex:
+                self.doTexLoad = False
+                return True
+            elif not bpy.context.scene.ignoreTextureRestrictions:
+                raise PluginError(
+                    "Textures are too big. Max TMEM size is 4k "
+                    "bytes, ex. 2 32x32 RGBA 16 bit textures.\n"
+                    "Note that texture width will be internally padded to 64 bit boundaries."
+                )
+        return is_large
+
     def writeAll(
         self,
         fMaterial: FMaterial,

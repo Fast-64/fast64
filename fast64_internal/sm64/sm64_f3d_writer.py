@@ -4,7 +4,7 @@ from math import ceil, log, radians
 from mathutils import Matrix, Vector
 from bpy.utils import register_class, unregister_class
 from ..panels import SM64_Panel
-from ..f3d.f3d_writer import exportF3DCommon
+from ..f3d.f3d_writer import exportF3DCommon, saveModeSetting
 from ..f3d.f3d_texture_writer import TexInfo
 from ..f3d.f3d_material import (
     TextureProperty,
@@ -22,6 +22,7 @@ from typing import Tuple, Union, Iterable
 from ..f3d.f3d_bleed import BleedGraphics
 
 from ..f3d.f3d_gbi import (
+    DPSetTextureLUT,
     get_F3D_GBI,
     GbiMacro,
     GfxTag,
@@ -279,15 +280,12 @@ def modifyDLForHUD(data):
 
 
 def exportTexRectCommon(texProp, name, convertTextureData):
-    tex = texProp.tex
-    if tex is None:
-        raise PluginError("No texture is selected.")
+    defaults = create_or_get_world(bpy.context.scene).rdp_defaults
 
     fTexRect = FTexRect(toAlnum(name), GfxMatWriteMethod.WriteDifferingAndRevert)
     fMaterial = fTexRect.addMaterial(toAlnum(name) + "_mat")
 
-    # dl_hud_img_begin
-    fTexRect.draw.commands.extend(
+    fMaterial.mat_only_DL.commands.extend(  # dl_hud_img_begin
         [
             DPPipeSync(),
             DPSetCycleType("G_CYC_COPY"),
@@ -298,21 +296,14 @@ def exportTexRectCommon(texProp, name, convertTextureData):
         ]
     )
 
-    drawEndCommands = GfxList("temp", GfxListTag.Draw, DLFormat.Dynamic)
-
+    saveModeSetting(fMaterial, texProp.tlut_mode, defaults.g_mdsft_textlut, DPSetTextureLUT)
     ti = TexInfo()
     ti.fromProp(texProp, index=0, ignore_tex_set=True)
     ti.materialless_setup()
+    ti.setup_single_tex(texProp.is_ci, False)
     ti.writeAll(fMaterial, fTexRect, convertTextureData)
 
-    fTexRect.draw.commands.append(
-        SPScisTextureRectangle(0, 0, (ti.imageDims[0] - 1) << 2, (ti.imageDims[1] - 1) << 2, 0, 0, 0)
-    )
-
-    fTexRect.draw.commands.extend(drawEndCommands.commands)
-
-    # dl_hud_img_end
-    fTexRect.draw.commands.extend(
+    fMaterial.revert.commands.extend(  # dl_hud_img_end
         [
             DPPipeSync(),
             DPSetCycleType("G_CYC_1CYCLE"),
@@ -323,6 +314,14 @@ def exportTexRectCommon(texProp, name, convertTextureData):
             SPEndDisplayList(),
         ]
     )
+    fTexRect.materials[texProp] = (fMaterial, ti.imageDims)
+
+    fTexRect.draw.commands.extend(fMaterial.mat_only_DL.commands)
+    fTexRect.draw.commands.extend(fMaterial.texture_DL.commands)
+    fTexRect.draw.commands.append(
+        SPScisTextureRectangle(0, 0, (ti.imageDims[0] - 1) << 2, (ti.imageDims[1] - 1) << 2, 0, 0, 0)
+    )
+    fTexRect.draw.commands.extend(fMaterial.revert.commands)
 
     return fTexRect
 
