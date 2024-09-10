@@ -285,16 +285,14 @@ def exportTexRectCommon(texProp, name, convertTextureData):
     fTexRect = FTexRect(toAlnum(name), GfxMatWriteMethod.WriteDifferingAndRevert)
     fMaterial = fTexRect.addMaterial(toAlnum(name) + "_mat")
 
-    fMaterial.mat_only_DL.commands.extend(  # dl_hud_img_begin
-        [
-            DPPipeSync(),
-            DPSetCycleType("G_CYC_COPY"),
-            DPSetTexturePersp("G_TP_NONE"),
-            DPSetAlphaCompare("G_AC_THRESHOLD"),
-            DPSetBlendColor(0xFF, 0xFF, 0xFF, 0xFF),
-            DPSetRenderMode(["G_RM_AA_XLU_SURF", "G_RM_AA_XLU_SURF2"], None),
-        ]
-    )
+    # dl_hud_img_begin and dl_hud_img_end
+    saveModeSetting(fMaterial, "G_CYC_COPY", defaults.g_mdsft_cycletype, DPSetCycleType)
+    saveModeSetting(fMaterial, "G_TP_NONE", defaults.g_mdsft_textpersp, DPSetTexturePersp)
+    saveModeSetting(fMaterial, "G_AC_THRESHOLD", defaults.g_mdsft_alpha_compare, DPSetAlphaCompare)
+    fMaterial.mat_only_DL.commands.append(DPSetBlendColor(0xFF, 0xFF, 0xFF, 0xFF))
+
+    fMaterial.mat_only_DL.commands.append(DPSetRenderMode(["G_RM_AA_XLU_SURF", "G_RM_AA_XLU_SURF2"], None))
+    fMaterial.revert.commands.append(DPSetRenderMode(["G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2"], None))
 
     saveModeSetting(fMaterial, texProp.tlut_mode, defaults.g_mdsft_textlut, DPSetTextureLUT)
     ti = TexInfo()
@@ -302,18 +300,6 @@ def exportTexRectCommon(texProp, name, convertTextureData):
     ti.materialless_setup()
     ti.setup_single_tex(texProp.is_ci, False)
     ti.writeAll(fMaterial, fTexRect, convertTextureData)
-
-    fMaterial.revert.commands.extend(  # dl_hud_img_end
-        [
-            DPPipeSync(),
-            DPSetCycleType("G_CYC_1CYCLE"),
-            SPTexture(0xFFFF, 0xFFFF, 0, "G_TX_RENDERTILE", "G_OFF"),
-            DPSetTexturePersp("G_TP_PERSP"),
-            DPSetAlphaCompare("G_AC_NONE"),
-            DPSetRenderMode(["G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2"], None),
-            SPEndDisplayList(),
-        ]
-    )
     fTexRect.materials[texProp] = (fMaterial, ti.imageDims)
 
     fTexRect.draw.commands.extend(fMaterial.mat_only_DL.commands)
@@ -321,7 +307,9 @@ def exportTexRectCommon(texProp, name, convertTextureData):
     fTexRect.draw.commands.append(
         SPScisTextureRectangle(0, 0, (ti.imageDims[0] - 1) << 2, (ti.imageDims[1] - 1) << 2, 0, 0, 0)
     )
+    fTexRect.draw.commands.append(DPPipeSync())
     fTexRect.draw.commands.extend(fMaterial.revert.commands)
+    fTexRect.draw.commands.append(SPEndDisplayList())
 
     return fTexRect
 
