@@ -187,7 +187,7 @@ def exportTexRectToC(dirPath, texProp, texDir, savePNG, name, exportToProject, p
         checkIfPathExists(seg2TexDir)
         checkIfPathExists(hudPath)
 
-        fTexRect.save_textures(seg2TexDir, not savePNG)
+        fTexRect.save_textures(seg2TexDir)
 
         textures = []
         for _, fImage in fTexRect.textures.items():
