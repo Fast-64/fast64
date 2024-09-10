@@ -8,8 +8,8 @@ from ..f3d.f3d_writer import exportF3DCommon
 from ..f3d.f3d_texture_writer import TexInfo
 from ..f3d.f3d_material import (
     TextureProperty,
-    tmemUsageUI,
     all_combiner_uses,
+    ui_image,
     ui_procAnim,
     update_world_default_rendermode,
 )
@@ -283,18 +283,8 @@ def exportTexRectCommon(texProp, name, convertTextureData):
     if tex is None:
         raise PluginError("No texture is selected.")
 
-    texProp.S.low = 0
-    texProp.S.high = texProp.tex.size[0] - 1
-    texProp.S.mask = ceil(log(texProp.tex.size[0], 2) - 0.001)
-    texProp.S.shift = 0
-
-    texProp.T.low = 0
-    texProp.T.high = texProp.tex.size[1] - 1
-    texProp.T.mask = ceil(log(texProp.tex.size[1], 2) - 0.001)
-    texProp.T.shift = 0
-
     fTexRect = FTexRect(toAlnum(name), GfxMatWriteMethod.WriteDifferingAndRevert)
-    fMaterial = FMaterial(toAlnum(name) + "_mat", DLFormat.Dynamic)
+    fMaterial = fTexRect.addMaterial(toAlnum(name) + "_mat")
 
     # dl_hud_img_begin
     fTexRect.draw.commands.extend(
@@ -311,21 +301,12 @@ def exportTexRectCommon(texProp, name, convertTextureData):
     drawEndCommands = GfxList("temp", GfxListTag.Draw, DLFormat.Dynamic)
 
     ti = TexInfo()
-    if not ti.fromProp(texProp, 0):
-        raise PluginError(f"In {name}: {texProp.errorMsg}.")
-    if not ti.useTex:
-        raise PluginError(f"In {name}: texture disabled.")
-    if ti.isTexCI:
-        raise PluginError(f"In {name}: CI textures not compatible with exportTexRectCommon (because copy mode).")
-    if ti.tmemSize > 512:
-        raise PluginError(f"In {name}: texture is too big (> 4 KiB).")
-    if ti.texFormat != "RGBA16":
-        raise PluginError(f"In {name}: texture format must be RGBA16 (because copy mode).")
-    ti.imDependencies = [tex]
-    ti.writeAll(fTexRect.draw, fMaterial, fTexRect, convertTextureData)
+    ti.fromProp(texProp, index=0, ignore_tex_set=True)
+    ti.materialless_setup()
+    ti.writeAll(fMaterial, fTexRect, convertTextureData)
 
     fTexRect.draw.commands.append(
-        SPScisTextureRectangle(0, 0, (texDimensions[0] - 1) << 2, (texDimensions[1] - 1) << 2, 0, 0, 0)
+        SPScisTextureRectangle(0, 0, (ti.imageDims[0] - 1) << 2, (ti.imageDims[1] - 1) << 2, 0, 0, 0)
     )
 
     fTexRect.draw.commands.extend(drawEndCommands.commands)
@@ -822,25 +803,7 @@ class ExportTexRectDrawPanel(SM64_Panel):
     # called every frame
     def draw(self, context):
         col = self.layout.column()
-        propsTexRectE = col.operator(ExportTexRectDraw.bl_idname)
 
-        textureProp = context.scene.texrect
-        tex = textureProp.tex
-        col.label(text="This is for decomp only.")
-        col.template_ID(textureProp, "tex", new="image.new", open="image.open", unlink="image.texrect_unlink")
-        # col.prop(textureProp, 'tex')
-
-        tmemUsageUI(col, textureProp)
-        if tex is not None and tex.size[0] > 0 and tex.size[1] > 0:
-            col.prop(textureProp, "tex_format", text="Format")
-            if textureProp.tex_format[:2] == "CI":
-                col.prop(textureProp, "ci_format", text="CI Format")
-            col.prop(textureProp.S, "clamp", text="Clamp S")
-            col.prop(textureProp.T, "clamp", text="Clamp T")
-            col.prop(textureProp.S, "mirror", text="Mirror S")
-            col.prop(textureProp.T, "mirror", text="Mirror T")
-
-        prop_split(col, context.scene, "TexRectName", "Name")
         col.prop(context.scene, "TexRectCustomExport")
         if context.scene.TexRectCustomExport:
             col.prop(context.scene, "TexRectExportPath")
@@ -857,6 +820,9 @@ class ExportTexRectDrawPanel(SM64_Panel):
             infoBox.label(text="After export, call your hud's draw function in ")
             infoBox.label(text=enumHUDPaths[context.scene.TexRectExportType][0] + ": ")
             infoBox.label(text=enumHUDPaths[context.scene.TexRectExportType][1] + ".")
+        prop_split(col, context.scene, "TexRectName", "Name")
+        ui_image(False, col, None, context.scene.texrect, context.scene.TexRectName, False, hide_lowhigh=True)
+        col.operator(ExportTexRectDraw.bl_idname)
 
 
 class SM64_DrawLayersPanel(bpy.types.Panel):

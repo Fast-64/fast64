@@ -2919,6 +2919,7 @@ def ui_image(
     textureProp: TextureProperty,
     name: str,
     showCheckBox: bool,
+    hide_lowhigh=False,
 ):
     inputGroup = layout.box().column()
 
@@ -3025,7 +3026,8 @@ def ui_image(
                 shift = prop_input.row()
                 shift.prop(textureProp.S, "shift", text="Shift S")
                 shift.prop(textureProp.T, "shift", text="Shift T")
-
+                if hide_lowhigh:
+                    return
                 low = prop_input.row()
                 low.prop(textureProp.S, "low", text="S Low")
                 low.prop(textureProp.T, "low", text="T Low")
