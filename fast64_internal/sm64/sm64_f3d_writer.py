@@ -100,7 +100,7 @@ enumHUDExportLocation = [
 # filepath, function to insert before
 enumHUDPaths = {
     "HUD": ("src/game/hud.c", "void render_hud(void)"),
-    "Menu": ("src/game/ingame_menu.c", "s16 render_menus_and_dialogs()"),
+    "Menu": ("src/game/ingame_menu.c", "s16 render_menus_and_dialogs("),
 }
 
 
