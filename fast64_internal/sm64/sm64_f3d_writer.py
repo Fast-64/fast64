@@ -281,7 +281,7 @@ def modifyDLForHUD(data):
 
 
 def exportTexRectCommon(texProp, name, convertTextureData):
-    use_copy_mode = texProp.is_ci or texProp.tex_format == "RGBA16"
+    use_copy_mode = texProp.tlut_mode == "G_TT_RGBA16" or texProp.tex_format == "RGBA16"
 
     defaults = create_or_get_world(bpy.context.scene).rdp_defaults
 
