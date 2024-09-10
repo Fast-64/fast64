@@ -420,10 +420,10 @@ class TexInfo:
         texProp = getattr(f3dMat, "tex" + str(index))
         return self.fromProp(texProp, index)
 
-    def fromProp(self, texProp: TextureProperty, index: int) -> bool:
+    def fromProp(self, texProp: TextureProperty, index: int, ignore_tex_set=False) -> bool:
         self.indexInMat = index
         self.texProp = texProp
-        if not texProp.tex_set:
+        if not texProp.tex_set and not ignore_tex_set:
             return True
 
         self.useTex = True
@@ -462,6 +462,33 @@ class TexInfo:
             return False
 
         return True
+
+    def materialless_setup(self) -> None:
+        """moreSetupFromModel equivelent that does not handle material properties like OOT flipbooks"""
+        if not self.useTex:
+            return
+
+        if self.isTexCI:
+            self.imDependencies, self.flipbook, self.pal = (
+                [] if self.texProp.tex is None else [self.texProp.tex],
+                None,
+                None,
+            )
+            if self.isTexRef:
+                self.palLen = self.texProp.pal_reference_size
+            else:
+                assert self.flipbook is None
+                self.pal = getColorsUsedInImage(self.texProp.tex, self.palFormat)
+                self.palLen = len(self.pal)
+            if self.palLen > (16 if self.texFormat == "CI4" else 256):
+                raise PluginError(
+                    f"Error in Texture {self.indexInMat} uses too many unique colors to fit in format {self.texFormat}."
+                )
+        else:
+            self.imDependencies, self.flipbook = [] if self.texProp.tex is None else [self.texProp.tex], None
+
+        self.isPalRef = self.isTexRef and self.flipbook is None
+        self.palDependencies = self.imDependencies
 
     def moreSetupFromModel(
         self,
@@ -504,6 +531,26 @@ class TexInfo:
             return self.flipbook.name
         return getImageName(self.texProp.tex)
 
+    def setup_single_tex(self, is_ci: bool, use_large_tex: bool):
+        is_large = False
+        tmem_size = 256 if is_ci else 512
+        if is_ci:
+            assert self.useTex  # should this be here?
+            if self.useTex:
+                self.loadPal = True
+            self.palBaseName = self.getPaletteName()
+        if self.tmemSize >= tmem_size:
+            if use_large_tex:
+                self.doTexLoad = False
+                return True
+            elif not bpy.context.scene.ignoreTextureRestrictions:
+                raise PluginError(
+                    "Textures are too big. Max TMEM size is 4k "
+                    "bytes, ex. 2 32x32 RGBA 16 bit textures.\n"
+                    "Note that texture width will be internally padded to 64 bit boundaries."
+                )
+        return is_large
+
     def writeAll(
         self,
         fMaterial: FMaterial,
@@ -514,7 +561,7 @@ class TexInfo:
             return
         assert (
             self.imDependencies is not None
-        )  # Must be set manually if didn't use moreSetupFromModel, e.g. ti.imDependencies = [tex]
+        ), "self.imDependencies is None, either moreSetupFromModel or materialless_setup must be called beforehand"
 
         # Get definitions
         imageKey, fImage = saveOrGetTextureDefinition(
@@ -551,6 +598,9 @@ class TexInfo:
                     fModel.writeTexRefNonCITextures(self.flipbook, self.texFormat)
             else:
                 if self.isTexCI:
+                    assert (
+                        self.pal is not None
+                    ), "self.pal is None, either moreSetupFromModel or materialless_setup must be called beforehand"
                     writeCITextureData(self.texProp.tex, fImage, self.pal, self.palFormat, self.texFormat)
                 else:
                     writeNonCITextureData(self.texProp.tex, fImage, self.texFormat)

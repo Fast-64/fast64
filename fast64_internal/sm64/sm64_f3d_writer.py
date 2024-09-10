@@ -4,12 +4,12 @@ from math import ceil, log, radians
 from mathutils import Matrix, Vector
 from bpy.utils import register_class, unregister_class
 from ..panels import SM64_Panel
-from ..f3d.f3d_writer import exportF3DCommon
+from ..f3d.f3d_writer import exportF3DCommon, saveModeSetting
 from ..f3d.f3d_texture_writer import TexInfo
 from ..f3d.f3d_material import (
     TextureProperty,
-    tmemUsageUI,
     all_combiner_uses,
+    ui_image,
     ui_procAnim,
     update_world_default_rendermode,
 )
@@ -22,6 +22,8 @@ from typing import Tuple, Union, Iterable
 from ..f3d.f3d_bleed import BleedGraphics
 
 from ..f3d.f3d_gbi import (
+    DPSetCombineMode,
+    DPSetTextureLUT,
     get_F3D_GBI,
     GbiMacro,
     GfxTag,
@@ -99,7 +101,7 @@ enumHUDExportLocation = [
 # filepath, function to insert before
 enumHUDPaths = {
     "HUD": ("src/game/hud.c", "void render_hud(void)"),
-    "Menu": ("src/game/ingame_menu.c", "s16 render_menus_and_dialogs()"),
+    "Menu": ("src/game/ingame_menu.c", "s16 render_menus_and_dialogs("),
 }
 
 
@@ -186,7 +188,7 @@ def exportTexRectToC(dirPath, texProp, texDir, savePNG, name, exportToProject, p
         checkIfPathExists(seg2TexDir)
         checkIfPathExists(hudPath)
 
-        fTexRect.save_textures(seg2TexDir, not savePNG)
+        fTexRect.save_textures(seg2TexDir)
 
         textures = []
         for _, fImage in fTexRect.textures.items():
@@ -279,69 +281,45 @@ def modifyDLForHUD(data):
 
 
 def exportTexRectCommon(texProp, name, convertTextureData):
-    tex = texProp.tex
-    if tex is None:
-        raise PluginError("No texture is selected.")
+    use_copy_mode = texProp.tlut_mode == "G_TT_RGBA16" or texProp.tex_format == "RGBA16"
 
-    texProp.S.low = 0
-    texProp.S.high = texProp.tex.size[0] - 1
-    texProp.S.mask = ceil(log(texProp.tex.size[0], 2) - 0.001)
-    texProp.S.shift = 0
-
-    texProp.T.low = 0
-    texProp.T.high = texProp.tex.size[1] - 1
-    texProp.T.mask = ceil(log(texProp.tex.size[1], 2) - 0.001)
-    texProp.T.shift = 0
+    defaults = create_or_get_world(bpy.context.scene).rdp_defaults
 
     fTexRect = FTexRect(toAlnum(name), GfxMatWriteMethod.WriteDifferingAndRevert)
-    fMaterial = FMaterial(toAlnum(name) + "_mat", DLFormat.Dynamic)
+    fMaterial = fTexRect.addMaterial(toAlnum(name) + "_mat")
 
-    # dl_hud_img_begin
-    fTexRect.draw.commands.extend(
-        [
-            DPPipeSync(),
-            DPSetCycleType("G_CYC_COPY"),
-            DPSetTexturePersp("G_TP_NONE"),
-            DPSetAlphaCompare("G_AC_THRESHOLD"),
-            DPSetBlendColor(0xFF, 0xFF, 0xFF, 0xFF),
-            DPSetRenderMode(["G_RM_AA_XLU_SURF", "G_RM_AA_XLU_SURF2"], None),
-        ]
-    )
+    # use_copy_mode is based on dl_hud_img_begin and dl_hud_img_end
+    if use_copy_mode:
+        saveModeSetting(fMaterial, "G_CYC_COPY", defaults.g_mdsft_cycletype, DPSetCycleType)
+    else:
+        saveModeSetting(fMaterial, "G_CYC_1CYCLE", defaults.g_mdsft_cycletype, DPSetCycleType)
+        fMaterial.mat_only_DL.commands.append(
+            DPSetCombineMode(*fTexRect.f3d.G_CC_DECALRGBA, *fTexRect.f3d.G_CC_DECALRGBA)
+        )
+        fMaterial.revert.commands.append(DPSetCombineMode(*fTexRect.f3d.G_CC_SHADE, *fTexRect.f3d.G_CC_SHADE))
+    saveModeSetting(fMaterial, "G_TP_NONE", defaults.g_mdsft_textpersp, DPSetTexturePersp)
+    saveModeSetting(fMaterial, "G_AC_THRESHOLD", defaults.g_mdsft_alpha_compare, DPSetAlphaCompare)
+    fMaterial.mat_only_DL.commands.append(DPSetBlendColor(0xFF, 0xFF, 0xFF, 0xFF))
 
-    drawEndCommands = GfxList("temp", GfxListTag.Draw, DLFormat.Dynamic)
+    fMaterial.mat_only_DL.commands.append(DPSetRenderMode(["G_RM_AA_XLU_SURF", "G_RM_AA_XLU_SURF2"], None))
+    fMaterial.revert.commands.append(DPSetRenderMode(["G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2"], None))
 
+    saveModeSetting(fMaterial, texProp.tlut_mode, defaults.g_mdsft_textlut, DPSetTextureLUT)
     ti = TexInfo()
-    if not ti.fromProp(texProp, 0):
-        raise PluginError(f"In {name}: {texProp.errorMsg}.")
-    if not ti.useTex:
-        raise PluginError(f"In {name}: texture disabled.")
-    if ti.isTexCI:
-        raise PluginError(f"In {name}: CI textures not compatible with exportTexRectCommon (because copy mode).")
-    if ti.tmemSize > 512:
-        raise PluginError(f"In {name}: texture is too big (> 4 KiB).")
-    if ti.texFormat != "RGBA16":
-        raise PluginError(f"In {name}: texture format must be RGBA16 (because copy mode).")
-    ti.imDependencies = [tex]
-    ti.writeAll(fTexRect.draw, fMaterial, fTexRect, convertTextureData)
+    ti.fromProp(texProp, index=0, ignore_tex_set=True)
+    ti.materialless_setup()
+    ti.setup_single_tex(texProp.is_ci, False)
+    ti.writeAll(fMaterial, fTexRect, convertTextureData)
+    fTexRect.materials[texProp] = (fMaterial, ti.imageDims)
 
+    fTexRect.draw.commands.extend(fMaterial.mat_only_DL.commands)
+    fTexRect.draw.commands.extend(fMaterial.texture_DL.commands)
     fTexRect.draw.commands.append(
-        SPScisTextureRectangle(0, 0, (texDimensions[0] - 1) << 2, (texDimensions[1] - 1) << 2, 0, 0, 0)
+        SPScisTextureRectangle(0, 0, (ti.imageDims[0] - 1) << 2, (ti.imageDims[1] - 1) << 2, 0, 0, 0)
     )
-
-    fTexRect.draw.commands.extend(drawEndCommands.commands)
-
-    # dl_hud_img_end
-    fTexRect.draw.commands.extend(
-        [
-            DPPipeSync(),
-            DPSetCycleType("G_CYC_1CYCLE"),
-            SPTexture(0xFFFF, 0xFFFF, 0, "G_TX_RENDERTILE", "G_OFF"),
-            DPSetTexturePersp("G_TP_PERSP"),
-            DPSetAlphaCompare("G_AC_NONE"),
-            DPSetRenderMode(["G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2"], None),
-            SPEndDisplayList(),
-        ]
-    )
+    fTexRect.draw.commands.append(DPPipeSync())
+    fTexRect.draw.commands.extend(fMaterial.revert.commands)
+    fTexRect.draw.commands.append(SPEndDisplayList())
 
     return fTexRect
 
@@ -822,25 +800,7 @@ class ExportTexRectDrawPanel(SM64_Panel):
     # called every frame
     def draw(self, context):
         col = self.layout.column()
-        propsTexRectE = col.operator(ExportTexRectDraw.bl_idname)
 
-        textureProp = context.scene.texrect
-        tex = textureProp.tex
-        col.label(text="This is for decomp only.")
-        col.template_ID(textureProp, "tex", new="image.new", open="image.open", unlink="image.texrect_unlink")
-        # col.prop(textureProp, 'tex')
-
-        tmemUsageUI(col, textureProp)
-        if tex is not None and tex.size[0] > 0 and tex.size[1] > 0:
-            col.prop(textureProp, "tex_format", text="Format")
-            if textureProp.tex_format[:2] == "CI":
-                col.prop(textureProp, "ci_format", text="CI Format")
-            col.prop(textureProp.S, "clamp", text="Clamp S")
-            col.prop(textureProp.T, "clamp", text="Clamp T")
-            col.prop(textureProp.S, "mirror", text="Mirror S")
-            col.prop(textureProp.T, "mirror", text="Mirror T")
-
-        prop_split(col, context.scene, "TexRectName", "Name")
         col.prop(context.scene, "TexRectCustomExport")
         if context.scene.TexRectCustomExport:
             col.prop(context.scene, "TexRectExportPath")
@@ -857,6 +817,9 @@ class ExportTexRectDrawPanel(SM64_Panel):
             infoBox.label(text="After export, call your hud's draw function in ")
             infoBox.label(text=enumHUDPaths[context.scene.TexRectExportType][0] + ": ")
             infoBox.label(text=enumHUDPaths[context.scene.TexRectExportType][1] + ".")
+        prop_split(col, context.scene, "TexRectName", "Name")
+        ui_image(False, col, None, context.scene.texrect, context.scene.TexRectName, False, hide_lowhigh=True)
+        col.operator(ExportTexRectDraw.bl_idname)
 
 
 class SM64_DrawLayersPanel(bpy.types.Panel):

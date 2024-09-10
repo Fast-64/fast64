@@ -3399,7 +3399,8 @@ class GbiMacro:
         if static:
             return f"g{'s'*static}{type(self).__name__}({', '.join( self.getargs(static) )})"
         else:
-            return f"g{'s'*static}{type(self).__name__}(glistp++, {', '.join( self.getargs(static) )})"
+            args = ["glistp++"] + list(self.getargs(static))
+            return f"g{'s'*static}{type(self).__name__}({', '.join( args )})"
 
     def size(self, f3d):
         return GFX_SIZE
