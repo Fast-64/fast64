@@ -2164,7 +2164,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
     def export_locations(self) -> str | None:
         names = self.actor_names
         if len(names) > 1:
-            return f"{{{'/'.join(names)}}}"
+            return f"{{{','.join(names)}}}"
         elif len(names) == 1:
             return names[0]
         return None
