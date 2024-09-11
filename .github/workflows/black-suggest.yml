@@ -1,0 +1,16 @@
+name: black Suggest
+on: [pull_request]
+jobs:
+  formatting-check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Dependance
+        run: |
+          pip install black
+      - name: Run black style check.
+        run: |
+          black .
+      - uses: parkerbxyz/suggest-changes@v1
+        with:
+          comment: 'Please commit the suggested changes from black.'
