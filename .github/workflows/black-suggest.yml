@@ -5,9 +5,11 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Install Dependance
-        run: |
-          apt isntall python3-full
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip' # caching pip dependencies
+      - run:
           pip install black==23.12.1
       - name: Run black style check.
         run: |
