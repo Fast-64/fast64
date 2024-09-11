@@ -2164,7 +2164,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
     def export_locations(self) -> str | None:
         names = self.actor_names
         if len(names) > 1:
-            return f"({'/'.join(names)})"
+            return f"{{{'/'.join(names)}}}"
         elif len(names) == 1:
             return names[0]
         return None
@@ -2180,22 +2180,22 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
 
     def draw_actor_path(self, layout):
         if self.export_locations is None:
-            return
+            return False
         decomp_path = bpy.context.scene.fast64.sm64.abs_decomp_path
         if self.export_header_type == "Actor":
             actor_path = decomp_path / "actors"
             if not filepath_ui_warnings(layout, (actor_path / self.actor_group_name).with_suffix(".c")):
-                return
+                return False
             layout.label(text=f"Actor export path: actors/{self.export_locations}/")
         elif self.export_header_type == "Level":
             if not directory_ui_warnings(layout, self.full_level_path):
-                return
+                return False
             level_path = self.full_level_path if self.non_decomp_level else self.level_directory
             layout.label(text=f"Actor export path: {level_path / self.export_locations}/")
         elif self.export_header_type == "Custom":
             custom_path = Path(bpy.path.abspath(self.custom_export_path))
             if not directory_ui_warnings(layout, custom_path):
-                return
+                return False
             layout.label(text=f"Actor export path: {custom_path / self.export_locations}/")
         return True
 
