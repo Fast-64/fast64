@@ -7,7 +7,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install Dependance
         run: |
-          python -m pip install --upgrade pip
+          apt isntall python3-full
           pip install black==23.12.1
       - name: Run black style check.
         run: |
