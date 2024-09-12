@@ -855,9 +855,7 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
                 pass
             elif obj.sm64_obj_type == "Whirlpool":
                 condition = obj.sm64_whirlpool_enum if obj.sm64_whirlpool_enum != "Custom" else obj.sm64_obj_preset
-                area.objects.append(
-                    SM64_Whirlpool(obj.whirlpool_index, condition, obj.whirlpool_strength, translation)
-                )
+                area.objects.append(SM64_Whirlpool(obj.whirlpool_index, condition, obj.whirlpool_strength, translation))
             elif obj.sm64_obj_type == "Camera Volume":
                 checkIdentityRotation(obj, rotation.to_quaternion(), True)
                 if obj.cameraVolumeGlobal:
