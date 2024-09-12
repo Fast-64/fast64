@@ -1762,6 +1762,14 @@ enumMacrosNames = [
     ("macro_yellow_coin_2", "Yellow Coin 2", "Yellow Coin 2"),
 ]
 
+enumWhirlpoolConditions = [
+    ("Custom", "Custom", "Custom"),
+    ("0", "Always on", "Always on"),
+    ("1", "Pre Bowser 2", "Checks if Key 2 has not been collected"),
+    ("2", "Post Bowser 2", "Checks if Key 2 has been collected and used"),
+    ("3", "Not Act 1", "Only spawns if the current act >= 2"),
+]
+
 enumBehaviorMacros = [
     ("Custom", "Custom", ""),
     ("BEGIN", "BEGIN", "Starts the behavior, places it in a specific group"),
