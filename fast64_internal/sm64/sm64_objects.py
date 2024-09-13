@@ -741,7 +741,7 @@ class CustomCmd:
     whole_matrix: bool
     parameter: str = ""
     include_trans: bool = False
-    include_rot: bool = False
+    rot_type: str = "None"
     include_scale: bool = False
 
     name: str = ""
@@ -756,9 +756,13 @@ class CustomCmd:
 
     @property
     def rot(self):
-        return (
-            [round(math.degrees(x), 4) for x in self.transform.to_quaternion().to_euler()] if self.include_rot else None
-        )
+        if self.rot_type == "None":
+            return None
+        elif self.rot_type == "Euler":
+            return [round(math.degrees(x), 4) for x in self.transform.to_euler()]
+        elif self.rot_type == "Quaternion":
+            return [round(x, 4) for x in self.transform.to_quaternion()]
+        assert False, "Unknown rotation type"
 
     @property
     def scale(self):
@@ -777,7 +781,7 @@ class CustomCmd:
             if self.trans is not None:
                 arg_groups.append(f"/*trans*/ {', '.join([str(x) for x in self.trans])}")
             if self.rot is not None:
-                arg_groups.append(f"/*rot*/ {', '.join([str(x) for x in self.rot])}")
+                arg_groups.append(f"/*rot ({self.rot_type})*/ {', '.join([str(x) for x in self.rot])}")
             if self.scale is not None:
                 arg_groups.append(f"/*scale*/ {', '.join([str(x) for x in self.scale])}")
         if self.parameter is not None:
@@ -2867,9 +2871,16 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
     relative: BoolProperty(name="Use Relative Transformation", default=True)
     matrix: BoolProperty(name="Use Whole Matrix")
     trans: BoolProperty(name="Translation")
-    rot: BoolProperty(name="Rotation")
+    rot: EnumProperty(
+        name="Rotation",
+        items=[
+            ("None", "No Rotation", "No Rotation"),
+            ("Euler", "Euler (XYZ deg)", "Euler XYZ order, degrees"),
+            ("Quaternion", "Quaternion", "Quaternion"),
+        ],
+    )
     scale: BoolProperty(name="Scale")
-    parameter: StringProperty(name="Parameter")
+    parameter: StringProperty(name="Parameter(s)")
 
     def get_final_cmd(self, obj: Object, blender_scale: float):
         matrix = obj.matrix_local if self.relative else obj.matrix_world
@@ -2891,9 +2902,9 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
         if not self.matrix:
             row = col.row()
             row.prop(self, "trans", toggle=1)
-            row.prop(self, "rot", toggle=1)
             row.prop(self, "scale", toggle=1)
-        prop_split(col, self, "parameter", "Parameter")
+            row.prop(self, "rot", text="")
+        prop_split(col, self, "parameter", "Parameter(s)")
         multilineLabel(col.box(), self.get_final_cmd(obj, blender_scale).to_c().replace("\t", "    "))
 
 
