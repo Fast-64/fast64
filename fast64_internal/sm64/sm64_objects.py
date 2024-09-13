@@ -1049,25 +1049,6 @@ class SearchMacroEnumOperator(bpy.types.Operator):
         return {"RUNNING_MODAL"}
 
 
-class SearchWhirlpoolEnumOperator(bpy.types.Operator):
-    bl_idname = "object.search_whirlpool_enum_operator"
-    bl_label = "Search Whirlpool Conditions"
-    bl_property = "sm64_whirlpool_enum"
-    bl_options = {"REGISTER", "UNDO"}
-
-    sm64_whirlpool_enum: bpy.props.EnumProperty(items=enumWhirlpoolConditions)
-
-    def execute(self, context):
-        context.object.sm64_whirlpool_enum = self.sm64_whirlpool_enum
-        bpy.context.region.tag_redraw()
-        self.report({"INFO"}, "Selected: " + self.sm64_whirlpool_enum)
-        return {"FINISHED"}
-
-    def invoke(self, context, event):
-        context.window_manager.invoke_search_popup(self)
-        return {"RUNNING_MODAL"}
-
-
 class SearchSpecialEnumOperator(bpy.types.Operator):
     bl_idname = "object.search_special_enum_operator"
     bl_label = "Search Specials"
@@ -1244,7 +1225,6 @@ class SM64ObjectPanel(bpy.types.Panel):
             prop_split(box, obj, "sm64_whirlpool_enum", "Condition")
             if obj.sm64_whirlpool_enum == "Custom":
                 prop_split(box, obj, "sm64_obj_preset", "Condition Name")
-            box.operator(SearchWhirlpoolEnumOperator.bl_idname, icon="VIEWZOOM")
             box.box().label(text="Whirlpool conditions defined in include/level_commands.h.")
             prop_split(box, obj, "whirlpool_index", "Index")
             prop_split(box, obj, "whirlpool_strength", "Strength")
@@ -2830,7 +2810,6 @@ sm64_obj_classes = (
     SearchBehaviourEnumOperator,
     SearchSpecialEnumOperator,
     SearchMacroEnumOperator,
-    SearchWhirlpoolEnumOperator,
     StarGetCutscenesProperty,
     PuppycamProperty,
     PuppycamSetupCamera,
