@@ -380,9 +380,12 @@ class TransformNode:
 
     def to_c(self, depth):
         if self.node is not None:
-            nodeC = self.node.to_c()
+            if self.node.__class__.__name__ == "CustomCmd":  # hack, prevents circular import
+                nodeC = self.node.to_c(depth * "\t") + ","  # seriously why do nodes add ","
+            else:
+                nodeC = self.node.to_c()
             if nodeC is not None:  # Should only be the case for DisplayListNode with no DL
-                data = depth * "\t" + self.node.to_c() + "\n"
+                data = depth * "\t" + nodeC + "\n"
             else:
                 data = ""
         else:
