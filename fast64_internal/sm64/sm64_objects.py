@@ -5,7 +5,7 @@ from re import findall, sub
 from pathlib import Path
 
 from bpy.utils import register_class, unregister_class
-from bpy.props import StringProperty, BoolProperty, EnumProperty
+from bpy.props import StringProperty, BoolProperty, EnumProperty, FloatVectorProperty
 from bpy.types import Object
 
 from ..panels import SM64_Panel
@@ -27,6 +27,7 @@ from ..utility import (
     multilineLabel,
     raisePluginError,
     enumExportHeaderType,
+    exportColor,
 )
 
 from ..f3d.f3d_gbi import (
@@ -739,10 +740,11 @@ class CustomCmd:
     cmd: str | int
     transform: mathutils.Matrix
     whole_matrix: bool
-    parameter: str = ""
     include_trans: bool = False
     rot_type: str = "None"
     include_scale: bool = False
+    parameter: str | None = None
+    color: list[int] | None = None
 
     name: str = ""
 
@@ -786,6 +788,8 @@ class CustomCmd:
                 arg_groups.append(f"/*rot ({self.rot_type.lower()})*/ {', '.join([f'{x}f' for x in self.rot])}")
             if self.scale is not None:
                 arg_groups.append(f"/*scale*/ {', '.join([f'{x}f' for x in self.scale])}")
+        if self.color is not None:
+            arg_groups.append(f"/*color*/ {', '.join([str(x) for x in self.color])}")
         if self.parameter is not None:
             arg_groups.append(f"/*param*/ {self.parameter}")
         if len(str(arg_groups)) > 100:
@@ -2873,6 +2877,14 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
     trans: BoolProperty(name="Translation")
     rot: BoolProperty(name="Rotation")
     scale: BoolProperty(name="Scale")
+    set_color: BoolProperty(name="Color")
+    color: FloatVectorProperty(
+        name="Color",
+        size=4,
+        min=0.0,
+        max=1.0,
+        subtype="COLOR",
+    )
     set_parameter: BoolProperty(name="Parameter(s)")
     parameter: StringProperty(name="Parameter(s)")
     rot_type: EnumProperty(
@@ -2897,10 +2909,11 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
             self.cmd,
             matrix,
             self.matrix,
-            self.parameter if self.set_parameter else None,
             self.trans,
             self.rot_type if self.rot else "None",
             self.scale,
+            self.parameter if self.set_parameter else None,
+            exportColor(self.color) if self.set_color else None,
             obj.name,
         )
 
@@ -2922,7 +2935,10 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
                 transform_box.separator()
                 prop_split(transform_box, self, "rot_type", "Rotation Type")
         col.separator()
-
+        col_split = col.split()
+        col_split.prop(self, "set_color")
+        if self.set_color:
+            col_split.prop(self, "color", text="")
         param_split = col.split()
         param_split.prop(self, "set_parameter")
         if self.set_parameter:
