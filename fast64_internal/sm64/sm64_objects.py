@@ -776,7 +776,6 @@ class CustomCmd:
 
     def to_c(self, tabs=""):
         assert isinstance(self.cmd, str), "Command is not str"
-        cmd = f"{self.cmd}("
         arg_groups = []
         if self.matrix is not None:
             arg_groups.append(f"/*matrix*/ {', '.join([f'{x}f' for x in self.matrix])}")
@@ -784,18 +783,16 @@ class CustomCmd:
             if self.trans is not None:
                 arg_groups.append(f"/*trans*/ {', '.join([f'{x}f' for x in self.trans])}")
             if self.rot is not None:
-                arg_groups.append(f"/*rot ({self.rot_type})*/ {', '.join([f'{x}f' for x in self.rot])}")
+                arg_groups.append(f"/*rot ({self.rot_type.lower()})*/ {', '.join([f'{x}f' for x in self.rot])}")
             if self.scale is not None:
                 arg_groups.append(f"/*scale*/ {', '.join([f'{x}f' for x in self.scale])}")
         if self.parameter is not None:
-            arg_groups.append(f"/*parameter*/ {self.parameter}")
-        if len(str(arg_groups)) > 75:
+            arg_groups.append(f"/*param*/ {self.parameter}")
+        if len(str(arg_groups)) > 100:
             args = f",\n{tabs}\t".join(arg_groups)
-            cmd = f"{self.cmd}(\n{tabs}\t{args}\n{tabs})"
         else:
             args = ", ".join(arg_groups)
-            cmd = f"{self.cmd}({args})"
-        return cmd
+        return f"{self.cmd}({args})"
 
 
 def exportAreaCommon(areaObj, transformMatrix, geolayout, collision, name):
@@ -2876,6 +2873,7 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
     trans: BoolProperty(name="Translation")
     rot: BoolProperty(name="Rotation")
     scale: BoolProperty(name="Scale")
+    set_parameter: BoolProperty(name="Parameter(s)")
     parameter: StringProperty(name="Parameter(s)")
     rot_type: EnumProperty(
         name="Rotation",
@@ -2899,7 +2897,7 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
             self.cmd,
             matrix,
             self.matrix,
-            self.parameter,
+            self.parameter if self.set_parameter else None,
             self.trans,
             self.rot_type if self.rot else "None",
             self.scale,
@@ -2910,17 +2908,26 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
         col = layout.column()
         prop_split(col, self, "cmd_type", "Type")
         prop_split(col, self, "cmd", "Command")
-        col.prop(self, "relative")
-        col.prop(self, "matrix")
+        col.separator()
+
+        transform_box = col.box().column()
+        transform_box.prop(self, "relative")
+        transform_box.prop(self, "matrix")
         if not self.matrix:
-            row = col.row()
+            row = transform_box.row()
             row.prop(self, "trans", toggle=1)
             row.prop(self, "scale", toggle=1)
             row.prop(self, "rot", toggle=1)
             if self.rot:
-                prop_split(col, self, "rot_type", "Rotation Type")
-        prop_split(col, self, "parameter", "Parameter(s)")
-        multilineLabel(col.box(), self.get_final_cmd(obj, blender_scale).to_c().replace("\t", "    "))
+                transform_box.separator()
+                prop_split(transform_box, self, "rot_type", "Rotation Type")
+        col.separator()
+
+        param_split = col.split()
+        param_split.prop(self, "set_parameter")
+        if self.set_parameter:
+            param_split.prop(self, "parameter", text="")
+        multilineLabel(col.box(), self.get_final_cmd(obj, blender_scale).to_c().replace("\t", "            "))
 
 
 class SM64_ObjectProperties(bpy.types.PropertyGroup):
