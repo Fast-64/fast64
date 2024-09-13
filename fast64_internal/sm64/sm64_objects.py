@@ -66,7 +66,6 @@ from .sm64_geolayout_classes import (
     RotateNode,
     TranslateRotateNode,
     FunctionNode,
-    CustomNode,
     BillboardNode,
     ScaleNode,
 )
@@ -232,7 +231,7 @@ inlineGeoLayoutObjects = {
     "Geo Billboard": InlineGeolayoutObjConfig("Geo Billboard", BillboardNode, can_have_dl=True, uses_location=True),
     "Geo Scale": InlineGeolayoutObjConfig("Geo Scale", ScaleNode, can_have_dl=True, uses_scale=True),
     "Geo Displaylist": InlineGeolayoutObjConfig("Geo Displaylist", DisplayListNode, must_have_dl=True),
-    "Custom Geo Command": InlineGeolayoutObjConfig("Custom Geo Command", CustomNode),
+    "Custom": InlineGeolayoutObjConfig("Custom", "CustomCmd"),
 }
 
 # When adding new types related to geolayout,
@@ -251,9 +250,9 @@ enumObjectType = [
     ("Switch", "Switch Node", "Switch Node", 10),
     ("Puppycam Volume", "Puppycam Volume", "Puppycam Volume", 11),
     ("", "Inline Geolayout Commands", "", 12),  # This displays as a column header for the next set of options
-    *[(key, key, key, i) for i, key in enumerate(inlineGeoLayoutObjects.keys(), start=13)],
-    ("", "", "", 22),
-    ("Custom", "Custom", "Custom level script command", 23),
+    *[(key, key, key, i) for i, key in enumerate(list(inlineGeoLayoutObjects.keys())[:-1], start=13)],  # exclude custom
+    ("", "", "", 12),
+    ("Custom", "Custom", "Custom level script command", 21),
 ]
 
 enumPuppycamMode = [
@@ -746,7 +745,8 @@ class CustomCmd:
     parameter: str | None = None
     color: list[int] | None = None
 
-    name: str = ""
+    name: str = ""  # for sorting
+    hasDL: bool = False
 
     @property
     def matrix(self):
@@ -773,8 +773,11 @@ class CustomCmd:
     def scale(self):
         return [round(x, 4) for x in self.transform.to_scale()] if self.include_scale else None
 
-    def to_binary(self):
-        return
+    def size(self):
+        return 8
+
+    def to_binary(self, segmentData):
+        raise PluginError("Custom commands are not supported for binary exports.")
 
     def to_c(self, tabs=""):
         assert isinstance(self.cmd, str), "Command is not str"
@@ -1198,11 +1201,6 @@ class SM64ObjectPanel(bpy.types.Panel):
             prop_split(box, obj.fast64.sm64.geo_asm, "param", "Parameter")
             return
 
-        elif obj.sm64_obj_type == "Custom Geo Command":
-            prop_split(box, obj, "customGeoCommand", "Geo Macro")
-            prop_split(box, obj, "customGeoCommandArgs", "Parameters")
-            return
-
         if obj_details.can_have_dl:
             prop_split(box, obj, "draw_layer_static", "Draw Layer")
 
@@ -1227,7 +1225,7 @@ class SM64ObjectPanel(bpy.types.Panel):
                 info_box.label(text="Scale", icon="DOT")
 
         if len(obj.children):
-            if checkIsSM64PreInlineGeoLayout(obj.sm64_obj_type):
+            if checkIsSM64PreInlineGeoLayout(obj):
                 box.box().label(text="Children of this object will just be the following geo commands.")
             else:
                 box.box().label(text="Children of this object will be wrapped in GEO_OPEN_NODE and GEO_CLOSE_NODE.")
@@ -2869,7 +2867,12 @@ class SM64_SegmentProperties(bpy.types.PropertyGroup):
 
 class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
     cmd_type: EnumProperty(
-        name="Type", items=[("Level", "Level", "Level script command"), ("Special", "Special", "Collision command")]
+        name="Type",
+        items=[
+            ("Level", "Level", "Level script command"),
+            ("Geo", "Geo", "Geolayout command"),
+            ("Special", "Special", "Collision command"),
+        ],
     )
     cmd: StringProperty(name="Command")
     relative: BoolProperty(name="Use Relative Transformation", default=True)
@@ -2895,6 +2898,17 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
             ("Axis Angle", "Axis Angle", "Axis angle"),
         ],
     )
+
+    @staticmethod
+    def upgrade_object(obj: Object):
+        self: SM64_CustomCmdProperties = obj.fast64.sm64.custom
+        found_cmd, found_arg = upgrade_old_prop(self, "cmd", obj, "customGeoCommand"), upgrade_old_prop(
+            self, "parameter", obj, "customGeoCommandArgs"
+        )
+        if found_cmd:
+            self.cmd_type = "Geo"
+        if found_cmd or found_arg:
+            self.set_parameter = True
 
     def get_final_cmd(self, obj: Object, blender_scale: float):
         matrix = obj.matrix_local if self.relative else obj.matrix_world
@@ -2948,7 +2962,7 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
 
 class SM64_ObjectProperties(bpy.types.PropertyGroup):
     version: bpy.props.IntProperty(name="SM64_ObjectProperties Version", default=0)
-    cur_version = 3  # version after property migration
+    cur_version = 4  # version after property migration
 
     geo_asm: bpy.props.PointerProperty(type=SM64_GeoASMProperties)
     level: bpy.props.PointerProperty(type=SM64_LevelProperties)
@@ -2964,6 +2978,8 @@ class SM64_ObjectProperties(bpy.types.PropertyGroup):
                 SM64_GeoASMProperties.upgrade_object(obj)
             if obj.fast64.sm64.version < 3:
                 SM64_GameObjectProperties.upgrade_object(obj)
+            if obj.fast64.sm64.version < 4:
+                SM64_CustomCmdProperties.upgrade_object(obj)
             obj.fast64.sm64.version = SM64_ObjectProperties.cur_version
 
 
@@ -3177,9 +3193,6 @@ def sm64_obj_register():
     bpy.types.Object.dlReference = bpy.props.StringProperty(name="Displaylist variable name or hex address for binary.")
 
     bpy.types.Object.geoReference = bpy.props.StringProperty(name="Geolayout variable name or hex address for binary")
-
-    bpy.types.Object.customGeoCommand = bpy.props.StringProperty(name="Geolayout macro command", default="")
-    bpy.types.Object.customGeoCommandArgs = bpy.props.StringProperty(name="Geolayout macro arguments", default="")
 
     bpy.types.Object.enableRoomSwitch = bpy.props.BoolProperty(name="Enable Room System")
 

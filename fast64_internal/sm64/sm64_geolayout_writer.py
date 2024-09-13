@@ -1229,7 +1229,7 @@ def duplicateNode(transformNode, parentNode, index):
 
 
 def partOfGeolayout(obj):
-    useGeoEmpty = obj.type == "EMPTY" and checkSM64EmptyUsesGeoLayout(obj.sm64_obj_type)
+    useGeoEmpty = obj.type == "EMPTY" and checkSM64EmptyUsesGeoLayout(obj)
 
     return obj.type == "MESH" or useGeoEmpty
 
@@ -1300,8 +1300,8 @@ def processPreInlineGeo(
         node = JumpNode(True, None, obj.geoReference)
     elif inlineGeoConfig.name == "Geo Displaylist":
         node = DisplayListNode(int(obj.draw_layer_static), obj.dlReference)
-    elif inlineGeoConfig.name == "Custom Geo Command":
-        node = CustomNode(obj.customGeoCommand, obj.customGeoCommandArgs)
+    elif inlineGeoConfig.name == "Custom":
+        node = obj.fast64.sm64.custom.get_final_cmd(obj, bpy.context.scene.fast64.sm64.blender_to_sm64_scale)
     addParentNode(parentTransformNode, node)  # Allow this node to be translated/rotated
 
 
@@ -1344,11 +1344,11 @@ def processMesh(
 ):
     # final_transform = copy.deepcopy(transformMatrix)
 
-    useGeoEmpty = obj.type == "EMPTY" and checkSM64EmptyUsesGeoLayout(obj.sm64_obj_type)
+    useGeoEmpty = obj.type == "EMPTY" and checkSM64EmptyUsesGeoLayout(obj)
 
     useSwitchNode = obj.type == "EMPTY" and obj.sm64_obj_type == "Switch"
 
-    useInlineGeo = obj.type == "EMPTY" and checkIsSM64InlineGeoLayout(obj.sm64_obj_type)
+    useInlineGeo = obj.type == "EMPTY" and checkIsSM64InlineGeoLayout(obj)
 
     addRooms = isRoot and obj.type == "EMPTY" and obj.sm64_obj_type == "Area Root" and obj.enableRoomSwitch
 
@@ -1358,7 +1358,7 @@ def processMesh(
     inlineGeoConfig: InlineGeolayoutObjConfig = inlineGeoLayoutObjects.get(obj.sm64_obj_type)
     processed_inline_geo = False
 
-    isPreInlineGeoLayout = checkIsSM64PreInlineGeoLayout(obj.sm64_obj_type)
+    isPreInlineGeoLayout = checkIsSM64PreInlineGeoLayout(obj)
     if useInlineGeo and isPreInlineGeoLayout:
         processed_inline_geo = True
         processPreInlineGeo(inlineGeoConfig, obj, parentTransformNode)

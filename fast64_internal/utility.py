@@ -949,35 +949,33 @@ def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
         raise Exception(str(e))
 
 
-enumSM64PreInlineGeoLayoutObjects = {"Geo ASM", "Geo Branch", "Geo Displaylist", "Custom Geo Command"}
+enumSM64PreInlineGeoLayoutObjects = {"Geo ASM", "Geo Branch", "Geo Displaylist"}
 
 
-def checkIsSM64PreInlineGeoLayout(sm64_obj_type):
-    return sm64_obj_type in enumSM64PreInlineGeoLayoutObjects
+def checkIsSM64PreInlineGeoLayout(obj):
+    return obj.sm64_obj_type in enumSM64PreInlineGeoLayoutObjects or (
+        obj.sm64_obj_type == "Custom" and obj.fast64.sm64.custom.cmd_type == "Geo"
+    )
 
 
 enumSM64InlineGeoLayoutObjects = {
-    "Geo ASM",
-    "Geo Branch",
     "Geo Translate/Rotate",
     "Geo Translate Node",
     "Geo Rotation Node",
     "Geo Billboard",
     "Geo Scale",
-    "Geo Displaylist",
-    "Custom Geo Command",
 }
 
 
-def checkIsSM64InlineGeoLayout(sm64_obj_type):
-    return sm64_obj_type in enumSM64InlineGeoLayoutObjects
+def checkIsSM64InlineGeoLayout(obj):
+    return obj.sm64_obj_type in enumSM64InlineGeoLayoutObjects or checkIsSM64PreInlineGeoLayout(obj)
 
 
 enumSM64EmptyWithGeolayout = {"None", "Level Root", "Area Root", "Switch"}
 
 
-def checkSM64EmptyUsesGeoLayout(sm64_obj_type):
-    return sm64_obj_type in enumSM64EmptyWithGeolayout or checkIsSM64InlineGeoLayout(sm64_obj_type)
+def checkSM64EmptyUsesGeoLayout(obj):
+    return obj.sm64_obj_type in enumSM64EmptyWithGeolayout or checkIsSM64InlineGeoLayout(obj)
 
 
 def selectMeshChildrenOnly(obj, ignoreAttr, includeEmpties, areaIndex):
@@ -986,7 +984,7 @@ def selectMeshChildrenOnly(obj, ignoreAttr, includeEmpties, areaIndex):
         return
     ignoreObj = ignoreAttr is not None and getattr(obj, ignoreAttr)
     isMesh = obj.type == "MESH"
-    isEmpty = obj.type == "EMPTY" and includeEmpties and checkSM64EmptyUsesGeoLayout(obj.sm64_obj_type)
+    isEmpty = obj.type == "EMPTY" and includeEmpties and checkSM64EmptyUsesGeoLayout(obj)
     if (isMesh or isEmpty) and not ignoreObj:
         obj.select_set(True)
         obj.original_name = obj.name
