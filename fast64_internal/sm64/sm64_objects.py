@@ -444,7 +444,7 @@ class SM64_Special_Object:
                 + str(int(round(self.position[1])))
                 + ", "
                 + str(int(round(self.position[2])))
-                + "),\n"
+                + ")"
             )
         elif self.bparam is None:
             return (
@@ -458,7 +458,7 @@ class SM64_Special_Object:
                 + str(int(round(self.position[2])))
                 + ", "
                 + str(int(round(math.degrees(self.rotation[1]))))
-                + "),\n"
+                + ")"
             )
         else:
             return (
@@ -474,7 +474,7 @@ class SM64_Special_Object:
                 + str(int(round(math.degrees(self.rotation[1]))))
                 + ", "
                 + str(self.bparam)
-                + "),\n"
+                + ")"
             )
 
 
@@ -533,6 +533,9 @@ class SM64_Area:
             data += "\t\t" + warpNode + ",\n"
         # export objects in name order
         for obj in sorted(self.objects, key=(lambda obj: obj.name)):
+            if isinstance(obj, CustomCmd):
+                data += "\t\t" + obj.to_c("\t\t") + ",\n"
+                continue
             data += "\t\t" + obj.to_c() + ",\n"
         data += "\t\tTERRAIN(" + self.collision.name + "),\n"
         if includeRooms:
@@ -741,6 +744,8 @@ class CustomCmd:
     include_rot: bool = False
     include_scale: bool = False
 
+    name: str = ""
+
     @property
     def matrix(self):
         return [round(column, 4) for row in self.transform for column in row] if self.whole_matrix else None
@@ -862,6 +867,7 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
     if obj.type == "EMPTY":
         if obj.sm64_obj_type == "Area Root" and obj.areaIndex != area.index:
             return
+        obj_props: SM64_ObjectProperties = obj.fast64.sm64
         if specialsOnly:
             if obj.sm64_obj_type == "Special":
                 preset = obj.sm64_special_enum if obj.sm64_special_enum != "Custom" else obj.sm64_obj_preset
@@ -878,6 +884,10 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
             elif obj.sm64_obj_type == "Water Box":
                 checkIdentityRotation(obj, rotation.to_quaternion(), False)
                 area.water_boxes.append(CollisionWaterBox(obj.waterBoxType, translation, scale, obj.empty_display_size))
+            elif obj.sm64_obj_type == "Custom" and obj_props.custom.cmd_type == "Special":
+                area.specials.append(
+                    obj_props.custom.get_final_cmd(obj, bpy.context.scene.fast64.sm64.blender_to_sm64_scale)
+                )
         else:
             if obj.sm64_obj_type == "Object":
                 modelID = obj.sm64_model_enum if obj.sm64_model_enum != "Custom" else obj.sm64_obj_model
@@ -933,6 +943,11 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
                         scale,
                         obj.empty_display_size,
                     )
+                )
+
+            elif obj.sm64_obj_type == "Custom" and obj_props.custom.cmd_type == "Level":
+                area.objects.append(
+                    obj_props.custom.get_final_cmd(obj, bpy.context.scene.fast64.sm64.blender_to_sm64_scale)
                 )
 
             elif obj.sm64_obj_type == "Puppycam Volume":
@@ -2865,15 +2880,7 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
             @ rot.to_matrix().to_4x4()
             @ mathutils.Matrix.Diagonal(scale).to_4x4()
         )
-        return CustomCmd(
-            self.cmd,
-            matrix,
-            self.matrix,
-            self.parameter,
-            self.trans,
-            self.rot,
-            self.scale,
-        )
+        return CustomCmd(self.cmd, matrix, self.matrix, self.parameter, self.trans, self.rot, self.scale, obj.name)
 
     def draw_props(self, layout, obj, blender_scale: float):
         col = layout.column()

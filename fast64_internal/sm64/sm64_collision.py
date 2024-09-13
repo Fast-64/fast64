@@ -9,7 +9,7 @@ from .sm64_constants import (
     defaultExtendSegment4,
 )
 from .sm64_utility import export_rom_checks
-from .sm64_objects import SM64_Area, start_process_sm64_objects
+from .sm64_objects import CustomCmd, SM64_Area, start_process_sm64_objects
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_rom_tweaks import ExtendBank0x04
 from ..panels import SM64_Panel
@@ -146,7 +146,10 @@ class Collision:
         if len(self.specials) > 0:
             data.source += "\tCOL_SPECIAL_INIT(" + str(len(self.specials)) + "),\n"
             for special in self.specials:
-                data.source += "\t" + special.to_c()
+                if isinstance(special, CustomCmd):
+                    data.source += "\t" + special.to_c("\t") + ",\n"
+                    continue
+                data.source += "\t" + special.to_c() + ",\n"
         if len(self.water_boxes) > 0:
             data.source += "\tCOL_WATER_BOX_INIT(" + str(len(self.water_boxes)) + "),\n"
             for waterBox in self.water_boxes:
