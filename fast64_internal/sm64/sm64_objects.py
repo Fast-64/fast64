@@ -1,8 +1,13 @@
+import dataclasses
 import math, bpy, mathutils
 import os
-from bpy.utils import register_class, unregister_class
 from re import findall, sub
 from pathlib import Path
+
+from bpy.utils import register_class, unregister_class
+from bpy.props import StringProperty, BoolProperty, EnumProperty
+from bpy.types import Object
+
 from ..panels import SM64_Panel
 from ..operators import ObjectDataExporter
 
@@ -232,20 +237,22 @@ inlineGeoLayoutObjects = {
 # When adding new types related to geolayout,
 # Make sure to add exceptions to enumSM64EmptyWithGeolayout
 enumObjectType = [
-    ("None", "None", "None"),
-    ("Level Root", "Level Root", "Level Root"),
-    ("Area Root", "Area Root", "Area Root"),
-    ("Object", "Object", "Object"),
-    ("Macro", "Macro", "Macro"),
-    ("Special", "Special", "Special"),
-    ("Mario Start", "Mario Start", "Mario Start"),
-    ("Whirlpool", "Whirlpool", "Whirlpool"),
-    ("Water Box", "Water Box", "Water Box"),
-    ("Camera Volume", "Camera Volume", "Camera Volume"),
-    ("Switch", "Switch Node", "Switch Node"),
-    ("Puppycam Volume", "Puppycam Volume", "Puppycam Volume"),
-    ("", "Inline Geolayout Commands", ""),  # This displays as a column header for the next set of options
-    *[(key, key, key) for key in inlineGeoLayoutObjects.keys()],
+    ("None", "None", "None", 0),
+    ("Level Root", "Level Root", "Level Root", 1),
+    ("Area Root", "Area Root", "Area Root", 2),
+    ("Object", "Object", "Object", 3),
+    ("Macro", "Macro", "Macro", 4),
+    ("Special", "Special", "Special", 5),
+    ("Mario Start", "Mario Start", "Mario Start", 6),
+    ("Whirlpool", "Whirlpool", "Whirlpool", 7),
+    ("Water Box", "Water Box", "Water Box", 8),
+    ("Camera Volume", "Camera Volume", "Camera Volume", 9),
+    ("Switch", "Switch Node", "Switch Node", 10),
+    ("Puppycam Volume", "Puppycam Volume", "Puppycam Volume", 11),
+    ("", "Inline Geolayout Commands", "", 12),  # This displays as a column header for the next set of options
+    *[(key, key, key, i) for i, key in enumerate(inlineGeoLayoutObjects.keys(), start=13)],
+    ("", "", "", 22),
+    ("Custom", "Custom", "Custom level script command", 23),
 ]
 
 enumPuppycamMode = [
@@ -724,6 +731,61 @@ class PuppycamVolume:
         return data
 
 
+@dataclasses.dataclass
+class CustomCmd:
+    cmd: str | int
+    transform: mathutils.Matrix
+    whole_matrix: bool
+    parameter: str = ""
+    include_trans: bool = False
+    include_rot: bool = False
+    include_scale: bool = False
+
+    @property
+    def matrix(self):
+        return [round(column, 4) for row in self.transform for column in row] if self.whole_matrix else None
+
+    @property
+    def trans(self):
+        return [round(x, 4) for x in self.transform.to_translation()] if self.include_trans else None
+
+    @property
+    def rot(self):
+        return (
+            [round(math.degrees(x), 4) for x in self.transform.to_quaternion().to_euler()] if self.include_rot else None
+        )
+
+    @property
+    def scale(self):
+        return [round(x, 4) for x in self.transform.to_scale()] if self.include_scale else None
+
+    def to_binary(self):
+        return
+
+    def to_c(self, tabs=""):
+        assert isinstance(self.cmd, str), "Command is not str"
+        cmd = f"{self.cmd}("
+        arg_groups = []
+        if self.matrix is not None:
+            arg_groups.append(f"/*matrix*/ {', '.join([str(x) for x in self.matrix])}")
+        else:
+            if self.trans is not None:
+                arg_groups.append(f"/*trans*/ {', '.join([str(x) for x in self.trans])}")
+            if self.rot is not None:
+                arg_groups.append(f"/*rot*/ {', '.join([str(x) for x in self.rot])}")
+            if self.scale is not None:
+                arg_groups.append(f"/*scale*/ {', '.join([str(x) for x in self.scale])}")
+        if self.parameter is not None:
+            arg_groups.append(f"/*parameter*/ {self.parameter}")
+        if len(str(arg_groups)) > 75:
+            args = f",\n{tabs}\t".join(arg_groups)
+            cmd = f"{self.cmd}(\n{tabs}\t{args}\n{tabs})"
+        else:
+            args = ", ".join(arg_groups)
+            cmd = f"{self.cmd}({args})"
+        return cmd
+
+
 def exportAreaCommon(areaObj, transformMatrix, geolayout, collision, name):
     bpy.ops.object.select_all(action="DESELECT")
     areaObj.select_set(True)
@@ -1176,6 +1238,7 @@ class SM64ObjectPanel(bpy.types.Panel):
         column = self.layout.box().column()  # added just for puppycam trigger importing
         box.box().label(text="SM64 Object Inspector")
         obj = context.object
+        obj_props: SM64_ObjectProperties = obj.fast64.sm64
         prop_split(box, obj, "sm64_obj_type", "Object Type")
         if obj.sm64_obj_type == "Object":
             prop_split(box, obj, "sm64_model_enum", "Model")
@@ -1371,11 +1434,17 @@ class SM64ObjectPanel(bpy.types.Panel):
             prop_split(box, obj, "switchParam", "Parameter")
             box.box().label(text="Children will ordered alphabetically.")
 
+        elif obj.sm64_obj_type == "Custom":
+            obj_props.custom.draw_props(box, obj, context.scene.fast64.sm64.blender_to_sm64_scale)
+
         elif obj.sm64_obj_type in inlineGeoLayoutObjects:
             self.draw_inline_obj(box, obj)
 
         elif obj.sm64_obj_type == "None":
             box.box().label(text="This can be used as an empty transform node in a geolayout hierarchy.")
+
+        else:
+            multilineLabel(box, "Unknown object type: " + obj.sm64_obj_type)
 
     def draw_acts(self, obj, layout):
         layout.label(text="Acts")
@@ -2775,6 +2844,52 @@ class SM64_SegmentProperties(bpy.types.PropertyGroup):
             return self.jump_link_from_enum(self.seg6_enum)
 
 
+class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
+    cmd_type: EnumProperty(
+        name="Type", items=[("Level", "Level", "Level script command"), ("Special", "Special", "Collision command")]
+    )
+    cmd: StringProperty(name="Command")
+    relative: BoolProperty(name="Use Relative Transformation", default=True)
+    matrix: BoolProperty(name="Use Whole Matrix")
+    trans: BoolProperty(name="Translation")
+    rot: BoolProperty(name="Rotation")
+    scale: BoolProperty(name="Scale")
+    parameter: StringProperty(name="Parameter")
+
+    def get_final_cmd(self, obj: Object, blender_scale: float):
+        matrix = obj.matrix_local if self.relative else obj.matrix_world
+        loc, rot, scale = matrix.decompose()
+        scaled_translation = loc * blender_scale
+        matrix = (
+            mathutils.Matrix.Translation(scaled_translation)
+            @ rot.to_matrix().to_4x4()
+            @ mathutils.Matrix.Diagonal(scale).to_4x4()
+        )
+        return CustomCmd(
+            self.cmd,
+            matrix,
+            self.matrix,
+            self.parameter,
+            self.trans,
+            self.rot,
+            self.scale,
+        )
+
+    def draw_props(self, layout, obj, blender_scale: float):
+        col = layout.column()
+        prop_split(col, self, "cmd_type", "Type")
+        prop_split(col, self, "cmd", "Command")
+        col.prop(self, "relative")
+        col.prop(self, "matrix")
+        if not self.matrix:
+            row = col.row()
+            row.prop(self, "trans", toggle=1)
+            row.prop(self, "rot", toggle=1)
+            row.prop(self, "scale", toggle=1)
+        prop_split(col, self, "parameter", "Parameter")
+        multilineLabel(col.box(), self.get_final_cmd(obj, blender_scale).to_c().replace("\t", "    "))
+
+
 class SM64_ObjectProperties(bpy.types.PropertyGroup):
     version: bpy.props.IntProperty(name="SM64_ObjectProperties Version", default=0)
     cur_version = 3  # version after property migration
@@ -2784,6 +2899,7 @@ class SM64_ObjectProperties(bpy.types.PropertyGroup):
     area: bpy.props.PointerProperty(type=SM64_AreaProperties)
     game_object: bpy.props.PointerProperty(type=SM64_GameObjectProperties)
     segment_loads: bpy.props.PointerProperty(type=SM64_SegmentProperties)
+    custom: bpy.props.PointerProperty(type=SM64_CustomCmdProperties)
 
     @staticmethod
     def upgrade_changed_props():
@@ -2816,6 +2932,7 @@ sm64_obj_classes = (
     SM64_AreaProperties,
     SM64_GameObjectProperties,
     SM64_SegmentProperties,
+    SM64_CustomCmdProperties,
     SM64_ObjectProperties,
 )
 
