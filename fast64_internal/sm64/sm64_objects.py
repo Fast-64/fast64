@@ -762,7 +762,10 @@ class CustomCmd:
             return [round(math.degrees(x), 4) for x in self.transform.to_euler()]
         elif self.rot_type == "Quaternion":
             return [round(x, 4) for x in self.transform.to_quaternion()]
-        assert False, "Unknown rotation type"
+        elif self.rot_type == "Axis Angle":
+            axis_angle = self.transform.to_quaternion().to_axis_angle()
+            return [round(x, 4) for x in axis_angle[0]] + [round(axis_angle[1], 4)]
+        assert False, f"Unknown rotation type {self.rot_type}"
 
     @property
     def scale(self):
@@ -776,14 +779,14 @@ class CustomCmd:
         cmd = f"{self.cmd}("
         arg_groups = []
         if self.matrix is not None:
-            arg_groups.append(f"/*matrix*/ {', '.join([str(x) for x in self.matrix])}")
+            arg_groups.append(f"/*matrix*/ {', '.join([f'{x}f' for x in self.matrix])}")
         else:
             if self.trans is not None:
-                arg_groups.append(f"/*trans*/ {', '.join([str(x) for x in self.trans])}")
+                arg_groups.append(f"/*trans*/ {', '.join([f'{x}f' for x in self.trans])}")
             if self.rot is not None:
-                arg_groups.append(f"/*rot ({self.rot_type})*/ {', '.join([str(x) for x in self.rot])}")
+                arg_groups.append(f"/*rot ({self.rot_type})*/ {', '.join([f'{x}f' for x in self.rot])}")
             if self.scale is not None:
-                arg_groups.append(f"/*scale*/ {', '.join([str(x) for x in self.scale])}")
+                arg_groups.append(f"/*scale*/ {', '.join([f'{x}f' for x in self.scale])}")
         if self.parameter is not None:
             arg_groups.append(f"/*parameter*/ {self.parameter}")
         if len(str(arg_groups)) > 75:
@@ -2871,16 +2874,17 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
     relative: BoolProperty(name="Use Relative Transformation", default=True)
     matrix: BoolProperty(name="Use Whole Matrix")
     trans: BoolProperty(name="Translation")
-    rot: EnumProperty(
-        name="Rotation",
-        items=[
-            ("None", "No Rotation", "No Rotation"),
-            ("Euler", "Euler (XYZ deg)", "Euler XYZ order, degrees"),
-            ("Quaternion", "Quaternion", "Quaternion"),
-        ],
-    )
+    rot: BoolProperty(name="Rotation")
     scale: BoolProperty(name="Scale")
     parameter: StringProperty(name="Parameter(s)")
+    rot_type: EnumProperty(
+        name="Rotation",
+        items=[
+            ("Euler", "Euler (XYZ deg)", "Euler XYZ order, degrees"),
+            ("Quaternion", "Quaternion", "Quaternion"),
+            ("Axis Angle", "Axis Angle", "Axis angle"),
+        ],
+    )
 
     def get_final_cmd(self, obj: Object, blender_scale: float):
         matrix = obj.matrix_local if self.relative else obj.matrix_world
@@ -2891,7 +2895,16 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
             @ rot.to_matrix().to_4x4()
             @ mathutils.Matrix.Diagonal(scale).to_4x4()
         )
-        return CustomCmd(self.cmd, matrix, self.matrix, self.parameter, self.trans, self.rot, self.scale, obj.name)
+        return CustomCmd(
+            self.cmd,
+            matrix,
+            self.matrix,
+            self.parameter,
+            self.trans,
+            self.rot_type if self.rot else "None",
+            self.scale,
+            obj.name,
+        )
 
     def draw_props(self, layout, obj, blender_scale: float):
         col = layout.column()
@@ -2903,7 +2916,9 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
             row = col.row()
             row.prop(self, "trans", toggle=1)
             row.prop(self, "scale", toggle=1)
-            row.prop(self, "rot", text="")
+            row.prop(self, "rot", toggle=1)
+            if self.rot:
+                prop_split(col, self, "rot_type", "Rotation Type")
         prop_split(col, self, "parameter", "Parameter(s)")
         multilineLabel(col.box(), self.get_final_cmd(obj, blender_scale).to_c().replace("\t", "    "))
 
