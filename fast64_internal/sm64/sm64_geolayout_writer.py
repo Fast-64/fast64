@@ -1536,7 +1536,8 @@ def processMesh(
 
             if len(src_meshes):
                 fMeshes = {}
-                node.dlRef = src_meshes[0]["name"]
+                if useGeoEmpty:
+                    node.dlRef = src_meshes[0]["name"]
                 node.drawLayer = src_meshes[0]["layer"]
                 processed_inline_geo = True
 
@@ -1561,7 +1562,8 @@ def processMesh(
                     temp_obj["src_meshes"] = [
                         ({"name": fMesh.draw.name, "layer": drawLayer}) for drawLayer, fMesh in fMeshes.items()
                     ]
-                    node.dlRef = temp_obj["src_meshes"][0]["name"]
+                    if useGeoEmpty:
+                        node.dlRef = temp_obj["src_meshes"][0]["name"]
                 else:
                     # TODO: Display warning to the user that there is an object that doesn't have polygons
                     print("Object", obj.original_name, "does not have any polygons.")
