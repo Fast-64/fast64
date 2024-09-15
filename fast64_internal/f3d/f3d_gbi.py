@@ -4329,6 +4329,17 @@ class SPSetOtherMode(GbiMacro):
     length: int
     flagList: list
 
+    def add_diff(self, f3d, other: SPSetOtherMode):
+        for flag in self.flagList.copy():  # remove any flag overriden by other
+            if (getattr(f3d, str(flag), flag) << other.sft) & other.length:
+                self.flagList.remove(flag)
+        # add other's flags
+        self.flagList = list(set(self.flagList + other.flagList))
+
+        min_max = min(self.sft, other.sft), max(self.sft, other.sft) + max(self.length, other.length)
+        self.sft = min_max[0]
+        self.length = min_max[1] - min_max[0]
+
     def to_binary(self, f3d, segments):
         data = 0
         for flag in self.flagList:
