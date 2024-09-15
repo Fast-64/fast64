@@ -1635,11 +1635,6 @@ def saveGeoModeDefinitionF3DEX2(fMaterial, settings, defaults, matWriteMethod):
     saveGeoModeCommon(saveBitGeoF3DEX2, settings, defaults, (geo, matWriteMethod))
 
     if len(geo.clearFlagList) != 0 or len(geo.setFlagList) != 0:
-        if len(geo.clearFlagList) == 0:
-            geo.clearFlagList.append("0")
-        elif len(geo.setFlagList) == 0:
-            geo.setFlagList.append("0")
-
         if matWriteMethod == GfxMatWriteMethod.WriteAll:
             fMaterial.mat_only_DL.commands.append(SPLoadGeometryMode(geo.setFlagList))
         else:

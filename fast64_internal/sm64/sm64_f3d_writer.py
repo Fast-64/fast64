@@ -367,7 +367,7 @@ def sm64ExportF3DtoC(
     fModel = SM64Model(
         name,
         DLFormat,
-        GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
+        GfxMatWriteMethod.WriteDifferingAndRevert,
     )
     fMeshes = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, name, DLFormat, not savePNG)
 

@@ -4266,6 +4266,12 @@ class SPGeometryMode(GbiMacro):
     clearFlagList: list
     setFlagList: list
 
+    def extend(self, clear_list: list, set_list: list):
+        clear_list = set(self.clearFlagList + clear_list)
+        set_list = set(self.setFlagList + set_list)
+        self.setFlagList = list(set_list - clear_list)
+        self.clearFlagList = list(clear_list - set_list)
+
     def to_binary(self, f3d, segments):
         if f3d.F3DEX_GBI_2:
             wordClear = geoFlagListToWord(self.clearFlagList, f3d)
@@ -4339,10 +4345,27 @@ class SPSetOtherMode(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class DPPipelineMode(GbiMacro):
-    # mode is a string
+class SPSetOtherModeSub(GbiMacro):
     mode: str
+    is_othermodeh = False
 
+    @property
+    def mode_prefix(self):
+        return "_".join(self.mode.split("_")[:2])
+
+
+@dataclass(unsafe_hash=True)
+class SPSetOtherModeLSub(SPSetOtherModeSub):
+    is_othermodeh = False
+
+
+@dataclass(unsafe_hash=True)
+class SPSetOtherModeHSub(SPSetOtherModeSub):
+    is_othermodeh = True
+
+
+@dataclass(unsafe_hash=True)
+class DPPipelineMode(SPSetOtherModeHSub):
     def to_binary(self, f3d, segments):
         if self.mode == "G_PM_1PRIMITIVE":
             modeVal = f3d.G_PM_1PRIMITIVE
@@ -4352,10 +4375,7 @@ class DPPipelineMode(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class DPSetCycleType(GbiMacro):
-    # mode is a string
-    mode: str
-
+class DPSetCycleType(SPSetOtherModeHSub):
     def to_binary(self, f3d, segments):
         if self.mode == "G_CYC_1CYCLE":
             modeVal = f3d.G_CYC_1CYCLE
@@ -4369,10 +4389,7 @@ class DPSetCycleType(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class DPSetTexturePersp(GbiMacro):
-    # mode is a string
-    mode: str
-
+class DPSetTexturePersp(SPSetOtherModeHSub):
     def to_binary(self, f3d, segments):
         if self.mode == "G_TP_NONE":
             modeVal = f3d.G_TP_NONE
@@ -4382,10 +4399,7 @@ class DPSetTexturePersp(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class DPSetTextureDetail(GbiMacro):
-    # mode is a string
-    mode: str
-
+class DPSetTextureDetail(SPSetOtherModeHSub):
     def to_binary(self, f3d, segments):
         if self.mode == "G_TD_CLAMP":
             modeVal = f3d.G_TD_CLAMP
@@ -4397,10 +4411,7 @@ class DPSetTextureDetail(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class DPSetTextureLOD(GbiMacro):
-    # mode is a string
-    mode: str
-
+class DPSetTextureLOD(SPSetOtherModeHSub):
     def to_binary(self, f3d, segments):
         if self.mode == "G_TL_TILE":
             modeVal = f3d.G_TL_TILE
@@ -4410,10 +4421,7 @@ class DPSetTextureLOD(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class DPSetTextureLUT(GbiMacro):
-    # mode is a string
-    mode: str
-
+class DPSetTextureLUT(SPSetOtherModeHSub):
     def to_binary(self, f3d, segments):
         if self.mode == "G_TT_NONE":
             modeVal = f3d.G_TT_NONE
@@ -4427,10 +4435,7 @@ class DPSetTextureLUT(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class DPSetTextureFilter(GbiMacro):
-    # mode is a string
-    mode: str
-
+class DPSetTextureFilter(SPSetOtherModeHSub):
     def to_binary(self, f3d, segments):
         if self.mode == "G_TF_POINT":
             modeVal = f3d.G_TF_POINT
@@ -4442,10 +4447,7 @@ class DPSetTextureFilter(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class DPSetTextureConvert(GbiMacro):
-    # mode is a string
-    mode: str
-
+class DPSetTextureConvert(SPSetOtherModeHSub):
     def to_binary(self, f3d, segments):
         if self.mode == "G_TC_CONV":
             modeVal = f3d.G_TC_CONV
@@ -4457,10 +4459,7 @@ class DPSetTextureConvert(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class DPSetCombineKey(GbiMacro):
-    # mode is a string
-    mode: str
-
+class DPSetCombineKey(SPSetOtherModeHSub):
     def to_binary(self, f3d, segments):
         if self.mode == "G_CK_NONE":
             modeVal = f3d.G_CK_NONE
@@ -4470,10 +4469,7 @@ class DPSetCombineKey(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class DPSetColorDither(GbiMacro):
-    # mode is a string
-    mode: str
-
+class DPSetColorDither(SPSetOtherModeHSub):
     def to_binary(self, f3d, segments):
         if self.mode == "G_CD_MAGICSQ":
             modeVal = f3d.G_CD_MAGICSQ
@@ -4489,10 +4485,7 @@ class DPSetColorDither(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class DPSetAlphaDither(GbiMacro):
-    # mode is a string
-    mode: str
-
+class DPSetAlphaDither(SPSetOtherModeHSub):
     def to_binary(self, f3d, segments):
         if self.mode == "G_AD_PATTERN":
             modeVal = f3d.G_AD_PATTERN
@@ -4506,10 +4499,7 @@ class DPSetAlphaDither(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class DPSetAlphaCompare(GbiMacro):
-    # mask is a string
-    mode: str
-
+class DPSetAlphaCompare(SPSetOtherModeLSub):
     def to_binary(self, f3d, segments):
         if self.mode == "G_AC_NONE":
             maskVal = f3d.G_AC_NONE
@@ -4521,10 +4511,7 @@ class DPSetAlphaCompare(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class DPSetDepthSource(GbiMacro):
-    # src is a string
-    src: str
-
+class DPSetDepthSource(SPSetOtherModeLSub):
     def to_binary(self, f3d, segments):
         if self.src == "G_ZS_PIXEL":
             srcVal = f3d.G_ZS_PIXEL

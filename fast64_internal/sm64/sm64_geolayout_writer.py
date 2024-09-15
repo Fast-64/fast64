@@ -393,7 +393,7 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, camera,
     fModel = SM64Model(
         name,
         DLFormat,
-        GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
+        GfxMatWriteMethod.WriteDifferingAndRevert,
     )
 
     if len(armatureObj.children) == 0:
@@ -461,7 +461,7 @@ def convertObjectToGeolayout(
         fModel = SM64Model(
             name,
             DLFormat,
-            GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
+            GfxMatWriteMethod.WriteDifferingAndRevert,
         )
 
     # convertTransformMatrix = convertTransformMatrix @ \
