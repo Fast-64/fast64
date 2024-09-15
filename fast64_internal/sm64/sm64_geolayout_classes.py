@@ -3,7 +3,6 @@ from __future__ import annotations
 import bpy
 from struct import pack
 from copy import copy
-from .sm64_function_map import func_map
 
 from ..utility import (
     PluginError,
@@ -51,6 +50,7 @@ from .sm64_geolayout_constants import (
     GEO_SETUP_OBJ_RENDER,
     GEO_SET_BG,
 )
+from .sm64_utility import convert_addr_to_func
 
 drawLayerNames = {
     0: "LAYER_FORCE",
@@ -512,16 +512,6 @@ class GeoLayoutBleed(BleedGraphics):
         self.clear_gfx_lists(fModel)
 
 
-def convertAddrToFunc(addr):
-    if addr == "":
-        raise PluginError("Geolayout node cannot have an empty function name/address.")
-    refresh_func_map = func_map[bpy.context.scene.fast64.sm64.refresh_version]
-    if addr.lower() in refresh_func_map:
-        return refresh_func_map[addr.lower()]
-    else:
-        return toAlnum(addr)
-
-
 # We add Function commands to nonDeformTransformData because any skinned
 # 0x15 commands should go before them, as they are usually preceding
 # an empty transform command (of which they modify?)
@@ -542,7 +532,7 @@ class FunctionNode:
         return command
 
     def to_c(self):
-        return "GEO_ASM(" + str(self.func_param) + ", " + convertAddrToFunc(self.geo_func) + "),"
+        return "GEO_ASM(" + str(self.func_param) + ", " + convert_addr_to_func(self.geo_func) + "),"
 
 
 class HeldObjectNode:
@@ -570,7 +560,7 @@ class HeldObjectNode:
             + ", "
             + str(convertFloatToShort(self.translate[2]))
             + ", "
-            + convertAddrToFunc(self.geo_func)
+            + convert_addr_to_func(self.geo_func)
             + "),"
         )
 
@@ -627,7 +617,7 @@ class SwitchNode:
         return command
 
     def to_c(self):
-        return "GEO_SWITCH_CASE(" + str(self.defaultCase) + ", " + convertAddrToFunc(self.switchFunc) + "),"
+        return "GEO_SWITCH_CASE(" + str(self.defaultCase) + ", " + convert_addr_to_func(self.switchFunc) + "),"
 
 
 class TranslateRotateNode(BaseDisplayListNode):
@@ -1187,7 +1177,7 @@ class CameraNode:
             + ", "
             + str(self.lookAt[2])
             + ", "
-            + convertAddrToFunc(self.geo_func)
+            + convert_addr_to_func(self.geo_func)
             + "),"
         )
 
@@ -1231,7 +1221,7 @@ class BackgroundNode:
         if self.isColor:
             return "GEO_BACKGROUND_COLOR(0x" + format(self.backgroundValue, "04x").upper() + "),"
         else:
-            return "GEO_BACKGROUND(" + str(self.backgroundValue) + ", " + convertAddrToFunc(self.geo_func) + "),"
+            return "GEO_BACKGROUND(" + str(self.backgroundValue) + ", " + convert_addr_to_func(self.geo_func) + "),"
 
 
 class CustomNode:

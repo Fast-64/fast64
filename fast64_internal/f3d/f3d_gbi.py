@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from typing import Sequence, Union, Tuple
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, fields, field
 import bpy, os, enum, copy
 from ..utility import *
 
@@ -74,15 +74,26 @@ vertexBufferSize = {
     "F3DEX3": (56, 56),
 }
 
-drawLayerRenderMode = {
-    0: ("G_RM_ZB_OPA_SURF", "G_RM_NOOP2"),
-    1: ("G_RM_AA_ZB_OPA_SURF", "G_RM_NOOP2"),
-    2: ("G_RM_AA_ZB_OPA_DECAL", "G_RM_NOOP2"),
-    3: ("G_RM_AA_ZB_OPA_INTER", "G_RM_NOOP2"),
-    4: ("G_RM_AA_ZB_TEX_EDGE", "G_RM_NOOP2"),
-    5: ("G_RM_AA_ZB_XLU_SURF", "G_RM_NOOP2"),
-    6: ("G_RM_AA_ZB_XLU_DECAL", "G_RM_NOOP2"),
-    7: ("G_RM_AA_ZB_XLU_INTER", "G_RM_NOOP2"),
+sm64_default_draw_layers = {
+    "0": ("G_RM_ZB_OPA_SURF", "G_RM_NOOP2"),
+    "1": ("G_RM_AA_ZB_OPA_SURF", "G_RM_NOOP2"),
+    "2": ("G_RM_AA_ZB_OPA_DECAL", "G_RM_NOOP2"),
+    "3": ("G_RM_AA_ZB_OPA_INTER", "G_RM_NOOP2"),
+    "4": ("G_RM_AA_ZB_TEX_EDGE", "G_RM_NOOP2"),
+    "5": ("G_RM_AA_ZB_XLU_SURF", "G_RM_NOOP2"),
+    "6": ("G_RM_AA_ZB_XLU_DECAL", "G_RM_NOOP2"),
+    "7": ("G_RM_AA_ZB_XLU_INTER", "G_RM_NOOP2"),
+}
+
+oot_default_draw_layers = {
+    "Opaque": ("G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2"),
+    "Transparent": ("G_RM_AA_ZB_XLU_SURF", "G_RM_AA_ZB_XLU_SURF2"),
+    "Overlay": ("G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2"),
+}
+
+default_draw_layers = {
+    "SM64": sm64_default_draw_layers,
+    "OOT": oot_default_draw_layers,
 }
 
 CCMUXDict = {
@@ -3292,18 +3303,18 @@ class LookAt:
 
 
 # A palette is just a RGBA16 texture with width = 1.
+@dataclass
 class FImage:
-    def __init__(self, name, fmt, bitSize, width, height, filename):
-        self.name = name
-        self.fmt = fmt
-        self.bitSize = bitSize
-        self.width = width
-        self.height = height
-        self.startAddress = 0
-        self.data = bytearray(0)
-        self.filename = filename
-        self.converted = False
-        self.isLargeTexture = False
+    name: str
+    fmt: str
+    bitSize: str
+    width: int
+    height: int
+    filename: str
+    data: bytearray = field(init=False, compare=False, default_factory=bytearray)
+    startAddress: int = field(init=False, compare=False, default=0)
+    isLargeTexture: bool = field(init=False, compare=False, default=False)
+    converted: bool = field(init=False, compare=False, default=False)
 
     def size(self):
         return len(self.data)
@@ -3999,6 +4010,9 @@ class SPAmbOcclusion(GbiMacro):
             self.point
         ).to_binary(f3d, segments)
 
+    def size(self, f3d):
+        return GFX_SIZE * 2
+
 
 @dataclass(unsafe_hash=True)
 class SPFresnelScale(GbiMacro):
@@ -4212,6 +4226,9 @@ class SPLightColor(GbiMacro):
         header = "gsSPLightColor(" if static else "gSPLightColor(glistp++, "
         return header + f"{self.n}, 0x" + format(self.color_to_int(), "08X") + ")"
 
+    def size(self, _f3d):
+        return GFX_SIZE * 2
+
 
 @dataclass(unsafe_hash=True)
 class SPSetLights(GbiMacro):
@@ -4398,7 +4415,7 @@ class SPPerspNormalize(GbiMacro):
 
     def to_binary(self, f3d, segments):
         if f3d.F3DEX_GBI_3:
-            return gsMoveHalfwd(f3d.G_MW_FX, G_MWO_PERSPNORM, (self.s), f3d)
+            return gsMoveHalfwd(f3d.G_MW_FX, f3d.G_MWO_PERSPNORM, (self.s), f3d)
         else:
             return gsMoveWd(f3d.G_MW_PERSPNORM, 0, (self.s), f3d)
 
@@ -4502,9 +4519,9 @@ class SPSetOtherMode(GbiMacro):
     def to_binary(self, f3d, segments):
         data = 0
         for flag in self.flagList:
-            data |= getattr(f3d, flag) if hasattr(f3d, str(flag)) else flag
-        cmd = getattr(f3d, self.cmd) if hasattr(f3d, str(self.cmd)) else self.cmd
-        sft = getattr(f3d, self.sft) if hasattr(f3d, str(self.sft)) else self.sft
+            data |= getattr(f3d, str(flag), flag)
+        cmd = getattr(f3d, str(self.cmd), self.cmd)
+        sft = getattr(f3d, str(self.sft), self.sft)
         return gsSPSetOtherMode(cmd, sft, self.length, data, f3d)
 
 
@@ -5062,7 +5079,12 @@ class DPSetOtherMode(GbiMacro):
     mode1: list
 
     def to_binary(self, f3d, segments):
-        words = _SHIFTL(f3d.G_RDPSETOTHERMODE, 24, 8) | _SHIFTL(self.mode0, 0, 24), self.mode1
+        mode0 = mode1 = 0
+        for mode in self.mode0:
+            mode0 |= getattr(f3d, str(mode), mode)
+        for mode in self.mode1:
+            mode1 |= getattr(f3d, str(mode), mode)
+        words = _SHIFTL(f3d.G_RDPSETOTHERMODE, 24, 8) | _SHIFTL(mode0, 0, 24), mode1
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
@@ -5085,7 +5107,7 @@ class DPSetTileSize(GbiMacro):
         return gsDPLoadTileGeneric(f3d.G_SETTILESIZE, self.tile, self.uls, self.ult, self.lrs, self.lrt)
 
     def is_LOADTILE(self, f3d):
-        return self.t == f3d.G_TX_LOADTILE
+        return self.tile == f3d.G_TX_LOADTILE
 
 
 @dataclass(unsafe_hash=True)

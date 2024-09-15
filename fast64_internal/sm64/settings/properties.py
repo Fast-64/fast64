@@ -99,11 +99,13 @@ class SM64_Properties(PropertyGroup):
             "exportType": "export_type",
         }
         old_export_props_to_new = {
-            "custom_export_name": {"geoLevelName", "colLevelName", "animLevelName"},
+            "custom_group_name": {"geoLevelName", "colLevelName", "animLevelName"},
             "custom_export_path": {"geoExportPath", "colExportPath", "animExportPath"},
             "object_name": {"geoName", "colName", "animName"},
             "group_name": {"geoGroupName", "colGroupName", "animGroupName"},
             "level_name": {"levelOption", "geoLevelOption", "colLevelOption", "animLevelOption"},
+            "custom_level_name": {"levelName", "geoLevelName", "colLevelName", "animLevelName"},
+            "non_decomp_level": {"levelCustomExport"},
             "export_header_type": {"geoExportHeaderType", "colExportHeaderType", "animExportHeaderType"},
         }
         for scene in bpy.data.scenes:

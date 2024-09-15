@@ -1,4 +1,6 @@
-from bpy.types import Armature, PropertyGroup, Object, Bone, UILayout
+import bpy
+
+from bpy.types import PropertyGroup, Object, Bone, UILayout
 from bpy.props import EnumProperty, PointerProperty, StringProperty, FloatProperty, BoolProperty, IntProperty
 from bpy.utils import register_class, unregister_class
 from ...f3d.f3d_material import ootEnumDrawLayers
