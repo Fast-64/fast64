@@ -421,10 +421,10 @@ class BleedGraphics:
                 reset_cmds.append(self.default_load_geo)
 
             elif cmd_type == SPSetGeometryMode and cmd_use != self.default_set_geo:
-                reset_cmds.append(self.default_set_geo)
+                reset_cmds.append(self.default_clear_geo)
 
             elif cmd_type == SPClearGeometryMode and cmd_use != self.default_clear_geo:
-                reset_cmds.append(self.default_clear_geo)
+                reset_cmds.append(self.default_set_geo)
 
             elif cmd_type == SPGeometryMode:  # revert cmd includes everything from the start
                 # First, figure out what needs to be cleared or set
