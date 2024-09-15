@@ -68,6 +68,7 @@ vertexBufferSize = {
     "F3DLX.Rej": (64, 32),
     "F3DLP.Rej": (80, 32),
     "F3DEX2/LX2": (32, 32),
+    "F3DEX2_PL": (32, 32),
     "F3DEX2.Rej/LX2.Rej": (64, 64),
     "F3DEX3": (56, 56),
 }
@@ -137,11 +138,15 @@ def isUcodeF3DEX1(F3D_VER: str) -> bool:
 
 
 def isUcodeF3DEX2(F3D_VER: str) -> bool:
-    return F3D_VER in {"F3DEX2.Rej/LX2.Rej", "F3DEX2/LX2"}
+    return F3D_VER in {"F3DEX2.Rej/LX2.Rej", "F3DEX2/LX2", "F3DEX2_PL"}
 
 
 def isUcodeF3DEX3(F3D_VER: str) -> bool:
     return F3D_VER == "F3DEX3"
+
+
+def is_ucode_point_lit(F3D_VER: str) -> bool:
+    return F3D_VER in {"F3DEX3", "F3DEX2_PL"}
 
 
 class F3D:
@@ -154,6 +159,7 @@ class F3D:
         F3DEX_GBI_3 = self.F3DEX_GBI_3 = isUcodeF3DEX3(F3D_VER)
         F3DLP_GBI = self.F3DLP_GBI = self.F3DEX_GBI
         self.F3D_OLD_GBI = not (F3DEX_GBI or F3DEX_GBI_2 or F3DEX_GBI_3)
+        POINT_LIT_GBI = self.POINT_LIT_GBI = is_ucode_point_lit(F3D_VER)
 
         # F3DEX2 is F3DEX1 and F3DEX3 is F3DEX2, but F3DEX3 is not F3DEX1
         if F3DEX_GBI_2:
@@ -358,7 +364,6 @@ class F3D:
             self.G_LIGHTING_SPECULAR = 0x00002000
             self.G_FRESNEL_COLOR = 0x00004000
             self.G_FRESNEL_ALPHA = 0x00008000
-            self.G_LIGHTING_POSITIONAL = 0x00400000  # Ignored, always on
 
         self.allGeomModeFlags = {
             "G_ZBUFFER",
@@ -373,7 +378,6 @@ class F3D:
             "G_TEXTURE_GEN_LINEAR",
             "G_LOD",
             "G_SHADING_SMOOTH",
-            "G_LIGHTING_POSITIONAL",
             "G_CLIPPING",
         }
         if F3DEX_GBI_3:
@@ -387,6 +391,9 @@ class F3D:
                 "G_FRESNEL_COLOR",
                 "G_FRESNEL_ALPHA",
             }
+        if POINT_LIT_GBI:
+            self.G_LIGHTING_POSITIONAL = 0x00400000
+            self.allGeomModeFlags.add("G_LIGHTING_POSITIONAL")
 
         self.G_FOG_H = self.G_FOG / 0x10000
         self.G_LIGHTING_H = self.G_LIGHTING / 0x10000

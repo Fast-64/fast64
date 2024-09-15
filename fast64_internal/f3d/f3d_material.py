@@ -468,8 +468,9 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             c.enabled = enable or not disable_dependent
             return c
 
-        isF3DEX3 = bpy.context.scene.f3d_type == "F3DEX3"
-        lightFxPrereq = isF3DEX3 and settings.g_lighting
+        f3d = get_F3D_GBI()
+
+        lightFxPrereq = f3d.F3DEX_GBI_3 and settings.g_lighting
         ccWarnings = shadeInCC = False
         blendWarnings = shadeInBlender = zInBlender = False
         if isinstance(dataHolder, F3DMaterialProperty):
@@ -487,11 +488,13 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
         c = indentGroup(inputGroup, "g_lighting", False)
         if ccWarnings and not shadeInCC and settings.g_lighting and not settings.g_tex_gen:
             multilineLabel(c, "Shade not used in CC, can disable\nlighting.", icon="INFO")
-        if isF3DEX3:
+        if f3d.F3DEX_GBI_3:
             c.prop(settings, "g_packed_normals")
             c.prop(settings, "g_lighting_specular")
             c.prop(settings, "g_ambocclusion")
             c.prop(settings, "g_fresnel_color")
+        elif f3d.POINT_LIT_GBI:  # Draw this flag in Not Useful for f3dex3
+            c.prop(settings, "g_lighting_positional")
         d = indentGroup(c, "g_tex_gen", False)
         d.prop(settings, "g_tex_gen_linear")
 
@@ -518,7 +521,7 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
         else:
             shadeAlphaLabel = "Vtx alpha"
         c = indentGroup(inputGroup, f"Shade alpha = {shadeAlphaLabel}:", True)
-        if isF3DEX3:
+        if f3d.F3DEX_GBI_3:
             lighting_group = c.column(align=True)
             lighting_group.enabled = settings.g_lighting or not disable_dependent
             lighting_group.prop(settings, "g_lighttoalpha")
@@ -539,7 +542,7 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
         elif blendWarnings and not shadeInBlender and settings.g_fog:
             c.label(text="Fog not used in rendermode / blender, can disable.", icon="INFO")
 
-        if isF3DEX3:
+        if f3d.F3DEX_GBI_3:
             c = indentGroup(inputGroup, "Attribute offsets:", True)
             c.prop(settings, "g_attroffset_st_enable")
             c.prop(settings, "g_attroffset_z_enable")
@@ -570,8 +573,10 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
 
         c = indentGroup(inputGroup, "Not useful:", True)
         c.prop(settings, "g_lod")
-        if isUcodeF3DEX1(bpy.context.scene.f3d_type):
+        if f3d.F3DEX_GBI:
             c.prop(settings, "g_clipping")
+        elif f3d.F3DEX_GBI_3:
+            c.prop(settings, "g_lighting_positional", text="Positional Lighting (Always enabled in EX3)")
 
 
 def ui_upper_mode(settings, dataHolder, layout: UILayout, useDropdown):
@@ -3314,6 +3319,12 @@ class RDPSettings(PropertyGroup):
         update=update_node_values_with_preset,
         description="F3DEX1/LX only, exact function unknown",
     )
+    g_lighting_positional: bpy.props.BoolProperty(
+        name="Positional Lighting",
+        default=False,
+        update=update_node_values_with_preset,
+        description="F3DEX2 (Point Lit): Enables calculating shade color using positional lights along with directional, ignored in F3DEX3",
+    )
 
     # upper half mode
     # v2 only
@@ -3594,6 +3605,10 @@ class RDPSettings(PropertyGroup):
         ("clipping", "g_clipping", True),
     ]
 
+    geo_mode_pl_attributes = [
+        ("positionalLighting", "g_lighting_positional", False),
+    ]
+
     geo_mode_f3dex3_attributes = [
         ("ambientOcclusion", "g_ambocclusion", False),
         ("attroffsetZ", "g_attroffset_z_enable", False),
@@ -3604,13 +3619,17 @@ class RDPSettings(PropertyGroup):
         ("fresnelToColor", "g_fresnel_color", False),
         ("fresnelToAlpha", "g_fresnel_alpha", False),
     ]
-    geo_mode_attributes = geo_mode_all_attributes + geo_mode_f3dex_attributes + geo_mode_f3dex3_attributes
+    geo_mode_attributes = (
+        geo_mode_all_attributes + geo_mode_f3dex_attributes + geo_mode_pl_attributes + geo_mode_f3dex3_attributes
+    )
 
     def geo_mode_to_dict(self, f3d=None):
         f3d = f3d if f3d else get_F3D_GBI()
         data = self.attributes_to_dict(self.geo_mode_all_attributes)
         if f3d.F3DEX_GBI or f3d.F3DLP_GBI:
             data.update(self.attributes_to_dict(self.geo_mode_f3dex_attributes))
+        if f3d.POINT_LIT_GBI:
+            data.update(self.attributes_to_dict(self.geo_mode_pl_attributes))
         if f3d.F3DEX_GBI_3:
             data.update(self.attributes_to_dict(self.geo_mode_f3dex3_attributes))
         return data
