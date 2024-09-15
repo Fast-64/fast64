@@ -971,7 +971,6 @@ class F3DContext:
             rdp_settings.g_lighting_positional = bitFlags & self.f3d.G_LIGHTING_POSITIONAL != 0
         else:
             rdp_settings.g_lighting_positional = False
-
         rdp_settings.g_fog = bitFlags & self.f3d.G_FOG != 0
         rdp_settings.g_lighting = bitFlags & self.f3d.G_LIGHTING != 0
         rdp_settings.g_tex_gen = bitFlags & self.f3d.G_TEXTURE_GEN != 0

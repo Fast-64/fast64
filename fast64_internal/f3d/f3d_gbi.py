@@ -68,10 +68,10 @@ vertexBufferSize = {
     "F3DLX.Rej": (64, 32),
     "F3DLP.Rej": (80, 32),
     "F3DEX2/LX2": (32, 32),
-    "F3DEX2/LX2 (Point Lit)": (32, 32),
-    "F3DZEX2 (Emu64)": (2**7, 32),
+    "F3DEX2_PL": (32, 32),
     "F3DEX2.Rej/LX2.Rej": (64, 64),
     "F3DEX3": (56, 56),
+    "F3DZEX2 (Emu64)": (2**7, 32),
 }
 
 sm64_default_draw_layers = {
@@ -139,7 +139,7 @@ def isUcodeF3DEX1(F3D_VER: str) -> bool:
 
 
 def isUcodeF3DEX2(F3D_VER: str) -> bool:
-    return F3D_VER in {"F3DEX2.Rej/LX2.Rej", "F3DEX2/LX2", "F3DEX2/LX2 (Point Lit)", "F3DZEX2 (Emu64)"}
+    return F3D_VER in {"F3DEX2.Rej/LX2.Rej", "F3DEX2/LX2", "F3DEX2_PL", "F3DZEX2 (Emu64)"}
 
 
 def isUcodeF3DEX3(F3D_VER: str) -> bool:
@@ -147,7 +147,7 @@ def isUcodeF3DEX3(F3D_VER: str) -> bool:
 
 
 def is_ucode_point_lit(F3D_VER: str) -> bool:
-    return F3D_VER in {"F3DEX3", "F3DZEX2 (Emu64)", "F3DEX2/LX2 (Point Lit)"}
+    return F3D_VER in {"F3DEX3", "F3DEX2_PL", "F3DZEX2 (Emu64)"}
 
 
 class F3D:

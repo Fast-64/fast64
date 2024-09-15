@@ -573,7 +573,8 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             if blendWarnings and settings.zmode != "ZMODE_DEC":
                 decal_mode_info = "Non-decal rendermode, these will be ignored."
             multilineLabel(c, decal_mode_info, icon="INFO")
-        elif f3d.F3DEX_GBI_3:
+
+        if f3d.F3DEX_GBI_3:
             c = indentGroup(inputGroup, "Attribute offsets:", True)
             c.prop(settings, "g_attroffset_st_enable")
             c.prop(settings, "g_attroffset_z_enable")
@@ -607,8 +608,7 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
         if f3d.F3DEX_GBI:
             c.prop(settings, "g_clipping")
         elif f3d.F3DEX_GBI_3:
-            c.prop(settings, "g_lighting_positional")
-            c.label(text="Always enabled in F3DEX3", icon="INFO")
+            c.prop(settings, "g_lighting_positional", text="Positional Lighting (Always enabled in EX3)")
 
 
 def ui_upper_mode(settings, dataHolder, layout: UILayout, useDropdown):
@@ -3414,9 +3414,9 @@ class RDPSettings(PropertyGroup):
     )
     g_lighting_positional: bpy.props.BoolProperty(
         name="Positional Lighting",
-        default=True,
+        default=False,
         update=update_node_values_with_preset,
-        description="F3DEX/ZEX: Enables calculating shade color using positional lights along with directional, ignored in F3DEX3",
+        description="F3DEX2 (Point Lit): Enables calculating shade color using positional lights along with directional, ignored in F3DEX3",
     )
 
     # upper half mode
@@ -3718,6 +3718,10 @@ class RDPSettings(PropertyGroup):
         ("clipping", "g_clipping", True),
     ]
 
+    geo_mode_pl_attributes = [
+        ("positionalLighting", "g_lighting_positional", False),
+    ]
+
     geo_mode_f3dex3_attributes = [
         ("ambientOcclusion", "g_ambocclusion", False),
         ("attroffsetZ", "g_attroffset_z_enable", False),
@@ -3734,8 +3738,13 @@ class RDPSettings(PropertyGroup):
         ("decalEqual", "g_decal_equal", False),
         ("decalSpecial", "g_decal_special", False),
     ]
+
     geo_mode_attributes = (
-        geo_mode_all_attributes + geo_mode_f3dex_attributes + geo_mode_f3dex3_attributes + geo_mode_f3dzex_ac_attributes
+        geo_mode_all_attributes
+        + geo_mode_f3dex_attributes
+        + geo_mode_pl_attributes
+        + geo_mode_f3dex3_attributes
+        + geo_mode_f3dzex_ac_attributes
     )
 
     def geo_mode_to_dict(self, f3d=None):
@@ -3743,6 +3752,8 @@ class RDPSettings(PropertyGroup):
         data = self.attributes_to_dict(self.geo_mode_all_attributes)
         if f3d.F3DEX_GBI or f3d.F3DLP_GBI:
             data.update(self.attributes_to_dict(self.geo_mode_f3dex_attributes))
+        if f3d.POINT_LIT_GBI:
+            data.update(self.attributes_to_dict(self.geo_mode_pl_attributes))
         if f3d.F3DEX_GBI_3:
             data.update(self.attributes_to_dict(self.geo_mode_f3dex3_attributes))
         if f3d.F3DZEX2_EMU64:

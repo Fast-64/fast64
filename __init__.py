@@ -338,9 +338,9 @@ def upgrade_changed_props():
     OOT_ObjectProperties.upgrade_changed_props()
     for scene in bpy.data.scenes:
         settings: Fast64Settings_Properties = scene.fast64.settings
-        if settings.internal_game_update_ver != 1:
+        if settings.internal_game_update_ver < 2:
             set_game_defaults(scene, False)
-            settings.internal_game_update_ver = 1
+            settings.internal_game_update_ver = 2
         if scene.get("decomp_compatible", False):
             scene.gameEditorMode = "Homebrew"
             del scene["decomp_compatible"]

@@ -102,7 +102,7 @@ class BleedGraphics:
         place_in_flaglist(defaults.g_tex_gen, "G_TEXTURE_GEN", setGeo, clearGeo)
         place_in_flaglist(defaults.g_tex_gen_linear, "G_TEXTURE_GEN_LINEAR", setGeo, clearGeo)
         place_in_flaglist(defaults.g_shade_smooth, "G_SHADING_SMOOTH", setGeo, clearGeo)
-        if self.f3d.F3D_OLD_GBI:
+        if self.f3d.F3DEX_GBI:
             place_in_flaglist(defaults.g_clipping, "G_CLIPPING", setGeo, clearGeo)
         if self.f3d.POINT_LIT_GBI:
             place_in_flaglist(defaults.g_lighting_positional, "G_LIGHTING_POSITIONAL", setGeo, clearGeo)

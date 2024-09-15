@@ -395,8 +395,8 @@ enumF3D = [
         5,
     ),
     (
-        "F3DEX2/LX2 (Point Lit)",
-        "F3DEX2/LX2 (Point Lit)",
+        "F3DEX2_PL",
+        "F3DEX2 (Point Lit)",
         "Variant of F3DEX2 family with support for point lighting used in a few games including MM",
         7,
     ),
