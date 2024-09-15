@@ -513,12 +513,6 @@ class BleedGraphics:
         else:
             return cmd == self.default_load_geo
 
-    def bleed_SPGeometryMode(self, cmd_list: GfxList, cmd: GbiMacro, bleed_state: int, last_cmd_list: GfxList = None):
-        if bleed_state != self.bleed_start:
-            return cmd in last_cmd_list
-        else:
-            return cmd.clearFlagList == self.default_clear_geo and cmd.setFlagList == self.default_set_geo
-
     def bleed_SPSetGeometryMode(
         self, cmd_list: GfxList, cmd: GbiMacro, bleed_state: int, last_cmd_list: GfxList = None
     ):
