@@ -312,10 +312,16 @@ def exportTexRectCommon(texProp, name, convertTextureData):
     ti.writeAll(fMaterial, fTexRect, convertTextureData)
     fTexRect.materials[texProp] = (fMaterial, ti.imageDims)
 
+    if use_copy_mode:
+        dsdx = 4 << 10
+        dtdy = 1 << 10
+    else:
+        dsdx = dtdy = 4096 // 4
+
     fTexRect.draw.commands.extend(fMaterial.mat_only_DL.commands)
     fTexRect.draw.commands.extend(fMaterial.texture_DL.commands)
     fTexRect.draw.commands.append(
-        SPScisTextureRectangle(0, 0, (ti.imageDims[0] - 1) << 2, (ti.imageDims[1] - 1) << 2, 0, 0, 0)
+        SPScisTextureRectangle(0, 0, (ti.imageDims[0] - 1) << 2, (ti.imageDims[1] - 1) << 2, 0, 0, 0, dsdx, dtdy)
     )
     fTexRect.draw.commands.append(DPPipeSync())
     fTexRect.draw.commands.extend(fMaterial.revert.commands)
