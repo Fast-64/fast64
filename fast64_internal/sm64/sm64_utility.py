@@ -248,16 +248,20 @@ def update_actor_includes(
     else:
         raise PluginError(f'Unknown header type "{header_type}"')
 
-    if write_includes(data_path, [f'"{Path(dir_name) / include}"' for include in data_includes], path_must_exist=True):
+    if write_includes(
+        data_path, [f'"{(Path(dir_name) / include).as_posix()}"' for include in data_includes], path_must_exist=True
+    ):
         print(f"Updated data includes at {header_path}.")
     if write_includes(
         header_path,
-        [f'"{Path(dir_name) / include}"' for include in header_includes],
+        [f'"{(Path(dir_name) / include).as_posix()}"' for include in header_includes],
         path_must_exist=True,
         before_endif=True,
     ):
         print(f"Updated header includes at {header_path}.")
-    if write_includes(geo_path, [f'"{Path(dir_name) / include}"' for include in geo_includes], path_must_exist=True):
+    if write_includes(
+        geo_path, [f'"{(Path(dir_name) / include).as_posix()}"' for include in geo_includes], path_must_exist=True
+    ):
         print(f"Updated geo data at {geo_path}.")
 
 
