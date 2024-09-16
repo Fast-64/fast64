@@ -1,3 +1,4 @@
+from pathlib import Path
 import shutil, copy, bpy, re, os
 from io import BytesIO
 from math import ceil, log, radians
@@ -55,6 +56,7 @@ from ..f3d.f3d_gbi import (
 )
 
 from ..utility import (
+    CData,
     CScrollData,
     PluginError,
     raisePluginError,
@@ -169,15 +171,14 @@ def exportTexRectToC(dirPath, texProp, texDir, savePNG, name, exportToProject, p
     if name is None or name == "":
         raise PluginError("Name cannot be empty.")
 
-    exportData = fTexRect.to_c(savePNG, texDir, SM64GfxFormatter(ScrollMethod.Vertex))
-    staticData = exportData.staticData
-    dynamicData = exportData.dynamicData
+    formater = SM64GfxFormatter(ScrollMethod.Vertex)
 
-    declaration = staticData.header
     code = modifyDLForHUD(dynamicData.source)
-    data = staticData.source
 
     if exportToProject:
+        dynamicData = CData()
+        dynamicData.append(fTexRect.draw.to_c(fTexRect.f3d))
+
         seg2CPath = os.path.join(dirPath, "bin/segment2.c")
         seg2HPath = os.path.join(dirPath, "src/game/segment2.h")
         seg2TexDir = os.path.join(dirPath, "textures/segment2")
@@ -188,22 +189,41 @@ def exportTexRectToC(dirPath, texProp, texDir, savePNG, name, exportToProject, p
         checkIfPathExists(seg2TexDir)
         checkIfPathExists(hudPath)
 
-        fTexRect.save_textures(seg2TexDir)
+        if savePNG:
+            fTexRect.save_textures(seg2TexDir)
 
-        textures = []
+        include_dir = Path(texDir).as_posix() + "/"
         for _, fImage in fTexRect.textures.items():
-            textures.append(fImage)
+            if savePNG:
+                data = fImage.to_c_tex_separate(include_dir, formater.texArrayBitSize)
+            else:
+                data = fImage.to_c(formater.texArrayBitSize)
 
-        # Append/Overwrite texture definition to segment2.c
-        overwriteData("const\s*u8\s*", textures[0].name, data, seg2CPath, None, False)
+            # Append/Overwrite texture definition to segment2.c
+            overwriteData(
+                f"(Gfx\s*{fImage.aligner_name}\[\]\s*=\s*{{gsSPEndDisplayList\(\)}};\s*)?u{str(formater.texArrayBitSize)}\s*",
+                fImage.name,
+                data.source,
+                seg2CPath,
+                None,
+                False,
+                post_regex="\s?\s?",  # tex to c includes 2 newlines
+            )
 
-        # Append texture declaration to segment2.h
-        writeIfNotFound(seg2HPath, declaration, "#endif")
+            # Append texture declaration to segment2.h
+            writeIfNotFound(seg2HPath, data.header, "#endif")
 
         # Write/Overwrite function to hud.c
         overwriteData("void\s*", fTexRect.name, code, hudPath, projectExportData[1], True)
 
     else:
+        exportData = fTexRect.to_c(savePNG, texDir, formater)
+        staticData = exportData.staticData
+        dynamicData = exportData.dynamicData
+
+        declaration = staticData.header
+        data = staticData.source
+
         singleFileData = ""
         singleFileData += "// Copy this function to src/game/hud.c or src/game/ingame_menu.c.\n"
         singleFileData += "// Call the function in render_hud() or render_menus_and_dialogs() respectively.\n"

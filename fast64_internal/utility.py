@@ -712,7 +712,7 @@ def getExportDir(customExport, dirPath, headerType, levelName, texDir, dirName):
     return dirPath, texDir
 
 
-def overwriteData(headerRegex, name, value, filePath, writeNewBeforeString, isFunction):
+def overwriteData(headerRegex, name, value, filePath, writeNewBeforeString, isFunction, post_regex=""):
     if os.path.exists(filePath):
         dataFile = open(filePath, "r")
         data = dataFile.read()
@@ -721,7 +721,8 @@ def overwriteData(headerRegex, name, value, filePath, writeNewBeforeString, isFu
         matchResult = re.search(
             headerRegex
             + re.escape(name)
-            + ("\s*\((((?!\)).)*)\)\s*\{(((?!\}).)*)\}" if isFunction else "\[\]\s*=\s*\{(((?!;).)*);"),
+            + ("\s*\((((?!\)).)*)\)\s*\{(((?!\}).)*)\}" if isFunction else "\[\]\s*=\s*\{(((?!;).)*);")
+            + post_regex,
             data,
             re.DOTALL,
         )
