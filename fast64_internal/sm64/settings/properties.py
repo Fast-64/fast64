@@ -107,6 +107,7 @@ class SM64_Properties(PropertyGroup):
             "custom_level_name": {"levelName", "geoLevelName", "colLevelName", "animLevelName"},
             "non_decomp_level": {"levelCustomExport"},
             "export_header_type": {"geoExportHeaderType", "colExportHeaderType", "animExportHeaderType"},
+            "custom_include_directory": {"geoTexDir"},
         }
         for scene in bpy.data.scenes:
             sm64_props: SM64_Properties = scene.fast64.sm64
