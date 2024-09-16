@@ -464,7 +464,7 @@ class TexInfo:
         return True
 
     def materialless_setup(self) -> None:
-        """moreSetupFromModel equivelent that does not handle material properties like OOT flipbooks"""
+        """moreSetupFromModel equivalent that does not handle material properties like OOT flipbooks"""
         if not self.useTex:
             return
 
@@ -485,7 +485,8 @@ class TexInfo:
                     f"Error in Texture {self.indexInMat} uses too many unique colors to fit in format {self.texFormat}."
                 )
         else:
-            self.imDependencies, self.flipbook = [] if self.texProp.tex is None else [self.texProp.tex], None
+            self.imDependencies = [] if self.texProp.tex is None else [self.texProp.tex]
+            self.flipbook = None
 
         self.isPalRef = self.isTexRef and self.flipbook is None
         self.palDependencies = self.imDependencies
