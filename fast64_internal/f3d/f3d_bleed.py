@@ -60,6 +60,7 @@ from .f3d_gbi import (
     GfxList,
     FTriGroup,
     GbiMacro,
+    get_F3D_GBI,
 )
 
 
@@ -73,6 +74,7 @@ class BleedGraphics:
     def __init__(self):
         self.bled_gfx_lists = dict()
         # build world default cmds to compare against, f3d types needed for reset cmd building
+        self.f3d = get_F3D_GBI()
         self.is_f3d_old = bpy.context.scene.f3d_type == "F3D"
         self.is_f3dex2 = "F3DEX2" in bpy.context.scene.f3d_type
         self.build_default_geo()
@@ -336,7 +338,7 @@ class BleedGraphics:
         tri_cmds = [c for c in tri_list.commands if type(c) == SP1Triangle or type(c) == SP2Triangles]
         if tri_cmds:
             reset_cmd_dict[DPPipeSync] = DPPipeSync()
-        [bleed_gfx_lists.add_reset_cmd(cmd, reset_cmd_dict) for cmd in bleed_gfx_lists.bled_mats]
+        [bleed_gfx_lists.add_reset_cmd(self.f3d, cmd, reset_cmd_dict) for cmd in bleed_gfx_lists.bled_mats]
 
     # pre processes cmd_list and removes cmds deemed useless. subclass and override if this causes a game specific issue
     def on_bleed_start(self, cmd_list: GfxList):
@@ -583,7 +585,7 @@ class BleedGfxLists:
     bled_mats: GfxList = field(default_factory=list)
     bled_tex: GfxList = field(default_factory=list)
 
-    def add_reset_cmd(self, cmd: GbiMacro, reset_cmd_dict: dict[GbiMacro]):
+    def add_reset_cmd(self, f3d: F3D, cmd: GbiMacro, reset_cmd_dict: dict[GbiMacro]):
         reset_cmd_list = (
             SPLoadGeometryMode,
             SPSetGeometryMode,
@@ -612,7 +614,10 @@ class BleedGfxLists:
 
         # separate other mode H and othermode L
         if type(cmd) == SPSetOtherMode:
-            reset_cmd_dict[cmd.cmd] = cmd
+            if cmd.cmd in reset_cmd_dict:
+                reset_cmd_dict[cmd.cmd].add_diff(f3d, cmd)
+            else:
+                reset_cmd_dict[cmd.cmd] = copy.deepcopy(cmd)
 
         if type(cmd) in reset_cmd_list:
             reset_cmd_dict[type(cmd)] = cmd
