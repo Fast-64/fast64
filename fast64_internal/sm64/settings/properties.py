@@ -143,6 +143,16 @@ class SM64_Properties(PropertyGroup):
                 upgrade_old_prop(combined_props, new, scene, old)
             sm64_props.version = SM64_Properties.cur_version
 
+    def draw_repo_settings(self, layout: UILayout):
+        col = layout.column()
+        if not self.binary_export:
+            col.prop(self, "disable_scroll")
+            prop_split(col, self, "compression_format", "Compression Format")
+            prop_split(col, self, "refresh_version", "Refresh (Function Map)")
+            col.prop(self, "force_extended_ram")
+        col.prop(self, "matstack_fix")
+        col.prop(self, "write_all")
+
     def draw_props(self, layout: UILayout, show_repo_settings: bool = True):
         col = layout.column()
 
@@ -162,14 +172,8 @@ class SM64_Properties(PropertyGroup):
             directory_ui_warnings(col, abspath(self.decomp_path))
         col.separator()
 
-        if not self.binary_export:
-            col.prop(self, "disable_scroll")
-            if show_repo_settings:
-                prop_split(col, self, "compression_format", "Compression Format")
-                prop_split(col, self, "refresh_version", "Refresh (Function Map)")
-                col.prop(self, "force_extended_ram")
-                col.prop(self, "matstack_fix")
-                col.prop(self, "write_all")
+        if show_repo_settings:
+            self.draw_repo_settings(col)
         col.separator()
 
         col.prop(self, "show_importing_menus")

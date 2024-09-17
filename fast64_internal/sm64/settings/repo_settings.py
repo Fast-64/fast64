@@ -44,17 +44,3 @@ def load_sm64_repo_settings(scene: Scene, data: dict[str, Any]):
     sm64_props.force_extended_ram = data.get("force_extended_ram", sm64_props.force_extended_ram)
     sm64_props.matstack_fix = data.get("matstack_fix", sm64_props.matstack_fix)
     sm64_props.write_all = data.get("write_all", sm64_props.write_all)
-
-
-def draw_repo_settings(scene: Scene, layout: UILayout):
-    col = layout.column()
-    sm64_props = scene.fast64.sm64
-    if not draw_and_check_tab(col, sm64_props, "sm64_repo_settings_tab", icon="PROPERTIES"):
-        return
-
-    prop_split(col, sm64_props, "compression_format", "Compression Format")
-    prop_split(col, sm64_props, "refresh_version", "Refresh (Function Map)")
-    col.prop(sm64_props, "force_extended_ram")
-    col.prop(sm64_props, "matstack_fix")
-
-    col.label(text="See Fast64 repo settings for general settings", icon="INFO")
