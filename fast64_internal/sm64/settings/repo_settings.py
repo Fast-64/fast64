@@ -22,6 +22,7 @@ def save_sm64_repo_settings(scene: Scene):
     data["compression_format"] = sm64_props.compression_format
     data["force_extended_ram"] = sm64_props.force_extended_ram
     data["matstack_fix"] = sm64_props.matstack_fix
+    data["write_all"] = sm64_props.write_all
 
     return data
 
@@ -42,6 +43,7 @@ def load_sm64_repo_settings(scene: Scene, data: dict[str, Any]):
     sm64_props.compression_format = data.get("compression_format", sm64_props.compression_format)
     sm64_props.force_extended_ram = data.get("force_extended_ram", sm64_props.force_extended_ram)
     sm64_props.matstack_fix = data.get("matstack_fix", sm64_props.matstack_fix)
+    sm64_props.write_all = data.get("write_all", sm64_props.write_all)
 
 
 def draw_repo_settings(scene: Scene, layout: UILayout):

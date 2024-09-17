@@ -876,7 +876,7 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
     fModel = SM64Model(
         level_name + "_dl",
         DLFormat,
-        GfxMatWriteMethod.WriteDifferingAndRevert,
+        bpy.context.scene.fast64.sm64.gfx_write_method,
     )
     childAreas = [child for child in obj.children if child.type == "EMPTY" and child.sm64_obj_type == "Area Root"]
     if len(childAreas) == 0:

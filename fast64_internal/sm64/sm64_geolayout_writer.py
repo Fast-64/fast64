@@ -393,7 +393,7 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, camera,
     fModel = SM64Model(
         name,
         DLFormat,
-        GfxMatWriteMethod.WriteDifferingAndRevert,
+        bpy.context.scene.fast64.sm64.gfx_write_method,
     )
 
     if len(armatureObj.children) == 0:
@@ -461,7 +461,7 @@ def convertObjectToGeolayout(
         fModel = SM64Model(
             name,
             DLFormat,
-            GfxMatWriteMethod.WriteDifferingAndRevert,
+            bpy.context.scene.fast64.sm64.gfx_write_method,
         )
 
     # convertTransformMatrix = convertTransformMatrix @ \

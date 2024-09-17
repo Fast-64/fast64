@@ -80,10 +80,20 @@ class SM64_Properties(PropertyGroup):
         name="Matstack Fix",
         description="Exports account for matstack fix requirements",
     )
+    write_all: BoolProperty(
+        name="Write All",
+        description="Write single load geo and set othermode commands instead of writting the difference to defaults. Can result in smaller displaylists but may introduce issues",
+    )
 
     @property
     def binary_export(self):
         return self.export_type in ["Binary", "Insertable Binary"]
+
+    @property
+    def gfx_write_method(self):
+        from ...f3d.f3d_gbi import GfxMatWriteMethod
+
+        return GfxMatWriteMethod.WriteAll if self.write_all else GfxMatWriteMethod.WriteDifferingAndRevert
 
     @staticmethod
     def upgrade_changed_props():
@@ -159,6 +169,7 @@ class SM64_Properties(PropertyGroup):
                 prop_split(col, self, "refresh_version", "Refresh (Function Map)")
                 col.prop(self, "force_extended_ram")
                 col.prop(self, "matstack_fix")
+                col.prop(self, "write_all")
         col.separator()
 
         col.prop(self, "show_importing_menus")
