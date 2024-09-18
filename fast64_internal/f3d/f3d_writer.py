@@ -1706,14 +1706,14 @@ def saveOtherModeHDefinitionIndividual(fMaterial, settings, tlut, defaults):
 
 def saveOtherModeLDefinition(fMaterial, settings, defaults, defaultRenderMode, matWriteMethod, f3d):
     if matWriteMethod == GfxMatWriteMethod.WriteAll:
-        saveOtherModeLDefinitionAll(fMaterial, settings, defaults, f3d)
+        saveOtherModeLDefinitionAll(fMaterial, settings, defaultRenderMode, f3d)
     elif matWriteMethod == GfxMatWriteMethod.WriteDifferingAndRevert:
         saveOtherModeLDefinitionIndividual(fMaterial, settings, defaults, defaultRenderMode)
     else:
         raise PluginError("Unhandled material write method: " + str(matWriteMethod))
 
 
-def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaults, f3d):
+def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaultRenderMode, f3d):
     baseLength = 3 if not settings.set_rendermode else 32
     cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, baseLength - f3d.F3D_OLD_GBI, [])
     cmd.flagList.append(settings.g_mdsft_alpha_compare)
@@ -1724,6 +1724,10 @@ def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaults, f3d):
         cmd.flagList.extend(flagList)
         if blendList is not None:
             cmd.flagList.append(RendermodeBlender(tuple(blendList[:4]), tuple(blendList[4:])))
+        if defaultRenderMode is not None:  # even in write all, we need to revert the rendermode
+            fMaterial.revert.commands.append(
+                SPSetOtherMode("G_SETOTHERMODE_L", f3d.G_MDSFT_RENDERMODE, 29 - f3d.F3D_OLD_GBI, defaultRenderMode)
+            )
 
     fMaterial.mat_only_DL.commands.append(cmd)
 
@@ -1742,7 +1746,10 @@ def saveOtherModeLDefinitionIndividual(fMaterial, settings, defaults, defaultRen
 
     if settings.set_rendermode:
         flagList, blendList = getRenderModeFlagList(settings, fMaterial)
-        renderModeSet = DPSetRenderMode(flagList, RendermodeBlender(tuple(blendList[:4]), tuple(blendList[4:])))
+        blender = None
+        if blendList:
+            blender = RendermodeBlender(tuple(blendList[:4]), tuple(blendList[4:]))
+        renderModeSet = DPSetRenderMode(flagList, blender)
 
         fMaterial.mat_only_DL.commands.append(renderModeSet)
         if defaultRenderMode is not None:

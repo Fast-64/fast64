@@ -265,8 +265,12 @@ class BleedGraphics:
             last_cmd_list = last_mat.mat_only_DL.commands
 
             # handle write diff, save pre bleed cmds
+            is_rendermode_cmd = lambda cmd: isinstance(cmd, DPSetRenderMode) or (
+                isinstance(cmd, SPSetOtherMode) and cmd.sets_rendermode
+            )
             geo_cmd = next((cmd for cmd in commands_bled.commands if type(cmd) == SPGeometryMode), None)
             othermode_cmds = [cmd for cmd in commands_bled.commands if isinstance(cmd, SPSetOtherModeSub)]
+            rendermode_cmds = [cmd for cmd in commands_bled.commands if is_rendermode_cmd(cmd)]
 
             for j, cmd in enumerate(gfx.commands):
                 if self.bleed_individual_cmd(commands_bled, cmd, bleed_state, last_cmd_list):
@@ -279,19 +283,24 @@ class BleedGraphics:
             if last_mat.revert:
                 revert_geo_cmd = next((cmd for cmd in last_mat.revert.commands if type(cmd) == SPGeometryMode), None)
                 revert_othermode_cmd = [cmd for cmd in last_mat.revert.commands if isinstance(cmd, SPSetOtherModeSub)]
+                revert_rendermode_cmds = [cmd for cmd in last_mat.revert.commands if is_rendermode_cmd(cmd)]
             else:
-                revert_geo_cmd, revert_othermode_cmd = None, []
-            geo_cmd_bleeded = geo_cmd is not None and geo_cmd not in commands_bled.commands
-            # if there was a geo command, and it wasnt bleeded, add revert's modes to it
-            if not geo_cmd_bleeded and geo_cmd and revert_geo_cmd:
+                revert_geo_cmd, revert_othermode_cmd, revert_rendermode_cmds = None, [], []
+            if geo_cmd in commands_bled.commands and revert_geo_cmd:
+                # if there's a geo command, add revert's modes to it
                 geo_cmd.extend(revert_geo_cmd.clearFlagList, revert_geo_cmd.setFlagList)
-            # if there was no geo command but there was a revert, add the revert command
             elif geo_cmd is None and revert_geo_cmd:
+                # if there was no geo command but there was a revert, add the revert command
                 commands_bled.commands.insert(0, revert_geo_cmd)
 
+            # if there is no equivelent cmd, it must be using the revert
             for revert_cmd in revert_othermode_cmd:
                 othermode_cmd = next((cmd for cmd in othermode_cmds if type(cmd) == type(revert_cmd)), None)
                 if othermode_cmd is None:  # if there is no equivelent cmd, it must be using the revert
+                    commands_bled.commands.insert(0, revert_cmd)
+            for revert_cmd in revert_rendermode_cmds:
+                rendermode_cmd = next((cmd for cmd in rendermode_cmds if cmd == revert_cmd), None)
+                if rendermode_cmd is None:  # if there is no equivelent cmd, it must be using the revert
                     commands_bled.commands.insert(0, revert_cmd)
         else:
             commands_bled = self.bleed_cmd_list(cur_fmat.mat_only_DL, bleed_state)
@@ -448,20 +457,18 @@ class BleedGraphics:
                     reset_cmds.append(self.default_othermode_H)
 
             elif cmd_type == DPSetRenderMode:
-                if default_render_mode:
+                if default_render_mode and cmd_use.flagList != default_render_mode:
                     reset_cmds.append(DPSetRenderMode(default_render_mode))
 
-            # render mode takes up most bits of the lower half, so seeing high bit usage is enough to determine render mode was used
-            elif cmd_type == "G_SETOTHERMODE_L" and cmd_use.length >= 31:
-                if default_render_mode:
-                    reset_cmds.append(
-                        SPSetOtherMode(
-                            "G_SETOTHERMODE_L",
-                            0,
-                            32 - self.is_f3d_old,
-                            [*self.default_othermode_L.flagList, *default_render_mode],
-                        )
-                    )
+            elif cmd_type == "G_SETOTHERMODE_L" and cmd_use.sets_rendermode:
+                default_othermode_l = SPSetOtherMode(
+                    "G_SETOTHERMODE_L",
+                    0,
+                    32 - self.is_f3d_old,
+                    [*self.default_othermode_L.flagList, *default_render_mode],
+                )
+                if default_render_mode and cmd_use.flagList != default_othermode_l.flagList:
+                    reset_cmds.append(default_othermode_l)
 
             elif cmd_type == "G_SETOTHERMODE_L":
                 if cmd_use != self.default_othermode_L:

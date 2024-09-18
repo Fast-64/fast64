@@ -4352,6 +4352,10 @@ class SPSetOtherMode(GbiMacro):
     length: int
     flagList: list
 
+    @property
+    def sets_rendermode(self):
+        return self.cmd == "G_SETOTHERMODE_L" and (self.sft + self.length) > 3
+
     def extend(self, flags: Iterable | str):
         flags = {flags} if isinstance(flags, str) else set(flags)
         self.flagList = list(set(self.flagList) | flags)
@@ -4362,12 +4366,12 @@ class SPSetOtherMode(GbiMacro):
                 value = flag.to_binary(f3d)
             else:
                 value = getattr(f3d, str(flag), flag)
-            if (value >> other.sft) & other.length:
+            if not value or value >> other.sft > other.length:
                 self.flagList.remove(flag)
         # add other's flags
         self.extend(other.flagList)
 
-        min_max = min(self.sft, other.sft), max(self.sft, other.sft) + max(self.length, other.length)
+        min_max = min(self.sft, other.sft), max(self.sft + self.length, other.sft + other.length)
         self.sft = min_max[0]
         self.length = min_max[1] - min_max[0]
 
