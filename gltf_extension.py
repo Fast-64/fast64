@@ -4,8 +4,13 @@ from bpy.types import PropertyGroup, UILayout, Panel, Context
 from bpy.props import BoolProperty, PointerProperty
 
 from .fast64_internal.utility import multilineLabel, prop_group_to_json, json_to_prop_group
-from .fast64_internal.gltf_utility import GLTF2_ADDON_VERSION, get_gltf_settings
-from .fast64_internal.f3d.glTF.f3d_gltf import F3DGlTFSettings, F3DGlTFPanel, F3DExtensions, set_use_nodes_in_f3d_materials
+from .fast64_internal.gltf_utility import get_gltf_settings
+from .fast64_internal.f3d.glTF.f3d_gltf import (
+    F3DGlTFSettings,
+    F3DGlTFPanel,
+    F3DExtensions,
+    set_use_nodes_in_f3d_materials,
+)
 
 # Original implementation from github.com/Mr-Wiseguy/gltf64-blender
 
