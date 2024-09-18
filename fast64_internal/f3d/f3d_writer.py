@@ -1723,12 +1723,7 @@ def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaults, f3d):
         flagList, blendList = getRenderModeFlagList(settings, fMaterial)
         cmd.flagList.extend(flagList)
         if blendList is not None:
-            cmd.flagList.extend(
-                [
-                    "GBL_c1(" + blendList[0] + ", " + blendList[1] + ", " + blendList[2] + ", " + blendList[3] + ")",
-                    "GBL_c2(" + blendList[4] + ", " + blendList[5] + ", " + blendList[6] + ", " + blendList[7] + ")",
-                ]
-            )
+            cmd.flagList.append(RendermodeBlender(tuple(blendList[:4]), tuple(blendList[4:])))
 
     fMaterial.mat_only_DL.commands.append(cmd)
 
@@ -1747,7 +1742,7 @@ def saveOtherModeLDefinitionIndividual(fMaterial, settings, defaults, defaultRen
 
     if settings.set_rendermode:
         flagList, blendList = getRenderModeFlagList(settings, fMaterial)
-        renderModeSet = DPSetRenderMode(flagList, blendList)
+        renderModeSet = DPSetRenderMode(flagList, RendermodeBlender(tuple(blendList[:4]), tuple(blendList[4:])))
 
         fMaterial.mat_only_DL.commands.append(renderModeSet)
         if defaultRenderMode is not None:

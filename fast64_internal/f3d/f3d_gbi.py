@@ -3389,7 +3389,7 @@ class GbiMacro:
             else:
                 return field.name
         if hasattr(field, "__iter__") and type(field) is not str:
-            return " | ".join(field) if len(field) else "0"
+            return " | ".join(map(str, field)) if len(field) else "0"
         if self._hex > 0 and isinstance(field, int):
             temp = field if field >= 0 else (1 << (self._hex * 4)) + field
             return f"{temp:#0{self._hex + 2}x}"  # + 2 for the 0x part
@@ -4329,6 +4329,23 @@ def gsSPSetOtherMode(cmd, sft, length, data, f3d):
 
 
 @dataclass(unsafe_hash=True)
+class RendermodeBlender:
+    cycle1: tuple
+    cycle2: tuple
+
+    def __str__(self) -> str:
+        return f"GBL_c1({', '.join(self.cycle1)}) | GBL_c2({', '.join(self.cycle1)})"
+
+    def to_c(self, _static=True):
+        return str(self)
+
+    def to_binary(self, f3d):
+        return GBL_c1(*[getattr(f3d, str(x), x) for x in self.cycle1]) | GBL_c2(
+            *[getattr(f3d, str(x), x) for x in self.cycle2]
+        )
+
+
+@dataclass(unsafe_hash=True)
 class SPSetOtherMode(GbiMacro):
     cmd: str
     sft: int
@@ -4341,7 +4358,11 @@ class SPSetOtherMode(GbiMacro):
 
     def add_other(self, f3d, other: SPSetOtherMode):
         for flag in self.flagList.copy():  # remove any flag overriden by other
-            if (getattr(f3d, str(flag), flag) << other.sft) & other.length:
+            if isinstance(flag, RendermodeBlender):
+                value = flag.to_binary(f3d)
+            else:
+                value = getattr(f3d, str(flag), flag)
+            if (value >> other.sft) & other.length:
                 self.flagList.remove(flag)
         # add other's flags
         self.extend(other.flagList)
@@ -4554,36 +4575,17 @@ def GBL_c2(m1a, m1b, m2a, m2b):
 @dataclass(unsafe_hash=True)
 class DPSetRenderMode(GbiMacro):
     # bl0-3 are string for each blender enum
-    def __init__(self, flagList, blendList):
+    def __init__(self, flagList, blender: Optional[RendermodeBlender] = None):
         self.flagList = flagList
-        self.use_preset = blendList is None
-        if not self.use_preset:
-            self.bl00 = blendList[0]
-            self.bl01 = blendList[1]
-            self.bl02 = blendList[2]
-            self.bl03 = blendList[3]
-            self.bl10 = blendList[4]
-            self.bl11 = blendList[5]
-            self.bl12 = blendList[6]
-            self.bl13 = blendList[7]
-
-    def getGBL_c(self, f3d):
-        bl00 = getattr(f3d, self.bl00)
-        bl01 = getattr(f3d, self.bl01)
-        bl02 = getattr(f3d, self.bl02)
-        bl03 = getattr(f3d, self.bl03)
-        bl10 = getattr(f3d, self.bl10)
-        bl11 = getattr(f3d, self.bl11)
-        bl12 = getattr(f3d, self.bl12)
-        bl13 = getattr(f3d, self.bl13)
-        return GBL_c1(bl00, bl01, bl02, bl03) | GBL_c2(bl10, bl11, bl12, bl13)
+        self.use_preset = blender is None
+        self.blender = blender
 
     def to_binary(self, f3d, segments):
         flagWord = renderFlagListToWord(self.flagList, f3d)
 
         if not self.use_preset:
             return gsSPSetOtherMode(
-                f3d.G_SETOTHERMODE_L, f3d.G_MDSFT_RENDERMODE, 29, flagWord | self.getGBL_c(f3d), f3d
+                f3d.G_SETOTHERMODE_L, f3d.G_MDSFT_RENDERMODE, 29, flagWord | self.blender.to_binary(f3d), f3d
             )
         else:
             return gsSPSetOtherMode(f3d.G_SETOTHERMODE_L, f3d.G_MDSFT_RENDERMODE, 29, flagWord, f3d)
@@ -4592,25 +4594,7 @@ class DPSetRenderMode(GbiMacro):
         data = "gsDPSetRenderMode(" if static else "gDPSetRenderMode(glistp++, "
 
         if not self.use_preset:
-            data += (
-                "GBL_c1("
-                + self.bl00
-                + ", "
-                + self.bl01
-                + ", "
-                + self.bl02
-                + ", "
-                + self.bl03
-                + ") | GBL_c2("
-                + self.bl10
-                + ", "
-                + self.bl11
-                + ", "
-                + self.bl12
-                + ", "
-                + self.bl13
-                + "), "
-            )
+            data += self.blender.to_c(static) + ", "
             for name in self.flagList:
                 data += name + " | "
             return data[:-3] + ")"
