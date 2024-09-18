@@ -173,12 +173,11 @@ def exportTexRectToC(dirPath, texProp, texDir, savePNG, name, exportToProject, p
 
     formater = SM64GfxFormatter(ScrollMethod.Vertex)
 
+    dynamicData = CData()
+    dynamicData.append(fTexRect.draw.to_c(fTexRect.f3d))
     code = modifyDLForHUD(dynamicData.source)
 
     if exportToProject:
-        dynamicData = CData()
-        dynamicData.append(fTexRect.draw.to_c(fTexRect.f3d))
-
         seg2CPath = os.path.join(dirPath, "bin/segment2.c")
         seg2HPath = os.path.join(dirPath, "src/game/segment2.h")
         seg2TexDir = os.path.join(dirPath, "textures/segment2")
@@ -219,7 +218,6 @@ def exportTexRectToC(dirPath, texProp, texDir, savePNG, name, exportToProject, p
     else:
         exportData = fTexRect.to_c(savePNG, texDir, formater)
         staticData = exportData.staticData
-        dynamicData = exportData.dynamicData
 
         declaration = staticData.header
         data = staticData.source
