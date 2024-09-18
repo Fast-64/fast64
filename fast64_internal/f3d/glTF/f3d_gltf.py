@@ -20,6 +20,8 @@ from ..f3d_material import (
     get_color_info_from_tex,
     getTmemMax,
     getTmemWordUsage,
+    link_if_none_exist,
+    remove_first_link_if_exists,
     rendermode_presets_checks,
     trunc_10_2,
     createScenePropertiesForMaterial,
@@ -732,7 +734,9 @@ class F3DExtensions(GlTF2SubExtension):
             blender_object.use_f3d_culling = new_data.get("use_culling", True)
 
     def gather_import_mesh_after_hook(self, gltf_mesh, blender_mesh, gltf):
-        color_layer = blender_mesh.vertex_colors[0]  # Assume col is the first for now
+        if len(blender_mesh.vertex_colors) < 1:
+            return
+        color_layer = blender_mesh.vertex_colors[0]  # HACK: Col should be one unless something was wrong
         color_layer.name = "Col"
         color = np.empty(len(blender_mesh.loops) * 4, dtype=np.float32)
         color_layer.data.foreach_get("color", color)
@@ -884,17 +888,44 @@ class F3DGlTFPanel(Panel):
         get_gltf_settings(context).f3d.draw_props(self.layout, is_import_context(context))
 
 
-def set_use_nodes_in_f3d_materials(use: bool):
+def modify_f3d_nodes_for_export(use: bool):
     """
-    HACK: For 4.1 and 4.2 we need to disable all F3D nodes,
-    otherwise an infinite recursion occurs in texture gathering
+    HACK: For 4.1 and 4.2, we create new, way simpler nodes that glTF can use to gather the correct vertex color layer.
+    We can´t have glTF interacting with the f3d nodes either, otherwise an infinite recursion occurs in texture gathering
     this is also called in gather_gltf_extensions_hook (glTF2_post_export_callback can fail)
     """
-    if GLTF2_ADDON_VERSION >= (4, 1, 0):
-        for mat in bpy.data.materials:
-            if mat.is_f3d and mat.mat_ver == F3D_MAT_CUR_VERSION:
-                mat.use_nodes = use
+    if GLTF2_ADDON_VERSION < (4, 1, 0):
+        return
+    for mat in bpy.data.materials:
+        if not (mat.is_f3d and mat.mat_ver == F3D_MAT_CUR_VERSION):
+            continue
+        node_tree = mat.node_tree
+        nodes = node_tree.nodes
+        f3d_output = nodes.get("OUTPUT")
+        if not f3d_output:
+            mat.use_nodes = use
+            continue
 
+        material_output = next((node for node in nodes if node.bl_idname == "ShaderNodeOutputMaterial"), None)
+        if material_output is None:
+            material_output = nodes.new("ShaderNodeOutputMaterial")
+        bsdf = next((node for node in nodes if node.bl_idname == "ShaderNodeBsdfPrincipled"), None)
+        if bsdf is None:
+            bsdf = nodes.new("ShaderNodeBsdfPrincipled")
+            bsdf.location = (1260, 900)
+        vertex_color = next((node for node in nodes if node.bl_idname == "ShaderNodeVertexColor"), None)
+        if vertex_color is None:
+            vertex_color = nodes.new("ShaderNodeVertexColor")
+            vertex_color.location = (1075, 850)
+        vertex_color.layer_name = "Col"
+
+        remove_first_link_if_exists(mat, material_output.inputs["Surface"].links)
+        if use:
+            link_if_none_exist(mat, f3d_output.outputs["Shader"], material_output.inputs["Surface"])
+        else:
+            link_if_none_exist(mat, vertex_color.outputs["Color"], bsdf.inputs["Base Color"])
+            link_if_none_exist(mat, vertex_color.outputs["Alpha"], bsdf.inputs["Alpha"])
+            link_if_none_exist(mat, bsdf.outputs["BSDF"], material_output.inputs["Surface"])
 
 def gather_mesh_hook(blender_mesh: Mesh, *args):
     """HACK: Runs right before the actual gather_mesh func in the addon, we need to join col and alpha"""

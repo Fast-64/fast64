@@ -9,7 +9,7 @@ from .fast64_internal.f3d.glTF.f3d_gltf import (
     F3DGlTFSettings,
     F3DGlTFPanel,
     F3DExtensions,
-    set_use_nodes_in_f3d_materials,
+    modify_f3d_nodes_for_export,
 )
 
 # Original implementation from github.com/Mr-Wiseguy/gltf64-blender
@@ -23,11 +23,11 @@ from .fast64_internal.f3d.glTF.f3d_gltf import (
 
 
 def glTF2_pre_export_callback(_gltf):
-    set_use_nodes_in_f3d_materials(False)
+    modify_f3d_nodes_for_export(False)
 
 
 def glTF2_post_export_callback(_gltf):
-    set_use_nodes_in_f3d_materials(True)
+    modify_f3d_nodes_for_export(True)
 
 
 def error_popup_handler(simple_error: str, full_error: str):
@@ -94,7 +94,7 @@ class glTF2ExportUserExtension(GlTF2Extension):
         )
 
     def gather_gltf_extensions_hook(self, _gltf, _export_settings):
-        set_use_nodes_in_f3d_materials(True)
+        modify_f3d_nodes_for_export(True)
 
 
 class glTF2ImportUserExtension(GlTF2Extension):
