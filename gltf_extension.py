@@ -128,13 +128,7 @@ class glTF2ImportUserExtension(GlTF2Extension):
         )
 
     def gather_import_mesh_after_hook(self, gltf_mesh, blender_mesh, gltf):
-        self.call_hooks(
-            "gather_import_mesh_after_hook",
-            'Mesh "{args[1].name}"',
-            gltf_mesh,
-            blender_mesh,
-            gltf,
-        )
+        self.call_hooks("gather_import_mesh_after_hook", 'Mesh "{args[1].name}"', gltf_mesh, blender_mesh, gltf)
 
 
 class Fast64GlTFSettings(PropertyGroup):

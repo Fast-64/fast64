@@ -3,9 +3,16 @@ from math import ceil, floor
 import bpy
 from bpy.types import NodeTree, Object, Mesh, Material, Context, Panel, PropertyGroup, UILayout
 from bpy.props import BoolProperty
+import numpy as np
 
 from ...utility import multilineLabel, prop_split, PluginError, fix_invalid_props
-from ...gltf_utility import GlTF2SubExtension, get_gltf_image_from_blender_image, get_gltf_settings, is_import_context
+from ...gltf_utility import (
+    GlTF2SubExtension,
+    get_gltf_image_from_blender_image,
+    get_gltf_settings,
+    is_import_context,
+    prefix_function,
+)
 from ..f3d_gbi import F3D, get_F3D_GBI
 from ..f3d_material import (
     all_combiner_uses,
@@ -23,7 +30,7 @@ from ..f3d_material import (
     TextureProperty,
 )
 from ..f3d_material_helpers import node_tree_copy
-from ..f3d_writer import cel_shading_checks, check_face_materials
+from ..f3d_writer import cel_shading_checks, check_face_materials, getColorLayer
 from ..f3d_texture_writer import UVtoSTLarge
 
 from io_scene_gltf2.io.com import gltf2_io
@@ -722,6 +729,18 @@ class F3DExtensions(GlTF2SubExtension):
         if new_data:
             blender_object.use_f3d_culling = new_data.get("use_culling", True)
 
+    def gather_import_mesh_after_hook(self, gltf_mesh, blender_mesh, gltf):
+        color_layer = blender_mesh.vertex_colors[0]  # Assume col is the first for now
+        color_layer.name = "Col"
+        color = np.empty(len(blender_mesh.loops) * 4, dtype=np.float32)
+        color_layer.data.foreach_get("color", color)
+        color = color.reshape(-1, 4)
+
+        alpha = color[:, 3]
+        alpha_rgba = np.repeat(alpha[:, np.newaxis], 4, axis=1).flatten()
+        alpha_layer = blender_mesh.vertex_colors.new(name="Alpha").data
+        alpha_layer.foreach_set("color", alpha_rgba)
+
 
 MATERIAL_EXTENSION_NAME = "FAST64_materials_n64"
 F3D_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3d"
@@ -861,3 +880,30 @@ class F3DGlTFPanel(Panel):
     def draw(self, context: Context):
         self.layout.use_property_decorate = False  # No animation.
         get_gltf_settings(context).f3d.draw_props(self.layout, is_import_context(context))
+
+
+def gather_mesh_hook(blender_mesh: Mesh, *args):
+    """HACK: Runs right before the actual gather_mesh func in the addon, we need to join col and alpha"""
+    print("F3D glTF: Applying alpha")
+    color_layer = getColorLayer(blender_mesh, layer="Col")
+    alpha_layer = getColorLayer(blender_mesh, layer="Alpha")
+    if not color_layer or not alpha_layer:
+        return
+    color = np.empty(len(blender_mesh.loops) * 4, dtype=np.float32)
+    alpha = np.empty(len(blender_mesh.loops) * 4, dtype=np.float32)
+    color_layer.foreach_get("color", color)
+    alpha_layer.foreach_get("color", alpha)
+    alpha = alpha.reshape(-1, 4)
+    color = color.reshape(-1, 4)
+
+    # Calculate alpha from the median of the alpha layer RGB
+    alpha_median = np.median(alpha[:, :3], axis=1)
+    color[:, 3] = alpha_median
+
+    color = color.flatten()
+    color_layer.foreach_set("color", color)
+
+
+import io_scene_gltf2.blender.exp.gltf2_blender_gather_mesh as gather_mesh_owner
+
+gather_mesh_owner.gather_mesh = prefix_function(gather_mesh_owner.gather_mesh, gather_mesh_hook)
