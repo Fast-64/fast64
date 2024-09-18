@@ -927,6 +927,7 @@ def modify_f3d_nodes_for_export(use: bool):
             link_if_none_exist(mat, vertex_color.outputs["Alpha"], bsdf.inputs["Alpha"])
             link_if_none_exist(mat, bsdf.outputs["BSDF"], material_output.inputs["Surface"])
 
+
 def gather_mesh_hook(blender_mesh: Mesh, *args):
     """HACK: Runs right before the actual gather_mesh func in the addon, we need to join col and alpha"""
     print("F3D glTF: Applying alpha")
