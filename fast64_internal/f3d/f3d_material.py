@@ -4823,7 +4823,7 @@ class F3DMaterialProperty(PropertyGroup):
             self.use_default_lighting = False
         # TODO: Figure out conversion for object lights
         ambient = data.get("ambientColor", [])
-        self.set_ambient_from_light = bool(ambient)
+        self.set_ambient_from_light = not ambient
         if ambient:
             self.ambient_light_color = ambient + [1.0]
 
