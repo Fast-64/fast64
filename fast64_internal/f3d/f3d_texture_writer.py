@@ -540,7 +540,7 @@ class TexInfo:
             if self.useTex:
                 self.loadPal = True
             self.palBaseName = self.getPaletteName()
-        if self.tmemSize >= tmem_size:
+        if self.tmemSize > tmem_size:
             if use_large_tex:
                 self.doTexLoad = False
                 return True
