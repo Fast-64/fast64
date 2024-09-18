@@ -276,7 +276,11 @@ class BleedGraphics:
                 commands_bled.commands.remove(None)
 
             # handle write diff
-            revert_geo_cmd = next((cmd for cmd in last_mat.revert.commands if type(cmd) == SPGeometryMode), None)
+            if last_mat.revert:
+                revert_geo_cmd = next((cmd for cmd in last_mat.revert.commands if type(cmd) == SPGeometryMode), None)
+                revert_othermode_cmd = [cmd for cmd in last_mat.revert.commands if isinstance(cmd, SPSetOtherModeSub)]
+            else:
+                revert_geo_cmd, revert_othermode_cmd = None, []
             geo_cmd_bleeded = geo_cmd is not None and geo_cmd not in commands_bled.commands
             # if there was a geo command, and it wasnt bleeded, add revert's modes to it
             if not geo_cmd_bleeded and geo_cmd and revert_geo_cmd:
@@ -285,7 +289,7 @@ class BleedGraphics:
             elif geo_cmd is None and revert_geo_cmd:
                 commands_bled.commands.insert(0, revert_geo_cmd)
 
-            for revert_cmd in [cmd for cmd in last_mat.revert.commands if isinstance(cmd, SPSetOtherModeSub)]:
+            for revert_cmd in revert_othermode_cmd:
                 othermode_cmd = next((cmd for cmd in othermode_cmds if type(cmd) == type(revert_cmd)), None)
                 if othermode_cmd is None:  # if there is no equivelent cmd, it must be using the revert
                     commands_bled.commands.insert(0, revert_cmd)
@@ -600,26 +604,25 @@ class BleedGfxLists:
             l: SPSetOtherMode = reset_cmd_dict.get("G_SETOTHERMODE_L")
             h: SPSetOtherMode = reset_cmd_dict.get("G_SETOTHERMODE_H")
             if l or h:  # should never be reached, but if we reach it we are prepared
-                existing_mode = next((mode.startswith(cmd.mode_prefix) for mode in h.flagList + l.flagList), None)
                 if h and cmd.is_othermodeh:
-                    if existing_mode:
+                    for existing_mode in [mode for mode in h.flagList if mode.startswith(cmd.mode_prefix)]:
                         h.flagList.remove(existing_mode)
                     h.flagList.append(cmd.mode)
                 if l and not cmd.is_othermodeh:
-                    if existing_mode:
+                    for existing_mode in [mode for mode in l.flagList if mode.startswith(cmd.mode_prefix)]:
                         l.flagList.remove(existing_mode)
                     l.flagList.append(cmd.mode)
             else:
                 reset_cmd_dict[type(cmd)] = cmd
 
         # separate other mode H and othermode L
-        if type(cmd) == SPSetOtherMode:
+        elif type(cmd) == SPSetOtherMode:
             if cmd.cmd in reset_cmd_dict:
-                reset_cmd_dict[cmd.cmd].add_diff(f3d, cmd)
+                reset_cmd_dict[cmd.cmd].add_other(f3d, cmd)
             else:
                 reset_cmd_dict[cmd.cmd] = copy.deepcopy(cmd)
 
-        if type(cmd) in reset_cmd_list:
+        elif type(cmd) in reset_cmd_list:
             reset_cmd_dict[type(cmd)] = cmd
 
 
