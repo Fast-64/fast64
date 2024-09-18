@@ -200,7 +200,8 @@ def exportTexRectToC(dirPath, texProp, texDir, savePNG, name, exportToProject, p
 
             # Append/Overwrite texture definition to segment2.c
             overwriteData(
-                f"(Gfx\s*{fImage.aligner_name}\[\]\s*=\s*{{gsSPEndDisplayList\(\)}};\s*)?u{str(formater.texArrayBitSize)}\s*",
+                rf"(Gfx\s+{fImage.aligner_name}\s*\[\s*\]\s*=\s*\{{\s*gsSPEndDisplayList\s*\(\s*\)\s*\}}\s*;\s*)?"
+                rf"u{str(formater.texArrayBitSize)}\s*",
                 fImage.name,
                 data.source,
                 seg2CPath,
