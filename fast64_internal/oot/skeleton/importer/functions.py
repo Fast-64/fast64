@@ -203,7 +203,6 @@ def ootBuildSkeleton(
             f3dContext.matrixData[limbName],
             limbName,
             boneName,
-            "oot",
             drawLayer,
             f3dContext,
             True,

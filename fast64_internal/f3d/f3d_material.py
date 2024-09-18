@@ -34,7 +34,11 @@ from .f3d_enums import *
 from .f3d_gbi import get_F3D_GBI, enumTexScroll, isUcodeF3DEX1, default_draw_layers
 from .f3d_material_presets import *
 from ..utility import *
-from ..render_settings import Fast64RenderSettings_Properties, update_scene_props_from_render_settings
+from ..render_settings import (
+    Fast64RenderSettings_Properties,
+    update_scene_props_from_render_settings,
+    ManualUpdatePreviewOperator,
+)
 from .f3d_material_helpers import F3DMaterial_UpdateLock, node_tree_copy
 from bpy.app.handlers import persistent
 from typing import Generator, Optional, Tuple, Any, Dict, Union
@@ -1488,7 +1492,7 @@ def update_node_values(self, context, update_preset):
 
 def update_all_node_values(material, context):
     update_node_values_without_preset(material, context)
-    update_tex_values_and_formats(material, context)
+    update_tex_values_manual(material, context)
     update_rendermode_preset(material, context)
 
 
@@ -2453,7 +2457,7 @@ def createOrUpdateSceneProperties():
     sceneOutputs: NodeGroupOutput = new_group.nodes["Group Output"]
     renderSettings: "Fast64RenderSettings_Properties" = bpy.context.scene.fast64.renderSettings
 
-    update_scene_props_from_render_settings(bpy.context, sceneOutputs, renderSettings)
+    update_scene_props_from_render_settings(sceneOutputs, renderSettings)
 
 
 def createScenePropertiesForMaterial(material: Material):
@@ -5023,6 +5027,18 @@ class F3DRenderSettingsPanel(Panel):
         labelbox = globalSettingsBox.box()
         labelbox.label(text="Global Settings")
         labelbox.ui_units_x = 6
+
+        # Only show the update preview UI if the render engine is EEVEE,
+        # as there's no point in updating the nodes otherwise.
+        if context.scene.render.engine in {
+            "BLENDER_EEVEE",  # <4.2
+            "BLENDER_EEVEE_NEXT",  # 4.2+
+        }:
+            updatePreviewRow = globalSettingsBox.row()
+            updatePreviewRow.prop(renderSettings, "enableAutoUpdatePreview")
+            if not renderSettings.enableAutoUpdatePreview:
+                updatePreviewRow.operator(ManualUpdatePreviewOperator.bl_idname)
+            globalSettingsBox.separator()
 
         globalSettingsBox.prop(renderSettings, "enableFogPreview")
         prop_split(globalSettingsBox, renderSettings, "fogPreviewColor", "Fog Color")

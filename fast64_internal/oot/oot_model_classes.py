@@ -335,6 +335,7 @@ class OOTF3DContext(F3DContext):
         materialContext = createF3DMat(None, preset="oot_shaded_solid")
         # materialContext.f3d_mat.rdp_settings.g_mdsft_cycletype = "G_CYC_1CYCLE"
         F3DContext.__init__(self, f3d, basePath, materialContext)
+        self.draw_layer_prop = "oot"
 
     def getLimbName(self, index):
         return self.limbList[index]
