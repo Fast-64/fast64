@@ -5,7 +5,7 @@ from bpy.props import BoolProperty, PointerProperty
 
 from .fast64_internal.utility import multilineLabel, prop_group_to_json, json_to_prop_group
 from .fast64_internal.gltf_utility import GLTF2_ADDON_VERSION, get_gltf_settings
-from .fast64_internal.f3d.glTF.f3d_gltf import F3DGlTFSettings, F3DGlTFPanel, F3DExtensions
+from .fast64_internal.f3d.glTF.f3d_gltf import F3DGlTFSettings, F3DGlTFPanel, F3DExtensions, set_use_nodes_in_f3d_materials
 
 # Original implementation from github.com/Mr-Wiseguy/gltf64-blender
 
@@ -15,18 +15,6 @@ from .fast64_internal.f3d.glTF.f3d_gltf import F3DGlTFSettings, F3DGlTFPanel, F3
 # Full fast64 material support.
 # Extendability improvements.
 # Doesn´t use world defaults, as those should be left to the repo to handle.
-
-
-def set_use_nodes_in_f3d_materials(use: bool):
-    """
-    HACK: For 4.1 and 4.2 we need to disable all F3D nodes,
-    otherwise an infinite recursion occurs in texture gathering
-    this is also called in gather_gltf_extensions_hook (glTF2_post_export_callback can fail)
-    """
-    if GLTF2_ADDON_VERSION >= (4, 1, 0):
-        for mat in bpy.data.materials:
-            if mat.is_f3d and mat.mat_ver == 5:
-                mat.use_nodes = use
 
 
 def glTF2_pre_export_callback(_gltf):

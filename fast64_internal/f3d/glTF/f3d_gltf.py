@@ -12,6 +12,7 @@ from ...gltf_utility import (
     get_gltf_settings,
     is_import_context,
     prefix_function,
+    GLTF2_ADDON_VERSION,
 )
 from ..f3d_gbi import F3D, get_F3D_GBI
 from ..f3d_material import (
@@ -28,6 +29,7 @@ from ..f3d_material import (
     F3DMaterialProperty,
     RDPSettings,
     TextureProperty,
+    F3D_MAT_CUR_VERSION,
 )
 from ..f3d_material_helpers import node_tree_copy
 from ..f3d_writer import cel_shading_checks, check_face_materials, getColorLayer
@@ -880,6 +882,18 @@ class F3DGlTFPanel(Panel):
     def draw(self, context: Context):
         self.layout.use_property_decorate = False  # No animation.
         get_gltf_settings(context).f3d.draw_props(self.layout, is_import_context(context))
+
+
+def set_use_nodes_in_f3d_materials(use: bool):
+    """
+    HACK: For 4.1 and 4.2 we need to disable all F3D nodes,
+    otherwise an infinite recursion occurs in texture gathering
+    this is also called in gather_gltf_extensions_hook (glTF2_post_export_callback can fail)
+    """
+    if GLTF2_ADDON_VERSION >= (4, 1, 0):
+        for mat in bpy.data.materials:
+            if mat.is_f3d and mat.mat_ver == F3D_MAT_CUR_VERSION:
+                mat.use_nodes = use
 
 
 def gather_mesh_hook(blender_mesh: Mesh, *args):
