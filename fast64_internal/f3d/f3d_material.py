@@ -2147,9 +2147,9 @@ def get_textlut_mode(f3d_mat: "F3DMaterialProperty", inherit_from_tex: bool = Fa
     use_dict = all_combiner_uses(f3d_mat)
     textures = [f3d_mat.tex0] if use_dict["Texture 0"] and f3d_mat.tex0.tex_set else []
     textures += [f3d_mat.tex1] if use_dict["Texture 1"] and f3d_mat.tex1.tex_set else []
-    tlut_modes = [tex.ci_format if tex.tex_format.startswith("CI") else "NONE" for tex in textures]
+    tlut_modes = [tex.tlut_mode for tex in textures]
     if tlut_modes and tlut_modes[0] == tlut_modes[-1]:
-        return "G_TT_" + tlut_modes[0]
+        return tlut_modes[0]
     return None if inherit_from_tex else f3d_mat.rdp_settings.g_mdsft_textlut
 
 
@@ -2862,6 +2862,15 @@ class TextureProperty(PropertyGroup):
     )
     tile_scroll: bpy.props.PointerProperty(type=SetTileSizeScrollProperty)
 
+    @property
+    def is_ci(self):
+        self.tex_format: str
+        return self.tex_format.startswith("CI")
+
+    @property
+    def tlut_mode(self):
+        return f"G_TT_{self.ci_format if self.is_ci else 'NONE'}"
+
     def get_tex_size(self) -> list[int]:
         if self.tex or self.use_tex_reference:
             if self.tex is not None:
@@ -2923,6 +2932,7 @@ def ui_image(
     textureProp: TextureProperty,
     name: str,
     showCheckBox: bool,
+    hide_lowhigh=False,
 ):
     inputGroup = layout.box().column()
 
@@ -3029,7 +3039,8 @@ def ui_image(
                 shift = prop_input.row()
                 shift.prop(textureProp.S, "shift", text="Shift S")
                 shift.prop(textureProp.T, "shift", text="Shift T")
-
+                if hide_lowhigh:
+                    return
                 low = prop_input.row()
                 low.prop(textureProp.S, "low", text="S Low")
                 low.prop(textureProp.T, "low", text="T Low")
