@@ -207,14 +207,14 @@ def exportTexRectToC(dirPath, texProp, texDir, savePNG, name, exportToProject, p
                 seg2CPath,
                 None,
                 False,
-                post_regex="\s?\s?",  # tex to c includes 2 newlines
+                post_regex=r"\s?\s?",  # tex to c includes 2 newlines
             )
 
             # Append texture declaration to segment2.h
             writeIfNotFound(seg2HPath, data.header, "#endif")
 
         # Write/Overwrite function to hud.c
-        overwriteData("void\s*", fTexRect.name, code, hudPath, projectExportData[1], True)
+        overwriteData("void\s*", fTexRect.name, code, hudPath, projectExportData[1], True, post_regex=r"\s?")
 
     else:
         exportData = fTexRect.to_c(savePNG, texDir, formater)
@@ -296,7 +296,7 @@ def modifyDLForHUD(data):
     # 	data = data[:matchResult.start(7)] + 'segmented_to_virtual(&' + \
     # 		matchResult.group(7) + ")" +data[matchResult.end(7):]
 
-    return data
+    return data.removesuffix("\n")
 
 
 def exportTexRectCommon(texProp, name, convertTextureData):
