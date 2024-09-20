@@ -1,5 +1,6 @@
 from pprint import pprint
 import functools
+from typing import Callable
 
 import addon_utils
 import bpy
