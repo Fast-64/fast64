@@ -132,7 +132,7 @@ Written against the glTF 2.0 spec.
 
 ## Overview
 
-This extension implements a representation of fast64 mesh data, currently only contains one propertie from post F3DLX microcodes, which is implemented in a seperate extension:
+This extension implements a representation of fast64 mesh data, currently only contains one property from post F3DLX microcodes, which is implemented in a seperate extension:
 
 - [F3DEX and up](#FAST64_mesh_f3d_new)
 
