@@ -60,24 +60,12 @@ NEW_MESH_EXTENSION_NAME = "FAST64_mesh_f3d_new"
 
 
 def is_mat_f3d(mat: Material | None):
-    return mat and mat.is_f3d and mat.mat_ver == F3D_MAT_CUR_VERSION
+    return mat is not None and mat.is_f3d and mat.mat_ver == F3D_MAT_CUR_VERSION
 
 
-def uvmap_check(obj: Object, mesh: Mesh):
-    has_f3d_mat = False
-    for material in obj.material_slots:  # Check if any slot is F3D
-        if material.material is None:
-            continue
-        if material.material.is_f3d:
-            has_f3d_mat = True
-            break
-    if has_f3d_mat:  # If any slot is F3D check if the mesh uses the material
-        has_f3d_mat = False
-        for poly in mesh.polygons:
-            if obj.material_slots[poly.material_index].material.is_f3d:
-                has_f3d_mat = True
-                break
-    if has_f3d_mat:  # Finally, if there is a F3D material check if the mesh has a uvmap
+def uvmap_check(mesh: Mesh):
+    # If there is a F3D material check if the mesh has a uvmap
+    if any(is_mat_f3d(mat) for mat in mesh.materials):
         for layer in mesh.uv_layers:
             if layer.name == "UVMap":
                 break
@@ -93,9 +81,7 @@ def large_tex_checks(obj: Object, mesh: Mesh):
 
     large_props_dict = {}
     for mat in mesh.materials:  # Cache info on any large tex material that needs to be checked
-        if not mat:
-            continue
-        if not mat.is_f3d or not mat.f3d_mat.use_large_textures:
+        if not (is_mat_f3d(mat) and mat.f3d_mat.use_large_textures):
             continue
         f3d_mat: F3DMaterialProperty = mat.f3d_mat
         use_dict = all_combiner_uses(f3d_mat)
@@ -176,16 +162,16 @@ def large_tex_checks(obj: Object, mesh: Mesh):
     if not large_props_dict:
         return
 
-    if "UVMap" not in obj.data.uv_layers:
+    if "UVMap" not in mesh.uv_layers:
         raise PluginError('Cannot do large texture checks without a "UVMap" uvmap layer.')
-    uv_data = obj.data.uv_layers["UVMap"].data
+    uv_data = mesh.uv_layers["UVMap"].data
     for face in mesh.loop_triangles:
         mat_name = obj.material_slots[face.material_index].material.name
         large_props = large_props_dict.get(mat_name)
         if large_props is None:
             continue
         dimensions = large_props["dimensions"]
-        face_uvs = [UVtoSTLarge(obj, loop_index, uv_data, dimensions) for loop_index in face.loops]
+        face_uvs = [UVtoSTLarge(None, loop_index, uv_data, dimensions) for loop_index in face.loops]
         sl, sh, tl, th = 1000000, -1, 1000000, -1
         for point in face_uvs:
             sl = min(sl, get_low(large_props, point[0], 0))
@@ -627,7 +613,7 @@ class F3DExtensions(GlTF2SubExtension):
                 self.settings.raise_non_f3d_mat,
             )
         if self.settings.raise_no_uvmap:
-            uvmap_check(blender_object, blender_mesh)
+            uvmap_check(blender_mesh)
         if self.settings.raise_large_tex:
             large_tex_checks(blender_object, blender_mesh)
 
