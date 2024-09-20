@@ -1,3 +1,4 @@
+import copy
 from dataclasses import dataclass
 from math import ceil, floor
 import bpy
@@ -1407,7 +1408,7 @@ def post__gather_colors(results, blender_primitive, _export_settings):
     colors = attributes.get("FAST64_COLOR", None)
     if colors is not None:
         # Rename other attributes
-        for attr_name, values in attributes.items():
+        for attr_name, values in copy.copy(attributes).items():
             if attr_name.startswith("COLOR_"):
                 num = int(attr_name.lstrip("COLOR_"))
                 attributes.pop(attr_name)
