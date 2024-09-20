@@ -129,13 +129,24 @@ def is_import_context(context):
     return context.space_data.active_operator.bl_idname == "IMPORT_SCENE_OT_gltf"
 
 
-def prefix_function(function, prefunction):
+def prefix_function(function: Callable, prefunction: Callable):
     function = getattr(function, "fast64_og_func", function)
 
     @functools.wraps(function)
     def run(*args, **kwargs):
         prefunction(*args, **kwargs)
         return function(*args, **kwargs)
+
+    setattr(run, "fast64_og_func", function)
+    return run
+
+
+def swap_function(function: Callable, new_function: Callable):
+    function = getattr(function, "fast64_og_func", function)
+
+    @functools.wraps(function)
+    def run(*args, **kwargs):
+        return new_function(*args, **kwargs)
 
     setattr(run, "fast64_og_func", function)
     return run

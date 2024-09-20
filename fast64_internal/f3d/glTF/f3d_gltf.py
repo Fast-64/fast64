@@ -748,7 +748,15 @@ NEW_MESH_EXTENSION_NAME = "FAST64_mesh_f3d_new"
 
 class F3DGlTFSettings(PropertyGroup):
     use: BoolProperty(default=True, name="Export/Import F3D extensions")
-
+    use_3_2_hacks: BoolProperty(
+        name="Use 3.2 vertex color hacks",
+        description="Blender version 3.2 ships with the\n"
+        "last version of the glTF 2.0 addon to not\n"
+        "support float colors (3.2.40). This hack will\n"
+        "override the primitive gathering function in\n"
+        "the glTF addon with a custom one",
+        default=True,
+    )
     raise_texture_limits: BoolProperty(
         name="Tex Limits",
         description="Raises errors when texture limits are exceeded,\n"
@@ -789,7 +797,7 @@ class F3DGlTFSettings(PropertyGroup):
         default=True,
     )
 
-    def to_dict(self):
+    def to_dict(self):  # TODO: use prop to json funcs
         return {
             "use": self.use,
             "raiseTextureLimits": self.raise_texture_limits,
@@ -836,6 +844,12 @@ class F3DGlTFSettings(PropertyGroup):
         if import_context:
             return
         col.separator()
+
+        col.box().label(text="See tooltips for more info", icon="INFO")
+
+        if GLTF2_ADDON_VERSION == (3, 2, 40):
+            col.prop(self, "use_3_2_hacks")
+
         box = col.box().column()
         box.box().label(text="Raise Errors:", icon="ERROR")
 
@@ -883,8 +897,6 @@ def modify_f3d_nodes_for_export(use: bool):
     We can´t have glTF interacting with the f3d nodes either, otherwise an infinite recursion occurs in texture gathering
     this is also called in gather_gltf_extensions_hook (glTF2_post_export_callback can fail)
     """
-    if GLTF2_ADDON_VERSION < (4, 1, 0):
-        return
     for mat in bpy.data.materials:
         if not (mat.is_f3d and mat.mat_ver == F3D_MAT_CUR_VERSION):
             continue
