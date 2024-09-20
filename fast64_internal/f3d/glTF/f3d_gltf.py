@@ -756,11 +756,9 @@ class F3DGlTFSettings(PropertyGroup):
     use: BoolProperty(default=True, name="Export/Import F3D extensions")
     use_3_2_hacks_prop: BoolProperty(
         name="Use 3.2 vertex color hacks",
-        description="Blender version 3.2 ships with the\n"
-        "last version of the glTF 2.0 addon to not\n"
-        "support float colors (3.2.40). This hack will\n"
-        "override the primitive gathering function in\n"
-        "the glTF addon with a custom one",
+        description="Blender version 3.2 ships with the last version of the glTF 2.0 addon to not support "
+        "float colors (3.2.40).\n"
+        "This hack will override the primitive gathering function in the glTF addon with a custom one",
         default=True,
     )
     raise_texture_limits: BoolProperty(
