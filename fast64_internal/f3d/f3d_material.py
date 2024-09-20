@@ -31,7 +31,7 @@ from bpy.utils import register_class, unregister_class
 from mathutils import Color
 
 from .f3d_enums import *
-from .f3d_gbi import get_F3D_GBI, enumTexScroll, isUcodeF3DEX1, default_draw_layers
+from .f3d_gbi import get_F3D_GBI, enumTexScroll, isUcodeF3DEX1, default_draw_layers, isUcodeF3DEX3
 from .f3d_material_presets import *
 from ..utility import *
 from ..render_settings import (
@@ -181,6 +181,11 @@ def geo_modes_in_ucode(UCODE_VER: str):
     if isUcodeF3DEX3(UCODE_VER):
         geo_modes.update(F3DEX3_GEO_MODES)
     return geo_modes
+
+
+def add_prefix(string: str, prefix: str):
+    """Add prefix if not already present"""
+    return string if string.startswith(prefix) else prefix + string
 
 
 def getDefaultMaterialPreset(category):
@@ -3688,8 +3693,9 @@ class RDPSettings(PropertyGroup):
             key, attr, default = args[:3]
             value = getattr(self, attr)
             if value != default:
-                if remove_prefix and len(args) == 4 and value.startswith(args[3]):
-                    value = value[len(args[3]) :]
+                if remove_prefix and len(args) == 4:
+                    assert len(args) == 4
+                    value: str = value.removeprefix(args[3])
                 data[key] = value
         return data
 
@@ -3698,9 +3704,7 @@ class RDPSettings(PropertyGroup):
             key, attr, default = args[:3]
             value = data.get(key, default)
             if len(args) == 4:
-                prefix = args[3]
-                if not value.startswith(prefix):
-                    value = prefix + value
+                value = add_prefix(value, args[3])
             setattr(self, attr, value)
 
     def geo_mode_dict_to_dict(self, modes: dict):
@@ -3782,7 +3786,6 @@ class RDPSettings(PropertyGroup):
     ]
 
     def other_mode_l_to_dict(self, remove_prefix=False):
-        c_prefix_len, a_prefix_len = (len("G_BL_CLR_") if remove_prefix else 0), (len("G_BL_") if remove_prefix else 0)
         data = self.attributes_to_dict(self.other_mode_l_attributes, remove_prefix)
         if self.g_mdsft_zsrcsel == "G_ZS_PRIM":
             data["primDepth"] = self.prim_depth.to_dict()
@@ -3790,29 +3793,28 @@ class RDPSettings(PropertyGroup):
             two_cycle = self.g_mdsft_cycletype == "G_CYC_2CYCLE"
             if self.rendermode_advanced_enabled:
                 blender_data = []
-                for i in range(2 if two_cycle else 1):
-                    num = i + 1
-                    c_attrs, a_attrs = (f"blend_p{num}", f"blend_m{num}"), (f"blend_a{num}", f"blend_b{num}")
-                    colors = [getattr(self, c_attr)[c_prefix_len:] for c_attr in c_attrs]
-                    alphas = [getattr(self, a_attr)[a_prefix_len:] for a_attr in a_attrs]
+                for i in range(1, 3 if two_cycle else 2):
+                    colors = [getattr(self, c_attr) for c_attr in (f"blend_p{i}", f"blend_m{i}")]
+                    alphas = [getattr(self, a_attr) for a_attr in (f"blend_a{i}", f"blend_b{i}")]
+                    if remove_prefix:
+                        colors = [color.removeprefix("G_BL_CLR_") for color in colors]
+                        alphas = [alpha.removeprefix("G_BL_") for alpha in alphas]
                     blender_data.append({"color": colors, "alpha": alphas})
                 data["renderMode"] = {
                     "flags": self.attributes_to_dict(self.rendermode_flag_attributes, remove_prefix),
                     "blender": blender_data,
                 }
             else:
-                data["renderMode"] = {
-                    "presets": [self.rendermode_preset_cycle_1]
-                    + ([self.rendermode_preset_cycle_2] if two_cycle else [])
-                }
+                presets = [self.rendermode_preset_cycle_1]
+                if two_cycle:
+                    presets.append(self.rendermode_preset_cycle_2)
+                if remove_prefix:
+                    presets = [preset.removeprefix("G_RM_") for preset in presets]
+                data["renderMode"] = {"presets": presets}
 
         return data
 
     def other_mode_l_from_dict(self, data: dict):
-        c_prefix = "G_BL_CLR_"
-        a_prefix = "G_BL_"
-        c_prefix_len, a_prefix_len = len(c_prefix), len(a_prefix)
-
         self.attributes_from_dict(data, self.other_mode_l_attributes)
 
         render_mode = data.get("renderMode", {})
@@ -3823,14 +3825,12 @@ class RDPSettings(PropertyGroup):
 
         presets = render_mode.get("presets", [])
         if len(presets) >= 1:
-            self.rendermode_preset_cycle_1 = presets[0]
+            self.rendermode_preset_cycle_1 = add_prefix(presets[0], "G_RM_")
         if len(presets) >= 2:
-            self.rendermode_preset_cycle_2 = presets[1]
+            self.rendermode_preset_cycle_2 = add_prefix(presets[1], "G_RM_")
 
         self.attributes_from_dict(flags, self.rendermode_flag_attributes)
 
-        color_attrs = ("blend_p", "blend_m")
-        alpha_attrs = ("blend_a", "blend_b")
         blender = blender[:2] if len(blender) > 1 else blender * 2
         for i, cycle in enumerate(blender):
             num = str(i + 1)
@@ -3839,8 +3839,8 @@ class RDPSettings(PropertyGroup):
             alphas = cycle.get("alpha", [getattr(self, a_attrs[0]), getattr(self, a_attrs[1])])
 
             # Add back prefix if not there
-            colors = [(c_prefix + c) if not c.startswith(c_prefix) else c for c in colors]
-            alphas = [(a_prefix + a) if not a.startswith(a_prefix) else a for a in alphas]
+            colors = [add_prefix(color, "G_BL_CLR_") for color in colors]
+            alphas = [add_prefix(alpha, "G_BL_") for alpha in alphas]
             setattr(self, c_attrs[0], colors[0])
             setattr(self, c_attrs[1], colors[1])
             setattr(self, a_attrs[0], alphas[0])
