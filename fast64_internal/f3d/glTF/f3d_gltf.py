@@ -726,9 +726,9 @@ class F3DExtensions(GlTF2SubExtension):
             blender_object.use_f3d_culling = new_data.get("use_culling", True)
 
     def gather_import_mesh_after_hook(self, gltf_mesh, blender_mesh, gltf):
-        if len(blender_mesh.vertex_colors) < 1:
+        if len(blender_mesh.vertex_colors) < 1 or not mesh_has_f3d_mat(blender_mesh):
             return
-        color_layer = blender_mesh.vertex_colors[0]  # HACK: Col should be one unless something was wrong
+        color_layer = blender_mesh.vertex_colors[0]
         color_layer.name = "Col"
         color = np.empty(len(blender_mesh.loops) * 4, dtype=np.float32)
         color_layer.data.foreach_get("color", color)
