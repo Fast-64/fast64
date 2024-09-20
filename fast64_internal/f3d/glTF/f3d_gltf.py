@@ -6,7 +6,14 @@ from bpy.types import NodeTree, Object, Mesh, Material, Context, Panel, Property
 from bpy.props import BoolProperty
 import numpy as np
 
-from ...utility import multilineLabel, prop_split, PluginError, fix_invalid_props
+from ...utility import (
+    json_to_prop_group,
+    multilineLabel,
+    prop_group_to_json,
+    prop_split,
+    PluginError,
+    fix_invalid_props,
+)
 from ...gltf_utility import (
     GlTF2SubExtension,
     get_gltf_image_from_blender_image,
@@ -798,27 +805,11 @@ class F3DGlTFSettings(PropertyGroup):
     def use_3_2_hacks(self):
         return self.use and self.use_3_2_hacks_prop
 
-    def to_dict(self):  # TODO: use prop to json funcs
-        return {
-            "use": self.use,
-            "raiseTextureLimits": self.raise_texture_limits,
-            "raiseLargeMultitex": self.raise_large_multitex,
-            "raiseLargeTex": self.raise_large_tex,
-            "raiseRenderMode": self.raise_rendermode,
-            "raiseNonF3DMat": self.raise_non_f3d_mat,
-            "raiseBadMatSlot": self.raise_bad_mat_slot,
-            "raiseNoUVMap": self.raise_no_uvmap,
-        }
+    def to_dict(self):
+        return prop_group_to_json(self, ["use_3_2_hacks_prop"])
 
     def from_dict(self, data: dict):
-        self.use = data.get("use", self.use)
-        self.raise_texture_limits = data.get("raiseTextureLimits", self.raise_texture_limits)
-        self.raise_large_multitex = data.get("raiseLargeMultitex", self.raise_large_multitex)
-        self.raise_large_tex = data.get("raiseLargeTex", self.raise_large_tex)
-        self.raise_rendermode = data.get("raiseRenderMode", self.raise_rendermode)
-        self.raise_non_f3d_mat = data.get("raiseNonF3DMat", self.raise_non_f3d_mat)
-        self.raise_bad_mat_slot = data.get("raiseBadMatSlot", self.raise_bad_mat_slot)
-        self.raise_no_uvmap = data.get("raiseNoUVMap", self.raise_no_uvmap)
+        json_to_prop_group(self, data)
 
     def draw_props(self, layout: UILayout, import_context=False):
         col = layout.column()
