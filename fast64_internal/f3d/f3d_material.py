@@ -4873,7 +4873,7 @@ class F3DMaterialProperty(PropertyGroup):
         rdp = self.rdp_settings
         if rdp.using_fog:
             data["fog"] = {
-                "set": self.set_fog,  # TODO: get sm64 area fog improvements merged then update this
+                "set": self.set_fog,
                 "color": get_clean_color(self.fog_color, include_alpha=True),
                 "range": list(self.fog_position),
             }
