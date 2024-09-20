@@ -1,10 +1,15 @@
-import copy
 from dataclasses import dataclass
 from math import ceil, floor
+import copy
 import bpy
-from bpy.types import NodeTree, Object, Mesh, Material, Context, Panel, PropertyGroup, UILayout
-from bpy.props import BoolProperty
 import numpy as np
+
+from io_scene_gltf2.io.com import gltf2_io  # pylint: disable=import-error
+from io_scene_gltf2.blender.imp.gltf2_blender_image import BlenderImage  # pylint: disable=import-error
+from io_scene_gltf2.io.com.gltf2_io_constants import TextureFilter, TextureWrap  # pylint: disable=import-error
+
+from bpy.types import NodeTree, Mesh, Material, Context, Panel, PropertyGroup, UILayout
+from bpy.props import BoolProperty
 
 from ...utility import (
     json_to_prop_group,
@@ -45,10 +50,6 @@ from ..f3d_material import (
 from ..f3d_material_helpers import node_tree_copy
 from ..f3d_writer import cel_shading_checks, check_face_materials, getColorLayer
 from ..f3d_texture_writer import UVtoSTLarge
-
-from io_scene_gltf2.io.com import gltf2_io  # pylint: disable=import-error
-from io_scene_gltf2.blender.imp.gltf2_blender_image import BlenderImage  # pylint: disable=import-error
-from io_scene_gltf2.io.com.gltf2_io_constants import TextureFilter, TextureWrap  # pylint: disable=import-error
 
 MATERIAL_EXTENSION_NAME = "FAST64_materials_n64"
 F3D_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3d"

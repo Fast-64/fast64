@@ -1,6 +1,6 @@
 from pprint import pprint
-import functools
 from typing import Callable
+import functools
 
 import addon_utils
 import bpy
@@ -8,11 +8,10 @@ from bpy.types import Image
 
 
 def find_glTF2_addon():
-    for mod in addon_utils.modules():
+    for mod in addon_utils.modules():  # pylint: disable=not-an-iterable
         if mod.__name__ == "io_scene_gltf2":
             return mod
-    else:
-        raise ValueError("glTF2 addon not found")
+    raise ValueError("glTF2 addon not found")
 
 
 GLTF2_ADDDON = find_glTF2_addon()
@@ -20,9 +19,9 @@ GLTF2_ADDON_VERSION = GLTF2_ADDDON.bl_info.get("version", (-1, -1, -1))
 
 if GLTF2_ADDON_VERSION >= (3, 6, 0):
     if GLTF2_ADDON_VERSION:
-        from io_scene_gltf2.blender.exp.material.gltf2_blender_gather_image import (
+        from io_scene_gltf2.blender.exp.material.gltf2_blender_gather_image import (  # pylint: disable=import-error
             __is_blender_image_a_webp,
-        )  # pylint: disable=import-error
+        )
     from io_scene_gltf2.blender.exp.material.gltf2_blender_gather_image import (  # pylint: disable=import-error
         __gather_name,
         __make_image,
@@ -30,9 +29,9 @@ if GLTF2_ADDON_VERSION >= (3, 6, 0):
         __gather_buffer_view,
         __is_blender_image_a_jpeg,
     )
-    from io_scene_gltf2.blender.exp.material.extensions.gltf2_blender_image import (
+    from io_scene_gltf2.blender.exp.material.extensions.gltf2_blender_image import (  # pylint: disable=import-error
         ExportImage,
-    )  # pylint: disable=import-error
+    )
 else:
     from io_scene_gltf2.blender.exp.gltf2_blender_gather_image import (  # pylint: disable=import-error
         __gather_name,
@@ -134,38 +133,38 @@ def is_import_context(context):
     return context.space_data.active_operator.bl_idname == "IMPORT_SCENE_OT_gltf"
 
 
-def prefix_function(function: Callable, prefunction: Callable):
-    function = getattr(function, "fast64_og_func", function)
+def prefix_function(original: Callable, prefix: Callable):
+    original = getattr(original, "fast64_og_func", original)
 
-    @functools.wraps(function)
+    @functools.wraps(original)
     def run(*args, **kwargs):
-        prefunction(*args, **kwargs)
-        return function(*args, **kwargs)
+        prefix(*args, **kwargs)
+        return original(*args, **kwargs)
 
-    setattr(run, "fast64_og_func", function)
+    setattr(run, "fast64_og_func", original)
     return run
 
 
-def suffix_function(function: Callable, suffix_function: Callable):
+def suffix_function(original: Callable, suffix: Callable):
     """Passes in result as the first arg"""
-    function = getattr(function, "fast64_og_func", function)
+    original = getattr(original, "fast64_og_func", original)
 
-    @functools.wraps(function)
+    @functools.wraps(original)
     def run(*args, **kwargs):
-        results = function(*args, **kwargs)
-        return suffix_function(results, *args, **kwargs)
+        results = original(*args, **kwargs)
+        return suffix(results, *args, **kwargs)
 
-    setattr(run, "fast64_og_func", function)
+    setattr(run, "fast64_og_func", original)
     return run
 
 
-def swap_function(function: Callable, new_function: Callable):
+def swap_function(original: Callable, new: Callable):
     """Passes in the original function as the first arg"""
-    function = getattr(function, "fast64_og_func", function)
+    original = getattr(original, "fast64_og_func", original)
 
-    @functools.wraps(function)
+    @functools.wraps(original)
     def run(*args, **kwargs):
-        return new_function(function, *args, **kwargs)
+        return new(original, *args, **kwargs)
 
-    setattr(run, "fast64_og_func", function)
+    setattr(run, "fast64_og_func", original)
     return run
