@@ -203,6 +203,72 @@ def large_tex_checks(obj: Object, mesh: Mesh):
             )
 
 
+def multitex_checks(raise_large_multitex: bool, f3d_mat: F3DMaterialProperty):
+    tex0, tex1 = f3d_mat.tex0, f3d_mat.tex1
+    both_reference = tex0.use_tex_reference and tex1.use_tex_reference
+    both_ci8 = tex0.tex_format == tex1.tex_format == "CI8"
+    same_reference = both_reference and tex0.tex_reference == tex1.tex_reference
+    same_textures = same_reference or (not both_reference and tex0.tex == tex1.tex)
+
+    tex0_size, tex1_size = tex0.get_tex_size(), tex1.get_tex_size()
+    tex0_tmem, tex1_tmem = (
+        getTmemWordUsage(tex0.tex_format, *tex0_size),
+        getTmemWordUsage(tex1.tex_format, *tex1_size),
+    )
+    tmem = tex0_tmem if same_textures else tex0_tmem + tex1_tmem
+    tmem_size = 256 if tex0.is_ci and tex1.is_ci else 512
+
+    if same_reference and tex0_size != tex1_size:
+        raise PluginError("Textures with the same reference must have the same size.")
+
+    if raise_large_multitex and f3d_mat.use_large_textures:
+        if tex0_tmem > tmem_size // 2 and tex1_tmem > tmem_size // 2:
+            raise PluginError("Cannot multitexture with two large textures.")
+        if same_textures:
+            raise PluginError(
+                "Cannot use the same texture for Tex 0 and 1 when using large textures.",
+            )
+    if not f3d_mat.use_large_textures and tmem > tmem_size:
+        raise PluginError(
+            "Textures are too big. Max TMEM size is 4kb, ex. 2 32x32 RGBA 16 bit textures.\n"
+            "Note that width needs to be padded to 64-bit boundaries.",
+        )
+
+    if tex0.is_ci != tex1.is_ci:
+        raise PluginError("Can't have a CI + non-CI texture. Must be both or neither CI.")
+    if not (tex0.is_ci and tex1.is_ci):
+        return
+
+    # CI multitextures
+    same_pal_reference = both_reference and tex0.pal_reference == tex1.pal_reference
+    if tex0.ci_format != tex1.ci_format:
+        raise PluginError(
+            "Both CI textures must use the same palette format (usually RGBA16).",
+        )
+    if same_pal_reference and tex0.pal_reference_size != tex1.pal_reference_size:
+        raise PluginError(
+            "Textures with the same palette reference must have the same palette size.",
+        )
+    if tex0.use_tex_reference != tex1.use_tex_reference and both_ci8:
+        # TODO: If flipbook is ever implemented, check if the reference is set by the flipbook
+        # Theoretically possible if there was an option to have half the palette for each
+        raise PluginError(
+            "Can't have two CI8 textures where only one is a reference; "
+            "no way to assign the palette."  # pylint: disable=line-too-long
+        )
+    if both_reference and both_ci8 and not same_pal_reference:
+        raise PluginError("Can't have two CI8 textures with different palette references.")
+
+    # TODO: When porting ac f3dzex, skip this check
+    rgba_colors = get_color_info_from_tex(tex0.tex)[3]
+    rgba_colors.update(get_color_info_from_tex(tex1.tex)[3])
+    if len(rgba_colors) > 256:
+        raise PluginError(
+            f"The two CI textures together contain a total of {len(rgba_colors)} colors,\n"
+            "which can't fit in a CI8 palette (256)."
+        )
+
+
 # Ideally we'd use mathutils.Color here but it does not support alpha (and mul for some reason)
 @dataclass
 class Color:
@@ -445,71 +511,6 @@ class F3DExtensions(GlTF2SubExtension):
             self.append_extension(tex_info, "KHR_texture_transform", transform_data)
         return tex_info
 
-    def multitex_checks(self, f3d_mat: F3DMaterialProperty):
-        tex0, tex1 = f3d_mat.tex0, f3d_mat.tex1
-        both_reference = tex0.use_tex_reference and tex1.use_tex_reference
-        both_ci8 = tex0.tex_format == tex1.tex_format == "CI8"
-        same_reference = both_reference and tex0.tex_reference == tex1.tex_reference
-        same_textures = same_reference or (not both_reference and tex0.tex == tex1.tex)
-
-        tex0_size, tex1_size = tex0.get_tex_size(), tex1.get_tex_size()
-        tex0_tmem, tex1_tmem = (
-            getTmemWordUsage(tex0.tex_format, *tex0_size),
-            getTmemWordUsage(tex1.tex_format, *tex1_size),
-        )
-        tmem = tex0_tmem if same_textures else tex0_tmem + tex1_tmem
-        tmem_size = 256 if tex0.is_ci and tex1.is_ci else 512
-
-        if same_reference and tex0_size != tex1_size:
-            raise PluginError("Textures with the same reference must have the same size.")
-
-        if self.settings.raise_large_multitex and f3d_mat.use_large_textures:
-            if tex0_tmem > tmem_size // 2 and tex1_tmem > tmem_size // 2:
-                raise PluginError("Cannot multitexture with two large textures.")
-            if same_textures:
-                raise PluginError(
-                    "Cannot use the same texture for Tex 0 and 1 when using large textures.",
-                )
-        if not f3d_mat.use_large_textures and tmem > tmem_size:
-            raise PluginError(
-                "Textures are too big. Max TMEM size is 4kb, ex. 2 32x32 RGBA 16 bit textures.\n"
-                "Note that width needs to be padded to 64-bit boundaries.",
-            )
-
-        if tex0.is_ci != tex1.is_ci:
-            raise PluginError("Can't have a CI + non-CI texture. Must be both or neither CI.")
-        if not (tex0.is_ci and tex1.is_ci):
-            return
-
-        # CI multitextures
-        same_pal_reference = both_reference and tex0.pal_reference == tex1.pal_reference
-        if tex0.ci_format != tex1.ci_format:
-            raise PluginError(
-                "Both CI textures must use the same palette format (usually RGBA16).",
-            )
-        if same_pal_reference and tex0.pal_reference_size != tex1.pal_reference_size:
-            raise PluginError(
-                "Textures with the same palette reference must have the same palette size.",
-            )
-        if tex0.use_tex_reference != tex1.use_tex_reference and both_ci8:
-            # TODO: If flipbook is ever implemented, check if the reference is set by the flipbook
-            # Theoretically possible if there was an option to have half the palette for each
-            raise PluginError(
-                "Can't have two CI8 textures where only one is a reference; "
-                "no way to assign the palette."  # pylint: disable=line-too-long
-            )
-        if both_reference and both_ci8 and not same_pal_reference:
-            raise PluginError("Can't have two CI8 textures with different palette references.")
-
-        # TODO: When porting ac f3dzex, skip this check
-        rgba_colors = get_color_info_from_tex(tex0.tex)[3]
-        rgba_colors.update(get_color_info_from_tex(tex1.tex)[3])
-        if len(rgba_colors) > 256:
-            raise PluginError(
-                f"The two CI textures together contain a total of {len(rgba_colors)} colors,\n"
-                "which can't fit in a CI8 palette (256)."
-            )
-
     def gather_material_hook(self, gltf2_material, blender_material: Material, export_settings: dict):
         if not blender_material.is_f3d:
             if self.settings.raise_non_f3d_mat:
@@ -528,7 +529,7 @@ class F3DExtensions(GlTF2SubExtension):
 
         if self.settings.raise_texture_limits:
             if f3d_mat.is_multi_tex and (f3d_mat.tex0.tex_set and f3d_mat.tex1.tex_set):
-                self.multitex_checks(f3d_mat)
+                multitex_checks(self.settings.raise_large_multitex, f3d_mat)
         if self.settings.raise_rendermode:
             if rdp.set_rendermode and not rdp.rendermode_advanced_enabled:
                 rendermode_presets_checks(f3d_mat)
@@ -926,7 +927,6 @@ def modify_f3d_nodes_for_export(use: bool):
             link_if_none_exist(mat, vertex_color.outputs["Color"], bsdf.inputs["Base Color"])
             link_if_none_exist(mat, vertex_color.outputs["Alpha"], bsdf.inputs["Alpha"])
             link_if_none_exist(mat, bsdf.outputs["BSDF"], material_output.inputs["Surface"])
-
 
 def gather_mesh_hook(blender_mesh: Mesh, *args):
     """HACK: Runs right before the actual gather_mesh func in the addon, we need to join col and alpha"""
