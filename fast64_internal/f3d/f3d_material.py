@@ -2161,9 +2161,9 @@ def update_tex_values(self, context):
 def get_tex_basis_size(f3d_mat: "F3DMaterialProperty"):
     useDict, tex_dimensions = all_combiner_uses(f3d_mat), [32, 32]
     if useDict["Texture 0"] and f3d_mat.tex0.is_set:
-        tex_dimensions = tex0_dimensions = f3d_mat.tex0.get_tex_size()
+        tex_dimensions = tex0_dimensions = f3d_mat.tex0.tex_size
     if useDict["Texture 1"] and f3d_mat.tex1.is_set:
-        tex_dimensions = f3d_mat.tex1.get_tex_size()
+        tex_dimensions = f3d_mat.tex1.tex_size
     return tex0_dimensions if f3d_mat.get_uv_basis() == "TEXEL0" else tex_dimensions
 
 
@@ -2760,7 +2760,7 @@ def update_tex_field_prop(self: Property, context: Context):
 
         prop_path = self.path_from_id()
         tex_property, tex_index = get_tex_prop_from_path(material, prop_path)
-        tex_size = tex_property.get_tex_size()
+        tex_size = tex_property.tex_size
 
         if tex_size[0] > 0 and tex_size[1] > 0:
             update_tex_values_field(material, tex_property, tex_size, tex_index)
@@ -2775,7 +2775,7 @@ def toggle_auto_prop(self, context: Context):
         prop_path = self.path_from_id()
         tex_property, tex_index = get_tex_prop_from_path(material, prop_path)
         if tex_property.autoprop:
-            tex_size = tuple([s for s in tex_property.get_tex_size()])
+            tex_size = tuple([s for s in tex_property.tex_size])
             if tex_size[0] > 0 and tex_size[1] > 0:
                 update_tex_values_field(material, tex_property, tex_size, tex_index)
 
@@ -2910,13 +2910,18 @@ class TextureProperty(PropertyGroup):
     def is_set(self):
         return self.tex_set and (self.use_tex_reference or self.tex is not None)
 
-    def get_tex_size(self) -> list[int]:
+    @property
+    def tex_size(self) -> list[int]:
         if self.tex or self.use_tex_reference:
             if self.tex is not None:
                 return list(self.tex.size)
             else:
                 return list(self.tex_reference_size)
         return [0, 0]
+
+    @property
+    def word_usage(self):
+        return getTmemWordUsage(self.tex_format, *self.tex_size)
 
     @property
     def format_type(self):

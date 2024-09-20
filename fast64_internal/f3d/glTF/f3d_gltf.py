@@ -19,7 +19,6 @@ from ..f3d_material import (
     all_combiner_uses,
     get_color_info_from_tex,
     getTmemMax,
-    getTmemWordUsage,
     link_if_none_exist,
     remove_first_link_if_exists,
     rendermode_presets_checks,
@@ -85,7 +84,7 @@ def large_tex_checks(obj: Object, mesh: Mesh):
             continue
         f3d_mat: F3DMaterialProperty = mat.f3d_mat
         use_dict = all_combiner_uses(f3d_mat)
-        textures = []
+        textures: list[TextureProperty] = []
         if use_dict["Texture 0"] and f3d_mat.tex0.tex_set:
             textures.append(f3d_mat.tex0)
         if use_dict["Texture 1"] and f3d_mat.tex1.tex_set:
@@ -95,14 +94,8 @@ def large_tex_checks(obj: Object, mesh: Mesh):
             continue
         texture = textures[0]
 
-        tex_sizes = [tex.get_tex_size() for tex in textures]
-        tmem = sum(
-            getTmemWordUsage(tex.tex_format, *size)
-            for tex, size in zip(
-                textures,
-                tex_sizes,
-            )
-        )
+        tex_sizes = [tex.tex_size for tex in textures]
+        tmem = sum(tex.word_usage for tex in textures)
         tmem_size = 256 if texture.is_ci else 512
         if tmem <= tmem_size:
             continue  # Can fit in TMEM without large mode, so skip
@@ -204,17 +197,15 @@ def large_tex_checks(obj: Object, mesh: Mesh):
 
 
 def multitex_checks(raise_large_multitex: bool, f3d_mat: F3DMaterialProperty):
-    tex0, tex1 = f3d_mat.tex0, f3d_mat.tex1
+    tex0: TextureProperty = f3d_mat.tex0
+    tex1: TextureProperty = f3d_mat.tex1
     both_reference = tex0.use_tex_reference and tex1.use_tex_reference
-    both_ci8 = tex0.tex_format == tex1.tex_format == "CI8"
     same_reference = both_reference and tex0.tex_reference == tex1.tex_reference
     same_textures = same_reference or (not both_reference and tex0.tex == tex1.tex)
+    both_ci8 = tex0.tex_format == tex1.tex_format == "CI8"
 
-    tex0_size, tex1_size = tex0.get_tex_size(), tex1.get_tex_size()
-    tex0_tmem, tex1_tmem = (
-        getTmemWordUsage(tex0.tex_format, *tex0_size),
-        getTmemWordUsage(tex1.tex_format, *tex1_size),
-    )
+    tex0_size, tex1_size = tex0.tex_size, tex1.tex_size
+    tex0_tmem, tex1_tmem = tex0.word_usage, tex1.word_usage
     tmem = tex0_tmem if same_textures else tex0_tmem + tex1_tmem
     tmem_size = 256 if tex0.is_ci and tex1.is_ci else 512
 
@@ -252,10 +243,7 @@ def multitex_checks(raise_large_multitex: bool, f3d_mat: F3DMaterialProperty):
     if tex0.use_tex_reference != tex1.use_tex_reference and both_ci8:
         # TODO: If flipbook is ever implemented, check if the reference is set by the flipbook
         # Theoretically possible if there was an option to have half the palette for each
-        raise PluginError(
-            "Can't have two CI8 textures where only one is a reference; "
-            "no way to assign the palette."  # pylint: disable=line-too-long
-        )
+        raise PluginError("Can't have two CI8 textures where only one is a reference; no way to assign the palette.")
     if both_reference and both_ci8 and not same_pal_reference:
         raise PluginError("Can't have two CI8 textures with different palette references.")
 
@@ -431,8 +419,8 @@ class F3DExtensions(GlTF2SubExtension):
             source = get_gltf_image_from_blender_image(img.name, export_settings)
 
             if self.settings.raise_texture_limits and f3d_tex.tex_set:
-                tex_size = f3d_tex.get_tex_size()
-                tmem_usage = getTmemWordUsage(f3d_tex.tex_format, *tex_size) * 8
+                tex_size = f3d_tex.tex_size
+                tmem_usage = f3d_tex.word_usage
                 tmem_max = getTmemMax(f3d_tex.tex_format)
 
                 if f3d_mat.use_large_textures and tex_size[0] > 1024 or tex_size[1] > 1024:
@@ -497,7 +485,7 @@ class F3DExtensions(GlTF2SubExtension):
             return trunc_10_2(low) * (1.0 / tex_size)
 
         transform_data = {}
-        size = f3d_tex.get_tex_size()
+        size = f3d_tex.tex_size
         if size != [0, 0]:
             offset = [to_offset(f3d_tex.S.low, size[0]), to_offset(f3d_tex.T.low, size[1])]
             if offset != [0.0, 0.0]:
@@ -927,6 +915,7 @@ def modify_f3d_nodes_for_export(use: bool):
             link_if_none_exist(mat, vertex_color.outputs["Color"], bsdf.inputs["Base Color"])
             link_if_none_exist(mat, vertex_color.outputs["Alpha"], bsdf.inputs["Alpha"])
             link_if_none_exist(mat, bsdf.outputs["BSDF"], material_output.inputs["Surface"])
+
 
 def gather_mesh_hook(blender_mesh: Mesh, *args):
     """HACK: Runs right before the actual gather_mesh func in the addon, we need to join col and alpha"""
