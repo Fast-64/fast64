@@ -42,7 +42,8 @@ from io_scene_gltf2.io.com import gltf2_io  # pylint: disable=import-error
 from io_scene_gltf2.blender.imp.gltf2_blender_image import BlenderImage  # pylint: disable=import-error
 from io_scene_gltf2.io.com.gltf2_io_constants import TextureFilter, TextureWrap  # pylint: disable=import-error
 
-MATERIAL_EXTENSION_NAME = "FAST64_materials_f3d"
+MATERIAL_EXTENSION_NAME = "FAST64_materials_n64"
+F3D_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3d"
 EX1_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3dlx"
 EX3_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3dex3"
 SAMPLER_EXTENSION_NAME = "FAST64_sampler_n64"
@@ -741,15 +742,6 @@ class F3DExtensions(GlTF2SubExtension):
         alpha_rgba = np.repeat(alpha[:, np.newaxis], 4, axis=1).flatten()
         alpha_layer = blender_mesh.vertex_colors.new(name="Alpha").data
         alpha_layer.foreach_set("color", alpha_rgba)
-
-
-MATERIAL_EXTENSION_NAME = "FAST64_materials_n64"
-F3D_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3d"
-EX1_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3dlx"
-EX3_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3dex3"
-SAMPLER_EXTENSION_NAME = "FAST64_sampler_n64"
-MESH_EXTENSION_NAME = "FAST64_mesh_f3d"
-NEW_MESH_EXTENSION_NAME = "FAST64_mesh_f3d_new"
 
 
 class F3DGlTFSettings(PropertyGroup):
