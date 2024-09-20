@@ -63,6 +63,11 @@ def is_mat_f3d(mat: Material | None):
     return mat is not None and mat.is_f3d and mat.mat_ver == F3D_MAT_CUR_VERSION
 
 
+def get_settings(context: Context | None = None):
+    context = context or bpy.context
+    return context.scene.fast64.settings.glTF.f3d
+
+
 def uvmap_check(mesh: Mesh):
     # If there is a F3D material check if the mesh has a uvmap
     if any(is_mat_f3d(mat) for mat in mesh.materials):
@@ -743,6 +748,11 @@ class F3DGlTFSettings(PropertyGroup):
         "This hack will override the primitive gathering function in the glTF addon with a custom one",
         default=True,
     )
+    apply_alpha_to_col: BoolProperty(
+        name='Apply alpha to "Col" layer',
+        description='"Col" color attribute will have alpha applied for a single color accessor',
+        default=True,
+    )
     raise_texture_limits: BoolProperty(
         name="Tex Limits",
         description="Raises errors when texture limits are exceeded,\n"
@@ -823,6 +833,7 @@ class F3DGlTFSettings(PropertyGroup):
 
         if GLTF2_ADDON_VERSION == (3, 2, 40):
             col.prop(self, "use_3_2_hacks_prop")
+        col.prop(self, "apply_alpha_to_col")
 
         box = col.box().column()
         box.box().label(text="Raise Errors:", icon="ERROR")
@@ -855,7 +866,7 @@ class F3DGlTFPanel(Panel):
         row = self.layout.row()
         row.separator(factor=0.25)
         row.prop(
-            context.scene.fast64.settings.glTF.f3d,
+            get_settings(context),
             "use",
             text=("Import" if is_import_context(context) else "Export") + " F3D extensions",
         )
@@ -871,7 +882,7 @@ def modify_f3d_nodes_for_export(use: bool):
     We can´t have glTF interacting with the f3d nodes either, otherwise an infinite recursion occurs in texture gathering
     this is also called in gather_gltf_extensions_hook (glTF2_post_export_callback can fail)
     """
-    if not bpy.context.scene.fast64.settings.glTF.f3d.use:
+    if not get_settings().use:
         return
     for mat in bpy.data.materials:
         if not is_mat_f3d(mat):
@@ -907,6 +918,10 @@ def modify_f3d_nodes_for_export(use: bool):
 
 def gather_mesh_hook(blender_mesh: Mesh, *args):
     """HACK: Runs right before the actual gather_mesh func in the addon, we need to join col and alpha"""
+    if not get_settings().apply_alpha_to_col:
+        return
+    if not any(is_mat_f3d(material) for material in blender_mesh.materials):
+        return
     print("F3D glTF: Applying alpha")
     color_layer = getColorLayer(blender_mesh, layer="Col")
     alpha_layer = getColorLayer(blender_mesh, layer="Alpha")
@@ -976,7 +991,7 @@ def extract_primitives_fast64(
     Extract primitives from a mesh.
     """
     # FAST64 CHANGE: Use custom fast64 function or use original
-    use_3_2_hacks: bool = bpy.context.scene.fast64.settings.glTF.f3d.use_3_2_hacks
+    use_3_2_hacks: bool = get_settings().use_3_2_hacks
     has_f3d_mats = any(is_mat_f3d(material) for material in blender_mesh.materials)
     if not (use_3_2_hacks and has_f3d_mats):
         return original_function(blender_mesh, uuid_for_skined_data, blender_vertex_groups, modifiers, export_settings)
