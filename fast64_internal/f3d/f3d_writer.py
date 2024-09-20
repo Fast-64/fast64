@@ -112,7 +112,9 @@ def check_face_materials(
                 " Assign the faces to a valid slot."
                 f" (0-indexed: slot {material_index}, aka the {material_index+1}th slot)."
             )
-        material = material_slots[material_index].material
+        material = material_slots[material_index]
+        if isinstance(material, bpy.types.MaterialSlot):
+            material = material.material
         if material is None:
             raise PluginError(
                 f"Mesh object {obj_name} has faces"

@@ -88,6 +88,20 @@ class glTF2ExportUserExtension(GlTF2Extension):
             export_settings,
         )
 
+    def gather_mesh_hook(self, gltf2_mesh, blender_mesh, blender_object, vertex_groups, modifiers, *last_args):
+        materials, export_settings = last_args[-2:]  # 3.2
+        self.call_hooks(
+            "gather_mesh_hook",
+            'Mesh "{args[1].name}"',
+            gltf2_mesh,
+            blender_mesh,
+            blender_object,
+            vertex_groups,
+            modifiers,
+            materials,
+            export_settings,
+        )
+
     def gather_material_hook(self, gltf2_material, blender_material, export_settings):
         self.call_hooks(
             "gather_material_hook",

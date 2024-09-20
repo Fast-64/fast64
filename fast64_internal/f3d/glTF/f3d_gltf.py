@@ -73,7 +73,7 @@ def uvmap_check(mesh: Mesh):
             raise PluginError('Object with F3D materials does not have a "UVMap" uvmap layer.')
 
 
-def large_tex_checks(obj: Object, mesh: Mesh):
+def large_tex_checks(materials: list[Material], mesh: Mesh):
     """
     See TileLoad.initWithFace for the usual exporter version of this function
     This strips out any exporting and focous on just error checking
@@ -166,10 +166,14 @@ def large_tex_checks(obj: Object, mesh: Mesh):
         raise PluginError('Cannot do large texture checks without a "UVMap" uvmap layer.')
     uv_data = mesh.uv_layers["UVMap"].data
     for face in mesh.loop_triangles:
-        mat_name = obj.material_slots[face.material_index].material.name
+        material = materials[face.material_index]
+        if material is None:
+            continue
+        mat_name: str = material.name
         large_props = large_props_dict.get(mat_name)
         if large_props is None:
             continue
+
         dimensions = large_props["dimensions"]
         face_uvs = [UVtoSTLarge(None, loop_index, uv_data, dimensions) for loop_index in face.loops]
         sl, sh, tl, th = 1000000, -1, 1000000, -1
@@ -600,26 +604,27 @@ class F3DExtensions(GlTF2SubExtension):
         if not f3d_mat.rdp_settings.g_lighting:
             self.append_extension(gltf2_material, "KHR_materials_unlit")
 
-    def gather_mesh_hook(self, gltf2_mesh, blender_mesh, blender_object, _export_settings: dict):
-        # TODO: Check if there is no issues with text and curves
+    def gather_mesh_hook(
+        self, gltf2_mesh, blender_mesh, _blender_object, _vertex_groups, _modifiers, materials, _export_settings
+    ):
         if self.settings.raise_bad_mat_slot:
-            material_slots = blender_object.material_slots
-            if len(blender_mesh.materials) == 0 or len(material_slots) == 0:
+            if len(blender_mesh.materials) == 0 or len(materials) == 0:
                 raise PluginError("Object does not have any materials.")
             check_face_materials(
-                blender_object.name,
-                material_slots,
+                gltf2_mesh.name,
+                materials,
                 blender_mesh.polygons,
                 self.settings.raise_non_f3d_mat,
             )
         if self.settings.raise_no_uvmap:
             uvmap_check(blender_mesh)
         if self.settings.raise_large_tex:
-            large_tex_checks(blender_object, blender_mesh)
+            large_tex_checks(materials, blender_mesh)
 
-        if not self.gbi.F3D_OLD_GBI and not blender_object.use_f3d_culling:
+    def gather_node_hook(self, gltf2_node, blender_object, _export_settings: dict):
+        if gltf2_node.mesh and not self.gbi.F3D_OLD_GBI and not blender_object.use_f3d_culling:
             self.append_extension(
-                gltf2_mesh,
+                gltf2_node.mesh,
                 MESH_EXTENSION_NAME,
                 {
                     "extensions": {
@@ -630,15 +635,6 @@ class F3DExtensions(GlTF2SubExtension):
                         )
                     }
                 },
-            )
-
-    def gather_node_hook(self, gltf2_node, blender_object, _export_settings: dict):
-        if gltf2_node.mesh:  # HACK: gather_mesh_hook is broken in 3.2, no blender object included
-            self.gather_mesh_hook(
-                gltf2_node.mesh,
-                blender_object.data,
-                blender_object,
-                _export_settings,
             )
 
     # Importing
