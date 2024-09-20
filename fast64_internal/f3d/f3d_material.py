@@ -2988,7 +2988,7 @@ class TextureProperty(PropertyGroup):
     def key(self):
         return (
             (
-                self.tex,
+                self.tex if self.tex_set else None,
                 str(self.to_dict()),
                 self.tile_scroll.key(),
             )
