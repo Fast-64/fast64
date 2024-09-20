@@ -17,10 +17,12 @@ from .fast64_internal.f3d.glTF.f3d_gltf import (
 # Changes made from the original glTF64:
 # Property names (keys) now all use the glTF standard naming, camelCase.
 # Extension names all follow the glTF2 naming convention, PREFIX_scope_feature.
-# Full fast64 material support.
+# Full fast64 v6 material support.
 # Extendability improvements.
 # Doesn´t use world defaults, as those should be left to the repo to handle.
-
+# Hacks for broken versions
+# Importing
+# Better and more extensive errors
 
 def glTF2_pre_export_callback(_gltf):
     modify_f3d_nodes_for_export(False)
