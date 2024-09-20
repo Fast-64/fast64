@@ -59,8 +59,12 @@ MESH_EXTENSION_NAME = "FAST64_mesh_f3d"
 NEW_MESH_EXTENSION_NAME = "FAST64_mesh_f3d_new"
 
 
-def is_mat_f3d(mat: Material | None):
+def is_mat_f3d(mat: Material | None) -> bool:
     return mat is not None and mat.is_f3d and mat.mat_ver == F3D_MAT_CUR_VERSION
+
+
+def mesh_has_f3d_mat(mesh: Mesh):
+    return any(is_mat_f3d(mat) for mat in mesh.materials)
 
 
 def get_settings(context: Context | None = None):
@@ -70,12 +74,8 @@ def get_settings(context: Context | None = None):
 
 def uvmap_check(mesh: Mesh):
     # If there is a F3D material check if the mesh has a uvmap
-    if any(is_mat_f3d(mat) for mat in mesh.materials):
-        for layer in mesh.uv_layers:
-            if layer.name == "UVMap":
-                break
-        else:
-            raise PluginError('Object with F3D materials does not have a "UVMap" uvmap layer.')
+    if mesh_has_f3d_mat(mesh) and not any(layer.name == "UVMap" for layer in mesh.uv_layers):
+        raise PluginError('Object with F3D materials does not have a "UVMap" uvmap layer.')
 
 
 def large_tex_checks(materials: list[Material], mesh: Mesh):
@@ -920,7 +920,7 @@ def gather_mesh_hook(blender_mesh: Mesh, *args):
     """HACK: Runs right before the actual gather_mesh func in the addon, we need to join col and alpha"""
     if not get_settings().apply_alpha_to_col:
         return
-    if not any(is_mat_f3d(material) for material in blender_mesh.materials):
+    if not mesh_has_f3d_mat(blender_mesh):
         return
     print("F3D glTF: Applying alpha")
     color_layer = getColorLayer(blender_mesh, layer="Col")
@@ -991,9 +991,7 @@ def extract_primitives_fast64(
     Extract primitives from a mesh.
     """
     # FAST64 CHANGE: Use custom fast64 function or use original
-    use_3_2_hacks: bool = get_settings().use_3_2_hacks
-    has_f3d_mats = any(is_mat_f3d(material) for material in blender_mesh.materials)
-    if not (use_3_2_hacks and has_f3d_mats):
+    if not (get_settings().use_3_2_hacks and mesh_has_f3d_mat(blender_mesh)):
         return original_function(blender_mesh, uuid_for_skined_data, blender_vertex_groups, modifiers, export_settings)
     # FAST64 END
 
