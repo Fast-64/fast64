@@ -20,24 +20,28 @@ GLTF2_ADDON_VERSION = GLTF2_ADDDON.bl_info.get("version", (-1, -1, -1))
 
 if GLTF2_ADDON_VERSION >= (3, 6, 0):
     if GLTF2_ADDON_VERSION:
-        from io_scene_gltf2.blender.exp.material.gltf2_blender_gather_image import __is_blender_image_a_webp
-    from io_scene_gltf2.blender.exp.material.gltf2_blender_gather_image import (
+        from io_scene_gltf2.blender.exp.material.gltf2_blender_gather_image import (
+            __is_blender_image_a_webp,
+        )  # pylint: disable=import-error
+    from io_scene_gltf2.blender.exp.material.gltf2_blender_gather_image import (  # pylint: disable=import-error
         __gather_name,
         __make_image,
         __gather_uri,
         __gather_buffer_view,
         __is_blender_image_a_jpeg,
     )
-    from io_scene_gltf2.blender.exp.material.extensions.gltf2_blender_image import ExportImage
+    from io_scene_gltf2.blender.exp.material.extensions.gltf2_blender_image import (
+        ExportImage,
+    )  # pylint: disable=import-error
 else:
-    from io_scene_gltf2.blender.exp.gltf2_blender_gather_image import (
+    from io_scene_gltf2.blender.exp.gltf2_blender_gather_image import (  # pylint: disable=import-error
         __gather_name,
         __make_image,
         __gather_uri,
         __gather_buffer_view,
         __is_blender_image_a_jpeg,
     )
-    from io_scene_gltf2.blender.exp.gltf2_blender_image import ExportImage
+    from io_scene_gltf2.blender.exp.gltf2_blender_image import ExportImage  # pylint: disable=import-error
 
 
 def is_blender_image_a_webp(image: Image) -> bool:
@@ -98,7 +102,7 @@ class GlTF2SubExtension:
         if self.extension.verbose:
             pprint(content)
 
-    def append_extension(self, gltf_prop, name: str, data: dict = None, required=False, skip_if_empty=True):
+    def append_extension(self, gltf_prop, name: str, data: dict | None = None, required=False, skip_if_empty=True):
         if skip_if_empty and not data and data is not None:  # If none, assume it shouldn´t skip
             return
         self.print_verbose(f"Appending {name} extension")

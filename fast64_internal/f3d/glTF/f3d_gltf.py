@@ -12,9 +12,9 @@ from ...gltf_utility import (
     get_gltf_settings,
     is_import_context,
     prefix_function,
-    GLTF2_ADDON_VERSION,
     swap_function,
     suffix_function,
+    GLTF2_ADDON_VERSION,
 )
 from ..f3d_gbi import F3D, get_F3D_GBI
 from ..f3d_material import (
@@ -38,9 +38,9 @@ from ..f3d_material_helpers import node_tree_copy
 from ..f3d_writer import cel_shading_checks, check_face_materials, getColorLayer
 from ..f3d_texture_writer import UVtoSTLarge
 
-from io_scene_gltf2.io.com import gltf2_io
-from io_scene_gltf2.blender.imp.gltf2_blender_image import BlenderImage
-from io_scene_gltf2.io.com.gltf2_io_constants import TextureFilter, TextureWrap
+from io_scene_gltf2.io.com import gltf2_io  # pylint: disable=import-error
+from io_scene_gltf2.blender.imp.gltf2_blender_image import BlenderImage  # pylint: disable=import-error
+from io_scene_gltf2.io.com.gltf2_io_constants import TextureFilter, TextureWrap  # pylint: disable=import-error
 
 MATERIAL_EXTENSION_NAME = "FAST64_materials_f3d"
 EX1_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3dlx"
@@ -961,15 +961,15 @@ def gather_mesh_hook(blender_mesh: Mesh, *args):
     color_layer.foreach_set("color", color)
 
 
-import io_scene_gltf2.blender.exp.gltf2_blender_gather_mesh as gather_mesh_owner
+import io_scene_gltf2.blender.exp.gltf2_blender_gather_mesh as gather_mesh_owner  # pylint: disable=import-error
 
 gather_mesh_owner.gather_mesh = prefix_function(gather_mesh_owner.gather_mesh, gather_mesh_hook)
 
 # 3.2 hack
 
 if GLTF2_ADDON_VERSION == (3, 2, 40):
-    import io_scene_gltf2.blender.exp.gltf2_blender_extract as extract_primitives_owner
-    import io_scene_gltf2.blender.exp.gltf2_blender_gather_primitive_attributes as __gather_colors_owner
+    import io_scene_gltf2.blender.exp.gltf2_blender_extract as extract_primitives_owner  # pylint: disable=import-error
+    import io_scene_gltf2.blender.exp.gltf2_blender_gather_primitive_attributes as __gather_colors_owner  # pylint: disable=import-error
     from io_scene_gltf2.blender.exp.gltf2_blender_extract import (  # pylint: disable=import-error
         __get_positions,
         __get_bone_data,

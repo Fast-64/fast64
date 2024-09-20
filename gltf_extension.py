@@ -1,4 +1,5 @@
 import traceback
+
 import bpy
 from bpy.types import PropertyGroup, UILayout, Panel, Context
 from bpy.props import BoolProperty, PointerProperty
@@ -23,6 +24,7 @@ from .fast64_internal.f3d.glTF.f3d_gltf import (
 # Hacks for broken versions
 # Importing
 # Better and more extensive errors
+
 
 def glTF2_pre_export_callback(_gltf):
     modify_f3d_nodes_for_export(False)
@@ -63,7 +65,7 @@ class GlTF2Extension:
                 # TODO: Force glTF exports and imports to fail somehow?
 
     def __init__(self):
-        from io_scene_gltf2.io.com.gltf2_io_extensions import Extension
+        from io_scene_gltf2.io.com.gltf2_io_extensions import Extension  # pylint: disable=import-error
 
         self.Extension = Extension
 
@@ -123,7 +125,13 @@ class glTF2ImportUserExtension(GlTF2Extension):
         )
 
     def gather_import_mesh_after_hook(self, gltf_mesh, blender_mesh, gltf):
-        self.call_hooks("gather_import_mesh_after_hook", 'Mesh "{args[1].name}"', gltf_mesh, blender_mesh, gltf)
+        self.call_hooks(
+            "gather_import_mesh_after_hook",
+            'Mesh "{args[1].name}"',
+            gltf_mesh,
+            blender_mesh,
+            gltf,
+        )
 
 
 class Fast64GlTFSettings(PropertyGroup):
