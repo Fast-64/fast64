@@ -14,6 +14,7 @@ from ...gltf_utility import (
     prefix_function,
     GLTF2_ADDON_VERSION,
     swap_function,
+    suffix_function,
 )
 from ..f3d_gbi import F3D, get_F3D_GBI
 from ..f3d_material import (
@@ -47,6 +48,10 @@ EX3_MATERIAL_EXTENSION_NAME = "FAST64_materials_f3dex3"
 SAMPLER_EXTENSION_NAME = "FAST64_sampler_n64"
 MESH_EXTENSION_NAME = "FAST64_mesh_f3d"
 NEW_MESH_EXTENSION_NAME = "FAST64_mesh_f3d_new"
+
+
+def is_mat_f3d(mat: Material | None):
+    return mat and mat.is_f3d and mat.mat_ver == F3D_MAT_CUR_VERSION
 
 
 def uvmap_check(obj: Object, mesh: Mesh):
@@ -507,7 +512,7 @@ class F3DExtensions(GlTF2SubExtension):
                     'Material is not an F3D material. Turn off "Non F3D Material" to ignore.',
                 )
             return
-        if blender_material.mat_ver < 5:
+        if blender_material.mat_ver < F3D_MAT_CUR_VERSION:
             raise PluginError(
                 f"Material is an F3D material but its version is too old ({blender_material.mat_ver}).",
             )
@@ -700,7 +705,7 @@ class F3DExtensions(GlTF2SubExtension):
         finally:
             blender_material.f3d_update_flag = False
         blender_material.is_f3d = True
-        blender_material.mat_ver = 5
+        blender_material.mat_ver = F3D_MAT_CUR_VERSION
 
         self.print_verbose(
             "Copying F3D node tree, creating scene properties and updating all nodes",
@@ -749,7 +754,7 @@ NEW_MESH_EXTENSION_NAME = "FAST64_mesh_f3d_new"
 
 class F3DGlTFSettings(PropertyGroup):
     use: BoolProperty(default=True, name="Export/Import F3D extensions")
-    use_3_2_hacks: BoolProperty(
+    use_3_2_hacks_prop: BoolProperty(
         name="Use 3.2 vertex color hacks",
         description="Blender version 3.2 ships with the\n"
         "last version of the glTF 2.0 addon to not\n"
@@ -797,6 +802,10 @@ class F3DGlTFSettings(PropertyGroup):
         description="Raise an error when a mesh with F3D materials has no uv layer named UVMap",
         default=True,
     )
+
+    @property
+    def use_3_2_hacks(self):
+        return self.use and self.use_3_2_hacks_prop
 
     def to_dict(self):  # TODO: use prop to json funcs
         return {
@@ -849,7 +858,7 @@ class F3DGlTFSettings(PropertyGroup):
         col.box().label(text="See tooltips for more info", icon="INFO")
 
         if GLTF2_ADDON_VERSION == (3, 2, 40):
-            col.prop(self, "use_3_2_hacks")
+            col.prop(self, "use_3_2_hacks_prop")
 
         box = col.box().column()
         box.box().label(text="Raise Errors:", icon="ERROR")
@@ -898,8 +907,10 @@ def modify_f3d_nodes_for_export(use: bool):
     We can´t have glTF interacting with the f3d nodes either, otherwise an infinite recursion occurs in texture gathering
     this is also called in gather_gltf_extensions_hook (glTF2_post_export_callback can fail)
     """
+    if not bpy.context.scene.fast64.settings.glTF.f3d.use:
+        return
     for mat in bpy.data.materials:
-        if not (mat.is_f3d and mat.mat_ver == F3D_MAT_CUR_VERSION):
+        if not is_mat_f3d(mat):
             continue
         node_tree = mat.node_tree
         nodes = node_tree.nodes
@@ -959,7 +970,8 @@ gather_mesh_owner.gather_mesh = prefix_function(gather_mesh_owner.gather_mesh, g
 # 3.2 hack
 
 if GLTF2_ADDON_VERSION == (3, 2, 40):
-    import io_scene_gltf2.blender.exp.gltf2_blender_extract as gltf2_blender_extract
+    import io_scene_gltf2.blender.exp.gltf2_blender_extract as extract_primitives_owner
+    import io_scene_gltf2.blender.exp.gltf2_blender_gather_primitive_attributes as __gather_colors_owner
     from io_scene_gltf2.blender.exp.gltf2_blender_extract import (  # pylint: disable=import-error
         __get_positions,
         __get_bone_data,
@@ -977,17 +989,37 @@ if GLTF2_ADDON_VERSION == (3, 2, 40):
     from io_scene_gltf2.io.exp import gltf2_io_binary_data  # pylint: disable=import-error
 
 
-def extract_primitives_fast64(blender_mesh, uuid_for_skined_data, blender_vertex_groups, modifiers, export_settings):
+def get_fast64_custom_colors(blender_mesh):
+    color_layer = getColorLayer(blender_mesh, layer="Col")  # assume Col already has alpha from other hack
+    colors = np.zeros(len(blender_mesh.loops) * 4, dtype=np.float32)
+    if color_layer is not None:
+        color_layer.foreach_get("color", colors)
+    colors = colors.reshape(-1, 4)
+    return colors
+
+
+def extract_primitives_fast64(
+    original_function, blender_mesh, uuid_for_skined_data, blender_vertex_groups, modifiers, export_settings
+):
     """
     https://github.com/KhronosGroup/glTF-Blender-IO/blob/bb0e780711f2021defb06c5650d5490f3771f252/addons/io_scene_gltf2/blender/exp/gltf2_blender_extract.py#L23-L383
     SPDX-License-Identifier: Apache-2.0
     Copyright 2018-2021 The glTF-Blender-IO authors.
 
     All changes are marked by "# FAST64 CHANGE/END:"
+    We must gather fast64 colors manually since they are corner float colors (unsupported in 3.2 glTF 2.0 addon)
 
     Extract primitives from a mesh.
     """
-    print_console("INFO", "Extracting primitive: " + blender_mesh.name)
+    # FAST64 CHANGE: Use custom fast64 function or use original
+    use_3_2_hacks: bool = bpy.context.scene.fast64.settings.glTF.f3d.use_3_2_hacks
+    has_f3d_mats = any(is_mat_f3d(material) for material in blender_mesh.materials)
+    if not (use_3_2_hacks and has_f3d_mats):
+        return original_function(blender_mesh, uuid_for_skined_data, blender_vertex_groups, modifiers, export_settings)
+    # FAST64 END
+
+    # FAST64 CHANGE: Changed print so the user knows the custom function is being used
+    print_console("INFO", "(Fast64) Extracting primitive: " + blender_mesh.name)
 
     blender_object = None
     if uuid_for_skined_data:
@@ -1095,6 +1127,14 @@ def extract_primitives_fast64(blender_mesh, uuid_for_skined_data, blender_vertex
             ("color%db" % col_i, np.float32),
             ("color%da" % col_i, np.float32),
         ]
+    # FAST64 CHANGE: Add fields for custom fast64 color
+    dot_fields += [
+        ("fast64_color_r", np.float32),
+        ("fast64_color_g", np.float32),
+        ("fast64_color_b", np.float32),
+        ("fast64_color_a", np.float32),
+    ]
+    # FAST64 CHANGE: END
     if use_morph_normals:
         for morph_i, _ in enumerate(key_blocks):
             dot_fields += [
@@ -1146,6 +1186,15 @@ def extract_primitives_fast64(blender_mesh, uuid_for_skined_data, blender_vertex
         dots["color%db" % col_i] = colors[:, 2]
         dots["color%da" % col_i] = colors[:, 3]
         del colors
+
+    # FAST64 CHANGE: Add custom fast64 color
+    colors = get_fast64_custom_colors(blender_mesh)
+    dots["fast64_color_r"] = colors[:, 0]
+    dots["fast64_color_g"] = colors[:, 1]
+    dots["fast64_color_b"] = colors[:, 2]
+    dots["fast64_color_a"] = colors[:, 3]
+    del colors
+    # FAST64 CHANGE: End
 
     # Calculate triangles and sort them into primitives.
 
@@ -1234,6 +1283,18 @@ def extract_primitives_fast64(blender_mesh, uuid_for_skined_data, blender_vertex
             colors[:, 2] = prim_dots["color%db" % color_i]
             colors[:, 3] = prim_dots["color%da" % color_i]
             attributes["COLOR_%d" % color_i] = colors
+
+        # FAST64 CHANGE: Start
+        mat = blender_mesh.materials[material_idx]
+        if is_mat_f3d(mat):
+            colors = np.empty((len(prim_dots), 4), dtype=np.float32)
+            colors[:, 0] = prim_dots["fast64_color_r"]
+            colors[:, 1] = prim_dots["fast64_color_g"]
+            colors[:, 2] = prim_dots["fast64_color_b"]
+            colors[:, 3] = prim_dots["fast64_color_a"]
+            attributes["FAST64_COLOR"] = colors
+            del colors
+        # FAST64 CHANGE: End
 
         if skin:
             joints = [[] for _ in range(num_joint_sets)]
@@ -1351,7 +1412,35 @@ def extract_primitives_fast64(blender_mesh, uuid_for_skined_data, blender_vertex
     return primitives
 
 
+def post__gather_colors(results, blender_primitive, _export_settings):
+    attributes = blender_primitive["attributes"]
+    colors = attributes.get("FAST64_COLOR", None)
+    if colors is not None:
+        # Rename other attributes
+        for attr_name, values in attributes.items():
+            if attr_name.startswith("COLOR_"):
+                num = int(attr_name.lstrip("COLOR_"))
+                attributes.pop(attr_name)
+                attributes["COLOR_%d" % num] = values
+        results["COLOR_0"] = gltf2_io.Accessor(
+            buffer_view=gltf2_io_binary_data.BinaryData(colors.tobytes()),
+            byte_offset=None,
+            component_type=gltf2_io_constants.ComponentType.Float,
+            count=len(colors),
+            extensions=None,
+            extras=None,
+            max=None,
+            min=None,
+            name=None,
+            normalized=True,
+            sparse=None,
+            type=gltf2_io_constants.DataType.Vec4,
+        )
+    return results
+
+
 if GLTF2_ADDON_VERSION == (3, 2, 40):
-    gltf2_blender_extract.extract_primitives = swap_function(
-        gltf2_blender_extract.extract_primitives, extract_primitives_fast64
+    extract_primitives_owner.extract_primitives = swap_function(
+        extract_primitives_owner.extract_primitives, extract_primitives_fast64
     )
+    __gather_colors_owner.__gather_colors = suffix_function(__gather_colors_owner.__gather_colors, post__gather_colors)

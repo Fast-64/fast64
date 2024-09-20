@@ -142,12 +142,26 @@ def prefix_function(function: Callable, prefunction: Callable):
     return run
 
 
-def swap_function(function: Callable, new_function: Callable):
+def suffix_function(function: Callable, suffix_function: Callable):
+    """Passes in result as the first arg"""
     function = getattr(function, "fast64_og_func", function)
 
     @functools.wraps(function)
     def run(*args, **kwargs):
-        return new_function(*args, **kwargs)
+        results = function(*args, **kwargs)
+        return suffix_function(results, *args, **kwargs)
+
+    setattr(run, "fast64_og_func", function)
+    return run
+
+
+def swap_function(function: Callable, new_function: Callable):
+    """Passes in the original function as the first arg"""
+    function = getattr(function, "fast64_og_func", function)
+
+    @functools.wraps(function)
+    def run(*args, **kwargs):
+        return new_function(function, *args, **kwargs)
 
     setattr(run, "fast64_og_func", function)
     return run
