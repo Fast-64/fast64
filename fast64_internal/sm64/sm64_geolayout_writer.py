@@ -840,7 +840,7 @@ def exportGeolayoutArmatureInsertableBinary(armatureObj, obj, convertTransformMa
     saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath)
 
 
-def exportGeolayoutObjectInsertableBinary(obj, convertTransformMatrix, filepath, camera):
+def exportGeolayoutObjectInsertableBinary(obj, convertTransformMatrix, filepath):
     geolayoutGraph, fModel = convertObjectToGeolayout(
         obj, convertTransformMatrix, True, obj.name, None, None, DLFormat.Static, True
     )
@@ -2871,7 +2871,6 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                     obj,
                     final_transform,
                     bpy.path.abspath(bpy.context.scene.geoInsertableBinaryPath),
-                    None,
                 )
                 self.report({"INFO"}, "Success! Data at " + context.scene.geoInsertableBinaryPath)
             else:
