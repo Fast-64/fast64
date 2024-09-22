@@ -6,7 +6,7 @@ from ....f3d.f3d_parser import getImportData, parseF3D
 from ....utility import hexOrDecInt, applyRotation, PluginError
 from ...oot_f3d_writer import ootReadActorScale
 from ...oot_model_classes import OOTF3DContext, ootGetIncludedAssetData
-from ...oot_utility import ootGetObjectPath, getOOTScale, ootGetObjectHeaderPath, ootGetEnums, ootStripComments
+from ...oot_utility import OOTEnum, ootGetObjectPath, getOOTScale, ootGetObjectHeaderPath, ootGetEnums, ootStripComments
 from ...oot_texture_array import ootReadTextureArrays
 from ..constants import ootSkeletonImportDict
 from ..properties import OOTSkeletonImportSettings
@@ -203,7 +203,6 @@ def ootBuildSkeleton(
             f3dContext.matrixData[limbName],
             limbName,
             boneName,
-            "oot",
             drawLayer,
             f3dContext,
             True,
@@ -259,8 +258,8 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
         restPoseData = None
 
     filepaths = [
-        ootGetObjectPath(isCustomImport, importPath, folderName),
-        ootGetObjectHeaderPath(isCustomImport, importPath, folderName),
+        ootGetObjectPath(isCustomImport, importPath, folderName, True),
+        ootGetObjectHeaderPath(isCustomImport, importPath, folderName, True),
     ]
 
     removeDoubles = importSettings.removeDoubles

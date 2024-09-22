@@ -463,6 +463,7 @@ class F3DContext:
         self.materialContext.f3d_update_flag = True  # Don't want visual updates while parsing
         # If this is not disabled, then tex_scale will auto-update on manual node update.
         self.materialContext.f3d_mat.scale_autoprop = False
+        self.draw_layer_prop: str | None = None
         self.initContext()
 
     # This is separate as we want to call __init__ in clearGeometry, but don't want same behaviour for child classes
@@ -540,6 +541,8 @@ class F3DContext:
         savedTlutAppliedTextures = self.tlutAppliedTextures
         savedImagesDontApplyTlut = self.imagesDontApplyTlut
         savedLightData = self.lightData
+        savedMatrixData = self.matrixData
+        savedLimbToBoneName = self.limbToBoneName
 
         self.initContext()
 
@@ -548,6 +551,8 @@ class F3DContext:
         self.tlutAppliedTextures = savedTlutAppliedTextures
         self.imagesDontApplyTlut = savedImagesDontApplyTlut
         self.lightData = savedLightData
+        self.matrixData = savedMatrixData
+        self.limbToBoneName = savedLimbToBoneName
 
     def clearMaterial(self):
         mat = self.mat()
@@ -1927,7 +1932,6 @@ def parseF3D(
     transformMatrix: mathutils.Matrix,
     limbName: str,
     boneName: str,
-    drawLayerPropName: str,
     drawLayer: str,
     f3dContext: F3DContext,
     callClearMaterial: bool,
@@ -1935,7 +1939,8 @@ def parseF3D(
     f3dContext.matrixData[limbName] = transformMatrix
     f3dContext.setCurrentTransform(limbName)
     f3dContext.limbToBoneName[limbName] = boneName
-    setattr(f3dContext.mat().draw_layer, drawLayerPropName, drawLayer)
+    if f3dContext.draw_layer_prop is not None:
+        setattr(f3dContext.mat().draw_layer, f3dContext.draw_layer_prop, drawLayer)
 
     # vertexGroup = getOrMakeVertexGroup(obj, boneName)
     # groupIndex = vertexGroup.index
@@ -1978,6 +1983,8 @@ def parseVertexData(dlData: str, vertexDataName: str, f3dContext: F3DContext):
     pathMatch = re.search(r'\#include\s*"([^"]*)"', data)
     if pathMatch is not None:
         path = pathMatch.group(1)
+        if bpy.context.scene.gameEditorMode == "OOT":
+            path = f"{bpy.context.scene.fast64.oot.get_extracted_path()}/{path}"
         data = readFile(f3dContext.getVTXPathFromInclude(path))
 
     f3d = f3dContext.f3d
@@ -2080,6 +2087,8 @@ def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, wi
     pathMatch = re.search(r'\#include\s*"(.*?)"', data, re.DOTALL)
     if pathMatch is not None:
         path = pathMatch.group(1)
+        if bpy.context.scene.gameEditorMode == "OOT":
+            path = f"{bpy.context.scene.fast64.oot.get_extracted_path()}/{path}"
         originalImage = bpy.data.images.load(f3dContext.getImagePathFromInclude(path))
         image = originalImage.copy()
         image.pack()
@@ -2271,10 +2280,9 @@ def importMeshC(
     obj = bpy.data.objects.new(name + "_mesh", mesh)
     bpy.context.collection.objects.link(obj)
 
-    f3dContext.mat().draw_layer.oot = drawLayer
     transformMatrix = mathutils.Matrix.Scale(1 / scale, 4)
 
-    parseF3D(data, name, transformMatrix, name, name, "oot", drawLayer, f3dContext, True)
+    parseF3D(data, name, transformMatrix, name, name, drawLayer, f3dContext, True)
     f3dContext.createMesh(obj, removeDoubles, importNormals, callClearMaterial)
 
     applyRotation([obj], math.radians(-90), "X")
