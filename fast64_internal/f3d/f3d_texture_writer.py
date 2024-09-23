@@ -792,7 +792,7 @@ class MultitexManager:
         if sameTextures:
             assert (
                 self.ti0.tmemSize == self.ti1.tmemSize
-            ), f"Unrechable code path in material {material.name}, same textures (same image or reference) somehow not the same size"
+            ), f"Unreachable code path in material {material.name}, same textures (same image or reference) somehow not the same size"
             tmemOccupied = self.ti0.tmemSize
             self.ti1.doTexLoad = False
             self.ti1.texAddr = 0
