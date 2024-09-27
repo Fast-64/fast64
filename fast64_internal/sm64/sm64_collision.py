@@ -9,7 +9,7 @@ from .sm64_constants import (
     insertableBinaryTypes,
     defaultExtendSegment4,
 )
-from .sm64_utility import export_rom_checks, update_actor_includes
+from .sm64_utility import export_rom_checks, to_include_descriptor, update_actor_includes, write_or_delete_if_found
 from .sm64_objects import SM64_Area, start_process_sm64_objects
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_rom_tweaks import ExtendBank0x04
@@ -24,7 +24,6 @@ from ..utility import (
     get64bitAlignedAddr,
     prop_split,
     getExportDir,
-    deleteIfFound,
     duplicateHierarchy,
     cleanupDuplicatedObjects,
     writeInsertableFile,
@@ -334,15 +333,23 @@ def exportCollisionC(
     data_includes = [Path("collision.inc.c")]
     if writeRoomsFile:
         data_includes.append(Path("rooms.inc.c"))
-    update_actor_includes(headerType, groupName, Path(dirPath), name, data_includes, [Path("collision_header.h")])
+    update_actor_includes(
+        headerType, groupName, Path(dirPath), name, levelName, data_includes, [Path("collision_header.h")]
+    )
     if not writeRoomsFile:  # TODO: Could be done better
         if headerType == "Actor":
-            groupPathC = os.path.join(dirPath, groupName + ".c")
-            deleteIfFound(groupPathC, '\n#include "' + name + '/rooms.inc.c"')
+            group_path_c = Path(dirPath) / f"{groupName}.c"
+            write_or_delete_if_found(group_path_c, to_remove=[to_include_descriptor(Path(name) / "rooms.inc.c")])
         elif headerType == "Level":
-            groupPathC = os.path.join(dirPath, "leveldata.c")
-            deleteIfFound(groupPathC, '#include "levels/' + levelName + "/" + name + '/rooms.inc.c"')
-            deleteIfFound(groupPathC, '#include "rooms.inc.c"')
+            group_path_c = Path(dirPath) / "leveldata.c"
+            write_or_delete_if_found(
+                group_path_c,
+                to_remove=[
+                    to_include_descriptor(
+                        Path(name) / "rooms.inc.c", Path("levels") / levelName / name / "rooms.inc.c"
+                    ),
+                ],
+            )
 
     return cDefine
 

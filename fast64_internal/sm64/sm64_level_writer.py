@@ -12,7 +12,14 @@ from .sm64_collision import exportCollisionCommon
 from .sm64_f3d_writer import SM64Model, SM64GfxFormatter
 from .sm64_geolayout_writer import setRooms, convertObjectToGeolayout
 from .sm64_f3d_writer import modifyTexScrollFiles, modifyTexScrollHeadersGroup
-from .sm64_utility import cameraWarning, starSelectWarning, write_includes, writeMaterialHeaders
+from .sm64_utility import (
+    cameraWarning,
+    starSelectWarning,
+    to_include_descriptor,
+    write_includes,
+    write_or_delete_if_found,
+    write_material_headers,
+)
 
 from ..utility import (
     PluginError,
@@ -22,7 +29,6 @@ from ..utility import (
     restoreHiddenState,
     overwriteData,
     selectSingleObject,
-    deleteIfFound,
     applyBasicTweaks,
     applyRotation,
     raisePluginError,
@@ -999,10 +1005,10 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
     if not customExport:
         if DLFormat != DLFormat.Static:
             # Write material headers
-            writeMaterialHeaders(
-                exportDir,
-                f'"levels/{level_name}/material.inc.c"',
-                f'"levels/{level_name}/material.inc.h"',
+            write_material_headers(
+                Path(exportDir),
+                Path("levels") / level_name / "material.inc.c",
+                Path("levels") / level_name / "material.inc.c",
             )
 
         # Export camera triggers
@@ -1073,19 +1079,26 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
             createHeaderFile(level_name, headerPath)
 
         # Write level data
-        write_includes(Path(geoPath), ['"geo.inc.c"'])
-        write_includes(Path(levelDataPath), ['"leveldata.inc.c"'])
-        write_includes(Path(headerPath), ['"header.inc.h"'], before_endif=True)
+        write_includes(Path(geoPath), [Path("geo.inc.c")])
+        write_includes(Path(levelDataPath), [Path("leveldata.inc.c")])
+        write_includes(Path(headerPath), [Path("header.inc.h")], before_endif=True)
 
+        old_include = to_include_descriptor(Path("levels") / level_name / "texture_include.inc.c")
         if fModel.texturesSavedLastExport == 0:
             textureIncludePath = os.path.join(level_dir, "texture_include.inc.c")
             if os.path.exists(textureIncludePath):
                 os.remove(textureIncludePath)
             # This one is for backwards compatibility purposes
-            deleteIfFound(os.path.join(level_dir, "texture.inc.c"), include_proto("texture_include.inc.c"))
+            write_or_delete_if_found(
+                Path(level_dir) / "texture.inc.c",
+                to_remove=[old_include],
+            )
 
         # This one is for backwards compatibility purposes
-        deleteIfFound(levelDataPath, include_proto("texture_include.inc.c"))
+        write_or_delete_if_found(
+            Path(levelDataPath),
+            to_remove=[old_include],
+        )
 
         texscrollIncludeC = include_proto("texscroll.inc.c")
         texscrollIncludeH = include_proto("texscroll.inc.h")

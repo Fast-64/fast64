@@ -1,3 +1,4 @@
+from typing import NamedTuple, Optional
 from pathlib import Path
 import os
 import re
@@ -5,15 +6,7 @@ import re
 import bpy
 from bpy.types import UILayout
 
-from ..utility import (
-    PluginError,
-    filepath_checks,
-    removeComments,
-    run_and_draw_errors,
-    multilineLabel,
-    prop_split,
-    COMMENT_PATTERN,
-)
+from ..utility import PluginError, filepath_checks, run_and_draw_errors, multilineLabel, prop_split, COMMENT_PATTERN
 from .sm64_function_map import func_map
 
 
@@ -135,92 +128,182 @@ def convert_addr_to_func(addr: str):
         return addr
 
 
-# \h is invalid because the python devs don´t believe in god
-INCLUDE_EXTERN_PATTERN = re.compile(
-    r"""
-    # expects comments to be removed before running, we don´t need index
-    ^\h*\#\h*include\h*(.*?)\h*$| # catch includes
-    extern\s*(.*?)\s*; # catch externs
-    """.replace(
-        r"\h", r"[^\v\S]"
-    ).replace(
-        "COMMENT_PATTERN", COMMENT_PATTERN.pattern
-    ),
-    re.MULTILINE | re.VERBOSE,
-)
-ENDIF_PATTERN = re.compile(
-    r"""
-    (?:COMMENT_PATTERN)*?| # can't be a negative lookbehind, size is unknown
-    (?P<endif>^\h*\#\h*endif) # catch endif
-    """.replace(
-        r"\h", r"[^\v\S]"
-    ).replace(
-        "COMMENT_PATTERN", COMMENT_PATTERN.pattern
-    ),
-    re.MULTILINE | re.VERBOSE,
-)
+class ModifyFoundDescriptor:
+    string: str
+    regex: str
+
+    def __init__(self, string: str, regex: str = ""):
+        self.string = string
+        if regex:
+            self.regex = regex.replace(r"\h", r"[^\v\S]")  # /h is invalid... for some reason
+        else:
+            self.regex = re.escape(string) + r"\n?"
 
 
-def find_includes_and_externs(text: str) -> tuple[set[str], set[str]]:
-    text = removeComments(text)
-    matches = re.findall(INCLUDE_EXTERN_PATTERN, text)
-    if matches:
-        existing_includes, existing_externs = zip(*re.findall(INCLUDE_EXTERN_PATTERN, text))
-        return set(existing_includes), set(existing_externs)
-    return {}, {}
+class DescriptorMatch(NamedTuple):
+    string: str
+    start: int
+    end: int
 
 
-def write_includes(
+def find_descriptor_in_text(value: ModifyFoundDescriptor, commentless: str, comment_map: dict):
+    matches: list[DescriptorMatch] = []
+    for match in re.finditer(value.regex, commentless):
+        found_start, found_end = match.start(), match.end()
+        start, end = match.start(), match.end()
+        for commentless_start, comment_size in comment_map:  # only remove parts outside comments
+            if commentless_start >= found_start and commentless_start <= found_end:  # comment inside descriptor
+                end += comment_size
+            elif found_end >= commentless_start:
+                start += comment_size
+                end += comment_size
+        matches.append(DescriptorMatch(match.group(0), start, end))
+    return matches
+
+
+def find_descriptors(
+    text: str,
+    descriptors: list[ModifyFoundDescriptor],
+    error_if_no_header=False,
+    header: Optional[ModifyFoundDescriptor] = None,
+    error_if_no_footer=False,
+    footer: Optional[ModifyFoundDescriptor] = None,
+    ignore_comments=True,
+):
+    """Returns: The found matches from descriptors, the footer pos (the end of the text if none)"""
+    comment_map = []
+    if ignore_comments:
+        commentless = ""
+        last_pos = 0
+
+        for match in re.finditer(COMMENT_PATTERN, text):
+            commentless += text[last_pos : match.start()]  # add text before comment
+            string = match.group(0)
+            if string.startswith("/"):
+                comment_map.append((len(commentless), len(string) - 1))
+                commentless += " "
+            else:
+                commentless += string
+            last_pos = match.end()
+
+        commentless += text[last_pos:]  # add any remaining text after the last match
+    else:
+        commentless = text
+
+    header_matches = find_descriptor_in_text(header, commentless, comment_map) if header is not None else []
+    footer_matches = find_descriptor_in_text(footer, commentless, comment_map) if footer is not None else []
+
+    header_pos = 0
+    if len(header_matches) > 0:
+        _, header_pos, _ = header_matches[0]
+    elif error_if_no_header:
+        raise PluginError(f"Header {header.string} does not exist.")
+
+    # find first footer after the header
+    if footer_matches:
+        if header_matches:
+            footer_pos = next((pos for _, pos, _ in footer_matches if pos >= header_pos), footer_matches[-1])
+        elif len(footer_matches) > 0:
+            _, footer_pos, _ = footer_matches[-1]
+    else:
+        if error_if_no_footer:
+            raise PluginError(f"Footer {footer.string} does not exist.")
+        footer_pos = len(text)
+
+    found_matches: dict[ModifyFoundDescriptor, list[DescriptorMatch]] = {}
+    for descriptor in descriptors:
+        matches = find_descriptor_in_text(descriptor, commentless[header_pos:footer_pos], comment_map)
+        if matches:
+            found_matches.setdefault(descriptor, []).extend(matches)
+    return found_matches, footer_pos
+
+
+def write_or_delete_if_found(
     path: Path,
-    includes: list[str] = None,
-    externs: list[str] = None,
+    to_add: Optional[list[ModifyFoundDescriptor]] = None,
+    to_remove: Optional[list[ModifyFoundDescriptor]] = None,
     path_must_exist=False,
     create_new=False,
-    before_endif=False,
-) -> bool:
-    """Smarter version of writeIfNotFound, handles comments and all kinds of weird formatting
-    but most importantly files without a trailing newline.
-    Returns true if something was added.
-    Example arguments: includes=['"mario/anims/data.inc.c"'],
-    externs=["const struct Animation *const mario_anims[]"]
-    """
+    error_if_no_header=False,
+    header: Optional[ModifyFoundDescriptor] = None,
+    error_if_no_footer=False,
+    footer: Optional[ModifyFoundDescriptor] = None,
+    ignore_comments=True,
+):
+    changed = False
+    to_add, to_remove = to_add or [], to_remove or []
+
     assert not (path_must_exist and create_new), "path_must_exist and create_new"
     if path_must_exist:
         filepath_checks(path)
-    if not create_new and not includes and not externs:
+    if not create_new and not to_add and not to_remove:
         return False
-    includes, externs = includes or [], externs or []
 
     if os.path.exists(path) and not create_new:
         text = path.read_text()
-        commentless = removeComments(text)
-        if commentless and commentless[-1] not in {"\n", "\r"}:  # add end new line if not there
+        if text and text[-1] not in {"\n", "\r"}:  # add end new line if not there
             text += "\n"
-        changed = False
+        found_matches, footer_pos = find_descriptors(
+            text, to_add + to_remove, error_if_no_header, header, error_if_no_footer, footer, ignore_comments
+        )
     else:
-        text, commentless, changed = "", "", True
-    existing_includes, existing_externs = find_includes_and_externs(commentless)
+        text, found_matches, footer_pos = "", {}, 0
 
-    new_text = ""
-    for include in includes:
-        if include not in existing_includes:
-            new_text += f"#include {include}\n"
+    for descriptor in to_remove:
+        matches = found_matches.get(descriptor)
+        if matches is None:
+            continue
+        print(f"Removing {descriptor.string} in {str(path)}")
+        for match in matches:
             changed = True
-    for extern in externs:
-        if extern not in existing_externs:
-            new_text += f"extern {extern};\n"
-            changed = True
-    if not changed:
-        return False
+            text = text[: match.start] + text[match.end :]  # Remove match
+            diff = match.end - match.start
+            for other_match in (other_match for matches in found_matches.values() for other_match in matches):
+                if other_match.start > match.start:
+                    other_match.start -= diff
+                    other_match.end -= diff
+            if footer_pos > match.start:
+                footer_pos -= diff
 
-    pos = len(text)
-    if before_endif:  # don't error if there is no endif as the user may just be using #pragma once
-        for match in re.finditer(ENDIF_PATTERN, text):
-            if match.group("endif"):
-                pos = match.start()
-    text = text[:pos] + new_text + text[pos:]
-    path.write_text(text)
-    return True
+    additions = ""
+    for descriptor in to_add:
+        if descriptor in found_matches:
+            continue
+        print(f"Adding {descriptor.string} in {str(path)}")
+        additions += f"{descriptor.string}\n"
+        changed = True
+    text = text[:footer_pos] + additions + text[footer_pos:]
+
+    if changed or create_new:
+        path.write_text(text)
+        return True
+    return False
+
+
+def to_include_descriptor(include: Path, *alternatives: Path):
+    base_regex = r'\n?#\h*?include\h*?"{0}"'
+    regex = base_regex.format(include.as_posix())
+    for alternative in alternatives:
+        regex += f"|{base_regex.format(alternative.as_posix())}"
+    return ModifyFoundDescriptor(f'#include "{include.as_posix()}"', regex)
+
+
+END_IF_FOOTER = ModifyFoundDescriptor("#endif", r"#\h*?endif")
+
+
+def write_includes(
+    path: Path, includes: Optional[list[Path]] = None, path_must_exist=False, create_new=False, before_endif=False
+):
+    to_add = []
+    for include in includes or []:
+        to_add.append(to_include_descriptor(include))
+    return write_or_delete_if_found(
+        path,
+        to_add,
+        path_must_exist=path_must_exist,
+        create_new=create_new,
+        footer=END_IF_FOOTER if before_endif else None,
+    )
 
 
 def update_actor_includes(
@@ -228,11 +311,11 @@ def update_actor_includes(
     group_name: str,
     header_dir: Path,
     dir_name: str,
-    data_includes: list[Path] = None,
-    header_includes: list[Path] = None,
-    geo_includes: list[Path] = None,
+    level_name: str | None = None,  # for backwards compatibility
+    data_includes: Optional[list[Path]] = None,
+    header_includes: Optional[list[Path]] = None,
+    geo_includes: Optional[list[Path]] = None,
 ):
-    data_includes, header_includes, geo_includes = data_includes or [], header_includes or [], geo_includes or []
     if header_type == "Actor":
         if not group_name:
             raise PluginError("Empty group name")
@@ -248,23 +331,34 @@ def update_actor_includes(
     else:
         raise PluginError(f'Unknown header type "{header_type}"')
 
-    if write_includes(
-        data_path, [f'"{(Path(dir_name) / include).as_posix()}"' for include in data_includes], path_must_exist=True
-    ):
+    def write_includes_with_alternate(path: Path, includes: Optional[list[Path]], before_endif=False):
+        if includes is None:
+            return False
+        if header_type == "Level":
+            path_and_alternates = [
+                [
+                    Path(dir_name) / include,
+                    Path("levels") / level_name / (dir_name) / include,  # backwards compatability
+                ]
+                for include in includes
+            ]
+        else:
+            path_and_alternates = [[Path(dir_name) / include] for include in includes]
+        return write_or_delete_if_found(
+            path,
+            [to_include_descriptor(*paths) for paths in path_and_alternates],
+            path_must_exist=True,
+            footer=END_IF_FOOTER if before_endif else None,
+        )
+
+    if write_includes_with_alternate(data_path, data_includes):
         print(f"Updated data includes at {header_path}.")
-    if write_includes(
-        header_path,
-        [f'"{(Path(dir_name) / include).as_posix()}"' for include in header_includes],
-        path_must_exist=True,
-        before_endif=True,
-    ):
+    if write_includes_with_alternate(header_path, header_includes, before_endif=True):
         print(f"Updated header includes at {header_path}.")
-    if write_includes(
-        geo_path, [f'"{(Path(dir_name) / include).as_posix()}"' for include in geo_includes], path_must_exist=True
-    ):
+    if write_includes_with_alternate(geo_path, geo_includes):
         print(f"Updated geo data at {geo_path}.")
 
 
-def writeMaterialHeaders(exportDir, matCInclude, matHInclude):
-    write_includes(Path(exportDir) / "src/game/materials.c", [matCInclude])
-    write_includes(Path(exportDir) / "src/game/materials.h", [matHInclude], before_endif=True)
+def write_material_headers(decomp: Path, c_include: Path, h_include: Path):
+    write_includes(decomp / "src/game/materials.c", [c_include])
+    write_includes(decomp / "src/game/materials.h", [h_include], before_endif=True)

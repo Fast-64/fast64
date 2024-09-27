@@ -737,40 +737,6 @@ def overwriteData(headerRegex, name, value, filePath, writeNewBeforeString, isFu
         raise PluginError(filePath + " does not exist.")
 
 
-def writeIfNotFound(filePath, stringValue, footer):
-    if os.path.exists(filePath):
-        fileData = open(filePath, "r")
-        fileData.seek(0)
-        stringData = fileData.read()
-        fileData.close()
-        if stringValue not in stringData:
-            if len(footer) > 0:
-                footerIndex = stringData.rfind(footer)
-                if footerIndex == -1:
-                    raise PluginError("Footer " + footer + " does not exist.")
-                stringData = stringData[:footerIndex] + stringValue + "\n" + stringData[footerIndex:]
-            else:
-                stringData += stringValue
-            fileData = open(filePath, "w", newline="\n")
-            fileData.write(stringData)
-        fileData.close()
-    else:
-        raise PluginError(filePath + " does not exist.")
-
-
-def deleteIfFound(filePath, stringValue):
-    if os.path.exists(filePath):
-        fileData = open(filePath, "r")
-        fileData.seek(0)
-        stringData = fileData.read()
-        fileData.close()
-        if stringValue in stringData:
-            stringData = stringData.replace(stringValue, "")
-            fileData = open(filePath, "w", newline="\n")
-            fileData.write(stringData)
-        fileData.close()
-
-
 def yield_children(obj: bpy.types.Object):
     yield obj
     if obj.children:
@@ -1711,12 +1677,11 @@ def getTextureSuffixFromFormat(texFmt):
     return texFmt.lower()
 
 
+# https://stackoverflow.com/a/241506
 COMMENT_PATTERN = re.compile(r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"', re.DOTALL | re.MULTILINE)
 
 
 def removeComments(text: str):
-    # https://stackoverflow.com/a/241506
-
     def replacer(match: re.Match[str]):
         s = match.group(0)
         if s.startswith("/"):

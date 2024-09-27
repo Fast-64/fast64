@@ -14,7 +14,7 @@ from .sm64_f3d_writer import SM64Model, SM64GfxFormatter
 from .sm64_texscroll import modifyTexScrollFiles, modifyTexScrollHeadersGroup
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_rom_tweaks import ExtendBank0x04
-from .sm64_utility import export_rom_checks, starSelectWarning, update_actor_includes, writeMaterialHeaders
+from .sm64_utility import export_rom_checks, starSelectWarning, update_actor_includes, write_material_headers
 
 from ..utility import (
     PluginError,
@@ -658,12 +658,12 @@ def saveGeolayoutC(
     geoData = geolayoutGraph.to_c()
 
     if headerType == "Actor":
-        matCInclude = '"actors/' + dirName + '/material.inc.c"'
-        matHInclude = '"actors/' + dirName + '/material.inc.h"'
+        matCInclude = Path("actors") / dirName / "material.inc.c"
+        matHInclude = Path("actors") / dirName / "material.inc.h"
         headerInclude = '#include "actors/' + dirName + '/geo_header.h"'
     else:
-        matCInclude = '"levels/' + levelName + "/" + dirName + '/material.inc.c"'
-        matHInclude = '"levels/' + levelName + "/" + dirName + '/material.inc.h"'
+        matCInclude = Path("levels") / levelName / dirName / "material.inc.c"
+        matHInclude = Path("levels") / levelName / dirName / "material.inc.h"
         headerInclude = '#include "levels/' + levelName + "/" + dirName + '/geo_header.h"'
 
     modifyTexScrollFiles(exportDir, geoDirPath, scrollData)
@@ -714,6 +714,7 @@ def saveGeolayoutC(
         groupName,
         Path(dirPath),
         dirName,
+        levelName,
         [Path("model.inc.c")],
         [Path("geo_header.h")],
         [Path("geo.inc.c")],
@@ -791,7 +792,7 @@ def saveGeolayoutC(
         )
 
         if DLFormat != DLFormat.Static:  # Change this
-            writeMaterialHeaders(exportDir, matCInclude, matHInclude)
+            write_material_headers(Path(exportDir), matCInclude, matHInclude)
 
     return staticData.header, fileStatus
 
