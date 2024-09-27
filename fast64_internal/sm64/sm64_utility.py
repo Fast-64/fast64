@@ -1,5 +1,6 @@
 from typing import NamedTuple, Optional
 from pathlib import Path
+from io import StringIO
 import os
 import re
 
@@ -161,6 +162,23 @@ def find_descriptor_in_text(value: ModifyFoundDescriptor, commentless: str, comm
     return matches
 
 
+def get_comment_map(text: str):
+    comment_map = []
+    commentless, last_pos, pos = StringIO(), 0, 0
+    for match in re.finditer(COMMENT_PATTERN, text):
+        pos += commentless.write(text[last_pos : match.start()])  # add text before comment
+        string = match.group(0)
+        if string.startswith("/"):  # actual comment
+            comment_map.append((pos, len(string) - 1))
+            pos += commentless.write(" ")
+        else:  # stuff like strings
+            pos += commentless.write(string)
+        last_pos = match.end()
+
+    commentless.write(text[last_pos:])  # add any remaining text after the last match
+    return commentless.getvalue(), comment_map
+
+
 def find_descriptors(
     text: str,
     descriptors: list[ModifyFoundDescriptor],
@@ -171,24 +189,10 @@ def find_descriptors(
     ignore_comments=True,
 ):
     """Returns: The found matches from descriptors, the footer pos (the end of the text if none)"""
-    comment_map = []
     if ignore_comments:
-        commentless = ""
-        last_pos = 0
-
-        for match in re.finditer(COMMENT_PATTERN, text):
-            commentless += text[last_pos : match.start()]  # add text before comment
-            string = match.group(0)
-            if string.startswith("/"):
-                comment_map.append((len(commentless), len(string) - 1))
-                commentless += " "
-            else:
-                commentless += string
-            last_pos = match.end()
-
-        commentless += text[last_pos:]  # add any remaining text after the last match
+        commentless, comment_map = get_comment_map(text)
     else:
-        commentless = text
+        commentless, comment_map = text, []
 
     header_matches = find_descriptor_in_text(header, commentless, comment_map) if header is not None else []
     footer_matches = find_descriptor_in_text(footer, commentless, comment_map) if footer is not None else []
