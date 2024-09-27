@@ -147,15 +147,20 @@ class DescriptorMatch(NamedTuple):
     end: int
 
 
-def find_descriptor_in_text(value: ModifyFoundDescriptor, commentless: str, comment_map: dict):
+class CommentMatch(NamedTuple):
+    commentless_pos: int
+    size: int
+
+
+def find_descriptor_in_text(value: ModifyFoundDescriptor, commentless: str, comment_map: list[CommentMatch]):
     matches: list[DescriptorMatch] = []
     for match in re.finditer(value.regex, commentless):
         found_start, found_end = match.start(), match.end()
         start, end = match.start(), match.end()
-        for commentless_start, comment_size in comment_map:  # only remove parts outside comments
-            if commentless_start >= found_start and commentless_start <= found_end:  # comment inside descriptor
+        for commentless_pos, comment_size in comment_map:  # only remove parts outside comments
+            if commentless_pos >= found_start and commentless_pos <= found_end:  # comment inside descriptor
                 end += comment_size
-            elif found_end >= commentless_start:
+            elif found_end >= commentless_pos:
                 start += comment_size
                 end += comment_size
         matches.append(DescriptorMatch(match.group(0), start, end))
@@ -163,16 +168,16 @@ def find_descriptor_in_text(value: ModifyFoundDescriptor, commentless: str, comm
 
 
 def get_comment_map(text: str):
-    comment_map = []
+    comment_map: list[CommentMatch] = []
     commentless, last_pos, pos = StringIO(), 0, 0
     for match in re.finditer(COMMENT_PATTERN, text):
         pos += commentless.write(text[last_pos : match.start()])  # add text before comment
-        string = match.group(0)
-        if string.startswith("/"):  # actual comment
-            comment_map.append((pos, len(string) - 1))
+        match_string = match.group(0)
+        if match_string.startswith("/"):  # actual comment
+            comment_map.append(CommentMatch(pos, len(match_string) - 1))
             pos += commentless.write(" ")
         else:  # stuff like strings
-            pos += commentless.write(string)
+            pos += commentless.write(match_string)
         last_pos = match.end()
 
     commentless.write(text[last_pos:])  # add any remaining text after the last match
@@ -200,17 +205,17 @@ def find_descriptors(
     header_pos = 0
     if len(header_matches) > 0:
         _, header_pos, _ = header_matches[0]
-    elif error_if_no_header:
+    elif header is not None and error_if_no_header:
         raise PluginError(f"Header {header.string} does not exist.")
 
     # find first footer after the header
     if footer_matches:
         if header_matches:
             footer_pos = next((pos for _, pos, _ in footer_matches if pos >= header_pos), footer_matches[-1])
-        elif len(footer_matches) > 0:
+        else:
             _, footer_pos, _ = footer_matches[-1]
     else:
-        if error_if_no_footer:
+        if footer is not None and error_if_no_footer:
             raise PluginError(f"Footer {footer.string} does not exist.")
         footer_pos = len(text)
 
