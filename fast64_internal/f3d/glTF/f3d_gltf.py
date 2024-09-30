@@ -24,7 +24,6 @@ from ...gltf_utility import (
     get_gltf_image_from_blender_image,
     get_gltf_settings,
     is_import_context,
-    prefix_function,
     swap_function,
     suffix_function,
     GLTF2_ADDON_VERSION,
@@ -33,7 +32,6 @@ from ..f3d_gbi import F3D, get_F3D_GBI
 from ..f3d_material import (
     all_combiner_uses,
     get_color_info_from_tex,
-    getTmemMax,
     link_if_none_exist,
     remove_first_link_if_exists,
     rendermode_presets_checks,
@@ -432,7 +430,7 @@ class F3DExtensions(GlTF2SubExtension):
             if self.settings.raise_texture_limits and f3d_tex.tex_set:
                 tex_size = f3d_tex.tex_size
                 tmem_usage = f3d_tex.word_usage
-                tmem_max = getTmemMax(f3d_tex.tex_format)
+                tmem_max = 256 if f3d_tex.is_ci else 512
 
                 if f3d_mat.use_large_textures and tex_size[0] > 1024 or tex_size[1] > 1024:
                     raise PluginError(
