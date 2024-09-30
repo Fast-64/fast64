@@ -496,6 +496,16 @@ def ootGetObjectHeaderPath(isCustomExport: bool, exportPath: str, folderName: st
     return filepath
 
 
+def ootGetObjectHeaderPath(isCustomExport: bool, exportPath: str, folderName: str) -> str:
+    if isCustomExport:
+        filepath = exportPath
+    else:
+        filepath = os.path.join(
+            ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False), folderName + ".h"
+        )
+    return filepath
+
+
 def ootGetPath(exportPath, isCustomExport, subPath, folderName, makeIfNotExists, useFolderForCustom):
     if isCustomExport:
         path = bpy.path.abspath(os.path.join(exportPath, (folderName if useFolderForCustom else "")))

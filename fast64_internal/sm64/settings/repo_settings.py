@@ -22,6 +22,8 @@ def save_sm64_repo_settings(scene: Scene):
     data["compression_format"] = sm64_props.compression_format
     data["force_extended_ram"] = sm64_props.force_extended_ram
     data["matstack_fix"] = sm64_props.matstack_fix
+    if not sm64_props.hackersm64:
+        data["designated"] = sm64_props.designated_prop
 
     return data
 
@@ -42,6 +44,7 @@ def load_sm64_repo_settings(scene: Scene, data: dict[str, Any]):
     sm64_props.compression_format = data.get("compression_format", sm64_props.compression_format)
     sm64_props.force_extended_ram = data.get("force_extended_ram", sm64_props.force_extended_ram)
     sm64_props.matstack_fix = data.get("matstack_fix", sm64_props.matstack_fix)
+    sm64_props.designated_prop = data.get("designated", sm64_props.designated_prop)
 
 
 def draw_repo_settings(scene: Scene, layout: UILayout):
@@ -54,5 +57,7 @@ def draw_repo_settings(scene: Scene, layout: UILayout):
     prop_split(col, sm64_props, "refresh_version", "Refresh (Function Map)")
     col.prop(sm64_props, "force_extended_ram")
     col.prop(sm64_props, "matstack_fix")
+    if not sm64_props.hackersm64:
+        col.prop(sm64_props, "designated_prop")
 
     col.label(text="See Fast64 repo settings for general settings", icon="INFO")
