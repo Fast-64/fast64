@@ -152,18 +152,23 @@ class CommentMatch(NamedTuple):
     size: int
 
 
-def find_descriptor_in_text(value: ModifyFoundDescriptor, commentless: str, comment_map: list[CommentMatch]):
+def adjust_start_end(start: int, end: int, comment_map: list[CommentMatch]):
+    for commentless_pos, comment_size in comment_map:
+        if start >= commentless_pos:
+            start += comment_size
+        if end >= commentless_pos:
+            end += comment_size
+    return start, end
+
+
+def find_descriptor_in_text(
+    value: ModifyFoundDescriptor, commentless: str, comment_map: list[CommentMatch], start=0, end=-1
+):
     matches: list[DescriptorMatch] = []
-    for match in re.finditer(value.regex, commentless):
-        found_start, found_end = match.start(), match.end()
-        start, end = match.start(), match.end()
-        for commentless_pos, comment_size in comment_map:  # only remove parts outside comments
-            if commentless_pos >= found_start and commentless_pos <= found_end:  # comment inside descriptor
-                end += comment_size
-            elif found_end >= commentless_pos:
-                start += comment_size
-                end += comment_size
-        matches.append(DescriptorMatch(match.group(0), start, end))
+    for match in re.finditer(value.regex, commentless[start:end]):
+        matches.append(
+            DescriptorMatch(match.group(0), *adjust_start_end(start + match.start(), start + match.end(), comment_map))
+        )
     return matches
 
 
@@ -211,7 +216,7 @@ def find_descriptors(
     # find first footer after the header
     if footer_matches:
         if header_matches:
-            footer_pos = next((pos for _, pos, _ in footer_matches if pos >= header_pos), footer_matches[-1])
+            footer_pos = next((pos for _, pos, _ in footer_matches if pos >= header_pos), footer_matches[-1].start)
         else:
             _, footer_pos, _ = footer_matches[-1]
     else:
@@ -221,7 +226,7 @@ def find_descriptors(
 
     found_matches: dict[ModifyFoundDescriptor, list[DescriptorMatch]] = {}
     for descriptor in descriptors:
-        matches = find_descriptor_in_text(descriptor, commentless[header_pos:footer_pos], comment_map)
+        matches = find_descriptor_in_text(descriptor, commentless, comment_map, header_pos, footer_pos)
         if matches:
             found_matches.setdefault(descriptor, []).extend(matches)
     return found_matches, footer_pos
