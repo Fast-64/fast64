@@ -70,7 +70,7 @@ def __get_mime_type_of_image(name: str, export_settings: dict):
 def get_gltf_image_from_blender_image(blender_image_name: str, export_settings: dict):
     image_data = ExportImage.from_blender_image(bpy.data.images[blender_image_name])
 
-    if bpy.app.version > (4, 1, 0):
+    if bpy.app.version > (4, 1, 1):
         name = __gather_name(image_data, None, export_settings)
     else:
         name = __gather_name(image_data, export_settings)

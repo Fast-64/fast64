@@ -946,6 +946,7 @@ def gather_mesh_hook(blender_mesh: Mesh, *args):
 import io_scene_gltf2.blender.exp.gltf2_blender_gather_mesh as gather_mesh_owner  # pylint: disable=import-error
 
 gather_mesh_owner.gather_mesh = prefix_function(gather_mesh_owner.gather_mesh, gather_mesh_hook)
+del gather_mesh_owner
 
 # 3.2 hack
 
@@ -1422,3 +1423,5 @@ if GLTF2_ADDON_VERSION == (3, 2, 40):
         extract_primitives_owner.extract_primitives, extract_primitives_fast64
     )
     __gather_colors_owner.__gather_colors = suffix_function(__gather_colors_owner.__gather_colors, post__gather_colors)
+    del extract_primitives_owner
+    del __gather_colors_owner
