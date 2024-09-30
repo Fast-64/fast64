@@ -917,7 +917,7 @@ def modify_f3d_nodes_for_export(use: bool):
             link_if_none_exist(mat, bsdf.outputs["BSDF"], material_output.inputs["Surface"])
 
 
-def gather_mesh_hook(blender_mesh: Mesh, *args):
+def pre_gather_mesh_hook(blender_mesh: Mesh, *args):
     """HACK: Runs right before the actual gather_mesh func in the addon, we need to join col and alpha"""
     if not get_settings().apply_alpha_to_col:
         return
@@ -942,11 +942,6 @@ def gather_mesh_hook(blender_mesh: Mesh, *args):
     color = color.flatten()
     color_layer.foreach_set("color", color)
 
-
-import io_scene_gltf2.blender.exp.gltf2_blender_gather_mesh as gather_mesh_owner  # pylint: disable=import-error
-
-gather_mesh_owner.gather_mesh = prefix_function(gather_mesh_owner.gather_mesh, gather_mesh_hook)
-del gather_mesh_owner
 
 # 3.2 hack
 
