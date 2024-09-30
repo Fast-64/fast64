@@ -1,6 +1,7 @@
 import math, bpy, mathutils
 import os
 from bpy.utils import register_class, unregister_class
+from bpy.types import UILayout
 from re import findall, sub
 from pathlib import Path
 from ..panels import SM64_Panel
@@ -31,6 +32,7 @@ from ..f3d.f3d_gbi import (
 
 from .sm64_constants import (
     levelIDNames,
+    level_enums,
     enumLevelNames,
     enumModelIDs,
     enumMacrosNames,
@@ -65,6 +67,13 @@ from .sm64_geolayout_classes import (
     ScaleNode,
 )
 
+from .animation import (
+    export_animation,
+    export_animation_table,
+    get_anim_obj,
+    is_obj_animatable,
+    SM64_ArmatureAnimProperties,
+)
 
 enumTerrain = [
     ("Custom", "Custom", "Custom"),
@@ -1443,6 +1452,8 @@ class BehaviorScriptProperty(bpy.types.PropertyGroup):
     _inheritable_macros = {
         "LOAD_COLLISION_DATA",
         "SET_MODEL",
+        "LOAD_ANIMATIONS",
+        "ANIMATE"
         # add support later maybe
         # "SET_HITBOX_WITH_OFFSET",
         # "SET_HITBOX",
@@ -1496,6 +1507,18 @@ class BehaviorScriptProperty(bpy.types.PropertyGroup):
             if not props.export_col:
                 raise PluginError("Can't inherit collision without exporting collision data")
             return props.collision_name
+        if self.macro == "LOAD_ANIMATIONS":
+            if not props.export_anim:
+                raise PluginError("Can't inherit animation table without exporting animation data")
+            if not props.anims_name:
+                raise PluginError("No animation name to inherit in behavior script")
+            return f"oAnimations, {props.anims_name}"
+        if self.macro == "ANIMATE":
+            if not props.export_anim:
+                raise PluginError("Can't inherit animation table without exporting animation data")
+            if not props.anim_object:
+                raise PluginError("No animation properties to inherit in behavior script")
+            return f"oAnimations, {props.anim_object.fast64.sm64.animation.beginning_animation}"
         return self.macro_args
 
     def get_args(self, context, props):
@@ -1548,7 +1571,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
 
     # exports the model ID load into the appropriate script.c location
     def export_script_load(self, context, props):
-        decomp_path = Path(bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path))
+        decomp_path = bpy.context.scene.fast64.sm64.abs_decomp_path
         if props.export_header_type == "Level":
             # for some reason full_level_path doesn't work here
             if props.non_decomp_level:
@@ -1594,7 +1617,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         if props.non_decomp_level:
             return
         # check if model_ids.h exists
-        decomp_path = Path(bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path))
+        decomp_path = bpy.context.scene.fast64.sm64.abs_decomp_path
         model_ids = decomp_path / "include" / "model_ids.h"
         if not model_ids.exists():
             PluginError("Could not find model_ids.h")
@@ -1711,7 +1734,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
 
     def export_behavior_header(self, context, props):
         # check if behavior_header.h exists
-        decomp_path = Path(bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path))
+        decomp_path = bpy.context.scene.fast64.sm64.abs_decomp_path
         behavior_header = decomp_path / "include" / "behavior_data.h"
         if not behavior_header.exists():
             PluginError("Could not find behavior_data.h")
@@ -1745,7 +1768,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             raise PluginError("Behavior must have more than 0 cmds to export")
 
         # export the behavior script itself
-        decomp_path = Path(bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path))
+        decomp_path = bpy.context.scene.fast64.sm64.abs_decomp_path
         behavior_data = decomp_path / "data" / "behavior_data.c"
         if not behavior_data.exists():
             PluginError("Could not find behavior_data.c")
@@ -1812,7 +1835,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             raise PluginError("Operator can only be used in object mode.")
         if context.scene.fast64.sm64.export_type != "C":
             raise PluginError("Combined Object Export only supports C exporting")
-        if not props.col_object and not props.gfx_object and not props.bhv_object:
+        if not props.col_object and not props.gfx_object and not props.anim_object and not props.bhv_object:
             raise PluginError("No export object selected")
         if (
             context.active_object
@@ -1823,7 +1846,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
 
     def get_export_objects(self, context, props):
         if not props.export_all_selected:
-            return {props.col_object, props.gfx_object, props.bhv_object}.difference({None})
+            return {props.col_object, props.gfx_object, props.anim_object, props.bhv_object}.difference({None})
 
         def obj_root(object, context):
             while object.parent and object.parent in context.selected_objects:
@@ -1877,6 +1900,22 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             if not props.export_all_selected:
                 raise Exception(e)
 
+    # writes table.inc.c file, anim_header.h
+    # writes include into aggregate file in export location (leveldata.c/<group>.c)
+    # writes name to header in aggregate file location (actor/level)
+    # var name is: static const struct Animation *const <props.anim_obj>_anims[] (or custom name)
+    def execute_anim(self, props, context, obj):
+        try:
+            if props.export_anim and obj is props.anim_object:
+                if props.export_single_action:
+                    export_animation(context, obj)
+                else:
+                    export_animation_table(context, obj)
+        except Exception as exc:
+            # pass on multiple export, throw on singular
+            if not props.export_all_selected:
+                raise Exception(exc) from exc
+
     def execute(self, context):
         props = context.scene.fast64.sm64.combined_export
         try:
@@ -1887,6 +1926,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
                 props.context_obj = obj
                 self.execute_col(props, obj)
                 self.execute_gfx(props, context, obj, index)
+                self.execute_anim(props, context, obj)
                 # do not export behaviors with multiple selection
                 if props.export_bhv and props.obj_name_bhv and not props.export_all_selected:
                     self.export_behavior_script(context, props)
@@ -1959,6 +1999,17 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         name="Export Rooms", description="Collision export will generate rooms.inc.c file"
     )
 
+    # anim export options
+    quick_anim_read: bpy.props.BoolProperty(
+        name="Quick Data Read", description="Read fcurves directly, should work with the majority of rigs", default=True
+    )
+    export_single_action: bpy.props.BoolProperty(
+        name="Selected Action",
+        description="Animation export will only export the armature's current action like in older versions of fast64",
+    )
+    binary_level: bpy.props.EnumProperty(items=level_enums, name="Level", default="IC")
+    insertable_directory: bpy.props.StringProperty(name="Directory Path", subtype="FILE_PATH")
+
     # export options
     export_bhv: bpy.props.BoolProperty(
         name="Export Behavior", default=False, description="Export behavior with given object name"
@@ -1969,6 +2020,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
     export_gfx: bpy.props.BoolProperty(
         name="Export Graphics", description="Export geo layouts for linked or selected mesh that have collision data"
     )
+    export_anim: bpy.props.BoolProperty(name="Export Animations", description="Export animation table of an armature")
     export_script_loads: bpy.props.BoolProperty(
         name="Export Script Loads",
         description="Exports the Model ID and adds a level script load in the appropriate place",
@@ -1991,6 +2043,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
 
     collision_object: bpy.props.PointerProperty(type=bpy.types.Object)
     graphics_object: bpy.props.PointerProperty(type=bpy.types.Object)
+    animation_object: bpy.props.PointerProperty(type=bpy.types.Object, poll=lambda self, obj: is_obj_animatable(obj))
 
     # is this abuse of properties?
     @property
@@ -2010,6 +2063,18 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
             return self.context_obj or bpy.context.active_object
         else:
             return self.graphics_object or self.context_obj or bpy.context.active_object
+
+    @property
+    def anim_object(self):
+        if not self.export_anim:
+            return None
+        obj = get_anim_obj(bpy.context)
+        context_obj = self.context_obj if self.context_obj and is_obj_animatable(self.context_obj) else None
+        if self.export_all_selected:
+            return context_obj or obj
+        else:
+            assert not self.animation_object or is_obj_animatable(self.animation_object)
+            return self.animation_object or context_obj or obj
 
     @property
     def bhv_object(self):
@@ -2055,6 +2120,15 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
             return self.filter_name(self.object_name or self.bhv_object.name)
 
     @property
+    def obj_name_anim(self):
+        if self.export_all_selected and self.anim_object:
+            return self.filter_name(self.anim_object.name)
+        if not self.object_name and not self.anim_object:
+            return ""
+        else:
+            return self.filter_name(self.object_name or self.anim_object.name)
+
+    @property
     def bhv_name(self):
         return "bhv" + "".join([word.title() for word in toAlnum(self.obj_name_bhv).split("_")])
 
@@ -2069,6 +2143,12 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
     @property
     def model_id_define(self):
         return f"MODEL_{toAlnum(self.obj_name_gfx)}".upper()
+
+    @property
+    def anims_name(self):
+        if not self.anim_object:
+            return ""
+        return self.anim_object.fast64.sm64.animation.get_table_name(self.obj_name_anim)
 
     @property
     def export_level_name(self):
@@ -2104,28 +2184,41 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
             return self.custom_export_path
 
     @property
-    def level_directory(self):
+    def level_directory(self) -> Path:
         if self.non_decomp_level:
-            return self.custom_level_name
+            return Path(self.custom_level_name)
         level_name = self.custom_level_name if self.level_name == "Custom" else self.level_name
-        return os.path.join("/levels/", level_name)
+        return Path("levels") / level_name
 
     @property
     def base_level_path(self):
         if self.non_decomp_level:
-            return bpy.path.abspath(self.custom_level_path)
-        return bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path)
+            return Path(bpy.path.abspath(self.custom_level_path))
+        return bpy.context.scene.fast64.sm64.abs_decomp_path
 
     @property
     def full_level_path(self):
-        return os.path.join(self.base_level_path, self.level_directory)
+        return self.base_level_path / self.level_directory
 
     # remove user prefixes/naming that I will be adding, such as _col, _geo etc.
-    def filter_name(self, name):
-        if self.use_name_filtering:
+    def filter_name(self, name, force_filtering=False):
+        if self.use_name_filtering or force_filtering:
             return sub("(_col)?(_geo)?(_bhv)?(lision)?", "", name)
         else:
             return name
+
+    def draw_anim_props(self, layout: UILayout, export_type="C", is_dma=False):
+        col = layout.column()
+        col.prop(self, "quick_anim_read")
+        if self.quick_anim_read:
+            col.label(text="May Break!", icon="INFO")
+        if not is_dma and export_type == "C":
+            col.prop(self, "export_single_action")
+        if export_type == "Binary":
+            if not is_dma:
+                prop_split(col, self, "binary_level", "Level")
+        elif export_type == "Insertable Binary":
+            prop_split(col, self, "insertable_directory", "Directory")
 
     def draw_export_options(self, layout):
         split = layout.row(align=True)
@@ -2149,6 +2242,14 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
                 box.prop(self, "graphics_object", icon_only=True)
             if self.export_script_loads:
                 box.prop(self, "model_id", text="Model ID")
+
+        box = split.box().column()
+        box.prop(self, "export_anim", toggle=1)
+        if self.export_anim:
+            self.draw_anim_props(box)
+            if not self.export_all_selected:
+                box.prop(self, "animation_object", icon_only=True)
+
         col = layout.column()
         col.prop(self, "export_all_selected")
         col.prop(self, "use_name_filtering")
@@ -2156,8 +2257,21 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
             col.prop(self, "export_bhv")
             self.draw_obj_name(layout)
 
+    @property
+    def actor_names(self) -> list:
+        return list(dict.fromkeys(filter(None, [self.obj_name_col, self.obj_name_gfx, self.obj_name_anim])).keys())
+
+    @property
+    def export_locations(self) -> str | None:
+        names = self.actor_names
+        if len(names) > 1:
+            return f"({'/'.join(names)})"
+        elif len(names) == 1:
+            return names[0]
+        return None
+
     def draw_level_path(self, layout):
-        if not directory_ui_warnings(layout, bpy.path.abspath(self.base_level_path)):
+        if not directory_ui_warnings(layout, self.base_level_path):
             return
         if self.non_decomp_level:
             layout.label(text=f"Level export path: {self.full_level_path}")
@@ -2166,12 +2280,24 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         return True
 
     def draw_actor_path(self, layout):
-        actor_path = Path(bpy.context.scene.fast64.sm64.decomp_path) / "actors"
-        if not filepath_ui_warnings(layout, (actor_path / self.actor_group_name).with_suffix(".c")):
+        if self.export_locations is None:
             return
-        export_locations = ",".join({self.obj_name_col, self.obj_name_gfx})
-        # can this be more clear?
-        layout.label(text=f"Actor export path: actors/{export_locations}")
+        decomp_path = bpy.context.scene.fast64.sm64.abs_decomp_path
+        if self.export_header_type == "Actor":
+            actor_path = decomp_path / "actors"
+            if not filepath_ui_warnings(layout, (actor_path / self.actor_group_name).with_suffix(".c")):
+                return
+            layout.label(text=f"Actor export path: actors/{self.export_locations}/")
+        elif self.export_header_type == "Level":
+            if not directory_ui_warnings(layout, self.full_level_path):
+                return
+            level_path = self.full_level_path if self.non_decomp_level else self.level_directory
+            layout.label(text=f"Actor export path: {level_path / self.export_locations}/")
+        elif self.export_header_type == "Custom":
+            custom_path = Path(bpy.path.abspath(self.custom_export_path))
+            if not directory_ui_warnings(layout, custom_path):
+                return
+            layout.label(text=f"Actor export path: {custom_path / self.export_locations}/")
         return True
 
     def draw_col_names(self, layout):
@@ -2183,6 +2309,12 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         layout.label(text=f"GeoLayout name: {self.geo_name}")
         if self.export_script_loads:
             layout.label(text=f"Model ID: {self.model_id_define}")
+
+    def draw_anim_names(self, layout):
+        anim_props = self.anim_object.fast64.sm64.animation
+        if anim_props.is_dma:
+            layout.label(text=f"Animation path: {anim_props.dma_folder}(.c)")
+        layout.label(text=f"Animation table name: {self.anims_name}")
 
     def draw_obj_name(self, layout):
         split_1 = layout.split(factor=0.45)
@@ -2219,7 +2351,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         col.separator()
         # object exports
         box = col.box()
-        if not self.export_col and not self.export_bhv and not self.export_gfx:
+        if not self.export_col and not self.export_bhv and not self.export_gfx and not self.export_anim:
             col = box.column()
             col.operator("object.sm64_export_combined_object", text="Export Object")
             col.enabled = False
@@ -2231,7 +2363,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
             self.draw_export_options(box)
 
         # bhv export only, so enable bhv draw only
-        if not self.export_col and not self.export_gfx:
+        if not self.export_col and not self.export_gfx and not self.export_anim:
             return self.draw_bhv_options(col)
 
         # pathing for gfx/col exports
@@ -2266,23 +2398,22 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
                 "Duplicates objects will be exported! Use with Caution.",
                 icon="ERROR",
             )
+            return
 
         info_box = box.box()
         info_box.scale_y = 0.5
 
-        if self.export_header_type == "Level":
-            if not self.draw_level_path(info_box):
-                return
-
-        elif self.export_header_type == "Actor":
-            if not self.draw_actor_path(info_box):
-                return
+        if not self.draw_actor_path(info_box):
+            return
 
         if self.obj_name_gfx and self.export_gfx:
             self.draw_gfx_names(info_box)
 
         if self.obj_name_col and self.export_col:
             self.draw_col_names(info_box)
+
+        if self.obj_name_anim and self.export_anim:
+            self.draw_anim_names(info_box)
 
         if self.obj_name_bhv:
             info_box.label(text=f"Behavior name: {self.bhv_name}")
@@ -2784,6 +2915,8 @@ class SM64_ObjectProperties(bpy.types.PropertyGroup):
     area: bpy.props.PointerProperty(type=SM64_AreaProperties)
     game_object: bpy.props.PointerProperty(type=SM64_GameObjectProperties)
     segment_loads: bpy.props.PointerProperty(type=SM64_SegmentProperties)
+
+    animation: bpy.props.PointerProperty(type=SM64_ArmatureAnimProperties)
 
     @staticmethod
     def upgrade_changed_props():

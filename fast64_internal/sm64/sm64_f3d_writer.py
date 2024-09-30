@@ -1,3 +1,4 @@
+from pathlib import Path
 import shutil, copy, bpy, re, os
 from io import BytesIO
 from math import ceil, log, radians
@@ -14,7 +15,15 @@ from ..f3d.f3d_material import (
     update_world_default_rendermode,
 )
 from .sm64_texscroll import modifyTexScrollFiles, modifyTexScrollHeadersGroup
-from .sm64_utility import export_rom_checks, starSelectWarning
+from .sm64_utility import (
+    END_IF_FOOTER,
+    ModifyFoundDescriptor,
+    export_rom_checks,
+    starSelectWarning,
+    update_actor_includes,
+    write_or_delete_if_found,
+    write_material_headers,
+)
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_rom_tweaks import ExtendBank0x04
 from typing import Tuple, Union, Iterable
@@ -61,11 +70,9 @@ from ..utility import (
     applyRotation,
     toAlnum,
     checkIfPathExists,
-    writeIfNotFound,
     overwriteData,
     getExportDir,
     writeMaterialFiles,
-    writeMaterialHeaders,
     get64bitAlignedAddr,
     writeInsertableFile,
     getPathAndLevel,
@@ -196,7 +203,9 @@ def exportTexRectToC(dirPath, texProp, texDir, savePNG, name, exportToProject, p
         overwriteData("const\s*u8\s*", textures[0].name, data, seg2CPath, None, False)
 
         # Append texture declaration to segment2.h
-        writeIfNotFound(seg2HPath, declaration, "#endif")
+        write_or_delete_if_found(
+            Path(seg2HPath), ModifyFoundDescriptor(declaration), path_must_exist=True, footer=END_IF_FOOTER
+        )
 
         # Write/Overwrite function to hud.c
         overwriteData("void\s*", fTexRect.name, code, hudPath, projectExportData[1], True)
@@ -425,24 +434,15 @@ def sm64ExportF3DtoC(
     cDefFile.write(staticData.header)
     cDefFile.close()
 
+    update_actor_includes(headerType, groupName, Path(dirPath), name, levelName, ["model.inc.c"], ["header.h"])
     fileStatus = None
     if not customExport:
         if headerType == "Actor":
-            # Write to group files
-            if groupName == "" or groupName is None:
-                raise PluginError("Actor header type chosen but group name not provided.")
-
-            groupPathC = os.path.join(dirPath, groupName + ".c")
-            groupPathH = os.path.join(dirPath, groupName + ".h")
-
-            writeIfNotFound(groupPathC, '\n#include "' + toAlnum(name) + '/model.inc.c"', "")
-            writeIfNotFound(groupPathH, '\n#include "' + toAlnum(name) + '/header.h"', "\n#endif")
-
             if DLFormat != DLFormat.Static:  # Change this
-                writeMaterialHeaders(
-                    basePath,
-                    '#include "actors/' + toAlnum(name) + '/material.inc.c"',
-                    '#include "actors/' + toAlnum(name) + '/material.inc.h"',
+                write_material_headers(
+                    Path(basePath),
+                    Path("actors") / toAlnum(name) / "material.inc.c",
+                    Path("actors") / toAlnum(name) / "material.inc.h",
                 )
 
             texscrollIncludeC = '#include "actors/' + name + '/texscroll.inc.c"'
@@ -451,19 +451,11 @@ def sm64ExportF3DtoC(
             texscrollGroupInclude = '#include "actors/' + groupName + '.h"'
 
         elif headerType == "Level":
-            groupPathC = os.path.join(dirPath, "leveldata.c")
-            groupPathH = os.path.join(dirPath, "header.h")
-
-            writeIfNotFound(groupPathC, '\n#include "levels/' + levelName + "/" + toAlnum(name) + '/model.inc.c"', "")
-            writeIfNotFound(
-                groupPathH, '\n#include "levels/' + levelName + "/" + toAlnum(name) + '/header.h"', "\n#endif"
-            )
-
             if DLFormat != DLFormat.Static:  # Change this
-                writeMaterialHeaders(
+                write_material_headers(
                     basePath,
-                    '#include "levels/' + levelName + "/" + toAlnum(name) + '/material.inc.c"',
-                    '#include "levels/' + levelName + "/" + toAlnum(name) + '/material.inc.h"',
+                    Path("levels") / levelName / toAlnum(name) / "material.inc.c",
+                    Path("levels") / levelName / toAlnum(name) / "material.inc.h",
                 )
 
             texscrollIncludeC = '#include "levels/' + levelName + "/" + name + '/texscroll.inc.c"'

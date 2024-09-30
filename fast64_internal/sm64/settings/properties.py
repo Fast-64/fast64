@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import bpy
 from bpy.types import PropertyGroup, UILayout, Context
 from bpy.props import BoolProperty, StringProperty, EnumProperty, IntProperty, FloatProperty, PointerProperty
@@ -6,11 +7,12 @@ from bpy.path import abspath
 from bpy.utils import register_class, unregister_class
 
 from ...render_settings import on_update_render_settings
-from ...utility import directory_path_checks, directory_ui_warnings, prop_split, upgrade_old_prop
+from ...utility import directory_path_checks, directory_ui_warnings, prop_split, upgrade_old_prop, get_first_set_prop
 from ..sm64_constants import defaultExtendSegment4
 from ..sm64_objects import SM64_CombinedObjectProperties
 from ..sm64_utility import export_rom_ui_warnings, import_rom_ui_warnings
 from ..tools import SM64_AddrConvProperties
+from ..animation.properties import SM64_AnimProperties
 
 from .constants import (
     enum_refresh_versions,
@@ -22,17 +24,17 @@ from .constants import (
 
 def decomp_path_update(self, context: Context):
     fast64_settings = context.scene.fast64.settings
-    if fast64_settings.repo_settings_path:
+    if fast64_settings.repo_settings_path and Path(abspath(fast64_settings.repo_settings_path)).exists():
         return
-    directory_path_checks(abspath(self.decomp_path))
-    fast64_settings.repo_settings_path = os.path.join(abspath(self.decomp_path), "fast64.json")
+    directory_path_checks(self.abs_decomp_path)
+    fast64_settings.repo_settings_path = str(self.abs_decomp_path / "fast64.json")
 
 
 class SM64_Properties(PropertyGroup):
     """Global SM64 Scene Properties found under scene.fast64.sm64"""
 
     version: IntProperty(name="SM64_Properties Version", default=0)
-    cur_version = 3  # version after property migration
+    cur_version = 4  # version after property migration
 
     # UI Selection
     show_importing_menus: BoolProperty(name="Show Importing Menus", default=False)
@@ -80,10 +82,21 @@ class SM64_Properties(PropertyGroup):
         name="Matstack Fix",
         description="Exports account for matstack fix requirements",
     )
+    # could be used for other properties outside animation
+    designated: BoolProperty(
+        name="Designated Initialization for Animation Tables",
+        description="Extremely recommended but must be off when compiling with IDO.",
+    )
+
+    animation: PointerProperty(type=SM64_AnimProperties)
 
     @property
     def binary_export(self):
-        return self.export_type in ["Binary", "Insertable Binary"]
+        return self.export_type in {"Binary", "Insertable Binary"}
+
+    @property
+    def abs_decomp_path(self) -> Path:
+        return Path(abspath(self.decomp_path))
 
     @staticmethod
     def upgrade_changed_props():
@@ -107,10 +120,13 @@ class SM64_Properties(PropertyGroup):
             "custom_level_name": {"levelName", "geoLevelName", "colLevelName", "animLevelName"},
             "non_decomp_level": {"levelCustomExport"},
             "export_header_type": {"geoExportHeaderType", "colExportHeaderType", "animExportHeaderType"},
+            "binary_level": {"levelAnimExport"},
+            # as the others binary props get carried over to here we need to update the cur_version again
         }
         for scene in bpy.data.scenes:
             sm64_props: SM64_Properties = scene.fast64.sm64
             sm64_props.address_converter.upgrade_changed_props(scene)
+            sm64_props.animation.upgrade_changed_props(scene)
             if sm64_props.version == SM64_Properties.cur_version:
                 continue
             upgrade_old_prop(
@@ -131,6 +147,11 @@ class SM64_Properties(PropertyGroup):
             combined_props = scene.fast64.sm64.combined_export
             for new, old in old_export_props_to_new.items():
                 upgrade_old_prop(combined_props, new, scene, old)
+
+            insertable_directory = get_first_set_prop(scene, "animInsertableBinaryPath")
+            if insertable_directory is not None:  # Ignores file name
+                combined_props.insertable_directory = os.path.split(insertable_directory)[1]
+
             sm64_props.version = SM64_Properties.cur_version
 
     def draw_props(self, layout: UILayout, show_repo_settings: bool = True):
@@ -149,7 +170,7 @@ class SM64_Properties(PropertyGroup):
             col.prop(self, "extend_bank_4")
         elif not self.binary_export:
             prop_split(col, self, "decomp_path", "Decomp Path")
-            directory_ui_warnings(col, abspath(self.decomp_path))
+            directory_ui_warnings(col, self.abs_decomp_path)
         col.separator()
 
         if not self.binary_export:
