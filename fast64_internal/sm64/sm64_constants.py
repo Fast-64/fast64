@@ -2155,7 +2155,7 @@ def as_list(val: ListOrVal[Any]) -> list[T]:
     return [val]
 
 
-def as_dict(val: DictOrVal[Any], name: str = "") -> dict[str, Any]:
+def as_dict(val: DictOrVal[T], name: str = "") -> dict[str, T]:
     """If val is a dict, returns it, otherwise returns {name: member}"""
     if isinstance(val, dict):
         return val
@@ -2186,6 +2186,7 @@ class AnimInfo:
         assert isinstance(self.address, int)
         assert validate_dict(self.behaviours, int)
         assert self.size is None or isinstance(self.size, int)
+        assert isinstance(self.ignore_bone_count, bool)
         assert isinstance(self.dma, bool)
         assert self.directory is None or isinstance(self.directory, str)
         assert validate_list(self.names, str)
@@ -2215,13 +2216,11 @@ class DisplaylistInfo:
 @dataclasses.dataclass
 class ModelInfo:
     model_id: ListOrVal[ModelIDInfo] = dataclasses.field(default_factory=list)
-    geolayout: ListOrVal[int] = dataclasses.field(default_factory=list)
-    displaylist: ListOrVal[DisplaylistInfo] = dataclasses.field(default_factory=list)
+    geolayout: int | None = None
+    displaylist: DisplaylistInfo | None = None
 
     def __post_init__(self):
         self.model_id = as_list(self.model_id)
-        self.displaylist = as_list(self.displaylist)
-        self.geolayout = as_list(self.geolayout)
         assert validate_list(self.model_id, ModelIDInfo)
         assert validate_list(self.geolayout, int)
         assert validate_list(self.displaylist, DisplaylistInfo)
@@ -2279,7 +2278,7 @@ class ActorPresetInfo:
         assert isinstance(self.level, str)
 
     @staticmethod
-    def get_member_as_dict(name: str, member: DictOrVal):
+    def get_member_as_dict(name: str, member: DictOrVal[T]):
         return as_dict(member, name)
 
 
@@ -2288,7 +2287,10 @@ ACTOR_PRESET_INFO = {
         decomp_path="actors/amp",
         group="common0",
         animation=AnimInfo(
-            address=0x8004034, behaviours={"Circling Amp": 0x13003388, "Homing Amp": 0x13003354}, names=["Moving"]
+            address=0x8004034,
+            behaviours={"Circling Amp": 0x13003388, "Homing Amp": 0x13003354},
+            names=["Moving"],
+            ignore_bone_count=True,
         ),
         models=ModelInfo(model_id=ModelIDInfo(0xC2, "MODEL_AMP"), geolayout=0xF000028),
     ),
@@ -2433,10 +2435,10 @@ ACTOR_PRESET_INFO = {
             names=["Unlock Door", "Course Exit"],
         ),
         models={
-            "Bowser Key": ModelInfo(model_id=ModelIDInfo(0xCC, "MODEL_BOWSER_KEY"), geolayout=0x16000A84),
             "Bowser Key (Cutscene)": ModelInfo(
                 model_id=ModelIDInfo(0xC8, "MODEL_BOWSER_KEY_CUTSCENE"), geolayout=0x16000AB0
             ),
+            "Bowser Key": ModelInfo(model_id=ModelIDInfo(0xCC, "MODEL_BOWSER_KEY"), geolayout=0x16000A84),
         },
     ),
     "Breakable Box": ActorPresetInfo(
@@ -2635,6 +2637,7 @@ ACTOR_PRESET_INFO = {
                 "Open and Close (Slower? Last 10 frames)",
                 "Open and Close (Last 10 frames)",
             ],
+            ignore_bone_count=True,
         ),
         models={
             "Castle Door": ModelInfo(
@@ -3336,7 +3339,7 @@ ACTOR_PRESET_INFO = {
     "Seaweed": ActorPresetInfo(
         decomp_path="actors/seaweed",
         group="group13",
-        animation=AnimInfo(address=0x600B8CC, behaviours=0x13003134, size=1, names=["Wave"]),
+        animation=AnimInfo(address=0x0600A4D4, behaviours=0x13003134, size=1, names=["Wave"]),
         models=ModelInfo(model_id=ModelIDInfo(0xC1, "MODEL_SEAWEED"), geolayout=0xD000284),
     ),
     "Skeeter": ActorPresetInfo(
@@ -3546,7 +3549,7 @@ ACTOR_PRESET_INFO = {
         decomp_path="actors/unagi",
         group="group4",
         animation=AnimInfo(
-            address=0x5015784,
+            address=0x5012824,
             behaviours=0x13004F40,
             size=7,
             names=["Yawn", "Bite", "Swimming", "Static Straight", "Idle", "Open Mouth", "Idle 2"],
