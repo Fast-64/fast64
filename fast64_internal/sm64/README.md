@@ -52,38 +52,7 @@ For example, for Mario you would rotate the four limb joints around the Y-axis 1
 
 Then after applying the rest pose and skinning, you would apply those operations in reverse order then apply rest pose again.
 
-### Importing/Exporting Binary SM64 Animations (Not Mario)
--   Note: SM64 animations only allow for rotations, and translation only on the root bone.
-
--   Download Quad64, open the desired level, and go to Misc -> Script Dumps.
--   Go to the objects header, find the object you want, and view the Behaviour Script tab.
--   For most models with animation, you can will see a 27 command, and optionally a 28 command.
-
-For importing:
-
--   The last 4 bytes of the 27 command will be the animation list pointer.
-    -   Make sure 'Is DMA Animation' is unchecked, 'Is Anim List' is checked, and 'Is Segmented Pointer' is checked. 
-    -   Set the animation importer start address as those 4 bytes.
-    -   If a 28 command exists, then the second byte will be the anim list index.
-    -   Otherwise, the anim list index is usually 0.
-
-For exporting:
-
--   Make sure 'Set Anim List Entry' is checked.
--   Copy the addresses of the 27 command, which is the first number before the slash on that line.
--   Optionally do the same for the 28 command, which may not exist.
--   If a 28 command exists, then the second byte will be the anim list index.
--   Otherwise, the anim list index is usually 0.
-
-Select an armature for the animation, and press 'Import/Export animation'.
-
-### Importing/Exporting Binary Mario Animations
-Mario animations use a DMA table, which contains 8 byte entries of (offset from table start, animation size). Documentation about this table is here:
-https://dudaw.webs.com/sm64docs/sm64_marios_animation_table.txt
-Basically, Mario's DMA table starts at 0x4EC000. There is an 8 byte header, and then the animation entries afterward. Thus the 'climb up ledge' DMA entry is at 0x4EC008. The first 4 bytes at that address indicate the offset from 0x4EC000 at which the actual animation exists. Thus the 'climb up ledge' animation entry address is at 0x4EC690. Using this table you can find animations you want to overwrite. Make sure the 'Is DMA Animation' option is checked and 'Is Segmented Pointer' is unchecked when importing/exporting. Check "Overwrite DMA Entry", set the start address to 4EC000 (for Mario), and set the entry address to the DMA entry obtained previously.
-
-### Animating Existing Geolayouts
-Often times it is hard to rig an existing SM64 geolayout, as there are many intermediate non-deform bones and bones don't point to their children. To make this easier you can use the 'Create Animatable Metarig' operator in the SM64 Armature Tools header. This will generate a metarig which can be used with IK. The metarig bones will be placed on armature layers 3 and 4.
+### TODO: Link to animations docs
 
 ## Decomp
 To start, set your base decomp folder in SM64 General Settings. This allows the plugin to automatically add headers/includes to the correct locations. You can always choose to export to a custom location, although headers/includes won't be written.
@@ -165,6 +134,8 @@ Insertable Binary exporting will generate a binary file, with a header containin
         1 = Geolayout
         2 = Animation
         3 = Collision
+        4 = Animation Table
+        5 = Animation DMA Table
 
     0x04-0x08 : Data Size (size in bytes of Data Section)
     0x08-0x0C : Start Address (start address of data, relative to start of Data Section)
