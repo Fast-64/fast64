@@ -13,10 +13,10 @@ from .sm64_f3d_writer import SM64Model, SM64GfxFormatter
 from .sm64_geolayout_writer import setRooms, convertObjectToGeolayout
 from .sm64_f3d_writer import modifyTexScrollFiles, modifyTexScrollHeadersGroup
 from .sm64_utility import (
+    END_IF_FOOTER,
     cameraWarning,
     starSelectWarning,
     to_include_descriptor,
-    write_includes,
     write_or_delete_if_found,
     write_material_headers,
 )
@@ -941,6 +941,14 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
             include += "\n"
         return include
 
+    def write_include(path: Path, include: Path, before_endif=False):
+        return write_or_delete_if_found(
+            path,
+            [to_include_descriptor(include, Path("levels") / level_name / include)],
+            path_must_exist=True,
+            footer=END_IF_FOOTER if before_endif else None,
+        )
+
     gfxFormatter = SM64GfxFormatter(ScrollMethod.Vertex)
     exportData = fModel.to_c(TextureExportSettings(savePNG, savePNG, f"levels/{level_name}", level_dir), gfxFormatter)
     staticData = exportData.staticData
@@ -1079,9 +1087,9 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
             createHeaderFile(level_name, headerPath)
 
         # Write level data
-        write_includes(Path(geoPath), [Path("geo.inc.c")])
-        write_includes(Path(levelDataPath), [Path("leveldata.inc.c")])
-        write_includes(Path(headerPath), [Path("header.inc.h")], before_endif=True)
+        write_include(Path(geoPath), Path("geo.inc.c"))
+        write_include(Path(levelDataPath), Path("leveldata.inc.c"))
+        write_include(Path(headerPath), Path("header.inc.h"), before_endif=True)
 
         old_include = to_include_descriptor(Path("levels") / level_name / "texture_include.inc.c")
         if fModel.texturesSavedLastExport == 0:
@@ -1095,10 +1103,7 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
             )
 
         # This one is for backwards compatibility purposes
-        write_or_delete_if_found(
-            Path(levelDataPath),
-            to_remove=[old_include],
-        )
+        write_or_delete_if_found(Path(levelDataPath), to_remove=[old_include])
 
         texscrollIncludeC = include_proto("texscroll.inc.c")
         texscrollIncludeH = include_proto("texscroll.inc.h")
