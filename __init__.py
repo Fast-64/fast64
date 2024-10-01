@@ -4,7 +4,7 @@ from bpy.path import abspath
 
 from . import addon_updater_ops
 
-from .fast64_internal.utility import prop_split, multilineLabel, draw_and_check_tab
+from .fast64_internal.utility import prop_split, multilineLabel, prop_group_to_json, set_prop_if_in_data
 
 from .fast64_internal.repo_settings import (
     draw_repo_settings,
@@ -212,6 +212,19 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
     internal_fixed_4_2: bpy.props.BoolProperty(default=False)
 
     internal_game_update_ver: bpy.props.IntProperty(default=0)
+
+    def to_repo_settings(self):
+        data = {}
+        data["autoLoad"] = self.auto_repo_load_settings
+        data["autoPickTextureFormat"] = self.auto_pick_texture_format
+        if self.auto_pick_texture_format:
+            data["preferRGBAOverCI"] = self.prefer_rgba_over_ci
+        return data
+
+    def from_repo_settings(self, data: dict):
+        set_prop_if_in_data(self, "auto_repo_load_settings", data, "autoLoad")
+        set_prop_if_in_data(self, "auto_pick_texture_format", data, "autoPickTextureFormat")
+        set_prop_if_in_data(self, "prefer_rgba_over_ci", data, "preferRGBAOverCI")
 
 
 class Fast64_Properties(bpy.types.PropertyGroup):

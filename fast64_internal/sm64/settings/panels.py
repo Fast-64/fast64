@@ -1,9 +1,8 @@
 from bpy.utils import register_class, unregister_class
 from bpy.types import Context
 
-from ...utility import draw_and_check_tab
-
 from ...panels import SM64_Panel
+from ...utility import draw_and_check_tab
 
 
 class SM64_GeneralSettingsPanel(SM64_Panel):
@@ -23,7 +22,7 @@ class SM64_GeneralSettingsPanel(SM64_Panel):
                 sm64_props.draw_repo_settings(box)
                 col.separator()
 
-            sm64_props.draw_props(col, not sm64_props.sm64_repo_settings_tab)
+            sm64_props.draw_props(col, not sm64_props.sm64_repo_settings_tab or sm64_props.binary_export)
         else:
             sm64_props.draw_props(col, True)
 

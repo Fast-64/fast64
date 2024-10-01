@@ -6,7 +6,7 @@ from bpy.path import abspath
 from bpy.utils import register_class, unregister_class
 
 from ...render_settings import on_update_render_settings
-from ...utility import directory_path_checks, directory_ui_warnings, prop_split, upgrade_old_prop
+from ...utility import directory_path_checks, directory_ui_warnings, prop_split, set_prop_if_in_data, upgrade_old_prop
 from ..sm64_constants import defaultExtendSegment4
 from ..sm64_objects import SM64_CombinedObjectProperties
 from ..sm64_utility import export_rom_ui_warnings, import_rom_ui_warnings
@@ -143,6 +143,22 @@ class SM64_Properties(PropertyGroup):
                 upgrade_old_prop(combined_props, new, scene, old)
             sm64_props.version = SM64_Properties.cur_version
 
+    def to_repo_settings(self):
+        data = {}
+        data["refresh_version"] = self.refresh_version
+        data["compression_format"] = self.compression_format
+        data["force_extended_ram"] = self.force_extended_ram
+        data["matstack_fix"] = self.matstack_fix
+        data["write_all"] = self.write_all
+        return data
+
+    def from_repo_settings(self, data: dict):
+        set_prop_if_in_data(self, "refresh_version", data, "refresh_version")
+        set_prop_if_in_data(self, "compression_format", data, "compression_format")
+        set_prop_if_in_data(self, "force_extended_ram", data, "force_extended_ram")
+        set_prop_if_in_data(self, "matstack_fix", data, "matstack_fix")
+        set_prop_if_in_data(self, "write_all", data, "write_all")
+
     def draw_repo_settings(self, layout: UILayout):
         col = layout.column()
         if not self.binary_export:
@@ -174,7 +190,7 @@ class SM64_Properties(PropertyGroup):
 
         if show_repo_settings:
             self.draw_repo_settings(col)
-        col.separator()
+            col.separator()
 
         col.prop(self, "show_importing_menus")
         if self.show_importing_menus:
