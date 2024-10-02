@@ -83,7 +83,7 @@ def writeSegmentROMTable(baseDir):
         Path(baseDir) / "src/game/memory.h",
         [
             ModifyFoundDescriptor(
-                "extern uintptr_t sSegmentROMTable[32];", r"extern\h*uintptr_t\h*sSegmentROMTable\[.*?\]\h?;"
+                "extern uintptr_t sSegmentROMTable[32];", r"extern\h*uintptr_t\h*sSegmentROMTable\[.*?\]\h*?;"
             )
         ],
         path_must_exist=True,
