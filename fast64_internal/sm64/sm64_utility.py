@@ -1,3 +1,4 @@
+import dataclasses
 from typing import NamedTuple, Optional
 from pathlib import Path
 from io import StringIO
@@ -141,10 +142,14 @@ class ModifyFoundDescriptor:
             self.regex = re.escape(string) + r"\n?"
 
 
-class DescriptorMatch(NamedTuple):
+@dataclasses.dataclass
+class DescriptorMatch:
     string: str
     start: int
     end: int
+
+    def __iter__(self):
+        return iter((self.string, self.start, self.end))
 
 
 class CommentMatch(NamedTuple):
@@ -152,37 +157,39 @@ class CommentMatch(NamedTuple):
     size: int
 
 
-def adjust_start_end(start: int, end: int, comment_map: list[CommentMatch]):
+def adjust_start_end(starting_start: int, starting_end: int, comment_map: list[CommentMatch]):
+    start, end = starting_start, starting_end
     for commentless_pos, comment_size in comment_map:
-        if start >= commentless_pos:
+        if starting_start >= commentless_pos:
             start += comment_size
-        if end >= commentless_pos:
+        if starting_end >= commentless_pos or starting_start > commentless_pos:
             end += comment_size
     return start, end
 
 
 def find_descriptor_in_text(
-    value: ModifyFoundDescriptor, commentless: str, comment_map: list[CommentMatch], start=0, end=-1
+    value: ModifyFoundDescriptor, commentless: str, comment_map: list[CommentMatch], start=0, end=-1, adjust=True
 ):
     matches: list[DescriptorMatch] = []
     for match in re.finditer(value.regex, commentless[start:end]):
-        matches.append(
-            DescriptorMatch(match.group(0), *adjust_start_end(start + match.start(), start + match.end(), comment_map))
-        )
+        match_start, match_end = match.start() + start, match.end() + start
+        if adjust:
+            match_start, match_end = adjust_start_end(match_start, match_end, comment_map)
+        matches.append(DescriptorMatch(match.group(0), match_start, match_end))
     return matches
 
 
 def get_comment_map(text: str):
     comment_map: list[CommentMatch] = []
-    commentless, last_pos, pos = StringIO(), 0, 0
+    commentless, last_pos, commentless_pos = StringIO(), 0, 0
     for match in re.finditer(COMMENT_PATTERN, text):
-        pos += commentless.write(text[last_pos : match.start()])  # add text before comment
+        commentless_pos += commentless.write(text[last_pos : match.start()])  # add text before comment
         match_string = match.group(0)
         if match_string.startswith("/"):  # actual comment
-            comment_map.append(CommentMatch(pos, len(match_string) - 1))
-            pos += commentless.write(" ")
+            comment_map.append(CommentMatch(commentless_pos, len(match_string) - 1))
+            commentless_pos += commentless.write(" ")
         else:  # stuff like strings
-            pos += commentless.write(match_string)
+            commentless_pos += commentless.write(match_string)
         last_pos = match.end()
 
     commentless.write(text[last_pos:])  # add any remaining text after the last match
@@ -204,8 +211,12 @@ def find_descriptors(
     else:
         commentless, comment_map = text, []
 
-    header_matches = find_descriptor_in_text(header, commentless, comment_map) if header is not None else []
-    footer_matches = find_descriptor_in_text(footer, commentless, comment_map) if footer is not None else []
+    header_matches = (
+        find_descriptor_in_text(header, commentless, comment_map, adjust=False) if header is not None else []
+    )
+    footer_matches = (
+        find_descriptor_in_text(footer, commentless, comment_map, adjust=False) if footer is not None else []
+    )
 
     header_pos = 0
     if len(header_matches) > 0:
@@ -229,7 +240,7 @@ def find_descriptors(
         matches = find_descriptor_in_text(descriptor, commentless, comment_map, header_pos, footer_pos)
         if matches:
             found_matches.setdefault(descriptor, []).extend(matches)
-    return found_matches, footer_pos
+    return found_matches, adjust_start_end(footer_pos, footer_pos, comment_map)[0]
 
 
 def write_or_delete_if_found(
@@ -286,6 +297,7 @@ def write_or_delete_if_found(
         print(f"Adding {descriptor.string} in {str(path)}")
         additions += f"{descriptor.string}\n"
         changed = True
+    print(text[:footer_pos])
     text = text[:footer_pos] + additions + text[footer_pos:]
 
     if changed or create_new:
