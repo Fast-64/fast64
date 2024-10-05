@@ -1056,62 +1056,8 @@ class SM64_ArmatureAnimProperties(PropertyGroup):
             prev_enums,
         )
 
-    def draw_table(self, layout: UILayout, export_type: str, actor_name: str, bhv_export: bool):
+    def draw_table(self, layout: UILayout, export_type: str, actor_name: str):
         col = layout.column()
-
-        if self.is_dma:
-            if export_type == "Binary":
-                string_int_prop(col, self, "dma_address", "DMA Table Address")
-                string_int_prop(col, self, "dma_end_address", "DMA Table End")
-            elif export_type == "C":
-                multilineLabel(
-                    col,
-                    "The export will follow the vanilla DMA naming\n"
-                    "conventions (anim_xx.inc.c, anim_xx, anim_xx_values, etc).",
-                    icon="INFO",
-                )
-        else:
-            if export_type == "C":
-                draw_custom_or_auto(self, col, "table_name", self.get_table_name(actor_name))
-                col.prop(self, "gen_enums")
-                if self.gen_enums:
-                    multilineLabel(
-                        col.box(),
-                        f"Enum List Name: {self.get_enum_name(actor_name)}\n"
-                        f"End Enum: {self.get_enum_end(actor_name)}",
-                    )
-                col.separator()
-                col.prop(self, "export_seperately_prop")
-                draw_forced(col, self, "override_files_prop", not self.export_seperately)
-                if bhv_export:
-                    prop_split(col, self, "beginning_animation", "Beginning Animation")
-            elif export_type == "Binary":
-                string_int_prop(col, self, "address", "Table Address")
-                string_int_prop(col, self, "end_address", "Table End")
-
-                box = col.box().column()
-                box.prop(self, "update_behavior")
-                if self.update_behavior:
-                    multilineLabel(
-                        box,
-                        "Will update the LOAD_ANIMATIONS and ANIMATE commands.\n"
-                        "Does not raise an error if there is no ANIMATE command",
-                        "INFO",
-                    )
-                    SM64_SearchAnimatedBhvs.draw_props(box, self, "behaviour", "Behaviour")
-                    if self.behaviour == "Custom":
-                        prop_split(box, self, "behavior_address_prop", "Behavior Address")
-                    prop_split(box, self, "beginning_animation", "Beginning Animation")
-
-                col.prop(self, "write_data_seperately")
-                if self.write_data_seperately:
-                    string_int_prop(col, self, "data_address", "Data Address")
-                    string_int_prop(col, self, "data_end_address", "Data End")
-            col.prop(self, "null_delimiter")
-        if export_type == "Insertable Binary":
-            draw_custom_or_auto(self, col, "file_name", self.get_table_file_name(actor_name, export_type))
-
-        col.separator()
 
         op_row = col.row()
         op_row.label(
@@ -1175,13 +1121,65 @@ class SM64_ArmatureAnimProperties(PropertyGroup):
                 decompFolderMessage(col)
             return
 
-    def draw_props(self, layout: UILayout, export_type: str, header_type: str):
+    def draw_props(self, layout: UILayout, export_type: str, header_type: str, actor_name: str, bhv_export: bool):
         col = layout.column()
         col.prop(self, "is_dma")
         if export_type == "C":
             self.draw_c_settings(col, header_type)
         elif export_type == "Binary" and not self.is_dma:
             col.prop(self, "update_table")
+
+        if self.is_dma:
+            if export_type == "Binary":
+                string_int_prop(col, self, "dma_address", "DMA Table Address")
+                string_int_prop(col, self, "dma_end_address", "DMA Table End")
+            elif export_type == "C":
+                multilineLabel(
+                    col,
+                    "The export will follow the vanilla DMA naming\n"
+                    "conventions (anim_xx.inc.c, anim_xx, anim_xx_values, etc).",
+                    icon="INFO",
+                )
+        else:
+            if export_type == "C":
+                draw_custom_or_auto(self, col, "table_name", self.get_table_name(actor_name))
+                col.prop(self, "gen_enums")
+                if self.gen_enums:
+                    multilineLabel(
+                        col.box(),
+                        f"Enum List Name: {self.get_enum_name(actor_name)}\n"
+                        f"End Enum: {self.get_enum_end(actor_name)}",
+                    )
+                col.separator()
+                col.prop(self, "export_seperately_prop")
+                draw_forced(col, self, "override_files_prop", not self.export_seperately)
+                if bhv_export:
+                    prop_split(col, self, "beginning_animation", "Beginning Animation")
+            elif export_type == "Binary":
+                string_int_prop(col, self, "address", "Table Address")
+                string_int_prop(col, self, "end_address", "Table End")
+
+                box = col.box().column()
+                box.prop(self, "update_behavior")
+                if self.update_behavior:
+                    multilineLabel(
+                        box,
+                        "Will update the LOAD_ANIMATIONS and ANIMATE commands.\n"
+                        "Does not raise an error if there is no ANIMATE command",
+                        "INFO",
+                    )
+                    SM64_SearchAnimatedBhvs.draw_props(box, self, "behaviour", "Behaviour")
+                    if self.behaviour == "Custom":
+                        prop_split(box, self, "behavior_address_prop", "Behavior Address")
+                    prop_split(box, self, "beginning_animation", "Beginning Animation")
+
+                col.prop(self, "write_data_seperately")
+                if self.write_data_seperately:
+                    string_int_prop(col, self, "data_address", "Data Address")
+                    string_int_prop(col, self, "data_end_address", "Data End")
+            col.prop(self, "null_delimiter")
+        if export_type == "Insertable Binary":
+            draw_custom_or_auto(self, col, "file_name", self.get_table_file_name(actor_name, export_type))
 
 
 classes = (
