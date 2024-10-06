@@ -254,8 +254,7 @@ def stashActionInArmature(obj: Object, action: Action):
 def create_basic_action(obj: Object, name=""):
     if obj.animation_data is None:
         obj.animation_data_create()
-    if name == "":
-        name = f"{obj.name} Action"
+    name = name or "Action"
     action = bpy.data.actions.new(name)
     stashActionInArmature(obj, action)
     obj.animation_data.action = action
