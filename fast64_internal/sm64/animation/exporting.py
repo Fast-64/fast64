@@ -860,9 +860,16 @@ def export_animation_binary(
         data,
     )
     table_address = get64bitAlignedAddr(int_from_str(anim_props.address))
+    table_end_address = int_from_str(anim_props.end_address)
     if anim_props.update_table:
         for i, header in enumerate(animation.headers):
             element_address = table_address + (4 * header.table_index)
+            if element_address > table_end_address:
+                raise PluginError(
+                    f"Animation header {i + 1} sets table index {header.table_index} which is out of bounds, "
+                    f"table is {table_end_address - table_address} bytes long, "
+                    "update the table start/end addresses in the armature properties"
+                )
             binary_exporter.seek(element_address)
             binary_exporter.write(encodeSegmentedAddr(animation_address + (i * HEADER_SIZE), segment_data))
     if anim_props.update_behavior:
