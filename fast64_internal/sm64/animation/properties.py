@@ -1131,8 +1131,8 @@ class SM64_ArmatureAnimProperties(PropertyGroup):
 
         if self.is_dma:
             if export_type == "Binary":
-                string_int_prop(col, self, "dma_address", "DMA Table Address")
-                string_int_prop(col, self, "dma_end_address", "DMA Table End")
+                string_int_prop(col, self, "dma_address", "Table Address")
+                string_int_prop(col, self, "dma_end_address", "Table End")
             elif export_type == "C":
                 multilineLabel(
                     col,
