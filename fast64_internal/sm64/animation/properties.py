@@ -1126,7 +1126,7 @@ class SM64_ArmatureAnimProperties(PropertyGroup):
         col.prop(self, "is_dma")
         if export_type == "C":
             self.draw_c_settings(col, header_type)
-        elif export_type == "Binary" and not self.is_dma:
+        if export_type != "Insertable Binary" and not self.is_dma:
             col.prop(self, "update_table")
 
         if self.is_dma:
