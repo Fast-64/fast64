@@ -299,7 +299,7 @@ class SM64_Object:
         self.rotation = rotation
         self.name = name  # to sort by when exporting
 
-    def to_c(self, depth=0):
+    def to_c(self, _depth=0):
         if self.acts == 0x1F:
             return (
                 "OBJECT("
@@ -356,7 +356,7 @@ class SM64_Whirpool:
         self.position = position
         self.name = "whirlpool"  # for sorting
 
-    def to_c(self, depth=0):
+    def to_c(self, _depth=0):
         return (
             "WHIRPOOL("
             + str(self.index)
@@ -381,7 +381,7 @@ class SM64_Macro_Object:
         self.position = position
         self.rotation = rotation
 
-    def to_c(self, depth=0):
+    def to_c(self, _depth=0):
         if self.bparam is None:
             return (
                 "MACRO_OBJECT("
@@ -433,7 +433,7 @@ class SM64_Special_Object:
                 data.extend(int(self.bparam).to_bytes(2, "big"))
         return data
 
-    def to_c(self, depth=0):
+    def to_c(self, _depth=0):
         if self.rotation is None:
             return (
                 "SPECIAL_OBJECT("
@@ -485,7 +485,7 @@ class SM64_Mario_Start:
         self.rotation = rotation
         self.name = "Mario"  # for sorting
 
-    def to_c(self, depth=0):
+    def to_c(self, _depth=0):
         return (
             "MARIO_POS("
             + str(self.area)
@@ -605,7 +605,7 @@ class CollisionWaterBox:
         data.extend(int(round(self.height)).to_bytes(2, "big", signed=True))
         return data
 
-    def to_c(self, depth=0):
+    def to_c(self, _depth=0):
         data = (
             "COL_WATER_BOX("
             + ("0x00" if self.waterBoxType == "Water" else "0x32")
@@ -637,7 +637,7 @@ class CameraVolume:
     def to_binary(self):
         raise PluginError("Binary exporting not implemented for camera volumens.")
 
-    def to_c(self, depth=0):
+    def to_c(self, _depth=0):
         data = (
             "{"
             + str(self.area)
@@ -690,7 +690,7 @@ class PuppycamVolume:
     def to_binary(self):
         raise PluginError("Binary exporting not implemented for puppycam volumes.")
 
-    def to_c(self, depth=0):
+    def to_c(self, _depth=0):
         data = (
             "{"
             + str(self.level)
@@ -776,7 +776,7 @@ class CustomCmd:
     def to_binary(self, segmentData):
         raise PluginError("Custom commands are not supported for binary exports.")
 
-    def to_c(self, tabs=""):
+    def to_c(self, depth=0):
         assert isinstance(self.cmd, str), "Command is not str"
         arg_groups = []
         if self.matrix is not None:
@@ -793,7 +793,8 @@ class CustomCmd:
         if self.parameter is not None:
             arg_groups.append(f"/*param*/ {self.parameter}")
         if len(str(arg_groups)) > 100:
-            args = f",\n{tabs}\t".join(arg_groups)
+            seperator = ",\n" + ("\t" * (depth + 1))
+            args = seperator.join(arg_groups)
         else:
             args = ", ".join(arg_groups)
         return f"{self.cmd}({args})"
@@ -2433,7 +2434,7 @@ class WarpNodeProperty(bpy.types.PropertyGroup):
         ret.z = int(round(-difference.y * bpy.context.scene.blenderF3DScale))
         return ret
 
-    def to_c(self, depth=0):
+    def to_c(self, _depth=0):
         if self.warpType == "Instant":
             offset = Vector()
 
