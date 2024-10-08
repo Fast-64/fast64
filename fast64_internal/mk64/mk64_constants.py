@@ -1,7 +1,3 @@
-from .data import Mk64_Data
-
-mk64Data = Mk64_Data()
-
 mk64_world_defaults = {
     "geometryMode": {
         "zBuffer": True,
