@@ -2242,7 +2242,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         # pathing for gfx/col exports
         prop_split(box, self, "export_header_type", "Export Type")
 
-        if self.export_header_type == "Custom":
+        if self.export_header_type == "Custom" and bpy.context.scene.saveTextures:
             prop_split(box, self, "custom_export_path", "Custom Path")
             prop_split(box, self, "custom_include_directory", "Texture Include Directory")
 
@@ -2283,14 +2283,14 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         elif self.export_header_type == "Actor":
             if not self.draw_actor_path(info_box):
                 return
-        elif bpy.context.scene.saveTextures:
+        elif self.export_header_type == "Custom" and bpy.context.scene.saveTextures:
             if self.custom_include_directory:
                 info_box.label(text=f'Include directory "{self.custom_include_directory}"')
             else:
                 actor_names = self.actor_names
                 joined = ",".join(self.actor_names)
                 if len(actor_names) > 1:
-                    joined = f"{{{joined}}}"
+                    joined = "{" f"{joined}" "}"
                 directory = f"{Path(bpy.path.abspath(self.custom_export_path)).name}/{joined}"
                 info_box.label(text=f'Empty include directory, defaults to "{directory}"')
 
