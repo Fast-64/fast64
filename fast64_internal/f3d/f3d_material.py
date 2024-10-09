@@ -573,7 +573,7 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
 
         c = indentGroup(inputGroup, "Not useful:", True)
         c.prop(settings, "g_lod")
-        if f3d.F3DEX_GBI:
+        if f3d.F3DLP_GBI:
             c.prop(settings, "g_clipping")
         elif f3d.F3DEX_GBI_3:
             c.prop(settings, "g_lighting_positional", text="Positional Lighting (Always enabled in EX3)")

@@ -1627,7 +1627,7 @@ def saveGeoModeCommon(saveFunc: Callable, settings: RDPSettings, defaults: RDPSe
     saveFunc(settings.g_tex_gen_linear, defaults.g_tex_gen_linear, "G_TEXTURE_GEN_LINEAR", *args)
     saveFunc(settings.g_lod, defaults.g_lod, "G_LOD", *args)
     saveFunc(settings.g_shade_smooth, defaults.g_shade_smooth, "G_SHADING_SMOOTH", *args)
-    if f3d.F3DEX_GBI:
+    if f3d.F3DLP_GBI:
         saveFunc(settings.g_clipping, defaults.g_clipping, "G_CLIPPING", *args)
     if f3d.POINT_LIT_GBI:
         saveFunc(settings.g_lighting_positional, defaults.g_lighting_positional, "G_LIGHTING_POSITIONAL", *args)
