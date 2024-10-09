@@ -1904,4 +1904,5 @@ def set_if_different(owner: object, prop: str, value):
 
 
 def set_prop_if_in_data(owner: object, prop_name: str, data: dict, data_name: str):
-    set_if_different(owner, prop_name, data.get(data_name, getattr(owner, prop_name)))
+    if data_name in data:
+        set_if_different(owner, prop_name, data[data_name])

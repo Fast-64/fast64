@@ -4,7 +4,7 @@ from bpy.path import abspath
 
 from . import addon_updater_ops
 
-from .fast64_internal.utility import prop_split, multilineLabel, prop_group_to_json, set_prop_if_in_data
+from .fast64_internal.utility import prop_split, multilineLabel, set_prop_if_in_data
 
 from .fast64_internal.repo_settings import (
     draw_repo_settings,
