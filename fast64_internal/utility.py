@@ -1,4 +1,4 @@
-import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operator
+import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operator, pathlib
 from math import pi, ceil, degrees, radians, copysign
 from mathutils import *
 from .utility_anim import *
@@ -1857,3 +1857,7 @@ def create_or_get_world(scene: Scene) -> World:
         WORLD_WARNING_COUNT = 0
         print(f'No world in this file, creating world named "Fast64".')
         return bpy.data.worlds.new("Fast64")
+
+
+def as_posix(path: pathlib.Path) -> str:
+    return path.as_posix().replace("\\", "/")  # Windows path sometimes still has backslashes?

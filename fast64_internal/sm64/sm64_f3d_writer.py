@@ -441,8 +441,8 @@ def sm64ExportF3DtoC(
             if DLFormat != DLFormat.Static:  # Change this
                 write_material_headers(
                     Path(basePath),
-                    Path("actors") / toAlnum(name) / "material.inc.c",
-                    Path("actors") / toAlnum(name) / "material.inc.h",
+                    Path("actors", toAlnum(name), "material.inc.c"),
+                    Path("actors", toAlnum(name), "material.inc.h"),
                 )
 
             texscrollIncludeC = '#include "actors/' + name + '/texscroll.inc.c"'
@@ -454,8 +454,8 @@ def sm64ExportF3DtoC(
             if DLFormat != DLFormat.Static:  # Change this
                 write_material_headers(
                     basePath,
-                    Path("levels") / levelName / toAlnum(name) / "material.inc.c",
-                    Path("levels") / levelName / toAlnum(name) / "material.inc.h",
+                    Path("actors", levelName, toAlnum(name), "material.inc.c"),
+                    Path("actors", levelName, toAlnum(name), "material.inc.h"),
                 )
 
             texscrollIncludeC = '#include "levels/' + levelName + "/" + name + '/texscroll.inc.c"'

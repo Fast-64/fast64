@@ -8,7 +8,15 @@ import re
 import bpy
 from bpy.types import UILayout
 
-from ..utility import PluginError, filepath_checks, run_and_draw_errors, multilineLabel, prop_split, COMMENT_PATTERN
+from ..utility import (
+    filepath_checks,
+    run_and_draw_errors,
+    multilineLabel,
+    prop_split,
+    as_posix,
+    PluginError,
+    COMMENT_PATTERN,
+)
 from .sm64_function_map import func_map
 
 
@@ -233,7 +241,7 @@ def find_descriptors(
     else:
         if footer is not None and error_if_no_footer:
             raise PluginError(f"Footer {footer.string} does not exist.")
-        footer_pos = len(text)
+        footer_pos = len(commentless)
 
     found_matches: dict[ModifyFoundDescriptor, list[DescriptorMatch]] = {}
     for descriptor in descriptors:
@@ -291,13 +299,14 @@ def write_or_delete_if_found(
                 footer_pos -= diff
 
     additions = ""
+    if text[footer_pos - 1] not in {"\n", "\r"}:  # add new line if not there
+        additions += "\n"
     for descriptor in to_add:
         if descriptor in found_matches:
             continue
         print(f"Adding {descriptor.string} in {str(path)}")
         additions += f"{descriptor.string}\n"
         changed = True
-    print(text[:footer_pos])
     text = text[:footer_pos] + additions + text[footer_pos:]
 
     if changed or create_new:
@@ -308,10 +317,10 @@ def write_or_delete_if_found(
 
 def to_include_descriptor(include: Path, *alternatives: Path):
     base_regex = r'\n?#\h*?include\h*?"{0}"'
-    regex = base_regex.format(include.as_posix())
+    regex = base_regex.format(as_posix(include))
     for alternative in alternatives:
-        regex += f"|{base_regex.format(alternative.as_posix())}"
-    return ModifyFoundDescriptor(f'#include "{include.as_posix()}"', regex)
+        regex += f"|{base_regex.format(as_posix(alternative))}"
+    return ModifyFoundDescriptor(f'#include "{as_posix(include)}"', regex)
 
 
 END_IF_FOOTER = ModifyFoundDescriptor("#endif", r"#\h*?endif")
@@ -363,13 +372,13 @@ def update_actor_includes(
         if header_type == "Level":
             path_and_alternates = [
                 [
-                    Path(dir_name) / include,
-                    Path("levels") / level_name / (dir_name) / include,  # backwards compatability
+                    Path(dir_name, include),
+                    Path("levels", level_name, dir_name, include),  # backwards compatability
                 ]
                 for include in includes
             ]
         else:
-            path_and_alternates = [[Path(dir_name) / include] for include in includes]
+            path_and_alternates = [[Path(dir_name, include)] for include in includes]
         return write_or_delete_if_found(
             path,
             [to_include_descriptor(*paths) for paths in path_and_alternates],

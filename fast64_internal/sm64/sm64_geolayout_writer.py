@@ -658,12 +658,12 @@ def saveGeolayoutC(
     geoData = geolayoutGraph.to_c()
 
     if headerType == "Actor":
-        matCInclude = Path("actors") / dirName / "material.inc.c"
-        matHInclude = Path("actors") / dirName / "material.inc.h"
+        matCInclude = Path("actors", dirName, "material.inc.c")
+        matHInclude = Path("actors", dirName, "material.inc.h")
         headerInclude = '#include "actors/' + dirName + '/geo_header.h"'
     else:
-        matCInclude = Path("levels") / levelName / dirName / "material.inc.c"
-        matHInclude = Path("levels") / levelName / dirName / "material.inc.h"
+        matCInclude = Path("levels", levelName, dirName, "material.inc.c")
+        matHInclude = Path("levels", levelName, dirName, "material.inc.h")
         headerInclude = '#include "levels/' + levelName + "/" + dirName + '/geo_header.h"'
 
     modifyTexScrollFiles(exportDir, geoDirPath, scrollData)

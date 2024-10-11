@@ -80,7 +80,7 @@ def writeSegmentROMTable(baseDir):
 
     # Add extern definition of segment table
     write_or_delete_if_found(
-        Path(baseDir) / "src/game/memory.h",
+        Path(baseDir, "src", "game", "memory.h"),
         [
             ModifyFoundDescriptor(
                 "extern uintptr_t sSegmentROMTable[32];", r"extern\h*uintptr_t\h*sSegmentROMTable\[.*?\]\h*?;"

@@ -338,16 +338,14 @@ def exportCollisionC(
     )
     if not writeRoomsFile:  # TODO: Could be done better
         if headerType == "Actor":
-            group_path_c = Path(dirPath) / f"{groupName}.c"
-            write_or_delete_if_found(group_path_c, to_remove=[to_include_descriptor(Path(name) / "rooms.inc.c")])
+            group_path_c = Path(dirPath, f"{groupName}.c")
+            write_or_delete_if_found(group_path_c, to_remove=[to_include_descriptor(Path(name, "rooms.inc.c"))])
         elif headerType == "Level":
-            group_path_c = Path(dirPath) / "leveldata.c"
+            group_path_c = Path(dirPath, "leveldata.c")
             write_or_delete_if_found(
                 group_path_c,
                 to_remove=[
-                    to_include_descriptor(
-                        Path(name) / "rooms.inc.c", Path("levels") / levelName / name / "rooms.inc.c"
-                    ),
+                    to_include_descriptor(Path(name, "rooms.inc.c"), Path("levels", levelName, name, "rooms.inc.c")),
                 ],
             )
 

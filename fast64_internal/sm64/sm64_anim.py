@@ -234,7 +234,7 @@ def exportAnimationC(armatureObj, loopAnim, dirPath, dirName, groupName, customE
     headerFile.write("extern const struct Animation *const " + animsName + "[];\n")
     headerFile.close()
 
-    write_includes(Path(animDirPath) / "data.inc.c", [Path(animFileName)])
+    write_includes(Path(animDirPath, "data.inc.c"), [Path(animFileName)])
 
     # write to table.inc.c
     tableFilePath = os.path.join(animDirPath, "table.inc.c")
@@ -278,7 +278,7 @@ def exportAnimationC(armatureObj, loopAnim, dirPath, dirName, groupName, customE
         Path(dirPath),
         dirName,
         levelName,
-        [Path("anims/data.inc.c"), Path("anims/table.inc.c")],
+        [Path("anims", "data.inc.c"), Path("anims", "table.inc.c")],
         [Path("anim_header.h")],
     )
 
