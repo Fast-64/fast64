@@ -37,6 +37,7 @@ from .fast64_internal.f3d.f3d_writer import f3d_writer_register, f3d_writer_unre
 from .fast64_internal.f3d.f3d_parser import f3d_parser_register, f3d_parser_unregister
 from .fast64_internal.f3d.flipbook import flipbook_register, flipbook_unregister
 from .fast64_internal.f3d.op_largetexture import op_largetexture_register, op_largetexture_unregister, ui_oplargetexture
+from .fast64_internal.f3d.f3d_node_gen import f3d_node_gen_register, f3d_node_gen_unregister
 
 from .fast64_internal.f3d_material_converter import (
     MatUpdateConvert,
@@ -435,6 +436,7 @@ def register():
     flipbook_register()
     f3d_parser_register()
     op_largetexture_register()
+    f3d_node_gen_register()
 
     # ROM
 
@@ -466,6 +468,7 @@ def unregister():
     utility_anim_unregister()
     op_largetexture_unregister()
     flipbook_unregister()
+    f3d_node_gen_unregister()
     f3d_writer_unregister()
     f3d_parser_unregister()
     sm64_unregister(True)

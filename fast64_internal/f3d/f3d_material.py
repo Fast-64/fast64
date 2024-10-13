@@ -40,6 +40,7 @@ from ..render_settings import (
     ManualUpdatePreviewOperator,
 )
 from .f3d_material_helpers import F3DMaterial_UpdateLock, node_tree_copy
+from .f3d_node_gen import create_f3d_nodes_in_material, generate_f3d_node_groups
 from bpy.app.handlers import persistent
 from typing import Generator, Optional, Tuple, Any, Dict, Union
 
@@ -2307,28 +2308,12 @@ def has_f3d_nodes(material: Material):
 @persistent
 def load_handler(dummy):
     logger.info("Checking for base F3D material library.")
-    for lib in bpy.data.libraries:
-        lib_path = bpy.path.abspath(lib.filepath)
-
-        # detect if this is one your addon's libraries here
-        if "f3d_material_library.blend" in lib_path:
-            addon_dir = os.path.dirname(os.path.abspath(__file__))
-            new_lib_path = os.path.join(addon_dir, "f3d_material_library.blend")
-
-            if lib_path != new_lib_path:
-                logger.info("Reloading the library: %s : %s => %s" % (lib.name, lib_path, new_lib_path))
-
-                lib.filepath = new_lib_path
-                lib.reload()
-            bpy.context.scene["f3d_lib_dir"] = None  # force node reload!
-            link_f3d_material_library()
+    # generate_f3d_node_groups()
 
     for mat in bpy.data.materials:
         if mat is not None and mat.use_nodes and mat.is_f3d:
             rendermode_preset_to_advanced(mat)
 
-
-bpy.app.handlers.load_post.append(load_handler)
 
 SCENE_PROPERTIES_VERSION = 2
 
@@ -2466,37 +2451,8 @@ def createScenePropertiesForMaterial(material: Material):
     node_tree.links.new(scene_props.outputs["Light1Size"], node_tree.nodes["Light1Size"].inputs[0])
 
 
-def link_f3d_material_library():
-    dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "f3d_material_library.blend")
-
-    prevMode = bpy.context.mode
-    if prevMode != "OBJECT":
-        bpy.ops.object.mode_set(mode="OBJECT")
-
-    with bpy.data.libraries.load(dir) as (data_from, data_to):
-        dirMat = os.path.join(dir, "Material")
-        dirNode = os.path.join(dir, "NodeTree")
-        for mat in data_from.materials:
-            if mat is not None:
-                bpy.ops.wm.link(filepath=os.path.join(dirMat, mat), directory=dirMat, filename=mat)
-
-        # linking is SUPER slow, this only links if the scene hasnt been linked yet
-        # in future updates, this will likely need to be something numerated so if more nodes are added then they will be linked
-        if bpy.context.scene.get("f3d_lib_dir") != dirNode:
-            # link groups after to bring extra node_groups
-            for node_group in data_from.node_groups:
-                if node_group is not None:
-                    bpy.ops.wm.link(filepath=os.path.join(dirNode, node_group), directory=dirNode, filename=node_group)
-            bpy.context.scene["f3d_lib_dir"] = dirNode
-
-    # TODO: Figure out a better way to save the user's old mode
-    if prevMode != "OBJECT":
-        bpy.ops.object.mode_set(mode=get_mode_set_from_context_mode(prevMode))
-
-
 def get_f3d_node_tree() -> bpy.types.NodeTree:
     try:
-        link_f3d_material_library()
         mat = bpy.data.materials["fast64_f3d_material_library_beefwashere"]
         return mat.node_tree.copy()
     finally:
@@ -2566,18 +2522,11 @@ def add_f3d_mat_to_obj(obj: bpy.types.Object, material, index=None):
 
 
 def createF3DMat(obj: Object | None, preset="Shaded Solid", index=None):
-    # link all node_groups + material from addon's data .blend
-    link_f3d_material_library()
-
-    # a linked material containing the default layout for all the linked node_groups
-    mat = bpy.data.materials["fast64_f3d_material_library_beefwashere"]
-    # duplicate and rename the linked material
-    material = mat.copy()
-    material.name = "f3dlite_material"
-    # remove the linked material so it doesn't bother anyone or get meddled with
-    bpy.data.materials.remove(mat)
-
+    material = bpy.data.materials.new("f3dlite_material")
+    create_f3d_nodes_in_material(material)
     createScenePropertiesForMaterial(material)
+    with bpy.context.temp_override(material=material):
+        update_all_node_values(material, bpy.context)
 
     add_f3d_mat_to_obj(obj, material, index)
 
@@ -4905,10 +4854,14 @@ def mat_register():
     Object.is_occlusion_planes = bpy.props.BoolProperty(name="Is Occlusion Planes")
 
     VIEW3D_HT_header.append(draw_f3d_render_settings)
+    bpy.app.handlers.load_post.append(load_handler)
 
 
 def mat_unregister():
     VIEW3D_HT_header.remove(draw_f3d_render_settings)
+    # not having this previously means we have to run this until all handlers are removed
+    while load_handler in bpy.app.handlers.load_post:
+        bpy.app.handlers.load_post.remove(load_handler)
 
     del Material.menu_tab
     del Material.f3d_mat
