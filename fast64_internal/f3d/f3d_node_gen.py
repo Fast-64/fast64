@@ -366,7 +366,6 @@ def set_values_and_create_links(
             for attr, value in serialized_node.data.items():
                 set_node_prop(node, attr, value, nodes)
             node.update()
-            node.socket_value_update(bpy.context)
         except Exception as exc:
             print(f"Failed to set values for node {node.name}: {exc}")
     node_tree.update()
