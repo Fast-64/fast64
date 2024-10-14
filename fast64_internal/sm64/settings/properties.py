@@ -92,7 +92,7 @@ class SM64_Properties(PropertyGroup):
     # could be used for other properties outside animation
     designated_prop: BoolProperty(
         name="Designated Initialization for Animation Tables",
-        description="Extremely recommended but must be off when compiling with IDO",
+        description="Extremely recommended but must be off when compiling with IDO. Included in Repo Setting file",
     )
 
     animation: PointerProperty(type=SM64_AnimProperties)
