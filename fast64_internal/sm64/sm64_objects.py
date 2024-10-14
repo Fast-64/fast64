@@ -1981,6 +1981,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
     group_name: bpy.props.EnumProperty(name="Group Name", default="group0", items=groups_obj_export)
     # custom export path, no headers written
     custom_export_path: bpy.props.StringProperty(name="Custom Path", subtype="FILE_PATH")
+    custom_include_directory: bpy.props.StringProperty(name="Include directory", subtype="FILE_PATH")
 
     # common export opts
     custom_group_name: bpy.props.StringProperty(name="custom")  # for custom group
@@ -2350,7 +2351,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         self.draw_level_path(box.box())
         col.separator()
         # object exports
-        box = col.box()
+        box = col.box().column()
         if not self.export_col and not self.export_bhv and not self.export_gfx and not self.export_anim:
             col = box.column()
             col.operator("object.sm64_export_combined_object", text="Export Object")
@@ -2369,8 +2370,9 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         # pathing for gfx/col exports
         prop_split(box, self, "export_header_type", "Export Type")
 
-        if self.export_header_type == "Custom":
+        if self.export_header_type == "Custom" and bpy.context.scene.saveTextures:
             prop_split(box, self, "custom_export_path", "Custom Path")
+            prop_split(box, self, "custom_include_directory", "Texture Include Directory")
 
         elif self.export_header_type == "Actor":
             prop_split(box, self, "group_name", "Group")
@@ -2403,8 +2405,23 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         info_box = box.box()
         info_box.scale_y = 0.5
 
-        if not self.draw_actor_path(info_box):
-            return
+        if self.export_header_type == "Level":
+            if not self.draw_level_path(info_box):
+                return
+
+        elif self.export_header_type == "Actor":
+            if not self.draw_actor_path(info_box):
+                return
+        elif self.export_header_type == "Custom" and bpy.context.scene.saveTextures:
+            if self.custom_include_directory:
+                info_box.label(text=f'Include directory "{self.custom_include_directory}"')
+            else:
+                actor_names = self.actor_names
+                joined = ",".join(self.actor_names)
+                if len(actor_names) > 1:
+                    joined = "{" f"{joined}" "}"
+                directory = f"{Path(bpy.path.abspath(self.custom_export_path)).name}/{joined}"
+                info_box.label(text=f'Empty include directory, defaults to "{directory}"')
 
         if self.obj_name_gfx and self.export_gfx:
             self.draw_gfx_names(info_box)
