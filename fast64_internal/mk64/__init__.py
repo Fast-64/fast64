@@ -8,6 +8,12 @@ from .f3d.panels import MK64_ImportCourseDLPanel
 from ..render_settings import on_update_render_settings
 
 
+from .mk64_actors import (
+    mk64_obj_panel_register,
+    mk64_obj_panel_unregister,
+)
+
+
 class MK64_Properties(PropertyGroup):
     """Global MK64 Scene Properties found under scene.fast64.mk64"""
 
@@ -29,11 +35,13 @@ mk64_panel_classes = (
 
 
 def mk64_panel_register():
+    mk64_obj_panel_register()
     for cls in mk64_panel_classes:
         register_class(cls)
 
 
 def mk64_panel_unregister():
+    mk64_obj_panel_unregister()
     for cls in mk64_panel_classes:
         unregister_class(cls)
 
