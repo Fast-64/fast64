@@ -2001,7 +2001,7 @@ def vertexScrollTemplate(
 
 
 class GfxFormatter:
-    def __init__(self, scrollMethod: ScrollMethod, texArrayBitSize: int = 8, seg2virtFuncName: Union[str, None]):
+    def __init__(self, scrollMethod: ScrollMethod, texArrayBitSize: int, seg2virtFuncName: Union[str, None]):
         self.scrollMethod: ScrollMethod = scrollMethod
         self.texArrayBitSize = texArrayBitSize
         self.seg2virtFuncName = seg2virtFuncName
