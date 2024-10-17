@@ -1,5 +1,11 @@
 # Fast64
 
+<p align="center">
+<img alt="GitHub repo size" src="https://img.shields.io/github/repo-size/Fast-64/fast64">
+<img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/w/Fast-64/fast64">
+<img alt="GitHub contributors" src="https://img.shields.io/github/contributors/Fast-64/fast64">
+</p>
+
 This requires Blender 3.2+. Blender 4.0+ is recommended.
 
 Forked from [kurethedead/fast64 on BitBucket](https://bitbucket.org/kurethedead/fast64/src).
