@@ -1,8 +1,7 @@
-import copy
-import math
-import typing
-import dataclasses
 import numpy as np
+import dataclasses
+import typing
+import math
 
 import bpy
 from bpy.types import (
@@ -25,6 +24,7 @@ from bpy.types import (
 )
 
 from ...utility import get_clean_color, colorToLuminance, PluginError
+
 from ..f3d_material import (
     combiner_uses,
     createF3DMat,
