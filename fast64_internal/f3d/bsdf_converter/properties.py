@@ -4,6 +4,7 @@ from bpy.props import EnumProperty, BoolProperty
 
 from .operators import converter_enum
 
+
 class F3D_BSDFConverterProperties(PropertyGroup):
     """
     Properties in scene.fast64.f3d.bsdf_converter

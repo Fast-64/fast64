@@ -45,6 +45,7 @@ from ..f3d_material import (
 from ..f3d_gbi import isUcodeF3DEX3
 from ..f3d_writer import getColorLayer
 
+
 # Ideally we'd use mathutils.Color here but it does not support alpha (and mul for some reason)
 @dataclasses.dataclass
 class Color:
