@@ -299,7 +299,7 @@ def write_or_delete_if_found(
                 footer_pos -= diff
 
     additions = ""
-    if text[footer_pos - 1] not in {"\n", "\r"}:  # add new line if not there
+    if text and text[footer_pos - 1] not in {"\n", "\r"}:  # add new line if not there
         additions += "\n"
     for descriptor in to_add:
         if descriptor in found_matches:
