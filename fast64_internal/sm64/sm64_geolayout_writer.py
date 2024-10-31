@@ -2858,7 +2858,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                     obj,
                     final_transform,
                     export_path,
-                    bpy.context.scene.geoTexDir,
+                    props.custom_include_directory,
                     save_textures,
                     save_textures and bpy.context.scene.geoSeparateTextureDef,
                     None,
@@ -3058,7 +3058,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                     obj,
                     final_transform,
                     export_path,
-                    bpy.context.scene.geoTexDir,
+                    props.custom_include_directory,
                     save_textures,
                     save_textures and bpy.context.scene.geoSeparateTextureDef,
                     None,
@@ -3252,7 +3252,6 @@ def sm64_geo_writer_register():
     bpy.types.Scene.textDumpGeoPath = bpy.props.StringProperty(name="Text Dump Path", subtype="FILE_PATH")
     bpy.types.Scene.geoUseBank0 = bpy.props.BoolProperty(name="Use Bank 0")
     bpy.types.Scene.geoRAMAddr = bpy.props.StringProperty(name="RAM Address", default="80000000")
-    bpy.types.Scene.geoTexDir = bpy.props.StringProperty(name="Include Path", default="actors/mario/")
     bpy.types.Scene.geoSeparateTextureDef = bpy.props.BoolProperty(name="Save texture.inc.c separately")
     bpy.types.Scene.geoInsertableBinaryPath = bpy.props.StringProperty(name="Filepath", subtype="FILE_PATH")
     bpy.types.Scene.geoIsSegPtr = bpy.props.BoolProperty(name="Is Segmented Address")
@@ -3282,7 +3281,6 @@ def sm64_geo_writer_unregister():
     del bpy.types.Scene.textDumpGeoPath
     del bpy.types.Scene.geoUseBank0
     del bpy.types.Scene.geoRAMAddr
-    del bpy.types.Scene.geoTexDir
     del bpy.types.Scene.geoSeparateTextureDef
     del bpy.types.Scene.geoInsertableBinaryPath
     del bpy.types.Scene.geoIsSegPtr
