@@ -378,7 +378,7 @@ maxTexelCount = {
 }
 
 enumF3D = [
-    ("", "F3D Family", ""),
+    ("", "F3D Family", "", 7),
     ("F3D", "F3D", "Original microcode used in SM64", 0),
     ("F3DEX/LX", "F3DEX/LX", "F3DEX version 1", 1),
     ("F3DLX.Rej", "F3DLX.Rej", "F3DLX.Rej", 2),
@@ -391,8 +391,9 @@ enumF3D = [
         5,
     ),
     ("F3DEX3", "F3DEX3", "Custom microcode by Sauraen", 6),
-    ("", "Homebrew", ""),
-    ("T3D", "Tiny3D", "Custom libdragon microcode by HailToDodongo", 7),
+    ("", "Homebrew", "", 8),
+    ("RDPQ", "RDPQ", "Base libdragon microcode", 9),
+    ("T3D", "Tiny3D", "Custom libdragon microcode by HailToDodongo", 10),
 ]
 
 enumLargeEdges = [

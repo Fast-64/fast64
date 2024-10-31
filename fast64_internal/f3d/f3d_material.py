@@ -123,13 +123,14 @@ drawLayerOOTtoSM64 = {
     "Overlay": "1",
 }
 
-enumF3DMenu = [
-    ("Combiner", "Combiner", "Combiner"),
-    ("Sources", "Sources", "Sources"),
-    ("Geo", "Geo", "Geo"),
-    ("Upper", "Upper", "Upper"),
-    ("Lower", "Lower", "Lower"),
-]
+
+def menu_items_enum(_self, context):
+    items = ["Combiner", "Sources"]
+    if len(geo_modes_in_ucode(context.scene.f3d_type)) > 1:
+        items.append("Geo")
+    items.extend(["Upper", "Lower"])
+    return [(item, item, item) for item in items]
+
 
 enumF3DSource = [
     ("None", "None", "None"),
@@ -4949,7 +4950,7 @@ def mat_register():
     Material.mat_ver = bpy.props.IntProperty(default=1)
     Material.f3d_update_flag = bpy.props.BoolProperty()
     Material.f3d_mat = bpy.props.PointerProperty(type=F3DMaterialProperty)
-    Material.menu_tab = bpy.props.EnumProperty(items=enumF3DMenu)
+    Material.menu_tab = bpy.props.EnumProperty(items=menu_items_enum)
 
     Scene.f3dUserPresetsOnly = bpy.props.BoolProperty(name="User Presets Only")
     Scene.f3d_simple = bpy.props.BoolProperty(name="Display Simple", default=True)

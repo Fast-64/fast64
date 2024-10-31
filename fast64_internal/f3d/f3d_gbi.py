@@ -150,7 +150,7 @@ def is_ucode_t3d(UCODE_VER: str) -> bool:
 
 
 def is_ucode_f3d(UCODE_VER: str) -> bool:
-    return UCODE_VER not in {"T3D"}
+    return UCODE_VER not in {"T3D", "RDPQ"}
 
 
 class F3D:
@@ -171,8 +171,12 @@ class F3D:
         elif F3DEX_GBI_3:
             F3DEX_GBI_2 = self.F3DEX_GBI_2 = True
 
-        self.vert_buffer_size = vertexBufferSize[F3D_VER][0]
-        self.vert_load_size = vertexBufferSize[F3D_VER][1]
+        if F3D_VER in vertexBufferSize:
+            self.vert_buffer_size = vertexBufferSize[F3D_VER][0]
+            self.vert_load_size = vertexBufferSize[F3D_VER][1]
+        else:
+            self.vert_buffer_size = self.vert_load_size = None
+
         self.G_MAX_LIGHTS = 9 if F3DEX_GBI_3 else 7
         self.G_INPUT_BUFFER_CMDS = 21
 
