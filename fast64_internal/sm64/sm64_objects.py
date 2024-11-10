@@ -2242,9 +2242,10 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         # pathing for gfx/col exports
         prop_split(box, self, "export_header_type", "Export Type")
 
-        if self.export_header_type == "Custom" and bpy.context.scene.saveTextures:
+        if self.export_header_type == "Custom":
             prop_split(box, self, "custom_export_path", "Custom Path")
-            prop_split(box, self, "custom_include_directory", "Texture Include Directory")
+            if bpy.context.scene.saveTextures:
+                prop_split(box, self, "custom_include_directory", "Texture Include Directory")
 
         elif self.export_header_type == "Actor":
             prop_split(box, self, "group_name", "Group")
