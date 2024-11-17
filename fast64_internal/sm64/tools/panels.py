@@ -1,10 +1,10 @@
 from bpy.utils import register_class, unregister_class
 
+from typing import TYPE_CHECKING
+
 from ...panels import SM64_Panel
 
 from .operators import SM64_CreateSimpleLevel, SM64_AddWaterBox, SM64_AddBoneGroups, SM64_CreateMetarig
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..settings.properties import SM64_Properties
