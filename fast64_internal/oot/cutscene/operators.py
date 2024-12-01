@@ -180,12 +180,24 @@ class OOT_ExportCutscene(Operator):
 
             cpath, hpath, headerfilename = checkGetFilePaths(context)
             csdata = ootCutsceneIncludes(headerfilename)
+            cs_name = activeObj.name.removeprefix("Cutscene.")
 
             if context.scene.fast64.oot.exportMotionOnly:
                 # TODO: improve this
-                csdata.append(insertCutsceneData(cpath, activeObj.name.removeprefix("Cutscene.")))
+                csdata.append(insertCutsceneData(cpath, cs_name))
             else:
-                csdata.append(Cutscene(activeObj, context.scene.fast64.oot.useDecompFeatures).getC())
+                cutscene = Cutscene.new(
+                    cs_name,
+                    activeObj,
+                    context.scene.fast64.oot.useDecompFeatures,
+                    context.scene.fast64.oot.exportMotionOnly,
+                )
+
+                if cutscene is not None:
+                    csdata.append(cutscene.getC())
+                else:
+                    raise PluginError(f"ERROR: can't process cutscene '{cs_name}'.")
+
             writeCData(csdata, hpath, cpath)
 
             self.report({"INFO"}, "Successfully exported cutscene")
@@ -218,7 +230,19 @@ class OOT_ExportAllCutscenes(Operator):
                     if context.scene.fast64.oot.exportMotionOnly:
                         raise PluginError("ERROR: Not implemented yet.")
                     else:
-                        csdata.append(Cutscene(obj, context.scene.fast64.oot.useDecompFeatures).getC())
+                        cs_name = obj.name.removeprefix("Cutscene.")
+                        cutscene = Cutscene.new(
+                            cs_name,
+                            obj,
+                            context.scene.fast64.oot.useDecompFeatures,
+                            context.scene.fast64.oot.exportMotionOnly,
+                        )
+
+                        if cutscene is not None:
+                            csdata.append(cutscene.getC())
+                        else:
+                            raise PluginError(f"ERROR: can't process cutscene '{cs_name}'.")
+
                     count += 1
 
             if count == 0:
