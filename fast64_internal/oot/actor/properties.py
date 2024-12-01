@@ -372,8 +372,10 @@ class OOTActorProperty(PropertyGroup):
         if self.eval_params:
             # return `param_str` if the eval failed
             # should only happen if the user inputs invalid numbers (hex or dec)
+            # returns the non-evaluated value if the function returned None
             try:
-                return getEvalParams(param_str)
+                value = getEvalParams(param_str)
+                return value if value is not None else param_str
             except:
                 pass
 
