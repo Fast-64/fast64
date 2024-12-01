@@ -1,7 +1,7 @@
 from bpy.types import Object, PropertyGroup, UILayout
 from bpy.utils import register_class, unregister_class
 from bpy.props import EnumProperty, StringProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
-from ...utility import PluginError, prop_split
+from ...utility import PluginError, prop_split, label_split
 from ..oot_constants import ootData, ootEnumCamTransition
 from ..oot_upgrade import upgradeActors
 from ..scene.properties import OOTAlternateSceneHeaderProperty
@@ -399,28 +399,29 @@ class OOTActorProperty(PropertyGroup):
             # is included in type list of the property as not all properties are used sometimes
             is_type_in_tied_types = selected_type is not None and selected_type in param.tiedTypes
             if is_type_in_tied_types or param.type == "Type" or len(param.tiedTypes) == 0:
-                search_op = item_name = None
-                label_name = ""
+                if param.type in {"ChestContent", "Message"}:
+                    key: str = getattr(self, prop_name)
 
-                if param.type == "ChestContent":
-                    search_op = layout.operator(OOT_SearchChestContentEnumOperator.bl_idname)
-                    label_name = "Chest Content"
-                    item_name = ootData.actorData.chestItemByKey[getattr(self, prop_name)].name
-                elif param.type == "Message":
-                    search_op = layout.operator(OOT_SearchNaviMsgIDEnumOperator.bl_idname)
-                    label_name = "Navi Message ID"
-                    item_name = ootData.actorData.messageItemsByKey[getattr(self, prop_name)].name
+                    if param.type == "ChestContent":
+                        search_op = layout.operator(OOT_SearchChestContentEnumOperator.bl_idname)
+                        label_name = "Chest Content"
+                        item_map = ootData.actorData.chestItemByKey
+                    else:
+                        search_op = layout.operator(OOT_SearchNaviMsgIDEnumOperator.bl_idname)
+                        label_name = "Navi Message ID"
+                        item_map = ootData.actorData.messageItemsByKey
 
-                if param.type in {"ChestContent", "Message"} and search_op is not None and item_name is not None:
                     search_op.obj_name = obj.name
                     search_op.prop_name = prop_name
-                    split = layout.split(factor=0.5)
-                    split.label(text=label_name)
-                    split.label(text=item_name)
+
+                    if key != "Custom":
+                        label_split(layout, label_name, item_map[key].name)
+                    else:
+                        prop_split(layout, self, f"{prop_name}_custom", f"{label_name} Custom")
                 else:
                     prop_split(layout, self, prop_name, param.name)
 
-                if param.type in {"Type", "Enum", "ChestContent", "Collectible", "Message"}:
+                if param.type in {"Type", "Enum", "Collectible"}:
                     if getattr(self, prop_name) == "Custom":
                         prop_split(layout, self, f"{prop_name}_custom", f"{param.name} Custom")
 
