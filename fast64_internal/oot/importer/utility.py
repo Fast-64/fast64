@@ -47,7 +47,7 @@ def getDisplayNameFromActorID(actorID: str):
 
 def handleActorWithRotAsParam(actorProp: OOTActorProperty, actorID: str, rotation: list[int]):
     if actorID in actorsWithRotAsParam:
-        if actorProp != "Custom":
+        if actorProp.actor_id != "Custom":
             actorProp.rot_x = hex(rotation[0])
             actorProp.rot_y = hex(rotation[1])
             actorProp.rot_z = hex(rotation[2])

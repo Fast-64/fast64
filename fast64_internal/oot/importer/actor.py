@@ -78,7 +78,7 @@ def parseTransActorList(
 
             actorProp = transActorProp.actor
             setCustomProperty(actorProp, "actor_id", actorID, ootData.actorData.ootEnumActorID)
-            if actorProp != "Custom":
+            if actorProp.actor_id != "Custom":
                 actorProp.params = actorParam
             else:
                 actorProp.params_custom = actorParam
@@ -158,7 +158,7 @@ def parseSpawnList(
             spawnProp.customActor = actorID != "ACTOR_PLAYER"
             actorProp = spawnProp.actor
             setCustomProperty(actorProp, "actor_id", actorID, ootData.actorData.ootEnumActorID)
-            if actorProp != "Custom":
+            if actorProp.actor_id != "Custom":
                 actorProp.params = actorParam
             else:
                 actorProp.params_custom = actorParam
@@ -199,7 +199,7 @@ def parseActorList(
             actorProp = actorObj.ootActorProperty
 
             setCustomProperty(actorProp, "actor_id", actorID, ootData.actorData.ootEnumActorID)
-            if actorProp != "Custom":
+            if actorProp.actor_id != "Custom":
                 actorProp.params = actorParam
             else:
                 actorProp.params_custom = actorParam
