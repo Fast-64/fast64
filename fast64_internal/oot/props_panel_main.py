@@ -229,8 +229,8 @@ class OOTCullGroupProperty(bpy.types.PropertyGroup):
         col.prop(self, "sizeControlsCull")
         if not self.sizeControlsCull:
             prop_split(col, self, "manualRadius", "Radius (OOT Units)")
-        col.label(text="Meshes generate cull groups automatically.", icon="INFO")
-        col.label(text="This is only for custom cull group shapes.")
+        col.label(text="RSP culling is automatic. The 'Custom Cull Group' empty type is for CPU culling.", icon="INFO")
+        col.label(text="This will create custom cull group shape entries to be used in Cullable rooms.")
         col.label(text="Use Options -> Transform -> Affect Only -> Parent ", icon="INFO")
         col.label(text="to move object without affecting children.")
 

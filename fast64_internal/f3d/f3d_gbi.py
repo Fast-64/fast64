@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from typing import Sequence, Union, Tuple
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, fields, field
 import bpy, os, enum, copy
 from ..utility import *
 
@@ -70,17 +70,29 @@ vertexBufferSize = {
     "F3DEX2/LX2": (32, 32),
     "F3DEX2.Rej/LX2.Rej": (64, 64),
     "F3DEX3": (56, 56),
+    "T3D": (70, 70),
 }
 
-drawLayerRenderMode = {
-    0: ("G_RM_ZB_OPA_SURF", "G_RM_NOOP2"),
-    1: ("G_RM_AA_ZB_OPA_SURF", "G_RM_NOOP2"),
-    2: ("G_RM_AA_ZB_OPA_DECAL", "G_RM_NOOP2"),
-    3: ("G_RM_AA_ZB_OPA_INTER", "G_RM_NOOP2"),
-    4: ("G_RM_AA_ZB_TEX_EDGE", "G_RM_NOOP2"),
-    5: ("G_RM_AA_ZB_XLU_SURF", "G_RM_NOOP2"),
-    6: ("G_RM_AA_ZB_XLU_DECAL", "G_RM_NOOP2"),
-    7: ("G_RM_AA_ZB_XLU_INTER", "G_RM_NOOP2"),
+sm64_default_draw_layers = {
+    "0": ("G_RM_ZB_OPA_SURF", "G_RM_NOOP2"),
+    "1": ("G_RM_AA_ZB_OPA_SURF", "G_RM_NOOP2"),
+    "2": ("G_RM_AA_ZB_OPA_DECAL", "G_RM_NOOP2"),
+    "3": ("G_RM_AA_ZB_OPA_INTER", "G_RM_NOOP2"),
+    "4": ("G_RM_AA_ZB_TEX_EDGE", "G_RM_NOOP2"),
+    "5": ("G_RM_AA_ZB_XLU_SURF", "G_RM_NOOP2"),
+    "6": ("G_RM_AA_ZB_XLU_DECAL", "G_RM_NOOP2"),
+    "7": ("G_RM_AA_ZB_XLU_INTER", "G_RM_NOOP2"),
+}
+
+oot_default_draw_layers = {
+    "Opaque": ("G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2"),
+    "Transparent": ("G_RM_AA_ZB_XLU_SURF", "G_RM_AA_ZB_XLU_SURF2"),
+    "Overlay": ("G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2"),
+}
+
+default_draw_layers = {
+    "SM64": sm64_default_draw_layers,
+    "OOT": oot_default_draw_layers,
 }
 
 CCMUXDict = {
@@ -133,6 +145,14 @@ def isUcodeF3DEX3(F3D_VER: str) -> bool:
     return F3D_VER == "F3DEX3"
 
 
+def is_ucode_t3d(UCODE_VER: str) -> bool:
+    return UCODE_VER == "T3D"
+
+
+def is_ucode_f3d(UCODE_VER: str) -> bool:
+    return UCODE_VER not in {"T3D", "RDPQ"}
+
+
 class F3D:
     """NOTE: do not initialize this class manually! use get_F3D_GBI so that the single instance is cached from the microcode type."""
 
@@ -143,6 +163,7 @@ class F3D:
         F3DEX_GBI_3 = self.F3DEX_GBI_3 = isUcodeF3DEX3(F3D_VER)
         F3DLP_GBI = self.F3DLP_GBI = self.F3DEX_GBI
         self.F3D_OLD_GBI = not (F3DEX_GBI or F3DEX_GBI_2 or F3DEX_GBI_3)
+        self.F3D_GBI = is_ucode_f3d(F3D_VER)
 
         # F3DEX2 is F3DEX1 and F3DEX3 is F3DEX2, but F3DEX3 is not F3DEX1
         if F3DEX_GBI_2:
@@ -150,8 +171,12 @@ class F3D:
         elif F3DEX_GBI_3:
             F3DEX_GBI_2 = self.F3DEX_GBI_2 = True
 
-        self.vert_buffer_size = vertexBufferSize[F3D_VER][0]
-        self.vert_load_size = vertexBufferSize[F3D_VER][1]
+        if F3D_VER in vertexBufferSize:
+            self.vert_buffer_size = vertexBufferSize[F3D_VER][0]
+            self.vert_load_size = vertexBufferSize[F3D_VER][1]
+        else:
+            self.vert_buffer_size = self.vert_load_size = None
+
         self.G_MAX_LIGHTS = 9 if F3DEX_GBI_3 else 7
         self.G_INPUT_BUFFER_CMDS = 21
 
@@ -2320,6 +2345,10 @@ class FModel:
         self.materialRevert: Union[GfxList, None] = None
         # F3D library
         self.f3d: F3D = get_F3D_GBI()
+        if not self.f3d.F3D_GBI:
+            raise PluginError(
+                f"Current microcode {self.f3d.F3D_VER} is not part of the f3d family of microcodes, fast64 cannot export it"
+            )
         # array of FModel
         self.subModels: list[FModel] = []
         self.parentModel: Union[FModel, None] = None
@@ -3238,18 +3267,18 @@ class LookAt:
 
 
 # A palette is just a RGBA16 texture with width = 1.
+@dataclass
 class FImage:
-    def __init__(self, name, fmt, bitSize, width, height, filename):
-        self.name = name
-        self.fmt = fmt
-        self.bitSize = bitSize
-        self.width = width
-        self.height = height
-        self.startAddress = 0
-        self.data = bytearray(0)
-        self.filename = filename
-        self.converted = False
-        self.isLargeTexture = False
+    name: str
+    fmt: str
+    bitSize: str
+    width: int
+    height: int
+    filename: str
+    data: bytearray = field(init=False, compare=False, default_factory=bytearray)
+    startAddress: int = field(init=False, compare=False, default=0)
+    isLargeTexture: bool = field(init=False, compare=False, default=False)
+    converted: bool = field(init=False, compare=False, default=False)
 
     def size(self):
         return len(self.data)
@@ -3812,6 +3841,9 @@ class SPAmbOcclusion(GbiMacro):
             self.point
         ).to_binary(f3d, segments)
 
+    def size(self, f3d):
+        return GFX_SIZE * 2
+
 
 @dataclass(unsafe_hash=True)
 class SPFresnelScale(GbiMacro):
@@ -4025,6 +4057,9 @@ class SPLightColor(GbiMacro):
         header = "gsSPLightColor(" if static else "gSPLightColor(glistp++, "
         return header + f"{self.n}, 0x" + format(self.color_to_int(), "08X") + ")"
 
+    def size(self, _f3d):
+        return GFX_SIZE * 2
+
 
 @dataclass(unsafe_hash=True)
 class SPSetLights(GbiMacro):
@@ -4211,7 +4246,7 @@ class SPPerspNormalize(GbiMacro):
 
     def to_binary(self, f3d, segments):
         if f3d.F3DEX_GBI_3:
-            return gsMoveHalfwd(f3d.G_MW_FX, G_MWO_PERSPNORM, (self.s), f3d)
+            return gsMoveHalfwd(f3d.G_MW_FX, f3d.G_MWO_PERSPNORM, (self.s), f3d)
         else:
             return gsMoveWd(f3d.G_MW_PERSPNORM, 0, (self.s), f3d)
 
@@ -4315,9 +4350,9 @@ class SPSetOtherMode(GbiMacro):
     def to_binary(self, f3d, segments):
         data = 0
         for flag in self.flagList:
-            data |= getattr(f3d, flag) if hasattr(f3d, str(flag)) else flag
-        cmd = getattr(f3d, self.cmd) if hasattr(f3d, str(self.cmd)) else self.cmd
-        sft = getattr(f3d, self.sft) if hasattr(f3d, str(self.sft)) else self.sft
+            data |= getattr(f3d, str(flag), flag)
+        cmd = getattr(f3d, str(self.cmd), self.cmd)
+        sft = getattr(f3d, str(self.sft), self.sft)
         return gsSPSetOtherMode(cmd, sft, self.length, data, f3d)
 
 
@@ -4818,7 +4853,12 @@ class DPSetOtherMode(GbiMacro):
     mode1: list
 
     def to_binary(self, f3d, segments):
-        words = _SHIFTL(f3d.G_RDPSETOTHERMODE, 24, 8) | _SHIFTL(self.mode0, 0, 24), self.mode1
+        mode0 = mode1 = 0
+        for mode in self.mode0:
+            mode0 |= getattr(f3d, str(mode), mode)
+        for mode in self.mode1:
+            mode1 |= getattr(f3d, str(mode), mode)
+        words = _SHIFTL(f3d.G_RDPSETOTHERMODE, 24, 8) | _SHIFTL(mode0, 0, 24), mode1
         return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
@@ -4841,7 +4881,7 @@ class DPSetTileSize(GbiMacro):
         return gsDPLoadTileGeneric(f3d.G_SETTILESIZE, self.tile, self.uls, self.ult, self.lrs, self.lrt)
 
     def is_LOADTILE(self, f3d):
-        return self.t == f3d.G_TX_LOADTILE
+        return self.tile == f3d.G_TX_LOADTILE
 
 
 @dataclass(unsafe_hash=True)

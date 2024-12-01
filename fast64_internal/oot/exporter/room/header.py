@@ -155,9 +155,16 @@ class RoomActors:
         return export_rot_values
 
     @staticmethod
-    def new(name: str, sceneObj: Optional[Object], roomObj: Optional[Object], transform: Matrix, headerIndex: int):
+    def new(
+        name: str,
+        sceneObj: Optional[Object],
+        roomObj: Optional[Object],
+        transform: Matrix,
+        headerIndex: int,
+        room_index: int,
+    ):
         actorList: list[Actor] = []
-        actorObjList = getObjectList(sceneObj.children_recursive, "EMPTY", "Actor", parentObj=roomObj)
+        actorObjList = getObjectList(sceneObj.children, "EMPTY", "Actor", parentObj=roomObj, room_index=room_index)
         for obj in actorObjList:
             actorProp: OOTActorProperty = obj.ootActorProperty
             if not Utility.isCurrentHeaderValid(actorProp.headerSettings, headerIndex):
@@ -243,7 +250,7 @@ class RoomHeader:
             name,
             RoomInfos.new(props),
             RoomObjects.new(f"{name}_objectList", props),
-            RoomActors.new(f"{name}_actorList", sceneObj, roomObj, transform, headerIndex),
+            RoomActors.new(f"{name}_actorList", sceneObj, roomObj, transform, headerIndex, props.roomIndex),
         )
 
     def getHeaderDefines(self):
