@@ -1,9 +1,9 @@
-from pathlib import Path
 import os
 import re
-
 import bpy
 
+from pathlib import Path
+from typing import Optional
 from ..f3d.properties import OOTDLImportSettings
 from ..skeleton.properties import OOTSkeletonImportSettings
 from ..animation.properties import OOTAnimImportSettingsProperty
@@ -21,18 +21,25 @@ def get_found_defs(path: Path, sym_name: str, sym_def_pattern: re.Pattern[str]):
 
     for dirpath, _, filenames in os.walk(path):
         dirpath_p = Path(dirpath)
+
         for filename in filenames:
             file_p = dirpath_p / filename
+
             # Only look into C files
             if file_p.suffix != ".c":
                 continue
+
             source = file_p.read_text()
+
             # Simple check to see if we should look into this file any further
             if sym_name not in source:
                 continue
+
             found_defs = sym_def_pattern.findall(source)
-            print(file_p, f"{found_defs=}")
-            all_found_defs[file_p] = found_defs
+
+            if len(found_defs) > 0:
+                print(file_p, f"{found_defs=}")
+                all_found_defs[file_p] = found_defs
 
     return all_found_defs
 
@@ -57,33 +64,31 @@ def quick_import_exec(context: bpy.types.Context, sym_name: str):
 
     sym_def_pattern = re.compile(rf"([^\s]+)\s+{sym_name}\s*(\[[^\]]*\])?\s*=")
 
-    base_dir_p = Path(context.scene.ootDecompPath) / context.scene.fast64.oot.get_extracted_path()
-    assets_objects_dir_p = base_dir_p / "assets" / "objects"
-    assets_scenes_dir_p = base_dir_p / "assets" / "scenes"
-    is_sym_object = True
-    all_found_defs = get_found_defs(assets_objects_dir_p, sym_name, sym_def_pattern)
-    if len(all_found_defs) == 0:
-        is_sym_object = False
-        all_found_defs = get_found_defs(assets_scenes_dir_p, sym_name, sym_def_pattern)
-
-    found_dir_p = assets_objects_dir_p if is_sym_object else assets_scenes_dir_p
     all_found_defs: dict[Path, list[tuple[str, str]]] = dict()
+    found_dir_p: Optional[Path] = None
+    base_dir_p = Path(context.scene.ootDecompPath)
 
-    for dirpath, dirnames, filenames in os.walk(found_dir_p):
-        dirpath_p = Path(dirpath)
-        for filename in filenames:
-            file_p = dirpath_p / filename
-            # Only look into C files
-            if file_p.suffix != ".c":
-                continue
-            source = file_p.read_text()
-            # Simple check to see if we should look into this file any further
-            if sym_name not in source:
-                continue
-            found_defs = sym_def_pattern.findall(source)
-            print(file_p, f"{found_defs=}")
-            if found_defs:
-                all_found_defs[file_p] = found_defs
+    # this str cast completely useless, it's there to force linting to recognize a Path element
+    extracted_dir_p = base_dir_p / str(context.scene.fast64.oot.get_extracted_path())
+
+    assets_paths: list[Path] = [
+        # objects
+        extracted_dir_p / "assets" / "objects",
+        # scenes
+        extracted_dir_p / "assets" / "scenes",
+        # other assets embedded in actors (cutscenes for instance)
+        base_dir_p / "src" / "overlays" / "actors",
+    ]
+
+    for path in assets_paths:
+        print("path:", str(path))
+        all_found_defs = get_found_defs(path, sym_name, sym_def_pattern)
+
+        if len(all_found_defs) > 0:
+            found_dir_p = path
+            break
+
+    assert found_dir_p is not None
 
     # Ideally if for example sym_name was gLinkAdultHookshotTipDL,
     # all_found_defs now contains:
@@ -93,13 +98,15 @@ def quick_import_exec(context: bpy.types.Context, sym_name: str):
 
     if len(all_found_defs) == 0:
         raise QuickImportAborted(f"Couldn't find a definition of {sym_name}, is the OoT Version correct?")
+
     if len(all_found_defs) > 1:
         raise QuickImportAborted(
             f"Found definitions of {sym_name} in several files: "
             + ", ".join(str(p.relative_to(found_dir_p)) for p in all_found_defs.keys())
         )
-    assert len(all_found_defs) == 1
+
     sym_file_p, sym_defs = list(all_found_defs.items())[0]
+
     if len(sym_defs) > 1:
         raise QuickImportAborted(f"Found several definitions of {sym_name} in {sym_file_p.relative_to(found_dir_p)}")
 
@@ -109,7 +116,7 @@ def quick_import_exec(context: bpy.types.Context, sym_name: str):
     folder_name = sym_file_p.relative_to(found_dir_p).parts[0]
 
     def raise_only_from_object(type: str):
-        if not is_sym_object:
+        if "objects" not in str(found_dir_p):
             raise QuickImportAborted(
                 f"Can only import {type} from an object ({sym_name} found in {sym_file_p.relative_to(base_dir_p)})"
             )
