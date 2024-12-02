@@ -458,5 +458,7 @@ class CutsceneExport(CutsceneCmdToC):
             self.frameCount += self.motionFrameCount - self.frameCount
 
         return (
-            (indent + f"CS_HEADER({self.entryTotal}, {self.frameCount}),\n") + csData + (indent + "CS_END_OF_SCRIPT(),\n")
+            (indent + f"CS_HEADER({self.entryTotal}, {self.frameCount}),\n")
+            + csData
+            + (indent + "CS_END_OF_SCRIPT(),\n")
         )
