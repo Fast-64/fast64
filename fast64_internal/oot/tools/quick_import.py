@@ -81,7 +81,6 @@ def quick_import_exec(context: bpy.types.Context, sym_name: str):
     ]
 
     for path in assets_paths:
-        print("path:", str(path))
         all_found_defs = get_found_defs(path, sym_name, sym_def_pattern)
 
         if len(all_found_defs) > 0:
