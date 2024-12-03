@@ -67,13 +67,13 @@ def insertCutsceneData(filePath: str, csName: str):
                 foundCutscene = True
 
             if foundCutscene:
-                if "CS_BEGIN_CUTSCENE" in line:
+                if "CS_HEADER" in line:
                     # save the index of the line that contains the entry total and the framecount for later use
                     beginIndex = i
 
                 # looking at next line to see if we reached the end of the cs script
                 index = i + 1
-                if index < len(fileLines) and "CS_END" in fileLines[index]:
+                if index < len(fileLines) and "CS_END_OF_SCRIPT" in fileLines[index]:
                     # exporting first to get the new framecount and the total of entries values
                     fileLines.insert(index, motionExporter.getExportData())
 
@@ -90,7 +90,7 @@ def insertCutsceneData(filePath: str, csName: str):
                         frames = re.sub(r"\b([0-9a-fA-F]*)\)", f"{frameCount + motionExporter.frameCount})", beginLine)
                         fileLines[beginIndex] = f"{entries.split(', ')[0]}, {frames.split(', ')[1]}"
                     else:
-                        raise PluginError("ERROR: Can't find `CS_BEGIN_CUTSCENE()` parameters!")
+                        raise PluginError("ERROR: Can't find `CS_HEADER()` parameters!")
                     break
 
     fileData = CData()

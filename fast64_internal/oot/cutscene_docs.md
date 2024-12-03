@@ -10,8 +10,8 @@
 ### Commands
 More detailed informations and commands' parameters can be found [here](https://github.com/zeldaret/oot/blob/master/include/z64cutscene_commands.h)
 
-- ``CS_BEGIN_CUTSCENE``: defines the beginning of a cutscene script
-- ``CS_END``: defines the end of a cutscene script 
+- ``CS_HEADER``: defines the length and the total number of command entries for a cutscene script
+- ``CS_END_OF_SCRIPT``: defines the end of a command list in a cutscene script 
 - ``CS_CAM_POINT``: defines a single camera point, it can be used with any of the "eye" or "at" camera commands
 - ``CS_CAM_EYE``: defines a single eye point, this feature is not used in the final game and lacks polish
 - ``CS_CAM_EYE_SPLINE``: declares a list of "eye" camera points that forms a spline
