@@ -322,6 +322,8 @@ class OOTCutscenePreviewSettingsProperty(PropertyGroup):
         default="link_adult",
     )
 
+    ignore_cs_misc_stop: BoolProperty(name="Ignore 'Stop Cutscene' Command", default=False)
+
     # internal only
     ootCSPreviewNodesReady: BoolProperty(default=False)
     ootCSPreviewCSObj: PointerProperty(type=Object)
@@ -350,6 +352,7 @@ class OOTCutscenePreviewSettingsProperty(PropertyGroup):
         prop_split(previewBox, self, "previewPlayerAge", "Player Age for Preview")
         previewBox.prop(self, "useWidescreen")
         previewBox.prop(self, "useOpaqueCamBg")
+        previewBox.prop(self, "ignore_cs_misc_stop")
 
 
 class OOTCutsceneProperty(PropertyGroup):
