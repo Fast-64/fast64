@@ -135,7 +135,7 @@ class OOTObjectPanel(bpy.types.Panel):
 
         if obj.ootEmptyType == "Actor":
             actorProp: OOTActorProperty = obj.ootActorProperty
-            actorProp.draw_props(box, altRoomProp, objName)
+            actorProp.draw_props(box, altRoomProp, obj)
 
         elif obj.ootEmptyType == "Transition Actor":
             transActorProp: OOTTransitionActorProperty = obj.ootTransitionActorProperty
@@ -198,7 +198,7 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
             if obj.type == "EMPTY":
                 if obj.ootEmptyType == "Room":
                     OOTObjectProperty.upgrade_object(obj)
-                if obj.ootEmptyType in {"Entrance", "Transition Actor"}:
+                if obj.ootEmptyType in {"Actor", "Entrance", "Transition Actor"}:
                     OOTActorProperty.upgrade_object(obj)
                 if obj.ootEmptyType == "Cutscene":
                     OOTCutsceneProperty.upgrade_object(obj)

@@ -22,6 +22,7 @@ from .fast64_internal.sm64.sm64_objects import SM64_ObjectProperties
 from .fast64_internal.oot import OOT_Properties, oot_register, oot_unregister
 from .fast64_internal.oot.oot_constants import oot_world_defaults
 from .fast64_internal.oot.props_panel_main import OOT_ObjectProperties
+from .fast64_internal.oot.actor.properties import initOOTActorProperties
 from .fast64_internal.utility_anim import utility_anim_register, utility_anim_unregister, ArmatureApplyWithMeshOperator
 
 from .fast64_internal.mk64 import MK64_Properties, mk64_register, mk64_unregister
@@ -430,6 +431,7 @@ def register():
     register_class(ExampleAddonPreferences)
     addon_updater_ops.register(bl_info)
 
+    initOOTActorProperties()
     utility_anim_register()
     mat_register()
     render_engine_register()
