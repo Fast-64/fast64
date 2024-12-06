@@ -60,7 +60,7 @@ from .tools import (
 
 
 feature_set_enum = (
-    ("decomp", "Decomp", "Decomp"),
+    ("default", "Default", "Default"),
     ("hacker_oot", "HackerOoT", "Hacker OoT"),
 )
 
