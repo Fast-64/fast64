@@ -380,9 +380,9 @@ def material_to_bsdf(material: Material, put_alpha_into_color=False):
     uv_map_output = None
     if abstracted_mat.textures:  # create uv_map
         if abstracted_mat.uv_gen:
-            print("Creating generated UVmap node (Mirror output)")
+            print("Creating generated UVmap node (Camera output)")
             uv_map_node = create_node(ShaderNodeTexCoord, "UVMap")
-            uv_map_output = uv_map_node.outputs["Mirror"]
+            uv_map_output = uv_map_node.outputs["Camera"]
         else:
             print("Creating UVmap node")
             uv_map_node = create_node(ShaderNodeUVMap, "UVMap")
