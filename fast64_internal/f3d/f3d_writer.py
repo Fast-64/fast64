@@ -1635,11 +1635,6 @@ def saveGeoModeDefinitionF3DEX2(fMaterial, settings, defaults, matWriteMethod):
     saveGeoModeCommon(saveBitGeoF3DEX2, settings, defaults, (geo, matWriteMethod))
 
     if len(geo.clearFlagList) != 0 or len(geo.setFlagList) != 0:
-        if len(geo.clearFlagList) == 0:
-            geo.clearFlagList.append("0")
-        elif len(geo.setFlagList) == 0:
-            geo.setFlagList.append("0")
-
         if matWriteMethod == GfxMatWriteMethod.WriteAll:
             fMaterial.mat_only_DL.commands.append(SPLoadGeometryMode(geo.setFlagList))
         else:
@@ -1711,14 +1706,14 @@ def saveOtherModeHDefinitionIndividual(fMaterial, settings, tlut, defaults):
 
 def saveOtherModeLDefinition(fMaterial, settings, defaults, defaultRenderMode, matWriteMethod, f3d):
     if matWriteMethod == GfxMatWriteMethod.WriteAll:
-        saveOtherModeLDefinitionAll(fMaterial, settings, defaults, f3d)
+        saveOtherModeLDefinitionAll(fMaterial, settings, defaultRenderMode, f3d)
     elif matWriteMethod == GfxMatWriteMethod.WriteDifferingAndRevert:
         saveOtherModeLDefinitionIndividual(fMaterial, settings, defaults, defaultRenderMode)
     else:
         raise PluginError("Unhandled material write method: " + str(matWriteMethod))
 
 
-def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaults, f3d):
+def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaultRenderMode, f3d):
     baseLength = 3 if not settings.set_rendermode else 32
     cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, baseLength - f3d.F3D_OLD_GBI, [])
     cmd.flagList.append(settings.g_mdsft_alpha_compare)
@@ -1728,11 +1723,10 @@ def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaults, f3d):
         flagList, blendList = getRenderModeFlagList(settings, fMaterial)
         cmd.flagList.extend(flagList)
         if blendList is not None:
-            cmd.flagList.extend(
-                [
-                    "GBL_c1(" + blendList[0] + ", " + blendList[1] + ", " + blendList[2] + ", " + blendList[3] + ")",
-                    "GBL_c2(" + blendList[4] + ", " + blendList[5] + ", " + blendList[6] + ", " + blendList[7] + ")",
-                ]
+            cmd.flagList.append(RendermodeBlender(tuple(blendList[:4]), tuple(blendList[4:])))
+        if defaultRenderMode is not None:  # even in write all, we need to revert the rendermode
+            fMaterial.revert.commands.append(
+                SPSetOtherMode("G_SETOTHERMODE_L", f3d.G_MDSFT_RENDERMODE, 29 - f3d.F3D_OLD_GBI, defaultRenderMode)
             )
 
     fMaterial.mat_only_DL.commands.append(cmd)
@@ -1752,7 +1746,10 @@ def saveOtherModeLDefinitionIndividual(fMaterial, settings, defaults, defaultRen
 
     if settings.set_rendermode:
         flagList, blendList = getRenderModeFlagList(settings, fMaterial)
-        renderModeSet = DPSetRenderMode(flagList, blendList)
+        blender = None
+        if blendList:
+            blender = RendermodeBlender(tuple(blendList[:4]), tuple(blendList[4:]))
+        renderModeSet = DPSetRenderMode(flagList, blender)
 
         fMaterial.mat_only_DL.commands.append(renderModeSet)
         if defaultRenderMode is not None:
