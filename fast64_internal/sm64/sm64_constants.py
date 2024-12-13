@@ -3327,9 +3327,11 @@ ACTOR_PRESET_INFO = {
         decomp_path="actors/peach",
         group="group10",
         animation=AnimInfo(
-            address=0x501C50C,
+            address=0x501C504,
             behaviours={"Peach (Beginning)": 0x13005638, "Peach (End)": 0x13000EAC},
             names=[
+                "Listen Everybody",
+                "Turning Away",
                 "Walking away",
                 "Walking away 2",
                 "Descend",
