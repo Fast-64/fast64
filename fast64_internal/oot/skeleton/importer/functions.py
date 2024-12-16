@@ -10,8 +10,8 @@ from ...oot_utility import OOTEnum, ootGetObjectPath, getOOTScale, ootGetObjectH
 from ...oot_texture_array import ootReadTextureArrays
 from ..constants import ootSkeletonImportDict
 from ..properties import OOTSkeletonImportSettings
-from ..utility import ootGetLimb, ootGetLimbs, ootGetSkeleton, applySkeletonRestPose
-
+from ..utility import ootGetLimb, ootGetLimbs, ootGetSkeleton, applySkeletonRestPose, ootGetAnimNames
+from ...tools.quick_import import quick_import_exec
 
 class OOTDLEntry:
     def __init__(self, dlName, limbIndex):
@@ -264,6 +264,7 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
 
     removeDoubles = importSettings.removeDoubles
     importNormals = importSettings.importNormals
+    importAnimations = importSettings.importAnimations
     drawLayer = importSettings.drawLayer
 
     skeletonData = getImportData(filepaths)
@@ -284,8 +285,7 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
         actorScale = ootReadActorScale(basePath, overlayName, isLink)
     else:
         actorScale = getOOTScale(importSettings.actorScale)
-
-    # print(limbList)
+    
     isLOD, armatureObj = ootBuildSkeleton(
         skeletonName,
         overlayName,
@@ -324,3 +324,20 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
         applySkeletonRestPose(restPoseData, armatureObj)
         if isLOD:
             applySkeletonRestPose(restPoseData, LODArmatureObj)
+
+
+    if importAnimations:
+
+        if armatureObj:
+            bpy.ops.object.select_all(action='DESELECT')
+            
+            armatureObj.select_set(True)
+            
+            bpy.context.view_layer.objects.active = armatureObj
+
+        animation_names = ootGetAnimNames(skeletonData)
+        animation_names = list(dict.fromkeys(animation_names))
+        #print(animation_names)
+        # Call quick_import_exec for each animation name
+        for animation_name in animation_names:
+            quick_import_exec(bpy.context, animation_name)
