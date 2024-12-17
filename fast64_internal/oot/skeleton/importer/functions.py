@@ -328,7 +328,7 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
 
     if importAnimations:
 
-        if armatureObj:
+        if armatureObj is not None:
             bpy.ops.object.select_all(action='DESELECT')
             
             armatureObj.select_set(True)
