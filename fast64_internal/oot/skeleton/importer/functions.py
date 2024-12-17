@@ -13,6 +13,7 @@ from ..properties import OOTSkeletonImportSettings
 from ..utility import ootGetLimb, ootGetLimbs, ootGetSkeleton, applySkeletonRestPose, ootGetAnimNames
 from ...tools.quick_import import quick_import_exec
 
+
 class OOTDLEntry:
     def __init__(self, dlName, limbIndex):
         self.dlName = dlName
@@ -285,7 +286,7 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
         actorScale = ootReadActorScale(basePath, overlayName, isLink)
     else:
         actorScale = getOOTScale(importSettings.actorScale)
-    
+
     isLOD, armatureObj = ootBuildSkeleton(
         skeletonName,
         overlayName,
@@ -325,9 +326,7 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
         if isLOD:
             applySkeletonRestPose(restPoseData, LODArmatureObj)
 
-
     if importAnimations:
-
         if armatureObj is not None:
             selectSingleObject(armatureObj);
 
