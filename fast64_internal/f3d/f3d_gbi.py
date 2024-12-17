@@ -134,6 +134,9 @@ ACMUXDict = {
 }
 
 
+EMU64_SWIZZLE_SIZES = {"G_IM_SIZ_4b": (8, 8), "G_IM_SIZ_8b": (8, 4), "G_IM_SIZ_16b": (4, 4), "G_IM_SIZ_32b": (2, 2)}
+
+
 def isUcodeF3DEX1(F3D_VER: str) -> bool:
     return F3D_VER in {"F3DLP.Rej", "F3DLX.Rej", "F3DEX/LX"}
 

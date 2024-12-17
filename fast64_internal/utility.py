@@ -1,6 +1,7 @@
 import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operator
 from math import pi, ceil, degrees, radians, copysign
 from mathutils import *
+import numpy as np
 from .utility_anim import *
 from typing import Callable, Iterable, Any, Optional, Tuple, TypeVar, Union
 from bpy.types import UILayout, Scene, World
@@ -586,6 +587,10 @@ def colorToLuminance(color: mathutils.Color | list[float] | Vector):
     # https://github.com/blender/blender/blob/594f47ecd2d5367ca936cf6fc6ec8168c2b360d0/intern/cycles/render/shader.cpp#L387
     # These coefficients are used by Blender, so we use them as well for parity between Fast64 exports and Blender color conversions
     return RGB_TO_LUM_COEF.dot(color[:3])
+
+
+def color_to_luminance_np(pixels: np.ndarray[Any, 4]) -> np.ndarray[Any, 1]:
+    return np.dot(pixels[:, :3], RGB_TO_LUM_COEF)
 
 
 def getIA16Tuple(color):
