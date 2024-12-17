@@ -329,15 +329,10 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
     if importAnimations:
 
         if armatureObj is not None:
-            bpy.ops.object.select_all(action='DESELECT')
-            
-            armatureObj.select_set(True)
-            
-            bpy.context.view_layer.objects.active = armatureObj
+            selectSingleObject(armatureObj);
 
         animation_names = ootGetAnimNames(skeletonData)
         animation_names = list(dict.fromkeys(animation_names))
-        #print(animation_names)
         # Call quick_import_exec for each animation name
         for animation_name in animation_names:
             quick_import_exec(bpy.context, animation_name)
