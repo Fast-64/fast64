@@ -6,15 +6,9 @@ from ..oot_constants import ootData, ootEnumCamTransition
 from ..oot_upgrade import upgradeActors
 from ..scene.properties import OOTAlternateSceneHeaderProperty
 from ..room.properties import OOTAlternateRoomHeaderProperty
+from ..collection_utility import drawAddButton, drawCollectionOps
+from ..oot_utility import getRoomObj, getEnumName, drawEnumWithCustom
 from .operators import OOT_SearchActorIDEnumOperator
-
-from ..oot_utility import (
-    getRoomObj,
-    getEnumName,
-    drawAddButton,
-    drawCollectionOps,
-    drawEnumWithCustom,
-)
 
 ootEnumSceneSetupPreset = [
     ("Custom", "Custom", "Custom"),
