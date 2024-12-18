@@ -328,7 +328,7 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
 
     if importAnimations:
         if armatureObj is not None:
-            selectSingleObject(armatureObj);
+            selectSingleObject(armatureObj)
 
         animation_names = ootGetAnimNames(skeletonData)
         animation_names = list(dict.fromkeys(animation_names))

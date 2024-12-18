@@ -79,8 +79,9 @@ def ootGetLimb(skeletonData, limbName, continueOnError):
             raise PluginError("Cannot handle skeleton limb named " + limbName + " of type " + limbType)
     return matchResult
 
+
 def ootGetAnimNames(skeleton_data):
-    """ Extracts all animation names that start with 'AnimationHeader' from the given skeleton data."""
+    """Extracts all animation names that start with 'AnimationHeader' from the given skeleton data."""
 
     pattern = r"AnimationHeader\s+(\w+)"
     animation_names = re.findall(pattern, skeleton_data)
