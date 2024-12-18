@@ -3,14 +3,15 @@ from typing import List
 import mathutils, bpy, math
 from ....f3d.f3d_gbi import F3D, get_F3D_GBI
 from ....f3d.f3d_parser import getImportData, parseF3D
-from ....utility import hexOrDecInt, applyRotation, PluginError
+from ....utility import hexOrDecInt, applyRotation, PluginError, selectSingleObject
 from ...oot_f3d_writer import ootReadActorScale
 from ...oot_model_classes import OOTF3DContext, ootGetIncludedAssetData
 from ...oot_utility import OOTEnum, ootGetObjectPath, getOOTScale, ootGetObjectHeaderPath, ootGetEnums, ootStripComments
 from ...oot_texture_array import ootReadTextureArrays
 from ..constants import ootSkeletonImportDict
 from ..properties import OOTSkeletonImportSettings
-from ..utility import ootGetLimb, ootGetLimbs, ootGetSkeleton, applySkeletonRestPose
+from ..utility import ootGetLimb, ootGetLimbs, ootGetSkeleton, applySkeletonRestPose, ootGetAnimNames
+from ...tools.quick_import import quick_import_exec
 
 
 class OOTDLEntry:
@@ -264,6 +265,7 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
 
     removeDoubles = importSettings.removeDoubles
     importNormals = importSettings.importNormals
+    importAnimations = importSettings.importAnimations
     drawLayer = importSettings.drawLayer
 
     skeletonData = getImportData(filepaths)
@@ -285,7 +287,6 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
     else:
         actorScale = getOOTScale(importSettings.actorScale)
 
-    # print(limbList)
     isLOD, armatureObj = ootBuildSkeleton(
         skeletonName,
         overlayName,
@@ -324,3 +325,13 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
         applySkeletonRestPose(restPoseData, armatureObj)
         if isLOD:
             applySkeletonRestPose(restPoseData, LODArmatureObj)
+
+    if importAnimations:
+        if armatureObj is not None:
+            selectSingleObject(armatureObj)
+
+        animation_names = ootGetAnimNames(skeletonData)
+        animation_names = list(dict.fromkeys(animation_names))
+        # Call quick_import_exec for each animation name
+        for animation_name in animation_names:
+            quick_import_exec(bpy.context, animation_name)
