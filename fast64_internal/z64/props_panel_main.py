@@ -117,12 +117,12 @@ class OOTObjectPanel(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.gameEditorMode == "OOT" and (context.object is not None and context.object.type == "EMPTY")
+        return context.scene.gameEditorMode in {"OOT", "MM"} and (context.object is not None and context.object.type == "EMPTY")
 
     def draw(self, context):
         prop_split(self.layout, context.scene, "gameEditorMode", "Game")
         box = self.layout.box()
-        box.box().label(text="OOT Object Inspector")
+        box.box().label(text="Object Inspector")
         obj = context.object
         objName = obj.name
         prop_split(box, obj, "ootEmptyType", "Object Type")
@@ -260,7 +260,7 @@ def oot_obj_register():
         register_class(cls)
 
     bpy.types.Object.ootEmptyType = bpy.props.EnumProperty(
-        name="OOT Object Type", items=ootEnumEmptyType, default="None", update=onUpdateOOTEmptyType
+        name="Object Type", items=ootEnumEmptyType, default="None", update=onUpdateOOTEmptyType
     )
 
     bpy.types.Scene.ootActiveHeaderLock = bpy.props.BoolProperty(default=False)

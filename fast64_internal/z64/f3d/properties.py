@@ -140,7 +140,7 @@ class OOTDynamicMaterialProperty(PropertyGroup):
             return
 
         suffix = "(" + drawLayerSuffix[drawLayer] + ")"
-        layout.box().column().label(text="OOT Dynamic Material Properties " + suffix)
+        layout.box().column().label(text="Dynamic Material Properties " + suffix)
         layout.label(text="See gSPSegment calls in z_scene_table.c.")
         layout.label(text="Based off draw config index in gSceneTable.")
         dynMatLayerProp: OOTDynamicMaterialDrawLayerProperty = getattr(self, drawLayer.lower())

@@ -16,13 +16,13 @@ class OOTSplinePanel(Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.gameEditorMode == "OOT" and (
+        return context.scene.gameEditorMode in {"OOT", "MM"} and (
             context.object is not None and type(context.object.data) == Curve
         )
 
     def draw(self, context):
         box = self.layout.box().column()
-        box.box().label(text="OOT Spline Inspector")
+        box.box().label(text="Spline Inspector")
         curve = context.object.data
         if curve.splines[0].type != "NURBS":
             box.label(text="Only NURBS curves are compatible.")

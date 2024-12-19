@@ -15,7 +15,7 @@ class OOT_CameraPosPanel(Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.gameEditorMode == "OOT" and isinstance(context.object.data, Camera)
+        return context.scene.gameEditorMode in {"OOT", "MM"} and isinstance(context.object.data, Camera)
 
     def draw(self, context):
         box = self.layout.box().column()
@@ -36,7 +36,7 @@ class OOT_CollisionPanel(Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.gameEditorMode == "OOT" and context.material is not None
+        return context.scene.gameEditorMode in {"OOT", "MM"} and context.material is not None
 
     def draw(self, context):
         box = self.layout.box().column()

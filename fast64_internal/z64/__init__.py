@@ -72,6 +72,12 @@ oot_versions_items = [
     ("legacy", "Legacy", "Older Decomp Version"),
 ]
 
+mm_versions_items = [
+    ("Custom", "Custom", "Custom"),
+    ("n64-us", "n64-us", "n64-us"),
+    ("legacy", "Legacy", "Older Decomp Version"),
+]
+
 
 class OOT_Properties(bpy.types.PropertyGroup):
     """Global OOT Scene Properties found under scene.fast64.oot"""
@@ -90,13 +96,16 @@ class OOT_Properties(bpy.types.PropertyGroup):
     animImportSettings: bpy.props.PointerProperty(type=OOTAnimImportSettingsProperty)
     collisionExportSettings: bpy.props.PointerProperty(type=OOTCollisionExportSettings)
     oot_version: bpy.props.EnumProperty(name="OoT Version", items=oot_versions_items, default="gc-eu-mq-dbg")
+    mm_version: bpy.props.EnumProperty(name="OoT Version", items=mm_versions_items, default="n64-us")
     oot_version_custom: bpy.props.StringProperty(name="Custom Version")
 
     def get_extracted_path(self):
-        if self.oot_version == "legacy":
+        version = self.oot_version if bpy.context.scene.gameEditorMode == "OOT" else self.mm_version
+
+        if version == "legacy":
             return "."
         else:
-            return f"extracted/{self.oot_version if self.oot_version != 'Custom' else self.oot_version_custom}"
+            return f"extracted/{version if version != 'Custom' else self.oot_version_custom}"
 
     useDecompFeatures: bpy.props.BoolProperty(
         name="Use decomp for export", description="Use names and macros from decomp when exporting", default=True

@@ -22,13 +22,13 @@ class OOT_DisplayListPanel(Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.gameEditorMode == "OOT" and (
+        return context.scene.gameEditorMode in {"OOT", "MM"} and (
             context.object is not None and isinstance(context.object.data, Mesh)
         )
 
     def draw(self, context):
         box = self.layout.box().column()
-        box.box().label(text="OOT DL Inspector")
+        box.box().label(text="DL Inspector")
         obj = context.object
 
         # prop_split(box, obj, "ootDrawLayer", "Draw Layer")
@@ -58,7 +58,7 @@ class OOT_MaterialPanel(Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.material is not None and context.scene.gameEditorMode == "OOT"
+        return context.material is not None and context.scene.gameEditorMode in {"OOT", "MM"}
 
     def draw(self, context):
         layout = self.layout
@@ -91,7 +91,7 @@ class OOT_DrawLayersPanel(Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.gameEditorMode == "OOT"
+        return context.scene.gameEditorMode in {"OOT", "MM"}
 
     def draw(self, context):
         world = context.scene.world

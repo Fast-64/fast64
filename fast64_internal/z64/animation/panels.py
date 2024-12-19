@@ -17,7 +17,7 @@ class OOT_LinkAnimPanel(Panel):
     @classmethod
     def poll(cls, context):
         return (
-            context.scene.gameEditorMode == "OOT"
+            context.scene.gameEditorMode in {"OOT", "MM"}
             and hasattr(context, "object")
             and context.object is not None
             and isinstance(context.object.data, Armature)
@@ -26,7 +26,7 @@ class OOT_LinkAnimPanel(Panel):
     # called every frame
     def draw(self, context):
         col = self.layout.box().column()
-        col.box().label(text="OOT Link Animation Inspector")
+        col.box().label(text="Link Animation Inspector")
         linkTextureAnim: OOTLinkTextureAnimProperty = context.object.ootLinkTextureAnim
         linkTextureAnim.draw_props(col)
         col.label(text="Index 0 is for auto, flipbook starts at index 1.", icon="INFO")

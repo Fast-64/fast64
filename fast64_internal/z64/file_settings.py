@@ -15,12 +15,18 @@ class OOT_FileSettingsPanel(Z64_Panel):
     def draw(self, context):
         col = self.layout.column()
         col.scale_y = 1.1  # extra padding, makes it easier to see these main settings
-        prop_split(col, context.scene, "ootBlenderScale", "OOT Scene Scale")
 
+        prop_split(col, context.scene, "ootBlenderScale", "Scene Scale")
         prop_split(col, context.scene, "ootDecompPath", "Decomp Path")
 
-        prop_split(col, context.scene.fast64.oot, "oot_version", "OoT Version")
-        if context.scene.fast64.oot.oot_version == "Custom":
+        if context.scene.gameEditorMode == "OOT":
+            version = "oot_version"
+        else:
+            version = "mm_version"
+
+        prop_split(col, context.scene.fast64.oot, version, "Version")
+
+        if getattr(context.scene.fast64.oot, version) == "Custom":
             prop_split(col, context.scene.fast64.oot, "oot_version_custom", "Custom Version")
 
         col.prop(context.scene.fast64.oot, "headerTabAffectsVisibility")

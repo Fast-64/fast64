@@ -93,7 +93,7 @@ class OOTMaterialCollisionProperty(PropertyGroup):
         layout.prop(
             self,
             "expandTab",
-            text="OOT Collision Properties",
+            text="Collision Properties",
             icon="TRIA_DOWN" if self.expandTab else "TRIA_RIGHT",
         )
         if self.expandTab:
