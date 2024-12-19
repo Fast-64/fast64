@@ -4,7 +4,7 @@ import bpy
 from dataclasses import dataclass, field
 from typing import Optional
 from ....utility import PluginError, writeFile
-from ...constants import ootEnumSceneID, ootSceneNameToID
+from ...constants import ootEnumSceneID, ootSceneNameToID, mm_enum_scene_id, mm_scene_name_to_id
 
 ADDED_SCENES_COMMENT = "// Added scenes"
 
@@ -13,8 +13,13 @@ def get_original_index(enum_value: str) -> Optional[int]:
     """
     Returns the original index of a specific scene
     """
+    if bpy.context.scene.gameEditorMode == "OOT":
+        enum_scene_id = ootEnumSceneID
+    else:
+        enum_scene_id = mm_enum_scene_id
+
     for index, scene_enum in enumerate(
-        [elem[0] for elem in ootEnumSceneID[1:]]
+        [elem[0] for elem in enum_scene_id[1:]]
     ):  # ignore first value in array ('Custom')
         if scene_enum == enum_value:
             return index
@@ -22,7 +27,10 @@ def get_original_index(enum_value: str) -> Optional[int]:
 
 
 def get_scene_enum_from_name(scene_name: str):
-    return ootSceneNameToID.get(scene_name, f"SCENE_{scene_name.upper()}")
+    if bpy.context.scene.gameEditorMode == "OOT":
+        return ootSceneNameToID.get(scene_name, f"SCENE_{scene_name.upper()}")
+    else:
+        return mm_scene_name_to_id.get(scene_name, f"SCENE_{scene_name.upper()}")
 
 
 @dataclass
@@ -46,10 +54,22 @@ class SceneTableEntry:
             index = original_line.index(macro_start) + len(macro_start)
             parsed = original_line[index:].removesuffix(")")
 
-            params = parsed.split(", ")
-            assert len(params) == 6
+            if bpy.context.scene.gameEditorMode == "OOT":
+                params = parsed.split(", ")
+                assert len(params) == 6
+                return SceneTableEntry(*params)
+            else:
+                split = parsed.split(", ")
+                params = []
+                for i, elem in enumerate(split):
+                    if i == 5:
+                        break
+                    else:
+                        params.append(elem)
+                params.append(", ".join(split[i:]))
+                assert len(params) == 6
+                return SceneTableEntry(params[0], params[2], params[1], params[3], params[4], params[5])
 
-            return SceneTableEntry(*params)
         else:
             raise PluginError("ERROR: This line is not a scene table entry!")
 
@@ -138,7 +158,7 @@ class SceneTable:
                 if current_section:  # handles non-directive section preceding directive section
                     sections.append(current_section)
                 current_section = SceneTableSection(line)
-            else:
+            elif "DEFINE_SCENE_UNSET" not in line:
                 if not current_section:
                     current_section = SceneTableSection(None)
                 current_section.entries.append(SceneTableEntry.from_line(line))
@@ -252,12 +272,15 @@ class SceneTableUtility:
     @staticmethod
     def get_draw_config(scene_name: str):
         """Read draw config from scene table"""
+        if bpy.context.scene.gameEditorMode == "OOT":
+            scene_name = f"{scene_name}_scene"
+
         scene_table = SceneTable.new(
             os.path.join(bpy.path.abspath(bpy.context.scene.ootDecompPath), "include/tables/scene_table.h")
         )
 
         spec_dict = {entry.spec_name: entry for entry in scene_table.get_entries_flattened()}
-        entry = spec_dict.get(f"{scene_name}_scene")
+        entry = spec_dict.get(f"{scene_name}")
         if entry is not None:
             return entry.draw_config
 

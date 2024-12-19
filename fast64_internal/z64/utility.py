@@ -9,7 +9,7 @@ from bpy.types import Object
 from bpy.utils import register_class, unregister_class
 from bpy.types import Object
 from typing import Callable, Optional, TYPE_CHECKING, List
-from .constants import ootSceneIDToName
+from .constants import ootSceneIDToName, mm_scene_id_to_name
 from dataclasses import dataclass
 
 from ..utility import (
@@ -173,11 +173,16 @@ ootSceneDirs = {
 }
 
 
-def sceneNameFromID(sceneID):
-    if sceneID in ootSceneIDToName:
-        return ootSceneIDToName[sceneID]
+def sceneNameFromID(scene_id: str):
+    if bpy.context.scene.gameEditorMode == "OOT":
+        scene_id_to_name = ootSceneIDToName
     else:
-        raise PluginError("Cannot find scene ID " + str(sceneID))
+        scene_id_to_name = mm_scene_id_to_name
+
+    if scene_id in scene_id_to_name:
+        return scene_id_to_name[scene_id]
+    else:
+        raise PluginError("Cannot find scene ID " + str(scene_id))
 
 
 def getOOTScale(actorScale: float) -> float:
@@ -250,9 +255,14 @@ def addIncludeFilesExtension(objectName, objectPath, assetName, extension):
 
 def getSceneDirFromLevelName(name: str, include_extracted: bool = False):
     extracted = bpy.context.scene.fast64.oot.get_extracted_path() if include_extracted else "."
-    for sceneDir, dirLevels in ootSceneDirs.items():
-        if name in dirLevels:
-            return f"{extracted}/" + sceneDir + name
+
+    if bpy.context.scene.gameEditorMode == "OOT":
+        for sceneDir, dirLevels in ootSceneDirs.items():
+            if name in dirLevels:
+                return f"{extracted}/" + sceneDir + name
+    else:
+        return f"{extracted}/assets/scenes/{name}"
+
     return None
 
 

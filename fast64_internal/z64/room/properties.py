@@ -176,6 +176,8 @@ class OOTRoomHeaderProperty(PropertyGroup):
                     general.label(text="and requires meshes to be parented to Custom Cull Group empties.")
                     general.label(text="RSP culling is done automatically regardless of room shape.")
                     prop_split(general, self, "defaultCullDistance", "Default Cull (Blender Units)")
+                if self.roomShape == "ROOM_SHAPE_TYPE_NONE" and bpy.context.scene.gameEditorMode == "OOT":
+                    general.label(text="This shape type is only implemented on MM", icon="INFO")
             # Behaviour
             behaviourBox = layout.column()
             behaviourBox.box().label(text="Behaviour")

@@ -10,11 +10,11 @@ from bpy.props import (
     FloatVectorProperty,
 )
 from bpy.utils import register_class, unregister_class
-from ...render_settings import on_update_oot_render_settings
-from ...utility import prop_split, customExportWarning
-from ..cutscene.constants import ootEnumCSWriteType
+from ....render_settings import on_update_oot_render_settings
+from ....utility import prop_split, customExportWarning
+from ...cutscene.constants import ootEnumCSWriteType
 
-from ..utility import (
+from ...utility import (
     onMenuTabChange,
     onHeaderMenuTabChange,
     drawCollectionOps,
@@ -22,9 +22,10 @@ from ..utility import (
     drawAddButton,
 )
 
-from ..constants import (
+from ...constants import (
     ootEnumMusicSeq,
     ootEnumSceneID,
+    mm_enum_scene_id,
     ootEnumGlobalObject,
     ootEnumNaviHints,
     ootEnumSkybox,
@@ -316,7 +317,7 @@ class OOTSceneHeaderProperty(PropertyGroup):
     )
 
     def draw_props(self, layout: UILayout, dropdownLabel: str, headerIndex: int, objName: str):
-        from .operators import OOT_SearchMusicSeqEnumOperator  # temp circular import fix
+        from ..operators import OOT_SearchMusicSeqEnumOperator  # temp circular import fix
 
         if dropdownLabel is not None:
             layout.prop(self, "expandTab", text=dropdownLabel, icon="TRIA_DOWN" if self.expandTab else "TRIA_RIGHT")

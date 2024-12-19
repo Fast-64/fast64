@@ -10,7 +10,7 @@ from mathutils import Matrix, Vector
 from ...f3d.f3d_gbi import TextureExportSettings, DLFormat
 from ...utility import PluginError, raisePluginError, ootGetSceneOrRoomHeader
 from ..utility import ExportInfo, RemoveInfo, sceneNameFromID
-from ..constants import ootEnumMusicSeq, ootEnumSceneID
+from ..constants import ootEnumMusicSeq, ootEnumSceneID, mm_enum_scene_id
 from ..importer import parseScene
 from ..exporter.decomp_edit.config import Config
 from ..exporter import SceneExport, Files
@@ -33,7 +33,10 @@ def run_ops_without_view_layer_update(func):
 
 
 def parseSceneFunc():
-    settings = bpy.context.scene.ootSceneImportSettings
+    if bpy.context.scene.gameEditorMode == "OOT":
+        settings = bpy.context.scene.ootSceneImportSettings
+    else:
+        settings = bpy.context.scene.mm_scene_import_settings
     parseScene(settings, settings.option)
 
 
@@ -58,6 +61,34 @@ class OOT_SearchSceneEnumOperator(Operator):
 
         context.region.tag_redraw()
         self.report({"INFO"}, "Selected: " + self.ootSceneID)
+        return {"FINISHED"}
+
+    def invoke(self, context, event):
+        context.window_manager.invoke_search_popup(self)
+        return {"RUNNING_MODAL"}
+
+
+class MM_SearchSceneEnumOperator(Operator):
+    bl_idname = "object.mm_search_scene_enum_operator"
+    bl_label = "Choose Scene"
+    bl_property = "scene_id"
+    bl_options = {"REGISTER", "UNDO"}
+
+    scene_id: EnumProperty(items=mm_enum_scene_id, default="SCENE_20SICHITAI2")
+    op_name: StringProperty(default="Export")
+
+    def execute(self, context):
+        if self.op_name == "Export":
+            context.scene.mm_scene_export_settings.option = self.scene_id
+        elif self.op_name == "Import":
+            context.scene.mm_scene_import_settings.option = self.scene_id
+        elif self.op_name == "Remove":
+            context.scene.mm_scene_remove_settings.option = self.scene_id
+        else:
+            raise Exception(f'Invalid MM scene search operator name: "{self.op_name}"')
+
+        context.region.tag_redraw()
+        self.report({"INFO"}, "Selected: " + self.scene_id)
         return {"FINISHED"}
 
     def invoke(self, context, event):
@@ -221,7 +252,10 @@ class OOT_RemoveScene(Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
-        settings = context.scene.ootSceneRemoveSettings  # Type: OOTRemoveSceneSettingsProperty
+        if context.scene.gameEditorMode == "OOT":
+            settings = context.scene.ootSceneRemoveSettings  # Type: OOTRemoveSceneSettingsProperty
+        else:
+            settings = context.scene.mm_scene_remove_settings  # Type: MM_RemoveSceneSettingsProperty
         option = settings.option
 
         if settings.customExport:
@@ -256,6 +290,7 @@ classes = (
     OOT_ImportScene,
     OOT_ExportScene,
     OOT_RemoveScene,
+    MM_SearchSceneEnumOperator,
 )
 
 

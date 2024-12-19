@@ -9,8 +9,8 @@ from ...f3d.f3d_gbi import get_F3D_GBI
 from ...f3d.flipbook import TextureFlipbook
 from ..model_classes import OOTF3DContext
 from ..exporter.decomp_edit.scene_table import SceneTableUtility
-from ..scene.properties import OOTImportSceneSettingsProperty
-from ..constants import ootEnumDrawConfig
+from ..scene.properties import OOTImportSceneSettingsProperty, MM_ImportSceneSettingsProperty
+from ..constants import ootEnumDrawConfig, mm_enum_draw_config
 from .scene_header import parseSceneCommands
 from .classes import SharedSceneData
 from ..cutscene.importer import importCutsceneData
@@ -75,10 +75,11 @@ def parseDrawConfig(drawConfigName: str, sceneData: str, drawConfigData: str, f3
 
 
 def parseScene(
-    settings: OOTImportSceneSettingsProperty,
+    settings: OOTImportSceneSettingsProperty | MM_ImportSceneSettingsProperty,
     option: str,
 ):
     sceneName = settings.name
+
     if settings.isCustomDest:
         importPath = bpy.path.abspath(settings.destPath)
         subfolder = None
@@ -89,6 +90,9 @@ def parseScene(
             sceneName = sceneNameFromID(option)
             subfolder = None
         importPath = bpy.path.abspath(bpy.context.scene.ootDecompPath)
+
+    if bpy.context.scene.gameEditorMode == "OOT":
+        sceneName = f"{sceneName}_scene"
 
     importSubdir = ""
     if settings.isCustomDest is not None:
@@ -104,17 +108,8 @@ def parseScene(
         False,
         True,
     )
-    filePath = os.path.join(sceneFolderPath, f"{sceneName}_scene.c")
+    filePath = os.path.join(sceneFolderPath, f"{sceneName}.c")
     sceneData = readFile(filePath)
-
-    # roomData = ""
-    # sceneFolderFiles = [f for f in listdir(sceneFolderPath) if isfile(join(sceneFolderPath, f))]
-    # for sceneFile in sceneFolderFiles:
-    #    if re.search(rf"{sceneName}_room_[0-9]+\.c", sceneFile):
-    #        roomPath = os.path.join(sceneFolderPath, sceneFile)
-    #        roomData += readFile(roomPath)
-
-    # sceneData += roomData
 
     if bpy.context.mode != "OBJECT":
         bpy.context.mode = "OBJECT"
@@ -136,9 +131,9 @@ def parseScene(
     bpy.context.space_data.overlay.show_curve_normals = True
     bpy.context.space_data.overlay.normals_length = 2
 
-    sceneCommandsName = f"{sceneName}_sceneCommands"
+    sceneCommandsName = f"{sceneName}Commands"
     if sceneCommandsName not in sceneData:
-        sceneCommandsName = f"{sceneName}_scene_header00"  # fast64 naming
+        sceneCommandsName = f"{sceneName}_header00"  # fast64 naming
     sharedSceneData = SharedSceneData(
         sceneFolderPath,
         settings.includeMesh,
@@ -163,7 +158,7 @@ def parseScene(
             sceneObj.ootSceneHeader.sceneTableEntry,
             "drawConfig",
             SceneTableUtility.get_draw_config(sceneName),
-            ootEnumDrawConfig,
+            ootEnumDrawConfig if bpy.context.scene.gameEditorMode == "OOT" else mm_enum_draw_config,
         )
 
     if bpy.context.scene.fast64.oot.headerTabAffectsVisibility:
