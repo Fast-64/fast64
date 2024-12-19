@@ -2,13 +2,13 @@ from bpy.types import Object, PropertyGroup, UILayout
 from bpy.utils import register_class, unregister_class
 from bpy.props import EnumProperty, StringProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
 from ...utility import prop_split, label_split
-from ..oot_constants import ootData, ootEnumCamTransition
-from ..oot_upgrade import upgradeActors
+from ..constants import ootData, ootEnumCamTransition
+from ..upgrade import upgradeActors
 from ..scene.properties import OOTAlternateSceneHeaderProperty
 from ..room.properties import OOTAlternateRoomHeaderProperty
 from .operators import OOT_SearchActorIDEnumOperator
 
-from ..oot_utility import (
+from ..utility import (
     getRoomObj,
     getEnumName,
     drawAddButton,

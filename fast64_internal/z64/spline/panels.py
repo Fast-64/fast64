@@ -1,7 +1,7 @@
 from bpy.types import Panel, Curve
 from bpy.utils import register_class, unregister_class
 from ...utility import prop_split
-from ..oot_utility import getSceneObj, drawEnumWithCustom
+from ..utility import getSceneObj, drawEnumWithCustom
 from ..actor.properties import OOTActorHeaderProperty
 from .properties import OOTSplineProperty
 

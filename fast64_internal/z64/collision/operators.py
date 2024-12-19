@@ -3,7 +3,7 @@ from bpy.utils import register_class, unregister_class
 from bpy.ops import object
 from mathutils import Matrix
 from ...utility import PluginError, raisePluginError
-from ..oot_utility import getOOTScale
+from ..utility import getOOTScale
 from ..collision.exporter.to_c import exportCollisionToC
 from .properties import OOTCollisionExportSettings
 

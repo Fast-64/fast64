@@ -2,10 +2,10 @@ import bpy
 import re
 
 from ...utility import hexOrDecInt
-from ..oot_utility import setCustomProperty
-from ..oot_model_classes import OOTF3DContext
+from ..utility import setCustomProperty
+from ..model_classes import OOTF3DContext
 from ..room.properties import OOTRoomHeaderProperty
-from ..oot_constants import ootData, ootEnumLinkIdle, ootEnumRoomBehaviour
+from ..constants import ootData, ootEnumLinkIdle, ootEnumRoomBehaviour
 from .utility import getDataMatch, stripName
 from .classes import SharedSceneData
 from .constants import headerNames

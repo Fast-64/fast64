@@ -7,7 +7,7 @@ from bpy.props import FloatProperty, StringProperty, EnumProperty, BoolProperty
 from ...operators import AddWaterBox, addMaterialByName
 from ...utility import parentObject, setOrigin
 from ..cutscene.motion.utility import setupCutscene, createNewCameraShot
-from ..oot_utility import getNewPath
+from ..utility import getNewPath
 from .quick_import import QuickImportAborted, quick_import_exec
 
 

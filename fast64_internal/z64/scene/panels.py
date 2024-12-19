@@ -4,8 +4,8 @@ import os
 from bpy.types import UILayout
 from bpy.utils import register_class, unregister_class
 from ...panels import OOT_Panel
-from ..oot_constants import ootEnumSceneID
-from ..oot_utility import getEnumName
+from ..constants import ootEnumSceneID
+from ..utility import getEnumName
 from .properties import (
     OOTExportSceneSettingsProperty,
     OOTImportSceneSettingsProperty,

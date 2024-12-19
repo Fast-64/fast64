@@ -8,14 +8,14 @@ from ...utility import CData, PluginError, raisePluginError, writeCData, toAlnum
 from ...f3d.f3d_parser import importMeshC, getImportData
 from ...f3d.f3d_gbi import DLFormat, F3D, TextureExportSettings, ScrollMethod, get_F3D_GBI
 from ...f3d.f3d_writer import TriangleConverterInfo, removeDL, saveStaticModel, getInfoDict
-from ..oot_utility import ootGetObjectPath, getOOTScale
-from ..oot_model_classes import OOTF3DContext, ootGetIncludedAssetData
-from ..oot_texture_array import ootReadTextureArrays
-from ..oot_model_classes import OOTModel, OOTGfxFormatter
-from ..oot_f3d_writer import ootReadActorScale, writeTextureArraysNew, writeTextureArraysExisting
+from ..utility import ootGetObjectPath, getOOTScale
+from ..model_classes import OOTF3DContext, ootGetIncludedAssetData
+from ..texture_array import ootReadTextureArrays
+from ..model_classes import OOTModel, OOTGfxFormatter
+from ..f3d_writer import ootReadActorScale, writeTextureArraysNew, writeTextureArraysExisting
 from .properties import OOTDLImportSettings, OOTDLExportSettings
 
-from ..oot_utility import (
+from ..utility import (
     OOTObjectCategorizer,
     ootDuplicateHierarchy,
     ootCleanupScene,

@@ -2,7 +2,7 @@ from bpy.types import PropertyGroup, Object, UILayout
 from bpy.props import EnumProperty, PointerProperty, StringProperty, IntProperty
 from bpy.utils import register_class, unregister_class
 from ...utility import prop_split
-from ..oot_utility import drawEnumWithCustom
+from ..utility import drawEnumWithCustom
 from ..collision.constants import ootEnumCameraCrawlspaceSType
 from ..actor.properties import OOTActorHeaderProperty
 from ..scene.properties import OOTAlternateSceneHeaderProperty

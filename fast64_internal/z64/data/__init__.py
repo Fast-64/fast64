@@ -1,2 +1,2 @@
-from .oot_data import OoT_Data
-from .oot_object_data import OoT_ObjectData
+from .common import OoT_Data
+from .object_data import OoT_ObjectData

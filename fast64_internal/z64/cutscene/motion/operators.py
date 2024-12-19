@@ -4,7 +4,7 @@ from bpy.types import Object, Operator, Context, Armature
 from bpy.utils import register_class, unregister_class
 from bpy.props import StringProperty, EnumProperty, BoolProperty
 from ....utility import PluginError
-from ...oot_constants import ootData
+from ...constants import ootData
 from ..classes import CutsceneObjectFactory
 from ..constants import ootEnumCSActorCueListCommandType
 from ..preview import initFirstFrame, setupCompositorNodes

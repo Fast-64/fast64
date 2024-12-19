@@ -6,9 +6,9 @@ import mathutils
 
 from ...utility import PluginError, readFile, parentObject, hexOrDecInt, gammaInverse
 from ...f3d.f3d_parser import parseMatrices
-from ..oot_model_classes import OOTF3DContext
+from ..model_classes import OOTF3DContext
 from ..scene.properties import OOTSceneHeaderProperty, OOTLightProperty
-from ..oot_utility import getEvalParams, setCustomProperty
+from ..utility import getEvalParams, setCustomProperty
 from .constants import headerNames
 from .utility import getDataMatch, stripName
 from .classes import SharedSceneData
@@ -17,7 +17,7 @@ from .actor import parseTransActorList, parseSpawnList, parseEntranceList
 from .scene_collision import parseCollisionHeader
 from .scene_pathways import parsePathList
 
-from ..oot_constants import (
+from ..constants import (
     ootEnumAudioSessionPreset,
     ootEnumNightSeq,
     ootEnumMusicSeq,

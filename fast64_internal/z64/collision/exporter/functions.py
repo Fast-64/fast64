@@ -2,7 +2,7 @@ import bpy
 import mathutils
 
 from ....utility import PluginError
-from ...oot_utility import convertIntTo2sComplement
+from ...utility import convertIntTo2sComplement
 from .classes import OOTCollisionVertex, OOTCollisionPolygon, getPolygonType
 
 

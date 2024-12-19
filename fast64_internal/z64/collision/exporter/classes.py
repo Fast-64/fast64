@@ -1,6 +1,6 @@
 import math
 from ....utility import PluginError
-from ...oot_utility import BoxEmpty, convertIntTo2sComplement, getCustomProperty
+from ...utility import BoxEmpty, convertIntTo2sComplement, getCustomProperty
 
 
 class OOTCollisionVertex:

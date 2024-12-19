@@ -2,7 +2,7 @@ import os
 import re
 import shutil
 
-from ...oot_utility import ExportInfo, RemoveInfo, getSceneDirFromLevelName
+from ...utility import ExportInfo, RemoveInfo, getSceneDirFromLevelName
 from ..scene import Scene
 from ..file import SceneFile
 from .scene_table import SceneTableUtility

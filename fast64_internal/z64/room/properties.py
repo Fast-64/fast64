@@ -2,8 +2,8 @@ import bpy
 from bpy.types import PropertyGroup, UILayout, Image, Object
 from bpy.utils import register_class, unregister_class
 from ...utility import prop_split
-from ..oot_utility import drawCollectionOps, onMenuTabChange, onHeaderMenuTabChange, drawEnumWithCustom, drawAddButton
-from ..oot_upgrade import upgradeRoomHeaders
+from ..utility import drawCollectionOps, onMenuTabChange, onHeaderMenuTabChange, drawEnumWithCustom, drawAddButton
+from ..upgrade import upgradeRoomHeaders
 from .operators import OOT_SearchObjectEnumOperator
 
 from bpy.props import (
@@ -17,7 +17,7 @@ from bpy.props import (
     IntVectorProperty,
 )
 
-from ..oot_constants import (
+from ..constants import (
     ootData,
     ootEnumRoomBehaviour,
     ootEnumLinkIdle,

@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 from bpy.types import Object, Bone
 from ....utility import PluginError
-from ...oot_constants import ootData
+from ...constants import ootData
 from .actor_cue import CutsceneCmdActorCueList, CutsceneCmdActorCue
 from .seq import CutsceneCmdStartStopSeqList, CutsceneCmdFadeSeqList, CutsceneCmdStartStopSeq, CutsceneCmdFadeSeq
 from .text import CutsceneCmdTextList, CutsceneCmdText, CutsceneCmdTextNone, CutsceneCmdTextOcarinaAction

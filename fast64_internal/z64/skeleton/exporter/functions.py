@@ -1,8 +1,8 @@
 import mathutils, bpy, os
 from ....f3d.f3d_gbi import DLFormat, FMesh, TextureExportSettings, ScrollMethod
 from ....f3d.f3d_writer import getInfoDict
-from ...oot_f3d_writer import ootProcessVertexGroup, writeTextureArraysNew, writeTextureArraysExisting
-from ...oot_model_classes import OOTModel, OOTGfxFormatter
+from ...f3d_writer import ootProcessVertexGroup, writeTextureArraysNew, writeTextureArraysExisting
+from ...model_classes import OOTModel, OOTGfxFormatter
 from ..constants import ootSkeletonImportDict
 from ..properties import OOTSkeletonExportSettings
 from ..utility import ootDuplicateArmatureAndRemoveRotations, getGroupIndices, ootRemoveSkeleton
@@ -17,7 +17,7 @@ from ....utility import (
     cleanupDuplicatedObjects,
 )
 
-from ...oot_utility import (
+from ...utility import (
     checkEmptyName,
     checkForStartBone,
     getStartBone,

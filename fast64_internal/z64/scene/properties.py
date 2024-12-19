@@ -14,7 +14,7 @@ from ...render_settings import on_update_oot_render_settings
 from ...utility import prop_split, customExportWarning
 from ..cutscene.constants import ootEnumCSWriteType
 
-from ..oot_utility import (
+from ..utility import (
     onMenuTabChange,
     onHeaderMenuTabChange,
     drawCollectionOps,
@@ -22,7 +22,7 @@ from ..oot_utility import (
     drawAddButton,
 )
 
-from ..oot_constants import (
+from ..constants import (
     ootEnumMusicSeq,
     ootEnumSceneID,
     ootEnumGlobalObject,

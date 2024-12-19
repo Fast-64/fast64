@@ -5,7 +5,7 @@ from typing import Optional
 from ....utility import PluginError, CData, indent
 from ....f3d.f3d_gbi import TextureExportSettings, ScrollMethod
 from ...scene.properties import OOTSceneHeaderProperty
-from ...oot_model_classes import OOTModel, OOTGfxFormatter
+from ...model_classes import OOTModel, OOTGfxFormatter
 from ..file import SceneFile
 from ..utility import Utility, altHeaderList
 from ..collision import CollisionHeader

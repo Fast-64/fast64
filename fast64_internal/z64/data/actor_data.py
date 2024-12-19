@@ -1,7 +1,7 @@
 from os import path
 from dataclasses import dataclass
-from .oot_getters import getXMLRoot
-from .oot_data import OoT_BaseElement
+from .getters import getXMLRoot
+from .common import OoT_BaseElement
 
 
 @dataclass
