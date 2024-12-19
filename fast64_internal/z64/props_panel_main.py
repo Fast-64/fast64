@@ -117,7 +117,9 @@ class OOTObjectPanel(bpy.types.Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.gameEditorMode in {"OOT", "MM"} and (context.object is not None and context.object.type == "EMPTY")
+        return context.scene.gameEditorMode in {"OOT", "MM"} and (
+            context.object is not None and context.object.type == "EMPTY"
+        )
 
     def draw(self, context):
         prop_split(self.layout, context.scene, "gameEditorMode", "Game")
