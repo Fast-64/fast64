@@ -2,7 +2,7 @@ from bpy.types import Object, PropertyGroup, UILayout
 from bpy.utils import register_class, unregister_class
 from bpy.props import EnumProperty, StringProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
 from ...utility import prop_split, label_split
-from ..constants import ootData, ootEnumCamTransition
+from ..constants import oot_data, ootEnumCamTransition
 from ..upgrade import upgradeActors
 from ..scene.properties import OOTAlternateSceneHeaderProperty
 from ..room.properties import OOTAlternateRoomHeaderProperty
@@ -108,7 +108,7 @@ class OOTActorHeaderProperty(PropertyGroup):
 
 
 class OOTActorProperty(PropertyGroup):
-    actorID: EnumProperty(name="Actor", items=ootData.actorData.ootEnumActorID, default="ACTOR_PLAYER")
+    actorID: EnumProperty(name="Actor", items=oot_data.actorData.ootEnumActorID, default="ACTOR_PLAYER")
     actorIDCustom: StringProperty(name="Actor ID", default="ACTOR_PLAYER")
     actorParam: StringProperty(name="Actor Parameter", default="0x0000")
     rotOverride: BoolProperty(name="Override Rotation", default=False)
@@ -137,7 +137,7 @@ class OOTActorProperty(PropertyGroup):
             return
 
         split.label(text="Actor ID")
-        split.label(text=getEnumName(ootData.actorData.ootEnumActorID, self.actorID))
+        split.label(text=getEnumName(oot_data.actorData.ootEnumActorID, self.actorID))
 
         if self.actorID == "Custom":
             # actorIDBox.prop(actorProp, 'actorIDCustom', text = 'Actor ID')
@@ -180,7 +180,7 @@ class OOTTransitionActorProperty(PropertyGroup):
 
         split = actorIDBox.split(factor=0.5)
         split.label(text="Actor ID")
-        split.label(text=getEnumName(ootData.actorData.ootEnumActorID, self.actor.actorID))
+        split.label(text=getEnumName(oot_data.actorData.ootEnumActorID, self.actor.actorID))
 
         if self.actor.actorID == "Custom":
             prop_split(actorIDBox, self.actor, "actorIDCustom", "")

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 from ....utility import PluginError, indent
-from ...constants import ootData
+from ...constants import oot_data
 from ...cutscene.motion.utility import getInteger
 
 
@@ -20,7 +20,7 @@ class CutsceneCmdBase:
 
     @staticmethod
     def getEnumValue(enumKey: str, value: str, isSeqLegacy: bool = False):
-        enum = ootData.enumData.enumByKey[enumKey]
+        enum = oot_data.enumData.enumByKey[enumKey]
         item = enum.itemById.get(value)
         if item is None:
             setting = getInteger(value)

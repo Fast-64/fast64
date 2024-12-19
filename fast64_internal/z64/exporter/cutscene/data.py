@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 from bpy.types import Object, Bone
 from ....utility import PluginError
-from ...constants import ootData
+from ...constants import oot_data
 from .actor_cue import CutsceneCmdActorCueList, CutsceneCmdActorCue
 from .seq import CutsceneCmdStartStopSeqList, CutsceneCmdFadeSeqList, CutsceneCmdStartStopSeq, CutsceneCmdFadeSeq
 from .text import CutsceneCmdTextList, CutsceneCmdText, CutsceneCmdTextNone, CutsceneCmdTextOcarinaAction
@@ -142,7 +142,7 @@ class CutsceneData:
         return [x, y, z]
 
     def getEnumValueFromProp(self, enumKey: str, owner, propName: str):
-        item = ootData.enumData.enumByKey[enumKey].itemByKey.get(getattr(owner, propName))
+        item = oot_data.enumData.enumByKey[enumKey].itemByKey.get(getattr(owner, propName))
         return item.id if item is not None else getattr(owner, f"{propName}Custom")
 
     def setActorCueListData(self, csObjects: dict[str, list[Object]], isPlayer: bool):
@@ -169,7 +169,7 @@ class CutsceneData:
             if commandType == "Custom":
                 commandType = obj.ootCSMotionProperty.actorCueListProp.commandTypeCustom
             elif self.useMacros:
-                commandType = ootData.enumData.enumByKey["csCmd"].itemByKey[commandType].id
+                commandType = oot_data.enumData.enumByKey["csCmd"].itemByKey[commandType].id
 
             # ignoring dummy cue
             newActorCueList = CutsceneCmdActorCueList(None, None, isPlayer, commandType, entryTotal - 1)
@@ -183,7 +183,7 @@ class CutsceneData:
                     if isPlayer:
                         cueID = childObj.ootCSMotionProperty.actorCueProp.playerCueID
                         if cueID != "Custom":
-                            actionID = ootData.enumData.enumByKey["csPlayerCueId"].itemByKey[cueID].id
+                            actionID = oot_data.enumData.enumByKey["csPlayerCueId"].itemByKey[cueID].id
 
                     if actionID is None:
                         actionID = childObj.ootCSMotionProperty.actorCueProp.cueActionID

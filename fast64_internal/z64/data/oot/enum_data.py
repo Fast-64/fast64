@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from os import path
 from .getters import getXMLRoot
-from .common import OoT_BaseElement
+from .data import OoT_BaseElement
 
 # Note: "enumData" in this context refers to an OoT Object file (like ``gameplay_keep``)
 

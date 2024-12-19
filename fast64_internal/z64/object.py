@@ -1,6 +1,6 @@
 from bpy.types import Object
 from ..utility import ootGetSceneOrRoomHeader
-from .constants import ootData
+from .constants import oot_data
 from .exporter.room.header import RoomHeader
 
 
@@ -18,11 +18,11 @@ def addMissingObjectsToRoomHeader(roomObj: Object, curHeader: RoomHeader, header
     """Adds missing objects to the object list"""
     if len(curHeader.actors.actorList) > 0:
         for roomActor in curHeader.actors.actorList:
-            actor = ootData.actorData.actorsByID.get(roomActor.id)
+            actor = oot_data.actorData.actorsByID.get(roomActor.id)
             if actor is not None and actor.key != "player" and len(actor.tiedObjects) > 0:
                 for objKey in actor.tiedObjects:
                     if objKey not in ["obj_gameplay_keep", "obj_gameplay_field_keep", "obj_gameplay_dangeon_keep"]:
-                        objID = ootData.objectData.objectsByKey[objKey].id
+                        objID = oot_data.objectData.objectsByKey[objKey].id
                         if not (objID in curHeader.objects.objectList):
                             curHeader.objects.objectList.append(objID)
                             addMissingObjectToProp(roomObj, headerIndex, objKey)

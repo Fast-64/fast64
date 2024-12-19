@@ -3,7 +3,7 @@ import bpy
 from dataclasses import dataclass, field
 from bpy.types import Object
 from typing import Optional
-from ..constants import ootData
+from ..constants import oot_data
 from .motion.utility import getBlenderPosition, getBlenderRotation, getRotation, getInteger
 
 
@@ -25,7 +25,7 @@ class CutsceneCmdBase:
     endFrame: Optional[int] = None
 
     def getEnumValue(self, enumKey: str, index: int, isSeqLegacy: bool = False):
-        enum = ootData.enumData.enumByKey[enumKey]
+        enum = oot_data.enumData.enumByKey[enumKey]
         item = enum.itemById.get(self.params[index])
         if item is None:
             setting = getInteger(self.params[index])
@@ -101,7 +101,7 @@ class CutsceneCmdActorCueList(CutsceneCmdBase):
                     self.commandType = self.commandType.removeprefix("0x")
                     self.commandType = "0x" + "0" * (4 - len(self.commandType)) + self.commandType
                 else:
-                    self.commandType = ootData.enumData.enumByKey["csCmd"].itemById[self.commandType].key
+                    self.commandType = oot_data.enumData.enumByKey["csCmd"].itemById[self.commandType].key
                 self.entryTotal = getInteger(self.params[1].strip())
 
 
@@ -527,7 +527,7 @@ class CutsceneObjectFactory:
     def getNewActorCueListObject(self, name: str, commandType: str, parentObj: Object):
         newActorCueListObj = self.getNewEmptyObject(name, False, parentObj)
         newActorCueListObj.ootEmptyType = f"CS {'Player' if 'Player' in name else 'Actor'} Cue List"
-        cmdEnum = ootData.enumData.enumByKey["csCmd"]
+        cmdEnum = oot_data.enumData.enumByKey["csCmd"]
 
         if commandType == "Player":
             commandType = "player_cue"
@@ -566,7 +566,7 @@ class CutsceneObjectFactory:
 
         item = None
         if isPlayer:
-            playerEnum = ootData.enumData.enumByKey["csPlayerCueId"]
+            playerEnum = oot_data.enumData.enumByKey["csPlayerCueId"]
             if isinstance(actionID, int):
                 item = playerEnum.itemByIndex.get(actionID)
             else:

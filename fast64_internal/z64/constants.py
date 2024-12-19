@@ -1,6 +1,8 @@
-from .data import OoT_Data
+from .data import OoT_Data, MM_Data
 
-ootData = OoT_Data()
+
+oot_data = OoT_Data()
+mm_data = MM_Data()
 
 ootEnumRoomShapeType = [
     # ("Custom", "Custom", "Custom"),

@@ -5,7 +5,7 @@ from ...utility import hexOrDecInt
 from ..utility import setCustomProperty
 from ..model_classes import OOTF3DContext
 from ..room.properties import OOTRoomHeaderProperty
-from ..constants import ootData, ootEnumLinkIdle, ootEnumRoomBehaviour
+from ..constants import oot_data, ootEnumLinkIdle, ootEnumRoomBehaviour
 from .utility import getDataMatch, stripName
 from .classes import SharedSceneData
 from .constants import headerNames
@@ -19,7 +19,7 @@ def parseObjectList(roomHeader: OOTRoomHeaderProperty, sceneData: str, objectLis
 
     for object in objects:
         objectProp = roomHeader.objectList.add()
-        objByID = ootData.objectData.objectsByID.get(object)
+        objByID = oot_data.objectData.objectsByID.get(object)
 
         if objByID is not None:
             objectProp.objectKey = objByID.key

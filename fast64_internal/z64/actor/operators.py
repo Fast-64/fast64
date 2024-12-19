@@ -3,7 +3,7 @@ from bpy.types import Operator
 from bpy.props import EnumProperty, StringProperty
 from bpy.utils import register_class, unregister_class
 from ...utility import PluginError
-from ..constants import ootData
+from ..constants import oot_data
 
 
 class OOT_SearchActorIDEnumOperator(Operator):
@@ -12,7 +12,7 @@ class OOT_SearchActorIDEnumOperator(Operator):
     bl_property = "actorID"
     bl_options = {"REGISTER", "UNDO"}
 
-    actorID: EnumProperty(items=ootData.actorData.ootEnumActorID, default="ACTOR_PLAYER")
+    actorID: EnumProperty(items=oot_data.actorData.ootEnumActorID, default="ACTOR_PLAYER")
     actorUser: StringProperty(default="Actor")
     objName: StringProperty()
 

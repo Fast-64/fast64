@@ -1,4 +1,4 @@
-from ..constants import ootData
+from ..constants import oot_data
 from .classes import (
     CutsceneCmdActorCueList,
     CutsceneCmdActorCue,
@@ -123,7 +123,7 @@ ootEnumCSMotionCamMode = [
 ]
 
 ootEnumCSActorCueListCommandType = [
-    item for item in ootData.enumData.ootEnumCsCmd if "actor_cue" in item[0] or "player_cue" in item[0]
+    item for item in oot_data.enumData.ootEnumCsCmd if "actor_cue" in item[0] or "player_cue" in item[0]
 ]
 ootEnumCSActorCueListCommandType.sort()
 ootEnumCSActorCueListCommandType.insert(0, ("Custom", "Custom", "Custom"))

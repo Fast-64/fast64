@@ -18,7 +18,7 @@ from bpy.props import (
 )
 
 from ..constants import (
-    ootData,
+    oot_data,
     ootEnumRoomBehaviour,
     ootEnumLinkIdle,
     ootEnumRoomShapeType,
@@ -36,21 +36,21 @@ ootEnumRoomMenu = ootEnumRoomMenuAlternate + [
 
 class OOTObjectProperty(PropertyGroup):
     expandTab: BoolProperty(name="Expand Tab")
-    objectKey: EnumProperty(items=ootData.objectData.ootEnumObjectKey, default="obj_human")
+    objectKey: EnumProperty(items=oot_data.objectData.ootEnumObjectKey, default="obj_human")
     objectIDCustom: StringProperty(default="OBJECT_CUSTOM")
 
     @staticmethod
     def upgrade_object(obj: Object):
         print(f"Processing '{obj.name}'...")
-        upgradeRoomHeaders(obj, ootData.objectData)
+        upgradeRoomHeaders(obj, oot_data.objectData)
 
     def draw_props(self, layout: UILayout, headerIndex: int, index: int, objName: str):
         isLegacy = True if "objectID" in self else False
 
         if isLegacy:
-            objectName = ootData.objectData.ootEnumObjectIDLegacy[self["objectID"]][1]
+            objectName = oot_data.objectData.ootEnumObjectIDLegacy[self["objectID"]][1]
         elif self.objectKey != "Custom":
-            objectName = ootData.objectData.objectsByKey[self.objectKey].name
+            objectName = oot_data.objectData.objectsByKey[self.objectKey].name
         else:
             objectName = self.objectIDCustom
 

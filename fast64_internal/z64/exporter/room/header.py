@@ -4,7 +4,7 @@ from mathutils import Matrix
 from bpy.types import Object
 from ....utility import CData, indent
 from ...utility import getObjectList
-from ...constants import ootData
+from ...constants import oot_data
 from ...room.properties import OOTRoomHeaderProperty
 from ..utility import Utility
 from ..actor import Actor
@@ -96,7 +96,7 @@ class RoomObjects:
             if objProp.objectKey == "Custom":
                 objectList.append(objProp.objectIDCustom)
             else:
-                objectList.append(ootData.objectData.objectsByKey[objProp.objectKey].id)
+                objectList.append(oot_data.objectData.objectsByKey[objProp.objectKey].id)
         return RoomObjects(name, objectList)
 
     def getDefineName(self):
@@ -172,7 +172,7 @@ class RoomActors:
                     actor.rot = ", ".join(f"DEG_TO_BINANG({(r * (180 / 0x8000)):.3f})" for r in rot)
 
                 actor.name = (
-                    ootData.actorData.actorsByID[actorProp.actorID].name.replace(
+                    oot_data.actorData.actorsByID[actorProp.actorID].name.replace(
                         f" - {actorProp.actorID.removeprefix('ACTOR_')}", ""
                     )
                     if actorProp.actorID != "Custom"

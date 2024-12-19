@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from ....utility import PluginError, indent
-from ...constants import ootData
+from ...constants import oot_data
 from ...cutscene.motion.utility import getRotation, getInteger
 from .common import CutsceneCmdBase
 
@@ -74,7 +74,7 @@ class CutsceneCmdActorCueList(CutsceneCmdBase):
                 commandType = commandType.removeprefix("0x")
                 commandType = "0x" + "0" * (4 - len(commandType)) + commandType
             else:
-                commandType = ootData.enumData.enumByKey["csCmd"].itemById[commandType].key
+                commandType = oot_data.enumData.enumByKey["csCmd"].itemById[commandType].key
             entryTotal = getInteger(params[1].strip())
 
         return CutsceneCmdActorCueList(None, None, isPlayer, commandType, entryTotal)

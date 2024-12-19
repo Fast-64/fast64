@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from os import path
-from ...utility import PluginError
+from ....utility import PluginError
 from .getters import getXMLRoot
-from .common import OoT_BaseElement
+from .data import OoT_BaseElement
 
 # Note: "object" in this context refers to an OoT Object file (like ``gameplay_keep``)
 

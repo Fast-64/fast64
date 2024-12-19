@@ -6,6 +6,6 @@ def getXMLRoot(xmlPath: str) -> Element:
     try:
         return parseXML(xmlPath).getroot()
     except:
-        from ...utility import PluginError
+        from ....utility import PluginError
 
         raise PluginError(f"ERROR: File '{xmlPath}' is missing or malformed.")

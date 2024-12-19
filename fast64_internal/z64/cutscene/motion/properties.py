@@ -5,7 +5,7 @@ from bpy.props import IntProperty, StringProperty, PointerProperty, EnumProperty
 from bpy.utils import register_class, unregister_class
 from ...upgrade import upgradeCutsceneMotion
 from ...utility import getEnumName
-from ...constants import ootData
+from ...constants import oot_data
 from ..constants import ootEnumCSMotionCamMode, ootEnumCSActorCueListCommandType
 
 from .operators import (
@@ -86,7 +86,7 @@ class CutsceneCmdActorCueProperty(PropertyGroup):
         get=lambda self: getNextCuesStartFrame(self),
     )
 
-    playerCueID: EnumProperty(items=ootData.enumData.ootEnumCsPlayerCueId, default="cueid_none")
+    playerCueID: EnumProperty(items=oot_data.enumData.ootEnumCsPlayerCueId, default="cueid_none")
     cueActionID: StringProperty(
         name="Action ID", default="0x0001", description="Actor action. Meaning is unique for each different actor."
     )
@@ -116,7 +116,7 @@ class CutsceneCmdActorCueProperty(PropertyGroup):
                 split = box.split(factor=0.5)
                 searchOp = split.operator(OOT_SearchPlayerCueIdEnumOperator.bl_idname, icon="VIEWZOOM", text=label)
                 searchOp.objName = objName
-                split.label(text=getEnumName(ootData.enumData.ootEnumCsPlayerCueId, self.playerCueID))
+                split.label(text=getEnumName(oot_data.enumData.ootEnumCsPlayerCueId, self.playerCueID))
 
             if not isPlayer or self.playerCueID == "Custom":
                 split = box.split(factor=0.5)

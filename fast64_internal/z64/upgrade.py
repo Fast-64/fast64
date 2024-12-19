@@ -7,7 +7,7 @@ from bpy.types import Object, CollectionProperty
 from ..utility import PluginError
 from .data import OoT_ObjectData
 from .utility import getEvalParams
-from .constants import ootData
+from .constants import oot_data
 from .cutscene.constants import ootEnumCSMotionCamMode
 
 if TYPE_CHECKING:
@@ -180,12 +180,12 @@ def upgradeCutsceneSubProps(csListSubProp):
 
     subPropsToEnum = [
         # TextBox
-        Cutscene_UpgradeData("ocarinaSongAction", "ocarinaAction", ootData.enumData.ootEnumOcarinaSongActionId),
-        Cutscene_UpgradeData("type", "csTextType", ootData.enumData.ootEnumCsTextType),
+        Cutscene_UpgradeData("ocarinaSongAction", "ocarinaAction", oot_data.enumData.ootEnumOcarinaSongActionId),
+        Cutscene_UpgradeData("type", "csTextType", oot_data.enumData.ootEnumCsTextType),
         # Seq
-        Cutscene_UpgradeData("value", "csSeqID", ootData.enumData.ootEnumSeqId),
+        Cutscene_UpgradeData("value", "csSeqID", oot_data.enumData.ootEnumSeqId),
         # Misc
-        Cutscene_UpgradeData("operation", "csMiscType", ootData.enumData.ootEnumCsMiscType),
+        Cutscene_UpgradeData("operation", "csMiscType", oot_data.enumData.ootEnumCsMiscType),
     ]
 
     transferOldDataToNew(csListSubProp, subPropsOldToNew)
@@ -210,7 +210,7 @@ def upgradeCSListProps(csListProp):
 
     # both are enums but the item list is different (the old one doesn't have a "custom" entry)
     convertOldDataToEnumData(
-        csListProp, [Cutscene_UpgradeData("fxType", "transitionType", ootData.enumData.ootEnumCsTransitionType)]
+        csListProp, [Cutscene_UpgradeData("fxType", "transitionType", oot_data.enumData.ootEnumCsTransitionType)]
     )
 
 
@@ -223,7 +223,7 @@ def upgradeCutsceneProperty(csProp: "OOTCutsceneProperty"):
 
     transferOldDataToNew(csProp, csPropOldToNew)
     convertOldDataToEnumData(
-        csProp, [Cutscene_UpgradeData("csTermIdx", "csDestination", ootData.enumData.ootEnumCsDestination)]
+        csProp, [Cutscene_UpgradeData("csTermIdx", "csDestination", oot_data.enumData.ootEnumCsDestination)]
     )
 
 
@@ -242,7 +242,7 @@ def upgradeCutsceneMotion(csMotionObj: Object):
             if "actor_id" in legacyData:
                 index = legacyData["actor_id"]
                 if index >= 0:
-                    cmdEnum = ootData.enumData.enumByKey["csCmd"]
+                    cmdEnum = oot_data.enumData.enumByKey["csCmd"]
                     cmdType = cmdEnum.itemByIndex.get(index)
                     if cmdType is not None:
                         csMotionProp.actorCueListProp.commandType = cmdType.key
@@ -263,7 +263,7 @@ def upgradeCutsceneMotion(csMotionObj: Object):
                 del legacyData["start_frame"]
 
             if "action_id" in legacyData:
-                playerEnum = ootData.enumData.enumByKey["csPlayerCueId"]
+                playerEnum = oot_data.enumData.enumByKey["csPlayerCueId"]
                 item = None
                 if isPlayer:
                     item = playerEnum.itemByIndex.get(int(legacyData["action_id"], base=16))

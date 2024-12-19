@@ -4,7 +4,7 @@ import bpy
 from ...utility import parentObject, hexOrDecInt
 from ..scene.properties import OOTSceneHeaderProperty
 from ..utility import setCustomProperty, getEvalParams
-from ..constants import ootEnumCamTransition, ootData
+from ..constants import ootEnumCamTransition, oot_data
 from .classes import SharedSceneData
 from .constants import actorsWithRotAsParam
 
@@ -77,7 +77,7 @@ def parseTransActorList(
             setCustomProperty(transActorProp, "cameraTransitionBack", camBack, ootEnumCamTransition)
 
             actorProp = transActorProp.actor
-            setCustomProperty(actorProp, "actorID", actorID, ootData.actorData.ootEnumActorID)
+            setCustomProperty(actorProp, "actorID", actorID, oot_data.actorData.ootEnumActorID)
             actorProp.actorParam = actorParam
             handleActorWithRotAsParam(actorProp, actorID, rotation)
             unsetAllHeadersExceptSpecified(actorProp.headerSettings, headerIndex)
@@ -154,7 +154,7 @@ def parseSpawnList(
             spawnProp.spawnIndex = spawnIndex
             spawnProp.customActor = actorID != "ACTOR_PLAYER"
             actorProp = spawnProp.actor
-            setCustomProperty(actorProp, "actorID", actorID, ootData.actorData.ootEnumActorID)
+            setCustomProperty(actorProp, "actorID", actorID, oot_data.actorData.ootEnumActorID)
             actorProp.actorParam = actorParam
             handleActorWithRotAsParam(actorProp, actorID, rotation)
             unsetAllHeadersExceptSpecified(actorProp.headerSettings, headerIndex)
@@ -192,7 +192,7 @@ def parseActorList(
             actorObj.name = getDisplayNameFromActorID(actorID)
             actorProp = actorObj.ootActorProperty
 
-            setCustomProperty(actorProp, "actorID", actorID, ootData.actorData.ootEnumActorID)
+            setCustomProperty(actorProp, "actorID", actorID, oot_data.actorData.ootEnumActorID)
             actorProp.actorParam = actorParam
             handleActorWithRotAsParam(actorProp, actorID, rotation)
             unsetAllHeadersExceptSpecified(actorProp.headerSettings, headerIndex)
