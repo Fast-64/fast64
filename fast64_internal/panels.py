@@ -38,15 +38,15 @@ class SM64_Panel(bpy.types.Panel):
         return scene_goal == "All" or sm64_props.goal == cls.goal or cls.goal == "All"
 
 
-class OOT_Panel(bpy.types.Panel):
+class Z64_Panel(bpy.types.Panel):
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
-    bl_category = "OOT"
+    bl_category = "OOT/MM"
     bl_options = {"DEFAULT_CLOSED"}
 
     @classmethod
     def poll(cls, context):
-        return context.scene.gameEditorMode == "OOT"
+        return context.scene.gameEditorMode in {"OOT", "MM"}
 
 
 class MK64_Panel(bpy.types.Panel):

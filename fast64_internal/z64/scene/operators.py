@@ -214,10 +214,10 @@ class OOT_ExportScene(Operator):
 
 
 class OOT_RemoveScene(Operator):
-    """Remove an OOT scene from an existing decomp directory."""
+    """Remove a scene from an existing decomp directory."""
 
-    bl_idname = "object.oot_remove_level"
-    bl_label = "OOT Remove Scene"
+    bl_idname = "object.z64_remove_level"
+    bl_label = "Remove Scene"
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):

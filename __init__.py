@@ -69,6 +69,7 @@ gameEditorEnum = (
     ("SM64", "SM64", "Super Mario 64", 0),
     ("OOT", "OOT", "Ocarina Of Time", 1),
     ("MK64", "MK64", "Mario Kart 64", 3),
+    ("MM", "MM", "Majora's Mask", 4),
     ("Homebrew", "Homebrew", "Homebrew", 2),
 )
 
@@ -391,7 +392,7 @@ def set_game_defaults(scene: bpy.types.Scene, set_ucode=True):
     if scene.gameEditorMode == "SM64":
         f3d_type = "F3D"
         world_defaults = sm64_world_defaults
-    elif scene.gameEditorMode == "OOT":
+    elif scene.gameEditorMode in {"OOT", "MM"}:
         f3d_type = "F3DEX2/LX2"
         world_defaults = oot_world_defaults
     elif scene.gameEditorMode == "MK64":

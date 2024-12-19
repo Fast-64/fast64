@@ -3,7 +3,7 @@ import os
 
 from bpy.types import UILayout
 from bpy.utils import register_class, unregister_class
-from ...panels import OOT_Panel
+from ...panels import Z64_Panel
 from ..constants import ootEnumSceneID
 from ..utility import getEnumName
 from .properties import (
@@ -22,9 +22,9 @@ from .operators import (
 )
 
 
-class OOT_ExportScenePanel(OOT_Panel):
-    bl_idname = "OOT_PT_export_level"
-    bl_label = "OOT Scene Exporter"
+class OOT_ExportScenePanel(Z64_Panel):
+    bl_idname = "Z64_PT_export_level"
+    bl_label = "Scenes"
 
     def drawSceneSearchOp(self, layout: UILayout, enumValue: str, opName: str):
         searchBox = layout.box().row()

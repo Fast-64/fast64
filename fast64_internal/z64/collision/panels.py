@@ -1,6 +1,6 @@
 from bpy.types import Panel, Camera
 from bpy.utils import register_class, unregister_class
-from ...panels import OOT_Panel
+from ...panels import Z64_Panel
 from .properties import OOTCollisionExportSettings, OOTCameraPositionProperty, OOTMaterialCollisionProperty
 from .operators import OOT_ExportCollision
 
@@ -45,9 +45,9 @@ class OOT_CollisionPanel(Panel):
         collisionProp.draw_props(box)
 
 
-class OOT_ExportCollisionPanel(OOT_Panel):
-    bl_idname = "OOT_PT_export_collision"
-    bl_label = "OOT Collision Exporter"
+class OOT_ExportCollisionPanel(Z64_Panel):
+    bl_idname = "Z64_PT_export_collision"
+    bl_label = "Collisions"
 
     # called every frame
     def draw(self, context):

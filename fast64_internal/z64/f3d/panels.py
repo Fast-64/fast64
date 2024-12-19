@@ -1,7 +1,7 @@
 import bpy
 from bpy.types import Panel, Mesh, Armature
 from bpy.utils import register_class, unregister_class
-from ...panels import OOT_Panel
+from ...panels import Z64_Panel
 from ...utility import prop_split
 from .operators import OOT_ImportDL, OOT_ExportDL
 from .properties import (
@@ -49,8 +49,8 @@ class OOT_DisplayListPanel(Panel):
 
 
 class OOT_MaterialPanel(Panel):
-    bl_label = "OOT Material"
-    bl_idname = "MATERIAL_PT_OOT_Material_Inspector"
+    bl_label = "Material"
+    bl_idname = "MATERIAL_PT_Z64_Material_Inspector"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "material"
@@ -82,8 +82,8 @@ class OOT_MaterialPanel(Panel):
 
 
 class OOT_DrawLayersPanel(Panel):
-    bl_label = "OOT Draw Layers"
-    bl_idname = "WORLD_PT_OOT_Draw_Layers_Panel"
+    bl_label = "Draw Layers"
+    bl_idname = "WORLD_PT_Z64_Draw_Layers_Panel"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "world"
@@ -101,9 +101,9 @@ class OOT_DrawLayersPanel(Panel):
         ootDefaultRenderModeProp.draw_props(self.layout)
 
 
-class OOT_ExportDLPanel(OOT_Panel):
-    bl_idname = "OOT_PT_export_dl"
-    bl_label = "OOT DL Exporter"
+class OOT_ExportDLPanel(Z64_Panel):
+    bl_idname = "Z64_PT_export_dl"
+    bl_label = "Display Lists"
 
     # called every frame
     def draw(self, context):

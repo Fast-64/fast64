@@ -1,5 +1,5 @@
 from bpy.utils import register_class, unregister_class
-from ...panels import OOT_Panel
+from ...panels import Z64_Panel
 from .operators import (
     OOT_AddWaterBox,
     OOT_AddDoor,
@@ -12,9 +12,9 @@ from .operators import (
 )
 
 
-class OoT_ToolsPanel(OOT_Panel):
-    bl_idname = "OOT_PT_tools"
-    bl_label = "OOT Tools"
+class OoT_ToolsPanel(Z64_Panel):
+    bl_idname = "Z64_PT_tools"
+    bl_label = "Tools"
 
     def draw(self, context):
         col = self.layout.column()

@@ -1,14 +1,14 @@
 from bpy.types import Panel, Armature
 from bpy.utils import register_class, unregister_class
 from ...utility import prop_split
-from ...panels import OOT_Panel
+from ...panels import Z64_Panel
 from .operators import OOT_ExportAnim, OOT_ImportAnim
 from .properties import OOTAnimExportSettingsProperty, OOTAnimImportSettingsProperty, OOTLinkTextureAnimProperty
 
 
 class OOT_LinkAnimPanel(Panel):
-    bl_idname = "OOT_PT_link_anim"
-    bl_label = "OOT Link Animation Properties"
+    bl_idname = "Z64_PT_link_anim"
+    bl_label = "Link Animation Properties"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "object"
@@ -32,9 +32,9 @@ class OOT_LinkAnimPanel(Panel):
         col.label(text="Index 0 is for auto, flipbook starts at index 1.", icon="INFO")
 
 
-class OOT_ExportAnimPanel(OOT_Panel):
-    bl_idname = "OOT_PT_export_anim"
-    bl_label = "OOT Animation Exporter"
+class OOT_ExportAnimPanel(Z64_Panel):
+    bl_idname = "Z64_PT_export_anim"
+    bl_label = "Animations"
 
     # called every frame
     def draw(self, context):

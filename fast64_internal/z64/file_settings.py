@@ -3,12 +3,12 @@ from bpy.props import StringProperty, FloatProperty, BoolProperty
 from bpy.types import Scene
 from ..utility import prop_split
 from ..render_settings import on_update_render_settings
-from ..panels import OOT_Panel
+from ..panels import Z64_Panel
 
 
-class OOT_FileSettingsPanel(OOT_Panel):
-    bl_idname = "OOT_PT_file_settings"
-    bl_label = "OOT File Settings"
+class OOT_FileSettingsPanel(Z64_Panel):
+    bl_idname = "Z64_PT_file_settings"
+    bl_label = "Workspace Settings"
     bl_options = set()  # default to being open
 
     # called every frame

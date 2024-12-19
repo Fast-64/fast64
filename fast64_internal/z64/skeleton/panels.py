@@ -1,14 +1,14 @@
 from bpy.types import Armature, Panel
 from bpy.utils import register_class, unregister_class
 from ...utility import prop_split
-from ...panels import OOT_Panel
+from ...panels import Z64_Panel
 from .properties import OOTSkeletonImportSettings, OOTSkeletonExportSettings
 from .operators import OOT_ImportSkeleton, OOT_ExportSkeleton
 
 
 class OOT_SkeletonPanel(Panel):
-    bl_idname = "OOT_PT_skeleton"
-    bl_label = "OOT Skeleton Properties"
+    bl_idname = "Z64_PT_skeleton"
+    bl_label = "Skeleton Properties"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "object"
@@ -34,8 +34,8 @@ class OOT_SkeletonPanel(Panel):
 
 
 class OOT_BonePanel(Panel):
-    bl_idname = "OOT_PT_bone"
-    bl_label = "OOT Bone Properties"
+    bl_idname = "Z64_PT_bone"
+    bl_label = "Bone Properties"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "bone"
@@ -52,9 +52,9 @@ class OOT_BonePanel(Panel):
         context.bone.ootBone.draw_props(col)
 
 
-class OOT_ExportSkeletonPanel(OOT_Panel):
-    bl_idname = "OOT_PT_export_skeleton"
-    bl_label = "OOT Skeleton Exporter"
+class OOT_ExportSkeletonPanel(Z64_Panel):
+    bl_idname = "Z64_PT_export_skeleton"
+    bl_label = "Skeletons"
 
     # called every frame
     def draw(self, context):
