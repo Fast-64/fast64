@@ -357,7 +357,7 @@ class SceneMapData:
         map_data_source = ""
 
         if len(self.room_list) > 0:
-            map_data_header.extend([f"extern {scene_list_name}", f"extern {room_list_name}"])
+            map_data_header.extend([f"extern {scene_list_name};\n", f"extern {room_list_name};\n"])
             map_data_source += (
                 # MapDataRoom
                 (room_list_name + " = {\n")
@@ -370,7 +370,7 @@ class SceneMapData:
             )
 
         if len(self.chest_list) > 0:
-            map_data_header.append(f"extern {chest_list_name}")
+            map_data_header.append(f"extern {chest_list_name};\n")
             map_data_source += (
                 # MapDataChest
                 (chest_list_name + " = {\n")
@@ -380,7 +380,7 @@ class SceneMapData:
 
         # .h
         if len(map_data_header) > 0:
-            map_data_c.header = ";\n".join(map_data_header)
+            map_data_c.header = "".join(map_data_header)
 
         # .c
         if len(map_data_source) > 0:
