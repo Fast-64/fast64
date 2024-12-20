@@ -3,8 +3,8 @@ import bpy
 import mathutils
 
 from ...utility import PluginError, hexOrDecInt, removeComments, yUpToZUp
-from ..actor.properties import OOTActorProperty, OOTActorHeaderProperty
-from ..utility import ootParseRotation
+from ..actor.properties import OOTActorProperty, OOTActorHeaderProperty, MM_ActorHeaderProperty
+from ..utility import ootParseRotation, is_game_oot
 from .constants import headerNames, actorsWithRotAsParam
 
 
@@ -16,12 +16,18 @@ def getBits(value: int, index: int, size: int) -> int:
     return ((1 << size) - 1) & (value >> index)
 
 
-def unsetAllHeadersExceptSpecified(headerSettings: OOTActorHeaderProperty, headerIndex: int):
-    headerSettings.sceneSetupPreset = "Custom"
-    for i in range(len(headerNames)):
-        setattr(headerSettings, headerNames[i], i == headerIndex)
+def unsetAllHeadersExceptSpecified(headerSettings: OOTActorHeaderProperty | MM_ActorHeaderProperty, headerIndex: int):
+    if is_game_oot():
+        headerSettings.sceneSetupPreset = "Custom"
 
-    if headerIndex >= 4:
+        for i in range(len(headerNames)):
+            setattr(headerSettings, headerNames[i], i == headerIndex)
+    else:
+        headerSettings.include_in_all_setups = False
+        headerSettings.childDayHeader = headerIndex == 0
+
+    cs_start = 4 if is_game_oot() else 1
+    if headerIndex >= cs_start:
         headerSettings.cutsceneHeaders.add().headerIndex = headerIndex
 
 

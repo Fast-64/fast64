@@ -1,14 +1,14 @@
 from bpy.types import Object, PropertyGroup, UILayout
 from bpy.utils import register_class, unregister_class
 from bpy.props import EnumProperty, StringProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
-from ...utility import prop_split, label_split
-from ..constants import oot_data, ootEnumCamTransition
-from ..upgrade import upgradeActors
-from ..scene.properties import OOTAlternateSceneHeaderProperty
-from ..room.properties import OOTAlternateRoomHeaderProperty
-from .operators import OOT_SearchActorIDEnumOperator
+from ....utility import prop_split, label_split
+from ...constants import oot_data, ootEnumCamTransition
+from ...upgrade import upgradeActors
+from ...scene.properties import OOTAlternateSceneHeaderProperty
+from ...room.properties import OOTAlternateRoomHeaderProperty
+from ..operators import OOT_SearchActorIDEnumOperator
 
-from ..utility import (
+from ...utility import (
     getRoomObj,
     getEnumName,
     drawAddButton,
@@ -25,7 +25,6 @@ ootEnumSceneSetupPreset = [
 
 class OOTActorHeaderItemProperty(PropertyGroup):
     headerIndex: IntProperty(name="Scene Setup", min=4, default=4)
-    expandTab: BoolProperty(name="Expand Tab")
 
     def draw_props(
         self,

@@ -6,7 +6,7 @@ from ....utility import PluginError, CData, indent
 from ....f3d.f3d_gbi import TextureExportSettings, ScrollMethod
 from ...scene.properties import OOTSceneHeaderProperty
 from ...model_classes import OOTModel, OOTGfxFormatter
-from ...utility import get_scene_header_props
+from ...utility import get_game_props
 from ..file import SceneFile
 from ..utility import Utility, altHeaderList
 from ..collision import CollisionHeader
@@ -43,11 +43,11 @@ class Scene:
         )
 
         mainHeader = SceneHeader.new(
-            f"{name}_header{i:02}", get_scene_header_props(sceneObj), sceneObj, transform, i, useMacros
+            f"{name}_header{i:02}", get_game_props(sceneObj, "scene"), sceneObj, transform, i, useMacros
         )
         hasAlternateHeaders = False
         altHeader = SceneAlternateHeader(f"{name}_alternateHeaders")
-        altProp = get_scene_header_props(sceneObj, True)
+        altProp = get_game_props(sceneObj, "alt_scene")
 
         for i, header in enumerate(altHeaderList, 1):
             altP: OOTSceneHeaderProperty = getattr(altProp, f"{header}Header")

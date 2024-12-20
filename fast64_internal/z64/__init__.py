@@ -26,7 +26,12 @@ from .room.properties import (
 )
 
 from .actor.operators import actor_ops_register, actor_ops_unregister
-from .actor.properties import actor_props_register, actor_props_unregister
+from .actor.properties import (
+    actor_props_register,
+    actor_props_unregister,
+    mm_actor_props_register,
+    mm_actor_props_unregister,
+)
 
 from .f3d.operators import f3d_ops_register, f3d_ops_unregister
 from .f3d.properties import OOTDLExportSettings, OOTDLImportSettings, f3d_props_register, f3d_props_unregister
@@ -176,6 +181,7 @@ def oot_register(registerPanels):
     mm_room_props_register()
     actor_ops_register()
     actor_props_register()
+    mm_actor_props_register()
     oot_obj_register()
     spline_props_register()
     f3d_props_register()
@@ -218,6 +224,7 @@ def oot_unregister(unregisterPanels):
     mm_room_props_unregister()
     actor_ops_unregister()
     actor_props_unregister()
+    mm_actor_props_unregister()
     spline_props_unregister()
     f3d_props_unregister()
     anim_ops_unregister()

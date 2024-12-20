@@ -13,6 +13,7 @@ from .oot_props import (
 
 from .mm_props import (
     MM_SceneHeaderProperty,
+    MM_AlternateSceneHeaderProperty,
     MM_ExportSceneSettingsProperty,
     MM_ImportSceneSettingsProperty,
     MM_RemoveSceneSettingsProperty,

@@ -2,7 +2,7 @@ import bpy
 import re
 
 from ...utility import hexOrDecInt
-from ..utility import setCustomProperty, get_room_header_props, is_game_oot, get_game_enum
+from ..utility import setCustomProperty, get_game_props, is_game_oot, get_game_enum
 from ..model_classes import OOTF3DContext
 from ..room.properties import OOTRoomHeaderProperty
 from ..constants import oot_data, mm_data
@@ -51,7 +51,7 @@ def parseRoomCommands(
         roomObj.empty_display_type = "SPHERE"
         roomObj.location = [0, 0, (roomIndex + 1) * -2]
         roomObj.ootEmptyType = "Room"
-        get_room_header_props(roomObj).roomIndex = roomIndex
+        get_game_props(roomObj, "room").roomIndex = roomIndex
         roomObj.name = roomName
 
     if is_game_oot():
@@ -60,12 +60,12 @@ def parseRoomCommands(
         cs_header_start = 1
 
     if headerIndex == 0:
-        roomHeader = get_room_header_props(roomObj)
+        roomHeader = get_game_props(roomObj, "room")
     elif is_game_oot() and headerIndex < cs_header_start:
-        roomHeader = getattr(get_room_header_props(roomObj, True), headerNames[headerIndex])
+        roomHeader = getattr(get_game_props(roomObj, "alt_room"), headerNames[headerIndex])
         roomHeader.usePreviousHeader = False
     else:
-        cutsceneHeaders = get_room_header_props(roomObj, True).cutsceneHeaders
+        cutsceneHeaders = get_game_props(roomObj, "alt_room").cutsceneHeaders
         while len(cutsceneHeaders) < headerIndex - (cs_header_start - 1):
             cutsceneHeaders.add()
         roomHeader = cutsceneHeaders[headerIndex - cs_header_start]

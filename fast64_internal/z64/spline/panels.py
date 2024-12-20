@@ -1,6 +1,6 @@
 from bpy.types import Panel, Curve
 from bpy.utils import register_class, unregister_class
-from ..utility import getSceneObj, get_scene_header_props
+from ..utility import getSceneObj, get_game_props
 from .properties import OOTSplineProperty
 
 
@@ -26,7 +26,7 @@ class OOTSplinePanel(Panel):
             box.label(text="Only NURBS curves are compatible.")
         else:
             sceneObj = getSceneObj(context.object)
-            altSceneProp = get_scene_header_props(sceneObj, True) if sceneObj is not None else None
+            altSceneProp = get_game_props(sceneObj, "alt_scene") if sceneObj is not None else None
             splineProp: OOTSplineProperty = context.object.ootSplineProperty
             splineProp.draw_props(box, altSceneProp, context.object.name)
 

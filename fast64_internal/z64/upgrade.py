@@ -6,7 +6,7 @@ import bpy
 from bpy.types import Object, CollectionProperty
 from ..utility import PluginError
 from .data import OoT_ObjectData
-from .utility import getEvalParams, get_room_header_props
+from .utility import getEvalParams, get_game_props
 from .constants import oot_data
 from .cutscene.constants import ootEnumCSMotionCamMode
 
@@ -38,9 +38,9 @@ def upgradeObjectList(objList: CollectionProperty, objData: OoT_ObjectData):
 
 def upgradeRoomHeaders(roomObj: Object, objData: OoT_ObjectData):
     """Main upgrade logic for room headers"""
-    altHeaders = get_room_header_props(roomObj, True)
+    altHeaders = get_game_props(roomObj, "alt_room")
     for sceneLayer in [
-        get_room_header_props(roomObj),
+        get_game_props(roomObj, "room"),
         altHeaders.childNightHeader,
         altHeaders.adultDayHeader,
         altHeaders.adultNightHeader,
@@ -308,7 +308,7 @@ def upgradeCutsceneMotion(csMotionObj: Object):
 #####################################
 def upgradeActors(actorObj: Object):
     if actorObj.ootEmptyType == "Entrance":
-        entranceProp = actorObj.ootEntranceProperty
+        entranceProp = get_game_props(actorObj, "entrance_actor")
 
         for obj in bpy.data.objects:
             if obj.type == "EMPTY" and obj.ootEmptyType == "Room":
@@ -328,7 +328,7 @@ def upgradeActors(actorObj: Object):
             print("WARNING: Ignoring Door Actor not parented to a room")
             return
 
-        transActorProp = actorObj.ootTransitionActorProperty
+        transActorProp = get_game_props(actorObj, "transition_actor")
         if "dontTransition" in transActorProp or "roomIndex" in transActorProp:
             # look for old data since we don't want to overwrite newer existing data
             transActorProp.fromRoom = roomParent
@@ -344,7 +344,7 @@ def upgradeActors(actorObj: Object):
                     obj != transActorProp.fromRoom
                     and obj.type == "EMPTY"
                     and obj.ootEmptyType == "Room"
-                    and get_room_header_props(obj).roomIndex == transActorProp["roomIndex"]
+                    and get_game_props(obj, "room").roomIndex == transActorProp["roomIndex"]
                 ):
                     transActorProp.toRoom = obj
                     del transActorProp["roomIndex"]

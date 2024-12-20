@@ -7,7 +7,7 @@ from bpy.props import FloatProperty, StringProperty, EnumProperty, BoolProperty
 from ...operators import AddWaterBox, addMaterialByName
 from ...utility import parentObject, setOrigin
 from ..cutscene.motion.utility import setupCutscene, createNewCameraShot
-from ..utility import getNewPath, get_room_header_props
+from ..utility import getNewPath, get_game_props
 from .quick_import import QuickImportAborted, quick_import_exec
 
 
@@ -54,8 +54,8 @@ class OOT_AddDoor(Operator):
         emptyObj = context.view_layer.objects.active
         emptyObj.ootEmptyType = "Transition Actor"
         emptyObj.name = "Door Actor"
-        emptyObj.ootTransitionActorProperty.actor.actorID = "ACTOR_DOOR_SHUTTER"
-        emptyObj.ootTransitionActorProperty.actor.actorParam = "0x0000"
+        get_game_props(emptyObj, "transition_actor").actor.actorID = "ACTOR_DOOR_SHUTTER"
+        get_game_props(emptyObj, "transition_actor").actor.actorParam = "0x0000"
 
         parentObject(cubeObj, emptyObj)
 
@@ -89,7 +89,7 @@ class OOT_AddScene(Operator):
         entranceObj = context.view_layer.objects.active
         entranceObj.ootEmptyType = "Entrance"
         entranceObj.name = "Entrance"
-        entranceObj.ootEntranceProperty.actor.actorParam = "0x0FFF"
+        get_game_props(entranceObj, "entrance_actor").actor.actorParam = "0x0FFF"
         parentObject(planeObj, entranceObj)
 
         location += Vector([0, 0, 10])
@@ -97,7 +97,7 @@ class OOT_AddScene(Operator):
         roomObj = context.view_layer.objects.active
         roomObj.ootEmptyType = "Room"
         roomObj.name = "Room"
-        entranceObj.ootEntranceProperty.tiedRoom = roomObj
+        get_game_props(entranceObj, "entrance_actor").tiedRoom = roomObj
         parentObject(roomObj, planeObj)
 
         location += Vector([0, 0, 2])
@@ -133,11 +133,11 @@ class OOT_AddRoom(Operator):
             indices = []
             for sceneChild in sceneObj.children:
                 if sceneChild.ootEmptyType == "Room":
-                    indices.append(get_room_header_props(sceneChild).roomIndex)
+                    indices.append(get_game_props(sceneChild, "room").roomIndex)
             nextIndex = 0
             while nextIndex in indices:
                 nextIndex += 1
-            get_room_header_props(roomObj).roomIndex = nextIndex
+            get_game_props(roomObj, "room").roomIndex = nextIndex
             parentObject(sceneObj, roomObj)
 
         object.select_all(action="DESELECT")

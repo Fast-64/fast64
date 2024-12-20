@@ -22,7 +22,7 @@ from ..utility import (
     ootGetPath,
     setAllActorsVisibility,
     is_game_oot,
-    get_scene_header_props,
+    get_game_props,
 )
 
 
@@ -171,7 +171,7 @@ def parseScene(
 
     if not settings.isCustomDest:
         setCustomProperty(
-            get_scene_header_props(sceneObj).sceneTableEntry,
+            get_game_props(sceneObj, "scene").sceneTableEntry,
             "drawConfig",
             SceneTableUtility.get_draw_config(sceneName),
             ootEnumDrawConfig if is_game_oot() else mm_enum_draw_config,

@@ -1,7 +1,7 @@
 import bpy
 from bpy.utils import register_class, unregister_class
 from ..utility import prop_split, gammaInverse
-from .utility import getSceneObj, getRoomObj, get_scene_header_props, get_room_header_props
+from .utility import getSceneObj, getRoomObj, get_game_props
 from .scene.properties import OOTSceneProperties
 from .room.properties import OOTObjectProperty, OOTRoomHeaderProperty, OOTAlternateRoomHeaderProperty
 from .collision.properties import OOTWaterBoxProperty
@@ -43,10 +43,10 @@ ootEnumEmptyType = [
 
 def drawSceneHeader(box: bpy.types.UILayout, obj: bpy.types.Object):
     objName = obj.name
-    props = get_scene_header_props(obj)
+    props = get_game_props(obj, "scene")
     props.draw_props(box, None, None, objName)
     if props.menuTab == "Alternate":
-        alt_props = get_scene_header_props(obj, True)
+        alt_props = get_game_props(obj, "alt_scene")
         alt_props.draw_props(box, objName)
     box.prop(obj.fast64.oot.scene, "write_dummy_room_list")
 
@@ -81,7 +81,7 @@ def onUpdateOOTEmptyType(self, context):
     if isSphereEmpty:
         self.empty_display_type = "SPHERE"
 
-    header_props = get_scene_header_props(self)
+    header_props = get_game_props(self, "scene")
 
     if self.ootEmptyType == "Scene":
         if len(header_props.lightList) == 0:
@@ -136,15 +136,15 @@ class OOTObjectPanel(bpy.types.Panel):
         sceneObj = getSceneObj(obj)
         roomObj = getRoomObj(obj)
 
-        altSceneProp = get_scene_header_props(sceneObj, True) if sceneObj is not None else None
-        altRoomProp = get_room_header_props(roomObj, True) if roomObj is not None else None
+        altSceneProp = get_game_props(sceneObj, "alt_scene") if sceneObj is not None else None
+        altRoomProp = get_game_props(roomObj, "alt_room") if roomObj is not None else None
 
         if obj.ootEmptyType == "Actor":
-            actorProp: OOTActorProperty = obj.ootActorProperty
+            actorProp: OOTActorProperty = get_game_props(obj, "actor")
             actorProp.draw_props(box, altRoomProp, objName)
 
         elif obj.ootEmptyType == "Transition Actor":
-            transActorProp: OOTTransitionActorProperty = obj.ootTransitionActorProperty
+            transActorProp: OOTTransitionActorProperty = get_game_props(obj, "transition_actor")
             transActorProp.draw_props(box, altSceneProp, roomObj, objName)
 
         elif obj.ootEmptyType == "Water Box":
@@ -155,14 +155,14 @@ class OOTObjectPanel(bpy.types.Panel):
             drawSceneHeader(box, obj)
 
         elif obj.ootEmptyType == "Room":
-            roomProp: OOTRoomHeaderProperty = get_room_header_props(obj)
+            roomProp: OOTRoomHeaderProperty = get_game_props(obj, "room")
             roomProp.draw_props(box, None, None, objName)
-            if get_room_header_props(obj).menuTab == "Alternate":
-                roomAltProp: OOTAlternateRoomHeaderProperty = get_room_header_props(obj, True)
+            if get_game_props(obj, "room").menuTab == "Alternate":
+                roomAltProp: OOTAlternateRoomHeaderProperty = get_game_props(obj, "alt_room")
                 roomAltProp.draw_props(box, objName)
 
         elif obj.ootEmptyType == "Entrance":
-            entranceProp: OOTEntranceProperty = obj.ootEntranceProperty
+            entranceProp: OOTEntranceProperty = get_game_props(obj, "entrance_actor")
             entranceProp.draw_props(box, obj, altSceneProp, objName)
 
         elif obj.ootEmptyType == "Cull Group":

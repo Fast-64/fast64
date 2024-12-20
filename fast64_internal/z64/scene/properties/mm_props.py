@@ -258,7 +258,7 @@ class OOTExtraCutsceneProperty(PropertyGroup):
 
 def minimap_chest_poll(self: "MM_MinimapChestProperty", object: Object):
     return (
-        object.type == "EMPTY" and object.ootEmptyType == "Actor" and object.ootActorProperty.actorID == "ACTOR_EN_BOX"
+        object.type == "EMPTY" and object.ootEmptyType == "Actor" and object.mm_actor_property.actorID == "ACTOR_EN_BOX"
     )
 
 

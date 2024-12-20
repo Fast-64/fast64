@@ -12,9 +12,8 @@ from ..utility import (
     getEvalParams,
     setCustomProperty,
     get_game_enum,
-    get_scene_header_props,
+    get_game_props,
     is_game_oot,
-    convertIntTo2sComplement,
 )
 from .constants import headerNames
 from .utility import getDataMatch, stripName
@@ -309,12 +308,12 @@ def parseSceneCommands(
         cs_header_start = 1
 
     if headerIndex == 0:
-        sceneHeader = get_scene_header_props(sceneObj)
+        sceneHeader = get_game_props(sceneObj, "scene")
     elif is_game_oot() and headerIndex < cs_header_start:
-        sceneHeader = getattr(get_scene_header_props(sceneObj, True), headerNames[headerIndex])
+        sceneHeader = getattr(get_game_props(sceneObj, "alt_scene"), headerNames[headerIndex])
         sceneHeader.usePreviousHeader = False
     else:
-        cutsceneHeaders = get_scene_header_props(sceneObj, True).cutsceneHeaders
+        cutsceneHeaders = get_game_props(sceneObj, "alt_scene").cutsceneHeaders
         while len(cutsceneHeaders) < headerIndex - (cs_header_start - 1):
             cutsceneHeaders.add()
         sceneHeader = cutsceneHeaders[headerIndex - cs_header_start]
