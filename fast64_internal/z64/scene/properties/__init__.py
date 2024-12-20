@@ -10,7 +10,9 @@ from .oot_props import (
     scene_props_register,
     scene_props_unregister,
 )
+
 from .mm_props import (
+    MM_SceneHeaderProperty,
     MM_ExportSceneSettingsProperty,
     MM_ImportSceneSettingsProperty,
     MM_RemoveSceneSettingsProperty,

@@ -23,9 +23,8 @@ from ...utility import (
 )
 
 from ...constants import (
-    ootEnumMusicSeq,
+    oot_data,
     ootEnumSceneID,
-    mm_enum_scene_id,
     ootEnumGlobalObject,
     ootEnumNaviHints,
     ootEnumSkybox,
@@ -33,7 +32,6 @@ from ...constants import (
     ootEnumSkyboxLighting,
     ootEnumMapLocation,
     ootEnumCameraMode,
-    ootEnumNightSeq,
     ootEnumAudioSessionPreset,
     ootEnumHeaderMenu,
     ootEnumDrawConfig,
@@ -263,7 +261,7 @@ class OOTSceneHeaderProperty(PropertyGroup):
 
     globalObject: EnumProperty(name="Global Object", default="OBJECT_GAMEPLAY_DANGEON_KEEP", items=ootEnumGlobalObject)
     globalObjectCustom: StringProperty(name="Global Object Custom", default="0x00")
-    naviCup: EnumProperty(name="Navi Hints", default="0x00", items=ootEnumNaviHints)
+    naviCup: EnumProperty(name="Navi Hints", default="NAVI_QUEST_HINTS_NONE", items=ootEnumNaviHints)
     naviCupCustom: StringProperty(name="Navi Hints Custom", default="0x00")
 
     skyboxID: EnumProperty(name="Skybox", items=ootEnumSkybox, default="0x01")
@@ -285,9 +283,9 @@ class OOTSceneHeaderProperty(PropertyGroup):
     cameraMode: EnumProperty(name="Camera Mode", items=ootEnumCameraMode, default="0x00")
     cameraModeCustom: StringProperty(name="Camera Mode Custom", default="0x00")
 
-    musicSeq: EnumProperty(name="Music Sequence", items=ootEnumMusicSeq, default="NA_BGM_FIELD_LOGIC")
+    musicSeq: EnumProperty(name="Music Sequence", items=oot_data.ootEnumMusicSeq, default="NA_BGM_FIELD_LOGIC")
     musicSeqCustom: StringProperty(name="Music Sequence ID", default="0x00")
-    nightSeq: EnumProperty(name="Nighttime SFX", items=ootEnumNightSeq, default="0x00")
+    nightSeq: EnumProperty(name="Nighttime SFX", items=oot_data.ootEnumNightSeq, default="0x00")
     nightSeqCustom: StringProperty(name="Nighttime SFX ID", default="0x00")
     audioSessionPreset: EnumProperty(name="Audio Session Preset", items=ootEnumAudioSessionPreset, default="0x00")
     audioSessionPresetCustom: StringProperty(name="Audio Session Preset", default="0x00")

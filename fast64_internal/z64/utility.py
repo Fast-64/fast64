@@ -9,7 +9,22 @@ from bpy.types import Object
 from bpy.utils import register_class, unregister_class
 from bpy.types import Object
 from typing import Callable, Optional, TYPE_CHECKING, List
-from .constants import ootSceneIDToName, mm_scene_id_to_name
+from .constants import (
+    ootSceneIDToName,
+    mm_scene_id_to_name,
+    oot_data,
+    mm_data,
+    ootEnumAudioSessionPreset,
+    ootEnumCameraMode,
+    ootEnumMapLocation,
+    ootEnumNaviHints,
+    ootEnumGlobalObject,
+    mm_enum_global_object,
+    ootEnumSkybox,
+    mm_enum_skybox,
+    ootEnumCloudiness,
+    ootEnumSkyboxLighting,
+)
 from dataclasses import dataclass
 
 from ..utility import (
@@ -27,12 +42,41 @@ from ..utility import (
 )
 
 if TYPE_CHECKING:
-    from .scene.properties import OOTBootupSceneOptions
+    from .scene.properties import OOTBootupSceneOptions, OOTSceneHeaderProperty, MM_SceneHeaderProperty
+
+
+game_enum_map = {
+    "OOT": {
+        "enum_global_object": ootEnumGlobalObject,
+        "enum_skybox": ootEnumSkybox,
+        "enum_seq_id": oot_data.ootEnumMusicSeq,
+        "enum_ambiance_id": oot_data.ootEnumNightSeq # TODO: generate this from xml (not for enumproperties)
+    },
+    "MM": {
+        "enum_global_object": mm_enum_global_object,
+        "enum_skybox": mm_enum_skybox,
+        "enum_seq_id": mm_data.enum_seq_id,
+        "enum_ambiance_id": mm_data.enum_ambiance_id, # TODO: same as above
+    }
+}
+
+def get_game_enum(enum_type: str):
+    return game_enum_map[bpy.context.scene.gameEditorMode][enum_type]
+
+
+def is_game_oot():
+    return bpy.context.scene.gameEditorMode == "OOT"
+
+
+def get_scene_header_props(obj: Object):
+    if is_game_oot():
+        return obj.ootSceneHeader
+    else:
+        return obj.mm_scene_header
 
 
 def isPathObject(obj: bpy.types.Object) -> bool:
     return obj.type == "CURVE" and obj.ootSplineProperty.splineType == "Path"
-
 
 ootSceneDungeons = [
     "bdan",
@@ -174,7 +218,7 @@ ootSceneDirs = {
 
 
 def sceneNameFromID(scene_id: str):
-    if bpy.context.scene.gameEditorMode == "OOT":
+    if is_game_oot():
         scene_id_to_name = ootSceneIDToName
     else:
         scene_id_to_name = mm_scene_id_to_name
@@ -256,7 +300,7 @@ def addIncludeFilesExtension(objectName, objectPath, assetName, extension):
 def getSceneDirFromLevelName(name: str, include_extracted: bool = False):
     extracted = bpy.context.scene.fast64.oot.get_extracted_path() if include_extracted else "."
 
-    if bpy.context.scene.gameEditorMode == "OOT":
+    if is_game_oot():
         for sceneDir, dirLevels in ootSceneDirs.items():
             if name in dirLevels:
                 return f"{extracted}/" + sceneDir + name
@@ -604,7 +648,7 @@ def getCustomProperty(data, prop):
     return value if value != "Custom" else getattr(data, prop + str("Custom"))
 
 
-def convertIntTo2sComplement(value, length, signed):
+def convertIntTo2sComplement(value: int, length: int, signed: bool):
     return int.from_bytes(int(round(value)).to_bytes(length, "big", signed=signed), "big")
 
 
@@ -679,6 +723,10 @@ def getCollection(objName, collectionType, subIndex):
         collection = getCollectionFromIndex(obj, "lightList", subIndex, False)
     elif collectionType == "Exit":
         collection = getCollectionFromIndex(obj, "exitList", subIndex, False)
+    elif collectionType == "Minimap Chest":
+        collection = getCollectionFromIndex(obj, "minimap_chest_list", subIndex, False)
+    elif collectionType == "Minimap Room":
+        collection = getCollectionFromIndex(obj, "minimap_room_list", subIndex, False)
     elif collectionType == "Object":
         collection = getCollectionFromIndex(obj, "objectList", subIndex, True)
     elif collectionType == "Curve":
@@ -701,7 +749,7 @@ def getCollection(objName, collectionType, subIndex):
     elif collectionType == "Cutscene":
         collection = obj.ootCutsceneProperty.csLists
     elif collectionType == "extraCutscenes":
-        collection = obj.ootSceneHeader.extraCutscenes
+        collection = get_scene_header_props(obj).extraCutscenes
     elif collectionType == "BgImage":
         collection = obj.ootRoomHeader.bgImageList
     else:
@@ -853,7 +901,7 @@ def getActiveHeaderIndex() -> int:
 
     headerObj = headerObjs[0]
     if headerObj.ootEmptyType == "Scene":
-        header = headerObj.ootSceneHeader
+        header = get_scene_header_props(headerObj)
         altHeader = headerObj.ootAlternateSceneHeaders
     else:
         header = headerObj.ootRoomHeader
@@ -915,7 +963,7 @@ def setActorVisibility(actorObj: bpy.types.Object, activeHeaderInfo: tuple[int, 
 def onMenuTabChange(self, context: bpy.types.Context):
     def callback(thisHeader, otherObj: bpy.types.Object):
         if otherObj.ootEmptyType == "Scene":
-            header = otherObj.ootSceneHeader
+            header = get_scene_header_props(otherObj)
         else:
             header = otherObj.ootRoomHeader
 

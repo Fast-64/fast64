@@ -64,6 +64,9 @@ from .tools import (
     oot_operator_unregister,
 )
 
+from .utility import is_game_oot
+
+
 oot_versions_items = [
     ("Custom", "Custom", "Custom"),
     ("gc-jp", "gc-jp", "gc-jp"),
@@ -106,7 +109,7 @@ class OOT_Properties(bpy.types.PropertyGroup):
     oot_version_custom: bpy.props.StringProperty(name="Custom Version")
 
     def get_extracted_path(self):
-        version = self.oot_version if bpy.context.scene.gameEditorMode == "OOT" else self.mm_version
+        version = self.oot_version if is_game_oot() else self.mm_version
 
         if version == "legacy":
             return "."

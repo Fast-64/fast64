@@ -5,7 +5,7 @@ from bpy.types import UILayout
 from bpy.utils import register_class, unregister_class
 from ...panels import Z64_Panel
 from ..constants import ootEnumSceneID, mm_enum_scene_id
-from ..utility import getEnumName
+from ..utility import getEnumName, is_game_oot
 from .properties import (
     OOTExportSceneSettingsProperty,
     OOTImportSceneSettingsProperty,
@@ -33,7 +33,7 @@ class OOT_ExportScenePanel(Z64_Panel):
     def drawSceneSearchOp(self, layout: UILayout, enumValue: str, opName: str):
         searchBox = layout.box().row()
 
-        if bpy.context.scene.gameEditorMode == "OOT":
+        if is_game_oot():
             searchBox.operator(OOT_SearchSceneEnumOperator.bl_idname, icon="VIEWZOOM", text="").opName = opName
             searchBox.label(text=getEnumName(ootEnumSceneID, enumValue))
         else:
@@ -47,7 +47,7 @@ class OOT_ExportScenePanel(Z64_Panel):
         exportBox = col.box().column()
         exportBox.label(text="Scene Exporter")
 
-        if bpy.context.scene.gameEditorMode == "OOT":
+        if is_game_oot():
             settings: OOTExportSceneSettingsProperty = context.scene.ootSceneExportSettings
             importSettings: OOTImportSceneSettingsProperty = context.scene.ootSceneImportSettings
             removeSettings: OOTRemoveSceneSettingsProperty = context.scene.ootSceneRemoveSettings

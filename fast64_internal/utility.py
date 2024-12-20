@@ -1665,17 +1665,25 @@ def lightDataToObj(lightData):
     raise PluginError("A material is referencing a light that is no longer in the scene (i.e. has been deleted).")
 
 
-def ootGetSceneOrRoomHeader(parent, idx, isRoom):
+def ootGetSceneOrRoomHeader(parent: bpy.types.Object, idx: int, isRoom: bool):
     # This should be in oot_utility.py, but it is needed in f3d_material.py
     # which creates a circular import. The real problem is that the F3D render
     # settings stuff should be in a place which can import both SM64 and OoT
     # code without circular dependencies.
     if idx < 0:
         raise PluginError("Alternate scene/room header index too low: " + str(idx))
+
     target = "Room" if isRoom else "Scene"
-    altHeaders = getattr(parent, "ootAlternate" + target + "Headers")
+
+    if bpy.context.scene.gameEditorMode == "OOT":
+        header = getattr(parent, "oot" + target + "Header")
+        altHeaders = getattr(parent, "ootAlternate" + target + "Headers")
+    else:
+        header = getattr(parent, f"mm_{target.lower()}_header")
+        altHeaders = getattr(parent, f"mm_alternate_{target.lower()}_headers")
+
     if idx == 0:
-        return getattr(parent, "oot" + target + "Header")
+        return header
     elif 1 <= idx <= 3:
         if idx == 1:
             ret = altHeaders.childNightHeader

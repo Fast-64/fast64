@@ -9,8 +9,8 @@ from bpy.ops import object
 from mathutils import Matrix, Vector
 from ...f3d.f3d_gbi import TextureExportSettings, DLFormat
 from ...utility import PluginError, raisePluginError, ootGetSceneOrRoomHeader
-from ..utility import ExportInfo, RemoveInfo, sceneNameFromID
-from ..constants import ootEnumMusicSeq, ootEnumSceneID, mm_enum_scene_id
+from ..utility import ExportInfo, RemoveInfo, sceneNameFromID, is_game_oot
+from ..constants import oot_data, mm_data, ootEnumSceneID, mm_enum_scene_id
 from ..importer import parseScene
 from ..exporter.decomp_edit.config import Config
 from ..exporter import SceneExport, Files
@@ -33,7 +33,7 @@ def run_ops_without_view_layer_update(func):
 
 
 def parseSceneFunc():
-    if bpy.context.scene.gameEditorMode == "OOT":
+    if is_game_oot():
         settings = bpy.context.scene.ootSceneImportSettings
     else:
         settings = bpy.context.scene.mm_scene_import_settings
@@ -102,7 +102,7 @@ class OOT_SearchMusicSeqEnumOperator(Operator):
     bl_property = "ootMusicSeq"
     bl_options = {"REGISTER", "UNDO"}
 
-    ootMusicSeq: EnumProperty(items=ootEnumMusicSeq, default="NA_BGM_FIELD_LOGIC")
+    ootMusicSeq: EnumProperty(items=oot_data.ootEnumMusicSeq, default="NA_BGM_FIELD_LOGIC")
     headerIndex: IntProperty(default=0, min=0)
     objName: StringProperty()
 
@@ -111,6 +111,28 @@ class OOT_SearchMusicSeqEnumOperator(Operator):
         sceneHeader.musicSeq = self.ootMusicSeq
         context.region.tag_redraw()
         self.report({"INFO"}, "Selected: " + self.ootMusicSeq)
+        return {"FINISHED"}
+
+    def invoke(self, context, event):
+        context.window_manager.invoke_search_popup(self)
+        return {"RUNNING_MODAL"}
+
+
+class MM_SearchMusicSeqEnumOperator(Operator):
+    bl_idname = "object.mm_search_music_seq_enum_operator"
+    bl_label = "Search Music Sequence"
+    bl_property = "seq_id"
+    bl_options = {"REGISTER", "UNDO"}
+
+    seq_id: EnumProperty(items=mm_data.enum_seq_id, default="NA_BGM_TERMINA_FIELD")
+    headerIndex: IntProperty(default=0, min=0)
+    objName: StringProperty()
+
+    def execute(self, context):
+        sceneHeader = ootGetSceneOrRoomHeader(bpy.data.objects[self.objName], self.headerIndex, False)
+        sceneHeader.musicSeq = self.seq_id
+        context.region.tag_redraw()
+        self.report({"INFO"}, "Selected: " + self.seq_id)
         return {"FINISHED"}
 
     def invoke(self, context, event):
@@ -291,6 +313,7 @@ classes = (
     OOT_ExportScene,
     OOT_RemoveScene,
     MM_SearchSceneEnumOperator,
+    MM_SearchMusicSeqEnumOperator,
 )
 
 

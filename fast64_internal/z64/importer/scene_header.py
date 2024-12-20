@@ -7,8 +7,8 @@ import mathutils
 from ...utility import PluginError, readFile, parentObject, hexOrDecInt, gammaInverse
 from ...f3d.f3d_parser import parseMatrices
 from ..model_classes import OOTF3DContext
-from ..scene.properties import OOTSceneHeaderProperty, OOTLightProperty
-from ..utility import getEvalParams, setCustomProperty
+from ..scene.properties import OOTSceneHeaderProperty, OOTLightProperty, MM_SceneHeaderProperty
+from ..utility import getEvalParams, setCustomProperty, get_game_enum, get_scene_header_props, is_game_oot, convertIntTo2sComplement
 from .constants import headerNames
 from .utility import getDataMatch, stripName
 from .classes import SharedSceneData
@@ -18,14 +18,16 @@ from .scene_collision import parseCollisionHeader
 from .scene_pathways import parsePathList
 
 from ..constants import (
+    oot_data,
+    mm_data,
     ootEnumAudioSessionPreset,
-    ootEnumNightSeq,
-    ootEnumMusicSeq,
     ootEnumCameraMode,
     ootEnumMapLocation,
     ootEnumNaviHints,
     ootEnumGlobalObject,
+    mm_enum_global_object,
     ootEnumSkybox,
+    mm_enum_skybox,
     ootEnumCloudiness,
     ootEnumSkyboxLighting,
 )
@@ -79,7 +81,7 @@ def parseLight(
 
 def parseLightList(
     sceneObj: bpy.types.Object,
-    sceneHeader: OOTSceneHeaderProperty,
+    sceneHeader: OOTSceneHeaderProperty | MM_SceneHeaderProperty,
     sceneData: str,
     lightListName: str,
     headerIndex: int,
@@ -154,7 +156,7 @@ def parseLightList(
         index += 1
 
 
-def parseExitList(sceneHeader: OOTSceneHeaderProperty, sceneData: str, exitListName: str):
+def parseExitList(sceneHeader: OOTSceneHeaderProperty | MM_SceneHeaderProperty, sceneData: str, exitListName: str):
     exitData = getDataMatch(sceneData, exitListName, "u16", "exit list")
 
     # see also start position list
@@ -239,6 +241,44 @@ def parseAlternateSceneHeaders(
             )
 
 
+# from https://stackoverflow.com/a/6727975
+def twos_complement(hexstr: str, bits: int):
+    value = int(hexstr, 16)
+    if value & (1 << (bits - 1)):
+        value -= 1 << bits
+    return value
+
+
+def parse_mm_minimap_info(scene_header: MM_SceneHeaderProperty, scene_data: str, list_name: str):
+    data_match = getDataMatch(scene_data, list_name, ["MapDataScene", "MinimapList"], "minimap scene", False)
+    scene_map_data = data_match.strip().split(", ")
+    scene_header.minimap_scale = int(scene_map_data[1], base=0)
+
+    data_match = getDataMatch(scene_data, scene_map_data[0], ["MapDataRoom", "MinimapEntry"], "minimap room")
+    room_map_data = data_match.strip().split("\n")
+    for data in room_map_data:
+        map_data = data.strip().removeprefix("{ ").removesuffix(" },").split(", ")
+        new_prop = scene_header.minimap_room_list.add()
+        new_prop.map_id = map_data[0]
+        new_prop.center_x = twos_complement(map_data[1], 16)
+        new_prop.floor_y = twos_complement(map_data[2], 16)
+        new_prop.center_z = twos_complement(map_data[3], 16)
+        new_prop.flags = map_data[4]
+
+    # TODO: complete chest map data import when actors are handled
+    # data_match = getDataMatch(scene_data, scene_map_data[0], ["MapDataChest", "MinimapChest"], "minimap chest")
+    # chest_map_data = data_match.strip().split("\n")
+    # for data in chest_map_data:
+    #     map_data = data.strip().removeprefix("{ ").removesuffix(" },").split(", ")
+
+
+def get_enum_id_from_index(enum_key: str, index: int):
+    if is_game_oot():
+        return oot_data.enumData.enumByKey[enum_key].itemByIndex[index].id
+    else:
+        return mm_data.enum_data.enum_by_key[enum_key].item_by_index[index].id
+
+
 def parseSceneCommands(
     sceneName: str | None,
     sceneObj: bpy.types.Object | None,
@@ -257,7 +297,7 @@ def parseSceneCommands(
         sceneObj.name = sceneName
 
     if headerIndex == 0:
-        sceneHeader = sceneObj.ootSceneHeader
+        sceneHeader = get_scene_header_props(sceneObj)
     elif headerIndex < 4:
         sceneHeader = getattr(sceneObj.ootAlternateSceneHeaders, headerNames[headerIndex])
         sceneHeader.usePreviousHeader = False
@@ -275,8 +315,8 @@ def parseSceneCommands(
         args = [arg.strip() for arg in commandMatch.group(2).split(",")]
         if command == "SCENE_CMD_SOUND_SETTINGS":
             setCustomProperty(sceneHeader, "audioSessionPreset", args[0], ootEnumAudioSessionPreset)
-            setCustomProperty(sceneHeader, "nightSeq", args[1], ootEnumNightSeq)
-            setCustomProperty(sceneHeader, "musicSeq", args[2], ootEnumMusicSeq)
+            setCustomProperty(sceneHeader, "nightSeq", args[1], get_game_enum("enum_ambiance_id"))
+            setCustomProperty(sceneHeader, "musicSeq", get_enum_id_from_index("seqId", int(args[2])), get_game_enum("enum_seq_id"))
         elif command == "SCENE_CMD_ROOM_LIST":
             # Assumption that all scenes use the same room list.
             if headerIndex == 0:
@@ -290,7 +330,7 @@ def parseSceneCommands(
             transActorListName = stripName(args[1])
             parseTransActorList(roomObjs, sceneData, transActorListName, sharedSceneData, headerIndex)
 
-        elif command == "SCENE_CMD_MISC_SETTINGS":
+        elif is_game_oot() and command == "SCENE_CMD_MISC_SETTINGS":
             setCustomProperty(sceneHeader, "cameraMode", args[0], ootEnumCameraMode)
             setCustomProperty(sceneHeader, "mapLocation", args[1], ootEnumMapLocation)
         elif command == "SCENE_CMD_COL_HEADER":
@@ -304,7 +344,7 @@ def parseSceneCommands(
                 entranceList = parseEntranceList(sceneHeader, roomObjs, sceneData, entranceListName)
         elif command == "SCENE_CMD_SPECIAL_FILES":
             setCustomProperty(sceneHeader, "naviCup", args[0], ootEnumNaviHints)
-            setCustomProperty(sceneHeader, "globalObject", args[1], ootEnumGlobalObject)
+            setCustomProperty(sceneHeader, "globalObject", args[1], get_game_enum("enum_global_object"))
         elif command == "SCENE_CMD_PATH_LIST" and sharedSceneData.includePaths:
             pathListName = stripName(args[0])
             parsePathList(sceneObj, sceneData, pathListName, headerIndex, sharedSceneData)
@@ -319,7 +359,7 @@ def parseSceneCommands(
                 entranceList = None
 
         elif command == "SCENE_CMD_SKYBOX_SETTINGS":
-            setCustomProperty(sceneHeader, "skyboxID", args[0], ootEnumSkybox)
+            setCustomProperty(sceneHeader, "skyboxID", args[0], get_game_enum("enum_skybox"))
             setCustomProperty(sceneHeader, "skyboxCloudiness", args[1], ootEnumCloudiness)
             setCustomProperty(sceneHeader, "skyboxLighting", args[2], ootEnumSkyboxLighting)
         elif command == "SCENE_CMD_EXIT_LIST":
@@ -337,11 +377,18 @@ def parseSceneCommands(
                 sceneHeader.csWriteObject = bpy.data.objects[csObjName]
             except:
                 print(f"ERROR: Cutscene ``{csObjName}`` do not exist!")
-        elif command == "SCENE_CMD_ALTERNATE_HEADER_LIST":
+        elif is_game_oot() and command == "SCENE_CMD_ALTERNATE_HEADER_LIST":
             # Delay until after rooms are parsed
             altHeadersListName = stripName(args[0])
+        
+        # handle Majora's Mask exclusive commands
+        elif not is_game_oot():
+            if command == "SCENE_CMD_SET_REGION_VISITED":
+                sceneHeader.set_region_visited = True
+            elif command == "SCENE_CMD_MINIMAP_INFO":
+                parse_mm_minimap_info(sceneHeader, sceneData, stripName(args[0]))
 
-    if altHeadersListName is not None:
+    if is_game_oot() and altHeadersListName is not None:
         parseAlternateSceneHeaders(sceneObj, roomObjs, sceneData, altHeadersListName, f3dContext, sharedSceneData)
 
     return sceneObj

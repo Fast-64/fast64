@@ -1,7 +1,7 @@
 import bpy
 from bpy.utils import register_class, unregister_class
 from ..utility import prop_split, gammaInverse
-from .utility import getSceneObj, getRoomObj
+from .utility import getSceneObj, getRoomObj, get_scene_header_props
 from .scene.properties import OOTSceneProperties
 from .room.properties import OOTObjectProperty, OOTRoomHeaderProperty, OOTAlternateRoomHeaderProperty
 from .collision.properties import OOTWaterBoxProperty
@@ -43,8 +43,9 @@ ootEnumEmptyType = [
 
 def drawSceneHeader(box: bpy.types.UILayout, obj: bpy.types.Object):
     objName = obj.name
-    obj.ootSceneHeader.draw_props(box, None, None, objName)
-    if obj.ootSceneHeader.menuTab == "Alternate":
+    props = get_scene_header_props(obj)
+    props.draw_props(box, None, None, objName)
+    if props.menuTab == "Alternate":
         obj.ootAlternateSceneHeaders.draw_props(box, objName)
     box.prop(obj.fast64.oot.scene, "write_dummy_room_list")
 
@@ -79,12 +80,14 @@ def onUpdateOOTEmptyType(self, context):
     if isSphereEmpty:
         self.empty_display_type = "SPHERE"
 
+    header_props = get_scene_header_props(self)
+
     if self.ootEmptyType == "Scene":
-        if len(self.ootSceneHeader.lightList) == 0:
-            light = self.ootSceneHeader.lightList.add()
-        if not self.ootSceneHeader.timeOfDayLights.defaultsSet:
-            self.ootSceneHeader.timeOfDayLights.defaultsSet = True
-            timeOfDayLights = self.ootSceneHeader.timeOfDayLights
+        if len(header_props.lightList) == 0:
+            light = header_props.lightList.add()
+        if not header_props.timeOfDayLights.defaultsSet:
+            header_props.timeOfDayLights.defaultsSet = True
+            timeOfDayLights = header_props.timeOfDayLights
             setLightPropertyValues(
                 timeOfDayLights.dawn, [70, 45, 57], [180, 154, 138], [20, 20, 60], [140, 120, 100], 0x3E1
             )

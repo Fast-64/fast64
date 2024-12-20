@@ -4,6 +4,7 @@ import bpy
 from dataclasses import dataclass, field
 from typing import Optional
 from ....utility import PluginError, writeFile
+from ...utility import is_game_oot
 from ...constants import ootEnumSceneID, ootSceneNameToID, mm_enum_scene_id, mm_scene_name_to_id
 
 ADDED_SCENES_COMMENT = "// Added scenes"
@@ -13,7 +14,7 @@ def get_original_index(enum_value: str) -> Optional[int]:
     """
     Returns the original index of a specific scene
     """
-    if bpy.context.scene.gameEditorMode == "OOT":
+    if is_game_oot():
         enum_scene_id = ootEnumSceneID
     else:
         enum_scene_id = mm_enum_scene_id
@@ -27,7 +28,7 @@ def get_original_index(enum_value: str) -> Optional[int]:
 
 
 def get_scene_enum_from_name(scene_name: str):
-    if bpy.context.scene.gameEditorMode == "OOT":
+    if is_game_oot():
         return ootSceneNameToID.get(scene_name, f"SCENE_{scene_name.upper()}")
     else:
         return mm_scene_name_to_id.get(scene_name, f"SCENE_{scene_name.upper()}")
@@ -54,7 +55,7 @@ class SceneTableEntry:
             index = original_line.index(macro_start) + len(macro_start)
             parsed = original_line[index:].removesuffix(")")
 
-            if bpy.context.scene.gameEditorMode == "OOT":
+            if is_game_oot():
                 params = parsed.split(", ")
                 assert len(params) == 6
                 return SceneTableEntry(*params)
@@ -87,11 +88,18 @@ class SceneTableEntry:
 
     def to_c(self, index: int):
         """Returns the entry as C code"""
-        return (
-            f"/* 0x{index:02X} */ "
-            f"DEFINE_SCENE({self.spec_name}, {self.title_card_name}, {self.enum_value}, "
-            f"{self.draw_config}, {self.unk1}, {self.unk2})"
-        )
+        if is_game_oot():
+            return (
+                f"/* 0x{index:02X} */ "
+                f"DEFINE_SCENE({self.spec_name}, {self.title_card_name}, {self.enum_value}, "
+                f"{self.draw_config}, {self.unk1}, {self.unk2})"
+            )
+        else:
+            return (
+                f"/* 0x{index:02X} */ "
+                f"DEFINE_SCENE({self.spec_name}, {self.enum_value}, {self.title_card_name}, "
+                f"{self.draw_config}, {self.unk1}, {self.unk2})"
+            )
 
 
 @dataclass
@@ -103,9 +111,14 @@ class SceneTableSection:
 
     def to_c(self, index: int):
         directive = f"{self.directive}\n" if self.directive else ""
-        terminator = "\n#endif" if self.directive and self.directive.startswith("#if") else ""
+        terminator = "\n#endif" if self.directive is not None and self.directive.startswith("#if") else ""
         entry_string = "\n".join(entry.to_c(index + i) for i, entry in enumerate(self.entries))
-        return f"{directive}{entry_string}{terminator}\n\n"
+        section_c = f"{directive}{entry_string}{terminator}\n"
+
+        if is_game_oot():
+            section_c += "\n"
+
+        return section_c
 
 
 @dataclass
@@ -272,7 +285,7 @@ class SceneTableUtility:
     @staticmethod
     def get_draw_config(scene_name: str):
         """Read draw config from scene table"""
-        if bpy.context.scene.gameEditorMode == "OOT":
+        if is_game_oot():
             scene_name = f"{scene_name}_scene"
 
         scene_table = SceneTable.new(

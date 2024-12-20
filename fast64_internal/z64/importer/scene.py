@@ -21,13 +21,28 @@ from ..utility import (
     sceneNameFromID,
     ootGetPath,
     setAllActorsVisibility,
+    is_game_oot,
+    get_scene_header_props,
 )
 
 
 def parseDrawConfig(drawConfigName: str, sceneData: str, drawConfigData: str, f3dContext: OOTF3DContext):
-    drawFunctionName = "Scene_DrawConfig" + "".join(
-        [value.strip().lower().capitalize() for value in drawConfigName.replace("SDC_", "").split("_")]
-    )
+    if is_game_oot():
+        drawFunctionName = "Scene_DrawConfig" + "".join(
+            [value.strip().lower().capitalize() for value in drawConfigName.replace("SDC_", "").split("_")]
+        )
+    else:
+        mm_draw_config_to_func_name = {
+            "SCENE_DRAW_CFG_DEFAULT": "Scene_DrawConfigDefault",
+            "SCENE_DRAW_CFG_MAT_ANIM": "Scene_DrawConfigMatAnim",
+            "SCENE_DRAW_CFG_NOTHING": "Scene_DrawConfigDoNothing",
+            "SCENE_DRAW_CFG_UNUSED_3": "Scene_DrawConfig3",
+            "SCENE_DRAW_CFG_UNUSED_4": "Scene_DrawConfig4",
+            "SCENE_DRAW_CFG_UNUSED_5": "Scene_DrawConfig5",
+            "SCENE_DRAW_CFG_GREAT_BAY_TEMPLE": "Scene_DrawConfigGreatBayTemple",
+            "SCENE_DRAW_CFG_MAT_ANIM_MANUAL_STEP": "Scene_DrawConfigMatAnimManualStep",
+        }
+        drawFunctionName = mm_draw_config_to_func_name[drawConfigName]
 
     # get draw function
     match = re.search(rf"void\s*{re.escape(drawFunctionName)}(.*?)CLOSE\_DISPS", drawConfigData, flags=re.DOTALL)
@@ -91,7 +106,7 @@ def parseScene(
             subfolder = None
         importPath = bpy.path.abspath(bpy.context.scene.ootDecompPath)
 
-    if bpy.context.scene.gameEditorMode == "OOT":
+    if is_game_oot():
         sceneName = f"{sceneName}_scene"
 
     importSubdir = ""
@@ -124,7 +139,8 @@ def parseScene(
 
     if not settings.isCustomDest:
         drawConfigName = SceneTableUtility.get_draw_config(sceneName)
-        drawConfigData = readFile(os.path.join(importPath, "src/code/z_scene_table.c"))
+        filename = "z_scene_table" if is_game_oot() else "z_scene_proc"
+        drawConfigData = readFile(os.path.join(importPath, f"src/code/{filename}.c"))
         parseDrawConfig(drawConfigName, sceneData, drawConfigData, f3dContext)
 
     bpy.context.space_data.overlay.show_relationship_lines = False
@@ -155,10 +171,10 @@ def parseScene(
 
     if not settings.isCustomDest:
         setCustomProperty(
-            sceneObj.ootSceneHeader.sceneTableEntry,
+            get_scene_header_props(sceneObj).sceneTableEntry,
             "drawConfig",
             SceneTableUtility.get_draw_config(sceneName),
-            ootEnumDrawConfig if bpy.context.scene.gameEditorMode == "OOT" else mm_enum_draw_config,
+            ootEnumDrawConfig if is_game_oot() else mm_enum_draw_config,
         )
 
     if bpy.context.scene.fast64.oot.headerTabAffectsVisibility:
