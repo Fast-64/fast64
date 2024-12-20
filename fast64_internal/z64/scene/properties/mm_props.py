@@ -617,7 +617,8 @@ class MM_ImportSceneSettingsProperty(PropertyGroup):
         includeButtons3 = col.row(align=True)
         includeButtons3.prop(self, "includePaths", toggle=1)
         includeButtons3.prop(self, "includeWaterBoxes", toggle=1)
-        includeButtons3.prop(self, "includeCutscenes", toggle=1)
+        # TODO: implement cutscenes
+        # includeButtons3.prop(self, "includeCutscenes", toggle=1)
         col.prop(self, "isCustomDest")
 
         if self.isCustomDest:
