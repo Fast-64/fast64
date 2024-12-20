@@ -8,7 +8,14 @@ from ...utility import PluginError, readFile, parentObject, hexOrDecInt, gammaIn
 from ...f3d.f3d_parser import parseMatrices
 from ..model_classes import OOTF3DContext
 from ..scene.properties import OOTSceneHeaderProperty, OOTLightProperty, MM_SceneHeaderProperty
-from ..utility import getEvalParams, setCustomProperty, get_game_enum, get_scene_header_props, is_game_oot, convertIntTo2sComplement
+from ..utility import (
+    getEvalParams,
+    setCustomProperty,
+    get_game_enum,
+    get_scene_header_props,
+    is_game_oot,
+    convertIntTo2sComplement,
+)
 from .constants import headerNames
 from .utility import getDataMatch, stripName
 from .classes import SharedSceneData
@@ -321,7 +328,9 @@ def parseSceneCommands(
         if command == "SCENE_CMD_SOUND_SETTINGS":
             setCustomProperty(sceneHeader, "audioSessionPreset", args[0], ootEnumAudioSessionPreset)
             setCustomProperty(sceneHeader, "nightSeq", args[1], get_game_enum("enum_ambiance_id"))
-            setCustomProperty(sceneHeader, "musicSeq", get_enum_id_from_index("seqId", int(args[2])), get_game_enum("enum_seq_id"))
+            setCustomProperty(
+                sceneHeader, "musicSeq", get_enum_id_from_index("seqId", int(args[2])), get_game_enum("enum_seq_id")
+            )
         elif command == "SCENE_CMD_ROOM_LIST":
             # Assumption that all scenes use the same room list.
             if headerIndex == 0:
@@ -385,7 +394,7 @@ def parseSceneCommands(
         elif command == "SCENE_CMD_ALTERNATE_HEADER_LIST":
             # Delay until after rooms are parsed
             altHeadersListName = stripName(args[0])
-        
+
         # handle Majora's Mask exclusive commands
         elif not is_game_oot():
             if command == "SCENE_CMD_SET_REGION_VISITED":

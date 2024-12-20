@@ -2,7 +2,14 @@ import bpy
 from bpy.types import PropertyGroup, UILayout, Image, Object
 from bpy.utils import register_class, unregister_class
 from ...utility import prop_split
-from ..utility import drawCollectionOps, onMenuTabChange, onHeaderMenuTabChange, drawEnumWithCustom, drawAddButton, is_game_oot
+from ..utility import (
+    drawCollectionOps,
+    onMenuTabChange,
+    onHeaderMenuTabChange,
+    drawEnumWithCustom,
+    drawAddButton,
+    is_game_oot,
+)
 from ..upgrade import upgradeRoomHeaders
 from .operators import OOT_SearchObjectEnumOperator
 

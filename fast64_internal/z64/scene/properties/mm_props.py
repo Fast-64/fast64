@@ -257,7 +257,9 @@ class OOTExtraCutsceneProperty(PropertyGroup):
 
 
 def minimap_chest_poll(self: "MM_MinimapChestProperty", object: Object):
-    return object.type == "EMPTY" and object.ootEmptyType == "Actor" and object.ootActorProperty.actorID == "ACTOR_EN_BOX"
+    return (
+        object.type == "EMPTY" and object.ootEmptyType == "Actor" and object.ootActorProperty.actorID == "ACTOR_EN_BOX"
+    )
 
 
 class MM_MinimapChestProperty(PropertyGroup):
@@ -268,7 +270,12 @@ class MM_MinimapChestProperty(PropertyGroup):
 
     def draw_props(self, layout: UILayout, index: int, header_index: int, obj_name: str):
         box = layout.box()
-        box.prop(self, "expand_tab", text=f"Chest Actor No.{index + 1}", icon="TRIA_DOWN" if self.expand_tab else "TRIA_RIGHT")
+        box.prop(
+            self,
+            "expand_tab",
+            text=f"Chest Actor No.{index + 1}",
+            icon="TRIA_DOWN" if self.expand_tab else "TRIA_RIGHT",
+        )
 
         if self.expand_tab:
             drawCollectionOps(box, index, "Minimap Chest", header_index, obj_name)
@@ -286,7 +293,12 @@ class MM_MinimapRoomProperty(PropertyGroup):
 
     def draw_props(self, layout: UILayout, index: int, header_index: int, obj_name: str):
         box = layout.box()
-        box.prop(self, "expand_tab", text=f"Minimap Room Index {index}", icon="TRIA_DOWN" if self.expand_tab else "TRIA_RIGHT")
+        box.prop(
+            self,
+            "expand_tab",
+            text=f"Minimap Room Index {index}",
+            icon="TRIA_DOWN" if self.expand_tab else "TRIA_RIGHT",
+        )
 
         if self.expand_tab:
             drawCollectionOps(box, index, "Minimap Room", header_index, obj_name)
@@ -322,7 +334,11 @@ class MM_SceneHeaderProperty(PropertyGroup):
     )
 
     # SCENE_CMD_SET_REGION_VISITED
-    set_region_visited: BoolProperty(name="Set Region Visited Flag", default=False, description="Sets a flag that indicates the region has been visited. Scene indices are mapped to their region in `gSceneIdsPerRegion` from `z_inventory.c`")
+    set_region_visited: BoolProperty(
+        name="Set Region Visited Flag",
+        default=False,
+        description="Sets a flag that indicates the region has been visited. Scene indices are mapped to their region in `gSceneIdsPerRegion` from `z_inventory.c`",
+    )
 
     # SCENE_CMD_MINIMAP_INFO (note: room informations are defined in `MM_RoomHeaderProperty`)
     minimap_room_expand: BoolProperty(name="Expand Tab")
@@ -413,7 +429,12 @@ class MM_SceneHeaderProperty(PropertyGroup):
             map_room_box = minimap.column().box()
             list_length = len(self.minimap_room_list)
             item_count = "Empty" if list_length == 0 else f"{list_length} item{'s' if list_length > 1 else ''}"
-            map_room_box.prop(self, "minimap_room_expand", text=f"Minimap Room List ({item_count})", icon="TRIA_DOWN" if self.minimap_room_expand else "TRIA_RIGHT")
+            map_room_box.prop(
+                self,
+                "minimap_room_expand",
+                text=f"Minimap Room List ({item_count})",
+                icon="TRIA_DOWN" if self.minimap_room_expand else "TRIA_RIGHT",
+            )
             if self.minimap_room_expand:
                 for i in range(list_length):
                     self.minimap_room_list[i].draw_props(map_room_box, i, headerIndex, objName)
@@ -422,11 +443,16 @@ class MM_SceneHeaderProperty(PropertyGroup):
             chest_box = minimap.column().box()
             list_length = len(self.minimap_chest_list)
             item_count = "Empty" if list_length == 0 else f"{list_length} item{'s' if list_length > 1 else ''}"
-            chest_box.prop(self, "minimap_chest_expand", text=f"Minimap Chest List ({item_count})", icon="TRIA_DOWN" if self.minimap_chest_expand else "TRIA_RIGHT")
+            chest_box.prop(
+                self,
+                "minimap_chest_expand",
+                text=f"Minimap Chest List ({item_count})",
+                icon="TRIA_DOWN" if self.minimap_chest_expand else "TRIA_RIGHT",
+            )
             if self.minimap_chest_expand:
                 for i in range(list_length):
                     self.minimap_chest_list[i].draw_props(chest_box, i, headerIndex, objName)
-                drawAddButton(chest_box, list_length, "Minimap Chest", headerIndex, objName)            
+                drawAddButton(chest_box, list_length, "Minimap Chest", headerIndex, objName)
 
         elif menuTab == "Lighting":
             lighting = layout.column()

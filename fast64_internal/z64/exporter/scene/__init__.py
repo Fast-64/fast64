@@ -42,7 +42,9 @@ class Scene:
             True,
         )
 
-        mainHeader = SceneHeader.new(f"{name}_header{i:02}", get_scene_header_props(sceneObj), sceneObj, transform, i, useMacros)
+        mainHeader = SceneHeader.new(
+            f"{name}_header{i:02}", get_scene_header_props(sceneObj), sceneObj, transform, i, useMacros
+        )
         hasAlternateHeaders = False
         altHeader = SceneAlternateHeader(f"{name}_alternateHeaders")
         altProp = get_scene_header_props(sceneObj, True)

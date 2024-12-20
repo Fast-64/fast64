@@ -50,15 +50,16 @@ game_enum_map = {
         "enum_global_object": ootEnumGlobalObject,
         "enum_skybox": ootEnumSkybox,
         "enum_seq_id": oot_data.ootEnumMusicSeq,
-        "enum_ambiance_id": oot_data.ootEnumNightSeq # TODO: generate this from xml (not for enumproperties)
+        "enum_ambiance_id": oot_data.ootEnumNightSeq,  # TODO: generate this from xml (not for enumproperties)
     },
     "MM": {
         "enum_global_object": mm_enum_global_object,
         "enum_skybox": mm_enum_skybox,
         "enum_seq_id": mm_data.enum_seq_id,
-        "enum_ambiance_id": mm_data.enum_ambiance_id, # TODO: same as above
-    }
+        "enum_ambiance_id": mm_data.enum_ambiance_id,  # TODO: same as above
+    },
 }
+
 
 def get_game_enum(enum_type: str):
     return game_enum_map[bpy.context.scene.gameEditorMode][enum_type]
@@ -77,6 +78,7 @@ def get_scene_header_props(obj: Object, is_alt_header: bool = False):
 
 def isPathObject(obj: bpy.types.Object) -> bool:
     return obj.type == "CURVE" and obj.ootSplineProperty.splineType == "Path"
+
 
 ootSceneDungeons = [
     "bdan",
