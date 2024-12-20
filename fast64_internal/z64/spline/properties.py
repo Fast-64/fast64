@@ -1,45 +1,61 @@
+import bpy
+
 from bpy.types import PropertyGroup, Object, UILayout
 from bpy.props import EnumProperty, PointerProperty, StringProperty, IntProperty
 from bpy.utils import register_class, unregister_class
 from ...utility import prop_split
-from ..utility import drawEnumWithCustom
-from ..collision.constants import ootEnumCameraCrawlspaceSType
-from ..actor.properties import OOTActorHeaderProperty
-from ..scene.properties import OOTAlternateSceneHeaderProperty
+from ..utility import drawEnumWithCustom, is_game_oot, get_game_props
+from ..collision.constants import enum_camera_crawlspace_stype
+from ..actor.properties import OOTActorHeaderProperty, MM_ActorHeaderProperty
+from ..scene.properties import OOTAlternateSceneHeaderProperty, MM_AlternateSceneHeaderProperty
 
 
-ootSplineEnum = [("Path", "Path", "Path"), ("Crawlspace", "Crawlspace", "Crawlspace")]
+enum_spline = [("Path", "Path", "Path"), ("Crawlspace", "Crawlspace", "Crawlspace")]
 
 
-class OOTSplineProperty(PropertyGroup):
-    splineType: EnumProperty(items=ootSplineEnum, default="Path")
+class Z64_SplineProperty(PropertyGroup):
+    splineType: EnumProperty(items=enum_spline, default="Path")
     index: IntProperty(min=0)  # only used for crawlspace, not path
     headerSettings: PointerProperty(type=OOTActorHeaderProperty)
-    camSType: EnumProperty(items=ootEnumCameraCrawlspaceSType, default="CAM_SET_CRAWLSPACE")
+    camSType: EnumProperty(items=enum_camera_crawlspace_stype, default="CAM_SET_CRAWLSPACE")
     camSTypeCustom: StringProperty(default="CAM_SET_CRAWLSPACE")
 
-    def draw_props(self, layout: UILayout, altSceneProp: OOTAlternateSceneHeaderProperty, objName: str):
-        camIndexName = ""
+    mm_header_settings: PointerProperty(type=MM_ActorHeaderProperty)
+    mm_opt_path_index: IntProperty(name="Additional Path Index", min=-1, default=-1)
+    mm_custom_value: IntProperty(name="Custom Value", min=-1, default=-1)
+
+    def draw_props(
+        self,
+        layout: UILayout,
+        altSceneProp: OOTAlternateSceneHeaderProperty | MM_AlternateSceneHeaderProperty,
+        objName: str,
+    ):
+        camIndexName = "Path Index" if self.splineType == "Path" else "Camera Index"
         prop_split(layout, self, "splineType", "Type")
+        prop_split(layout, self, "index", camIndexName)
+
+        if not is_game_oot():
+            prop_split(layout, self, "mm_opt_path_index", "Additional Path Index")
+            prop_split(layout, self, "mm_custom_value", "Custom Value")
+
         if self.splineType == "Path":
-            headerProp: OOTActorHeaderProperty = self.headerSettings
+            headerProp: OOTActorHeaderProperty | MM_ActorHeaderProperty = get_game_props(
+                bpy.data.objects[objName], "path_header_settings"
+            )
             headerProp.draw_props(layout, "Curve", altSceneProp, objName)
-            camIndexName = "Path Index"
         elif self.splineType == "Crawlspace":
             layout.label(text="This counts as a camera for index purposes.", icon="INFO")
             drawEnumWithCustom(layout, self, "camSType", "Camera S Type", "")
-            camIndexName = "Camera Index"
-        prop_split(layout, self, "index", camIndexName)
 
 
-oot_spline_classes = (OOTSplineProperty,)
+oot_spline_classes = (Z64_SplineProperty,)
 
 
 def spline_props_register():
     for cls in oot_spline_classes:
         register_class(cls)
 
-    Object.ootSplineProperty = PointerProperty(type=OOTSplineProperty)
+    Object.ootSplineProperty = PointerProperty(type=Z64_SplineProperty)
 
 
 def spline_props_unregister():

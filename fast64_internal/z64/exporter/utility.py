@@ -2,8 +2,8 @@ from math import radians
 from mathutils import Quaternion, Matrix
 from bpy.types import Object
 from ...utility import PluginError, indent
-from ..utility import ootConvertTranslation, ootConvertRotation
-from ..actor.properties import OOTActorHeaderProperty
+from ..utility import ootConvertTranslation, ootConvertRotation, is_game_oot
+from ..actor.properties import OOTActorHeaderProperty, MM_ActorHeaderProperty
 
 
 altHeaderList = ["childNight", "adultDay", "adultNight"]
@@ -34,22 +34,26 @@ class Utility:
         return (round(position[0]), round(position[1]), round(position[2]))
 
     @staticmethod
-    def isCurrentHeaderValid(headerSettings: OOTActorHeaderProperty, headerIndex: int):
+    def isCurrentHeaderValid(headerSettings: OOTActorHeaderProperty | MM_ActorHeaderProperty, headerIndex: int):
         """Checks if the an alternate header can be used"""
 
-        preset = headerSettings.sceneSetupPreset
+        if is_game_oot():
+            preset = headerSettings.sceneSetupPreset
 
-        if preset == "All Scene Setups" or (preset == "All Non-Cutscene Scene Setups" and headerIndex < 4):
-            return True
+            if preset == "All Scene Setups" or (preset == "All Non-Cutscene Scene Setups" and headerIndex < 4):
+                return True
 
-        if preset == "Custom":
-            for i, header in enumerate(["childDay"] + altHeaderList):
-                if getattr(headerSettings, f"{header}Header") and i == headerIndex:
-                    return True
+            if preset == "Custom":
+                for i, header in enumerate(["childDay"] + altHeaderList):
+                    if getattr(headerSettings, f"{header}Header") and i == headerIndex:
+                        return True
+        else:
+            if headerSettings.include_in_all_setups or headerSettings.childDayHeader and headerIndex == 0:
+                return True
 
-            for csHeader in headerSettings.cutsceneHeaders:
-                if csHeader.headerIndex == headerIndex:
-                    return True
+        for csHeader in headerSettings.cutsceneHeaders:
+            if csHeader.headerIndex == headerIndex:
+                return True
 
         return False
 

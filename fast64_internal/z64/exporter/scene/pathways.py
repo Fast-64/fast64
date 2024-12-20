@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
-from ...utility import getObjectList
+from ...utility import getObjectList, get_game_props
 from ..utility import Utility
 
 
@@ -50,7 +50,7 @@ class ScenePathways:
         for obj in pathObjList:
             relativeTransform = transform @ sceneObj.matrix_world.inverted() @ obj.matrix_world
             pathProps = obj.ootSplineProperty
-            isHeaderValid = Utility.isCurrentHeaderValid(pathProps.headerSettings, headerIndex)
+            isHeaderValid = Utility.isCurrentHeaderValid(get_game_props(obj, "path_header_settings"), headerIndex)
             if isHeaderValid and Utility.validateCurveData(obj):
                 if pathProps.index not in pathFromIndex:
                     pathFromIndex[pathProps.index] = Path(

@@ -84,6 +84,7 @@ def get_game_props(obj: Object, header_type: str):
             "actor": obj.ootActorProperty,
             "transition_actor": obj.ootTransitionActorProperty,
             "entrance_actor": obj.ootEntranceProperty,
+            "path_header_settings": obj.ootSplineProperty.headerSettings,
         },
         "MM": {
             "scene": obj.mm_scene_header,
@@ -93,6 +94,7 @@ def get_game_props(obj: Object, header_type: str):
             "actor": obj.mm_actor_property,
             "transition_actor": obj.mm_transition_actor_property,
             "entrance_actor": obj.mm_entrance_property,
+            "path_header_settings": obj.ootSplineProperty.mm_header_settings,
         },
     }
 
@@ -759,7 +761,7 @@ def getCollection(objName, collectionType, subIndex):
     elif collectionType == "Object":
         collection = getCollectionFromIndex(obj, "objectList", subIndex, True)
     elif collectionType == "Curve":
-        collection = obj.ootSplineProperty.headerSettings.cutsceneHeaders
+        collection = get_game_props(obj, "path_header_settings").cutsceneHeaders
     elif collectionType.startswith("CSHdr."):
         # CSHdr.HeaderNumber[.ListType]
         # Specifying ListType means uses subIndex
@@ -898,7 +900,7 @@ def getHeaderSettings(actorObj: bpy.types.Object):
         else:
             headerSettings = None
     elif isPathObject(actorObj):
-        headerSettings = actorObj.ootSplineProperty.headerSettings
+        headerSettings = get_game_props(actorObj, "path_header_settings")
     else:
         headerSettings = None
 
@@ -925,6 +927,7 @@ def oot_utility_unregister():
 def getActiveHeaderIndex() -> int:
     # All scenes/rooms should have synchronized tabs from property callbacks
     headerObjs = [obj for obj in bpy.data.objects if obj.ootEmptyType == "Scene" or obj.ootEmptyType == "Room"]
+
     if len(headerObjs) == 0:
         return 0
 
@@ -939,21 +942,27 @@ def getActiveHeaderIndex() -> int:
     if header.menuTab != "Alternate":
         headerIndex = 0
     else:
-        if altHeader.headerMenuTab == "Child Night":
-            headerIndex = 1
-        elif altHeader.headerMenuTab == "Adult Day":
-            headerIndex = 2
-        elif altHeader.headerMenuTab == "Adult Night":
-            headerIndex = 3
+        if is_game_oot():
+            if altHeader.headerMenuTab == "Child Night":
+                headerIndex = 1
+            elif altHeader.headerMenuTab == "Adult Day":
+                headerIndex = 2
+            elif altHeader.headerMenuTab == "Adult Night":
+                headerIndex = 3
+            else:
+                headerIndex = altHeader.currentCutsceneIndex
         else:
             headerIndex = altHeader.currentCutsceneIndex
 
-    return (
-        headerIndex,
-        altHeader.childNightHeader.usePreviousHeader,
-        altHeader.adultDayHeader.usePreviousHeader,
-        altHeader.adultNightHeader.usePreviousHeader,
-    )
+    if is_game_oot():
+        return (
+            headerIndex,
+            altHeader.childNightHeader.usePreviousHeader,
+            altHeader.adultDayHeader.usePreviousHeader,
+            altHeader.adultNightHeader.usePreviousHeader,
+        )
+    else:
+        return headerIndex, None, None, None
 
 
 def setAllActorsVisibility(self, context: bpy.types.Context):
@@ -969,24 +978,37 @@ def setAllActorsVisibility(self, context: bpy.types.Context):
         setActorVisibility(actorObj, activeHeaderInfo)
 
 
-def setActorVisibility(actorObj: bpy.types.Object, activeHeaderInfo: tuple[int, bool, bool, bool]):
+def setActorVisibility(
+    actorObj: bpy.types.Object, activeHeaderInfo: tuple[int, Optional[bool], Optional[bool], Optional[bool]]
+):
     headerIndex, childNightHeader, adultDayHeader, adultNightHeader = activeHeaderInfo
-    usePreviousHeader = [False, childNightHeader, adultDayHeader, adultNightHeader]
-    if headerIndex < 4:
-        while usePreviousHeader[headerIndex]:
-            headerIndex -= 1
+
+    if is_game_oot():
+        usePreviousHeader = [False, childNightHeader, adultDayHeader, adultNightHeader]
+
+        if headerIndex < 4:
+            while usePreviousHeader[headerIndex]:
+                headerIndex -= 1
 
     headerSettings = getHeaderSettings(actorObj)
+
     if headerSettings is None:
         return
-    if headerSettings.sceneSetupPreset == "All Scene Setups":
-        actorObj.hide_set(False)
-    elif headerSettings.sceneSetupPreset == "All Non-Cutscene Scene Setups":
-        actorObj.hide_set(headerIndex >= 4)
-    elif headerSettings.sceneSetupPreset == "Custom":
-        actorObj.hide_set(not headerSettings.checkHeader(headerIndex))
+
+    if is_game_oot():
+        if headerSettings.sceneSetupPreset == "All Scene Setups":
+            actorObj.hide_set(False)
+        elif headerSettings.sceneSetupPreset == "All Non-Cutscene Scene Setups":
+            actorObj.hide_set(headerIndex >= 4)
+        elif headerSettings.sceneSetupPreset == "Custom":
+            actorObj.hide_set(not headerSettings.checkHeader(headerIndex))
+        else:
+            print("Error: unhandled header case")
     else:
-        print("Error: unhandled header case")
+        if headerSettings.include_in_all_setups:
+            actorObj.hide_set(False)
+        else:
+            actorObj.hide_set(not headerSettings.checkHeader(headerIndex))
 
 
 def onMenuTabChange(self, context: bpy.types.Context):

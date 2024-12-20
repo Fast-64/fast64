@@ -1,7 +1,7 @@
 from bpy.types import Panel, Curve
 from bpy.utils import register_class, unregister_class
 from ..utility import getSceneObj, get_game_props
-from .properties import OOTSplineProperty
+from .properties import Z64_SplineProperty
 
 
 class OOTSplinePanel(Panel):
@@ -27,7 +27,7 @@ class OOTSplinePanel(Panel):
         else:
             sceneObj = getSceneObj(context.object)
             altSceneProp = get_game_props(sceneObj, "alt_scene") if sceneObj is not None else None
-            splineProp: OOTSplineProperty = context.object.ootSplineProperty
+            splineProp: Z64_SplineProperty = context.object.ootSplineProperty
             splineProp.draw_props(box, altSceneProp, context.object.name)
 
 

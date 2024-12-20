@@ -77,7 +77,7 @@ ootEnumConveyorSpeed = [
     ("0x03", "Fast", "Fast"),
 ]
 
-ootEnumCameraCrawlspaceSType = [
+enum_camera_crawlspace_stype = [
     ("Custom", "Custom", "Custom"),
     ("CAM_SET_CRAWLSPACE", "Crawlspace", "Crawlspace"),
 ]

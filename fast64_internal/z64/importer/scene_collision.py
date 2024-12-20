@@ -19,7 +19,7 @@ from ..collision.constants import (
     ootEnumCollisionTerrain,
     ootEnumCollisionSound,
     ootEnumCameraSType,
-    ootEnumCameraCrawlspaceSType,
+    enum_camera_crawlspace_stype,
 )
 
 
@@ -40,7 +40,7 @@ def parseCrawlSpaceData(
     crawlProp = curveObj.ootSplineProperty
     crawlProp.splineType = "Crawlspace"
     crawlProp.index = orderIndex
-    setCustomProperty(crawlProp, "camSType", "CAM_SET_CRAWLSPACE", ootEnumCameraCrawlspaceSType)
+    setCustomProperty(crawlProp, "camSType", "CAM_SET_CRAWLSPACE", enum_camera_crawlspace_stype)
 
     return curveObj
 
