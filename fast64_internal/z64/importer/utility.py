@@ -4,7 +4,7 @@ import mathutils
 
 from ...utility import PluginError, hexOrDecInt, removeComments, yUpToZUp
 from ..actor.properties import OOTActorProperty, OOTActorHeaderProperty, MM_ActorHeaderProperty
-from ..utility import ootParseRotation, is_game_oot
+from ..utility import ootParseRotation, is_game_oot, get_cs_index_start
 from .constants import headerNames, actorsWithRotAsParam
 
 
@@ -26,8 +26,7 @@ def unsetAllHeadersExceptSpecified(headerSettings: OOTActorHeaderProperty | MM_A
         headerSettings.include_in_all_setups = False
         headerSettings.childDayHeader = headerIndex == 0
 
-    cs_start = 4 if is_game_oot() else 1
-    if headerIndex >= cs_start:
+    if headerIndex >= get_cs_index_start():
         headerSettings.cutsceneHeaders.add().headerIndex = headerIndex
 
 

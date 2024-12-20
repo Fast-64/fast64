@@ -4,7 +4,7 @@ from mathutils import Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
 from ....f3d.f3d_gbi import ScrollMethod, TextureExportSettings
-from ...utility import get_game_props
+from ...utility import get_game_props, is_game_oot
 from ...room.properties import OOTRoomHeaderProperty
 from ...object import addMissingObjectsToAllRoomHeaders
 from ...model_classes import OOTModel, OOTGfxFormatter
@@ -58,19 +58,20 @@ class Room:
         )
         hasAlternateHeaders = False
 
-        for i, header in enumerate(altHeaderList, 1):
-            altP: OOTRoomHeaderProperty = getattr(altProp, f"{header}Header")
-            if not altP.usePreviousHeader:
-                hasAlternateHeaders = True
-                newRoomHeader = RoomHeader.new(
-                    f"{name}_header{i:02}",
-                    altP,
-                    sceneObj,
-                    roomObj,
-                    transform,
-                    i,
-                )
-                setattr(altHeader, header, newRoomHeader)
+        if is_game_oot():
+            for i, header in enumerate(altHeaderList, 1):
+                altP: OOTRoomHeaderProperty = getattr(altProp, f"{header}Header")
+                if not altP.usePreviousHeader:
+                    hasAlternateHeaders = True
+                    newRoomHeader = RoomHeader.new(
+                        f"{name}_header{i:02}",
+                        altP,
+                        sceneObj,
+                        roomObj,
+                        transform,
+                        i,
+                    )
+                    setattr(altHeader, header, newRoomHeader)
 
         altHeader.cutscenes = [
             RoomHeader.new(
@@ -81,7 +82,7 @@ class Room:
                 transform,
                 i,
             )
-            for i, csHeader in enumerate(altProp.cutsceneHeaders, 4)
+            for i, csHeader in enumerate(altProp.cutsceneHeaders, 4 if is_game_oot() else 1)
         ]
 
         hasAlternateHeaders = True if len(altHeader.cutscenes) > 0 else hasAlternateHeaders
@@ -170,7 +171,8 @@ class Room:
                 + "\n};\n\n"
             )
 
-        roomHeaders.insert(0, (self.mainHeader, "Child Day (Default)"))
+        header_name = "Child Day (Default)" if is_game_oot() else "Default"
+        roomHeaders.insert(0, (self.mainHeader, header_name))
         for i, (curHeader, headerDesc) in enumerate(roomHeaders):
             if curHeader is not None:
                 roomC.source += "/**\n * " + f"Header {headerDesc}\n" + "*/\n"

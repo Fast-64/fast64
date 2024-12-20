@@ -75,28 +75,38 @@ def get_game_enum(enum_type: str):
 
 
 def get_game_props(obj: Object, header_type: str):
-    game_header_map = {
-        "OOT": {
-            "scene": obj.ootSceneHeader,
-            "alt_scene": obj.ootAlternateSceneHeaders,
-            "room": obj.ootRoomHeader,
-            "alt_room": obj.ootAlternateRoomHeaders,
-            "actor": obj.ootActorProperty,
-            "transition_actor": obj.ootTransitionActorProperty,
-            "entrance_actor": obj.ootEntranceProperty,
-            "path_header_settings": obj.ootSplineProperty.headerSettings,
-        },
-        "MM": {
-            "scene": obj.mm_scene_header,
-            "alt_scene": obj.mm_alternate_scene_headers,
-            "room": obj.mm_room_header,
-            "alt_room": obj.mm_alternate_room_headers,
-            "actor": obj.mm_actor_property,
-            "transition_actor": obj.mm_transition_actor_property,
-            "entrance_actor": obj.mm_entrance_property,
-            "path_header_settings": obj.ootSplineProperty.mm_header_settings,
-        },
-    }
+    if obj is not None:
+        game_header_map = {
+            "OOT": {
+                "scene": obj.ootSceneHeader,
+                "alt_scene": obj.ootAlternateSceneHeaders,
+                "room": obj.ootRoomHeader,
+                "alt_room": obj.ootAlternateRoomHeaders,
+                "actor": obj.ootActorProperty,
+                "transition_actor": obj.ootTransitionActorProperty,
+                "entrance_actor": obj.ootEntranceProperty,
+                "path_header_settings": obj.ootSplineProperty.headerSettings,
+            },
+            "MM": {
+                "scene": obj.mm_scene_header,
+                "alt_scene": obj.mm_alternate_scene_headers,
+                "room": obj.mm_room_header,
+                "alt_room": obj.mm_alternate_room_headers,
+                "actor": obj.mm_actor_property,
+                "transition_actor": obj.mm_transition_actor_property,
+                "entrance_actor": obj.mm_entrance_property,
+                "path_header_settings": obj.ootSplineProperty.mm_header_settings,
+            },
+        }
+    else:
+        game_header_map = {
+            "OOT": {
+                "export_settings": bpy.context.scene.ootSceneExportSettings,
+            },
+            "MM": {
+                "export_settings": bpy.context.scene.mm_scene_export_settings,
+            },
+        }
 
     return game_header_map[bpy.context.scene.gameEditorMode][header_type]
 
@@ -107,6 +117,10 @@ def is_game_oot():
 
 def isPathObject(obj: bpy.types.Object) -> bool:
     return obj.type == "CURVE" and obj.ootSplineProperty.splineType == "Path"
+
+
+def get_cs_index_start():
+    return 4 if is_game_oot() else 1
 
 
 ootSceneDungeons = [

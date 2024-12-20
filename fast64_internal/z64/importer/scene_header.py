@@ -14,6 +14,7 @@ from ..utility import (
     get_game_enum,
     get_game_props,
     is_game_oot,
+    get_cs_index_start,
 )
 from .constants import headerNames
 from .utility import getDataMatch, stripName
@@ -302,21 +303,16 @@ def parseSceneCommands(
         sceneObj.ootEmptyType = "Scene"
         sceneObj.name = sceneName
 
-    if is_game_oot():
-        cs_header_start = 4
-    else:
-        cs_header_start = 1
-
     if headerIndex == 0:
         sceneHeader = get_game_props(sceneObj, "scene")
-    elif is_game_oot() and headerIndex < cs_header_start:
+    elif is_game_oot() and headerIndex < get_cs_index_start():
         sceneHeader = getattr(get_game_props(sceneObj, "alt_scene"), headerNames[headerIndex])
         sceneHeader.usePreviousHeader = False
     else:
         cutsceneHeaders = get_game_props(sceneObj, "alt_scene").cutsceneHeaders
-        while len(cutsceneHeaders) < headerIndex - (cs_header_start - 1):
+        while len(cutsceneHeaders) < headerIndex - (get_cs_index_start() - 1):
             cutsceneHeaders.add()
-        sceneHeader = cutsceneHeaders[headerIndex - cs_header_start]
+        sceneHeader = cutsceneHeaders[headerIndex - get_cs_index_start()]
 
     commands = getDataMatch(sceneData, sceneCommandsName, ["SceneCmd", "SCmdBase"], "scene commands")
     entranceList = None
@@ -398,7 +394,7 @@ def parseSceneCommands(
         elif not is_game_oot():
             if command == "SCENE_CMD_SET_REGION_VISITED":
                 sceneHeader.set_region_visited = True
-            elif command == "SCENE_CMD_MINIMAP_INFO":
+            elif command in {"SCENE_CMD_MINIMAP_INFO", "SCENE_CMD_MAP_DATA"}:
                 parse_mm_minimap_info(sceneHeader, sceneData, stripName(args[0]))
 
     if altHeadersListName is not None:

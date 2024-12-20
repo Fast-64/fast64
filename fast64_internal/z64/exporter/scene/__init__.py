@@ -6,7 +6,7 @@ from ....utility import PluginError, CData, indent
 from ....f3d.f3d_gbi import TextureExportSettings, ScrollMethod
 from ...scene.properties import OOTSceneHeaderProperty
 from ...model_classes import OOTModel, OOTGfxFormatter
-from ...utility import get_game_props
+from ...utility import get_game_props, is_game_oot, get_cs_index_start
 from ..file import SceneFile
 from ..utility import Utility, altHeaderList
 from ..collision import CollisionHeader
@@ -49,17 +49,20 @@ class Scene:
         altHeader = SceneAlternateHeader(f"{name}_alternateHeaders")
         altProp = get_game_props(sceneObj, "alt_scene")
 
-        for i, header in enumerate(altHeaderList, 1):
-            altP: OOTSceneHeaderProperty = getattr(altProp, f"{header}Header")
-            if not altP.usePreviousHeader:
-                setattr(
-                    altHeader, header, SceneHeader.new(f"{name}_header{i:02}", altP, sceneObj, transform, i, useMacros)
-                )
-                hasAlternateHeaders = True
+        if is_game_oot():
+            for i, header in enumerate(altHeaderList, 1):
+                altP: OOTSceneHeaderProperty = getattr(altProp, f"{header}Header")
+                if not altP.usePreviousHeader:
+                    setattr(
+                        altHeader,
+                        header,
+                        SceneHeader.new(f"{name}_header{i:02}", altP, sceneObj, transform, i, useMacros),
+                    )
+                    hasAlternateHeaders = True
 
         altHeader.cutscenes = [
             SceneHeader.new(f"{name}_header{i:02}", csHeader, sceneObj, transform, i, useMacros)
-            for i, csHeader in enumerate(altProp.cutsceneHeaders, 4)
+            for i, csHeader in enumerate(altProp.cutsceneHeaders, 4 if is_game_oot() else 1)
         ]
 
         hasAlternateHeaders = True if len(altHeader.cutscenes) > 0 else hasAlternateHeaders
@@ -122,6 +125,7 @@ class Scene:
             + curHeader.entranceActors.getCmd()
             + (curHeader.exits.getCmd() if len(curHeader.exits.exitList) > 0 else "")
             + (curHeader.cutscene.getCmd() if len(curHeader.cutscene.entries) > 0 else "")
+            + (curHeader.map_data.get_cmds() if not is_game_oot() and curHeader.map_data is not None else "")
             + Utility.getEndCmd()
             + "};\n\n"
         )
@@ -136,21 +140,27 @@ class Scene:
         altHeaderPtrs = None
 
         if self.hasAlternateHeaders:
-            headers = [
-                (self.altHeader.childNight, "Child Night"),
-                (self.altHeader.adultDay, "Adult Day"),
-                (self.altHeader.adultNight, "Adult Night"),
-            ]
+            if is_game_oot():
+                headers = [
+                    (self.altHeader.childNight, "Child Night"),
+                    (self.altHeader.adultDay, "Adult Day"),
+                    (self.altHeader.adultNight, "Adult Night"),
+                ]
 
             for i, csHeader in enumerate(self.altHeader.cutscenes):
                 headers.append((csHeader, f"Cutscene No. {i + 1}"))
 
             altHeaderPtrs = "\n".join(
-                indent + curHeader.name + "," if curHeader is not None else indent + "NULL," if i < 4 else ""
+                indent + curHeader.name + ","
+                if curHeader is not None
+                else indent + "NULL,"
+                if i < get_cs_index_start()
+                else ""
                 for i, (curHeader, _) in enumerate(headers, 1)
             )
 
-        headers.insert(0, (self.mainHeader, "Child Day (Default)"))
+        header_name = "Child Day (Default)" if is_game_oot() else "Default"
+        headers.insert(0, (self.mainHeader, header_name))
         for i, (curHeader, headerDesc) in enumerate(headers):
             if curHeader is not None:
                 sceneC.source += "/**\n * " + f"Header {headerDesc}\n" + "*/\n"

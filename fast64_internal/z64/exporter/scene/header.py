@@ -3,9 +3,10 @@ from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import CData
+from ...utility import is_game_oot
 from ...scene.properties import OOTSceneHeaderProperty
 from ..cutscene import SceneCutscene
-from .general import SceneLighting, SceneInfos, SceneExits
+from .general import SceneLighting, SceneInfos, SceneExits, SceneMapData
 from .actors import SceneTransitionActors, SceneEntranceActors, SceneSpawns
 from .pathways import ScenePathways
 
@@ -24,6 +25,9 @@ class SceneHeader:
     spawns: Optional[SceneSpawns]
     path: Optional[ScenePathways]
 
+    # MM
+    map_data: Optional[SceneMapData]
+
     @staticmethod
     def new(
         name: str, props: OOTSceneHeaderProperty, sceneObj: Object, transform: Matrix, headerIndex: int, useMacros: bool
@@ -39,6 +43,7 @@ class SceneHeader:
             entranceActors,
             SceneSpawns(f"{name}_entranceList", entranceActors.entries),
             ScenePathways.new(f"{name}_pathway", sceneObj, transform, headerIndex),
+            SceneMapData.new(f"{name}_mapData", props, sceneObj, transform) if not is_game_oot() else None,
         )
 
     def getC(self):
@@ -62,6 +67,9 @@ class SceneHeader:
         # Write the light data
         if len(self.lighting.settings) > 0:
             headerData.append(self.lighting.getC())
+
+        if not is_game_oot() and self.map_data is not None:
+            headerData.append(self.map_data.to_c())
 
         # Write the path data, if used
         if len(self.path.pathList) > 0:

@@ -2,7 +2,7 @@ import bpy
 import re
 
 from ...utility import hexOrDecInt
-from ..utility import setCustomProperty, get_game_props, is_game_oot, get_game_enum
+from ..utility import setCustomProperty, get_game_props, is_game_oot, get_game_enum, get_cs_index_start
 from ..model_classes import OOTF3DContext
 from ..room.properties import OOTRoomHeaderProperty
 from ..constants import oot_data, mm_data
@@ -54,21 +54,16 @@ def parseRoomCommands(
         get_game_props(roomObj, "room").roomIndex = roomIndex
         roomObj.name = roomName
 
-    if is_game_oot():
-        cs_header_start = 4
-    else:
-        cs_header_start = 1
-
     if headerIndex == 0:
         roomHeader = get_game_props(roomObj, "room")
-    elif is_game_oot() and headerIndex < cs_header_start:
+    elif is_game_oot() and headerIndex < get_cs_index_start():
         roomHeader = getattr(get_game_props(roomObj, "alt_room"), headerNames[headerIndex])
         roomHeader.usePreviousHeader = False
     else:
         cutsceneHeaders = get_game_props(roomObj, "alt_room").cutsceneHeaders
-        while len(cutsceneHeaders) < headerIndex - (cs_header_start - 1):
+        while len(cutsceneHeaders) < headerIndex - (get_cs_index_start() - 1):
             cutsceneHeaders.add()
-        roomHeader = cutsceneHeaders[headerIndex - cs_header_start]
+        roomHeader = cutsceneHeaders[headerIndex - get_cs_index_start()]
 
     commands = getDataMatch(sceneData, roomCommandsName, ["SceneCmd", "SCmdBase"], "scene commands")
     for commandMatch in re.finditer(rf"(SCENE\_CMD\_[a-zA-Z0-9\_]*)\s*\((.*?)\)\s*,", commands, flags=re.DOTALL):

@@ -313,7 +313,7 @@ class MM_SceneHeaderProperty(PropertyGroup):
     expandTab: BoolProperty(name="Expand Tab")
 
     # SCENE_CMD_SPECIAL_FILES
-    globalObject: EnumProperty(name="Global Object", default="None", items=mm_enum_global_object)
+    globalObject: EnumProperty(name="Global Object", default="GAMEPLAY_DANGEON_KEEP", items=mm_enum_global_object)
     globalObjectCustom: StringProperty(name="Global Object Custom", default="0x00")
 
     # SCENE_CMD_SKYBOX_SETTINGS

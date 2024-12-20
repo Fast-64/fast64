@@ -181,7 +181,6 @@ ootEnumGlobalObject = [
 
 mm_enum_global_object = [
     ("Custom", "Custom", "Custom"),
-    ("None", "None", "None"),
     ("GAMEPLAY_FIELD_KEEP", "Overworld", "gameplay_field_keep"),
     ("GAMEPLAY_DANGEON_KEEP", "Dungeon", "gameplay_dangeon_keep"),
 ]

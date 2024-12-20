@@ -12,6 +12,8 @@ from .oot_props import (
 )
 
 from .mm_props import (
+    MM_MinimapChestProperty,
+    MM_MinimapRoomProperty,
     MM_SceneHeaderProperty,
     MM_AlternateSceneHeaderProperty,
     MM_ExportSceneSettingsProperty,

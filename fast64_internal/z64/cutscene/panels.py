@@ -50,7 +50,6 @@ class OOT_CutscenePanel(Z64_Panel):
         colcol.operator(OOT_ExportCutscene.bl_idname)
         col.operator(OOT_ExportAllCutscenes.bl_idname)
 
-
         importBox = layout.box()
         importBox.label(text="Cutscene Importer")
 

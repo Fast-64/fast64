@@ -3,7 +3,7 @@ from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
-from ...utility import getObjectList, get_game_props
+from ...utility import getObjectList, get_game_props, is_game_oot, getEvalParams
 from ...constants import oot_data
 from ..utility import Utility
 from ..actor import Actor
@@ -162,7 +162,21 @@ class SceneEntranceActors:
 
                 entranceActor.id = "ACTOR_PLAYER" if not entranceProp.customActor else entranceProp.actor.actorIDCustom
                 entranceActor.pos = pos
-                entranceActor.rot = ", ".join(f"DEG_TO_BINANG({(r * (180 / 0x8000)):.3f})" for r in rot)
+
+                if is_game_oot():
+                    entranceActor.rot = ", ".join(f"DEG_TO_BINANG({(r * (180 / 0x8000)):.3f})" for r in rot)
+                else:
+                    if int(getEvalParams(entranceProp.actor.actor_id_flags), base=0) > 0:
+                        entranceActor.id = f"{entranceActor.id} | {entranceProp.actor.actor_id_flags}"
+
+                    spawn_flags = [
+                        entranceProp.actor.rot_flags_x,
+                        entranceProp.actor.rot_flags_y,
+                        entranceProp.actor.rot_flags_z,
+                    ]
+                    spawn_rot = [f"SPAWN_ROT_FLAGS(DEG_TO_BINANG({(r * (180 / 0x8000)):.3f})" for r in rot]
+                    entranceActor.rot = ", ".join(f"{rot}, {flag})" for rot, flag in zip(spawn_rot, spawn_flags))
+
                 entranceActor.params = entranceProp.actor.actorParam
                 if entranceProp.tiedRoom is not None:
                     entranceActor.roomIndex = get_game_props(entranceProp.tiedRoom, "room").roomIndex
@@ -220,7 +234,7 @@ class SceneSpawns(Utility):
         """Returns the spawn array"""
 
         spawnList = CData()
-        listName = f"Spawn {self.name}"
+        listName = f"Spawn {self.name}" if is_game_oot() else f"EntranceEntry {self.name}"
 
         # .h
         spawnList.header = f"extern {listName}[];\n"

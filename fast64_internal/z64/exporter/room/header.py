@@ -3,9 +3,9 @@ from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import CData, indent
-from ...utility import getObjectList, get_game_props
+from ...utility import getObjectList, get_game_props, is_game_oot, getEvalParams
 from ...constants import oot_data
-from ...room.properties import OOTRoomHeaderProperty
+from ...room.properties import OOTRoomHeaderProperty, MM_RoomHeaderProperty
 from ..utility import Utility
 from ..actor import Actor
 
@@ -23,8 +23,14 @@ class RoomInfos:
 
     roomBehavior: str
     playerIdleType: str
-    disableWarpSongs: bool
     showInvisActors: bool
+
+    # OoT
+    disableWarpSongs: bool
+
+    # MM
+    enable_pos_lights: bool
+    enable_storm: bool
 
     ### Skybox And Time ###
 
@@ -42,14 +48,26 @@ class RoomInfos:
     strength: int
 
     @staticmethod
-    def new(props: Optional[OOTRoomHeaderProperty]):
+    def new(props: Optional[OOTRoomHeaderProperty | MM_RoomHeaderProperty]):
+        disableWarpSongs = False
+        enable_pos_lights = False
+        enable_storm = False
+
+        if is_game_oot():
+            disableWarpSongs = props.disableWarpSongs
+        else:
+            enable_pos_lights = props.enable_pos_lights
+            enable_storm = props.enable_storm
+
         return RoomInfos(
             props.roomIndex,
             props.roomShape,
             Utility.getPropValue(props, "roomBehaviour"),
             Utility.getPropValue(props, "linkIdleMode"),
-            props.disableWarpSongs,
             props.showInvisibleActors,
+            disableWarpSongs,
+            enable_pos_lights,
+            enable_storm,
             props.disableSkybox,
             props.disableSunMoon,
             0xFF if props.leaveTimeUnchanged else props.timeHours,
@@ -64,11 +82,19 @@ class RoomInfos:
     def getCmds(self):
         """Returns the echo settings, room behavior, skybox disables and time settings room commands"""
         showInvisActors = "true" if self.showInvisActors else "false"
-        disableWarpSongs = "true" if self.disableWarpSongs else "false"
         disableSkybox = "true" if self.disableSky else "false"
         disableSunMoon = "true" if self.disableSunMoon else "false"
 
-        roomBehaviorArgs = f"{self.roomBehavior}, {self.playerIdleType}, {showInvisActors}, {disableWarpSongs}"
+        if is_game_oot():
+            disableWarpSongs = "true" if self.disableWarpSongs else "false"
+            roomBehaviorArgs = f"{self.roomBehavior}, {self.playerIdleType}, {showInvisActors}, {disableWarpSongs}"
+        else:
+            enable_pos_lights = "true" if self.enable_pos_lights else "false"
+            enable_storm = "true" if self.enable_storm else "false"
+            roomBehaviorArgs = (
+                f"{self.roomBehavior}, {self.playerIdleType}, {showInvisActors}, 0, {enable_pos_lights}, {enable_storm}"
+            )
+
         cmdList = [
             f"SCENE_CMD_ECHO_SETTINGS({self.echo})",
             f"SCENE_CMD_ROOM_BEHAVIOR({roomBehaviorArgs})",
@@ -166,10 +192,26 @@ class RoomActors:
                 else:
                     actor.id = actorProp.actorID
 
-                if actorProp.rotOverride:
-                    actor.rot = ", ".join([actorProp.rotOverrideX, actorProp.rotOverrideY, actorProp.rotOverrideZ])
+                if is_game_oot():
+                    if actorProp.rotOverride:
+                        actor.rot = ", ".join([actorProp.rotOverrideX, actorProp.rotOverrideY, actorProp.rotOverrideZ])
+                    else:
+                        actor.rot = ", ".join(f"DEG_TO_BINANG({(r * (180 / 0x8000)):.3f})" for r in rot)
                 else:
-                    actor.rot = ", ".join(f"DEG_TO_BINANG({(r * (180 / 0x8000)):.3f})" for r in rot)
+                    if int(getEvalParams(actorProp.actor_id_flags), base=0) > 0:
+                        actor.id = f"{actor.id} | {actorProp.actor_id_flags}"
+
+                    spawn_flags = [actorProp.rot_flags_x, actorProp.rot_flags_y, actorProp.rot_flags_z]
+
+                    if actorProp.rotOverride:
+                        spawn_rot = [
+                            f"SPAWN_ROT_FLAGS({actorProp.rotOverrideX}",
+                            f"SPAWN_ROT_FLAGS({actorProp.rotOverrideY}",
+                            f"SPAWN_ROT_FLAGS({actorProp.rotOverrideZ}",
+                        ]
+                    else:
+                        spawn_rot = [f"SPAWN_ROT_FLAGS(DEG_TO_BINANG({(r * (180 / 0x8000)):.3f})" for r in rot]
+                    actor.rot = ", ".join(f"{rot}, {flag})" for rot, flag in zip(spawn_rot, spawn_flags))
 
                 actor.name = (
                     oot_data.actorData.actorsByID[actorProp.actorID].name.replace(
