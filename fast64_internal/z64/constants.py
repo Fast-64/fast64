@@ -34,6 +34,17 @@ ootEnumLinkIdle = [
     ("0xFF", "Hops On Epona", "Hops On Epona"),
 ]
 
+mm_enum_environvment_type = [
+    ("Custom", "Custom", "Custom"),
+    ("0x00", "Default", "ROOM_ENV_DEFAULT"),
+    ("0x01", "Cold", "ROOM_ENV_COLD"),
+    ("0x02", "Warm", "ROOM_ENV_WARM"),
+    ("0x03", "Hot", "ROOM_ENV_HOT"),
+    ("0x04", "Unknown Stretch 1", "ROOM_ENV_UNK_STRETCH_1"),
+    ("0x05", "Unknown Stretch 2", "ROOM_ENV_UNK_STRETCH_2"),
+    ("0x06", "Unknown Stretch 3", "ROOM_ENV_UNK_STRETCH_3"),
+]
+
 ootEnumCloudiness = [
     ("Custom", "Custom", "Custom"),
     ("0x00", "Sunny", "Sunny"),
@@ -639,7 +650,7 @@ ootEnumCamTransition = [
     # ("0xFF", "0xFF", "0xFF"),
 ]
 
-# see curRoom.behaviorType1
+# see RoomType enum
 ootEnumRoomBehaviour = [
     ("Custom", "Custom", "Custom"),
     ("0x00", "Default", "Default"),
@@ -648,6 +659,15 @@ ootEnumRoomBehaviour = [
     ("0x03", "Disable Color Dither", "Disable Color Dither"),
     ("0x04", "(?) Horse Camera Related", "(?) Horse Camera Related"),
     ("0x05", "Disable Darker Screen Effect (NL/Spins)", "Disable Darker Screen Effect (NL/Spins)"),
+]
+
+mm_enum_room_type = [
+    ("0x00", "Normal", "ROOM_TYPE_NORMAL"),
+    ("0x01", "Dungeon", "ROOM_TYPE_DUNGEON"),
+    ("0x02", "Indoors", "ROOM_TYPE_INDOORS"),
+    ("0x03", "Type 3", "ROOM_TYPE_3"),
+    ("0x04", "Type 4 (Horse related)", "ROOM_TYPE_4"),
+    ("0x05", "Boss", "ROOM_TYPE_BOSS"),
 ]
 
 ootEnumDrawConfig = [

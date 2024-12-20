@@ -16,9 +16,11 @@ class MM_Data:
     def __init__(self):
         from .enum_data import MM_EnumData
         from .actor_data import MM_ActorData
+        from .object_data import MM_ObjectData
 
         self.enum_data = MM_EnumData()
         self.actor_data = MM_ActorData()
+        self.object_data = MM_ObjectData()
 
         self.enum_seq_id = [
             ("Custom", "Custom", "Custom"),

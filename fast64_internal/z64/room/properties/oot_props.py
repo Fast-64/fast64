@@ -105,11 +105,6 @@ class OOTRoomHeaderProperty(PropertyGroup):
     showInvisibleActors: BoolProperty(name="Show Invisible Actors")
     linkIdleMode: EnumProperty(name="Link Idle Mode", items=ootEnumLinkIdle, default="0x00")
     linkIdleModeCustom: StringProperty(name="Link Idle Mode Custom", default="0x00")
-    roomIsHot: BoolProperty(
-        name="Use Hot Room Behavior",
-        description="Use heat timer/screen effect, overrides Link Idle Mode",
-        default=False,
-    )
 
     setWind: BoolProperty(name="Set Wind")
     windVector: IntVectorProperty(name="Wind Vector", size=3, min=-127, max=127)

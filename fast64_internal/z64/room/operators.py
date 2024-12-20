@@ -3,7 +3,7 @@ from bpy.types import Operator
 from bpy.utils import register_class, unregister_class
 from bpy.props import EnumProperty, IntProperty, StringProperty
 from ...utility import ootGetSceneOrRoomHeader
-from ..constants import oot_data
+from ..constants import oot_data, mm_data
 
 
 class OOT_SearchObjectEnumOperator(Operator):
@@ -29,7 +29,33 @@ class OOT_SearchObjectEnumOperator(Operator):
         return {"RUNNING_MODAL"}
 
 
-classes = (OOT_SearchObjectEnumOperator,)
+class MM_SearchObjectEnumOperator(Operator):
+    bl_idname = "object.mm_search_object_enum_operator"
+    bl_label = "Search Object ID"
+    bl_property = "object_key"
+    bl_options = {"REGISTER", "UNDO"}
+
+    object_key: EnumProperty(items=mm_data.object_data.enum_object_key, default="gameplay_keep")
+    header_index: IntProperty(default=0, min=0)
+    index: IntProperty(default=0, min=0)
+    obj_name: StringProperty()
+
+    def execute(self, context):
+        roomHeader = ootGetSceneOrRoomHeader(bpy.data.objects[self.obj_name], self.header_index, True)
+        roomHeader.objectList[self.index].object_key = self.object_key
+        context.region.tag_redraw()
+        self.report({"INFO"}, "Selected: " + self.object_key)
+        return {"FINISHED"}
+
+    def invoke(self, context, event):
+        context.window_manager.invoke_search_popup(self)
+        return {"RUNNING_MODAL"}
+
+
+classes = (
+    OOT_SearchObjectEnumOperator,
+    MM_SearchObjectEnumOperator,
+)
 
 
 def room_ops_register():

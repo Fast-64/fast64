@@ -2,15 +2,22 @@ import bpy
 import re
 
 from ...utility import hexOrDecInt
-from ..utility import setCustomProperty, get_room_header_props
+from ..utility import setCustomProperty, get_room_header_props, is_game_oot, get_game_enum
 from ..model_classes import OOTF3DContext
 from ..room.properties import OOTRoomHeaderProperty
-from ..constants import oot_data, ootEnumLinkIdle, ootEnumRoomBehaviour
+from ..constants import oot_data, mm_data
 from .utility import getDataMatch, stripName
 from .classes import SharedSceneData
 from .constants import headerNames
 from .actor import parseActorList
 from .room_shape import parseMeshHeader
+
+
+def get_object_from_id(object: str):
+    if is_game_oot():
+        return oot_data.objectData.objectsByID.get(object)
+    else:
+        return mm_data.object_data.objects_by_id.get(object)
 
 
 def parseObjectList(roomHeader: OOTRoomHeaderProperty, sceneData: str, objectListName: str):
@@ -19,7 +26,7 @@ def parseObjectList(roomHeader: OOTRoomHeaderProperty, sceneData: str, objectLis
 
     for object in objects:
         objectProp = roomHeader.objectList.add()
-        objByID = oot_data.objectData.objectsByID.get(object)
+        objByID = get_object_from_id(object)
 
         if objByID is not None:
             objectProp.objectKey = objByID.key
@@ -47,16 +54,21 @@ def parseRoomCommands(
         get_room_header_props(roomObj).roomIndex = roomIndex
         roomObj.name = roomName
 
+    if is_game_oot():
+        cs_header_start = 4
+    else:
+        cs_header_start = 1
+
     if headerIndex == 0:
         roomHeader = get_room_header_props(roomObj)
-    elif headerIndex < 4:
+    elif is_game_oot() and headerIndex < cs_header_start:
         roomHeader = getattr(get_room_header_props(roomObj, True), headerNames[headerIndex])
         roomHeader.usePreviousHeader = False
     else:
         cutsceneHeaders = get_room_header_props(roomObj, True).cutsceneHeaders
-        while len(cutsceneHeaders) < headerIndex - 3:
+        while len(cutsceneHeaders) < headerIndex - (cs_header_start - 1):
             cutsceneHeaders.add()
-        roomHeader = cutsceneHeaders[headerIndex - 4]
+        roomHeader = cutsceneHeaders[headerIndex - cs_header_start]
 
     commands = getDataMatch(sceneData, roomCommandsName, ["SceneCmd", "SCmdBase"], "scene commands")
     for commandMatch in re.finditer(rf"(SCENE\_CMD\_[a-zA-Z0-9\_]*)\s*\((.*?)\)\s*,", commands, flags=re.DOTALL):
@@ -68,10 +80,15 @@ def parseRoomCommands(
         elif command == "SCENE_CMD_ECHO_SETTINGS":
             roomHeader.echo = args[0]
         elif command == "SCENE_CMD_ROOM_BEHAVIOR":
-            setCustomProperty(roomHeader, "roomBehaviour", args[0], ootEnumRoomBehaviour)
-            setCustomProperty(roomHeader, "linkIdleMode", args[1], ootEnumLinkIdle)
+            setCustomProperty(roomHeader, "roomBehaviour", args[0], get_game_enum("enum_room_type"))
+            setCustomProperty(roomHeader, "linkIdleMode", args[1], get_game_enum("enum_env_type"))
             roomHeader.showInvisibleActors = args[2] == "true" or args[2] == "1"
-            roomHeader.disableWarpSongs = args[3] == "true" or args[3] == "1"
+
+            if is_game_oot():
+                roomHeader.disableWarpSongs = args[3] == "true" or args[3] == "1"
+            else:
+                roomHeader.enable_pos_lights = args[4] == "true" or args[4] == "1"
+                roomHeader.enable_storm = args[5] == "true" or args[5] == "1"
         elif command == "SCENE_CMD_SKYBOX_DISABLES":
             roomHeader.disableSkybox = args[0] == "true" or args[0] == "1"
             roomHeader.disableSunMoon = args[1] == "true" or args[1] == "1"

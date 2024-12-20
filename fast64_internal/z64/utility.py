@@ -24,6 +24,10 @@ from .constants import (
     mm_enum_skybox,
     ootEnumCloudiness,
     ootEnumSkyboxLighting,
+    ootEnumLinkIdle,
+    ootEnumRoomBehaviour,
+    mm_enum_room_type,
+    mm_enum_environvment_type,
 )
 from dataclasses import dataclass
 
@@ -51,12 +55,16 @@ game_enum_map = {
         "enum_skybox": ootEnumSkybox,
         "enum_seq_id": oot_data.ootEnumMusicSeq,
         "enum_ambiance_id": oot_data.ootEnumNightSeq,  # TODO: generate this from xml (not for enumproperties)
+        "enum_env_type": ootEnumLinkIdle,
+        "enum_room_type": ootEnumRoomBehaviour,
     },
     "MM": {
         "enum_global_object": mm_enum_global_object,
         "enum_skybox": mm_enum_skybox,
         "enum_seq_id": mm_data.enum_seq_id,
         "enum_ambiance_id": mm_data.enum_ambiance_id,  # TODO: same as above
+        "enum_env_type": mm_enum_environvment_type,
+        "enum_room_type": mm_enum_room_type,
     },
 }
 

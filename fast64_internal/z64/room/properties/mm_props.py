@@ -10,7 +10,7 @@ from ...utility import (
     drawAddButton,
     is_game_oot,
 )
-from ..operators import OOT_SearchObjectEnumOperator
+from ..operators import MM_SearchObjectEnumOperator
 
 from bpy.props import (
     EnumProperty,
@@ -24,11 +24,10 @@ from bpy.props import (
 )
 
 from ...constants import (
-    oot_data,
-    ootEnumRoomBehaviour,
-    ootEnumLinkIdle,
+    mm_data,
+    mm_enum_room_type,
+    mm_enum_environvment_type,
     ootEnumRoomShapeType,
-    ootEnumHeaderMenu,
 )
 
 ootEnumRoomMenuAlternate = [
@@ -42,16 +41,12 @@ ootEnumRoomMenu = ootEnumRoomMenuAlternate + [
 
 class MM_ObjectProperty(PropertyGroup):
     expandTab: BoolProperty(name="Expand Tab")
-    objectKey: EnumProperty(items=oot_data.objectData.ootEnumObjectKey, default="obj_human")
+    objectKey: EnumProperty(items=mm_data.object_data.enum_object_key, default="gameplay_keep")
     objectIDCustom: StringProperty(default="OBJECT_CUSTOM")
 
     def draw_props(self, layout: UILayout, headerIndex: int, index: int, objName: str):
-        isLegacy = True if "objectID" in self else False
-
-        if isLegacy:
-            objectName = oot_data.objectData.ootEnumObjectIDLegacy[self["objectID"]][1]
-        elif self.objectKey != "Custom":
-            objectName = oot_data.objectData.objectsByKey[self.objectKey].name
+        if self.objectKey != "Custom":
+            objectName = mm_data.object_data.objects_by_key[self.objectKey].name
         else:
             objectName = self.objectIDCustom
 
@@ -59,10 +54,10 @@ class MM_ObjectProperty(PropertyGroup):
         row = objItemBox.row()
         row.label(text=f"{objectName}")
         buttons = row.row(align=True)
-        objSearch = buttons.operator(OOT_SearchObjectEnumOperator.bl_idname, icon="VIEWZOOM", text="Select")
+        objSearch = buttons.operator(MM_SearchObjectEnumOperator.bl_idname, icon="VIEWZOOM", text="Select")
         drawCollectionOps(buttons, index, "Object", headerIndex, objName, compact=True)
-        objSearch.objName = objName
-        objSearch.headerIndex = headerIndex if headerIndex is not None else 0
+        objSearch.obj_name = objName
+        objSearch.header_index = headerIndex if headerIndex is not None else 0
         objSearch.index = index
 
         if self.objectKey == "Custom":
@@ -90,37 +85,40 @@ class MM_RoomHeaderProperty(PropertyGroup):
     expandTab: BoolProperty(name="Expand Tab")
     menuTab: EnumProperty(items=ootEnumRoomMenu, update=onMenuTabChange)
     altMenuTab: EnumProperty(items=ootEnumRoomMenuAlternate)
-    usePreviousHeader: BoolProperty(name="Use Previous Header", default=True)
 
     roomIndex: IntProperty(name="Room Index", default=0, min=0)
-    roomBehaviour: EnumProperty(items=ootEnumRoomBehaviour, default="0x00")
-    roomBehaviourCustom: StringProperty(default="0x00")
-    disableWarpSongs: BoolProperty(name="Disable Warp Songs")
-    showInvisibleActors: BoolProperty(name="Show Invisible Actors")
-    linkIdleMode: EnumProperty(name="Link Idle Mode", items=ootEnumLinkIdle, default="0x00")
-    linkIdleModeCustom: StringProperty(name="Link Idle Mode Custom", default="0x00")
-    roomIsHot: BoolProperty(
-        name="Use Hot Room Behavior",
-        description="Use heat timer/screen effect, overrides Link Idle Mode",
-        default=False,
-    )
 
+    # SCENE_CMD_ROOM_BEHAVIOR
+    roomBehaviour: EnumProperty(items=mm_enum_room_type, default="0x00")
+    roomBehaviourCustom: StringProperty(default="0x00")
+    showInvisibleActors: BoolProperty(name="Show Invisible Actors")
+    enable_pos_lights: BoolProperty(name="Enable Pos Lights")
+    enable_storm: BoolProperty(name="Enable Storm")
+    linkIdleMode: EnumProperty(name="Environment Type", items=mm_enum_environvment_type, default="0x00")
+    linkIdleModeCustom: StringProperty(name="Environment Type Custom", default="0x00")
+
+    # SCENE_CMD_WIND_SETTINGS
     setWind: BoolProperty(name="Set Wind")
     windVector: IntVectorProperty(name="Wind Vector", size=3, min=-127, max=127)
     windStrength: IntProperty(name="Wind Strength", min=0, max=255)
 
+    # SCENE_CMD_TIME_SETTINGS
     leaveTimeUnchanged: BoolProperty(name="Leave Time Unchanged", default=True)
     timeHours: IntProperty(name="Hours", default=0, min=0, max=23)  # 0xFFFE
     timeMinutes: IntProperty(name="Minutes", default=0, min=0, max=59)
     timeSpeed: FloatProperty(name="Time Speed", default=1, min=-13, max=13)  # 0xA
 
+    # SCENE_CMD_SKYBOX_DISABLES
     disableSkybox: BoolProperty(name="Disable Skybox")
     disableSunMoon: BoolProperty(name="Disable Sun/Moon")
 
+    # SCENE_CMD_ECHO_SETTINGS
     echo: StringProperty(name="Echo", default="0x00")
 
+    # SCENE_CMD_OBJECT_LIST
     objectList: CollectionProperty(type=MM_ObjectProperty)
 
+    # SCENE_CMD_ROOM_SHAPE
     roomShape: EnumProperty(items=ootEnumRoomShapeType, default="ROOM_SHAPE_TYPE_NORMAL")
     defaultCullDistance: IntProperty(name="Default Cull Distance", min=1, default=100)
     bgImageList: CollectionProperty(type=MM_BGProperty)
@@ -174,13 +172,15 @@ class MM_RoomHeaderProperty(PropertyGroup):
                     prop_split(general, self, "defaultCullDistance", "Default Cull (Blender Units)")
                 if self.roomShape == "ROOM_SHAPE_TYPE_NONE" and is_game_oot():
                     general.label(text="This shape type is only implemented on MM", icon="INFO")
+
             # Behaviour
             behaviourBox = layout.column()
             behaviourBox.box().label(text="Behaviour")
-            drawEnumWithCustom(behaviourBox, self, "roomBehaviour", "Room Behaviour", "")
-            drawEnumWithCustom(behaviourBox, self, "linkIdleMode", "Link Idle Mode", "")
-            behaviourBox.prop(self, "disableWarpSongs", text="Disable Warp Songs")
-            behaviourBox.prop(self, "showInvisibleActors", text="Show Invisible Actors")
+            drawEnumWithCustom(behaviourBox, self, "roomBehaviour", "Room Type", "")
+            drawEnumWithCustom(behaviourBox, self, "linkIdleMode", "Environment Type", "")
+            behaviourBox.prop(self, "showInvisibleActors")
+            behaviourBox.prop(self, "enable_pos_lights")
+            behaviourBox.prop(self, "enable_storm")
 
             # Time
             skyboxAndTime = layout.column()
@@ -212,25 +212,11 @@ class MM_RoomHeaderProperty(PropertyGroup):
                 # prop_split(windBox, self, "windVector", "Wind Vector")
 
         elif menuTab == "Objects":
-            upgradeLayout = layout.column()
             objBox = layout.column()
             objBox.box().label(text="Objects")
 
-            if len(self.objectList) > 16:
-                objBox.label(text="You are over the 16 object limit.", icon="ERROR")
-                objBox.label(text="You must allocate more memory in code.")
-
-            isLegacy = False
             for i, objProp in enumerate(self.objectList):
                 objProp.draw_props(objBox, headerIndex, i, objName)
-
-                if "objectID" in objProp:
-                    isLegacy = True
-
-            if isLegacy:
-                upgradeLayout.label(text="Legacy data has not been upgraded!")
-                upgradeLayout.operator(OOT_ManualUpgrade.bl_idname, text="Upgrade Data Now!")
-            objBox.enabled = False if isLegacy else True
 
             drawAddButton(objBox, len(self.objectList), "Object", headerIndex, objName)
 
