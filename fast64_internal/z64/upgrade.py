@@ -6,7 +6,7 @@ import bpy
 from bpy.types import Object, CollectionProperty
 from ..utility import PluginError
 from .data import OoT_ObjectData
-from .utility import getEvalParams
+from .utility import getEvalParams, get_room_header_props
 from .constants import oot_data
 from .cutscene.constants import ootEnumCSMotionCamMode
 
@@ -38,9 +38,9 @@ def upgradeObjectList(objList: CollectionProperty, objData: OoT_ObjectData):
 
 def upgradeRoomHeaders(roomObj: Object, objData: OoT_ObjectData):
     """Main upgrade logic for room headers"""
-    altHeaders = roomObj.ootAlternateRoomHeaders
+    altHeaders = get_room_header_props(roomObj, True)
     for sceneLayer in [
-        roomObj.ootRoomHeader,
+        get_room_header_props(roomObj),
         altHeaders.childNightHeader,
         altHeaders.adultDayHeader,
         altHeaders.adultNightHeader,
@@ -344,7 +344,7 @@ def upgradeActors(actorObj: Object):
                     obj != transActorProp.fromRoom
                     and obj.type == "EMPTY"
                     and obj.ootEmptyType == "Room"
-                    and obj.ootRoomHeader.roomIndex == transActorProp["roomIndex"]
+                    and get_room_header_props(obj).roomIndex == transActorProp["roomIndex"]
                 ):
                     transActorProp.toRoom = obj
                     del transActorProp["roomIndex"]

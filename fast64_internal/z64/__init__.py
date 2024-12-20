@@ -18,7 +18,7 @@ from .file_settings import file_register, file_unregister
 from .collision.properties import OOTCollisionExportSettings
 
 from .room.operators import room_ops_register, room_ops_unregister
-from .room.properties import room_props_register, room_props_unregister
+from .room.properties import room_props_register, room_props_unregister, mm_room_props_register, mm_room_props_unregister
 
 from .actor.operators import actor_ops_register, actor_ops_unregister
 from .actor.properties import actor_props_register, actor_props_unregister
@@ -168,6 +168,7 @@ def oot_register(registerPanels):
     mm_scene_props_register()
     room_ops_register()
     room_props_register()
+    mm_room_props_register()
     actor_ops_register()
     actor_props_register()
     oot_obj_register()
@@ -209,6 +210,7 @@ def oot_unregister(unregisterPanels):
     mm_scene_props_unregister()
     room_ops_unregister()
     room_props_unregister()
+    mm_room_props_unregister()
     actor_ops_unregister()
     actor_props_unregister()
     spline_props_unregister()

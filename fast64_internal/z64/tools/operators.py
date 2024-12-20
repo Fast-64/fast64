@@ -7,7 +7,7 @@ from bpy.props import FloatProperty, StringProperty, EnumProperty, BoolProperty
 from ...operators import AddWaterBox, addMaterialByName
 from ...utility import parentObject, setOrigin
 from ..cutscene.motion.utility import setupCutscene, createNewCameraShot
-from ..utility import getNewPath
+from ..utility import getNewPath, get_room_header_props
 from .quick_import import QuickImportAborted, quick_import_exec
 
 
@@ -133,11 +133,11 @@ class OOT_AddRoom(Operator):
             indices = []
             for sceneChild in sceneObj.children:
                 if sceneChild.ootEmptyType == "Room":
-                    indices.append(sceneChild.ootRoomHeader.roomIndex)
+                    indices.append(get_room_header_props(sceneChild).roomIndex)
             nextIndex = 0
             while nextIndex in indices:
                 nextIndex += 1
-            roomObj.ootRoomHeader.roomIndex = nextIndex
+            get_room_header_props(roomObj).roomIndex = nextIndex
             parentObject(sceneObj, roomObj)
 
         object.select_all(action="DESELECT")

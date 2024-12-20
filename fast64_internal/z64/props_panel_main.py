@@ -1,7 +1,7 @@
 import bpy
 from bpy.utils import register_class, unregister_class
 from ..utility import prop_split, gammaInverse
-from .utility import getSceneObj, getRoomObj, get_scene_header_props
+from .utility import getSceneObj, getRoomObj, get_scene_header_props, get_room_header_props
 from .scene.properties import OOTSceneProperties
 from .room.properties import OOTObjectProperty, OOTRoomHeaderProperty, OOTAlternateRoomHeaderProperty
 from .collision.properties import OOTWaterBoxProperty
@@ -137,7 +137,7 @@ class OOTObjectPanel(bpy.types.Panel):
         roomObj = getRoomObj(obj)
 
         altSceneProp = get_scene_header_props(sceneObj, True) if sceneObj is not None else None
-        altRoomProp = roomObj.ootAlternateRoomHeaders if roomObj is not None else None
+        altRoomProp = get_room_header_props(roomObj, True) if roomObj is not None else None
 
         if obj.ootEmptyType == "Actor":
             actorProp: OOTActorProperty = obj.ootActorProperty
@@ -155,10 +155,10 @@ class OOTObjectPanel(bpy.types.Panel):
             drawSceneHeader(box, obj)
 
         elif obj.ootEmptyType == "Room":
-            roomProp: OOTRoomHeaderProperty = obj.ootRoomHeader
+            roomProp: OOTRoomHeaderProperty = get_room_header_props(obj)
             roomProp.draw_props(box, None, None, objName)
-            if obj.ootRoomHeader.menuTab == "Alternate":
-                roomAltProp: OOTAlternateRoomHeaderProperty = obj.ootAlternateRoomHeaders
+            if get_room_header_props(obj).menuTab == "Alternate":
+                roomAltProp: OOTAlternateRoomHeaderProperty = get_room_header_props(obj, True)
                 roomAltProp.draw_props(box, objName)
 
         elif obj.ootEmptyType == "Entrance":

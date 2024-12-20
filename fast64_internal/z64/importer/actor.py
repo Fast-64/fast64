@@ -3,7 +3,7 @@ import bpy
 
 from ...utility import parentObject, hexOrDecInt
 from ..scene.properties import OOTSceneHeaderProperty
-from ..utility import setCustomProperty, getEvalParams
+from ..utility import setCustomProperty, getEvalParams, get_room_header_props
 from ..constants import ootEnumCamTransition, oot_data
 from .classes import SharedSceneData
 from .constants import actorsWithRotAsParam
@@ -182,7 +182,7 @@ def parseActorList(
     regex, nestedBrackets = getActorRegex(actorList)
 
     for actorMatch in re.finditer(regex, actorList, flags=re.DOTALL):
-        actorHash = parseActorInfo(actorMatch, nestedBrackets) + (roomObj.ootRoomHeader.roomIndex,)
+        actorHash = parseActorInfo(actorMatch, nestedBrackets) + (get_room_header_props(roomObj).roomIndex,)
 
         if not sharedSceneData.addHeaderIfItemExists(actorHash, "Actor", headerIndex):
             actorID, position, rotation, actorParam, roomIndex = actorHash

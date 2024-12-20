@@ -76,6 +76,13 @@ def get_scene_header_props(obj: Object, is_alt_header: bool = False):
         return obj.mm_alternate_scene_headers if is_alt_header else obj.mm_scene_header
 
 
+def get_room_header_props(obj: Object, is_alt_header: bool = False):
+    if is_game_oot():
+        return get_room_header_props(obj, True) if is_alt_header else get_room_header_props(obj)
+    else:
+        return obj.mm_alternate_room_headers if is_alt_header else obj.mm_room_header
+
+
 def isPathObject(obj: bpy.types.Object) -> bool:
     return obj.type == "CURVE" and obj.ootSplineProperty.splineType == "Path"
 
@@ -718,7 +725,7 @@ def getCollection(objName, collectionType, subIndex):
     elif collectionType == "Entrance":
         collection = obj.ootEntranceProperty.actor.headerSettings.cutsceneHeaders
     elif collectionType == "Room":
-        collection = obj.ootAlternateRoomHeaders.cutsceneHeaders
+        collection = get_room_header_props(obj, True).cutsceneHeaders
     elif collectionType == "Scene":
         collection = get_scene_header_props(obj, True).cutsceneHeaders
     elif collectionType == "Light":
@@ -753,7 +760,7 @@ def getCollection(objName, collectionType, subIndex):
     elif collectionType == "extraCutscenes":
         collection = get_scene_header_props(obj).extraCutscenes
     elif collectionType == "BgImage":
-        collection = obj.ootRoomHeader.bgImageList
+        collection = get_room_header_props(obj).bgImageList
     else:
         raise PluginError("Invalid collection type: " + collectionType)
 
@@ -906,8 +913,8 @@ def getActiveHeaderIndex() -> int:
         header = get_scene_header_props(headerObj)
         altHeader = get_scene_header_props(headerObj, True)
     else:
-        header = headerObj.ootRoomHeader
-        altHeader = headerObj.ootAlternateRoomHeaders
+        header = get_room_header_props(headerObj)
+        altHeader = get_room_header_props(headerObj, True)
 
     if header.menuTab != "Alternate":
         headerIndex = 0
@@ -967,7 +974,7 @@ def onMenuTabChange(self, context: bpy.types.Context):
         if otherObj.ootEmptyType == "Scene":
             header = get_scene_header_props(otherObj)
         else:
-            header = otherObj.ootRoomHeader
+            header = get_room_header_props(otherObj)
 
         if thisHeader.menuTab != "Alternate" and header.menuTab == "Alternate":
             header.menuTab = "General"
@@ -982,7 +989,7 @@ def onHeaderMenuTabChange(self, context: bpy.types.Context):
         if otherObj.ootEmptyType == "Scene":
             header = get_scene_header_props(otherObj, True)
         else:
-            header = otherObj.ootAlternateRoomHeaders
+            header = get_room_header_props(otherObj, True)
 
         header.headerMenuTab = thisHeader.headerMenuTab
         header.currentCutsceneIndex = thisHeader.currentCutsceneIndex
@@ -1148,7 +1155,7 @@ def getObjectList(
                 cond = obj.ootSplineProperty.splineType == splineType
 
             if parentObj is not None:
-                if emptyType == "Actor" and obj.ootEmptyType == "Room" and obj.ootRoomHeader.roomIndex == room_index:
+                if emptyType == "Actor" and obj.ootEmptyType == "Room" and get_room_header_props(obj).roomIndex == room_index:
                     for o in obj.children_recursive:
                         if o.type == objType and o.ootEmptyType == emptyType and o not in ret:
                             ret.append(o)

@@ -1,8 +1,8 @@
 import bpy
 from bpy.types import PropertyGroup, UILayout, Image, Object
 from bpy.utils import register_class, unregister_class
-from ...utility import prop_split
-from ..utility import (
+from ....utility import prop_split
+from ...utility import (
     drawCollectionOps,
     onMenuTabChange,
     onHeaderMenuTabChange,
@@ -10,8 +10,8 @@ from ..utility import (
     drawAddButton,
     is_game_oot,
 )
-from ..upgrade import upgradeRoomHeaders
-from .operators import OOT_SearchObjectEnumOperator
+from ...upgrade import upgradeRoomHeaders
+from ..operators import OOT_SearchObjectEnumOperator
 
 from bpy.props import (
     EnumProperty,
@@ -24,7 +24,7 @@ from bpy.props import (
     IntVectorProperty,
 )
 
-from ..constants import (
+from ...constants import (
     oot_data,
     ootEnumRoomBehaviour,
     ootEnumLinkIdle,
@@ -149,7 +149,7 @@ class OOTRoomHeaderProperty(PropertyGroup):
             drawAddButton(box, len(self.bgImageList), "BgImage", None, objName)
 
     def draw_props(self, layout: UILayout, dropdownLabel: str, headerIndex: int, objName: str):
-        from ..props_panel_main import OOT_ManualUpgrade
+        from ...props_panel_main import OOT_ManualUpgrade
 
         if dropdownLabel is not None:
             layout.prop(self, "expandTab", text=dropdownLabel, icon="TRIA_DOWN" if self.expandTab else "TRIA_RIGHT")

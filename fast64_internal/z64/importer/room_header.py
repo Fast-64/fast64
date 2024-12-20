@@ -2,7 +2,7 @@ import bpy
 import re
 
 from ...utility import hexOrDecInt
-from ..utility import setCustomProperty
+from ..utility import setCustomProperty, get_room_header_props
 from ..model_classes import OOTF3DContext
 from ..room.properties import OOTRoomHeaderProperty
 from ..constants import oot_data, ootEnumLinkIdle, ootEnumRoomBehaviour
@@ -44,16 +44,16 @@ def parseRoomCommands(
         roomObj.empty_display_type = "SPHERE"
         roomObj.location = [0, 0, (roomIndex + 1) * -2]
         roomObj.ootEmptyType = "Room"
-        roomObj.ootRoomHeader.roomIndex = roomIndex
+        get_room_header_props(roomObj).roomIndex = roomIndex
         roomObj.name = roomName
 
     if headerIndex == 0:
-        roomHeader = roomObj.ootRoomHeader
+        roomHeader = get_room_header_props(roomObj)
     elif headerIndex < 4:
-        roomHeader = getattr(roomObj.ootAlternateRoomHeaders, headerNames[headerIndex])
+        roomHeader = getattr(get_room_header_props(roomObj, True), headerNames[headerIndex])
         roomHeader.usePreviousHeader = False
     else:
-        cutsceneHeaders = roomObj.ootAlternateRoomHeaders.cutsceneHeaders
+        cutsceneHeaders = get_room_header_props(roomObj, True).cutsceneHeaders
         while len(cutsceneHeaders) < headerIndex - 3:
             cutsceneHeaders.add()
         roomHeader = cutsceneHeaders[headerIndex - 4]

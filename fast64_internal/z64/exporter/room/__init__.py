@@ -4,6 +4,7 @@ from mathutils import Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
 from ....f3d.f3d_gbi import ScrollMethod, TextureExportSettings
+from ...utility import get_room_header_props
 from ...room.properties import OOTRoomHeaderProperty
 from ...object import addMissingObjectsToAllRoomHeaders
 from ...model_classes import OOTModel, OOTGfxFormatter
@@ -37,9 +38,9 @@ class Room:
         saveTexturesAsPNG: bool,
     ):
         i = 0
-        mainHeaderProps = roomObj.ootRoomHeader
+        mainHeaderProps = get_room_header_props(roomObj)
         altHeader = RoomAlternateHeader(f"{name}_alternateHeaders")
-        altProp = roomObj.ootAlternateRoomHeaders
+        altProp = get_room_header_props(roomObj, True)
 
         if mainHeaderProps.roomShape == "ROOM_SHAPE_TYPE_IMAGE" and len(mainHeaderProps.bgImageList) == 0:
             raise PluginError(f'Room {roomObj.name} uses room shape "Image" but doesn\'t have any BG images.')
