@@ -1155,7 +1155,11 @@ def getObjectList(
                 cond = obj.ootSplineProperty.splineType == splineType
 
             if parentObj is not None:
-                if emptyType == "Actor" and obj.ootEmptyType == "Room" and get_room_header_props(obj).roomIndex == room_index:
+                if (
+                    emptyType == "Actor"
+                    and obj.ootEmptyType == "Room"
+                    and get_room_header_props(obj).roomIndex == room_index
+                ):
                     for o in obj.children_recursive:
                         if o.type == objType and o.ootEmptyType == emptyType and o not in ret:
                             ret.append(o)

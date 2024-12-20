@@ -18,7 +18,12 @@ from .file_settings import file_register, file_unregister
 from .collision.properties import OOTCollisionExportSettings
 
 from .room.operators import room_ops_register, room_ops_unregister
-from .room.properties import room_props_register, room_props_unregister, mm_room_props_register, mm_room_props_unregister
+from .room.properties import (
+    room_props_register,
+    room_props_unregister,
+    mm_room_props_register,
+    mm_room_props_unregister,
+)
 
 from .actor.operators import actor_ops_register, actor_ops_unregister
 from .actor.properties import actor_props_register, actor_props_unregister
