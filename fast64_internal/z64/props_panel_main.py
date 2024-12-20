@@ -46,7 +46,8 @@ def drawSceneHeader(box: bpy.types.UILayout, obj: bpy.types.Object):
     props = get_scene_header_props(obj)
     props.draw_props(box, None, None, objName)
     if props.menuTab == "Alternate":
-        obj.ootAlternateSceneHeaders.draw_props(box, objName)
+        alt_props = get_scene_header_props(obj, True)
+        alt_props.draw_props(box, objName)
     box.prop(obj.fast64.oot.scene, "write_dummy_room_list")
 
 
@@ -135,7 +136,7 @@ class OOTObjectPanel(bpy.types.Panel):
         sceneObj = getSceneObj(obj)
         roomObj = getRoomObj(obj)
 
-        altSceneProp = sceneObj.ootAlternateSceneHeaders if sceneObj is not None else None
+        altSceneProp = get_scene_header_props(sceneObj, True) if sceneObj is not None else None
         altRoomProp = roomObj.ootAlternateRoomHeaders if roomObj is not None else None
 
         if obj.ootEmptyType == "Actor":

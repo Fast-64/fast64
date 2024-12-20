@@ -68,11 +68,11 @@ def is_game_oot():
     return bpy.context.scene.gameEditorMode == "OOT"
 
 
-def get_scene_header_props(obj: Object):
+def get_scene_header_props(obj: Object, is_alt_header: bool = False):
     if is_game_oot():
-        return obj.ootSceneHeader
+        return obj.ootAlternateSceneHeaders if is_alt_header else obj.ootSceneHeader
     else:
-        return obj.mm_scene_header
+        return obj.mm_alternate_scene_headers if is_alt_header else obj.mm_scene_header
 
 
 def isPathObject(obj: bpy.types.Object) -> bool:
@@ -718,7 +718,7 @@ def getCollection(objName, collectionType, subIndex):
     elif collectionType == "Room":
         collection = obj.ootAlternateRoomHeaders.cutsceneHeaders
     elif collectionType == "Scene":
-        collection = obj.ootAlternateSceneHeaders.cutsceneHeaders
+        collection = get_scene_header_props(obj, True).cutsceneHeaders
     elif collectionType == "Light":
         collection = getCollectionFromIndex(obj, "lightList", subIndex, False)
     elif collectionType == "Exit":
@@ -902,7 +902,7 @@ def getActiveHeaderIndex() -> int:
     headerObj = headerObjs[0]
     if headerObj.ootEmptyType == "Scene":
         header = get_scene_header_props(headerObj)
-        altHeader = headerObj.ootAlternateSceneHeaders
+        altHeader = get_scene_header_props(headerObj, True)
     else:
         header = headerObj.ootRoomHeader
         altHeader = headerObj.ootAlternateRoomHeaders
@@ -978,7 +978,7 @@ def onMenuTabChange(self, context: bpy.types.Context):
 def onHeaderMenuTabChange(self, context: bpy.types.Context):
     def callback(thisHeader, otherObj: bpy.types.Object):
         if otherObj.ootEmptyType == "Scene":
-            header = otherObj.ootAlternateSceneHeaders
+            header = get_scene_header_props(otherObj, True)
         else:
             header = otherObj.ootAlternateRoomHeaders
 

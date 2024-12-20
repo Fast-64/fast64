@@ -299,7 +299,6 @@ class MM_MinimapRoomProperty(PropertyGroup):
 
 class MM_SceneHeaderProperty(PropertyGroup):
     expandTab: BoolProperty(name="Expand Tab")
-    usePreviousHeader: BoolProperty(name="Use Previous Header", default=True)
 
     # SCENE_CMD_SPECIAL_FILES
     globalObject: EnumProperty(name="Global Object", default="None", items=mm_enum_global_object)
@@ -346,6 +345,7 @@ class MM_SceneHeaderProperty(PropertyGroup):
     timeOfDayLights: PointerProperty(type=OOTLightGroupProperty, name="Time Of Day Lighting")
     lightList: CollectionProperty(type=OOTLightProperty, name="Lighting List")
 
+    # SCENE_CMD_EXIT_LIST
     exitList: CollectionProperty(type=MM_ExitProperty, name="Exit List")
 
     writeCutscene: BoolProperty(name="Write Cutscene")
@@ -375,13 +375,8 @@ class MM_SceneHeaderProperty(PropertyGroup):
             layout.prop(self, "expandTab", text=dropdownLabel, icon="TRIA_DOWN" if self.expandTab else "TRIA_RIGHT")
             if not self.expandTab:
                 return
-        if headerIndex is not None and headerIndex > 3:
-            drawCollectionOps(layout, headerIndex - 4, "Scene", None, objName)
-
-        if headerIndex is not None and headerIndex > 0 and headerIndex < 4:
-            layout.prop(self, "usePreviousHeader", text="Use Previous Header")
-            if self.usePreviousHeader:
-                return
+        if headerIndex is not None and headerIndex > 0:
+            drawCollectionOps(layout, headerIndex - 1, "Scene", None, objName)
 
         if headerIndex is None or headerIndex == 0:
             layout.row().prop(self, "menuTab", expand=True)
@@ -445,7 +440,11 @@ class MM_SceneHeaderProperty(PropertyGroup):
                 drawAddButton(lighting, len(self.lightList), "Light", headerIndex, objName)
 
         elif menuTab == "Cutscene":
+            layout.label(text="Cutscenes aren't implemented yet.")
             cutscene = layout.column()
+
+            cutscene.enabled = False
+
             r = cutscene.row()
             r.prop(self, "writeCutscene", text="Write Cutscene")
             if self.writeCutscene:
@@ -474,34 +473,19 @@ class MM_SceneHeaderProperty(PropertyGroup):
 
 
 class MM_AlternateSceneHeaderProperty(PropertyGroup):
-    childNightHeader: PointerProperty(name="Child Night Header", type=MM_SceneHeaderProperty)
-    adultDayHeader: PointerProperty(name="Adult Day Header", type=MM_SceneHeaderProperty)
-    adultNightHeader: PointerProperty(name="Adult Night Header", type=MM_SceneHeaderProperty)
     cutsceneHeaders: CollectionProperty(type=MM_SceneHeaderProperty)
-
-    headerMenuTab: EnumProperty(name="Header Menu", items=ootEnumHeaderMenu, update=onHeaderMenuTabChange)
-    currentCutsceneIndex: IntProperty(min=4, default=4, update=onHeaderMenuTabChange)
+    currentCutsceneIndex: IntProperty(min=1, default=1, update=onHeaderMenuTabChange)
 
     def draw_props(self, layout: UILayout, objName: str):
         headerSetup = layout.column()
-        # headerSetup.box().label(text = "Alternate Headers")
-        headerSetupBox = headerSetup.column()
 
-        headerSetupBox.row().prop(self, "headerMenuTab", expand=True)
-        if self.headerMenuTab == "Child Night":
-            self.childNightHeader.draw_props(headerSetupBox, None, 1, objName)
-        elif self.headerMenuTab == "Adult Day":
-            self.adultDayHeader.draw_props(headerSetupBox, None, 2, objName)
-        elif self.headerMenuTab == "Adult Night":
-            self.adultNightHeader.draw_props(headerSetupBox, None, 3, objName)
-        elif self.headerMenuTab == "Cutscene":
-            prop_split(headerSetup, self, "currentCutsceneIndex", "Cutscene Index")
-            drawAddButton(headerSetup, len(self.cutsceneHeaders), "Scene", None, objName)
-            index = self.currentCutsceneIndex
-            if index - 4 < len(self.cutsceneHeaders):
-                self.cutsceneHeaders[index - 4].draw_props(headerSetup, None, index, objName)
-            else:
-                headerSetup.label(text="No cutscene header for this index.", icon="QUESTION")
+        prop_split(headerSetup, self, "currentCutsceneIndex", "Cutscene Index")
+        drawAddButton(headerSetup, len(self.cutsceneHeaders), "Scene", None, objName)
+        index = self.currentCutsceneIndex
+        if index - 1 < len(self.cutsceneHeaders):
+            self.cutsceneHeaders[index - 1].draw_props(headerSetup, None, index, objName)
+        else:
+            headerSetup.label(text="No cutscene header for this index.", icon="QUESTION")
 
 
 class OOTBootupSceneOptions(PropertyGroup):

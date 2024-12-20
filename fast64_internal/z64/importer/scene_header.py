@@ -296,16 +296,21 @@ def parseSceneCommands(
         sceneObj.ootEmptyType = "Scene"
         sceneObj.name = sceneName
 
+    if is_game_oot():
+        cs_header_start = 4
+    else:
+        cs_header_start = 1
+
     if headerIndex == 0:
         sceneHeader = get_scene_header_props(sceneObj)
-    elif headerIndex < 4:
-        sceneHeader = getattr(sceneObj.ootAlternateSceneHeaders, headerNames[headerIndex])
+    elif is_game_oot() and headerIndex < cs_header_start:
+        sceneHeader = getattr(get_scene_header_props(sceneObj, True), headerNames[headerIndex])
         sceneHeader.usePreviousHeader = False
     else:
-        cutsceneHeaders = sceneObj.ootAlternateSceneHeaders.cutsceneHeaders
-        while len(cutsceneHeaders) < headerIndex - 3:
+        cutsceneHeaders = get_scene_header_props(sceneObj, True).cutsceneHeaders
+        while len(cutsceneHeaders) < headerIndex - (cs_header_start - 1):
             cutsceneHeaders.add()
-        sceneHeader = cutsceneHeaders[headerIndex - 4]
+        sceneHeader = cutsceneHeaders[headerIndex - cs_header_start]
 
     commands = getDataMatch(sceneData, sceneCommandsName, ["SceneCmd", "SCmdBase"], "scene commands")
     entranceList = None
@@ -377,7 +382,7 @@ def parseSceneCommands(
                 sceneHeader.csWriteObject = bpy.data.objects[csObjName]
             except:
                 print(f"ERROR: Cutscene ``{csObjName}`` do not exist!")
-        elif is_game_oot() and command == "SCENE_CMD_ALTERNATE_HEADER_LIST":
+        elif command == "SCENE_CMD_ALTERNATE_HEADER_LIST":
             # Delay until after rooms are parsed
             altHeadersListName = stripName(args[0])
         
@@ -388,7 +393,7 @@ def parseSceneCommands(
             elif command == "SCENE_CMD_MINIMAP_INFO":
                 parse_mm_minimap_info(sceneHeader, sceneData, stripName(args[0]))
 
-    if is_game_oot() and altHeadersListName is not None:
+    if altHeadersListName is not None:
         parseAlternateSceneHeaders(sceneObj, roomObjs, sceneData, altHeadersListName, f3dContext, sharedSceneData)
 
     return sceneObj

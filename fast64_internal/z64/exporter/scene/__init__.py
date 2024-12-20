@@ -45,7 +45,7 @@ class Scene:
         mainHeader = SceneHeader.new(f"{name}_header{i:02}", get_scene_header_props(sceneObj), sceneObj, transform, i, useMacros)
         hasAlternateHeaders = False
         altHeader = SceneAlternateHeader(f"{name}_alternateHeaders")
-        altProp = sceneObj.ootAlternateSceneHeaders
+        altProp = get_scene_header_props(sceneObj, True)
 
         for i, header in enumerate(altHeaderList, 1):
             altP: OOTSceneHeaderProperty = getattr(altProp, f"{header}Header")
