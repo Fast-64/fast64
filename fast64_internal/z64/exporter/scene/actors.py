@@ -91,7 +91,7 @@ class SceneTransitionActors:
 
                 transActor.pos = pos
 
-                rot_deg = (rot[1] * (180 / 0x8000))
+                rot_deg = rot[1] * (180 / 0x8000)
                 if is_game_oot():
                     transActor.rot = f"DEG_TO_BINANG({rot_deg:.3f})"  # TODO: Correct axis?
                 else:
@@ -172,7 +172,9 @@ class SceneEntranceActors:
                 if is_game_oot():
                     entranceActor.rot = ", ".join(f"DEG_TO_BINANG({(r * (180 / 0x8000)):.3f})" for r in rot)
                 else:
-                    entranceActor.rot = ", ".join(f"SPAWN_ROT_FLAGS(DEG_TO_BINANG({(r * (180 / 0x8000)):.3f}), 0x00)" for r in rot)
+                    entranceActor.rot = ", ".join(
+                        f"SPAWN_ROT_FLAGS(DEG_TO_BINANG({(r * (180 / 0x8000)):.3f}), 0x00)" for r in rot
+                    )
 
                 entranceActor.params = entranceProp.actor.actorParam
                 if entranceProp.tiedRoom is not None:

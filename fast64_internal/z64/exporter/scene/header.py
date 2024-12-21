@@ -4,7 +4,7 @@ from mathutils import Matrix
 from bpy.types import Object
 from ....utility import CData
 from ...utility import is_game_oot
-from ...scene.properties import OOTSceneHeaderProperty
+from ...scene.properties import Z64_SceneHeaderProperty
 from ..cutscene import SceneCutscene
 from .general import SceneLighting, SceneInfos, SceneExits, SceneMapData
 from .actors import SceneTransitionActors, SceneEntranceActors, SceneSpawns
@@ -30,7 +30,12 @@ class SceneHeader:
 
     @staticmethod
     def new(
-        name: str, props: OOTSceneHeaderProperty, sceneObj: Object, transform: Matrix, headerIndex: int, useMacros: bool
+        name: str,
+        props: Z64_SceneHeaderProperty,
+        sceneObj: Object,
+        transform: Matrix,
+        headerIndex: int,
+        useMacros: bool,
     ):
         entranceActors = SceneEntranceActors.new(f"{name}_playerEntryList", sceneObj, transform, headerIndex)
         return SceneHeader(

@@ -7,13 +7,10 @@ from ...panels import Z64_Panel
 from ..constants import ootEnumSceneID, mm_enum_scene_id
 from ..utility import getEnumName, is_game_oot
 from .properties import (
-    OOTExportSceneSettingsProperty,
-    OOTImportSceneSettingsProperty,
-    OOTRemoveSceneSettingsProperty,
-    OOTBootupSceneOptions,
-    MM_ExportSceneSettingsProperty,
-    MM_ImportSceneSettingsProperty,
-    MM_RemoveSceneSettingsProperty,
+    Z64_ExportSceneSettingsProperty,
+    Z64_ImportSceneSettingsProperty,
+    Z64_RemoveSceneSettingsProperty,
+    OOT_BootupSceneOptions,
 )
 
 from .operators import (
@@ -47,24 +44,16 @@ class OOT_ExportScenePanel(Z64_Panel):
         exportBox = col.box().column()
         exportBox.label(text="Scene Exporter")
 
-        if is_game_oot():
-            settings: OOTExportSceneSettingsProperty = context.scene.ootSceneExportSettings
-            importSettings: OOTImportSceneSettingsProperty = context.scene.ootSceneImportSettings
-            removeSettings: OOTRemoveSceneSettingsProperty = context.scene.ootSceneRemoveSettings
-        else:
-            settings: MM_ExportSceneSettingsProperty = context.scene.mm_scene_export_settings
-            importSettings: MM_ImportSceneSettingsProperty = context.scene.mm_scene_import_settings
-            removeSettings: MM_RemoveSceneSettingsProperty = context.scene.mm_scene_remove_settings
-
+        settings: Z64_ExportSceneSettingsProperty = context.scene.ootSceneExportSettings
         if not settings.customExport:
-            self.drawSceneSearchOp(exportBox, settings.option, "Export")
+            self.drawSceneSearchOp(exportBox, settings.option if is_game_oot() else settings.mm_option, "Export")
         settings.draw_props(exportBox)
 
         if context.scene.fast64.oot.hackerFeaturesEnabled:
             hackerOoTBox = exportBox.box().column()
             hackerOoTBox.label(text="HackerOoT Options")
 
-            bootOptions: OOTBootupSceneOptions = context.scene.fast64.oot.bootupSceneOptions
+            bootOptions: OOT_BootupSceneOptions = context.scene.fast64.oot.bootupSceneOptions
             bootOptions.draw_props(hackerOoTBox)
 
             hackerOoTBox.label(
@@ -78,17 +67,22 @@ class OOT_ExportScenePanel(Z64_Panel):
         importBox = col.box().column()
         importBox.label(text="Scene Importer")
 
-        if not importSettings.isCustomDest:
-            self.drawSceneSearchOp(importBox, importSettings.option, "Import")
+        importSettings: Z64_ImportSceneSettingsProperty = context.scene.ootSceneImportSettings
+        option = importSettings.option if is_game_oot() else importSettings.mm_option
 
-        importSettings.draw_props(importBox, importSettings.option)
+        if not importSettings.isCustomDest:
+            self.drawSceneSearchOp(importBox, option, "Import")
+
+        importSettings.draw_props(importBox, option)
         importBox.operator(OOT_ImportScene.bl_idname)
 
         # Remove Scene
         removeBox = col.box().column()
         removeBox.label(text="Remove Scene")
 
-        self.drawSceneSearchOp(removeBox, removeSettings.option, "Remove")
+        removeSettings: Z64_RemoveSceneSettingsProperty = context.scene.ootSceneRemoveSettings
+        option = removeSettings.option if is_game_oot() else removeSettings.mm_option
+        self.drawSceneSearchOp(removeBox, option, "Remove")
         removeSettings.draw_props(removeBox)
 
         removeRow = removeBox.row()

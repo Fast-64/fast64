@@ -7,7 +7,7 @@ import mathutils
 from ...utility import PluginError, readFile, parentObject, hexOrDecInt, gammaInverse
 from ...f3d.f3d_parser import parseMatrices
 from ..model_classes import OOTF3DContext
-from ..scene.properties import OOTSceneHeaderProperty, OOTLightProperty, MM_SceneHeaderProperty
+from ..scene.properties import Z64_SceneHeaderProperty, Z64_LightProperty
 from ..utility import (
     getEvalParams,
     setCustomProperty,
@@ -67,7 +67,7 @@ def parseDirection(index: int, values: tuple[str, str, str]) -> tuple[float, flo
 
 
 def parseLight(
-    lightHeader: OOTLightProperty, index: int, rotation: mathutils.Euler, color: mathutils.Vector
+    lightHeader: Z64_LightProperty, index: int, rotation: mathutils.Euler, color: mathutils.Vector
 ) -> bpy.types.Object | None:
     setattr(lightHeader, f"useCustomDiffuse{index}", rotation != "Zero" and rotation != "Default")
 
@@ -88,7 +88,7 @@ def parseLight(
 
 def parseLightList(
     sceneObj: bpy.types.Object,
-    sceneHeader: OOTSceneHeaderProperty | MM_SceneHeaderProperty,
+    sceneHeader: Z64_SceneHeaderProperty,
     sceneData: str,
     lightListName: str,
     headerIndex: int,
@@ -163,7 +163,7 @@ def parseLightList(
         index += 1
 
 
-def parseExitList(sceneHeader: OOTSceneHeaderProperty | MM_SceneHeaderProperty, sceneData: str, exitListName: str):
+def parseExitList(sceneHeader: Z64_SceneHeaderProperty, sceneData: str, exitListName: str):
     exitData = getDataMatch(sceneData, exitListName, "u16", "exit list")
 
     # see also start position list
@@ -256,7 +256,7 @@ def twos_complement(hexstr: str, bits: int):
     return value
 
 
-def parse_mm_minimap_info(scene_header: MM_SceneHeaderProperty, scene_data: str, list_name: str):
+def parse_mm_minimap_info(scene_header, scene_data: str, list_name: str):
     data_match = getDataMatch(scene_data, list_name, ["MapDataScene", "MinimapList"], "minimap scene", False)
     scene_map_data = data_match.strip().split(", ")
     scene_header.minimap_scale = int(scene_map_data[1], base=0)

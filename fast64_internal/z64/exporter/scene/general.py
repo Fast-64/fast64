@@ -4,9 +4,8 @@ from bpy.types import Object
 from ....utility import PluginError, CData, exportColor, ootGetBaseOrCustomLight, indent
 from ...utility import is_game_oot, getObjectList, getEvalParams
 from ...scene.properties import (
-    OOTSceneHeaderProperty,
-    OOTLightProperty,
-    MM_SceneHeaderProperty,
+    Z64_SceneHeaderProperty,
+    Z64_LightProperty,
     MM_MinimapChestProperty,
     MM_MinimapRoomProperty,
 )
@@ -97,9 +96,9 @@ class SceneLighting:
     settings: list[EnvLightSettings]
 
     @staticmethod
-    def new(name: str, props: OOTSceneHeaderProperty):
+    def new(name: str, props: Z64_SceneHeaderProperty):
         envLightMode = Utility.getPropValue(props, "skyboxLighting")
-        lightList: list[OOTLightProperty] = []
+        lightList: list[Z64_LightProperty] = []
         settings: list[EnvLightSettings] = []
 
         if envLightMode == "LIGHT_MODE_TIME":
@@ -188,7 +187,7 @@ class SceneInfos:
     set_region_visited: bool
 
     @staticmethod
-    def new(props: OOTSceneHeaderProperty, sceneObj: Object):
+    def new(props: Z64_SceneHeaderProperty, sceneObj: Object):
         if is_game_oot():
             skybox_texture_id = ""
         else:
@@ -244,7 +243,7 @@ class SceneExits(Utility):
     exitList: list[tuple[int, str]]
 
     @staticmethod
-    def new(name: str, props: OOTSceneHeaderProperty):
+    def new(name: str, props: Z64_SceneHeaderProperty):
         # TODO: proper implementation of exits
 
         exitList: list[tuple[int, str]] = []
@@ -325,7 +324,7 @@ class SceneMapData:
     chest_list: list[MapDataChest]
 
     @staticmethod
-    def new(name: str, props: MM_SceneHeaderProperty, scene_obj: Object, transform: Matrix):
+    def new(name: str, props: Z64_SceneHeaderProperty, scene_obj: Object, transform: Matrix):
         return SceneMapData(
             name,
             props.minimap_scale,

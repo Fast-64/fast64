@@ -4,7 +4,7 @@ from bpy.types import Object
 from typing import Optional
 from ....utility import PluginError, CData, indent
 from ....f3d.f3d_gbi import TextureExportSettings, ScrollMethod
-from ...scene.properties import OOTSceneHeaderProperty
+from ...scene.properties import Z64_SceneHeaderProperty
 from ...model_classes import OOTModel, OOTGfxFormatter
 from ...utility import get_game_props, is_game_oot, get_cs_index_start
 from ..file import SceneFile
@@ -51,7 +51,7 @@ class Scene:
 
         if is_game_oot():
             for i, header in enumerate(altHeaderList, 1):
-                altP: OOTSceneHeaderProperty = getattr(altProp, f"{header}Header")
+                altP: Z64_SceneHeaderProperty = getattr(altProp, f"{header}Header")
                 if not altP.usePreviousHeader:
                     setattr(
                         altHeader,

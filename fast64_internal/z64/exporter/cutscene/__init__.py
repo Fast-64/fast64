@@ -5,7 +5,7 @@ from typing import Optional
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
 from ...utility import getCustomProperty
-from ...scene.properties import OOTSceneHeaderProperty
+from ...scene.properties import Z64_SceneHeaderProperty
 from .data import CutsceneData
 
 
@@ -102,7 +102,7 @@ class SceneCutscene:
     entries: list[Cutscene]
 
     @staticmethod
-    def new(props: OOTSceneHeaderProperty, headerIndex: int, useMacros: bool):
+    def new(props: Z64_SceneHeaderProperty, headerIndex: int, useMacros: bool):
         csObj: Object = props.csWriteObject
         cutsceneObjects: list[Object] = [csObj for csObj in props.extraCutscenes]
         entries: list[Cutscene] = []

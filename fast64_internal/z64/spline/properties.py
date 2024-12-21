@@ -7,7 +7,7 @@ from ...utility import prop_split
 from ..utility import drawEnumWithCustom, is_game_oot, get_game_props
 from ..collision.constants import enum_camera_crawlspace_stype
 from ..actor.properties import OOTActorHeaderProperty, MM_ActorHeaderProperty
-from ..scene.properties import OOTAlternateSceneHeaderProperty, MM_AlternateSceneHeaderProperty
+from ..scene.properties import Z64_AlternateSceneHeaderProperty
 
 
 enum_spline = [("Path", "Path", "Path"), ("Crawlspace", "Crawlspace", "Crawlspace")]
@@ -27,7 +27,7 @@ class Z64_SplineProperty(PropertyGroup):
     def draw_props(
         self,
         layout: UILayout,
-        altSceneProp: OOTAlternateSceneHeaderProperty | MM_AlternateSceneHeaderProperty,
+        altSceneProp: Z64_AlternateSceneHeaderProperty,
         objName: str,
     ):
         camIndexName = "Path Index" if self.splineType == "Path" else "Camera Index"

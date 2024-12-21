@@ -4,7 +4,6 @@ from bpy.props import EnumProperty, StringProperty, IntProperty, BoolProperty, C
 from ....utility import prop_split, label_split
 from ...constants import mm_data, ootEnumCamTransition
 from ...upgrade import upgradeActors
-from ...scene.properties import MM_AlternateSceneHeaderProperty
 from ...room.properties import MM_AlternateRoomHeaderProperty
 from ..operators import MM_SearchActorIDEnumOperator
 
@@ -25,7 +24,7 @@ class MM_ActorHeaderItemProperty(PropertyGroup):
         layout: UILayout,
         propUser: str,
         index: int,
-        altProp: MM_AlternateSceneHeaderProperty | MM_AlternateRoomHeaderProperty,
+        altProp: MM_AlternateRoomHeaderProperty,
         objName: str,
     ):
         box = layout.column()
@@ -54,7 +53,7 @@ class MM_ActorHeaderProperty(PropertyGroup):
         self,
         layout: UILayout,
         propUser: str,
-        altProp: MM_AlternateSceneHeaderProperty | MM_AlternateRoomHeaderProperty,
+        altProp: MM_AlternateRoomHeaderProperty,
         objName: str,
     ):
         headerSetup = layout.column()
@@ -86,7 +85,11 @@ class MM_ActorProperty(PropertyGroup):
     actorID: EnumProperty(name="Actor", items=mm_data.actor_data.enum_actor_id, default="ACTOR_PLAYER")
     actorIDCustom: StringProperty(name="Actor ID", default="ACTOR_PLAYER")
     actorParam: StringProperty(name="Actor Parameter", default="0x0000")
-    rotOverride: BoolProperty(name="Override Rotation", default=False, description="Non-zero values means the rotation is used as additional flags and will set the matching flag in the actor ID automatically")
+    rotOverride: BoolProperty(
+        name="Override Rotation",
+        default=False,
+        description="Non-zero values means the rotation is used as additional flags and will set the matching flag in the actor ID automatically",
+    )
     rotOverrideX: StringProperty(name="Rot X", default="0")
     rotOverrideY: StringProperty(name="Rot Y", default="0")
     rotOverrideZ: StringProperty(name="Rot Z", default="0")
@@ -131,16 +134,16 @@ class MM_TransitionActorProperty(PropertyGroup):
     cameraTransitionBack: EnumProperty(items=ootEnumCamTransition, default="0x00")
     cameraTransitionBackCustom: StringProperty(default="0x00")
     isRoomTransition: BoolProperty(name="Is Room Transition", default=True)
-    cutscene_id: StringProperty(name="Cutscene ID", default="CS_ID_GLOBAL_END", description="See the `CutsceneId` enum for more values")
+    cutscene_id: StringProperty(
+        name="Cutscene ID", default="CS_ID_GLOBAL_END", description="See the `CutsceneId` enum for more values"
+    )
 
     actor: PointerProperty(type=MM_ActorProperty)
 
     def isRoomEmptyObject(self, obj: Object):
         return obj.type == "EMPTY" and obj.ootEmptyType == "Room"
 
-    def draw_props(
-        self, layout: UILayout, altSceneProp: MM_AlternateSceneHeaderProperty, roomObj: Object, objName: str
-    ):
+    def draw_props(self, layout: UILayout, altSceneProp, roomObj: Object, objName: str):
         actorIDBox = layout.column()
         searchOp = actorIDBox.operator(MM_SearchActorIDEnumOperator.bl_idname, icon="VIEWZOOM")
         searchOp.actorUser = "Transition Actor"
@@ -188,7 +191,7 @@ class MM_EntranceProperty(PropertyGroup):
     def isRoomEmptyObject(self, obj: Object):
         return obj.type == "EMPTY" and obj.ootEmptyType == "Room"
 
-    def draw_props(self, layout: UILayout, obj: Object, altSceneProp: MM_AlternateSceneHeaderProperty, objName: str):
+    def draw_props(self, layout: UILayout, obj: Object, altSceneProp, objName: str):
         box = layout.column()
 
         roomObj = getRoomObj(obj)

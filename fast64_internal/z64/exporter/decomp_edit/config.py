@@ -2,7 +2,7 @@ import os
 import re
 
 from ....utility import PluginError, readFile, writeFile
-from ...scene.properties import OOTBootupSceneOptions
+from ...scene.properties import OOT_BootupSceneOptions
 
 
 class Config:
@@ -64,8 +64,8 @@ class Config:
             writeFile(configPath, data)
 
     @staticmethod
-    def setBootupScene(configPath: str, entranceIndex: str, options: "OOTBootupSceneOptions"):
-        # ``options`` argument type: OOTBootupSceneOptions
+    def setBootupScene(configPath: str, entranceIndex: str, options: "OOT_BootupSceneOptions"):
+        # ``options`` argument type: OOT_BootupSceneOptions
         linkAge = "LINK_AGE_CHILD"
         timeOfDay = "NEXT_TIME_NONE"
         cutsceneIndex = "0xFFEF"
@@ -108,7 +108,7 @@ class Config:
         )
 
     @staticmethod
-    def getParamsFromOptions(options: "OOTBootupSceneOptions") -> tuple[str, str]:
+    def getParamsFromOptions(options: "OOT_BootupSceneOptions") -> tuple[str, str]:
         timeOfDay = (
             "NEXT_TIME_DAY"
             if options.headerOption == "Child Day" or options.headerOption == "Adult Day"

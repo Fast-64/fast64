@@ -4,7 +4,7 @@ from bpy.props import EnumProperty, StringProperty, IntProperty, BoolProperty, C
 from ....utility import prop_split, label_split
 from ...constants import oot_data, ootEnumCamTransition
 from ...upgrade import upgradeActors
-from ...scene.properties import OOTAlternateSceneHeaderProperty
+from ...scene.properties import Z64_AlternateSceneHeaderProperty
 from ...room.properties import OOTAlternateRoomHeaderProperty
 from ..operators import OOT_SearchActorIDEnumOperator
 
@@ -31,7 +31,7 @@ class OOTActorHeaderItemProperty(PropertyGroup):
         layout: UILayout,
         propUser: str,
         index: int,
-        altProp: OOTAlternateSceneHeaderProperty | OOTAlternateRoomHeaderProperty,
+        altProp: Z64_AlternateSceneHeaderProperty | OOTAlternateRoomHeaderProperty,
         objName: str,
     ):
         box = layout.column()
@@ -66,7 +66,7 @@ class OOTActorHeaderProperty(PropertyGroup):
         self,
         layout: UILayout,
         propUser: str,
-        altProp: OOTAlternateSceneHeaderProperty | OOTAlternateRoomHeaderProperty,
+        altProp: Z64_AlternateSceneHeaderProperty | OOTAlternateRoomHeaderProperty,
         objName: str,
     ):
         headerSetup = layout.column()
@@ -170,7 +170,7 @@ class OOTTransitionActorProperty(PropertyGroup):
         return obj.type == "EMPTY" and obj.ootEmptyType == "Room"
 
     def draw_props(
-        self, layout: UILayout, altSceneProp: OOTAlternateSceneHeaderProperty, roomObj: Object, objName: str
+        self, layout: UILayout, altSceneProp: Z64_AlternateSceneHeaderProperty, roomObj: Object, objName: str
     ):
         actorIDBox = layout.column()
         searchOp = actorIDBox.operator(OOT_SearchActorIDEnumOperator.bl_idname, icon="VIEWZOOM")
@@ -219,7 +219,7 @@ class OOTEntranceProperty(PropertyGroup):
     def isRoomEmptyObject(self, obj: Object):
         return obj.type == "EMPTY" and obj.ootEmptyType == "Room"
 
-    def draw_props(self, layout: UILayout, obj: Object, altSceneProp: OOTAlternateSceneHeaderProperty, objName: str):
+    def draw_props(self, layout: UILayout, obj: Object, altSceneProp: Z64_AlternateSceneHeaderProperty, objName: str):
         box = layout.column()
         # box.box().label(text = "Properties")
         roomObj = getRoomObj(obj)

@@ -46,7 +46,7 @@ from ..utility import (
 )
 
 if TYPE_CHECKING:
-    from .scene.properties import OOTBootupSceneOptions, OOTSceneHeaderProperty, MM_SceneHeaderProperty
+    from .scene.properties import OOT_BootupSceneOptions, Z64_SceneHeaderProperty
 
 
 def get_game_enum(enum_type: str):
@@ -88,8 +88,8 @@ def get_game_props(obj: Object, header_type: str):
                 "path_header_settings": obj.ootSplineProperty.headerSettings,
             },
             "MM": {
-                "scene": obj.mm_scene_header,
-                "alt_scene": obj.mm_alternate_scene_headers,
+                "scene": obj.ootSceneHeader,
+                "alt_scene": obj.ootAlternateSceneHeaders,
                 "room": obj.mm_room_header,
                 "alt_room": obj.mm_alternate_room_headers,
                 "actor": obj.mm_actor_property,
@@ -104,7 +104,7 @@ def get_game_props(obj: Object, header_type: str):
                 "export_settings": bpy.context.scene.ootSceneExportSettings,
             },
             "MM": {
-                "export_settings": bpy.context.scene.mm_scene_export_settings,
+                "export_settings": bpy.context.scene.ootSceneExportSettings,
             },
         }
 
@@ -391,7 +391,7 @@ class ExportInfo:
     useMacros: bool
     """ Whether to use macros or numeric/binary representations of certain values."""
 
-    hackerootBootOption: "OOTBootupSceneOptions"
+    hackerootBootOption: "OOT_BootupSceneOptions"
     """ Options for setting the bootup scene in HackerOoT."""
 
 

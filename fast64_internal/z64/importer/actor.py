@@ -2,7 +2,7 @@ import re
 import bpy
 
 from ...utility import parentObject, hexOrDecInt
-from ..scene.properties import OOTSceneHeaderProperty
+from ..scene.properties import Z64_SceneHeaderProperty
 from ..utility import setCustomProperty, getEvalParams, get_game_props, is_game_oot, get_game_enum
 from ..constants import ootEnumCamTransition
 from .classes import SharedSceneData
@@ -95,7 +95,7 @@ def parseTransActorList(
 
 
 def parseEntranceList(
-    sceneHeader: OOTSceneHeaderProperty, roomObjs: list[bpy.types.Object], sceneData: str, entranceListName: str
+    sceneHeader: Z64_SceneHeaderProperty, roomObjs: list[bpy.types.Object], sceneData: str, entranceListName: str
 ):
     entranceList = getDataMatch(sceneData, entranceListName, ["EntranceEntry", "Spawn"], "entrance List")
 

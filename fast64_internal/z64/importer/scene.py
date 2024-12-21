@@ -9,7 +9,7 @@ from ...f3d.f3d_gbi import get_F3D_GBI
 from ...f3d.flipbook import TextureFlipbook
 from ..model_classes import OOTF3DContext
 from ..exporter.decomp_edit.scene_table import SceneTableUtility
-from ..scene.properties import OOTImportSceneSettingsProperty, MM_ImportSceneSettingsProperty
+from ..scene.properties import Z64_ImportSceneSettingsProperty
 from ..constants import ootEnumDrawConfig, mm_enum_draw_config
 from .scene_header import parseSceneCommands
 from .classes import SharedSceneData
@@ -90,7 +90,7 @@ def parseDrawConfig(drawConfigName: str, sceneData: str, drawConfigData: str, f3
 
 
 def parseScene(
-    settings: OOTImportSceneSettingsProperty | MM_ImportSceneSettingsProperty,
+    settings: Z64_ImportSceneSettingsProperty,
     option: str,
 ):
     sceneName = settings.name

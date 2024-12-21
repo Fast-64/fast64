@@ -33,11 +33,8 @@ def run_ops_without_view_layer_update(func):
 
 
 def parseSceneFunc():
-    if is_game_oot():
-        settings = bpy.context.scene.ootSceneImportSettings
-    else:
-        settings = bpy.context.scene.mm_scene_import_settings
-    parseScene(settings, settings.option)
+    settings = bpy.context.scene.ootSceneImportSettings
+    parseScene(settings, settings.option if is_game_oot() else settings.mm_option)
 
 
 class OOT_SearchSceneEnumOperator(Operator):
@@ -79,11 +76,11 @@ class MM_SearchSceneEnumOperator(Operator):
 
     def execute(self, context):
         if self.op_name == "Export":
-            context.scene.mm_scene_export_settings.option = self.scene_id
+            context.scene.ootSceneExportSettings.mm_option = self.scene_id
         elif self.op_name == "Import":
-            context.scene.mm_scene_import_settings.option = self.scene_id
+            context.scene.ootSceneImportSettings.mm_option = self.scene_id
         elif self.op_name == "Remove":
-            context.scene.mm_scene_remove_settings.option = self.scene_id
+            context.scene.ootSceneRemoveSettings.mm_option = self.scene_id
         else:
             raise Exception(f'Invalid MM scene search operator name: "{self.op_name}"')
 
@@ -205,7 +202,7 @@ class OOT_ExportScene(Operator):
         try:
             settings = get_game_props(None, "export_settings")
             levelName = settings.name
-            option = settings.option
+            option = settings.option if is_game_oot() else settings.mm_option
             hackerFeaturesEnabled = False
 
             if is_game_oot():
@@ -276,11 +273,8 @@ class OOT_RemoveScene(Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
-        if context.scene.gameEditorMode == "OOT":
-            settings = context.scene.ootSceneRemoveSettings  # Type: OOTRemoveSceneSettingsProperty
-        else:
-            settings = context.scene.mm_scene_remove_settings  # Type: MM_RemoveSceneSettingsProperty
-        option = settings.option
+        settings = context.scene.ootSceneRemoveSettings  # Type: Z64_RemoveSceneSettingsProperty
+        option = settings.option if is_game_oot() else settings.mm_option
 
         if settings.customExport:
             self.report({"ERROR"}, "You can only remove scenes from your decomp path.")

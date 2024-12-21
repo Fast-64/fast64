@@ -3,11 +3,9 @@ from bpy.utils import register_class, unregister_class
 
 from .scene.operators import scene_ops_register, scene_ops_unregister
 from .scene.properties import (
-    OOTBootupSceneOptions,
+    OOT_BootupSceneOptions,
     scene_props_register,
     scene_props_unregister,
-    mm_scene_props_register,
-    mm_scene_props_unregister,
 )
 from .scene.panels import scene_panels_register, scene_panels_unregister
 
@@ -106,7 +104,7 @@ class OOT_Properties(bpy.types.PropertyGroup):
     headerTabAffectsVisibility: bpy.props.BoolProperty(
         default=False, name="Header Sets Actor Visibility", update=setAllActorsVisibility
     )
-    bootupSceneOptions: bpy.props.PointerProperty(type=OOTBootupSceneOptions)
+    bootupSceneOptions: bpy.props.PointerProperty(type=OOT_BootupSceneOptions)
     DLExportSettings: bpy.props.PointerProperty(type=OOTDLExportSettings)
     DLImportSettings: bpy.props.PointerProperty(type=OOTDLImportSettings)
     skeletonExportSettings: bpy.props.PointerProperty(type=OOTSkeletonExportSettings)
@@ -175,7 +173,6 @@ def oot_register(registerPanels):
     cutscene_props_register()
     scene_ops_register()
     scene_props_register()
-    mm_scene_props_register()
     room_ops_register()
     room_props_register()
     mm_room_props_register()
@@ -218,7 +215,6 @@ def oot_unregister(unregisterPanels):
     cutscene_props_unregister()
     scene_ops_unregister()
     scene_props_unregister()
-    mm_scene_props_unregister()
     room_ops_unregister()
     room_props_unregister()
     mm_room_props_unregister()
