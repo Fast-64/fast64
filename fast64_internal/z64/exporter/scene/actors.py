@@ -90,7 +90,13 @@ class SceneTransitionActors:
                 )
 
                 transActor.pos = pos
-                transActor.rot = f"DEG_TO_BINANG({(rot[1] * (180 / 0x8000)):.3f})"  # TODO: Correct axis?
+
+                rot_deg = (rot[1] * (180 / 0x8000))
+                if is_game_oot():
+                    transActor.rot = f"DEG_TO_BINANG({rot_deg:.3f})"  # TODO: Correct axis?
+                else:
+                    transActor.rot = f"((0x{round(rot_deg):04X} & 0x1FF) << 7) | ({transActorProp.cutscene_id} & 0x7F)"
+
                 transActor.params = transActorProp.actor.actorParam
                 transActor.roomFrom, transActor.cameraFront = front
                 transActor.roomTo, transActor.cameraBack = back
@@ -166,16 +172,7 @@ class SceneEntranceActors:
                 if is_game_oot():
                     entranceActor.rot = ", ".join(f"DEG_TO_BINANG({(r * (180 / 0x8000)):.3f})" for r in rot)
                 else:
-                    if int(getEvalParams(entranceProp.actor.actor_id_flags), base=0) > 0:
-                        entranceActor.id = f"{entranceActor.id} | {entranceProp.actor.actor_id_flags}"
-
-                    spawn_flags = [
-                        entranceProp.actor.rot_flags_x,
-                        entranceProp.actor.rot_flags_y,
-                        entranceProp.actor.rot_flags_z,
-                    ]
-                    spawn_rot = [f"SPAWN_ROT_FLAGS(DEG_TO_BINANG({(r * (180 / 0x8000)):.3f})" for r in rot]
-                    entranceActor.rot = ", ".join(f"{rot}, {flag})" for rot, flag in zip(spawn_rot, spawn_flags))
+                    entranceActor.rot = ", ".join(f"SPAWN_ROT_FLAGS(DEG_TO_BINANG({(r * (180 / 0x8000)):.3f}), 0x00)" for r in rot)
 
                 entranceActor.params = entranceProp.actor.actorParam
                 if entranceProp.tiedRoom is not None:

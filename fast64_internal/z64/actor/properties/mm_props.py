@@ -85,25 +85,12 @@ class MM_ActorHeaderProperty(PropertyGroup):
 class MM_ActorProperty(PropertyGroup):
     actorID: EnumProperty(name="Actor", items=mm_data.actor_data.enum_actor_id, default="ACTOR_PLAYER")
     actorIDCustom: StringProperty(name="Actor ID", default="ACTOR_PLAYER")
-    actor_id_flags: StringProperty(name="Actor ID Flags", default="0x0000")
     actorParam: StringProperty(name="Actor Parameter", default="0x0000")
-    rot_flags_x: StringProperty(name="Rot Flags X", default="0x0000")
-    rot_flags_y: StringProperty(name="Rot Flags Y", default="0x0000")
-    rot_flags_z: StringProperty(name="Rot Flags Z", default="0x0000")
-    rotOverride: BoolProperty(name="Override Rotation", default=False)
+    rotOverride: BoolProperty(name="Override Rotation", default=False, description="Non-zero values means the rotation is used as additional flags and will set the matching flag in the actor ID automatically")
     rotOverrideX: StringProperty(name="Rot X", default="0")
     rotOverrideY: StringProperty(name="Rot Y", default="0")
     rotOverrideZ: StringProperty(name="Rot Z", default="0")
     headerSettings: PointerProperty(type=MM_ActorHeaderProperty)
-
-    def draw_settings(self, layout: UILayout):
-        prop_split(layout, self, "actorParam", "Actor Parameter")
-
-        flag_box = layout.box()
-        prop_split(flag_box, self, "actor_id_flags", "Actor ID Flags")
-        prop_split(flag_box, self, "rot_flags_x", "Rot Flags X")
-        prop_split(flag_box, self, "rot_flags_y", "Rot Flags Y")
-        prop_split(flag_box, self, "rot_flags_z", "Rot Flags Z")
 
     def draw_props(self, layout: UILayout, altRoomProp: MM_AlternateRoomHeaderProperty, objName: str):
         actorIDBox = layout.column()
@@ -123,13 +110,14 @@ class MM_ActorProperty(PropertyGroup):
         if self.actorID == "Custom":
             prop_split(actorIDBox, self, "actorIDCustom", "")
 
-        self.draw_settings(actorIDBox)
+        prop_split(actorIDBox, self, "actorParam", "Actor Parameter")
 
-        actorIDBox.prop(self, "rotOverride", text="Override Rotation (ignore Blender rot)")
+        rot_box = actorIDBox.box()
+        rot_box.prop(self, "rotOverride", text="Use Rotation Flags")
         if self.rotOverride:
-            prop_split(actorIDBox, self, "rotOverrideX", "Rot X")
-            prop_split(actorIDBox, self, "rotOverrideY", "Rot Y")
-            prop_split(actorIDBox, self, "rotOverrideZ", "Rot Z")
+            prop_split(rot_box, self, "rotOverrideX", "Rot X")
+            prop_split(rot_box, self, "rotOverrideY", "Rot Y")
+            prop_split(rot_box, self, "rotOverrideZ", "Rot Z")
 
         headerProp: MM_ActorHeaderProperty = self.headerSettings
         headerProp.draw_props(actorIDBox, "Actor", altRoomProp, objName)
@@ -143,6 +131,7 @@ class MM_TransitionActorProperty(PropertyGroup):
     cameraTransitionBack: EnumProperty(items=ootEnumCamTransition, default="0x00")
     cameraTransitionBackCustom: StringProperty(default="0x00")
     isRoomTransition: BoolProperty(name="Is Room Transition", default=True)
+    cutscene_id: StringProperty(name="Cutscene ID", default="CS_ID_GLOBAL_END", description="See the `CutsceneId` enum for more values")
 
     actor: PointerProperty(type=MM_ActorProperty)
 
@@ -164,6 +153,7 @@ class MM_TransitionActorProperty(PropertyGroup):
         if self.actor.actorID == "Custom":
             prop_split(actorIDBox, self.actor, "actorIDCustom", "")
 
+        prop_split(actorIDBox, self, "cutscene_id", "Cutscene ID")
         prop_split(actorIDBox, self.actor, "actorParam", "Actor Parameter")
 
         if roomObj is None:
@@ -213,8 +203,7 @@ class MM_EntranceProperty(PropertyGroup):
 
         prop_split(box, entranceProp, "tiedRoom", "Room")
         prop_split(box, entranceProp, "spawnIndex", "Spawn Index")
-
-        entranceProp.actor.draw_settings(box)
+        prop_split(box, self, "actorParam", "Actor Parameter")
 
         headerProps: MM_ActorHeaderProperty = entranceProp.actor.headerSettings
         headerProps.draw_props(box, "Entrance", altSceneProp, objName)

@@ -51,11 +51,16 @@ def getDisplayNameFromActorID(actorID: str):
 
 
 def handleActorWithRotAsParam(actorProp: OOTActorProperty, actorID: str, rotation: list[int]):
-    if actorID in actorsWithRotAsParam:
-        actorProp.rotOverride = True
-        actorProp.rotOverrideX = hex(rotation[0])
-        actorProp.rotOverrideY = hex(rotation[1])
-        actorProp.rotOverrideZ = hex(rotation[2])
+    if is_game_oot():
+        if actorID in actorsWithRotAsParam:
+            actorProp.rotOverride = True
+    else:
+        actorProp.rotOverride = rotation[0] != 0 or rotation[1] != 0 or rotation[2] != 0
+
+    if actorProp.rotOverride:
+        actorProp.rotOverrideX = f"0x{rotation[0]:04X}"
+        actorProp.rotOverrideY = f"0x{rotation[1]:04X}"
+        actorProp.rotOverrideZ = f"0x{rotation[2]:04X}"
 
 
 def getDataMatch(

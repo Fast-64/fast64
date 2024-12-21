@@ -198,19 +198,28 @@ class RoomActors:
                     else:
                         actor.rot = ", ".join(f"DEG_TO_BINANG({(r * (180 / 0x8000)):.3f})" for r in rot)
                 else:
-                    if int(getEvalParams(actorProp.actor_id_flags), base=0) > 0:
-                        actor.id = f"{actor.id} | {actorProp.actor_id_flags}"
-
-                    spawn_flags = [actorProp.rot_flags_x, actorProp.rot_flags_y, actorProp.rot_flags_z]
-
                     if actorProp.rotOverride:
-                        spawn_rot = [
-                            f"SPAWN_ROT_FLAGS({actorProp.rotOverrideX}",
-                            f"SPAWN_ROT_FLAGS({actorProp.rotOverrideY}",
-                            f"SPAWN_ROT_FLAGS({actorProp.rotOverrideZ}",
+                        actor_flags = [0x4000, 0x8000, 0x2000]
+                        actor_flag_masks = []
+                        spawn_flags = [
+                            f"0x{int(getEvalParams(actorProp.rotOverrideX), base=0):02X}",
+                            f"0x{int(getEvalParams(actorProp.rotOverrideY), base=0):02X}",
+                            f"0x{int(getEvalParams(actorProp.rotOverrideZ), base=0):02X}",
                         ]
+
+                        for i, rot_flag in enumerate(spawn_flags):
+                            if int(rot_flag, base=0) > 0:
+                                actor_flag_masks.append(actor_flags[i])
+
+                        if len(actor_flag_masks) > 0:
+                            mask = 0
+                            for val in actor_flag_masks:
+                                mask |= val
+                            actor.id = f"{actor.id} | 0x{mask:04X}"
                     else:
-                        spawn_rot = [f"SPAWN_ROT_FLAGS(DEG_TO_BINANG({(r * (180 / 0x8000)):.3f})" for r in rot]
+                        spawn_flags = ["0x00"] * 3
+
+                    spawn_rot = [f"SPAWN_ROT_FLAGS(DEG_TO_BINANG({(r * (180 / 0x8000)):.3f})" for r in rot]
                     actor.rot = ", ".join(f"{rot}, {flag})" for rot, flag in zip(spawn_rot, spawn_flags))
 
                 actor.name = (

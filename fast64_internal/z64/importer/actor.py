@@ -35,6 +35,13 @@ def parseTransActorList(
         position = tuple([hexOrDecInt(value) for value in params[5:8]])
 
         rotY = getEvalParams(params[8]) if "DEG_TO_BINANG" in params[8] else params[8]
+        cutscene_id = "CS_ID_GLOBAL_END"
+
+        if not is_game_oot():
+            rotY_int = int(rotY, base=0)
+            rotY = f"0x{(rotY_int >> 7) & 0x1FF:04X}"
+            cutscene_id = f"0x{rotY_int & 0x7F:02X}"
+
         rotation = tuple([0, hexOrDecInt(rotY), 0])
 
         roomIndexFront = hexOrDecInt(params[0])
@@ -53,6 +60,7 @@ def parseTransActorList(
             position,
             rotation,
             actorParam,
+            cutscene_id,
         )
         if not sharedSceneData.addHeaderIfItemExists(actorHash, "Transition Actor", headerIndex):
             actorObj = createEmptyWithTransform(position, [0, 0, 0] if actorID in actorsWithRotAsParam else rotation)
@@ -72,6 +80,9 @@ def parseTransActorList(
             else:
                 transActorProp.isRoomTransition = False
                 parentObject(toRoom, actorObj)
+
+            if not is_game_oot():
+                transActorProp.cutscene_id = cutscene_id
 
             setCustomProperty(transActorProp, "cameraTransitionFront", camFront, ootEnumCamTransition)
             setCustomProperty(transActorProp, "cameraTransitionBack", camBack, ootEnumCamTransition)
@@ -107,8 +118,8 @@ def parseEntranceList(
 def parseActorInfo(
     actorMatch: re.Match, nestedBrackets: bool
 ) -> tuple[str, str, list[int], tuple[int], tuple[int], str]:
-    spawn_flags = ["0x0000"] * 3
-    actor_id_flags = "0x0000"
+    spawn_flags = [0x0000] * 3
+    actor_id_flags = 0x0000
 
     if nestedBrackets:
         actorID = actorMatch.group(1).strip()
@@ -136,7 +147,7 @@ def parseActorInfo(
                 if value != "":
                     rot, flags = value.removeprefix("(").removesuffix(",").removesuffix(")").split(",")
                     spawn_rotation.append(hexOrDecInt(getEvalParams(rot)))
-                    spawn_flags.append(flags)
+                    spawn_flags.append(hexOrDecInt(getEvalParams(flags)))
 
         actorParam = actorMatch.group(4).strip()
     else:
@@ -147,14 +158,6 @@ def parseActorInfo(
         actorParam = params[7]
 
     return actorID, actor_id_flags, position, tuple(spawn_rotation), tuple(spawn_flags), actorParam
-
-
-def set_actor_flags(actor_prop, actor_id_flags: str, spawn_flags: tuple[str, str, str]):
-    if not is_game_oot():
-        actor_prop.actor_id_flags = actor_id_flags
-        actor_prop.rot_flags_x = spawn_flags[0]
-        actor_prop.rot_flags_y = spawn_flags[1]
-        actor_prop.rot_flags_z = spawn_flags[2]
 
 
 def parseSpawnList(
@@ -185,10 +188,9 @@ def parseSpawnList(
             spawnProp.spawnIndex = spawnIndex
             spawnProp.customActor = actorID != "ACTOR_PLAYER"
             actorProp = spawnProp.actor
-            set_actor_flags(actorProp, actor_id_flags, spawn_flags)
             setCustomProperty(actorProp, "actorID", actorID, get_game_enum("enum_actor_id"))
             actorProp.actorParam = actorParam
-            handleActorWithRotAsParam(actorProp, actorID, rotation)
+            handleActorWithRotAsParam(actorProp, actorID, rotation if is_game_oot() else spawn_flags)
             unsetAllHeadersExceptSpecified(actorProp.headerSettings, headerIndex)
 
             sharedSceneData.entranceDict[actorHash] = spawnObj
@@ -223,10 +225,9 @@ def parseActorList(
             actorObj.ootEmptyType = "Actor"
             actorObj.name = getDisplayNameFromActorID(actorID)
             actorProp = get_game_props(actorObj, "actor")
-            set_actor_flags(actorProp, actor_id_flags, spawn_flags)
             setCustomProperty(actorProp, "actorID", actorID, get_game_enum("enum_actor_id"))
             actorProp.actorParam = actorParam
-            handleActorWithRotAsParam(actorProp, actorID, rotation)
+            handleActorWithRotAsParam(actorProp, actorID, rotation if is_game_oot() else spawn_flags)
             unsetAllHeadersExceptSpecified(actorProp.headerSettings, headerIndex)
 
             sharedSceneData.actorDict[actorHash] = actorObj

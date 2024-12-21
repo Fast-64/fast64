@@ -1,7 +1,7 @@
 import bpy
 from bpy.utils import register_class, unregister_class
 from ..utility import prop_split, gammaInverse
-from .utility import getSceneObj, getRoomObj, get_game_props
+from .utility import getSceneObj, getRoomObj, get_game_props, is_game_oot
 from .scene.properties import OOTSceneProperties
 from .room.properties import OOTObjectProperty, OOTRoomHeaderProperty, OOTAlternateRoomHeaderProperty
 from .collision.properties import OOTWaterBoxProperty
@@ -201,7 +201,7 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
     @staticmethod
     def upgrade_changed_props():
         for obj in bpy.data.objects:
-            if obj.type == "EMPTY":
+            if obj.type == "EMPTY" and is_game_oot():
                 if obj.ootEmptyType == "Room":
                     OOTObjectProperty.upgrade_object(obj)
                 if obj.ootEmptyType in {"Entrance", "Transition Actor"}:
@@ -218,7 +218,7 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
                                 obj.ootEmptyType = "CS Dummy Cue"
                         else:
                             print("WARNING: An Actor Cue has been detected outside an Actor Cue List: " + obj.name)
-            elif obj.type == "ARMATURE":
+            elif obj.type == "ARMATURE" and is_game_oot():
                 parentObj = obj.parent
                 if parentObj is not None and (
                     parentObj.name.startswith("Cutscene.") or parentObj.ootEmptyType == "Cutscene"
