@@ -36,12 +36,12 @@ class MM_SearchObjectEnumOperator(Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     object_key: EnumProperty(items=mm_data.object_data.enum_object_key, default="gameplay_keep")
-    header_index: IntProperty(default=0, min=0)
+    headerIndex: IntProperty(default=0, min=0)
     index: IntProperty(default=0, min=0)
-    obj_name: StringProperty()
+    objName: StringProperty()
 
     def execute(self, context):
-        roomHeader = ootGetSceneOrRoomHeader(bpy.data.objects[self.obj_name], self.header_index, True)
+        roomHeader = ootGetSceneOrRoomHeader(bpy.data.objects[self.objName], self.headerIndex, True)
         roomHeader.objectList[self.index].object_key = self.object_key
         context.region.tag_redraw()
         self.report({"INFO"}, "Selected: " + self.object_key)

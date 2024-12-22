@@ -22,6 +22,7 @@ from .fast64_internal.sm64.sm64_objects import SM64_ObjectProperties
 from .fast64_internal.z64 import OOT_Properties, oot_register, oot_unregister
 from .fast64_internal.z64.constants import oot_world_defaults
 from .fast64_internal.z64.props_panel_main import OOT_ObjectProperties
+from .fast64_internal.z64.utility import getObjectList
 from .fast64_internal.utility_anim import utility_anim_register, utility_anim_unregister, ArmatureApplyWithMeshOperator
 
 from .fast64_internal.mk64 import MK64_Properties, mk64_register, mk64_unregister
@@ -408,6 +409,19 @@ def set_game_defaults(scene: bpy.types.Scene, set_ucode=True):
 
 def gameEditorUpdate(scene: bpy.types.Scene, _context):
     set_game_defaults(scene)
+
+    # reset `currentCutsceneIndex` when switching games
+    if scene.gameEditorMode in {"OOT", "MM"}:
+        cs_index_start = 4 if scene.gameEditorMode == "OOT" else 1
+
+        for scene_obj in bpy.data.objects:
+            scene_obj.ootAlternateSceneHeaders.currentCutsceneIndex = cs_index_start
+
+            if scene_obj.type == "EMPTY" and scene_obj.ootEmptyType == "Scene":
+                room_obj_list = getObjectList(scene_obj.children_recursive, "EMPTY", "Room")
+
+                for room_obj in room_obj_list:
+                    room_obj.ootAlternateRoomHeaders.currentCutsceneIndex = cs_index_start
 
 
 # called on add-on enabling

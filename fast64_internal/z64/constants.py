@@ -36,13 +36,13 @@ ootEnumLinkIdle = [
 
 mm_enum_environment_type = [
     ("Custom", "Custom", "Custom"),
-    ("0x00", "Default", "ROOM_ENV_DEFAULT"),
-    ("0x01", "Cold", "ROOM_ENV_COLD"),
-    ("0x02", "Warm", "ROOM_ENV_WARM"),
-    ("0x03", "Hot", "ROOM_ENV_HOT"),
-    ("0x04", "Unknown Stretch 1", "ROOM_ENV_UNK_STRETCH_1"),
-    ("0x05", "Unknown Stretch 2", "ROOM_ENV_UNK_STRETCH_2"),
-    ("0x06", "Unknown Stretch 3", "ROOM_ENV_UNK_STRETCH_3"),
+    ("ROOM_ENV_DEFAULT", "Default", "0x00"),
+    ("ROOM_ENV_COLD", "Cold", "0x01"),
+    ("ROOM_ENV_WARM", "Warm", "0x02"),
+    ("ROOM_ENV_HOT", "Hot", "0x03"),
+    ("ROOM_ENV_UNK_STRETCH_1", "Unknown Stretch 1", "0x04"),
+    ("ROOM_ENV_UNK_STRETCH_2", "Unknown Stretch 2", "0x05"),
+    ("ROOM_ENV_UNK_STRETCH_3", "Unknown Stretch 3", "0x06"),
 ]
 
 ootEnumCloudiness = [
@@ -662,12 +662,12 @@ ootEnumRoomBehaviour = [
 
 mm_enum_room_type = [
     ("Custom", "Custom", "Custom"),
-    ("0x00", "Normal", "ROOM_TYPE_NORMAL"),
-    ("0x01", "Dungeon", "ROOM_TYPE_DUNGEON"),
-    ("0x02", "Indoors", "ROOM_TYPE_INDOORS"),
-    ("0x03", "Type 3", "ROOM_TYPE_3"),
-    ("0x04", "Type 4 (Horse related)", "ROOM_TYPE_4"),
-    ("0x05", "Boss", "ROOM_TYPE_BOSS"),
+    ("ROOM_TYPE_NORMAL", "Normal", "0x00"),
+    ("ROOM_TYPE_DUNGEON", "Dungeon", "0x01"),
+    ("ROOM_TYPE_INDOORS", "Indoors", "0x02"),
+    ("ROOM_TYPE_3", "Type 3", "0x03"),
+    ("ROOM_TYPE_4", "Type 4 (Horse related)", "0x04"),
+    ("ROOM_TYPE_BOSS", "Boss", "0x05"),
 ]
 
 ootEnumDrawConfig = [

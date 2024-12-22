@@ -129,18 +129,24 @@ class Z64_ExitProperty(PropertyGroup):
     def draw_props(self, layout: UILayout, index: int, headerIndex: int, objName: str):
         box = layout.box()
         box.prop(self, "expandTab", text="Exit " + str(index + 1), icon="TRIA_DOWN" if self.expandTab else "TRIA_RIGHT")
+
         if self.expandTab:
             drawCollectionOps(box, index, "Exit", headerIndex, objName)
-            drawEnumWithCustom(box, self, "exitIndex", "Exit Index", "")
-            if is_game_oot() and self.exitIndex != "Custom":
-                box.label(text='This is unfinished, use "Custom".')
-                exitGroup = box.column()
-                exitGroup.enabled = False
-                drawEnumWithCustom(exitGroup, self, "scene", "Scene", "")
-                exitGroup.prop(self, "continueBGM", text="Continue BGM")
-                exitGroup.prop(self, "displayTitleCard", text="Display Title Card")
-                drawEnumWithCustom(exitGroup, self, "fadeInAnim", "Fade In Animation", "")
-                drawEnumWithCustom(exitGroup, self, "fadeOutAnim", "Fade Out Animation", "")
+
+            if is_game_oot():
+                drawEnumWithCustom(box, self, "exitIndex", "Exit Index", "")
+
+                if self.exitIndex != "Custom":
+                    box.label(text='This is unfinished, use "Custom".')
+                    exitGroup = box.column()
+                    exitGroup.enabled = False
+                    drawEnumWithCustom(exitGroup, self, "scene", "Scene", "")
+                    exitGroup.prop(self, "continueBGM", text="Continue BGM")
+                    exitGroup.prop(self, "displayTitleCard", text="Display Title Card")
+                    drawEnumWithCustom(exitGroup, self, "fadeInAnim", "Fade In Animation", "")
+                    drawEnumWithCustom(exitGroup, self, "fadeOutAnim", "Fade Out Animation", "")
+            else:
+                prop_split(box, self, "exitIndexCustom", "Exit Index")
 
 
 class Z64_LightProperty(PropertyGroup):
@@ -566,7 +572,7 @@ def update_cutscene_index(self: "Z64_AlternateSceneHeaderProperty", context: Con
 
 class Z64_AlternateSceneHeaderProperty(PropertyGroup):
     cutsceneHeaders: CollectionProperty(type=Z64_SceneHeaderProperty)
-    currentCutsceneIndex: IntProperty(update=update_cutscene_index)
+    currentCutsceneIndex: IntProperty(default=1, update=update_cutscene_index)
 
     # OoT exclusive
     childNightHeader: PointerProperty(name="Child Night Header", type=Z64_SceneHeaderProperty)

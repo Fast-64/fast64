@@ -118,11 +118,11 @@ class Z64_RoomHeaderProperty(PropertyGroup):
     # SCENE_CMD_ROOM_BEHAVIOR
     roomIndex: IntProperty(name="Room Index", default=0, min=0)
     roomBehaviour: EnumProperty(items=ootEnumRoomBehaviour, default="0x00")
-    mm_room_type: EnumProperty(items=mm_enum_room_type, default="0x00")
+    mm_room_type: EnumProperty(items=mm_enum_room_type, default="ROOM_TYPE_NORMAL")
     roomBehaviourCustom: StringProperty(default="0x00")
     showInvisibleActors: BoolProperty(name="Show Invisible Actors")
     linkIdleMode: EnumProperty(name="Environment Type", items=ootEnumLinkIdle, default="0x00")
-    mm_environment_type: EnumProperty(name="Environment Type", items=mm_enum_environment_type, default="0x00")
+    mm_environment_type: EnumProperty(name="Environment Type", items=mm_enum_environment_type, default="ROOM_ENV_DEFAULT")
     linkIdleModeCustom: StringProperty(name="Environment Type Custom", default="0x00")
 
     # OoT exclusive
@@ -289,7 +289,7 @@ def update_cutscene_index(self: "Z64_AlternateRoomHeaderProperty", context: Cont
 
 class Z64_AlternateRoomHeaderProperty(PropertyGroup):
     cutsceneHeaders: CollectionProperty(type=Z64_RoomHeaderProperty)
-    currentCutsceneIndex: IntProperty(update=update_cutscene_index)
+    currentCutsceneIndex: IntProperty(default=1, update=update_cutscene_index)
 
     # OoT exclusive
     childNightHeader: PointerProperty(name="Child Night Header", type=Z64_RoomHeaderProperty)
