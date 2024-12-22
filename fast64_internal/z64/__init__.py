@@ -2,11 +2,7 @@ import bpy
 from bpy.utils import register_class, unregister_class
 
 from .scene.operators import scene_ops_register, scene_ops_unregister
-from .scene.properties import (
-    OOT_BootupSceneOptions,
-    scene_props_register,
-    scene_props_unregister,
-)
+from .scene.properties import OOT_BootupSceneOptions, scene_props_register, scene_props_unregister
 from .scene.panels import scene_panels_register, scene_panels_unregister
 
 from .props_panel_main import oot_obj_panel_register, oot_obj_panel_unregister, oot_obj_register, oot_obj_unregister
@@ -16,18 +12,10 @@ from .file_settings import file_register, file_unregister
 from .collision.properties import OOTCollisionExportSettings
 
 from .room.operators import room_ops_register, room_ops_unregister
-from .room.properties import (
-    room_props_register,
-    room_props_unregister,
-)
+from .room.properties import room_props_register, room_props_unregister
 
 from .actor.operators import actor_ops_register, actor_ops_unregister
-from .actor.properties import (
-    actor_props_register,
-    actor_props_unregister,
-    mm_actor_props_register,
-    mm_actor_props_unregister,
-)
+from .actor.properties import actor_props_register, actor_props_unregister
 
 from .f3d.operators import f3d_ops_register, f3d_ops_unregister
 from .f3d.properties import OOTDLExportSettings, OOTDLImportSettings, f3d_props_register, f3d_props_unregister
@@ -175,7 +163,6 @@ def oot_register(registerPanels):
     room_props_register()
     actor_ops_register()
     actor_props_register()
-    mm_actor_props_register()
     oot_obj_register()
     spline_props_register()
     f3d_props_register()
@@ -216,7 +203,6 @@ def oot_unregister(unregisterPanels):
     room_props_unregister()
     actor_ops_unregister()
     actor_props_unregister()
-    mm_actor_props_unregister()
     spline_props_unregister()
     f3d_props_unregister()
     anim_ops_unregister()

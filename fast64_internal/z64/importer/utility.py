@@ -3,7 +3,7 @@ import bpy
 import mathutils
 
 from ...utility import PluginError, hexOrDecInt, removeComments, yUpToZUp
-from ..actor.properties import OOTActorProperty, OOTActorHeaderProperty, MM_ActorHeaderProperty
+from ..actor.properties import Z64_ActorProperty, Z64_ActorHeaderProperty
 from ..utility import ootParseRotation, is_game_oot, get_cs_index_start
 from .constants import headerNames, actorsWithRotAsParam
 
@@ -16,7 +16,7 @@ def getBits(value: int, index: int, size: int) -> int:
     return ((1 << size) - 1) & (value >> index)
 
 
-def unsetAllHeadersExceptSpecified(headerSettings: OOTActorHeaderProperty | MM_ActorHeaderProperty, headerIndex: int):
+def unsetAllHeadersExceptSpecified(headerSettings: Z64_ActorHeaderProperty, headerIndex: int):
     if is_game_oot():
         headerSettings.sceneSetupPreset = "Custom"
 
@@ -50,7 +50,7 @@ def getDisplayNameFromActorID(actorID: str):
     return " ".join([word.lower().capitalize() for word in actorID.split("_") if word != "ACTOR"])
 
 
-def handleActorWithRotAsParam(actorProp: OOTActorProperty, actorID: str, rotation: list[int]):
+def handleActorWithRotAsParam(actorProp: Z64_ActorProperty, actorID: str, rotation: list[int]):
     if is_game_oot():
         if actorID in actorsWithRotAsParam:
             actorProp.rotOverride = True

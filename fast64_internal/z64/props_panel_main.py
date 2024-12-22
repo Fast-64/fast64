@@ -13,9 +13,9 @@ from .cutscene.motion.properties import (
 )
 
 from .actor.properties import (
-    OOTActorProperty,
-    OOTTransitionActorProperty,
-    OOTEntranceProperty,
+    Z64_ActorProperty,
+    Z64_TransitionActorProperty,
+    Z64_EntranceProperty,
 )
 
 # Make sure to add exceptions in utility.py - selectMeshChildrenOnly
@@ -140,11 +140,11 @@ class OOTObjectPanel(bpy.types.Panel):
         altRoomProp = get_game_props(roomObj, "alt_room") if roomObj is not None else None
 
         if obj.ootEmptyType == "Actor":
-            actorProp: OOTActorProperty = get_game_props(obj, "actor")
+            actorProp: Z64_ActorProperty = get_game_props(obj, "actor")
             actorProp.draw_props(box, altRoomProp, objName)
 
         elif obj.ootEmptyType == "Transition Actor":
-            transActorProp: OOTTransitionActorProperty = get_game_props(obj, "transition_actor")
+            transActorProp: Z64_TransitionActorProperty = get_game_props(obj, "transition_actor")
             transActorProp.draw_props(box, altSceneProp, roomObj, objName)
 
         elif obj.ootEmptyType == "Water Box":
@@ -162,7 +162,7 @@ class OOTObjectPanel(bpy.types.Panel):
                 roomAltProp.draw_props(box, objName)
 
         elif obj.ootEmptyType == "Entrance":
-            entranceProp: OOTEntranceProperty = get_game_props(obj, "entrance_actor")
+            entranceProp: Z64_EntranceProperty = get_game_props(obj, "entrance_actor")
             entranceProp.draw_props(box, obj, altSceneProp, objName)
 
         elif obj.ootEmptyType == "Cull Group":
@@ -205,7 +205,7 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
                 if obj.ootEmptyType == "Room":
                     Z64_ObjectProperty.upgrade_object(obj)
                 if obj.ootEmptyType in {"Entrance", "Transition Actor"}:
-                    OOTActorProperty.upgrade_object(obj)
+                    Z64_ActorProperty.upgrade_object(obj)
                 if obj.ootEmptyType == "Cutscene":
                     OOTCutsceneProperty.upgrade_object(obj)
                 if any(obj.name.startswith(elem) for elem in ["ActionList.", "Point.", "Preview."]):

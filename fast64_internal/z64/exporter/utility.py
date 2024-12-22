@@ -3,7 +3,7 @@ from mathutils import Quaternion, Matrix
 from bpy.types import Object
 from ...utility import PluginError, indent
 from ..utility import ootConvertTranslation, ootConvertRotation, is_game_oot
-from ..actor.properties import OOTActorHeaderProperty, MM_ActorHeaderProperty
+from ..actor.properties import Z64_ActorHeaderProperty
 
 
 altHeaderList = ["childNight", "adultDay", "adultNight"]
@@ -34,7 +34,7 @@ class Utility:
         return (round(position[0]), round(position[1]), round(position[2]))
 
     @staticmethod
-    def isCurrentHeaderValid(headerSettings: OOTActorHeaderProperty | MM_ActorHeaderProperty, headerIndex: int):
+    def isCurrentHeaderValid(headerSettings: Z64_ActorHeaderProperty, headerIndex: int):
         """Checks if the an alternate header can be used"""
 
         if is_game_oot():

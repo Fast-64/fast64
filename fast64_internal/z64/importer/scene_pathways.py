@@ -32,8 +32,8 @@ def parsePath(
     splineProp.index = orderIndex
 
     if not is_game_oot() and opt_path_idx is not None and custom_value is not None:
-        splineProp.mm_opt_path_index = int(opt_path_idx)
-        splineProp.mm_custom_value = int(custom_value)
+        splineProp.opt_path_index = int(opt_path_idx)
+        splineProp.custom_value = int(custom_value)
 
     unsetAllHeadersExceptSpecified(get_game_props(curveObj, "path_header_settings"), headerIndex)
     sharedSceneData.pathDict[pathPoints] = curveObj

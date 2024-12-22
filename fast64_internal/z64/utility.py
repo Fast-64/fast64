@@ -89,6 +89,7 @@ def get_game_prop_name(prop_type: str):
             "object_key": "objectKey",
             "room_type": "roomBehaviour",
             "environment_type": "linkIdleMode",
+            "actor_id": "actorID",
         },
         "MM": {
             "global_obj": "mm_global_obj",
@@ -100,6 +101,7 @@ def get_game_prop_name(prop_type: str):
             "object_key": "mm_object_key",
             "room_type": "mm_room_type",
             "environment_type": "mm_environment_type",
+            "actor_id": "mm_actor_id",
         },
     }
 
@@ -124,10 +126,10 @@ def get_game_props(obj: Object, header_type: str):
                 "alt_scene": obj.ootAlternateSceneHeaders,
                 "room": obj.ootRoomHeader,
                 "alt_room": obj.ootAlternateRoomHeaders,
-                "actor": obj.mm_actor_property,
-                "transition_actor": obj.mm_transition_actor_property,
-                "entrance_actor": obj.mm_entrance_property,
-                "path_header_settings": obj.ootSplineProperty.mm_header_settings,
+                "actor": obj.ootActorProperty,
+                "transition_actor": obj.ootTransitionActorProperty,
+                "entrance_actor": obj.ootEntranceProperty,
+                "path_header_settings": obj.ootSplineProperty.headerSettings,
             },
         }
     else:
