@@ -3,7 +3,7 @@ import bpy
 
 from ...utility import parentObject, hexOrDecInt
 from ..scene.properties import Z64_SceneHeaderProperty
-from ..utility import setCustomProperty, getEvalParams, get_game_props, is_game_oot, get_game_enum
+from ..utility import setCustomProperty, getEvalParams, is_game_oot, get_game_enum, get_game_prop_name
 from ..constants import ootEnumCamTransition
 from .classes import SharedSceneData
 from .constants import actorsWithRotAsParam
@@ -66,7 +66,7 @@ def parseTransActorList(
             actorObj = createEmptyWithTransform(position, [0, 0, 0] if actorID in actorsWithRotAsParam else rotation)
             actorObj.ootEmptyType = "Transition Actor"
             actorObj.name = "Transition " + getDisplayNameFromActorID(params[4])
-            transActorProp = get_game_props(actorObj, "transition_actor")
+            transActorProp = actorObj.ootTransitionActorProperty
 
             sharedSceneData.transDict[actorHash] = actorObj
 
@@ -88,7 +88,7 @@ def parseTransActorList(
             setCustomProperty(transActorProp, "cameraTransitionBack", camBack, ootEnumCamTransition)
 
             actorProp = transActorProp.actor
-            setCustomProperty(actorProp, "actorID", actorID, get_game_enum("enum_actor_id"))
+            setCustomProperty(actorProp, get_game_prop_name("actor_id"), actorID, get_game_enum("enum_actor_id"))
             actorProp.actorParam = actorParam
             handleActorWithRotAsParam(actorProp, actorID, rotation)
             unsetAllHeadersExceptSpecified(actorProp.headerSettings, headerIndex)
@@ -183,12 +183,12 @@ def parseSpawnList(
             spawnObj = createEmptyWithTransform(position, [0, 0, 0] if actorID in actorsWithRotAsParam else rotation)
             spawnObj.ootEmptyType = "Entrance"
             spawnObj.name = "Entrance"
-            spawnProp = get_game_props(spawnObj, "entrance_actor")
+            spawnProp = spawnObj.ootEntranceProperty
             spawnProp.tiedRoom = roomObjs[roomIndex]
             spawnProp.spawnIndex = spawnIndex
             spawnProp.customActor = actorID != "ACTOR_PLAYER"
             actorProp = spawnProp.actor
-            setCustomProperty(actorProp, "actorID", actorID, get_game_enum("enum_actor_id"))
+            setCustomProperty(actorProp, get_game_prop_name("actor_id"), actorID, get_game_enum("enum_actor_id"))
             actorProp.actorParam = actorParam
             handleActorWithRotAsParam(actorProp, actorID, rotation if is_game_oot() else spawn_flags)
             unsetAllHeadersExceptSpecified(actorProp.headerSettings, headerIndex)
@@ -216,7 +216,7 @@ def parseActorList(
     regex, nestedBrackets = getActorRegex(actorList)
 
     for actorMatch in re.finditer(regex, actorList, flags=re.DOTALL):
-        actorHash = parseActorInfo(actorMatch, nestedBrackets) + (get_game_props(roomObj, "room").roomIndex,)
+        actorHash = parseActorInfo(actorMatch, nestedBrackets) + (roomObj.ootRoomHeader.roomIndex,)
 
         if not sharedSceneData.addHeaderIfItemExists(actorHash, "Actor", headerIndex):
             actorID, actor_id_flags, position, rotation, spawn_flags, actorParam, roomIndex = actorHash
@@ -224,8 +224,8 @@ def parseActorList(
             actorObj = createEmptyWithTransform(position, [0, 0, 0] if actorID in actorsWithRotAsParam else rotation)
             actorObj.ootEmptyType = "Actor"
             actorObj.name = getDisplayNameFromActorID(actorID)
-            actorProp = get_game_props(actorObj, "actor")
-            setCustomProperty(actorProp, "actorID", actorID, get_game_enum("enum_actor_id"))
+            actorProp = actorObj.ootActorProperty
+            setCustomProperty(actorProp, get_game_prop_name("actor_id"), actorID, get_game_enum("enum_actor_id"))
             actorProp.actorParam = actorParam
             handleActorWithRotAsParam(actorProp, actorID, rotation if is_game_oot() else spawn_flags)
             unsetAllHeadersExceptSpecified(actorProp.headerSettings, headerIndex)

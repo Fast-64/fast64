@@ -108,43 +108,6 @@ def get_game_prop_name(prop_type: str):
     return game_prop_name_map[bpy.context.scene.gameEditorMode][prop_type]
 
 
-def get_game_props(obj: Object, header_type: str):
-    if obj is not None:
-        game_header_map = {
-            "OOT": {
-                "scene": obj.ootSceneHeader,
-                "alt_scene": obj.ootAlternateSceneHeaders,
-                "room": obj.ootRoomHeader,
-                "alt_room": obj.ootAlternateRoomHeaders,
-                "actor": obj.ootActorProperty,
-                "transition_actor": obj.ootTransitionActorProperty,
-                "entrance_actor": obj.ootEntranceProperty,
-                "path_header_settings": obj.ootSplineProperty.headerSettings,
-            },
-            "MM": {
-                "scene": obj.ootSceneHeader,
-                "alt_scene": obj.ootAlternateSceneHeaders,
-                "room": obj.ootRoomHeader,
-                "alt_room": obj.ootAlternateRoomHeaders,
-                "actor": obj.ootActorProperty,
-                "transition_actor": obj.ootTransitionActorProperty,
-                "entrance_actor": obj.ootEntranceProperty,
-                "path_header_settings": obj.ootSplineProperty.headerSettings,
-            },
-        }
-    else:
-        game_header_map = {
-            "OOT": {
-                "export_settings": bpy.context.scene.ootSceneExportSettings,
-            },
-            "MM": {
-                "export_settings": bpy.context.scene.ootSceneExportSettings,
-            },
-        }
-
-    return game_header_map[bpy.context.scene.gameEditorMode][header_type]
-
-
 def is_game_oot():
     return bpy.context.scene.gameEditorMode == "OOT"
 
@@ -791,15 +754,15 @@ def getCollectionFromIndex(obj, prop, subIndex, isRoom):
 def getCollection(objName, collectionType, subIndex):
     obj = bpy.data.objects[objName]
     if collectionType == "Actor":
-        collection = get_game_props(obj, "actor").headerSettings.cutsceneHeaders
+        collection = obj.ootActorProperty.headerSettings.cutsceneHeaders
     elif collectionType == "Transition Actor":
-        collection = get_game_props(obj, "transition_actor").actor.headerSettings.cutsceneHeaders
+        collection = obj.ootTransitionActorProperty.actor.headerSettings.cutsceneHeaders
     elif collectionType == "Entrance":
-        collection = get_game_props(obj, "entrance_actor").actor.headerSettings.cutsceneHeaders
+        collection = obj.ootEntranceProperty.actor.headerSettings.cutsceneHeaders
     elif collectionType == "Room":
-        collection = get_game_props(obj, "alt_room").cutsceneHeaders
+        collection = obj.ootAlternateRoomHeaders.cutsceneHeaders
     elif collectionType == "Scene":
-        collection = get_game_props(obj, "alt_scene").cutsceneHeaders
+        collection = obj.ootAlternateSceneHeaders.cutsceneHeaders
     elif collectionType == "Light":
         collection = getCollectionFromIndex(obj, "lightList", subIndex, False)
     elif collectionType == "Exit":
@@ -811,7 +774,7 @@ def getCollection(objName, collectionType, subIndex):
     elif collectionType == "Object":
         collection = getCollectionFromIndex(obj, "objectList", subIndex, True)
     elif collectionType == "Curve":
-        collection = get_game_props(obj, "path_header_settings").cutsceneHeaders
+        collection = obj.ootSplineProperty.headerSettings.cutsceneHeaders
     elif collectionType.startswith("CSHdr."):
         # CSHdr.HeaderNumber[.ListType]
         # Specifying ListType means uses subIndex
@@ -830,9 +793,9 @@ def getCollection(objName, collectionType, subIndex):
     elif collectionType == "Cutscene":
         collection = obj.ootCutsceneProperty.csLists
     elif collectionType == "extraCutscenes":
-        collection = get_game_props(obj, "scene").extraCutscenes
+        collection = obj.ootSceneHeader.extraCutscenes
     elif collectionType == "BgImage":
-        collection = get_game_props(obj, "room").bgImageList
+        collection = obj.ootRoomHeader.bgImageList
     else:
         raise PluginError("Invalid collection type: " + collectionType)
 
@@ -942,15 +905,15 @@ def getHeaderSettings(actorObj: bpy.types.Object):
     itemType = actorObj.ootEmptyType
     if actorObj.type == "EMPTY":
         if itemType == "Actor":
-            headerSettings = get_game_props(actorObj, "actor").headerSettings
+            headerSettings = actorObj.ootActorProperty.headerSettings
         elif itemType == "Entrance":
-            headerSettings = get_game_props(actorObj, "transition_actor").actor.headerSettings
+            headerSettings = actorObj.ootTransitionActorProperty.actor.headerSettings
         elif itemType == "Transition Actor":
-            headerSettings = get_game_props(actorObj, "entrance_actor").actor.headerSettings
+            headerSettings = actorObj.ootEntranceProperty.actor.headerSettings
         else:
             headerSettings = None
     elif isPathObject(actorObj):
-        headerSettings = get_game_props(actorObj, "path_header_settings")
+        headerSettings = actorObj.ootSplineProperty.headerSettings
     else:
         headerSettings = None
 
@@ -983,11 +946,11 @@ def getActiveHeaderIndex() -> int:
 
     headerObj = headerObjs[0]
     if headerObj.ootEmptyType == "Scene":
-        header = get_game_props(headerObj, "scene")
-        altHeader = get_game_props(headerObj, "alt_scene")
+        header = headerObj.ootSceneHeader
+        altHeader = headerObj.ootAlternateSceneHeaders
     else:
-        header = get_game_props(headerObj, "room")
-        altHeader = get_game_props(headerObj, "alt_room")
+        header = headerObj.ootRoomHeader
+        altHeader = headerObj.ootAlternateRoomHeaders
 
     if header.menuTab != "Alternate":
         headerIndex = 0
@@ -1064,9 +1027,9 @@ def setActorVisibility(
 def onMenuTabChange(self, context: bpy.types.Context):
     def callback(thisHeader, otherObj: bpy.types.Object):
         if otherObj.ootEmptyType == "Scene":
-            header = get_game_props(otherObj, "scene")
+            header = otherObj.ootSceneHeader
         else:
-            header = get_game_props(otherObj, "room")
+            header = otherObj.ootRoomHeader
 
         if thisHeader.menuTab != "Alternate" and header.menuTab == "Alternate":
             header.menuTab = "General"
@@ -1079,9 +1042,9 @@ def onMenuTabChange(self, context: bpy.types.Context):
 def onHeaderMenuTabChange(self, context: bpy.types.Context):
     def callback(thisHeader, otherObj: bpy.types.Object):
         if otherObj.ootEmptyType == "Scene":
-            header = get_game_props(otherObj, "alt_scene")
+            header = otherObj.ootAlternateSceneHeaders
         else:
-            header = get_game_props(otherObj, "alt_room")
+            header = otherObj.ootAlternateRoomHeaders
 
         header.headerMenuTab = thisHeader.headerMenuTab
         header.currentCutsceneIndex = thisHeader.currentCutsceneIndex
@@ -1247,11 +1210,7 @@ def getObjectList(
                 cond = obj.ootSplineProperty.splineType == splineType
 
             if parentObj is not None:
-                if (
-                    emptyType == "Actor"
-                    and obj.ootEmptyType == "Room"
-                    and get_game_props(obj, "room").roomIndex == room_index
-                ):
+                if emptyType == "Actor" and obj.ootEmptyType == "Room" and obj.ootRoomHeader.roomIndex == room_index:
                     for o in obj.children_recursive:
                         if o.type == objType and o.ootEmptyType == emptyType and o not in ret:
                             ret.append(o)

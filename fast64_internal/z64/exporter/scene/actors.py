@@ -3,7 +3,7 @@ from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
-from ...utility import getObjectList, get_game_props, is_game_oot, getEvalParams
+from ...utility import getObjectList, is_game_oot
 from ...constants import oot_data
 from ..utility import Utility
 from ..actor import Actor
@@ -54,11 +54,11 @@ class SceneTransitionActors:
                     actorToRoom[childObj] = obj
 
         actorObjList = getObjectList(sceneObj.children_recursive, "EMPTY", "Transition Actor")
-        actorObjList.sort(key=lambda obj: get_game_props(actorToRoom[obj], "room").roomIndex)
+        actorObjList.sort(key=lambda obj: actorToRoom[obj].ootRoomHeader.roomIndex)
 
         entries: list[TransitionActor] = []
         for obj in actorObjList:
-            transActorProp = get_game_props(obj, "transition_actor")
+            transActorProp = obj.ootTransitionActorProperty
             if (
                 Utility.isCurrentHeaderValid(transActorProp.actor.headerSettings, headerIndex)
                 and transActorProp.actor.actorID != "None"
@@ -69,10 +69,10 @@ class SceneTransitionActors:
                 if transActorProp.isRoomTransition:
                     if transActorProp.fromRoom is None or transActorProp.toRoom is None:
                         raise PluginError("ERROR: Missing room empty object assigned to transition.")
-                    fromIndex = get_game_props(transActorProp.fromRoom, "room").roomIndex
-                    toIndex = get_game_props(transActorProp.toRoom, "room").roomIndex
+                    fromIndex = transActorProp.fromRoom.ootRoomHeader.roomIndex
+                    toIndex = transActorProp.toRoom.ootRoomHeader.roomIndex
                 else:
-                    fromIndex = toIndex = get_game_props(actorToRoom[obj], "room").roomIndex
+                    fromIndex = toIndex = actorToRoom[obj].ootRoomHeader.roomIndex
                 front = (fromIndex, Utility.getPropValue(transActorProp, "cameraTransitionFront"))
                 back = (toIndex, Utility.getPropValue(transActorProp, "cameraTransitionBack"))
 
@@ -150,7 +150,7 @@ class SceneEntranceActors:
         entranceActorFromIndex: dict[int, EntranceActor] = {}
         actorObjList = getObjectList(sceneObj.children_recursive, "EMPTY", "Entrance")
         for obj in actorObjList:
-            entranceProp = get_game_props(obj, "entrance_actor")
+            entranceProp = obj.ootEntranceProperty
             if (
                 Utility.isCurrentHeaderValid(entranceProp.actor.headerSettings, headerIndex)
                 and entranceProp.actor.actorID != "None"
@@ -178,7 +178,7 @@ class SceneEntranceActors:
 
                 entranceActor.params = entranceProp.actor.actorParam
                 if entranceProp.tiedRoom is not None:
-                    entranceActor.roomIndex = get_game_props(entranceProp.tiedRoom, "room").roomIndex
+                    entranceActor.roomIndex = entranceProp.tiedRoom.ootRoomHeader.roomIndex
                 else:
                     raise PluginError("ERROR: Missing room empty object assigned to the entrance.")
                 entranceActor.spawnIndex = entranceProp.spawnIndex

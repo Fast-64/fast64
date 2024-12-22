@@ -4,7 +4,6 @@ import re
 from ...utility import hexOrDecInt
 from ..utility import (
     setCustomProperty,
-    get_game_props,
     is_game_oot,
     get_game_enum,
     get_cs_index_start,
@@ -58,16 +57,16 @@ def parseRoomCommands(
         roomObj.empty_display_type = "SPHERE"
         roomObj.location = [0, 0, (roomIndex + 1) * -2]
         roomObj.ootEmptyType = "Room"
-        get_game_props(roomObj, "room").roomIndex = roomIndex
+        roomObj.ootRoomHeader.roomIndex = roomIndex
         roomObj.name = roomName
 
     if headerIndex == 0:
-        roomHeader = get_game_props(roomObj, "room")
+        roomHeader = roomObj.ootRoomHeader
     elif is_game_oot() and headerIndex < get_cs_index_start():
-        roomHeader = getattr(get_game_props(roomObj, "alt_room"), headerNames[headerIndex])
+        roomHeader = getattr(roomObj.ootAlternateRoomHeaders, headerNames[headerIndex])
         roomHeader.usePreviousHeader = False
     else:
-        cutsceneHeaders = get_game_props(roomObj, "alt_room").cutsceneHeaders
+        cutsceneHeaders = roomObj.ootAlternateRoomHeaders.cutsceneHeaders
         while len(cutsceneHeaders) < headerIndex - (get_cs_index_start() - 1):
             cutsceneHeaders.add()
         roomHeader = cutsceneHeaders[headerIndex - get_cs_index_start()]

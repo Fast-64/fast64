@@ -27,6 +27,7 @@ ootEnumSceneSetupPreset = [
 ]
 
 
+# TODO: remove
 def update_cutscene_index(self, context: Context):
     cs_index_start = get_cs_index_start()
 
@@ -35,7 +36,7 @@ def update_cutscene_index(self, context: Context):
 
 
 class Z64_ActorHeaderItemProperty(PropertyGroup):
-    headerIndex: IntProperty(name="Scene Setup", min=1, update=update_cutscene_index)
+    headerIndex: IntProperty(name="Scene Setup", min=1, default=1, update=update_cutscene_index)
 
     def draw_props(
         self,

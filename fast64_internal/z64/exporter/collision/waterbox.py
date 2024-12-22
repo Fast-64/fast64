@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from mathutils import Matrix
 from bpy.types import Object
-from ...utility import getObjectList, get_game_props
+from ...utility import getObjectList
 from ....utility import CData, checkIdentityRotation, indent
 from ..utility import Utility
 
@@ -121,7 +121,7 @@ class WaterBoxes:
                     emptyScale,
                     wboxProp.camera,
                     wboxProp.lighting,
-                    get_game_props(roomObj, "room").roomIndex if roomObj is not None else 0x3F,
+                    roomObj.ootRoomHeader.roomIndex if roomObj is not None else 0x3F,
                     wboxProp.flag19,
                     useMacros,
                 )

@@ -9,7 +9,7 @@ from bpy.ops import object
 from mathutils import Matrix, Vector
 from ...f3d.f3d_gbi import TextureExportSettings, DLFormat
 from ...utility import PluginError, raisePluginError, ootGetSceneOrRoomHeader
-from ..utility import ExportInfo, RemoveInfo, sceneNameFromID, is_game_oot, get_game_props
+from ..utility import ExportInfo, RemoveInfo, sceneNameFromID, is_game_oot
 from ..constants import oot_data, mm_data, ootEnumSceneID, mm_enum_scene_id
 from ..importer import parseScene
 from ..exporter.decomp_edit.config import Config
@@ -200,7 +200,7 @@ class OOT_ExportScene(Operator):
             raisePluginError(self, e)
             return {"CANCELLED"}
         try:
-            settings = get_game_props(None, "export_settings")
+            settings = context.scene.ootSceneExportSettings
             levelName = settings.name
             option = settings.option if is_game_oot() else settings.mm_option
             hackerFeaturesEnabled = False

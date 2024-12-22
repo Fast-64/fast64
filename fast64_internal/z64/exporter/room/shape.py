@@ -18,7 +18,6 @@ from ...utility import (
     CullGroup,
     checkUniformScale,
     ootConvertTranslation,
-    get_game_props,
 )
 
 
@@ -545,7 +544,7 @@ class RoomShapeUtility:
                     room_shape.bg_entries.append(RoomShapeImageEntry.new(scene_name, bg_image))
 
         pos, _, scale, _ = Utility.getConvertedTransform(transform, sceneObj, roomObj, True)
-        cull_group = CullGroup(pos, scale, get_game_props(roomObj, "room").defaultCullDistance)
+        cull_group = CullGroup(pos, scale, roomObj.ootRoomHeader.defaultCullDistance)
         dl_entry = room_shape.add_dl_entry(cull_group)
         boundingBox = BoundingBox()
         ootProcessMesh(

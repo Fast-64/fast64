@@ -3,7 +3,7 @@ from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import CData, indent
-from ...utility import getObjectList, get_game_props, is_game_oot, getEvalParams
+from ...utility import getObjectList, is_game_oot, getEvalParams
 from ...constants import oot_data
 from ...room.properties import Z64_RoomHeaderProperty
 from ..utility import Utility
@@ -174,7 +174,7 @@ class RoomActors:
         actorList: list[Actor] = []
         actorObjList = getObjectList(sceneObj.children, "EMPTY", "Actor", parentObj=roomObj, room_index=room_index)
         for obj in actorObjList:
-            actorProp = get_game_props(obj, "actor")
+            actorProp = obj.ootActorProperty
             if not Utility.isCurrentHeaderValid(actorProp.headerSettings, headerIndex):
                 continue
 

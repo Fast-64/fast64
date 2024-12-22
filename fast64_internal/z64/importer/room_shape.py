@@ -8,7 +8,6 @@ from ...f3d.f3d_parser import importMeshC
 from ..model_classes import OOTF3DContext
 from ..room.properties import Z64_RoomHeaderProperty
 from ..constants import ootEnumRoomShapeType
-from ..utility import get_game_props
 from .classes import SharedSceneData
 from .utility import getDataMatch, stripName
 
@@ -20,7 +19,7 @@ def parseMeshHeader(
     f3dContext: OOTF3DContext,
     sharedSceneData: SharedSceneData,
 ):
-    roomHeader = get_game_props(roomObj, "room")
+    roomHeader = roomObj.ootRoomHeader
     meshData = getDataMatch(sceneData, meshHeaderName, "", "mesh header", False)
     meshData = meshData.replace("{", "").replace("}", "")
 
@@ -79,7 +78,7 @@ def parseMeshList(
     f3dContext: OOTF3DContext,
     sharedSceneData: SharedSceneData,
 ):
-    roomHeader = get_game_props(roomObj, "room")
+    roomHeader = roomObj.ootRoomHeader
     meshEntryData = getDataMatch(sceneData, meshListName, "", "mesh list", roomShape != 1)
 
     if roomShape == 2:

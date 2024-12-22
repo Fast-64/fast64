@@ -4,7 +4,7 @@ from bpy.types import PropertyGroup, Object, UILayout
 from bpy.props import EnumProperty, PointerProperty, StringProperty, IntProperty
 from bpy.utils import register_class, unregister_class
 from ...utility import prop_split
-from ..utility import drawEnumWithCustom, is_game_oot, get_game_props
+from ..utility import drawEnumWithCustom, is_game_oot
 from ..collision.constants import enum_camera_crawlspace_stype
 from ..actor.properties import Z64_ActorHeaderProperty
 from ..scene.properties import Z64_AlternateSceneHeaderProperty
@@ -39,7 +39,7 @@ class Z64_SplineProperty(PropertyGroup):
             prop_split(layout, self, "custom_value", "Custom Value")
 
         if self.splineType == "Path":
-            headerProp: Z64_ActorHeaderProperty = get_game_props(bpy.data.objects[objName], "path_header_settings")
+            headerProp: Z64_ActorHeaderProperty = bpy.data.objects[objName].ootSplineProperty.headerSettings
             headerProp.draw_props(layout, "Curve", altSceneProp, objName)
         elif self.splineType == "Crawlspace":
             layout.label(text="This counts as a camera for index purposes.", icon="INFO")

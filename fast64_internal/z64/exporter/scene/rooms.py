@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
-from ...utility import getObjectList, get_game_props
+from ...utility import getObjectList
 from ...model_classes import OOTModel
 from ..room import Room
 
@@ -23,7 +23,7 @@ class RoomEntries:
             raise PluginError("ERROR: The scene has no child empties with the 'Room' empty type.")
 
         for roomObj in roomObjs:
-            roomHeader = get_game_props(roomObj, "room")
+            roomHeader = roomObj.ootRoomHeader
             roomIndex = roomHeader.roomIndex
 
             if roomIndex in roomDict:

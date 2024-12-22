@@ -5,7 +5,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Optional
 from ....utility import PluginError, writeFile, indent
-from ...utility import ExportInfo, getSceneDirFromLevelName, get_game_props
+from ...utility import ExportInfo, getSceneDirFromLevelName
 from ..scene import Scene
 from ..file import SceneFile
 
@@ -238,7 +238,7 @@ class SpecUtility:
         SpecUtility.remove_segments_from_spec(specFile, exportInfo.name)
 
         assert build_directory is not None
-        isSingleFile = get_game_props(None, "export_settings").singleFile
+        isSingleFile = bpy.context.scene.ootSceneExportSettings.singleFile
         includeDir = f"{build_directory}/"
         if exportInfo.customSubPath is not None:
             includeDir += f"{exportInfo.customSubPath + sceneName}"
