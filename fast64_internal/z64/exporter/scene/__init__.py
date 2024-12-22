@@ -218,16 +218,16 @@ class Scene:
         sceneCutsceneData = self.getSceneCutscenesC()
         sceneTexturesData = self.getSceneTexturesC(textureExportSettings)
 
-        includes = (
-            "\n".join(
-                [
-                    '#include "ultra64.h"',
-                    '#include "macros.h"',
-                    '#include "z64.h"',
-                ]
-            )
-            + "\n\n\n"
-        )
+        include_list = [
+            '#include "ultra64.h"',
+            '#include "macros.h"',
+            '#include "z64.h"',
+        ]
+
+        if not is_game_oot():
+            include_list.append('#include "command_macros_base.h"')
+
+        includes = "\n".join(include_list) + "\n\n\n"
 
         return SceneFile(
             self.name,

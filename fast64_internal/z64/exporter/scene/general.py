@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, exportColor, ootGetBaseOrCustomLight, indent
-from ...utility import is_game_oot, getObjectList, getEvalParams
+from ...utility import is_game_oot, getObjectList, getEvalParams, get_game_prop_name
 from ...scene.properties import (
     Z64_SceneHeaderProperty,
     Z64_LightProperty,
@@ -194,16 +194,16 @@ class SceneInfos:
             skybox_texture_id = Utility.getPropValue(props, "skybox_texture_id")
 
         return SceneInfos(
-            Utility.getPropValue(props, "globalObject"),
+            Utility.getPropValue(props, get_game_prop_name("global_obj")),
             Utility.getPropValue(props, "naviCup") if is_game_oot() else "NAVI_QUEST_HINTS_NONE",
-            Utility.getPropValue(props.sceneTableEntry, "drawConfig"),
+            Utility.getPropValue(props.sceneTableEntry, get_game_prop_name("draw_config")),
             props.appendNullEntrance,
             sceneObj.fast64.oot.scene.write_dummy_room_list,
-            Utility.getPropValue(props, "skyboxID"),
-            Utility.getPropValue(props, "skyboxCloudiness"),
+            Utility.getPropValue(props, get_game_prop_name("skybox_id")),
+            Utility.getPropValue(props, get_game_prop_name("skybox_config")),
             skybox_texture_id,
-            Utility.getPropValue(props, "musicSeq"),
-            Utility.getPropValue(props, "nightSeq"),
+            Utility.getPropValue(props, get_game_prop_name("seq_id")),
+            Utility.getPropValue(props, get_game_prop_name("ambience_id")),
             Utility.getPropValue(props, "audioSessionPreset"),
             Utility.getPropValue(props, "mapLocation") if is_game_oot() else "",
             Utility.getPropValue(props, "cameraMode") if is_game_oot() else "",

@@ -322,7 +322,7 @@ def parseSceneCommands(
         args = [arg.strip() for arg in commandMatch.group(2).split(",")]
         if command == "SCENE_CMD_SOUND_SETTINGS":
             setCustomProperty(sceneHeader, "audioSessionPreset", args[0], ootEnumAudioSessionPreset)
-            setCustomProperty(sceneHeader, "nightSeq", args[1], get_game_enum("enum_ambiance_id"))
+            setCustomProperty(sceneHeader, get_game_prop_name("ambience_id"), args[1], get_game_enum("enum_ambiance_id"))
 
             if args[2].startswith("NA_BGM_"):
                 enum_id = args[2]

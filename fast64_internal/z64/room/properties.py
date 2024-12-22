@@ -227,11 +227,14 @@ class Z64_RoomHeaderProperty(PropertyGroup):
             drawEnumWithCustom(
                 behaviorBox, self, get_game_prop_name("environment_type"), "Environment Type", "", "linkIdleModeCustom"
             )
-            behaviorBox.prop(self, "disableWarpSongs", text="Disable Warp Songs")
-            behaviorBox.prop(self, "showInvisibleActors", text="Show Invisible Actors")
-            if not is_game_oot():
+
+            if is_game_oot():
+                behaviorBox.prop(self, "disableWarpSongs", text="Disable Warp Songs")
+            else:
                 behaviorBox.prop(self, "enable_pos_lights")
                 behaviorBox.prop(self, "enable_storm")
+
+            behaviorBox.prop(self, "showInvisibleActors", text="Show Invisible Actors")
 
             # Time
             skyboxAndTime = layout.column()

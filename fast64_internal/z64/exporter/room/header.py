@@ -3,7 +3,7 @@ from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import CData, indent
-from ...utility import getObjectList, is_game_oot, getEvalParams
+from ...utility import getObjectList, is_game_oot, getEvalParams, get_game_prop_name
 from ...constants import oot_data
 from ...room.properties import Z64_RoomHeaderProperty
 from ..utility import Utility
@@ -62,8 +62,8 @@ class RoomInfos:
         return RoomInfos(
             props.roomIndex,
             props.roomShape,
-            Utility.getPropValue(props, "roomBehaviour"),
-            Utility.getPropValue(props, "linkIdleMode"),
+            Utility.getPropValue(props, get_game_prop_name("room_type")),
+            Utility.getPropValue(props, get_game_prop_name("environment_type")),
             props.showInvisibleActors,
             disableWarpSongs,
             enable_pos_lights,
