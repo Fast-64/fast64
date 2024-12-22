@@ -464,7 +464,9 @@ class Z64_SceneHeaderProperty(PropertyGroup):
 
             prop_split(skyboxAndSound, self, "skybox_texture_id", "Skybox Texture ID")
             drawEnumWithCustom(skyboxAndSound, self, get_game_prop_name("skybox_id"), "Skybox", "", "skyboxIDCustom")
-            drawEnumWithCustom(skyboxAndSound, self, get_game_prop_name("skybox_config"), "Skybox Config", "", "skyboxCloudinessCustom")
+            drawEnumWithCustom(
+                skyboxAndSound, self, get_game_prop_name("skybox_config"), "Skybox Config", "", "skyboxCloudinessCustom"
+            )
             drawEnumWithCustom(skyboxAndSound, self, get_game_prop_name("seq_id"), "Music Sequence", "")
 
             if is_game_oot():

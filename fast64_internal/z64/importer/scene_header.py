@@ -335,9 +335,7 @@ def parseSceneCommands(
 
                 enum_id = enum_seq_id.item_by_index[int(args[2])].id
 
-            setCustomProperty(
-                sceneHeader, get_game_prop_name("seq_id"), enum_id, get_game_enum("enum_seq_id")
-            )
+            setCustomProperty(sceneHeader, get_game_prop_name("seq_id"), enum_id, get_game_enum("enum_seq_id"))
         elif command == "SCENE_CMD_ROOM_LIST":
             # Assumption that all scenes use the same room list.
             if headerIndex == 0:
@@ -366,7 +364,9 @@ def parseSceneCommands(
         elif command == "SCENE_CMD_SPECIAL_FILES":
             if is_game_oot():
                 setCustomProperty(sceneHeader, "naviCup", args[0], ootEnumNaviHints)
-            setCustomProperty(sceneHeader, get_game_prop_name("global_obj"), args[1], get_game_enum("enum_global_object"))
+            setCustomProperty(
+                sceneHeader, get_game_prop_name("global_obj"), args[1], get_game_enum("enum_global_object")
+            )
         elif command == "SCENE_CMD_PATH_LIST" and sharedSceneData.includePaths:
             pathListName = stripName(args[0])
             parsePathList(sceneObj, sceneData, pathListName, headerIndex, sharedSceneData)
@@ -385,8 +385,15 @@ def parseSceneCommands(
             if not is_game_oot():
                 sceneHeader.skybox_texture_id = args[args_index]
                 args_index += 1
-            setCustomProperty(sceneHeader, get_game_prop_name("skybox_id"), args[args_index], get_game_enum("enum_skybox"))
-            setCustomProperty(sceneHeader, get_game_prop_name("skybox_config"), args[args_index + 1], get_game_enum("enum_skybox_config"))
+            setCustomProperty(
+                sceneHeader, get_game_prop_name("skybox_id"), args[args_index], get_game_enum("enum_skybox")
+            )
+            setCustomProperty(
+                sceneHeader,
+                get_game_prop_name("skybox_config"),
+                args[args_index + 1],
+                get_game_enum("enum_skybox_config"),
+            )
             setCustomProperty(sceneHeader, "skyboxLighting", args[args_index + 2], ootEnumSkyboxLighting)
         elif command == "SCENE_CMD_EXIT_LIST":
             exitListName = stripName(args[0])

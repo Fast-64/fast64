@@ -532,7 +532,9 @@ class CutsceneObjectFactory:
         if commandType == "Player":
             commandType = "player_cue"
 
-        index = cmdEnum.item_by_key[commandType].index if commandType in cmdEnum.item_by_key else int(commandType, base=16)
+        index = (
+            cmdEnum.item_by_key[commandType].index if commandType in cmdEnum.item_by_key else int(commandType, base=16)
+        )
         item = cmdEnum.item_by_index.get(index)
 
         if item is not None:

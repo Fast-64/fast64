@@ -2,7 +2,14 @@ import bpy
 import re
 
 from ...utility import hexOrDecInt
-from ..utility import setCustomProperty, get_game_props, is_game_oot, get_game_enum, get_cs_index_start, get_game_prop_name
+from ..utility import (
+    setCustomProperty,
+    get_game_props,
+    is_game_oot,
+    get_game_enum,
+    get_cs_index_start,
+    get_game_prop_name,
+)
 from ..model_classes import OOTF3DContext
 from ..room.properties import Z64_RoomHeaderProperty
 from ..constants import oot_data, mm_data
@@ -76,7 +83,9 @@ def parseRoomCommands(
             roomHeader.echo = args[0]
         elif command == "SCENE_CMD_ROOM_BEHAVIOR":
             setCustomProperty(roomHeader, get_game_prop_name("room_type"), args[0], get_game_enum("enum_room_type"))
-            setCustomProperty(roomHeader, get_game_prop_name("environment_type"), args[1], get_game_enum("enum_env_type"))
+            setCustomProperty(
+                roomHeader, get_game_prop_name("environment_type"), args[1], get_game_enum("enum_env_type")
+            )
             roomHeader.showInvisibleActors = args[2] == "true" or args[2] == "1"
 
             if is_game_oot():

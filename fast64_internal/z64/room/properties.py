@@ -122,7 +122,9 @@ class Z64_RoomHeaderProperty(PropertyGroup):
     roomBehaviourCustom: StringProperty(default="0x00")
     showInvisibleActors: BoolProperty(name="Show Invisible Actors")
     linkIdleMode: EnumProperty(name="Environment Type", items=ootEnumLinkIdle, default="0x00")
-    mm_environment_type: EnumProperty(name="Environment Type", items=mm_enum_environment_type, default="ROOM_ENV_DEFAULT")
+    mm_environment_type: EnumProperty(
+        name="Environment Type", items=mm_enum_environment_type, default="ROOM_ENV_DEFAULT"
+    )
     linkIdleModeCustom: StringProperty(name="Environment Type Custom", default="0x00")
 
     # OoT exclusive
@@ -219,8 +221,12 @@ class Z64_RoomHeaderProperty(PropertyGroup):
             # Behavior
             behaviorBox = layout.column()
             behaviorBox.box().label(text="Behavior")
-            drawEnumWithCustom(behaviorBox, self, get_game_prop_name("room_type"), "Room Type", "", "roomBehaviourCustom")
-            drawEnumWithCustom(behaviorBox, self, get_game_prop_name("environment_type"), "Environment Type", "", "linkIdleModeCustom")
+            drawEnumWithCustom(
+                behaviorBox, self, get_game_prop_name("room_type"), "Room Type", "", "roomBehaviourCustom"
+            )
+            drawEnumWithCustom(
+                behaviorBox, self, get_game_prop_name("environment_type"), "Environment Type", "", "linkIdleModeCustom"
+            )
             behaviorBox.prop(self, "disableWarpSongs", text="Disable Warp Songs")
             behaviorBox.prop(self, "showInvisibleActors", text="Show Invisible Actors")
             if not is_game_oot():
