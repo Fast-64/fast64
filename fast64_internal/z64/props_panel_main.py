@@ -3,7 +3,7 @@ from bpy.utils import register_class, unregister_class
 from ..utility import prop_split, gammaInverse
 from .utility import getSceneObj, getRoomObj, get_game_props, is_game_oot
 from .scene.properties import OOTSceneProperties
-from .room.properties import OOTObjectProperty, OOTRoomHeaderProperty, OOTAlternateRoomHeaderProperty
+from .room.properties import Z64_ObjectProperty, Z64_RoomHeaderProperty, Z64_AlternateRoomHeaderProperty
 from .collision.properties import OOTWaterBoxProperty
 from .cutscene.properties import OOTCutsceneProperty
 from .cutscene.motion.properties import (
@@ -155,10 +155,10 @@ class OOTObjectPanel(bpy.types.Panel):
             drawSceneHeader(box, obj)
 
         elif obj.ootEmptyType == "Room":
-            roomProp: OOTRoomHeaderProperty = get_game_props(obj, "room")
+            roomProp: Z64_RoomHeaderProperty = get_game_props(obj, "room")
             roomProp.draw_props(box, None, None, objName)
             if get_game_props(obj, "room").menuTab == "Alternate":
-                roomAltProp: OOTAlternateRoomHeaderProperty = get_game_props(obj, "alt_room")
+                roomAltProp: Z64_AlternateRoomHeaderProperty = get_game_props(obj, "alt_room")
                 roomAltProp.draw_props(box, objName)
 
         elif obj.ootEmptyType == "Entrance":
@@ -203,7 +203,7 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
         for obj in bpy.data.objects:
             if obj.type == "EMPTY" and is_game_oot():
                 if obj.ootEmptyType == "Room":
-                    OOTObjectProperty.upgrade_object(obj)
+                    Z64_ObjectProperty.upgrade_object(obj)
                 if obj.ootEmptyType in {"Entrance", "Transition Actor"}:
                     OOTActorProperty.upgrade_object(obj)
                 if obj.ootEmptyType == "Cutscene":

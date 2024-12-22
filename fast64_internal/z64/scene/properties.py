@@ -404,7 +404,7 @@ class Z64_SceneHeaderProperty(PropertyGroup):
         description="Sets a flag that indicates the region has been visited. Scene indices are mapped to their region in `gSceneIdsPerRegion` from `z_inventory.c`",
     )
 
-    # SCENE_CMD_MINIMAP_INFO (note: room informations are defined in `MM_RoomHeaderProperty`)
+    # SCENE_CMD_MINIMAP_INFO (note: room informations are defined in `Z64_RoomHeaderProperty`)
     minimap_room_expand: BoolProperty(name="Expand Tab")
     minimap_room_list: CollectionProperty(type=MM_MinimapRoomProperty, name="Minimap Room List")
     minimap_scale: IntProperty(name="Minimap Scale", default=0)

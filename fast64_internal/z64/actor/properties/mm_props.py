@@ -4,7 +4,7 @@ from bpy.props import EnumProperty, StringProperty, IntProperty, BoolProperty, C
 from ....utility import prop_split, label_split
 from ...constants import mm_data, ootEnumCamTransition
 from ...upgrade import upgradeActors
-from ...room.properties import MM_AlternateRoomHeaderProperty
+from ...room.properties import Z64_AlternateRoomHeaderProperty
 from ..operators import MM_SearchActorIDEnumOperator
 
 from ...utility import (
@@ -24,7 +24,7 @@ class MM_ActorHeaderItemProperty(PropertyGroup):
         layout: UILayout,
         propUser: str,
         index: int,
-        altProp: MM_AlternateRoomHeaderProperty,
+        altProp: Z64_AlternateRoomHeaderProperty,
         objName: str,
     ):
         box = layout.column()
@@ -53,7 +53,7 @@ class MM_ActorHeaderProperty(PropertyGroup):
         self,
         layout: UILayout,
         propUser: str,
-        altProp: MM_AlternateRoomHeaderProperty,
+        altProp: Z64_AlternateRoomHeaderProperty,
         objName: str,
     ):
         headerSetup = layout.column()
@@ -95,7 +95,7 @@ class MM_ActorProperty(PropertyGroup):
     rotOverrideZ: StringProperty(name="Rot Z", default="0")
     headerSettings: PointerProperty(type=MM_ActorHeaderProperty)
 
-    def draw_props(self, layout: UILayout, altRoomProp: MM_AlternateRoomHeaderProperty, objName: str):
+    def draw_props(self, layout: UILayout, altRoomProp: Z64_AlternateRoomHeaderProperty, objName: str):
         actorIDBox = layout.column()
         searchOp = actorIDBox.operator(MM_SearchActorIDEnumOperator.bl_idname, icon="VIEWZOOM")
         searchOp.actorUser = "Actor"

@@ -5,7 +5,7 @@ from bpy.types import Object
 from ....utility import PluginError, CData, indent
 from ....f3d.f3d_gbi import ScrollMethod, TextureExportSettings
 from ...utility import get_game_props, is_game_oot
-from ...room.properties import OOTRoomHeaderProperty
+from ...room.properties import Z64_RoomHeaderProperty
 from ...object import addMissingObjectsToAllRoomHeaders
 from ...model_classes import OOTModel, OOTGfxFormatter
 from ..file import RoomFile
@@ -60,7 +60,7 @@ class Room:
 
         if is_game_oot():
             for i, header in enumerate(altHeaderList, 1):
-                altP: OOTRoomHeaderProperty = getattr(altProp, f"{header}Header")
+                altP: Z64_RoomHeaderProperty = getattr(altProp, f"{header}Header")
                 if not altP.usePreviousHeader:
                     hasAlternateHeaders = True
                     newRoomHeader = RoomHeader.new(

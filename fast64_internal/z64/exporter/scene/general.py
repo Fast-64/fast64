@@ -294,7 +294,7 @@ class MapDataChest:
 
         for room_obj in room_obj_list:
             if chest_prop.chest_obj in room_obj.children_recursive:
-                return room_obj.mm_room_header.roomIndex
+                return room_obj.ootRoomHeader.roomIndex
 
         raise PluginError(f"ERROR: Can't find the room associated with '{chest_prop.chest_obj.name}'")
 

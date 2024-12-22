@@ -6,7 +6,7 @@ import mathutils
 from ...utility import parentObject, hexOrDecInt, yUpToZUp
 from ...f3d.f3d_parser import importMeshC
 from ..model_classes import OOTF3DContext
-from ..room.properties import OOTRoomHeaderProperty
+from ..room.properties import Z64_RoomHeaderProperty
 from ..constants import ootEnumRoomShapeType
 from ..utility import get_game_props
 from .classes import SharedSceneData
@@ -46,7 +46,7 @@ def parseMeshHeader(
             parseBGImageList(roomHeader, sceneData, bgListName, sharedSceneData)
 
 
-def parseBGImage(roomHeader: OOTRoomHeaderProperty, params: list[str], sharedSceneData: SharedSceneData):
+def parseBGImage(roomHeader: Z64_RoomHeaderProperty, params: list[str], sharedSceneData: SharedSceneData):
     bgImage = roomHeader.bgImageList.add()
     bgImage.otherModeFlags = params[10]
     bgName = f"{params[3]}.jpg"
@@ -55,7 +55,7 @@ def parseBGImage(roomHeader: OOTRoomHeaderProperty, params: list[str], sharedSce
 
 
 def parseBGImageList(
-    roomHeader: OOTRoomHeaderProperty, sceneData: str, bgListName: str, sharedSceneData: SharedSceneData
+    roomHeader: Z64_RoomHeaderProperty, sceneData: str, bgListName: str, sharedSceneData: SharedSceneData
 ):
     bgData = getDataMatch(sceneData, bgListName, "", "bg list")
     bgList = [value.replace("{", "").strip() for value in bgData.split("},") if value.strip() != ""]

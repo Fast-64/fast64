@@ -34,7 +34,7 @@ ootEnumLinkIdle = [
     ("0xFF", "Hops On Epona", "Hops On Epona"),
 ]
 
-mm_enum_environvment_type = [
+mm_enum_environment_type = [
     ("Custom", "Custom", "Custom"),
     ("0x00", "Default", "ROOM_ENV_DEFAULT"),
     ("0x01", "Cold", "ROOM_ENV_COLD"),

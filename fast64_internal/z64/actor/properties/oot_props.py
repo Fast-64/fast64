@@ -5,7 +5,7 @@ from ....utility import prop_split, label_split
 from ...constants import oot_data, ootEnumCamTransition
 from ...upgrade import upgradeActors
 from ...scene.properties import Z64_AlternateSceneHeaderProperty
-from ...room.properties import OOTAlternateRoomHeaderProperty
+from ...room.properties import Z64_AlternateRoomHeaderProperty
 from ..operators import OOT_SearchActorIDEnumOperator
 
 from ...utility import (
@@ -31,7 +31,7 @@ class OOTActorHeaderItemProperty(PropertyGroup):
         layout: UILayout,
         propUser: str,
         index: int,
-        altProp: Z64_AlternateSceneHeaderProperty | OOTAlternateRoomHeaderProperty,
+        altProp: Z64_AlternateSceneHeaderProperty | Z64_AlternateRoomHeaderProperty,
         objName: str,
     ):
         box = layout.column()
@@ -66,7 +66,7 @@ class OOTActorHeaderProperty(PropertyGroup):
         self,
         layout: UILayout,
         propUser: str,
-        altProp: Z64_AlternateSceneHeaderProperty | OOTAlternateRoomHeaderProperty,
+        altProp: Z64_AlternateSceneHeaderProperty | Z64_AlternateRoomHeaderProperty,
         objName: str,
     ):
         headerSetup = layout.column()
@@ -121,7 +121,7 @@ class OOTActorProperty(PropertyGroup):
         print(f"Processing '{obj.name}'...")
         upgradeActors(obj)
 
-    def draw_props(self, layout: UILayout, altRoomProp: OOTAlternateRoomHeaderProperty, objName: str):
+    def draw_props(self, layout: UILayout, altRoomProp: Z64_AlternateRoomHeaderProperty, objName: str):
         # prop_split(layout, actorProp, 'actorID', 'Actor')
         actorIDBox = layout.column()
         # actorIDBox.box().label(text = "Settings")

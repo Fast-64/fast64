@@ -28,7 +28,7 @@ from .constants import (
     ootEnumLinkIdle,
     ootEnumRoomBehaviour,
     mm_enum_room_type,
-    mm_enum_environvment_type,
+    mm_enum_environment_type,
 )
 from dataclasses import dataclass
 
@@ -68,7 +68,7 @@ def get_game_enum(enum_type: str):
             "enum_skybox_config": mm_enum_skybox_config,
             "enum_seq_id": mm_data.enum_seq_id,
             "enum_ambiance_id": mm_data.enum_ambiance_id,  # TODO: same as above
-            "enum_env_type": mm_enum_environvment_type,
+            "enum_env_type": mm_enum_environment_type,
             "enum_room_type": mm_enum_room_type,
             "enum_actor_id": mm_data.actor_data.enum_actor_id,
         },
@@ -86,6 +86,9 @@ def get_game_prop_name(prop_type: str):
             "seq_id": "musicSeq",
             "ambience_id": "nightSeq",
             "draw_config": "drawConfig",
+            "object_key": "objectKey",
+            "room_type": "roomBehaviour",
+            "environment_type": "linkIdleMode",
         },
         "MM": {
             "global_obj": "mm_global_obj",
@@ -94,6 +97,9 @@ def get_game_prop_name(prop_type: str):
             "seq_id": "mm_seq_id",
             "ambience_id": "mm_ambience_id",
             "draw_config": "mm_draw_config",
+            "object_key": "mm_object_key",
+            "room_type": "mm_room_type",
+            "environment_type": "mm_environment_type",
         },
     }
 
@@ -116,8 +122,8 @@ def get_game_props(obj: Object, header_type: str):
             "MM": {
                 "scene": obj.ootSceneHeader,
                 "alt_scene": obj.ootAlternateSceneHeaders,
-                "room": obj.mm_room_header,
-                "alt_room": obj.mm_alternate_room_headers,
+                "room": obj.ootRoomHeader,
+                "alt_room": obj.ootAlternateRoomHeaders,
                 "actor": obj.mm_actor_property,
                 "transition_actor": obj.mm_transition_actor_property,
                 "entrance_actor": obj.mm_entrance_property,

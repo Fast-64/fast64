@@ -4,7 +4,7 @@ import re
 from ...utility import hexOrDecInt
 from ..utility import setCustomProperty, get_game_props, is_game_oot, get_game_enum, get_cs_index_start
 from ..model_classes import OOTF3DContext
-from ..room.properties import OOTRoomHeaderProperty
+from ..room.properties import Z64_RoomHeaderProperty
 from ..constants import oot_data, mm_data
 from .utility import getDataMatch, stripName
 from .classes import SharedSceneData
@@ -15,12 +15,12 @@ from .room_shape import parseMeshHeader
 
 def get_object_from_id(object: str):
     if is_game_oot():
-        return oot_data.objectData.objectsByID.get(object)
+        return oot_data.objectData.objects_by_id.get(object)
     else:
         return mm_data.object_data.objects_by_id.get(object)
 
 
-def parseObjectList(roomHeader: OOTRoomHeaderProperty, sceneData: str, objectListName: str):
+def parseObjectList(roomHeader: Z64_RoomHeaderProperty, sceneData: str, objectListName: str):
     objectData = getDataMatch(sceneData, objectListName, "s16", "object list")
     objects = [value.strip() for value in objectData.split(",") if value.strip() != ""]
 

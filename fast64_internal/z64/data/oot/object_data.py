@@ -29,8 +29,8 @@ class OoT_ObjectData:
                 OoT_ObjectElement(obj.attrib["ID"], obj.attrib["Key"], objName, int(obj.attrib["Index"]))
             )
 
-        self.objectsByID = {obj.id: obj for obj in self.objectList}
-        self.objectsByKey = {obj.key: obj for obj in self.objectList}
+        self.objects_by_id = {obj.id: obj for obj in self.objectList}
+        self.objects_by_key = {obj.key: obj for obj in self.objectList}
 
         # list of tuples used by Blender's enum properties
         self.deletedEntry = ("None", "(Deleted from the XML)", "None")
@@ -38,7 +38,7 @@ class OoT_ObjectData:
         self.ootEnumObjectKey = self.getObjectIDList(lastIndex + 1, False)
 
         # create the legacy object list for old blends
-        self.ootEnumObjectIDLegacy = self.getObjectIDList(self.objectsByKey["obj_timeblock"].index + 1, True)
+        self.ootEnumObjectIDLegacy = self.getObjectIDList(self.objects_by_key["obj_timeblock"].index + 1, True)
 
         # validate the legacy list, if there's any None element then something's wrong
         if self.deletedEntry in self.ootEnumObjectIDLegacy:

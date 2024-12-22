@@ -7,7 +7,7 @@ from typing import Optional
 from ....utility import PluginError, CData, toAlnum, indent
 from ....f3d.f3d_gbi import SPDisplayList, SPEndDisplayList, GfxListTag, GfxList, DLFormat
 from ....f3d.f3d_writer import TriangleConverterInfo, saveStaticModel, getInfoDict
-from ...room.properties import OOTRoomHeaderProperty, OOTBGProperty
+from ...room.properties import Z64_RoomHeaderProperty, Z64_BGProperty
 from ...model_classes import OOTModel
 from ..utility import Utility
 from bpy.types import Object
@@ -211,7 +211,7 @@ class RoomShapeImageEntry:  # OOTBGImage
         return self.image.size[1] if self.image else 0
 
     @staticmethod
-    def new(name: str, prop: OOTBGProperty):
+    def new(name: str, prop: Z64_BGProperty):
         if prop.image is None:
             raise PluginError(
                 'A room is has room shape "Image" but does not have an image set in one of its BG images.'
@@ -521,7 +521,7 @@ class RoomShapeUtility:
         sceneObj: Object,
         roomObj: Object,
         saveTexturesAsPNG: bool,
-        props: OOTRoomHeaderProperty,
+        props: Z64_RoomHeaderProperty,
     ):
         name = f"{room_name}_shapeHeader"
         dl_name = f"{room_name}_shapeDListsEntry"

@@ -31,7 +31,7 @@ def upgradeObjectList(objList: CollectionProperty, objData: OoT_ObjectData):
             if objectID == "Custom":
                 obj.objectKey = objectID
             else:
-                obj.objectKey = objData.objectsByID[objectID].key
+                obj.objectKey = objData.objects_by_id[objectID].key
 
             del obj["objectID"]
 

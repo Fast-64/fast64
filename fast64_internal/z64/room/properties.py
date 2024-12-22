@@ -1,17 +1,19 @@
 import bpy
-from bpy.types import PropertyGroup, UILayout, Image, Object
+from bpy.types import PropertyGroup, UILayout, Image, Object, Context
 from bpy.utils import register_class, unregister_class
-from ....utility import prop_split
-from ...utility import (
+from ...utility import prop_split
+from ..utility import (
     drawCollectionOps,
     onMenuTabChange,
     onHeaderMenuTabChange,
     drawEnumWithCustom,
     drawAddButton,
     is_game_oot,
+    get_game_prop_name,
+    get_cs_index_start,
 )
-from ...upgrade import upgradeRoomHeaders
-from ..operators import OOT_SearchObjectEnumOperator
+from ..upgrade import upgradeRoomHeaders
+from .operators import OOT_SearchObjectEnumOperator, MM_SearchObjectEnumOperator
 
 from bpy.props import (
     EnumProperty,
@@ -24,12 +26,15 @@ from bpy.props import (
     IntVectorProperty,
 )
 
-from ...constants import (
+from ..constants import (
     oot_data,
     ootEnumRoomBehaviour,
     ootEnumLinkIdle,
     ootEnumRoomShapeType,
     ootEnumHeaderMenu,
+    mm_data,
+    mm_enum_room_type,
+    mm_enum_environment_type,
 )
 
 ootEnumRoomMenuAlternate = [
@@ -41,41 +46,51 @@ ootEnumRoomMenu = ootEnumRoomMenuAlternate + [
 ]
 
 
-class OOTObjectProperty(PropertyGroup):
+class Z64_ObjectProperty(PropertyGroup):
     expandTab: BoolProperty(name="Expand Tab")
     objectKey: EnumProperty(items=oot_data.objectData.ootEnumObjectKey, default="obj_human")
+    mm_object_key: EnumProperty(items=mm_data.object_data.enum_object_key, default="gameplay_keep")
     objectIDCustom: StringProperty(default="OBJECT_CUSTOM")
 
     @staticmethod
     def upgrade_object(obj: Object):
-        print(f"Processing '{obj.name}'...")
-        upgradeRoomHeaders(obj, oot_data.objectData)
+        if is_game_oot():
+            print(f"Processing '{obj.name}'...")
+            upgradeRoomHeaders(obj, oot_data.objectData)
 
     def draw_props(self, layout: UILayout, headerIndex: int, index: int, objName: str):
-        isLegacy = True if "objectID" in self else False
+        is_legacy = True if "objectID" in self else False
+        obj_key: str = getattr(self, get_game_prop_name("object_key"))
 
-        if isLegacy:
-            objectName = oot_data.objectData.ootEnumObjectIDLegacy[self["objectID"]][1]
-        elif self.objectKey != "Custom":
-            objectName = oot_data.objectData.objectsByKey[self.objectKey].name
+        if is_game_oot():
+            objects_by_key = oot_data.objectData.objects_by_key
+            op_name = OOT_SearchObjectEnumOperator.bl_idname
         else:
-            objectName = self.objectIDCustom
+            objects_by_key = mm_data.object_data.objects_by_key
+            op_name = MM_SearchObjectEnumOperator.bl_idname
+
+        if is_game_oot() and is_legacy:
+            obj_name = oot_data.objectData.ootEnumObjectIDLegacy[self["objectID"]][1]
+        elif obj_key != "Custom":
+            obj_name = objects_by_key[obj_key].name
+        else:
+            obj_name = self.objectIDCustom
 
         objItemBox = layout.column()
         row = objItemBox.row()
-        row.label(text=f"{objectName}")
+        row.label(text=f"{obj_name}")
         buttons = row.row(align=True)
-        objSearch = buttons.operator(OOT_SearchObjectEnumOperator.bl_idname, icon="VIEWZOOM", text="Select")
+        objSearch = buttons.operator(op_name, icon="VIEWZOOM", text="Select")
         drawCollectionOps(buttons, index, "Object", headerIndex, objName, compact=True)
         objSearch.objName = objName
         objSearch.headerIndex = headerIndex if headerIndex is not None else 0
         objSearch.index = index
 
-        if self.objectKey == "Custom":
+        if obj_key == "Custom":
             prop_split(objItemBox, self, "objectIDCustom", "Object ID Custom")
 
 
-class OOTBGProperty(PropertyGroup):
+class Z64_BGProperty(PropertyGroup):
     image: PointerProperty(type=Image)
     # camera: IntProperty(name="Camera Index", min=0)
     otherModeFlags: StringProperty(
@@ -92,39 +107,56 @@ class OOTBGProperty(PropertyGroup):
         drawCollectionOps(box, index, "BgImage", None, objName)
 
 
-class OOTRoomHeaderProperty(PropertyGroup):
+class Z64_RoomHeaderProperty(PropertyGroup):
     expandTab: BoolProperty(name="Expand Tab")
     menuTab: EnumProperty(items=ootEnumRoomMenu, update=onMenuTabChange)
     altMenuTab: EnumProperty(items=ootEnumRoomMenuAlternate)
+
+    # OoT exclusive
     usePreviousHeader: BoolProperty(name="Use Previous Header", default=True)
 
+    # SCENE_CMD_ROOM_BEHAVIOR
     roomIndex: IntProperty(name="Room Index", default=0, min=0)
     roomBehaviour: EnumProperty(items=ootEnumRoomBehaviour, default="0x00")
+    mm_room_type: EnumProperty(items=mm_enum_room_type, default="0x00")
     roomBehaviourCustom: StringProperty(default="0x00")
-    disableWarpSongs: BoolProperty(name="Disable Warp Songs")
     showInvisibleActors: BoolProperty(name="Show Invisible Actors")
-    linkIdleMode: EnumProperty(name="Link Idle Mode", items=ootEnumLinkIdle, default="0x00")
-    linkIdleModeCustom: StringProperty(name="Link Idle Mode Custom", default="0x00")
+    linkIdleMode: EnumProperty(name="Environment Type", items=ootEnumLinkIdle, default="0x00")
+    mm_environment_type: EnumProperty(name="Environment Type", items=mm_enum_environment_type, default="0x00")
+    linkIdleModeCustom: StringProperty(name="Environment Type Custom", default="0x00")
 
+    # OoT exclusive
+    disableWarpSongs: BoolProperty(name="Disable Warp Songs")
+
+    # MM exclusive
+    enable_pos_lights: BoolProperty(name="Enable Pos Lights")
+    enable_storm: BoolProperty(name="Enable Storm")
+
+    # SCENE_CMD_WIND_SETTINGS
     setWind: BoolProperty(name="Set Wind")
     windVector: IntVectorProperty(name="Wind Vector", size=3, min=-127, max=127)
     windStrength: IntProperty(name="Wind Strength", min=0, max=255)
 
+    # SCENE_CMD_TIME_SETTINGS
     leaveTimeUnchanged: BoolProperty(name="Leave Time Unchanged", default=True)
     timeHours: IntProperty(name="Hours", default=0, min=0, max=23)  # 0xFFFE
     timeMinutes: IntProperty(name="Minutes", default=0, min=0, max=59)
     timeSpeed: FloatProperty(name="Time Speed", default=1, min=-13, max=13)  # 0xA
 
+    # SCENE_CMD_SKYBOX_DISABLES
     disableSkybox: BoolProperty(name="Disable Skybox")
     disableSunMoon: BoolProperty(name="Disable Sun/Moon")
 
+    # SCENE_CMD_ECHO_SETTINGS
     echo: StringProperty(name="Echo", default="0x00")
 
-    objectList: CollectionProperty(type=OOTObjectProperty)
+    # SCENE_CMD_OBJECT_LIST
+    objectList: CollectionProperty(type=Z64_ObjectProperty)
 
+    # SCENE_CMD_ROOM_SHAPE
     roomShape: EnumProperty(items=ootEnumRoomShapeType, default="ROOM_SHAPE_TYPE_NORMAL")
     defaultCullDistance: IntProperty(name="Default Cull Distance", min=1, default=100)
-    bgImageList: CollectionProperty(type=OOTBGProperty)
+    bgImageList: CollectionProperty(type=Z64_BGProperty)
     bgImageTab: BoolProperty(name="BG Images")
 
     def drawBGImageList(self, layout: UILayout, objName: str):
@@ -144,16 +176,18 @@ class OOTRoomHeaderProperty(PropertyGroup):
             drawAddButton(box, len(self.bgImageList), "BgImage", None, objName)
 
     def draw_props(self, layout: UILayout, dropdownLabel: str, headerIndex: int, objName: str):
-        from ...props_panel_main import OOT_ManualUpgrade
+        from ..props_panel_main import OOT_ManualUpgrade
+
+        cs_index_start = get_cs_index_start()
 
         if dropdownLabel is not None:
             layout.prop(self, "expandTab", text=dropdownLabel, icon="TRIA_DOWN" if self.expandTab else "TRIA_RIGHT")
             if not self.expandTab:
                 return
-        if headerIndex is not None and headerIndex > 3:
-            drawCollectionOps(layout, headerIndex - 4, "Room", None, objName)
+        if headerIndex is not None and headerIndex > (cs_index_start - 1):
+            drawCollectionOps(layout, headerIndex - cs_index_start, "Room", None, objName)
 
-        if headerIndex is not None and headerIndex > 0 and headerIndex < 4:
+        if is_game_oot() and headerIndex is not None and headerIndex > 0 and headerIndex < cs_index_start:
             layout.prop(self, "usePreviousHeader", text="Use Previous Header")
             if self.usePreviousHeader:
                 return
@@ -166,6 +200,7 @@ class OOTRoomHeaderProperty(PropertyGroup):
             menuTab = self.altMenuTab
 
         if menuTab == "General":
+            # General
             if headerIndex is None or headerIndex == 0:
                 general = layout.column()
                 general.box().label(text="General")
@@ -180,13 +215,17 @@ class OOTRoomHeaderProperty(PropertyGroup):
                     prop_split(general, self, "defaultCullDistance", "Default Cull (Blender Units)")
                 if self.roomShape == "ROOM_SHAPE_TYPE_NONE" and is_game_oot():
                     general.label(text="This shape type is only implemented on MM", icon="INFO")
-            # Behaviour
-            behaviourBox = layout.column()
-            behaviourBox.box().label(text="Behaviour")
-            drawEnumWithCustom(behaviourBox, self, "roomBehaviour", "Room Behaviour", "")
-            drawEnumWithCustom(behaviourBox, self, "linkIdleMode", "Link Idle Mode", "")
-            behaviourBox.prop(self, "disableWarpSongs", text="Disable Warp Songs")
-            behaviourBox.prop(self, "showInvisibleActors", text="Show Invisible Actors")
+
+            # Behavior
+            behaviorBox = layout.column()
+            behaviorBox.box().label(text="Behavior")
+            drawEnumWithCustom(behaviorBox, self, get_game_prop_name("room_type"), "Room Type", "", "roomBehaviourCustom")
+            drawEnumWithCustom(behaviorBox, self, get_game_prop_name("environment_type"), "Environment Type", "", "linkIdleModeCustom")
+            behaviorBox.prop(self, "disableWarpSongs", text="Disable Warp Songs")
+            behaviorBox.prop(self, "showInvisibleActors", text="Show Invisible Actors")
+            if not is_game_oot():
+                behaviorBox.prop(self, "enable_pos_lights")
+                behaviorBox.prop(self, "enable_storm")
 
             # Time
             skyboxAndTime = layout.column()
@@ -201,7 +240,6 @@ class OOTRoomHeaderProperty(PropertyGroup):
                 timeRow = skyboxAndTime.row()
                 timeRow.prop(self, "timeHours", text="Hours")
                 timeRow.prop(self, "timeMinutes", text="Minutes")
-                # prop_split(skyboxAndTime, self, "timeValue", "Time Of Day")
             prop_split(skyboxAndTime, self, "timeSpeed", "Time Speed")
 
             # Echo
@@ -215,68 +253,83 @@ class OOTRoomHeaderProperty(PropertyGroup):
                 windBoxRow = windBox.row()
                 windBoxRow.prop(self, "windVector", text="")
                 windBox.prop(self, "windStrength", text="Strength")
-                # prop_split(windBox, self, "windVector", "Wind Vector")
 
         elif menuTab == "Objects":
             upgradeLayout = layout.column()
             objBox = layout.column()
             objBox.box().label(text="Objects")
 
-            if len(self.objectList) > 16:
+            if is_game_oot() and len(self.objectList) > 16:
                 objBox.label(text="You are over the 16 object limit.", icon="ERROR")
                 objBox.label(text="You must allocate more memory in code.")
 
-            isLegacy = False
+            is_legacy = False
             for i, objProp in enumerate(self.objectList):
                 objProp.draw_props(objBox, headerIndex, i, objName)
 
-                if "objectID" in objProp:
-                    isLegacy = True
+                if is_game_oot() and "objectID" in objProp:
+                    is_legacy = True
 
-            if isLegacy:
+            if is_game_oot() and is_legacy:
                 upgradeLayout.label(text="Legacy data has not been upgraded!")
                 upgradeLayout.operator(OOT_ManualUpgrade.bl_idname, text="Upgrade Data Now!")
-            objBox.enabled = False if isLegacy else True
+            objBox.enabled = False if is_legacy else True
 
             drawAddButton(objBox, len(self.objectList), "Object", headerIndex, objName)
 
 
-class OOTAlternateRoomHeaderProperty(PropertyGroup):
-    childNightHeader: PointerProperty(name="Child Night Header", type=OOTRoomHeaderProperty)
-    adultDayHeader: PointerProperty(name="Adult Day Header", type=OOTRoomHeaderProperty)
-    adultNightHeader: PointerProperty(name="Adult Night Header", type=OOTRoomHeaderProperty)
-    cutsceneHeaders: CollectionProperty(type=OOTRoomHeaderProperty)
+def update_cutscene_index(self: "Z64_AlternateRoomHeaderProperty", context: Context):
+    cs_index_start = get_cs_index_start()
 
+    if self.currentCutsceneIndex < cs_index_start:
+        self.currentCutsceneIndex = cs_index_start
+
+    onHeaderMenuTabChange(self, context)
+
+
+class Z64_AlternateRoomHeaderProperty(PropertyGroup):
+    cutsceneHeaders: CollectionProperty(type=Z64_RoomHeaderProperty)
+    currentCutsceneIndex: IntProperty(update=update_cutscene_index)
+
+    # OoT exclusive
+    childNightHeader: PointerProperty(name="Child Night Header", type=Z64_RoomHeaderProperty)
+    adultDayHeader: PointerProperty(name="Adult Day Header", type=Z64_RoomHeaderProperty)
+    adultNightHeader: PointerProperty(name="Adult Night Header", type=Z64_RoomHeaderProperty)
     headerMenuTab: EnumProperty(name="Header Menu", items=ootEnumHeaderMenu, update=onHeaderMenuTabChange)
-    currentCutsceneIndex: IntProperty(min=4, default=4, update=onHeaderMenuTabChange)
 
     def draw_props(self, layout: UILayout, objName: str):
         headerSetup = layout.column()
-        # headerSetup.box().label(text = "Alternate Headers")
-        headerSetupBox = headerSetup.column()
+        cs_index_start = get_cs_index_start()
+        can_draw_cs_header = not is_game_oot()
 
-        headerSetupBox.row().prop(self, "headerMenuTab", expand=True)
-        if self.headerMenuTab == "Child Night":
-            self.childNightHeader.draw_props(headerSetupBox, None, 1, objName)
-        elif self.headerMenuTab == "Adult Day":
-            self.adultDayHeader.draw_props(headerSetupBox, None, 2, objName)
-        elif self.headerMenuTab == "Adult Night":
-            self.adultNightHeader.draw_props(headerSetupBox, None, 3, objName)
-        elif self.headerMenuTab == "Cutscene":
+        if not can_draw_cs_header:
+            headerSetupBox = headerSetup.column()
+            headerSetupBox.row().prop(self, "headerMenuTab", expand=True)
+
+            if self.headerMenuTab == "Child Night":
+                self.childNightHeader.draw_props(headerSetupBox, None, 1, objName)
+            elif self.headerMenuTab == "Adult Day":
+                self.adultDayHeader.draw_props(headerSetupBox, None, 2, objName)
+            elif self.headerMenuTab == "Adult Night":
+                self.adultNightHeader.draw_props(headerSetupBox, None, 3, objName)
+            elif self.headerMenuTab == "Cutscene":
+                can_draw_cs_header = True
+
+        if can_draw_cs_header:
             prop_split(headerSetup, self, "currentCutsceneIndex", "Cutscene Index")
             drawAddButton(headerSetup, len(self.cutsceneHeaders), "Room", None, objName)
             index = self.currentCutsceneIndex
-            if index - 4 < len(self.cutsceneHeaders):
-                self.cutsceneHeaders[index - 4].draw_props(headerSetup, None, index, objName)
+            if index - cs_index_start < len(self.cutsceneHeaders):
+                self.cutsceneHeaders[index - cs_index_start].draw_props(headerSetup, None, index, objName)
             else:
                 headerSetup.label(text="No cutscene header for this index.", icon="QUESTION")
 
 
 classes = (
-    OOTObjectProperty,
-    OOTBGProperty,
-    OOTRoomHeaderProperty,
-    OOTAlternateRoomHeaderProperty,
+    Z64_ObjectProperty,
+    Z64_BGProperty,
+    Z64_RoomHeaderProperty,
+    Z64_AlternateRoomHeaderProperty,
 )
 
 
@@ -284,8 +337,8 @@ def room_props_register():
     for cls in classes:
         register_class(cls)
 
-    Object.ootRoomHeader = PointerProperty(type=OOTRoomHeaderProperty)
-    Object.ootAlternateRoomHeaders = PointerProperty(type=OOTAlternateRoomHeaderProperty)
+    Object.ootRoomHeader = PointerProperty(type=Z64_RoomHeaderProperty)
+    Object.ootAlternateRoomHeaders = PointerProperty(type=Z64_AlternateRoomHeaderProperty)
 
 
 def room_props_unregister():

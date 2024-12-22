@@ -5,7 +5,7 @@ from bpy.types import Object
 from ....utility import CData, indent
 from ...utility import getObjectList, get_game_props, is_game_oot, getEvalParams
 from ...constants import oot_data
-from ...room.properties import OOTRoomHeaderProperty, MM_RoomHeaderProperty
+from ...room.properties import Z64_RoomHeaderProperty
 from ..utility import Utility
 from ..actor import Actor
 
@@ -48,7 +48,7 @@ class RoomInfos:
     strength: int
 
     @staticmethod
-    def new(props: Optional[OOTRoomHeaderProperty | MM_RoomHeaderProperty]):
+    def new(props: Optional[Z64_RoomHeaderProperty]):
         disableWarpSongs = False
         enable_pos_lights = False
         enable_storm = False
@@ -116,13 +116,13 @@ class RoomObjects:
     objectList: list[str]
 
     @staticmethod
-    def new(name: str, props: Optional[OOTRoomHeaderProperty]):
+    def new(name: str, props: Optional[Z64_RoomHeaderProperty]):
         objectList: list[str] = []
         for objProp in props.objectList:
             if objProp.objectKey == "Custom":
                 objectList.append(objProp.objectIDCustom)
             else:
-                objectList.append(oot_data.objectData.objectsByKey[objProp.objectKey].id)
+                objectList.append(oot_data.objectData.objects_by_key[objProp.objectKey].id)
         return RoomObjects(name, objectList)
 
     def getDefineName(self):
@@ -276,7 +276,7 @@ class RoomHeader:
     @staticmethod
     def new(
         name: str,
-        props: Optional[OOTRoomHeaderProperty],
+        props: Optional[Z64_RoomHeaderProperty],
         sceneObj: Optional[Object],
         roomObj: Optional[Object],
         transform: Matrix,
