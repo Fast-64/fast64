@@ -119,13 +119,13 @@ class OOT_ImportDL(Operator):
             flipbookUses2DArray = settings.flipbookUses2DArray
             flipbookArrayIndex2D = settings.flipbookArrayIndex2D if flipbookUses2DArray else None
 
-            paths = [ootGetObjectPath(isCustomImport, importPath, folderName)]
-            data = getImportData(paths)
+            paths = [ootGetObjectPath(isCustomImport, importPath, folderName, True)]
+            filedata = getImportData(paths)
             f3dContext = OOTF3DContext(get_F3D_GBI(), [name], basePath)
 
             scale = getOOTScale(settings.actorScale)
             if not isCustomImport:
-                data = ootGetIncludedAssetData(basePath, paths, data) + data
+                filedata = ootGetIncludedAssetData(basePath, paths, filedata) + filedata
 
                 if overlayName is not None:
                     ootReadTextureArrays(basePath, overlayName, name, f3dContext, False, flipbookArrayIndex2D)
@@ -133,7 +133,7 @@ class OOT_ImportDL(Operator):
                     scale = ootReadActorScale(basePath, overlayName, False)
 
             obj = importMeshC(
-                data,
+                filedata,
                 name,
                 scale,
                 removeDoubles,

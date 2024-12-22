@@ -515,7 +515,7 @@ def addCullCommand(obj, fMesh, transformMatrix, matWriteMethod):
         )
 
     if matWriteMethod == GfxMatWriteMethod.WriteDifferingAndRevert:
-        defaults = bpy.context.scene.world.rdp_defaults
+        defaults = create_or_get_world(bpy.context.scene).rdp_defaults
         if defaults.g_lighting:
             cullCommands = [
                 SPClearGeometryMode(["G_LIGHTING"]),
@@ -1321,7 +1321,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     fMaterial = fModel.addMaterial(materialName)
     useDict = all_combiner_uses(f3dMat)
 
-    defaults = bpy.context.scene.world.rdp_defaults
+    defaults = create_or_get_world(bpy.context.scene).rdp_defaults
     if fModel.f3d.F3DEX_GBI_2:
         saveGeoModeDefinitionF3DEX2(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
     else:

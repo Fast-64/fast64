@@ -186,16 +186,16 @@ def convertAllBSDFtoF3D(objs, renameUV):
 def convertBSDFtoF3D(obj, index, material, materialDict):
     if not material.use_nodes:
         newMaterial = createF3DMat(obj, preset="Shaded Solid", index=index)
-        f3dMat = newMaterial.f3d_mat if newMaterial.mat_ver > 3 else newMaterial
-        f3dMat.default_light_color = material.diffuse_color
+        with bpy.context.temp_override(material=newMaterial):
+            newMaterial.f3d_mat.default_light_color = material.diffuse_color
         updateMatWithName(newMaterial, material, materialDict)
 
     elif "Principled BSDF" in material.node_tree.nodes:
         tex0Node = material.node_tree.nodes["Principled BSDF"].inputs["Base Color"]
         if len(tex0Node.links) == 0:
             newMaterial = createF3DMat(obj, preset=getDefaultMaterialPreset("Shaded Solid"), index=index)
-            f3dMat = newMaterial.f3d_mat if newMaterial.mat_ver > 3 else newMaterial
-            f3dMat.default_light_color = tex0Node.default_value
+            with bpy.context.temp_override(material=newMaterial):
+                newMaterial.f3d_mat.default_light_color = tex0Node.default_value
             updateMatWithName(newMaterial, material, materialDict)
         else:
             if isinstance(tex0Node.links[0].from_node, bpy.types.ShaderNodeTexImage):
@@ -213,8 +213,8 @@ def convertBSDFtoF3D(obj, index, material, materialDict):
                 else:
                     presetName = getDefaultMaterialPreset("Shaded Texture")
                 newMaterial = createF3DMat(obj, preset=presetName, index=index)
-                f3dMat = newMaterial.f3d_mat if newMaterial.mat_ver > 3 else newMaterial
-                f3dMat.tex0.tex = tex0Node.links[0].from_node.image
+                with bpy.context.temp_override(material=newMaterial):
+                    newMaterial.f3d_mat.tex0.tex = tex0Node.links[0].from_node.image
                 updateMatWithName(newMaterial, material, materialDict)
             else:
                 print("Principled BSDF material does not have an Image Node attached to its Base Color.")

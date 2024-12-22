@@ -1,9 +1,10 @@
+from pathlib import Path
 import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operator
 from math import pi, ceil, degrees, radians, copysign
 from mathutils import *
 from .utility_anim import *
 from typing import Callable, Iterable, Any, Optional, Tuple, TypeVar, Union
-from bpy.types import UILayout
+from bpy.types import UILayout, Scene, World
 
 CollectionProperty = Any  # collection prop as defined by using bpy.props.CollectionProperty
 
@@ -418,17 +419,17 @@ def extendedRAMLabel(layout):
     infoBox.label(text="Extended RAM prevents crashes.")
 
 
-def getPathAndLevel(customExport, exportPath, levelName, levelOption):
-    if customExport:
-        exportPath = bpy.path.abspath(exportPath)
-        levelName = levelName
+def getPathAndLevel(is_custom_export, custom_export_path, custom_level_name, level_enum):
+    if is_custom_export:
+        export_path = bpy.path.abspath(custom_export_path)
+        level_name = custom_level_name
     else:
-        exportPath = bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path)
-        if levelOption == "Custom":
-            levelName = levelName
+        export_path = bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path)
+        if level_enum == "Custom":
+            level_name = custom_level_name
         else:
-            levelName = levelOption
-    return exportPath, levelName
+            level_name = level_enum
+    return export_path, level_name
 
 
 def findStartBones(armatureObj):
@@ -708,6 +709,8 @@ def getExportDir(customExport, dirPath, headerType, levelName, texDir, dirName):
         elif headerType == "Level":
             dirPath = os.path.join(dirPath, "levels/" + levelName)
             texDir = "levels/" + levelName
+    elif not texDir:
+        texDir = (Path(dirPath).name / Path(dirName)).as_posix()
 
     return dirPath, texDir
 
@@ -788,7 +791,8 @@ def store_original_mtx():
     for obj in yield_children(active_obj):
         # negative scales produce a rotation, we need to remove that since
         # scales will be applied to the transform for each object
-        obj["original_mtx"] = Matrix.LocRotScale(obj.location, obj.rotation_euler, None)
+        loc, rot, _scale = obj.matrix_local.decompose()
+        obj["original_mtx"] = Matrix.LocRotScale(loc, rot, None)
 
 
 def rotate_bounds(bounds, mtx: mathutils.Matrix):
@@ -1868,3 +1872,40 @@ def upgrade_old_prop(
         print(f"Failed to upgrade {new_prop} from old location {old_loc} with props {old_props}")
         traceback.print_exc()
         return False
+
+
+WORLD_WARNING_COUNT = 0
+
+
+def create_or_get_world(scene: Scene) -> World:
+    """
+    Given a scene, this function will return:
+    - The world selected in the scene if the scene has a selected world.
+    - The first world in bpy.data.worlds if the current file has a world. (Which it almost always does because of the f3d nodes library)
+    - Create a world named "Fast64" and return it if no world exits.
+    This function does not assign any world to the scene.
+    """
+    global WORLD_WARNING_COUNT
+    if scene.world:
+        WORLD_WARNING_COUNT = 0
+        return scene.world
+    elif bpy.data.worlds:
+        world: World = bpy.data.worlds.values()[0]
+        if WORLD_WARNING_COUNT < 10:
+            print(f'No world selected in scene, selected the first one found in this file "{world.name}".')
+            WORLD_WARNING_COUNT += 1
+        return world
+    else:  # Almost never reached because the node library has its own world
+        WORLD_WARNING_COUNT = 0
+        print(f'No world in this file, creating world named "Fast64".')
+        return bpy.data.worlds.new("Fast64")
+
+
+def set_if_different(owner: object, prop: str, value):
+    if getattr(owner, prop) != value:
+        setattr(owner, prop, value)
+
+
+def set_prop_if_in_data(owner: object, prop_name: str, data: dict, data_name: str):
+    if data_name in data:
+        set_if_different(owner, prop_name, data[data_name])
