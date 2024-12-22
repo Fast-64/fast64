@@ -23,6 +23,7 @@ from .constants import (
     ootEnumSkybox,
     mm_enum_skybox,
     ootEnumCloudiness,
+    mm_enum_skybox_config,
     ootEnumSkyboxLighting,
     ootEnumLinkIdle,
     ootEnumRoomBehaviour,
@@ -54,6 +55,7 @@ def get_game_enum(enum_type: str):
         "OOT": {
             "enum_global_object": ootEnumGlobalObject,
             "enum_skybox": ootEnumSkybox,
+            "enum_skybox_config": ootEnumCloudiness,
             "enum_seq_id": oot_data.ootEnumMusicSeq,
             "enum_ambiance_id": oot_data.ootEnumNightSeq,  # TODO: generate this from xml (not for enumproperties)
             "enum_env_type": ootEnumLinkIdle,
@@ -63,6 +65,7 @@ def get_game_enum(enum_type: str):
         "MM": {
             "enum_global_object": mm_enum_global_object,
             "enum_skybox": mm_enum_skybox,
+            "enum_skybox_config": mm_enum_skybox_config,
             "enum_seq_id": mm_data.enum_seq_id,
             "enum_ambiance_id": mm_data.enum_ambiance_id,  # TODO: same as above
             "enum_env_type": mm_enum_environvment_type,
@@ -72,6 +75,29 @@ def get_game_enum(enum_type: str):
     }
 
     return game_enum_map[bpy.context.scene.gameEditorMode][enum_type]
+
+
+def get_game_prop_name(prop_type: str):
+    game_prop_name_map = {
+        "OOT": {
+            "global_obj": "globalObject",
+            "skybox_id": "skyboxID",
+            "skybox_config": "skyboxCloudiness",
+            "seq_id": "musicSeq",
+            "ambience_id": "nightSeq",
+            "draw_config": "drawConfig",
+        },
+        "MM": {
+            "global_obj": "mm_global_obj",
+            "skybox_id": "mm_skybox_id",
+            "skybox_config": "mm_skybox_config",
+            "seq_id": "mm_seq_id",
+            "ambience_id": "mm_ambience_id",
+            "draw_config": "mm_draw_config",
+        },
+    }
+
+    return game_prop_name_map[bpy.context.scene.gameEditorMode][prop_type]
 
 
 def get_game_props(obj: Object, header_type: str):
@@ -697,10 +723,12 @@ def convertIntTo2sComplement(value: int, length: int, signed: bool):
     return int.from_bytes(int(round(value)).to_bytes(length, "big", signed=signed), "big")
 
 
-def drawEnumWithCustom(panel, data, attribute, name, customName):
+def drawEnumWithCustom(panel, data, attribute, name, customName, custom_prop_name: Optional[str] = None):
     prop_split(panel, data, attribute, name)
     if getattr(data, attribute) == "Custom":
-        prop_split(panel, data, attribute + "Custom", customName)
+        if custom_prop_name is None:
+            custom_prop_name = attribute + "Custom"
+        prop_split(panel, data, custom_prop_name, customName)
 
 
 def getEnumName(enumItems, value):

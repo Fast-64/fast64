@@ -243,7 +243,7 @@ def upgradeCutsceneMotion(csMotionObj: Object):
                 index = legacyData["actor_id"]
                 if index >= 0:
                     cmdEnum = oot_data.enumData.enumByKey["csCmd"]
-                    cmdType = cmdEnum.itemByIndex.get(index)
+                    cmdType = cmdEnum.item_by_index.get(index)
                     if cmdType is not None:
                         csMotionProp.actorCueListProp.commandType = cmdType.key
                     else:
@@ -266,7 +266,7 @@ def upgradeCutsceneMotion(csMotionObj: Object):
                 playerEnum = oot_data.enumData.enumByKey["csPlayerCueId"]
                 item = None
                 if isPlayer:
-                    item = playerEnum.itemByIndex.get(int(legacyData["action_id"], base=16))
+                    item = playerEnum.item_by_index.get(int(legacyData["action_id"], base=16))
 
                 if isPlayer and item is not None:
                     csMotionProp.actorCueProp.playerCueID = item.key

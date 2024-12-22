@@ -22,6 +22,7 @@ from ..utility import (
     drawAddButton,
     is_game_oot,
     get_cs_index_start,
+    get_game_prop_name,
 )
 
 from ..constants import (
@@ -252,8 +253,7 @@ class Z64_SceneTableEntryProperty(PropertyGroup):
     drawConfigCustom: StringProperty(name="Scene Draw Config Custom")
 
     def draw_props(self, layout: UILayout):
-        prop_name = "drawConfig" if is_game_oot() else "mm_draw_config"
-        drawEnumWithCustom(layout, self, prop_name, "Draw Config", "")
+        drawEnumWithCustom(layout, self, get_game_prop_name("draw_config"), "Draw Config", "")
 
 
 class Z64_ExtraCutsceneProperty(PropertyGroup):
@@ -325,15 +325,17 @@ class Z64_SceneHeaderProperty(PropertyGroup):
     globalObject: EnumProperty(name="Global Object", default="OBJECT_GAMEPLAY_DANGEON_KEEP", items=ootEnumGlobalObject)
     mm_global_obj: EnumProperty(name="Global Object", default="GAMEPLAY_DANGEON_KEEP", items=mm_enum_global_object)
     globalObjectCustom: StringProperty(name="Global Object Custom", default="0x00")
+
+    # OoT exclusive
     naviCup: EnumProperty(name="Navi Hints", default="NAVI_QUEST_HINTS_NONE", items=ootEnumNaviHints)
     naviCupCustom: StringProperty(name="Navi Hints Custom", default="0x00")
 
     # SCENE_CMD_SKYBOX_SETTINGS
     skyboxID: EnumProperty(name="Skybox", items=ootEnumSkybox, default="0x01")
-    mm_skybox_id: EnumProperty(name="Skybox", items=mm_enum_skybox, default="0x01")
+    mm_skybox_id: EnumProperty(name="Skybox", items=mm_enum_skybox, default="SKYBOX_NORMAL_SKY")
     skyboxIDCustom: StringProperty(name="Skybox ID", default="0")
     skyboxCloudiness: EnumProperty(name="Cloudiness", items=ootEnumCloudiness, default="0x00")
-    mm_skybox_config: EnumProperty(name="Skybox Config", items=mm_enum_skybox_config, default="0x00")
+    mm_skybox_config: EnumProperty(name="Skybox Config", items=mm_enum_skybox_config, default="SKYBOX_CONFIG_0")
     skyboxCloudinessCustom: StringProperty(name="Cloudiness ID", default="0x00")
     skyboxLighting: EnumProperty(
         name="Skybox Lighting",
@@ -344,6 +346,9 @@ class Z64_SceneHeaderProperty(PropertyGroup):
     skyboxLightingCustom: StringProperty(
         name="Skybox Lighting Custom", default="0x00", update=on_update_oot_render_settings
     )
+
+    # MM exclusive
+    skybox_texture_id: StringProperty(name="Skybox Texture ID", default="0x00")
 
     # SCENE_CMD_SOUND_SETTINGS
     musicSeq: EnumProperty(name="Music Sequence", items=oot_data.ootEnumMusicSeq, default="NA_BGM_FIELD_LOGIC")
@@ -433,24 +438,11 @@ class Z64_SceneHeaderProperty(PropertyGroup):
             menuTab = self.altMenuTab
 
         if menuTab == "General":
-            if is_game_oot():
-                global_obj_prop_name = "globalObject"
-                skybox_prop_name = "skyboxID"
-                skybox_cfg_prop_name = "skyboxCloudiness"
-                seq_id_prop_name = "musicSeq"
-                ambience_prop_name = "nightSeq"
-                op_name = OOT_SearchMusicSeqEnumOperator.bl_idname
-            else:
-                global_obj_prop_name = "mm_global_obj"
-                skybox_prop_name = "mm_skybox_id"
-                skybox_cfg_prop_name = "mm_skybox_config"
-                seq_id_prop_name = "mm_seq_id"
-                ambience_prop_name = "mm_ambience_id"
-                op_name = MM_SearchMusicSeqEnumOperator.bl_idname
-
             general = layout.column()
             general.box().label(text="General")
-            drawEnumWithCustom(general, self, global_obj_prop_name, "Global Object", "")
+
+            # General
+            drawEnumWithCustom(general, self, get_game_prop_name("global_obj"), "Global Object", "")
             drawEnumWithCustom(general, self, "naviCup", "Navi Hints", "")
             if headerIndex is None or headerIndex == 0:
                 self.sceneTableEntry.draw_props(general)
@@ -460,19 +452,27 @@ class Z64_SceneHeaderProperty(PropertyGroup):
 
             general.prop(self, "appendNullEntrance")
 
+            # Skybox And Sound
             skyboxAndSound = layout.column()
             skyboxAndSound.box().label(text="Skybox And Sound")
 
-            drawEnumWithCustom(skyboxAndSound, self, skybox_prop_name, "Skybox", "")
-            drawEnumWithCustom(skyboxAndSound, self, skybox_cfg_prop_name, "Cloudiness", "")
-            drawEnumWithCustom(skyboxAndSound, self, seq_id_prop_name, "Music Sequence", "")
+            prop_split(skyboxAndSound, self, "skybox_texture_id", "Skybox Texture ID")
+            drawEnumWithCustom(skyboxAndSound, self, get_game_prop_name("skybox_id"), "Skybox", "", "skyboxIDCustom")
+            drawEnumWithCustom(skyboxAndSound, self, get_game_prop_name("skybox_config"), "Skybox Config", "", "skyboxCloudinessCustom")
+            drawEnumWithCustom(skyboxAndSound, self, get_game_prop_name("seq_id"), "Music Sequence", "")
+
+            if is_game_oot():
+                op_name = OOT_SearchMusicSeqEnumOperator.bl_idname
+            else:
+                op_name = MM_SearchMusicSeqEnumOperator.bl_idname
 
             musicSearch = skyboxAndSound.operator(op_name, icon="VIEWZOOM")
             musicSearch.objName = objName
             musicSearch.headerIndex = headerIndex if headerIndex is not None else 0
-            drawEnumWithCustom(skyboxAndSound, self, ambience_prop_name, "Nighttime SFX", "")
+            drawEnumWithCustom(skyboxAndSound, self, get_game_prop_name("ambience_id"), "Nighttime SFX", "")
             drawEnumWithCustom(skyboxAndSound, self, "audioSessionPreset", "Audio Session Preset", "")
 
+            # Camera And World Map | Minimap Settings
             if is_game_oot():
                 cameraAndWorldMap = layout.column()
                 cameraAndWorldMap.box().label(text="Camera And World Map")
@@ -723,8 +723,12 @@ class Z64_ImportSceneSettingsProperty(PropertyGroup):
                 prop_split(col, self, "subFolder", "Subfolder")
                 prop_split(col, self, "name", "Name")
 
-        if is_game_oot() and "SCENE_JABU_JABU" in sceneOption:
-            col.label(text="Pulsing wall effect won't be imported.", icon="ERROR")
+        if is_game_oot():
+            if "SCENE_JABU_JABU" in sceneOption:
+                col.label(text="Pulsing wall effect won't be imported.", icon="ERROR")
+        else:
+            if not self.includeActors:
+                col.label(text="MapDataChest won't be imported.", icon="ERROR")
 
 
 classes = (

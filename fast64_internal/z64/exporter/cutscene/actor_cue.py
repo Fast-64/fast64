@@ -74,7 +74,7 @@ class CutsceneCmdActorCueList(CutsceneCmdBase):
                 commandType = commandType.removeprefix("0x")
                 commandType = "0x" + "0" * (4 - len(commandType)) + commandType
             else:
-                commandType = oot_data.enumData.enumByKey["csCmd"].itemById[commandType].key
+                commandType = oot_data.enumData.enumByKey["csCmd"].item_by_id[commandType].key
             entryTotal = getInteger(params[1].strip())
 
         return CutsceneCmdActorCueList(None, None, isPlayer, commandType, entryTotal)

@@ -142,7 +142,7 @@ class CutsceneData:
         return [x, y, z]
 
     def getEnumValueFromProp(self, enumKey: str, owner, propName: str):
-        item = oot_data.enumData.enumByKey[enumKey].itemByKey.get(getattr(owner, propName))
+        item = oot_data.enumData.enumByKey[enumKey].item_by_key.get(getattr(owner, propName))
         return item.id if item is not None else getattr(owner, f"{propName}Custom")
 
     def setActorCueListData(self, csObjects: dict[str, list[Object]], isPlayer: bool):
@@ -169,7 +169,7 @@ class CutsceneData:
             if commandType == "Custom":
                 commandType = obj.ootCSMotionProperty.actorCueListProp.commandTypeCustom
             elif self.useMacros:
-                commandType = oot_data.enumData.enumByKey["csCmd"].itemByKey[commandType].id
+                commandType = oot_data.enumData.enumByKey["csCmd"].item_by_key[commandType].id
 
             # ignoring dummy cue
             newActorCueList = CutsceneCmdActorCueList(None, None, isPlayer, commandType, entryTotal - 1)
@@ -183,7 +183,7 @@ class CutsceneData:
                     if isPlayer:
                         cueID = childObj.ootCSMotionProperty.actorCueProp.playerCueID
                         if cueID != "Custom":
-                            actionID = oot_data.enumData.enumByKey["csPlayerCueId"].itemByKey[cueID].id
+                            actionID = oot_data.enumData.enumByKey["csPlayerCueId"].item_by_key[cueID].id
 
                     if actionID is None:
                         actionID = childObj.ootCSMotionProperty.actorCueProp.cueActionID

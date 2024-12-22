@@ -21,12 +21,12 @@ class CutsceneCmdBase:
     @staticmethod
     def getEnumValue(enumKey: str, value: str, isSeqLegacy: bool = False):
         enum = oot_data.enumData.enumByKey[enumKey]
-        item = enum.itemById.get(value)
+        item = enum.item_by_id.get(value)
         if item is None:
             setting = getInteger(value)
             if isSeqLegacy:
                 setting -= 1
-            item = enum.itemByIndex.get(setting)
+            item = enum.item_by_index.get(setting)
         return item.key if item is not None else value
 
     def getGenericListCmd(self, cmdName: str, entryTotal: int):

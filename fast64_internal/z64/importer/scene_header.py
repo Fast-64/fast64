@@ -15,6 +15,7 @@ from ..utility import (
     get_game_props,
     is_game_oot,
     get_cs_index_start,
+    get_game_prop_name,
 )
 from .constants import headerNames
 from .utility import getDataMatch, stripName
@@ -281,7 +282,7 @@ def parse_mm_minimap_info(scene_header, scene_data: str, list_name: str):
 
 def get_enum_id_from_index(enum_key: str, index: int):
     if is_game_oot():
-        return oot_data.enumData.enumByKey[enum_key].itemByIndex[index].id
+        return oot_data.enumData.enumByKey[enum_key].item_by_index[index].id
     else:
         return mm_data.enum_data.enum_by_key[enum_key].item_by_index[index].id
 
@@ -323,8 +324,19 @@ def parseSceneCommands(
         if command == "SCENE_CMD_SOUND_SETTINGS":
             setCustomProperty(sceneHeader, "audioSessionPreset", args[0], ootEnumAudioSessionPreset)
             setCustomProperty(sceneHeader, "nightSeq", args[1], get_game_enum("enum_ambiance_id"))
+
+            if args[2].startswith("NA_BGM_"):
+                enum_id = args[2]
+            else:
+                if is_game_oot():
+                    enum_seq_id = oot_data.enumData.enumByKey["seqId"]
+                else:
+                    enum_seq_id = mm_data.enum_data.enum_by_key["seqId"]
+
+                enum_id = enum_seq_id.item_by_index[int(args[2])].id
+
             setCustomProperty(
-                sceneHeader, "musicSeq", get_enum_id_from_index("seqId", int(args[2])), get_game_enum("enum_seq_id")
+                sceneHeader, get_game_prop_name("seq_id"), enum_id, get_game_enum("enum_seq_id")
             )
         elif command == "SCENE_CMD_ROOM_LIST":
             # Assumption that all scenes use the same room list.
@@ -352,8 +364,9 @@ def parseSceneCommands(
                 entranceListName = stripName(args[0])
                 entranceList = parseEntranceList(sceneHeader, roomObjs, sceneData, entranceListName)
         elif command == "SCENE_CMD_SPECIAL_FILES":
-            setCustomProperty(sceneHeader, "naviCup", args[0], ootEnumNaviHints)
-            setCustomProperty(sceneHeader, "globalObject", args[1], get_game_enum("enum_global_object"))
+            if is_game_oot():
+                setCustomProperty(sceneHeader, "naviCup", args[0], ootEnumNaviHints)
+            setCustomProperty(sceneHeader, get_game_prop_name("global_obj"), args[1], get_game_enum("enum_global_object"))
         elif command == "SCENE_CMD_PATH_LIST" and sharedSceneData.includePaths:
             pathListName = stripName(args[0])
             parsePathList(sceneObj, sceneData, pathListName, headerIndex, sharedSceneData)
@@ -368,9 +381,13 @@ def parseSceneCommands(
                 entranceList = None
 
         elif command == "SCENE_CMD_SKYBOX_SETTINGS":
-            setCustomProperty(sceneHeader, "skyboxID", args[0], get_game_enum("enum_skybox"))
-            setCustomProperty(sceneHeader, "skyboxCloudiness", args[1], ootEnumCloudiness)
-            setCustomProperty(sceneHeader, "skyboxLighting", args[2], ootEnumSkyboxLighting)
+            args_index = 0
+            if not is_game_oot():
+                sceneHeader.skybox_texture_id = args[args_index]
+                args_index += 1
+            setCustomProperty(sceneHeader, get_game_prop_name("skybox_id"), args[args_index], get_game_enum("enum_skybox"))
+            setCustomProperty(sceneHeader, get_game_prop_name("skybox_config"), args[args_index + 1], get_game_enum("enum_skybox_config"))
+            setCustomProperty(sceneHeader, "skyboxLighting", args[args_index + 2], ootEnumSkyboxLighting)
         elif command == "SCENE_CMD_EXIT_LIST":
             exitListName = stripName(args[0])
             parseExitList(sceneHeader, sceneData, exitListName)

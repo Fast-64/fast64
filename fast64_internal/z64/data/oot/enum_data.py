@@ -41,14 +41,14 @@ class OoT_ItemElement(OoT_BaseElement):
 @dataclass
 class OoT_EnumElement(OoT_BaseElement):
     items: list[OoT_ItemElement]
-    itemByKey: dict[str, OoT_ItemElement] = field(default_factory=dict)
-    itemByIndex: dict[int, OoT_ItemElement] = field(default_factory=dict)
-    itemById: dict[int, OoT_ItemElement] = field(default_factory=dict)
+    item_by_key: dict[str, OoT_ItemElement] = field(default_factory=dict)
+    item_by_index: dict[int, OoT_ItemElement] = field(default_factory=dict)
+    item_by_id: dict[int, OoT_ItemElement] = field(default_factory=dict)
 
     def __post_init__(self):
-        self.itemByKey = {item.key: item for item in self.items}
-        self.itemByIndex = {item.index: item for item in self.items}
-        self.itemById = {item.id: item for item in self.items}
+        self.item_by_key = {item.key: item for item in self.items}
+        self.item_by_index = {item.index: item for item in self.items}
+        self.item_by_id = {item.id: item for item in self.items}
 
 
 class OoT_EnumData:

@@ -26,12 +26,12 @@ class CutsceneCmdBase:
 
     def getEnumValue(self, enumKey: str, index: int, isSeqLegacy: bool = False):
         enum = oot_data.enumData.enumByKey[enumKey]
-        item = enum.itemById.get(self.params[index])
+        item = enum.item_by_id.get(self.params[index])
         if item is None:
             setting = getInteger(self.params[index])
             if isSeqLegacy:
                 setting -= 1
-            item = enum.itemByIndex.get(setting)
+            item = enum.item_by_index.get(setting)
         return item.key if item is not None else self.params[index]
 
 
@@ -101,7 +101,7 @@ class CutsceneCmdActorCueList(CutsceneCmdBase):
                     self.commandType = self.commandType.removeprefix("0x")
                     self.commandType = "0x" + "0" * (4 - len(self.commandType)) + self.commandType
                 else:
-                    self.commandType = oot_data.enumData.enumByKey["csCmd"].itemById[self.commandType].key
+                    self.commandType = oot_data.enumData.enumByKey["csCmd"].item_by_id[self.commandType].key
                 self.entryTotal = getInteger(self.params[1].strip())
 
 
@@ -532,8 +532,8 @@ class CutsceneObjectFactory:
         if commandType == "Player":
             commandType = "player_cue"
 
-        index = cmdEnum.itemByKey[commandType].index if commandType in cmdEnum.itemByKey else int(commandType, base=16)
-        item = cmdEnum.itemByIndex.get(index)
+        index = cmdEnum.item_by_key[commandType].index if commandType in cmdEnum.item_by_key else int(commandType, base=16)
+        item = cmdEnum.item_by_index.get(index)
 
         if item is not None:
             newActorCueListObj.ootCSMotionProperty.actorCueListProp.commandType = item.key
@@ -568,9 +568,9 @@ class CutsceneObjectFactory:
         if isPlayer:
             playerEnum = oot_data.enumData.enumByKey["csPlayerCueId"]
             if isinstance(actionID, int):
-                item = playerEnum.itemByIndex.get(actionID)
+                item = playerEnum.item_by_index.get(actionID)
             else:
-                item = playerEnum.itemByKey.get(actionID)
+                item = playerEnum.item_by_key.get(actionID)
 
         if item is not None:
             newActorCueObj.ootCSMotionProperty.actorCueProp.playerCueID = item.key
