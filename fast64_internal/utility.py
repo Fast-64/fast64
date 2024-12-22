@@ -1674,28 +1674,25 @@ def ootGetSceneOrRoomHeader(parent: bpy.types.Object, idx: int, isRoom: bool):
         raise PluginError("Alternate scene/room header index too low: " + str(idx))
 
     target = "Room" if isRoom else "Scene"
-
-    if bpy.context.scene.gameEditorMode == "OOT":
-        header = getattr(parent, "oot" + target + "Header")
-        altHeaders = getattr(parent, "ootAlternate" + target + "Headers")
-    else:
-        header = getattr(parent, f"mm_{target.lower()}_header")
-        altHeaders = getattr(parent, f"mm_alternate_{target.lower()}_headers")
+    altHeaders = getattr(parent, "ootAlternate" + target + "Headers")
+    is_game_oot = bpy.context.scene.gameEditorMode == "OOT"
+    cs_index_start = 4 if is_game_oot else 1
 
     if idx == 0:
-        return header
-    elif 1 <= idx <= 3:
-        if idx == 1:
-            ret = altHeaders.childNightHeader
-        elif idx == 2:
-            ret = altHeaders.adultDayHeader
-        else:
-            ret = altHeaders.adultNightHeader
-        return None if ret.usePreviousHeader else ret
-    else:
-        if idx - 4 >= len(altHeaders.cutsceneHeaders):
-            return None
-        return altHeaders.cutsceneHeaders[idx - 4]
+        return getattr(parent, "oot" + target + "Header")
+    elif is_game_oot:
+        if 1 <= idx <= (cs_index_start - 1):
+            if idx == 1:
+                ret = altHeaders.childNightHeader
+            elif idx == 2:
+                ret = altHeaders.adultDayHeader
+            else:
+                ret = altHeaders.adultNightHeader
+            return None if ret.usePreviousHeader else ret
+
+    if idx - cs_index_start >= len(altHeaders.cutsceneHeaders):
+        return None
+    return altHeaders.cutsceneHeaders[idx - cs_index_start]
 
 
 def ootGetBaseOrCustomLight(prop, idx, toExport: bool, errIfMissing: bool):
