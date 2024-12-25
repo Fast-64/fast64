@@ -134,6 +134,9 @@ ACMUXDict = {
 }
 
 
+EMU64_SWIZZLE_SIZES = {"G_IM_SIZ_4b": (8, 8), "G_IM_SIZ_8b": (8, 4), "G_IM_SIZ_16b": (4, 4), "G_IM_SIZ_32b": (2, 2)}
+
+
 def isUcodeF3DEX1(F3D_VER: str) -> bool:
     return F3D_VER in {"F3DLP.Rej", "F3DLX.Rej", "F3DEX/LX"}
 
@@ -3311,16 +3314,16 @@ class FImage:
     width: int
     height: int
     filename: str
-    data: bytearray = field(init=False, compare=False, default_factory=bytearray)
+    data: np.ndarray = field(init=False, compare=False, default=np.ndarray([]))
     startAddress: int = field(init=False, compare=False, default=0)
     isLargeTexture: bool = field(init=False, compare=False, default=False)
     converted: bool = field(init=False, compare=False, default=False)
 
     def size(self):
-        return len(self.data)
+        return self.data.size * self.data.itemsize
 
     def to_binary(self):
-        return self.data
+        return self.data.astype(self.data.dtype.newbyteorder(">")).tobytes()
 
     def to_c(self, texArrayBitSize, f3d):
         return self.to_c_helper(self.to_c_data(texArrayBitSize), texArrayBitSize, f3d)
@@ -3342,38 +3345,14 @@ class FImage:
         code.source += "\n};\n\n"
         return code
 
-    def to_c_data(self, bitsPerValue):
+    def to_c_data(self, bits_per_val: int):
         if not self.converted:
             raise PluginError(
                 "Error: Trying to write texture data to C, but haven't actually converted the image file to bytes yet."
             )
-
-        bytesPerValue = int(bitsPerValue / 8)
-        numValues = int(len(self.data) / bytesPerValue)
-        remainderCount = len(self.data) - numValues * bytesPerValue
-        digits = 2 + 2 * bytesPerValue
-
-        code = "".join(
-            [
-                format(
-                    int.from_bytes(self.data[i * bytesPerValue : (i + 1) * bytesPerValue], "big"),
-                    "#0" + str(digits) + "x",
-                )
-                + ", "
-                + ("\n\t" if i % 8 == 7 else "")
-                for i in range(numValues)
-            ]
-        )
-
-        if remainderCount > 0:
-            start = numValues * bytesPerValue
-            end = (numValues + 1) * bytesPerValue
-            code += format(
-                int.from_bytes(self.data[start:end], "big") << (8 * (bytesPerValue - remainderCount)),
-                "#0" + str(digits) + "x",
-            )
-
-        return code
+        data = self.data.astype(dtype=self.data.dtype.newbyteorder(">"))
+        hex_str = data.tobytes().hex(":", bits_per_val // 8).split(":")
+        return "".join([f"0x{s}, " + ("\n\t" if i % 8 == 7 else "") for i, s in enumerate(hex_str)])
 
     def set_addr(self, startAddress):
         startAddress = get64bitAlignedAddr(startAddress)
