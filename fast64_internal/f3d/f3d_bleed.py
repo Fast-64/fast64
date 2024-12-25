@@ -159,11 +159,13 @@ class BleedGraphics:
                     # make better error msg
                     print("could not find material used in fmesh draw")
                     continue
-                bleed_gfx_lists.bled_mats = self.bleed_mat(cur_fmat, last_mat, bleed_state)
                 if not (cur_fmat.isTexLarge[0] or cur_fmat.isTexLarge[1]):
                     bleed_gfx_lists.bled_tex = self.bleed_textures(cur_fmat, last_mat, bleed_state)
                 else:
                     bleed_gfx_lists.bled_tex = cur_fmat.texture_DL.commands
+                bleed_gfx_lists.bled_mats = self.bleed_mat(cur_fmat, last_mat, bleed_state)
+                # some syncs may become redundant after bleeding
+                self.optimize_syncs(bleed_gfx_lists, bleed_state)
             # bleed tri group (for large textures) and to remove other unnecessary cmds
             if jump_list_cmd.displayList.tag & GfxListTag.Geometry:
                 tri_list = jump_list_cmd.displayList
@@ -251,8 +253,6 @@ class BleedGraphics:
                 commands_bled.commands.remove(None)
         else:
             commands_bled = self.bleed_cmd_list(cur_fmat.mat_only_DL, bleed_state)
-        # some syncs may become redundant after bleeding
-        self.optimize_syncs(commands_bled, bleed_state)
         # remove SPEndDisplayList
         while SPEndDisplayList() in commands_bled.commands:
             commands_bled.commands.remove(SPEndDisplayList())
@@ -354,13 +354,13 @@ class BleedGraphics:
         self.bled_gfx_lists[cmd_list] = last_mat
 
     # remove syncs if first material, or if no gsDP cmds in material
-    def optimize_syncs(self, cmd_list: GfxList, bleed_state: int):
+    def optimize_syncs(self, bleed_gfx_lists: BleedGfxLists, bleed_state: int):
         no_syncs_needed = {"DPSetPrimColor", "DPSetPrimDepth"}  # will not affect rdp
         syncs_needed = {"SPSetOtherMode"}  # will affect rdp
         if bleed_state == self.bleed_start:
-            while DPPipeSync() in cmd_list.commands:
-                cmd_list.commands.remove(DPPipeSync())
-        for cmd in cmd_list.commands:
+            while DPPipeSync() in bleed_gfx_lists.bled_mats:
+                bleed_gfx_lists.bled_mats.remove(DPPipeSync())
+        for cmd in (*bleed_gfx_lists.bled_mats, *bleed_gfx_lists.bled_tex):
             cmd_name = type(cmd).__name__
             if cmd == DPPipeSync():
                 continue
@@ -368,8 +368,8 @@ class BleedGraphics:
                 return
             if cmd_name in syncs_needed:
                 return
-        while DPPipeSync() in cmd_list.commands:
-            cmd_list.commands.remove(DPPipeSync())
+        while DPPipeSync() in bleed_gfx_lists.bled_mats:
+            bleed_gfx_lists.bled_mats.remove(DPPipeSync())
 
     def create_reset_cmds(self, reset_cmd_dict: dict[GbiMacro], default_render_mode: list[str]):
         reset_cmds = []
