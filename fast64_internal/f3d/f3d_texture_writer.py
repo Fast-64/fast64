@@ -1077,7 +1077,7 @@ def saveTextureTile(
     if f3d.F3DZEX2_EMU64:
         if (clamp_S and mirror_S) or (clamp_T and mirror_T):
             raise PluginError("Clamp + mirror not supported in F3DZEX2 (Emu64)")
-        if tileSettings and (log2iRoundUp(fImage.width) != masks or log2iRoundUp(fImage.height) != maskt):
+        if tileSettings is None and (log2iRoundUp(fImage.width) != masks or log2iRoundUp(fImage.height) != maskt):
             raise PluginError("Mask is not emulated in emu64, non default values are not supported")
         wrap_s = "GX_CLAMP" if clamp_S else "GX_MIRROR" if mirror_S else "GX_REPEAT"
         wrap_t = "GX_CLAMP" if clamp_T else "GX_MIRROR" if mirror_T else "GX_REPEAT"
