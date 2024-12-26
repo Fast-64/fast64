@@ -31,7 +31,16 @@ from bpy.utils import register_class, unregister_class
 from mathutils import Color
 
 from .f3d_enums import *
-from .f3d_gbi import get_F3D_GBI, enumTexScroll, isUcodeF3DEX1, default_draw_layers
+from .f3d_gbi import (
+    get_F3D_GBI,
+    enumTexScroll,
+    isUcodeF3DEX1,
+    isUcodeF3DEX3,
+    is_ucode_f3d,
+    is_ucode_t3d,
+    is_ucode_point_lit,
+    default_draw_layers,
+)
 from .f3d_material_presets import *
 from ..utility import *
 from ..render_settings import (
@@ -119,13 +128,14 @@ drawLayerOOTtoSM64 = {
     "Overlay": "1",
 }
 
-enumF3DMenu = [
-    ("Combiner", "Combiner", "Combiner"),
-    ("Sources", "Sources", "Sources"),
-    ("Geo", "Geo", "Geo"),
-    ("Upper", "Upper", "Upper"),
-    ("Lower", "Lower", "Lower"),
-]
+
+def menu_items_enum(_self, context):
+    items = ["Combiner", "Sources"]
+    if len(geo_modes_in_ucode(context.scene.f3d_type)) > 1:
+        items.append("Geo")
+    items.extend(["Upper", "Lower"])
+    return [(item, item, item) for item in items]
+
 
 enumF3DSource = [
     ("None", "None", "None"),
@@ -143,6 +153,79 @@ defaultMaterialPresets = {
     "Shaded Solid": {"SM64": "Shaded Solid", "OOT": "oot_shaded_solid"},
     "Shaded Texture": {"SM64": "Shaded Texture", "OOT": "oot_shaded_texture"},
 }
+
+F3D_GEO_MODES = {
+    "zBuffer": "g_zbuffer",
+    "shade": "g_shade",
+    "cullFront": "g_cull_front",
+    "cullBack": "g_cull_back",
+    "fog": "g_fog",
+    "lighting": "g_lighting",
+    "texGen": "g_tex_gen",
+    "texGenLinear": "g_tex_gen_linear",
+    "lod": "g_lod",
+    "shadeSmooth": "g_shade_smooth",
+}
+
+F3DLX_GEO_MODES = {
+    "clipping": "g_clipping",
+}
+
+F3DEX3_GEO_MODES = {
+    "ambientOcclusion": "g_ambocclusion",
+    "attroffsetZ": "g_attroffset_z_enable",
+    "attroffsetST": "g_attroffset_st_enable",
+    "packedNormals": "g_packed_normals",
+    "lightToAlpha": "g_lighttoalpha",
+    "specularLighting": "g_lighting_specular",
+    "fresnelToColor": "g_fresnel_color",
+    "fresnelToAlpha": "g_fresnel_alpha",
+}
+
+
+T3D_GEO_MODES = {
+    "cullFront": "g_cull_front",
+    "cullBack": "g_cull_back",
+    "fog": "g_fog",
+    "texGen": "g_tex_gen",
+}
+POINT_LIT_GEO_MODES = {"positionalLighting": "g_lighting_positional"}
+
+F3DZEX2_EMU64_GEO_MODES = {
+    "decalGEqual": "g_decal_gequal",
+    "decalEqual": "g_decal_equal",
+    "decalSpecial": "g_decal_special",
+}
+
+
+def geo_modes_in_ucode(UCODE_VER: str):
+    geo_modes = {}
+    if is_ucode_f3d(UCODE_VER):
+        geo_modes.update(F3D_GEO_MODES)
+        if isUcodeF3DEX1(UCODE_VER):
+            geo_modes.update(F3DLX_GEO_MODES)
+        if isUcodeF3DEX3(UCODE_VER):
+            geo_modes.update(F3DEX3_GEO_MODES)
+        if is_ucode_point_lit(UCODE_VER):
+            geo_modes.update(POINT_LIT_GEO_MODES)
+        if UCODE_VER == "F3DZEX2 (Emu64)":
+            geo_modes.update(F3DZEX2_EMU64_GEO_MODES)
+    if is_ucode_t3d(UCODE_VER):
+        geo_modes.update(T3D_GEO_MODES)
+    return geo_modes
+
+
+def sources_in_ucode(UCODE_VER: str):
+    sources = ["Primitive", "Environment", "Key", "Convert", "Fog"]
+    if not is_ucode_t3d(UCODE_VER) or is_ucode_f3d(UCODE_VER):
+        sources.extend(["Lighting", "Clip Ratio"])
+    if isUcodeF3DEX3(UCODE_VER):
+        sources.extend(["AO", "Fresnel", "ST Attr Offset", "Z Attr Offset"])
+    return sources
+
+
+def inherit_light_and_fog():
+    return is_ucode_t3d(bpy.context.scene.f3d_type)
 
 
 def getDefaultMaterialPreset(category):
@@ -443,6 +526,7 @@ def all_combiner_uses(f3d_mat: "F3DMaterialProperty") -> dict[str, bool]:
 
 
 def ui_geo_mode(settings, dataHolder, layout, useDropdown):
+    f3d = get_F3D_GBI()
     inputGroup = layout.column()
     if useDropdown:
         inputGroup.prop(
@@ -454,7 +538,24 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
     if not useDropdown or dataHolder.menu_geo:
         disable_dependent = False  # Don't disable dependent props in world defaults
 
+        def should_draw(*props):
+            return any(settings.has_prop_in_ucode(prop) for prop in props)
+
+        def is_on(*props):
+            return all(settings.is_geo_mode_on(prop) for prop in props)
+
+        def draw_mode(layout: UILayout, *props):
+            failed = False
+            for prop in props:
+                if settings.has_prop_in_ucode(prop):
+                    layout.prop(settings, prop)
+                else:
+                    failed = True
+            return not failed
+
         def indentGroup(parent: UILayout, textOrProp: Union[str, "F3DMaterialProperty"], isText: bool) -> UILayout:
+            if not isText and not should_draw(textOrProp):
+                return parent.column(align=True)
             c = parent.column(align=True)
             if isText:
                 c.label(text=textOrProp)
@@ -469,8 +570,7 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
             return c
 
         f3d = get_F3D_GBI()
-
-        lightFxPrereq = f3d.F3DEX_GBI_3 and settings.g_lighting
+        point_lit_unused = f3d.F3DEX_GBI_3 and settings.has_prop_in_ucode("g_lighting_positional")
         ccWarnings = shadeInCC = False
         blendWarnings = shadeInBlender = zInBlender = False
         if isinstance(dataHolder, F3DMaterialProperty):
@@ -483,132 +583,142 @@ def ui_geo_mode(settings, dataHolder, layout, useDropdown):
                 shadeInBlender = settings.does_blender_use_input("G_BL_A_SHADE")
                 zInBlender = settings.z_cmp or settings.z_upd
 
-        inputGroup.prop(settings, "g_shade_smooth")
+        draw_mode(inputGroup, "g_shade_smooth")
 
         c = indentGroup(inputGroup, "g_lighting", False)
-        if ccWarnings and not shadeInCC and settings.g_lighting and not settings.g_tex_gen:
+        if ccWarnings and not shadeInCC and is_on("g_lighting") and not is_on("g_tex_gen"):
             multilineLabel(c, "Shade not used in CC, can disable\nlighting.", icon="INFO")
-        if f3d.F3DEX_GBI_3:
-            c.prop(settings, "g_packed_normals")
-            c.prop(settings, "g_lighting_specular")
-            c.prop(settings, "g_ambocclusion")
-            c.prop(settings, "g_fresnel_color")
-        elif f3d.POINT_LIT_GBI:  # Draw this flag in Not Useful for f3dex3
-            c.prop(settings, "g_lighting_positional")
-        d = indentGroup(c, "g_tex_gen", False)
-        d.prop(settings, "g_tex_gen_linear")
+        if not point_lit_unused:  # Draw this flag in Not Useful for f3dex3
+            draw_mode(c, "g_lighting_positional")
+        draw_mode(c, "g_packed_normals", "g_lighting_specular", "g_ambocclusion", "g_fresnel_color")
+        if should_draw("g_tex_gen_linear"):
+            d = indentGroup(c, "g_tex_gen", False)
+        else:
+            draw_mode(c, "g_tex_gen")
+            d = c
+        draw_mode(d, "g_tex_gen_linear")
 
-        if lightFxPrereq and settings.g_fresnel_color:
+        if is_ucode_t3d(f3d.F3D_VER):
+            shadeColorLabel = "Lighting * vertex color"
+        if is_on("g_fresnel_color"):
             shadeColorLabel = "Fresnel"
-        elif not settings.g_lighting or (lightFxPrereq and settings.g_lighttoalpha):
+        elif not is_on("g_lighting") or is_on("g_lighttoalpha"):
             shadeColorLabel = "Vertex color"
-        elif lightFxPrereq and settings.g_packed_normals and not settings.g_lighttoalpha:
+        elif is_on("g_lighting") and is_on("g_packed_normals") and not is_on("g_lighttoalpha"):
             shadeColorLabel = "Lighting * vertex color"
         else:
             shadeColorLabel = "Lighting"
-        inputGroup.label(text=f"Shade color = {shadeColorLabel}")
 
+        inputGroup.column().label(text=f"Shade color = {shadeColorLabel}")
+
+        draw_mode(inputGroup, "g_fog")
         shadowMapInShadeAlpha = False
-        if settings.g_fog:
+        if is_on("g_fog"):
             shadeAlphaLabel = "Fog"
-        elif lightFxPrereq and settings.g_fresnel_alpha:
+        elif is_on("g_lighting", "g_fresnel_alpha"):
             shadeAlphaLabel = "Fresnel"
-        elif lightFxPrereq and settings.g_lighttoalpha:
+        elif is_on("g_lighting", "g_lighttoalpha"):
             shadeAlphaLabel = "Light intensity"
-        elif lightFxPrereq and settings.g_ambocclusion:
+        elif is_on("g_lighting", "g_ambocclusion"):
             shadeAlphaLabel = "Shadow map / AO in vtx alpha"
             shadowMapInShadeAlpha = True
         else:
             shadeAlphaLabel = "Vtx alpha"
-        c = indentGroup(inputGroup, f"Shade alpha = {shadeAlphaLabel}:", True)
-        if f3d.F3DEX_GBI_3:
-            lighting_group = c.column(align=True)
-            lighting_group.enabled = settings.g_lighting or not disable_dependent
-            lighting_group.prop(settings, "g_lighttoalpha")
-            lighting_group.prop(settings, "g_fresnel_alpha")
-        c.prop(settings, "g_fog")
-        if lightFxPrereq and settings.g_fog and settings.g_fresnel_alpha:
-            c.label(text="Fog overrides Fresnel Alpha.", icon="ERROR")
-        if lightFxPrereq and settings.g_fog and settings.g_lighttoalpha:
-            c.label(text="Fog overrides Light-to-Alpha.", icon="ERROR")
-        if lightFxPrereq and settings.g_fresnel_alpha and settings.g_lighttoalpha:
-            c.label(text="Fresnel Alpha overrides Light-to-Alpha.", icon="ERROR")
+
+        warnings, errors = [], []
+        if is_on("g_lighting", "g_fog", "g_fresnel_alpha"):
+            errors.append("Fog overrides Fresnel Alpha.")
+        if is_on("g_lighting", "g_fog", "g_lighttoalpha"):
+            errors.append("Fog overrides Light-to-Alpha.")
+        if is_on("g_lighting", "g_fresnel_alpha", "g_lighttoalpha"):
+            errors.append("Fresnel Alpha overrides Light-to-Alpha.")
         if shadowMapInShadeAlpha and ccWarnings and ccUse["Shade Alpha"]:
-            c.label(text="Shadow map = shade alpha used in CC, probably wrong.", icon="INFO")
-        if settings.g_fog and ccWarnings and ccUse["Shade Alpha"]:
-            c.label(text="Fog = shade alpha used in CC, probably wrong.", icon="INFO")
-        if blendWarnings and shadeInBlender and not settings.g_fog:
-            c.label(text="Rendermode uses shade alpha, probably fog.", icon="INFO")
-        elif blendWarnings and not shadeInBlender and settings.g_fog:
-            c.label(text="Fog not used in rendermode / blender, can disable.", icon="INFO")
+            warnings.append("Shadow map = shade alpha used in CC, probably wrong.")
+        if is_on("g_fog") and ccWarnings and ccUse["Shade Alpha"]:
+            warnings.append("Fog = shade alpha used in CC, probably wrong.")
+        if blendWarnings and shadeInBlender and not is_on("g_fog"):
+            warnings.append("Rendermode uses shade alpha, probably fog.")
+        elif blendWarnings and not shadeInBlender and is_on("g_fog"):
+            warnings.append("Fog not used in rendermode / blender, can disable.")
 
-        if f3d.F3DZEX2_EMU64:
-            c = indentGroup(inputGroup, "Decals:", True)
-            c.prop(settings, "g_decal_equal")
-            c.prop(settings, "g_decal_gequal")
-            c.prop(settings, "g_decal_special")
-            # These geo modes are not as clear as others, so we give the user a bit more info
-            if not settings.g_decal_equal and not settings.g_decal_gequal:
-                compare_mode = "GX_LEQUAL"
-            elif settings.g_decal_gequal and not settings.g_decal_equal:
-                compare_mode = "GX_GEQUAL"
-            elif settings.g_decal_equal and not settings.g_decal_gequal:
-                compare_mode = "GX_EQUAL"
+        if should_draw("g_lighttoalpha", "g_fresnel_alpha") or warnings or errors:
+            c = indentGroup(inputGroup, f"Shade alpha = {shadeAlphaLabel}:", True)
+            draw_mode(c, "g_lighttoalpha", "g_fresnel_alpha")
+            if warnings:
+                multilineLabel(c, "\n".join(warnings), "INFO")
+            if errors:
+                multilineLabel(c, "\n".join(errors), "ERROR")
+        else:
+            inputGroup.column().label(text=f"Shade alpha = {shadeAlphaLabel}")
+
+        if should_draw("g_decal_equal", "g_decal_gequal", "g_decal_special"):
+            if blendWarnings:
+                info_col, c = inputGroup, indentGroup(inputGroup, "Decals:", True)
             else:
-                compare_mode = "GX_ALWAYS"
-            decal_mode_info = f"Compare mode = {compare_mode}"
-
-            if settings.g_decal_special:
-                decal_mode_info += "\nBlend mode = "
-                if settings.g_decal_gequal:
-                    decal_mode_info += "GX_BM_NONE, GX_BL_ONE, GX_BL_ZERO, GX_LO_NOOP"
-                else:
-                    decal_mode_info += "GX_BM_BLEND, GX_BL_DSTALPHA, GX_BL_INVDSTALPHA, GX_LO_NOOP"
-
-            if not settings.g_decal_equal:
-                decal_mode_info += (
-                    "\nDepth offset " + ("towards" if settings.g_decal_gequal else "away from") + " the camera"
-                )
-
+                info_col = c = indentGroup(inputGroup, "In decals (ZMODE_DEC):", True)
+            c.enabled = not blendWarnings or settings.zmode == "ZMODE_DEC"
             if blendWarnings and settings.zmode != "ZMODE_DEC":
-                decal_mode_info = "Non-decal rendermode, these will be ignored."
-            multilineLabel(c, decal_mode_info, icon="INFO")
+                c.label(text="Non-decal rendermode, these will be ignored.", icon="INFO")
+            draw_mode(c, "g_decal_equal", "g_decal_gequal", "g_decal_special")
+            if not blendWarnings or settings.zmode == "ZMODE_DEC":
+                # These geo modes are not as clear as others, so we give the user a bit more info
+                if not settings.g_decal_equal and not settings.g_decal_gequal:
+                    compare_mode = "GX_LEQUAL"
+                elif settings.g_decal_gequal and not settings.g_decal_equal:
+                    compare_mode = "GX_GEQUAL"
+                elif settings.g_decal_equal and not settings.g_decal_gequal:
+                    compare_mode = "GX_EQUAL"
+                else:
+                    compare_mode = "GX_ALWAYS"
+                info_col.label(text=f"Compare mode (GC) = {compare_mode}", icon="FILTER")
+                if not settings.g_decal_equal:
+                    info_col.label(
+                        text="Depth offset " + ("towards" if settings.g_decal_gequal else "away from") + " the camera",
+                        icon="IMAGE_ZDEPTH",
+                    )
+                if settings.g_decal_special:
+                    blend_mode = "Blend mode (GC):\n"
+                    if settings.g_decal_gequal:
+                        blend_mode += "        GX_BM_NONE,  GX_BL_ONE,\n        GX_BL_ZERO,    GX_LO_NOOP"
+                    else:
+                        blend_mode += (
+                            "        GX_BM_BLEND,            GX_BL_DSTALPHA,\n        GX_BL_INVDSTALPHA, GX_LO_NOOP"
+                        )
+                    multilineLabel(info_col.box(), blend_mode, icon="SHADERFX")
 
-        if f3d.F3DEX_GBI_3:
-            c = indentGroup(inputGroup, "Attribute offsets:", True)
-            c.prop(settings, "g_attroffset_st_enable")
-            c.prop(settings, "g_attroffset_z_enable")
+        if should_draw("g_attroffset_st_enable", "g_attroffset_z_enable"):
+            indentGroup(inputGroup, "Attribute offsets:", True)
+            draw_mode(inputGroup, "g_attroffset_st_enable", "g_attroffset_z_enable")
 
-        c = indentGroup(inputGroup, "Face culling:", True)
-        c.prop(settings, "g_cull_front")
-        c.prop(settings, "g_cull_back")
-        if settings.g_cull_front and settings.g_cull_back:
-            c.label(text="Nothing will be drawn.", icon="ERROR")
+        if should_draw("g_cull_front", "g_cull_back"):
+            c = indentGroup(inputGroup, "Face culling:", True)
+            draw_mode(c, "g_cull_front", "g_cull_back")
+            if is_on("g_cull_front", "g_cull_back"):
+                c.label(text="Nothing will be drawn.", icon="ERROR")
 
-        c = indentGroup(inputGroup, "Disable if not using:", True)
-        c.prop(settings, "g_zbuffer")
-        if blendWarnings and not settings.g_zbuffer and zInBlender:
-            c.label(text="Rendermode / blender using Z, must enable.", icon="ERROR")
-        elif blendWarnings and settings.g_zbuffer and not zInBlender:
-            c.label(text="Z is not being used, can disable.", icon="INFO")
-        c.prop(settings, "g_shade")
-        if ccWarnings and not settings.g_shade and (shadeInCC or shadeInBlender):
-            if shadeInCC and shadeInBlender:
-                where = "CC and blender"
-            elif shadeInCC:
-                where = "CC"
-            else:
-                where = "rendermode / blender"
-            c.label(text=f"Shade in use in {where}, must enable.", icon="ERROR")
-        elif ccWarnings and settings.g_shade and not shadeInCC and not shadeInBlender:
-            c.label(text="Shade is not being used, can disable.", icon="INFO")
+        if should_draw("g_zbuffer", "g_shade"):
+            c = indentGroup(inputGroup, "Disable if not using:", True)
+            draw_mode(c, "g_zbuffer", "g_shade")
+            if blendWarnings and not is_on("g_zbuffer") and zInBlender:
+                c.label(text="Rendermode / blender using Z, must enable.", icon="ERROR")
+            elif blendWarnings and is_on("g_zbuffer") and not zInBlender:
+                c.label(text="Z is not being used, can disable.", icon="INFO")
+            if ccWarnings and not is_on("g_shade") and (shadeInCC or shadeInBlender):
+                if shadeInCC and shadeInBlender:
+                    where = "CC and blender"
+                elif shadeInCC:
+                    where = "CC"
+                else:
+                    where = "rendermode / blender"
+                c.label(text=f"Shade in use in {where}, must enable.", icon="ERROR")
+            elif ccWarnings and is_on("g_shade") and not shadeInCC and not shadeInBlender:
+                c.label(text="Shade is not being used, can disable.", icon="INFO")
 
-        c = indentGroup(inputGroup, "Not useful:", True)
-        c.prop(settings, "g_lod")
-        if f3d.F3DLP_GBI:
-            c.prop(settings, "g_clipping")
-        elif f3d.F3DEX_GBI_3:
-            c.prop(settings, "g_lighting_positional", text="Positional Lighting (Always enabled in EX3)")
+        if should_draw("g_lod", "g_clipping") or point_lit_unused:
+            c = indentGroup(inputGroup, "Not useful:", True)
+            draw_mode(c, "g_lod", "g_clipping")
+            if point_lit_unused:
+                draw_mode(c, "g_lighting_positional")
 
 
 def ui_upper_mode(settings, dataHolder, layout: UILayout, useDropdown):
@@ -680,8 +790,10 @@ def ui_other(settings, dataHolder, layout, useDropdown):
             dataHolder, "menu_other", text="Other Settings", icon="TRIA_DOWN" if dataHolder.menu_other else "TRIA_RIGHT"
         )
     if not useDropdown or dataHolder.menu_other:
-        clipRatioGroup = inputGroup.column()
-        prop_split(clipRatioGroup, settings, "clip_ratio", "Clip Ratio")
+        if "Clip Ratio" in sources_in_ucode(bpy.context.scene.f3d_type):
+            clipRatioGroup = inputGroup.column()
+            prop_split(clipRatioGroup, settings, "clip_ratio", "Clip Ratio")
+
         if isinstance(dataHolder, Material) or isinstance(dataHolder, F3DMaterialProperty):
             blend_color_group = inputGroup.row()
             prop_input_name = blend_color_group.column()
@@ -819,6 +931,8 @@ class F3DPanel(Panel):
         return inputGroup
 
     def ui_lights(self, f3d_mat: "F3DMaterialProperty", layout: UILayout, name, showCheckBox):
+        if inherit_light_and_fog():
+            return
         inputGroup = layout.row()
         prop_input_left = inputGroup.column()
         prop_input = inputGroup.column()
@@ -827,9 +941,10 @@ class F3DPanel(Panel):
         else:
             prop_input_left.label(text=name)
 
-        prop_input_left.enabled = f3d_mat.rdp_settings.g_lighting and f3d_mat.rdp_settings.g_shade
+        settings = f3d_mat.rdp_settings
+        prop_input_left.enabled = settings.is_geo_mode_on("g_lighting") and settings.is_geo_mode_on("g_shade")
         lightSettings: UILayout = prop_input.column()
-        if f3d_mat.rdp_settings.g_lighting:
+        if settings.is_geo_mode_on("g_lighting"):
             prop_input_left.separator(factor=0.25)
             light_controls = prop_input_left.box()
             light_controls.enabled = f3d_mat.set_lights
@@ -858,8 +973,6 @@ class F3DPanel(Panel):
                     lightSettings.prop_search(f3d_mat, "f3d_light6", bpy.data, "lights", text="")
                 if f3d_mat.f3d_light6 is not None:
                     lightSettings.prop_search(f3d_mat, "f3d_light7", bpy.data, "lights", text="")
-
-            prop_input.enabled = f3d_mat.set_lights and f3d_mat.rdp_settings.g_lighting and f3d_mat.rdp_settings.g_shade
 
         return inputGroup
 
@@ -1015,7 +1128,8 @@ class F3DPanel(Panel):
             prop_split(layout, material.f3d_mat.draw_layer, "oot", "Draw Layer")
 
     def ui_misc(self, f3dMat: "F3DMaterialProperty", inputCol: UILayout, showCheckBox: bool) -> None:
-        if f3dMat.rdp_settings.g_ambocclusion:
+        sources = sources_in_ucode(bpy.context.scene.f3d_type)
+        if "AO" in sources and f3dMat.rdp_settings.g_ambocclusion:
             if showCheckBox or f3dMat.set_ao:
                 inputGroup = inputCol.column()
             if showCheckBox:
@@ -1025,7 +1139,7 @@ class F3DPanel(Panel):
                 prop_split(inputGroup.row(), f3dMat, "ao_directional", "AO Directional")
                 prop_split(inputGroup.row(), f3dMat, "ao_point", "AO Point")
 
-        if f3dMat.rdp_settings.g_fresnel_color or f3dMat.rdp_settings.g_fresnel_alpha:
+        if "Fresnel" in sources and f3dMat.rdp_settings.g_fresnel_color or f3dMat.rdp_settings.g_fresnel_alpha:
             if showCheckBox or f3dMat.set_fresnel:
                 inputGroup = inputCol.column()
             if showCheckBox:
@@ -1034,7 +1148,7 @@ class F3DPanel(Panel):
                 prop_split(inputGroup.row(), f3dMat, "fresnel_lo", "Fresnel Lo")
                 prop_split(inputGroup.row(), f3dMat, "fresnel_hi", "Fresnel Hi")
 
-        if f3dMat.rdp_settings.g_attroffset_st_enable:
+        if "ST Attr Offset" in sources and f3dMat.rdp_settings.g_attroffset_st_enable:
             if showCheckBox or f3dMat.set_attroffs_st:
                 inputGroup = inputCol.column()
             if showCheckBox:
@@ -1042,7 +1156,7 @@ class F3DPanel(Panel):
             if f3dMat.set_attroffs_st:
                 prop_split(inputGroup.row(), f3dMat, "attroffs_st", "ST Attr Offset")
 
-        if f3dMat.rdp_settings.g_attroffset_z_enable:
+        if "Z Attr Offset" in sources and f3dMat.rdp_settings.g_attroffset_z_enable:
             if showCheckBox or f3dMat.set_attroffs_z:
                 inputGroup = inputCol.column()
             if showCheckBox:
@@ -1050,7 +1164,7 @@ class F3DPanel(Panel):
             if f3dMat.set_attroffs_z:
                 prop_split(inputGroup.row(), f3dMat, "attroffs_z", "Z Attr Offset")
 
-        if f3dMat.rdp_settings.using_fog:
+        if "Fog" in sources and f3dMat.rdp_settings.using_fog and not inherit_light_and_fog():
             if showCheckBox or f3dMat.set_fog:
                 inputGroup = inputCol.column()
             if showCheckBox:
@@ -1155,17 +1269,16 @@ class F3DPanel(Panel):
 
     def checkDrawLayersWarnings(self, f3dMat: "F3DMaterialProperty", useDict: Dict[str, bool], layout: UILayout):
         settings = f3dMat.rdp_settings
-        isF3DEX3 = bpy.context.scene.f3d_type == "F3DEX3"
-        lightFxPrereq = isF3DEX3 and settings.g_lighting
+        f3d_type = bpy.context.scene.f3d_type
         anyUseShadeAlpha = useDict["Shade Alpha"] or settings.does_blender_use_input("G_BL_A_SHADE")
 
-        g_lighting = settings.g_lighting
-        g_fog = settings.g_fog
-        g_packed_normals = lightFxPrereq and settings.g_packed_normals
-        g_ambocclusion = lightFxPrereq and settings.g_ambocclusion
-        g_lighttoalpha = lightFxPrereq and settings.g_lighttoalpha
-        g_fresnel_color = lightFxPrereq and settings.g_fresnel_color
-        g_fresnel_alpha = lightFxPrereq and settings.g_fresnel_alpha
+        g_lighting = settings.is_geo_mode_on("g_lighting") or is_ucode_t3d(f3d_type)
+        g_fog = settings.is_geo_mode_on("g_fog")
+        g_packed_normals = settings.is_geo_mode_on("g_packed_normals") or is_ucode_t3d(f3d_type)
+        g_ambocclusion = settings.is_geo_mode_on("g_ambocclusion")
+        g_lighttoalpha = settings.is_geo_mode_on("g_lighttoalpha")
+        g_fresnel_color = settings.is_geo_mode_on("g_fresnel_color")
+        g_fresnel_alpha = settings.is_geo_mode_on("g_fresnel_alpha")
 
         usesVertexColor = useDict["Shade"] and (not g_lighting or (g_packed_normals and not g_fresnel_color))
         usesVertexAlpha = anyUseShadeAlpha and (g_ambocclusion or not (g_fog or g_lighttoalpha or g_fresnel_alpha))
@@ -1195,6 +1308,7 @@ class F3DPanel(Panel):
             layout.box().column().label(text="Two CI textures must use the same CI format.", icon="ERROR")
 
     def draw_simple(self, f3dMat, material, layout, context):
+        f3d = get_F3D_GBI()
         self.ui_uvCheck(layout, context)
 
         inputCol = layout.column()
@@ -1225,7 +1339,12 @@ class F3DPanel(Panel):
         if useDict["Environment"] and f3dMat.set_env:
             self.ui_env(material, inputCol, False)
 
-        showLightProperty = f3dMat.set_lights and f3dMat.rdp_settings.g_lighting and f3dMat.rdp_settings.g_shade
+        showLightProperty = (
+            f3dMat.set_lights
+            and "Lighting" in sources_in_ucode(bpy.context.scene.f3d_type)
+            and f3dMat.rdp_settings.is_geo_mode_on("g_lighting")
+            and f3dMat.rdp_settings.is_geo_mode_on("g_shade")
+        )
         if useDict["Shade"] and showLightProperty:
             self.ui_lights(f3dMat, inputCol, "Lighting", False)
 
@@ -1241,6 +1360,7 @@ class F3DPanel(Panel):
         layout.row().prop(material, "menu_tab", expand=True)
         menuTab = material.menu_tab
         useDict = all_combiner_uses(f3dMat)
+        f3d = get_F3D_GBI()
 
         if menuTab == "Combiner":
             self.ui_draw_layer(material, layout, context)
@@ -1314,7 +1434,7 @@ class F3DPanel(Panel):
             if useDict["Environment"]:
                 self.ui_env(material, inputCol, True)
 
-            if useDict["Shade"]:
+            if useDict["Shade"] and "Lighting" in sources_in_ucode(bpy.context.scene.f3d_type):
                 self.ui_lights(f3dMat, inputCol, "Lighting", True)
 
             if useDict["Key"]:
@@ -1706,7 +1826,7 @@ def update_fog_nodes(material: Material, context: Context):
     else:  # If fog is not being calculated, pass in shade alpha
         material.node_tree.links.new(nodes["Shade Color"].outputs["Alpha"], fogBlender.inputs["FogAmount"])
 
-    if f3dMat.use_global_fog or not f3dMat.set_fog:  # Inherit fog
+    if f3dMat.use_global_fog or not f3dMat.set_fog or inherit_light_and_fog():  # Inherit fog
         link_if_none_exist(material, nodes["SceneProperties"].outputs["FogColor"], nodes["FogColor"].inputs[0])
         link_if_none_exist(material, nodes["GlobalFogColor"].outputs[0], fogBlender.inputs["Fog Color"])
         link_if_none_exist(material, nodes["SceneProperties"].outputs["FogNear"], nodes["CalcFog"].inputs["FogNear"])
@@ -1808,7 +1928,7 @@ def update_light_colors(material, context):
 
         f3dMat.ambient_light_color = new_amb
 
-    if f3dMat.set_lights:
+    if f3dMat.set_lights or inherit_light_and_fog():
         remove_first_link_if_exists(material, nodes["Shade Color"].inputs["AmbientColor"].links)
         remove_first_link_if_exists(material, nodes["Shade Color"].inputs["Light0Color"].links)
         remove_first_link_if_exists(material, nodes["Shade Color"].inputs["Light1Color"].links)
@@ -1862,6 +1982,7 @@ def update_node_values_of_material(material: Material, context):
         return
 
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
+    settings: RDPSettings = f3dMat.rdp_settings
 
     update_combiner_connections(material, context)
 
@@ -1869,8 +1990,8 @@ def update_node_values_of_material(material: Material, context):
 
     nodes = material.node_tree.nodes
 
-    if f3dMat.rdp_settings.g_lighting and f3dMat.rdp_settings.g_tex_gen:
-        if f3dMat.rdp_settings.g_tex_gen_linear:
+    if (settings.is_geo_mode_on("g_lighting") or inherit_light_and_fog()) and settings.is_geo_mode_on("g_tex_gen"):
+        if settings.is_geo_mode_on("g_tex_gen_linear"):
             nodes["UV"].node_tree = bpy.data.node_groups["UV_EnvMap_Linear"]
         else:
             nodes["UV"].node_tree = bpy.data.node_groups["UV_EnvMap"]
@@ -1888,7 +2009,9 @@ def update_node_values_of_material(material: Material, context):
         "g_fog",
         "g_lighting",
     ]:
-        shdcol_inputs[propName.upper()].default_value = getattr(f3dMat.rdp_settings, propName)
+        shdcol_inputs[propName.upper()].default_value = f3dMat.rdp_settings.is_geo_mode_on(propName)
+    if is_ucode_t3d(bpy.context.scene.f3d_type):  # Tiny3d always uses lighting * vertex color
+        shdcol_inputs["G_LIGHTING"].default_value = shdcol_inputs["G_PACKED_NORMALS"].default_value = True
 
     shdcol_inputs["AO Ambient"].default_value = f3dMat.ao_ambient
     shdcol_inputs["AO Directional"].default_value = f3dMat.ao_directional
@@ -3666,6 +3789,12 @@ class RDPSettings(PropertyGroup):
         yield from self.blend_color_inputs
         yield from self.blend_alpha_inputs
 
+    def has_prop_in_ucode(self, prop: str) -> bool:
+        return prop in geo_modes_in_ucode(bpy.context.scene.f3d_type).values()
+
+    def is_geo_mode_on(self, prop: str) -> bool:
+        return getattr(self, prop) if self.has_prop_in_ucode(prop) else False
+
     def does_blender_use_input(self, setting: str) -> bool:
         return any(input == setting for input in self.blend_inputs)
 
@@ -3701,67 +3830,18 @@ class RDPSettings(PropertyGroup):
         for key, attr, default in info:
             setattr(self, attr, data.get(key, default))
 
-    geo_mode_all_attributes = [
-        ("zBuffer", "g_zbuffer", False),
-        ("shade", "g_shade", False),
-        ("cullFront", "g_cull_front", False),
-        ("cullBack", "g_cull_back", False),
-        ("fog", "g_fog", False),
-        ("lighting", "g_lighting", False),
-        ("texGen", "g_tex_gen", False),
-        ("texGenLinear", "g_tex_gen_linear", False),
-        ("lod", "g_lod", False),
-        ("shadeSmooth", "g_shade_smooth", False),
-    ]
+    geo_mode_attributes = {**F3D_GEO_MODES, **F3DLX_GEO_MODES, **F3DEX3_GEO_MODES}
 
-    geo_mode_f3dex_attributes = [
-        ("clipping", "g_clipping", True),
-    ]
-
-    geo_mode_pl_attributes = [
-        ("positionalLighting", "g_lighting_positional", False),
-    ]
-
-    geo_mode_f3dex3_attributes = [
-        ("ambientOcclusion", "g_ambocclusion", False),
-        ("attroffsetZ", "g_attroffset_z_enable", False),
-        ("attroffsetST", "g_attroffset_st_enable", False),
-        ("packedNormals", "g_packed_normals", False),
-        ("lightToAlpha", "g_lighttoalpha", False),
-        ("specularLighting", "g_lighting_specular", False),
-        ("fresnelToColor", "g_fresnel_color", False),
-        ("fresnelToAlpha", "g_fresnel_alpha", False),
-    ]
-
-    geo_mode_f3dzex_ac_attributes = [
-        ("decalGEqual", "g_decal_gequal", False),
-        ("decalEqual", "g_decal_equal", False),
-        ("decalSpecial", "g_decal_special", False),
-    ]
-
-    geo_mode_attributes = (
-        geo_mode_all_attributes
-        + geo_mode_f3dex_attributes
-        + geo_mode_pl_attributes
-        + geo_mode_f3dex3_attributes
-        + geo_mode_f3dzex_ac_attributes
-    )
-
-    def geo_mode_to_dict(self, f3d=None):
-        f3d = f3d if f3d else get_F3D_GBI()
-        data = self.attributes_to_dict(self.geo_mode_all_attributes)
-        if f3d.F3DEX_GBI or f3d.F3DLP_GBI:
-            data.update(self.attributes_to_dict(self.geo_mode_f3dex_attributes))
-        if f3d.POINT_LIT_GBI:
-            data.update(self.attributes_to_dict(self.geo_mode_pl_attributes))
-        if f3d.F3DEX_GBI_3:
-            data.update(self.attributes_to_dict(self.geo_mode_f3dex3_attributes))
-        if f3d.F3DZEX2_EMU64:
-            data.update(self.attributes_to_dict(self.geo_mode_f3dzex_ac_attributes))
+    def geo_mode_to_dict(self):
+        data = {}
+        for key, attr in geo_modes_in_ucode(bpy.context.scene.f3d_type).items():
+            if getattr(self, attr):
+                data[key] = True
         return data
 
     def geo_mode_from_dict(self, data: dict):
-        self.attributes_from_dict(data, self.geo_mode_attributes)
+        for key, attr in self.geo_mode_attributes.items():
+            setattr(self, attr, data.get(key, False))
 
     other_mode_h_attributes = [
         ("alphaDither", "g_mdsft_alpha_dither", "G_AD_DISABLE"),
@@ -3874,9 +3954,9 @@ class RDPSettings(PropertyGroup):
         self.clip_ratio = data.get("clipRatio", self.clip_ratio)
         self.num_textures_mipmapped = data.get("mipmapCount", self.num_textures_mipmapped)
 
-    def to_dict(self, f3d=None):
+    def to_dict(self):
         data = {}
-        data["geometryMode"] = self.geo_mode_to_dict(f3d)
+        data["geometryMode"] = self.geo_mode_to_dict()
         data["otherModeH"] = self.other_mode_h_to_dict()
         data["otherModeL"] = self.other_mode_l_to_dict()
         data["other"] = self.other_to_dict()
@@ -5044,7 +5124,7 @@ def mat_register():
     savePresets()
 
     Scene.f3d_type = bpy.props.EnumProperty(
-        name="F3D Microcode", items=enumF3D, default="F3D", update=update_all_material_nodes
+        name="Microcode", items=enumF3D, default="F3D", update=update_all_material_nodes
     )
 
     # RDP Defaults
@@ -5059,7 +5139,7 @@ def mat_register():
     Material.mat_ver = bpy.props.IntProperty(default=1)
     Material.f3d_update_flag = bpy.props.BoolProperty()
     Material.f3d_mat = bpy.props.PointerProperty(type=F3DMaterialProperty)
-    Material.menu_tab = bpy.props.EnumProperty(items=enumF3DMenu)
+    Material.menu_tab = bpy.props.EnumProperty(items=menu_items_enum)
 
     Scene.f3dUserPresetsOnly = bpy.props.BoolProperty(name="User Presets Only")
     Scene.f3d_simple = bpy.props.BoolProperty(name="Display Simple", default=True)
