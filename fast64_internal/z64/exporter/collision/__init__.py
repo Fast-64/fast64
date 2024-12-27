@@ -6,7 +6,7 @@ from bpy.types import Mesh, Object
 from bpy.ops import object
 from typing import Optional
 from ....utility import PluginError, CData, indent
-from ...utility import convertIntTo2sComplement
+from ...utility import convertIntTo2sComplement, get_game_prop_name
 from ..utility import Utility
 from .polygons import CollisionPoly, CollisionPolygons
 from .surface import SurfaceType, SurfaceTypes
@@ -156,14 +156,14 @@ class CollisionUtility:
                     surfaceType = SurfaceType(
                         colProp.cameraID,
                         colProp.exitID,
-                        Utility.getPropValue(colProp, "floorProperty"),
+                        Utility.getPropValue(colProp, get_game_prop_name("floor_type")),
                         0,  # unused?
                         Utility.getPropValue(colProp, "wallSetting"),
-                        Utility.getPropValue(colProp, "floorSetting"),
+                        Utility.getPropValue(colProp, get_game_prop_name("floor_property")),
                         colProp.decreaseHeight,
                         colProp.eponaBlock,
-                        Utility.getPropValue(colProp, "sound"),
-                        Utility.getPropValue(colProp, "terrain"),
+                        Utility.getPropValue(colProp, get_game_prop_name("surface_material")),
+                        Utility.getPropValue(colProp, get_game_prop_name("floor_effect")),
                         colProp.lightingSetting,
                         int(colProp.echo, base=16),
                         colProp.hookshotable,

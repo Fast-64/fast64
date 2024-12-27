@@ -8,7 +8,7 @@ from collections import OrderedDict
 from ...utility import PluginError, parentObject, hexOrDecInt, yUpToZUp
 from ..collision.properties import OOTMaterialCollisionProperty
 from ..f3d_writer import getColliderMat
-from ..utility import setCustomProperty, ootParseRotation
+from ..utility import setCustomProperty, ootParseRotation, get_game_prop_name
 from .utility import getDataMatch, getBits, checkBit, createCurveFromPoints, stripName
 from .classes import SharedSceneData
 
@@ -176,9 +176,11 @@ def parseSurfaceParams(
 
     collision.eponaBlock = checkBit(params[0], 31)
     collision.decreaseHeight = checkBit(params[0], 30)
-    setCustomProperty(collision, "floorSetting", str(getBits(params[0], 26, 4)), ootEnumFloorSetting)
+    setCustomProperty(
+        collision, get_game_prop_name("floor_property"), str(getBits(params[0], 26, 4)), ootEnumFloorSetting
+    )
     setCustomProperty(collision, "wallSetting", str(getBits(params[0], 21, 5)), ootEnumWallSetting)
-    setCustomProperty(collision, "floorProperty", str(getBits(params[0], 13, 8)), ootEnumFloorProperty)
+    setCustomProperty(collision, get_game_prop_name("floor_type"), str(getBits(params[0], 13, 8)), ootEnumFloorProperty)
     collision.exitID = getBits(params[0], 8, 5)
     collision.cameraID = getBits(params[0], 0, 8)
     collision.isWallDamage = checkBit(params[1], 27)
@@ -197,8 +199,12 @@ def parseSurfaceParams(
     collision.hookshotable = checkBit(params[1], 17)
     collision.echo = str(getBits(params[1], 11, 6))
     collision.lightingSetting = getBits(params[1], 6, 5)
-    setCustomProperty(collision, "terrain", str(getBits(params[1], 4, 2)), ootEnumCollisionTerrain)
-    setCustomProperty(collision, "sound", str(getBits(params[1], 0, 4)), ootEnumCollisionSound)
+    setCustomProperty(
+        collision, get_game_prop_name("floor_effect"), str(getBits(params[1], 4, 2)), ootEnumCollisionTerrain
+    )
+    setCustomProperty(
+        collision, get_game_prop_name("surface_material"), str(getBits(params[1], 0, 4)), ootEnumCollisionSound
+    )
 
     collision.ignoreCameraCollision = ignoreCamera
     collision.ignoreActorCollision = ignoreActor

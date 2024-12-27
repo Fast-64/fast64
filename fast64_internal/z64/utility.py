@@ -90,6 +90,10 @@ def get_game_prop_name(prop_type: str):
             "room_type": "roomBehaviour",
             "environment_type": "linkIdleMode",
             "actor_id": "actorID",
+            "floor_property": "floorSetting",
+            "floor_type": "floorProperty",
+            "floor_effect": "terrain",
+            "surface_material": "sound",
         },
         "MM": {
             "global_obj": "mm_global_obj",
@@ -102,6 +106,10 @@ def get_game_prop_name(prop_type: str):
             "room_type": "mm_room_type",
             "environment_type": "mm_environment_type",
             "actor_id": "mm_actor_id",
+            "floor_property": "mm_floor_property",
+            "floor_type": "mm_floor_type",
+            "floor_effect": "mm_floor_effect",
+            "surface_material": "mm_surface_material",
         },
     }
 
