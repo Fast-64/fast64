@@ -71,8 +71,59 @@ for each sub element (of <Actor>) mentioned below:
     </Type>
   </Actor>
 
-  <Actor Index="5" ID="ACTOR_EN_DOOR" Key="en_door" ObjectKey="GAMEPLAY_KEEP" Name="Wooden Door" Category=""></Actor>
-  
+  <Actor Index="5" HasEnum="True" ID="ACTOR_EN_DOOR" Key="en_door" ObjectKey="GAMEPLAY_KEEP" Name="Wooden Door" Category="ACTORCAT_DOOR">
+    <Type Index="1" Mask="0x0380">
+      <Item Params="0000">Whole Day ('ENDOOR_TYPE_WHOLE_DAY')</Item>
+      <Item Params="0080">Locked ('ENDOOR_TYPE_LOCKED')</Item>
+      <Item Params="0100">Day ('ENDOOR_TYPE_DAY')</Item>
+      <Item Params="0180">Night ('ENDOOR_TYPE_NIGHT')</Item>
+      <Item Params="0200">Ajar ('ENDOOR_TYPE_AJAR')</Item>
+      <Item Params="0280">Schedule ('ENDOOR_TYPE_SCHEDULE')</Item>
+      <Item Params="0300">Unknown ('ENDOOR_TYPE_6')</Item>
+      <Item Params="0380">Framed ('ENDOOR_TYPE_FRAMED')</Item>
+    </Type>
+    <Property Index="1" Mask="0x007F" Name="Half Day Check" TiedActorTypes="0000,0100,0180"/>
+    <Flag Index="1" Mask="0x007F" Type="Switch" TiedActorTypes="0080"/>
+    <Enum Index="1" Mask="0x007F" Name="Framed Type" Target="Params" TiedActorTypes="0380">
+      <Item Name="Framed ('ENDOOR_FRAMED_FRAME')" Value="0x00"/>
+      <Item Name="Not Framed ('ENDOOR_FRAMED_NOFRAME')" Value="0x01"/>
+    </Enum>
+    <Enum Index="2" Mask="0x007F" Name="Schedule Type" Target="Params" TiedActorTypes="0280">
+      <Item Name="ENDOOR_SCH_TYPE_SWORDSMANS_SCHOOL" Value="0"/>
+      <Item Name="ENDOOR_SCH_TYPE_POST_OFFICE" Value="1"/>
+      <Item Name="ENDOOR_SCH_TYPE_LOTTERY_SHOP" Value="2"/>
+      <Item Name="ENDOOR_SCH_TYPE_TRADING_POST" Value="3"/>
+      <Item Name="ENDOOR_SCH_TYPE_CURIOSITY_SHOP" Value="4"/>
+      <Item Name="ENDOOR_SCH_TYPE_LAUNDRY_POOL" Value="5"/>
+      <Item Name="ENDOOR_SCH_TYPE_BOMB_SHOP" Value="6"/>
+      <Item Name="ENDOOR_SCH_TYPE_TOWN_SHOOTING_GALLERY" Value="7"/>
+      <Item Name="ENDOOR_SCH_TYPE_TREASURE_CHEST_SHOP" Value="8"/>
+      <Item Name="ENDOOR_SCH_TYPE_HONEY_DARLING_SHOP" Value="9"/>
+      <Item Name="ENDOOR_SCH_TYPE_MILK_BAR" Value="10"/>
+      <Item Name="ENDOOR_SCH_TYPE_INN_MAIN_ENTRANCE" Value="11"/>
+      <Item Name="ENDOOR_SCH_TYPE_INN_UPPER_ENTRANCE" Value="12"/>
+      <Item Name="ENDOOR_SCH_TYPE_INN_GRANNYS" Value="13"/>
+      <Item Name="ENDOOR_SCH_TYPE_INN_STAFF_ROOM" Value="14"/>
+      <Item Name="ENDOOR_SCH_TYPE_INN_KNIFE_CHAMBER" Value="15"/>
+      <Item Name="ENDOOR_SCH_TYPE_INN_LARGE_SUITE" Value="16"/>
+      <Item Name="ENDOOR_SCH_TYPE_MAYORS_RESIDENCE_MAIN_ENTRANCE" Value="17"/>
+      <Item Name="ENDOOR_SCH_TYPE_MAYORS_RESIDENCE_MAYOR_DOTOUR" Value="18"/>
+      <Item Name="ENDOOR_SCH_TYPE_MAYORS_RESIDENCE_MADAME_AROMA" Value="19"/>
+      <Item Name="ENDOOR_SCH_TYPE_MAYORS_RESIDENCE_BEDROOM" Value="20"/>
+      <Item Name="ENDOOR_SCH_TYPE_21" Value="21"/>
+      <Item Name="ENDOOR_SCH_TYPE_ROMANI_RANCH_MAMAS_HOUSE" Value="22"/>
+      <Item Name="ENDOOR_SCH_TYPE_ROMANI_RANCH_BARN" Value="23"/>
+      <Item Name="ENDOOR_SCH_TYPE_ROMANI_RANCH_CUCCO_SHACK" Value="24"/>
+      <Item Name="ENDOOR_SCH_TYPE_ROMANI_RANCH_DOGGY_RACETRACK" Value="25"/>
+      <Item Name="ENDOOR_SCH_TYPE_ROMANI_RANCH_BEDROOM" Value="26"/>
+      <Item Name="ENDOOR_SCH_TYPE_IKANA_CANYON_MUSIC_BOX_HOUSE" Value="27"/>
+      <Item Name="ENDOOR_SCH_TYPE_DAMPES_HOUSE" Value="28"/>
+      <Item Name="ENDOOR_SCH_TYPE_MAGIC_HAGS_POTION_SHOP" Value="29"/>
+      <Item Name="ENDOOR_SCH_TYPE_30" Value="30"/>
+      <Item Name="ENDOOR_SCH_TYPE_SWAMP_SHOOTING_GALLERY" Value="31"/>
+    </Enum>
+  </Actor>
+
   <Actor Index="6" ID="ACTOR_EN_BOX" Key="en_box" ObjectKey="OBJECT_BOX" Name="Treasure Chest" Category="">
     <Type Index="1" Mask="0xF000">
       <Item Params="0000">Golden</Item>
