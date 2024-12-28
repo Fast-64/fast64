@@ -4,7 +4,7 @@ from bpy.types import PropertyGroup, Object, UILayout
 from bpy.props import EnumProperty, PointerProperty, StringProperty, IntProperty
 from bpy.utils import register_class, unregister_class
 from ...utility import prop_split
-from ..utility import drawEnumWithCustom, is_game_oot
+from ..utility import drawEnumWithCustom, is_game_oot, get_game_prop_name
 from ..collision.constants import enum_camera_crawlspace_stype
 from ..actor.properties import Z64_ActorHeaderProperty
 from ..scene.properties import Z64_AlternateSceneHeaderProperty
@@ -42,8 +42,10 @@ class Z64_SplineProperty(PropertyGroup):
             headerProp: Z64_ActorHeaderProperty = bpy.data.objects[objName].ootSplineProperty.headerSettings
             headerProp.draw_props(layout, "Curve", altSceneProp, objName)
         elif self.splineType == "Crawlspace":
+            if not is_game_oot():
+                layout.label(text="Warning: MM doesn't have crawlspaces implemented.", icon="ERROR")
             layout.label(text="This counts as a camera for index purposes.", icon="INFO")
-            drawEnumWithCustom(layout, self, "camSType", "Camera S Type", "")
+            drawEnumWithCustom(layout, self, get_game_prop_name("cam_setting_type"), "Camera S Type", "")
 
 
 oot_spline_classes = (Z64_SplineProperty,)

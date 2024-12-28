@@ -40,7 +40,9 @@ def parseCrawlSpaceData(
     crawlProp = curveObj.ootSplineProperty
     crawlProp.splineType = "Crawlspace"
     crawlProp.index = orderIndex
-    setCustomProperty(crawlProp, "camSType", "CAM_SET_CRAWLSPACE", enum_camera_crawlspace_stype)
+    setCustomProperty(
+        crawlProp, get_game_prop_name("cam_setting_type"), "CAM_SET_CRAWLSPACE", enum_camera_crawlspace_stype
+    )
 
     return curveObj
 
@@ -75,7 +77,7 @@ def parseCamPosData(setting: str, sceneData: str, posDataName: str, index: int, 
     camObj = bpy.data.objects.new(objName, camera)
     bpy.context.scene.collection.objects.link(camObj)
     camProp = camObj.ootCameraPositionProperty
-    setCustomProperty(camProp, "camSType", setting, ootEnumCameraSType)
+    setCustomProperty(camProp, get_game_prop_name("cam_setting_type"), setting, ootEnumCameraSType)
     camProp.hasPositionData = posDataName != "NULL" and posDataName != "0"
     camProp.index = orderIndex
 

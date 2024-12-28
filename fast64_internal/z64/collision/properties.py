@@ -18,6 +18,7 @@ from .constants import (
     mm_enum_floor_type,
     mm_enum_floor_effect,
     mm_enum_surface_material,
+    mm_enum_camera_setting_type,
 )
 
 
@@ -49,12 +50,13 @@ class OOTCollisionExportSettings(PropertyGroup):
 class OOTCameraPositionProperty(PropertyGroup):
     index: IntProperty(min=0)
     bgImageOverrideIndex: IntProperty(default=-1, min=-1)
-    camSType: EnumProperty(items=ootEnumCameraSType, default="CAM_SET_NONE")
-    camSTypeCustom: StringProperty(default="CAM_SET_NONE")
+    camSType: EnumProperty(items=ootEnumCameraSType, default=2)
+    mm_cam_setting_type: EnumProperty(items=mm_enum_camera_setting_type, default=2)
+    camSTypeCustom: StringProperty(default="CAM_SET_NORMAL0")
     hasPositionData: BoolProperty(default=True, name="Has Position Data")
 
     def draw_props(self, layout: UILayout, cameraObj: Object):
-        drawEnumWithCustom(layout, self, "camSType", "Camera S Type", "")
+        drawEnumWithCustom(layout, self, get_game_prop_name("cam_setting_type"), "Camera S Type", "")
         prop_split(layout, self, "index", "Camera Index")
         layout.prop(self, "hasPositionData")
         if self.hasPositionData:

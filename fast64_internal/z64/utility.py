@@ -94,6 +94,7 @@ def get_game_prop_name(prop_type: str):
             "floor_type": "floorProperty",
             "floor_effect": "terrain",
             "surface_material": "sound",
+            "cam_setting_type": "camSType",
         },
         "MM": {
             "global_obj": "mm_global_obj",
@@ -110,6 +111,7 @@ def get_game_prop_name(prop_type: str):
             "floor_type": "mm_floor_type",
             "floor_effect": "mm_floor_effect",
             "surface_material": "mm_surface_material",
+            "cam_setting_type": "mm_cam_setting_type",
         },
     }
 
