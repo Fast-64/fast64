@@ -1176,6 +1176,8 @@ class SM64ObjectPanel(bpy.types.Panel):
         column = self.layout.box().column()  # added just for puppycam trigger importing
         box.box().label(text="SM64 Object Inspector")
         obj = context.object
+        props = obj.fast64.sm64
+
         prop_split(box, obj, "sm64_obj_type", "Object Type")
         if obj.sm64_obj_type == "Object":
             prop_split(box, obj, "sm64_model_enum", "Model")
@@ -1257,6 +1259,7 @@ class SM64ObjectPanel(bpy.types.Panel):
             obj.starGetCutscenes.draw(box)
 
         elif obj.sm64_obj_type == "Area Root":
+            area_props = props.area
             # Code that used to be in area inspector
             prop_split(box, obj, "areaIndex", "Area Index")
             box.prop(obj, "noMusic", text="Disable Music")
@@ -1279,13 +1282,21 @@ class SM64ObjectPanel(bpy.types.Panel):
             camBox.label(text="Warning: Camera modes can be overriden by area specific camera code.")
             camBox.label(text="Check the switch statment in camera_course_processing() in src/game/camera.c.")
 
-            fogBox = box.box()
-            fogInfoBox = fogBox.box()
-            fogInfoBox.label(text="Warning: Fog only applies to materials that:")
-            fogInfoBox.label(text="- use fog")
-            fogInfoBox.label(text="- have global fog enabled.")
-            prop_split(fogBox, obj, "area_fog_color", "Area Fog Color")
-            prop_split(fogBox, obj, "area_fog_position", "Area Fog Position")
+            fog_box = box.box().column()
+            fog_box.prop(area_props, "set_fog")
+            fog_props = fog_box.column()
+            fog_props.enabled = area_props.set_fog
+            multilineLabel(
+                fog_props,
+                "All materials in the area with fog and\n"
+                '"Use Area\'s Fog" enabled will use these fog\n'
+                "settings.\n"
+                "Each material will have its own fog\n"
+                "applied as vanilla SM64 has no fog system.",
+                icon="INFO",
+            )
+            prop_split(fog_props, obj, "area_fog_color", "Color")
+            prop_split(fog_props, obj, "area_fog_position", "Position")
 
             if obj.areaIndex == 1 or obj.areaIndex == 2 or obj.areaIndex == 3:
                 prop_split(box, obj, "echoLevel", "Echo Level")
@@ -1293,7 +1304,7 @@ class SM64ObjectPanel(bpy.types.Panel):
             if obj.areaIndex == 1 or obj.areaIndex == 2 or obj.areaIndex == 3 or obj.areaIndex == 4:
                 box.prop(obj, "zoomOutOnPause")
 
-            box.prop(obj.fast64.sm64.area, "disable_background")
+            box.prop(area_props, "disable_background")
 
             areaLayout = box.box()
             areaLayout.enabled = not obj.fast64.sm64.area.disable_background
@@ -2665,6 +2676,11 @@ class SM64_AreaProperties(bpy.types.PropertyGroup):
         default=False,
         description="Disable rendering background. Ideal for interiors or areas that should never see a background.",
     )
+    set_fog: bpy.props.BoolProperty(
+        name="Set Fog Settings",
+        default=True,
+        description='All materials in the area with fog and "Use Area\'s Fog" enabled will use these fog settings. Each material will have its own fog applied as vanilla SM64 has no fog system',
+    )
 
 
 class SM64_LevelProperties(bpy.types.PropertyGroup):
@@ -2953,6 +2969,7 @@ def sm64_obj_register():
         size=2,
         min=0,
         max=0x7FFFFFFF,
+        step=100,
         default=(985, 1000),
         update=sm64_on_update_area_render_settings,
     )

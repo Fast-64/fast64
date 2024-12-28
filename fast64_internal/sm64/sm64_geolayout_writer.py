@@ -473,9 +473,11 @@ def convertObjectToGeolayout(
         # cameraObj = getCameraObj(camera)
         meshGeolayout = saveCameraSettingsToGeolayout(geolayoutGraph, areaObj, obj, name + "_geo")
         rootObj = areaObj
-        fModel.global_data.addAreaData(
-            areaObj.areaIndex, FAreaData(FFogData(areaObj.area_fog_position, areaObj.area_fog_color))
-        )
+        if areaObj.fast64.sm64.area.set_fog:
+            fog_data = FFogData(areaObj.area_fog_position, areaObj.area_fog_color)
+        else:
+            fog_data = None
+        fModel.global_data.addAreaData(areaObj.areaIndex, FAreaData(fog_data))
 
     else:
         geolayoutGraph = GeolayoutGraph(name + "_geo")
