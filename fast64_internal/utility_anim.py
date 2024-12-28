@@ -23,7 +23,6 @@ class ArmatureApplyWithMeshOperator(bpy.types.Operator):
     # Called on demand (i.e. button press, menu item)
     # Can also be called from operator search menu (Spacebar)
     def execute(self, context):
-
         from .utility import PluginError, raisePluginError
 
         try:
@@ -73,7 +72,7 @@ def attemptModifierApply(modifier):
 
 def armatureApplyWithMesh(armatureObj: bpy.types.Object, context: bpy.types.Context):
     for child in armatureObj.children:
-        if type(child.data) is not bpy.types.Mesh:
+        if child.type != "MESH":
             continue
         armatureModifier = None
         for modifier in child.modifiers:
@@ -179,6 +178,7 @@ def getFrameInterval(action: bpy.types.Action):
 
     return range_get_by_choice[anim_range_choice]()
 
+
 def stashActionInArmature(armatureObj: bpy.types.Object, action: bpy.types.Action):
     """
     Stashes an animation (action) into an armature´s nla tracks.
@@ -194,10 +194,11 @@ def stashActionInArmature(armatureObj: bpy.types.Object, action: bpy.types.Actio
             if strip.action.name == action.name:
                 return
 
-    print(f"Stashing \"{action.name}\" in the object \"{armatureObj.name}\".")
+    print(f'Stashing "{action.name}" in the object "{armatureObj.name}".')
 
     track = armatureObj.animation_data.nla_tracks.new()
     track.strips.new(action.name, int(action.frame_range[0]), action)
+
 
 classes = (ArmatureApplyWithMeshOperator,)
 
@@ -209,6 +210,5 @@ def utility_anim_register():
 
 # called on add-on disabling
 def utility_anim_unregister():
-
     for cls in classes:
         unregister_class(cls)

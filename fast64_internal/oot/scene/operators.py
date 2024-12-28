@@ -1,23 +1,19 @@
-import bpy, os
+import bpy
+import os
+
 from bpy.path import abspath
-from bpy.types import Operator, UILayout
+from bpy.types import Operator
 from bpy.props import EnumProperty, IntProperty, StringProperty
 from bpy.utils import register_class, unregister_class
 from bpy.ops import object
 from mathutils import Matrix, Vector
-from ...f3d.f3d_gbi import DLFormat
+from ...f3d.f3d_gbi import TextureExportSettings, DLFormat
 from ...utility import PluginError, raisePluginError, ootGetSceneOrRoomHeader
-from ..oot_utility import ExportInfo, sceneNameFromID, getEnumName
-from ..oot_level_writer import ootExportSceneToC
+from ..oot_utility import ExportInfo, RemoveInfo, sceneNameFromID
 from ..oot_constants import ootEnumMusicSeq, ootEnumSceneID
-from ..oot_level_parser import parseScene
-from .exporter.to_c import clearBootupScene, modifySceneTable, editSpecFile, deleteSceneFiles
-
-
-def ootRemoveSceneC(exportInfo):
-    modifySceneTable(None, exportInfo)
-    editSpecFile(None, exportInfo, None)
-    deleteSceneFiles(exportInfo)
+from ..importer import parseScene
+from ..exporter.decomp_edit.config import Config
+from ..exporter import SceneExport, Files
 
 
 def run_ops_without_view_layer_update(func):
@@ -37,14 +33,8 @@ def run_ops_without_view_layer_update(func):
 
 
 def parseSceneFunc():
-    context = bpy.context
-    settings = context.scene.ootSceneImportSettings
-    parseScene(
-        context.scene.f3d_type,
-        context.scene.isHWv1,
-        settings,
-        settings.option,
-    )
+    settings = bpy.context.scene.ootSceneImportSettings
+    parseScene(settings, settings.option)
 
 
 class OOT_SearchSceneEnumOperator(Operator):
@@ -81,7 +71,7 @@ class OOT_SearchMusicSeqEnumOperator(Operator):
     bl_property = "ootMusicSeq"
     bl_options = {"REGISTER", "UNDO"}
 
-    ootMusicSeq: EnumProperty(items=ootEnumMusicSeq, default="0x02")
+    ootMusicSeq: EnumProperty(items=ootEnumMusicSeq, default="NA_BGM_FIELD_LOGIC")
     headerIndex: IntProperty(default=0, min=0)
     objName: StringProperty()
 
@@ -103,7 +93,7 @@ class OOT_ClearBootupScene(Operator):
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
     def execute(self, context):
-        clearBootupScene(os.path.join(abspath(context.scene.ootDecompPath), "include/config/config_debug.h"))
+        Config.clearBootupScene(os.path.join(abspath(context.scene.ootDecompPath), "include/config/config_debug.h"))
         self.report({"INFO"}, "Success!")
         return {"FINISHED"}
 
@@ -150,7 +140,7 @@ class OOT_ExportScene(Operator):
             obj = context.scene.ootSceneExportObj
             if obj is None:
                 raise PluginError("Scene object input not set.")
-            elif obj.data is not None or obj.ootEmptyType != "Scene":
+            elif obj.type != "EMPTY" or obj.ootEmptyType != "Scene":
                 raise PluginError("The input object is not an empty with the Scene type.")
 
             scaleValue = context.scene.ootBlenderScale
@@ -163,28 +153,39 @@ class OOT_ExportScene(Operator):
             settings = context.scene.ootSceneExportSettings
             levelName = settings.name
             option = settings.option
-            if settings.customExport:
-                exportInfo = ExportInfo(True, bpy.path.abspath(settings.exportPath), None, levelName)
-            else:
-                if option == "Custom":
-                    subfolder = "assets/scenes/" + settings.subFolder + "/"
-                else:
-                    levelName = sceneNameFromID(option)
-                    subfolder = None
-                exportInfo = ExportInfo(False, bpy.path.abspath(context.scene.ootDecompPath), subfolder, levelName)
 
             bootOptions = context.scene.fast64.oot.bootupSceneOptions
             hackerFeaturesEnabled = context.scene.fast64.oot.hackerFeaturesEnabled
-            ootExportSceneToC(
+
+            if settings.customExport:
+                isCustomExport = True
+                exportPath = bpy.path.abspath(settings.exportPath)
+                customSubPath = None
+            else:
+                if option == "Custom":
+                    customSubPath = "assets/scenes/" + settings.subFolder + "/"
+                else:
+                    levelName = sceneNameFromID(option)
+                    customSubPath = None
+                isCustomExport = False
+                exportPath = bpy.path.abspath(context.scene.ootDecompPath)
+
+            exportInfo = ExportInfo(
+                isCustomExport,
+                exportPath,
+                customSubPath,
+                levelName,
+                option,
+                bpy.context.scene.saveTextures,
+                settings.singleFile,
+                context.scene.fast64.oot.useDecompFeatures if not hackerFeaturesEnabled else hackerFeaturesEnabled,
+                bootOptions if hackerFeaturesEnabled else None,
+            )
+
+            SceneExport.export(
                 obj,
                 finalTransform,
-                context.scene.f3d_type,
-                context.scene.isHWv1,
-                levelName,
-                DLFormat.Static,
-                context.scene.saveTextures,
                 exportInfo,
-                bootOptions if hackerFeaturesEnabled else None,
             )
 
             self.report({"INFO"}, "Success!")
@@ -221,7 +222,6 @@ class OOT_RemoveScene(Operator):
 
     def execute(self, context):
         settings = context.scene.ootSceneRemoveSettings  # Type: OOTRemoveSceneSettingsProperty
-        levelName = settings.name
         option = settings.option
 
         if settings.customExport:
@@ -229,13 +229,14 @@ class OOT_RemoveScene(Operator):
             return {"FINISHED"}
 
         if option == "Custom":
-            subfolder = "assets/scenes/" + settings.subFolder + "/"
+            levelName = settings.name
+            subfolder = f"assets/scenes/{settings.subFolder}/"
         else:
             levelName = sceneNameFromID(option)
             subfolder = None
-        exportInfo = ExportInfo(False, abspath(context.scene.ootDecompPath), subfolder, levelName)
 
-        ootRemoveSceneC(exportInfo)
+        # the scene files will be removed from `assets` if it's present
+        Files.remove_scene(RemoveInfo(abspath(context.scene.ootDecompPath), subfolder, levelName))
 
         self.report({"INFO"}, "Success!")
         return {"FINISHED"}

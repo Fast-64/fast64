@@ -6,7 +6,7 @@ from bpy.utils import register_class, unregister_class
 from mathutils import Matrix
 from ...utility import CData, PluginError, raisePluginError, writeCData, toAlnum
 from ...f3d.f3d_parser import importMeshC, getImportData
-from ...f3d.f3d_gbi import DLFormat, F3D, TextureExportSettings, ScrollMethod
+from ...f3d.f3d_gbi import DLFormat, F3D, TextureExportSettings, ScrollMethod, get_F3D_GBI
 from ...f3d.f3d_writer import TriangleConverterInfo, removeDL, saveStaticModel, getInfoDict
 from ..oot_utility import ootGetObjectPath, getOOTScale
 from ..oot_model_classes import OOTF3DContext, ootGetIncludedAssetData
@@ -28,8 +28,6 @@ from ..oot_utility import (
 def ootConvertMeshToC(
     originalObj: bpy.types.Object,
     finalTransform: mathutils.Matrix,
-    f3dType: str,
-    isHWv1: bool,
     DLFormat: DLFormat,
     saveTextures: bool,
     settings: OOTDLExportSettings,
@@ -47,7 +45,7 @@ def ootConvertMeshToC(
     try:
         obj, allObjs = ootDuplicateHierarchy(originalObj, None, False, OOTObjectCategorizer())
 
-        fModel = OOTModel(f3dType, isHWv1, name, DLFormat, drawLayer)
+        fModel = OOTModel(name, DLFormat, drawLayer)
         triConverterInfo = TriangleConverterInfo(obj, None, fModel.f3d, finalTransform, getInfoDict(obj))
         fMeshes = saveStaticModel(
             triConverterInfo, fModel, obj, finalTransform, fModel.name, not saveTextures, False, "oot"
@@ -113,7 +111,7 @@ class OOT_ImportDL(Operator):
             folderName = settings.folder
             importPath = abspath(settings.customPath)
             isCustomImport = settings.isCustom
-            basePath = abspath(context.scene.ootDecompPath) if not isCustomImport else importPath
+            basePath = abspath(context.scene.ootDecompPath) if not isCustomImport else os.path.dirname(importPath)
             removeDoubles = settings.removeDoubles
             importNormals = settings.importNormals
             drawLayer = settings.drawLayer
@@ -121,13 +119,13 @@ class OOT_ImportDL(Operator):
             flipbookUses2DArray = settings.flipbookUses2DArray
             flipbookArrayIndex2D = settings.flipbookArrayIndex2D if flipbookUses2DArray else None
 
-            paths = [ootGetObjectPath(isCustomImport, importPath, folderName)]
-            data = getImportData(paths)
-            f3dContext = OOTF3DContext(F3D("F3DEX2/LX2", False), [name], basePath)
+            paths = [ootGetObjectPath(isCustomImport, importPath, folderName, True)]
+            filedata = getImportData(paths)
+            f3dContext = OOTF3DContext(get_F3D_GBI(), [name], basePath)
 
             scale = getOOTScale(settings.actorScale)
             if not isCustomImport:
-                data = ootGetIncludedAssetData(basePath, paths, data) + data
+                filedata = ootGetIncludedAssetData(basePath, paths, filedata) + filedata
 
                 if overlayName is not None:
                     ootReadTextureArrays(basePath, overlayName, name, f3dContext, False, flipbookArrayIndex2D)
@@ -135,7 +133,7 @@ class OOT_ImportDL(Operator):
                     scale = ootReadActorScale(basePath, overlayName, False)
 
             obj = importMeshC(
-                data,
+                filedata,
                 name,
                 scale,
                 removeDoubles,
@@ -170,7 +168,7 @@ class OOT_ExportDL(Operator):
         if len(context.selected_objects) == 0:
             raise PluginError("Mesh not selected.")
         obj = context.active_object
-        if type(obj.data) is not Mesh:
+        if obj.type != "MESH":
             raise PluginError("Mesh not selected.")
 
         finalTransform = Matrix.Scale(getOOTScale(obj.ootActorScale), 4)
@@ -181,15 +179,11 @@ class OOT_ExportDL(Operator):
             # 	context.scene.geoLevelOption)
 
             saveTextures = context.scene.saveTextures
-            isHWv1 = context.scene.isHWv1
-            f3dType = context.scene.f3d_type
             exportSettings = context.scene.fast64.oot.DLExportSettings
 
             ootConvertMeshToC(
                 obj,
                 finalTransform,
-                f3dType,
-                isHWv1,
                 DLFormat.Static,
                 saveTextures,
                 exportSettings,

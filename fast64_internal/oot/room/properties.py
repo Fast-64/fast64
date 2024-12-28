@@ -19,13 +19,19 @@ from bpy.props import (
 
 from ..oot_constants import (
     ootData,
-    ootEnumRoomMenu,
-    ootEnumRoomMenuAlternate,
     ootEnumRoomBehaviour,
     ootEnumLinkIdle,
     ootEnumRoomShapeType,
     ootEnumHeaderMenu,
 )
+
+ootEnumRoomMenuAlternate = [
+    ("General", "General", "General"),
+    ("Objects", "Objects", "Objects"),
+]
+ootEnumRoomMenu = ootEnumRoomMenuAlternate + [
+    ("Alternate", "Alternate", "Alternate"),
+]
 
 
 class OOTObjectProperty(PropertyGroup):
@@ -34,7 +40,7 @@ class OOTObjectProperty(PropertyGroup):
     objectIDCustom: StringProperty(default="OBJECT_CUSTOM")
 
     @staticmethod
-    def upgrade_object(obj):
+    def upgrade_object(obj: Object):
         print(f"Processing '{obj.name}'...")
         upgradeRoomHeaders(obj, ootData.objectData)
 
@@ -97,13 +103,6 @@ class OOTRoomHeaderProperty(PropertyGroup):
         description="Use heat timer/screen effect, overrides Link Idle Mode",
         default=False,
     )
-
-    useCustomBehaviourX: BoolProperty(name="Use Custom Behaviour X")
-    useCustomBehaviourY: BoolProperty(name="Use Custom Behaviour Y")
-
-    customBehaviourX: StringProperty(name="Custom Behaviour X", default="0x00")
-
-    customBehaviourY: StringProperty(name="Custom Behaviour Y", default="0x00")
 
     setWind: BoolProperty(name="Set Wind")
     windVector: IntVectorProperty(name="Wind Vector", size=3, min=-127, max=127)
@@ -173,7 +172,9 @@ class OOTRoomHeaderProperty(PropertyGroup):
                 if self.roomShape == "ROOM_SHAPE_TYPE_IMAGE":
                     self.drawBGImageList(general, objName)
                 if self.roomShape == "ROOM_SHAPE_TYPE_CULLABLE":
-                    general.label(text="Cull regions are generated automatically.", icon="INFO")
+                    general.label(text="The 'Cullable' room shape type is for CPU culling,", icon="INFO")
+                    general.label(text="and requires meshes to be parented to Custom Cull Group empties.")
+                    general.label(text="RSP culling is done automatically regardless of room shape.")
                     prop_split(general, self, "defaultCullDistance", "Default Cull (Blender Units)")
             # Behaviour
             behaviourBox = layout.column()

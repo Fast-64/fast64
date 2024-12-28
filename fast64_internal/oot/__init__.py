@@ -37,6 +37,12 @@ from .animation.properties import (
 from .cutscene.operators import cutscene_ops_register, cutscene_ops_unregister
 from .cutscene.properties import cutscene_props_register, cutscene_props_unregister
 from .cutscene.panels import cutscene_panels_register, cutscene_panels_unregister
+from .cutscene.preview import cutscene_preview_register, cutscene_preview_unregister
+
+from .cutscene.motion.operators import csMotion_ops_register, csMotion_ops_unregister
+from .cutscene.motion.properties import csMotion_props_register, csMotion_props_unregister
+from .cutscene.motion.panels import csMotion_panels_register, csMotion_panels_unregister
+from .cutscene.motion.preview import csMotion_preview_register, csMotion_preview_unregister
 
 from .skeleton.operators import skeleton_ops_register, skeleton_ops_unregister
 from .skeleton.properties import skeleton_props_register, skeleton_props_unregister
@@ -51,6 +57,20 @@ from .tools import (
     oot_operator_register,
     oot_operator_unregister,
 )
+
+oot_versions_items = [
+    ("Custom", "Custom", "Custom"),
+    ("gc-jp", "gc-jp", "gc-jp"),
+    ("gc-jp-mq", "gc-jp-mq", "gc-jp-mq"),
+    ("gc-jp-ce", "gc-jp-ce", "gc-jp-ce"),
+    ("gc-us", "gc-us", "gc-us"),
+    ("gc-us-mq", "gc-us-mq", "gc-us-mq"),
+    ("gc-eu", "gc-eu", "gc-eu"),
+    ("gc-eu-mq", "gc-eu-mq", "gc-eu-mq"),
+    ("gc-eu-mq-dbg", "gc-eu-mq-dbg", "gc-eu-mq-dbg"),
+    ("hackeroot-mq", "HackerOoT", "hackeroot-mq"),  # TODO: force this value if HackerOoT features are enabled?
+    ("legacy", "Legacy", "Older Decomp Version"),
+]
 
 
 class OOT_Properties(bpy.types.PropertyGroup):
@@ -69,6 +89,27 @@ class OOT_Properties(bpy.types.PropertyGroup):
     animExportSettings: bpy.props.PointerProperty(type=OOTAnimExportSettingsProperty)
     animImportSettings: bpy.props.PointerProperty(type=OOTAnimImportSettingsProperty)
     collisionExportSettings: bpy.props.PointerProperty(type=OOTCollisionExportSettings)
+    oot_version: bpy.props.EnumProperty(name="OoT Version", items=oot_versions_items, default="gc-eu-mq-dbg")
+    oot_version_custom: bpy.props.StringProperty(name="Custom Version")
+
+    def get_extracted_path(self):
+        if self.oot_version == "legacy":
+            return "."
+        else:
+            return f"extracted/{self.oot_version if self.oot_version != 'Custom' else self.oot_version_custom}"
+
+    useDecompFeatures: bpy.props.BoolProperty(
+        name="Use decomp for export", description="Use names and macros from decomp when exporting", default=True
+    )
+
+    exportMotionOnly: bpy.props.BoolProperty(
+        name="Export CS Motion Data Only",
+        description=(
+            "Export everything or only the camera and actor motion data.\n"
+            + "This will insert the data into the cutscene."
+        ),
+        default=False,
+    )
 
 
 oot_classes = (OOT_Properties,)
@@ -76,18 +117,19 @@ oot_classes = (OOT_Properties,)
 
 def oot_panel_register():
     oot_operator_panel_register()
+    cutscene_panels_register()
+    scene_panels_register()
     f3d_panels_register()
     collision_panels_register()
     oot_obj_panel_register()
-    scene_panels_register()
     spline_panels_register()
     anim_panels_register()
     skeleton_panels_register()
-    cutscene_panels_register()
 
 
 def oot_panel_unregister():
     oot_operator_panel_unregister()
+    cutscene_panels_unregister()
     collision_panels_unregister()
     oot_obj_panel_unregister()
     scene_panels_unregister()
@@ -95,7 +137,6 @@ def oot_panel_unregister():
     f3d_panels_unregister()
     anim_panels_unregister()
     skeleton_panels_unregister()
-    cutscene_panels_unregister()
 
 
 def oot_register(registerPanels):
@@ -120,6 +161,12 @@ def oot_register(registerPanels):
     f3d_ops_register()
     file_register()
     anim_props_register()
+
+    csMotion_ops_register()
+    csMotion_props_register()
+    csMotion_panels_register()
+    csMotion_preview_register()
+    cutscene_preview_register()
 
     for cls in oot_classes:
         register_class(cls)
@@ -153,6 +200,12 @@ def oot_unregister(unregisterPanels):
     f3d_ops_unregister()
     file_unregister()
     anim_props_unregister()
+
+    cutscene_preview_unregister()
+    csMotion_preview_unregister()
+    csMotion_panels_unregister()
+    csMotion_props_unregister()
+    csMotion_ops_unregister()
 
     if unregisterPanels:
         oot_panel_unregister()

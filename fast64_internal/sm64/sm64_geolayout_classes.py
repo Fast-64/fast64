@@ -3,7 +3,6 @@ from __future__ import annotations
 import bpy
 from struct import pack
 from copy import copy
-from .sm64_function_map import func_map
 
 from ..utility import (
     PluginError,
@@ -20,6 +19,7 @@ from ..utility import (
     geoNodeRotateOrder,
 )
 from ..f3d.f3d_bleed import BleedGraphics
+from ..f3d.f3d_gbi import FModel
 
 from .sm64_geolayout_constants import (
     nodeGroupCmds,
@@ -50,6 +50,7 @@ from .sm64_geolayout_constants import (
     GEO_SETUP_OBJ_RENDER,
     GEO_SET_BG,
 )
+from .sm64_utility import convert_addr_to_func
 
 drawLayerNames = {
     0: "LAYER_FORCE",
@@ -220,6 +221,12 @@ class Geolayout:
             addresses.extend(ptrs)
         return addresses
 
+    def has_data(self):
+        for node in self.nodes:
+            if node.has_data():
+                return True
+        return False
+
     def to_binary(self, segmentData):
         endCmd = GEO_END if self.isStartGeo else GEO_RETURN
         data = bytearray(0)
@@ -262,6 +269,7 @@ class BaseDisplayListNode:
     """Base displaylist node with common helper functions dealing with displaylists"""
 
     dl_ext = "WITH_DL"  # add dl_ext to geo command if command has a displaylist
+    bleed_independently = False  # base behavior, can be changed with obj boolProp
 
     def get_dl_address(self):
         if self.hasDL and (self.dlRef or self.DLmicrocode is not None):
@@ -328,6 +336,17 @@ class TransformNode:
                 addresses.extend(ptrs)
             address += 4
         return address, addresses
+
+    def has_data(self):
+        if self.node is not None:
+            if getattr(self.node, "hasDL", False):
+                return True
+            if type(self.node) in (JumpNode, SwitchNode, FunctionNode, ShadowNode, CustomNode, CustomAnimatedNode):
+                return True
+        for child in self.children:
+            if child.has_data():
+                return True
+        return False
 
     def size(self):
         size = self.node.size() if self.node is not None else 0
@@ -453,46 +472,44 @@ class JumpNode:
 class GeoLayoutBleed(BleedGraphics):
     def bleed_geo_layout_graph(self, fModel: FModel, geo_layout_graph: GeolayoutGraph, use_rooms: bool = False):
         last_materials = dict()  # last used material should be kept track of per layer
-        
+
         def walk(node, last_materials):
             base_node = node.node
             if type(base_node) == JumpNode:
                 if base_node.geolayout:
                     for node in base_node.geolayout.nodes:
-                        last_materials = walk(node, last_materials if not use_rooms else dict()) if not use_rooms else dict()
+                        last_materials = (
+                            walk(node, last_materials if not use_rooms else dict()) if not use_rooms else dict()
+                        )
                 else:
                     last_materials = dict()
             fMesh = getattr(base_node, "fMesh", None)
             if fMesh:
                 cmd_list = fMesh.drawMatOverrides.get(base_node.override_hash, None) or fMesh.draw
-                lastMat = last_materials.get(base_node.drawLayer, None)
+                last_mat = last_materials.get(base_node.drawLayer, None)
                 default_render_mode = fModel.getRenderMode(base_node.drawLayer)
-                lastMat = self.bleed_fmesh(fModel.f3d, fMesh, lastMat, cmd_list, default_render_mode)
+                last_mat = self.bleed_fmesh(
+                    fMesh,
+                    last_mat if not base_node.bleed_independently else None,
+                    cmd_list,
+                    fModel.getAllMaterials().items(),
+                    default_render_mode,
+                )
                 # if the mesh has culling, it can be culled, and create invalid combinations of f3d to represent the current full DL
                 if fMesh.cullVertexList:
                     last_materials[base_node.drawLayer] = None
                 else:
-                    last_materials[base_node.drawLayer] = lastMat
-            # don't carry over lastmat if it is a switch node or geo asm node
-            if type(base_node) in [SwitchNode, FunctionNode]:
-                last_materials = dict()
+                    last_materials[base_node.drawLayer] = last_mat
+            # don't carry over last_mat if it is a switch node or geo asm node
             for child in node.children:
+                if type(base_node) in [SwitchNode, FunctionNode]:
+                    last_materials = dict()
                 last_materials = walk(child, last_materials)
             return last_materials
-        
+
         for node in geo_layout_graph.startGeolayout.nodes:
             last_materials = walk(node, last_materials)
         self.clear_gfx_lists(fModel)
-
-
-def convertAddrToFunc(addr):
-    if addr == "":
-        raise PluginError("Geolayout node cannot have an empty function name/address.")
-    refresh_func_map = func_map[bpy.context.scene.refreshVer]
-    if addr.lower() in refresh_func_map:
-        return refresh_func_map[addr.lower()]
-    else:
-        return toAlnum(addr)
 
 
 # We add Function commands to nonDeformTransformData because any skinned
@@ -515,7 +532,7 @@ class FunctionNode:
         return command
 
     def to_c(self):
-        return "GEO_ASM(" + str(self.func_param) + ", " + convertAddrToFunc(self.geo_func) + "),"
+        return "GEO_ASM(" + str(self.func_param) + ", " + convert_addr_to_func(self.geo_func) + "),"
 
 
 class HeldObjectNode:
@@ -543,7 +560,7 @@ class HeldObjectNode:
             + ", "
             + str(convertFloatToShort(self.translate[2]))
             + ", "
-            + convertAddrToFunc(self.geo_func)
+            + convert_addr_to_func(self.geo_func)
             + "),"
         )
 
@@ -600,12 +617,11 @@ class SwitchNode:
         return command
 
     def to_c(self):
-        return "GEO_SWITCH_CASE(" + str(self.defaultCase) + ", " + convertAddrToFunc(self.switchFunc) + "),"
+        return "GEO_SWITCH_CASE(" + str(self.defaultCase) + ", " + convert_addr_to_func(self.switchFunc) + "),"
 
 
 class TranslateRotateNode(BaseDisplayListNode):
     def __init__(self, drawLayer, fieldLayout, hasDL, translate, rotate, dlRef: str = None):
-
         self.drawLayer = drawLayer
         self.fieldLayout = fieldLayout
         self.hasDL = hasDL
@@ -1124,8 +1140,8 @@ class ZBufferNode:
 class CameraNode:
     def __init__(self, camType, position, lookAt):
         self.camType = camType
-        self.position = [int(round(value * bpy.context.scene.blenderToSM64Scale)) for value in position]
-        self.lookAt = [int(round(value * bpy.context.scene.blenderToSM64Scale)) for value in lookAt]
+        self.position = [int(round(value * bpy.context.scene.fast64.sm64.blender_to_sm64_scale)) for value in position]
+        self.lookAt = [int(round(value * bpy.context.scene.fast64.sm64.blender_to_sm64_scale)) for value in lookAt]
         self.geo_func = "80287D30"
         self.hasDL = False
 
@@ -1161,7 +1177,7 @@ class CameraNode:
             + ", "
             + str(self.lookAt[2])
             + ", "
-            + convertAddrToFunc(self.geo_func)
+            + convert_addr_to_func(self.geo_func)
             + "),"
         )
 
@@ -1205,7 +1221,7 @@ class BackgroundNode:
         if self.isColor:
             return "GEO_BACKGROUND_COLOR(0x" + format(self.backgroundValue, "04x").upper() + "),"
         else:
-            return "GEO_BACKGROUND(" + str(self.backgroundValue) + ", " + convertAddrToFunc(self.geo_func) + "),"
+            return "GEO_BACKGROUND(" + str(self.backgroundValue) + ", " + convert_addr_to_func(self.geo_func) + "),"
 
 
 class CustomNode:

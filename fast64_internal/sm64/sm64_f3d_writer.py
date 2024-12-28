@@ -6,9 +6,15 @@ from bpy.utils import register_class, unregister_class
 from ..panels import SM64_Panel
 from ..f3d.f3d_writer import exportF3DCommon
 from ..f3d.f3d_texture_writer import TexInfo
-from ..f3d.f3d_material import TextureProperty, tmemUsageUI, all_combiner_uses, ui_procAnim
+from ..f3d.f3d_material import (
+    TextureProperty,
+    tmemUsageUI,
+    all_combiner_uses,
+    ui_procAnim,
+    update_world_default_rendermode,
+)
 from .sm64_texscroll import modifyTexScrollFiles, modifyTexScrollHeadersGroup
-from .sm64_utility import starSelectWarning
+from .sm64_utility import export_rom_checks, starSelectWarning
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_rom_tweaks import ExtendBank0x04
 from typing import Tuple, Union, Iterable
@@ -16,6 +22,7 @@ from typing import Tuple, Union, Iterable
 from ..f3d.f3d_bleed import BleedGraphics
 
 from ..f3d.f3d_gbi import (
+    get_F3D_GBI,
     GbiMacro,
     GfxTag,
     FMaterial,
@@ -46,7 +53,6 @@ from ..f3d.f3d_gbi import (
 )
 
 from ..utility import (
-    CData,
     CScrollData,
     PluginError,
     raisePluginError,
@@ -64,7 +70,6 @@ from ..utility import (
     writeInsertableFile,
     getPathAndLevel,
     applyBasicTweaks,
-    checkExpanded,
     tempName,
     getAddressFromRAMAddress,
     bytesToHex,
@@ -73,6 +78,7 @@ from ..utility import (
     makeWriteInfoBox,
     writeBoxExportType,
     enumExportHeaderType,
+    create_or_get_world,
 )
 
 from .sm64_constants import (
@@ -98,15 +104,17 @@ enumHUDPaths = {
 
 
 class SM64Model(FModel):
-    def __init__(self, f3dType, isHWv1, name, DLFormat, matWriteMethod):
-        FModel.__init__(self, f3dType, isHWv1, name, DLFormat, matWriteMethod)
+    def __init__(self, name, DLFormat, matWriteMethod):
+        FModel.__init__(self, name, DLFormat, matWriteMethod)
+        self.no_light_direction = bpy.context.scene.fast64.sm64.matstack_fix
 
     def getDrawLayerV3(self, obj):
         return int(obj.draw_layer_static)
 
     def getRenderMode(self, drawLayer):
-        cycle1 = getattr(bpy.context.scene.world, "draw_layer_" + str(drawLayer) + "_cycle_1")
-        cycle2 = getattr(bpy.context.scene.world, "draw_layer_" + str(drawLayer) + "_cycle_2")
+        world = create_or_get_world(bpy.context.scene)
+        cycle1 = getattr(world, "draw_layer_" + str(drawLayer) + "_cycle_1")
+        cycle2 = getattr(world, "draw_layer_" + str(drawLayer) + "_cycle_2")
         return [cycle1, cycle2]
 
 
@@ -153,8 +161,8 @@ class SM64GfxFormatter(GfxFormatter):
         return data
 
 
-def exportTexRectToC(dirPath, texProp, f3dType, isHWv1, texDir, savePNG, name, exportToProject, projectExportData):
-    fTexRect = exportTexRectCommon(texProp, f3dType, isHWv1, name, not savePNG)
+def exportTexRectToC(dirPath, texProp, texDir, savePNG, name, exportToProject, projectExportData):
+    fTexRect = exportTexRectCommon(texProp, name, not savePNG)
 
     if name is None or name == "":
         raise PluginError("Name cannot be empty.")
@@ -270,7 +278,7 @@ def modifyDLForHUD(data):
     return data
 
 
-def exportTexRectCommon(texProp, f3dType, isHWv1, name, convertTextureData):
+def exportTexRectCommon(texProp, name, convertTextureData):
     tex = texProp.tex
     if tex is None:
         raise PluginError("No texture is selected.")
@@ -285,7 +293,7 @@ def exportTexRectCommon(texProp, f3dType, isHWv1, name, convertTextureData):
     texProp.T.mask = ceil(log(texProp.tex.size[1], 2) - 0.001)
     texProp.T.shift = 0
 
-    fTexRect = FTexRect(f3dType, isHWv1, toAlnum(name), GfxMatWriteMethod.WriteDifferingAndRevert)
+    fTexRect = FTexRect(toAlnum(name), GfxMatWriteMethod.WriteDifferingAndRevert)
     fMaterial = FMaterial(toAlnum(name) + "_mat", DLFormat.Dynamic)
 
     # dl_hud_img_begin
@@ -343,8 +351,6 @@ def sm64ExportF3DtoC(
     obj,
     DLFormat,
     transformMatrix,
-    f3dType,
-    isHWv1,
     texDir,
     savePNG,
     texSeparate,
@@ -359,8 +365,6 @@ def sm64ExportF3DtoC(
 
     inline = bpy.context.scene.exportInlineF3D
     fModel = SM64Model(
-        f3dType,
-        isHWv1,
         name,
         DLFormat,
         GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
@@ -380,6 +384,8 @@ def sm64ExportF3DtoC(
         scrollName = "actor_dl_" + name
     elif headerType == "Level":
         scrollName = levelName + "_level_dl_" + name
+    elif headerType == "Custom":
+        scrollName = "dl_" + name
 
     gfxFormatter = SM64GfxFormatter(ScrollMethod.Vertex)
     exportData = fModel.to_c(TextureExportSettings(texSeparate, savePNG, texDir, modelDirPath), gfxFormatter)
@@ -481,8 +487,8 @@ def sm64ExportF3DtoC(
     return fileStatus
 
 
-def exportF3DtoBinary(romfile, exportRange, transformMatrix, obj, f3dType, isHWv1, segmentData, includeChildren):
-    fModel = SM64Model(f3dType, isHWv1, obj.name, DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert)
+def exportF3DtoBinary(romfile, exportRange, transformMatrix, obj, segmentData, includeChildren):
+    fModel = SM64Model(obj.name, DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert)
     fMeshes = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, obj.name, DLFormat.Static, True)
     fMesh = fMeshes[fModel.getDrawLayerV3(obj)]
     fModel.freePalettes()
@@ -501,8 +507,8 @@ def exportF3DtoBinary(romfile, exportRange, transformMatrix, obj, f3dType, isHWv
     return fMesh.draw.startAddress, addrRange, segPointerData
 
 
-def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix, obj, f3dType, isHWv1, RAMAddr, includeChildren):
-    fModel = SM64Model(f3dType, isHWv1, obj.name, DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert)
+def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix, obj, RAMAddr, includeChildren):
+    fModel = SM64Model(obj.name, DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert)
     fMeshes = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, obj.name, DLFormat.Static, True)
     fMesh = fMeshes[fModel.getDrawLayerV3(obj)]
     segmentData = copy.copy(bank0Segment)
@@ -521,14 +527,14 @@ def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix, obj, f3dType, 
     return (fMesh.draw.startAddress, (startAddress, startAddress + len(data)), segPointerData)
 
 
-def exportF3DtoInsertableBinary(filepath, transformMatrix, obj, f3dType, isHWv1, includeChildren):
-    fModel = SM64Model(f3dType, isHWv1, obj.name, DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert)
+def exportF3DtoInsertableBinary(filepath, transformMatrix, obj, includeChildren):
+    fModel = SM64Model(obj.name, DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert)
     fMeshes = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, obj.name, DLFormat.Static, True)
     fMesh = fMeshes[fModel.getDrawLayerV3(obj)]
 
     data, startRAM = getBinaryBank0F3DData(fModel, 0, [0, 0xFFFFFF])
     # must happen after getBinaryBank0F3DData
-    address_ptrs = fModel.get_ptr_addresses(f3dType)
+    address_ptrs = fModel.get_ptr_addresses(get_F3D_GBI())
 
     writeInsertableFile(filepath, insertableBinaryTypes["Display List"], address_ptrs, fMesh.draw.startAddress, data)
 
@@ -570,17 +576,10 @@ class SM64_ExportDL(bpy.types.Operator):
             if len(allObjs) == 0:
                 raise PluginError("No objects selected.")
             obj = context.selected_objects[0]
-            if not isinstance(obj.data, bpy.types.Mesh):
+            if obj.type != "MESH":
                 raise PluginError("Object is not a mesh.")
 
-            # T, R, S = obj.matrix_world.decompose()
-            # objTransform = R.to_matrix().to_4x4() @ \
-            # 	Matrix.Diagonal(S).to_4x4()
-
-            # finalTransform = (blenderToSM64Rotation * \
-            # 	(bpy.context.scene.blenderToSM64Scale)).to_4x4()
-            # finalTransform = Matrix.Identity(4)
-            scaleValue = bpy.context.scene.blenderToSM64Scale
+            scaleValue = context.scene.fast64.sm64.blender_to_sm64_scale
             finalTransform = Matrix.Diagonal(Vector((scaleValue, scaleValue, scaleValue))).to_4x4()
 
         except Exception as e:
@@ -589,7 +588,7 @@ class SM64_ExportDL(bpy.types.Operator):
 
         try:
             applyRotation([obj], radians(90), "X")
-            if context.scene.fast64.sm64.exportType == "C":
+            if context.scene.fast64.sm64.export_type == "C":
                 exportPath, levelName = getPathAndLevel(
                     context.scene.DLCustomExport,
                     context.scene.DLExportPath,
@@ -603,8 +602,6 @@ class SM64_ExportDL(bpy.types.Operator):
                     obj,
                     DLFormat.Static if context.scene.DLExportisStatic else DLFormat.Dynamic,
                     finalTransform,
-                    context.scene.f3d_type,
-                    context.scene.isHWv1,
                     bpy.context.scene.DLTexDir,
                     bpy.context.scene.saveTextures,
                     bpy.context.scene.DLSeparateTextureDef,
@@ -619,27 +616,25 @@ class SM64_ExportDL(bpy.types.Operator):
                 starSelectWarning(self, fileStatus)
                 self.report({"INFO"}, "Success!")
 
-            elif context.scene.fast64.sm64.exportType == "Insertable Binary":
+            elif context.scene.fast64.sm64.export_type == "Insertable Binary":
                 exportF3DtoInsertableBinary(
                     bpy.path.abspath(context.scene.DLInsertableBinaryPath),
                     finalTransform,
                     obj,
-                    context.scene.f3d_type,
-                    context.scene.isHWv1,
                     bpy.context.scene.DLincludeChildren,
                 )
                 self.report({"INFO"}, "Success! DL at " + context.scene.DLInsertableBinaryPath + ".")
             else:
-                checkExpanded(bpy.path.abspath(context.scene.exportRom))
-                tempROM = tempName(context.scene.outputRom)
-                romfileExport = open(bpy.path.abspath(context.scene.exportRom), "rb")
-                shutil.copy(bpy.path.abspath(context.scene.exportRom), bpy.path.abspath(tempROM))
+                export_rom_checks(bpy.path.abspath(context.scene.fast64.sm64.export_rom))
+                tempROM = tempName(context.scene.fast64.sm64.output_rom)
+                romfileExport = open(bpy.path.abspath(context.scene.fast64.sm64.export_rom), "rb")
+                shutil.copy(bpy.path.abspath(context.scene.fast64.sm64.export_rom), bpy.path.abspath(tempROM))
                 romfileExport.close()
                 romfileOutput = open(bpy.path.abspath(tempROM), "rb+")
 
                 levelParsed = parseLevelAtPointer(romfileOutput, level_pointers[context.scene.levelDLExport])
                 segmentData = levelParsed.segmentData
-                if context.scene.extendBank4:
+                if context.scene.fast64.sm64.extend_bank_4:
                     ExtendBank0x04(romfileOutput, segmentData, defaultExtendSegment4)
 
                 if context.scene.DLUseBank0:
@@ -648,8 +643,6 @@ class SM64_ExportDL(bpy.types.Operator):
                         [int(context.scene.DLExportStart, 16), int(context.scene.DLExportEnd, 16)],
                         finalTransform,
                         obj,
-                        context.scene.f3d_type,
-                        context.scene.isHWv1,
                         getAddressFromRAMAddress(int(context.scene.DLRAMAddr, 16)),
                         bpy.context.scene.DLincludeChildren,
                     )
@@ -659,8 +652,6 @@ class SM64_ExportDL(bpy.types.Operator):
                         [int(context.scene.DLExportStart, 16), int(context.scene.DLExportEnd, 16)],
                         finalTransform,
                         obj,
-                        context.scene.f3d_type,
-                        context.scene.isHWv1,
                         segmentData,
                         bpy.context.scene.DLincludeChildren,
                     )
@@ -670,9 +661,9 @@ class SM64_ExportDL(bpy.types.Operator):
                     romfileOutput.write(segPointerData)
 
                 romfileOutput.close()
-                if os.path.exists(bpy.path.abspath(context.scene.outputRom)):
-                    os.remove(bpy.path.abspath(context.scene.outputRom))
-                os.rename(bpy.path.abspath(tempROM), bpy.path.abspath(context.scene.outputRom))
+                if os.path.exists(bpy.path.abspath(context.scene.fast64.sm64.output_rom)):
+                    os.remove(bpy.path.abspath(context.scene.fast64.sm64.output_rom))
+                os.rename(bpy.path.abspath(tempROM), bpy.path.abspath(context.scene.fast64.sm64.output_rom))
 
                 if context.scene.DLUseBank0:
                     self.report(
@@ -704,7 +695,7 @@ class SM64_ExportDL(bpy.types.Operator):
             if context.mode != "OBJECT":
                 bpy.ops.object.mode_set(mode="OBJECT")
             applyRotation([obj], radians(-90), "X")
-            if context.scene.fast64.sm64.exportType == "Binary":
+            if context.scene.fast64.sm64.export_type == "Binary":
                 if romfileOutput is not None:
                     romfileOutput.close()
                 if tempROM is not None and os.path.exists(bpy.path.abspath(tempROM)):
@@ -716,14 +707,14 @@ class SM64_ExportDL(bpy.types.Operator):
 class SM64_ExportDLPanel(SM64_Panel):
     bl_idname = "SM64_PT_export_dl"
     bl_label = "SM64 DL Exporter"
-    goal = "Export Displaylist"
+    goal = "Displaylist"
 
     # called every frame
     def draw(self, context):
         col = self.layout.column()
         propsDLE = col.operator(SM64_ExportDL.bl_idname)
 
-        if context.scene.fast64.sm64.exportType == "C":
+        if context.scene.fast64.sm64.export_type == "C":
             col.prop(context.scene, "DLExportisStatic")
 
             col.prop(context.scene, "DLCustomExport")
@@ -741,7 +732,7 @@ class SM64_ExportDLPanel(SM64_Panel):
                     prop_split(col, context.scene, "DLGroupName", "Group Name")
                 elif context.scene.DLExportHeaderType == "Level":
                     prop_split(col, context.scene, "DLLevelOption", "Level")
-                    if context.scene.DLLevelOption == "custom":
+                    if context.scene.DLLevelOption == "Custom":
                         prop_split(col, context.scene, "DLLevelName", "Level Name")
                 if context.scene.saveTextures:
                     col.prop(context.scene, "DLSeparateTextureDef")
@@ -756,7 +747,7 @@ class SM64_ExportDLPanel(SM64_Panel):
                     context.scene.DLLevelOption,
                 )
 
-        elif context.scene.fast64.sm64.exportType == "Insertable Binary":
+        elif context.scene.fast64.sm64.export_type == "Insertable Binary":
             col.prop(context.scene, "DLInsertableBinaryPath")
         else:
             prop_split(col, context.scene, "DLExportStart", "Start Address")
@@ -788,16 +779,14 @@ class ExportTexRectDraw(bpy.types.Operator):
                 if context.scene.TexRectCustomExport:
                     exportPath = context.scene.TexRectExportPath
                 else:
-                    if context.scene.decompPath == "":
+                    if context.scene.fast64.sm64.decomp_path == "":
                         raise PluginError("Decomp path has not been set in File Settings.")
-                    exportPath = context.scene.decompPath
+                    exportPath = context.scene.fast64.sm64.decomp_path
                 if not context.scene.TexRectCustomExport:
                     applyBasicTweaks(exportPath)
                 exportTexRectToC(
                     bpy.path.abspath(exportPath),
                     context.scene.texrect,
-                    context.scene.f3d_type,
-                    context.scene.isHWv1,
                     "textures/segment2",
                     context.scene.saveTextures,
                     context.scene.TexRectName,
@@ -827,7 +816,7 @@ class UnlinkTexRect(bpy.types.Operator):
 class ExportTexRectDrawPanel(SM64_Panel):
     bl_idname = "TEXTURE_PT_export_texrect"
     bl_label = "SM64 UI Image Exporter"
-    goal = "Export UI Image"
+    goal = "UI Image"
     decomp_only = True
 
     # called every frame
@@ -884,9 +873,10 @@ class SM64_DrawLayersPanel(bpy.types.Panel):
 
     def draw(self, context):
         world = context.scene.world
-        layout = self.layout
+        if not world:
+            return
 
-        inputGroup = layout.column()
+        inputGroup = self.layout.column()
         inputGroup.prop(
             world, "menu_layers", text="Draw Layers", icon="TRIA_DOWN" if world.menu_layers else "TRIA_RIGHT"
         )
@@ -958,22 +948,54 @@ def sm64_dl_writer_register():
     for cls in sm64_dl_writer_classes:
         register_class(cls)
 
-    bpy.types.World.draw_layer_0_cycle_1 = bpy.props.StringProperty(default="G_RM_ZB_OPA_SURF")
-    bpy.types.World.draw_layer_0_cycle_2 = bpy.props.StringProperty(default="G_RM_ZB_OPA_SURF2")
-    bpy.types.World.draw_layer_1_cycle_1 = bpy.props.StringProperty(default="G_RM_AA_ZB_OPA_SURF")
-    bpy.types.World.draw_layer_1_cycle_2 = bpy.props.StringProperty(default="G_RM_AA_ZB_OPA_SURF2")
-    bpy.types.World.draw_layer_2_cycle_1 = bpy.props.StringProperty(default="G_RM_AA_ZB_OPA_DECAL")
-    bpy.types.World.draw_layer_2_cycle_2 = bpy.props.StringProperty(default="G_RM_AA_ZB_OPA_DECAL2")
-    bpy.types.World.draw_layer_3_cycle_1 = bpy.props.StringProperty(default="G_RM_AA_ZB_OPA_INTER")
-    bpy.types.World.draw_layer_3_cycle_2 = bpy.props.StringProperty(default="G_RM_AA_ZB_OPA_INTER2")
-    bpy.types.World.draw_layer_4_cycle_1 = bpy.props.StringProperty(default="G_RM_AA_ZB_TEX_EDGE")
-    bpy.types.World.draw_layer_4_cycle_2 = bpy.props.StringProperty(default="G_RM_AA_ZB_TEX_EDGE2")
-    bpy.types.World.draw_layer_5_cycle_1 = bpy.props.StringProperty(default="G_RM_AA_ZB_XLU_SURF")
-    bpy.types.World.draw_layer_5_cycle_2 = bpy.props.StringProperty(default="G_RM_AA_ZB_XLU_SURF2")
-    bpy.types.World.draw_layer_6_cycle_1 = bpy.props.StringProperty(default="G_RM_AA_ZB_XLU_DECAL")
-    bpy.types.World.draw_layer_6_cycle_2 = bpy.props.StringProperty(default="G_RM_AA_ZB_XLU_DECAL2")
-    bpy.types.World.draw_layer_7_cycle_1 = bpy.props.StringProperty(default="G_RM_AA_ZB_XLU_INTER")
-    bpy.types.World.draw_layer_7_cycle_2 = bpy.props.StringProperty(default="G_RM_AA_ZB_XLU_INTER2")
+    bpy.types.World.draw_layer_0_cycle_1 = bpy.props.StringProperty(
+        default="G_RM_ZB_OPA_SURF", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_0_cycle_2 = bpy.props.StringProperty(
+        default="G_RM_ZB_OPA_SURF2", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_1_cycle_1 = bpy.props.StringProperty(
+        default="G_RM_AA_ZB_OPA_SURF", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_1_cycle_2 = bpy.props.StringProperty(
+        default="G_RM_AA_ZB_OPA_SURF2", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_2_cycle_1 = bpy.props.StringProperty(
+        default="G_RM_AA_ZB_OPA_DECAL", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_2_cycle_2 = bpy.props.StringProperty(
+        default="G_RM_AA_ZB_OPA_DECAL2", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_3_cycle_1 = bpy.props.StringProperty(
+        default="G_RM_AA_ZB_OPA_INTER", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_3_cycle_2 = bpy.props.StringProperty(
+        default="G_RM_AA_ZB_OPA_INTER2", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_4_cycle_1 = bpy.props.StringProperty(
+        default="G_RM_AA_ZB_TEX_EDGE", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_4_cycle_2 = bpy.props.StringProperty(
+        default="G_RM_AA_ZB_TEX_EDGE2", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_5_cycle_1 = bpy.props.StringProperty(
+        default="G_RM_AA_ZB_XLU_SURF", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_5_cycle_2 = bpy.props.StringProperty(
+        default="G_RM_AA_ZB_XLU_SURF2", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_6_cycle_1 = bpy.props.StringProperty(
+        default="G_RM_AA_ZB_XLU_DECAL", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_6_cycle_2 = bpy.props.StringProperty(
+        default="G_RM_AA_ZB_XLU_DECAL2", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_7_cycle_1 = bpy.props.StringProperty(
+        default="G_RM_AA_ZB_XLU_INTER", update=update_world_default_rendermode
+    )
+    bpy.types.World.draw_layer_7_cycle_2 = bpy.props.StringProperty(
+        default="G_RM_AA_ZB_XLU_INTER2", update=update_world_default_rendermode
+    )
 
     bpy.types.Scene.DLExportStart = bpy.props.StringProperty(name="Start", default="11D8930")
     bpy.types.Scene.DLExportEnd = bpy.props.StringProperty(name="End", default="11FFF00")

@@ -1,7 +1,7 @@
 import mathutils, bpy, os, re
 from ...utility_anim import armatureApplyWithMesh
 from ..oot_model_classes import OOTVertexGroupInfo
-from ..oot_utility import checkForStartBone, getStartBone, getNextBone
+from ..oot_utility import checkForStartBone, getStartBone, getNextBone, ootStripComments
 
 from ...utility import (
     PluginError,
@@ -65,7 +65,7 @@ def ootGetLimb(skeletonData, limbName, continueOnError):
     matchResult = re.search(
         "[A-Za-z0-9\_]*Limb\s*"
         + re.escape(limbName)
-        + "\s*=\s*\{\s*\{\s*([^,\s]*)\s*,\s*([^,\s]*)\s*,\s*([^,\s]*)\s*\},\s*([^, ]*)\s*,\s*([^, ]*)\s*,\s*"
+        + "\s*=\s*\{\s*\{\s*([^,\s]*)\s*,\s*([^,\s]*)\s*,\s*([^,\s]*)\s*\},\s*([^,]*)\s*,\s*([^,]*)\s*,\s*"
         + dlRegex
         + "\s*\}\s*;\s*",
         skeletonData,
@@ -147,7 +147,7 @@ def ootRemoveSkeleton(filepath, objectName, skeletonName):
         return
     skeletonDataC = skeletonDataC[: matchResult.start(0)] + skeletonDataC[matchResult.end(0) :]
     limbsData = matchResult.group(2)
-    limbList = [entry.strip()[1:] for entry in limbsData.split(",") if entry.strip() != ""]
+    limbList = [entry.strip()[1:] for entry in ootStripComments(limbsData).split(",") if entry.strip() != ""]
 
     headerMatch = getDeclaration(skeletonDataH, limbsName)
     if headerMatch is not None:
@@ -206,7 +206,7 @@ def ootDuplicateArmatureAndRemoveRotations(originalArmatureObj: bpy.types.Object
     # Duplicate objects to apply scale / modifiers / linked data
     bpy.ops.object.select_all(action="DESELECT")
 
-    for originalMeshObj in [obj for obj in originalArmatureObj.children if isinstance(obj.data, bpy.types.Mesh)]:
+    for originalMeshObj in [obj for obj in originalArmatureObj.children if obj.type == "MESH"]:
         originalMeshObj.select_set(True)
         originalMeshObj.original_name = originalMeshObj.name
 
