@@ -4,6 +4,7 @@ import re
 import bpy
 import mathutils
 
+from bpy.types import Object
 from ...utility import PluginError, readFile, parentObject, hexOrDecInt, gammaInverse
 from ...f3d.f3d_parser import parseMatrices
 from ..model_classes import OOTF3DContext
@@ -256,7 +257,7 @@ def twos_complement(hexstr: str, bits: int):
     return value
 
 
-def parse_mm_minimap_info(scene_header, scene_data: str, list_name: str):
+def parse_mm_map_data(scene_header, scene_data: str, list_name: str):
     data_match = getDataMatch(scene_data, list_name, ["MapDataScene", "MinimapList"], "minimap scene", False)
     scene_map_data = data_match.strip().split(", ")
     scene_header.minimap_scale = int(scene_map_data[1], base=0)
@@ -272,11 +273,53 @@ def parse_mm_minimap_info(scene_header, scene_data: str, list_name: str):
         new_prop.center_z = twos_complement(map_data[3], 16)
         new_prop.flags = map_data[4]
 
-    # TODO: complete chest map data import when actors are handled
-    # data_match = getDataMatch(scene_data, scene_map_data[0], ["MapDataChest", "MinimapChest"], "minimap chest")
-    # chest_map_data = data_match.strip().split("\n")
-    # for data in chest_map_data:
-    #     map_data = data.strip().removeprefix("{ ").removesuffix(" },").split(", ")
+
+def parse_mm_map_data_chest(
+    room_obj_list: list[Object], scene_header, scene_data: str, chest_count: int, list_name: str
+):
+    data_match = getDataMatch(scene_data, list_name, ["MapDataChest", "MinimapChest"], "minimap chest")
+    chest_map_data = data_match.strip().split("\n")
+
+    if len(chest_map_data) != chest_count:
+        print(
+            f"WARNING: chest count ({chest_count}) is different than parsed chest data length ({len(chest_map_data)})"
+        )
+
+    if room_obj_list is None or len(room_obj_list) == 0:
+        raise PluginError("ERROR: The room list doesn't exist or is empty!")
+
+    for data in chest_map_data:
+        map_data = data.strip().removeprefix("{ ").removesuffix(" },").split(", ")
+        chest_room_id, chest_flag, chest_pos_x, chest_pos_y, chest_pos_z = map_data
+
+        # fetch room
+        chest_room = None
+        for room in room_obj_list:
+            if getattr(room.ootRoomHeader, "roomIndex") == int(chest_room_id, base=0):
+                chest_room = room
+                break
+
+        # fetch chest actor (based on the chest flag and room index, maybe we should check for the coordinates too?)
+        chest_actor_obj = None
+        if chest_room is not None:
+            for child_obj in chest_room.children_recursive:
+                if child_obj.type == "EMPTY" and child_obj.ootEmptyType == "Actor":
+                    actor_id: str = getattr(child_obj.ootActorProperty, get_game_prop_name("actor_id"))
+                    actor_params = int(getEvalParams(child_obj.ootActorProperty.actorParam), base=0)
+
+                    if actor_id in {"ACTOR_EN_BOX"}:
+                        actor_chest_flag = actor_params & 0x1F
+                        if actor_chest_flag == int(chest_flag, base=0):
+                            chest_actor_obj = child_obj
+                            break
+        else:
+            raise PluginError("ERROR: Chest's Room not found!")
+
+        if chest_actor_obj is not None:
+            new_prop = scene_header.minimap_chest_list.add()
+            new_prop.chest_obj = chest_actor_obj
+        else:
+            raise PluginError("ERROR: Chest Object not found!")
 
 
 def get_enum_id_from_index(enum_key: str, index: int):
@@ -317,6 +360,8 @@ def parseSceneCommands(
     commands = getDataMatch(sceneData, sceneCommandsName, ["SceneCmd", "SCmdBase"], "scene commands")
     entranceList = None
     altHeadersListName = None
+    chest_map_data_args = None
+
     for commandMatch in re.finditer(rf"(SCENE\_CMD\_[a-zA-Z0-9\_]*)\s*\((.*?)\)\s*,", commands, flags=re.DOTALL):
         command = commandMatch.group(1)
         args = [arg.strip() for arg in commandMatch.group(2).split(",")]
@@ -435,7 +480,15 @@ def parseSceneCommands(
             if command == "SCENE_CMD_SET_REGION_VISITED":
                 sceneHeader.set_region_visited = True
             elif command in {"SCENE_CMD_MINIMAP_INFO", "SCENE_CMD_MAP_DATA"}:
-                parse_mm_minimap_info(sceneHeader, sceneData, stripName(args[0]))
+                parse_mm_map_data(sceneHeader, sceneData, stripName(args[0]))
+            elif command in {"SCENE_CMD_MINIMAP_COMPASS_ICON_INFO", "SCENE_CMD_MAP_DATA_CHESTS"}:
+                # Delay until rooms and actors are processed
+                chest_map_data_args = args
+
+    if sharedSceneData.includeActors and chest_map_data_args is not None:
+        parse_mm_map_data_chest(
+            roomObjs, sceneHeader, sceneData, int(chest_map_data_args[0], base=0), stripName(chest_map_data_args[1])
+        )
 
     if altHeadersListName is not None:
         parseAlternateSceneHeaders(sceneObj, roomObjs, sceneData, altHeadersListName, f3dContext, sharedSceneData)
