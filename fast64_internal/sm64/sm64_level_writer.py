@@ -759,7 +759,7 @@ def export_area_c(
     geolayoutGraph, fModel = convertObjectToGeolayout(
         obj,
         transformMatrix,
-        area_root.areaCamera,
+        False,
         f"{level_name}_{areaName}",
         fModel,
         area_root,
