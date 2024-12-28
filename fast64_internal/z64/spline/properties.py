@@ -45,7 +45,7 @@ class Z64_SplineProperty(PropertyGroup):
             if not is_game_oot():
                 layout.label(text="Warning: MM doesn't have crawlspaces implemented.", icon="ERROR")
             layout.label(text="This counts as a camera for index purposes.", icon="INFO")
-            drawEnumWithCustom(layout, self, get_game_prop_name("cam_setting_type"), "Camera S Type", "")
+            drawEnumWithCustom(layout, self, "camSType", "Camera S Type", "")
 
 
 oot_spline_classes = (Z64_SplineProperty,)

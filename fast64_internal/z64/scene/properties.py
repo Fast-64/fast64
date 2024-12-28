@@ -259,7 +259,7 @@ class Z64_SceneTableEntryProperty(PropertyGroup):
     drawConfigCustom: StringProperty(name="Scene Draw Config Custom")
 
     def draw_props(self, layout: UILayout):
-        drawEnumWithCustom(layout, self, get_game_prop_name("draw_config"), "Draw Config", "")
+        drawEnumWithCustom(layout, self, get_game_prop_name("draw_config"), "Draw Config", "", "drawConfigCustom")
 
 
 class Z64_ExtraCutsceneProperty(PropertyGroup):
@@ -448,7 +448,9 @@ class Z64_SceneHeaderProperty(PropertyGroup):
             general.box().label(text="General")
 
             # General
-            drawEnumWithCustom(general, self, get_game_prop_name("global_obj"), "Global Object", "")
+            drawEnumWithCustom(
+                general, self, get_game_prop_name("global_obj"), "Global Object", "", "globalObjectCustom"
+            )
             drawEnumWithCustom(general, self, "naviCup", "Navi Hints", "")
             if headerIndex is None or headerIndex == 0:
                 self.sceneTableEntry.draw_props(general)
@@ -467,7 +469,9 @@ class Z64_SceneHeaderProperty(PropertyGroup):
             drawEnumWithCustom(
                 skyboxAndSound, self, get_game_prop_name("skybox_config"), "Skybox Config", "", "skyboxCloudinessCustom"
             )
-            drawEnumWithCustom(skyboxAndSound, self, get_game_prop_name("seq_id"), "Music Sequence", "")
+            drawEnumWithCustom(
+                skyboxAndSound, self, get_game_prop_name("seq_id"), "Music Sequence", "", "musicSeqCustom"
+            )
 
             if is_game_oot():
                 op_name = OOT_SearchMusicSeqEnumOperator.bl_idname
@@ -477,7 +481,9 @@ class Z64_SceneHeaderProperty(PropertyGroup):
             musicSearch = skyboxAndSound.operator(op_name, icon="VIEWZOOM")
             musicSearch.objName = objName
             musicSearch.headerIndex = headerIndex if headerIndex is not None else 0
-            drawEnumWithCustom(skyboxAndSound, self, get_game_prop_name("ambience_id"), "Nighttime SFX", "")
+            drawEnumWithCustom(
+                skyboxAndSound, self, get_game_prop_name("ambience_id"), "Nighttime SFX", "", "nightSeqCustom"
+            )
             drawEnumWithCustom(skyboxAndSound, self, "audioSessionPreset", "Audio Session Preset", "")
 
             # Camera And World Map | Minimap Settings

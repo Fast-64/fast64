@@ -56,7 +56,7 @@ class OOTCameraPositionProperty(PropertyGroup):
     hasPositionData: BoolProperty(default=True, name="Has Position Data")
 
     def draw_props(self, layout: UILayout, cameraObj: Object):
-        drawEnumWithCustom(layout, self, get_game_prop_name("cam_setting_type"), "Camera S Type", "")
+        drawEnumWithCustom(layout, self, get_game_prop_name("cam_setting_type"), "Camera S Type", "", "camSTypeCustom")
         prop_split(layout, self, "index", "Camera Index")
         layout.prop(self, "hasPositionData")
         if self.hasPositionData:
@@ -114,10 +114,16 @@ class OOTMaterialCollisionProperty(PropertyGroup):
 
             enum_box = layout.box().column()
             enum_box.label(text="Surface Settings")
-            drawEnumWithCustom(enum_box, self, get_game_prop_name("floor_type"), "Floor Type", "")
-            drawEnumWithCustom(enum_box, self, get_game_prop_name("floor_property"), "Floor Property", "")
-            drawEnumWithCustom(enum_box, self, get_game_prop_name("floor_effect"), "Floor Effect", "")
-            drawEnumWithCustom(enum_box, self, get_game_prop_name("surface_material"), "Surface Material", "")
+            drawEnumWithCustom(
+                enum_box, self, get_game_prop_name("floor_type"), "Floor Type", "", "floorPropertyCustom"
+            )
+            drawEnumWithCustom(
+                enum_box, self, get_game_prop_name("floor_property"), "Floor Property", "", "floorSettingCustom"
+            )
+            drawEnumWithCustom(enum_box, self, get_game_prop_name("floor_effect"), "Floor Effect", "", "terrainCustom")
+            drawEnumWithCustom(
+                enum_box, self, get_game_prop_name("surface_material"), "Surface Material", "", "soundCustom"
+            )
             drawEnumWithCustom(enum_box, self, "wallSetting", "Wall Type", "")
 
             layout.prop(self, "eponaBlock", text="Blocks Epona")

@@ -88,7 +88,9 @@ def parseTransActorList(
             setCustomProperty(transActorProp, "cameraTransitionBack", camBack, ootEnumCamTransition)
 
             actorProp = transActorProp.actor
-            setCustomProperty(actorProp, get_game_prop_name("actor_id"), actorID, get_game_enum("enum_actor_id"))
+            setCustomProperty(
+                actorProp, get_game_prop_name("actor_id"), actorID, get_game_enum("enum_actor_id"), "actorIDCustom"
+            )
             actorProp.actorParam = actorParam
             handleActorWithRotAsParam(actorProp, actorID, rotation)
             unsetAllHeadersExceptSpecified(actorProp.headerSettings, headerIndex)
@@ -188,7 +190,9 @@ def parseSpawnList(
             spawnProp.spawnIndex = spawnIndex
             spawnProp.customActor = actorID != "ACTOR_PLAYER"
             actorProp = spawnProp.actor
-            setCustomProperty(actorProp, get_game_prop_name("actor_id"), actorID, get_game_enum("enum_actor_id"))
+            setCustomProperty(
+                actorProp, get_game_prop_name("actor_id"), actorID, get_game_enum("enum_actor_id"), "actorIDCustom"
+            )
             actorProp.actorParam = actorParam
             handleActorWithRotAsParam(actorProp, actorID, rotation if is_game_oot() else spawn_flags)
             unsetAllHeadersExceptSpecified(actorProp.headerSettings, headerIndex)
@@ -225,7 +229,9 @@ def parseActorList(
             actorObj.ootEmptyType = "Actor"
             actorObj.name = getDisplayNameFromActorID(actorID)
             actorProp = actorObj.ootActorProperty
-            setCustomProperty(actorProp, get_game_prop_name("actor_id"), actorID, get_game_enum("enum_actor_id"))
+            setCustomProperty(
+                actorProp, get_game_prop_name("actor_id"), actorID, get_game_enum("enum_actor_id"), "actorIDCustom"
+            )
             actorProp.actorParam = actorParam
             handleActorWithRotAsParam(actorProp, actorID, rotation if is_game_oot() else spawn_flags)
             unsetAllHeadersExceptSpecified(actorProp.headerSettings, headerIndex)

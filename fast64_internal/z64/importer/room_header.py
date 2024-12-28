@@ -81,9 +81,19 @@ def parseRoomCommands(
         elif command == "SCENE_CMD_ECHO_SETTINGS":
             roomHeader.echo = args[0]
         elif command == "SCENE_CMD_ROOM_BEHAVIOR":
-            setCustomProperty(roomHeader, get_game_prop_name("room_type"), args[0], get_game_enum("enum_room_type"))
             setCustomProperty(
-                roomHeader, get_game_prop_name("environment_type"), args[1], get_game_enum("enum_env_type")
+                roomHeader,
+                get_game_prop_name("room_type"),
+                args[0],
+                get_game_enum("enum_room_type"),
+                "roomBehaviourCustom",
+            )
+            setCustomProperty(
+                roomHeader,
+                get_game_prop_name("environment_type"),
+                args[1],
+                get_game_enum("enum_env_type"),
+                "linkIdleModeCustom",
             )
             roomHeader.showInvisibleActors = args[2] == "true" or args[2] == "1"
 

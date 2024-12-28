@@ -62,8 +62,8 @@ class RoomInfos:
         return RoomInfos(
             props.roomIndex,
             props.roomShape,
-            Utility.getPropValue(props, get_game_prop_name("room_type")),
-            Utility.getPropValue(props, get_game_prop_name("environment_type")),
+            Utility.getPropValue(props, get_game_prop_name("room_type"), "roomBehaviourCustom"),
+            Utility.getPropValue(props, get_game_prop_name("environment_type"), "linkIdleModeCustom"),
             props.showInvisibleActors,
             disableWarpSongs,
             enable_pos_lights,

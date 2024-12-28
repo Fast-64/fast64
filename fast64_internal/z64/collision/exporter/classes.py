@@ -193,9 +193,13 @@ def getPolygonType(collisionProp):
     polygonType.ignoreProjectileCollision = collisionProp.ignoreProjectileCollision
     polygonType.eponaBlock = collisionProp.eponaBlock
     polygonType.decreaseHeight = collisionProp.decreaseHeight
-    polygonType.floorSetting = getCustomProperty(collisionProp, get_game_prop_name("floor_property"))
+    polygonType.floorSetting = getCustomProperty(
+        collisionProp, get_game_prop_name("floor_property"), "floorSettingCustom"
+    )
     polygonType.wallSetting = getCustomProperty(collisionProp, "wallSetting")
-    polygonType.floorProperty = getCustomProperty(collisionProp, get_game_prop_name("floor_type"))
+    polygonType.floorProperty = getCustomProperty(
+        collisionProp, get_game_prop_name("floor_type"), "floorPropertyCustom"
+    )
     polygonType.exitID = collisionProp.exitID
     polygonType.cameraID = collisionProp.cameraID
     polygonType.isWallDamage = collisionProp.isWallDamage
@@ -212,8 +216,8 @@ def getPolygonType(collisionProp):
     polygonType.hookshotable = collisionProp.hookshotable
     polygonType.echo = collisionProp.echo
     polygonType.lightingSetting = collisionProp.lightingSetting
-    polygonType.terrain = getCustomProperty(collisionProp, get_game_prop_name("floor_effect"))
-    polygonType.sound = getCustomProperty(collisionProp, get_game_prop_name("surface_material"))
+    polygonType.terrain = getCustomProperty(collisionProp, get_game_prop_name("floor_effect", "terrainCustom"))
+    polygonType.sound = getCustomProperty(collisionProp, get_game_prop_name("surface_material", "soundCustom"))
     return polygonType
 
 

@@ -40,9 +40,7 @@ def parseCrawlSpaceData(
     crawlProp = curveObj.ootSplineProperty
     crawlProp.splineType = "Crawlspace"
     crawlProp.index = orderIndex
-    setCustomProperty(
-        crawlProp, get_game_prop_name("cam_setting_type"), "CAM_SET_CRAWLSPACE", enum_camera_crawlspace_stype
-    )
+    setCustomProperty(crawlProp, "camSType", "CAM_SET_CRAWLSPACE", enum_camera_crawlspace_stype)
 
     return curveObj
 
@@ -77,7 +75,7 @@ def parseCamPosData(setting: str, sceneData: str, posDataName: str, index: int, 
     camObj = bpy.data.objects.new(objName, camera)
     bpy.context.scene.collection.objects.link(camObj)
     camProp = camObj.ootCameraPositionProperty
-    setCustomProperty(camProp, get_game_prop_name("cam_setting_type"), setting, ootEnumCameraSType)
+    setCustomProperty(camProp, get_game_prop_name("cam_setting_type"), setting, ootEnumCameraSType, "camSTypeCustom")
     camProp.hasPositionData = posDataName != "NULL" and posDataName != "0"
     camProp.index = orderIndex
 
@@ -179,10 +177,20 @@ def parseSurfaceParams(
     collision.eponaBlock = checkBit(params[0], 31)
     collision.decreaseHeight = checkBit(params[0], 30)
     setCustomProperty(
-        collision, get_game_prop_name("floor_property"), str(getBits(params[0], 26, 4)), ootEnumFloorSetting
+        collision,
+        get_game_prop_name("floor_property"),
+        str(getBits(params[0], 26, 4)),
+        ootEnumFloorSetting,
+        "floorSettingCustom",
     )
     setCustomProperty(collision, "wallSetting", str(getBits(params[0], 21, 5)), ootEnumWallSetting)
-    setCustomProperty(collision, get_game_prop_name("floor_type"), str(getBits(params[0], 13, 8)), ootEnumFloorProperty)
+    setCustomProperty(
+        collision,
+        get_game_prop_name("floor_type"),
+        str(getBits(params[0], 13, 8)),
+        ootEnumFloorProperty,
+        "floorPropertyCustom",
+    )
     collision.exitID = getBits(params[0], 8, 5)
     collision.cameraID = getBits(params[0], 0, 8)
     collision.isWallDamage = checkBit(params[1], 27)
@@ -202,10 +210,18 @@ def parseSurfaceParams(
     collision.echo = str(getBits(params[1], 11, 6))
     collision.lightingSetting = getBits(params[1], 6, 5)
     setCustomProperty(
-        collision, get_game_prop_name("floor_effect"), str(getBits(params[1], 4, 2)), ootEnumCollisionTerrain
+        collision,
+        get_game_prop_name("floor_effect"),
+        str(getBits(params[1], 4, 2)),
+        ootEnumCollisionTerrain,
+        "terrainCustom",
     )
     setCustomProperty(
-        collision, get_game_prop_name("surface_material"), str(getBits(params[1], 0, 4)), ootEnumCollisionSound
+        collision,
+        get_game_prop_name("surface_material"),
+        str(getBits(params[1], 0, 4)),
+        ootEnumCollisionSound,
+        "soundCustom",
     )
 
     collision.ignoreCameraCollision = ignoreCamera

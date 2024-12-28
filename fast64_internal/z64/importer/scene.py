@@ -175,6 +175,7 @@ def parseScene(
             get_game_prop_name("draw_config"),
             SceneTableUtility.get_draw_config(sceneName),
             ootEnumDrawConfig if is_game_oot() else mm_enum_draw_config,
+            "drawConfigCustom",
         )
 
     if bpy.context.scene.fast64.oot.headerTabAffectsVisibility:

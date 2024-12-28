@@ -1,3 +1,4 @@
+from typing import Optional
 from math import radians
 from mathutils import Quaternion, Matrix
 from bpy.types import Object
@@ -58,11 +59,17 @@ class Utility:
         return False
 
     @staticmethod
-    def getPropValue(data, propName: str):
+    def getPropValue(data, prop_name: str, custom_name: Optional[str] = None):
         """Returns a property's value based on if the value is 'Custom'"""
 
-        value = getattr(data, propName)
-        return value if value != "Custom" else getattr(data, f"{propName}Custom")
+        value = getattr(data, prop_name)
+
+        if value != "Custom":
+            return value
+        elif custom_name is not None:
+            return getattr(data, custom_name)
+
+        return getattr(data, f"{prop_name}Custom")
 
     @staticmethod
     def getConvertedTransformWithOrientation(

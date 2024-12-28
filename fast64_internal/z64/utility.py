@@ -676,7 +676,9 @@ class CullGroup:
         self.cullDepth = abs(int(round(scale[0] * emptyScale)))
 
 
-def setCustomProperty(data: any, prop: str, value: str, enumList: list[tuple[str, str, str]] | None):
+def setCustomProperty(
+    data: any, prop: str, value: str, enumList: list[tuple[str, str, str]] | None, custom_name: Optional[str] = None
+):
     if enumList is not None:
         if value in [enumItem[0] for enumItem in enumList]:
             setattr(data, prop, value)
@@ -692,12 +694,19 @@ def setCustomProperty(data: any, prop: str, value: str, enumList: list[tuple[str
                 pass
 
     setattr(data, prop, "Custom")
-    setattr(data, prop + str("Custom"), value)
+    setattr(data, custom_name if custom_name is not None else f"{prop}Custom", value)
 
 
-def getCustomProperty(data, prop):
+def getCustomProperty(data, prop, custom_prop_name: Optional[str] = None):
+    # TODO: cleanup prop names and remove `custom_prop_name`
     value = getattr(data, prop)
-    return value if value != "Custom" else getattr(data, prop + str("Custom"))
+
+    if value != "Custom":
+        return value
+    elif custom_prop_name is not None:
+        return getattr(data, custom_prop_name)
+
+    return getattr(data, prop + str("Custom"))
 
 
 def convertIntTo2sComplement(value: int, length: int, signed: bool):
@@ -705,6 +714,7 @@ def convertIntTo2sComplement(value: int, length: int, signed: bool):
 
 
 def drawEnumWithCustom(panel, data, attribute, name, customName, custom_prop_name: Optional[str] = None):
+    # TODO: cleanup prop names and remove `custom_prop_name`
     prop_split(panel, data, attribute, name)
     if getattr(data, attribute) == "Custom":
         if custom_prop_name is None:

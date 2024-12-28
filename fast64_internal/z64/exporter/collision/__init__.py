@@ -156,14 +156,14 @@ class CollisionUtility:
                     surfaceType = SurfaceType(
                         colProp.cameraID,
                         colProp.exitID,
-                        Utility.getPropValue(colProp, get_game_prop_name("floor_type")),
+                        Utility.getPropValue(colProp, get_game_prop_name("floor_type"), "floorPropertyCustom"),
                         0,  # unused?
                         Utility.getPropValue(colProp, "wallSetting"),
-                        Utility.getPropValue(colProp, get_game_prop_name("floor_property")),
+                        Utility.getPropValue(colProp, get_game_prop_name("floor_property"), "floorSettingCustom"),
                         colProp.decreaseHeight,
                         colProp.eponaBlock,
-                        Utility.getPropValue(colProp, get_game_prop_name("surface_material")),
-                        Utility.getPropValue(colProp, get_game_prop_name("floor_effect")),
+                        Utility.getPropValue(colProp, get_game_prop_name("surface_material"), "soundCustom"),
+                        Utility.getPropValue(colProp, get_game_prop_name("floor_effect"), "terrainCustom"),
                         colProp.lightingSetting,
                         int(colProp.echo, base=16),
                         colProp.hookshotable,
