@@ -1559,7 +1559,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
 
     # exports the model ID load into the appropriate script.c location
     def export_script_load(self, context, props):
-        decomp_path = Path(bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path))
+        decomp_path = bpy.context.scene.fast64.sm64.abs_decomp_path
         if props.export_header_type == "Level":
             # for some reason full_level_path doesn't work here
             if props.non_decomp_level:
@@ -1605,7 +1605,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         if props.non_decomp_level:
             return
         # check if model_ids.h exists
-        decomp_path = Path(bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path))
+        decomp_path = bpy.context.scene.fast64.sm64.abs_decomp_path
         model_ids = decomp_path / "include" / "model_ids.h"
         if not model_ids.exists():
             PluginError("Could not find model_ids.h")
@@ -1722,7 +1722,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
 
     def export_behavior_header(self, context, props):
         # check if behavior_header.h exists
-        decomp_path = Path(bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path))
+        decomp_path = bpy.context.scene.fast64.sm64.abs_decomp_path
         behavior_header = decomp_path / "include" / "behavior_data.h"
         if not behavior_header.exists():
             PluginError("Could not find behavior_data.h")
@@ -1756,7 +1756,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             raise PluginError("Behavior must have more than 0 cmds to export")
 
         # export the behavior script itself
-        decomp_path = Path(bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path))
+        decomp_path = bpy.context.scene.fast64.sm64.abs_decomp_path
         behavior_data = decomp_path / "data" / "behavior_data.c"
         if not behavior_data.exists():
             PluginError("Could not find behavior_data.c")
@@ -2116,21 +2116,21 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
             return self.custom_export_path
 
     @property
-    def level_directory(self):
+    def level_directory(self) -> Path:
         if self.non_decomp_level:
-            return self.custom_level_name
+            return Path(self.custom_level_name)
         level_name = self.custom_level_name if self.level_name == "Custom" else self.level_name
-        return os.path.join("/levels/", level_name)
+        return Path("levels") / level_name
 
     @property
     def base_level_path(self):
         if self.non_decomp_level:
-            return bpy.path.abspath(self.custom_level_path)
-        return bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path)
+            return Path(bpy.path.abspath(self.custom_level_path))
+        return bpy.context.scene.fast64.sm64.abs_decomp_path
 
     @property
     def full_level_path(self):
-        return os.path.join(self.base_level_path, self.level_directory)
+        return self.base_level_path / self.level_directory
 
     # remove user prefixes/naming that I will be adding, such as _col, _geo etc.
     def filter_name(self, name):
@@ -2172,8 +2172,17 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
     def actor_names(self) -> list:
         return list(dict.fromkeys(filter(None, [self.obj_name_col, self.obj_name_gfx])).keys())
 
+    @property
+    def export_locations(self) -> str | None:
+        names = self.actor_names
+        if len(names) > 1:
+            return f"{{{','.join(names)}}}"
+        elif len(names) == 1:
+            return names[0]
+        return None
+
     def draw_level_path(self, layout):
-        if not directory_ui_warnings(layout, bpy.path.abspath(self.base_level_path)):
+        if not directory_ui_warnings(layout, self.base_level_path):
             return
         if self.non_decomp_level:
             layout.label(text=f"Level export path: {self.full_level_path}")
@@ -2182,12 +2191,24 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         return True
 
     def draw_actor_path(self, layout):
-        actor_path = Path(bpy.context.scene.fast64.sm64.decomp_path) / "actors"
-        if not filepath_ui_warnings(layout, (actor_path / self.actor_group_name).with_suffix(".c")):
-            return
-        export_locations = ",".join({self.obj_name_col, self.obj_name_gfx})
-        # can this be more clear?
-        layout.label(text=f"Actor export path: actors/{export_locations}")
+        if self.export_locations is None:
+            return False
+        decomp_path = bpy.context.scene.fast64.sm64.abs_decomp_path
+        if self.export_header_type == "Actor":
+            actor_path = decomp_path / "actors"
+            if not filepath_ui_warnings(layout, (actor_path / self.actor_group_name).with_suffix(".c")):
+                return False
+            layout.label(text=f"Actor export path: actors/{self.export_locations}/")
+        elif self.export_header_type == "Level":
+            if not directory_ui_warnings(layout, self.full_level_path):
+                return False
+            level_path = self.full_level_path if self.non_decomp_level else self.level_directory
+            layout.label(text=f"Actor export path: {level_path / self.export_locations}/")
+        elif self.export_header_type == "Custom":
+            custom_path = Path(bpy.path.abspath(self.custom_export_path))
+            if not directory_ui_warnings(layout, custom_path):
+                return False
+            layout.label(text=f"Actor export path: {custom_path / self.export_locations}/")
         return True
 
     def draw_col_names(self, layout):
@@ -2284,18 +2305,15 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
                 "Duplicates objects will be exported! Use with Caution.",
                 icon="ERROR",
             )
+            return
 
         info_box = box.box()
         info_box.scale_y = 0.5
 
-        if self.export_header_type == "Level":
-            if not self.draw_level_path(info_box):
-                return
+        if not self.draw_actor_path(info_box):
+            return
 
-        elif self.export_header_type == "Actor":
-            if not self.draw_actor_path(info_box):
-                return
-        elif self.export_header_type == "Custom" and bpy.context.scene.saveTextures:
+        if self.export_header_type == "Custom" and bpy.context.scene.saveTextures:
             if self.custom_include_directory:
                 info_box.label(text=f'Include directory "{self.custom_include_directory}"')
             else:
