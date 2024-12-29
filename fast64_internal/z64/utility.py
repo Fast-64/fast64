@@ -771,7 +771,7 @@ def getCollectionFromIndex(obj, prop, subIndex, isRoom):
 # Operators cannot store mutable references (?), so to reuse PropertyCollection modification code we do this.
 # Save a string identifier in the operator, then choose the member variable based on that.
 # subIndex is for a collection within a collection element
-def getCollection(objName, collectionType, subIndex):
+def getCollection(objName, collectionType, subIndex: int, collection_index: int = 0):
     obj = bpy.data.objects[objName]
     if collectionType == "Actor":
         collection = obj.ootActorProperty.headerSettings.cutsceneHeaders
@@ -793,6 +793,16 @@ def getCollection(objName, collectionType, subIndex):
         collection = getCollectionFromIndex(obj, "minimap_room_list", subIndex, False)
     elif collectionType == "Object":
         collection = getCollectionFromIndex(obj, "objectList", subIndex, True)
+    elif collectionType == "Animated Mat. List":
+        collection = obj.z64_anim_mats_property.items
+    elif collectionType == "Animated Mat.":
+        collection = obj.z64_anim_mats_property.items[subIndex].entries
+    elif collectionType == "Animated Mat. Color":
+        collection = obj.z64_anim_mats_property.items[subIndex].entries[collection_index].color_params.keyframes
+    elif collectionType == "Animated Mat. Scroll":
+        collection = obj.z64_anim_mats_property.items[subIndex].entries[collection_index].tex_scroll_params.entries
+    elif collectionType == "Animated Mat. Cycle":
+        collection = obj.z64_anim_mats_property.items[subIndex].entries[collection_index].tex_cycle_params.keyframes
     elif collectionType == "Curve":
         collection = obj.ootSplineProperty.headerSettings.cutsceneHeaders
     elif collectionType.startswith("CSHdr."):
@@ -822,7 +832,7 @@ def getCollection(objName, collectionType, subIndex):
     return collection
 
 
-def drawAddButton(layout, index, collectionType, subIndex, objName):
+def drawAddButton(layout, index, collectionType, subIndex, objName, collection_index: int = 0):
     if subIndex is None:
         subIndex = 0
     addOp = layout.operator(OOTCollectionAdd.bl_idname)
@@ -830,9 +840,12 @@ def drawAddButton(layout, index, collectionType, subIndex, objName):
     addOp.collectionType = collectionType
     addOp.subIndex = subIndex
     addOp.objName = objName
+    addOp.collection_index = collection_index
 
 
-def drawCollectionOps(layout, index, collectionType, subIndex, objName, allowAdd=True, compact=False):
+def drawCollectionOps(
+    layout, index, collectionType, subIndex, objName, allowAdd=True, compact=False, collection_index: int = 0
+):
     if subIndex is None:
         subIndex = 0
 
@@ -847,12 +860,14 @@ def drawCollectionOps(layout, index, collectionType, subIndex, objName, allowAdd
         addOp.collectionType = collectionType
         addOp.subIndex = subIndex
         addOp.objName = objName
+        addOp.collection_index = collection_index
 
     removeOp = buttons.operator(OOTCollectionRemove.bl_idname, text="Delete" if not compact else "", icon="REMOVE")
     removeOp.option = index
     removeOp.collectionType = collectionType
     removeOp.subIndex = subIndex
     removeOp.objName = objName
+    removeOp.collection_index = collection_index
 
     moveUp = buttons.operator(OOTCollectionMove.bl_idname, text="Up" if not compact else "", icon="TRIA_UP")
     moveUp.option = index
@@ -860,6 +875,7 @@ def drawCollectionOps(layout, index, collectionType, subIndex, objName, allowAdd
     moveUp.collectionType = collectionType
     moveUp.subIndex = subIndex
     moveUp.objName = objName
+    moveUp.collection_index = collection_index
 
     moveDown = buttons.operator(OOTCollectionMove.bl_idname, text="Down" if not compact else "", icon="TRIA_DOWN")
     moveDown.option = index
@@ -867,6 +883,7 @@ def drawCollectionOps(layout, index, collectionType, subIndex, objName, allowAdd
     moveDown.collectionType = collectionType
     moveDown.subIndex = subIndex
     moveDown.objName = objName
+    moveDown.collection_index = collection_index
 
 
 class OOTCollectionAdd(bpy.types.Operator):
@@ -877,10 +894,11 @@ class OOTCollectionAdd(bpy.types.Operator):
     option: bpy.props.IntProperty()
     collectionType: bpy.props.StringProperty(default="Actor")
     subIndex: bpy.props.IntProperty(default=0)
+    collection_index: bpy.props.IntProperty(default=0)
     objName: bpy.props.StringProperty()
 
     def execute(self, context):
-        collection = getCollection(self.objName, self.collectionType, self.subIndex)
+        collection = getCollection(self.objName, self.collectionType, self.subIndex, self.collection_index)
 
         collection.add()
         collection.move(len(collection) - 1, self.option)
@@ -895,10 +913,11 @@ class OOTCollectionRemove(bpy.types.Operator):
     option: bpy.props.IntProperty()
     collectionType: bpy.props.StringProperty(default="Actor")
     subIndex: bpy.props.IntProperty(default=0)
+    collection_index: bpy.props.IntProperty(default=0)
     objName: bpy.props.StringProperty()
 
     def execute(self, context):
-        collection = getCollection(self.objName, self.collectionType, self.subIndex)
+        collection = getCollection(self.objName, self.collectionType, self.subIndex, self.collection_index)
         collection.remove(self.option)
         return {"FINISHED"}
 
@@ -911,12 +930,13 @@ class OOTCollectionMove(bpy.types.Operator):
     option: bpy.props.IntProperty()
     offset: bpy.props.IntProperty()
     subIndex: bpy.props.IntProperty(default=0)
+    collection_index: bpy.props.IntProperty(default=0)
     objName: bpy.props.StringProperty()
 
     collectionType: bpy.props.StringProperty(default="Actor")
 
     def execute(self, context):
-        collection = getCollection(self.objName, self.collectionType, self.subIndex)
+        collection = getCollection(self.objName, self.collectionType, self.subIndex, self.collection_index)
         collection.move(self.option, self.option + self.offset)
         return {"FINISHED"}
 

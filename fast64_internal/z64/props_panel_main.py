@@ -6,6 +6,7 @@ from .scene.properties import OOTSceneProperties
 from .room.properties import Z64_ObjectProperty, Z64_RoomHeaderProperty, Z64_AlternateRoomHeaderProperty
 from .collision.properties import OOTWaterBoxProperty
 from .cutscene.properties import OOTCutsceneProperty
+from .animated_mats.properties import Z64_AnimatedMaterialProperty
 from .cutscene.motion.properties import (
     OOTCutsceneMotionProperty,
     CutsceneCmdActorCueListProperty,
@@ -37,6 +38,7 @@ ootEnumEmptyType = [
     ("CS Actor Cue Preview", "CS Actor Cue Preview", "CS Actor Cue Preview"),
     ("CS Player Cue Preview", "CS Player Cue Preview", "CS Player Cue Preview"),
     ("CS Dummy Cue", "CS Dummy Cue", "CS Dummy Cue"),
+    ("Animated Materials", "Animated Materials", "Animated Materials"),
     # ('Camera Volume', 'Camera Volume', 'Camera Volume'),
 ]
 
@@ -69,6 +71,11 @@ def setLightPropertyValues(lightProp, ambient, diffuse0, diffuse1, fogColor, fog
 
 
 def onUpdateOOTEmptyType(self, context):
+    # OoT doesn't have this feature
+    if is_game_oot() and self.ootEmptyType == "Animated Materials":
+        self.ootEmptyType = "None"
+        print("INFO: Ocarina of Time doesn't support that feature.")
+
     isNoneEmpty = self.ootEmptyType == "None"
     isBoxEmpty = self.ootEmptyType == "Water Box"
     isSphereEmpty = self.ootEmptyType == "Cull Group"
@@ -175,6 +182,10 @@ class OOTObjectPanel(bpy.types.Panel):
         elif obj.ootEmptyType == "Cutscene":
             csProp: OOTCutsceneProperty = obj.ootCutsceneProperty
             csProp.draw_props(box, obj)
+
+        elif obj.ootEmptyType == "Animated Materials":
+            anim_props: Z64_AnimatedMaterialProperty = obj.z64_anim_mats_property
+            anim_props.draw_props(box, obj)
 
         elif obj.ootEmptyType in [
             "CS Actor Cue List",

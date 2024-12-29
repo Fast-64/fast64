@@ -46,6 +46,15 @@ def createEmptyWithTransform(positionValues: list[float], rotationValues: list[f
     return obj
 
 
+def get_new_empty_object(name: str):
+    new_obj = bpy.data.objects.new(name, None)
+    bpy.context.scene.collection.objects.link(new_obj)
+    new_obj.location = [0.0, 0.0, 0.0]
+    new_obj.rotation_euler = [0.0, 0.0, 0.0]
+    new_obj.scale = [1.0, 1.0, 1.0]
+    return new_obj
+
+
 def getDisplayNameFromActorID(actorID: str):
     return " ".join([word.lower().capitalize() for word in actorID.split("_") if word != "ACTOR"])
 
@@ -64,25 +73,36 @@ def handleActorWithRotAsParam(actorProp: Z64_ActorProperty, actorID: str, rotati
 
 
 def getDataMatch(
-    sceneData: str, name: str, dataType: str | list[str], errorMessageID: str, isArray: bool = True
-) -> str:
+    sceneData: str,
+    name: str,
+    dataType: str | list[str],
+    errorMessageID: str,
+    isArray: bool = True,
+    is_type_known: bool = True,
+):
     arrayText = rf"\[[\s0-9A-Za-z_]*\]\s*" if isArray else ""
+    dataTypeRegex = dataType
 
     if isinstance(dataType, list):
         dataTypeRegex = "(?:"
         for i in dataType:
             dataTypeRegex += f"(?:{re.escape(i)})|"
         dataTypeRegex = dataTypeRegex[:-1] + ")"
-    else:
+    elif is_type_known:
         dataTypeRegex = re.escape(dataType)
     regex = rf"{dataTypeRegex}\s*{re.escape(name)}\s*{arrayText}=\s*\{{(.*?)\}}\s*;"
     match = re.search(regex, sceneData, flags=re.DOTALL)
 
-    if not match:
+    if match is None:
         raise PluginError(f"Could not find {errorMessageID} {name}.")
 
-    # return the match with comments removed
-    return removeComments(match.group(1))
+    if is_type_known:
+        # return the match with comments removed
+        return removeComments(match.group(1))
+    else:
+        f = match.groups()
+        # return the struct name and the match
+        return removeComments(match.group(1)), removeComments(match.group(2))
 
 
 def stripName(name: str):

@@ -124,6 +124,7 @@ class Scene:
             + (curHeader.exits.getCmd() if len(curHeader.exits.exitList) > 0 else "")
             + (curHeader.cutscene.getCmd() if len(curHeader.cutscene.entries) > 0 else "")
             + (curHeader.map_data.get_cmds() if not is_game_oot() and curHeader.map_data is not None else "")
+            + (curHeader.anim_mat.get_cmd() if not is_game_oot() and curHeader.anim_mat is not None else "")
             + Utility.getEndCmd()
             + "};\n\n"
         )

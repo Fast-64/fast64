@@ -51,6 +51,8 @@ from .skeleton.panels import skeleton_panels_register, skeleton_panels_unregiste
 from .spline.properties import spline_props_register, spline_props_unregister
 from .spline.panels import spline_panels_register, spline_panels_unregister
 
+from .animated_mats.properties import animated_mats_register, animated_mats_unregister
+
 from .tools import (
     oot_operator_panel_register,
     oot_operator_panel_unregister,
@@ -151,7 +153,7 @@ def oot_panel_unregister():
     skeleton_panels_unregister()
 
 
-def oot_register(registerPanels):
+def oot_register(registerPanels: bool):
     oot_operator_register()
     oot_utility_register()
     collision_ops_register()  # register first, so panel goes above mat panel
@@ -173,6 +175,7 @@ def oot_register(registerPanels):
     f3d_ops_register()
     file_register()
     anim_props_register()
+    animated_mats_register()
 
     csMotion_ops_register()
     csMotion_props_register()
@@ -187,10 +190,11 @@ def oot_register(registerPanels):
         oot_panel_register()
 
 
-def oot_unregister(unregisterPanels):
+def oot_unregister(unregisterPanels: bool):
     for cls in reversed(oot_classes):
         unregister_class(cls)
 
+    animated_mats_unregister()
     oot_operator_unregister()
     oot_utility_unregister()
     collision_ops_unregister()  # register first, so panel goes above mat panel

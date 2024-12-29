@@ -253,7 +253,7 @@ def get_world_layer_defaults(scene, game_mode: str, layer: str):
             getattr(world, f"draw_layer_{layer}_cycle_1", ""),
             getattr(world, f"draw_layer_{layer}_cycle_2", ""),
         )
-    elif game_mode == "OOT":
+    elif game_mode in {"OOT", "MM"}:
         return (
             getattr(world.ootDefaultRenderModes, f"{layer.lower()}Cycle1", ""),
             getattr(world.ootDefaultRenderModes, f"{layer.lower()}Cycle2", ""),
@@ -3962,7 +3962,10 @@ class CelLevelRemove(bpy.types.Operator):
 
 
 def getCurrentPresetDir():
-    return "f3d/" + bpy.context.scene.gameEditorMode.lower()
+    if bpy.context.scene.gameEditorMode in {"OOT", "MM"}:
+        return f"f3d/oot"
+    else:
+        return f"f3d/{bpy.context.scene.gameEditorMode.lower()}"
 
 
 class ApplyMaterialPresetOperator(Operator):
@@ -3974,10 +3977,6 @@ class ApplyMaterialPresetOperator(Operator):
     def execute(self, context: Context):
         material_apply_preset(context.material, self.filepath)
         return {"FINISHED"}
-
-
-def getCurrentPresetDir():
-    return "f3d/" + bpy.context.scene.gameEditorMode.lower()
 
 
 # modules/bpy_types.py -> Menu

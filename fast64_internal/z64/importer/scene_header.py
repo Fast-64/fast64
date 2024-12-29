@@ -9,6 +9,7 @@ from ...utility import PluginError, readFile, parentObject, hexOrDecInt, gammaIn
 from ...f3d.f3d_parser import parseMatrices
 from ..model_classes import OOTF3DContext
 from ..scene.properties import Z64_SceneHeaderProperty, Z64_LightProperty
+from ..animated_mats.properties import enum_anim_mat_type
 from ..utility import (
     getEvalParams,
     setCustomProperty,
@@ -16,9 +17,10 @@ from ..utility import (
     is_game_oot,
     get_cs_index_start,
     get_game_prop_name,
+    getObjectList,
 )
 from .constants import headerNames
-from .utility import getDataMatch, stripName
+from .utility import getDataMatch, stripName, get_new_empty_object
 from .classes import SharedSceneData
 from .room_header import parseRoomCommands
 from .actor import parseTransActorList, parseSpawnList, parseEntranceList
@@ -322,6 +324,108 @@ def parse_mm_map_data_chest(
             raise PluginError("ERROR: Chest Object not found!")
 
 
+animated_material_first_list_name = ""
+
+
+def parse_animated_material(scene_obj: Object, header_index: int, scene_data: str, list_name: str):
+    global animated_material_first_list_name
+
+    data_match = getDataMatch(scene_data, list_name, "AnimatedMaterial", "animated material")
+    anim_mat_data = data_match.strip().split("\n")
+
+    if header_index == 0:
+        animated_material_first_list_name = list_name
+        anim_mat_obj = get_new_empty_object("Animated Material")
+        anim_mat_obj.ootEmptyType = "Animated Materials"
+        parentObject(scene_obj, anim_mat_obj)
+    else:
+        obj_list = getObjectList(scene_obj.children_recursive, "EMPTY", "Animated Materials")
+        anim_mat_obj = obj_list[0]
+
+    # if the alternate header is using the first header's data then don't do anything
+    if header_index > 0 and list_name == animated_material_first_list_name:
+        return
+
+    anim_mat_props = anim_mat_obj.z64_anim_mats_property
+    anim_mat_item = anim_mat_props.items.add()
+    anim_mat_item.header_index = header_index
+
+    for data in anim_mat_data:
+        data = data.replace("{", "").replace("}", "").removesuffix(",").strip()
+
+        split = data.split(", ")
+        segment = int(split[0], base=0)
+        type_num = int(split[1], base=0)
+        data_ptr = split[2].removeprefix("&")
+
+        is_array = type_num in {0, 1}
+        struct_name, data_match = getDataMatch(
+            scene_data, data_ptr, r"(AnimatedMat[a-zA-Z]*Params)", "animated params", is_array, False
+        )
+
+        if is_array:
+            params_data = data_match.replace("{", "").replace("}", "").replace(" ", "").split("\n")
+        else:
+            params_data = data_match.replace("\n", "").replace(" ", "").split(",")
+
+        entry = anim_mat_item.entries.add()
+        entry.segment_num = abs(segment) + 7
+        entry.type = enum_anim_mat_type[type_num + 1][0]
+
+        if struct_name == "AnimatedMatTexScrollParams":
+            for params in params_data:
+                if len(params) > 0:
+                    split = params.split(",")
+                    scroll_entry = entry.tex_scroll_params.entries.add()
+                    scroll_entry.step_x = int(split[0], base=0)
+                    scroll_entry.step_y = int(split[1], base=0)
+                    scroll_entry.width = int(split[2], base=0)
+                    scroll_entry.height = int(split[3], base=0)
+        elif struct_name == "AnimatedMatColorParams":
+            entry.color_params.frame_count = int(params_data[0], base=0)
+
+            prim_match = getDataMatch(scene_data, params_data[2], "F3DPrimColor", "animated material prim color", True)
+            prim_data = prim_match.strip().replace(" ", "").replace("}", "").replace("{", "").split("\n")
+
+            env_match = getDataMatch(scene_data, params_data[3], "F3DEnvColor", "animated material env color", True)
+            env_data = env_match.strip().replace(" ", "").replace("}", "").replace("{", "").split("\n")
+
+            frame_match = getDataMatch(scene_data, params_data[4], "u16", "animated material color frame data", True)
+            frame_data = frame_match.strip().replace(" ", "").removesuffix(",").replace(",", "\n").split("\n")
+
+            assert len(prim_data) == len(env_data) == len(frame_data)
+
+            for prim_color_raw, env_color_raw, frame in zip(prim_data, env_data, frame_data):
+                prim_color = prim_color_raw.split(",")
+                env_color = env_color_raw.split(",")
+
+                color_entry = entry.color_params.keyframes.add()
+                color_entry.frame_num = int(frame, base=0)
+                color_entry.prim_lod_frac = int(prim_color[4].strip(), base=0)
+                color_entry.prim_color = parseColor(prim_color[0:3]) + (1,)
+                color_entry.env_color = parseColor(env_color[0:3]) + (1,)
+        elif struct_name == "AnimatedMatTexCycleParams":
+            entry.tex_cycle_params.frame_count = int(params_data[0], base=0)
+            textures: list[str] = []
+            frames: list[int] = []
+
+            data_match = getDataMatch(scene_data, params_data[1], "TexturePtr", "animated material texture ptr", True)
+            for texture_ptr in data_match.replace(",", "\n").strip().split("\n"):
+                textures.append(texture_ptr.strip())
+
+            data_match = getDataMatch(scene_data, params_data[2], "u8", "animated material frame data", True)
+            for frame_num in data_match.replace(",", "\n").strip().split("\n"):
+                frames.append(int(frame_num.strip(), base=0))
+
+            while len(textures) < len(frames):
+                textures.append("")
+
+            for texture_ptr, frame_num in zip(textures, frames):
+                cycle_entry = entry.tex_cycle_params.keyframes.add()
+                cycle_entry.frame_num = frame_num
+                cycle_entry.texture = texture_ptr
+
+
 def get_enum_id_from_index(enum_key: str, index: int):
     if is_game_oot():
         return oot_data.enumData.enumByKey[enum_key].item_by_index[index].id
@@ -484,6 +588,8 @@ def parseSceneCommands(
             elif command in {"SCENE_CMD_MINIMAP_COMPASS_ICON_INFO", "SCENE_CMD_MAP_DATA_CHESTS"}:
                 # Delay until rooms and actors are processed
                 chest_map_data_args = args
+            elif sharedSceneData.includeAnimatedMats and command == "SCENE_CMD_ANIMATED_MATERIAL_LIST":
+                parse_animated_material(sceneObj, headerIndex, sceneData, stripName(args[0]))
 
     if sharedSceneData.includeActors and chest_map_data_args is not None:
         parse_mm_map_data_chest(
