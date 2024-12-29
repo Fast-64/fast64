@@ -180,6 +180,10 @@ class CommentMatch(NamedTuple):
 
 
 def adjust_start_end(starting_start: int, starting_end: int, comment_map: list[CommentMatch]):
+    """
+    Adjust start and end positions in a commentless string to account for comments positions
+    in comment_map.
+    """
     start, end = starting_start, starting_end
     for commentless_pos, comment_size in comment_map:
         if starting_start >= commentless_pos:
@@ -190,8 +194,17 @@ def adjust_start_end(starting_start: int, starting_end: int, comment_map: list[C
 
 
 def find_descriptor_in_text(
-    value: ModifyFoundDescriptor, commentless: str, comment_map: list[CommentMatch], start=0, end=-1, adjust=True
+    value: ModifyFoundDescriptor,
+    commentless: str,
+    comment_map: list[CommentMatch],
+    start=0,
+    end=-1,
+    adjust=True,
 ):
+    """
+    Find all matches of a descriptor in a commentless string with respect to comment positions
+    in comment_map.
+    """
     matches: list[DescriptorMatch] = []
     for match in re.finditer(value.regex, commentless[start:end]):
         match_start, match_end = match.start() + start, match.end() + start
@@ -202,6 +215,7 @@ def find_descriptor_in_text(
 
 
 def get_comment_map(text: str):
+    """Get a string without comments and a list of the removed comment positions."""
     comment_map: list[CommentMatch] = []
     commentless, last_pos, commentless_pos = StringIO(), 0, 0
     for match in re.finditer(COMMENT_PATTERN, text):
@@ -227,7 +241,8 @@ def find_descriptors(
     footer: Optional[ModifyFoundDescriptor] = None,
     ignore_comments=True,
 ):
-    """Returns: The found matches from descriptors, the footer pos (the end of the text if none)"""
+    """Returns: The found matches mapped to the descriptors, the footer pos
+    (the end of the text if none)"""
     if ignore_comments:
         commentless, comment_map = get_comment_map(text)
     else:
@@ -277,6 +292,17 @@ def write_or_delete_if_found(
     footer: Optional[ModifyFoundDescriptor] = None,
     ignore_comments=True,
 ):
+    """
+    This function reads the content of a file at the given path and modifies it by either
+    adding or removing descriptors (using regex).
+    path_must_exist will raise an error if the file does not exist, while create_new will
+    always replace the file.
+    error_if_no_header/error_if_no_footer will raise errors if the header/footer is not found.
+    ignore_comments will ignore comments in the file, possibly breaking the search for matches.
+
+    Returns True if the file was modified.
+    """
+
     changed = False
     to_add, to_remove = to_add or [], to_remove or []
 
@@ -330,6 +356,10 @@ def write_or_delete_if_found(
 
 
 def to_include_descriptor(include: Path, *alternatives: Path):
+    """
+    Returns a ModifyFoundDescriptor for an include, string being the include for the path
+    while the regex matches for the path or any of the alternatives.
+    """
     base_regex = r'\n?#\h*?include\h*?"{0}"'
     regex = base_regex.format(as_posix(include))
     for alternative in alternatives:
@@ -343,6 +373,11 @@ END_IF_FOOTER = ModifyFoundDescriptor("#endif", r"#\h*?endif")
 def write_includes(
     path: Path, includes: Optional[list[Path]] = None, path_must_exist=False, create_new=False, before_endif=False
 ):
+    """
+    Write includes to the path. path_must_exist will raise an error if the file does not exist,
+    while create_new will always replace the file. before_endif will add the includes before the
+    endif if it exists.
+    """
     to_add = []
     for include in includes or []:
         to_add.append(to_include_descriptor(include))
@@ -365,6 +400,12 @@ def update_actor_includes(
     header_includes: Optional[list[Path]] = None,
     geo_includes: Optional[list[Path]] = None,
 ):
+    """
+    Update actor data, header, and geo includes for "Actor" and "Level" header types.
+    group_name is used for actors, level_name for levels (tho for backwards compatibility).
+    header_dir is the base path where the function expects to find the group/level specific headers.
+    dir_name is the actor's folder name.
+    """
     if header_type == "Actor":
         if not group_name:
             raise PluginError("Empty group name")
