@@ -434,7 +434,9 @@ def sm64ExportF3DtoC(
     cDefFile.write(staticData.header)
     cDefFile.close()
 
-    update_actor_includes(headerType, groupName, Path(dirPath), name, levelName, ["model.inc.c"], ["header.h"])
+    update_actor_includes(
+        headerType, groupName, Path(dirPath), name, levelName, [Path("model.inc.c")], [Path("header.h")]
+    )
     fileStatus = None
     if not customExport:
         if headerType == "Actor":
