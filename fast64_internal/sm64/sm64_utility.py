@@ -395,10 +395,10 @@ def update_actor_includes(
     group_name: str,
     header_dir: Path,
     dir_name: str,
-    level_name: str | None = None,  # for backwards compatibility
-    data_includes: Optional[list[Path]] = None,
-    header_includes: Optional[list[Path]] = None,
-    geo_includes: Optional[list[Path]] = None,
+    level_name: str,  # for backwards compatibility
+    data_includes: Optional[list[str | Path]] = None,
+    header_includes: Optional[list[str | Path]] = None,
+    geo_includes: Optional[list[str | Path]] = None,
 ):
     """
     Update actor data, header, and geo includes for "Actor" and "Level" header types.
