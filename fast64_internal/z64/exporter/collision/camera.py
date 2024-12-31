@@ -3,8 +3,9 @@ import math
 from dataclasses import dataclass, field
 from mathutils import Quaternion, Matrix
 from bpy.types import Object
+from typing import Optional
 from ....utility import PluginError, CData, indent
-from ...utility import getObjectList
+from ...utility import getObjectList, is_game_oot
 from ...collision.constants import decomp_compat_map_CameraSType
 from ...collision.properties import OOTCameraPositionProperty
 from ..utility import Utility
@@ -103,6 +104,47 @@ class BgCamInformations:
         return crawlspacePosList
 
     @staticmethod
+    def get_camera_info(
+        data_holder: Object, cam_obj: Object, transform: Matrix, cam_pos_data: Optional[dict[int, CameraData]]
+    ):
+        camProp: OOTCameraPositionProperty = cam_obj.ootCameraPositionProperty
+        cam_setting = camProp.camSType if is_game_oot() else camProp.mm_cam_setting_type
+
+        if cam_pos_data is None:
+            cam_pos_data = {}
+
+        if cam_setting == "Custom":
+            setting = camProp.camSTypeCustom
+        else:
+            setting = decomp_compat_map_CameraSType.get(cam_setting, cam_setting) if is_game_oot() else cam_setting
+
+        if camProp.hasPositionData or camProp.is_actor_cs_cam:
+            if camProp.index in cam_pos_data:
+                raise PluginError(f"ERROR: Repeated camera position index: {camProp.index} for {cam_obj.name}")
+
+            # Camera faces opposite direction
+            pos, rot, _, _ = Utility.getConvertedTransformWithOrientation(
+                transform, data_holder, cam_obj, Quaternion((0, 1, 0), math.radians(180.0))
+            )
+
+            fov = math.degrees(cam_obj.data.angle)
+            cam_pos_data[camProp.index] = CameraData(
+                pos,
+                rot,
+                round(fov * 100 if fov > 3.6 else fov),  # see CAM_DATA_SCALED() macro
+                cam_obj.ootCameraPositionProperty.bgImageOverrideIndex,
+            )
+
+        return CameraInfo(
+            setting,
+            3
+            if camProp.hasPositionData or camProp.is_actor_cs_cam
+            else 0,  # cameras are using 3 entries in the data array
+            cam_pos_data[camProp.index] if camProp.hasPositionData or camProp.is_actor_cs_cam else None,
+            camProp.index,
+        )
+
+    @staticmethod
     def getBgCamInfoList(dataHolder: Object, transform: Matrix):
         """Returns a list of camera informations from camera objects"""
 
@@ -113,37 +155,15 @@ class BgCamInformations:
         for camObj in camObjList:
             camProp: OOTCameraPositionProperty = camObj.ootCameraPositionProperty
 
-            if camProp.camSType == "Custom":
-                setting = camProp.camSTypeCustom
-            else:
-                setting = decomp_compat_map_CameraSType.get(camProp.camSType, camProp.camSType)
-
-            if camProp.hasPositionData:
-                if camProp.index in camPosData:
-                    raise PluginError(f"ERROR: Repeated camera position index: {camProp.index} for {camObj.name}")
-
-                # Camera faces opposite direction
-                pos, rot, _, _ = Utility.getConvertedTransformWithOrientation(
-                    transform, dataHolder, camObj, Quaternion((0, 1, 0), math.radians(180.0))
-                )
-
-                fov = math.degrees(camObj.data.angle)
-                camPosData[camProp.index] = CameraData(
-                    pos,
-                    rot,
-                    round(fov * 100 if fov > 3.6 else fov),  # see CAM_DATA_SCALED() macro
-                    camObj.ootCameraPositionProperty.bgImageOverrideIndex,
-                )
+            # ignore non-scene cameras
+            if camProp.is_actor_cs_cam:
+                continue
 
             if camProp.index in camInfoData:
                 raise PluginError(f"ERROR: Repeated camera entry: {camProp.index} for {camObj.name}")
 
-            camInfoData[camProp.index] = CameraInfo(
-                setting,
-                3 if camProp.hasPositionData else 0,  # cameras are using 3 entries in the data array
-                camPosData[camProp.index] if camProp.hasPositionData else None,
-                camProp.index,
-            )
+            camInfoData[camProp.index] = BgCamInformations.get_camera_info(dataHolder, camObj, transform, camPosData)
+
         return list(camInfoData.values())
 
     @staticmethod

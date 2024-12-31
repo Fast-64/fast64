@@ -49,11 +49,11 @@ class MM_SearchActorIDEnumOperator(Operator):
     def execute(self, context):
         obj = bpy.data.objects[self.objName]
         if self.actorUser == "Transition Actor":
-            obj.ootTransitionActorProperty.actor.actorID = self.actorID
+            obj.ootTransitionActorProperty.actor.mm_actor_id = self.actorID
         elif self.actorUser == "Actor":
-            obj.ootActorProperty.actorID = self.actorID
+            obj.ootActorProperty.mm_actor_id = self.actorID
         elif self.actorUser == "Entrance":
-            obj.ootEntranceProperty.actor.actorID = self.actorID
+            obj.ootEntranceProperty.actor.mm_actor_id = self.actorID
         else:
             raise PluginError("Invalid actor user for search: " + str(self.actorUser))
 

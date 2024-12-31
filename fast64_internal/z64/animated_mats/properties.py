@@ -10,7 +10,7 @@ from bpy.props import (
 from bpy.utils import register_class, unregister_class
 from bpy.types import PropertyGroup, UILayout, Object
 from ...utility import prop_split
-from ..utility import drawCollectionOps, drawAddButton
+from ..utility import drawCollectionOps, drawAddButton, get_list_tab_text
 
 
 # no custom since we only need to know where to export the data
@@ -29,15 +29,6 @@ enum_anim_mat_type = [
     ("color_nonlinear_interp", "Draw Color Non-Linear Interp", "Draw Color Non-Linear Interp"),
     ("tex_cycle", "Draw Texture Cycle", "Draw Texture Cycle"),
 ]
-
-
-def get_list_tab_text(base_text: str, list_length: int):
-    if list_length > 0:
-        items_amount = f"{list_length} Item{'s' if list_length > 1 else ''}"
-    else:
-        items_amount = "Empty"
-
-    return f"{base_text} ({items_amount})"
 
 
 class Z64_AnimatedMatColorKeyFrame(PropertyGroup):

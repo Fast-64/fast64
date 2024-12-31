@@ -803,6 +803,10 @@ def getCollection(objName, collectionType, subIndex: int, collection_index: int 
         collection = obj.z64_anim_mats_property.items[subIndex].entries[collection_index].tex_scroll_params.entries
     elif collectionType == "Animated Mat. Cycle":
         collection = obj.z64_anim_mats_property.items[subIndex].entries[collection_index].tex_cycle_params.keyframes
+    elif collectionType == "Actor CS":
+        collection = obj.z64_actor_cs_property.entries
+    elif collectionType == "Actor CS Headers":
+        collection = obj.z64_actor_cs_property.header_settings.cutsceneHeaders
     elif collectionType == "Curve":
         collection = obj.ootSplineProperty.headerSettings.cutsceneHeaders
     elif collectionType.startswith("CSHdr."):
@@ -1262,3 +1266,12 @@ def getObjectList(
                 ret.append(obj)
     ret.sort(key=lambda o: o.name)
     return ret
+
+
+def get_list_tab_text(base_text: str, list_length: int):
+    if list_length > 0:
+        items_amount = f"{list_length} Item{'s' if list_length > 1 else ''}"
+    else:
+        items_amount = "Empty"
+
+    return f"{base_text} ({items_amount})"

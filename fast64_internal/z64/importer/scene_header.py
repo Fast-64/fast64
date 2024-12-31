@@ -10,6 +10,7 @@ from ...f3d.f3d_parser import parseMatrices
 from ..model_classes import OOTF3DContext
 from ..scene.properties import Z64_SceneHeaderProperty, Z64_LightProperty
 from ..animated_mats.properties import enum_anim_mat_type
+from ..actor_cutscene.properties import enum_cs_cam_id, enum_end_cam, enum_end_sfx, enum_hud_visibility
 from ..utility import (
     getEvalParams,
     setCustomProperty,
@@ -18,13 +19,14 @@ from ..utility import (
     get_cs_index_start,
     get_game_prop_name,
     getObjectList,
+    getEnumIndex,
 )
 from .constants import headerNames
 from .utility import getDataMatch, stripName, get_new_empty_object
 from .classes import SharedSceneData
 from .room_header import parseRoomCommands
 from .actor import parseTransActorList, parseSpawnList, parseEntranceList
-from .scene_collision import parseCollisionHeader
+from .scene_collision import parseCollisionHeader, parseCamDataList
 from .scene_pathways import parsePathList
 
 from ..constants import (
@@ -426,6 +428,67 @@ def parse_animated_material(scene_obj: Object, header_index: int, scene_data: st
                 cycle_entry.texture = texture_ptr
 
 
+def set_actor_cs_property(value: str, enum: tuple[str, str, str], data, prop_name: str, is_cam: bool = False):
+    enum_index = None
+
+    try:
+        if is_cam:
+            # since the value is negative it will simply go backwards in the list
+            enum_index = int(value, base=0)
+
+            # use camera obj pointer mode if the value is not negative
+            if enum_index >= 0:
+                enum_index = 1
+        else:
+            # accounting for custom value
+            enum_index = int(value, base=0) + 1
+    except:
+        enum_index = getEnumIndex(enum, value)
+
+    if enum_index is not None:
+        setattr(data, prop_name, enum[enum_index][0])
+    else:
+        setattr(data, prop_name, "Custom")
+        setattr(data, f"{prop_name}_custom", value)
+
+
+def parse_actor_cs(scene_obj: Object, header_index: int, scene_data: str, list_name: str):
+    data_match = getDataMatch(scene_data, list_name, "CutsceneEntry", "actor cs")
+    actor_cs_data = data_match.strip().replace(" ", "").replace("{", "").replace("}", "").split("\n")
+
+    # TODO: implement alt headers
+    if header_index != 0:
+        return
+
+    actor_cs_obj = get_new_empty_object("Actor Cutscene")
+    actor_cs_obj.ootEmptyType = "Actor Cutscene"
+    parentObject(scene_obj, actor_cs_obj)
+
+    props = actor_cs_obj.z64_actor_cs_property
+
+    for data in actor_cs_data:
+        split = data.removesuffix(",").split(",")
+
+        new_entry = props.entries.add()
+        new_entry.priority = int(split[0], base=0)
+        new_entry.length = int(split[1], base=0)
+        set_actor_cs_property(split[2], enum_cs_cam_id, new_entry, "cs_cam_id", True)
+        new_entry.script_index = int(split[3], base=0)
+        new_entry.additional_cs_id = int(split[4], base=0)
+        set_actor_cs_property(split[5], enum_end_sfx, new_entry, "end_sfx")
+        new_entry.custom_value = split[6]
+        set_actor_cs_property(split[7], enum_hud_visibility, new_entry, "hud_visibility")
+        set_actor_cs_property(split[8], enum_end_cam, new_entry, "end_cam")
+        new_entry.letterbox_size = int(split[9], base=0)
+
+        if new_entry.cs_cam_id == "Camera":
+            for obj in bpy.data.objects:
+                cam_props = obj.ootCameraPositionProperty
+                if obj.type == "CAMERA" and cam_props.is_actor_cs_cam and cam_props.index == int(split[2], base=0):
+                    new_entry.cs_cam_obj = obj
+                    break
+
+
 def get_enum_id_from_index(enum_key: str, index: int):
     if is_game_oot():
         return oot_data.enumData.enumByKey[enum_key].item_by_index[index].id
@@ -465,6 +528,7 @@ def parseSceneCommands(
     entranceList = None
     altHeadersListName = None
     chest_map_data_args = None
+    actor_cs_data_args = None
 
     for commandMatch in re.finditer(rf"(SCENE\_CMD\_[a-zA-Z0-9\_]*)\s*\((.*?)\)\s*,", commands, flags=re.DOTALL):
         command = commandMatch.group(1)
@@ -590,11 +654,23 @@ def parseSceneCommands(
                 chest_map_data_args = args
             elif sharedSceneData.includeAnimatedMats and command == "SCENE_CMD_ANIMATED_MATERIAL_LIST":
                 parse_animated_material(sceneObj, headerIndex, sceneData, stripName(args[0]))
+            elif sharedSceneData.includeActorCs:
+                if command in {"SCENE_CMD_ACTOR_CUTSCENE_LIST", "SCENE_CMD_ACTOR_CUTSCENE_CAM_LIST"}:
+                    if command == "SCENE_CMD_ACTOR_CUTSCENE_LIST":
+                        # Delay until cameras are processed, if used
+                        actor_cs_data_args = args
+                    else:
+                        # TODO: implement alt headers
+                        if headerIndex == 0:
+                            parseCamDataList(sceneObj, stripName(args[1]), sceneData, True)
 
     if sharedSceneData.includeActors and chest_map_data_args is not None:
         parse_mm_map_data_chest(
             roomObjs, sceneHeader, sceneData, int(chest_map_data_args[0], base=0), stripName(chest_map_data_args[1])
         )
+
+    if sharedSceneData.includeActorCs and actor_cs_data_args is not None:
+        parse_actor_cs(sceneObj, headerIndex, sceneData, stripName(actor_cs_data_args[1]))
 
     if altHeadersListName is not None:
         parseAlternateSceneHeaders(sceneObj, roomObjs, sceneData, altHeadersListName, f3dContext, sharedSceneData)

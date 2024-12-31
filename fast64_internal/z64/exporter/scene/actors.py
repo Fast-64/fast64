@@ -4,7 +4,7 @@ from mathutils import Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
 from ...utility import getObjectList, is_game_oot
-from ...constants import oot_data
+from ...constants import oot_data, mm_data
 from ..utility import Utility
 from ..actor import Actor
 
@@ -59,10 +59,8 @@ class SceneTransitionActors:
         entries: list[TransitionActor] = []
         for obj in actorObjList:
             transActorProp = obj.ootTransitionActorProperty
-            if (
-                Utility.isCurrentHeaderValid(transActorProp.actor.headerSettings, headerIndex)
-                and transActorProp.actor.actorID != "None"
-            ):
+            actor_id: str = transActorProp.actor.actorID if is_game_oot() else transActorProp.actor.mm_actor_id
+            if Utility.isCurrentHeaderValid(transActorProp.actor.headerSettings, headerIndex) and actor_id != "None":
                 pos, rot, _, _ = Utility.getConvertedTransform(transform, sceneObj, obj, True)
                 transActor = TransitionActor()
 
@@ -76,16 +74,15 @@ class SceneTransitionActors:
                 front = (fromIndex, Utility.getPropValue(transActorProp, "cameraTransitionFront"))
                 back = (toIndex, Utility.getPropValue(transActorProp, "cameraTransitionBack"))
 
-                if transActorProp.actor.actorID == "Custom":
+                if actor_id == "Custom":
                     transActor.id = transActorProp.actor.actorIDCustom
                 else:
-                    transActor.id = transActorProp.actor.actorID
+                    transActor.id = actor_id
 
+                actors_by_id = oot_data.actorData.actorsByID if is_game_oot() else mm_data.actor_data.actors_by_id
                 transActor.name = (
-                    oot_data.actorData.actorsByID[transActorProp.actor.actorID].name.replace(
-                        f" - {transActorProp.actor.actorID.removeprefix('ACTOR_')}", ""
-                    )
-                    if transActorProp.actor.actorID != "Custom"
+                    actors_by_id[actor_id].name.replace(f" - {actor_id.removeprefix('ACTOR_')}", "")
+                    if actor_id != "Custom"
                     else "Custom Actor"
                 )
 
@@ -151,18 +148,15 @@ class SceneEntranceActors:
         actorObjList = getObjectList(sceneObj.children_recursive, "EMPTY", "Entrance")
         for obj in actorObjList:
             entranceProp = obj.ootEntranceProperty
-            if (
-                Utility.isCurrentHeaderValid(entranceProp.actor.headerSettings, headerIndex)
-                and entranceProp.actor.actorID != "None"
-            ):
+            actor_id: str = entranceProp.actor.actorID if is_game_oot() else entranceProp.actor.mm_actor_id
+            if Utility.isCurrentHeaderValid(entranceProp.actor.headerSettings, headerIndex) and actor_id != "None":
                 pos, rot, _, _ = Utility.getConvertedTransform(transform, sceneObj, obj, True)
                 entranceActor = EntranceActor()
 
+                actors_by_id = oot_data.actorData.actorsByID if is_game_oot() else mm_data.actor_data.actors_by_id
                 entranceActor.name = (
-                    oot_data.actorData.actorsByID[entranceProp.actor.actorID].name.replace(
-                        f" - {entranceProp.actor.actorID.removeprefix('ACTOR_')}", ""
-                    )
-                    if entranceProp.actor.actorID != "Custom"
+                    actors_by_id[actor_id].name.replace(f" - {actor_id.removeprefix('ACTOR_')}", "")
+                    if actor_id != "Custom"
                     else "Custom Actor"
                 )
 

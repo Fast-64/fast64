@@ -10,6 +10,7 @@ from .general import SceneLighting, SceneInfos, SceneExits, SceneMapData
 from .actors import SceneTransitionActors, SceneEntranceActors, SceneSpawns
 from .pathways import ScenePathways
 from .animated_mats import SceneAnimatedMaterial
+from .actor_cutscene import SceneActorCutscene
 
 
 @dataclass
@@ -29,6 +30,7 @@ class SceneHeader:
     # MM
     map_data: Optional[SceneMapData]
     anim_mat: Optional[SceneAnimatedMaterial]
+    actor_cs: Optional[SceneActorCutscene]
 
     @staticmethod
     def new(
@@ -52,6 +54,9 @@ class SceneHeader:
             ScenePathways.new(f"{name}_pathway", sceneObj, transform, headerIndex),
             SceneMapData.new(f"{name}_mapData", props, sceneObj, transform) if not is_game_oot() else None,
             SceneAnimatedMaterial.new(f"{name}_AnimatedMaterial", sceneObj, headerIndex) if not is_game_oot() else None,
+            SceneActorCutscene.new(f"{name}_ActorCutscene", sceneObj, transform, headerIndex)
+            if not is_game_oot()
+            else None,
         )
 
     def getC(self):
@@ -86,6 +91,9 @@ class SceneHeader:
 
         if not is_game_oot() and self.anim_mat is not None:
             headerData.append(self.anim_mat.to_c())
+
+        if not is_game_oot() and self.actor_cs is not None:
+            headerData.append(self.actor_cs.to_c())
 
         return headerData
 

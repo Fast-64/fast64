@@ -235,15 +235,22 @@ class Z64_TransitionActorProperty(PropertyGroup):
         self, layout: UILayout, altSceneProp: Z64_AlternateSceneHeaderProperty, roomObj: Object, objName: str
     ):
         actorIDBox = layout.column()
-        searchOp = actorIDBox.operator(OOT_SearchActorIDEnumOperator.bl_idname, icon="VIEWZOOM")
+
+        if is_game_oot():
+            op_name = OOT_SearchActorIDEnumOperator.bl_idname
+        else:
+            op_name = MM_SearchActorIDEnumOperator.bl_idname
+
+        searchOp = actorIDBox.operator(op_name, icon="VIEWZOOM")
         searchOp.actorUser = "Transition Actor"
         searchOp.objName = objName
 
         split = actorIDBox.split(factor=0.5)
         split.label(text="Actor ID")
-        split.label(text=getEnumName(oot_data.actorData.ootEnumActorID, self.actor.actorID))
+        actor_id = getattr(self.actor, get_game_prop_name("actor_id"))
+        split.label(text=getEnumName(get_game_enum("enum_actor_id"), actor_id))
 
-        if self.actor.actorID == "Custom":
+        if actor_id == "Custom":
             prop_split(actorIDBox, self.actor, "actorIDCustom", "")
 
         if not is_game_oot():

@@ -54,11 +54,16 @@ class OOTCameraPositionProperty(PropertyGroup):
     mm_cam_setting_type: EnumProperty(items=mm_enum_camera_setting_type, default=2)
     camSTypeCustom: StringProperty(default="CAM_SET_NORMAL0")
     hasPositionData: BoolProperty(default=True, name="Has Position Data")
+    is_actor_cs_cam: BoolProperty(default=False, name="Is Actor CS Camera")
 
     def draw_props(self, layout: UILayout, cameraObj: Object):
         drawEnumWithCustom(layout, self, get_game_prop_name("cam_setting_type"), "Camera S Type", "", "camSTypeCustom")
         prop_split(layout, self, "index", "Camera Index")
-        layout.prop(self, "hasPositionData")
+        layout.prop(self, "is_actor_cs_cam")
+
+        if not self.is_actor_cs_cam:
+            layout.prop(self, "hasPositionData")
+
         if self.hasPositionData:
             prop_split(layout, cameraObj.data, "angle", "Field Of View")
             prop_split(layout, self, "bgImageOverrideIndex", "BG Index Override")

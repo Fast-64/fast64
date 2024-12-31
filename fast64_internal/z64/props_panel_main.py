@@ -7,6 +7,7 @@ from .room.properties import Z64_ObjectProperty, Z64_RoomHeaderProperty, Z64_Alt
 from .collision.properties import OOTWaterBoxProperty
 from .cutscene.properties import OOTCutsceneProperty
 from .animated_mats.properties import Z64_AnimatedMaterialProperty
+from .actor_cutscene.properties import Z64_ActorCutsceneProperty
 from .cutscene.motion.properties import (
     OOTCutsceneMotionProperty,
     CutsceneCmdActorCueListProperty,
@@ -39,6 +40,7 @@ ootEnumEmptyType = [
     ("CS Player Cue Preview", "CS Player Cue Preview", "CS Player Cue Preview"),
     ("CS Dummy Cue", "CS Dummy Cue", "CS Dummy Cue"),
     ("Animated Materials", "Animated Materials", "Animated Materials"),
+    ("Actor Cutscene", "Actor Cutscene", "Actor Cutscene"),
     # ('Camera Volume', 'Camera Volume', 'Camera Volume'),
 ]
 
@@ -186,6 +188,10 @@ class OOTObjectPanel(bpy.types.Panel):
         elif obj.ootEmptyType == "Animated Materials":
             anim_props: Z64_AnimatedMaterialProperty = obj.z64_anim_mats_property
             anim_props.draw_props(box, obj)
+
+        elif obj.ootEmptyType == "Actor Cutscene":
+            actor_cs_props: Z64_ActorCutsceneProperty = obj.z64_actor_cs_property
+            actor_cs_props.draw_props(box, obj, altSceneProp)
 
         elif obj.ootEmptyType in [
             "CS Actor Cue List",

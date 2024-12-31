@@ -17,6 +17,7 @@ class SharedSceneData:
         includeWaterBoxes: bool,
         includeCutscenes: bool,
         includeAnimatedMats: bool,
+        includeActorCs: bool,
     ):
         self.actorDict = {}  # actor hash : blender object
         self.entranceDict = {}  # actor hash : blender object
@@ -34,6 +35,7 @@ class SharedSceneData:
         self.includeWaterBoxes = includeWaterBoxes
         self.includeCutscenes = includeCutscenes
         self.includeAnimatedMats = includeAnimatedMats
+        self.includeActorCs = includeActorCs
 
     def addHeaderIfItemExists(self, hash, itemType: str, headerIndex: int):
         if itemType == "Actor":

@@ -4,7 +4,7 @@ from mathutils import Matrix
 from bpy.types import Object
 from ....utility import CData, indent
 from ...utility import getObjectList, is_game_oot, getEvalParams, get_game_prop_name
-from ...constants import oot_data
+from ...constants import oot_data, mm_data
 from ...room.properties import Z64_RoomHeaderProperty
 from ..utility import Utility
 from ..actor import Actor
@@ -122,7 +122,10 @@ class RoomObjects:
             if objProp.objectKey == "Custom":
                 objectList.append(objProp.objectIDCustom)
             else:
-                objectList.append(oot_data.objectData.objects_by_key[objProp.objectKey].id)
+                objects_by_key = (
+                    oot_data.objectData.objects_by_key if is_game_oot() else mm_data.object_data.objects_by_key
+                )
+                objectList.append(objects_by_key[objProp.objectKey].id)
         return RoomObjects(name, objectList)
 
     def getDefineName(self):
@@ -178,19 +181,21 @@ class RoomActors:
             if not Utility.isCurrentHeaderValid(actorProp.headerSettings, headerIndex):
                 continue
 
+            actor_id: str = actorProp.actorID if is_game_oot() else actorProp.mm_actor_id
+
             # The Actor list is filled with ``("None", f"{i} (Deleted from the XML)", "None")`` for
             # the total number of actors defined in the XML. If the user deletes one, this will prevent
             # any data loss as Blender saves the index of the element in the Actor list used for the EnumProperty
             # and not the identifier as defined by the first element of the tuple. Therefore, we need to check if
             # the current Actor has the ID `None` to avoid export issues.
-            if actorProp.actorID != "None":
+            if actor_id != "None":
                 pos, rot, _, _ = Utility.getConvertedTransform(transform, sceneObj, obj, True)
                 actor = Actor()
 
-                if actorProp.actorID == "Custom":
+                if actor_id == "Custom":
                     actor.id = actorProp.actorIDCustom
                 else:
-                    actor.id = actorProp.actorID
+                    actor.id = actor_id
 
                 if is_game_oot():
                     if actorProp.rotOverride:
@@ -222,11 +227,10 @@ class RoomActors:
                     spawn_rot = [f"SPAWN_ROT_FLAGS(DEG_TO_BINANG({(r * (180 / 0x8000)):.3f})" for r in rot]
                     actor.rot = ", ".join(f"{rot}, {flag})" for rot, flag in zip(spawn_rot, spawn_flags))
 
+                actors_by_id = oot_data.actorData.actorsByID if is_game_oot() else mm_data.actor_data.actors_by_id
                 actor.name = (
-                    oot_data.actorData.actorsByID[actorProp.actorID].name.replace(
-                        f" - {actorProp.actorID.removeprefix('ACTOR_')}", ""
-                    )
-                    if actorProp.actorID != "Custom"
+                    actors_by_id[actor_id].name.replace(f" - {actor_id.removeprefix('ACTOR_')}", "")
+                    if actor_id != "Custom"
                     else "Custom Actor"
                 )
 

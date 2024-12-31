@@ -705,6 +705,7 @@ class Z64_ImportSceneSettingsProperty(PropertyGroup):
     includeWaterBoxes: BoolProperty(name="Water Boxes", default=True)
     includeCutscenes: BoolProperty(name="Cutscenes", default=False)
     includeAnimatedMats: BoolProperty(name="Animated Materials", default=False)
+    includeActorCs: BoolProperty(name="Actor Cutscenes", default=False)
     option: EnumProperty(items=ootEnumSceneID, default="SCENE_DEKU_TREE")
     mm_option: EnumProperty(items=mm_enum_scene_id, default="SCENE_20SICHITAI2")
 
@@ -730,6 +731,7 @@ class Z64_ImportSceneSettingsProperty(PropertyGroup):
 
         includeButtons4 = col.row(align=True)
         includeButtons4.prop(self, "includeAnimatedMats", toggle=1)
+        includeButtons4.prop(self, "includeActorCs", toggle=1)
 
         col.prop(self, "isCustomDest")
 

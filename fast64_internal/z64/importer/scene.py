@@ -162,6 +162,7 @@ def parseScene(
         settings.includeWaterBoxes,
         settings.includeCutscenes,
         settings.includeAnimatedMats,
+        settings.includeActorCs,
     )
 
     if settings.includeCutscenes:

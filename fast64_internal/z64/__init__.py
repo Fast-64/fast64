@@ -52,6 +52,7 @@ from .spline.properties import spline_props_register, spline_props_unregister
 from .spline.panels import spline_panels_register, spline_panels_unregister
 
 from .animated_mats.properties import animated_mats_register, animated_mats_unregister
+from .actor_cutscene.properties import actor_cs_register, actor_cs_unregister
 
 from .tools import (
     oot_operator_panel_register,
@@ -176,6 +177,7 @@ def oot_register(registerPanels: bool):
     file_register()
     anim_props_register()
     animated_mats_register()
+    actor_cs_register()
 
     csMotion_ops_register()
     csMotion_props_register()
@@ -194,6 +196,7 @@ def oot_unregister(unregisterPanels: bool):
     for cls in reversed(oot_classes):
         unregister_class(cls)
 
+    actor_cs_unregister()
     animated_mats_unregister()
     oot_operator_unregister()
     oot_utility_unregister()

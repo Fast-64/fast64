@@ -45,8 +45,9 @@ def parseCrawlSpaceData(
     return curveObj
 
 
-def parseCamDataList(sceneObj: bpy.types.Object, camDataListName: str, sceneData: str):
-    camMatchData = getDataMatch(sceneData, camDataListName, ["CamData", "BgCamInfo"], "camera data list")
+def parseCamDataList(sceneObj: bpy.types.Object, camDataListName: str, sceneData: str, is_actor_cs: bool = False):
+    type_names = "ActorCsCamInfo" if is_actor_cs else ["CamData", "BgCamInfo"]
+    camMatchData = getDataMatch(sceneData, camDataListName, type_names, "camera data list")
     camDataList = [value.replace("{", "").strip() for value in camMatchData.split("},") if value.strip() != ""]
 
     # orderIndex used for naming cameras in alphabetical order
@@ -55,28 +56,39 @@ def parseCamDataList(sceneObj: bpy.types.Object, camDataListName: str, sceneData
         setting, count, posDataName = [value.strip() for value in camEntry.split(",")]
         index = None
 
-        objName = f"{sceneObj.name}_camPos_{format(orderIndex, '03')}"
+        objName = (
+            f"{sceneObj.name}_ActorCsCam_{format(orderIndex, '03')}"
+            if is_actor_cs
+            else f"{sceneObj.name}_camPos_{format(orderIndex, '03')}"
+        )
 
         if posDataName != "NULL" and posDataName != "0":
             index = hexOrDecInt(posDataName[posDataName.index("[") + 1 : -1])
             posDataName = posDataName[1 : posDataName.index("[")]  # remove '&' and '[n]'
 
-        if setting == "CAM_SET_CRAWLSPACE" or setting == "0x001E":
+        if not is_actor_cs and setting == "CAM_SET_CRAWLSPACE" or setting == "0x001E":
             obj = parseCrawlSpaceData(setting, sceneData, posDataName, index, hexOrDecInt(count), objName, orderIndex)
         else:
-            obj = parseCamPosData(setting, sceneData, posDataName, index, objName, orderIndex)
+            obj = parseCamPosData(setting, sceneData, posDataName, index, objName, orderIndex, is_actor_cs)
 
         parentObject(sceneObj, obj)
         orderIndex += 1
 
 
-def parseCamPosData(setting: str, sceneData: str, posDataName: str, index: int, objName: str, orderIndex: str):
+def parseCamPosData(
+    setting: str, sceneData: str, posDataName: str, index: int, objName: str, orderIndex: str, is_actor_cs: bool
+):
     camera = bpy.data.cameras.new("Camera")
     camObj = bpy.data.objects.new(objName, camera)
     bpy.context.scene.collection.objects.link(camObj)
     camProp = camObj.ootCameraPositionProperty
     setCustomProperty(camProp, get_game_prop_name("cam_setting_type"), setting, ootEnumCameraSType, "camSTypeCustom")
-    camProp.hasPositionData = posDataName != "NULL" and posDataName != "0"
+
+    if is_actor_cs:
+        camProp.is_actor_cs_cam = camProp.hasPositionData = True
+    else:
+        camProp.hasPositionData = posDataName != "NULL" and posDataName != "0"
+
     camProp.index = orderIndex
 
     # name is important for alphabetical ordering
@@ -116,6 +128,8 @@ def parseCamPosData(setting: str, sceneData: str, posDataName: str, index: int, 
     fovValue = int.from_bytes(fovValue.to_bytes(2, "big", signed=fovValue < 0x8000), "big", signed=True)
     if fovValue > 360:
         fovValue *= 0.01  # see CAM_DATA_SCALED() macro
+    elif fovValue == -1:
+        fovValue = 60  # TODO: set the fov value depending on each camera setting
     camObj.data.angle = math.radians(fovValue)
 
     return camObj
