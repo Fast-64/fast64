@@ -1280,3 +1280,12 @@ def get_list_tab_text(base_text: str, list_length: int):
         items_amount = "Empty"
 
     return f"{base_text} ({items_amount})"
+
+
+def get_new_empty_object(name: str):
+    new_obj = bpy.data.objects.new(name, None)
+    bpy.context.scene.collection.objects.link(new_obj)
+    new_obj.location = [0.0, 0.0, 0.0]
+    new_obj.rotation_euler = [0.0, 0.0, 0.0]
+    new_obj.scale = [1.0, 1.0, 1.0]
+    return new_obj

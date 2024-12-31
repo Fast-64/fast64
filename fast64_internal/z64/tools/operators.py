@@ -7,8 +7,9 @@ from bpy.props import FloatProperty, StringProperty, EnumProperty, BoolProperty
 from ...operators import AddWaterBox, addMaterialByName
 from ...utility import parentObject, setOrigin
 from ..cutscene.motion.utility import setupCutscene, createNewCameraShot
-from ..utility import getNewPath
+from ..utility import getNewPath, get_new_empty_object, is_oot_features
 from .quick_import import QuickImportAborted, quick_import_exec
+from ..actor_cutscene.properties import enum_end_cam, enum_end_sfx, enum_hud_visibility
 
 
 class OOT_AddWaterBox(AddWaterBox):
@@ -292,4 +293,56 @@ class OOTQuickImport(Operator):
         except QuickImportAborted as e:
             self.report({"ERROR"}, e.message)
             return {"CANCELLED"}
+        return {"FINISHED"}
+
+
+class Z64_AddActorCutscenes(Operator):
+    bl_idname = "object.z64_add_actor_cs"
+    bl_label = "Add Actor CS"
+    bl_options = {"REGISTER", "UNDO"}
+    bl_description = "Adds a basic actor cutscene with the necessary entries for a scene"
+
+    obj_name: StringProperty(name="Object Name", default="Actor Cutscene")
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context):
+        self.layout.prop(self, "obj_name")
+
+        if is_oot_features():
+            self.layout.label(text="Warning: This is only useful when using MM features.", icon="ERROR")
+
+    def execute(self, context: Context):
+        actor_cs_obj = get_new_empty_object(self.obj_name)
+        actor_cs_obj.ootEmptyType = "Actor Cutscene"
+
+        entry_data_map = {
+            # CS Cam ID: [Priority, Length, Script Index, Additional CS ID, End SFX, Custom Value, HUD visibility, End Cam, Letterbox Size]
+            "CS_CAM_ID_GLOBAL_ITEM_OCARINA": [550, -1, -1, -1, 1, "255", 1, 1, 30],
+            "CS_CAM_ID_GLOBAL_ITEM_GET": [700, -1, -1, -1, 1, "255", 1, 1, 30],
+            "CS_CAM_ID_GLOBAL_ITEM_BOTTLE": [700, -1, -1, -1, 1, "255", 1, 1, 30],
+            "CS_CAM_ID_GLOBAL_ITEM_SHOW": [700, -1, -1, -1, 1, "255", 1, 1, 30],
+            "CS_CAM_ID_GLOBAL_WARP_PAD_MOON": [700, -1, -1, -1, 1, "255", 1, 1, 30],
+            "CS_CAM_ID_GLOBAL_MASK_TRANSFORMATION": [700, -1, -1, -1, 1, "255", 1, 1, 30],
+            "CS_CAM_ID_GLOBAL_DEATH": [700, -1, -1, -1, 1, "255", 1, 1, 30],
+            "CS_CAM_ID_GLOBAL_REVIVE": [700, -1, -1, -1, 1, "255", 1, 1, 30],
+            "CS_CAM_ID_GLOBAL_SONG_WARP": [700, -1, -1, -1, 1, "255", 1, 1, 30],
+            "CS_CAM_ID_GLOBAL_WARP_PAD_ENTRANCE": [700, -1, -1, -1, 1, "255", 1, 1, 30],
+            "CS_CAM_ID_GLOBAL_LONG_CHEST_OPENING": [700, -1, -1, -1, 1, "255", 1, 1, 30],
+        }
+
+        for cs_cam_id, data in entry_data_map.items():
+            new_entry = actor_cs_obj.z64_actor_cs_property.entries.add()
+            new_entry.cs_cam_id = cs_cam_id
+            new_entry.priority = data[0]
+            new_entry.length = data[1]
+            new_entry.script_index = data[2]
+            new_entry.additional_cs_id = data[3]
+            new_entry.end_sfx = enum_end_sfx[data[4]][0]
+            new_entry.custom_value = data[5]
+            new_entry.hud_visibility = enum_hud_visibility[data[6]][0]
+            new_entry.end_cam = enum_end_cam[data[7]][0]
+            new_entry.letterbox_size = data[8]
+
         return {"FINISHED"}

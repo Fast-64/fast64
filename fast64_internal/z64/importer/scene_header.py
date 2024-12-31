@@ -20,9 +20,10 @@ from ..utility import (
     get_game_prop_name,
     getObjectList,
     getEnumIndex,
+    get_new_empty_object,
 )
 from .constants import headerNames
-from .utility import getDataMatch, stripName, get_new_empty_object
+from .utility import getDataMatch, stripName
 from .classes import SharedSceneData
 from .room_header import parseRoomCommands
 from .actor import parseTransActorList, parseSpawnList, parseEntranceList

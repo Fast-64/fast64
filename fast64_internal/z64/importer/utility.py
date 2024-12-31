@@ -46,15 +46,6 @@ def createEmptyWithTransform(positionValues: list[float], rotationValues: list[f
     return obj
 
 
-def get_new_empty_object(name: str):
-    new_obj = bpy.data.objects.new(name, None)
-    bpy.context.scene.collection.objects.link(new_obj)
-    new_obj.location = [0.0, 0.0, 0.0]
-    new_obj.rotation_euler = [0.0, 0.0, 0.0]
-    new_obj.scale = [1.0, 1.0, 1.0]
-    return new_obj
-
-
 def getDisplayNameFromActorID(actorID: str):
     return " ".join([word.lower().capitalize() for word in actorID.split("_") if word != "ACTOR"])
 
