@@ -126,9 +126,10 @@ def parseCamPosData(
 
     fovValue = hexOrDecInt(fov)
     fovValue = int.from_bytes(fovValue.to_bytes(2, "big", signed=fovValue < 0x8000), "big", signed=True)
+    camProp.use_setting_default_fov = fovValue == -1
     if fovValue > 360:
         fovValue *= 0.01  # see CAM_DATA_SCALED() macro
-    elif fovValue == -1:
+    elif camProp.use_setting_default_fov:
         fovValue = 60  # TODO: set the fov value depending on each camera setting
     camObj.data.angle = math.radians(fovValue)
 

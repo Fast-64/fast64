@@ -4,7 +4,7 @@ import bpy
 from dataclasses import dataclass, field
 from typing import Optional
 from ....utility import PluginError, writeFile
-from ...utility import is_game_oot
+from ...utility import is_oot_features, is_game_oot
 from ...constants import ootEnumSceneID, ootSceneNameToID, mm_enum_scene_id, mm_scene_name_to_id
 
 ADDED_SCENES_COMMENT = "// Added scenes"
@@ -55,7 +55,7 @@ class SceneTableEntry:
             index = original_line.index(macro_start) + len(macro_start)
             parsed = original_line[index:].removesuffix(")")
 
-            if is_game_oot():
+            if is_oot_features():
                 params = parsed.split(", ")
                 assert len(params) == 6
                 return SceneTableEntry(*params)
@@ -88,7 +88,7 @@ class SceneTableEntry:
 
     def to_c(self, index: int):
         """Returns the entry as C code"""
-        if is_game_oot():
+        if is_oot_features():
             return (
                 f"/* 0x{index:02X} */ "
                 f"DEFINE_SCENE({self.spec_name}, {self.title_card_name}, {self.enum_value}, "

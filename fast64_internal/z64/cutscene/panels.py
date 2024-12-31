@@ -3,7 +3,7 @@ from bpy.types import Scene
 from bpy.props import BoolProperty
 from ...utility import prop_split
 from ...panels import Z64_Panel
-from ..utility import is_game_oot
+from ..utility import is_oot_features
 from .operators import OOT_ExportCutscene, OOT_ExportAllCutscenes, OOT_ImportCutscene
 
 
@@ -27,7 +27,7 @@ class OOT_CutscenePanel(Z64_Panel):
         exportBox = layout.box()
         exportBox.label(text="Cutscene Exporter")
 
-        exportBox.enabled = is_game_oot()
+        exportBox.enabled = is_oot_features()
         if not exportBox.enabled:
             layout.label(text="Export not implemented yet.")
 
@@ -53,7 +53,7 @@ class OOT_CutscenePanel(Z64_Panel):
         importBox = layout.box()
         importBox.label(text="Cutscene Importer")
 
-        importBox.enabled = is_game_oot()
+        importBox.enabled = is_oot_features()
         if not importBox.enabled:
             layout.label(text="Import not implemented yet.")
 

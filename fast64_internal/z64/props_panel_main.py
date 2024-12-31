@@ -1,7 +1,7 @@
 import bpy
 from bpy.utils import register_class, unregister_class
 from ..utility import prop_split, gammaInverse
-from .utility import getSceneObj, getRoomObj, is_game_oot
+from .utility import getSceneObj, getRoomObj, is_oot_features, is_game_oot
 from .scene.properties import OOTSceneProperties
 from .room.properties import Z64_ObjectProperty, Z64_RoomHeaderProperty, Z64_AlternateRoomHeaderProperty
 from .collision.properties import OOTWaterBoxProperty
@@ -74,7 +74,7 @@ def setLightPropertyValues(lightProp, ambient, diffuse0, diffuse1, fogColor, fog
 
 def onUpdateOOTEmptyType(self, context):
     # OoT doesn't have this feature
-    if is_game_oot() and self.ootEmptyType == "Animated Materials":
+    if is_oot_features() and self.ootEmptyType == "Animated Materials":
         self.ootEmptyType = "None"
         print("INFO: Ocarina of Time doesn't support that feature.")
 

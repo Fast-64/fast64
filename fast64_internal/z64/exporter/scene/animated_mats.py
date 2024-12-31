@@ -38,6 +38,9 @@ class AnimatedMatColorParams:
             self.env_colors.append(tuple(exportColor(keyframe.env_color[0:3]) + [scaleToU8(keyframe.env_color[3])]))
             self.frames.append(keyframe.frame_num)
 
+            if keyframe.frame_num > self.frame_length:
+                raise PluginError("ERROR: the frame number cannot be higher than the total frame count!")
+
         self.frame_count = len(self.frames)
         assert len(self.frames) == len(self.prim_colors) == len(self.env_colors)
 
@@ -267,7 +270,10 @@ class SceneAnimatedMaterial:
         entries: list[AnimatedMaterial] = []
 
         for obj in obj_list:
-            entries.extend([AnimatedMaterial(item, name, header_index) for item in obj.z64_anim_mats_property.items])
+            if obj.z64_anim_mats_property.mode == "Scene":
+                entries.extend(
+                    [AnimatedMaterial(item, name, header_index) for item in obj.z64_anim_mats_property.items]
+                )
 
         last_index = -1
         for entry in entries:

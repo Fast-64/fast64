@@ -22,7 +22,7 @@ from .fast64_internal.sm64.sm64_objects import SM64_ObjectProperties
 from .fast64_internal.z64 import OOT_Properties, oot_register, oot_unregister
 from .fast64_internal.z64.constants import oot_world_defaults
 from .fast64_internal.z64.props_panel_main import OOT_ObjectProperties
-from .fast64_internal.z64.utility import getObjectList
+from .fast64_internal.z64.utility import getObjectList, get_cs_index_start
 from .fast64_internal.utility_anim import utility_anim_register, utility_anim_unregister, ArmatureApplyWithMeshOperator
 
 from .fast64_internal.mk64 import MK64_Properties, mk64_register, mk64_unregister
@@ -412,7 +412,7 @@ def gameEditorUpdate(scene: bpy.types.Scene, _context):
 
     # reset `currentCutsceneIndex` when switching games
     if scene.gameEditorMode in {"OOT", "MM"}:
-        cs_index_start = 4 if scene.gameEditorMode == "OOT" else 1
+        cs_index_start = get_cs_index_start()
 
         for scene_obj in bpy.data.objects:
             scene_obj.ootAlternateSceneHeaders.currentCutsceneIndex = cs_index_start

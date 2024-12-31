@@ -4,7 +4,7 @@ from bpy.types import PropertyGroup, Object, UILayout
 from bpy.props import EnumProperty, PointerProperty, StringProperty, IntProperty
 from bpy.utils import register_class, unregister_class
 from ...utility import prop_split
-from ..utility import drawEnumWithCustom, is_game_oot, get_game_prop_name
+from ..utility import drawEnumWithCustom, is_oot_features, is_game_oot
 from ..collision.constants import enum_camera_crawlspace_stype
 from ..actor.properties import Z64_ActorHeaderProperty
 from ..scene.properties import Z64_AlternateSceneHeaderProperty
@@ -34,7 +34,7 @@ class Z64_SplineProperty(PropertyGroup):
         prop_split(layout, self, "splineType", "Type")
         prop_split(layout, self, "index", camIndexName)
 
-        if not is_game_oot():
+        if not is_oot_features():
             prop_split(layout, self, "opt_path_index", "Additional Path Index")
             prop_split(layout, self, "custom_value", "Custom Value")
 

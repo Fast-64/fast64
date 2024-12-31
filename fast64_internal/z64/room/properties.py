@@ -8,6 +8,7 @@ from ..utility import (
     onHeaderMenuTabChange,
     drawEnumWithCustom,
     drawAddButton,
+    is_oot_features,
     is_game_oot,
     get_game_prop_name,
     get_cs_index_start,
@@ -215,7 +216,7 @@ class Z64_RoomHeaderProperty(PropertyGroup):
                     general.label(text="and requires meshes to be parented to Custom Cull Group empties.")
                     general.label(text="RSP culling is done automatically regardless of room shape.")
                     prop_split(general, self, "defaultCullDistance", "Default Cull (Blender Units)")
-                if self.roomShape == "ROOM_SHAPE_TYPE_NONE" and is_game_oot():
+                if self.roomShape == "ROOM_SHAPE_TYPE_NONE" and is_oot_features():
                     general.label(text="This shape type is only implemented on MM", icon="INFO")
 
             # Behavior
@@ -230,7 +231,8 @@ class Z64_RoomHeaderProperty(PropertyGroup):
 
             if is_game_oot():
                 behaviorBox.prop(self, "disableWarpSongs", text="Disable Warp Songs")
-            else:
+
+            if not is_oot_features():
                 behaviorBox.prop(self, "enable_pos_lights")
                 behaviorBox.prop(self, "enable_storm")
 
@@ -268,7 +270,7 @@ class Z64_RoomHeaderProperty(PropertyGroup):
             objBox = layout.column()
             objBox.box().label(text="Objects")
 
-            if is_game_oot() and len(self.objectList) > 16:
+            if is_oot_features() and len(self.objectList) > 16:
                 objBox.label(text="You are over the 16 object limit.", icon="ERROR")
                 objBox.label(text="You must allocate more memory in code.")
 

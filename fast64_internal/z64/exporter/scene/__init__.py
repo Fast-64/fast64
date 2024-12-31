@@ -6,7 +6,7 @@ from ....utility import PluginError, CData, indent
 from ....f3d.f3d_gbi import TextureExportSettings, ScrollMethod
 from ...scene.properties import Z64_SceneHeaderProperty
 from ...model_classes import OOTModel, OOTGfxFormatter
-from ...utility import is_game_oot, get_cs_index_start
+from ...utility import is_oot_features, get_cs_index_start, is_game_oot
 from ..file import SceneFile
 from ..utility import Utility, altHeaderList
 from ..collision import CollisionHeader
@@ -60,7 +60,7 @@ class Scene:
 
         altHeader.cutscenes = [
             SceneHeader.new(f"{name}_header{i:02}", csHeader, sceneObj, transform, i, useMacros)
-            for i, csHeader in enumerate(altProp.cutsceneHeaders, 4 if is_game_oot() else 1)
+            for i, csHeader in enumerate(altProp.cutsceneHeaders, get_cs_index_start())
         ]
 
         hasAlternateHeaders = True if len(altHeader.cutscenes) > 0 else hasAlternateHeaders
@@ -123,9 +123,9 @@ class Scene:
             + curHeader.entranceActors.getCmd()
             + (curHeader.exits.getCmd() if len(curHeader.exits.exitList) > 0 else "")
             + (curHeader.cutscene.getCmd() if len(curHeader.cutscene.entries) > 0 else "")
-            + (curHeader.map_data.get_cmds() if not is_game_oot() and curHeader.map_data is not None else "")
-            + (curHeader.anim_mat.get_cmd() if not is_game_oot() and curHeader.anim_mat is not None else "")
-            + (curHeader.actor_cs.get_cmds() if not is_game_oot() and curHeader.actor_cs is not None else "")
+            + (curHeader.map_data.get_cmds() if not is_oot_features() and curHeader.map_data is not None else "")
+            + (curHeader.anim_mat.get_cmd() if not is_oot_features() and curHeader.anim_mat is not None else "")
+            + (curHeader.actor_cs.get_cmds() if not is_oot_features() and curHeader.actor_cs is not None else "")
             + Utility.getEndCmd()
             + "};\n\n"
         )
@@ -159,7 +159,7 @@ class Scene:
                 for i, (curHeader, _) in enumerate(headers, 1)
             )
 
-        header_name = "Child Day (Default)" if is_game_oot() else "Default"
+        header_name = "Child Day (Default)" if is_oot_features() else "Default"
         headers.insert(0, (self.mainHeader, header_name))
         for i, (curHeader, headerDesc) in enumerate(headers):
             if curHeader is not None:

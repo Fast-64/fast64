@@ -3,7 +3,7 @@ from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import CData, indent
-from ...utility import getObjectList, is_game_oot, getEvalParams, get_game_prop_name
+from ...utility import getObjectList, is_oot_features, getEvalParams, get_game_prop_name, is_game_oot
 from ...constants import oot_data, mm_data
 from ...room.properties import Z64_RoomHeaderProperty
 from ..utility import Utility
@@ -55,7 +55,8 @@ class RoomInfos:
 
         if is_game_oot():
             disableWarpSongs = props.disableWarpSongs
-        else:
+
+        if not is_oot_features():
             enable_pos_lights = props.enable_pos_lights
             enable_storm = props.enable_storm
 
@@ -84,16 +85,14 @@ class RoomInfos:
         showInvisActors = "true" if self.showInvisActors else "false"
         disableSkybox = "true" if self.disableSky else "false"
         disableSunMoon = "true" if self.disableSunMoon else "false"
+        disableWarpSongs = "true" if self.disableWarpSongs else "false"
 
-        if is_game_oot():
-            disableWarpSongs = "true" if self.disableWarpSongs else "false"
+        if is_oot_features():
             roomBehaviorArgs = f"{self.roomBehavior}, {self.playerIdleType}, {showInvisActors}, {disableWarpSongs}"
         else:
             enable_pos_lights = "true" if self.enable_pos_lights else "false"
             enable_storm = "true" if self.enable_storm else "false"
-            roomBehaviorArgs = (
-                f"{self.roomBehavior}, {self.playerIdleType}, {showInvisActors}, 0, {enable_pos_lights}, {enable_storm}"
-            )
+            roomBehaviorArgs = f"{self.roomBehavior}, {self.playerIdleType}, {showInvisActors}, {disableWarpSongs}, {enable_pos_lights}, {enable_storm}"
 
         cmdList = [
             f"SCENE_CMD_ECHO_SETTINGS({self.echo})",
@@ -197,7 +196,7 @@ class RoomActors:
                 else:
                     actor.id = actor_id
 
-                if is_game_oot():
+                if is_oot_features():
                     if actorProp.rotOverride:
                         actor.rot = ", ".join([actorProp.rotOverrideX, actorProp.rotOverrideY, actorProp.rotOverrideZ])
                     else:

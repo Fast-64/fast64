@@ -2,12 +2,12 @@ from dataclasses import dataclass
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, exportColor, ootGetBaseOrCustomLight, indent
-from ...utility import is_game_oot, getObjectList, getEvalParams, get_game_prop_name
+from ...utility import is_oot_features, getObjectList, getEvalParams, get_game_prop_name, is_game_oot
 from ...scene.properties import (
     Z64_SceneHeaderProperty,
     Z64_LightProperty,
-    MM_MinimapChestProperty,
-    MM_MinimapRoomProperty,
+    Z64_MapDataChestProperty,
+    Z64_MapDataRoomProperty,
 )
 from ..utility import Utility
 
@@ -188,7 +188,7 @@ class SceneInfos:
 
     @staticmethod
     def new(props: Z64_SceneHeaderProperty, sceneObj: Object):
-        if is_game_oot():
+        if is_oot_features():
             skybox_texture_id = ""
         else:
             skybox_texture_id = Utility.getPropValue(props, "skybox_texture_id")
@@ -205,9 +205,9 @@ class SceneInfos:
             Utility.getPropValue(props, get_game_prop_name("seq_id"), "musicSeqCustom"),
             Utility.getPropValue(props, get_game_prop_name("ambience_id"), "nightSeqCustom"),
             Utility.getPropValue(props, "audioSessionPreset"),
-            Utility.getPropValue(props, "mapLocation") if is_game_oot() else "",
-            Utility.getPropValue(props, "cameraMode") if is_game_oot() else "",
-            props.set_region_visited if not is_game_oot() else False,
+            Utility.getPropValue(props, "mapLocation") if is_oot_features() else "",
+            Utility.getPropValue(props, "cameraMode") if is_oot_features() else "",
+            props.set_region_visited if not is_oot_features() else False,
         )
 
     def getCmds(self, lights: SceneLighting):
@@ -217,7 +217,7 @@ class SceneInfos:
             f"SCENE_CMD_SPECIAL_FILES({self.naviHintType}, {self.keepObjectID})",
         ]
 
-        if is_game_oot():
+        if is_oot_features():
             commands.extend(
                 [
                     f"SCENE_CMD_MISC_SETTINGS({self.sceneCamType}, {self.worldMapLocation})",
@@ -279,7 +279,7 @@ class SceneExits(Utility):
 
 
 class MapDataChest:
-    def __init__(self, chest_prop: MM_MinimapChestProperty, scene_obj: Object, transform: Matrix):
+    def __init__(self, chest_prop: Z64_MapDataChestProperty, scene_obj: Object, transform: Matrix):
         if chest_prop.chest_obj is None:
             raise PluginError("ERROR: The chest empty object is unset.")
 
@@ -289,7 +289,7 @@ class MapDataChest:
         self.chest_flag = int(getEvalParams(chest_prop.chest_obj.ootActorProperty.actorParam), base=0) & 0x1F
         self.pos = pos
 
-    def get_room_index(self, chest_prop: MM_MinimapChestProperty, scene_obj: Object) -> int:
+    def get_room_index(self, chest_prop: Z64_MapDataChestProperty, scene_obj: Object) -> int:
         room_obj_list = getObjectList(scene_obj.children_recursive, "EMPTY", "Room")
 
         for room_obj in room_obj_list:
@@ -303,7 +303,7 @@ class MapDataChest:
 
 
 class MapDataRoom:
-    def __init__(self, room_prop: MM_MinimapRoomProperty):
+    def __init__(self, room_prop: Z64_MapDataRoomProperty):
         self.map_id: str = room_prop.map_id
         self.center_x: int = room_prop.center_x
         self.floor_y: int = room_prop.floor_y

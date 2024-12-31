@@ -27,7 +27,7 @@ class OOT_FileSettingsPanel(Z64_Panel):
         prop_split(col, context.scene.fast64.oot, version, "Version")
 
         if getattr(context.scene.fast64.oot, version) == "Custom":
-            prop_split(col, context.scene.fast64.oot, "oot_version_custom", "Custom Version")
+            prop_split(col, context.scene.fast64.oot, "version_custom", "Custom Version")
 
         col.prop(context.scene.fast64.oot, "headerTabAffectsVisibility")
         col.prop(context.scene.fast64.oot, "hackerFeaturesEnabled")
@@ -35,6 +35,9 @@ class OOT_FileSettingsPanel(Z64_Panel):
         if not context.scene.fast64.oot.hackerFeaturesEnabled:
             col.prop(context.scene.fast64.oot, "useDecompFeatures")
         col.prop(context.scene.fast64.oot, "exportMotionOnly")
+
+        if context.scene.gameEditorMode == "OOT":
+            col.prop(context.scene.fast64.oot, "mm_features")
 
 
 oot_classes = (OOT_FileSettingsPanel,)

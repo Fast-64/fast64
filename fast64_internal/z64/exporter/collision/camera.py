@@ -131,7 +131,9 @@ class BgCamInformations:
             cam_pos_data[camProp.index] = CameraData(
                 pos,
                 rot,
-                round(fov * 100 if fov > 3.6 else fov),  # see CAM_DATA_SCALED() macro
+                -1
+                if camProp.use_setting_default_fov
+                else round(fov * 100 if fov > 3.6 else fov),  # see CAM_DATA_SCALED() macro
                 cam_obj.ootCameraPositionProperty.bgImageOverrideIndex,
             )
 

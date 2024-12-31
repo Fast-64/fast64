@@ -16,6 +16,7 @@ from ..utility import (
     drawEnumWithCustom,
     get_game_prop_name,
     get_cs_index_start,
+    is_oot_features,
     is_game_oot,
     get_game_enum,
 )
@@ -201,7 +202,7 @@ class Z64_ActorProperty(PropertyGroup):
         prop_split(actorIDBox, self, "actorParam", "Actor Parameter")
 
         rot_box = actorIDBox.box()
-        prop_text = "Override Rotation (ignore Blender rot)" if is_game_oot() else "Use Rotation Flags"
+        prop_text = "Override Rotation (ignore Blender rot)" if is_oot_features() else "Use Rotation Flags"
         rot_box.prop(self, "rotOverride", text=prop_text)
         if self.rotOverride:
             prop_split(rot_box, self, "rotOverrideX", "Rot X")
@@ -253,7 +254,7 @@ class Z64_TransitionActorProperty(PropertyGroup):
         if actor_id == "Custom":
             prop_split(actorIDBox, self.actor, "actorIDCustom", "")
 
-        if not is_game_oot():
+        if not is_oot_features():
             prop_split(actorIDBox, self, "cutscene_id", "Cutscene ID")
 
         prop_split(actorIDBox, self.actor, "actorParam", "Actor Parameter")

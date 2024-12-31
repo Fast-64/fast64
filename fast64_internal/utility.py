@@ -1666,6 +1666,9 @@ def lightDataToObj(lightData):
 
 
 def ootGetSceneOrRoomHeader(parent: bpy.types.Object, idx: int, isRoom: bool):
+    # circular import fix
+    from .z64.utility import get_cs_index_start, is_game_oot
+
     # This should be in oot_utility.py, but it is needed in f3d_material.py
     # which creates a circular import. The real problem is that the F3D render
     # settings stuff should be in a place which can import both SM64 and OoT
@@ -1675,12 +1678,11 @@ def ootGetSceneOrRoomHeader(parent: bpy.types.Object, idx: int, isRoom: bool):
 
     target = "Room" if isRoom else "Scene"
     altHeaders = getattr(parent, "ootAlternate" + target + "Headers")
-    is_game_oot = bpy.context.scene.gameEditorMode == "OOT"
-    cs_index_start = 4 if is_game_oot else 1
+    cs_index_start = get_cs_index_start()
 
     if idx == 0:
         return getattr(parent, "oot" + target + "Header")
-    elif is_game_oot:
+    elif is_game_oot():
         if 1 <= idx <= (cs_index_start - 1):
             if idx == 1:
                 ret = altHeaders.childNightHeader

@@ -3,7 +3,7 @@ from bpy.props import StringProperty, PointerProperty, IntProperty, EnumProperty
 from bpy.types import PropertyGroup, Camera, Object, Material, UILayout
 from bpy.utils import register_class, unregister_class
 from ...utility import prop_split
-from ..utility import drawEnumWithCustom, is_game_oot, get_game_prop_name
+from ..utility import drawEnumWithCustom, get_game_prop_name
 from ..constants import ootEnumSceneID
 from .constants import (
     ootEnumFloorSetting,
@@ -55,6 +55,7 @@ class OOTCameraPositionProperty(PropertyGroup):
     camSTypeCustom: StringProperty(default="CAM_SET_NORMAL0")
     hasPositionData: BoolProperty(default=True, name="Has Position Data")
     is_actor_cs_cam: BoolProperty(default=False, name="Is Actor CS Camera")
+    use_setting_default_fov: BoolProperty(name="Use the default FoV from the camera setting", default=False)
 
     def draw_props(self, layout: UILayout, cameraObj: Object):
         drawEnumWithCustom(layout, self, get_game_prop_name("cam_setting_type"), "Camera S Type", "", "camSTypeCustom")
@@ -64,8 +65,10 @@ class OOTCameraPositionProperty(PropertyGroup):
         if not self.is_actor_cs_cam:
             layout.prop(self, "hasPositionData")
 
+        layout.prop(self, "use_setting_default_fov")
         if self.hasPositionData:
-            prop_split(layout, cameraObj.data, "angle", "Field Of View")
+            if not self.use_setting_default_fov:
+                prop_split(layout, cameraObj.data, "angle", "Field Of View")
             prop_split(layout, self, "bgImageOverrideIndex", "BG Index Override")
 
 

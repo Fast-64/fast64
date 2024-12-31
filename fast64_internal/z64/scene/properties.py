@@ -20,6 +20,7 @@ from ..utility import (
     drawCollectionOps,
     drawEnumWithCustom,
     drawAddButton,
+    is_oot_features,
     is_game_oot,
     get_cs_index_start,
     get_game_prop_name,
@@ -270,13 +271,13 @@ class Z64_ExtraCutsceneProperty(PropertyGroup):
     )
 
 
-def minimap_chest_poll(self: "MM_MinimapChestProperty", object: Object):
+def minimap_chest_poll(self: "Z64_MapDataChestProperty", object: Object):
     return (
         object.type == "EMPTY" and object.ootEmptyType == "Actor" and object.ootActorProperty.actorID == "ACTOR_EN_BOX"
     )
 
 
-class MM_MinimapChestProperty(PropertyGroup):
+class Z64_MapDataChestProperty(PropertyGroup):
     expand_tab: BoolProperty(name="Expand Tab")
 
     # used to get the room index, the coordinates and the chest flag
@@ -296,7 +297,7 @@ class MM_MinimapChestProperty(PropertyGroup):
             box.prop(self, "chest_obj")
 
 
-class MM_MinimapRoomProperty(PropertyGroup):
+class Z64_MapDataRoomProperty(PropertyGroup):
     expand_tab: BoolProperty(name="Expand Tab")
 
     map_id: StringProperty(name="Minimap ID", default="MAP_DATA_NO_MAP")
@@ -412,12 +413,12 @@ class Z64_SceneHeaderProperty(PropertyGroup):
 
     # SCENE_CMD_MINIMAP_INFO (note: room informations are defined in `Z64_RoomHeaderProperty`)
     minimap_room_expand: BoolProperty(name="Expand Tab")
-    minimap_room_list: CollectionProperty(type=MM_MinimapRoomProperty, name="Minimap Room List")
+    minimap_room_list: CollectionProperty(type=Z64_MapDataRoomProperty, name="Minimap Room List")
     minimap_scale: IntProperty(name="Minimap Scale", default=0)
 
     # SCENE_CMD_MINIMAP_COMPASS_ICON_INFO
     minimap_chest_expand: BoolProperty(name="Expand Tab")
-    minimap_chest_list: CollectionProperty(type=MM_MinimapChestProperty, name="Minimap Chest List")
+    minimap_chest_list: CollectionProperty(type=Z64_MapDataChestProperty, name="Minimap Chest List")
 
     def draw_props(self, layout: UILayout, dropdownLabel: str, headerIndex: int, objName: str):
         from .operators import OOT_SearchMusicSeqEnumOperator, MM_SearchMusicSeqEnumOperator  # temp circular import fix
@@ -451,11 +452,12 @@ class Z64_SceneHeaderProperty(PropertyGroup):
             drawEnumWithCustom(
                 general, self, get_game_prop_name("global_obj"), "Global Object", "", "globalObjectCustom"
             )
-            drawEnumWithCustom(general, self, "naviCup", "Navi Hints", "")
+            if is_game_oot():
+                drawEnumWithCustom(general, self, "naviCup", "Navi Hints", "")
             if headerIndex is None or headerIndex == 0:
                 self.sceneTableEntry.draw_props(general)
 
-            if not is_game_oot():
+            if not is_oot_features():
                 general.prop(self, "set_region_visited")
 
             general.prop(self, "appendNullEntrance")
@@ -487,7 +489,7 @@ class Z64_SceneHeaderProperty(PropertyGroup):
             drawEnumWithCustom(skyboxAndSound, self, "audioSessionPreset", "Audio Session Preset", "")
 
             # Camera And World Map | Minimap Settings
-            if is_game_oot():
+            if is_oot_features():
                 cameraAndWorldMap = layout.column()
                 cameraAndWorldMap.box().label(text="Camera And World Map")
                 drawEnumWithCustom(cameraAndWorldMap, self, "mapLocation", "Map Location", "")
@@ -539,8 +541,7 @@ class Z64_SceneHeaderProperty(PropertyGroup):
         elif menuTab == "Cutscene":
             cutscene = layout.column()
 
-            if not is_game_oot():
-                cutscene.enabled = False
+            cutscene.enabled = is_oot_features()
 
             r = cutscene.row()
             r.prop(self, "writeCutscene", text="Write Cutscene")
@@ -725,13 +726,14 @@ class Z64_ImportSceneSettingsProperty(PropertyGroup):
         includeButtons3.prop(self, "includePaths", toggle=1)
         includeButtons3.prop(self, "includeWaterBoxes", toggle=1)
 
-        # TODO: implement cutscenes for MM
-        if is_game_oot():
+        # TODO: implement cutscenes for MM features
+        if is_oot_features():
             includeButtons3.prop(self, "includeCutscenes", toggle=1)
 
         includeButtons4 = col.row(align=True)
-        includeButtons4.prop(self, "includeAnimatedMats", toggle=1)
-        includeButtons4.prop(self, "includeActorCs", toggle=1)
+        if not is_oot_features():
+            includeButtons4.prop(self, "includeAnimatedMats", toggle=1)
+            includeButtons4.prop(self, "includeActorCs", toggle=1)
 
         col.prop(self, "isCustomDest")
 
@@ -746,7 +748,8 @@ class Z64_ImportSceneSettingsProperty(PropertyGroup):
         if is_game_oot():
             if "SCENE_JABU_JABU" in sceneOption:
                 col.label(text="Pulsing wall effect won't be imported.", icon="ERROR")
-        else:
+
+        if not is_oot_features():
             if not self.includeActors:
                 col.label(text="MapDataChest won't be imported.", icon="ERROR")
 
@@ -755,8 +758,8 @@ classes = (
     # OoT exclusive
     OOT_BootupSceneOptions,
     # MM exclusive
-    MM_MinimapChestProperty,
-    MM_MinimapRoomProperty,
+    Z64_MapDataChestProperty,
+    Z64_MapDataRoomProperty,
     # Common
     Z64_ExitProperty,
     Z64_LightProperty,

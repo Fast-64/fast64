@@ -3,7 +3,7 @@ from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
-from ...utility import getObjectList, is_game_oot
+from ...utility import getObjectList, is_oot_features, is_game_oot
 from ...constants import oot_data, mm_data
 from ..utility import Utility
 from ..actor import Actor
@@ -89,7 +89,7 @@ class SceneTransitionActors:
                 transActor.pos = pos
 
                 rot_deg = rot[1] * (180 / 0x8000)
-                if is_game_oot():
+                if is_oot_features():
                     transActor.rot = f"DEG_TO_BINANG({rot_deg:.3f})"  # TODO: Correct axis?
                 else:
                     transActor.rot = f"((0x{round(rot_deg):04X} & 0x1FF) << 7) | ({transActorProp.cutscene_id} & 0x7F)"
@@ -163,7 +163,7 @@ class SceneEntranceActors:
                 entranceActor.id = "ACTOR_PLAYER" if not entranceProp.customActor else entranceProp.actor.actorIDCustom
                 entranceActor.pos = pos
 
-                if is_game_oot():
+                if is_oot_features():
                     entranceActor.rot = ", ".join(f"DEG_TO_BINANG({(r * (180 / 0x8000)):.3f})" for r in rot)
                 else:
                     entranceActor.rot = ", ".join(
