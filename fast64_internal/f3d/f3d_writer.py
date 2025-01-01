@@ -11,6 +11,7 @@ from .f3d_material import (
     all_combiner_uses,
     getMaterialScrollDimensions,
     isTexturePointSampled,
+    get_textlut_mode,
     RDPSettings,
 )
 from .f3d_texture_writer import MultitexManager, TileLoad, maybeSaveSingleLargeTextureSetup
@@ -514,7 +515,7 @@ def addCullCommand(obj, fMesh, transformMatrix, matWriteMethod):
         )
 
     if matWriteMethod == GfxMatWriteMethod.WriteDifferingAndRevert:
-        defaults = bpy.context.scene.world.rdp_defaults
+        defaults = create_or_get_world(bpy.context.scene).rdp_defaults
         if defaults.g_lighting:
             cullCommands = [
                 SPClearGeometryMode(["G_LIGHTING"]),
@@ -1320,7 +1321,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     fMaterial = fModel.addMaterial(materialName)
     useDict = all_combiner_uses(f3dMat)
 
-    defaults = bpy.context.scene.world.rdp_defaults
+    defaults = create_or_get_world(bpy.context.scene).rdp_defaults
     if fModel.f3d.F3DEX_GBI_2:
         saveGeoModeDefinitionF3DEX2(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
     else:
@@ -1440,7 +1441,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     saveOtherModeHDefinition(
         fMaterial,
         f3dMat.rdp_settings,
-        multitexManager.getTT(),
+        get_textlut_mode(f3dMat),
         defaults,
         fModel.matWriteMethod,
         fModel.f3d,
@@ -1700,7 +1701,7 @@ def saveOtherModeHDefinitionIndividual(fMaterial, settings, tlut, defaults):
     saveModeSetting(fMaterial, settings.g_mdsft_combkey, defaults.g_mdsft_combkey, DPSetCombineKey)
     saveModeSetting(fMaterial, settings.g_mdsft_textconv, defaults.g_mdsft_textconv, DPSetTextureConvert)
     saveModeSetting(fMaterial, settings.g_mdsft_text_filt, defaults.g_mdsft_text_filt, DPSetTextureFilter)
-    saveModeSetting(fMaterial, tlut, "G_TT_NONE", DPSetTextureLUT)
+    saveModeSetting(fMaterial, tlut, defaults.g_mdsft_textlut, DPSetTextureLUT)
     saveModeSetting(fMaterial, settings.g_mdsft_textlod, defaults.g_mdsft_textlod, DPSetTextureLOD)
     saveModeSetting(fMaterial, settings.g_mdsft_textdetail, defaults.g_mdsft_textdetail, DPSetTextureDetail)
     saveModeSetting(fMaterial, settings.g_mdsft_textpersp, defaults.g_mdsft_textpersp, DPSetTexturePersp)

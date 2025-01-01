@@ -4,7 +4,7 @@ from bpy.path import abspath
 
 from . import addon_updater_ops
 
-from .fast64_internal.utility import prop_split, multilineLabel, draw_and_check_tab
+from .fast64_internal.utility import prop_split, multilineLabel, set_prop_if_in_data
 
 from .fast64_internal.repo_settings import (
     draw_repo_settings,
@@ -14,14 +14,17 @@ from .fast64_internal.repo_settings import (
 )
 
 from .fast64_internal.sm64 import sm64_register, sm64_unregister
+from .fast64_internal.sm64.sm64_constants import sm64_world_defaults
 from .fast64_internal.sm64.settings.properties import SM64_Properties
 from .fast64_internal.sm64.sm64_geolayout_bone import SM64_BoneProperties
 from .fast64_internal.sm64.sm64_objects import SM64_ObjectProperties
-from .fast64_internal.sm64.sm64_level_importer import sm64_import_register, sm64_import_unregister
 
 from .fast64_internal.oot import OOT_Properties, oot_register, oot_unregister
+from .fast64_internal.oot.oot_constants import oot_world_defaults
 from .fast64_internal.oot.props_panel_main import OOT_ObjectProperties
 from .fast64_internal.utility_anim import utility_anim_register, utility_anim_unregister, ArmatureApplyWithMeshOperator
+
+from .fast64_internal.mk64 import MK64_Properties, mk64_register, mk64_unregister
 
 from .fast64_internal.f3d.f3d_material import (
     F3D_MAT_CUR_VERSION,
@@ -46,6 +49,7 @@ from .fast64_internal.f3d_material_converter import (
 
 from .fast64_internal.render_settings import (
     Fast64RenderSettings_Properties,
+    ManualUpdatePreviewOperator,
     resync_scene_props,
     on_update_render_settings,
 )
@@ -53,7 +57,7 @@ from .fast64_internal.render_settings import (
 # info about add on
 bl_info = {
     "name": "Fast64",
-    "version": (2, 2, 0),
+    "version": (2, 3, 0),
     "author": "kurethedead",
     "location": "3DView",
     "description": "Plugin for exporting F3D display lists and other game data related to Nintendo 64 games.",
@@ -62,9 +66,10 @@ bl_info = {
 }
 
 gameEditorEnum = (
-    ("SM64", "SM64", "Super Mario 64"),
-    ("OOT", "OOT", "Ocarina Of Time"),
-    ("Homebrew", "Homebrew", "Homebrew"),
+    ("SM64", "SM64", "Super Mario 64", 0),
+    ("OOT", "OOT", "Ocarina Of Time", 1),
+    ("MK64", "MK64", "Mario Kart 64", 3),
+    ("Homebrew", "Homebrew", "Homebrew", 2),
 )
 
 
@@ -83,7 +88,7 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
     def draw(self, context):
         col = self.layout.column()
         col.scale_y = 1.1  # extra padding
-        prop_split(col, context.scene, "f3d_type", "F3D Microcode")
+        prop_split(col, context.scene, "f3d_type", "Microcode")
         col.prop(context.scene, "saveTextures")
         col.prop(context.scene, "f3d_simple", text="Simple Material UI")
         col.prop(context.scene, "exportInlineF3D", text="Bleed and Inline Material Exports")
@@ -204,6 +209,22 @@ class Fast64Settings_Properties(bpy.types.PropertyGroup):
         description="When enabled, this will make fast64 automatically load repo settings if they are found after picking a decomp path",
         default=True,
     )
+    internal_fixed_4_2: bpy.props.BoolProperty(default=False)
+
+    internal_game_update_ver: bpy.props.IntProperty(default=0)
+
+    def to_repo_settings(self):
+        data = {}
+        data["autoLoad"] = self.auto_repo_load_settings
+        data["autoPickTextureFormat"] = self.auto_pick_texture_format
+        if self.auto_pick_texture_format:
+            data["preferRGBAOverCI"] = self.prefer_rgba_over_ci
+        return data
+
+    def from_repo_settings(self, data: dict):
+        set_prop_if_in_data(self, "auto_repo_load_settings", data, "autoLoad")
+        set_prop_if_in_data(self, "auto_pick_texture_format", data, "autoPickTextureFormat")
+        set_prop_if_in_data(self, "prefer_rgba_over_ci", data, "preferRGBAOverCI")
 
 
 class Fast64_Properties(bpy.types.PropertyGroup):
@@ -214,6 +235,7 @@ class Fast64_Properties(bpy.types.PropertyGroup):
 
     sm64: bpy.props.PointerProperty(type=SM64_Properties, name="SM64 Properties")
     oot: bpy.props.PointerProperty(type=OOT_Properties, name="OOT Properties")
+    mk64: bpy.props.PointerProperty(type=MK64_Properties, name="MK64 Properties")
     settings: bpy.props.PointerProperty(type=Fast64Settings_Properties, name="Fast64 Settings")
     renderSettings: bpy.props.PointerProperty(type=Fast64RenderSettings_Properties, name="Fast64 Render Settings")
 
@@ -303,6 +325,7 @@ class ExampleAddonPreferences(bpy.types.AddonPreferences, addon_updater_ops.Addo
 classes = (
     Fast64Settings_Properties,
     Fast64RenderSettings_Properties,
+    ManualUpdatePreviewOperator,
     Fast64_Properties,
     Fast64_BoneProperties,
     Fast64_ObjectProperties,
@@ -316,9 +339,14 @@ classes = (
 def upgrade_changed_props():
     """Set scene properties after a scene loads, used for migrating old properties"""
     SM64_Properties.upgrade_changed_props()
+    MK64_Properties.upgrade_changed_props()
     SM64_ObjectProperties.upgrade_changed_props()
     OOT_ObjectProperties.upgrade_changed_props()
     for scene in bpy.data.scenes:
+        settings: Fast64Settings_Properties = scene.fast64.settings
+        if settings.internal_game_update_ver != 1:
+            set_game_defaults(scene, False)
+            settings.internal_game_update_ver = 1
         if scene.get("decomp_compatible", False):
             scene.gameEditorMode = "Homebrew"
             del scene["decomp_compatible"]
@@ -341,18 +369,44 @@ def upgrade_scene_props_node():
 
 @bpy.app.handlers.persistent
 def after_load(_a, _b):
+    settings = bpy.context.scene.fast64.settings
     if any(mat.is_f3d for mat in bpy.data.materials):
         check_or_ask_color_management(bpy.context)
+        if not settings.internal_fixed_4_2 and bpy.app.version >= (4, 2, 0):
+            upgrade_f3d_version_all_meshes()
+    if bpy.app.version >= (4, 2, 0):
+        settings.internal_fixed_4_2 = True
     upgrade_changed_props()
     upgrade_scene_props_node()
     resync_scene_props()
+    try:
+        if settings.repo_settings_path:
+            load_repo_settings(bpy.context.scene, abspath(settings.repo_settings_path), True)
+    except Exception as exc:
+        print(exc)
 
 
-def gameEditorUpdate(self, context):
-    if self.gameEditorMode == "SM64":
-        self.f3d_type = "F3D"
-    elif self.gameEditorMode == "OOT":
-        self.f3d_type = "F3DEX2/LX2"
+def set_game_defaults(scene: bpy.types.Scene, set_ucode=True):
+    world_defaults = None
+    if scene.gameEditorMode == "SM64":
+        f3d_type = "F3D"
+        world_defaults = sm64_world_defaults
+    elif scene.gameEditorMode == "OOT":
+        f3d_type = "F3DEX2/LX2"
+        world_defaults = oot_world_defaults
+    elif scene.gameEditorMode == "MK64":
+        f3d_type = "F3DEX/LX"
+    elif scene.gameEditorMode == "Homebrew":
+        f3d_type = "F3D"
+        world_defaults = {}  # This will set some pretty bad defaults, but trust the user
+    if set_ucode:
+        scene.f3d_type = f3d_type
+    if scene.world is not None:
+        scene.world.rdp_defaults.from_dict(world_defaults)
+
+
+def gameEditorUpdate(scene: bpy.types.Scene, _context):
+    set_game_defaults(scene)
 
 
 # called on add-on enabling
@@ -382,7 +436,7 @@ def register():
     bsdf_conv_register()
     sm64_register(True)
     oot_register(True)
-    sm64_import_register()
+    mk64_register(True)
 
     repo_settings_operators_register()
 
@@ -429,7 +483,7 @@ def unregister():
     f3d_parser_unregister()
     sm64_unregister(True)
     oot_unregister(True)
-    sm64_import_unregister()
+    mk64_unregister(True)
     mat_unregister()
     bsdf_conv_unregister()
     bsdf_conv_panel_unregsiter()

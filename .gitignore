@@ -4,4 +4,4 @@ __pycache__/
 /.venv
 fast64_updater/
 .python-version
-
+.idea

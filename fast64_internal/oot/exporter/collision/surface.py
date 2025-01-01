@@ -9,16 +9,16 @@ class SurfaceType:
     # surface type 0
     bgCamIndex: int
     exitIndex: int
-    floorType: int
+    floorType: str
     unk18: int  # unused?
-    wallType: int
-    floorProperty: int
+    wallType: str
+    floorProperty: str
     isSoft: bool
     isHorseBlocked: bool
 
     # surface type 1
-    material: int
-    floorEffect: int
+    material: str
+    floorEffect: str
     lightSetting: int
     echo: int
     canHookshot: bool

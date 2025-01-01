@@ -612,9 +612,6 @@ class MultitexManager:
 
         self.palFormat = self.ti0.palFormat if self.ti0.useTex else self.ti1.palFormat
 
-    def getTT(self) -> str:
-        return "G_TT_NONE" if not self.isCI else ("G_TT_" + self.palFormat)
-
     def writeAll(
         self, material: bpy.types.Material, fMaterial: FMaterial, fModel: FModel, convertTextureData: bool
     ) -> None:
@@ -766,14 +763,25 @@ class MultitexManager:
 
         # Assign TMEM addresses
         sameTextures = (
-            self.ti0.useTex
-            and self.ti1.useTex
+            (self.ti0.useTex and self.ti1.useTex)
+            and self.ti0.isTexRef == self.ti1.isTexRef
+            and self.ti0.tmemSize == self.ti1.tmemSize
+            and self.ti0.texFormat == self.ti1.texFormat
             and (
-                (not self.ti0.isTexRef and not self.ti1.isTexRef and self.ti0.texProp.tex == self.ti1.texProp.tex)
-                or (
+                (  # not a reference
+                    not self.ti0.isTexRef and self.ti0.texProp.tex == self.ti1.texProp.tex  # same image
+                )
+                or (  # reference
                     self.ti0.isTexRef
-                    and self.ti1.isTexRef
                     and self.ti0.texProp.tex_reference == self.ti1.texProp.tex_reference
+                    and self.ti0.texProp.tex_reference_size == self.ti1.texProp.tex_reference_size
+                    and (  # ci format reference
+                        not self.isCI
+                        or (
+                            self.ti0.texProp.pal_reference == self.ti1.texProp.pal_reference
+                            and self.ti0.texProp.pal_reference_size == self.ti1.texProp.pal_reference_size
+                        )
+                    )
                 )
             )
         )
@@ -782,7 +790,9 @@ class MultitexManager:
         self.ti1.texAddr = None  # must be set whenever tex 1 used (and loaded or tiled)
         tmemOccupied = self.texDimensions = None  # must be set on all codepaths
         if sameTextures:
-            assert self.ti0.tmemSize == self.ti1.tmemSize
+            assert (
+                self.ti0.tmemSize == self.ti1.tmemSize
+            ), f"Unreachable code path in material {material.name}, same textures (same image or reference) somehow not the same size"
             tmemOccupied = self.ti0.tmemSize
             self.ti1.doTexLoad = False
             self.ti1.texAddr = 0

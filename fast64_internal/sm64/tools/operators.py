@@ -146,6 +146,7 @@ class SM64_CreateSimpleLevel(OperatorBase):
 
     def execute_operator(self, context: Context):
         scene = context.scene
+        combined_export = scene.fast64.sm64.combined_export
 
         level_object = create_sm64_empty("Level", "Level Root", "PLAIN_AXES", (0, 0, 0))
         level_object.setAsStartLevel = self.set_as_start_level
@@ -182,13 +183,13 @@ class SM64_CreateSimpleLevel(OperatorBase):
 
             custom_level_id = "LEVEL_BOB"
             for key, value in levelIDNames.items():
-                if value == scene.levelName:
+                if value == combined_export.level_name:
                     custom_level_id = key
 
             area_object.warpNodes.add()
             area_object.warpNodes[-1].warpID = "0x0A"  # Spin warp
             area_object.warpNodes[-1].destLevel = custom_level_id
-            area_object.warpNodes[-1].destLevelEnum = scene.levelOption
+            area_object.warpNodes[-1].destLevelEnum = combined_export.export_level_name
             area_object.warpNodes[-1].destNode = "0x0A"
 
             area_object.warpNodes.add()
@@ -199,7 +200,7 @@ class SM64_CreateSimpleLevel(OperatorBase):
             area_object.warpNodes.add()
             area_object.warpNodes[-1].warpID = "0xF1"  # Death
             if self.respawn_in_level:
-                area_object.warpNodes[-1].destLevelEnum = scene.levelOption
+                area_object.warpNodes[-1].destLevelEnum = combined_export.export_level_name
                 area_object.warpNodes[-1].destLevel = custom_level_id
                 area_object.warpNodes[-1].destNode = "0x0A"
             else:

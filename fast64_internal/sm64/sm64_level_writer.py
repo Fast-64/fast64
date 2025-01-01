@@ -83,7 +83,7 @@ def createGeoFile(levelName, filepath):
 
 def createLevelDataFile(levelName, filepath):
     result = (
-        '#include <ultra64.h>"\n'
+        "#include <ultra64.h>\n"
         + '#include "sm64.h"\n'
         + '#include "surface_terrains.h"\n'
         + '#include "moving_texture_macros.h"\n'
@@ -148,22 +148,7 @@ class ZoomOutMasks:
     def updateMaskCount(self, levelCount):
         if len(self.masks) - 1 < int(levelCount / 2):
             while len(self.masks) - 1 < int(levelCount / 2):
-                self.masks.append(
-                    [
-                        "ZOOMOUT_AREA_MASK",
-                        [
-                            "0",
-                            "0",
-                            "0",
-                            "0",
-                            "0",
-                            "0",
-                            "0",
-                            "0",
-                        ],
-                        "",
-                    ]
-                )
+                self.masks.append(Macro("ZOOMOUT_AREA_MASK", ["0"] * 8, ""))
         else:
             self.masks = self.masks[: int(levelCount / 2) + 1]
 
@@ -215,13 +200,13 @@ class CourseDefines:
             if bonusCourse[1][0] == courseEnum:
                 return bonusCourse
         if not isBonus:
-            macroCmd = ["DEFINE_COURSE", [courseEnum, "0x44444440"], ""]
+            macroCmd = Macro("DEFINE_COURSE", [courseEnum, "0x44444440"], "")
 
             self.courses.append(macroCmd)
             return macroCmd
 
         else:
-            macroCmd = ["DEFINE_BONUS_COURSE", [courseEnum, "0x44444440"], ""]
+            macroCmd = Macro("DEFINE_BONUS_COURSE", [courseEnum, "0x44444440"], "")
 
             self.bonusCourses.append(macroCmd)
             return macroCmd
@@ -255,7 +240,7 @@ class LevelDefines:
         for macro in self.defineMacros:
             if macro[0] == "DEFINE_LEVEL" and macro[1][3] == levelName:
                 return macro
-        macroCmd = [
+        macroCmd = Macro(
             "DEFINE_LEVEL",
             [
                 '"' + levelName.upper() + '"',
@@ -271,7 +256,7 @@ class LevelDefines:
                 "_",
             ],
             "",
-        ]
+        )
         self.newLevelAdded = True
         self.defineMacros.append(macroCmd)
         return macroCmd
@@ -496,21 +481,43 @@ def replaceScriptLoads(levelscript, obj):
     levelscript.levelFunctions = newFuncs
 
 
+STRING_TO_MACROS_PATTERN = re.compile(
+    r"""
+    .*? # match as few chars as possible before macro name
+    (?P<macro_name>\w+) #group macro name matches 1+ word chars
+    \s* # allows any number of spaces after macro name
+    \((?P<arguments> # group <arguments> is inside first parenthesis
+        [^()]* # anything but ()
+        (?: # Non-capturing group for 1 depth parentheses
+            \(.*?\) # captures parenthesis+any chars inside
+            [^()]*
+        )* # allows any number of inner parenthesis ()
+    )\)
+    (\s*?,)?[^\n]*? # capture a comma, including white space trailing except for new lines following the comma
+    (?P<comment> # comment group
+        ([^\n]*?|\s*?\\\s*?\n)//.*$ # two // and any number of chars and str or line end
+        |
+        ([^\n]*?|\s*?\\\s*?\n)/\*[\s\S]*?\*/ # a /*, any number of chars (including new line) and a */
+    )? # 0 or 1 repetition of comments
+""",
+    re.VERBOSE | re.MULTILINE,
+)
+
+
 def stringToMacros(data):
     macroData = []
-    for matchResult in re.finditer("(\w*)\((((?!\)).)*)\),?(((?!\n)\s)*\/\/((?!\n).)*)?", data):
-        function = matchResult.group(1)
-        arguments = matchResult.group(2)
-        if matchResult.group(4) is not None:
-            comment = matchResult.group(4).strip()
-        else:
+    for matchResult in re.finditer(STRING_TO_MACROS_PATTERN, data):
+        function = matchResult.group("macro_name").strip()
+        arguments = matchResult.group("arguments").strip()
+        comment = matchResult.group("comment")
+        if comment is None:
             comment = ""
+        else:
+            comment = comment.strip()
         arguments = re.sub("\/\*(\*(?!\/)|[^*])*\*\/", "", arguments)
-        arguments = arguments.split(",")
-        for i in range(len(arguments)):
-            arguments[i] = arguments[i].strip()
-        macroData.append(Macro(function, arguments, comment))
+        arguments = [arg.strip() for arg in arguments.split(",")]
 
+        macroData.append(Macro(function, arguments, comment))
     return macroData
 
 
@@ -856,7 +863,7 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
     else:
         level_dir = os.path.join(exportDir, "levels/" + level_name)
 
-    if customExport or not os.path.exists(os.path.join(level_dir, "script.c")):
+    if not os.path.exists(os.path.join(level_dir, "script.c")):
         prev_level_script = LevelScript(level_name)
     else:
         prev_level_script = parseLevelScript(level_dir, level_name)
@@ -929,8 +936,13 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
             if not existingArea:
                 shutil.rmtree(os.path.join(level_dir, folder))
 
-    def include_proto(file_name):
-        return f'#include "levels/{level_name}/{file_name}"\n'
+    def include_proto(file_name, new_line_first=False):
+        include = f'#include "levels/{level_name}/{file_name}"'
+        if new_line_first:
+            include = "\n" + include
+        else:
+            include += "\n"
+        return include
 
     gfxFormatter = SM64GfxFormatter(ScrollMethod.Vertex)
     exportData = fModel.to_c(TextureExportSettings(savePNG, savePNG, f"levels/{level_name}", level_dir), gfxFormatter)
@@ -950,14 +962,14 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
     if DLFormat == DLFormat.Static:
         staticData.append(dynamicData)
     else:
-        geoString = writeMaterialFiles(
+        level_data.geo_data = writeMaterialFiles(
             exportDir,
             level_dir,
             include_proto("header.h"),
             include_proto("material.inc.h"),
             dynamicData.header,
             dynamicData.source,
-            geoString,
+            level_data.geo_data,
             customExport,
         )
 
@@ -1070,9 +1082,9 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
             createHeaderFile(level_name, headerPath)
 
         # Write level data
-        writeIfNotFound(geoPath, include_proto("geo.inc.c"), "")
-        writeIfNotFound(levelDataPath, include_proto("leveldata.inc.c"), "")
-        writeIfNotFound(headerPath, include_proto("header.inc.h"), "#endif")
+        writeIfNotFound(geoPath, include_proto("geo.inc.c", new_line_first=True), "")
+        writeIfNotFound(levelDataPath, include_proto("leveldata.inc.c", new_line_first=True), "")
+        writeIfNotFound(headerPath, include_proto("header.inc.h", new_line_first=True), "#endif")
 
         if fModel.texturesSavedLastExport == 0:
             textureIncludePath = os.path.join(level_dir, "texture_include.inc.c")
@@ -1193,18 +1205,13 @@ class SM64_ExportLevel(ObjectDataExporter):
             applyRotation([obj], math.radians(90), "X")
 
             props = context.scene.fast64.sm64.combined_export
-            export_path, level_name = getPathAndLevel(
-                props.export_header_type == "Custom",
-                props.custom_export_path,
-                props.custom_export_name,
-                props.level_name,
-            )
-            if props.export_header_type == "Custom":
+            export_path, level_name = props.base_level_path, props.export_level_name
+            if props.is_custom_level:
                 triggerName = "sCam" + level_name.title().replace(" ", "").replace("_", "")
             else:
-                triggerName = cameraTriggerNames[props.level_name]
+                triggerName = cameraTriggerNames[level_name]
 
-            if props.export_header_type != "Custom":
+            if not props.non_decomp_level:
                 applyBasicTweaks(export_path)
             fileStatus = exportLevelC(
                 obj,
@@ -1212,7 +1219,7 @@ class SM64_ExportLevel(ObjectDataExporter):
                 level_name,
                 export_path,
                 context.scene.saveTextures,
-                props.export_header_type == "Custom",
+                props.non_decomp_level,
                 triggerName,
                 DLFormat.Static,
             )
