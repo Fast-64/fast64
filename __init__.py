@@ -23,7 +23,7 @@ from .fast64_internal.z64 import OOT_Properties, oot_register, oot_unregister
 from .fast64_internal.z64.constants import oot_world_defaults
 from .fast64_internal.z64.props_panel_main import OOT_ObjectProperties
 from .fast64_internal.z64.utility import getObjectList, get_cs_index_start
-from .fast64_internal.oot.actor.properties import initOOTActorProperties
+from .fast64_internal.z64.actor.properties import initOOTActorProperties
 from .fast64_internal.utility_anim import utility_anim_register, utility_anim_unregister, ArmatureApplyWithMeshOperator
 
 from .fast64_internal.mk64 import MK64_Properties, mk64_register, mk64_unregister
