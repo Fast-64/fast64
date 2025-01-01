@@ -30,26 +30,26 @@ class OOT_SearchChestContentEnumOperator(Operator):
 class MM_SearchActorIDEnumOperator(Operator):
     bl_idname = "object.mm_search_actor_id_enum_operator"
     bl_label = "Select Actor ID"
-    bl_property = "actorID"
+    bl_property = "actor_id"
     bl_options = {"REGISTER", "UNDO"}
 
-    actorID: EnumProperty(items=mm_data.actor_data.enum_actor_id, default="ACTOR_PLAYER")
-    actorUser: StringProperty(default="Actor")
-    objName: StringProperty()
+    actor_id: EnumProperty(items=mm_data.actor_data.enum_actor_id, default="ACTOR_PLAYER")
+    actor_user: StringProperty(default="Actor")
+    obj_name: StringProperty()
 
     def execute(self, context):
-        obj = bpy.data.objects[self.objName]
-        if self.actorUser == "Transition Actor":
-            obj.ootTransitionActorProperty.actor.mm_actor_id = self.actorID
-        elif self.actorUser == "Actor":
-            obj.ootActorProperty.mm_actor_id = self.actorID
-        elif self.actorUser == "Entrance":
-            obj.ootEntranceProperty.actor.mm_actor_id = self.actorID
+        obj = bpy.data.objects[self.obj_name]
+        if self.actor_user == "Transition Actor":
+            obj.ootTransitionActorProperty.actor.mm_actor_id = self.actor_id
+        elif self.actor_user == "Actor":
+            obj.ootActorProperty.mm_actor_id = self.actor_id
+        elif self.actor_user == "Entrance":
+            obj.ootEntranceProperty.actor.mm_actor_id = self.actor_id
         else:
-            raise PluginError("Invalid actor user for search: " + str(self.actorUser))
+            raise PluginError("Invalid actor user for search: " + str(self.actor_user))
 
         context.region.tag_redraw()
-        self.report({"INFO"}, "Selected: " + self.actorID)
+        self.report({"INFO"}, "Selected: " + self.actor_id)
 
 
 class OOT_SearchNaviMsgIDEnumOperator(Operator):
@@ -82,10 +82,6 @@ class OOT_SearchActorIDEnumOperator(Operator):
     actor_id: EnumProperty(items=lambda self, context: oot_data.actorData.getItems(self.actor_user))
     actor_user: StringProperty(default="Actor")
     obj_name: StringProperty()
-
-    actorID: EnumProperty(items=oot_data.actorData.ootEnumActorID, default="ACTOR_PLAYER")
-    actorUser: StringProperty(default="Actor")
-    objName: StringProperty()
 
     def execute(self, context):
         obj = bpy.data.objects[self.obj_name]
