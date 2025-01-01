@@ -19,6 +19,7 @@ from ..utility import (
     is_oot_features,
     is_game_oot,
     get_game_enum,
+    get_list_tab_text,
 )
 
 ootEnumSceneSetupPreset = [
@@ -26,6 +27,38 @@ ootEnumSceneSetupPreset = [
     ("All Scene Setups", "All Scene Setups", "All Scene Setups"),
     ("All Non-Cutscene Scene Setups", "All Non-Cutscene Scene Setups", "All Non-Cutscene Scene Setups"),
 ]
+
+enum_actor_menu = [
+    ("General", "General", "General"),
+    ("Actor Cutscene", "Actor Cutscene", "Actor Cutscene"),
+]
+
+enum_half_day = [
+    ("Custom", "Custom", "Custom"),
+    ("0-Dawn", "Day 0 (Intro) - Dawn", "Day 0 - Dawn"),
+    ("0-Night", "Day 0 (Intro) - Night", "Day 0 - Night"),
+    ("1-Dawn", "Day 1 - Dawn", "Day 1 - Dawn"),
+    ("1-Night", "Day 1 - Night", "Day 1 - Night"),
+    ("2-Dawn", "Day 2 - Dawn", "Day 2 - Dawn"),
+    ("2-Night", "Day 2 - Night", "Day 2 - Night"),
+    ("3-Dawn", "Day 3 - Dawn", "Day 3 - Dawn"),
+    ("3-Night", "Day 3 - Night", "Day 3 - Night"),
+    ("4-Dawn", "Day 4 (Credits) - Dawn", "Day 4 - Dawn"),
+    ("4-Night", "Day 4 (Credits) - Night", "Day 4 - Night"),
+]
+
+
+class Z64_HalfdayItem(PropertyGroup):
+    value: EnumProperty(items=enum_half_day, default=1)
+    value_custom: StringProperty()
+
+    def draw_props(self, layout: UILayout, owner: Object, index: int):
+        layout = layout.column()
+        row = layout.row()
+        row.prop(self, "value", text="")
+        if self.value == "Custom":
+            row.prop(self, "value_custom", text="")
+        drawCollectionOps(row.row(align=True), index, "Actor Halfday", None, owner.name, compact=True)
 
 
 # TODO: remove
@@ -167,6 +200,15 @@ class Z64_ActorProperty(PropertyGroup):
     rotOverrideY: StringProperty(name="Rot Y", default="0")
     rotOverrideZ: StringProperty(name="Rot Z", default="0")
     headerSettings: PointerProperty(type=Z64_ActorHeaderProperty)
+    menu_tab: EnumProperty(items=enum_actor_menu)
+    halfday_show_entries: BoolProperty(default=True)
+    halfday_all: BoolProperty(default=True)
+    halfday_all_dawns: BoolProperty(default=False)
+    halfday_all_nights: BoolProperty(default=False)
+    halfday_bits: CollectionProperty(type=Z64_HalfdayItem)
+
+    # internal
+    actor_cs_index: IntProperty(default=0x7F)
 
     @staticmethod
     def upgrade_object(obj: Object):
@@ -174,43 +216,80 @@ class Z64_ActorProperty(PropertyGroup):
             print(f"Processing '{obj.name}'...")
             upgradeActors(obj)
 
-    def draw_props(self, layout: UILayout, altRoomProp: Z64_AlternateRoomHeaderProperty, objName: str):
+    def draw_props(
+        self,
+        layout: UILayout,
+        owner: Object,
+        alt_scene_props: Z64_AlternateSceneHeaderProperty,
+        altRoomProp: Z64_AlternateRoomHeaderProperty,
+    ):
         actorIDBox = layout.column()
-        actor_id: str = getattr(self, get_game_prop_name("actor_id"))
 
-        if is_game_oot():
-            op_name = OOT_SearchActorIDEnumOperator.bl_idname
-        else:
-            op_name = MM_SearchActorIDEnumOperator.bl_idname
+        actorIDBox.row().prop(self, "menu_tab", expand=True)
+        actor_cs_props = owner.z64_actor_cs_property
 
-        searchOp = actorIDBox.operator(op_name, icon="VIEWZOOM")
-        searchOp.actorUser = "Actor"
-        searchOp.objName = objName
+        if self.menu_tab == "General":
+            actor_id: str = getattr(self, get_game_prop_name("actor_id"))
 
-        split = actorIDBox.split(factor=0.5)
+            if is_game_oot():
+                op_name = OOT_SearchActorIDEnumOperator.bl_idname
+            else:
+                op_name = MM_SearchActorIDEnumOperator.bl_idname
 
-        if actor_id == "None":
-            actorIDBox.box().label(text="This Actor was deleted from the XML file.")
-            return
+            searchOp = actorIDBox.operator(op_name, icon="VIEWZOOM")
+            searchOp.actorUser = "Actor"
+            searchOp.objName = owner.name
 
-        split.label(text="Actor ID")
-        split.label(text=getEnumName(get_game_enum("enum_actor_id"), actor_id))
+            split = actorIDBox.split(factor=0.5)
 
-        if actor_id == "Custom":
-            prop_split(actorIDBox, self, "actorIDCustom", "")
+            if actor_id == "None":
+                actorIDBox.box().label(text="This Actor was deleted from the XML file.")
+                return
 
-        prop_split(actorIDBox, self, "actorParam", "Actor Parameter")
+            split.label(text="Actor ID")
+            split.label(text=getEnumName(get_game_enum("enum_actor_id"), actor_id))
 
-        rot_box = actorIDBox.box()
-        prop_text = "Override Rotation (ignore Blender rot)" if is_oot_features() else "Use Rotation Flags"
-        rot_box.prop(self, "rotOverride", text=prop_text)
-        if self.rotOverride:
-            prop_split(rot_box, self, "rotOverrideX", "Rot X")
-            prop_split(rot_box, self, "rotOverrideY", "Rot Y")
-            prop_split(rot_box, self, "rotOverrideZ", "Rot Z")
+            if actor_id == "Custom":
+                prop_split(actorIDBox, self, "actorIDCustom", "")
+
+            prop_split(actorIDBox, self, "actorParam", "Actor Parameter")
+
+            rot_box = actorIDBox.box().column()
+            rot_box.prop(self, "rotOverride", text="Override Rotation (ignore Blender rot)")
+            if self.rotOverride:
+                prop_split(rot_box, self, "rotOverrideX", "Rot X")
+                prop_split(rot_box, self, "rotOverrideY", "Rot Y")
+                prop_split(rot_box, self, "rotOverrideZ", "Rot Z")
+
+            if not is_oot_features():
+                layout_halfday = actorIDBox.box().column()
+                layout_halfday.label(text="Spawn Schedule")
+                row = layout_halfday.row(align=True)
+                row.prop(self, "halfday_all", text="Always Spawn")
+
+                if not self.halfday_all:
+                    row.prop(self, "halfday_all_dawns", text="All Dawns")
+                    row.prop(self, "halfday_all_nights", text="All Nights")
+
+                    if not self.halfday_all_dawns and not self.halfday_all_nights:
+                        prop_text = get_list_tab_text("Entries", len(self.halfday_bits))
+                        layout_halfday.prop(
+                            self,
+                            "halfday_show_entries",
+                            text=prop_text,
+                            icon="TRIA_DOWN" if self.halfday_show_entries else "TRIA_RIGHT",
+                        )
+
+                        if self.halfday_show_entries:
+                            for i, item in enumerate(self.halfday_bits):
+                                item.draw_props(layout_halfday, owner, i)
+                            drawAddButton(layout_halfday, len(self.halfday_bits), "Actor Halfday", None, owner.name)
+
+        elif self.menu_tab == "Actor Cutscene":
+            actor_cs_props.draw_props(actorIDBox, owner, alt_scene_props, False)
 
         headerProp: Z64_ActorHeaderProperty = self.headerSettings
-        headerProp.draw_props(actorIDBox, "Actor", altRoomProp, objName)
+        headerProp.draw_props(actorIDBox, "Actor", altRoomProp, owner.name)
 
 
 class Z64_TransitionActorProperty(PropertyGroup):
@@ -313,6 +392,7 @@ class Z64_EntranceProperty(PropertyGroup):
 
 
 classes = (
+    Z64_HalfdayItem,
     Z64_ActorHeaderItemProperty,
     Z64_ActorHeaderProperty,
     Z64_ActorProperty,

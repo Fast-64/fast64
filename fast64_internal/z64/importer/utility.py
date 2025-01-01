@@ -51,11 +51,8 @@ def getDisplayNameFromActorID(actorID: str):
 
 
 def handleActorWithRotAsParam(actorProp: Z64_ActorProperty, actorID: str, rotation: list[int]):
-    if is_game_oot():
-        if actorID in actorsWithRotAsParam:
-            actorProp.rotOverride = True
-    else:
-        actorProp.rotOverride = rotation[0] != 0 or rotation[1] != 0 or rotation[2] != 0
+    if actorID in actorsWithRotAsParam:
+        actorProp.rotOverride = True
 
     if actorProp.rotOverride:
         actorProp.rotOverrideX = f"0x{rotation[0]:04X}"

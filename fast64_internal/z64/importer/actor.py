@@ -1,10 +1,17 @@
 import re
 import bpy
 
+from bpy.types import Object
 from ...utility import parentObject, hexOrDecInt
 from ..scene.properties import Z64_SceneHeaderProperty
 from ..utility import setCustomProperty, getEvalParams, is_game_oot, get_game_enum, get_game_prop_name
-from ..constants import ootEnumCamTransition
+from ..constants import (
+    ootEnumCamTransition,
+    halfday_bits_all_dawns,
+    halfday_bits_all_nights,
+    halfday_bits_to_enum,
+    halfday_bits_values,
+)
 from .classes import SharedSceneData
 from .constants import actorsWithRotAsParam
 
@@ -213,6 +220,36 @@ def getActorRegex(actorList: list[str]):
     return regex, nestedBrackets
 
 
+def move_actor_cs_entry(global_cs_obj: Object, actor_obj: Object, index: int, default_entry):
+    index &= 0x7F
+    if index >= 0x78:
+        return default_entry
+
+    global_cs_props = global_cs_obj.z64_actor_cs_property
+    actor_cs_props = actor_obj.z64_actor_cs_property
+    entry = global_cs_props.entries[index]
+    additional_cs_id = entry.additional_cs_id
+
+    new_entry = actor_cs_props.entries.add()
+    new_entry.priority = entry.priority
+    new_entry.length = entry.length
+    new_entry.cs_cam_id = entry.cs_cam_id
+    new_entry.cs_cam_id_custom = entry.cs_cam_id_custom
+    new_entry.cs_cam_obj = entry.cs_cam_obj
+    new_entry.script_index = entry.script_index
+    new_entry.additional_cs_id = additional_cs_id
+    new_entry.end_sfx = entry.end_sfx
+    new_entry.end_sfx_custom = entry.end_sfx_custom
+    new_entry.custom_value = entry.custom_value
+    new_entry.hud_visibility = entry.hud_visibility
+    new_entry.hud_visibility_custom = entry.hud_visibility_custom
+    new_entry.end_cam = entry.end_cam
+    new_entry.end_cam_custom = entry.end_cam_custom
+    new_entry.letterbox_size = entry.letterbox_size
+
+    return new_entry
+
+
 def parseActorList(
     roomObj: bpy.types.Object, sceneData: str, actorListName: str, sharedSceneData: SharedSceneData, headerIndex: int
 ):
@@ -233,8 +270,38 @@ def parseActorList(
                 actorProp, get_game_prop_name("actor_id"), actorID, get_game_enum("enum_actor_id"), "actorIDCustom"
             )
             actorProp.actorParam = actorParam
-            handleActorWithRotAsParam(actorProp, actorID, rotation if is_game_oot() else spawn_flags)
+            handleActorWithRotAsParam(actorProp, actorID, rotation)
             unsetAllHeadersExceptSpecified(actorProp.headerSettings, headerIndex)
+
+            actor_cs_obj = None
+            for obj in bpy.data.objects:
+                if obj.type == "EMPTY" and obj.ootEmptyType == "Actor Cutscene":
+                    actor_cs_obj = obj
+                    break
+
+            if sharedSceneData.includeActorCs and actor_cs_obj is not None:
+                # move any actor cs entry to the actor object embedded list based on the cs index of rot.y
+                # also move any other entries as defined by the additional cs id
+                new_entry = move_actor_cs_entry(actor_cs_obj, actorObj, spawn_flags[1], None)
+                if new_entry is not None:
+                    while new_entry.additional_cs_id != -1:
+                        new_entry = move_actor_cs_entry(actor_cs_obj, actorObj, new_entry.additional_cs_id, new_entry)
+
+            # see `Actor_SpawnEntry()`
+            halfday_bits = ((spawn_flags[0] & 7) << 7) | (spawn_flags[2] & 0x7F)
+            actorProp.halfday_all = halfday_bits == halfday_bits_all_dawns | halfday_bits_all_nights
+
+            if not actorProp.halfday_all:
+                actorProp.halfday_all_dawns = halfday_bits == halfday_bits_all_dawns
+                actorProp.halfday_all_nights = halfday_bits == halfday_bits_all_nights
+
+            if not actorProp.halfday_all and not actorProp.halfday_all_dawns and not actorProp.halfday_all_nights:
+                for bits in halfday_bits_values:
+                    value = halfday_bits & bits
+
+                    if value > 0:
+                        new_entry = actorProp.halfday_bits.add()
+                        new_entry.value = halfday_bits_to_enum[value]
 
             sharedSceneData.actorDict[actorHash] = actorObj
 

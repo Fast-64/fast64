@@ -238,6 +238,14 @@ class Z64_RoomHeaderProperty(PropertyGroup):
 
             behaviorBox.prop(self, "showInvisibleActors", text="Show Invisible Actors")
 
+            if not is_oot_features():
+                if self.mm_room_type in {"ROOM_TYPE_DUNGEON", "ROOM_TYPE_BOSS"}:
+                    behaviorBox.label(text="The Three-Day Events actor will be automatically", icon="INFO")
+                    behaviorBox.label(text="spawned by `Play_Init` (see 'ACTOR_EN_TEST4' usage).")
+                else:
+                    behaviorBox.label(text="You will need to add the Three-Day Events actor", icon="INFO")
+                    behaviorBox.label(text="to that room (see 'ACTOR_EN_TEST4' usage).")
+
             # Time
             skyboxAndTime = layout.column()
             skyboxAndTime.box().label(text="Skybox And Time")

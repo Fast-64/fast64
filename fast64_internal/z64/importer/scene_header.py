@@ -527,13 +527,19 @@ def parseSceneCommands(
 
     commands = getDataMatch(sceneData, sceneCommandsName, ["SceneCmd", "SCmdBase"], "scene commands")
     entranceList = None
-    altHeadersListName = None
-    chest_map_data_args = None
-    actor_cs_data_args = None
+    # command to delay: command args
+    delayed_commands: dict[str, list[str]] = {}
+    command_map: dict[str, list[str]] = {}
 
+    # store the commands to process with the corresponding args
     for commandMatch in re.finditer(rf"(SCENE\_CMD\_[a-zA-Z0-9\_]*)\s*\((.*?)\)\s*,", commands, flags=re.DOTALL):
         command = commandMatch.group(1)
         args = [arg.strip() for arg in commandMatch.group(2).split(",")]
+        command_map[command] = args
+
+    command_list = list(command_map.keys())
+
+    for command, args in command_map.items():
         if command == "SCENE_CMD_SOUND_SETTINGS":
             setCustomProperty(sceneHeader, "audioSessionPreset", args[0], ootEnumAudioSessionPreset)
             setCustomProperty(
@@ -557,31 +563,29 @@ def parseSceneCommands(
             setCustomProperty(
                 sceneHeader, get_game_prop_name("seq_id"), enum_id, get_game_enum("enum_seq_id"), "musicSeqCustom"
             )
+            command_list.remove(command)
         elif command == "SCENE_CMD_ROOM_LIST":
-            # Assumption that all scenes use the same room list.
-            if headerIndex == 0:
-                if roomObjs is not None:
-                    raise PluginError("Attempting to parse a room list while room objs already loaded.")
-                roomListName = stripName(args[1])
-                roomObjs = parseRoomList(sceneObj, sceneData, roomListName, f3dContext, sharedSceneData, headerIndex)
-
-        # This must be handled after rooms, so that room objs can be referenced
-        elif command == "SCENE_CMD_TRANSITION_ACTOR_LIST" and sharedSceneData.includeActors:
-            transActorListName = stripName(args[1])
-            parseTransActorList(roomObjs, sceneData, transActorListName, sharedSceneData, headerIndex)
-
+            # Delay until actor cutscenes are processed
+            delayed_commands[command] = args
+            command_list.remove(command)
+        elif command == "SCENE_CMD_TRANSITION_ACTOR_LIST":
+            if sharedSceneData.includeActors:
+                # This must be handled after rooms, so that room objs can be referenced
+                delayed_commands[command] = args
+            command_list.remove(command)
         elif is_game_oot() and command == "SCENE_CMD_MISC_SETTINGS":
             setCustomProperty(sceneHeader, "cameraMode", args[0], ootEnumCameraMode)
             setCustomProperty(sceneHeader, "mapLocation", args[1], ootEnumMapLocation)
+            command_list.remove(command)
         elif command == "SCENE_CMD_COL_HEADER":
-            # Assumption that all scenes use the same collision.
-            if headerIndex == 0:
-                collisionHeaderName = args[0][1:]  # remove '&'
-                parseCollisionHeader(sceneObj, roomObjs, sceneData, collisionHeaderName, sharedSceneData)
-        elif command == "SCENE_CMD_ENTRANCE_LIST" and sharedSceneData.includeActors:
-            if not (args[0] == "NULL" or args[0] == "0" or args[0] == "0x00"):
-                entranceListName = stripName(args[0])
-                entranceList = parseEntranceList(sceneHeader, roomObjs, sceneData, entranceListName)
+            # Delay until after rooms are processed
+            delayed_commands[command] = args
+            command_list.remove(command)
+        elif command == "SCENE_CMD_ENTRANCE_LIST":
+            if sharedSceneData.includeActors:
+                # Delay until after rooms are processed
+                delayed_commands[command] = args
+            command_list.remove(command)
         elif command == "SCENE_CMD_SPECIAL_FILES":
             if is_game_oot():
                 setCustomProperty(sceneHeader, "naviCup", args[0], ootEnumNaviHints)
@@ -592,19 +596,17 @@ def parseSceneCommands(
                 get_game_enum("enum_global_object"),
                 "globalObjectCustom",
             )
-        elif command == "SCENE_CMD_PATH_LIST" and sharedSceneData.includePaths:
-            pathListName = stripName(args[0])
-            parsePathList(sceneObj, sceneData, pathListName, headerIndex, sharedSceneData)
-
-        # This must be handled after entrance list, so that entrance list can be referenced
-        elif command == "SCENE_CMD_SPAWN_LIST" and sharedSceneData.includeActors:
-            if not (args[1] == "NULL" or args[1] == "0" or args[1] == "0x00"):
-                spawnListName = stripName(args[1])
-                parseSpawnList(roomObjs, sceneData, spawnListName, entranceList, sharedSceneData, headerIndex)
-
-                # Clear entrance list
-                entranceList = None
-
+            command_list.remove(command)
+        elif command == "SCENE_CMD_PATH_LIST":
+            if sharedSceneData.includePaths:
+                pathListName = stripName(args[0])
+                parsePathList(sceneObj, sceneData, pathListName, headerIndex, sharedSceneData)
+            command_list.remove(command)
+        elif command == "SCENE_CMD_SPAWN_LIST":
+            if sharedSceneData.includeActors:
+                # This must be handled after entrance list, so that entrance list and room list can be referenced
+                delayed_commands[command] = args
+            command_list.remove(command)
         elif command == "SCENE_CMD_SKYBOX_SETTINGS":
             args_index = 0
             if not is_game_oot():
@@ -625,55 +627,112 @@ def parseSceneCommands(
                 "skyboxCloudinessCustom",
             )
             setCustomProperty(sceneHeader, "skyboxLighting", args[args_index + 2], ootEnumSkyboxLighting)
+            command_list.remove(command)
         elif command == "SCENE_CMD_EXIT_LIST":
             exitListName = stripName(args[0])
             parseExitList(sceneHeader, sceneData, exitListName)
-        elif command == "SCENE_CMD_ENV_LIGHT_SETTINGS" and sharedSceneData.includeLights:
-            if not (args[1] == "NULL" or args[1] == "0" or args[1] == "0x00"):
-                lightsListName = stripName(args[1])
-                parseLightList(sceneObj, sceneHeader, sceneData, lightsListName, headerIndex)
-        elif command == "SCENE_CMD_CUTSCENE_DATA" and sharedSceneData.includeCutscenes:
-            sceneHeader.writeCutscene = True
-            sceneHeader.csWriteType = "Object"
-            csObjName = f"Cutscene.{args[0]}"
-            try:
-                sceneHeader.csWriteObject = bpy.data.objects[csObjName]
-            except:
-                print(f"ERROR: Cutscene ``{csObjName}`` do not exist!")
+            command_list.remove(command)
+        elif command == "SCENE_CMD_ENV_LIGHT_SETTINGS":
+            if sharedSceneData.includeLights:
+                if not (args[1] == "NULL" or args[1] == "0" or args[1] == "0x00"):
+                    lightsListName = stripName(args[1])
+                    parseLightList(sceneObj, sceneHeader, sceneData, lightsListName, headerIndex)
+            command_list.remove(command)
+        elif command == "SCENE_CMD_CUTSCENE_DATA":
+            if sharedSceneData.includeCutscenes:
+                sceneHeader.writeCutscene = True
+                sceneHeader.csWriteType = "Object"
+                csObjName = f"Cutscene.{args[0]}"
+                try:
+                    sceneHeader.csWriteObject = bpy.data.objects[csObjName]
+                except:
+                    print(f"ERROR: Cutscene ``{csObjName}`` do not exist!")
+            command_list.remove(command)
         elif command == "SCENE_CMD_ALTERNATE_HEADER_LIST":
-            # Delay until after rooms are parsed
-            altHeadersListName = stripName(args[0])
+            # Delay until after rooms are processed
+            delayed_commands[command] = args
+            command_list.remove(command)
+        elif command == "SCENE_CMD_END":
+            command_list.remove(command)
 
         # handle Majora's Mask exclusive commands
         elif not is_game_oot():
             if command == "SCENE_CMD_SET_REGION_VISITED":
                 sceneHeader.set_region_visited = True
+                command_list.remove(command)
             elif command in {"SCENE_CMD_MINIMAP_INFO", "SCENE_CMD_MAP_DATA"}:
                 parse_mm_map_data(sceneHeader, sceneData, stripName(args[0]))
+                command_list.remove(command)
             elif command in {"SCENE_CMD_MINIMAP_COMPASS_ICON_INFO", "SCENE_CMD_MAP_DATA_CHESTS"}:
                 # Delay until rooms and actors are processed
-                chest_map_data_args = args
-            elif sharedSceneData.includeAnimatedMats and command == "SCENE_CMD_ANIMATED_MATERIAL_LIST":
-                parse_animated_material(sceneObj, headerIndex, sceneData, stripName(args[0]))
-            elif sharedSceneData.includeActorCs:
-                if command in {"SCENE_CMD_ACTOR_CUTSCENE_LIST", "SCENE_CMD_ACTOR_CUTSCENE_CAM_LIST"}:
-                    if command == "SCENE_CMD_ACTOR_CUTSCENE_LIST":
-                        # Delay until cameras are processed, if used
-                        actor_cs_data_args = args
-                    else:
-                        # TODO: implement alt headers
-                        if headerIndex == 0:
-                            parseCamDataList(sceneObj, stripName(args[1]), sceneData, True)
+                delayed_commands[command] = args
+                command_list.remove(command)
+            elif command == "SCENE_CMD_ANIMATED_MATERIAL_LIST":
+                if sharedSceneData.includeAnimatedMats:
+                    parse_animated_material(sceneObj, headerIndex, sceneData, stripName(args[0]))
+                command_list.remove(command)
+            elif command == "SCENE_CMD_ACTOR_CUTSCENE_CAM_LIST":
+                if sharedSceneData.includeActorCs:
+                    # TODO: implement alt headers
+                    if headerIndex == 0:
+                        parseCamDataList(sceneObj, stripName(args[1]), sceneData, True)
+                command_list.remove(command)
+            elif command == "SCENE_CMD_ACTOR_CUTSCENE_LIST":
+                if sharedSceneData.includeActorCs:
+                    # Delay until cameras are processed, if used
+                    delayed_commands[command] = args
+                command_list.remove(command)
 
-    if sharedSceneData.includeActors and chest_map_data_args is not None:
-        parse_mm_map_data_chest(
-            roomObjs, sceneHeader, sceneData, int(chest_map_data_args[0], base=0), stripName(chest_map_data_args[1])
-        )
+    # requires `SCENE_CMD_ACTOR_CUTSCENE_CAM_LIST`
+    if "SCENE_CMD_ACTOR_CUTSCENE_LIST" in delayed_commands:
+        if sharedSceneData.includeActorCs:
+            args = delayed_commands["SCENE_CMD_ACTOR_CUTSCENE_LIST"]
+            parse_actor_cs(sceneObj, headerIndex, sceneData, stripName(args[1]))
+        delayed_commands.pop("SCENE_CMD_ACTOR_CUTSCENE_LIST")
 
-    if sharedSceneData.includeActorCs and actor_cs_data_args is not None:
-        parse_actor_cs(sceneObj, headerIndex, sceneData, stripName(actor_cs_data_args[1]))
+    # requires `SCENE_CMD_ACTOR_CUTSCENE_LIST`
+    if "SCENE_CMD_ROOM_LIST" in delayed_commands:
+        args = delayed_commands["SCENE_CMD_ROOM_LIST"]
+        # Assumption that all scenes use the same room list.
+        if headerIndex == 0:
+            if roomObjs is not None:
+                raise PluginError("Attempting to parse a room list while room objs already loaded.")
+            roomListName = stripName(args[1])
+            roomObjs = parseRoomList(sceneObj, sceneData, roomListName, f3dContext, sharedSceneData, headerIndex)
+        delayed_commands.pop("SCENE_CMD_ROOM_LIST")
+    else:
+        raise PluginError("ERROR: no room command found for this scene!")
 
-    if altHeadersListName is not None:
-        parseAlternateSceneHeaders(sceneObj, roomObjs, sceneData, altHeadersListName, f3dContext, sharedSceneData)
+    # any other delayed command requires rooms to be processed
+    for command, args in delayed_commands.items():
+        if command == "SCENE_CMD_TRANSITION_ACTOR_LIST" and sharedSceneData.includeActors:
+            transActorListName = stripName(args[1])
+            parseTransActorList(roomObjs, sceneData, transActorListName, sharedSceneData, headerIndex)
+        elif command == "SCENE_CMD_COL_HEADER":
+            # Assumption that all scenes use the same collision.
+            if headerIndex == 0:
+                collisionHeaderName = args[0][1:]  # remove '&'
+                parseCollisionHeader(sceneObj, roomObjs, sceneData, collisionHeaderName, sharedSceneData)
+        elif command == "SCENE_CMD_ENTRANCE_LIST" and sharedSceneData.includeActors:
+            if not (args[0] == "NULL" or args[0] == "0" or args[0] == "0x00"):
+                entranceListName = stripName(args[0])
+                entranceList = parseEntranceList(sceneHeader, roomObjs, sceneData, entranceListName)
+        elif command == "SCENE_CMD_SPAWN_LIST" and sharedSceneData.includeActors:
+            if not (args[1] == "NULL" or args[1] == "0" or args[1] == "0x00"):
+                spawnListName = stripName(args[1])
+                parseSpawnList(roomObjs, sceneData, spawnListName, entranceList, sharedSceneData, headerIndex)
+
+                # Clear entrance list
+                entranceList = None
+        elif command == "SCENE_CMD_ALTERNATE_HEADER_LIST":
+            parseAlternateSceneHeaders(sceneObj, roomObjs, sceneData, stripName(args[0]), f3dContext, sharedSceneData)
+        elif command in {"SCENE_CMD_MINIMAP_COMPASS_ICON_INFO", "SCENE_CMD_MAP_DATA_CHESTS"}:
+            if sharedSceneData.includeActors:
+                parse_mm_map_data_chest(roomObjs, sceneHeader, sceneData, int(args[0], base=0), stripName(args[1]))
+
+    if len(command_list) > 0:
+        print(f"INFO: The following scene commands weren't processed for header {headerIndex}:")
+        for command in command_list:
+            print(f"- {repr(command)}")
 
     return sceneObj

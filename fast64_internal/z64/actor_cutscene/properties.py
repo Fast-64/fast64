@@ -150,7 +150,13 @@ class Z64_ActorCutsceneProperty(PropertyGroup):
     # ui only props
     show_entries: BoolProperty(default=True)
 
-    def draw_props(self, layout: UILayout, owner: Object, alt_header_props: Z64_AlternateSceneHeaderProperty):
+    def draw_props(
+        self,
+        layout: UILayout,
+        owner: Object,
+        alt_header_props: Z64_AlternateSceneHeaderProperty,
+        draw_header: bool = True,
+    ):
         layout_entries = layout.box().column()
 
         prop_text = get_list_tab_text("Entries", len(self.entries))
@@ -164,7 +170,8 @@ class Z64_ActorCutsceneProperty(PropertyGroup):
 
             drawAddButton(layout_entries, len(self.entries), "Actor CS", None, owner.name)
 
-        self.header_settings.draw_props(layout, "Actor CS Headers", alt_header_props, owner.name)
+        if draw_header:
+            self.header_settings.draw_props(layout, "Actor CS Headers", alt_header_props, owner.name)
 
 
 classes = (

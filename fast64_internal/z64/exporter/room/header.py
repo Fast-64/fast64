@@ -2,9 +2,9 @@ from dataclasses import dataclass, field
 from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
-from ....utility import CData, indent
+from ....utility import PluginError, CData, indent
 from ...utility import getObjectList, is_oot_features, getEvalParams, get_game_prop_name, is_game_oot
-from ...constants import oot_data, mm_data
+from ...constants import oot_data, mm_data, halfday_bits_all_dawns, halfday_bits_all_nights, enum_to_halfday_bits
 from ...room.properties import Z64_RoomHeaderProperty
 from ..utility import Utility
 from ..actor import Actor
@@ -196,34 +196,50 @@ class RoomActors:
                 else:
                     actor.id = actor_id
 
-                if is_oot_features():
-                    if actorProp.rotOverride:
-                        actor.rot = ", ".join([actorProp.rotOverrideX, actorProp.rotOverrideY, actorProp.rotOverrideZ])
-                    else:
-                        actor.rot = ", ".join(f"DEG_TO_BINANG({(r * (180 / 0x8000)):.3f})" for r in rot)
+                if actorProp.rotOverride:
+                    rotation: list[str] = [actorProp.rotOverrideX, actorProp.rotOverrideY, actorProp.rotOverrideZ]
                 else:
-                    if actorProp.rotOverride:
-                        actor_flags = [0x4000, 0x8000, 0x2000]
-                        actor_flag_masks = []
-                        spawn_flags = [
-                            f"0x{int(getEvalParams(actorProp.rotOverrideX), base=0):02X}",
-                            f"0x{int(getEvalParams(actorProp.rotOverrideY), base=0):02X}",
-                            f"0x{int(getEvalParams(actorProp.rotOverrideZ), base=0):02X}",
-                        ]
+                    rotation: list[str] = [f"DEG_TO_BINANG({(r * (180 / 0x8000)):.3f})" for r in rot]
 
-                        for i, rot_flag in enumerate(spawn_flags):
-                            if int(rot_flag, base=0) > 0:
-                                actor_flag_masks.append(actor_flags[i])
+                if is_oot_features():
+                    actor.rot = ", ".join(rotation)
+                else:
+                    halfday_bits = 0
 
-                        if len(actor_flag_masks) > 0:
-                            mask = 0
-                            for val in actor_flag_masks:
-                                mask |= val
-                            actor.id = f"{actor.id} | 0x{mask:04X}"
+                    if actorProp.halfday_all:
+                        halfday_bits |= halfday_bits_all_dawns | halfday_bits_all_nights
                     else:
-                        spawn_flags = ["0x00"] * 3
+                        if actorProp.halfday_all_dawns:
+                            halfday_bits |= halfday_bits_all_dawns
 
-                    spawn_rot = [f"SPAWN_ROT_FLAGS(DEG_TO_BINANG({(r * (180 / 0x8000)):.3f})" for r in rot]
+                        if actorProp.halfday_all_nights:
+                            halfday_bits |= halfday_bits_all_nights
+
+                    # if the value is 0 it means it's not all nor all dawns nor all nights
+                    if halfday_bits == 0:
+                        for item in actorProp.halfday_bits:
+                            custom_value = 0
+
+                            try:
+                                if item.value == "Custom":
+                                    custom_value = int(getEvalParams(item.value_custom), base=0)
+                            except:
+                                raise PluginError(
+                                    f"ERROR: custom spawn schedule values don't support non-evaluable characters! ({repr(obj.name)})"
+                                )
+
+                            halfday_bits |= enum_to_halfday_bits.get(item.value, custom_value)
+
+                    # rot.x stores a part of the halfday bits value
+                    # rot.y stores a cutscene index
+                    # rot.z stores the other part of the halfday bits
+                    cs_index = actorProp.actor_cs_index & 0x7F
+                    spawn_flags = [
+                        f"0x{(halfday_bits >> 7) & 0x07:02X}",
+                        "CS_ID_GLOBAL_END" if cs_index == 0x7F else cs_index,
+                        f"0x{halfday_bits & 0x7F:02X}",
+                    ]
+                    spawn_rot = [f"SPAWN_ROT_FLAGS({r}" for r in rotation]
                     actor.rot = ", ".join(f"{rot}, {flag})" for rot, flag in zip(spawn_rot, spawn_flags))
 
                 actors_by_id = oot_data.actorData.actorsByID if is_game_oot() else mm_data.actor_data.actors_by_id

@@ -756,3 +756,58 @@ oot_world_defaults = {
         "cycleType": "G_CYC_2CYCLE",
     },
 }
+
+halfday_bits_day0_dawn = 1 << 9
+halfday_bits_day0_night = 1 << 8
+halfday_bits_day1_dawn = 1 << 7
+halfday_bits_day1_night = 1 << 6
+halfday_bits_day2_dawn = 1 << 5
+halfday_bits_day2_night = 1 << 4
+halfday_bits_day3_dawn = 1 << 3
+halfday_bits_day3_night = 1 << 2
+halfday_bits_day4_dawn = 1 << 1
+halfday_bits_day4_night = 1 << 0
+
+halfday_bits_values = [
+    halfday_bits_day0_dawn,
+    halfday_bits_day0_night,
+    halfday_bits_day1_dawn,
+    halfday_bits_day1_night,
+    halfday_bits_day2_dawn,
+    halfday_bits_day2_night,
+    halfday_bits_day3_dawn,
+    halfday_bits_day3_night,
+    halfday_bits_day4_dawn,
+    halfday_bits_day4_night,
+]
+
+halfday_bits_all_dawns = (
+    halfday_bits_day0_dawn
+    | halfday_bits_day1_dawn
+    | halfday_bits_day2_dawn
+    | halfday_bits_day3_dawn
+    | halfday_bits_day4_dawn
+)
+
+halfday_bits_all_nights = (
+    halfday_bits_day0_night
+    | halfday_bits_day1_night
+    | halfday_bits_day2_night
+    | halfday_bits_day3_night
+    | halfday_bits_day4_night
+)
+
+
+enum_to_halfday_bits = {
+    "0-Dawn": halfday_bits_day0_dawn,
+    "0-Night": halfday_bits_day0_night,
+    "1-Dawn": halfday_bits_day1_dawn,
+    "1-Night": halfday_bits_day1_night,
+    "2-Dawn": halfday_bits_day2_dawn,
+    "2-Night": halfday_bits_day2_night,
+    "3-Dawn": halfday_bits_day3_dawn,
+    "3-Night": halfday_bits_day3_night,
+    "4-Dawn": halfday_bits_day4_dawn,
+    "4-Night": halfday_bits_day4_night,
+}
+halfday_bits_to_enum = {val: key for key, val in enum_to_halfday_bits.items()}

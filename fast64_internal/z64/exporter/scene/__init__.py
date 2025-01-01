@@ -29,9 +29,6 @@ class Scene:
     @staticmethod
     def new(name: str, sceneObj: Object, transform: Matrix, useMacros: bool, saveTexturesAsPNG: bool, model: OOTModel):
         i = 0
-        rooms = RoomEntries.new(
-            f"{name}_roomList", name.removesuffix("_scene"), model, sceneObj, transform, saveTexturesAsPNG
-        )
 
         colHeader = CollisionHeader.new(
             f"{name}_collisionHeader",
@@ -62,6 +59,11 @@ class Scene:
             SceneHeader.new(f"{name}_header{i:02}", csHeader, sceneObj, transform, i, useMacros)
             for i, csHeader in enumerate(altProp.cutsceneHeaders, get_cs_index_start())
         ]
+
+        # process room after scene because of actor cutscenes requiring to be processed before actors
+        rooms = RoomEntries.new(
+            f"{name}_roomList", name.removesuffix("_scene"), model, sceneObj, transform, saveTexturesAsPNG
+        )
 
         hasAlternateHeaders = True if len(altHeader.cutscenes) > 0 else hasAlternateHeaders
         altHeader = altHeader if hasAlternateHeaders else None

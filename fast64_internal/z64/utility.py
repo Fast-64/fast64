@@ -812,6 +812,8 @@ def getCollection(objName, collectionType, subIndex: int, collection_index: int 
         collection = obj.z64_actor_cs_property.entries
     elif collectionType == "Actor CS Headers":
         collection = obj.z64_actor_cs_property.header_settings.cutsceneHeaders
+    elif collectionType == "Actor Halfday":
+        collection = obj.ootActorProperty.halfday_bits
     elif collectionType == "Curve":
         collection = obj.ootSplineProperty.headerSettings.cutsceneHeaders
     elif collectionType.startswith("CSHdr."):

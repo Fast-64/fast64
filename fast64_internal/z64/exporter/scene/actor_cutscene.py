@@ -10,12 +10,17 @@ from ..collision.camera import BgCamInformations, CameraInfo
 
 
 class ActorCutscene:
-    def __init__(self, scene_obj: Object, transform: Matrix, props: Z64_ActorCutscene, name: str, index: int):
+    def __init__(
+        self, scene_obj: Object, transform: Matrix, props: Z64_ActorCutscene, name: str, index: int, obj: Object
+    ):
         self.name = name
         self.priority: int = props.priority
         self.length: int = props.length
         self.index = index
         self.cam_info: Optional[CameraInfo] = None
+
+        if obj.ootEmptyType == "Actor":
+            obj.ootActorProperty.actor_cs_index = index
 
         if props.cs_cam_id == "Custom":
             self.cs_cam_id: str = props.cs_cam_id_custom
@@ -73,18 +78,30 @@ class SceneActorCutscene:
     entries: list[ActorCutscene]
 
     @staticmethod
-    def new(name: str, scene_obj: Object, transform: Matrix, header_index: int):
-        obj_list = getObjectList(scene_obj.children_recursive, "EMPTY", "Actor Cutscene")
+    def get_entries(name: str, scene_obj: Object, transform: Matrix, header_index: int, empty_type: str, start: int):
         entries: list[ActorCutscene] = []
+        obj_list = getObjectList(scene_obj.children_recursive, "EMPTY", empty_type)
 
-        for i, obj in enumerate(obj_list):
+        for i, obj in enumerate(obj_list, start):
+            if empty_type == "Actor":
+                header_settings = obj.ootActorProperty.headerSettings
+            else:
+                header_settings = obj.z64_actor_cs_property.header_settings
+
             entries.extend(
                 [
-                    ActorCutscene(scene_obj, transform, item, name, i)
+                    ActorCutscene(scene_obj, transform, item, name, i, obj)
                     for item in obj.z64_actor_cs_property.entries
-                    if Utility.isCurrentHeaderValid(obj.z64_actor_cs_property.header_settings, header_index)
+                    if Utility.isCurrentHeaderValid(header_settings, header_index)
                 ]
             )
+
+        return entries
+
+    @staticmethod
+    def new(name: str, scene_obj: Object, transform: Matrix, header_index: int):
+        entries = SceneActorCutscene.get_entries(name, scene_obj, transform, header_index, "Actor Cutscene", 0)
+        entries.extend(SceneActorCutscene.get_entries(name, scene_obj, transform, header_index, "Actor", len(entries)))
 
         # validate camera indices
         last_cam_index = -1
