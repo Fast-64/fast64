@@ -437,14 +437,14 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, camera,
             convertTextureData,
         )
 
-    def walk(node, fMeshes):
+    def walk(node: TransformNode, fMeshes: dict[int, FMesh]):
         base_node = node.node
-        if type(base_node) == JumpNode:
-            if base_node.geolayout:
+        if isinstance(base_node, JumpNode):
+            if base_node.geolayout is not None:
                 for node in base_node.geolayout.nodes:
                     fMeshes = walk(node, fMeshes)
         fMesh = getattr(base_node, "fMesh", None)
-        if fMesh:
+        if fMesh is not None:
             if fMeshes.get(base_node.drawLayer, None):
                 fMeshes[base_node.drawLayer].append(fMesh)
             else:
@@ -1120,10 +1120,6 @@ def generateSwitchOptions(transform_node, geolayout, geolayoutGraph, prefix):
                 option_geo_layout.name,
             )
 
-            # if this is a material override, add to the list
-            # if child_node.node.material is not None:
-            # overrideNodes.append(optionGeolayout.nodes[0])
-
     for i, child_node in enumerate(transform_node.children):
         if isinstance(transform_node.node, SwitchNode):
             prefix_name = f"{prefix}_opt{i}"
@@ -1663,7 +1659,7 @@ def processBone(
 
     # true when this is the start of the geo layout
     # if there is no parent, then instead set the node to be the root of our geo layout
-    if type(parentTransformNode) == int:
+    if isinstance(parentTransformNode, int):
         if len(geolayout.nodes) > parentTransformNode:
             parentTransformNode = geolayout.nodes[parentTransformNode]
         else:
@@ -1681,7 +1677,7 @@ def processBone(
             if not zeroRotation:
                 node = DisplayListWithOffsetNode(int(bone.draw_layer), hasDL, mathutils.Vector((0, 0, 0)))
 
-                if parentTransformNode:
+                if parentTransformNode is not None:
                     parentTransformNode = addParentNode(
                         parentTransformNode, TranslateRotateNode(1, 0, False, translate, rotate)
                     )
@@ -1810,7 +1806,7 @@ def processBone(
             if usedDrawLayers is not None:
                 lastDeformName = boneName
 
-            if parentTransformNode:
+            if parentTransformNode is not None:
                 parentTransformNode.children.append(transformNode)
                 transformNode.parent = parentTransformNode
             else:
@@ -1842,7 +1838,7 @@ def processBone(
                     node.DLmicrocode = fMesh.draw
                     node.fMesh = fMesh  # Used for material override switches
 
-                    if parentTransformNode:
+                    if parentTransformNode is not None:
                         parentTransformNode.children.append(transformNode)
                         transformNode.parent = parentTransformNode
                     else:
@@ -1868,7 +1864,7 @@ def processBone(
                 additionalTransformNode.parent = transformNode
 
     else:
-        if parentTransformNode:
+        if parentTransformNode is not None:
             parentTransformNode.children.append(transformNode)
             transformNode.parent = parentTransformNode
         else:
