@@ -52,12 +52,15 @@ def getDisplayNameFromActorID(actorID: str):
 
 def handleActorWithRotAsParam(actorProp: Z64_ActorProperty, actorID: str, rotation: list[int]):
     if actorID in actorsWithRotAsParam:
-        actorProp.rotOverride = True
-
-    if actorProp.rotOverride:
-        actorProp.rotOverrideX = f"0x{rotation[0]:04X}"
-        actorProp.rotOverrideY = f"0x{rotation[1]:04X}"
-        actorProp.rotOverrideZ = f"0x{rotation[2]:04X}"
+        if actorProp.actor_id != "Custom":
+            actorProp.rot_x = hex(rotation[0])
+            actorProp.rot_y = hex(rotation[1])
+            actorProp.rot_z = hex(rotation[2])
+        else:
+            actorProp.rot_override = True
+            actorProp.rot_x_custom = hex(rotation[0])
+            actorProp.rot_y_custom = hex(rotation[1])
+            actorProp.rot_z_custom = hex(rotation[2])
 
 
 def getDataMatch(

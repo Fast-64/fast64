@@ -221,7 +221,7 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
             if obj.type == "EMPTY" and is_game_oot():
                 if obj.ootEmptyType == "Room":
                     Z64_ObjectProperty.upgrade_object(obj)
-                if obj.ootEmptyType in {"Entrance", "Transition Actor"}:
+                if obj.ootEmptyType in {"Actor", "Entrance", "Transition Actor"}:
                     Z64_ActorProperty.upgrade_object(obj)
                 if obj.ootEmptyType == "Cutscene":
                     OOTCutsceneProperty.upgrade_object(obj)

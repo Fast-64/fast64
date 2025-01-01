@@ -5,6 +5,7 @@ from bpy.types import Object
 from ....utility import PluginError, CData, indent
 from ...utility import getObjectList, is_oot_features, is_game_oot
 from ...constants import oot_data, mm_data
+from ...actor.properties import Z64_ActorProperty
 from ..utility import Utility
 from ..actor import Actor
 
@@ -59,8 +60,9 @@ class SceneTransitionActors:
         entries: list[TransitionActor] = []
         for obj in actorObjList:
             transActorProp = obj.ootTransitionActorProperty
-            actor_id: str = transActorProp.actor.actorID if is_game_oot() else transActorProp.actor.mm_actor_id
-            if Utility.isCurrentHeaderValid(transActorProp.actor.headerSettings, headerIndex) and actor_id != "None":
+            actorProp: Z64_ActorProperty = transActorProp.actor
+            actor_id: str = actorProp.actorID if is_game_oot() else actorProp.mm_actor_id
+            if Utility.isCurrentHeaderValid(actorProp.headerSettings, headerIndex) and actor_id != "None":
                 pos, rot, _, _ = Utility.getConvertedTransform(transform, sceneObj, obj, True)
                 transActor = TransitionActor()
 
@@ -75,7 +77,7 @@ class SceneTransitionActors:
                 back = (toIndex, Utility.getPropValue(transActorProp, "cameraTransitionBack"))
 
                 if actor_id == "Custom":
-                    transActor.id = transActorProp.actor.actorIDCustom
+                    transActor.id = actorProp.actor_id_custom
                 else:
                     transActor.id = actor_id
 
@@ -94,7 +96,7 @@ class SceneTransitionActors:
                 else:
                     transActor.rot = f"((0x{round(rot_deg):04X} & 0x1FF) << 7) | ({transActorProp.cutscene_id} & 0x7F)"
 
-                transActor.params = transActorProp.actor.actorParam
+                transActor.params = actorProp.actorParam if actorProp.actor_id != "Custom" else actorProp.params_custom
                 transActor.roomFrom, transActor.cameraFront = front
                 transActor.roomTo, transActor.cameraBack = back
                 entries.append(transActor)
@@ -148,8 +150,9 @@ class SceneEntranceActors:
         actorObjList = getObjectList(sceneObj.children_recursive, "EMPTY", "Entrance")
         for obj in actorObjList:
             entranceProp = obj.ootEntranceProperty
-            actor_id: str = entranceProp.actor.actorID if is_game_oot() else entranceProp.actor.mm_actor_id
-            if Utility.isCurrentHeaderValid(entranceProp.actor.headerSettings, headerIndex) and actor_id != "None":
+            actorProp: Z64_ActorProperty = entranceProp.actor
+            actor_id: str = actorProp.actorID if is_game_oot() else actorProp.mm_actor_id
+            if Utility.isCurrentHeaderValid(actorProp.headerSettings, headerIndex) and actor_id != "None":
                 pos, rot, _, _ = Utility.getConvertedTransform(transform, sceneObj, obj, True)
                 entranceActor = EntranceActor()
 
@@ -160,7 +163,7 @@ class SceneEntranceActors:
                     else "Custom Actor"
                 )
 
-                entranceActor.id = "ACTOR_PLAYER" if not entranceProp.customActor else entranceProp.actor.actorIDCustom
+                entranceActor.id = "ACTOR_PLAYER" if not entranceProp.customActor else actorProp.actor_id_custom
                 entranceActor.pos = pos
 
                 if is_oot_features():
@@ -170,7 +173,7 @@ class SceneEntranceActors:
                         f"SPAWN_ROT_FLAGS(DEG_TO_BINANG({(r * (180 / 0x8000)):.3f}), 0x00)" for r in rot
                     )
 
-                entranceActor.params = entranceProp.actor.actorParam
+                entranceActor.params = actorProp.params if not entranceProp.customActor else actorProp.params_custom
                 if entranceProp.tiedRoom is not None:
                     entranceActor.roomIndex = entranceProp.tiedRoom.ootRoomHeader.roomIndex
                 else:
