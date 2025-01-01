@@ -5,6 +5,7 @@ from __future__ import annotations
 
 
 import bpy
+import bmesh
 
 from bpy.props import (
     StringProperty,
@@ -872,7 +873,8 @@ class SM64_F3D(DL):
         return [a + L - self.LastLoad for a in Tri]
 
     def apply_mesh_data(self, obj: bpy.types.Object, mesh: bpy.types.Mesh, layer: int, tex_path: Path):
-        tris = mesh.polygons
+        # bpy.app.version >= (3, 5, 0)
+        
         bpy.context.view_layer.objects.active = obj
         ind = -1
         new = -1
@@ -890,6 +892,15 @@ class SM64_F3D(DL):
         Valph = obj.data.color_attributes.get("Alpha")
         if not Valph:
             Valph = obj.data.color_attributes.new(name="Alpha", type=e, domain="CORNER")
+        
+        b_mesh = bmesh.new()
+        b_mesh.from_mesh(mesh)
+        tris = b_mesh.faces
+        tris.ensure_lookup_table()
+        uv_map = b_mesh.loops.layers.uv.active
+        v_color = b_mesh.loops.layers.float_color["Col"]
+        v_alpha = b_mesh.loops.layers.float_color["Alpha"]
+        
         self.Mats.append([len(tris), 0])
         for i, t in enumerate(tris):
             if i > self.Mats[ind + 1][0]:
@@ -915,14 +926,15 @@ class SM64_F3D(DL):
                 else:
                     WH = i.size
                 # Set UV data and Vertex Color Data
-                for v, l in zip(t.vertices, t.loop_indices):
-                    uv = self.UVs[v]
-                    vcol = self.VCs[v]
+                for v, l in zip(t.verts, t.loops):
+                    uv = self.UVs[v.index]
+                    vcol = self.VCs[v.index]
                     # scale verts
-                    UVmap.data[l].uv = [a * (1 / (32 * b)) if b > 0 else a * 0.001 * 32 for a, b in zip(uv, WH)]
+                    l[uv_map].uv = [a * (1 / (32 * b)) if b > 0 else a * 0.001 * 32 for a, b in zip(uv, WH)]
                     # idk why this is necessary. N64 thing or something?
-                    UVmap.data[l].uv[1] = UVmap.data[l].uv[1] * -1 + 1
-                    Vcol.data[l].color = [a / 255 for a in vcol]
+                    l[uv_map].uv[1] = l[uv_map].uv[1] * -1 + 1
+                    l[v_color] = [a / 255 for a in vcol]
+        b_mesh.to_mesh(mesh)
 
     # create a new f3d_mat given an SM64_Material class but don't create copies with same props
     def create_new_f3d_mat(self, mat: SM64_Material, mesh: bpy.types.Mesh):
