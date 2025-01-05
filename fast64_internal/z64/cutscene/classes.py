@@ -32,7 +32,15 @@ class CutsceneCmdBase:
     duration: Optional[int] = None
 
     def getEnumValue(self, enumKey: str, index: int, isSeqLegacy: bool = False):
-        if not is_game_oot() and enumKey not in {"seqId", "destinationType", "ocarinaSongActionId", "motionBlurType", "modifySeqType", "chooseCreditsSceneType", "transitionGeneralType"}:
+        if not is_game_oot() and enumKey not in {
+            "seqId",
+            "destinationType",
+            "ocarinaSongActionId",
+            "motionBlurType",
+            "modifySeqType",
+            "chooseCreditsSceneType",
+            "transitionGeneralType",
+        }:
             # remove `cs` and lowercase first letter
             enumKey = enumKey[2].lower() + enumKey[3:]
 
@@ -67,6 +75,7 @@ class CutsceneCmdCamPoint(CutsceneCmdBase):
 
 
 # MM's new camera commands
+
 
 @dataclass
 class CutsceneCmdNewCamPoint(CutsceneCmdBase):
@@ -429,7 +438,13 @@ class CutsceneCmdTextList(CutsceneCmdBase):
     """This class contains Text List command data"""
 
     entryTotal: Optional[int] = None
-    entries: list[CutsceneCmdText | CutsceneCmdTextNone | CutsceneCmdTextOcarinaAction | CutsceneCmdTextGeneric | CutsceneCmdTextMask] = field(default_factory=list)
+    entries: list[
+        CutsceneCmdText
+        | CutsceneCmdTextNone
+        | CutsceneCmdTextOcarinaAction
+        | CutsceneCmdTextGeneric
+        | CutsceneCmdTextMask
+    ] = field(default_factory=list)
     paramNumber: int = 1
     listName: str = "textList"
 
@@ -781,7 +796,7 @@ class Cutscene:
     textList: list[CutsceneCmdTextList] = field(default_factory=list)
     miscList: list[CutsceneCmdMiscList] = field(default_factory=list)
     rumbleList: list[CutsceneCmdRumbleControllerList] = field(default_factory=list)
-    transitionList: list[CutsceneCmdTransition] = field(default_factory=list) 
+    transitionList: list[CutsceneCmdTransition] = field(default_factory=list)
     lightSettingsList: list[CutsceneCmdLightSettingList] = field(default_factory=list)
     timeList: list[CutsceneCmdTimeList] = field(default_factory=list)
     seqList: list[CutsceneCmdStartStopSeqList] = field(default_factory=list)

@@ -85,7 +85,7 @@ class CutsceneImport(CutsceneObjectFactory):
     def getNewCutscene(self, csData: str, name: str):
         params = self.getCmdParams(csData, "CS_HEADER", Cutscene.paramNumber)
         return Cutscene(name, getInteger(params[0]), getInteger(params[1]))
-    
+
     def correct_command_lists(self, command: str):
         """If using the new cs system, moves standalone commands to the proper lists"""
         if self.new_cs_system:

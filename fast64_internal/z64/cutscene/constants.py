@@ -237,7 +237,7 @@ ootCSListEntryCommands = [
     "CS_CAM_POINT_NEW",
     "CS_CAM_MISC",
     "CS_CAM_END",
-    "CS_CAM_SPLINE", # technically a list but treating it as an entry
+    "CS_CAM_SPLINE",  # technically a list but treating it as an entry
     "CS_TEXT_DEFAULT",
     "CS_TEXT_TYPE_1",
     "CS_TEXT_TYPE_3",

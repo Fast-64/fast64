@@ -345,6 +345,6 @@ class Z64_Data:
         if game == "OOT":
             self.ootEnumMusicSeq = ootEnumMusicSeq
             self.ootEnumNightSeq = ootEnumNightSeq
-        else: 
+        else:
             self.ootEnumMusicSeq = enum_seq_id
             self.ootEnumNightSeq = enum_ambiance_id
