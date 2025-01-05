@@ -7,6 +7,6 @@ def get_xml_root(xml_path: Path) -> Element:
     try:
         return parse_xml(xml_path.resolve()).getroot()
     except:
-        from ....utility import PluginError
+        from ...utility import PluginError
 
         raise PluginError(f"ERROR: File '{xml_path}' is missing or malformed.")

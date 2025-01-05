@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from os import path
-from ....utility import PluginError
+from ...utility import PluginError
 from .getters import getXMLRoot
 from .data import OoT_BaseElement
 

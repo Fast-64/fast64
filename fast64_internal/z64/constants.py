@@ -1,4 +1,4 @@
-from .data import OoT_Data, MM_Data
+from ..data import OoT_Data, MM_Data
 
 
 oot_data = OoT_Data()
