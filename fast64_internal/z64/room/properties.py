@@ -205,12 +205,8 @@ class Z64_RoomHeaderProperty(PropertyGroup):
             # Behavior
             behaviorBox = layout.column()
             behaviorBox.box().label(text="Behavior")
-            drawEnumWithCustom(
-                behaviorBox, self, "roomBehaviour", "Room Type", "", "roomBehaviourCustom"
-            )
-            drawEnumWithCustom(
-                behaviorBox, self, "linkIdleMode", "Environment Type", "", "linkIdleModeCustom"
-            )
+            drawEnumWithCustom(behaviorBox, self, "roomBehaviour", "Room Type", "", "roomBehaviourCustom")
+            drawEnumWithCustom(behaviorBox, self, "linkIdleMode", "Environment Type", "", "linkIdleModeCustom")
 
             if is_game_oot():
                 behaviorBox.prop(self, "disableWarpSongs", text="Disable Warp Songs")

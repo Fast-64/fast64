@@ -437,9 +437,7 @@ class Z64_SceneHeaderProperty(PropertyGroup):
             general.box().label(text="General")
 
             # General
-            drawEnumWithCustom(
-                general, self, "globalObject", "Global Object", "", "globalObjectCustom"
-            )
+            drawEnumWithCustom(general, self, "globalObject", "Global Object", "", "globalObjectCustom")
             if is_game_oot():
                 drawEnumWithCustom(general, self, "naviCup", "Navi Hints", "")
             if headerIndex is None or headerIndex == 0:
@@ -456,19 +454,13 @@ class Z64_SceneHeaderProperty(PropertyGroup):
 
             prop_split(skyboxAndSound, self, "skybox_texture_id", "Skybox Texture ID")
             drawEnumWithCustom(skyboxAndSound, self, "skyboxID", "Skybox", "", "skyboxIDCustom")
-            drawEnumWithCustom(
-                skyboxAndSound, self, "skyboxCloudiness", "Skybox Config", "", "skyboxCloudinessCustom"
-            )
-            drawEnumWithCustom(
-                skyboxAndSound, self, "musicSeq", "Music Sequence", "", "musicSeqCustom"
-            )
+            drawEnumWithCustom(skyboxAndSound, self, "skyboxCloudiness", "Skybox Config", "", "skyboxCloudinessCustom")
+            drawEnumWithCustom(skyboxAndSound, self, "musicSeq", "Music Sequence", "", "musicSeqCustom")
 
             musicSearch = skyboxAndSound.operator(OOT_SearchMusicSeqEnumOperator.bl_idname, icon="VIEWZOOM")
             musicSearch.objName = objName
             musicSearch.headerIndex = headerIndex if headerIndex is not None else 0
-            drawEnumWithCustom(
-                skyboxAndSound, self, "nightSeq", "Nighttime SFX", "", "nightSeqCustom"
-            )
+            drawEnumWithCustom(skyboxAndSound, self, "nightSeq", "Nighttime SFX", "", "nightSeqCustom")
             drawEnumWithCustom(skyboxAndSound, self, "audioSessionPreset", "Audio Session Preset", "")
 
             # Camera And World Map | Minimap Settings

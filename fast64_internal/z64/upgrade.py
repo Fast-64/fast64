@@ -180,7 +180,9 @@ def upgradeCutsceneSubProps(csListSubProp):
 
     subPropsToEnum = [
         # TextBox
-        Cutscene_UpgradeData("ocarinaSongAction", "ocarinaAction", GD.game_data.z64.enumData.ootEnumOcarinaSongActionId),
+        Cutscene_UpgradeData(
+            "ocarinaSongAction", "ocarinaAction", GD.game_data.z64.enumData.ootEnumOcarinaSongActionId
+        ),
         Cutscene_UpgradeData("type", "csTextType", GD.game_data.z64.enumData.ootEnumCsTextType),
         # Seq
         Cutscene_UpgradeData("value", "csSeqID", GD.game_data.z64.enumData.ootEnumSeqId),
@@ -210,7 +212,8 @@ def upgradeCSListProps(csListProp):
 
     # both are enums but the item list is different (the old one doesn't have a "custom" entry)
     convertOldDataToEnumData(
-        csListProp, [Cutscene_UpgradeData("fxType", "transitionType", GD.game_data.z64.enumData.ootEnumCsTransitionType)]
+        csListProp,
+        [Cutscene_UpgradeData("fxType", "transitionType", GD.game_data.z64.enumData.ootEnumCsTransitionType)],
     )
 
 

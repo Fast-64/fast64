@@ -154,9 +154,7 @@ class OOTCSSeqProperty(OOTCutsceneCommon, PropertyGroup):
     subprops = ["csSeqID", "startFrame", "endFrame"]
     csSeqID: EnumProperty(name="Seq ID", items=GD.game_data.z64.enumData.ootEnumSeqId, default=1)
     csSeqIDCustom: StringProperty(default="NA_BGM_CUSTOM")
-    csSeqPlayer: EnumProperty(
-        name="Seq Player", items=GD.game_data.z64.enumData.ootEnumCsFadeOutSeqPlayer, default=1
-    )
+    csSeqPlayer: EnumProperty(name="Seq Player", items=GD.game_data.z64.enumData.ootEnumCsFadeOutSeqPlayer, default=1)
     csSeqPlayerCustom: StringProperty(default="CS_FADE_OUT_CUSTOM")
 
     def filterProp(self, name, listProp):
@@ -355,9 +353,7 @@ class OOTCutscenePreviewSettingsProperty(PropertyGroup):
 class OOTCutsceneProperty(PropertyGroup):
     csEndFrame: IntProperty(name="End Frame", min=0, default=100)
     csUseDestination: BoolProperty(name="Cutscene Destination (Scene Change)")
-    csDestination: EnumProperty(
-        name="Destination", items=GD.game_data.z64.enumData.ootEnumCsDestination, default=1
-    )
+    csDestination: EnumProperty(name="Destination", items=GD.game_data.z64.enumData.ootEnumCsDestination, default=1)
     csDestinationCustom: StringProperty(default="CS_DEST_CUSTOM")
     csDestinationStartFrame: IntProperty(name="Start Frame", min=0, default=99)
     csLists: CollectionProperty(type=OOTCSListProperty, name="Cutscene Lists")
