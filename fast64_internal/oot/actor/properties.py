@@ -1,3 +1,5 @@
+import bpy
+
 from bpy.types import Object, PropertyGroup, UILayout
 from bpy.utils import register_class, unregister_class
 from bpy.props import EnumProperty, StringProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
@@ -44,7 +46,7 @@ def get_prop_name(actor_key: str, param_type: str, param_subtype: str, param_ind
         "Message": "naviMsg",
     }
     suffix = param_to_prop_suffix[param_type] if param_type != "Flag" else flag_to_prop_suffix[param_subtype]
-    return f"{actor_key}.{suffix}{param_index}"  # e.g.: ``en_test.props1``
+    return f"{bpy.context.scene.gameEditorMode.lower()}.{actor_key}.{suffix}{param_index}"  # e.g.: ``en_test.props1``
 
 
 def initOOTActorProperties():
