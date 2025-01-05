@@ -5,7 +5,7 @@ from .scene.operators import scene_ops_register, scene_ops_unregister
 from .scene.properties import OOTBootupSceneOptions, scene_props_register, scene_props_unregister
 from .scene.panels import scene_panels_register, scene_panels_unregister
 
-from .props_panel_main import oot_obj_panel_register, oot_obj_panel_unregister, oot_obj_register, oot_obj_unregister
+from .props_panel_main import oot_obj_panel_register, oot_obj_panel_unregister, oot_obj_register, oot_obj_unregister, OOT_ObjectProperties, OOTSceneProperties
 from .skeleton.properties import OOTSkeletonImportSettings, OOTSkeletonExportSettings
 from .oot_utility import oot_utility_register, oot_utility_unregister, setAllActorsVisibility
 from .file_settings import file_register, file_unregister
@@ -112,7 +112,19 @@ class OOT_Properties(bpy.types.PropertyGroup):
     )
 
 
-oot_classes = (OOT_Properties,)
+z64_register_on_enable = (
+    OOTBootupSceneOptions,
+    OOTDLExportSettings,
+    OOTDLImportSettings,
+    OOTSkeletonExportSettings,
+    OOTSkeletonImportSettings,
+    OOTAnimExportSettingsProperty,
+    OOTAnimImportSettingsProperty,
+    OOTCollisionExportSettings,
+    OOT_Properties,
+    OOTSceneProperties,
+    OOT_ObjectProperties,
+)
 
 
 def oot_panel_register():
@@ -139,7 +151,7 @@ def oot_panel_unregister():
     skeleton_panels_unregister()
 
 
-def oot_register(registerPanels):
+def oot_register(registerPanels: bool):
     oot_operator_register()
     oot_utility_register()
     collision_ops_register()  # register first, so panel goes above mat panel
@@ -168,16 +180,13 @@ def oot_register(registerPanels):
     csMotion_preview_register()
     cutscene_preview_register()
 
-    for cls in oot_classes:
-        register_class(cls)
-
     if registerPanels:
         oot_panel_register()
 
 
-def oot_unregister(unregisterPanels):
-    for cls in reversed(oot_classes):
-        unregister_class(cls)
+def oot_unregister(unregisterPanels: bool):
+    if unregisterPanels:
+        oot_panel_unregister()
 
     oot_operator_unregister()
     oot_utility_unregister()
@@ -206,6 +215,3 @@ def oot_unregister(unregisterPanels):
     csMotion_panels_unregister()
     csMotion_props_unregister()
     csMotion_ops_unregister()
-
-    if unregisterPanels:
-        oot_panel_unregister()

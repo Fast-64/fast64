@@ -3,8 +3,11 @@ import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operato
 from math import pi, ceil, degrees, radians, copysign
 from mathutils import *
 from .utility_anim import *
-from typing import Callable, Iterable, Any, Optional, Tuple, TypeVar, Union
+from typing import Callable, Iterable, Any, Optional, Tuple, TypeVar, Union, TYPE_CHECKING
 from bpy.types import UILayout, Scene, World
+
+if TYPE_CHECKING:
+    from .f3d.f3d_material import F3DMaterialProperty
 
 CollectionProperty = Any  # collection prop as defined by using bpy.props.CollectionProperty
 
