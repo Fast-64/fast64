@@ -69,8 +69,6 @@ class OOTLinkTextureAnimProperty(PropertyGroup):
 
 
 classes = (
-    OOTAnimExportSettingsProperty,
-    OOTAnimImportSettingsProperty,
     OOTLinkTextureAnimProperty,
 )
 
