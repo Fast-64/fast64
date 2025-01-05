@@ -1,32 +1,33 @@
 from dataclasses import dataclass
 from os import path
+from pathlib import Path
 from ...utility import PluginError
-from .getters import getXMLRoot
-from .data import OoT_BaseElement
+from .getters import get_xml_root
+from .data import Z64_BaseElement
 
 # Note: "object" in this context refers to an OoT Object file (like ``gameplay_keep``)
 
 
 @dataclass
-class OoT_ObjectElement(OoT_BaseElement):
+class Z64_ObjectElement(Z64_BaseElement):
     pass
 
 
-class OoT_ObjectData:
+class Z64_ObjectData:
     """Everything related to OoT objects"""
 
-    def __init__(self):
+    def __init__(self, game: str):
         # general object list
-        self.objectList: list[OoT_ObjectElement] = []
+        self.objectList: list[Z64_ObjectElement] = []
 
         # Path to the ``ObjectList.xml`` file
-        objectXML = path.dirname(path.abspath(__file__)) + "/xml/ObjectList.xml"
-        objectRoot = getXMLRoot(objectXML)
+        xml_path = Path(f"{path.dirname(path.abspath(__file__))}/xml/{game.lower()}_object_list.xml")
+        object_root = get_xml_root(xml_path.resolve())
 
-        for obj in objectRoot.iterfind("Object"):
+        for obj in object_root.iterfind("Object"):
             objName = f"{obj.attrib['Name']} - {obj.attrib['ID'].removeprefix('OBJECT_')}"
             self.objectList.append(
-                OoT_ObjectElement(obj.attrib["ID"], obj.attrib["Key"], objName, int(obj.attrib["Index"]))
+                Z64_ObjectElement(obj.attrib["ID"], obj.attrib["Key"], objName, int(obj.attrib["Index"]))
             )
 
         self.objects_by_id = {obj.id: obj for obj in self.objectList}
@@ -41,7 +42,7 @@ class OoT_ObjectData:
         self.ootEnumObjectIDLegacy = self.getObjectIDList(self.objects_by_key["obj_timeblock"].index + 1, True)
 
         # validate the legacy list, if there's any None element then something's wrong
-        if self.deletedEntry in self.ootEnumObjectIDLegacy:
+        if game == "OOT" and self.deletedEntry in self.ootEnumObjectIDLegacy:
             raise PluginError("ERROR: Legacy Object List doesn't match!")
 
     def getObjectIDList(self, max: int, isLegacy: bool):
