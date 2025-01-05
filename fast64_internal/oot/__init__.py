@@ -14,9 +14,6 @@ from .collision.properties import OOTCollisionExportSettings
 from .room.operators import room_ops_register, room_ops_unregister
 from .room.properties import room_props_register, room_props_unregister
 
-from .actor.operators import actor_ops_register, actor_ops_unregister
-from .actor.properties import actor_props_register, actor_props_unregister
-
 from .f3d.operators import f3d_ops_register, f3d_ops_unregister
 from .f3d.properties import OOTDLExportSettings, OOTDLImportSettings, f3d_props_register, f3d_props_unregister
 from .f3d.panels import f3d_panels_register, f3d_panels_unregister
@@ -152,6 +149,9 @@ def oot_panel_unregister():
 
 
 def oot_register(registerPanels: bool):
+    from .actor.operators import actor_ops_register
+    from .actor.properties import actor_props_register
+
     oot_operator_register()
     oot_utility_register()
     collision_ops_register()  # register first, so panel goes above mat panel
@@ -185,6 +185,9 @@ def oot_register(registerPanels: bool):
 
 
 def oot_unregister(unregisterPanels: bool):
+    from .actor.operators import actor_ops_unregister
+    from .actor.properties import actor_props_unregister
+
     if unregisterPanels:
         oot_panel_unregister()
 
