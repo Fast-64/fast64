@@ -27,6 +27,24 @@ from .classes import (
     CutsceneCmdRumbleController,
     CutsceneCmdRumbleControllerList,
     CutsceneCmdDestination,
+    CutsceneCmdCamSplineList,
+    CutsceneCmdTransitionList,
+    CutsceneCmdDestinationList,
+    CutsceneCmdMotionBlurList,
+    CutsceneCmdModifySeqList,
+    CutsceneCmdChooseCreditsScenesList,
+    CutsceneCmdTransitionGeneralList,
+    CutsceneCmdGiveTatlList,
+    CutsceneCmdCamSpline,
+    CutsceneCmdNewCamPoint,
+    CutsceneCmdCamMisc,
+    CutsceneCmdTextGeneric,
+    CutsceneCmdTextMask,
+    CutsceneCmdMotionBlur,
+    CutsceneCmdModifySeq,
+    CutsceneCmdChooseCreditsScenes,
+    CutsceneCmdTransitionGeneral,
+    CutsceneCmdGiveTatl,
 )
 
 
@@ -157,6 +175,8 @@ ootCSLegacyToNewCmdNames = {
     "CS_PLAY_BGM": "L_CS_START_SEQ",
     "CS_STOP_BGM_LIST": "CS_STOP_SEQ_LIST",
     "CS_STOP_BGM": "L_CS_STOP_SEQ",
+    "CS_BEGIN_CUTSCENE": "CS_HEADER",
+    "CS_END": "CS_END_OF_SCRIPT",
 }
 
 ootCSListCommands = [
@@ -180,6 +200,15 @@ ootCSListCommands = [
     "CS_PLAY_BGM_LIST",
     "CS_STOP_BGM_LIST",
     "CS_LIGHTING_LIST",
+    # from new system
+    "CS_CAM_SPLINE_LIST",
+    "CS_TRANSITION_LIST",
+    "CS_DESTINATION_LIST",
+    "CS_MOTION_BLUR_LIST",
+    "CS_MODIFY_SEQ_LIST",
+    "CS_CHOOSE_CREDITS_SCENES_LIST",
+    "CS_TRANSITION_GENERAL_LIST",
+    "CS_GIVE_TATL_LIST",
 ]
 
 ootCSListEntryCommands = [
@@ -204,14 +233,31 @@ ootCSListEntryCommands = [
     "L_CS_LIGHT_SETTING",
     "L_CS_START_SEQ",
     "L_CS_STOP_SEQ",
+    # from new system
+    "CS_CAM_POINT_NEW",
+    "CS_CAM_MISC",
+    "CS_CAM_END",
+    "CS_CAM_SPLINE", # technically a list but treating it as an entry
+    "CS_TEXT_DEFAULT",
+    "CS_TEXT_TYPE_1",
+    "CS_TEXT_TYPE_3",
+    "CS_TEXT_BOSSES_REMAINS",
+    "CS_TEXT_ALL_NORMAL_MASKS",
+    "CS_MOTION_BLUR",
+    "CS_MODIFY_SEQ",
+    "CS_CHOOSE_CREDITS_SCENES",
+    "CS_TRANSITION_GENERAL",
+    "CS_GIVE_TATL",
 ]
 
 ootCSSingleCommands = [
     "CS_HEADER",
     "CS_END_OF_SCRIPT",
+    # note: `CutsceneImport.correct_command_lists()` can move these ones in `ootCSListEntryCommands`
     "CS_TRANSITION",
     "CS_DESTINATION",
 ]
+
 
 ootCSListAndSingleCommands = ootCSSingleCommands + ootCSListCommands
 ootCSListAndSingleCommands.remove("CS_HEADER")
@@ -249,4 +295,26 @@ cmdToClass = {
     "CS_ACTOR_CUE_LIST": CutsceneCmdActorCueList,
     "CS_PLAYER_CUE_LIST": CutsceneCmdActorCueList,
     "CS_DESTINATION": CutsceneCmdDestination,
+    # from new system
+    "CS_CAM_SPLINE_LIST": CutsceneCmdCamSplineList,
+    "CS_CAM_SPLINE": CutsceneCmdCamSpline,
+    "CS_CAM_POINT_NEW": CutsceneCmdNewCamPoint,
+    "CS_CAM_MISC": CutsceneCmdCamMisc,
+    "CS_TRANSITION_LIST": CutsceneCmdTransitionList,
+    "CS_DESTINATION_LIST": CutsceneCmdDestinationList,
+    "CS_TEXT_DEFAULT": CutsceneCmdTextGeneric,
+    "CS_TEXT_TYPE_1": CutsceneCmdTextGeneric,
+    "CS_TEXT_TYPE_3": CutsceneCmdTextGeneric,
+    "CS_TEXT_BOSSES_REMAINS": CutsceneCmdTextMask,
+    "CS_TEXT_ALL_NORMAL_MASKS": CutsceneCmdTextMask,
+    "CS_MOTION_BLUR_LIST": CutsceneCmdMotionBlurList,
+    "CS_MOTION_BLUR": CutsceneCmdMotionBlur,
+    "CS_MODIFY_SEQ_LIST": CutsceneCmdModifySeqList,
+    "CS_MODIFY_SEQ": CutsceneCmdModifySeq,
+    "CS_CHOOSE_CREDITS_SCENES_LIST": CutsceneCmdChooseCreditsScenesList,
+    "CS_CHOOSE_CREDITS_SCENES": CutsceneCmdChooseCreditsScenes,
+    "CS_TRANSITION_GENERAL_LIST": CutsceneCmdTransitionGeneralList,
+    "CS_TRANSITION_GENERAL": CutsceneCmdTransitionGeneral,
+    "CS_GIVE_TATL_LIST": CutsceneCmdGiveTatlList,
+    "CS_GIVE_TATL": CutsceneCmdGiveTatl,
 }

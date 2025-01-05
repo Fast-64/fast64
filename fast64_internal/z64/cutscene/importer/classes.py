@@ -23,6 +23,10 @@ from ..constants import (
 from ..classes import (
     CutsceneCmdActorCueList,
     CutsceneCmdCamPoint,
+    CutsceneCmdNewCamPoint,
+    CutsceneCmdCamMisc,
+    CutsceneCmdCamSpline,
+    CutsceneSplinePoint,
     Cutscene,
     CutsceneObjectFactory,
 )
@@ -50,9 +54,19 @@ class CutsceneImport(CutsceneObjectFactory):
     filePath: Optional[str]  # used when importing from the panel
     fileData: Optional[str]  # used when importing the cutscenes when importing a scene
     csName: Optional[str]  # used when import a specific cutscene
+    new_cs_system: bool
 
     def getCmdParams(self, data: str, cmdName: str, paramNumber: int):
         """Returns the list of every parameter of the given command"""
+
+        # kinda hacky but better than duplicating the classes
+        if self.new_cs_system:
+            if cmdName in {"CS_START_SEQ", "CS_FADE_OUT_SEQ", "CS_LIGHT_SETTING"}:
+                paramNumber = 3
+            elif cmdName in {"CS_MISC", "CS_STOP_SEQ"}:
+                paramNumber = 4
+            elif cmdName in {"CS_RUMBLE_CONTROLLER"}:
+                paramNumber = 6
 
         parenthesis = "(" if not cmdName.endswith("(") else ""
         data = data.strip().removeprefix(f"{cmdName}{parenthesis}").replace(" ", "").removesuffix(")")
@@ -71,6 +85,16 @@ class CutsceneImport(CutsceneObjectFactory):
     def getNewCutscene(self, csData: str, name: str):
         params = self.getCmdParams(csData, "CS_HEADER", Cutscene.paramNumber)
         return Cutscene(name, getInteger(params[0]), getInteger(params[1]))
+    
+    def correct_command_lists(self, command: str):
+        """If using the new cs system, moves standalone commands to the proper lists"""
+        if self.new_cs_system:
+            if command in ootCSSingleCommands:
+                ootCSSingleCommands.remove(command)
+            if command in ootCSListAndSingleCommands:
+                ootCSListAndSingleCommands.remove(command)
+            if command not in ootCSListEntryCommands:
+                ootCSListEntryCommands.append(command)
 
     def getParsedCutscenes(self):
         """Returns the parsed commands read from every cutscene we can find"""
@@ -85,12 +109,20 @@ class CutsceneImport(CutsceneObjectFactory):
         else:
             raise PluginError("ERROR: File data can't be found!")
 
+        self.correct_command_lists("CS_TRANSITION")
+        self.correct_command_lists("CS_DESTINATION")
+
         # replace old names
         oldNames = list(ootCSLegacyToNewCmdNames.keys())
         fileData = fileData.replace("CS_CMD_CONTINUE", "CS_CAM_CONTINUE")
         fileData = fileData.replace("CS_CMD_STOP", "CS_CAM_STOP")
         for oldName in oldNames:
             fileData = fileData.replace(f"{oldName}(", f"{ootCSLegacyToNewCmdNames[oldName]}(")
+
+        # handle conflicts between the cs system of OoT and MM
+        if self.new_cs_system:
+            fileData = fileData.replace("CS_CAM_POINT", "CS_CAM_POINT_NEW")
+            fileData = fileData.replace("CS_RUMBLE", "CS_RUMBLE_CONTROLLER")
 
         # make a list of existing cutscene names, to skip importing them if found
         existingCutsceneNames = [
@@ -235,7 +267,63 @@ class CutsceneImport(CutsceneObjectFactory):
                         else:
                             commandData = cmd(params)
 
-                        if cmdListName != "CS_TRANSITION" and cmdListName != "CS_DESTINATION":
+                        # treating camera commands separately if using the new cs commands
+                        # as it became more complex to parse since it's basically a list in a list in a list
+                        if self.new_cs_system and "CAM" in cmdListName:
+                            foundEndCmd = False
+                            cur_point = 0
+                            at_list: list[CutsceneCmdNewCamPoint] = []
+                            eye_list: list[CutsceneCmdNewCamPoint] = []
+                            misc_list: list[CutsceneCmdCamMisc] = []
+                            cur_spline_entry: Optional[CutsceneCmdCamSpline] = None
+                            for d in cmdData:
+                                cmdEntryName = d.strip().split("(")[0]
+
+                                if foundEndCmd:
+                                    raise ValueError("ERROR: More camera commands after last one!")
+
+                                if "CS_CAM_END" in d:
+                                    foundEndCmd = True
+                                    continue
+
+                                entryCmd = cmdToClass[cmdEntryName]
+                                params = self.getCmdParams(d, cmdEntryName, entryCmd.paramNumber)
+                                listEntry = entryCmd(params)
+
+                                if cmdEntryName == "CS_CAM_SPLINE":
+                                    cur_spline_entry = listEntry
+                                elif cur_spline_entry is not None:
+                                    sub_list_entry = cmdToClass[cmdEntryName]
+                                    sub_params = self.getCmdParams(d, cmdEntryName, sub_list_entry.paramNumber)
+
+                                    if cur_point < cur_spline_entry.num_entries:
+                                        at_list.append(sub_list_entry(sub_params))
+                                        cur_point += 1
+                                    elif cur_point < cur_spline_entry.num_entries * 2:
+                                        eye_list.append(sub_list_entry(sub_params))
+                                        cur_point += 1
+                                    elif cur_point < cur_spline_entry.num_entries * 3:
+                                        misc_list.append(sub_list_entry(sub_params))
+                                        cur_point += 1
+
+                                    if cur_point == cur_spline_entry.num_entries * 3:
+                                        assert len(at_list) == len(eye_list) == len(misc_list)
+
+                                        for at, eye, misc in zip(at_list, eye_list, misc_list):
+                                            cur_spline_entry.entries.append(CutsceneSplinePoint(at, eye, misc))
+
+                                        commandData.entries.append(cur_spline_entry)
+                                        cur_point = 0
+                                        at_list.clear()
+                                        eye_list.clear()
+                                        misc_list.clear()
+                                        cur_spline_entry = None
+                                else:
+                                    raise ValueError("ERROR: Invalid number of entries.")
+                        elif cmdListName != "CS_TRANSITION" and cmdListName != "CS_DESTINATION":
+                            # this condition still works for both versions since the list name actually ends with "_LIST",
+                            # same thing in the next if/else block when it adds the data to the `Cutscene` class
+
                             foundEndCmd = False
                             for d in cmdData:
                                 cmdEntryName = d.strip().split("(")[0]

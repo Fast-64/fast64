@@ -725,10 +725,7 @@ class Z64_ImportSceneSettingsProperty(PropertyGroup):
         includeButtons3 = col.row(align=True)
         includeButtons3.prop(self, "includePaths", toggle=1)
         includeButtons3.prop(self, "includeWaterBoxes", toggle=1)
-
-        # TODO: implement cutscenes for MM features
-        if is_oot_features():
-            includeButtons3.prop(self, "includeCutscenes", toggle=1)
+        includeButtons3.prop(self, "includeCutscenes", toggle=1)
 
         includeButtons4 = col.row(align=True)
         if not is_oot_features():

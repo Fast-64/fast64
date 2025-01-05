@@ -3,7 +3,8 @@ import bpy
 from dataclasses import dataclass, field
 from bpy.types import Object
 from typing import Optional
-from ..constants import oot_data
+from ..utility import is_oot_features, is_game_oot
+from ..constants import oot_data, mm_data
 from .motion.utility import getBlenderPosition, getBlenderRotation, getRotation, getInteger
 
 
@@ -24,8 +25,15 @@ class CutsceneCmdBase:
     startFrame: Optional[int] = None
     endFrame: Optional[int] = None
 
+    # MM doesn't have startFrame and endFrame, instead it's just the framecount
+    duration: Optional[int] = None
+
     def getEnumValue(self, enumKey: str, index: int, isSeqLegacy: bool = False):
-        enum = oot_data.enumData.enumByKey[enumKey]
+        if not is_game_oot() and enumKey not in {"seqId", "destinationType", "ocarinaSongActionId", "motionBlurType", "modifySeqType", "chooseCreditsSceneType", "transitionGeneralType"}:
+            # remove `cs` and lowercase first letter
+            enumKey = enumKey[2].lower() + enumKey[3:]
+
+        enum = oot_data.enumData.enumByKey[enumKey] if is_game_oot() else mm_data.enum_data.enum_by_key[enumKey]
         item = enum.item_by_id.get(self.params[index])
         if item is None:
             setting = getInteger(self.params[index])
@@ -53,6 +61,81 @@ class CutsceneCmdCamPoint(CutsceneCmdBase):
             self.frame = getInteger(self.params[2])
             self.viewAngle = cs_import_float(self.params[3])
             self.pos = [getInteger(self.params[4]), getInteger(self.params[5]), getInteger(self.params[6])]
+
+
+# MM's new camera commands
+
+@dataclass
+class CutsceneCmdNewCamPoint(CutsceneCmdBase):
+    """This class contains a single Camera Point command data (the newer version)"""
+
+    interp_type: Optional[str] = None
+    weight: Optional[int] = None
+    pos: list[int] = field(default_factory=list)
+    relative_to: Optional[str] = None
+    paramNumber: int = 7
+    size: int = 0xC
+
+    def __post_init__(self):
+        if self.params is not None:
+            self.interp_type = self.params[0]
+            self.weight = getInteger(self.params[1])
+            self.duration = getInteger(self.params[2])
+            self.pos = [getInteger(self.params[3]), getInteger(self.params[4]), getInteger(self.params[5])]
+            self.relative_to = self.params[6]
+
+
+@dataclass
+class CutsceneCmdCamMisc(CutsceneCmdBase):
+    """This class contains the Camera Misc data"""
+
+    camRoll: Optional[int] = None
+    viewAngle: Optional[float] = None
+    paramNumber: int = 4
+    size: int = 0x8
+
+    def __post_init__(self):
+        if self.params is not None:
+            self.camRoll = getInteger(self.params[1])
+            self.viewAngle = getInteger(self.params[2])
+
+
+@dataclass
+class CutsceneSplinePoint:
+    # this is not a real command but it helps as each camera point is made of one at, one eye and one misc
+    at: Optional[CutsceneCmdNewCamPoint] = None
+    eye: Optional[CutsceneCmdNewCamPoint] = None
+    misc: Optional[CutsceneCmdCamMisc] = None
+
+
+@dataclass
+class CutsceneCmdCamSpline(CutsceneCmdBase):
+    """This class contains the Camera Spline data"""
+
+    num_entries: Optional[int] = None
+    entries: list[CutsceneSplinePoint] = field(default_factory=list)
+    paramNumber: int = 4
+    size: int = 0x8
+
+    def __post_init__(self):
+        if self.params is not None:
+            self.num_entries = getInteger(self.params[0])
+            self.duration = getInteger(self.params[3])
+
+
+@dataclass
+class CutsceneCmdCamSplineList(CutsceneCmdBase):
+    """This class contains the Camera Spline list data"""
+
+    num_bytes: Optional[int] = None
+    entries: list[CutsceneCmdCamSpline] = field(default_factory=list)
+    paramNumber: int = 1
+    listName: str = "camSplineListNew"
+    size: int = 0x8
+
+    def __post_init__(self):
+        if self.params is not None:
+            self.num_bytes = getInteger(self.params[0])
 
 
 @dataclass
@@ -101,7 +184,10 @@ class CutsceneCmdActorCueList(CutsceneCmdBase):
                     self.commandType = self.commandType.removeprefix("0x")
                     self.commandType = "0x" + "0" * (4 - len(self.commandType)) + self.commandType
                 else:
-                    self.commandType = oot_data.enumData.enumByKey["csCmd"].item_by_id[self.commandType].key
+                    if is_game_oot():
+                        self.commandType = oot_data.enumData.enumByKey["csCmd"].item_by_id[self.commandType].key
+                    else:
+                        self.commandType = mm_data.enum_data.enum_by_key["cmd"].item_by_id[self.commandType].key
                 self.entryTotal = getInteger(self.params[1].strip())
 
 
@@ -195,7 +281,7 @@ class CutsceneCmdCamAT(CutsceneCmdBase):
 class CutsceneCmdMisc(CutsceneCmdBase):
     """This class contains a single misc command entry"""
 
-    type: Optional[str] = None  # see ``CutsceneMiscType`` in decomp
+    type: Optional[str] = None  # see `CutsceneMiscType` in decomp
     paramNumber: int = 14
 
     def __post_init__(self):
@@ -235,6 +321,20 @@ class CutsceneCmdTransition(CutsceneCmdBase):
 
 
 @dataclass
+class CutsceneCmdTransitionList(CutsceneCmdBase):
+    """This class contains Transition list command data"""
+
+    entryTotal: Optional[int] = None
+    entries: list[CutsceneCmdTransition] = field(default_factory=list)
+    paramNumber: int = 1
+    listName: str = "transitionListNew"
+
+    def __post_init__(self):
+        if self.params is not None:
+            self.entryTotal = getInteger(self.params[0])
+
+
+@dataclass
 class CutsceneCmdText(CutsceneCmdBase):
     """This class contains Text command data"""
 
@@ -251,8 +351,8 @@ class CutsceneCmdText(CutsceneCmdBase):
             self.endFrame = getInteger(self.params[2])
             self.textId = getInteger(self.params[0])
             self.type = self.getEnumValue("csTextType", 3)
-            self.altTextId1 = (getInteger(self.params[4]),)
-            self.altTextId2 = (getInteger(self.params[5]),)
+            self.altTextId1 = getInteger(self.params[4])
+            self.altTextId2 = getInteger(self.params[5])
 
 
 @dataclass
@@ -286,11 +386,47 @@ class CutsceneCmdTextOcarinaAction(CutsceneCmdBase):
 
 
 @dataclass
+class CutsceneCmdTextGeneric(CutsceneCmdBase):
+    """This class contains generic text command data"""
+
+    textId: Optional[int] = None
+    topOptionBranch: Optional[int] = None
+    bottomOptionBranch: Optional[int] = None
+    paramNumber: int = 5
+    id: str = "Generic"
+
+    def __post_init__(self):
+        if self.params is not None:
+            self.textId = getInteger(self.params[0])
+            self.startFrame = getInteger(self.params[1])
+            self.endFrame = getInteger(self.params[2])
+            self.topOptionBranch = getInteger(self.params[3])
+            self.bottomOptionBranch = getInteger(self.params[4])
+
+
+@dataclass
+class CutsceneCmdTextMask(CutsceneCmdBase):
+    """This class contains mask/remains text command data"""
+
+    defaultTextId: Optional[int] = None
+    alternativeTextId: Optional[int] = None
+    paramNumber: int = 4
+    id: str = "Mask"
+
+    def __post_init__(self):
+        if self.params is not None:
+            self.defaultTextId = getInteger(self.params[0])
+            self.startFrame = getInteger(self.params[1])
+            self.endFrame = getInteger(self.params[2])
+            self.alternativeTextId = getInteger(self.params[3])
+
+
+@dataclass
 class CutsceneCmdTextList(CutsceneCmdBase):
     """This class contains Text List command data"""
 
     entryTotal: Optional[int] = None
-    entries: list[CutsceneCmdText | CutsceneCmdTextNone | CutsceneCmdTextOcarinaAction] = field(default_factory=list)
+    entries: list[CutsceneCmdText | CutsceneCmdTextNone | CutsceneCmdTextOcarinaAction | CutsceneCmdTextGeneric | CutsceneCmdTextMask] = field(default_factory=list)
     paramNumber: int = 1
     listName: str = "textList"
 
@@ -455,14 +591,170 @@ class CutsceneCmdRumbleControllerList(CutsceneCmdBase):
 class CutsceneCmdDestination(CutsceneCmdBase):
     """This class contains Destination command data"""
 
-    id: Optional[str] = None
+    type: Optional[str] = None
     paramNumber: int = 3
     listName: str = "destination"
 
     def __post_init__(self):
         if self.params is not None:
-            self.id = self.getEnumValue("csDestination", 0)
+            self.type = self.getEnumValue("csDestination" if is_game_oot() else "destinationType", 0)
             self.startFrame = getInteger(self.params[1])
+
+
+@dataclass
+class CutsceneCmdDestinationList(CutsceneCmdBase):
+    """This class contains Destination list command data"""
+
+    entryTotal: Optional[int] = None
+    entries: list[CutsceneCmdDestination] = field(default_factory=list)
+    paramNumber: int = 1
+    listName: str = "destinationListNew"
+
+    def __post_init__(self):
+        if self.params is not None:
+            self.entryTotal = getInteger(self.params[0])
+
+
+@dataclass
+class CutsceneCmdMotionBlur(CutsceneCmdBase):
+    """This class contains motion blur command data"""
+
+    type: Optional[str] = None
+    paramNumber: int = 3
+
+    def __post_init__(self):
+        if self.params is not None:
+            self.type = self.getEnumValue("motionBlurType", 0)
+            self.startFrame = getInteger(self.params[1])
+            self.endFrame = getInteger(self.params[2])
+
+
+@dataclass
+class CutsceneCmdMotionBlurList(CutsceneCmdBase):
+    """This class contains motion blur list command data"""
+
+    entryTotal: Optional[int] = None
+    entries: list[CutsceneCmdDestination] = field(default_factory=list)
+    paramNumber: int = 1
+    listName: str = "motionBlurList"
+
+    def __post_init__(self):
+        if self.params is not None:
+            self.entryTotal = getInteger(self.params[0])
+
+
+@dataclass
+class CutsceneCmdModifySeq(CutsceneCmdBase):
+    """This class contains modify seq command data"""
+
+    type: Optional[str] = None
+    paramNumber: int = 3
+
+    def __post_init__(self):
+        if self.params is not None:
+            self.type = self.getEnumValue("modifySeqType", 0)
+            self.startFrame = getInteger(self.params[1])
+            self.endFrame = getInteger(self.params[2])
+
+
+@dataclass
+class CutsceneCmdModifySeqList(CutsceneCmdBase):
+    """This class contains modify seq list command data"""
+
+    entryTotal: Optional[int] = None
+    entries: list[CutsceneCmdModifySeq] = field(default_factory=list)
+    paramNumber: int = 1
+    listName: str = "modifySeqList"
+
+    def __post_init__(self):
+        if self.params is not None:
+            self.entryTotal = getInteger(self.params[0])
+
+
+@dataclass
+class CutsceneCmdChooseCreditsScenes(CutsceneCmdBase):
+    """This class contains choose credits scenes command data"""
+
+    type: Optional[str] = None
+    paramNumber: int = 3
+
+    def __post_init__(self):
+        if self.params is not None:
+            self.type = self.getEnumValue("chooseCreditsSceneType", 0)
+            self.startFrame = getInteger(self.params[1])
+            self.endFrame = getInteger(self.params[2])
+
+
+@dataclass
+class CutsceneCmdChooseCreditsScenesList(CutsceneCmdBase):
+    """This class contains choose credits scenes list command data"""
+
+    entryTotal: Optional[int] = None
+    entries: list[CutsceneCmdChooseCreditsScenes] = field(default_factory=list)
+    paramNumber: int = 1
+    listName: str = "creditsSceneList"
+
+    def __post_init__(self):
+        if self.params is not None:
+            self.entryTotal = getInteger(self.params[0])
+
+
+@dataclass
+class CutsceneCmdTransitionGeneral(CutsceneCmdBase):
+    """This class contains transition general command data"""
+
+    type: Optional[str] = None
+    rgb: list[int] = field(default_factory=list)
+    paramNumber: int = 6
+
+    def __post_init__(self):
+        if self.params is not None:
+            self.type = self.getEnumValue("transitionGeneralType", 0)
+            self.startFrame = getInteger(self.params[1])
+            self.endFrame = getInteger(self.params[2])
+            self.rgb = [getInteger(self.params[3]), getInteger(self.params[4]), getInteger(self.params[5])]
+
+
+@dataclass
+class CutsceneCmdTransitionGeneralList(CutsceneCmdBase):
+    """This class contains transition general list command data"""
+
+    entryTotal: Optional[int] = None
+    entries: list[CutsceneCmdTransitionGeneral] = field(default_factory=list)
+    paramNumber: int = 1
+    listName: str = "transitionGeneralList"
+
+    def __post_init__(self):
+        if self.params is not None:
+            self.entryTotal = getInteger(self.params[0])
+
+
+@dataclass
+class CutsceneCmdGiveTatl(CutsceneCmdBase):
+    """This class contains give tatl command data"""
+
+    giveTatl: Optional[bool] = None
+    paramNumber: int = 3
+
+    def __post_init__(self):
+        if self.params is not None:
+            self.giveTatl = self.params[0] in {"true", "1"}
+            self.startFrame = getInteger(self.params[1])
+            self.endFrame = getInteger(self.params[2])
+
+
+@dataclass
+class CutsceneCmdGiveTatlList(CutsceneCmdBase):
+    """This class contains give tatl list command data"""
+
+    entryTotal: Optional[int] = None
+    entries: list[CutsceneCmdGiveTatl] = field(default_factory=list)
+    paramNumber: int = 1
+    listName: str = "giveTatlList"
+
+    def __post_init__(self):
+        if self.params is not None:
+            self.entryTotal = getInteger(self.params[0])
 
 
 @dataclass
@@ -486,11 +778,21 @@ class Cutscene:
     textList: list[CutsceneCmdTextList] = field(default_factory=list)
     miscList: list[CutsceneCmdMiscList] = field(default_factory=list)
     rumbleList: list[CutsceneCmdRumbleControllerList] = field(default_factory=list)
-    transitionList: list[CutsceneCmdTransition] = field(default_factory=list)
+    transitionList: list[CutsceneCmdTransition] = field(default_factory=list) 
     lightSettingsList: list[CutsceneCmdLightSettingList] = field(default_factory=list)
     timeList: list[CutsceneCmdTimeList] = field(default_factory=list)
     seqList: list[CutsceneCmdStartStopSeqList] = field(default_factory=list)
     fadeSeqList: list[CutsceneCmdFadeSeqList] = field(default_factory=list)
+
+    # lists from the new cutscene system
+    camSplineListNew: list[CutsceneCmdCamSplineList] = field(default_factory=list)
+    transitionListNew: list[CutsceneCmdTransitionList] = field(default_factory=list)
+    destinationListNew: list[CutsceneCmdDestinationList] = field(default_factory=list)
+    motionBlurList: list[CutsceneCmdMotionBlurList] = field(default_factory=list)
+    modifySeqList: list[CutsceneCmdModifySeqList] = field(default_factory=list)
+    creditsSceneList: list[CutsceneCmdChooseCreditsScenesList] = field(default_factory=list)
+    transitionGeneralList: list[CutsceneCmdTransitionGeneralList] = field(default_factory=list)
+    giveTatlList: list[CutsceneCmdGiveTatlList] = field(default_factory=list)
 
 
 class CutsceneObjectFactory:
