@@ -1912,3 +1912,13 @@ def set_if_different(owner: object, prop: str, value):
 def set_prop_if_in_data(owner: object, prop_name: str, data: dict, data_name: str):
     if data_name in data:
         set_if_different(owner, prop_name, data[data_name])
+
+
+def get_prop_annotations(cls):
+    prop_annotations = getattr(cls, "__annotations__", None)
+
+    if prop_annotations is None:
+        setattr(cls, "__annotations__", dict())
+        prop_annotations = getattr(cls, "__annotations__")
+
+    return prop_annotations

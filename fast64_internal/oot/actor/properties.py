@@ -1,8 +1,9 @@
 from bpy.types import Object, PropertyGroup, UILayout
 from bpy.utils import register_class, unregister_class
 from bpy.props import EnumProperty, StringProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
-from ...utility import PluginError, prop_split, label_split
-from ..oot_constants import ootData, ootEnumCamTransition
+from ...utility import PluginError, prop_split, label_split, get_prop_annotations
+from ...constants import game_data
+from ..oot_constants import ootEnumCamTransition
 from ..oot_upgrade import upgradeActors
 from ..scene.properties import OOTAlternateSceneHeaderProperty
 from ..room.properties import OOTAlternateRoomHeaderProperty
@@ -49,18 +50,17 @@ def get_prop_name(actor_key: str, param_type: str, param_subtype: str, param_ind
 def initOOTActorProperties():
     """This function is used to edit the OOTActorProperty class"""
 
-    prop_annotations = getattr(OOTActorProperty, "__annotations__", None)
+    prop_ats = get_prop_annotations(OOTActorProperty)
 
-    if prop_annotations is None:
-        OOTActorProperty.__annotations__ = prop_annotations = {}
+    prop_ats["actor_id"] = EnumProperty(name="Actor", items=game_data.z64.actorData.ootEnumActorID, default="ACTOR_PLAYER")
 
     param_type_to_enum_items = {
-        "ChestContent": ootData.actorData.ootEnumChestContent,
-        "Collectible": ootData.actorData.ootEnumCollectibleItems,
-        "Message": ootData.actorData.ootEnumNaviMessageData,
+        "ChestContent": game_data.z64.actorData.ootEnumChestContent,
+        "Collectible": game_data.z64.actorData.ootEnumCollectibleItems,
+        "Message": game_data.z64.actorData.ootEnumNaviMessageData,
     }
 
-    for actor in ootData.actorData.actorList:
+    for actor in game_data.z64.actorData.actorList:
         for param in actor.params:
             prop_name = get_prop_name(actor.key, param.type, param.subType, param.index)
             enum_items = None
@@ -72,14 +72,14 @@ def initOOTActorProperties():
                 enum_items = param_type_to_enum_items[param.type]
 
             if param.type in {"Property", "Flag"}:
-                prop_annotations[prop_name] = StringProperty(name="", default="0x0")
+                prop_ats[prop_name] = StringProperty(name="", default="0x0")
             elif param.type == "Bool":
-                prop_annotations[prop_name] = BoolProperty(name="", default=False)
+                prop_ats[prop_name] = BoolProperty(name="", default=False)
             elif param.type in {"Type", "Enum", "ChestContent", "Collectible", "Message"} and enum_items is not None:
-                prop_annotations[prop_name] = EnumProperty(name="", items=enum_items, default=enum_items[1][0])
+                prop_ats[prop_name] = EnumProperty(name="", items=enum_items, default=enum_items[1][0])
 
             if param.type in {"Type", "Enum", "ChestContent", "Collectible", "Message"}:
-                prop_annotations[f"{prop_name}_custom"] = StringProperty(name="", default="0x0")
+                prop_ats[f"{prop_name}_custom"] = StringProperty(name="", default="0x0")
 
 
 class OOTActorHeaderItemProperty(PropertyGroup):
@@ -167,7 +167,6 @@ class OOTActorHeaderProperty(PropertyGroup):
 
 
 class OOTActorProperty(PropertyGroup):
-    actor_id: EnumProperty(name="Actor", items=ootData.actorData.ootEnumActorID, default="ACTOR_PLAYER")
     actor_id_custom: StringProperty(name="Actor ID", default="ACTOR_PLAYER")
 
     # only used for actors with the id "Custom"
@@ -214,7 +213,7 @@ class OOTActorProperty(PropertyGroup):
         upgradeActors(obj)
 
     def is_rotation_used(self, target: str):
-        actor = ootData.actorData.actorsByID[self.actor_id]
+        actor = game_data.z64.actorData.actorsByID[self.actor_id]
         selected_type = None
 
         for param in actor.params:
@@ -242,7 +241,7 @@ class OOTActorProperty(PropertyGroup):
         return True
 
     def set_param_value(self, base_value: str | bool, target: str):
-        actor = ootData.actorData.actorsByID[self.actor_id]
+        actor = game_data.z64.actorData.actorsByID[self.actor_id]
         base_value = getEvalParamsInt(base_value)
         found_type = None
 
@@ -266,11 +265,11 @@ class OOTActorProperty(PropertyGroup):
                     prop_name = get_prop_name(actor.key, param.type, param.subType, param.index)
 
                     if param.type == "ChestContent":
-                        prop_value = ootData.actorData.chestItemByValue[value].key
+                        prop_value = game_data.z64.actorData.chestItemByValue[value].key
                     elif param.type == "Collectible":
-                        prop_value = ootData.actorData.collectibleItemsByValue[value].key
+                        prop_value = game_data.z64.actorData.collectibleItemsByValue[value].key
                     elif param.type == "Message":
-                        prop_value = ootData.actorData.messageItemsByValue[value].key
+                        prop_value = game_data.z64.actorData.messageItemsByValue[value].key
                     elif param.type == "Bool":
                         prop_value = bool(value)
                     else:
@@ -288,7 +287,7 @@ class OOTActorProperty(PropertyGroup):
                             )
 
     def get_param_value(self, target: str):
-        actor = ootData.actorData.actorsByID[self.actor_id]
+        actor = game_data.z64.actorData.actorsByID[self.actor_id]
         param_list = []
         type_value = None
         have_custom_value = False
@@ -325,11 +324,11 @@ class OOTActorProperty(PropertyGroup):
                         param_val = 0
 
                         if param.type == "ChestContent":
-                            param_val = ootData.actorData.chestItemByKey[cur_prop_value].value
+                            param_val = game_data.z64.actorData.chestItemByKey[cur_prop_value].value
                         elif param.type == "Collectible":
-                            param_val = ootData.actorData.collectibleItemsByKey[cur_prop_value].value
+                            param_val = game_data.z64.actorData.collectibleItemsByKey[cur_prop_value].value
                         elif param.type == "Message":
-                            param_val = ootData.actorData.messageItemsByKey[cur_prop_value].value
+                            param_val = game_data.z64.actorData.messageItemsByKey[cur_prop_value].value
 
                 if "Rot" in target:
                     type_value = getEvalParamsInt(getattr(self, get_prop_name(actor.key, "Type", None, 1)))
@@ -382,7 +381,7 @@ class OOTActorProperty(PropertyGroup):
         return param_str
 
     def draw_params(self, layout: UILayout, obj: Object):
-        actor = ootData.actorData.actorsByID[self.actor_id]
+        actor = game_data.z64.actorData.actorsByID[self.actor_id]
         selected_type = None
 
         for param in actor.params:
@@ -407,11 +406,11 @@ class OOTActorProperty(PropertyGroup):
                     if param.type == "ChestContent":
                         search_op = layout.operator(OOT_SearchChestContentEnumOperator.bl_idname)
                         label_name = "Chest Content"
-                        item_map = ootData.actorData.chestItemByKey
+                        item_map = game_data.z64.actorData.chestItemByKey
                     else:
                         search_op = layout.operator(OOT_SearchNaviMsgIDEnumOperator.bl_idname)
                         label_name = "Navi Message ID"
-                        item_map = ootData.actorData.messageItemsByKey
+                        item_map = game_data.z64.actorData.messageItemsByKey
 
                     search_op.obj_name = obj.name
                     search_op.prop_name = prop_name
@@ -440,7 +439,7 @@ class OOTActorProperty(PropertyGroup):
             return
 
         split.label(text="Actor ID")
-        split.label(text=getEnumName(ootData.actorData.ootEnumActorID, self.actor_id))
+        split.label(text=getEnumName(game_data.z64.actorData.ootEnumActorID, self.actor_id))
 
         if self.actor_id != "Custom":
             self.draw_params(actorIDBox, obj)
@@ -502,7 +501,7 @@ class OOTTransitionActorProperty(PropertyGroup):
 
         split = actorIDBox.split(factor=0.5)
         split.label(text="Actor ID")
-        split.label(text=getEnumName(ootData.actorData.ootEnumActorID, self.actor.actor_id))
+        split.label(text=getEnumName(game_data.z64.actorData.ootEnumActorID, self.actor.actor_id))
 
         if self.actor.actor_id == "Custom":
             prop_split(actorIDBox, self.actor, "actor_id_custom", "")
@@ -588,6 +587,8 @@ classes = (
 
 
 def actor_props_register():
+    initOOTActorProperties()
+
     for cls in classes:
         register_class(cls)
 

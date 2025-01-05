@@ -359,9 +359,6 @@ def update_game_data():
 
         match bpy.context.scene.gameEditorMode:
             case "OOT":
-                from .fast64_internal.oot.actor.properties import initOOTActorProperties
-
-                initOOTActorProperties()
                 oot_register(True)
             case _:
                 print(f"[init_game_data:Info]: Nothing to do for {bpy.context.scene.gameEditorMode}")
