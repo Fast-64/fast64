@@ -3,7 +3,7 @@ import bpy
 
 from bpy.types import Object
 from ...utility import parentObject, hexOrDecInt
-from ...constants import game_data
+import fast64_internal.game_data as GD
 from ..scene.properties import Z64_SceneHeaderProperty
 from ..utility import setCustomProperty, getEvalParams, is_game_oot, get_game_prop_name
 from ..constants import (
@@ -98,9 +98,9 @@ def parseTransActorList(
             actorProp = transActorProp.actor
             setCustomProperty(
                 actorProp,
-                get_game_prop_name("actor_id"),
+                "actor_id",
                 actorID,
-                game_data.z64.actorData.ootEnumActorID,
+                GD.game_data.z64.actorData.ootEnumActorID,
                 "actorIDCustom",
             )
             if actorProp.actor_id != "Custom":
@@ -207,9 +207,9 @@ def parseSpawnList(
             actorProp = spawnProp.actor
             setCustomProperty(
                 actorProp,
-                get_game_prop_name("actor_id"),
+                "actor_id",
                 actorID,
-                game_data.z64.actorData.ootEnumActorID,
+                GD.game_data.z64.actorData.ootEnumActorID,
                 "actor_id_custom",
             )
             if actorProp.actor_id != "Custom":
@@ -283,9 +283,9 @@ def parseActorList(
             actorProp = actorObj.ootActorProperty
             setCustomProperty(
                 actorProp,
-                get_game_prop_name("actor_id"),
+                "actor_id",
                 actorID,
-                game_data.z64.actorData.ootEnumActorID,
+                GD.game_data.z64.actorData.ootEnumActorID,
                 "actor_id_custom",
             )
             actorProp.actorParam = actorParam

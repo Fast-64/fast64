@@ -4,7 +4,7 @@ from mathutils import Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
 from ...utility import getObjectList, is_oot_features, getEvalParams, get_game_prop_name, is_game_oot
-from ....constants import game_data
+import fast64_internal.game_data as GD
 from ...constants import halfday_bits_all_dawns, halfday_bits_all_nights, enum_to_halfday_bits
 from ...room.properties import Z64_RoomHeaderProperty
 from ...actor.properties import Z64_ActorProperty
@@ -65,8 +65,8 @@ class RoomInfos:
         return RoomInfos(
             props.roomIndex,
             props.roomShape,
-            Utility.getPropValue(props, get_game_prop_name("room_type"), "roomBehaviourCustom"),
-            Utility.getPropValue(props, get_game_prop_name("environment_type"), "linkIdleModeCustom"),
+            Utility.getPropValue(props, "roomBehaviour", "roomBehaviourCustom"),
+            Utility.getPropValue(props, "linkIdleMode", "linkIdleModeCustom"),
             props.showInvisibleActors,
             disableWarpSongs,
             enable_pos_lights,
@@ -123,7 +123,7 @@ class RoomObjects:
             if objProp.objectKey == "Custom":
                 objectList.append(objProp.objectIDCustom)
             else:
-                objectList.append(game_data.z64.objectData.objects_by_key[objProp.objectKey].id)
+                objectList.append(GD.game_data.z64.objectData.objects_by_key[objProp.objectKey].id)
         return RoomObjects(name, objectList)
 
     def getDefineName(self):
@@ -196,7 +196,7 @@ class RoomActors:
             if not Utility.isCurrentHeaderValid(actorProp.headerSettings, headerIndex):
                 continue
 
-            actor_id: str = actorProp.actorID if is_game_oot() else actorProp.mm_actor_id
+            actor_id: str = actorProp.actorID if is_game_oot() else actorProp.actor_id
 
             # The Actor list is filled with ``("None", f"{i} (Deleted from the XML)", "None")`` for
             # the total number of actors defined in the XML. If the user deletes one, this will prevent
@@ -256,7 +256,7 @@ class RoomActors:
                     actor.rot = ", ".join(f"{rot}, {flag})" for rot, flag in zip(spawn_rot, spawn_flags))
 
                 actor.name = (
-                    game_data.z64.actorData.actorsByID[actor_id].name.replace(
+                    GD.game_data.z64.actorData.actorsByID[actor_id].name.replace(
                         f" - {actor_id.removeprefix('ACTOR_')}", ""
                     )
                     if actor_id != "Custom"

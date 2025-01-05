@@ -194,16 +194,16 @@ class SceneInfos:
             skybox_texture_id = Utility.getPropValue(props, "skybox_texture_id")
 
         return SceneInfos(
-            Utility.getPropValue(props, get_game_prop_name("global_obj"), "globalObjectCustom"),
+            Utility.getPropValue(props, "globalObject", "globalObjectCustom"),
             Utility.getPropValue(props, "naviCup") if is_game_oot() else "NAVI_QUEST_HINTS_NONE",
             Utility.getPropValue(props.sceneTableEntry, get_game_prop_name("draw_config"), "drawConfigCustom"),
             props.appendNullEntrance,
             sceneObj.fast64.oot.scene.write_dummy_room_list,
-            Utility.getPropValue(props, get_game_prop_name("skybox_id"), "skyboxIDCustom"),
-            Utility.getPropValue(props, get_game_prop_name("skybox_config"), "skyboxCloudinessCustom"),
+            Utility.getPropValue(props, "skyboxID", "skyboxIDCustom"),
+            Utility.getPropValue(props, "skyboxCloudiness", "skyboxCloudinessCustom"),
             skybox_texture_id,
-            Utility.getPropValue(props, get_game_prop_name("seq_id"), "musicSeqCustom"),
-            Utility.getPropValue(props, get_game_prop_name("ambience_id"), "nightSeqCustom"),
+            Utility.getPropValue(props, "musicSeq", "musicSeqCustom"),
+            Utility.getPropValue(props, "nightSeq", "nightSeqCustom"),
             Utility.getPropValue(props, "audioSessionPreset"),
             Utility.getPropValue(props, "mapLocation") if is_oot_features() else "",
             Utility.getPropValue(props, "cameraMode") if is_oot_features() else "",

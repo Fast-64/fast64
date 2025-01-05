@@ -3,7 +3,7 @@ from bpy.props import StringProperty, EnumProperty, IntProperty, BoolProperty, C
 from bpy.utils import register_class, unregister_class
 from ...utility import PluginError, prop_split
 from ..utility import OOTCollectionAdd, drawCollectionOps, getEnumName
-from ...constants import game_data
+import fast64_internal.game_data as GD
 from ..upgrade import upgradeCutsceneSubProps, upgradeCSListProps, upgradeCutsceneProperty
 from .operators import OOTCSTextAdd, OOT_SearchCSDestinationEnumOperator, OOTCSListAdd, OOT_SearchCSSeqOperator
 from .motion.preview import previewFrameHandler
@@ -113,13 +113,13 @@ class OOTCSTextProperty(OOTCutsceneCommon, PropertyGroup):
     # subprops
     textID: StringProperty(name="", default="0x0000")
     ocarinaAction: EnumProperty(
-        name="Ocarina Action", items=game_data.z64.enumData.ootEnumOcarinaSongActionId, default="teach_minuet"
+        name="Ocarina Action", items=GD.game_data.z64.enumData.ootEnumOcarinaSongActionId, default=1
     )
     ocarinaActionCustom: StringProperty(default="OCARINA_ACTION_CUSTOM")
     topOptionTextID: StringProperty(name="", default="0x0000")
     bottomOptionTextID: StringProperty(name="", default="0x0000")
     ocarinaMessageId: StringProperty(name="", default="0x0000")
-    csTextType: EnumProperty(name="Text Type", items=game_data.z64.enumData.ootEnumCsTextType, default="normal")
+    csTextType: EnumProperty(name="Text Type", items=GD.game_data.z64.enumData.ootEnumCsTextType, default=1)
     csTextTypeCustom: StringProperty(default="CS_TEXT_CUSTOM")
 
     def getName(self):
@@ -152,10 +152,10 @@ class OOTCSTimeProperty(OOTCutsceneCommon, PropertyGroup):
 class OOTCSSeqProperty(OOTCutsceneCommon, PropertyGroup):
     attrName = "seqList"
     subprops = ["csSeqID", "startFrame", "endFrame"]
-    csSeqID: EnumProperty(name="Seq ID", items=game_data.z64.enumData.ootEnumSeqId, default="general_sfx")
+    csSeqID: EnumProperty(name="Seq ID", items=GD.game_data.z64.enumData.ootEnumSeqId, default=1)
     csSeqIDCustom: StringProperty(default="NA_BGM_CUSTOM")
     csSeqPlayer: EnumProperty(
-        name="Seq Player", items=game_data.z64.enumData.ootEnumCsFadeOutSeqPlayer, default="fade_out_fanfare"
+        name="Seq Player", items=GD.game_data.z64.enumData.ootEnumCsFadeOutSeqPlayer, default=1
     )
     csSeqPlayerCustom: StringProperty(default="CS_FADE_OUT_CUSTOM")
 
@@ -171,7 +171,7 @@ class OOTCSSeqProperty(OOTCutsceneCommon, PropertyGroup):
 class OOTCSMiscProperty(OOTCutsceneCommon, PropertyGroup):
     attrName = "miscList"
     subprops = ["csMiscType", "startFrame", "endFrame"]
-    csMiscType: EnumProperty(name="Type", items=game_data.z64.enumData.ootEnumCsMiscType, default="rain")
+    csMiscType: EnumProperty(name="Type", items=GD.game_data.z64.enumData.ootEnumCsMiscType, default=1)
     csMiscTypeCustom: StringProperty(default="CS_MISC_CUSTOM")
 
 
@@ -197,7 +197,7 @@ class OOTCSListProperty(PropertyGroup):
     miscList: CollectionProperty(type=OOTCSMiscProperty)
     rumbleList: CollectionProperty(type=OOTCSRumbleProperty)
 
-    transitionType: EnumProperty(items=game_data.z64.enumData.ootEnumCsTransitionType, default="gray_fill_in")
+    transitionType: EnumProperty(items=GD.game_data.z64.enumData.ootEnumCsTransitionType, default=1)
     transitionTypeCustom: StringProperty(default="CS_TRANS_CUSTOM")
     transitionStartFrame: IntProperty(name="", default=0, min=0)
     transitionEndFrame: IntProperty(name="", default=1, min=0)
@@ -356,7 +356,7 @@ class OOTCutsceneProperty(PropertyGroup):
     csEndFrame: IntProperty(name="End Frame", min=0, default=100)
     csUseDestination: BoolProperty(name="Cutscene Destination (Scene Change)")
     csDestination: EnumProperty(
-        name="Destination", items=game_data.z64.enumData.ootEnumCsDestination, default="cutscene_map_ganon_horse"
+        name="Destination", items=GD.game_data.z64.enumData.ootEnumCsDestination, default=1
     )
     csDestinationCustom: StringProperty(default="CS_DEST_CUSTOM")
     csDestinationStartFrame: IntProperty(name="Start Frame", min=0, default=99)
@@ -407,7 +407,7 @@ class OOTCutsceneProperty(PropertyGroup):
             boxRow = searchBox.row()
             searchOp = boxRow.operator(OOT_SearchCSDestinationEnumOperator.bl_idname, icon="VIEWZOOM", text="")
             searchOp.objName = obj.name
-            boxRow.label(text=getEnumName(game_data.z64.enumData.ootEnumCsDestination, self.csDestination))
+            boxRow.label(text=getEnumName(GD.game_data.z64.enumData.ootEnumCsDestination, self.csDestination))
             if self.csDestination == "Custom":
                 prop_split(searchBox.column(), self, "csDestinationCustom", "Cutscene Destination Custom")
 

@@ -12,7 +12,7 @@ from bpy.props import (
 from bpy.utils import register_class, unregister_class
 from ...render_settings import on_update_oot_render_settings
 from ...utility import prop_split, customExportWarning
-from ...constants import game_data
+import fast64_internal.game_data as GD
 from ..cutscene.constants import ootEnumCSWriteType
 
 from ..utility import (
@@ -322,7 +322,7 @@ class Z64_SceneHeaderProperty(PropertyGroup):
     usePreviousHeader: BoolProperty(name="Use Previous Header", default=True)
 
     # SCENE_CMD_SPECIAL_FILES
-    globalObject: EnumProperty(name="Global Object", default=1, items=game_data.z64.ootEnumGlobalObject)
+    globalObject: EnumProperty(name="Global Object", default=1, items=GD.game_data.z64.ootEnumGlobalObject)
     globalObjectCustom: StringProperty(name="Global Object Custom", default="0x00")
 
     # OoT exclusive
@@ -330,9 +330,9 @@ class Z64_SceneHeaderProperty(PropertyGroup):
     naviCupCustom: StringProperty(name="Navi Hints Custom", default="0x00")
 
     # SCENE_CMD_SKYBOX_SETTINGS
-    skyboxID: EnumProperty(name="Skybox", items=game_data.z64.ootEnumSkybox, default=1)
+    skyboxID: EnumProperty(name="Skybox", items=GD.game_data.z64.ootEnumSkybox, default=1)
     skyboxIDCustom: StringProperty(name="Skybox ID", default="0")
-    skyboxCloudiness: EnumProperty(name="Cloudiness", items=game_data.z64.ootEnumCloudiness, default=1)
+    skyboxCloudiness: EnumProperty(name="Cloudiness", items=GD.game_data.z64.ootEnumCloudiness, default=1)
     skyboxCloudinessCustom: StringProperty(name="Cloudiness ID", default="0x00")
     skyboxLighting: EnumProperty(
         name="Skybox Lighting",
@@ -348,9 +348,9 @@ class Z64_SceneHeaderProperty(PropertyGroup):
     skybox_texture_id: StringProperty(name="Skybox Texture ID", default="0x00")
 
     # SCENE_CMD_SOUND_SETTINGS
-    musicSeq: EnumProperty(name="Music Sequence", items=game_data.z64.ootEnumMusicSeq, default=1)
+    musicSeq: EnumProperty(name="Music Sequence", items=GD.game_data.z64.ootEnumMusicSeq, default=1)
     musicSeqCustom: StringProperty(name="Music Sequence ID", default="0x00")
-    nightSeq: EnumProperty(name="Nighttime SFX", items=game_data.z64.ootEnumNightSeq, default=1)
+    nightSeq: EnumProperty(name="Nighttime SFX", items=GD.game_data.z64.ootEnumNightSeq, default=1)
     nightSeqCustom: StringProperty(name="Nighttime SFX ID", default="0x00")
     audioSessionPreset: EnumProperty(name="Audio Session Preset", items=ootEnumAudioSessionPreset, default="0x00")
     audioSessionPresetCustom: StringProperty(name="Audio Session Preset", default="0x00")
@@ -409,7 +409,7 @@ class Z64_SceneHeaderProperty(PropertyGroup):
     minimap_chest_list: CollectionProperty(type=Z64_MapDataChestProperty, name="Minimap Chest List")
 
     def draw_props(self, layout: UILayout, dropdownLabel: str, headerIndex: int, objName: str):
-        from .operators import OOT_SearchMusicSeqEnumOperator, MM_SearchMusicSeqEnumOperator  # temp circular import fix
+        from .operators import OOT_SearchMusicSeqEnumOperator  # temp circular import fix
 
         cs_index_start = get_cs_index_start()
 
@@ -438,7 +438,7 @@ class Z64_SceneHeaderProperty(PropertyGroup):
 
             # General
             drawEnumWithCustom(
-                general, self, get_game_prop_name("global_obj"), "Global Object", "", "globalObjectCustom"
+                general, self, "globalObject", "Global Object", "", "globalObjectCustom"
             )
             if is_game_oot():
                 drawEnumWithCustom(general, self, "naviCup", "Navi Hints", "")
@@ -455,24 +455,19 @@ class Z64_SceneHeaderProperty(PropertyGroup):
             skyboxAndSound.box().label(text="Skybox And Sound")
 
             prop_split(skyboxAndSound, self, "skybox_texture_id", "Skybox Texture ID")
-            drawEnumWithCustom(skyboxAndSound, self, get_game_prop_name("skybox_id"), "Skybox", "", "skyboxIDCustom")
+            drawEnumWithCustom(skyboxAndSound, self, "skyboxID", "Skybox", "", "skyboxIDCustom")
             drawEnumWithCustom(
-                skyboxAndSound, self, get_game_prop_name("skybox_config"), "Skybox Config", "", "skyboxCloudinessCustom"
+                skyboxAndSound, self, "skyboxCloudiness", "Skybox Config", "", "skyboxCloudinessCustom"
             )
             drawEnumWithCustom(
-                skyboxAndSound, self, get_game_prop_name("seq_id"), "Music Sequence", "", "musicSeqCustom"
+                skyboxAndSound, self, "musicSeq", "Music Sequence", "", "musicSeqCustom"
             )
 
-            if is_game_oot():
-                op_name = OOT_SearchMusicSeqEnumOperator.bl_idname
-            else:
-                op_name = MM_SearchMusicSeqEnumOperator.bl_idname
-
-            musicSearch = skyboxAndSound.operator(op_name, icon="VIEWZOOM")
+            musicSearch = skyboxAndSound.operator(OOT_SearchMusicSeqEnumOperator.bl_idname, icon="VIEWZOOM")
             musicSearch.objName = objName
             musicSearch.headerIndex = headerIndex if headerIndex is not None else 0
             drawEnumWithCustom(
-                skyboxAndSound, self, get_game_prop_name("ambience_id"), "Nighttime SFX", "", "nightSeqCustom"
+                skyboxAndSound, self, "nightSeq", "Nighttime SFX", "", "nightSeqCustom"
             )
             drawEnumWithCustom(skyboxAndSound, self, "audioSessionPreset", "Audio Session Preset", "")
 

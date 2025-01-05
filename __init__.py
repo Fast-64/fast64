@@ -1,11 +1,13 @@
 import bpy
+import fast64_internal.game_data as GD
+
+
 from bpy.utils import register_class, unregister_class
 from bpy.path import abspath
 
 from . import addon_updater_ops
 
 from .fast64_internal.utility import prop_split, multilineLabel, set_prop_if_in_data
-from .fast64_internal.constants import GameData, game_data
 
 from .fast64_internal.repo_settings import (
     draw_repo_settings,
@@ -356,11 +358,10 @@ def update_game_data():
     """This function should be called on blend load or game editor update"""
 
     def init_game_data():
-        global game_data
-        game_data = GameData(bpy.context.scene.gameEditorMode)
+        GD.game_data = GD.GameData(bpy.context.scene.gameEditorMode)
 
         match bpy.context.scene.gameEditorMode:
-            case "OOT":
+            case "OOT" | "MM":
                 oot_register(True)
             case _:
                 print(f"[init_game_data:Info]: Nothing to do for {bpy.context.scene.gameEditorMode}")
@@ -368,7 +369,7 @@ def update_game_data():
 
     def destroy_game_data():
         match bpy.context.scene.gameEditorMode:
-            case "OOT":
+            case "OOT" | "MM":
                 oot_unregister(True)
             case _:
                 print(f"[destroy_game_data:Info]: Nothing to do for {bpy.context.scene.gameEditorMode}")

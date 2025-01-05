@@ -2,7 +2,7 @@ import bpy
 import re
 
 from ...utility import hexOrDecInt
-from ...constants import game_data
+import fast64_internal.game_data as GD
 from ..utility import (
     setCustomProperty,
     is_game_oot,
@@ -24,7 +24,7 @@ def parseObjectList(roomHeader: Z64_RoomHeaderProperty, sceneData: str, objectLi
 
     for object in objects:
         objectProp = roomHeader.objectList.add()
-        objByID = game_data.z64.objectData.objects_by_id.get(object)
+        objByID = GD.game_data.z64.objectData.objects_by_id.get(object)
 
         if objByID is not None:
             setattr(objectProp, get_game_prop_name("object_key"), objByID.key)
@@ -75,16 +75,16 @@ def parseRoomCommands(
         elif command == "SCENE_CMD_ROOM_BEHAVIOR":
             setCustomProperty(
                 roomHeader,
-                get_game_prop_name("room_type"),
+                "roomBehaviour",
                 args[0],
-                game_data.z64.ootEnumRoomBehaviour,
+                GD.game_data.z64.ootEnumRoomBehaviour,
                 "roomBehaviourCustom",
             )
             setCustomProperty(
                 roomHeader,
-                get_game_prop_name("environment_type"),
+                "linkIdleMode",
                 args[1],
-                game_data.z64.ootEnumLinkIdle,
+                GD.game_data.z64.ootEnumLinkIdle,
                 "linkIdleModeCustom",
             )
             roomHeader.showInvisibleActors = args[2] == "true" or args[2] == "1"

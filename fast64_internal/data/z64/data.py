@@ -481,6 +481,7 @@ class Z64_Data:
         from .object_data import Z64_ObjectData
         from .actor_data import Z64_ActorData
 
+        self.game = game
         self.enumData = Z64_EnumData(game)
         self.objectData = Z64_ObjectData(game)
         self.actorData = Z64_ActorData(game)

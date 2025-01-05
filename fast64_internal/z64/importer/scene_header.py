@@ -6,7 +6,7 @@ import mathutils
 
 from bpy.types import Object
 from ...utility import PluginError, readFile, parentObject, hexOrDecInt, gammaInverse
-from ...constants import game_data
+import fast64_internal.game_data as GD
 from ...f3d.f3d_parser import parseMatrices
 from ..model_classes import OOTF3DContext
 from ..scene.properties import Z64_SceneHeaderProperty, Z64_LightProperty
@@ -302,7 +302,7 @@ def parse_mm_map_data_chest(
         if chest_room is not None:
             for child_obj in chest_room.children_recursive:
                 if child_obj.type == "EMPTY" and child_obj.ootEmptyType == "Actor":
-                    actor_id: str = getattr(child_obj.ootActorProperty, get_game_prop_name("actor_id"))
+                    actor_id: str = getattr(child_obj.ootActorProperty, "actor_id")
                     actor_params = int(getEvalParams(child_obj.ootActorProperty.actorParam), base=0)
 
                     if actor_id in {"ACTOR_EN_BOX"}:
@@ -530,19 +530,19 @@ def parseSceneCommands(
             setCustomProperty(sceneHeader, "audioSessionPreset", args[0], ootEnumAudioSessionPreset)
             setCustomProperty(
                 sceneHeader,
-                get_game_prop_name("ambience_id"),
+                "nightSeq",
                 args[1],
-                game_data.z64.ootEnumNightSeq,
+                GD.game_data.z64.ootEnumNightSeq,
                 "nightSeqCustom",
             )
 
             if args[2].startswith("NA_BGM_"):
                 enum_id = args[2]
             else:
-                enum_id = game_data.z64.enumData.enumByKey["seqId"].item_by_index[int(args[2])].id
+                enum_id = GD.game_data.z64.enumData.enumByKey["seqId"].item_by_index[int(args[2])].id
 
             setCustomProperty(
-                sceneHeader, get_game_prop_name("seq_id"), enum_id, game_data.z64.ootEnumMusicSeq, "musicSeqCustom"
+                sceneHeader, "musicSeq", enum_id, GD.game_data.z64.ootEnumMusicSeq, "musicSeqCustom"
             )
             command_list.remove(command)
         elif command == "SCENE_CMD_ROOM_LIST":
@@ -572,9 +572,9 @@ def parseSceneCommands(
                 setCustomProperty(sceneHeader, "naviCup", args[0], ootEnumNaviHints)
             setCustomProperty(
                 sceneHeader,
-                get_game_prop_name("global_obj"),
+                "globalObject",
                 args[1],
-                game_data.z64.ootEnumGlobalObject,
+                GD.game_data.z64.ootEnumGlobalObject,
                 "globalObjectCustom",
             )
             command_list.remove(command)
@@ -595,16 +595,16 @@ def parseSceneCommands(
                 args_index += 1
             setCustomProperty(
                 sceneHeader,
-                get_game_prop_name("skybox_id"),
+                "skyboxID",
                 args[args_index],
-                game_data.z64.ootEnumSkybox,
+                GD.game_data.z64.ootEnumSkybox,
                 "skyboxIDCustom",
             )
             setCustomProperty(
                 sceneHeader,
-                get_game_prop_name("skybox_config"),
+                "skyboxCloudiness",
                 args[args_index + 1],
-                game_data.z64.ootEnumCloudiness,
+                GD.game_data.z64.ootEnumCloudiness,
                 "skyboxCloudinessCustom",
             )
             setCustomProperty(sceneHeader, "skyboxLighting", args[args_index + 2], ootEnumSkyboxLighting)

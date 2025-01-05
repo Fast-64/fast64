@@ -31,22 +31,14 @@ from ..utility import (
 
 if TYPE_CHECKING:
     from .scene.properties import OOT_BootupSceneOptions, Z64_SceneHeaderProperty
-    from .actor.properties import OOTActorProperty
+    from .actor.properties import Z64_ActorProperty
 
 
 def get_game_prop_name(prop_type: str):
     game_prop_name_map = {
         "OOT": {
-            "global_obj": "globalObject",
-            "skybox_id": "skyboxID",
-            "skybox_config": "skyboxCloudiness",
-            "seq_id": "musicSeq",
-            "ambience_id": "nightSeq",
             "draw_config": "drawConfig",
             "object_key": "objectKey",
-            "room_type": "roomBehaviour",
-            "environment_type": "linkIdleMode",
-            "actor_id": "actor_id",
             "floor_property": "floorSetting",
             "floor_type": "floorProperty",
             "floor_effect": "terrain",
@@ -54,16 +46,8 @@ def get_game_prop_name(prop_type: str):
             "cam_setting_type": "camSType",
         },
         "MM": {
-            "global_obj": "mm_global_obj",
-            "skybox_id": "mm_skybox_id",
-            "skybox_config": "mm_skybox_config",
-            "seq_id": "mm_seq_id",
-            "ambience_id": "mm_ambience_id",
             "draw_config": "mm_draw_config",
             "object_key": "mm_object_key",
-            "room_type": "mm_room_type",
-            "environment_type": "mm_environment_type",
-            "actor_id": "mm_actor_id",
             "floor_property": "mm_floor_property",
             "floor_type": "mm_floor_type",
             "floor_effect": "mm_floor_effect",
@@ -1283,9 +1267,9 @@ def get_new_empty_object(name: str):
     return new_obj
 
 
-def get_actor_prop_from_obj(actor_obj: Object) -> "OOTActorProperty":
+def get_actor_prop_from_obj(actor_obj: Object) -> "Z64_ActorProperty":
     """
-    Returns the reference to `OOTActorProperty`
+    Returns the reference to `Z64_ActorProperty`
 
     Parameters:
     - `actor_obj`: the Blender object to use to find the actor properties

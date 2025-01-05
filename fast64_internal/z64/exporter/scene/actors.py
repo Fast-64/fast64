@@ -4,7 +4,7 @@ from mathutils import Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
 from ...utility import getObjectList, is_oot_features, is_game_oot
-from ....constants import game_data
+import fast64_internal.game_data as GD
 from ...actor.properties import Z64_ActorProperty
 from ..utility import Utility
 from ..actor import Actor
@@ -61,7 +61,7 @@ class SceneTransitionActors:
         for obj in actorObjList:
             transActorProp = obj.ootTransitionActorProperty
             actorProp: Z64_ActorProperty = transActorProp.actor
-            actor_id: str = actorProp.actorID if is_game_oot() else actorProp.mm_actor_id
+            actor_id: str = actorProp.actorID if is_game_oot() else actorProp.actor_id
             if Utility.isCurrentHeaderValid(actorProp.headerSettings, headerIndex) and actor_id != "None":
                 pos, rot, _, _ = Utility.getConvertedTransform(transform, sceneObj, obj, True)
                 transActor = TransitionActor()
@@ -82,7 +82,7 @@ class SceneTransitionActors:
                     transActor.id = actor_id
 
                 transActor.name = (
-                    game_data.z64.actorData.actorsByID[actor_id].name.replace(
+                    GD.game_data.z64.actorData.actorsByID[actor_id].name.replace(
                         f" - {actor_id.removeprefix('ACTOR_')}", ""
                     )
                     if actor_id != "Custom"
@@ -152,13 +152,13 @@ class SceneEntranceActors:
         for obj in actorObjList:
             entranceProp = obj.ootEntranceProperty
             actorProp: Z64_ActorProperty = entranceProp.actor
-            actor_id: str = actorProp.actorID if is_game_oot() else actorProp.mm_actor_id
+            actor_id: str = actorProp.actorID if is_game_oot() else actorProp.actor_id
             if Utility.isCurrentHeaderValid(actorProp.headerSettings, headerIndex) and actor_id != "None":
                 pos, rot, _, _ = Utility.getConvertedTransform(transform, sceneObj, obj, True)
                 entranceActor = EntranceActor()
 
                 entranceActor.name = (
-                    game_data.z64.actorData.actorsByID[actor_id].name.replace(
+                    GD.game_data.z64.actorData.actorsByID[actor_id].name.replace(
                         f" - {actor_id.removeprefix('ACTOR_')}", ""
                     )
                     if actor_id != "Custom"

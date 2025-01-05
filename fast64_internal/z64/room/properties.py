@@ -2,7 +2,7 @@ import bpy
 from bpy.types import PropertyGroup, UILayout, Image, Object, Context
 from bpy.utils import register_class, unregister_class
 from ...utility import prop_split
-from ...constants import game_data
+import fast64_internal.game_data as GD
 from ..utility import (
     drawCollectionOps,
     onMenuTabChange,
@@ -15,7 +15,7 @@ from ..utility import (
     get_cs_index_start,
 )
 from ..upgrade import upgradeRoomHeaders
-from .operators import OOT_SearchObjectEnumOperator, MM_SearchObjectEnumOperator
+from .operators import OOT_SearchObjectEnumOperator
 
 from bpy.props import (
     EnumProperty,
@@ -44,23 +44,23 @@ ootEnumRoomMenu = ootEnumRoomMenuAlternate + [
 
 class Z64_ObjectProperty(PropertyGroup):
     expandTab: BoolProperty(name="Expand Tab")
-    objectKey: EnumProperty(items=game_data.z64.objectData.ootEnumObjectKey, default=1)
+    objectKey: EnumProperty(items=GD.game_data.z64.objectData.ootEnumObjectKey, default=1)
     objectIDCustom: StringProperty(default="OBJECT_CUSTOM")
 
     @staticmethod
     def upgrade_object(obj: Object):
         if is_game_oot():
             print(f"Processing '{obj.name}'...")
-            upgradeRoomHeaders(obj, game_data.z64.objectData)
+            upgradeRoomHeaders(obj, GD.game_data.z64.objectData)
 
     def draw_props(self, layout: UILayout, headerIndex: int, index: int, objName: str):
         is_legacy = True if "objectID" in self else False
         obj_key: str = getattr(self, get_game_prop_name("object_key"))
 
         if is_game_oot() and is_legacy:
-            obj_name = game_data.z64.objectData.ootEnumObjectIDLegacy[self["objectID"]][1]
+            obj_name = GD.game_data.z64.objectData.ootEnumObjectIDLegacy[self["objectID"]][1]
         elif obj_key != "Custom":
-            obj_name = game_data.z64.objectData.objects_by_key[obj_key].name
+            obj_name = GD.game_data.z64.objectData.objects_by_key[obj_key].name
         else:
             obj_name = self.objectIDCustom
 
@@ -105,10 +105,10 @@ class Z64_RoomHeaderProperty(PropertyGroup):
 
     # SCENE_CMD_ROOM_BEHAVIOR
     roomIndex: IntProperty(name="Room Index", default=0, min=0)
-    roomBehaviour: EnumProperty(items=game_data.z64.ootEnumRoomBehaviour, default=1)
+    roomBehaviour: EnumProperty(items=GD.game_data.z64.ootEnumRoomBehaviour, default=1)
     roomBehaviourCustom: StringProperty(default="0x00")
     showInvisibleActors: BoolProperty(name="Show Invisible Actors")
-    linkIdleMode: EnumProperty(name="Environment Type", items=game_data.z64.ootEnumLinkIdle, default=1)
+    linkIdleMode: EnumProperty(name="Environment Type", items=GD.game_data.z64.ootEnumLinkIdle, default=1)
     linkIdleModeCustom: StringProperty(name="Environment Type Custom", default="0x00")
 
     # OoT exclusive
@@ -206,10 +206,10 @@ class Z64_RoomHeaderProperty(PropertyGroup):
             behaviorBox = layout.column()
             behaviorBox.box().label(text="Behavior")
             drawEnumWithCustom(
-                behaviorBox, self, get_game_prop_name("room_type"), "Room Type", "", "roomBehaviourCustom"
+                behaviorBox, self, "roomBehaviour", "Room Type", "", "roomBehaviourCustom"
             )
             drawEnumWithCustom(
-                behaviorBox, self, get_game_prop_name("environment_type"), "Environment Type", "", "linkIdleModeCustom"
+                behaviorBox, self, "linkIdleMode", "Environment Type", "", "linkIdleModeCustom"
             )
 
             if is_game_oot():
