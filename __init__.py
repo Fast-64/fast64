@@ -364,23 +364,20 @@ def update_game_data():
                 print(f"[init_game_data:Info]: Nothing to do for {bpy.context.scene.gameEditorMode}")
                 return
 
-        print(f"[init_game_data:Info]: Success! ({bpy.context.scene.gameEditorMode})")
-
     def destroy_game_data():
         match bpy.context.scene.gameEditorMode:
             case "OOT":
                 oot_unregister(True)
             case _:
                 print(f"[destroy_game_data:Info]: Nothing to do for {bpy.context.scene.gameEditorMode}")
-                return
-
-        print(f"[destroy_game_data:Info]: Success! ({bpy.context.scene.gameEditorMode})")
 
     try:
         init_game_data()
     except ValueError:
         destroy_game_data()
         init_game_data()
+
+    print(f"[update_game_data:Info]: Success! ({bpy.context.scene.gameEditorMode})")
 
 
 @bpy.app.handlers.persistent
