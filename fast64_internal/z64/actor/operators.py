@@ -3,7 +3,7 @@ from bpy.types import Operator
 from bpy.props import EnumProperty, StringProperty
 from bpy.utils import register_class, unregister_class
 from ...utility import PluginError
-from ..constants import oot_data, mm_data
+from ...constants import game_data
 
 
 class OOT_SearchChestContentEnumOperator(Operator):
@@ -12,7 +12,7 @@ class OOT_SearchChestContentEnumOperator(Operator):
     bl_property = "chest_content"
     bl_options = {"REGISTER", "UNDO"}
 
-    chest_content: EnumProperty(items=oot_data.actorData.ootEnumChestContent, default="item_heart")
+    chest_content: EnumProperty(items=game_data.z64.actorData.ootEnumChestContent, default="item_heart")
     obj_name: StringProperty()
     prop_name: StringProperty()
 
@@ -58,7 +58,7 @@ class OOT_SearchNaviMsgIDEnumOperator(Operator):
     bl_property = "navi_msg_id"
     bl_options = {"REGISTER", "UNDO"}
 
-    navi_msg_id: EnumProperty(items=oot_data.actorData.ootEnumNaviMessageData, default="msg_00")
+    navi_msg_id: EnumProperty(items=game_data.z64.actorData.ootEnumNaviMessageData, default="msg_00")
     obj_name: StringProperty()
     prop_name: StringProperty()
 
@@ -79,7 +79,7 @@ class OOT_SearchActorIDEnumOperator(Operator):
     bl_property = "actor_id"
     bl_options = {"REGISTER", "UNDO"}
 
-    actor_id: EnumProperty(items=lambda self, context: oot_data.actorData.getItems(self.actor_user))
+    actor_id: EnumProperty(items=lambda self, context: game_data.z64.actorData.getItems(self.actor_user))
     actor_user: StringProperty(default="Actor")
     obj_name: StringProperty()
 

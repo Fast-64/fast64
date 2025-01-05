@@ -12,6 +12,7 @@ from bpy.props import (
 from bpy.utils import register_class, unregister_class
 from ...render_settings import on_update_oot_render_settings
 from ...utility import prop_split, customExportWarning
+from ...constants import game_data
 from ..cutscene.constants import ootEnumCSWriteType
 
 from ..utility import (
@@ -27,12 +28,8 @@ from ..utility import (
 )
 
 from ..constants import (
-    oot_data,
     ootEnumSceneID,
-    ootEnumGlobalObject,
     ootEnumNaviHints,
-    ootEnumSkybox,
-    ootEnumCloudiness,
     ootEnumSkyboxLighting,
     ootEnumMapLocation,
     ootEnumCameraMode,
@@ -40,11 +37,7 @@ from ..constants import (
     ootEnumHeaderMenu,
     ootEnumDrawConfig,
     ootEnumHeaderMenuComplete,
-    mm_data,
     mm_enum_scene_id,
-    mm_enum_global_object,
-    mm_enum_skybox,
-    mm_enum_skybox_config,
     mm_enum_draw_config,
 )
 
@@ -329,7 +322,9 @@ class Z64_SceneHeaderProperty(PropertyGroup):
     usePreviousHeader: BoolProperty(name="Use Previous Header", default=True)
 
     # SCENE_CMD_SPECIAL_FILES
-    globalObject: EnumProperty(name="Global Object", default="OBJECT_GAMEPLAY_DANGEON_KEEP", items=ootEnumGlobalObject)
+    globalObject: EnumProperty(
+        name="Global Object", default="OBJECT_GAMEPLAY_DANGEON_KEEP", items=game_data.z64.ootEnumGlobalObject
+    )
     mm_global_obj: EnumProperty(name="Global Object", default="GAMEPLAY_DANGEON_KEEP", items=mm_enum_global_object)
     globalObjectCustom: StringProperty(name="Global Object Custom", default="0x00")
 
@@ -338,10 +333,10 @@ class Z64_SceneHeaderProperty(PropertyGroup):
     naviCupCustom: StringProperty(name="Navi Hints Custom", default="0x00")
 
     # SCENE_CMD_SKYBOX_SETTINGS
-    skyboxID: EnumProperty(name="Skybox", items=ootEnumSkybox, default="0x01")
+    skyboxID: EnumProperty(name="Skybox", items=game_data.z64.ootEnumSkybox, default="0x01")
     mm_skybox_id: EnumProperty(name="Skybox", items=mm_enum_skybox, default="SKYBOX_NORMAL_SKY")
     skyboxIDCustom: StringProperty(name="Skybox ID", default="0")
-    skyboxCloudiness: EnumProperty(name="Cloudiness", items=ootEnumCloudiness, default="0x00")
+    skyboxCloudiness: EnumProperty(name="Cloudiness", items=game_data.z64.ootEnumCloudiness, default="0x00")
     mm_skybox_config: EnumProperty(name="Skybox Config", items=mm_enum_skybox_config, default="SKYBOX_CONFIG_0")
     skyboxCloudinessCustom: StringProperty(name="Cloudiness ID", default="0x00")
     skyboxLighting: EnumProperty(
@@ -358,10 +353,10 @@ class Z64_SceneHeaderProperty(PropertyGroup):
     skybox_texture_id: StringProperty(name="Skybox Texture ID", default="0x00")
 
     # SCENE_CMD_SOUND_SETTINGS
-    musicSeq: EnumProperty(name="Music Sequence", items=oot_data.ootEnumMusicSeq, default="NA_BGM_FIELD_LOGIC")
+    musicSeq: EnumProperty(name="Music Sequence", items=game_data.z64.ootEnumMusicSeq, default="NA_BGM_FIELD_LOGIC")
     mm_seq_id: EnumProperty(name="Music Sequence", items=mm_data.enum_seq_id, default="NA_BGM_TERMINA_FIELD")
     musicSeqCustom: StringProperty(name="Music Sequence ID", default="0x00")
-    nightSeq: EnumProperty(name="Nighttime SFX", items=oot_data.ootEnumNightSeq, default="0x00")
+    nightSeq: EnumProperty(name="Nighttime SFX", items=game_data.z64.ootEnumNightSeq, default="0x00")
     mm_ambience_id: EnumProperty(name="Nighttime SFX", items=mm_data.enum_ambiance_id, default="0x00")
     nightSeqCustom: StringProperty(name="Nighttime SFX ID", default="0x00")
     audioSessionPreset: EnumProperty(name="Audio Session Preset", items=ootEnumAudioSessionPreset, default="0x00")

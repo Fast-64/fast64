@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from bpy.types import Object
 from ....utility import PluginError, indent
-from ...constants import oot_data
+from ....constants import game_data
 from ..constants import ootEnumCSListTypeListC
 
 if TYPE_CHECKING:
@@ -40,7 +40,7 @@ class CutsceneCmdToC:
     """This class contains functions to create the cutscene commands"""
 
     def getEnumValue(self, enumKey: str, owner, propName: str):
-        item = oot_data.enumData.enumByKey[enumKey].item_by_key.get(getattr(owner, propName))
+        item = game_data.z64.enumData.enumByKey[enumKey].item_by_key.get(getattr(owner, propName))
         return item.id if item is not None else getattr(owner, f"{propName}Custom")
 
     def getGenericListCmd(self, cmdName: str, entryTotal: int):
@@ -212,7 +212,7 @@ class CutsceneExport(CutsceneCmdToC):
             if commandType == "Custom":
                 commandType = obj.ootCSMotionProperty.actorCueListProp.commandTypeCustom
             elif self.useDecomp:
-                commandType = oot_data.enumData.enumByKey["csCmd"].item_by_key[commandType].id
+                commandType = game_data.z64.enumData.enumByKey["csCmd"].item_by_key[commandType].id
 
             # ignoring dummy cue
             actorCueList = CutsceneCmdActorCueList(None, entryTotal=entryTotal - 1, commandType=commandType)
@@ -227,7 +227,7 @@ class CutsceneExport(CutsceneCmdToC):
                     if isPlayer:
                         cueID = childObj.ootCSMotionProperty.actorCueProp.playerCueID
                         if cueID != "Custom":
-                            actionID = oot_data.enumData.enumByKey["csPlayerCueId"].item_by_key[cueID].id
+                            actionID = game_data.z64.enumData.enumByKey["csPlayerCueId"].item_by_key[cueID].id
 
                     if actionID is None:
                         actionID = childObj.ootCSMotionProperty.actorCueProp.cueActionID

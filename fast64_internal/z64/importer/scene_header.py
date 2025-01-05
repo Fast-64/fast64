@@ -31,17 +31,10 @@ from .scene_collision import parseCollisionHeader, parseCamDataList
 from .scene_pathways import parsePathList
 
 from ..constants import (
-    oot_data,
-    mm_data,
     ootEnumAudioSessionPreset,
     ootEnumCameraMode,
     ootEnumMapLocation,
     ootEnumNaviHints,
-    ootEnumGlobalObject,
-    mm_enum_global_object,
-    ootEnumSkybox,
-    mm_enum_skybox,
-    ootEnumCloudiness,
     ootEnumSkyboxLighting,
 )
 
@@ -492,7 +485,7 @@ def parse_actor_cs(scene_obj: Object, header_index: int, scene_data: str, list_n
 
 def get_enum_id_from_index(enum_key: str, index: int):
     if is_game_oot():
-        return oot_data.enumData.enumByKey[enum_key].item_by_index[index].id
+        return game_data.z64.enumData.enumByKey[enum_key].item_by_index[index].id
     else:
         return mm_data.enum_data.enum_by_key[enum_key].item_by_index[index].id
 
@@ -554,7 +547,7 @@ def parseSceneCommands(
                 enum_id = args[2]
             else:
                 if is_game_oot():
-                    enum_seq_id = oot_data.enumData.enumByKey["seqId"]
+                    enum_seq_id = game_data.z64.enumData.enumByKey["seqId"]
                 else:
                     enum_seq_id = mm_data.enum_data.enum_by_key["seqId"]
 

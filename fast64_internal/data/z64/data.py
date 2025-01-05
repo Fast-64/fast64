@@ -8,6 +8,7 @@ class Z64_BaseElement:
     name: str
     index: int
 
+
 # ---
 
 # TODO: get this from XML
@@ -469,6 +470,7 @@ mm_enum_room_type = [
 ]
 
 # ---
+
 
 @dataclass
 class Z64_Data:

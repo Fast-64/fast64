@@ -10,7 +10,8 @@ from mathutils import Matrix, Vector
 from ...f3d.f3d_gbi import TextureExportSettings, DLFormat
 from ...utility import PluginError, raisePluginError, ootGetSceneOrRoomHeader
 from ..utility import ExportInfo, RemoveInfo, sceneNameFromID, is_game_oot
-from ..constants import oot_data, mm_data, ootEnumSceneID, mm_enum_scene_id
+from ...constants import game_data
+from ..constants import ootEnumSceneID, mm_enum_scene_id
 from ..importer import parseScene
 from ..exporter.decomp_edit.config import Config
 from ..exporter import SceneExport, Files
@@ -99,7 +100,7 @@ class OOT_SearchMusicSeqEnumOperator(Operator):
     bl_property = "ootMusicSeq"
     bl_options = {"REGISTER", "UNDO"}
 
-    ootMusicSeq: EnumProperty(items=oot_data.ootEnumMusicSeq, default="NA_BGM_FIELD_LOGIC")
+    ootMusicSeq: EnumProperty(items=game_data.z64.ootEnumMusicSeq, default="NA_BGM_FIELD_LOGIC")
     headerIndex: IntProperty(default=0, min=0)
     objName: StringProperty()
 

@@ -4,7 +4,7 @@ from bpy.types import Object, Operator, Context, Armature
 from bpy.utils import register_class, unregister_class
 from bpy.props import StringProperty, EnumProperty, BoolProperty
 from ....utility import PluginError
-from ...constants import oot_data
+from ....constants import game_data
 from ..classes import CutsceneObjectFactory
 from ..constants import ootEnumCSActorCueListCommandType
 from ..preview import initFirstFrame, setupCompositorNodes
@@ -318,7 +318,7 @@ class OOT_SearchPlayerCueIdEnumOperator(Operator):
     bl_property = "playerCueID"
     bl_options = {"REGISTER", "UNDO"}
 
-    playerCueID: EnumProperty(items=oot_data.enumData.ootEnumCsPlayerCueId, default="cueid_none")
+    playerCueID: EnumProperty(items=game_data.z64.enumData.ootEnumCsPlayerCueId, default="cueid_none")
     objName: StringProperty()
 
     def execute(self, context):

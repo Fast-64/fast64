@@ -2,6 +2,7 @@ import bpy
 from bpy.types import PropertyGroup, UILayout, Image, Object, Context
 from bpy.utils import register_class, unregister_class
 from ...utility import prop_split
+from ...constants import game_data
 from ..utility import (
     drawCollectionOps,
     onMenuTabChange,
@@ -28,14 +29,8 @@ from bpy.props import (
 )
 
 from ..constants import (
-    oot_data,
-    ootEnumRoomBehaviour,
-    ootEnumLinkIdle,
     ootEnumRoomShapeType,
     ootEnumHeaderMenu,
-    mm_data,
-    mm_enum_room_type,
-    mm_enum_environment_type,
 )
 
 ootEnumRoomMenuAlternate = [
@@ -49,7 +44,7 @@ ootEnumRoomMenu = ootEnumRoomMenuAlternate + [
 
 class Z64_ObjectProperty(PropertyGroup):
     expandTab: BoolProperty(name="Expand Tab")
-    objectKey: EnumProperty(items=oot_data.objectData.ootEnumObjectKey, default="obj_human")
+    objectKey: EnumProperty(items=game_data.z64.objectData.ootEnumObjectKey, default="obj_human")
     mm_object_key: EnumProperty(items=mm_data.object_data.enum_object_key, default="gameplay_keep")
     objectIDCustom: StringProperty(default="OBJECT_CUSTOM")
 
@@ -57,21 +52,21 @@ class Z64_ObjectProperty(PropertyGroup):
     def upgrade_object(obj: Object):
         if is_game_oot():
             print(f"Processing '{obj.name}'...")
-            upgradeRoomHeaders(obj, oot_data.objectData)
+            upgradeRoomHeaders(obj, game_data.z64.objectData)
 
     def draw_props(self, layout: UILayout, headerIndex: int, index: int, objName: str):
         is_legacy = True if "objectID" in self else False
         obj_key: str = getattr(self, get_game_prop_name("object_key"))
 
         if is_game_oot():
-            objects_by_key = oot_data.objectData.objects_by_key
+            objects_by_key = game_data.z64.objectData.objects_by_key
             op_name = OOT_SearchObjectEnumOperator.bl_idname
         else:
             objects_by_key = mm_data.object_data.objects_by_key
             op_name = MM_SearchObjectEnumOperator.bl_idname
 
         if is_game_oot() and is_legacy:
-            obj_name = oot_data.objectData.ootEnumObjectIDLegacy[self["objectID"]][1]
+            obj_name = game_data.z64.objectData.ootEnumObjectIDLegacy[self["objectID"]][1]
         elif obj_key != "Custom":
             obj_name = objects_by_key[obj_key].name
         else:
@@ -118,11 +113,11 @@ class Z64_RoomHeaderProperty(PropertyGroup):
 
     # SCENE_CMD_ROOM_BEHAVIOR
     roomIndex: IntProperty(name="Room Index", default=0, min=0)
-    roomBehaviour: EnumProperty(items=ootEnumRoomBehaviour, default="0x00")
+    roomBehaviour: EnumProperty(items=game_data.z64.ootEnumRoomBehaviour, default="0x00")
     mm_room_type: EnumProperty(items=mm_enum_room_type, default="ROOM_TYPE_NORMAL")
     roomBehaviourCustom: StringProperty(default="0x00")
     showInvisibleActors: BoolProperty(name="Show Invisible Actors")
-    linkIdleMode: EnumProperty(name="Environment Type", items=ootEnumLinkIdle, default="0x00")
+    linkIdleMode: EnumProperty(name="Environment Type", items=game_data.z64.ootEnumLinkIdle, default="0x00")
     mm_environment_type: EnumProperty(
         name="Environment Type", items=mm_enum_environment_type, default="ROOM_ENV_DEFAULT"
     )

@@ -17,9 +17,6 @@ ootEnumHeaderMenuComplete = [
 ] + ootEnumHeaderMenu
 
 
-
-
-
 ootEnumCameraMode = [
     ("Custom", "Custom", "Custom"),
     ("0x00", "Default", "Default"),

@@ -4,7 +4,8 @@ from mathutils import Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
 from ...utility import getObjectList, is_oot_features, getEvalParams, get_game_prop_name, is_game_oot
-from ...constants import oot_data, mm_data, halfday_bits_all_dawns, halfday_bits_all_nights, enum_to_halfday_bits
+from ....constants import game_data
+from ...constants import halfday_bits_all_dawns, halfday_bits_all_nights, enum_to_halfday_bits
 from ...room.properties import Z64_RoomHeaderProperty
 from ...actor.properties import Z64_ActorProperty
 from ..utility import Utility
@@ -123,7 +124,7 @@ class RoomObjects:
                 objectList.append(objProp.objectIDCustom)
             else:
                 objects_by_key = (
-                    oot_data.objectData.objects_by_key if is_game_oot() else mm_data.object_data.objects_by_key
+                    game_data.z64.objectData.objects_by_key if is_game_oot() else mm_data.object_data.objects_by_key
                 )
                 objectList.append(objects_by_key[objProp.objectKey].id)
         return RoomObjects(name, objectList)
@@ -257,7 +258,7 @@ class RoomActors:
                     spawn_rot = [f"SPAWN_ROT_FLAGS({r}" for r in rotation]
                     actor.rot = ", ".join(f"{rot}, {flag})" for rot, flag in zip(spawn_rot, spawn_flags))
 
-                actors_by_id = oot_data.actorData.actorsByID if is_game_oot() else mm_data.actor_data.actors_by_id
+                actors_by_id = game_data.z64.actorData.actorsByID if is_game_oot() else mm_data.actor_data.actors_by_id
                 actor.name = (
                     actors_by_id[actor_id].name.replace(f" - {actor_id.removeprefix('ACTOR_')}", "")
                     if actor_id != "Custom"

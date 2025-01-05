@@ -11,7 +11,6 @@ from ..utility import (
 )
 from ..model_classes import OOTF3DContext
 from ..room.properties import Z64_RoomHeaderProperty
-from ..constants import oot_data, mm_data
 from .utility import getDataMatch, stripName
 from .classes import SharedSceneData
 from .constants import headerNames
@@ -21,7 +20,7 @@ from .room_shape import parseMeshHeader
 
 def get_object_from_id(object: str):
     if is_game_oot():
-        return oot_data.objectData.objects_by_id.get(object)
+        return game_data.z64.objectData.objects_by_id.get(object)
     else:
         return mm_data.object_data.objects_by_id.get(object)
 
