@@ -44,7 +44,7 @@ class CutsceneCmdBase:
             # remove `cs` and lowercase first letter
             enumKey = enumKey[2].lower() + enumKey[3:]
 
-        enum = game_data.z64.enumData.enumByKey[enumKey] if is_game_oot() else mm_data.enum_data.enum_by_key[enumKey]
+        enum = game_data.z64.enumData.enumByKey[enumKey]
         item = enum.item_by_id.get(self.params[index])
         if item is None:
             setting = getInteger(self.params[index])
@@ -196,10 +196,7 @@ class CutsceneCmdActorCueList(CutsceneCmdBase):
                     self.commandType = self.commandType.removeprefix("0x")
                     self.commandType = "0x" + "0" * (4 - len(self.commandType)) + self.commandType
                 else:
-                    if is_game_oot():
-                        self.commandType = game_data.z64.enumData.enumByKey["csCmd"].item_by_id[self.commandType].key
-                    else:
-                        self.commandType = mm_data.enum_data.enum_by_key["cmd"].item_by_id[self.commandType].key
+                    self.commandType = game_data.z64.enumData.enumByKey["csCmd"].item_by_id[self.commandType].key
                 self.entryTotal = getInteger(self.params[1].strip())
 
 

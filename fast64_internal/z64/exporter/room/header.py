@@ -123,10 +123,7 @@ class RoomObjects:
             if objProp.objectKey == "Custom":
                 objectList.append(objProp.objectIDCustom)
             else:
-                objects_by_key = (
-                    game_data.z64.objectData.objects_by_key if is_game_oot() else mm_data.object_data.objects_by_key
-                )
-                objectList.append(objects_by_key[objProp.objectKey].id)
+                objectList.append(game_data.z64.objectData.objects_by_key[objProp.objectKey].id)
         return RoomObjects(name, objectList)
 
     def getDefineName(self):
@@ -258,9 +255,10 @@ class RoomActors:
                     spawn_rot = [f"SPAWN_ROT_FLAGS({r}" for r in rotation]
                     actor.rot = ", ".join(f"{rot}, {flag})" for rot, flag in zip(spawn_rot, spawn_flags))
 
-                actors_by_id = game_data.z64.actorData.actorsByID if is_game_oot() else mm_data.actor_data.actors_by_id
                 actor.name = (
-                    actors_by_id[actor_id].name.replace(f" - {actor_id.removeprefix('ACTOR_')}", "")
+                    game_data.z64.actorData.actorsByID[actor_id].name.replace(
+                        f" - {actor_id.removeprefix('ACTOR_')}", ""
+                    )
                     if actor_id != "Custom"
                     else "Custom Actor"
                 )

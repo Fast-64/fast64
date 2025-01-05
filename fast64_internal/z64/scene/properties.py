@@ -322,10 +322,7 @@ class Z64_SceneHeaderProperty(PropertyGroup):
     usePreviousHeader: BoolProperty(name="Use Previous Header", default=True)
 
     # SCENE_CMD_SPECIAL_FILES
-    globalObject: EnumProperty(
-        name="Global Object", default="OBJECT_GAMEPLAY_DANGEON_KEEP", items=game_data.z64.ootEnumGlobalObject
-    )
-    mm_global_obj: EnumProperty(name="Global Object", default="GAMEPLAY_DANGEON_KEEP", items=mm_enum_global_object)
+    globalObject: EnumProperty(name="Global Object", default=1, items=game_data.z64.ootEnumGlobalObject)
     globalObjectCustom: StringProperty(name="Global Object Custom", default="0x00")
 
     # OoT exclusive
@@ -333,11 +330,9 @@ class Z64_SceneHeaderProperty(PropertyGroup):
     naviCupCustom: StringProperty(name="Navi Hints Custom", default="0x00")
 
     # SCENE_CMD_SKYBOX_SETTINGS
-    skyboxID: EnumProperty(name="Skybox", items=game_data.z64.ootEnumSkybox, default="0x01")
-    mm_skybox_id: EnumProperty(name="Skybox", items=mm_enum_skybox, default="SKYBOX_NORMAL_SKY")
+    skyboxID: EnumProperty(name="Skybox", items=game_data.z64.ootEnumSkybox, default=1)
     skyboxIDCustom: StringProperty(name="Skybox ID", default="0")
-    skyboxCloudiness: EnumProperty(name="Cloudiness", items=game_data.z64.ootEnumCloudiness, default="0x00")
-    mm_skybox_config: EnumProperty(name="Skybox Config", items=mm_enum_skybox_config, default="SKYBOX_CONFIG_0")
+    skyboxCloudiness: EnumProperty(name="Cloudiness", items=game_data.z64.ootEnumCloudiness, default=1)
     skyboxCloudinessCustom: StringProperty(name="Cloudiness ID", default="0x00")
     skyboxLighting: EnumProperty(
         name="Skybox Lighting",
@@ -353,11 +348,9 @@ class Z64_SceneHeaderProperty(PropertyGroup):
     skybox_texture_id: StringProperty(name="Skybox Texture ID", default="0x00")
 
     # SCENE_CMD_SOUND_SETTINGS
-    musicSeq: EnumProperty(name="Music Sequence", items=game_data.z64.ootEnumMusicSeq, default="NA_BGM_FIELD_LOGIC")
-    mm_seq_id: EnumProperty(name="Music Sequence", items=mm_data.enum_seq_id, default="NA_BGM_TERMINA_FIELD")
+    musicSeq: EnumProperty(name="Music Sequence", items=game_data.z64.ootEnumMusicSeq, default=1)
     musicSeqCustom: StringProperty(name="Music Sequence ID", default="0x00")
-    nightSeq: EnumProperty(name="Nighttime SFX", items=game_data.z64.ootEnumNightSeq, default="0x00")
-    mm_ambience_id: EnumProperty(name="Nighttime SFX", items=mm_data.enum_ambiance_id, default="0x00")
+    nightSeq: EnumProperty(name="Nighttime SFX", items=game_data.z64.ootEnumNightSeq, default=1)
     nightSeqCustom: StringProperty(name="Nighttime SFX ID", default="0x00")
     audioSessionPreset: EnumProperty(name="Audio Session Preset", items=ootEnumAudioSessionPreset, default="0x00")
     audioSessionPresetCustom: StringProperty(name="Audio Session Preset", default="0x00")

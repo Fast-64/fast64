@@ -11,7 +11,6 @@ from ..scene.properties import Z64_AlternateSceneHeaderProperty
 from ..room.properties import Z64_AlternateRoomHeaderProperty
 from .operators import (
     OOT_SearchActorIDEnumOperator,
-    MM_SearchActorIDEnumOperator,
     OOT_SearchChestContentEnumOperator,
     OOT_SearchNaviMsgIDEnumOperator,
 )
@@ -81,7 +80,6 @@ def initOOTActorProperties():
     prop_ats["actor_id"] = EnumProperty(
         name="Actor", items=game_data.z64.actorData.ootEnumActorID, default="ACTOR_PLAYER"
     )
-    prop_ats["mm_actor_id"] = EnumProperty(name="Actor", items=mm_data.actor_data.enum_actor_id, default="ACTOR_PLAYER")
 
     param_type_to_enum_items = {
         "ChestContent": game_data.z64.actorData.ootEnumChestContent,
@@ -494,12 +492,7 @@ class Z64_ActorProperty(PropertyGroup):
         if self.menu_tab == "General":
             actor_id: str = getattr(self, get_game_prop_name("actor_id"))
 
-            if is_game_oot():
-                op_name = OOT_SearchActorIDEnumOperator.bl_idname
-            else:
-                op_name = MM_SearchActorIDEnumOperator.bl_idname
-
-            searchOp = actorIDBox.operator(op_name, icon="VIEWZOOM")
+            searchOp = actorIDBox.operator(OOT_SearchActorIDEnumOperator.bl_idname, icon="VIEWZOOM")
             searchOp.actor_user = "Actor"
             searchOp.obj_name = owner.name
 
@@ -599,12 +592,7 @@ class Z64_TransitionActorProperty(PropertyGroup):
     ):
         actorIDBox = layout.column()
 
-        if is_game_oot():
-            op_name = OOT_SearchActorIDEnumOperator.bl_idname
-        else:
-            op_name = MM_SearchActorIDEnumOperator.bl_idname
-
-        searchOp = actorIDBox.operator(op_name, icon="VIEWZOOM")
+        searchOp = actorIDBox.operator(OOT_SearchActorIDEnumOperator.bl_idname, icon="VIEWZOOM")
         searchOp.actor_user = "Transition Actor"
         searchOp.obj_name = objName
 

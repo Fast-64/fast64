@@ -27,31 +27,6 @@ class OOT_SearchChestContentEnumOperator(Operator):
         return {"RUNNING_MODAL"}
 
 
-class MM_SearchActorIDEnumOperator(Operator):
-    bl_idname = "object.mm_search_actor_id_enum_operator"
-    bl_label = "Select Actor ID"
-    bl_property = "actor_id"
-    bl_options = {"REGISTER", "UNDO"}
-
-    actor_id: EnumProperty(items=mm_data.actor_data.enum_actor_id, default="ACTOR_PLAYER")
-    actor_user: StringProperty(default="Actor")
-    obj_name: StringProperty()
-
-    def execute(self, context):
-        obj = bpy.data.objects[self.obj_name]
-        if self.actor_user == "Transition Actor":
-            obj.ootTransitionActorProperty.actor.mm_actor_id = self.actor_id
-        elif self.actor_user == "Actor":
-            obj.ootActorProperty.mm_actor_id = self.actor_id
-        elif self.actor_user == "Entrance":
-            obj.ootEntranceProperty.actor.mm_actor_id = self.actor_id
-        else:
-            raise PluginError("Invalid actor user for search: " + str(self.actor_user))
-
-        context.region.tag_redraw()
-        self.report({"INFO"}, "Selected: " + self.actor_id)
-
-
 class OOT_SearchNaviMsgIDEnumOperator(Operator):
     bl_idname = "object.oot_search_navi_msg_id_enum_operator"
     bl_label = "Select Message ID"
@@ -103,7 +78,6 @@ class OOT_SearchActorIDEnumOperator(Operator):
 
 
 classes = (
-    MM_SearchActorIDEnumOperator,
     OOT_SearchActorIDEnumOperator,
     OOT_SearchChestContentEnumOperator,
     OOT_SearchNaviMsgIDEnumOperator,

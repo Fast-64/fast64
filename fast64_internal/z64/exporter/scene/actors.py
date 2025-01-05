@@ -81,9 +81,10 @@ class SceneTransitionActors:
                 else:
                     transActor.id = actor_id
 
-                actors_by_id = game_data.z64.actorData.actorsByID if is_game_oot() else mm_data.actor_data.actors_by_id
                 transActor.name = (
-                    actors_by_id[actor_id].name.replace(f" - {actor_id.removeprefix('ACTOR_')}", "")
+                    game_data.z64.actorData.actorsByID[actor_id].name.replace(
+                        f" - {actor_id.removeprefix('ACTOR_')}", ""
+                    )
                     if actor_id != "Custom"
                     else "Custom Actor"
                 )
@@ -156,9 +157,10 @@ class SceneEntranceActors:
                 pos, rot, _, _ = Utility.getConvertedTransform(transform, sceneObj, obj, True)
                 entranceActor = EntranceActor()
 
-                actors_by_id = game_data.z64.actorData.actorsByID if is_game_oot() else mm_data.actor_data.actors_by_id
                 entranceActor.name = (
-                    actors_by_id[actor_id].name.replace(f" - {actor_id.removeprefix('ACTOR_')}", "")
+                    game_data.z64.actorData.actorsByID[actor_id].name.replace(
+                        f" - {actor_id.removeprefix('ACTOR_')}", ""
+                    )
                     if actor_id != "Custom"
                     else "Custom Actor"
                 )

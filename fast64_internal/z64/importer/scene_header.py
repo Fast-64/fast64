@@ -483,13 +483,6 @@ def parse_actor_cs(scene_obj: Object, header_index: int, scene_data: str, list_n
                     break
 
 
-def get_enum_id_from_index(enum_key: str, index: int):
-    if is_game_oot():
-        return game_data.z64.enumData.enumByKey[enum_key].item_by_index[index].id
-    else:
-        return mm_data.enum_data.enum_by_key[enum_key].item_by_index[index].id
-
-
 def parseSceneCommands(
     sceneName: str | None,
     sceneObj: bpy.types.Object | None,
@@ -546,12 +539,7 @@ def parseSceneCommands(
             if args[2].startswith("NA_BGM_"):
                 enum_id = args[2]
             else:
-                if is_game_oot():
-                    enum_seq_id = game_data.z64.enumData.enumByKey["seqId"]
-                else:
-                    enum_seq_id = mm_data.enum_data.enum_by_key["seqId"]
-
-                enum_id = enum_seq_id.item_by_index[int(args[2])].id
+                enum_id = game_data.z64.enumData.enumByKey["seqId"].item_by_index[int(args[2])].id
 
             setCustomProperty(
                 sceneHeader, get_game_prop_name("seq_id"), enum_id, game_data.z64.ootEnumMusicSeq, "musicSeqCustom"

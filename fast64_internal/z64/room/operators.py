@@ -12,7 +12,7 @@ class OOT_SearchObjectEnumOperator(Operator):
     bl_property = "objectKey"
     bl_options = {"REGISTER", "UNDO"}
 
-    objectKey: EnumProperty(items=game_data.z64.objectData.ootEnumObjectKey, default="obj_human")
+    objectKey: EnumProperty(items=game_data.z64.objectData.ootEnumObjectKey, default=1)
     headerIndex: IntProperty(default=0, min=0)
     index: IntProperty(default=0, min=0)
     objName: StringProperty()
@@ -29,33 +29,7 @@ class OOT_SearchObjectEnumOperator(Operator):
         return {"RUNNING_MODAL"}
 
 
-class MM_SearchObjectEnumOperator(Operator):
-    bl_idname = "object.mm_search_object_enum_operator"
-    bl_label = "Search Object ID"
-    bl_property = "object_key"
-    bl_options = {"REGISTER", "UNDO"}
-
-    object_key: EnumProperty(items=mm_data.object_data.enum_object_key, default="gameplay_keep")
-    headerIndex: IntProperty(default=0, min=0)
-    index: IntProperty(default=0, min=0)
-    objName: StringProperty()
-
-    def execute(self, context):
-        roomHeader = ootGetSceneOrRoomHeader(bpy.data.objects[self.objName], self.headerIndex, True)
-        roomHeader.objectList[self.index].object_key = self.object_key
-        context.region.tag_redraw()
-        self.report({"INFO"}, "Selected: " + self.object_key)
-        return {"FINISHED"}
-
-    def invoke(self, context, event):
-        context.window_manager.invoke_search_popup(self)
-        return {"RUNNING_MODAL"}
-
-
-classes = (
-    OOT_SearchObjectEnumOperator,
-    MM_SearchObjectEnumOperator,
-)
+classes = (OOT_SearchObjectEnumOperator,)
 
 
 def room_ops_register():

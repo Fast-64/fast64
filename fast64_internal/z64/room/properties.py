@@ -44,8 +44,7 @@ ootEnumRoomMenu = ootEnumRoomMenuAlternate + [
 
 class Z64_ObjectProperty(PropertyGroup):
     expandTab: BoolProperty(name="Expand Tab")
-    objectKey: EnumProperty(items=game_data.z64.objectData.ootEnumObjectKey, default="obj_human")
-    mm_object_key: EnumProperty(items=mm_data.object_data.enum_object_key, default="gameplay_keep")
+    objectKey: EnumProperty(items=game_data.z64.objectData.ootEnumObjectKey, default=1)
     objectIDCustom: StringProperty(default="OBJECT_CUSTOM")
 
     @staticmethod
@@ -58,17 +57,10 @@ class Z64_ObjectProperty(PropertyGroup):
         is_legacy = True if "objectID" in self else False
         obj_key: str = getattr(self, get_game_prop_name("object_key"))
 
-        if is_game_oot():
-            objects_by_key = game_data.z64.objectData.objects_by_key
-            op_name = OOT_SearchObjectEnumOperator.bl_idname
-        else:
-            objects_by_key = mm_data.object_data.objects_by_key
-            op_name = MM_SearchObjectEnumOperator.bl_idname
-
         if is_game_oot() and is_legacy:
             obj_name = game_data.z64.objectData.ootEnumObjectIDLegacy[self["objectID"]][1]
         elif obj_key != "Custom":
-            obj_name = objects_by_key[obj_key].name
+            obj_name = game_data.z64.objectData.objects_by_key[obj_key].name
         else:
             obj_name = self.objectIDCustom
 
@@ -76,7 +68,7 @@ class Z64_ObjectProperty(PropertyGroup):
         row = objItemBox.row()
         row.label(text=f"{obj_name}")
         buttons = row.row(align=True)
-        objSearch = buttons.operator(op_name, icon="VIEWZOOM", text="Select")
+        objSearch = buttons.operator(OOT_SearchObjectEnumOperator.bl_idname, icon="VIEWZOOM", text="Select")
         drawCollectionOps(buttons, index, "Object", headerIndex, objName, compact=True)
         objSearch.objName = objName
         objSearch.headerIndex = headerIndex if headerIndex is not None else 0
@@ -113,14 +105,10 @@ class Z64_RoomHeaderProperty(PropertyGroup):
 
     # SCENE_CMD_ROOM_BEHAVIOR
     roomIndex: IntProperty(name="Room Index", default=0, min=0)
-    roomBehaviour: EnumProperty(items=game_data.z64.ootEnumRoomBehaviour, default="0x00")
-    mm_room_type: EnumProperty(items=mm_enum_room_type, default="ROOM_TYPE_NORMAL")
+    roomBehaviour: EnumProperty(items=game_data.z64.ootEnumRoomBehaviour, default=1)
     roomBehaviourCustom: StringProperty(default="0x00")
     showInvisibleActors: BoolProperty(name="Show Invisible Actors")
-    linkIdleMode: EnumProperty(name="Environment Type", items=game_data.z64.ootEnumLinkIdle, default="0x00")
-    mm_environment_type: EnumProperty(
-        name="Environment Type", items=mm_enum_environment_type, default="ROOM_ENV_DEFAULT"
-    )
+    linkIdleMode: EnumProperty(name="Environment Type", items=game_data.z64.ootEnumLinkIdle, default=1)
     linkIdleModeCustom: StringProperty(name="Environment Type Custom", default="0x00")
 
     # OoT exclusive

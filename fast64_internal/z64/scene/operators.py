@@ -116,28 +116,6 @@ class OOT_SearchMusicSeqEnumOperator(Operator):
         return {"RUNNING_MODAL"}
 
 
-class MM_SearchMusicSeqEnumOperator(Operator):
-    bl_idname = "object.mm_search_music_seq_enum_operator"
-    bl_label = "Search Music Sequence"
-    bl_property = "seq_id"
-    bl_options = {"REGISTER", "UNDO"}
-
-    seq_id: EnumProperty(items=mm_data.enum_seq_id, default="NA_BGM_TERMINA_FIELD")
-    headerIndex: IntProperty(default=0, min=0)
-    objName: StringProperty()
-
-    def execute(self, context):
-        sceneHeader = ootGetSceneOrRoomHeader(bpy.data.objects[self.objName], self.headerIndex, False)
-        sceneHeader.musicSeq = self.seq_id
-        context.region.tag_redraw()
-        self.report({"INFO"}, "Selected: " + self.seq_id)
-        return {"FINISHED"}
-
-    def invoke(self, context, event):
-        context.window_manager.invoke_search_popup(self)
-        return {"RUNNING_MODAL"}
-
-
 class OOT_ClearBootupScene(Operator):
     bl_idname = "object.oot_clear_bootup_scene"
     bl_label = "Undo Boot To Scene"
@@ -310,7 +288,6 @@ classes = (
     OOT_ExportScene,
     OOT_RemoveScene,
     MM_SearchSceneEnumOperator,
-    MM_SearchMusicSeqEnumOperator,
 )
 
 

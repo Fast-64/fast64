@@ -18,20 +18,13 @@ from .actor import parseActorList
 from .room_shape import parseMeshHeader
 
 
-def get_object_from_id(object: str):
-    if is_game_oot():
-        return game_data.z64.objectData.objects_by_id.get(object)
-    else:
-        return mm_data.object_data.objects_by_id.get(object)
-
-
 def parseObjectList(roomHeader: Z64_RoomHeaderProperty, sceneData: str, objectListName: str):
     objectData = getDataMatch(sceneData, objectListName, "s16", "object list")
     objects = [value.strip() for value in objectData.split(",") if value.strip() != ""]
 
     for object in objects:
         objectProp = roomHeader.objectList.add()
-        objByID = get_object_from_id(object)
+        objByID = game_data.z64.objectData.objects_by_id.get(object)
 
         if objByID is not None:
             setattr(objectProp, get_game_prop_name("object_key"), objByID.key)
