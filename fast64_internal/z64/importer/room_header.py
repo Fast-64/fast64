@@ -2,10 +2,10 @@ import bpy
 import re
 
 from ...utility import hexOrDecInt
+from ...constants import game_data
 from ..utility import (
     setCustomProperty,
     is_game_oot,
-    get_game_enum,
     get_cs_index_start,
     get_game_prop_name,
 )
@@ -85,14 +85,14 @@ def parseRoomCommands(
                 roomHeader,
                 get_game_prop_name("room_type"),
                 args[0],
-                get_game_enum("enum_room_type"),
+                game_data.z64.ootEnumRoomBehaviour,
                 "roomBehaviourCustom",
             )
             setCustomProperty(
                 roomHeader,
                 get_game_prop_name("environment_type"),
                 args[1],
-                get_game_enum("enum_env_type"),
+                game_data.z64.ootEnumLinkIdle,
                 "linkIdleModeCustom",
             )
             roomHeader.showInvisibleActors = args[2] == "true" or args[2] == "1"

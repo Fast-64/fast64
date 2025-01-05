@@ -12,23 +12,6 @@ from typing import Callable, Optional, TYPE_CHECKING, List
 from .constants import (
     ootSceneIDToName,
     mm_scene_id_to_name,
-    oot_data,
-    mm_data,
-    ootEnumAudioSessionPreset,
-    ootEnumCameraMode,
-    ootEnumMapLocation,
-    ootEnumNaviHints,
-    ootEnumGlobalObject,
-    mm_enum_global_object,
-    ootEnumSkybox,
-    mm_enum_skybox,
-    ootEnumCloudiness,
-    mm_enum_skybox_config,
-    ootEnumSkyboxLighting,
-    ootEnumLinkIdle,
-    ootEnumRoomBehaviour,
-    mm_enum_room_type,
-    mm_enum_environment_type,
 )
 from dataclasses import dataclass
 
@@ -49,33 +32,6 @@ from ..utility import (
 if TYPE_CHECKING:
     from .scene.properties import OOT_BootupSceneOptions, Z64_SceneHeaderProperty
     from .actor.properties import OOTActorProperty
-
-
-def get_game_enum(enum_type: str):
-    game_enum_map = {
-        "OOT": {
-            "enum_global_object": ootEnumGlobalObject,
-            "enum_skybox": ootEnumSkybox,
-            "enum_skybox_config": ootEnumCloudiness,
-            "enum_seq_id": oot_data.ootEnumMusicSeq,
-            "enum_ambiance_id": oot_data.ootEnumNightSeq,  # TODO: generate this from xml (not for enumproperties)
-            "enum_env_type": ootEnumLinkIdle,
-            "enum_room_type": ootEnumRoomBehaviour,
-            "enum_actor_id": oot_data.actorData.ootEnumActorID,
-        },
-        "MM": {
-            "enum_global_object": mm_enum_global_object,
-            "enum_skybox": mm_enum_skybox,
-            "enum_skybox_config": mm_enum_skybox_config,
-            "enum_seq_id": mm_data.enum_seq_id,
-            "enum_ambiance_id": mm_data.enum_ambiance_id,  # TODO: same as above
-            "enum_env_type": mm_enum_environment_type,
-            "enum_room_type": mm_enum_room_type,
-            "enum_actor_id": mm_data.actor_data.enum_actor_id,
-        },
-    }
-
-    return game_enum_map[bpy.context.scene.gameEditorMode][enum_type]
 
 
 def get_game_prop_name(prop_type: str):

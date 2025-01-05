@@ -3,8 +3,9 @@ import bpy
 
 from bpy.types import Object
 from ...utility import parentObject, hexOrDecInt
+from ...constants import game_data
 from ..scene.properties import Z64_SceneHeaderProperty
-from ..utility import setCustomProperty, getEvalParams, is_game_oot, get_game_enum, get_game_prop_name
+from ..utility import setCustomProperty, getEvalParams, is_game_oot, get_game_prop_name
 from ..constants import (
     ootEnumCamTransition,
     halfday_bits_all_dawns,
@@ -96,7 +97,7 @@ def parseTransActorList(
 
             actorProp = transActorProp.actor
             setCustomProperty(
-                actorProp, get_game_prop_name("actor_id"), actorID, get_game_enum("enum_actor_id"), "actorIDCustom"
+                actorProp, get_game_prop_name("actor_id"), actorID, game_data.z64.actorData.ootEnumActorID, "actorIDCustom"
             )
             if actorProp.actor_id != "Custom":
                 actorProp.params = actorParam
@@ -201,7 +202,7 @@ def parseSpawnList(
             spawnProp.customActor = actorID != "ACTOR_PLAYER"
             actorProp = spawnProp.actor
             setCustomProperty(
-                actorProp, get_game_prop_name("actor_id"), actorID, get_game_enum("enum_actor_id"), "actor_id_custom"
+                actorProp, get_game_prop_name("actor_id"), actorID, game_data.z64.actorData.ootEnumActorID, "actor_id_custom"
             )
             if actorProp.actor_id != "Custom":
                 actorProp.params = actorParam
@@ -273,7 +274,7 @@ def parseActorList(
             actorObj.name = getDisplayNameFromActorID(actorID)
             actorProp = actorObj.ootActorProperty
             setCustomProperty(
-                actorProp, get_game_prop_name("actor_id"), actorID, get_game_enum("enum_actor_id"), "actor_id_custom"
+                actorProp, get_game_prop_name("actor_id"), actorID, game_data.z64.actorData.ootEnumActorID, "actor_id_custom"
             )
             actorProp.actorParam = actorParam
             handleActorWithRotAsParam(actorProp, actorID, rotation)

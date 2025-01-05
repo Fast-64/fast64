@@ -16,66 +16,9 @@ ootEnumHeaderMenuComplete = [
     ("Child Day", "Child Day", "Child Day"),
 ] + ootEnumHeaderMenu
 
-ootEnumLinkIdle = [
-    ("Custom", "Custom", "Custom"),
-    ("0x00", "Default", "Default"),
-    ("0x01", "Sneezing", "Sneezing"),
-    ("0x02", "Wiping Forehead", "Wiping Forehead"),
-    ("0x04", "Yawning", "Yawning"),
-    ("0x07", "Gasping For Breath", "Gasping For Breath"),
-    ("0x09", "Brandish Sword", "Brandish Sword"),
-    ("0x0A", "Adjust Tunic", "Adjust Tunic"),
-    ("0xFF", "Hops On Epona", "Hops On Epona"),
-]
 
-mm_enum_environment_type = [
-    ("Custom", "Custom", "Custom"),
-    ("ROOM_ENV_DEFAULT", "Default", "0x00"),
-    ("ROOM_ENV_COLD", "Cold", "0x01"),
-    ("ROOM_ENV_WARM", "Warm", "0x02"),
-    ("ROOM_ENV_HOT", "Hot", "0x03"),
-    ("ROOM_ENV_UNK_STRETCH_1", "Unknown Stretch 1", "0x04"),
-    ("ROOM_ENV_UNK_STRETCH_2", "Unknown Stretch 2", "0x05"),
-    ("ROOM_ENV_UNK_STRETCH_3", "Unknown Stretch 3", "0x06"),
-]
 
-ootEnumCloudiness = [
-    ("Custom", "Custom", "Custom"),
-    ("0x00", "Sunny", "Sunny"),
-    ("0x01", "Cloudy", "Cloudy"),
-]
 
-mm_enum_skybox_config = [
-    ("Custom", "Custom", "Custom"),
-    ("SKYBOX_CONFIG_0", "SKYBOX_CONFIG_0", "0x00"),
-    ("SKYBOX_CONFIG_1", "SKYBOX_CONFIG_1", "0x01"),
-    ("SKYBOX_CONFIG_2", "SKYBOX_CONFIG_2", "0x02"),
-    ("SKYBOX_CONFIG_3", "SKYBOX_CONFIG_3", "0x03"),
-    ("SKYBOX_CONFIG_4", "SKYBOX_CONFIG_4", "0x04"),
-    ("SKYBOX_CONFIG_5", "SKYBOX_CONFIG_5", "0x05"),
-    ("SKYBOX_CONFIG_6", "SKYBOX_CONFIG_6", "0x06"),
-    ("SKYBOX_CONFIG_7", "SKYBOX_CONFIG_7", "0x07"),
-    ("SKYBOX_CONFIG_8", "SKYBOX_CONFIG_8", "0x08"),
-    ("SKYBOX_CONFIG_9", "SKYBOX_CONFIG_9", "0x09"),
-    ("SKYBOX_CONFIG_10", "SKYBOX_CONFIG_10", "0x0A"),
-    ("SKYBOX_CONFIG_11", "SKYBOX_CONFIG_11", "0x0B"),
-    ("SKYBOX_CONFIG_12", "SKYBOX_CONFIG_12", "0x0C"),
-    ("SKYBOX_CONFIG_13", "SKYBOX_CONFIG_13", "0x0D"),
-    ("SKYBOX_CONFIG_14", "SKYBOX_CONFIG_14", "0x0E"),
-    ("SKYBOX_CONFIG_15", "SKYBOX_CONFIG_15", "0x0F"),
-    ("SKYBOX_CONFIG_16", "SKYBOX_CONFIG_16", "0x10"),
-    ("SKYBOX_CONFIG_17", "SKYBOX_CONFIG_17", "0x11"),
-    ("SKYBOX_CONFIG_18", "SKYBOX_CONFIG_18", "0x12"),
-    ("SKYBOX_CONFIG_19", "SKYBOX_CONFIG_19", "0x13"),
-    ("SKYBOX_CONFIG_20", "SKYBOX_CONFIG_20", "0x14"),
-    ("SKYBOX_CONFIG_21", "SKYBOX_CONFIG_21", "0x15"),
-    ("SKYBOX_CONFIG_22", "SKYBOX_CONFIG_22", "0x16"),
-    ("SKYBOX_CONFIG_23", "SKYBOX_CONFIG_23", "0x17"),
-    ("SKYBOX_CONFIG_24", "SKYBOX_CONFIG_24", "0x18"),
-    ("SKYBOX_CONFIG_25", "SKYBOX_CONFIG_25", "0x19"),
-    ("SKYBOX_CONFIG_26", "SKYBOX_CONFIG_26", "0x1A"),
-    ("SKYBOX_CONFIG_27", "SKYBOX_CONFIG_27", "0x1B"),
-]
 
 ootEnumCameraMode = [
     ("Custom", "Custom", "Custom"),
@@ -114,46 +57,6 @@ ootEnumMapLocation = [
     ("0x16", "Grottos & Fairy Fountains", "Grottos & Fairy Fountains"),
 ]
 
-ootEnumSkybox = [
-    ("Custom", "Custom", "Custom"),
-    ("0x00", "None", "None"),
-    ("0x01", "Standard Sky", "Standard Sky"),
-    ("0x02", "Hylian Bazaar", "Hylian Bazaar"),
-    ("0x03", "Brown Cloudy Sky", "Brown Cloudy Sky"),
-    ("0x04", "Market Ruins", "Market Ruins"),
-    ("0x05", "Black Cloudy Night", "Black Cloudy Night"),
-    ("0x07", "Link's House", "Link's House"),
-    ("0x09", "Market (Main Square, Day)", "Market (Main Square, Day)"),
-    ("0x0A", "Market (Main Square, Night)", "Market (Main Square, Night)"),
-    ("0x0B", "Happy Mask Shop", "Happy Mask Shop"),
-    ("0x0C", "Know-It-All Brothers' House", "Know-It-All Brothers' House"),
-    ("0x0E", "Kokiri Twins' House", "Kokiri Twins' House"),
-    ("0x0F", "Stable", "Stable"),
-    ("0x10", "Stew Lady's House", "Stew Lady's House"),
-    ("0x11", "Kokiri Shop", "Kokiri Shop"),
-    ("0x13", "Goron Shop", "Goron Shop"),
-    ("0x14", "Zora Shop", "Zora Shop"),
-    ("0x16", "Kakariko Potions Shop", "Kakariko Potions Shop"),
-    ("0x17", "Hylian Potions Shop", "Hylian Potions Shop"),
-    ("0x18", "Bomb Shop", "Bomb Shop"),
-    ("0x1A", "Dog Lady's House", "Dog Lady's House"),
-    ("0x1B", "Impa's House", "Impa's House"),
-    ("0x1C", "Gerudo Tent", "Gerudo Tent"),
-    ("0x1D", "Environment Color", "Environment Color"),
-    ("0x20", "Mido's House", "Mido's House"),
-    ("0x21", "Saria's House", "Saria's House"),
-    ("0x22", "Dog Guy's House", "Dog Guy's House"),
-]
-
-mm_enum_skybox = [
-    ("Custom", "Custom", "Custom"),
-    ("SKYBOX_NONE", "None", "0x00"),
-    ("SKYBOX_NORMAL_SKY", "Standard Sky", "0x01"),
-    ("SKYBOX_2", "SKYBOX_2", "0x02"),
-    ("SKYBOX_3", "SKYBOX_3", "0x03"),
-    ("SKYBOX_CUTSCENE_MAP", "Cutscene Map", "0x05"),
-]
-
 ootEnumSkyboxLighting = [
     # see ``LightMode`` enum in ``z64environment.h``
     ("Custom", "Custom", "Custom"),
@@ -164,19 +67,6 @@ ootEnumSkyboxLighting = [
 ootEnumAudioSessionPreset = [
     ("Custom", "Custom", "Custom"),
     ("0x00", "0x00", "0x00"),
-]
-
-ootEnumGlobalObject = [
-    ("Custom", "Custom", "Custom"),
-    ("OBJECT_INVALID", "None", "None"),
-    ("OBJECT_GAMEPLAY_FIELD_KEEP", "Overworld", "gameplay_field_keep"),
-    ("OBJECT_GAMEPLAY_DANGEON_KEEP", "Dungeon", "gameplay_dangeon_keep"),
-]
-
-mm_enum_global_object = [
-    ("Custom", "Custom", "Custom"),
-    ("GAMEPLAY_FIELD_KEEP", "Overworld", "gameplay_field_keep"),
-    ("GAMEPLAY_DANGEON_KEEP", "Dungeon", "gameplay_dangeon_keep"),
 ]
 
 ootEnumNaviHints = [
@@ -641,27 +531,6 @@ ootEnumCamTransition = [
     ("0x00", "0x00", "0x00"),
     # ("0x0F", "0x0F", "0x0F"),
     # ("0xFF", "0xFF", "0xFF"),
-]
-
-# see RoomType enum
-ootEnumRoomBehaviour = [
-    ("Custom", "Custom", "Custom"),
-    ("0x00", "Default", "Default"),
-    ("0x01", "Dungeon Behavior (Z-Target, Sun's Song)", "Dungeon Behavior (Z-Target, Sun's Song)"),
-    ("0x02", "Disable Backflips/Sidehops", "Disable Backflips/Sidehops"),
-    ("0x03", "Disable Color Dither", "Disable Color Dither"),
-    ("0x04", "(?) Horse Camera Related", "(?) Horse Camera Related"),
-    ("0x05", "Disable Darker Screen Effect (NL/Spins)", "Disable Darker Screen Effect (NL/Spins)"),
-]
-
-mm_enum_room_type = [
-    ("Custom", "Custom", "Custom"),
-    ("ROOM_TYPE_NORMAL", "Normal", "0x00"),
-    ("ROOM_TYPE_DUNGEON", "Dungeon", "0x01"),
-    ("ROOM_TYPE_INDOORS", "Indoors", "0x02"),
-    ("ROOM_TYPE_3", "Type 3", "0x03"),
-    ("ROOM_TYPE_4", "Type 4 (Horse related)", "0x04"),
-    ("ROOM_TYPE_BOSS", "Boss", "0x05"),
 ]
 
 ootEnumDrawConfig = [

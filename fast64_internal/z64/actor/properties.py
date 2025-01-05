@@ -4,6 +4,7 @@ from bpy.types import Object, PropertyGroup, UILayout, Context
 from bpy.utils import register_class, unregister_class
 from bpy.props import EnumProperty, StringProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
 from ...utility import PluginError, prop_split, label_split, get_prop_annotations
+from ...constants import game_data
 from ..constants import oot_data, ootEnumCamTransition, mm_data
 from ..upgrade import upgradeActors
 from ..scene.properties import Z64_AlternateSceneHeaderProperty
@@ -25,7 +26,6 @@ from ..utility import (
     get_cs_index_start,
     is_oot_features,
     is_game_oot,
-    get_game_enum,
     get_list_tab_text,
     getEvalParams,
     getEvalParamsInt,
@@ -508,7 +508,7 @@ class Z64_ActorProperty(PropertyGroup):
                 return
 
             split.label(text="Actor ID")
-            split.label(text=getEnumName(get_game_enum("enum_actor_id"), actor_id))
+            split.label(text=getEnumName(game_data.z64.actorData.ootEnumActorID, actor_id))
 
             if self.actor_id != "Custom":
                 self.draw_params(actorIDBox, owner)
@@ -609,7 +609,7 @@ class Z64_TransitionActorProperty(PropertyGroup):
         split = actorIDBox.split(factor=0.5)
         split.label(text="Actor ID")
         actor_id = getattr(self.actor, get_game_prop_name("actor_id"))
-        split.label(text=getEnumName(get_game_enum("enum_actor_id"), actor_id))
+        split.label(text=getEnumName(game_data.z64.actorData.ootEnumActorID, actor_id))
 
         if self.actor.actor_id == "Custom":
             prop_split(actorIDBox, self.actor, "actor_id_custom", "")

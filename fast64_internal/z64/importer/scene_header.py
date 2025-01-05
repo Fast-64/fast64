@@ -6,6 +6,7 @@ import mathutils
 
 from bpy.types import Object
 from ...utility import PluginError, readFile, parentObject, hexOrDecInt, gammaInverse
+from ...constants import game_data
 from ...f3d.f3d_parser import parseMatrices
 from ..model_classes import OOTF3DContext
 from ..scene.properties import Z64_SceneHeaderProperty, Z64_LightProperty
@@ -14,7 +15,6 @@ from ..actor_cutscene.properties import enum_cs_cam_id, enum_end_cam, enum_end_s
 from ..utility import (
     getEvalParams,
     setCustomProperty,
-    get_game_enum,
     is_game_oot,
     get_cs_index_start,
     get_game_prop_name,
@@ -546,7 +546,7 @@ def parseSceneCommands(
                 sceneHeader,
                 get_game_prop_name("ambience_id"),
                 args[1],
-                get_game_enum("enum_ambiance_id"),
+                game_data.z64.ootEnumNightSeq,
                 "nightSeqCustom",
             )
 
@@ -561,7 +561,7 @@ def parseSceneCommands(
                 enum_id = enum_seq_id.item_by_index[int(args[2])].id
 
             setCustomProperty(
-                sceneHeader, get_game_prop_name("seq_id"), enum_id, get_game_enum("enum_seq_id"), "musicSeqCustom"
+                sceneHeader, get_game_prop_name("seq_id"), enum_id, game_data.z64.ootEnumMusicSeq, "musicSeqCustom"
             )
             command_list.remove(command)
         elif command == "SCENE_CMD_ROOM_LIST":
@@ -593,7 +593,7 @@ def parseSceneCommands(
                 sceneHeader,
                 get_game_prop_name("global_obj"),
                 args[1],
-                get_game_enum("enum_global_object"),
+                game_data.z64.ootEnumGlobalObject,
                 "globalObjectCustom",
             )
             command_list.remove(command)
@@ -616,14 +616,14 @@ def parseSceneCommands(
                 sceneHeader,
                 get_game_prop_name("skybox_id"),
                 args[args_index],
-                get_game_enum("enum_skybox"),
+                game_data.z64.ootEnumSkybox,
                 "skyboxIDCustom",
             )
             setCustomProperty(
                 sceneHeader,
                 get_game_prop_name("skybox_config"),
                 args[args_index + 1],
-                get_game_enum("enum_skybox_config"),
+                game_data.z64.ootEnumCloudiness,
                 "skyboxCloudinessCustom",
             )
             setCustomProperty(sceneHeader, "skyboxLighting", args[args_index + 2], ootEnumSkyboxLighting)
