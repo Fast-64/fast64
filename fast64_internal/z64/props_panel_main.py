@@ -259,8 +259,6 @@ class OOTCullGroupProperty(bpy.types.PropertyGroup):
 
 
 oot_obj_classes = (
-    OOTSceneProperties,
-    OOT_ObjectProperties,
     OOTCullGroupProperty,
     OOT_ManualUpgrade,
 )

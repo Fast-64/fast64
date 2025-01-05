@@ -163,8 +163,6 @@ oot_skeleton_classes = (
     OOTDynamicTransformProperty,
     OOTBoneProperty,
     OOTSkeletonProperty,
-    OOTSkeletonExportSettings,
-    OOTSkeletonImportSettings,
 )
 
 

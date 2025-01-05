@@ -752,8 +752,6 @@ class Z64_ImportSceneSettingsProperty(PropertyGroup):
 
 
 classes = (
-    # OoT exclusive
-    OOT_BootupSceneOptions,
     # MM exclusive
     Z64_MapDataChestProperty,
     Z64_MapDataRoomProperty,

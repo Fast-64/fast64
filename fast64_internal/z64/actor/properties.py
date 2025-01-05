@@ -1,7 +1,9 @@
+import bpy
+
 from bpy.types import Object, PropertyGroup, UILayout, Context
 from bpy.utils import register_class, unregister_class
 from bpy.props import EnumProperty, StringProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
-from ...utility import PluginError, prop_split, label_split
+from ...utility import PluginError, prop_split, label_split, get_prop_annotations
 from ..constants import oot_data, ootEnumCamTransition, mm_data
 from ..upgrade import upgradeActors
 from ..scene.properties import Z64_AlternateSceneHeaderProperty
@@ -69,19 +71,22 @@ def get_prop_name(actor_key: str, param_type: str, param_subtype: str, param_ind
         "Message": "naviMsg",
     }
     suffix = param_to_prop_suffix[param_type] if param_type != "Flag" else flag_to_prop_suffix[param_subtype]
-    return f"{actor_key}.{suffix}{param_index}"  # e.g.: ``en_test.props1``
+    return f"{bpy.context.scene.gameEditorMode.lower()}.{actor_key}.{suffix}{param_index}"  # e.g.: ``en_test.props1``
 
 
 def initOOTActorProperties():
     """This function is used to edit the Z64_ActorProperty class"""
-    prop_annotations = getattr(Z64_ActorProperty, "__annotations__", None)
-    if prop_annotations is None:
-        Z64_ActorProperty.__annotations__ = prop_annotations = {}
+    prop_ats = get_prop_annotations(Z64_ActorProperty)
+
+    prop_ats["actor_id"] = EnumProperty(name="Actor", items=oot_data.actorData.ootEnumActorID, default="ACTOR_PLAYER")
+    prop_ats["mm_actor_id"] = EnumProperty(name="Actor", items=mm_data.actor_data.enum_actor_id, default="ACTOR_PLAYER")
+
     param_type_to_enum_items = {
         "ChestContent": oot_data.actorData.ootEnumChestContent,
         "Collectible": oot_data.actorData.ootEnumCollectibleItems,
         "Message": oot_data.actorData.ootEnumNaviMessageData,
     }
+
     for actor in oot_data.actorData.actorList:
         for param in actor.params:
             prop_name = get_prop_name(actor.key, param.type, param.subType, param.index)
@@ -92,13 +97,14 @@ def initOOTActorProperties():
             elif param.type in {"ChestContent", "Collectible", "Message"}:
                 enum_items = param_type_to_enum_items[param.type]
             if param.type in {"Property", "Flag"}:
-                prop_annotations[prop_name] = StringProperty(name="", default="0x0")
+                prop_ats[prop_name] = StringProperty(name="", default="0x0")
             elif param.type == "Bool":
-                prop_annotations[prop_name] = BoolProperty(name="", default=False)
+                prop_ats[prop_name] = BoolProperty(name="", default=False)
             elif param.type in {"Type", "Enum", "ChestContent", "Collectible", "Message"} and enum_items is not None:
-                prop_annotations[prop_name] = EnumProperty(name="", items=enum_items, default=enum_items[1][0])
+                prop_ats[prop_name] = EnumProperty(name="", items=enum_items, default=enum_items[1][0])
+
             if param.type in {"Type", "Enum", "ChestContent", "Collectible", "Message"}:
-                prop_annotations[f"{prop_name}_custom"] = StringProperty(name="", default="0x0")
+                prop_ats[f"{prop_name}_custom"] = StringProperty(name="", default="0x0")
 
 
 class Z64_HalfdayItem(PropertyGroup):
@@ -240,8 +246,6 @@ class Z64_ActorHeaderProperty(PropertyGroup):
 
 
 class Z64_ActorProperty(PropertyGroup):
-    actor_id: EnumProperty(name="Actor", items=oot_data.actorData.ootEnumActorID, default="ACTOR_PLAYER")
-    mm_actor_id: EnumProperty(name="Actor", items=mm_data.actor_data.enum_actor_id, default="ACTOR_PLAYER")
     actor_id_custom: StringProperty(name="Actor ID", default="ACTOR_PLAYER")
 
     # only used for actors with the id "Custom"
@@ -699,6 +703,8 @@ classes = (
 
 
 def actor_props_register():
+    initOOTActorProperties()
+
     for cls in classes:
         register_class(cls)
 
