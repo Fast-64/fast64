@@ -332,7 +332,7 @@ enum_ambiance_id = [
 class Z64_Data:
     """Contains data related to OoT, like actors or objects"""
 
-    def __init__(self, game: str = "OOT"):
+    def __init__(self, game: str):
         from .enum_data import Z64_EnumData
         from .object_data import Z64_ObjectData
         from .actor_data import Z64_ActorData
@@ -348,5 +348,3 @@ class Z64_Data:
         else: 
             self.ootEnumMusicSeq = enum_seq_id
             self.ootEnumNightSeq = enum_ambiance_id
-        
-        pass

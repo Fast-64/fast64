@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 import bpy
 from bpy.types import Object, CollectionProperty
 from ..utility import PluginError
-from ..data import OoT_ObjectData
+from ..data import Z64_ObjectData
 from .utility import getEvalParams, get_actor_prop_from_obj
 from .constants import oot_data
 from .cutscene.constants import ootEnumCSMotionCamMode
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 #####################################
 # Room Header
 #####################################
-def upgradeObjectList(objList: CollectionProperty, objData: OoT_ObjectData):
+def upgradeObjectList(objList: CollectionProperty, objData: Z64_ObjectData):
     """Transition to the XML object system"""
     for obj in objList:
         # In order to check whether the data in the current blend needs to be updated,
@@ -36,7 +36,7 @@ def upgradeObjectList(objList: CollectionProperty, objData: OoT_ObjectData):
             del obj["objectID"]
 
 
-def upgradeRoomHeaders(roomObj: Object, objData: OoT_ObjectData):
+def upgradeRoomHeaders(roomObj: Object, objData: Z64_ObjectData):
     """Main upgrade logic for room headers"""
     altHeaders = roomObj.ootAlternateRoomHeaders
     for sceneLayer in [

@@ -39,11 +39,14 @@ class Z64_ObjectData:
         self.ootEnumObjectKey = self.getObjectIDList(lastIndex + 1, False)
 
         # create the legacy object list for old blends
-        self.ootEnumObjectIDLegacy = self.getObjectIDList(self.objects_by_key["obj_timeblock"].index + 1, True)
+        if game == "OOT":
+            self.ootEnumObjectIDLegacy = self.getObjectIDList(self.objects_by_key["obj_timeblock"].index + 1, True)
 
-        # validate the legacy list, if there's any None element then something's wrong
-        if game == "OOT" and self.deletedEntry in self.ootEnumObjectIDLegacy:
-            raise PluginError("ERROR: Legacy Object List doesn't match!")
+            # validate the legacy list, if there's any None element then something's wrong
+            if self.deletedEntry in self.ootEnumObjectIDLegacy:
+                raise PluginError("ERROR: Legacy Object List doesn't match!")
+        else:
+            self.ootEnumObjectIDLegacy = []
 
     def getObjectIDList(self, max: int, isLegacy: bool):
         """Generates and returns the object list in the right order"""

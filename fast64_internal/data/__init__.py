@@ -1,3 +1,2 @@
-from .oot.data import OoT_Data
-from .mm.data import MM_Data
-from .oot.object_data import OoT_ObjectData
+from .z64.data import Z64_Data
+from .z64.object_data import Z64_ObjectData

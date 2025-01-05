@@ -101,6 +101,7 @@ class Z64_EnumData:
                             item.attrib["Name"] if enum.attrib["Key"] == "seqId" else None,
                             int(item.attrib["Index"]),
                             enum.attrib["Key"],
+                            game,
                         )
                         for item in enum
                     ],
