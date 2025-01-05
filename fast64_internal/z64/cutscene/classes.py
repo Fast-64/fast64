@@ -14,6 +14,9 @@ def cs_import_float(v_str: str):
 
 # NOTE: ``paramNumber`` is the expected number of parameters inside the parsed commands,
 # this account for the unused parameters. Every classes are based on the commands arguments from ``z64cutscene_commands.h``
+#
+# some commands have a `size` attribute, it's purpose is for the exporter as
+# MM's camera command requires the size of the camera data in bytes
 
 
 @dataclass
