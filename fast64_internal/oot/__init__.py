@@ -5,7 +5,14 @@ from .scene.operators import scene_ops_register, scene_ops_unregister
 from .scene.properties import OOTBootupSceneOptions, scene_props_register, scene_props_unregister
 from .scene.panels import scene_panels_register, scene_panels_unregister
 
-from .props_panel_main import oot_obj_panel_register, oot_obj_panel_unregister, oot_obj_register, oot_obj_unregister, OOT_ObjectProperties, OOTSceneProperties
+from .props_panel_main import (
+    oot_obj_panel_register,
+    oot_obj_panel_unregister,
+    oot_obj_register,
+    oot_obj_unregister,
+    OOT_ObjectProperties,
+    OOTSceneProperties,
+)
 from .skeleton.properties import OOTSkeletonImportSettings, OOTSkeletonExportSettings
 from .oot_utility import oot_utility_register, oot_utility_unregister, setAllActorsVisibility
 from .file_settings import file_register, file_unregister

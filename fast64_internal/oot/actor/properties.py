@@ -54,7 +54,9 @@ def initOOTActorProperties():
 
     prop_ats = get_prop_annotations(OOTActorProperty)
 
-    prop_ats["actor_id"] = EnumProperty(name="Actor", items=game_data.z64.actorData.ootEnumActorID, default="ACTOR_PLAYER")
+    prop_ats["actor_id"] = EnumProperty(
+        name="Actor", items=game_data.z64.actorData.ootEnumActorID, default="ACTOR_PLAYER"
+    )
 
     param_type_to_enum_items = {
         "ChestContent": game_data.z64.actorData.ootEnumChestContent,

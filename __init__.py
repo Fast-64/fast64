@@ -373,7 +373,7 @@ def update_game_data():
             case _:
                 print(f"[destroy_game_data:Info]: Nothing to do for {bpy.context.scene.gameEditorMode}")
                 return
-        
+
         print(f"[destroy_game_data:Info]: Success! ({bpy.context.scene.gameEditorMode})")
 
     try:

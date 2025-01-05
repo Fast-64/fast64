@@ -68,9 +68,7 @@ class OOTLinkTextureAnimProperty(PropertyGroup):
         prop_split(layout, self, "mouth", "Mouth")
 
 
-classes = (
-    OOTLinkTextureAnimProperty,
-)
+classes = (OOTLinkTextureAnimProperty,)
 
 
 def anim_props_register():
