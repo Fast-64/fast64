@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 from ....utility import PluginError, indent
-import fast64_internal.game_data as GD
+from ....game_data import game_data
 from ...cutscene.motion.utility import getInteger
 
 
@@ -20,7 +20,7 @@ class CutsceneCmdBase:
 
     @staticmethod
     def getEnumValue(enumKey: str, value: str, isSeqLegacy: bool = False):
-        enum = GD.game_data.z64.enumData.enumByKey[enumKey]
+        enum = game_data.z64.enumData.enumByKey[enumKey]
         item = enum.item_by_id.get(value)
         if item is None:
             setting = getInteger(value)

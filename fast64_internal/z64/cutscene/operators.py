@@ -9,7 +9,7 @@ from bpy.types import Scene, Operator, Context
 from bpy.utils import register_class, unregister_class
 from ...utility import CData, PluginError, writeCData, raisePluginError
 from ..utility import getCollection
-import fast64_internal.game_data as GD
+from ...game_data import game_data
 from .constants import ootEnumCSTextboxType, ootEnumCSListType
 from .importer import importCutsceneData
 from .exporter import getNewCutsceneExport
@@ -239,7 +239,7 @@ class OOT_SearchCSDestinationEnumOperator(Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     csDestination: EnumProperty(
-        items=lambda self, context: GD.game_data.z64.get_enum(context, "csDestination"), default=1
+        items=lambda self, context: game_data.z64.get_enum(context, "csDestination"), default=1
     )
     objName: StringProperty()
 
@@ -262,7 +262,7 @@ class OOT_SearchCSSeqOperator(Operator):
     bl_property = "seqId"
     bl_options = {"REGISTER", "UNDO"}
 
-    seqId: EnumProperty(items=lambda self, context: GD.game_data.z64.get_enum(context, "seqId"), default=1)
+    seqId: EnumProperty(items=lambda self, context: game_data.z64.get_enum(context, "seqId"), default=1)
     itemIndex: IntProperty()
     listType: StringProperty()
 

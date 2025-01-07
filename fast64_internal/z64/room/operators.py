@@ -3,7 +3,7 @@ from bpy.types import Operator
 from bpy.utils import register_class, unregister_class
 from bpy.props import EnumProperty, IntProperty, StringProperty
 from ...utility import ootGetSceneOrRoomHeader
-import fast64_internal.game_data as GD
+from ...game_data import game_data
 
 
 class OOT_SearchObjectEnumOperator(Operator):
@@ -12,7 +12,7 @@ class OOT_SearchObjectEnumOperator(Operator):
     bl_property = "objectKey"
     bl_options = {"REGISTER", "UNDO"}
 
-    objectKey: EnumProperty(items=lambda self, context: GD.game_data.z64.get_enum(context, "objectKey"), default=1)
+    objectKey: EnumProperty(items=lambda self, context: game_data.z64.get_enum(context, "objectKey"), default=1)
     headerIndex: IntProperty(default=0, min=0)
     index: IntProperty(default=0, min=0)
     objName: StringProperty()

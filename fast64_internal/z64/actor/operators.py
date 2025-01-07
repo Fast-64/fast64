@@ -3,7 +3,7 @@ from bpy.types import Operator
 from bpy.props import EnumProperty, StringProperty
 from bpy.utils import register_class, unregister_class
 from ...utility import PluginError
-import fast64_internal.game_data as GD
+from ...game_data import game_data
 
 
 class OOT_SearchChestContentEnumOperator(Operator):
@@ -13,7 +13,7 @@ class OOT_SearchChestContentEnumOperator(Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     chest_content: EnumProperty(
-        items=lambda self, context: GD.game_data.z64.get_enum(context, "chest_content"), default=1
+        items=lambda self, context: game_data.z64.get_enum(context, "chest_content"), default=1
     )
     obj_name: StringProperty()
     prop_name: StringProperty()
@@ -35,7 +35,7 @@ class OOT_SearchNaviMsgIDEnumOperator(Operator):
     bl_property = "navi_msg_id"
     bl_options = {"REGISTER", "UNDO"}
 
-    navi_msg_id: EnumProperty(items=lambda self, context: GD.game_data.z64.get_enum(context, "navi_msg_id"), default=1)
+    navi_msg_id: EnumProperty(items=lambda self, context: game_data.z64.get_enum(context, "navi_msg_id"), default=1)
     obj_name: StringProperty()
     prop_name: StringProperty()
 
@@ -56,7 +56,7 @@ class OOT_SearchActorIDEnumOperator(Operator):
     bl_property = "actor_id"
     bl_options = {"REGISTER", "UNDO"}
 
-    actor_id: EnumProperty(items=lambda self, context: GD.game_data.z64.actorData.getItems(self.actor_user))
+    actor_id: EnumProperty(items=lambda self, context: game_data.z64.actorData.getItems(self.actor_user))
     actor_user: StringProperty(default="Actor")
     obj_name: StringProperty()
 

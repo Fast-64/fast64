@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from ....utility import PluginError, indent
-import fast64_internal.game_data as GD
+from ....game_data import game_data
 from ...cutscene.motion.utility import getRotation, getInteger
 from .common import CutsceneCmdBase
 
@@ -74,7 +74,7 @@ class CutsceneCmdActorCueList(CutsceneCmdBase):
                 commandType = commandType.removeprefix("0x")
                 commandType = "0x" + "0" * (4 - len(commandType)) + commandType
             else:
-                commandType = GD.game_data.z64.enumData.enumByKey["csCmd"].item_by_id[commandType].key
+                commandType = game_data.z64.enumData.enumByKey["csCmd"].item_by_id[commandType].key
             entryTotal = getInteger(params[1].strip())
 
         return CutsceneCmdActorCueList(None, None, isPlayer, commandType, entryTotal)

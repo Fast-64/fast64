@@ -4,7 +4,7 @@ from bpy.types import Object, Operator, Context, Armature
 from bpy.utils import register_class, unregister_class
 from bpy.props import StringProperty, EnumProperty, BoolProperty
 from ....utility import PluginError
-import fast64_internal.game_data as GD
+from ....game_data import game_data
 from ..classes import CutsceneObjectFactory
 from ..constants import ootEnumCSActorCueListCommandType
 from ..preview import initFirstFrame, setupCompositorNodes
@@ -318,7 +318,7 @@ class OOT_SearchPlayerCueIdEnumOperator(Operator):
     bl_property = "playerCueID"
     bl_options = {"REGISTER", "UNDO"}
 
-    playerCueID: EnumProperty(items=lambda self, context: GD.game_data.z64.get_enum(context, "playerCueID"), default=1)
+    playerCueID: EnumProperty(items=lambda self, context: game_data.z64.get_enum(context, "playerCueID"), default=1)
     objName: StringProperty()
 
     def execute(self, context):

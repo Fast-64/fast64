@@ -1,6 +1,5 @@
 import bpy
-import fast64_internal.game_data as GD
-
+from .fast64_internal.game_data import game_data
 
 from bpy.utils import register_class, unregister_class
 from bpy.path import abspath
@@ -358,13 +357,13 @@ def update_game_data():
     """This function should be called on blend load or game editor update"""
 
     def init_game_data():
-        GD.game_data = GD.GameData(bpy.context.scene.gameEditorMode)
+        game_data.update(bpy.context.scene.gameEditorMode)
 
         match bpy.context.scene.gameEditorMode:
             case "OOT" | "MM":
-                if GD.game_data.z64.status != "registered":
+                if game_data.z64.status != "registered":
                     oot_register(True)
-                    GD.game_data.z64.status = "registered"
+                    game_data.z64.status = "registered"
                 else:
                     print("[init_game_data:Info]: Already Registered.")
             case _:
@@ -374,25 +373,25 @@ def update_game_data():
     def destroy_game_data():
         match bpy.context.scene.gameEditorMode:
             case "OOT" | "MM":
-                if GD.game_data.z64.status != "unregistered":
+                if game_data.z64.status != "unregistered":
                     oot_unregister(True)
-                    GD.game_data.z64.status = "unregistered"
+                    game_data.z64.status = "unregistered"
                 else:
                     print("[destroy_game_data:Info]: Already Unregistered.")
             case _:
                 print(f"[destroy_game_data:Info]: Nothing to do for {bpy.context.scene.gameEditorMode}")
 
-    if GD.game_data.z64.status == "waiting":
+    if game_data.z64.status == "waiting":
         init_game_data()
-    elif GD.game_data.z64.status == "registered":
+    elif game_data.z64.status == "registered":
         destroy_game_data()
         init_game_data()
-    elif GD.game_data.z64.status == "unregistered":
+    elif game_data.z64.status == "unregistered":
         init_game_data()
     else:
-        raise ValueError(f"ERROR: Unknown operating mode {repr(GD.game_data.z64.status)}")
+        raise ValueError(f"ERROR: Unknown operating mode {repr(game_data.z64.status)}")
 
-    if bpy.context.scene.gameEditorMode in {"OOT", "MM"} and GD.game_data.z64.game != bpy.context.scene.gameEditorMode:
+    if bpy.context.scene.gameEditorMode in {"OOT", "MM"} and game_data.z64.game != bpy.context.scene.gameEditorMode:
         raise ValueError("ERROR: Z64 game mismatch.")
 
     print(f"[update_game_data:Info]: Success! ({bpy.context.scene.gameEditorMode})")

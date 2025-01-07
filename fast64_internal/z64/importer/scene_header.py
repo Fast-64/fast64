@@ -6,7 +6,7 @@ import mathutils
 
 from bpy.types import Object
 from ...utility import PluginError, readFile, parentObject, hexOrDecInt, gammaInverse
-import fast64_internal.game_data as GD
+from ...game_data import game_data
 from ...f3d.f3d_parser import parseMatrices
 from ..model_classes import OOTF3DContext
 from ..scene.properties import Z64_SceneHeaderProperty, Z64_LightProperty
@@ -532,16 +532,16 @@ def parseSceneCommands(
                 sceneHeader,
                 "nightSeq",
                 args[1],
-                GD.game_data.z64.ootEnumNightSeq,
+                game_data.z64.ootEnumNightSeq,
                 "nightSeqCustom",
             )
 
             if args[2].startswith("NA_BGM_"):
                 enum_id = args[2]
             else:
-                enum_id = GD.game_data.z64.enumData.enumByKey["seqId"].item_by_index[int(args[2])].id
+                enum_id = game_data.z64.enumData.enumByKey["seqId"].item_by_index[int(args[2])].id
 
-            setCustomProperty(sceneHeader, "musicSeq", enum_id, GD.game_data.z64.ootEnumMusicSeq, "musicSeqCustom")
+            setCustomProperty(sceneHeader, "musicSeq", enum_id, game_data.z64.ootEnumMusicSeq, "musicSeqCustom")
             command_list.remove(command)
         elif command == "SCENE_CMD_ROOM_LIST":
             # Delay until actor cutscenes are processed
@@ -572,7 +572,7 @@ def parseSceneCommands(
                 sceneHeader,
                 "globalObject",
                 args[1],
-                GD.game_data.z64.ootEnumGlobalObject,
+                game_data.z64.ootEnumGlobalObject,
                 "globalObjectCustom",
             )
             command_list.remove(command)
@@ -595,14 +595,14 @@ def parseSceneCommands(
                 sceneHeader,
                 "skyboxID",
                 args[args_index],
-                GD.game_data.z64.ootEnumSkybox,
+                game_data.z64.ootEnumSkybox,
                 "skyboxIDCustom",
             )
             setCustomProperty(
                 sceneHeader,
                 "skyboxCloudiness",
                 args[args_index + 1],
-                GD.game_data.z64.ootEnumCloudiness,
+                game_data.z64.ootEnumCloudiness,
                 "skyboxCloudinessCustom",
             )
             setCustomProperty(sceneHeader, "skyboxLighting", args[args_index + 2], ootEnumSkyboxLighting)

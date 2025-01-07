@@ -4,7 +4,7 @@ from mathutils import Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
 from ...utility import getObjectList, is_oot_features, getEvalParams, get_game_prop_name, is_game_oot
-import fast64_internal.game_data as GD
+from ....game_data import game_data
 from ...constants import halfday_bits_all_dawns, halfday_bits_all_nights, enum_to_halfday_bits
 from ...room.properties import Z64_RoomHeaderProperty
 from ...actor.properties import Z64_ActorProperty
@@ -123,7 +123,7 @@ class RoomObjects:
             if objProp.objectKey == "Custom":
                 objectList.append(objProp.objectIDCustom)
             else:
-                objectList.append(GD.game_data.z64.objectData.objects_by_key[objProp.objectKey].id)
+                objectList.append(game_data.z64.objectData.objects_by_key[objProp.objectKey].id)
         return RoomObjects(name, objectList)
 
     def getDefineName(self):
@@ -256,7 +256,7 @@ class RoomActors:
                     actor.rot = ", ".join(f"{rot}, {flag})" for rot, flag in zip(spawn_rot, spawn_flags))
 
                 actor.name = (
-                    GD.game_data.z64.actorData.actorsByID[actor_id].name.replace(
+                    game_data.z64.actorData.actorsByID[actor_id].name.replace(
                         f" - {actor_id.removeprefix('ACTOR_')}", ""
                     )
                     if actor_id != "Custom"

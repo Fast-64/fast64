@@ -3,7 +3,7 @@ import bpy
 from dataclasses import dataclass, field
 from bpy.types import Object
 from typing import Optional
-import fast64_internal.game_data as GD
+from ...game_data import game_data
 from ..utility import is_oot_features, is_game_oot
 from .motion.utility import getBlenderPosition, getBlenderRotation, getRotation, getInteger
 
@@ -44,7 +44,7 @@ class CutsceneCmdBase:
             # remove `cs` and lowercase first letter
             enumKey = enumKey[2].lower() + enumKey[3:]
 
-        enum = GD.game_data.z64.enumData.enumByKey[enumKey]
+        enum = game_data.z64.enumData.enumByKey[enumKey]
         item = enum.item_by_id.get(self.params[index])
         if item is None:
             setting = getInteger(self.params[index])
@@ -196,7 +196,7 @@ class CutsceneCmdActorCueList(CutsceneCmdBase):
                     self.commandType = self.commandType.removeprefix("0x")
                     self.commandType = "0x" + "0" * (4 - len(self.commandType)) + self.commandType
                 else:
-                    self.commandType = GD.game_data.z64.enumData.enumByKey["csCmd"].item_by_id[self.commandType].key
+                    self.commandType = game_data.z64.enumData.enumByKey["csCmd"].item_by_id[self.commandType].key
                 self.entryTotal = getInteger(self.params[1].strip())
 
 
@@ -844,7 +844,7 @@ class CutsceneObjectFactory:
     def getNewActorCueListObject(self, name: str, commandType: str, parentObj: Object):
         newActorCueListObj = self.getNewEmptyObject(name, False, parentObj)
         newActorCueListObj.ootEmptyType = f"CS {'Player' if 'Player' in name else 'Actor'} Cue List"
-        cmdEnum = GD.game_data.z64.enumData.enumByKey["csCmd"]
+        cmdEnum = game_data.z64.enumData.enumByKey["csCmd"]
 
         if commandType == "Player":
             commandType = "player_cue"
@@ -885,7 +885,7 @@ class CutsceneObjectFactory:
 
         item = None
         if isPlayer:
-            playerEnum = GD.game_data.z64.enumData.enumByKey["csPlayerCueId"]
+            playerEnum = game_data.z64.enumData.enumByKey["csPlayerCueId"]
             if isinstance(actionID, int):
                 item = playerEnum.item_by_index.get(actionID)
             else:

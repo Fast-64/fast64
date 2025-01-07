@@ -10,7 +10,7 @@ from mathutils import Matrix, Vector
 from ...f3d.f3d_gbi import TextureExportSettings, DLFormat
 from ...utility import PluginError, raisePluginError, ootGetSceneOrRoomHeader
 from ..utility import ExportInfo, RemoveInfo, sceneNameFromID, is_game_oot
-import fast64_internal.game_data as GD
+from ...game_data import game_data
 from ..constants import ootEnumSceneID, mm_enum_scene_id
 from ..importer import parseScene
 from ..exporter.decomp_edit.config import Config
@@ -34,7 +34,7 @@ def run_ops_without_view_layer_update(func):
 
 
 def parseSceneFunc():
-    GD.game_data.z64.update(bpy.context, None)
+    game_data.z64.update(bpy.context, None)
     settings = bpy.context.scene.ootSceneImportSettings
     parseScene(settings, settings.option if is_game_oot() else settings.mm_option)
 
@@ -101,7 +101,7 @@ class OOT_SearchMusicSeqEnumOperator(Operator):
     bl_property = "ootMusicSeq"
     bl_options = {"REGISTER", "UNDO"}
 
-    ootMusicSeq: EnumProperty(items=lambda self, context: GD.game_data.z64.get_enum(context, "musicSeq"), default=1)
+    ootMusicSeq: EnumProperty(items=lambda self, context: game_data.z64.get_enum(context, "musicSeq"), default=1)
     headerIndex: IntProperty(default=0, min=0)
     objName: StringProperty()
 
