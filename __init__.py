@@ -353,53 +353,13 @@ def upgrade_scene_props_node():
         bpy.ops.dialog.upgrade_f3d_materials("INVOKE_DEFAULT")
 
 
-def update_game_data():
-    """This function should be called on blend load or game editor update"""
-
-    def init_game_data():
-        game_data.update(bpy.context.scene.gameEditorMode)
-
-        match bpy.context.scene.gameEditorMode:
-            case "OOT" | "MM":
-                if game_data.z64.status != "registered":
-                    oot_register(True)
-                    game_data.z64.status = "registered"
-                else:
-                    print("[init_game_data:Info]: Already Registered.")
-            case _:
-                print(f"[init_game_data:Info]: Nothing to do for {bpy.context.scene.gameEditorMode}")
-                return
-
-    def destroy_game_data():
-        match bpy.context.scene.gameEditorMode:
-            case "OOT" | "MM":
-                if game_data.z64.status != "unregistered":
-                    oot_unregister(True)
-                    game_data.z64.status = "unregistered"
-                else:
-                    print("[destroy_game_data:Info]: Already Unregistered.")
-            case _:
-                print(f"[destroy_game_data:Info]: Nothing to do for {bpy.context.scene.gameEditorMode}")
-
-    if game_data.z64.status == "waiting":
-        init_game_data()
-    elif game_data.z64.status == "registered":
-        destroy_game_data()
-        init_game_data()
-    elif game_data.z64.status == "unregistered":
-        init_game_data()
-    else:
-        raise ValueError(f"ERROR: Unknown operating mode {repr(game_data.z64.status)}")
-
-    if bpy.context.scene.gameEditorMode in {"OOT", "MM"} and game_data.z64.game != bpy.context.scene.gameEditorMode:
-        raise ValueError("ERROR: Z64 game mismatch.")
-
-    print(f"[update_game_data:Info]: Success! ({bpy.context.scene.gameEditorMode})")
-
-
 @bpy.app.handlers.persistent
 def after_load(_a, _b):
-    update_game_data()
+    game_data.update(bpy.context.scene.gameEditorMode)
+
+    if game_data.status != "ready":
+        oot_register(True, True)
+        game_data.status = "ready"
 
     settings = bpy.context.scene.fast64.settings
     if any(mat.is_f3d for mat in bpy.data.materials):
@@ -438,7 +398,7 @@ def set_game_defaults(scene: bpy.types.Scene, set_ucode=True):
 
 
 def gameEditorUpdate(scene: bpy.types.Scene, _context):
-    update_game_data()
+    game_data.update(scene.gameEditorMode)
     set_game_defaults(scene)
 
     # reset `currentCutsceneIndex` when switching games
@@ -530,6 +490,7 @@ def unregister():
     f3d_writer_unregister()
     f3d_parser_unregister()
     sm64_unregister(True)
+    oot_unregister(True, True)
     mk64_unregister(True)
     mat_unregister()
     bsdf_conv_unregister()

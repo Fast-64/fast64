@@ -479,7 +479,6 @@ class Z64_Data:
     """Contains data related to OoT, like actors or objects"""
 
     def __init__(self, game: str):
-        self.status = "waiting"
         self.game = game
         self.update(None, game, True)  # forcing the update as we're in the init function
 
@@ -499,6 +498,7 @@ class Z64_Data:
         if not force and next_game == self.game:
             return
 
+        self.game = next_game
         self.enumData = Z64_EnumData(self.game)
         self.objectData = Z64_ObjectData(self.game)
         self.actorData = Z64_ActorData(self.game)

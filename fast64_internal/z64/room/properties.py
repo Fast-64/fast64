@@ -107,9 +107,7 @@ class Z64_RoomHeaderProperty(PropertyGroup):
 
     # SCENE_CMD_ROOM_BEHAVIOR
     roomIndex: IntProperty(name="Room Index", default=0, min=0)
-    roomBehaviour: EnumProperty(
-        items=lambda self, context: game_data.z64.get_enum(context, "roomBehaviour"), default=1
-    )
+    roomBehaviour: EnumProperty(items=lambda self, context: game_data.z64.get_enum(context, "roomBehaviour"), default=1)
     roomBehaviourCustom: StringProperty(default="0x00")
     showInvisibleActors: BoolProperty(name="Show Invisible Actors")
     linkIdleMode: EnumProperty(

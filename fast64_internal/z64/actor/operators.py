@@ -12,9 +12,7 @@ class OOT_SearchChestContentEnumOperator(Operator):
     bl_property = "chest_content"
     bl_options = {"REGISTER", "UNDO"}
 
-    chest_content: EnumProperty(
-        items=lambda self, context: game_data.z64.get_enum(context, "chest_content"), default=1
-    )
+    chest_content: EnumProperty(items=lambda self, context: game_data.z64.get_enum(context, "chest_content"), default=1)
     obj_name: StringProperty()
     prop_name: StringProperty()
 

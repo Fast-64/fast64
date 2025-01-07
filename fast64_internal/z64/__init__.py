@@ -172,72 +172,87 @@ def oot_panel_unregister():
     skeleton_panels_unregister()
 
 
-def oot_register(registerPanels: bool):
+def z64_register_ops():
     from .actor.operators import actor_ops_register
+
+    collision_ops_register()
+    scene_ops_register()
+    room_ops_register()
+    actor_ops_register()
+    anim_ops_register()
+    skeleton_ops_register()
+    cutscene_ops_register()
+    f3d_ops_register()
+    csMotion_ops_register()
+
+
+def oot_register(registerPanels: bool, register_ops: bool = True):
     from .actor.properties import actor_props_register
 
     oot_operator_register()
     oot_utility_register()
-    collision_ops_register()  # register first, so panel goes above mat panel
-    collision_props_register()
+    collision_props_register()  # register first, so panel goes above mat panel
     cutscene_props_register()
-    scene_ops_register()
     scene_props_register()
-    room_ops_register()
     room_props_register()
-    actor_ops_register()
     actor_props_register()
     oot_obj_register()
     spline_props_register()
     f3d_props_register()
-    anim_ops_register()
-    skeleton_ops_register()
     skeleton_props_register()
-    cutscene_ops_register()
-    f3d_ops_register()
     file_register()
     anim_props_register()
     animated_mats_register()
     actor_cs_register()
 
-    csMotion_ops_register()
     csMotion_props_register()
     csMotion_panels_register()
     csMotion_preview_register()
     cutscene_preview_register()
 
+    if register_ops:
+        z64_register_ops()
+
     if registerPanels:
         oot_panel_register()
 
 
-def oot_unregister(unregisterPanels: bool):
+def z64_unregister_ops():
     from .actor.operators import actor_ops_unregister
+
+    collision_ops_unregister()
+    scene_ops_unregister()
+    room_ops_unregister()
+    actor_ops_unregister()
+    anim_ops_unregister()
+    skeleton_ops_unregister()
+    cutscene_ops_unregister()
+    f3d_ops_unregister()
+    csMotion_ops_unregister()
+
+
+def oot_unregister(unregisterPanels: bool, unregister_ops: bool = True):
     from .actor.properties import actor_props_unregister
 
     if unregisterPanels:
         oot_panel_unregister()
 
+    if unregister_ops:
+        z64_unregister_ops()
+
     actor_cs_unregister()
     animated_mats_unregister()
     oot_operator_unregister()
     oot_utility_unregister()
-    collision_ops_unregister()  # register first, so panel goes above mat panel
     collision_props_unregister()
     oot_obj_unregister()
     cutscene_props_unregister()
-    scene_ops_unregister()
     scene_props_unregister()
-    room_ops_unregister()
     room_props_unregister()
-    actor_ops_unregister()
     actor_props_unregister()
     spline_props_unregister()
     f3d_props_unregister()
-    anim_ops_unregister()
-    skeleton_ops_unregister()
     skeleton_props_unregister()
-    cutscene_ops_unregister()
-    f3d_ops_unregister()
     file_unregister()
     anim_props_unregister()
 
@@ -245,4 +260,3 @@ def oot_unregister(unregisterPanels: bool):
     csMotion_preview_unregister()
     csMotion_panels_unregister()
     csMotion_props_unregister()
-    csMotion_ops_unregister()

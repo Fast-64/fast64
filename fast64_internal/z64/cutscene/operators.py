@@ -238,9 +238,7 @@ class OOT_SearchCSDestinationEnumOperator(Operator):
     bl_property = "csDestination"
     bl_options = {"REGISTER", "UNDO"}
 
-    csDestination: EnumProperty(
-        items=lambda self, context: game_data.z64.get_enum(context, "csDestination"), default=1
-    )
+    csDestination: EnumProperty(items=lambda self, context: game_data.z64.get_enum(context, "csDestination"), default=1)
     objName: StringProperty()
 
     def execute(self, context):

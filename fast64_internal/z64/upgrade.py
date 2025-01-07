@@ -182,9 +182,7 @@ def upgradeCutsceneSubProps(csListSubProp):
 
     subPropsToEnum = [
         # TextBox
-        Cutscene_UpgradeData(
-            "ocarinaSongAction", "ocarinaAction", game_data.z64.enumData.ootEnumOcarinaSongActionId
-        ),
+        Cutscene_UpgradeData("ocarinaSongAction", "ocarinaAction", game_data.z64.enumData.ootEnumOcarinaSongActionId),
         Cutscene_UpgradeData("type", "csTextType", game_data.z64.enumData.ootEnumCsTextType),
         # Seq
         Cutscene_UpgradeData("value", "csSeqID", game_data.z64.enumData.ootEnumSeqId),
