@@ -71,10 +71,6 @@ class Scene:
                 )
             except Exception as exc:
                 raise PluginError(f"In alternate, cutscene header {i}: {exc}") from exc
-        altHeader.cutscenes = [
-            SceneHeader.new(f"{name}_header{i:02}", csHeader, sceneObj, transform, i, useMacros)
-            for i, csHeader in enumerate(altProp.cutsceneHeaders, 4)
-        ]
 
         hasAlternateHeaders = True if len(altHeader.cutscenes) > 0 else hasAlternateHeaders
         altHeader = altHeader if hasAlternateHeaders else None
