@@ -322,7 +322,9 @@ class Z64_SceneHeaderProperty(PropertyGroup):
     usePreviousHeader: BoolProperty(name="Use Previous Header", default=True)
 
     # SCENE_CMD_SPECIAL_FILES
-    globalObject: EnumProperty(name="Global Object", default=1, items=lambda self, context: GD.game_data.z64.get_enum(context, "globalObject"))
+    globalObject: EnumProperty(
+        name="Global Object", default=1, items=lambda self, context: GD.game_data.z64.get_enum(context, "globalObject")
+    )
     globalObjectCustom: StringProperty(name="Global Object Custom", default="0x00")
 
     # OoT exclusive
@@ -330,9 +332,13 @@ class Z64_SceneHeaderProperty(PropertyGroup):
     naviCupCustom: StringProperty(name="Navi Hints Custom", default="0x00")
 
     # SCENE_CMD_SKYBOX_SETTINGS
-    skyboxID: EnumProperty(name="Skybox", items=lambda self, context: GD.game_data.z64.get_enum(context, "skyboxID"), default=1)
+    skyboxID: EnumProperty(
+        name="Skybox", items=lambda self, context: GD.game_data.z64.get_enum(context, "skyboxID"), default=1
+    )
     skyboxIDCustom: StringProperty(name="Skybox ID", default="0")
-    skyboxCloudiness: EnumProperty(name="Cloudiness", items=lambda self, context: GD.game_data.z64.get_enum(context, "skyboxCloudiness"), default=1)
+    skyboxCloudiness: EnumProperty(
+        name="Cloudiness", items=lambda self, context: GD.game_data.z64.get_enum(context, "skyboxCloudiness"), default=1
+    )
     skyboxCloudinessCustom: StringProperty(name="Cloudiness ID", default="0x00")
     skyboxLighting: EnumProperty(
         name="Skybox Lighting",
@@ -348,9 +354,13 @@ class Z64_SceneHeaderProperty(PropertyGroup):
     skybox_texture_id: StringProperty(name="Skybox Texture ID", default="0x00")
 
     # SCENE_CMD_SOUND_SETTINGS
-    musicSeq: EnumProperty(name="Music Sequence", items=lambda self, context: GD.game_data.z64.get_enum(context, "musicSeq"), default=1)
+    musicSeq: EnumProperty(
+        name="Music Sequence", items=lambda self, context: GD.game_data.z64.get_enum(context, "musicSeq"), default=1
+    )
     musicSeqCustom: StringProperty(name="Music Sequence ID", default="0x00")
-    nightSeq: EnumProperty(name="Nighttime SFX", items=lambda self, context: GD.game_data.z64.get_enum(context, "nightSeq"), default=1)
+    nightSeq: EnumProperty(
+        name="Nighttime SFX", items=lambda self, context: GD.game_data.z64.get_enum(context, "nightSeq"), default=1
+    )
     nightSeqCustom: StringProperty(name="Nighttime SFX ID", default="0x00")
     audioSessionPreset: EnumProperty(name="Audio Session Preset", items=ootEnumAudioSessionPreset, default="0x00")
     audioSessionPresetCustom: StringProperty(name="Audio Session Preset", default="0x00")

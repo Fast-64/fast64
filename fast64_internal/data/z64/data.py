@@ -481,7 +481,7 @@ class Z64_Data:
     def __init__(self, game: str):
         self.status = "waiting"
         self.game = game
-        self.update(None, game, True) # forcing the update as we're in the init function
+        self.update(None, game, True)  # forcing the update as we're in the init function
 
     def update(self, context: Optional[Context], game: Optional[str], force: bool = False):
         from .enum_data import Z64_EnumData
