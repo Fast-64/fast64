@@ -1,5 +1,6 @@
 import bpy
 import os
+import fast64_internal.game_data as GD
 
 from mathutils import Matrix
 from bpy.types import Object
@@ -92,6 +93,8 @@ class SceneExport:
         """Main function"""
         # circular import fixes
         from .decomp_edit.config import Config
+
+        GD.game_data.z64.update(bpy.context, None)
 
         checkObjectReference(originalSceneObj, "Scene object")
         scene = SceneExport.create_scene(originalSceneObj, transform, exportInfo)

@@ -1,6 +1,8 @@
+import bpy
+import fast64_internal.game_data as GD
+
 from bpy.types import Object
 from ..utility import ootGetSceneOrRoomHeader
-import fast64_internal.game_data as GD
 from .exporter.room.header import RoomHeader
 
 
@@ -17,6 +19,8 @@ def addMissingObjectToProp(roomObj: Object, headerIndex: int, objectKey: str):
 def addMissingObjectsToRoomHeader(roomObj: Object, curHeader: RoomHeader, headerIndex: int):
     """Adds missing objects to the object list"""
     if len(curHeader.actors.actorList) > 0:
+        GD.game_data.z64.update(bpy.context, None)
+
         for roomActor in curHeader.actors.actorList:
             actor = GD.game_data.z64.actorData.actorsByID.get(roomActor.id)
             if actor is not None and actor.key != "player" and len(actor.tiedObjects) > 0:

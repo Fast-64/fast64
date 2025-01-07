@@ -77,25 +77,23 @@ def initOOTActorProperties():
     """This function is used to edit the Z64_ActorProperty class"""
     prop_ats = get_prop_annotations(Z64_ActorProperty)
 
-    prop_ats["actor_id"] = EnumProperty(
-        name="Actor", items=GD.game_data.z64.actorData.ootEnumActorID, default="ACTOR_PLAYER"
-    )
-
     param_type_to_enum_items = {
-        "ChestContent": GD.game_data.z64.actorData.ootEnumChestContent,
-        "Collectible": GD.game_data.z64.actorData.ootEnumCollectibleItems,
-        "Message": GD.game_data.z64.actorData.ootEnumNaviMessageData,
+        "ChestContent": GD.game_data.z64.get_enum(bpy.context, "chest_content"),
+        "Collectible": GD.game_data.z64.get_enum(bpy.context, "collectibles"),
+        "Message": GD.game_data.z64.get_enum(bpy.context, "navi_msg_id"),
     }
 
     for actor in GD.game_data.z64.actorData.actorList:
         for param in actor.params:
             prop_name = get_prop_name(actor.key, param.type, param.subType, param.index)
             enum_items = None
+
             if len(param.items) > 0:
                 enum_items = [(f"0x{val:04X}", name, f"0x{val:04X}") for val, name in param.items]
                 enum_items.insert(0, ("Custom", "Custom Value", "Custom"))
             elif param.type in {"ChestContent", "Collectible", "Message"}:
                 enum_items = param_type_to_enum_items[param.type]
+
             if param.type in {"Property", "Flag"}:
                 prop_ats[prop_name] = StringProperty(name="", default="0x0")
             elif param.type == "Bool":
@@ -246,6 +244,9 @@ class Z64_ActorHeaderProperty(PropertyGroup):
 
 
 class Z64_ActorProperty(PropertyGroup):
+    actor_id: EnumProperty(
+        name="Actor", items=lambda self, context: GD.game_data.z64.get_enum(context, "actor_id"), default="ACTOR_PLAYER"
+    )
     actor_id_custom: StringProperty(name="Actor ID", default="ACTOR_PLAYER")
 
     # only used for actors with the id "Custom"
@@ -301,6 +302,7 @@ class Z64_ActorProperty(PropertyGroup):
             upgradeActors(obj)
 
     def is_rotation_used(self, target: str):
+        GD.game_data.z64.update(bpy.context, None)
         actor = GD.game_data.z64.actorData.actorsByID[self.actor_id]
         selected_type = None
         for param in actor.params:
@@ -324,6 +326,7 @@ class Z64_ActorProperty(PropertyGroup):
         return True
 
     def set_param_value(self, base_value: str | bool, target: str):
+        GD.game_data.z64.update(bpy.context, None)
         actor = GD.game_data.z64.actorData.actorsByID[self.actor_id]
         base_value = getEvalParamsInt(base_value)
         found_type = None
@@ -364,6 +367,7 @@ class Z64_ActorProperty(PropertyGroup):
                             )
 
     def get_param_value(self, target: str):
+        GD.game_data.z64.update(bpy.context, None)
         actor = GD.game_data.z64.actorData.actorsByID[self.actor_id]
         param_list = []
         type_value = None
@@ -441,6 +445,7 @@ class Z64_ActorProperty(PropertyGroup):
         return param_str
 
     def draw_params(self, layout: UILayout, obj: Object):
+        GD.game_data.z64.update(bpy.context, None)
         actor = GD.game_data.z64.actorData.actorsByID[self.actor_id]
         selected_type = None
         for param in actor.params:
@@ -501,17 +506,18 @@ class Z64_ActorProperty(PropertyGroup):
                 return
 
             split.label(text="Actor ID")
-            split.label(text=getEnumName(GD.game_data.z64.actorData.ootEnumActorID, self.actor_id))
+            split.label(text=getEnumName(GD.game_data.z64.get_enum(bpy.context, "actor_id"), self.actor_id))
 
-            if self.actor_id != "Custom":
-                self.draw_params(actorIDBox, owner)
-            else:
-                prop_split(actorIDBox, self, "actor_id_custom", "")
+            if is_game_oot():
+                if self.actor_id != "Custom":
+                    self.draw_params(actorIDBox, owner)
+                else:
+                    prop_split(actorIDBox, self, "actor_id_custom", "")
 
             paramBox = actorIDBox.box()
             paramBox.label(text="Actor Parameter")
 
-            if self.actor_id != "Custom":
+            if is_game_oot() and self.actor_id != "Custom":
                 paramBox.prop(self, "eval_params")
                 paramBox.prop(self, "params", text="")
             else:
@@ -596,7 +602,7 @@ class Z64_TransitionActorProperty(PropertyGroup):
 
         split = actorIDBox.split(factor=0.5)
         split.label(text="Actor ID")
-        split.label(text=getEnumName(GD.game_data.z64.actorData.ootEnumActorID, self.actor.actor_id))
+        split.label(text=getEnumName(GD.game_data.z64.get_enum(bpy.context, "actor_id"), self.actor.actor_id))
 
         if self.actor.actor_id == "Custom":
             prop_split(actorIDBox, self.actor, "actor_id_custom", "")

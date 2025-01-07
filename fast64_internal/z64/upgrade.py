@@ -150,6 +150,8 @@ def upgradeCutsceneSubProps(csListSubProp):
     # ``csListSubProp`` types: OOTCSTextProperty | OOTCSSeqProperty | OOTCSMiscProperty | OOTCSRumbleProperty
     # based on ``upgradeObjectList``
 
+    GD.game_data.z64.update(bpy.context, None)
+
     subPropsOldToNew = {
         # TextBox
         "messageId": "textID",
@@ -197,6 +199,8 @@ def upgradeCutsceneSubProps(csListSubProp):
 def upgradeCSListProps(csListProp):
     # ``csListProp`` type: ``OOTCSListProperty``
 
+    GD.game_data.z64.update(bpy.context, None)
+
     csListPropOldToNew = {
         "textbox": "textList",
         "lighting": "lightSettingsList",
@@ -218,6 +222,8 @@ def upgradeCSListProps(csListProp):
 
 
 def upgradeCutsceneProperty(csProp: "OOTCutsceneProperty"):
+    GD.game_data.z64.update(bpy.context, None)
+
     csPropOldToNew = {
         "csWriteTerminator": "csUseDestination",
         "csTermStart": "csDestinationStartFrame",
@@ -233,6 +239,7 @@ def upgradeCutsceneProperty(csProp: "OOTCutsceneProperty"):
 def upgradeCutsceneMotion(csMotionObj: Object):
     """Main upgrade logic for Cutscene Motion data from zcamedit"""
     objName = csMotionObj.name
+    GD.game_data.z64.update(bpy.context, None)
 
     if csMotionObj.type == "EMPTY":
         csMotionProp = csMotionObj.ootCSMotionProperty
@@ -310,6 +317,8 @@ def upgradeCutsceneMotion(csMotionObj: Object):
 # Actors
 #####################################
 def upgradeActors(actorObj: Object):
+    GD.game_data.z64.update(bpy.context, None)
+
     # parameters
     actorProp = get_actor_prop_from_obj(actorObj)
     isCustom = False

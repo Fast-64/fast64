@@ -84,7 +84,7 @@ class CutsceneCmdActorCueProperty(PropertyGroup):
         get=lambda self: getNextCuesStartFrame(self),
     )
 
-    playerCueID: EnumProperty(items=GD.game_data.z64.enumData.ootEnumCsPlayerCueId, default=1)
+    playerCueID: EnumProperty(items=lambda self, context: GD.game_data.z64.get_enum(context, "playerCueID"), default=1)
     cueActionID: StringProperty(
         name="Action ID", default="0x0001", description="Actor action. Meaning is unique for each different actor."
     )
@@ -114,7 +114,7 @@ class CutsceneCmdActorCueProperty(PropertyGroup):
                 split = box.split(factor=0.5)
                 searchOp = split.operator(OOT_SearchPlayerCueIdEnumOperator.bl_idname, icon="VIEWZOOM", text=label)
                 searchOp.objName = objName
-                split.label(text=getEnumName(GD.game_data.z64.enumData.ootEnumCsPlayerCueId, self.playerCueID))
+                split.label(text=getEnumName(GD.game_data.z64.get_enum(bpy.context, "playerCueID"), self.playerCueID))
 
             if not isPlayer or self.playerCueID == "Custom":
                 split = box.split(factor=0.5)

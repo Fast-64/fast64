@@ -34,6 +34,7 @@ def run_ops_without_view_layer_update(func):
 
 
 def parseSceneFunc():
+    GD.game_data.z64.update(bpy.context, None)
     settings = bpy.context.scene.ootSceneImportSettings
     parseScene(settings, settings.option if is_game_oot() else settings.mm_option)
 
@@ -100,7 +101,7 @@ class OOT_SearchMusicSeqEnumOperator(Operator):
     bl_property = "ootMusicSeq"
     bl_options = {"REGISTER", "UNDO"}
 
-    ootMusicSeq: EnumProperty(items=GD.game_data.z64.ootEnumMusicSeq, default="NA_BGM_FIELD_LOGIC")
+    ootMusicSeq: EnumProperty(items=lambda self, context: GD.game_data.z64.get_enum(context, "musicSeq"), default=1)
     headerIndex: IntProperty(default=0, min=0)
     objName: StringProperty()
 

@@ -44,18 +44,20 @@ ootEnumRoomMenu = ootEnumRoomMenuAlternate + [
 
 class Z64_ObjectProperty(PropertyGroup):
     expandTab: BoolProperty(name="Expand Tab")
-    objectKey: EnumProperty(items=GD.game_data.z64.objectData.ootEnumObjectKey, default=1)
+    objectKey: EnumProperty(items=lambda self, context: GD.game_data.z64.get_enum(context, "objectKey"), default=1)
     objectIDCustom: StringProperty(default="OBJECT_CUSTOM")
 
     @staticmethod
     def upgrade_object(obj: Object):
         if is_game_oot():
             print(f"Processing '{obj.name}'...")
+            GD.game_data.z64.update(bpy.context, None)
             upgradeRoomHeaders(obj, GD.game_data.z64.objectData)
 
     def draw_props(self, layout: UILayout, headerIndex: int, index: int, objName: str):
         is_legacy = True if "objectID" in self else False
         obj_key: str = getattr(self, get_game_prop_name("object_key"))
+        GD.game_data.z64.update(bpy.context, None)
 
         if is_game_oot() and is_legacy:
             obj_name = GD.game_data.z64.objectData.ootEnumObjectIDLegacy[self["objectID"]][1]
@@ -105,10 +107,10 @@ class Z64_RoomHeaderProperty(PropertyGroup):
 
     # SCENE_CMD_ROOM_BEHAVIOR
     roomIndex: IntProperty(name="Room Index", default=0, min=0)
-    roomBehaviour: EnumProperty(items=GD.game_data.z64.ootEnumRoomBehaviour, default=1)
+    roomBehaviour: EnumProperty(items=lambda self, context: GD.game_data.z64.get_enum(context, "roomBehaviour"), default=1)
     roomBehaviourCustom: StringProperty(default="0x00")
     showInvisibleActors: BoolProperty(name="Show Invisible Actors")
-    linkIdleMode: EnumProperty(name="Environment Type", items=GD.game_data.z64.ootEnumLinkIdle, default=1)
+    linkIdleMode: EnumProperty(name="Environment Type", items=lambda self, context: GD.game_data.z64.get_enum(context, "linkIdleMode"), default=1)
     linkIdleModeCustom: StringProperty(name="Environment Type Custom", default="0x00")
 
     # OoT exclusive

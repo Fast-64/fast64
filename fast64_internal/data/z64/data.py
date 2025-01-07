@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+from typing import Optional
+from bpy.types import Context
 
 
 @dataclass
@@ -477,16 +479,31 @@ class Z64_Data:
     """Contains data related to OoT, like actors or objects"""
 
     def __init__(self, game: str):
+        self.status = "waiting"
+        self.game = game
+        self.update(None, game, True) # forcing the update as we're in the init function
+
+    def update(self, context: Optional[Context], game: Optional[str], force: bool = False):
         from .enum_data import Z64_EnumData
         from .object_data import Z64_ObjectData
         from .actor_data import Z64_ActorData
 
-        self.game = game
-        self.enumData = Z64_EnumData(game)
-        self.objectData = Z64_ObjectData(game)
-        self.actorData = Z64_ActorData(game)
+        if context is not None:
+            next_game = context.scene.gameEditorMode
+        elif game is not None:
+            next_game = game
+        else:
+            raise ValueError("ERROR: invalid values for context and game")
 
-        if game == "OOT":
+        # don't update if the game is the same (or we don't want to force one)
+        if not force and next_game == self.game:
+            return
+
+        self.enumData = Z64_EnumData(self.game)
+        self.objectData = Z64_ObjectData(self.game)
+        self.actorData = Z64_ActorData(self.game)
+
+        if self.game == "OOT":
             self.ootEnumMusicSeq = ootEnumMusicSeq
             self.ootEnumNightSeq = ootEnumNightSeq
             self.ootEnumGlobalObject = ootEnumGlobalObject
@@ -494,7 +511,7 @@ class Z64_Data:
             self.ootEnumCloudiness = ootEnumCloudiness
             self.ootEnumLinkIdle = ootEnumLinkIdle
             self.ootEnumRoomBehaviour = ootEnumRoomBehaviour
-        else:
+        elif self.game == "MM":
             self.ootEnumMusicSeq = enum_seq_id
             self.ootEnumNightSeq = enum_ambiance_id
             self.ootEnumGlobalObject = mm_enum_global_object
@@ -502,3 +519,52 @@ class Z64_Data:
             self.ootEnumCloudiness = mm_enum_skybox_config
             self.ootEnumLinkIdle = mm_enum_environment_type
             self.ootEnumRoomBehaviour = mm_enum_room_type
+        else:
+            raise ValueError(f"ERROR: unsupported game {repr(self.game)}")
+
+    def get_enum(self, context, prop_name: str):
+        self.update(context, None)
+
+        match prop_name:
+            case "globalObject":
+                return self.ootEnumGlobalObject
+            case "skyboxID":
+                return self.ootEnumSkybox
+            case "skyboxCloudiness":
+                return self.ootEnumCloudiness
+            case "musicSeq":
+                return self.ootEnumMusicSeq
+            case "nightSeq":
+                return self.ootEnumNightSeq
+            case "roomBehaviour":
+                return self.ootEnumRoomBehaviour
+            case "linkIdleMode":
+                return self.ootEnumLinkIdle
+            case "actor_id":
+                return self.actorData.ootEnumActorID
+            case "chest_content":
+                return self.actorData.ootEnumChestContent
+            case "navi_msg_id":
+                return self.actorData.ootEnumNaviMessageData
+            case "collectibles":
+                return self.actorData.ootEnumCollectibleItems
+            case "objectKey":
+                return self.objectData.ootEnumObjectKey
+            case "csDestination":
+                return self.enumData.ootEnumCsDestination
+            case "seqId":
+                return self.enumData.ootEnumSeqId
+            case "playerCueID":
+                return self.enumData.ootEnumCsPlayerCueId
+            case "ocarinaAction":
+                return self.enumData.ootEnumOcarinaSongActionId
+            case "csTextType":
+                return self.enumData.ootEnumCsTextType
+            case "csSeqPlayer":
+                return self.enumData.ootEnumCsFadeOutSeqPlayer
+            case "csMiscType":
+                return self.enumData.ootEnumCsMiscType
+            case "transitionType":
+                return self.enumData.ootEnumCsTransitionType
+            case _:
+                raise ValueError(f"ERROR: unknown value {repr(prop_name)}")

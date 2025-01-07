@@ -362,7 +362,11 @@ def update_game_data():
 
         match bpy.context.scene.gameEditorMode:
             case "OOT" | "MM":
-                oot_register(True)
+                if GD.game_data.z64.status != "registered":
+                    oot_register(True)
+                    GD.game_data.z64.status = "registered"
+                else:
+                    print("[init_game_data:Info]: Already Registered.")
             case _:
                 print(f"[init_game_data:Info]: Nothing to do for {bpy.context.scene.gameEditorMode}")
                 return
@@ -370,15 +374,26 @@ def update_game_data():
     def destroy_game_data():
         match bpy.context.scene.gameEditorMode:
             case "OOT" | "MM":
-                oot_unregister(True)
+                if GD.game_data.z64.status != "unregistered":
+                    oot_unregister(True)
+                    GD.game_data.z64.status = "unregistered"
+                else:
+                    print("[destroy_game_data:Info]: Already Unregistered.")
             case _:
                 print(f"[destroy_game_data:Info]: Nothing to do for {bpy.context.scene.gameEditorMode}")
 
-    try:
+    if GD.game_data.z64.status == "waiting":
         init_game_data()
-    except ValueError:
+    elif GD.game_data.z64.status == "registered":
         destroy_game_data()
         init_game_data()
+    elif GD.game_data.z64.status == "unregistered":
+        init_game_data()
+    else:
+        raise ValueError(f"ERROR: Unknown operating mode {repr(GD.game_data.z64.status)}")
+
+    if bpy.context.scene.gameEditorMode in {"OOT", "MM"} and GD.game_data.z64.game != bpy.context.scene.gameEditorMode:
+        raise ValueError("ERROR: Z64 game mismatch.")
 
     print(f"[update_game_data:Info]: Success! ({bpy.context.scene.gameEditorMode})")
 
