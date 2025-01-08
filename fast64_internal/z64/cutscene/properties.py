@@ -204,7 +204,9 @@ class OOTCSTransitionProperty(OOTCutsceneCommon, PropertyGroup):
     attrName = "transition_list"
     subprops = ["transition_type", "startFrame", "endFrame"]
 
-    transition_type: EnumProperty(name="", items=lambda self, context: game_data.z64.get_enum("transitionType"), default=1)
+    transition_type: EnumProperty(
+        name="", items=lambda self, context: game_data.z64.get_enum("transitionType"), default=1
+    )
     transition_type_custom: StringProperty("CS_TRANS_CUSTOM")
 
 

@@ -25,7 +25,9 @@ def createNewActorCueList(csObj: Object, isPlayer: bool):
     objFactory = CutsceneObjectFactory()
     playerOrActor = "Player" if isPlayer else "Actor"
     index, csPrefix = getNameInformations(csObj, f"{playerOrActor} Cue List", None)
-    newActorCueListObj = objFactory.getNewActorCueListObject(f"{csPrefix}.{playerOrActor} Cue List {index:02}", "actor_cue_0_0", None)
+    newActorCueListObj = objFactory.getNewActorCueListObject(
+        f"{csPrefix}.{playerOrActor} Cue List {index:02}", "actor_cue_0_0", None
+    )
 
     # add a basic actor cue and the dummy one
     for i in range(2):

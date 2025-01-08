@@ -219,7 +219,9 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
     @staticmethod
     def upgrade_changed_props():
         if bpy.context.scene.fast64.get_addon_version() < (2, 3, 1):
-            raise PluginError("ERROR: Upgrading on this version is deprecated. Please update to an older version and update again to this one.")
+            raise PluginError(
+                "ERROR: Upgrading on this version is deprecated. Please update to an older version and update again to this one."
+            )
 
         for obj in bpy.data.objects:
             if obj.type == "EMPTY" and game_data.z64.is_oot():

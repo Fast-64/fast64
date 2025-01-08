@@ -27,7 +27,7 @@ class Z64_ItemElement(Z64_BaseElement):
                 "cs_rumble_type": "CS_RUMBLE",
                 "cs_transition_general": "CS_TRANS_GENERAL",
                 "cs_spline_interp_type": "CS_CAM_INTERP",
-                "cs_spline_rel": "", # TODO: set the value to `CS_CAM_REL` once this is documented
+                "cs_spline_rel": "",  # TODO: set the value to `CS_CAM_REL` once this is documented
                 "cs_spawn_flag": "CS_SPAWN_FLAG",
                 "actor_cs_end_sfx": "CS_END_SFX",
                 "navi_quest_hint_type": "NAVI_QUEST_HINTS",
