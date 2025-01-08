@@ -1376,7 +1376,7 @@ def register(bl_info):
 
     # https://github.com/Fast-64/fast64
     updater.engine = "Github"
-    updater.user = "Fast-64"
+    updater.user = "Yanis002"
     updater.repo = "fast64"
 
     # updater.addon = # define at top of module, MUST be done first
@@ -1455,7 +1455,7 @@ def register(bl_info):
     # Note: updater.include_branch_list defaults to ['master'] branch if set to
     # none. Example targeting another multiple branches allowed to pull from:
     # updater.include_branch_list = ['master', 'dev']
-    updater.include_branch_list = ["main"]
+    updater.include_branch_list = ["main", "mm_dev"]
 
     # Only allow manual install, thus prompting the user to open
     # the addon's web page to download, specifically: updater.website
