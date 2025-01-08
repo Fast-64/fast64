@@ -361,6 +361,9 @@ def after_load(_a, _b):
         oot_register(True, True)
         game_data.status = "ready"
 
+    if game_data.status != "ready":
+        raise ValueError("ERROR: game data is not ready")
+
     settings = bpy.context.scene.fast64.settings
     if any(mat.is_f3d for mat in bpy.data.materials):
         check_or_ask_color_management(bpy.context)

@@ -58,7 +58,9 @@ enum_half_day = [
 ]
 
 
-def get_prop_name(actor_key: str, param_type: str, param_subtype: str, param_index: int):
+def get_prop_name(actor_key: str, param_type: str, param_subtype: str, param_index: int, update: bool = True):
+    if update:
+        game_data.z64.update(bpy.context, None)
     flag_to_prop_suffix = {"Chest": "chestFlag", "Collectible": "collectibleFlag", "Switch": "switchFlag"}
     param_to_prop_suffix = {
         "Type": "type",
@@ -70,22 +72,22 @@ def get_prop_name(actor_key: str, param_type: str, param_subtype: str, param_ind
         "Message": "naviMsg",
     }
     suffix = param_to_prop_suffix[param_type] if param_type != "Flag" else flag_to_prop_suffix[param_subtype]
-    return f"{bpy.context.scene.gameEditorMode.lower()}.{actor_key}.{suffix}{param_index}"  # e.g.: ``en_test.props1``
+    return f"{game_data.z64.game.lower()}.{actor_key}.{suffix}{param_index}"  # e.g.: `oot.en_test.props1`
 
 
-def initOOTActorProperties():
+def create_game_props():
     """This function is used to edit the Z64_ActorProperty class"""
     prop_ats = get_prop_annotations(Z64_ActorProperty)
 
     param_type_to_enum_items = {
-        "ChestContent": game_data.z64.get_enum(bpy.context, "chest_content"),
-        "Collectible": game_data.z64.get_enum(bpy.context, "collectibles"),
-        "Message": game_data.z64.get_enum(bpy.context, "navi_msg_id"),
+        "ChestContent": game_data.z64.actorData.ootEnumChestContent,
+        "Collectible": game_data.z64.actorData.ootEnumCollectibleItems,
+        "Message": game_data.z64.actorData.ootEnumNaviMessageData,
     }
 
     for actor in game_data.z64.actorData.actorList:
         for param in actor.params:
-            prop_name = get_prop_name(actor.key, param.type, param.subType, param.index)
+            prop_name = get_prop_name(actor.key, param.type, param.subType, param.index, update=False)
             enum_items = None
 
             if len(param.items) > 0:
@@ -696,7 +698,16 @@ classes = (
 
 
 def actor_props_register():
-    initOOTActorProperties()
+    # generate props for OoT
+    game_data.z64.update(None, "OOT", True)
+    create_game_props()
+
+    # generate props for MM
+    game_data.z64.update(None, "MM", True)
+    create_game_props()
+
+    # restore the data for the current game
+    game_data.z64.update(bpy.context, None, True)
 
     for cls in classes:
         register_class(cls)
