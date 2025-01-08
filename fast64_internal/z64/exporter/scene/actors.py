@@ -97,7 +97,9 @@ class SceneTransitionActors:
                 else:
                     transActor.rot = f"((0x{round(rot_deg):04X} & 0x1FF) << 7) | ({transActorProp.cutscene_id} & 0x7F)"
 
-                transActor.params = actorProp.params if is_game_oot() and actorProp.actor_id != "Custom" else actorProp.params_custom
+                transActor.params = (
+                    actorProp.params if is_game_oot() and actorProp.actor_id != "Custom" else actorProp.params_custom
+                )
                 transActor.roomFrom, transActor.cameraFront = front
                 transActor.roomTo, transActor.cameraBack = back
                 entries.append(transActor)

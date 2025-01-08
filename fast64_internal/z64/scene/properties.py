@@ -245,7 +245,9 @@ class Z64_LightGroupProperty(PropertyGroup):
 
 
 class Z64_SceneTableEntryProperty(PropertyGroup):
-    drawConfig: EnumProperty(items=lambda self, context: game_data.z64.get_enum(context, "drawConfig"), name="Scene Draw Config", default=1)
+    drawConfig: EnumProperty(
+        items=lambda self, context: game_data.z64.get_enum(context, "drawConfig"), name="Scene Draw Config", default=1
+    )
     drawConfigCustom: StringProperty(name="Scene Draw Config Custom")
 
     def draw_props(self, layout: UILayout):

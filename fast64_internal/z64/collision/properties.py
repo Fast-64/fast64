@@ -109,16 +109,10 @@ class OOTMaterialCollisionProperty(PropertyGroup):
 
             enum_box = layout.box().column()
             enum_box.label(text="Surface Settings")
-            drawEnumWithCustom(
-                enum_box, self, "floorProperty", "Floor Type", "", "floorPropertyCustom"
-            )
-            drawEnumWithCustom(
-                enum_box, self, "floorSetting", "Floor Property", "", "floorSettingCustom"
-            )
+            drawEnumWithCustom(enum_box, self, "floorProperty", "Floor Type", "", "floorPropertyCustom")
+            drawEnumWithCustom(enum_box, self, "floorSetting", "Floor Property", "", "floorSettingCustom")
             drawEnumWithCustom(enum_box, self, "terrain", "Floor Effect", "", "terrainCustom")
-            drawEnumWithCustom(
-                enum_box, self, "sound", "Surface Material", "", "soundCustom"
-            )
+            drawEnumWithCustom(enum_box, self, "sound", "Surface Material", "", "soundCustom")
             drawEnumWithCustom(enum_box, self, "wallSetting", "Wall Type", "")
 
             layout.prop(self, "eponaBlock", text="Blocks Epona")

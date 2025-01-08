@@ -193,13 +193,9 @@ def getPolygonType(collisionProp):
     polygonType.ignoreProjectileCollision = collisionProp.ignoreProjectileCollision
     polygonType.eponaBlock = collisionProp.eponaBlock
     polygonType.decreaseHeight = collisionProp.decreaseHeight
-    polygonType.floorSetting = getCustomProperty(
-        collisionProp, "floorSetting", "floorSettingCustom"
-    )
+    polygonType.floorSetting = getCustomProperty(collisionProp, "floorSetting", "floorSettingCustom")
     polygonType.wallSetting = getCustomProperty(collisionProp, "wallSetting")
-    polygonType.floorProperty = getCustomProperty(
-        collisionProp, "floorProperty", "floorPropertyCustom"
-    )
+    polygonType.floorProperty = getCustomProperty(collisionProp, "floorProperty", "floorPropertyCustom")
     polygonType.exitID = collisionProp.exitID
     polygonType.cameraID = collisionProp.cameraID
     polygonType.isWallDamage = collisionProp.isWallDamage
