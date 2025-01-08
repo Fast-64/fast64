@@ -286,7 +286,7 @@ class MapDataChest:
         pos, _, _, _ = Utility.getConvertedTransform(transform, scene_obj, chest_prop.chest_obj, True)
 
         self.room_idx = self.get_room_index(chest_prop, scene_obj)
-        self.chest_flag = int(getEvalParams(chest_prop.chest_obj.ootActorProperty.actorParam), base=0) & 0x1F
+        self.chest_flag = int(getEvalParams(chest_prop.chest_obj.ootActorProperty.params_custom), base=0) & 0x1F
         self.pos = pos
 
     def get_room_index(self, chest_prop: Z64_MapDataChestProperty, scene_obj: Object) -> int:

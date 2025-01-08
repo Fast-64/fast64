@@ -303,7 +303,7 @@ def parse_mm_map_data_chest(
             for child_obj in chest_room.children_recursive:
                 if child_obj.type == "EMPTY" and child_obj.ootEmptyType == "Actor":
                     actor_id: str = getattr(child_obj.ootActorProperty, "actor_id")
-                    actor_params = int(getEvalParams(child_obj.ootActorProperty.actorParam), base=0)
+                    actor_params = int(getEvalParams(child_obj.ootActorProperty.params_custom), base=0)
 
                     if actor_id in {"ACTOR_EN_BOX"}:
                         actor_chest_flag = actor_params & 0x1F
