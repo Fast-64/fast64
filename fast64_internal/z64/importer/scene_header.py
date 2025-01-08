@@ -536,9 +536,9 @@ def parseSceneCommands(
             if args[2].startswith("NA_BGM_"):
                 enum_id = args[2]
             else:
-                enum_id = game_data.z64.enumData.enumByKey["seqId"].item_by_index[int(args[2])].id
+                enum_id = game_data.z64.enums.enumByKey["seqId"].item_by_index[int(args[2])].id
 
-            setCustomProperty(sceneHeader, "musicSeq", enum_id, game_data.z64.ootEnumMusicSeq, "musicSeqCustom")
+            setCustomProperty(sceneHeader, "musicSeq", enum_id, game_data.z64.get_enum("musicSeq"), "musicSeqCustom")
             command_list.remove(command)
         elif command == "SCENE_CMD_ROOM_LIST":
             # Delay until actor cutscenes are processed
@@ -569,7 +569,7 @@ def parseSceneCommands(
                 sceneHeader,
                 "globalObject",
                 args[1],
-                game_data.z64.ootEnumGlobalObject,
+                game_data.z64.get_enum("globalObject"),
                 "globalObjectCustom",
             )
             command_list.remove(command)

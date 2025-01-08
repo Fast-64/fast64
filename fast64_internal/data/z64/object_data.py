@@ -2,8 +2,7 @@ from dataclasses import dataclass
 from os import path
 from pathlib import Path
 from ...utility import PluginError
-from .getters import get_xml_root
-from .data import Z64_BaseElement
+from .getters import Z64_BaseElement, get_xml_root
 
 # Note: "object" in this context refers to an OoT Object file (like ``gameplay_keep``)
 

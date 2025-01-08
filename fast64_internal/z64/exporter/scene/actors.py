@@ -82,7 +82,7 @@ class SceneTransitionActors:
                     transActor.id = actor_id
 
                 transActor.name = (
-                    game_data.z64.actorData.actorsByID[actor_id].name.replace(
+                    game_data.z64.actors.actorsByID[actor_id].name.replace(
                         f" - {actor_id.removeprefix('ACTOR_')}", ""
                     )
                     if actor_id != "Custom"
@@ -162,7 +162,7 @@ class SceneEntranceActors:
                 entranceActor = EntranceActor()
 
                 entranceActor.name = (
-                    game_data.z64.actorData.actorsByID[actor_id].name.replace(
+                    game_data.z64.actors.actorsByID[actor_id].name.replace(
                         f" - {actor_id.removeprefix('ACTOR_')}", ""
                     )
                     if actor_id != "Custom"

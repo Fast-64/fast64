@@ -1,156 +1,16 @@
+import bpy
+
 from dataclasses import dataclass
 from typing import Optional
 from bpy.types import Context
-
-
-@dataclass
-class Z64_BaseElement:
-    id: str
-    key: str
-    name: str
-    index: int
+from .enum_data import Z64_EnumData
+from .object_data import Z64_ObjectData
+from .actor_data import Z64_ActorData
 
 
 # ---
 
 # TODO: get this from XML
-
-ootEnumMusicSeq = [
-    # see https://github.com/zeldaret/oot/blob/9f09505d34619883748a7dab05071883281c14fd/include/sequence.h#L4-L118
-    ("Custom", "Custom", "Custom"),
-    ("NA_BGM_GENERAL_SFX", "General Sound Effects", "General Sound Effects"),
-    ("NA_BGM_NATURE_AMBIENCE", "Nature Ambiance", "Nature Ambiance"),
-    ("NA_BGM_FIELD_LOGIC", "Hyrule Field", "Hyrule Field"),
-    (
-        "NA_BGM_FIELD_INIT",
-        "Hyrule Field (Initial Segment From Loading Area)",
-        "Hyrule Field (Initial Segment From Loading Area)",
-    ),
-    ("NA_BGM_FIELD_DEFAULT_1", "Hyrule Field (Moving Segment 1)", "Hyrule Field (Moving Segment 1)"),
-    ("NA_BGM_FIELD_DEFAULT_2", "Hyrule Field (Moving Segment 2)", "Hyrule Field (Moving Segment 2)"),
-    ("NA_BGM_FIELD_DEFAULT_3", "Hyrule Field (Moving Segment 3)", "Hyrule Field (Moving Segment 3)"),
-    ("NA_BGM_FIELD_DEFAULT_4", "Hyrule Field (Moving Segment 4)", "Hyrule Field (Moving Segment 4)"),
-    ("NA_BGM_FIELD_DEFAULT_5", "Hyrule Field (Moving Segment 5)", "Hyrule Field (Moving Segment 5)"),
-    ("NA_BGM_FIELD_DEFAULT_6", "Hyrule Field (Moving Segment 6)", "Hyrule Field (Moving Segment 6)"),
-    ("NA_BGM_FIELD_DEFAULT_7", "Hyrule Field (Moving Segment 7)", "Hyrule Field (Moving Segment 7)"),
-    ("NA_BGM_FIELD_DEFAULT_8", "Hyrule Field (Moving Segment 8)", "Hyrule Field (Moving Segment 8)"),
-    ("NA_BGM_FIELD_DEFAULT_9", "Hyrule Field (Moving Segment 9)", "Hyrule Field (Moving Segment 9)"),
-    ("NA_BGM_FIELD_DEFAULT_A", "Hyrule Field (Moving Segment 10)", "Hyrule Field (Moving Segment 10)"),
-    ("NA_BGM_FIELD_DEFAULT_B", "Hyrule Field (Moving Segment 11)", "Hyrule Field (Moving Segment 11)"),
-    ("NA_BGM_FIELD_ENEMY_INIT", "Hyrule Field (Enemy Approaches)", "Hyrule Field (Enemy Approaches)"),
-    ("NA_BGM_FIELD_ENEMY_1", "Hyrule Field (Enemy Near Segment 1)", "Hyrule Field (Enemy Near Segment 1)"),
-    ("NA_BGM_FIELD_ENEMY_2", "Hyrule Field (Enemy Near Segment 2)", "Hyrule Field (Enemy Near Segment 2)"),
-    ("NA_BGM_FIELD_ENEMY_3", "Hyrule Field (Enemy Near Segment 3)", "Hyrule Field (Enemy Near Segment 3)"),
-    ("NA_BGM_FIELD_ENEMY_4", "Hyrule Field (Enemy Near Segment 4)", "Hyrule Field (Enemy Near Segment 4)"),
-    (
-        "NA_BGM_FIELD_STILL_1",
-        "Hyrule Field (Standing Still Segment 1)",
-        "Hyrule Field (Standing Still Segment 1)",
-    ),
-    (
-        "NA_BGM_FIELD_STILL_2",
-        "Hyrule Field (Standing Still Segment 2)",
-        "Hyrule Field (Standing Still Segment 2)",
-    ),
-    (
-        "NA_BGM_FIELD_STILL_3",
-        "Hyrule Field (Standing Still Segment 3)",
-        "Hyrule Field (Standing Still Segment 3)",
-    ),
-    (
-        "NA_BGM_FIELD_STILL_4",
-        "Hyrule Field (Standing Still Segment 4)",
-        "Hyrule Field (Standing Still Segment 4)",
-    ),
-    ("NA_BGM_DUNGEON", "Dodongo's Cavern", "Dodongo's Cavern"),
-    ("NA_BGM_KAKARIKO_ADULT", "Kakariko Village (Adult)", "Kakariko Village (Adult)"),
-    ("NA_BGM_ENEMY", "Enemy Battle", "Enemy Battle"),
-    ("NA_BGM_BOSS", "Boss Battle 00", "Boss Battle 00"),
-    ("NA_BGM_INSIDE_DEKU_TREE", "Inside the Deku Tree", "Inside the Deku Tree"),
-    ("NA_BGM_MARKET", "Market", "Market"),
-    ("NA_BGM_TITLE", "Title Theme", "Title Theme"),
-    ("NA_BGM_LINK_HOUSE", "Link's House", "Link's House"),
-    ("NA_BGM_GAME_OVER", "Game Over", "Game Over"),
-    ("NA_BGM_BOSS_CLEAR", "Boss Clear", "Boss Clear"),
-    ("NA_BGM_ITEM_GET", "Item Get", "Item Get"),
-    ("NA_BGM_OPENING_GANON", "Opening Ganon", "Opening Ganon"),
-    ("NA_BGM_HEART_GET", "Heart Get", "Heart Get"),
-    ("NA_BGM_OCA_LIGHT", "Prelude Of Light", "Prelude Of Light"),
-    ("NA_BGM_JABU_JABU", "Inside Jabu-Jabu's Belly", "Inside Jabu-Jabu's Belly"),
-    ("NA_BGM_KAKARIKO_KID", "Kakariko Village (Child)", "Kakariko Village (Child)"),
-    ("NA_BGM_GREAT_FAIRY", "Great Fairy's Fountain", "Great Fairy's Fountain"),
-    ("NA_BGM_ZELDA_THEME", "Zelda's Theme", "Zelda's Theme"),
-    ("NA_BGM_FIRE_TEMPLE", "Fire Temple", "Fire Temple"),
-    ("NA_BGM_OPEN_TRE_BOX", "Open Treasure Chest", "Open Treasure Chest"),
-    ("NA_BGM_FOREST_TEMPLE", "Forest Temple", "Forest Temple"),
-    ("NA_BGM_COURTYARD", "Hyrule Castle Courtyard", "Hyrule Castle Courtyard"),
-    ("NA_BGM_GANON_TOWER", "Ganondorf's Theme", "Ganondorf's Theme"),
-    ("NA_BGM_LONLON", "Lon Lon Ranch", "Lon Lon Ranch"),
-    ("NA_BGM_GORON_CITY", "Goron City", "Goron City"),
-    ("NA_BGM_FIELD_MORNING", "Hyrule Field Morning Theme", "Hyrule Field Morning Theme"),
-    ("NA_BGM_SPIRITUAL_STONE", "Spiritual Stone Get", "Spiritual Stone Get"),
-    ("NA_BGM_OCA_BOLERO", "Bolero of Fire", "Bolero of Fire"),
-    ("NA_BGM_OCA_MINUET", "Minuet of Woods", "Minuet of Woods"),
-    ("NA_BGM_OCA_SERENADE", "Serenade of Water", "Serenade of Water"),
-    ("NA_BGM_OCA_REQUIEM", "Requiem of Spirit", "Requiem of Spirit"),
-    ("NA_BGM_OCA_NOCTURNE", "Nocturne of Shadow", "Nocturne of Shadow"),
-    ("NA_BGM_MINI_BOSS", "Mini-Boss Battle", "Mini-Boss Battle"),
-    ("NA_BGM_SMALL_ITEM_GET", "Obtain Small Item", "Obtain Small Item"),
-    ("NA_BGM_TEMPLE_OF_TIME", "Temple of Time", "Temple of Time"),
-    ("NA_BGM_EVENT_CLEAR", "Escape from Lon Lon Ranch", "Escape from Lon Lon Ranch"),
-    ("NA_BGM_KOKIRI", "Kokiri Forest", "Kokiri Forest"),
-    ("NA_BGM_OCA_FAIRY_GET", "Obtain Fairy Ocarina", "Obtain Fairy Ocarina"),
-    ("NA_BGM_SARIA_THEME", "Lost Woods", "Lost Woods"),
-    ("NA_BGM_SPIRIT_TEMPLE", "Spirit Temple", "Spirit Temple"),
-    ("NA_BGM_HORSE", "Horse Race", "Horse Race"),
-    ("NA_BGM_HORSE_GOAL", "Horse Race Goal", "Horse Race Goal"),
-    ("NA_BGM_INGO", "Ingo's Theme", "Ingo's Theme"),
-    ("NA_BGM_MEDALLION_GET", "Obtain Medallion", "Obtain Medallion"),
-    ("NA_BGM_OCA_SARIA", "Ocarina Saria's Song", "Ocarina Saria's Song"),
-    ("NA_BGM_OCA_EPONA", "Ocarina Epona's Song", "Ocarina Epona's Song"),
-    ("NA_BGM_OCA_ZELDA", "Ocarina Zelda's Lullaby", "Ocarina Zelda's Lullaby"),
-    ("NA_BGM_OCA_SUNS", "Sun's Song", "Sun's Song"),
-    ("NA_BGM_OCA_TIME", "Song of Time", "Song of Time"),
-    ("NA_BGM_OCA_STORM", "Song of Storms", "Song of Storms"),
-    ("NA_BGM_NAVI_OPENING", "Fairy Flying", "Fairy Flying"),
-    ("NA_BGM_DEKU_TREE_CS", "Deku Tree", "Deku Tree"),
-    ("NA_BGM_WINDMILL", "Windmill Hut", "Windmill Hut"),
-    ("NA_BGM_HYRULE_CS", "Legend of Hyrule", "Legend of Hyrule"),
-    ("NA_BGM_MINI_GAME", "Shooting Gallery", "Shooting Gallery"),
-    ("NA_BGM_SHEIK", "Sheik's Theme", "Sheik's Theme"),
-    ("NA_BGM_ZORA_DOMAIN", "Zora's Domain", "Zora's Domain"),
-    ("NA_BGM_APPEAR", "Enter Zelda", "Enter Zelda"),
-    ("NA_BGM_ADULT_LINK", "Goodbye to Zelda", "Goodbye to Zelda"),
-    ("NA_BGM_MASTER_SWORD", "Master Sword", "Master Sword"),
-    ("NA_BGM_INTRO_GANON", "Ganon Intro", "Ganon Intro"),
-    ("NA_BGM_SHOP", "Shop", "Shop"),
-    ("NA_BGM_CHAMBER_OF_SAGES", "Chamber of the Sages", "Chamber of the Sages"),
-    ("NA_BGM_FILE_SELECT", "File Select", "File Select"),
-    ("NA_BGM_ICE_CAVERN", "Ice Cavern", "Ice Cavern"),
-    ("NA_BGM_DOOR_OF_TIME", "Open Door of Temple of Time", "Open Door of Temple of Time"),
-    ("NA_BGM_OWL", "Kaepora Gaebora's Theme", "Kaepora Gaebora's Theme"),
-    ("NA_BGM_SHADOW_TEMPLE", "Shadow Temple", "Shadow Temple"),
-    ("NA_BGM_WATER_TEMPLE", "Water Temple", "Water Temple"),
-    ("NA_BGM_BRIDGE_TO_GANONS", "Ganon's Castle Bridge", "Ganon's Castle Bridge"),
-    ("NA_BGM_OCARINA_OF_TIME", "Ocarina of Time", "Ocarina of Time"),
-    ("NA_BGM_GERUDO_VALLEY", "Gerudo Valley", "Gerudo Valley"),
-    ("NA_BGM_POTION_SHOP", "Potion Shop", "Potion Shop"),
-    ("NA_BGM_KOTAKE_KOUME", "Kotake & Koume's Theme", "Kotake & Koume's Theme"),
-    ("NA_BGM_ESCAPE", "Escape from Ganon's Castle", "Escape from Ganon's Castle"),
-    ("NA_BGM_UNDERGROUND", "Ganon's Castle Under Ground", "Ganon's Castle Under Ground"),
-    ("NA_BGM_GANONDORF_BOSS", "Ganondorf Battle", "Ganondorf Battle"),
-    ("NA_BGM_GANON_BOSS", "Ganon Battle", "Ganon Battle"),
-    ("NA_BGM_END_DEMO", "Seal of Six Sages", "Seal of Six Sages"),
-    ("NA_BGM_STAFF_1", "End Credits I", "End Credits I"),
-    ("NA_BGM_STAFF_2", "End Credits II", "End Credits II"),
-    ("NA_BGM_STAFF_3", "End Credits III", "End Credits III"),
-    ("NA_BGM_STAFF_4", "End Credits IV", "End Credits IV"),
-    ("NA_BGM_FIRE_BOSS", "King Dodongo & Volvagia Boss Battle", "King Dodongo & Volvagia Boss Battle"),
-    ("NA_BGM_TIMED_MINI_GAME", "Mini-Game", "Mini-Game"),
-    ("NA_BGM_CUTSCENE_EFFECTS", "Various Cutscene Sounds", "Various Cutscene Sounds"),
-    ("NA_BGM_NO_MUSIC", "No Music", "No Music"),
-    ("NA_BGM_NATURE_SFX_RAIN", "Nature Ambiance: Rain", "Nature Ambiance: Rain"),
-]
 
 ootEnumNightSeq = [
     ("Custom", "Custom", "Custom"),
@@ -177,137 +37,6 @@ ootEnumNightSeq = [
     ("0xFF", "Disabled", "NATURE_ID_DISABLED"),
 ]
 
-enum_seq_id = [
-    ("Custom", "Custom", "Custom"),
-    ("NA_BGM_GENERAL_SFX", "General Sound Effects", "General Sound Effects"),
-    ("NA_BGM_AMBIENCE", "Ambient background noises", "Ambient background noises"),
-    ("NA_BGM_TERMINA_FIELD", "Termina Field", "Termina Field"),
-    ("NA_BGM_CHASE", "Chase", "Chase"),
-    ("NA_BGM_MAJORAS_THEME", "Majora's Theme", "Majora's Theme"),
-    ("NA_BGM_CLOCK_TOWER", "Clock Tower", "Clock Tower"),
-    ("NA_BGM_STONE_TOWER_TEMPLE", "Stone Tower Temple", "Stone Tower Temple"),
-    ("NA_BGM_INV_STONE_TOWER_TEMPLE", "Stone Tower Temple Upside-down", "Stone Tower Temple Upside-down"),
-    ("NA_BGM_FAILURE_0", "Missed Event 1", "Missed Event 1"),
-    ("NA_BGM_FAILURE_1", "Missed Event 2", "Missed Event 2"),
-    ("NA_BGM_HAPPY_MASK_SALESMAN", "Happy Mask Saleman's Theme", "Happy Mask Saleman's Theme"),
-    ("NA_BGM_SONG_OF_HEALING", "Song Of Healing", "Song Of Healing"),
-    ("NA_BGM_SWAMP_REGION", "Southern Swamp", "Southern Swamp"),
-    ("NA_BGM_ALIEN_INVASION", "Ghost Attack", "Ghost Attack"),
-    ("NA_BGM_SWAMP_CRUISE", "Boat Cruise", "Boat Cruise"),
-    ("NA_BGM_SHARPS_CURSE", "Sharp's Curse", "Sharp's Curse"),
-    ("NA_BGM_GREAT_BAY_REGION", "Great Bay Coast", "Great Bay Coast"),
-    ("NA_BGM_IKANA_REGION", "Ikana Valley", "Ikana Valley"),
-    ("NA_BGM_DEKU_PALACE", "Deku Palace", "Deku Palace"),
-    ("NA_BGM_MOUNTAIN_REGION", "Mountain Village", "Mountain Village"),
-    ("NA_BGM_PIRATES_FORTRESS", "Pirates' Fortress", "Pirates' Fortress"),
-    ("NA_BGM_CLOCK_TOWN_DAY_1", "Clock Town, First Day", "Clock Town, First Day"),
-    ("NA_BGM_CLOCK_TOWN_DAY_2", "Clock Town, Second Day", "Clock Town, Second Day"),
-    ("NA_BGM_CLOCK_TOWN_DAY_3", "Clock Town, Third Day", "Clock Town, Third Day"),
-    ("NA_BGM_FILE_SELECT", "File Select", "File Select"),
-    ("NA_BGM_CLEAR_EVENT", "Event Clear", "Event Clear"),
-    ("NA_BGM_ENEMY", "Battle", "Battle"),
-    ("NA_BGM_BOSS", "Boss Battle", "Boss Battle"),
-    ("NA_BGM_WOODFALL_TEMPLE", "Woodfall Temple", "Woodfall Temple"),
-    ("NA_BGM_CLOCK_TOWN_MAIN_SEQUENCE", "NA_BGM_CLOCK_TOWN_MAIN_SEQUENCE", "NA_BGM_CLOCK_TOWN_MAIN_SEQUENCE"),
-    ("NA_BGM_OPENING", "Opening", "Opening"),
-    ("NA_BGM_INSIDE_A_HOUSE", "House", "House"),
-    ("NA_BGM_GAME_OVER", "Game Over", "Game Over"),
-    ("NA_BGM_CLEAR_BOSS", "Boss Clear", "Boss Clear"),
-    ("NA_BGM_GET_ITEM", "Item Catch", "Item Catch"),
-    ("NA_BGM_CLOCK_TOWN_DAY_2_PTR", "NA_BGM_CLOCK_TOWN_DAY_2_PTR", "NA_BGM_CLOCK_TOWN_DAY_2_PTR"),
-    ("NA_BGM_GET_HEART", "Get A Heart Container", "Get A Heart Container"),
-    ("NA_BGM_TIMED_MINI_GAME", "Mini Game", "Mini Game"),
-    ("NA_BGM_GORON_RACE", "Goron Race", "Goron Race"),
-    ("NA_BGM_MUSIC_BOX_HOUSE", "Music Box House", "Music Box House"),
-    ("NA_BGM_FAIRY_FOUNTAIN", "Fairy's Fountain", "Fairy's Fountain"),
-    ("NA_BGM_ZELDAS_LULLABY", "Zelda's Theme", "Zelda's Theme"),
-    ("NA_BGM_ROSA_SISTERS", "Rosa Sisters", "Rosa Sisters"),
-    ("NA_BGM_OPEN_CHEST", "Open Treasure Box", "Open Treasure Box"),
-    ("NA_BGM_MARINE_RESEARCH_LAB", "Marine Research Laboratory", "Marine Research Laboratory"),
-    ("NA_BGM_GIANTS_THEME", "Giants' Theme", "Giants' Theme"),
-    ("NA_BGM_SONG_OF_STORMS", "Guru-Guru's Song", "Guru-Guru's Song"),
-    ("NA_BGM_ROMANI_RANCH", "Romani Ranch", "Romani Ranch"),
-    ("NA_BGM_GORON_VILLAGE", "Goron Village", "Goron Village"),
-    ("NA_BGM_MAYORS_OFFICE", "Mayor's Meeting", "Mayor's Meeting"),
-    ("NA_BGM_OCARINA_EPONA", "Ocarina “Epona's Song”", "Ocarina “Epona's Song”"),
-    ("NA_BGM_OCARINA_SUNS", "Ocarina “Sun's Song”", "Ocarina “Sun's Song”"),
-    ("NA_BGM_OCARINA_TIME", "Ocarina “Song Of Time”", "Ocarina “Song Of Time”"),
-    ("NA_BGM_OCARINA_STORM", "Ocarina “Song Of Storms”", "Ocarina “Song Of Storms”"),
-    ("NA_BGM_ZORA_HALL", "Zora Hall", "Zora Hall"),
-    ("NA_BGM_GET_NEW_MASK", "Get A Mask", "Get A Mask"),
-    ("NA_BGM_MINI_BOSS", "Middle Boss Battle", "Middle Boss Battle"),
-    ("NA_BGM_GET_SMALL_ITEM", "Small Item Catch", "Small Item Catch"),
-    ("NA_BGM_ASTRAL_OBSERVATORY", "Astral Observatory", "Astral Observatory"),
-    ("NA_BGM_CAVERN", "Cavern", "Cavern"),
-    ("NA_BGM_MILK_BAR", "Milk Bar", "Milk Bar"),
-    ("NA_BGM_ZELDA_APPEAR", "Enter Zelda", "Enter Zelda"),
-    ("NA_BGM_SARIAS_SONG", "Woods Of Mystery", "Woods Of Mystery"),
-    ("NA_BGM_GORON_GOAL", "Goron Race Goal", "Goron Race Goal"),
-    ("NA_BGM_HORSE", "Horse Race", "Horse Race"),
-    ("NA_BGM_HORSE_GOAL", "Horse Race Goal", "Horse Race Goal"),
-    ("NA_BGM_INGO", "Gorman Track", "Gorman Track"),
-    ("NA_BGM_KOTAKE_POTION_SHOP", "Magic Hags' Potion Shop", "Magic Hags' Potion Shop"),
-    ("NA_BGM_SHOP", "Shop", "Shop"),
-    ("NA_BGM_OWL", "Owl", "Owl"),
-    ("NA_BGM_SHOOTING_GALLERY", "Shooting Gallery", "Shooting Gallery"),
-    ("NA_BGM_OCARINA_SOARING", "Ocarina “Song Of Soaring”", "Ocarina “Song Of Soaring”"),
-    ("NA_BGM_OCARINA_HEALING", "Ocarina “Song Of Healing”", "Ocarina “Song Of Healing”"),
-    ("NA_BGM_INVERTED_SONG_OF_TIME", "Ocarina “Inverted Song Of Time”", "Ocarina “Inverted Song Of Time”"),
-    ("NA_BGM_SONG_OF_DOUBLE_TIME", "Ocarina “Song Of Double Time”", "Ocarina “Song Of Double Time”"),
-    ("NA_BGM_SONATA_OF_AWAKENING", "Sonata of Awakening", "Sonata of Awakening"),
-    ("NA_BGM_GORON_LULLABY", "Goron Lullaby", "Goron Lullaby"),
-    ("NA_BGM_NEW_WAVE_BOSSA_NOVA", "New Wave Bossa Nova", "New Wave Bossa Nova"),
-    ("NA_BGM_ELEGY_OF_EMPTINESS", "Elegy Of Emptiness", "Elegy Of Emptiness"),
-    ("NA_BGM_OATH_TO_ORDER", "Oath To Order", "Oath To Order"),
-    ("NA_BGM_SWORD_TRAINING_HALL", "Swordsman's School", "Swordsman's School"),
-    ("NA_BGM_OCARINA_LULLABY_INTRO", "Ocarina “Goron Lullaby Intro”", "Ocarina “Goron Lullaby Intro”"),
-    ("NA_BGM_LEARNED_NEW_SONG", "Get The Ocarina", "Get The Ocarina"),
-    ("NA_BGM_BREMEN_MARCH", "Bremen March", "Bremen March"),
-    ("NA_BGM_BALLAD_OF_THE_WIND_FISH", "Ballad Of The Wind Fish", "Ballad Of The Wind Fish"),
-    ("NA_BGM_SONG_OF_SOARING", "Song Of Soaring", "Song Of Soaring"),
-    ("NA_BGM_MILK_BAR_DUPLICATE", "NA_BGM_MILK_BAR_DUPLICATE", "NA_BGM_MILK_BAR_DUPLICATE"),
-    ("NA_BGM_FINAL_HOURS", "Last Day", "Last Day"),
-    ("NA_BGM_MIKAU_RIFF", "Mikau", "Mikau"),
-    ("NA_BGM_MIKAU_FINALE", "Mikau", "Mikau"),
-    ("NA_BGM_FROG_SONG", "Frog Song", "Frog Song"),
-    ("NA_BGM_OCARINA_SONATA", "Ocarina “Sonata Of Awakening”", "Ocarina “Sonata Of Awakening”"),
-    ("NA_BGM_OCARINA_LULLABY", "Ocarina “Goron Lullaby”", "Ocarina “Goron Lullaby”"),
-    ("NA_BGM_OCARINA_NEW_WAVE", "Ocarina “New Wave Bossa Nova”", "Ocarina “New Wave Bossa Nova”"),
-    ("NA_BGM_OCARINA_ELEGY", "Ocarina “Elegy of Emptiness”", "Ocarina “Elegy of Emptiness”"),
-    ("NA_BGM_OCARINA_OATH", "Ocarina “Oath To Order”", "Ocarina “Oath To Order”"),
-    ("NA_BGM_MAJORAS_LAIR", "Majora Boss Room", "Majora Boss Room"),
-    ("NA_BGM_OCARINA_LULLABY_INTRO_PTR", "NA_BGM_OCARINA_LULLABY_INTRO", "NA_BGM_OCARINA_LULLABY_INTRO"),
-    ("NA_BGM_OCARINA_GUITAR_BASS_SESSION", "Bass and Guitar Session", "Bass and Guitar Session"),
-    ("NA_BGM_PIANO_SESSION", "Piano Solo", "Piano Solo"),
-    ("NA_BGM_INDIGO_GO_SESSION", "The Indigo-Go's", "The Indigo-Go's"),
-    ("NA_BGM_SNOWHEAD_TEMPLE", "Snowhead Temple", "Snowhead Temple"),
-    ("NA_BGM_GREAT_BAY_TEMPLE", "Great Bay Temple", "Great Bay Temple"),
-    ("NA_BGM_NEW_WAVE_SAXOPHONE", "New Wave Bossa Nova", "New Wave Bossa Nova"),
-    ("NA_BGM_NEW_WAVE_VOCAL", "New Wave Bossa Nova", "New Wave Bossa Nova"),
-    ("NA_BGM_MAJORAS_WRATH", "Majora's Wrath Battle", "Majora's Wrath Battle"),
-    ("NA_BGM_MAJORAS_INCARNATION", "Majora's Incarnate Battle", "Majora's Incarnate Battle"),
-    ("NA_BGM_MAJORAS_MASK", "Majora's Mask Battle", "Majora's Mask Battle"),
-    ("NA_BGM_BASS_PLAY", "Bass Practice", "Bass Practice"),
-    ("NA_BGM_DRUMS_PLAY", "Drums Practice", "Drums Practice"),
-    ("NA_BGM_PIANO_PLAY", "Piano Practice", "Piano Practice"),
-    ("NA_BGM_IKANA_CASTLE", "Ikana Castle", "Ikana Castle"),
-    ("NA_BGM_GATHERING_GIANTS", "Calling The Four Giants", "Calling The Four Giants"),
-    ("NA_BGM_KAMARO_DANCE", "Kamaro's Dance", "Kamaro's Dance"),
-    ("NA_BGM_CREMIA_CARRIAGE", "Cremia's Carriage", "Cremia's Carriage"),
-    ("NA_BGM_KEATON_QUIZ", "Keaton's Quiz", "Keaton's Quiz"),
-    ("NA_BGM_END_CREDITS", "The End / Credits", "The End / Credits"),
-    ("NA_BGM_OPENING_LOOP", "NA_BGM_OPENING_LOOP", "NA_BGM_OPENING_LOOP"),
-    ("NA_BGM_TITLE_THEME", "Title Theme", "Title Theme"),
-    ("NA_BGM_DUNGEON_APPEAR", "Woodfall Rises", "Woodfall Rises"),
-    ("NA_BGM_WOODFALL_CLEAR", "Southern Swamp Clears", "Southern Swamp Clears"),
-    ("NA_BGM_SNOWHEAD_CLEAR", "Snowhead Clear", "Snowhead Clear"),
-    ("NA_BGM_INTO_THE_MOON", "To The Moon", "To The Moon"),
-    ("NA_BGM_GOODBYE_GIANT", "The Giants' Exit", "The Giants' Exit"),
-    ("NA_BGM_TATL_AND_TAEL", "Tatl and Tael", "Tatl and Tael"),
-    ("NA_BGM_MOONS_DESTRUCTION", "Moon's Destruction", "Moon's Destruction"),
-    ("NA_BGM_END_CREDITS_SECOND_HALF", "The End / Credits (Half 2)", "The End / Credits (Half 2)"),
-]
-
 enum_ambiance_id = [
     ("Custom", "Custom", "Custom"),
     ("0x00", "AMBIENCE_ID_00", "AMBIENCE_ID_00"),
@@ -331,127 +60,6 @@ enum_ambiance_id = [
     ("0x12", "AMBIENCE_ID_12", "AMBIENCE_ID_12"),
     ("0x13", "AMBIENCE_ID_13", "AMBIENCE_ID_13"),
     ("0xFF", "AMBIENCE_ID_DISABLED", "AMBIENCE_ID_DISABLED"),
-]
-
-
-ootEnumGlobalObject = [
-    ("Custom", "Custom", "Custom"),
-    ("OBJECT_INVALID", "None", "None"),
-    ("OBJECT_GAMEPLAY_FIELD_KEEP", "Overworld", "gameplay_field_keep"),
-    ("OBJECT_GAMEPLAY_DANGEON_KEEP", "Dungeon", "gameplay_dangeon_keep"),
-]
-
-mm_enum_global_object = [
-    ("Custom", "Custom", "Custom"),
-    ("GAMEPLAY_FIELD_KEEP", "Overworld", "gameplay_field_keep"),
-    ("GAMEPLAY_DANGEON_KEEP", "Dungeon", "gameplay_dangeon_keep"),
-]
-
-ootEnumDrawConfig = [
-    ("Custom", "Custom", "Custom"),
-    ("SDC_DEFAULT", "Default", "Default"),
-    ("SDC_HYRULE_FIELD", "Hyrule Field (Spot00)", "Spot00"),
-    ("SDC_KAKARIKO_VILLAGE", "Kakariko Village (Spot01)", "Spot01"),
-    ("SDC_ZORAS_RIVER", "Zora's River (Spot03)", "Spot03"),
-    ("SDC_KOKIRI_FOREST", "Kokiri Forest (Spot04)", "Spot04"),
-    ("SDC_LAKE_HYLIA", "Lake Hylia (Spot06)", "Spot06"),
-    ("SDC_ZORAS_DOMAIN", "Zora's Domain (Spot07)", "Spot07"),
-    ("SDC_ZORAS_FOUNTAIN", "Zora's Fountain (Spot08)", "Spot08"),
-    ("SDC_GERUDO_VALLEY", "Gerudo Valley (Spot09)", "Spot09"),
-    ("SDC_LOST_WOODS", "Lost Woods (Spot10)", "Spot10"),
-    ("SDC_DESERT_COLOSSUS", "Desert Colossus (Spot11)", "Spot11"),
-    ("SDC_GERUDOS_FORTRESS", "Gerudo's Fortress (Spot12)", "Spot12"),
-    ("SDC_HAUNTED_WASTELAND", "Haunted Wasteland (Spot13)", "Spot13"),
-    ("SDC_HYRULE_CASTLE", "Hyrule Castle (Spot15)", "Spot15"),
-    ("SDC_DEATH_MOUNTAIN_TRAIL", "Death Mountain Trail (Spot16)", "Spot16"),
-    ("SDC_DEATH_MOUNTAIN_CRATER", "Death Mountain Crater (Spot17)", "Spot17"),
-    ("SDC_GORON_CITY", "Goron City (Spot18)", "Spot18"),
-    ("SDC_LON_LON_RANCH", "Lon Lon Ranch (Spot20)", "Spot20"),
-    ("SDC_FIRE_TEMPLE", "Fire Temple (Hidan)", "Hidan"),
-    ("SDC_DEKU_TREE", "Inside the Deku Tree (Ydan)", "Ydan"),
-    ("SDC_DODONGOS_CAVERN", "Dodongo's Cavern (Ddan)", "Ddan"),
-    ("SDC_JABU_JABU", "Inside Jabu Jabu's Belly (Bdan)", "Bdan"),
-    ("SDC_FOREST_TEMPLE", "Forest Temple (Bmori1)", "Bmori1"),
-    ("SDC_WATER_TEMPLE", "Water Temple (Mizusin)", "Mizusin"),
-    ("SDC_SHADOW_TEMPLE_AND_WELL", "Shadow Temple (Hakadan)", "Hakadan"),
-    ("SDC_SPIRIT_TEMPLE", "Spirit Temple (Jyasinzou)", "Jyasinzou"),
-    ("SDC_INSIDE_GANONS_CASTLE", "Inside Ganon's Castle (Ganontika)", "Ganontika"),
-    ("SDC_GERUDO_TRAINING_GROUND", "Gerudo Training Ground (Men)", "Men"),
-    ("SDC_DEKU_TREE_BOSS", "Gohma's Lair (Ydan Boss)", "Ydan Boss"),
-    ("SDC_WATER_TEMPLE_BOSS", "Morpha's Lair (Mizusin Bs)", "Mizusin Bs"),
-    ("SDC_TEMPLE_OF_TIME", "Temple of Time (Tokinoma)", "Tokinoma"),
-    ("SDC_GROTTOS", "Grottos (Kakusiana)", "Kakusiana"),
-    ("SDC_CHAMBER_OF_THE_SAGES", "Chamber of the Sages (Kenjyanoma)", "Kenjyanoma"),
-    ("SDC_GREAT_FAIRYS_FOUNTAIN", "Great Fairy Fountain", "Great Fairy Fountain"),
-    ("SDC_SHOOTING_GALLERY", "Shooting Gallery (Syatekijyou)", "Syatekijyou"),
-    ("SDC_CASTLE_COURTYARD_GUARDS", "Castle Hedge Maze (Day) (Hairal Niwa)", "Hairal Niwa"),
-    ("SDC_OUTSIDE_GANONS_CASTLE", "Ganon's Castle Exterior (Ganon Tou)", "Ganon Tou"),
-    ("SDC_ICE_CAVERN", "Ice Cavern (Ice Doukuto)", "Ice Doukuto"),
-    (
-        "SDC_GANONS_TOWER_COLLAPSE_EXTERIOR",
-        "Ganondorf's Death Scene (Tower Escape Exterior) (Ganon Final)",
-        "Ganon Final",
-    ),
-    ("SDC_FAIRYS_FOUNTAIN", "Fairy Fountain", "Fairy Fountain"),
-    ("SDC_THIEVES_HIDEOUT", "Thieves' Hideout (Gerudoway)", "Gerudoway"),
-    ("SDC_BOMBCHU_BOWLING_ALLEY", "Bombchu Bowling Alley (Bowling)", "Bowling"),
-    ("SDC_ROYAL_FAMILYS_TOMB", "Royal Family's Tomb (Hakaana Ouke)", "Hakaana Ouke"),
-    ("SDC_LAKESIDE_LABORATORY", "Lakeside Laboratory (Hylia Labo)", "Hylia Labo"),
-    ("SDC_LON_LON_BUILDINGS", "Lon Lon Ranch House & Tower (Souko)", "Souko"),
-    ("SDC_MARKET_GUARD_HOUSE", "Guard House (Miharigoya)", "Miharigoya"),
-    ("SDC_POTION_SHOP_GRANNY", "Granny's Potion Shop (Mahouya)", "Mahouya"),
-    ("SDC_CALM_WATER", "Calm Water", "Calm Water"),
-    ("SDC_GRAVE_EXIT_LIGHT_SHINING", "Grave Exit Light Shining", "Grave Exit Light Shining"),
-    ("SDC_BESITU", "Ganondorf Test Room (Besitu)", "Besitu"),
-    ("SDC_FISHING_POND", "Fishing Pond (Turibori)", "Turibori"),
-    ("SDC_GANONS_TOWER_COLLAPSE_INTERIOR", "Ganon's Tower (Collapsing) (Ganon Sonogo)", "Ganon Sonogo"),
-    ("SDC_INSIDE_GANONS_CASTLE_COLLAPSE", "Inside Ganon's Castle (Collapsing) (Ganontika Sonogo)", "Ganontika Sonogo"),
-]
-
-mm_enum_draw_config = [
-    ("Custom", "Custom", "Custom"),
-    ("SCENE_DRAW_CFG_DEFAULT", "Default", "Default"),
-    ("SCENE_DRAW_CFG_MAT_ANIM", "Material Animated", "Material Animated"),
-    ("SCENE_DRAW_CFG_NOTHING", "Nothing", "Nothing"),
-    ("SCENE_DRAW_CFG_GREAT_BAY_TEMPLE", "Great Bay Temple", "Great Bay Temple"),
-    ("SCENE_DRAW_CFG_MAT_ANIM_MANUAL_STEP", "Material Animated (manual step)", "Material Animated (manual step)"),
-]
-
-ootEnumCollisionSound = [
-    ("Custom", "Custom", "Custom"),
-    ("SURFACE_MATERIAL_DIRT", "Dirt", "Dirt (aka Earth)"),
-    ("SURFACE_MATERIAL_SAND", "Sand", "Sand"),
-    ("SURFACE_MATERIAL_STONE", "Stone", "Stone"),
-    ("SURFACE_MATERIAL_JABU", "Jabu", "Jabu-Jabu flesh (aka Wet Stone)"),
-    ("SURFACE_MATERIAL_WATER_SHALLOW", "Shallow Water", "Shallow Water"),
-    ("SURFACE_MATERIAL_WATER_DEEP", "Deep Water", "Deep Water"),
-    ("SURFACE_MATERIAL_TALL_GRASS", "Tall Grass", "Tall Grass"),
-    ("SURFACE_MATERIAL_LAVA", "Lava", "Lava (aka Goo)"),
-    ("SURFACE_MATERIAL_GRASS", "Grass", "Grass (aka Earth 2)"),
-    ("SURFACE_MATERIAL_BRIDGE", "Bridge", "Bridge (aka Wooden Plank)"),
-    ("SURFACE_MATERIAL_WOOD", "Wood", "Wood (aka Packed Earth)"),
-    ("SURFACE_MATERIAL_DIRT_SOFT", "Soft Dirt", "Soft Dirt (aka Earth 3)"),
-    ("SURFACE_MATERIAL_ICE", "Ice", "Ice (aka Ceramic)"),
-    ("SURFACE_MATERIAL_CARPET", "Carpet", "Carpet (aka Loose Earth)"),
-]
-
-mm_enum_surface_material = [
-    ("Custom", "Custom", "Custom"),
-    ("SURFACE_MATERIAL_DIRT", "Dirt", "Dirt (aka Earth)"),
-    ("SURFACE_MATERIAL_SAND", "Sand", "Sand"),
-    ("SURFACE_MATERIAL_STONE", "Stone", "Stone"),
-    ("SURFACE_MATERIAL_DIRT_SHALLOW", "Shallow Dirt", "Shallow Dirt"),
-    ("SURFACE_MATERIAL_WATER_SHALLOW", "Shallow Water", "Shallow Water"),
-    ("SURFACE_MATERIAL_WATER_DEEP", "Deep Water", "Deep Water"),
-    ("SURFACE_MATERIAL_TALL_GRASS", "Tall Grass", "Tall Grass"),
-    ("SURFACE_MATERIAL_LAVA", "Lava", "Lava (aka Goo)"),
-    ("SURFACE_MATERIAL_GRASS", "Grass", "Grass (aka Earth 2)"),
-    ("SURFACE_MATERIAL_BRIDGE", "Bridge", "Bridge (aka Wooden Plank)"),
-    ("SURFACE_MATERIAL_WOOD", "Wood", "Wood (aka Packed Earth)"),
-    ("SURFACE_MATERIAL_DIRT_SOFT", "Soft Dirt", "Soft Dirt (aka Earth 3)"),
-    ("SURFACE_MATERIAL_ICE", "Ice", "Ice (aka Ceramic)"),
-    ("SURFACE_MATERIAL_CARPET", "Carpet", "Carpet (aka Loose Earth)"),
-    ("SURFACE_MATERIAL_SNOW", "Snow", "Snow"),
 ]
 
 # ---
@@ -917,10 +525,6 @@ class Z64_Data:
         return self.game == "MM"
 
     def update(self, context: Optional[Context], game: Optional[str], force: bool = False):
-        from .enum_data import Z64_EnumData
-        from .object_data import Z64_ObjectData
-        from .actor_data import Z64_ActorData
-
         if context is not None:
             next_game = context.scene.gameEditorMode
         elif game is not None:
@@ -933,94 +537,61 @@ class Z64_Data:
             return
 
         self.game = next_game
-        self.enumData = Z64_EnumData(self.game)
-        self.objectData = Z64_ObjectData(self.game)
-        self.actorData = Z64_ActorData(self.game)
+        self.enums = Z64_EnumData(self.game)
+        self.objects = Z64_ObjectData(self.game)
+        self.actors = Z64_ActorData(self.game)
 
         if self.game == "OOT":
             self.cs_index_start = 4
-            self.ootEnumMusicSeq = ootEnumMusicSeq
             self.ootEnumNightSeq = ootEnumNightSeq
-            self.ootEnumGlobalObject = ootEnumGlobalObject
             self.ootEnumSkybox = ootEnumSkybox
             self.ootEnumCloudiness = ootEnumCloudiness
             self.ootEnumLinkIdle = ootEnumLinkIdle
             self.ootEnumRoomBehaviour = ootEnumRoomBehaviour
-            self.ootEnumDrawConfig = ootEnumDrawConfig
             self.ootEnumFloorSetting = ootEnumFloorSetting
             self.ootEnumFloorProperty = ootEnumFloorProperty
-            self.ootEnumCollisionSound = ootEnumCollisionSound
             self.ootEnumCameraSType = ootEnumCameraSType
         elif self.game == "MM":
             self.cs_index_start = 1
-            self.ootEnumMusicSeq = enum_seq_id
             self.ootEnumNightSeq = enum_ambiance_id
-            self.ootEnumGlobalObject = mm_enum_global_object
             self.ootEnumSkybox = mm_enum_skybox
             self.ootEnumCloudiness = mm_enum_skybox_config
             self.ootEnumLinkIdle = mm_enum_environment_type
             self.ootEnumRoomBehaviour = mm_enum_room_type
-            self.ootEnumDrawConfig = mm_enum_draw_config
             self.ootEnumFloorSetting = mm_enum_floor_property
             self.ootEnumFloorProperty = mm_enum_floor_type
-            self.ootEnumCollisionSound = mm_enum_surface_material
             self.ootEnumCameraSType = mm_enum_camera_setting_type
         else:
             raise ValueError(f"ERROR: unsupported game {repr(self.game)}")
 
-    def get_enum(self, context, prop_name: str):
-        self.update(context, None)
+        self.enum_map: dict[str, list[tuple[str, str, str]]] = {
+            "globalObject": self.enums.enum_global_object,
+            "musicSeq": self.enums.enum_seq_id,
+            "drawConfig": self.enums.enum_draw_config,
+            "sound": self.enums.enum_surface_material,
+            "csDestination": self.enums.enum_cs_destination,
+            "seqId": self.enums.enum_seq_id,
+            "playerCueID": self.enums.enum_cs_player_cue_id,
+            "ocarinaAction": self.enums.enum_ocarina_song_action_id,
+            "csTextType": self.enums.enum_cs_text_type,
+            "csSeqPlayer": self.enums.enum_cs_fade_out_seq_player,
+            "csMiscType": self.enums.enum_cs_misc_type,
+            "transitionType": self.enums.enum_cs_transition_type,
+            "objectKey": self.objects.ootEnumObjectKey,
+            "actor_id": self.actors.ootEnumActorID,
+            "chest_content": self.actors.ootEnumChestContent,
+            "navi_msg_id": self.actors.ootEnumNaviMessageData,
+            "collectibles": self.actors.ootEnumCollectibleItems,
+            "skyboxID": self.ootEnumSkybox,
+            "skyboxCloudiness": self.ootEnumCloudiness,
+            "nightSeq": self.ootEnumNightSeq,
+            "roomBehaviour": self.ootEnumRoomBehaviour,
+            "linkIdleMode": self.ootEnumLinkIdle,
+            "floorSetting": self.ootEnumFloorSetting,
+            "floorProperty": self.ootEnumFloorProperty,
+            "camSType": self.ootEnumCameraSType,
+        }
 
-        match prop_name:
-            case "globalObject":
-                return self.ootEnumGlobalObject
-            case "skyboxID":
-                return self.ootEnumSkybox
-            case "skyboxCloudiness":
-                return self.ootEnumCloudiness
-            case "musicSeq":
-                return self.ootEnumMusicSeq
-            case "nightSeq":
-                return self.ootEnumNightSeq
-            case "roomBehaviour":
-                return self.ootEnumRoomBehaviour
-            case "linkIdleMode":
-                return self.ootEnumLinkIdle
-            case "drawConfig":
-                return self.ootEnumDrawConfig
-            case "floorSetting":
-                return self.ootEnumFloorSetting
-            case "floorProperty":
-                return self.ootEnumFloorProperty
-            case "sound":
-                return self.ootEnumCollisionSound
-            case "camSType":
-                return self.ootEnumCameraSType
-            case "actor_id":
-                return self.actorData.ootEnumActorID
-            case "chest_content":
-                return self.actorData.ootEnumChestContent
-            case "navi_msg_id":
-                return self.actorData.ootEnumNaviMessageData
-            case "collectibles":
-                return self.actorData.ootEnumCollectibleItems
-            case "objectKey":
-                return self.objectData.ootEnumObjectKey
-            case "csDestination":
-                return self.enumData.ootEnumCsDestination
-            case "seqId":
-                return self.enumData.ootEnumSeqId
-            case "playerCueID":
-                return self.enumData.ootEnumCsPlayerCueId
-            case "ocarinaAction":
-                return self.enumData.ootEnumOcarinaSongActionId
-            case "csTextType":
-                return self.enumData.ootEnumCsTextType
-            case "csSeqPlayer":
-                return self.enumData.ootEnumCsFadeOutSeqPlayer
-            case "csMiscType":
-                return self.enumData.ootEnumCsMiscType
-            case "transitionType":
-                return self.enumData.ootEnumCsTransitionType
-            case _:
-                raise ValueError(f"ERROR: unknown value {repr(prop_name)}")
+    def get_enum(self, prop_name: str):
+        self.update(bpy.context, None)
+        return self.enum_map[prop_name]

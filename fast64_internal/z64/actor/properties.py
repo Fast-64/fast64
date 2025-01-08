@@ -77,12 +77,12 @@ def create_game_props():
     prop_ats = get_prop_annotations(Z64_ActorProperty)
 
     param_type_to_enum_items = {
-        "ChestContent": game_data.z64.actorData.ootEnumChestContent,
-        "Collectible": game_data.z64.actorData.ootEnumCollectibleItems,
-        "Message": game_data.z64.actorData.ootEnumNaviMessageData,
+        "ChestContent": game_data.z64.actors.ootEnumChestContent,
+        "Collectible": game_data.z64.actors.ootEnumCollectibleItems,
+        "Message": game_data.z64.actors.ootEnumNaviMessageData,
     }
 
-    for actor in game_data.z64.actorData.actorList:
+    for actor in game_data.z64.actors.actorList:
         for param in actor.params:
             prop_name = get_prop_name(actor.key, param.type, param.subType, param.index, update=False)
             enum_items = None
@@ -242,7 +242,7 @@ class Z64_ActorHeaderProperty(PropertyGroup):
 
 class Z64_ActorProperty(PropertyGroup):
     actor_id: EnumProperty(
-        name="Actor", items=lambda self, context: game_data.z64.get_enum(context, "actor_id"), default=1
+        name="Actor", items=lambda self, context: game_data.z64.get_enum("actor_id"), default=1
     )
     actor_id_custom: StringProperty(name="Actor ID", default="ACTOR_PLAYER")
 
@@ -300,7 +300,7 @@ class Z64_ActorProperty(PropertyGroup):
 
     def is_rotation_used(self, target: str):
         game_data.z64.update(bpy.context, None)
-        actor = game_data.z64.actorData.actorsByID[self.actor_id]
+        actor = game_data.z64.actors.actorsByID[self.actor_id]
         selected_type = None
         for param in actor.params:
             if param.type == "Type":
@@ -324,7 +324,7 @@ class Z64_ActorProperty(PropertyGroup):
 
     def set_param_value(self, base_value: str | bool, target: str):
         game_data.z64.update(bpy.context, None)
-        actor = game_data.z64.actorData.actorsByID[self.actor_id]
+        actor = game_data.z64.actors.actorsByID[self.actor_id]
         base_value = getEvalParamsInt(base_value)
         found_type = None
         for param in actor.params:
@@ -343,11 +343,11 @@ class Z64_ActorProperty(PropertyGroup):
                 if is_in_range and (found_type_in_tied_types or len(param.tiedTypes) == 0):
                     prop_name = get_prop_name(actor.key, param.type, param.subType, param.index)
                     if param.type == "ChestContent":
-                        prop_value = game_data.z64.actorData.chestItemByValue[value].key
+                        prop_value = game_data.z64.actors.chestItemByValue[value].key
                     elif param.type == "Collectible":
-                        prop_value = game_data.z64.actorData.collectibleItemsByValue[value].key
+                        prop_value = game_data.z64.actors.collectibleItemsByValue[value].key
                     elif param.type == "Message":
-                        prop_value = game_data.z64.actorData.messageItemsByValue[value].key
+                        prop_value = game_data.z64.actors.messageItemsByValue[value].key
                     elif param.type == "Bool":
                         prop_value = bool(value)
                     else:
@@ -365,7 +365,7 @@ class Z64_ActorProperty(PropertyGroup):
 
     def get_param_value(self, target: str):
         game_data.z64.update(bpy.context, None)
-        actor = game_data.z64.actorData.actorsByID[self.actor_id]
+        actor = game_data.z64.actors.actorsByID[self.actor_id]
         param_list = []
         type_value = None
         have_custom_value = False
@@ -396,11 +396,11 @@ class Z64_ActorProperty(PropertyGroup):
                     else:
                         param_val = 0
                         if param.type == "ChestContent":
-                            param_val = game_data.z64.actorData.chestItemByKey[cur_prop_value].value
+                            param_val = game_data.z64.actors.chestItemByKey[cur_prop_value].value
                         elif param.type == "Collectible":
-                            param_val = game_data.z64.actorData.collectibleItemsByKey[cur_prop_value].value
+                            param_val = game_data.z64.actors.collectibleItemsByKey[cur_prop_value].value
                         elif param.type == "Message":
-                            param_val = game_data.z64.actorData.messageItemsByKey[cur_prop_value].value
+                            param_val = game_data.z64.actors.messageItemsByKey[cur_prop_value].value
                 if "Rot" in target:
                     type_value = getEvalParamsInt(getattr(self, get_prop_name(actor.key, "Type", None, 1)))
                 if type_value is not None and type_value in param.tiedTypes or len(param.tiedTypes) == 0:
@@ -443,7 +443,7 @@ class Z64_ActorProperty(PropertyGroup):
 
     def draw_params(self, layout: UILayout, obj: Object):
         game_data.z64.update(bpy.context, None)
-        actor = game_data.z64.actorData.actorsByID[self.actor_id]
+        actor = game_data.z64.actors.actorsByID[self.actor_id]
         selected_type = None
         for param in actor.params:
             prop_name = get_prop_name(actor.key, param.type, param.subType, param.index)
@@ -462,11 +462,11 @@ class Z64_ActorProperty(PropertyGroup):
                     if param.type == "ChestContent":
                         search_op = layout.operator(OOT_SearchChestContentEnumOperator.bl_idname)
                         label_name = "Chest Content"
-                        item_map = game_data.z64.actorData.chestItemByKey
+                        item_map = game_data.z64.actors.chestItemByKey
                     else:
                         search_op = layout.operator(OOT_SearchNaviMsgIDEnumOperator.bl_idname)
                         label_name = "Navi Message ID"
-                        item_map = game_data.z64.actorData.messageItemsByKey
+                        item_map = game_data.z64.actors.messageItemsByKey
                     search_op.obj_name = obj.name
                     search_op.prop_name = prop_name
                     if key != "Custom":
@@ -503,7 +503,7 @@ class Z64_ActorProperty(PropertyGroup):
                 return
 
             split.label(text="Actor ID")
-            split.label(text=getEnumName(game_data.z64.get_enum(bpy.context, "actor_id"), self.actor_id))
+            split.label(text=getEnumName(game_data.z64.get_enum("actor_id"), self.actor_id))
 
             if game_data.z64.is_oot():
                 if self.actor_id != "Custom":
@@ -599,7 +599,7 @@ class Z64_TransitionActorProperty(PropertyGroup):
 
         split = actorIDBox.split(factor=0.5)
         split.label(text="Actor ID")
-        split.label(text=getEnumName(game_data.z64.get_enum(bpy.context, "actor_id"), self.actor.actor_id))
+        split.label(text=getEnumName(game_data.z64.get_enum("actor_id"), self.actor.actor_id))
 
         if self.actor.actor_id == "Custom":
             prop_split(actorIDBox, self.actor, "actor_id_custom", "")

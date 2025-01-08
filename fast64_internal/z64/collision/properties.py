@@ -42,7 +42,7 @@ class OOTCollisionExportSettings(PropertyGroup):
 class OOTCameraPositionProperty(PropertyGroup):
     index: IntProperty(min=0)
     bgImageOverrideIndex: IntProperty(default=-1, min=-1)
-    camSType: EnumProperty(items=lambda self, context: game_data.z64.get_enum(context, "camSType"), default=2)
+    camSType: EnumProperty(items=lambda self, context: game_data.z64.get_enum("camSType"), default=2)
     camSTypeCustom: StringProperty(default="CAM_SET_NORMAL0")
     hasPositionData: BoolProperty(default=True, name="Has Position Data")
     is_actor_cs_cam: BoolProperty(default=False, name="Is Actor CS Camera")
@@ -73,11 +73,11 @@ class OOTMaterialCollisionProperty(PropertyGroup):
     eponaBlock: BoolProperty()
     decreaseHeight: BoolProperty()
     floorSettingCustom: StringProperty(default="0x00")
-    floorSetting: EnumProperty(items=lambda self, context: game_data.z64.get_enum(context, "floorSetting"), default=1)
+    floorSetting: EnumProperty(items=lambda self, context: game_data.z64.get_enum("floorSetting"), default=1)
     wallSettingCustom: StringProperty(default="0x00")
     wallSetting: EnumProperty(items=ootEnumWallSetting, default=1)
     floorPropertyCustom: StringProperty(default="0x00")
-    floorProperty: EnumProperty(items=lambda self, context: game_data.z64.get_enum(context, "floorProperty"), default=1)
+    floorProperty: EnumProperty(items=lambda self, context: game_data.z64.get_enum("floorProperty"), default=1)
     exitID: IntProperty(default=0, min=0)
     cameraID: IntProperty(default=0, min=0)
     isWallDamage: BoolProperty()
@@ -92,7 +92,7 @@ class OOTMaterialCollisionProperty(PropertyGroup):
     terrainCustom: StringProperty(default="0x00")
     terrain: EnumProperty(items=game_data.z64.enum_floor_effect, default=1)
     soundCustom: StringProperty(default="0x00")
-    sound: EnumProperty(items=lambda self, context: game_data.z64.get_enum(context, "sound"), default=1)
+    sound: EnumProperty(items=lambda self, context: game_data.z64.get_enum("sound"), default=1)
 
     def draw_props(self, layout: UILayout):
         layout.prop(

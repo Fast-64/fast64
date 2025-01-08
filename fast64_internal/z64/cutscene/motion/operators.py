@@ -318,7 +318,7 @@ class OOT_SearchPlayerCueIdEnumOperator(Operator):
     bl_property = "playerCueID"
     bl_options = {"REGISTER", "UNDO"}
 
-    playerCueID: EnumProperty(items=lambda self, context: game_data.z64.get_enum(context, "playerCueID"), default=1)
+    playerCueID: EnumProperty(items=lambda self, context: game_data.z64.get_enum("playerCueID"), default=1)
     objName: StringProperty()
 
     def execute(self, context):

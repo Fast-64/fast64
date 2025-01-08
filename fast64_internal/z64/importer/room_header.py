@@ -19,7 +19,7 @@ def parseObjectList(roomHeader: Z64_RoomHeaderProperty, sceneData: str, objectLi
 
     for object in objects:
         objectProp = roomHeader.objectList.add()
-        objByID = game_data.z64.objectData.objects_by_id.get(object)
+        objByID = game_data.z64.objects.objects_by_id.get(object)
 
         if objByID is not None:
             setattr(objectProp, "objectKey", objByID.key)

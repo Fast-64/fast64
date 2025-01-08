@@ -100,7 +100,7 @@ class OOT_SearchMusicSeqEnumOperator(Operator):
     bl_property = "ootMusicSeq"
     bl_options = {"REGISTER", "UNDO"}
 
-    ootMusicSeq: EnumProperty(items=lambda self, context: game_data.z64.get_enum(context, "musicSeq"), default=1)
+    ootMusicSeq: EnumProperty(items=lambda self, context: game_data.z64.get_enum("musicSeq"), default=1)
     headerIndex: IntProperty(default=0, min=0)
     objName: StringProperty()
 

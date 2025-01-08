@@ -20,12 +20,12 @@
         - Player Cue Ids got their own enum but not regular Actor Cues.
           This is because Actor Cues are among cutscene commands (``csCmd``)
 -->
-  <Enum Games="MM" Key="fadeOutSeqPlayer" ID="CutsceneFadeOutSeqPlayer">
+  <Enum Games="MM" Key="cs_fade_out_seq_player" ID="CutsceneFadeOutSeqPlayer">
       <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L77-L80 -->
       <Item Key="fade_out_bgm_main" ID="CS_FADE_OUT_BGM_MAIN" Index="1"/>
       <Item Key="fade_out_fanfare" ID="CS_FADE_OUT_FANFARE" Index="2"/>
   </Enum>
-  <Enum Games="MM" Key="modifySeqType" ID="CsModifySeqType">
+  <Enum Games="MM" Key="cs_modify_seq_type" ID="CsModifySeqType">
       <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L109-L118 -->
       <Item Key="mod_seq_0" ID="CS_MOD_SEQ_0" Index="1"/>
       <Item Key="mod_seq_1" ID="CS_MOD_SEQ_1" Index="2"/>
@@ -36,12 +36,12 @@
       <Item Key="mod_seq_store" ID="CS_MOD_SEQ_STORE" Index="7"/>
       <Item Key="mod_seq_restore" ID="CS_MOD_SEQ_RESTORE" Index="8"/>
   </Enum>
-  <Enum Games="MM" Key="destinationType" ID="CsDestinationType">
+  <Enum Games="MM" Key="cs_destination" ID="CsDestinationType">
       <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L129-L132 -->
       <Item Key="destination_default" ID="CS_DESTINATION_DEFAULT" Index="1"/>
       <Item Key="destination_boss_warp" ID="CS_DESTINATION_BOSS_WARP" Index="2"/>
   </Enum>
-  <Enum Games="MM" Key="chooseCreditsSceneType" ID="CsChooseCreditsSceneType">
+  <Enum Games="MM" Key="cs_credits_scene_type" ID="CsChooseCreditsSceneType">
       <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L143-L155 -->
       <Item Key="credits_destination" ID="CS_CREDITS_DESTINATION" Index="1"/>
       <Item Key="credits_mask_kamaro" ID="CS_CREDITS_MASK_KAMARO" Index="2"/>
@@ -55,12 +55,12 @@
       <Item Key="credits_mask_bunny" ID="CS_CREDITS_MASK_BUNNY" Index="10"/>
       <Item Key="credits_mask_postman" ID="CS_CREDITS_MASK_POSTMAN" Index="11"/>
   </Enum>
-  <Enum Games="MM" Key="motionBlurType" ID="CsMotionBlurType">
+  <Enum Games="MM" Key="cs_motion_blur_type" ID="CsMotionBlurType">
       <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L166-L169 -->
       <Item Key="motion_blur_enable" ID="CS_MOTION_BLUR_ENABLE" Index="1"/>
       <Item Key="motion_blur_disable" ID="CS_MOTION_BLUR_DISABLE" Index="2"/>
   </Enum>
-  <Enum Games="MM" Key="transitionType" ID="CutsceneTransitionType">
+  <Enum Games="MM" Key="cs_transition_type" ID="CutsceneTransitionType">
       <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L198-L212 -->
       <Item Key="gray_fill_in" ID="CS_TRANS_GRAY_FILL_IN" Index="1"/>
       <Item Key="blue_fill_in" ID="CS_TRANS_BLUE_FILL_IN" Index="2"/>
@@ -76,17 +76,17 @@
       <Item Key="gray_to_black" ID="CS_TRANS_GRAY_TO_BLACK" Index="12"/>
       <Item Key="black_to_gray" ID="CS_TRANS_BLACK_TO_GRAY" Index="13"/>
   </Enum>
-  <Enum Games="MM" Key="rumbleType" ID="CutsceneRumbleType">
+  <Enum Games="MM" Key="cs_rumble_type" ID="CutsceneRumbleType">
       <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L248-L251 -->
       <Item Key="rumble_once" ID="CS_RUMBLE_ONCE" Index="1"/>
       <Item Key="rumble_pulse" ID="CS_RUMBLE_PULSE" Index="2"/>
   </Enum>
-  <Enum Games="MM" Key="transitionGeneralType" ID="CsTransitionGeneralType">
+  <Enum Games="MM" Key="cs_transition_general" ID="CsTransitionGeneralType">
       <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L263-L266 -->
       <Item Key="trans_general_fill_in" ID="CS_TRANS_GENERAL_FILL_IN" Index="1"/>
       <Item Key="trans_general_fill_out" ID="CS_TRANS_GENERAL_FILL_OUT" Index="2"/>
   </Enum>
-  <Enum Games="MM" Key="cmd" ID="CutsceneCmd">
+  <Enum Games="MM" Key="cs_cmd" ID="CutsceneCmd">
       <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L294-L530 -->
       <Item Key="actor_cue_post_process" ID="CS_CMD_ACTOR_CUE_POST_PROCESS" Index="-2"/>
       <Item Key="cs_cam_stop" ID="CS_CAM_STOP" Index="-1"/>
@@ -324,7 +324,7 @@
       <Item Key="actor_cue_598" ID="CS_CMD_ACTOR_CUE_598" Index="598"/>
       <Item Key="actor_cue_599" ID="CS_CMD_ACTOR_CUE_599" Index="599"/>
   </Enum>
-  <Enum Games="MM" Key="miscType" ID="CutsceneMiscType">
+  <Enum Games="MM" Key="cs_misc_type" ID="CutsceneMiscType">
       <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L532-L574 -->
       <Item Key="unimplemented_0" ID="CS_MISC_UNIMPLEMENTED_0" Index="0"/>
       <Item Key="rain" ID="CS_MISC_RAIN" Index="1"/>
@@ -368,25 +368,25 @@
       <Item Key="player_form_zora" ID="CS_MISC_PLAYER_FORM_ZORA" Index="39"/>
       <Item Key="finale" ID="CS_MISC_FINALE" Index="40"/>
   </Enum>
-  <Enum Games="MM" Key="spawnFlag" ID="CS_SPAWN_FLAG">
+  <Enum Games="MM" Key="cs_spawn_flag" ID="CS_SPAWN_FLAG">
       <!-- https://github.com/zeldaret/mm/blob/0fdd63a350c47b5da87a58f00855bc95b6a32b47/include/z64cutscene.h#L583-L586 -->
       <Item Key="flag_none" ID="CS_SPAWN_FLAG_NONE" Index="255"/>
       <Item Key="flag_always" ID="CS_SPAWN_FLAG_ALWAYS" Index="254"/>
   </Enum>
-  <Enum Games="MM" Key="endSfx" ID="CutsceneEndSfx">
+  <Enum Games="MM" Key="actor_cs_end_sfx" ID="CutsceneEndSfx">
       <!-- https://github.com/zeldaret/mm/blob/0fdd63a350c47b5da87a58f00855bc95b6a32b47/include/z64cutscene.h#L709-L714 -->
       <Item Key="none" ID="CS_END_SFX_NONE" Index="0"/>
       <Item Key="tre_box_appear" ID="CS_END_SFX_TRE_BOX_APPEAR" Index="1"/>
       <Item Key="correct_chime" ID="CS_END_SFX_CORRECT_CHIME" Index="2"/>
       <Item Key="none_alt" ID="CS_END_SFX_NONE_ALT" Index="255"/>
   </Enum>
-  <Enum Games="MM" Key="naviQuestHintType" ID="NaviQuestHintFileId">
+  <Enum Games="MM" Key="navi_quest_hint_type" ID="NaviQuestHintFileId">
       <!-- https://github.com/zeldaret/mm/blob/0fdd63a350c47b5da87a58f00855bc95b6a32b47/include/z64scene.h#L761-L765 -->
       <Item Key="hints_none" ID="NAVI_QUEST_HINTS_NONE" Index="0"/>
       <Item Key="hints_overworld" ID="NAVI_QUEST_HINTS_OVERWORLD" Index="1"/>
       <Item Key="hints_dungeon" ID="NAVI_QUEST_HINTS_DUNGEON" Index="2"/>
   </Enum>
-  <Enum Games="MM" Key="playerCueId" ID="PlayerCueId">
+  <Enum Games="MM" Key="cs_player_cue_id" ID="PlayerCueId">
       <!-- https://github.com/zeldaret/mm/blob/da0c9072f5332edbde00d405b2f1c94e92ece434/include/z64player.h#L753-L847 -->
       <Item Key="cueid_none" ID="PLAYER_CUEID_NONE" Index="0"/>
       <Item Key="cueid_1" ID="PLAYER_CUEID_1" Index="1"/>
@@ -481,18 +481,18 @@
       <Item Key="cueid_90" ID="PLAYER_CUEID_90" Index="90"/>
       <Item Key="cueid_91" ID="PLAYER_CUEID_91" Index="91"/>
   </Enum>
-<Enum Games="MM" Key="csSplineInterpType" ID="CutsceneCamInterpType">
-      <!-- https://github.com/zeldaret/mm/blob/5607eec18bae68e4cd38ef6d1fa69d7f1d84bfc8/include/z64cutscene.h#L740-L751 -->
-      <Item Key="none" ID="CS_CAM_INTERP_NONE" Index="0"/>
-      <Item Key="set" ID="CS_CAM_INTERP_SET" Index="1"/>
-      <Item Key="linear" ID="CS_CAM_INTERP_LINEAR" Index="2"/>
+<Enum Games="MM" Key="cs_spline_interp_type" ID="CutsceneCamInterpType">
+  <!-- https://github.com/zeldaret/mm/blob/5607eec18bae68e4cd38ef6d1fa69d7f1d84bfc8/include/z64cutscene.h#L740-L751 -->
+  <Item Key="none" ID="CS_CAM_INTERP_NONE" Index="0"/>
+  <Item Key="set" ID="CS_CAM_INTERP_SET" Index="1"/>
+  <Item Key="linear" ID="CS_CAM_INTERP_LINEAR" Index="2"/>
   <Item Key="scale" ID="CS_CAM_INTERP_SCALE" Index="3"/>
   <Item Key="cubic" ID="CS_CAM_INTERP_MP_CUBIC" Index="4"/>
   <Item Key="quad" ID="CS_CAM_INTERP_MP_QUAD" Index="5"/>
   <Item Key="geo" ID="CS_CAM_INTERP_GEO" Index="6"/>
   <Item Key="off" ID="CS_CAM_INTERP_OFF" Index="7"/>
 </Enum>
-<Enum Games="MM" Key="csSplineRelTo" ID="CutsceneCamRelativeTo">
+<Enum Games="MM" Key="cs_spline_rel" ID="CutsceneCamRelativeTo">
   <!-- https://github.com/zeldaret/mm/blob/5607eec18bae68e4cd38ef6d1fa69d7f1d84bfc8/include/z64cutscene.h#L754C14-L754-L760 -->
   <Item Key="rel0" ID="CS_CAM_REL_0" Index="0"/>
   <Item Key="rel1" ID="CS_CAM_REL_1" Index="1"/>
@@ -501,7 +501,7 @@
   <Item Key="rel4" ID="CS_CAM_REL_4" Index="4"/>
   <Item Key="rel5" ID="CS_CAM_REL_5" Index="5"/>
 </Enum>
-<Enum Games="MM" Key="textType" ID="CutsceneTextType">
+<Enum Games="MM" Key="cs_text_type" ID="CutsceneTextType">
   <Item Key="rel0" ID="CS_TEXT_TYPE_NONE" Index="0"/>
   <Item Key="rel1" ID="CS_TEXT_TYPE_DEFAULT" Index="1"/>
   <Item Key="rel2" ID="CS_TEXT_TYPE_1" Index="2"/>
@@ -510,7 +510,7 @@
   <Item Key="rel5" ID="CS_TEXT_TYPE_BOSSES_REMAINS" Index="5"/>
   <Item Key="rel5" ID="CS_TEXT_TYPE_ALL_NORMAL_MASKS" Index="5"/>
 </Enum>
-  <Enum Games="OoTMqDbg" Key="ocarinaSongActionId" ID="OcarinaSongActionId">
+  <Enum Games="MM" Key="ocarina_song_action_id" ID="OcarinaSongActionId">
       <!-- https://github.com/zeldaret/mm/blob/2dc405b6af0cc700b7f3086aabb424bbdf98822d/include/z64ocarina.h#L35-L118 -->
       <Item Key="action_0" ID="OCARINA_ACTION_0" Index="0"/>
       <Item Key="action_free_play" ID="OCARINA_ACTION_FREE_PLAY" Index="1"/>
@@ -595,7 +595,7 @@
       <Item Key="action_timed_prompt_soaring" ID="OCARINA_ACTION_TIMED_PROMPT_SOARING" Index="80"/>
       <Item Key="action_timed_prompt_storms" ID="OCARINA_ACTION_TIMED_PROMPT_STORMS" Index="81"/>
   </Enum>
-  <Enum Games="OoTMqDbg" Key="seqId" ID="SeqId">
+  <Enum Games="MM" Key="seq_id" ID="SeqId">
       <!-- https://github.com/zeldaret/mm/blob/2dc405b6af0cc700b7f3086aabb424bbdf98822d/include/sequence.h#L4-132 -->
       <Item Key="general_sfx" ID="NA_BGM_GENERAL_SFX" Name="General Sound Effects" Index="0"/>
       <Item Key="ambience" ID="NA_BGM_AMBIENCE" Name="Ambient background noises" Index="1"/>
@@ -724,5 +724,33 @@
       <Item Key="tatl_and_tael" ID="NA_BGM_TATL_AND_TAEL" Name="Tatl and Tael" Index="125"/>
       <Item Key="moons_destruction" ID="NA_BGM_MOONS_DESTRUCTION" Name="Moon's Destruction" Index="126"/>
       <Item Key="end_credits_second_half" ID="NA_BGM_END_CREDITS_SECOND_HALF" Name="The End / Credits (Half 2)" Index="127"/>
+  </Enum>
+  <Enum Games="MM" Key="draw_config" ID="SceneDrawConfig">
+    <Item Key="scene_draw_cfg_default" ID="SCENE_DRAW_CFG_DEFAULT" Name="Default" Index="0"/>
+    <Item Key="scene_draw_cfg_mat_anim" ID="SCENE_DRAW_CFG_MAT_ANIM" Name="Material Animated" Index="1"/>
+    <Item Key="scene_draw_cfg_nothing" ID="SCENE_DRAW_CFG_NOTHING" Name="Nothing" Index="2"/>
+    <Item Key="scene_draw_cfg_great_bay_temple" ID="SCENE_DRAW_CFG_GREAT_BAY_TEMPLE" Name="Great Bay Temple" Index="3"/>
+    <Item Key="scene_draw_cfg_mat_anim_manual_step" ID="SCENE_DRAW_CFG_MAT_ANIM_MANUAL_STEP" Name="Material Animated (manual step)" Index="4"/>
+  </Enum>
+  <Enum Games="MM" Key="surface_material" ID="SurfaceMaterial">
+    <Item Key="surface_material_dirt" ID="SURFACE_MATERIAL_DIRT" Name="Dirt" Index="0"/>
+    <Item Key="surface_material_sand" ID="SURFACE_MATERIAL_SAND" Name="Sand" Index="1"/>
+    <Item Key="surface_material_stone" ID="SURFACE_MATERIAL_STONE" Name="Stone" Index="2"/>
+    <Item Key="surface_material_dirt_shallow" ID="SURFACE_MATERIAL_DIRT_SHALLOW" Name="Shallow Dirt" Index="3"/>
+    <Item Key="surface_material_water_shallow" ID="SURFACE_MATERIAL_WATER_SHALLOW" Name="Shallow Water" Index="4"/>
+    <Item Key="surface_material_water_deep" ID="SURFACE_MATERIAL_WATER_DEEP" Name="Deep Water" Index="5"/>
+    <Item Key="surface_material_tall_grass" ID="SURFACE_MATERIAL_TALL_GRASS" Name="Tall Grass" Index="6"/>
+    <Item Key="surface_material_lava" ID="SURFACE_MATERIAL_LAVA" Name="Lava" Index="7"/>
+    <Item Key="surface_material_grass" ID="SURFACE_MATERIAL_GRASS" Name="Grass" Index="8"/>
+    <Item Key="surface_material_bridge" ID="SURFACE_MATERIAL_BRIDGE" Name="Bridge" Index="9"/>
+    <Item Key="surface_material_wood" ID="SURFACE_MATERIAL_WOOD" Name="Wood" Index="10"/>
+    <Item Key="surface_material_dirt_soft" ID="SURFACE_MATERIAL_DIRT_SOFT" Name="Soft Dirt" Index="11"/>
+    <Item Key="surface_material_ice" ID="SURFACE_MATERIAL_ICE" Name="Ice" Index="12"/>
+    <Item Key="surface_material_carpet" ID="SURFACE_MATERIAL_CARPET" Name="Carpet" Index="13"/>
+    <Item Key="surface_material_snow" ID="SURFACE_MATERIAL_SNOW" Name="Snow" Index="14"/>
+  </Enum>
+  <Enum Games="MM" Key="global_object" ID="GlobalObjects">
+    <Item Key="gameplay_field_keep" ID="GAMEPLAY_FIELD_KEEP" Name="Overworld" Index="1"/>
+    <Item Key="gameplay_dangeon_keep" ID="GAMEPLAY_DANGEON_KEEP" Name="Dungeon" Index="2"/>
   </Enum>
 </Table>

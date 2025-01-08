@@ -1,10 +1,7 @@
 from dataclasses import dataclass, field
 from os import path
 from pathlib import Path
-from .getters import get_xml_root
-from .data import Z64_BaseElement
-
-# Note: "enumData" in this context refers to an OoT Object file (like ``gameplay_keep``)
+from .getters import Z64_BaseElement, get_xml_root
 
 
 @dataclass
@@ -16,45 +13,36 @@ class Z64_ItemElement(Z64_BaseElement):
         # generate the name from the id
 
         if self.name is None:
-            if self.game == "OOT":
-                keyToPrefix = {
-                    "csCmd": "CS_CMD",
-                    "csMiscType": "CS_MISC",
-                    "csTextType": "CS_TEXT",
-                    "csFadeOutSeqPlayer": "CS_FADE_OUT",
-                    "csTransitionType": "CS_TRANS",
-                    "csDestination": "CS_DEST",
-                    "csPlayerCueId": "PLAYER_CUEID",
-                    "naviQuestHintType": "NAVI_QUEST_HINTS",
-                    "ocarinaSongActionId": "OCARINA_ACTION",
-                }
-            else:
-                keyToPrefix = {
-                    "cmd": "CS_CMD",
-                    "miscType": "CS_MISC",
-                    "textType": "CS_TEXT",
-                    "fadeOutSeqPlayer": "CS_FADE_OUT",
-                    "modifySeqType": "CS_MOD",
-                    "transitionType": "CS_TRANS",
-                    "destinationType": "CS_DESTINATION",
-                    "chooseCreditsSceneType": "CS_CREDITS",
-                    "motionBlurType": "CS_MOTION_BLUR",
-                    "rumbleType": "CS_RUMBLE",
-                    "transitionGeneralType": "CS_TRANS_GENERAL",
-                    "spawnFlag": "CS_SPAWN_FLAG",
-                    "endSfx": "CS_END_SFX",
-                    "csSplineInterpType": "CS_CAM_INTERP",
-                    "csSplineRelTo": "CS_CAM_REL",
-                    "playerCueId": "PLAYER_CUEID",
-                    "naviQuestHintType": "NAVI_QUEST_HINTS",
-                    "ocarinaSongActionId": "OCARINA_ACTION",
-                }
+            keyToPrefix = {
+                "cs_cmd": "CS_CMD",
+                "cs_misc_type": "CS_MISC",
+                "cs_text_type": "CS_TEXT",
+                "cs_fade_out_seq_player": "CS_FADE_OUT",
+                "cs_transition_type": "CS_TRANS",
+                "cs_destination": "CS_DEST",
+                "cs_player_cue_id": "PLAYER_CUEID",
+                "cs_modify_seq_type": "CS_MOD",
+                "cs_credits_scene_type": "CS_CREDITS",
+                "cs_motion_blur_type": "CS_MOTION_BLUR",
+                "cs_rumble_type": "CS_RUMBLE",
+                "cs_transition_general": "CS_TRANS_GENERAL",
+                "cs_spline_interp_type": "CS_CAM_INTERP",
+                "cs_spline_rel": "CS_CAM_REL",
+                "cs_spawn_flag": "CS_SPAWN_FLAG",
+                "actor_cs_end_sfx": "CS_END_SFX",
+                "navi_quest_hint_type": "NAVI_QUEST_HINTS",
+                "ocarina_song_action_id": "OCARINA_ACTION",
+                "seq_id": "NA_BGM",
+                "draw_config": ("SCENE_DRAW_CFG" if self.game == "MM" else "SDC"),
+                "surface_material": "SURFACE_MATERIAL",
+                "global_object": "OBJECT_",
+            }
 
             self.name = self.id.removeprefix(f"{keyToPrefix[self.parentKey]}_")
 
-            if self.parentKey in ["csCmd", "csPlayerCueId"]:
+            if self.parentKey in ["cs_cmd", "cs_player_cue_id"]:
                 split = self.name.split("_")
-                if self.parentKey == "csCmd" and "ACTOR_CUE" in self.id:
+                if self.parentKey == "cs_cmd" and "ACTOR_CUE" in self.id:
                     self.name = f"Actor Cue {split[-2]}_{split[-1]}"
                 else:
                     self.name = f"Player Cue Id {split[-1]}"
@@ -111,55 +99,34 @@ class Z64_EnumData:
         # create list of tuples used by Blender's enum properties
         self.deletedEntry = ("None", "(Deleted from the XML)", "None")
 
-        self.ootEnumCsCmd: list[tuple[str, str, str]] = []
-        self.ootEnumCsMiscType: list[tuple[str, str, str]] = []
-        self.ootEnumCsTextType: list[tuple[str, str, str]] = []
-        self.ootEnumCsFadeOutSeqPlayer: list[tuple[str, str, str]] = []
-        self.ootEnumCsTransitionType: list[tuple[str, str, str]] = []
-        self.ootEnumCsDestination: list[tuple[str, str, str]] = []
-        self.ootEnumCsPlayerCueId: list[tuple[str, str, str]] = []
-        self.ootEnumNaviQuestHintType: list[tuple[str, str, str]] = []
-        self.ootEnumOcarinaSongActionId: list[tuple[str, str, str]] = []
-        self.ootEnumSeqId: list[tuple[str, str, str]] = []
-
-        self.enum_modify_seq_type: list[tuple[str, str, str]] = []
-        self.enum_credits_scene_type: list[tuple[str, str, str]] = []
-        self.enum_motion_blur_type: list[tuple[str, str, str]] = []
-        self.enum_rumble_type: list[tuple[str, str, str]] = []
-        self.enum_transition_general_type: list[tuple[str, str, str]] = []
-        self.enum_spawn_flag: list[tuple[str, str, str]] = []
-        self.enum_end_sfx: list[tuple[str, str, str]] = []
-        self.enum_split_interp_type: list[tuple[str, str, str]] = []
-        self.enum_spline_rel_to: list[tuple[str, str, str]] = []
+        self.enum_cs_cmd: list[tuple[str, str, str]] = []
+        self.enum_cs_misc_type: list[tuple[str, str, str]] = []
+        self.enum_cs_text_type: list[tuple[str, str, str]] = []
+        self.enum_cs_fade_out_seq_player: list[tuple[str, str, str]] = []
+        self.enum_cs_transition_type: list[tuple[str, str, str]] = []
+        self.enum_cs_destination: list[tuple[str, str, str]] = []
+        self.enum_cs_player_cue_id: list[tuple[str, str, str]] = []
+        self.enum_cs_modify_seq_type: list[tuple[str, str, str]] = []
+        self.enum_cs_credits_scene_type: list[tuple[str, str, str]] = []
+        self.enum_cs_motion_blur_type: list[tuple[str, str, str]] = []
+        self.enum_cs_rumble_type: list[tuple[str, str, str]] = []
+        self.enum_cs_transition_general: list[tuple[str, str, str]] = []
+        self.enum_cs_spline_interp_type: list[tuple[str, str, str]] = []
+        self.enum_cs_spline_rel: list[tuple[str, str, str]] = []
+        self.enum_cs_spawn_flag: list[tuple[str, str, str]] = []
+        self.enum_actor_cs_end_sfx: list[tuple[str, str, str]] = []
+        self.enum_navi_quest_hint_type: list[tuple[str, str, str]] = []
+        self.enum_ocarina_song_action_id: list[tuple[str, str, str]] = []
+        self.enum_seq_id: list[tuple[str, str, str]] = []
+        self.enum_draw_config: list[tuple[str, str, str]] = []
+        self.enum_surface_material: list[tuple[str, str, str]] = []
+        self.enum_global_object: list[tuple[str, str, str]] = []
 
         self.enumByID = {enum.id: enum for enum in self.enumDataList}
         self.enumByKey = {enum.key: enum for enum in self.enumDataList}
 
-        key_to_enum = {
-            "cmd": "ootEnumCsCmd",
-            "miscType": "ootEnumCsMiscType",
-            "textType": "ootEnumCsTextType",
-            "fadeOutSeqPlayer": "ootEnumCsFadeOutSeqPlayer",
-            "modifySeqType": "enum_cs_modify_seq_type",
-            "transitionType": "ootEnumCsTransitionType",
-            "destinationType": "ootEnumCsDestination",
-            "chooseCreditsSceneType": "enum_cs_credits_scene_type",
-            "motionBlurType": "enum_cs_motion_blur_type",
-            "rumbleType": "enum_cs_rumble_type",
-            "transitionGeneralType": "enum_cs_transition_general_type",
-            "spawnFlag": "enum_cs_spawn_flag",
-            "endSfx": "enum_cs_end_sfx",
-            "csSplineInterpType": "enum_cs_split_interp_type",
-            "csSplineRelTo": "enum_cs_spline_rel_to",
-            "playerCueId": "ootEnumCsPlayerCueId",
-            "naviQuestHintType": "ootEnumNaviQuestHintType",
-            "ocarinaSongActionId": "ootEnumOcarinaSongActionId",
-            "seqId": "ootEnumSeqId",
-        }
-
         for key in self.enumByKey.keys():
-            name = ("ootEnum" + key[0].upper() + key[1:]) if game == "OOT" else key_to_enum[key]
-            setattr(self, name, self.get_enum_data(key))
+            setattr(self, f"enum_{key}", self.get_enum_data(key))
 
     def get_enum_data(self, enumKey: str):
         enum = self.enumByKey[enumKey]

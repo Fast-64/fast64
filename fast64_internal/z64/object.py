@@ -22,7 +22,7 @@ def addMissingObjectsToRoomHeader(roomObj: Object, curHeader: RoomHeader, header
         game_data.z64.update(bpy.context, None)
 
         for roomActor in curHeader.actors.actorList:
-            actor = game_data.z64.actorData.actorsByID.get(roomActor.id)
+            actor = game_data.z64.actors.actorsByID.get(roomActor.id)
             if actor is not None and actor.key != "player" and len(actor.tiedObjects) > 0:
                 for objKey in actor.tiedObjects:
                     if objKey.replace("obj_", "") not in {
@@ -30,7 +30,7 @@ def addMissingObjectsToRoomHeader(roomObj: Object, curHeader: RoomHeader, header
                         "gameplay_field_keep",
                         "gameplay_dangeon_keep",
                     }:
-                        objID = game_data.z64.objectData.objects_by_key[objKey].id
+                        objID = game_data.z64.objects.objects_by_key[objKey].id
                         if not (objID in curHeader.objects.objectList):
                             curHeader.objects.objectList.append(objID)
                             addMissingObjectToProp(roomObj, headerIndex, objKey)

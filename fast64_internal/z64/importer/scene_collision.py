@@ -78,7 +78,7 @@ def parseCamPosData(
     camObj = bpy.data.objects.new(objName, camera)
     bpy.context.scene.collection.objects.link(camObj)
     camProp = camObj.ootCameraPositionProperty
-    setCustomProperty(camProp, "camSType", setting, game_data.z64.get_enum(bpy.context, "camSType"), "camSTypeCustom")
+    setCustomProperty(camProp, "camSType", setting, game_data.z64.get_enum("camSType"), "camSTypeCustom")
 
     if is_actor_cs:
         camProp.is_actor_cs_cam = camProp.hasPositionData = True
@@ -191,7 +191,7 @@ def parseSurfaceParams(
         collision,
         "floorSetting",
         str(getBits(params[0], 26, 4)),
-        game_data.z64.get_enum(bpy.context, "floorSetting"),
+        game_data.z64.get_enum("floorSetting"),
         "floorSettingCustom",
     )
     setCustomProperty(collision, "wallSetting", str(getBits(params[0], 21, 5)), ootEnumWallSetting)
@@ -199,7 +199,7 @@ def parseSurfaceParams(
         collision,
         "floorProperty",
         str(getBits(params[0], 13, 8)),
-        game_data.z64.get_enum(bpy.context, "floorProperty"),
+        game_data.z64.get_enum("floorProperty"),
         "floorPropertyCustom",
     )
     collision.exitID = getBits(params[0], 8, 5)
@@ -231,7 +231,7 @@ def parseSurfaceParams(
         collision,
         "sound",
         str(getBits(params[1], 0, 4)),
-        game_data.z64.get_enum(bpy.context, "sound"),
+        game_data.z64.get_enum("sound"),
         "soundCustom",
     )
 

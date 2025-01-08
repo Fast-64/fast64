@@ -100,7 +100,7 @@ def parseTransActorList(
                 actorProp,
                 "actor_id",
                 actorID,
-                game_data.z64.actorData.ootEnumActorID,
+                game_data.z64.actors.ootEnumActorID,
                 "actorIDCustom",
             )
             if actorProp.actor_id != "Custom":
@@ -209,7 +209,7 @@ def parseSpawnList(
                 actorProp,
                 "actor_id",
                 actorID,
-                game_data.z64.actorData.ootEnumActorID,
+                game_data.z64.actors.ootEnumActorID,
                 "actor_id_custom",
             )
             if actorProp.actor_id != "Custom":
@@ -285,7 +285,7 @@ def parseActorList(
                 actorProp,
                 "actor_id",
                 actorID,
-                game_data.z64.actorData.ootEnumActorID,
+                game_data.z64.actors.ootEnumActorID,
                 "actor_id_custom",
             )
             actorProp.actorParam = actorParam

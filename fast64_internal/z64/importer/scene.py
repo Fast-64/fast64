@@ -174,7 +174,7 @@ def parseScene(
             sceneObj.ootSceneHeader.sceneTableEntry,
             "drawConfig",
             SceneTableUtility.get_draw_config(sceneName),
-            game_data.z64.get_enum(bpy.context, "drawConfig"),
+            game_data.z64.get_enum("drawConfig"),
             "drawConfigCustom",
         )
 

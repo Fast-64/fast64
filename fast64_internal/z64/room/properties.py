@@ -42,7 +42,7 @@ ootEnumRoomMenu = ootEnumRoomMenuAlternate + [
 
 class Z64_ObjectProperty(PropertyGroup):
     expandTab: BoolProperty(name="Expand Tab")
-    objectKey: EnumProperty(items=lambda self, context: game_data.z64.get_enum(context, "objectKey"), default=1)
+    objectKey: EnumProperty(items=lambda self, context: game_data.z64.get_enum("objectKey"), default=1)
     objectIDCustom: StringProperty(default="OBJECT_CUSTOM")
 
     @staticmethod
@@ -50,7 +50,7 @@ class Z64_ObjectProperty(PropertyGroup):
         if game_data.z64.is_oot():
             print(f"Processing '{obj.name}'...")
             game_data.z64.update(bpy.context, None)
-            upgradeRoomHeaders(obj, game_data.z64.objectData)
+            upgradeRoomHeaders(obj, game_data.z64.objects)
 
     def draw_props(self, layout: UILayout, headerIndex: int, index: int, objName: str):
         is_legacy = True if "objectID" in self else False
@@ -58,9 +58,9 @@ class Z64_ObjectProperty(PropertyGroup):
         game_data.z64.update(bpy.context, None)
 
         if game_data.z64.is_oot() and is_legacy:
-            obj_name = game_data.z64.objectData.ootEnumObjectIDLegacy[self["objectID"]][1]
+            obj_name = game_data.z64.objects.ootEnumObjectIDLegacy[self["objectID"]][1]
         elif obj_key != "Custom":
-            obj_name = game_data.z64.objectData.objects_by_key[obj_key].name
+            obj_name = game_data.z64.objects.objects_by_key[obj_key].name
         else:
             obj_name = self.objectIDCustom
 
@@ -105,12 +105,12 @@ class Z64_RoomHeaderProperty(PropertyGroup):
 
     # SCENE_CMD_ROOM_BEHAVIOR
     roomIndex: IntProperty(name="Room Index", default=0, min=0)
-    roomBehaviour: EnumProperty(items=lambda self, context: game_data.z64.get_enum(context, "roomBehaviour"), default=1)
+    roomBehaviour: EnumProperty(items=lambda self, context: game_data.z64.get_enum("roomBehaviour"), default=1)
     roomBehaviourCustom: StringProperty(default="0x00")
     showInvisibleActors: BoolProperty(name="Show Invisible Actors")
     linkIdleMode: EnumProperty(
         name="Environment Type",
-        items=lambda self, context: game_data.z64.get_enum(context, "linkIdleMode"),
+        items=lambda self, context: game_data.z64.get_enum("linkIdleMode"),
         default=1,
     )
     linkIdleModeCustom: StringProperty(name="Environment Type Custom", default="0x00")

@@ -1,4 +1,13 @@
 from xml.etree.ElementTree import parse as parseXML, Element
+from dataclasses import dataclass
+
+
+@dataclass
+class Z64_BaseElement:
+    id: str
+    key: str
+    name: str
+    index: int
 
 
 def get_xml_root(xmlPath: str) -> Element:

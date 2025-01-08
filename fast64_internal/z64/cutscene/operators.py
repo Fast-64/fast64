@@ -238,7 +238,7 @@ class OOT_SearchCSDestinationEnumOperator(Operator):
     bl_property = "csDestination"
     bl_options = {"REGISTER", "UNDO"}
 
-    csDestination: EnumProperty(items=lambda self, context: game_data.z64.get_enum(context, "csDestination"), default=1)
+    csDestination: EnumProperty(items=lambda self, context: game_data.z64.get_enum("csDestination"), default=1)
     objName: StringProperty()
 
     def execute(self, context):
@@ -260,7 +260,7 @@ class OOT_SearchCSSeqOperator(Operator):
     bl_property = "seqId"
     bl_options = {"REGISTER", "UNDO"}
 
-    seqId: EnumProperty(items=lambda self, context: game_data.z64.get_enum(context, "seqId"), default=1)
+    seqId: EnumProperty(items=lambda self, context: game_data.z64.get_enum("seqId"), default=1)
     itemIndex: IntProperty()
     listType: StringProperty()
 

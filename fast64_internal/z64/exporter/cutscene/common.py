@@ -20,7 +20,7 @@ class CutsceneCmdBase:
 
     @staticmethod
     def getEnumValue(enumKey: str, value: str, isSeqLegacy: bool = False):
-        enum = game_data.z64.enumData.enumByKey[enumKey]
+        enum = game_data.z64.enums.enumByKey[enumKey]
         item = enum.item_by_id.get(value)
         if item is None:
             setting = getInteger(value)
