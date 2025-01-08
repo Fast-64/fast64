@@ -196,7 +196,7 @@ class RoomActors:
             if not Utility.isCurrentHeaderValid(actorProp.headerSettings, headerIndex):
                 continue
 
-            actor_id: str = actorProp.actorID if game_data.z64.is_oot() else actorProp.actor_id
+            actor_id: str = actorProp.actor_id
 
             # The Actor list is filled with ``("None", f"{i} (Deleted from the XML)", "None")`` for
             # the total number of actors defined in the XML. If the user deletes one, this will prevent

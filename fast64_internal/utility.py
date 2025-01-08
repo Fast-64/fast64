@@ -3,7 +3,6 @@ import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operato
 from math import pi, ceil, degrees, radians, copysign
 from mathutils import *
 from .utility_anim import *
-from .game_data import game_data
 from typing import Callable, Iterable, Any, Optional, Tuple, TypeVar, Union, TYPE_CHECKING
 from bpy.types import UILayout, Scene, World
 
@@ -1670,6 +1669,8 @@ def lightDataToObj(lightData):
 
 
 def ootGetSceneOrRoomHeader(parent: bpy.types.Object, idx: int, isRoom: bool):
+    from .game_data import game_data  # circular import fix
+
     # This should be in oot_utility.py, but it is needed in f3d_material.py
     # which creates a circular import. The real problem is that the F3D render
     # settings stuff should be in a place which can import both SM64 and OoT

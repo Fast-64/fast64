@@ -262,7 +262,7 @@ class Z64_ExtraCutsceneProperty(PropertyGroup):
 
 def minimap_chest_poll(self: "Z64_MapDataChestProperty", object: Object):
     return (
-        object.type == "EMPTY" and object.ootEmptyType == "Actor" and object.ootActorProperty.actorID == "ACTOR_EN_BOX"
+        object.type == "EMPTY" and object.ootEmptyType == "Actor" and object.ootActorProperty.actor_id == "ACTOR_EN_BOX"
     )
 
 

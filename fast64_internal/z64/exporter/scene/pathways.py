@@ -1,17 +1,21 @@
 from dataclasses import dataclass, field
+from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
+from ....game_data import game_data
 from ....utility import PluginError, CData, indent
 from ...utility import getObjectList
 from ..utility import Utility
 
 
 @dataclass
-class Path:
+class ScenePath:
     """This class defines a pathway"""
 
     name: str
-    points: list[tuple[int, int, int]] = field(default_factory=list)
+    additional_path_index: Optional[int]
+    custom_value: Optional[int]
+    points: list[tuple[int, int, int]]
 
     def getC(self):
         """Returns the pathway position array"""
@@ -40,11 +44,11 @@ class ScenePathways:
     """This class hosts pathways array data"""
 
     name: str
-    pathList: list[Path]
+    pathList: list[ScenePath]
 
     @staticmethod
     def new(name: str, sceneObj: Object, transform: Matrix, headerIndex: int):
-        pathFromIndex: dict[int, Path] = {}
+        pathFromIndex: dict[int, ScenePath] = {}
         pathObjList = getObjectList(sceneObj.children_recursive, "CURVE", splineType="Path")
 
         for obj in pathObjList:
@@ -53,8 +57,10 @@ class ScenePathways:
             isHeaderValid = Utility.isCurrentHeaderValid(obj.ootSplineProperty.headerSettings, headerIndex)
             if isHeaderValid and Utility.validateCurveData(obj):
                 if pathProps.index not in pathFromIndex:
-                    pathFromIndex[pathProps.index] = Path(
+                    pathFromIndex[pathProps.index] = ScenePath(
                         f"{name}List{pathProps.index:02}",
+                        pathProps.opt_path_index if game_data.z64.is_mm() else None,
+                        pathProps.custom_value if game_data.z64.is_mm() else None,
                         [relativeTransform @ point.co.xyz for point in obj.data.splines[0].points],
                     )
                 else:
@@ -85,7 +91,14 @@ class ScenePathways:
         pathListData.source = listName + " = {\n"
 
         for path in self.pathList:
-            pathListData.source += indent + "{ " + f"ARRAY_COUNTU({path.name}), {path.name}" + " },\n"
+            pathListData.source += (
+                (indent + "{ ")
+                + f"ARRAY_COUNTU({path.name}), "
+                + (f"{path.additional_path_index}, " if game_data.z64.is_mm() else "")
+                + (f"{path.custom_value}, " if game_data.z64.is_mm() else "")
+                + f"{path.name}"
+                + " },\n"
+            )
             pathData.append(path.getC())
 
         pathListData.source += "};\n\n"
