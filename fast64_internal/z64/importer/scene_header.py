@@ -16,7 +16,6 @@ from ..utility import (
     getEvalParams,
     setCustomProperty,
     is_game_oot,
-    get_cs_index_start,
     getObjectList,
     getEnumIndex,
     get_new_empty_object,
@@ -501,14 +500,14 @@ def parseSceneCommands(
 
     if headerIndex == 0:
         sceneHeader = sceneObj.ootSceneHeader
-    elif is_game_oot() and headerIndex < get_cs_index_start():
+    elif is_game_oot() and headerIndex < game_data.z64.cs_index_start:
         sceneHeader = getattr(sceneObj.ootAlternateSceneHeaders, headerNames[headerIndex])
         sceneHeader.usePreviousHeader = False
     else:
         cutsceneHeaders = sceneObj.ootAlternateSceneHeaders.cutsceneHeaders
-        while len(cutsceneHeaders) < headerIndex - (get_cs_index_start() - 1):
+        while len(cutsceneHeaders) < headerIndex - (game_data.z64.cs_index_start - 1):
             cutsceneHeaders.add()
-        sceneHeader = cutsceneHeaders[headerIndex - get_cs_index_start()]
+        sceneHeader = cutsceneHeaders[headerIndex - game_data.z64.cs_index_start]
 
     commands = getDataMatch(sceneData, sceneCommandsName, ["SceneCmd", "SCmdBase"], "scene commands")
     entranceList = None

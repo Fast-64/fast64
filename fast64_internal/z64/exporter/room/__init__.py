@@ -3,8 +3,9 @@ from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
+from ....game_data import game_data
 from ....f3d.f3d_gbi import ScrollMethod, TextureExportSettings
-from ...utility import is_game_oot, get_cs_index_start
+from ...utility import is_game_oot
 from ...room.properties import Z64_RoomHeaderProperty
 from ...object import addMissingObjectsToAllRoomHeaders
 from ...model_classes import OOTModel, OOTGfxFormatter
@@ -82,7 +83,7 @@ class Room:
                 transform,
                 i,
             )
-            for i, csHeader in enumerate(altProp.cutsceneHeaders, get_cs_index_start())
+            for i, csHeader in enumerate(altProp.cutsceneHeaders, game_data.z64.cs_index_start)
         ]
 
         hasAlternateHeaders = True if len(altHeader.cutscenes) > 0 else hasAlternateHeaders

@@ -2,9 +2,10 @@ import re
 import bpy
 import mathutils
 
+from ...game_data import game_data
 from ...utility import PluginError, hexOrDecInt, removeComments, yUpToZUp
 from ..actor.properties import Z64_ActorProperty, Z64_ActorHeaderProperty
-from ..utility import ootParseRotation, is_game_oot, get_cs_index_start
+from ..utility import ootParseRotation, is_game_oot
 from .constants import headerNames, actorsWithRotAsParam
 
 
@@ -26,7 +27,7 @@ def unsetAllHeadersExceptSpecified(headerSettings: Z64_ActorHeaderProperty, head
         headerSettings.include_in_all_setups = False
         headerSettings.childDayHeader = headerIndex == 0
 
-    if headerIndex >= get_cs_index_start():
+    if headerIndex >= game_data.z64.cs_index_start:
         headerSettings.cutsceneHeaders.add().headerIndex = headerIndex
 
 

@@ -3,10 +3,11 @@ from mathutils import Matrix
 from bpy.types import Object
 from typing import Optional
 from ....utility import PluginError, CData, indent
+from ....game_data import game_data
 from ....f3d.f3d_gbi import TextureExportSettings, ScrollMethod
 from ...scene.properties import Z64_SceneHeaderProperty
 from ...model_classes import OOTModel, OOTGfxFormatter
-from ...utility import is_oot_features, get_cs_index_start, is_game_oot
+from ...utility import is_oot_features, is_game_oot
 from ..file import SceneFile
 from ..utility import Utility, altHeaderList
 from ..collision import CollisionHeader
@@ -57,7 +58,7 @@ class Scene:
 
         altHeader.cutscenes = [
             SceneHeader.new(f"{name}_header{i:02}", csHeader, sceneObj, transform, i, useMacros)
-            for i, csHeader in enumerate(altProp.cutsceneHeaders, get_cs_index_start())
+            for i, csHeader in enumerate(altProp.cutsceneHeaders, game_data.z64.cs_index_start)
         ]
 
         # process room after scene because of actor cutscenes requiring to be processed before actors
@@ -156,7 +157,7 @@ class Scene:
                 indent + curHeader.name + ","
                 if curHeader is not None
                 else indent + "NULL,"
-                if i < get_cs_index_start()
+                if i < game_data.z64.cs_index_start
                 else ""
                 for i, (curHeader, _) in enumerate(headers, 1)
             )

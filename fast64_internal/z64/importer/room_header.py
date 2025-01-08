@@ -6,7 +6,6 @@ from ...game_data import game_data
 from ..utility import (
     setCustomProperty,
     is_game_oot,
-    get_cs_index_start,
 )
 from ..model_classes import OOTF3DContext
 from ..room.properties import Z64_RoomHeaderProperty
@@ -53,14 +52,14 @@ def parseRoomCommands(
 
     if headerIndex == 0:
         roomHeader = roomObj.ootRoomHeader
-    elif is_game_oot() and headerIndex < get_cs_index_start():
+    elif is_game_oot() and headerIndex < game_data.z64.cs_index_start:
         roomHeader = getattr(roomObj.ootAlternateRoomHeaders, headerNames[headerIndex])
         roomHeader.usePreviousHeader = False
     else:
         cutsceneHeaders = roomObj.ootAlternateRoomHeaders.cutsceneHeaders
-        while len(cutsceneHeaders) < headerIndex - (get_cs_index_start() - 1):
+        while len(cutsceneHeaders) < headerIndex - (game_data.z64.cs_index_start - 1):
             cutsceneHeaders.add()
-        roomHeader = cutsceneHeaders[headerIndex - get_cs_index_start()]
+        roomHeader = cutsceneHeaders[headerIndex - game_data.z64.cs_index_start]
 
     commands = getDataMatch(sceneData, roomCommandsName, ["SceneCmd", "SCmdBase"], "scene commands")
     for commandMatch in re.finditer(rf"(SCENE\_CMD\_[a-zA-Z0-9\_]*)\s*\((.*?)\)\s*,", commands, flags=re.DOTALL):

@@ -932,6 +932,7 @@ class Z64_Data:
         self.actorData = Z64_ActorData(self.game)
 
         if self.game == "OOT":
+            self.cs_index_start = 4
             self.ootEnumMusicSeq = ootEnumMusicSeq
             self.ootEnumNightSeq = ootEnumNightSeq
             self.ootEnumGlobalObject = ootEnumGlobalObject
@@ -945,6 +946,7 @@ class Z64_Data:
             self.ootEnumCollisionSound = ootEnumCollisionSound
             self.ootEnumCameraSType = ootEnumCameraSType
         elif self.game == "MM":
+            self.cs_index_start = 1
             self.ootEnumMusicSeq = enum_seq_id
             self.ootEnumNightSeq = enum_ambiance_id
             self.ootEnumGlobalObject = mm_enum_global_object

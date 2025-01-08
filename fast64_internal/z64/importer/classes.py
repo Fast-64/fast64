@@ -1,5 +1,6 @@
 from ...utility import PluginError
-from ..utility import getHeaderSettings, get_cs_index_start
+from ...game_data import game_data
+from ..utility import getHeaderSettings
 from .constants import headerNames
 
 
@@ -55,7 +56,7 @@ class SharedSceneData:
         actorObj = dictToAdd[hash]
         headerSettings = getHeaderSettings(actorObj)
 
-        if headerIndex < get_cs_index_start():
+        if headerIndex < game_data.z64.cs_index_start:
             setattr(headerSettings, headerNames[headerIndex], True)
         else:
             cutsceneHeaders = headerSettings.cutsceneHeaders

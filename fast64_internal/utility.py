@@ -3,6 +3,7 @@ import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operato
 from math import pi, ceil, degrees, radians, copysign
 from mathutils import *
 from .utility_anim import *
+from .game_data import game_data
 from typing import Callable, Iterable, Any, Optional, Tuple, TypeVar, Union, TYPE_CHECKING
 from bpy.types import UILayout, Scene, World
 
@@ -1670,7 +1671,7 @@ def lightDataToObj(lightData):
 
 def ootGetSceneOrRoomHeader(parent: bpy.types.Object, idx: int, isRoom: bool):
     # circular import fix
-    from .z64.utility import get_cs_index_start, is_game_oot
+    from .z64.utility import is_game_oot
 
     # This should be in oot_utility.py, but it is needed in f3d_material.py
     # which creates a circular import. The real problem is that the F3D render
@@ -1681,12 +1682,11 @@ def ootGetSceneOrRoomHeader(parent: bpy.types.Object, idx: int, isRoom: bool):
 
     target = "Room" if isRoom else "Scene"
     altHeaders = getattr(parent, "ootAlternate" + target + "Headers")
-    cs_index_start = get_cs_index_start()
 
     if idx == 0:
         return getattr(parent, "oot" + target + "Header")
     elif is_game_oot():
-        if 1 <= idx <= (cs_index_start - 1):
+        if 1 <= idx <= (game_data.z64.cs_index_start - 1):
             if idx == 1:
                 ret = altHeaders.childNightHeader
             elif idx == 2:
@@ -1695,9 +1695,9 @@ def ootGetSceneOrRoomHeader(parent: bpy.types.Object, idx: int, isRoom: bool):
                 ret = altHeaders.adultNightHeader
             return None if ret.usePreviousHeader else ret
 
-    if idx - cs_index_start >= len(altHeaders.cutsceneHeaders):
+    if idx - game_data.z64.cs_index_start >= len(altHeaders.cutsceneHeaders):
         return None
-    return altHeaders.cutsceneHeaders[idx - cs_index_start]
+    return altHeaders.cutsceneHeaders[idx - game_data.z64.cs_index_start]
 
 
 def ootGetBaseOrCustomLight(prop, idx, toExport: bool, errIfMissing: bool):

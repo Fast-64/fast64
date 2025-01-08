@@ -42,11 +42,6 @@ def is_oot_features():
     return is_game_oot() and not bpy.context.scene.fast64.oot.mm_features
 
 
-def get_cs_index_start():
-    # not using `is_oot_features()` because we're assuming people won't change the header system
-    return 4 if is_game_oot() else 1
-
-
 def isPathObject(obj: bpy.types.Object) -> bool:
     return obj.type == "CURVE" and obj.ootSplineProperty.splineType == "Path"
 

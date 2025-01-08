@@ -21,7 +21,6 @@ from ..utility import (
     drawAddButton,
     drawCollectionOps,
     drawEnumWithCustom,
-    get_cs_index_start,
     is_oot_features,
     is_game_oot,
     get_list_tab_text,
@@ -121,10 +120,8 @@ class Z64_HalfdayItem(PropertyGroup):
 
 # TODO: remove
 def update_cutscene_index(self, context: Context):
-    cs_index_start = get_cs_index_start()
-
-    if self.headerIndex < cs_index_start:
-        self.headerIndex = cs_index_start
+    if self.headerIndex < game_data.z64.cs_index_start:
+        self.headerIndex = game_data.z64.cs_index_start
 
 
 class Z64_ActorHeaderItemProperty(PropertyGroup):
@@ -144,7 +141,7 @@ class Z64_ActorHeaderItemProperty(PropertyGroup):
 
         drawCollectionOps(row.row(align=True), index, propUser, None, objName, compact=True)
 
-        if altProp is not None and self.headerIndex >= len(altProp.cutsceneHeaders) + get_cs_index_start():
+        if altProp is not None and self.headerIndex >= len(altProp.cutsceneHeaders) + game_data.z64.cs_index_start:
             box.label(text="Above header does not exist.", icon="QUESTION")
 
 

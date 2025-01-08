@@ -23,7 +23,6 @@ from ..utility import (
     drawAddButton,
     is_oot_features,
     is_game_oot,
-    get_cs_index_start,
 )
 
 from ..constants import (
@@ -419,16 +418,14 @@ class Z64_SceneHeaderProperty(PropertyGroup):
     def draw_props(self, layout: UILayout, dropdownLabel: str, headerIndex: int, objName: str):
         from .operators import OOT_SearchMusicSeqEnumOperator  # temp circular import fix
 
-        cs_index_start = get_cs_index_start()
-
         if dropdownLabel is not None:
             layout.prop(self, "expandTab", text=dropdownLabel, icon="TRIA_DOWN" if self.expandTab else "TRIA_RIGHT")
             if not self.expandTab:
                 return
-        if headerIndex is not None and headerIndex > (cs_index_start - 1):
-            drawCollectionOps(layout, headerIndex - cs_index_start, "Scene", None, objName)
+        if headerIndex is not None and headerIndex > (game_data.z64.cs_index_start - 1):
+            drawCollectionOps(layout, headerIndex - game_data.z64.cs_index_start, "Scene", None, objName)
 
-        if is_game_oot() and headerIndex is not None and headerIndex > 0 and headerIndex < cs_index_start:
+        if is_game_oot() and headerIndex is not None and headerIndex > 0 and headerIndex < game_data.z64.cs_index_start:
             layout.prop(self, "usePreviousHeader", text="Use Previous Header")
             if self.usePreviousHeader:
                 return
@@ -554,10 +551,8 @@ class Z64_SceneHeaderProperty(PropertyGroup):
 
 
 def update_cutscene_index(self: "Z64_AlternateSceneHeaderProperty", context: Context):
-    cs_index_start = get_cs_index_start()
-
-    if self.currentCutsceneIndex < cs_index_start:
-        self.currentCutsceneIndex = cs_index_start
+    if self.currentCutsceneIndex < game_data.z64.cs_index_start:
+        self.currentCutsceneIndex = game_data.z64.cs_index_start
 
     onHeaderMenuTabChange(self, context)
 
@@ -574,7 +569,6 @@ class Z64_AlternateSceneHeaderProperty(PropertyGroup):
 
     def draw_props(self, layout: UILayout, objName: str):
         headerSetup = layout.column()
-        cs_index_start = get_cs_index_start()
         can_draw_cs_header = not is_game_oot()
 
         if not can_draw_cs_header:
@@ -594,8 +588,8 @@ class Z64_AlternateSceneHeaderProperty(PropertyGroup):
             prop_split(headerSetup, self, "currentCutsceneIndex", "Cutscene Index")
             drawAddButton(headerSetup, len(self.cutsceneHeaders), "Scene", None, objName)
             index = self.currentCutsceneIndex
-            if index - cs_index_start < len(self.cutsceneHeaders):
-                self.cutsceneHeaders[index - cs_index_start].draw_props(headerSetup, None, index, objName)
+            if index - game_data.z64.cs_index_start < len(self.cutsceneHeaders):
+                self.cutsceneHeaders[index - game_data.z64.cs_index_start].draw_props(headerSetup, None, index, objName)
             else:
                 headerSetup.label(text="No cutscene header for this index.", icon="QUESTION")
 
