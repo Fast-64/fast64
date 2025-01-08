@@ -502,13 +502,13 @@
   <Item Key="rel5" ID="CS_CAM_REL_5" Index="5"/>
 </Enum>
 <Enum Games="MM" Key="cs_text_type" ID="CutsceneTextType">
-  <Item Key="rel0" ID="CS_TEXT_TYPE_NONE" Index="0"/>
-  <Item Key="rel1" ID="CS_TEXT_TYPE_DEFAULT" Index="1"/>
-  <Item Key="rel2" ID="CS_TEXT_TYPE_1" Index="2"/>
-  <Item Key="rel3" ID="CS_TEXT_OCARINA_ACTION" Index="3"/>
-  <Item Key="rel4" ID="CS_TEXT_TYPE_3" Index="4"/>
-  <Item Key="rel5" ID="CS_TEXT_TYPE_BOSSES_REMAINS" Index="5"/>
-  <Item Key="rel5" ID="CS_TEXT_TYPE_ALL_NORMAL_MASKS" Index="5"/>
+  <Item Key="cs_text_none" ID="CS_TEXT_TYPE_NONE" Index="-1"/>
+  <Item Key="cs_text_default" ID="CS_TEXT_TYPE_DEFAULT" Index="0"/>
+  <Item Key="cs_text_type_1" ID="CS_TEXT_TYPE_1" Index="1"/>
+  <Item Key="cs_text_ocarina" ID="CS_TEXT_OCARINA_ACTION" Index="2"/>
+  <Item Key="cs_text_type_3" ID="CS_TEXT_TYPE_3" Index="3"/>
+  <Item Key="cs_text_remains" ID="CS_TEXT_TYPE_BOSSES_REMAINS" Index="4"/>
+  <Item Key="cs_text_masks" ID="CS_TEXT_TYPE_ALL_NORMAL_MASKS" Index="5"/>
 </Enum>
   <Enum Games="MM" Key="ocarina_song_action_id" ID="OcarinaSongActionId">
       <!-- https://github.com/zeldaret/mm/blob/2dc405b6af0cc700b7f3086aabb424bbdf98822d/include/z64ocarina.h#L35-L118 -->

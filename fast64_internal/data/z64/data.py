@@ -526,9 +526,10 @@ class Z64_Data:
         return self.game == "MM"
 
     def update(self, context: Optional[Context], game: Optional[str], force: bool = False):
+        if context is not None and self.is_registering:
+            self.is_registering = False
+
         if self.is_registering:
-            # it doesn't matter to force the game since it will be updated during the post-load handler
-            # is_registering becomes false as soon as an update with context passed is done
             next_game = "OOT"
         elif context is not None:
             next_game = context.scene.gameEditorMode

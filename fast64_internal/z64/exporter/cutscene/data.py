@@ -49,6 +49,7 @@ cmdToClass = {
     "StartSeq": CutsceneCmdStartStopSeq,
     "StopSeq": CutsceneCmdStartStopSeq,
     "FadeOutSeq": CutsceneCmdFadeSeq,
+    "Transition": CutsceneCmdTransition,
 }
 
 cmdToList = {
@@ -169,7 +170,7 @@ class CutsceneData:
             if commandType == "Custom":
                 commandType = obj.ootCSMotionProperty.actorCueListProp.commandTypeCustom
             elif self.useMacros:
-                commandType = game_data.z64.enums.enumByKey["csCmd"].item_by_key[commandType].id
+                commandType = game_data.z64.enums.enumByKey["cs_cmd"].item_by_key[commandType].id
 
             # ignoring dummy cue
             newActorCueList = CutsceneCmdActorCueList(None, None, isPlayer, commandType, entryTotal - 1)
@@ -183,7 +184,7 @@ class CutsceneData:
                     if isPlayer:
                         cueID = childObj.ootCSMotionProperty.actorCueProp.playerCueID
                         if cueID != "Custom":
-                            actionID = game_data.z64.enums.enumByKey["csPlayerCueId"].item_by_key[cueID].id
+                            actionID = game_data.z64.enums.enumByKey["cs_player_cue_id"].item_by_key[cueID].id
 
                     if actionID is None:
                         actionID = childObj.ootCSMotionProperty.actorCueProp.cueActionID
@@ -309,7 +310,7 @@ class CutsceneData:
                     textEntry.startFrame,
                     textEntry.endFrame,
                     textEntry.textID,
-                    self.getEnumValueFromProp("csTextType", textEntry, "csTextType"),
+                    self.getEnumValueFromProp("cs_text_type", textEntry, "csTextType"),
                     textEntry.topOptionTextID,
                     textEntry.bottomOptionTextID,
                 )
@@ -319,7 +320,7 @@ class CutsceneData:
                 return CutsceneCmdTextOcarinaAction(
                     textEntry.startFrame,
                     textEntry.endFrame,
-                    self.getEnumValueFromProp("ocarinaSongActionId", textEntry, "ocarinaAction"),
+                    self.getEnumValueFromProp("ocarina_song_action_id", textEntry, "ocarinaAction"),
                     textEntry.ocarinaMessageId,
                 )
         raise PluginError("ERROR: Unknown text type!")
@@ -337,7 +338,7 @@ class CutsceneData:
             self.destination = CutsceneCmdDestination(
                 csProp.csDestinationStartFrame,
                 None,
-                self.getEnumValueFromProp("csDestination", csProp, "csDestination"),
+                self.getEnumValueFromProp("cs_destination", csProp, "csDestination"),
             )
             self.totalEntries += 1
 
@@ -355,29 +356,29 @@ class CutsceneData:
                     for elem in entry.seqList:
                         data = cmdToClass[entry.listType.removesuffix("List")](elem.startFrame, elem.endFrame)
                         if isFadeOutSeq:
-                            data.seqPlayer = self.getEnumValueFromProp("csFadeOutSeqPlayer", elem, "csSeqPlayer")
+                            data.seqPlayer = self.getEnumValueFromProp("cs_fade_out_seq_player", elem, "csSeqPlayer")
                         else:
                             data.type = cmdList.type
-                            data.seqId = self.getEnumValueFromProp("seqId", elem, "csSeqID")
+                            data.seqId = self.getEnumValueFromProp("seq_id", elem, "csSeqID")
                         cmdList.entries.append(data)
                     if isFadeOutSeq:
                         self.fadeSeqList.append(cmdList)
                     else:
                         self.seqList.append(cmdList)
-                case "Transition":
-                    self.transitionList.append(
-                        CutsceneCmdTransition(
-                            entry.transitionStartFrame,
-                            entry.transitionEndFrame,
-                            self.getEnumValueFromProp("csTransitionType", entry, "transitionType"),
-                        )
-                    )
                 case _:
                     curList = getattr(entry, (entry.listType[0].lower() + entry.listType[1:]))
                     cmdList = cmdToClass[entry.listType](None, None)
                     cmdList.entryTotal = len(curList)
                     for elem in curList:
                         match entry.listType:
+                            case "Transition":
+                                cmdList.entries.append(
+                                    CutsceneCmdTransition(
+                                        elem.startFrame,
+                                        elem.endFrame,
+                                        self.getEnumValueFromProp("cs_transition_type", elem, "transition_type"),
+                                    )
+                                )
                             case "TextList":
                                 cmdList.entries.append(self.getNewTextCmd(elem))
                             case "LightSettingsList":
@@ -395,7 +396,7 @@ class CutsceneData:
                                     CutsceneCmdMisc(
                                         elem.startFrame,
                                         elem.endFrame,
-                                        self.getEnumValueFromProp("csMiscType", elem, "csMiscType"),
+                                        self.getEnumValueFromProp("cs_misc_type", elem, "csMiscType"),
                                     )
                                 )
                             case "RumbleList":

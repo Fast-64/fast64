@@ -60,7 +60,7 @@ from .fast64_internal.render_settings import (
 # info about add on
 bl_info = {
     "name": "Fast64",
-    "version": (2, 3, 0),
+    "version": (2, 3, 1),
     "author": "kurethedead",
     "location": "3DView",
     "description": "Plugin for exporting F3D display lists and other game data related to Nintendo 64 games.",
@@ -242,6 +242,9 @@ class Fast64_Properties(bpy.types.PropertyGroup):
     mk64: bpy.props.PointerProperty(type=MK64_Properties, name="MK64 Properties")
     settings: bpy.props.PointerProperty(type=Fast64Settings_Properties, name="Fast64 Settings")
     renderSettings: bpy.props.PointerProperty(type=Fast64RenderSettings_Properties, name="Fast64 Render Settings")
+
+    def get_addon_version(self):
+        return bl_info["version"]
 
 
 class Fast64_BoneProperties(bpy.types.PropertyGroup):

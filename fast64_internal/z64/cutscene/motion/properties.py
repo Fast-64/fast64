@@ -4,7 +4,7 @@ from bpy.types import PropertyGroup, Object, UILayout, Armature, Bone, Scene, Ed
 from bpy.props import IntProperty, StringProperty, PointerProperty, EnumProperty, FloatProperty
 from bpy.utils import register_class, unregister_class
 from ...upgrade import upgradeCutsceneMotion
-from ...utility import getEnumName
+from ...utility import getEnumName, prop_split
 from ....game_data import game_data
 from ..constants import ootEnumCSMotionCamMode, ootEnumCSActorCueListCommandType
 
@@ -144,6 +144,9 @@ class CutsceneCmdCameraShotProperty(PropertyGroup):
         default="splineEyeOrAT",
     )
 
+    shot_spline_rel_to: EnumProperty(items=game_data.z64.enums.enum_cs_spline_rel, default=1)
+    shot_spline_rel_to_custom: StringProperty(default="CS_CAM_REL_CUSTOM")
+
     def getEndFrame(self, camShotObj: Object = None):
         if camShotObj is None:
             camShotObj = bpy.context.view_layer.objects.active
@@ -155,12 +158,20 @@ class CutsceneCmdCameraShotProperty(PropertyGroup):
         return -1
 
     def draw_props(self, layout: UILayout, label: str):
+        # update manually since we don't use shared enum mode
+        game_data.z64.update(bpy.context, None)
+
         box = layout.box()
         box.label(text=label)
         split = box.split(factor=0.5)
         split.prop(self, "shotStartFrame")
         split.prop(self, "shotEndFrame")
-        box.row().prop(self, "shotCamMode", expand=True)
+        if game_data.z64.is_oot():
+            box.row().prop(self, "shotCamMode", expand=True)
+        else:
+            prop_split(box.row(), self, "shot_spline_rel_to", "Spline Relative To")
+            if self.shot_spline_rel_to == "Custom":
+                prop_split(box.row(), self, "shot_spline_rel_to_custom", "")
         box.operator(CutsceneCmdAddBone.bl_idname)
 
 

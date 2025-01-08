@@ -212,12 +212,6 @@ def upgradeCSListProps(csListProp):
 
     transferOldDataToNew(csListProp, csListPropOldToNew)
 
-    # both are enums but the item list is different (the old one doesn't have a "custom" entry)
-    convertOldDataToEnumData(
-        csListProp,
-        [Cutscene_UpgradeData("fxType", "transitionType", game_data.z64.enums.enum_cs_transition_type)],
-    )
-
 
 def upgradeCutsceneProperty(csProp: "OOTCutsceneProperty"):
     game_data.z64.update(bpy.context, None)
@@ -237,7 +231,7 @@ def upgradeCutsceneProperty(csProp: "OOTCutsceneProperty"):
 def upgradeCutsceneMotion(csMotionObj: Object):
     """Main upgrade logic for Cutscene Motion data from zcamedit"""
     objName = csMotionObj.name
-    game_data.z64.update(bpy.context, None)
+    game_data.z64.update(None, "OOT", True)
 
     if csMotionObj.type == "EMPTY":
         csMotionProp = csMotionObj.ootCSMotionProperty
@@ -250,7 +244,7 @@ def upgradeCutsceneMotion(csMotionObj: Object):
             if "actor_id" in legacyData:
                 index = legacyData["actor_id"]
                 if index >= 0:
-                    cmdEnum = game_data.z64.enums.enumByKey["csCmd"]
+                    cmdEnum = game_data.z64.enums.enumByKey["cs_cmd"]
                     cmdType = cmdEnum.item_by_index.get(index)
                     if cmdType is not None:
                         csMotionProp.actorCueListProp.commandType = cmdType.key
@@ -271,7 +265,7 @@ def upgradeCutsceneMotion(csMotionObj: Object):
                 del legacyData["start_frame"]
 
             if "action_id" in legacyData:
-                playerEnum = game_data.z64.enums.enumByKey["csPlayerCueId"]
+                playerEnum = game_data.z64.enums.enumByKey["cs_player_cue_id"]
                 item = None
                 if isPlayer:
                     item = playerEnum.item_by_index.get(int(legacyData["action_id"], base=16))
@@ -309,6 +303,8 @@ def upgradeCutsceneMotion(csMotionObj: Object):
             if "camroll" in bone:
                 camShotPointProp.shotPointRoll = bone["camroll"]
                 del bone["camroll"]
+
+    game_data.z64.update(bpy.context, None, True)
 
 
 #####################################

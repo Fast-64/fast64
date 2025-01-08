@@ -503,14 +503,14 @@ class CutsceneImport(CutsceneObjectFactory):
             setattr(prop, propName, value)
         except TypeError:
             setattr(prop, propName, "Custom")
-            setattr(prop, f"{propName}Custom", value)
+            setattr(prop, f"{propName}_custom" if "_" in propName else f"{propName}Custom", value)
 
     def setSubPropertyData(self, subPropsData: dict[str, str], newSubElem, entry):
         customNames = [
             "csMiscType",
             "csTextType",
             "ocarinaAction",
-            "transitionType",
+            "transition_type",
             "csSeqID",
             "csSeqPlayer",
             "transition",
@@ -613,7 +613,7 @@ class CutsceneImport(CutsceneObjectFactory):
             propDataList = [
                 PropertyData("Text", {"textboxType": "id"}, True),
                 PropertyData("Misc", {"csMiscType": "type"}, True),
-                PropertyData("Transition", {"transitionType": "type"}, True),
+                PropertyData("Transition", {"transition_type": "type"}, True),
                 PropertyData("LightSettings", {"lightSettingsIndex": "lightSetting"}, False),
                 PropertyData("Time", {"hour": "hour", "minute": "minute"}, False),
                 PropertyData("Seq", {"csSeqID": "seqId"}, False),

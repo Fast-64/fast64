@@ -699,9 +699,6 @@ def actor_props_register():
     game_data.z64.update(None, "MM", True)
     create_game_props()
 
-    # restore the data for the current game
-    game_data.z64.update(bpy.context, None, True)
-
     for cls in classes:
         register_class(cls)
 

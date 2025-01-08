@@ -89,7 +89,7 @@ class CutsceneCmdToC:
         )
 
     def getDestinationCmd(self, csProp: "OOTCutsceneProperty"):
-        dest = self.getEnumValue("csDestination", csProp, "csDestination")
+        dest = self.getEnumValue("cs_destination", csProp, "csDestination")
         return indent * 2 + f"CS_DESTINATION({dest}, {csProp.csDestinationStartFrame}, 0),\n"
 
     def getActorCueListCmd(self, actorCueList: CutsceneCmdActorCueList, isPlayerActor: bool):
@@ -212,7 +212,7 @@ class CutsceneExport(CutsceneCmdToC):
             if commandType == "Custom":
                 commandType = obj.ootCSMotionProperty.actorCueListProp.commandTypeCustom
             elif self.useDecomp:
-                commandType = game_data.z64.enums.enumByKey["csCmd"].item_by_key[commandType].id
+                commandType = game_data.z64.enums.enumByKey["cs_cmd"].item_by_key[commandType].id
 
             # ignoring dummy cue
             actorCueList = CutsceneCmdActorCueList(None, entryTotal=entryTotal - 1, commandType=commandType)
@@ -227,7 +227,7 @@ class CutsceneExport(CutsceneCmdToC):
                     if isPlayer:
                         cueID = childObj.ootCSMotionProperty.actorCueProp.playerCueID
                         if cueID != "Custom":
-                            actionID = game_data.z64.enums.enumByKey["csPlayerCueId"].item_by_key[cueID].id
+                            actionID = game_data.z64.enums.enumByKey["cs_player_cue_id"].item_by_key[cueID].id
 
                     if actionID is None:
                         actionID = childObj.ootCSMotionProperty.actorCueProp.cueActionID
@@ -348,7 +348,7 @@ class CutsceneExport(CutsceneCmdToC):
                         textEntry.startFrame,
                         textEntry.endFrame,
                         textEntry.textID,
-                        self.getEnumValue("csTextType", textEntry, "csTextType"),
+                        self.getEnumValue("cs_text_type", textEntry, "csTextType"),
                         textEntry.topOptionTextID,
                         textEntry.bottomOptionTextID,
                     )
@@ -361,7 +361,7 @@ class CutsceneExport(CutsceneCmdToC):
                         None,
                         textEntry.startFrame,
                         textEntry.endFrame,
-                        self.getEnumValue("ocarinaSongActionId", textEntry, "ocarinaAction"),
+                        self.getEnumValue("ocarina_song_action_id", textEntry, "ocarinaAction"),
                         textEntry.ocarinaMessageId,
                     )
                 )
@@ -391,20 +391,20 @@ class CutsceneExport(CutsceneCmdToC):
                             elem.startFrame,
                             elem.endFrame,
                         )
-                case "Transition":
-                    subData += self.getTransitionCmd(
-                        CutsceneCmdTransition(
-                            None,
-                            entry.transitionStartFrame,
-                            entry.transitionEndFrame,
-                            self.getEnumValue("csTransitionType", entry, "transitionType"),
-                        )
-                    )
                 case _:
                     curList = getattr(entry, (entry.listType[0].lower() + entry.listType[1:]))
                     entryTotal = len(curList)
                     for elem in curList:
                         match entry.listType:
+                            case "Transition":
+                                subData += self.getTransitionCmd(
+                                    CutsceneCmdTransition(
+                                        None,
+                                        elem.startFrame,
+                                        elem.endFrame,
+                                        self.getEnumValue("cs_transition_type", elem, "transition_type"),
+                                    )
+                                )
                             case "TextList":
                                 subData += self.getTextListData(elem)
                             case "LightSettingsList":
@@ -423,7 +423,7 @@ class CutsceneExport(CutsceneCmdToC):
                                         None,
                                         elem.startFrame,
                                         elem.endFrame,
-                                        self.getEnumValue("csMiscType", elem, "csMiscType"),
+                                        self.getEnumValue("cs_misc_type", elem, "csMiscType"),
                                     )
                                 )
                             case "RumbleList":

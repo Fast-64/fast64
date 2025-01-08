@@ -536,7 +536,7 @@ def parseSceneCommands(
             if args[2].startswith("NA_BGM_"):
                 enum_id = args[2]
             else:
-                enum_id = game_data.z64.enums.enumByKey["seqId"].item_by_index[int(args[2])].id
+                enum_id = game_data.z64.enums.enumByKey["seq_id"].item_by_index[int(args[2])].id
 
             setCustomProperty(sceneHeader, "musicSeq", enum_id, game_data.z64.get_enum("musicSeq"), "musicSeqCustom")
             command_list.remove(command)

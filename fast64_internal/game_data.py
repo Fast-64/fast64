@@ -12,9 +12,6 @@ class GameData:
 
     def update(self, game_editor_mode: str):
         if game_editor_mode is not None and game_editor_mode in {"OOT", "MM"}:
-            if game_data.z64.is_registering:
-                game_data.z64.is_registering = False
-
             self.z64.update(None, game_editor_mode, True)
 
             if game_editor_mode in {"OOT", "MM"} and game_editor_mode != self.z64.game:

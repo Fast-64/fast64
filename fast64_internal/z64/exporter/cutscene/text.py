@@ -22,7 +22,7 @@ class CutsceneCmdText(CutsceneCmdBase):
             getInteger(params[1]),
             getInteger(params[2]),
             getInteger(params[0]),
-            CutsceneCmdBase.getEnumValue("csTextType", params[3]),
+            CutsceneCmdBase.getEnumValue("cs_text_type", params[3]),
             getInteger(params[4]),
             getInteger(params[5]),
         )
@@ -67,7 +67,7 @@ class CutsceneCmdTextOcarinaAction(CutsceneCmdBase):
         return CutsceneCmdTextOcarinaAction(
             getInteger(params[1]),
             getInteger(params[2]),
-            CutsceneCmdBase.getEnumValue("ocarinaSongActionId", params[0]),
+            CutsceneCmdBase.getEnumValue("ocarina_song_action_id", params[0]),
             getInteger(params[3]),
         )
 

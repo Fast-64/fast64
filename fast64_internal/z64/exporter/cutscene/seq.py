@@ -17,7 +17,7 @@ class CutsceneCmdStartStopSeq(CutsceneCmdBase):
     @staticmethod
     def from_params(params: list[str], isLegacy: bool):
         return CutsceneCmdFadeSeq(
-            getInteger(params[1]), getInteger(params[2]), CutsceneCmdBase.getEnumValue("seqId", params[0], isLegacy)
+            getInteger(params[1]), getInteger(params[2]), CutsceneCmdBase.getEnumValue("seq_id", params[0], isLegacy)
         )
 
     def getCmd(self):

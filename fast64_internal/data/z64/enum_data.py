@@ -19,7 +19,7 @@ class Z64_ItemElement(Z64_BaseElement):
                 "cs_text_type": "CS_TEXT",
                 "cs_fade_out_seq_player": "CS_FADE_OUT",
                 "cs_transition_type": "CS_TRANS",
-                "cs_destination": "CS_DEST",
+                "cs_destination": ("CS_DESTINATION" if self.game == "MM" else "CS_DEST"),
                 "cs_player_cue_id": "PLAYER_CUEID",
                 "cs_modify_seq_type": "CS_MOD",
                 "cs_credits_scene_type": "CS_CREDITS",
@@ -27,7 +27,7 @@ class Z64_ItemElement(Z64_BaseElement):
                 "cs_rumble_type": "CS_RUMBLE",
                 "cs_transition_general": "CS_TRANS_GENERAL",
                 "cs_spline_interp_type": "CS_CAM_INTERP",
-                "cs_spline_rel": "CS_CAM_REL",
+                "cs_spline_rel": "", # TODO: set the value to `CS_CAM_REL` once this is documented
                 "cs_spawn_flag": "CS_SPAWN_FLAG",
                 "actor_cs_end_sfx": "CS_END_SFX",
                 "navi_quest_hint_type": "NAVI_QUEST_HINTS",
@@ -35,7 +35,7 @@ class Z64_ItemElement(Z64_BaseElement):
                 "seq_id": "NA_BGM",
                 "draw_config": ("SCENE_DRAW_CFG" if self.game == "MM" else "SDC"),
                 "surface_material": "SURFACE_MATERIAL",
-                "global_object": "OBJECT_",
+                "global_object": "OBJECT",
             }
 
             self.name = self.id.removeprefix(f"{keyToPrefix[self.parentKey]}_")

@@ -68,6 +68,9 @@ class OOTCutsceneCommon:
         drawCollectionOps(box, cmdIndex, collectionType + "." + self.attrName, listIndex, objName)
 
         for p in self.subprops:
+            if game_data.z64.is_oot() and p == "rumble_type" and not bpy.context.scene.fast64.oot.mm_features:
+                continue
+
             if self.filterProp(p, listProp):
                 name = self.filterName(p, listProp)
                 displayName = ootCSSubPropToName[name]
@@ -89,10 +92,12 @@ class OOTCutsceneCommon:
                     "ocarinaAction",
                     "csSeqID",
                     "csSeqPlayer",
+                    "rumble_type",
+                    "transition_type",
                 ]
                 value = getattr(self, p)
                 if name in customValues and value == "Custom":
-                    prop_split(box, self, f"{name}Custom", f"{displayName} Custom")
+                    prop_split(box, self, f"{name}_custom" if "_" in p else f"{name}Custom", f"{displayName} Custom")
 
                 if name == "csTextType" and value != "choice":
                     break
@@ -166,7 +171,8 @@ class OOTCSSeqProperty(OOTCutsceneCommon, PropertyGroup):
     csSeqPlayerCustom: StringProperty(default="CS_FADE_OUT_CUSTOM")
 
     def filterProp(self, name, listProp):
-        return name != "endFrame" or listProp.listType == "FadeOutSeqList"
+        types = {"FadeOutSeqList", "StopSeqList"} if game_data.z64.is_mm() else {"FadeOutSeqList"}
+        return name != "endFrame" or listProp.listType in types
 
     def filterName(self, name, listProp):
         if name == "csSeqID" and listProp.listType == "FadeOutSeqList":
@@ -183,13 +189,23 @@ class OOTCSMiscProperty(OOTCutsceneCommon, PropertyGroup):
 
 class OOTCSRumbleProperty(OOTCutsceneCommon, PropertyGroup):
     attrName = "rumbleList"
-    subprops = ["startFrame", "rumbleSourceStrength", "rumbleDuration", "rumbleDecreaseRate"]
+    subprops = ["rumble_type", "startFrame", "rumbleSourceStrength", "rumbleDuration", "rumbleDecreaseRate"]
 
     # those variables are unsigned chars in decomp
     # see https://github.com/zeldaret/oot/blob/542012efa68d110d6b631f9d149f6e5f4e68cc8e/src/code/z_rumble.c#L58-L77
     rumbleSourceStrength: IntProperty(name="", default=0, min=0, max=255)
     rumbleDuration: IntProperty(name="", default=0, min=0, max=255)
     rumbleDecreaseRate: IntProperty(name="", default=0, min=0, max=255)
+    rumble_type: EnumProperty(name="", items=game_data.z64.enums.enum_cs_rumble_type, default=1)
+    rumble_type_custom: StringProperty()
+
+
+class OOTCSTransitionProperty(OOTCutsceneCommon, PropertyGroup):
+    attrName = "transition_list"
+    subprops = ["transition_type", "startFrame", "endFrame"]
+
+    transition_type: EnumProperty(name="", items=lambda self, context: game_data.z64.get_enum("transitionType"), default=1)
+    transition_type_custom: StringProperty("CS_TRANS_CUSTOM")
 
 
 class OOTCSListProperty(PropertyGroup):
@@ -202,14 +218,11 @@ class OOTCSListProperty(PropertyGroup):
     seqList: CollectionProperty(type=OOTCSSeqProperty)
     miscList: CollectionProperty(type=OOTCSMiscProperty)
     rumbleList: CollectionProperty(type=OOTCSRumbleProperty)
-
-    transitionType: EnumProperty(items=lambda self, context: game_data.z64.get_enum("transitionType"), default=1)
-    transitionTypeCustom: StringProperty(default="CS_TRANS_CUSTOM")
-    transitionStartFrame: IntProperty(name="", default=0, min=0)
-    transitionEndFrame: IntProperty(name="", default=1, min=0)
+    transition_list: CollectionProperty(type=OOTCSTransitionProperty)
 
     def draw_props(self, layout: UILayout, listIndex: int, objName: str, collectionType: str):
         box = layout.box().column()
+        game_data.z64.update(bpy.context, None)
         enumName = getEnumName(ootEnumCSListType, self.listType)
 
         # Draw current command tab
@@ -229,13 +242,7 @@ class OOTCSListProperty(PropertyGroup):
         if self.listType == "TextList":
             attrName = "textList"
         elif self.listType == "Transition":
-            prop_split(box, self, "transitionType", "Transition Type")
-            if self.transitionType == "Custom":
-                prop_split(box, self, "transitionTypeCustom", "Transition Type Custom")
-
-            prop_split(box, self, "transitionStartFrame", "Start Frame")
-            prop_split(box, self, "transitionEndFrame", "End Frame")
-            return
+            attrName = "transition_list"
         elif self.listType == "LightSettingsList":
             attrName = "lightSettingsList"
         elif self.listType == "TimeList":
@@ -279,7 +286,7 @@ class OOTCSListProperty(PropertyGroup):
         for i, p in enumerate(data):
             # ``p`` type:
             # OOTCSTextProperty | OOTCSLightSettingsProperty | OOTCSTimeProperty |
-            # OOTCSSeqProperty | OOTCSMiscProperty | OOTCSRumbleProperty
+            # OOTCSSeqProperty | OOTCSMiscProperty | OOTCSRumbleProperty | OOTCSTransitionProperty
             p.draw_props(box, self, listIndex, i, objName, collectionType, enumName.removesuffix(" List"))
 
         if len(data) == 0:
@@ -388,6 +395,22 @@ class OOTCutsceneProperty(PropertyGroup):
                 for csListSubProp in getattr(csListProp, listName):
                     upgradeCutsceneSubProps(csListSubProp)
 
+            if csListProp.listType == "Transition":
+                new_entry = csListProp.transition_list.add()
+
+                if "transitionType" in csListProp:
+                    new_entry.transition_type = csListProp.transitionType
+                    del csListProp["transitionType"]
+                if "transitionTypeCustom" in csListProp:
+                    new_entry.transition_type_custom = csListProp.transitionTypeCustom
+                    del csListProp["transitionTypeCustom"]
+                if "transitionStartFrame" in csListProp:
+                    new_entry.startFrame = csListProp.transitionStartFrame
+                    del csListProp["transitionStartFrame"]
+                if "transitionEndFrame" in csListProp:
+                    new_entry.endFrame = csListProp.transitionEndFrame
+                    del csListProp["transitionEndFrame"]
+
     def draw_props(self, layout: UILayout, obj: Object):
         split = layout.split(factor=0.5)
         split.operator(CutsceneCmdCreateCameraShot.bl_idname, icon="VIEW_CAMERA")
@@ -409,13 +432,19 @@ class OOTCutsceneProperty(PropertyGroup):
         if self.csUseDestination:
             b.prop(self, "csDestinationStartFrame")
 
-            searchBox = b.box()
-            boxRow = searchBox.row()
-            searchOp = boxRow.operator(OOT_SearchCSDestinationEnumOperator.bl_idname, icon="VIEWZOOM", text="")
-            searchOp.objName = obj.name
-            boxRow.label(text=getEnumName(game_data.z64.get_enum("csDestination"), self.csDestination))
+            if game_data.z64.is_oot():
+                searchBox = b.box()
+                boxRow = searchBox.row()
+                searchOp = boxRow.operator(OOT_SearchCSDestinationEnumOperator.bl_idname, icon="VIEWZOOM", text="")
+                searchOp.objName = obj.name
+                boxRow.label(text=getEnumName(game_data.z64.get_enum("csDestination"), self.csDestination))
+                layout_custom = searchBox
+            else:
+                layout_custom = b
+                prop_split(b, self, "csDestination", "Cutscene Destination Type")
+
             if self.csDestination == "Custom":
-                prop_split(searchBox.column(), self, "csDestinationCustom", "Cutscene Destination Custom")
+                prop_split(layout_custom.column(), self, "csDestinationCustom", "Cutscene Destination Custom")
 
         commandsBox.column_flow(columns=3, align=True).prop(self, "menuTab", expand=True)
         label = f"Add New {ootCSSubPropToName[self.menuTab]}"
@@ -437,6 +466,7 @@ classes = (
     OOTCSSeqProperty,
     OOTCSMiscProperty,
     OOTCSRumbleProperty,
+    OOTCSTransitionProperty,
     OOTCSListProperty,
     OOTCutsceneTransitionProperty,
     OOTCutsceneMiscProperty,
@@ -447,6 +477,8 @@ classes = (
 
 
 def cutscene_props_register():
+    game_data.z64.update(None, "OOT", True)
+
     for cls in classes:
         register_class(cls)
 

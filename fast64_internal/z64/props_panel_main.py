@@ -1,6 +1,6 @@
 import bpy
 from bpy.utils import register_class, unregister_class
-from ..utility import prop_split, gammaInverse
+from ..utility import PluginError, prop_split, gammaInverse
 from ..game_data import game_data
 from .utility import getSceneObj, getRoomObj, is_oot_features
 from .scene.properties import OOTSceneProperties
@@ -218,6 +218,9 @@ class OOT_ObjectProperties(bpy.types.PropertyGroup):
 
     @staticmethod
     def upgrade_changed_props():
+        if bpy.context.scene.fast64.get_addon_version() < (2, 3, 1):
+            raise PluginError("ERROR: Upgrading on this version is deprecated. Please update to an older version and update again to this one.")
+
         for obj in bpy.data.objects:
             if obj.type == "EMPTY" and game_data.z64.is_oot():
                 if obj.ootEmptyType == "Room":
