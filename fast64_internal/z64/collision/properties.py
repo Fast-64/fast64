@@ -1,24 +1,16 @@
 import math
+
 from bpy.props import StringProperty, PointerProperty, IntProperty, EnumProperty, BoolProperty, FloatProperty
-from bpy.types import PropertyGroup, Camera, Object, Material, UILayout
+from bpy.types import PropertyGroup, Object, Material, UILayout
 from bpy.utils import register_class, unregister_class
 from ...utility import prop_split
-from ..utility import drawEnumWithCustom, get_game_prop_name
-from ..constants import ootEnumSceneID
+from ...game_data import game_data
+from ..utility import drawEnumWithCustom
+
 from .constants import (
-    ootEnumFloorSetting,
     ootEnumWallSetting,
-    ootEnumFloorProperty,
     ootEnumConveyer,
     ootEnumConveyorSpeed,
-    ootEnumCollisionTerrain,
-    ootEnumCollisionSound,
-    ootEnumCameraSType,
-    mm_enum_floor_property,
-    mm_enum_floor_type,
-    mm_enum_floor_effect,
-    mm_enum_surface_material,
-    mm_enum_camera_setting_type,
 )
 
 
@@ -50,15 +42,14 @@ class OOTCollisionExportSettings(PropertyGroup):
 class OOTCameraPositionProperty(PropertyGroup):
     index: IntProperty(min=0)
     bgImageOverrideIndex: IntProperty(default=-1, min=-1)
-    camSType: EnumProperty(items=ootEnumCameraSType, default=2)
-    mm_cam_setting_type: EnumProperty(items=mm_enum_camera_setting_type, default=2)
+    camSType: EnumProperty(items=lambda self, context: game_data.z64.get_enum(context, "camSType"), default=2)
     camSTypeCustom: StringProperty(default="CAM_SET_NORMAL0")
     hasPositionData: BoolProperty(default=True, name="Has Position Data")
     is_actor_cs_cam: BoolProperty(default=False, name="Is Actor CS Camera")
     use_setting_default_fov: BoolProperty(name="Use the default FoV from the camera setting", default=False)
 
     def draw_props(self, layout: UILayout, cameraObj: Object):
-        drawEnumWithCustom(layout, self, get_game_prop_name("cam_setting_type"), "Camera S Type", "", "camSTypeCustom")
+        drawEnumWithCustom(layout, self, "camSType", "Camera S Type", "", "camSTypeCustom")
         prop_split(layout, self, "index", "Camera Index")
         layout.prop(self, "is_actor_cs_cam")
 
@@ -82,13 +73,11 @@ class OOTMaterialCollisionProperty(PropertyGroup):
     eponaBlock: BoolProperty()
     decreaseHeight: BoolProperty()
     floorSettingCustom: StringProperty(default="0x00")
-    floorSetting: EnumProperty(items=ootEnumFloorSetting, default=1)
-    mm_floor_property: EnumProperty(items=mm_enum_floor_property, default=1)
+    floorSetting: EnumProperty(items=lambda self, context: game_data.z64.get_enum(context, "floorSetting"), default=1)
     wallSettingCustom: StringProperty(default="0x00")
     wallSetting: EnumProperty(items=ootEnumWallSetting, default=1)
     floorPropertyCustom: StringProperty(default="0x00")
-    floorProperty: EnumProperty(items=ootEnumFloorProperty, default=1)
-    mm_floor_type: EnumProperty(items=mm_enum_floor_type, default=1)
+    floorProperty: EnumProperty(items=lambda self, context: game_data.z64.get_enum(context, "floorProperty"), default=1)
     exitID: IntProperty(default=0, min=0)
     cameraID: IntProperty(default=0, min=0)
     isWallDamage: BoolProperty()
@@ -101,11 +90,9 @@ class OOTMaterialCollisionProperty(PropertyGroup):
     echo: StringProperty(default="0x00")
     lightingSetting: IntProperty(default=0, min=0)
     terrainCustom: StringProperty(default="0x00")
-    terrain: EnumProperty(items=ootEnumCollisionTerrain, default=1)
-    mm_floor_effect: EnumProperty(items=mm_enum_floor_effect, default=1)
+    terrain: EnumProperty(items=game_data.z64.enum_floor_effect, default=1)
     soundCustom: StringProperty(default="0x00")
-    sound: EnumProperty(items=ootEnumCollisionSound, default=1)
-    mm_surface_material: EnumProperty(items=mm_enum_surface_material, default=1)
+    sound: EnumProperty(items=lambda self, context: game_data.z64.get_enum(context, "sound"), default=1)
 
     def draw_props(self, layout: UILayout):
         layout.prop(
@@ -123,14 +110,14 @@ class OOTMaterialCollisionProperty(PropertyGroup):
             enum_box = layout.box().column()
             enum_box.label(text="Surface Settings")
             drawEnumWithCustom(
-                enum_box, self, get_game_prop_name("floor_type"), "Floor Type", "", "floorPropertyCustom"
+                enum_box, self, "floorProperty", "Floor Type", "", "floorPropertyCustom"
             )
             drawEnumWithCustom(
-                enum_box, self, get_game_prop_name("floor_property"), "Floor Property", "", "floorSettingCustom"
+                enum_box, self, "floorSetting", "Floor Property", "", "floorSettingCustom"
             )
-            drawEnumWithCustom(enum_box, self, get_game_prop_name("floor_effect"), "Floor Effect", "", "terrainCustom")
+            drawEnumWithCustom(enum_box, self, "terrain", "Floor Effect", "", "terrainCustom")
             drawEnumWithCustom(
-                enum_box, self, get_game_prop_name("surface_material"), "Surface Material", "", "soundCustom"
+                enum_box, self, "sound", "Surface Material", "", "soundCustom"
             )
             drawEnumWithCustom(enum_box, self, "wallSetting", "Wall Type", "")
 

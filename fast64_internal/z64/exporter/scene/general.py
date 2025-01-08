@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, exportColor, ootGetBaseOrCustomLight, indent
-from ...utility import is_oot_features, getObjectList, getEvalParams, get_game_prop_name, is_game_oot
+from ...utility import is_oot_features, getObjectList, getEvalParams, is_game_oot
 from ...scene.properties import (
     Z64_SceneHeaderProperty,
     Z64_LightProperty,
@@ -196,7 +196,7 @@ class SceneInfos:
         return SceneInfos(
             Utility.getPropValue(props, "globalObject", "globalObjectCustom"),
             Utility.getPropValue(props, "naviCup") if is_game_oot() else "NAVI_QUEST_HINTS_NONE",
-            Utility.getPropValue(props.sceneTableEntry, get_game_prop_name("draw_config"), "drawConfigCustom"),
+            Utility.getPropValue(props.sceneTableEntry, "drawConfig", "drawConfigCustom"),
             props.appendNullEntrance,
             sceneObj.fast64.oot.scene.write_dummy_room_list,
             Utility.getPropValue(props, "skyboxID", "skyboxIDCustom"),

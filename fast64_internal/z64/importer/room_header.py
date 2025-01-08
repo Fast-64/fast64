@@ -7,7 +7,6 @@ from ..utility import (
     setCustomProperty,
     is_game_oot,
     get_cs_index_start,
-    get_game_prop_name,
 )
 from ..model_classes import OOTF3DContext
 from ..room.properties import Z64_RoomHeaderProperty
@@ -27,7 +26,7 @@ def parseObjectList(roomHeader: Z64_RoomHeaderProperty, sceneData: str, objectLi
         objByID = game_data.z64.objectData.objects_by_id.get(object)
 
         if objByID is not None:
-            setattr(objectProp, get_game_prop_name("object_key"), objByID.key)
+            setattr(objectProp, "objectKey", objByID.key)
         else:
             objectProp.objectIDCustom = object
 

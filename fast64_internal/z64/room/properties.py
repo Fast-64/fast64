@@ -11,7 +11,6 @@ from ..utility import (
     drawAddButton,
     is_oot_features,
     is_game_oot,
-    get_game_prop_name,
     get_cs_index_start,
 )
 from ..upgrade import upgradeRoomHeaders
@@ -56,7 +55,7 @@ class Z64_ObjectProperty(PropertyGroup):
 
     def draw_props(self, layout: UILayout, headerIndex: int, index: int, objName: str):
         is_legacy = True if "objectID" in self else False
-        obj_key: str = getattr(self, get_game_prop_name("object_key"))
+        obj_key: str = getattr(self, "objectKey")
         game_data.z64.update(bpy.context, None)
 
         if is_game_oot() and is_legacy:

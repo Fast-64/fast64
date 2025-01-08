@@ -5,20 +5,16 @@ import mathutils
 
 from random import random
 from collections import OrderedDict
+from ...game_data import game_data
 from ...utility import PluginError, parentObject, hexOrDecInt, yUpToZUp
 from ..collision.properties import OOTMaterialCollisionProperty
 from ..f3d_writer import getColliderMat
-from ..utility import setCustomProperty, ootParseRotation, get_game_prop_name
+from ..utility import setCustomProperty, ootParseRotation
 from .utility import getDataMatch, getBits, checkBit, createCurveFromPoints, stripName
 from .classes import SharedSceneData
 
 from ..collision.constants import (
-    ootEnumFloorSetting,
     ootEnumWallSetting,
-    ootEnumFloorProperty,
-    ootEnumCollisionTerrain,
-    ootEnumCollisionSound,
-    ootEnumCameraSType,
     enum_camera_crawlspace_stype,
 )
 
@@ -82,7 +78,7 @@ def parseCamPosData(
     camObj = bpy.data.objects.new(objName, camera)
     bpy.context.scene.collection.objects.link(camObj)
     camProp = camObj.ootCameraPositionProperty
-    setCustomProperty(camProp, get_game_prop_name("cam_setting_type"), setting, ootEnumCameraSType, "camSTypeCustom")
+    setCustomProperty(camProp, "camSType", setting, game_data.z64.get_enum(bpy.context, "camSType"), "camSTypeCustom")
 
     if is_actor_cs:
         camProp.is_actor_cs_cam = camProp.hasPositionData = True
@@ -193,17 +189,17 @@ def parseSurfaceParams(
     collision.decreaseHeight = checkBit(params[0], 30)
     setCustomProperty(
         collision,
-        get_game_prop_name("floor_property"),
+        "floorSetting",
         str(getBits(params[0], 26, 4)),
-        ootEnumFloorSetting,
+        game_data.z64.get_enum(bpy.context, "floorSetting"),
         "floorSettingCustom",
     )
     setCustomProperty(collision, "wallSetting", str(getBits(params[0], 21, 5)), ootEnumWallSetting)
     setCustomProperty(
         collision,
-        get_game_prop_name("floor_type"),
+        "floorProperty",
         str(getBits(params[0], 13, 8)),
-        ootEnumFloorProperty,
+        game_data.z64.get_enum(bpy.context, "floorProperty"),
         "floorPropertyCustom",
     )
     collision.exitID = getBits(params[0], 8, 5)
@@ -226,16 +222,16 @@ def parseSurfaceParams(
     collision.lightingSetting = getBits(params[1], 6, 5)
     setCustomProperty(
         collision,
-        get_game_prop_name("floor_effect"),
+        "terrain",
         str(getBits(params[1], 4, 2)),
-        ootEnumCollisionTerrain,
+        game_data.z64.enum_floor_effect,
         "terrainCustom",
     )
     setCustomProperty(
         collision,
-        get_game_prop_name("surface_material"),
+        "sound",
         str(getBits(params[1], 0, 4)),
-        ootEnumCollisionSound,
+        game_data.z64.get_enum(bpy.context, "sound"),
         "soundCustom",
     )
 

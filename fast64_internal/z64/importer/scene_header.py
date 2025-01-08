@@ -17,7 +17,6 @@ from ..utility import (
     setCustomProperty,
     is_game_oot,
     get_cs_index_start,
-    get_game_prop_name,
     getObjectList,
     getEnumIndex,
     get_new_empty_object,

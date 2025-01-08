@@ -108,7 +108,7 @@ class BgCamInformations:
         data_holder: Object, cam_obj: Object, transform: Matrix, cam_pos_data: Optional[dict[int, CameraData]]
     ):
         camProp: OOTCameraPositionProperty = cam_obj.ootCameraPositionProperty
-        cam_setting = camProp.camSType if is_game_oot() else camProp.mm_cam_setting_type
+        cam_setting = camProp.camSType
 
         if cam_pos_data is None:
             cam_pos_data = {}

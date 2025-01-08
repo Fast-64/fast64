@@ -34,31 +34,6 @@ if TYPE_CHECKING:
     from .actor.properties import Z64_ActorProperty
 
 
-def get_game_prop_name(prop_type: str):
-    game_prop_name_map = {
-        "OOT": {
-            "draw_config": "drawConfig",
-            "object_key": "objectKey",
-            "floor_property": "floorSetting",
-            "floor_type": "floorProperty",
-            "floor_effect": "terrain",
-            "surface_material": "sound",
-            "cam_setting_type": "camSType",
-        },
-        "MM": {
-            "draw_config": "mm_draw_config",
-            "object_key": "mm_object_key",
-            "floor_property": "mm_floor_property",
-            "floor_type": "mm_floor_type",
-            "floor_effect": "mm_floor_effect",
-            "surface_material": "mm_surface_material",
-            "cam_setting_type": "mm_cam_setting_type",
-        },
-    }
-
-    return game_prop_name_map[bpy.context.scene.gameEditorMode][prop_type]
-
-
 def is_game_oot():
     return bpy.context.scene.gameEditorMode == "OOT"
 

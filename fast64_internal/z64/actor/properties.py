@@ -21,7 +21,6 @@ from ..utility import (
     drawAddButton,
     drawCollectionOps,
     drawEnumWithCustom,
-    get_game_prop_name,
     get_cs_index_start,
     is_oot_features,
     is_game_oot,

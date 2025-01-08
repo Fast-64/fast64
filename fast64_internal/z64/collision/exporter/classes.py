@@ -1,6 +1,6 @@
 import math
 from ....utility import PluginError
-from ...utility import BoxEmpty, convertIntTo2sComplement, getCustomProperty, get_game_prop_name
+from ...utility import BoxEmpty, convertIntTo2sComplement, getCustomProperty
 
 
 class OOTCollisionVertex:
@@ -194,11 +194,11 @@ def getPolygonType(collisionProp):
     polygonType.eponaBlock = collisionProp.eponaBlock
     polygonType.decreaseHeight = collisionProp.decreaseHeight
     polygonType.floorSetting = getCustomProperty(
-        collisionProp, get_game_prop_name("floor_property"), "floorSettingCustom"
+        collisionProp, "floorSetting", "floorSettingCustom"
     )
     polygonType.wallSetting = getCustomProperty(collisionProp, "wallSetting")
     polygonType.floorProperty = getCustomProperty(
-        collisionProp, get_game_prop_name("floor_type"), "floorPropertyCustom"
+        collisionProp, "floorProperty", "floorPropertyCustom"
     )
     polygonType.exitID = collisionProp.exitID
     polygonType.cameraID = collisionProp.cameraID
@@ -216,8 +216,8 @@ def getPolygonType(collisionProp):
     polygonType.hookshotable = collisionProp.hookshotable
     polygonType.echo = collisionProp.echo
     polygonType.lightingSetting = collisionProp.lightingSetting
-    polygonType.terrain = getCustomProperty(collisionProp, get_game_prop_name("floor_effect", "terrainCustom"))
-    polygonType.sound = getCustomProperty(collisionProp, get_game_prop_name("surface_material", "soundCustom"))
+    polygonType.terrain = getCustomProperty(collisionProp, "terrain")
+    polygonType.sound = getCustomProperty(collisionProp, "sound")
     return polygonType
 
 

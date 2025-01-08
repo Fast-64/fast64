@@ -24,7 +24,6 @@ from ..utility import (
     is_oot_features,
     is_game_oot,
     get_cs_index_start,
-    get_game_prop_name,
 )
 
 from ..constants import (
@@ -35,10 +34,8 @@ from ..constants import (
     ootEnumCameraMode,
     ootEnumAudioSessionPreset,
     ootEnumHeaderMenu,
-    ootEnumDrawConfig,
     ootEnumHeaderMenuComplete,
     mm_enum_scene_id,
-    mm_enum_draw_config,
 )
 
 ootEnumSceneMenuAlternate = [
@@ -248,12 +245,11 @@ class Z64_LightGroupProperty(PropertyGroup):
 
 
 class Z64_SceneTableEntryProperty(PropertyGroup):
-    drawConfig: EnumProperty(items=ootEnumDrawConfig, name="Scene Draw Config", default="SDC_DEFAULT")
-    mm_draw_config: EnumProperty(items=mm_enum_draw_config, name="Scene Draw Config", default="SCENE_DRAW_CFG_DEFAULT")
+    drawConfig: EnumProperty(items=lambda self, context: game_data.z64.get_enum(context, "drawConfig"), name="Scene Draw Config", default=1)
     drawConfigCustom: StringProperty(name="Scene Draw Config Custom")
 
     def draw_props(self, layout: UILayout):
-        drawEnumWithCustom(layout, self, get_game_prop_name("draw_config"), "Draw Config", "", "drawConfigCustom")
+        drawEnumWithCustom(layout, self, "drawConfig", "Draw Config", "", "drawConfigCustom")
 
 
 class Z64_ExtraCutsceneProperty(PropertyGroup):

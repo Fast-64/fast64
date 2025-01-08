@@ -5,7 +5,7 @@ from bpy.types import Object
 from ...utility import parentObject, hexOrDecInt
 from ...game_data import game_data
 from ..scene.properties import Z64_SceneHeaderProperty
-from ..utility import setCustomProperty, getEvalParams, is_game_oot, get_game_prop_name
+from ..utility import setCustomProperty, getEvalParams, is_game_oot
 from ..constants import (
     ootEnumCamTransition,
     halfday_bits_all_dawns,

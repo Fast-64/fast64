@@ -3,6 +3,7 @@ import re
 import bpy
 import mathutils
 
+from ...game_data import game_data
 from ...utility import readFile, hexOrDecInt
 from ...f3d.f3d_parser import parseMatrices
 from ...f3d.f3d_gbi import get_F3D_GBI
@@ -10,7 +11,6 @@ from ...f3d.flipbook import TextureFlipbook
 from ..model_classes import OOTF3DContext
 from ..exporter.decomp_edit.scene_table import SceneTableUtility
 from ..scene.properties import Z64_ImportSceneSettingsProperty
-from ..constants import ootEnumDrawConfig, mm_enum_draw_config
 from .scene_header import parseSceneCommands
 from .classes import SharedSceneData
 from ..cutscene.importer import importCutsceneData
@@ -22,7 +22,6 @@ from ..utility import (
     ootGetPath,
     setAllActorsVisibility,
     is_game_oot,
-    get_game_prop_name,
 )
 
 
@@ -174,9 +173,9 @@ def parseScene(
     if not settings.isCustomDest:
         setCustomProperty(
             sceneObj.ootSceneHeader.sceneTableEntry,
-            get_game_prop_name("draw_config"),
+            "drawConfig",
             SceneTableUtility.get_draw_config(sceneName),
-            ootEnumDrawConfig if is_game_oot() else mm_enum_draw_config,
+            game_data.z64.get_enum(bpy.context, "drawConfig"),
             "drawConfigCustom",
         )
 

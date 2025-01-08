@@ -347,6 +347,113 @@ mm_enum_global_object = [
     ("GAMEPLAY_DANGEON_KEEP", "Dungeon", "gameplay_dangeon_keep"),
 ]
 
+ootEnumDrawConfig = [
+    ("Custom", "Custom", "Custom"),
+    ("SDC_DEFAULT", "Default", "Default"),
+    ("SDC_HYRULE_FIELD", "Hyrule Field (Spot00)", "Spot00"),
+    ("SDC_KAKARIKO_VILLAGE", "Kakariko Village (Spot01)", "Spot01"),
+    ("SDC_ZORAS_RIVER", "Zora's River (Spot03)", "Spot03"),
+    ("SDC_KOKIRI_FOREST", "Kokiri Forest (Spot04)", "Spot04"),
+    ("SDC_LAKE_HYLIA", "Lake Hylia (Spot06)", "Spot06"),
+    ("SDC_ZORAS_DOMAIN", "Zora's Domain (Spot07)", "Spot07"),
+    ("SDC_ZORAS_FOUNTAIN", "Zora's Fountain (Spot08)", "Spot08"),
+    ("SDC_GERUDO_VALLEY", "Gerudo Valley (Spot09)", "Spot09"),
+    ("SDC_LOST_WOODS", "Lost Woods (Spot10)", "Spot10"),
+    ("SDC_DESERT_COLOSSUS", "Desert Colossus (Spot11)", "Spot11"),
+    ("SDC_GERUDOS_FORTRESS", "Gerudo's Fortress (Spot12)", "Spot12"),
+    ("SDC_HAUNTED_WASTELAND", "Haunted Wasteland (Spot13)", "Spot13"),
+    ("SDC_HYRULE_CASTLE", "Hyrule Castle (Spot15)", "Spot15"),
+    ("SDC_DEATH_MOUNTAIN_TRAIL", "Death Mountain Trail (Spot16)", "Spot16"),
+    ("SDC_DEATH_MOUNTAIN_CRATER", "Death Mountain Crater (Spot17)", "Spot17"),
+    ("SDC_GORON_CITY", "Goron City (Spot18)", "Spot18"),
+    ("SDC_LON_LON_RANCH", "Lon Lon Ranch (Spot20)", "Spot20"),
+    ("SDC_FIRE_TEMPLE", "Fire Temple (Hidan)", "Hidan"),
+    ("SDC_DEKU_TREE", "Inside the Deku Tree (Ydan)", "Ydan"),
+    ("SDC_DODONGOS_CAVERN", "Dodongo's Cavern (Ddan)", "Ddan"),
+    ("SDC_JABU_JABU", "Inside Jabu Jabu's Belly (Bdan)", "Bdan"),
+    ("SDC_FOREST_TEMPLE", "Forest Temple (Bmori1)", "Bmori1"),
+    ("SDC_WATER_TEMPLE", "Water Temple (Mizusin)", "Mizusin"),
+    ("SDC_SHADOW_TEMPLE_AND_WELL", "Shadow Temple (Hakadan)", "Hakadan"),
+    ("SDC_SPIRIT_TEMPLE", "Spirit Temple (Jyasinzou)", "Jyasinzou"),
+    ("SDC_INSIDE_GANONS_CASTLE", "Inside Ganon's Castle (Ganontika)", "Ganontika"),
+    ("SDC_GERUDO_TRAINING_GROUND", "Gerudo Training Ground (Men)", "Men"),
+    ("SDC_DEKU_TREE_BOSS", "Gohma's Lair (Ydan Boss)", "Ydan Boss"),
+    ("SDC_WATER_TEMPLE_BOSS", "Morpha's Lair (Mizusin Bs)", "Mizusin Bs"),
+    ("SDC_TEMPLE_OF_TIME", "Temple of Time (Tokinoma)", "Tokinoma"),
+    ("SDC_GROTTOS", "Grottos (Kakusiana)", "Kakusiana"),
+    ("SDC_CHAMBER_OF_THE_SAGES", "Chamber of the Sages (Kenjyanoma)", "Kenjyanoma"),
+    ("SDC_GREAT_FAIRYS_FOUNTAIN", "Great Fairy Fountain", "Great Fairy Fountain"),
+    ("SDC_SHOOTING_GALLERY", "Shooting Gallery (Syatekijyou)", "Syatekijyou"),
+    ("SDC_CASTLE_COURTYARD_GUARDS", "Castle Hedge Maze (Day) (Hairal Niwa)", "Hairal Niwa"),
+    ("SDC_OUTSIDE_GANONS_CASTLE", "Ganon's Castle Exterior (Ganon Tou)", "Ganon Tou"),
+    ("SDC_ICE_CAVERN", "Ice Cavern (Ice Doukuto)", "Ice Doukuto"),
+    (
+        "SDC_GANONS_TOWER_COLLAPSE_EXTERIOR",
+        "Ganondorf's Death Scene (Tower Escape Exterior) (Ganon Final)",
+        "Ganon Final",
+    ),
+    ("SDC_FAIRYS_FOUNTAIN", "Fairy Fountain", "Fairy Fountain"),
+    ("SDC_THIEVES_HIDEOUT", "Thieves' Hideout (Gerudoway)", "Gerudoway"),
+    ("SDC_BOMBCHU_BOWLING_ALLEY", "Bombchu Bowling Alley (Bowling)", "Bowling"),
+    ("SDC_ROYAL_FAMILYS_TOMB", "Royal Family's Tomb (Hakaana Ouke)", "Hakaana Ouke"),
+    ("SDC_LAKESIDE_LABORATORY", "Lakeside Laboratory (Hylia Labo)", "Hylia Labo"),
+    ("SDC_LON_LON_BUILDINGS", "Lon Lon Ranch House & Tower (Souko)", "Souko"),
+    ("SDC_MARKET_GUARD_HOUSE", "Guard House (Miharigoya)", "Miharigoya"),
+    ("SDC_POTION_SHOP_GRANNY", "Granny's Potion Shop (Mahouya)", "Mahouya"),
+    ("SDC_CALM_WATER", "Calm Water", "Calm Water"),
+    ("SDC_GRAVE_EXIT_LIGHT_SHINING", "Grave Exit Light Shining", "Grave Exit Light Shining"),
+    ("SDC_BESITU", "Ganondorf Test Room (Besitu)", "Besitu"),
+    ("SDC_FISHING_POND", "Fishing Pond (Turibori)", "Turibori"),
+    ("SDC_GANONS_TOWER_COLLAPSE_INTERIOR", "Ganon's Tower (Collapsing) (Ganon Sonogo)", "Ganon Sonogo"),
+    ("SDC_INSIDE_GANONS_CASTLE_COLLAPSE", "Inside Ganon's Castle (Collapsing) (Ganontika Sonogo)", "Ganontika Sonogo"),
+]
+
+mm_enum_draw_config = [
+    ("Custom", "Custom", "Custom"),
+    ("SCENE_DRAW_CFG_DEFAULT", "Default", "Default"),
+    ("SCENE_DRAW_CFG_MAT_ANIM", "Material Animated", "Material Animated"),
+    ("SCENE_DRAW_CFG_NOTHING", "Nothing", "Nothing"),
+    ("SCENE_DRAW_CFG_GREAT_BAY_TEMPLE", "Great Bay Temple", "Great Bay Temple"),
+    ("SCENE_DRAW_CFG_MAT_ANIM_MANUAL_STEP", "Material Animated (manual step)", "Material Animated (manual step)"),
+]
+
+ootEnumCollisionSound = [
+    ("Custom", "Custom", "Custom"),
+    ("SURFACE_MATERIAL_DIRT", "Dirt", "Dirt (aka Earth)"),
+    ("SURFACE_MATERIAL_SAND", "Sand", "Sand"),
+    ("SURFACE_MATERIAL_STONE", "Stone", "Stone"),
+    ("SURFACE_MATERIAL_JABU", "Jabu", "Jabu-Jabu flesh (aka Wet Stone)"),
+    ("SURFACE_MATERIAL_WATER_SHALLOW", "Shallow Water", "Shallow Water"),
+    ("SURFACE_MATERIAL_WATER_DEEP", "Deep Water", "Deep Water"),
+    ("SURFACE_MATERIAL_TALL_GRASS", "Tall Grass", "Tall Grass"),
+    ("SURFACE_MATERIAL_LAVA", "Lava", "Lava (aka Goo)"),
+    ("SURFACE_MATERIAL_GRASS", "Grass", "Grass (aka Earth 2)"),
+    ("SURFACE_MATERIAL_BRIDGE", "Bridge", "Bridge (aka Wooden Plank)"),
+    ("SURFACE_MATERIAL_WOOD", "Wood", "Wood (aka Packed Earth)"),
+    ("SURFACE_MATERIAL_DIRT_SOFT", "Soft Dirt", "Soft Dirt (aka Earth 3)"),
+    ("SURFACE_MATERIAL_ICE", "Ice", "Ice (aka Ceramic)"),
+    ("SURFACE_MATERIAL_CARPET", "Carpet", "Carpet (aka Loose Earth)"),
+]
+
+mm_enum_surface_material = [
+    ("Custom", "Custom", "Custom"),
+    ("SURFACE_MATERIAL_DIRT", "Dirt", "Dirt (aka Earth)"),
+    ("SURFACE_MATERIAL_SAND", "Sand", "Sand"),
+    ("SURFACE_MATERIAL_STONE", "Stone", "Stone"),
+    ("SURFACE_MATERIAL_DIRT_SHALLOW", "Shallow Dirt", "Shallow Dirt"),
+    ("SURFACE_MATERIAL_WATER_SHALLOW", "Shallow Water", "Shallow Water"),
+    ("SURFACE_MATERIAL_WATER_DEEP", "Deep Water", "Deep Water"),
+    ("SURFACE_MATERIAL_TALL_GRASS", "Tall Grass", "Tall Grass"),
+    ("SURFACE_MATERIAL_LAVA", "Lava", "Lava (aka Goo)"),
+    ("SURFACE_MATERIAL_GRASS", "Grass", "Grass (aka Earth 2)"),
+    ("SURFACE_MATERIAL_BRIDGE", "Bridge", "Bridge (aka Wooden Plank)"),
+    ("SURFACE_MATERIAL_WOOD", "Wood", "Wood (aka Packed Earth)"),
+    ("SURFACE_MATERIAL_DIRT_SOFT", "Soft Dirt", "Soft Dirt (aka Earth 3)"),
+    ("SURFACE_MATERIAL_ICE", "Ice", "Ice (aka Ceramic)"),
+    ("SURFACE_MATERIAL_CARPET", "Carpet", "Carpet (aka Loose Earth)"),
+    ("SURFACE_MATERIAL_SNOW", "Snow", "Snow"),
+]
+
 # ---
 
 ootEnumSkybox = [
@@ -471,6 +578,325 @@ mm_enum_room_type = [
     ("ROOM_TYPE_BOSS", "Boss", "0x05"),
 ]
 
+ootEnumFloorSetting = [
+    ("Custom", "Custom", "Custom"),
+    ("0x00", "Default", "Default"),
+    ("0x05", "Trigger Respawn", "Trigger Respawn"),
+    ("0x06", "Grab Wall", "Grab Wall"),
+    ("0x08", "Stop Air Momentum", "Stop Air Momentum"),
+    ("0x09", "Fall Instead Of Jumping", "Fall Instead Of Jumping"),
+    ("0x0B", "Dive Animation", "Dive Animation"),
+    ("0x0C", "Trigger Void", "Trigger Void"),
+]
+
+mm_enum_floor_property = [
+    ("Custom", "Custom", "Custom"),
+    ("0x00", "Default", "FLOOR_PROPERTY_0"),
+    ("0x01", "Frontflip Jump Animation", "FLOOR_PROPERTY_1"),
+    ("0x02", "Sideflip Jump Animation", "FLOOR_PROPERTY_2"),
+    ("0x05", "Trigger Respawn (sets human no mask)", "FLOOR_PROPERTY_5"),
+    ("0x06", "Grab Wall", "FLOOR_PROPERTY_6"),
+    ("0x07", "Unknown (sets speed to 0)", "FLOOR_PROPERTY_7"),
+    ("0x08", "Stop Air Momentum", "FLOOR_PROPERTY_8"),
+    ("0x09", "Fall Instead Of Jumping", "FLOOR_PROPERTY_9"),
+    ("0x0B", "Dive Animation", "FLOOR_PROPERTY_11"),
+    ("0x0C", "Trigger Void", "FLOOR_PROPERTY_12"),
+    ("0x0D", "Trigger Void (runs `Player_Action_1`)", "FLOOR_PROPERTY_13"),
+]
+
+ootEnumFloorProperty = [
+    ("Custom", "Custom", "Custom"),
+    ("0x00", "Default", "Default"),
+    ("0x01", "Haunted Wasteland Camera", "Haunted Wasteland Camera"),
+    ("0x02", "Fire (damages every 6s)", "Fire (damages every 6s)"),
+    ("0x03", "Fire (damages every 3s)", "Fire (damages every 3s)"),
+    ("0x04", "Shallow Sand", "Shallow Sand"),
+    ("0x05", "Slippery", "Slippery"),
+    ("0x06", "Ignore Fall Damage", "Ignore Fall Damage"),
+    ("0x07", "Quicksand Crossing (Blocks Epona)", "Quicksand Crossing (Epona Uncrossable)"),
+    ("0x08", "Jabu Jabu's Belly Floor", "Jabu Jabu's Belly Floor"),
+    ("0x09", "Trigger Void", "Trigger Void"),
+    ("0x0A", "Stops Air Momentum", "Stops Air Momentum"),
+    ("0x0B", "Grotto Exit Animation", "Link Looks Up"),
+    ("0x0C", "Quicksand Crossing (Epona Crossable)", "Quicksand Crossing (Epona Crossable)"),
+]
+
+mm_enum_floor_type = [
+    ("Custom", "Custom", "Custom"),
+    ("0x00", "Default", "FLOOR_TYPE_0"),
+    ("0x01", "Unused (?)", "FLOOR_TYPE_1"),
+    ("0x02", "Fire Damages (burns Player every second)", "FLOOR_TYPE_2"),
+    ("0x03", "Fire Damages 2 (burns Player every second)", "FLOOR_TYPE_3"),
+    ("0x04", "Shallow Sand", "FLOOR_TYPE_4"),
+    ("0x05", "Ice (Slippery)", "FLOOR_TYPE_5"),
+    ("0x06", "Ignore Fall Damages", "FLOOR_TYPE_6"),
+    ("0x07", "Quicksand (blocks Epona)", "FLOOR_TYPE_7"),
+    ("0x08", "Jabu Jabu's Belly Floor (Unused)", "FLOOR_TYPE_8"),
+    ("0x09", "Triggers Void", "FLOOR_TYPE_9"),
+    ("0x0A", "Stops Air Momentum", "FLOOR_TYPE_10"),
+    ("0x0B", "Grotto Exit Animation", "FLOOR_TYPE_11"),
+    ("0x0C", "Quicksand (doesn't block Epona)", "FLOOR_TYPE_12"),
+    ("0x0D", "Deeper Shallow Sand", "FLOOR_TYPE_13"),
+    ("0x0E", "Shallow Snow", "FLOOR_TYPE_14"),
+    ("0x0F", "Deeper Shallow Snow", "FLOOR_TYPE_15"),
+]
+
+enum_floor_effect = [
+    ("Custom", "Custom", "Custom"),
+    ("0x00", "Default", "FLOOR_EFFECT_0"),
+    ("0x01", "Steep/Slippery Slope", "FLOOR_EFFECT_1"),
+    ("0x02", "Walkable (Preserves Exit Flags)", "FLOOR_EFFECT_2"),
+]
+
+ootEnumCameraSType = [
+    ("Custom", "Custom", "Custom"),
+    ("CAM_SET_NONE", "None", "None"),
+    ("CAM_SET_NORMAL0", "Normal0", "Normal0"),
+    ("CAM_SET_NORMAL1", "Normal1", "Normal1"),
+    ("CAM_SET_DUNGEON0", "Dungeon0", "Dungeon0"),
+    ("CAM_SET_DUNGEON1", "Dungeon1", "Dungeon1"),
+    ("CAM_SET_NORMAL3", "Normal3", "Normal3"),
+    ("CAM_SET_HORSE0", "Horse", "Horse"),
+    ("CAM_SET_BOSS_GOMA", "Boss_gohma", "Boss_gohma"),
+    ("CAM_SET_BOSS_DODO", "Boss_dodongo", "Boss_dodongo"),
+    ("CAM_SET_BOSS_BARI", "Boss_barinade", "Boss_barinade"),
+    ("CAM_SET_BOSS_FGANON", "Boss_phantom_ganon", "Boss_phantom_ganon"),
+    ("CAM_SET_BOSS_BAL", "Boss_volvagia", "Boss_volvagia"),
+    ("CAM_SET_BOSS_SHADES", "Boss_bongo", "Boss_bongo"),
+    ("CAM_SET_BOSS_MOFA", "Boss_morpha", "Boss_morpha"),
+    ("CAM_SET_TWIN0", "Twinrova_platform", "Twinrova_platform"),
+    ("CAM_SET_TWIN1", "Twinrova_floor", "Twinrova_floor"),
+    ("CAM_SET_BOSS_GANON1", "Boss_ganondorf", "Boss_ganondorf"),
+    ("CAM_SET_BOSS_GANON2", "Boss_ganon", "Boss_ganon"),
+    ("CAM_SET_TOWER0", "Tower_climb", "Tower_climb"),
+    ("CAM_SET_TOWER1", "Tower_unused", "Tower_unused"),
+    ("CAM_SET_FIXED0", "Market_balcony", "Market_balcony"),
+    ("CAM_SET_FIXED1", "Chu_bowling", "Chu_bowling"),
+    ("CAM_SET_CIRCLE0", "Pivot_crawlspace", "Pivot_crawlspace"),
+    ("CAM_SET_CIRCLE2", "Pivot_shop_browsing", "Pivot_shop_browsing"),
+    ("CAM_SET_CIRCLE3", "Pivot_in_front", "Pivot_in_front"),
+    ("CAM_SET_PREREND0", "Prerend_fixed", "Prerend_fixed"),
+    ("CAM_SET_PREREND1", "Prerend_pivot", "Prerend_pivot"),
+    ("CAM_SET_PREREND3", "Prerend_side_scroll", "Prerend_side_scroll"),
+    ("CAM_SET_DOOR0", "Door0", "Door0"),
+    ("CAM_SET_DOORC", "Doorc", "Doorc"),
+    ("CAM_SET_RAIL3", "Crawlspace", "Crawlspace"),
+    ("CAM_SET_START0", "Start0", "Start0"),
+    ("CAM_SET_START1", "Start1", "Start1"),
+    ("CAM_SET_FREE0", "Free0", "Free0"),
+    ("CAM_SET_FREE2", "Free2", "Free2"),
+    ("CAM_SET_CIRCLE4", "Pivot_corner", "Pivot_corner"),
+    ("CAM_SET_CIRCLE5", "Pivot_water_surface", "Pivot_water_surface"),
+    ("CAM_SET_DEMO0", "Cs_0", "Cs_0"),
+    ("CAM_SET_DEMO1", "Twisted_Hallway", "Twisted_Hallway"),
+    ("CAM_SET_MORI1", "Forest_birds_eye", "Forest_birds_eye"),
+    ("CAM_SET_ITEM0", "Slow_chest_cs", "Slow_chest_cs"),
+    ("CAM_SET_ITEM1", "Item_unused", "Item_unused"),
+    ("CAM_SET_DEMO3", "Cs_3", "Cs_3"),
+    ("CAM_SET_DEMO4", "Cs_attention", "Cs_attention"),
+    ("CAM_SET_UFOBEAN", "Bean_generic", "Bean_generic"),
+    ("CAM_SET_LIFTBEAN", "Bean_lost_woods", "Bean_lost_woods"),
+    ("CAM_SET_SCENE0", "Scene_unused", "Scene_unused"),
+    ("CAM_SET_SCENE1", "Scene_transition", "Scene_transition"),
+    ("CAM_SET_HIDAN1", "Fire_platform", "Fire_platform"),
+    ("CAM_SET_HIDAN2", "Fire_staircase", "Fire_staircase"),
+    ("CAM_SET_MORI2", "Forest_unused", "Forest_unused"),
+    ("CAM_SET_MORI3", "Defeat_poe", "Defeat_poe"),
+    ("CAM_SET_TAKO", "Big_octo", "Big_octo"),
+    ("CAM_SET_SPOT05A", "Meadow_birds_eye", "Meadow_birds_eye"),
+    ("CAM_SET_SPOT05B", "Meadow_unused", "Meadow_unused"),
+    ("CAM_SET_HIDAN3", "Fire_birds_eye", "Fire_birds_eye"),
+    ("CAM_SET_ITEM2", "Turn_around", "Turn_around"),
+    ("CAM_SET_CIRCLE6", "Pivot_vertical", "Pivot_vertical"),
+    ("CAM_SET_NORMAL2", "Normal2", "Normal2"),
+    ("CAM_SET_FISHING", "Fishing", "Fishing"),
+    ("CAM_SET_DEMOC", "Cs_c", "Cs_c"),
+    ("CAM_SET_UO_FIBER", "Jabu_tentacle", "Jabu_tentacle"),
+    ("CAM_SET_DUNGEON2", "Dungeon2", "Dungeon2"),
+    ("CAM_SET_TEPPEN", "Directed_yaw", "Directed_yaw"),
+    ("CAM_SET_CIRCLE7", "Pivot_from_side", "Pivot_from_side"),
+    ("CAM_SET_NORMAL4", "Normal4", "Normal4"),
+]
+
+mm_enum_camera_setting_type = [
+    ("Custom", "Custom", "Custom"),
+    ("CAM_SET_NONE", "None", "None"),
+    ("CAM_SET_NORMAL0", "Normal0", "Generic camera 0, used in various places 'NORMAL0'"),
+    ("CAM_SET_NORMAL3", "Normal3", "Generic camera 3, used in various places 'NORMAL3'"),
+    (
+        "CAM_SET_PIVOT_DIVING",
+        "Pivot_Diving",
+        "Player diving from the surface of the water to underwater not as zora 'CIRCLE5'",
+    ),
+    ("CAM_SET_HORSE", "Horse", "Reiding a horse 'HORSE0'"),
+    (
+        "CAM_SET_ZORA_DIVING",
+        "Zora_Diving",
+        "Parallel's Pivot Diving, but as Zora. However, Zora does not dive like a human. So this setting appears to not be used 'ZORA0'",
+    ),
+    (
+        "CAM_SET_PREREND_FIXED",
+        "Prerend_Fixed",
+        "Unused remnant of OoT: camera is fixed in position and rotation 'PREREND0'",
+    ),
+    (
+        "CAM_SET_PREREND_PIVOT",
+        "Prerend_Pivot",
+        "Unused remnant of OoT: Camera is fixed in position with fixed pitch, but is free to rotate in the yaw direction 360 degrees 'PREREND1'",
+    ),
+    (
+        "CAM_SET_DOORC",
+        "Doorc",
+        "Generic room door transitions, camera moves and follows player as the door is open and closed 'DOORC'",
+    ),
+    ("CAM_SET_DEMO0", "Demo0", "Unknown, possibly related to treasure chest game as goron? 'DEMO0'"),
+    ("CAM_SET_FREE0", "Free0", "Free Camera, manual control is given, no auto-updating eye or at 'FREE0'"),
+    ("CAM_SET_BIRDS_EYE_VIEW_0", "Birds_Eye_View_0", "Appears unused. Camera is a top-down view 'FUKAN0'"),
+    ("CAM_SET_NORMAL1", "Normal1", "Generic camera 1, used in various places 'NORMAL1'"),
+    (
+        "CAM_SET_NANAME",
+        "Naname",
+        "Unknown, slanted or tilted. Behaves identical to Normal0 except with added roll 'NANAME'",
+    ),
+    ("CAM_SET_CIRCLE0", "Circle0", "Used in Curiosity Shop, Pirates Fortress, Mayor's Residence 'CIRCLE0'"),
+    ("CAM_SET_FIXED0", "Fixed0", "Used in Sakon's Hideout puzzle rooms, milk bar stage 'FIXED0'"),
+    ("CAM_SET_SPIRAL_DOOR", "Spiral_Door", "Exiting a Spiral Staircase 'SPIRAL'"),
+    ("CAM_SET_DUNGEON0", "Dungeon0", "Generic dungeon camera 0, used in various places 'DUNGEON0'"),
+    (
+        "CAM_SET_ITEM0",
+        "Item0",
+        "Getting an item and holding it above Player's head (from small chest, freestanding, npc, ...) 'ITEM0'",
+    ),
+    ("CAM_SET_ITEM1", "Item1", "Looking at player while playing the ocarina 'ITEM1'"),
+    ("CAM_SET_ITEM2", "Item2", "Bottles: drinking, releasing fairy, dropping fish 'ITEM2'"),
+    ("CAM_SET_ITEM3", "Item3", "Bottles: catching fish or bugs, showing an item 'ITEM3'"),
+    ("CAM_SET_NAVI", "Navi", "Song of Soaring, variations of playing Song of Time 'NAVI'"),
+    ("CAM_SET_WARP_PAD_MOON", "Warp_Pad_Moon", "Warp circles from Goron Trial on the moon 'WARP0'"),
+    ("CAM_SET_DEATH", "Death", "Player death animation when health goes to 0 'DEATH'"),
+    ("CAM_SET_REBIRTH", "Rebirth", "Unknown set with camDataId = -9 (it's not being revived by a fairy) 'REBIRTH'"),
+    (
+        "CAM_SET_LONG_CHEST_OPENING",
+        "Long_Chest_Opening",
+        "Long cutscene when opening a big chest with a major item 'TREASURE'",
+    ),
+    ("CAM_SET_MASK_TRANSFORMATION", "Mask_Transformation", "Putting on a transformation mask 'TRANSFORM'"),
+    ("CAM_SET_ATTENTION", "Attention", "Unknown, set with camDataId = -15 'ATTENTION'"),
+    ("CAM_SET_WARP_PAD_ENTRANCE", "Warp_Pad_Entrance", "Warp pad from start of a dungeon to the boss-room 'WARP1'"),
+    ("CAM_SET_DUNGEON1", "Dungeon1", "Generic dungeon camera 1, used in various places 'DUNGEON1'"),
+    (
+        "CAM_SET_FIXED1",
+        "Fixed1",
+        "Fixes camera in place, used in various places eg. entering Stock Pot Inn, hiting a switch, giving witch a red potion, shop browsing 'FIXED1'",
+    ),
+    (
+        "CAM_SET_FIXED2",
+        "Fixed2",
+        "Used in Pinnacle Rock after defeating Sea Monsters, and by Tatl in Fortress 'FIXED2'",
+    ),
+    ("CAM_SET_MAZE", "Maze", "Unused. Set to use Camera_Parallel2(), which is only Camera_Noop() 'MAZE'"),
+    (
+        "CAM_SET_REMOTEBOMB",
+        "Remotebomb",
+        "Unused. Set to use Camera_Parallel2(), which is only Camera_Noop(). But also related to Play_ChangeCameraSetting? 'REMOTEBOMB'",
+    ),
+    ("CAM_SET_CIRCLE1", "Circle1", "Unknown 'CIRCLE1'"),
+    (
+        "CAM_SET_CIRCLE2",
+        "Circle2",
+        "Looking at far-away NPCs eg. Garo in Road to Ikana, Hungry Goron, Tingle 'CIRCLE2'",
+    ),
+    (
+        "CAM_SET_CIRCLE3",
+        "Circle3",
+        "Used in curiosity shop, goron racetrack, final room in Sakon's hideout, other places 'CIRCLE3'",
+    ),
+    ("CAM_SET_CIRCLE4", "Circle4", "Used during the races on the doggy racetrack 'CIRCLE4'"),
+    ("CAM_SET_FIXED3", "Fixed3", "Used in Stock Pot Inn Toilet and Tatl cutscene after woodfall 'FIXED3'"),
+    (
+        "CAM_SET_TOWER_ASCENT",
+        "Tower_Ascent",
+        "Various climbing structures (Snowhead climb to the temple entrance) 'TOWER0'",
+    ),
+    ("CAM_SET_PARALLEL0", "Parallel0", "Unknown 'PARALLEL0'"),
+    ("CAM_SET_NORMALD", "Normald", "Unknown, set with camDataId = -20 'NORMALD'"),
+    ("CAM_SET_SUBJECTD", "Subjectd", "Unknown, set with camDataId = -21 'SUBJECTD'"),
+    (
+        "CAM_SET_START0",
+        "Start0",
+        "Entering a room, either Dawn of a New Day reload, or entering a door where the camera is fixed on the other end 'START0'",
+    ),
+    (
+        "CAM_SET_START2",
+        "Start2",
+        "Entering a scene, camera is put at a low angle eg. Grottos, Deku Palace, Stock Pot Inn 'START2'",
+    ),
+    ("CAM_SET_STOP0", "Stop0", "Called in z_play 'STOP0'"),
+    ("CAM_SET_BOAT_CRUISE", "Boat_Cruise", " Koume's boat cruise 'JCRUISING'"),
+    (
+        "CAM_SET_VERTICAL_CLIMB",
+        "Vertical_Climb",
+        "Large vertical climbs, such as Mountain Village wall or Pirates Fortress ladder. 'CLIMBMAZE'",
+    ),
+    ("CAM_SET_SIDED", "Sided", "Unknown, set with camDataId = -24 'SIDED'"),
+    ("CAM_SET_DUNGEON2", "Dungeon2", "Generic dungeon camera 2, used in various places 'DUNGEON2'"),
+    ("CAM_SET_BOSS_ODOLWA", "Boss_Odolwa", "Odolwa's Lair, also used in GBT entrance: 'BOSS_SHIGE'"),
+    ("CAM_SET_KEEPBACK", "Keepback", "Unknown. Possibly related to climbing something? 'KEEPBACK'"),
+    ("CAM_SET_CIRCLE6", "Circle6", "Used in select regions from Ikana 'CIRCLE6'"),
+    ("CAM_SET_CIRCLE7", "Circle7", "Unknown 'CIRCLE7'"),
+    ("CAM_SET_MINI_BOSS", "Mini_Boss", "Used during the various minibosses of the 'CHUBOSS'"),
+    ("CAM_SET_RFIXED1", "Rfixed1", "Talking to Koume stuck on the floor in woods of mystery 'RFIXED1'"),
+    (
+        "CAM_SET_TREASURE_CHEST_MINIGAME",
+        "Treasure_Chest_Minigame",
+        "Treasure Chest Shop in East Clock Town, minigame location 'TRESURE1'",
+    ),
+    ("CAM_SET_HONEY_AND_DARLING_1", "Honey_And_Darling_1", "Honey and Darling Minigames 'BOMBBASKET'"),
+    (
+        "CAM_SET_CIRCLE8",
+        "Circle8",
+        "Used by Stone Tower moving platforms, Falling eggs in Marine Lab, Bugs into soilpatch cutscene 'CIRCLE8'",
+    ),
+    (
+        "CAM_SET_BIRDS_EYE_VIEW_1",
+        "Birds_Eye_View_1",
+        "Camera is a top-down view. Used in Fisherman's minigame and Deku Palace 'FUKAN1'",
+    ),
+    ("CAM_SET_DUNGEON3", "Dungeon3", "Generic dungeon camera 3, used in various places 'DUNGEON3'"),
+    ("CAM_SET_TELESCOPE", "Telescope", "Observatory telescope and Curiosity Shop Peep-Hole 'TELESCOPE'"),
+    ("CAM_SET_ROOM0", "Room0", "Certain rooms eg. inside the clock tower 'ROOM0'"),
+    ("CAM_SET_RCIRC0", "Rcirc0", "Used by a few NPC cutscenes, focus close on the NPC 'RCIRC0'"),
+    ("CAM_SET_CIRCLE9", "Circle9", "Used by Sakon Hideout entrance and Deku Palace Maze 'CIRCLE9'"),
+    ("CAM_SET_ONTHEPOLE", "Onthepole", "Somewhere in Snowhead Temple and Woodfall Temple 'ONTHEPOLE'"),
+    (
+        "CAM_SET_INBUSH",
+        "Inbush",
+        "Various bush environments eg. grottos, Swamp Spider House, Termina Field grass bushes, Deku Palace near bean 'INBUSH'",
+    ),
+    ("CAM_SET_BOSS_MAJORA", "Boss_Majora", "Majora's Lair: 'BOSS_LAST'"),
+    ("CAM_SET_BOSS_TWINMOLD", "Boss_Twinmold", "Twinmold's Lair: 'BOSS_INI'"),
+    ("CAM_SET_BOSS_GOHT", "Boss_Goht", "Goht's Lair: 'BOSS_HAK'"),
+    ("CAM_SET_BOSS_GYORG", "Boss_Gyorg", "Gyorg's Lair: 'BOSS_KON'"),
+    ("CAM_SET_CONNECT0", "Connect0", "Smoothly and gradually return camera to Player after a cutscene 'CONNECT0'"),
+    ("CAM_SET_PINNACLE_ROCK", "Pinnacle_Rock", "Pinnacle Rock pit 'MORAY'"),
+    ("CAM_SET_NORMAL2", "Normal2", "Generic camera 2, used in various places 'NORMAL2'"),
+    ("CAM_SET_HONEY_AND_DARLING_2", "Honey_And_Darling_2", "'BOMBBOWL'"),
+    ("CAM_SET_CIRCLEA", "Circlea", "Unknown, Circle 10 'CIRCLEA'"),
+    ("CAM_SET_WHIRLPOOL", "Whirlpool", "Great Bay Temple Central Room Whirlpool 'WHIRLPOOL'"),
+    ("CAM_SET_CUCCO_SHACK", "Cucco_Shack", "'KOKKOGAME'"),
+    ("CAM_SET_GIANT", "Giant", "Giants Mask in Twinmold's Lair 'GIANT'"),
+    ("CAM_SET_SCENE0", "Scene0", "Entering doors to a new scene 'SCENE0'"),
+    ("CAM_SET_ROOM1", "Room1", "Certain rooms eg. some rooms in Stock Pot Inn 'ROOM1'"),
+    ("CAM_SET_WATER2", "Water2", "Swimming as Zora in Great Bay Temple 'WATER2'"),
+    ("CAM_SET_WOODFALL_SWAMP", "Woodfall_Swamp", "Woodfall inside the swamp, but not on the platforms, 'SOKONASI'"),
+    ("CAM_SET_FORCEKEEP", "Forcekeep", "Unknown 'FORCEKEEP'"),
+    ("CAM_SET_PARALLEL1", "Parallel1", "Unknown 'PARALLEL1'"),
+    ("CAM_SET_START1", "Start1", "Used when entering the lens cave 'START1'"),
+    ("CAM_SET_ROOM2", "Room2", "Certain rooms eg. Deku King's Chamber, Ocean Spider House 'ROOM2'"),
+    ("CAM_SET_NORMAL4", "Normal4", "Generic camera 4, used in Ikana Graveyard 'NORMAL4'"),
+    ("CAM_SET_ELEGY_SHELL", "Elegy_Shell", "cutscene after playing elegy of emptyness and spawning a shell 'SHELL'"),
+    ("CAM_SET_DUNGEON4", "Dungeon4", "Used in Pirates Fortress Interior, hidden room near hookshot 'DUNGEON4'"),
+]
+
 # ---
 
 
@@ -481,6 +907,8 @@ class Z64_Data:
     def __init__(self, game: str):
         self.game = game
         self.update(None, game, True)  # forcing the update as we're in the init function
+
+        self.enum_floor_effect = enum_floor_effect
 
     def update(self, context: Optional[Context], game: Optional[str], force: bool = False):
         from .enum_data import Z64_EnumData
@@ -511,6 +939,11 @@ class Z64_Data:
             self.ootEnumCloudiness = ootEnumCloudiness
             self.ootEnumLinkIdle = ootEnumLinkIdle
             self.ootEnumRoomBehaviour = ootEnumRoomBehaviour
+            self.ootEnumDrawConfig = ootEnumDrawConfig
+            self.ootEnumFloorSetting = ootEnumFloorSetting
+            self.ootEnumFloorProperty = ootEnumFloorProperty
+            self.ootEnumCollisionSound = ootEnumCollisionSound
+            self.ootEnumCameraSType = ootEnumCameraSType
         elif self.game == "MM":
             self.ootEnumMusicSeq = enum_seq_id
             self.ootEnumNightSeq = enum_ambiance_id
@@ -519,6 +952,11 @@ class Z64_Data:
             self.ootEnumCloudiness = mm_enum_skybox_config
             self.ootEnumLinkIdle = mm_enum_environment_type
             self.ootEnumRoomBehaviour = mm_enum_room_type
+            self.ootEnumDrawConfig = mm_enum_draw_config
+            self.ootEnumFloorSetting = mm_enum_floor_property
+            self.ootEnumFloorProperty = mm_enum_floor_type
+            self.ootEnumCollisionSound = mm_enum_surface_material
+            self.ootEnumCameraSType = mm_enum_camera_setting_type
         else:
             raise ValueError(f"ERROR: unsupported game {repr(self.game)}")
 
@@ -540,6 +978,16 @@ class Z64_Data:
                 return self.ootEnumRoomBehaviour
             case "linkIdleMode":
                 return self.ootEnumLinkIdle
+            case "drawConfig":
+                return self.ootEnumDrawConfig
+            case "floorSetting":
+                return self.ootEnumFloorSetting
+            case "floorProperty":
+                return self.ootEnumFloorProperty
+            case "sound":
+                return self.ootEnumCollisionSound
+            case "camSType":
+                return self.ootEnumCameraSType
             case "actor_id":
                 return self.actorData.ootEnumActorID
             case "chest_content":
