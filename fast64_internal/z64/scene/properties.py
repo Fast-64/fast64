@@ -328,9 +328,7 @@ class Z64_SceneHeaderProperty(PropertyGroup):
     naviCupCustom: StringProperty(name="Navi Hints Custom", default="0x00")
 
     # SCENE_CMD_SKYBOX_SETTINGS
-    skyboxID: EnumProperty(
-        name="Skybox", items=lambda self, context: game_data.z64.get_enum("skyboxID"), default=1
-    )
+    skyboxID: EnumProperty(name="Skybox", items=lambda self, context: game_data.z64.get_enum("skyboxID"), default=1)
     skyboxIDCustom: StringProperty(name="Skybox ID", default="0")
     skyboxCloudiness: EnumProperty(
         name="Cloudiness", items=lambda self, context: game_data.z64.get_enum("skyboxCloudiness"), default=1

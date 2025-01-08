@@ -241,9 +241,7 @@ class Z64_ActorHeaderProperty(PropertyGroup):
 
 
 class Z64_ActorProperty(PropertyGroup):
-    actor_id: EnumProperty(
-        name="Actor", items=lambda self, context: game_data.z64.get_enum("actor_id"), default=1
-    )
+    actor_id: EnumProperty(name="Actor", items=lambda self, context: game_data.z64.get_enum("actor_id"), default=1)
     actor_id_custom: StringProperty(name="Actor ID", default="ACTOR_PLAYER")
 
     # only used for actors with the id "Custom"

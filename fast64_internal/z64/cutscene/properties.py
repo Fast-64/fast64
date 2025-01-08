@@ -158,9 +158,7 @@ class OOTCSTimeProperty(OOTCutsceneCommon, PropertyGroup):
 class OOTCSSeqProperty(OOTCutsceneCommon, PropertyGroup):
     attrName = "seqList"
     subprops = ["csSeqID", "startFrame", "endFrame"]
-    csSeqID: EnumProperty(
-        name="Seq ID", items=lambda self, context: game_data.z64.get_enum("seqId"), default=1
-    )
+    csSeqID: EnumProperty(name="Seq ID", items=lambda self, context: game_data.z64.get_enum("seqId"), default=1)
     csSeqIDCustom: StringProperty(default="NA_BGM_CUSTOM")
     csSeqPlayer: EnumProperty(
         name="Seq Player", items=lambda self, context: game_data.z64.get_enum("csSeqPlayer"), default=1
@@ -179,9 +177,7 @@ class OOTCSSeqProperty(OOTCutsceneCommon, PropertyGroup):
 class OOTCSMiscProperty(OOTCutsceneCommon, PropertyGroup):
     attrName = "miscList"
     subprops = ["csMiscType", "startFrame", "endFrame"]
-    csMiscType: EnumProperty(
-        name="Type", items=lambda self, context: game_data.z64.get_enum("csMiscType"), default=1
-    )
+    csMiscType: EnumProperty(name="Type", items=lambda self, context: game_data.z64.get_enum("csMiscType"), default=1)
     csMiscTypeCustom: StringProperty(default="CS_MISC_CUSTOM")
 
 
@@ -207,9 +203,7 @@ class OOTCSListProperty(PropertyGroup):
     miscList: CollectionProperty(type=OOTCSMiscProperty)
     rumbleList: CollectionProperty(type=OOTCSRumbleProperty)
 
-    transitionType: EnumProperty(
-        items=lambda self, context: game_data.z64.get_enum("transitionType"), default=1
-    )
+    transitionType: EnumProperty(items=lambda self, context: game_data.z64.get_enum("transitionType"), default=1)
     transitionTypeCustom: StringProperty(default="CS_TRANS_CUSTOM")
     transitionStartFrame: IntProperty(name="", default=0, min=0)
     transitionEndFrame: IntProperty(name="", default=1, min=0)

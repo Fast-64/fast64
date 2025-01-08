@@ -256,9 +256,7 @@ class RoomActors:
                     actor.rot = ", ".join(f"{rot}, {flag})" for rot, flag in zip(spawn_rot, spawn_flags))
 
                 actor.name = (
-                    game_data.z64.actors.actorsByID[actor_id].name.replace(
-                        f" - {actor_id.removeprefix('ACTOR_')}", ""
-                    )
+                    game_data.z64.actors.actorsByID[actor_id].name.replace(f" - {actor_id.removeprefix('ACTOR_')}", "")
                     if actor_id != "Custom"
                     else "Custom Actor"
                 )
