@@ -1,6 +1,6 @@
 import bpy
 
-from bpy.utils import register_class, unregister_class
+from ..game_data import game_data
 
 from .scene.operators import scene_ops_register, scene_ops_unregister
 from .scene.properties import OOT_BootupSceneOptions, scene_props_register, scene_props_unregister
@@ -66,8 +66,6 @@ from .tools import (
     oot_operator_unregister,
 )
 
-from .utility import is_game_oot
-
 
 oot_versions_items = [
     ("Custom", "Custom", "Custom"),
@@ -112,7 +110,7 @@ class OOT_Properties(bpy.types.PropertyGroup):
     mm_features: bpy.props.BoolProperty(name="Enable MM Features", default=False)
 
     def get_extracted_path(self):
-        version = self.oot_version if is_game_oot() else self.mm_version
+        version = self.oot_version if game_data.z64.is_oot() else self.mm_version
 
         if version == "legacy":
             return "."

@@ -5,7 +5,7 @@ from bpy.types import Object
 from ...utility import parentObject, hexOrDecInt
 from ...game_data import game_data
 from ..scene.properties import Z64_SceneHeaderProperty
-from ..utility import setCustomProperty, getEvalParams, is_game_oot
+from ..utility import setCustomProperty, getEvalParams
 from ..constants import (
     ootEnumCamTransition,
     halfday_bits_all_dawns,
@@ -45,7 +45,7 @@ def parseTransActorList(
         rot_y = getEvalParams(params[8]) if "DEG_TO_BINANG" in params[8] else params[8]
         cutscene_id = "CS_ID_GLOBAL_END"
 
-        if not is_game_oot():
+        if game_data.z64.is_mm():
             rotY_int = int(rot_y, base=0)
             rot_y = f"0x{(rotY_int >> 7) & 0x1FF:04X}"
             cutscene_id = f"0x{rotY_int & 0x7F:02X}"
@@ -89,7 +89,7 @@ def parseTransActorList(
                 transActorProp.isRoomTransition = False
                 parentObject(toRoom, actorObj)
 
-            if not is_game_oot():
+            if game_data.z64.is_mm():
                 transActorProp.cutscene_id = cutscene_id
 
             setCustomProperty(transActorProp, "cameraTransitionFront", camFront, ootEnumCamTransition)
@@ -144,7 +144,7 @@ def parseActorInfo(
             [hexOrDecInt(value.strip()) for value in actorMatch.group(2).split(",") if value.strip() != ""]
         )
 
-        if is_game_oot():
+        if game_data.z64.is_oot():
             spawn_rotation = tuple(
                 [
                     hexOrDecInt(getEvalParams(value.strip()))
@@ -216,7 +216,7 @@ def parseSpawnList(
                 actorProp.params = actorParam
             else:
                 actorProp.params_custom = actorParam
-            handleActorWithRotAsParam(actorProp, actorID, rotation if is_game_oot() else spawn_flags)
+            handleActorWithRotAsParam(actorProp, actorID, rotation if game_data.z64.is_oot() else spawn_flags)
             unsetAllHeadersExceptSpecified(actorProp.headerSettings, headerIndex)
 
             sharedSceneData.entranceDict[actorHash] = spawnObj

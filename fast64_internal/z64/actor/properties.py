@@ -22,7 +22,6 @@ from ..utility import (
     drawCollectionOps,
     drawEnumWithCustom,
     is_oot_features,
-    is_game_oot,
     get_list_tab_text,
     getEvalParams,
     getEvalParamsInt,
@@ -162,7 +161,7 @@ class Z64_ActorHeaderProperty(PropertyGroup):
     def checkHeader(self, index: int) -> bool:
         if index == 0:
             return self.childDayHeader
-        elif is_game_oot():
+        elif game_data.z64.is_oot():
             if index == 1:
                 return self.childNightHeader
             elif index == 2:
@@ -181,7 +180,7 @@ class Z64_ActorHeaderProperty(PropertyGroup):
     ):
         headerSetup = layout.column()
 
-        if is_game_oot():
+        if game_data.z64.is_oot():
             prop_split(headerSetup, self, "sceneSetupPreset", "Scene Setup Preset")
 
             if self.sceneSetupPreset == "Custom":
@@ -295,7 +294,7 @@ class Z64_ActorProperty(PropertyGroup):
 
     @staticmethod
     def upgrade_object(obj: Object):
-        if is_game_oot():
+        if game_data.z64.is_oot():
             print(f"Processing '{obj.name}'...")
             upgradeActors(obj)
 
@@ -506,7 +505,7 @@ class Z64_ActorProperty(PropertyGroup):
             split.label(text="Actor ID")
             split.label(text=getEnumName(game_data.z64.get_enum(bpy.context, "actor_id"), self.actor_id))
 
-            if is_game_oot():
+            if game_data.z64.is_oot():
                 if self.actor_id != "Custom":
                     self.draw_params(actorIDBox, owner)
                 else:
@@ -515,7 +514,7 @@ class Z64_ActorProperty(PropertyGroup):
             paramBox = actorIDBox.box()
             paramBox.label(text="Actor Parameter")
 
-            if is_game_oot() and self.actor_id != "Custom":
+            if game_data.z64.is_oot() and self.actor_id != "Custom":
                 paramBox.prop(self, "eval_params")
                 paramBox.prop(self, "params", text="")
             else:

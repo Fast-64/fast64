@@ -3,8 +3,8 @@ from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
-from ...utility import getObjectList, is_oot_features, getEvalParams, is_game_oot
 from ....game_data import game_data
+from ...utility import getObjectList, is_oot_features, getEvalParams
 from ...constants import halfday_bits_all_dawns, halfday_bits_all_nights, enum_to_halfday_bits
 from ...room.properties import Z64_RoomHeaderProperty
 from ...actor.properties import Z64_ActorProperty
@@ -55,7 +55,7 @@ class RoomInfos:
         enable_pos_lights = False
         enable_storm = False
 
-        if is_game_oot():
+        if game_data.z64.is_oot():
             disableWarpSongs = props.disableWarpSongs
 
         if not is_oot_features():
@@ -196,7 +196,7 @@ class RoomActors:
             if not Utility.isCurrentHeaderValid(actorProp.headerSettings, headerIndex):
                 continue
 
-            actor_id: str = actorProp.actorID if is_game_oot() else actorProp.actor_id
+            actor_id: str = actorProp.actorID if game_data.z64.is_oot() else actorProp.actor_id
 
             # The Actor list is filled with ``("None", f"{i} (Deleted from the XML)", "None")`` for
             # the total number of actors defined in the XML. If the user deletes one, this will prevent

@@ -3,8 +3,8 @@ from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
-from ...utility import getObjectList, is_oot_features, is_game_oot
 from ....game_data import game_data
+from ...utility import getObjectList, is_oot_features
 from ...actor.properties import Z64_ActorProperty
 from ..utility import Utility
 from ..actor import Actor
@@ -61,7 +61,7 @@ class SceneTransitionActors:
         for obj in actorObjList:
             transActorProp = obj.ootTransitionActorProperty
             actorProp: Z64_ActorProperty = transActorProp.actor
-            actor_id: str = actorProp.actorID if is_game_oot() else actorProp.actor_id
+            actor_id: str = actorProp.actorID if game_data.z64.is_oot() else actorProp.actor_id
             if Utility.isCurrentHeaderValid(actorProp.headerSettings, headerIndex) and actor_id != "None":
                 pos, rot, _, _ = Utility.getConvertedTransform(transform, sceneObj, obj, True)
                 transActor = TransitionActor()
@@ -98,7 +98,9 @@ class SceneTransitionActors:
                     transActor.rot = f"((0x{round(rot_deg):04X} & 0x1FF) << 7) | ({transActorProp.cutscene_id} & 0x7F)"
 
                 transActor.params = (
-                    actorProp.params if is_game_oot() and actorProp.actor_id != "Custom" else actorProp.params_custom
+                    actorProp.params
+                    if game_data.z64.is_oot() and actorProp.actor_id != "Custom"
+                    else actorProp.params_custom
                 )
                 transActor.roomFrom, transActor.cameraFront = front
                 transActor.roomTo, transActor.cameraBack = back
@@ -154,7 +156,7 @@ class SceneEntranceActors:
         for obj in actorObjList:
             entranceProp = obj.ootEntranceProperty
             actorProp: Z64_ActorProperty = entranceProp.actor
-            actor_id: str = actorProp.actorID if is_game_oot() else actorProp.actor_id
+            actor_id: str = actorProp.actorID if game_data.z64.is_oot() else actorProp.actor_id
             if Utility.isCurrentHeaderValid(actorProp.headerSettings, headerIndex) and actor_id != "None":
                 pos, rot, _, _ = Utility.getConvertedTransform(transform, sceneObj, obj, True)
                 entranceActor = EntranceActor()
@@ -234,7 +236,7 @@ class SceneSpawns(Utility):
         """Returns the spawn array"""
 
         spawnList = CData()
-        listName = f"Spawn {self.name}" if is_game_oot() else f"EntranceEntry {self.name}"
+        listName = f"Spawn {self.name}" if game_data.z64.is_oot() else f"EntranceEntry {self.name}"
 
         # .h
         spawnList.header = f"extern {listName}[];\n"

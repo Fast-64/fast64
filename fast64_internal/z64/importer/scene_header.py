@@ -15,7 +15,6 @@ from ..actor_cutscene.properties import enum_cs_cam_id, enum_end_cam, enum_end_s
 from ..utility import (
     getEvalParams,
     setCustomProperty,
-    is_game_oot,
     getObjectList,
     getEnumIndex,
     get_new_empty_object,
@@ -500,7 +499,7 @@ def parseSceneCommands(
 
     if headerIndex == 0:
         sceneHeader = sceneObj.ootSceneHeader
-    elif is_game_oot() and headerIndex < game_data.z64.cs_index_start:
+    elif game_data.z64.is_oot() and headerIndex < game_data.z64.cs_index_start:
         sceneHeader = getattr(sceneObj.ootAlternateSceneHeaders, headerNames[headerIndex])
         sceneHeader.usePreviousHeader = False
     else:
@@ -550,7 +549,7 @@ def parseSceneCommands(
                 # This must be handled after rooms, so that room objs can be referenced
                 delayed_commands[command] = args
             command_list.remove(command)
-        elif is_game_oot() and command == "SCENE_CMD_MISC_SETTINGS":
+        elif game_data.z64.is_oot() and command == "SCENE_CMD_MISC_SETTINGS":
             setCustomProperty(sceneHeader, "cameraMode", args[0], ootEnumCameraMode)
             setCustomProperty(sceneHeader, "mapLocation", args[1], ootEnumMapLocation)
             command_list.remove(command)
@@ -564,7 +563,7 @@ def parseSceneCommands(
                 delayed_commands[command] = args
             command_list.remove(command)
         elif command == "SCENE_CMD_SPECIAL_FILES":
-            if is_game_oot():
+            if game_data.z64.is_oot():
                 setCustomProperty(sceneHeader, "naviCup", args[0], ootEnumNaviHints)
             setCustomProperty(
                 sceneHeader,
@@ -586,7 +585,7 @@ def parseSceneCommands(
             command_list.remove(command)
         elif command == "SCENE_CMD_SKYBOX_SETTINGS":
             args_index = 0
-            if not is_game_oot():
+            if game_data.z64.is_mm():
                 sceneHeader.skybox_texture_id = args[args_index]
                 args_index += 1
             setCustomProperty(
@@ -633,7 +632,7 @@ def parseSceneCommands(
             command_list.remove(command)
 
         # handle Majora's Mask exclusive commands
-        elif not is_game_oot():
+        elif game_data.z64.is_mm():
             if command == "SCENE_CMD_SET_REGION_VISITED":
                 sceneHeader.set_region_visited = True
                 command_list.remove(command)

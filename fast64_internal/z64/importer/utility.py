@@ -5,7 +5,7 @@ import mathutils
 from ...game_data import game_data
 from ...utility import PluginError, hexOrDecInt, removeComments, yUpToZUp
 from ..actor.properties import Z64_ActorProperty, Z64_ActorHeaderProperty
-from ..utility import ootParseRotation, is_game_oot
+from ..utility import ootParseRotation
 from .constants import headerNames, actorsWithRotAsParam
 
 
@@ -18,7 +18,7 @@ def getBits(value: int, index: int, size: int) -> int:
 
 
 def unsetAllHeadersExceptSpecified(headerSettings: Z64_ActorHeaderProperty, headerIndex: int):
-    if is_game_oot():
+    if game_data.z64.is_oot():
         headerSettings.sceneSetupPreset = "Custom"
 
         for i in range(len(headerNames)):

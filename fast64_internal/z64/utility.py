@@ -3,17 +3,18 @@ import math
 import os
 import re
 
+from dataclasses import dataclass
 from ast import parse, Expression, Constant, UnaryOp, USub, Invert, BinOp
 from mathutils import Vector
 from bpy.types import Object
 from bpy.utils import register_class, unregister_class
 from bpy.types import Object
 from typing import Callable, Optional, TYPE_CHECKING, List
+from ..game_data import game_data
 from .constants import (
     ootSceneIDToName,
     mm_scene_id_to_name,
 )
-from dataclasses import dataclass
 
 from ..utility import (
     PluginError,
@@ -34,12 +35,8 @@ if TYPE_CHECKING:
     from .actor.properties import Z64_ActorProperty
 
 
-def is_game_oot():
-    return bpy.context.scene.gameEditorMode == "OOT"
-
-
 def is_oot_features():
-    return is_game_oot() and not bpy.context.scene.fast64.oot.mm_features
+    return game_data.z64.is_oot() and not bpy.context.scene.fast64.oot.mm_features
 
 
 def isPathObject(obj: bpy.types.Object) -> bool:
@@ -186,7 +183,7 @@ ootSceneDirs = {
 
 
 def sceneNameFromID(scene_id: str):
-    if is_game_oot():
+    if game_data.z64.is_oot():
         scene_id_to_name = ootSceneIDToName
     else:
         scene_id_to_name = mm_scene_id_to_name
@@ -268,7 +265,7 @@ def addIncludeFilesExtension(objectName, objectPath, assetName, extension):
 def getSceneDirFromLevelName(name: str, include_extracted: bool = False):
     extracted = bpy.context.scene.fast64.oot.get_extracted_path() if include_extracted else "."
 
-    if is_game_oot():
+    if game_data.z64.is_oot():
         for sceneDir, dirLevels in ootSceneDirs.items():
             if name in dirLevels:
                 return f"{extracted}/" + sceneDir + name
@@ -917,7 +914,7 @@ def getActiveHeaderIndex() -> int:
     if header.menuTab != "Alternate":
         headerIndex = 0
     else:
-        if is_game_oot():
+        if game_data.z64.is_oot():
             if altHeader.headerMenuTab == "Child Night":
                 headerIndex = 1
             elif altHeader.headerMenuTab == "Adult Day":
@@ -929,7 +926,7 @@ def getActiveHeaderIndex() -> int:
         else:
             headerIndex = altHeader.currentCutsceneIndex
 
-    if is_game_oot():
+    if game_data.z64.is_oot():
         return (
             headerIndex,
             altHeader.childNightHeader.usePreviousHeader,
@@ -958,7 +955,7 @@ def setActorVisibility(
 ):
     headerIndex, childNightHeader, adultDayHeader, adultNightHeader = activeHeaderInfo
 
-    if is_game_oot():
+    if game_data.z64.is_oot():
         usePreviousHeader = [False, childNightHeader, adultDayHeader, adultNightHeader]
 
         if headerIndex < 4:
@@ -970,7 +967,7 @@ def setActorVisibility(
     if headerSettings is None:
         return
 
-    if is_game_oot():
+    if game_data.z64.is_oot():
         if headerSettings.sceneSetupPreset == "All Scene Setups":
             actorObj.hide_set(False)
         elif headerSettings.sceneSetupPreset == "All Non-Cutscene Scene Setups":

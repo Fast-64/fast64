@@ -7,7 +7,7 @@ from ....game_data import game_data
 from ....f3d.f3d_gbi import TextureExportSettings, ScrollMethod
 from ...scene.properties import Z64_SceneHeaderProperty
 from ...model_classes import OOTModel, OOTGfxFormatter
-from ...utility import is_oot_features, is_game_oot
+from ...utility import is_oot_features
 from ..file import SceneFile
 from ..utility import Utility, altHeaderList
 from ..collision import CollisionHeader
@@ -45,7 +45,7 @@ class Scene:
         altHeader = SceneAlternateHeader(f"{name}_alternateHeaders")
         altProp = sceneObj.ootAlternateSceneHeaders
 
-        if is_game_oot():
+        if game_data.z64.is_oot():
             for i, header in enumerate(altHeaderList, 1):
                 altP: Z64_SceneHeaderProperty = getattr(altProp, f"{header}Header")
                 if not altP.usePreviousHeader:
@@ -143,7 +143,7 @@ class Scene:
         altHeaderPtrs = None
 
         if self.hasAlternateHeaders:
-            if is_game_oot():
+            if game_data.z64.is_oot():
                 headers = [
                     (self.altHeader.childNight, "Child Night"),
                     (self.altHeader.adultDay, "Adult Day"),
@@ -229,7 +229,7 @@ class Scene:
             '#include "z64.h"',
         ]
 
-        if not is_game_oot():
+        if game_data.z64.is_mm():
             include_list.append('#include "command_macros_base.h"')
 
         includes = "\n".join(include_list) + "\n\n\n"

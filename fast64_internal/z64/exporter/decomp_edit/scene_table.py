@@ -4,7 +4,8 @@ import bpy
 from dataclasses import dataclass, field
 from typing import Optional
 from ....utility import PluginError, writeFile
-from ...utility import is_oot_features, is_game_oot
+from ....game_data import game_data
+from ...utility import is_oot_features
 from ...constants import ootEnumSceneID, ootSceneNameToID, mm_enum_scene_id, mm_scene_name_to_id
 
 ADDED_SCENES_COMMENT = "// Added scenes"
@@ -14,7 +15,7 @@ def get_original_index(enum_value: str) -> Optional[int]:
     """
     Returns the original index of a specific scene
     """
-    if is_game_oot():
+    if game_data.z64.is_oot():
         enum_scene_id = ootEnumSceneID
     else:
         enum_scene_id = mm_enum_scene_id
@@ -28,7 +29,7 @@ def get_original_index(enum_value: str) -> Optional[int]:
 
 
 def get_scene_enum_from_name(scene_name: str):
-    if is_game_oot():
+    if game_data.z64.is_oot():
         return ootSceneNameToID.get(scene_name, f"SCENE_{scene_name.upper()}")
     else:
         return mm_scene_name_to_id.get(scene_name, f"SCENE_{scene_name.upper()}")
@@ -115,7 +116,7 @@ class SceneTableSection:
         entry_string = "\n".join(entry.to_c(index + i) for i, entry in enumerate(self.entries))
         section_c = f"{directive}{entry_string}{terminator}\n"
 
-        if is_game_oot():
+        if game_data.z64.is_oot():
             section_c += "\n"
 
         return section_c
@@ -285,7 +286,7 @@ class SceneTableUtility:
     @staticmethod
     def get_draw_config(scene_name: str):
         """Read draw config from scene table"""
-        if is_game_oot():
+        if game_data.z64.is_oot():
             scene_name = f"{scene_name}_scene"
 
         scene_table = SceneTable.new(

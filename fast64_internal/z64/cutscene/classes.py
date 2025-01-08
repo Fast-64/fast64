@@ -4,7 +4,6 @@ from dataclasses import dataclass, field
 from bpy.types import Object
 from typing import Optional
 from ...game_data import game_data
-from ..utility import is_oot_features, is_game_oot
 from .motion.utility import getBlenderPosition, getBlenderRotation, getRotation, getInteger
 
 
@@ -32,7 +31,7 @@ class CutsceneCmdBase:
     duration: Optional[int] = None
 
     def getEnumValue(self, enumKey: str, index: int, isSeqLegacy: bool = False):
-        if not is_game_oot() and enumKey not in {
+        if game_data.z64.is_mm() and enumKey not in {
             "seqId",
             "destinationType",
             "ocarinaSongActionId",
@@ -612,7 +611,7 @@ class CutsceneCmdDestination(CutsceneCmdBase):
 
     def __post_init__(self):
         if self.params is not None:
-            self.type = self.getEnumValue("csDestination" if is_game_oot() else "destinationType", 0)
+            self.type = self.getEnumValue("csDestination" if game_data.z64.is_oot() else "destinationType", 0)
             self.startFrame = getInteger(self.params[1])
 
 

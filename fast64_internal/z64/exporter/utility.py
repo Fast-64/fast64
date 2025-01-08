@@ -3,7 +3,8 @@ from math import radians
 from mathutils import Quaternion, Matrix
 from bpy.types import Object
 from ...utility import PluginError, indent
-from ..utility import ootConvertTranslation, ootConvertRotation, is_game_oot
+from ...game_data import game_data
+from ..utility import ootConvertTranslation, ootConvertRotation
 from ..actor.properties import Z64_ActorHeaderProperty
 
 
@@ -38,7 +39,7 @@ class Utility:
     def isCurrentHeaderValid(headerSettings: Z64_ActorHeaderProperty, headerIndex: int):
         """Checks if the an alternate header can be used"""
 
-        if is_game_oot():
+        if game_data.z64.is_oot():
             preset = headerSettings.sceneSetupPreset
 
             if preset == "All Scene Setups" or (preset == "All Non-Cutscene Scene Setups" and headerIndex < 4):

@@ -1,11 +1,9 @@
-import bpy
-import os
-
 from bpy.types import UILayout
 from bpy.utils import register_class, unregister_class
+from ...game_data import game_data
 from ...panels import Z64_Panel
 from ..constants import ootEnumSceneID, mm_enum_scene_id
-from ..utility import getEnumName, is_game_oot
+from ..utility import getEnumName
 from .properties import (
     Z64_ExportSceneSettingsProperty,
     Z64_ImportSceneSettingsProperty,
@@ -30,7 +28,7 @@ class OOT_ExportScenePanel(Z64_Panel):
     def drawSceneSearchOp(self, layout: UILayout, enumValue: str, opName: str):
         searchBox = layout.box().row()
 
-        if is_game_oot():
+        if game_data.z64.is_oot():
             searchBox.operator(OOT_SearchSceneEnumOperator.bl_idname, icon="VIEWZOOM", text="").opName = opName
             searchBox.label(text=getEnumName(ootEnumSceneID, enumValue))
         else:
@@ -46,7 +44,9 @@ class OOT_ExportScenePanel(Z64_Panel):
 
         settings: Z64_ExportSceneSettingsProperty = context.scene.ootSceneExportSettings
         if not settings.customExport:
-            self.drawSceneSearchOp(exportBox, settings.option if is_game_oot() else settings.mm_option, "Export")
+            self.drawSceneSearchOp(
+                exportBox, settings.option if game_data.z64.is_oot() else settings.mm_option, "Export"
+            )
         settings.draw_props(exportBox)
 
         if context.scene.fast64.oot.hackerFeaturesEnabled:
@@ -68,7 +68,7 @@ class OOT_ExportScenePanel(Z64_Panel):
         importBox.label(text="Scene Importer")
 
         importSettings: Z64_ImportSceneSettingsProperty = context.scene.ootSceneImportSettings
-        option = importSettings.option if is_game_oot() else importSettings.mm_option
+        option = importSettings.option if game_data.z64.is_oot() else importSettings.mm_option
 
         if not importSettings.isCustomDest:
             self.drawSceneSearchOp(importBox, option, "Import")
@@ -81,7 +81,7 @@ class OOT_ExportScenePanel(Z64_Panel):
         removeBox.label(text="Remove Scene")
 
         removeSettings: Z64_RemoveSceneSettingsProperty = context.scene.ootSceneRemoveSettings
-        option = removeSettings.option if is_game_oot() else removeSettings.mm_option
+        option = removeSettings.option if game_data.z64.is_oot() else removeSettings.mm_option
         self.drawSceneSearchOp(removeBox, option, "Remove")
         removeSettings.draw_props(removeBox)
 

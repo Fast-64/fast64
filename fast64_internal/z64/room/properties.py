@@ -1,4 +1,5 @@
 import bpy
+
 from bpy.types import PropertyGroup, UILayout, Image, Object, Context
 from bpy.utils import register_class, unregister_class
 from ...utility import prop_split
@@ -10,7 +11,6 @@ from ..utility import (
     drawEnumWithCustom,
     drawAddButton,
     is_oot_features,
-    is_game_oot,
 )
 from ..upgrade import upgradeRoomHeaders
 from .operators import OOT_SearchObjectEnumOperator
@@ -47,7 +47,7 @@ class Z64_ObjectProperty(PropertyGroup):
 
     @staticmethod
     def upgrade_object(obj: Object):
-        if is_game_oot():
+        if game_data.z64.is_oot():
             print(f"Processing '{obj.name}'...")
             game_data.z64.update(bpy.context, None)
             upgradeRoomHeaders(obj, game_data.z64.objectData)
@@ -57,7 +57,7 @@ class Z64_ObjectProperty(PropertyGroup):
         obj_key: str = getattr(self, "objectKey")
         game_data.z64.update(bpy.context, None)
 
-        if is_game_oot() and is_legacy:
+        if game_data.z64.is_oot() and is_legacy:
             obj_name = game_data.z64.objectData.ootEnumObjectIDLegacy[self["objectID"]][1]
         elif obj_key != "Custom":
             obj_name = game_data.z64.objectData.objects_by_key[obj_key].name
@@ -175,7 +175,12 @@ class Z64_RoomHeaderProperty(PropertyGroup):
         if headerIndex is not None and headerIndex > (game_data.z64.cs_index_start - 1):
             drawCollectionOps(layout, headerIndex - game_data.z64.cs_index_start, "Room", None, objName)
 
-        if is_game_oot() and headerIndex is not None and headerIndex > 0 and headerIndex < game_data.z64.cs_index_start:
+        if (
+            game_data.z64.is_oot()
+            and headerIndex is not None
+            and headerIndex > 0
+            and headerIndex < game_data.z64.cs_index_start
+        ):
             layout.prop(self, "usePreviousHeader", text="Use Previous Header")
             if self.usePreviousHeader:
                 return
@@ -210,7 +215,7 @@ class Z64_RoomHeaderProperty(PropertyGroup):
             drawEnumWithCustom(behaviorBox, self, "roomBehaviour", "Room Type", "", "roomBehaviourCustom")
             drawEnumWithCustom(behaviorBox, self, "linkIdleMode", "Environment Type", "", "linkIdleModeCustom")
 
-            if is_game_oot():
+            if game_data.z64.is_oot():
                 behaviorBox.prop(self, "disableWarpSongs", text="Disable Warp Songs")
 
             if not is_oot_features():
@@ -267,10 +272,10 @@ class Z64_RoomHeaderProperty(PropertyGroup):
             for i, objProp in enumerate(self.objectList):
                 objProp.draw_props(objBox, headerIndex, i, objName)
 
-                if is_game_oot() and "objectID" in objProp:
+                if game_data.z64.is_oot() and "objectID" in objProp:
                     is_legacy = True
 
-            if is_game_oot() and is_legacy:
+            if game_data.z64.is_oot() and is_legacy:
                 upgradeLayout.label(text="Legacy data has not been upgraded!")
                 upgradeLayout.operator(OOT_ManualUpgrade.bl_idname, text="Upgrade Data Now!")
             objBox.enabled = False if is_legacy else True
@@ -297,9 +302,9 @@ class Z64_AlternateRoomHeaderProperty(PropertyGroup):
 
     def draw_props(self, layout: UILayout, objName: str):
         headerSetup = layout.column()
-        can_draw_cs_header = not is_game_oot()
+        oot_can_draw_cs_header = False
 
-        if not can_draw_cs_header:
+        if game_data.z64.is_oot():
             headerSetupBox = headerSetup.column()
             headerSetupBox.row().prop(self, "headerMenuTab", expand=True)
 
@@ -310,9 +315,9 @@ class Z64_AlternateRoomHeaderProperty(PropertyGroup):
             elif self.headerMenuTab == "Adult Night":
                 self.adultNightHeader.draw_props(headerSetupBox, None, 3, objName)
             elif self.headerMenuTab == "Cutscene":
-                can_draw_cs_header = True
+                oot_can_draw_cs_header = True
 
-        if can_draw_cs_header:
+        if game_data.z64.is_mm() or oot_can_draw_cs_header:
             prop_split(headerSetup, self, "currentCutsceneIndex", "Cutscene Index")
             drawAddButton(headerSetup, len(self.cutsceneHeaders), "Room", None, objName)
             index = self.currentCutsceneIndex

@@ -2,7 +2,7 @@ import bpy
 
 from typing import Optional
 from ...utility import hexOrDecInt, parentObject
-from ..utility import is_game_oot
+from ...game_data import game_data
 from .utility import getDataMatch, createCurveFromPoints, unsetAllHeadersExceptSpecified
 from .classes import SharedSceneData
 
@@ -31,7 +31,7 @@ def parsePath(
     splineProp = curveObj.ootSplineProperty
     splineProp.index = orderIndex
 
-    if not is_game_oot() and opt_path_idx is not None and custom_value is not None:
+    if game_data.z64.is_mm() and opt_path_idx is not None and custom_value is not None:
         splineProp.opt_path_index = int(opt_path_idx)
         splineProp.custom_value = int(custom_value)
 
@@ -51,7 +51,7 @@ def parsePathList(
     pathData = getDataMatch(sceneData, pathListName, "Path", "path list")
     pathList = [value.replace("{", "").strip() for value in pathData.split("},") if value.strip() != ""]
     for i, pathEntry in enumerate(pathList):
-        if is_game_oot():
+        if game_data.z64.is_oot():
             count, points_ptr = [value.strip() for value in pathEntry.split(",")]
             opt_path_idx = custom_value = None
         else:

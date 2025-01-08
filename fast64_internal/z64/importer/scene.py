@@ -21,12 +21,11 @@ from ..utility import (
     sceneNameFromID,
     ootGetPath,
     setAllActorsVisibility,
-    is_game_oot,
 )
 
 
 def parseDrawConfig(drawConfigName: str, sceneData: str, drawConfigData: str, f3dContext: OOTF3DContext):
-    if is_game_oot():
+    if game_data.z64.is_oot():
         drawFunctionName = "Scene_DrawConfig" + "".join(
             [value.strip().lower().capitalize() for value in drawConfigName.replace("SDC_", "").split("_")]
         )
@@ -105,7 +104,7 @@ def parseScene(
             subfolder = None
         importPath = bpy.path.abspath(bpy.context.scene.ootDecompPath)
 
-    if is_game_oot():
+    if game_data.z64.is_oot():
         sceneName = f"{sceneName}_scene"
 
     importSubdir = ""
@@ -138,7 +137,7 @@ def parseScene(
 
     if not settings.isCustomDest:
         drawConfigName = SceneTableUtility.get_draw_config(sceneName)
-        filename = "z_scene_table" if is_game_oot() else "z_scene_proc"
+        filename = "z_scene_table" if game_data.z64.is_oot() else "z_scene_proc"
         drawConfigData = readFile(os.path.join(importPath, f"src/code/{filename}.c"))
         parseDrawConfig(drawConfigName, sceneData, drawConfigData, f3dContext)
 

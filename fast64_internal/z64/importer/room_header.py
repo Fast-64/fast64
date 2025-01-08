@@ -3,10 +3,7 @@ import re
 
 from ...utility import hexOrDecInt
 from ...game_data import game_data
-from ..utility import (
-    setCustomProperty,
-    is_game_oot,
-)
+from ..utility import setCustomProperty
 from ..model_classes import OOTF3DContext
 from ..room.properties import Z64_RoomHeaderProperty
 from .utility import getDataMatch, stripName
@@ -52,7 +49,7 @@ def parseRoomCommands(
 
     if headerIndex == 0:
         roomHeader = roomObj.ootRoomHeader
-    elif is_game_oot() and headerIndex < game_data.z64.cs_index_start:
+    elif game_data.z64.is_oot() and headerIndex < game_data.z64.cs_index_start:
         roomHeader = getattr(roomObj.ootAlternateRoomHeaders, headerNames[headerIndex])
         roomHeader.usePreviousHeader = False
     else:
@@ -87,7 +84,7 @@ def parseRoomCommands(
             )
             roomHeader.showInvisibleActors = args[2] == "true" or args[2] == "1"
 
-            if is_game_oot():
+            if game_data.z64.is_oot():
                 roomHeader.disableWarpSongs = args[3] == "true" or args[3] == "1"
             else:
                 roomHeader.enable_pos_lights = args[4] == "true" or args[4] == "1"

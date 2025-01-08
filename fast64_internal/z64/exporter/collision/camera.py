@@ -5,7 +5,8 @@ from mathutils import Quaternion, Matrix
 from bpy.types import Object
 from typing import Optional
 from ....utility import PluginError, CData, indent
-from ...utility import getObjectList, is_game_oot
+from ....game_data import game_data
+from ...utility import getObjectList
 from ...collision.constants import decomp_compat_map_CameraSType
 from ...collision.properties import OOTCameraPositionProperty
 from ..utility import Utility
@@ -116,7 +117,9 @@ class BgCamInformations:
         if cam_setting == "Custom":
             setting = camProp.camSTypeCustom
         else:
-            setting = decomp_compat_map_CameraSType.get(cam_setting, cam_setting) if is_game_oot() else cam_setting
+            setting = (
+                decomp_compat_map_CameraSType.get(cam_setting, cam_setting) if game_data.z64.is_oot() else cam_setting
+            )
 
         if camProp.hasPositionData or camProp.is_actor_cs_cam:
             if camProp.index in cam_pos_data:

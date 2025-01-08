@@ -7,9 +7,8 @@ from bpy.props import EnumProperty, IntProperty, StringProperty
 from bpy.utils import register_class, unregister_class
 from bpy.ops import object
 from mathutils import Matrix, Vector
-from ...f3d.f3d_gbi import TextureExportSettings, DLFormat
 from ...utility import PluginError, raisePluginError, ootGetSceneOrRoomHeader
-from ..utility import ExportInfo, RemoveInfo, sceneNameFromID, is_game_oot
+from ..utility import ExportInfo, RemoveInfo, sceneNameFromID
 from ...game_data import game_data
 from ..constants import ootEnumSceneID, mm_enum_scene_id
 from ..importer import parseScene
@@ -36,7 +35,7 @@ def run_ops_without_view_layer_update(func):
 def parseSceneFunc():
     game_data.z64.update(bpy.context, None)
     settings = bpy.context.scene.ootSceneImportSettings
-    parseScene(settings, settings.option if is_game_oot() else settings.mm_option)
+    parseScene(settings, settings.option if game_data.z64.is_oot() else settings.mm_option)
 
 
 class OOT_SearchSceneEnumOperator(Operator):
@@ -182,10 +181,10 @@ class OOT_ExportScene(Operator):
         try:
             settings = context.scene.ootSceneExportSettings
             levelName = settings.name
-            option = settings.option if is_game_oot() else settings.mm_option
+            option = settings.option if game_data.z64.is_oot() else settings.mm_option
             hackerFeaturesEnabled = False
 
-            if is_game_oot():
+            if game_data.z64.is_oot():
                 bootOptions = context.scene.fast64.oot.bootupSceneOptions
                 hackerFeaturesEnabled = context.scene.fast64.oot.hackerFeaturesEnabled
 
@@ -254,7 +253,7 @@ class OOT_RemoveScene(Operator):
 
     def execute(self, context):
         settings = context.scene.ootSceneRemoveSettings  # Type: Z64_RemoveSceneSettingsProperty
-        option = settings.option if is_game_oot() else settings.mm_option
+        option = settings.option if game_data.z64.is_oot() else settings.mm_option
 
         if settings.customExport:
             self.report({"ERROR"}, "You can only remove scenes from your decomp path.")

@@ -910,6 +910,12 @@ class Z64_Data:
 
         self.enum_floor_effect = enum_floor_effect
 
+    def is_oot(self):
+        return self.game == "OOT"
+
+    def is_mm(self):
+        return self.game == "MM"
+
     def update(self, context: Optional[Context], game: Optional[str], force: bool = False):
         from .enum_data import Z64_EnumData
         from .object_data import Z64_ObjectData

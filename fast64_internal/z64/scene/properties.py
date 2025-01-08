@@ -22,7 +22,6 @@ from ..utility import (
     drawEnumWithCustom,
     drawAddButton,
     is_oot_features,
-    is_game_oot,
 )
 
 from ..constants import (
@@ -123,7 +122,7 @@ class Z64_ExitProperty(PropertyGroup):
         if self.expandTab:
             drawCollectionOps(box, index, "Exit", headerIndex, objName)
 
-            if is_game_oot():
+            if game_data.z64.is_oot():
                 drawEnumWithCustom(box, self, "exitIndex", "Exit Index", "")
 
                 if self.exitIndex != "Custom":
@@ -425,7 +424,12 @@ class Z64_SceneHeaderProperty(PropertyGroup):
         if headerIndex is not None and headerIndex > (game_data.z64.cs_index_start - 1):
             drawCollectionOps(layout, headerIndex - game_data.z64.cs_index_start, "Scene", None, objName)
 
-        if is_game_oot() and headerIndex is not None and headerIndex > 0 and headerIndex < game_data.z64.cs_index_start:
+        if (
+            game_data.z64.is_oot()
+            and headerIndex is not None
+            and headerIndex > 0
+            and headerIndex < game_data.z64.cs_index_start
+        ):
             layout.prop(self, "usePreviousHeader", text="Use Previous Header")
             if self.usePreviousHeader:
                 return
@@ -443,7 +447,7 @@ class Z64_SceneHeaderProperty(PropertyGroup):
 
             # General
             drawEnumWithCustom(general, self, "globalObject", "Global Object", "", "globalObjectCustom")
-            if is_game_oot():
+            if game_data.z64.is_oot():
                 drawEnumWithCustom(general, self, "naviCup", "Navi Hints", "")
             if headerIndex is None or headerIndex == 0:
                 self.sceneTableEntry.draw_props(general)
@@ -569,9 +573,9 @@ class Z64_AlternateSceneHeaderProperty(PropertyGroup):
 
     def draw_props(self, layout: UILayout, objName: str):
         headerSetup = layout.column()
-        can_draw_cs_header = not is_game_oot()
+        oot_can_draw_cs_header = False
 
-        if not can_draw_cs_header:
+        if game_data.z64.is_oot():
             headerSetupBox = headerSetup.column()
             headerSetupBox.row().prop(self, "headerMenuTab", expand=True)
 
@@ -582,9 +586,9 @@ class Z64_AlternateSceneHeaderProperty(PropertyGroup):
             elif self.headerMenuTab == "Adult Night":
                 self.adultNightHeader.draw_props(headerSetupBox, None, 3, objName)
             elif self.headerMenuTab == "Cutscene":
-                can_draw_cs_header = True
+                oot_can_draw_cs_header = True
 
-        if can_draw_cs_header:
+        if game_data.z64.is_mm() or oot_can_draw_cs_header:
             prop_split(headerSetup, self, "currentCutsceneIndex", "Cutscene Index")
             drawAddButton(headerSetup, len(self.cutsceneHeaders), "Scene", None, objName)
             index = self.currentCutsceneIndex
@@ -634,7 +638,7 @@ class Z64_RemoveSceneSettingsProperty(PropertyGroup):
     mm_option: EnumProperty(items=mm_enum_scene_id, default="SCENE_20SICHITAI2")
 
     def draw_props(self, layout: UILayout):
-        if is_game_oot() and self.option == "Custom" or self.mm_option == "Custom":
+        if game_data.z64.is_oot() and self.option == "Custom" or self.mm_option == "Custom":
             prop_split(layout, self, "subFolder", "Subfolder")
             prop_split(layout, self, "name", "Name")
 
@@ -658,7 +662,7 @@ class Z64_ExportSceneSettingsProperty(PropertyGroup):
             prop_split(layout, self, "name", "Name")
             customExportWarning(layout)
         else:
-            if is_game_oot() and self.option == "Custom" or self.mm_option == "Custom":
+            if game_data.z64.is_oot() and self.option == "Custom" or self.mm_option == "Custom":
                 prop_split(layout, self, "subFolder", "Subfolder")
                 prop_split(layout, self, "name", "Name")
 
@@ -715,11 +719,11 @@ class Z64_ImportSceneSettingsProperty(PropertyGroup):
             prop_split(col, self, "destPath", "Directory")
             prop_split(col, self, "name", "Name")
         else:
-            if is_game_oot() and self.option == "Custom" or self.mm_option == "Custom":
+            if game_data.z64.is_oot() and self.option == "Custom" or self.mm_option == "Custom":
                 prop_split(col, self, "subFolder", "Subfolder")
                 prop_split(col, self, "name", "Name")
 
-        if is_game_oot():
+        if game_data.z64.is_oot():
             if "SCENE_JABU_JABU" in sceneOption:
                 col.label(text="Pulsing wall effect won't be imported.", icon="ERROR")
 
