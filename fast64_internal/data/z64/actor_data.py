@@ -1,7 +1,7 @@
 from os import path
 from dataclasses import dataclass
 from pathlib import Path
-from .getters import Z64_BaseElement, get_xml_root
+from .common import Z64_BaseElement, get_xml_root
 
 
 @dataclass
