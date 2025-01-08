@@ -357,13 +357,6 @@ def upgrade_scene_props_node():
 def after_load(_a, _b):
     game_data.update(bpy.context.scene.gameEditorMode)
 
-    if game_data.status != "ready":
-        oot_register(True, True)
-        game_data.status = "ready"
-
-    if game_data.status != "ready":
-        raise ValueError("ERROR: game data is not ready")
-
     settings = bpy.context.scene.fast64.settings
     if any(mat.is_f3d for mat in bpy.data.materials):
         check_or_ask_color_management(bpy.context)
@@ -442,6 +435,7 @@ def register():
     render_engine_register()
     bsdf_conv_register()
     sm64_register(True)
+    oot_register(True, True)
     mk64_register(True)
 
     repo_settings_operators_register()
