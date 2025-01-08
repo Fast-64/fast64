@@ -81,20 +81,26 @@ class SceneActorCutscene:
     def get_entries(name: str, scene_obj: Object, transform: Matrix, header_index: int, empty_type: str, start: int):
         entries: list[ActorCutscene] = []
         obj_list = getObjectList(scene_obj.children_recursive, "EMPTY", empty_type)
+        processed = []
 
-        for i, obj in enumerate(obj_list, start):
+        for obj in obj_list:
             if empty_type == "Actor":
                 header_settings = obj.ootActorProperty.headerSettings
             else:
                 header_settings = obj.z64_actor_cs_property.header_settings
 
-            entries.extend(
-                [
-                    ActorCutscene(scene_obj, transform, item, name, i, obj)
-                    for item in obj.z64_actor_cs_property.entries
-                    if Utility.isCurrentHeaderValid(header_settings, header_index)
-                ]
-            )
+            for i, item in enumerate(obj.z64_actor_cs_property.entries, start):
+                if Utility.isCurrentHeaderValid(header_settings, header_index):
+                    new_entry = ActorCutscene(scene_obj, transform, item, name, i, obj)
+
+                    if new_entry.cs_cam_id not in {"Custom", "Camera", "CS_CAM_ID_NONE"}:
+                        if new_entry.cs_cam_id not in processed:
+                            entries.append(new_entry)
+                            processed.append(new_entry.cs_cam_id)
+                        else:
+                            raise PluginError(f"ERROR: reapeated actor cutscene camera id {repr(new_entry.cs_cam_id)}")
+
+            start += i
 
         return entries
 
