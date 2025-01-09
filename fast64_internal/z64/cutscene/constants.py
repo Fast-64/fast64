@@ -63,12 +63,10 @@ csListTypeToIcon = {
     "FadeOutSeqList": "IPO_EASE_IN_OUT",
     "MiscList": "OPTIONS",
     "RumbleList": "OUTLINER_OB_FORCE_FIELD",
-    "DestinationList": "EVENT_D",
     "MotionBlurList": "ONIONSKIN_ON",
     "ModifySeqList": "IPO_CONSTANT",
     "CreditsSceneList": "WORLD",
     "TransitionGeneralList": "COLORSET_06_VEC",
-    "GiveTatlList": "EVENT_T",
 }
 
 ootEnumCSTextboxType = [
@@ -115,6 +113,15 @@ ootCSSubPropToName = {
     "rumble_type": "Rumble Type",
     # Transition
     "transition_type": "Transition Type",
+    # Motion Blur
+    "blur_type": "Motion Blur Type",
+    # Transition General
+    "trans_general_type": "Transition Type",
+    "trans_color": "Transition Color",
+    # Choose Credits Scene
+    "credits_scene_type": "Credits Scene Type",
+    # Modify Seq
+    "mod_seq_type": "Modify Seq Type",
     # Lists
     "TextList": "Text List",
     "TimeList": "Time List",
@@ -125,12 +132,10 @@ ootCSSubPropToName = {
     "LightSettingsList": "Light Settings List",
     "StopSeqList": "Stop Seq List",
     "RumbleList": "Rumble List",
-    "DestinationList": "Destination List",
     "MotionBlurList": "Motion Blur List",
     "ModifySeqList": "Modify Seq List",
     "CreditsSceneList": "Choose Credits Scene List",
     "TransitionGeneralList": "Transition General List",
-    "GiveTatlList": "Give Tatl List",
 }
 
 ootEnumCSMotionCamMode = [

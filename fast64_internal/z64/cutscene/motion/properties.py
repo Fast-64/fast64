@@ -32,7 +32,11 @@ def getNextCuesStartFrame(self):
 
 
 class CutsceneCmdActorCueListProperty(PropertyGroup):
-    commandType: EnumProperty(items=lambda self, context: game_data.z64.get_enum("actor_cue_list_cmd_type"), name="CS Actor Cue Command Type", default=1)
+    commandType: EnumProperty(
+        items=lambda self, context: game_data.z64.get_enum("actor_cue_list_cmd_type"),
+        name="CS Actor Cue Command Type",
+        default=1,
+    )
     commandTypeCustom: StringProperty(name="CS Actor Cue Command Type Custom")
     actorCueListToPreview: PointerProperty(
         type=Object, name="", poll=lambda self, object: self.isActorCueListObj(object, "CS Actor Cue List")

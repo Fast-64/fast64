@@ -528,12 +528,10 @@ mm_enum_cs_list_type = [
     ("StartSeqList", "Start Seq List", "Play BGM", "PLAY", 4),
     ("StopSeqList", "Stop Seq List", "Stop BGM", "SNAP_FACE", 5),
     ("FadeOutSeqList", "Fade-Out Seq List", "Fade BGM", "IPO_EASE_IN_OUT", 6),
-    ("DestinationList", "Destination List", "Destination", "EVENT_D", 9),
-    ("MotionBlurList", "Motion Blur List", "Motion Blur", "ONIONSKIN_ON", 10),
-    ("ModifySeqList", "Modify Seq List", "Modify Seq", "IPO_CONSTANT", 11),
-    ("CreditsSceneList", "Choose Credits Scene List", "Choose Credits Scene", "WORLD", 12),
-    ("TransitionGeneralList", "Transition General List", "Transition General", "COLORSET_06_VEC", 13),
-    ("GiveTatlList", "Give Tatl List", "Give Tatl", "EVENT_T", 14),
+    ("MotionBlurList", "Motion Blur List", "Motion Blur", "ONIONSKIN_ON", 9),
+    ("ModifySeqList", "Modify Seq List", "Modify Seq", "IPO_CONSTANT", 10),
+    ("CreditsSceneList", "Choose Credits Scene List", "Choose Credits Scene", "WORLD", 11),
+    ("TransitionGeneralList", "Transition General List", "Transition General", "COLORSET_06_VEC", 12),
 ]
 
 # ---
@@ -572,7 +570,7 @@ class Z64_Data:
         # don't update if the game is the same (or we don't want to force one)
         if not force and next_game == self.game:
             return
-        
+
         self.cs_list_type_to_cmd = {
             "TextList": "CS_TEXT_LIST",
             "LightSettingsList": "CS_LIGHT_SETTING_LIST",
@@ -638,6 +636,10 @@ class Z64_Data:
             "transitionType": self.enums.enum_cs_transition_type,
             "actor_cue_list_cmd_type": self.enums.enum_cs_actor_cue_list_cmd_type,
             "spline_interp_type": self.enums.enum_cs_spline_interp_type,
+            "trans_general": self.enums.enum_cs_transition_general,
+            "blur_type": self.enums.enum_cs_motion_blur_type,
+            "credits_scene_type": self.enums.enum_cs_credits_scene_type,
+            "mod_seq_type": self.enums.enum_cs_modify_seq_type,
             "objectKey": self.objects.ootEnumObjectKey,
             "actor_id": self.actors.ootEnumActorID,
             "chest_content": self.actors.ootEnumChestContent,

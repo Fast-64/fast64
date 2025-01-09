@@ -1,7 +1,15 @@
 import bpy
 
 from bpy.types import PropertyGroup, Object, UILayout, Scene, Context
-from bpy.props import StringProperty, EnumProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
+from bpy.props import (
+    StringProperty,
+    EnumProperty,
+    IntProperty,
+    BoolProperty,
+    CollectionProperty,
+    PointerProperty,
+    FloatVectorProperty,
+)
 from bpy.utils import register_class, unregister_class
 from ...utility import PluginError, prop_split
 from ..utility import OOTCollectionAdd, drawCollectionOps, getEnumName
@@ -93,6 +101,10 @@ class OOTCutsceneCommon:
                     "csSeqPlayer",
                     "rumble_type",
                     "transition_type",
+                    "blur_type",
+                    "trans_general_type",
+                    "credits_scene_type",
+                    "mod_seq_type",
                 ]
                 value = getattr(self, p)
                 if name in customValues and value == "Custom":
@@ -209,6 +221,51 @@ class OOTCSTransitionProperty(OOTCutsceneCommon, PropertyGroup):
     transition_type_custom: StringProperty("CS_TRANS_CUSTOM")
 
 
+class OOTCSMotionBlurProperty(OOTCutsceneCommon, PropertyGroup):
+    attrName = "motion_blur_list"
+    subprops = ["blur_type", "startFrame", "endFrame"]
+
+    blur_type: EnumProperty(name="", items=lambda self, context: game_data.z64.get_enum("blur_type"), default=1)
+    blur_type_custom: StringProperty("CS_TRANS_CUSTOM")
+
+
+class OOTCSTransitionGeneralProperty(OOTCutsceneCommon, PropertyGroup):
+    attrName = "trans_general_list"
+    subprops = ["trans_general_type", "startFrame", "endFrame", "trans_color"]
+
+    trans_general_type: EnumProperty(
+        name="", items=lambda self, context: game_data.z64.get_enum("trans_general"), default=1
+    )
+    trans_general_type_custom: StringProperty("CS_TRANS_GENERAL_CUSTOM")
+
+    trans_color: FloatVectorProperty(
+        name="Color",
+        subtype="COLOR",
+        size=4,
+        min=0,
+        max=1,
+        default=(1, 1, 1, 1),
+    )
+
+
+class OOTCSChooseCreditsSceneProperty(OOTCutsceneCommon, PropertyGroup):
+    attrName = "credits_scene_list"
+    subprops = ["credits_scene_type", "startFrame"]
+
+    credits_scene_type: EnumProperty(
+        name="", items=lambda self, context: game_data.z64.get_enum("credits_scene_type"), default=1
+    )
+    credits_scene_type_custom: StringProperty("CS_CREDITS_CUSTOM")
+
+
+class OOTCSModifySeqProperty(OOTCutsceneCommon, PropertyGroup):
+    attrName = "mod_seq_list"
+    subprops = ["mod_seq_type", "startFrame"]
+
+    mod_seq_type: EnumProperty(name="", items=lambda self, context: game_data.z64.get_enum("mod_seq_type"), default=1)
+    mod_seq_type_custom: StringProperty("CS_MOD_SEQ_CUSTOM")
+
+
 class OOTCSListProperty(PropertyGroup):
     expandTab: BoolProperty(default=True)
 
@@ -220,6 +277,10 @@ class OOTCSListProperty(PropertyGroup):
     miscList: CollectionProperty(type=OOTCSMiscProperty)
     rumbleList: CollectionProperty(type=OOTCSRumbleProperty)
     transition_list: CollectionProperty(type=OOTCSTransitionProperty)
+    motion_blur_list: CollectionProperty(type=OOTCSMotionBlurProperty)
+    trans_general_list: CollectionProperty(type=OOTCSTransitionGeneralProperty)
+    credits_scene_list: CollectionProperty(type=OOTCSChooseCreditsSceneProperty)
+    mod_seq_list: CollectionProperty(type=OOTCSModifySeqProperty)
 
     def draw_props(self, layout: UILayout, listIndex: int, objName: str, collectionType: str):
         box = layout.box().column()
@@ -254,6 +315,14 @@ class OOTCSListProperty(PropertyGroup):
             attrName = "miscList"
         elif self.listType == "RumbleList":
             attrName = "rumbleList"
+        elif self.listType == "MotionBlurList":
+            attrName = "motion_blur_list"
+        elif self.listType == "TransitionGeneralList":
+            attrName = "trans_general_list"
+        elif self.listType == "CreditsSceneList":
+            attrName = "credits_scene_list"
+        elif self.listType == "ModifySeqList":
+            attrName = "mod_seq_list"
         else:
             raise PluginError("Internal error: invalid listType " + self.listType)
 
@@ -374,6 +443,8 @@ class OOTCutsceneProperty(PropertyGroup):
     )
     csDestinationCustom: StringProperty(default="CS_DEST_CUSTOM")
     csDestinationStartFrame: IntProperty(name="Start Frame", min=0, default=99)
+    cs_give_tatl: BoolProperty(name="Give Tatl")
+    cs_give_tatl_start_frame: IntProperty(name="Start Frame", min=0, default=99)
     csLists: CollectionProperty(type=OOTCSListProperty, name="Cutscene Lists")
     menuTab: EnumProperty(items=lambda self, context: game_data.z64.get_enum("cs_list_type"))
 
@@ -447,6 +518,11 @@ class OOTCutsceneProperty(PropertyGroup):
             if self.csDestination == "Custom":
                 prop_split(layout_custom.column(), self, "csDestinationCustom", "Cutscene Destination Custom")
 
+        b = commandsBox.box()
+        b.prop(self, "cs_give_tatl")
+        if self.cs_give_tatl:
+            b.prop(self, "cs_give_tatl_start_frame")
+
         commandsBox.column_flow(columns=3, align=True).prop(self, "menuTab", expand=True)
         label = f"Add New {ootCSSubPropToName[self.menuTab]}"
         op = commandsBox.operator(OOTCSListAdd.bl_idname, text=label, icon=csListTypeToIcon[self.menuTab])
@@ -468,6 +544,10 @@ classes = (
     OOTCSMiscProperty,
     OOTCSRumbleProperty,
     OOTCSTransitionProperty,
+    OOTCSMotionBlurProperty,
+    OOTCSTransitionGeneralProperty,
+    OOTCSChooseCreditsSceneProperty,
+    OOTCSModifySeqProperty,
     OOTCSListProperty,
     OOTCutsceneTransitionProperty,
     OOTCutsceneMiscProperty,
