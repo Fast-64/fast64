@@ -40,7 +40,12 @@ class Scene:
             True,
         )
 
-        mainHeader = SceneHeader.new(f"{name}_header{i:02}", sceneObj.ootSceneHeader, sceneObj, transform, i, useMacros)
+        try:
+            mainHeader = SceneHeader.new(
+                f"{name}_header{i:02}", sceneObj.ootSceneHeader, sceneObj, transform, i, useMacros
+            )
+        except Exception as exc:
+            raise PluginError(f"In main scene header: {exc}") from exc
         hasAlternateHeaders = False
         altHeader = SceneAlternateHeader(f"{name}_alternateHeaders")
         altProp = sceneObj.ootAlternateSceneHeaders
@@ -48,18 +53,24 @@ class Scene:
         if game_data.z64.is_oot():
             for i, header in enumerate(altHeaderList, 1):
                 altP: Z64_SceneHeaderProperty = getattr(altProp, f"{header}Header")
-                if not altP.usePreviousHeader:
+                if altP.usePreviousHeader:
+                    continue
+                try:
                     setattr(
-                        altHeader,
-                        header,
-                        SceneHeader.new(f"{name}_header{i:02}", altP, sceneObj, transform, i, useMacros),
+                        altHeader, header, SceneHeader.new(f"{name}_header{i:02}", altP, sceneObj, transform, i, useMacros)
                     )
                     hasAlternateHeaders = True
+                except Exception as exc:
+                    raise PluginError(f"In alternate scene header {header}: {exc}") from exc
 
-        altHeader.cutscenes = [
-            SceneHeader.new(f"{name}_header{i:02}", csHeader, sceneObj, transform, i, useMacros)
-            for i, csHeader in enumerate(altProp.cutsceneHeaders, game_data.z64.cs_index_start)
-        ]
+        altHeader.cutscenes = []
+        for i, csHeader in enumerate(altProp.cutsceneHeaders, game_data.z64.cs_index_start):
+            try:
+                altHeader.cutscenes.append(
+                    SceneHeader.new(f"{name}_header{i:02}", csHeader, sceneObj, transform, i, useMacros)
+                )
+            except Exception as exc:
+                raise PluginError(f"In alternate, cutscene header {i}: {exc}") from exc
 
         # process room after scene because of actor cutscenes requiring to be processed before actors
         rooms = RoomEntries.new(
