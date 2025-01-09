@@ -491,10 +491,10 @@ def exportF3DtoBinary(romfile, exportRange, transformMatrix, obj, segmentData, i
     inline = bpy.context.scene.exportInlineF3D
     fModel = SM64Model(
         obj.name,
-        DLFormat,
+        DLFormat.Static,
         GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
     )
-    fMeshes = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, obj.name, DLFormat, True)
+    fMeshes = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, obj.name, DLFormat.Static, True)
 
     if inline:
         bleed_gfx = BleedGraphics()
@@ -521,10 +521,10 @@ def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix, obj, RAMAddr, 
     inline = bpy.context.scene.exportInlineF3D
     fModel = SM64Model(
         obj.name,
-        DLFormat,
+        DLFormat.Static,
         GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
     )
-    fMeshes = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, obj.name, DLFormat, True)
+    fMeshes = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, obj.name, DLFormat.Static, True)
 
     if inline:
         bleed_gfx = BleedGraphics()
@@ -553,10 +553,10 @@ def exportF3DtoInsertableBinary(filepath, transformMatrix, obj, includeChildren)
     inline = bpy.context.scene.exportInlineF3D
     fModel = SM64Model(
         obj.name,
-        DLFormat,
+        DLFormat.Static,
         GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
     )
-    fMeshes = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, obj.name, DLFormat, True)
+    fMeshes = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, obj.name, DLFormat.Static, True)
 
     if inline:
         bleed_gfx = BleedGraphics()
