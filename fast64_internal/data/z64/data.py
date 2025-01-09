@@ -505,6 +505,37 @@ mm_enum_camera_setting_type = [
     ("CAM_SET_DUNGEON4", "Dungeon4", "Used in Pirates Fortress Interior, hidden room near hookshot 'DUNGEON4'"),
 ]
 
+# order here sets order on the UI
+ootEnumCSListType = [
+    ("TextList", "Text List", "Textbox", "ALIGN_BOTTOM", 0),
+    ("MiscList", "Misc List", "Misc", "OPTIONS", 7),
+    ("RumbleList", "Rumble List", "Rumble Controller", "OUTLINER_OB_FORCE_FIELD", 8),
+    ("Transition", "Transition List", "Transition List", "COLORSET_10_VEC", 1),
+    ("LightSettingsList", "Light Settings List", "Lighting", "LIGHT_SUN", 2),
+    ("TimeList", "Time List", "Time", "TIME", 3),
+    ("StartSeqList", "Start Seq List", "Play BGM", "PLAY", 4),
+    ("StopSeqList", "Stop Seq List", "Stop BGM", "SNAP_FACE", 5),
+    ("FadeOutSeqList", "Fade-Out Seq List", "Fade BGM", "IPO_EASE_IN_OUT", 6),
+]
+
+mm_enum_cs_list_type = [
+    ("TextList", "Text List", "Textbox", "ALIGN_BOTTOM", 0),
+    ("MiscList", "Misc List", "Misc", "OPTIONS", 7),
+    ("RumbleList", "Rumble List", "Rumble Controller", "OUTLINER_OB_FORCE_FIELD", 8),
+    ("Transition", "Transition", "Transition", "COLORSET_10_VEC", 1),
+    ("LightSettingsList", "Light Settings List", "Lighting", "LIGHT_SUN", 2),
+    ("TimeList", "Time List", "Time", "TIME", 3),
+    ("StartSeqList", "Start Seq List", "Play BGM", "PLAY", 4),
+    ("StopSeqList", "Stop Seq List", "Stop BGM", "SNAP_FACE", 5),
+    ("FadeOutSeqList", "Fade-Out Seq List", "Fade BGM", "IPO_EASE_IN_OUT", 6),
+    ("DestinationList", "Destination List", "Destination", "EVENT_D", 9),
+    ("MotionBlurList", "Motion Blur List", "Motion Blur", "ONIONSKIN_ON", 10),
+    ("ModifySeqList", "Modify Seq List", "Modify Seq", "IPO_CONSTANT", 11),
+    ("CreditsSceneList", "Choose Credits Scene List", "Choose Credits Scene", "WORLD", 12),
+    ("TransitionGeneralList", "Transition General List", "Transition General", "COLORSET_06_VEC", 13),
+    ("GiveTatlList", "Give Tatl List", "Give Tatl", "EVENT_T", 14),
+]
+
 # ---
 
 
@@ -529,18 +560,34 @@ class Z64_Data:
         if context is not None and self.is_registering:
             self.is_registering = False
 
-        if self.is_registering:
+        if not force and self.is_registering:
             next_game = "OOT"
-        elif context is not None:
-            next_game = context.scene.gameEditorMode
         elif game is not None:
             next_game = game
+        elif context is not None:
+            next_game = context.scene.gameEditorMode
         else:
             raise ValueError("ERROR: invalid values for context and game")
 
         # don't update if the game is the same (or we don't want to force one)
         if not force and next_game == self.game:
             return
+        
+        self.cs_list_type_to_cmd = {
+            "TextList": "CS_TEXT_LIST",
+            "LightSettingsList": "CS_LIGHT_SETTING_LIST",
+            "TimeList": "CS_TIME_LIST",
+            "StartSeqList": "CS_START_SEQ_LIST",
+            "StopSeqList": "CS_STOP_SEQ_LIST",
+            "FadeOutSeqList": "CS_FADE_OUT_SEQ_LIST",
+            "MiscList": "CS_MISC_LIST",
+            "DestinationList": "CS_DESTINATION_LIST",
+            "MotionBlurList": "CS_MOTION_BLUR_LIST",
+            "ModifySeqList": "CS_MODIFY_SEQ_LIST",
+            "CreditsSceneList": "CS_CHOOSE_CREDITS_SCENES_LIST",
+            "TransitionGeneralList": "CS_TRANSITION_GENERAL_LIST",
+            "GiveTatlList": "CS_GIVE_TATL_LIST",
+        }
 
         self.game = next_game
         self.enums = Z64_EnumData(self.game)
@@ -549,6 +596,8 @@ class Z64_Data:
 
         if self.game == "OOT":
             self.cs_index_start = 4
+            self.cs_list_type_to_cmd["Transition"] = "CS_TRANSITION"
+            self.cs_list_type_to_cmd["RumbleList"] = "CS_RUMBLE_CONTROLLER_LIST"
             self.ootEnumNightSeq = ootEnumNightSeq
             self.ootEnumSkybox = ootEnumSkybox
             self.ootEnumCloudiness = ootEnumCloudiness
@@ -557,8 +606,11 @@ class Z64_Data:
             self.ootEnumFloorSetting = ootEnumFloorSetting
             self.ootEnumFloorProperty = ootEnumFloorProperty
             self.ootEnumCameraSType = ootEnumCameraSType
+            self.ootEnumCSListType = ootEnumCSListType
         elif self.game == "MM":
             self.cs_index_start = 1
+            self.cs_list_type_to_cmd["Transition"] = "CS_TRANSITION_LIST"
+            self.cs_list_type_to_cmd["RumbleList"] = "CS_RUMBLE_LIST"
             self.ootEnumNightSeq = enum_ambiance_id
             self.ootEnumSkybox = mm_enum_skybox
             self.ootEnumCloudiness = mm_enum_skybox_config
@@ -567,6 +619,7 @@ class Z64_Data:
             self.ootEnumFloorSetting = mm_enum_floor_property
             self.ootEnumFloorProperty = mm_enum_floor_type
             self.ootEnumCameraSType = mm_enum_camera_setting_type
+            self.ootEnumCSListType = mm_enum_cs_list_type
         else:
             raise ValueError(f"ERROR: unsupported game {repr(self.game)}")
 
@@ -583,6 +636,8 @@ class Z64_Data:
             "csSeqPlayer": self.enums.enum_cs_fade_out_seq_player,
             "csMiscType": self.enums.enum_cs_misc_type,
             "transitionType": self.enums.enum_cs_transition_type,
+            "actor_cue_list_cmd_type": self.enums.enum_cs_actor_cue_list_cmd_type,
+            "spline_interp_type": self.enums.enum_cs_spline_interp_type,
             "objectKey": self.objects.ootEnumObjectKey,
             "actor_id": self.actors.ootEnumActorID,
             "chest_content": self.actors.ootEnumChestContent,
@@ -596,6 +651,7 @@ class Z64_Data:
             "floorSetting": self.ootEnumFloorSetting,
             "floorProperty": self.ootEnumFloorProperty,
             "camSType": self.ootEnumCameraSType,
+            "cs_list_type": self.ootEnumCSListType,
         }
 
     def get_enum(self, prop_name: str):

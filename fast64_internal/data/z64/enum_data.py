@@ -8,6 +8,7 @@ from .common import Z64_BaseElement, get_xml_root
 class Z64_ItemElement(Z64_BaseElement):
     parentKey: str
     game: str
+    desc: str
 
     def __post_init__(self):
         # generate the name from the id
@@ -90,6 +91,7 @@ class Z64_EnumData:
                             int(item.attrib["Index"]),
                             enum.attrib["Key"],
                             game,
+                            item.attrib.get("Description", "Unset"),
                         )
                         for item in enum
                     ],
@@ -127,6 +129,12 @@ class Z64_EnumData:
 
         for key in self.enumByKey.keys():
             setattr(self, f"enum_{key}", self.get_enum_data(key))
+
+        self.enum_cs_actor_cue_list_cmd_type = [
+            item for item in self.enum_cs_cmd if "actor_cue" in item[0] or "player_cue" in item[0]
+        ]
+        self.enum_cs_actor_cue_list_cmd_type.sort()
+        self.enum_cs_actor_cue_list_cmd_type.insert(0, ("Custom", "Custom", "Custom"))
 
     def get_enum_data(self, enumKey: str):
         enum = self.enumByKey[enumKey]

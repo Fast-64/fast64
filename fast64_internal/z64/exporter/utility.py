@@ -60,15 +60,21 @@ class Utility:
         return False
 
     @staticmethod
-    def getPropValue(data, prop_name: str, custom_name: Optional[str] = None):
+    def getPropValue(data, prop_name: str, custom_name: Optional[str] = None, enum_key: Optional[str] = None):
         """Returns a property's value based on if the value is 'Custom'"""
 
         value = getattr(data, prop_name)
 
         if value != "Custom":
-            return value
+            if enum_key is not None:
+                return game_data.z64.enums.enumByKey[enum_key].item_by_key[value].id
+            else:
+                return value
         elif custom_name is not None:
-            return getattr(data, custom_name)
+            if enum_key is not None:
+                return game_data.z64.enums.enumByKey[enum_key].item_by_key[getattr(data, custom_name)].id
+            else:
+                return getattr(data, custom_name)
 
         return getattr(data, f"{prop_name}Custom")
 

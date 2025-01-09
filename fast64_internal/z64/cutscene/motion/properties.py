@@ -3,10 +3,11 @@ import bpy
 from bpy.types import PropertyGroup, Object, UILayout, Armature, Bone, Scene, EditBone
 from bpy.props import IntProperty, StringProperty, PointerProperty, EnumProperty, FloatProperty
 from bpy.utils import register_class, unregister_class
+from ....utility import prop_split
 from ...upgrade import upgradeCutsceneMotion
 from ...utility import getEnumName, prop_split
 from ....game_data import game_data
-from ..constants import ootEnumCSMotionCamMode, ootEnumCSActorCueListCommandType
+from ..constants import ootEnumCSMotionCamMode
 
 from .operators import (
     CutsceneCmdAddActorCue,
@@ -31,7 +32,7 @@ def getNextCuesStartFrame(self):
 
 
 class CutsceneCmdActorCueListProperty(PropertyGroup):
-    commandType: EnumProperty(items=ootEnumCSActorCueListCommandType, name="CS Actor Cue Command Type", default=1)
+    commandType: EnumProperty(items=lambda self, context: game_data.z64.get_enum("actor_cue_list_cmd_type"), name="CS Actor Cue Command Type", default=1)
     commandTypeCustom: StringProperty(name="CS Actor Cue Command Type Custom")
     actorCueListToPreview: PointerProperty(
         type=Object, name="", poll=lambda self, object: self.isActorCueListObj(object, "CS Actor Cue List")
@@ -55,7 +56,7 @@ class CutsceneCmdActorCueListProperty(PropertyGroup):
                 OOT_SearchActorCueCmdTypeEnumOperator.bl_idname, icon="VIEWZOOM", text="Command Type:"
             )
             searchOp.objName = objName
-            searchBox.label(text=getEnumName(ootEnumCSActorCueListCommandType, self.commandType))
+            searchBox.label(text=getEnumName(game_data.z64.get_enum("actor_cue_list_cmd_type"), self.commandType))
 
             if self.commandType == "Custom":
                 split = box.split(factor=0.5)
@@ -147,6 +148,14 @@ class CutsceneCmdCameraShotProperty(PropertyGroup):
     shot_spline_rel_to: EnumProperty(items=game_data.z64.enums.enum_cs_spline_rel, default=1)
     shot_spline_rel_to_custom: StringProperty(default="CS_CAM_REL_CUSTOM")
 
+    shot_interp_type: EnumProperty(
+        items=lambda self, context: game_data.z64.get_enum("spline_interp_type"),
+        name="Interpolation Type",
+        description="values 1-3 only uses a single point from the cmd, values 4-5 uses multiple points from the cmd, value 6 only uses a single point from the cmd",
+        default=4,
+    )
+    shot_interp_type_custom: StringProperty(default="CS_CAM_INTERP_CUSTOM")
+
     def getEndFrame(self, camShotObj: Object = None):
         if camShotObj is None:
             camShotObj = bpy.context.view_layer.objects.active
@@ -169,9 +178,13 @@ class CutsceneCmdCameraShotProperty(PropertyGroup):
         if game_data.z64.is_oot():
             box.row().prop(self, "shotCamMode", expand=True)
         else:
-            prop_split(box.row(), self, "shot_spline_rel_to", "Spline Relative To")
+            prop_split(box.row(), self, "shot_spline_rel_to", "Camera Relative To")
             if self.shot_spline_rel_to == "Custom":
                 prop_split(box.row(), self, "shot_spline_rel_to_custom", "")
+
+            prop_split(box.row(), self, "shot_interp_type", "Camera Interpolation Type")
+            if self.shot_interp_type == "Custom":
+                prop_split(box.row(), self, "shot_interp_type_custom", "")
         box.operator(CutsceneCmdAddBone.bl_idname)
 
 

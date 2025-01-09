@@ -10,7 +10,7 @@ from bpy.utils import register_class, unregister_class
 from ...utility import CData, PluginError, writeCData, raisePluginError
 from ..utility import getCollection
 from ...game_data import game_data
-from .constants import ootEnumCSTextboxType, ootEnumCSListType
+from .constants import ootEnumCSTextboxType
 from .importer import importCutsceneData
 from .exporter import getNewCutsceneExport
 from ..exporter.cutscene import Cutscene
@@ -129,7 +129,7 @@ class OOTCSListAdd(Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     collectionType: StringProperty()
-    listType: EnumProperty(items=ootEnumCSListType)
+    listType: EnumProperty(items=lambda self, context: game_data.z64.get_enum("cs_list_type"))
     objName: StringProperty()
 
     def execute(self, context):

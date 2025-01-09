@@ -1,12 +1,11 @@
 import bpy
 
-from bpy.types import Object, Operator, Context, Armature
+from bpy.types import Object, Operator, Armature
 from bpy.utils import register_class, unregister_class
 from bpy.props import StringProperty, EnumProperty, BoolProperty
 from ....utility import PluginError
 from ....game_data import game_data
 from ..classes import CutsceneObjectFactory
-from ..constants import ootEnumCSActorCueListCommandType
 from ..preview import initFirstFrame, setupCompositorNodes
 from .utility import (
     setupActorCuePreview,
@@ -297,7 +296,7 @@ class OOT_SearchActorCueCmdTypeEnumOperator(Operator):
     bl_property = "commandType"
     bl_options = {"REGISTER", "UNDO"}
 
-    commandType: EnumProperty(items=ootEnumCSActorCueListCommandType, default=1)
+    commandType: EnumProperty(items=lambda self, context: game_data.z64.get_enum("actor_cue_list_cmd_type"), default=1)
     objName: StringProperty()
 
     def execute(self, context):

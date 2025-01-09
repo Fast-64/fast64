@@ -72,8 +72,10 @@ def get_prop_name(actor_key: str, param_type: str, param_subtype: str, param_ind
     return f"{game_data.z64.game.lower()}.{actor_key}.{suffix}{param_index}"  # e.g.: `oot.en_test.props1`
 
 
-def create_game_props():
+def create_game_props(game: str):
     """This function is used to edit the Z64_ActorProperty class"""
+
+    game_data.z64.update(None, game, True)
     prop_ats = get_prop_annotations(Z64_ActorProperty)
 
     param_type_to_enum_items = {
@@ -692,12 +694,10 @@ classes = (
 
 def actor_props_register():
     # generate props for OoT
-    game_data.z64.update(None, "OOT", True)
-    create_game_props()
+    create_game_props("OOT")
 
     # generate props for MM
-    game_data.z64.update(None, "MM", True)
-    create_game_props()
+    create_game_props("MM")
 
     for cls in classes:
         register_class(cls)

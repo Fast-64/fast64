@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 from bpy.types import Object
 from ....utility import PluginError, indent
 from ....game_data import game_data
-from ..constants import ootEnumCSListTypeListC
 
 if TYPE_CHECKING:
     from ..properties import OOTCutsceneProperty, OOTCSTextProperty
@@ -386,7 +385,7 @@ class CutsceneExport(CutsceneCmdToC):
                         enumKey = "csFadeOutSeqPlayer" if entry.listType == "FadeOutSeqList" else "seqId"
                         propName = "csSeqPlayer" if entry.listType == "FadeOutSeqList" else "csSeqID"
                         subData += self.getGenericSeqCmd(
-                            ootEnumCSListTypeListC[entry.listType].removesuffix("_LIST"),
+                            game_data.z64.cs_list_type_to_cmd[entry.listType].removesuffix("_LIST"),
                             self.getEnumValue(enumKey, elem, propName),
                             elem.startFrame,
                             elem.endFrame,
@@ -440,7 +439,7 @@ class CutsceneExport(CutsceneCmdToC):
                             case _:
                                 raise PluginError("ERROR: Unknown Cutscene List Type!")
             if entry.listType != "Transition":
-                listCmd = self.getGenericListCmd(ootEnumCSListTypeListC[entry.listType], entryTotal)
+                listCmd = self.getGenericListCmd(game_data.z64.cs_list_type_to_cmd[entry.listType], entryTotal)
             self.entryTotal += 1
             data += listCmd + subData
 
