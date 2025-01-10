@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from bpy.types import Object
 from ....utility import CData, PluginError, exportColor, scaleToU8, indent
-from ...utility import getObjectList
+from ...utility import getObjectList, is_oot_features
 from ...animated_mats.properties import (
     Z64_AnimatedMatColorParams,
     Z64_AnimatedMatTexScrollParams,
@@ -284,6 +284,9 @@ class SceneAnimatedMaterial:
                     raise PluginError("ERROR: Animated Materials header indices are not consecutives!")
 
         return SceneAnimatedMaterial(name, header_index, entries)
+
+    def is_used(self):
+        return not is_oot_features() and len(self.entries) > 0
 
     def get_cmd(self):
         """Returns the sound settings, misc settings, special files and skybox settings scene commands"""

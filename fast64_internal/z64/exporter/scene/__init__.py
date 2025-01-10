@@ -57,7 +57,9 @@ class Scene:
                     continue
                 try:
                     setattr(
-                        altHeader, header, SceneHeader.new(f"{name}_header{i:02}", altP, sceneObj, transform, i, useMacros)
+                        altHeader,
+                        header,
+                        SceneHeader.new(f"{name}_header{i:02}", altP, sceneObj, transform, i, useMacros),
                     )
                     hasAlternateHeaders = True
                 except Exception as exc:
@@ -137,9 +139,9 @@ class Scene:
             + curHeader.entranceActors.getCmd()
             + (curHeader.exits.getCmd() if len(curHeader.exits.exitList) > 0 else "")
             + (curHeader.cutscene.getCmd() if len(curHeader.cutscene.entries) > 0 else "")
-            + (curHeader.map_data.get_cmds() if not is_oot_features() and curHeader.map_data is not None else "")
-            + (curHeader.anim_mat.get_cmd() if not is_oot_features() and curHeader.anim_mat is not None else "")
-            + (curHeader.actor_cs.get_cmds() if not is_oot_features() and curHeader.actor_cs is not None else "")
+            + (curHeader.map_data.get_cmds() if curHeader.map_data is not None and curHeader.map_data.is_used() else "")
+            + (curHeader.anim_mat.get_cmd() if curHeader.anim_mat is not None and curHeader.anim_mat.is_used() else "")
+            + (curHeader.actor_cs.get_cmds() if curHeader.actor_cs is not None and curHeader.actor_cs.is_used() else "")
             + Utility.getEndCmd()
             + "};\n\n"
         )

@@ -1,12 +1,16 @@
 import bpy
 
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 from bpy.types import Object
+from ....game_data import game_data
 from ....utility import PluginError, CData, indent
-from ...utility import getCustomProperty
+from ...utility import getCustomProperty, is_oot_features
 from ...scene.properties import Z64_SceneHeaderProperty
 from .data import CutsceneData
+
+if TYPE_CHECKING:
+    from ...cutscene.properties import OOTCutsceneProperty
 
 
 # NOTE: ``paramNumber`` is the expected number of parameters inside the parsed commands,
@@ -26,6 +30,9 @@ class Cutscene:
     frameCount: int
     useMacros: bool
     motionOnly: bool
+    next_entrance: Optional[str]
+    spawn: Optional[int]
+    spawn_flags: Optional[str]
 
     paramNumber: int = field(init=False, default=2)
 
@@ -35,8 +42,30 @@ class Cutscene:
         if csObj is not None:
             if name is None:
                 name = csObj.name.removeprefix("Cutscene.").replace(".", "_")
+
+            cs_prop: "OOTCutsceneProperty" = csObj.ootCutsceneProperty
+            if cs_prop.spawn_flag_type == "Custom":
+                spawn_flag: str = cs_prop.spawn_flags_custom
+            elif cs_prop.spawn_flag_type == "CS_SPAWN_FLAG_ONCE":
+                spawn_flag: str = f"CS_SPAWN_FLAG_ONCE({cs_prop.spawn_flag})"
+            else:
+                spawn_flag: str = cs_prop.spawn_flag_type
+
             data = CutsceneData.new(csObj, useMacros, motionOnly)
-            return Cutscene(name, data, data.totalEntries, data.frameCount, useMacros, motionOnly)
+            return Cutscene(
+                name,
+                data,
+                data.totalEntries,
+                data.frameCount,
+                useMacros,
+                motionOnly,
+                cs_prop.next_entrance if game_data.z64.is_mm() or not is_oot_features() else None,
+                cs_prop.play_on_spawn if game_data.z64.is_mm() or not is_oot_features() else None,
+                spawn_flag if game_data.z64.is_mm() or not is_oot_features() else None,
+            )
+
+    def get_entry(self):
+        return "{ " + f"{self.name}, {self.next_entrance}, {self.spawn}, {self.spawn_flags}" + " }"
 
     def getC(self):
         """Returns the cutscene data"""
@@ -49,27 +78,41 @@ class Cutscene:
             dataListNames = []
 
             if not self.motionOnly:
-                dataListNames = [
-                    "textList",
-                    "miscList",
-                    "rumbleList",
-                    "transitionList",
-                    "lightSettingsList",
-                    "timeList",
-                    "seqList",
-                    "fadeSeqList",
-                ]
+                dataListNames.extend(
+                    [
+                        "textList",
+                        "miscList",
+                        "rumbleList",
+                        "transitionList",
+                        "lightSettingsList",
+                        "timeList",
+                        "seqList",
+                        "fadeSeqList",
+                    ]
+                )
+
+            if is_oot_features():
+                dataListNames.extend(
+                    [
+                        "camEyeSplineList",
+                        "camATSplineList",
+                        "camEyeSplineRelPlayerList",
+                        "camATSplineRelPlayerList",
+                        "camEyeList",
+                        "camATList",
+                    ]
+                )
+            else:
+                dataListNames.extend(
+                    [
+                        "camSplineList",
+                    ]
+                )
 
             dataListNames.extend(
                 [
                     "playerCueList",
                     "actorCueList",
-                    "camEyeSplineList",
-                    "camATSplineList",
-                    "camEyeSplineRelPlayerList",
-                    "camATSplineRelPlayerList",
-                    "camEyeList",
-                    "camATList",
                 ]
             )
 
@@ -80,13 +123,20 @@ class Cutscene:
             csData.header = f"extern {declarationBase};\n"
 
             # .c
+            if game_data.z64.is_mm():
+                cs_header = "CS_BEGIN_CUTSCENE"
+                cs_end = "CS_END"
+            else:
+                cs_header = "CS_HEADER"
+                cs_end = "CS_END_OF_SCRIPT"
+
             csData.source = (
                 declarationBase
                 + " = {\n"
-                + (indent + f"CS_HEADER({self.totalEntries}, {self.frameCount}),\n")
+                + (indent + f"{cs_header}({self.totalEntries}, {self.frameCount}),\n")
                 + (self.data.destination.getCmd() if self.data.destination is not None else "")
                 + "".join(entry.getCmd() for curList in dataListNames for entry in getattr(self.data, curList))
-                + (indent + "CS_END_OF_SCRIPT(),\n")
+                + (indent + f"{cs_end}(),\n")
                 + "};\n\n"
             )
 
@@ -99,10 +149,11 @@ class Cutscene:
 class SceneCutscene:
     """This class hosts cutscene data"""
 
+    name: str
     entries: list[Cutscene]
 
     @staticmethod
-    def new(props: Z64_SceneHeaderProperty, headerIndex: int, useMacros: bool):
+    def new(name: str, props: Z64_SceneHeaderProperty, headerIndex: int, useMacros: bool):
         csObj: Object = props.csWriteObject
         cutsceneObjects: list[Object] = [csObj for csObj in props.extraCutscenes]
         entries: list[Cutscene] = []
@@ -130,12 +181,31 @@ class SceneCutscene:
                     entries.append(
                         Cutscene.new(csWriteCustom, csObj, useMacros, bpy.context.scene.fast64.oot.exportMotionOnly)
                     )
-        return SceneCutscene(entries)
+        return SceneCutscene(name, entries)
+
+    def to_c(self):
+        """Returns the cutscene script entry list (for MM)"""
+
+        data = CData()
+        array_name = f"CutsceneScriptEntry {self.name}[]"
+
+        # .h
+        data.header = f"extern {array_name};"
+
+        # .c
+        data.source = (
+            array_name + " = {\n" + indent + f",\n{indent}".join(cs.get_entry() for cs in self.entries) + "\n};\n\n"
+        )
+
+        return data
 
     def getCmd(self):
         """Returns the cutscene data scene command"""
         if len(self.entries) == 0:
             raise PluginError("ERROR: Cutscene entry list is empty!")
 
-        # entry No. 0 is always self.csObj
-        return indent + f"SCENE_CMD_CUTSCENE_DATA({self.entries[0].name}),\n"
+        if is_oot_features():
+            # entry No. 0 is always self.csObj
+            return indent + f"SCENE_CMD_CUTSCENE_DATA({self.entries[0].name}),\n"
+        else:
+            return indent + f"SCENE_CMD_CUTSCENE_SCRIPT_LIST({len(self.entries)}, {self.name}),\n"

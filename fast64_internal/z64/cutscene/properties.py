@@ -12,7 +12,7 @@ from bpy.props import (
 )
 from bpy.utils import register_class, unregister_class
 from ...utility import PluginError, prop_split
-from ..utility import OOTCollectionAdd, drawCollectionOps, getEnumName
+from ..utility import OOTCollectionAdd, drawCollectionOps, getEnumName, is_oot_features
 from ...game_data import game_data
 from ..upgrade import upgradeCutsceneSubProps, upgradeCSListProps, upgradeCutsceneProperty
 from .operators import OOTCSTextAdd, OOT_SearchCSDestinationEnumOperator, OOTCSListAdd, OOT_SearchCSSeqOperator
@@ -446,8 +446,21 @@ class OOTCutsceneProperty(PropertyGroup):
     cs_give_tatl: BoolProperty(name="Give Tatl")
     cs_give_tatl_start_frame: IntProperty(name="Start Frame", min=0, default=99)
     csLists: CollectionProperty(type=OOTCSListProperty, name="Cutscene Lists")
-    menuTab: EnumProperty(items=lambda self, context: game_data.z64.get_enum("cs_list_type"))
+    next_entrance: StringProperty(default="0xFFFF")
+    play_on_spawn: IntProperty(min=0, default=0)
+    spawn_flag_type: EnumProperty(
+        items=[
+            ("Custom", "Custom", "Custom"),
+            ("CS_SPAWN_FLAG_NONE", "None", "None"),
+            ("CS_SPAWN_FLAG_ALWAYS", "Always", "Always"),
+            ("CS_SPAWN_FLAG_ONCE", "Flag", "Flag"),
+        ],
+        default=2,
+    )
+    spawn_flag: StringProperty(default="0x00")
+    spawn_flags_custom: StringProperty(default="CS_SPAWN_FLAG_CUSTOM")
 
+    menuTab: EnumProperty(items=lambda self, context: game_data.z64.get_enum("cs_list_type"))
     preview: PointerProperty(type=OOTCutscenePreviewProperty)
 
     @staticmethod
@@ -484,6 +497,7 @@ class OOTCutsceneProperty(PropertyGroup):
                     del csListProp["transitionEndFrame"]
 
     def draw_props(self, layout: UILayout, obj: Object):
+        layout = layout.column()
         split = layout.split(factor=0.5)
         split.operator(CutsceneCmdCreateCameraShot.bl_idname, icon="VIEW_CAMERA")
         split.operator(CutsceneCmdPlayPreview.bl_idname, icon="RESTRICT_VIEW_OFF")
@@ -495,6 +509,17 @@ class OOTCutsceneProperty(PropertyGroup):
         split = layout.split(factor=0.5)
         split.label(text="Cutscene End Frame")
         split.prop(self, "csEndFrame")
+
+        if game_data.z64.is_mm() or not is_oot_features():
+            prop_split(layout, self, "next_entrance", "Next Entrance")
+            prop_split(layout, self, "play_on_spawn", "Spawn")
+            prop_split(layout, self, "spawn_flag_type", "Spawn Flags")
+
+            if self.spawn_flag_type == "Custom":
+                prop_split(layout, self, "spawn_flags_custom", "")
+
+            if self.spawn_flag_type == "CS_SPAWN_FLAG_ONCE":
+                prop_split(layout, self, "spawn_flag", "")
 
         commandsBox = layout.box()
         commandsBox.box().label(text="Cutscene Commands")

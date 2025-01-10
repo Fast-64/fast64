@@ -2,10 +2,11 @@ import bpy
 import math
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 from bpy.types import Object, Bone
 from ....utility import PluginError
 from ....game_data import game_data
+from ...utility import is_oot_features
 from .actor_cue import CutsceneCmdActorCueList, CutsceneCmdActorCue
 from .seq import CutsceneCmdStartStopSeqList, CutsceneCmdFadeSeqList, CutsceneCmdStartStopSeq, CutsceneCmdFadeSeq
 from .text import CutsceneCmdTextList, CutsceneCmdText, CutsceneCmdTextNone, CutsceneCmdTextOcarinaAction
@@ -31,6 +32,11 @@ from .camera import (
     CutsceneCmdCamATSplineRelToPlayer,
     CutsceneCmdCamEye,
     CutsceneCmdCamAT,
+    CutsceneCmdNewCamPoint,
+    CutsceneCmdCamMisc,
+    CutsceneSplinePoint,
+    CutsceneCmdCamSpline,
+    CutsceneCmdCamSplineList,
 )
 
 if TYPE_CHECKING:
@@ -61,34 +67,44 @@ cmdToList = {
 }
 
 
-@dataclass
 class CutsceneData:
     """This class defines the command data inside a cutscene"""
 
-    useMacros: bool
-    motionOnly: bool
+    def __init__(self, useMacros: bool, motionOnly: bool):
+        self.useMacros = useMacros
+        self.motionOnly = motionOnly
 
-    totalEntries: int = field(init=False, default=0)
-    frameCount: int = field(init=False, default=0)
-    motionFrameCount: int = field(init=False, default=0)
-    camEndFrame: int = field(init=False, default=0)
-    destination: CutsceneCmdDestination = field(init=False, default=None)
-    actorCueList: list[CutsceneCmdActorCueList] = field(init=False, default_factory=list)
-    playerCueList: list[CutsceneCmdActorCueList] = field(init=False, default_factory=list)
-    camEyeSplineList: list[CutsceneCmdCamEyeSpline] = field(init=False, default_factory=list)
-    camATSplineList: list[CutsceneCmdCamATSpline] = field(init=False, default_factory=list)
-    camEyeSplineRelPlayerList: list[CutsceneCmdCamEyeSplineRelToPlayer] = field(init=False, default_factory=list)
-    camATSplineRelPlayerList: list[CutsceneCmdCamATSplineRelToPlayer] = field(init=False, default_factory=list)
-    camEyeList: list[CutsceneCmdCamEye] = field(init=False, default_factory=list)
-    camATList: list[CutsceneCmdCamAT] = field(init=False, default_factory=list)
-    textList: list[CutsceneCmdTextList] = field(init=False, default_factory=list)
-    miscList: list[CutsceneCmdMiscList] = field(init=False, default_factory=list)
-    rumbleList: list[CutsceneCmdRumbleControllerList] = field(init=False, default_factory=list)
-    transitionList: list[CutsceneCmdTransition] = field(init=False, default_factory=list)
-    lightSettingsList: list[CutsceneCmdLightSettingList] = field(init=False, default_factory=list)
-    timeList: list[CutsceneCmdTimeList] = field(init=False, default_factory=list)
-    seqList: list[CutsceneCmdStartStopSeqList] = field(init=False, default_factory=list)
-    fadeSeqList: list[CutsceneCmdFadeSeqList] = field(init=False, default_factory=list)
+        self.totalEntries: int = 0
+        self.frameCount: int = 0
+        self.motionFrameCount: int = 0
+        self.camEndFrame: int = 0
+        self.destination: Optional[CutsceneCmdDestination] = None
+        self.actorCueList: list[CutsceneCmdActorCueList] = []
+        self.playerCueList: list[CutsceneCmdActorCueList] = []
+        self.camEyeSplineList: list[CutsceneCmdCamEyeSpline] = []
+        self.camATSplineList: list[CutsceneCmdCamATSpline] = []
+        self.camEyeSplineRelPlayerList: list[CutsceneCmdCamEyeSplineRelToPlayer] = []
+        self.camATSplineRelPlayerList: list[CutsceneCmdCamATSplineRelToPlayer] = []
+        self.camEyeList: list[CutsceneCmdCamEye] = []
+        self.camATList: list[CutsceneCmdCamAT] = []
+        self.textList: list[CutsceneCmdTextList] = []
+        self.miscList: list[CutsceneCmdMiscList] = []
+        self.rumbleList: list[CutsceneCmdRumbleControllerList] = []
+        self.transitionList: list[CutsceneCmdTransition] = []
+        self.lightSettingsList: list[CutsceneCmdLightSettingList] = []
+        self.timeList: list[CutsceneCmdTimeList] = []
+        self.seqList: list[CutsceneCmdStartStopSeqList] = []
+        self.fadeSeqList: list[CutsceneCmdFadeSeqList] = []
+
+        # lists from the new cutscene system
+        self.camSplineList: list[CutsceneCmdCamSplineList] = []
+        # self.transitionListNew: list[CutsceneCmdTransitionList] = []
+        # self.destinationListNew: list[CutsceneCmdDestinationList] = []
+        # self.motionBlurList: list[CutsceneCmdMotionBlurList] = []
+        # self.modifySeqList: list[CutsceneCmdModifySeqList] = []
+        # self.creditsSceneList: list[CutsceneCmdChooseCreditsScenesList] = []
+        # self.transitionGeneralList: list[CutsceneCmdTransitionGeneralList] = []
+        # self.giveTatlList: list[CutsceneCmdGiveTatlList] = []
 
     @staticmethod
     def new(csObj: Object, useMacros: bool, motionOnly: bool):
@@ -142,9 +158,10 @@ class CutsceneData:
 
         return [x, y, z]
 
-    def getEnumValueFromProp(self, enumKey: str, owner, propName: str):
+    def getEnumValueFromProp(self, enumKey: str, owner, propName: str, custom_suffix: str = "Custom"):
+        game_data.z64.update(bpy.context, None)
         item = game_data.z64.enums.enumByKey[enumKey].item_by_key.get(getattr(owner, propName))
-        return item.id if item is not None else getattr(owner, f"{propName}Custom")
+        return item.id if item is not None else getattr(owner, f"{propName}{custom_suffix}")
 
     def setActorCueListData(self, csObjects: dict[str, list[Object]], isPlayer: bool):
         """Returns the Actor Cue List commands from the corresponding objects"""
@@ -289,19 +306,66 @@ class CutsceneData:
         shotObjects = csObjects["camShot"]
 
         if len(shotObjects) > 0:
-            motionFrameCount = -1
-            for shotObj in shotObjects:
-                camMode = shotObj.data.ootCamShotProp.shotCamMode
+            if is_oot_features():
+                motionFrameCount = -1
+                for shotObj in shotObjects:
+                    camMode = shotObj.data.ootCamShotProp.shotCamMode
 
-                eyeCamList = getattr(self, self.getCamClassOrList(False, camMode, False))
-                eyeCamList.append(self.getNewCamData(shotObj, False))
+                    eyeCamList = getattr(self, self.getCamClassOrList(False, camMode, False))
+                    eyeCamList.append(self.getNewCamData(shotObj, False))
 
-                atCamList = getattr(self, self.getCamClassOrList(False, camMode, True))
-                atCamList.append(self.getNewCamData(shotObj, True))
+                    atCamList = getattr(self, self.getCamClassOrList(False, camMode, True))
+                    atCamList.append(self.getNewCamData(shotObj, True))
 
-                motionFrameCount = max(motionFrameCount, self.camEndFrame + 1)
-            self.motionFrameCount += motionFrameCount
-            self.totalEntries += len(shotObjects) * 2
+                    motionFrameCount = max(motionFrameCount, self.camEndFrame + 1)
+                self.motionFrameCount += motionFrameCount
+                self.totalEntries += len(shotObjects) * 2
+            else:
+                new_spline_list = CutsceneCmdCamSplineList(0)  # bytes are computed when getting the c data
+
+                for shot_obj in shotObjects:
+                    shot_prop = shot_obj.data.ootCamShotProp
+                    new_spline = CutsceneCmdCamSpline(0, shot_prop.shot_duration)
+
+                    for i, bone in enumerate(shot_obj.data.bones):
+                        bone_prop = bone.ootCamShotPointProp
+
+                        new_spline.entries.append(
+                            CutsceneSplinePoint(
+                                # At
+                                CutsceneCmdNewCamPoint(
+                                    self.getEnumValueFromProp(
+                                        "cs_spline_interp_type", shot_prop, "shot_interp_type", "_custom"
+                                    ),
+                                    0x64,
+                                    bone_prop.shot_point_duration,
+                                    self.getOoTPosition(bone.tail),
+                                    self.getEnumValueFromProp(
+                                        "cs_spline_rel", shot_prop, "shot_spline_rel_to", "_custom"
+                                    ),
+                                ),
+                                # Eye
+                                CutsceneCmdNewCamPoint(
+                                    self.getEnumValueFromProp(
+                                        "cs_spline_interp_type", shot_prop, "shot_interp_type", "_custom"
+                                    ),
+                                    0x64,
+                                    bone_prop.shot_point_duration,
+                                    self.getOoTPosition(bone.head),
+                                    self.getEnumValueFromProp(
+                                        "cs_spline_rel", shot_prop, "shot_spline_rel_to", "_custom"
+                                    ),
+                                ),
+                                # Misc
+                                CutsceneCmdCamMisc(bone_prop.shotPointRoll, bone_prop.shotPointViewAngle),
+                            )
+                        )
+
+                    new_spline.num_entries = i
+                    new_spline_list.entries.append(new_spline)
+
+                self.camSplineList.append(new_spline_list)
+                self.totalEntries += 1
 
     def getNewTextCmd(self, textEntry: "OOTCSTextProperty"):
         match textEntry.textboxType:

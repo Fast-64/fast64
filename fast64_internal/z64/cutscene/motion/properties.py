@@ -5,7 +5,7 @@ from bpy.props import IntProperty, StringProperty, PointerProperty, EnumProperty
 from bpy.utils import register_class, unregister_class
 from ....utility import prop_split
 from ...upgrade import upgradeCutsceneMotion
-from ...utility import getEnumName, prop_split
+from ...utility import getEnumName, is_oot_features
 from ....game_data import game_data
 from ..constants import ootEnumCSMotionCamMode
 
@@ -149,14 +149,15 @@ class CutsceneCmdCameraShotProperty(PropertyGroup):
         default="splineEyeOrAT",
     )
 
-    shot_spline_rel_to: EnumProperty(items=game_data.z64.enums.enum_cs_spline_rel, default=1)
+    shot_duration: IntProperty(min=0, default=120)
+    shot_spline_rel_to: EnumProperty(items=lambda self, context: game_data.z64.get_enum("spline_rel_to"), default=1)
     shot_spline_rel_to_custom: StringProperty(default="CS_CAM_REL_CUSTOM")
 
     shot_interp_type: EnumProperty(
         items=lambda self, context: game_data.z64.get_enum("spline_interp_type"),
         name="Interpolation Type",
         description="values 1-3 only uses a single point from the cmd, values 4-5 uses multiple points from the cmd, value 6 only uses a single point from the cmd",
-        default=4,
+        default=5,
     )
     shot_interp_type_custom: StringProperty(default="CS_CAM_INTERP_CUSTOM")
 
@@ -176,19 +177,21 @@ class CutsceneCmdCameraShotProperty(PropertyGroup):
 
         box = layout.box()
         box.label(text=label)
-        split = box.split(factor=0.5)
-        split.prop(self, "shotStartFrame")
-        split.prop(self, "shotEndFrame")
         if game_data.z64.is_oot():
+            split = box.split(factor=0.5)
+            split.prop(self, "shotStartFrame")
+            split.prop(self, "shotEndFrame")
             box.row().prop(self, "shotCamMode", expand=True)
         else:
-            prop_split(box.row(), self, "shot_spline_rel_to", "Camera Relative To")
+            layout_shot = box.column()
+            prop_split(layout_shot, self, "shot_duration", "Duration")
+            prop_split(layout_shot, self, "shot_spline_rel_to", "Camera Relative To")
             if self.shot_spline_rel_to == "Custom":
-                prop_split(box.row(), self, "shot_spline_rel_to_custom", "")
+                prop_split(layout_shot, self, "shot_spline_rel_to_custom", "")
 
-            prop_split(box.row(), self, "shot_interp_type", "Camera Interpolation Type")
+            prop_split(layout_shot, self, "shot_interp_type", "Camera Interpolation Type")
             if self.shot_interp_type == "Custom":
-                prop_split(box.row(), self, "shot_interp_type_custom", "")
+                prop_split(layout_shot, self, "shot_interp_type_custom", "")
         box.operator(CutsceneCmdAddBone.bl_idname)
 
 
@@ -222,6 +225,8 @@ class CutsceneCmdCameraShotPointProperty(PropertyGroup):
         set=lambda self, value: self.setValue(value, "roll"),
     )
 
+    shot_point_duration: IntProperty(min=0, default=30, name="Duration")
+
     # internal usage only
     frame: IntProperty(default=30, min=0)
     viewAngle: FloatProperty(default=60.0, min=0.01, max=179.99)
@@ -252,7 +257,8 @@ class CutsceneCmdCameraShotPointProperty(PropertyGroup):
         box = layout.box()
         box.label(text="Bone / Key point:")
         row = box.row()
-        for propName in ["shotPointFrame", "shotPointViewAngle", "shotPointRoll"]:
+        first_prop = "shotPointFrame" if is_oot_features() else "shot_point_duration"
+        for propName in [first_prop, "shotPointViewAngle", "shotPointRoll"]:
             row.prop(self, propName)
 
 

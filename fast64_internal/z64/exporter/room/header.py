@@ -1,3 +1,5 @@
+import bpy
+
 from dataclasses import dataclass, field
 from typing import Optional
 from mathutils import Matrix
@@ -189,6 +191,7 @@ class RoomActors:
         headerIndex: int,
         room_index: int,
     ):
+        game_data.z64.update(bpy.context, None)
         actorList: list[Actor] = []
         actorObjList = getObjectList(sceneObj.children, "EMPTY", "Actor", parentObj=roomObj, room_index=room_index)
         for obj in actorObjList:

@@ -3,7 +3,7 @@ from bpy.types import Object
 from mathutils import Matrix
 from typing import Optional
 from ....utility import CData, PluginError, exportColor, scaleToU8, indent
-from ...utility import getObjectList
+from ...utility import getObjectList, is_oot_features
 from ...actor_cutscene.properties import Z64_ActorCutsceneProperty, Z64_ActorCutscene
 from ..utility import Utility
 from ..collision.camera import BgCamInformations, CameraInfo
@@ -119,6 +119,9 @@ class SceneActorCutscene:
                     raise PluginError("ERROR: the actor cs camera indices are not consecutives!")
 
         return SceneActorCutscene(name, f"{name}CameraInfo", f"{name}CameraData", header_index, entries)
+
+    def is_used(self):
+        return not is_oot_features() and len(self.entries) > 0
 
     def is_cs_cam_used(self):
         for entry in self.entries:

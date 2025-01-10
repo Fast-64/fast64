@@ -636,6 +636,7 @@ class Z64_Data:
             "transitionType": self.enums.enum_cs_transition_type,
             "actor_cue_list_cmd_type": self.enums.enum_cs_actor_cue_list_cmd_type,
             "spline_interp_type": self.enums.enum_cs_spline_interp_type,
+            "spline_rel_to": self.enums.enum_cs_spline_rel,
             "trans_general": self.enums.enum_cs_transition_general,
             "blur_type": self.enums.enum_cs_motion_blur_type,
             "credits_scene_type": self.enums.enum_cs_credits_scene_type,

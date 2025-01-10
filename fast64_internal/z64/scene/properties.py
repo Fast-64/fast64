@@ -522,9 +522,6 @@ class Z64_SceneHeaderProperty(PropertyGroup):
 
         elif menuTab == "Cutscene":
             cutscene = layout.column()
-
-            cutscene.enabled = is_oot_features()
-
             r = cutscene.row()
             r.prop(self, "writeCutscene", text="Write Cutscene")
             if self.writeCutscene:

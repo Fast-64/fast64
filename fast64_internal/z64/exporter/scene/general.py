@@ -336,6 +336,9 @@ class SceneMapData:
             [MapDataChest(chest_prop, scene_obj, transform) for chest_prop in props.minimap_chest_list],
         )
 
+    def is_used(self):
+        return not is_oot_features() and (len(self.room_list) > 0 or len(self.chest_list) > 0)
+
     def get_cmds(self):
         """Returns the sound settings, misc settings, special files and skybox settings scene commands"""
         commands = []

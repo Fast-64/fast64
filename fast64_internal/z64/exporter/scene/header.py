@@ -46,7 +46,7 @@ class SceneHeader:
             name,
             SceneInfos.new(props, sceneObj),
             SceneLighting.new(f"{name}_lightSettings", props),
-            SceneCutscene.new(props, headerIndex, useMacros),
+            SceneCutscene.new(f"{name}_cutsceneScriptEntryList", props, headerIndex, useMacros),
             SceneExits.new(f"{name}_exitList", props),
             SceneTransitionActors.new(f"{name}_transitionActors", sceneObj, transform, headerIndex),
             entranceActors,
@@ -66,16 +66,20 @@ class SceneHeader:
 
         headerData = CData()
 
+        # Write the cutscene script entry list, if used
+        if not is_oot_features() and len(self.cutscene.entries) > 0:
+            headerData.append(self.cutscene.to_c())
+
         # Write the spawn position list data and the entrance list
         if len(self.entranceActors.entries) > 0:
             headerData.append(self.entranceActors.getC())
             headerData.append(self.spawns.getC())
 
-        # Write the transition actor list data
+        # Write the transition actor list data, if used
         if len(self.transitionActors.entries) > 0:
             headerData.append(self.transitionActors.getC())
 
-        # Write the exit list
+        # Write the exit list, if used
         if len(self.exits.exitList) > 0:
             headerData.append(self.exits.getC())
 
@@ -83,18 +87,20 @@ class SceneHeader:
         if len(self.lighting.settings) > 0:
             headerData.append(self.lighting.getC())
 
-        # Write the map data
-        if not is_oot_features() and self.map_data is not None:
+        # Write the map data, if used
+        if self.map_data is not None and self.map_data.is_used():
             headerData.append(self.map_data.to_c())
 
         # Write the path data, if used
         if len(self.path.pathList) > 0:
             headerData.append(self.path.getC())
 
-        if not is_oot_features() and self.anim_mat is not None:
+        # Write the animated material list, if used
+        if self.anim_mat is not None and self.anim_mat.is_used():
             headerData.append(self.anim_mat.to_c())
 
-        if not is_oot_features() and self.actor_cs is not None:
+        # Write the actor cutscene list, if used
+        if self.actor_cs is not None and self.actor_cs.is_used():
             headerData.append(self.actor_cs.to_c())
 
         return headerData
