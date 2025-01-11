@@ -82,6 +82,7 @@ class SceneActorCutscene:
         entries: list[ActorCutscene] = []
         obj_list = getObjectList(scene_obj.children_recursive, "EMPTY", empty_type)
         processed = []
+        i = 0
 
         for obj in obj_list:
             if empty_type == "Actor":

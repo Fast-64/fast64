@@ -1,6 +1,7 @@
 import bpy
 import math
 
+from copy import copy
 from dataclasses import dataclass, field
 from typing import Optional, TYPE_CHECKING
 from bpy.types import Object, Bone
@@ -20,6 +21,7 @@ from .misc import (
     CutsceneCmdMiscList,
     CutsceneCmdRumbleControllerList,
     CutsceneCmdTransition,
+    CutsceneCmdTransitionList,
     CutsceneCmdLightSettingList,
     CutsceneCmdTimeList,
 )
@@ -55,7 +57,7 @@ cmdToClass = {
     "StartSeq": CutsceneCmdStartStopSeq,
     "StopSeq": CutsceneCmdStartStopSeq,
     "FadeOutSeq": CutsceneCmdFadeSeq,
-    "Transition": CutsceneCmdTransition,
+    "Transition": CutsceneCmdTransitionList,
 }
 
 cmdToList = {
@@ -64,6 +66,7 @@ cmdToList = {
     "TimeList": "timeList",
     "MiscList": "miscList",
     "RumbleList": "rumbleList",
+    "Transition": "transitionList",
 }
 
 
@@ -90,7 +93,7 @@ class CutsceneData:
         self.textList: list[CutsceneCmdTextList] = []
         self.miscList: list[CutsceneCmdMiscList] = []
         self.rumbleList: list[CutsceneCmdRumbleControllerList] = []
-        self.transitionList: list[CutsceneCmdTransition] = []
+        self.transitionList: list[CutsceneCmdTransitionList] = []
         self.lightSettingsList: list[CutsceneCmdLightSettingList] = []
         self.timeList: list[CutsceneCmdTimeList] = []
         self.seqList: list[CutsceneCmdStartStopSeqList] = []
@@ -98,7 +101,6 @@ class CutsceneData:
 
         # lists from the new cutscene system
         self.camSplineList: list[CutsceneCmdCamSplineList] = []
-        # self.transitionListNew: list[CutsceneCmdTransitionList] = []
         # self.destinationListNew: list[CutsceneCmdDestinationList] = []
         # self.motionBlurList: list[CutsceneCmdMotionBlurList] = []
         # self.modifySeqList: list[CutsceneCmdModifySeqList] = []
@@ -322,14 +324,23 @@ class CutsceneData:
                 self.totalEntries += len(shotObjects) * 2
             else:
                 new_spline_list = CutsceneCmdCamSplineList(0)  # bytes are computed when getting the c data
+                i = 0
 
                 for shot_obj in shotObjects:
                     shot_prop = shot_obj.data.ootCamShotProp
                     new_spline = CutsceneCmdCamSpline(0, shot_prop.shot_duration)
+                    at_total = 0
+                    eye_total = 0
 
                     for i, bone in enumerate(shot_obj.data.bones):
                         bone_prop = bone.ootCamShotPointProp
 
+                        if i > 0 and i < len(shot_obj.data.bones) - 1:
+                            at_total += bone_prop.shot_point_duration
+                            eye_total += bone_prop.shot_point_duration
+
+                        # MM TODO: move shot_interp_type and shot_spline_rel_to per bone?
+                        # add weight property
                         new_spline.entries.append(
                             CutsceneSplinePoint(
                                 # At
@@ -360,6 +371,43 @@ class CutsceneData:
                                 CutsceneCmdCamMisc(bone_prop.shotPointRoll, bone_prop.shotPointViewAngle),
                             )
                         )
+
+                    # I don't understand how this camera system works, as far as I can tell it's
+                    # the same as OoT? It's clear that the first and last points are ignored and by
+                    # looking at the vanilla scenes I came to the conclusion that the last point of
+                    # each point type (at and eye) have a duration that is the sum of all the previous
+                    # point's durations except the very first one. By looking at the code I'm thinking
+                    # this might work exactly like OoT where you need an extra point because of some bug
+                    # (see the readme for explanations), idk if this is necessary ¯\_(ツ)_/¯
+                    #
+                    # this block copies the last entry's informations to the extra one,
+                    # except for the duration which is computed in the loop above
+                    last_entry = new_spline.entries[-1]
+                    # last_entry.at.duration = at_total
+                    # last_entry.eye.duration = eye_total
+                    new_spline.entries.append(
+                        CutsceneSplinePoint(
+                            # At
+                            CutsceneCmdNewCamPoint(
+                                last_entry.at.interp_type,
+                                last_entry.at.weight,
+                                at_total,
+                                last_entry.at.pos,
+                                last_entry.at.relative_to,
+                            ),
+                            # Eye
+                            CutsceneCmdNewCamPoint(
+                                last_entry.eye.interp_type,
+                                last_entry.eye.weight,
+                                eye_total,
+                                last_entry.eye.pos,
+                                last_entry.eye.relative_to,
+                            ),
+                            # Misc
+                            copy(last_entry.misc),
+                        )
+                    )
+                    i += 1  # accounting for the extra point
 
                     new_spline.num_entries = i
                     new_spline_list.entries.append(new_spline)
@@ -430,8 +478,13 @@ class CutsceneData:
                     else:
                         self.seqList.append(cmdList)
                 case _:
-                    curList = getattr(entry, (entry.listType[0].lower() + entry.listType[1:]))
-                    cmdList = cmdToClass[entry.listType](None, None)
+                    if entry.listType == "Transition":
+                        prop_name = "transition_list"
+                        cmdList = cmdToClass[entry.listType](None, None, 0)
+                    else:
+                        prop_name = entry.listType[0].lower() + entry.listType[1:]
+                        cmdList = cmdToClass[entry.listType](None, None)
+                    curList = getattr(entry, prop_name)
                     cmdList.entryTotal = len(curList)
                     for elem in curList:
                         match entry.listType:
@@ -464,13 +517,19 @@ class CutsceneData:
                                     )
                                 )
                             case "RumbleList":
+                                if not is_oot_features():
+                                    rumble_type = self.getEnumValueFromProp("cs_rumble_type", elem, "rumble_type")
+                                else:
+                                    rumble_type = None
+
                                 cmdList.entries.append(
                                     CutsceneCmdRumbleController(
                                         elem.startFrame,
-                                        elem.endFrame,
+                                        elem.startFrame + 1,
                                         elem.rumbleSourceStrength,
                                         elem.rumbleDuration,
                                         elem.rumbleDecreaseRate,
+                                        rumble_type,
                                     )
                                 )
                             case _:

@@ -549,9 +549,11 @@ class Z64_Data:
         self.enum_floor_effect = enum_floor_effect
 
     def is_oot(self):
+        self.update(bpy.context, None)
         return self.game == "OOT"
 
     def is_mm(self):
+        self.update(bpy.context, None)
         return self.game == "MM"
 
     def update(self, context: Optional[Context], game: Optional[str], force: bool = False):

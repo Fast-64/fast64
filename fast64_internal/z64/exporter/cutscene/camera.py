@@ -251,8 +251,11 @@ class CutsceneCmdCamSpline:
 
         return (
             (indent * 3 + f"CS_CAM_SPLINE({len(self.entries)}, 0, 0, {self.duration}),\n")
+            + (indent * 4 + "// At Camera Points\n")
             + "".join(at for at in at_list)
+            + (indent * 4 + "// Eye Camera Points\n")
             + "".join(eye for eye in eye_list)
+            + (indent * 4 + "// FoV/Roll Settings\n")
             + "".join(misc for misc in misc_list)
         )
 

@@ -110,7 +110,7 @@ class OOTCutsceneCommon:
                 if name in customValues and value == "Custom":
                     prop_split(box, self, f"{name}_custom" if "_" in p else f"{name}Custom", f"{displayName} Custom")
 
-                if name == "csTextType" and value != "choice":
+                if is_oot_features() and name == "csTextType" and value != "choice":
                     break
 
 
@@ -136,8 +136,8 @@ class OOTCSTextProperty(OOTCutsceneCommon, PropertyGroup):
         default=1,
     )
     ocarinaActionCustom: StringProperty(default="OCARINA_ACTION_CUSTOM")
-    topOptionTextID: StringProperty(name="", default="0x0000")
-    bottomOptionTextID: StringProperty(name="", default="0x0000")
+    topOptionTextID: StringProperty(name="", default="0xFFFF")
+    bottomOptionTextID: StringProperty(name="", default="0xFFFF")
     ocarinaMessageId: StringProperty(name="", default="0x0000")
     csTextType: EnumProperty(
         name="Text Type", items=lambda self, context: game_data.z64.get_enum("csTextType"), default=1

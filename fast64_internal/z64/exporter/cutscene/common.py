@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 from ....utility import PluginError, indent
+from ...utility import is_oot_features
 from ....game_data import game_data
 from ...cutscene.motion.utility import getInteger
 
@@ -42,4 +43,5 @@ class CutsceneCmdBase:
         self.validateFrames()
         if type is None:
             raise PluginError("ERROR: Seq type is None!")
-        return indent * 3 + f"{cmdName}({type}, {startFrame}, {endFrame}" + ", 0" * 8 + "),\n"
+        pad_amount = 8 if is_oot_features() else 1 if cmdName == "CS_STOP_SEQ" else 0
+        return indent * 3 + f"{cmdName}({type}, {startFrame}, {endFrame}" + ", 0" * pad_amount + "),\n"

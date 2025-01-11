@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from ....utility import PluginError, indent
+from ...utility import is_oot_features
 from ...cutscene.motion.utility import getInteger
 from .common import CutsceneCmdBase
 
@@ -29,11 +30,25 @@ class CutsceneCmdText(CutsceneCmdBase):
 
     def getCmd(self):
         self.validateFrames()
-        return indent * 3 + (
-            f"CS_TEXT("
-            + f"{self.textId}, {self.startFrame}, {self.endFrame}, {self.type}, {self.altTextId1}, {self.altTextId2}"
-            + "),\n"
-        )
+        if is_oot_features():
+            command = (
+                f"CS_TEXT("
+                + f"{self.textId}, {self.startFrame}, {self.endFrame}, {self.type}, {self.altTextId1}, {self.altTextId2}"
+                + "),\n"
+            )
+        else:
+            command = f"{self.type}("
+            if self.type not in {"CS_TEXT_TYPE_1", "CS_TEXT_TYPE_3"}:
+                command = command.replace("_TYPE", "")
+            match self.type:
+                case "CS_TEXT_TYPE_DEFAULT" | "CS_TEXT_TYPE_1" | "CS_TEXT_TYPE_3":
+                    command += (
+                        f"{self.textId}, {self.startFrame}, {self.endFrame}, {self.altTextId1}, {self.altTextId2}"
+                    )
+                case "CS_TEXT_TYPE_BOSSES_REMAINS" | "CS_TEXT_TYPE_ALL_NORMAL_MASKS":
+                    command += f"{self.textId}, {self.startFrame}, {self.endFrame}, {self.altTextId1}"
+            command += "),\n"
+        return indent * 3 + command
 
 
 @dataclass
