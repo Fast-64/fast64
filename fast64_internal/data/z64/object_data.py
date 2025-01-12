@@ -35,11 +35,13 @@ class Z64_ObjectData:
         # list of tuples used by Blender's enum properties
         self.deletedEntry = ("None", "(Deleted from the XML)", "None")
         lastIndex = max(1, *(obj.index for obj in self.objectList))
-        self.ootEnumObjectKey = self.getObjectIDList(lastIndex + 1, False)
+        self.ootEnumObjectKey = self.getObjectIDList(lastIndex + 1, False, game)
 
         # create the legacy object list for old blends
         if game == "OOT":
-            self.ootEnumObjectIDLegacy = self.getObjectIDList(self.objects_by_key["obj_timeblock"].index + 1, True)
+            self.ootEnumObjectIDLegacy = self.getObjectIDList(
+                self.objects_by_key["obj_timeblock"].index + 1, True, game
+            )
 
             # validate the legacy list, if there's any None element then something's wrong
             if self.deletedEntry in self.ootEnumObjectIDLegacy:
@@ -47,12 +49,15 @@ class Z64_ObjectData:
         else:
             self.ootEnumObjectIDLegacy = []
 
-    def getObjectIDList(self, max: int, isLegacy: bool):
+    def getObjectIDList(self, max: int, isLegacy: bool, game: str):
         """Generates and returns the object list in the right order"""
         objList = [self.deletedEntry] * max
         for obj in self.objectList:
             if obj.index < max:
                 identifier = obj.id if isLegacy else obj.key
                 objList[obj.index] = (identifier, obj.name, obj.id)
-        objList[0] = ("Custom", "Custom Object", "Custom")
+        if game == "OOT":
+            objList[0] = ("Custom", "Custom Object", "Custom")
+        else:
+            objList.insert(0, ("Custom", "Custom Object", "Custom"))
         return objList

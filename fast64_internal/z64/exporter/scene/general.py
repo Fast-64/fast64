@@ -108,7 +108,7 @@ class SceneLighting:
         else:
             lightList = {str(i): light for i, light in enumerate(props.lightList)}
 
-        for name, lightProp in lightList.items():
+        for setting_name, lightProp in lightList.items():
             try:
                 light1 = ootGetBaseOrCustomLight(lightProp, 0, True, True)
                 light2 = ootGetBaseOrCustomLight(lightProp, 1, True, True)
@@ -127,7 +127,7 @@ class SceneLighting:
                     )
                 )
             except Exception as exc:
-                raise PluginError(f"In light settings {name}: {exc}") from exc
+                raise PluginError(f"In light settings {setting_name}: {exc}") from exc
         return SceneLighting(name, envLightMode, settings)
 
     def getCmd(self):
