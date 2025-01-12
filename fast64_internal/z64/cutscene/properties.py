@@ -388,14 +388,33 @@ class OOTCutsceneMiscProperty(OOTCutsceneCommandBase, PropertyGroup):
     type: StringProperty(default="Unknown")
 
 
+class OOTCutsceneMotionBlurPreviewProperty(OOTCutsceneCommandBase, PropertyGroup):
+    type: StringProperty(default="Unknown")
+
+
+class OOTCutsceneTransitionGeneralPreviewProperty(OOTCutsceneCommandBase, PropertyGroup):
+    type: StringProperty(default="Unknown")
+    color: FloatVectorProperty(
+        name="Color",
+        subtype="COLOR",
+        size=4,
+        min=0,
+        max=1,
+        default=(1, 1, 1, 1),
+    )
+
+
 class OOTCutscenePreviewProperty(PropertyGroup):
     transitionList: CollectionProperty(type=OOTCutsceneTransitionProperty)
     miscList: CollectionProperty(type=OOTCutsceneMiscProperty)
+    motion_blur_list: CollectionProperty(type=OOTCutsceneMotionBlurPreviewProperty)
+    transition_general_list: CollectionProperty(type=OOTCutsceneTransitionGeneralPreviewProperty)
 
     trigger: BoolProperty(default=False)  # for ``CS_TRANS_TRIGGER_INSTANCE``
     isFixedCamSet: BoolProperty(default=False)
     prevFrame: IntProperty(default=-1)
     nextFrame: IntProperty(default=1)
+    blur_reinit: BoolProperty(default=True)
 
 
 class OOTCutscenePreviewSettingsProperty(PropertyGroup):
@@ -589,6 +608,8 @@ classes = (
     OOTCSListProperty,
     OOTCutsceneTransitionProperty,
     OOTCutsceneMiscProperty,
+    OOTCutsceneMotionBlurPreviewProperty,
+    OOTCutsceneTransitionGeneralPreviewProperty,
     OOTCutscenePreviewProperty,
     OOTCutscenePreviewSettingsProperty,
     OOTCutsceneProperty,
