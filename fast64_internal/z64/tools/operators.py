@@ -319,17 +319,17 @@ class Z64_AddActorCutscenes(Operator):
 
         entry_data_map = {
             # CS Cam ID: [Priority, Length, Script Index, Additional CS ID, End SFX, Custom Value, HUD visibility, End Cam, Letterbox Size]
-            "CS_CAM_ID_GLOBAL_ITEM_OCARINA": [550, -1, -1, 1, 1, "255", 1, 1, 30],
-            "CS_CAM_ID_GLOBAL_ITEM_GET": [600, -1, -1, 2, 1, "255", 1, 1, 30],
-            "CS_CAM_ID_GLOBAL_ITEM_BOTTLE": [700, -1, -1, 3, 1, "255", 1, 1, 30],
-            "CS_CAM_ID_GLOBAL_ITEM_SHOW": [700, -1, -1, 4, 1, "255", 1, 1, 30],
-            "CS_CAM_ID_GLOBAL_WARP_PAD_MOON": [500, -1, -1, 5, 1, "255", 1, 1, 30],
-            "CS_CAM_ID_GLOBAL_MASK_TRANSFORMATION": [400, -1, -1, 6, 1, "255", 1, 1, 30],
-            "CS_CAM_ID_GLOBAL_DEATH": [100, -1, -1, 7, 1, "255", 1, 1, 30],
-            "CS_CAM_ID_GLOBAL_REVIVE": [200, -1, -1, 8, 1, "255", 1, 1, 30],
-            "CS_CAM_ID_GLOBAL_SONG_WARP": [700, -1, -1, 9, 1, "255", 1, 1, 30],
-            "CS_CAM_ID_GLOBAL_WARP_PAD_ENTRANCE": [700, -1, -1, 10, 1, "255", 1, 1, 30],
-            "CS_CAM_ID_GLOBAL_LONG_CHEST_OPENING": [700, -1, -1, -1, 1, "255", 1, 1, 30],
+            "CS_CAM_ID_GLOBAL_ITEM_OCARINA": [550, -1, -1, 1, 1, "255", 1, 1, 27],
+            "CS_CAM_ID_GLOBAL_ITEM_GET": [600, -1, -1, 2, 1, "255", 1, 1, 27],
+            "CS_CAM_ID_GLOBAL_ITEM_BOTTLE": [700, -1, -1, 3, 1, "255", 1, 2, 27],
+            "CS_CAM_ID_GLOBAL_ITEM_SHOW": [700, -1, -1, 4, 1, "255", 1, 1, 27],
+            "CS_CAM_ID_GLOBAL_WARP_PAD_MOON": [500, -1, -1, 5, 1, "255", 1, 1, 27],
+            "CS_CAM_ID_GLOBAL_MASK_TRANSFORMATION": [400, -1, -1, 6, 1, "255", 1, 2, 32],
+            "CS_CAM_ID_GLOBAL_DEATH": [100, -1, -1, 7, 1, "255", 1, 1, 32],
+            "CS_CAM_ID_GLOBAL_REVIVE": [200, -1, -1, 8, 1, "255", 1, 1, 32],
+            "CS_CAM_ID_GLOBAL_SONG_WARP": [700, -1, -1, 9, 1, "255", 1, 1, 32],
+            "CS_CAM_ID_GLOBAL_WARP_PAD_ENTRANCE": [700, -1, -1, 10, 1, "255", 1, 1, 32],
+            "CS_CAM_ID_GLOBAL_LONG_CHEST_OPENING": [900, 135, -1, -1, 1, "1", 1, 1, 32],
         }
 
         for cs_cam_id, data in entry_data_map.items():
