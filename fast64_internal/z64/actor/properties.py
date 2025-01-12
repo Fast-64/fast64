@@ -609,7 +609,7 @@ class Z64_TransitionActorProperty(PropertyGroup):
         paramBox = actorIDBox.box()
         paramBox.label(text="Actor Parameter")
 
-        if self.actor.actor_id != "Custom":
+        if is_oot_features() and self.actor.actor_id != "Custom":
             paramBox.prop(self.actor, "eval_params")
             paramBox.prop(self.actor, "params", text="")
         else:
@@ -672,7 +672,7 @@ class Z64_EntranceProperty(PropertyGroup):
         paramBox = box.box()
         paramBox.label(text="Actor Parameter")
 
-        if not self.customActor:
+        if is_oot_features() and not self.customActor:
             paramBox.prop(self.actor, "eval_params")
             paramBox.prop(self.actor, "params", text="")
         else:
