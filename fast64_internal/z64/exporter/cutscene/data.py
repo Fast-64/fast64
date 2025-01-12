@@ -5,12 +5,20 @@ from copy import copy
 from dataclasses import dataclass, field
 from typing import Optional, TYPE_CHECKING
 from bpy.types import Object, Bone
-from ....utility import PluginError
+from ....utility import PluginError, exportColor
 from ....game_data import game_data
 from ...utility import is_oot_features
 from .actor_cue import CutsceneCmdActorCueList, CutsceneCmdActorCue
-from .seq import CutsceneCmdStartStopSeqList, CutsceneCmdFadeSeqList, CutsceneCmdStartStopSeq, CutsceneCmdFadeSeq
 from .text import CutsceneCmdTextList, CutsceneCmdText, CutsceneCmdTextNone, CutsceneCmdTextOcarinaAction
+
+from .seq import (
+    CutsceneCmdStartStopSeqList,
+    CutsceneCmdFadeSeqList,
+    CutsceneCmdStartStopSeq,
+    CutsceneCmdFadeSeq,
+    CutsceneCmdModifySeq,
+    CutsceneCmdModifySeqList,
+)
 
 from .misc import (
     CutsceneCmdLightSetting,
@@ -24,6 +32,13 @@ from .misc import (
     CutsceneCmdTransitionList,
     CutsceneCmdLightSettingList,
     CutsceneCmdTimeList,
+    CutsceneCmdMotionBlur,
+    CutsceneCmdMotionBlurList,
+    CutsceneCmdChooseCreditsScenes,
+    CutsceneCmdChooseCreditsScenesList,
+    CutsceneCmdTransitionGeneral,
+    CutsceneCmdTransitionGeneralList,
+    CutsceneCmdGiveTatl,
 )
 
 from .camera import (
@@ -58,6 +73,10 @@ cmdToClass = {
     "StopSeq": CutsceneCmdStartStopSeq,
     "FadeOutSeq": CutsceneCmdFadeSeq,
     "Transition": CutsceneCmdTransitionList,
+    "MotionBlurList": CutsceneCmdMotionBlurList,
+    "CreditsSceneList": CutsceneCmdChooseCreditsScenesList,
+    "TransitionGeneralList": CutsceneCmdTransitionGeneralList,
+    "ModifySeqList": CutsceneCmdModifySeqList,
 }
 
 cmdToList = {
@@ -67,6 +86,10 @@ cmdToList = {
     "MiscList": "miscList",
     "RumbleList": "rumbleList",
     "Transition": "transitionList",
+    "MotionBlurList": "motion_blur_list",
+    "CreditsSceneList": "credits_scene_list",
+    "TransitionGeneralList": "transition_general_list",
+    "ModifySeqList": "modify_seq_list",
 }
 
 
@@ -82,6 +105,7 @@ class CutsceneData:
         self.motionFrameCount: int = 0
         self.camEndFrame: int = 0
         self.destination: Optional[CutsceneCmdDestination] = None
+        self.give_tatl: Optional[CutsceneCmdGiveTatl] = None
         self.actorCueList: list[CutsceneCmdActorCueList] = []
         self.playerCueList: list[CutsceneCmdActorCueList] = []
         self.camEyeSplineList: list[CutsceneCmdCamEyeSpline] = []
@@ -101,12 +125,11 @@ class CutsceneData:
 
         # lists from the new cutscene system
         self.camSplineList: list[CutsceneCmdCamSplineList] = []
-        # self.destinationListNew: list[CutsceneCmdDestinationList] = []
-        # self.motionBlurList: list[CutsceneCmdMotionBlurList] = []
-        # self.modifySeqList: list[CutsceneCmdModifySeqList] = []
-        # self.creditsSceneList: list[CutsceneCmdChooseCreditsScenesList] = []
-        # self.transitionGeneralList: list[CutsceneCmdTransitionGeneralList] = []
-        # self.giveTatlList: list[CutsceneCmdGiveTatlList] = []
+        self.motion_blur_list: list[CutsceneCmdMotionBlurList] = []
+        self.modify_seq_list: list[CutsceneCmdModifySeqList] = []
+        self.credits_scene_list: list[CutsceneCmdChooseCreditsScenesList] = []
+        self.transition_general_list: list[CutsceneCmdTransitionGeneralList] = []
+        # self.give_tatl_list: list[CutsceneCmdGiveTatlList] = []
 
     @staticmethod
     def new(csObj: Object, useMacros: bool, motionOnly: bool):
@@ -449,13 +472,29 @@ class CutsceneData:
         if csProp.csUseDestination:
             self.destination = CutsceneCmdDestination(
                 csProp.csDestinationStartFrame,
-                None,
+                csProp.csDestinationStartFrame + 1,
                 self.getEnumValueFromProp("cs_destination", csProp, "csDestination"),
+            )
+            self.totalEntries += 1
+
+        if not is_oot_features() and csProp.cs_give_tatl:
+            self.give_tatl = CutsceneCmdGiveTatl(
+                csProp.cs_give_tatl_start_frame,
+                csProp.cs_give_tatl_start_frame + 1,
+                "true" if csProp.cs_give_tatl else "false",
             )
             self.totalEntries += 1
 
         self.frameCount = csProp.csEndFrame
         self.totalEntries += len(csProp.csLists)
+
+        prop_map = {
+            "Transition": "transition_list",
+            "MotionBlurList": "motion_blur_list",
+            "CreditsSceneList": "credits_scene_list",
+            "TransitionGeneralList": "trans_general_list",
+            "ModifySeqList": "mod_seq_list",
+        }
 
         for entry in csProp.csLists:
             match entry.listType:
@@ -478,8 +517,8 @@ class CutsceneData:
                     else:
                         self.seqList.append(cmdList)
                 case _:
-                    if entry.listType == "Transition":
-                        prop_name = "transition_list"
+                    if entry.listType in prop_map.keys():
+                        prop_name = prop_map[entry.listType]
                         cmdList = cmdToClass[entry.listType](None, None, 0)
                     else:
                         prop_name = entry.listType[0].lower() + entry.listType[1:]
@@ -488,6 +527,39 @@ class CutsceneData:
                     cmdList.entryTotal = len(curList)
                     for elem in curList:
                         match entry.listType:
+                            case "ModifySeqList":
+                                cmdList.entries.append(
+                                    CutsceneCmdModifySeq(
+                                        elem.startFrame,
+                                        elem.startFrame + 1,
+                                        self.getEnumValueFromProp("cs_modify_seq_type", elem, "mod_seq_type"),
+                                    )
+                                )
+                            case "CreditsSceneList":
+                                cmdList.entries.append(
+                                    CutsceneCmdChooseCreditsScenes(
+                                        elem.startFrame,
+                                        elem.startFrame + 1,
+                                        self.getEnumValueFromProp("cs_credits_scene_type", elem, "credits_scene_type"),
+                                    )
+                                )
+                            case "TransitionGeneralList":
+                                cmdList.entries.append(
+                                    CutsceneCmdTransitionGeneral(
+                                        elem.startFrame,
+                                        elem.endFrame,
+                                        self.getEnumValueFromProp("cs_transition_general", elem, "trans_general_type"),
+                                        exportColor(elem.trans_color[0:3]),
+                                    )
+                                )
+                            case "MotionBlurList":
+                                cmdList.entries.append(
+                                    CutsceneCmdMotionBlur(
+                                        elem.startFrame,
+                                        elem.endFrame,
+                                        self.getEnumValueFromProp("cs_motion_blur_type", elem, "blur_type"),
+                                    )
+                                )
                             case "Transition":
                                 cmdList.entries.append(
                                     CutsceneCmdTransition(

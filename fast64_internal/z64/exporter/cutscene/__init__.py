@@ -88,6 +88,10 @@ class Cutscene:
                         "timeList",
                         "seqList",
                         "fadeSeqList",
+                        "motion_blur_list",
+                        "credits_scene_list",
+                        "transition_general_list",
+                        "modify_seq_list",
                     ]
                 )
 
@@ -135,6 +139,7 @@ class Cutscene:
                 + " = {\n"
                 + (indent + f"{cs_header}({self.totalEntries}, {self.frameCount}),\n")
                 + (self.data.destination.getCmd() if self.data.destination is not None else "")
+                + (self.data.give_tatl.getCmd() if self.data.give_tatl is not None else "")
                 + "".join(entry.getCmd() for curList in dataListNames for entry in getattr(self.data, curList))
                 + (indent + f"{cs_end}(),\n")
                 + "};\n\n"

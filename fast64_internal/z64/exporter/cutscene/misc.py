@@ -12,7 +12,6 @@ class CutsceneCmdMisc(CutsceneCmdBase):
     """This class contains a single misc command entry"""
 
     type: str  # see ``CutsceneMiscType`` in decomp
-
     paramNumber: int = field(init=False, default=14)
 
     @staticmethod
@@ -33,7 +32,6 @@ class CutsceneCmdLightSetting(CutsceneCmdBase):
 
     isLegacy: bool
     lightSetting: int
-
     paramNumber: int = field(init=False, default=11)
 
     @staticmethod
@@ -55,7 +53,6 @@ class CutsceneCmdTime(CutsceneCmdBase):
 
     hour: int
     minute: int
-
     paramNumber: int = field(init=False, default=5)
 
     @staticmethod
@@ -80,7 +77,6 @@ class CutsceneCmdRumbleController(CutsceneCmdBase):
     duration: int
     decreaseRate: int
     type: Optional[str]
-
     paramNumber: int = field(init=False, default=8)
 
     @staticmethod
@@ -207,19 +203,26 @@ class CutsceneCmdDestination(CutsceneCmdBase):
     """This class contains Destination command data"""
 
     id: str
-
     paramNumber: int = field(init=False, default=3)
     listName: str = field(init=False, default="destination")
 
     @staticmethod
     def from_params(params: list[str]):
         return CutsceneCmdDestination(
-            getInteger(params[1]), None, CutsceneCmdBase.getEnumValue("cs_destination", params[0])
+            getInteger(params[1]), getInteger(params[2]), CutsceneCmdBase.getEnumValue("cs_destination", params[0])
         )
 
     def getCmd(self):
         self.validateFrames(False)
-        return indent * 2 + f"CS_DESTINATION({self.id}, {self.startFrame}, 0),\n"
+        if is_oot_features():
+            return indent * 2 + f"CS_DESTINATION({self.id}, {self.startFrame}, {self.endFrame}),\n"
+        else:
+            return (
+                indent * 2
+                + f"CS_DESTINATION_LIST(1),\n"
+                + indent * 3
+                + f"CS_DESTINATION({self.id}, {self.startFrame}, {self.endFrame}),\n"
+            )
 
 
 @dataclass
@@ -227,7 +230,6 @@ class CutsceneCmdTransition(CutsceneCmdBase):
     """This class contains Transition command data"""
 
     type: str
-
     paramNumber: int = field(init=False, default=3)
 
     @staticmethod
@@ -247,7 +249,6 @@ class CutsceneCmdTransitionList(CutsceneCmdBase):
 
     entryTotal: int
     entries: list[CutsceneCmdTransition] = field(default_factory=list)
-
     paramNumber: int = 1
     listName: str = "transitionList"
 
@@ -259,6 +260,155 @@ class CutsceneCmdTransitionList(CutsceneCmdBase):
         if game_data.z64.is_oot():
             return "".join(entry.to_c() for entry in self.entries)
         else:
-            return (indent * 2 + f"CS_TRANSITION_LIST({len(self.entries)}),\n") + "".join(
-                entry.to_c() for entry in self.entries
+            return (
+                indent * 2
+                + f"CS_TRANSITION_LIST({len(self.entries)}),\n"
+                + "".join(entry.to_c() for entry in self.entries)
             )
+
+
+@dataclass
+class CutsceneCmdMotionBlur(CutsceneCmdBase):
+    """This class contains motion blur command data"""
+
+    type: str
+    paramNumber: int = 3
+
+    @staticmethod
+    def from_params(params: list[str]):
+        return CutsceneCmdMotionBlur(
+            CutsceneCmdBase.getEnumValue("cs_motion_blur_type", params[0]),
+            getInteger(params[1]),
+            getInteger(params[2]),
+        )
+
+    def to_c(self):
+        return indent * 3 + f"CS_MOTION_BLUR({self.type}, {self.startFrame}, {self.endFrame}),\n"
+
+
+@dataclass
+class CutsceneCmdMotionBlurList(CutsceneCmdBase):
+    """This class contains motion blur list command data"""
+
+    entryTotal: int
+    entries: list[CutsceneCmdMotionBlur] = field(default_factory=list)
+    paramNumber: int = 1
+    listName: str = "motion_blur_list"
+
+    @staticmethod
+    def from_params(params: list[str]):
+        return CutsceneCmdMotionBlurList(getInteger(params[0]))
+
+    def getCmd(self):
+        return (
+            indent * 2
+            + f"CS_MOTION_BLUR_LIST({len(self.entries)}),\n"
+            + "".join(entry.to_c() for entry in self.entries)
+        )
+
+
+@dataclass
+class CutsceneCmdChooseCreditsScenes(CutsceneCmdBase):
+    """This class contains choose credits scenes command data"""
+
+    type: str
+    paramNumber: int = 3
+
+    @staticmethod
+    def from_params(params: list[str]):
+        return CutsceneCmdChooseCreditsScenes(
+            CutsceneCmdBase.getEnumValue("cs_credits_scene_type", params[0]),
+            getInteger(params[1]),
+            getInteger(params[2]),
+        )
+
+    def to_c(self):
+        return indent * 3 + f"CS_CHOOSE_CREDITS_SCENES({self.type}, {self.startFrame}, {self.endFrame}),\n"
+
+
+@dataclass
+class CutsceneCmdChooseCreditsScenesList(CutsceneCmdBase):
+    """This class contains choose credits scenes list command data"""
+
+    entryTotal: int
+    entries: list[CutsceneCmdChooseCreditsScenes] = field(default_factory=list)
+    paramNumber: int = 1
+    listName: str = "credits_scene_list"
+
+    @staticmethod
+    def from_params(params: list[str]):
+        return CutsceneCmdChooseCreditsScenesList(getInteger(params[0]))
+
+    def getCmd(self):
+        return (
+            indent * 2
+            + f"CS_CHOOSE_CREDITS_SCENES_LIST({len(self.entries)}),\n"
+            + "".join(entry.to_c() for entry in self.entries)
+        )
+
+
+@dataclass
+class CutsceneCmdTransitionGeneral(CutsceneCmdBase):
+    """This class contains transition general command data"""
+
+    type: str
+    rgb: list[int]
+    paramNumber: int = 6
+
+    @staticmethod
+    def from_params(params: list[str]):
+        return CutsceneCmdTransitionGeneral(
+            getInteger(params[1]),
+            getInteger(params[2]),
+            CutsceneCmdBase.getEnumValue("cs_transition_general", 0),
+            [getInteger(params[3]), getInteger(params[4]), getInteger(params[5])],
+        )
+
+    def to_c(self):
+        color = ", ".join(f"{c}" for c in self.rgb)
+        return indent * 3 + f"CS_TRANSITION_GENERAL({self.type}, {self.startFrame}, {self.endFrame}, {color}),\n"
+
+
+@dataclass
+class CutsceneCmdTransitionGeneralList(CutsceneCmdBase):
+    """This class contains transition general list command data"""
+
+    entryTotal: int
+    entries: list[CutsceneCmdTransitionGeneral] = field(default_factory=list)
+    paramNumber: int = 1
+    listName: str = "transition_general_list"
+
+    @staticmethod
+    def from_params(params: list[str]):
+        return CutsceneCmdTransitionGeneralList(getInteger(params[0]))
+
+    def getCmd(self):
+        return (
+            indent * 2
+            + f"CS_TRANSITION_GENERAL_LIST({len(self.entries)}),\n"
+            + "".join(entry.to_c() for entry in self.entries)
+        )
+
+
+@dataclass
+class CutsceneCmdGiveTatl(CutsceneCmdBase):
+    """This class contains give tatl command data"""
+
+    giveTatl: bool
+    paramNumber: int = 3
+
+    @staticmethod
+    def from_params(params: list[str]):
+        return CutsceneCmdGiveTatl(
+            getInteger(params[1]),
+            getInteger(params[2]),
+            params[0] in {"true", "1"},
+        )
+
+    def getCmd(self):
+        return (
+            indent * 2
+            + f"CS_GIVE_TATL_LIST(1),\n"
+            + indent * 3
+            + f"CS_GIVE_TATL({self.giveTatl}, {self.startFrame}, {self.endFrame}),\n"
+        )

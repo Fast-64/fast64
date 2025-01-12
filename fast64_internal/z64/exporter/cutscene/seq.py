@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Optional
-from ....utility import PluginError
+from ....utility import PluginError, indent
 from ...cutscene.motion.utility import getInteger
 from .common import CutsceneCmdBase
 
@@ -90,4 +90,42 @@ class CutsceneCmdFadeSeqList(CutsceneCmdBase):
             raise PluginError("ERROR: Entry list is empty!")
         return self.getGenericListCmd("CS_FADE_OUT_SEQ_LIST", self.entryTotal) + "".join(
             entry.getCmd() for entry in self.entries
+        )
+
+
+@dataclass
+class CutsceneCmdModifySeq(CutsceneCmdBase):
+    """This class contains modify seq command data"""
+
+    type: str
+    paramNumber: int = 3
+
+    @staticmethod
+    def from_params(params: list[str], enumKey: str):
+        return CutsceneCmdModifySeq(
+            getInteger(params[1]), getInteger(params[2]), CutsceneCmdBase.getEnumValue("cs_modify_seq_type", params[0])
+        )
+
+    def to_c(self):
+        return indent * 3 + f"CS_MODIFY_SEQ({self.type}, {self.startFrame}, {self.endFrame}),\n"
+
+
+@dataclass
+class CutsceneCmdModifySeqList(CutsceneCmdBase):
+    """This class contains modify seq list command data"""
+
+    entryTotal: int
+    entries: list[CutsceneCmdModifySeq] = field(default_factory=list)
+    paramNumber: int = 1
+    listName: str = "modifySeqList"
+
+    @staticmethod
+    def from_params(params: list[str]):
+        new = CutsceneCmdModifySeqList()
+        new.entryTotal = getInteger(params[0])
+        return new
+
+    def getCmd(self):
+        return (
+            indent * 2 + f"CS_MODIFY_SEQ_LIST({len(self.entries)}),\n" + "".join(entry.to_c() for entry in self.entries)
         )
