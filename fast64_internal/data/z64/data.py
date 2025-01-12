@@ -507,31 +507,37 @@ mm_enum_camera_setting_type = [
 
 # order here sets order on the UI
 ootEnumCSListType = [
+    # Col 1
     ("TextList", "Text List", "Textbox", "ALIGN_BOTTOM", 0),
     ("MiscList", "Misc List", "Misc", "OPTIONS", 7),
     ("RumbleList", "Rumble List", "Rumble Controller", "OUTLINER_OB_FORCE_FIELD", 8),
+    # Col 2
     ("Transition", "Transition List", "Transition List", "COLORSET_10_VEC", 1),
     ("LightSettingsList", "Light Settings List", "Lighting", "LIGHT_SUN", 2),
     ("TimeList", "Time List", "Time", "TIME", 3),
+    # Col 3
     ("StartSeqList", "Start Seq List", "Play BGM", "PLAY", 4),
     ("StopSeqList", "Stop Seq List", "Stop BGM", "SNAP_FACE", 5),
     ("FadeOutSeqList", "Fade-Out Seq List", "Fade BGM", "IPO_EASE_IN_OUT", 6),
 ]
 
 mm_enum_cs_list_type = [
+    # Col 1
     ("TextList", "Text List", "Textbox", "ALIGN_BOTTOM", 0),
     ("MiscList", "Misc List", "Misc", "OPTIONS", 7),
     ("RumbleList", "Rumble List", "Rumble Controller", "OUTLINER_OB_FORCE_FIELD", 8),
+    ("MotionBlurList", "Motion Blur List", "Motion Blur", "ONIONSKIN_ON", 9),
+    ("CreditsSceneList", "Choose Credits Scene List", "Choose Credits Scene", "WORLD", 11),
+    # Col 2
     ("Transition", "Transition", "Transition", "COLORSET_10_VEC", 1),
     ("LightSettingsList", "Light Settings List", "Lighting", "LIGHT_SUN", 2),
     ("TimeList", "Time List", "Time", "TIME", 3),
+    ("TransitionGeneralList", "Transition General List", "Transition General", "COLORSET_06_VEC", 12),
+    ("ModifySeqList", "Modify Seq List", "Modify Seq", "IPO_CONSTANT", 10),
+    # Col 3
     ("StartSeqList", "Start Seq List", "Play BGM", "PLAY", 4),
     ("StopSeqList", "Stop Seq List", "Stop BGM", "SNAP_FACE", 5),
     ("FadeOutSeqList", "Fade-Out Seq List", "Fade BGM", "IPO_EASE_IN_OUT", 6),
-    ("MotionBlurList", "Motion Blur List", "Motion Blur", "ONIONSKIN_ON", 9),
-    ("ModifySeqList", "Modify Seq List", "Modify Seq", "IPO_CONSTANT", 10),
-    ("CreditsSceneList", "Choose Credits Scene List", "Choose Credits Scene", "WORLD", 11),
-    ("TransitionGeneralList", "Transition General List", "Transition General", "COLORSET_06_VEC", 12),
     ("StartAmbienceList", "Start Ambience List", "Start Ambience", "SNAP_FACE", 13),
     ("FadeOutAmbienceList", "Fade-Out Ambience List", "Fade-Out Ambience", "IPO_EASE_IN_OUT", 14),
 ]

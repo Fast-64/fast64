@@ -555,10 +555,11 @@ class OOTCutsceneProperty(PropertyGroup):
             if self.csDestination == "Custom":
                 prop_split(layout_custom.column(), self, "csDestinationCustom", "Cutscene Destination Custom")
 
-        b = commandsBox.box()
-        b.prop(self, "cs_give_tatl")
-        if self.cs_give_tatl:
-            b.prop(self, "cs_give_tatl_start_frame")
+        if not is_oot_features():
+            b = commandsBox.box()
+            b.prop(self, "cs_give_tatl")
+            if self.cs_give_tatl:
+                b.prop(self, "cs_give_tatl_start_frame")
 
         commandsBox.column_flow(columns=3, align=True).prop(self, "menuTab", expand=True)
         label = f"Add New {ootCSSubPropToName[self.menuTab]}"
