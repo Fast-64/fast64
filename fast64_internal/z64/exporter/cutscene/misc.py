@@ -109,7 +109,7 @@ class CutsceneCmdRumbleController(CutsceneCmdBase):
 class CutsceneCmdMiscList(CutsceneCmdBase):
     """This class contains Misc command data"""
 
-    entryTotal: Optional[int] = field(init=False, default=None)
+    entryTotal: int = field(init=False, default=0)
     entries: list[CutsceneCmdMisc] = field(init=False, default_factory=list)
     paramNumber: int = field(init=False, default=1)
     listName: str = field(init=False, default="miscList")
@@ -132,7 +132,7 @@ class CutsceneCmdMiscList(CutsceneCmdBase):
 class CutsceneCmdLightSettingList(CutsceneCmdBase):
     """This class contains Light Setting List command data"""
 
-    entryTotal: Optional[int] = field(init=False, default=None)
+    entryTotal: int = field(init=False, default=0)
     entries: list[CutsceneCmdLightSetting] = field(init=False, default_factory=list)
     paramNumber: int = field(init=False, default=1)
     listName: str = field(init=False, default="lightSettingsList")
@@ -155,7 +155,7 @@ class CutsceneCmdLightSettingList(CutsceneCmdBase):
 class CutsceneCmdTimeList(CutsceneCmdBase):
     """This class contains Time List command data"""
 
-    entryTotal: Optional[int] = field(init=False, default=None)
+    entryTotal: int = field(init=False, default=0)
     entries: list[CutsceneCmdTime] = field(init=False, default_factory=list)
     paramNumber: int = field(init=False, default=1)
     listName: str = field(init=False, default="timeList")
@@ -178,7 +178,7 @@ class CutsceneCmdTimeList(CutsceneCmdBase):
 class CutsceneCmdRumbleControllerList(CutsceneCmdBase):
     """This class contains Rumble Controller List command data"""
 
-    entryTotal: Optional[int] = field(init=False, default=None)
+    entryTotal: int = field(init=False, default=0)
     entries: list[CutsceneCmdRumbleController] = field(init=False, default_factory=list)
     paramNumber: int = field(init=False, default=1)
     listName: str = field(init=False, default="rumbleList")
@@ -247,10 +247,10 @@ class CutsceneCmdTransition(CutsceneCmdBase):
 class CutsceneCmdTransitionList(CutsceneCmdBase):
     """This class contains Transition list command data"""
 
-    entryTotal: int
+    entryTotal: int = field(init=False, default=0)
     entries: list[CutsceneCmdTransition] = field(default_factory=list)
-    paramNumber: int = 1
-    listName: str = "transitionList"
+    paramNumber: int = field(init=False, default=1)
+    listName: str = field(init=False, default="transitionList")
 
     @staticmethod
     def from_params(params: list[str]):
@@ -272,7 +272,7 @@ class CutsceneCmdMotionBlur(CutsceneCmdBase):
     """This class contains motion blur command data"""
 
     type: str
-    paramNumber: int = 3
+    paramNumber: int = field(init=False, default=3)
 
     @staticmethod
     def from_params(params: list[str]):
@@ -290,10 +290,10 @@ class CutsceneCmdMotionBlur(CutsceneCmdBase):
 class CutsceneCmdMotionBlurList(CutsceneCmdBase):
     """This class contains motion blur list command data"""
 
-    entryTotal: int
+    entryTotal: int = field(init=False, default=0)
     entries: list[CutsceneCmdMotionBlur] = field(default_factory=list)
-    paramNumber: int = 1
-    listName: str = "motion_blur_list"
+    paramNumber: int = field(init=False, default=1)
+    listName: str = field(init=False, default="motion_blur_list")
 
     @staticmethod
     def from_params(params: list[str]):
@@ -312,7 +312,7 @@ class CutsceneCmdChooseCreditsScenes(CutsceneCmdBase):
     """This class contains choose credits scenes command data"""
 
     type: str
-    paramNumber: int = 3
+    paramNumber: int = field(init=False, default=3)
 
     @staticmethod
     def from_params(params: list[str]):
@@ -330,10 +330,10 @@ class CutsceneCmdChooseCreditsScenes(CutsceneCmdBase):
 class CutsceneCmdChooseCreditsScenesList(CutsceneCmdBase):
     """This class contains choose credits scenes list command data"""
 
-    entryTotal: int
+    entryTotal: int = field(init=False, default=0)
     entries: list[CutsceneCmdChooseCreditsScenes] = field(default_factory=list)
-    paramNumber: int = 1
-    listName: str = "credits_scene_list"
+    paramNumber: int = field(init=False, default=1)
+    listName: str = field(init=False, default="credits_scene_list")
 
     @staticmethod
     def from_params(params: list[str]):
@@ -353,7 +353,7 @@ class CutsceneCmdTransitionGeneral(CutsceneCmdBase):
 
     type: str
     rgb: list[int]
-    paramNumber: int = 6
+    paramNumber: int = field(init=False, default=6)
 
     @staticmethod
     def from_params(params: list[str]):
@@ -373,10 +373,10 @@ class CutsceneCmdTransitionGeneral(CutsceneCmdBase):
 class CutsceneCmdTransitionGeneralList(CutsceneCmdBase):
     """This class contains transition general list command data"""
 
-    entryTotal: int
+    entryTotal: int = field(init=False, default=0)
     entries: list[CutsceneCmdTransitionGeneral] = field(default_factory=list)
-    paramNumber: int = 1
-    listName: str = "transition_general_list"
+    paramNumber: int = field(init=False, default=1)
+    listName: str = field(init=False, default="transition_general_list")
 
     @staticmethod
     def from_params(params: list[str]):
@@ -395,7 +395,7 @@ class CutsceneCmdGiveTatl(CutsceneCmdBase):
     """This class contains give tatl command data"""
 
     giveTatl: bool
-    paramNumber: int = 3
+    paramNumber: int = field(init=False, default=3)
 
     @staticmethod
     def from_params(params: list[str]):

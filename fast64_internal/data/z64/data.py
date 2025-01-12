@@ -532,6 +532,8 @@ mm_enum_cs_list_type = [
     ("ModifySeqList", "Modify Seq List", "Modify Seq", "IPO_CONSTANT", 10),
     ("CreditsSceneList", "Choose Credits Scene List", "Choose Credits Scene", "WORLD", 11),
     ("TransitionGeneralList", "Transition General List", "Transition General", "COLORSET_06_VEC", 12),
+    ("StartAmbienceList", "Start Ambience List", "Start Ambience", "SNAP_FACE", 13),
+    ("FadeOutAmbienceList", "Fade-Out Ambience List", "Fade-Out Ambience", "IPO_EASE_IN_OUT", 14),
 ]
 
 # ---

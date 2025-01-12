@@ -67,6 +67,8 @@ csListTypeToIcon = {
     "ModifySeqList": "IPO_CONSTANT",
     "CreditsSceneList": "WORLD",
     "TransitionGeneralList": "COLORSET_06_VEC",
+    "StartAmbienceList": "SNAP_FACE",
+    "FadeOutAmbienceList": "IPO_EASE_IN_OUT",
 }
 
 ootEnumCSTextboxType = [
@@ -136,6 +138,8 @@ ootCSSubPropToName = {
     "ModifySeqList": "Modify Seq List",
     "CreditsSceneList": "Choose Credits Scene List",
     "TransitionGeneralList": "Transition General List",
+    "StartAmbienceList": "Start Ambience List",
+    "FadeOutAmbienceList": "Fade-Out Ambience List",
 }
 
 ootEnumCSMotionCamMode = [

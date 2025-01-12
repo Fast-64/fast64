@@ -98,7 +98,7 @@ class CutsceneCmdModifySeq(CutsceneCmdBase):
     """This class contains modify seq command data"""
 
     type: str
-    paramNumber: int = 3
+    paramNumber: int = field(init=False, default=3)
 
     @staticmethod
     def from_params(params: list[str], enumKey: str):
@@ -114,10 +114,10 @@ class CutsceneCmdModifySeq(CutsceneCmdBase):
 class CutsceneCmdModifySeqList(CutsceneCmdBase):
     """This class contains modify seq list command data"""
 
-    entryTotal: int
+    entryTotal: int = field(init=False, default=0)
     entries: list[CutsceneCmdModifySeq] = field(default_factory=list)
-    paramNumber: int = 1
-    listName: str = "modifySeqList"
+    paramNumber: int = field(init=False, default=1)
+    listName: str = field(init=False, default="modify_seq_list")
 
     @staticmethod
     def from_params(params: list[str]):
@@ -128,4 +128,78 @@ class CutsceneCmdModifySeqList(CutsceneCmdBase):
     def getCmd(self):
         return (
             indent * 2 + f"CS_MODIFY_SEQ_LIST({len(self.entries)}),\n" + "".join(entry.to_c() for entry in self.entries)
+        )
+
+
+@dataclass
+class CutsceneCmdStartAmbience(CutsceneCmdBase):
+    """This class contains modify seq command data"""
+
+    paramNumber: int = field(init=False, default=3)
+
+    @staticmethod
+    def from_params(params: list[str], enumKey: str):
+        return CutsceneCmdStartAmbience(getInteger(params[1]), getInteger(params[2]))
+
+    def to_c(self):
+        return indent * 3 + f"CS_START_AMBIENCE(0, {self.startFrame}, {self.endFrame}),\n"
+
+
+@dataclass
+class CutsceneCmdStartAmbienceList(CutsceneCmdBase):
+    """This class contains modify seq list command data"""
+
+    entryTotal: int = field(init=False, default=0)
+    entries: list[CutsceneCmdStartAmbience] = field(default_factory=list)
+    paramNumber: int = field(init=False, default=1)
+    listName: str = field(init=False, default="start_ambience_list")
+
+    @staticmethod
+    def from_params(params: list[str]):
+        new = CutsceneCmdStartAmbienceList()
+        new.entryTotal = getInteger(params[0])
+        return new
+
+    def getCmd(self):
+        return (
+            indent * 2
+            + f"CS_START_AMBIENCE_LIST({len(self.entries)}),\n"
+            + "".join(entry.to_c() for entry in self.entries)
+        )
+
+
+@dataclass
+class CutsceneCmdFadeOutAmbience(CutsceneCmdBase):
+    """This class contains modify seq command data"""
+
+    paramNumber: int = field(init=False, default=3)
+
+    @staticmethod
+    def from_params(params: list[str], enumKey: str):
+        return CutsceneCmdFadeOutAmbience(getInteger(params[1]), getInteger(params[2]))
+
+    def to_c(self):
+        return indent * 3 + f"CS_FADE_OUT_AMBIENCE(0, {self.startFrame}, {self.endFrame}),\n"
+
+
+@dataclass
+class CutsceneCmdFadeOutAmbienceList(CutsceneCmdBase):
+    """This class contains modify seq list command data"""
+
+    entryTotal: int = field(init=False, default=0)
+    entries: list[CutsceneCmdFadeOutAmbience] = field(default_factory=list)
+    paramNumber: int = field(init=False, default=1)
+    listName: str = field(init=False, default="fade_out_ambience_list")
+
+    @staticmethod
+    def from_params(params: list[str]):
+        new = CutsceneCmdFadeOutAmbienceList()
+        new.entryTotal = getInteger(params[0])
+        return new
+
+    def getCmd(self):
+        return (
+            indent * 2
+            + f"CS_FADE_OUT_AMBIENCE_LIST({len(self.entries)}),\n"
+            + "".join(entry.to_c() for entry in self.entries)
         )

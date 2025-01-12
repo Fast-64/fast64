@@ -182,8 +182,14 @@ class OOTCSSeqProperty(OOTCutsceneCommon, PropertyGroup):
     csSeqPlayerCustom: StringProperty(default="CS_FADE_OUT_CUSTOM")
 
     def filterProp(self, name, listProp):
-        types = {"FadeOutSeqList", "StopSeqList"} if game_data.z64.is_mm() else {"FadeOutSeqList"}
-        return name != "endFrame" or listProp.listType in types
+        if game_data.z64.is_mm():
+            types = {"FadeOutSeqList", "StopSeqList", "StartAmbienceList", "FadeOutAmbienceList"}
+        else:
+            types = {"FadeOutSeqList"}
+        if "Ambience" in listProp.listType and listProp.listType in types:
+            return name != "csSeqID"
+        else:
+            return name != "endFrame" or listProp.listType in types
 
     def filterName(self, name, listProp):
         if name == "csSeqID" and listProp.listType == "FadeOutSeqList":
@@ -309,7 +315,13 @@ class OOTCSListProperty(PropertyGroup):
             attrName = "lightSettingsList"
         elif self.listType == "TimeList":
             attrName = "timeList"
-        elif self.listType in ["StartSeqList", "StopSeqList", "FadeOutSeqList"]:
+        elif self.listType in [
+            "StartSeqList",
+            "StopSeqList",
+            "FadeOutSeqList",
+            "StartAmbienceList",
+            "FadeOutAmbienceList",
+        ]:
             attrName = "seqList"
         elif self.listType == "MiscList":
             attrName = "miscList"

@@ -18,6 +18,10 @@ from .seq import (
     CutsceneCmdFadeSeq,
     CutsceneCmdModifySeq,
     CutsceneCmdModifySeqList,
+    CutsceneCmdStartAmbience,
+    CutsceneCmdStartAmbienceList,
+    CutsceneCmdFadeOutAmbience,
+    CutsceneCmdFadeOutAmbienceList,
 )
 
 from .misc import (
@@ -77,8 +81,13 @@ cmdToClass = {
     "CreditsSceneList": CutsceneCmdChooseCreditsScenesList,
     "TransitionGeneralList": CutsceneCmdTransitionGeneralList,
     "ModifySeqList": CutsceneCmdModifySeqList,
+    "StartAmbience": CutsceneCmdStartAmbience,
+    "FadeOutAmbience": CutsceneCmdFadeOutAmbience,
+    "StartAmbienceList": CutsceneCmdStartAmbienceList,
+    "FadeOutAmbienceList": CutsceneCmdFadeOutAmbienceList,
 }
 
+# to CutsceneData list
 cmdToList = {
     "TextList": "textList",
     "LightSettingsList": "lightSettingsList",
@@ -90,6 +99,8 @@ cmdToList = {
     "CreditsSceneList": "credits_scene_list",
     "TransitionGeneralList": "transition_general_list",
     "ModifySeqList": "modify_seq_list",
+    "StartAmbienceList": "start_ambience_list",
+    "FadeOutAmbienceList": "fade_out_ambience_list",
 }
 
 
@@ -129,7 +140,8 @@ class CutsceneData:
         self.modify_seq_list: list[CutsceneCmdModifySeqList] = []
         self.credits_scene_list: list[CutsceneCmdChooseCreditsScenesList] = []
         self.transition_general_list: list[CutsceneCmdTransitionGeneralList] = []
-        # self.give_tatl_list: list[CutsceneCmdGiveTatlList] = []
+        self.start_ambience_list: list[CutsceneCmdStartAmbienceList] = []
+        self.fade_out_ambience_list: list[CutsceneCmdFadeOutAmbienceList] = []
 
     @staticmethod
     def new(csObj: Object, useMacros: bool, motionOnly: bool):
@@ -498,28 +510,42 @@ class CutsceneData:
 
         for entry in csProp.csLists:
             match entry.listType:
-                case "StartSeqList" | "StopSeqList" | "FadeOutSeqList":
+                case "StartSeqList" | "StopSeqList" | "FadeOutSeqList" | "StartAmbienceList" | "FadeOutAmbienceList":
                     isFadeOutSeq = entry.listType == "FadeOutSeqList"
+                    is_start_ambience = entry.listType == "StartAmbienceList"
+                    is_fade_out_ambience = entry.listType == "FadeOutAmbienceList"
                     cmdList = cmdToClass[entry.listType](None, None)
                     cmdList.entryTotal = len(entry.seqList)
-                    if not isFadeOutSeq:
+
+                    if not isFadeOutSeq and not is_start_ambience and not is_fade_out_ambience:
                         cmdList.type = "start" if entry.listType == "StartSeqList" else "stop"
+
                     for elem in entry.seqList:
                         data = cmdToClass[entry.listType.removesuffix("List")](elem.startFrame, elem.endFrame)
-                        if isFadeOutSeq:
-                            data.seqPlayer = self.getEnumValueFromProp("cs_fade_out_seq_player", elem, "csSeqPlayer")
-                        else:
-                            data.type = cmdList.type
-                            data.seqId = self.getEnumValueFromProp("seq_id", elem, "csSeqID")
+
+                        if not is_start_ambience and not is_fade_out_ambience:
+                            if isFadeOutSeq:
+                                data.seqPlayer = self.getEnumValueFromProp(
+                                    "cs_fade_out_seq_player", elem, "csSeqPlayer"
+                                )
+                            else:
+                                data.type = cmdList.type
+                                data.seqId = self.getEnumValueFromProp("seq_id", elem, "csSeqID")
+
                         cmdList.entries.append(data)
-                    if isFadeOutSeq:
+
+                    if is_start_ambience:
+                        self.start_ambience_list.append(cmdList)
+                    elif is_fade_out_ambience:
+                        self.fade_out_ambience_list.append(cmdList)
+                    elif isFadeOutSeq:
                         self.fadeSeqList.append(cmdList)
                     else:
                         self.seqList.append(cmdList)
                 case _:
                     if entry.listType in prop_map.keys():
                         prop_name = prop_map[entry.listType]
-                        cmdList = cmdToClass[entry.listType](None, None, 0)
+                        cmdList = cmdToClass[entry.listType](None, None)
                     else:
                         prop_name = entry.listType[0].lower() + entry.listType[1:]
                         cmdList = cmdToClass[entry.listType](None, None)

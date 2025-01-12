@@ -92,6 +92,8 @@ class Cutscene:
                         "credits_scene_list",
                         "transition_general_list",
                         "modify_seq_list",
+                        "start_ambience_list",
+                        "fade_out_ambience_list",
                     ]
                 )
 
@@ -134,13 +136,19 @@ class Cutscene:
                 cs_header = "CS_HEADER"
                 cs_end = "CS_END_OF_SCRIPT"
 
+            command_data = ""
+            for curList in dataListNames:
+                for entry in getattr(self.data, curList):
+                    if len(entry.entries) > 0:
+                        command_data += entry.getCmd()
+
             csData.source = (
                 declarationBase
                 + " = {\n"
                 + (indent + f"{cs_header}({self.totalEntries}, {self.frameCount}),\n")
                 + (self.data.destination.getCmd() if self.data.destination is not None else "")
                 + (self.data.give_tatl.getCmd() if self.data.give_tatl is not None else "")
-                + "".join(entry.getCmd() for curList in dataListNames for entry in getattr(self.data, curList))
+                + command_data
                 + (indent + f"{cs_end}(),\n")
                 + "};\n\n"
             )
