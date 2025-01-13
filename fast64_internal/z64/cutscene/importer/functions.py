@@ -9,4 +9,8 @@ def importCutsceneData(filePath: Optional[str], sceneData: Optional[str], csName
     """Initialises and imports the cutscene data from either a file or the scene data"""
     # NOTE: ``sceneData`` is the data read when importing a scene
     csMotionImport = CutsceneImport(filePath, sceneData, csName, not is_oot_features())
-    return csMotionImport.setCutsceneData(bpy.context.scene.ootCSNumber)
+    return csMotionImport.setCutsceneData(
+        bpy.context.scene.ootCSNumber,
+        bpy.context.scene.fast64.oot.hackerFeaturesEnabled or bpy.context.scene.fast64.oot.useDecompFeatures,
+        bpy.context.scene.fast64.oot.exportMotionOnly,
+    )

@@ -15,10 +15,12 @@ class CutsceneCmdStartStopSeq(CutsceneCmdBase):
     type: Optional[str] = field(init=False, default=None)  # "start" or "stop"
 
     @staticmethod
-    def from_params(params: list[str], isLegacy: bool):
-        return CutsceneCmdFadeSeq(
-            getInteger(params[1]), getInteger(params[2]), CutsceneCmdBase.getEnumValue("seq_id", params[0], isLegacy)
-        )
+    def from_params(params: list[str], type: str, is_legacy: bool):
+        new = CutsceneCmdStartStopSeq(getInteger(params[1]), getInteger(params[2]))
+        new.isLegacy = is_legacy
+        new.seqId = CutsceneCmdBase.getEnumValue("seq_id", params[0], new.isLegacy)
+        new.type = type
+        return new
 
     def getCmd(self):
         self.validateFrames()
@@ -33,13 +35,12 @@ class CutsceneCmdFadeSeq(CutsceneCmdBase):
 
     seqPlayer: str = field(init=False, default=str())
     paramNumber: int = field(init=False, default=11)
-    enumKey: str = field(init=False, default="csFadeOutSeqPlayer")
 
     @staticmethod
-    def from_params(params: list[str], enumKey: str):
-        return CutsceneCmdFadeSeq(
-            getInteger(params[1]), getInteger(params[2]), CutsceneCmdBase.getEnumValue(enumKey, params[0])
-        )
+    def from_params(params: list[str]):
+        new = CutsceneCmdFadeSeq(getInteger(params[1]), getInteger(params[2]))
+        new.seqPlayer = CutsceneCmdBase.getEnumValue("cs_fade_out_seq_player", params[0])
+        return new
 
     def getCmd(self):
         self.validateFrames()
@@ -57,9 +58,10 @@ class CutsceneCmdStartStopSeqList(CutsceneCmdBase):
     listName: str = field(init=False, default="seqList")
 
     @staticmethod
-    def from_params(params: list[str]):
-        new = CutsceneCmdStartStopSeqList()
+    def from_params(params: list[str], type: str):
+        new = CutsceneCmdStartStopSeqList(None, None)
         new.entryTotal = getInteger(params[0])
+        new.type = type
         return new
 
     def getCmd(self):
@@ -81,7 +83,7 @@ class CutsceneCmdFadeSeqList(CutsceneCmdBase):
 
     @staticmethod
     def from_params(params: list[str]):
-        new = CutsceneCmdFadeSeqList()
+        new = CutsceneCmdFadeSeqList(None, None)
         new.entryTotal = getInteger(params[0])
         return new
 
@@ -101,7 +103,7 @@ class CutsceneCmdModifySeq(CutsceneCmdBase):
     paramNumber: int = field(init=False, default=3)
 
     @staticmethod
-    def from_params(params: list[str], enumKey: str):
+    def from_params(params: list[str]):
         return CutsceneCmdModifySeq(
             getInteger(params[1]), getInteger(params[2]), CutsceneCmdBase.getEnumValue("cs_modify_seq_type", params[0])
         )
@@ -121,7 +123,7 @@ class CutsceneCmdModifySeqList(CutsceneCmdBase):
 
     @staticmethod
     def from_params(params: list[str]):
-        new = CutsceneCmdModifySeqList()
+        new = CutsceneCmdModifySeqList(None, None)
         new.entryTotal = getInteger(params[0])
         return new
 
@@ -138,7 +140,7 @@ class CutsceneCmdStartAmbience(CutsceneCmdBase):
     paramNumber: int = field(init=False, default=3)
 
     @staticmethod
-    def from_params(params: list[str], enumKey: str):
+    def from_params(params: list[str]):
         return CutsceneCmdStartAmbience(getInteger(params[1]), getInteger(params[2]))
 
     def to_c(self):
@@ -156,7 +158,7 @@ class CutsceneCmdStartAmbienceList(CutsceneCmdBase):
 
     @staticmethod
     def from_params(params: list[str]):
-        new = CutsceneCmdStartAmbienceList()
+        new = CutsceneCmdStartAmbienceList(None, None)
         new.entryTotal = getInteger(params[0])
         return new
 
@@ -175,7 +177,7 @@ class CutsceneCmdFadeOutAmbience(CutsceneCmdBase):
     paramNumber: int = field(init=False, default=3)
 
     @staticmethod
-    def from_params(params: list[str], enumKey: str):
+    def from_params(params: list[str]):
         return CutsceneCmdFadeOutAmbience(getInteger(params[1]), getInteger(params[2]))
 
     def to_c(self):
@@ -193,7 +195,7 @@ class CutsceneCmdFadeOutAmbienceList(CutsceneCmdBase):
 
     @staticmethod
     def from_params(params: list[str]):
-        new = CutsceneCmdFadeOutAmbienceList()
+        new = CutsceneCmdFadeOutAmbienceList(None, None)
         new.entryTotal = getInteger(params[0])
         return new
 

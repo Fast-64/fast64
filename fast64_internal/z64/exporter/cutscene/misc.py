@@ -116,7 +116,7 @@ class CutsceneCmdMiscList(CutsceneCmdBase):
 
     @staticmethod
     def from_params(params: list[str]):
-        new = CutsceneCmdMiscList()
+        new = CutsceneCmdMiscList(None, None)
         new.entryTotal = getInteger(params[0])
         return new
 
@@ -139,7 +139,7 @@ class CutsceneCmdLightSettingList(CutsceneCmdBase):
 
     @staticmethod
     def from_params(params: list[str]):
-        new = CutsceneCmdLightSettingList()
+        new = CutsceneCmdLightSettingList(None, None)
         new.entryTotal = getInteger(params[0])
         return new
 
@@ -162,7 +162,7 @@ class CutsceneCmdTimeList(CutsceneCmdBase):
 
     @staticmethod
     def from_params(params: list[str]):
-        new = CutsceneCmdTimeList()
+        new = CutsceneCmdTimeList(None, None)
         new.entryTotal = getInteger(params[0])
         return new
 
@@ -185,7 +185,7 @@ class CutsceneCmdRumbleControllerList(CutsceneCmdBase):
 
     @staticmethod
     def from_params(params: list[str]):
-        new = CutsceneCmdRumbleControllerList()
+        new = CutsceneCmdRumbleControllerList(None, None)
         new.entryTotal = getInteger(params[0])
         return new
 
@@ -254,7 +254,9 @@ class CutsceneCmdTransitionList(CutsceneCmdBase):
 
     @staticmethod
     def from_params(params: list[str]):
-        return CutsceneCmdTransitionList(getInteger(params[0]))
+        new = CutsceneCmdTransitionList(None, None)
+        new.entryTotal = getInteger(params[0])
+        return new
 
     def getCmd(self):
         if game_data.z64.is_oot():
@@ -277,9 +279,9 @@ class CutsceneCmdMotionBlur(CutsceneCmdBase):
     @staticmethod
     def from_params(params: list[str]):
         return CutsceneCmdMotionBlur(
-            CutsceneCmdBase.getEnumValue("cs_motion_blur_type", params[0]),
             getInteger(params[1]),
             getInteger(params[2]),
+            CutsceneCmdBase.getEnumValue("cs_motion_blur_type", params[0]),
         )
 
     def to_c(self):
@@ -297,7 +299,9 @@ class CutsceneCmdMotionBlurList(CutsceneCmdBase):
 
     @staticmethod
     def from_params(params: list[str]):
-        return CutsceneCmdMotionBlurList(getInteger(params[0]))
+        new = CutsceneCmdMotionBlurList(None, None)
+        new.entryTotal = getInteger(params[0])
+        return new
 
     def getCmd(self):
         return (
@@ -317,9 +321,9 @@ class CutsceneCmdChooseCreditsScenes(CutsceneCmdBase):
     @staticmethod
     def from_params(params: list[str]):
         return CutsceneCmdChooseCreditsScenes(
-            CutsceneCmdBase.getEnumValue("cs_credits_scene_type", params[0]),
             getInteger(params[1]),
             getInteger(params[2]),
+            CutsceneCmdBase.getEnumValue("cs_credits_scene_type", params[0]),
         )
 
     def to_c(self):
@@ -337,7 +341,9 @@ class CutsceneCmdChooseCreditsScenesList(CutsceneCmdBase):
 
     @staticmethod
     def from_params(params: list[str]):
-        return CutsceneCmdChooseCreditsScenesList(getInteger(params[0]))
+        new = CutsceneCmdChooseCreditsScenesList(None, None)
+        new.entryTotal = getInteger(params[0])
+        return new
 
     def getCmd(self):
         return (
@@ -360,7 +366,7 @@ class CutsceneCmdTransitionGeneral(CutsceneCmdBase):
         return CutsceneCmdTransitionGeneral(
             getInteger(params[1]),
             getInteger(params[2]),
-            CutsceneCmdBase.getEnumValue("cs_transition_general", 0),
+            CutsceneCmdBase.getEnumValue("cs_transition_general", params[0]),
             [getInteger(params[3]), getInteger(params[4]), getInteger(params[5])],
         )
 
@@ -380,7 +386,9 @@ class CutsceneCmdTransitionGeneralList(CutsceneCmdBase):
 
     @staticmethod
     def from_params(params: list[str]):
-        return CutsceneCmdTransitionGeneralList(getInteger(params[0]))
+        new = CutsceneCmdTransitionGeneralList(None, None)
+        new.entryTotal = getInteger(params[0])
+        return new
 
     def getCmd(self):
         return (

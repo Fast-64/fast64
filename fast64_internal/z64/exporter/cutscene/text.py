@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from typing import Optional
 from ....utility import PluginError, indent
 from ...utility import is_oot_features
 from ...cutscene.motion.utility import getInteger
@@ -10,7 +11,7 @@ class CutsceneCmdText(CutsceneCmdBase):
     """This class contains Text command data"""
 
     textId: int
-    type: str
+    type: Optional[str]
     altTextId1: int
     altTextId2: int
 
@@ -19,14 +20,24 @@ class CutsceneCmdText(CutsceneCmdBase):
 
     @staticmethod
     def from_params(params: list[str]):
-        return CutsceneCmdText(
-            getInteger(params[1]),
-            getInteger(params[2]),
-            getInteger(params[0]),
-            CutsceneCmdBase.getEnumValue("cs_text_type", params[3]),
-            getInteger(params[4]),
-            getInteger(params[5]),
-        )
+        if is_oot_features():
+            return CutsceneCmdText(
+                getInteger(params[1]),
+                getInteger(params[2]),
+                getInteger(params[0]),
+                CutsceneCmdBase.getEnumValue("cs_text_type", params[3]),
+                getInteger(params[4]),
+                getInteger(params[5]),
+            )
+        else:
+            return CutsceneCmdText(
+                getInteger(params[1]),
+                getInteger(params[2]),
+                getInteger(params[0]),
+                None,
+                getInteger(params[3]),
+                getInteger(params[4]),
+            )
 
     def getCmd(self):
         self.validateFrames()
@@ -108,7 +119,7 @@ class CutsceneCmdTextList(CutsceneCmdBase):
 
     @staticmethod
     def from_params(params: list[str]):
-        new = CutsceneCmdTextList()
+        new = CutsceneCmdTextList(None, None)
         new.entryTotal = getInteger(params[0])
         return new
 

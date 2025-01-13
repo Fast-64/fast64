@@ -268,7 +268,7 @@ class CutsceneCmdCamSplineList:
     entries: list[CutsceneCmdCamSpline] = field(init=False, default_factory=list)
 
     paramNumber: int = 1
-    listName: str = "camSplineListNew"
+    listName: str = "camSplineList"
     size: int = 0x8
 
     @staticmethod

@@ -2,7 +2,6 @@ import bpy
 import math
 
 from copy import copy
-from dataclasses import dataclass, field
 from typing import Optional, TYPE_CHECKING
 from bpy.types import Object, Bone
 from ....utility import PluginError, exportColor
@@ -144,23 +143,27 @@ class CutsceneData:
         self.fade_out_ambience_list: list[CutsceneCmdFadeOutAmbienceList] = []
 
     @staticmethod
-    def new(csObj: Object, useMacros: bool, motionOnly: bool):
-        csProp: "OOTCutsceneProperty" = csObj.ootCutsceneProperty
-        csObjects = {
-            "CS Actor Cue List": [],
-            "CS Player Cue List": [],
-            "camShot": [],
-        }
-
-        for obj in csObj.children_recursive:
-            if obj.type == "EMPTY" and obj.ootEmptyType in csObjects.keys():
-                csObjects[obj.ootEmptyType].append(obj)
-            elif obj.type == "ARMATURE":
-                csObjects["camShot"].append(obj)
-        csObjects["camShot"].sort(key=lambda obj: obj.name)
-
+    def new(csObj: Optional[Object], useMacros: bool, motionOnly: bool):
         newCutsceneData = CutsceneData(useMacros, motionOnly)
-        newCutsceneData.setCutsceneData(csObjects, csProp)
+
+        if csObj is not None:
+            # when csObj is None it means we're in import context
+            csProp: "OOTCutsceneProperty" = csObj.ootCutsceneProperty
+            csObjects = {
+                "CS Actor Cue List": [],
+                "CS Player Cue List": [],
+                "camShot": [],
+            }
+
+            for obj in csObj.children_recursive:
+                if obj.type == "EMPTY" and obj.ootEmptyType in csObjects.keys():
+                    csObjects[obj.ootEmptyType].append(obj)
+                elif obj.type == "ARMATURE":
+                    csObjects["camShot"].append(obj)
+            csObjects["camShot"].sort(key=lambda obj: obj.name)
+
+            newCutsceneData.setCutsceneData(csObjects, csProp)
+
         return newCutsceneData
 
     def getOoTRotation(self, obj: Object):
@@ -243,17 +246,16 @@ class CutsceneData:
                     if actionID is None:
                         actionID = childObj.ootCSMotionProperty.actorCueProp.cueActionID
 
-                    newActorCueList.entries.append(
-                        CutsceneCmdActorCue(
-                            startFrame,
-                            endFrame,
-                            actionID,
-                            self.getOoTRotation(childObj),
-                            self.getOoTPosition(childObj.location),
-                            self.getOoTPosition(obj.children[i].location),
-                            isPlayer,
-                        )
+                    new_entry = CutsceneCmdActorCue(
+                        startFrame,
+                        endFrame,
+                        actionID,
+                        self.getOoTRotation(childObj),
+                        self.getOoTPosition(childObj.location),
+                        self.getOoTPosition(obj.children[i].location),
                     )
+                    new_entry.isPlayer = isPlayer
+                    newActorCueList.entries.append(new_entry)
 
             self.actorCueList.append(newActorCueList)
 

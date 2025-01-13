@@ -63,6 +63,11 @@ class Cutscene:
                 cs_prop.play_on_spawn if game_data.z64.is_mm() or not is_oot_features() else None,
                 spawn_flag if game_data.z64.is_mm() or not is_oot_features() else None,
             )
+        else:
+            # if importing, return a blank cutscene that we will update later
+            return Cutscene(
+                name, CutsceneData.new(None, useMacros, motionOnly), 0, 0, useMacros, motionOnly, None, None, None
+            )
 
     def get_entry(self):
         return "{ " + f"{self.name}, {self.next_entrance}, {self.spawn}, {self.spawn_flags}" + " }"

@@ -18,14 +18,15 @@ class CutsceneCmdActorCue(CutsceneCmdBase):
     paramNumber: int = field(init=False, default=15)
 
     @staticmethod
-    def from_params(params: list[str]):
+    def from_params(params: list[str], is_player: bool = False):
         return CutsceneCmdActorCue(
             getInteger(params[1]),
             getInteger(params[2]),
-            getInteger(params[0]),
+            CutsceneCmdBase.getEnumValue("cs_player_cue_id", params[0]) if is_player else getInteger(params[0]),
             [getRotation(params[3]), getRotation(params[4]), getRotation(params[5])],
             [getInteger(params[6]), getInteger(params[7]), getInteger(params[8])],
             [getInteger(params[9]), getInteger(params[10]), getInteger(params[11])],
+            is_player,
         )
 
     def getCmd(self):
