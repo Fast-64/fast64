@@ -1099,10 +1099,29 @@ class F3DPanel(Panel):
             if showCheckBox:
                 inputGroup.prop(f3dMat, "set_fog", text="Set Fog")
             if f3dMat.set_fog:
-                inputGroup.prop(f3dMat, "use_global_fog", text="Use Global Fog (SM64)")
-                if f3dMat.use_global_fog:
-                    inputGroup.label(text="Only applies to levels (area fog settings).", icon="INFO")
-                else:
+                draw_fog = True
+                if bpy.context.scene.gameEditorMode == "SM64":
+                    obj, area_obj = bpy.context.object.parent, None
+                    while obj:
+                        if obj.type == "EMPTY" and obj.sm64_obj_type == "Area Root" and obj.fast64.sm64.area.set_fog:
+                            area_obj = obj
+                            break
+                        obj = obj.parent
+                    if area_obj:
+                        inputGroup.prop(f3dMat, "use_global_fog", text=f'Use Area "{area_obj.name}"\'s Fog')
+                        if f3dMat.use_global_fog:
+                            settings_col = inputGroup.column()
+                            settings_col.enabled = not f3dMat.use_global_fog
+                            prop_split(settings_col.row(), area_obj, "area_fog_color", "Fog Color")
+                            prop_split(settings_col.row(), area_obj, "area_fog_position", "Fog Range")
+                            draw_fog = False
+                    else:
+                        # show setting for preview
+                        inputGroup.prop(f3dMat, "use_global_fog", text="Use Area's Fog")
+                        inputGroup.label(
+                            text="Preview only in this context, no area fog settings to pick up", icon="INFO"
+                        )
+                if draw_fog:
                     prop_split(inputGroup.row(), f3dMat, "fog_color", "Fog Color")
                     prop_split(inputGroup.row(), f3dMat, "fog_position", "Fog Range")
 
@@ -1755,7 +1774,11 @@ def update_fog_nodes(material: Material, context: Context):
     else:  # If fog is not being calculated, pass in shade alpha
         material.node_tree.links.new(nodes["Shade Color"].outputs["Alpha"], fogBlender.inputs["FogAmount"])
 
-    if f3dMat.use_global_fog or not f3dMat.set_fog or inherit_light_and_fog():  # Inherit fog
+    if (
+        (bpy.context.scene.gameEditorMode == "SM64" and f3dMat.use_global_fog)
+        or not f3dMat.set_fog
+        or inherit_light_and_fog()
+    ):  # Inherit fog
         link_if_none_exist(material, nodes["SceneProperties"].outputs["FogColor"], nodes["FogColor"].inputs[0])
         link_if_none_exist(material, nodes["GlobalFogColor"].outputs[0], fogBlender.inputs["Fog Color"])
         link_if_none_exist(material, nodes["SceneProperties"].outputs["FogNear"], nodes["CalcFog"].inputs["FogNear"])
