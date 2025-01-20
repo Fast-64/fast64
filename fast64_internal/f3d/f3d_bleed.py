@@ -18,6 +18,10 @@ from .f3d_gbi import (
     SPLine3D,
     SPLineW3D,
     SP2Triangles,
+    SPNTrianglesInit_5b,
+    SPNTriangles_5b,
+    SPNTrianglesInit_7b,
+    SPNTriangles_7b,
     SPCullDisplayList,
     SPSegment,
     SPBranchLessZraw,
@@ -29,13 +33,16 @@ from .f3d_gbi import (
     SPSetOtherMode,
     DPLoadBlock,
     DPLoadTLUTCmd,
+    DPLoadTLUT_Dolphin,
     DPFullSync,
     DPSetRenderMode,
     DPSetTextureImage,
+    DPSetTextureImage_Dolphin,
     DPPipeSync,
     DPLoadSync,
     DPTileSync,
     DPSetTile,
+    DPSetTile_Dolphin,
     DPLoadTile,
     FModel,
     FMesh,
@@ -45,7 +52,19 @@ from .f3d_gbi import (
     GfxList,
     FTriGroup,
     GbiMacro,
+    get_F3D_GBI,
 )
+
+TRI_CMDS = [
+    SP2Triangles,
+    SP1Triangle,
+    SPLine3D,
+    SPLineW3D,
+    SPNTrianglesInit_5b,
+    SPNTriangles_5b,
+    SPNTrianglesInit_7b,
+    SPNTriangles_7b,
+]
 
 
 class BleedGraphics:
@@ -58,8 +77,7 @@ class BleedGraphics:
     def __init__(self):
         self.bled_gfx_lists = dict()
         # build world default cmds to compare against, f3d types needed for reset cmd building
-        self.is_f3d_old = bpy.context.scene.f3d_type == "F3D"
-        self.is_f3dex2 = "F3DEX2" in bpy.context.scene.f3d_type
+        self.f3d = get_F3D_GBI()
         self.build_default_geo()
         self.build_default_othermodes()
 
@@ -84,9 +102,14 @@ class BleedGraphics:
         place_in_flaglist(defaults.g_tex_gen, "G_TEXTURE_GEN", setGeo, clearGeo)
         place_in_flaglist(defaults.g_tex_gen_linear, "G_TEXTURE_GEN_LINEAR", setGeo, clearGeo)
         place_in_flaglist(defaults.g_shade_smooth, "G_SHADING_SMOOTH", setGeo, clearGeo)
-        if bpy.context.scene.f3d_type == "F3DEX_GBI_2" or bpy.context.scene.f3d_type == "F3DEX_GBI":
+        if self.f3d.F3DEX_GBI:
             place_in_flaglist(defaults.g_clipping, "G_CLIPPING", setGeo, clearGeo)
-
+        if self.f3d.POINT_LIT_GBI:
+            place_in_flaglist(defaults.g_lighting_positional, "G_LIGHTING_POSITIONAL", setGeo, clearGeo)
+        if self.f3d.F3DZEX2_EMU64:
+            place_in_flaglist(defaults.g_decal_gequal, "G_DECAL_GEQUAL", setGeo, clearGeo)
+            place_in_flaglist(defaults.g_decal_equal, "G_DECAL_EQUAL", setGeo, clearGeo)
+            place_in_flaglist(defaults.g_decal_special, "G_DECAL_SPECIAL", setGeo, clearGeo)
         self.default_load_geo = SPLoadGeometryMode(setGeo.flagList)
         self.default_set_geo = setGeo
         self.default_clear_geo = clearGeo
@@ -94,9 +117,9 @@ class BleedGraphics:
     def build_default_othermodes(self):
         defaults = create_or_get_world(bpy.context.scene).rdp_defaults
 
-        othermode_H = SPSetOtherMode("G_SETOTHERMODE_H", 4, 20 - self.is_f3d_old, [])
+        othermode_H = SPSetOtherMode("G_SETOTHERMODE_H", 4, 20 - self.f3d.F3D_OLD_GBI, [])
         # if the render mode is set, it will be consider non-default a priori
-        othermode_L = SPSetOtherMode("G_SETOTHERMODE_L", 0, 3 - self.is_f3d_old, [])
+        othermode_L = SPSetOtherMode("G_SETOTHERMODE_L", 0, 3 - self.f3d.F3D_OLD_GBI, [])
 
         othermode_L.flagList.append(defaults.g_mdsft_alpha_compare)
         othermode_L.flagList.append(defaults.g_mdsft_zsrcsel)
@@ -184,14 +207,17 @@ class BleedGraphics:
         tmem_dict = dict()
         tile_dict = {i: 0 for i in range(8)}  # an assumption that hopefully never needs correction
         for cmd in cmd_list.commands:
-            if type(cmd) == DPSetTextureImage:
+            if type(cmd) in (DPSetTextureImage, DPSetTextureImage_Dolphin):
                 im_buffer = cmd
                 continue
+            elif type(cmd) == DPSetTile_Dolphin:
+                tmem_dict[cmd.name + 15] = im_buffer
+            elif type(cmd) == DPLoadTLUT_Dolphin:
+                tmem_dict[cmd.tlut_name] = cmd  # loadtlut_dolphin loads on its own
             if type(cmd) == DPSetTile:
                 tile_dict[cmd.tile] = cmd.tmem
             if type(cmd) in (DPLoadTLUTCmd, DPLoadTile, DPLoadBlock):
                 tmem_dict[tile_dict[cmd.tile]] = im_buffer
-                continue
         return tmem_dict
 
     def bleed_textures(self, cur_fmat: FMaterial, last_mat: FMaterial, bleed_state: int):
@@ -218,7 +244,7 @@ class BleedGraphics:
                     continue
                 if rm_load and type(cmd) == DPSetTile:
                     commands_bled.commands[j] = None
-                if rm_load and type(cmd) in (DPLoadTLUTCmd, DPLoadTile, DPLoadBlock):
+                if rm_load and type(cmd) in (DPLoadTLUTCmd, DPLoadTLUT_Dolphin, DPLoadTile, DPLoadBlock):
                     commands_bled.commands[j] = None
                     rm_load = None
                     continue
@@ -295,7 +321,7 @@ class BleedGraphics:
         # add in triangles
         cmd_list.commands.extend(tri_list.commands)
         # skinned meshes don't draw tris sometimes, use this opportunity to save a sync
-        tri_cmds = [c for c in tri_list.commands if type(c) == SP1Triangle or type(c) == SP2Triangles]
+        tri_cmds = [c for c in tri_list.commands if type(c) in TRI_CMDS]
         if tri_cmds:
             reset_cmd_dict[DPPipeSync] = DPPipeSync()
         [bleed_gfx_lists.add_reset_cmd(cmd, reset_cmd_dict) for cmd in bleed_gfx_lists.bled_mats]
@@ -399,7 +425,7 @@ class BleedGraphics:
                         SPSetOtherMode(
                             "G_SETOTHERMODE_L",
                             0,
-                            32 - self.is_f3d_old,
+                            32 - self.f3d.F3D_OLD_GBI,
                             [*self.default_othermode_L.flagList, *default_render_mode],
                         )
                     )
@@ -417,20 +443,20 @@ class BleedGraphics:
             SPViewport,
             SPDisplayList,
             SPBranchList,
-            SP1Triangle,
-            SPLine3D,
-            SPLineW3D,
-            SP2Triangles,
             SPCullDisplayList,
             SPSegment,
             SPBranchLessZraw,
             SPModifyVertex,
             SPEndDisplayList,
             DPSetTextureImage,
+            DPSetTextureImage_Dolphin,
+            DPSetTile_Dolphin,
             DPLoadBlock,
             DPLoadTile,
             DPLoadTLUTCmd,
+            DPLoadTLUT_Dolphin,
             DPFullSync,
+            *TRI_CMDS,
         ]:
             return False
 
@@ -507,7 +533,7 @@ class BleedGraphics:
         for parse_cmd in cmd_list.commands:
             if parse_cmd is cmd:
                 return tri_buffered
-            if type(parse_cmd) in [SP2Triangles, SP1Triangle, SPLine3D, SPLineW3D]:
+            if type(parse_cmd) in TRI_CMDS:
                 tri_buffered = False
                 continue
             if type(parse_cmd) in conflict_cmds:
