@@ -3285,6 +3285,10 @@ class FImage:
     isLargeTexture: bool = field(init=False, compare=False, default=False)
     converted: bool = field(init=False, compare=False, default=False)
 
+    @property
+    def aligner_name(self):
+        return f"{self.name}_aligner"
+
     def size(self):
         return len(self.data)
 
@@ -3303,7 +3307,7 @@ class FImage:
 
         # This is to force 8 byte alignment
         if bitsPerValue != 64:
-            code.source = f"Gfx {self.name}_aligner[] = {{gsSPEndDisplayList()}};\n"
+            code.source = f"Gfx {self.aligner_name}[] = {{gsSPEndDisplayList()}};\n"
         code.source += f"u{str(bitsPerValue)} {self.name}[] = {{\n\t"
         code.source += texData
         code.source += "\n};\n\n"
@@ -3422,7 +3426,8 @@ class GbiMacro:
         if static:
             return f"g{'s'*static}{type(self).__name__}({', '.join( self.getargs(static) )})"
         else:
-            return f"g{'s'*static}{type(self).__name__}(glistp++, {', '.join( self.getargs(static) )})"
+            args = ["glistp++"] + list(self.getargs(static))
+            return f"g{'s'*static}{type(self).__name__}({', '.join( args )})"
 
     def size(self, f3d):
         return GFX_SIZE
