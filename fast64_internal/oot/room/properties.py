@@ -49,6 +49,9 @@ class OOTObjectProperty(PropertyGroup):
 
         if isLegacy:
             objectName = ootData.objectData.ootEnumObjectIDLegacy[self["objectID"]][1]
+        elif self.objectKey == "":
+            # just in case there's invalid objects keys, allows users to delete them
+            objectName = "DELETE ME!"
         elif self.objectKey != "Custom":
             objectName = ootData.objectData.objectsByKey[self.objectKey].name
         else:

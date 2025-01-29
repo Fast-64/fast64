@@ -331,7 +331,7 @@ class OOTActorProperty(PropertyGroup):
                         elif param.type == "Message":
                             param_val = ootData.actorData.messageItemsByKey[cur_prop_value].value
 
-                if "Rot" in target:
+                if "Rot" in target and param.type == "Type":
                     type_value = getEvalParamsInt(getattr(self, get_prop_name(actor.key, "Type", None, 1)))
 
                 if type_value is not None and type_value in param.tiedTypes or len(param.tiedTypes) == 0:
