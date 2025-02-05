@@ -60,14 +60,19 @@ from .tools import (
 
 oot_versions_items = [
     ("Custom", "Custom", "Custom"),
+    ("ntsc-1.0", "ntsc-1.0", "ntsc-1.0"),
+    ("ntsc-1.1", "ntsc-1.1", "ntsc-1.1"),
+    ("pal-1.0", "pal-1.0", "pal-1.0"),
+    ("ntsc-1.2", "ntsc-1.2", "ntsc-1.2"),
+    ("pal-1.1", "pal-1.1", "pal-1.1"),
     ("gc-jp", "gc-jp", "gc-jp"),
     ("gc-jp-mq", "gc-jp-mq", "gc-jp-mq"),
-    ("gc-jp-ce", "gc-jp-ce", "gc-jp-ce"),
     ("gc-us", "gc-us", "gc-us"),
     ("gc-us-mq", "gc-us-mq", "gc-us-mq"),
+    ("gc-eu-mq-dbg", "gc-eu-mq-dbg", "gc-eu-mq-dbg"),
     ("gc-eu", "gc-eu", "gc-eu"),
     ("gc-eu-mq", "gc-eu-mq", "gc-eu-mq"),
-    ("gc-eu-mq-dbg", "gc-eu-mq-dbg", "gc-eu-mq-dbg"),
+    ("gc-jp-ce", "gc-jp-ce", "gc-jp-ce"),
     ("hackeroot-mq", "HackerOoT", "hackeroot-mq"),  # TODO: force this value if HackerOoT features are enabled?
     ("legacy", "Legacy", "Older Decomp Version"),
 ]
