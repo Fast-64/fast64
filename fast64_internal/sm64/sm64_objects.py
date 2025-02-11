@@ -1,5 +1,6 @@
 import math, bpy, mathutils
 import os
+import traceback
 from bpy.utils import register_class, unregister_class
 from re import findall, sub
 from pathlib import Path
@@ -1552,6 +1553,7 @@ class BehaviorScriptProperty(bpy.types.PropertyGroup):
 class SM64_ExportCombinedObject(ObjectDataExporter):
     bl_idname = "object.sm64_export_combined_object"
     bl_label = "SM64 Combined Object"
+    _failed_exports = set()
 
     def write_file_lines(self, path, file_lines):
         with open(path, "w") as file:
@@ -1865,6 +1867,9 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             # pass on multiple export, throw on singular
             if not props.export_all_selected:
                 raise Exception(exc) from exc
+            else:
+                traceback.print_exc()
+                self._failed_exports.add(obj.name)
 
     # writes model.inc.c, geo.inc.c file, geo_header.h
     # writes include into aggregate file (leveldata.c/<group>.c & geo.c)
@@ -1887,8 +1892,12 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             # pass on multiple export, throw on singular
             if not props.export_all_selected:
                 raise Exception(e)
+            else:
+                traceback.print_exc()
+                self._failed_exports.add(obj.name)
 
     def execute(self, context):
+        self._failed_exports = set()
         props = context.scene.fast64.sm64.combined_export
         try:
             self.verify_context(context, props)
@@ -1907,8 +1916,16 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             return {"CANCELLED"}
 
         props.context_obj = None
-        # you've done it!~
-        self.report({"INFO"}, "Success!")
+        if self._failed_exports:
+            # if you export all and missed some stuff, tell the user
+            self.report(
+                {"WARNING"},
+                f"Objects {', '.join(self._failed_exports)} exported with errors, view console log for details.",
+            )
+        else:
+            # you've done it!~
+            self.report({"INFO"}, "Success!")
+
         return {"FINISHED"}
 
 
