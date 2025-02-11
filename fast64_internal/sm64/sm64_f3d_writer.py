@@ -488,10 +488,20 @@ def sm64ExportF3DtoC(
 
 
 def exportF3DtoBinary(romfile, exportRange, transformMatrix, obj, segmentData, includeChildren):
-    fModel = SM64Model(obj.name, DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert)
+    inline = bpy.context.scene.exportInlineF3D
+    fModel = SM64Model(
+        obj.name,
+        DLFormat.Static,
+        GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
+    )
     fMeshes = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, obj.name, DLFormat.Static, True)
-    fMesh = fMeshes[fModel.getDrawLayerV3(obj)]
+
+    if inline:
+        bleed_gfx = BleedGraphics()
+        bleed_gfx.bleed_fModel(fModel, fMeshes)
     fModel.freePalettes()
+    assert len(fMeshes) == 1, "Less or more than one fmesh"
+    fMesh = list(fMeshes.values())[0]
 
     addrRange = fModel.set_addr(exportRange[0])
     if addrRange[1] > exportRange[1]:
@@ -508,9 +518,21 @@ def exportF3DtoBinary(romfile, exportRange, transformMatrix, obj, segmentData, i
 
 
 def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix, obj, RAMAddr, includeChildren):
-    fModel = SM64Model(obj.name, DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert)
+    inline = bpy.context.scene.exportInlineF3D
+    fModel = SM64Model(
+        obj.name,
+        DLFormat.Static,
+        GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
+    )
     fMeshes = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, obj.name, DLFormat.Static, True)
-    fMesh = fMeshes[fModel.getDrawLayerV3(obj)]
+
+    if inline:
+        bleed_gfx = BleedGraphics()
+        bleed_gfx.bleed_fModel(fModel, fMeshes)
+    fModel.freePalettes()
+    assert len(fMeshes) == 1, "Less or more than one fmesh"
+    fMesh = list(fMeshes.values())[0]
+
     segmentData = copy.copy(bank0Segment)
 
     data, startRAM = getBinaryBank0F3DData(fModel, RAMAddr, exportRange)
@@ -528,9 +550,20 @@ def exportF3DtoBinaryBank0(romfile, exportRange, transformMatrix, obj, RAMAddr, 
 
 
 def exportF3DtoInsertableBinary(filepath, transformMatrix, obj, includeChildren):
-    fModel = SM64Model(obj.name, DLFormat, GfxMatWriteMethod.WriteDifferingAndRevert)
+    inline = bpy.context.scene.exportInlineF3D
+    fModel = SM64Model(
+        obj.name,
+        DLFormat.Static,
+        GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
+    )
     fMeshes = exportF3DCommon(obj, fModel, transformMatrix, includeChildren, obj.name, DLFormat.Static, True)
-    fMesh = fMeshes[fModel.getDrawLayerV3(obj)]
+
+    if inline:
+        bleed_gfx = BleedGraphics()
+        bleed_gfx.bleed_fModel(fModel, fMeshes)
+    fModel.freePalettes()
+    assert len(fMeshes) == 1, "Less or more than one fmesh"
+    fMesh = list(fMeshes.values())[0]
 
     data, startRAM = getBinaryBank0F3DData(fModel, 0, [0, 0xFFFFFF])
     # must happen after getBinaryBank0F3DData
