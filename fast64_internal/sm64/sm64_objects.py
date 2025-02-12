@@ -1553,7 +1553,6 @@ class BehaviorScriptProperty(bpy.types.PropertyGroup):
 class SM64_ExportCombinedObject(ObjectDataExporter):
     bl_idname = "object.sm64_export_combined_object"
     bl_label = "SM64 Combined Object"
-    _failed_exports = set()
 
     def write_file_lines(self, path, file_lines):
         with open(path, "w") as file:
@@ -1865,11 +1864,8 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
                 bpy.ops.object.sm64_export_collision(export_obj=obj.name)
         except Exception as exc:
             # pass on multiple export, throw on singular
-            if not props.export_all_selected:
+            if not props.export_all_selected or not PluginError.check_exc_warn(exc):
                 raise Exception(exc) from exc
-            else:
-                traceback.print_exc()
-                self._failed_exports.add(obj.name)
 
     # writes model.inc.c, geo.inc.c file, geo_header.h
     # writes include into aggregate file (leveldata.c/<group>.c & geo.c)
@@ -1888,16 +1884,12 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
                 if props.export_script_loads and props.model_id != 0:
                     self.export_model_id(context, props, index)
                     self.export_script_load(context, props)
-        except Exception as e:
+        except Exception as exc:
             # pass on multiple export, throw on singular
-            if not props.export_all_selected:
-                raise Exception(e)
-            else:
-                traceback.print_exc()
-                self._failed_exports.add(obj.name)
+            if not props.export_all_selected or not PluginError.check_exc_warn(exc):
+                raise Exception(exc)
 
     def execute(self, context):
-        self._failed_exports = set()
         props = context.scene.fast64.sm64.combined_export
         try:
             self.verify_context(context, props)
@@ -1916,15 +1908,8 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             return {"CANCELLED"}
 
         props.context_obj = None
-        if self._failed_exports:
-            # if you export all and missed some stuff, tell the user
-            self.report(
-                {"WARNING"},
-                f"Objects {', '.join(self._failed_exports)} exported with errors, view console log for details.",
-            )
-        else:
-            # you've done it!~
-            self.report({"INFO"}, "Success!")
+        # you've done it!~
+        self.report({"INFO"}, "Success!")
 
         return {"FINISHED"}
 
