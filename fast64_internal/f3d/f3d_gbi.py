@@ -2252,7 +2252,7 @@ class FAreaData:
         return self.fog_data.makeKey()
 
     def requiresKey(self, material):
-        return self.fog_data.requiresKey(material)
+        return self.fog_data and self.fog_data.requiresKey(material)
 
 
 class FGlobalData:
