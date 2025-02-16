@@ -1,11 +1,13 @@
-import bpy
+import bpy, mathutils, math
 from bpy.types import Operator
 from ..mk64_model_classes import MK64F3DContext, parse_course_vtx
+from ..mk64_course import export_course_c
 from ...f3d.f3d_material import createF3DMat
-from ...f3d.f3d_gbi import get_F3D_GBI
+from ...f3d.f3d_gbi import get_F3D_GBI, DLFormat
 from ...f3d.f3d_parser import getImportData, importMeshC
-from ...utility import raisePluginError
-from .properties import MK64CourseDLImportSettings
+from ...f3d.f3d_writer import getWriteMethodFromEnum, exportF3DtoC
+from ...utility import raisePluginError, applyRotation, toAlnum
+from .properties import MK64_ImportProperties
 
 
 class MK64_ImportCourseDL(Operator):
@@ -22,7 +24,7 @@ class MK64_ImportCourseDL(Operator):
             bpy.ops.object.mode_set(mode="OBJECT")
 
         try:
-            import_settings: MK64CourseDLImportSettings = context.scene.fast64.mk64.course_DL_import_settings
+            import_settings: MK64_ImportProperties = context.scene.fast64.mk64.course_DL_import_settings
             name = import_settings.name
             import_path = bpy.path.abspath(import_settings.path)
             base_path = bpy.path.abspath(import_settings.base_path)
@@ -90,5 +92,52 @@ class MK64_ImportCourseDL(Operator):
         except Exception as e:
             if context.mode != "OBJECT":
                 bpy.ops.object.mode_set(mode="OBJECT")
+            raisePluginError(self, e)
+            return {"CANCELLED"}  # must return a set
+
+
+class MK64_ExportCourse(Operator):
+    bl_idname = "scene.mk64_export_course"
+    bl_label = "Export Course"
+
+    def execute(self, context):
+        mk64_props: MK64_Properties = context.scene.fast64.mk64
+        if context.mode != "OBJECT":
+            bpy.ops.object.mode_set(mode="OBJECT")
+        try:
+            all_objs = context.selected_objects
+            if len(all_objs) == 0:
+                raise PluginError("No objects selected.")
+            obj = context.selected_objects[0]
+            root = obj
+
+            while root.parent:
+                root = root.parent
+
+            scale = mk64_props.scale
+            final_transform = mathutils.Matrix.Diagonal(mathutils.Vector((scale, scale, scale))).to_4x4()
+        except Exception as e:
+            if context.mode != "OBJECT":
+                bpy.ops.object.mode_set(mode="OBJECT")
+            raisePluginError(self, e)
+            return {"CANCELLED"}  # must return a set
+
+        try:
+            applyRotation([root], math.radians(90), "X")
+
+            export_path = bpy.path.abspath(mk64_props.course_export_settings.export_path)
+
+            export_course_c(root, context, export_path)
+
+            self.report({"INFO"}, "Success!")
+
+            applyRotation([root], math.radians(-90), "X")
+            return {"FINISHED"}  # must return a set
+
+        except Exception as e:
+            if context.mode != "OBJECT":
+                bpy.ops.object.mode_set(mode="OBJECT")
+            applyRotation([root], math.radians(-90), "X")
+
             raisePluginError(self, e)
             return {"CANCELLED"}  # must return a set

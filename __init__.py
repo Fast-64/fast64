@@ -26,6 +26,7 @@ from .fast64_internal.oot.actor.properties import initOOTActorProperties
 from .fast64_internal.utility_anim import utility_anim_register, utility_anim_unregister, ArmatureApplyWithMeshOperator
 
 from .fast64_internal.mk64 import MK64_Properties, mk64_register, mk64_unregister
+from .fast64_internal.mk64.f3d.properties import MK64_ObjectProperties, MK64_MeshProperties, MK64_CurveProperties
 
 from .fast64_internal.f3d.f3d_material import (
     F3D_MAT_CUR_VERSION,
@@ -258,6 +259,25 @@ class Fast64_ObjectProperties(bpy.types.PropertyGroup):
 
     sm64: bpy.props.PointerProperty(type=SM64_ObjectProperties, name="SM64 Object Properties")
     oot: bpy.props.PointerProperty(type=OOT_ObjectProperties, name="OOT Object Properties")
+    mk64: bpy.props.PointerProperty(type=MK64_ObjectProperties, name="MK64 Object Properties")
+
+
+class Fast64_MeshProperties(bpy.types.PropertyGroup):
+    """
+    Properties in object.fast64 (bpy.types.Mesh)
+    All new object properties should be children of this property group.
+    """
+
+    mk64: bpy.props.PointerProperty(type=MK64_ObjectProperties, name="MK64 Mesh Properties")
+
+
+class Fast64_CurveProperties(bpy.types.PropertyGroup):
+    """
+    Properties in object.fast64 (bpy.types.Curve)
+    All new object properties should be children of this property group.
+    """
+
+    mk64: bpy.props.PointerProperty(type=MK64_ObjectProperties, name="MK64 Curve Properties")
 
 
 class UpgradeF3DMaterialsDialog(bpy.types.Operator):
@@ -330,6 +350,8 @@ classes = (
     Fast64_Properties,
     Fast64_BoneProperties,
     Fast64_ObjectProperties,
+    Fast64_MeshProperties,
+    Fast64_CurveProperties,
     F3D_GlobalSettingsPanel,
     Fast64_GlobalSettingsPanel,
     Fast64_GlobalToolsPanel,
@@ -472,6 +494,8 @@ def register():
     bpy.types.Scene.fast64 = bpy.props.PointerProperty(type=Fast64_Properties, name="Fast64 Properties")
     bpy.types.Bone.fast64 = bpy.props.PointerProperty(type=Fast64_BoneProperties, name="Fast64 Bone Properties")
     bpy.types.Object.fast64 = bpy.props.PointerProperty(type=Fast64_ObjectProperties, name="Fast64 Object Properties")
+    bpy.types.Mesh.fast64 = bpy.props.PointerProperty(type=Fast64_MeshProperties, name="Fast64 Mesh Properties")
+    bpy.types.Curve.fast64 = bpy.props.PointerProperty(type=Fast64_CurveProperties, name="Fast64 Curve Properties")
 
     bpy.app.handlers.load_post.append(after_load)
 
