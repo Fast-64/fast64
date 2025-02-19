@@ -1,8 +1,13 @@
+import bpy
 from bpy.props import StringProperty, BoolProperty, EnumProperty, IntProperty, FloatProperty, PointerProperty
 from bpy.types import PropertyGroup, UILayout
 from bpy.utils import register_class, unregister_class
-from ...utility import prop_split
-from ...f3d.f3d_material import ootEnumDrawLayers
+from ..utility import prop_split
+from ..f3d.f3d_material import ootEnumDrawLayers
+
+from .mk64_constants import enum_surface_types, enum_actor_types
+
+from ..render_settings import on_update_render_settings
 
 # ------------------------------------------------------------------------
 #    Import Properties
@@ -51,7 +56,26 @@ class MK64_ExportProperties(PropertyGroup):
     def draw_props(self, layout: UILayout):
         prop_split(layout, self, "name", "Name")
         prop_split(layout, self, "export_path", "export_path")
-        # prop_split(layout, self, "decomp_path", "decomp_path")
+        prop_split(layout, self, "decomp_path", "decomp_path")
+
+
+# ------------------------------------------------------------------------
+#    Scene Properties
+# ------------------------------------------------------------------------
+
+
+class MK64_Properties(PropertyGroup):
+    """Global MK64 Scene Properties found under scene.fast64.mk64"""
+
+    # Import Course DL
+    course_DL_import_settings: bpy.props.PointerProperty(type=MK64_ImportProperties)
+    # exporter settings, merge with above later?
+    course_export_settings: bpy.props.PointerProperty(type=MK64_ExportProperties)
+    scale: FloatProperty(name="F3D Blender Scale", default=100, update=on_update_render_settings)
+
+    @staticmethod
+    def upgrade_changed_props():
+        pass
 
 
 # ------------------------------------------------------------------------
@@ -69,24 +93,15 @@ class MK64_ObjectProperties(PropertyGroup):
         name="Object Type",
         items=[
             ("Course Root", "Course Root", "Course Root"),
-            ("Item", "Item", "Item"),
+            ("Actor", "Actor", "Actor"),
         ],
     )
+    actor_type: EnumProperty(name="Actor Type", items=enum_actor_types)
 
-    def draw_props(self, layout: UILayout):
-        prop_split(layout, self, "obj_type", "object type")
-
-
-class MK64_MeshProperties(PropertyGroup):
-    """
-    Properties for mesh data, linked to mesh objects
-    found under mesh.fast64.mk64
-    """
-
+    # for mesh objects
     has_col: BoolProperty(name="Has Collision", default=True)
-
-    def draw_props(self, layout: UILayout):
-        prop_split(layout, self, "has_col", "Has Collision")
+    col_type: EnumProperty(name="Collision Type", items=enum_surface_types, default="SURFACE_DEFAULT")
+    section_id: IntProperty(name="section_id", default=255, min=0, max=255)
 
 
 class MK64_CurveProperties(PropertyGroup):
@@ -95,26 +110,23 @@ class MK64_CurveProperties(PropertyGroup):
     found under curve.fast64.mk64
     """
 
-    has_col: BoolProperty(name="Has Collision", default=True)
-
-    def draw_props(self, layout: UILayout):
-        prop_split(layout, self, "has_col", "Has Collision")
+    section_id: IntProperty(name="section_id", default=255, min=0, max=255)
 
 
-mk64_property_classes = [
+mk64_property_classes = (
     MK64_ImportProperties,
     MK64_ExportProperties,
     MK64_ObjectProperties,
-    MK64_MeshProperties,
     MK64_CurveProperties,
-]
+    MK64_Properties,
+)
 
 
-def f3d_props_register():
+def mk64_props_register():
     for cls in mk64_property_classes:
         register_class(cls)
 
 
-def f3d_props_unregister():
+def mk64_props_unregister():
     for cls in reversed(mk64_property_classes):
         unregister_class(cls)

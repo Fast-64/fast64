@@ -1,13 +1,17 @@
 import bpy, mathutils, math
 from bpy.types import Operator
-from ..mk64_model_classes import MK64F3DContext, parse_course_vtx
-from ..mk64_course import export_course_c
-from ...f3d.f3d_material import createF3DMat
-from ...f3d.f3d_gbi import get_F3D_GBI, DLFormat
-from ...f3d.f3d_parser import getImportData, importMeshC
-from ...f3d.f3d_writer import getWriteMethodFromEnum, exportF3DtoC
-from ...utility import raisePluginError, applyRotation, toAlnum
-from .properties import MK64_ImportProperties
+from bpy.utils import register_class, unregister_class
+
+from .mk64_model_classes import MK64F3DContext, parse_course_vtx
+from .mk64_course import export_course_c
+from .mk64_properties import MK64_ImportProperties
+
+from ..f3d.f3d_material import createF3DMat
+from ..f3d.f3d_gbi import get_F3D_GBI, DLFormat
+from ..f3d.f3d_parser import getImportData, importMeshC
+from ..f3d.f3d_writer import getWriteMethodFromEnum, exportF3DtoC
+
+from ..utility import raisePluginError, applyRotation, toAlnum, PluginError
 
 
 class MK64_ImportCourseDL(Operator):
@@ -110,12 +114,16 @@ class MK64_ExportCourse(Operator):
                 raise PluginError("No objects selected.")
             obj = context.selected_objects[0]
             root = obj
-
-            while root.parent:
-                root = root.parent
+            if not root.fast64.mk64.obj_type == "Course Root":
+                while root.parent:
+                    root = root.parent
+                    if root.fast64.mk64.obj_type == "Course Root":
+                        break
+            assert root.fast64.mk64.obj_type == "Course Root", PluginError("Object must be a course root")
 
             scale = mk64_props.scale
             final_transform = mathutils.Matrix.Diagonal(mathutils.Vector((scale, scale, scale))).to_4x4()
+
         except Exception as e:
             if context.mode != "OBJECT":
                 bpy.ops.object.mode_set(mode="OBJECT")
@@ -130,7 +138,6 @@ class MK64_ExportCourse(Operator):
             export_course_c(root, context, export_path)
 
             self.report({"INFO"}, "Success!")
-
             applyRotation([root], math.radians(-90), "X")
             return {"FINISHED"}  # must return a set
 
@@ -141,3 +148,16 @@ class MK64_ExportCourse(Operator):
 
             raisePluginError(self, e)
             return {"CANCELLED"}  # must return a set
+
+
+mk64_operator_classes = (MK64_ImportCourseDL, MK64_ExportCourse)
+
+
+def mk64_operator_register():
+    for cls in mk64_operator_classes:
+        register_class(cls)
+
+
+def mk64_operator_unregister():
+    for cls in mk64_operator_classes:
+        unregister_class(cls)
