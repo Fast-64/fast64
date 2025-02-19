@@ -152,13 +152,27 @@ class MK64_fModel(FModel):
         export_data = super().to_c(*args)
         export_data.staticData.append(self.to_c_track_actors())
         export_data.staticData.append(self.to_c_track_sections())
+        export_data.staticData.append(self.to_c_dl_array())
+
         return export_data
+
+    def to_c_dl_array(self):
+        data = CData()
+        if not self.meshes:
+            return data
+        data.header = f"extern const Gfx* d_{self.name}_dls[];\n"
+        data.source = f"const Gfx* d_{self.name}_dls[] = {{\n"
+        # cleaner oneline for this?
+        for index, fMesh in enumerate(self.meshes.values()):
+            data.source += f"{fMesh.draw.name}, " + ("\n\t" if index % 3 == 0 else "")
+        data.source += "};\n\n"
+        return data
 
     def to_c_track_actors(self):
         data = CData()
         if not self.actors:
             return data
-        data.header = f"extern struct ActorSpawnData d_{self.name}_item_spawns;\n"
+        data.header = f"extern struct ActorSpawnData d_{self.name}_item_spawns[];\n"
         actors = ",\n\t".join([actor.to_c() for actor in self.actors])
         data.source = "\n".join(
             (
@@ -174,7 +188,7 @@ class MK64_fModel(FModel):
         data = CData()
         if not self.track_sections:
             return data
-        data.header = f"extern TrackSections d_{self.name}_addr;\n"
+        data.header = f"extern TrackSections d_{self.name}_addr[];\n"
         sections = ",\n\t".join([track_section.to_c() for track_section in self.track_sections])
         data.source = "\n".join(
             (
