@@ -3460,7 +3460,7 @@ class RDPSettings(PropertyGroup):
     g_mdsft_alpha_dither: bpy.props.EnumProperty(
         name="Alpha Dither",
         items=enumAlphaDither,
-        default="G_AD_DISABLE",
+        default="G_AD_NOISE",
         update=update_node_values_with_preset,
         description="Applies your choice dithering type to output framebuffer alpha. Dithering is used to convert high precision source colors into lower precision framebuffer values",
     )
