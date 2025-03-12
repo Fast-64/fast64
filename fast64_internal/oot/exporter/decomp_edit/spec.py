@@ -3,11 +3,25 @@ import bpy
 import re
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Optional
 from ....utility import PluginError, writeFile, indent
 from ...oot_utility import ExportInfo, getSceneDirFromLevelName
 from ..scene import Scene
 from ..file import SceneFile
+
+
+def get_spec_path(export_path: str):
+    """Returns the path to the scene spec include"""
+
+    version: str = bpy.context.scene.fast64.oot.oot_version
+
+    if version == "legacy":
+        return Path(export_path)
+    elif version.startswith("gc-") or version.startswith("ique-"):
+        return Path(f"{export_path}/scenes_gc_ique.inc")
+    else:
+        return Path(f"{export_path}/scenes_n64.inc")
 
 
 @dataclass
@@ -85,12 +99,7 @@ class SpecFile:
     @staticmethod
     def new(export_path: str):
         # read the file's data
-        data = ""
-        try:
-            with open(export_path, "r") as file_data:
-                data = file_data.read()
-        except FileNotFoundError:
-            raise PluginError("ERROR: Can't find spec!")
+        data = get_spec_path(export_path).read_text()
 
         # Find first instance of "/assets/scenes/", indicating a scene file
         first_scene_include_index = data.index("/assets/scenes/")
@@ -109,11 +118,18 @@ class SpecFile:
         except ValueError:
             raise PluginError("endseg not found, scene segements cannot be the first segments in spec file")
 
-        header = data[: header_endseg_index + len("endseg")]
+        # if it's less than zero it means the file already starts with scene entries
+        if header_endseg_index < 0:
+            header = ""
+            header_endseg_index = 0
+            lines = data.split("\n")
+        else:
+            header = data[: header_endseg_index + len("endseg")]
 
-        # This technically includes data after scene segments
-        # However, as long as we don't have to modify them, they should be fine
-        lines = data[header_endseg_index + len("endseg") :].split("\n")
+            # This technically includes data after scene segments
+            # However, as long as we don't have to modify them, they should be fine
+            lines = data[header_endseg_index + len("endseg") :].split("\n")
+
         lines = list(filter(None, lines))  # removes empty lines
         lines = [line.strip() for line in lines]
 
@@ -185,7 +201,12 @@ class SpecFile:
                     return
 
     def to_c(self):
-        return f"{self.header}\n\n" + "".join(section.to_c() for section in self.sections)
+        header = ""
+
+        if len(self.header) > 0:
+            header = f"{self.header}\n\n"
+
+        return header + "".join(section.to_c() for section in self.sections)
 
 
 class SpecUtility:
@@ -297,4 +318,4 @@ class SpecUtility:
             specFile.append(SpecEntry(roomCmds))
 
         # finally, write the spec file
-        writeFile(exportPath, specFile.to_c())
+        get_spec_path(exportPath).write_text(specFile.to_c(), encoding="utf-8", newline="\n")
