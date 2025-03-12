@@ -180,7 +180,7 @@ class CutsceneCmdNewCamPoint:
             params[0],
             getInteger(params[1]),
             getInteger(params[2]),
-            [getInteger(params[3]), getInteger(params[4]), getInteger(params[5])],
+            [getInteger(params[3], True), getInteger(params[4], True), getInteger(params[5], True)],
             params[6],
         )
 

@@ -4,7 +4,7 @@ from struct import unpack
 from bpy.types import Object, Bone, Context, EditBone, Armature
 from mathutils import Vector
 from ....utility import yUpToZUp
-from ...utility import ootParseRotation
+from ...utility import ootParseRotation, twos_complement
 
 
 class BoneData:
@@ -84,14 +84,17 @@ def getBlenderPosition(pos: list[int], scale: int):
     return [float(pos[0]) / scale, -float(pos[2]) / scale, float(pos[1]) / scale]
 
 
-def getInteger(number: str):
+def getInteger(number: str, is_mm: bool = False):
     """Returns an int number (handles properly negative hex numbers)"""
 
     if number.startswith("0x"):
-        number = number.removeprefix("0x")
+        if is_mm:
+            return twos_complement(number, 16)
+        else:
+            number = number.removeprefix("0x")
 
-        # ``"0" * (8 - len(number)`` adds the missing zeroes (if necessary) to have a 8 digit hex number
-        return unpack("!i", bytes.fromhex("0" * (8 - len(number)) + number))[0]
+            # ``"0" * (8 - len(number)`` adds the missing zeroes (if necessary) to have a 8 digit hex number
+            return unpack("!i", bytes.fromhex("0" * (8 - len(number)) + number))[0]
     else:
         return int(number)
 

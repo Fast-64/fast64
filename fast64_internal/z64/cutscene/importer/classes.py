@@ -25,6 +25,7 @@ from ..classes import (
 )
 
 # TODO: move these classes to a common place outside the exporter
+from ...exporter.utility import Utility
 from ...exporter.cutscene import Cutscene, CutsceneData
 from ...exporter.cutscene.actor_cue import CutsceneCmdActorCueList, CutsceneCmdActorCue
 from ...exporter.cutscene.text import (
@@ -624,6 +625,51 @@ class CutsceneImport(CutsceneObjectFactory):
 
         return endIndex + 1
 
+    def create_camera_shots(self, cs_obj: Object, spline_list: list[CutsceneCmdCamSplineList], cs_nbr: int):
+        scale = bpy.context.scene.ootBlenderScale
+        i = 0
+
+        # this is required to be able to change the object mode
+        if bpy.context.mode != "OBJECT":
+            bpy.ops.object.mode_set(mode="OBJECT")
+
+        for splines in spline_list:
+            start_index = i
+
+            for i, spline in enumerate(splines.entries, start_index):
+                new_shot = self.getNewArmatureObject(f"CS_{cs_nbr:02}.Camera Shot {i:02}", True, cs_obj)
+                shot_props = new_shot.data.ootCamShotProp
+                armature_data: Armature = new_shot.data
+
+                shot_props.shot_duration = spline.duration
+                # TODO: move this to the bones?
+                first_entry = spline.entries[0]
+                self.setPropOrCustom(
+                    shot_props,
+                    "shot_interp_type",
+                    Utility.enum_id_to_key(first_entry.at.interp_type, "cs_spline_interp_type"),
+                )
+                self.setPropOrCustom(
+                    shot_props,
+                    "shot_spline_rel_to",
+                    Utility.enum_id_to_key(first_entry.at.relative_to, "cs_spline_rel"),
+                )
+
+                for j, point in enumerate(spline.entries):
+                    bpy.ops.object.mode_set(mode="EDIT")
+                    boneName = f"CS_{cs_nbr:02}.Camera Point {j:02}"
+                    new_edit_bone = armature_data.edit_bones.new(boneName)
+                    new_edit_bone.head = getBlenderPosition(point.eye.pos, scale)
+                    new_edit_bone.tail = getBlenderPosition(point.at.pos, scale)
+                    bpy.ops.object.mode_set(mode="OBJECT")
+                    new_bone = armature_data.bones[boneName]
+
+                    # using the "AT" (look-at) data since this is what determines where the camera is looking
+                    # the "Eye" only sets the location of the camera
+                    new_bone.ootCamShotPointProp.shot_point_duration = point.at.duration
+                    new_bone.ootCamShotPointProp.shotPointViewAngle = point.misc.viewAngle
+                    new_bone.ootCamShotPointProp.shotPointRoll = point.misc.camRoll
+
     def setPropOrCustom(self, prop, propName: str, value):
         try:
             setattr(prop, propName, value)
@@ -732,6 +778,9 @@ class CutsceneImport(CutsceneObjectFactory):
                     lastIndex = self.setCameraShotData(
                         csObj, cutscene.data.camEyeList, cutscene.data.camATList, "eyeOrAT", lastIndex, i
                     )
+            else:
+                if len(cutscene.data.camSplineList) > 0:
+                    self.create_camera_shots(csObj, cutscene.data.camSplineList, i)
 
             if cutscene.data.destination is not None:
                 csProp.csUseDestination = True

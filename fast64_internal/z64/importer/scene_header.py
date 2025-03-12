@@ -18,6 +18,7 @@ from ..utility import (
     getObjectList,
     getEnumIndex,
     get_new_empty_object,
+    twos_complement,
 )
 from .constants import headerNames
 from .utility import getDataMatch, stripName
@@ -242,14 +243,6 @@ def parseAlternateSceneHeaders(
             parseSceneCommands(
                 sceneObj.name, sceneObj, roomObjs, altHeadersList[i], sceneData, f3dContext, i + 1, sharedSceneData
             )
-
-
-# from https://stackoverflow.com/a/6727975
-def twos_complement(hexstr: str, bits: int):
-    value = int(hexstr, 16)
-    if value & (1 << (bits - 1)):
-        value -= 1 << bits
-    return value
 
 
 def parse_mm_map_data(scene_header, scene_data: str, list_name: str):

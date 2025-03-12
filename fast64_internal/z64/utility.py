@@ -1254,3 +1254,11 @@ def get_actor_prop_from_obj(actor_obj: Object) -> "Z64_ActorProperty":
         raise PluginError(f"ERROR: Empty type not supported: {actor_obj.ootEmptyType}")
 
     return actor_prop
+
+
+# from https://stackoverflow.com/a/6727975
+def twos_complement(hexstr: str, bits: int):
+    value = int(hexstr, 16)
+    if value & (1 << (bits - 1)):
+        value -= 1 << bits
+    return value
