@@ -265,7 +265,13 @@ class RoomActors:
                 )
 
                 actor.pos = pos
-                actor.params = actorProp.params if actorProp.actor_id != "Custom" else actorProp.params_custom
+
+                # force custom params for MM (temp solution until the xml is documented properly)
+                if is_oot_features() and actorProp.actor_id != "Custom":
+                    actor.params = actorProp.params
+                else:
+                    actor.params = actorProp.params_custom
+
                 actorList.append(actor)
         return RoomActors(name, actorList)
 

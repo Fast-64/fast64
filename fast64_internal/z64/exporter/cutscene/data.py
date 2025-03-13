@@ -253,8 +253,8 @@ class CutsceneData:
                         self.getOoTRotation(childObj),
                         self.getOoTPosition(childObj.location),
                         self.getOoTPosition(obj.children[i].location),
+                        isPlayer,
                     )
-                    new_entry.isPlayer = isPlayer
                     newActorCueList.entries.append(new_entry)
 
             self.actorCueList.append(newActorCueList)
