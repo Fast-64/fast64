@@ -175,7 +175,12 @@ class SceneEntranceActors:
                         f"SPAWN_ROT_FLAGS(DEG_TO_BINANG({(r * (180 / 0x8000)):.3f}), 0x00)" for r in rot
                     )
 
-                entranceActor.params = actorProp.params if not entranceProp.customActor else actorProp.params_custom
+                # force custom params for MM (temp solution until the xml is documented properly)
+                if game_data.z64.is_oot() and not entranceProp.customActor:
+                    entranceActor.params = actorProp.params
+                else:
+                    entranceActor.params = actorProp.params_custom
+
                 if entranceProp.tiedRoom is not None:
                     entranceActor.roomIndex = entranceProp.tiedRoom.ootRoomHeader.roomIndex
                 else:
