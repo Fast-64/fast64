@@ -267,7 +267,7 @@ class RoomActors:
                 actor.pos = pos
 
                 # force custom params for MM (temp solution until the xml is documented properly)
-                if is_oot_features() and actorProp.actor_id != "Custom":
+                if game_data.z64.is_oot() and actorProp.actor_id != "Custom":
                     actor.params = actorProp.params
                 else:
                     actor.params = actorProp.params_custom
