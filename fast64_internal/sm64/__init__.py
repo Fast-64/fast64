@@ -91,8 +91,10 @@ from .sm64_anim import (
 )
 
 from .sm64_level_importer import (
+    sm64_import_panel_register,
+    sm64_import_panel_unregister,
     sm64_import_register,
-    sm64_import_unregister
+    sm64_import_unregister,
 )
 
 
@@ -103,6 +105,7 @@ def sm64_panel_register():
     sm64_bone_panel_register()
     sm64_cam_panel_register()
     sm64_obj_panel_register()
+    sm64_import_panel_register()
     sm64_geo_parser_panel_register()
     sm64_geo_writer_panel_register()
     sm64_spline_panel_register()
@@ -118,6 +121,7 @@ def sm64_panel_unregister():
     sm64_bone_panel_unregister()
     sm64_cam_panel_unregister()
     sm64_obj_panel_unregister()
+    sm64_import_panel_unregister()
     sm64_geo_parser_panel_unregister()
     sm64_geo_writer_panel_unregister()
     sm64_spline_panel_unregister()
@@ -135,13 +139,13 @@ def sm64_register(register_panels: bool):
     sm64_obj_register()
     sm64_geo_parser_register()
     sm64_geo_writer_register()
+    sm64_import_register()
     sm64_level_register()
     sm64_spline_register()
     sm64_dl_writer_register()
     sm64_dl_parser_register()
     sm64_anim_register()
     settings_props_register()
-    sm64_import_register()
 
     if register_panels:
         sm64_panel_register()

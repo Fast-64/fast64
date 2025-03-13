@@ -20,10 +20,10 @@ class Macro:
     def __post_init__(self):
         self.args = [arg.strip() if type(arg) is str else arg for arg in self.args]
         self.cmd = self.cmd.strip()
-    
+
     # make new macro that is the indices chosen or supplied args
     def partial(self, *new_args: Any):
-        return Macro(self.cmd,(arg for arg in new_args))
+        return Macro(self.cmd, (arg for arg in new_args))
 
 
 @dataclass
@@ -39,7 +39,6 @@ class Parser:
 
 # basic methods and utility to parse scripts or data streams of bytecode
 class DataParser:
-
     # parsing flow status codes
     continue_parse = 1
     break_parse = 2
@@ -56,7 +55,7 @@ class DataParser:
     def parse_stream_from_start(self, dat_stream: Sequence[Any], entry_id: Any, *args, **kwargs):
         self.reset_parser(entry_id)
         self.parse_stream(dat_stream, entry_id, *args, **kwargs)
-        
+
     def parse_stream(self, dat_stream: Sequence[Any], entry_id: Any, *args, **kwargs):
         parser = self.parsed_streams.get(entry_id)
         if not parser:
@@ -88,11 +87,12 @@ def transform_matrix_to_bpy(transform: Matrix) -> Matrix:
     return transform_mtx_blender_to_n64().inverted() @ transform @ transform_mtx_blender_to_n64()
 
 
+# make something more generic here where user can supply their own function
 def evaluate_macro(line: str):
-    scene = bpy.context.scene
-    if scene.level_import.version in line:
+    props = bpy.context.scene.fast64.sm64.importer
+    if props.version in line:
         return False
-    if scene.level_import.target in line:
+    if props.target in line:
         return False
     return True
 
@@ -108,6 +108,8 @@ def pre_parse_file(file: TextIO) -> list[str]:
         if (comment := line.rfind("//")) > 0:
             line = line[:comment]
         # check for macro
+        if "#if" in line:
+            skip_macro = evaluate_macro(line)
         if "#ifdef" in line:
             skip_macro = evaluate_macro(line)
             continue
@@ -123,24 +125,36 @@ def pre_parse_file(file: TextIO) -> list[str]:
 
 
 # given an aggregate file that imports many files, find files with the name of type <filename>
-def parse_aggregate_file(dat: TextIO, filenames: Union[str, tuple[str]], root_path: Path) -> list[Path]:
-    dat.seek(0)  # so it may be read multiple times
-    # make it an iterator even if it isn't on call
-    if isinstance(filenames, str):
-        filenames = (filenames,)
-    file_lines = pre_parse_file(dat)
-    # remove include and quotes inefficiently from lines with the filenames we are searching for
-    file_lines = [
-        c.replace("#include ", "").replace('"', "").replace("'", "")
-        for c in file_lines
-        if any(filename in c for filename in filenames)
-    ]
-    # deal with duplicate pathing (such as /actors/actors etc.)
-    Extra = root_path.relative_to(Path(bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path)))
-    for e in Extra.parts:
-        files = [c.replace(e + "/", "") for c in file_lines]
-    if file_lines:
-        return [root_path / c for c in file_lines]
+def parse_aggregate_file(
+    agg_file: TextIO, file_catches: tuple[callable], root_path: Path, aggregate_path: Path
+) -> list[Path]:
+    agg_file.seek(0)  # so it may be read multiple times
+
+    file_lines = pre_parse_file(agg_file)
+    # remove include and quotes
+    remove = {"#include", '"', "'"}
+    caught_files = []
+    for line in file_lines:
+        # if not line:
+        # continue
+        for r in remove:
+            line = line.replace(r, "")
+        line = Path(line.strip())
+        for callable in file_catches:
+            if callable(line):
+                caught_files.append(line)
+                break
+
+    # include is relative cur aggregate file or root
+    def get_file_path(root_path: Path, include: str):
+        if (include_file := root_path / include).exists():
+            return include_file
+        if (include_file := aggregate_path.parent / include).exists():
+            return include_file
+        raise Exception(f"could not find inclusion file {include}")
+
+    if caught_files:
+        return [get_file_path(root_path, include) for include in caught_files]
     else:
         return []
 
@@ -190,7 +204,7 @@ def get_data_types_from_file(file: TextIO, type_dict, collated=False):
 
 
 # takes a raw string representing data and then formats it into an array
-def format_data_arr(raw_data: str, delimiters: tuple[str]):
+def format_data_arr(raw_data: str, delimiters: tuple[str]) -> list[str]:
     raw_data = raw_data.replace("\n", "")
     arr = []  # arr of data in format
     buf = ""  # buf to put currently processed data in

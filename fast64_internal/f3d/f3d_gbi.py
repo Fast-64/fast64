@@ -2257,7 +2257,7 @@ class FAreaData:
 
 class FGlobalData:
     def __init__(self):
-        # dict of area index : FFogData
+        # dict of area index : FAreaData
         self.area_data = {}
         self.current_area_index = 1
 
@@ -2969,14 +2969,17 @@ class FTriGroup:
         return self.triList.get_ptr_addresses(f3d)
 
     def set_addr(self, startAddress, f3d):
-        addrRange = self.triList.set_addr(startAddress, f3d)
+        addrRange = (startAddress, startAddress)
+        if self.triList.tag.Export:
+            addrRange = self.triList.set_addr(startAddress, f3d)
         addrRange = self.vertexList.set_addr(addrRange[1])
         return startAddress, addrRange[1]
 
     def save_binary(self, romfile, f3d, segments):
         for celTriList in self.celTriLists:
             celTriList.save_binary(romfile, f3d, segments)
-        self.triList.save_binary(romfile, f3d, segments)
+        if self.triList.tag.Export:
+            self.triList.save_binary(romfile, f3d, segments)
         self.vertexList.save_binary(romfile)
 
     def to_c(self, f3d, gfxFormatter):
@@ -3083,15 +3086,17 @@ class FMaterial:
         return addresses
 
     def set_addr(self, startAddress, f3d):
-        addrRange = self.material.set_addr(startAddress, f3d)
-        startAddress = addrRange[0]
-        if self.revert is not None:
+        addrRange = (startAddress, startAddress)
+        if self.material.tag.Export:
+            addrRange = self.material.set_addr(addrRange[1], f3d)
+        if self.revert is not None and self.revert.tag.Export:
             addrRange = self.revert.set_addr(addrRange[1], f3d)
         return startAddress, addrRange[1]
 
     def save_binary(self, romfile, f3d, segments):
-        self.material.save_binary(romfile, f3d, segments)
-        if self.revert is not None:
+        if self.material.tag.Export:
+            self.material.save_binary(romfile, f3d, segments)
+        if self.revert is not None and self.revert.tag.Export:
             self.revert.save_binary(romfile, f3d, segments)
 
     def to_c(self, f3d):
@@ -3280,6 +3285,10 @@ class FImage:
     isLargeTexture: bool = field(init=False, compare=False, default=False)
     converted: bool = field(init=False, compare=False, default=False)
 
+    @property
+    def aligner_name(self):
+        return f"{self.name}_aligner"
+
     def size(self):
         return len(self.data)
 
@@ -3298,7 +3307,7 @@ class FImage:
 
         # This is to force 8 byte alignment
         if bitsPerValue != 64:
-            code.source = f"Gfx {self.name}_aligner[] = {{gsSPEndDisplayList()}};\n"
+            code.source = f"Gfx {self.aligner_name}[] = {{gsSPEndDisplayList()}};\n"
         code.source += f"u{str(bitsPerValue)} {self.name}[] = {{\n\t"
         code.source += texData
         code.source += "\n};\n\n"
@@ -3417,7 +3426,8 @@ class GbiMacro:
         if static:
             return f"g{'s'*static}{type(self).__name__}({', '.join( self.getargs(static) )})"
         else:
-            return f"g{'s'*static}{type(self).__name__}(glistp++, {', '.join( self.getargs(static) )})"
+            args = ["glistp++"] + list(self.getargs(static))
+            return f"g{'s'*static}{type(self).__name__}({', '.join( args )})"
 
     def size(self, f3d):
         return GFX_SIZE

@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import bpy
 from bpy.types import PropertyGroup, UILayout, Context
 from bpy.props import BoolProperty, StringProperty, EnumProperty, IntProperty, FloatProperty, PointerProperty
@@ -9,6 +10,7 @@ from ...render_settings import on_update_render_settings
 from ...utility import directory_path_checks, directory_ui_warnings, prop_split, set_prop_if_in_data, upgrade_old_prop
 from ..sm64_constants import defaultExtendSegment4
 from ..sm64_objects import SM64_CombinedObjectProperties
+from ..sm64_level_importer import SM64_ImportProperties
 from ..sm64_utility import export_rom_ui_warnings, import_rom_ui_warnings
 from ..tools import SM64_AddrConvProperties
 
@@ -22,10 +24,10 @@ from .constants import (
 
 def decomp_path_update(self, context: Context):
     fast64_settings = context.scene.fast64.settings
-    if fast64_settings.repo_settings_path:
+    if fast64_settings.repo_settings_path and Path(abspath(fast64_settings.repo_settings_path)).exists():
         return
-    directory_path_checks(abspath(self.decomp_path))
-    fast64_settings.repo_settings_path = os.path.join(abspath(self.decomp_path), "fast64.json")
+    directory_path_checks(self.abs_decomp_path)
+    fast64_settings.repo_settings_path = str(self.abs_decomp_path / "fast64.json")
 
 
 class SM64_Properties(PropertyGroup):
@@ -80,10 +82,16 @@ class SM64_Properties(PropertyGroup):
         name="Matstack Fix",
         description="Exports account for matstack fix requirements",
     )
+    # importing, do I need to upgrade props for this?
+    importer: PointerProperty(type=SM64_ImportProperties)
 
     @property
     def binary_export(self):
-        return self.export_type in ["Binary", "Insertable Binary"]
+        return self.export_type in {"Binary", "Insertable Binary"}
+
+    @property
+    def abs_decomp_path(self) -> Path:
+        return Path(abspath(self.decomp_path))
 
     @staticmethod
     def upgrade_changed_props():
@@ -173,7 +181,7 @@ class SM64_Properties(PropertyGroup):
             col.prop(self, "extend_bank_4")
         elif not self.binary_export:
             prop_split(col, self, "decomp_path", "Decomp Path")
-            directory_ui_warnings(col, abspath(self.decomp_path))
+            directory_ui_warnings(col, self.abs_decomp_path)
         col.separator()
 
         if show_repo_settings:
