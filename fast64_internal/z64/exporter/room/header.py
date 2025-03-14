@@ -170,7 +170,11 @@ class RoomActors:
         # Figure out which rotation to export, Blender's or the override
         custom = "_custom" if actorProp.actor_id == "Custom" else ""
         rot_values = [getattr(actorProp, f"rot_{rot}{custom}") for rot in ["x", "y", "z"]]
-        export_rot_values = [f"DEG_TO_BINANG({(rot * (180 / 0x8000)):.3f})" for rot in blender_rot_values]
+
+        if game_data.z64.is_oot():
+            export_rot_values = [f"DEG_TO_BINANG({(rot * (180 / 0x8000)):.3f})" for rot in blender_rot_values]
+        else:
+            export_rot_values = [f"{(rot * (180 / 0x8000)):.3f}" for rot in blender_rot_values]
 
         if actorProp.actor_id == "Custom":
             export_rot_values = rot_values if actorProp.rot_override else export_rot_values

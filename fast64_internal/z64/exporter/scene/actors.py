@@ -171,8 +171,9 @@ class SceneEntranceActors:
                 if is_oot_features():
                     entranceActor.rot = ", ".join(f"DEG_TO_BINANG({(r * (180 / 0x8000)):.3f})" for r in rot)
                 else:
+                    # MM seems to use degrees directly
                     entranceActor.rot = ", ".join(
-                        f"SPAWN_ROT_FLAGS(DEG_TO_BINANG({(r * (180 / 0x8000)):.3f}), 0x00)" for r in rot
+                        f"SPAWN_ROT_FLAGS({(r * (180 / 0x8000)):.3f}, 0x00)" for r in rot
                     )
 
                 # force custom params for MM (temp solution until the xml is documented properly)
