@@ -172,9 +172,7 @@ class SceneEntranceActors:
                     entranceActor.rot = ", ".join(f"DEG_TO_BINANG({(r * (180 / 0x8000)):.3f})" for r in rot)
                 else:
                     # MM seems to use degrees directly
-                    entranceActor.rot = ", ".join(
-                        f"SPAWN_ROT_FLAGS({(r * (180 / 0x8000)):.3f}, 0x00)" for r in rot
-                    )
+                    entranceActor.rot = ", ".join(f"SPAWN_ROT_FLAGS({round(r * (180 / 0x8000))}, 0x00)" for r in rot)
 
                 # force custom params for MM (temp solution until the xml is documented properly)
                 if game_data.z64.is_oot() and not entranceProp.customActor:

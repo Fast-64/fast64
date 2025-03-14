@@ -174,7 +174,7 @@ class RoomActors:
         if game_data.z64.is_oot():
             export_rot_values = [f"DEG_TO_BINANG({(rot * (180 / 0x8000)):.3f})" for rot in blender_rot_values]
         else:
-            export_rot_values = [f"{(rot * (180 / 0x8000)):.3f}" for rot in blender_rot_values]
+            export_rot_values = [f"{round(rot * (180 / 0x8000))}" for rot in blender_rot_values]
 
         if actorProp.actor_id == "Custom":
             export_rot_values = rot_values if actorProp.rot_override else export_rot_values
