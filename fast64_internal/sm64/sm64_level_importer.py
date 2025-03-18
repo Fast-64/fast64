@@ -137,6 +137,7 @@ class Area:
         root.sm64_obj_type = "Area Root"
         root.areaIndex = num
         self.objects = []
+        self.placed_special_objects = []  # for linking objects later
         self.col = col
 
     def add_warp(self, args: list[str], type: str):
@@ -196,28 +197,18 @@ class Area:
             model_obj = actor_models.get(object.model, None)
             if model_obj is None:
                 continue
-            # duplicate, idk why temp override doesn't work
-            # with bpy.context.temp_override(active_object = model_obj, selected_objects = model_obj.children_recursive):
-            # bpy.ops.object.duplicate_move_linked()
-            bpy.ops.object.select_all(action="DESELECT")
-            for child in model_obj.children_recursive:
-                child.select_set(True)
-            model_obj.select_set(True)
-            bpy.context.view_layer.objects.active = model_obj
-            bpy.ops.object.duplicate()
-            new_obj = bpy.context.active_object
-            bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
-            # unlink from col, add to area col
-            for obj in (new_obj, *new_obj.children_recursive):
-                obj.users_collection[0].objects.unlink(obj)
-                col.objects.link(obj)
-            new_obj.location = bpy_obj.location
-            new_obj.rotation_euler = bpy_obj.rotation_euler
-            # add constraints so obj follows along when you move empty
-            copy_loc = new_obj.constraints.new("COPY_LOCATION")
-            copy_loc.target = bpy_obj
-            copy_rot = new_obj.constraints.new("COPY_ROTATION")
-            copy_rot.target = bpy_obj
+            self.link_bpy_obj_to_empty(bpy_obj, model_obj, col)
+        if not actor_models:
+            return
+        for placed_obj in self.placed_special_objects:
+            if "level_geo" in placed_obj.sm64_special_enum:
+                level_geo_model_name = self.get_level_geo_from_special(placed_obj.sm64_special_enum)
+                model_obj = actor_models.get(level_geo_model_name, None)
+                if model_obj:
+                    self.link_bpy_obj_to_empty(placed_obj, model_obj, col)
+
+    def get_level_geo_from_special(self, special_name: str):
+        return special_name.replace("special", "MODEL").replace("geo", "GEOMETRY").upper()
 
     def write_special_objects(self, special_objs: list[str], col: bpy.types.Collection):
         special_presets = {enum[0] for enum in enumSpecialsNames}
@@ -241,6 +232,7 @@ class Area:
                 bpy_obj.sm64_obj_set_bparam = True
                 bpy_obj.fast64.sm64.game_object.use_individual_params = False
                 bpy_obj.fast64.sm64.game_object.bparams = str(special[5])
+            self.placed_special_objects.append(bpy_obj)
 
     def place_object(self, object: Object, col: bpy.types.Collection):
         bpy_obj = bpy.data.objects.new("Empty", None)
@@ -274,6 +266,32 @@ class Area:
                     setattr(bpy_obj, form.format(i), False)
         return bpy_obj
 
+    def link_bpy_obj_to_empty(
+        self, bpy_obj: bpy.Types.Object, model_obj: bpy.Types.Collection, col: bpy.Types.Collection
+    ):
+        # duplicate, idk why temp override doesn't work
+        # with bpy.context.temp_override(active_object = model_obj, selected_objects = model_obj.children_recursive):
+        # bpy.ops.object.duplicate_move_linked()
+        bpy.ops.object.select_all(action="DESELECT")
+        for child in model_obj.children_recursive:
+            child.select_set(True)
+        model_obj.select_set(True)
+        bpy.context.view_layer.objects.active = model_obj
+        bpy.ops.object.duplicate()
+        new_obj = bpy.context.active_object
+        bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
+        # unlink from col, add to area col
+        for obj in (new_obj, *new_obj.children_recursive):
+            obj.users_collection[0].objects.unlink(obj)
+            col.objects.link(obj)
+        new_obj.location = bpy_obj.location
+        new_obj.rotation_euler = bpy_obj.rotation_euler
+        # add constraints so obj follows along when you move empty
+        copy_loc = new_obj.constraints.new("COPY_LOCATION")
+        copy_loc.target = bpy_obj
+        copy_rot = new_obj.constraints.new("COPY_ROTATION")
+        copy_rot.target = bpy_obj
+
 
 class Level(DataParser):
     def __init__(self, scripts: dict[str, list[str]], scene: bpy.types.Scene, root: bpy.types.Object):
@@ -284,7 +302,7 @@ class Level(DataParser):
         self.cur_area: int = None
         self.root = root
         self.loaded_geos: dict[model_name:str, geo_name:str] = dict()
-        self.loaded_dls: dict[dl_name:str, geo_name:str] = dict()
+        self.loaded_dls: dict[model_name:str, dl_name:str] = dict()
         super().__init__()
 
     def parse_level_script(self, entry: str, col: bpy.types.Collection = None):
@@ -997,6 +1015,7 @@ class GraphNodes(DataParser):
         "geo_movtex_pause_control",
         "geo_movtex_draw_water_regions",
         "geo_cannon_circle_base",
+        "geo_envfx_main",
     }
 
     def __init__(
@@ -1429,7 +1448,8 @@ class GeoLayout(GraphNodes):
             raise Exception(
                 "Could not find geo layout {} from levels/{}/{}geo.c".format(
                     start, self.props.level_name, self.props.level_prefix
-                )
+                ),
+                "pass_linked_export",
             )
         self.stream.append(start)
         self.parse_stream_from_start(geo_layout, start, 0)
@@ -2100,8 +2120,14 @@ def find_actor_models_from_model_ids(
             print(f"could not find model {model}")
             continue
         geo_layout = GeoLayout(geo_layout_dict, root_obj, scene, layout_name, root_obj, col=col)
-        geo_layout.parse_level_geo(layout_name)
-        geo_layout_per_model[model] = geo_layout
+        try:
+            geo_layout.parse_level_geo(layout_name)
+            geo_layout_per_model[model] = geo_layout
+        except Exception as exc:
+            if exc.args[1] == "pass_linked_export":
+                print(exc)
+            else:
+                raise Exception(exc)
     return geo_layout_per_model
 
 
@@ -2194,7 +2220,13 @@ def find_collision_data_from_path(aggregate: Path, lvl: Level, scene: bpy.types.
     return lvl
 
 
-def write_level_collision_to_bpy(lvl: Level, scene: bpy.types.Scene, cleanup: bool, col_name: str = None):
+def write_level_collision_to_bpy(
+    lvl: Level,
+    scene: bpy.types.Scene,
+    cleanup: bool,
+    col_name: str = None,
+    actor_models: dict[model_name, bpy.Types.Mesh] = None,
+):
     for area_index, area in lvl.areas.items():
         if not col_name:
             col = area.root.users_collection[0]
@@ -2220,12 +2252,7 @@ def write_level_collision_to_bpy(lvl: Level, scene: bpy.types.Scene, cleanup: bo
 
 # import level collision given a level script
 def import_level_collision(
-    aggregate: Path,
-    lvl: Level,
-    scene: bpy.types.Scene,
-    root_path: Path,
-    cleanup: bool,
-    col_name: str = None,
+    aggregate: Path, lvl: Level, scene: bpy.types.Scene, root_path: Path, cleanup: bool, col_name: str = None
 ) -> Level:
     lvl = find_collision_data_from_path(
         aggregate, lvl, scene, root_path
@@ -2355,7 +2382,10 @@ class SM64_LvlImport(Operator):
         )  # returns level class
 
         if props.import_linked_actors:
-            unique_model_ids = {object.model for area in lvl.areas.values() for object in area.objects}
+            unique_model_ids = {model for model in lvl.loaded_geos.keys()}
+            unique_model_ids.update({model for model in lvl.loaded_dls.keys()})
+            unique_model_ids.update({object.model for area in lvl.areas.values() for object in area.objects})
+
             geo_actor_paths = [
                 *(
                     decomp_path / "actors" / (linked_group.group_prefix + "_geo.c")
@@ -2383,12 +2413,13 @@ class SM64_LvlImport(Operator):
                 # update model to be root obj of geo
                 actor_geo_layouts[model] = geo_layout.first_obj
 
+            lvl = import_level_collision(level_data_path, lvl, scene, decomp_path, self.cleanup, col_name=col_col)
             write_level_objects(lvl, col_name=obj_col, actor_models=actor_geo_layouts)
             # actor_col.hide_render = True
             # actor_col.hide_viewport = True
         else:
             write_level_objects(lvl, col_name=obj_col)
-        lvl = import_level_collision(level_data_path, lvl, scene, decomp_path, self.cleanup, col_name=col_col)
+            lvl = import_level_collision(level_data_path, lvl, scene, decomp_path, self.cleanup, col_name=col_col)
         lvl = import_level_graphics(
             [geo_path], lvl, scene, decomp_path, [level_data_path], cleanup=self.cleanup, col_name=gfx_col
         )

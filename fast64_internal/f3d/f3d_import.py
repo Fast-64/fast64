@@ -554,6 +554,25 @@ class DL(DataParser):
     def gsSPSetLights7(self, macro: Macro):
         return self.continue_parse
 
+    def gsSPSetOtherMode(self, macro: Macro):
+        self.NewMat = 1
+        if macro.args[0] == "G_SETOTHERMODE_H":
+            for i, othermode in enumerate(macro.args[3].split("|")):
+                # this may cause an issue if someone uses a wacky custom othermode H
+                mode_h_attr = RDPSettings.other_mode_h_attributes[i][1]
+                self.LastMat.other_mode[mode_h_attr] = othermode.strip()
+        else:
+            if int(macro.args[2]) > 3:
+                self.LastMat.RenderMode = []
+            # top two bits are z src and alpha compare, rest is render mode
+            for i, othermode in enumerate(macro.args[3].split("|")):
+                if int(macro.args[2]) > 3 and i > 1:
+                    self.LastMat.RenderMode.append(othermode)
+                    continue
+                mode_l_attr = RDPSettings.other_mode_l_attributes[i][1]
+                self.LastMat.other_mode[mode_l_attr] = othermode.strip()
+        return self.continue_parse
+
     # some independent other mode settings
     def gsDPSetTexturePersp(self, macro: Macro):
         self.NewMat = 1
@@ -681,6 +700,14 @@ class DL(DataParser):
                 self.LastMat.GeoClear.remove(a)
         self.LastMat.GeoClear.extend(argsC)
         self.LastMat.GeoSet.extend(argsS)
+        return self.continue_parse
+
+    def gsSPLoadGeometryMode(self, macro: Macro):
+        self.NewMat = 1
+        geo_set = {a.strip().lower() for a in macro.args[0].split("|")}
+        all_geos = set(RDPSettings.geo_mode_attributes.values())
+        self.LastMat.GeoSet = list(geo_set)
+        self.LastMat.GeoClear = list(all_geos.difference(geo_set))
         return self.continue_parse
 
     def gsDPSetCombineMode(self, macro: Macro):
