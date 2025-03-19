@@ -111,6 +111,12 @@ class OOT_Properties(bpy.types.PropertyGroup):
         default=False,
     )
 
+    use_new_actor_panel: bpy.props.BoolProperty(
+        name="Use newer actor panel",
+        description="Use the new actor panel which provides detailed informations to set actor parameters.",
+        default=True,
+    )
+
 
 oot_classes = (OOT_Properties,)
 
