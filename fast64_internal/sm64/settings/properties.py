@@ -10,6 +10,7 @@ from ...render_settings import on_update_render_settings
 from ...utility import directory_path_checks, directory_ui_warnings, prop_split, set_prop_if_in_data, upgrade_old_prop
 from ..sm64_constants import defaultExtendSegment4
 from ..sm64_objects import SM64_CombinedObjectProperties
+from ..sm64_level_importer import SM64_ImportProperties
 from ..sm64_utility import export_rom_ui_warnings, import_rom_ui_warnings
 from ..tools import SM64_AddrConvProperties
 
@@ -81,6 +82,8 @@ class SM64_Properties(PropertyGroup):
         name="Matstack Fix",
         description="Exports account for matstack fix requirements",
     )
+    # importing, do I need to upgrade props for this?
+    importer: PointerProperty(type=SM64_ImportProperties)
 
     @property
     def binary_export(self):
