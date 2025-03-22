@@ -27,6 +27,9 @@ from bpy.types import (
 )
 from bpy.utils import register_class, unregister_class
 
+import cProfile, pstats, io
+from pstats import SortKey
+
 import os, sys, math, re, typing
 from array import array
 from struct import *
@@ -43,6 +46,7 @@ from collections.abc import Sequence
 # from SM64classes import *
 
 from ..f3d.f3d_import import *
+from ..f3d.f3d_material import update_node_values_of_material
 from ..panels import SM64_Panel
 from ..utility_importer import *
 from ..utility import (
@@ -277,7 +281,7 @@ class Area:
             child.select_set(True)
         model_obj.select_set(True)
         bpy.context.view_layer.objects.active = model_obj
-        bpy.ops.object.duplicate()
+        bpy.ops.object.duplicate_move()
         new_obj = bpy.context.active_object
         bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
         # unlink from col, add to area col
@@ -815,8 +819,12 @@ class SM64_Material(Mat):
         f3d.draw_layer.sm64 = layer
         self.set_register_settings(mat, f3d)
         self.set_textures(f3d, textures, tex_path)
-        with bpy.context.temp_override(material=mat):
-            bpy.ops.material.update_f3d_nodes()
+
+        # manually call node update for speed
+        mat.f3d_update_flag = True
+        update_node_values_of_material(mat, bpy.context)
+        mat.f3d_mat.presetName = "Custom"
+        mat.f3d_update_flag = False
 
     def set_textures(self, f3d: F3DMaterialProperty, textures: dict, tex_path: Path):
         self.set_tex_scale(f3d)
@@ -909,8 +917,6 @@ class SM64_F3D(DL):
         return [a + L - self.LastLoad for a in Tri]
 
     def apply_mesh_data(self, obj: bpy.types.Object, mesh: bpy.types.Mesh, layer: int, tex_path: Path):
-        # bpy.app.version >= (3, 5, 0)
-
         bpy.context.view_layer.objects.active = obj
         ind = -1
         new = -1
@@ -954,23 +960,26 @@ class SM64_F3D(DL):
                     new = len(mesh.materials) - 1
             # if somehow there is no material assigned to the triangle or something is lost
             if new != -1:
-                t.material_index = new
-                # Get texture size or assume 32, 32 otherwise
-                i = mesh.materials[new].f3d_mat.tex0.tex
-                if not i:
-                    WH = (32, 32)
-                else:
-                    WH = i.size
-                # Set UV data and Vertex Color Data
-                for v, l in zip(t.verts, t.loops):
-                    uv = self.UVs[v.index]
-                    vcol = self.VCs[v.index]
-                    # scale verts
-                    l[uv_map].uv = [a * (1 / (32 * b)) if b > 0 else a * 0.001 * 32 for a, b in zip(uv, WH)]
-                    # idk why this is necessary. N64 thing or something?
-                    l[uv_map].uv[1] = l[uv_map].uv[1] * -1 + 1
-                    l[v_color] = [a / 255 for a in vcol]
+                self.apply_loop_data(new, mesh, t, uv_map, v_color, v_alpha)
         b_mesh.to_mesh(mesh)
+
+    def apply_loop_data(self, mat: bpy.Types.Material, mesh: bpy.Types.Mesh, tri, uv_map, v_color, v_alpha):
+        tri.material_index = mat
+        # Get texture size or assume 32, 32 otherwise
+        i = mesh.materials[mat].f3d_mat.tex0.tex
+        if not i:
+            WH = (32, 32)
+        else:
+            WH = i.size
+        # Set UV data and Vertex Color Data
+        for v, l in zip(tri.verts, tri.loops):
+            uv = self.UVs[v.index]
+            vcol = self.VCs[v.index]
+            # scale verts
+            l[uv_map].uv = [a * (1 / (32 * b)) if b > 0 else a * 0.001 * 32 for a, b in zip(uv, WH)]
+            # idk why this is necessary. N64 thing or something?
+            l[uv_map].uv[1] = l[uv_map].uv[1] * -1 + 1
+            l[v_color] = [a / 255 for a in vcol]
 
     # create a new f3d_mat given an SM64_Material class but don't create copies with same props
     def create_new_f3d_mat(self, mat: SM64_Material, mesh: bpy.types.Mesh):
@@ -982,11 +991,14 @@ class SM64_F3D(DL):
                     dupe = mat.mat_hash_f3d(F3Dmat.f3d_mat)
                     if dupe:
                         return F3Dmat
-        if mesh.materials:
-            mat = mesh.materials[-1]
-            new = mat.id_data.copy()  # make a copy of the data block
+        f3d_mat = None
+        for mat in bpy.data.materials:
+            if mat.is_f3d:
+                f3d_mat = mat
+        if f3d_mat:
+            new_mat = f3d_mat.id_data.copy()  # make a copy of the data block
             # add a mat slot and add mat to it
-            mesh.materials.append(new)
+            mesh.materials.append(new_mat)
         else:
             if self.props.as_obj:
                 NewMat = bpy.data.materials.new(f"sm64 {mesh.name.replace('Data', 'material')}")
@@ -1900,7 +1912,7 @@ def write_armature_to_bpy(
 
 
 def apply_mesh_data(
-    f3d_dat: SM64_F3D, obj: bpy.types.Object, mesh: bpy.types.Mesh, layer: int, root_path: Path, cleanup: bool = True
+    f3d_dat: SM64_F3D, obj: bpy.types.Object, mesh: bpy.types.Mesh, layer: int, root_path: Path, cleanup: bool = False
 ):
     f3d_dat.apply_mesh_data(obj, mesh, layer, root_path)
     if cleanup:
@@ -2005,7 +2017,7 @@ def write_geo_to_bpy(
 
 
 # write the gfx for a level given the level data, and f3d data
-def write_level_to_bpy(lvl: Level, scene: bpy.types.Scene, root_path: Path, f3d_dat: SM64_F3D, cleanup: bool = True):
+def write_level_to_bpy(lvl: Level, scene: bpy.types.Scene, root_path: Path, f3d_dat: SM64_F3D, cleanup: bool = False):
     for area in lvl.areas.values():
         write_geo_to_bpy(area.geo, scene, f3d_dat, root_path, dict(), cleanup=cleanup)
     return lvl
@@ -2186,7 +2198,7 @@ def import_level_graphics(
     scene: bpy.types.Scene,
     root_path: Path,
     aggregates: list[Path],
-    cleanup: bool = True,
+    cleanup: bool = False,
     col_name: str = None,
 ) -> Level:
     lvl = find_level_models_from_geo(geo_paths, lvl, scene, root_path, col_name=col_name)
@@ -2360,9 +2372,11 @@ class SM64_LvlImport(Operator):
     bl_label = "Import Level"
     bl_idname = "wm.sm64_import_level"
 
-    cleanup = True
+    cleanup = False
 
     def execute(self, context):
+        pr = cProfile.Profile()
+        pr.enable()
         scene = context.scene
         props = scene.fast64.sm64.importer
 
@@ -2423,6 +2437,12 @@ class SM64_LvlImport(Operator):
         lvl = import_level_graphics(
             [geo_path], lvl, scene, decomp_path, [level_data_path], cleanup=self.cleanup, col_name=gfx_col
         )
+        pr.disable()
+        s = io.StringIO()
+        sortby = SortKey.CUMULATIVE
+        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+        ps.print_stats(20)
+        print(s.getvalue())
         return {"FINISHED"}
 
 
@@ -2430,7 +2450,7 @@ class SM64_LvlGfxImport(Operator):
     bl_label = "Import Gfx"
     bl_idname = "wm.sm64_import_level_gfx"
 
-    cleanup = True
+    cleanup = False
 
     def execute(self, context):
         scene = context.scene
