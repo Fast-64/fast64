@@ -289,13 +289,25 @@ def exportCollisionToC(
 
     try:
         if not obj.ignore_collision:
+            filename = exportSettings.filename if exportSettings.isCustomFilename else f"{name}_collision"
+
             # get C data
             colData = CData()
-            colData.source = '#include "ultra64.h"\n#include "z64.h"\n#include "macros.h"\n'
+
+            colData.header = (
+                "\n".join(
+                    ['#include "ultra64.h"', '#include "z64math.h"', '#include "z64bgcheck.h"', '#include "macros.h"']
+                )
+                + "\n\n"
+            )
+
+            colData.source = f'#include "{filename}.h"\n'
+
             if not isCustomExport:
                 colData.source += f'#include "{folderName}.h"\n\n'
             else:
                 colData.source += "\n"
+
             colData.append(
                 CollisionHeader.new(
                     f"{name}_collisionHeader",
@@ -309,7 +321,6 @@ def exportCollisionToC(
 
             # write file
             path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, True)
-            filename = exportSettings.filename if exportSettings.isCustomFilename else f"{name}_collision"
             writeCData(colData, os.path.join(path, f"{filename}.h"), os.path.join(path, f"{filename}.c"))
             if not isCustomExport:
                 addIncludeFiles(folderName, path, name)

@@ -282,13 +282,12 @@ class CollisionHeader:
             colPolyPtrLine = f"ARRAY_COUNT({self.collisionPoly.name}), {self.collisionPoly.name}"
 
         # build the C data of the collision header
-
-        # .h
-        headerData.header = f"extern {varName};\n"
-
-        # .c
         headerData.append(colData)
 
+        # .h
+        headerData.header += f"extern {varName};\n"
+
+        # .c
         headerData.source += (
             (varName + " = {\n")
             + ",\n".join(
