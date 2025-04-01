@@ -287,6 +287,8 @@ class CollisionHeader:
         headerData.header = f"extern {varName};\n"
 
         # .c
+        headerData.append(colData)
+
         headerData.source += (
             (varName + " = {\n")
             + ",\n".join(
@@ -304,5 +306,4 @@ class CollisionHeader:
             + "\n};\n\n"
         )
 
-        headerData.append(colData)
         return headerData
