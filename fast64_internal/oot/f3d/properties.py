@@ -62,7 +62,7 @@ class OOTDLImportSettings(PropertyGroup):
     flipbookUses2DArray: BoolProperty(name="Has 2D Flipbook Array", default=False)
     flipbookArrayIndex2D: IntProperty(name="Index if 2D Array", default=0, min=0)
     autoDetectActorScale: BoolProperty(name="Auto Detect Actor Scale", default=True)
-    actorScale: FloatProperty(name="Actor Scale", min=0, default=100)
+    actorScale: FloatProperty(name="Actor Scale", min=0, default=10)
 
     def draw_props(self, layout: UILayout):
         prop_split(layout, self, "name", "DL")
