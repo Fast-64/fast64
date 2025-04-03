@@ -3,7 +3,7 @@ from io import BytesIO
 from math import ceil, log, radians
 from mathutils import Matrix, Vector
 from bpy.utils import register_class, unregister_class
-from bpy.types import PropertyGroup, UILayout, World, Scene
+from bpy.types import PropertyGroup, UILayout, Scene
 from bpy.props import StringProperty, BoolProperty, CollectionProperty, IntProperty
 
 from ..panels import SM64_Panel
