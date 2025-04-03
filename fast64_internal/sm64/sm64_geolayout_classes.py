@@ -55,12 +55,12 @@ from .sm64_geolayout_constants import (
 
 
 def getDrawLayerName(draw_layer: str):
-    layer_props = create_or_get_world(bpy.context.scene).fast64.sm64.draw_layers
+    layer_props = bpy.context.scene.fast64.sm64.draw_layers
     if draw_layer in layer_props.layers_by_enum:
         return draw_layer
     try:
-        assert draw_layer in layer_props.layers_by_prop
-        return layer_props.layers_by_prop[draw_layer].enum
+        assert draw_layer in layer_props.layers_by_index, f"{draw_layer} is not a valid draw layer"
+        return layer_props.layers_by_index[draw_layer].enum
     except ValueError:
         raise PluginError(f"{draw_layer} is not a valid int")
 

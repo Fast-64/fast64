@@ -80,8 +80,8 @@ texFormatOf = {
 }
 
 
-def get_sm64_draw_layers(self, context):
-    return create_or_get_world(context.scene).fast64.sm64.draw_layers.to_enum()
+def get_sm64_draw_layers(_self, context):
+    return context.scene.fast64.sm64.draw_layers.to_enum()
 
 
 ootEnumDrawLayers = [
@@ -154,15 +154,18 @@ def update_draw_layer(self, context):
 
 
 def get_world_layer_defaults(scene, game_mode: str, layer: str):
-    world = scene.world
-    if world is None:
-        return default_draw_layers.get(game_mode, {}).get(layer, ("", ""))
+    default = default_draw_layers.get(game_mode, {}).get(layer, ("", ""))
     if game_mode == "SM64":
-        return world.fast64.sm64.draw_layers.layers_by_prop[layer].preset
+        layers = scene.fast64.sm64.draw_layers.layers_by_prop
+        if layer not in layers:
+            return default
+        return layers[layer].preset
     elif game_mode == "OOT":
+        if scene.world is None:
+            return default
         return (
-            getattr(world.ootDefaultRenderModes, f"{layer.lower()}Cycle1", ""),
-            getattr(world.ootDefaultRenderModes, f"{layer.lower()}Cycle2", ""),
+            getattr(scene.world.ootDefaultRenderModes, f"{layer.lower()}Cycle1", ""),
+            getattr(scene.world.ootDefaultRenderModes, f"{layer.lower()}Cycle2", ""),
         )
     else:
         assert (

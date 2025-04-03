@@ -85,7 +85,6 @@ from .sm64_f3d_writer import (
     sm64_dl_writer_panel_unregister,
     sm64_dl_writer_register,
     sm64_dl_writer_unregister,
-    SM64_DrawLayersProperties,
 )
 
 from .sm64_anim import (
@@ -94,17 +93,6 @@ from .sm64_anim import (
     sm64_anim_register,
     sm64_anim_unregister,
 )
-
-
-class SM64_WorldProperties(PropertyGroup):
-    draw_layers: PointerProperty(type=SM64_DrawLayersProperties)
-
-    @staticmethod
-    def upgrade_changed_props():
-        SM64_DrawLayersProperties.upgrade_changed_props()
-
-
-classes = (SM64_WorldProperties,)
 
 
 def sm64_panel_register():
@@ -152,8 +140,6 @@ def sm64_register(register_panels: bool):
     sm64_dl_parser_register()
     sm64_anim_register()
     settings_props_register()
-    for cls in classes:
-        register_class(cls)
 
     if register_panels:
         sm64_panel_register()
@@ -174,8 +160,6 @@ def sm64_unregister(unregister_panels: bool):
     sm64_dl_parser_unregister()
     sm64_anim_unregister()
     settings_props_unregister()
-    for cls in classes:
-        unregister_class(cls)
 
     if unregister_panels:
         sm64_panel_unregister()
