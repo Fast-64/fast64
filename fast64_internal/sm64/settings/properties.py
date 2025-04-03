@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import bpy
 from bpy.types import PropertyGroup, UILayout, Context
 from bpy.props import BoolProperty, StringProperty, EnumProperty, IntProperty, FloatProperty, PointerProperty
@@ -6,7 +7,7 @@ from bpy.path import abspath
 from bpy.utils import register_class, unregister_class
 
 from ...render_settings import on_update_render_settings
-from ...utility import directory_path_checks, directory_ui_warnings, prop_split, upgrade_old_prop
+from ...utility import directory_path_checks, directory_ui_warnings, prop_split, set_prop_if_in_data, upgrade_old_prop
 from ..sm64_constants import defaultExtendSegment4
 from ..sm64_objects import SM64_CombinedObjectProperties
 from ..sm64_utility import export_rom_ui_warnings, import_rom_ui_warnings
@@ -22,17 +23,17 @@ from .constants import (
 
 def decomp_path_update(self, context: Context):
     fast64_settings = context.scene.fast64.settings
-    if fast64_settings.repo_settings_path:
+    if fast64_settings.repo_settings_path and Path(abspath(fast64_settings.repo_settings_path)).exists():
         return
-    directory_path_checks(abspath(self.decomp_path))
-    fast64_settings.repo_settings_path = os.path.join(abspath(self.decomp_path), "fast64.json")
+    directory_path_checks(self.abs_decomp_path)
+    fast64_settings.repo_settings_path = str(self.abs_decomp_path / "fast64.json")
 
 
 class SM64_Properties(PropertyGroup):
     """Global SM64 Scene Properties found under scene.fast64.sm64"""
 
     version: IntProperty(name="SM64_Properties Version", default=0)
-    cur_version = 3  # version after property migration
+    cur_version = 4  # version after property migration
 
     # UI Selection
     show_importing_menus: BoolProperty(name="Show Importing Menus", default=False)
@@ -83,7 +84,11 @@ class SM64_Properties(PropertyGroup):
 
     @property
     def binary_export(self):
-        return self.export_type in ["Binary", "Insertable Binary"]
+        return self.export_type in {"Binary", "Insertable Binary"}
+
+    @property
+    def abs_decomp_path(self) -> Path:
+        return Path(abspath(self.decomp_path))
 
     @staticmethod
     def upgrade_changed_props():
@@ -107,6 +112,7 @@ class SM64_Properties(PropertyGroup):
             "custom_level_name": {"levelName", "geoLevelName", "colLevelName", "animLevelName"},
             "non_decomp_level": {"levelCustomExport"},
             "export_header_type": {"geoExportHeaderType", "colExportHeaderType", "animExportHeaderType"},
+            "custom_include_directory": {"geoTexDir"},
         }
         for scene in bpy.data.scenes:
             sm64_props: SM64_Properties = scene.fast64.sm64
@@ -133,6 +139,29 @@ class SM64_Properties(PropertyGroup):
                 upgrade_old_prop(combined_props, new, scene, old)
             sm64_props.version = SM64_Properties.cur_version
 
+    def to_repo_settings(self):
+        data = {}
+        data["refresh_version"] = self.refresh_version
+        data["compression_format"] = self.compression_format
+        data["force_extended_ram"] = self.force_extended_ram
+        data["matstack_fix"] = self.matstack_fix
+        return data
+
+    def from_repo_settings(self, data: dict):
+        set_prop_if_in_data(self, "refresh_version", data, "refresh_version")
+        set_prop_if_in_data(self, "compression_format", data, "compression_format")
+        set_prop_if_in_data(self, "force_extended_ram", data, "force_extended_ram")
+        set_prop_if_in_data(self, "matstack_fix", data, "matstack_fix")
+
+    def draw_repo_settings(self, layout: UILayout):
+        col = layout.column()
+        if not self.binary_export:
+            col.prop(self, "disable_scroll")
+            prop_split(col, self, "compression_format", "Compression Format")
+            prop_split(col, self, "refresh_version", "Refresh (Function Map)")
+            col.prop(self, "force_extended_ram")
+        col.prop(self, "matstack_fix")
+
     def draw_props(self, layout: UILayout, show_repo_settings: bool = True):
         col = layout.column()
 
@@ -149,17 +178,12 @@ class SM64_Properties(PropertyGroup):
             col.prop(self, "extend_bank_4")
         elif not self.binary_export:
             prop_split(col, self, "decomp_path", "Decomp Path")
-            directory_ui_warnings(col, abspath(self.decomp_path))
+            directory_ui_warnings(col, self.abs_decomp_path)
         col.separator()
 
-        if not self.binary_export:
-            col.prop(self, "disable_scroll")
-            if show_repo_settings:
-                prop_split(col, self, "compression_format", "Compression Format")
-                prop_split(col, self, "refresh_version", "Refresh (Function Map)")
-                col.prop(self, "force_extended_ram")
-                col.prop(self, "matstack_fix")
-        col.separator()
+        if show_repo_settings:
+            self.draw_repo_settings(col)
+            col.separator()
 
         col.prop(self, "show_importing_menus")
         if self.show_importing_menus:
