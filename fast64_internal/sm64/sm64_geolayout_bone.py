@@ -432,14 +432,9 @@ class GeolayoutBoneSidePanel(Panel):
 
 def getSwitchOptionBone(switchArmature):
     optionBones = []
-    if bpy.app.version >= (4, 0, 0):
-        for bone in switchArmature.data.bones:
-            if "SwitchOption" in bone.collections:
-                optionBones.append(bone.name)
-    else:
-        for poseBone in switchArmature.pose.bones:
-            if poseBone.bone_group is not None and poseBone.bone_group.name == "SwitchOption":
-                optionBones.append(poseBone.name)
+    for bone in switchArmature.data.bones:
+        if bone.geo_cmd == "SwitchOption":
+            optionBones.append(bone.name)
     if len(optionBones) > 1:
         raise PluginError("There should only be one switch option bone in " + switchArmature.name + ".")
     elif len(optionBones) < 1:

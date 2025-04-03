@@ -3,7 +3,6 @@ from __future__ import annotations
 import bpy
 from struct import pack
 from copy import copy
-from .sm64_function_map import func_map
 
 from ..utility import (
     PluginError,
@@ -52,6 +51,7 @@ from .sm64_geolayout_constants import (
     GEO_SETUP_OBJ_RENDER,
     GEO_SET_BG,
 )
+from .sm64_utility import convert_addr_to_func
 
 
 def getDrawLayerName(draw_layer: str):
@@ -259,8 +259,9 @@ class BaseDisplayListNode:
     bleed_independently = False  # base behavior, can be changed with obj boolProp
 
     def get_dl_address(self):
-        if self.hasDL and (self.dlRef or self.DLmicrocode is not None):
-            return self.dlRef or self.DLmicrocode.startAddress
+        assert self.dlRef is None, "dlRef not implemented in binary"
+        if self.hasDL and self.DLmicrocode is not None:
+            return self.DLmicrocode.startAddress
         return None
 
     def get_dl_name(self):
@@ -339,8 +340,8 @@ class TransformNode:
         size = self.node.size() if self.node is not None else 0
         if len(self.children) > 0 and type(self.node) in nodeGroupClasses:
             size += 8  # node open/close
-            for child in self.children:
-                size += child.size()
+        for child in self.children:
+            size += child.size()
 
         return size
 
@@ -355,11 +356,11 @@ class TransformNode:
             if type(self.node) is FunctionNode:
                 raise PluginError("An FunctionNode cannot have children.")
 
-            if data[0] in nodeGroupCmds:
+            if type(self.node) in nodeGroupClasses:
                 data.extend(bytearray([GEO_NODE_OPEN, 0x00, 0x00, 0x00]))
             for child in self.children:
                 data.extend(child.to_binary(segmentData))
-            if data[0] in nodeGroupCmds:
+            if type(self.node) in nodeGroupClasses:
                 data.extend(bytearray([GEO_NODE_CLOSE, 0x00, 0x00, 0x00]))
         elif type(self.node) is SwitchNode:
             raise PluginError("A switch bone must have at least one child bone.")
@@ -398,11 +399,11 @@ class TransformNode:
         data += "\n"
 
         if len(self.children) > 0:
-            if len(command) == 0 or command[0] in nodeGroupCmds:
+            if type(self.node) in nodeGroupClasses:
                 data += "\t" * nodeLevel + "04 00 00 00\n"
             for child in self.children:
-                data += child.toTextDump(nodeLevel + 1, segmentData)
-            if len(command) == 0 or command[0] in nodeGroupCmds:
+                data += child.toTextDump(nodeLevel + (1 if type(self.node) in nodeGroupClasses else 0), segmentData)
+            if type(self.node) in nodeGroupClasses:
                 data += "\t" * nodeLevel + "05 00 00 00\n"
         elif type(self.node) is SwitchNode:
             raise PluginError("A switch bone must have at least one child bone.")
@@ -499,16 +500,6 @@ class GeoLayoutBleed(BleedGraphics):
         self.clear_gfx_lists(fModel)
 
 
-def convertAddrToFunc(addr):
-    if addr == "":
-        raise PluginError("Geolayout node cannot have an empty function name/address.")
-    refresh_func_map = func_map[bpy.context.scene.fast64.sm64.refresh_version]
-    if addr.lower() in refresh_func_map:
-        return refresh_func_map[addr.lower()]
-    else:
-        return toAlnum(addr)
-
-
 # We add Function commands to nonDeformTransformData because any skinned
 # 0x15 commands should go before them, as they are usually preceding
 # an empty transform command (of which they modify?)
@@ -529,7 +520,7 @@ class FunctionNode:
         return command
 
     def to_c(self):
-        return "GEO_ASM(" + str(self.func_param) + ", " + convertAddrToFunc(self.geo_func) + "),"
+        return "GEO_ASM(" + str(self.func_param) + ", " + convert_addr_to_func(self.geo_func) + "),"
 
 
 class HeldObjectNode:
@@ -557,7 +548,7 @@ class HeldObjectNode:
             + ", "
             + str(convertFloatToShort(self.translate[2]))
             + ", "
-            + convertAddrToFunc(self.geo_func)
+            + convert_addr_to_func(self.geo_func)
             + "),"
         )
 
@@ -614,7 +605,7 @@ class SwitchNode:
         return command
 
     def to_c(self):
-        return "GEO_SWITCH_CASE(" + str(self.defaultCase) + ", " + convertAddrToFunc(self.switchFunc) + "),"
+        return "GEO_SWITCH_CASE(" + str(self.defaultCase) + ", " + convert_addr_to_func(self.switchFunc) + "),"
 
 
 class TranslateRotateNode(BaseDisplayListNode):
@@ -1174,7 +1165,7 @@ class CameraNode:
             + ", "
             + str(self.lookAt[2])
             + ", "
-            + convertAddrToFunc(self.geo_func)
+            + convert_addr_to_func(self.geo_func)
             + "),"
         )
 
@@ -1218,7 +1209,7 @@ class BackgroundNode:
         if self.isColor:
             return "GEO_BACKGROUND_COLOR(0x" + format(self.backgroundValue, "04x").upper() + "),"
         else:
-            return "GEO_BACKGROUND(" + str(self.backgroundValue) + ", " + convertAddrToFunc(self.geo_func) + "),"
+            return "GEO_BACKGROUND(" + str(self.backgroundValue) + ", " + convert_addr_to_func(self.geo_func) + "),"
 
 
 class CustomNode:

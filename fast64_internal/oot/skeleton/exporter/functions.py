@@ -132,7 +132,7 @@ def ootProcessBone(
 def ootConvertArmatureToSkeleton(
     originalArmatureObj,
     convertTransformMatrix,
-    fModel,
+    fModel: OOTModel,
     name,
     convertTextureData,
     skeletonOnly,
@@ -280,7 +280,7 @@ def ootConvertArmatureToC(
     else:
         data.source += "\n"
 
-    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, True)
+    path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, True, True)
     includeDir = settings.customAssetIncludeDir if settings.isCustom else f"assets/objects/{folderName}"
     exportData = fModel.to_c(
         TextureExportSettings(False, savePNG, includeDir, path), OOTGfxFormatter(ScrollMethod.Vertex)

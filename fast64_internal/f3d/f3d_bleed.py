@@ -159,11 +159,13 @@ class BleedGraphics:
                     # make better error msg
                     print("could not find material used in fmesh draw")
                     continue
-                bleed_gfx_lists.bled_mats = self.bleed_mat(cur_fmat, last_mat, bleed_state)
                 if not (cur_fmat.isTexLarge[0] or cur_fmat.isTexLarge[1]):
                     bleed_gfx_lists.bled_tex = self.bleed_textures(cur_fmat, last_mat, bleed_state)
                 else:
                     bleed_gfx_lists.bled_tex = cur_fmat.texture_DL.commands
+                bleed_gfx_lists.bled_mats = self.bleed_mat(cur_fmat, last_mat, bleed_state)
+                # some syncs may become redundant after bleeding
+                self.optimize_syncs(bleed_gfx_lists, bleed_state)
             # bleed tri group (for large textures) and to remove other unnecessary cmds
             if jump_list_cmd.displayList.tag & GfxListTag.Geometry:
                 tri_list = jump_list_cmd.displayList
@@ -226,9 +228,8 @@ class BleedGraphics:
             for j, cmd in enumerate(cur_fmat.texture_DL.commands):
                 if not cmd:
                     continue  # some cmds are None from previous step
-                if self.bleed_individual_cmd(commands_bled, cmd, bleed_state):
-                    if cmd in last_mat.texture_DL.commands:
-                        commands_bled.commands[j] = None
+                if self.bleed_individual_cmd(commands_bled, cmd, bleed_state, last_mat.texture_DL.commands) is True:
+                    commands_bled.commands[j] = None
             # remove Nones from list
             while None in commands_bled.commands:
                 commands_bled.commands.remove(None)
@@ -252,8 +253,6 @@ class BleedGraphics:
                 commands_bled.commands.remove(None)
         else:
             commands_bled = self.bleed_cmd_list(cur_fmat.mat_only_DL, bleed_state)
-        # some syncs may become redundant after bleeding
-        self.optimize_syncs(commands_bled, bleed_state)
         # remove SPEndDisplayList
         while SPEndDisplayList() in commands_bled.commands:
             commands_bled.commands.remove(SPEndDisplayList())
@@ -355,13 +354,13 @@ class BleedGraphics:
         self.bled_gfx_lists[cmd_list] = last_mat
 
     # remove syncs if first material, or if no gsDP cmds in material
-    def optimize_syncs(self, cmd_list: GfxList, bleed_state: int):
+    def optimize_syncs(self, bleed_gfx_lists: BleedGfxLists, bleed_state: int):
         no_syncs_needed = {"DPSetPrimColor", "DPSetPrimDepth"}  # will not affect rdp
         syncs_needed = {"SPSetOtherMode"}  # will affect rdp
         if bleed_state == self.bleed_start:
-            while DPPipeSync() in cmd_list.commands:
-                cmd_list.commands.remove(DPPipeSync())
-        for cmd in cmd_list.commands:
+            while DPPipeSync() in bleed_gfx_lists.bled_mats:
+                bleed_gfx_lists.bled_mats.remove(DPPipeSync())
+        for cmd in (*bleed_gfx_lists.bled_mats, *bleed_gfx_lists.bled_tex):
             cmd_name = type(cmd).__name__
             if cmd == DPPipeSync():
                 continue
@@ -369,8 +368,8 @@ class BleedGraphics:
                 return
             if cmd_name in syncs_needed:
                 return
-        while DPPipeSync() in cmd_list.commands:
-            cmd_list.commands.remove(DPPipeSync())
+        while DPPipeSync() in bleed_gfx_lists.bled_mats:
+            bleed_gfx_lists.bled_mats.remove(DPPipeSync())
 
     def create_reset_cmds(self, reset_cmd_dict: dict[GbiMacro], default_render_mode: list[str]):
         reset_cmds = []
@@ -480,9 +479,15 @@ class BleedGraphics:
             else:
                 return cmd == self.default_othermode_L
 
-    # bleed if there are no tags to scroll and cmd was in last list
-    def bleed_DPSetTileSize(self, cmd_list: GfxList, cmd: GbiMacro, bleed_state: int, last_cmd_list: GfxList = None):
-        return cmd.tags != GfxTag.TileScroll0 and cmd.tags != GfxTag.TileScroll1 and cmd in last_cmd_list
+    # Don´t bleed if the cmd is used for scrolling or if the last cmd's tags are not the same (those are not hashed)
+    def bleed_DPSetTileSize(self, _cmd_list: GfxList, cmd: GbiMacro, _bleed_state: int, last_cmd_list: GfxList = None):
+        if cmd.tags == GfxTag.TileScroll0 or cmd.tags == GfxTag.TileScroll1:
+            return False
+        if cmd in last_cmd_list:
+            last_size_cmd = last_cmd_list[last_cmd_list.index(cmd)]
+            if last_size_cmd.tags == cmd.tags:
+                return True
+        return False
 
     # At most, only one sync is needed after drawing tris. The f3d writer should
     # already have placed the appropriate sync type required. If a second sync is
