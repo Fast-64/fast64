@@ -103,6 +103,7 @@ from ..f3d.f3d_gbi import (
 )
 
 from .sm64_geolayout_classes import (
+    CustomCmd,
     DisplayListNode,
     TransformNode,
     StartNode,
@@ -1298,8 +1299,6 @@ def processPreInlineGeo(
         node = JumpNode(True, None, obj.geoReference)
     elif inlineGeoConfig.name == "Geo Displaylist":
         node = DisplayListNode(int(obj.draw_layer_static), obj.dlReference)
-    elif inlineGeoConfig.name == "Custom":
-        node = obj.fast64.sm64.custom.get_final_cmd(obj, bpy.context.scene.fast64.sm64.blender_to_sm64_scale)
     addParentNode(parentTransformNode, node)  # Allow this node to be translated/rotated
 
 
@@ -1322,6 +1321,8 @@ def processInlineGeoNode(
         node = RotateNode(obj.draw_layer_static, obj.useDLReference, rotate, obj.dlReference)
     elif inlineGeoConfig.name == "Geo Scale":
         node = ScaleNode(obj.draw_layer_static, scale, obj.useDLReference, obj.dlReference)
+    elif inlineGeoConfig.name == "Custom":
+        node = obj.fast64.sm64.custom.get_final_cmd(obj, bpy.context.scene.fast64.sm64.blender_to_sm64_scale)
     else:
         raise PluginError(f"Ooops! Didnt implement inline geo exporting for {inlineGeoConfig.name}")
 

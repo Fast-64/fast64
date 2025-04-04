@@ -68,6 +68,7 @@ from .sm64_geolayout_classes import (
     FunctionNode,
     BillboardNode,
     ScaleNode,
+    CustomCmd,
 )
 
 
@@ -729,75 +730,6 @@ class PuppycamVolume:
             + "}"
         )
         return data
-
-
-@dataclasses.dataclass
-class CustomCmd:
-    cmd: str | int
-    transform: mathutils.Matrix
-    whole_matrix: bool
-    include_trans: bool = False
-    rot_type: str = "None"
-    include_scale: bool = False
-    parameter: str | None = None
-    color: list[int] | None = None
-
-    name: str = ""  # for sorting
-    hasDL: bool = False
-
-    @property
-    def matrix(self):
-        return [round(column, 4) for row in self.transform for column in row]
-
-    @property
-    def trans(self):
-        return [round(x, 4) for x in self.transform.to_translation()]
-
-    @property
-    def rot(self):
-        if self.rot_type == "Euler":
-            return [round(math.degrees(x), 4) for x in self.transform.to_euler()]
-        elif self.rot_type == "Quaternion":
-            return [round(x, 4) for x in self.transform.to_quaternion()]
-        elif self.rot_type == "Axis Angle":
-            axis_angle = self.transform.to_quaternion().to_axis_angle()
-            return [round(x, 4) for x in axis_angle[0]] + [round(axis_angle[1], 4)]
-        else:
-            assert self.rot_type != "None", "Rotation type is None"
-            assert False, f"Unknown rotation type {self.rot_type}"
-
-    @property
-    def scale(self):
-        return [round(x, 4) for x in self.transform.to_scale()]
-
-    def size(self):
-        return 8
-
-    def to_binary(self, segmentData):
-        raise PluginError("Custom commands are not supported for binary exports.")
-
-    def to_c(self, depth=0, max_length=100):
-        assert isinstance(self.cmd, str), "Command is not str"
-        arg_groups = []
-        if self.whole_matrix:
-            arg_groups.append(f"/*matrix*/ {', '.join([f'{x}f' for x in self.matrix])}")
-        else:
-            if self.include_trans:
-                arg_groups.append(f"/*trans*/ {', '.join([f'{x}f' for x in self.trans])}")
-            if self.rot_type != "None":
-                arg_groups.append(f"/*rot ({self.rot_type.lower()})*/ {', '.join([f'{x}f' for x in self.rot])}")
-            if self.include_scale:
-                arg_groups.append(f"/*scale*/ {', '.join([f'{x}f' for x in self.scale])}")
-        if self.color is not None:
-            arg_groups.append(f"/*color*/ {', '.join([str(x) for x in self.color])}")
-        if self.parameter is not None:
-            arg_groups.append(f"/*param*/ {self.parameter}")
-        if len(str(arg_groups)) > max_length:
-            seperator = ",\n" + ("\t" * (depth + 1))
-            args = seperator.join(arg_groups)
-        else:
-            args = ", ".join(arg_groups)
-        return f"{self.cmd}({args})"
 
 
 def exportAreaCommon(areaObj, transformMatrix, geolayout, collision, name):

@@ -957,9 +957,7 @@ enumSM64PreInlineGeoLayoutObjects = {"Geo ASM", "Geo Branch", "Geo Displaylist"}
 
 
 def checkIsSM64PreInlineGeoLayout(obj):
-    return obj.sm64_obj_type in enumSM64PreInlineGeoLayoutObjects or (
-        obj.sm64_obj_type == "Custom" and obj.fast64.sm64.custom.cmd_type == "Geo"
-    )
+    return obj.sm64_obj_type in enumSM64PreInlineGeoLayoutObjects
 
 
 enumSM64InlineGeoLayoutObjects = {
@@ -972,7 +970,11 @@ enumSM64InlineGeoLayoutObjects = {
 
 
 def checkIsSM64InlineGeoLayout(obj):
-    return obj.sm64_obj_type in enumSM64InlineGeoLayoutObjects or checkIsSM64PreInlineGeoLayout(obj)
+    return (
+        obj.sm64_obj_type in enumSM64InlineGeoLayoutObjects
+        or checkIsSM64PreInlineGeoLayout(obj)
+        or (obj.sm64_obj_type == "Custom" and obj.fast64.sm64.custom.cmd_type == "Geo")
+    )
 
 
 enumSM64EmptyWithGeolayout = {"None", "Level Root", "Area Root", "Switch"}
