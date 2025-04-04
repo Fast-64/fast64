@@ -143,6 +143,7 @@ class SM64_CustomCmdArgsOps(OperatorBase):
                 return True
 
     def execute_operator(self, context):
+        custom_cmd_preset_update(self, context)
         args = self.args(context, self.command_index)
         match self.op_name:
             case "ADD":
@@ -171,11 +172,34 @@ class SM64_CustomCmdArgsOps(OperatorBase):
                 raise NotImplementedError(f'Unimplemented internal custom command args op "{self.op_name}"')
 
 
-def custom_cmd_preset_update(self: "SM64_CustomCmdProperties", context: Context):
+def get_custom_cmd_preset(custom_cmd: "SM64_CustomCmdProperties", context: Context) -> "SM64_CustomCmdProperties":
+    return context.scene.fast64.sm64.custom_cmds[int(custom_cmd.preset)]
+
+
+def check_preset_hashes(obj, context):
+    custom_cmd: "SM64_CustomCmdProperties" = obj.fast64.sm64.custom
+    if custom_cmd.preset == "NONE":
+        return
+    preset_cmd = get_custom_cmd_preset(custom_cmd, context)
+    if custom_cmd.saved_hash and custom_cmd.saved_hash != preset_cmd.preset_hash:
+        custom_cmd.preset, custom_cmd.saved_hash = "NONE", ""
+
+
+def custom_cmd_preset_update(_self, context: Context):
+    if isinstance(context.space_data, SpaceView3D):
+        for obj in context.scene.objects:
+            check_preset_hashes(obj, context)
+    elif context.object:
+        check_preset_hashes(context.object, context)
+
+
+def custom_cmd_change_preset(self: "SM64_CustomCmdProperties", context: Context):
     if self.preset == "NONE":
         return
-    preset_prop: "SM64_CustomCmdProperties" = context.scene.fast64.sm64.custom_cmds[int(self.preset)]
-    self.from_dict(preset_prop.to_dict("PRESET_EDIT"))
+    preset_cmd = get_custom_cmd_preset(self, context)
+    self.saved_hash = ""
+    self.from_dict(preset_cmd.to_dict("PRESET_EDIT", include_defaults=False), set_defaults=False)
+    self.saved_hash = self.preset_hash
 
 
 def get_custom_cmd_preset_enum(_self, context: Context):
@@ -200,7 +224,7 @@ CustomCmdConf = Literal["PRESET", "PRESET_EDIT", "NO_PRESET"]  # type of configu
 
 
 class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
-    name: StringProperty(name="Argument Name", default="Example Named Arg")
+    name: StringProperty(name="Argument Name", default="Example Named Arg", update=custom_cmd_preset_update)
     arg_type: EnumProperty(
         name="Argument Type",
         items=[
@@ -212,6 +236,7 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
             ("SCALE", "Scale", "Scale"),
             ("MATRIX", "Matrix", "3x3 Matrix"),
         ],
+        update=custom_cmd_preset_update,
     )
     relative: BoolProperty(name="Use Relative Transformation", default=True)
     color: FloatVectorProperty(
@@ -221,6 +246,7 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
         max=1.0,
         subtype="COLOR",
         default=(1.0, 1.0, 1.0, 1.0),
+        update=custom_cmd_preset_update,
     )
     parameter: StringProperty(name="Parameter", default="0")
     rot_type: EnumProperty(
@@ -230,6 +256,7 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
             ("QUATERNION", "Quaternion", "Quaternion"),
             ("AXIS_ANGLE", "Axis Angle", "Axis angle"),
         ],
+        update=custom_cmd_preset_update,
     )
 
     @property
@@ -240,7 +267,7 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
     def has_params(self):
         return self.arg_type in {"PARAMETER", "COLOR"}
 
-    def to_dict(self, conf_type: CustomCmdConf, owner: Object | None = None):
+    def to_dict(self, conf_type: CustomCmdConf, owner: Object | None = None, include_defaults=True):
         data = {}
         if conf_type != "PRESET":
             if conf_type == "PRESET_EDIT":
@@ -252,23 +279,30 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
                     data["rot_type"] = self.rot_type
         if conf_type != "PRESET_EDIT" and self.is_transform and owner is not None:
             data["matrix"] = [y for x in (owner.matrix_local if self.relative else owner.matrix_world) for y in x]
+        defaults = {}
         match self.arg_type:
             case "COLOR":
-                data["color"] = tuple(self.color)
+                defaults["color"] = tuple(self.color)
             case "PARAMETER":
-                data["parameter"] = self.parameter
+                defaults["parameter"] = self.parameter
+        if defaults and include_defaults:
+            data["defaults"] = defaults
         return data
 
-    def from_dict(self, data: dict):
+    def from_dict(self, data: dict, set_defaults=False):
         self.name = data.get("name", "Example Named Arg")
         self.arg_type = data.get("arg_type", "PARAMETER")
         self.relative = data.get("relative", True)
         self.rot_type = data.get("rot_type", "EULER")
-        self.color = data.get("color", (1.0, 1.0, 1.0, 1.0))
-        self.parameter = data.get("parameter", "0")
+        defaults = data.get("defaults", {})
+        if set_defaults:
+            self.color = defaults.get("color", (1.0, 1.0, 1.0, 1.0))
+            self.parameter = defaults.get("parameter", "0")
 
     def to_c(self, cmd: CustomCmd):
         def add_name(c: str):
+            if cmd.cmd_property.preset == "NONE":
+                return f"/*{self.arg_type.lower()}*/{c}"
             if self.name == "":
                 return c
             return f"/*{self.name}*/{c}"
@@ -331,8 +365,8 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
 
 class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
     tab: BoolProperty(default=False)
-    preset: EnumProperty(items=get_custom_cmd_preset_enum, update=custom_cmd_preset_update)
-    name: StringProperty(name="Name", default="Custom Command")
+    preset: EnumProperty(items=get_custom_cmd_preset_enum, update=custom_cmd_change_preset)
+    name: StringProperty(name="Name", default="Custom Command", update=custom_cmd_preset_update)
     cmd_type: EnumProperty(
         name="Type",
         items=[
@@ -340,21 +374,23 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
             ("Geo", "Geo", "Geolayout Command"),
             ("Special", "Special", "Collision Command"),
         ],
+        update=custom_cmd_preset_update,
     )
-    str_cmd: StringProperty(name="Command", default="CUSTOM_COMMAND")
-    int_cmd: IntProperty(name="Command", default=0)
+    str_cmd: StringProperty(name="Command", default="CUSTOM_COMMAND", update=custom_cmd_preset_update)
+    int_cmd: IntProperty(name="Command", default=0, update=custom_cmd_preset_update)
     args: CollectionProperty(type=SM64_CustomCmdArgProperties)
+    saved_hash: StringProperty()
 
-    def to_dict(self, conf_type: CustomCmdConf, obj: Object | None = None):
+    def to_dict(self, conf_type: CustomCmdConf, obj: Object | None = None, include_defaults=True):
         data = {}
         if conf_type == "PRESET_EDIT":
             data["name"] = self.name
         if conf_type != "PRESET":
             data.update({"cmd_type": self.cmd_type, "str_cmd": self.str_cmd, "int_cmd": self.int_cmd})
-        data["args"] = [arg.to_dict(conf_type, obj) for arg in self.args]
+        data["args"] = [arg.to_dict(conf_type, obj, include_defaults) for arg in self.args]
         return data
 
-    def from_dict(self, data: dict):
+    def from_dict(self, data: dict, set_defaults=True):
         self.name = data.get("name", "My Custom Command")
         self.cmd_type = data.get("cmd_type", "Level")
         self.str_cmd = data.get("str_cmd", "CUSTOM_COMMAND")
@@ -362,16 +398,17 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
         self.args.clear()
         for arg in data.get("args", []):
             self.args.add()
-            self.args[-1].from_dict(arg)
+            self.args[-1].from_dict(arg, set_defaults)
 
     @property
     def preset_hash(self):
-        return str(hash(str(self.to_dict("PRESET_EDIT").items())))
+        return str(hash(str(self.to_dict("PRESET_EDIT", include_defaults=False).items())))
 
     @staticmethod
     def upgrade_object(obj: Object):
+        check_preset_hashes(obj, bpy.context)
         self: SM64_CustomCmdProperties = obj.fast64.sm64.custom
-        found_cmd, arg = upgrade_old_prop(self, "cmd", obj, "customGeoCommand"), get_first_set_prop(
+        found_cmd, arg = upgrade_old_prop(self, "str_cmd", obj, "customGeoCommand"), get_first_set_prop(
             obj, "customGeoCommandArgs"
         )
         if found_cmd:
