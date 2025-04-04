@@ -89,14 +89,15 @@ class SM64_CustomCmdOps(OperatorBase):
                 presets.add()
                 new_preset: "SM64_CustomCmdProperties" = presets[-1]
                 old_preset: "SM64_CustomCmdProperties" | None = None
+                is_obj = not isinstance(context.space_data, SpaceView3D) and context.object
                 if self.index == -1:
-                    if not isinstance(context.space_data, SpaceView3D):  # object area
+                    if is_obj:
                         old_preset = context.object.fast64.sm64.custom
                 else:
                     old_preset = presets[self.index]
 
                 if old_preset is not None:
-                    copyPropertyGroup(old_preset, new_preset)
+                    new_preset.from_dict(old_preset.to_dict("PRESET_EDIT"))
                     old_name = old_preset.name
                 else:
                     old_name = None
@@ -105,12 +106,15 @@ class SM64_CustomCmdOps(OperatorBase):
                 new_preset.tab = True
                 if self.index != -1:
                     presets.move(len(presets) - 1, self.index + 1)
+                if is_obj:
+                    old_preset.preset = str((len(presets) - 1) if self.index == -1 else self.index)
                 for area in context.screen.areas:  # HACK: redraw everything
                     area.tag_redraw()
             case "REMOVE":
                 presets.remove(self.index)
             case _:
                 raise NotImplementedError(f'Unimplemented internal custom command preset op "{self.op_name}"')
+        custom_cmd_preset_update(self, context)
 
 
 class SM64_CustomCmdArgsOps(OperatorBase):
@@ -143,7 +147,6 @@ class SM64_CustomCmdArgsOps(OperatorBase):
                 return True
 
     def execute_operator(self, context):
-        custom_cmd_preset_update(self, context)
         args = self.args(context, self.command_index)
         match self.op_name:
             case "ADD":
@@ -170,10 +173,14 @@ class SM64_CustomCmdArgsOps(OperatorBase):
                 args.clear()
             case _:
                 raise NotImplementedError(f'Unimplemented internal custom command args op "{self.op_name}"')
+        custom_cmd_preset_update(self, context)
 
 
-def get_custom_cmd_preset(custom_cmd: "SM64_CustomCmdProperties", context: Context) -> "SM64_CustomCmdProperties":
-    return context.scene.fast64.sm64.custom_cmds[int(custom_cmd.preset)]
+def get_custom_cmd_preset(custom_cmd: "SM64_CustomCmdProperties", context: Context):
+    if custom_cmd.preset == "":
+        return None
+    presets: list["SM64_CustomCmdProperties"] = context.scene.fast64.sm64.custom_cmds
+    return presets[int(custom_cmd.preset)]
 
 
 def check_preset_hashes(obj, context):
@@ -181,7 +188,7 @@ def check_preset_hashes(obj, context):
     if custom_cmd.preset == "NONE":
         return
     preset_cmd = get_custom_cmd_preset(custom_cmd, context)
-    if custom_cmd.saved_hash and custom_cmd.saved_hash != preset_cmd.preset_hash:
+    if preset_cmd is None or (custom_cmd.saved_hash and custom_cmd.saved_hash != preset_cmd.preset_hash):
         custom_cmd.preset, custom_cmd.saved_hash = "NONE", ""
 
 
@@ -198,7 +205,10 @@ def custom_cmd_change_preset(self: "SM64_CustomCmdProperties", context: Context)
         return
     preset_cmd = get_custom_cmd_preset(self, context)
     self.saved_hash = ""
-    self.from_dict(preset_cmd.to_dict("PRESET_EDIT", include_defaults=False), set_defaults=False)
+    if preset_cmd is None:
+        self.preset = "NONE"
+        return
+    self.from_dict(preset_cmd.to_dict("PRESET_EDIT"))
     self.saved_hash = self.preset_hash
 
 
@@ -458,7 +468,7 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
             label_row.alignment = "LEFT"
             label_row.label(text="Preset")
             SM64_SearchCustomCmds.draw_props(preset_row, self, "preset", "")
-            SM64_CustomCmdOps.draw_props(preset_row, "PRESET_NEW", "", op_name="ADD")
+            SM64_CustomCmdOps.draw_props(preset_row, "PRESET_NEW", "", op_name="ADD", index=-1)
         if conf_type != "PRESET":
             if conf_type == "PRESET_EDIT":
                 prop_split(col, self, "name", "Preset Name")
