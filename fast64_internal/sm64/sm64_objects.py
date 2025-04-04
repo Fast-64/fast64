@@ -1,12 +1,8 @@
-import dataclasses
 import math, bpy, mathutils
-import os
 from re import findall, sub
 from pathlib import Path
 
 from bpy.utils import register_class, unregister_class
-from bpy.props import StringProperty, BoolProperty, EnumProperty, FloatVectorProperty
-from bpy.types import Object
 
 from ..panels import SM64_Panel
 from ..operators import ObjectDataExporter
@@ -26,13 +22,8 @@ from ..utility import (
     prop_split,
     multilineLabel,
     raisePluginError,
-    enumExportHeaderType,
-    exportColor,
-)
-
-from ..f3d.f3d_gbi import (
-    DLFormat,
     upgrade_old_prop,
+    enumExportHeaderType,
 )
 
 from .sm64_constants import (
@@ -68,8 +59,9 @@ from .sm64_geolayout_classes import (
     FunctionNode,
     BillboardNode,
     ScaleNode,
-    CustomCmd,
 )
+
+from .sm64_custom_cmd import SM64_CustomCmdProperties
 
 
 enumTerrain = [
@@ -1184,6 +1176,8 @@ class SM64ObjectPanel(bpy.types.Panel):
             parent_box.separator()
 
     def draw(self, context):
+        sm64_props = context.scene.fast64.sm64
+
         prop_split(self.layout, context.scene, "gameEditorMode", "Game")
         box = self.layout.box().column()
         column = self.layout.box().column()  # added just for puppycam trigger importing
@@ -1260,7 +1254,7 @@ class SM64ObjectPanel(bpy.types.Panel):
                     prop_split(box, levelObj, "backgroundSegment", "Custom Background Segment")
                     segmentExportBox = box.box()
                     segmentExportBox.label(
-                        text=f"Exported Segment: _{levelObj.backgroundSegment}_{context.scene.fast64.sm64.compression_format}SegmentRomStart"
+                        text=f"Exported Segment: _{levelObj.backgroundSegment}_{sm64_props.compression_format}SegmentRomStart"
                     )
                 box.prop(obj, "useBackgroundColor")
                 # box.box().label(text = 'Background IDs defined in include/geo_commands.h.')
@@ -1396,7 +1390,8 @@ class SM64ObjectPanel(bpy.types.Panel):
             box.box().label(text="Children will ordered alphabetically.")
 
         elif obj.sm64_obj_type == "Custom":
-            obj_props.custom.draw_props(box, obj, context.scene.fast64.sm64.blender_to_sm64_scale)
+            custom_props: SM64_CustomCmdProperties = obj_props.custom
+            custom_props.draw_props(box, sm64_props.binary_export, obj, blender_scale=sm64_props.blender_to_sm64_scale)
 
         elif obj.sm64_obj_type in inlineGeoLayoutObjects:
             self.draw_inline_obj(box, obj)
@@ -2847,101 +2842,6 @@ class SM64_SegmentProperties(bpy.types.PropertyGroup):
             return self.jump_link_from_enum(self.seg6_enum)
 
 
-class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
-    cmd_type: EnumProperty(
-        name="Type",
-        items=[
-            ("Level", "Level", "Level script command"),
-            ("Geo", "Geo", "Geolayout command"),
-            ("Special", "Special", "Collision command"),
-        ],
-    )
-    cmd: StringProperty(name="Command")
-    relative: BoolProperty(name="Use Relative Transformation", default=True)
-    matrix: BoolProperty(name="Use Whole Matrix")
-    trans: BoolProperty(name="Translation")
-    rot: BoolProperty(name="Rotation")
-    scale: BoolProperty(name="Scale")
-    set_color: BoolProperty(name="Color")
-    color: FloatVectorProperty(
-        name="Color",
-        size=4,
-        min=0.0,
-        max=1.0,
-        subtype="COLOR",
-    )
-    set_parameter: BoolProperty(name="Parameter(s)")
-    parameter: StringProperty(name="Parameter(s)")
-    rot_type: EnumProperty(
-        name="Rotation",
-        items=[
-            ("Euler", "Euler (XYZ deg)", "Euler XYZ order, degrees"),
-            ("Quaternion", "Quaternion", "Quaternion"),
-            ("Axis Angle", "Axis Angle", "Axis angle"),
-        ],
-    )
-
-    @staticmethod
-    def upgrade_object(obj: Object):
-        self: SM64_CustomCmdProperties = obj.fast64.sm64.custom
-        found_cmd, found_arg = upgrade_old_prop(self, "cmd", obj, "customGeoCommand"), upgrade_old_prop(
-            self, "parameter", obj, "customGeoCommandArgs"
-        )
-        if found_cmd:
-            self.cmd_type = "Geo"
-        if found_cmd or found_arg:
-            self.set_parameter = True
-
-    def get_final_cmd(self, obj: Object, blender_scale: float):
-        matrix = obj.matrix_local if self.relative else obj.matrix_world
-        loc, rot, scale = matrix.decompose()
-        scaled_translation = loc * blender_scale
-        matrix = (
-            mathutils.Matrix.Translation(scaled_translation)
-            @ rot.to_matrix().to_4x4()
-            @ mathutils.Matrix.Diagonal(scale).to_4x4()
-        )
-        return CustomCmd(
-            self.cmd,
-            matrix,
-            self.matrix,
-            self.trans,
-            self.rot_type if self.rot else "None",
-            self.scale,
-            self.parameter if self.set_parameter else None,
-            exportColor(self.color) if self.set_color else None,
-            obj.name,
-        )
-
-    def draw_props(self, layout, obj, blender_scale: float):
-        col = layout.column()
-        prop_split(col, self, "cmd_type", "Type")
-        prop_split(col, self, "cmd", "Command")
-        col.separator()
-
-        transform_box = col.box().column()
-        transform_box.prop(self, "relative")
-        transform_box.prop(self, "matrix")
-        if not self.matrix:
-            row = transform_box.row()
-            row.prop(self, "trans", toggle=1)
-            row.prop(self, "scale", toggle=1)
-            row.prop(self, "rot", toggle=1)
-            if self.rot:
-                transform_box.separator()
-                prop_split(transform_box, self, "rot_type", "Rotation Type")
-        col.separator()
-        col_split = col.split()
-        col_split.prop(self, "set_color")
-        if self.set_color:
-            col_split.prop(self, "color", text="")
-        param_split = col.split()
-        param_split.prop(self, "set_parameter")
-        if self.set_parameter:
-            param_split.prop(self, "parameter", text="")
-        multilineLabel(col.box(), self.get_final_cmd(obj, blender_scale).to_c(max_length=25).replace("\t", " " * 20))
-
-
 class SM64_ObjectProperties(bpy.types.PropertyGroup):
     version: bpy.props.IntProperty(name="SM64_ObjectProperties Version", default=0)
     cur_version = 4  # version after property migration
@@ -2986,7 +2886,6 @@ sm64_obj_classes = (
     SM64_AreaProperties,
     SM64_GameObjectProperties,
     SM64_SegmentProperties,
-    SM64_CustomCmdProperties,
     SM64_ObjectProperties,
 )
 

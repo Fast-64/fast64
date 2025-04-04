@@ -9,7 +9,8 @@ from .sm64_constants import (
     defaultExtendSegment4,
 )
 from .sm64_utility import export_rom_checks
-from .sm64_objects import CustomCmd, SM64_Area, start_process_sm64_objects
+from .sm64_objects import SM64_Area, start_process_sm64_objects
+from .sm64_custom_cmd import CustomCmd
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_rom_tweaks import ExtendBank0x04
 from ..panels import SM64_Panel

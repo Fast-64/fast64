@@ -2,7 +2,15 @@ import os
 from pathlib import Path
 import bpy
 from bpy.types import PropertyGroup, UILayout, Context
-from bpy.props import BoolProperty, StringProperty, EnumProperty, IntProperty, FloatProperty, PointerProperty
+from bpy.props import (
+    BoolProperty,
+    StringProperty,
+    EnumProperty,
+    IntProperty,
+    FloatProperty,
+    PointerProperty,
+    CollectionProperty,
+)
 from bpy.path import abspath
 from bpy.utils import register_class, unregister_class
 
@@ -10,6 +18,7 @@ from ...render_settings import on_update_render_settings
 from ...utility import directory_path_checks, directory_ui_warnings, prop_split, set_prop_if_in_data, upgrade_old_prop
 from ..sm64_constants import defaultExtendSegment4
 from ..sm64_objects import SM64_CombinedObjectProperties
+from ..sm64_custom_cmd import SM64_CustomCmdProperties, draw_custom_cmd_presets
 from ..sm64_utility import export_rom_ui_warnings, import_rom_ui_warnings
 from ..tools import SM64_AddrConvProperties
 
@@ -58,6 +67,8 @@ class SM64_Properties(PropertyGroup):
     )
 
     address_converter: PointerProperty(type=SM64_AddrConvProperties)
+    custom_cmds: CollectionProperty(type=SM64_CustomCmdProperties)
+    custom_cmds_tab: BoolProperty(default=True, name="Custom Commands")
     # C
     decomp_path: StringProperty(
         name="Decomp Folder",
@@ -145,6 +156,7 @@ class SM64_Properties(PropertyGroup):
         data["compression_format"] = self.compression_format
         data["force_extended_ram"] = self.force_extended_ram
         data["matstack_fix"] = self.matstack_fix
+        data["custom_cmds"] = [preset.to_dict("PRESET_EDIT") for preset in self.custom_cmds]
         return data
 
     def from_repo_settings(self, data: dict):
@@ -152,6 +164,10 @@ class SM64_Properties(PropertyGroup):
         set_prop_if_in_data(self, "compression_format", data, "compression_format")
         set_prop_if_in_data(self, "force_extended_ram", data, "force_extended_ram")
         set_prop_if_in_data(self, "matstack_fix", data, "matstack_fix")
+        self.custom_cmds.clear()
+        for preset_data in data.get("custom_cmds", []):
+            self.custom_cmds.add()
+            self.custom_cmds[-1].from_dict(preset_data)
 
     def draw_repo_settings(self, layout: UILayout):
         col = layout.column()
@@ -161,6 +177,7 @@ class SM64_Properties(PropertyGroup):
             prop_split(col, self, "refresh_version", "Refresh (Function Map)")
             col.prop(self, "force_extended_ram")
         col.prop(self, "matstack_fix")
+        draw_custom_cmd_presets(self, col.box())
 
     def draw_props(self, layout: UILayout, show_repo_settings: bool = True):
         col = layout.column()

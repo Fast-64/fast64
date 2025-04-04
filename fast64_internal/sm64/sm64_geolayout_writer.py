@@ -103,7 +103,6 @@ from ..f3d.f3d_gbi import (
 )
 
 from .sm64_geolayout_classes import (
-    CustomCmd,
     DisplayListNode,
     TransformNode,
     StartNode,
@@ -127,7 +126,7 @@ from .sm64_geolayout_classes import (
     HeldObjectNode,
     Geolayout,
 )
-
+from .sm64_custom_cmd import CustomCmd
 from .sm64_constants import (
     insertableBinaryTypes,
     bank0Segment,
