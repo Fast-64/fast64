@@ -747,28 +747,28 @@ class CustomCmd:
 
     @property
     def matrix(self):
-        return [round(column, 4) for row in self.transform for column in row] if self.whole_matrix else None
+        return [round(column, 4) for row in self.transform for column in row]
 
     @property
     def trans(self):
-        return [round(x, 4) for x in self.transform.to_translation()] if self.include_trans else None
+        return [round(x, 4) for x in self.transform.to_translation()]
 
     @property
     def rot(self):
-        if self.rot_type == "None":
-            return None
-        elif self.rot_type == "Euler":
+        if self.rot_type == "Euler":
             return [round(math.degrees(x), 4) for x in self.transform.to_euler()]
         elif self.rot_type == "Quaternion":
             return [round(x, 4) for x in self.transform.to_quaternion()]
         elif self.rot_type == "Axis Angle":
             axis_angle = self.transform.to_quaternion().to_axis_angle()
             return [round(x, 4) for x in axis_angle[0]] + [round(axis_angle[1], 4)]
-        assert False, f"Unknown rotation type {self.rot_type}"
+        else:
+            assert self.rot_type != "None", "Rotation type is None"
+            assert False, f"Unknown rotation type {self.rot_type}"
 
     @property
     def scale(self):
-        return [round(x, 4) for x in self.transform.to_scale()] if self.include_scale else None
+        return [round(x, 4) for x in self.transform.to_scale()]
 
     def size(self):
         return 8
@@ -776,23 +776,23 @@ class CustomCmd:
     def to_binary(self, segmentData):
         raise PluginError("Custom commands are not supported for binary exports.")
 
-    def to_c(self, depth=0):
+    def to_c(self, depth=0, max_length=100):
         assert isinstance(self.cmd, str), "Command is not str"
         arg_groups = []
-        if self.matrix is not None:
+        if self.whole_matrix:
             arg_groups.append(f"/*matrix*/ {', '.join([f'{x}f' for x in self.matrix])}")
         else:
-            if self.trans is not None:
+            if self.include_trans:
                 arg_groups.append(f"/*trans*/ {', '.join([f'{x}f' for x in self.trans])}")
-            if self.rot is not None:
+            if self.rot_type != "None":
                 arg_groups.append(f"/*rot ({self.rot_type.lower()})*/ {', '.join([f'{x}f' for x in self.rot])}")
-            if self.scale is not None:
+            if self.include_scale:
                 arg_groups.append(f"/*scale*/ {', '.join([f'{x}f' for x in self.scale])}")
         if self.color is not None:
             arg_groups.append(f"/*color*/ {', '.join([str(x) for x in self.color])}")
         if self.parameter is not None:
             arg_groups.append(f"/*param*/ {self.parameter}")
-        if len(str(arg_groups)) > 100:
+        if len(str(arg_groups)) > max_length:
             seperator = ",\n" + ("\t" * (depth + 1))
             args = seperator.join(arg_groups)
         else:
@@ -3007,7 +3007,7 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
         param_split.prop(self, "set_parameter")
         if self.set_parameter:
             param_split.prop(self, "parameter", text="")
-        multilineLabel(col.box(), self.get_final_cmd(obj, blender_scale).to_c().replace("\t", "            "))
+        multilineLabel(col.box(), self.get_final_cmd(obj, blender_scale).to_c(max_length=25).replace("\t", " " * 20))
 
 
 class SM64_ObjectProperties(bpy.types.PropertyGroup):
