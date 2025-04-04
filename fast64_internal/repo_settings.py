@@ -6,7 +6,7 @@ from bpy.types import Context, Scene, UILayout
 from bpy.props import StringProperty
 from bpy.path import abspath
 
-from .utility import filepath_checks, prop_split, filepath_ui_warnings, draw_and_check_tab
+from .utility import filepath_checks, prop_split, filepath_ui_warnings, draw_and_check_tab, set_prop_if_in_data
 from .operators import OperatorBase
 from .f3d.f3d_material import draw_rdp_world_defaults
 from .sm64.settings.repo_settings import load_sm64_repo_settings, save_sm64_repo_settings
@@ -71,13 +71,10 @@ def load_repo_settings(scene: Scene, path: os.PathLike, skip_if_no_auto_load=Fal
         )
 
     fast64_settings = scene.fast64.settings
-    fast64_settings.auto_repo_load_settings = data.get("autoLoad", fast64_settings.auto_repo_load_settings)
-    fast64_settings.auto_pick_texture_format = data.get(
-        "autoPickTextureFormat", fast64_settings.auto_pick_texture_format
-    )
-    fast64_settings.prefer_rgba_over_ci = data.get("preferRGBAOverCI", fast64_settings.prefer_rgba_over_ci)
-    scene.f3d_type = data.get("microcode", scene.f3d_type)
-    scene.saveTextures = data.get("saveTextures", scene.saveTextures)
+    fast64_settings.from_repo_settings(data)
+    set_prop_if_in_data(scene, "f3d_type", data, "microcode")
+    set_prop_if_in_data(scene, "saveTextures", data, "saveTextures")
+
     rdp_defaults: RDPSettings = scene.world.rdp_defaults
     rdp_defaults.from_dict(data.get("rdpDefaults", {}))
 
@@ -90,12 +87,10 @@ def save_repo_settings(scene: Scene, path: os.PathLike):
     data = {}
 
     data["version"] = CUR_VERSION
-    data["autoLoad"] = fast64_settings.auto_repo_load_settings
+    data.update(fast64_settings.to_repo_settings())
     data["microcode"] = scene.f3d_type
     data["saveTextures"] = scene.saveTextures
-    data["autoPickTextureFormat"] = fast64_settings.auto_pick_texture_format
-    if fast64_settings.auto_pick_texture_format:
-        data["preferRGBAOverCI"] = fast64_settings.prefer_rgba_over_ci
+
     rdp_defaults: RDPSettings = scene.world.rdp_defaults
     data["rdpDefaults"] = rdp_defaults.to_dict()
 
@@ -119,7 +114,7 @@ def draw_repo_settings(layout: UILayout, context: Context):
     SaveRepoSettings.draw_props(col, path=path)
 
     col.prop(fast64_settings, "auto_repo_load_settings")
-    prop_split(col, scene, "f3d_type", "F3D Microcode")
+    prop_split(col, scene, "f3d_type", "Microcode")
     col.prop(scene, "saveTextures")
     col.prop(fast64_settings, "auto_pick_texture_format")
     if fast64_settings.auto_pick_texture_format:

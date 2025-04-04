@@ -452,9 +452,8 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, camera,
     return geolayoutGraph, fModel
 
 
-# Camera is unused here
 def convertObjectToGeolayout(
-    obj, convertTransformMatrix, camera, name, fModel: FModel, areaObj, DLFormat, convertTextureData
+    obj, convertTransformMatrix, is_actor: bool, name, fModel: FModel, areaObj, DLFormat, convertTextureData
 ):
     inline = bpy.context.scene.exportInlineF3D
     if fModel is None:
@@ -473,9 +472,11 @@ def convertObjectToGeolayout(
         # cameraObj = getCameraObj(camera)
         meshGeolayout = saveCameraSettingsToGeolayout(geolayoutGraph, areaObj, obj, name + "_geo")
         rootObj = areaObj
-        fModel.global_data.addAreaData(
-            areaObj.areaIndex, FAreaData(FFogData(areaObj.area_fog_position, areaObj.area_fog_color))
-        )
+        if areaObj.fast64.sm64.area.set_fog:
+            fog_data = FFogData(areaObj.area_fog_position, areaObj.area_fog_color)
+        else:
+            fog_data = None
+        fModel.global_data.addAreaData(areaObj.areaIndex, FAreaData(fog_data))
 
     else:
         geolayoutGraph = GeolayoutGraph(name + "_geo")
@@ -502,7 +503,7 @@ def convertObjectToGeolayout(
             True,
             convertTextureData,
         )
-        if not meshGeolayout.has_data():
+        if is_actor and not meshGeolayout.has_data():
             raise PluginError("No gfx data to export, gfx export cancelled")
     except Exception as e:
         raise Exception(str(e))
@@ -569,7 +570,6 @@ def exportGeolayoutObjectC(
     texDir,
     savePNG,
     texSeparate,
-    camera,
     groupName,
     headerType,
     dirName,
@@ -579,7 +579,7 @@ def exportGeolayoutObjectC(
     DLFormat,
 ):
     geolayoutGraph, fModel = convertObjectToGeolayout(
-        obj, convertTransformMatrix, camera, dirName, None, None, DLFormat, not savePNG
+        obj, convertTransformMatrix, True, dirName, None, None, DLFormat, not savePNG
     )
 
     return saveGeolayoutC(
@@ -842,9 +842,9 @@ def exportGeolayoutArmatureInsertableBinary(armatureObj, obj, convertTransformMa
     saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath)
 
 
-def exportGeolayoutObjectInsertableBinary(obj, convertTransformMatrix, filepath, camera):
+def exportGeolayoutObjectInsertableBinary(obj, convertTransformMatrix, filepath):
     geolayoutGraph, fModel = convertObjectToGeolayout(
-        obj, convertTransformMatrix, camera, obj.name, None, None, DLFormat.Static, True
+        obj, convertTransformMatrix, True, obj.name, None, None, DLFormat.Static, True
     )
 
     saveGeolayoutInsertableBinary(geolayoutGraph, fModel, filepath)
@@ -892,10 +892,9 @@ def exportGeolayoutObjectBinaryBank0(
     modelID,
     textDumpFilePath,
     RAMAddr,
-    camera,
 ):
     geolayoutGraph, fModel = convertObjectToGeolayout(
-        obj, convertTransformMatrix, camera, obj.name, None, None, DLFormat.Static, True
+        obj, convertTransformMatrix, True, obj.name, None, None, DLFormat.Static, True
     )
 
     return saveGeolayoutBinaryBank0(
@@ -975,10 +974,9 @@ def exportGeolayoutObjectBinary(
     levelCommandPos,
     modelID,
     textDumpFilePath,
-    camera,
 ):
     geolayoutGraph, fModel = convertObjectToGeolayout(
-        obj, convertTransformMatrix, camera, obj.name, None, None, DLFormat.Static, True
+        obj, convertTransformMatrix, True, obj.name, None, None, DLFormat.Static, True
     )
 
     return saveGeolayoutBinary(
@@ -1536,7 +1534,8 @@ def processMesh(
 
             if len(src_meshes):
                 fMeshes = {}
-                node.dlRef = src_meshes[0]["name"]
+                if useGeoEmpty:
+                    node.dlRef = src_meshes[0]["name"]
                 node.drawLayer = src_meshes[0]["layer"]
                 processed_inline_geo = True
 
@@ -1561,7 +1560,8 @@ def processMesh(
                     temp_obj["src_meshes"] = [
                         ({"name": fMesh.draw.name, "layer": drawLayer}) for drawLayer, fMesh in fMeshes.items()
                     ]
-                    node.dlRef = temp_obj["src_meshes"][0]["name"]
+                    if useGeoEmpty:
+                        node.dlRef = temp_obj["src_meshes"][0]["name"]
                 else:
                     # TODO: Display warning to the user that there is an object that doesn't have polygons
                     print("Object", obj.original_name, "does not have any polygons.")
@@ -2858,10 +2858,9 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                     obj,
                     final_transform,
                     export_path,
-                    bpy.context.scene.geoTexDir,
+                    props.custom_include_directory,
                     save_textures,
                     save_textures and bpy.context.scene.geoSeparateTextureDef,
-                    None,
                     props.actor_group_name,
                     props.export_header_type,
                     props.obj_name_gfx,
@@ -2876,7 +2875,6 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                     obj,
                     final_transform,
                     bpy.path.abspath(bpy.context.scene.geoInsertableBinaryPath),
-                    None,
                 )
                 self.report({"INFO"}, "Success! Data at " + context.scene.geoInsertableBinaryPath)
             else:
@@ -2911,7 +2909,6 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                         *modelLoadInfo,
                         textDumpFilePath,
                         getAddressFromRAMAddress(int(context.scene.geoRAMAddr, 16)),
-                        None,
                     )
                 else:
                     addrRange, segPointer = exportGeolayoutObjectBinary(
@@ -2922,7 +2919,6 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                         segmentData,
                         *modelLoadInfo,
                         textDumpFilePath,
-                        None,
                     )
 
                 romfileOutput.close()
@@ -3058,7 +3054,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                     obj,
                     final_transform,
                     export_path,
-                    bpy.context.scene.geoTexDir,
+                    props.custom_include_directory,
                     save_textures,
                     save_textures and bpy.context.scene.geoSeparateTextureDef,
                     None,
@@ -3252,7 +3248,6 @@ def sm64_geo_writer_register():
     bpy.types.Scene.textDumpGeoPath = bpy.props.StringProperty(name="Text Dump Path", subtype="FILE_PATH")
     bpy.types.Scene.geoUseBank0 = bpy.props.BoolProperty(name="Use Bank 0")
     bpy.types.Scene.geoRAMAddr = bpy.props.StringProperty(name="RAM Address", default="80000000")
-    bpy.types.Scene.geoTexDir = bpy.props.StringProperty(name="Include Path", default="actors/mario/")
     bpy.types.Scene.geoSeparateTextureDef = bpy.props.BoolProperty(name="Save texture.inc.c separately")
     bpy.types.Scene.geoInsertableBinaryPath = bpy.props.StringProperty(name="Filepath", subtype="FILE_PATH")
     bpy.types.Scene.geoIsSegPtr = bpy.props.BoolProperty(name="Is Segmented Address")
@@ -3282,7 +3277,6 @@ def sm64_geo_writer_unregister():
     del bpy.types.Scene.textDumpGeoPath
     del bpy.types.Scene.geoUseBank0
     del bpy.types.Scene.geoRAMAddr
-    del bpy.types.Scene.geoTexDir
     del bpy.types.Scene.geoSeparateTextureDef
     del bpy.types.Scene.geoInsertableBinaryPath
     del bpy.types.Scene.geoIsSegPtr
