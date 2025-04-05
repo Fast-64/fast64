@@ -124,7 +124,7 @@ class SM64_CustomCmdOps(OperatorBase):
                 presets.remove(self.index)
             case "COPY_EXAMPLE":
                 preset = presets[self.index] if object_custom is None else object_custom
-                context.window_manager.clipboard = preset.get_macro_define(
+                context.window_manager.clipboard = preset.example_macro_define(
                     "PRESET_EDIT" if object_custom is None else "NO_PRESET"
                 )
             case _:
@@ -254,6 +254,7 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
         name="Argument Type",
         items=[
             ("PARAMETER", "Parameter", "Parameter"),
+            ("BOOLEAN", "Boolean", "Boolean"),
             ("COLOR", "Color", "Color"),
             ("LAYER", "Layer", "Layer"),
             ("", "Transforms", ""),
@@ -275,6 +276,7 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
         update=custom_cmd_preset_update,
     )
     parameter: StringProperty(name="Parameter", default="0")
+    boolean: BoolProperty(name="Boolean", default=True)
     layer: EnumProperty(items=sm64EnumDrawLayers, default="1")
     rot_type: EnumProperty(
         name="Rotation",
@@ -292,7 +294,7 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
 
     @property
     def has_params(self):
-        return self.arg_type in {"PARAMETER", "COLOR"}
+        return self.arg_type in {"PARAMETER", "COLOR", "BOOLEAN", "LAYER"}
 
     def to_dict(self, conf_type: CustomCmdConf, owner: Object | None = None, include_defaults=True):
         data = {}
@@ -307,11 +309,8 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
         if conf_type != "PRESET_EDIT" and self.is_transform and owner is not None:
             data["matrix"] = [y for x in (owner.matrix_local if self.relative else owner.matrix_world) for y in x]
         defaults = {}
-        match self.arg_type:
-            case "COLOR":
-                defaults["color"] = tuple(self.color)
-            case "PARAMETER":
-                defaults["parameter"] = self.parameter
+        if self.has_params:
+            defaults[self.arg_type.lower()] = getattr(self, self.arg_type.lower())
         if defaults and include_defaults:
             data["defaults"] = defaults
         return data
@@ -357,6 +356,8 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
                 return add_name(self.parameter)
             case "LAYER":
                 return add_name(getDrawLayerName(self.layer))
+            case "BOOLEAN":
+                return add_name(str(self.boolean).upper())
             case _:
                 raise Exception(f"Unknown arg type {self.arg_type}")
 
@@ -371,7 +372,7 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
             )
             name = duplicate_name(name, previous_arg_names)
             previous_arg_names.add(name)
-            return ", ".join(toAlnum(name + arg) for arg in args)
+            return ", ".join(toAlnum(name + arg).lower() for arg in args)
 
         match self.arg_type:
             case "MATRIX":
@@ -388,7 +389,7 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
                         return add_name(["_x", "_y", "_z", "_a"])
             case "COLOR":
                 return add_name(["_r", "_g", "_b", "_a"])
-            case "PARAMETER" | "LAYER":
+            case "PARAMETER" | "LAYER" | "BOOLEAN":
                 return add_name([""])
 
     def draw_props(self, arg_row: UILayout, layout: UILayout, conf_type: CustomCmdConf = "NO_PRESET"):
@@ -408,13 +409,8 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
             if self.arg_type == "ROTATION":
                 prop_split(col, self, "rot_type", "Rotation Type")
 
-        match self.arg_type:
-            case "COLOR":
-                name_split.prop(self, "color", text="")
-            case "PARAMETER":
-                name_split.prop(self, "parameter", text="")
-            case "LAYER":
-                name_split.prop(self, "layer", text="")
+        if self.has_params:
+            name_split.prop(self, self.arg_type.lower(), text="")
 
 
 class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
