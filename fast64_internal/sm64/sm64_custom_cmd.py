@@ -25,6 +25,7 @@ class CustomCmd:
     cmd_property: "SM64_CustomCmdProperties" = dataclasses.field()
     world: mathutils.Matrix
     local: mathutils.Matrix
+    preset_edit: bool = False  # preset edit preview
 
     name: str = ""  # for sorting
 
@@ -208,7 +209,7 @@ def custom_cmd_change_preset(self: "SM64_CustomCmdProperties", context: Context)
     if preset_cmd is None:
         self.preset = "NONE"
         return
-    self.from_dict(preset_cmd.to_dict("PRESET_EDIT"))
+    self.from_dict(preset_cmd.to_dict("PRESET_EDIT", context.object, include_defaults=True), set_defaults=True)
     self.saved_hash = self.preset_hash
 
 
@@ -311,7 +312,7 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
 
     def to_c(self, cmd: CustomCmd):
         def add_name(c: str):
-            if cmd.cmd_property.preset == "NONE":
+            if cmd.cmd_property.preset == "NONE" and not cmd.preset_edit:
                 return f"/*{self.arg_type.lower()}*/{c}"
             if self.name == "":
                 return c
@@ -428,7 +429,7 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
             self.args[-1].arg_type = "PARAMETER"
             self.args[-1].parameter = arg
 
-    def get_final_cmd(self, owner: Object | None, blender_scale: float):
+    def get_final_cmd(self, owner: Object | None, blender_scale: float, conf_type: CustomCmdConf = "NO_PRESET"):
         base_matrices = (
             (mathutils.Matrix.Identity(4),) * 2 if owner is None else (owner.matrix_world, owner.matrix_local)
         )
@@ -443,7 +444,7 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
                     @ mathutils.Matrix.Diagonal(scale).to_4x4()
                 )
             )
-        return CustomCmd(self, *world_local)
+        return CustomCmd(self, *world_local, conf_type == "PRESET_EDIT")
 
     def draw_props(
         self,
@@ -503,7 +504,9 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
                 arg_ops(ops_row, "TRIA_UP", "MOVE_UP", i)
             arg.draw_props(ops_row, args_col, conf_type)
 
-        multilineLabel(col.box(), self.get_final_cmd(owner, blender_scale).to_c(max_length=25).replace("\t", " " * 20))
+        multilineLabel(
+            col.box(), self.get_final_cmd(owner, blender_scale, conf_type).to_c(max_length=25).replace("\t", " " * 20)
+        )
 
 
 def draw_custom_cmd_presets(sm64_props: "SM64_Properties", layout: UILayout):
