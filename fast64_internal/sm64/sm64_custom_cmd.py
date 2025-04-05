@@ -365,11 +365,11 @@ class SM64_CustomNumberProperties(bpy.types.PropertyGroup):
             data.get("step", 1.0 if self.is_integer else 0), data.get("min", -math.inf), data.get("max", math.inf)
         )
 
-    def draw_props(self, layout: UILayout, conf_type: CustomCmdConf):
+    def draw_props(self, name_split: UILayout, layout: UILayout, conf_type: CustomCmdConf):
         col = layout.column()
         if conf_type != "PRESET":
             col.prop(self, "is_integer")
-        col.prop(self, "integer" if self.is_integer else "floating")
+        name_split.prop(self, "integer" if self.is_integer else "floating", text="")
         usual_steps = {0, 1} if self.is_integer else {0}
         if conf_type != "PRESET_EDIT" and self.step_min_max[0] not in usual_steps:
             col.label(text=f"Increments of {self.step_min_max[0]}")
@@ -447,7 +447,7 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
             case "NUMBER":
                 data.update(self.number.to_dict(include_defaults))
             case _:
-                if self.has_params and include_defaults:
+                if include_defaults and self.has_params:
                     data["defaults"] = {}
                     data["defaults"][self.arg_type.lower()] = getattr(self, self.arg_type.lower())
         return data
@@ -461,12 +461,9 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
             case "NUMBER":
                 self.number.from_dict(data, set_defaults)
             case _:
-                if set_defaults:
-                    setattr(
-                        self,
-                        self.arg_type.lower(),
-                        data.get(self.arg_type.lower(), getattr(self, self.arg_type.lower())),
-                    )
+                if set_defaults and self.has_params:
+                    prop = self.arg_type.lower()
+                    setattr(self, prop, data.get("defaults", {}).get(prop, getattr(self, prop)))
 
     def to_c(self, cmd: CustomCmd):
         def add_name(c: str):
@@ -557,7 +554,7 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
         if self.has_params:
             match self.arg_type:
                 case "NUMBER":
-                    self.number.draw_props(col, conf_type)
+                    self.number.draw_props(name_split, col, conf_type)
                 case _:
                     name_split.prop(self, self.arg_type.lower(), text="")
 
