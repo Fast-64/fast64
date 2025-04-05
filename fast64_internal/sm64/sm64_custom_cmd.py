@@ -446,6 +446,8 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
         match self.arg_type:
             case "NUMBER":
                 data.update(self.number.to_dict(include_defaults))
+            case "COLOR" if include_defaults:
+                data["color"] = tuple(self.color)
             case _:
                 if include_defaults and self.has_params:
                     data["defaults"] = {}
