@@ -188,7 +188,14 @@ class SM64_CustomCmdOps(OperatorBase):
                     old_preset = presets[self.index]
 
                 if old_preset is not None:
-                    new_preset.from_dict(old_preset.to_dict("PRESET_EDIT"))
+                    new_preset.from_dict(
+                        old_preset.to_dict(
+                            "PRESET_EDIT" if object_custom is None or object_custom.preset != "NONE" else "NO_PRESET",
+                            context.object,
+                            include_defaults=True,
+                        ),
+                        set_defaults=True,
+                    )
                     old_name = old_preset.name
                 else:
                     old_name = None
@@ -345,15 +352,14 @@ class SM64_CustomNumberProperties(bpy.types.PropertyGroup):
             return int(new_value)
         return new_value
 
-    def to_dict(self, include_defaults=True):
-        if self.is_integer:
-            data = {"is_integer": True, "step": self.integer_step, "min": self.integer_min, "max": self.integer_max}
-        else:
-            data = {"is_integer": False, "step": self.floating_step, "min": self.floating_min, "max": self.floating_max}
-        if include_defaults:
-            data["defaults"] = {}
-            data["defaults"]["value"] = self.get_new_number()
-        return data
+    def to_dict(self, conf_type: CustomCmdConf = "PRESET_EDIT"):
+        data = {"is_integer": self.is_integer}
+        if conf_type == "PRESET_EDIT":
+            if self.is_integer:
+                data.update({"step": self.integer_step, "min": self.integer_min, "max": self.integer_max})
+            else:
+                data.update({"step": self.floating_step, "min": self.floating_min, "max": self.floating_max})
+        return data, {"value": self.get_new_number()}
 
     def from_dict(self, data: dict, set_defaults=True):
         self.is_integer = data.get("is_integer", False)
@@ -441,17 +447,21 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
                 data["relative"] = self.relative
                 if self.arg_type == "ROTATION":
                     data["rot_type"] = self.rot_type
+        defaults = {}
         if conf_type != "PRESET_EDIT" and self.is_transform and owner is not None:
-            data["matrix"] = [y for x in (owner.matrix_local if self.relative else owner.matrix_world) for y in x]
+            defaults["matrix"] = [y for x in (owner.matrix_local if self.relative else owner.matrix_world) for y in x]
         match self.arg_type:
             case "NUMBER":
-                data.update(self.number.to_dict(include_defaults))
-            case "COLOR" if include_defaults:
-                data["color"] = tuple(self.color)
+                number_data, number_defaults = self.number.to_dict(conf_type)
+                defaults.update(number_defaults)
+                data.update(number_data)
+            case "COLOR":
+                defaults["color"] = tuple(self.color)
             case _:
-                if include_defaults and self.has_params:
-                    data["defaults"] = {}
-                    data["defaults"][self.arg_type.lower()] = getattr(self, self.arg_type.lower())
+                if self.has_params:
+                    defaults[self.arg_type.lower()] = getattr(self, self.arg_type.lower())
+        if defaults and include_defaults:
+            data["defaults"] = defaults
         return data
 
     def from_dict(self, data: dict, set_defaults=False):
