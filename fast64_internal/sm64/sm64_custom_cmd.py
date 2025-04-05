@@ -14,6 +14,7 @@ from ..utility import (
     get_first_set_prop,
     multilineLabel,
     prop_split,
+    toAlnum,
     upgrade_old_prop,
     exportColor,
 )
@@ -63,7 +64,7 @@ class CustomCmd:
         return f"{self.str_cmd}({args})"
 
 
-def duplicate_name(name, existing_names, old_name: str | None = ""):
+def duplicate_name(name, existing_names: set, old_name: str | None = None):
     if not name in existing_names:
         return name
     num = 0
@@ -77,7 +78,7 @@ def duplicate_name(name, existing_names, old_name: str | None = ""):
     for i in range(1, len(existing_names) + 2):
         if new_name not in existing_names:  # only use name if it's unique
             return new_name
-        new_name = f"{name} ({num+i:03d})"
+        new_name = f"{name} ({num+i})"
 
 
 class SM64_CustomCmdOps(OperatorBase):
@@ -91,15 +92,17 @@ class SM64_CustomCmdOps(OperatorBase):
 
     def execute_operator(self, context):
         presets = context.scene.fast64.sm64.custom_cmds
+        object_custom: "SM64_CustomCmdProperties" | None = None
+        if not isinstance(context.space_data, SpaceView3D) and context.object:
+            object_custom = context.object.fast64.sm64.custom
         match self.op_name:
             case "ADD":
                 presets.add()
                 new_preset: "SM64_CustomCmdProperties" = presets[-1]
                 old_preset: "SM64_CustomCmdProperties" | None = None
-                is_obj = not isinstance(context.space_data, SpaceView3D) and context.object
                 if self.index == -1:
-                    if is_obj:
-                        old_preset = context.object.fast64.sm64.custom
+                    if object_custom is not None:
+                        old_preset = object_custom
                 else:
                     old_preset = presets[self.index]
 
@@ -113,12 +116,17 @@ class SM64_CustomCmdOps(OperatorBase):
                 new_preset.tab = True
                 if self.index != -1:
                     presets.move(len(presets) - 1, self.index + 1)
-                if is_obj:
-                    old_preset.preset = str((len(presets) - 1) if self.index == -1 else self.index)
+                if object_custom is not None:
+                    object_custom.preset = str((len(presets) - 1) if self.index == -1 else self.index)
                 for area in context.screen.areas:  # HACK: redraw everything
                     area.tag_redraw()
             case "REMOVE":
                 presets.remove(self.index)
+            case "COPY_EXAMPLE":
+                preset = presets[self.index] if object_custom is None else object_custom
+                context.window_manager.clipboard = preset.get_macro_define(
+                    "PRESET_EDIT" if object_custom is None else "NO_PRESET"
+                )
             case _:
                 raise NotImplementedError(f'Unimplemented internal custom command preset op "{self.op_name}"')
         custom_cmd_preset_update(self, context)
@@ -241,7 +249,7 @@ CustomCmdConf = Literal["PRESET", "PRESET_EDIT", "NO_PRESET"]  # type of configu
 
 
 class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
-    name: StringProperty(name="Argument Name", default="Example Named Arg", update=custom_cmd_preset_update)
+    name: StringProperty(name="Argument Name", default="Name", update=custom_cmd_preset_update)
     arg_type: EnumProperty(
         name="Argument Type",
         items=[
@@ -352,6 +360,37 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
             case _:
                 raise Exception(f"Unknown arg type {self.arg_type}")
 
+    def example_macro_args(
+        self, cmd_prop: "SM64_CustomCmdProperties", previous_arg_names: set[str], conf_type: CustomCmdConf = "NO_PRESET"
+    ):
+        def add_name(args: list[str]):
+            name = (
+                self.arg_type.lower()
+                if (cmd_prop.preset == "NONE" and conf_type == "NO_PRESET") or self.name == ""
+                else self.name
+            )
+            name = duplicate_name(name, previous_arg_names)
+            previous_arg_names.add(name)
+            return ", ".join(toAlnum(name + arg) for arg in args)
+
+        match self.arg_type:
+            case "MATRIX":
+                return add_name([f"_{x}_{y}" for x in range(4) for y in range(4)])
+            case "TRANSLATION" | "SCALE":
+                return add_name(["_x", "_y", "_z"])
+            case "ROTATION":
+                match self.rot_type:
+                    case "EULER":
+                        return add_name(["_x", "_y", "_z"])
+                    case "QUATERNION":
+                        return add_name(["_w", "_x", "_y", "_z"])
+                    case "AXIS_ANGLE":
+                        return add_name(["_x", "_y", "_z", "_a"])
+            case "COLOR":
+                return add_name(["_r", "_g", "_b", "_a"])
+            case "PARAMETER" | "LAYER":
+                return add_name([""])
+
     def draw_props(self, arg_row: UILayout, layout: UILayout, conf_type: CustomCmdConf = "NO_PRESET"):
         col = layout.column()
         if conf_type != "NO_PRESET":
@@ -391,7 +430,7 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
         ],
         update=custom_cmd_preset_update,
     )
-    str_cmd: StringProperty(name="Command", default="CUSTOM_COMMAND", update=custom_cmd_preset_update)
+    str_cmd: StringProperty(name="Command", default="CUSTOM_CMD", update=custom_cmd_preset_update)
     int_cmd: IntProperty(name="Command", default=0, update=custom_cmd_preset_update)
     args: CollectionProperty(type=SM64_CustomCmdArgProperties)
     saved_hash: StringProperty()
@@ -449,6 +488,20 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
                 )
             )
         return CustomCmd(self, *world_local, conf_type == "PRESET_EDIT")
+
+    def example_macro_define(self, conf_type: CustomCmdConf = "NO_PRESET", max_len=100):
+        macro_define = ""
+        macro_define += f"// {self.name}\n"
+        macro_define += f"#define {self.str_cmd} ("
+        previous_arg_names = set()
+        macro_args = [arg.example_macro_args(self, previous_arg_names, conf_type) for arg in self.args]
+        joined_args = ", ".join(macro_args)
+        if len(joined_args) > max_len:
+            joined_args = ", \\\n\t\t".join(macro_args)
+            macro_define += "\\\n\t\t"
+        macro_define += f"{joined_args}) \\\n"
+        macro_define += "\t(/* Your code goes here */)"
+        return macro_define
 
     def draw_props(
         self,
@@ -508,9 +561,16 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
                 arg_ops(ops_row, "TRIA_UP", "MOVE_UP", i)
             arg.draw_props(ops_row, args_col, conf_type)
 
-        multilineLabel(
-            col.box(), self.get_final_cmd(owner, blender_scale, conf_type).to_c(max_length=25).replace("\t", " " * 20)
-        )
+        if conf_type != "PRESET":
+            multilineLabel(
+                col.box(),
+                self.get_final_cmd(owner, blender_scale, conf_type).to_c(max_length=25).replace("\t", " " * 5),
+            )
+            example_macro_box = col.box().column()
+            SM64_CustomCmdOps.draw_props(
+                example_macro_box, "COPYDOWN", "Copy example to clipboard", op_name="COPY_EXAMPLE", index=command_index
+            )
+            multilineLabel(example_macro_box, self.example_macro_define(conf_type, 25).replace("\t", " " * 5))
 
 
 def draw_custom_cmd_presets(sm64_props: "SM64_Properties", layout: UILayout):
