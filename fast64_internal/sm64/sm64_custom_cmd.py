@@ -7,7 +7,6 @@ from bpy.props import StringProperty, IntProperty, BoolProperty, EnumProperty, F
 from bpy.types import Object, UILayout, Context, SpaceView3D
 
 from ..operators import OperatorBase, SearchEnumOperatorBase
-
 from ..utility import (
     PluginError,
     copyPropertyGroup,
@@ -18,6 +17,13 @@ from ..utility import (
     upgrade_old_prop,
     exportColor,
 )
+from ..f3d.f3d_material import sm64EnumDrawLayers
+
+
+def getDrawLayerName(drawLayer):
+    from .sm64_geolayout_classes import getDrawLayerName
+
+    return getDrawLayerName(drawLayer)
 
 
 @dataclasses.dataclass
@@ -241,6 +247,7 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
         items=[
             ("PARAMETER", "Parameter", "Parameter"),
             ("COLOR", "Color", "Color"),
+            ("LAYER", "Layer", "Layer"),
             ("", "Transforms", ""),
             ("TRANSLATION", "Translation", "Translation"),
             ("ROTATION", "Rotation", "Rotation"),
@@ -260,6 +267,7 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
         update=custom_cmd_preset_update,
     )
     parameter: StringProperty(name="Parameter", default="0")
+    layer: EnumProperty(items=sm64EnumDrawLayers, default="1")
     rot_type: EnumProperty(
         name="Rotation",
         items=[
@@ -313,10 +321,10 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
     def to_c(self, cmd: CustomCmd):
         def add_name(c: str):
             if cmd.cmd_property.preset == "NONE" and not cmd.preset_edit:
-                return f"/*{self.arg_type.lower()}*/{c}"
+                return f"/*{self.arg_type.lower()}*/ {c}"
             if self.name == "":
                 return c
-            return f"/*{self.name}*/{c}"
+            return f"/*{self.name}*/ {c}"
 
         transform = cmd.local if self.relative else cmd.world
         match self.arg_type:
@@ -332,23 +340,17 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
                         return add_name(",".join([str(round(x, 4)) for x in transform.to_quaternion()]))
                     case "AXIS_ANGLE":
                         axis, angle = transform.to_quaternion().to_axis_angle()
-                        return add_name(
-                            ",".join(
-                                [
-                                    str(round(x, 4))
-                                    for x in (
-                                        *axis,
-                                        angle,
-                                    )
-                                ]
-                            )
-                        )
+                        return add_name(",".join([str(round(x, 4)) for x in (*axis, angle)]))
             case "SCALE":
                 return add_name(",".join([str(round(x, 4)) for x in transform.to_scale()]))
             case "COLOR":
                 return add_name(",".join([str(x) for x in exportColor(self.color)]))
             case "PARAMETER":
                 return add_name(self.parameter)
+            case "LAYER":
+                return add_name(getDrawLayerName(self.layer))
+            case _:
+                raise Exception(f"Unknown arg type {self.arg_type}")
 
     def draw_props(self, arg_row: UILayout, layout: UILayout, conf_type: CustomCmdConf = "NO_PRESET"):
         col = layout.column()
@@ -372,6 +374,8 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
                 name_split.prop(self, "color", text="")
             case "PARAMETER":
                 name_split.prop(self, "parameter", text="")
+            case "LAYER":
+                name_split.prop(self, "layer", text="")
 
 
 class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
