@@ -1,10 +1,22 @@
+import math
+import sys
 import bpy, mathutils, dataclasses
 from typing import Literal
 from re import fullmatch
 
 from bpy.utils import register_class, unregister_class
-from bpy.props import StringProperty, IntProperty, BoolProperty, EnumProperty, FloatVectorProperty, CollectionProperty
+from bpy.props import (
+    StringProperty,
+    IntProperty,
+    BoolProperty,
+    EnumProperty,
+    FloatProperty,
+    FloatVectorProperty,
+    CollectionProperty,
+    PointerProperty,
+)
 from bpy.types import Object, UILayout, Context, SpaceView3D
+import numpy as np
 
 from ..operators import OperatorBase, SearchEnumOperatorBase
 from ..utility import (
@@ -21,10 +33,96 @@ from ..utility import (
 from ..f3d.f3d_material import sm64EnumDrawLayers
 
 
+LOCK_PRESET_DETECTION = False
+
+
 def getDrawLayerName(drawLayer):
     from .sm64_geolayout_classes import getDrawLayerName
 
     return getDrawLayerName(drawLayer)
+
+
+def duplicate_name(name, existing_names: set, old_name: str | None = None):
+    if not name in existing_names:
+        return name
+    num = 0
+    if old_name is not None:
+        number_match = fullmatch("(.*?) \((\d+)\)$", old_name)
+        if number_match is not None:  # if name already a duplicate/copy, add number
+            name, num = number_match.group(1), int(number_match.group(2))
+        else:
+            name, num = old_name, 0
+    new_name = name
+    for i in range(1, len(existing_names) + 2):
+        if new_name not in existing_names:  # only use name if it's unique
+            return new_name
+        new_name = f"{name} ({num+i})"
+
+
+def get_custom_cmd_preset(custom_cmd: "SM64_CustomCmdProperties", context: Context):
+    if custom_cmd.preset == "":
+        return None
+    presets: list["SM64_CustomCmdProperties"] = context.scene.fast64.sm64.custom_cmds
+    return presets[int(custom_cmd.preset)]
+
+
+def check_preset_hashes(obj, context):
+    global LOCK_PRESET_DETECTION
+    if LOCK_PRESET_DETECTION:
+        return
+    custom_cmd: "SM64_CustomCmdProperties" = obj.fast64.sm64.custom
+    if custom_cmd.preset == "NONE":
+        return
+    preset_cmd = get_custom_cmd_preset(custom_cmd, context)
+    if preset_cmd is None or (custom_cmd.saved_hash and custom_cmd.saved_hash != preset_cmd.preset_hash):
+        custom_cmd.preset, custom_cmd.saved_hash = "NONE", custom_cmd.preset_hash
+
+
+def custom_cmd_preset_update(_self, context: Context):
+    if isinstance(context.space_data, SpaceView3D):
+        for obj in context.scene.objects:
+            check_preset_hashes(obj, context)
+    elif context.object:
+        check_preset_hashes(context.object, context)
+
+
+def custom_cmd_change_preset(self: "SM64_CustomCmdProperties", context: Context):
+    if self.preset == "NONE":
+        return
+    preset_cmd = get_custom_cmd_preset(self, context)
+    if preset_cmd is None:
+        self.preset = "NONE"
+        return
+    self.saved_hash = ""
+    self.from_dict(preset_cmd.to_dict("PRESET_EDIT", context.object, include_defaults=True), set_defaults=True)
+    self.saved_hash = self.preset_hash
+
+
+def get_custom_cmd_preset_enum(_self, context: Context):
+    return [("NONE", "No Preset", "No preset selected")] + [
+        (str(i), preset.name, f"{preset.name} ({preset.cmd_type})")
+        for i, preset in enumerate(context.scene.fast64.sm64.custom_cmds)
+    ]
+
+
+def better_round(value):  # round, but handle inf
+    return round(max(-(2**31), min(2**31 - 1, value)))
+
+
+def update_internal_number(self: "SM64_CustomNumberProperties", context: Context):
+    use_limits = True
+    if not isinstance(context.space_data, SpaceView3D) and context.object:
+        use_limits = context.object.fast64.sm64.custom.preset != "NONE"
+    if not math.isclose(self.floating, self.get_new_number(use_limits), rel_tol=1e-7):
+        self.floating = self.get_new_number(use_limits)
+    if self.integer != better_round(self.get_new_number(use_limits)):
+        self.integer = better_round(self.get_new_number(use_limits))
+    self.set_step_min_max(*self.step_min_max)
+
+
+def update_internal_number_and_check_preset(self: "SM64_CustomCmdArgProperties", context: Context):
+    update_internal_number(self, context)
+    custom_cmd_preset_update(self, context)
 
 
 @dataclasses.dataclass
@@ -62,23 +160,6 @@ class CustomCmd:
         else:
             args = ", ".join(self.arg_groups)
         return f"{self.str_cmd}({args})"
-
-
-def duplicate_name(name, existing_names: set, old_name: str | None = None):
-    if not name in existing_names:
-        return name
-    num = 0
-    if old_name is not None:
-        number_match = fullmatch("(.*?) \((\d+)\)$", old_name)
-        if number_match is not None:  # if name already a duplicate/copy, add number
-            name, num = number_match.group(1), int(number_match.group(2))
-        else:
-            name, num = old_name, 0
-    new_name = name
-    for i in range(1, len(existing_names) + 2):
-        if new_name not in existing_names:  # only use name if it's unique
-            return new_name
-        new_name = f"{name} ({num+i})"
 
 
 class SM64_CustomCmdOps(OperatorBase):
@@ -191,49 +272,6 @@ class SM64_CustomCmdArgsOps(OperatorBase):
         custom_cmd_preset_update(self, context)
 
 
-def get_custom_cmd_preset(custom_cmd: "SM64_CustomCmdProperties", context: Context):
-    if custom_cmd.preset == "":
-        return None
-    presets: list["SM64_CustomCmdProperties"] = context.scene.fast64.sm64.custom_cmds
-    return presets[int(custom_cmd.preset)]
-
-
-def check_preset_hashes(obj, context):
-    custom_cmd: "SM64_CustomCmdProperties" = obj.fast64.sm64.custom
-    if custom_cmd.preset == "NONE":
-        return
-    preset_cmd = get_custom_cmd_preset(custom_cmd, context)
-    if preset_cmd is None or (custom_cmd.saved_hash and custom_cmd.saved_hash != preset_cmd.preset_hash):
-        custom_cmd.preset, custom_cmd.saved_hash = "NONE", ""
-
-
-def custom_cmd_preset_update(_self, context: Context):
-    if isinstance(context.space_data, SpaceView3D):
-        for obj in context.scene.objects:
-            check_preset_hashes(obj, context)
-    elif context.object:
-        check_preset_hashes(context.object, context)
-
-
-def custom_cmd_change_preset(self: "SM64_CustomCmdProperties", context: Context):
-    if self.preset == "NONE":
-        return
-    preset_cmd = get_custom_cmd_preset(self, context)
-    self.saved_hash = ""
-    if preset_cmd is None:
-        self.preset = "NONE"
-        return
-    self.from_dict(preset_cmd.to_dict("PRESET_EDIT", context.object, include_defaults=True), set_defaults=True)
-    self.saved_hash = self.preset_hash
-
-
-def get_custom_cmd_preset_enum(_self, context: Context):
-    return [("NONE", "No Preset", "No preset selected")] + [
-        (str(i), preset.name, f"{preset.name} ({preset.cmd_type})")
-        for i, preset in enumerate(context.scene.fast64.sm64.custom_cmds)
-    ]
-
-
 class SM64_SearchCustomCmds(SearchEnumOperatorBase):
     bl_idname = "scene.sm64_search_custom_cmds"
     bl_label = "Search Custom Commands"
@@ -248,6 +286,101 @@ class SM64_SearchCustomCmds(SearchEnumOperatorBase):
 CustomCmdConf = Literal["PRESET", "PRESET_EDIT", "NO_PRESET"]  # type of configuration
 
 
+class SM64_CustomNumberProperties(bpy.types.PropertyGroup):
+    is_integer: BoolProperty(name="Is Integer", default=False, update=update_internal_number_and_check_preset)
+    floating: FloatProperty(name="Float", default=0.0, precision=5, update=update_internal_number)
+    integer: IntProperty(name="Integer", default=0, update=update_internal_number)
+    floating_step: FloatProperty(name="Step", default=0.0, update=update_internal_number_and_check_preset)
+    floating_min: FloatProperty(
+        name="Min", default=-math.inf, min=-math.inf, max=math.inf, update=update_internal_number_and_check_preset
+    )
+    floating_max: FloatProperty(
+        name="Max", default=math.inf, min=-math.inf, max=math.inf, update=update_internal_number_and_check_preset
+    )
+    integer_step: IntProperty(name="Step", default=1, update=update_internal_number_and_check_preset)
+    integer_min: IntProperty(
+        name="Min",
+        default=-(2**31),
+        min=-(2**31),
+        max=(2**31) - 1,
+        update=update_internal_number_and_check_preset,
+    )
+    integer_max: IntProperty(
+        name="Max",
+        default=(2**31) - 1,
+        min=-(2**31),
+        max=(2**31) - 1,
+        update=update_internal_number_and_check_preset,
+    )
+
+    @property
+    def step_min_max(self):
+        if self.is_integer:
+            return self.integer_step, self.integer_min, self.integer_max
+        else:
+            return self.floating_step, self.floating_min, self.floating_max
+
+    def set_step_min_max(self, step, min_value, max_value):
+        for name, value in zip(("step", "min", "max"), (step, min_value, max_value)):
+            if getattr(self, f"integer_{name}") != better_round(value):
+                setattr(self, f"integer_{name}", better_round(value))
+            if not math.isclose(getattr(self, f"floating_{name}"), value, rel_tol=1e-7):
+                setattr(self, f"floating_{name}", value)
+
+    def get_new_number(self, skip_limits=False):
+        new_value = self.integer if self.is_integer else self.floating
+        if skip_limits:
+            step, min_value, max_value = self.step_min_max
+            if step == 0:
+                new_value = max(min_value, min(new_value, max_value))
+            else:
+                if min_value > -math.inf:
+                    new_value -= min_value  # start value from min
+                step_count = new_value // step  # number of steps for the closest value
+                new_value = step_count * step
+                if min_value > -math.inf:
+                    new_value += min_value
+                new_value = max(min_value, min(new_value, max_value))
+        if self.is_integer:
+            return int(new_value)
+        return new_value
+
+    def to_dict(self, include_defaults=True):
+        if self.is_integer:
+            data = {"is_integer": True, "step": self.integer_step, "min": self.integer_min, "max": self.integer_max}
+        else:
+            data = {"is_integer": False, "step": self.floating_step, "min": self.floating_min, "max": self.floating_max}
+        if include_defaults:
+            data["defaults"] = {}
+            data["defaults"]["value"] = self.get_new_number()
+        return data
+
+    def from_dict(self, data: dict, set_defaults=True):
+        self.is_integer = data.get("is_integer", False)
+        if set_defaults:
+            value = data.get("defaults", {}).get("value", 0)
+            self.floating = value
+            self.integer = better_round(value)
+        self.set_step_min_max(
+            data.get("step", 1.0 if self.is_integer else 0), data.get("min", -math.inf), data.get("max", math.inf)
+        )
+
+    def draw_props(self, layout: UILayout, conf_type: CustomCmdConf):
+        col = layout.column()
+        if conf_type != "PRESET":
+            col.prop(self, "is_integer")
+        col.prop(self, "integer" if self.is_integer else "floating")
+        usual_steps = {0, 1} if self.is_integer else {0}
+        if conf_type != "PRESET_EDIT" and self.step_min_max[0] not in usual_steps:
+            col.label(text=f"Increments of {self.step_min_max[0]}")
+            col.separator(factor=0.5)
+        if conf_type == "PRESET_EDIT":
+            typ = "integer" if self.is_integer else "floating"
+            prop_split(col, self, f"{typ}_min", "Min")
+            prop_split(col, self, f"{typ}_max", "Max")
+            prop_split(col, self, f"{typ}_step", "Step")
+
+
 class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
     name: StringProperty(name="Argument Name", default="Name", update=custom_cmd_preset_update)
     arg_type: EnumProperty(
@@ -255,6 +388,7 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
         items=[
             ("PARAMETER", "Parameter", "Parameter"),
             ("BOOLEAN", "Boolean", "Boolean"),
+            ("NUMBER", "Number", "Number"),
             ("COLOR", "Color", "Color"),
             ("LAYER", "Layer", "Layer"),
             ("", "Transforms", ""),
@@ -277,6 +411,7 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
     )
     parameter: StringProperty(name="Parameter", default="0")
     boolean: BoolProperty(name="Boolean", default=True)
+    number: PointerProperty(type=SM64_CustomNumberProperties)
     layer: EnumProperty(items=sm64EnumDrawLayers, default="1")
     rot_type: EnumProperty(
         name="Rotation",
@@ -294,7 +429,7 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
 
     @property
     def has_params(self):
-        return self.arg_type in {"PARAMETER", "COLOR", "BOOLEAN", "LAYER"}
+        return self.arg_type in {"PARAMETER", "COLOR", "BOOLEAN", "NUMBER", "LAYER"}
 
     def to_dict(self, conf_type: CustomCmdConf, owner: Object | None = None, include_defaults=True):
         data = {}
@@ -308,11 +443,13 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
                     data["rot_type"] = self.rot_type
         if conf_type != "PRESET_EDIT" and self.is_transform and owner is not None:
             data["matrix"] = [y for x in (owner.matrix_local if self.relative else owner.matrix_world) for y in x]
-        defaults = {}
-        if self.has_params:
-            defaults[self.arg_type.lower()] = getattr(self, self.arg_type.lower())
-        if defaults and include_defaults:
-            data["defaults"] = defaults
+        match self.arg_type:
+            case "NUMBER":
+                data.update(self.number.to_dict(include_defaults))
+            case _:
+                if self.has_params and include_defaults:
+                    data["defaults"] = {}
+                    data["defaults"][self.arg_type.lower()] = getattr(self, self.arg_type.lower())
         return data
 
     def from_dict(self, data: dict, set_defaults=False):
@@ -320,10 +457,16 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
         self.arg_type = data.get("arg_type", "PARAMETER")
         self.relative = data.get("relative", True)
         self.rot_type = data.get("rot_type", "EULER")
-        defaults = data.get("defaults", {})
-        if set_defaults:
-            self.color = defaults.get("color", (1.0, 1.0, 1.0, 1.0))
-            self.parameter = defaults.get("parameter", "0")
+        match self.arg_type:
+            case "NUMBER":
+                self.number.from_dict(data, set_defaults)
+            case _:
+                if set_defaults:
+                    setattr(
+                        self,
+                        self.arg_type.lower(),
+                        data.get(self.arg_type.lower(), getattr(self, self.arg_type.lower())),
+                    )
 
     def to_c(self, cmd: CustomCmd):
         def add_name(c: str):
@@ -358,8 +501,10 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
                 return add_name(getDrawLayerName(self.layer))
             case "BOOLEAN":
                 return add_name(str(self.boolean).upper())
+            case "NUMBER":
+                return add_name(str(self.number.get_new_number(cmd.cmd_property.preset != "NONE")))
             case _:
-                raise Exception(f"Unknown arg type {self.arg_type}")
+                raise PluginError(f"Unknown arg type {self.arg_type}")
 
     def example_macro_args(
         self, cmd_prop: "SM64_CustomCmdProperties", previous_arg_names: set[str], conf_type: CustomCmdConf = "NO_PRESET"
@@ -389,7 +534,7 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
                         return add_name(["_x", "_y", "_z", "_a"])
             case "COLOR":
                 return add_name(["_r", "_g", "_b", "_a"])
-            case "PARAMETER" | "LAYER" | "BOOLEAN":
+            case "PARAMETER" | "LAYER" | "BOOLEAN" | "NUMBER":
                 return add_name([""])
 
     def draw_props(self, arg_row: UILayout, layout: UILayout, conf_type: CustomCmdConf = "NO_PRESET"):
@@ -410,7 +555,11 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
                 prop_split(col, self, "rot_type", "Rotation Type")
 
         if self.has_params:
-            name_split.prop(self, self.arg_type.lower(), text="")
+            match self.arg_type:
+                case "NUMBER":
+                    self.number.draw_props(col, conf_type)
+                case _:
+                    name_split.prop(self, self.arg_type.lower(), text="")
 
 
 class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
@@ -441,14 +590,19 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
         return data
 
     def from_dict(self, data: dict, set_defaults=True):
-        self.name = data.get("name", "My Custom Command")
-        self.cmd_type = data.get("cmd_type", "Level")
-        self.str_cmd = data.get("str_cmd", "CUSTOM_COMMAND")
-        self.int_cmd = data.get("int_cmd", 0)
-        self.args.clear()
-        for arg in data.get("args", []):
-            self.args.add()
-            self.args[-1].from_dict(arg, set_defaults)
+        global LOCK_PRESET_DETECTION
+        try:
+            LOCK_PRESET_DETECTION = True  # dont check preset hashes while setting values
+            self.name = data.get("name", "My Custom Command")
+            self.cmd_type = data.get("cmd_type", "Level")
+            self.str_cmd = data.get("str_cmd", "CUSTOM_COMMAND")
+            self.int_cmd = data.get("int_cmd", 0)
+            self.args.clear()
+            for arg in data.get("args", []):
+                self.args.add()
+                self.args[-1].from_dict(arg, set_defaults)
+        finally:
+            LOCK_PRESET_DETECTION = False
 
     @property
     def preset_hash(self):
@@ -483,7 +637,7 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
                     @ mathutils.Matrix.Diagonal(scale).to_4x4()
                 )
             )
-        return CustomCmd(self, *world_local, conf_type == "PRESET_EDIT")
+        return CustomCmd(self, world_local[0], world_local[1], conf_type == "PRESET_EDIT")
 
     def example_macro_define(self, conf_type: CustomCmdConf = "NO_PRESET", max_len=100):
         macro_define = ""
@@ -588,6 +742,7 @@ sm64_custom_cmd_classes = (
     SM64_CustomCmdOps,
     SM64_CustomCmdArgsOps,
     SM64_SearchCustomCmds,
+    SM64_CustomNumberProperties,
     SM64_CustomCmdArgProperties,
     SM64_CustomCmdProperties,
 )
