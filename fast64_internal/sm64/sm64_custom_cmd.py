@@ -21,6 +21,8 @@ import numpy as np
 from ..operators import OperatorBase, SearchEnumOperatorBase
 from ..utility import (
     PluginError,
+    Matrix4x4Property,
+    convertRadiansToS16,
     copyPropertyGroup,
     draw_and_check_tab,
     get_first_set_prop,
@@ -48,7 +50,7 @@ def duplicate_name(name, existing_names: set, old_name: str | None = None):
         return name
     num = 0
     if old_name is not None:
-        number_match = fullmatch("(.*?) \((\d+)\)$", old_name)
+        number_match = fullmatch(r"(.*?)\.(\d+)$", old_name)
         if number_match is not None:  # if name already a duplicate/copy, add number
             name, num = number_match.group(1), int(number_match.group(2))
         else:
@@ -57,7 +59,7 @@ def duplicate_name(name, existing_names: set, old_name: str | None = None):
     for i in range(1, len(existing_names) + 2):
         if new_name not in existing_names:  # only use name if it's unique
             return new_name
-        new_name = f"{name} ({num+i})"
+        new_name = f"{name}.{num+i:03}"
 
 
 class CustomContext(NamedTuple):
@@ -155,11 +157,23 @@ def update_internal_number_and_check_preset(self: "SM64_CustomCmdArgProperties",
     custom_cmd_preset_update(self, context)
 
 
+def get_transforms(owner: Optional[AvailableOwners] = None):
+    if isinstance(owner, Object):
+        return (owner.matrix_world, owner.matrix_local)
+    elif isinstance(owner, Bone):
+        relative = owner.matrix_local
+        if owner.parent is not None:
+            relative = owner.parent.matrix_local.inverted() @ relative
+        return (owner.matrix_local, relative)
+    else:
+        return (mathutils.Matrix.Identity(4),) * 2
+
+
 @dataclasses.dataclass
 class CustomCmd:
-    cmd_property: "SM64_CustomCmdProperties" = dataclasses.field()
-    world: mathutils.Matrix
-    local: mathutils.Matrix
+    owner: Optional[AvailableOwners]
+    cmd_property: "SM64_CustomCmdProperties"
+    blender_scale: float = 1
     preset_edit: bool = False  # preset edit preview
 
     name: str = ""  # for sorting
@@ -281,6 +295,7 @@ class SM64_CustomCmdArgsOps(OperatorBase):
 
     def execute_operator(self, context):
         args = self.args(context, self.command_index)
+        owner = get_custom_prop(context).owner
         match self.op_name:
             case "ADD":
                 args.add()
@@ -292,7 +307,7 @@ class SM64_CustomCmdArgsOps(OperatorBase):
                 else:
                     old_name = None
                 if old_name:
-                    existing_names = {arg.name for arg in args if arg != new_arg and arg.has_params}
+                    existing_names = {arg.name for arg in args[:-1]}
                     new_arg.name = duplicate_name(new_arg.name, existing_names, old_name)
                 if self.index != -1:
                     args.move(len(args) - 1, self.index + 1)
@@ -435,7 +450,7 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
         ],
         update=custom_cmd_preset_update,
     )
-    relative: BoolProperty(name="Use Relative Transformation", default=True)
+    inherit: BoolProperty(name="Inherit", description="Inherit arg from owner", default=True)
     color: FloatVectorProperty(
         name="Color",
         size=4,
@@ -449,6 +464,8 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
     boolean: BoolProperty(name="Boolean", default=True)
     number: PointerProperty(type=SM64_CustomNumberProperties)
     layer: EnumProperty(items=sm64EnumDrawLayers, default="1")
+    relative: BoolProperty(name="Use Relative Transformation", default=True, update=custom_cmd_preset_update)
+    convert_to_sm64: BoolProperty(name="Convert to SM64 units", default=True, update=custom_cmd_preset_update)
     rot_type: EnumProperty(
         name="Rotation",
         items=[
@@ -458,14 +475,70 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
         ],
         update=custom_cmd_preset_update,
     )
+    translation_scale: FloatVectorProperty(name="Translation", size=3, default=(0.0, 0.0, 0.0), subtype="XYZ")
+    euler: FloatVectorProperty(name="Rotation", size=3, default=(0.0, 0.0, 0.0), subtype="EULER")
+    quaternion: FloatVectorProperty(name="Quaternion", size=4, default=(1.0, 0.0, 0.0, 0.0), subtype="QUATERNION")
+    axis_angle: FloatVectorProperty(name="Axis Angle", size=4, default=((1.0), 0.0, 0.0, 0.0), subtype="AXISANGLE")
+    matrix: PointerProperty(type=Matrix4x4Property)
 
     @property
     def is_transform(self):
         return self.arg_type in {"MATRIX", "TRANSLATION", "ROTATION", "SCALE"}
 
-    @property
-    def has_params(self):
-        return self.arg_type in {"PARAMETER", "COLOR", "BOOLEAN", "NUMBER", "LAYER"}
+    def can_inherit(self, owner: Optional[AvailableOwners]):
+        """Scene still includes all, the inherented property will be defaults, like identity matrix"""
+        valid_types = {"MATRIX", "TRANSLATION", "ROTATION"}
+        if not isinstance(owner, Bone):
+            valid_types.add("SCALE")
+        return self.arg_type in valid_types
+
+    def inherits(self, owner: Optional[AvailableOwners]):
+        return self.can_inherit(owner) and self.inherit
+
+    def shows_name(self, owner: Optional[AvailableOwners]):
+        return not self.is_transform or not self.inherits(owner)
+
+    def get_transform(self, owner: Optional[AvailableOwners], blender_scale=1.0, skip_convert=False, flatten=True):
+        inherit = self.inherits(owner)
+        relative, world = get_transforms(owner)
+        matrix = relative if self.relative else world
+        match self.arg_type:
+            case "MATRIX":
+                matrix = matrix if inherit else self.matrix.to_matrix()
+                if self.convert_to_sm64 and not skip_convert:
+                    trans, rot, scale = matrix.decompose()
+                    matrix = (
+                        mathutils.Matrix.Translation(trans * blender_scale).to_4x4()
+                        @ rot.to_matrix().to_4x4()
+                        @ mathutils.Matrix.Diagonal(scale).to_4x4()
+                    )
+                return (
+                    [round(y, 4) for x in matrix for y in x] if flatten else [[round(y, 4) for y in x] for x in matrix]
+                )
+            case "TRANSLATION":
+                translation = mathutils.Vector(matrix.to_translation() if inherit else self.translation_scale)
+                if self.convert_to_sm64 and not skip_convert:
+                    return [round(x) for x in translation * blender_scale]
+                return [round(x, 4) for x in translation]
+            case "ROTATION":
+                match self.rot_type:
+                    case "EULER":
+                        rotation = matrix.to_euler("XYZ") if inherit else mathutils.Euler(self.euler)
+                        if self.convert_to_sm64 and not skip_convert:
+                            return [convertRadiansToS16(x) for x in rotation]
+                        return [round(math.degrees(x), 4) for x in rotation]
+                    case "QUATERNION":
+                        rotation = matrix.to_quaternion() if inherit else mathutils.Quaternion(self.quaternion)
+                        return [round(x, 4) for x in rotation]
+                    case "AXIS_ANGLE":
+                        axis, angle = self.axis_angle[:3], self.axis_angle[3]
+                        if inherit:
+                            axis, angle = matrix.to_quaternion().to_axis_angle()
+                        axis, angle = [round(x, 4) for x in axis], round(math.degrees(angle), 4)
+                        return (*axis, angle) if flatten else [axis, angle]
+            case "SCALE":
+                scale = matrix.to_scale() if inherit else self.translation_scale
+                return [round(x, 4) for x in scale]
 
     def to_dict(self, conf_type: CustomCmdConf, owner: Optional[AvailableOwners] = None, include_defaults=True):
         data = {}
@@ -473,13 +546,9 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
             if conf_type == "PRESET_EDIT":
                 data["name"] = self.name
             data["arg_type"] = self.arg_type
-            if self.is_transform:
-                data["relative"] = self.relative
-                if self.arg_type == "ROTATION":
-                    data["rot_type"] = self.rot_type
+            if self.can_inherit(owner):
+                data["inherit"] = self.inherit
         defaults = {}
-        if conf_type != "PRESET_EDIT" and self.is_transform and owner is not None:
-            defaults["matrix"] = [y for x in (owner.matrix_local if self.relative else owner.matrix_world) for y in x]
         match self.arg_type:
             case "NUMBER":
                 number_data, number_defaults = self.number.to_dict(conf_type)
@@ -488,24 +557,50 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
             case "COLOR":
                 defaults["color"] = tuple(self.color)
             case _:
-                if self.has_params:
+                if self.is_transform:
+                    data["relative"] = self.relative
+                    data["convert_to_sm64"] = (
+                        self.convert_to_sm64
+                        if self.arg_type in {"MATRIX", "TRANSLATION"}
+                        or (self.arg_type == "ROTATION" and self.rot_type == "EULER")
+                        else False
+                    )
+                    if self.arg_type == "ROTATION":
+                        data["rot_type"] = self.rot_type
+                    name = self.arg_type.lower()
+                    if self.arg_type == "ROTATION":
+                        name = self.rot_type.lower()
+                    defaults[name] = self.get_transform(owner, skip_convert=True, flatten=False)
+                else:
                     defaults[self.arg_type.lower()] = getattr(self, self.arg_type.lower())
         if defaults and include_defaults:
             data["defaults"] = defaults
         return data
 
-    def from_dict(self, data: dict, set_defaults=False):
-        self.name = data.get("name", "Example Named Arg")
+    def from_dict(self, data: dict, index=0, set_defaults=False):
+        self.name = data.get("name", f"Arg {index}")
         self.arg_type = data.get("arg_type", "PARAMETER")
+        self.inherit = data.get("inherit", True)
         self.relative = data.get("relative", True)
+        self.convert_to_sm64 = data.get("convert_to_sm64", True)
         self.rot_type = data.get("rot_type", "EULER")
-        match self.arg_type:
-            case "NUMBER":
-                self.number.from_dict(data, set_defaults)
-            case _:
-                if set_defaults and self.has_params:
-                    prop = self.arg_type.lower()
-                    setattr(self, prop, data.get("defaults", {}).get(prop, getattr(self, prop)))
+        if not set_defaults:
+            return
+        self.number.from_dict(data, set_defaults)
+        defaults = data.get("defaults", {})
+        if self.is_transform:
+            self.translation_scale = defaults.get("translation", None) or defaults.get("scale", None) or [0, 0, 0]
+            self.euler = [math.radians(x) for x in defaults.get("euler", [0, 0, 0])]
+            self.quaternion = defaults.get("quaternion", [1, 0, 0, 0])
+            axis_angle = defaults.get("axis_angle", [[0, 0, 0], 0])
+            self.axis_angle = axis_angle[0] + [math.radians(axis_angle[1])]
+            if "matrix" in defaults:
+                self.matrix.from_matrix(defaults.get("matrix"))
+            else:
+                self.matrix.from_matrix(mathutils.Matrix.Identity(4))
+        else:
+            prop = self.arg_type.lower()
+            setattr(self, prop, data.get("defaults", {}).get(prop, getattr(self, prop)))
 
     def to_c(self, cmd: CustomCmd):
         def add_name(c: str):
@@ -515,25 +610,9 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
                 return c
             return f"/*{self.name}*/ {c}"
 
-        transform = cmd.local if self.relative else cmd.world
         match self.arg_type:
-            case "MATRIX":
-                return add_name(",".join([str(round(y, 4)) for x in transform for y in x]))
-            case "TRANSLATION":
-                return add_name(",".join([str(round(x, 4)) for x in transform.to_translation()]))
-            case "ROTATION":
-                match self.rot_type:
-                    case "EULER":
-                        return add_name(",".join([str(round(math.degrees(x), 4)) for x in transform.to_euler("XYZ")]))
-                    case "QUATERNION":
-                        return add_name(",".join([str(round(x, 4)) for x in transform.to_quaternion()]))
-                    case "AXIS_ANGLE":
-                        axis, angle = transform.to_quaternion().to_axis_angle()
-                        return add_name(",".join([str(round(x, 4)) for x in (*axis, angle)]))
-            case "SCALE":
-                return add_name(",".join([str(round(x, 4)) for x in transform.to_scale()]))
             case "COLOR":
-                return add_name(",".join([str(x) for x in exportColor(self.color)]))
+                return add_name(", ".join([str(x) for x in exportColor(self.color)]))
             case "PARAMETER":
                 return add_name(self.parameter)
             case "LAYER":
@@ -543,61 +622,96 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
             case "NUMBER":
                 return add_name(str(self.number.get_new_number(cmd.cmd_property.preset != "NONE")))
             case _:
+                if self.is_transform:
+                    return add_name(", ".join(str(x) for x in self.get_transform(cmd.owner, cmd.blender_scale)))
                 raise PluginError(f"Unknown arg type {self.arg_type}")
 
     def example_macro_args(
         self, cmd_prop: "SM64_CustomCmdProperties", previous_arg_names: set[str], conf_type: CustomCmdConf = "NO_PRESET"
     ):
         def add_name(args: list[str]):
-            name = (
-                self.arg_type.lower()
-                if (cmd_prop.preset == "NONE" and conf_type == "NO_PRESET") or self.name == ""
-                else self.name
-            )
+            name = self.name
+            if not name or (cmd_prop.preset == "NONE" and conf_type == "NO_PRESET"):
+                name = self.arg_type.lower()
             name = duplicate_name(name, previous_arg_names)
             previous_arg_names.add(name)
             return ", ".join(toAlnum(name + arg).lower() for arg in args)
+
+        if self.arg_type == "ROTATION":
+            return add_name(
+                {
+                    "EULER": ("_x", "_y", "_z"),
+                    "QUATERNION": ("_w", "_x", "_y", "_z"),
+                    "AXIS_ANGLE": ("_x", "_y", "_z", "_a"),
+                }[self.rot_type]
+            )
 
         match self.arg_type:
             case "MATRIX":
                 return add_name([f"_{x}_{y}" for x in range(4) for y in range(4)])
             case "TRANSLATION" | "SCALE":
                 return add_name(["_x", "_y", "_z"])
-            case "ROTATION":
-                match self.rot_type:
-                    case "EULER":
-                        return add_name(["_x", "_y", "_z"])
-                    case "QUATERNION":
-                        return add_name(["_w", "_x", "_y", "_z"])
-                    case "AXIS_ANGLE":
-                        return add_name(["_x", "_y", "_z", "_a"])
             case "COLOR":
                 return add_name(["_r", "_g", "_b", "_a"])
             case "PARAMETER" | "LAYER" | "BOOLEAN" | "NUMBER":
                 return add_name([""])
 
-    def draw_props(self, arg_row: UILayout, layout: UILayout, conf_type: CustomCmdConf = "NO_PRESET"):
+    def draw_transforms(
+        self,
+        name_split: UILayout,
+        layout: UILayout,
+        owner: Optional[AvailableOwners],
+        conf_type: CustomCmdConf = "NO_PRESET",
+    ):
+        col = layout.column()
+        inherit = self.can_inherit(owner) and self.inherit
+        if conf_type != "PRESET":
+            name_split = col
+            if inherit:
+                col.prop(self, "relative")
+            if self.arg_type == "ROTATION":
+                prop_split(col, self, "rot_type", "Rotation Type")
+            if self.arg_type in {"TRANSLATION", "MATRIX"} or (self.arg_type == "ROTATION" and self.rot_type == "EULER"):
+                col.prop(self, "convert_to_sm64")
+        force_scale = conf_type == "PRESET_EDIT" and self.arg_type == "SCALE"
+        if inherit and force_scale:
+            col.label(text="Scale inherenting not supported in bones.", icon="INFO")
+        if not inherit or force_scale:
+            if self.arg_type in {"TRANSLATION", "SCALE"}:
+                name_split.prop(self, "translation_scale", text="")
+            elif self.arg_type == "ROTATION":
+                name_split.prop(self, self.rot_type.lower(), text="")
+            elif self.arg_type == "MATRIX":
+                self.matrix.draw_props(col)
+
+    def draw_props(
+        self,
+        arg_row: UILayout,
+        layout: UILayout,
+        owner: Optional[AvailableOwners],
+        conf_type: CustomCmdConf = "NO_PRESET",
+    ):
         col = layout.column()
         if conf_type != "NO_PRESET":
             name_split = col.split(factor=0.5)
-            if conf_type == "PRESET" and self.has_params and self.name != "":
+            if conf_type == "PRESET" and self.shows_name(owner) and self.name != "":
                 name_split.label(text=self.name)
             elif conf_type == "PRESET_EDIT":
                 name_split.prop(self, "name", text="")
         else:
             name_split = col
         if conf_type != "PRESET":
+            if self.can_inherit(owner):
+                name_split.prop(self, "inherit")
             arg_row.prop(self, "arg_type", text="")
-            if self.is_transform:
-                col.prop(self, "relative")
-            if self.arg_type == "ROTATION":
-                prop_split(col, self, "rot_type", "Rotation Type")
 
-        if self.has_params:
-            match self.arg_type:
-                case "NUMBER":
-                    self.number.draw_props(name_split, col, conf_type)
-                case _:
+        match self.arg_type:
+            case "NUMBER":
+                self.number.draw_props(name_split, col, conf_type)
+            case _:
+                if self.is_transform:
+                    self.draw_transforms(name_split, col, owner, conf_type)
+                else:
                     name_split.prop(self, self.arg_type.lower(), text="")
 
 
@@ -618,6 +732,10 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
     int_cmd: IntProperty(name="Command", default=0, update=custom_cmd_preset_update)
     args: CollectionProperty(type=SM64_CustomCmdArgProperties)
     saved_hash: StringProperty()
+
+    @property
+    def preset_hash(self):
+        return str(hash(str(self.to_dict("PRESET_EDIT", include_defaults=False).items())))
 
     def get_cmd_type(self, owner: Optional[AvailableOwners] = None):
         if isinstance(owner, Bone):
@@ -642,15 +760,11 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
             self.str_cmd = data.get("str_cmd", "CUSTOM_COMMAND")
             self.int_cmd = data.get("int_cmd", 0)
             self.args.clear()
-            for arg in data.get("args", []):
+            for i, arg in enumerate(data.get("args", [])):
                 self.args.add()
-                self.args[-1].from_dict(arg, set_defaults)
+                self.args[-1].from_dict(arg, i, set_defaults)
         finally:
             LOCK_PRESET_DETECTION = False
-
-    @property
-    def preset_hash(self):
-        return str(hash(str(self.to_dict("PRESET_EDIT", include_defaults=False).items())))
 
     @staticmethod
     def upgrade_object(obj: Object):
@@ -668,23 +782,7 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
     def get_final_cmd(
         self, owner: Optional[AvailableOwners], blender_scale: float, conf_type: CustomCmdConf = "NO_PRESET"
     ):
-        base_matrices = (mathutils.Matrix.Identity(4),) * 2
-        if isinstance(owner, Object):
-            base_matrices = (owner.matrix_world, owner.matrix_local)
-        elif isinstance(owner, Bone):
-            base_matrices = (owner.matrix.to_4x4(), owner.matrix_local)
-        world_local: list[mathutils.Matrix] = []
-        for base_matrix in base_matrices:
-            loc, rot, scale = base_matrix.decompose()
-            scaled_translation = loc * blender_scale
-            world_local.append(
-                (
-                    mathutils.Matrix.Translation(scaled_translation).to_4x4()
-                    @ rot.to_matrix().to_4x4()
-                    @ mathutils.Matrix.Diagonal(scale).to_4x4()
-                )
-            )
-        return CustomCmd(self, world_local[0], world_local[1], conf_type == "PRESET_EDIT")
+        return CustomCmd(owner, self, blender_scale, conf_type == "PRESET_EDIT")
 
     def example_macro_define(self, conf_type: CustomCmdConf = "NO_PRESET", max_len=100):
         macro_define = ""
@@ -757,7 +855,7 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
                 arg_ops(ops_row, "REMOVE", "REMOVE", i)
                 arg_ops(ops_row, "TRIA_DOWN", "MOVE_DOWN", i)
                 arg_ops(ops_row, "TRIA_UP", "MOVE_UP", i)
-            arg.draw_props(ops_row, args_col, conf_type)
+            arg.draw_props(ops_row, args_col, owner, conf_type)
 
         if conf_type != "PRESET":
             multilineLabel(

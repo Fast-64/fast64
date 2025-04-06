@@ -5,6 +5,7 @@ from mathutils import *
 from .utility_anim import *
 from typing import Callable, Iterable, Any, Optional, Tuple, TypeVar, Union
 from bpy.types import UILayout, Scene, World
+from bpy.props import FloatVectorProperty
 
 CollectionProperty = Any  # collection prop as defined by using bpy.props.CollectionProperty
 
@@ -15,6 +16,25 @@ class PluginError(Exception):
 
 class VertexWeightError(PluginError):
     pass
+
+
+class Matrix4x4Property(bpy.types.PropertyGroup):  # blender's matrix subtype is broken :))))
+    row0: FloatVectorProperty(size=4, default=(1, 0, 0, 0))
+    row1: FloatVectorProperty(size=4, default=(0, 1, 0, 0))
+    row2: FloatVectorProperty(size=4, default=(0, 0, 1, 0))
+    row3: FloatVectorProperty(size=4, default=(0, 0, 0, 1))
+
+    def to_matrix(self):
+        return mathutils.Matrix((tuple(self.row0), tuple(self.row1), tuple(self.row2), tuple(self.row3)))
+
+    def from_matrix(self, matrix: mathutils.Matrix):
+        for i in range(4):
+            setattr(self, f"row{i}", tuple(matrix[i]))
+
+    def draw_props(self, layout: UILayout):
+        layout.label(text="Row: → | Column: ↓", icon="INFO")
+        for i in range(4):
+            layout.row().prop(self, f"row{i}", text="")
 
 
 # default indentation to use when writing to decomp files
