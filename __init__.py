@@ -343,6 +343,7 @@ def upgrade_changed_props():
     SM64_Properties.upgrade_changed_props()
     MK64_Properties.upgrade_changed_props()
     SM64_ObjectProperties.upgrade_changed_props()
+    SM64_BoneProperties.upgrade_changed_props()
     OOT_ObjectProperties.upgrade_changed_props()
     for scene in bpy.data.scenes:
         settings: Fast64Settings_Properties = scene.fast64.settings

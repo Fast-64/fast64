@@ -1694,10 +1694,6 @@ def processBone(
 
         final_transform = transformMatrix @ translation
 
-    elif bone.geo_cmd == "CustomNonAnimated":
-        if bone.fast64.sm64.custom_geo_cmd_macro == "":
-            raise PluginError(f'Bone "{boneName}" on armature "{armatureObj.name}" needs a geo command macro.')
-        node = CustomNode(bone.fast64.sm64.custom_geo_cmd_macro, bone.fast64.sm64.custom_geo_cmd_args)
     elif bone.geo_cmd == "Function":
         if bone.geo_func == "":
             raise PluginError("Function bone " + boneName + " function value is empty.")
@@ -1770,6 +1766,8 @@ def processBone(
             final_transform = transformMatrix @ mathutils.Matrix.Scale(node.scaleValue, 4)
         elif bone.geo_cmd == "StartRenderArea":
             node = StartRenderAreaNode(bone.culling_radius)
+        elif bone.geo_cmd == "Custom":
+            node = bone.fast64.sm64.custom.get_final_cmd(bone, bpy.context.scene.fast64.sm64.blender_to_sm64_scale)
         else:
             raise PluginError("Invalid geometry command: " + bone.geo_cmd)
 

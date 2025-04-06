@@ -1,7 +1,7 @@
 import math
 import sys
 import bpy, mathutils, dataclasses
-from typing import Literal
+from typing import Literal, NamedTuple, Optional
 from re import fullmatch
 
 from bpy.utils import register_class, unregister_class
@@ -15,7 +15,7 @@ from bpy.props import (
     CollectionProperty,
     PointerProperty,
 )
-from bpy.types import Object, UILayout, Context, SpaceView3D
+from bpy.types import Object, Bone, UILayout, Context, SpaceView3D, Scene
 import numpy as np
 
 from ..operators import OperatorBase, SearchEnumOperatorBase
@@ -33,6 +33,7 @@ from ..utility import (
 from ..f3d.f3d_material import sm64EnumDrawLayers
 
 
+AvailableOwners = Object | Bone | Scene
 LOCK_PRESET_DETECTION = False
 
 
@@ -59,6 +60,23 @@ def duplicate_name(name, existing_names: set, old_name: str | None = None):
         new_name = f"{name} ({num+i})"
 
 
+class CustomContext(NamedTuple):
+    custom: Optional["SM64_CustomCmdProperties"]
+    owner: Optional[AvailableOwners]
+
+
+def get_custom_prop(context: Context) -> CustomContext:
+    """If owner is a scene, custom is always None"""
+    if isinstance(context.space_data, SpaceView3D):
+        return CustomContext(None, context.scene)
+    else:
+        if context.bone is not None:
+            return CustomContext(context.bone.fast64.sm64.custom, context.bone)
+        if context.object is not None:
+            return CustomContext(context.object.fast64.sm64.custom, context.object)
+    return None, None
+
+
 def get_custom_cmd_preset(custom_cmd: "SM64_CustomCmdProperties", context: Context):
     if custom_cmd.preset == "":
         return None
@@ -66,24 +84,28 @@ def get_custom_cmd_preset(custom_cmd: "SM64_CustomCmdProperties", context: Conte
     return presets[int(custom_cmd.preset)]
 
 
-def check_preset_hashes(obj, context):
+def check_preset_hashes(owner: AvailableOwners, context):
     global LOCK_PRESET_DETECTION
     if LOCK_PRESET_DETECTION:
         return
-    custom_cmd: "SM64_CustomCmdProperties" = obj.fast64.sm64.custom
+    custom_cmd: "SM64_CustomCmdProperties" = owner.fast64.sm64.custom
     if custom_cmd.preset == "NONE":
         return
     preset_cmd = get_custom_cmd_preset(custom_cmd, context)
-    if preset_cmd is None or (custom_cmd.saved_hash and custom_cmd.saved_hash != preset_cmd.preset_hash):
+    if preset_cmd is None or (custom_cmd.saved_hash != preset_cmd.preset_hash):
         custom_cmd.preset, custom_cmd.saved_hash = "NONE", custom_cmd.preset_hash
 
 
 def custom_cmd_preset_update(_self, context: Context):
-    if isinstance(context.space_data, SpaceView3D):
+    owner = get_custom_prop(context).owner
+    if isinstance(owner, Scene):  # current context is scene, check all
         for obj in context.scene.objects:
             check_preset_hashes(obj, context)
-    elif context.object:
-        check_preset_hashes(context.object, context)
+            if obj.type == "ARMATURE":
+                for bone in obj.data.bones:
+                    check_preset_hashes(bone, context)
+    elif owner is not None:
+        check_preset_hashes(owner, context)
 
 
 def custom_cmd_change_preset(self: "SM64_CustomCmdProperties", context: Context):
@@ -99,9 +121,14 @@ def custom_cmd_change_preset(self: "SM64_CustomCmdProperties", context: Context)
 
 
 def get_custom_cmd_preset_enum(_self, context: Context):
+    if isinstance(get_custom_prop(context)[1], Bone):
+        allowed_types = {"Geo"}
+    else:
+        allowed_types = {"Level", "Geo", "Special"}
     return [("NONE", "No Preset", "No preset selected")] + [
         (str(i), preset.name, f"{preset.name} ({preset.cmd_type})")
         for i, preset in enumerate(context.scene.fast64.sm64.custom_cmds)
+        if preset.cmd_type in allowed_types
     ]
 
 
@@ -111,8 +138,11 @@ def better_round(value):  # round, but handle inf
 
 def update_internal_number(self: "SM64_CustomNumberProperties", context: Context):
     use_limits = True
-    if not isinstance(context.space_data, SpaceView3D) and context.object:
-        use_limits = context.object.fast64.sm64.custom.preset != "NONE"
+    custom, owner = get_custom_prop(context)
+    if owner is None:
+        return
+    if custom is not None:
+        use_limits = custom.preset != "NONE"
     if not math.isclose(self.floating, self.get_new_number(use_limits), rel_tol=1e-7):
         self.floating = self.get_new_number(use_limits)
     if self.integer != better_round(self.get_new_number(use_limits)):
@@ -173,25 +203,23 @@ class SM64_CustomCmdOps(OperatorBase):
 
     def execute_operator(self, context):
         presets = context.scene.fast64.sm64.custom_cmds
-        object_custom: "SM64_CustomCmdProperties" | None = None
-        if not isinstance(context.space_data, SpaceView3D) and context.object:
-            object_custom = context.object.fast64.sm64.custom
+        custom, owner = get_custom_prop(context)
         match self.op_name:
             case "ADD":
                 presets.add()
                 new_preset: "SM64_CustomCmdProperties" = presets[-1]
                 old_preset: "SM64_CustomCmdProperties" | None = None
                 if self.index == -1:
-                    if object_custom is not None:
-                        old_preset = object_custom
+                    if custom is not None:
+                        old_preset = custom
                 else:
                     old_preset = presets[self.index]
 
                 if old_preset is not None:
                     new_preset.from_dict(
                         old_preset.to_dict(
-                            "PRESET_EDIT" if object_custom is None or object_custom.preset != "NONE" else "NO_PRESET",
-                            context.object,
+                            "PRESET_EDIT" if custom is None or custom.preset != "NONE" else "NO_PRESET",
+                            owner,
                             include_defaults=True,
                         ),
                         set_defaults=True,
@@ -204,16 +232,16 @@ class SM64_CustomCmdOps(OperatorBase):
                 new_preset.tab = True
                 if self.index != -1:
                     presets.move(len(presets) - 1, self.index + 1)
-                if object_custom is not None:
-                    object_custom.preset = str((len(presets) - 1) if self.index == -1 else self.index)
+                if custom is not None:
+                    custom.preset = str((len(presets) - 1) if self.index == -1 else self.index)
                 for area in context.screen.areas:  # HACK: redraw everything
                     area.tag_redraw()
             case "REMOVE":
                 presets.remove(self.index)
             case "COPY_EXAMPLE":
-                preset = presets[self.index] if object_custom is None else object_custom
+                preset = presets[self.index] if custom is None else custom
                 context.window_manager.clipboard = preset.example_macro_define(
-                    "PRESET_EDIT" if object_custom is None else "NO_PRESET"
+                    "PRESET_EDIT" if custom is None else "NO_PRESET"
                 )
             case _:
                 raise NotImplementedError(f'Unimplemented internal custom command preset op "{self.op_name}"')
@@ -232,9 +260,11 @@ class SM64_CustomCmdArgsOps(OperatorBase):
 
     @staticmethod
     def args(context, command_index) -> "SM64_CustomCmdProperties":
-        if isinstance(context.space_data, SpaceView3D):
+        owner = get_custom_prop(context).owner
+        if isinstance(owner, Scene):
             return context.scene.fast64.sm64.custom_cmds[command_index].args
-        return context.object.fast64.sm64.custom.args
+        elif owner is not None:
+            return owner.fast64.sm64.custom.args
 
     @classmethod
     def is_enabled(cls, context: Context, **op_values):
@@ -327,7 +357,7 @@ class SM64_CustomNumberProperties(bpy.types.PropertyGroup):
         else:
             return self.floating_step, self.floating_min, self.floating_max
 
-    def set_step_min_max(self, step, min_value, max_value):
+    def set_step_min_max(self, step: float, min_value: float, max_value: float):
         for name, value in zip(("step", "min", "max"), (step, min_value, max_value)):
             if getattr(self, f"integer_{name}") != better_round(value):
                 setattr(self, f"integer_{name}", better_round(value))
@@ -437,7 +467,7 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
     def has_params(self):
         return self.arg_type in {"PARAMETER", "COLOR", "BOOLEAN", "NUMBER", "LAYER"}
 
-    def to_dict(self, conf_type: CustomCmdConf, owner: Object | None = None, include_defaults=True):
+    def to_dict(self, conf_type: CustomCmdConf, owner: Optional[AvailableOwners] = None, include_defaults=True):
         data = {}
         if conf_type != "PRESET":
             if conf_type == "PRESET_EDIT":
@@ -589,16 +619,21 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
     args: CollectionProperty(type=SM64_CustomCmdArgProperties)
     saved_hash: StringProperty()
 
-    def to_dict(self, conf_type: CustomCmdConf, obj: Object | None = None, include_defaults=True):
+    def get_cmd_type(self, owner: Optional[AvailableOwners] = None):
+        if isinstance(owner, Bone):
+            return "Geo"
+        return self.cmd_type
+
+    def to_dict(self, conf_type: CustomCmdConf, owner: Optional[AvailableOwners] = None, include_defaults=True):
         data = {}
         if conf_type == "PRESET_EDIT":
             data["name"] = self.name
         if conf_type != "PRESET":
-            data.update({"cmd_type": self.cmd_type, "str_cmd": self.str_cmd, "int_cmd": self.int_cmd})
-        data["args"] = [arg.to_dict(conf_type, obj, include_defaults) for arg in self.args]
+            data.update({"cmd_type": self.get_cmd_type(owner), "str_cmd": self.str_cmd, "int_cmd": self.int_cmd})
+        data["args"] = [arg.to_dict(conf_type, owner, include_defaults) for arg in self.args]
         return data
 
-    def from_dict(self, data: dict, set_defaults=True):
+    def from_dict(self, data: dict, set_defaults=True):  # TODO: move this out
         global LOCK_PRESET_DETECTION
         try:
             LOCK_PRESET_DETECTION = True  # dont check preset hashes while setting values
@@ -619,7 +654,6 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
 
     @staticmethod
     def upgrade_object(obj: Object):
-        check_preset_hashes(obj, bpy.context)
         self: SM64_CustomCmdProperties = obj.fast64.sm64.custom
         found_cmd, arg = upgrade_old_prop(self, "str_cmd", obj, "customGeoCommand"), get_first_set_prop(
             obj, "customGeoCommandArgs"
@@ -631,10 +665,14 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
             self.args[-1].arg_type = "PARAMETER"
             self.args[-1].parameter = arg
 
-    def get_final_cmd(self, owner: Object | None, blender_scale: float, conf_type: CustomCmdConf = "NO_PRESET"):
-        base_matrices = (
-            (mathutils.Matrix.Identity(4),) * 2 if owner is None else (owner.matrix_world, owner.matrix_local)
-        )
+    def get_final_cmd(
+        self, owner: Optional[AvailableOwners], blender_scale: float, conf_type: CustomCmdConf = "NO_PRESET"
+    ):
+        base_matrices = (mathutils.Matrix.Identity(4),) * 2
+        if isinstance(owner, Object):
+            base_matrices = (owner.matrix_world, owner.matrix_local)
+        elif isinstance(owner, Bone):
+            base_matrices = (owner.matrix.to_4x4(), owner.matrix_local)
         world_local: list[mathutils.Matrix] = []
         for base_matrix in base_matrices:
             loc, rot, scale = base_matrix.decompose()
@@ -666,7 +704,7 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
         self,
         layout: UILayout,
         is_binary: bool,
-        owner: Object | None = None,
+        owner: Optional[AvailableOwners] = None,
         conf_type: CustomCmdConf = "NO_PRESET",
         blender_scale=100.0,
         command_index=-1,
@@ -689,7 +727,8 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
         if conf_type != "PRESET":
             if conf_type == "PRESET_EDIT":
                 prop_split(col, self, "name", "Preset Name")
-            prop_split(col, self, "cmd_type", "Type")
+            if not isinstance(owner, Bone):  # bone is always Geo
+                prop_split(col, self, "cmd_type", "Type")
             if conf_type == "PRESET_EDIT" or not is_binary:
                 prop_split(col, self, "str_cmd", "Command" if conf_type == "NO_PRESET" else "C Command")
             if conf_type == "PRESET_EDIT" or is_binary:

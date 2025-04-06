@@ -1,10 +1,11 @@
 import bpy
 from bpy.ops import object
-from bpy.types import Bone, Object, Panel, Operator, Armature, Mesh, Material, PropertyGroup
+from bpy.types import Bone, Object, Context, Panel, Operator, Armature, Mesh, Material, PropertyGroup
 from bpy.utils import register_class, unregister_class
-from ..utility import PluginError, prop_split, obj_scale_is_unified
+from ..utility import PluginError, get_first_set_prop, prop_split, obj_scale_is_unified, upgrade_old_prop
 from ..f3d.f3d_material import sm64EnumDrawLayers
 from .sm64_geolayout_utility import createBoneGroups, addBoneToGroup
+from .sm64_custom_cmd import SM64_CustomCmdProperties
 
 from bpy.props import (
     StringProperty,
@@ -34,8 +35,8 @@ enumBoneType = [
     ("Ignore", "Ignore", "Ignore bones when exporting."),
     ("SwitchOption", "Switch Option", "Switch Option"),
     ("DisplayListWithOffset", "Animated Part (0x13)", "Animated Part (Animatable Bone)"),
-    ("CustomAnimated", "Custom Animated", "Custom Bone used for animation"),
-    ("CustomNonAnimated", "Custom (Non-animated)", "Custom geolayout bone, non animated"),
+    ("", "", ""),
+    ("Custom", "Custom", "Custom bone using command presets"),
 ]
 
 animatableBoneTypes = {"DisplayListWithOffset", "CustomAnimated"}
@@ -81,12 +82,13 @@ enumMatOverrideOptions = [
 ]
 
 
-def drawGeoInfo(panel: Panel, bone: Bone):
+def drawGeoInfo(panel: Panel, context: Context):
     panel.layout.box().label(text="Geolayout Inspector")
+    bone = context.bone
     if bone is None:
         panel.layout.label(text="Edit geolayout properties in Pose mode.")
         return
-
+    bone_props: "SM64_BoneProperties" = bone.fast64.sm64
     col = panel.layout.column()
 
     prop_split(col, bone, "geo_cmd", "Geolayout Command")
@@ -99,7 +101,6 @@ def drawGeoInfo(panel: Panel, bone: Bone):
         "DisplayList",
         "Scale",
         "DisplayListWithOffset",
-        "CustomAnimated",
     ]:
         drawLayerWarningBox(col, bone, "draw_layer")
 
@@ -137,14 +138,8 @@ def drawGeoInfo(panel: Panel, bone: Bone):
         infoBoxRenderArea.label(text="See the object properties window for the armature instead.")
         prop_split(col, bone, "culling_radius", "Culling Radius")
 
-    elif bone.geo_cmd in {"CustomAnimated", "CustomNonAnimated"}:
-        prop_split(col, bone.fast64.sm64, "custom_geo_cmd_macro", "Geo Command Macro")
-        if bone.geo_cmd == "CustomNonAnimated":
-            prop_split(col, bone.fast64.sm64, "custom_geo_cmd_args", "Geo Command Args")
-        else:  # It's animated
-            infobox = col.box()
-            infobox.label(text="Command's args will be filled with layer, translate, and rotate", icon="INFO")
-            infobox.label(text="e.g. `GEO_CUSTOM(layer, tX, tY, tZ, rX, rY, rZ, displayList)`")
+    elif bone.geo_cmd == "Custom":
+        bone_props.custom.draw_props(col, context.scene.fast64.sm64.binary_export, context.bone, "NO_PRESET")
 
     # if bone.geo_cmd == 'SwitchOption':
     # 	prop_split(col, bone, 'switch_bone', 'Switch Bone')
@@ -168,7 +163,7 @@ class GeolayoutBonePanel(Panel):
         return context.scene.gameEditorMode == "SM64"
 
     def draw(self, context):
-        drawGeoInfo(self, context.bone)
+        drawGeoInfo(self, context)
 
 
 class GeolayoutArmaturePanel(Panel):
@@ -460,9 +455,31 @@ def updateBone(bone, context):
 
 class SM64_BoneProperties(PropertyGroup):
     version: IntProperty(name="SM64_BoneProperties Version", default=0)
+    custom: PointerProperty(type=SM64_CustomCmdProperties)
 
-    custom_geo_cmd_macro: StringProperty(name="Geo Command Macro", default="GEO_BONE")
-    custom_geo_cmd_args: StringProperty(name="Geo Command Args", default="")
+    def upgrade_bone(self, bone):
+        if self.version == 0:
+            upgrade_old_prop(self.custom, "str_cmd", self, "custom_geo_cmd_macro")
+            args = get_first_set_prop(self, "custom_geo_cmd_args")
+            if args is not None:
+                self.custom.args.clear()
+                self.custom.args.add()
+                self.custom.args[-1].arg_type = "PARAMETER"
+                self.custom.args[0].parameter = args
+            old_cmd = bone.get("geo_cmd")
+            if old_cmd is not None:
+                if old_cmd in {15, 16}:  # custom animated / custom non-animated
+                    bone.geo_cmd = "Custom"
+                if old_cmd == 15:  # TODO: mark this as animated somehow
+                    pass
+        self.version = 1
+
+    @staticmethod
+    def upgrade_changed_props():
+        for obj in bpy.data.objects:
+            if obj.type == "ARMATURE":
+                for bone in obj.data.bones:
+                    bone.fast64.sm64.upgrade_bone(bone)
 
 
 sm64_bone_classes = (
