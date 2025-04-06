@@ -494,7 +494,7 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
             case "ROTATION":
                 match self.rot_type:
                     case "EULER":
-                        return add_name(",".join([str(round(x, 4)) for x in transform.to_euler("XYZ")]))
+                        return add_name(",".join([str(round(math.degrees(x), 4)) for x in transform.to_euler("XYZ")]))
                     case "QUATERNION":
                         return add_name(",".join([str(round(x, 4)) for x in transform.to_quaternion()]))
                     case "AXIS_ANGLE":
