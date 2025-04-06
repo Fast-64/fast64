@@ -1,5 +1,4 @@
 import math
-import sys
 import bpy, mathutils, dataclasses
 from typing import Literal, NamedTuple, Optional
 from re import fullmatch
