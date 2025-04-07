@@ -393,7 +393,7 @@ class BleedGraphics:
                     reset_cmds.append(self.default_othermode_H)
 
             # render mode takes up most bits of the lower half, so seeing high bit usage is enough to determine render mode was used
-            elif cmd_type == DPSetRenderMode or (cmd_type == "G_SETOTHERMODE_L" and cmd_use.length >= 31):
+            elif cmd_type == DPSetRenderMode or cmd_type == "G_SETOTHERMODE_L":
                 if default_render_mode:
                     reset_cmds.append(
                         SPSetOtherMode(
@@ -403,10 +403,6 @@ class BleedGraphics:
                             [*self.default_othermode_L.flagList, *default_render_mode],
                         )
                     )
-
-            elif cmd_type == "G_SETOTHERMODE_L":
-                if cmd_use != self.default_othermode_L:
-                    reset_cmds.append(self.default_othermode_L)
         return reset_cmds
 
     def bleed_individual_cmd(self, cmd_list: GfxList, cmd: GbiMacro, bleed_state: int, last_cmd_list: GfxList = None):
