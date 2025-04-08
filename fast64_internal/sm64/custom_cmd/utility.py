@@ -1,8 +1,10 @@
-import math
 import mathutils
-from typing import Literal, NamedTuple, Optional
+from typing import Literal, NamedTuple, Optional, TYPE_CHECKING
 from re import fullmatch
 from bpy.types import Object, Bone, Context, SpaceView3D, Scene
+
+if TYPE_CHECKING:
+    from .properties import SM64_CustomCmdProperties
 
 AvailableOwners = Object | Bone | Scene
 CustomCmdConf = Literal["PRESET", "PRESET_EDIT", "NO_PRESET"]  # type of configuration
@@ -14,7 +16,7 @@ def getDrawLayerName(drawLayer):
     return getDrawLayerName(drawLayer)
 
 
-def duplicate_name(name, existing_names: set, old_name: str | None = None):
+def duplicate_name(name, existing_names: set, old_name: Optional[str] = None):
     if not name in existing_names:
         return name
     num = 0
@@ -32,11 +34,12 @@ def duplicate_name(name, existing_names: set, old_name: str | None = None):
 
 
 def get_custom_prop(context: Context):
+    """If owner is a scene, custom is always None"""
+
     class CustomContext(NamedTuple):
         custom: Optional["SM64_CustomCmdProperties"]
         owner: Optional[AvailableOwners]
 
-    """If owner is a scene, custom is always None"""
     if isinstance(context.space_data, SpaceView3D):
         return CustomContext(None, context.scene)
     else:
@@ -54,7 +57,7 @@ def get_custom_cmd_preset(custom_cmd: "SM64_CustomCmdProperties", context: Conte
     return presets[int(custom_cmd.preset)]
 
 
-def check_preset_hashes(owner: AvailableOwners, context):
+def check_preset_hashes(owner: AvailableOwners, context: Context):
     if owner.fast64.sm64.custom.locked:
         return
     custom_cmd: "SM64_CustomCmdProperties" = owner.fast64.sm64.custom
@@ -89,7 +92,7 @@ def get_custom_cmd_preset_enum(_self, context: Context):
     ]
 
 
-def better_round(value):  # round, but handle inf
+def better_round(value: float):  # round, but handle inf
     return round(max(-(2**31), min(2**31 - 1, value)))
 
 

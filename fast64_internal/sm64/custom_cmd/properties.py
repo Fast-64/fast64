@@ -1,5 +1,6 @@
 import math
-import bpy, mathutils
+import bpy
+import mathutils
 from typing import TYPE_CHECKING, Optional
 
 from bpy.utils import register_class, unregister_class
@@ -13,7 +14,7 @@ from bpy.props import (
     CollectionProperty,
     PointerProperty,
 )
-from bpy.types import Object, Bone, UILayout, Context
+from bpy.types import Object, Bone, UILayout, Context, PropertyGroup
 
 from ...utility import (
     PluginError,
@@ -67,7 +68,7 @@ def update_internal_number_and_check_preset(self: "SM64_CustomCmdArgProperties",
     custom_cmd_preset_update(self, context)
 
 
-class SM64_CustomNumberProperties(bpy.types.PropertyGroup):
+class SM64_CustomNumberProperties(PropertyGroup):
     is_integer: BoolProperty(name="Is Integer", default=False, update=update_internal_number_and_check_preset)
     floating: FloatProperty(name="Float", default=0.0, precision=5, update=update_internal_number)
     integer: IntProperty(name="Integer", default=0, update=update_internal_number)
@@ -161,7 +162,7 @@ class SM64_CustomNumberProperties(bpy.types.PropertyGroup):
             prop_split(col, self, f"{typ}_step", "Step")
 
 
-class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
+class SM64_CustomCmdArgProperties(PropertyGroup):
     name: StringProperty(name="Argument Name", default="Name", update=custom_cmd_preset_update)
     arg_type: EnumProperty(
         name="Argument Type",
@@ -328,7 +329,7 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
             self.matrix.from_matrix(defaults.get("matrix"))
         else:
             self.matrix.from_matrix(mathutils.Matrix.Identity(4))
-        for prop in {"color", "parameter", "layer", "boolean"}:
+        for prop in ["color", "parameter", "layer", "boolean"]:
             setattr(self, prop, data.get("defaults", {}).get(prop, getattr(self, prop)))
 
     def to_c(self, cmd: CustomCmd):
@@ -466,7 +467,7 @@ def custom_cmd_change_preset(self: "SM64_CustomCmdProperties", context: Context)
     self.saved_hash = self.preset_hash
 
 
-class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
+class SM64_CustomCmdProperties(PropertyGroup):
     tab: BoolProperty(default=False)
     preset: EnumProperty(items=get_custom_cmd_preset_enum, update=custom_cmd_change_preset)
     name: StringProperty(name="Name", default="Custom Command", update=custom_cmd_preset_update)
