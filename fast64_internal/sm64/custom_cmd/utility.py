@@ -5,7 +5,6 @@ from re import fullmatch
 from bpy.types import Object, Bone, Context, SpaceView3D, Scene
 
 AvailableOwners = Object | Bone | Scene
-LOCK_PRESET_DETECTION = False
 CustomCmdConf = Literal["PRESET", "PRESET_EDIT", "NO_PRESET"]  # type of configuration
 
 
@@ -56,8 +55,7 @@ def get_custom_cmd_preset(custom_cmd: "SM64_CustomCmdProperties", context: Conte
 
 
 def check_preset_hashes(owner: AvailableOwners, context):
-    global LOCK_PRESET_DETECTION
-    if LOCK_PRESET_DETECTION:
+    if owner.fast64.sm64.custom.locked:
         return
     custom_cmd: "SM64_CustomCmdProperties" = owner.fast64.sm64.custom
     if custom_cmd.preset == "NONE":

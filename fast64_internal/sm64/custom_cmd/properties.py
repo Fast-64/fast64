@@ -32,7 +32,6 @@ from ...f3d.f3d_material import sm64EnumDrawLayers
 from .exporting import CustomCmd
 from .operators import SM64_CustomCmdArgsOps, SM64_CustomCmdOps, SM64_SearchCustomCmds
 from .utility import (
-    LOCK_PRESET_DETECTION,
     AvailableOwners,
     CustomCmdConf,
     better_round,
@@ -484,6 +483,7 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
     int_cmd: IntProperty(name="Command", default=0, update=custom_cmd_preset_update)
     args: CollectionProperty(type=SM64_CustomCmdArgProperties)
     saved_hash: StringProperty()
+    locked: BoolProperty(default=False)
 
     @property
     def preset_hash(self):
@@ -504,9 +504,8 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
         return data
 
     def from_dict(self, data: dict, set_defaults=True):  # TODO: move this out
-        global LOCK_PRESET_DETECTION
         try:
-            LOCK_PRESET_DETECTION = True  # dont check preset hashes while setting values
+            self.locked = True  # dont check preset hashes while setting values
             self.name = data.get("name", "My Custom Command")
             self.cmd_type = data.get("cmd_type", "Level")
             self.str_cmd = data.get("str_cmd", "CUSTOM_COMMAND")
@@ -516,7 +515,7 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
                 self.args.add()
                 self.args[-1].from_dict(arg, i, set_defaults)
         finally:
-            LOCK_PRESET_DETECTION = False
+            self.locked = False
 
     @staticmethod
     def upgrade_object(obj: Object):
