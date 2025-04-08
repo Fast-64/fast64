@@ -5,7 +5,7 @@ from bpy.utils import register_class, unregister_class
 from ..utility import PluginError, get_first_set_prop, prop_split, obj_scale_is_unified, upgrade_old_prop
 from ..f3d.f3d_material import sm64EnumDrawLayers
 from .sm64_geolayout_utility import createBoneGroups, addBoneToGroup
-from .sm64_custom_cmd import SM64_CustomCmdProperties
+from .custom_cmd.properties import SM64_CustomCmdProperties
 
 from bpy.props import (
     StringProperty,

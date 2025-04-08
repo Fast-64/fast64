@@ -126,7 +126,7 @@ from .sm64_geolayout_classes import (
     HeldObjectNode,
     Geolayout,
 )
-from .sm64_custom_cmd import CustomCmd
+from .custom_cmd.exporting import CustomCmd
 from .sm64_constants import (
     insertableBinaryTypes,
     bank0Segment,

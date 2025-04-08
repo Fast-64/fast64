@@ -50,7 +50,7 @@ from .sm64_geolayout_constants import (
     GEO_SETUP_OBJ_RENDER,
     GEO_SET_BG,
 )
-from .sm64_custom_cmd import CustomCmd
+from .custom_cmd.exporting import CustomCmd
 from .sm64_utility import convert_addr_to_func
 
 drawLayerNames = {

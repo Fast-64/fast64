@@ -90,7 +90,7 @@ from .sm64_anim import (
     sm64_anim_unregister,
 )
 
-from .sm64_custom_cmd import sm64_custom_cmd_register, sm64_custom_cmd_unregister
+from .custom_cmd import custom_cmd_register, custom_cmd_unregister
 
 
 def sm64_panel_register():
@@ -124,7 +124,7 @@ def sm64_panel_unregister():
 
 
 def sm64_register(register_panels: bool):
-    sm64_custom_cmd_register()
+    custom_cmd_register()
     tools_operators_register()
     tools_props_register()
     sm64_col_register()
@@ -145,7 +145,7 @@ def sm64_register(register_panels: bool):
 
 
 def sm64_unregister(unregister_panels: bool):
-    sm64_custom_cmd_unregister()
+    custom_cmd_unregister()
     tools_operators_unregister()
     tools_props_unregister()
     sm64_col_unregister()

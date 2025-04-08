@@ -61,7 +61,7 @@ from .sm64_geolayout_classes import (
     ScaleNode,
 )
 
-from .sm64_custom_cmd import SM64_CustomCmdProperties
+from .custom_cmd.properties import SM64_CustomCmdProperties
 
 
 enumTerrain = [

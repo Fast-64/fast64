@@ -1,7 +1,6 @@
 import math
-import bpy, mathutils, dataclasses
-from typing import Literal, NamedTuple, Optional
-from re import fullmatch
+import bpy, mathutils
+from typing import TYPE_CHECKING, Optional
 
 from bpy.utils import register_class, unregister_class
 from bpy.props import (
@@ -14,15 +13,12 @@ from bpy.props import (
     CollectionProperty,
     PointerProperty,
 )
-from bpy.types import Object, Bone, UILayout, Context, SpaceView3D, Scene
-import numpy as np
+from bpy.types import Object, Bone, UILayout, Context
 
-from ..operators import OperatorBase, SearchEnumOperatorBase
-from ..utility import (
+from ...utility import (
     PluginError,
     Matrix4x4Property,
     convertRadiansToS16,
-    copyPropertyGroup,
     draw_and_check_tab,
     get_first_set_prop,
     multilineLabel,
@@ -31,110 +27,26 @@ from ..utility import (
     upgrade_old_prop,
     exportColor,
 )
-from ..f3d.f3d_material import sm64EnumDrawLayers
+from ...f3d.f3d_material import sm64EnumDrawLayers
 
+from .exporting import CustomCmd
+from .operators import SM64_CustomCmdArgsOps, SM64_CustomCmdOps, SM64_SearchCustomCmds
+from .utility import (
+    LOCK_PRESET_DETECTION,
+    AvailableOwners,
+    CustomCmdConf,
+    better_round,
+    custom_cmd_preset_update,
+    duplicate_name,
+    get_custom_cmd_preset,
+    get_custom_cmd_preset_enum,
+    get_custom_prop,
+    get_transforms,
+    getDrawLayerName,
+)
 
-AvailableOwners = Object | Bone | Scene
-LOCK_PRESET_DETECTION = False
-
-
-def getDrawLayerName(drawLayer):
-    from .sm64_geolayout_classes import getDrawLayerName
-
-    return getDrawLayerName(drawLayer)
-
-
-def duplicate_name(name, existing_names: set, old_name: str | None = None):
-    if not name in existing_names:
-        return name
-    num = 0
-    if old_name is not None:
-        number_match = fullmatch(r"(.*?)\.(\d+)$", old_name)
-        if number_match is not None:  # if name already a duplicate/copy, add number
-            name, num = number_match.group(1), int(number_match.group(2))
-        else:
-            name, num = old_name, 0
-    new_name = name
-    for i in range(1, len(existing_names) + 2):
-        if new_name not in existing_names:  # only use name if it's unique
-            return new_name
-        new_name = f"{name}.{num+i:03}"
-
-
-class CustomContext(NamedTuple):
-    custom: Optional["SM64_CustomCmdProperties"]
-    owner: Optional[AvailableOwners]
-
-
-def get_custom_prop(context: Context) -> CustomContext:
-    """If owner is a scene, custom is always None"""
-    if isinstance(context.space_data, SpaceView3D):
-        return CustomContext(None, context.scene)
-    else:
-        if context.bone is not None:
-            return CustomContext(context.bone.fast64.sm64.custom, context.bone)
-        if context.object is not None:
-            return CustomContext(context.object.fast64.sm64.custom, context.object)
-    return None, None
-
-
-def get_custom_cmd_preset(custom_cmd: "SM64_CustomCmdProperties", context: Context):
-    if custom_cmd.preset == "":
-        return None
-    presets: list["SM64_CustomCmdProperties"] = context.scene.fast64.sm64.custom_cmds
-    return presets[int(custom_cmd.preset)]
-
-
-def check_preset_hashes(owner: AvailableOwners, context):
-    global LOCK_PRESET_DETECTION
-    if LOCK_PRESET_DETECTION:
-        return
-    custom_cmd: "SM64_CustomCmdProperties" = owner.fast64.sm64.custom
-    if custom_cmd.preset == "NONE":
-        return
-    preset_cmd = get_custom_cmd_preset(custom_cmd, context)
-    if preset_cmd is None or (custom_cmd.saved_hash != preset_cmd.preset_hash):
-        custom_cmd.preset, custom_cmd.saved_hash = "NONE", custom_cmd.preset_hash
-
-
-def custom_cmd_preset_update(_self, context: Context):
-    owner = get_custom_prop(context).owner
-    if isinstance(owner, Scene):  # current context is scene, check all
-        for obj in context.scene.objects:
-            check_preset_hashes(obj, context)
-            if obj.type == "ARMATURE":
-                for bone in obj.data.bones:
-                    check_preset_hashes(bone, context)
-    elif owner is not None:
-        check_preset_hashes(owner, context)
-
-
-def custom_cmd_change_preset(self: "SM64_CustomCmdProperties", context: Context):
-    if self.preset == "NONE":
-        return
-    preset_cmd = get_custom_cmd_preset(self, context)
-    if preset_cmd is None:
-        self.preset = "NONE"
-        return
-    self.saved_hash = ""
-    self.from_dict(preset_cmd.to_dict("PRESET_EDIT", context.object, include_defaults=True), set_defaults=True)
-    self.saved_hash = self.preset_hash
-
-
-def get_custom_cmd_preset_enum(_self, context: Context):
-    if isinstance(get_custom_prop(context)[1], Bone):
-        allowed_types = {"Geo"}
-    else:
-        allowed_types = {"Level", "Geo", "Special"}
-    return [("NONE", "No Preset", "No preset selected")] + [
-        (str(i), preset.name, f"{preset.name} ({preset.cmd_type})")
-        for i, preset in enumerate(context.scene.fast64.sm64.custom_cmds)
-        if preset.cmd_type in allowed_types
-    ]
-
-
-def better_round(value):  # round, but handle inf
-    return round(max(-(2**31), min(2**31 - 1, value)))
+if TYPE_CHECKING:
+    from ..settings.properties import SM64_Properties
 
 
 def update_internal_number(self: "SM64_CustomNumberProperties", context: Context):
@@ -154,187 +66,6 @@ def update_internal_number(self: "SM64_CustomNumberProperties", context: Context
 def update_internal_number_and_check_preset(self: "SM64_CustomCmdArgProperties", context: Context):
     update_internal_number(self, context)
     custom_cmd_preset_update(self, context)
-
-
-def get_transforms(owner: Optional[AvailableOwners] = None):
-    if isinstance(owner, Object):
-        return (owner.matrix_world, owner.matrix_local)
-    elif isinstance(owner, Bone):
-        relative = owner.matrix_local
-        if owner.parent is not None:
-            relative = owner.parent.matrix_local.inverted() @ relative
-        return (owner.matrix_local, relative)
-    else:
-        return (mathutils.Matrix.Identity(4),) * 2
-
-
-@dataclasses.dataclass
-class CustomCmd:
-    owner: Optional[AvailableOwners]
-    cmd_property: "SM64_CustomCmdProperties"
-    blender_scale: float = 1
-    preset_edit: bool = False  # preset edit preview
-
-    name: str = ""  # for sorting
-
-    def __post_init__(self):
-        self.hasDL = False
-        # to prevent issues with copy:
-        self.str_cmd = self.cmd_property.str_cmd
-        self.int_cmd = self.cmd_property.int_cmd
-        self.arg_groups = []
-        arg: "SM64_CustomCmdArgProperties"
-        for arg in self.cmd_property.args:
-            self.arg_groups.append(arg.to_c(self))
-
-    def size(self):
-        return 8
-
-    def get_ptr_offsets(self):
-        return []
-
-    def to_binary(self, segmentData):
-        raise PluginError("Custom commands are not supported for binary exports.")
-
-    def to_c(self, depth=0, max_length=100):
-        if len(str(self.arg_groups)) > max_length:
-            seperator = ",\n" + ("\t" * (depth + 1))
-            args = seperator.join(self.arg_groups)
-        else:
-            args = ", ".join(self.arg_groups)
-        return f"{self.str_cmd}({args})"
-
-
-class SM64_CustomCmdOps(OperatorBase):
-    bl_idname = "scene.sm64_custom_cmd_ops"
-    bl_label = ""
-    bl_description = "Remove or add custom command presets"
-    bl_options = {"UNDO"}
-
-    index: IntProperty(default=-1)
-    op_name: StringProperty()
-
-    def execute_operator(self, context):
-        presets = context.scene.fast64.sm64.custom_cmds
-        custom, owner = get_custom_prop(context)
-        match self.op_name:
-            case "ADD":
-                presets.add()
-                new_preset: "SM64_CustomCmdProperties" = presets[-1]
-                old_preset: "SM64_CustomCmdProperties" | None = None
-                if self.index == -1:
-                    if custom is not None:
-                        old_preset = custom
-                else:
-                    old_preset = presets[self.index]
-
-                if old_preset is not None:
-                    new_preset.from_dict(
-                        old_preset.to_dict(
-                            "PRESET_EDIT" if custom is None or custom.preset != "NONE" else "NO_PRESET",
-                            owner,
-                            include_defaults=True,
-                        ),
-                        set_defaults=True,
-                    )
-                    old_name = old_preset.name
-                else:
-                    old_name = None
-                existing_names = {preset.name for preset in presets if preset != new_preset}
-                new_preset.name = duplicate_name(new_preset.name, existing_names, old_name)
-                new_preset.tab = True
-                if self.index != -1:
-                    presets.move(len(presets) - 1, self.index + 1)
-                if custom is not None:
-                    custom.preset = str((len(presets) - 1) if self.index == -1 else self.index)
-                for area in context.screen.areas:  # HACK: redraw everything
-                    area.tag_redraw()
-            case "REMOVE":
-                presets.remove(self.index)
-            case "COPY_EXAMPLE":
-                preset = presets[self.index] if custom is None else custom
-                context.window_manager.clipboard = preset.example_macro_define(
-                    "PRESET_EDIT" if custom is None else "NO_PRESET"
-                )
-            case _:
-                raise NotImplementedError(f'Unimplemented internal custom command preset op "{self.op_name}"')
-        custom_cmd_preset_update(self, context)
-
-
-class SM64_CustomCmdArgsOps(OperatorBase):
-    bl_idname = "scene.sm64_custom_cmd_args_ops"
-    bl_label = ""
-    bl_description = "Remove or add args to a custom command"
-    bl_options = {"UNDO"}
-
-    index: IntProperty(default=-1)
-    command_index: IntProperty(default=0)  # for scene command presets
-    op_name: StringProperty()
-
-    @staticmethod
-    def args(context, command_index) -> "SM64_CustomCmdProperties":
-        owner = get_custom_prop(context).owner
-        if isinstance(owner, Scene):
-            return context.scene.fast64.sm64.custom_cmds[command_index].args
-        elif owner is not None:
-            return owner.fast64.sm64.custom.args
-
-    @classmethod
-    def is_enabled(cls, context: Context, **op_values):
-        args = cls.args(context, op_values.get("command_index", 0))
-        match op_values.get("op_name"):
-            case "MOVE_UP":
-                return op_values.get("index") > 0
-            case "MOVE_DOWN":
-                return op_values.get("index") < len(args) - 1
-            case "CLEAR":
-                return len(args) > 0
-            case _:
-                return True
-
-    def execute_operator(self, context):
-        args = self.args(context, self.command_index)
-        owner = get_custom_prop(context).owner
-        match self.op_name:
-            case "ADD":
-                args.add()
-                new_arg: "SM64_CustomCmdArgProperties" = args[-1]
-                if self.index != -1:
-                    old_arg: "SM64_CustomCmdArgProperties" = args[self.index]
-                    copyPropertyGroup(old_arg, new_arg)
-                    old_name = old_arg.name
-                else:
-                    old_name = None
-                if old_name:
-                    existing_names = {arg.name for arg in args[:-1]}
-                    new_arg.name = duplicate_name(new_arg.name, existing_names, old_name)
-                if self.index != -1:
-                    args.move(len(args) - 1, self.index + 1)
-            case "REMOVE":
-                args.remove(self.index)
-            case "MOVE_UP":
-                args.move(self.index, self.index - 1)
-            case "MOVE_DOWN":
-                args.move(self.index, self.index + 1)
-            case "CLEAR":
-                args.clear()
-            case _:
-                raise NotImplementedError(f'Unimplemented internal custom command args op "{self.op_name}"')
-        custom_cmd_preset_update(self, context)
-
-
-class SM64_SearchCustomCmds(SearchEnumOperatorBase):
-    bl_idname = "scene.sm64_search_custom_cmds"
-    bl_label = "Search Custom Commands"
-    bl_options = {"REGISTER", "UNDO"}
-    bl_property = "preset"
-    preset: EnumProperty(items=get_custom_cmd_preset_enum)
-
-    def update_enum(self, context):
-        context.object.fast64.sm64.custom.preset = self.preset
-
-
-CustomCmdConf = Literal["PRESET", "PRESET_EDIT", "NO_PRESET"]  # type of configuration
 
 
 class SM64_CustomNumberProperties(bpy.types.PropertyGroup):
@@ -489,13 +220,15 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
         valid_types = {"MATRIX", "TRANSLATION", "ROTATION"}
         if not isinstance(owner, Bone):
             valid_types.add("SCALE")
+        if not isinstance(owner, Object) or owner.type == "MESH":
+            valid_types.add("LAYER")
         return self.arg_type in valid_types
 
     def inherits(self, owner: Optional[AvailableOwners]):
         return self.can_inherit(owner) and self.inherit
 
     def shows_name(self, owner: Optional[AvailableOwners]):
-        return not self.is_transform or not self.inherits(owner)
+        return not self.inherits(owner)
 
     def get_transform(self, owner: Optional[AvailableOwners], blender_scale=1.0, skip_convert=False, flatten=True):
         inherit = self.inherits(owner)
@@ -570,7 +303,7 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
                     if self.arg_type == "ROTATION":
                         name = self.rot_type.lower()
                     defaults[name] = self.get_transform(owner, skip_convert=True, flatten=False)
-                else:
+                elif not self.inherits(owner) or conf_type == "PRESET_EDIT":
                     defaults[self.arg_type.lower()] = getattr(self, self.arg_type.lower())
         if defaults and include_defaults:
             data["defaults"] = defaults
@@ -587,18 +320,16 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
             return
         self.number.from_dict(data, set_defaults)
         defaults = data.get("defaults", {})
-        if self.is_transform:
-            self.translation_scale = defaults.get("translation", None) or defaults.get("scale", None) or [0, 0, 0]
-            self.euler = [math.radians(x) for x in defaults.get("euler", [0, 0, 0])]
-            self.quaternion = defaults.get("quaternion", [1, 0, 0, 0])
-            axis_angle = defaults.get("axis_angle", [[0, 0, 0], 0])
-            self.axis_angle = axis_angle[0] + [math.radians(axis_angle[1])]
-            if "matrix" in defaults:
-                self.matrix.from_matrix(defaults.get("matrix"))
-            else:
-                self.matrix.from_matrix(mathutils.Matrix.Identity(4))
+        self.translation_scale = defaults.get("translation", None) or defaults.get("scale", None) or [0, 0, 0]
+        self.euler = [math.radians(x) for x in defaults.get("euler", [0, 0, 0])]
+        self.quaternion = defaults.get("quaternion", [1, 0, 0, 0])
+        axis_angle = defaults.get("axis_angle", [[0, 0, 0], 0])
+        self.axis_angle = axis_angle[0] + [math.radians(axis_angle[1])]
+        if "matrix" in defaults:
+            self.matrix.from_matrix(defaults.get("matrix"))
         else:
-            prop = self.arg_type.lower()
+            self.matrix.from_matrix(mathutils.Matrix.Identity(4))
+        for prop in {"color", "parameter", "layer", "boolean"}:
             setattr(self, prop, data.get("defaults", {}).get(prop, getattr(self, prop)))
 
     def to_c(self, cmd: CustomCmd):
@@ -658,14 +389,14 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
     def draw_transforms(
         self,
         name_split: UILayout,
+        inherit_info: UILayout,
         layout: UILayout,
         owner: Optional[AvailableOwners],
         conf_type: CustomCmdConf = "NO_PRESET",
     ):
         col = layout.column()
-        inherit = self.can_inherit(owner) and self.inherit
+        inherit = self.inherits(owner)
         if conf_type != "PRESET":
-            name_split = col
             if inherit:
                 col.prop(self, "relative")
             if self.arg_type == "ROTATION":
@@ -674,7 +405,7 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
                 col.prop(self, "convert_to_sm64")
         force_scale = conf_type == "PRESET_EDIT" and self.arg_type == "SCALE"
         if inherit and force_scale:
-            col.label(text="Scale inherenting not supported in bones.", icon="INFO")
+            inherit_info.label(text="Scale inherenting not supported in bones.", icon="INFO")
         if not inherit or force_scale:
             if self.arg_type in {"TRANSLATION", "SCALE"}:
                 name_split.prop(self, "translation_scale", text="")
@@ -688,8 +419,10 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
         arg_row: UILayout,
         layout: UILayout,
         owner: Optional[AvailableOwners],
+        _cmd_type: str,
         conf_type: CustomCmdConf = "NO_PRESET",
     ):
+        inherit = self.inherits(owner)
         col = layout.column()
         if conf_type != "NO_PRESET":
             name_split = col.split(factor=0.5)
@@ -699,19 +432,39 @@ class SM64_CustomCmdArgProperties(bpy.types.PropertyGroup):
                 name_split.prop(self, "name", text="")
         else:
             name_split = col
+        inherit_info = col
         if conf_type != "PRESET":
             if self.can_inherit(owner):
-                name_split.prop(self, "inherit")
+                inherit_info = col.row()
+                inherit_info.alignment = "LEFT"
+                inherit_info.prop(self, "inherit")
             arg_row.prop(self, "arg_type", text="")
 
         match self.arg_type:
             case "NUMBER":
                 self.number.draw_props(name_split, col, conf_type)
+            case "LAYER":
+                if inherit and conf_type == "PRESET_EDIT":
+                    inherit_info.label(text="Layer inherenting not supported in object empties.", icon="INFO")
+                if not inherit or conf_type == "PRESET_EDIT":
+                    name_split.prop(self, "layer", text="")
             case _:
                 if self.is_transform:
-                    self.draw_transforms(name_split, col, owner, conf_type)
+                    self.draw_transforms(name_split, inherit_info, col, owner, conf_type)
                 else:
                     name_split.prop(self, self.arg_type.lower(), text="")
+
+
+def custom_cmd_change_preset(self: "SM64_CustomCmdProperties", context: Context):
+    if self.preset == "NONE":
+        return
+    preset_cmd = get_custom_cmd_preset(self, context)
+    if preset_cmd is None:
+        self.preset = "NONE"
+        return
+    self.saved_hash = ""
+    self.from_dict(preset_cmd.to_dict("PRESET_EDIT", context.object, include_defaults=True), set_defaults=True)
+    self.saved_hash = self.preset_hash
 
 
 class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
@@ -840,6 +593,8 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
             basic_ops_row.label(text=f"Arguments ({len(self.args)})")
             arg_ops(basic_ops_row, "ADD", "ADD")
             arg_ops(basic_ops_row, "TRASH", "CLEAR")
+
+        arg: SM64_CustomCmdArgProperties
         for i, arg in enumerate(self.args):
             if conf_type == "PRESET":
                 ops_row = args_col.row()
@@ -854,7 +609,7 @@ class SM64_CustomCmdProperties(bpy.types.PropertyGroup):
                 arg_ops(ops_row, "REMOVE", "REMOVE", i)
                 arg_ops(ops_row, "TRIA_DOWN", "MOVE_DOWN", i)
                 arg_ops(ops_row, "TRIA_UP", "MOVE_UP", i)
-            arg.draw_props(ops_row, args_col, owner, conf_type)
+            arg.draw_props(ops_row, args_col, owner, self.cmd_type, conf_type)
 
         if conf_type != "PRESET":
             multilineLabel(
@@ -883,21 +638,18 @@ def draw_custom_cmd_presets(sm64_props: "SM64_Properties", layout: UILayout):
         SM64_CustomCmdOps.draw_props(op_row, "REMOVE", "", op_name="REMOVE", index=i)
 
 
-sm64_custom_cmd_classes = (
-    SM64_CustomCmdOps,
-    SM64_CustomCmdArgsOps,
-    SM64_SearchCustomCmds,
+classes = (
     SM64_CustomNumberProperties,
     SM64_CustomCmdArgProperties,
     SM64_CustomCmdProperties,
 )
 
 
-def sm64_custom_cmd_register():
-    for cls in sm64_custom_cmd_classes:
+def props_register():
+    for cls in classes:
         register_class(cls)
 
 
-def sm64_custom_cmd_unregister():
-    for cls in reversed(sm64_custom_cmd_classes):
+def props_unregister():
+    for cls in reversed(classes):
         unregister_class(cls)
