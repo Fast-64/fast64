@@ -236,7 +236,9 @@ class MK64_fModel(FModel):
         if not self.path:
             return data
 
-        lines = []
+        data.header = ""
+        data.source = ""
+
         for i, path in enumerate(self.path):
             data.header += f"extern TrackWaypoint d_{self.name}_path_{i}[];\n"
 
@@ -244,16 +246,12 @@ class MK64_fModel(FModel):
                 [f"{{ {x:.2f}f, {y:.2f}f, {z:.2f}f, {pid} }}" for x, y, z, pid in path.points]
             )
 
-            lines.append(
-                "\n".join(
-                    (
-                        f"TrackWaypoint d_{self.name}_path_{i}[] = {{",
-                        f"\t{waypoints},",
-                        "};\n"
-                    )
-                )
-            )
-        data.source = "\n\n\n".join(lines)
+            data.source += "\n".join((
+                f"TrackWaypoint d_{self.name}_path_{i}[] = {{",
+                f"\t{waypoints},",
+                "};\n\n",
+            ))
+
         return data
 
 
