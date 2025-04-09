@@ -173,6 +173,7 @@ class MK64_fModel(FModel):
     def to_c(self, *args):
         export_data = super().to_c(*args)
         export_data.staticData.append(self.to_c_track_actors())
+        export_data.staticData.append(self.to_c_path())
         export_data.staticData.append(self.to_c_track_sections())
         export_data.staticData.append(self.to_c_dl_array())
 
