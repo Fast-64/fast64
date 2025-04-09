@@ -222,11 +222,14 @@ class SM64_CustomCmdArgProperties(PropertyGroup):
     def inherits(self, owner: Optional[AvailableOwners]):
         return self.can_inherit(owner) and self.inherit
 
+    def inherits_without_default(self, owner: Optional[AvailableOwners]):
+        return self.can_inherit(owner) and not self.arg_type == "LAYER"
+
     def shows_name(self, owner: Optional[AvailableOwners]):
-        return not self.inherits(owner)
+        return not self.inherits_without_default(owner)
 
     def will_draw(self, owner: Optional[AvailableOwners], conf_type: CustomCmdConf):
-        if self.inherits(owner) and conf_type == "PRESET":
+        if self.inherits_without_default(owner) and conf_type == "PRESET":
             return False
         return True
 
@@ -258,7 +261,7 @@ class SM64_CustomCmdArgProperties(PropertyGroup):
                         rotation = matrix.to_euler("XYZ") if inherit else mathutils.Euler(self.euler)
                         return tuple(math.degrees(x) for x in rotation)
                     case "QUATERNION":
-                        return tuple(matrix.to_quaternion() if inherit else elf.quaternion)
+                        return tuple(matrix.to_quaternion() if inherit else self.quaternion)
                     case "AXIS_ANGLE":
                         axis, angle = self.axis_angle[:3], self.axis_angle[3]
                         if inherit:
@@ -305,7 +308,7 @@ class SM64_CustomCmdArgProperties(PropertyGroup):
                     if self.arg_type == "ROTATION":
                         name = self.rot_type.lower()
                     defaults[name] = self.get_transform(owner, blender_scale=blender_scale)
-                elif not self.inherits(owner) or conf_type == "PRESET_EDIT":
+                elif not self.inherits_without_default(owner) or conf_type == "PRESET_EDIT":
                     defaults[self.arg_type.lower()] = getattr(self, self.arg_type.lower())
         if defaults and include_defaults:
             if conf_type == "PRESET_EDIT" and not is_export:
@@ -430,8 +433,7 @@ class SM64_CustomCmdArgProperties(PropertyGroup):
             case "LAYER":
                 if inherit and conf_type == "PRESET_EDIT":
                     inherit_info.label(text="Not supported in object empties.", icon="INFO")
-                if not inherit or conf_type == "PRESET_EDIT":
-                    name_split.prop(self, "layer", text="")
+                name_split.prop(self, "layer", text="")
             case _:
                 if self.is_transform:
                     self.draw_transforms(name_split, inherit_info, col, owner, conf_type)
@@ -524,8 +526,10 @@ class SM64_CustomCmdProperties(PropertyGroup):
             self.args[-1].parameter = arg
 
     def get_final_cmd(
-        self, owner: Optional[AvailableOwners], blender_scale: float, conf_type: CustomCmdConf = "NO_PRESET"
+        self, owner: Optional[AvailableOwners], blender_scale: float, conf_type: CustomCmdConf | None = None
     ):
+        if conf_type is None:
+            conf_type = "NO_PRESET" if self.preset == "NONE" else "PRESET"
         return CustomCmd(self.to_dict(conf_type, owner, blender_scale, is_export=True))
 
     def example_macro_define(self, conf_type: CustomCmdConf = "NO_PRESET", max_len=100):
@@ -605,14 +609,30 @@ class SM64_CustomCmdProperties(PropertyGroup):
                 arg_ops(ops_row, "TRIA_UP", "MOVE_UP", i)
             arg.draw_props(ops_row, args_col, owner, self.cmd_type, conf_type)
 
-        if conf_type != "PRESET":
-            multilineLabel(
-                col.box(),
-                self.get_final_cmd(owner, blender_scale, conf_type).to_c(max_length=25).replace("\t", " " * 5),
-            )
+        if conf_type == "PRESET":
+            return
+        cmd = self.get_final_cmd(owner, blender_scale, conf_type)
+        try:
+            box = col.box()
+            if is_binary:
+                multilineLabel(box, cmd.to_text_dump())
+            else:
+                multilineLabel(
+                    box,
+                    cmd.to_c(max_length=25).replace("\t", " " * 5),
+                )
+        except Exception as exc:
+            multilineLabel(box, f"Error: {exc}")
+        if is_binary:
+            pass
+        else:
             example_macro_box = col.box().column()
             SM64_CustomCmdOps.draw_props(
-                example_macro_box, "COPYDOWN", "Copy example to clipboard", op_name="COPY_EXAMPLE", index=command_index
+                example_macro_box,
+                "COPYDOWN",
+                "Copy example to clipboard",
+                op_name="COPY_EXAMPLE",
+                index=command_index,
             )
             multilineLabel(example_macro_box, self.example_macro_define(conf_type, 25).replace("\t", " " * 5))
 
