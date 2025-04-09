@@ -319,7 +319,7 @@ class OOTActorProperty(PropertyGroup):
                         have_custom_value = True
                         continue
 
-                    if param.type in {"Type", "Enum"}:
+                    if param.type == "Type":
                         type_value = getEvalParamsInt(cur_prop_value)
                     else:
                         param_val = 0
@@ -330,6 +330,8 @@ class OOTActorProperty(PropertyGroup):
                             param_val = ootData.actorData.collectibleItemsByKey[cur_prop_value].value
                         elif param.type == "Message":
                             param_val = ootData.actorData.messageItemsByKey[cur_prop_value].value
+                        elif param.type == "Enum":
+                            param_val = getEvalParamsInt(cur_prop_value)
 
                 if "Rot" in target:
                     type_value = getEvalParamsInt(getattr(self, get_prop_name(actor.key, "Type", None, 1)))
