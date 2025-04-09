@@ -89,6 +89,7 @@ def drawGeoInfo(panel: Panel, context: Context):
         panel.layout.label(text="Edit geolayout properties in Pose mode.")
         return
     bone_props: "SM64_BoneProperties" = bone.fast64.sm64
+    sm64_props: "SM64_Properties" = context.scene.fast64.sm64
     col = panel.layout.column()
 
     prop_split(col, bone, "geo_cmd", "Geolayout Command")
@@ -139,7 +140,9 @@ def drawGeoInfo(panel: Panel, context: Context):
         prop_split(col, bone, "culling_radius", "Culling Radius")
 
     elif bone.geo_cmd == "Custom":
-        bone_props.custom.draw_props(col, context.scene.fast64.sm64.binary_export, context.bone, "NO_PRESET")
+        bone_props.custom.draw_props(
+            col, sm64_props.binary_export, context.bone, "NO_PRESET", sm64_props.blender_to_sm64_scale
+        )
 
     # if bone.geo_cmd == 'SwitchOption':
     # 	prop_split(col, bone, 'switch_bone', 'Switch Bone')

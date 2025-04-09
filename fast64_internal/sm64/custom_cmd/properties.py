@@ -1,5 +1,4 @@
 import math
-import bpy
 import mathutils
 from typing import TYPE_CHECKING, Optional
 
@@ -17,16 +16,13 @@ from bpy.props import (
 from bpy.types import Object, Bone, UILayout, Context, PropertyGroup
 
 from ...utility import (
-    PluginError,
     Matrix4x4Property,
-    convertRadiansToS16,
     draw_and_check_tab,
     get_first_set_prop,
     multilineLabel,
     prop_split,
     toAlnum,
     upgrade_old_prop,
-    exportColor,
 )
 from ...f3d.f3d_material import sm64EnumDrawLayers
 
@@ -42,7 +38,6 @@ from .utility import (
     get_custom_cmd_preset_enum,
     get_custom_prop,
     get_transforms,
-    getDrawLayerName,
 )
 
 if TYPE_CHECKING:
@@ -136,10 +131,10 @@ class SM64_CustomNumberProperties(PropertyGroup):
                 data.update({"step": self.floating_step, "min": self.floating_min, "max": self.floating_max})
         return data, {"value": self.get_new_number()}
 
-    def from_dict(self, data: dict, set_defaults=True):
+    def from_dict(self, data: dict, defaults: dict, set_defaults=True):
         self.is_integer = data.get("is_integer", False)
         if set_defaults:
-            value = data.get("defaults", {}).get("value", 0)
+            value = defaults.get("value", 0)
             self.floating = value
             self.integer = better_round(value)
         self.set_step_min_max(
@@ -230,52 +225,59 @@ class SM64_CustomCmdArgProperties(PropertyGroup):
     def shows_name(self, owner: Optional[AvailableOwners]):
         return not self.inherits(owner)
 
-    def get_transform(self, owner: Optional[AvailableOwners], blender_scale=1.0, skip_convert=False, flatten=True):
+    def will_draw(self, owner: Optional[AvailableOwners], conf_type: CustomCmdConf):
+        if self.inherits(owner) and conf_type == "PRESET":
+            return False
+        return True
+
+    def get_transform(self, owner: Optional[AvailableOwners], blender_scale=1.0):
         inherit = self.inherits(owner)
-        relative, world = get_transforms(owner)
-        matrix = relative if self.relative else world
+        if inherit:
+            relative, world = get_transforms(owner)
+            matrix = relative if self.relative else world
+        if not self.convert_to_sm64:
+            blender_scale = 1.0
         match self.arg_type:
             case "MATRIX":
                 matrix = matrix if inherit else self.matrix.to_matrix()
-                if self.convert_to_sm64 and not skip_convert:
+                if blender_scale != 1.0:
                     trans, rot, scale = matrix.decompose()
                     matrix = (
                         mathutils.Matrix.Translation(trans * blender_scale).to_4x4()
                         @ rot.to_matrix().to_4x4()
                         @ mathutils.Matrix.Diagonal(scale).to_4x4()
                     )
-                return (
-                    [round(y, 4) for x in matrix for y in x] if flatten else [[round(y, 4) for y in x] for x in matrix]
-                )
+                return tuple(tuple(y for y in x) for x in matrix)
             case "TRANSLATION":
-                translation = mathutils.Vector(matrix.to_translation() if inherit else self.translation_scale)
-                if self.convert_to_sm64 and not skip_convert:
-                    return [round(x) for x in translation * blender_scale]
-                return [round(x, 4) for x in translation]
+                return tuple(
+                    mathutils.Vector(matrix.to_translation() if inherit else self.translation_scale) * blender_scale
+                )
             case "ROTATION":
                 match self.rot_type:
                     case "EULER":
                         rotation = matrix.to_euler("XYZ") if inherit else mathutils.Euler(self.euler)
-                        if self.convert_to_sm64 and not skip_convert:
-                            return [convertRadiansToS16(x) for x in rotation]
-                        return [round(math.degrees(x), 4) for x in rotation]
+                        return tuple(math.degrees(x) for x in rotation)
                     case "QUATERNION":
-                        rotation = matrix.to_quaternion() if inherit else mathutils.Quaternion(self.quaternion)
-                        return [round(x, 4) for x in rotation]
+                        return tuple(matrix.to_quaternion() if inherit else elf.quaternion)
                     case "AXIS_ANGLE":
                         axis, angle = self.axis_angle[:3], self.axis_angle[3]
                         if inherit:
                             axis, angle = matrix.to_quaternion().to_axis_angle()
-                        axis, angle = [round(x, 4) for x in axis], round(math.degrees(angle), 4)
-                        return (*axis, angle) if flatten else [axis, angle]
+                        return tuple((tuple(axis), math.degrees(angle)))
             case "SCALE":
-                scale = matrix.to_scale() if inherit else self.translation_scale
-                return [round(x, 4) for x in scale]
+                return tuple(matrix.to_scale() if inherit else self.translation_scale)
 
-    def to_dict(self, conf_type: CustomCmdConf, owner: Optional[AvailableOwners] = None, include_defaults=True):
+    def to_dict(
+        self,
+        conf_type: CustomCmdConf,
+        owner: Optional[AvailableOwners] = None,
+        blender_scale=1.0,
+        include_defaults=True,
+        is_export=False,
+    ):
         data = {}
-        if conf_type != "PRESET":
-            if conf_type == "PRESET_EDIT":
+        if conf_type != "PRESET" or is_export:
+            if conf_type != "NO_PRESET":
                 data["name"] = self.name
             data["arg_type"] = self.arg_type
             if self.can_inherit(owner):
@@ -302,11 +304,14 @@ class SM64_CustomCmdArgProperties(PropertyGroup):
                     name = self.arg_type.lower()
                     if self.arg_type == "ROTATION":
                         name = self.rot_type.lower()
-                    defaults[name] = self.get_transform(owner, skip_convert=True, flatten=False)
+                    defaults[name] = self.get_transform(owner, blender_scale=blender_scale)
                 elif not self.inherits(owner) or conf_type == "PRESET_EDIT":
                     defaults[self.arg_type.lower()] = getattr(self, self.arg_type.lower())
         if defaults and include_defaults:
-            data["defaults"] = defaults
+            if conf_type == "PRESET_EDIT" and not is_export:
+                data["defaults"] = defaults
+            else:
+                data.update(defaults)
         return data
 
     def from_dict(self, data: dict, index=0, set_defaults=False):
@@ -318,43 +323,21 @@ class SM64_CustomCmdArgProperties(PropertyGroup):
         self.rot_type = data.get("rot_type", "EULER")
         if not set_defaults:
             return
-        self.number.from_dict(data, set_defaults)
-        defaults = data.get("defaults", {})
+        defaults = data.get("defaults")
+        if not defaults:
+            defaults = data
+        self.number.from_dict(data, defaults, set_defaults)
         self.translation_scale = defaults.get("translation", None) or defaults.get("scale", None) or [0, 0, 0]
         self.euler = [math.radians(x) for x in defaults.get("euler", [0, 0, 0])]
         self.quaternion = defaults.get("quaternion", [1, 0, 0, 0])
         axis_angle = defaults.get("axis_angle", [[0, 0, 0], 0])
-        self.axis_angle = axis_angle[0] + [math.radians(axis_angle[1])]
+        self.axis_angle = (*axis_angle[0], math.radians(axis_angle[1]))
         if "matrix" in defaults:
             self.matrix.from_matrix(defaults.get("matrix"))
         else:
             self.matrix.from_matrix(mathutils.Matrix.Identity(4))
         for prop in ["color", "parameter", "layer", "boolean"]:
-            setattr(self, prop, data.get("defaults", {}).get(prop, getattr(self, prop)))
-
-    def to_c(self, cmd: CustomCmd):
-        def add_name(c: str):
-            if cmd.cmd_property.preset == "NONE" and not cmd.preset_edit:
-                return f"/*{self.arg_type.lower()}*/ {c}"
-            if self.name == "":
-                return c
-            return f"/*{self.name}*/ {c}"
-
-        match self.arg_type:
-            case "COLOR":
-                return add_name(", ".join([str(x) for x in exportColor(self.color)]))
-            case "PARAMETER":
-                return add_name(self.parameter)
-            case "LAYER":
-                return add_name(getDrawLayerName(self.layer))
-            case "BOOLEAN":
-                return add_name(str(self.boolean).upper())
-            case "NUMBER":
-                return add_name(str(self.number.get_new_number(cmd.cmd_property.preset != "NONE")))
-            case _:
-                if self.is_transform:
-                    return add_name(", ".join(str(x) for x in self.get_transform(cmd.owner, cmd.blender_scale)))
-                raise PluginError(f"Unknown arg type {self.arg_type}")
+            setattr(self, prop, defaults.get(prop, getattr(self, prop)))
 
     def example_macro_args(
         self, cmd_prop: "SM64_CustomCmdProperties", previous_arg_names: set[str], conf_type: CustomCmdConf = "NO_PRESET"
@@ -405,7 +388,7 @@ class SM64_CustomCmdArgProperties(PropertyGroup):
                 col.prop(self, "convert_to_sm64")
         force_scale = conf_type == "PRESET_EDIT" and self.arg_type == "SCALE"
         if inherit and force_scale:
-            inherit_info.label(text="Scale inherenting not supported in bones.", icon="INFO")
+            inherit_info.label(text="Not supported in bones.", icon="INFO")
         if not inherit or force_scale:
             if self.arg_type in {"TRANSLATION", "SCALE"}:
                 name_split.prop(self, "translation_scale", text="")
@@ -432,20 +415,21 @@ class SM64_CustomCmdArgProperties(PropertyGroup):
                 name_split.prop(self, "name", text="")
         else:
             name_split = col
+
         inherit_info = col
         if conf_type != "PRESET":
+            arg_row.prop(self, "arg_type", text="")
             if self.can_inherit(owner):
                 inherit_info = col.row()
                 inherit_info.alignment = "LEFT"
                 inherit_info.prop(self, "inherit")
-            arg_row.prop(self, "arg_type", text="")
 
         match self.arg_type:
             case "NUMBER":
                 self.number.draw_props(name_split, col, conf_type)
             case "LAYER":
                 if inherit and conf_type == "PRESET_EDIT":
-                    inherit_info.label(text="Layer inherenting not supported in object empties.", icon="INFO")
+                    inherit_info.label(text="Not supported in object empties.", icon="INFO")
                 if not inherit or conf_type == "PRESET_EDIT":
                     name_split.prop(self, "layer", text="")
             case _:
@@ -495,16 +479,24 @@ class SM64_CustomCmdProperties(PropertyGroup):
             return "Geo"
         return self.cmd_type
 
-    def to_dict(self, conf_type: CustomCmdConf, owner: Optional[AvailableOwners] = None, include_defaults=True):
+    def to_dict(
+        self,
+        conf_type: CustomCmdConf,
+        owner: Optional[AvailableOwners] = None,
+        blender_scale=1.0,
+        include_defaults=True,
+        is_export=False,
+    ):
         data = {}
         if conf_type == "PRESET_EDIT":
             data["name"] = self.name
-        if conf_type != "PRESET":
+        if conf_type != "PRESET" or is_export:
             data.update({"cmd_type": self.get_cmd_type(owner), "str_cmd": self.str_cmd, "int_cmd": self.int_cmd})
-        data["args"] = [arg.to_dict(conf_type, owner, include_defaults) for arg in self.args]
+        self.args: list[SM64_CustomCmdArgProperties]
+        data["args"] = [arg.to_dict(conf_type, owner, blender_scale, include_defaults, is_export) for arg in self.args]
         return data
 
-    def from_dict(self, data: dict, set_defaults=True):  # TODO: move this out
+    def from_dict(self, data: dict, set_defaults=True):
         try:
             self.locked = True  # dont check preset hashes while setting values
             self.name = data.get("name", "My Custom Command")
@@ -519,7 +511,7 @@ class SM64_CustomCmdProperties(PropertyGroup):
             self.locked = False
 
     @staticmethod
-    def upgrade_object(obj: Object):
+    def upgrade_object(obj: Object):  # TODO: move this out
         self: SM64_CustomCmdProperties = obj.fast64.sm64.custom
         found_cmd, arg = upgrade_old_prop(self, "str_cmd", obj, "customGeoCommand"), get_first_set_prop(
             obj, "customGeoCommandArgs"
@@ -534,7 +526,7 @@ class SM64_CustomCmdProperties(PropertyGroup):
     def get_final_cmd(
         self, owner: Optional[AvailableOwners], blender_scale: float, conf_type: CustomCmdConf = "NO_PRESET"
     ):
-        return CustomCmd(owner, self, blender_scale, conf_type == "PRESET_EDIT")
+        return CustomCmd(self.to_dict(conf_type, owner, blender_scale, is_export=True))
 
     def example_macro_define(self, conf_type: CustomCmdConf = "NO_PRESET", max_len=100):
         macro_define = ""
@@ -596,11 +588,13 @@ class SM64_CustomCmdProperties(PropertyGroup):
 
         arg: SM64_CustomCmdArgProperties
         for i, arg in enumerate(self.args):
+            if not arg.will_draw(owner, conf_type):
+                continue
             if conf_type == "PRESET":
                 ops_row = args_col.row()
             else:
                 if i != 0:
-                    args_col.separator()
+                    args_col.separator(factor=0.5)
                 ops_row = args_col.row()
                 num_row = ops_row.row()
                 num_row.alignment = "LEFT"

@@ -1366,8 +1366,15 @@ def gammaInverseValue(sRGBValue):
     return mathutils.Color((sRGBValue, sRGBValue, sRGBValue)).from_srgb_to_scene_linear().v
 
 
-def exportColor(lightColor):
-    return [scaleToU8(value) for value in gammaCorrect(lightColor)]
+def exportColor(color: Iterable | mathutils.Color, include_alpha=False):
+    assert len(color) >= 3, "Less than 3 color channels"
+    rgb = tuple(scaleToU8(value) for value in gammaCorrect(color[:3]))
+    if include_alpha:
+        if len(color) > 3:
+            return rgb + (scaleToU8(color[3]),)
+        else:
+            return rgb + (255,)
+    return rgb
 
 
 def get_clean_color(srgb: list, include_alpha=False, round_color=True) -> list:

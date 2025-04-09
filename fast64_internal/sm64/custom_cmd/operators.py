@@ -112,9 +112,8 @@ class SM64_CustomCmdArgsOps(OperatorBase):
                     old_name = old_arg.name
                 else:
                     old_name = None
-                if old_name:
-                    existing_names = {arg.name for arg in args[:-1]}
-                    new_arg.name = duplicate_name(new_arg.name, existing_names, old_name)
+                existing_names = {arg.name for arg in args[:-1]}
+                new_arg.name = duplicate_name(new_arg.name, existing_names, old_name)
                 if self.index != -1:
                     args.move(len(args) - 1, self.index + 1)
             case "REMOVE":
