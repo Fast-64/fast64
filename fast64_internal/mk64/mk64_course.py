@@ -102,10 +102,18 @@ class MK64_BpyCourse:
                 continue  # Only support Bezier splines for now
 
             for point in spline.bezier_points:
-                # Get world position of the bezier point handle (center point)
+                # Get world position of the bezier point
                 local_pos = point.co
-                world_pos = (transform @ obj.matrix_world @ local_pos)
-                points.append((world_pos, 0))
+                world_pos = transform @ obj.matrix_world @ local_pos
+
+                # Convert float to integers
+                pos_int = (
+                    int(round(world_pos.x)),
+                    int(round(world_pos.y)),
+                    int(round(world_pos.z)),
+                    0  # ID (unsigned)
+                )
+                points.append(pos_int)
 
         if points:
             fModel.path.append(MK64_Path(points))
@@ -245,7 +253,7 @@ class MK64_fModel(FModel):
                     )
                 )
             )
-        data.source = "\n\n".join(lines)
+        data.source = "\n\n\n".join(lines)
         return data
 
 
@@ -296,14 +304,13 @@ class MK64_Path:
     """
 
     # List of {x, y, z, id},
-    points: List[Tuple[Vector, int]] # unsigned int
+    points: List[Tuple[int, int, int, int]] # id is unsigned
 
     def to_c(self):
         lines = []
-        for pos, pid in self.points:
-            pos_str = ", ".join(str(int(coord)) for coord in pos)
-            lines.append(f"{{{pos_str}, {pid}}},")
-        return "\n".join(lines)
+        for x, y, z, pid in self.points:
+        lines.append(f"{{ {x}, {y}, {z}, {pid} }},")
+    return "\n".join(lines)
 
 # ------------------------------------------------------------------------
 #    Exporter Functions
