@@ -246,7 +246,7 @@ class MK64_fModel(FModel):
 @dataclass
 class MK64_TrackSection:
     """
-    dataclass representing an TrackSections struct which points
+    A TrackSections struct which points
     to display lists that also have collision, along with col type
     section ID will default to 255
     """
@@ -269,7 +269,7 @@ class MK64_TrackSection:
 @dataclass
 class MK64_Actor:
     """
-    Represents an ActorSpawnData struct for spawning an actor in the game
+    An ActorSpawnData struct for spawning an actor in the game
     id is used only by some actors for behaviour.
 
     May be re-implemented in the future as an 'actor type' selector
@@ -285,7 +285,7 @@ class MK64_Actor:
 @dataclass
 class MK64_Path:
     """
-    Represents a path that CPUs or actors follow.
+    A path that CPUs or actors follow.
     A level can have up to four paths
     """
 
