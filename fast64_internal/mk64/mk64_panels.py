@@ -80,7 +80,7 @@ class MK64_CurvePanel(MK64_Panel):
 
     @classmethod
     def poll(cls, context):
-        if context.object.type != "CURVE" or self.game_check(context):
+        if context.object.type != "CURVE"
             return None
         return context.object.data is not None
 
