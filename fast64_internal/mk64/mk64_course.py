@@ -242,8 +242,9 @@ class MK64_fModel(FModel):
         for i, path in enumerate(self.path):
             data.header += f"extern TrackWaypoint d_{self.name}_path_{i}[];\n"
 
+            # Use integer formatting instead of float formatting
             waypoints = ",\n\t".join(
-                [f"{{ {x:.2f}f, {y:.2f}f, {z:.2f}f, {pid} }}" for x, y, z, pid in path.points]
+                [f"{{ {x}, {y}, {z}, {pid} }}" for x, y, z, pid in path.points]
             )
 
             data.source += "\n".join((
