@@ -245,11 +245,13 @@ class MK64_fModel(FModel):
             # Use integer formatting instead of float formatting
             waypoints = ",\n\t".join([f"{{ {x}, {y}, {z}, {pid} }}" for x, y, z, pid in path.points])
 
-            data.source += "\n".join((
-                f"TrackWaypoint d_{self.name}_path_{i}[] = {{",
-                f"\t{waypoints},",
-                "};\n\n",
-            ))
+            data.source += "\n".join(
+                (
+                    f"TrackWaypoint d_{self.name}_path_{i}[] = {{",
+                    f"\t{waypoints},",
+                    "};\n\n",
+                )
+            )
 
         return data
 
