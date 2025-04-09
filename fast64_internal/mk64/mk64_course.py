@@ -73,6 +73,8 @@ class MK64_BpyCourse:
                     self.export_f3d_from_obj(context, child, fModel, parent_transform @ child.matrix_local)
                 if self.is_mk64_actor(child):
                     self.add_actor(child, parent_transform, fModel)
+                if child.type == "CURVE":
+                    self.add_path(child, parent_transform, fModel)
                 if child.children:
                     loop_children(child, fModel, parent_transform @ child.matrix_local)
 
@@ -89,6 +91,25 @@ class MK64_BpyCourse:
         position = (transform @ obj.matrix_local).translation
         fModel.actors.append(MK64_Actor(position, mk64_props.actor_type))
         return
+
+    def add_path(self, obj: bpy.Types.Object, transform: Matrix, fModel: FModel):
+        curve_data = obj.data
+
+        points = []
+
+        for spline in curve_data.splines:
+            if spline.type != 'BEZIER':
+                continue  # Only support Bezier splines for now
+
+            for point in spline.bezier_points:
+                # Get world position of the bezier point handle (center point)
+                local_pos = point.co
+                world_pos = (transform @ obj.matrix_world @ local_pos)
+                points.append((world_pos, 0))
+
+        if points:
+            fModel.path.append(MK64_Path(points))
+            return
 
     # look into speeding this up by calculating just the apprent
     # transform using transformMatrix vs clearing parent and applying
@@ -131,7 +152,8 @@ class MK64_fModel(FModel):
     def __init__(self, rt: bpy.types.Object, mat_write_method, name="mk64"):
         super().__init__(name, DLFormat.Static, mat_write_method)
         self.actors: list[MK64_Actor] = []
-        self.track_sections: List[MK64_TrackSection] = list()
+        self.track_sections: list[MK64_TrackSection] = []
+        self.path: list[MK64_Path] = []
 
     # parent override so I can keep track of original mesh data
     # to lookup collision data later
@@ -200,6 +222,26 @@ class MK64_fModel(FModel):
         )
         return data
 
+    def to_c_path(self):
+        data = CData()
+        if not self.path_points:
+            return data
+
+        data.header = f"extern TrackWaypoint d_{self.name}_path[];\n"
+
+        waypoints = ",\n\t".join(
+            [f"{{ {wp.x:.2f}f, {wp.y:.2f}f, {wp.z:.2f}f, {wp.id} }}" for wp in self.path_points]
+        )
+
+        data.source = "\n".join(
+            (
+                f"TrackWaypoint d_{self.name}_path[] = {{",
+                f"\t{waypoints},",
+                "};\n\n",
+            )
+        )
+        return data
+
 
 @dataclass
 class MK64_TrackSection:
@@ -227,8 +269,10 @@ class MK64_TrackSection:
 @dataclass
 class MK64_Actor:
     """
-    dataclass representing an ActorSpawnData struct
-    if id actually matters is up in the air as it stands
+    Represents an ActorSpawnData struct for spawning an actor in the game
+    id is used only by some actors for behaviour.
+
+    May be re-implemented in the future as an 'actor type' selector
     """
 
     pos: Vector
@@ -238,9 +282,25 @@ class MK64_Actor:
         pos = ", ".join(f"{int(coord):6}" for coord in self.pos)
         return f"{{ {{{pos}}}, {{{self.id}}} }}"
 
+@dataclass
+class MK64_Path:
+    """
+    Represents a path that CPUs or actors follow.
+    A level can have up to four paths
+    """
+
+    # List of {x, y, z, id},
+    points: List[Tuple[Vector, int]] # unsigned int
+
+    def to_c(self):
+        lines = []
+        for pos, pid in self.points:
+            pos_str = ", ".join(str(int(coord)) for coord in pos)
+            lines.append(f"{{{pos_str}, {pid}}},")
+        return "\n".join(lines)
 
 # ------------------------------------------------------------------------
-#    Exorter Functions
+#    Exporter Functions
 # ------------------------------------------------------------------------
 
 
