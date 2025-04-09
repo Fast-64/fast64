@@ -225,22 +225,27 @@ class MK64_fModel(FModel):
 
     def to_c_path(self):
         data = CData()
-        if not self.path.points:
+        if not self.path:
             return data
 
-        data.header = f"extern TrackWaypoint d_{self.name}_path[];\n"
+        lines = []
+        for i, path in enumerate(self.path):
+            data.header += f"extern TrackWaypoint d_{self.name}_path_{i}[];\n"
 
-        waypoints = ",\n\t".join(
-            [f"{{ {wp.x:.2f}f, {wp.y:.2f}f, {wp.z:.2f}f, {wp.id} }}" for wp in self.path.points]
-        )
-
-        data.source = "\n".join(
-            (
-                f"TrackWaypoint d_{self.name}_path[] = {{",
-                f"\t{waypoints},",
-                "};\n\n",
+            waypoints = ",\n\t".join(
+                [f"{{ {pos[0]:.2f}f, {pos[1]:.2f}f, {pos[2]:.2f}f, {pid} }}" for pos, pid in path.points]
             )
-        )
+
+            lines.append(
+                "\n".join(
+                    (
+                        f"TrackWaypoint d_{self.name}_path_{i}[] = {{",
+                        f"\t{waypoints},",
+                        "};\n"
+                    )
+                )
+            )
+        data.source = "\n\n".join(lines)
         return data
 
 
