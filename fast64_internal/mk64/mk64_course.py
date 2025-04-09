@@ -241,7 +241,7 @@ class MK64_fModel(FModel):
             data.header += f"extern TrackWaypoint d_{self.name}_path_{i}[];\n"
 
             waypoints = ",\n\t".join(
-                [f"{{ {pos[0]:.2f}f, {pos[1]:.2f}f, {pos[2]:.2f}f, {pid} }}" for pos, pid in path.points]
+                [f"{{ {x:.2f}f, {y:.2f}f, {z:.2f}f, {pid} }}" for x, y, z, pid in path.points]
             )
 
             lines.append(
