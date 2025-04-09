@@ -51,4 +51,3 @@ mk64_world_defaults = {
         "cycleType": "G_CYC_2CYCLE",
     },
 }
-

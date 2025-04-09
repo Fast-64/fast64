@@ -98,7 +98,7 @@ class MK64_BpyCourse:
         points = []
 
         for spline in curve_data.splines:
-            if spline.type != 'BEZIER':
+            if spline.type != "BEZIER":
                 continue  # Only support Bezier splines for now
 
             for point in spline.bezier_points:
@@ -111,7 +111,7 @@ class MK64_BpyCourse:
                     int(round(world_pos.x)),
                     int(round(world_pos.y)),
                     int(round(world_pos.z)),
-                    0  # ID (unsigned)
+                    0,  # ID (unsigned)
                 )
                 points.append(pos_int)
 
@@ -243,9 +243,7 @@ class MK64_fModel(FModel):
             data.header += f"extern TrackWaypoint d_{self.name}_path_{i}[];\n"
 
             # Use integer formatting instead of float formatting
-            waypoints = ",\n\t".join(
-                [f"{{ {x}, {y}, {z}, {pid} }}" for x, y, z, pid in path.points]
-            )
+            waypoints = ",\n\t".join([f"{{ {x}, {y}, {z}, {pid} }}" for x, y, z, pid in path.points])
 
             data.source += "\n".join((
                 f"TrackWaypoint d_{self.name}_path_{i}[] = {{",
@@ -295,6 +293,7 @@ class MK64_Actor:
         pos = ", ".join(f"{int(coord):6}" for coord in self.pos)
         return f"{{ {{{pos}}}, {{{self.id}}} }}"
 
+
 @dataclass
 class MK64_Path:
     """
@@ -303,13 +302,14 @@ class MK64_Path:
     """
 
     # List of {x, y, z, id},
-    points: List[Tuple[int, int, int, int]] # id is unsigned
+    points: List[Tuple[int, int, int, int]]  # id is unsigned
 
     def to_c(self):
         lines = []
         for x, y, z, pid in self.points:
             lines.append(f"{{ {x}, {y}, {z}, {pid} }},")
         return "\n".join(lines)
+
 
 # ------------------------------------------------------------------------
 #    Exporter Functions
