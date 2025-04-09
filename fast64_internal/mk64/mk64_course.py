@@ -310,7 +310,7 @@ class MK64_Path:
         lines = []
         for x, y, z, pid in self.points:
             lines.append(f"{{ {x}, {y}, {z}, {pid} }},")
-    return "\n".join(lines)
+        return "\n".join(lines)
 
 # ------------------------------------------------------------------------
 #    Exporter Functions
