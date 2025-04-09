@@ -25,6 +25,7 @@ from .fast64_internal.oot.props_panel_main import OOT_ObjectProperties
 from .fast64_internal.oot.actor.properties import initOOTActorProperties
 from .fast64_internal.utility_anim import utility_anim_register, utility_anim_unregister, ArmatureApplyWithMeshOperator
 
+from .fast64_internal.mk64.mk64_constants import mk64_world_defaults
 from .fast64_internal.mk64 import mk64_register, mk64_unregister
 from .fast64_internal.mk64.mk64_properties import MK64_ObjectProperties, MK64_CurveProperties, MK64_Properties
 
