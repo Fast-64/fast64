@@ -253,12 +253,7 @@ def export_course_c(obj: bpy.types.Object, context: bpy.types.Context, export_di
     inline = context.scene.exportInlineF3D
     mk64_props: MK64_Properties = context.scene.fast64.mk64
     scale = mk64_props.scale
-    # does this matter? idk
-
-    if not inline:
-        mat_write_method = context.scene.matWriteMethod
-    else:
-        mat_write_method = GfxMatWriteMethod.WriteAll
+    mat_write_method = GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll
 
     bpy_course = MK64_BpyCourse(obj)
     mk64_fModel = bpy_course.make_mk64_course_from_bpy(context, scale, mat_write_method)
