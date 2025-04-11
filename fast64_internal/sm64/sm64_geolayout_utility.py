@@ -1,7 +1,18 @@
 import bpy
+from bpy.types import Object, Armature, Bone, PoseBone
 
 from ..f3d.f3d_parser import math_eval
 from ..utility import PluginError
+
+
+def is_bone_animatable(bone: Bone):
+    bone_props: "SM64_BoneProperties" = bone.fast64.sm64
+    geo_cmd: str = bone.geo_cmd
+    if geo_cmd == "DisplayListWithOffset":
+        return True
+    elif geo_cmd == "Custom" and bone_props.custom.is_animated:
+        return True
+    return False
 
 
 def getBoneGroupByName(armatureObj, name):
@@ -44,7 +55,8 @@ boneNodeProperties = {
     "StartRenderArea": BoneNodeProperties(True, "THEME13"),  # 0x20
     "Ignore": BoneNodeProperties(False, "THEME08"),  # Used for rigging
     "SwitchOption": BoneNodeProperties(False, "THEME11"),
-    "Custom": BoneNodeProperties(True, "THEME12"),
+    "DisplayListWithOffset": BoneNodeProperties(True, "THEME00"),
+    "Custom": BoneNodeProperties(True, "THEME15"),
 }
 
 boneLayers = {"anim": 0, "other": 1, "meta": 2, "visual": 3}
@@ -69,54 +81,58 @@ def createBoneGroups(armatureObj):
                 boneGroup.color_set = properties.theme
 
 
-def addBoneToGroup(armatureObj, boneName, groupName):
-    armature = armatureObj.data
-    if groupName is None:
-        if bpy.context.mode != "OBJECT":
-            bpy.ops.object.mode_set(mode="OBJECT")
-        posebone = armatureObj.pose.bones[boneName]
-        bone = armature.bones[boneName]
-        bone.use_deform = True
+def addBoneToGroup(armature_obj: Object, name: str):
+    armature: Armature = armature_obj.data
+    pose_bone: PoseBone = armature_obj.pose.bones[name]
+    bone: Bone = armature.bones[name]
+    geo_cmd: str = bone.geo_cmd
+    if geo_cmd not in boneNodeProperties:
+        raise PluginError(f"Bone group {geo_cmd} doesn't exist.")
+
+    lock_location, lock_rotation, lock_scale = False, False, False
+
+    if is_bone_animatable(bone):
         if bpy.app.version >= (4, 0, 0):
             if not "anim" in armature.collections:
                 armature.collections.new(name="anim")
             armature.collections["anim"].assign(bone)
         else:
-            posebone.bone_group = None
+            pose_bone.bone_group = None
             bone.layers = createBoneLayerMask([boneLayers["anim"]])
 
-        posebone.lock_location = (False, False, False)
-        posebone.lock_rotation = (False, False, False)
-        posebone.lock_scale = (False, False, False)
-        return
-
-    elif groupName not in boneNodeProperties:
-        raise PluginError("Bone group " + groupName + " doesn't exist.")
-
-    if bpy.context.mode != "OBJECT":
-        bpy.ops.object.mode_set(mode="OBJECT")
-
-    posebone = armatureObj.pose.bones[boneName]
-    bone = armatureObj.data.bones[boneName]
     if bpy.app.version >= (4, 0, 0):
-        armature.collections[groupName].assign(bone)
+        armature.collections[geo_cmd].assign(bone)
     else:
-        posebone.bone_group_index = getBoneGroupIndex(armatureObj, groupName)
+        pose_bone.bone_group_index = getBoneGroupIndex(armature_obj, geo_cmd)
 
-    if groupName != "Ignore":
-        bone.use_deform = boneNodeProperties[groupName].deform  # TODO: impl custom
-        if groupName != "DisplayList":
-            if bpy.app.version >= (4, 0, 0):
-                if not "other" in armature.collections:
-                    armature.collections.new(name="other")
-                armature.collections["other"].assign(bone)
-            else:
-                bone.layers = createBoneLayerMask([boneLayers["other"]])
+    if geo_cmd == "Custom":
+        custom = bone.fast64.sm64.custom
+        bone.use_deform = custom.dl_option != "NONE"
+        if not custom.is_animated:
+            lock_location = lock_rotation = lock_scale = True
+    elif geo_cmd != "Ignore":
+        bone.use_deform = boneNodeProperties[geo_cmd].deform
+        if geo_cmd != "SwitchOption":
+            lock_location = True
+        lock_rotation = lock_scale = True
+    if geo_cmd not in {"Ignore", "DisplayList"}:
+        if bpy.app.version >= (4, 0, 0):
+            if not "other" in armature.collections:
+                armature.collections.new(name="other")
+            armature.collections["other"].assign(bone)
+        else:
+            bone.layers = createBoneLayerMask([boneLayers["other"]])
 
-        if groupName != "SwitchOption":
-            posebone.lock_location = (True, True, True)
-        posebone.lock_rotation = (True, True, True)
-        posebone.lock_scale = (True, True, True)
+    pose_bone.lock_location = (lock_location, lock_location, lock_location)
+    pose_bone.lock_rotation = (lock_rotation, lock_rotation, lock_rotation)
+    pose_bone.lock_scale = (lock_scale, lock_scale, lock_scale)
+
+
+def updateBone(bone, context):
+    armatureObj = context.object
+
+    createBoneGroups(armatureObj)
+    addBoneToGroup(armatureObj, bone.name)
 
 
 class BaseDisplayListNode:

@@ -3,7 +3,7 @@ from bpy.utils import register_class, unregister_class
 from ..panels import SM64_Panel
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_rom_tweaks import ExtendBank0x04
-from .sm64_geolayout_bone import is_bone_animatable
+from .sm64_geolayout_utility import is_bone_animatable
 
 from ..utility import (
     CData,

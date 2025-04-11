@@ -1,7 +1,10 @@
-import mathutils
 from typing import Literal, NamedTuple, Optional, TYPE_CHECKING
 from re import fullmatch
+
+import mathutils
 from bpy.types import Object, Bone, Context, SpaceView3D, Scene
+
+from ..sm64_geolayout_utility import updateBone
 
 if TYPE_CHECKING:
     from .properties import SM64_CustomCmdProperties
@@ -80,6 +83,8 @@ def custom_cmd_preset_update(_self, context: Context):
                     check_preset_hashes(bone, context)
     elif owner is not None:
         check_preset_hashes(owner, context)
+    if isinstance(owner, Bone):
+        updateBone(owner, context)
 
 
 def get_custom_cmd_preset_enum(_self, context: Context):

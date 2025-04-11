@@ -491,6 +491,7 @@ def custom_cmd_change_preset(self: "SM64_CustomCmdProperties", context: Context)
         preset_cmd.to_dict("PRESET_EDIT", get_custom_prop(context).owner, include_defaults=True), set_defaults=True
     )
     self.saved_hash = self.preset_hash
+    custom_cmd_preset_update(self, context)
 
 
 class SM64_CustomCmdProperties(PropertyGroup):
@@ -727,24 +728,21 @@ class SM64_CustomCmdProperties(PropertyGroup):
                 prop_split(col, self, "name", "Preset Name")
             if not isinstance(owner, Bone):  # bone is always Geo
                 prop_split(col, self, "cmd_type", "Type")
-            if is_binary:
-                prop_split(col, self, "int_cmd", "Command")
-            else:
-                prop_split(col, self, "str_cmd", "Command")
+            prop_split(col, self, "int_cmd" if is_binary else "str_cmd", "Command")
             col.separator()
 
-            if self.cmd_type == "Geo":
+            if self.get_cmd_type(owner) == "Geo":
                 if conf_type == "PRESET_EDIT":
                     prop_split(col, self, "children_requirements", "Children Requirements")
                 if conf_type != "PRESET_EDIT" or self.children_requirements != "NONE":
                     col.prop(self, "group_children")
                 prop_split(col, self, "dl_option", "Displaylist Option")
-                col.prop(self, "is_animated")
                 if self.dl_option == "OPTIONAL":
                     row = col.row()
                     row.prop(self, "add_dl_ext")
                     if self.add_dl_ext:
                         row.prop(self, "dl_ext", text="")
+                col.prop(self, "is_animated")
 
         args_col = col.column()
         if conf_type != "PRESET" and draw_and_check_tab(

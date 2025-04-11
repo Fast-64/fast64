@@ -4,7 +4,7 @@ from bpy.types import Bone, Object, Context, Panel, Operator, Armature, Mesh, Ma
 from bpy.utils import register_class, unregister_class
 from ..utility import PluginError, get_first_set_prop, prop_split, obj_scale_is_unified, upgrade_old_prop
 from ..f3d.f3d_material import sm64EnumDrawLayers
-from .sm64_geolayout_utility import createBoneGroups, addBoneToGroup
+from .sm64_geolayout_utility import updateBone
 from .custom_cmd.properties import SM64_CustomCmdProperties
 
 from bpy.props import (
@@ -78,16 +78,6 @@ enumMatOverrideOptions = [
     ("All", "All", "Override every material with this one."),
     ("Specific", "Specific", "Only override instances of give material."),
 ]
-
-
-def is_bone_animatable(bone: Bone):
-    bone_props: "SM64_BoneProperties" = bone.fast64.sm64
-    geo_cmd: str = bone.geo_cmd
-    if geo_cmd == "DisplayListWithOffset":
-        return True
-    elif geo_cmd == "Custom" and bone_props.custom.is_animated:
-        return True
-    return False
 
 
 def drawGeoInfo(panel: Panel, context: Context):
@@ -450,18 +440,6 @@ def getSwitchOptionBone(switchArmature):
             + ", which should be the root bone in the hierarchy."
         )
     return optionBones[0]
-
-
-def updateBone(bone, context):
-    armatureObj = context.object
-
-    createBoneGroups(armatureObj)
-    if is_bone_animatable(bone):
-        addBoneToGroup(armatureObj, bone.name, bone.geo_cmd)
-        object.mode_set(mode="POSE")
-    else:
-        addBoneToGroup(armatureObj, bone.name, None)
-        object.mode_set(mode="POSE")
 
 
 class SM64_BoneProperties(PropertyGroup):
