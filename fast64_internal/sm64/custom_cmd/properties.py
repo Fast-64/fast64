@@ -1,6 +1,7 @@
 import math
-import mathutils
 from typing import TYPE_CHECKING, Optional
+from io import StringIO
+import mathutils
 
 from bpy.utils import register_class, unregister_class
 from bpy.props import (
@@ -526,6 +527,7 @@ class SM64_CustomCmdProperties(PropertyGroup):
     group_children: BoolProperty(
         name="Group Children",
         description="Use GEO_OPEN/CLOSE_NODE to group the node's children",
+        default=True,
         update=custom_cmd_preset_update,
     )
     dl_option: EnumProperty(
@@ -539,15 +541,17 @@ class SM64_CustomCmdProperties(PropertyGroup):
             ),
             ("REQUIRED", "Required", "Must inherit geometry, otherwise an error will occur"),
         ],
-        default="NONE",
+        default="OPTIONAL",
         update=custom_cmd_preset_update,
     )
-    add_dl_ext: BoolProperty(
-        name="DL Extension",
-        description="Add a displaylist arg at the end of the command if there is geometry. In c, add the extension, in binary OR the first layer with 0x80",
+    use_dl_cmd: BoolProperty(
+        name="Displaylist Command",
+        description="Add a displaylist arg at the end of the command if there is geometry. In c, use this macro, in binary OR the first layer with 0x80",
         update=custom_cmd_preset_update,
     )
-    dl_ext: StringProperty(name="Displaylist Extension", default="WITH_DL", update=custom_cmd_preset_update)
+    dl_command: StringProperty(
+        name="Displaylist Command", default="GEO_CUSTOM_CMD_WITH_DL", update=custom_cmd_preset_update
+    )
     is_animated: BoolProperty(name="Is Animated", update=custom_cmd_preset_update)
 
     args_tab: BoolProperty(default=True)
@@ -597,6 +601,9 @@ class SM64_CustomCmdProperties(PropertyGroup):
             return "Geo"
         return self.cmd_type
 
+    def adds_dl_ext(self, owner: Optional[AvailableOwners] = None):
+        return self.get_cmd_type(owner) == "Geo" and self.dl_option == "OPTIONAL" and self.use_dl_cmd
+
     def to_dict(
         self,
         conf_type: CustomCmdConf,
@@ -624,9 +631,8 @@ class SM64_CustomCmdProperties(PropertyGroup):
                     data["group_children"] = self.group_children
                 data["is_animated"] = self.is_animated
                 data["dl_option"] = self.dl_option
-                if self.dl_option == "OPTIONAL":
-                    if self.add_dl_ext:
-                        data["dl_ext"] = self.dl_ext
+            if self.adds_dl_ext(owner):
+                data["dl_command"] = self.dl_command
         self.args: list[SM64_CustomCmdArgProperties]
         data["args"] = [arg.to_dict(conf_type, owner, blender_scale, include_defaults, is_export) for arg in self.args]
         return data
@@ -642,8 +648,8 @@ class SM64_CustomCmdProperties(PropertyGroup):
             self.group_children = data.get("group_children", True)
             self.dl_option = data.get("dl_option", "NONE")
             self.is_animated = data.get("is_animated", False)
-            self.add_dl_ext = "dl_ext" in data
-            self.dl_ext = data.get("dl_ext", "WITH_DL")
+            self.use_dl_cmd = "dl_command" in data
+            self.dl_command = data.get("dl_command", "GEO_CUSTOM_CMD_WITH_DL")
             self.args.clear()
             for i, arg in enumerate(data.get("args", [])):
                 self.args.add()
@@ -665,19 +671,37 @@ class SM64_CustomCmdProperties(PropertyGroup):
             conf_type = "NO_PRESET" if self.preset == "NONE" else "PRESET"
         return CustomCmd(self.to_dict(conf_type, owner, blender_scale, is_export=True), layer, has_dl, dl_ref, name)
 
-    def example_macro_define(self, conf_type: CustomCmdConf = "NO_PRESET", max_len=100):
-        macro_define = ""
-        macro_define += f"// {self.name}\n"
-        macro_define += f"#define {self.str_cmd} ("
+    def example_macro_define(self, conf_type: CustomCmdConf = "NO_PRESET", use_dl_cmd=False, max_len=100):
+        macro_define = StringIO()
+        macro_define.write(f"// {self.name}\n")
+        macro_define.write(f"#define ")
+        macro_define.write(self.dl_command if use_dl_cmd else self.str_cmd)
+        macro_define.write("( ")
         previous_arg_names = set()
         macro_args = [arg.example_macro_args(self, previous_arg_names, conf_type) for arg in self.args]
+        if use_dl_cmd:
+            macro_args.append(f'/*Displaylist*/ {duplicate_name("displaylist", previous_arg_names)}')
         joined_args = ", ".join(macro_args)
         if len(joined_args) > max_len:
             joined_args = ", \\\n\t\t".join(macro_args)
-            macro_define += "\\\n\t\t"
-        macro_define += f"{joined_args}) \\\n"
-        macro_define += "\t(/* Your code goes here */)"
-        return macro_define
+            macro_define.write("\\\n\t\t")
+        macro_define.write(f"{joined_args}) \\\n")
+        macro_define.write("\t(/* Your code goes here */)")
+        return macro_define.getvalue()
+
+    def get_examples(self, owner: Optional[AvailableOwners], conf_type: CustomCmdConf, blender_scale=100.0):
+        cmd_examples = {
+            "Without DL": (
+                self.get_final_cmd(owner, blender_scale, has_dl=False, conf_type=conf_type),
+                self.example_macro_define(conf_type, False, 25),
+            )
+        }
+        if self.adds_dl_ext(owner):
+            cmd_examples["With DL"] = (
+                self.get_final_cmd(owner, blender_scale, has_dl=True, conf_type=conf_type),
+                self.example_macro_define(conf_type, True, 25),
+            )
+        return cmd_examples
 
     def draw_examples(
         self,
@@ -689,35 +713,27 @@ class SM64_CustomCmdProperties(PropertyGroup):
         command_index=0,
     ):
         col = layout.column()
-        cmd_examples = {"Without DL": self.get_final_cmd(owner, blender_scale, has_dl=False, conf_type=conf_type)}
-        if self.dl_option == "OPTIONAL" and self.add_dl_ext:
-            cmd_examples["With DL"] = self.get_final_cmd(owner, blender_scale, has_dl=True, conf_type=conf_type)
+        cmd_examples = self.get_examples(owner, conf_type, blender_scale)
         try:
-            for name, cmd in cmd_examples.items():
+            for name, (cmd, macro_example) in cmd_examples.items():
                 box = col.box().column()
                 if len(cmd_examples) > 1:
                     box.label(text=name)
                 if is_binary:
                     multilineLabel(box, cmd.to_text_dump())
-                else:
-                    multilineLabel(
-                        box,
-                        cmd.to_c(max_length=25).replace("\t", " " * 5),
-                    )
+                    continue
+                multilineLabel(box, cmd.to_c(max_length=25).replace("\t", " " * 5))
+                SM64_CustomCmdOps.draw_props(
+                    box,
+                    "COPYDOWN",
+                    "Copy example to clipboard",
+                    op_name="COPY_EXAMPLE",
+                    index=command_index,
+                    example_name=name,
+                )
+                multilineLabel(box, macro_example.replace("\t", " " * 5))
         except Exception as exc:
             multilineLabel(box, f"Error: {exc}")
-        if is_binary:
-            pass
-        else:
-            example_macro_box = col.box().column()
-            SM64_CustomCmdOps.draw_props(
-                example_macro_box,
-                "COPYDOWN",
-                "Copy example to clipboard",
-                op_name="COPY_EXAMPLE",
-                index=command_index,
-            )
-            multilineLabel(example_macro_box, self.example_macro_define(conf_type, 25).replace("\t", " " * 5))
 
     def draw_props(
         self,
@@ -759,9 +775,9 @@ class SM64_CustomCmdProperties(PropertyGroup):
                 prop_split(col, self, "dl_option", "Displaylist Option")
                 if self.dl_option == "OPTIONAL":
                     row = col.row()
-                    row.prop(self, "add_dl_ext")
-                    if self.add_dl_ext:
-                        row.prop(self, "dl_ext", text="")
+                    row.prop(self, "use_dl_cmd")
+                    if self.use_dl_cmd:
+                        row.prop(self, "dl_command", text="")
                 col.prop(self, "is_animated")
 
         args_col = col.column()

@@ -62,8 +62,7 @@ class CustomCmd(BaseDisplayListNode):
     @property
     def args(self):
         yield from self.data["args"]
-        ext = self.data.get("dl_ext")
-        if self.hasDL and ext is not None:
+        if self.hasDL and "dl_command" in self.data:
             yield {"name": "Displaylist", "arg_type": "DL"}
 
     def do_export_checks(self, children_count: int):
@@ -102,7 +101,7 @@ class CustomCmd(BaseDisplayListNode):
                 layer = data["layer"] if self.draw_layer is None or not data.get("inherit", True) else self.draw_layer
                 if binary:
                     layer = int(data["layer"])
-                    if "dl_ext" in self.data:
+                    if "dl_command" in self.data:
                         layer = (1 << 7) | layer
                     yield ArgExport(layer, 8)
                 else:
@@ -139,10 +138,8 @@ class CustomCmd(BaseDisplayListNode):
 
     def to_c(self, depth: int = 0, max_length: int = 150) -> str:
         data = StringIO()
-        data.write(self.data["str_cmd"])
-        ext = self.data.get("dl_ext")
-        if ext is not None and self.hasDL:
-            data.write(f"_{ext}")
+        dl_command = self.data.get("dl_command")
+        data.write(dl_command if dl_command is not None and self.hasDL else self.data["str_cmd"])
         data.write("(")
         groups = []
         for i, arg_data in enumerate(self.args):

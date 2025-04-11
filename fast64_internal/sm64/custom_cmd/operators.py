@@ -21,10 +21,12 @@ class SM64_CustomCmdOps(OperatorBase):
 
     index: IntProperty(default=-1)
     op_name: StringProperty()
+    example_name: StringProperty(default="")
 
     def execute_operator(self, context):
         presets = context.scene.fast64.sm64.custom_cmds
         custom, owner = get_custom_prop(context)
+        conf_type = ("PRESET_EDIT" if custom is None or custom.preset != "NONE" else "NO_PRESET",)
         match self.op_name:
             case "ADD":
                 presets.add()
@@ -37,14 +39,7 @@ class SM64_CustomCmdOps(OperatorBase):
                     old_preset = presets[self.index]
 
                 if old_preset is not None:
-                    new_preset.from_dict(
-                        old_preset.to_dict(
-                            "PRESET_EDIT" if custom is None or custom.preset != "NONE" else "NO_PRESET",
-                            owner,
-                            include_defaults=True,
-                        ),
-                        set_defaults=True,
-                    )
+                    new_preset.from_dict(old_preset.to_dict(conf_type, owner, include_defaults=True), set_defaults=True)
                     old_name = old_preset.name
                 else:
                     old_name = None
@@ -54,16 +49,14 @@ class SM64_CustomCmdOps(OperatorBase):
                 if self.index != -1:
                     presets.move(len(presets) - 1, self.index + 1)
                 if custom is not None:
-                    custom.preset = str((len(presets) - 1) if self.index == -1 else self.index)
+                    custom.preset = new_preset.name
                 for area in context.screen.areas:  # HACK: redraw everything
                     area.tag_redraw()
             case "REMOVE":
                 presets.remove(self.index)
             case "COPY_EXAMPLE":
                 preset = presets[self.index] if custom is None else custom
-                context.window_manager.clipboard = preset.example_macro_define(
-                    "PRESET_EDIT" if custom is None else "NO_PRESET"
-                )
+                context.window_manager.clipboard = preset.get_examples(owner, conf_type)[self.example_name][1]
             case _:
                 raise NotImplementedError(f'Unimplemented internal custom command preset op "{self.op_name}"')
         custom_cmd_preset_update(self, context)
