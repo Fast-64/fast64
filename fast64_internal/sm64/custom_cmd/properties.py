@@ -26,6 +26,8 @@ from ...utility import (
 )
 from ...f3d.f3d_material import sm64EnumDrawLayers
 
+from ..sm64_constants import MIN_S32, MAX_S32
+
 from .exporting import CustomCmd
 from .operators import SM64_CustomCmdArgsOps, SM64_CustomCmdOps, SM64_SearchCustomCmds
 from .utility import (
@@ -77,16 +79,16 @@ class SM64_CustomNumberProperties(PropertyGroup):
     integer_step: IntProperty(name="Step", default=1, update=update_internal_number_and_check_preset)
     integer_min: IntProperty(
         name="Min",
-        default=-(2**31),
-        min=-(2**31),
-        max=(2**31) - 1,
+        default=MIN_S32,
+        min=MIN_S32,
+        max=MAX_S32,
         update=update_internal_number_and_check_preset,
     )
     integer_max: IntProperty(
         name="Max",
-        default=(2**31) - 1,
-        min=-(2**31),
-        max=(2**31) - 1,
+        default=MAX_S32,
+        min=MIN_S32,
+        max=MAX_S32,
         update=update_internal_number_and_check_preset,
     )
 
@@ -166,16 +168,21 @@ class SM64_CustomCmdArgProperties(PropertyGroup):
             ("BOOLEAN", "Boolean", "Boolean"),
             ("NUMBER", "Number", "Number"),
             ("COLOR", "Color", "Color"),
-            ("LAYER", "Layer", "Layer"),
             ("", "Transforms", ""),
             ("TRANSLATION", "Translation", "Translation"),
             ("ROTATION", "Rotation", "Rotation"),
             ("SCALE", "Scale", "Scale"),
             ("MATRIX", "Matrix", "3x3 Matrix"),
+            ("", "", ""),
+            ("LAYER", "Layer", "Layer"),
+            ("DL", "Displaylist", "Displaylist"),
         ],
         update=custom_cmd_preset_update,
     )
-    inherit: BoolProperty(name="Inherit", description="Inherit arg from owner", default=True)
+    inherit: BoolProperty(
+        name="Inherit", description="Inherit arg from owner", default=True, update=custom_cmd_preset_update
+    )
+    seg_addr: BoolProperty(name="Encode To Segmented Address", default=True)
     color: FloatVectorProperty(
         name="Color",
         size=4,
@@ -205,6 +212,7 @@ class SM64_CustomCmdArgProperties(PropertyGroup):
     quaternion: FloatVectorProperty(name="Quaternion", size=4, default=(1.0, 0.0, 0.0, 0.0), subtype="QUATERNION")
     axis_angle: FloatVectorProperty(name="Axis Angle", size=4, default=((1.0), 0.0, 0.0, 0.0), subtype="AXISANGLE")
     matrix: PointerProperty(type=Matrix4x4Property)
+    dl: StringProperty(name="Displaylist", default="breakable_box_seg8_dl_cork_box")
 
     @property
     def is_transform(self):
@@ -213,25 +221,41 @@ class SM64_CustomCmdArgProperties(PropertyGroup):
     def can_inherit(self, owner: Optional[AvailableOwners]):
         """Scene still includes all, the inherented property will be defaults, like identity matrix"""
         valid_types = {"MATRIX", "TRANSLATION", "ROTATION"}
+        is_mesh = isinstance(owner, Object) and owner.type == "MESH"
         if not isinstance(owner, Bone):
             valid_types.add("SCALE")
-        if not isinstance(owner, Object) or owner.type == "MESH":
+        if is_mesh or owner is None:
             valid_types.add("LAYER")
+        if is_mesh or isinstance(owner, Bone) or owner is None:
+            valid_types.add("DL")
         return self.arg_type in valid_types
 
     def inherits(self, owner: Optional[AvailableOwners]):
         return self.can_inherit(owner) and self.inherit
 
     def inherits_without_default(self, owner: Optional[AvailableOwners]):
-        return self.can_inherit(owner) and not self.arg_type == "LAYER"
+        """Inherits without a default, layers for example inherit but have a default in case of no geometry"""
+        return self.inherits(owner) and self.arg_type not in {"LAYER"}
+
+    def modifable_inherit(self, owner: Optional[AvailableOwners]):
+        """Can be modified in presets, inherit becomes a default value therefor ignored by the hashing"""
+        return self.can_inherit(owner) and self.arg_type in {"DL"}
+
+    def show_inherit_toggle(self, owner: Optional[AvailableOwners], conf_type: CustomCmdConf):
+        return (self.can_inherit(owner) and conf_type != "PRESET") or self.modifable_inherit(owner)
+
+    def show_segmented_toggle(self, owner: Optional[AvailableOwners], conf_type: CustomCmdConf):
+        return (
+            (not self.inherits(owner) or conf_type == "PRESET_EDIT")
+            and self.arg_type in {"DL"}
+            and conf_type != "PRESET"
+        )
 
     def shows_name(self, owner: Optional[AvailableOwners]):
-        return not self.inherits_without_default(owner)
+        return not self.inherits_without_default(owner) or self.show_inherit_toggle(owner, "PRESET")
 
     def will_draw(self, owner: Optional[AvailableOwners], conf_type: CustomCmdConf):
-        if self.inherits_without_default(owner) and conf_type == "PRESET":
-            return False
-        return True
+        return self.shows_name(owner) or conf_type != "PRESET"
 
     def get_transform(self, owner: Optional[AvailableOwners], blender_scale=1.0):
         inherit = self.inherits(owner)
@@ -279,13 +303,17 @@ class SM64_CustomCmdArgProperties(PropertyGroup):
         is_export=False,
     ):
         data = {}
+        defaults = {}
         if conf_type != "PRESET" or is_export:
             if conf_type != "NO_PRESET":
                 data["name"] = self.name
             data["arg_type"] = self.arg_type
-            if self.can_inherit(owner):
+            if self.modifable_inherit(owner):
+                defaults["inherit"] = self.inherit
+            elif self.can_inherit(owner):
                 data["inherit"] = self.inherit
-        defaults = {}
+        if self.show_segmented_toggle(owner, conf_type):
+            data["seg_addr"] = self.seg_addr
         match self.arg_type:
             case "NUMBER":
                 number_data, number_defaults = self.number.to_dict(conf_type)
@@ -294,6 +322,7 @@ class SM64_CustomCmdArgProperties(PropertyGroup):
             case "COLOR":
                 defaults["color"] = tuple(self.color)
             case _:
+                name = self.arg_type.lower()
                 if self.is_transform:
                     data["relative"] = self.relative
                     data["convert_to_sm64"] = (
@@ -304,12 +333,11 @@ class SM64_CustomCmdArgProperties(PropertyGroup):
                     )
                     if self.arg_type == "ROTATION":
                         data["rot_type"] = self.rot_type
-                    name = self.arg_type.lower()
                     if self.arg_type == "ROTATION":
                         name = self.rot_type.lower()
                     defaults[name] = self.get_transform(owner, blender_scale=blender_scale)
-                elif not self.inherits_without_default(owner) or conf_type == "PRESET_EDIT":
-                    defaults[self.arg_type.lower()] = getattr(self, self.arg_type.lower())
+                elif (not self.inherits_without_default(owner) or conf_type == "PRESET_EDIT") and hasattr(self, name):
+                    defaults[name] = getattr(self, name)
         if defaults and include_defaults:
             if conf_type == "PRESET_EDIT" and not is_export:
                 data["defaults"] = defaults
@@ -324,6 +352,7 @@ class SM64_CustomCmdArgProperties(PropertyGroup):
         self.relative = data.get("relative", True)
         self.convert_to_sm64 = data.get("convert_to_sm64", True)
         self.rot_type = data.get("rot_type", "EULER")
+        self.seg_addr = data.get("seg_addr", True)
         if not set_defaults:
             return
         defaults = data.get("defaults")
@@ -339,7 +368,7 @@ class SM64_CustomCmdArgProperties(PropertyGroup):
             self.matrix.from_matrix(defaults.get("matrix"))
         else:
             self.matrix.from_matrix(mathutils.Matrix.Identity(4))
-        for prop in ["color", "parameter", "layer", "boolean"]:
+        for prop in ["color", "parameter", "layer", "boolean", "dl"]:
             setattr(self, prop, defaults.get(prop, getattr(self, prop)))
 
     def example_macro_args(
@@ -369,7 +398,7 @@ class SM64_CustomCmdArgProperties(PropertyGroup):
                 return add_name(["_x", "_y", "_z"])
             case "COLOR":
                 return add_name(["_r", "_g", "_b", "_a"])
-            case "PARAMETER" | "LAYER" | "BOOLEAN" | "NUMBER":
+            case "PARAMETER" | "LAYER" | "BOOLEAN" | "NUMBER" | "DL":
                 return add_name([""])
 
     def draw_transforms(
@@ -407,9 +436,11 @@ class SM64_CustomCmdArgProperties(PropertyGroup):
         owner: Optional[AvailableOwners],
         _cmd_type: str,
         conf_type: CustomCmdConf = "NO_PRESET",
+        is_binary=False,
     ):
         inherit = self.inherits(owner)
         col = layout.column()
+
         if conf_type != "NO_PRESET":
             name_split = col.split(factor=0.5)
             if conf_type == "PRESET" and self.shows_name(owner) and self.name != "":
@@ -419,26 +450,33 @@ class SM64_CustomCmdArgProperties(PropertyGroup):
         else:
             name_split = col
 
-        inherit_info = col
         if conf_type != "PRESET":
             arg_row.prop(self, "arg_type", text="")
-            if self.can_inherit(owner):
-                inherit_info = col.row()
-                inherit_info.alignment = "LEFT"
-                inherit_info.prop(self, "inherit")
+
+        inherit_info = col
+        if self.show_inherit_toggle(owner, conf_type):
+            if conf_type == "PRESET":
+                inherit_info = name_split
+                name_split = col
+            inherit_info = inherit_info.row()
+            inherit_info.alignment = "LEFT"
+            inherit_info.prop(self, "inherit")
 
         match self.arg_type:
             case "NUMBER":
                 self.number.draw_props(name_split, col, conf_type)
-            case "LAYER":
+            case "LAYER" | "DL":
                 if inherit and conf_type == "PRESET_EDIT":
                     inherit_info.label(text="Not supported in object empties.", icon="INFO")
-                name_split.prop(self, "layer", text="")
+                if not inherit or conf_type == "PRESET_EDIT":
+                    name_split.prop(self, self.arg_type.lower(), text="")
             case _:
                 if self.is_transform:
                     self.draw_transforms(name_split, inherit_info, col, owner, conf_type)
-                else:
+                elif hasattr(self, self.arg_type.lower()):
                     name_split.prop(self, self.arg_type.lower(), text="")
+        if is_binary and self.show_segmented_toggle(owner, conf_type):
+            col.prop(self, "seg_addr")
 
 
 def custom_cmd_change_preset(self: "SM64_CustomCmdProperties", context: Context):
@@ -449,7 +487,9 @@ def custom_cmd_change_preset(self: "SM64_CustomCmdProperties", context: Context)
         self.preset = "NONE"
         return
     self.saved_hash = ""
-    self.from_dict(preset_cmd.to_dict("PRESET_EDIT", context.object, include_defaults=True), set_defaults=True)
+    self.from_dict(
+        preset_cmd.to_dict("PRESET_EDIT", get_custom_prop(context).owner, include_defaults=True), set_defaults=True
+    )
     self.saved_hash = self.preset_hash
 
 
@@ -468,9 +508,50 @@ class SM64_CustomCmdProperties(PropertyGroup):
     )
     str_cmd: StringProperty(name="Command", default="CUSTOM_CMD", update=custom_cmd_preset_update)
     int_cmd: IntProperty(name="Command", default=0, update=custom_cmd_preset_update)
+
+    # Geo
+    children_requirements: EnumProperty(
+        name="Children Requirements",
+        items=[
+            ("ANY", "None", "No requirements"),
+            ("", "", ""),
+            ("MUST", "Must Have Children", "Must have at least one child node"),
+            ("NONE", "No Children", "Must have no children nodeS"),
+        ],
+        update=custom_cmd_preset_update,
+    )
+    group_children: BoolProperty(
+        name="Group Children",
+        description="Use GEO_OPEN/CLOSE_NODE to group the node's children",
+        update=custom_cmd_preset_update,
+    )
+    dl_option: EnumProperty(
+        name="DL Option",
+        items=[
+            ("NONE", "None", "No geometry will be inherited, deform will be off in bones"),
+            (
+                "OPTIONAL",
+                "Optional",
+                "Can inherit geometry, or will use a NULL value, also allows the use of dl ext commands like GEO_TRANSLATE/GEO_TRANSLATE_WITH_DL",
+            ),
+            ("REQUIRED", "Required", "Must inherit geometry, otherwise an error will occur"),
+        ],
+        default="NONE",
+        update=custom_cmd_preset_update,
+    )
+    add_dl_ext: BoolProperty(
+        name="DL Extension",
+        description="Add a displaylist arg at the end of the command if there is geometry. In c, add the extension, in binary OR the first layer with 0x80",
+        update=custom_cmd_preset_update,
+    )
+    dl_ext: StringProperty(name="Displaylist Extension", default="WITH_DL", update=custom_cmd_preset_update)
+    is_animated: BoolProperty(name="Is Animated", update=custom_cmd_preset_update)
+
+    args_tab: BoolProperty(default=True)
     args: CollectionProperty(type=SM64_CustomCmdArgProperties)
+
     saved_hash: StringProperty()
-    locked: BoolProperty(default=False)
+    locked: BoolProperty()
 
     @property
     def preset_hash(self):
@@ -489,11 +570,28 @@ class SM64_CustomCmdProperties(PropertyGroup):
         include_defaults=True,
         is_export=False,
     ):
+        preset_export = conf_type == "PRESET" and is_export
         data = {}
-        if conf_type == "PRESET_EDIT":
+        if conf_type == "PRESET_EDIT" or preset_export:
             data["name"] = self.name
         if conf_type != "PRESET" or is_export:
-            data.update({"cmd_type": self.get_cmd_type(owner), "str_cmd": self.str_cmd, "int_cmd": self.int_cmd})
+            data.update(
+                {
+                    "cmd_type": self.get_cmd_type(owner),
+                    "str_cmd": self.str_cmd,
+                    "int_cmd": self.int_cmd,
+                }
+            )
+            if self.get_cmd_type(owner) == "Geo":
+                if conf_type == "PRESET_EDIT" or preset_export:
+                    data["children_requirements"] = self.children_requirements
+                if data.get("children_requirements") != "NONE":
+                    data["group_children"] = self.group_children
+                data["is_animated"] = self.is_animated
+                data["dl_option"] = self.dl_option
+                if self.dl_option == "Optional":
+                    if self.add_dl_ext:
+                        data["dl_ext"] = self.dl_ext
         self.args: list[SM64_CustomCmdArgProperties]
         data["args"] = [arg.to_dict(conf_type, owner, blender_scale, include_defaults, is_export) for arg in self.args]
         return data
@@ -505,6 +603,12 @@ class SM64_CustomCmdProperties(PropertyGroup):
             self.cmd_type = data.get("cmd_type", "Level")
             self.str_cmd = data.get("str_cmd", "CUSTOM_COMMAND")
             self.int_cmd = data.get("int_cmd", 0)
+            self.children_requirements = data.get("children_requirements", "ANY")
+            self.group_children = data.get("group_children", True)
+            self.dl_option = data.get("dl_option", "NONE")
+            self.is_animated = data.get("is_animated", False)
+            self.add_dl_ext = "dl_ext" in data
+            self.dl_ext = data.get("dl_ext", "WITH_DL")
             self.args.clear()
             for i, arg in enumerate(data.get("args", [])):
                 self.args.add()
@@ -526,11 +630,18 @@ class SM64_CustomCmdProperties(PropertyGroup):
             self.args[-1].parameter = arg
 
     def get_final_cmd(
-        self, owner: Optional[AvailableOwners], blender_scale: float, conf_type: CustomCmdConf | None = None
+        self,
+        owner: Optional[AvailableOwners],
+        blender_scale: float,
+        layer: str | int = 0,
+        has_dl=False,
+        dl_ref: str | None = None,
+        name="",
+        conf_type: CustomCmdConf | None = None,
     ):
         if conf_type is None:
             conf_type = "NO_PRESET" if self.preset == "NONE" else "PRESET"
-        return CustomCmd(self.to_dict(conf_type, owner, blender_scale, is_export=True))
+        return CustomCmd(self.to_dict(conf_type, owner, blender_scale, is_export=True), layer, has_dl, dl_ref, name)
 
     def example_macro_define(self, conf_type: CustomCmdConf = "NO_PRESET", max_len=100):
         macro_define = ""
@@ -575,43 +686,58 @@ class SM64_CustomCmdProperties(PropertyGroup):
                 prop_split(col, self, "name", "Preset Name")
             if not isinstance(owner, Bone):  # bone is always Geo
                 prop_split(col, self, "cmd_type", "Type")
-            if conf_type == "PRESET_EDIT" or not is_binary:
-                prop_split(col, self, "str_cmd", "Command" if conf_type == "NO_PRESET" else "C Command")
-            if conf_type == "PRESET_EDIT" or is_binary:
-                prop_split(col, self, "int_cmd", "Command" if conf_type == "NO_PRESET" else "Binary Command")
+            if is_binary:
+                prop_split(col, self, "int_cmd", "Command")
+            else:
+                prop_split(col, self, "str_cmd", "Command")
             col.separator()
+
+            if self.cmd_type == "Geo":
+                if conf_type == "PRESET_EDIT":
+                    prop_split(col, self, "children_requirements", "Children Requirements")
+                if conf_type != "PRESET_EDIT" or self.children_requirements != "NONE":
+                    col.prop(self, "group_children")
+                prop_split(col, self, "dl_option", "Displaylist Option")
+                col.prop(self, "is_animated")
+                if self.dl_option == "OPTIONAL":
+                    row = col.row()
+                    row.prop(self, "add_dl_ext")
+                    if self.add_dl_ext:
+                        row.prop(self, "dl_ext", text="")
             args_col = col.box().column()
         else:
             args_col = col.column()  # don't box the arguments in preset mode
 
-        if conf_type != "PRESET":
+        if conf_type != "PRESET" and draw_and_check_tab(
+            args_col, self, "args_tab", text=f"Arguments ({len(self.args)})"
+        ):
             basic_ops_row = args_col.row()
-            basic_ops_row.label(text=f"Arguments ({len(self.args)})")
             arg_ops(basic_ops_row, "ADD", "ADD")
             arg_ops(basic_ops_row, "TRASH", "CLEAR")
 
-        arg: SM64_CustomCmdArgProperties
-        for i, arg in enumerate(self.args):
-            if not arg.will_draw(owner, conf_type):
-                continue
-            if conf_type == "PRESET":
-                ops_row = args_col.row()
-            else:
-                if i != 0:
-                    args_col.separator(factor=0.5)
-                ops_row = args_col.row()
-                num_row = ops_row.row()
-                num_row.alignment = "LEFT"
-                num_row.label(text=str(i))
-                arg_ops(ops_row, "ADD", "ADD", i)
-                arg_ops(ops_row, "REMOVE", "REMOVE", i)
-                arg_ops(ops_row, "TRIA_DOWN", "MOVE_DOWN", i)
-                arg_ops(ops_row, "TRIA_UP", "MOVE_UP", i)
-            arg.draw_props(ops_row, args_col, owner, self.cmd_type, conf_type)
+        if self.args_tab or conf_type == "PRESET":
+            arg: SM64_CustomCmdArgProperties
+            for i, arg in enumerate(self.args):
+                if not arg.will_draw(owner, conf_type):
+                    continue
+                if conf_type == "PRESET":
+                    ops_row = args_col.row()
+                else:
+                    if i != 0:
+                        args_col.separator(factor=0.5)
+                    ops_row = args_col.row()
+                    num_row = ops_row.row()
+                    num_row.alignment = "LEFT"
+                    num_row.label(text=str(i))
+                    arg_ops(ops_row, "ADD", "ADD", i)
+                    arg_ops(ops_row, "REMOVE", "REMOVE", i)
+                    arg_ops(ops_row, "TRIA_DOWN", "MOVE_DOWN", i)
+                    arg_ops(ops_row, "TRIA_UP", "MOVE_UP", i)
+                arg.draw_props(ops_row, args_col, owner, self.cmd_type, conf_type, is_binary)
 
         if conf_type == "PRESET":
             return
-        cmd = self.get_final_cmd(owner, blender_scale, conf_type)
+        cmd = self.get_final_cmd(owner, blender_scale, conf_type=conf_type)
         try:
             box = col.box()
             if is_binary:

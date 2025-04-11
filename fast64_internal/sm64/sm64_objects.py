@@ -880,7 +880,9 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
 
             elif obj.sm64_obj_type == "Custom" and obj_props.custom.cmd_type == "Level":
                 area.objects.append(
-                    obj_props.custom.get_final_cmd(obj, bpy.context.scene.fast64.sm64.blender_to_sm64_scale)
+                    obj_props.custom.get_final_cmd(
+                        obj, bpy.context.scene.fast64.sm64.blender_to_sm64_scale, name=obj.name
+                    )
                 )
 
             elif obj.sm64_obj_type == "Puppycam Volume":

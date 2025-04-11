@@ -1,4 +1,6 @@
 import bpy
+
+from ..f3d.f3d_parser import math_eval
 from ..utility import PluginError
 
 
@@ -102,7 +104,7 @@ def addBoneToGroup(armatureObj, boneName, groupName):
         posebone.bone_group_index = getBoneGroupIndex(armatureObj, groupName)
 
     if groupName != "Ignore":
-        bone.use_deform = boneNodeProperties[groupName].deform
+        bone.use_deform = boneNodeProperties[groupName].deform  # TODO: impl custom
         if groupName != "DisplayList":
             if bpy.app.version >= (4, 0, 0):
                 if not "other" in armature.collections:
@@ -115,3 +117,41 @@ def addBoneToGroup(armatureObj, boneName, groupName):
             posebone.lock_location = (True, True, True)
         posebone.lock_rotation = (True, True, True)
         posebone.lock_scale = (True, True, True)
+
+
+class BaseDisplayListNode:
+    """Base displaylist node with common helper functions dealing with displaylists"""
+
+    dl_ext = "WITH_DL"  # add dl_ext to geo command if command has a displaylist
+    bleed_independently = False  # base behavior, can be changed with obj boolProp
+
+    def get_dl_address(self):
+        if self.dlRef is not None:
+            value = math_eval(self.dlRef, object())
+            if not isinstance(value, int):
+                raise PluginError(f'Displaylist reference "{self.dlRef}" is not a valid address.')
+            return value
+        if self.hasDL and self.DLmicrocode is not None:
+            return self.DLmicrocode.startAddress
+        return None
+
+    def get_dl_name(self):
+        if self.hasDL and (self.dlRef or self.DLmicrocode is not None):
+            return self.dlRef or self.DLmicrocode.name
+        return "NULL"
+
+    def get_c_func_macro(self, base_cmd: str):
+        return f"{base_cmd}_{self.dl_ext}" if self.hasDL else base_cmd
+
+    def c_func_macro(self, base_cmd: str, *args: str):
+        """
+        Supply base command and all arguments for command.
+        if self.hasDL:
+                this will add self.dl_ext to the command, and
+                adds the name of the displaylist to the end of the command
+        Example return: 'GEO_YOUR_COMMAND_WITH_DL(arg, arg2),'
+        """
+        all_args = list(args)
+        if self.hasDL:
+            all_args.append(self.get_dl_name())
+        return f'{self.get_c_func_macro(base_cmd)}({", ".join(all_args)})'

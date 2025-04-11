@@ -1,9 +1,13 @@
 import dataclasses
+from io import StringIO
 import struct
-from typing import Iterable, NamedTuple, TypeVar
+from typing import Iterable, NamedTuple, Optional, TypeVar, Union
 
 from ...f3d.f3d_parser import math_eval
-from ...utility import PluginError, exportColor, to_s16
+from ...utility import PluginError, exportColor, to_s16, encodeSegmentedAddr
+
+from ..sm64_constants import SegmentData
+from ..sm64_geolayout_utility import BaseDisplayListNode
 
 from .utility import getDrawLayerName
 
@@ -23,27 +27,59 @@ def flatten(iterable: Iterable[T]) -> tuple[T]:
 class ArgExport(NamedTuple):
     value: float | int | bool | str
     bit_count: int
-    binary_value: float | int | bool | str = None
 
 
 @dataclasses.dataclass
-class CustomCmd:
+class CustomCmd(BaseDisplayListNode):
     data: dict
-    name: str = ""  # for sorting
+    drawLayer: int | str = 0
+    hasDL: bool = False
+    dlRef: str = None
+    name: str = ""
+    bleed_independently: bool = False
+    fMesh: "FMesh" = None
+    DLmicrocode: Union["GfxList", None] = None
+    # exists to get the override DL from an fMesh
+    override_hash: tuple | None = None
 
     def __post_init__(self):
-        self.hasDL = False
+        self.hasDL = self.data.get("dl_option") != "NONE"
+        self.group_children = self.data.get("group_children", True)
 
-    def to_arg(self, data: dict) -> Iterable[ArgExport]:
+    def do_export_checks(self, children_count: int):
+        name = "" or self.data.get("name") or self.data.get("str_cmd")
+        name = f" ({name})" if name else ""
+        children_requirements = self.data.get("children_requirements", "ANY")
+        if children_requirements == "MUST" and children_count == 0:
+            raise PluginError(f"Command{name} must have at least one child node")
+        elif children_requirements == "NONE" and children_count > 0:
+            raise PluginError(f"Command{name} must have no children")
+        if self.data.get("dl_option") == "REQUIRED":
+            if self.DLmicrocode is None:
+                raise PluginError(f"Command{name} requires a displaylist")
+
+    def to_arg(self, data: dict, binary=False, segment_data: Optional[SegmentData] = None) -> Iterable[ArgExport]:
+        def encode_seg_addr(addr: int | None):
+            addr = addr or 0
+            if segment_data is None:
+                return addr.to_bytes(4, "big")
+            encodeSegmentedAddr(addr, segment_data)
+
         arg_type = data.get("arg_type")
         to_sm64_units = data.get("convert_to_sm64", True)
         match arg_type:
             case "COLOR":
                 yield from (ArgExport(x, 8) for x in exportColor(data["color"], True))
             case "PARAMETER":
-                yield ArgExport(data["parameter"], 32, math_eval(data["parameter"], object()))
+                if binary:
+                    value = math_eval(data["parameter"], object())
+                    if isinstance(value, str):
+                        raise PluginError("Strings not supported in binary")
+                    yield ArgExport(value, 32)
+                else:
+                    yield ArgExport(data["parameter"], 32)
             case "LAYER":
-                yield ArgExport(getDrawLayerName(data["layer"]), 8, int(data["layer"]))
+                yield ArgExport(int(data["layer"]) if binary else getDrawLayerName(data["layer"]), 8)
             case "BOOLEAN":
                 yield ArgExport(data["boolean"], 8)
             case "NUMBER":
@@ -63,61 +99,68 @@ class CustomCmd:
                     yield from (ArgExport(to_s16((x) % 360.0 / 360.0 * (2**16)), 16) for x in rot)
                 else:
                     yield from (ArgExport(x, 32) for x in rot)
+            case "DL":
+                self.hasDL, self.dlRef = True, data.get("dl")
+                if binary:
+                    yield ArgExport(encode_seg_addr(self.get_dl_address()), 32)
+                else:
+                    yield ArgExport(self.get_dl_name(), 32)
+                self.hasDL, self.dlRef = False, None
             case _:
                 raise PluginError(f"Unknown arg type {arg_type}")
 
-    def to_c_arg_group(self, data: dict):
-        arg_group = []
-        for value, _, _ in self.to_arg(data):
-            if isinstance(value, bool):
-                value = str(value).upper()
-            arg_group.append(str(value))
-        arg_group = ", ".join(arg_group)
-        if "name" not in data:
-            return arg_group
-        return f"/*{data.get('name')}*/ {arg_group}"
+    def to_c(self, depth: int = 0, max_length: int = 100) -> str:
+        groups = []
+        for i, arg_data in enumerate(self.data["args"]):
+            group = []
+            try:
+                for value, _ in self.to_arg(arg_data):
+                    if isinstance(value, bool):
+                        value = str(value).upper()
+                    group.append(str(value))
+                group_str = ", ".join(group)
+                if "name" in arg_data:
+                    group_str = f"/*{arg_data['name']}*/ {group_str}"
+                groups.append(group_str)
+            except Exception as exc:
+                raise PluginError(f'Failed to export arg "{arg_data.get("name", f"Arg {i}")}": {exc}') from exc
 
-    def to_c(self, depth=0, max_length=100):
-        groups = [self.to_c_arg_group(arg_data) for arg_data in self.data["args"]]
-        if len(str(groups)) > max_length:
-            seperator = ",\n" + ("\t" * (depth + 1))
-            args = seperator.join(groups)
+        if len("".join(groups)) > max_length:
+            separator = ",\n" + ("\t" * (depth + 1))
+            args = separator.join(groups)
         else:
             args = ", ".join(groups)
+
         return f"{self.data['str_cmd']}({args})"
 
-    def to_binary_arg_group(self, i, arg_data):
-        data = bytearray(0)
-        name = f"Arg {i}"
-        if "name" in arg_data:
-            name = f"{arg_data['name']}"
-        try:
-            for value, bit_count, binary_value in self.to_arg(arg_data):
-                if binary_value is not None:
-                    value = binary_value
-                if isinstance(value, str):
-                    raise PluginError("Strings not supported in binary")
-                if isinstance(value, float):
-                    data += struct.pack("f" if bit_count == 32 else "d", value)
-                else:
-                    data += value.to_bytes(bit_count // 8, "big")
-        except Exception as exc:
-            raise PluginError(f'Failed to export arg "{name}": {exc}') from exc
-        return name, data
-
-    def to_binary_groups(self):
+    def to_binary_groups(self, segment_data: Optional[SegmentData] = None):
         groups = []
-        groups.append(("Command Index", self.data["int_cmd"].to_bytes(1, "big")))
+        groups.append(("Command Index (𝗔𝘂𝘁𝗼𝗺𝗮𝘁𝗶𝗰)", self.data["int_cmd"].to_bytes(1, "big")))
         for i, arg_data in enumerate(self.data["args"]):
-            groups.append(self.to_binary_arg_group(i, arg_data))
+            name = arg_data.get("name", f"Arg {i}")
+            try:
+                group = bytearray(0)
+                for value, bit_count in self.to_arg(arg_data, True, segment_data):
+                    if isinstance(value, bytes):
+                        group += value
+                    elif isinstance(value, float):
+                        group += struct.pack("f" if bit_count == 32 else "d", value)
+                    elif isinstance(value, int):
+                        group += value.to_bytes(bit_count // 8, "big")
+                    else:
+                        raise PluginError(f"{type(value)} not supported in binary")
+                groups.append((name, group))
+            except Exception as exc:
+                raise PluginError(f'Failed to export arg "{name}": \n{exc}') from exc
+
         size = sum(len(data) for _, data in groups)
         padding = size % 4
         if padding != 0:
-            groups.append(("Trailing Padding", bytes(4 - padding)))
+            groups.append(("Trailing Padding (𝗔𝘂𝘁𝗼𝗺𝗮𝘁𝗶𝗰)", bytes(4 - padding)))
         return groups
 
-    def to_binary(self, _segment_data: dict):
-        return bytearray(b for _, data in self.to_binary_groups() for b in data)
+    def to_binary(self, segment_data: Optional[SegmentData] = None):
+        return bytearray(b for _, data in self.to_binary_groups(segment_data) for b in data)
 
     def size(self):
         return sum(len(data) for _, data in self.to_binary_groups())
@@ -125,10 +168,12 @@ class CustomCmd:
     def get_ptr_offsets(self):
         return []
 
-    def to_text_dump(self):
-        groups = []
-        for name, data in self.to_binary_groups():
-            data = ", ".join(f"0x{byte:02x}" for byte in data)
-            groups.append(f'"{name}": {data}')
-        groups = "\n".join(groups)
-        return f"Size: {self.size()} bytes.\n{groups}"
+    def to_text_dump(self, segment_data: Optional[SegmentData] = None):
+        data = StringIO()
+        data.write(f"Size: {self.size()} bytes.")
+        if segment_data is None:
+            data.write("\nNo segment range provided, won't encode to a respective segment")
+        for name, bytes in self.to_binary_groups(segment_data):
+            bytes_str = ", ".join(f"0x{byte:02x}" for byte in bytes)
+            data.write(f'\n\t"{name}": {bytes_str}')
+        return data.getvalue()

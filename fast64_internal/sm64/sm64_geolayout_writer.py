@@ -116,13 +116,11 @@ from .sm64_geolayout_classes import (
     RotateNode,
     TranslateRotateNode,
     FunctionNode,
-    CustomNode,
     BillboardNode,
     ScaleNode,
     RenderRangeNode,
     ShadowNode,
     DisplayListWithOffsetNode,
-    CustomAnimatedNode,
     HeldObjectNode,
     Geolayout,
 )
@@ -1321,7 +1319,13 @@ def processInlineGeoNode(
     elif inlineGeoConfig.name == "Geo Scale":
         node = ScaleNode(obj.draw_layer_static, scale, obj.useDLReference, obj.dlReference)
     elif inlineGeoConfig.name == "Custom":
-        node = obj.fast64.sm64.custom.get_final_cmd(obj, bpy.context.scene.fast64.sm64.blender_to_sm64_scale)
+        node = obj.fast64.sm64.custom.get_final_cmd(
+            obj,
+            bpy.context.scene.fast64.sm64.blender_to_sm64_scale,
+            obj.draw_layer_static,
+            obj.useDLReference,
+            obj.dlReference,
+        )
     else:
         raise PluginError(f"Ooops! Didnt implement inline geo exporting for {inlineGeoConfig.name}")
 
@@ -1767,7 +1771,9 @@ def processBone(
         elif bone.geo_cmd == "StartRenderArea":
             node = StartRenderAreaNode(bone.culling_radius)
         elif bone.geo_cmd == "Custom":
-            node = bone.fast64.sm64.custom.get_final_cmd(bone, bpy.context.scene.fast64.sm64.blender_to_sm64_scale)
+            node = bone.fast64.sm64.custom.get_final_cmd(
+                bone, bpy.context.scene.fast64.sm64.blender_to_sm64_scale, int(bone.draw_layer), hasDL
+            )
         else:
             raise PluginError("Invalid geometry command: " + bone.geo_cmd)
 
@@ -1863,12 +1869,6 @@ def processBone(
     if not isinstance(transformNode.node, SwitchNode):
         # print(boneGroup.name if boneGroup is not None else "Offset")
         if len(bone.children) > 0:
-            # print("\tHas Children")
-            if bone.geo_cmd == "Function":
-                raise PluginError(
-                    "Function bones cannot have children. They instead affect the next sibling bone in alphabetical order."
-                )
-
             # Handle child nodes
             # nonDeformTransformData should be modified to be sent to children,
             # otherwise it should not be modified for parent.
