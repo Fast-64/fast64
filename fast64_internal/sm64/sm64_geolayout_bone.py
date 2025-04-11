@@ -447,21 +447,7 @@ class SM64_BoneProperties(PropertyGroup):
     custom: PointerProperty(type=SM64_CustomCmdProperties)
 
     def upgrade_bone(self, bone):
-        if self.version == 0:
-            upgrade_old_prop(self.custom, "str_cmd", self, "custom_geo_cmd_macro")
-            args = get_first_set_prop(self, "custom_geo_cmd_args")
-            if args is not None:
-                self.custom.args.clear()
-                self.custom.args.add()
-                self.custom.args[-1].arg_type = "PARAMETER"
-                self.custom.args[0].parameter = args
-            old_cmd = bone.get("geo_cmd")
-            if old_cmd is not None:
-                if old_cmd in {15, 16}:  # custom animated / custom non-animated
-                    bone.geo_cmd = "Custom"
-                if old_cmd == 15:  # TODO: mark this as animated somehow
-                    pass
-        self.version = 1
+        self.custom.upgrade_bone(bone)
 
     @staticmethod
     def upgrade_changed_props():

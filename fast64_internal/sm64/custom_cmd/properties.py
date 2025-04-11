@@ -495,6 +495,8 @@ def custom_cmd_change_preset(self: "SM64_CustomCmdProperties", context: Context)
 
 
 class SM64_CustomCmdProperties(PropertyGroup):
+    version: IntProperty(name="SM64_CustomCmdProperties Version", default=0)
+
     tab: BoolProperty(default=False)
     preset: EnumProperty(items=get_custom_cmd_preset_enum, update=custom_cmd_change_preset)
     name: StringProperty(name="Name", default="Custom Command", update=custom_cmd_preset_update)
@@ -559,6 +561,37 @@ class SM64_CustomCmdProperties(PropertyGroup):
     def preset_hash(self):
         return str(hash(str(self.to_dict("PRESET_EDIT", include_defaults=False).items())))
 
+    def upgrade_object(self, obj: Object):
+        if self.version != 0:
+            return
+        found_cmd, arg = upgrade_old_prop(self, "str_cmd", obj, "customGeoCommand"), get_first_set_prop(
+            obj, "customGeoCommandArgs"
+        )
+        if found_cmd:
+            self.cmd_type = "Geo"
+        if arg is not None:
+            self.args.add()
+            self.args[-1].arg_type = "PARAMETER"
+            self.args[-1].parameter = arg
+
+    def upgrade_bone(self, bone: Bone):
+        if self.version != 0:
+            return
+        upgrade_old_prop(self, "str_cmd", self, "custom_geo_cmd_macro")
+        args = get_first_set_prop(self, "custom_geo_cmd_args")
+        if args is not None:
+            self.args.clear()
+            self.args.add()
+            self.args[-1].arg_type = "PARAMETER"
+            self.args[0].parameter = args
+        old_cmd = bone.get("geo_cmd")
+        if old_cmd is not None:
+            if old_cmd in {15, 16}:  # custom animated / custom non-animated
+                bone.geo_cmd = "Custom"
+            if old_cmd == 15:
+                self.is_animated = True
+        self.version = 1
+
     def get_cmd_type(self, owner: Optional[AvailableOwners] = None):
         if isinstance(owner, Bone):
             return "Geo"
@@ -617,19 +650,6 @@ class SM64_CustomCmdProperties(PropertyGroup):
                 self.args[-1].from_dict(arg, i, set_defaults)
         finally:
             self.locked = False
-
-    @staticmethod
-    def upgrade_object(obj: Object):  # TODO: move this out
-        self: SM64_CustomCmdProperties = obj.fast64.sm64.custom
-        found_cmd, arg = upgrade_old_prop(self, "str_cmd", obj, "customGeoCommand"), get_first_set_prop(
-            obj, "customGeoCommandArgs"
-        )
-        if found_cmd:
-            self.cmd_type = "Geo"
-        if arg is not None:
-            self.args.add()
-            self.args[-1].arg_type = "PARAMETER"
-            self.args[-1].parameter = arg
 
     def get_final_cmd(
         self,

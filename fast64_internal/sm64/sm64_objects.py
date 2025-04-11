@@ -2862,8 +2862,7 @@ class SM64_ObjectProperties(bpy.types.PropertyGroup):
                 SM64_GeoASMProperties.upgrade_object(obj)
             if obj.fast64.sm64.version < 3:
                 SM64_GameObjectProperties.upgrade_object(obj)
-            if obj.fast64.sm64.version < 4:
-                SM64_CustomCmdProperties.upgrade_object(obj)
+            obj.fast64.sm64.custom.upgrade_object(obj)
             obj.fast64.sm64.version = SM64_ObjectProperties.cur_version
 
 
