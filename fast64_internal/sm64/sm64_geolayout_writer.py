@@ -7,7 +7,7 @@ from io import BytesIO
 from ..operators import ObjectDataExporter
 from ..panels import SM64_Panel
 from .sm64_objects import InlineGeolayoutObjConfig, inlineGeoLayoutObjects
-from .sm64_geolayout_bone import getSwitchOptionBone, animatableBoneTypes
+from .sm64_geolayout_bone import getSwitchOptionBone
 from .sm64_camera import saveCameraSettingsToGeolayout
 from .sm64_f3d_writer import SM64Model, SM64GfxFormatter
 from .sm64_texscroll import modifyTexScrollFiles, modifyTexScrollHeadersGroup
@@ -1675,26 +1675,19 @@ def processBone(
 
     # hasDL = bone.use_deform
     hasDL = True
-    if bone.geo_cmd in animatableBoneTypes:
-        if bone.geo_cmd == "CustomAnimated":
-            if not bone.fast64.sm64.custom_geo_cmd_macro:
-                raise PluginError(f'Bone "{boneName}" on armature "{armatureObj.name}" needs a geo command macro.')
-            node = CustomAnimatedNode(bone.fast64.sm64.custom_geo_cmd_macro, int(bone.draw_layer), translate, rotate)
+    if bone.geo_cmd == "DisplayListWithOffset":
+        if not zeroRotation:
+            node = DisplayListWithOffsetNode(int(bone.draw_layer), hasDL, mathutils.Vector((0, 0, 0)))
+
+            parentTransformNode = addParentNode(
+                parentTransformNode, TranslateRotateNode(1, 0, False, translate, rotate)
+            )
+
             lastTranslateName = boneName
             lastRotateName = boneName
-        else:  # DisplayListWithOffset
-            if not zeroRotation:
-                node = DisplayListWithOffsetNode(int(bone.draw_layer), hasDL, mathutils.Vector((0, 0, 0)))
-
-                parentTransformNode = addParentNode(
-                    parentTransformNode, TranslateRotateNode(1, 0, False, translate, rotate)
-                )
-
-                lastTranslateName = boneName
-                lastRotateName = boneName
-            else:
-                node = DisplayListWithOffsetNode(int(bone.draw_layer), hasDL, translate)
-                lastTranslateName = boneName
+        else:
+            node = DisplayListWithOffsetNode(int(bone.draw_layer), hasDL, translate)
+            lastTranslateName = boneName
 
         final_transform = transformMatrix @ translation
 

@@ -39,8 +39,6 @@ enumBoneType = [
     ("Custom", "Custom", "Custom bone using command presets"),
 ]
 
-animatableBoneTypes = {"DisplayListWithOffset", "CustomAnimated"}
-
 enumGeoStaticType = [
     ("Billboard", "Billboard (0x14)", "Billboard"),
     ("DisplayListWithOffset", "Animated Part (0x13)", "Animated Part (Animatable Bone)"),
@@ -80,6 +78,16 @@ enumMatOverrideOptions = [
     ("All", "All", "Override every material with this one."),
     ("Specific", "Specific", "Only override instances of give material."),
 ]
+
+
+def is_bone_animatable(bone: Bone):
+    bone_props: "SM64_BoneProperties" = bone.fast64.sm64
+    geo_cmd: str = bone.geo_cmd
+    if geo_cmd == "DisplayListWithOffset":
+        return True
+    elif geo_cmd == "Custom" and bone_props.custom.is_animated:
+        return True
+    return False
 
 
 def drawGeoInfo(panel: Panel, context: Context):
@@ -448,7 +456,7 @@ def updateBone(bone, context):
     armatureObj = context.object
 
     createBoneGroups(armatureObj)
-    if bone.geo_cmd not in animatableBoneTypes:
+    if is_bone_animatable(bone):
         addBoneToGroup(armatureObj, bone.name, bone.geo_cmd)
         object.mode_set(mode="POSE")
     else:

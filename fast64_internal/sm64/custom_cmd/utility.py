@@ -53,8 +53,10 @@ def get_custom_prop(context: Context):
 def get_custom_cmd_preset(custom_cmd: "SM64_CustomCmdProperties", context: Context):
     if custom_cmd.preset == "":
         return None
-    presets: list["SM64_CustomCmdProperties"] = context.scene.fast64.sm64.custom_cmds
-    return presets[int(custom_cmd.preset)]
+    presets: dict["SM64_CustomCmdProperties"] = {
+        custom.name: custom for custom in context.scene.fast64.sm64.custom_cmds
+    }
+    return presets[custom_cmd.preset]
 
 
 def check_preset_hashes(owner: AvailableOwners, context: Context):
@@ -86,8 +88,8 @@ def get_custom_cmd_preset_enum(_self, context: Context):
     else:
         allowed_types = {"Level", "Geo", "Special"}
     return [("NONE", "No Preset", "No preset selected")] + [
-        (str(i), preset.name, f"{preset.name} ({preset.cmd_type})")
-        for i, preset in enumerate(context.scene.fast64.sm64.custom_cmds)
+        (preset.name, preset.name, f"{preset.name} ({preset.cmd_type})")
+        for preset in (context.scene.fast64.sm64.custom_cmds)
         if preset.cmd_type in allowed_types
     ]
 

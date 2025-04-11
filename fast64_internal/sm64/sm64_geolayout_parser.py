@@ -4,7 +4,7 @@ from ..f3d.f3d_parser import createBlankMaterial, parseF3DBinary
 from ..panels import SM64_Panel
 from .sm64_level_parser import parseLevelAtPointer
 from .sm64_constants import level_pointers, level_enums
-from .sm64_geolayout_bone import enumShadowType, animatableBoneTypes, enumBoneType
+from .sm64_geolayout_bone import enumShadowType, is_bone_animatable, enumBoneType
 from .sm64_geolayout_constants import getGeoLayoutCmdLength, nodeGroupCmds, GEO_BRANCH_STORE
 from .sm64_utility import import_rom_checks
 
@@ -535,11 +535,9 @@ def traverseArmatureForMetarig(armatureObj, boneName, parentName):
     if bpy.app.version >= (4, 0, 0):
         if "Ignore" in bone.collections:
             return
-        nonAnimatableBoneTypes = set([item[0] for item in enumBoneType]) - animatableBoneTypes
-        isAnimatableBone = not any([item in bone.collections for item in nonAnimatableBoneTypes])
-        if isAnimatableBone:
+        if is_bone_animatable(bone):
             processBoneMeta(armatureObj, boneName, parentName)
-        nextParentName = boneName if isAnimatableBone else parentName
+        nextParentName = boneName if is_bone_animatable(bone) else parentName
         bone = armature.bones[boneName]  # re-obtain reference after edit mode changes
         childrenNames = [child.name for child in bone.children]
 

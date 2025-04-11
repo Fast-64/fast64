@@ -137,7 +137,7 @@ class CustomCmd(BaseDisplayListNode):
             case _:
                 raise PluginError(f"Unknown arg type {arg_type}")
 
-    def to_c(self, depth: int = 0, max_length: int = 100) -> str:
+    def to_c(self, depth: int = 0, max_length: int = 150) -> str:
         data = StringIO()
         data.write(self.data["str_cmd"])
         ext = self.data.get("dl_ext")
