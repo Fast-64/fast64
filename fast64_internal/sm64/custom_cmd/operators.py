@@ -10,7 +10,7 @@ from ...utility import copyPropertyGroup
 from .utility import custom_cmd_preset_update, duplicate_name, get_custom_cmd_preset_enum, get_custom_prop
 
 if TYPE_CHECKING:
-    from .properties import SM64_CustomCmdProperties, SM64_CustomCmdArgProperties
+    from .properties import SM64_CustomCmdProperties, SM64_CustomArgProperties
 
 
 class SM64_CustomCmdOps(OperatorBase):
@@ -98,9 +98,9 @@ class SM64_CustomCmdArgsOps(OperatorBase):
         match self.op_name:
             case "ADD":
                 args.add()
-                new_arg: "SM64_CustomCmdArgProperties" = args[-1]
+                new_arg: "SM64_CustomArgProperties" = args[-1]
                 if self.index != -1:
-                    old_arg: "SM64_CustomCmdArgProperties" = args[self.index]
+                    old_arg: "SM64_CustomArgProperties" = args[self.index]
                     copyPropertyGroup(old_arg, new_arg)
                     old_name = old_arg.name
                 else:

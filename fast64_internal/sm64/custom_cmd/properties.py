@@ -61,7 +61,7 @@ def update_internal_number(self: "SM64_CustomNumberProperties", context: Context
     self.set_step_min_max(*self.step_min_max)
 
 
-def update_internal_number_and_check_preset(self: "SM64_CustomCmdArgProperties", context: Context):
+def update_internal_number_and_check_preset(self: "SM64_CustomArgProperties", context: Context):
     update_internal_number(self, context)
     custom_cmd_preset_update(self, context)
 
@@ -160,7 +160,7 @@ class SM64_CustomNumberProperties(PropertyGroup):
             prop_split(col, self, f"{typ}_step", "Step")
 
 
-class SM64_CustomCmdArgProperties(PropertyGroup):
+class SM64_CustomArgProperties(PropertyGroup):
     name: StringProperty(name="Argument Name", default="Name", update=custom_cmd_preset_update)
     arg_type: EnumProperty(
         name="Argument Type",
@@ -555,7 +555,7 @@ class SM64_CustomCmdProperties(PropertyGroup):
     is_animated: BoolProperty(name="Is Animated", update=custom_cmd_preset_update)
 
     args_tab: BoolProperty(default=True)
-    args: CollectionProperty(type=SM64_CustomCmdArgProperties)
+    args: CollectionProperty(type=SM64_CustomArgProperties)
     examples_tab: BoolProperty(default=False)
 
     saved_hash: StringProperty()
@@ -633,7 +633,7 @@ class SM64_CustomCmdProperties(PropertyGroup):
                 data["dl_option"] = self.dl_option
             if self.adds_dl_ext(owner):
                 data["dl_command"] = self.dl_command
-        self.args: list[SM64_CustomCmdArgProperties]
+        self.args: list[SM64_CustomArgProperties]
         data["args"] = [arg.to_dict(conf_type, owner, blender_scale, include_defaults, is_export) for arg in self.args]
         return data
 
@@ -789,7 +789,7 @@ class SM64_CustomCmdProperties(PropertyGroup):
             arg_ops(basic_ops_row, "TRASH", "CLEAR")
 
         if self.args_tab or conf_type == "PRESET":
-            arg: SM64_CustomCmdArgProperties
+            arg: SM64_CustomArgProperties
             for i, arg in enumerate(self.args):
                 if not arg.will_draw(owner, conf_type):
                     continue
@@ -829,7 +829,7 @@ def draw_custom_cmd_presets(sm64_props: "SM64_Properties", layout: UILayout):
 
 classes = (
     SM64_CustomNumberProperties,
-    SM64_CustomCmdArgProperties,
+    SM64_CustomArgProperties,
     SM64_CustomCmdProperties,
 )
 
