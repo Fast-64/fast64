@@ -32,7 +32,7 @@ class ArgExport(NamedTuple):
 @dataclasses.dataclass
 class CustomCmd(BaseDisplayListNode):
     data: dict
-    drawLayer: int | str = 0
+    draw_layer: int | str | None = 0
     hasDL: bool = False
     dlRef: str = None
     name: str = ""
@@ -43,8 +43,28 @@ class CustomCmd(BaseDisplayListNode):
     override_hash: tuple | None = None
 
     def __post_init__(self):
-        self.hasDL = self.data.get("dl_option") != "NONE"
+        self.hasDL &= self.data.get("dl_option") != "NONE"
         self.group_children = self.data.get("group_children", True)
+
+    @property
+    def drawLayer(self):
+        """HACK: drawLayer's default is usually per bone/object, but in the custom cmd system defaults are per argument.
+        We instead store a layer that can be none, and set it to a real value if the setter is called.
+        """
+        if self.draw_layer is None:
+            return 0
+        return self.draw_layer
+
+    @drawLayer.setter
+    def drawLayer(self, value):
+        self.draw_layer = value
+
+    @property
+    def args(self):
+        yield from self.data["args"]
+        ext = self.data.get("dl_ext")
+        if self.hasDL and ext is not None:
+            yield {"name": "Displaylist", "arg_type": "DL"}
 
     def do_export_checks(self, children_count: int):
         name = "" or self.data.get("name") or self.data.get("str_cmd")
@@ -79,7 +99,14 @@ class CustomCmd(BaseDisplayListNode):
                 else:
                     yield ArgExport(data["parameter"], 32)
             case "LAYER":
-                yield ArgExport(int(data["layer"]) if binary else getDrawLayerName(data["layer"]), 8)
+                layer = data["layer"] if self.draw_layer is None or not data.get("inherit", True) else self.draw_layer
+                if binary:
+                    layer = int(data["layer"])
+                    if "dl_ext" in self.data:
+                        layer = (1 << 7) | layer
+                    yield ArgExport(layer, 8)
+                else:
+                    yield ArgExport(getDrawLayerName(layer), 8)
             case "BOOLEAN":
                 yield ArgExport(data["boolean"], 8)
             case "NUMBER":
@@ -100,18 +127,25 @@ class CustomCmd(BaseDisplayListNode):
                 else:
                     yield from (ArgExport(x, 32) for x in rot)
             case "DL":
+                has_dl, dl_ref = self.hasDL, self.dlRef
                 self.hasDL, self.dlRef = True, data.get("dl")
                 if binary:
                     yield ArgExport(encode_seg_addr(self.get_dl_address()), 32)
                 else:
                     yield ArgExport(self.get_dl_name(), 32)
-                self.hasDL, self.dlRef = False, None
+                self.hasDL, self.dlRef = has_dl, dl_ref
             case _:
                 raise PluginError(f"Unknown arg type {arg_type}")
 
     def to_c(self, depth: int = 0, max_length: int = 100) -> str:
+        data = StringIO()
+        data.write(self.data["str_cmd"])
+        ext = self.data.get("dl_ext")
+        if ext is not None and self.hasDL:
+            data.write(f"_{ext}")
+        data.write("(")
         groups = []
-        for i, arg_data in enumerate(self.data["args"]):
+        for i, arg_data in enumerate(self.args):
             group = []
             try:
                 for value, _ in self.to_arg(arg_data):
@@ -127,16 +161,17 @@ class CustomCmd(BaseDisplayListNode):
 
         if len("".join(groups)) > max_length:
             separator = ",\n" + ("\t" * (depth + 1))
-            args = separator.join(groups)
+            data.write(separator.join(groups))
         else:
-            args = ", ".join(groups)
+            data.write(", ".join(groups))
 
-        return f"{self.data['str_cmd']}({args})"
+        data.write(")")
+        return data.getvalue()
 
     def to_binary_groups(self, segment_data: Optional[SegmentData] = None):
         groups = []
         groups.append(("Command Index (𝗔𝘂𝘁𝗼𝗺𝗮𝘁𝗶𝗰)", self.data["int_cmd"].to_bytes(1, "big")))
-        for i, arg_data in enumerate(self.data["args"]):
+        for i, arg_data in enumerate(self.args):
             name = arg_data.get("name", f"Arg {i}")
             try:
                 group = bytearray(0)
@@ -162,15 +197,15 @@ class CustomCmd(BaseDisplayListNode):
     def to_binary(self, segment_data: Optional[SegmentData] = None):
         return bytearray(b for _, data in self.to_binary_groups(segment_data) for b in data)
 
-    def size(self):
-        return sum(len(data) for _, data in self.to_binary_groups())
+    def size(self, segment_data: Optional[SegmentData] = None):
+        return sum(len(data) for _, data in self.to_binary_groups(segment_data))
 
     def get_ptr_offsets(self):
         return []
 
     def to_text_dump(self, segment_data: Optional[SegmentData] = None):
         data = StringIO()
-        data.write(f"Size: {self.size()} bytes.")
+        data.write(f"Size: {self.size(segment_data)} bytes.")
         if segment_data is None:
             data.write("\nNo segment range provided, won't encode to a respective segment")
         for name, bytes in self.to_binary_groups(segment_data):

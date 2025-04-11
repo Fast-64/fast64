@@ -126,7 +126,7 @@ class BaseDisplayListNode:
     bleed_independently = False  # base behavior, can be changed with obj boolProp
 
     def get_dl_address(self):
-        if self.dlRef is not None:
+        if self.hasDL and self.dlRef is not None:
             value = math_eval(self.dlRef, object())
             if not isinstance(value, int):
                 raise PluginError(f'Displaylist reference "{self.dlRef}" is not a valid address.')

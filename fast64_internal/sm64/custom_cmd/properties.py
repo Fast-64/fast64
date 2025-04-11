@@ -549,6 +549,7 @@ class SM64_CustomCmdProperties(PropertyGroup):
 
     args_tab: BoolProperty(default=True)
     args: CollectionProperty(type=SM64_CustomCmdArgProperties)
+    examples_tab: BoolProperty(default=False)
 
     saved_hash: StringProperty()
     locked: BoolProperty()
@@ -589,7 +590,7 @@ class SM64_CustomCmdProperties(PropertyGroup):
                     data["group_children"] = self.group_children
                 data["is_animated"] = self.is_animated
                 data["dl_option"] = self.dl_option
-                if self.dl_option == "Optional":
+                if self.dl_option == "OPTIONAL":
                     if self.add_dl_ext:
                         data["dl_ext"] = self.dl_ext
         self.args: list[SM64_CustomCmdArgProperties]
@@ -633,11 +634,11 @@ class SM64_CustomCmdProperties(PropertyGroup):
         self,
         owner: Optional[AvailableOwners],
         blender_scale: float,
-        layer: str | int = 0,
+        layer: Optional[str | int] = None,
         has_dl=False,
-        dl_ref: str | None = None,
+        dl_ref: Optional[str] = None,
         name="",
-        conf_type: CustomCmdConf | None = None,
+        conf_type: Optional[CustomCmdConf] = None,
     ):
         if conf_type is None:
             conf_type = "NO_PRESET" if self.preset == "NONE" else "PRESET"
@@ -656,6 +657,46 @@ class SM64_CustomCmdProperties(PropertyGroup):
         macro_define += f"{joined_args}) \\\n"
         macro_define += "\t(/* Your code goes here */)"
         return macro_define
+
+    def draw_examples(
+        self,
+        layout: UILayout,
+        owner: Optional[AvailableOwners],
+        conf_type: CustomCmdConf,
+        blender_scale: float,
+        is_binary=False,
+        command_index=0,
+    ):
+        col = layout.column()
+        cmd_examples = {"Without DL": self.get_final_cmd(owner, blender_scale, has_dl=False, conf_type=conf_type)}
+        if self.dl_option == "OPTIONAL" and self.add_dl_ext:
+            cmd_examples["With DL"] = self.get_final_cmd(owner, blender_scale, has_dl=True, conf_type=conf_type)
+        try:
+            for name, cmd in cmd_examples.items():
+                box = col.box().column()
+                if len(cmd_examples) > 1:
+                    box.label(text=name)
+                if is_binary:
+                    multilineLabel(box, cmd.to_text_dump())
+                else:
+                    multilineLabel(
+                        box,
+                        cmd.to_c(max_length=25).replace("\t", " " * 5),
+                    )
+        except Exception as exc:
+            multilineLabel(box, f"Error: {exc}")
+        if is_binary:
+            pass
+        else:
+            example_macro_box = col.box().column()
+            SM64_CustomCmdOps.draw_props(
+                example_macro_box,
+                "COPYDOWN",
+                "Copy example to clipboard",
+                op_name="COPY_EXAMPLE",
+                index=command_index,
+            )
+            multilineLabel(example_macro_box, self.example_macro_define(conf_type, 25).replace("\t", " " * 5))
 
     def draw_props(
         self,
@@ -704,10 +745,8 @@ class SM64_CustomCmdProperties(PropertyGroup):
                     row.prop(self, "add_dl_ext")
                     if self.add_dl_ext:
                         row.prop(self, "dl_ext", text="")
-            args_col = col.box().column()
-        else:
-            args_col = col.column()  # don't box the arguments in preset mode
 
+        args_col = col.column()
         if conf_type != "PRESET" and draw_and_check_tab(
             args_col, self, "args_tab", text=f"Arguments ({len(self.args)})"
         ):
@@ -735,32 +774,8 @@ class SM64_CustomCmdProperties(PropertyGroup):
                     arg_ops(ops_row, "TRIA_UP", "MOVE_UP", i)
                 arg.draw_props(ops_row, args_col, owner, self.cmd_type, conf_type, is_binary)
 
-        if conf_type == "PRESET":
-            return
-        cmd = self.get_final_cmd(owner, blender_scale, conf_type=conf_type)
-        try:
-            box = col.box()
-            if is_binary:
-                multilineLabel(box, cmd.to_text_dump())
-            else:
-                multilineLabel(
-                    box,
-                    cmd.to_c(max_length=25).replace("\t", " " * 5),
-                )
-        except Exception as exc:
-            multilineLabel(box, f"Error: {exc}")
-        if is_binary:
-            pass
-        else:
-            example_macro_box = col.box().column()
-            SM64_CustomCmdOps.draw_props(
-                example_macro_box,
-                "COPYDOWN",
-                "Copy example to clipboard",
-                op_name="COPY_EXAMPLE",
-                index=command_index,
-            )
-            multilineLabel(example_macro_box, self.example_macro_define(conf_type, 25).replace("\t", " " * 5))
+        if conf_type != "PRESET" and draw_and_check_tab(col, self, "examples_tab", text="Examples"):
+            self.draw_examples(col, owner, conf_type, blender_scale, is_binary, command_index)
 
 
 def draw_custom_cmd_presets(sm64_props: "SM64_Properties", layout: UILayout):

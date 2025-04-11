@@ -1772,7 +1772,7 @@ def processBone(
             node = StartRenderAreaNode(bone.culling_radius)
         elif bone.geo_cmd == "Custom":
             node = bone.fast64.sm64.custom.get_final_cmd(
-                bone, bpy.context.scene.fast64.sm64.blender_to_sm64_scale, int(bone.draw_layer), hasDL
+                bone, bpy.context.scene.fast64.sm64.blender_to_sm64_scale, None, hasDL
             )
         else:
             raise PluginError("Invalid geometry command: " + bone.geo_cmd)
