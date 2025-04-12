@@ -1,10 +1,10 @@
 import dataclasses
-from io import StringIO
 import struct
+from io import StringIO
 from typing import Iterable, NamedTuple, Optional, TypeVar, Union
 
 from ...f3d.f3d_parser import math_eval
-from ...utility import PluginError, exportColor, to_s16, encodeSegmentedAddr
+from ...utility import PluginError, get_clean_color, to_s16, encodeSegmentedAddr
 
 from ..sm64_constants import SegmentData
 from ..sm64_geolayout_utility import BaseDisplayListNode
@@ -15,6 +15,8 @@ T = TypeVar("T")
 
 
 def flatten(iterable: Iterable[T]) -> tuple[T]:
+    if not isinstance(iterable, Iterable) or isinstance(iterable, str):
+        return (iterable,)
     flat = []
     for x in iterable:
         if isinstance(x, Iterable):
@@ -27,6 +29,11 @@ def flatten(iterable: Iterable[T]) -> tuple[T]:
 class ArgExport(NamedTuple):
     value: float | int | bool | str
     bit_count: int
+
+
+class ValueHolder:
+    def __init__(self, value):
+        self.x = value
 
 
 @dataclasses.dataclass
@@ -84,60 +91,74 @@ class CustomCmd(BaseDisplayListNode):
                 return addr.to_bytes(4, "big")
             encodeSegmentedAddr(addr, segment_data)
 
+        def run_eval(value, bit_count=32):
+            for value in flatten(value):
+                if (
+                    (not self.data["skip_eval"] or binary)
+                    and isinstance(value, (int, float, complex))
+                    and not isinstance(value, bool)
+                    and "eval_expression" in data
+                ):
+                    yield ArgExport(math_eval(data["eval_expression"], ValueHolder(value)), bit_count)
+                else:
+                    yield ArgExport(value, bit_count)
+
         arg_type = data.get("arg_type")
         to_sm64_units = data.get("convert_to_sm64", True)
         match arg_type:
             case "COLOR":
-                yield from (ArgExport(x, 8) for x in exportColor(data["color"], True))
+                yield from run_eval(get_clean_color(data["color"], True), 8)
             case "PARAMETER":
                 if binary:
                     value = math_eval(data["parameter"], object())
                     if isinstance(value, str):
                         raise PluginError("Strings not supported in binary")
-                    yield ArgExport(value, 32)
+                    yield from run_eval(value, 32)
                 else:
-                    yield ArgExport(data["parameter"], 32)
+                    yield from run_eval(data["parameter"], 32)
             case "ENUM":
+                if data["enum"] >= len(data["enum_options"]):
+                    raise PluginError("Enum out of range")
                 option = data["enum_options"][data["enum"]]
                 if binary:
-                    yield ArgExport(option["int_value"], 32)
+                    yield from run_eval(option["int_value"], 32)
                 else:
-                    yield ArgExport(option["str_value"], 32)
+                    yield from run_eval(option["str_value"], 32)
             case "LAYER":
                 layer = data["layer"] if self.draw_layer is None or not data.get("inherit", True) else self.draw_layer
                 if binary:
                     layer = int(data["layer"])
                     if "dl_command" in self.data:
                         layer = (1 << 7) | layer
-                    yield ArgExport(layer, 8)
+                    yield from run_eval(layer, 8)
                 else:
-                    yield ArgExport(getDrawLayerName(layer), 8)
+                    yield from run_eval(getDrawLayerName(layer), 8)
             case "BOOLEAN":
-                yield ArgExport(data["boolean"], 8)
+                yield from run_eval(data["boolean"], 8)
             case "NUMBER":
-                yield ArgExport(data["value"], 32)
+                yield from run_eval(data["value"], 32)
             case "TRANSLATION":
                 translation = data["translation"]
                 if to_sm64_units:
-                    yield from (ArgExport(round(x), 16) for x in translation)
+                    yield from run_eval((round(x) for x in translation), 16)
                 else:
-                    yield from (ArgExport(x, 32) for x in translation)
+                    yield from run_eval((x for x in translation), 32)
             case "SCALE" | "MATRIX":
-                yield from (ArgExport(x, 32) for x in flatten(data.get(arg_type.lower())))
+                yield from run_eval(data.get(arg_type.lower()), 32)
             case "ROTATION":
                 rot_type = data["rot_type"]
                 rot = flatten(data.get(rot_type.lower()))
                 if to_sm64_units and rot_type == "EULER":
-                    yield from (ArgExport(to_s16((x) % 360.0 / 360.0 * (2**16)), 16) for x in rot)
+                    yield from run_eval((to_s16((x) % 360.0 / 360.0 * (2**16)) for x in rot), 16)
                 else:
-                    yield from (ArgExport(x, 32) for x in rot)
+                    yield from run_eval(rot, 32)
             case "DL":
                 has_dl, dl_ref = self.hasDL, self.dlRef
                 self.hasDL, self.dlRef = True, data.get("dl")
                 if binary:
-                    yield ArgExport(encode_seg_addr(self.get_dl_address()), 32)
+                    yield from run_eval(encode_seg_addr(self.get_dl_address()), 32)
                 else:
-                    yield ArgExport(self.get_dl_name(), 32)
+                    yield from run_eval(self.get_dl_name(), 32)
                 self.hasDL, self.dlRef = has_dl, dl_ref
             case _:
                 raise PluginError(f"Unknown arg type {arg_type}")

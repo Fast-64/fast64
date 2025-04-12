@@ -1779,6 +1779,10 @@ binOps = {
     ast.BitOr: operator.or_,
     ast.BitAnd: operator.and_,
     ast.BitXor: operator.xor,
+    ast.Pow: operator.pow,
+    ast.FloorDiv: operator.floordiv,
+    ast.USub: operator.neg,
+    ast.UAdd: lambda a: a,
 }
 
 

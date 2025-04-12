@@ -256,9 +256,22 @@ class SM64_CustomArgProperties(PropertyGroup):
         or [("0", "Invalid", "Invalid")],
     )
 
+    eval_expression: StringProperty(
+        name="Eval Expression",
+        default="",
+        description="Apply a limited math expression to the values of this argument group, as seen in scale nodes.\nLeave empty to skip this step",
+    )
+
     @property
     def is_transform(self):
         return self.arg_type in {"MATRIX", "TRANSLATION", "ROTATION", "SCALE"}
+
+    def show_eval_expression(self, custom_cmd: "SM64_CustomCmdProperties", is_binary: bool):
+        if is_binary:
+            return True
+        if custom_cmd.skips_eval(is_binary):
+            return False
+        return self.arg_type not in {"PARAMETER", "BOOLEAN", "ENUM", "LAYER", "DL"}
 
     def can_inherit(self, owner: Optional[AvailableOwners]):
         """Scene still includes all, the inherented property will be defaults, like identity matrix"""
@@ -354,6 +367,8 @@ class SM64_CustomArgProperties(PropertyGroup):
                 defaults["inherit"] = self.inherit
             elif self.can_inherit(owner):
                 data["inherit"] = self.inherit
+            if self.eval_expression:
+                data["eval_expression"] = self.eval_expression
         if self.show_segmented_toggle(owner, conf_type):
             data["seg_addr"] = self.seg_addr
         match self.arg_type:
@@ -394,6 +409,7 @@ class SM64_CustomArgProperties(PropertyGroup):
         self.name = data.get("name", f"Arg {index}")
         self.arg_type = data.get("arg_type", "PARAMETER")
         self.inherit = data.get("inherit", True)
+        self.eval_expression = data.get("eval_expression", "")
         self.relative = data.get("relative", True)
         self.convert_to_sm64 = data.get("convert_to_sm64", True)
         self.rot_type = data.get("rot_type", "EULER")
@@ -508,7 +524,7 @@ class SM64_CustomArgProperties(PropertyGroup):
         arg_row: UILayout,
         layout: UILayout,
         owner: Optional[AvailableOwners],
-        _cmd_type: str,
+        custom_cmd: "SM64_CustomCmdProperties",
         command_index: int,
         conf_type: CustomCmdConf = "NO_PRESET",
         is_binary=False,
@@ -553,6 +569,8 @@ class SM64_CustomArgProperties(PropertyGroup):
                 elif hasattr(self, self.arg_type.lower()):
                     name_split.prop(self, self.arg_type.lower(), text="")
 
+        if conf_type != "PRESET" and self.show_eval_expression(custom_cmd, is_binary):
+            prop_split(col, self, "eval_expression", "Expression")
         if is_binary and self.show_segmented_toggle(owner, conf_type):
             col.prop(self, "seg_addr")
 
@@ -589,6 +607,12 @@ class SM64_CustomCmdProperties(PropertyGroup):
     )
     str_cmd: StringProperty(name="Command", default="CUSTOM_CMD", update=custom_cmd_preset_update)
     int_cmd: IntProperty(name="Command", default=0, update=custom_cmd_preset_update)
+    skip_eval: BoolProperty(
+        name="Skip Eval",
+        description="Skip evaluating values outside binary",
+        default=True,
+        update=custom_cmd_preset_update,
+    )
 
     # Geo
     children_requirements: EnumProperty(
@@ -678,6 +702,11 @@ class SM64_CustomCmdProperties(PropertyGroup):
             return "Geo"
         return self.cmd_type
 
+    def skips_eval(self, is_binary: bool):
+        if is_binary:
+            return False
+        return self.skip_eval
+
     def can_animate(self, owner: Optional[AvailableOwners] = None):
         return self.get_cmd_type(owner) == "Geo" and isinstance(owner, Bone)
 
@@ -705,6 +734,7 @@ class SM64_CustomCmdProperties(PropertyGroup):
                     "cmd_type": self.get_cmd_type(owner),
                     "str_cmd": self.str_cmd,
                     "int_cmd": self.int_cmd,
+                    "skip_eval": self.skip_eval,
                 }
             )
             if can_have_mesh(owner):
@@ -728,6 +758,7 @@ class SM64_CustomCmdProperties(PropertyGroup):
             self.cmd_type = data.get("cmd_type", "Level")
             self.str_cmd = data.get("str_cmd", "CUSTOM_COMMAND")
             self.int_cmd = data.get("int_cmd", 0)
+            self.skip_eval = data.get("skip_eval", True)
             self.children_requirements = data.get("children_requirements", "ANY")
             self.group_children = data.get("group_children", True)
             self.dl_option = data.get("dl_option", "NONE")
@@ -844,6 +875,8 @@ class SM64_CustomCmdProperties(PropertyGroup):
             if not isinstance(owner, Bone):  # bone is always Geo
                 prop_split(col, self, "cmd_type", "Type")
             prop_split(col, self, "int_cmd" if is_binary else "str_cmd", "Command")
+            if not is_binary and conf_type != "NO_PRESET":
+                col.prop(self, "skip_eval")
             col.separator()
 
             if self.can_have_mesh(owner):
@@ -874,7 +907,7 @@ class SM64_CustomCmdProperties(PropertyGroup):
                     num_row.alignment = "LEFT"
                     num_row.label(text=str(i))
                     SM64_CustomArgsOps.draw_row(ops_row, i, command_index=command_index)
-                arg.draw_props(ops_row, col, owner, self.cmd_type, command_index, conf_type, is_binary)
+                arg.draw_props(ops_row, col, owner, self, command_index, conf_type, is_binary)
                 if conf_type != "PRESET":
                     col.separator(factor=1.0)
 
