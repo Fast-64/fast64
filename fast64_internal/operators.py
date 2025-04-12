@@ -111,7 +111,7 @@ class CollectionOperatorBase(OperatorBase):
         return old_arg, new_arg
 
     def execute_operator(self, context: Context):
-        collection = self.collection(context, self.properties)
+        collection = self.__class__.collection(context, self.properties)
         match self.op_name:
             case "ADD":
                 self.add(context, collection)

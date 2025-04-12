@@ -47,9 +47,9 @@ def get_custom_prop(context: Context):
     if isinstance(context.space_data, SpaceView3D):
         return CustomContext(None, context.scene)
     else:
-        if context.bone is not None:
+        if hasattr(context, "bone") and context.bone is not None:
             return CustomContext(context.bone.fast64.sm64.custom, context.bone)
-        if context.object is not None:
+        if hasattr(context, "object") and context.object is not None:
             return CustomContext(context.object.fast64.sm64.custom, context.object)
     return CustomContext(None, None)
 

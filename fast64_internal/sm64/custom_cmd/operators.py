@@ -67,23 +67,27 @@ class SM64_CustomCmdOps(OperatorBase):
         custom_cmd_preset_update(self, context)
 
 
+def get_args(context: Context, command_index: int) -> Iterable["SM64_CustomArgProperties"]:
+    owner = get_custom_prop(context).owner
+    if isinstance(owner, Scene):
+        return context.scene.fast64.sm64.custom_cmds[command_index].args
+    elif owner is not None:
+        return owner.fast64.sm64.custom.args
+    else:
+        raise PluginError("Invalid context")
+
+
 class SM64_CustomArgsOps(CollectionOperatorBase):
     bl_idname = "scene.sm64_custom_args_ops"
-    bl_label = ""
     bl_description = "Remove or add args to a custom command"
+    bl_label = ""
     bl_options = {"UNDO"}
 
     command_index: IntProperty(default=0)  # for scene command presets
 
     @classmethod
-    def collection(cls, context: Context, op_values: dict) -> Iterable["SM64_CustomArgProperties"]:
-        owner = get_custom_prop(context).owner
-        if isinstance(owner, Scene):
-            return context.scene.fast64.sm64.custom_cmds[op_values.get("command_index", 0)].args
-        elif owner is not None:
-            return owner.fast64.sm64.custom.args
-        else:
-            raise PluginError("Invalid context")
+    def collection(cls, context: Context, op_values: dict):
+        return get_args(context, op_values.get("command_index", 0))
 
     def add(self, context: Context, collection: Iterable["SM64_CustomArgProperties"]):
         old, new = super().add(context, collection)
@@ -102,15 +106,18 @@ class SM64_CustomArgsOps(CollectionOperatorBase):
         custom_cmd_preset_update(self, context)
 
 
-class SM64_CustomEnumOps(SM64_CustomArgsOps):
+class SM64_CustomEnumOps(CollectionOperatorBase):
     bl_idname = "scene.sm64_custom_enum_ops"
     bl_description = "Remove or add enum options to a custom arg"
+    bl_label = ""
+    bl_options = {"UNDO"}
 
+    command_index: IntProperty(default=0)  # for scene command presets
     arg_index: IntProperty(default=0)
 
     @classmethod
     def collection(cls, context: Context, op_values: dict) -> Iterable["SM64_CustomEnumProperties"]:
-        args = super().collection(context, op_values)
+        args = get_args(context, op_values.get("command_index", 0))
         return args[op_values.get("arg_index", 0)].enum_options
 
     def add(self, context: Context, collection: Iterable["SM64_CustomArgProperties"]):
@@ -136,8 +143,8 @@ class SM64_SearchCustomCmds(SearchEnumOperatorBase):
 
 classes = (
     SM64_CustomEnumOps,
-    SM64_CustomCmdOps,
     SM64_CustomArgsOps,
+    SM64_CustomCmdOps,
     SM64_SearchCustomCmds,
 )
 
