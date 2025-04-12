@@ -188,6 +188,10 @@ class SM64_CustomEnumProperties(PropertyGroup):
         prop_split(layout, self, "int_value" if is_binary else "str_value", "Value")
 
 
+def can_have_mesh(owner: Optional[AvailableOwners]):
+    return (isinstance(owner, Object) and owner.type == "MESH") or isinstance(owner, Bone) or owner is None
+
+
 class SM64_CustomArgProperties(PropertyGroup):
     name: StringProperty(name="Name", default="Argument Name", update=custom_cmd_preset_update)
     arg_type: EnumProperty(
@@ -264,7 +268,7 @@ class SM64_CustomArgProperties(PropertyGroup):
             valid_types.add("SCALE")
         if is_mesh or owner is None:
             valid_types.add("LAYER")
-        if is_mesh or isinstance(owner, Bone) or owner is None:
+        if can_have_mesh(owner):
             valid_types.add("DL")
         return self.arg_type in valid_types
 
@@ -579,7 +583,7 @@ class SM64_CustomCmdProperties(PropertyGroup):
         items=[
             ("Level", "Level", "Level script Command"),
             ("Geo", "Geo", "Geolayout Command"),
-            ("Special", "Special", "Collision Command"),
+            ("Collision", "Collision", "Collision Command"),
         ],
         update=custom_cmd_preset_update,
     )
@@ -674,8 +678,14 @@ class SM64_CustomCmdProperties(PropertyGroup):
             return "Geo"
         return self.cmd_type
 
+    def can_animate(self, owner: Optional[AvailableOwners] = None):
+        return self.get_cmd_type(owner) == "Geo" and isinstance(owner, Bone)
+
+    def can_have_mesh(self, owner: Optional[AvailableOwners] = None):
+        return self.get_cmd_type(owner) == "Geo" and can_have_mesh(owner)
+
     def adds_dl_ext(self, owner: Optional[AvailableOwners] = None):
-        return self.get_cmd_type(owner) == "Geo" and self.dl_option == "OPTIONAL" and self.use_dl_cmd
+        return self.can_have_mesh(owner) and self.dl_option == "OPTIONAL" and self.use_dl_cmd
 
     def to_dict(
         self,
@@ -697,13 +707,14 @@ class SM64_CustomCmdProperties(PropertyGroup):
                     "int_cmd": self.int_cmd,
                 }
             )
-            if self.get_cmd_type(owner) == "Geo":
+            if can_have_mesh(owner):
                 if conf_type == "PRESET_EDIT" or preset_export:
                     data["children_requirements"] = self.children_requirements
                 if data.get("children_requirements") != "NONE":
                     data["group_children"] = self.group_children
-                data["is_animated"] = self.is_animated
                 data["dl_option"] = self.dl_option
+            if self.can_animate(owner):
+                data["is_animated"] = self.is_animated
             if self.adds_dl_ext(owner):
                 data["dl_command"] = self.dl_command
         self.args: list[SM64_CustomArgProperties]
@@ -749,7 +760,7 @@ class SM64_CustomCmdProperties(PropertyGroup):
         macro_define.write(f"// {self.name}\n")
         macro_define.write("#define ")
         macro_define.write(self.dl_command if use_dl_cmd else self.str_cmd)
-        macro_define.write("( ")
+        macro_define.write("(")
         previous_arg_names = set()
         macro_args = [arg.example_macro_args(self, previous_arg_names, conf_type) for arg in self.args]
         if use_dl_cmd:
@@ -835,7 +846,7 @@ class SM64_CustomCmdProperties(PropertyGroup):
             prop_split(col, self, "int_cmd" if is_binary else "str_cmd", "Command")
             col.separator()
 
-            if self.get_cmd_type(owner) == "Geo":
+            if self.can_have_mesh(owner):
                 if conf_type == "PRESET_EDIT":
                     prop_split(col, self, "children_requirements", "Children Requirements")
                 if conf_type != "PRESET_EDIT" or self.children_requirements != "NONE":
@@ -846,6 +857,7 @@ class SM64_CustomCmdProperties(PropertyGroup):
                     row.prop(self, "use_dl_cmd")
                     if self.use_dl_cmd:
                         row.prop(self, "dl_command", text="")
+            if self.can_animate(owner):
                 col.prop(self, "is_animated")
 
         if conf_type != "PRESET" and draw_and_check_tab(col, self, "args_tab", text=f"Arguments ({len(self.args)})"):

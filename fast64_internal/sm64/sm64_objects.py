@@ -817,7 +817,7 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
             elif obj.sm64_obj_type == "Water Box":
                 checkIdentityRotation(obj, rotation.to_quaternion(), False)
                 area.water_boxes.append(CollisionWaterBox(obj.waterBoxType, translation, scale, obj.empty_display_size))
-            elif obj.sm64_obj_type == "Custom" and obj_props.custom.cmd_type == "Special":
+            elif obj.sm64_obj_type == "Custom" and obj_props.custom.cmd_type == "Collision":
                 area.specials.append(
                     obj_props.custom.get_final_cmd(obj, bpy.context.scene.fast64.sm64.blender_to_sm64_scale)
                 )
