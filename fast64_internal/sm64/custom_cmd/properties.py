@@ -18,6 +18,7 @@ from bpy.types import Object, Bone, UILayout, Context, PropertyGroup
 
 from ...utility import (
     Matrix4x4Property,
+    PluginError,
     draw_and_check_tab,
     get_first_set_prop,
     multilineLabel,
@@ -30,7 +31,7 @@ from ...f3d.f3d_material import sm64EnumDrawLayers
 from ..sm64_constants import MIN_S32, MAX_S32
 
 from .exporting import CustomCmd
-from .operators import SM64_CustomCmdArgsOps, SM64_CustomCmdOps, SM64_SearchCustomCmds
+from .operators import SM64_CustomArgsOps, SM64_CustomCmdOps, SM64_CustomEnumOps, SM64_SearchCustomCmds
 from .utility import (
     AvailableOwners,
     CustomCmdConf,
@@ -160,15 +161,43 @@ class SM64_CustomNumberProperties(PropertyGroup):
             prop_split(col, self, f"{typ}_step", "Step")
 
 
+class SM64_CustomEnumProperties(PropertyGroup):
+    name: StringProperty(name="Name", default="Enum Name")
+    description: StringProperty(name="Description", default="Description")
+    str_value: StringProperty(name="Value", default="ENUM_NAME")
+    int_value: IntProperty(name="Value", default=0)
+
+    def enum_tuple(self, i: int):
+        return (str(i), self.name, self.description.replace("\\n", "\n"))
+
+    def to_dict(self):
+        return {
+            "name": self.name,
+            "description": self.description.replace("\\n", "\n"),
+            "str_value": self.str_value,
+            "int_value": self.int_value,
+        }
+
+    def from_dict(self, data: dict):
+        self.name, self.description = data.get("name", "Name"), data.get("description", "Description")
+        self.str_value, self.int_value = data.get("str_value", "ENUM_NAME"), data.get("int_value", 0)
+
+    def draw_props(self, layout: UILayout, op_row: UILayout, is_binary=False):
+        op_row.prop(self, "name", text="")
+        layout.prop(self, "description")
+        prop_split(layout, self, "int_value" if is_binary else "str_value", "Value")
+
+
 class SM64_CustomArgProperties(PropertyGroup):
-    name: StringProperty(name="Argument Name", default="Name", update=custom_cmd_preset_update)
+    name: StringProperty(name="Name", default="Argument Name", update=custom_cmd_preset_update)
     arg_type: EnumProperty(
-        name="Argument Type",
+        name="Type",
         items=[
             ("PARAMETER", "Parameter", "Parameter"),
             ("BOOLEAN", "Boolean", "Boolean"),
             ("NUMBER", "Number", "Number"),
             ("COLOR", "Color", "Color"),
+            ("ENUM", "Enum", "Enum"),
             ("", "Transforms", ""),
             ("TRANSLATION", "Translation", "Translation"),
             ("ROTATION", "Rotation", "Rotation"),
@@ -214,6 +243,14 @@ class SM64_CustomArgProperties(PropertyGroup):
     axis_angle: FloatVectorProperty(name="Axis Angle", size=4, default=((1.0), 0.0, 0.0, 0.0), subtype="AXISANGLE")
     matrix: PointerProperty(type=Matrix4x4Property)
     dl: StringProperty(name="Displaylist", default="breakable_box_seg8_dl_cork_box")
+
+    enum_tab: BoolProperty(name="Enum Options", default=False)
+    enum_options: CollectionProperty(type=SM64_CustomEnumProperties, name="Options")
+    enum_option: EnumProperty(
+        name="Enum Option",
+        items=lambda self, _context: [e.enum_tuple(i) for i, e in enumerate(self.enum_options)]
+        or [("0", "Invalid", "Invalid")],
+    )
 
     @property
     def is_transform(self):
@@ -320,6 +357,9 @@ class SM64_CustomArgProperties(PropertyGroup):
                 number_data, number_defaults = self.number.to_dict(conf_type)
                 defaults.update(number_defaults)
                 data.update(number_data)
+            case "ENUM":
+                defaults["enum"] = int(self.enum_option)
+                data["enum_options"] = tuple(option.to_dict() for option in self.enum_options)
             case "COLOR":
                 defaults["color"] = tuple(self.color)
             case _:
@@ -353,6 +393,10 @@ class SM64_CustomArgProperties(PropertyGroup):
         self.relative = data.get("relative", True)
         self.convert_to_sm64 = data.get("convert_to_sm64", True)
         self.rot_type = data.get("rot_type", "EULER")
+        self.enum_options.clear()
+        for option in data.get("enum_options", []):
+            self.enum_options.add()
+            self.enum_options[-1].from_dict(option)
         self.seg_addr = data.get("seg_addr", True)
         if not set_defaults:
             return
@@ -360,6 +404,7 @@ class SM64_CustomArgProperties(PropertyGroup):
         if not defaults:
             defaults = data
         self.number.from_dict(data, defaults, set_defaults)
+        self.enum_option = str(defaults.get("enum", 0))
         self.translation_scale = defaults.get("translation", None) or defaults.get("scale", None) or [0, 0, 0]
         self.euler = [math.radians(x) for x in defaults.get("euler", [0, 0, 0])]
         self.quaternion = defaults.get("quaternion", [1, 0, 0, 0])
@@ -399,8 +444,10 @@ class SM64_CustomArgProperties(PropertyGroup):
                 return add_name(["_x", "_y", "_z"])
             case "COLOR":
                 return add_name(["_r", "_g", "_b", "_a"])
-            case "PARAMETER" | "LAYER" | "BOOLEAN" | "NUMBER" | "DL":
+            case "PARAMETER" | "LAYER" | "BOOLEAN" | "NUMBER" | "DL" | "ENUM":
                 return add_name([""])
+            case _:
+                raise PluginError(f"Unknown arg type {self.arg_type}")
 
     def draw_transforms(
         self,
@@ -430,12 +477,35 @@ class SM64_CustomArgProperties(PropertyGroup):
             elif self.arg_type == "MATRIX":
                 self.matrix.draw_props(col)
 
+    def draw_enum(
+        self,
+        name_split: UILayout,
+        layout: UILayout,
+        command_index: int,
+        conf_type: CustomCmdConf = "NO_PRESET",
+        is_binary=False,
+    ):
+        name_split.prop(self, "enum_option", text="")
+        if conf_type == "PRESET":
+            return
+        col = layout.column()
+        options_box = col.box().column()
+        if not draw_and_check_tab(options_box, self, "enum_tab"):
+            return
+        SM64_CustomEnumOps.draw_row(options_box.row(), -1, command_index=command_index)
+        option: SM64_CustomEnumProperties
+        for i, option in enumerate(self.enum_options):
+            op_row = options_box.row()
+            option.draw_props(options_box, op_row, is_binary)
+            SM64_CustomEnumOps.draw_row(op_row, i, command_index=command_index)
+
     def draw_props(
         self,
         arg_row: UILayout,
         layout: UILayout,
         owner: Optional[AvailableOwners],
         _cmd_type: str,
+        command_index: int,
         conf_type: CustomCmdConf = "NO_PRESET",
         is_binary=False,
     ):
@@ -466,6 +536,8 @@ class SM64_CustomArgProperties(PropertyGroup):
         match self.arg_type:
             case "NUMBER":
                 self.number.draw_props(name_split, col, conf_type)
+            case "ENUM":
+                self.draw_enum(name_split, col, command_index, conf_type, is_binary)
             case "LAYER" | "DL":
                 if inherit and conf_type == "PRESET_EDIT":
                     inherit_info.label(text="Not supported in object empties.", icon="INFO")
@@ -476,6 +548,7 @@ class SM64_CustomArgProperties(PropertyGroup):
                     self.draw_transforms(name_split, inherit_info, col, owner, conf_type)
                 elif hasattr(self, self.arg_type.lower()):
                     name_split.prop(self, self.arg_type.lower(), text="")
+
         if is_binary and self.show_segmented_toggle(owner, conf_type):
             col.prop(self, "seg_addr")
 
@@ -500,7 +573,7 @@ class SM64_CustomCmdProperties(PropertyGroup):
 
     tab: BoolProperty(default=False)
     preset: EnumProperty(items=get_custom_cmd_preset_enum, update=custom_cmd_change_preset)
-    name: StringProperty(name="Name", default="Custom Command", update=custom_cmd_preset_update)
+    name: StringProperty(name="Name", default="Custom Command Name", update=custom_cmd_preset_update)
     cmd_type: EnumProperty(
         name="Type",
         items=[
@@ -674,7 +747,7 @@ class SM64_CustomCmdProperties(PropertyGroup):
     def example_macro_define(self, conf_type: CustomCmdConf = "NO_PRESET", use_dl_cmd=False, max_len=100):
         macro_define = StringIO()
         macro_define.write(f"// {self.name}\n")
-        macro_define.write(f"#define ")
+        macro_define.write("#define ")
         macro_define.write(self.dl_command if use_dl_cmd else self.str_cmd)
         macro_define.write("( ")
         previous_arg_names = set()
@@ -744,11 +817,6 @@ class SM64_CustomCmdProperties(PropertyGroup):
         blender_scale=100.0,
         command_index=-1,
     ):
-        def arg_ops(layout: UILayout, icon: str, op_name: str, index=-1):
-            SM64_CustomCmdArgsOps.draw_props(
-                layout, icon, "", op_name=op_name, index=index, command_index=command_index
-            )
-
         col = layout.column()
         if self.preset != "NONE":
             conf_type = "PRESET"
@@ -780,33 +848,23 @@ class SM64_CustomCmdProperties(PropertyGroup):
                         row.prop(self, "dl_command", text="")
                 col.prop(self, "is_animated")
 
-        args_col = col.column()
-        if conf_type != "PRESET" and draw_and_check_tab(
-            args_col, self, "args_tab", text=f"Arguments ({len(self.args)})"
-        ):
-            basic_ops_row = args_col.row()
-            arg_ops(basic_ops_row, "ADD", "ADD")
-            arg_ops(basic_ops_row, "TRASH", "CLEAR")
+        if conf_type != "PRESET" and draw_and_check_tab(col, self, "args_tab", text=f"Arguments ({len(self.args)})"):
+            SM64_CustomArgsOps.draw_row(col.row(), -1, command_index=command_index)
 
         if self.args_tab or conf_type == "PRESET":
             arg: SM64_CustomArgProperties
             for i, arg in enumerate(self.args):
                 if not arg.will_draw(owner, conf_type):
                     continue
-                if conf_type == "PRESET":
-                    ops_row = args_col.row()
-                else:
-                    if i != 0:
-                        args_col.separator(factor=0.5)
-                    ops_row = args_col.row()
+                ops_row = col.row()
+                if conf_type != "PRESET":
                     num_row = ops_row.row()
                     num_row.alignment = "LEFT"
                     num_row.label(text=str(i))
-                    arg_ops(ops_row, "ADD", "ADD", i)
-                    arg_ops(ops_row, "REMOVE", "REMOVE", i)
-                    arg_ops(ops_row, "TRIA_DOWN", "MOVE_DOWN", i)
-                    arg_ops(ops_row, "TRIA_UP", "MOVE_UP", i)
-                arg.draw_props(ops_row, args_col, owner, self.cmd_type, conf_type, is_binary)
+                    SM64_CustomArgsOps.draw_row(ops_row, i, command_index=command_index)
+                arg.draw_props(ops_row, col, owner, self.cmd_type, command_index, conf_type, is_binary)
+                if conf_type != "PRESET":
+                    col.separator(factor=1.0)
 
         if conf_type != "PRESET" and draw_and_check_tab(col, self, "examples_tab", text="Examples"):
             self.draw_examples(col, owner, conf_type, blender_scale, is_binary, command_index)
@@ -829,6 +887,7 @@ def draw_custom_cmd_presets(sm64_props: "SM64_Properties", layout: UILayout):
 
 classes = (
     SM64_CustomNumberProperties,
+    SM64_CustomEnumProperties,
     SM64_CustomArgProperties,
     SM64_CustomCmdProperties,
 )

@@ -29,11 +29,12 @@ def duplicate_name(name, existing_names: set, old_name: Optional[str] = None):
             name, num = number_match.group(1), int(number_match.group(2))
         else:
             name, num = old_name, 0
-    new_name = name
-    for i in range(1, len(existing_names) + 2):
+
+    for i in range(1, len(existing_names) + 1):
+        new_name = f"{name}.{num+i:03}"
         if new_name not in existing_names:  # only use name if it's unique
             return new_name
-        new_name = f"{name}.{num+i:03}"
+    assert False, "Failed to generate unique name"
 
 
 def get_custom_prop(context: Context):

@@ -97,6 +97,12 @@ class CustomCmd(BaseDisplayListNode):
                     yield ArgExport(value, 32)
                 else:
                     yield ArgExport(data["parameter"], 32)
+            case "ENUM":
+                option = data["enum_options"][data["enum"]]
+                if binary:
+                    yield ArgExport(option["int_value"], 32)
+                else:
+                    yield ArgExport(option["str_value"], 32)
             case "LAYER":
                 layer = data["layer"] if self.draw_layer is None or not data.get("inherit", True) else self.draw_layer
                 if binary:

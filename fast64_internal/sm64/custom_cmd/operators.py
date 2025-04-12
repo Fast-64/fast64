@@ -1,16 +1,21 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterable
 
 from bpy.utils import register_class, unregister_class
 from bpy.props import StringProperty, IntProperty, EnumProperty
 from bpy.types import Context, Scene
 
-from ...operators import OperatorBase, SearchEnumOperatorBase
-from ...utility import copyPropertyGroup
+from ...operators import OperatorBase, CollectionOperatorBase, SearchEnumOperatorBase
+from ...utility import PluginError
 
 from .utility import custom_cmd_preset_update, duplicate_name, get_custom_cmd_preset_enum, get_custom_prop
 
 if TYPE_CHECKING:
-    from .properties import SM64_CustomCmdProperties, SM64_CustomArgProperties
+    from .properties import SM64_CustomCmdProperties, SM64_CustomArgProperties, SM64_CustomEnumProperties
+
+
+def get_conf_type(context: Context):
+    custom = get_custom_prop(context).custom
+    return "PRESET_EDIT" if custom is None or custom.preset != "NONE" else "NO_PRESET"
 
 
 class SM64_CustomCmdOps(OperatorBase):
@@ -26,7 +31,7 @@ class SM64_CustomCmdOps(OperatorBase):
     def execute_operator(self, context):
         presets = context.scene.fast64.sm64.custom_cmds
         custom, owner = get_custom_prop(context)
-        conf_type = ("PRESET_EDIT" if custom is None or custom.preset != "NONE" else "NO_PRESET",)
+        conf_type = get_conf_type(context)
         match self.op_name:
             case "ADD":
                 presets.add()
@@ -62,64 +67,60 @@ class SM64_CustomCmdOps(OperatorBase):
         custom_cmd_preset_update(self, context)
 
 
-class SM64_CustomCmdArgsOps(OperatorBase):
-    bl_idname = "scene.sm64_custom_cmd_args_ops"
+class SM64_CustomArgsOps(CollectionOperatorBase):
+    bl_idname = "scene.sm64_custom_args_ops"
     bl_label = ""
     bl_description = "Remove or add args to a custom command"
     bl_options = {"UNDO"}
 
-    index: IntProperty(default=-1)
     command_index: IntProperty(default=0)  # for scene command presets
-    op_name: StringProperty()
-
-    @staticmethod
-    def args(context, command_index) -> "SM64_CustomCmdProperties":
-        owner = get_custom_prop(context).owner
-        if isinstance(owner, Scene):
-            return context.scene.fast64.sm64.custom_cmds[command_index].args
-        elif owner is not None:
-            return owner.fast64.sm64.custom.args
 
     @classmethod
-    def is_enabled(cls, context: Context, **op_values):
-        args = cls.args(context, op_values.get("command_index", 0))
-        match op_values.get("op_name"):
-            case "MOVE_UP":
-                return op_values.get("index") > 0
-            case "MOVE_DOWN":
-                return op_values.get("index") < len(args) - 1
-            case "CLEAR":
-                return len(args) > 0
-            case _:
-                return True
+    def collection(cls, context: Context, op_values: dict) -> Iterable["SM64_CustomArgProperties"]:
+        owner = get_custom_prop(context).owner
+        if isinstance(owner, Scene):
+            return context.scene.fast64.sm64.custom_cmds[op_values.get("command_index", 0)].args
+        elif owner is not None:
+            return owner.fast64.sm64.custom.args
+        else:
+            raise PluginError("Invalid context")
 
-    def execute_operator(self, context):
-        args = self.args(context, self.command_index)
-        match self.op_name:
-            case "ADD":
-                args.add()
-                new_arg: "SM64_CustomArgProperties" = args[-1]
-                if self.index != -1:
-                    old_arg: "SM64_CustomArgProperties" = args[self.index]
-                    copyPropertyGroup(old_arg, new_arg)
-                    old_name = old_arg.name
-                else:
-                    old_name = None
-                existing_names = {arg.name for arg in args[:-1]}
-                new_arg.name = duplicate_name(new_arg.name, existing_names, old_name)
-                if self.index != -1:
-                    args.move(len(args) - 1, self.index + 1)
-            case "REMOVE":
-                args.remove(self.index)
-            case "MOVE_UP":
-                args.move(self.index, self.index - 1)
-            case "MOVE_DOWN":
-                args.move(self.index, self.index + 1)
-            case "CLEAR":
-                args.clear()
-            case _:
-                raise NotImplementedError(f'Unimplemented internal custom command args op "{self.op_name}"')
+    def add(self, context: Context, collection: Iterable["SM64_CustomArgProperties"]):
+        old, new = super().add(context, collection)
+        old_name = None
+        if old is not None:
+            old_name = old.name
+            new.from_dict(
+                old.to_dict(get_conf_type(context), owner=get_custom_prop(context).owner, include_defaults=True),
+                set_defaults=True,
+            )
+        existing_names = {arg.name for arg in collection if arg != new}
+        new.name = duplicate_name(new.name, existing_names, old_name)
+
+    def execute_operator(self, context: Context):
+        super().execute_operator(context)
         custom_cmd_preset_update(self, context)
+
+
+class SM64_CustomEnumOps(SM64_CustomArgsOps):
+    bl_idname = "scene.sm64_custom_enum_ops"
+    bl_description = "Remove or add enum options to a custom arg"
+
+    arg_index: IntProperty(default=0)
+
+    @classmethod
+    def collection(cls, context: Context, op_values: dict) -> Iterable["SM64_CustomEnumProperties"]:
+        args = super().collection(context, op_values)
+        return args[op_values.get("arg_index", 0)].enum_options
+
+    def add(self, context: Context, collection: Iterable["SM64_CustomArgProperties"]):
+        old, new = CollectionOperatorBase.add(self, context, collection)
+        old_name = None
+        if old is not None:
+            old_name = old.name
+            new.from_dict(old.to_dict())
+        existing_names = {enum.name for enum in collection if enum != new}
+        new.name = duplicate_name(new.name, existing_names, old_name)
 
 
 class SM64_SearchCustomCmds(SearchEnumOperatorBase):
@@ -134,8 +135,9 @@ class SM64_SearchCustomCmds(SearchEnumOperatorBase):
 
 
 classes = (
+    SM64_CustomEnumOps,
     SM64_CustomCmdOps,
-    SM64_CustomCmdArgsOps,
+    SM64_CustomArgsOps,
     SM64_SearchCustomCmds,
 )
 
