@@ -11,6 +11,7 @@ from bpy.props import (
     EnumProperty,
     FloatProperty,
     FloatVectorProperty,
+    IntVectorProperty,
     CollectionProperty,
     PointerProperty,
 )
@@ -162,10 +163,10 @@ class SM64_CustomNumberProperties(PropertyGroup):
 
 
 class SM64_CustomEnumProperties(PropertyGroup):
-    name: StringProperty(name="Name", default="Enum Name")
-    description: StringProperty(name="Description", default="Description")
-    str_value: StringProperty(name="Value", default="ENUM_NAME")
-    int_value: IntProperty(name="Value", default=0)
+    name: StringProperty(name="Name", default="Enum Name", update=custom_cmd_preset_update)
+    description: StringProperty(name="Description", default="Description", update=custom_cmd_preset_update)
+    str_value: StringProperty(name="Value", default="ENUM_NAME", update=custom_cmd_preset_update)
+    int_value: IntProperty(name="Value", default=0, update=custom_cmd_preset_update)
 
     def enum_tuple(self, i: int):
         return (str(i), self.name, self.description.replace("\\n", "\n"))
@@ -216,7 +217,9 @@ class SM64_CustomArgProperties(PropertyGroup):
     inherit: BoolProperty(
         name="Inherit", description="Inherit arg from owner", default=True, update=custom_cmd_preset_update
     )
-    seg_addr: BoolProperty(name="Encode To Segmented Address", default=True)
+    apply_scale: BoolProperty(name="Blender to SM64 Scale", default=True, update=custom_cmd_preset_update)
+    round_to_sm64: BoolProperty(name="Round to Conventional Units", update=custom_cmd_preset_update)
+    seg_addr: BoolProperty(name="Encode To Segmented Address", default=True, update=custom_cmd_preset_update)
     value_type: EnumProperty(
         items=[
             ("AUTO", "Auto Type", "Auto"),
@@ -232,6 +235,7 @@ class SM64_CustomArgProperties(PropertyGroup):
         default="AUTO",
     )
     signed: BoolProperty(name="Signed", default=True)
+
     color: FloatVectorProperty(
         name="Color",
         size=4,
@@ -241,12 +245,20 @@ class SM64_CustomArgProperties(PropertyGroup):
         default=(1.0, 1.0, 1.0, 1.0),
         update=custom_cmd_preset_update,
     )
+    color_bits: IntVectorProperty(
+        name="Color Bits",
+        description="Bits per channel. RGBA",
+        size=4,
+        default=(5, 5, 5, 1),
+        min=0,
+        max=8,
+        update=custom_cmd_preset_update,
+    )
     parameter: StringProperty(name="Parameter", default="0")
     boolean: BoolProperty(name="Boolean", default=True)
     number: PointerProperty(type=SM64_CustomNumberProperties)
     layer: EnumProperty(items=sm64EnumDrawLayers, default="1")
     relative: BoolProperty(name="Use Relative Transformation", default=True, update=custom_cmd_preset_update)
-    convert_to_sm64: BoolProperty(name="Convert to SM64 units", default=True, update=custom_cmd_preset_update)
     rot_type: EnumProperty(
         name="Rotation",
         items=[
@@ -275,6 +287,7 @@ class SM64_CustomArgProperties(PropertyGroup):
         name="Eval Expression",
         default="",
         description="Apply a limited math expression to the values of this argument group, as seen in scale nodes.\nLeave empty to skip this step",
+        update=custom_cmd_preset_update,
     )
 
     @property
@@ -288,6 +301,10 @@ class SM64_CustomArgProperties(PropertyGroup):
     @property
     def can_be_signed(self):
         return self.modifable_value_type and self.value_type not in {"FLOAT", "DOUBLE", "AUTO"}
+
+    @property
+    def can_round_to_sm64(self):
+        return self.arg_type in {"TRANSLATION", "COLOR"} or (self.arg_type == "ROTATION" and self.rot_type == "EULER")
 
     def show_eval_expression(self, custom_cmd: "SM64_CustomCmdProperties", is_binary: bool):
         if is_binary:
@@ -340,7 +357,7 @@ class SM64_CustomArgProperties(PropertyGroup):
         if inherit:
             relative, world = get_transforms(owner)
             matrix = relative if self.relative else world
-        if not self.convert_to_sm64:
+        if not self.apply_scale:
             blender_scale = 1.0
         match self.arg_type:
             case "MATRIX":
@@ -398,6 +415,8 @@ class SM64_CustomArgProperties(PropertyGroup):
                 data["signed"] = self.signed
         if self.show_segmented_toggle(owner, conf_type):
             data["seg_addr"] = self.seg_addr
+        if self.can_round_to_sm64:
+            data["round_to_sm64"] = self.round_to_sm64
         match self.arg_type:
             case "NUMBER":
                 number_data, number_defaults = self.number.to_dict(conf_type)
@@ -408,16 +427,13 @@ class SM64_CustomArgProperties(PropertyGroup):
                 data["enum_options"] = tuple(option.to_dict() for option in self.enum_options)
             case "COLOR":
                 defaults["color"] = tuple(self.color)
+                if self.round_to_sm64:
+                    data["color_bits"] = tuple(self.color_bits)
             case _:
                 name = self.arg_type.lower()
                 if self.is_transform:
                     data["relative"] = self.relative
-                    data["convert_to_sm64"] = (
-                        self.convert_to_sm64
-                        if self.arg_type in {"MATRIX", "TRANSLATION"}
-                        or (self.arg_type == "ROTATION" and self.rot_type == "EULER")
-                        else False
-                    )
+                    data["apply_scale"] = self.apply_scale and self.arg_type in {"MATRIX", "TRANSLATION"}
                     if self.arg_type == "ROTATION":
                         data["rot_type"] = self.rot_type
                     if self.arg_type == "ROTATION":
@@ -441,12 +457,14 @@ class SM64_CustomArgProperties(PropertyGroup):
         self.signed = data.get("signed", True)
         self.seg_addr = data.get("seg_addr", True)
         self.relative = data.get("relative", True)
-        self.convert_to_sm64 = data.get("convert_to_sm64", True)
+        self.apply_scale = data.get("apply_scale", True)
+        self.round_to_sm64 = data.get("round_to_sm64", False)
         self.rot_type = data.get("rot_type", "EULER")
         self.enum_options.clear()
         for option in data.get("enum_options", []):
             self.enum_options.add()
             self.enum_options[-1].from_dict(option)
+        self.color_bits = data.get("color_bits", (8, 8, 8, 8))
         if not set_defaults:
             return
         defaults = data.get("defaults")
@@ -492,6 +510,8 @@ class SM64_CustomArgProperties(PropertyGroup):
             case "TRANSLATION" | "SCALE":
                 return add_name(["_x", "_y", "_z"])
             case "COLOR":
+                if self.round_to_sm64:
+                    return add_name([""])
                 return add_name(["_r", "_g", "_b", "_a"])
             case "PARAMETER" | "LAYER" | "BOOLEAN" | "NUMBER" | "DL" | "ENUM":
                 return add_name([""])
@@ -513,8 +533,8 @@ class SM64_CustomArgProperties(PropertyGroup):
                 col.prop(self, "relative")
             if self.arg_type == "ROTATION":
                 prop_split(col, self, "rot_type", "Rotation Type")
-            if self.arg_type in {"TRANSLATION", "MATRIX"} or (self.arg_type == "ROTATION" and self.rot_type == "EULER"):
-                col.prop(self, "convert_to_sm64")
+            if self.arg_type in {"TRANSLATION", "MATRIX"}:
+                col.prop(self, "apply_scale")
         force_scale = conf_type == "PRESET_EDIT" and self.arg_type == "SCALE"
         if inherit and force_scale:
             inherit_info.label(text="Not supported in bones.", icon="INFO")
@@ -531,6 +551,7 @@ class SM64_CustomArgProperties(PropertyGroup):
         name_split: UILayout,
         layout: UILayout,
         command_index: int,
+        arg_index: int,
         conf_type: CustomCmdConf = "NO_PRESET",
         is_binary=False,
     ):
@@ -541,12 +562,12 @@ class SM64_CustomArgProperties(PropertyGroup):
         options_box = col.box().column()
         if not draw_and_check_tab(options_box, self, "enum_tab"):
             return
-        SM64_CustomEnumOps.draw_row(options_box.row(), -1, command_index=command_index)
+        SM64_CustomEnumOps.draw_row(options_box.row(), -1, command_index=command_index, arg_index=-arg_index)
         option: SM64_CustomEnumProperties
         for i, option in enumerate(self.enum_options):
             op_row = options_box.row()
             option.draw_props(options_box, op_row, is_binary)
-            SM64_CustomEnumOps.draw_row(op_row, i, command_index=command_index)
+            SM64_CustomEnumOps.draw_row(op_row, i, command_index=command_index, arg_index=arg_index)
 
     def draw_props(
         self,
@@ -555,6 +576,7 @@ class SM64_CustomArgProperties(PropertyGroup):
         owner: Optional[AvailableOwners],
         custom_cmd: "SM64_CustomCmdProperties",
         command_index: int,
+        arg_index: int,
         conf_type: CustomCmdConf = "NO_PRESET",
         is_binary=False,
     ):
@@ -572,6 +594,8 @@ class SM64_CustomArgProperties(PropertyGroup):
 
         if conf_type != "PRESET":
             arg_row.prop(self, "arg_type", text="")
+            if self.can_round_to_sm64:
+                col.prop(self, "round_to_sm64")
 
         inherit_info = col
         if self.show_inherit_toggle(owner, conf_type):
@@ -586,28 +610,34 @@ class SM64_CustomArgProperties(PropertyGroup):
             case "NUMBER":
                 self.number.draw_props(name_split, col, conf_type)
             case "ENUM":
-                self.draw_enum(name_split, col, command_index, conf_type, is_binary)
+                self.draw_enum(name_split, col, command_index, arg_index, conf_type, is_binary)
             case "LAYER" | "DL":
                 if inherit and conf_type == "PRESET_EDIT":
                     inherit_info.label(text="Not supported in object empties.", icon="INFO")
                 if not inherit or conf_type == "PRESET_EDIT":
                     name_split.prop(self, self.arg_type.lower(), text="")
+            case "COLOR":
+                name_split.prop(self, "color", text="")
+                quantize_split = col.row()
+                if self.round_to_sm64:
+                    quantize_split.prop(self, "color_bits", text="")
             case _:
                 if self.is_transform:
                     self.draw_transforms(name_split, inherit_info, col, owner, conf_type)
                 elif hasattr(self, self.arg_type.lower()):
                     name_split.prop(self, self.arg_type.lower(), text="")
 
-        if conf_type != "PRESET" and self.show_eval_expression(custom_cmd, is_binary):
-            prop_split(col, self, "eval_expression", "Expression")
-        if conf_type != "PRESET" and is_binary:
-            if self.modifable_value_type:
-                type_split = col.row()
-                type_split.prop(self, "value_type", text="")
-                if self.can_be_signed:
-                    type_split.prop(self, "signed")
-            if self.show_segmented_toggle(owner, conf_type):
-                col.prop(self, "seg_addr")
+        if conf_type != "PRESET":
+            if self.show_eval_expression(custom_cmd, is_binary):
+                prop_split(col, self, "eval_expression", "Expression")
+            if is_binary:
+                if self.modifable_value_type:
+                    type_split = col.row()
+                    type_split.prop(self, "value_type", text="")
+                    if self.can_be_signed:
+                        type_split.prop(self, "signed")
+                if self.show_segmented_toggle(owner, conf_type):
+                    col.prop(self, "seg_addr")
 
 
 def custom_cmd_change_preset(self: "SM64_CustomCmdProperties", context: Context):
@@ -942,7 +972,7 @@ class SM64_CustomCmdProperties(PropertyGroup):
                     num_row.alignment = "LEFT"
                     num_row.label(text=str(i))
                     SM64_CustomArgsOps.draw_row(ops_row, i, command_index=command_index)
-                arg.draw_props(ops_row, col, owner, self, command_index, conf_type, is_binary)
+                arg.draw_props(ops_row, col, owner, self, command_index, i, conf_type, is_binary)
                 if conf_type != "PRESET":
                     col.separator(factor=1.0)
 

@@ -1150,6 +1150,17 @@ def writeInsertableFile(filepath, dataType, address_ptrs, startPtr, data):
     openfile.close()
 
 
+def quantize_color(color: mathutils.Color, bit_counts: tuple[int]):
+    """Quantize a color to the specified bit counts."""
+    assert len(color) == len(bit_counts), "Number of color channels does not match number of bit counts"
+    result = 0
+    pos = 0
+    for c, bit_count in zip(reversed(color), reversed(bit_counts)):
+        result |= round(c * (2**bit_count - 1)) << pos
+        pos += bit_count
+    return result
+
+
 def colorTo16bitRGBA(color):
     r = int(round(color[0] * 31))
     g = int(round(color[1] * 31))
@@ -1377,8 +1388,14 @@ def exportColor(color: Iterable | mathutils.Color, include_alpha=False):
     return rgb
 
 
-def get_clean_color(srgb: list, include_alpha=False, round_color=True) -> list:
-    return [round(channel, 4) if round_color else channel for channel in list(srgb[: 4 if include_alpha else 3])]
+def get_clean_color(color: list, include_alpha=False, round_color=True, srgb_to_linear=False) -> list:
+    color = list(color)
+    if srgb_to_linear:
+        color = gammaInverse(color[:3]) + color[3:]
+    color = color[: 4 if include_alpha else 3]
+    if include_alpha and len(color) < 4:
+        color = color + [1.0]
+    return [round(channel, 4) if round_color else channel for channel in color]
 
 
 def printBlenderMessage(msgSet, message, blenderOp):

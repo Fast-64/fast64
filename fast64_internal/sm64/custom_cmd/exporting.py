@@ -1,10 +1,11 @@
 import dataclasses
+import math
 import struct
 from io import StringIO
 from typing import Iterable, NamedTuple, Optional, TypeVar, Union
 
 from ...f3d.f3d_parser import math_eval
-from ...utility import PluginError, get_clean_color, to_s16, cast_integer, encodeSegmentedAddr
+from ...utility import PluginError, get_clean_color, quantize_color, to_s16, cast_integer, encodeSegmentedAddr
 
 from ..sm64_constants import SegmentData
 from ..sm64_geolayout_utility import BaseDisplayListNode
@@ -101,10 +102,15 @@ class CustomCmd(BaseDisplayListNode):
                     yield ArgExport(value, bit_count, signed)
 
         arg_type = data.get("arg_type")
-        to_sm64_units = data.get("convert_to_sm64", True)
+        round_to_sm64 = data.get("round_to_sm64", True)
         match arg_type:
             case "COLOR":
-                yield from run_eval(get_clean_color(data["color"], True, False), 32, False)
+                if round_to_sm64:
+                    bit_counts = data.get("color_bits", (8, 8, 8, 8))
+                    color = get_clean_color(data["color"], True, False, True)
+                    yield from run_eval(quantize_color(color, bit_counts), sum(bit_counts), False)
+                else:
+                    yield from run_eval(get_clean_color(data["color"], True, True, True), 32, False)
             case "PARAMETER":
                 if binary:
                     value = math_eval(data["parameter"], object())
@@ -137,7 +143,7 @@ class CustomCmd(BaseDisplayListNode):
                 yield from run_eval(data["value"], 32)
             case "TRANSLATION":
                 translation = data["translation"]
-                if to_sm64_units:
+                if round_to_sm64:
                     yield from run_eval((round(x) for x in translation), 16)
                 else:
                     yield from run_eval((x for x in translation), 32)
@@ -146,7 +152,7 @@ class CustomCmd(BaseDisplayListNode):
             case "ROTATION":
                 rot_type = data["rot_type"]
                 rot = flatten(data.get(rot_type.lower()))
-                if to_sm64_units and rot_type == "EULER":
+                if round_to_sm64 and rot_type == "EULER":
                     yield from run_eval((to_s16((x) % 360.0 / 360.0 * (2**16)) for x in rot), 16)
                 else:
                     yield from run_eval(rot, 32)
@@ -217,7 +223,7 @@ class CustomCmd(BaseDisplayListNode):
                         group += struct.pack("f" if bit_count == 32 else "d", value)
                     elif isinstance(value, int):
                         value = cast_integer(value, bit_count, signed)
-                        group += value.to_bytes(bit_count // 8, "big", signed=signed)
+                        group += value.to_bytes(math.ceil(bit_count / 8), "big", signed=signed)
                     else:
                         raise PluginError(f"{type(value)} not supported in binary")
                 groups.append((name, group))
