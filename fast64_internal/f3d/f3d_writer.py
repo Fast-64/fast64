@@ -1715,10 +1715,10 @@ def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaultRenderMod
     cmd.flagList.append(settings.g_mdsft_zsrcsel)
 
     if settings.set_rendermode:
-        flagList, blendList = getRenderModeFlagList(settings, fMaterial)
+        flagList, blender = getRenderModeFlagList(settings, fMaterial)
         cmd.flagList.extend(flagList)
-        if blendList is not None:
-            cmd.flagList.append(RendermodeBlender(tuple(blendList[:4]), tuple(blendList[4:])))
+        if blender is not None:
+            cmd.flagList.append(blender)
         if defaultRenderMode is not None:  # even in write all, we need to revert the rendermode
             fMaterial.revert.commands.append(
                 SPSetOtherMode("G_SETOTHERMODE_L", f3d.G_MDSFT_RENDERMODE, 29 - f3d.F3D_OLD_GBI, defaultRenderMode)
@@ -1740,10 +1740,7 @@ def saveOtherModeLDefinitionIndividual(fMaterial, settings, defaults, defaultRen
         fMaterial.revert.commands.append(DPSetPrimDepth())
 
     if settings.set_rendermode:
-        flagList, blendList = getRenderModeFlagList(settings, fMaterial)
-        blender = None
-        if blendList:
-            blender = RendermodeBlender(tuple(blendList[:4]), tuple(blendList[4:]))
+        flagList, blender = getRenderModeFlagList(settings, fMaterial)
         renderModeSet = DPSetRenderMode(flagList, blender)
 
         fMaterial.mat_only_DL.commands.append(renderModeSet)
@@ -1753,7 +1750,7 @@ def saveOtherModeLDefinitionIndividual(fMaterial, settings, defaults, defaultRen
 
 def getRenderModeFlagList(settings, fMaterial):
     flagList = []
-    blendList = None
+    blender = None
     # cycle independent
 
     if not settings.rendermode_advanced_enabled:
@@ -1770,28 +1767,13 @@ def getRenderModeFlagList(settings, fMaterial):
                 cycle2 = "G_RM_NOOP"
             flagList = [settings.rendermode_preset_cycle_1, cycle2]
     else:
+        cycle1 = (settings.blend_p1, settings.blend_a1, settings.blend_m1, settings.blend_b1)
         if settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
-            blendList = [
-                settings.blend_p1,
-                settings.blend_a1,
-                settings.blend_m1,
-                settings.blend_b1,
-                settings.blend_p2,
-                settings.blend_a2,
-                settings.blend_m2,
-                settings.blend_b2,
-            ]
+            blender = RendermodeBlender(
+                cycle1, (settings.blend_p2, settings.blend_a2, settings.blend_m2, settings.blend_b2)
+            )
         else:
-            blendList = [
-                settings.blend_p1,
-                settings.blend_a1,
-                settings.blend_m1,
-                settings.blend_b1,
-                settings.blend_p1,
-                settings.blend_a1,
-                settings.blend_m1,
-                settings.blend_b1,
-            ]
+            blender = RendermodeBlender(cycle1, cycle1)
 
         if settings.aa_en:
             flagList.append("AA_EN")
@@ -1814,7 +1796,7 @@ def getRenderModeFlagList(settings, fMaterial):
         if settings.force_bl:
             flagList.append("FORCE_BL")
 
-    return flagList, blendList
+    return flagList, blender
 
 
 def saveOtherDefinition(fMaterial, material, defaults):
