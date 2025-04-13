@@ -7,7 +7,7 @@ from io import BytesIO
 from ..operators import ObjectDataExporter
 from ..panels import SM64_Panel
 from .sm64_objects import InlineGeolayoutObjConfig, inlineGeoLayoutObjects
-from .sm64_geolayout_bone import getSwitchOptionBone, animatableBoneTypes
+from .sm64_geolayout_bone import getSwitchOptionBone
 from .sm64_camera import saveCameraSettingsToGeolayout
 from .sm64_f3d_writer import SM64Model, SM64GfxFormatter
 from .sm64_texscroll import modifyTexScrollFiles, modifyTexScrollHeadersGroup
@@ -116,17 +116,15 @@ from .sm64_geolayout_classes import (
     RotateNode,
     TranslateRotateNode,
     FunctionNode,
-    CustomNode,
     BillboardNode,
     ScaleNode,
     RenderRangeNode,
     ShadowNode,
     DisplayListWithOffsetNode,
-    CustomAnimatedNode,
     HeldObjectNode,
     Geolayout,
 )
-
+from .custom_cmd.exporting import CustomCmd
 from .sm64_constants import (
     insertableBinaryTypes,
     bank0Segment,
@@ -1227,7 +1225,7 @@ def duplicateNode(transformNode, parentNode, index):
 
 
 def partOfGeolayout(obj):
-    useGeoEmpty = obj.type == "EMPTY" and checkSM64EmptyUsesGeoLayout(obj.sm64_obj_type)
+    useGeoEmpty = obj.type == "EMPTY" and checkSM64EmptyUsesGeoLayout(obj)
 
     return obj.type == "MESH" or useGeoEmpty
 
@@ -1298,8 +1296,6 @@ def processPreInlineGeo(
         node = JumpNode(True, None, obj.geoReference)
     elif inlineGeoConfig.name == "Geo Displaylist":
         node = DisplayListNode(int(obj.draw_layer_static), obj.dlReference)
-    elif inlineGeoConfig.name == "Custom Geo Command":
-        node = CustomNode(obj.customGeoCommand, obj.customGeoCommandArgs)
     addParentNode(parentTransformNode, node)  # Allow this node to be translated/rotated
 
 
@@ -1322,6 +1318,14 @@ def processInlineGeoNode(
         node = RotateNode(obj.draw_layer_static, obj.useDLReference, rotate, obj.dlReference)
     elif inlineGeoConfig.name == "Geo Scale":
         node = ScaleNode(obj.draw_layer_static, scale, obj.useDLReference, obj.dlReference)
+    elif inlineGeoConfig.name == "Custom":
+        node = obj.fast64.sm64.custom.get_final_cmd(
+            obj,
+            bpy.context.scene.fast64.sm64.blender_to_sm64_scale,
+            obj.draw_layer_static,
+            obj.useDLReference,
+            obj.dlReference,
+        )
     else:
         raise PluginError(f"Ooops! Didnt implement inline geo exporting for {inlineGeoConfig.name}")
 
@@ -1342,11 +1346,11 @@ def processMesh(
 ):
     # final_transform = copy.deepcopy(transformMatrix)
 
-    useGeoEmpty = obj.type == "EMPTY" and checkSM64EmptyUsesGeoLayout(obj.sm64_obj_type)
+    useGeoEmpty = obj.type == "EMPTY" and checkSM64EmptyUsesGeoLayout(obj)
 
     useSwitchNode = obj.type == "EMPTY" and obj.sm64_obj_type == "Switch"
 
-    useInlineGeo = obj.type == "EMPTY" and checkIsSM64InlineGeoLayout(obj.sm64_obj_type)
+    useInlineGeo = obj.type == "EMPTY" and checkIsSM64InlineGeoLayout(obj)
 
     addRooms = isRoot and obj.type == "EMPTY" and obj.sm64_obj_type == "Area Root" and obj.enableRoomSwitch
 
@@ -1356,7 +1360,7 @@ def processMesh(
     inlineGeoConfig: InlineGeolayoutObjConfig = inlineGeoLayoutObjects.get(obj.sm64_obj_type)
     processed_inline_geo = False
 
-    isPreInlineGeoLayout = checkIsSM64PreInlineGeoLayout(obj.sm64_obj_type)
+    isPreInlineGeoLayout = checkIsSM64PreInlineGeoLayout(obj)
     if useInlineGeo and isPreInlineGeoLayout:
         processed_inline_geo = True
         processPreInlineGeo(inlineGeoConfig, obj, parentTransformNode)
@@ -1671,33 +1675,22 @@ def processBone(
 
     # hasDL = bone.use_deform
     hasDL = True
-    if bone.geo_cmd in animatableBoneTypes:
-        if bone.geo_cmd == "CustomAnimated":
-            if not bone.fast64.sm64.custom_geo_cmd_macro:
-                raise PluginError(f'Bone "{boneName}" on armature "{armatureObj.name}" needs a geo command macro.')
-            node = CustomAnimatedNode(bone.fast64.sm64.custom_geo_cmd_macro, int(bone.draw_layer), translate, rotate)
+    if bone.geo_cmd == "DisplayListWithOffset":
+        if not zeroRotation:
+            node = DisplayListWithOffsetNode(int(bone.draw_layer), hasDL, mathutils.Vector((0, 0, 0)))
+
+            parentTransformNode = addParentNode(
+                parentTransformNode, TranslateRotateNode(1, 0, False, translate, rotate)
+            )
+
             lastTranslateName = boneName
             lastRotateName = boneName
-        else:  # DisplayListWithOffset
-            if not zeroRotation:
-                node = DisplayListWithOffsetNode(int(bone.draw_layer), hasDL, mathutils.Vector((0, 0, 0)))
-
-                parentTransformNode = addParentNode(
-                    parentTransformNode, TranslateRotateNode(1, 0, False, translate, rotate)
-                )
-
-                lastTranslateName = boneName
-                lastRotateName = boneName
-            else:
-                node = DisplayListWithOffsetNode(int(bone.draw_layer), hasDL, translate)
-                lastTranslateName = boneName
+        else:
+            node = DisplayListWithOffsetNode(int(bone.draw_layer), hasDL, translate)
+            lastTranslateName = boneName
 
         final_transform = transformMatrix @ translation
 
-    elif bone.geo_cmd == "CustomNonAnimated":
-        if bone.fast64.sm64.custom_geo_cmd_macro == "":
-            raise PluginError(f'Bone "{boneName}" on armature "{armatureObj.name}" needs a geo command macro.')
-        node = CustomNode(bone.fast64.sm64.custom_geo_cmd_macro, bone.fast64.sm64.custom_geo_cmd_args)
     elif bone.geo_cmd == "Function":
         if bone.geo_func == "":
             raise PluginError("Function bone " + boneName + " function value is empty.")
@@ -1770,6 +1763,21 @@ def processBone(
             final_transform = transformMatrix @ mathutils.Matrix.Scale(node.scaleValue, 4)
         elif bone.geo_cmd == "StartRenderArea":
             node = StartRenderAreaNode(bone.culling_radius)
+        elif bone.geo_cmd == "Custom":
+            node = bone.fast64.sm64.custom.get_final_cmd(
+                bone, bpy.context.scene.fast64.sm64.blender_to_sm64_scale, None, hasDL
+            )
+            types = {a["arg_type"] for a in node.data["args"]}
+            has_translation, has_rotation = "TRANSLATION" in types, "ROTATION" in types
+            if not has_translation or not has_rotation:
+                field = 0 if not (has_translation or has_rotation) else (1 if has_translation else 2)
+                parentTransformNode = addParentNode(
+                    parentTransformNode, TranslateRotateNode(node.drawLayer, field, False, translate, rotate)
+                )
+            if has_translation:
+                lastTranslateName = boneName
+            if has_rotation:
+                lastRotateName = boneName
         else:
             raise PluginError("Invalid geometry command: " + bone.geo_cmd)
 
@@ -1865,12 +1873,6 @@ def processBone(
     if not isinstance(transformNode.node, SwitchNode):
         # print(boneGroup.name if boneGroup is not None else "Offset")
         if len(bone.children) > 0:
-            # print("\tHas Children")
-            if bone.geo_cmd == "Function":
-                raise PluginError(
-                    "Function bones cannot have children. They instead affect the next sibling bone in alphabetical order."
-                )
-
             # Handle child nodes
             # nonDeformTransformData should be modified to be sent to children,
             # otherwise it should not be modified for parent.

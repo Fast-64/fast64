@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .f3d.f3d_material import RDPSettings
 
-CUR_VERSION = 1.0
+CUR_VERSION = 1.1
 
 
 class SaveRepoSettings(OperatorBase):
@@ -98,7 +98,7 @@ def save_repo_settings(scene: Scene, path: os.PathLike):
         data["sm64"] = save_sm64_repo_settings(scene)
 
     with open(abspath(path), "w", encoding="utf-8") as json_file:
-        json.dump(data, json_file, indent=2)
+        json.dump(data, json_file, indent="\t")
 
 
 def draw_repo_settings(layout: UILayout, context: Context):
