@@ -6,6 +6,7 @@ from ....utility import CData, indent
 from ...oot_utility import getObjectList
 from ...oot_constants import ootData
 from ...room.properties import OOTRoomHeaderProperty
+from ...actor.properties import OOTActorProperty
 from ..utility import Utility
 from ..actor import Actor
 
@@ -137,6 +138,23 @@ class RoomActors:
     actorList: list[Actor]
 
     @staticmethod
+    def get_rotation_values(actorProp: OOTActorProperty, blender_rot_values: list[int]):
+        # Figure out which rotation to export, Blender's or the override
+        custom = "_custom" if actorProp.actor_id == "Custom" else ""
+        rot_values = [getattr(actorProp, f"rot_{rot}{custom}") for rot in ["x", "y", "z"]]
+        export_rot_values = [f"DEG_TO_BINANG({(rot * (180 / 0x8000)):.3f})" for rot in blender_rot_values]
+
+        if actorProp.actor_id == "Custom":
+            export_rot_values = rot_values if actorProp.rot_override else export_rot_values
+        else:
+            for i, rot in enumerate(["X", "Y", "Z"]):
+                if actorProp.is_rotation_used(f"{rot}Rot"):
+                    export_rot_values[i] = rot_values[i]
+
+        assert len(export_rot_values) == 3
+        return export_rot_values
+
+    @staticmethod
     def new(
         name: str,
         sceneObj: Optional[Object],
@@ -148,7 +166,7 @@ class RoomActors:
         actorList: list[Actor] = []
         actorObjList = getObjectList(sceneObj.children, "EMPTY", "Actor", parentObj=roomObj, room_index=room_index)
         for obj in actorObjList:
-            actorProp = obj.ootActorProperty
+            actorProp: OOTActorProperty = obj.ootActorProperty
             if not Utility.isCurrentHeaderValid(actorProp.headerSettings, headerIndex):
                 continue
 
@@ -157,30 +175,27 @@ class RoomActors:
             # any data loss as Blender saves the index of the element in the Actor list used for the EnumProperty
             # and not the identifier as defined by the first element of the tuple. Therefore, we need to check if
             # the current Actor has the ID `None` to avoid export issues.
-            if actorProp.actorID != "None":
+            if actorProp.actor_id != "None":
                 pos, rot, _, _ = Utility.getConvertedTransform(transform, sceneObj, obj, True)
                 actor = Actor()
 
-                if actorProp.actorID == "Custom":
-                    actor.id = actorProp.actorIDCustom
+                if actorProp.actor_id == "Custom":
+                    actor.id = actorProp.actor_id_custom
                 else:
-                    actor.id = actorProp.actorID
+                    actor.id = actorProp.actor_id
 
-                if actorProp.rotOverride:
-                    actor.rot = ", ".join([actorProp.rotOverrideX, actorProp.rotOverrideY, actorProp.rotOverrideZ])
-                else:
-                    actor.rot = ", ".join(f"DEG_TO_BINANG({(r * (180 / 0x8000)):.3f})" for r in rot)
+                actor.rot = ", ".join(RoomActors.get_rotation_values(actorProp, rot))
 
                 actor.name = (
-                    ootData.actorData.actorsByID[actorProp.actorID].name.replace(
-                        f" - {actorProp.actorID.removeprefix('ACTOR_')}", ""
+                    ootData.actorData.actorsByID[actorProp.actor_id].name.replace(
+                        f" - {actorProp.actor_id.removeprefix('ACTOR_')}", ""
                     )
-                    if actorProp.actorID != "Custom"
+                    if actorProp.actor_id != "Custom"
                     else "Custom Actor"
                 )
 
                 actor.pos = pos
-                actor.params = actorProp.actorParam
+                actor.params = actorProp.params if actorProp.actor_id != "Custom" else actorProp.params_custom
                 actorList.append(actor)
         return RoomActors(name, actorList)
 

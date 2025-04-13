@@ -83,10 +83,10 @@ class Cutscene:
             csData.source = (
                 declarationBase
                 + " = {\n"
-                + (indent + f"CS_BEGIN_CUTSCENE({self.totalEntries}, {self.frameCount}),\n")
+                + (indent + f"CS_HEADER({self.totalEntries}, {self.frameCount}),\n")
                 + (self.data.destination.getCmd() if self.data.destination is not None else "")
                 + "".join(entry.getCmd() for curList in dataListNames for entry in getattr(self.data, curList))
-                + (indent + "CS_END(),\n")
+                + (indent + "CS_END_OF_SCRIPT(),\n")
                 + "};\n\n"
             )
 

@@ -759,7 +759,7 @@ def export_area_c(
     geolayoutGraph, fModel = convertObjectToGeolayout(
         obj,
         transformMatrix,
-        area_root.areaCamera,
+        False,
         f"{level_name}_{areaName}",
         fModel,
         area_root,
@@ -789,9 +789,12 @@ def export_area_c(
         level_data.header_data += roomsC.header
 
     # Get area
-    area = exportAreaCommon(
-        area_root, transformMatrix, geolayoutGraph.startGeolayout, collision, f"{level_name}_{areaName}"
-    )
+    try:
+        area = exportAreaCommon(
+            area_root, transformMatrix, geolayoutGraph.startGeolayout, collision, f"{level_name}_{areaName}"
+        )
+    except Exception as exc:
+        raise PluginError(f"Error while creating area {area_root.areaIndex}: {str(exc)}") from exc
     if area.mario_start is not None:
         prev_level_script.marioStart = area.mario_start
     persistentBlockString = prev_level_script.get_persistent_block(
