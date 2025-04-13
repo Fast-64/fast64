@@ -87,7 +87,7 @@ class CustomCmd(BaseDisplayListNode):
             if self.DLmicrocode is None:
                 raise PluginError(f"Command{name} requires a displaylist")
 
-    def to_arg(self, data: dict, binary=False, segment_data: Optional[SegmentData] = None) -> Iterable[ArgExport]:
+    def to_arg(self, data: dict, binary=False) -> Iterable[ArgExport]:
         def run_eval(value, bit_count=32, signed=True):
             for value in flatten(value):
                 if (
@@ -199,7 +199,7 @@ class CustomCmd(BaseDisplayListNode):
             name = arg_data.get("name", f"Arg {i}")
             try:
                 group = bytearray(0)
-                for value, bit_count, signed in self.to_arg(arg_data, True, segment_data):
+                for value, bit_count, signed in self.to_arg(arg_data, True):
                     if value is None:
                         value = 0
                     signed = arg_data.get("signed", signed)
