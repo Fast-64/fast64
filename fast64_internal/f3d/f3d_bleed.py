@@ -64,6 +64,10 @@ from .f3d_gbi import (
 )
 
 
+def is_rendermode_cmd(cmd: GbiMacro):
+    return isinstance(cmd, DPSetRenderMode) or (isinstance(cmd, SPSetOtherMode) and cmd.sets_rendermode)
+
+
 class BleedGraphics:
     # bleed_state "enums"
     bleed_start = 1
@@ -267,9 +271,6 @@ class BleedGraphics:
             last_cmd_list = last_mat.mat_only_DL.commands
 
             # handle write diff, save pre bleed cmds
-            is_rendermode_cmd = lambda cmd: isinstance(cmd, DPSetRenderMode) or (
-                isinstance(cmd, SPSetOtherMode) and cmd.sets_rendermode
-            )
             geo_cmd = next((cmd for cmd in commands_bled.commands if type(cmd) == SPGeometryMode), None)
             othermode_cmds = [cmd for cmd in commands_bled.commands if isinstance(cmd, SPSetOtherModeSub)]
             rendermode_cmds = [cmd for cmd in commands_bled.commands if is_rendermode_cmd(cmd)]
@@ -298,11 +299,11 @@ class BleedGraphics:
             # if there is no equivelent cmd, it must be using the revert
             for revert_cmd in revert_othermode_cmd:
                 othermode_cmd = next((cmd for cmd in othermode_cmds if type(cmd) == type(revert_cmd)), None)
-                if othermode_cmd is None:  # if there is no equivelent cmd, it must be using the revert
+                if othermode_cmd is None:
                     commands_bled.commands.insert(0, revert_cmd)
             for revert_cmd in revert_rendermode_cmds:
                 rendermode_cmd = next((cmd for cmd in rendermode_cmds if cmd == revert_cmd), None)
-                if rendermode_cmd is None:  # if there is no equivelent cmd, it must be using the revert
+                if rendermode_cmd is None:
                     commands_bled.commands.insert(0, revert_cmd)
         else:
             commands_bled = self.bleed_cmd_list(cur_fmat.mat_only_DL, bleed_state)
