@@ -217,6 +217,21 @@ class SM64_CustomArgProperties(PropertyGroup):
         name="Inherit", description="Inherit arg from owner", default=True, update=custom_cmd_preset_update
     )
     seg_addr: BoolProperty(name="Encode To Segmented Address", default=True)
+    value_type: EnumProperty(
+        items=[
+            ("AUTO", "Auto Type", "Auto"),
+            ("", "", ""),
+            ("CHAR", "Char", "Char"),
+            ("SHORT", "Short", "Short"),
+            ("INT", "Int", "Int"),
+            ("LONG", "Long", "Long"),
+            ("", "", ""),
+            ("FLOAT", "Float", "Float"),
+            ("DOUBLE", "Double", "Double"),
+        ],
+        default="AUTO",
+    )
+    signed: BoolProperty(name="Signed", default=True)
     color: FloatVectorProperty(
         name="Color",
         size=4,
@@ -266,6 +281,14 @@ class SM64_CustomArgProperties(PropertyGroup):
     def is_transform(self):
         return self.arg_type in {"MATRIX", "TRANSLATION", "ROTATION", "SCALE"}
 
+    @property
+    def modifable_value_type(self):
+        return self.arg_type not in {"LAYER", "DL"}
+
+    @property
+    def can_be_signed(self):
+        return self.modifable_value_type and self.value_type not in {"FLOAT", "DOUBLE", "AUTO"}
+
     def show_eval_expression(self, custom_cmd: "SM64_CustomCmdProperties", is_binary: bool):
         if is_binary:
             return True
@@ -301,9 +324,9 @@ class SM64_CustomArgProperties(PropertyGroup):
 
     def show_segmented_toggle(self, owner: Optional[AvailableOwners], conf_type: CustomCmdConf):
         return (
-            (not self.inherits(owner) or conf_type == "PRESET_EDIT")
-            and self.arg_type in {"DL"}
-            and conf_type != "PRESET"
+            conf_type != "PRESET"
+            and ((not self.inherits(owner) or conf_type == "PRESET_EDIT") and self.arg_type in {"DL"})
+            or (self.arg_type in {"PARAMETER"} and self.value_type in {"INT", "LONG"} and not self.signed)
         )
 
     def shows_name(self, owner: Optional[AvailableOwners]):
@@ -369,6 +392,10 @@ class SM64_CustomArgProperties(PropertyGroup):
                 data["inherit"] = self.inherit
             if self.eval_expression:
                 data["eval_expression"] = self.eval_expression
+        if self.modifable_value_type and self.value_type != "AUTO":
+            data["value_type"] = self.value_type
+            if self.can_be_signed:
+                data["signed"] = self.signed
         if self.show_segmented_toggle(owner, conf_type):
             data["seg_addr"] = self.seg_addr
         match self.arg_type:
@@ -410,6 +437,9 @@ class SM64_CustomArgProperties(PropertyGroup):
         self.arg_type = data.get("arg_type", "PARAMETER")
         self.inherit = data.get("inherit", True)
         self.eval_expression = data.get("eval_expression", "")
+        self.value_type = data.get("value_type", "AUTO")
+        self.signed = data.get("signed", True)
+        self.seg_addr = data.get("seg_addr", True)
         self.relative = data.get("relative", True)
         self.convert_to_sm64 = data.get("convert_to_sm64", True)
         self.rot_type = data.get("rot_type", "EULER")
@@ -417,7 +447,6 @@ class SM64_CustomArgProperties(PropertyGroup):
         for option in data.get("enum_options", []):
             self.enum_options.add()
             self.enum_options[-1].from_dict(option)
-        self.seg_addr = data.get("seg_addr", True)
         if not set_defaults:
             return
         defaults = data.get("defaults")
@@ -571,8 +600,14 @@ class SM64_CustomArgProperties(PropertyGroup):
 
         if conf_type != "PRESET" and self.show_eval_expression(custom_cmd, is_binary):
             prop_split(col, self, "eval_expression", "Expression")
-        if is_binary and self.show_segmented_toggle(owner, conf_type):
-            col.prop(self, "seg_addr")
+        if conf_type != "PRESET" and is_binary:
+            if self.modifable_value_type:
+                type_split = col.row()
+                type_split.prop(self, "value_type", text="")
+                if self.can_be_signed:
+                    type_split.prop(self, "signed")
+            if self.show_segmented_toggle(owner, conf_type):
+                col.prop(self, "seg_addr")
 
 
 def custom_cmd_change_preset(self: "SM64_CustomCmdProperties", context: Context):

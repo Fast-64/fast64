@@ -4,12 +4,14 @@ from io import StringIO
 from typing import Iterable, NamedTuple, Optional, TypeVar, Union
 
 from ...f3d.f3d_parser import math_eval
-from ...utility import PluginError, get_clean_color, to_s16, encodeSegmentedAddr
+from ...utility import PluginError, get_clean_color, to_s16, cast_integer, encodeSegmentedAddr
 
 from ..sm64_constants import SegmentData
 from ..sm64_geolayout_utility import BaseDisplayListNode
 
 from .utility import getDrawLayerName
+
+BIT_COUNTS = {"CHAR": 8, "SHORT": 16, "INT": 32, "LONG": 64, "FLOAT": 32, "DOUBLE": 64}
 
 T = TypeVar("T")
 
@@ -28,7 +30,8 @@ def flatten(iterable: Iterable[T]) -> tuple[T]:
 
 class ArgExport(NamedTuple):
     value: float | int | bool | str
-    bit_count: int
+    bit_count: int = 32
+    signed: bool = True
 
 
 class ValueHolder:
@@ -85,54 +88,49 @@ class CustomCmd(BaseDisplayListNode):
                 raise PluginError(f"Command{name} requires a displaylist")
 
     def to_arg(self, data: dict, binary=False, segment_data: Optional[SegmentData] = None) -> Iterable[ArgExport]:
-        def encode_seg_addr(addr: int | None):
-            addr = addr or 0
-            if segment_data is None:
-                return addr.to_bytes(4, "big")
-            encodeSegmentedAddr(addr, segment_data)
-
-        def run_eval(value, bit_count=32):
+        def run_eval(value, bit_count=32, signed=True):
             for value in flatten(value):
                 if (
                     (not self.data["skip_eval"] or binary)
                     and isinstance(value, (int, float, complex))
-                    and not isinstance(value, bool)
+                    and (not isinstance(value, bool) or binary)
                     and "eval_expression" in data
                 ):
-                    yield ArgExport(math_eval(data["eval_expression"], ValueHolder(value)), bit_count)
+                    yield ArgExport(math_eval(data["eval_expression"], ValueHolder(value)), bit_count, signed)
                 else:
-                    yield ArgExport(value, bit_count)
+                    yield ArgExport(value, bit_count, signed)
 
         arg_type = data.get("arg_type")
         to_sm64_units = data.get("convert_to_sm64", True)
         match arg_type:
             case "COLOR":
-                yield from run_eval(get_clean_color(data["color"], True), 8)
+                yield from run_eval(get_clean_color(data["color"], True, False), 32, False)
             case "PARAMETER":
                 if binary:
                     value = math_eval(data["parameter"], object())
                     if isinstance(value, str):
                         raise PluginError("Strings not supported in binary")
-                    yield from run_eval(value, 32)
+                    yield from run_eval(value)
                 else:
-                    yield from run_eval(data["parameter"], 32)
+                    yield from run_eval(data["parameter"])
             case "ENUM":
                 if data["enum"] >= len(data["enum_options"]):
-                    raise PluginError("Enum out of range")
-                option = data["enum_options"][data["enum"]]
-                if binary:
-                    yield from run_eval(option["int_value"], 32)
+                    option = {"int_value": 0, "str_value": "INVALID"}
                 else:
-                    yield from run_eval(option["str_value"], 32)
+                    option = data["enum_options"][data["enum"]]
+                if binary:
+                    yield from run_eval(option["int_value"])
+                else:
+                    yield from run_eval(option["str_value"])
             case "LAYER":
                 layer = data["layer"] if self.draw_layer is None or not data.get("inherit", True) else self.draw_layer
                 if binary:
                     layer = int(data["layer"])
                     if "dl_command" in self.data:
                         layer = (1 << 7) | layer
-                    yield from run_eval(layer, 8)
+                    yield from run_eval(layer, 8, False)
                 else:
-                    yield from run_eval(getDrawLayerName(layer), 8)
+                    yield from run_eval(getDrawLayerName(layer))
             case "BOOLEAN":
                 yield from run_eval(data["boolean"], 8)
             case "NUMBER":
@@ -144,7 +142,7 @@ class CustomCmd(BaseDisplayListNode):
                 else:
                     yield from run_eval((x for x in translation), 32)
             case "SCALE" | "MATRIX":
-                yield from run_eval(data.get(arg_type.lower()), 32)
+                yield from run_eval(data.get(arg_type.lower()))
             case "ROTATION":
                 rot_type = data["rot_type"]
                 rot = flatten(data.get(rot_type.lower()))
@@ -154,9 +152,9 @@ class CustomCmd(BaseDisplayListNode):
                     yield from run_eval(rot, 32)
             case "DL":
                 has_dl, dl_ref = self.hasDL, self.dlRef
-                self.hasDL, self.dlRef = True, data.get("dl")
+                self.hasDL, self.dlRef = True, (data.get("dl") or None)
                 if binary:
-                    yield from run_eval(encode_seg_addr(self.get_dl_address()), 32)
+                    yield from run_eval(self.get_dl_address(), 32)
                 else:
                     yield from run_eval(self.get_dl_name(), 32)
                 self.hasDL, self.dlRef = has_dl, dl_ref
@@ -172,8 +170,10 @@ class CustomCmd(BaseDisplayListNode):
         for i, arg_data in enumerate(self.args):
             group = []
             try:
-                for value, _ in self.to_arg(arg_data):
-                    if isinstance(value, bool):
+                for value, _, _ in self.to_arg(arg_data):
+                    if value is None:
+                        value = "NULL"
+                    elif isinstance(value, bool):
                         value = str(value).upper()
                     group.append(str(value))
                 group_str = ", ".join(group)
@@ -199,13 +199,25 @@ class CustomCmd(BaseDisplayListNode):
             name = arg_data.get("name", f"Arg {i}")
             try:
                 group = bytearray(0)
-                for value, bit_count in self.to_arg(arg_data, True, segment_data):
+                for value, bit_count, signed in self.to_arg(arg_data, True, segment_data):
+                    if value is None:
+                        value = 0
+                    signed = arg_data.get("signed", signed)
+                    if "value_type" in arg_data:
+                        bit_count = BIT_COUNTS[arg_data["value_type"]]
+                        if arg_data["value_type"] in {"FLOAT", "DOUBLE"}:
+                            value = float(value)
+                        else:
+                            value = int(value)
+                    if arg_data.get("seg_addr", False) and segment_data is not None:
+                        value = encodeSegmentedAddr(value, segment_data)
                     if isinstance(value, bytes):
                         group += value
                     elif isinstance(value, float):
                         group += struct.pack("f" if bit_count == 32 else "d", value)
                     elif isinstance(value, int):
-                        group += value.to_bytes(bit_count // 8, "big")
+                        value = cast_integer(value, bit_count, signed)
+                        group += value.to_bytes(bit_count // 8, "big", signed=signed)
                     else:
                         raise PluginError(f"{type(value)} not supported in binary")
                 groups.append((name, group))
