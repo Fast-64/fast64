@@ -1767,6 +1767,17 @@ def processBone(
             node = bone.fast64.sm64.custom.get_final_cmd(
                 bone, bpy.context.scene.fast64.sm64.blender_to_sm64_scale, None, hasDL
             )
+            types = {a["arg_type"] for a in node.data["args"]}
+            has_translation, has_rotation = "TRANSLATION" in types, "ROTATION" in types
+            if not has_translation or not has_rotation:
+                field = 0 if not (has_translation or has_rotation) else (1 if has_translation else 2)
+                parentTransformNode = addParentNode(
+                    parentTransformNode, TranslateRotateNode(node.drawLayer, field, False, translate, rotate)
+                )
+            if has_translation:
+                lastTranslateName = boneName
+            if has_rotation:
+                lastRotateName = boneName
         else:
             raise PluginError("Invalid geometry command: " + bone.geo_cmd)
 
