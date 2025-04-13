@@ -71,6 +71,7 @@ vertexBufferSize = {
     "F3DEX2_PL": (32, 32),
     "F3DEX2.Rej/LX2.Rej": (64, 64),
     "F3DEX3": (56, 56),
+    "T3D": (70, 70),
 }
 
 sm64_default_draw_layers = {
@@ -149,6 +150,14 @@ def is_ucode_point_lit(F3D_VER: str) -> bool:
     return F3D_VER in {"F3DEX3", "F3DEX2_PL"}
 
 
+def is_ucode_t3d(UCODE_VER: str) -> bool:
+    return UCODE_VER == "T3D"
+
+
+def is_ucode_f3d(UCODE_VER: str) -> bool:
+    return UCODE_VER not in {"T3D", "RDPQ"}
+
+
 class F3D:
     """NOTE: do not initialize this class manually! use get_F3D_GBI so that the single instance is cached from the microcode type."""
 
@@ -160,6 +169,7 @@ class F3D:
         F3DLP_GBI = self.F3DLP_GBI = self.F3DEX_GBI
         self.F3D_OLD_GBI = not (F3DEX_GBI or F3DEX_GBI_2 or F3DEX_GBI_3)
         POINT_LIT_GBI = self.POINT_LIT_GBI = is_ucode_point_lit(F3D_VER)
+        self.F3D_GBI = is_ucode_f3d(F3D_VER)
 
         # F3DEX2 is F3DEX1 and F3DEX3 is F3DEX2, but F3DEX3 is not F3DEX1
         if F3DEX_GBI_2:
@@ -167,8 +177,12 @@ class F3D:
         elif F3DEX_GBI_3:
             F3DEX_GBI_2 = self.F3DEX_GBI_2 = True
 
-        self.vert_buffer_size = vertexBufferSize[F3D_VER][0]
-        self.vert_load_size = vertexBufferSize[F3D_VER][1]
+        if F3D_VER in vertexBufferSize:
+            self.vert_buffer_size = vertexBufferSize[F3D_VER][0]
+            self.vert_load_size = vertexBufferSize[F3D_VER][1]
+        else:
+            self.vert_buffer_size = self.vert_load_size = None
+
         self.G_MAX_LIGHTS = 9 if F3DEX_GBI_3 else 7
         self.G_INPUT_BUFFER_CMDS = 21
 
@@ -2245,12 +2259,12 @@ class FAreaData:
         return self.fog_data.makeKey()
 
     def requiresKey(self, material):
-        return self.fog_data.requiresKey(material)
+        return self.fog_data and self.fog_data.requiresKey(material)
 
 
 class FGlobalData:
     def __init__(self):
-        # dict of area index : FFogData
+        # dict of area index : FAreaData
         self.area_data = {}
         self.current_area_index = 1
 
@@ -2338,6 +2352,10 @@ class FModel:
         self.materialRevert: Union[GfxList, None] = None
         # F3D library
         self.f3d: F3D = get_F3D_GBI()
+        if not self.f3d.F3D_GBI:
+            raise PluginError(
+                f"Current microcode {self.f3d.F3D_VER} is not part of the f3d family of microcodes, fast64 cannot export it"
+            )
         # array of FModel
         self.subModels: list[FModel] = []
         self.parentModel: Union[FModel, None] = None
@@ -2958,14 +2976,17 @@ class FTriGroup:
         return self.triList.get_ptr_addresses(f3d)
 
     def set_addr(self, startAddress, f3d):
-        addrRange = self.triList.set_addr(startAddress, f3d)
+        addrRange = (startAddress, startAddress)
+        if self.triList.tag.Export:
+            addrRange = self.triList.set_addr(startAddress, f3d)
         addrRange = self.vertexList.set_addr(addrRange[1])
         return startAddress, addrRange[1]
 
     def save_binary(self, romfile, f3d, segments):
         for celTriList in self.celTriLists:
             celTriList.save_binary(romfile, f3d, segments)
-        self.triList.save_binary(romfile, f3d, segments)
+        if self.triList.tag.Export:
+            self.triList.save_binary(romfile, f3d, segments)
         self.vertexList.save_binary(romfile)
 
     def to_c(self, f3d, gfxFormatter):
@@ -3072,15 +3093,17 @@ class FMaterial:
         return addresses
 
     def set_addr(self, startAddress, f3d):
-        addrRange = self.material.set_addr(startAddress, f3d)
-        startAddress = addrRange[0]
-        if self.revert is not None:
+        addrRange = (startAddress, startAddress)
+        if self.material.tag.Export:
+            addrRange = self.material.set_addr(addrRange[1], f3d)
+        if self.revert is not None and self.revert.tag.Export:
             addrRange = self.revert.set_addr(addrRange[1], f3d)
         return startAddress, addrRange[1]
 
     def save_binary(self, romfile, f3d, segments):
-        self.material.save_binary(romfile, f3d, segments)
-        if self.revert is not None:
+        if self.material.tag.Export:
+            self.material.save_binary(romfile, f3d, segments)
+        if self.revert is not None and self.revert.tag.Export:
             self.revert.save_binary(romfile, f3d, segments)
 
     def to_c(self, f3d):
@@ -3269,6 +3292,10 @@ class FImage:
     isLargeTexture: bool = field(init=False, compare=False, default=False)
     converted: bool = field(init=False, compare=False, default=False)
 
+    @property
+    def aligner_name(self):
+        return f"{self.name}_aligner"
+
     def size(self):
         return len(self.data)
 
@@ -3287,7 +3314,7 @@ class FImage:
 
         # This is to force 8 byte alignment
         if bitsPerValue != 64:
-            code.source = f"Gfx {self.name}_aligner[] = {{gsSPEndDisplayList()}};\n"
+            code.source = f"Gfx {self.aligner_name}[] = {{gsSPEndDisplayList()}};\n"
         code.source += f"u{str(bitsPerValue)} {self.name}[] = {{\n\t"
         code.source += texData
         code.source += "\n};\n\n"
@@ -3406,7 +3433,8 @@ class GbiMacro:
         if static:
             return f"g{'s'*static}{type(self).__name__}({', '.join( self.getargs(static) )})"
         else:
-            return f"g{'s'*static}{type(self).__name__}(glistp++, {', '.join( self.getargs(static) )})"
+            args = ["glistp++"] + list(self.getargs(static))
+            return f"g{'s'*static}{type(self).__name__}({', '.join( args )})"
 
     def size(self, f3d):
         return GFX_SIZE

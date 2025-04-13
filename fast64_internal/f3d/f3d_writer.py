@@ -1287,6 +1287,7 @@ def getTexDimensions(material):
     return texDimensions
 
 
+@wrap_func_with_error_message(lambda args: (f"In material '{args['material'].name}': "))
 def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     print(f"Writing material {material.name}")
     if material.mat_ver > 3:
@@ -1317,7 +1318,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     )
 
     if not material.is_f3d:
-        raise PluginError("Material named " + material.name + " is not an F3D material.")
+        raise PluginError("Not an F3D material.")
     fMaterial = fModel.addMaterial(materialName)
     useDict = all_combiner_uses(f3dMat)
 
@@ -1416,8 +1417,9 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         fMaterial.mat_only_DL.commands.append(SPAttrOffsetZ(f3dMat.attroffs_z))
 
     if f3dMat.set_fog and f3dMat.rdp_settings.using_fog:
-        if f3dMat.use_global_fog and fModel.global_data.getCurrentAreaData() is not None:
-            fogData = fModel.global_data.getCurrentAreaData().fog_data
+        area = fModel.global_data.getCurrentAreaData()
+        if f3dMat.use_global_fog and area and area.fog_data:
+            fogData = area.fog_data
             fog_position = fogData.position
             fog_color = fogData.color
         else:
@@ -1549,20 +1551,13 @@ def getLightDefinitions(fModel, material, lightsName=""):
     else:
         lights.a = Ambient(exportColor(material.ambient_light_color))
 
-        if material.f3d_light1 is not None:
-            addLightDefinition(material, material.f3d_light1, lights)
-        if material.f3d_light2 is not None:
-            addLightDefinition(material, material.f3d_light2, lights)
-        if material.f3d_light3 is not None:
-            addLightDefinition(material, material.f3d_light3, lights)
-        if material.f3d_light4 is not None:
-            addLightDefinition(material, material.f3d_light4, lights)
-        if material.f3d_light5 is not None:
-            addLightDefinition(material, material.f3d_light5, lights)
-        if material.f3d_light6 is not None:
-            addLightDefinition(material, material.f3d_light6, lights)
-        if material.f3d_light7 is not None:
-            addLightDefinition(material, material.f3d_light7, lights)
+        for i in range(1, 8):
+            try:
+                light_prop = getattr(material, f"f3d_light{i}")
+                if light_prop is not None:
+                    addLightDefinition(light_prop, lights)
+            except Exception as exc:
+                raise PluginError(f"Failed to get custom light {i}: {exc}") from exc
 
     return lights
 
@@ -1580,7 +1575,7 @@ def saveLightsDefinition(fModel, fMaterial, material, lightsName):
     return lights
 
 
-def addLightDefinition(mat, f3d_light, fLights):
+def addLightDefinition(f3d_light, fLights):
     lightObj = lightDataToObj(f3d_light)
     fLights.l.append(
         Light(
