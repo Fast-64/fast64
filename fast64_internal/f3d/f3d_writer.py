@@ -16,7 +16,7 @@ from .f3d_material import (
 )
 from .f3d_texture_writer import MultitexManager, TileLoad, maybeSaveSingleLargeTextureSetup
 from .f3d_gbi import *
-from .f3d_bleed import BleedGraphics
+from .f3d_bleed import BleedGraphics, get_geo_cmds
 
 from ..utility import *
 
@@ -518,18 +518,18 @@ def addCullCommand(obj, fMesh, transformMatrix, matWriteMethod):
         defaults = create_or_get_world(bpy.context.scene).rdp_defaults
         if defaults.g_lighting:
             cullCommands = [
-                SPClearGeometryMode(["G_LIGHTING"]),
+                SPClearGeometryMode({"G_LIGHTING"}),
                 SPVertex(fMesh.cullVertexList, 0, 8, 0),
-                SPSetGeometryMode(["G_LIGHTING"]),
+                SPSetGeometryMode({"G_LIGHTING"}),
                 SPCullDisplayList(0, 7),
             ]
         else:
             cullCommands = [SPVertex(fMesh.cullVertexList, 0, 8, 0), SPCullDisplayList(0, 7)]
     elif matWriteMethod == GfxMatWriteMethod.WriteAll:
         cullCommands = [
-            SPClearGeometryMode(["G_LIGHTING"]),
+            SPClearGeometryMode({"G_LIGHTING"}),
             SPVertex(fMesh.cullVertexList, 0, 8, 0),
-            SPSetGeometryMode(["G_LIGHTING"]),
+            SPSetGeometryMode({"G_LIGHTING"}),
             SPCullDisplayList(0, 7),
         ]
     else:
@@ -1323,10 +1323,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     useDict = all_combiner_uses(f3dMat)
 
     defaults = create_or_get_world(bpy.context.scene).rdp_defaults
-    if fModel.f3d.F3DEX_GBI_2:
-        saveGeoModeDefinitionF3DEX2(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
-    else:
-        saveGeoModeDefinition(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
+    saveGeoModeDefinition(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod, fModel.f3d.F3DEX_GBI_2)
 
     # Checking for f3dMat.rdp_settings.g_lighting here will prevent accidental exports,
     # There may be some edge case where this isn't desired.
@@ -1585,20 +1582,12 @@ def addLightDefinition(f3d_light, fLights):
     )
 
 
-def saveBitGeoF3DEX2(value, defaultValue, flagName, geo, matWriteMethod):
+def saveBitGeo(value, defaultValue, flagName, set_modes: list[str], clear_modes: list[str], matWriteMethod):
     if value != defaultValue or matWriteMethod == GfxMatWriteMethod.WriteAll:
         if value:
-            geo.setFlagList.append(flagName)
+            set_modes.append(flagName)
         else:
-            geo.clearFlagList.append(flagName)
-
-
-def saveBitGeo(value, defaultValue, flagName, setGeo, clearGeo, matWriteMethod):
-    if value != defaultValue or matWriteMethod == GfxMatWriteMethod.WriteAll:
-        if value:
-            setGeo.flagList.append(flagName)
-        else:
-            clearGeo.flagList.append(flagName)
+            clear_modes.append(flagName)
 
 
 def saveGeoModeCommon(saveFunc: Callable, settings: RDPSettings, defaults: RDPSettings, args: Any):
@@ -1625,32 +1614,15 @@ def saveGeoModeCommon(saveFunc: Callable, settings: RDPSettings, defaults: RDPSe
         saveFunc(settings.g_clipping, defaults.g_clipping, "G_CLIPPING", *args)
 
 
-def saveGeoModeDefinitionF3DEX2(fMaterial, settings, defaults, matWriteMethod):
-    geo = SPGeometryMode([], [])
-    saveGeoModeCommon(saveBitGeoF3DEX2, settings, defaults, (geo, matWriteMethod))
+def saveGeoModeDefinition(fMaterial, settings, defaults, matWriteMethod, is_ex2: bool):
+    set_modes = []
+    clear_modes = []
 
-    if len(geo.clearFlagList) != 0 or len(geo.setFlagList) != 0:
-        if matWriteMethod == GfxMatWriteMethod.WriteAll:
-            fMaterial.mat_only_DL.commands.append(SPLoadGeometryMode(geo.setFlagList))
-        else:
-            fMaterial.mat_only_DL.commands.append(geo)
-            fMaterial.revert.commands.append(SPGeometryMode(geo.setFlagList, geo.clearFlagList))
+    saveGeoModeCommon(saveBitGeo, settings, defaults, (set_modes, clear_modes, matWriteMethod))
 
-
-def saveGeoModeDefinition(fMaterial, settings, defaults, matWriteMethod):
-    setGeo = SPSetGeometryMode([])
-    clearGeo = SPClearGeometryMode([])
-
-    saveGeoModeCommon(saveBitGeo, settings, defaults, (setGeo, clearGeo, matWriteMethod))
-
-    if len(setGeo.flagList) > 0:
-        fMaterial.mat_only_DL.commands.append(setGeo)
-        if matWriteMethod == GfxMatWriteMethod.WriteDifferingAndRevert:
-            fMaterial.revert.commands.append(SPClearGeometryMode(setGeo.flagList))
-    if len(clearGeo.flagList) > 0:
-        fMaterial.mat_only_DL.commands.append(clearGeo)
-        if matWriteMethod == GfxMatWriteMethod.WriteDifferingAndRevert:
-            fMaterial.revert.commands.append(SPSetGeometryMode(clearGeo.flagList))
+    material, revert = get_geo_cmds(clear_modes, set_modes, is_ex2, matWriteMethod)
+    fMaterial.mat_only_DL.commands.extend(material)
+    fMaterial.revert.commands.extend(revert)
 
 
 def saveModeSetting(fMaterial, value, defaultValue, cmdClass):

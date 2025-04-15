@@ -64,6 +64,37 @@ from .f3d_gbi import (
 )
 
 
+def get_geo_cmds(clear_modes: set[str], set_modes: set[str], is_ex2: bool, matWriteMethod: "GfxMatWriteMethod"):
+    set_modes, clear_modes = set(set_modes), set(clear_modes)
+    if len(clear_modes) == 0 and len(set_modes) == 0:
+        return ([], [])
+    if is_ex2:
+        if matWriteMethod == 1:  # GfxMatWriteMethod.WriteAll
+            return ([SPLoadGeometryMode(set_modes)], [])
+        elif len(set_modes) > 0 and len(clear_modes) > 0:
+            return ([SPGeometryMode(clear_modes, set_modes)], [SPGeometryMode(set_modes, clear_modes)])
+    material, revert = [], []
+    if len(set_modes) > 0:
+        material.append(SPSetGeometryMode(set_modes))
+        revert.append(SPClearGeometryMode(set_modes))
+    if len(clear_modes) > 0:
+        material.append(SPClearGeometryMode(clear_modes))
+        revert.append(SPSetGeometryMode(clear_modes))
+    return (material, revert)
+
+
+WRITE_DIFF_GEO_CMDS = {SPGeometryMode, SPSetGeometryMode, SPClearGeometryMode}
+
+
+def get_flags(cmd: SPGeometryMode | SPSetGeometryMode | SPClearGeometryMode):
+    if type(cmd) == SPGeometryMode:
+        return cmd.setFlagList, cmd.clearFlagList
+    elif type(cmd) == SPSetGeometryMode:
+        return (cmd.flagList, set())
+    elif type(cmd) == SPClearGeometryMode:
+        return (set(), cmd.flagList)
+
+
 def is_rendermode_cmd(cmd: GbiMacro):
     return isinstance(cmd, DPSetRenderMode) or (isinstance(cmd, SPSetOtherMode) and cmd.sets_rendermode)
 
@@ -87,14 +118,14 @@ class BleedGraphics:
     def build_default_geo(self):
         defaults = create_or_get_world(bpy.context.scene).rdp_defaults
 
-        setGeo = SPSetGeometryMode([])
-        clearGeo = SPClearGeometryMode([])
+        setGeo = SPSetGeometryMode()
+        clearGeo = SPClearGeometryMode()
 
         def place_in_flaglist(flag: bool, enum: str, set_list: SPSetGeometryMode, clear_list: SPClearGeometryMode):
             if flag:
-                set_list.flagList.append(enum)
+                set_list.flagList.add(enum)
             else:
-                clear_list.flagList.append(enum)
+                clear_list.flagList.add(enum)
 
         place_in_flaglist(defaults.g_zbuffer, "G_ZBUFFER", setGeo, clearGeo)
         place_in_flaglist(defaults.g_shade, "G_SHADE", setGeo, clearGeo)
@@ -271,7 +302,7 @@ class BleedGraphics:
             last_cmd_list = last_mat.mat_only_DL.commands
 
             # handle write diff, save pre bleed cmds
-            geo_cmd = next((cmd for cmd in commands_bled.commands if type(cmd) == SPGeometryMode), None)
+            geo_cmds = [cmd for cmd in commands_bled.commands if type(cmd) in WRITE_DIFF_GEO_CMDS]
             othermode_cmds = [cmd for cmd in commands_bled.commands if isinstance(cmd, SPSetOtherModeSub)]
 
             for j, cmd in enumerate(gfx.commands):
@@ -283,16 +314,23 @@ class BleedGraphics:
 
             # handle write diff
             if last_mat.revert:
-                revert_geo_cmd = next((cmd for cmd in last_mat.revert.commands if type(cmd) == SPGeometryMode), None)
+                revert_geo_cmds = [cmd for cmd in last_mat.revert.commands if type(cmd) in WRITE_DIFF_GEO_CMDS]
                 revert_othermode_cmd = [cmd for cmd in last_mat.revert.commands if isinstance(cmd, SPSetOtherModeSub)]
             else:
-                revert_geo_cmd, revert_othermode_cmd = None, []
-            if geo_cmd in commands_bled.commands and revert_geo_cmd:
-                # if there's a geo command, add revert's modes to it
-                geo_cmd.extend(revert_geo_cmd.clearFlagList, revert_geo_cmd.setFlagList)
-            elif geo_cmd is None and revert_geo_cmd:
-                # if there was no geo command but there was a revert, add the revert command
-                commands_bled.commands.insert(0, revert_geo_cmd)
+                revert_geo_cmds, revert_othermode_cmd = [], []
+
+            # geo mode write diff, these cmds are always removed by default and added back here
+            set_modes, clear_modes = set(), set()
+            for cmd in geo_cmds:
+                cur_set, cur_clear = get_flags(cmd)
+                set_modes, clear_modes = set_modes | cur_set, clear_modes | cur_clear
+            for cmd in revert_geo_cmds:
+                revert_set, revert_clear = get_flags(cmd)
+                set_modes, clear_modes = set_modes | revert_set, clear_modes | revert_clear
+            clear_modes, set_modes = clear_modes - set_modes, set_modes - clear_modes
+            print(geo_cmds, revert_geo_cmds, get_geo_cmds(clear_modes, set_modes, self.f3d.F3DEX_GBI_2, 0)[0])
+            for cmd in get_geo_cmds(clear_modes, set_modes, self.f3d.F3DEX_GBI_2, 0)[0]:
+                commands_bled.commands.insert(0, cmd)
 
             # if there is no equivelent cmd, it must be using the revert
             for revert_cmd in revert_othermode_cmd:
@@ -427,17 +465,6 @@ class BleedGraphics:
             if cmd_type == DPPipeSync:
                 reset_cmds.append(DPPipeSync())
 
-            # generally either loadgeo, or a combo of set/clear is used based on microcode selected
-            # if you are in f3d, any selection different from the default will add a set/clear
-            if cmd_type == SPLoadGeometryMode and cmd_use != self.default_load_geo:
-                reset_cmds.append(self.default_load_geo)
-
-            elif cmd_type == SPSetGeometryMode and cmd_use != self.default_set_geo:
-                reset_cmds.append(self.default_clear_geo)
-
-            elif cmd_type == SPClearGeometryMode and cmd_use != self.default_clear_geo:
-                reset_cmds.append(self.default_set_geo)
-
             elif cmd_type == SPGeometryMode:  # revert cmd includes everything from the start
                 # First, figure out what needs to be cleared or set
                 set_list, clear_list = {}, {}
@@ -446,8 +473,12 @@ class BleedGraphics:
                 if cmd_use.clearFlagList != self.default_clear_geo.flagList:
                     set_list = set(cmd_use.clearFlagList) - set(self.default_clear_geo.flagList)
 
-                if set_list or clear_list:
-                    reset_cmds.append(SPGeometryMode(list(clear_list), list(set_list)))
+                reset_cmds.extend(
+                    get_geo_cmds(set_list, clear_list, self.f3d.F3DEX_GBI_2, 0)[1]
+                )  # safe to assume write diff here
+
+            if cmd_type == SPLoadGeometryMode and cmd_use != self.default_load_geo:
+                reset_cmds.append(self.default_load_geo)
 
             elif cmd_type == "G_SETOTHERMODE_H":
                 if cmd_use != self.default_othermode_H:
@@ -513,6 +544,9 @@ class BleedGraphics:
         if not last_cmd_list:
             return self.bleed_self_conflict
 
+        if type(cmd) in WRITE_DIFF_GEO_CMDS:
+            return True
+
         if bleed_state == self.bleed_start:
             if isinstance(cmd, SPSetOtherModeSub):
                 return cmd.mode == self.default_othermode_dict[type(cmd)]
@@ -534,22 +568,6 @@ class BleedGraphics:
             return cmd in last_cmd_list
         else:
             return cmd == self.default_load_geo
-
-    def bleed_SPSetGeometryMode(
-        self, cmd_list: GfxList, cmd: GbiMacro, bleed_state: int, last_cmd_list: GfxList = None
-    ):
-        if bleed_state != self.bleed_start:
-            return cmd in last_cmd_list
-        else:
-            return cmd == self.default_set_geo
-
-    def bleed_SPClearGeometryMode(
-        self, cmd_list: GfxList, cmd: GbiMacro, bleed_state: int, last_cmd_list: GfxList = None
-    ):
-        if bleed_state != self.bleed_start:
-            return cmd in last_cmd_list
-        else:
-            return cmd == self.default_clear_geo
 
     def bleed_SPSetOtherMode(self, cmd_list: GfxList, cmd: GbiMacro, bleed_state: int, last_cmd_list: GfxList = None):
         if bleed_state != self.bleed_start:
@@ -608,14 +626,16 @@ class BleedGfxLists:
     def add_reset_cmd(self, f3d: F3D, cmd: GbiMacro, reset_cmd_dict: dict[GbiMacro]):
         reset_cmd_list = (
             SPLoadGeometryMode,
-            SPSetGeometryMode,
-            SPClearGeometryMode,
             DPSetRenderMode,
         )
+        if SPGeometryMode not in reset_cmd_dict:
+            reset_cmd_dict[SPGeometryMode] = SPGeometryMode()
         if type(cmd) == SPGeometryMode:
-            if SPGeometryMode not in reset_cmd_dict:
-                reset_cmd_dict[SPGeometryMode] = SPGeometryMode([], [])
             reset_cmd_dict[SPGeometryMode].extend(cmd.clearFlagList, cmd.setFlagList)
+        elif type(cmd) == SPClearGeometryMode:
+            reset_cmd_dict[SPGeometryMode].extend(cmd.flagList, set())
+        elif type(cmd) == SPSetGeometryMode:
+            reset_cmd_dict[SPGeometryMode].extend(set(), cmd.flagList)
         elif isinstance(cmd, SPSetOtherModeSub):
             l: SPSetOtherMode = reset_cmd_dict.get("G_SETOTHERMODE_L")
             h: SPSetOtherMode = reset_cmd_dict.get("G_SETOTHERMODE_H")

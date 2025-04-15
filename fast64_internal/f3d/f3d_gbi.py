@@ -4291,14 +4291,14 @@ def geoFlagListToWord(flagList, f3d):
 
 @dataclass(unsafe_hash=True)
 class SPGeometryMode(GbiMacro):
-    clearFlagList: list
-    setFlagList: list
+    clearFlagList: set[str] = field(default_factory=set)
+    setFlagList: set[str] = field(default_factory=set)
 
-    def extend(self, clear_list: list, set_list: list):
-        clear_list = set(self.clearFlagList + clear_list)
-        set_list = set(self.setFlagList + set_list)
-        self.setFlagList = list(set_list - clear_list)
-        self.clearFlagList = list(clear_list - set_list)
+    def extend(self, clear_list: set, set_list: set):
+        clear_list = self.clearFlagList | clear_list
+        set_list = self.setFlagList | set_list
+        self.setFlagList = set_list - clear_list
+        self.clearFlagList = clear_list - set_list
 
     def to_binary(self, f3d, segments):
         if f3d.F3DEX_GBI_2:
@@ -4312,7 +4312,7 @@ class SPGeometryMode(GbiMacro):
 
 @dataclass(unsafe_hash=True)
 class SPSetGeometryMode(GbiMacro):
-    flagList: list
+    flagList: set[str] = field(default_factory=set)
 
     def to_binary(self, f3d, segments):
         word = geoFlagListToWord(self.flagList, f3d)
@@ -4325,7 +4325,7 @@ class SPSetGeometryMode(GbiMacro):
 
 @dataclass(unsafe_hash=True)
 class SPClearGeometryMode(GbiMacro):
-    flagList: list
+    flagList: set[str] = field(default_factory=set)
 
     def to_binary(self, f3d, segments):
         word = geoFlagListToWord(self.flagList, f3d)
