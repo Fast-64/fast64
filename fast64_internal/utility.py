@@ -1,4 +1,5 @@
-import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operator
+from pathlib import Path
+import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operator, inspect
 from math import pi, ceil, degrees, radians, copysign
 from mathutils import *
 from .utility_anim import *
@@ -423,7 +424,7 @@ def getPathAndLevel(is_custom_export, custom_export_path, custom_level_name, lev
         export_path = bpy.path.abspath(custom_export_path)
         level_name = custom_level_name
     else:
-        export_path = bpy.path.abspath(bpy.context.scene.fast64.sm64.decomp_path)
+        export_path = str(bpy.context.scene.fast64.sm64.abs_decomp_path)
         if level_enum == "Custom":
             level_name = custom_level_name
         else:
@@ -708,11 +709,13 @@ def getExportDir(customExport, dirPath, headerType, levelName, texDir, dirName):
         elif headerType == "Level":
             dirPath = os.path.join(dirPath, "levels/" + levelName)
             texDir = "levels/" + levelName
+    elif not texDir:
+        texDir = (Path(dirPath).name / Path(dirName)).as_posix()
 
     return dirPath, texDir
 
 
-def overwriteData(headerRegex, name, value, filePath, writeNewBeforeString, isFunction):
+def overwriteData(headerRegex, name, value, filePath, writeNewBeforeString, isFunction, post_regex=""):
     if os.path.exists(filePath):
         dataFile = open(filePath, "r")
         data = dataFile.read()
@@ -721,7 +724,8 @@ def overwriteData(headerRegex, name, value, filePath, writeNewBeforeString, isFu
         matchResult = re.search(
             headerRegex
             + re.escape(name)
-            + ("\s*\((((?!\)).)*)\)\s*\{(((?!\}).)*)\}" if isFunction else "\[\]\s*=\s*\{(((?!;).)*);"),
+            + ("\s*\((((?!\)).)*)\)\s*\{(((?!\}).)*)\}" if isFunction else "\[\]\s*=\s*\{(((?!;).)*);")
+            + post_regex,
             data,
             re.DOTALL,
         )
@@ -1659,7 +1663,9 @@ def lightDataToObj(lightData):
     for obj in bpy.context.scene.objects:
         if obj.data == lightData:
             return obj
-    raise PluginError("A material is referencing a light that is no longer in the scene (i.e. has been deleted).")
+    raise PluginError(
+        f'Referencing a light ("{lightData.name}") that is no longer in the scene (i.e. has been deleted).'
+    )
 
 
 def ootGetSceneOrRoomHeader(parent, idx, isRoom):
@@ -1696,14 +1702,17 @@ def ootGetBaseOrCustomLight(prop, idx, toExport: bool, errIfMissing: bool):
     col = getattr(prop, "diffuse" + str(idx))
     dir = (mathutils.Vector((1.0, -1.0, 1.0)) * (1.0 if idx == 0 else -1.0)).normalized()
     if getattr(prop, "useCustomDiffuse" + str(idx)):
-        light = getattr(prop, "diffuse" + str(idx) + "Custom")
-        if light is None:
-            if errIfMissing:
-                raise PluginError("Error: Diffuse " + str(idx) + " light object not set in a scene lighting property.")
-        else:
-            col = tuple(c for c in light.color) + (1.0,)
-            lightObj = lightDataToObj(light)
-            dir = getObjDirectionVec(lightObj, toExport)
+        try:
+            light = getattr(prop, "diffuse" + str(idx) + "Custom")
+            if light is None:
+                if errIfMissing:
+                    raise PluginError("Light object not set in a scene lighting property.")
+            else:
+                col = tuple(c for c in light.color) + (1.0,)
+                lightObj = lightDataToObj(light)
+                dir = getObjDirectionVec(lightObj, toExport)
+        except Exception as exc:
+            raise PluginError(f"In custom diffuse {idx}: {exc}") from exc
     col = mathutils.Vector(tuple(c for c in col))
     if toExport:
         col, dir = exportColor(col), normToSigned8Vector(dir)
@@ -1924,3 +1933,32 @@ def create_or_get_world(scene: Scene) -> World:
         WORLD_WARNING_COUNT = 0
         print(f'No world in this file, creating world named "Fast64".')
         return bpy.data.worlds.new("Fast64")
+
+
+def set_if_different(owner: object, prop: str, value):
+    if getattr(owner, prop) != value:
+        setattr(owner, prop, value)
+
+
+def set_prop_if_in_data(owner: object, prop_name: str, data: dict, data_name: str):
+    if data_name in data:
+        set_if_different(owner, prop_name, data[data_name])
+
+
+def wrap_func_with_error_message(error_message: Callable):
+    """Decorator for big, reused functions that need generic info in errors, such as material exports."""
+
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            # Get the argument names and values (positional and keyword)
+            sig = inspect.signature(func)
+            bound_args = sig.bind(*args, **kwargs)
+            bound_args.apply_defaults()
+            try:
+                return func(*args, **kwargs)
+            except Exception as exc:
+                raise PluginError(f"{error_message(bound_args.arguments)} {exc}") from exc
+
+        return wrapper
+
+    return decorator

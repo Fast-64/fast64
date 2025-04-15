@@ -12,7 +12,7 @@ class CollisionPoly:
     ignoreCamera: bool
     ignoreEntity: bool
     ignoreProjectile: bool
-    enableConveyor: bool
+    isLandConveyor: bool
     normal: Vector
     dist: int
     useMacros: bool
@@ -42,7 +42,7 @@ class CollisionPoly:
         """Returns the value of ``flags_vIB``"""
 
         vtxId = self.indices[1] & 0x1FFF
-        if self.enableConveyor:
+        if self.isLandConveyor:
             flags = "COLPOLY_IS_FLOOR_CONVEYOR" if self.useMacros else "(1 << 0)"
         else:
             flags = "COLPOLY_IGNORE_NONE" if self.useMacros else "0"
