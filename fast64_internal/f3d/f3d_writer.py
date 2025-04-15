@@ -1709,8 +1709,7 @@ def saveOtherModeLDefinition(fMaterial, settings, defaults, defaultRenderMode, m
 
 
 def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaultRenderMode, f3d):
-    baseLength = 3 if not settings.set_rendermode else 32
-    cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, baseLength - f3d.F3D_OLD_GBI, [])
+    cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, 32 - f3d.F3D_OLD_GBI, [])
     cmd.flagList.append(settings.g_mdsft_alpha_compare)
     cmd.flagList.append(settings.g_mdsft_zsrcsel)
 
@@ -1719,10 +1718,8 @@ def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaultRenderMod
         cmd.flagList.extend(flagList)
         if blender is not None:
             cmd.flagList.append(blender)
-        if defaultRenderMode is not None:  # even in write all, we need to revert the rendermode
-            fMaterial.revert.commands.append(
-                SPSetOtherMode("G_SETOTHERMODE_L", f3d.G_MDSFT_RENDERMODE, 29 - f3d.F3D_OLD_GBI, defaultRenderMode)
-            )
+    elif defaultRenderMode:
+        cmd.flagList.extend(defaultRenderMode)
 
     fMaterial.mat_only_DL.commands.append(cmd)
 
