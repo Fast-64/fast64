@@ -421,7 +421,7 @@ def extendedRAMLabel(layout):
 
 def getPathAndLevel(is_custom_export, custom_export_path, custom_level_name, level_enum):
     if is_custom_export:
-        export_path = bpy.path.abspath(custom_export_path)
+        export_path = bpy.path.abspath(str(custom_export_path))
         level_name = custom_level_name
     else:
         export_path = str(bpy.context.scene.fast64.sm64.abs_decomp_path)
