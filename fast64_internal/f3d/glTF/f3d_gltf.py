@@ -39,6 +39,7 @@ from ..f3d_material import (
     createScenePropertiesForMaterial,
     get_f3d_node_tree,
     update_all_node_values,
+    update_blend_method,
     get_textlut_mode,
     F3DMaterialProperty,
     RDPSettings,
@@ -896,26 +897,62 @@ def modify_f3d_nodes_for_export(use: bool):
         material_output = next((node for node in nodes if node.bl_idname == "ShaderNodeOutputMaterial"), None)
         if material_output is None:
             material_output = nodes.new("ShaderNodeOutputMaterial")
+
         bsdf = next((node for node in nodes if node.bl_idname == "ShaderNodeBsdfPrincipled"), None)
         if bsdf is None:
             bsdf = nodes.new("ShaderNodeBsdfPrincipled")
-            bsdf.location = (1260, 900)
-        vertex_color = next((node for node in nodes if node.bl_idname == "ShaderNodeVertexColor"), None)
+            bsdf["f3d_gltf_owned"] = True
+        bsdf.location = (1260, 900)
+
+        # we need to use a mix node because 4.1
+        mix = next((node for node in nodes if node.bl_idname == "ShaderNodeMix" and node.get("f3d_gltf_owned")), None)
+        if mix is None:
+            mix = nodes.new("ShaderNodeMix")
+            mix["f3d_gltf_owned"] = True
+        mix.location = (1075, 850)
+        mix.blend_type = "MULTIPLY"
+        mix.inputs["Factor"].default_value = 1.0
+        mix.inputs["B"].default_value = 1.0
+
+        vertex_color = next(
+            (node for node in nodes if node.bl_idname == "ShaderNodeVertexColor" and node.get("f3d_gltf_owned")), None
+        )
         if vertex_color is None:
             vertex_color = nodes.new("ShaderNodeVertexColor")
-            vertex_color.location = (1075, 850)
+        vertex_color["f3d_gltf_owned"] = True
+        vertex_color.location = (900, 850)
         vertex_color.layer_name = "Col"
 
         remove_first_link_if_exists(mat, material_output.inputs["Surface"].links)
         if use:
             link_if_none_exist(mat, f3d_output.outputs["Shader"], material_output.inputs["Surface"])
+            update_blend_method(mat, bpy.context)
         else:
-            link_if_none_exist(mat, vertex_color.outputs["Color"], bsdf.inputs["Base Color"])
-            link_if_none_exist(mat, vertex_color.outputs["Alpha"], bsdf.inputs["Alpha"])
+            mat.blend_method = "BLEND"  # HACK: same thing, 4.1 is weird with alpha
+            link_if_none_exist(
+                mat, vertex_color.outputs["Color"], bsdf.inputs.get("Color") or bsdf.inputs.get("Base Color")
+            )
+            link_if_none_exist(mat, vertex_color.outputs["Alpha"], mix.inputs["A"])
+            link_if_none_exist(mat, mix.outputs["Result"], bsdf.inputs["Alpha"])
             link_if_none_exist(mat, bsdf.outputs["BSDF"], material_output.inputs["Surface"])
 
 
-def pre_gather_mesh_hook(blender_mesh: Mesh, *args):
+def get_gamma_corrected(layer):
+    colors = np.empty(len(layer) * 4, dtype=np.float32)
+    if bpy.app.version > (3, 2, 0):
+        layer.foreach_get("color_srgb", colors)
+    else:  # vectorized linear -> sRGB conversion
+        layer.foreach_get("color", colors)
+        mask = colors > 0.0031308
+        colors[mask] = 1.055 * (np.power(colors[mask], (1.0 / 2.4))) - 0.055
+        colors[~mask] *= 12.0
+    return colors.reshape((-1, 4))
+
+
+RGB_TO_LUM_COEF = np.array([0.2126729, 0.7151522, 0.0721750], np.float32)  # blender rgb -> lum coefficient
+
+
+def pre_gather_mesh_hook(blender_mesh: Mesh, *_args):
     """HACK: Runs right before the actual gather_mesh func in the addon, we need to join col and alpha"""
     if not get_settings().apply_alpha_to_col:
         return
@@ -927,14 +964,11 @@ def pre_gather_mesh_hook(blender_mesh: Mesh, *args):
     if not color_layer or not alpha_layer:
         return
     color = np.empty(len(blender_mesh.loops) * 4, dtype=np.float32)
-    alpha = np.empty(len(blender_mesh.loops) * 4, dtype=np.float32)
     color_layer.foreach_get("color", color)
-    alpha_layer.foreach_get("color", alpha)
-    alpha = alpha.reshape(-1, 4)
     color = color.reshape(-1, 4)
+    rgb_alpha = get_gamma_corrected(alpha_layer)
 
-    # Calculate alpha from the median of the alpha layer RGB
-    alpha_median = np.median(alpha[:, :3], axis=1)
+    alpha_median = np.dot(rgb_alpha[:, :3], RGB_TO_LUM_COEF)
     color[:, 3] = alpha_median
 
     color = color.flatten()

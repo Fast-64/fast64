@@ -120,7 +120,7 @@ class GlTF2SubExtension:
         if gltf_prop.extensions is None:
             return None
         data = gltf_prop.extensions.get(name, None)
-        if any(data):
+        if data and any(data):
             self.print_verbose(data)
         return data
 
