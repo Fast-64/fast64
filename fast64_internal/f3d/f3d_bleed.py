@@ -164,12 +164,10 @@ class BleedGraphics:
         othermode_H[DPPipelineMode] = defaults.g_mdsft_pipeline
         self.default_othermode_dict = othermode_L | othermode_H
         self.default_othermode_H = SPSetOtherMode(
-            "G_SETOTHERMODE_H", 4, 20 - self.is_f3d_old, list(othermode_H.values())
+            "G_SETOTHERMODE_H", 4, 20 - self.is_f3d_old, set(othermode_H.values())
         )
         # if the render mode is set, it will be consider non-default a priori
-        self.default_othermode_L = SPSetOtherMode(
-            "G_SETOTHERMODE_L", 0, 3 - self.is_f3d_old, list(othermode_L.values())
-        )
+        self.default_othermode_L = SPSetOtherMode("G_SETOTHERMODE_L", 0, 3 - self.is_f3d_old, set(othermode_L.values()))
 
     def bleed_fModel(self, fModel: FModel, fMeshes: dict[FMesh]):
         # walk fModel, no order to drawing is observed, so last_mat is not kept track of
@@ -328,7 +326,6 @@ class BleedGraphics:
                 revert_set, revert_clear = get_flags(cmd)
                 set_modes, clear_modes = set_modes | revert_set, clear_modes | revert_clear
             clear_modes, set_modes = clear_modes - set_modes, set_modes - clear_modes
-            print(geo_cmds, revert_geo_cmds, get_geo_cmds(clear_modes, set_modes, self.f3d.F3DEX_GBI_2, 0)[0])
             for cmd in get_geo_cmds(clear_modes, set_modes, self.f3d.F3DEX_GBI_2, 0)[0]:
                 commands_bled.commands.insert(0, cmd)
 
@@ -488,19 +485,15 @@ class BleedGraphics:
                 if default_render_mode and cmd_use.flagList != default_render_mode:
                     reset_cmds.append(DPSetRenderMode(default_render_mode))
 
-            elif cmd_type == "G_SETOTHERMODE_L" and cmd_use.sets_rendermode:
+            elif cmd_type == "G_SETOTHERMODE_L":
                 default_othermode_l = SPSetOtherMode(
                     "G_SETOTHERMODE_L",
                     0,
                     32 - self.is_f3d_old,
-                    [*self.default_othermode_L.flagList, *default_render_mode],
+                    {*self.default_othermode_L.flagList, *default_render_mode},
                 )
-                if default_render_mode and cmd_use.flagList != default_othermode_l.flagList:
+                if cmd_use != default_othermode_l:
                     reset_cmds.append(default_othermode_l)
-
-            elif cmd_type == "G_SETOTHERMODE_L":
-                if cmd_use != self.default_othermode_L:
-                    reset_cmds.append(self.default_othermode_L)
 
             elif isinstance(cmd_use, SPSetOtherModeSub):
                 default = self.default_othermode_dict[cmd_type]

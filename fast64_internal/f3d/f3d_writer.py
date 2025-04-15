@@ -1056,10 +1056,10 @@ class TriangleConverter:
             if usesDecal:
                 if not wroteOpaque:
                     wroteOpaque = True
-                    self.triList.commands.append(SPSetOtherMode("G_SETOTHERMODE_L", 10, 2, ["ZMODE_OPA"]))
+                    self.triList.commands.append(SPSetOtherMode("G_SETOTHERMODE_L", 10, 2, {"ZMODE_OPA"}))
                 if not wroteDecal and (darker and wroteDarker or not darker and wroteLighter):
                     wroteDecal = True
-                    self.triList.commands.append(SPSetOtherMode("G_SETOTHERMODE_L", 10, 2, ["ZMODE_DEC"]))
+                    self.triList.commands.append(SPSetOtherMode("G_SETOTHERMODE_L", 10, 2, {"ZMODE_DEC"}))
             if darker:
                 wroteDarker = True
             else:
@@ -1641,18 +1641,18 @@ def saveOtherModeHDefinition(fMaterial, settings, tlut, defaults, matWriteMethod
 
 
 def saveOtherModeHDefinitionAll(fMaterial, settings, tlut, defaults, f3d):
-    cmd = SPSetOtherMode("G_SETOTHERMODE_H", 4, 20 - f3d.F3D_OLD_GBI, [])
-    cmd.flagList.append(settings.g_mdsft_alpha_dither)
-    cmd.flagList.append(settings.g_mdsft_rgb_dither)
-    cmd.flagList.append(settings.g_mdsft_combkey)
-    cmd.flagList.append(settings.g_mdsft_textconv)
-    cmd.flagList.append(settings.g_mdsft_text_filt)
-    cmd.flagList.append(tlut)
-    cmd.flagList.append(settings.g_mdsft_textlod)
-    cmd.flagList.append(settings.g_mdsft_textdetail)
-    cmd.flagList.append(settings.g_mdsft_textpersp)
-    cmd.flagList.append(settings.g_mdsft_cycletype)
-    cmd.flagList.append(settings.g_mdsft_pipeline)
+    cmd = SPSetOtherMode("G_SETOTHERMODE_H", 4, 20 - f3d.F3D_OLD_GBI, set())
+    cmd.flagList.add(settings.g_mdsft_alpha_dither)
+    cmd.flagList.add(settings.g_mdsft_rgb_dither)
+    cmd.flagList.add(settings.g_mdsft_combkey)
+    cmd.flagList.add(settings.g_mdsft_textconv)
+    cmd.flagList.add(settings.g_mdsft_text_filt)
+    cmd.flagList.add(tlut)
+    cmd.flagList.add(settings.g_mdsft_textlod)
+    cmd.flagList.add(settings.g_mdsft_textdetail)
+    cmd.flagList.add(settings.g_mdsft_textpersp)
+    cmd.flagList.add(settings.g_mdsft_cycletype)
+    cmd.flagList.add(settings.g_mdsft_pipeline)
 
     fMaterial.mat_only_DL.commands.append(cmd)
 
@@ -1681,17 +1681,17 @@ def saveOtherModeLDefinition(fMaterial, settings, defaults, defaultRenderMode, m
 
 
 def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaultRenderMode, f3d):
-    cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, 32 - f3d.F3D_OLD_GBI, [])
-    cmd.flagList.append(settings.g_mdsft_alpha_compare)
-    cmd.flagList.append(settings.g_mdsft_zsrcsel)
+    cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, 32 - f3d.F3D_OLD_GBI, set())
+    cmd.flagList.add(settings.g_mdsft_alpha_compare)
+    cmd.flagList.add(settings.g_mdsft_zsrcsel)
 
     if settings.set_rendermode:
         flagList, blender = getRenderModeFlagList(settings, fMaterial)
-        cmd.flagList.extend(flagList)
+        cmd.flagList.update(flagList)
         if blender is not None:
-            cmd.flagList.append(blender)
+            cmd.flagList.add(blender)
     elif defaultRenderMode:
-        cmd.flagList.extend(defaultRenderMode)
+        cmd.flagList.update(defaultRenderMode)
 
     fMaterial.mat_only_DL.commands.append(cmd)
 

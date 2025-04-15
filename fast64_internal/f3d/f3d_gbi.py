@@ -4375,7 +4375,7 @@ class SPSetOtherMode(GbiMacro):
     cmd: str
     sft: int
     length: int
-    flagList: list
+    flagList: set
 
     @property
     def sets_rendermode(self):
@@ -4383,7 +4383,7 @@ class SPSetOtherMode(GbiMacro):
 
     def extend(self, flags: Iterable | str):
         flags = {flags} if isinstance(flags, str) else set(flags)
-        self.flagList = list(set(self.flagList) | flags)
+        self.flagList = self.flagList | flags
 
     def add_other(self, f3d, other: SPSetOtherMode):
         for flag in self.flagList.copy():  # remove any flag overriden by other
