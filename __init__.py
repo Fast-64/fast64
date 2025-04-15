@@ -22,9 +22,11 @@ from .fast64_internal.sm64.sm64_objects import SM64_ObjectProperties
 from .fast64_internal.oot import OOT_Properties, oot_register, oot_unregister
 from .fast64_internal.oot.oot_constants import oot_world_defaults
 from .fast64_internal.oot.props_panel_main import OOT_ObjectProperties
+from .fast64_internal.oot.actor.properties import initOOTActorProperties
 from .fast64_internal.utility_anim import utility_anim_register, utility_anim_unregister, ArmatureApplyWithMeshOperator
 
 from .fast64_internal.mk64 import MK64_Properties, mk64_register, mk64_unregister
+from .fast64_internal.mk64.mk64_constants import mk64_world_defaults
 
 from .fast64_internal.f3d.f3d_material import (
     F3D_MAT_CUR_VERSION,
@@ -88,7 +90,7 @@ class F3D_GlobalSettingsPanel(bpy.types.Panel):
     def draw(self, context):
         col = self.layout.column()
         col.scale_y = 1.1  # extra padding
-        prop_split(col, context.scene, "f3d_type", "F3D Microcode")
+        prop_split(col, context.scene, "f3d_type", "Microcode")
         col.prop(context.scene, "saveTextures")
         col.prop(context.scene, "f3d_simple", text="Simple Material UI")
         col.prop(context.scene, "exportInlineF3D", text="Bleed and Inline Material Exports")
@@ -400,6 +402,9 @@ def set_game_defaults(scene: bpy.types.Scene, set_ucode=True):
     if scene.gameEditorMode == "SM64":
         f3d_type = "F3D"
         world_defaults = sm64_world_defaults
+    elif scene.gameEditorMode == "MK64":
+        f3d_type = "F3DEX"
+        world_defaults = mk64_world_defaults
     elif scene.gameEditorMode == "OOT":
         f3d_type = "F3DEX2/LX2"
         world_defaults = oot_world_defaults
@@ -439,6 +444,7 @@ def register():
     register_class(ExampleAddonPreferences)
     addon_updater_ops.register(bl_info)
 
+    initOOTActorProperties()
     utility_anim_register()
     mat_register()
     render_engine_register()

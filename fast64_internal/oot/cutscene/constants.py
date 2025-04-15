@@ -207,14 +207,14 @@ ootCSListEntryCommands = [
 ]
 
 ootCSSingleCommands = [
-    "CS_BEGIN_CUTSCENE",
-    "CS_END",
+    "CS_HEADER",
+    "CS_END_OF_SCRIPT",
     "CS_TRANSITION",
     "CS_DESTINATION",
 ]
 
 ootCSListAndSingleCommands = ootCSSingleCommands + ootCSListCommands
-ootCSListAndSingleCommands.remove("CS_BEGIN_CUTSCENE")
+ootCSListAndSingleCommands.remove("CS_HEADER")
 ootCutsceneCommandsC = ootCSSingleCommands + ootCSListCommands + ootCSListEntryCommands
 
 cmdToClass = {

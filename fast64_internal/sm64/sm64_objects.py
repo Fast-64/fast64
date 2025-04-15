@@ -1185,6 +1185,8 @@ class SM64ObjectPanel(bpy.types.Panel):
         column = self.layout.box().column()  # added just for puppycam trigger importing
         box.box().label(text="SM64 Object Inspector")
         obj = context.object
+        props = obj.fast64.sm64
+
         prop_split(box, obj, "sm64_obj_type", "Object Type")
         if obj.sm64_obj_type == "Object":
             prop_split(box, obj, "sm64_model_enum", "Model")
@@ -1266,6 +1268,7 @@ class SM64ObjectPanel(bpy.types.Panel):
             obj.starGetCutscenes.draw(box)
 
         elif obj.sm64_obj_type == "Area Root":
+            area_props = props.area
             # Code that used to be in area inspector
             prop_split(box, obj, "areaIndex", "Area Index")
             box.prop(obj, "noMusic", text="Disable Music")
@@ -1288,13 +1291,21 @@ class SM64ObjectPanel(bpy.types.Panel):
             camBox.label(text="Warning: Camera modes can be overriden by area specific camera code.")
             camBox.label(text="Check the switch statment in camera_course_processing() in src/game/camera.c.")
 
-            fogBox = box.box()
-            fogInfoBox = fogBox.box()
-            fogInfoBox.label(text="Warning: Fog only applies to materials that:")
-            fogInfoBox.label(text="- use fog")
-            fogInfoBox.label(text="- have global fog enabled.")
-            prop_split(fogBox, obj, "area_fog_color", "Area Fog Color")
-            prop_split(fogBox, obj, "area_fog_position", "Area Fog Position")
+            fog_box = box.box().column()
+            fog_box.prop(area_props, "set_fog")
+            fog_props = fog_box.column()
+            fog_props.enabled = area_props.set_fog
+            multilineLabel(
+                fog_props,
+                "All materials in the area with fog and\n"
+                '"Use Area\'s Fog" enabled will use these fog\n'
+                "settings.\n"
+                "Each material will have its own fog\n"
+                "applied as vanilla SM64 has no fog system.",
+                icon="INFO",
+            )
+            prop_split(fog_props, obj, "area_fog_color", "Color")
+            prop_split(fog_props, obj, "area_fog_position", "Position")
 
             if obj.areaIndex == 1 or obj.areaIndex == 2 or obj.areaIndex == 3:
                 prop_split(box, obj, "echoLevel", "Echo Level")
@@ -1302,7 +1313,7 @@ class SM64ObjectPanel(bpy.types.Panel):
             if obj.areaIndex == 1 or obj.areaIndex == 2 or obj.areaIndex == 3 or obj.areaIndex == 4:
                 box.prop(obj, "zoomOutOnPause")
 
-            box.prop(obj.fast64.sm64.area, "disable_background")
+            box.prop(area_props, "disable_background")
 
             areaLayout = box.box()
             areaLayout.enabled = not obj.fast64.sm64.area.disable_background
@@ -2271,6 +2282,15 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
             return names[0]
         return None
 
+    @property
+    def export_locations(self) -> str | None:
+        names = self.actor_names
+        if len(names) > 1:
+            return f"{{{','.join(names)}}}"
+        elif len(names) == 1:
+            return names[0]
+        return None
+
     def draw_level_path(self, layout):
         if not directory_ui_warnings(layout, self.base_level_path):
             return
@@ -2282,22 +2302,22 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
 
     def draw_actor_path(self, layout):
         if self.export_locations is None:
-            return
+            return False
         decomp_path = bpy.context.scene.fast64.sm64.abs_decomp_path
         if self.export_header_type == "Actor":
             actor_path = decomp_path / "actors"
             if not filepath_ui_warnings(layout, (actor_path / self.actor_group_name).with_suffix(".c")):
-                return
+                return False
             layout.label(text=f"Actor export path: actors/{self.export_locations}/")
         elif self.export_header_type == "Level":
             if not directory_ui_warnings(layout, self.full_level_path):
-                return
+                return False
             level_path = self.full_level_path if self.non_decomp_level else self.level_directory
             layout.label(text=f"Actor export path: {level_path / self.export_locations}/")
         elif self.export_header_type == "Custom":
             custom_path = Path(bpy.path.abspath(self.custom_export_path))
             if not directory_ui_warnings(layout, custom_path):
-                return
+                return False
             layout.label(text=f"Actor export path: {custom_path / self.export_locations}/")
         return True
 
@@ -2370,9 +2390,10 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         # pathing for gfx/col exports
         prop_split(box, self, "export_header_type", "Export Type")
 
-        if self.export_header_type == "Custom" and bpy.context.scene.saveTextures:
+        if self.export_header_type == "Custom":
             prop_split(box, self, "custom_export_path", "Custom Path")
-            prop_split(box, self, "custom_include_directory", "Texture Include Directory")
+            if bpy.context.scene.saveTextures:
+                prop_split(box, self, "custom_include_directory", "Texture Include Directory")
 
         elif self.export_header_type == "Actor":
             prop_split(box, self, "group_name", "Group")
@@ -2405,14 +2426,10 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
         info_box = box.box()
         info_box.scale_y = 0.5
 
-        if self.export_header_type == "Level":
-            if not self.draw_level_path(info_box):
-                return
+        if not self.draw_actor_path(info_box):
+            return
 
-        elif self.export_header_type == "Actor":
-            if not self.draw_actor_path(info_box):
-                return
-        elif self.export_header_type == "Custom" and bpy.context.scene.saveTextures:
+        if self.export_header_type == "Custom" and bpy.context.scene.saveTextures:
             if self.custom_include_directory:
                 info_box.label(text=f'Include directory "{self.custom_include_directory}"')
             else:
@@ -2473,6 +2490,8 @@ class WarpNodeProperty(bpy.types.PropertyGroup):
     expand: bpy.props.BoolProperty()
 
     def uses_area_nodes(self):
+        if self.instantWarpObject1 is None or self.instantWarpObject2 is None:
+            raise PluginError(f"Warp Start and Warp End in Warp Node {self.warpID} must have objects selected.")
         return (
             self.instantWarpObject1.sm64_obj_type == "Area Root"
             and self.instantWarpObject2.sm64_obj_type == "Area Root"
@@ -2796,6 +2815,11 @@ class SM64_AreaProperties(bpy.types.PropertyGroup):
         default=False,
         description="Disable rendering background. Ideal for interiors or areas that should never see a background.",
     )
+    set_fog: bpy.props.BoolProperty(
+        name="Set Fog Settings",
+        default=True,
+        description='All materials in the area with fog and "Use Area\'s Fog" enabled will use these fog settings. Each material will have its own fog applied as vanilla SM64 has no fog system',
+    )
 
 
 class SM64_LevelProperties(bpy.types.PropertyGroup):
@@ -3086,6 +3110,7 @@ def sm64_obj_register():
         size=2,
         min=0,
         max=0x7FFFFFFF,
+        step=100,
         default=(985, 1000),
         update=sm64_on_update_area_render_settings,
     )
