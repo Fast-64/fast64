@@ -162,7 +162,7 @@ class BleedGraphics:
         last_mat: FMaterial,
         cmd_list: GfxList,
         fmodel_materials,
-        default_render_mode: list[str] = None,
+        default_render_mode: tuple[str] = None,
     ):
         if bled_mat := self.bled_gfx_lists.get(cmd_list, None):
             return bled_mat
@@ -187,7 +187,7 @@ class BleedGraphics:
                     bleed_gfx_lists.bled_tex = self.bleed_textures(cur_fmat, last_mat, bleed_state)
                 else:
                     bleed_gfx_lists.bled_tex = cur_fmat.texture_DL.commands
-                bleed_gfx_lists.bled_mats = self.bleed_mat(cur_fmat, last_mat, bleed_state)
+                bleed_gfx_lists.bled_mats = self.bleed_mat(cur_fmat, last_mat, default_render_mode, bleed_state)
                 # some syncs may become redundant after bleeding
                 self.optimize_syncs(bleed_gfx_lists, bleed_state)
             # bleed tri group (for large textures) and to remove other unnecessary cmds
@@ -262,7 +262,7 @@ class BleedGraphics:
             bled_tex = cur_fmat.texture_DL
         return bled_tex.commands
 
-    def bleed_mat(self, cur_fmat: FMaterial, last_mat: FMaterial, bleed_state: int):
+    def bleed_mat(self, cur_fmat: FMaterial, last_mat: FMaterial, default_render_mode: list[str], bleed_state: int):
         if last_mat:
             gfx = cur_fmat.mat_only_DL
             # deep copy breaks on Image objects so I will only copy the levels needed
@@ -273,10 +273,9 @@ class BleedGraphics:
             # handle write diff, save pre bleed cmds
             geo_cmd = next((cmd for cmd in commands_bled.commands if type(cmd) == SPGeometryMode), None)
             othermode_cmds = [cmd for cmd in commands_bled.commands if isinstance(cmd, SPSetOtherModeSub)]
-            rendermode_cmds = [cmd for cmd in commands_bled.commands if is_rendermode_cmd(cmd)]
 
             for j, cmd in enumerate(gfx.commands):
-                if self.bleed_individual_cmd(commands_bled, cmd, bleed_state, last_cmd_list):
+                if self.bleed_individual_cmd(commands_bled, cmd, bleed_state, last_cmd_list, default_render_mode):
                     commands_bled.commands[j] = None
             # remove Nones from list
             while None in commands_bled.commands:
@@ -286,9 +285,8 @@ class BleedGraphics:
             if last_mat.revert:
                 revert_geo_cmd = next((cmd for cmd in last_mat.revert.commands if type(cmd) == SPGeometryMode), None)
                 revert_othermode_cmd = [cmd for cmd in last_mat.revert.commands if isinstance(cmd, SPSetOtherModeSub)]
-                revert_rendermode_cmds = [cmd for cmd in last_mat.revert.commands if is_rendermode_cmd(cmd)]
             else:
-                revert_geo_cmd, revert_othermode_cmd, revert_rendermode_cmds = None, [], []
+                revert_geo_cmd, revert_othermode_cmd = None, []
             if geo_cmd in commands_bled.commands and revert_geo_cmd:
                 # if there's a geo command, add revert's modes to it
                 geo_cmd.extend(revert_geo_cmd.clearFlagList, revert_geo_cmd.setFlagList)
@@ -301,12 +299,8 @@ class BleedGraphics:
                 othermode_cmd = next((cmd for cmd in othermode_cmds if type(cmd) == type(revert_cmd)), None)
                 if othermode_cmd is None:
                     commands_bled.commands.insert(0, revert_cmd)
-            for revert_cmd in revert_rendermode_cmds:
-                rendermode_cmd = next((cmd for cmd in rendermode_cmds if cmd == revert_cmd), None)
-                if rendermode_cmd is None:
-                    commands_bled.commands.insert(0, revert_cmd)
         else:
-            commands_bled = self.bleed_cmd_list(cur_fmat.mat_only_DL, bleed_state)
+            commands_bled = self.bleed_cmd_list(cur_fmat.mat_only_DL, default_render_mode, bleed_state)
         # remove SPEndDisplayList
         while SPEndDisplayList() in commands_bled.commands:
             commands_bled.commands.remove(SPEndDisplayList())
@@ -320,13 +314,15 @@ class BleedGraphics:
             tri_list = self.bleed_cmd_list(tri_list, bleed_state)
 
     # this is a little less versatile than comparing by last used material
-    def bleed_cmd_list(self, target_cmd_list: GfxList, bleed_state: int):
+    def bleed_cmd_list(self, target_cmd_list: GfxList, default_render_mode: list[str], bleed_state: int):
         usage_dict = dict()
         commands_bled = copy.copy(target_cmd_list)  # copy the commands
         commands_bled.commands = copy.copy(target_cmd_list.commands)  # copy the commands
         for j, cmd in enumerate(target_cmd_list.commands):
             # some cmds you can bleed vs world defaults, others only if they repeat within this gfx list
-            bleed_cmd_status = self.bleed_individual_cmd(commands_bled, cmd, bleed_state)
+            bleed_cmd_status = self.bleed_individual_cmd(
+                commands_bled, cmd, bleed_state, default_render_mode=default_render_mode
+            )
             if not bleed_cmd_status:
                 continue
             last_use = usage_dict.get((type(cmd), getattr(cmd, "tile", None)), None)
@@ -394,7 +390,7 @@ class BleedGraphics:
         cmd_list: GfxList,
         fmesh_static_cmds: list[GbiMacro],
         reset_cmd_dict: dict[GbiMacro],
-        default_render_mode: list[str] = None,
+        default_render_mode: tuple[str] = None,
     ):
         # revert certain cmds for extra safety
         reset_cmds = self.create_reset_cmds(reset_cmd_dict, default_render_mode)
@@ -481,7 +477,14 @@ class BleedGraphics:
                     reset_cmds.append(cmd_type(default))
         return reset_cmds
 
-    def bleed_individual_cmd(self, cmd_list: GfxList, cmd: GbiMacro, bleed_state: int, last_cmd_list: GfxList = None):
+    def bleed_individual_cmd(
+        self,
+        cmd_list: GfxList,
+        cmd: GbiMacro,
+        bleed_state: int,
+        last_cmd_list: GfxList = None,
+        default_render_mode: tuple[str] = None,
+    ):
         # never bleed these cmds
         if type(cmd) in [
             SPMatrix,
@@ -510,11 +513,12 @@ class BleedGraphics:
         if not last_cmd_list:
             return self.bleed_self_conflict
 
-        if isinstance(cmd, SPSetOtherModeSub):
-            if bleed_state != self.bleed_start:
-                return cmd in last_cmd_list
-            else:
+        if bleed_state == self.bleed_start:
+            if isinstance(cmd, SPSetOtherModeSub):
                 return cmd.mode == self.default_othermode_dict[type(cmd)]
+            elif isinstance(cmd, DPSetRenderMode):
+                return cmd.flagList == default_render_mode and cmd.blender is None
+
         # apply specific logic to these cmds, see functions below, otherwise default behavior is to bleed if cmd is in the last list
         bleed_func = getattr(self, (f"bleed_{type(cmd).__name__}"), None)
         if bleed_func:

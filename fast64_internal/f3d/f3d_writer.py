@@ -1793,7 +1793,7 @@ def getRenderModeFlagList(settings, fMaterial):
         if settings.force_bl:
             flagList.append("FORCE_BL")
 
-    return flagList, blender
+    return tuple(flagList), blender
 
 
 def saveOtherDefinition(fMaterial, material, defaults):

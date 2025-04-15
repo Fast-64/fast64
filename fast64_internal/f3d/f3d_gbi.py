@@ -4603,11 +4603,13 @@ def GBL_c2(m1a, m1b, m2a, m2b):
 
 @dataclass(unsafe_hash=True)
 class DPSetRenderMode(GbiMacro):
+    flagList: tuple[str]
+    blender: Optional[RendermodeBlender] = None
     # bl0-3 are string for each blender enum
-    def __init__(self, flagList, blender: Optional[RendermodeBlender] = None):
-        self.flagList = flagList
-        self.use_preset = blender is None
-        self.blender = blender
+
+    @property
+    def use_preset(self):
+        return self.blender is None
 
     def to_binary(self, f3d, segments):
         flagWord = renderFlagListToWord(self.flagList, f3d)

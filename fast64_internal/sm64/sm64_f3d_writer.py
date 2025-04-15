@@ -119,7 +119,7 @@ class SM64Model(FModel):
         world = create_or_get_world(bpy.context.scene)
         cycle1 = getattr(world, "draw_layer_" + str(drawLayer) + "_cycle_1")
         cycle2 = getattr(world, "draw_layer_" + str(drawLayer) + "_cycle_2")
-        return [cycle1, cycle2]
+        return (cycle1, cycle2)
 
 
 class SM64GfxFormatter(GfxFormatter):
@@ -320,8 +320,8 @@ def exportTexRectCommon(texProp, name, convertTextureData):
     saveModeSetting(fMaterial, "G_AC_THRESHOLD", defaults.g_mdsft_alpha_compare, DPSetAlphaCompare)
     fMaterial.mat_only_DL.commands.append(DPSetBlendColor(0xFF, 0xFF, 0xFF, 0xFF))
 
-    fMaterial.mat_only_DL.commands.append(DPSetRenderMode(["G_RM_AA_XLU_SURF", "G_RM_AA_XLU_SURF2"], None))
-    fMaterial.revert.commands.append(DPSetRenderMode(["G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2"], None))
+    fMaterial.mat_only_DL.commands.append(DPSetRenderMode(("G_RM_AA_XLU_SURF", "G_RM_AA_XLU_SURF2"), None))
+    fMaterial.revert.commands.append(DPSetRenderMode(("G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2"), None))
 
     saveModeSetting(fMaterial, texProp.tlut_mode, defaults.g_mdsft_textlut, DPSetTextureLUT)
     ti = TexInfo()
