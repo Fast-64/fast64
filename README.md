@@ -10,11 +10,12 @@ This is a Blender plugin that allows one to export F3D display lists. It also ha
 
 Make sure to save often, as this plugin is prone to crashing when creating materials / undoing material creation. [This is a Blender issue](https://developer.blender.org/T70574).
 
+### Example models can be found [here](https://github.com/Fast-64/fast64-models)
+
 Fast64 features an updater, [follow these instructions to use it](#updater)
 
 ### Credits
 Thanks to anonymous_moose, Cheezepin, Rovert, and especially InTheBeef for testing.
-Thanks to InTheBeef for LowPolySkinnedMario.
 
 ### Discord Server
 We have a Discord server for support as well as development [here](https://discord.gg/ny7PDcN2x8).
