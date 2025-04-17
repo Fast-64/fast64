@@ -143,6 +143,10 @@ class SM64_CreateSimpleLevel(OperatorBase):
     add_death_plane: BoolProperty(name="Add Death Plane")
     set_as_start_level: BoolProperty(name="Set As Start Level")
     respawn_in_level: BoolProperty(name="Respawn In The Same Level")
+    bounds: EnumProperty(
+        name="Bounds",
+        items=[("1", "1x", "1x"), ("2", "2x", "2x"), ("4", "4x", "4x"), ("NONE", "None", "No bounding box")],
+    )
 
     def execute_operator(self, context: Context):
         scene = context.scene
@@ -244,6 +248,14 @@ class SM64_CreateSimpleLevel(OperatorBase):
             warp_game_object.use_individual_params = True
             warp_game_object.bparam2 = "0x0A"
             warp_game_object.bparams = "0x000A0000"
+
+            if self.bounds != "NONE":
+                bounds_loc = location_offset[0], location_offset[1], location_offset[2] + (0.05 * scale)
+                bounds_object = create_sm64_empty(f"Bounds ({self.bounds}x)", "Object", location=bounds_loc)
+                bounds_object.sm64_obj_type = "None"
+                radius = 8192.0 * float(self.bounds) / scale
+                bounds_object.scale = (radius, radius, 1.40381 * radius / int(self.bounds))
+                parentObject(area_object, bounds_object)
 
         bpy.ops.object.select_all(action="DESELECT")
         level_object.select_set(True)
