@@ -132,6 +132,7 @@ class OOTSkeletonImportSettings(PropertyGroup):
         if self.isCustom:
             prop_split(layout, self, "name", "Skeleton")
             prop_split(layout, self, "customPath", "File")
+            prop_split(layout, self, "actorScale", "Actor Scale")
         else:
             prop_split(layout, self, "mode", "Mode")
             if self.mode == "Generic":
