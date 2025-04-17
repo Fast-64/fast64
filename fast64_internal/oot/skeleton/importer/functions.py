@@ -282,7 +282,7 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
 
     actorScale = None
 
-    if overlayName is not None and importSettings.autoDetectActorScale:
+    if overlayName is not None and importSettings.autoDetectActorScale and not importSettings.isCustom:
         actorScale = ootReadActorScale(basePath, overlayName, isLink)
 
     if actorScale is None:

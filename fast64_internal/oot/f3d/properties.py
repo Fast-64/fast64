@@ -68,6 +68,7 @@ class OOTDLImportSettings(PropertyGroup):
         prop_split(layout, self, "name", "DL")
         if self.isCustom:
             prop_split(layout, self, "customPath", "File")
+            prop_split(layout, self, "actorScale", "Actor Scale")
         else:
             prop_split(layout, self, "folder", "Object")
             prop_split(layout, self, "actorOverlayName", "Overlay (Optional)")
