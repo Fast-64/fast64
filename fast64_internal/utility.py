@@ -1900,4 +1900,6 @@ def create_or_get_world(scene: Scene) -> World:
 
 def to_valid_file_name(name: str):
     """Replace any invalid characters with an underscore"""
-    return re.sub(r'[/\\?%*:|"<>]', "_", name)
+    valid_chars = set(string.ascii_letters + string.digits) | {"."}
+    valid_chars -= {"\\", "/", ":", "*", "?", '"', "'", "<", ">", "|", " "}
+    return "".join(c if c in valid_chars else "_" for c in name)

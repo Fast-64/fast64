@@ -313,7 +313,7 @@ class SerializedMaterialNodeTree(SerializedNodeTree):
 
     def to_json(self):
         data = super().to_json()
-        data["dependencies"] = [name for name in self.dependencies.keys()]
+        data["dependencies"] = [to_valid_file_name(name) for name in self.dependencies.keys()]
         return data
 
     def from_json(self, data: dict):
@@ -327,7 +327,7 @@ class SerializedMaterialNodeTree(SerializedNodeTree):
             data = json.load(f)
         self.from_json(data)
         for name, node_tree in self.dependencies.items():
-            with Path(path.parent / to_valid_file_name(name + ".json")).open("r") as f:
+            with Path(path.parent / (name + ".json")).open("r") as f:
                 data = json.load(f)
             node_tree.from_json(data)
         return self
