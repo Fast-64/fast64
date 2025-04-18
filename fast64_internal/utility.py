@@ -1896,3 +1896,8 @@ def create_or_get_world(scene: Scene) -> World:
         WORLD_WARNING_COUNT = 0
         print(f'No world in this file, creating world named "Fast64".')
         return bpy.data.worlds.new("Fast64")
+
+
+def to_valid_file_name(name: str):
+    """Replace any invalid characters with an underscore"""
+    return re.sub(r'[/\\?%*:|"<>]', "_", name)

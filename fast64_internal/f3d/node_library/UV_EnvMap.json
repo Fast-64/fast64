@@ -1,0 +1,182 @@
+{
+	"name": "UV_EnvMap",
+	"nodes": {
+		"Vector Transform": {
+			"bl_idname": "ShaderNodeVectorTransform",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"convert_from": "WORLD",
+				"convert_to": "CAMERA",
+				"location": [
+					13.42559814453125,
+					12.2403564453125
+				],
+				"vector_type": "NORMAL",
+				"width": 140.0
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": [
+							0.5,
+							0.5,
+							0.5
+						]
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Mapping",
+						"socket": "Vector"
+					}
+				]
+			]
+		},
+		"Mapping": {
+			"bl_idname": "ShaderNodeMapping",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					170.86309814453125,
+					62.3997802734375
+				],
+				"vector_type": "POINT",
+				"width": 140.0
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": [
+							0.0,
+							0.0,
+							0.0
+						]
+					}
+				},
+				{
+					"data": {
+						"default_value": [
+							0.5,
+							0.5,
+							0.0
+						]
+					}
+				},
+				{
+					"data": {
+						"default_value": [
+							0.0,
+							0.0,
+							0.0
+						]
+					}
+				},
+				{
+					"data": {
+						"default_value": [
+							0.5,
+							0.5,
+							1.0
+						]
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Group Output",
+						"socket": "Vector"
+					}
+				]
+			]
+		},
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"is_active_output": true,
+				"location": [
+					360.86309814453125,
+					-0.0
+				],
+				"width": 140.0
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": [
+							0.0,
+							0.0,
+							0.0
+						]
+					}
+				},
+				{
+					"data": {}
+				}
+			]
+		},
+		"Geometry": {
+			"bl_idname": "ShaderNodeNewGeometry",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					-149.798828125,
+					-93.01751708984375
+				],
+				"width": 140.0
+			},
+			"outputs": [
+				[],
+				[
+					{
+						"node": "Vector Transform",
+						"socket": "Vector"
+					}
+				],
+				[],
+				[],
+				[],
+				[],
+				[],
+				[],
+				[]
+			]
+		}
+	},
+	"outputs": [
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": [
+					0.0,
+					0.0,
+					0.0
+				],
+				"max_value": 0.0,
+				"min_value": 0.0
+			},
+			"name": "Vector",
+			"bl_idname": "NodeSocketVector"
+		}
+	],
+	"cached_hash": "48a6d8ea2e8d26dc58c9d760e1de341f"
+}

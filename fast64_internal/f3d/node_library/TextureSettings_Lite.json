@@ -1,0 +1,1628 @@
+{
+	"name": "TextureSettings_Lite",
+	"nodes": {
+		"Reroute.016": {
+			"bl_idname": "NodeReroute",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					326.036376953125,
+					-364.001708984375
+				]
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0.0
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Group.004",
+						"socket": "Height"
+					}
+				]
+			]
+		},
+		"Reroute.004": {
+			"bl_idname": "NodeReroute",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					286.4956970214844,
+					-408.7227478027344
+				]
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0.0
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Group.004",
+						"socket": "Y"
+					}
+				]
+			]
+		},
+		"Reroute.006": {
+			"bl_idname": "NodeReroute",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					307.03466796875,
+					-386.10693359375
+				]
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0.0
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Group.004",
+						"socket": "X"
+					}
+				]
+			]
+		},
+		"Reroute.015": {
+			"bl_idname": "NodeReroute",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					348.6143493652344,
+					-343.0010681152344
+				]
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0.0
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Group.004",
+						"socket": "Width"
+					}
+				]
+			]
+		},
+		"Group.004": {
+			"bl_idname": "ShaderNodeGroup",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					397.1431579589844,
+					-144.1211700439453
+				],
+				"node_tree": {
+					"serialized_type": "NodeTree",
+					"name": "Lite Texture Settings and 3 Point"
+				},
+				"width": 323.6924743652344
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0.0
+					}
+				},
+				{
+					"data": {
+						"default_value": 0.0
+					}
+				},
+				{
+					"data": {
+						"default_value": 0.0
+					}
+				},
+				{
+					"data": {
+						"default_value": 0.0
+					}
+				},
+				{
+					"data": {
+						"default_value": 1
+					}
+				},
+				{
+					"data": {
+						"default_value": 0
+					}
+				},
+				{
+					"data": {
+						"default_value": 0
+					}
+				},
+				{
+					"data": {
+						"default_value": 0
+					}
+				},
+				{
+					"data": {
+						"default_value": 0
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Group Output",
+						"socket": "1_UV00"
+					}
+				],
+				[
+					{
+						"node": "Group Output",
+						"socket": "1_UV01"
+					}
+				],
+				[
+					{
+						"node": "Group Output",
+						"socket": "1_UV10"
+					}
+				],
+				[
+					{
+						"node": "Group Output",
+						"socket": "1_UV11"
+					}
+				],
+				[
+					{
+						"node": "Group Output",
+						"socket": "1 Lerp S"
+					}
+				],
+				[
+					{
+						"node": "Group Output",
+						"socket": "1 Lerp T"
+					}
+				]
+			]
+		},
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"is_active_output": true,
+				"location": [
+					1046.3458251953125,
+					158.481201171875
+				],
+				"width": 140.0
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": [
+							0.0,
+							0.0,
+							0.0
+						]
+					}
+				},
+				{
+					"data": {
+						"default_value": [
+							0.0,
+							0.0,
+							0.0
+						]
+					}
+				},
+				{
+					"data": {
+						"default_value": [
+							0.0,
+							0.0,
+							0.0
+						]
+					}
+				},
+				{
+					"data": {
+						"default_value": [
+							0.0,
+							0.0,
+							0.0
+						]
+					}
+				},
+				{
+					"data": {
+						"default_value": [
+							0.0,
+							0.0,
+							0.0
+						]
+					}
+				},
+				{
+					"data": {
+						"default_value": [
+							12.19999885559082,
+							0.0,
+							0.0
+						]
+					}
+				},
+				{
+					"data": {
+						"default_value": [
+							0.0,
+							0.0,
+							0.0
+						]
+					}
+				},
+				{
+					"data": {
+						"default_value": [
+							0.0,
+							0.0,
+							0.0
+						]
+					}
+				},
+				{
+					"data": {
+						"default_value": 0
+					}
+				},
+				{
+					"data": {
+						"default_value": 0.0
+					}
+				},
+				{
+					"data": {
+						"default_value": 0.0
+					}
+				},
+				{
+					"data": {
+						"default_value": 0.0
+					}
+				},
+				{
+					"data": {
+						"default_value": 0.0
+					}
+				},
+				{
+					"data": {}
+				}
+			]
+		},
+		"Reroute.018": {
+			"bl_idname": "NodeReroute",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					268.7016296386719,
+					-432.3738098144531
+				]
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Group.004",
+						"socket": "S Clamp"
+					}
+				]
+			]
+		},
+		"Reroute.019": {
+			"bl_idname": "NodeReroute",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					243.0726318359375,
+					-454.5351257324219
+				]
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Group.004",
+						"socket": "S Mirror"
+					}
+				]
+			]
+		},
+		"Reroute.024": {
+			"bl_idname": "NodeReroute",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					219.5551300048828,
+					-474.9759216308594
+				]
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Group.004",
+						"socket": "T Clamp"
+					}
+				]
+			]
+		},
+		"Reroute.025": {
+			"bl_idname": "NodeReroute",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					187.8649444580078,
+					-497.71923828125
+				]
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Group.004",
+						"socket": "T Mirror"
+					}
+				]
+			]
+		},
+		"Reroute.001": {
+			"bl_idname": "NodeReroute",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					-15.6982421875,
+					74.20230865478516
+				]
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0.0
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Group.003",
+						"socket": "Width"
+					}
+				]
+			]
+		},
+		"Reroute": {
+			"bl_idname": "NodeReroute",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					9.509074211120605,
+					52.10042190551758
+				]
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0.0
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Group.003",
+						"socket": "Height"
+					}
+				]
+			]
+		},
+		"Reroute.007": {
+			"bl_idname": "NodeReroute",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					54.72395706176758,
+					8.810302734375
+				]
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0.0
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Group.003",
+						"socket": "Y"
+					}
+				]
+			]
+		},
+		"Reroute.008": {
+			"bl_idname": "NodeReroute",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					32.9530029296875,
+					30.79899024963379
+				]
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0.0
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Group.003",
+						"socket": "X"
+					}
+				]
+			]
+		},
+		"Reroute.035": {
+			"bl_idname": "NodeReroute",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					73.71573638916016,
+					-13.604166984558105
+				]
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Group.003",
+						"socket": "S Clamp"
+					}
+				]
+			]
+		},
+		"Reroute.037": {
+			"bl_idname": "NodeReroute",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					98.6142578125,
+					-34.51725387573242
+				]
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Group.003",
+						"socket": "S Mirror"
+					}
+				]
+			]
+		},
+		"Reroute.034": {
+			"bl_idname": "NodeReroute",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					154.7109375,
+					-85.29825592041016
+				]
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Group.003",
+						"socket": "T Mirror"
+					}
+				]
+			]
+		},
+		"Reroute.036": {
+			"bl_idname": "NodeReroute",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					124.95369720458984,
+					-62.45369338989258
+				]
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Group.003",
+						"socket": "T Clamp"
+					}
+				]
+			]
+		},
+		"Reroute.002": {
+			"bl_idname": "NodeReroute",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					369.869140625,
+					-100.90413665771484
+				]
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Group.003",
+						"socket": "Enable 3 Point"
+					}
+				]
+			]
+		},
+		"Reroute.005": {
+			"bl_idname": "NodeReroute",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					739.33642578125,
+					-561.6321411132812
+				]
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Group Output",
+						"socket": "3 Point"
+					}
+				]
+			]
+		},
+		"Reroute.009": {
+			"bl_idname": "NodeReroute",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					369.8690490722656,
+					-561.6321411132812
+				]
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Reroute.005",
+						"socket": "Input"
+					},
+					{
+						"node": "Reroute.003",
+						"socket": "Input"
+					}
+				]
+			]
+		},
+		"Reroute.003": {
+			"bl_idname": "NodeReroute",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					369.8690490722656,
+					-518.6503295898438
+				]
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Reroute.002",
+						"socket": "Input"
+					},
+					{
+						"node": "Group.004",
+						"socket": "Enable 3 Point"
+					}
+				]
+			]
+		},
+		"Group Input": {
+			"bl_idname": "NodeGroupInput",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					-613.3323364257812,
+					194.47515869140625
+				],
+				"width": 140.0
+			},
+			"outputs": [
+				[
+					{
+						"node": "Reroute.008",
+						"socket": "Input"
+					}
+				],
+				[
+					{
+						"node": "Reroute.007",
+						"socket": "Input"
+					}
+				],
+				[
+					{
+						"node": "Reroute.006",
+						"socket": "Input"
+					}
+				],
+				[
+					{
+						"node": "Reroute.004",
+						"socket": "Input"
+					}
+				],
+				[],
+				[
+					{
+						"node": "Reroute.001",
+						"socket": "Input"
+					}
+				],
+				[
+					{
+						"node": "Reroute",
+						"socket": "Input"
+					}
+				],
+				[
+					{
+						"node": "Reroute.015",
+						"socket": "Input"
+					}
+				],
+				[
+					{
+						"node": "Reroute.016",
+						"socket": "Input"
+					}
+				],
+				[],
+				[],
+				[],
+				[],
+				[],
+				[],
+				[],
+				[],
+				[],
+				[],
+				[],
+				[],
+				[],
+				[],
+				[],
+				[],
+				[],
+				[],
+				[],
+				[
+					{
+						"node": "Reroute.035",
+						"socket": "Input"
+					}
+				],
+				[
+					{
+						"node": "Reroute.036",
+						"socket": "Input"
+					}
+				],
+				[
+					{
+						"node": "Reroute.037",
+						"socket": "Input"
+					}
+				],
+				[
+					{
+						"node": "Reroute.034",
+						"socket": "Input"
+					}
+				],
+				[],
+				[
+					{
+						"node": "Reroute.018",
+						"socket": "Input"
+					}
+				],
+				[
+					{
+						"node": "Reroute.024",
+						"socket": "Input"
+					}
+				],
+				[
+					{
+						"node": "Reroute.019",
+						"socket": "Input"
+					}
+				],
+				[
+					{
+						"node": "Reroute.025",
+						"socket": "Input"
+					}
+				],
+				[],
+				[
+					{
+						"node": "Reroute.009",
+						"socket": "Input"
+					}
+				],
+				[]
+			]
+		},
+		"Group.003": {
+			"bl_idname": "ShaderNodeGroup",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					400.1251525878906,
+					273.4588928222656
+				],
+				"node_tree": {
+					"serialized_type": "NodeTree",
+					"name": "Lite Texture Settings and 3 Point"
+				},
+				"width": 320.1097717285156
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0.0
+					}
+				},
+				{
+					"data": {
+						"default_value": 0.0
+					}
+				},
+				{
+					"data": {
+						"default_value": 0.0
+					}
+				},
+				{
+					"data": {
+						"default_value": 0.0
+					}
+				},
+				{
+					"data": {
+						"default_value": 1
+					}
+				},
+				{
+					"data": {
+						"default_value": 0
+					}
+				},
+				{
+					"data": {
+						"default_value": 0
+					}
+				},
+				{
+					"data": {
+						"default_value": 0
+					}
+				},
+				{
+					"data": {
+						"default_value": 0
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Group Output",
+						"socket": "0_UV00"
+					}
+				],
+				[
+					{
+						"node": "Group Output",
+						"socket": "0_UV01"
+					}
+				],
+				[
+					{
+						"node": "Group Output",
+						"socket": "0_UV10"
+					}
+				],
+				[
+					{
+						"node": "Group Output",
+						"socket": "0_UV11"
+					}
+				],
+				[
+					{
+						"node": "Group Output",
+						"socket": "0 Lerp S"
+					}
+				],
+				[
+					{
+						"node": "Group Output",
+						"socket": "0 Lerp T"
+					}
+				]
+			]
+		}
+	},
+	"inputs": [
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"hide_value": true,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "X",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"hide_value": true,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "Y",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"hide_value": true,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "X",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"hide_value": true,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "Y",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"hide_value": true,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "0 S TexSize",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "0 T TexSize",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "1 S TexSize",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "1 T TexSize",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"hide_value": true,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0,
+				"max_value": 10,
+				"min_value": -5
+			},
+			"name": "0 S Shift",
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "0 S Low",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "0 S High",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0,
+				"max_value": 15,
+				"min_value": 0
+			},
+			"name": "0 S Mask",
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0,
+				"max_value": 10,
+				"min_value": -5
+			},
+			"name": "0 T Shift",
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "0 T Low",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "0 T High",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0,
+				"max_value": 15,
+				"min_value": 0
+			},
+			"name": "0 T Mask",
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"hide_value": true,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0,
+				"max_value": 2147483647,
+				"min_value": -2147483648
+			},
+			"name": "1 S Shift",
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "1 S Low",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "1 S High",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0,
+				"max_value": 15,
+				"min_value": 0
+			},
+			"name": "1 S Mask",
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0,
+				"max_value": 10,
+				"min_value": -5
+			},
+			"name": "1 T Shift",
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "1 T Low",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "1 T High",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0,
+				"max_value": 15,
+				"min_value": 0
+			},
+			"name": "1 T Mask",
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"hide_value": true,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0,
+				"max_value": 1,
+				"min_value": 0
+			},
+			"name": "0 ClampX",
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0,
+				"max_value": 1,
+				"min_value": 0
+			},
+			"name": "0 ClampY",
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0,
+				"max_value": 1,
+				"min_value": 0
+			},
+			"name": "0 MirrorX",
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0,
+				"max_value": 1,
+				"min_value": 0
+			},
+			"name": "0 MirrorY",
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"hide_value": true,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0,
+				"max_value": 1,
+				"min_value": 0
+			},
+			"name": "1 ClampX",
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0,
+				"max_value": 1,
+				"min_value": 0
+			},
+			"name": "1 ClampY",
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0,
+				"max_value": 1,
+				"min_value": 0
+			},
+			"name": "1 MirrorX",
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0,
+				"max_value": 1,
+				"min_value": 0
+			},
+			"name": "1 MirrorY",
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"hide_value": true,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 1,
+				"max_value": 1,
+				"min_value": 0
+			},
+			"name": "3 Point",
+			"bl_idname": "NodeSocketInt"
+		}
+	],
+	"outputs": [
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": [
+					0.0,
+					0.0,
+					0.0
+				],
+				"max_value": 0.0,
+				"min_value": 0.0
+			},
+			"name": "0_UV00",
+			"bl_idname": "NodeSocketVector"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": [
+					0.0,
+					0.0,
+					0.0
+				],
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "0_UV01",
+			"bl_idname": "NodeSocketVector"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": [
+					0.0,
+					0.0,
+					0.0
+				],
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "0_UV10",
+			"bl_idname": "NodeSocketVector"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": [
+					0.0,
+					0.0,
+					0.0
+				],
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "0_UV11",
+			"bl_idname": "NodeSocketVector"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": [
+					0.0,
+					0.0,
+					0.0
+				],
+				"max_value": 0.0,
+				"min_value": 0.0
+			},
+			"name": "1_UV00",
+			"bl_idname": "NodeSocketVector"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": [
+					0.0,
+					0.0,
+					0.0
+				],
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "1_UV01",
+			"bl_idname": "NodeSocketVector"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": [
+					0.0,
+					0.0,
+					0.0
+				],
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "1_UV10",
+			"bl_idname": "NodeSocketVector"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": [
+					0.0,
+					0.0,
+					0.0
+				],
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "1_UV11",
+			"bl_idname": "NodeSocketVector"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0,
+				"max_value": 2147483647,
+				"min_value": -2147483648
+			},
+			"name": "3 Point",
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "0 Lerp S",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "0 Lerp T",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "1 Lerp S",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "1 Lerp T",
+			"bl_idname": "NodeSocketFloat"
+		}
+	],
+	"cached_hash": "c9eef77b867fc9ca0606aae7a40e1216"
+}

@@ -22,7 +22,7 @@ from bpy.types import (
 from bpy.utils import register_class, unregister_class
 from mathutils import Color, Vector, Euler
 
-from ..utility import PluginError
+from ..utility import PluginError, to_valid_file_name
 from ..operators import OperatorBase
 
 # Enable this to show the gather operator, this is a development feature
@@ -30,7 +30,7 @@ SHOW_GATHER_OPERATOR = True
 INCLUDE_DEFAULT = True  # include default if link exists
 ALWAYS_RELOAD = True
 
-SERIALIZED_NODE_LIBRARY_PATH = Path(__file__).parent / "f3d_nodes.json"
+SERIALIZED_NODE_LIBRARY_PATH = Path(__file__).parent / "node_library" / "main.json"
 
 GENERAL_EXCLUDE = (
     "rna_type",
@@ -71,7 +71,6 @@ EXCLUDE_FROM_GROUP_INPUT_OUTPUT = GENERAL_EXCLUDE + (
     "is_unavailable",
     "show_expanded",
     "link_limit",
-    "enabled",
     "default_attribute_name",
     "name",
     "index",
@@ -103,6 +102,7 @@ DEFAULTS = {
     "hide_in_modifier": False,
     "force_non_field": False,
     "layer_selection_field": False,
+    "enabled": True,
 }
 
 
@@ -308,21 +308,37 @@ class SerializedNodeTree:
 
 
 @dataclasses.dataclass
-class SerializedNodeLibrary:
-    material: SerializedNodeTree = dataclasses.field(default_factory=SerializedNodeTree)
-    node_groups: list[SerializedNodeTree] = dataclasses.field(default_factory=list)
+class SerializedMaterialNodeTree(SerializedNodeTree):
+    dependencies: dict[str, SerializedNodeTree] = dataclasses.field(default_factory=dict)
 
     def to_json(self):
-        data = {"material": self.material.to_json()}
-        if self.node_groups:
-            data["node_groups"] = [node_group.to_json() for node_group in self.node_groups]
+        data = super().to_json()
+        data["dependencies"] = [name for name in self.dependencies.keys()]
         return data
 
     def from_json(self, data: dict):
-        self.material = SerializedNodeTree().from_json(data["material"])
-        if "node_groups" in data:
-            self.node_groups = [SerializedNodeTree().from_json(node_group) for node_group in data["node_groups"]]
+        super().from_json(data)
+        for name in data["dependencies"]:
+            self.dependencies[name] = SerializedNodeTree()
         return self
+
+    def load(self, path: Path):
+        with path.open("r") as f:
+            data = json.load(f)
+        self.from_json(data)
+        for name, node_tree in self.dependencies.items():
+            with Path(path.parent / to_valid_file_name(name + ".json")).open("r") as f:
+                data = json.load(f)
+            node_tree.from_json(data)
+        return self
+
+    def dump(self, path: Path):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w") as f:
+            json.dump(self.to_json(), f, indent="\t")
+        for name, node_tree in self.dependencies.items():
+            with Path(path.parent / to_valid_file_name(name + ".json")).open("w") as f:
+                json.dump(node_tree.to_json(), f, indent="\t")
 
 
 class GatherF3DNodes(OperatorBase):
@@ -337,16 +353,14 @@ class GatherF3DNodes(OperatorBase):
     def execute_operator(self, context):
         material = context.material
         assert material and material.node_tree
-        material_nodes = SerializedNodeTree(material.name).from_node_tree(material.node_tree)
-        other_node_groups = [
-            SerializedNodeTree(node_group.name).from_node_tree(node_group)
-            for node_group in bpy.data.node_groups.values()
-        ]
-        node_library = SerializedNodeLibrary(material_nodes, other_node_groups)
 
-        print("Writing to f3d_nodes.json")
-        with SERIALIZED_NODE_LIBRARY_PATH.open("w") as f:
-            json.dump(node_library.to_json(), f, indent="\t")
+        node_groups: dict[str, SerializedNodeTree] = {}
+        for node_group in bpy.data.node_groups.values():
+            node_groups[node_group.name] = SerializedNodeTree(node_group.name).from_node_tree(node_group)
+        material_nodes = SerializedMaterialNodeTree(material.name, dependencies=node_groups).from_node_tree(
+            material.node_tree
+        )
+        material_nodes.dump(SERIALIZED_NODE_LIBRARY_PATH)
 
         load_f3d_nodes()
 
@@ -368,7 +382,7 @@ class GatherF3DNodesPanel(Panel):
         col.operator(GatherF3DNodes.bl_idname)
 
 
-SERIALIZED_NODE_LIBRARY: SerializedNodeLibrary | None = None
+SERIALIZED_NODE_LIBRARY: SerializedMaterialNodeTree | None = None
 NODE_LIBRARY_EXCEPTION: Exception | None = None
 
 
@@ -376,7 +390,7 @@ def load_f3d_nodes():
     global SERIALIZED_NODE_LIBRARY, NODE_LIBRARY_EXCEPTION
     try:
         start = time.perf_counter()
-        SERIALIZED_NODE_LIBRARY = SerializedNodeLibrary().from_json(json.load(SERIALIZED_NODE_LIBRARY_PATH.open()))
+        SERIALIZED_NODE_LIBRARY = SerializedMaterialNodeTree().load(SERIALIZED_NODE_LIBRARY_PATH)
         end = time.perf_counter()
         print(f"Loaded f3d_nodes.json in {end - start:.3f} seconds")
     except Exception as exc:
@@ -512,7 +526,7 @@ def generate_f3d_node_groups():
             f"Failed to load f3d_nodes.json {str(NODE_LIBRARY_EXCEPTION)}, see console"
         ) from NODE_LIBRARY_EXCEPTION
     new_node_trees: list[tuple[NodeTree, list[Node]]] = []
-    for serialized_node_group in SERIALIZED_NODE_LIBRARY.node_groups:
+    for serialized_node_group in SERIALIZED_NODE_LIBRARY.dependencies.values():
         if serialized_node_group.name in bpy.data.node_groups:
             node_tree = bpy.data.node_groups[serialized_node_group.name]
             if node_tree.get("fast64_cached_hash", None) == serialized_node_group.cached_hash and not ALWAYS_RELOAD:
@@ -537,8 +551,8 @@ def generate_f3d_node_groups():
 def create_f3d_nodes_in_material(material: Material):
     generate_f3d_node_groups()
     material.use_nodes = True
-    new_nodes = create_nodes(material.node_tree, SERIALIZED_NODE_LIBRARY.material)
-    set_values_and_create_links(material.node_tree, SERIALIZED_NODE_LIBRARY.material, new_nodes)
+    new_nodes = create_nodes(material.node_tree, SERIALIZED_NODE_LIBRARY)
+    set_values_and_create_links(material.node_tree, SERIALIZED_NODE_LIBRARY, new_nodes)
 
 
 if SHOW_GATHER_OPERATOR:

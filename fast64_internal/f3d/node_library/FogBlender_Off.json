@@ -1,0 +1,129 @@
+{
+	"name": "FogBlender_Off",
+	"nodes": {
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"is_active_output": true,
+				"location": [
+					-128.73016357421875,
+					-77.71923828125
+				],
+				"width": 140.0
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": [
+							0.0,
+							0.0,
+							0.0,
+							0.0
+						]
+					}
+				},
+				{
+					"data": {}
+				}
+			]
+		},
+		"Group Input": {
+			"bl_idname": "NodeGroupInput",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					-340.76605224609375,
+					-81.032958984375
+				],
+				"width": 140.0
+			},
+			"outputs": [
+				[
+					{
+						"node": "Group Output",
+						"socket": "Color"
+					}
+				],
+				[],
+				[],
+				[],
+				[]
+			]
+		}
+	},
+	"inputs": [
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": [
+					0.0,
+					0.0,
+					0.0,
+					1.0
+				],
+				"hide_value": true
+			},
+			"name": "Color",
+			"bl_idname": "NodeSocketColor"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": [
+					0.0,
+					0.0,
+					0.0,
+					1.0
+				]
+			},
+			"name": "Fog Color",
+			"bl_idname": "NodeSocketColor"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 1,
+				"hide_value": true,
+				"max_value": 1,
+				"min_value": 0
+			},
+			"name": "FogEnable",
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": 0.0
+			},
+			"name": "FogAmount",
+			"bl_idname": "NodeSocketFloat"
+		}
+	],
+	"outputs": [
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": [
+					0.0,
+					0.0,
+					0.0,
+					0.0
+				]
+			},
+			"name": "Color",
+			"bl_idname": "NodeSocketColor"
+		}
+	],
+	"cached_hash": "59345e41f921088fa2a0b572dc3aa57e"
+}
