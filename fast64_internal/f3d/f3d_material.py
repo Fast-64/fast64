@@ -2525,8 +2525,6 @@ def createF3DMat(obj: Object | None, preset="Shaded Solid", index=None):
     material = bpy.data.materials.new("f3dlite_material")
     create_f3d_nodes_in_material(material)
     createScenePropertiesForMaterial(material)
-    with bpy.context.temp_override(material=material):
-        update_all_node_values(material, bpy.context)
 
     add_f3d_mat_to_obj(obj, material, index)
 
@@ -2534,6 +2532,9 @@ def createF3DMat(obj: Object | None, preset="Shaded Solid", index=None):
     material.mat_ver = F3D_MAT_CUR_VERSION
 
     update_preset_manual_v4(material, preset)
+
+    with bpy.context.temp_override(material=material):
+        update_all_node_values(material, bpy.context)
 
     return material
 
