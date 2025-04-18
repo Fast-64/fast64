@@ -2091,7 +2091,7 @@
 				"inputs": [
 					{
 						"data": {
-							"default_value": 0
+							"default_value": 0.0
 						}
 					}
 				],
@@ -3342,7 +3342,7 @@
 				"inputs": [
 					{
 						"data": {
-							"default_value": 0
+							"default_value": 0.0
 						}
 					}
 				],
@@ -3372,7 +3372,7 @@
 				"inputs": [
 					{
 						"data": {
-							"default_value": 0
+							"default_value": 0.0
 						}
 					}
 				],
@@ -3401,7 +3401,7 @@
 				"inputs": [
 					{
 						"data": {
-							"default_value": 0
+							"default_value": 0.0
 						}
 					}
 				],
@@ -4353,7 +4353,7 @@
 				]
 			}
 		},
-		"cached_hash": "bf24dd1780777136b4b27b4539ab6ae8"
+		"cached_hash": "774ac414e117eb6a38fbe0f959877d36"
 	},
 	"node_groups": [
 		{
