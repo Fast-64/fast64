@@ -26,6 +26,7 @@ GENERAL_EXCLUDE = (
     "type",
     "bl_label",
     "bl_idname",
+    "bl_description",
     "bl_static_type",
     "bl_height_default",
     "bl_width_default",
@@ -48,7 +49,7 @@ EXCLUDE_FROM_NODE = GENERAL_EXCLUDE + (
     "name",
 )
 EXCLUDE_FROM_GROUP_INPUT_OUTPUT = GENERAL_EXCLUDE + (
-    "bl_idname",
+    "bl_subtype_label",
     "bl_socket_idname",
     "display_shape",
     "label",
@@ -84,30 +85,43 @@ DEFAULTS = {
     "hide_value": False,
 }
 
+TYPE_CONVERSIONS = {
+    "NodeSocketVectorDirection": {">4.0.0": "NodeSocketVector", "<4.0.0": "NodeSocketVectorDirection"},
+}
+
+
+def is_key_cur_ver(key: str):
+    comp, ver = key[0], key[1:]
+    ver = tuple(map(int, ver.split(".")))
+    cur_ver = bpy.data.version
+    return (comp == ">" and cur_ver > ver) or (comp == "<" and cur_ver < ver) or (comp == "=" and cur_ver == ver)
+
+
+def convert_type_to_3_2(cur_type: str):
+    for typ, values in TYPE_CONVERSIONS.items():
+        for key, value in values.items():
+            if is_key_cur_ver(key) and cur_type == value:
+                return typ
+    return cur_type
+
 
 def get_attributes(prop, excludes=None):
     data = {}
     excludes = excludes or []
     attributes = [attr.identifier for attr in prop.bl_rna.properties if attr.identifier not in excludes]
 
-    def round_values(iter_value):
-        return tuple(round(x, 4) for x in iter_value)
-
     for attr in attributes:
         value = getattr(prop, attr)
         if attr not in DEFAULTS or value != DEFAULTS[attr]:
             serialized_value = value
-            if isinstance(value, Color) or isinstance(value, Vector) or isinstance(value, Euler):
-                serialized_value = round_values(value)
-            elif hasattr(value, "__iter__") and type(value) is not str:
+            if isinstance(value, (Color, Vector, Euler)) or (hasattr(value, "__iter__") and type(value) is not str):
                 serialized_value = tuple(value)
             elif isinstance(value, ColorRamp):
                 serialized_value = {
                     "serialized_type": "ColorRamp",
                     "color_mode": value.color_mode,
                     "elements": [
-                        {"alpha": e.alpha, "color": round_values(e.color), "position": e.position}
-                        for e in value.elements
+                        {"alpha": e.alpha, "color": tuple(e.color), "position": e.position} for e in value.elements
                     ],
                     "hue_interpolation": value.hue_interpolation,
                     "interpolation": value.interpolation,
@@ -116,6 +130,8 @@ def get_attributes(prop, excludes=None):
                 serialized_value = {"serialized_type": "NodeTree", "name": value.name}
             elif isinstance(value, Node):
                 serialized_value = {"serialized_type": "Node", "name": value.name}
+            elif isinstance(value, int) and not isinstance(value, bool):
+                serialized_value = int(value)
             data[attr] = serialized_value
     return dict(sorted(data.items()))
 
@@ -233,26 +249,22 @@ class SerializedNodeTree:
 
     def from_node_tree(self, node_tree: NodeTree):
         print(f"Serializing node tree {node_tree.name}")
+        for in_out in ("INPUT", "OUTPUT"):
+            prop = in_out.lower() + "s"
+            self_prop = getattr(self, prop)
+            for socket in getattr(node_tree, prop):
+                bl_idname = convert_type_to_3_2(
+                    getattr(socket, "bl_idname", "") or getattr(socket, "bl_socket_idname", "")
+                )
+                self_prop.append(
+                    SerializedGroupInputValue(
+                        get_attributes(socket, EXCLUDE_FROM_GROUP_INPUT_OUTPUT), socket.name, bl_idname
+                    )
+                )
         for node in node_tree.nodes:
-            serialized_node = SerializedNode(node.bl_idname, get_attributes(node, EXCLUDE_FROM_NODE))
-            if node.bl_idname == "NodeGroupOutput":
-                self.outputs.clear()
-                for out in node_tree.outputs:
-                    bl_idname = getattr(out, "bl_idname", "") or getattr(out, "bl_socket_idname", "")
-                    self.outputs.append(
-                        SerializedGroupInputValue(
-                            get_attributes(out, EXCLUDE_FROM_GROUP_INPUT_OUTPUT), out.name, bl_idname
-                        )
-                    )
-            elif node.bl_idname == "NodeGroupInput":
-                self.inputs.clear()
-                for inp in node_tree.inputs:
-                    bl_idname = getattr(inp, "bl_idname", "") or getattr(inp, "bl_socket_idname", "")
-                    self.inputs.append(
-                        SerializedGroupInputValue(
-                            get_attributes(inp, EXCLUDE_FROM_GROUP_INPUT_OUTPUT), inp.name, bl_idname
-                        )
-                    )
+            serialized_node = SerializedNode(
+                convert_type_to_3_2(node.bl_idname), get_attributes(node, EXCLUDE_FROM_NODE)
+            )
             self.nodes[node.name] = serialized_node
         for serialized_node, node in zip(self.nodes.values(), node_tree.nodes):
             for inp in node.inputs:
@@ -418,23 +430,24 @@ def set_values_and_create_links(
 
 
 def add_input_output(node_tree: NodeTree | ShaderNodeTree, serialized_node_tree: SerializedNodeTree):
-    if bpy.app.version >= (4, 0, 0):
-        raise NotImplementedError("Not implemented for Blender 4 yet")
+    is_new = bpy.app.version >= (4, 0, 0)
+    if is_new:
+        interface = node_tree.interface
+        interface.clear()
     else:
-        interface = node_tree
-    interface.inputs.clear()
-    interface.outputs.clear()
-    for i, serialized_input in enumerate(serialized_node_tree.inputs):
-        inp = interface.inputs.new(serialized_input.bl_idname, serialized_input.name)
-        for attr, value in serialized_input.data.items():
-            set_node_prop(inp, attr, value, interface.inputs)
-    for i, serialized_output in enumerate(serialized_node_tree.outputs):
-        out = interface.outputs.new(serialized_output.bl_idname, serialized_output.name)
-        for attr, value in serialized_output.data.items():
-            set_node_prop(out, attr, value, interface.outputs)
-    interface.interface_update(bpy.context)
-    if hasattr(interface, "update"):
-        interface.update()
+        node_tree.inputs.clear()
+        node_tree.outputs.clear()
+    for in_out in ("INPUT", "OUTPUT"):
+        for serialized in serialized_node_tree.inputs if in_out == "INPUT" else serialized_node_tree.outputs:
+            if is_new:
+                socket = interface.new_socket(serialized.name, socket_type=serialized.bl_idname, in_out=in_out)
+            else:
+                socket = getattr(node_tree, in_out.lower() + "s").new(serialized.bl_idname, serialized.name)
+            for attr, value in serialized.data.items():
+                set_node_prop(socket, attr, value, {})
+    node_tree.interface_update(bpy.context)
+    if hasattr(node_tree, "update"):
+        node_tree.update()
 
 
 def create_nodes(node_tree: NodeTree | ShaderNodeTree, serialized_node_tree: SerializedNodeTree):
