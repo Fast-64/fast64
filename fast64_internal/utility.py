@@ -1281,11 +1281,6 @@ def toAlnum(name, exceptions=[]):
     return name
 
 
-def to_valid_file_name(name: str):
-    """Replace any invalid characters with an underscore"""
-    return re.sub(r'[/\\?%*:|"<>]', " ", name)
-
-
 def get64bitAlignedAddr(address):
     endNibble = hex(address)[-1]
     if endNibble != "0" and endNibble != "8":
@@ -1922,3 +1917,10 @@ def wrap_func_with_error_message(error_message: Callable):
         return wrapper
 
     return decorator
+
+
+def to_valid_file_name(name: str):
+    """Replace any invalid characters with an underscore"""
+    valid_chars = set(string.ascii_letters + string.digits) | {"."}
+    valid_chars -= {"\\", "/", ":", "*", "?", '"', "'", "<", ">", "|", " "}
+    return "".join(c if c in valid_chars else "_" for c in name)
