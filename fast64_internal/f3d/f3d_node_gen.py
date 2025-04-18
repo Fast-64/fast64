@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 import time
 import traceback
-from typing import Any
+from typing import Any, Optional
 
 import bpy
 from bpy.types import Panel, NodeTree, ShaderNodeTree, NodeLink, ColorRamp, Node, Material
@@ -46,7 +46,9 @@ EXCLUDE_FROM_NODE = GENERAL_EXCLUDE + (
     "name",
 )
 EXCLUDE_FROM_GROUP_INPUT_OUTPUT = GENERAL_EXCLUDE + (
+    "bl_idname",
     "bl_socket_idname",
+    "display_shape",
     "label",
     "identifier",
     "is_output",
@@ -60,7 +62,6 @@ EXCLUDE_FROM_GROUP_INPUT_OUTPUT = GENERAL_EXCLUDE + (
     "default_attribute_name",
     "name",
 )
-EXCLUDE_FROM_INPUT = EXCLUDE_FROM_GROUP_INPUT_OUTPUT + ("hide_value", "display_shape")
 
 DEFAULTS = {
     "hide": False,
@@ -78,6 +79,7 @@ DEFAULTS = {
     "bl_description": "",
     "bl_icon": "NONE",
     "text": None,
+    "hide_value": False,
 }
 
 
@@ -119,7 +121,7 @@ def get_attributes(prop, excludes=None):
 @dataclasses.dataclass
 class SerializedLink:
     node: str = ""
-    socket: str = ""
+    socket: str | int = ""  # when more than one socket with the same name, we still prefer str for readability
 
     def to_json(self):
         return {"node": self.node, "socket": self.socket}
@@ -132,15 +134,26 @@ class SerializedLink:
 
 @dataclasses.dataclass
 class SerializedInputValue:
-    bl_idname: str = ""
     data: dict[str, object] = dataclasses.field(default_factory=dict)
 
     def to_json(self):
-        return {"bl_idname": self.bl_idname, "data": self.data}
+        return {"data": self.data}
 
     def from_json(self, data: dict):
-        self.bl_idname = data["bl_idname"]
         self.data = data["data"]
+        return self
+
+
+@dataclasses.dataclass
+class SerializedGroupInputValue(SerializedInputValue):
+    bl_idname: str = ""
+
+    def to_json(self):
+        return super().to_json() | {"bl_idname": self.bl_idname}
+
+    def from_json(self, data: dict):
+        super().from_json(data)
+        self.bl_idname = data.get("bl_idname")
         return self
 
 
@@ -165,7 +178,9 @@ class SerializedNode:
         if "inputs" in data:
             self.inputs = {name: SerializedInputValue().from_json(inp) for name, inp in data["inputs"].items()}
         if "outputs" in data:
-            self.outputs = {name: [SerializedLink().from_json(out) for out in outs] for name, outs in data["outputs"].items()}
+            self.outputs = {
+                name: [SerializedLink().from_json(out) for out in outs] for name, outs in data["outputs"].items()
+            }
         return self
 
 
@@ -185,7 +200,7 @@ class SerializedNodeTree:
     nodes: dict[str, SerializedNode] = dataclasses.field(default_factory=dict)
     links: list = dataclasses.field(default_factory=list)
 
-    inputs: dict[str, SerializedInputValue] = dataclasses.field(default_factory=dict)
+    inputs: dict[str, SerializedGroupInputValue] = dataclasses.field(default_factory=dict)
     outputs: dict[str, SerializedLink] = dataclasses.field(default_factory=dict)
 
     cached_hash: str = ""
@@ -208,29 +223,31 @@ class SerializedNodeTree:
         if "links" in data:
             self.links = [SerializedLink().from_json(link) for link in data["links"]]
         if "inputs" in data:
-            self.inputs = {name: SerializedInputValue().from_json(inp) for name, inp in data["inputs"].items()}
+            self.inputs = {name: SerializedGroupInputValue().from_json(inp) for name, inp in data["inputs"].items()}
         if "outputs" in data:
-            self.outputs = {name: SerializedInputValue().from_json(out) for name, out in data["outputs"].items()}
+            self.outputs = {name: SerializedGroupInputValue().from_json(out) for name, out in data["outputs"].items()}
         self.cached_hash = data["cached_hash"]
         return self
 
     def from_node_tree(self, node_tree: NodeTree):
         print(f"Serializing node tree {node_tree.name}")
         for node in node_tree.nodes:
+            if node.bl_idname == "ShaderNodeVectorMath" and node.operation == "WRAP":
+                pass
             serialized_node = SerializedNode(node.bl_idname, get_attributes(node, EXCLUDE_FROM_NODE))
             if node.bl_idname == "NodeGroupOutput":
                 self.outputs.clear()
                 for out in node_tree.outputs:
-                    self.outputs[out.name] = SerializedInputValue(
-                        getattr(out, "bl_idname", "") or getattr(out, "bl_socket_idname", ""),
-                        get_attributes(out, EXCLUDE_FROM_GROUP_INPUT_OUTPUT),
+                    bl_idname = getattr(out, "bl_idname", "") or getattr(out, "bl_socket_idname", "")
+                    self.outputs[out.name] = SerializedGroupInputValue(
+                        get_attributes(out, EXCLUDE_FROM_GROUP_INPUT_OUTPUT), bl_idname
                     )
             elif node.bl_idname == "NodeGroupInput":
                 self.inputs.clear()
                 for inp in node_tree.inputs:
-                    self.inputs[inp.name] = SerializedInputValue(
-                        getattr(inp, "bl_idname", "") or getattr(inp, "bl_socket_idname", ""),
-                        get_attributes(inp, EXCLUDE_FROM_GROUP_INPUT_OUTPUT),
+                    bl_idname = getattr(inp, "bl_idname", "") or getattr(inp, "bl_socket_idname", "")
+                    self.inputs[inp.name] = SerializedGroupInputValue(
+                        get_attributes(inp, EXCLUDE_FROM_GROUP_INPUT_OUTPUT), bl_idname
                     )
             self.nodes[node.name] = serialized_node
         for serialized_node, node in zip(self.nodes.values(), node_tree.nodes):
@@ -238,16 +255,22 @@ class SerializedNodeTree:
                 pass
             for inp in node.inputs:
                 serialized_link = SerializedInputValue(
-                    getattr(inp, "bl_idname", "") or getattr(inp, "bl_socket_idname", ""),
-                    get_attributes(inp, EXCLUDE_FROM_INPUT),
+                    get_attributes(inp, EXCLUDE_FROM_GROUP_INPUT_OUTPUT),
                 )
                 serialized_node.inputs[inp.name] = serialized_link
             for out in node.outputs:
                 if not out.links:
                     continue
                 serialized_node.outputs[out.name] = serialized_outputs = []
+                link: NodeLink
                 for link in out.links:
-                    serialized_outputs.append(SerializedLink(link.to_node.name, link.to_socket.name))
+                    repeated_socket_name = any(
+                        s for s in link.to_node.inputs if s != link.to_socket and s.name == link.to_socket.name
+                    )
+                    index = link.to_socket.name
+                    if repeated_socket_name:
+                        index = list(link.to_node.inputs).index(link.to_socket)
+                    serialized_outputs.append(SerializedLink(link.to_node.name, index))
         return self
 
 
@@ -290,7 +313,7 @@ class GatherF3DNodes(OperatorBase):
 
         print("Writing to f3d_nodes.json")
         with SERIALIZED_NODE_LIBRARY_PATH.open("w") as f:
-            json.dump(node_library.to_json(), f, indent=1)
+            json.dump(node_library.to_json(), f, indent="\t")
 
         load_f3d_nodes()
 
@@ -368,7 +391,8 @@ def set_values_and_create_links(
             node.update()
         except Exception as exc:
             print(f"Failed to set values for node {node.name}: {exc}")
-    node_tree.update()
+    if hasattr(node_tree, "update"):
+        node_tree.update()
     for serialized_node, node in zip(serialized_node_tree.nodes.values(), new_nodes):
         for name, serialized_inp in serialized_node.inputs.items():
             try:
@@ -382,7 +406,9 @@ def set_values_and_create_links(
                 try:
                     links.new(nodes[serialized_out.node].inputs[serialized_out.socket], node.outputs[name])
                 except Exception as exc:
-                    print(f"Failed to create links for output socket {name} of node {node.name} to node {serialized_out.node} with socket {serialized_out.socket}: {exc}")
+                    print(
+                        f"Failed to create links for output socket {name} of node {node.name} to node {serialized_out.node} with socket {serialized_out.socket}: {exc}"
+                    )
 
 
 def add_input_output(node_tree: NodeTree | ShaderNodeTree, serialized_node_tree: SerializedNodeTree):
@@ -401,7 +427,8 @@ def add_input_output(node_tree: NodeTree | ShaderNodeTree, serialized_node_tree:
         for attr, value in serialized_output.data.items():
             set_node_prop(out, attr, value, interface.outputs)
     interface.interface_update(bpy.context)
-    interface.update()
+    if hasattr(interface, "update"):
+        interface.update()
 
 
 def create_nodes(node_tree: NodeTree | ShaderNodeTree, serialized_node_tree: SerializedNodeTree):
