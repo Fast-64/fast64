@@ -7,7 +7,18 @@ import traceback
 from typing import Any
 
 import bpy
-from bpy.types import Panel, NodeTree, ShaderNodeTree, NodeLink, NodeSocket, ColorRamp, Node, Material
+from bpy.types import (
+    Panel,
+    NodeTree,
+    ShaderNodeTree,
+    NodeLink,
+    NodeSocket,
+    ColorRamp,
+    ColorMapping,
+    TexMapping,
+    Node,
+    Material,
+)
 from bpy.utils import register_class, unregister_class
 from mathutils import Color, Vector, Euler
 
@@ -17,13 +28,14 @@ from ..operators import OperatorBase
 # Enable this to show the gather operator, this is a development feature
 SHOW_GATHER_OPERATOR = True
 INCLUDE_DEFAULT = True  # include default if link exists
-ALWAYS_RELOAD = False
+ALWAYS_RELOAD = True
 
 SERIALIZED_NODE_LIBRARY_PATH = Path(__file__).parent / "f3d_nodes.json"
 
 GENERAL_EXCLUDE = (
     "rna_type",
     "type",
+    "bl_icon",
     "bl_label",
     "bl_idname",
     "bl_description",
@@ -41,8 +53,6 @@ EXCLUDE_FROM_NODE = GENERAL_EXCLUDE + (
     "dimensions",
     "interface",
     "internal_links",
-    "texture_mapping",
-    "color_mapping",
     "image_user",
     "image",
     "select",
@@ -86,8 +96,6 @@ DEFAULTS = {
     "width": 16.0,
     "width_hidden": 42.0,
     "height": 100.0,
-    "bl_description": "",
-    "bl_icon": "NONE",
     "text": None,
     "hide_value": False,
     "subtype": "NONE",
@@ -135,6 +143,8 @@ def get_attributes(prop, excludes=None):
                     "hue_interpolation": value.hue_interpolation,
                     "interpolation": value.interpolation,
                 }
+            elif isinstance(value, (ColorMapping, TexMapping)):
+                serialized_value = {"serialized_type": "Default", "data": get_attributes(value, excludes)}
             elif isinstance(value, NodeTree):
                 serialized_value = {"serialized_type": "NodeTree", "name": value.name}
             elif isinstance(value, Node):
@@ -377,7 +387,10 @@ def load_f3d_nodes():
 
 def set_node_prop(prop: object, attr: str, value: object, nodes):
     if isinstance(value, dict) and "serialized_type" in value:
-        if value["serialized_type"] == "ColorRamp":
+        if value["serialized_type"] == "Default":
+            for key, val in value["data"].items():
+                set_node_prop(getattr(prop, attr), key, val, nodes)
+        elif value["serialized_type"] == "ColorRamp":
             prop_value = getattr(prop, attr)
             assert isinstance(prop_value, ColorRamp), f"Expected ColorRamp, got {type(prop_value)}"
             prop_value.color_mode = value["color_mode"]
