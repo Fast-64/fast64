@@ -20,6 +20,7 @@ from .f3d_gbi import (
     DPSetTextureLOD,
     DPSetTextureLUT,
     DPSetTexturePersp,
+    GfxMatWriteMethod,
     GfxTag,
     GfxListTag,
     SPGeometryMode,
@@ -64,12 +65,12 @@ from .f3d_gbi import (
 )
 
 
-def get_geo_cmds(clear_modes: set[str], set_modes: set[str], is_ex2: bool, matWriteMethod: "GfxMatWriteMethod"):
+def get_geo_cmds(clear_modes: set[str], set_modes: set[str], is_ex2: bool, matWriteMethod: GfxMatWriteMethod):
     set_modes, clear_modes = set(set_modes), set(clear_modes)
     if len(clear_modes) == 0 and len(set_modes) == 0:
         return ([], [])
     if is_ex2:
-        if matWriteMethod == 1:  # GfxMatWriteMethod.WriteAll
+        if matWriteMethod == GfxMatWriteMethod.WriteAll:
             return ([SPLoadGeometryMode(set_modes)], [])
         elif len(set_modes) > 0 and len(clear_modes) > 0:
             return ([SPGeometryMode(clear_modes, set_modes)], [SPGeometryMode(set_modes, clear_modes)])
@@ -172,7 +173,14 @@ class BleedGraphics:
     def bleed_fModel(self, fModel: FModel, fMeshes: dict[FMesh]):
         # walk fModel, no order to drawing is observed, so last_mat is not kept track of
         for drawLayer, fMesh in fMeshes.items():
-            self.bleed_fmesh(fMesh, None, fMesh.draw, fModel.getAllMaterials().items(), fModel.getRenderMode(drawLayer))
+            self.bleed_fmesh(
+                fMesh,
+                None,
+                fMesh.draw,
+                fModel.getAllMaterials().items(),
+                fModel.matWriteMethod,
+                fModel.getRenderMode(drawLayer),
+            )
         self.clear_gfx_lists(fModel)
 
     # clear the gfx lists so they don't export
@@ -191,6 +199,7 @@ class BleedGraphics:
         last_mat: FMaterial,
         cmd_list: GfxList,
         fmodel_materials,
+        mat_write_method: GfxMatWriteMethod,
         default_render_mode: tuple[str] = None,
     ):
         if bled_mat := self.bled_gfx_lists.get(cmd_list, None):
@@ -216,7 +225,9 @@ class BleedGraphics:
                     bleed_gfx_lists.bled_tex = self.bleed_textures(cur_fmat, last_mat, bleed_state)
                 else:
                     bleed_gfx_lists.bled_tex = cur_fmat.texture_DL.commands
-                bleed_gfx_lists.bled_mats = self.bleed_mat(cur_fmat, last_mat, default_render_mode, bleed_state)
+                bleed_gfx_lists.bled_mats = self.bleed_mat(
+                    cur_fmat, last_mat, mat_write_method, default_render_mode, bleed_state
+                )
                 # some syncs may become redundant after bleeding
                 self.optimize_syncs(bleed_gfx_lists, bleed_state)
             # bleed tri group (for large textures) and to remove other unnecessary cmds
@@ -231,7 +242,7 @@ class BleedGraphics:
             bleed_state = self.bleed_in_progress
 
         last_mat = cur_fmat
-        self.on_bleed_end(last_mat, cmd_list, fmesh_static_cmds, reset_cmd_dict, default_render_mode)
+        self.on_bleed_end(last_mat, cmd_list, fmesh_static_cmds, reset_cmd_dict, mat_write_method, default_render_mode)
         return last_mat
 
     def build_tmem_dict(self, cmd_list: GfxList):
@@ -291,7 +302,14 @@ class BleedGraphics:
             bled_tex = cur_fmat.texture_DL
         return bled_tex.commands
 
-    def bleed_mat(self, cur_fmat: FMaterial, last_mat: FMaterial, default_render_mode: list[str], bleed_state: int):
+    def bleed_mat(
+        self,
+        cur_fmat: FMaterial,
+        last_mat: FMaterial,
+        mat_write_method: GfxMatWriteMethod,
+        default_render_mode: list[str],
+        bleed_state: int,
+    ):
         if last_mat:
             gfx = cur_fmat.mat_only_DL
             # deep copy breaks on Image objects so I will only copy the levels needed
@@ -326,7 +344,7 @@ class BleedGraphics:
                 revert_set, revert_clear = get_flags(cmd)
                 set_modes, clear_modes = set_modes | revert_set, clear_modes | revert_clear
             clear_modes, set_modes = clear_modes - set_modes, set_modes - clear_modes
-            for cmd in get_geo_cmds(clear_modes, set_modes, self.f3d.F3DEX_GBI_2, 0)[0]:
+            for cmd in get_geo_cmds(clear_modes, set_modes, self.f3d.F3DEX_GBI_2, mat_write_method)[0]:
                 commands_bled.commands.insert(0, cmd)
 
             # if there is no equivelent cmd, it must be using the revert
@@ -425,10 +443,11 @@ class BleedGraphics:
         cmd_list: GfxList,
         fmesh_static_cmds: list[GbiMacro],
         reset_cmd_dict: dict[GbiMacro],
+        mat_write_method: GfxMatWriteMethod,
         default_render_mode: tuple[str] = None,
     ):
         # revert certain cmds for extra safety
-        reset_cmds = self.create_reset_cmds(reset_cmd_dict, default_render_mode)
+        reset_cmds = self.create_reset_cmds(reset_cmd_dict, mat_write_method, default_render_mode)
         # if pipe sync in reset list, make sure it is the first cmd
         if DPPipeSync in reset_cmds:
             reset_cmds.remove(DPPipeSync)
@@ -456,7 +475,9 @@ class BleedGraphics:
         while DPPipeSync() in bleed_gfx_lists.bled_mats:
             bleed_gfx_lists.bled_mats.remove(DPPipeSync())
 
-    def create_reset_cmds(self, reset_cmd_dict: dict[GbiMacro], default_render_mode: list[str]):
+    def create_reset_cmds(
+        self, reset_cmd_dict: dict[GbiMacro], mat_write_method: GfxMatWriteMethod, default_render_mode: list[str]
+    ):
         reset_cmds = []
         for cmd_type, cmd_use in reset_cmd_dict.items():
             if cmd_type == DPPipeSync:
@@ -471,7 +492,7 @@ class BleedGraphics:
                     set_list = set(cmd_use.clearFlagList) - set(self.default_clear_geo.flagList)
 
                 reset_cmds.extend(
-                    get_geo_cmds(set_list, clear_list, self.f3d.F3DEX_GBI_2, 0)[1]
+                    get_geo_cmds(set_list, clear_list, self.f3d.F3DEX_GBI_2, mat_write_method)[1]
                 )  # safe to assume write diff here
 
             if cmd_type == SPLoadGeometryMode and cmd_use != self.default_load_geo:

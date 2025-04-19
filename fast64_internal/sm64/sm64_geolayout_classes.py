@@ -494,6 +494,7 @@ class GeoLayoutBleed(BleedGraphics):
                     last_mat if not base_node.bleed_independently else None,
                     cmd_list,
                     fModel.getAllMaterials().items(),
+                    fModel.matWriteMethod,
                     default_render_mode,
                 )
                 # if the mesh has culling, it can be culled, and create invalid combinations of f3d to represent the current full DL
