@@ -501,7 +501,8 @@ def all_combiner_uses(f3d_mat: "F3DMaterialProperty") -> dict[str, bool]:
         "Primitive": combiner_uses(
             f3d_mat,
             ["PRIMITIVE", "PRIMITIVE_ALPHA", "PRIM_LOD_FRAC"],
-        ),
+        )
+        or f3d_mat.rdp_settings.g_mdsft_textlod == "G_TL_LOD",
         "Environment": combiner_uses(f3d_mat, ["ENVIRONMENT", "ENV_ALPHA"]),
         "Shade": combiner_uses(f3d_mat, ["SHADE"], checkAlpha=False),
         "Shade Alpha": combiner_uses(f3d_mat, ["SHADE"], checkColor=False)
@@ -1243,19 +1244,21 @@ class F3DPanel(Panel):
             noticeBox.label(text="Mesh must have two Color Attribute (vtx color) layers.", icon="IMAGE_RGB_ALPHA")
             noticeBox.label(text='They must be called "Col" and "Alpha".', icon="IMAGE_ALPHA")
 
-    def checkDrawMixedCIWarning(self, layout, useDict, f3dMat):
-        useTex0 = useDict["Texture 0"] and f3dMat.tex0.tex_set
-        useTex1 = useDict["Texture 1"] and f3dMat.tex1.tex_set
-        if not useTex0 or not useTex1:
+    def draw_ci_warnings(self, layout: UILayout, f3d_mat: "F3DMaterialProperty"):
+        tlut_modes = set(tex.tlut_mode for tex in f3d_mat.set_textures.values())
+        if len(tlut_modes) <= 1:
             return
-        isTex0CI = f3dMat.tex0.tex_format[:2] == "CI"
-        isTex1CI = f3dMat.tex1.tex_format[:2] == "CI"
-        if isTex0CI != isTex1CI:
-            layout.box().column().label(text="Can't have one CI tex and one non-CI.", icon="ERROR")
-        if isTex0CI and isTex1CI and (f3dMat.tex0.ci_format != f3dMat.tex1.ci_format):
-            layout.box().column().label(text="Two CI textures must use the same CI format.", icon="ERROR")
+        if "G_TT_NONE" in tlut_modes:
+            multilineLabel(layout, "Can't mix CI and non-CI textures.", icon="ERROR")
+            return
+        else:
+            text = "CI textures must use the same CI format."
+        for tlut in tlut_modes:
+            textures = [str(i) for i, tex in f3d_mat.set_textures.items() if tex.tlut_mode == tlut]
+            text += f"\n{tlut.lstrip('G_TT_')}: Texture{'s' if len(textures) > 1 else ''} {', '.join(textures)}"
+        multilineLabel(layout, text, icon="ERROR")
 
-    def draw_simple(self, f3dMat, material, layout, context):
+    def draw_simple(self, f3dMat: "F3DMaterialProperty", material, layout, context):
         f3d = get_F3D_GBI()
         self.ui_uvCheck(layout, context)
 
@@ -1264,17 +1267,11 @@ class F3DPanel(Panel):
 
         self.checkDrawLayersWarnings(f3dMat, useDict, layout)
 
-        useMultitexture = useDict["Texture 0"] and useDict["Texture 1"] and f3dMat.tex0.tex_set and f3dMat.tex1.tex_set
+        self.draw_ci_warnings(inputCol, f3dMat)
+        for i, tex in f3dMat.set_textures.items():
+            ui_image(f3dMat.use_large_textures, inputCol, material, tex, f"Texture {i}", False)
 
-        self.checkDrawMixedCIWarning(inputCol, useDict, f3dMat)
-        canUseLargeTextures = material.mat_ver > 3 and material.f3d_mat.use_large_textures
-        if useDict["Texture 0"] and f3dMat.tex0.tex_set:
-            ui_image(canUseLargeTextures, inputCol, material, f3dMat.tex0, "Texture 0", False)
-
-        if useDict["Texture 1"] and f3dMat.tex1.tex_set:
-            ui_image(canUseLargeTextures, inputCol, material, f3dMat.tex1, "Texture 1", False)
-
-        if useMultitexture:
+        if len(f3dMat.set_textures) > 1:
             inputCol.prop(f3dMat, "uv_basis", text="UV Basis")
 
         if useDict["Texture"]:
@@ -1304,7 +1301,7 @@ class F3DPanel(Panel):
 
         self.ui_misc(f3dMat, inputCol, False)
 
-    def draw_full(self, f3dMat, material, layout: UILayout, context):
+    def draw_full(self, f3dMat: "F3DMaterialProperty", material, layout: UILayout, context):
         layout.row().prop(material, "menu_tab", expand=True)
         menuTab = material.menu_tab
         useDict = all_combiner_uses(f3dMat)
@@ -1359,17 +1356,11 @@ class F3DPanel(Panel):
 
             inputCol = layout.column()
 
-            useMultitexture = useDict["Texture 0"] and useDict["Texture 1"]
+            self.draw_ci_warnings(inputCol, f3dMat)
+            for i, tex in f3dMat.used_textures.items():
+                ui_image(f3dMat.use_large_textures, inputCol, material, tex, f"Texture {i}", True)
 
-            self.checkDrawMixedCIWarning(inputCol, useDict, f3dMat)
-            canUseLargeTextures = material.mat_ver > 3 and material.f3d_mat.use_large_textures
-            if useDict["Texture 0"]:
-                ui_image(canUseLargeTextures, inputCol, material, f3dMat.tex0, "Texture 0", True)
-
-            if useDict["Texture 1"]:
-                ui_image(canUseLargeTextures, inputCol, material, f3dMat.tex1, "Texture 1", True)
-
-            if useMultitexture:
+            if len(f3dMat.set_textures) > 1:
                 inputCol.prop(f3dMat, "uv_basis", text="UV Basis")
 
             if useDict["Texture"]:
@@ -1494,7 +1485,9 @@ def ui_tileScroll(tex, name, layout):
     row.prop(tex.tile_scroll, "interval", text="Interval:")
 
 
-def ui_procAnimVecEnum(material, procAnimVec, layout, name, vecType, useDropdown, useTex0, useTex1):
+def ui_procAnimVecEnum(
+    f3d_mat: "F3DMaterialProperty", procAnimVec, layout, name, vecType, useDropdown, useTex0, useTex1
+):
     layout = layout.box()
     box = layout.column()
     if useDropdown:
@@ -1525,12 +1518,8 @@ def ui_procAnimVecEnum(material, procAnimVec, layout, name, vecType, useDropdown
 
     if useTex0 or useTex1:
         layout.box().label(text="SM64 SetTileSize Texture Scroll")
-
-        if useTex0:
-            ui_tileScroll(material.tex0, "Texture 0 Speed", layout)
-
-        if useTex1:
-            ui_tileScroll(material.tex1, "Texture 1 Speed", layout)
+        for i, tex in f3d_mat.set_textures.items():
+            ui_tileScroll(tex, f"Texture {i} Speed", layout)
 
 
 def ui_procAnimFieldEnum(procAnimField, layout, name, overrideName):
@@ -2290,9 +2279,11 @@ def update_tex_values_manual(material: Material, context, prop_path=None):
     useDict = all_combiner_uses(f3dMat)
 
     f3dMat.rdp_settings.g_mdsft_textlut = get_textlut_mode(f3dMat)
+    if f3dMat.uv_basis == "":
+        f3dMat.uv_basis = str(max(f3dMat.set_textures.keys()) if f3dMat.set_textures else -1)
 
-    tex0_used = useDict["Texture 0"] and f3dMat.tex0.tex is not None
-    tex1_used = useDict["Texture 1"] and f3dMat.tex1.tex is not None
+    tex0_used = useDict["Texture 0"]
+    tex1_used = useDict["Texture 1"]
 
     if not tex0_used and not tex1_used:
         texture_settings.mute = True
@@ -3075,8 +3066,6 @@ def ui_image(
 
         if showCheckBox:
             prop_input_name.prop(textureProp, "tex_set", text="Set Texture")
-        else:
-            prop_input_name.label(text=name)
         texIndex = name[-1]
 
         prop_input.prop(textureProp, "use_tex_reference")
@@ -3084,8 +3073,7 @@ def ui_image(
             prop_split(prop_input, textureProp, "tex_reference", "Texture Reference")
             prop_split(prop_input, textureProp, "tex_reference_size", "Texture Size")
             if textureProp.tex_format[:2] == "CI":
-                flipbook = getattr(material.flipbookGroup, "flipbook" + texIndex)
-                if flipbook is None or not flipbook.enable:
+                if textureProp.flipbook is None or not textureProp.flipbook.enable:
                     prop_split(prop_input, textureProp, "pal_reference", "Palette Reference")
                     prop_split(prop_input, textureProp, "pal_reference_size", "Palette Size")
 
@@ -4072,42 +4060,27 @@ class AddPresetF3D(AddPresetBase, Operator):
         "Custom",
         # "Shaded Texture",
     ]
-
+    tex_ignore_props = [
+        "tex",
+        "tex_format",
+        "ci_format",
+        "use_tex_reference",
+        "tex_reference",
+        "tex_reference_size",
+        "pal_reference",
+        "pal_reference_size",
+        "S",
+        "T",
+        "menu",
+        "autoprop",
+        "save_large_texture",
+        "tile_scroll",
+        "tile_scroll.s",
+        "tile_scroll.t",
+        "tile_scroll.interval",
+    ]
     ignore_props = {
-        "f3d_mat.tex0.tex",
-        "f3d_mat.tex0.tex_format",
-        "f3d_mat.tex0.ci_format",
-        "f3d_mat.tex0.use_tex_reference",
-        "f3d_mat.tex0.tex_reference",
-        "f3d_mat.tex0.tex_reference_size",
-        "f3d_mat.tex0.pal_reference",
-        "f3d_mat.tex0.pal_reference_size",
-        "f3d_mat.tex0.S",
-        "f3d_mat.tex0.T",
-        "f3d_mat.tex0.menu",
-        "f3d_mat.tex0.autoprop",
-        "f3d_mat.tex0.save_large_texture",
-        "f3d_mat.tex0.tile_scroll",
-        "f3d_mat.tex0.tile_scroll.s",
-        "f3d_mat.tex0.tile_scroll.t",
-        "f3d_mat.tex0.tile_scroll.interval",
-        "f3d_mat.tex1.tex",
-        "f3d_mat.tex1.tex_format",
-        "f3d_mat.tex1.ci_format",
-        "f3d_mat.tex1.use_tex_reference",
-        "f3d_mat.tex1.tex_reference",
-        "f3d_mat.tex1.tex_reference_size",
-        "f3d_mat.tex1.pal_reference",
-        "f3d_mat.tex1.pal_reference_size",
-        "f3d_mat.tex1.S",
-        "f3d_mat.tex1.T",
-        "f3d_mat.tex1.menu",
-        "f3d_mat.tex1.autoprop",
-        "f3d_mat.tex1.save_large_texture",
-        "f3d_mat.tex1.tile_scroll",
-        "f3d_mat.tex1.tile_scroll.s",
-        "f3d_mat.tex1.tile_scroll.t",
-        "f3d_mat.tex1.tile_scroll.interval",
+        *[f"f3d_mat.tex{i}.{prop}" for prop in tex_ignore_props for i in range(8)],
         "f3d_mat.tex_scale",
         "f3d_mat.scale_autoprop",
         "f3d_mat.uv_basis",
@@ -4365,8 +4338,10 @@ class F3DMaterialProperty(PropertyGroup):
     )
     uv_basis: bpy.props.EnumProperty(
         name="UV Basis",
-        default="TEXEL0",
-        items=enumTexUV,
+        items=lambda self, context: [
+            (str(i), f"Texture {i}", f"Use the size of texture {i} for UVs") for i in self.set_textures.keys()
+        ]
+        or [(str(-1), "", "")],
         update=update_tex_values,
     )
 
@@ -4377,7 +4352,6 @@ class F3DMaterialProperty(PropertyGroup):
     # Texture animation
     menu_procAnim: bpy.props.BoolProperty()
     UVanim0: bpy.props.PointerProperty(type=ProcAnimVectorProperty)
-    UVanim1: bpy.props.PointerProperty(type=ProcAnimVectorProperty)
 
     # material textures
     tex_scale: bpy.props.FloatVectorProperty(
@@ -4390,6 +4364,12 @@ class F3DMaterialProperty(PropertyGroup):
     )
     tex0: bpy.props.PointerProperty(type=TextureProperty, name="tex0")
     tex1: bpy.props.PointerProperty(type=TextureProperty, name="tex1")
+    tex2: bpy.props.PointerProperty(type=TextureProperty, name="tex2")
+    tex3: bpy.props.PointerProperty(type=TextureProperty, name="tex3")
+    tex4: bpy.props.PointerProperty(type=TextureProperty, name="tex4")
+    tex5: bpy.props.PointerProperty(type=TextureProperty, name="tex5")
+    tex6: bpy.props.PointerProperty(type=TextureProperty, name="tex6")
+    tex7: bpy.props.PointerProperty(type=TextureProperty, name="tex7")
 
     # Should Set?
 
@@ -4673,16 +4653,30 @@ class F3DMaterialProperty(PropertyGroup):
     use_cel_shading: bpy.props.BoolProperty(name="Use Cel Shading", update=update_cel_cutout_source)
     cel_shading: bpy.props.PointerProperty(type=CelShadingProperty)
 
+    @property
+    def all_textures(self) -> list[TextureProperty]:
+        return tuple(getattr(self, f"tex{i}") for i in range(8))
+
+    @property
+    def used_textures(self) -> dict[int, TextureProperty]:
+        self.rdp_settings: RDPSettings
+        if self.rdp_settings.g_mdsft_textlod == "G_TL_LOD":
+            return {i: t for i, t in enumerate(self.all_textures[: self.rdp_settings.num_textures_mipmapped])}
+        use_dict = all_combiner_uses(self)
+        return {i: t for i, t in enumerate(self.all_textures[:2]) if use_dict[f"Texture {i}"]}
+
+    @property
+    def set_textures(self):
+        return {i: tex for i, tex in self.used_textures.items() if tex.tex_set}
+
     def key(self) -> F3DMaterialHash:
         useDefaultLighting = self.set_lights and self.use_default_lighting
         return (
             self.scale_autoprop,
             self.uv_basis,
             self.UVanim0.key(),
-            self.UVanim1.key(),
             tuple([round(value, 4) for value in self.tex_scale]),
-            self.tex0.key(),
-            self.tex1.key(),
+            tuple((i, tex.key()) for i, tex in self.set_textures.items()),
             self.rdp_settings.key(),
             self.draw_layer.key(),
             self.use_large_textures,

@@ -157,7 +157,7 @@ class SM64GfxFormatter(GfxFormatter):
             "segmented_to_virtual",
         )
 
-        scrollDataFields = fScrollData.fields[0]
+        scrollDataFields = fScrollData.fields
         if not ((scrollDataFields[0].animType == "None") and (scrollDataFields[1].animType == "None")):
             funcName = f"scroll_{vtxListName}"
             data.header = f"extern void {funcName}();\n"
@@ -931,11 +931,7 @@ class SM64_MaterialPanel(bpy.types.Panel):
         material = context.material
         col = layout.column()
 
-        if material.mat_ver > 3:
-            f3dMat = material.f3d_mat
-        else:
-            f3dMat = material
-        useDict = all_combiner_uses(f3dMat)
+        useDict = all_combiner_uses(material.f3d_mat)
 
         if useDict["Texture"]:
             ui_procAnim(material, col, useDict["Texture 0"], useDict["Texture 1"], "SM64 UV Texture Scroll", False)

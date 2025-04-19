@@ -351,11 +351,6 @@ enumCIFormat = [
     ("IA16", "Intensity Alpha 16-bit", "Intensity Alpha 16-bit"),
 ]
 
-enumTexUV = [
-    ("TEXEL0", "Texture 0", "Texture 0"),
-    ("TEXEL1", "Texture 1", "Texture 1"),
-]
-
 texBitSizeInt = {
     "I4": 4,
     "IA4": 4,

@@ -47,8 +47,8 @@ def usesFlipbook(
     checkEnable: bool,
     checkFlipbookReference: Optional[Callable[[str], bool]],
 ) -> bool:
-    texProp = getattr(material.f3d_mat, f"tex{index}")
-    if all_combiner_uses(material.f3d_mat)["Texture " + str(index)] and texProp.use_tex_reference:
+    texProp = material.f3d_mat.used_textures.get(index)
+    if texProp and texProp.use_tex_reference:
         return (
             checkFlipbookReference is not None
             and checkFlipbookReference(texProp.tex_reference)
@@ -121,7 +121,7 @@ class AddFlipbookTexture(bpy.types.Operator):
 
     def execute(self, context):
         material = context.material
-        flipbook = getattr(material.flipbookGroup, "flipbook" + str(self.combinerTexIndex))
+        flipbook = material.f3d_mat.all_textures[self.combinerTexIndex].flipbook
         flipbook.textures.add()
         flipbook.textures.move(len(flipbook.textures) - 1, self.arrayIndex)
         self.report({"INFO"}, "Success!")
@@ -137,7 +137,7 @@ class RemoveFlipbookTexture(bpy.types.Operator):
 
     def execute(self, context):
         material = context.material
-        flipbook = getattr(material.flipbookGroup, "flipbook" + str(self.combinerTexIndex))
+        flipbook = material.f3d_mat.all_textures[self.combinerTexIndex].flipbook
         flipbook.textures.remove(self.arrayIndex)
         self.report({"INFO"}, "Success!")
         return {"FINISHED"}
@@ -153,7 +153,7 @@ class MoveFlipbookTexture(bpy.types.Operator):
 
     def execute(self, context):
         material = context.material
-        flipbook = getattr(material.flipbookGroup, "flipbook" + str(self.combinerTexIndex))
+        flipbook = material.f3d_mat.all_textures[self.combinerTexIndex].flipbook
         flipbook.textures.move(self.arrayIndex, self.arrayIndex + self.offset)
         self.report({"INFO"}, "Success!")
         return {"FINISHED"}
@@ -168,8 +168,7 @@ class VisualizeFlipbookTexture(bpy.types.Operator):
 
     def execute(self, context):
         material = context.material
-        flipbook = getattr(material.flipbookGroup, "flipbook" + str(self.combinerTexIndex))
-        texProp = getattr(material.f3d_mat, "tex" + str(self.combinerTexIndex))
+        flipbook = material.f3d_mat.all_textures[self.combinerTexIndex].flipbook
 
         setTexNodeImage(context.material, self.combinerTexIndex, self.arrayIndex)
 
@@ -188,11 +187,6 @@ class FlipbookProperty(bpy.types.PropertyGroup):
     name: bpy.props.StringProperty(default="sFlipbookTextures")
     exportMode: bpy.props.EnumProperty(default="Array", items=enumFlipbookExportMode)
     textures: bpy.props.CollectionProperty(type=FlipbookImagePointerProperty)
-
-
-class FlipbookGroupProperty(bpy.types.PropertyGroup):
-    flipbook0: bpy.props.PointerProperty(type=FlipbookProperty)
-    flipbook1: bpy.props.PointerProperty(type=FlipbookProperty)
 
 
 def drawFlipbookProperty(layout: bpy.types.UILayout, flipbookProp: FlipbookProperty, index: int):
@@ -214,11 +208,11 @@ def drawFlipbookGroupProperty(
     layout.box().column().label(text="Flipbook Properties")
     if drawFlipbookRequirementMessage is not None:
         drawFlipbookRequirementMessage(layout)
-    for i in range(2):
-        flipbook = getattr(material.flipbookGroup, "flipbook" + str(i))
+    for i, tex_prop in enumerate(material.f3d_mat.all_textures):
+        flipbook = tex_prop.flipbook
         if usesFlipbook(material, flipbook, i, False, checkFlipbookReference):
             drawFlipbookProperty(layout.column(), flipbook, i)
-            if getattr(material.f3d_mat, "tex" + str(i)).tex_format[:2] == "CI":
+            if tex_prop.tex_format[:2] == "CI":
                 layout.label(text="New shared CI palette will be generated.", icon="RENDERLAYERS")
 
 
@@ -237,11 +231,10 @@ def ootFlipbookAnimUpdate(self, armatureObj: bpy.types.Object, segment: str, ind
         if child.type != "MESH":
             continue
         for material in child.data.materials:
-            for i in range(2):
-                flipbook = getattr(material.flipbookGroup, "flipbook" + str(i))
-                texProp = getattr(material.f3d_mat, "tex" + str(i))
+            for i, tex_prop in enumerate(material.f3d_mat.all_textures):
+                flipbook = tex_prop.flipbook
                 if usesFlipbook(material, flipbook, i, True, ootFlipbookReferenceIsValid):
-                    match = re.search(f"0x0([0-9A-F])000000", texProp.tex_reference)
+                    match = re.search(f"0x0([0-9A-F])000000", tex_prop.tex_reference)
                     if match is None:
                         continue
                     if match.group(1) == segment:
@@ -302,8 +295,11 @@ class Flipbook_MaterialPanel(bpy.types.Panel):
 
 
 def setTexNodeImage(material: bpy.types.Material, texIndex: int, flipbookIndex: int):
-    flipbook = getattr(material.flipbookGroup, "flipbook" + str(texIndex))
-    for texNode in iter_tex_nodes(material.node_tree, texIndex):
+    flipbook = material.f3d_mat.all_textures[texIndex].flipbook
+    nodes = list(iter_tex_nodes(material.node_tree, texIndex))
+    if not nodes:
+        return
+    for texNode in nodes:
         if texNode.image is not flipbook.textures[flipbookIndex].image:
             texNode.image = flipbook.textures[flipbookIndex].image
 
@@ -315,7 +311,6 @@ flipbook_classes = [
     MoveFlipbookTexture,
     VisualizeFlipbookTexture,
     FlipbookProperty,
-    FlipbookGroupProperty,
     Flipbook_MaterialPanel,
 ]
 
@@ -325,7 +320,7 @@ def flipbook_register():
         register_class(cls)
 
     bpy.app.handlers.frame_change_pre.append(flipbookAnimHandler)
-    bpy.types.Material.flipbookGroup = bpy.props.PointerProperty(type=FlipbookGroupProperty)
+    TextureProperty.flipbook = bpy.props.PointerProperty(type=FlipbookProperty)
 
 
 def flipbook_unregister():
@@ -333,4 +328,3 @@ def flipbook_unregister():
         unregister_class(cls)
 
     bpy.app.handlers.frame_change_pre.remove(flipbookAnimHandler)
-    del bpy.types.Material.flipbookGroup
