@@ -4361,8 +4361,11 @@ class RendermodeBlender:
     cycle1: tuple
     cycle2: tuple
 
-    def to_c(self, _static=True):
+    def __str__(self):
         return f"GBL_c1({', '.join(self.cycle1)}) | GBL_c2({', '.join(self.cycle2)})"
+
+    def to_c(self, _static=True):
+        return str(self)
 
     def to_binary(self, f3d):
         return GBL_c1(*[getattr(f3d, str(x), x) for x in self.cycle1]) | GBL_c2(
