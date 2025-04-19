@@ -346,7 +346,7 @@ class BleedGraphics:
         while SPEndDisplayList() in tri_list.commands:
             tri_list.commands.remove(SPEndDisplayList())
         if not cur_fmat or (cur_fmat.isTexLarge[0] or cur_fmat.isTexLarge[1]):
-            tri_list = self.bleed_cmd_list(tri_list, bleed_state)
+            tri_list = self.bleed_cmd_list(tri_list, None, bleed_state)
 
     # this is a little less versatile than comparing by last used material
     def bleed_cmd_list(self, target_cmd_list: GfxList, default_render_mode: list[str], bleed_state: int):
