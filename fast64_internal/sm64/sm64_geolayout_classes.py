@@ -478,6 +478,9 @@ class GeoLayoutBleed(BleedGraphics):
         # last used material, last used cmd list and resets per layer
         last_materials = {}
 
+        def copy_last(last_materials: LastMaterials) -> LastMaterials:
+            return {dl: [lm, [(copy(c), copy(r)) for c, r in lcr]] for dl, (lm, lcr) in last_materials.items()}
+
         def reset_all_layers(last_materials: LastMaterials) -> LastMaterials:
             for draw_layer, (_last_mat, last_cmds_resets) in last_materials.items():
                 for cmd_list, reset_cmd_dict in last_cmds_resets:
@@ -487,6 +490,7 @@ class GeoLayoutBleed(BleedGraphics):
             return {}
 
         def walk(node, last_materials: LastMaterials) -> LastMaterials:
+            last_materials = copy_last(last_materials)
             base_node = node.node
             if type(base_node) == JumpNode:
                 if base_node.geolayout:
@@ -525,15 +529,16 @@ class GeoLayoutBleed(BleedGraphics):
                     self.add_reset_cmds(cmd_list, reset_cmd_dict, fModel.matWriteMethod, default_render_mode)
                     last_materials.pop(base_node.drawLayer, None)
                 else:
-                    last_materials[base_node.drawLayer] = last_mat, [(cmd_list, reset_cmd_dict)]
+                    last_materials[base_node.drawLayer] = [last_mat, [(cmd_list, reset_cmd_dict)]]
 
+            cur_last_materials = copy_last(last_materials)
             is_switch = type(base_node) in [SwitchNode, FunctionNode]
             for child in node.children:
                 if is_switch:  # parent node is switch or function
-                    new_materials = walk(child, last_materials)  # last material info from current switch option
+                    new_materials = walk(child, cur_last_materials)  # last material info from current switch option
                     # add switch option reverts, to either revert at the end or in the option itself
                     for draw_layer, (last_mat, cmds_resets) in new_materials.items():
-                        last_materials[draw_layer][1].append((cmds_resets[0], cmds_resets[1]))
+                        last_materials.setdefault(draw_layer, [None, []])[1].extend(cmds_resets)
                         if len(node.children) > 1:
                             last_materials[draw_layer][0] = None  # reset last material if more than one option
                 else:
