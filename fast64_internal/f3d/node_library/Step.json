@@ -1,0 +1,182 @@
+{
+	"name": "Step",
+	"nodes": {
+		"Group Input": {
+			"bl_idname": "NodeGroupInput",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					-288.74444580078125,
+					-0.0
+				],
+				"width": 140.0
+			},
+			"outputs": [
+				[
+					{
+						"node": "Math.002",
+						"socket": 0
+					}
+				],
+				[
+					{
+						"node": "Math.002",
+						"socket": 1
+					}
+				],
+				[]
+			]
+		},
+		"Math.002": {
+			"bl_idname": "ShaderNodeMath",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					-126.88460540771484,
+					77.95133209228516
+				],
+				"operation": "ADD",
+				"use_clamp": false,
+				"width": 140.0
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0.5
+					}
+				},
+				{
+					"data": {
+						"default_value": 0.5
+					}
+				},
+				{
+					"data": {
+						"default_value": 0.5,
+						"enabled": false
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Math.003",
+						"socket": 0
+					}
+				]
+			]
+		},
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"is_active_output": true,
+				"location": [
+					229.4413299560547,
+					79.08292388916016
+				],
+				"width": 140.0
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0
+					}
+				},
+				{
+					"data": {}
+				}
+			]
+		},
+		"Math.003": {
+			"bl_idname": "ShaderNodeMath",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					50.60432815551758,
+					80.21451568603516
+				],
+				"operation": "GREATER_THAN",
+				"use_clamp": false,
+				"width": 140.0
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0.5
+					}
+				},
+				{
+					"data": {
+						"default_value": 1.0
+					}
+				},
+				{
+					"data": {
+						"default_value": 0.5,
+						"enabled": false
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Group Output",
+						"socket": "Result"
+					}
+				]
+			]
+		}
+	},
+	"inputs": [
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.5,
+				"max_value": 10000.0,
+				"min_value": -10000.0
+			},
+			"name": "Value",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.5,
+				"max_value": 10000.0,
+				"min_value": -10000.0
+			},
+			"name": "Value",
+			"bl_idname": "NodeSocketFloat"
+		}
+	],
+	"outputs": [
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0,
+				"max_value": 2147483647,
+				"min_value": -2147483648
+			},
+			"name": "Result",
+			"bl_idname": "NodeSocketInt"
+		}
+	],
+	"cached_hash": "e353a3167b3275e5cac2522541bd5999"
+}

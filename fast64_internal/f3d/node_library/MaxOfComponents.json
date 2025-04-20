@@ -1,0 +1,219 @@
+{
+	"name": "MaxOfComponents",
+	"nodes": {
+		"Separate XYZ": {
+			"bl_idname": "ShaderNodeSeparateXYZ",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"hide": true,
+				"location": [
+					-156.92755126953125,
+					-3.1858978271484375
+				],
+				"width": 140.0
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": [
+							0.0,
+							0.0,
+							0.0
+						]
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Math.012",
+						"socket": 0
+					}
+				],
+				[
+					{
+						"node": "Math.012",
+						"socket": 1
+					}
+				],
+				[
+					{
+						"node": "Math.013",
+						"socket": 1
+					}
+				]
+			]
+		},
+		"Math.012": {
+			"bl_idname": "ShaderNodeMath",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"hide": true,
+				"location": [
+					-0.45489501953125,
+					9.557632446289062
+				],
+				"operation": "MAXIMUM",
+				"use_clamp": false,
+				"width": 140.0
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0.5
+					}
+				},
+				{
+					"data": {
+						"default_value": 0.5
+					}
+				},
+				{
+					"data": {
+						"default_value": 0.5,
+						"enabled": false
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Math.013",
+						"socket": 0
+					}
+				]
+			]
+		},
+		"Group Input": {
+			"bl_idname": "NodeGroupInput",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					-356.92755126953125,
+					-0.0
+				],
+				"width": 140.0
+			},
+			"outputs": [
+				[
+					{
+						"node": "Separate XYZ",
+						"socket": "Vector"
+					}
+				],
+				[]
+			]
+		},
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"is_active_output": true,
+				"location": [
+					346.92755126953125,
+					-0.0
+				],
+				"width": 140.0
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0.0
+					}
+				},
+				{
+					"data": {}
+				}
+			]
+		},
+		"Math.013": {
+			"bl_idname": "ShaderNodeMath",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"hide": true,
+				"location": [
+					156.92755126953125,
+					-9.557632446289062
+				],
+				"operation": "MAXIMUM",
+				"use_clamp": false,
+				"width": 140.0
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0.5
+					}
+				},
+				{
+					"data": {
+						"default_value": 0.5
+					}
+				},
+				{
+					"data": {
+						"default_value": 0.5,
+						"enabled": false
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Group Output",
+						"socket": "Value"
+					}
+				]
+			]
+		}
+	},
+	"inputs": [
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": [
+					0.0,
+					0.0,
+					0.0
+				],
+				"max_value": 10000.0,
+				"min_value": -10000.0
+			},
+			"name": "Vector",
+			"bl_idname": "NodeSocketVector"
+		}
+	],
+	"outputs": [
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "Value",
+			"bl_idname": "NodeSocketFloat"
+		}
+	],
+	"cached_hash": "53e266909a612a149bca74c53cb61c05"
+}

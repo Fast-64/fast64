@@ -1,0 +1,348 @@
+{
+	"name": "CalcFresnel",
+	"nodes": {
+		"Math.002": {
+			"bl_idname": "ShaderNodeMath",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					157.86358642578125,
+					-29.88909912109375
+				],
+				"operation": "SUBTRACT",
+				"use_clamp": false,
+				"width": 140.0
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0.5
+					}
+				},
+				{
+					"data": {
+						"default_value": 0.5
+					}
+				},
+				{
+					"data": {
+						"default_value": 0.5,
+						"enabled": false
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Math.003",
+						"socket": 1
+					}
+				]
+			]
+		},
+		"Math.004": {
+			"bl_idname": "ShaderNodeMath",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					157.86358642578125,
+					133.03631591796875
+				],
+				"operation": "SUBTRACT",
+				"use_clamp": false,
+				"width": 140.0
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0.5
+					}
+				},
+				{
+					"data": {
+						"default_value": 0.5
+					}
+				},
+				{
+					"data": {
+						"default_value": 0.5,
+						"enabled": false
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Math.003",
+						"socket": 0
+					}
+				]
+			]
+		},
+		"Math.003": {
+			"bl_idname": "ShaderNodeMath",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					334.15130615234375,
+					129.37115478515625
+				],
+				"operation": "DIVIDE",
+				"use_clamp": true,
+				"width": 140.0
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0.5
+					}
+				},
+				{
+					"data": {
+						"default_value": 0.5
+					}
+				},
+				{
+					"data": {
+						"default_value": 0.5,
+						"enabled": false
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Group Output",
+						"socket": "Fresnel"
+					}
+				]
+			]
+		},
+		"Reroute.016": {
+			"bl_idname": "NodeReroute",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					126.02496337890625,
+					-4.427886962890625
+				]
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0.0
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Math.004",
+						"socket": 1
+					},
+					{
+						"node": "Reroute.017",
+						"socket": "Input"
+					}
+				]
+			]
+		},
+		"Reroute.017": {
+			"bl_idname": "NodeReroute",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					126.93463134765625,
+					-167.353271484375
+				]
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0.0
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Math.002",
+						"socket": 1
+					}
+				]
+			]
+		},
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"is_active_output": true,
+				"location": [
+					514.3255615234375,
+					128.7357177734375
+				],
+				"width": 140.0
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0.0
+					}
+				},
+				{
+					"data": {}
+				}
+			]
+		},
+		"Math.001": {
+			"bl_idname": "ShaderNodeMath",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"hide": true,
+				"location": [
+					-42.8541259765625,
+					30.02740478515625
+				],
+				"operation": "ABSOLUTE",
+				"use_clamp": true,
+				"width": 140.0
+			},
+			"inputs": [
+				{
+					"data": {
+						"default_value": 0.5
+					}
+				},
+				{
+					"data": {
+						"default_value": 0.5,
+						"enabled": false
+					}
+				},
+				{
+					"data": {
+						"default_value": 0.5,
+						"enabled": false
+					}
+				}
+			],
+			"outputs": [
+				[
+					{
+						"node": "Math.004",
+						"socket": 0
+					}
+				]
+			]
+		},
+		"Group Input": {
+			"bl_idname": "NodeGroupInput",
+			"data": {
+				"color": [
+					0.6079999804496765,
+					0.6079999804496765,
+					0.6079999804496765
+				],
+				"location": [
+					-225.29522705078125,
+					52.207275390625
+				],
+				"width": 140.0
+			},
+			"outputs": [
+				[
+					{
+						"node": "Math.001",
+						"socket": 0
+					}
+				],
+				[
+					{
+						"node": "Reroute.016",
+						"socket": "Input"
+					}
+				],
+				[
+					{
+						"node": "Math.002",
+						"socket": 0
+					}
+				],
+				[]
+			]
+		}
+	},
+	"inputs": [
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.5,
+				"max_value": 10000.0,
+				"min_value": -10000.0
+			},
+			"name": "Normal dot Incoming",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.5,
+				"max_value": 10000.0,
+				"min_value": -10000.0
+			},
+			"name": "Fresnel Lo",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.5,
+				"max_value": 10000.0,
+				"min_value": -10000.0
+			},
+			"name": "Fresnel Hi",
+			"bl_idname": "NodeSocketFloat"
+		}
+	],
+	"outputs": [
+		{
+			"data": {
+				"attribute_domain": "POINT",
+				"default_value": 0.0,
+				"max_value": 3.4028234663852886e+38,
+				"min_value": -3.4028234663852886e+38
+			},
+			"name": "Fresnel",
+			"bl_idname": "NodeSocketFloat"
+		}
+	],
+	"cached_hash": "3f06bb963c727aaef98549bd78a0826a"
+}
