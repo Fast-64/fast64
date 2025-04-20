@@ -7,11 +7,19 @@ from bpy.path import abspath
 from bpy.utils import register_class, unregister_class
 
 from ...render_settings import on_update_render_settings
-from ...utility import directory_path_checks, directory_ui_warnings, prop_split, set_prop_if_in_data, upgrade_old_prop
+from ...utility import (
+    directory_path_checks,
+    directory_ui_warnings,
+    prop_split,
+    set_prop_if_in_data,
+    upgrade_old_prop,
+    get_first_set_prop,
+)
 from ..sm64_constants import defaultExtendSegment4
 from ..sm64_objects import SM64_CombinedObjectProperties
 from ..sm64_utility import export_rom_ui_warnings, import_rom_ui_warnings
 from ..tools import SM64_AddrConvProperties
+from ..animation.properties import SM64_AnimProperties
 
 from .constants import (
     enum_refresh_versions,
@@ -33,7 +41,7 @@ class SM64_Properties(PropertyGroup):
     """Global SM64 Scene Properties found under scene.fast64.sm64"""
 
     version: IntProperty(name="SM64_Properties Version", default=0)
-    cur_version = 4  # version after property migration
+    cur_version = 5  # version after property migration
 
     # UI Selection
     show_importing_menus: BoolProperty(name="Show Importing Menus", default=False)
@@ -81,6 +89,13 @@ class SM64_Properties(PropertyGroup):
         name="Matstack Fix",
         description="Exports account for matstack fix requirements",
     )
+    # could be used for other properties outside animation
+    designated_prop: BoolProperty(
+        name="Designated Initialization for Animation Tables",
+        description="Extremely recommended but must be off when compiling with IDO. Included in Repo Setting file",
+    )
+
+    animation: PointerProperty(type=SM64_AnimProperties)
 
     @property
     def binary_export(self):
@@ -89,6 +104,14 @@ class SM64_Properties(PropertyGroup):
     @property
     def abs_decomp_path(self) -> Path:
         return Path(abspath(self.decomp_path))
+
+    @property
+    def hackersm64(self) -> bool:
+        return self.refresh_version.startswith("HackerSM64")
+
+    @property
+    def designated(self) -> bool:
+        return self.designated_prop or self.hackersm64
 
     @staticmethod
     def upgrade_changed_props():
@@ -113,10 +136,13 @@ class SM64_Properties(PropertyGroup):
             "non_decomp_level": {"levelCustomExport"},
             "export_header_type": {"geoExportHeaderType", "colExportHeaderType", "animExportHeaderType"},
             "custom_include_directory": {"geoTexDir"},
+            "binary_level": {"levelAnimExport"},
+            # as the others binary props get carried over to here we need to update the cur_version again
         }
         for scene in bpy.data.scenes:
             sm64_props: SM64_Properties = scene.fast64.sm64
             sm64_props.address_converter.upgrade_changed_props(scene)
+            sm64_props.animation.upgrade_changed_props(scene)
             if sm64_props.version == SM64_Properties.cur_version:
                 continue
             upgrade_old_prop(
@@ -137,6 +163,11 @@ class SM64_Properties(PropertyGroup):
             combined_props = scene.fast64.sm64.combined_export
             for new, old in old_export_props_to_new.items():
                 upgrade_old_prop(combined_props, new, scene, old)
+
+            insertable_directory = get_first_set_prop(scene, "animInsertableBinaryPath")
+            if insertable_directory is not None:  # Ignores file name
+                combined_props.insertable_directory = os.path.split(insertable_directory)[1]
+
             sm64_props.version = SM64_Properties.cur_version
 
     def to_repo_settings(self):
@@ -145,6 +176,8 @@ class SM64_Properties(PropertyGroup):
         data["compression_format"] = self.compression_format
         data["force_extended_ram"] = self.force_extended_ram
         data["matstack_fix"] = self.matstack_fix
+        if not self.hackersm64:
+            data["designated"] = self.designated_prop
         return data
 
     def from_repo_settings(self, data: dict):
@@ -152,6 +185,7 @@ class SM64_Properties(PropertyGroup):
         set_prop_if_in_data(self, "compression_format", data, "compression_format")
         set_prop_if_in_data(self, "force_extended_ram", data, "force_extended_ram")
         set_prop_if_in_data(self, "matstack_fix", data, "matstack_fix")
+        set_prop_if_in_data(self, "designated_prop", data, "designated")
 
     def draw_repo_settings(self, layout: UILayout):
         col = layout.column()
