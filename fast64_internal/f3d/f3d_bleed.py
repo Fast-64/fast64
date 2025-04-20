@@ -96,10 +96,6 @@ def get_flags(cmd: SPGeometryMode | SPSetGeometryMode | SPClearGeometryMode):
         return (set(), cmd.flagList)
 
 
-def is_rendermode_cmd(cmd: GbiMacro):
-    return isinstance(cmd, DPSetRenderMode) or (isinstance(cmd, SPSetOtherMode) and cmd.sets_rendermode)
-
-
 class BleedGraphics:
     # bleed_state "enums"
     bleed_start = 1
@@ -506,11 +502,14 @@ class BleedGraphics:
                     reset_cmds.append(DPSetRenderMode(tuple(default_render_mode)))
 
             elif cmd_type == "G_SETOTHERMODE_L":
+                flag_list = copy.copy(self.default_othermode_L.flagList)
+                if cmd_use.sets_rendermode(self.f3d):
+                    flag_list.update(default_render_mode)
                 default_othermode_l = SPSetOtherMode(
                     "G_SETOTHERMODE_L",
                     0,
-                    32 - self.is_f3d_old,
-                    {*self.default_othermode_L.flagList, *(default_render_mode or [])},
+                    (32 if cmd_use.sets_rendermode(self.f3d) else 3) - self.is_f3d_old,
+                    flag_list,
                 )
                 if cmd_use != default_othermode_l:
                     reset_cmds.append(default_othermode_l)

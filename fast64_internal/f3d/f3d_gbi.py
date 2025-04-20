@@ -4380,9 +4380,8 @@ class SPSetOtherMode(GbiMacro):
     length: int
     flagList: set
 
-    @property
-    def sets_rendermode(self):
-        return self.cmd == "G_SETOTHERMODE_L" and (self.sft + self.length) > 3
+    def sets_rendermode(self, f3d):
+        return self.cmd == "G_SETOTHERMODE_L" and (self.sft + self.length) > (3 - f3d.F3D_OLD_GBI)
 
     def extend(self, flags: Iterable | str):
         flags = {flags} if isinstance(flags, str) else set(flags)

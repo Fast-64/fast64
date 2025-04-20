@@ -1681,7 +1681,7 @@ def saveOtherModeLDefinition(fMaterial, settings, defaults, defaultRenderMode, m
 
 
 def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaultRenderMode, f3d):
-    cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, 32 - f3d.F3D_OLD_GBI, set())
+    cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, (32 if settings.set_rendermode else 3) - f3d.F3D_OLD_GBI, set())
     cmd.flagList.add(settings.g_mdsft_alpha_compare)
     cmd.flagList.add(settings.g_mdsft_zsrcsel)
 
@@ -1690,8 +1690,6 @@ def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaultRenderMod
         cmd.flagList.update(flagList)
         if blender is not None:
             cmd.flagList.add(blender)
-    elif defaultRenderMode:
-        cmd.flagList.update(defaultRenderMode)
 
     fMaterial.mat_only_DL.commands.append(cmd)
 
@@ -1701,7 +1699,6 @@ def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaultRenderMod
 
 def saveOtherModeLDefinitionIndividual(fMaterial, settings, defaults, defaultRenderMode):
     saveModeSetting(fMaterial, settings.g_mdsft_alpha_compare, defaults.g_mdsft_alpha_compare, DPSetAlphaCompare)
-
     saveModeSetting(fMaterial, settings.g_mdsft_zsrcsel, defaults.g_mdsft_zsrcsel, DPSetDepthSource)
 
     if settings.g_mdsft_zsrcsel == "G_ZS_PRIM":
