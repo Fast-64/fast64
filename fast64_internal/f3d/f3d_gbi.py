@@ -4275,9 +4275,9 @@ def gsSPGeometryMode_Non_F3DEX_GBI_2(word, f3d):
     return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-def geoFlagListToWord(flagList, f3d):
+def geoFlagListToWord(flags: tuple, f3d: F3D):
     word = 0
-    for name in flagList:
+    for name in flags:
         if name in f3d.allGeomModeFlags:
             word += getattr(f3d, name)
         else:
@@ -4338,7 +4338,7 @@ class SPClearGeometryMode(GbiMacro):
 
 @dataclass(unsafe_hash=True)
 class SPLoadGeometryMode(GbiMacro):
-    flagList: list
+    flagList: set[str]
 
     def to_binary(self, f3d, segments):
         word = geoFlagListToWord(self.flagList, f3d)
@@ -4606,7 +4606,7 @@ def GBL_c2(m1a, m1b, m2a, m2b):
 
 @dataclass(unsafe_hash=True)
 class DPSetRenderMode(GbiMacro):
-    flagList: tuple[str]
+    flagList: set[str]
     blender: Optional[RendermodeBlender] = None
     # bl0-3 are string for each blender enum
 
@@ -4851,8 +4851,8 @@ class SPLightToFogColor(GbiMacro):
 
 @dataclass(unsafe_hash=True)
 class DPSetOtherMode(GbiMacro):
-    mode0: list
-    mode1: list
+    mode0: set[str]
+    mode1: set[str]
 
     def to_binary(self, f3d, segments):
         mode0 = mode1 = 0
@@ -4906,10 +4906,10 @@ class DPSetTile(GbiMacro):
     tmem: int
     tile: int
     palette: int
-    cmt: list
+    cmt: tuple[str, str]
     maskt: int
     shiftt: int
-    cms: list
+    cms: tuple[str, str]
     masks: int
     shifts: int
 
@@ -4974,8 +4974,8 @@ class DPLoadTextureBlock(GbiMacro):
     width: int
     height: int
     pal: int
-    cms: list
-    cmt: list
+    cms: tuple[str, str]
+    cmt: tuple[str, str]
     masks: int
     maskt: int
     shifts: int
@@ -5047,8 +5047,8 @@ class DPLoadTextureBlockYuv(GbiMacro):
     width: int
     height: int
     pal: int
-    cms: list
-    cmt: list
+    cms: tuple[str, str]
+    cmt: tuple[str, str]
     masks: int
     maskt: int
     shifts: int
@@ -5126,8 +5126,8 @@ class _DPLoadTextureBlock(GbiMacro):
     width: int
     height: int
     pal: int
-    cms: list
-    cmt: list
+    cms: tuple[str, str]
+    cmt: tuple[str, str]
     masks: int
     maskt: int
     shifts: int
@@ -5204,8 +5204,8 @@ class DPLoadTextureBlock_4b(GbiMacro):
     width: int
     height: int
     pal: int
-    cms: list
-    cmt: list
+    cms: tuple[str, str]
+    cmt: tuple[str, str]
     masks: int
     maskt: int
     shifts: int
@@ -5279,8 +5279,8 @@ class DPLoadTextureTile(GbiMacro):
     lrs: int
     lrt: int
     pal: int
-    cms: list
-    cmt: list
+    cms: tuple[str, str]
+    cmt: tuple[str, str]
     masks: int
     maskt: int
     shifts: int
@@ -5355,8 +5355,8 @@ class DPLoadTextureTile_4b(GbiMacro):
     lrs: int
     lrt: int
     pal: int
-    cms: list
-    cmt: list
+    cms: tuple[str, str]
+    cmt: tuple[str, str]
     masks: int
     maskt: int
     shifts: int

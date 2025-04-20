@@ -19,7 +19,7 @@ from ..utility import (
     geoNodeRotateOrder,
 )
 from ..f3d.f3d_bleed import BleedGraphics
-from ..f3d.f3d_gbi import FModel
+from ..f3d.f3d_gbi import FMaterial, FModel, GbiMacro
 
 from .sm64_geolayout_constants import (
     nodeGroupCmds,
@@ -470,47 +470,79 @@ class JumpNode:
         return "GEO_BRANCH(" + ("1, " if self.storeReturn else "0, ") + geo_name + "),"
 
 
+LastMaterials = dict[int, tuple[FMaterial | None, list[tuple[list["GbiMacro"], dict[type, GbiMacro]]]]]
+
+
 class GeoLayoutBleed(BleedGraphics):
     def bleed_geo_layout_graph(self, fModel: FModel, geo_layout_graph: GeolayoutGraph, use_rooms: bool = False):
-        last_materials = dict()  # last used material should be kept track of per layer
+        # last used material, last used cmd list and resets per layer
+        last_materials = {}
 
-        def walk(node, last_materials):
+        def reset_all_layers(last_materials: LastMaterials) -> LastMaterials:
+            for draw_layer, (_last_mat, last_cmds_resets) in last_materials.items():
+                for cmd_list, reset_cmd_dict in last_cmds_resets:
+                    self.add_reset_cmds(
+                        cmd_list, reset_cmd_dict, fModel.matWriteMethod, fModel.getRenderMode(draw_layer)
+                    )
+            return {}
+
+        def walk(node, last_materials: LastMaterials) -> LastMaterials:
             base_node = node.node
             if type(base_node) == JumpNode:
                 if base_node.geolayout:
                     for node in base_node.geolayout.nodes:
-                        last_materials = (
-                            walk(node, last_materials if not use_rooms else dict()) if not use_rooms else dict()
-                        )
-                else:
-                    last_materials = dict()
+                        last_materials = walk(node, last_materials if not use_rooms else {}) if not use_rooms else {}
+
             fMesh = getattr(base_node, "fMesh", None)
             if fMesh:
+                last_mat, last_cmds_resets = last_materials.get(base_node.drawLayer, (None, []))
                 cmd_list = fMesh.drawMatOverrides.get(base_node.override_hash, None) or fMesh.draw
-                last_mat = last_materials.get(base_node.drawLayer, None)
                 default_render_mode = fModel.getRenderMode(base_node.drawLayer)
+
+                if base_node.bleed_independently:
+                    # if bleed independetly, add reset commands to previous cmd lists, reset last mat and reset dict
+                    for last_cmd_list, reset_cmd_dict in last_cmds_resets:
+                        self.add_reset_cmds(
+                            last_cmd_list,
+                            reset_cmd_dict,
+                            fModel.matWriteMethod,
+                            fModel.getRenderMode(base_node.drawLayer),
+                        )
+                    last_mat, last_cmds_resets = None, []
+
+                reset_cmd_dict = {typ: cmd for _, reset_cmds in last_cmds_resets for typ, cmd in reset_cmds.items()}
                 last_mat = self.bleed_fmesh(
-                    fMesh,
-                    last_mat if not base_node.bleed_independently else None,
+                    last_mat,
+                    reset_cmd_dict,
                     cmd_list,
                     fModel.getAllMaterials().items(),
                     fModel.matWriteMethod,
                     default_render_mode,
                 )
-                # if the mesh has culling, it can be culled, and create invalid combinations of f3d to represent the current full DL
-                if fMesh.cullVertexList:
-                    last_materials[base_node.drawLayer] = None
+
+                # if the mesh has culling or independent bleeding, we must revert to avoid bleed issues and reset last materials
+                if fMesh.cullVertexList or base_node.bleed_independently:
+                    self.add_reset_cmds(cmd_list, reset_cmd_dict, fModel.matWriteMethod, default_render_mode)
+                    last_materials.pop(base_node.drawLayer, None)
                 else:
-                    last_materials[base_node.drawLayer] = last_mat
-            # don't carry over last_mat if it is a switch node or geo asm node
+                    last_materials[base_node.drawLayer] = last_mat, [(cmd_list, reset_cmd_dict)]
+
+            is_switch = type(base_node) in [SwitchNode, FunctionNode]
             for child in node.children:
-                if type(base_node) in [SwitchNode, FunctionNode]:
-                    last_materials = dict()
-                last_materials = walk(child, last_materials)
+                if is_switch:  # parent node is switch or function
+                    new_materials = walk(child, last_materials)  # last material info from current switch option
+                    # add switch option reverts, to either revert at the end or in the option itself
+                    for draw_layer, (last_mat, cmds_resets) in new_materials.items():
+                        last_materials[draw_layer][1].append((cmds_resets[0], cmds_resets[1]))
+                        if len(node.children) > 1:
+                            last_materials[draw_layer][0] = None  # reset last material if more than one option
+                else:
+                    last_materials = walk(child, last_materials)
             return last_materials
 
         for node in geo_layout_graph.startGeolayout.nodes:
             last_materials = walk(node, last_materials)
+        reset_all_layers(last_materials)
         self.clear_gfx_lists(fModel)
 
 

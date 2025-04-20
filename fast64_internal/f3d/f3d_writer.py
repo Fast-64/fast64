@@ -1802,7 +1802,7 @@ def getWriteMethodFromEnum(enumVal):
 
 def exportF3DtoC(dirPath, obj, DLFormat, transformMatrix, texDir, savePNG, texSeparate, name, matWriteMethod):
     inline = bpy.context.scene.exportInlineF3D
-    fModel = FModel(name, DLFormat, matWriteMethod if not inline else GfxMatWriteMethod.WriteAll)
+    fModel = FModel(name, DLFormat, matWriteMethod)
     fMeshes = exportF3DCommon(obj, fModel, transformMatrix, True, name, DLFormat, not savePNG)
 
     if inline:
