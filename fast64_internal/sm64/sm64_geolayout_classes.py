@@ -546,7 +546,7 @@ class GeoLayoutBleed(BleedGraphics):
                 last_materials = reset_all_layers(last_materials)
 
             cur_last_materials = copy_last(last_materials)
-            is_switch = type(base_node) in [SwitchNode, FunctionNode]
+            is_switch = type(base_node) in {SwitchNode}
             for child in node.children:
                 if is_switch:  # parent node is switch or function
                     new_materials = walk(child, cur_last_materials)  # last material info from current switch option
