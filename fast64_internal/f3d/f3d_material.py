@@ -751,16 +751,17 @@ def ui_other(settings, dataHolder, layout, useDropdown):
             prop_input.enabled = dataHolder.set_blend
 
 
-def tmemUsageUI(layout, textureProp):
-    tex = textureProp.tex
-    if tex is not None and tex.size[0] > 0 and tex.size[1] > 0:
-        tmemUsage = getTmemWordUsage(textureProp.tex_format, tex.size[0], tex.size[1]) * 8
-        tmemMax = getTmemMax(textureProp.tex_format)
-        layout.label(text="TMEM Usage: " + str(tmemUsage) + " / " + str(tmemMax) + " bytes")
-        if tmemUsage > tmemMax:
-            tmemSizeWarning = layout.box()
-            tmemSizeWarning.label(text="WARNING: Texture size is too large.")
-            tmemSizeWarning.label(text="Note that width will be internally padded to 64 bit boundaries.")
+def tmemUsageUI(layout, textureProp: "TextureProperty"):
+    tex_size = textureProp.size
+    tmemUsage = getTmemWordUsage(textureProp.tex_format, tex_size[0], tex_size[1]) * 8
+    tmemMax = getTmemMax(textureProp.tex_format)
+    layout.label(text="TMEM Usage: " + str(tmemUsage) + " / " + str(tmemMax) + " bytes")
+    if tmemUsage > tmemMax:
+        multilineLabel(
+            layout.box(),
+            "WARNING: Texture size is too large.\nNote that width will be internally padded to 64 bit boundaries.",
+            icon="ERROR",
+        )
 
 
 # UI Assumptions:
@@ -2852,7 +2853,7 @@ def update_tex_field_prop(self: Property, context: Context):
 
         prop_path = self.path_from_id()
         tex_property, tex_index = get_tex_prop_from_path(material, prop_path)
-        tex_size = tex_property.get_tex_size()
+        tex_size = tex_property.size
 
         if tex_size[0] > 0 and tex_size[1] > 0:
             update_tex_values_field(material, tex_property, tex_size, tex_index)
@@ -2867,7 +2868,7 @@ def toggle_auto_prop(self, context: Context):
         prop_path = self.path_from_id()
         tex_property, tex_index = get_tex_prop_from_path(material, prop_path)
         if tex_property.autoprop:
-            tex_size = tuple([s for s in tex_property.get_tex_size()])
+            tex_size = tuple([s for s in tex_property.size])
             if tex_size[0] > 0 and tex_size[1] > 0:
                 update_tex_values_field(material, tex_property, tex_size, tex_index)
 
@@ -2945,8 +2946,20 @@ class TextureProperty(PropertyGroup):
     T: bpy.props.PointerProperty(type=TextureFieldProperty)
 
     use_tex_reference: bpy.props.BoolProperty(
-        name="Use Texture Reference",
+        name="Reference",
         default=False,
+        update=update_tex_values,
+    )
+    load_tex: bpy.props.BoolProperty(
+        name="Load Texture",
+        default=True,
+        update=update_tex_values,
+    )
+    tex_index: bpy.props.IntProperty(
+        name="Texture Index",
+        default=0,
+        min=0,
+        max=7,
         update=update_tex_values,
     )
     tex_reference: bpy.props.StringProperty(
@@ -2958,6 +2971,31 @@ class TextureProperty(PropertyGroup):
         min=1,
         size=2,
         default=(32, 32),
+        update=update_tex_values,
+    )
+
+    use_pal_reference: bpy.props.BoolProperty(
+        name="Reference",
+        default=False,
+        update=update_tex_values,
+    )
+    load_pal: bpy.props.BoolProperty(
+        name="Load Palette",
+        default=True,
+        update=update_tex_values,
+    )
+    pal_index: bpy.props.IntProperty(
+        name="Palette Index",
+        default=0,
+        min=0,
+        max=7,
+        update=update_tex_values,
+    )
+    pal: bpy.props.PointerProperty(
+        type=Image,
+        name="Palette",
+        description="Reference pallete, the texture will be quantized and indexed against this palette if its set,\n"
+        "otherwise a greyscale version of the texture will be used as indices to the pallete",
         update=update_tex_values,
     )
     pal_reference: bpy.props.StringProperty(
@@ -2991,13 +3029,20 @@ class TextureProperty(PropertyGroup):
     def tlut_mode(self):
         return f"G_TT_{self.ci_format if self.is_ci else 'NONE'}"
 
-    def get_tex_size(self) -> list[int]:
-        if self.tex or self.use_tex_reference:
+    @property
+    def has_texture(self):
+        return self.load_tex and not self.use_tex_reference
+
+    @property
+    def has_palette(self):
+        return self.load_pal and self.has_texture and not self.use_pal_reference
+
+    @property
+    def size(self) -> tuple[int]:
+        if self.has_texture:
             if self.tex is not None:
-                return self.tex.size
-            else:
-                return self.tex_reference_size
-        return [0, 0]
+                return tuple(self.tex.size)
+        return tuple(self.tex_reference_size)
 
     def key(self):
         texSet = self.tex_set
@@ -3008,15 +3053,18 @@ class TextureProperty(PropertyGroup):
             self.tex if texSet else None,
             self.tex_format if texSet else None,
             self.ci_format if texSet and isCI else None,
+            self.size if texSet else None,
             self.S.key() if texSet else None,
             self.T.key() if texSet else None,
             self.autoprop if texSet else None,
             self.tile_scroll.key() if texSet else None,
             self.use_tex_reference if texSet else None,
+            self.use_pal_reference if texSet and isCI else None,
             self.tex_reference if texSet and useRef else None,
-            self.tex_reference_size if texSet and useRef else None,
             self.pal_reference if texSet and useRef and isCI else None,
             self.pal_reference_size if texSet and useRef and isCI else None,
+            self.load_tex if texSet else None,
+            self.load_pal if texSet and isCI else None,
         )
 
 
@@ -3056,42 +3104,38 @@ def ui_image(
 ):
     inputGroup = layout.box().column()
 
-    inputGroup.prop(
-        textureProp, "menu", text=name + " Properties", icon="TRIA_DOWN" if textureProp.menu else "TRIA_RIGHT"
-    )
+    row = inputGroup.row()
+    row.prop(textureProp, "menu", text="", icon="TRIA_DOWN" if textureProp.menu else "TRIA_RIGHT", emboss=False)
+    if showCheckBox:
+        row.prop(textureProp, "tex_set", text=f"Set {name}")
     if textureProp.menu:
         tex = textureProp.tex
-        prop_input_name = inputGroup.column()
+        width, height = textureProp.size
         prop_input = inputGroup.column()
 
-        if showCheckBox:
-            prop_input_name.prop(textureProp, "tex_set", text="Set Texture")
-        texIndex = name[-1]
-
-        prop_input.prop(textureProp, "use_tex_reference")
-        if textureProp.use_tex_reference:
-            prop_split(prop_input, textureProp, "tex_reference", "Texture Reference")
-            prop_split(prop_input, textureProp, "tex_reference_size", "Texture Size")
-            if textureProp.tex_format[:2] == "CI":
-                if textureProp.flipbook is None or not textureProp.flipbook.enable:
-                    prop_split(prop_input, textureProp, "pal_reference", "Palette Reference")
-                    prop_split(prop_input, textureProp, "pal_reference_size", "Palette Size")
-
+        flipbook = textureProp.flipbook is not None and textureProp.flipbook.enable
+        row = prop_input.row()
+        row.prop(textureProp, "load_tex")
+        if textureProp.load_tex:
+            row.prop(textureProp, "use_tex_reference")
+            if textureProp.use_tex_reference:
+                prop_split(prop_input, textureProp, "tex_reference", "Texture Reference")
         else:
+            prop_split(prop_input, textureProp, "tex_index", "Texture Index")
+        if not flipbook or textureProp.has_texture:
             prop_input.template_ID(
-                textureProp, "tex", new="image.new", open="image.open", unlink="image.tex" + texIndex + "_unlink"
+                textureProp,
+                "tex",
+                new="image.new",
+                open="image.open",
+                text=None if textureProp.has_texture else "Preview Only",
             )
-            prop_input.enabled = textureProp.tex_set
-
-            if tex is not None:
-                prop_input.label(text="Size: " + str(tex.size[0]) + " x " + str(tex.size[1]))
-
-        if textureProp.use_tex_reference:
-            width, height = textureProp.tex_reference_size[0], textureProp.tex_reference_size[1]
-        elif tex is not None:
-            width, height = tex.size[0], tex.size[1]
-        else:
-            width = height = 0
+            if textureProp.has_texture:
+                size = textureProp.size
+                prop_input.label(text=f"Size: {size[0]}x{size[1]}")
+        if not textureProp.has_texture:
+            prop_split(prop_input, textureProp, "tex_reference_size", "Texture Size")
+        prop_split(prop_input, textureProp, "tex_format", name="Format")
 
         if canUseLargeTextures:
             availTmem = 512
@@ -3110,18 +3154,48 @@ def ui_image(
             msg.label(text="Recommend using Create Large Texture Mesh tool.")
         else:
             tmemUsageUI(prop_input, textureProp)
+        prop_input.separator(factor=0.5)
 
-        prop_split(prop_input, textureProp, "tex_format", name="Format")
-        if textureProp.tex_format[:2] == "CI":
+        if textureProp.is_ci:
+            row = prop_input.row()
+            row.prop(textureProp, "load_pal")
+            if textureProp.load_pal:
+                row.prop(textureProp, "use_pal_reference")
+            if textureProp.load_pal:
+                if textureProp.use_pal_reference and textureProp.load_pal:
+                    prop_split(prop_input, textureProp, "pal_reference", "Palette Reference")
+                    if textureProp.pal is None:
+                        prop_split(prop_input, textureProp, "pal_reference_size", "Palette Size")
+            else:
+                prop_split(prop_input, textureProp, "pal_index", "Palette Index")
+            if not textureProp.has_texture or not textureProp.has_palette:
+                prop_input.template_ID(textureProp, "pal", new="image.new", open="image.open")
+                if textureProp.has_texture:
+                    if textureProp.pal:
+                        multilineLabel(
+                            prop_input,
+                            text="Reference pallete, the texture will be quantized and indexed\n"
+                            "against this palette.",
+                            icon="INFO",
+                        )
+                    else:
+                        multilineLabel(
+                            prop_input,
+                            text="No reference pallete set, a greyscale version of the\n"
+                            "texture will be used as indices to the pallete",
+                            icon="INFO",
+                        )
             prop_split(prop_input, textureProp, "ci_format", name="CI Format")
 
         if not isLarge:
             if width > 0 and height > 0:
                 texelsPerWord = 64 // texBitSizeInt[textureProp.tex_format]
                 if width % texelsPerWord != 0:
-                    msg = prop_input.box().column()
-                    msg.label(text=f"Suggest {textureProp.tex_format} tex be multiple ", icon="INFO")
-                    msg.label(text=f"of {texelsPerWord} pixels wide for fast loading.")
+                    multilineLabel(
+                        prop_input.box(),
+                        f"Suggest {textureProp.tex_format} tex be multiple\nof {texelsPerWord} pixels wide for fast loading.",
+                        icon="INFO",
+                    )
                 warnClampS = (
                     not isPowerOf2(width)
                     and not textureProp.S.clamp
@@ -3133,9 +3207,11 @@ def ui_image(
                     and (not textureProp.autoprop or textureProp.T.mask != 0)
                 )
                 if warnClampS or warnClampT:
-                    msg = prop_input.box().column()
-                    msg.label(text=f"Clamping required for non-power-of-2 image", icon="ERROR")
-                    msg.label(text=f"dimensions. Enable clamp or set mask to 0.")
+                    multilineLabel(
+                        prop_input.box(),
+                        "Clamping required for non-power-of-2 image\ndimensions. Enable clamp or set mask to 0.",
+                        icon="ERROR",
+                    )
 
             texFieldSettings = prop_input.column()
             clampSettings = texFieldSettings.row()
@@ -3147,7 +3223,6 @@ def ui_image(
             mirrorSettings.prop(textureProp.T, "mirror", text="Mirror T")
 
             prop_input.prop(textureProp, "autoprop", text="Auto Set Other Properties")
-
             if not textureProp.autoprop:
                 mask = prop_input.row()
                 mask.prop(textureProp.S, "mask", text="Mask S")
