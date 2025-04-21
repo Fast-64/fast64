@@ -4388,19 +4388,22 @@ class SPSetOtherMode(GbiMacro):
         self.flagList = self.flagList | flags
 
     def add_other(self, f3d, other: SPSetOtherMode):
-        for flag in self.flagList.copy():  # remove any flag overriden by other
-            if isinstance(flag, RendermodeBlender):
-                value = flag.to_binary(f3d)
-            else:
-                value = getattr(f3d, str(flag), flag)
-            if not value or value >> other.sft > other.length:
-                self.flagList.remove(flag)
-        # add other's flags
-        self.extend(other.flagList)
-
         min_max = min(self.sft, other.sft), max(self.sft + self.length, other.sft + other.length)
         self.sft = min_max[0]
         self.length = min_max[1] - min_max[0]
+
+        for flag in self.flagList.copy():  # remove any flag overriden by other
+            value = flag
+            if isinstance(flag, RendermodeBlender):
+                value = flag.to_binary(f3d)
+            elif isinstance(flag, str):
+                value = getattr(f3d, flag, None)
+                if value is None:
+                    raise ValueError(f"Flag {flag} not found in {f3d}")
+            if not value or value >> other.sft < (2**other.length):
+                self.flagList.remove(flag)
+        # add other's flags
+        self.extend(other.flagList)
 
     def to_binary(self, f3d, segments):
         data = 0

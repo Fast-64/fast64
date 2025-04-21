@@ -1686,15 +1686,16 @@ def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaultRenderMod
     cmd.flagList.add(settings.g_mdsft_zsrcsel)
 
     if settings.set_rendermode:
+        if defaultRenderMode:
+            revert_cmd = copy.deepcopy(cmd)
+            revert_cmd.flagList.update(defaultRenderMode)
+            fMaterial.revert.commands.append(revert_cmd)
         flagList, blender = getRenderModeFlagList(settings, fMaterial)
         cmd.flagList.update(flagList)
         if blender is not None:
             cmd.flagList.add(blender)
 
     fMaterial.mat_only_DL.commands.append(cmd)
-
-    if settings.g_mdsft_zsrcsel == "G_ZS_PRIM":
-        fMaterial.mat_only_DL.commands.append(DPSetPrimDepth(z=settings.prim_depth.z, dz=settings.prim_depth.dz))
 
 
 def saveOtherModeLDefinitionIndividual(fMaterial, settings, defaults, defaultRenderMode):

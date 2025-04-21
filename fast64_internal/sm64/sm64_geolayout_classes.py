@@ -534,15 +534,13 @@ class GeoLayoutBleed(BleedGraphics):
                     default_render_mode,
                 )
 
-                if (
-                    fMesh.cullVertexList or node.revert_after_mat
-                ):  # if the mesh has culling, we must revert to avoid bleed issues
+                # if the mesh has culling, we must revert to avoid bleed issues
+                if fMesh.cullVertexList or node.revert_after_mat:
                     self.add_reset_cmds(cmd_list, reset_cmd_dict, fModel.matWriteMethod, default_render_mode)
                     last_materials.pop(base_node.drawLayer, None)
                 else:
                     last_materials[base_node.drawLayer] = [last_mat, [(cmd_list, reset_cmd_dict)]]
-            # if no mesh but still forced revert, revert all
-            if fMesh is None and node.revert_after_mat:
+            elif node.revert_after_mat:  # if no mesh but still forced revert, revert all
                 last_materials = reset_all_layers(last_materials)
 
             cur_last_materials = copy_last(last_materials)

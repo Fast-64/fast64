@@ -314,8 +314,27 @@ class BleedGraphics:
             last_cmd_list = last_mat.mat_only_DL.commands
 
             # handle write diff, save pre bleed cmds
-            geo_cmds = [cmd for cmd in commands_bled.commands if type(cmd) in WRITE_DIFF_GEO_CMDS]
-            othermode_cmds = [cmd for cmd in commands_bled.commands if isinstance(cmd, SPSetOtherModeSub)]
+            geo_cmds = [c for c in commands_bled.commands if type(c) in WRITE_DIFF_GEO_CMDS]
+            othermode_diff_cmds = [c for c in commands_bled.commands if isinstance(c, SPSetOtherModeSub)]
+            if last_mat.revert:
+                revert_geo_cmds = [c for c in last_mat.revert.commands if type(c) in WRITE_DIFF_GEO_CMDS]
+                revert_other_diff_cmd = [c for c in last_mat.revert.commands if isinstance(c, SPSetOtherModeSub)]
+                revert_other_load_cmd = [
+                    copy.deepcopy(c) for c in last_mat.revert.commands if isinstance(c, SPSetOtherMode)
+                ]
+            else:
+                revert_geo_cmds, revert_other_diff_cmd, revert_other_load_cmd = [], [], []
+            # while load mode is always written, they may not set the same range of values and therefor need revert
+            for revert_cmd in revert_other_load_cmd:
+                othermode_cmd = next(
+                    (c for c in commands_bled.commands if type(c) == type(revert_cmd) and c.cmd == revert_cmd.cmd), None
+                )
+                if othermode_cmd is None:
+                    commands_bled.commands.insert(0, revert_cmd)
+                else:
+                    index = commands_bled.commands.index(othermode_cmd)
+                    revert_cmd.add_other(self.f3d, othermode_cmd)
+                    commands_bled.commands[index] = revert_cmd
 
             for j, cmd in enumerate(gfx.commands):
                 if self.bleed_individual_cmd(commands_bled, cmd, last_cmd_list, default_render_mode):
@@ -323,13 +342,6 @@ class BleedGraphics:
             # remove Nones from list
             while None in commands_bled.commands:
                 commands_bled.commands.remove(None)
-
-            # handle write diff
-            if last_mat.revert:
-                revert_geo_cmds = [cmd for cmd in last_mat.revert.commands if type(cmd) in WRITE_DIFF_GEO_CMDS]
-                revert_othermode_cmd = [cmd for cmd in last_mat.revert.commands if isinstance(cmd, SPSetOtherModeSub)]
-            else:
-                revert_geo_cmds, revert_othermode_cmd = [], []
 
             # geo mode write diff, these cmds are always removed by default and added back here
             set_modes, clear_modes = set(), set()
@@ -344,8 +356,8 @@ class BleedGraphics:
                 commands_bled.commands.insert(0, cmd)
 
             # if there is no equivelent cmd, it must be using the revert
-            for revert_cmd in revert_othermode_cmd:
-                othermode_cmd = next((cmd for cmd in othermode_cmds if type(cmd) == type(revert_cmd)), None)
+            for revert_cmd in revert_other_diff_cmd:
+                othermode_cmd = next((cmd for cmd in othermode_diff_cmds if type(cmd) == type(revert_cmd)), None)
                 if othermode_cmd is None:
                     commands_bled.commands.insert(0, revert_cmd)
         else:
