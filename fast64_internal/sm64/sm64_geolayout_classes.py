@@ -552,7 +552,7 @@ class GeoLayoutBleed(BleedGraphics):
                     new_materials = walk(child, cur_last_materials)  # last material info from current switch option
                     # add switch option reverts, to either revert at the end or in the option itself
                     for draw_layer, (last_mat, cmds_resets) in new_materials.items():
-                        last_materials.setdefault(draw_layer, [None, []])[1].extend(cmds_resets)
+                        last_materials.setdefault(draw_layer, [last_mat, []])[1].extend(cmds_resets)
                         if len(node.children) > 1:
                             last_materials[draw_layer][0] = None  # reset last material if more than one option
                 else:
