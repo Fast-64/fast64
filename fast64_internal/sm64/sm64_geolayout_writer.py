@@ -1553,6 +1553,9 @@ def processMesh(
                     additionalTransformNode = TransformNode(additionalNode)
                     transformNode.children.append(additionalTransformNode)
                     additionalTransformNode.parent = transformNode
+                    additionalTransformNode.revert_previous_mat = (
+                        additionalTransformNode.revert_after_mat
+                    ) = obj.bleed_independently
 
             else:
                 triConverterInfo = TriangleConverterInfo(
@@ -1587,7 +1590,6 @@ def processMesh(
                 if not firstNodeProcessed:
                     node.DLmicrocode = fMesh.draw
                     node.fMesh = fMesh
-                    node.revert_previous_mat = node.revert_after_mat = obj.bleed_independently
                     node.drawLayer = drawLayer  # previous drawLayer assigments useless?
                     firstNodeProcessed = True
                 else:
@@ -1598,13 +1600,16 @@ def processMesh(
                     )
                     additionalNode.DLmicrocode = fMesh.draw
                     additionalNode.fMesh = fMesh
-                    additionalNode.revert_previous_mat = additionalNode.revert_after_mat = obj.bleed_independently
                     additionalTransformNode = TransformNode(additionalNode)
+                    additionalTransformNode.revert_previous_mat = (
+                        additionalTransformNode.revert_after_mat
+                    ) = obj.bleed_independently
                     transformNode.children.append(additionalTransformNode)
                     additionalTransformNode.parent = transformNode
 
         parentTransformNode.children.append(transformNode)
         transformNode.parent = parentTransformNode
+        transformNode.revert_previous_mat = transformNode.revert_after_mat = obj.bleed_independently
 
         alphabeticalChildren = sorted(obj.children, key=lambda childObj: childObj.original_name.lower())
         for childObj in alphabeticalChildren:
