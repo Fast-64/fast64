@@ -269,7 +269,6 @@ class BaseDisplayListNode:
     """Base displaylist node with common helper functions dealing with displaylists"""
 
     dl_ext = "WITH_DL"  # add dl_ext to geo command if command has a displaylist
-    bleed_independently = False  # base behavior, can be changed with obj boolProp
 
     def get_dl_address(self):
         assert self.dlRef is None, "dlRef not implemented in binary"
@@ -306,6 +305,9 @@ class TransformNode:
         self.parent = None
         self.skinned = False
         self.skinnedWithoutDL = False
+        # base behavior, can be changed with obj boolProp
+        self.revert_previous_mat = False
+        self.revert_after_mat = False
 
     def convertToDynamic(self):
         if self.node.hasDL:
@@ -479,7 +481,7 @@ class GeoLayoutBleed(BleedGraphics):
         last_materials = {}
 
         def copy_last(last_materials: LastMaterials) -> LastMaterials:
-            return {dl: [lm, [(copy(c), copy(r)) for c, r in lcr]] for dl, (lm, lcr) in last_materials.items()}
+            return {dl: [lm, [(c, copy(r)) for c, r in lcr]] for dl, (lm, lcr) in last_materials.items()}
 
         def reset_all_layers(last_materials: LastMaterials) -> LastMaterials:
             for draw_layer, (_last_mat, last_cmds_resets) in last_materials.items():
@@ -498,13 +500,13 @@ class GeoLayoutBleed(BleedGraphics):
                         last_materials = walk(node, last_materials if not use_rooms else {}) if not use_rooms else {}
 
             fMesh = getattr(base_node, "fMesh", None)
-            if fMesh:
+            last_mat, last_cmds_resets = None, []
+            if fMesh is not None:
                 last_mat, last_cmds_resets = last_materials.get(base_node.drawLayer, (None, []))
-                cmd_list = fMesh.drawMatOverrides.get(base_node.override_hash, None) or fMesh.draw
-                default_render_mode = fModel.getRenderMode(base_node.drawLayer)
 
-                if base_node.bleed_independently:
-                    # if bleed independetly, add reset commands to previous cmd lists, reset last mat and reset dict
+            if node.revert_previous_mat:
+                if fMesh is not None and last_cmds_resets:
+                    # add reset commands to previous cmd lists, reset last mat and reset dict
                     for last_cmd_list, reset_cmd_dict in last_cmds_resets:
                         self.add_reset_cmds(
                             last_cmd_list,
@@ -512,7 +514,15 @@ class GeoLayoutBleed(BleedGraphics):
                             fModel.matWriteMethod,
                             fModel.getRenderMode(base_node.drawLayer),
                         )
-                    last_mat, last_cmds_resets = None, []
+                    last_materials.pop(base_node.drawLayer, None)
+                else:
+                    last_materials = reset_all_layers(last_materials)
+                last_mat, last_cmds_resets = None, []
+
+            if fMesh:
+                base_node: BaseDisplayListNode
+                cmd_list = fMesh.drawMatOverrides.get(base_node.override_hash, None) or fMesh.draw
+                default_render_mode = fModel.getRenderMode(base_node.drawLayer)
 
                 reset_cmd_dict = {typ: cmd for _, reset_cmds in last_cmds_resets for typ, cmd in reset_cmds.items()}
                 last_mat = self.bleed_fmesh(
@@ -524,12 +534,16 @@ class GeoLayoutBleed(BleedGraphics):
                     default_render_mode,
                 )
 
-                # if the mesh has culling or independent bleeding, we must revert to avoid bleed issues and reset last materials
-                if fMesh.cullVertexList or base_node.bleed_independently:
+                if (
+                    fMesh.cullVertexList or node.revert_after_mat
+                ):  # if the mesh has culling, we must revert to avoid bleed issues
                     self.add_reset_cmds(cmd_list, reset_cmd_dict, fModel.matWriteMethod, default_render_mode)
                     last_materials.pop(base_node.drawLayer, None)
                 else:
                     last_materials[base_node.drawLayer] = [last_mat, [(cmd_list, reset_cmd_dict)]]
+            # if no mesh but still forced revert, revert all
+            if fMesh is None and node.revert_after_mat:
+                last_materials = reset_all_layers(last_materials)
 
             cur_last_materials = copy_last(last_materials)
             is_switch = type(base_node) in [SwitchNode, FunctionNode]

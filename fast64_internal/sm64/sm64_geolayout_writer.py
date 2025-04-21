@@ -1,4 +1,5 @@
 from __future__ import annotations
+import typing
 
 import bpy, mathutils, math, copy, os, shutil, re
 from bpy.utils import register_class, unregister_class
@@ -103,6 +104,7 @@ from ..f3d.f3d_gbi import (
 )
 
 from .sm64_geolayout_classes import (
+    BaseDisplayListNode,
     DisplayListNode,
     TransformNode,
     StartNode,
@@ -135,6 +137,9 @@ from .sm64_constants import (
     level_enums,
     enumLevelNames,
 )
+
+if typing.TYPE_CHECKING:
+    from .sm64_geolayout_bone import SM64_BoneProperties
 
 
 def appendSecondaryGeolayout(geoDirPath, geoName1, geoName2, additionalNode=""):
@@ -1577,11 +1582,12 @@ def processMesh(
                 node.hasDL = False
         else:
             firstNodeProcessed = False
+            node: BaseDisplayListNode
             for drawLayer, fMesh in fMeshes.items():
                 if not firstNodeProcessed:
                     node.DLmicrocode = fMesh.draw
                     node.fMesh = fMesh
-                    node.bleed_independently = obj.bleed_independently
+                    node.revert_previous_mat = node.revert_after_mat = obj.bleed_independently
                     node.drawLayer = drawLayer  # previous drawLayer assigments useless?
                     firstNodeProcessed = True
                 else:
@@ -1592,7 +1598,7 @@ def processMesh(
                     )
                     additionalNode.DLmicrocode = fMesh.draw
                     additionalNode.fMesh = fMesh
-                    additionalNode.bleed_independently = obj.bleed_independently
+                    additionalNode.revert_previous_mat = additionalNode.revert_after_mat = obj.bleed_independently
                     additionalTransformNode = TransformNode(additionalNode)
                     transformNode.children.append(additionalTransformNode)
                     additionalTransformNode.parent = transformNode
@@ -1641,6 +1647,8 @@ def processBone(
     convertTextureData,
 ):
     bone = armatureObj.data.bones[boneName]
+    bone_props: "SM64_BoneProperties" = bone.fast64.sm64
+
     poseBone = armatureObj.pose.bones[boneName]
     final_transform = copy.deepcopy(transformMatrix)
     materialOverrides = copy.copy(materialOverrides)
@@ -1861,6 +1869,16 @@ def processBone(
     else:
         parentTransformNode.children.append(transformNode)
         transformNode.parent = parentTransformNode
+
+    new_node: TransformNode
+    for new_node in additionalNodes + [transformNode]:
+        new_node.revert_previous_mat = (
+            bone_props.revert_before_func
+            if bone.geo_cmd in {"Function", "HeldObject"}
+            else bone_props.revert_previous_mat
+        )
+        if isinstance(new_node.node, BaseDisplayListNode):
+            new_node.revert_after_mat = bone_props.revert_after_mat
 
     if not isinstance(transformNode.node, SwitchNode):
         # print(boneGroup.name if boneGroup is not None else "Offset")

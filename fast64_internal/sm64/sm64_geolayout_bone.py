@@ -82,6 +82,7 @@ enumMatOverrideOptions = [
 
 
 def drawGeoInfo(panel: Panel, bone: Bone):
+    bone_props: "SM64_BoneProperties" = bone.fast64.sm64
     panel.layout.box().label(text="Geolayout Inspector")
     if bone is None:
         panel.layout.label(text="Edit geolayout properties in Pose mode.")
@@ -91,6 +92,15 @@ def drawGeoInfo(panel: Panel, bone: Bone):
 
     prop_split(col, bone, "geo_cmd", "Geolayout Command")
 
+    if bpy.context.scene.exportInlineF3D:
+        revert_split = col.split(factor=0.4)
+        revert_split.label(text="Revert Material")
+        revert_row = revert_split.row()
+        revert_row.prop(
+            bone_props,
+            "revert_before_func" if bone.geo_cmd in {"Function", "HeldObject"} else "revert_previous_mat",
+            text="Previous",
+        )
     if bone.geo_cmd in [
         "TranslateRotate",
         "Translate",
@@ -102,6 +112,8 @@ def drawGeoInfo(panel: Panel, bone: Bone):
         "CustomAnimated",
     ]:
         drawLayerWarningBox(col, bone, "draw_layer")
+        if bpy.context.scene.exportInlineF3D:
+            revert_row.prop(bone_props, "revert_after_mat", text="After")
 
     if bone.geo_cmd == "Scale":
         prop_split(col, bone, "geo_scale", "Scale")
@@ -138,9 +150,9 @@ def drawGeoInfo(panel: Panel, bone: Bone):
         prop_split(col, bone, "culling_radius", "Culling Radius")
 
     elif bone.geo_cmd in {"CustomAnimated", "CustomNonAnimated"}:
-        prop_split(col, bone.fast64.sm64, "custom_geo_cmd_macro", "Geo Command Macro")
+        prop_split(col, bone_props, "custom_geo_cmd_macro", "Geo Command Macro")
         if bone.geo_cmd == "CustomNonAnimated":
-            prop_split(col, bone.fast64.sm64, "custom_geo_cmd_args", "Geo Command Args")
+            prop_split(col, bone_props, "custom_geo_cmd_args", "Geo Command Args")
         else:  # It's animated
             infobox = col.box()
             infobox.label(text="Command's args will be filled with layer, translate, and rotate", icon="INFO")
@@ -463,6 +475,13 @@ class SM64_BoneProperties(PropertyGroup):
 
     custom_geo_cmd_macro: StringProperty(name="Geo Command Macro", default="GEO_BONE")
     custom_geo_cmd_args: StringProperty(name="Geo Command Args", default="")
+    revert_previous_mat: BoolProperty(name="Revert Previous Material", default=False)
+    revert_after_mat: BoolProperty(
+        name="Revert After Material",
+        default=False,
+        description="If disabled the last material of each layer will still be reverted at the end",
+    )
+    revert_before_func: BoolProperty(name="Revert Before Function", default=True)
 
 
 sm64_bone_classes = (
