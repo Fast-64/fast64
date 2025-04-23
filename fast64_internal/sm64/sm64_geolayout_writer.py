@@ -1677,12 +1677,12 @@ def processBone(
             if not zeroRotation:
                 node = DisplayListWithOffsetNode(int(bone.draw_layer), hasDL, mathutils.Vector((0, 0, 0)))
 
-                if parentTransformNode is not None:
-                    parentTransformNode = addParentNode(
-                        parentTransformNode, TranslateRotateNode(1, 0, False, translate, rotate)
-                    )
+                trans_rotate_node = TranslateRotateNode(1, 0, False, translate, rotate)
+                if parentTransformNode is None:
+                    parentTransformNode = TransformNode(trans_rotate_node)
+                    geolayout.nodes.append(parentTransformNode)
                 else:
-                    geolayout.nodes.append(TranslateRotateNode(1, 0, False, translate, rotate))
+                    parentTransformNode = addParentNode(parentTransformNode, trans_rotate_node)
 
                 lastTranslateName = boneName
                 lastRotateName = boneName
