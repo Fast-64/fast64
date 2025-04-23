@@ -80,6 +80,15 @@ def ootGetLimb(skeletonData, limbName, continueOnError):
     return matchResult
 
 
+def ootGetAnimNames(skeleton_data):
+    """Extracts all animation names that start with 'AnimationHeader' from the given skeleton data."""
+
+    pattern = r"AnimationHeader\s+(\w+)"
+    animation_names = re.findall(pattern, skeleton_data)
+
+    return animation_names
+
+
 def getGroupIndexOfVert(vert, armatureObj, obj, rootGroupIndex):
     actualGroups = []
     nonBoneGroups = []
