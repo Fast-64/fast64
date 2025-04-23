@@ -684,17 +684,12 @@ def ui_upper_mode(settings, dataHolder, layout: UILayout, useDropdown):
         prop_split(inputGroup, settings, "g_mdsft_combkey", "Chroma Key")
         prop_split(inputGroup, settings, "g_mdsft_textconv", "Texture Convert")
         prop_split(inputGroup, settings, "g_mdsft_text_filt", "Texture Filter")
-        textlut_col = inputGroup.column()
         tlut_mode = get_textlut_mode(dataHolder, True) if isinstance(dataHolder, F3DMaterialProperty) else None
-        if tlut_mode:
-            textlut_col.enabled = False
-            split = textlut_col.split(factor=0.5)
-            split.label(text="Texture LUT (Auto)")
-            box = split.box()
-            box.label(text={"G_TT_NONE": "None"}.get(tlut_mode, tlut_mode.lstrip("G_TT_")))
-            box.scale_y = 0.5
-        else:
-            prop_split(textlut_col, settings, "g_mdsft_textlut", "Texture LUT")
+        label = ""
+        if tlut_mode is not None:
+            label = tlut_mode.lstrip("G_TT_")
+            label = {"NONE": "None"}.get(label, label)
+        draw_forced(inputGroup, settings, "g_mdsft_textlut", tlut_mode is not None, "Texture LUT", label)
         prop_split(inputGroup, settings, "g_mdsft_textlod", "Texture LOD (Mipmapping)")
         if settings.g_mdsft_textlod == "G_TL_LOD":
             inputGroup.prop(settings, "num_textures_mipmapped", text="Number of Mipmaps")
@@ -1260,7 +1255,6 @@ class F3DPanel(Panel):
         multilineLabel(layout, text, icon="ERROR")
 
     def draw_simple(self, f3dMat: "F3DMaterialProperty", material, layout, context):
-        f3d = get_F3D_GBI()
         self.ui_uvCheck(layout, context)
 
         inputCol = layout.column()
@@ -2262,7 +2256,7 @@ def get_tex_gen_size(tex_size: list[int | float]):
     return (tex_size[0] - 1) / 1024, (tex_size[1] - 1) / 1024
 
 
-def get_textlut_mode(f3d_mat: "F3DMaterialProperty", inherit_from_tex: bool = False):
+def get_textlut_mode(f3d_mat: "F3DMaterialProperty", inherit_from_tex: bool = False):  # TODO
     use_dict = all_combiner_uses(f3d_mat)
     textures = [f3d_mat.tex0] if use_dict["Texture 0"] and f3d_mat.tex0.tex_set else []
     textures += [f3d_mat.tex1] if use_dict["Texture 1"] and f3d_mat.tex1.tex_set else []
@@ -2929,22 +2923,17 @@ class TextureProperty(PropertyGroup):
         name="Texture",
         update=update_tex_values_and_formats,
     )
-
+    auto_fmt: bpy.props.BoolProperty(
+        name="Auto Format",
+        default=True,
+        update=update_tex_values_and_formats,
+    )
     tex_format: bpy.props.EnumProperty(
         name="Format",
         items=enumTexFormat,
         default="RGBA16",
         update=update_tex_values,
     )
-    ci_format: bpy.props.EnumProperty(
-        name="CI Format",
-        items=enumCIFormat,
-        default="RGBA16",
-        update=update_tex_values,
-    )
-    S: bpy.props.PointerProperty(type=TextureFieldProperty)
-    T: bpy.props.PointerProperty(type=TextureFieldProperty)
-
     use_tex_reference: bpy.props.BoolProperty(
         name="Reference",
         default=False,
@@ -2954,6 +2943,15 @@ class TextureProperty(PropertyGroup):
         name="Load Texture",
         default=True,
         update=update_tex_values,
+    )
+    dithering_method: bpy.props.EnumProperty(
+        name="Dithering Method",
+        items=[
+            ("NONE", "None", ""),
+            ("RANDOM", "Random", ""),
+            ("DITHERED", "Dithered", ""),
+            ("Floyd-Steinberg", "Floyd-Steinberg", ""),
+        ],
     )
     tex_index: bpy.props.IntProperty(
         name="Texture Index",
@@ -2974,6 +2972,12 @@ class TextureProperty(PropertyGroup):
         update=update_tex_values,
     )
 
+    ci_format: bpy.props.EnumProperty(
+        name="CI Format",
+        items=enumCIFormat,
+        default="RGBA16",
+        update=update_tex_values,
+    )
     use_pal_reference: bpy.props.BoolProperty(
         name="Reference",
         default=False,
@@ -3007,6 +3011,9 @@ class TextureProperty(PropertyGroup):
         min=1,
         default=16,
     )
+
+    S: bpy.props.PointerProperty(type=TextureFieldProperty)
+    T: bpy.props.PointerProperty(type=TextureFieldProperty)
 
     menu: bpy.props.BoolProperty()
     tex_set: bpy.props.BoolProperty(
@@ -3065,6 +3072,7 @@ class TextureProperty(PropertyGroup):
             self.pal_reference_size if texSet and useRef and isCI else None,
             self.load_tex if texSet else None,
             self.load_pal if texSet and isCI else None,
+            self.dithering_method if texSet else None,
         )
 
 
@@ -3109,7 +3117,6 @@ def ui_image(
     if showCheckBox:
         row.prop(textureProp, "tex_set", text=f"Set {name}")
     if textureProp.menu:
-        tex = textureProp.tex
         width, height = textureProp.size
         prop_input = inputGroup.column()
 
@@ -3135,7 +3142,11 @@ def ui_image(
                 prop_input.label(text=f"Size: {size[0]}x{size[1]}")
         if not textureProp.has_texture:
             prop_split(prop_input, textureProp, "tex_reference_size", "Texture Size")
-        prop_split(prop_input, textureProp, "tex_format", name="Format")
+        prop_split(prop_input, textureProp, "dithering_method", "Dithering Method")
+
+        fmt_row = prop_input.row()
+        fmt_row.prop(textureProp, "auto_fmt", text="Auto Format")
+        draw_forced(fmt_row, textureProp, "tex_format", textureProp.auto_fmt, "", "TODO", split=False)
 
         if canUseLargeTextures:
             availTmem = 512
@@ -3147,7 +3158,6 @@ def ui_image(
             isLarge = getTmemWordUsage(textureProp.tex_format, width, height) > availTmem
         else:
             isLarge = False
-
         if isLarge:
             msg = prop_input.box().column()
             msg.label(text="This is a large texture.", icon="INFO")
@@ -3186,6 +3196,7 @@ def ui_image(
                             icon="INFO",
                         )
             prop_split(prop_input, textureProp, "ci_format", name="CI Format")
+            prop_input.separator(factor=0.5)
 
         if not isLarge:
             if width > 0 and height > 0:

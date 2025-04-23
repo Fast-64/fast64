@@ -1310,6 +1310,42 @@ def filepath_ui_warnings(
     return run_and_draw_errors(layout, filepath_checks, path, empty, doesnt_exist, not_a_file, False)
 
 
+def draw_forced(
+    layout: UILayout,
+    holder,
+    prop: str,
+    forced: bool,
+    name: Optional[str] = None,
+    label: Optional[str] = None,
+    split=True,
+):
+    split = layout.split(factor=0.5) if split else layout.row(align=True)
+    left_row = split.row()
+    left_row.alignment = "LEFT"
+    right_row = split.row()
+    if forced or name:
+        left_row.label(text="" if name is None else name, icon="LOCKED" if forced else "NONE")
+    if not split:
+        right_row.alignment = "LEFT"
+    right_row.enabled = not forced
+    if forced and label is not None:
+        prop_size_label(right_row, text=label)
+    else:
+        right_row.prop(
+            holder,
+            prop,
+            text=None if label is None else "",
+            invert_checkbox=not getattr(holder, prop) if forced else False,
+        )
+
+
+def prop_size_label(layout: UILayout, **label_args):
+    box = layout.box()
+    box.scale_y = 0.5
+    box.label(**label_args)
+    return box
+
+
 def toAlnum(name, exceptions=[]):
     if name is None or name == "":
         return None
