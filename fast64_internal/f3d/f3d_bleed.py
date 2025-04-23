@@ -45,6 +45,7 @@ from .f3d_gbi import (
     GfxList,
     FTriGroup,
     GbiMacro,
+    get_F3D_GBI,
 )
 
 
@@ -58,8 +59,7 @@ class BleedGraphics:
     def __init__(self):
         self.bled_gfx_lists = dict()
         # build world default cmds to compare against, f3d types needed for reset cmd building
-        self.is_f3d_old = bpy.context.scene.f3d_type == "F3D"
-        self.is_f3dex2 = "F3DEX2" in bpy.context.scene.f3d_type
+        self.f3d = get_F3D_GBI()
         self.build_default_geo()
         self.build_default_othermodes()
 
@@ -84,9 +84,10 @@ class BleedGraphics:
         place_in_flaglist(defaults.g_tex_gen, "G_TEXTURE_GEN", setGeo, clearGeo)
         place_in_flaglist(defaults.g_tex_gen_linear, "G_TEXTURE_GEN_LINEAR", setGeo, clearGeo)
         place_in_flaglist(defaults.g_shade_smooth, "G_SHADING_SMOOTH", setGeo, clearGeo)
-        if bpy.context.scene.f3d_type == "F3DEX_GBI_2" or bpy.context.scene.f3d_type == "F3DEX_GBI":
+        if self.f3d.F3DEX_GBI:
             place_in_flaglist(defaults.g_clipping, "G_CLIPPING", setGeo, clearGeo)
-
+        if self.f3d.POINT_LIT_GBI:
+            place_in_flaglist(defaults.g_lighting_positional, "G_LIGHTING_POSITIONAL", setGeo, clearGeo)
         self.default_load_geo = SPLoadGeometryMode(setGeo.flagList)
         self.default_set_geo = setGeo
         self.default_clear_geo = clearGeo
@@ -94,9 +95,9 @@ class BleedGraphics:
     def build_default_othermodes(self):
         defaults = create_or_get_world(bpy.context.scene).rdp_defaults
 
-        othermode_H = SPSetOtherMode("G_SETOTHERMODE_H", 4, 20 - self.is_f3d_old, [])
+        othermode_H = SPSetOtherMode("G_SETOTHERMODE_H", 4, 20 - self.f3d.F3D_OLD_GBI, [])
         # if the render mode is set, it will be consider non-default a priori
-        othermode_L = SPSetOtherMode("G_SETOTHERMODE_L", 0, 3 - self.is_f3d_old, [])
+        othermode_L = SPSetOtherMode("G_SETOTHERMODE_L", 0, 3 - self.f3d.F3D_OLD_GBI, [])
 
         othermode_L.flagList.append(defaults.g_mdsft_alpha_compare)
         othermode_L.flagList.append(defaults.g_mdsft_zsrcsel)
@@ -399,7 +400,7 @@ class BleedGraphics:
                         SPSetOtherMode(
                             "G_SETOTHERMODE_L",
                             0,
-                            32 - self.is_f3d_old,
+                            32 - self.f3d.F3D_OLD_GBI,
                             [*self.default_othermode_L.flagList, *default_render_mode],
                         )
                     )

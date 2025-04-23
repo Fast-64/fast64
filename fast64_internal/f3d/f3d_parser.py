@@ -900,6 +900,9 @@ class F3DContext:
                 rdp_settings.g_fresnel_color = value
             if bitFlags & self.f3d.G_FRESNEL_ALPHA:
                 rdp_settings.g_fresnel_alpha = value
+        if self.f3d.POINT_LIT_GBI:
+            if bitFlags & self.f3d.G_LIGHTING_POSITIONAL:
+                rdp_settings.g_lighting_positional = value
         if bitFlags & self.f3d.G_FOG:
             rdp_settings.g_fog = value
         if bitFlags & self.f3d.G_LIGHTING:
@@ -944,6 +947,10 @@ class F3DContext:
             rdp_settings.g_lighting_specular = False
             rdp_settings.g_fresnel_color = False
             rdp_settings.g_fresnel_alpha = False
+        if self.f3d.POINT_LIT_GBI:
+            rdp_settings.g_lighting_positional = bitFlags & self.f3d.G_LIGHTING_POSITIONAL != 0
+        else:
+            rdp_settings.g_lighting_positional = False
         rdp_settings.g_fog = bitFlags & self.f3d.G_FOG != 0
         rdp_settings.g_lighting = bitFlags & self.f3d.G_LIGHTING != 0
         rdp_settings.g_tex_gen = bitFlags & self.f3d.G_TEXTURE_GEN != 0
