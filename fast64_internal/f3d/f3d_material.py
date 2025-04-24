@@ -3048,14 +3048,12 @@ class TextureProperty(PropertyGroup):
     )
     tile_scroll: bpy.props.PointerProperty(type=SetTileSizeScrollProperty)
 
-    tex_format: str
-
     @property
-    def is_ci(self):
+    def is_ci(self) -> bool:
         return self.tex_format.startswith("CI")
 
     @property
-    def is_yuv(self):
+    def is_yuv(self) -> bool:
         return self.tex_format in {"YUV16"}
 
     @property
@@ -3063,15 +3061,15 @@ class TextureProperty(PropertyGroup):
         return f"G_TT_{self.ci_format if self.is_ci else 'NONE'}"
 
     @property
-    def has_texture(self):
+    def has_texture(self) -> bool:
         return self.load_tex and not self.use_tex_reference
 
     @property
-    def has_palette(self):
+    def has_palette(self) -> bool:
         return self.load_pal and self.has_texture and not self.use_pal_reference
 
     @property
-    def size(self) -> tuple[int]:
+    def size(self) -> tuple[int, int]:
         if self.has_texture:
             if self.tex is not None:
                 return tuple(self.tex.size)
