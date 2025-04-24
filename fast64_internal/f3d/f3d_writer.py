@@ -7,13 +7,7 @@ from math import ceil
 from bpy.utils import register_class, unregister_class
 
 from .f3d_enums import *
-from .f3d_material import (
-    all_combiner_uses,
-    getMaterialScrollDimensions,
-    isTexturePointSampled,
-    get_textlut_mode,
-    RDPSettings,
-)
+from .f3d_material import all_combiner_uses, getMaterialScrollDimensions, isTexturePointSampled, RDPSettings
 from .f3d_texture_writer import MultitexManager, TileLoad, maybeSaveSingleLargeTextureSetup
 from .f3d_gbi import *
 from .f3d_bleed import BleedGraphics
@@ -1443,7 +1437,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     saveOtherModeHDefinition(
         fMaterial,
         f3dMat.rdp_settings,
-        get_textlut_mode(f3dMat),
+        f3dMat.get_tlut_mode(),
         defaults,
         fModel.matWriteMethod,
         fModel.f3d,

@@ -343,7 +343,7 @@ enumTexFormat = [
     ("CI8", "Color Index 8-bit", "Color Index 8-bit"),
     ("RGBA16", "RGBA 16-bit", "RGBA 16-bit"),
     ("RGBA32", "RGBA 32-bit", "RGBA 32-bit"),
-    # ('YUV16','YUV 16-bit', 'YUV 16-bit'),
+    ("YUV16", "YUV 16-bit", "YUV 16-bit"),
 ]
 
 enumCIFormat = [

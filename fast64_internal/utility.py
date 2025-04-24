@@ -1312,29 +1312,30 @@ def filepath_ui_warnings(
 
 def draw_forced(
     layout: UILayout,
-    holder,
+    holder: bpy.types.bpy_struct,
     prop: str,
     forced: bool,
     name: Optional[str] = None,
-    label: Optional[str] = None,
+    value: Optional[str] = None,
     split=True,
 ):
-    split = layout.split(factor=0.5) if split else layout.row(align=True)
-    left_row = split.row()
-    left_row.alignment = "LEFT"
-    right_row = split.row()
-    if forced or name:
+    split_row = layout.split(factor=0.5) if split else layout.row(align=True)
+    left_row = split_row.row()
+    right_row = split_row.row()
+    if forced or name or split:
         left_row.label(text="" if name is None else name, icon="LOCKED" if forced else "NONE")
-    if not split:
-        right_row.alignment = "LEFT"
     right_row.enabled = not forced
-    if forced and label is not None:
-        prop_size_label(right_row, text=label)
+    if forced and value is not None:
+        props = holder.bl_rna.properties[prop]
+        if "Enum" in props.bl_rna.name:
+            props: bpy.types.EnumProperty
+            value: str = next((item.name for item in props.enum_items if item.identifier == value), value)
+        prop_size_label(right_row, text=str(value))
     else:
         right_row.prop(
             holder,
             prop,
-            text=None if label is None else "",
+            text="" if split or name is not None else None,
             invert_checkbox=not getattr(holder, prop) if forced else False,
         )
 

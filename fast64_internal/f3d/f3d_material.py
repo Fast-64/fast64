@@ -502,14 +502,14 @@ def all_combiner_uses(f3d_mat: "F3DMaterialProperty") -> dict[str, bool]:
             f3d_mat,
             ["PRIMITIVE", "PRIMITIVE_ALPHA", "PRIM_LOD_FRAC"],
         )
-        or f3d_mat.uses_mipmap == "G_TL_LOD",
+        or f3d_mat.uses_mipmap,
         "Environment": combiner_uses(f3d_mat, ["ENVIRONMENT", "ENV_ALPHA"]),
         "Shade": combiner_uses(f3d_mat, ["SHADE"], checkAlpha=False),
         "Shade Alpha": combiner_uses(f3d_mat, ["SHADE"], checkColor=False)
         or combiner_uses(f3d_mat, ["SHADE_ALPHA"], checkAlpha=False),
         "Key": combiner_uses(f3d_mat, ["CENTER", "SCALE"]),
         "LOD Fraction": combiner_uses(f3d_mat, ["LOD_FRACTION"]),
-        "Convert": combiner_uses(f3d_mat, ["K4", "K5"]),
+        "Convert": combiner_uses(f3d_mat, ["K4", "K5"]),  # TODO: check for yuv textures
     }
     return useDict
 
@@ -684,27 +684,23 @@ def ui_upper_mode(settings, dataHolder, layout: UILayout, useDropdown):
         prop_split(inputGroup, settings, "g_mdsft_combkey", "Chroma Key")
         prop_split(inputGroup, settings, "g_mdsft_textconv", "Texture Convert")
         prop_split(inputGroup, settings, "g_mdsft_text_filt", "Texture Filter")
-        tlut_mode = get_textlut_mode(dataHolder, True) if isinstance(dataHolder, F3DMaterialProperty) else None
-        label = ""
-        if tlut_mode is not None:
-            label = tlut_mode.lstrip("G_TT_")
-            label = {"NONE": "None"}.get(label, label)
-        draw_forced(inputGroup, settings, "g_mdsft_textlut", tlut_mode is not None, "Texture LUT", label)
-        is_lod, is_auto_mip = settings.g_mdsft_textlod == "G_TL_LOD", False
-        is_auto_mip = settings.g_mdsft_textlod == "G_TL_LOD"
+        tlut_mode = None
+        tex_lod, tex_detail, mip_count = None, None, None
         if isinstance(dataHolder, F3DMaterialProperty):
-            is_lod, is_auto_mip = dataHolder.uses_mipmap, dataHolder.gen_auto_mips
-        draw_forced(inputGroup, settings, "g_mdsft_textlod", is_auto_mip, "Texture LOD", "LoD" if is_lod else "")
-        if is_lod and not is_auto_mip:
-            inputGroup.prop(settings, "num_textures_mipmapped", text="Number of Mipmaps")
-            if settings.num_textures_mipmapped > 2:
-                box = inputGroup.box()
-                box.alert = True
-                box.label(
-                    text="WARNING: Fast64 does not support setting more than two textures.", icon="LIBRARY_DATA_BROKEN"
-                )
-                box.label(text="Additional texture tiles will need to be set up manually.")
-        prop_split(inputGroup, settings, "g_mdsft_textdetail", "Texture Detail")
+            tlut_mode = dataHolder.tlut_mode
+            # TODO: proper auto mip count once we start using tex manager for preview and UI
+            tex_lod, tex_detail, mip_count = (
+                dataHolder.tex_lod,
+                dataHolder.tex_detail,
+                2 if dataHolder.gen_auto_mips else None,
+            )
+        draw_forced(inputGroup, settings, "g_mdsft_textlut", tlut_mode is not None, "Texture LUT", tlut_mode)
+        draw_forced(inputGroup, settings, "g_mdsft_textlod", tex_lod is not None, "Texture LOD", tex_lod)
+        if settings.g_mdsft_textlod == "G_TL_LOD" or tex_lod:
+            draw_forced(
+                inputGroup, settings, "num_textures_mipmapped", mip_count is not None, "Number of Mipmaps", mip_count
+            )
+        draw_forced(inputGroup, settings, "g_mdsft_textdetail", tex_detail is not None, "Texture Detail", tex_detail)
         prop_split(inputGroup, settings, "g_mdsft_textpersp", "Texture Perspective Correction")
         prop_split(inputGroup, settings, "g_mdsft_cycletype", "Cycle Type")
         prop_split(inputGroup, settings, "g_mdsft_pipeline", "Pipeline Span Buffer Coherency")
@@ -750,10 +746,10 @@ def ui_other(settings, dataHolder, layout, useDropdown):
             prop_input.enabled = dataHolder.set_blend
 
 
-def tmemUsageUI(layout, textureProp: "TextureProperty"):
-    tex_size = textureProp.size
-    tmemUsage = getTmemWordUsage(textureProp.tex_format, tex_size[0], tex_size[1]) * 8
-    tmemMax = getTmemMax(textureProp.tex_format)
+def tmemUsageUI(layout, tex_prop: "TextureProperty"):
+    tex_size = tex_prop.size
+    tmemUsage = getTmemWordUsage(tex_prop.tex_format, tex_size[0], tex_size[1]) * 8
+    tmemMax = getTmemMax(tex_prop.tex_format)
     layout.label(text="TMEM Usage: " + str(tmemUsage) + " / " + str(tmemMax) + " bytes")
     if tmemUsage > tmemMax:
         multilineLabel(
@@ -798,11 +794,10 @@ class F3DPanel(Panel):
         return inputGroup
 
     def ui_large(self, material, layout):
-        layout.prop(material, "use_large_textures")
+        split = layout.row().split(factor=0.5)
+        split.prop(material, "use_large_textures")
         if material.use_large_textures:
-            inputGroup = layout.row().split(factor=0.5)
-            inputGroup.label(text="Large texture edges:")
-            inputGroup.prop(material, "large_edges", text="")
+            split.prop(material, "large_edges", text="")
 
     def ui_scale(self, material, layout):
         inputGroup = layout.row().split(factor=0.5)
@@ -1245,36 +1240,28 @@ class F3DPanel(Panel):
             noticeBox.label(text='They must be called "Col" and "Alpha".', icon="IMAGE_ALPHA")
 
     def draw_ci_warnings(self, layout: UILayout, f3d_mat: "F3DMaterialProperty"):
-        tlut_modes = set(tex.tlut_mode for tex in f3d_mat.set_textures.values())
-        if len(tlut_modes) <= 1:
-            return
-        if "G_TT_NONE" in tlut_modes:
-            multilineLabel(layout, "Can't mix CI and non-CI textures.", icon="ERROR")
-            return
-        else:
-            text = "CI textures must use the same CI format."
-        for tlut in tlut_modes:
-            textures = [str(i) for i, tex in f3d_mat.set_textures.items() if tex.tlut_mode == tlut]
-            text += f"\n{tlut.lstrip('G_TT_')}: Texture{'s' if len(textures) > 1 else ''} {', '.join(textures)}"
-        multilineLabel(layout, text, icon="ERROR")
+        try:
+            _ = f3d_mat.get_tlut_mode()
+        except Exception as exc:
+            multilineLabel(layout.box(), str(exc), icon="ERROR")
 
     def draw_textures(
         self, f3d_mat: "F3DMaterialProperty", material: bpy.types.Material, layout: UILayout, is_simple: bool
     ):
-        textures = f3d_mat.set_textures.items() if is_simple else f3d_mat.used_textures.items()
-        if textures:
-            col = layout.box().column()
-            col.label(text="Textures", icon="IMAGE_DATA")
-        else:
-            col = layout.column()
+        textures = f3d_mat.set_textures if is_simple else f3d_mat.used_textures
+        col = layout.column()
         if len(textures) > 0:
+            col.label(text="Textures", icon="IMAGE_DATA")
+
             pseudo_split = col.split(factor=0.5)
             pseudo_split.prop(f3d_mat, "gen_pseudo_format")
             if f3d_mat.gen_pseudo_format:
                 pseudo_split.prop(f3d_mat, "pseudo_format_internal", text="")
             if f3d_mat.pseudo_fmt_can_mip:
                 mipmaps_split = col.split(factor=0.5)
-                draw_forced(mipmaps_split, f3d_mat, "gen_auto_mips_internal", f3d_mat.forced_mipmap, "", None, False)
+                draw_forced(
+                    mipmaps_split, f3d_mat, "gen_auto_mips_internal", f3d_mat.forced_mipmap, name=None, split=False
+                )
                 if f3d_mat.gen_auto_mips:
                     mipmaps_split.prop(f3d_mat, "auto_mipmaps", text="")
             elif f3d_mat.uses_mipmap:
@@ -1289,29 +1276,33 @@ class F3DPanel(Panel):
                     "WARNING: Without linear interpolation\nbetween the two texture samplers,\nmipmaps will switch between tiles per\npixel.",
                     "ERROR",
                 )
-            if len(textures) > 1:
-                col.prop(f3d_mat, "uv_basis", text="UV Basis")
             self.ui_large(f3d_mat, col)
             self.ui_scale(f3d_mat, col)
-        self.draw_ci_warnings(
-            col, f3d_mat
-        )  # TODO: in the future we should make a multitex manager for UI and preview (and cache it) and use the errors from that
+            if len(textures) > 1:
+                col.prop(f3d_mat, "uv_basis", text="UV Basis")
+            # TODO: in the future we should make a multitex manager for UI and preview (and cache it) and use the errors from that
+            self.draw_ci_warnings(col, f3d_mat)
+            col.separator(factor=1.0)
         if f3d_mat.gen_auto_mips or f3d_mat.gen_pseudo_format:
             ui_image(
                 f3d_mat.use_large_textures,
+                f3d_mat.is_multi_tex,
                 col,
-                material,
                 f3d_mat.all_textures[0],
                 "Base Texture",
                 False,
                 always_load=True,
                 forced_fmt=f3d_mat.gen_pseudo_format,
             )
+            col.separator(factor=1.0)
             return
-        for i, tex in textures:
-            if i == 0:
-                col.separator(factor=0.5)
-            ui_image(f3d_mat.use_large_textures, col, material, tex, f"Texture {i}", not is_simple)
+
+        for i, (tex_index, tex) in enumerate(textures.items()):
+            if tex.menu and i > 0:
+                col.separator(factor=1.0)
+            ui_image(f3d_mat.use_large_textures, f3d_mat.is_multi_tex, col, tex, f"Texture {tex_index}", not is_simple)
+            if tex.menu or i == len(textures) - 1:
+                col.separator(factor=1.0)
 
     def draw_simple(self, f3dMat: "F3DMaterialProperty", material, layout: UILayout, context):
         self.ui_uvCheck(layout, context)
@@ -2297,16 +2288,6 @@ def get_tex_gen_size(tex_size: list[int | float]):
     return (tex_size[0] - 1) / 1024, (tex_size[1] - 1) / 1024
 
 
-def get_textlut_mode(f3d_mat: "F3DMaterialProperty", inherit_from_tex: bool = False):  # TODO
-    use_dict = all_combiner_uses(f3d_mat)
-    textures = [f3d_mat.tex0] if use_dict["Texture 0"] and f3d_mat.tex0.tex_set else []
-    textures += [f3d_mat.tex1] if use_dict["Texture 1"] and f3d_mat.tex1.tex_set else []
-    tlut_modes = [tex.tlut_mode for tex in textures]
-    if tlut_modes and tlut_modes[0] == tlut_modes[-1]:
-        return tlut_modes[0]
-    return None if inherit_from_tex else f3d_mat.rdp_settings.g_mdsft_textlut
-
-
 def update_tex_values_manual(material: Material, context, prop_path=None):
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
     nodes = material.node_tree.nodes
@@ -2314,7 +2295,6 @@ def update_tex_values_manual(material: Material, context, prop_path=None):
     texture_inputs: NodeInputs = texture_settings.inputs
     useDict = all_combiner_uses(f3dMat)
 
-    f3dMat.rdp_settings.g_mdsft_textlut = get_textlut_mode(f3dMat)
     if f3dMat.uv_basis == "":
         f3dMat.uv_basis = str(max(f3dMat.set_textures.keys()) if f3dMat.set_textures else -1)
 
@@ -3068,10 +3048,15 @@ class TextureProperty(PropertyGroup):
     )
     tile_scroll: bpy.props.PointerProperty(type=SetTileSizeScrollProperty)
 
+    tex_format: str
+
     @property
     def is_ci(self):
-        self.tex_format: str
         return self.tex_format.startswith("CI")
+
+    @property
+    def is_yuv(self):
+        return self.tex_format in {"YUV16"}
 
     @property
     def tlut_mode(self):
@@ -3094,7 +3079,7 @@ class TextureProperty(PropertyGroup):
 
     def key(self):
         texSet = self.tex_set
-        isCI = self.tex_format == "CI8" or self.tex_format == "CI4"
+        isCI = self.is_ci
         useRef = self.use_tex_reference
         return (
             self.tex_set,
@@ -3144,11 +3129,11 @@ def update_combiner_connections_and_preset(self, context: Context):
 
 def ui_image(
     canUseLargeTextures: bool,
+    is_multi_tex: Material,
     layout: UILayout,
-    material: Material,
-    textureProp: TextureProperty,
+    tex_prop: TextureProperty,
     name: str,
-    showCheckBox: bool,
+    show_toggle: bool,
     hide_lowhigh=False,
     always_load=False,
     forced_fmt=False,
@@ -3156,54 +3141,54 @@ def ui_image(
     inputGroup = layout.column()
 
     row = inputGroup.row()
-    row.prop(textureProp, "menu", text="", icon="TRIA_DOWN" if textureProp.menu else "TRIA_RIGHT", emboss=False)
-    if showCheckBox:
-        row.prop(textureProp, "tex_set", text=f"Set {name}")
+    row.prop(tex_prop, "menu", text="", icon="TRIA_DOWN" if tex_prop.menu else "TRIA_RIGHT", emboss=False)
+    if show_toggle:
+        row.prop(tex_prop, "tex_set", text=f"Set {name}")
     else:
         row.label(text=name)
-    if textureProp.menu:
-        width, height = textureProp.size
+    if tex_prop.menu:
+        width, height = tex_prop.size
         prop_input = inputGroup.column()
 
-        flipbook = textureProp.flipbook is not None and textureProp.flipbook.enable
+        flipbook = tex_prop.flipbook is not None and tex_prop.flipbook.enable
         row = prop_input.row()
-        has_texture = textureProp.has_texture or always_load
+        has_texture = tex_prop.has_texture or always_load
         if not always_load:
-            row.prop(textureProp, "load_tex")
-            if textureProp.load_tex:
-                row.prop(textureProp, "use_tex_reference")
-                if textureProp.use_tex_reference:
-                    prop_split(prop_input, textureProp, "tex_reference", "Texture Reference")
+            row.prop(tex_prop, "load_tex")
+            if tex_prop.load_tex:
+                row.prop(tex_prop, "use_tex_reference")
+                if tex_prop.use_tex_reference:
+                    prop_split(prop_input, tex_prop, "tex_reference", "Texture Reference")
             else:
-                prop_split(prop_input, textureProp, "tex_index", "Texture Index")
+                prop_split(prop_input, tex_prop, "tex_index", "Texture Index")
         if not flipbook or has_texture or always_load:
             prop_input.template_ID(
-                textureProp,
+                tex_prop,
                 "tex",
                 new="image.new",
                 open="image.open",
                 text=None if has_texture else "Preview Only",
             )
             if has_texture:
-                size = textureProp.size
+                size = tex_prop.size
                 prop_input.label(text=f"Size: {size[0]}x{size[1]}")
-        if not textureProp.has_texture:
-            prop_split(prop_input, textureProp, "tex_reference_size", "Texture Size")
-        prop_split(prop_input, textureProp, "dithering_method", "Dithering Method")
+        if not tex_prop.has_texture:
+            prop_split(prop_input, tex_prop, "tex_reference_size", "Texture Size")
+        prop_split(prop_input, tex_prop, "dithering_method", "Dithering Method")
 
         if not forced_fmt:
             fmt_row = prop_input.row()
-            fmt_row.prop(textureProp, "auto_fmt", text="Auto Format")
-            draw_forced(fmt_row, textureProp, "tex_format", textureProp.auto_fmt, "", "TODO", split=False)
+            fmt_row.prop(tex_prop, "auto_fmt", text="Auto Format")
+            draw_forced(fmt_row, tex_prop, "tex_format", tex_prop.auto_fmt, "", "TODO", split=False)
 
         # TODO: auto fmt/pseudo fmt proper word usage
-        if canUseLargeTextures:
+        if canUseLargeTextures:  # TODO: rework how this works, we want multi texture large textures to be a thing
             availTmem = 512
-            if textureProp.tex_format[:2] == "CI":
+            if tex_prop.tex_format[:2] == "CI":
                 availTmem /= 2
-            if material.f3d_mat.is_multi_tex:
+            if is_multi_tex:
                 availTmem /= 2
-            isLarge = getTmemWordUsage(textureProp.tex_format, width, height) > availTmem
+            isLarge = getTmemWordUsage(tex_prop.tex_format, width, height) > availTmem
         else:
             isLarge = False
         if isLarge:
@@ -3211,26 +3196,26 @@ def ui_image(
             msg.label(text="This is a large texture.", icon="INFO")
             msg.label(text="Recommend using Create Large Texture Mesh tool.")
         else:
-            tmemUsageUI(prop_input, textureProp)
+            tmemUsageUI(prop_input, tex_prop)
         prop_input.separator(factor=0.5)
 
-        if textureProp.is_ci:
+        if tex_prop.is_ci:
             if not always_load:
                 row = prop_input.row()
-                row.prop(textureProp, "load_pal")
-                if textureProp.load_pal:
-                    row.prop(textureProp, "use_pal_reference")
-                if textureProp.load_pal:
-                    if textureProp.use_pal_reference and textureProp.load_pal:
-                        prop_split(prop_input, textureProp, "pal_reference", "Palette Reference")
-                        if textureProp.pal is None:
-                            prop_split(prop_input, textureProp, "pal_reference_size", "Palette Size")
+                row.prop(tex_prop, "load_pal")
+                if tex_prop.load_pal:
+                    row.prop(tex_prop, "use_pal_reference")
+                if tex_prop.load_pal:
+                    if tex_prop.use_pal_reference and tex_prop.load_pal:
+                        prop_split(prop_input, tex_prop, "pal_reference", "Palette Reference")
+                        if tex_prop.pal is None:
+                            prop_split(prop_input, tex_prop, "pal_reference_size", "Palette Size")
                 else:
-                    prop_split(prop_input, textureProp, "pal_index", "Palette Index")
-                if not textureProp.has_texture or not textureProp.has_palette:
-                    prop_input.template_ID(textureProp, "pal", new="image.new", open="image.open")
-                    if textureProp.has_texture:
-                        if textureProp.pal:
+                    prop_split(prop_input, tex_prop, "pal_index", "Palette Index")
+                if not tex_prop.has_texture or not tex_prop.has_palette:
+                    prop_input.template_ID(tex_prop, "pal", new="image.new", open="image.open")
+                    if tex_prop.has_texture:
+                        if tex_prop.pal:
                             multilineLabel(
                                 prop_input,
                                 text="Reference pallete, the texture will be quantized and indexed\n"
@@ -3245,28 +3230,24 @@ def ui_image(
                                 icon="INFO",
                             )
             if not forced_fmt:
-                prop_split(prop_input, textureProp, "ci_format", name="CI Format")
+                prop_split(prop_input, tex_prop, "ci_format", name="CI Format")
             if not always_load:
                 prop_input.separator(factor=0.5)
 
         if not isLarge:
             if width > 0 and height > 0:
-                texelsPerWord = 64 // texBitSizeInt[textureProp.tex_format]
+                texelsPerWord = 64 // texBitSizeInt[tex_prop.tex_format]
                 if width % texelsPerWord != 0:
                     multilineLabel(
                         prop_input.box(),
-                        f"Suggest {textureProp.tex_format} tex be multiple\nof {texelsPerWord} pixels wide for fast loading.",
+                        f"Suggest {tex_prop.tex_format} tex be multiple\nof {texelsPerWord} pixels wide for fast loading.",
                         icon="INFO",
                     )
                 warnClampS = (
-                    not isPowerOf2(width)
-                    and not textureProp.S.clamp
-                    and (not textureProp.autoprop or textureProp.S.mask != 0)
+                    not isPowerOf2(width) and not tex_prop.S.clamp and (not tex_prop.autoprop or tex_prop.S.mask != 0)
                 )
                 warnClampT = (
-                    not isPowerOf2(height)
-                    and not textureProp.T.clamp
-                    and (not textureProp.autoprop or textureProp.T.mask != 0)
+                    not isPowerOf2(height) and not tex_prop.T.clamp and (not tex_prop.autoprop or tex_prop.T.mask != 0)
                 )
                 if warnClampS or warnClampT:
                     multilineLabel(
@@ -3277,31 +3258,31 @@ def ui_image(
 
             texFieldSettings = prop_input.column()
             clampSettings = texFieldSettings.row()
-            clampSettings.prop(textureProp.S, "clamp", text="Clamp S")
-            clampSettings.prop(textureProp.T, "clamp", text="Clamp T")
+            clampSettings.prop(tex_prop.S, "clamp", text="Clamp S")
+            clampSettings.prop(tex_prop.T, "clamp", text="Clamp T")
 
             mirrorSettings = texFieldSettings.row()
-            mirrorSettings.prop(textureProp.S, "mirror", text="Mirror S")
-            mirrorSettings.prop(textureProp.T, "mirror", text="Mirror T")
+            mirrorSettings.prop(tex_prop.S, "mirror", text="Mirror S")
+            mirrorSettings.prop(tex_prop.T, "mirror", text="Mirror T")
 
-            prop_input.prop(textureProp, "autoprop", text="Auto Set Other Properties")
-            if not textureProp.autoprop:
+            prop_input.prop(tex_prop, "autoprop", text="Auto Set Other Properties")
+            if not tex_prop.autoprop:
                 mask = prop_input.row()
-                mask.prop(textureProp.S, "mask", text="Mask S")
-                mask.prop(textureProp.T, "mask", text="Mask T")
+                mask.prop(tex_prop.S, "mask", text="Mask S")
+                mask.prop(tex_prop.T, "mask", text="Mask T")
 
                 shift = prop_input.row()
-                shift.prop(textureProp.S, "shift", text="Shift S")
-                shift.prop(textureProp.T, "shift", text="Shift T")
+                shift.prop(tex_prop.S, "shift", text="Shift S")
+                shift.prop(tex_prop.T, "shift", text="Shift T")
                 if hide_lowhigh:
                     return
                 low = prop_input.row()
-                low.prop(textureProp.S, "low", text="S Low")
-                low.prop(textureProp.T, "low", text="T Low")
+                low.prop(tex_prop.S, "low", text="S Low")
+                low.prop(tex_prop.T, "low", text="T Low")
 
                 high = prop_input.row()
-                high.prop(textureProp.S, "high", text="S High")
-                high.prop(textureProp.T, "high", text="T High")
+                high.prop(tex_prop.S, "high", text="S High")
+                high.prop(tex_prop.T, "high", text="T High")
 
 
 class CombinerProperty(PropertyGroup):
@@ -3964,7 +3945,7 @@ class RDPSettings(PropertyGroup):
         data = {}
         if self.clip_ratio != 1.0:
             data["clipRatio"] = self.clip_ratio
-        if self.g_mdsft_textlod == "G_TL_LOD" and self.num_textures_mipmapped != 1:
+        if self.g_mdsft_textlod == "G_TL_LOD" and self.num_textures_mipmapped != 1:  # TODO
             data["mipmapCount"] = self.num_textures_mipmapped
         return data
 
@@ -4808,10 +4789,6 @@ class F3DMaterialProperty(PropertyGroup):
     cel_shading: bpy.props.PointerProperty(type=CelShadingProperty)
 
     @property
-    def uses_mipmap(self) -> bool:
-        return self.rdp_settings.g_mdsft_textlod == "G_TL_LOD" or self.gen_auto_mips
-
-    @property
     def all_textures(self) -> list[TextureProperty]:
         return tuple(getattr(self, f"tex{i}") for i in range(8))
 
@@ -4829,6 +4806,35 @@ class F3DMaterialProperty(PropertyGroup):
     def set_textures(self):
         return {i: tex for i, tex in self.used_textures.items() if tex.tex_set}
 
+    def get_tlut_mode(self, only_auto=False):
+        if self.pseudo_format in {"IHQ", "SHQ"}:
+            return "G_TT_NONE"
+        tlut_modes = set(tex.tlut_mode for tex in self.set_textures.values())
+        if len(tlut_modes) == 1:
+            return list(tlut_modes)[0]
+        elif len(tlut_modes) == 0:
+            return None if only_auto else self.rdp_settings.g_mdsft_textlut
+        text = (
+            "Can't mix CI and non-CI textures."
+            if "G_TT_NONE" in tlut_modes
+            else "CI textures must use the same CI format."
+        )
+        for tlut in tlut_modes:
+            textures = [str(i) for i, tex in self.set_textures.items() if tex.tlut_mode == tlut]
+            text += f"\n{tlut.lstrip('G_TT_')}: Texture{'s' if len(textures) > 1 else ''} {', '.join(textures)}"
+        raise PluginError(text)
+
+    @property
+    def tlut_mode(self):
+        try:
+            return self.get_tlut_mode(True)
+        except:
+            return None
+
+    @property
+    def is_ci(self):
+        return self.tlut_mode or self.rdp_settings.g_mdsft_textlut in {"G_TT_RGBA16", "G_TT_IA16"}
+
     @property
     def pseudo_format(self):
         return self.pseudo_format_internal if self.gen_pseudo_format else "NONE"
@@ -4844,6 +4850,22 @@ class F3DMaterialProperty(PropertyGroup):
     @property
     def gen_auto_mips(self) -> bool:
         return self.pseudo_fmt_can_mip and (self.gen_auto_mips_internal or self.forced_mipmap)
+
+    @property
+    def tex_lod(self) -> bool:
+        if self.gen_auto_mips:
+            return "G_TL_LOD"
+        return None
+
+    @property
+    def uses_mipmap(self) -> bool:
+        return self.rdp_settings.g_mdsft_textlod == "G_TL_LOD" or self.gen_auto_mips
+
+    @property
+    def tex_detail(self) -> bool:
+        if self.pseudo_format in {"IHQ"}:
+            return "G_TD_DETAIL"
+        return None
 
     @property
     def is_multi_tex(self):
