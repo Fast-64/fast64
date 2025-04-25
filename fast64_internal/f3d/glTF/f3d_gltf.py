@@ -972,6 +972,7 @@ def pre_gather_mesh_hook(blender_mesh: Mesh, *_args):
     color[:, 3] = alpha_median
 
     color = color.flatten()
+    color = color.clip(0.0, 1.0) # clamp
     color_layer.foreach_set("color", color)
 
 
