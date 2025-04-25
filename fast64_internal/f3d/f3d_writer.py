@@ -1067,7 +1067,7 @@ class TriangleConverter:
                     ccSettings.append(getattr(f3dMat.combiner1, prop))
                 ccSettings.extend(["1", "SHADE"] if darker else ["SHADE", "0"])
                 ccSettings.extend([cel.cutoutSource, "0"])
-                if f3dMat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
+                if f3dMat.cycle_type == "G_CYC_2CYCLE":
                     for prop in ["A", "B", "C", "D", "A_alpha", "B_alpha", "C_alpha", "D_alpha"]:
                         ccSettings.append(getattr(f3dMat.combiner2, prop))
                 else:
@@ -1667,7 +1667,7 @@ def saveOtherModeHDefinition(fMaterial, settings, tlut, defaults, matWriteMethod
         raise PluginError("Unhandled material write method: " + str(matWriteMethod))
 
 
-def saveOtherModeHDefinitionAll(fMaterial, settings, tlut, defaults, f3d):
+def saveOtherModeHDefinitionAll(fMaterial, settings, tlut, defaults, f3d):  # TODO
     cmd = SPSetOtherMode("G_SETOTHERMODE_H", 4, 20 - f3d.F3D_OLD_GBI, [])
     cmd.flagList.append(settings.g_mdsft_alpha_dither)
     cmd.flagList.append(settings.g_mdsft_rgb_dither)
@@ -1684,7 +1684,7 @@ def saveOtherModeHDefinitionAll(fMaterial, settings, tlut, defaults, f3d):
     fMaterial.mat_only_DL.commands.append(cmd)
 
 
-def saveOtherModeHDefinitionIndividual(fMaterial, settings, tlut, defaults):
+def saveOtherModeHDefinitionIndividual(fMaterial, settings, tlut, defaults):  # TODO
     saveModeSetting(fMaterial, settings.g_mdsft_alpha_dither, defaults.g_mdsft_alpha_dither, DPSetAlphaDither)
     saveModeSetting(fMaterial, settings.g_mdsft_rgb_dither, defaults.g_mdsft_rgb_dither, DPSetColorDither)
     saveModeSetting(fMaterial, settings.g_mdsft_combkey, defaults.g_mdsft_combkey, DPSetCombineKey)

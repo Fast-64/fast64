@@ -269,7 +269,7 @@ def rendermode_preset_to_advanced(material: bpy.types.Material):
     Set all individual controls for the rendermode from the preset rendermode.
     """
     scene = bpy.context.scene
-    f3d_mat = material.f3d_mat
+    f3d_mat: "F3DMaterialProperty" = material.f3d_mat
     settings = f3d_mat.rdp_settings
     f3d = get_F3D_GBI()
 
@@ -304,7 +304,7 @@ def rendermode_preset_to_advanced(material: bpy.types.Material):
         # want, then disable it, and have it still previewed that way.
         return getattr(f3d, preset, default)
 
-    is_two_cycle = settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+    is_two_cycle = f3d_mat.cycle_type == "G_CYC_2CYCLE"
     if is_two_cycle:
         r1 = get_with_default(cycle_1, f3d.G_RM_FOG_SHADE_A)
         r2 = get_with_default(cycle_2, f3d.G_RM_AA_ZB_OPA_SURF2)
@@ -340,17 +340,11 @@ def rendermode_preset_to_advanced(material: bpy.types.Material):
     settings.blend_b2 = f3d.blendMixDict[(r2 >> 16) & 3]
 
 
-def does_blender_use_mix(settings: "RDPSettings", mix: str, default_for_no_rendermode: bool = False) -> bool:
-    if not settings.set_rendermode:
-        return default_for_no_rendermode
-    is_two_cycle = settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
-    return settings.blend_b1 == mix or (is_two_cycle and settings.blend_b2 == mix)
-
-
-def is_blender_equation_equal(settings: "RDPSettings", cycle: int, p: str, a: str, m: str, b: str) -> bool:
+def is_blender_equation_equal(f3d_mat: "F3DMaterialProperty", cycle: int, p: str, a: str, m: str, b: str) -> bool:
+    settings = f3d_mat.rdp_settings
     assert cycle in {1, 2, -1}  # -1 = last cycle
     if cycle == -1:
-        cycle = 2 if settings.g_mdsft_cycletype == "G_CYC_2CYCLE" else 1
+        cycle = 2 if f3d_mat.cycle_type else 1
     return (
         getattr(settings, f"blend_p{cycle}") == p
         and getattr(settings, f"blend_a{cycle}") == a
@@ -359,9 +353,9 @@ def is_blender_equation_equal(settings: "RDPSettings", cycle: int, p: str, a: st
     )
 
 
-def is_blender_doing_fog(settings: "RDPSettings") -> bool:
+def is_blender_doing_fog(f3d_mat: "F3DMaterialProperty") -> bool:
     return is_blender_equation_equal(
-        settings,
+        f3d_mat,
         # If 2 cycle, fog must be in first cycle.
         1,
         "G_BL_CLR_FOG",
@@ -380,7 +374,7 @@ def get_output_method(material: bpy.types.Material) -> str:
     if settings.cvg_x_alpha:
         return "CLIP"
     if settings.force_bl and is_blender_equation_equal(
-        settings, -1, "G_BL_CLR_IN", "G_BL_A_IN", "G_BL_CLR_MEM", "G_BL_1MA"
+        material, -1, "G_BL_CLR_IN", "G_BL_A_IN", "G_BL_CLR_MEM", "G_BL_1MA"
     ):
         return "XLU"
     return "OPA"
@@ -464,8 +458,11 @@ def combiner_uses(
     checkColor=True,
     checkAlpha=True,
     swapTexelsCycle2=True,
+    cycle_type: str = None,
 ):
-    is_two_cycle = f3dMat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+    if cycle_type is None:
+        cycle_type = f3dMat.cycle_type
+    is_two_cycle = cycle_type == "G_CYC_2CYCLE"
     for i in range(1, 3):
         if i == 1 and not checkCycle1 or i == 2 and (not checkCycle2 or not is_two_cycle):
             continue
@@ -482,35 +479,35 @@ def combiner_uses(
     return False
 
 
-def combiner_uses_tex0(f3d_mat: "F3DMaterialProperty"):
-    return combiner_uses(f3d_mat, ["TEXEL0", "TEXEL0_ALPHA"])
+def combiner_uses_tex0(f3d_mat: "F3DMaterialProperty", cycle_type: str = None):
+    return combiner_uses(f3d_mat, ["TEXEL0", "TEXEL0_ALPHA"], cycle_type=cycle_type)
 
 
-def combiner_uses_tex1(f3d_mat: "F3DMaterialProperty"):
-    return combiner_uses(f3d_mat, ["TEXEL1", "TEXEL1_ALPHA"])
+def combiner_uses_tex1(f3d_mat: "F3DMaterialProperty", cycle_type: str = None):
+    return combiner_uses(f3d_mat, ["TEXEL1", "TEXEL1_ALPHA"], cycle_type=cycle_type)
 
 
-def all_combiner_uses(f3d_mat: "F3DMaterialProperty") -> dict[str, bool]:
-    use_tex0 = combiner_uses_tex0(f3d_mat)
-    use_tex1 = combiner_uses_tex1(f3d_mat)
+def all_combiner_uses(f3d_mat: "F3DMaterialProperty", cycle_type: str = None) -> dict[str, bool]:
+    use_tex0 = combiner_uses_tex0(f3d_mat, cycle_type)
+    use_tex1 = combiner_uses_tex1(f3d_mat, cycle_type)
 
     useDict = {
         "Texture": use_tex0 or use_tex1,
         "Texture 0": use_tex0,
         "Texture 1": use_tex1,
-        "Primitive": combiner_uses(
-            f3d_mat,
-            ["PRIMITIVE", "PRIMITIVE_ALPHA", "PRIM_LOD_FRAC"],
-        )
+        "Primitive": combiner_uses(f3d_mat, ["PRIMITIVE", "PRIMITIVE_ALPHA", "PRIM_LOD_FRAC"], cycle_type=cycle_type)
         or f3d_mat.uses_mipmap,
-        "Environment": combiner_uses(f3d_mat, ["ENVIRONMENT", "ENV_ALPHA"]),
-        "Shade": combiner_uses(f3d_mat, ["SHADE"], checkAlpha=False),
-        "Shade Alpha": combiner_uses(f3d_mat, ["SHADE"], checkColor=False)
-        or combiner_uses(f3d_mat, ["SHADE_ALPHA"], checkAlpha=False),
-        "Key": combiner_uses(f3d_mat, ["CENTER", "SCALE"]),
-        "LOD Fraction": combiner_uses(f3d_mat, ["LOD_FRACTION"]),
-        "Convert": combiner_uses(f3d_mat, ["K4", "K5"]),  # TODO: check for yuv textures
+        "Environment": combiner_uses(f3d_mat, ["ENVIRONMENT", "ENV_ALPHA"], cycle_type=cycle_type),
+        "Shade": combiner_uses(f3d_mat, ["SHADE"], checkAlpha=False, cycle_type=cycle_type),
+        "Shade Alpha": combiner_uses(f3d_mat, ["SHADE"], checkColor=False, cycle_type=cycle_type)
+        or combiner_uses(f3d_mat, ["SHADE_ALPHA"], checkAlpha=False, cycle_type=cycle_type),
+        "Key": combiner_uses(f3d_mat, ["CENTER", "SCALE"], cycle_type=cycle_type),
+        "LOD Fraction": combiner_uses(f3d_mat, ["LOD_FRACTION"], cycle_type=cycle_type),
     }
+    useDict["Convert"] = (
+        combiner_uses(f3d_mat, ["K4", "K5"], cycle_type=cycle_type)
+        or f3d_mat.get_tex_convert(dont_raise=True, use_dict=useDict) != "G_TC_FILT"
+    )
     return useDict
 
 
@@ -679,21 +676,22 @@ def ui_upper_mode(settings, dataHolder, layout: UILayout, useDropdown):
             icon="TRIA_DOWN" if dataHolder.menu_upper else "TRIA_RIGHT",
         )
     if not useDropdown or dataHolder.menu_upper:
+        tex_conv = tlut_mode = tex_lod = tex_detail = mip_count = cycle_type = None
+        if isinstance(dataHolder, F3DMaterialProperty):
+            # TODO: proper auto mip count once we start using tex manager for preview and UI
+            tex_conv, tlut_mode, tex_lod, tex_detail, mip_count, cycle_type = (
+                dataHolder.get_tex_convert(True, dont_raise=True),
+                dataHolder.get_tlut_mode(True, dont_raise=True),
+                dataHolder.get_tex_lod(True),
+                dataHolder.get_tex_detail(True),
+                2 if dataHolder.gen_auto_mips else None,
+                dataHolder.get_cycle_type(True, dont_raise=True),
+            )
         prop_split(inputGroup, settings, "g_mdsft_alpha_dither", "Alpha Dither")
         prop_split(inputGroup, settings, "g_mdsft_rgb_dither", "RGB Dither")
         prop_split(inputGroup, settings, "g_mdsft_combkey", "Chroma Key")
-        prop_split(inputGroup, settings, "g_mdsft_textconv", "Texture Convert")
+        draw_forced(inputGroup, settings, "g_mdsft_textconv", tex_conv is not None, "Texture Convert", tex_conv)
         prop_split(inputGroup, settings, "g_mdsft_text_filt", "Texture Filter")
-        tlut_mode = None
-        tex_lod, tex_detail, mip_count = None, None, None
-        if isinstance(dataHolder, F3DMaterialProperty):
-            tlut_mode = dataHolder.tlut_mode
-            # TODO: proper auto mip count once we start using tex manager for preview and UI
-            tex_lod, tex_detail, mip_count = (
-                dataHolder.tex_lod,
-                dataHolder.tex_detail,
-                2 if dataHolder.gen_auto_mips else None,
-            )
         draw_forced(inputGroup, settings, "g_mdsft_textlut", tlut_mode is not None, "Texture LUT", tlut_mode)
         draw_forced(inputGroup, settings, "g_mdsft_textlod", tex_lod is not None, "Texture LOD", tex_lod)
         if settings.g_mdsft_textlod == "G_TL_LOD" or tex_lod:
@@ -702,7 +700,7 @@ def ui_upper_mode(settings, dataHolder, layout: UILayout, useDropdown):
             )
         draw_forced(inputGroup, settings, "g_mdsft_textdetail", tex_detail is not None, "Texture Detail", tex_detail)
         prop_split(inputGroup, settings, "g_mdsft_textpersp", "Texture Perspective Correction")
-        prop_split(inputGroup, settings, "g_mdsft_cycletype", "Cycle Type")
+        draw_forced(inputGroup, settings, "g_mdsft_cycletype", cycle_type is not None, "Cycle Type", cycle_type)
         prop_split(inputGroup, settings, "g_mdsft_pipeline", "Pipeline Span Buffer Coherency")
 
 
@@ -794,7 +792,7 @@ class F3DPanel(Panel):
         return inputGroup
 
     def ui_large(self, material, layout):
-        split = layout.row().split(factor=0.5)
+        split = layout.row().split(factor=0.5) if material.use_large_textures else layout
         split.prop(material, "use_large_textures")
         if material.use_large_textures:
             split.prop(material, "large_edges", text="")
@@ -937,8 +935,8 @@ class F3DPanel(Panel):
         prop_input.enabled = material.set_k0_5
         return inputGroup
 
-    def ui_lower_render_mode(self, material, layout, useDropdown):
-        is_two_cycle = material.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+    def ui_lower_render_mode(self, material: "F3DMaterialProperty", layout, useDropdown):
+        is_two_cycle = material.cycle_type == "G_CYC_2CYCLE"
         # cycle independent
         inputGroup = layout.column()
         if useDropdown:
@@ -1240,10 +1238,33 @@ class F3DPanel(Panel):
             noticeBox.label(text='They must be called "Col" and "Alpha".', icon="IMAGE_ALPHA")
 
     def draw_ci_warnings(self, layout: UILayout, f3d_mat: "F3DMaterialProperty"):
+        errors, warnings = [], []
         try:
             _ = f3d_mat.get_tlut_mode()
         except Exception as exc:
-            multilineLabel(layout.box(), str(exc), icon="ERROR")
+            errors.append(str(exc))
+        try:
+            _ = f3d_mat.get_tex_convert()
+        except Exception as exc:
+            errors.append(str(exc))
+        if f3d_mat.uses_mipmap and not f3d_mat.is_multi_tex:
+            warnings.append(
+                "Without linear interpolation\nbetween the two texture samplers,\nmipmaps will switch between tiles per\npixel."
+            )
+        if not f3d_mat.pseudo_fmt_can_mip and f3d_mat.uses_mipmap:
+            warnings.append(
+                "WARNING: This pseudo-format does\nnot support mipmaps (see tooltip), yet\nLOD mode is enabled?"
+            )
+        tex_convert = f3d_mat.tex_convert
+        if tex_convert != "G_TC_FILT":
+            if not (combiner_uses(f3d_mat, ["K4"]) or combiner_uses(f3d_mat, ["K5"])):
+                warnings.append("No K4/K5 inputs used, but YUV\nconversion is enabled.")
+            if tex_convert == "G_TC_FILTCONV" and not combiner_uses_tex1(f3d_mat) and combiner_uses_tex0(f3d_mat):
+                warnings.append("Using filter and convert, but only using\nTexture 0 which does not get converted.")
+        if len(errors) > 0:
+            multilineLabel(layout.box(), "\n".join(errors), "ERROR")
+        if len(warnings) > 0:
+            multilineLabel(layout.box(), "\n".join(warnings), "INFO")
 
     def draw_textures(
         self, f3d_mat: "F3DMaterialProperty", material: bpy.types.Material, layout: UILayout, is_simple: bool
@@ -1253,29 +1274,18 @@ class F3DPanel(Panel):
         if len(textures) > 0:
             col.label(text="Textures", icon="IMAGE_DATA")
 
-            pseudo_split = col.split(factor=0.5)
+            pseudo_split = col.split(factor=0.5) if f3d_mat.gen_pseudo_format else col
             pseudo_split.prop(f3d_mat, "gen_pseudo_format")
             if f3d_mat.gen_pseudo_format:
                 pseudo_split.prop(f3d_mat, "pseudo_format_internal", text="")
             if f3d_mat.pseudo_fmt_can_mip:
-                mipmaps_split = col.split(factor=0.5)
+                mipmaps_split = col.split(factor=0.5) if f3d_mat.gen_auto_mips else col
                 draw_forced(
                     mipmaps_split, f3d_mat, "gen_auto_mips_internal", f3d_mat.forced_mipmap, name=None, split=False
                 )
                 if f3d_mat.gen_auto_mips:
                     mipmaps_split.prop(f3d_mat, "auto_mipmaps", text="")
-            elif f3d_mat.uses_mipmap:
-                multilineLabel(
-                    col,
-                    "WARNING: This pseudo-format does\nnot support mipmaps (see tooltip), yet\nLOD mode is enabled?",
-                    "ERROR",
-                )
-            if f3d_mat.uses_mipmap and not f3d_mat.is_multi_tex:
-                multilineLabel(
-                    col,
-                    "WARNING: Without linear interpolation\nbetween the two texture samplers,\nmipmaps will switch between tiles per\npixel.",
-                    "ERROR",
-                )
+
             self.ui_large(f3d_mat, col)
             self.ui_scale(f3d_mat, col)
             if len(textures) > 1:
@@ -1356,7 +1366,7 @@ class F3DPanel(Panel):
                     r.label(text=f"{letter}{' Alpha' if isAlpha else ''}:")
                     r.prop(combiner, f"{letter}{'_alpha' if isAlpha else ''}", text="")
 
-            is_two_cycle = f3dMat.rdp_settings.g_mdsft_cycletype == "G_CYC_2CYCLE"
+            is_two_cycle = f3dMat.cycle_type == "G_CYC_2CYCLE"
 
             combinerBox = layout.box()
             combinerBox.prop(f3dMat, "set_combiner", text="Color Combiner (Color = (A - B) * C + D)")
@@ -1433,7 +1443,7 @@ class F3DPanel(Panel):
             layout.label(text="This is not a Fast3D material.")
             return
 
-        f3dMat = material.f3d_mat
+        f3dMat: "F3DMaterialProperty" = material.f3d_mat
         settings = f3dMat.rdp_settings
         layout.prop(context.scene, "f3d_simple", text="Show Simplified UI")
         layout = layout.box()
@@ -1457,7 +1467,7 @@ class F3DPanel(Panel):
         row.operator(AddPresetF3D.bl_idname, text="", icon="ADD")
         row.operator(AddPresetF3D.bl_idname, text="", icon="REMOVE").remove_active = True
 
-        if settings.g_mdsft_alpha_compare == "G_AC_THRESHOLD" and settings.g_mdsft_cycletype == "G_CYC_2CYCLE":
+        if settings.g_mdsft_alpha_compare == "G_AC_THRESHOLD" and f3dMat.cycle_type == "G_CYC_2CYCLE":
             multilineLabel(
                 layout.box(),
                 "RDP silicon bug: Alpha compare in 2-cycle mode is broken.\n"
@@ -1781,7 +1791,7 @@ def update_fog_nodes(material: Material, context: Context):
     # rendermodes in code, so to be safe we'll enable fog. Plus we are checking
     # that fog is enabled in the geometry mode, so if so that's probably the intent.
     fogBlender.node_tree = bpy.data.node_groups[
-        ("FogBlender_On" if is_blender_doing_fog(material.f3d_mat.rdp_settings) else "FogBlender_Off")
+        ("FogBlender_On" if is_blender_doing_fog(material.f3d_mat) else "FogBlender_Off")
     ]
 
     remove_first_link_if_exists(material, fogBlender.inputs["FogAmount"].links)
@@ -1855,7 +1865,7 @@ def set_output_node_groups(material: Material):
     nodes = material.node_tree.nodes
     output_node = nodes["OUTPUT"]
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
-    cycle = f3dMat.rdp_settings.g_mdsft_cycletype.lstrip("G_CYC_").rstrip("_CYCLE")
+    cycle = f3dMat.cycle_type.lstrip("G_CYC_").rstrip("_CYCLE")
     output_method = get_output_method(material)
     if bpy.app.version < (4, 2, 0) and output_method == "CLIP":
         output_method = "XLU"
@@ -4790,27 +4800,39 @@ class F3DMaterialProperty(PropertyGroup):
     def all_textures(self) -> list[TextureProperty]:
         return tuple(getattr(self, f"tex{i}") for i in range(8))
 
-    @property
-    def used_textures(self) -> dict[int, TextureProperty]:
+    def get_used_textures(self, use_dict: dict = None) -> dict[int, TextureProperty]:
         self.rdp_settings: RDPSettings
         if self.gen_pseudo_format or self.gen_auto_mips:
             return {0: self.all_textures[0]}
         if self.uses_mipmap:
             return {i: t for i, t in enumerate(self.all_textures[: self.rdp_settings.num_textures_mipmapped])}
-        use_dict = all_combiner_uses(self)
+        if use_dict is None:
+            use_dict = all_combiner_uses(self)
         return {i: t for i, t in enumerate(self.all_textures[:2]) if use_dict[f"Texture {i}"]}
 
     @property
-    def set_textures(self):
-        return {i: tex for i, tex in self.used_textures.items() if tex.tex_set}
+    def used_textures(self) -> dict[int, TextureProperty]:
+        return self.get_used_textures()
 
-    def get_tlut_mode(self, only_auto=False):
+    def get_set_textures(self, use_dict: dict = None):
+        return {i: tex for i, tex in self.get_used_textures(use_dict).items() if tex.tex_set}
+
+    @property
+    def set_textures(self):
+        return self.get_set_textures()
+
+    @property
+    def is_multi_tex(self):
+        use_dict = all_combiner_uses(self)
+        return use_dict["Texture 0"] and use_dict["Texture 1"]
+
+    def get_tlut_mode(self, only_auto=False, dont_raise=False):
         if self.pseudo_format in {"IHQ", "SHQ"}:
             return "G_TT_NONE"
         tlut_modes = set(tex.tlut_mode for tex in self.set_textures.values())
         if len(tlut_modes) == 1:
             return list(tlut_modes)[0]
-        elif len(tlut_modes) == 0:
+        elif len(tlut_modes) == 0 or dont_raise:
             return None if only_auto else self.rdp_settings.g_mdsft_textlut
         text = (
             "Can't mix CI and non-CI textures."
@@ -4824,14 +4846,11 @@ class F3DMaterialProperty(PropertyGroup):
 
     @property
     def tlut_mode(self):
-        try:
-            return self.get_tlut_mode(True)
-        except:
-            return None
+        return self.get_tlut_mode(dont_raise=True)
 
     @property
     def is_ci(self):
-        return self.tlut_mode or self.rdp_settings.g_mdsft_textlut in {"G_TT_RGBA16", "G_TT_IA16"}
+        return self.tlut_mode in {"G_TT_RGBA16", "G_TT_IA16"}
 
     @property
     def pseudo_format(self):
@@ -4849,26 +4868,60 @@ class F3DMaterialProperty(PropertyGroup):
     def gen_auto_mips(self) -> bool:
         return self.pseudo_fmt_can_mip and (self.gen_auto_mips_internal or self.forced_mipmap)
 
-    @property
-    def tex_lod(self) -> bool:
+    def get_tex_lod(self, only_auto=False) -> bool:
         if self.gen_auto_mips:
             return "G_TL_LOD"
-        return None
+        return None if only_auto else self.rdp_settings.g_mdsft_textlod
 
     @property
-    def uses_mipmap(self) -> bool:
-        return self.rdp_settings.g_mdsft_textlod == "G_TL_LOD" or self.gen_auto_mips
+    def tex_lod(self) -> bool:
+        return self.get_tex_lod(False)
+
+    def get_tex_detail(self, only_auto=False) -> bool:
+        if self.pseudo_format in {"IHQ"}:
+            return "G_TD_DETAIL"
+        return None if only_auto else self.rdp_settings.g_mdsft_textdetail
 
     @property
     def tex_detail(self) -> bool:
-        if self.pseudo_format in {"IHQ"}:
-            return "G_TD_DETAIL"
-        return None
+        return self.get_tex_detail(False)
 
     @property
-    def is_multi_tex(self):
-        use_dict = all_combiner_uses(self)
-        return use_dict["Texture 0"] and use_dict["Texture 1"]
+    def uses_mipmap(self) -> bool:
+        return self.tex_lod == "G_TL_LOD"
+
+    def get_tex_convert(self, only_auto=False, dont_raise=False, use_dict=None):
+        textures = self.get_set_textures(use_dict)
+        fmts: set[str] = set(tex.tex_format for tex in textures.values())
+        has_yuv = "YUV16" in fmts
+        if self.pseudo_format in {"IHQ", "SHQ"} or (not has_yuv and fmts):
+            return "G_TC_FILT"
+        if len(fmts) == 1:
+            if self.rdp_settings.g_mdsft_text_filt == "G_TF_POINT":
+                return "G_TC_CONV"
+            return "G_TC_FILTCONV"
+        elif not fmts or dont_raise:
+            return None if only_auto else self.rdp_settings.g_mdsft_textconv
+        text = "Can't mix YUV and non-YUV textures."
+        for fmt in fmts:
+            fmt_textures = [str(i) for i, tex in textures.items() if tex.tex_format == fmt]
+            text += f"\n{fmt.lstrip('G_TT_')}: Texture{'s' if len(fmt_textures) > 1 else ''} {', '.join(fmt_textures)}"
+        raise PluginError(text)
+
+    @property
+    def tex_convert(self):
+        return self.get_tex_convert(dont_raise=True)
+
+    def get_cycle_type(self, only_auto=False, dont_raise=False):
+        cur_cycle_type = self.rdp_settings.g_mdsft_cycletype
+        use_dict = all_combiner_uses(self, cur_cycle_type)
+        if self.uses_mipmap or self.get_tex_convert(dont_raise=dont_raise, use_dict=use_dict) == "G_TC_FILTCONV":
+            return "G_CYC_2CYCLE"
+        return None if only_auto else cur_cycle_type
+
+    @property
+    def cycle_type(self):
+        return self.get_cycle_type(False, dont_raise=True)
 
     def key(self) -> F3DMaterialHash:
         useDefaultLighting = self.set_lights and self.use_default_lighting
