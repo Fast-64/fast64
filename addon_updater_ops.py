@@ -58,7 +58,7 @@ except Exception as e:
             self.error_msg = None
             self.async_checking = None
 
-        def run_update(self, force, callback, clean):
+        def run_update(self, force, callback, merge_request, clean):
             pass
 
         def check_for_update(self, now):
@@ -340,14 +340,8 @@ class AddonUpdaterUpdateTarget(bpy.types.Operator):
     def target_version(self, context):
         # In case of error importing updater.
         if updater.invalid_updater:
-            ret = []
-
-        ret = []
-        i = 0
-        for tag in updater.tags:
-            ret.append((tag, tag, "Select to install " + tag))
-            i += 1
-        return ret
+            return []
+        return [(tag, tag, "Select to install " + tag) for tag in updater.tags]
 
     target = bpy.props.EnumProperty(
         name="Target version to install",
@@ -407,6 +401,78 @@ class AddonUpdaterUpdateTarget(bpy.types.Operator):
 
         return {'FINISHED'}
 
+class AddonUpdaterTryMR(bpy.types.Operator):
+    bl_label = updater.addon + " merge requests"
+    bl_idname = updater.addon + ".updater_try_merge_request"
+    bl_description = "Install a merge request of the {x} addon".format(
+        x=updater.addon)
+    bl_options = {'REGISTER', 'INTERNAL'}
+
+    def target_version(self, context):
+        # In case of error importing updater.
+        if updater.invalid_updater:
+            return []
+
+        return [(str(id), title, "Select to install " + title) for id, title in updater.merge_requests.items()]
+
+    target = bpy.props.EnumProperty(
+        name="Target version to install",
+        description="Select the version to install",
+        items=target_version
+    )
+
+    # If true, run clean install - ie remove all files before adding new
+    # equivalent to deleting the addon and reinstalling, except the
+    # updater folder/backup folder remains.
+    clean_install = bpy.props.BoolProperty(
+        name="Clean install",
+        description=("If enabled, completely clear the addon's folder before "
+                     "installing new update, creating a fresh install"),
+        default=False,
+        options={'HIDDEN'}
+    )
+
+    @classmethod
+    def poll(cls, context):
+        if updater.invalid_updater:
+            return False
+        return updater.update_ready is not None and len(updater.merge_requests) > 0
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context):
+        layout = self.layout
+        if updater.invalid_updater:
+            layout.label(text="Updater error")
+            return
+        split = layout_split(layout, factor=0.5)
+        sub_col = split.column()
+        sub_col.label(text="Select install version")
+        sub_col = split.column()
+        sub_col.prop(self, "target", text="")
+
+    def execute(self, context):
+        # In case of error importing updater.
+        if updater.invalid_updater:
+            return {'CANCELLED'}
+
+        res = updater.run_update(
+            force=False,
+            revert_tag=self.target,
+            merge_request=True,
+            callback=post_update_callback,
+            clean=self.clean_install)
+
+        # Should return 0, if not something happened.
+        if res == 0:
+            updater.print_verbose("Updater returned successful")
+        else:
+            updater.print_verbose(
+                "Updater returned {}, , error occurred".format(res))
+            return {'CANCELLED'}
+
+        return {'FINISHED'}
 
 class AddonUpdaterInstallManually(bpy.types.Operator):
     """As a fallback, direct the user to download the addon manually"""
@@ -975,7 +1041,7 @@ def update_settings_ui(self, context, element=None):
                          icon="ERROR")
             return
 
-    split = layout_split(row, factor=0.4)
+    split = layout_split(row, factor=0.5)
     sub_col = split.column()
     sub_col.prop(settings, "auto_check_update")
     sub_col = split.column()
@@ -1080,6 +1146,11 @@ def update_settings_ui(self, context, element=None):
         else:
             col.operator(AddonUpdaterUpdateTarget.bl_idname,
                          text="(Re)install addon version")
+        
+        if updater.include_merge_requests and len(updater.merge_requests) > 0:
+            col.operator(AddonUpdaterTryMR.bl_idname,
+                         text="Try a merge request")
+
         last_date = "none found"
         backup_path = os.path.join(updater.stage_path, "backup")
         if "backup_date" in updater.json and os.path.isdir(backup_path):
@@ -1351,6 +1422,7 @@ classes = (
     AddonUpdaterCheckNow,
     AddonUpdaterUpdateNow,
     AddonUpdaterUpdateTarget,
+    AddonUpdaterTryMR,
     AddonUpdaterInstallManually,
     AddonUpdaterUpdatedSuccessful,
     AddonUpdaterRestoreBackup,
@@ -1432,6 +1504,9 @@ def register(bl_info):
     # update to the master branch or any other branches specified using
     # the "install {branch}/older version" operator.
     updater.include_branches = True
+
+    # Allows the user to try merge requests as an option to "update" to.
+    updater.include_merge_requests = True
 
     # (GitHub only) This options allows using "releases" instead of "tags",
     # which enables pulling down release logs/notes, as well as installs update
