@@ -1,0 +1,79 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema",
+    "title": "F3DEX3 Cel Level",
+    "type": "array",
+    "properties": {
+        "thresholdMode": {
+            "type": "string",
+            "description": "This cel level is drawn when the lighting level per-pixel is LIGHTER or DARKER than (>=) the threshold.",
+            "enum": [
+                "LIGHTER",
+                "DARKER"
+            ],
+            "default": "LIGHTER"
+        },
+        "threshold": {
+            "type": "integer",
+            "description": "Light level at which the boundary between cel levels occurs. One level is >= this value, the other is < it.",
+            "minimum": 2,
+            "maximum": 255,
+            "default": 128
+        },
+        "tint": {
+            "type": "object",
+            "description": "Tint settings for the cel level.",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "FIXED",
+                        "SEGMENT",
+                        "LIGHT"
+                    ],
+                    "default": "FIXED"
+                },
+                "level": {
+                    "type": "integer",
+                    "description": "0: original color <=> 255: fully tint color. Applies if tint type is Fixed or Light.",
+                    "minimum": 0,
+                    "maximum": 255,
+                    "default": 50
+                },
+                "color": {
+                    "$ref": "color.schema.json",
+                    "description": "The fixed color tint to apply. Applies if tint type is Fixed."
+                },
+                "segment": {
+                    "type": "integer",
+                    "description": "Segment number to store tint DL in. Applies if tint type is Segment.",
+                    "minimum": 8,
+                    "maximum": 13,
+                    "default": 8
+                },
+                "offset": {
+                    "type": "integer",
+                    "description": "Number of instructions (8 bytes) within this DL to jump to. Applies if tint type is Segment.",
+                    "minimum": 0,
+                    "maximum": 1000,
+                    "default": 0
+                },
+                "light": {
+                    "type": "integer",
+                    "description": "Which light to load RGB color from, counting from the end. 0 = ambient, 1 = last directional / point light, 2 = second-to-last, etc. Applies if tint type is Light.",
+                    "minimum": 0,
+                    "maximum": 9,
+                    "default": 1
+                }
+            },
+            "required": [
+                "type"
+            ]
+        }
+    },
+    "required": [
+        "thresholdMode",
+        "threshold",
+        "tint"
+    ],
+    "additionalProperties": false
+}
