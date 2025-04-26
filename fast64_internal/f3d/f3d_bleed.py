@@ -203,7 +203,6 @@ class BleedGraphics:
     ):
         if bled_mat := self.bled_gfx_lists.get(id(cmd_list)):
             return bled_mat
-
         bleed_state = self.bleed_start
         cur_fmat = None
         bleed_gfx_lists = BleedGfxLists()
@@ -223,8 +222,6 @@ class BleedGraphics:
                 bleed_gfx_lists.bled_mats = self.bleed_mat(
                     cur_fmat, last_mat, mat_write_method, default_render_mode, bleed_state
                 )
-                # some syncs may become redundant after bleeding
-                self.optimize_syncs(bleed_gfx_lists, last_mat)
             # bleed tri group (for large textures) and to remove other unnecessary cmds
             if jump_list_cmd.displayList.tag & GfxListTag.Geometry:
                 tri_list = jump_list_cmd.displayList
@@ -238,6 +235,7 @@ class BleedGraphics:
             last_mat = cur_fmat
         cmd_list.commands.extend(fmesh_static_cmds)  # this is troublesome
         cmd_list.commands.append(SPEndDisplayList())
+        self.optimize_syncs(cmd_list)  # some syncs may become redundant after bleeding
         self.bled_gfx_lists[id(cmd_list)] = cur_fmat
         return last_mat
 
@@ -454,44 +452,41 @@ class BleedGraphics:
             return
         # revert certain cmds for extra safety
         reset_cmds = self.create_reset_cmds(reset_cmd_dict, mat_write_method, default_render_mode)
-        # if pipe sync in reset list, make sure it is the first cmd
-        if DPPipeSync() in reset_cmds:
-            reset_cmds.remove(DPPipeSync())
-            if reset_cmds:
-                reset_cmds.insert(0, DPPipeSync())
         while SPEndDisplayList() in cmd_list.commands:
             cmd_list.commands.remove(SPEndDisplayList())
         cmd_list.commands.extend(reset_cmds)
         cmd_list.commands.append(SPEndDisplayList())
+        self.optimize_syncs(cmd_list)
         self.reset_gfx_lists.add(id(cmd_list))
 
     # remove syncs if first material, or if no gsDP cmds in material
-    def optimize_syncs(self, bleed_gfx_lists: BleedGfxLists, last_mat: FMaterial | None):
+    def optimize_syncs(self, cmd_list: GfxList):
         no_syncs_needed = {"DPSetPrimColor", "DPSetPrimDepth"}  # will not affect rdp
-        syncs_needed = {"SPSetOtherMode"}  # will affect rdp
-        if last_mat is None:
-            while DPPipeSync() in bleed_gfx_lists.bled_mats:
-                bleed_gfx_lists.bled_mats.remove(DPPipeSync())
-        for cmd in (*bleed_gfx_lists.bled_mats, *bleed_gfx_lists.bled_tex):
+        syncs_needed = {"SPSetOtherMode", "SPTexture"}  # will affect rdp
+
+        is_in_dp = True
+        old_cmds = cmd_list.commands
+        new_cmds = []
+        cmd_list.commands = new_cmds
+
+        for cmd in old_cmds:
             cmd_name = type(cmd).__name__
-            if cmd == DPPipeSync():
+            is_dp_cmd = ("DP" in cmd_name and cmd_name not in no_syncs_needed) or cmd_name in syncs_needed
+            if cmd_name == "DPPipeSync":
                 continue
-            elif "DP" in cmd_name and cmd_name not in no_syncs_needed:
-                return
-            if cmd_name in syncs_needed:
-                return
-        while DPPipeSync() in bleed_gfx_lists.bled_mats:
-            bleed_gfx_lists.bled_mats.remove(DPPipeSync())
+            elif is_in_dp is False and is_dp_cmd:
+                new_cmds.append(DPPipeSync())
+                is_in_dp = True
+            elif not is_dp_cmd and "Tri" in cmd_name:
+                is_in_dp = False
+            new_cmds.append(cmd)
 
     def create_reset_cmds(
         self, reset_cmd_dict: dict[GbiMacro], mat_write_method: GfxMatWriteMethod, default_render_mode: list[str]
     ):
         reset_cmds = []
         for cmd_type, cmd_use in reset_cmd_dict.items():
-            if cmd_type == DPPipeSync:
-                reset_cmds.append(DPPipeSync())
-
-            elif cmd_type == SPGeometryMode:  # revert cmd includes everything from the start
+            if cmd_type == SPGeometryMode:  # revert cmd includes everything from the start
                 # First, figure out what needs to be cleared or set
                 set_list, clear_list = {}, {}
                 if cmd_use.setFlagList != self.default_set_geo.flagList:
