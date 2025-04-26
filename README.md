@@ -8,13 +8,11 @@ Forked from [kurethedead/fast64 on BitBucket](https://bitbucket.org/kurethedead/
 
 This is a Blender plugin that allows one to export F3D display lists. It also has the ability to export assets for Super Mario 64 and Ocarina of Time decompilation projects. It supports custom color combiners / geometry modes / etc. It is also possible to use exported C code in homebrew applications.
 
-Make sure to save often, as this plugin is prone to crashing when creating materials / undoing material creation. This is a Blender issue.
-
-<https://developer.blender.org/T70574>
+Make sure to save often, as this plugin is prone to crashing when creating materials / undoing material creation. [This is a Blender issue](https://developer.blender.org/T70574).
 
 ### Example models can be found [here](https://github.com/Fast-64/fast64-models)
 
-![alt-text](/images/mat_inspector.png)
+Fast64 features an updater, [follow these instructions to use it](#updater)
 
 ### Credits
 Thanks to anonymous_moose, Cheezepin, Rovert, and especially InTheBeef for testing.
@@ -65,7 +63,7 @@ For cel shading, it is recommended to start with one of the cel shading presets,
 
 ### Updater
 
-Fast64 features an updater ([CGCookie/blender-addon-updater](https://github.com/CGCookie/blender-addon-updater)).
+Fast64 uses [CGCookie/blender-addon-updater](https://github.com/CGCookie/blender-addon-updater) as it's updater.
 
 It can be found in the addon preferences:
 
@@ -75,15 +73,18 @@ Click the "Check now for fast64 update" button to check for updates.
 
 ![Updater preferences after clicking the "check for updates" button](/images/updater_after_check.png)
 
-Click "Install main / old version" and choose "Main" if it isn't already selected:
+From here you may update to a stable version, the latest version or even an older release.
+If you are encountering a bug try updating to latest as it may solve your issue.
 
-![Updater: install main](/images/updater_install_main.png)
+- To install a stable release, click the "Update now to (Version) (Stable)" button.
+- To install latest, click the "Install specific version (Latest or Older)" button, select main and click ok.
+- To install an older version, click the "Install specific version (Latest or Older)" button, select your desired version and click ok.
 
-Click OK, there should be a message "Addon successfully installed" and prompting you to restart Blender:
+After updating, there should be a message "Addon successfully installed" and prompting you to restart Blender:
 
 ![Updater: successful install, must restart](/images/updater_success_restart.png)
 
-Clicking the red button will close Blender. After restarting, fast64 will be up-to-date with the latest main revision.
+Clicking the red button will close Blender. After restarting, fast64 will be in your desired version, if not there may be permission issues causing the updater to fail, try to download your desired version from github instead.
 
 ### Fast64 Development
 If you'd like to develop in VSCode, follow this tutorial to get proper autocomplete. Skip the linter for now, we'll need to make sure the entire project gets linted before enabling autosave linting because the changes will be massive.
