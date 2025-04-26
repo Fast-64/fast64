@@ -4807,7 +4807,10 @@ class F3DMaterialProperty(PropertyGroup):
         if self.uses_mipmap:
             return {i: t for i, t in enumerate(self.all_textures[: self.rdp_settings.num_textures_mipmapped])}
         if use_dict is None:
-            use_dict = all_combiner_uses(self)
+            use_dict = {
+                "Texture 0": combiner_uses_tex0(self, self.cycle_type),
+                "Texture 1": combiner_uses_tex1(self, self.cycle_type),
+            }
         return {i: t for i, t in enumerate(self.all_textures[:2]) if use_dict[f"Texture {i}"]}
 
     @property
@@ -4823,8 +4826,8 @@ class F3DMaterialProperty(PropertyGroup):
 
     @property
     def is_multi_tex(self):
-        use_dict = all_combiner_uses(self)
-        return use_dict["Texture 0"] and use_dict["Texture 1"]
+        cycle_type = self.cycle_type
+        return combiner_uses_tex0(self, cycle_type) and combiner_uses_tex1(self, cycle_type)
 
     def get_tlut_mode(self, only_auto=False, dont_raise=False):
         if self.pseudo_format in {"IHQ", "SHQ"}:
@@ -4900,13 +4903,27 @@ class F3DMaterialProperty(PropertyGroup):
             if self.rdp_settings.g_mdsft_text_filt == "G_TF_POINT":
                 return "G_TC_CONV"
             return "G_TC_FILTCONV"
-        elif not fmts or dont_raise:
+        elif not self.uses_mipmap or len(textures) <= 2:  # in filtconv, tex0 is not converted, therefor can be non YUV
+            yuv_tex = next(i for i, tex in textures.items() if tex.tex_format == "YUV16")
+            if yuv_tex == 1:
+                return "G_TC_FILTCONV"
+            if dont_raise:
+                return None
+            raise PluginError(
+                "Texture 0 is YUV and texture 1 is not YUV.\nCannot use G_TC_FILTCONV to bypass convert in texture 0."
+            )
+        elif not fmts:
             return None if only_auto else self.rdp_settings.g_mdsft_textconv
-        text = "Can't mix YUV and non-YUV textures."
-        for fmt in fmts:
-            fmt_textures = [str(i) for i, tex in textures.items() if tex.tex_format == fmt]
-            text += f"\n{fmt.lstrip('G_TT_')}: Texture{'s' if len(fmt_textures) > 1 else ''} {', '.join(fmt_textures)}"
-        raise PluginError(text)
+        else:
+            if dont_raise:
+                return None
+            text = "Can't mix more than 2 or mipmapped YUV and non-YUV textures."
+            for fmt in fmts:
+                fmt_textures = [str(i) for i, tex in textures.items() if tex.tex_format == fmt]
+                text += (
+                    f"\n{fmt.lstrip('G_TT_')}: Texture{'s' if len(fmt_textures) > 1 else ''} {', '.join(fmt_textures)}"
+                )
+            raise PluginError(text)
 
     @property
     def tex_convert(self):
