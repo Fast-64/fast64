@@ -2190,10 +2190,15 @@ def addSkinnedMeshNode(armatureObj, boneName, skinnedMesh, transformNode, parent
 
     # Get skinned node
     bone = armatureObj.data.bones[boneName]
+    bone_props: "SM64_BoneProperties" = bone.fast64.sm64
     skinnedNode = DisplayListNode(drawLayer)
     skinnedNode.fMesh = skinnedMesh
     skinnedNode.DLmicrocode = skinnedMesh.draw
     skinnedTransformNode = TransformNode(skinnedNode)
+    skinnedTransformNode.revert_previous_mat, skinnedTransformNode.revert_after_mat = (
+        bone_props.revert_previous_mat,
+        bone_props.revert_after_mat,
+    )
 
     # Ascend heirarchy until reaching first node before a deform parent.
     # We duplicate the hierarchy along the way to possibly use later.

@@ -224,7 +224,7 @@ class BleedGraphics:
                     cur_fmat, last_mat, mat_write_method, default_render_mode, bleed_state
                 )
                 # some syncs may become redundant after bleeding
-                self.optimize_syncs(bleed_gfx_lists, bleed_state)
+                self.optimize_syncs(bleed_gfx_lists, last_mat)
             # bleed tri group (for large textures) and to remove other unnecessary cmds
             if jump_list_cmd.displayList.tag & GfxListTag.Geometry:
                 tri_list = jump_list_cmd.displayList
@@ -457,7 +457,8 @@ class BleedGraphics:
         # if pipe sync in reset list, make sure it is the first cmd
         if DPPipeSync() in reset_cmds:
             reset_cmds.remove(DPPipeSync())
-            reset_cmds.insert(0, DPPipeSync())
+            if reset_cmds:
+                reset_cmds.insert(0, DPPipeSync())
         while SPEndDisplayList() in cmd_list.commands:
             cmd_list.commands.remove(SPEndDisplayList())
         cmd_list.commands.extend(reset_cmds)
@@ -465,17 +466,17 @@ class BleedGraphics:
         self.reset_gfx_lists.add(id(cmd_list))
 
     # remove syncs if first material, or if no gsDP cmds in material
-    def optimize_syncs(self, bleed_gfx_lists: BleedGfxLists, bleed_state: int):
+    def optimize_syncs(self, bleed_gfx_lists: BleedGfxLists, last_mat: FMaterial | None):
         no_syncs_needed = {"DPSetPrimColor", "DPSetPrimDepth"}  # will not affect rdp
         syncs_needed = {"SPSetOtherMode"}  # will affect rdp
-        if bleed_state == self.bleed_start:
+        if last_mat is None:
             while DPPipeSync() in bleed_gfx_lists.bled_mats:
                 bleed_gfx_lists.bled_mats.remove(DPPipeSync())
         for cmd in (*bleed_gfx_lists.bled_mats, *bleed_gfx_lists.bled_tex):
             cmd_name = type(cmd).__name__
             if cmd == DPPipeSync():
                 continue
-            if "DP" in cmd_name and cmd_name not in no_syncs_needed:
+            elif "DP" in cmd_name and cmd_name not in no_syncs_needed:
                 return
             if cmd_name in syncs_needed:
                 return

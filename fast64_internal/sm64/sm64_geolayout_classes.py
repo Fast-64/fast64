@@ -483,12 +483,16 @@ class GeoLayoutBleed(BleedGraphics):
         def copy_last(last_materials: LastMaterials) -> LastMaterials:
             return {dl: [lm, [(c, copy(r)) for c, r in lcr]] for dl, (lm, lcr) in last_materials.items()}
 
+        def reset_layer(last_materials: LastMaterials, draw_layer: int) -> LastMaterials:
+            _, cmds_resets = last_materials.get(draw_layer, (None, []))
+            for cmd_list, reset_cmd_dict in cmds_resets:
+                self.add_reset_cmds(cmd_list, reset_cmd_dict, fModel.matWriteMethod, fModel.getRenderMode(draw_layer))
+            last_materials.pop(draw_layer, None)
+            return last_materials
+
         def reset_all_layers(last_materials: LastMaterials) -> LastMaterials:
-            for draw_layer, (_last_mat, last_cmds_resets) in last_materials.items():
-                for cmd_list, reset_cmd_dict in last_cmds_resets:
-                    self.add_reset_cmds(
-                        cmd_list, reset_cmd_dict, fModel.matWriteMethod, fModel.getRenderMode(draw_layer)
-                    )
+            while last_materials:
+                last_materials = reset_layer(last_materials, list(last_materials.keys())[0])
             return {}
 
         def walk(node, last_materials: LastMaterials) -> LastMaterials:
@@ -505,16 +509,9 @@ class GeoLayoutBleed(BleedGraphics):
                 last_mat, last_cmds_resets = last_materials.get(base_node.drawLayer, (None, []))
 
             if node.revert_previous_mat:
-                if fMesh is not None and last_cmds_resets:
+                if fMesh is not None:
                     # add reset commands to previous cmd lists, reset last mat and reset dict
-                    for last_cmd_list, reset_cmd_dict in last_cmds_resets:
-                        self.add_reset_cmds(
-                            last_cmd_list,
-                            reset_cmd_dict,
-                            fModel.matWriteMethod,
-                            fModel.getRenderMode(base_node.drawLayer),
-                        )
-                    last_materials.pop(base_node.drawLayer, None)
+                    last_materials = reset_layer(last_materials, base_node.drawLayer)
                 else:
                     last_materials = reset_all_layers(last_materials)
                 last_mat, last_cmds_resets = None, []
@@ -533,13 +530,10 @@ class GeoLayoutBleed(BleedGraphics):
                     fModel.matWriteMethod,
                     default_render_mode,
                 )
-
+                last_materials[base_node.drawLayer] = [last_mat, [(cmd_list, reset_cmd_dict)]]
                 # if the mesh has culling, we must revert to avoid bleed issues
                 if fMesh.cullVertexList or node.revert_after_mat:
-                    self.add_reset_cmds(cmd_list, reset_cmd_dict, fModel.matWriteMethod, default_render_mode)
-                    last_materials.pop(base_node.drawLayer, None)
-                else:
-                    last_materials[base_node.drawLayer] = [last_mat, [(cmd_list, reset_cmd_dict)]]
+                    last_materials = reset_layer(last_materials, base_node.drawLayer)
             elif node.revert_after_mat:  # if no mesh but still forced revert, revert all
                 last_materials = reset_all_layers(last_materials)
 
