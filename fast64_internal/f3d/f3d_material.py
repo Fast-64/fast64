@@ -58,75 +58,6 @@ F3DMaterialHash = Any  # giant tuple
 logging.basicConfig(format="%(asctime)s: %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p")
 logger = logging.getLogger(__name__)
 
-bitSizeDict = {
-    "G_IM_SIZ_4b": 4,
-    "G_IM_SIZ_8b": 8,
-    "G_IM_SIZ_16b": 16,
-    "G_IM_SIZ_32b": 32,
-}
-
-texBitSizeF3D = {
-    "I4": "G_IM_SIZ_4b",
-    "IA4": "G_IM_SIZ_4b",
-    "CI4": "G_IM_SIZ_4b",
-    "I8": "G_IM_SIZ_8b",
-    "IA8": "G_IM_SIZ_8b",
-    "CI8": "G_IM_SIZ_8b",
-    "RGBA16": "G_IM_SIZ_16b",
-    "IA16": "G_IM_SIZ_16b",
-    "YUV16": "G_IM_SIZ_16b",
-    "RGBA32": "G_IM_SIZ_32b",
-}
-
-texFormatOf = {
-    "I4": "G_IM_FMT_I",
-    "IA4": "G_IM_FMT_IA",
-    "CI4": "G_IM_FMT_CI",
-    "I8": "G_IM_FMT_I",
-    "IA8": "G_IM_FMT_IA",
-    "CI8": "G_IM_FMT_CI",
-    "RGBA16": "G_IM_FMT_RGBA",
-    "IA16": "G_IM_FMT_IA",
-    "YUV16": "G_IM_FMT_YUV",
-    "RGBA32": "G_IM_FMT_RGBA",
-}
-
-
-sm64EnumDrawLayers = [
-    ("0", "Background (0x00)", "Background"),
-    ("1", "Opaque (0x01)", "Opaque"),
-    ("2", "Opaque Decal (0x02)", "Opaque Decal"),
-    ("3", "Opaque Intersecting (0x03)", "Opaque Intersecting"),
-    ("4", "Cutout (0x04)", "Cutout"),
-    ("5", "Transparent (0x05)", "Transparent"),
-    ("6", "Transparent Decal (0x06)", "Transparent Decal"),
-    ("7", "Transparent Intersecting (0x07)", "Transparent Intersecting"),
-]
-
-ootEnumDrawLayers = [
-    ("Opaque", "Opaque", "Opaque"),
-    ("Transparent", "Transparent", "Transparent"),
-    ("Overlay", "Overlay", "Overlay"),
-]
-
-
-drawLayerSM64toOOT = {
-    "0": "Opaque",
-    "1": "Opaque",
-    "2": "Opaque",
-    "3": "Opaque",
-    "4": "Opaque",
-    "5": "Transparent",
-    "6": "Transparent",
-    "7": "Transparent",
-}
-
-drawLayerOOTtoSM64 = {
-    "Opaque": "1",
-    "Transparent": "5",
-    "Overlay": "1",
-}
-
 
 def menu_items_enum(_self, context):
     items = ["Combiner", "Sources"]
@@ -134,60 +65,6 @@ def menu_items_enum(_self, context):
         items.append("Geo")
     items.extend(["Upper", "Lower"])
     return [(item, item, item) for item in items]
-
-
-enumF3DSource = [
-    ("None", "None", "None"),
-    ("Texture", "Texture", "Texture"),
-    ("Tile Size", "Tile Size", "Tile Size"),
-    ("Primitive", "Primitive", "Primitive"),
-    ("Environment", "Environment", "Environment"),
-    ("Shade", "Shade", "Shade"),
-    ("Key", "Key", "Key"),
-    ("LOD Fraction", "LOD Fraction", "LOD Fraction"),
-    ("Convert", "Convert", "Convert"),
-]
-
-defaultMaterialPresets = {
-    "Shaded Solid": {"SM64": "Shaded Solid", "OOT": "oot_shaded_solid"},
-    "Shaded Texture": {"SM64": "Shaded Texture", "OOT": "oot_shaded_texture"},
-}
-
-F3D_GEO_MODES = {
-    "zBuffer": "g_zbuffer",
-    "shade": "g_shade",
-    "cullFront": "g_cull_front",
-    "cullBack": "g_cull_back",
-    "fog": "g_fog",
-    "lighting": "g_lighting",
-    "texGen": "g_tex_gen",
-    "texGenLinear": "g_tex_gen_linear",
-    "lod": "g_lod",
-    "shadeSmooth": "g_shade_smooth",
-}
-
-F3DLX_GEO_MODES = {
-    "clipping": "g_clipping",
-}
-
-F3DEX3_GEO_MODES = {
-    "ambientOcclusion": "g_ambocclusion",
-    "attroffsetZ": "g_attroffset_z_enable",
-    "attroffsetST": "g_attroffset_st_enable",
-    "packedNormals": "g_packed_normals",
-    "lightToAlpha": "g_lighttoalpha",
-    "specularLighting": "g_lighting_specular",
-    "fresnelToColor": "g_fresnel_color",
-    "fresnelToAlpha": "g_fresnel_alpha",
-}
-
-
-T3D_GEO_MODES = {
-    "cullFront": "g_cull_front",
-    "cullBack": "g_cull_back",
-    "fog": "g_fog",
-    "texGen": "g_tex_gen",
-}
 
 
 def geo_modes_in_ucode(UCODE_VER: str):
@@ -1859,13 +1736,15 @@ def set_output_node_groups(material: Material):
     output_node = nodes["OUTPUT"]
     f3dMat: "F3DMaterialProperty" = material.f3d_mat
     cycle = f3dMat.cycle_type.lstrip("G_CYC_").rstrip("_CYCLE")
+    if cycle not in {"1", "2"}: # TODO: fill and copy?
+        cycle = "1"
     output_method = get_output_method(material)
     if bpy.app.version < (4, 2, 0) and output_method == "CLIP":
         output_method = "XLU"
         material.alpha_threshold = 0.125
 
     output_group_name = f"OUTPUT_{cycle}CYCLE_{output_method}"
-    output_group = bpy.data.node_groups[output_group_name]
+    output_group = bpy.data.node_groups.get(output_group_name)
     output_node.node_tree = output_group
 
     for inp in output_node.inputs:
@@ -3566,50 +3445,43 @@ class RDPSettings(PropertyGroup):
     # v2 only
     g_mdsft_alpha_dither: bpy.props.EnumProperty(
         name="Alpha Dither",
-        items=enumAlphaDither,
-        default="G_AD_DISABLE",
+        items=add_do_not_set(enumAlphaDither),
         update=update_node_values_with_preset,
         description="Applies your choice dithering type to output framebuffer alpha. Dithering is used to convert high precision source colors into lower precision framebuffer values",
     )
     # v2 only
     g_mdsft_rgb_dither: bpy.props.EnumProperty(
         name="RGB Dither",
-        items=enumRGBDither,
-        default="G_CD_MAGICSQ",
+        items=add_do_not_set(enumRGBDither),
         update=update_node_values_with_preset,
         description="Applies your choice dithering type to output framebuffer color. Dithering is used to convert high precision source colors into lower precision framebuffer values",
     )
     g_mdsft_combkey: bpy.props.EnumProperty(
         name="Chroma Key",
-        items=enumCombKey,
-        default="G_CK_NONE",
+        items=add_do_not_set(enumCombKey),
         update=update_node_values_with_preset,
         description="Turns on/off the chroma key. Chroma key requires a special setup to work properly",
     )
     g_mdsft_textconv: bpy.props.EnumProperty(
         name="Texture Convert",
-        items=enumTextConv,
-        default="G_TC_CONV",
+        items=add_do_not_set(enumTextConv),
         update=update_node_values_with_preset,
         description="Sets the function of the texture convert unit, to do texture filtering, YUV to RGB conversion, or both",
     )
     g_mdsft_text_filt: bpy.props.EnumProperty(
         name="Texture Filter",
-        items=enumTextFilt,
-        default="G_TF_POINT",
+        items=add_do_not_set(enumTextFilt),
         update=update_node_values_without_preset,
         description="Applies your choice of filtering to texels",
     )
     g_mdsft_textlut: bpy.props.EnumProperty(
         name="Texture LUT",
-        items=enumTextLUT,
-        default="G_TT_NONE",
+        items=add_do_not_set(enumTextLUT),
         description="Changes texture look up table (LUT) behavior. This property is auto set if you choose a CI texture",
     )
     g_mdsft_textlod: bpy.props.EnumProperty(
         name="Texture LOD",
-        items=enumTextLOD,
-        default="G_TL_TILE",
+        items=add_do_not_set(enumTextLOD),
         update=update_node_values_with_preset,
         description="Turns on/off the use of LoD on textures. LoD textures change the used tile based on the texel/pixel ratio",
     )
@@ -3622,37 +3494,32 @@ class RDPSettings(PropertyGroup):
     )
     g_mdsft_textdetail: bpy.props.EnumProperty(
         name="Texture Detail",
-        items=enumTextDetail,
-        default="G_TD_CLAMP",
+        items=add_do_not_set(enumTextDetail),
         update=update_node_values_with_preset,
         description="Changes type of LoD usage. Affects how tiles are selected based on texel magnification. Only works when G_TL_LOD is selected",
     )
     g_mdsft_textpersp: bpy.props.EnumProperty(
         name="Texture Perspective Correction",
-        items=enumTextPersp,
-        default="G_TP_NONE",
+        items=add_do_not_set(enumTextPersp),
         update=update_node_values_with_preset,
         description="Turns on/off texture perspective correction",
     )
     g_mdsft_cycletype: bpy.props.EnumProperty(
         name="Cycle Type",
-        items=enumCycleType,
-        default="G_CYC_1CYCLE",
+        items=add_do_not_set(enumCycleType),
         update=update_node_values_with_preset,
         description="Changes RDP pipeline configuration. For normal textured triangles use one or two cycle mode",
     )
     # v1 only
     g_mdsft_color_dither: bpy.props.EnumProperty(
         name="Color Dither",
-        items=enumColorDither,
-        default="G_CD_ENABLE",
+        items=add_do_not_set(enumColorDither),
         update=update_node_values_with_preset,
         description="Applies your choice dithering type to output frambuffer",
     )
     g_mdsft_pipeline: bpy.props.EnumProperty(
         name="Pipeline Span Buffer Coherency",
-        items=enumPipelineMode,
-        default="G_PM_NPRIMITIVE",
+        items=add_do_not_set(enumPipelineMode),
         update=update_node_values_with_preset,
         description="Changes primitive rasterization timing by adding syncs after tri draws. Vanilla SM64 has synchronization issues which could cause a crash if not using 1 prim. For any modern SM64 hacking project or other game N-prim should always be used",
     )
@@ -3660,15 +3527,13 @@ class RDPSettings(PropertyGroup):
     # lower half mode
     g_mdsft_alpha_compare: bpy.props.EnumProperty(
         name="Alpha Compare",
-        items=enumAlphaCompare,
-        default="G_AC_NONE",
+        items=add_do_not_set(enumAlphaCompare),
         update=update_node_values_with_preset,
         description="Uses alpha comparisons to decide if a pixel should be written. Applies before blending",
     )
     g_mdsft_zsrcsel: bpy.props.EnumProperty(
         name="Z Source Selection",
-        items=enumDepthSource,
-        default="G_ZS_PIXEL",
+        items=add_do_not_set(enumDepthSource),
         update=update_node_values_with_preset,
         description="Changes screen-space Z value source used for Z-Buffer calculations",
     )
@@ -3843,33 +3708,14 @@ class RDPSettings(PropertyGroup):
         for key, attr in self.geo_mode_attributes.items():
             setattr(self, attr, data.get(key, False))
 
-    other_mode_h_attributes = [
-        ("alphaDither", "g_mdsft_alpha_dither", "G_AD_DISABLE"),
-        ("colorDither", "g_mdsft_rgb_dither", "G_CD_MAGICSQ"),
-        ("chromaKey", "g_mdsft_combkey", "G_CK_NONE"),
-        ("textureConvert", "g_mdsft_textconv", "G_TC_CONV"),
-        ("textureFilter", "g_mdsft_text_filt", "G_TF_POINT"),
-        ("lutFormat", "g_mdsft_textlut", "G_TT_NONE"),
-        ("textureLoD", "g_mdsft_textlod", "G_TL_TILE"),
-        ("textureDetail", "g_mdsft_textdetail", "G_TD_CLAMP"),
-        ("perspectiveCorrection", "g_mdsft_textpersp", "G_TP_NONE"),
-        ("cycleType", "g_mdsft_cycletype", "G_CYC_1CYCLE"),
-        ("pipelineMode", "g_mdsft_pipeline", "G_PM_NPRIMITIVE"),
-    ]
-
     def other_mode_h_to_dict(self, lut_format=None):
-        data = self.attributes_to_dict(self.other_mode_h_attributes)
+        data = self.attributes_to_dict(OTHERMODE_H_ATTRS)
         if lut_format:
             data["lutFormat"] = lut_format
         return data
 
     def other_mode_h_from_dict(self, data: dict):
-        self.attributes_from_dict(data, self.other_mode_h_attributes)
-
-    other_mode_l_attributes = [
-        ("alphaCompare", "g_mdsft_alpha_compare", "G_AC_NONE"),
-        ("zSourceSelection", "g_mdsft_zsrcsel", "G_ZS_PIXEL"),
-    ]
+        self.attributes_from_dict(data, OTHERMODE_H_ATTRS)
 
     rendermode_flag_attributes = [
         ("aa", "aa_en", False),
@@ -3885,7 +3731,7 @@ class RDPSettings(PropertyGroup):
     ]
 
     def other_mode_l_to_dict(self):
-        data = self.attributes_to_dict(self.other_mode_l_attributes)
+        data = self.attributes_to_dict(OTHERMODE_L_ATTRS)
         if self.g_mdsft_zsrcsel == "G_ZS_PRIM":
             data["primDepth"] = self.prim_depth.to_dict()
         if self.set_rendermode:
@@ -3914,7 +3760,7 @@ class RDPSettings(PropertyGroup):
         return data
 
     def other_mode_l_from_dict(self, data: dict):
-        self.attributes_from_dict(data, self.other_mode_l_attributes)
+        self.attributes_from_dict(data, OTHERMODE_L_ATTRS)
         self.prim_depth.from_dict(data.get("primDepth", {}))
 
         render_mode = data.get("renderMode", {})
