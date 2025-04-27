@@ -113,7 +113,7 @@ class CutsceneImport(CutsceneObjectFactory):
                     # split with "[" just in case the array has a set size
                     csName = line.split(" ")[1].split("[")[0]
                     if csName in existingCutsceneNames:
-                        continue
+                        print(f"WARNING: Cutscene '{csName}' already exists in this blend's data.")
                     foundCutscene = True
                     print(f"INFO: Found cutscene '{csName}' in the file data.")
 
