@@ -255,7 +255,8 @@ class OOTActorProperty(PropertyGroup):
                     value = base_value & param.mask
 
                     if "Rot" in target:
-                        found_type = getEvalParamsInt(getattr(self, get_prop_name(actor.key, "Type", None, 1)))
+                        attr = getattr(self, get_prop_name(actor.key, "Type", None, 1), None)
+                        found_type = getEvalParamsInt(attr) if attr is not None else None
                     else:
                         found_type = value
 
@@ -319,7 +320,7 @@ class OOTActorProperty(PropertyGroup):
                         have_custom_value = True
                         continue
 
-                    if param.type in {"Type", "Enum"}:
+                    if param.type == "Type":
                         type_value = getEvalParamsInt(cur_prop_value)
                     else:
                         param_val = 0
@@ -330,9 +331,12 @@ class OOTActorProperty(PropertyGroup):
                             param_val = ootData.actorData.collectibleItemsByKey[cur_prop_value].value
                         elif param.type == "Message":
                             param_val = ootData.actorData.messageItemsByKey[cur_prop_value].value
+                        elif param.type == "Enum":
+                            param_val = getEvalParamsInt(cur_prop_value)
 
-                if "Rot" in target and param.type == "Type":
-                    type_value = getEvalParamsInt(getattr(self, get_prop_name(actor.key, "Type", None, 1)))
+                if "Rot" in target:
+                    attr = getattr(self, get_prop_name(actor.key, "Type", None, 1), None)
+                    type_value = getEvalParamsInt(attr) if attr is not None else None
 
                 if type_value is not None and type_value in param.tiedTypes or len(param.tiedTypes) == 0:
                     val = ((param_val if param_val is not None else -1) & param.mask) >> getShiftFromMask(param.mask)
