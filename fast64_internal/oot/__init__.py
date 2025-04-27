@@ -59,22 +59,23 @@ from .tools import (
 )
 
 oot_versions_items = [
-    ("Custom", "Custom", "Custom"),
-    ("ntsc-1.0", "ntsc-1.0", "ntsc-1.0"),
-    ("ntsc-1.1", "ntsc-1.1", "ntsc-1.1"),
-    ("pal-1.0", "pal-1.0", "pal-1.0"),
-    ("ntsc-1.2", "ntsc-1.2", "ntsc-1.2"),
-    ("pal-1.1", "pal-1.1", "pal-1.1"),
-    ("gc-jp", "gc-jp", "gc-jp"),
-    ("gc-jp-mq", "gc-jp-mq", "gc-jp-mq"),
-    ("gc-us", "gc-us", "gc-us"),
-    ("gc-us-mq", "gc-us-mq", "gc-us-mq"),
-    ("gc-eu-mq-dbg", "gc-eu-mq-dbg", "gc-eu-mq-dbg"),
-    ("gc-eu", "gc-eu", "gc-eu"),
-    ("gc-eu-mq", "gc-eu-mq", "gc-eu-mq"),
-    ("gc-jp-ce", "gc-jp-ce", "gc-jp-ce"),
-    ("hackeroot-mq", "HackerOoT", "hackeroot-mq"),  # TODO: force this value if HackerOoT features are enabled?
-    ("legacy", "Legacy", "Older Decomp Version"),
+    ("Custom", "Custom", "Custom", 0),
+    ("ntsc-1.0", "ntsc-1.0", "ntsc-1.0", 11),
+    ("ntsc-1.1", "ntsc-1.1", "ntsc-1.1", 12),
+    ("pal-1.0", "pal-1.0", "pal-1.0", 13),
+    ("ntsc-1.2", "ntsc-1.2", "ntsc-1.2", 14),
+    ("pal-1.1", "pal-1.1", "pal-1.1", 15),
+    ("gc-jp", "gc-jp", "gc-jp", 1),
+    ("gc-jp-mq", "gc-jp-mq", "gc-jp-mq", 2),
+    ("gc-us", "gc-us", "gc-us", 4),
+    ("gc-us-mq", "gc-us-mq", "gc-us-mq", 5),
+    ("gc-eu-mq-dbg", "gc-eu-mq-dbg", "gc-eu-mq-dbg", 8),
+    ("gc-eu", "gc-eu", "gc-eu", 6),
+    ("gc-eu-mq", "gc-eu-mq", "gc-eu-mq", 7),
+    ("gc-jp-ce", "gc-jp-ce", "gc-jp-ce", 3),
+    ("ique-cn", "ique-cn", "ique-cn", 16),
+    ("hackeroot-mq", "HackerOoT", "hackeroot-mq", 9),  # TODO: force this value if HackerOoT features are enabled?
+    ("legacy", "Legacy", "Older Decomp Version", 10),
 ]
 
 
