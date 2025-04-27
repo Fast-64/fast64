@@ -3,7 +3,7 @@ import math
 import os
 import re
 
-from ast import parse, Expression, Num, UnaryOp, USub, Invert, BinOp
+from ast import parse, Expression, Constant, UnaryOp, USub, Invert, BinOp
 from mathutils import Vector
 from bpy.types import Object
 from typing import Callable, Optional, TYPE_CHECKING, List
@@ -25,6 +25,7 @@ from ..utility import (
 
 if TYPE_CHECKING:
     from .scene.properties import OOTBootupSceneOptions
+    from .actor.properties import OOTActorProperty
 
 
 def isPathObject(obj: bpy.types.Object) -> bool:
@@ -777,16 +778,16 @@ def onHeaderPropertyChange(self, context: bpy.types.Context, callback: Callable[
     bpy.context.scene.ootActiveHeaderLock = False
 
 
-def getEvalParams(input: str):
+def getEvalParamsInt(input: str):
     """Evaluates a string to an hexadecimal number"""
 
     # degrees to binary angle conversion
     if "DEG_TO_BINANG(" in input:
         input = input.strip().removeprefix("DEG_TO_BINANG(").removesuffix(")").strip()
-        return f"0x{round(float(input) * (0x8000 / 180)):X}"
+        return round(float(input) * (0x8000 / 180))
 
     if input is None or "None" in input:
-        return "0x0"
+        return 0
 
     # remove spaces
     input = input.strip()
@@ -796,10 +797,10 @@ def getEvalParams(input: str):
     except Exception as e:
         raise ValueError(f"Could not parse {input} as an AST.") from e
 
-    def _eval(node):
+    def _eval(node) -> int:
         if isinstance(node, Expression):
             return _eval(node.body)
-        elif isinstance(node, Num):
+        elif isinstance(node, Constant):
             return node.n
         elif isinstance(node, UnaryOp):
             if isinstance(node.op, USub):
@@ -813,7 +814,40 @@ def getEvalParams(input: str):
         else:
             raise ValueError(f"Unsupported AST node {node}")
 
-    return f"0x{_eval(node.body):X}"
+    try:
+        return _eval(node.body)
+    except:
+        return None
+
+
+def getEvalParams(input: str):
+    num = getEvalParamsInt(input)
+    return f"0x{num:X}" if num is not None else None
+
+
+def getShiftFromMask(mask: int):
+    """Returns the shift value from the mask"""
+
+    # make sure the mask is a mask
+    binaryMask = f"{mask:016b}"
+    assert set(f"{mask:b}".rstrip("0")) == {"1"}, binaryMask
+
+    # get the shift by subtracting the length of the mask
+    # converted in binary on 16 bits (since the mask can be on 16 bits) with
+    # that length but with the rightmost zeros stripped
+    return len(binaryMask) - len(binaryMask.rstrip("0"))
+
+
+def getFormattedParams(mask: int, value: int, isBool: bool):
+    """Returns the parameter with the correct format"""
+    shift = getShiftFromMask(mask)
+
+    if value == 0:
+        return None
+    elif not isBool:
+        return f"((0x{value:02X} << {shift}) & 0x{mask:04X})" if shift > 0 else f"(0x{value:02X} & 0x{mask:04X})"
+    else:
+        return f"(0x{value:02X} << {shift})" if shift > 0 else f"0x{value:02X}"
 
 
 def getNewPath(type: str, isClosedShape: bool):
@@ -926,3 +960,25 @@ def getObjectList(
                 ret.append(obj)
     ret.sort(key=lambda o: o.name)
     return ret
+
+
+def get_actor_prop_from_obj(actor_obj: Object) -> "OOTActorProperty":
+    """
+    Returns the reference to `OOTActorProperty`
+
+    Parameters:
+    - `actor_obj`: the Blender object to use to find the actor properties
+    """
+
+    actor_prop = None
+
+    if actor_obj.ootEmptyType == "Actor":
+        actor_prop = actor_obj.ootActorProperty
+    elif actor_obj.ootEmptyType == "Transition Actor":
+        actor_prop = actor_obj.ootTransitionActorProperty.actor
+    elif actor_obj.ootEmptyType == "Entrance":
+        actor_prop = actor_obj.ootEntranceProperty.actor
+    else:
+        raise PluginError(f"ERROR: Empty type not supported: {actor_obj.ootEmptyType}")
+
+    return actor_prop
