@@ -1892,7 +1892,7 @@ def get_tex_sts_code(
 def get_tile_scroll_code(
     variableName: str, scrollData: "FScrollData", textureIndex: int, commandIndex: int
 ) -> Tuple[str, str]:
-    scrollInfo: FSetTileSizeScrollField = getattr(scrollData, f"tile_scroll_tex{textureIndex}")
+    scrollInfo: FSetTileSizeScrollField = scrollData.tile_scrolls[textureIndex]
     if scrollInfo.s or scrollInfo.t:
         variables = []
         lines = []
@@ -1914,7 +1914,7 @@ def get_tile_scroll_code(
 def vertexScrollTemplate(
     fScrollData, name, count, absFunc, signFunc, cosFunc, randomFloatFunc, randomSignFunc, segToVirtualFunc
 ):
-    scrollDataFields = fScrollData.fields[0]
+    scrollDataFields = fScrollData.fields
     if scrollDataFields[0].animType == "None" and scrollDataFields[1].animType == "None":
         return ""
     data = [
@@ -2369,7 +2369,7 @@ class FModel:
               image), for creating image / palette keys
             - an object containing info about the additional textures, or None
         """
-        texProp = getattr(material.f3d_mat, f"tex{index}")
+        texProp = material.f3d_mat.all_textures[index]
         imDependencies = [] if texProp.tex is None else [texProp.tex]
         return imDependencies, None
 
@@ -2389,7 +2389,7 @@ class FModel:
             - an object containing info about the additional textures, or None
             - the palette to use (or None)
         """
-        texProp = getattr(material.f3d_mat, f"tex{index}")
+        texProp = material.f3d_mat.all_textures[index]
         imDependencies = [] if texProp.tex is None else [texProp.tex]
         return imDependencies, None, None
 
@@ -3006,10 +3006,9 @@ class FScrollDataField:
 
 class FScrollData:
     def __init__(self):
-        self.fields = [[FScrollDataField(), FScrollDataField()], [FScrollDataField(), FScrollDataField()]]
+        self.fields = [FScrollDataField(), FScrollDataField()]
         self.dimensions = [0, 0]
-        self.tile_scroll_tex0 = FSetTileSizeScrollField()
-        self.tile_scroll_tex1 = FSetTileSizeScrollField()
+        self.tile_scrolls: list[FSetTileSizeScrollField] = []
 
 
 def get_f3d_mat_from_version(material: bpy.types.Material):
@@ -3040,25 +3039,16 @@ class FMaterial:
         self.texPaletteIndex = [0, 0]
 
     def getScrollData(self, material, dimensions):
-        self.getScrollDataField(material, 0, 0)
-        self.getScrollDataField(material, 0, 1)
-        self.getScrollDataField(material, 1, 0)
-        self.getScrollDataField(material, 1, 1)
+        self.getScrollDataField(material, 0)
+        self.getScrollDataField(material, 1)
         self.scrollData.dimensions = dimensions
         self.getSetTileSizeScrollData(material)
 
-    def getScrollDataField(self, material, texIndex, fieldIndex):
-        UVanim0 = material.f3d_mat.UVanim0 if material.mat_ver > 3 else material.UVanim
-        UVanim1 = material.f3d_mat.UVanim1 if material.mat_ver > 3 else material.UVanim_tex1
+    def getScrollDataField(self, material, fieldIndex):
+        UVanim0 = material.f3d_mat.UVanim0
+        field = getattr(UVanim0, "xyz"[fieldIndex])
 
-        if texIndex == 0:
-            field = getattr(UVanim0, "xyz"[fieldIndex])
-        elif texIndex == 1:
-            field = getattr(UVanim1, "xyz"[fieldIndex])
-        else:
-            raise PluginError("Invalid texture index.")
-
-        scrollField = self.scrollData.fields[texIndex][fieldIndex]
+        scrollField = self.scrollData.fields[fieldIndex]
 
         scrollField.animType = field.animType
         scrollField.speed = field.speed
@@ -3071,13 +3061,13 @@ class FMaterial:
     def getSetTileSizeScrollData(self, material):
         tex0 = get_f3d_mat_from_version(material).tex0
         tex1 = get_f3d_mat_from_version(material).tex1
-
-        self.scrollData.tile_scroll_tex0.s = tex0.tile_scroll.s
-        self.scrollData.tile_scroll_tex0.t = tex0.tile_scroll.t
-        self.scrollData.tile_scroll_tex0.interval = tex0.tile_scroll.interval
-        self.scrollData.tile_scroll_tex1.s = tex1.tile_scroll.s
-        self.scrollData.tile_scroll_tex1.t = tex1.tile_scroll.t
-        self.scrollData.tile_scroll_tex1.interval = tex1.tile_scroll.interval
+        self.scrollData.tile_scrolls = []
+        for tex_prop in material.f3d_mat.all_textures:
+            tile_scroll = FSetTileSizeScrollField()
+            tile_scroll.s = tex_prop.tile_scroll.s
+            tile_scroll.t = tex_prop.tile_scroll.t
+            tile_scroll.interval = tex_prop.tile_scroll.interval
+            self.scrollData.tile_scrolls.append(tile_scroll)
 
     def get_ptr_addresses(self, f3d):
         addresses = self.material.get_ptr_addresses(f3d)

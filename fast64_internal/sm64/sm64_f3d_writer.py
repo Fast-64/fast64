@@ -157,7 +157,7 @@ class SM64GfxFormatter(GfxFormatter):
             "segmented_to_virtual",
         )
 
-        scrollDataFields = fScrollData.fields[0]
+        scrollDataFields = fScrollData.fields
         if not ((scrollDataFields[0].animType == "None") and (scrollDataFields[1].animType == "None")):
             funcName = f"scroll_{vtxListName}"
             data.header = f"extern void {funcName}();\n"
@@ -300,7 +300,7 @@ def modifyDLForHUD(data):
 
 
 def exportTexRectCommon(texProp, name, convertTextureData):
-    use_copy_mode = texProp.tlut_mode == "G_TT_RGBA16" or texProp.tex_format == "RGBA16"
+    use_copy_mode = texProp.textlut == "G_TT_RGBA16" or texProp.tex_format == "RGBA16"
 
     defaults = create_or_get_world(bpy.context.scene).rdp_defaults
 
@@ -323,7 +323,7 @@ def exportTexRectCommon(texProp, name, convertTextureData):
     fMaterial.mat_only_DL.commands.append(DPSetRenderMode(["G_RM_AA_XLU_SURF", "G_RM_AA_XLU_SURF2"], None))
     fMaterial.revert.commands.append(DPSetRenderMode(["G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2"], None))
 
-    saveModeSetting(fMaterial, texProp.tlut_mode, defaults.g_mdsft_textlut, DPSetTextureLUT)
+    saveModeSetting(fMaterial, texProp.textlut, defaults.g_mdsft_textlut, DPSetTextureLUT)
     ti = TexInfo()
     ti.fromProp(texProp, index=0, ignore_tex_set=True)
     ti.materialless_setup()
@@ -876,7 +876,7 @@ class ExportTexRectDrawPanel(SM64_Panel):
             infoBox.label(text=enumHUDPaths[context.scene.TexRectExportType][0] + ": ")
             infoBox.label(text=enumHUDPaths[context.scene.TexRectExportType][1] + ".")
         prop_split(col, context.scene, "TexRectName", "Name")
-        ui_image(False, col, None, context.scene.texrect, context.scene.TexRectName, False, hide_lowhigh=True)
+        ui_image(False, False, col, context.scene.texrect, context.scene.TexRectName, False, hide_lowhigh=True)
         col.operator(ExportTexRectDraw.bl_idname)
 
 
@@ -931,11 +931,7 @@ class SM64_MaterialPanel(bpy.types.Panel):
         material = context.material
         col = layout.column()
 
-        if material.mat_ver > 3:
-            f3dMat = material.f3d_mat
-        else:
-            f3dMat = material
-        useDict = all_combiner_uses(f3dMat)
+        useDict = all_combiner_uses(material.f3d_mat)
 
         if useDict["Texture"]:
             ui_procAnim(material, col, useDict["Texture 0"], useDict["Texture 1"], "SM64 UV Texture Scroll", False)
