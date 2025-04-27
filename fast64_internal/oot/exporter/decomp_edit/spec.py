@@ -99,7 +99,11 @@ class SpecFile:
     @staticmethod
     def new(export_path: str):
         # read the file's data
-        data = get_spec_path(export_path).read_text()
+        spec_path = get_spec_path(export_path)
+        try:
+            data = spec_path.read_text()
+        except FileNotFoundError:
+            raise PluginError(f'ERROR: Can\'t find spec file at "{spec_path}"!')
 
         # Find first instance of "/assets/scenes/", indicating a scene file
         first_scene_include_index = data.index("/assets/scenes/")
