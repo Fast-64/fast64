@@ -13,14 +13,8 @@ from bpy.utils import register_class, unregister_class
 from ...render_settings import on_update_oot_render_settings
 from ...utility import prop_split, customExportWarning
 from ..cutscene.constants import ootEnumCSWriteType
-
-from ..oot_utility import (
-    onMenuTabChange,
-    onHeaderMenuTabChange,
-    drawCollectionOps,
-    drawEnumWithCustom,
-    drawAddButton,
-)
+from ..collection_utility import drawCollectionOps, drawAddButton
+from ..oot_utility import onMenuTabChange, onHeaderMenuTabChange, drawEnumWithCustom
 
 from ..oot_constants import (
     ootEnumMusicSeq,
