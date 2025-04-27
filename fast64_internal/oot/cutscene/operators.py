@@ -67,13 +67,13 @@ def insertCutsceneData(filePath: str, csName: str):
                 foundCutscene = True
 
             if foundCutscene:
-                if "CS_BEGIN_CUTSCENE" in line:
+                if "CS_HEADER" in line:
                     # save the index of the line that contains the entry total and the framecount for later use
                     beginIndex = i
 
                 # looking at next line to see if we reached the end of the cs script
                 index = i + 1
-                if index < len(fileLines) and "CS_END" in fileLines[index]:
+                if index < len(fileLines) and "CS_END_OF_SCRIPT" in fileLines[index]:
                     # exporting first to get the new framecount and the total of entries values
                     fileLines.insert(index, motionExporter.getExportData())
 
@@ -90,7 +90,7 @@ def insertCutsceneData(filePath: str, csName: str):
                         frames = re.sub(r"\b([0-9a-fA-F]*)\)", f"{frameCount + motionExporter.frameCount})", beginLine)
                         fileLines[beginIndex] = f"{entries.split(', ')[0]}, {frames.split(', ')[1]}"
                     else:
-                        raise PluginError("ERROR: Can't find `CS_BEGIN_CUTSCENE()` parameters!")
+                        raise PluginError("ERROR: Can't find `CS_HEADER()` parameters!")
                     break
 
     fileData = CData()
@@ -180,12 +180,24 @@ class OOT_ExportCutscene(Operator):
 
             cpath, hpath, headerfilename = checkGetFilePaths(context)
             csdata = ootCutsceneIncludes(headerfilename)
+            cs_name = activeObj.name.removeprefix("Cutscene.")
 
             if context.scene.fast64.oot.exportMotionOnly:
                 # TODO: improve this
-                csdata.append(insertCutsceneData(cpath, activeObj.name.removeprefix("Cutscene.")))
+                csdata.append(insertCutsceneData(cpath, cs_name))
             else:
-                csdata.append(Cutscene(activeObj, context.scene.fast64.oot.useDecompFeatures).getC())
+                cutscene = Cutscene.new(
+                    cs_name,
+                    activeObj,
+                    context.scene.fast64.oot.useDecompFeatures,
+                    context.scene.fast64.oot.exportMotionOnly,
+                )
+
+                if cutscene is not None:
+                    csdata.append(cutscene.getC())
+                else:
+                    raise PluginError(f"ERROR: can't process cutscene '{cs_name}'.")
+
             writeCData(csdata, hpath, cpath)
 
             self.report({"INFO"}, "Successfully exported cutscene")
@@ -218,7 +230,19 @@ class OOT_ExportAllCutscenes(Operator):
                     if context.scene.fast64.oot.exportMotionOnly:
                         raise PluginError("ERROR: Not implemented yet.")
                     else:
-                        csdata.append(Cutscene(obj, context.scene.fast64.oot.useDecompFeatures).getC())
+                        cs_name = obj.name.removeprefix("Cutscene.")
+                        cutscene = Cutscene.new(
+                            cs_name,
+                            obj,
+                            context.scene.fast64.oot.useDecompFeatures,
+                            context.scene.fast64.oot.exportMotionOnly,
+                        )
+
+                        if cutscene is not None:
+                            csdata.append(cutscene.getC())
+                        else:
+                            raise PluginError(f"ERROR: can't process cutscene '{cs_name}'.")
+
                     count += 1
 
             if count == 0:

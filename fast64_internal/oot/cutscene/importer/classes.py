@@ -69,7 +69,7 @@ class CutsceneImport(CutsceneObjectFactory):
         return params
 
     def getNewCutscene(self, csData: str, name: str):
-        params = self.getCmdParams(csData, "CS_BEGIN_CUTSCENE", Cutscene.paramNumber)
+        params = self.getCmdParams(csData, "CS_HEADER", Cutscene.paramNumber)
         return Cutscene(name, getInteger(params[0]), getInteger(params[1]))
 
     def getParsedCutscenes(self):
@@ -160,7 +160,7 @@ class CutsceneImport(CutsceneObjectFactory):
                     if curCmd in ootCutsceneCommandsC:
                         line = line.removesuffix(",") + "\n"
 
-                        if curCmd in ootCSSingleCommands and curCmd != "CS_END":
+                        if curCmd in ootCSSingleCommands and curCmd != "CS_END_OF_SCRIPT":
                             parsedData += line
 
                         if not cmdListFound and curCmd in ootCSListCommands:
@@ -182,7 +182,7 @@ class CutsceneImport(CutsceneObjectFactory):
                                 print(f"{csName}, command:\n{line}")
                                 raise PluginError(f"ERROR: Found a list entry outside a list inside ``{csName}``!")
 
-                        if cmdListFound and nextCmd == "CS_END" or nextCmd in ootCSListAndSingleCommands:
+                        if cmdListFound and nextCmd == "CS_END_OF_SCRIPT" or nextCmd in ootCSListAndSingleCommands:
                             cmdListFound = False
                             parsedCS.append(parsedData)
                             parsedData = ""
@@ -222,7 +222,7 @@ class CutsceneImport(CutsceneObjectFactory):
                 cmdListName = cmdListData.strip().split("(")[0]
 
                 # create a new cutscene data
-                if cmdListName == "CS_BEGIN_CUTSCENE":
+                if cmdListName == "CS_HEADER":
                     cutscene = self.getNewCutscene(data, parsedCS.csName)
 
                 # if we have a cutscene, create and add the commands data in it

@@ -1099,10 +1099,29 @@ class F3DPanel(Panel):
             if showCheckBox:
                 inputGroup.prop(f3dMat, "set_fog", text="Set Fog")
             if f3dMat.set_fog:
-                inputGroup.prop(f3dMat, "use_global_fog", text="Use Global Fog (SM64)")
-                if f3dMat.use_global_fog:
-                    inputGroup.label(text="Only applies to levels (area fog settings).", icon="INFO")
-                else:
+                draw_fog = True
+                if bpy.context.scene.gameEditorMode == "SM64":
+                    obj, area_obj = bpy.context.object.parent, None
+                    while obj:
+                        if obj.type == "EMPTY" and obj.sm64_obj_type == "Area Root" and obj.fast64.sm64.area.set_fog:
+                            area_obj = obj
+                            break
+                        obj = obj.parent
+                    if area_obj:
+                        inputGroup.prop(f3dMat, "use_global_fog", text=f'Use Area "{area_obj.name}"\'s Fog')
+                        if f3dMat.use_global_fog:
+                            settings_col = inputGroup.column()
+                            settings_col.enabled = not f3dMat.use_global_fog
+                            prop_split(settings_col.row(), area_obj, "area_fog_color", "Fog Color")
+                            prop_split(settings_col.row(), area_obj, "area_fog_position", "Fog Range")
+                            draw_fog = False
+                    else:
+                        # show setting for preview
+                        inputGroup.prop(f3dMat, "use_global_fog", text="Use Area's Fog")
+                        inputGroup.label(
+                            text="Preview only in this context, no area fog settings to pick up", icon="INFO"
+                        )
+                if draw_fog:
                     prop_split(inputGroup.row(), f3dMat, "fog_color", "Fog Color")
                     prop_split(inputGroup.row(), f3dMat, "fog_position", "Fog Range")
 
@@ -1755,7 +1774,11 @@ def update_fog_nodes(material: Material, context: Context):
     else:  # If fog is not being calculated, pass in shade alpha
         material.node_tree.links.new(nodes["Shade Color"].outputs["Alpha"], fogBlender.inputs["FogAmount"])
 
-    if f3dMat.use_global_fog or not f3dMat.set_fog or inherit_light_and_fog():  # Inherit fog
+    if (
+        (bpy.context.scene.gameEditorMode == "SM64" and f3dMat.use_global_fog)
+        or not f3dMat.set_fog
+        or inherit_light_and_fog()
+    ):  # Inherit fog
         link_if_none_exist(material, nodes["SceneProperties"].outputs["FogColor"], nodes["FogColor"].inputs[0])
         link_if_none_exist(material, nodes["GlobalFogColor"].outputs[0], fogBlender.inputs["Fog Color"])
         link_if_none_exist(material, nodes["SceneProperties"].outputs["FogNear"], nodes["CalcFog"].inputs["FogNear"])
@@ -2253,9 +2276,9 @@ def get_textlut_mode(f3d_mat: "F3DMaterialProperty", inherit_from_tex: bool = Fa
     use_dict = all_combiner_uses(f3d_mat)
     textures = [f3d_mat.tex0] if use_dict["Texture 0"] and f3d_mat.tex0.tex_set else []
     textures += [f3d_mat.tex1] if use_dict["Texture 1"] and f3d_mat.tex1.tex_set else []
-    tlut_modes = [tex.ci_format if tex.tex_format.startswith("CI") else "NONE" for tex in textures]
+    tlut_modes = [tex.tlut_mode for tex in textures]
     if tlut_modes and tlut_modes[0] == tlut_modes[-1]:
-        return "G_TT_" + tlut_modes[0]
+        return tlut_modes[0]
     return None if inherit_from_tex else f3d_mat.rdp_settings.g_mdsft_textlut
 
 
@@ -2968,6 +2991,15 @@ class TextureProperty(PropertyGroup):
     )
     tile_scroll: bpy.props.PointerProperty(type=SetTileSizeScrollProperty)
 
+    @property
+    def is_ci(self):
+        self.tex_format: str
+        return self.tex_format.startswith("CI")
+
+    @property
+    def tlut_mode(self):
+        return f"G_TT_{self.ci_format if self.is_ci else 'NONE'}"
+
     def get_tex_size(self) -> list[int]:
         if self.tex or self.use_tex_reference:
             if self.tex is not None:
@@ -3029,6 +3061,7 @@ def ui_image(
     textureProp: TextureProperty,
     name: str,
     showCheckBox: bool,
+    hide_lowhigh=False,
 ):
     inputGroup = layout.box().column()
 
@@ -3135,7 +3168,8 @@ def ui_image(
                 shift = prop_input.row()
                 shift.prop(textureProp.S, "shift", text="Shift S")
                 shift.prop(textureProp.T, "shift", text="Shift T")
-
+                if hide_lowhigh:
+                    return
                 low = prop_input.row()
                 low.prop(textureProp.S, "low", text="S Low")
                 low.prop(textureProp.T, "low", text="T Low")

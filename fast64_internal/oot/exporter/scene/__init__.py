@@ -41,23 +41,36 @@ class Scene:
             True,
         )
 
-        mainHeader = SceneHeader.new(f"{name}_header{i:02}", sceneObj.ootSceneHeader, sceneObj, transform, i, useMacros)
+        try:
+            mainHeader = SceneHeader.new(
+                f"{name}_header{i:02}", sceneObj.ootSceneHeader, sceneObj, transform, i, useMacros
+            )
+        except Exception as exc:
+            raise PluginError(f"In main scene header: {exc}") from exc
         hasAlternateHeaders = False
         altHeader = SceneAlternateHeader(f"{name}_alternateHeaders")
         altProp = sceneObj.ootAlternateSceneHeaders
 
         for i, header in enumerate(altHeaderList, 1):
             altP: OOTSceneHeaderProperty = getattr(altProp, f"{header}Header")
-            if not altP.usePreviousHeader:
+            if altP.usePreviousHeader:
+                continue
+            try:
                 setattr(
                     altHeader, header, SceneHeader.new(f"{name}_header{i:02}", altP, sceneObj, transform, i, useMacros)
                 )
                 hasAlternateHeaders = True
+            except Exception as exc:
+                raise PluginError(f"In alternate scene header {header}: {exc}") from exc
 
-        altHeader.cutscenes = [
-            SceneHeader.new(f"{name}_header{i:02}", csHeader, sceneObj, transform, i, useMacros)
-            for i, csHeader in enumerate(altProp.cutsceneHeaders, 4)
-        ]
+        altHeader.cutscenes = []
+        for i, csHeader in enumerate(altProp.cutsceneHeaders, 4):
+            try:
+                altHeader.cutscenes.append(
+                    SceneHeader.new(f"{name}_header{i:02}", csHeader, sceneObj, transform, i, useMacros)
+                )
+            except Exception as exc:
+                raise PluginError(f"In alternate, cutscene header {i}: {exc}") from exc
 
         hasAlternateHeaders = True if len(altHeader.cutscenes) > 0 else hasAlternateHeaders
         altHeader = altHeader if hasAlternateHeaders else None
