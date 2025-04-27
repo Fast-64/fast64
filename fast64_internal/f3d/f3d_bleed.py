@@ -464,7 +464,7 @@ class BleedGraphics:
         no_syncs_needed = {"DPSetPrimColor", "DPSetPrimDepth"}  # will not affect rdp
         syncs_needed = {"SPSetOtherMode", "SPTexture"}  # will affect rdp
 
-        is_in_dp = True
+        is_in_dp = False
         old_cmds = cmd_list.commands
         new_cmds = []
         cmd_list.commands = new_cmds
@@ -474,7 +474,7 @@ class BleedGraphics:
             is_dp_cmd = ("DP" in cmd_name and cmd_name not in no_syncs_needed) or cmd_name in syncs_needed
             if cmd_name == "DPPipeSync":
                 continue
-            elif is_in_dp is False and is_dp_cmd:
+            elif not is_in_dp and is_dp_cmd:
                 new_cmds.append(DPPipeSync())
                 is_in_dp = True
             elif not is_dp_cmd and "Tri" in cmd_name:
