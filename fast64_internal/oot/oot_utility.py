@@ -1157,6 +1157,7 @@ def get_actor_prop_from_obj(actor_obj: Object) -> "OOTActorProperty":
 
     return actor_prop
 
+
 def updateHandlerTiedRoom(scene: Scene, emptyType: str, propName: str, ptrName: str):
     """Used by handlers to update the tied room object
 
