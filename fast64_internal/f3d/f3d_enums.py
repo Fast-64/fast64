@@ -1,3 +1,6 @@
+from typing import NamedTuple
+
+
 combiner_enums = {
     "Case A": (
         ("COMBINED", "Combined Color", "Combined Color"),
@@ -151,8 +154,9 @@ DO_NOT_SET = (
     "NONE",
     "Don´t Set",
     "In write different this means not attempting to set, in write all it means fetching the world default",
-    "X"
+    "X",
 )
+
 
 def add_do_not_set(enum_list: list[tuple[str, str, str]]):
     if enum_list and len(enum_list[0]) <= 3:
@@ -160,11 +164,14 @@ def add_do_not_set(enum_list: list[tuple[str, str, str]]):
     else:
         index = next((i for i, e in enumerate(enum_list) if e[3] != i), len(enum_list))
     with_no_set = [(*DO_NOT_SET, index)] + [(*knd[:3], i) for i, knd in enumerate(enum_list)]
+
     def run(self, context):
         if getattr(context, "material", None) is None:
             return enum_list
         return with_no_set
+
     return run
+
 
 # hardware v2
 enumAlphaDither = [
@@ -580,21 +587,27 @@ T3D_GEO_MODES = {
 }
 
 
+class PropWithDefault(NamedTuple):
+    dict_name: str
+    prop: str
+    default: str
+
+
 OTHERMODE_H_ATTRS = [
-    ("alphaDither", "g_mdsft_alpha_dither", "G_AD_DISABLE"),
-    ("colorDither", "g_mdsft_rgb_dither", "G_CD_MAGICSQ"),
-    ("chromaKey", "g_mdsft_combkey", "G_CK_NONE"),
-    ("textureConvert", "g_mdsft_textconv", "G_TC_CONV"),
-    ("textureFilter", "g_mdsft_text_filt", "G_TF_POINT"),
-    ("lutFormat", "g_mdsft_textlut", "G_TT_NONE"),
-    ("textureLoD", "g_mdsft_textlod", "G_TL_TILE"),
-    ("textureDetail", "g_mdsft_textdetail", "G_TD_CLAMP"),
-    ("perspectiveCorrection", "g_mdsft_textpersp", "G_TP_NONE"),
-    ("cycleType", "g_mdsft_cycletype", "G_CYC_1CYCLE"),
-    ("pipelineMode", "g_mdsft_pipeline", "G_PM_NPRIMITIVE"),
+    PropWithDefault("alphaDither", "g_mdsft_alpha_dither", "G_AD_DISABLE"),
+    PropWithDefault("colorDither", "g_mdsft_rgb_dither", "G_CD_MAGICSQ"),
+    PropWithDefault("chromaKey", "g_mdsft_combkey", "G_CK_NONE"),
+    PropWithDefault("textureConvert", "g_mdsft_textconv", "G_TC_CONV"),
+    PropWithDefault("textureFilter", "g_mdsft_text_filt", "G_TF_POINT"),
+    PropWithDefault("lutFormat", "g_mdsft_textlut", "G_TT_NONE"),
+    PropWithDefault("textureLoD", "g_mdsft_textlod", "G_TL_TILE"),
+    PropWithDefault("textureDetail", "g_mdsft_textdetail", "G_TD_CLAMP"),
+    PropWithDefault("perspectiveCorrection", "g_mdsft_textpersp", "G_TP_NONE"),
+    PropWithDefault("cycleType", "g_mdsft_cycletype", "G_CYC_1CYCLE"),
+    PropWithDefault("pipelineMode", "g_mdsft_pipeline", "G_PM_NPRIMITIVE"),
 ]
 
 OTHERMODE_L_ATTRS = [
-    ("alphaCompare", "g_mdsft_alpha_compare", "G_AC_NONE"),
-    ("zSourceSelection", "g_mdsft_zsrcsel", "G_ZS_PIXEL"),
+    PropWithDefault("alphaCompare", "g_mdsft_alpha_compare", "G_AC_NONE"),
+    PropWithDefault("zSourceSelection", "g_mdsft_zsrcsel", "G_ZS_PIXEL"),
 ]

@@ -300,7 +300,7 @@ def modifyDLForHUD(data):
 
 
 def exportTexRectCommon(texProp, name, convertTextureData):
-    use_copy_mode = texProp.tlut_mode == "G_TT_RGBA16" or texProp.tex_format == "RGBA16"
+    use_copy_mode = texProp.textlut == "G_TT_RGBA16" or texProp.tex_format == "RGBA16"
 
     defaults = create_or_get_world(bpy.context.scene).rdp_defaults
 
@@ -323,7 +323,7 @@ def exportTexRectCommon(texProp, name, convertTextureData):
     fMaterial.mat_only_DL.commands.append(DPSetRenderMode(["G_RM_AA_XLU_SURF", "G_RM_AA_XLU_SURF2"], None))
     fMaterial.revert.commands.append(DPSetRenderMode(["G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2"], None))
 
-    saveModeSetting(fMaterial, texProp.tlut_mode, defaults.g_mdsft_textlut, DPSetTextureLUT)
+    saveModeSetting(fMaterial, texProp.textlut, defaults.g_mdsft_textlut, DPSetTextureLUT)
     ti = TexInfo()
     ti.fromProp(texProp, index=0, ignore_tex_set=True)
     ti.materialless_setup()
