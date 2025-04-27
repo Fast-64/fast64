@@ -6,8 +6,9 @@ def convertToUnsignedShort(value: int) -> int:
 
 
 class OOTAnimation:
-    def __init__(self, name):
+    def __init__(self, name, filename: str):
         self.name = toAlnum(name)
+        self.filename = filename
         self.segmentID = None
         self.indices = {}
         self.values = []
@@ -22,7 +23,15 @@ class OOTAnimation:
 
     def toC(self):
         data = CData()
-        data.source += '#include "ultra64.h"\n#include "global.h"\n\n'
+
+        data.header = (
+            f"#ifndef {self.filename.upper()}_H\n"
+            + f"#define {self.filename.upper()}_H\n\n"
+            + '#include "ultra64.h"\n'
+            + '#include "array_count.h"\n'
+            + '#include "z64animation.h"\n\n'
+        )
+        data.source = f'#include "{self.filename}.h"\n\n'
 
         # values
         data.source += "s16 " + self.valuesName() + "[" + str(len(self.values)) + "] = {\n"
@@ -68,6 +77,7 @@ class OOTAnimation:
             + " };\n\n"
         )
 
+        data.header += "\n#endif\n"
         return data
 
 
@@ -84,14 +94,29 @@ class OOTLinkAnimation:
         data = CData()
         animHeaderData = CData()
 
-        data.source += '#include "ultra64.h"\n#include "global.h"\n\n'
-        animHeaderData.source += '#include "ultra64.h"\n#include "global.h"\n\n'
+        data.header = (
+            f"#ifndef {self.dataName().upper()}_H\n"
+            + f"#define {self.dataName().upper()}_H\n\n"
+            + '#include "ultra64.h"\n'
+            + '#include "array_count.h"\n'
+            + '#include "z64animation.h"\n\n'
+        )
+        data.source = f'#include "{self.dataName()}.h"\n\n'
+
+        animHeaderData.header = (
+            f"#ifndef {self.headerName.upper()}_H\n"
+            + f"#define {self.headerName.upper()}_H\n\n"
+            + '#include "ultra64.h"\n'
+            + '#include "array_count.h"\n'
+            + '#include "z64animation.h"\n\n'
+        )
+        animHeaderData.source = f'#include "{self.headerName}.h"\n'
 
         # TODO: handle custom import?
         if isCustomExport:
-            animHeaderData.source += f'#include "{self.dataName()}.h"\n'
+            animHeaderData.source += f'#include "{self.dataName()}.h"\n\n'
         else:
-            animHeaderData.source += f'#include "assets/misc/link_animetion/{self.dataName()}.h"\n'
+            animHeaderData.source += f'#include "assets/misc/link_animetion/{self.dataName()}.h"\n\n'
 
         # data
         data.header += f"extern s16 {self.dataName()}[];\n"
@@ -113,4 +138,6 @@ class OOTLinkAnimation:
             f"LinkAnimationHeader {self.headerName} = {{\n\t{{ {str(self.frameCount)} }}, {self.dataName()} \n}};\n\n"
         )
 
+        data.header += "\n#endif\n"
+        animHeaderData.header += "\n#endif\n"
         return data, animHeaderData

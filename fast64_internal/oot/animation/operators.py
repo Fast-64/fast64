@@ -63,7 +63,7 @@ def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSetti
             addIncludeFiles("gameplay_keep", headerPath, ootAnim.headerName)
 
     else:
-        ootAnim = ootExportNonLinkAnimation(armatureObj, convertTransformMatrix, name)
+        ootAnim = ootExportNonLinkAnimation(armatureObj, convertTransformMatrix, name, filename)
 
         ootAnimC = ootAnim.toC()
         path = ootGetPath(exportPath, settings.isCustom, "assets/objects/", settings.folderName, True, False)

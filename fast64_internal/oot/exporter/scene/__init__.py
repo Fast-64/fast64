@@ -220,16 +220,22 @@ class Scene:
         sceneCutsceneData = self.getSceneCutscenesC()
         sceneTexturesData = self.getSceneTexturesC(textureExportSettings)
 
-        includes = (
-            "\n".join(
-                [
-                    '#include "ultra64.h"',
-                    '#include "macros.h"',
-                    '#include "z64.h"',
-                ]
-            )
-            + "\n\n\n"
-        )
+        includes = [
+            '#include "ultra64.h"',
+            '#include "romfile.h"',
+            '#include "array_count.h"',
+            '#include "sequence.h"',
+            '#include "z64actor_profile.h"',
+            '#include "z64bgcheck.h"',
+            '#include "z64camera.h"',
+            '#include "z64cutscene.h"',
+            '#include "z64cutscene_commands.h"',
+            '#include "z64environment.h"',
+            '#include "z64math.h"',
+            '#include "z64object.h"',
+            '#include "z64room.h"',
+            '#include "z64scene.h"',
+        ]
 
         return SceneFile(
             self.name,
@@ -246,7 +252,7 @@ class Scene:
             (
                 f"#ifndef {self.name.upper()}_H\n"
                 + f"#define {self.name.upper()}_H\n\n"
-                + includes
+                + ("\n".join(includes) + "\n\n")
                 + sceneMainData.header
                 + "".join(cs.header for cs in sceneCutsceneData)
                 + sceneCollisionData.header

@@ -61,12 +61,14 @@ def ootConvertMeshToC(
         ootCleanupScene(originalObj, allObjs)
         raise Exception(str(e))
 
+    filename = settings.filename if settings.isCustomFilename else name
     data = CData()
-    data.source += '#include "ultra64.h"\n#include "global.h"\n'
+    data.header = f"#ifndef {filename.upper()}_H\n" + f"#define {filename.upper()}_H\n\n" + '#include "ultra64.h"\n'
+    data.source = f'#include "{filename}.h"\n\n'
     if not isCustomExport:
-        data.source += '#include "' + folderName + '.h"\n\n'
+        data.header += f'#include "{folderName}.h"\n\n'
     else:
-        data.source += "\n"
+        data.header += "\n"
 
     path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, True)
     includeDir = settings.customAssetIncludeDir if settings.isCustom else f"assets/objects/{folderName}"
@@ -80,7 +82,7 @@ def ootConvertMeshToC(
         textureArrayData = writeTextureArraysNew(fModel, flipbookArrayIndex2D)
         data.append(textureArrayData)
 
-    filename = settings.filename if settings.isCustomFilename else name
+    data.header += "\n#endif\n"
     writeCData(data, os.path.join(path, filename + ".h"), os.path.join(path, filename + ".c"))
 
     if not isCustomExport:
