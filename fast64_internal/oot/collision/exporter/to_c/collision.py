@@ -273,7 +273,7 @@ def exportCollisionToC(
     name = toAlnum(originalObj.name)
     isCustomExport = exportSettings.customExport
     folderName = exportSettings.folder
-    exportPath = ootGetObjectPath(isCustomExport, bpy.path.abspath(exportSettings.exportPath), folderName, False)
+    exportPath = ootGetObjectPath(isCustomExport, bpy.path.abspath(exportSettings.exportPath), folderName, True)
 
     collision = OOTCollision(name)
     collision.cameraData = OOTCameraData(name)
@@ -296,7 +296,14 @@ def exportCollisionToC(
 
             colData.header = (
                 "\n".join(
-                    ['#include "ultra64.h"', '#include "z64math.h"', '#include "z64bgcheck.h"', '#include "macros.h"']
+                    [
+                        f"#ifndef {filename.upper()}_H",
+                        f"#define {filename.upper()}_H\n",
+                        '#include "ultra64.h"',
+                        '#include "z64math.h"',
+                        '#include "z64bgcheck.h"',
+                        '#include "array_count.h"',
+                    ]
                 )
                 + "\n\n"
             )
@@ -319,11 +326,13 @@ def exportCollisionToC(
                 ).getC()
             )
 
+            colData.header += "\n#endif\n"
+
             # write file
-            path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, True)
+            path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, True, True)
             writeCData(colData, os.path.join(path, f"{filename}.h"), os.path.join(path, f"{filename}.c"))
             if not isCustomExport:
-                addIncludeFiles(folderName, path, name)
+                addIncludeFiles(folderName, path, filename)
         else:
             raise PluginError("ERROR: The selected mesh object ignores collision!")
     except Exception as e:
