@@ -1,4 +1,6 @@
-from bpy.types import Armature, PropertyGroup, Object, Bone, UILayout
+import bpy
+
+from bpy.types import PropertyGroup, Object, Bone, UILayout
 from bpy.props import EnumProperty, PointerProperty, StringProperty, FloatProperty, BoolProperty, IntProperty
 from bpy.utils import register_class, unregister_class
 from ...f3d.f3d_material import ootEnumDrawLayers
@@ -120,7 +122,7 @@ class OOTSkeletonImportSettings(PropertyGroup):
     flipbookUses2DArray: BoolProperty(name="Has 2D Flipbook Array", default=False)
     flipbookArrayIndex2D: IntProperty(name="Index if 2D Array", default=0, min=0)
     autoDetectActorScale: BoolProperty(name="Auto Detect Actor Scale", default=True)
-    actorScale: FloatProperty(name="Actor Scale", min=0, default=100)
+    actorScale: FloatProperty(name="Actor Scale", min=0, default=10)
 
     def draw_props(self, layout: UILayout):
         prop_split(layout, self, "drawLayer", "Import Draw Layer")
@@ -130,6 +132,7 @@ class OOTSkeletonImportSettings(PropertyGroup):
         if self.isCustom:
             prop_split(layout, self, "name", "Skeleton")
             prop_split(layout, self, "customPath", "File")
+            prop_split(layout, self, "actorScale", "Actor Scale")
         else:
             prop_split(layout, self, "mode", "Mode")
             if self.mode == "Generic":
@@ -170,7 +173,7 @@ def skeleton_props_register():
     for cls in oot_skeleton_classes:
         register_class(cls)
 
-    Object.ootActorScale = FloatProperty(min=0, default=100)
+    Object.ootActorScale = FloatProperty(min=0, default=10)
     Object.ootSkeleton = PointerProperty(type=OOTSkeletonProperty)
     Bone.ootBone = PointerProperty(type=OOTBoneProperty)
 

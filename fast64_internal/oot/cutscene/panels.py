@@ -27,11 +27,6 @@ class OOT_CutscenePanel(OOT_Panel):
         exportBox = layout.box()
         exportBox.label(text="Cutscene Exporter")
 
-        col = exportBox.column()
-        if not context.scene.fast64.oot.hackerFeaturesEnabled:
-            col.prop(context.scene, "useDecompFeatures")
-        col.prop(context.scene, "exportMotionOnly")
-
         prop_split(exportBox, context.scene, "ootCutsceneExportPath", "Export To")
 
         activeObj = context.view_layer.objects.active
@@ -53,9 +48,12 @@ class OOT_CutscenePanel(OOT_Panel):
 
         importBox = layout.box()
         importBox.label(text="Cutscene Importer")
-        prop_split(importBox, context.scene, "ootCutsceneImportPath", "Import From")
+        prop_split(importBox, context.scene, "ootCSImportName", "Import")
+        prop_split(importBox, context.scene, "ootCutsceneImportPath", "From")
 
         col = importBox.column()
+        if len(context.scene.ootCSImportName) == 0:
+            col.label(text="All Cutscenes will be imported.")
         col.operator(OOT_ImportCutscene.bl_idname)
 
 
@@ -66,25 +64,10 @@ oot_cutscene_panel_classes = (
 
 
 def cutscene_panels_register():
-    Scene.useDecompFeatures = BoolProperty(
-        name="Use Decomp for Export", description="Use names and macros from decomp when exporting", default=True
-    )
-
-    Scene.exportMotionOnly = BoolProperty(
-        name="Export Motion Data Only",
-        description=(
-            "Export everything or only the camera and actor motion data.\n"
-            + "This will insert the data into the cutscene."
-        ),
-    )
-
     for cls in oot_cutscene_panel_classes:
         register_class(cls)
 
 
 def cutscene_panels_unregister():
-    del Scene.exportMotionOnly
-    del Scene.useDecompFeatures
-
     for cls in oot_cutscene_panel_classes:
         unregister_class(cls)

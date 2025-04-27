@@ -330,6 +330,7 @@ enumRenderModesCycle2 = [
     ("G_RM_ZB_CLD_SURF2", "Cloud (No AA)", "G_RM_ZB_CLD_SURF2"),
     ("G_RM_ZB_OVL_SURF2", "Overlay (No AA)", "G_RM_ZB_OVL_SURF2"),
     ("G_RM_AA_ZB_TEX_TERR2", "Terrain", "G_RM_AA_ZB_TEX_TERR2"),
+    ("G_RM_OPA_SURF2", "Opaque (No AA, No ZBuf)", "G_RM_OPA_SURF2"),
 ]
 
 enumTexFormat = [
@@ -377,13 +378,22 @@ maxTexelCount = {
 }
 
 enumF3D = [
-    ("F3D", "F3D", "Original microcode used in SM64"),
-    ("F3DEX/LX", "F3DEX/LX", "F3DEX version 1"),
-    ("F3DLX.Rej", "F3DLX.Rej", "F3DLX.Rej"),
-    ("F3DLP.Rej", "F3DLP.Rej", "F3DLP.Rej"),
-    ("F3DEX2/LX2", "F3DEX2/LX2/ZEX", "Family of microcodes used in later N64 games including OoT and MM"),
-    ("F3DEX2.Rej/LX2.Rej", "F3DEX2.Rej/LX2.Rej", "Variant of F3DEX2 family using vertex rejection instead of clipping"),
-    ("F3DEX3", "F3DEX3", "Custom microcode by Sauraen"),
+    ("", "F3D Family", "", 7),
+    ("F3D", "F3D", "Original microcode used in SM64", 0),
+    ("F3DEX/LX", "F3DEX/LX", "F3DEX version 1", 1),
+    ("F3DLX.Rej", "F3DLX.Rej", "F3DLX.Rej", 2),
+    ("F3DLP.Rej", "F3DLP.Rej", "F3DLP.Rej", 3),
+    ("F3DEX2/LX2", "F3DEX2/LX2/ZEX", "Family of microcodes used in later N64 games including OoT and MM", 4),
+    (
+        "F3DEX2.Rej/LX2.Rej",
+        "F3DEX2.Rej/LX2.Rej",
+        "Variant of F3DEX2 family using vertex rejection instead of clipping",
+        5,
+    ),
+    ("F3DEX3", "F3DEX3", "Custom microcode by Sauraen", 6),
+    ("", "Homebrew", "", 8),
+    ("RDPQ", "RDPQ", "Base libdragon microcode", 9),
+    ("T3D", "Tiny3D", "Custom libdragon microcode by HailToDodongo", 10),
 ]
 
 enumLargeEdges = [

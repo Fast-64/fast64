@@ -1,3 +1,6 @@
+import dataclasses
+from typing import Any, Iterable, TypeVar
+
 # RAM address used in evaluating switch for hatless Mario
 marioHatSwitch = 0x80277740
 marioLowPolySwitch = 0x80277150
@@ -34,13 +37,6 @@ commonGeolayoutPointers = {
     "Lakitu": [1985520, "CC"],
 }
 
-draw_layer_enums = [
-    ("1", "Solid", "0x01"),
-    ("2", "Solid Decal", "0x02"),
-    ("4", "Transparent (No Blending)", "0x04"),
-    ("5", "Transparent (Blending Front)", "0x05"),
-    ("6", "Transparent (Blending Back)", "0x06"),
-]
 
 level_enums = [
     ("HH", "Big Boo's Haunt", "HH"),  # Originally Haunted House
@@ -77,7 +73,7 @@ level_enums = [
 ]
 
 enumLevelNames = [
-    ("custom", "Custom", "Custom"),
+    ("Custom", "Custom", "Custom"),
     ("bbh", "Big Boo's Haunt", "Big Boo's Haunt"),
     ("bitdw", "Bowser In The Dark World", "Bowser In The Dark World"),
     ("bitfs", "Bowser In The Fire Sea", "Bowser In The Fire Sea"),
@@ -1769,6 +1765,328 @@ enumMacrosNames = [
     ("macro_yellow_coin_2", "Yellow Coin 2", "Yellow Coin 2"),
 ]
 
+enumBehaviorMacros = [
+    ("Custom", "Custom", ""),
+    ("BEGIN", "BEGIN", "Starts the behavior, places it in a specific group"),
+    ("DELAY", "DELAY", "Delays bhv by number of frames"),
+    ("CALL", "CALL", "Jumps to a new cmd and stores return addr in the object's stack"),
+    ("RETURN", "RETURN", "Jumps back to last cmd on the object's stack"),
+    ("GOTO", "GOTO", "Jumps to new cmd without saving a return addr"),
+    ("BEGIN_REPEAT", "BEGIN_REPEAT", "Start of a loop that will repeat N times"),
+    ("END_REPEAT", "END_REPEAT", "End of repeating loop"),
+    (
+        "END_REPEAT_CONTINUE",
+        "END_REPEAT_CONTINUE",
+        "End of repeating loop, but continues cmds on same frame as loop end",
+    ),
+    ("BEGIN_LOOP", "BEGIN_LOOP", "Start of infinite loop"),
+    ("END_LOOP", "END_LOOP", "End of infinite loop"),
+    ("BREAK", "BREAK", "Exit behavior, object remains"),
+    ("CALL_NATIVE", "CALL_NATIVE", "Execute a native game function"),
+    ("ADD_FLOAT", "ADD_FLOAT", "Adds float value to obj field"),
+    ("SET_FLOAT", "SET_FLOAT", "Sets float value to obj field"),
+    ("ADD_INT", "ADD_INT", "Adds int value to obj field"),
+    ("SET_INT", "SET_INT", "Set int value to obj field"),
+    ("OR_INT", "OR_INT", "Bitwise OR int value to obj field"),
+    ("BIT_CLEAR", "BIT_CLEAR", "Bitwise Clear int value to obj field"),
+    ("SET_INT_RAND_RSHIFT", "SET_INT_RAND_RSHIFT", "Set random float value to obj field with min and R shifted"),
+    ("SET_RANDOM_FLOAT", "SET_RANDOM_FLOAT", "Set random float value to obj field with min"),
+    ("SET_RANDOM_INT", "SET_RANDOM_INT", "Set random int value to obj field with min"),
+    ("ADD_RANDOM_FLOAT", "ADD_RANDOM_FLOAT", "Add random int value to obj field with min"),
+    ("ADD_INT_RAND_RSHIFT", "ADD_INT_RAND_RSHIFT", "Add random int value to obj field with min and R shifted"),
+    ("CMD_NOP_1", "CMD_NOP_1", "No Operation"),
+    ("SET_MODEL", "SET_MODEL", "Sets model ID"),
+    ("SPAWN_CHILD", "SPAWN_CHILD", "Spawn object with model ID and behavior, sets spawn parent to this obj"),
+    ("DEACTIVATE", "DEACTIVATE", "Stops behavior and deletes object"),
+    ("DROP_TO_FLOOR", "DROP_TO_FLOOR", "Drops obj to floor"),
+    ("SUM_FLOAT", "SUM_FLOAT", "Sets obj field to sum of two float obj field values"),
+    ("SUM_INT", "SUM_INT", "Sets obj field to sum of two int obj field values"),
+    ("BILLBOARD", "BILLBOARD", "Billboards object"),
+    ("CYLBOARD", "CYLBOARD", "Cylboards object"),
+    ("HIDE", "HIDE", "Hides object"),
+    ("SET_HITBOX", "SET_HITBOX", "Sets a cylinder hitbox"),
+    ("DELAY_VAR", "DELAY_VAR", "Delay bhv by obj field number of frames"),
+    ("LOAD_ANIMATIONS", "LOAD_ANIMATIONS", "Sets vptr to field, usually used for anims"),
+    ("ANIMATE", "ANIMATE", "Sets animation index of object"),
+    (
+        "SPAWN_CHILD_WITH_PARAM",
+        "SPAWN_CHILD_WITH_PARAM",
+        "Spawns object with model ID, behavior and bparam, sets spawn parent to this obj",
+    ),
+    ("LOAD_COLLISION_DATA", "LOAD_COLLISION_DATA", "Loads collision data"),
+    ("SET_HITBOX_WITH_OFFSET", "SET_HITBOX_WITH_OFFSET", "Sets a hitbox with a negative vertical offset"),
+    ("SPAWN_OBJ", "SPAWN_OBJ", "Spawn object with model ID and behavior, sets spawn parent to this obj"),
+    ("SET_HOME", "SET_HOME", "Sets objects home"),
+    ("SET_HURTBOX", "SET_HURTBOX", "Sets a cyliner hurtbox"),
+    ("SET_INTERACT_TYPE", "SET_INTERACT_TYPE", "Sets interaction type"),
+    ("SET_OBJ_PHYSICS", "SET_OBJ_PHYSICS", "Sets physics values used during obj_step function"),
+    ("SET_INTERACT_SUBTYPE", "SET_INTERACT_SUBTYPE", "Sets object's interaction subtype"),
+    ("SCALE", "SCALE", "Scales object"),
+    ("PARENT_BIT_CLEAR", "PARENT_BIT_CLEAR", "Bit clear parent object's obj field value"),
+    ("ANIMATE_TEXTURE", "ANIMATE_TEXTURE", "Increases obj field value every N frames"),
+    ("DISABLE_RENDERING", "DISABLE_RENDERING", "Disables rendering for object"),
+    ("SPAWN_WATER_DROPLET", "SPAWN_WATER_DROPLET", "Spawns a water droplet"),
+]
+
+behaviorMacroArguments = {
+    "BEGIN": ("Group Num",),
+    "DELAY": ("Num Frames",),
+    "CALL": ("Behavior Addr",),
+    "RETURN": (),
+    "GOTO": ("Behavior Addr",),
+    "BEGIN_REPEAT": ("Num Repeats",),
+    "END_REPEAT": (),
+    "END_REPEAT_CONTINUE": (),
+    "BEGIN_LOOP": (),
+    "END_LOOP": (),
+    "BREAK": (),
+    "CALL_NATIVE": ("Function Name",),
+    "ADD_FLOAT": ("Obj Field", "Value"),
+    "SET_FLOAT": ("Obj Field", "Value"),
+    "ADD_INT": ("Obj Field", "Value"),
+    "SET_INT": ("Obj Field", "Value"),
+    "OR_INT": ("Obj Field", "Flags"),
+    "BIT_CLEAR": ("Obj Field", "Flags"),
+    "SET_INT_RAND_RSHIFT": ("Obj Field", "Min", "R shift"),
+    "SET_RANDOM_FLOAT": ("Obj Field", "Min", "Range"),
+    "SET_RANDOM_INT": ("Obj Field", "Min", "Range"),
+    "ADD_RANDOM_FLOAT": ("Obj Field", "Min", "Range"),
+    "ADD_INT_RAND_RSHIFT": ("Obj Field", "Min", "R shift"),
+    "CMD_NOP_1": (),
+    "SET_MODEL": ("Model ID",),
+    "SPAWN_CHILD": ("Model ID", "Behavior Addr"),
+    "DEACTIVATE": (),
+    "DROP_TO_FLOOR": (),
+    "SUM_FLOAT": ("Dest Obj Field", "Src Obj Field 1", "Src Obj Field 2"),
+    "SUM_INT": ("Dest Obj Field", "Src Obj Field 1", "Src Obj Field 2"),
+    "BILLBOARD": (),
+    "CYLBOARD": (),
+    "HIDE": (),
+    "SET_HITBOX": ("Radius", "Height"),
+    "DELAY_VAR": ("Obj Field",),
+    "LOAD_ANIMATIONS": ("Obj Field", "Vptr"),
+    "ANIMATE": ("Anim Index",),
+    "SPAWN_CHILD_WITH_PARAM": ("Bparam", "Model ID", "Behavior Addr"),
+    "LOAD_COLLISION_DATA": ("Collision Name",),
+    "SPAWN_OBJ": ("Model ID", "Behavior Addr"),
+    "SET_HOME": (),
+    "SET_HURTBOX": ("Radius", "Height"),
+    "SET_INTERACT_TYPE": ("Interaction Type",),
+    "SET_OBJ_PHYSICS": (
+        "Wall Hitbox Radius",
+        "Gravity",
+        "Bounce",
+        "Drag",
+        "Friction",
+        "Buoyancy",
+        "unused1",
+        "unused2",
+    ),
+    "SET_INTERACT_SUBTYPE": ("Interaction Subtype",),
+    "SCALE": (
+        "unused",
+        "Scale Percent",
+    ),
+    "PARENT_BIT_CLEAR": ("Obj Field", "Flags"),
+    "ANIMATE_TEXTURE": ("Obj Field", "Rate"),
+    "DISABLE_RENDERING": (),
+    "SPAWN_WATER_DROPLET": ("Droplet Params",),
+    "Custom": (),
+}
+
+enumPresetBehaviors = [
+    ("Custom", "Custom", ""),
+    ("Static Solid Object", "Static Solid Object", "A static solid object"),
+    ("Rotating Solid Object", "Rotating Solid Object", "A rotating solid object"),
+    ("Moving Solid Object", "Moving Solid Object", "A solid object that moves up and down"),
+    ("Pole-like", "Pole-like", "A pole like object"),
+    ("Flame-like", "Flame-like", "An animated object with burning interaction"),
+    ("Talking NPC", "Talking NPC", "A NPC you can speak to, not animated by default"),
+]
+
+behaviorPresetContents = {
+    "Static Solid Object": (
+        ("BEGIN", ("OBJ_LIST_SURFACE",)),
+        (
+            "OR_INT",
+            (
+                "oFlags",
+                "OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE",
+            ),
+        ),
+        ("LOAD_COLLISION_DATA", ("inherit",)),
+        ("BEGIN_LOOP", ()),
+        ("CALL_NATIVE", ("load_object_collision_model",)),
+        ("END_LOOP", ("")),
+    ),
+    "Rotating Solid Object": (
+        ("BEGIN", ("OBJ_LIST_SURFACE",)),
+        (
+            "OR_INT",
+            (
+                "oFlags",
+                "OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE",
+            ),
+        ),
+        ("LOAD_COLLISION_DATA", ("inherit",)),
+        ("BEGIN_LOOP", ()),
+        ("ADD_INT", ("oFaceAngleYaw", "200")),
+        ("CALL_NATIVE", ("load_object_collision_model",)),
+        ("END_LOOP", ("")),
+    ),
+    "Moving Solid Object": (
+        ("BEGIN", ("OBJ_LIST_SURFACE",)),
+        (
+            "OR_INT",
+            (
+                "oFlags",
+                "OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE",
+            ),
+        ),
+        ("LOAD_COLLISION_DATA", ("inherit",)),
+        ("BEGIN_LOOP", ()),
+        ("CALL_NATIVE", ("bhv_ssl_moving_pyramid_wall_loop",)),
+        ("END_LOOP", ("")),
+    ),
+    "Pole-like": (
+        ("BEGIN", ("OBJ_LIST_POLELIKE",)),
+        (
+            "OR_INT",
+            (
+                "oFlags",
+                "OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE",
+            ),
+        ),
+        ("SET_INTERACT_TYPE", ("INTERACT_POLE",)),
+        ("SET_HITBOX", ("inherit", "inherit")),
+        ("CALL_NATIVE", ("bhv_pole_init",)),
+        ("SET_INT", ("oIntangibleTimer", "0")),
+        ("BEGIN_LOOP", ()),
+        ("CALL_NATIVE", ("bhv_pole_base_loop",)),
+        ("END_LOOP", ("")),
+    ),
+    "Flame-like": (
+        ("BEGIN", ("OBJ_LIST_LEVEL",)),
+        ("BILLBOARD", ()),
+        (
+            "OR_INT",
+            (
+                "oFlags",
+                "OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE",
+            ),
+        ),
+        ("SET_INTERACT_TYPE", ("INTERACT_FLAME",)),
+        ("SET_HITBOX", ("inherit", "inherit")),
+        ("SET_INT", ("oIntangibleTimer", "0")),
+        ("BEGIN_LOOP", ()),
+        ("SET_INT", ("oInteractStatus", "0")),
+        ("ANIMATE_TEXTURE", ("oAnimState", "2")),
+        ("END_LOOP", ("")),
+    ),
+    "Talking NPC": (
+        ("BEGIN", ("OBJ_LIST_GENACTOR",)),
+        (
+            "OR_INT",
+            (
+                "oFlags",
+                "OBJ_FLAG_COMPUTE_ANGLE_TO_MARIO | OBJ_FLAG_COMPUTE_DIST_TO_MARIO | OBJ_FLAG_SET_FACE_YAW_TO_MOVE_YAW | OBJ_FLAG_UPDATE_GFX_POS_AND_ANGLE",
+            ),
+        ),
+        ("SET_INTERACT_TYPE", ("INTERACT_TEXT",)),
+        ("SET_HITBOX", ("inherit", "inherit")),
+        ("SET_INT", ("oInteractionSubtype", "INT_SUBTYPE_SIGN")),
+        ("BEGIN_LOOP", ()),
+        ("SET_INT", ("oIntangibleTimer", "0")),
+        ("SET_INT", ("oInteractStatus", "0")),
+        ("END_LOOP", ("")),
+    ),
+}
+
+obj_group_enums = [
+    ("Custom", "Custom", "Custom"),
+    ("OBJ_LIST_PLAYER", "OBJ_LIST_PLAYER", "OBJ_LIST_PLAYER"),
+    ("OBJ_LIST_UNUSED_1", "OBJ_LIST_UNUSED_1", "OBJ_LIST_UNUSED_1"),
+    ("OBJ_LIST_DESTRUCTIVE", "OBJ_LIST_DESTRUCTIVE", "OBJ_LIST_DESTRUCTIVE"),
+    ("OBJ_LIST_UNUSED_3", "OBJ_LIST_UNUSED_3", "OBJ_LIST_UNUSED_3"),
+    ("OBJ_LIST_GENACTOR", "OBJ_LIST_GENACTOR", "OBJ_LIST_GENACTOR"),
+    ("OBJ_LIST_PUSHABLE", "OBJ_LIST_PUSHABLE", "OBJ_LIST_PUSHABLE"),
+    ("OBJ_LIST_LEVEL", "OBJ_LIST_LEVEL", "OBJ_LIST_LEVEL"),
+    ("OBJ_LIST_UNUSED_7", "OBJ_LIST_UNUSED_7", "OBJ_LIST_UNUSED_7"),
+    ("OBJ_LIST_DEFAULT", "OBJ_LIST_DEFAULT", "OBJ_LIST_DEFAULT"),
+    ("OBJ_LIST_SURFACE", "OBJ_LIST_SURFACE", "OBJ_LIST_SURFACE"),
+    ("OBJ_LIST_POLELIKE", "OBJ_LIST_POLELIKE", "OBJ_LIST_POLELIKE"),
+    ("OBJ_LIST_SPAWNER", "OBJ_LIST_SPAWNER", "OBJ_LIST_SPAWNER"),
+    ("OBJ_LIST_UNIMPORTANT", "OBJ_LIST_UNIMPORTANT", "OBJ_LIST_UNIMPORTANT"),
+]
+
+obj_field_enums = [
+    ("Custom", "Custom", "Custom"),
+    ("oFlags", "oFlags", "oFlags"),
+    ("oDialogResponse", "oDialogResponse", "oDialogResponse"),
+    ("oDialogState", "oDialogState", "oDialogState"),
+    ("oObjScale", "oObjScale", "oObjScale"),
+    ("oIntangibleTimer", "oIntangibleTimer", "oIntangibleTimer"),
+    ("oPosX", "oPosX", "oPosX"),
+    ("oPosY", "oPosY", "oPosY"),
+    ("oPosZ", "oPosZ", "oPosZ"),
+    ("oVelX", "oVelX", "oVelX"),
+    ("oVelY", "oVelY", "oVelY"),
+    ("oVelZ", "oVelZ", "oVelZ"),
+    ("oForwardVel", "oForwardVel", "oForwardVel"),
+    ("oMoveAnglePitch", "oMoveAnglePitch", "oMoveAnglePitch"),
+    ("oMoveAngleYaw", "oMoveAngleYaw", "oMoveAngleYaw"),
+    ("oMoveAngleRoll", "oMoveAngleRoll", "oMoveAngleRoll"),
+    ("oFaceAnglePitch", "oFaceAnglePitch", "oFaceAnglePitch"),
+    ("oFaceAngleYaw", "oFaceAngleYaw", "oFaceAngleYaw"),
+    ("oFaceAngleRoll", "oFaceAngleRoll", "oFaceAngleRoll"),
+    ("oGraphYOffset", "oGraphYOffset", "oGraphYOffset"),
+    ("oActiveParticleFlags", "oActiveParticleFlags", "oActiveParticleFlags"),
+    ("oGravity", "oGravity", "oGravity"),
+    ("oFloorHeight", "oFloorHeight", "oFloorHeight"),
+    ("oMoveFlags", "oMoveFlags", "oMoveFlags"),
+    ("oAnimState", "oAnimState", "oAnimState"),
+    ("oAngleVelPitch", "oAngleVelPitch", "oAngleVelPitch"),
+    ("oAngleVelYaw", "oAngleVelYaw", "oAngleVelYaw"),
+    ("oAngleVelRoll", "oAngleVelRoll", "oAngleVelRoll"),
+    ("oAnimations", "oAnimations", "oAnimations"),
+    ("oHeldState", "oHeldState", "oHeldState"),
+    ("oWallHitboxRadius", "oWallHitboxRadius", "oWallHitboxRadius"),
+    ("oDragStrength", "oDragStrength", "oDragStrength"),
+    ("oInteractType", "oInteractType", "oInteractType"),
+    ("oInteractStatus", "oInteractStatus", "oInteractStatus"),
+    ("oParentRelativePosX", "oParentRelativePosX", "oParentRelativePosX"),
+    ("oParentRelativePosY", "oParentRelativePosY", "oParentRelativePosY"),
+    ("oParentRelativePosZ", "oParentRelativePosZ", "oParentRelativePosZ"),
+    ("oBehParams2ndByte", "oBehParams2ndByte", "oBehParams2ndByte"),
+    ("oAction", "oAction", "oAction"),
+    ("oSubAction", "oSubAction", "oSubAction"),
+    ("oTimer", "oTimer", "oTimer"),
+    ("oBounciness", "oBounciness", "oBounciness"),
+    ("oDistanceToMario", "oDistanceToMario", "oDistanceToMario"),
+    ("oAngleToMario", "oAngleToMario", "oAngleToMario"),
+    ("oHomeX", "oHomeX", "oHomeX"),
+    ("oHomeY", "oHomeY", "oHomeY"),
+    ("oHomeZ", "oHomeZ", "oHomeZ"),
+    ("oFriction", "oFriction", "oFriction"),
+    ("oBuoyancy", "oBuoyancy", "oBuoyancy"),
+    ("oSoundStateID", "oSoundStateID", "oSoundStateID"),
+    ("oOpacity", "oOpacity", "oOpacity"),
+    ("oDamageOrCoinValue", "oDamageOrCoinValue", "oDamageOrCoinValue"),
+    ("oHealth", "oHealth", "oHealth"),
+    ("oBehParams", "oBehParams", "oBehParams"),
+    ("oPrevAction", "oPrevAction", "oPrevAction"),
+    ("oInteractionSubtype", "oInteractionSubtype", "oInteractionSubtype"),
+    ("oCollisionDistance", "oCollisionDistance", "oCollisionDistance"),
+    ("oNumLootCoins", "oNumLootCoins", "oNumLootCoins"),
+    ("oDrawingDistance", "oDrawingDistance", "oDrawingDistance"),
+    ("oRoom", "oRoom", "oRoom"),
+    ("oWallAngle", "oWallAngle", "oWallAngle"),
+    ("oFloorType", "oFloorType", "oFloorType"),
+    ("oFloorRoom", "oFloorRoom", "oFloorRoom"),
+    ("oAngleToHome", "oAngleToHome", "oAngleToHome"),
+    ("oFloor", "oFloor", "oFloor"),
+    ("oDeathSound", "oDeathSound", "oDeathSound"),
+]
 
 # groups you can select for levels
 groupsSeg5 = [
@@ -1799,6 +2117,1595 @@ groupsSeg6 = [
     ("Custom", "Custom", "Custom"),
 ]
 
+# groups you can use for the combined object export
+groups_obj_export = [
+    ("common0", "common0", "chuckya, boxes, blue coin switch"),
+    ("common1", "common1", "warp pipe, particles, trees, star, door"),
+    ("group0", "group0", "Mario, particles etc."),
+    ("group1", "group1", "Ground objects (Thwomp, Heave-Ho, Hoot etc.)"),
+    ("group2", "group2", "Bully/Blargg"),
+    ("group3", "group3", "King Bob-Omb"),
+    ("group4", "group4", "Water Objects (Unagi, Manta, Clam)"),
+    ("group5", "group5", "Sand Objects (Pokey, Eyerock, klepto)"),
+    ("group6", "group6", "TTM Objects (Monty Mole, uUkiki, Fwoosh)"),
+    ("group7", "group7", "Snow Objects (Mr Blizzard, Spindrift etc.)"),
+    ("group8", "group8", "Cap Switch"),
+    ("group9", "group9", "Haunted Objects (Boo, Mad Piano etc.)"),
+    ("group10", "group10", "Peach/Yoshi"),
+    ("group11", "group11", "THI Ojbects (Lakitu, Wiggler, Bubba)"),
+    ("group12", "group12", "Bowser/Bowser Bomb"),
+    ("group13", "group13", "Water Objects (Skeeter, Treasure Chest etc.)"),
+    ("group14", "group14", "Ground Objects (Piranha Plant, Chain Chomp etc.)"),
+    ("group15", "group15", "Castle Objects (MIPS, Toad etc.)"),
+    ("group16", "group16", "Ice Objects (Chill Bully, Moneybags)"),
+    ("group17", "group17", "Cave Objects (Swoop, Scuttlebug, Dorrie etc.)"),
+    ("Custom", "Custom", "Custom"),
+]
+
+T = TypeVar("T")
+DictOrVal = T | dict[T] | None
+ListOrVal = T | list[T] | None
+
+
+def as_list(val: ListOrVal[Any]) -> list[T]:
+    if isinstance(val, Iterable):
+        return list(val)
+    if val is None:
+        return []
+    return [val]
+
+
+def as_dict(val: DictOrVal[T], name: str = "") -> dict[str, T]:
+    """If val is a dict, returns it, otherwise returns {name: member}"""
+    if isinstance(val, dict):
+        return val
+    elif val is not None:
+        return {name: val}
+    return {}
+
+
+def validate_dict(val: DictOrVal, val_type: type):
+    return all(isinstance(k, str) and isinstance(v, val_type) for k, v in as_dict(val).items())
+
+
+def validate_list(val: ListOrVal, val_type: type):
+    return all(isinstance(v, val_type) for v in as_list(val))
+
+
+@dataclasses.dataclass
+class AnimInfo:
+    address: int
+    behaviours: DictOrVal[int] = dataclasses.field(default_factory=dict)
+    size: int | None = None  # None means the size can be determined from the NULL delimiter
+    ignore_bone_count: bool = False
+    dma: bool = False
+    directory: str | None = None
+    names: list[str] | None = None
+
+    def __post_init__(self):
+        assert isinstance(self.address, int)
+        assert validate_dict(self.behaviours, int)
+        assert self.size is None or isinstance(self.size, int)
+        assert isinstance(self.ignore_bone_count, bool)
+        assert isinstance(self.dma, bool)
+        assert self.directory is None or isinstance(self.directory, str)
+        assert validate_list(self.names, str)
+
+
+@dataclasses.dataclass
+class ModelIDInfo:
+    number: int
+    enum: str
+
+    def __post_init__(self):
+        assert isinstance(self.number, int)
+        assert isinstance(self.enum, str)
+
+
+@dataclasses.dataclass
+class DisplaylistInfo:
+    address: int
+    # Displaylists are compressed, so their c name can´t be fetched from func_map like geolayouts
+    c_name: str
+
+    def __post_init__(self):
+        assert isinstance(self.address, int)
+        assert isinstance(self.c_name, str)
+
+
+@dataclasses.dataclass
+class ModelInfo:
+    model_id: ListOrVal[ModelIDInfo] = dataclasses.field(default_factory=list)
+    geolayout: int | None = None
+    displaylist: DisplaylistInfo | None = None
+
+    def __post_init__(self):
+        self.model_id = as_list(self.model_id)
+        assert validate_list(self.model_id, ModelIDInfo)
+        assert validate_list(self.geolayout, int)
+        assert validate_list(self.displaylist, DisplaylistInfo)
+
+
+@dataclasses.dataclass
+class CollisionInfo:
+    address: int
+    c_name: str
+
+    def __post_init__(self):
+        assert isinstance(self.address, int)
+        assert isinstance(self.c_name, str)
+
+
+@dataclasses.dataclass
+class ActorPresetInfo:
+    decomp_path: str = None
+    level: str | None = None
+    group: str | None = None
+    animation: DictOrVal[AnimInfo] = dataclasses.field(default_factory=dict)
+    models: DictOrVal[ModelInfo] = dataclasses.field(default_factory=dict)
+    collision: DictOrVal[CollisionInfo] = dataclasses.field(default_factory=dict)
+
+    def __post_init__(self):
+        assert self.decomp_path is not None and isinstance(self.decomp_path, str)
+        assert self.group is None or isinstance(self.group, str)
+        assert validate_dict(self.animation, AnimInfo)
+        assert validate_dict(self.models, ModelInfo)
+        assert validate_dict(self.collision, CollisionInfo)
+        group_to_level = {
+            "common0": "HH",
+            "common1": "HH",
+            "group0": "HH",
+            "group1": "WF",
+            "group2": "LLL",
+            "group3": "BOB",
+            "group4": "JRB",
+            "group5": "SSL",
+            "group6": "TTM",
+            "group7": "CCM",
+            "group8": "VC",
+            "group9": "HH",
+            "group10": "CG",
+            "group11": "THI",
+            "group12": "BFB",
+            "group13": "WDW",
+            "group14": "BOB",
+            "group15": "IC",
+            "group16": "CCM",
+            "group17": "HMC",
+        }
+        if self.level is None and self.group is not None:
+            self.level = group_to_level[self.group]
+        assert isinstance(self.level, str)
+
+    @staticmethod
+    def get_member_as_dict(name: str, member: DictOrVal[T]):
+        return as_dict(member, name)
+
+
+ACTOR_PRESET_INFO = {
+    "Amp": ActorPresetInfo(
+        decomp_path="actors/amp",
+        group="common0",
+        animation=AnimInfo(
+            address=0x8004034,
+            behaviours={"Circling Amp": 0x13003388, "Homing Amp": 0x13003354},
+            names=["Moving"],
+            ignore_bone_count=True,
+        ),
+        models=ModelInfo(model_id=ModelIDInfo(0xC2, "MODEL_AMP"), geolayout=0xF000028),
+    ),
+    "Bird": ActorPresetInfo(
+        decomp_path="actors/bird",
+        group="group10",
+        animation=AnimInfo(
+            address=0x50009E8,
+            behaviours={"Bird": 0x13005354, "End Birds 1": 0x1300565C, "End Birds 2": 0x13005680},
+            names=["Flying", "Gliding"],
+        ),
+        models=ModelInfo(model_id=ModelIDInfo(0x54, "MODEL_BIRDS"), geolayout=0xC000000),
+    ),
+    "Blargg": ActorPresetInfo(
+        decomp_path="actors/blargg",
+        group="group2",
+        animation=AnimInfo(address=0x500616C, names=["Idle", "Bite"]),
+        models=ModelInfo(model_id=ModelIDInfo(0x54, "MODEL_BLARGG"), geolayout=0xC000240),
+    ),
+    "Blue Coin Switch": ActorPresetInfo(
+        decomp_path="actors/blue_coin_switch",
+        group="common0",
+        models=ModelInfo(model_id=ModelIDInfo(0x8C, "MODEL_BLUE_COIN_SWITCH"), geolayout=0xF000000),
+        collision=CollisionInfo(address=0x8000E98, c_name="blue_coin_switch_seg8_collision_08000E98"),
+    ),
+    "Blue Fish": ActorPresetInfo(
+        decomp_path="actors/blue_fish",
+        group="common1",
+        animation=AnimInfo(address=0x301C2B0, behaviours=0x13001B2C, names=["Swimming", "Diving"]),
+        models={
+            "Fish": ModelInfo(model_id=ModelIDInfo(0xB9, "MODEL_FISH"), geolayout=0x16000C44),
+            "Fish (With Shadow)": ModelInfo(model_id=ModelIDInfo(0xBA, "MODEL_FISH_SHADOW"), geolayout=0x16000BEC),
+        },
+    ),
+    "Bobomb": ActorPresetInfo(
+        decomp_path="actors/bobomb",
+        group="common0",
+        animation=AnimInfo(
+            address=0x802396C,
+            behaviours={"Bobomb": 0x13003174, "Bobomb Buddy": 0x130031DC, "Bobomb Buddy (Opens Cannon)": 0x13003228},
+            names=["Walking", "Strugling"],
+        ),
+        models={
+            "Bobomb": ModelInfo(model_id=ModelIDInfo(0xBC, "MODEL_BLACK_BOBOMB"), geolayout=0xF0007B8),
+            "Bobomb Buddy": ModelInfo(model_id=ModelIDInfo(0xC3, "MODEL_BOBOMB_BUDDY"), geolayout=0xF0008F4),
+        },
+    ),
+    "Bowser Bomb": ActorPresetInfo(
+        decomp_path="actors/bomb",
+        group="group12",
+        models=ModelInfo(
+            model_id=[ModelIDInfo(0x65, "MODEL_BOWSER_BOMB_CHILD_OBJ"), ModelIDInfo(0xB3, "MODEL_BOWSER_BOMB")],
+            geolayout=0xD000BBC,
+        ),
+    ),
+    "Boo": ActorPresetInfo(
+        decomp_path="actors/boo",
+        group="group9",
+        models=ModelInfo(model_id=ModelIDInfo(0x54, "MODEL_BOO"), geolayout=0xC000224),
+    ),
+    "Boo (Inside Castle)": ActorPresetInfo(
+        decomp_path="actors/boo_castle",
+        group="group15",
+        models=ModelInfo(model_id=ModelIDInfo(0x65, "MODEL_BOO_CASTLE"), geolayout=0xD0005B0),
+    ),
+    "Bookend": ActorPresetInfo(
+        decomp_path="actors/book",
+        group="group9",
+        models=ModelInfo(model_id=ModelIDInfo(0x59, "MODEL_BOOKEND"), geolayout=0xC0000C0),
+    ),
+    "Bookend Part": ActorPresetInfo(
+        decomp_path="actors/bookend",
+        group="group9",
+        animation=AnimInfo(address=0x5002540, behaviours=0x1300506C, names=["Opening Mouth", "Bite", "Closed"]),
+        models=ModelInfo(model_id=ModelIDInfo(0x58, "MODEL_BOOKEND_PART"), geolayout=0xC000000),
+    ),
+    "Metal Ball": ActorPresetInfo(
+        decomp_path="actors/bowling_ball",
+        group="common0",
+        models={
+            "Bowling Ball": ModelInfo(model_id=ModelIDInfo(0xB4, "MODEL_BOWLING_BALL"), geolayout=0xF000640),
+            "Trajectory Marker Ball": ModelInfo(
+                model_id=ModelIDInfo(0xE1, "MODEL_TRAJECTORY_MARKER_BALL"), geolayout=0xF00066C
+            ),
+        },
+    ),
+    "Bowser": ActorPresetInfo(
+        decomp_path="actors/bowser",
+        group="group12",
+        animation=AnimInfo(
+            address=0x60577E0,
+            behaviours=0x13001850,
+            size=27,
+            ignore_bone_count=True,
+            names=[
+                "Stand Up",
+                "Stand Up (Unused)",
+                "Shaking",
+                "Grabbed",
+                "Broken Animation (Unused)",
+                "Fall Down",
+                "Fire Breath",
+                "Jump",
+                "Jump Stop",
+                "Jump Start",
+                "Dance",
+                "Fire Breath Up",
+                "Idle",
+                "Slow Gait",
+                "Look Down Stop Walk",
+                "Look Up Start Walk",
+                "Flip Down",
+                "Lay Down",
+                "Run Start",
+                "Run",
+                "Run Stop",
+                "Run Slip",
+                "Fire Breath Quick",
+                "Edge Move",
+                "Edge Stop",
+                "Flip",
+                "Stand Up From Flip",
+            ],
+        ),
+        models={
+            "Bowser": ModelInfo(model_id=ModelIDInfo(0x64, "MODEL_BOWSER"), geolayout=0xD000AC4),
+            "Bowser (No Shadow)": ModelInfo(model_id=ModelIDInfo(0x69, "MODEL_BOWSER_NO_SHADOW"), geolayout=0xD000B40),
+        },
+    ),
+    "Bowser Flame": ActorPresetInfo(
+        decomp_path="actors/bowser_flame",
+        group="group12",
+        models=ModelInfo(model_id=ModelIDInfo(0x67, "MODEL_BOWSER_FLAMES"), geolayout=0xD000000),
+    ),
+    "Bowser Key": ActorPresetInfo(
+        decomp_path="actors/bowser_key",
+        group="common1",
+        animation=AnimInfo(
+            address=0x30172D0,
+            behaviours={"Bowser Key": 0x13001BB4, "Bowser Key (Cutscene)": 0x13001BD4},
+            size=2,
+            names=["Unlock Door", "Course Exit"],
+        ),
+        models={
+            "Bowser Key (Cutscene)": ModelInfo(
+                model_id=ModelIDInfo(0xC8, "MODEL_BOWSER_KEY_CUTSCENE"), geolayout=0x16000AB0
+            ),
+            "Bowser Key": ModelInfo(model_id=ModelIDInfo(0xCC, "MODEL_BOWSER_KEY"), geolayout=0x16000A84),
+        },
+    ),
+    "Breakable Box": ActorPresetInfo(
+        decomp_path="actors/breakable_box",
+        group="common0",
+        models={
+            "Breakable Box": ModelInfo(model_id=ModelIDInfo(0x81, "MODEL_BREAKABLE_BOX"), geolayout=0xF0005D0),
+            "Breakable Box (Small)": ModelInfo(
+                model_id=ModelIDInfo(0x82, "MODEL_BREAKABLE_BOX_SMALL"), geolayout=0xF000610
+            ),
+        },
+        collision=CollisionInfo(address=0x8012D70, c_name="breakable_box_seg8_collision_08012D70"),
+    ),
+    "Bub": ActorPresetInfo(
+        decomp_path="actors/bub",
+        group="group13",
+        animation=AnimInfo(address=0x6012354, behaviours=0x1300220C, names=["Swimming"]),
+        models=ModelInfo(model_id=ModelIDInfo(0x64, "MODEL_BUB"), geolayout=0xD00038C),
+    ),
+    "Bubba": ActorPresetInfo(
+        decomp_path="actors/bubba",
+        group="group11",
+        models=ModelInfo(model_id=ModelIDInfo(0x59, "MODEL_BUBBA"), geolayout=0xC000000),
+    ),
+    "Bubble": ActorPresetInfo(
+        decomp_path="actors/bubble",
+        group="group0",
+        models={
+            "Bubble": ModelInfo(model_id=ModelIDInfo(0xA8, "MODEL_BUBBLE"), geolayout=0x17000000),
+            "Bubble Marble": ModelInfo(model_id=ModelIDInfo(0xAA, "MODEL_PURPLE_MARBLE"), geolayout=0x1700001C),
+        },
+    ),
+    "Bullet Bill": ActorPresetInfo(
+        decomp_path="actors/bullet_bill",
+        group="group1",
+        models=ModelInfo(model_id=ModelIDInfo(0x54, "MODEL_BULLET_BILL"), geolayout=0xC000264),
+    ),
+    "Bully": ActorPresetInfo(
+        decomp_path="actors/bully",
+        group="group2",
+        animation=AnimInfo(
+            address=0x500470C,
+            behaviours={"Bully": 0x13003660, "Bully (With Minions)": 0x13003694, "Bully (Small)": 0x1300362C},
+            names=["Patrol", "Chase", "Falling over (Unused)", "Knockback"],
+        ),
+        models=ModelInfo(model_id=ModelIDInfo(0x56, "MODEL_BULLY"), geolayout=0xC000000),
+    ),
+    "Burn Smoke": ActorPresetInfo(
+        decomp_path="actors/burn_smoke",
+        group="group0",
+        models=ModelInfo(model_id=ModelIDInfo(0x94, "MODEL_BURN_SMOKE"), geolayout=0x17000084),
+    ),
+    "Butterfly": ActorPresetInfo(
+        decomp_path="actors/butterfly",
+        group="common1",
+        animation=AnimInfo(
+            address=0x30056B0,
+            behaviours={"Butterfly": 0x130033BC, "Triplet Butterfly": 0x13005598},
+            size=2,
+            names=["Flying", "Resting"],
+        ),
+        models=ModelInfo(model_id=ModelIDInfo(0xBB, "MODEL_BUTTERFLY"), geolayout=0x160000A8),
+    ),
+    "Cannon Barrel": ActorPresetInfo(
+        decomp_path="actors/cannon_barrel",
+        group="common0",
+        models=ModelInfo(model_id=ModelIDInfo(0x7F, "MODEL_CANNON_BARREL"), geolayout=0xF0001C0),
+    ),
+    "Cannon Base": ActorPresetInfo(
+        decomp_path="actors/cannon_base",
+        group="common0",
+        models=ModelInfo(model_id=ModelIDInfo(0x80, "MODEL_CANNON_BASE"), geolayout=0xF0001A8),
+    ),
+    "Cannon Lid": ActorPresetInfo(
+        decomp_path="actors/cannon_lid",
+        group="common0",
+        collision=CollisionInfo(address=0x8004950, c_name="cannon_lid_seg8_collision_08004950"),
+        models=ModelInfo(
+            model_id=ModelIDInfo(0xC9, "MODEL_DL_CANNON_LID"),
+            displaylist=DisplaylistInfo(0x80048E0, "cannon_lid_seg8_dl_080048E0"),
+        ),
+    ),
+    "Cap Switch": ActorPresetInfo(
+        decomp_path="actors/capswitch",
+        group="group8",
+        models={
+            "Cap Switch": ModelInfo(model_id=ModelIDInfo(0x55, "MODEL_CAP_SWITCH"), geolayout=0xC000048),
+            "Cap Switch (Exclamation)": ModelInfo(
+                model_id=ModelIDInfo(0x54, "MODEL_CAP_SWITCH_EXCLAMATION"),
+                displaylist=DisplaylistInfo(0x5002E00, "cap_switch_exclamation_seg5_dl_05002E00"),
+            ),
+            "Cap Switch (Base)": ModelInfo(
+                model_id=ModelIDInfo(0x56, "MODEL_CAP_SWITCH_BASE"),
+                displaylist=DisplaylistInfo(0x5003120, "cap_switch_base_seg5_dl_05003120"),
+            ),
+        },
+        collision={
+            "Cap Switch (Base)": CollisionInfo(address=0x50033D0, c_name="capswitch_collision_050033D0"),
+            "Cap Switch (Top)": CollisionInfo(address=0x5003448, c_name="capswitch_collision_05003448"),
+        },
+    ),
+    "Chain Ball": ActorPresetInfo(  # also known as metallic ball
+        decomp_path="actors/chain_ball",
+        group="group14",
+        models=ModelInfo(model_id=ModelIDInfo(0x65, "MODEL_METALLIC_BALL"), geolayout=0xD0005D0),
+    ),
+    "Chain Chomp": ActorPresetInfo(
+        decomp_path="actors/chain_chomp",
+        group="group14",
+        animation=AnimInfo(address=0x6025178, behaviours=0x1300478C, names=["Chomping"]),
+        models=ModelInfo(model_id=ModelIDInfo(0x66, "MODEL_CHAIN_CHOMP"), geolayout=0xD0005EC),
+    ),
+    "Haunted Chair": ActorPresetInfo(
+        decomp_path="actors/chair",
+        group="group9",
+        animation=AnimInfo(address=0x5005784, behaviours=0x13004FD4, names=["Default Pose"]),
+        models=ModelInfo(model_id=ModelIDInfo(0x56, "MODEL_HAUNTED_CHAIR"), geolayout=0xC0000D8),
+    ),
+    "Checkerboard Platform": ActorPresetInfo(
+        decomp_path="actors/checkerboard_platform",
+        group="common0",
+        models=ModelInfo(model_id=ModelIDInfo(0xCA, "MODEL_CHECKERBOARD_PLATFORM"), geolayout=0xF0004E4),
+        collision=CollisionInfo(address=0x800D710, c_name="checkerboard_platform_seg8_collision_0800D710"),
+    ),
+    "Chilly Chief": ActorPresetInfo(
+        decomp_path="actors/chilly_chief",
+        group="group16",
+        animation=AnimInfo(
+            address=0x6003994,
+            behaviours={"Chilly Chief (Small)": 0x130036C8, "Chilly Chief (Big)": 0x13003700},
+            names=["Patrol", "Chase", "Falling over (Unused)", "Knockback"],
+        ),
+        models={
+            "Chilly Chief (Small)": ModelInfo(model_id=ModelIDInfo(0x64, "MODEL_CHILL_BULLY"), geolayout=0x6003754),
+            "Chilly Chief (Big)": ModelInfo(model_id=ModelIDInfo(0x65, "MODEL_BIG_CHILL_BULLY"), geolayout=0x6003874),
+        },
+    ),
+    "Chuckya": ActorPresetInfo(
+        decomp_path="actors/chuckya",
+        group="common0",
+        animation=AnimInfo(
+            address=0x800C070,
+            behaviours=0x13000528,
+            names=["Grab Mario", "Holding Mario", "Being Held", "Throwing", "Moving", "Balancing/Idle (Unused)"],
+        ),
+        models=ModelInfo(model_id=ModelIDInfo(0xDF, "MODEL_CHUCKYA"), geolayout=0xF0001D8),
+    ),
+    "Clam Shell": ActorPresetInfo(
+        decomp_path="actors/clam",
+        group="group4",
+        animation=AnimInfo(address=0x5001744, behaviours=0x13005440, names=["Close", "Open"]),
+        models=ModelInfo(model_id=ModelIDInfo(0x58, "MODEL_CLAM_SHELL"), geolayout=0xC000000),
+    ),
+    "Coin": ActorPresetInfo(
+        decomp_path="actors/coin",
+        group="common1",
+        models={
+            "Yellow Coin": ModelInfo(model_id=ModelIDInfo(0x74, "MODEL_YELLOW_COIN"), geolayout=0x1600013C),
+            "Yellow Coin (No Shadow)": ModelInfo(
+                model_id=ModelIDInfo(0x75, "MODEL_YELLOW_COIN_NO_SHADOW"), geolayout=0x160001A0
+            ),
+            "Blue Coin": ModelInfo(model_id=ModelIDInfo(0x76, "MODEL_BLUE_COIN"), geolayout=0x16000200),
+            "Blue Coin (No Shadow)": ModelInfo(
+                model_id=ModelIDInfo(0x77, "MODEL_BLUE_COIN_NO_SHADOW"), geolayout=0x16000264
+            ),
+            "Red Coin": ModelInfo(model_id=ModelIDInfo(0xD7, "MODEL_RED_COIN"), geolayout=0x160002C4),
+            "Red Coin (No Shadow)": ModelInfo(
+                model_id=ModelIDInfo(0xD8, "MODEL_RED_COIN_NO_SHADOW"), geolayout=0x16000328
+            ),
+        },
+    ),
+    "Cyan Fish": ActorPresetInfo(
+        decomp_path="actors/cyan_fish",
+        group="group13",
+        animation=AnimInfo(address=0x600E264, names=["Swimming"]),
+        models=ModelInfo(model_id=ModelIDInfo(0x67, "MODEL_CYAN_FISH"), geolayout=0xD000324),
+    ),
+    "Dirt": ActorPresetInfo(
+        decomp_path="actors/dirt",
+        group="common1",
+        models={
+            "Dirt": ModelInfo(model_id=ModelIDInfo(0x8A, "MODEL_DIRT_ANIMATION"), geolayout=0x16000ED4),
+            "(Unused) Cartoon Start": ModelInfo(model_id=ModelIDInfo(0x8B, "MODEL_CARTOON_STAR"), geolayout=0x16000F24),
+        },
+    ),
+    "Door": ActorPresetInfo(
+        decomp_path="actors/door",
+        group="common1",
+        animation=AnimInfo(
+            address=0x30156C0,
+            behaviours=0x13000B0C,
+            names=[
+                "Closed",
+                "Open and Close",
+                "Open and Close (Slower?)",
+                "Open and Close (Slower? Last 10 frames)",
+                "Open and Close (Last 10 frames)",
+            ],
+            ignore_bone_count=True,
+        ),
+        models={
+            "Castle Door": ModelInfo(
+                model_id=[
+                    ModelIDInfo(0x26, "MODEL_CASTLE_GROUNDS_CASTLE_DOOR"),
+                    ModelIDInfo(0x26, "MODEL_CASTLE_CASTLE_DOOR"),
+                    ModelIDInfo(0x1C, "MODEL_CASTLE_CASTLE_DOOR_UNUSED"),
+                ],
+                geolayout=0x160003A8,
+            ),
+            "Cabin Door": ModelInfo(model_id=ModelIDInfo(0x27, "MODEL_CCM_CABIN_DOOR"), geolayout=0x1600043C),
+            "Wooden Door": ModelInfo(
+                model_id=[
+                    ModelIDInfo(0x1D, "MODEL_CASTLE_WOODEN_DOOR_UNUSED"),
+                    ModelIDInfo(0x1D, "MODEL_HMC_WOODEN_DOOR"),
+                    ModelIDInfo(0x27, "MODEL_CASTLE_WOODEN_DOOR"),
+                    ModelIDInfo(0x27, "MODEL_COURTYARD_WOODEN_DOOR"),
+                ],
+                geolayout=0x160004D0,
+            ),
+            "Wooden Door 2": ModelInfo(geolayout=0x16000564),
+            "Metal Door": ModelInfo(
+                model_id=[
+                    ModelIDInfo(0x1F, "MODEL_HMC_METAL_DOOR"),
+                    ModelIDInfo(0x29, "MODEL_CASTLE_METAL_DOOR"),
+                    ModelIDInfo(0x29, "MODEL_CASTLE_GROUNDS_METAL_DOOR"),
+                ],
+                geolayout=0x16000618,
+            ),
+            "Hazy Maze Door": ModelInfo(model_id=ModelIDInfo(0x20, "MODEL_HMC_HAZY_MAZE_DOOR"), geolayout=0x1600068C),
+            "Haunted Door": ModelInfo(model_id=ModelIDInfo(0x1D, "MODEL_BBH_HAUNTED_DOOR"), geolayout=0x16000720),
+            "Castle Door (0 Star)": ModelInfo(
+                model_id=ModelIDInfo(0x22, "MODEL_CASTLE_DOOR_0_STARS"), geolayout=0x160007B4
+            ),
+            "Castle Door (1 Star)": ModelInfo(
+                model_id=ModelIDInfo(0x23, "MODEL_CASTLE_DOOR_1_STAR"), geolayout=0x16000868
+            ),
+            "Castle Door (3 Star)": ModelInfo(
+                model_id=ModelIDInfo(0x24, "MODEL_CASTLE_DOOR_3_STARS"), geolayout=0x1600091C
+            ),
+            "Key Door": ModelInfo(model_id=ModelIDInfo(0x25, "MODEL_CASTLE_KEY_DOOR"), geolayout=0x160009D0),
+        },
+    ),
+    "Dorrie": ActorPresetInfo(
+        decomp_path="actors/dorrie",
+        group="group17",
+        animation=AnimInfo(
+            address=0x600F638, behaviours=0x13004F90, size=3, names=["Idle", "Moving", "Lower and Raise Head"]
+        ),
+        models=ModelInfo(model_id=ModelIDInfo(0x68, "MODEL_DORRIE"), geolayout=0xD000230),
+    ),
+    "Exclamation Box": ActorPresetInfo(
+        decomp_path="actors/exclamation_box",
+        group="common0",
+        models=ModelInfo(model_id=ModelIDInfo(0x89, "MODEL_EXCLAMATION_BOX"), geolayout=0xF000694),
+    ),
+    "Exclamation Box Outline": ActorPresetInfo(
+        decomp_path="actors/exclamation_box_outline",
+        group="common0",
+        models={
+            "Exclamation Box Outline": ModelInfo(
+                model_id=ModelIDInfo(0x83, "MODEL_EXCLAMATION_BOX_OUTLINE"), geolayout=0xF000A5A
+            ),
+            "Exclamation Point": ModelInfo(
+                model_id=ModelIDInfo(0x84, "MODEL_EXCLAMATION_POINT"),
+                displaylist=DisplaylistInfo(0x8025F08, "exclamation_box_outline_seg8_dl_08025F08"),
+            ),
+        },
+        collision=CollisionInfo(address=0x8025F78, c_name="exclamation_box_outline_seg8_collision_08025F78"),
+    ),
+    "Explosion": ActorPresetInfo(
+        decomp_path="actors/explosion",
+        group="common1",
+        models=ModelInfo(model_id=ModelIDInfo(0xCD, "MODEL_EXPLOSION"), geolayout=0x16000040),
+    ),
+    "Eyerok": ActorPresetInfo(
+        decomp_path="actors/eyerok",
+        group="group5",
+        animation=AnimInfo(
+            address=0x50116E4,
+            behaviours=0x130052B4,
+            names=["Recovering", "Death", "Idle", "Attacked", "Open", "Show Eye", "Sleep", "Close"],
+        ),
+        models={
+            "Eyerok Left Hand": ModelInfo(model_id=ModelIDInfo(0x58, "MODEL_EYEROK_LEFT_HAND"), geolayout=0xC0005A8),
+            "Eyerok Right Hand": ModelInfo(model_id=ModelIDInfo(0x59, "MODEL_EYEROK_RIGHT_HAND"), geolayout=0xC0005E4),
+        },
+    ),
+    "Flame": ActorPresetInfo(
+        decomp_path="actors/flame",
+        group="common1",
+        models={
+            "Red Flame (With Shadow)": ModelInfo(
+                model_id=ModelIDInfo(0xCB, "MODEL_RED_FLAME_SHADOW"), geolayout=0x16000B10
+            ),
+            "Red Flame": ModelInfo(model_id=ModelIDInfo(0x90, "MODEL_RED_FLAME"), geolayout=0x16000B2C),
+            "Blue Flame": ModelInfo(model_id=ModelIDInfo(0x91, "MODEL_BLUE_FLAME"), geolayout=0x16000B8C),
+        },
+    ),
+    "Fly Guy": ActorPresetInfo(
+        decomp_path="actors/flyguy",
+        group="common0",
+        animation=AnimInfo(address=0x8011A64, behaviours=0x130046DC, names=["Flying"]),
+        models=ModelInfo(model_id=ModelIDInfo(0xDC, "MODEL_FLYGUY"), geolayout=0xF000518),
+    ),
+    "Fwoosh": ActorPresetInfo(
+        decomp_path="actors/fwoosh",
+        group="group6",
+        models=ModelInfo(model_id=ModelIDInfo(0x57, "MODEL_FWOOSH"), geolayout=0xC00036C),
+    ),
+    "Goomba": ActorPresetInfo(
+        decomp_path="actors/goomba",
+        group="common0",
+        animation=AnimInfo(address=0x801DA4C, behaviours=0x1300472C, names=["Walking"]),
+        models=ModelInfo(model_id=ModelIDInfo(0xC0, "MODEL_GOOMBA"), geolayout=0xF0006E4),
+    ),
+    "Haunted Cage": ActorPresetInfo(
+        decomp_path="actors/haunted_cage",
+        group="group9",
+        models=ModelInfo(model_id=ModelIDInfo(0x5A, "MODEL_HAUNTED_CAGE"), geolayout=0xC000274),
+    ),
+    "Heart": ActorPresetInfo(
+        decomp_path="actors/heart",
+        group="common0",
+        models=ModelInfo(model_id=ModelIDInfo(0x78, "MODEL_HEART"), geolayout=0xF0004FC),
+    ),
+    "Heave-Ho": ActorPresetInfo(
+        decomp_path="actors/heave_ho",
+        group="group1",
+        animation=AnimInfo(address=0x501534C, behaviours=0x13001548, names=["Moving", "Throwing", "Stop"]),
+        models=ModelInfo(model_id=ModelIDInfo(0x59, "MODEL_HEAVE_HO"), geolayout=0xC00028C),
+    ),
+    "Hoot": ActorPresetInfo(
+        decomp_path="actors/hoot",
+        group="group1",
+        animation=AnimInfo(address=0x5005768, behaviours=0x130033EC, names=["Flying", "Flying Fast"]),
+        models=ModelInfo(model_id=ModelIDInfo(0x56, "MODEL_HOOT"), geolayout=0xC000018),
+    ),
+    "Bowser Impact Ring": ActorPresetInfo(
+        decomp_path="actors/impact_ring",
+        group="group12",
+        models=ModelInfo(model_id=ModelIDInfo(0x68, "MODEL_BOWSER_WAVE"), geolayout=0xD000090),
+    ),
+    "Bowser Impact Smoke": ActorPresetInfo(
+        decomp_path="actors/impact_smoke",
+        group="group12",
+        models=ModelInfo(model_id=ModelIDInfo(0x66, "MODEL_BOWSER_SMOKE"), geolayout=0xD000BFC),
+    ),
+    "King Bobomb": ActorPresetInfo(
+        decomp_path="actors/bobomb",
+        group="group3",
+        animation=AnimInfo(
+            address=0x500FE30,
+            behaviours=0x130001F4,
+            size=12,
+            names=[
+                "Grab Mario",
+                "Holding Mario",
+                "Hit Ground",
+                "Unkwnown (Unused)",
+                "Stomp",
+                "Idle",
+                "Being Held",
+                "Landing",
+                "Jump",
+                "Throw Mario",
+                "Stand Up",
+                "Walking",
+            ],
+        ),
+        models=ModelInfo(model_id=ModelIDInfo(0x56, "MODEL_KING_BOBOMB"), geolayout=0xC000000),
+    ),
+    "Klepto": ActorPresetInfo(
+        decomp_path="actors/klepto",
+        group="group5",
+        animation=AnimInfo(
+            address=0x5008CFC,
+            behaviours=0x13005310,
+            names=[
+                "Dive",
+                "Struck By Mario",
+                "Dive at Mario",
+                "Dive at Mario 2",
+                "Dive at Mario 3",
+                "Dive at Mario 4",
+                "Dive Flap",
+                "Dive Flap 2",
+            ],
+        ),
+        models=ModelInfo(model_id=ModelIDInfo(0x57, "MODEL_KLEPTO"), geolayout=0xC000000),
+    ),
+    "Koopa": ActorPresetInfo(
+        decomp_path="actors/koopa",
+        group="group14",
+        animation=AnimInfo(
+            address=0x6011364,
+            behaviours=0x13004580,
+            names=[
+                "Falling Over (Unused Shelled Act 3)",
+                "Run Away",
+                "Laying (Unshelled)",
+                "Running",
+                "Run (Unused)",
+                "Laying (Shelled)",
+                "Stand Up",
+                "Stopped",
+                "Wake Up (Unused)",
+                "Walk",
+                "Walk Stop",
+                "Walk Start",
+                "Jump",
+                "Land",
+            ],
+        ),
+        models={
+            "Koopa (Without Shell)": ModelInfo(
+                model_id=ModelIDInfo(0xBF, "MODEL_KOOPA_WITHOUT_SHELL"), geolayout=0xD0000D0
+            ),
+            "Koopa (With Shell)": ModelInfo(model_id=ModelIDInfo(0x68, "MODEL_KOOPA_WITH_SHELL"), geolayout=0xD000214),
+        },
+    ),
+    "Koopa Flag": ActorPresetInfo(
+        decomp_path="actors/koopa_flag",
+        group="group14",
+        animation=AnimInfo(address=0x6001028, behaviours=0x130045F8, names=["Waving"]),
+        models=ModelInfo(model_id=ModelIDInfo(0x6A, "MODEL_KOOPA_FLAG"), geolayout=0xD000000),
+    ),
+    "Koopa Shell": ActorPresetInfo(
+        decomp_path="actors/koopa_shell",
+        group="common0",
+        models={
+            "Koopa Shell": ModelInfo(model_id=ModelIDInfo(0xBE, "MODEL_KOOPA_SHELL"), geolayout=0xF000AB0),
+            "(Unused) Koopa Shell 1": ModelInfo(geolayout=0xF000ADC),
+            "(Unused) Koopa Shell 2": ModelInfo(geolayout=0xF000B08),
+        },
+    ),
+    "Lakitu (Cameraman)": ActorPresetInfo(
+        decomp_path="actors/lakitu_cameraman",
+        group="group15",
+        animation=AnimInfo(
+            address=0x60058F8,
+            behaviours={"Lakitu (Beginning)": 0x13005610, "Lakitu (Cameraman)": 0x13004954},
+            names=["Flying"],
+        ),
+        models=ModelInfo(model_id=ModelIDInfo(0x66, "MODEL_LAKITU"), geolayout=0xD000000),
+    ),
+    "Lakitu (Enemy)": ActorPresetInfo(
+        decomp_path="actors/lakitu_enemy",
+        group="group11",
+        animation=AnimInfo(
+            address=0x50144D4, behaviours=0x13004918, names=["Flying", "No Spiny", "Throw Spiny", "Hold Spiny"]
+        ),
+        models=ModelInfo(model_id=ModelIDInfo(0x54, "MODEL_ENEMY_LAKITU"), geolayout=0xC0001BC),
+    ),
+    "Leaves": ActorPresetInfo(
+        decomp_path="actors/leaves",
+        group="common1",
+        models=ModelInfo(model_id=ModelIDInfo(0xA2, "MODEL_LEAVES"), geolayout=0x16000C8C),
+    ),
+    "Mad Piano": ActorPresetInfo(
+        decomp_path="actors/mad_piano",
+        group="group9",
+        animation=AnimInfo(address=0x5009B14, behaviours=0x13005024, names=["Sleeping", "Chomping"]),
+        models=ModelInfo(model_id=ModelIDInfo(0x57, "MODEL_MAD_PIANO"), geolayout=0xC0001B4),
+    ),
+    "Manta Ray": ActorPresetInfo(
+        decomp_path="actors/manta",
+        group="group4",
+        animation=AnimInfo(address=0x5008EB4, behaviours=0x13004370, names=["Swimming"]),
+        models=ModelInfo(model_id=ModelIDInfo(0x54, "MODEL_MANTA_RAY"), geolayout=0x5008D14),
+    ),
+    "Mario": ActorPresetInfo(
+        decomp_path="actors/mario",
+        group="group0",
+        animation=AnimInfo(
+            address=0x4EC000,
+            dma=True,
+            directory="assets/anims",
+            names=[
+                "Slow ledge climb up",
+                "Fall over backwards",
+                "Backward air kb",
+                "Dying on back",
+                "Backflip",
+                "Climbing up pole",
+                "Grab pole short",
+                "Grab pole swing part 1",
+                "Grab pole swing part 2",
+                "Handstand idle",
+                "Handstand jump",
+                "Start handstand",
+                "Return from handstand",
+                "Idle on pole",
+                "A pose",
+                "Skid on ground",
+                "Stop skid",
+                "Crouch from fast longjump",
+                "Crouch from a slow longjump",
+                "Fast longjump",
+                "Slow longjump",
+                "Airborne on stomach",
+                "Walk with light object",
+                "Run with light object",
+                "Slow walk with light object",
+                "Shivering and warming hands",
+                "Shivering return to idle ",
+                "Shivering",
+                "Climb down on ledge",
+                "Credits - Waving",
+                "Credits - Look up",
+                "Credits - Return from look up",
+                "Credits - Raising hand",
+                "Credits - Lowering hand",
+                "Credits - Taking off cap",
+                "Credits - Start walking and look up",
+                "Credits - Look back then run",
+                "Final Bowser - Raise hand and spin",
+                "Final Bowser - Wing cap take off",
+                "Credits - Peach sign",
+                "Stand up from lava boost",
+                "Fire/Lava burn",
+                "Wing cap flying",
+                "Hang on owl",
+                "Land on stomach",
+                "Air forward kb",
+                "Dying on stomach",
+                "Suffocating",
+                "Coughing",
+                "Throw catch key",
+                "Dying fall over",
+                "Idle on ledge",
+                "Fast ledge grab",
+                "Hang on ceiling",
+                "Put cap on",
+                "Take cap off then on",
+                "Quickly put cap on",
+                "Head stuck in ground",
+                "Ground pound landing",
+                "Triple jump ground-pound",
+                "Start ground-pound",
+                "Ground-pound",
+                "Bottom stuck in ground",
+                "Idle with light object",
+                "Jump land with light object",
+                "Jump with light object",
+                "Fall land with light object",
+                "Fall with light object",
+                "Fall from sliding with light object",
+                "Sliding on bottom with light object",
+                "Stand up from sliding with light object",
+                "Riding shell",
+                "Walking",
+                "Forward flip",
+                "Jump riding shell",
+                "Land from double jump",
+                "Double jump fall",
+                "Single jump",
+                "Land from single jump",
+                "Air kick",
+                "Double jump rise",
+                "Start forward spinning",
+                "Throw light object",
+                "Fall from slide kick",
+                "Bend kness riding shell",
+                "Legs stuck in ground",
+                "General fall",
+                "General land",
+                "Being grabbed",
+                "Grab heavy object",
+                "Slow land from dive",
+                "Fly from cannon",
+                "Moving right while hanging",
+                "Moving left while hanging",
+                "Missing cap",
+                "Pull door walk in",
+                "Push door walk in",
+                "Unlock door",
+                "Start reach pocket",
+                "Reach pocket",
+                "Stop reach pocket",
+                "Ground throw",
+                "Ground kick",
+                "First punch",
+                "Second punch",
+                "First punch fast",
+                "Second punch fast",
+                "Pick up light object",
+                "Pushing",
+                "Start riding shell",
+                "Place light object",
+                "Forward spinning",
+                "Backward spinning",
+                "Breakdance",
+                "Running",
+                "Running (unused)",
+                "Soft back kb",
+                "Soft front kb",
+                "Dying in quicksand",
+                "Idle in quicksand",
+                "Move in quicksand",
+                "Electrocution",
+                "Shocked",
+                "Backward kb",
+                "Forward kb",
+                "Idle heavy object",
+                "Stand against wall",
+                "Side step left",
+                "Side step right",
+                "Start sleep idle",
+                "Start sleep scratch",
+                "Start sleep yawn",
+                "Start sleep sitting",
+                "Sleep idle",
+                "Sleep start laying",
+                "Sleep laying",
+                "Dive",
+                "Slide dive",
+                "Ground bonk",
+                "Stop slide light object",
+                "Slide kick",
+                "Crouch from slide kick",
+                "Slide motionless",
+                "Stop slide",
+                "Fall from slide",
+                "Slide",
+                "Tiptoe",
+                "Twirl land",
+                "Twirl",
+                "Start twirl",
+                "Stop crouching",
+                "Start crouching",
+                "Crouching",
+                "Crawling",
+                "Stop crawling",
+                "Start crawling",
+                "Summon star",
+                "Return star approach door",
+                "Backwards water kb",
+                "Swim with object part 1",
+                "Swim with object part 2",
+                "Flutter kick with object",
+                "Action end with object in water",
+                "Stop holding object in water",
+                "Holding object in water",
+                "Drowning part 1",
+                "Drowning part 2",
+                "Dying in water",
+                "Forward kb in water",
+                "Falling from water",
+                "Swimming part 1",
+                "Swimming part 2",
+                "Flutter kick",
+                "Action end in water",
+                "Pick up object in water",
+                "Grab object in water part 2",
+                "Grab object in water part 1",
+                "Throw object in water",
+                "Idle in water",
+                "Star dance in water",
+                "Return from in water star dance",
+                "Grab bowser",
+                "Swing bowser",
+                "Release bowser",
+                "Holding bowser",
+                "Heavy throw",
+                "Walk panting",
+                "Walk with heavy object",
+                "Turning part 1",
+                "Turning part 2",
+                "Side flip land",
+                "Side flip",
+                "Triple jump land",
+                "Triple jump",
+                "First person",
+                "Idle head left",
+                "Idle head right",
+                "Idle head center",
+                "Handstand left",
+                "Handstand right",
+                "Wake up from sleeping",
+                "Wake up from laying",
+                "Start tiptoeing",
+                "Slide jump",
+                "Start wallkick",
+                "Star dance",
+                "Return from star dance",
+                "Forwards spinning flip",
+                "Triple jump fly",
+            ],
+        ),
+        models=ModelInfo(model_id=ModelIDInfo(0x1, "MODEL_MARIO"), geolayout=0x17002DD4),
+    ),
+    "Mario's Cap": ActorPresetInfo(
+        decomp_path="actors/mario_cap",
+        group="common1",
+        models={
+            "Mario's Cap": ModelInfo(model_id=ModelIDInfo(0x88, "MODEL_MARIOS_CAP"), geolayout=0x16000CA4),
+            "Mario's Metal Cap": ModelInfo(model_id=ModelIDInfo(0x86, "MODEL_MARIOS_METAL_CAP"), geolayout=0x16000CF0),
+            "Mario's Wing Cap": ModelInfo(model_id=ModelIDInfo(0x87, "MODEL_MARIOS_WING_CAP"), geolayout=0x16000D3C),
+            "Mario's Winged Metal Cap": ModelInfo(
+                model_id=ModelIDInfo(0x85, "MODEL_MARIOS_WINGED_METAL_CAP"), geolayout=0x16000DA8
+            ),
+        },
+    ),
+    "Metal Box": ActorPresetInfo(
+        decomp_path="actors/metal_box",
+        group="common0",
+        models={
+            "Metal Box": ModelInfo(model_id=ModelIDInfo(0xD9, "MODEL_METAL_BOX"), geolayout=0xF000A30),
+            "Metal Box (DL)": ModelInfo(
+                model_id=ModelIDInfo(0xDA, "MODEL_METAL_BOX_DL"), displaylist=DisplaylistInfo(0x8024BB8, "metal_box_dl")
+            ),
+        },
+        collision=CollisionInfo(address=0x8024C28, c_name="metal_box_seg8_collision_08024C28"),
+    ),
+    "Mips": ActorPresetInfo(
+        decomp_path="actors/mips",
+        group="group15",
+        animation=AnimInfo(
+            address=0x6015724, behaviours=0x130044FC, names=["Idle", "Hopping", "Thrown", "Thrown (Unused)", "Held"]
+        ),
+        models=ModelInfo(model_id=ModelIDInfo(0x64, "MODEL_MIPS"), geolayout=0xD000448),
+    ),
+    "Mist": ActorPresetInfo(
+        decomp_path="actors/mist",
+        group="common1",
+        models={
+            "Mist": ModelInfo(model_id=ModelIDInfo(0x8E, "MODEL_MIST"), geolayout=0x16000000),
+            "White Puff": ModelInfo(model_id=ModelIDInfo(0xE0, "MODEL_WHITE_PUFF"), geolayout=0x16000020),
+        },
+    ),
+    "Moneybag": ActorPresetInfo(
+        decomp_path="actors/moneybag",
+        group="group16",
+        animation=AnimInfo(address=0x6005E5C, behaviours=0x130039A0, names=["Idle", "Prepare", "Jump", "Land", "Walk"]),
+        models=ModelInfo(model_id=ModelIDInfo(0x66, "MODEL_MONEYBAG"), geolayout=0xD0000F0),
+    ),
+    "Monty Mole": ActorPresetInfo(
+        decomp_path="actors/monty_mole",
+        group="group6",
+        animation=AnimInfo(
+            address=0x5007248,
+            behaviours=0x13004A00,
+            names=[
+                "Jump Into Hole",
+                "Rise",
+                "Get Rock",
+                "Begin Jump Into Hole",
+                "Jump Out Of Hole Down",
+                "Unused 5",  # TODO: Figure out
+                "Unused 6",
+                "Unused 7",
+                "Throw Rock",
+                "Jump Out Of Hole Up",
+            ],
+        ),
+        models=ModelInfo(model_id=ModelIDInfo(0x55, "MODEL_MONTY_MOLE"), geolayout=0xC000000),
+    ),
+    "Montey Mole Hole": ActorPresetInfo(
+        decomp_path="actors/monty_mole_hole",
+        group="group6",
+        models=ModelInfo(
+            model_id=ModelIDInfo(0x54, "MODEL_DL_MONTY_MOLE_HOLE"),
+            displaylist=DisplaylistInfo(0x5000840, "monty_mole_hole_seg5_dl_05000840"),
+        ),
+    ),
+    "Mr. I Eyeball": ActorPresetInfo(
+        decomp_path="actors/mr_i_eyeball",
+        group="group16",
+        models=ModelInfo(model_id=ModelIDInfo(0x67, "MODEL_MR_I"), geolayout=0xD000000),
+    ),
+    "Mr. I Iris": ActorPresetInfo(
+        decomp_path="actors/mr_i_iris",
+        group="group16",
+        models=ModelInfo(model_id=ModelIDInfo(0x66, "MODEL_MR_I_IRIS"), geolayout=0xD00001C),
+    ),
+    "Mushroom 1up": ActorPresetInfo(
+        decomp_path="actors/mushroom_1up",
+        group="common1",
+        models=ModelInfo(model_id=ModelIDInfo(0xD4, "MODEL_1UP"), geolayout=0x16000E84),
+    ),
+    "Orange Numbers": ActorPresetInfo(
+        decomp_path="actors/number",
+        group="common1",
+        models=ModelInfo(model_id=ModelIDInfo(0xDB, "MODEL_NUMBER"), geolayout=0x16000E14),
+    ),
+    "Peach": ActorPresetInfo(
+        decomp_path="actors/peach",
+        group="group10",
+        animation=AnimInfo(
+            address=0x501C50C,
+            behaviours={"Peach (Beginning)": 0x13005638, "Peach (End)": 0x13000EAC},
+            names=[
+                "Walking away",
+                "Walking away 2",
+                "Descend",
+                "Descend And Look Down",
+                "Look Up And Open Eyes",
+                "Mario",
+                "Power Of The Stars",
+                "Thanks To You",
+                "Kiss",
+                "Waving",
+            ],
+        ),
+        models=ModelInfo(model_id=ModelIDInfo(0xDE, "MODEL_PEACH"), geolayout=0xC000410),
+    ),
+    "Pebble": ActorPresetInfo(
+        decomp_path="actors/pebble",
+        group="common1",
+        models=ModelInfo(
+            model_id=ModelIDInfo(0xA1, "MODEL_PEBBLE"),
+            displaylist=DisplaylistInfo(0x301CB00, "pebble_seg3_dl_0301CB00"),
+        ),
+    ),
+    "Penguin": ActorPresetInfo(
+        decomp_path="actors/penguin",
+        group="group7",
+        animation=AnimInfo(
+            address=0x5008B74,
+            behaviours={
+                "Penguin (Tuxies Mother)": 0x13002088,
+                "Penguin (Small)": 0x130020E8,
+                "Penguin (SML)": 0x13002E58,
+                "Racing Penguin": 0x13005380,
+            },
+            size=5,
+            names=["Walk", "Dive Slide", "Stand Up", "Idle", "Walk"],
+        ),
+        models=ModelInfo(model_id=ModelIDInfo(0x57, "MODEL_PENGUIN"), geolayout=0xC000104),
+        collision=CollisionInfo(address=0x5008B88, c_name="penguin_seg5_collision_05008B88"),
+    ),
+    "Piranha Plant": ActorPresetInfo(
+        decomp_path="actors/piranha_plant",
+        group="group14",
+        animation=AnimInfo(
+            address=0x601C31C,
+            behaviours={"Fire Piranha Plant": 0x13005120, "Piranha Plant": 0x13001FBC},
+            names=[
+                "Bite",
+                "Sleeping? (Unused)",
+                "Falling over",
+                "Bite (Unused)",
+                "Grow",
+                "Attacked",
+                "Stop Bitting",
+                "Sleeping (Unused)",
+                "Sleeping",
+                "Bite (Duplicate)",
+            ],
+        ),
+        models=ModelInfo(model_id=ModelIDInfo(0x64, "MODEL_PIRANHA_PLANT"), geolayout=0xD000358),
+    ),
+    "Pokey": ActorPresetInfo(
+        decomp_path="actors/pokey",
+        group="group5",
+        models={
+            "Pokey Head": ModelInfo(model_id=ModelIDInfo(0x54, "MODEL_POKEY_HEAD"), geolayout=0xC000610),
+            "Pokey Body Part": ModelInfo(model_id=ModelIDInfo(0x55, "MODEL_POKEY_BODY_PART"), geolayout=0xC000644),
+        },
+    ),
+    "Wooden Post": ActorPresetInfo(
+        decomp_path="actors/poundable_pole",
+        group="group14",
+        models=ModelInfo(model_id=ModelIDInfo(0x6B, "MODEL_WOODEN_POST"), geolayout=0xD0000B8),
+        collision=CollisionInfo(address=0x6002490, c_name="poundable_pole_collision_06002490"),
+    ),
+    # Should the power meter be included?
+    "Power Meter": ActorPresetInfo(
+        decomp_path="actors/power_meter",
+        group="common1",
+        models={
+            "Power Meter (Base)": ModelInfo(displaylist=DisplaylistInfo(0x3029480, "dl_power_meter_base")),
+            "Power Meter (Health)": ModelInfo(
+                displaylist=DisplaylistInfo(0x3029570, "dl_power_meter_health_segments_begin")
+            ),
+        },
+    ),
+    "Purple Switch": ActorPresetInfo(
+        decomp_path="actors/purple_switch",
+        group="common0",
+        models=ModelInfo(model_id=ModelIDInfo(0xCF, "MODEL_PURPLE_SWITCH"), geolayout=0xF0004CC),
+        collision=CollisionInfo(address=0x800C7A8, c_name="purple_switch_seg8_collision_0800C7A8"),
+    ),
+    "Sand": ActorPresetInfo(
+        decomp_path="actors/sand",
+        group="common1",
+        models=ModelInfo(
+            model_id=ModelIDInfo(0x9F, "MODEL_SAND_DUST"),
+            displaylist=DisplaylistInfo(0x302BCD0, "sand_seg3_dl_0302BCD0"),
+        ),
+    ),
+    "Scuttlebug": ActorPresetInfo(
+        decomp_path="actors/scuttlebug",
+        group="group17",
+        animation=AnimInfo(address=0x6015064, behaviours=0x13002B5C, names=["Walking"]),
+        models=ModelInfo(model_id=ModelIDInfo(0x65, "MODEL_SCUTTLEBUG"), geolayout=0xD000394),
+    ),
+    "Seaweed": ActorPresetInfo(
+        decomp_path="actors/seaweed",
+        group="group13",
+        animation=AnimInfo(address=0x0600A4D4, behaviours=0x13003134, size=1, names=["Wave"]),
+        models=ModelInfo(model_id=ModelIDInfo(0xC1, "MODEL_SEAWEED"), geolayout=0xD000284),
+    ),
+    "Skeeter": ActorPresetInfo(
+        decomp_path="actors/skeeter",
+        group="group13",
+        animation=AnimInfo(
+            address=0x6007DE0, behaviours=0x13005468, size=4, names=["Water Lunge", "Water Idle", "Walk", "Idle"]
+        ),
+        models=ModelInfo(model_id=ModelIDInfo(0x69, "MODEL_SKEETER"), geolayout=0xD000000),
+    ),
+    "(Beta) Boo Key": ActorPresetInfo(
+        decomp_path="actors/small_key",
+        group="group9",
+        models=ModelInfo(model_id=ModelIDInfo(0x55, "MODEL_BETA_BOO_KEY"), geolayout=0xC000188),
+    ),
+    "(Unused) Smoke": ActorPresetInfo(  # TODO: double check
+        decomp_path="actors/smoke",
+        group="group6",
+        models=ModelInfo(displaylist=DisplaylistInfo(0x5007AF8, "smoke_seg5_dl_05007AF8")),
+    ),
+    "Mr. Blizzard": ActorPresetInfo(
+        decomp_path="actors/snowman",
+        group="group7",
+        animation=AnimInfo(
+            address=0x500D118, behaviours={"Mr. Blizzard": 0x13004DBC}, names=["Spawn Snowball", "Throw Snowball"]
+        ),
+        models={
+            "Mr. Blizzard": ModelInfo(model_id=ModelIDInfo(0x56, "MODEL_MR_BLIZZARD"), geolayout=0xC000348),
+            "Mr. Blizzard (Hidden)": ModelInfo(
+                model_id=ModelIDInfo(0x55, "MODEL_MR_BLIZZARD_HIDDEN"), geolayout=0xC00021C
+            ),
+        },
+    ),
+    "Snufit": ActorPresetInfo(
+        decomp_path="actors/snufit",
+        group="group17",
+        models=ModelInfo(model_id=ModelIDInfo(0xCE, "MODEL_SNUFIT"), geolayout=0xD0001A0),
+    ),
+    "Sparkle": ActorPresetInfo(
+        decomp_path="actors/sparkle",
+        group="group0",
+        models=ModelInfo(model_id=ModelIDInfo(0x95, "MODEL_SPARKLES"), geolayout=0x170001BC),
+    ),
+    "Sparkle Animation": ActorPresetInfo(
+        decomp_path="actors/sparkle_animation",
+        group="group0",
+        models=ModelInfo(model_id=ModelIDInfo(0x8F, "MODEL_SPARKLES_ANIMATION"), geolayout=0x17000284),
+    ),
+    "Spindrift": ActorPresetInfo(
+        decomp_path="actors/spindrift",
+        group="group7",
+        animation=AnimInfo(address=0x5002D68, behaviours=0x130012B4, names=["Flying"]),
+        models=ModelInfo(model_id=ModelIDInfo(0x54, "MODEL_SPINDRIFT"), geolayout=0xC000000),
+    ),
+    "Spiny": ActorPresetInfo(
+        decomp_path="actors/spiny",
+        group="group11",
+        animation=AnimInfo(address=0x5016EAC, behaviours={"Spiny": 0x130049C8}, names=["Walk"]),
+        models=ModelInfo(model_id=ModelIDInfo(0x56, "MODEL_SPINY"), geolayout=0xC000328),
+    ),
+    "Spiny Egg": ActorPresetInfo(
+        decomp_path="actors/spiny_egg",
+        group="group11",
+        animation=AnimInfo(address=0x50157E4, names=["Default"]),
+        models=ModelInfo(model_id=ModelIDInfo(0x55, "MODEL_SPINY_BALL"), geolayout=0xC000290),
+    ),
+    "Springboard": ActorPresetInfo(
+        decomp_path="actors/springboard",
+        group="group8",
+        models={
+            "Springboard Top": ModelInfo(model_id=ModelIDInfo(0xB5, "MODEL_TRAMPOLINE"), geolayout=0xC000000),
+            "Springboard Middle": ModelInfo(model_id=ModelIDInfo(0xB6, "MODEL_TRAMPOLINE_CENTER"), geolayout=0xC000018),
+            "Springboard Bottom": ModelInfo(model_id=ModelIDInfo(0xB7, "MODEL_TRAMPOLINE_BASE"), geolayout=0xC000030),
+        },
+    ),
+    "Star": ActorPresetInfo(
+        decomp_path="actors/star",
+        group="common1",
+        models=ModelInfo(model_id=ModelIDInfo(0x7A, "MODEL_STAR"), geolayout=0x16000EA0),
+    ),
+    "Small Water Splash": ActorPresetInfo(
+        decomp_path="actors/stomp_smoke",
+        group="group0",
+        models={
+            "Small Water Splash": ModelInfo(
+                model_id=ModelIDInfo(0xA5, "MODEL_SMALL_WATER_SPLASH"), geolayout=0x1700009C
+            ),
+            "(Unused) Small Water Splash": ModelInfo(geolayout=0x170000E0),
+        },
+    ),
+    "Sushi Shark": ActorPresetInfo(
+        decomp_path="actors/sushi",
+        group="group4",
+        animation=AnimInfo(address=0x500AE54, behaviours=0x13002338, size=1, names=["Swimming", "Diving"]),
+        models=ModelInfo(model_id=ModelIDInfo(0x56, "MODEL_SUSHI"), geolayout=0xC000068),
+    ),
+    "Swoop": ActorPresetInfo(
+        decomp_path="actors/swoop",
+        group="group17",
+        animation=AnimInfo(address=0x60070D0, behaviours=0x13004698, size=2, names=["Idle", "Move"]),
+        models=ModelInfo(model_id=ModelIDInfo(0x64, "MODEL_SWOOP"), geolayout=0xD0000DC),
+    ),
+    "Test Plataform": ActorPresetInfo(
+        decomp_path="actors/test_plataform",
+        group="common0",
+        collision=CollisionInfo(address=0x80262F8, c_name="unknown_seg8_collision_080262F8"),
+    ),
+    "Thwomp": ActorPresetInfo(
+        decomp_path="actors/thwomp",
+        group="group1",
+        models=ModelInfo(model_id=ModelIDInfo(0x58, "MODEL_THWOMP"), geolayout=0xC000248),
+        collision={
+            "Thwomp": CollisionInfo(address=0x500B7D0, c_name="thwomp_seg5_collision_0500B7D0"),
+            "Thwomp 2": CollisionInfo(address=0x500B92C, c_name="thwomp_seg5_collision_0500B92C"),
+        },
+    ),
+    "Toad": ActorPresetInfo(
+        decomp_path="actors/toad",
+        group="group15",
+        animation=AnimInfo(
+            address=0x600FC48,
+            behaviours={"End Toad": 0x13000E88, "Toad Message": 0x13002EF8},
+            size=8,
+            names=[
+                "Wave Then Run (West)",
+                "Walking (West)",
+                "Node Then Turn (East)",
+                "Walking (East)",
+                "Standing (West)",
+                "Standing (East)",
+                "Waving Both Arms (West)",
+                "Waving One Arm (East)",
+            ],
+        ),
+        models=ModelInfo(model_id=ModelIDInfo(0xDD, "MODEL_TOAD"), geolayout=0xD0003E4),
+    ),
+    "Tweester/Tornado": ActorPresetInfo(
+        decomp_path="actors/tornado",
+        group="group5",
+        models=ModelInfo(model_id=ModelIDInfo(0x56, "MODEL_TWEESTER"), geolayout=0x5014630),
+    ),
+    "Transparent Star": ActorPresetInfo(
+        decomp_path="actors/transperant_star",
+        group="common1",
+        models=ModelInfo(model_id=ModelIDInfo(0x79, "MODEL_TRANSPARENT_STAR"), geolayout=0x16000F6C),
+    ),
+    "Treasure Chest": ActorPresetInfo(
+        decomp_path="actors/treasure_chest",
+        group="group13",
+        models={
+            "Treasure Chest Base": ModelInfo(
+                model_id=ModelIDInfo(0x65, "MODEL_TREASURE_CHEST_BASE"), geolayout=0xD000450
+            ),
+            "Treasure Chest Lid": ModelInfo(
+                model_id=ModelIDInfo(0x66, "MODEL_TREASURE_CHEST_LID"), geolayout=0xD000468
+            ),
+        },
+    ),
+    "Tree": ActorPresetInfo(
+        decomp_path="actors/tree",
+        group="common1",
+        models={
+            "Bubbly Tree": ModelInfo(
+                model_id=[
+                    ModelIDInfo(0x17, "MODEL_BOB_BUBBLY_TREE"),
+                    ModelIDInfo(0x17, "MODEL_WDW_BUBBLY_TREE"),
+                    ModelIDInfo(0x17, "MODEL_CASTLE_GROUNDS_BUBBLY_TREE"),
+                    ModelIDInfo(0x17, "MODEL_WF_BUBBLY_TREE"),
+                    ModelIDInfo(0x17, "MODEL_THI_BUBBLY_TREE"),
+                ],
+                geolayout=0x16000FE8,
+            ),
+            "Pine Tree": ModelInfo(model_id=ModelIDInfo(0x18, "MODEL_COURTYARD_SPIKY_TREE"), geolayout=0x16001000),
+            "(Unused) Pine Tree": ModelInfo(geolayout=0x16001030),
+            "Snow Tree": ModelInfo(
+                model_id=[ModelIDInfo(0x19, "MODEL_CCM_SNOW_TREE"), ModelIDInfo(0x19, "MODEL_SL_SNOW_TREE")],
+                geolayout=0x16001018,
+            ),
+            "Palm Tree": ModelInfo(model_id=ModelIDInfo(0x1B, "MODEL_SSL_PALM_TREE"), geolayout=0x16001048),
+        },
+    ),
+    "Ukiki": ActorPresetInfo(
+        decomp_path="actors/ukiki",
+        group="group6",
+        animation=AnimInfo(
+            address=0x5015784,
+            behaviours={"Ukiki": 0x13001CB0},
+            names=[
+                "Run",
+                "Walk (Unused)",
+                "Apose (Unused)",
+                "Death (Unused)",
+                "Screech",
+                "Jump Clap",
+                "Hop (Unused)",
+                "Land",
+                "Jump",
+                "Itch",
+                "Handstand",
+                "Turn",
+                "Held",
+            ],
+        ),
+        models=ModelInfo(model_id=ModelIDInfo(0x56, "MODEL_UKIKI"), geolayout=0xC000110),
+    ),
+    "Unagi": ActorPresetInfo(
+        decomp_path="actors/unagi",
+        group="group4",
+        animation=AnimInfo(
+            address=0x5012824,
+            behaviours=0x13004F40,
+            size=7,
+            names=["Yawn", "Bite", "Swimming", "Static Straight", "Idle", "Open Mouth", "Idle 2"],
+        ),
+        models=ModelInfo(model_id=ModelIDInfo(0x55, "MODEL_UNAGI"), geolayout=0xC00010C),
+    ),
+    "Smoke": ActorPresetInfo(
+        decomp_path="actors/walk_smoke",
+        group="group0",
+        models=ModelInfo(model_id=ModelIDInfo(0x96, "MODEL_SMOKE"), geolayout=0x17000038),
+    ),
+    "Warp Collision": ActorPresetInfo(
+        decomp_path="actors/warp_collision",
+        group="common1",
+        collision={
+            "Door": CollisionInfo(address=0x301CE78, c_name="door_seg3_collision_0301CE78"),
+            "LLL Hexagonal Mesh": CollisionInfo(address=0x301CECC, c_name="lll_hexagonal_mesh_seg3_collision_0301CECC"),
+        },
+    ),
+    "Warp Pipe": ActorPresetInfo(
+        decomp_path="actors/warp_pipe",
+        group="common1",
+        models=ModelInfo(
+            model_id=[
+                ModelIDInfo(0x49, "MODEL_BITS_WARP_PIPE"),
+                ModelIDInfo(0x12, "MODEL_BITDW_WARP_PIPE"),
+                ModelIDInfo(0x16, "MODEL_THI_WARP_PIPE"),
+                ModelIDInfo(0x16, "MODEL_VCUTM_WARP_PIPE"),
+                ModelIDInfo(0x16, "MODEL_CASTLE_GROUNDS_WARP_PIPE"),
+            ],
+            geolayout=0x16000388,
+        ),
+    ),
+    "Water Bomb": ActorPresetInfo(
+        decomp_path="actors/water_bubble",
+        group="group3",
+        models={
+            "Water Bomb": ModelInfo(model_id=ModelIDInfo(0x54, "MODEL_WATER_BOMB"), geolayout=0xC000308),
+            "Water Bomb's Shadow": ModelInfo(
+                model_id=ModelIDInfo(0x55, "MODEL_WATER_BOMB_SHADOW"), geolayout=0xC000328
+            ),
+        },
+    ),
+    "Water Mine": ActorPresetInfo(
+        decomp_path="actors/water_mine",
+        group="group13",
+        models=ModelInfo(model_id=ModelIDInfo(0xB3, "MODEL_WATER_MINE"), geolayout=0xD0002F4),
+    ),
+    "Water Ring": ActorPresetInfo(
+        decomp_path="actors/water_ring",
+        group="group13",
+        animation=AnimInfo(
+            address=0x6013F7C,
+            behaviours={"Water Ring (Jet Stream)": 0x13003750, "Water Ring (Manta Ray)": 0xC66C16},
+            names=["Wobble"],
+        ),
+        models=ModelInfo(model_id=ModelIDInfo(0x68, "MODEL_WATER_RING"), geolayout=0xD000414),
+    ),
+    "Water Splash": ActorPresetInfo(
+        decomp_path="actors/water_splash",
+        group="group0",
+        models=ModelInfo(model_id=ModelIDInfo(0xA7, "MODEL_WATER_SPLASH"), geolayout=0x17000230),
+    ),
+    "Water Wave": ActorPresetInfo(
+        decomp_path="actors/water_wave",
+        group="group0",
+        models={
+            "Idle Water Wave": ModelInfo(model_id=ModelIDInfo(0xA6, "MODEL_IDLE_WATER_WAVE"), geolayout=0x17000124),
+            "Water Wave Trail": ModelInfo(model_id=ModelIDInfo(0xA3, "MODEL_WAVE_TRAIL"), geolayout=0x17000168),
+        },
+    ),
+    "Whirlpool": ActorPresetInfo(
+        decomp_path="actors/whirlpool",
+        group="group4",
+        models=ModelInfo(
+            model_id=ModelIDInfo(0x57, "MODEL_DL_WHIRLPOOL"),
+            displaylist=DisplaylistInfo(0x5013CB8, "whirlpool_seg5_dl_05013CB8"),
+        ),
+    ),
+    "White Particle": ActorPresetInfo(
+        decomp_path="actors/white_particle",
+        group="common1",
+        models={
+            "White Particle": ModelInfo(model_id=ModelIDInfo(0xA0, "MODEL_WHITE_PARTICLE"), geolayout=0x16000F98),
+            "White Particle (DL)": ModelInfo(
+                model_id=ModelIDInfo(0x9E, "MODEL_WHITE_PARTICLE_DL"),
+                displaylist=DisplaylistInfo(0x302C8A0, "white_particle_dl"),
+            ),
+        },
+    ),
+    "White Particle Small": ActorPresetInfo(
+        decomp_path="actors/white_particle_small",
+        group="group0",
+        models={
+            "White Particle Small": ModelInfo(
+                model_id=ModelIDInfo(0xA4, "MODEL_WHITE_PARTICLE_SMALL"),
+                displaylist=DisplaylistInfo(0x4032A18, "white_particle_small_dl"),
+            ),
+            "(Unused) White Particle Small": ModelInfo(
+                displaylist=DisplaylistInfo(0x4032A30, "white_particle_small_unused_dl")
+            ),
+        },
+    ),
+    "Whomp": ActorPresetInfo(
+        decomp_path="actors/whomp",
+        group="group14",
+        animation=AnimInfo(address=0x6020A04, behaviours=0x13002BCC, size=2, names=["Walk", "Jump"]),
+        models=ModelInfo(model_id=ModelIDInfo(0x67, "MODEL_WHOMP"), geolayout=0xD000480),
+        collision=CollisionInfo(address=0x6020A0C, c_name="whomp_seg6_collision_06020A0C"),
+    ),
+    "Wiggler Body": ActorPresetInfo(
+        decomp_path="actors/wiggler_body",
+        group="group11",
+        animation=AnimInfo(address=0x500C874, behaviours=0x130048E0, size=1, names=["Walk"]),
+        models=ModelInfo(model_id=ModelIDInfo(0x58, "MODEL_WIGGLER_BODY"), geolayout=0x500C778),
+    ),
+    "Wiggler Head": ActorPresetInfo(
+        decomp_path="actors/wiggler_head",
+        group="group11",
+        animation=AnimInfo(address=0x500EC8C, behaviours=0x13004898, size=1, names=["Walk"]),
+        models=ModelInfo(model_id=ModelIDInfo(0x57, "MODEL_WIGGLER_HEAD"), geolayout=0xC000030),
+    ),
+    "Wooden Signpost": ActorPresetInfo(
+        decomp_path="actors/wooden_signpost",
+        group="common1",
+        models=ModelInfo(model_id=ModelIDInfo(0x7C, "MODEL_WOODEN_SIGNPOST"), geolayout=0x16000FB4),
+        collision=CollisionInfo(address=0x302DD80, c_name="wooden_signpost_seg3_collision_0302DD80"),
+    ),
+    "Yellow Sphere (Bowser 1)": ActorPresetInfo(
+        decomp_path="actors/yellow_sphere",
+        group="group12",
+        models=ModelInfo(model_id=ModelIDInfo(0x3, "MODEL_LEVEL_GEOMETRY_03"), geolayout=0xD0000B0),
+    ),
+    "Yellow Sphere": ActorPresetInfo(
+        decomp_path="actors/yellow_sphere_small",
+        group="group1",
+        models=ModelInfo(model_id=ModelIDInfo(0x55, "MODEL_YELLOW_SPHERE"), geolayout=0xC000000),
+    ),
+    "Yoshi": ActorPresetInfo(
+        decomp_path="actors/yoshi",
+        group="group10",
+        animation=AnimInfo(address=0x50241E8, behaviours=0x13004538, names=["Idle", "Walk", "Jump"]),
+        models=ModelInfo(model_id=ModelIDInfo(0x55, "MODEL_YOSHI"), geolayout=0xC000468),
+    ),
+    "(Unused) Yoshi Egg": ActorPresetInfo(
+        decomp_path="actors/yoshi_egg",
+        group="group1",
+        models=ModelInfo(model_id=ModelIDInfo(0x57, "MODEL_YOSHI_EGG"), geolayout=0xC0001E4),
+    ),
+    "Castle Flag": ActorPresetInfo(
+        decomp_path="levels/castle_grounds/areas/1/11",
+        level="CG",
+        animation=AnimInfo(address=0x700C95C, behaviours=0x13003C58, size=1, names=["Wave"]),
+        models=ModelInfo(model_id=ModelIDInfo(0x37, "MODEL_CASTLE_GROUNDS_FLAG"), geolayout=0xE000660),
+    ),
+}
 
 marioAnimations = [
     #   ( Adress, "Animation name" ),
@@ -2012,3 +3919,19 @@ marioAnimations = [
     (5737600, "207 - Forwards spinning flip"),
     (5740584, "208 - Triple jump fly"),
 ]
+
+sm64_world_defaults = {
+    "geometryMode": {
+        "zBuffer": True,
+        "shade": True,
+        "cullBack": True,
+        "lighting": True,
+        "shadeSmooth": True,
+    },
+    "otherModeH": {
+        "textureFilter": "G_TF_BILERP",
+        "perspectiveCorrection": "G_TP_PERSP",
+        "textureConvert": "G_TC_FILT",
+        "pipelineMode": "G_PM_1PRIMITIVE",
+    },
+}

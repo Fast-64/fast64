@@ -1,8 +1,12 @@
+import bpy
+
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
+import bpy
 from bpy.types import Object, CollectionProperty
+from ..utility import PluginError
 from .data import OoT_ObjectData
-from .oot_utility import getEvalParams
+from .oot_utility import getEvalParams, get_actor_prop_from_obj
 from .oot_constants import ootData
 from .cutscene.constants import ootEnumCSMotionCamMode
 
@@ -83,24 +87,22 @@ def convertOldDataToEnumData(data, oldDataToEnumData: list[Cutscene_UpgradeData]
         if csUpgradeData.oldPropName in data:
             # get the old data
             oldData = data[csUpgradeData.oldPropName]
+            isUpgraded = False
 
             # if anything goes wrong there set the value to custom to avoid any data loss
             try:
                 if isinstance(oldData, str):
                     # get the value, doing an eval for strings
-                    # account for custom elements in the enums by adding 1
-                    value = int(getEvalParams(oldData), base=16) + 1
+                    value = int(getEvalParams(oldData), base=16)
 
                     # special cases for ocarina action enum
                     # since we don't have everything the value need to be shifted
                     if csUpgradeData.newPropName == "ocarinaAction":
-                        if value in [0x00, 0x01, 0x0E] or value > 0x1A:
+                        if value in [0x00, 0x01, 0x0E, 0x1B]:
                             raise IndexError
 
-                        if value > 0x0E:
-                            value -= 1
-
-                        value -= 2
+                        # account for custom elements in the enums by adding 1
+                        value += 1
 
                     if csUpgradeData.newPropName == "csSeqID":
                         # the old fade out value is wrong, it assumes it's a seq id
@@ -109,24 +111,22 @@ def convertOldDataToEnumData(data, oldDataToEnumData: list[Cutscene_UpgradeData]
                         # @TODO: find a way to check properly which seq command it is
                         raise NotImplementedError
                 elif isinstance(oldData, int):
-                    # account for custom elements in the enums by adding 1
-                    value = oldData + 1
+                    value = oldData
 
                     # another special case, this time for the misc enum
                     if csUpgradeData.newPropName == "csMiscType":
                         if value in [0x00, 0x04, 0x05]:
                             raise IndexError
 
-                        if value > 0x05:
-                            value -= 2
-
-                        value -= 1
+                    # account for custom elements in the enums by adding 1
+                    value += 1
                 else:
                     raise NotImplementedError
 
                 # if the value is in the list find the identifier
                 if value < len(csUpgradeData.enumData):
                     setattr(data, csUpgradeData.newPropName, csUpgradeData.enumData[value][0])
+                    isUpgraded = True
                 else:
                     # else raise an error to default to custom
                     raise IndexError
@@ -138,8 +138,12 @@ def convertOldDataToEnumData(data, oldDataToEnumData: list[Cutscene_UpgradeData]
                 if csUpgradeData.newPropName == "csSeqID":
                     setattr(data, "csSeqPlayer", "Custom")
                     setattr(data, "csSeqPlayerCustom", str(oldData))
+                isUpgraded = True
 
-            del data[csUpgradeData.oldPropName]
+            if isUpgraded:
+                del data[csUpgradeData.oldPropName]
+            else:
+                raise PluginError(f"ERROR: ``{csUpgradeData.newPropName}`` did not upgrade properly!")
 
 
 def upgradeCutsceneSubProps(csListSubProp):
@@ -303,6 +307,61 @@ def upgradeCutsceneMotion(csMotionObj: Object):
 # Actors
 #####################################
 def upgradeActors(actorObj: Object):
+    # parameters
+    actorProp = get_actor_prop_from_obj(actorObj)
+    isCustom = False
+
+    if actorObj.ootEmptyType == "Entrance":
+        isCustom = actorObj.ootEntranceProperty.customActor
+    else:
+        if "actorID" in actorProp:
+            actorProp.actor_id = ootData.actorData.ootEnumActorID[actorProp["actorID"]][0]
+            del actorProp["actorID"]
+
+        if "actorIDCustom" in actorProp:
+            actorProp.actor_id_custom = actorProp["actorIDCustom"]
+            del actorProp["actorIDCustom"]
+
+        isCustom = actorProp.actor_id == "Custom"
+
+    if "actorParam" in actorProp:
+        if not isCustom:
+            prop_name = "params"
+
+            if getEvalParams(actorProp["actorParam"]) is None:
+                actorProp.actor_id_custom = actorProp.actor_id
+                actorProp.actor_id = "Custom"
+                prop_name = "params_custom"
+        else:
+            prop_name = "params_custom"
+
+        setattr(actorProp, prop_name, actorProp["actorParam"])
+        del actorProp["actorParam"]
+
+    if actorObj.ootEmptyType == "Actor":
+        custom = "_custom" if actorProp.actor_id == "Custom" else ""
+
+        if isCustom:
+            if "rotOverride" in actorProp:
+                actorProp.rot_override = actorProp["rotOverride"]
+                del actorProp["rotOverride"]
+
+        for rot in {"X", "Y", "Z"}:
+            if actorProp.actor_id == "Custom" or actorProp.is_rotation_used(f"{rot}Rot"):
+                if f"rotOverride{rot}" in actorProp:
+                    if getEvalParams(actorProp[f"rotOverride{rot}"]) is None:
+                        custom = "_custom"
+
+                        if actorProp.actor_id != "Custom":
+                            actorProp.actor_id_custom = actorProp.actor_id
+                            actorProp.params_custom = actorProp.params
+                            actorProp.actor_id = "Custom"
+                            actorProp.rot_override = True
+
+                    setattr(actorProp, f"rot_{rot.lower()}{custom}", actorProp[f"rotOverride{rot}"])
+                    del actorProp[f"rotOverride{rot}"]
+
+    # room stuff
     if actorObj.ootEmptyType == "Entrance":
         entranceProp = actorObj.ootEntranceProperty
 
@@ -312,17 +371,36 @@ def upgradeActors(actorObj: Object):
                     entranceProp.tiedRoom = obj
                     break
     elif actorObj.ootEmptyType == "Transition Actor":
+        # get room parent
+        roomParent = None
+        for obj in bpy.data.objects:
+            if obj.type == "EMPTY" and obj.ootEmptyType == "Room" and actorObj in obj.children_recursive:
+                roomParent = obj
+                break
+
+        # if it's ``None`` then this door actor is not parented to a room
+        if roomParent is None:
+            print("WARNING: Ignoring Door Actor not parented to a room")
+            return
+
         transActorProp = actorObj.ootTransitionActorProperty
-        transActorProp.isRoomTransition = actorObj["ootTransitionActorProperty"]["dontTransition"] == False
-        del actorObj["ootTransitionActorProperty"]["dontTransition"]
+        if "dontTransition" in transActorProp or "roomIndex" in transActorProp:
+            # look for old data since we don't want to overwrite newer existing data
+            transActorProp.fromRoom = roomParent
 
-        if transActorProp.isRoomTransition:
+        # upgrade old props if present
+        if "dontTransition" in transActorProp:
+            transActorProp.isRoomTransition = transActorProp["dontTransition"] == False
+            del transActorProp["dontTransition"]
+
+        if "roomIndex" in transActorProp:
             for obj in bpy.data.objects:
-                if obj.type == "EMPTY":
-                    if obj.ootEmptyType == "Room":
-                        if actorObj in obj.children_recursive:
-                            transActorProp.fromRoom = obj
-
-                        if obj.ootRoomHeader.roomIndex == actorObj["ootTransitionActorProperty"]["roomIndex"]:
-                            transActorProp.toRoom = obj
-                            del actorObj["ootTransitionActorProperty"]["roomIndex"]
+                if (
+                    obj != transActorProp.fromRoom
+                    and obj.type == "EMPTY"
+                    and obj.ootEmptyType == "Room"
+                    and obj.ootRoomHeader.roomIndex == transActorProp["roomIndex"]
+                ):
+                    transActorProp.toRoom = obj
+                    del transActorProp["roomIndex"]
+                    break

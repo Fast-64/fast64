@@ -10,8 +10,8 @@ from .f3d_enums import *
 from .f3d_material import (
     all_combiner_uses,
     getMaterialScrollDimensions,
-    getZMode,
     isTexturePointSampled,
+    get_textlut_mode,
     RDPSettings,
 )
 from .f3d_texture_writer import MultitexManager, TileLoad, maybeSaveSingleLargeTextureSetup
@@ -75,12 +75,73 @@ class MeshInfo:
         self.vertexGroupInfo = None
 
 
-def getInfoDict(obj):
+def get_original_name(obj: bpy.types.Object):
+    return getattr(obj, "original_name", obj.name)
+
+
+def getInfoDict(obj: bpy.types.Object):
+    try:
+        return getInfoDict_impl(obj)
+    except:
+        print(f"Error in getInfoDict_impl(obj name = {get_original_name(obj)!r})")
+        raise
+
+
+def check_face_materials(
+    obj_name: str,
+    material_slots: "bpy.types.bpy_prop_collection[bpy.types.MaterialSlot]",
+    faces: "bpy.types.MeshPolygons | bpy.types.MeshLoopTriangles",
+):
+    """
+    Check if all faces are correctly assigned to a F3D material
+    Raise a PluginError with a helpful message if not.
+
+    Somehow these two different collections of faces MeshPolygons and MeshLoopTriangles
+    behave differently / store different info, fast64 uses both so check both
+    """
+    for face in faces:
+        material_index = face.material_index
+        if material_index >= len(material_slots):
+            # Not supposed to be possible with how Blender behaves when removing material slots,
+            # but has happened to some people somehow.
+            raise PluginError(
+                f"Mesh object {obj_name} has faces"
+                " with an invalid material slot assigned."
+                " Assign the faces to a valid slot."
+                f" (0-indexed: slot {material_index}, aka the {material_index+1}th slot)."
+            )
+        material = material_slots[material_index].material
+        if material is None:
+            raise PluginError(
+                f"Mesh object {obj_name} has faces"
+                f" assigned to a material slot which isn't set to any material."
+                " Set a material for the slot or assign the faces to an actual material."
+                f" (0-indexed: slot {material_index}, aka the {material_index+1}th slot)."
+            )
+        if not material.is_f3d:
+            raise PluginError(
+                f"Mesh object {obj_name} has faces"
+                f" assigned to a material which is not a F3D material: {material.name}"
+            )
+
+
+def getInfoDict_impl(obj: bpy.types.Object):
+    mesh: bpy.types.Mesh = obj.data
+    material_slots = obj.material_slots
+    if len(mesh.materials) == 0 or len(material_slots) == 0:
+        raise PluginError(f"Mesh object {get_original_name(obj)} does not have any Fast3D materials.")
+
+    # check mesh.polygons, used by fixLargeUVs
+    check_face_materials(get_original_name(obj), material_slots, mesh.polygons)
     fixLargeUVs(obj)
-    obj.data.calc_loop_triangles()
-    obj.data.calc_normals_split()
-    if len(obj.data.materials) == 0:
-        raise PluginError("Mesh does not have any Fast3D materials.")
+
+    mesh.calc_loop_triangles()
+    # check mesh.loop_triangles (now that we computed them), used below
+    check_face_materials(get_original_name(obj), material_slots, mesh.loop_triangles)
+
+    # in blender version 4.1 func was removed, in 4.1+ normals are always calculated
+    if bpy.app.version < (4, 1, 0):
+        mesh.calc_normals_split()
 
     infoDict = MeshInfo()
 
@@ -90,7 +151,6 @@ def getInfoDict(obj):
     edgeValidDict = infoDict.edgeValid
     validNeighborDict = infoDict.validNeighbors
 
-    mesh: bpy.types.Mesh = obj.data
     uv_data: bpy.types.bpy_prop_collection | list[bpy.types.MeshUVLoop] = None
     if len(obj.data.uv_layers) == 0:
         uv_data = obj.data.uv_layers.new().data
@@ -100,12 +160,15 @@ def getInfoDict(obj):
             if uv_layer.name == "UVMap":
                 uv_data = uv_layer.data
         if uv_data is None:
-            raise PluginError("Object '" + obj.name + "' does not have a UV layer named 'UVMap.'")
+            raise PluginError("Object '" + get_original_name(obj) + "' does not have a UV layer named 'UVMap.'")
     for face in mesh.loop_triangles:
         validNeighborDict[face] = []
         material = obj.material_slots[face.material_index].material
         if material is None:
-            raise PluginError("There are some faces on your mesh that are assigned to an empty material slot.")
+            raise PluginError(
+                f"There are some faces on your mesh object {get_original_name(obj)}"
+                " that are assigned to an empty material slot."
+            )
         for vertIndex in face.vertices:
             if vertIndex not in vertDict:
                 vertDict[vertIndex] = []
@@ -139,6 +202,29 @@ def getInfoDict(obj):
     return infoDict
 
 
+def getSTUVRepeats(tex_prop: "TextureProperty") -> tuple[float, float]:
+    SShift, TShift = 2**tex_prop.S.shift, 2**tex_prop.T.shift
+    sMirrorScale = 2 if tex_prop.S.mirror else 1
+    tMirrorScale = 2 if tex_prop.T.mirror else 1
+    return (SShift * sMirrorScale, TShift * tMirrorScale)
+
+
+def getUVInterval(f3dMat):
+    useDict = all_combiner_uses(f3dMat)
+
+    if useDict["Texture 0"] and f3dMat.tex0.tex_set:
+        tex0UVInterval = getSTUVRepeats(f3dMat.tex0)
+    else:
+        tex0UVInterval = (1.0, 1.0)
+
+    if useDict["Texture 1"] and f3dMat.tex1.tex_set:
+        tex1UVInterval = getSTUVRepeats(f3dMat.tex1)
+    else:
+        tex1UVInterval = (1.0, 1.0)
+
+    return (max(tex0UVInterval[0], tex1UVInterval[0]), max(tex0UVInterval[1], tex1UVInterval[1]))
+
+
 def fixLargeUVs(obj):
     mesh = obj.data
     if len(obj.data.uv_layers) == 0:
@@ -149,11 +235,11 @@ def fixLargeUVs(obj):
             if uv_layer.name == "UVMap":
                 uv_data = uv_layer.data
         if uv_data is None:
-            raise PluginError("Object '" + obj.name + "' does not have a UV layer named 'UVMap.'")
+            raise PluginError("Object '" + get_original_name(obj) + "' does not have a UV layer named 'UVMap.'")
 
     texSizeDict = {}
     if len(obj.data.materials) == 0:
-        raise PluginError(f"{obj.name}: This object needs an f3d material on it.")
+        raise PluginError(f"{get_original_name(obj)}: This object needs an f3d material on it.")
 
         # Don't get tex dimensions here, as it also processes unused materials.
         # texSizeDict[material] = getTexDimensions(material)
@@ -161,19 +247,19 @@ def fixLargeUVs(obj):
     for polygon in mesh.polygons:
         material = obj.material_slots[polygon.material_index].material
         if material is None:
-            raise PluginError("There are some faces on your mesh that are assigned to an empty material slot.")
+            raise PluginError(
+                f"There are some faces on your mesh object {get_original_name(obj)}"
+                " that are assigned to an empty material slot."
+            )
 
         if material not in texSizeDict:
             texSizeDict[material] = getTexDimensions(material)
         if material.f3d_mat.use_large_textures:
             continue
 
-        f3dMat = material.f3d_mat
-
-        UVinterval = [
-            2 if f3dMat.tex0.S.mirror or f3dMat.tex1.S.mirror else 1,
-            2 if f3dMat.tex0.T.mirror or f3dMat.tex1.T.mirror else 1,
-        ]
+        # To prevent wrong UVs when wrapping UVs into valid bounds,
+        # we need to account for the highest texture shift and if mirroring is active.
+        UVinterval = getUVInterval(material.f3d_mat)
 
         size = texSizeDict[material]
         if size[0] == 0 or size[1] == 0:
@@ -334,14 +420,21 @@ def saveStaticModel(
 
     # checkForF3DMaterial(obj)
 
-    facesByMat = {}
+    faces_by_mat = {}
     for face in obj.data.loop_triangles:
-        if face.material_index not in facesByMat:
-            facesByMat[face.material_index] = []
-        facesByMat[face.material_index].append(face)
+        if face.material_index not in faces_by_mat:
+            faces_by_mat[face.material_index] = []
+        faces_by_mat[face.material_index].append(face)
+
+    # sort by material slot
+    faces_by_mat = {
+        mat_index: faces_by_mat[mat_index]
+        for mat_index, _ in enumerate(obj.material_slots)
+        if mat_index in faces_by_mat
+    }
 
     fMeshes = {}
-    for material_index, faces in facesByMat.items():
+    for material_index, faces in faces_by_mat.items():
         material = obj.material_slots[material_index].material
 
         if drawLayerField is not None and material.mat_ver > 3:
@@ -355,7 +448,7 @@ def saveStaticModel(
             fMesh = fModel.addMesh(obj.original_name, ownerName, drawLayerName, False, obj)
             fMeshes[drawLayer] = fMesh
 
-            if obj.use_f3d_culling and (fModel.f3d.F3DEX_GBI or fModel.f3d.F3DEX_GBI_2):
+            if obj.use_f3d_culling and not fModel.f3d.F3D_OLD_GBI:
                 addCullCommand(obj, fMesh, transformMatrix, fModel.matWriteMethod)
         else:
             fMesh = fMeshes[drawLayer]
@@ -422,7 +515,7 @@ def addCullCommand(obj, fMesh, transformMatrix, matWriteMethod):
         )
 
     if matWriteMethod == GfxMatWriteMethod.WriteDifferingAndRevert:
-        defaults = bpy.context.scene.world.rdp_defaults
+        defaults = create_or_get_world(bpy.context.scene).rdp_defaults
         if defaults.g_lighting:
             cullCommands = [
                 SPClearGeometryMode(["G_LIGHTING"]),
@@ -907,7 +1000,7 @@ class TriangleConverter:
         triCmds = createTriangleCommands(
             self.vertexBufferTriangles, self.vertBuffer, not self.triConverterInfo.f3d.F3D_OLD_GBI
         )
-        if not self.material.f3d_mat.use_cel_shading:
+        if not self.triConverterInfo.f3d.F3DEX_GBI_3 or not self.material.f3d_mat.use_cel_shading:
             self.triList.commands.extend(triCmds)
         else:
             if len(triCmds) <= 2:
@@ -927,10 +1020,9 @@ class TriangleConverter:
         # Don't want to have to change back and forth arbitrarily between decal and
         # opaque mode. So if you're using both lighter and darker, need to do those
         # first before switching to decal.
-        if getZMode(self.material) != "ZMODE_OPA":
+        if f3dMat.rdp_settings.zmode != "ZMODE_OPA":
             raise PluginError(
-                f"Material {self.material.name} with cel shading: zmode in blender / rendermode must be opaque.",
-                icon="ERROR",
+                f"Material {self.material.name} with cel shading: zmode in blender / rendermode must be opaque."
             )
         wroteLighter = wroteDarker = usesDecal = False
         if len(cel.levels) == 0:
@@ -1111,7 +1203,7 @@ def getLoopNormal(loop: bpy.types.MeshLoop) -> Vector:
 
 @functools.lru_cache(0)
 def is3_2_or_above():
-    return bpy.app.version[0] >= 3 and bpy.app.version[1] >= 2
+    return bpy.app.version >= (3, 2, 0)
 
 
 def getLoopColor(loop: bpy.types.MeshLoop, mesh: bpy.types.Mesh) -> Vector:
@@ -1195,6 +1287,7 @@ def getTexDimensions(material):
     return texDimensions
 
 
+@wrap_func_with_error_message(lambda args: (f"In material '{args['material'].name}': "))
 def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     print(f"Writing material {material.name}")
     if material.mat_ver > 3:
@@ -1223,12 +1316,32 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         + (("_layer" + str(drawLayer)) if f3dMat.rdp_settings.set_rendermode and drawLayer is not None else "")
         + (("_area" + str(areaIndex)) if f3dMat.set_fog and f3dMat.use_global_fog and areaKey is not None else "")
     )
-    fMaterial = fModel.addMaterial(materialName)
-    fMaterial.mat_only_DL.commands.append(DPPipeSync())
-    fMaterial.revert.commands.append(DPPipeSync())
 
     if not material.is_f3d:
-        raise PluginError("Material named " + material.name + " is not an F3D material.")
+        raise PluginError("Not an F3D material.")
+    fMaterial = fModel.addMaterial(materialName)
+    useDict = all_combiner_uses(f3dMat)
+
+    defaults = create_or_get_world(bpy.context.scene).rdp_defaults
+    if fModel.f3d.F3DEX_GBI_2:
+        saveGeoModeDefinitionF3DEX2(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
+    else:
+        saveGeoModeDefinition(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
+
+    # Checking for f3dMat.rdp_settings.g_lighting here will prevent accidental exports,
+    # There may be some edge case where this isn't desired.
+    if useDict["Shade"] and f3dMat.rdp_settings.g_lighting and f3dMat.set_lights:
+        if fModel.no_light_direction:
+            fLights = getLightDefinitions(fModel, f3dMat)
+
+            for i, light in enumerate(fLights.l + [fLights.a]):
+                fMaterial.mat_only_DL.commands.extend([SPLightColor(f"LIGHT_{i + 1}", light.color)])
+        else:
+            fLights = saveLightsDefinition(fModel, fMaterial, f3dMat, materialName + "_lights")
+            fMaterial.mat_only_DL.commands.extend([SPSetLights(fLights)])
+
+    fMaterial.mat_only_DL.commands.append(DPPipeSync())
+    fMaterial.revert.commands.append(DPPipeSync())
 
     fMaterial.getScrollData(material, getMaterialScrollDimensions(f3dMat))
 
@@ -1303,9 +1416,10 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     if f3dMat.set_attroffs_z:
         fMaterial.mat_only_DL.commands.append(SPAttrOffsetZ(f3dMat.attroffs_z))
 
-    if f3dMat.set_fog:
-        if f3dMat.use_global_fog and fModel.global_data.getCurrentAreaData() is not None:
-            fogData = fModel.global_data.getCurrentAreaData().fog_data
+    if f3dMat.set_fog and f3dMat.rdp_settings.using_fog:
+        area = fModel.global_data.getCurrentAreaData()
+        if f3dMat.use_global_fog and area and area.fog_data:
+            fogData = area.fog_data
             fog_position = fogData.position
             fog_color = fogData.color
         else:
@@ -1320,24 +1434,16 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
             ]
         )
 
-    useDict = all_combiner_uses(f3dMat)
     multitexManager = MultitexManager(material, fMaterial, fModel)
-
     # Set othermode
     if drawLayer is not None:
         defaultRM = fModel.getRenderMode(drawLayer)
     else:
         defaultRM = None
-
-    defaults = bpy.context.scene.world.rdp_defaults
-    if fModel.f3d.F3DEX_GBI_2:
-        saveGeoModeDefinitionF3DEX2(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
-    else:
-        saveGeoModeDefinition(fMaterial, f3dMat.rdp_settings, defaults, fModel.matWriteMethod)
     saveOtherModeHDefinition(
         fMaterial,
         f3dMat.rdp_settings,
-        multitexManager.getTT(),
+        get_textlut_mode(f3dMat),
         defaults,
         fModel.matWriteMethod,
         fModel.f3d,
@@ -1369,12 +1475,6 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     if useDict["Environment"] and f3dMat.set_env:
         color = exportColor(f3dMat.env_color[0:3]) + [scaleToU8(f3dMat.env_color[3])]
         fMaterial.mat_only_DL.commands.append(DPSetEnvColor(*color))
-
-    # Checking for f3dMat.rdp_settings.g_lighting here will prevent accidental exports,
-    # There may be some edge case where this isn't desired.
-    if useDict["Shade"] and f3dMat.set_lights and f3dMat.rdp_settings.g_lighting:
-        fLights = saveLightsDefinition(fModel, fMaterial, f3dMat, materialName + "_lights")
-        fMaterial.mat_only_DL.commands.extend([SPSetLights(fLights)])  # TODO: handle synching: NO NEED?
 
     if useDict["Key"] and f3dMat.set_key:
         if material.mat_ver >= 4:
@@ -1442,11 +1542,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     return fMaterial, texDimensions
 
 
-def saveLightsDefinition(fModel, fMaterial, material, lightsName):
-    lights = fModel.getLightAndHandleShared(lightsName)
-    if lights is not None:
-        return lights
-
+def getLightDefinitions(fModel, material, lightsName=""):
     lights = Lights(toAlnum(lightsName), fModel.f3d)
 
     if material.use_default_lighting:
@@ -1455,20 +1551,23 @@ def saveLightsDefinition(fModel, fMaterial, material, lightsName):
     else:
         lights.a = Ambient(exportColor(material.ambient_light_color))
 
-        if material.f3d_light1 is not None:
-            addLightDefinition(material, material.f3d_light1, lights)
-        if material.f3d_light2 is not None:
-            addLightDefinition(material, material.f3d_light2, lights)
-        if material.f3d_light3 is not None:
-            addLightDefinition(material, material.f3d_light3, lights)
-        if material.f3d_light4 is not None:
-            addLightDefinition(material, material.f3d_light4, lights)
-        if material.f3d_light5 is not None:
-            addLightDefinition(material, material.f3d_light5, lights)
-        if material.f3d_light6 is not None:
-            addLightDefinition(material, material.f3d_light6, lights)
-        if material.f3d_light7 is not None:
-            addLightDefinition(material, material.f3d_light7, lights)
+        for i in range(1, 8):
+            try:
+                light_prop = getattr(material, f"f3d_light{i}")
+                if light_prop is not None:
+                    addLightDefinition(light_prop, lights)
+            except Exception as exc:
+                raise PluginError(f"Failed to get custom light {i}: {exc}") from exc
+
+    return lights
+
+
+def saveLightsDefinition(fModel, fMaterial, material, lightsName):
+    lights = fModel.getLightAndHandleShared(lightsName)
+    if lights is not None:
+        return lights
+
+    lights = getLightDefinitions(fModel, material, lightsName)
 
     if lightsName in fModel.lights:
         raise PluginError("Duplicate light name.")
@@ -1476,7 +1575,7 @@ def saveLightsDefinition(fModel, fMaterial, material, lightsName):
     return lights
 
 
-def addLightDefinition(mat, f3d_light, fLights):
+def addLightDefinition(f3d_light, fLights):
     lightObj = lightDataToObj(f3d_light)
     fLights.l.append(
         Light(
@@ -1597,7 +1696,7 @@ def saveOtherModeHDefinitionIndividual(fMaterial, settings, tlut, defaults):
     saveModeSetting(fMaterial, settings.g_mdsft_combkey, defaults.g_mdsft_combkey, DPSetCombineKey)
     saveModeSetting(fMaterial, settings.g_mdsft_textconv, defaults.g_mdsft_textconv, DPSetTextureConvert)
     saveModeSetting(fMaterial, settings.g_mdsft_text_filt, defaults.g_mdsft_text_filt, DPSetTextureFilter)
-    saveModeSetting(fMaterial, tlut, "G_TT_NONE", DPSetTextureLUT)
+    saveModeSetting(fMaterial, tlut, defaults.g_mdsft_textlut, DPSetTextureLUT)
     saveModeSetting(fMaterial, settings.g_mdsft_textlod, defaults.g_mdsft_textlod, DPSetTextureLOD)
     saveModeSetting(fMaterial, settings.g_mdsft_textdetail, defaults.g_mdsft_textdetail, DPSetTextureDetail)
     saveModeSetting(fMaterial, settings.g_mdsft_textpersp, defaults.g_mdsft_textpersp, DPSetTexturePersp)
@@ -1853,7 +1952,7 @@ class F3D_ExportDL(bpy.types.Operator):
             texDir = bpy.context.scene.DLTexDir
             savePNG = bpy.context.scene.saveTextures
             separateTexDef = bpy.context.scene.DLSeparateTextureDef
-            DLName = bpy.context.scene.DLName
+            DLName = toAlnum(bpy.context.scene.DLName)
             matWriteMethod = getWriteMethodFromEnum(context.scene.matWriteMethod)
 
             exportF3DtoC(
