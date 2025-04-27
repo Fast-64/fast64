@@ -589,25 +589,39 @@ T3D_GEO_MODES = {
 
 class PropWithDefault(NamedTuple):
     dict_name: str
-    prop: str
     default: str
+    name: str = ""
 
 
-OTHERMODE_H_ATTRS = [
-    PropWithDefault("alphaDither", "g_mdsft_alpha_dither", "G_AD_DISABLE"),
-    PropWithDefault("colorDither", "g_mdsft_rgb_dither", "G_CD_MAGICSQ"),
-    PropWithDefault("chromaKey", "g_mdsft_combkey", "G_CK_NONE"),
-    PropWithDefault("textureConvert", "g_mdsft_textconv", "G_TC_CONV"),
-    PropWithDefault("textureFilter", "g_mdsft_text_filt", "G_TF_POINT"),
-    PropWithDefault("lutFormat", "g_mdsft_textlut", "G_TT_NONE"),
-    PropWithDefault("textureLoD", "g_mdsft_textlod", "G_TL_TILE"),
-    PropWithDefault("textureDetail", "g_mdsft_textdetail", "G_TD_CLAMP"),
-    PropWithDefault("perspectiveCorrection", "g_mdsft_textpersp", "G_TP_NONE"),
-    PropWithDefault("cycleType", "g_mdsft_cycletype", "G_CYC_1CYCLE"),
-    PropWithDefault("pipelineMode", "g_mdsft_pipeline", "G_PM_NPRIMITIVE"),
-]
+OTHERMODE_H_ATTRS = {
+    "g_mdsft_alpha_dither": PropWithDefault("alphaDither", "G_AD_DISABLE", "Alpha Dither"),
+    "g_mdsft_rgb_dither": PropWithDefault("colorDither", "G_CD_MAGICSQ", "RGB Dither"),
+    "g_mdsft_combkey": PropWithDefault("chromaKey", "G_CK_NONE", "Chroma Key"),
+    "g_mdsft_textconv": PropWithDefault("textureConvert", "G_TC_CONV", "Texture Convert"),
+    "g_mdsft_text_filt": PropWithDefault("textureFilter", "G_TF_POINT", "Texture Filter"),
+    "g_mdsft_textlut": PropWithDefault("lutFormat", "G_TT_NONE", "Texture LUT"),
+    "num_textures_mipmapped": PropWithDefault("numTexturesMipmapped", 2, "Number of Mipmaps"),
+    "g_mdsft_textlod": PropWithDefault("textureLoD", "G_TL_TILE", "Texture LoD"),
+    "g_mdsft_textdetail": PropWithDefault("textureDetail", "G_TD_CLAMP", "Texture Detail"),
+    "g_mdsft_textpersp": PropWithDefault("perspectiveCorrection", "G_TP_NONE", "Texture Perspective Correction"),
+    "g_mdsft_cycletype": PropWithDefault("cycleType", "G_CYC_1CYCLE", "Cycle Type"),
+    "g_mdsft_pipeline": PropWithDefault("pipelineMode", "G_PM_NPRIMITIVE", "Pipeline Span Buffer Coherency"),
+}
 
-OTHERMODE_L_ATTRS = [
-    PropWithDefault("alphaCompare", "g_mdsft_alpha_compare", "G_AC_NONE"),
-    PropWithDefault("zSourceSelection", "g_mdsft_zsrcsel", "G_ZS_PIXEL"),
-]
+OTHERMODE_L_ATTRS = {
+    "g_mdsft_alpha_compare": PropWithDefault("alphaCompare", "G_AC_NONE", "Alpha Compare"),
+    "g_mdsft_zsrcsel": PropWithDefault("zSourceSelection", "G_ZS_PIXEL", "Z Source Selection"),
+}
+
+RENDERMODE_FLAG_ATTRS = {
+    "aa_en": PropWithDefault("aa", False),
+    "z_cmp": PropWithDefault("zTest", False),
+    "z_upd": PropWithDefault("zWrite", False),
+    "clr_on_cvg": PropWithDefault("colorOnCvg", False),
+    "alpha_cvg_sel": PropWithDefault("alphaOnCvg", False),
+    "cvg_x_alpha": PropWithDefault("mulCvgXAlpha", False),
+    "force_bl": PropWithDefault("forceBlend", False),
+    "im_rd": PropWithDefault("readFB", False),
+    "cvg_dst": PropWithDefault("cvgDst", "CVG_DST_CLAMP"),
+    "zmode": PropWithDefault("zMode", "ZMODE_OPA"),
+}

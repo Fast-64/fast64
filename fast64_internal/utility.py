@@ -1329,7 +1329,10 @@ def draw_forced(
         props = holder.bl_rna.properties[prop]
         if "Enum" in props.bl_rna.name:
             props: bpy.types.EnumProperty
-            value: str = next((item.name for item in props.enum_items if item.identifier == value), value)
+            enum_items = holder.__annotations__.get(prop).keywords.get("items")
+            if isinstance(enum_items, Callable):
+                enum_items = enum_items(holder, bpy.context)
+            value: str = next((item[1] for item in enum_items if item[0] == value), value)
         prop_size_label(right_row, text=str(value))
     else:
         right_row.prop(
