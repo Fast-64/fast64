@@ -506,7 +506,7 @@ def all_combiner_uses(f3d_mat: "F3DMaterialProperty", cycle_type: str = None) ->
     }
     useDict["Convert"] = (
         combiner_uses(f3d_mat, ["K4", "K5"], cycle_type=cycle_type)
-        or f3d_mat.get_tex_convert(dont_raise=True, use_dict=useDict) != "G_TC_FILT"
+        or f3d_mat.get_tex_convert(dont_raise=True, tex_use={0: use_tex0, 1: use_tex1}) != "G_TC_FILT"
     )
     return useDict
 
@@ -679,14 +679,7 @@ def ui_upper_mode(settings, dataHolder, layout: UILayout, useDropdown):
         tex_conv = tlut_mode = tex_lod = tex_detail = mip_count = cycle_type = None
         if isinstance(dataHolder, F3DMaterialProperty):
             # TODO: proper auto mip count once we start using tex manager for preview and UI
-            tex_conv, tlut_mode, tex_lod, tex_detail, mip_count, cycle_type = (
-                dataHolder.get_tex_convert(True, dont_raise=True),
-                dataHolder.get_tlut_mode(True, dont_raise=True),
-                dataHolder.get_tex_lod(True),
-                dataHolder.get_tex_detail(True),
-                2 if dataHolder.gen_auto_mips else None,
-                dataHolder.get_cycle_type(True, dont_raise=True),
-            )
+            tex_conv, tlut_mode, tex_lod, tex_detail, mip_count, cycle_type = dataHolder.get_all_auto_modes.values()
         prop_split(inputGroup, settings, "g_mdsft_alpha_dither", "Alpha Dither")
         prop_split(inputGroup, settings, "g_mdsft_rgb_dither", "RGB Dither")
         prop_split(inputGroup, settings, "g_mdsft_combkey", "Chroma Key")
@@ -4796,38 +4789,47 @@ class F3DMaterialProperty(PropertyGroup):
     use_cel_shading: bpy.props.BoolProperty(name="Use Cel Shading", update=update_cel_cutout_source)
     cel_shading: bpy.props.PointerProperty(type=CelShadingProperty)
 
+    def get_tex_combiner_use(self, cycle_type: str = None) -> dict[int, bool]:
+        if cycle_type is None:
+            cycle_type = self.cycle_type
+        return {
+            0: combiner_uses_tex0(self, cycle_type),
+            1: combiner_uses_tex1(self, cycle_type),
+        }
+
     @property
     def all_textures(self) -> list[TextureProperty]:
         return tuple(getattr(self, f"tex{i}") for i in range(8))
 
-    def get_used_textures(self, use_dict: dict = None) -> dict[int, TextureProperty]:
+    def get_used_textures(self, tex_use: dict = None) -> dict[int, TextureProperty]:
         self.rdp_settings: RDPSettings
         if self.gen_pseudo_format or self.gen_auto_mips:
             return {0: self.all_textures[0]}
         if self.uses_mipmap:
             return {i: t for i, t in enumerate(self.all_textures[: self.rdp_settings.num_textures_mipmapped])}
-        if use_dict is None:
-            use_dict = {
-                "Texture 0": combiner_uses_tex0(self, self.cycle_type),
-                "Texture 1": combiner_uses_tex1(self, self.cycle_type),
-            }
-        return {i: t for i, t in enumerate(self.all_textures[:2]) if use_dict[f"Texture {i}"]}
+        if tex_use is None:
+            tex_use = self.get_tex_combiner_use()
+        return {i: t for i, t in enumerate(self.all_textures[:2]) if tex_use[i]}
 
     @property
     def used_textures(self) -> dict[int, TextureProperty]:
         return self.get_used_textures()
 
-    def get_set_textures(self, use_dict: dict = None):
-        return {i: tex for i, tex in self.get_used_textures(use_dict).items() if tex.tex_set}
+    def get_set_textures(self, tex_use: dict = None):
+        return {i: tex for i, tex in self.get_used_textures(tex_use).items() if tex.tex_set}
 
     @property
     def set_textures(self):
         return self.get_set_textures()
 
+    def check_multi_tex(self, tex_use: dict = None):
+        if tex_use is None:
+            tex_use = self.get_tex_combiner_use()
+        return tex_use[0] and tex_use[1]
+
     @property
     def is_multi_tex(self):
-        cycle_type = self.cycle_type
-        return combiner_uses_tex0(self, cycle_type) and combiner_uses_tex1(self, cycle_type)
+        return self.check_multi_tex()
 
     def get_tlut_mode(self, only_auto=False, dont_raise=False):
         if self.pseudo_format in {"IHQ", "SHQ"}:
@@ -4893,18 +4895,24 @@ class F3DMaterialProperty(PropertyGroup):
     def uses_mipmap(self) -> bool:
         return self.tex_lod == "G_TL_LOD"
 
-    def get_tex_convert(self, only_auto=False, dont_raise=False, use_dict=None):
-        textures = self.get_set_textures(use_dict)
+    def get_tex_convert(self, only_auto=False, dont_raise=False, tex_use: dict | None = None):
+        textures = self.get_set_textures(tex_use)
         fmts: set[str] = set(tex.tex_format for tex in textures.values())
         has_yuv = "YUV16" in fmts
         if self.pseudo_format in {"IHQ", "SHQ"} or (not has_yuv and fmts):
             return "G_TC_FILT"
+        yuv_tex = next((i for i, tex in textures.items() if tex.tex_format == "YUV16"), -1)
         if len(fmts) == 1:
             if self.rdp_settings.g_mdsft_text_filt == "G_TF_POINT":
                 return "G_TC_CONV"
+            if yuv_tex == 0 and not dont_raise:
+                raise PluginError(
+                    "Texture 0 is YUV. But G_TC_FILTCONV\n"
+                    "does not apply conversion to texture 0.\n"
+                    "Only possible to convert with point filtering."
+                )
             return "G_TC_FILTCONV"
         elif len(fmts) == 2 and (not self.uses_mipmap or len(textures) == 2):
-            yuv_tex = next((i for i, tex in textures.items() if tex.tex_format == "YUV16"), -1)
             if yuv_tex == 1:  # in filtconv, tex0 is not converted, therefor can be non YUV
                 return "G_TC_FILTCONV"
             if dont_raise:
@@ -4931,14 +4939,29 @@ class F3DMaterialProperty(PropertyGroup):
 
     def get_cycle_type(self, only_auto=False, dont_raise=False):
         cur_cycle_type = self.rdp_settings.g_mdsft_cycletype
-        use_dict = all_combiner_uses(self, cur_cycle_type)
-        if self.uses_mipmap or self.get_tex_convert(dont_raise=dont_raise, use_dict=use_dict) == "G_TC_FILTCONV":
+        tex_use = self.get_tex_combiner_use(cur_cycle_type)
+        if (
+            self.uses_mipmap
+            or (self.get_tex_convert(dont_raise=dont_raise, tex_use=tex_use) == "G_TC_FILTCONV")
+            or self.check_multi_tex(tex_use)
+        ):
             return "G_CYC_2CYCLE"
         return None if only_auto else cur_cycle_type
 
     @property
     def cycle_type(self):
         return self.get_cycle_type(False, dont_raise=True)
+
+    @property
+    def get_all_auto_modes(self):
+        return {
+            "g_mdsft_text_filt": self.get_tex_convert(True, dont_raise=True),
+            "g_mdsft_textlut": self.get_tlut_mode(True, dont_raise=True),
+            "g_mdsft_textlod": self.get_tex_lod(True),
+            "g_mdsft_textdetail": self.get_tex_detail(True),
+            "num_textures_mipmapped": 2 if self.gen_auto_mips else None,
+            "g_mdsft_cycletype": self.get_cycle_type(True, dont_raise=True),
+        }
 
     def key(self) -> F3DMaterialHash:
         useDefaultLighting = self.set_lights and self.use_default_lighting
