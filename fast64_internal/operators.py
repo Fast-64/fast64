@@ -22,10 +22,12 @@ class OperatorBase(Operator):
     icon = "NONE"
 
     @classmethod
-    def draw_props(cls, layout: UILayout, icon="", text: Optional[str] = None, **op_values):
+    def draw_props(cls, layout: UILayout, icon="", text: Optional[str] = None, enabled=True, **op_values):
         """Op args are passed to the operator via setattr()"""
         icon = icon if icon else cls.icon
-        op = layout.operator(cls.bl_idname, icon=icon, text=text)
+        col = layout.column()
+        col.enabled = enabled
+        op = col.operator(cls.bl_idname, icon=icon, text=text)
         for key, value in op_values.items():
             setattr(op, key, value)
         return op
