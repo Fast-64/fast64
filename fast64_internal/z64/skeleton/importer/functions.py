@@ -280,9 +280,12 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
     f3dContext = OOTF3DContext(get_F3D_GBI(), limbList, basePath)
     f3dContext.mat().draw_layer.oot = drawLayer
 
-    if overlayName is not None and importSettings.autoDetectActorScale:
+    actorScale = None
+
+    if overlayName is not None and importSettings.autoDetectActorScale and not importSettings.isCustom:
         actorScale = ootReadActorScale(basePath, overlayName, isLink)
-    else:
+
+    if actorScale is None:
         actorScale = getOOTScale(importSettings.actorScale)
 
     # print(limbList)

@@ -182,7 +182,7 @@ class CollisionUtility:
                             colProp.ignoreCameraCollision,
                             colProp.ignoreActorCollision,
                             colProp.ignoreProjectileCollision,
-                            useConveyor,
+                            colProp.conveyorOption == "Land",
                             normal,
                             distance,
                             useMacros,

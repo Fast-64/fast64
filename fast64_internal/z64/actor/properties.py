@@ -335,7 +335,8 @@ class Z64_ActorProperty(PropertyGroup):
                 else:
                     value = base_value & param.mask
                     if "Rot" in target:
-                        found_type = getEvalParamsInt(getattr(self, get_prop_name(actor.key, "Type", None, 1)))
+                        attr = getattr(self, get_prop_name(actor.key, "Type", None, 1), None)
+                        found_type = getEvalParamsInt(attr) if attr is not None else None
                     else:
                         found_type = value
                 is_in_range = self.is_value_in_range(value, param.valueRange[0], param.valueRange[1])
@@ -391,7 +392,8 @@ class Z64_ActorProperty(PropertyGroup):
                         param_list.append(cur_prop_value)
                         have_custom_value = True
                         continue
-                    if param.type in {"Type", "Enum"}:
+
+                    if param.type == "Type":
                         type_value = getEvalParamsInt(cur_prop_value)
                     else:
                         param_val = 0
@@ -401,8 +403,12 @@ class Z64_ActorProperty(PropertyGroup):
                             param_val = game_data.z64.actors.collectibleItemsByKey[cur_prop_value].value
                         elif param.type == "Message":
                             param_val = game_data.z64.actors.messageItemsByKey[cur_prop_value].value
+                        elif param.type == "Enum":
+                            param_val = getEvalParamsInt(cur_prop_value)
                 if "Rot" in target:
-                    type_value = getEvalParamsInt(getattr(self, get_prop_name(actor.key, "Type", None, 1)))
+                    attr = getattr(self, get_prop_name(actor.key, "Type", None, 1), None)
+                    type_value = getEvalParamsInt(attr) if attr is not None else None
+
                 if type_value is not None and type_value in param.tiedTypes or len(param.tiedTypes) == 0:
                     val = ((param_val if param_val is not None else -1) & param.mask) >> getShiftFromMask(param.mask)
                     is_in_range = self.is_value_in_range(val, param.valueRange[0], param.valueRange[1])
