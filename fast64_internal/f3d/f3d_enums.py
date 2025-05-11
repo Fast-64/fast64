@@ -322,7 +322,7 @@ enumRenderModesCycle2 = [
     ("G_RM_AA_ZB_XLU_DECAL2", "Transparent Decal", "G_RM_AA_ZB_XLU_DECAL2"),
     ("G_RM_AA_ZB_XLU_INTER2", "Transparent Intersecting", "G_RM_AA_ZB_XLU_INTER2"),
     ("G_RM_ADD2", "Add", "G_RM_ADD2"),
-    ("G_RM_NOOP", "No Op", "G_RM_NOOP"),
+    ("G_RM_NOOP2", "No Op", "G_RM_NOOP2"),
     ("G_RM_ZB_OPA_SURF2", "Opaque (No AA)", "G_RM_ZB_OPA_SURF2"),
     ("G_RM_ZB_OPA_DECAL2", "Opaque Decal (No AA)", "G_RM_ZB_OPA_DECAL2"),
     ("G_RM_ZB_XLU_SURF2", "Transparent (No AA)", "G_RM_ZB_XLU_SURF2"),
