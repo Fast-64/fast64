@@ -417,8 +417,7 @@ class TexInfo:
         if not useDict["Texture " + str(index)]:
             return True
 
-        texProp = getattr(f3dMat, "tex" + str(index))
-        return self.fromProp(texProp, index)
+        return self.fromProp(f3dMat.all_textures[index], index)
 
     def fromProp(self, texProp: TextureProperty, index: int, ignore_tex_set=False) -> bool:
         self.indexInMat = index
@@ -1054,7 +1053,7 @@ def saveTextureTile(
     tileCommand = DPSetTile(fmt, siz, line, tmem, rendertile, pal, cmt, maskt, shiftt, cms, masks, shifts)
     tileSizeCommand = DPSetTileSize(rendertile, sl, tl, sh, th)
 
-    scrollInfo = getattr(fMaterial.scrollData, f"tile_scroll_tex{rendertile}")
+    scrollInfo = fMaterial.scrollData.tile_scrolls[rendertile]
     if scrollInfo.s or scrollInfo.t:
         tileSizeCommand.tags |= GfxTag.TileScroll0 if rendertile == 0 else GfxTag.TileScroll1
 
