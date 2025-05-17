@@ -32,6 +32,7 @@ from mathutils import Color
 
 from .f3d_enums import *
 from .f3d_gbi import (
+    F3D,
     get_F3D_GBI,
     enumTexScroll,
     isUcodeF3DEX1,
@@ -1127,6 +1128,7 @@ class F3DPanel(Panel):
     def draw_textures(
         self, f3d_mat: "F3DMaterialProperty", material: bpy.types.Material, layout: UILayout, is_simple: bool
     ):
+        f3d = get_F3D_GBI()
         textures = f3d_mat.set_textures if is_simple else f3d_mat.used_textures
         col = layout.column()
         if len(textures) > 0:
@@ -1157,6 +1159,7 @@ class F3DPanel(Panel):
                 f3d_mat.all_textures[0],
                 "Base Texture",
                 False,
+                f3d,
                 always_load=True,
                 forced_fmt=f3d_mat.gen_pseudo_format,
             )
@@ -1166,7 +1169,9 @@ class F3DPanel(Panel):
         for i, (tex_index, tex) in enumerate(textures.items()):
             if tex.menu and i > 0:
                 col.separator(factor=1.0)
-            ui_image(f3d_mat.use_large_textures, f3d_mat.is_multi_tex, col, tex, f"Texture {tex_index}", not is_simple)
+            ui_image(
+                f3d_mat.use_large_textures, f3d_mat.is_multi_tex, col, tex, f"Texture {tex_index}", not is_simple, f3d
+            )
             if tex.menu or i == len(textures) - 1:
                 col.separator(factor=1.0)
 
@@ -2851,6 +2856,13 @@ class TextureProperty(PropertyGroup):
         name="Texture Reference",
         default="0x08000000",
     )
+    placeholder_slot: bpy.props.IntProperty(
+        name="Placeholder Slot",
+        default=1,
+        min=1,
+        max=15,
+        description="Texture placeholder to load, equivalent to using a texture reference in F3D",
+    )
     tex_reference_size: bpy.props.IntVectorProperty(
         name="Texture Reference Size",
         min=1,
@@ -2958,6 +2970,7 @@ class TextureProperty(PropertyGroup):
             self.use_tex_reference if texSet else None,
             self.use_pal_reference if texSet and isCI else None,
             self.tex_reference if texSet and useRef else None,
+            self.placeholder_slot if texSet and useRef else None,
             self.pal_reference if texSet and useRef and isCI else None,
             self.pal_reference_size if texSet and useRef and isCI else None,
             self.load_tex if texSet else None,
@@ -2998,10 +3011,12 @@ def ui_image(
     tex_prop: TextureProperty,
     name: str,
     show_toggle: bool,
+    f3d: F3D,
     hide_lowhigh=False,
     always_load=False,
     forced_fmt=False,
 ):
+    is_rdpq = f3d.RDPQ
     inputGroup = layout.column()
 
     row = inputGroup.row()
@@ -3014,15 +3029,23 @@ def ui_image(
         width, height = tex_prop.size
         prop_input = inputGroup.column()
 
+        if is_rdpq:
+            row = prop_input.row()
+            row.prop(tex_prop, "use_tex_reference", text="Placeholder")
+            if tex_prop.use_tex_reference:
+                row.prop(tex_prop, "placeholder_slot", text="")
+
         flipbook = tex_prop.flipbook is not None and tex_prop.flipbook.enable
         row = prop_input.row()
         has_texture = tex_prop.has_texture or always_load
+
         if not always_load:
             row.prop(tex_prop, "load_tex")
             if tex_prop.load_tex:
-                row.prop(tex_prop, "use_tex_reference")
-                if tex_prop.use_tex_reference:
-                    prop_split(prop_input, tex_prop, "tex_reference", "Texture Reference")
+                if not is_rdpq:
+                    row.prop(tex_prop, "use_tex_reference", text="Reference")
+                    if tex_prop.use_tex_reference:
+                        prop_split(prop_input, tex_prop, "tex_reference", "Texture Reference")
             else:
                 prop_split(prop_input, tex_prop, "tex_index", "Texture Index")
         if not flipbook or has_texture or always_load:
@@ -3036,9 +3059,10 @@ def ui_image(
             if has_texture:
                 size = tex_prop.size
                 prop_input.label(text=f"Size: {size[0]}x{size[1]}")
-        if not tex_prop.has_texture:
+        if has_texture:
+            prop_split(prop_input, tex_prop, "dithering_method", "Dithering Method")
+        else:
             prop_split(prop_input, tex_prop, "tex_reference_size", "Texture Size")
-        prop_split(prop_input, tex_prop, "dithering_method", "Dithering Method")
 
         if not forced_fmt:
             fmt_row = prop_input.row()
@@ -3068,17 +3092,17 @@ def ui_image(
                 row = prop_input.row()
                 row.prop(tex_prop, "load_pal")
                 if tex_prop.load_pal:
-                    row.prop(tex_prop, "use_pal_reference")
-                if tex_prop.load_pal:
-                    if tex_prop.use_pal_reference and tex_prop.load_pal:
-                        prop_split(prop_input, tex_prop, "pal_reference", "Palette Reference")
-                        if tex_prop.pal is None:
-                            prop_split(prop_input, tex_prop, "pal_reference_size", "Palette Size")
+                    if not is_rdpq:
+                        row.prop(tex_prop, "use_pal_reference")
+                        if tex_prop.use_pal_reference and tex_prop.load_pal:
+                            prop_split(prop_input, tex_prop, "pal_reference", "Palette Reference")
+                            if tex_prop.pal is None:
+                                prop_split(prop_input, tex_prop, "pal_reference_size", "Palette Size")
                 else:
                     prop_split(prop_input, tex_prop, "pal_index", "Palette Index")
-                if not tex_prop.has_texture or not tex_prop.has_palette:
+                if (not tex_prop.has_palette and not is_rdpq) or not tex_prop.load_tex:
                     prop_input.template_ID(tex_prop, "pal", new="image.new", open="image.open")
-                    if tex_prop.has_texture:
+                    if has_texture:
                         if tex_prop.pal:
                             multilineLabel(
                                 prop_input,
@@ -4290,7 +4314,7 @@ class F3DMaterialProperty(PropertyGroup):
     UVanim0: bpy.props.PointerProperty(type=ProcAnimVectorProperty)
 
     # material textures
-    texture_tab: bpy.props.BoolProperty(name="Textures", update=update_tex_values)
+    texture_tab: bpy.props.BoolProperty(name="Textures", default=True)
     gen_pseudo_format: bpy.props.BoolProperty(name="Pseudo Formats", update=update_tex_values)
     pseudo_format_internal: bpy.props.EnumProperty(
         name="Pseudo Formats",

@@ -164,6 +164,7 @@ class F3D:
         F3DLP_GBI = self.F3DLP_GBI = self.F3DEX_GBI
         self.F3D_OLD_GBI = not (F3DEX_GBI or F3DEX_GBI_2 or F3DEX_GBI_3)
         self.F3D_GBI = is_ucode_f3d(F3D_VER)
+        self.RDPQ = not self.F3D_GBI
 
         # F3DEX2 is F3DEX1 and F3DEX3 is F3DEX2, but F3DEX3 is not F3DEX1
         if F3DEX_GBI_2:

@@ -876,7 +876,9 @@ class ExportTexRectDrawPanel(SM64_Panel):
             infoBox.label(text=enumHUDPaths[context.scene.TexRectExportType][0] + ": ")
             infoBox.label(text=enumHUDPaths[context.scene.TexRectExportType][1] + ".")
         prop_split(col, context.scene, "TexRectName", "Name")
-        ui_image(False, False, col, context.scene.texrect, context.scene.TexRectName, False, hide_lowhigh=True)
+        ui_image(
+            False, False, col, context.scene.texrect, context.scene.TexRectName, False, get_F3D_GBI(), hide_lowhigh=True
+        )
         col.operator(ExportTexRectDraw.bl_idname)
 
 
