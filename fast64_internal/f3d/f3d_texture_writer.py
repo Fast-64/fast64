@@ -394,7 +394,7 @@ class TexInfo:
     # Parameters from moreSetupFromModel
     pal: Optional[list[int]] = None
     palLen: int = 0
-    imDependencies: Optional[list[bpy.types.Image]] = None
+    imDependencies: Optional[set[bpy.types.Image]] = None
     flipbook: Optional["TextureFlipbook"] = None
     isPalRef: bool = False
 
@@ -402,7 +402,7 @@ class TexInfo:
     texAddr: int = 0
     palAddr: int = 0
     palIndex: int = 0
-    palDependencies: list[bpy.types.Image] = field(default_factory=list)
+    palDependencies: set[bpy.types.Image] = field(default_factory=list)
     palBaseName: str = ""
     loadPal: bool = False
     doTexLoad: bool = True
@@ -470,7 +470,7 @@ class TexInfo:
 
         if self.isTexCI:
             self.imDependencies, self.flipbook, self.pal = (
-                [] if self.texProp.tex is None else [self.texProp.tex],
+                set() if self.texProp.tex is None else {self.texProp.tex},
                 None,
                 None,
             )
@@ -485,7 +485,7 @@ class TexInfo:
                     f"Error in Texture {self.indexInMat} uses too many unique colors to fit in format {self.texFormat}."
                 )
         else:
-            self.imDependencies = [] if self.texProp.tex is None else [self.texProp.tex]
+            self.imDependencies = set() if self.texProp.tex is None else {self.texProp.tex}
             self.flipbook = None
 
         self.isPalRef = self.isTexRef and self.flipbook is None
@@ -691,7 +691,7 @@ class MultitexManager:
                         # self.ti0.imDependencies remains what it was; the CIs in im0 are the same as they
                         # would be if im0 was alone. But im1 and self.ti0.pal depend on both.
                         self.ti1.imDependencies = self.ti0.palDependencies = (
-                            self.ti0.imDependencies + self.ti1.imDependencies
+                            self.ti0.imDependencies | self.ti1.imDependencies
                         )
                 elif self.ti0.texFormat != self.ti1.texFormat:  # One CI8, one CI4
                     ci8Pal, ci4Pal = (
@@ -729,7 +729,7 @@ class MultitexManager:
                             )
                         # The use for the CI4 texture remains what it was; its CIs are the
                         # same as if it was alone. But both the palette and the CI8 CIs are affected.
-                        self.ti0.palDependencies = self.ti0.imDependencies + self.ti1.imDependencies
+                        self.ti0.palDependencies = self.ti0.imDependencies | self.ti1.imDependencies
                         if self.ti0.texFormat == "CI8":
                             self.ti0.imDependencies = self.ti0.palDependencies
                         else:
@@ -757,7 +757,7 @@ class MultitexManager:
                             # self.ti0.imDependencies remains what it was; the CIs in im0 are the same as they
                             # would be if im0 was alone. But im1 and self.ti0.pal depend on both.
                             self.ti1.imDependencies = self.ti0.palDependencies = (
-                                self.ti0.imDependencies + self.ti1.imDependencies
+                                self.ti0.imDependencies | self.ti1.imDependencies
                             )
                         else:
                             # Load one palette across 0-1. Put the longer in slot 0
@@ -775,7 +775,7 @@ class MultitexManager:
                                 self.ti0.palIndex = 1
                             # The up-to-32 entries in self.ti0.pal depend on both images. But the
                             # CIs in both im0 and im1 are the same as if there was no shared palette.
-                            self.ti0.palDependencies = self.ti0.imDependencies + self.ti1.imDependencies
+                            self.ti0.palDependencies = self.ti0.imDependencies | self.ti1.imDependencies
         fMaterial.texPaletteIndex = [self.ti0.palIndex, self.ti1.palIndex]
         self.ti0.palBaseName = self.ti0.getPaletteName()
         self.ti1.palBaseName = self.ti1.getPaletteName()
