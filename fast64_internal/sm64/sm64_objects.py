@@ -1879,7 +1879,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
                 bpy.ops.object.sm64_export_collision(export_obj=obj.name)
         except Exception as exc:
             # pass on multiple export, throw on singular
-            if not props.export_all_selected:
+            if not props.export_all_selected or not PluginError.check_exc_warn(exc):
                 raise Exception(exc) from exc
 
     # writes model.inc.c, geo.inc.c file, geo_header.h
@@ -1899,10 +1899,10 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
                 if props.export_script_loads and props.model_id != 0:
                     self.export_model_id(context, props, index)
                     self.export_script_load(context, props)
-        except Exception as e:
+        except Exception as exc:
             # pass on multiple export, throw on singular
-            if not props.export_all_selected:
-                raise Exception(e)
+            if not props.export_all_selected or not PluginError.check_exc_warn(exc):
+                raise Exception(exc)
 
     def execute(self, context):
         props = context.scene.fast64.sm64.combined_export
@@ -1925,6 +1925,7 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         props.context_obj = None
         # you've done it!~
         self.report({"INFO"}, "Success!")
+
         return {"FINISHED"}
 
 
