@@ -4770,7 +4770,7 @@ class F3DMaterialProperty(PropertyGroup):
         if (
             self.uses_mipmap
             or (self.get_tex_convert(dont_raise=dont_raise, tex_use=tex_use) == "G_TC_FILTCONV")
-            or self.check_multi_tex(tex_use)
+            or combiner_uses_tex1(self, cur_cycle_type)
         ):
             return "G_CYC_2CYCLE"
         return None if only_auto else cur_cycle_type
