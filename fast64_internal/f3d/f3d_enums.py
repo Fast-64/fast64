@@ -152,7 +152,7 @@ combinerToNodeDictAlpha = {
 
 DO_NOT_SET = (
     "NONE",
-    "Don´t Set",
+    "Don't Set",
     "In write different this means not attempting to set, in write all it means fetching the world default",
     "X",
 )
