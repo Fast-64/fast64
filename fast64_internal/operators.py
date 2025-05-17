@@ -1,6 +1,8 @@
-import bpy, mathutils, math
+from typing import TypeVar
+import bpy, mathutils
 from bpy.types import Operator, Context, UILayout
-from bpy.utils import register_class, unregister_class
+from bpy.props import IntProperty, StringProperty
+
 from .utility import *
 from .f3d.f3d_material import *
 
@@ -22,12 +24,18 @@ class OperatorBase(Operator):
     icon = "NONE"
 
     @classmethod
+    def is_enabled(cls, context: Context, **op_values):
+        return True
+
+    @classmethod
     def draw_props(cls, layout: UILayout, icon="", text: Optional[str] = None, **op_values):
         """Op args are passed to the operator via setattr()"""
         icon = icon if icon else cls.icon
+        layout = layout.column()
         op = layout.operator(cls.bl_idname, icon=icon, text=text)
         for key, value in op_values.items():
             setattr(op, key, value)
+        layout.enabled = cls.is_enabled(bpy.context, **op_values)
         return op
 
     def execute_operator(self, context: Context):
@@ -51,6 +59,103 @@ class OperatorBase(Operator):
                     context.view_layer.objects.active = starting_object
                     starting_object.select_set(True)
                 bpy.ops.object.mode_set(mode=starting_mode_set)
+
+
+CollectionMember = TypeVar("CollectionMember")
+
+
+class CollectionOperatorBase(OperatorBase):
+    index: IntProperty(default=-1)
+    op_name: StringProperty()
+
+    @classmethod
+    def collection(cls, context: Context, op_values: dict) -> Iterable[CollectionMember]:
+        raise NotImplementedError()
+
+    @classmethod
+    def is_enabled(cls, context: Context, **op_values) -> bool:
+        collection = cls.collection(context, op_values)
+        match op_values.get("op_name"):
+            case "MOVE_UP":
+                return op_values.get("index") > 0
+            case "MOVE_DOWN":
+                return op_values.get("index") < len(collection) - 1
+            case "CLEAR":
+                return len(collection) > 0
+            case _:
+                return True
+
+    @classmethod
+    def draw_row(cls, row: UILayout, index: int, **op_values):
+        def draw_op(icon: str, op_name: str):
+            cls.draw_props(row, icon, "", op_name=op_name, index=index, **op_values)
+
+        draw_op("ADD", "ADD")
+        if index == -1:
+            draw_op("TRASH", "CLEAR")
+        else:
+            draw_op("REMOVE", "REMOVE")
+            draw_op("TRIA_DOWN", "MOVE_DOWN")
+            draw_op("TRIA_UP", "MOVE_UP")
+
+    def add(
+        self, context: Context, collection: Iterable[CollectionMember]
+    ) -> tuple[CollectionMember | None, CollectionMember]:
+        collection.add()
+        old_arg: CollectionMember | None = None
+        new_arg: CollectionMember = collection[-1]
+        if self.index != -1:
+            collection.move(len(collection) - 1, self.index + 1)
+            old_arg = collection[self.index]
+            new_arg = collection[self.index + 1]
+        return old_arg, new_arg
+
+    def execute_operator(self, context: Context):
+        collection = self.__class__.collection(context, self.properties)
+        match self.op_name:
+            case "ADD":
+                self.add(context, collection)
+            case "REMOVE":
+                collection.remove(self.index)
+            case "MOVE_UP":
+                collection.move(self.index, self.index - 1)
+            case "MOVE_DOWN":
+                collection.move(self.index, self.index + 1)
+            case "CLEAR":
+                collection.clear()
+            case _:
+                lower = self.op_name.lower()
+                if hasattr(self, "op_name"):
+                    getattr(self, self.op_name)(context, collection)
+                raise NotImplementedError(f'Unimplemented internal op "{self.op_name}"')
+
+
+class SearchEnumOperatorBase(OperatorBase):
+    bl_description = "Search Enum"
+    bl_label = "Search"
+    bl_property = None
+    bl_options = {"UNDO"}
+
+    @classmethod
+    def draw_props(cls, layout: UILayout, data, prop: str, name: str):
+        row = layout.row()
+        if name:
+            row.label(text=name)
+        row.prop(data, prop, text="")
+        row.operator(cls.bl_idname, icon="VIEWZOOM", text="")
+
+    def update_enum(self, context: Context):
+        raise NotImplementedError()
+
+    def execute_operator(self, context: Context):
+        assert self.bl_property
+        self.report({"INFO"}, f"Selected: {getattr(self, self.bl_property)}")
+        self.update_enum(context)
+        context.region.tag_redraw()
+
+    def invoke(self, context: Context, _):
+        context.window_manager.invoke_search_popup(self)
+        return {"RUNNING_MODAL"}
 
 
 class AddWaterBox(OperatorBase):

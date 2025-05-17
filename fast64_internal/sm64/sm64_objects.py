@@ -1,9 +1,9 @@
 import math, bpy, mathutils
-import os
-import traceback
-from bpy.utils import register_class, unregister_class
 from re import findall, sub
 from pathlib import Path
+
+from bpy.utils import register_class, unregister_class
+
 from ..panels import SM64_Panel
 from ..operators import ObjectDataExporter
 
@@ -22,12 +22,8 @@ from ..utility import (
     prop_split,
     multilineLabel,
     raisePluginError,
-    enumExportHeaderType,
-)
-
-from ..f3d.f3d_gbi import (
-    DLFormat,
     upgrade_old_prop,
+    enumExportHeaderType,
 )
 
 from .sm64_constants import (
@@ -61,10 +57,11 @@ from .sm64_geolayout_classes import (
     RotateNode,
     TranslateRotateNode,
     FunctionNode,
-    CustomNode,
     BillboardNode,
     ScaleNode,
 )
+
+from .custom_cmd.properties import SM64_CustomCmdProperties
 
 
 enumTerrain = [
@@ -227,26 +224,28 @@ inlineGeoLayoutObjects = {
     "Geo Billboard": InlineGeolayoutObjConfig("Geo Billboard", BillboardNode, can_have_dl=True, uses_location=True),
     "Geo Scale": InlineGeolayoutObjConfig("Geo Scale", ScaleNode, can_have_dl=True, uses_scale=True),
     "Geo Displaylist": InlineGeolayoutObjConfig("Geo Displaylist", DisplayListNode, must_have_dl=True),
-    "Custom Geo Command": InlineGeolayoutObjConfig("Custom Geo Command", CustomNode),
+    "Custom": InlineGeolayoutObjConfig("Custom", "CustomCmd"),
 }
 
 # When adding new types related to geolayout,
 # Make sure to add exceptions to enumSM64EmptyWithGeolayout
 enumObjectType = [
-    ("None", "None", "None"),
-    ("Level Root", "Level Root", "Level Root"),
-    ("Area Root", "Area Root", "Area Root"),
-    ("Object", "Object", "Object"),
-    ("Macro", "Macro", "Macro"),
-    ("Special", "Special", "Special"),
-    ("Mario Start", "Mario Start", "Mario Start"),
-    ("Whirlpool", "Whirlpool", "Whirlpool"),
-    ("Water Box", "Water Box", "Water Box"),
-    ("Camera Volume", "Camera Volume", "Camera Volume"),
-    ("Switch", "Switch Node", "Switch Node"),
-    ("Puppycam Volume", "Puppycam Volume", "Puppycam Volume"),
-    ("", "Inline Geolayout Commands", ""),  # This displays as a column header for the next set of options
-    *[(key, key, key) for key in inlineGeoLayoutObjects.keys()],
+    ("None", "None", "None", 0),
+    ("Level Root", "Level Root", "Level Root", 1),
+    ("Area Root", "Area Root", "Area Root", 2),
+    ("Object", "Object", "Object", 3),
+    ("Macro", "Macro", "Macro", 4),
+    ("Special", "Special", "Special", 5),
+    ("Mario Start", "Mario Start", "Mario Start", 6),
+    ("Whirlpool", "Whirlpool", "Whirlpool", 7),
+    ("Water Box", "Water Box", "Water Box", 8),
+    ("Camera Volume", "Camera Volume", "Camera Volume", 9),
+    ("Switch", "Switch Node", "Switch Node", 10),
+    ("Puppycam Volume", "Puppycam Volume", "Puppycam Volume", 11),
+    ("", "Inline Geolayout Commands", "", 12),  # This displays as a column header for the next set of options
+    *[(key, key, key, i) for i, key in enumerate(list(inlineGeoLayoutObjects.keys())[:-1], start=13)],  # exclude custom
+    ("", "", "", 12),
+    ("Custom", "Custom", "Custom level script command", 21),
 ]
 
 enumPuppycamMode = [
@@ -293,7 +292,7 @@ class SM64_Object:
         self.rotation = rotation
         self.name = name  # to sort by when exporting
 
-    def to_c(self):
+    def to_c(self, _depth=0):
         if self.acts == 0x1F:
             return (
                 "OBJECT("
@@ -350,7 +349,7 @@ class SM64_Whirpool:
         self.position = position
         self.name = "whirlpool"  # for sorting
 
-    def to_c(self):
+    def to_c(self, _depth=0):
         return (
             "WHIRPOOL("
             + str(self.index)
@@ -375,7 +374,7 @@ class SM64_Macro_Object:
         self.position = position
         self.rotation = rotation
 
-    def to_c(self):
+    def to_c(self, _depth=0):
         if self.bparam is None:
             return (
                 "MACRO_OBJECT("
@@ -427,7 +426,7 @@ class SM64_Special_Object:
                 data.extend(int(self.bparam).to_bytes(2, "big"))
         return data
 
-    def to_c(self):
+    def to_c(self, _depth=0):
         if self.rotation is None:
             return (
                 "SPECIAL_OBJECT("
@@ -438,7 +437,7 @@ class SM64_Special_Object:
                 + str(int(round(self.position[1])))
                 + ", "
                 + str(int(round(self.position[2])))
-                + "),\n"
+                + ")"
             )
         elif self.bparam is None:
             return (
@@ -452,7 +451,7 @@ class SM64_Special_Object:
                 + str(int(round(self.position[2])))
                 + ", "
                 + str(int(round(math.degrees(self.rotation[1]))))
-                + "),\n"
+                + ")"
             )
         else:
             return (
@@ -468,7 +467,7 @@ class SM64_Special_Object:
                 + str(int(round(math.degrees(self.rotation[1]))))
                 + ", "
                 + str(self.bparam)
-                + "),\n"
+                + ")"
             )
 
 
@@ -479,7 +478,7 @@ class SM64_Mario_Start:
         self.rotation = rotation
         self.name = "Mario"  # for sorting
 
-    def to_c(self):
+    def to_c(self, _depth=0):
         return (
             "MARIO_POS("
             + str(self.area)
@@ -527,7 +526,7 @@ class SM64_Area:
             data += "\t\t" + warpNode + ",\n"
         # export objects in name order
         for obj in sorted(self.objects, key=(lambda obj: obj.name)):
-            data += "\t\t" + obj.to_c() + ",\n"
+            data += "\t\t" + obj.to_c(2) + ",\n"
         data += "\t\tTERRAIN(" + self.collision.name + "),\n"
         if includeRooms:
             data += "\t\tROOMS(" + self.collision.rooms_name() + "),\n"
@@ -548,7 +547,7 @@ class SM64_Area:
         data.header = "extern const MacroObject " + self.macros_name() + "[];\n"
         data.source += "const MacroObject " + self.macros_name() + "[] = {\n"
         for macro in self.macros:
-            data.source += "\t" + macro.to_c() + ",\n"
+            data.source += "\t" + macro.to_c(1) + ",\n"
         data.source += "\tMACRO_OBJECT_END(),\n};\n\n"
 
         return data
@@ -556,13 +555,13 @@ class SM64_Area:
     def to_c_camera_volumes(self):
         data = ""
         for camVolume in self.cameraVolumes:
-            data += "\t" + camVolume.to_c() + "\n"
+            data += "\t" + camVolume.to_c(1) + ",\n"
         return data
 
     def to_c_puppycam_volumes(self):
         data = ""
         for puppycamVolume in self.puppycamVolumes:
-            data += "\t" + puppycamVolume.to_c() + "\n"
+            data += "\t" + puppycamVolume.to_c(1) + ",\n"
         return data
 
     def hasCutsceneSpline(self):
@@ -599,7 +598,7 @@ class CollisionWaterBox:
         data.extend(int(round(self.height)).to_bytes(2, "big", signed=True))
         return data
 
-    def to_c(self):
+    def to_c(self, _depth=0):
         data = (
             "COL_WATER_BOX("
             + ("0x00" if self.waterBoxType == "Water" else "0x32")
@@ -613,7 +612,7 @@ class CollisionWaterBox:
             + str(int(round(self.high[1])))
             + ", "
             + str(int(round(self.height)))
-            + "),\n"
+            + ")"
         )
         return data
 
@@ -631,7 +630,7 @@ class CameraVolume:
     def to_binary(self):
         raise PluginError("Binary exporting not implemented for camera volumens.")
 
-    def to_c(self):
+    def to_c(self, _depth=0):
         data = (
             "{"
             + str(self.area)
@@ -651,7 +650,7 @@ class CameraVolume:
             + str(int(round(self.scale[2])))
             + ", "
             + str(convertRadiansToS16(self.rotation[1]))
-            + "},"
+            + "}"
         )
         return data
 
@@ -684,7 +683,7 @@ class PuppycamVolume:
     def to_binary(self):
         raise PluginError("Binary exporting not implemented for puppycam volumes.")
 
-    def to_c(self):
+    def to_c(self, _depth=0):
         data = (
             "{"
             + str(self.level)
@@ -720,7 +719,7 @@ class PuppycamVolume:
             + str(int(round(self.camFocus[1])))
             + ", "
             + str(int(round(self.camFocus[2])))
-            + "},"
+            + "}"
         )
         return data
 
@@ -801,6 +800,7 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
     if obj.type == "EMPTY":
         if obj.sm64_obj_type == "Area Root" and obj.areaIndex != area.index:
             return
+        obj_props: SM64_ObjectProperties = obj.fast64.sm64
         if specialsOnly:
             if obj.sm64_obj_type == "Special":
                 preset = obj.sm64_special_enum if obj.sm64_special_enum != "Custom" else obj.sm64_obj_preset
@@ -817,6 +817,10 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
             elif obj.sm64_obj_type == "Water Box":
                 checkIdentityRotation(obj, rotation.to_quaternion(), False)
                 area.water_boxes.append(CollisionWaterBox(obj.waterBoxType, translation, scale, obj.empty_display_size))
+            elif obj.sm64_obj_type == "Custom" and obj_props.custom.cmd_type == "Collision":
+                area.specials.append(
+                    obj_props.custom.get_final_cmd(obj, bpy.context.scene.fast64.sm64.blender_to_sm64_scale)
+                )
         else:
             if obj.sm64_obj_type == "Object":
                 modelID = obj.sm64_model_enum if obj.sm64_model_enum != "Custom" else obj.sm64_obj_model
@@ -871,6 +875,13 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
                         rotation,
                         scale,
                         obj.empty_display_size,
+                    )
+                )
+
+            elif obj.sm64_obj_type == "Custom" and obj_props.custom.cmd_type == "Level":
+                area.objects.append(
+                    obj_props.custom.get_final_cmd(
+                        obj, bpy.context.scene.fast64.sm64.blender_to_sm64_scale, name=obj.name
                     )
                 )
 
@@ -1114,11 +1125,6 @@ class SM64ObjectPanel(bpy.types.Panel):
             prop_split(box, obj.fast64.sm64.geo_asm, "param", "Parameter")
             return
 
-        elif obj.sm64_obj_type == "Custom Geo Command":
-            prop_split(box, obj, "customGeoCommand", "Geo Macro")
-            prop_split(box, obj, "customGeoCommandArgs", "Parameters")
-            return
-
         if obj_details.can_have_dl:
             prop_split(box, obj, "draw_layer_static", "Draw Layer")
 
@@ -1143,7 +1149,7 @@ class SM64ObjectPanel(bpy.types.Panel):
                 info_box.label(text="Scale", icon="DOT")
 
         if len(obj.children):
-            if checkIsSM64PreInlineGeoLayout(obj.sm64_obj_type):
+            if checkIsSM64PreInlineGeoLayout(obj):
                 box.box().label(text="Children of this object will just be the following geo commands.")
             else:
                 box.box().label(text="Children of this object will be wrapped in GEO_OPEN_NODE and GEO_CLOSE_NODE.")
@@ -1172,12 +1178,14 @@ class SM64ObjectPanel(bpy.types.Panel):
             parent_box.separator()
 
     def draw(self, context):
+        sm64_props = context.scene.fast64.sm64
+
         prop_split(self.layout, context.scene, "gameEditorMode", "Game")
         box = self.layout.box().column()
         column = self.layout.box().column()  # added just for puppycam trigger importing
         box.box().label(text="SM64 Object Inspector")
         obj = context.object
-        props = obj.fast64.sm64
+        obj_props: SM64_ObjectProperties = obj.fast64.sm64
 
         prop_split(box, obj, "sm64_obj_type", "Object Type")
         if obj.sm64_obj_type == "Object":
@@ -1248,7 +1256,7 @@ class SM64ObjectPanel(bpy.types.Panel):
                     prop_split(box, levelObj, "backgroundSegment", "Custom Background Segment")
                     segmentExportBox = box.box()
                     segmentExportBox.label(
-                        text=f"Exported Segment: _{levelObj.backgroundSegment}_{context.scene.fast64.sm64.compression_format}SegmentRomStart"
+                        text=f"Exported Segment: _{levelObj.backgroundSegment}_{sm64_props.compression_format}SegmentRomStart"
                     )
                 box.prop(obj, "useBackgroundColor")
                 # box.box().label(text = 'Background IDs defined in include/geo_commands.h.')
@@ -1383,11 +1391,18 @@ class SM64ObjectPanel(bpy.types.Panel):
             prop_split(box, obj, "switchParam", "Parameter")
             box.box().label(text="Children will ordered alphabetically.")
 
+        elif obj.sm64_obj_type == "Custom":
+            custom_props: SM64_CustomCmdProperties = obj_props.custom
+            custom_props.draw_props(box, sm64_props.binary_export, obj, blender_scale=sm64_props.blender_to_sm64_scale)
+
         elif obj.sm64_obj_type in inlineGeoLayoutObjects:
             self.draw_inline_obj(box, obj)
 
         elif obj.sm64_obj_type == "None":
             box.box().label(text="This can be used as an empty transform node in a geolayout hierarchy.")
+
+        else:
+            multilineLabel(box, "Unknown object type: " + obj.sm64_obj_type)
 
     def draw_acts(self, obj, layout):
         layout.label(text="Acts")
@@ -2396,7 +2411,7 @@ class WarpNodeProperty(bpy.types.PropertyGroup):
         ret.z = int(round(-difference.y * bpy.context.scene.blenderF3DScale))
         return ret
 
-    def to_c(self):
+    def to_c(self, _depth=0):
         if self.warpType == "Instant":
             offset = Vector()
 
@@ -2832,13 +2847,14 @@ class SM64_SegmentProperties(bpy.types.PropertyGroup):
 
 class SM64_ObjectProperties(bpy.types.PropertyGroup):
     version: bpy.props.IntProperty(name="SM64_ObjectProperties Version", default=0)
-    cur_version = 3  # version after property migration
+    cur_version = 4  # version after property migration
 
     geo_asm: bpy.props.PointerProperty(type=SM64_GeoASMProperties)
     level: bpy.props.PointerProperty(type=SM64_LevelProperties)
     area: bpy.props.PointerProperty(type=SM64_AreaProperties)
     game_object: bpy.props.PointerProperty(type=SM64_GameObjectProperties)
     segment_loads: bpy.props.PointerProperty(type=SM64_SegmentProperties)
+    custom: bpy.props.PointerProperty(type=SM64_CustomCmdProperties)
 
     @staticmethod
     def upgrade_changed_props():
@@ -2847,6 +2863,7 @@ class SM64_ObjectProperties(bpy.types.PropertyGroup):
                 SM64_GeoASMProperties.upgrade_object(obj)
             if obj.fast64.sm64.version < 3:
                 SM64_GameObjectProperties.upgrade_object(obj)
+            obj.fast64.sm64.custom.upgrade_object(obj)
             obj.fast64.sm64.version = SM64_ObjectProperties.cur_version
 
 
@@ -3060,9 +3077,6 @@ def sm64_obj_register():
     bpy.types.Object.dlReference = bpy.props.StringProperty(name="Displaylist variable name or hex address for binary.")
 
     bpy.types.Object.geoReference = bpy.props.StringProperty(name="Geolayout variable name or hex address for binary")
-
-    bpy.types.Object.customGeoCommand = bpy.props.StringProperty(name="Geolayout macro command", default="")
-    bpy.types.Object.customGeoCommandArgs = bpy.props.StringProperty(name="Geolayout macro arguments", default="")
 
     bpy.types.Object.enableRoomSwitch = bpy.props.BoolProperty(name="Enable Room System")
 

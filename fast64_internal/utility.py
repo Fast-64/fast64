@@ -5,6 +5,7 @@ from mathutils import *
 from .utility_anim import *
 from typing import Callable, Iterable, Any, Optional, Tuple, TypeVar, Union
 from bpy.types import UILayout, Scene, World
+from bpy.props import FloatVectorProperty
 
 CollectionProperty = Any  # collection prop as defined by using bpy.props.CollectionProperty
 
@@ -30,6 +31,25 @@ class PluginError(Exception):
 
 class VertexWeightError(PluginError):
     pass
+
+
+class Matrix4x4Property(bpy.types.PropertyGroup):  # blender's matrix subtype is broken :))))
+    row0: FloatVectorProperty(size=4, default=(1, 0, 0, 0))
+    row1: FloatVectorProperty(size=4, default=(0, 1, 0, 0))
+    row2: FloatVectorProperty(size=4, default=(0, 0, 1, 0))
+    row3: FloatVectorProperty(size=4, default=(0, 0, 0, 1))
+
+    def to_matrix(self):
+        return mathutils.Matrix((tuple(self.row0), tuple(self.row1), tuple(self.row2), tuple(self.row3)))
+
+    def from_matrix(self, matrix: mathutils.Matrix):
+        for i in range(4):
+            setattr(self, f"row{i}", tuple(matrix[i]))
+
+    def draw_props(self, layout: UILayout):
+        layout.label(text="Row: → | Column: ↓", icon="INFO")
+        for i in range(4):
+            layout.row().prop(self, f"row{i}", text="")
 
 
 # default indentation to use when writing to decomp files
@@ -968,35 +988,35 @@ def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
         raise Exception(str(e))
 
 
-enumSM64PreInlineGeoLayoutObjects = {"Geo ASM", "Geo Branch", "Geo Displaylist", "Custom Geo Command"}
+enumSM64PreInlineGeoLayoutObjects = {"Geo ASM", "Geo Branch", "Geo Displaylist"}
 
 
-def checkIsSM64PreInlineGeoLayout(sm64_obj_type):
-    return sm64_obj_type in enumSM64PreInlineGeoLayoutObjects
+def checkIsSM64PreInlineGeoLayout(obj):
+    return obj.sm64_obj_type in enumSM64PreInlineGeoLayoutObjects
 
 
 enumSM64InlineGeoLayoutObjects = {
-    "Geo ASM",
-    "Geo Branch",
     "Geo Translate/Rotate",
     "Geo Translate Node",
     "Geo Rotation Node",
     "Geo Billboard",
     "Geo Scale",
-    "Geo Displaylist",
-    "Custom Geo Command",
 }
 
 
-def checkIsSM64InlineGeoLayout(sm64_obj_type):
-    return sm64_obj_type in enumSM64InlineGeoLayoutObjects
+def checkIsSM64InlineGeoLayout(obj):
+    return (
+        obj.sm64_obj_type in enumSM64InlineGeoLayoutObjects
+        or checkIsSM64PreInlineGeoLayout(obj)
+        or (obj.sm64_obj_type == "Custom" and obj.fast64.sm64.custom.cmd_type == "Geo")
+    )
 
 
 enumSM64EmptyWithGeolayout = {"None", "Level Root", "Area Root", "Switch"}
 
 
-def checkSM64EmptyUsesGeoLayout(sm64_obj_type):
-    return sm64_obj_type in enumSM64EmptyWithGeolayout or checkIsSM64InlineGeoLayout(sm64_obj_type)
+def checkSM64EmptyUsesGeoLayout(obj):
+    return obj.sm64_obj_type in enumSM64EmptyWithGeolayout or checkIsSM64InlineGeoLayout(obj)
 
 
 def selectMeshChildrenOnly(obj, ignoreAttr, includeEmpties, areaIndex):
@@ -1005,7 +1025,7 @@ def selectMeshChildrenOnly(obj, ignoreAttr, includeEmpties, areaIndex):
         return
     ignoreObj = ignoreAttr is not None and getattr(obj, ignoreAttr)
     isMesh = obj.type == "MESH"
-    isEmpty = obj.type == "EMPTY" and includeEmpties and checkSM64EmptyUsesGeoLayout(obj.sm64_obj_type)
+    isEmpty = obj.type == "EMPTY" and includeEmpties and checkSM64EmptyUsesGeoLayout(obj)
     if (isMesh or isEmpty) and not ignoreObj:
         obj.select_set(True)
         obj.original_name = obj.name
@@ -1143,6 +1163,17 @@ def writeInsertableFile(filepath, dataType, address_ptrs, startPtr, data):
     openfile.seek(address)
     openfile.write(data)
     openfile.close()
+
+
+def quantize_color(color: mathutils.Color, bit_counts: tuple[int]):
+    """Quantize a color to the specified bit counts."""
+    assert len(color) == len(bit_counts), "Number of color channels does not match number of bit counts"
+    result = 0
+    pos = 0
+    for c, bit_count in zip(reversed(color), reversed(bit_counts)):
+        result |= round(c * (2**bit_count - 1)) << pos
+        pos += bit_count
+    return result
 
 
 def colorTo16bitRGBA(color):
@@ -1361,12 +1392,25 @@ def gammaInverseValue(sRGBValue):
     return mathutils.Color((sRGBValue, sRGBValue, sRGBValue)).from_srgb_to_scene_linear().v
 
 
-def exportColor(lightColor):
-    return [scaleToU8(value) for value in gammaCorrect(lightColor)]
+def exportColor(color: Iterable | mathutils.Color, include_alpha=False):
+    assert len(color) >= 3, "Less than 3 color channels"
+    rgb = tuple(scaleToU8(value) for value in gammaCorrect(color[:3]))
+    if include_alpha:
+        if len(color) > 3:
+            return rgb + (scaleToU8(color[3]),)
+        else:
+            return rgb + (255,)
+    return rgb
 
 
-def get_clean_color(srgb: list, include_alpha=False, round_color=True) -> list:
-    return [round(channel, 4) if round_color else channel for channel in list(srgb[: 4 if include_alpha else 3])]
+def get_clean_color(color: list, include_alpha=False, round_color=True, srgb_to_linear=False) -> list:
+    color = list(color)
+    if srgb_to_linear:
+        color = gammaInverse(color[:3]) + color[3:]
+    color = color[: 4 if include_alpha else 3]
+    if include_alpha and len(color) < 4:
+        color = color + [1.0]
+    return [round(channel, 4) if round_color else channel for channel in color]
 
 
 def printBlenderMessage(msgSet, message, blenderOp):
@@ -1767,6 +1811,10 @@ binOps = {
     ast.BitOr: operator.or_,
     ast.BitAnd: operator.and_,
     ast.BitXor: operator.xor,
+    ast.Pow: operator.pow,
+    ast.FloorDiv: operator.floordiv,
+    ast.USub: operator.neg,
+    ast.UAdd: lambda a: a,
 }
 
 
