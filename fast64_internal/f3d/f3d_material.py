@@ -3029,17 +3029,16 @@ def ui_image(
         width, height = tex_prop.size
         prop_input = inputGroup.column()
 
-        if is_rdpq:
-            row = prop_input.row()
-            row.prop(tex_prop, "use_tex_reference", text="Placeholder")
-            if tex_prop.use_tex_reference:
-                row.prop(tex_prop, "placeholder_slot", text="")
-
         flipbook = tex_prop.flipbook is not None and tex_prop.flipbook.enable
-        row = prop_input.row()
         has_texture = tex_prop.has_texture or always_load
 
         if not always_load:
+            if is_rdpq:
+                row = prop_input.row()
+                row.prop(tex_prop, "use_tex_reference", text="Placeholder")
+                if tex_prop.use_tex_reference:
+                    row.prop(tex_prop, "placeholder_slot", text="")
+            row = prop_input.row()
             row.prop(tex_prop, "load_tex")
             if tex_prop.load_tex:
                 if not is_rdpq:
@@ -3100,7 +3099,9 @@ def ui_image(
                                 prop_split(prop_input, tex_prop, "pal_reference_size", "Palette Size")
                 else:
                     prop_split(prop_input, tex_prop, "pal_index", "Palette Index")
-                if (not tex_prop.has_palette and not is_rdpq) or not tex_prop.load_tex:
+                if (is_rdpq and (not tex_prop.load_tex or not tex_prop.load_pal)) or (
+                    not is_rdpq and not tex_prop.has_palette
+                ):
                     prop_input.template_ID(tex_prop, "pal", new="image.new", open="image.open")
                     if has_texture:
                         if tex_prop.pal:
