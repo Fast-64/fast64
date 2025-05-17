@@ -1130,27 +1130,25 @@ class F3DPanel(Panel):
         textures = f3d_mat.set_textures if is_simple else f3d_mat.used_textures
         col = layout.column()
         if len(textures) > 0:
-            col.label(text="Textures", icon="IMAGE_DATA")
+            draw_and_check_tab(col, f3d_mat, "texture_tab", "Textures", "IMAGE_DATA")
+            if not f3d_mat.texture_tab:
+                return
+        pseudo_split = col.split(factor=0.5) if f3d_mat.gen_pseudo_format else col
+        pseudo_split.prop(f3d_mat, "gen_pseudo_format")
+        if f3d_mat.gen_pseudo_format:
+            pseudo_split.prop(f3d_mat, "pseudo_format_internal", text="")
+        if f3d_mat.pseudo_fmt_can_mip:
+            mipmaps_split = col.split(factor=0.5) if f3d_mat.gen_auto_mips else col
+            draw_forced(mipmaps_split, f3d_mat, "gen_auto_mips_internal", f3d_mat.forced_mipmap, name=None, split=False)
+            if f3d_mat.gen_auto_mips:
+                mipmaps_split.prop(f3d_mat, "auto_mipmaps", text="")
 
-            pseudo_split = col.split(factor=0.5) if f3d_mat.gen_pseudo_format else col
-            pseudo_split.prop(f3d_mat, "gen_pseudo_format")
-            if f3d_mat.gen_pseudo_format:
-                pseudo_split.prop(f3d_mat, "pseudo_format_internal", text="")
-            if f3d_mat.pseudo_fmt_can_mip:
-                mipmaps_split = col.split(factor=0.5) if f3d_mat.gen_auto_mips else col
-                draw_forced(
-                    mipmaps_split, f3d_mat, "gen_auto_mips_internal", f3d_mat.forced_mipmap, name=None, split=False
-                )
-                if f3d_mat.gen_auto_mips:
-                    mipmaps_split.prop(f3d_mat, "auto_mipmaps", text="")
-
-            self.ui_large(f3d_mat, col)
-            self.ui_scale(f3d_mat, col)
-            if len(textures) > 1:
-                col.prop(f3d_mat, "uv_basis", text="UV Basis")
-            # TODO: in the future we should make a multitex manager for UI and preview (and cache it) and use the errors from that
-            self.draw_ci_warnings(col, f3d_mat)
-            col.separator(factor=1.0)
+        self.ui_large(f3d_mat, col)
+        self.ui_scale(f3d_mat, col)
+        if len(textures) > 1:
+            col.prop(f3d_mat, "uv_basis", text="UV Basis")
+        # TODO: in the future we should make a multitex manager for UI and preview (and cache it) and use the errors from that
+        self.draw_ci_warnings(col, f3d_mat)
         if f3d_mat.gen_auto_mips or f3d_mat.gen_pseudo_format:
             ui_image(
                 f3d_mat.use_large_textures,
@@ -4292,6 +4290,7 @@ class F3DMaterialProperty(PropertyGroup):
     UVanim0: bpy.props.PointerProperty(type=ProcAnimVectorProperty)
 
     # material textures
+    texture_tab: bpy.props.BoolProperty(name="Textures", update=update_tex_values)
     gen_pseudo_format: bpy.props.BoolProperty(name="Pseudo Formats", update=update_tex_values)
     pseudo_format_internal: bpy.props.EnumProperty(
         name="Pseudo Formats",
