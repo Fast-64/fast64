@@ -28,7 +28,7 @@ class OOTAnimation:
 
         data.header = f"#ifndef {self.filename.upper()}_H\n" + f"#define {self.filename.upper()}_H\n\n"
 
-        if bpy.context.scene.fast64.oot.oot_version == "legacy":
+        if bpy.context.scene.fast64.oot.is_z64h_present():
             data.header += '#include "ultra64.h"\n' + '#include "global.h"\n\n'
         else:
             data.header += '#include "ultra64.h"\n' + '#include "array_count.h"\n' + '#include "z64animation.h"\n\n'
@@ -99,7 +99,7 @@ class OOTLinkAnimation:
 
         animHeaderData.header = f"#ifndef {self.headerName.upper()}_H\n" + f"#define {self.headerName.upper()}_H\n\n"
 
-        if bpy.context.scene.fast64.oot.oot_version == "legacy":
+        if bpy.context.scene.fast64.oot.is_z64h_present():
             data.header = '#include "ultra64.h"\n' + '#include "global.h"\n\n'
             animHeaderData.header = '#include "ultra64.h"\n' + '#include "global.h"\n\n'
         else:

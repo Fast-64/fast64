@@ -222,7 +222,7 @@ class Scene:
         sceneCutsceneData = self.getSceneCutscenesC()
         sceneTexturesData = self.getSceneTexturesC(textureExportSettings)
 
-        if bpy.context.scene.fast64.oot.oot_version == "legacy":
+        if bpy.context.scene.fast64.oot.is_z64h_present():
             includes = [
                 '#include "ultra64.h"',
                 '#include "macros.h"',
