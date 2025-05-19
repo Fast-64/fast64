@@ -2859,7 +2859,7 @@ class TextureProperty(PropertyGroup):
             ("DITHERED", "Dithered", ""),
             ("FLOYD", "Floyd-Steinberg", "TODO in mksprite, but by far the best dithering method on n64"),
         ],
-        description="How the texture will be dithered when quantizing (reducing colors), this helps with color banding",
+        description="How the texture will be dithered when quantizing (reducing colors) on export, this helps with color banding",
     )
     tex_index: bpy.props.IntProperty(
         name="Texture Index",
