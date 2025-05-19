@@ -294,20 +294,30 @@ def exportCollisionToC(
             # get C data
             colData = CData()
 
-            colData.header = (
-                "\n".join(
+            includes = [
+                f"#ifndef {filename.upper()}_H",
+                f"#define {filename.upper()}_H\n",
+            ]
+
+            if bpy.context.scene.fast64.oot.is_z64h_present():
+                includes.extend(
                     [
-                        f"#ifndef {filename.upper()}_H",
-                        f"#define {filename.upper()}_H\n",
+                        '#include "ultra64.h"',
+                        '#include "z64.h"',
+                        '#include "macros.h"',
+                    ]
+                )
+            else:
+                includes.extend(
+                    [
                         '#include "ultra64.h"',
                         '#include "z64math.h"',
                         '#include "z64bgcheck.h"',
                         '#include "array_count.h"',
                     ]
                 )
-                + "\n\n"
-            )
 
+            colData.header = "\n".join(includes) + "\n\n"
             colData.source = f'#include "{filename}.h"\n'
 
             if not isCustomExport:
