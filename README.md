@@ -63,7 +63,7 @@ For cel shading, it is recommended to start with one of the cel shading presets,
 
 ### Updater
 
-Fast64 uses [CGCookie/blender-addon-updater](https://github.com/CGCookie/blender-addon-updater) as it's updater.
+Fast64 uses [CGCookie/blender-addon-updater](https://github.com/CGCookie/blender-addon-updater) as its updater.
 
 It can be found in the addon preferences:
 
