@@ -1135,6 +1135,8 @@ class F3DPanel(Panel):
             draw_and_check_tab(col, f3d_mat, "texture_tab", "Textures", "IMAGE_DATA")
             if not f3d_mat.texture_tab:
                 return
+        else:
+            return
         pseudo_split = col.split(factor=0.5) if f3d_mat.gen_pseudo_format else col
         pseudo_split.prop(f3d_mat, "gen_pseudo_format")
         if f3d_mat.gen_pseudo_format:
@@ -1151,11 +1153,12 @@ class F3DPanel(Panel):
             col.prop(f3d_mat, "uv_basis", text="UV Basis")
         # TODO: in the future we should make a multitex manager for UI and preview (and cache it) and use the errors from that
         self.draw_ci_warnings(col, f3d_mat)
+        col.separator(factor=1.0)
         if f3d_mat.gen_auto_mips or f3d_mat.gen_pseudo_format:
             ui_image(
                 f3d_mat.use_large_textures,
                 f3d_mat.is_multi_tex,
-                col,
+                col.box(),
                 f3d_mat.all_textures[0],
                 "Base Texture",
                 False,
@@ -1170,7 +1173,13 @@ class F3DPanel(Panel):
             if tex.menu and i > 0:
                 col.separator(factor=1.0)
             ui_image(
-                f3d_mat.use_large_textures, f3d_mat.is_multi_tex, col, tex, f"Texture {tex_index}", not is_simple, f3d
+                f3d_mat.use_large_textures,
+                f3d_mat.is_multi_tex,
+                col.box(),
+                tex,
+                f"Texture {tex_index}",
+                not is_simple,
+                f3d,
             )
             if tex.menu or i == len(textures) - 1:
                 col.separator(factor=1.0)
@@ -1887,23 +1896,19 @@ def set_texture_settings_node(material: Material):
     nodes = material.node_tree.nodes
     textureSettings: ShaderNodeGroup = nodes["TextureSettings"]
 
-    desired_group = bpy.data.node_groups["TextureSettings_Lite"]
-    if (material.f3d_mat.tex0.tex and not material.f3d_mat.tex0.autoprop) or (
-        material.f3d_mat.tex1.tex and not material.f3d_mat.tex1.autoprop
-    ):
-        desired_group = bpy.data.node_groups["TextureSettings_Advanced"]
+    desired_group = bpy.data.node_groups["TextureSettings_Advanced"]
     if textureSettings.node_tree is not desired_group:
         textureSettings.node_tree = desired_group
 
 
-def setAutoProp(fieldProperty, pixelLength):
-    fieldProperty.mask = log2iRoundUp(pixelLength)
-    fieldProperty.shift = 0
-    fieldProperty.low = 0
-    fieldProperty.high = pixelLength
-    if fieldProperty.clamp and fieldProperty.mirror:
-        fieldProperty.high *= 2
-    fieldProperty.high -= 1
+def setAutoProp(field: "TextureFieldProperty", pixel_length: int):
+    field.mask = log2iRoundUp(pixel_length)
+    high = pixel_length
+    if field.clamp:
+        high *= field.repeats
+    high += field.low
+    high -= 1
+    field.high = high
 
 
 def set_texture_size(self, tex_size, tex_index):
@@ -2771,7 +2776,8 @@ class TextureFieldProperty(PropertyGroup):
         update=update_tex_field_prop,
     )
     low: bpy.props.FloatProperty(
-        name="Low",
+        name="Translate",
+        description="Low",
         min=0,
         max=1023.75,
         update=update_tex_field_prop,
@@ -2791,13 +2797,22 @@ class TextureFieldProperty(PropertyGroup):
     )
     shift: bpy.props.IntProperty(
         name="Shift",
+        description="Shift",
         min=-5,
         max=10,
         update=update_tex_field_prop,
     )
+    repeats: bpy.props.IntProperty(
+        name="Repeats",
+        description="Repeats",
+        default=1,
+        min=0,
+        max=2047,
+        update=update_tex_field_prop,
+    )
 
     def key(self):
-        return (self.clamp, self.mirror, round(self.low * 4), round(self.high * 4), self.mask, self.shift)
+        return (self.clamp, self.mirror, round(self.low * 4), round(self.high * 4), self.mask, self.shift, self.repeats)
 
 
 class SetTileSizeScrollProperty(PropertyGroup):
@@ -3120,8 +3135,7 @@ def ui_image(
                             )
             if not forced_fmt:
                 prop_split(prop_input, tex_prop, "ci_format", name="CI Format")
-            if not always_load:
-                prop_input.separator(factor=0.5)
+            prop_input.separator(factor=0.5)
 
         if not isLarge:
             if width > 0 and height > 0:
@@ -3145,33 +3159,32 @@ def ui_image(
                         icon="ERROR",
                     )
 
-            texFieldSettings = prop_input.column()
-            clampSettings = texFieldSettings.row()
-            clampSettings.prop(tex_prop.S, "clamp", text="Clamp S")
-            clampSettings.prop(tex_prop.T, "clamp", text="Clamp T")
+            def draw_s_t_field(layout: UILayout, text: str, prop: str, field_text=False):
+                split = layout.split(factor=0.2)
+                split.label(text=text)
+                row = split.row(align=True)
+                row.prop(tex_prop.S, prop, text="S" if field_text else "", toggle=1)
+                row.prop(tex_prop.T, prop, text="T" if field_text else "", toggle=1)
 
-            mirrorSettings = texFieldSettings.row()
-            mirrorSettings.prop(tex_prop.S, "mirror", text="Mirror S")
-            mirrorSettings.prop(tex_prop.T, "mirror", text="Mirror T")
+            autoprop = tex_prop.autoprop or is_rdpq
+            draw_s_t_field(prop_input, "Mirror", "mirror", True)
+            draw_s_t_field(prop_input, "Clamp", "clamp", True)
+            repeat_split = prop_input.split(factor=0.2)
+            repeat_split.label(text="Repeats")
+            repeat_split_right = repeat_split.split(factor=0.5, align=True)
+            draw_forced(repeat_split_right, tex_prop.S, "repeats", not autoprop or tex_prop.S.clamp, "", "Infinite", False)
+            draw_forced(repeat_split_right, tex_prop.T, "repeats", not autoprop or tex_prop.T.clamp, "", "Infinite", False)
 
-            prop_input.prop(tex_prop, "autoprop", text="Auto Set Other Properties")
-            if not tex_prop.autoprop:
-                mask = prop_input.row()
-                mask.prop(tex_prop.S, "mask", text="Mask S")
-                mask.prop(tex_prop.T, "mask", text="Mask T")
+            if not hide_lowhigh:
+                draw_s_t_field(prop_input, "Translate", "low")
+            draw_s_t_field(prop_input, "Scale", "shift")
 
-                shift = prop_input.row()
-                shift.prop(tex_prop.S, "shift", text="Shift S")
-                shift.prop(tex_prop.T, "shift", text="Shift T")
-                if hide_lowhigh:
-                    return
-                low = prop_input.row()
-                low.prop(tex_prop.S, "low", text="S Low")
-                low.prop(tex_prop.T, "low", text="T Low")
-
-                high = prop_input.row()
-                high.prop(tex_prop.S, "high", text="S High")
-                high.prop(tex_prop.T, "high", text="T High")
+            if not is_rdpq:
+                prop_input.prop(tex_prop, "autoprop", text="Auto Set Other Properties")
+                if not tex_prop.autoprop:
+                    draw_s_t_field(prop_input, "Mask", "mask")
+                    if not hide_lowhigh:
+                        draw_s_t_field(prop_input, "High", "high")
 
 
 class CombinerProperty(PropertyGroup):

@@ -1320,8 +1320,8 @@ def draw_forced(
     split=True,
 ):
     split_row = layout.split(factor=0.5) if split else layout.row(align=True)
-    left_row = split_row.row()
-    right_row = split_row.row()
+    left_row = split_row.row(align=True)
+    right_row = split_row.row(align=True)
     if forced or name or split:
         left_row.label(text="" if name is None else name, icon="LOCKED" if forced else "NONE")
     right_row.enabled = not forced
