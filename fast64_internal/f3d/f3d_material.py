@@ -2852,13 +2852,14 @@ class TextureProperty(PropertyGroup):
         update=update_tex_values,
     )
     dithering_method: bpy.props.EnumProperty(
-        name="Dithering Method",
+        name="Dithering (Conversion)",
         items=[
             ("NONE", "None", ""),
             ("RANDOM", "Random", ""),
             ("DITHERED", "Dithered", ""),
-            ("Floyd-Steinberg", "Floyd-Steinberg", ""),
+            ("FLOYD", "Floyd-Steinberg", "TODO in mksprite, but by far the best dithering method on n64"),
         ],
+        description="How the texture will be dithered when quantizing (reducing colors), this helps with color banding",
     )
     tex_index: bpy.props.IntProperty(
         name="Texture Index",
@@ -3074,7 +3075,7 @@ def ui_image(
                 size = tex_prop.size
                 prop_input.label(text=f"Size: {size[0]}x{size[1]}")
         if has_texture:
-            prop_split(prop_input, tex_prop, "dithering_method", "Dithering Method")
+            prop_split(prop_input, tex_prop, "dithering_method", "Dithering (Conversion)")
         else:
             prop_split(prop_input, tex_prop, "tex_reference_size", "Texture Size")
 
@@ -3172,8 +3173,12 @@ def ui_image(
             repeat_split = prop_input.split(factor=0.2)
             repeat_split.label(text="Repeats")
             repeat_split_right = repeat_split.split(factor=0.5, align=True)
-            draw_forced(repeat_split_right, tex_prop.S, "repeats", not autoprop or tex_prop.S.clamp, "", "Infinite", False)
-            draw_forced(repeat_split_right, tex_prop.T, "repeats", not autoprop or tex_prop.T.clamp, "", "Infinite", False)
+            draw_forced(
+                repeat_split_right, tex_prop.S, "repeats", not autoprop or tex_prop.S.clamp, "", "Infinite", False
+            )
+            draw_forced(
+                repeat_split_right, tex_prop.T, "repeats", not autoprop or tex_prop.T.clamp, "", "Infinite", False
+            )
 
             if not hide_lowhigh:
                 draw_s_t_field(prop_input, "Translate", "low")
