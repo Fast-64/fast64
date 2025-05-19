@@ -1,4 +1,7 @@
-import bpy, os, mathutils
+import bpy
+import os
+import mathutils
+
 from bpy.types import Operator, Mesh
 from bpy.ops import object
 from bpy.path import abspath
@@ -64,6 +67,10 @@ def ootConvertMeshToC(
     filename = settings.filename if settings.isCustomFilename else name
     data = CData()
     data.header = f"#ifndef {filename.upper()}_H\n" + f"#define {filename.upper()}_H\n\n" + '#include "ultra64.h"\n'
+
+    if bpy.context.scene.fast64.oot.oot_version == "legacy":
+        data.header += '#include "global.h"\n'
+
     data.source = f'#include "{filename}.h"\n\n'
     if not isCustomExport:
         data.header += f'#include "{folderName}.h"\n\n'

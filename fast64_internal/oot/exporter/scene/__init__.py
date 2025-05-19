@@ -1,3 +1,5 @@
+import bpy
+
 from dataclasses import dataclass
 from mathutils import Matrix
 from bpy.types import Object
@@ -220,22 +222,29 @@ class Scene:
         sceneCutsceneData = self.getSceneCutscenesC()
         sceneTexturesData = self.getSceneTexturesC(textureExportSettings)
 
-        includes = [
-            '#include "ultra64.h"',
-            '#include "romfile.h"',
-            '#include "array_count.h"',
-            '#include "sequence.h"',
-            '#include "z64actor_profile.h"',
-            '#include "z64bgcheck.h"',
-            '#include "z64camera.h"',
-            '#include "z64cutscene.h"',
-            '#include "z64cutscene_commands.h"',
-            '#include "z64environment.h"',
-            '#include "z64math.h"',
-            '#include "z64object.h"',
-            '#include "z64room.h"',
-            '#include "z64scene.h"',
-        ]
+        if bpy.context.scene.fast64.oot.oot_version == "legacy":
+            includes = [
+                '#include "ultra64.h"',
+                '#include "macros.h"',
+                '#include "z64.h"',
+            ]
+        else:
+            includes = [
+                '#include "ultra64.h"',
+                '#include "romfile.h"',
+                '#include "array_count.h"',
+                '#include "sequence.h"',
+                '#include "z64actor_profile.h"',
+                '#include "z64bgcheck.h"',
+                '#include "z64camera.h"',
+                '#include "z64cutscene.h"',
+                '#include "z64cutscene_commands.h"',
+                '#include "z64environment.h"',
+                '#include "z64math.h"',
+                '#include "z64object.h"',
+                '#include "z64room.h"',
+                '#include "z64scene.h"',
+            ]
 
         return SceneFile(
             self.name,

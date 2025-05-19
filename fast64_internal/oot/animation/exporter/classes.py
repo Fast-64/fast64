@@ -1,3 +1,5 @@
+import bpy
+
 from ....utility import CData, toAlnum
 
 
@@ -24,13 +26,12 @@ class OOTAnimation:
     def toC(self):
         data = CData()
 
-        data.header = (
-            f"#ifndef {self.filename.upper()}_H\n"
-            + f"#define {self.filename.upper()}_H\n\n"
-            + '#include "ultra64.h"\n'
-            + '#include "array_count.h"\n'
-            + '#include "z64animation.h"\n\n'
-        )
+        data.header = f"#ifndef {self.filename.upper()}_H\n" + f"#define {self.filename.upper()}_H\n\n"
+
+        if bpy.context.scene.fast64.oot.oot_version == "legacy":
+            data.header += '#include "ultra64.h"\n' + '#include "global.h"\n\n'
+        else:
+            data.header += '#include "ultra64.h"\n' + '#include "array_count.h"\n' + '#include "z64animation.h"\n\n'
         data.source = f'#include "{self.filename}.h"\n\n'
 
         # values
@@ -94,22 +95,20 @@ class OOTLinkAnimation:
         data = CData()
         animHeaderData = CData()
 
-        data.header = (
-            f"#ifndef {self.dataName().upper()}_H\n"
-            + f"#define {self.dataName().upper()}_H\n\n"
-            + '#include "ultra64.h"\n'
-            + '#include "array_count.h"\n'
-            + '#include "z64animation.h"\n\n'
-        )
-        data.source = f'#include "{self.dataName()}.h"\n\n'
+        data.header = f"#ifndef {self.dataName().upper()}_H\n" + f"#define {self.dataName().upper()}_H\n\n"
 
-        animHeaderData.header = (
-            f"#ifndef {self.headerName.upper()}_H\n"
-            + f"#define {self.headerName.upper()}_H\n\n"
-            + '#include "ultra64.h"\n'
-            + '#include "array_count.h"\n'
-            + '#include "z64animation.h"\n\n'
-        )
+        animHeaderData.header = f"#ifndef {self.headerName.upper()}_H\n" + f"#define {self.headerName.upper()}_H\n\n"
+
+        if bpy.context.scene.fast64.oot.oot_version == "legacy":
+            data.header = '#include "ultra64.h"\n' + '#include "global.h"\n\n'
+            animHeaderData.header = '#include "ultra64.h"\n' + '#include "global.h"\n\n'
+        else:
+            data.header = '#include "ultra64.h"\n' + '#include "array_count.h"\n' + '#include "z64animation.h"\n\n'
+            animHeaderData.header = (
+                '#include "ultra64.h"\n' + '#include "array_count.h"\n' + '#include "z64animation.h"\n\n'
+            )
+
+        data.source = f'#include "{self.dataName()}.h"\n\n'
         animHeaderData.source = f'#include "{self.headerName}.h"\n'
 
         # TODO: handle custom import?

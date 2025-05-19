@@ -30,15 +30,29 @@ def checkGetFilePaths(context: Context):
 
 def ootCutsceneIncludes(headerfilename):
     ret = CData()
+
     ret.header = (
         f"#ifndef {headerfilename.removesuffix('.h').upper()}_H\n"
         + f"#define {headerfilename.removesuffix('.h').upper()}_H\n\n"
-        + '#include "ultra64.h"\n'
-        + '#include "sequence.h"\n'
-        + '#include "z64math.h"\n'
-        + '#include "z64cutscene.h"\n'
-        + '#include "z64cutscene_commands.h"\n\n'
     )
+
+    if bpy.context.scene.fast64.oot.oot_version == "legacy":
+        ret.header += (
+            '#include "ultra64.h"\n'
+            + '#include "z64.h"\n'
+            + '#include "macros.h"\n'
+            + '#include "command_macros_base.h"\n'
+            + '#include "z64cutscene_commands.h"\n\n'
+        )
+    else:
+        ret.header += (
+            '#include "ultra64.h"\n'
+            + '#include "sequence.h"\n'
+            + '#include "z64math.h"\n'
+            + '#include "z64cutscene.h"\n'
+            + '#include "z64cutscene_commands.h"\n\n'
+        )
+
     if len(headerfilename) > 0:
         ret.source = f'#include "{headerfilename}"\n\n'
     return ret

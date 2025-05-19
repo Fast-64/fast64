@@ -279,13 +279,14 @@ def ootConvertArmatureToC(
 
     header_filename = Path(filename).parts[-1]
     data = CData()
-    data.header = (
-        f"#ifndef {header_filename.upper()}_H\n"
-        + f"#define {header_filename.upper()}_H\n\n"
-        + '#include "ultra64.h"\n'
-        + '#include "array_count.h"\n'
-        + '#include "z64animation.h"\n'
-    )
+
+    data.header = f"#ifndef {header_filename.upper()}_H\n" + f"#define {header_filename.upper()}_H\n\n"
+
+    if bpy.context.scene.fast64.oot.oot_version == "legacy":
+        data.header += '#include "ultra64.h"\n' + '#include "global.h"\n'
+    else:
+        data.header += '#include "ultra64.h"\n' + '#include "array_count.h"\n' + '#include "z64animation.h"\n'
+
     data.source = f'#include "{header_filename}.h"\n\n'
     if not isCustomExport:
         data.header += f'#include "{folderName}.h"\n\n'
