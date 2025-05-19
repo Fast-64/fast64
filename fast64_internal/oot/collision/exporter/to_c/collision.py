@@ -299,7 +299,7 @@ def exportCollisionToC(
                 f"#define {filename.upper()}_H\n",
             ]
 
-            if bpy.context.scene.fast64.oot.is_z64h_present():
+            if bpy.context.scene.fast64.oot.is_globalh_present():
                 includes.extend(
                     [
                         '#include "ultra64.h"',

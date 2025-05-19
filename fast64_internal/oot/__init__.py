@@ -102,14 +102,14 @@ class OOT_Properties(bpy.types.PropertyGroup):
         else:
             return f"extracted/{self.oot_version if self.oot_version != 'Custom' else self.oot_version_custom}"
 
-    def is_z64h_present(self):
+    def is_globalh_present(self):
         decomp_path = Path(bpy.context.scene.ootDecompPath).resolve()
 
         if not decomp_path.exists():
             raise PluginError(f"ERROR: invalid decomp path ('{decomp_path}').")
 
-        z64_h_path = decomp_path / "include" / "z64.h"
-        return z64_h_path.exists()
+        global_h_path = decomp_path / "include" / "global.h"
+        return global_h_path.exists()
 
     useDecompFeatures: bpy.props.BoolProperty(
         name="Use decomp for export", description="Use names and macros from decomp when exporting", default=True
