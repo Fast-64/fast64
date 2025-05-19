@@ -12,7 +12,7 @@ Make sure to save often, as this plugin is prone to crashing when creating mater
 
 ### Example models can be found [here](https://github.com/Fast-64/fast64-models)
 
-Fast64 features an updater, [follow these instructions to use it](#updater)
+Fast64 features an updater, [follow these instructions to use it](https://fast64.readthedocs.io/en/latest/common/updater/updater.html)
 
 ### Credits
 Thanks to anonymous_moose, Cheezepin, Rovert, and especially InTheBeef for testing.
@@ -60,31 +60,6 @@ Selecting F3DEX3 as your microcode unlocks a large number of additional presets 
 - `Lerp` vs. `Mult` for multitexture (water): Whether the two textures are combined by linear interpolation or multiplication.
 
 For cel shading, it is recommended to start with one of the cel shading presets, then modify the settings under the `Use Cel Shading` panel. Hover over each UI control for additional information about how that setting works.
-
-### Updater
-
-Fast64 uses [CGCookie/blender-addon-updater](https://github.com/CGCookie/blender-addon-updater) as its updater.
-
-It can be found in the addon preferences:
-
-![How the updater in the addon preferences looks, right after addon install](/images/updater_initially.png)
-
-Click the "Check now for fast64 update" button to check for updates.
-
-![Updater preferences after clicking the "check for updates" button](/images/updater_after_check.png)
-
-From here you may update to a stable version, the latest version or even an older release.
-If you are encountering a bug try updating to latest as it may solve your issue.
-
-- To install a stable release, click the "Update now to (Version) (Stable)" button.
-- To install latest, click the "Install specific version (Latest or Older)" button, select main and click ok.
-- To install an older version, click the "Install specific version (Latest or Older)" button, select your desired version and click ok.
-
-After updating, there should be a message "Addon successfully installed" and prompting you to restart Blender:
-
-![Updater: successful install, must restart](/images/updater_success_restart.png)
-
-Clicking the red button will close Blender. After restarting, fast64 will be in your desired version, if not there may be permission issues causing the updater to fail, try to download your desired version from github instead.
 
 ### Fast64 Development
 If you'd like to develop in VSCode, follow this tutorial to get proper autocomplete. Skip the linter for now, we'll need to make sure the entire project gets linted before enabling autosave linting because the changes will be massive.
