@@ -1149,7 +1149,7 @@ def update_settings_ui(self, context, element=None):
         
         if updater.include_merge_requests and len(updater.merge_requests) > 0:
             col.operator(AddonUpdaterTryMR.bl_idname,
-                         text="Try a merge request")
+                         text="Try a pull request")
 
         last_date = "none found"
         backup_path = os.path.join(updater.stage_path, "backup")
