@@ -402,7 +402,7 @@ class TexInfo:
     texAddr: int = 0
     palAddr: int = 0
     palIndex: int = 0
-    palDependencies: set[bpy.types.Image] = field(default_factory=list)
+    palDependencies: set[bpy.types.Image] = field(default_factory=set)
     palBaseName: str = ""
     loadPal: bool = False
     doTexLoad: bool = True
