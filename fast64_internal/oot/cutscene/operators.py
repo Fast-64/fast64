@@ -36,7 +36,7 @@ def ootCutsceneIncludes(headerfilename):
         + f"#define {headerfilename.removesuffix('.h').upper()}_H\n\n"
     )
 
-    if bpy.context.scene.fast64.oot.is_z64h_present():
+    if bpy.context.scene.fast64.oot.is_globalh_present():
         ret.header += (
             '#include "ultra64.h"\n'
             + '#include "z64.h"\n'

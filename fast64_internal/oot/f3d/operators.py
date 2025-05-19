@@ -68,7 +68,7 @@ def ootConvertMeshToC(
     data = CData()
     data.header = f"#ifndef {filename.upper()}_H\n" + f"#define {filename.upper()}_H\n\n" + '#include "ultra64.h"\n'
 
-    if bpy.context.scene.fast64.oot.is_z64h_present():
+    if bpy.context.scene.fast64.oot.is_globalh_present():
         data.header += '#include "global.h"\n'
 
     data.source = f'#include "{filename}.h"\n\n'
