@@ -491,8 +491,8 @@ class GeoLayoutBleed(BleedGraphics):
             return last_materials
 
         def reset_all_layers(last_materials: LastMaterials) -> LastMaterials:
-            for draw_layer in last_materials.keys():
-                reset_layer(last_materials, draw_layer)
+            while last_materials:
+                last_materials = reset_layer(last_materials, list(last_materials.keys())[0])
             return {}
 
         def walk(node, last_materials: LastMaterials) -> LastMaterials:
