@@ -501,7 +501,7 @@ class GeoLayoutBleed(BleedGraphics):
             if type(base_node) == JumpNode:
                 if base_node.geolayout:
                     for node in base_node.geolayout.nodes:
-                        last_materials = walk(node, last_materials if not use_rooms else {}) if not use_rooms else {}
+                        last_materials = walk(node, last_materials)
 
             fMesh = getattr(base_node, "fMesh", None)
             last_mat, last_cmds_resets = None, []
