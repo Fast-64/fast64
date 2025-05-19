@@ -12,7 +12,7 @@ Make sure to save often, as this plugin is prone to crashing when creating mater
 
 ### Example models can be found [here](https://github.com/Fast-64/fast64-models)
 
-Fast64 features an updater, [follow these instructions to use it](https://fast64.readthedocs.io/en/latest/common/updater/updater.html)
+Fast64 features an updater (which can also be used to try out in testing features and bugfixes), [follow these instructions to use it](https://fast64.readthedocs.io/en/latest/common/updater/updater.html)
 
 ### Credits
 Thanks to anonymous_moose, Cheezepin, Rovert, and especially InTheBeef for testing.
