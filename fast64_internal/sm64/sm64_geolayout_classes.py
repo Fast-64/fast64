@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import bpy
 from struct import pack
-from copy import copy
+from copy import copy, deepcopy
 
 from ..utility import (
     PluginError,
@@ -19,7 +19,7 @@ from ..utility import (
     geoNodeRotateOrder,
 )
 from ..f3d.f3d_bleed import BleedGraphics
-from ..f3d.f3d_gbi import FMaterial, FModel, GbiMacro
+from ..f3d.f3d_gbi import FMaterial, FModel, GbiMacro, GfxList
 
 from .sm64_geolayout_constants import (
     nodeGroupCmds,
@@ -472,7 +472,7 @@ class JumpNode:
         return "GEO_BRANCH(" + ("1, " if self.storeReturn else "0, ") + geo_name + "),"
 
 
-LastMaterials = dict[int, tuple[FMaterial | None, list[tuple[list["GbiMacro"], dict[type, GbiMacro]]]]]
+LastMaterials = dict[int, tuple[FMaterial | None, list[tuple[GfxList, dict[type, GbiMacro]]]]]
 
 
 class GeoLayoutBleed(BleedGraphics):
@@ -481,18 +481,24 @@ class GeoLayoutBleed(BleedGraphics):
         last_materials = {}
 
         def copy_last(last_materials: LastMaterials) -> LastMaterials:
-            return {dl: [lm, [(c, copy(r)) for c, r in lcr]] for dl, (lm, lcr) in last_materials.items()}
+            return {dl: [lm, [(c, deepcopy(r)) for c, r in lcr]] for dl, (lm, lcr) in last_materials.items()}
 
         def reset_layer(last_materials: LastMaterials, draw_layer: int) -> LastMaterials:
             _, cmds_resets = last_materials.get(draw_layer, (None, []))
-            for cmd_list, reset_cmd_dict in cmds_resets:
-                self.add_reset_cmds(cmd_list, reset_cmd_dict, fModel.matWriteMethod, fModel.getRenderMode(draw_layer))
-            last_materials.pop(draw_layer, None)
+            for i, (cmd_list, reset_cmd_dict) in enumerate(copy(cmds_resets)):
+                # only discard reset if the reset was actually applied
+                if self.add_reset_cmds(
+                    cmd_list, reset_cmd_dict, fModel.matWriteMethod, fModel.getRenderMode(draw_layer)
+                ):
+                    cmds_resets[i] = None
+            cmds_resets = [cr for cr in cmds_resets if cr is not None]
+            if not cmds_resets:
+                last_materials.pop(draw_layer, 0)
             return last_materials
 
         def reset_all_layers(last_materials: LastMaterials) -> LastMaterials:
-            while last_materials:
-                last_materials = reset_layer(last_materials, list(last_materials.keys())[0])
+            for draw_layer in copy(list(last_materials.keys())):
+                last_materials = reset_layer(last_materials, draw_layer)
             return {}
 
         def walk(node, last_materials: LastMaterials) -> LastMaterials:
@@ -545,8 +551,7 @@ class GeoLayoutBleed(BleedGraphics):
                     # add switch option reverts, to either revert at the end or in the option itself
                     for draw_layer, (last_mat, cmds_resets) in new_materials.items():
                         last_materials.setdefault(draw_layer, [last_mat, []])[1].extend(cmds_resets)
-                        if len(node.children) > 1:
-                            last_materials[draw_layer][0] = None  # reset last material if more than one option
+                        last_materials[draw_layer][0] = None  # reset last material
                 else:
                     last_materials = walk(child, last_materials)
             return last_materials
