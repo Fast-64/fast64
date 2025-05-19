@@ -448,11 +448,11 @@ class OOTActorProperty(PropertyGroup):
         split.label(text="Actor ID")
         split.label(text=getEnumName(ootData.actorData.ootEnumActorID, self.actor_id))
 
-        if bpy.context.scene.fast64.oot.use_new_actor_panel:
-            if self.actor_id != "Custom":
-                self.draw_params(actorIDBox, obj)
-            else:
-                prop_split(actorIDBox, self, "actor_id_custom", "")
+        if bpy.context.scene.fast64.oot.use_new_actor_panel and self.actor_id != "Custom":
+            self.draw_params(actorIDBox, obj)
+
+        if self.actor_id == "Custom":
+            prop_split(actorIDBox, self, "actor_id_custom", "")
 
         paramBox = actorIDBox.box()
         paramBox.label(text="Actor Parameter")
@@ -514,11 +514,11 @@ class OOTTransitionActorProperty(PropertyGroup):
         split.label(text="Actor ID")
         split.label(text=getEnumName(ootData.actorData.ootEnumActorID, self.actor.actor_id))
 
-        if bpy.context.scene.fast64.oot.use_new_actor_panel:
-            if self.actor.actor_id == "Custom":
-                prop_split(actorIDBox, self.actor, "actor_id_custom", "")
-            else:
-                self.actor.draw_params(actorIDBox, roomObj)
+        if bpy.context.scene.fast64.oot.use_new_actor_panel and self.actor.actor_id != "Custom":
+            self.actor.draw_params(actorIDBox, roomObj)
+
+        if self.actor.actor_id == "Custom":
+            prop_split(actorIDBox, self.actor, "actor_id_custom", "")
 
         paramBox = actorIDBox.box()
         paramBox.label(text="Actor Parameter")
