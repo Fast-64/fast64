@@ -1,3 +1,5 @@
+import bpy
+
 from bpy.types import Object, PropertyGroup, UILayout
 from bpy.utils import register_class, unregister_class
 from bpy.props import EnumProperty, StringProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
@@ -446,36 +448,40 @@ class OOTActorProperty(PropertyGroup):
         split.label(text="Actor ID")
         split.label(text=getEnumName(ootData.actorData.ootEnumActorID, self.actor_id))
 
-        if self.actor_id != "Custom":
+        if bpy.context.scene.fast64.oot.use_new_actor_panel and self.actor_id != "Custom":
             self.draw_params(actorIDBox, obj)
-        else:
+
+        if self.actor_id == "Custom":
             prop_split(actorIDBox, self, "actor_id_custom", "")
 
         paramBox = actorIDBox.box()
         paramBox.label(text="Actor Parameter")
 
-        if self.actor_id != "Custom":
+        if bpy.context.scene.fast64.oot.use_new_actor_panel and self.actor_id != "Custom":
             paramBox.prop(self, "eval_params")
             paramBox.prop(self, "params", text="")
         else:
             paramBox.prop(self, "params_custom", text="")
 
         rotations_used = []
-        if self.rot_override:
-            rotations_used = ["X", "Y", "Z"]
-        elif self.actor_id != "Custom":
+
+        if bpy.context.scene.fast64.oot.use_new_actor_panel and self.actor_id != "Custom":
             if self.is_rotation_used("XRot"):
                 rotations_used.append("X")
             if self.is_rotation_used("YRot"):
                 rotations_used.append("Y")
             if self.is_rotation_used("ZRot"):
                 rotations_used.append("Z")
+        elif self.rot_override:
+            rotations_used = ["X", "Y", "Z"]
 
-        if self.actor_id == "Custom":
+        if not bpy.context.scene.fast64.oot.use_new_actor_panel or self.actor_id == "Custom":
             paramBox.prop(self, "rot_override", text="Override Rotation (ignore Blender rot)")
 
         for rot in rotations_used:
-            custom = "_custom" if self.actor_id == "Custom" else ""
+            custom = (
+                "_custom" if not bpy.context.scene.fast64.oot.use_new_actor_panel or self.actor_id == "Custom" else ""
+            )
             prop_split(paramBox, self, f"rot_{rot.lower()}{custom}", f"Rot {rot}")
 
         headerProp: OOTActorHeaderProperty = self.headerSettings
@@ -508,14 +514,15 @@ class OOTTransitionActorProperty(PropertyGroup):
         split.label(text="Actor ID")
         split.label(text=getEnumName(ootData.actorData.ootEnumActorID, self.actor.actor_id))
 
+        if bpy.context.scene.fast64.oot.use_new_actor_panel and self.actor.actor_id != "Custom":
+            self.actor.draw_params(actorIDBox, roomObj)
+
         if self.actor.actor_id == "Custom":
             prop_split(actorIDBox, self.actor, "actor_id_custom", "")
-        else:
-            self.actor.draw_params(actorIDBox, roomObj)
 
         paramBox = actorIDBox.box()
         paramBox.label(text="Actor Parameter")
-        if self.actor.actor_id != "Custom":
+        if bpy.context.scene.fast64.oot.use_new_actor_panel and self.actor.actor_id != "Custom":
             paramBox.prop(self.actor, "eval_params")
             paramBox.prop(self.actor, "params", text="")
         else:
@@ -567,12 +574,12 @@ class OOTEntranceProperty(PropertyGroup):
         if entranceProp.customActor:
             prop_split(box, entranceProp.actor, "actor_id_custom", "Actor ID Custom")
 
-        if not self.customActor:
+        if bpy.context.scene.fast64.oot.use_new_actor_panel and not self.customActor:
             self.actor.draw_params(box, obj)
 
         paramBox = box.box()
         paramBox.label(text="Actor Parameter")
-        if not self.customActor:
+        if bpy.context.scene.fast64.oot.use_new_actor_panel and not self.customActor:
             paramBox.prop(self.actor, "eval_params")
             paramBox.prop(self.actor, "params", text="")
         else:
