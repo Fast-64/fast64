@@ -8,13 +8,11 @@ Forked from [kurethedead/fast64 on BitBucket](https://bitbucket.org/kurethedead/
 
 This is a Blender plugin that allows one to export F3D display lists. It also has the ability to export assets for Super Mario 64 and Ocarina of Time decompilation projects. It supports custom color combiners / geometry modes / etc. It is also possible to use exported C code in homebrew applications.
 
-Make sure to save often, as this plugin is prone to crashing when creating materials / undoing material creation. This is a Blender issue.
-
-<https://developer.blender.org/T70574>
+Make sure to save often, as this plugin is prone to crashing when creating materials / undoing material creation. [This is a Blender issue](https://developer.blender.org/T70574).
 
 ### Example models can be found [here](https://github.com/Fast-64/fast64-models)
 
-![alt-text](/images/mat_inspector.png)
+Fast64 features an updater (which can also be used to try out in testing features and bugfixes), [follow these instructions to use it](https://fast64.readthedocs.io/en/latest/common/updater/updater.html)
 
 ### Credits
 Thanks to anonymous_moose, Cheezepin, Rovert, and especially InTheBeef for testing.
@@ -62,28 +60,6 @@ Selecting F3DEX3 as your microcode unlocks a large number of additional presets 
 - `Lerp` vs. `Mult` for multitexture (water): Whether the two textures are combined by linear interpolation or multiplication.
 
 For cel shading, it is recommended to start with one of the cel shading presets, then modify the settings under the `Use Cel Shading` panel. Hover over each UI control for additional information about how that setting works.
-
-### Updater
-
-Fast64 features an updater ([CGCookie/blender-addon-updater](https://github.com/CGCookie/blender-addon-updater)).
-
-It can be found in the addon preferences:
-
-![How the updater in the addon preferences looks, right after addon install](/images/updater_initially.png)
-
-Click the "Check now for fast64 update" button to check for updates.
-
-![Updater preferences after clicking the "check for updates" button](/images/updater_after_check.png)
-
-Click "Install main / old version" and choose "Main" if it isn't already selected:
-
-![Updater: install main](/images/updater_install_main.png)
-
-Click OK, there should be a message "Addon successfully installed" and prompting you to restart Blender:
-
-![Updater: successful install, must restart](/images/updater_success_restart.png)
-
-Clicking the red button will close Blender. After restarting, fast64 will be up-to-date with the latest main revision.
 
 ### Fast64 Development
 If you'd like to develop in VSCode, follow this tutorial to get proper autocomplete. Skip the linter for now, we'll need to make sure the entire project gets linted before enabling autosave linting because the changes will be massive.
