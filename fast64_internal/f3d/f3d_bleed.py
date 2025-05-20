@@ -90,6 +90,7 @@ def get_geo_cmds(
 
 
 WRITE_DIFF_GEO_CMDS = (SPGeometryMode, SPSetGeometryMode, SPClearGeometryMode)
+WRITE_DIFF_OTHERMODE_CMDS = (SPSetOtherModeSub, DPSetRenderMode)
 
 
 def get_flags(
@@ -333,13 +334,13 @@ class BleedGraphics:
             last_cmd_list = last_mat.mat_only_DL.commands + start_cmds
 
             # handle write diff reverts
-            othermode_diff_cmds = [c for c in commands_bled.commands if isinstance(c, SPSetOtherModeSub)]
+            othermode_diff_cmds = [c for c in commands_bled.commands if isinstance(c, WRITE_DIFF_OTHERMODE_CMDS)]
             if last_mat.revert:
                 revert_set, revert_clear = set(), set()
                 [get_flags(revert_set, revert_clear, cmd) for cmd in last_mat.revert.commands]
                 set_modes, clear_modes = set_modes | revert_set, clear_modes | revert_clear
                 clear_modes, set_modes = clear_modes - set_modes, set_modes - clear_modes
-                revert_other_diff_cmd = [c for c in last_mat.revert.commands if isinstance(c, SPSetOtherModeSub)]
+                revert_other_diff_cmd = [c for c in last_mat.revert.commands if isinstance(c, WRITE_DIFF_OTHERMODE_CMDS)]
                 revert_other_load_cmd = [
                     copy.deepcopy(c) for c in last_mat.revert.commands if isinstance(c, SPSetOtherMode)
                 ]
