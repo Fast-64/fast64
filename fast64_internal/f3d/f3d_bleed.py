@@ -368,14 +368,7 @@ class BleedGraphics:
 
         # remove tri leading geo cmds from start, add them in the material
         new_set_modes, new_clear_modes = set(), set()
-        for i, cmd in enumerate(reversed(start_cmds)):
-            if isinstance(cmd, SPVertex):
-                break
-            if isinstance(cmd, WRITE_DIFF_GEO_CMDS):
-                get_flags(new_set_modes, new_clear_modes, cmd)
-                start_cmds[-i - 1] = None
-        while None in start_cmds:
-            start_cmds.remove(None)
+        [get_flags(new_set_modes, new_clear_modes, cmd) for cmd in commands_bled.commands]
         set_modes, clear_modes = set_modes | new_set_modes, clear_modes | new_clear_modes
         clear_modes, set_modes = clear_modes - set_modes, set_modes - clear_modes
 
