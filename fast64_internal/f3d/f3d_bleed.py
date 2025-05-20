@@ -340,7 +340,9 @@ class BleedGraphics:
                 [get_flags(revert_set, revert_clear, cmd) for cmd in last_mat.revert.commands]
                 set_modes, clear_modes = set_modes | revert_set, clear_modes | revert_clear
                 clear_modes, set_modes = clear_modes - set_modes, set_modes - clear_modes
-                revert_other_diff_cmd = [c for c in last_mat.revert.commands if isinstance(c, WRITE_DIFF_OTHERMODE_CMDS)]
+                revert_other_diff_cmd = [
+                    c for c in last_mat.revert.commands if isinstance(c, WRITE_DIFF_OTHERMODE_CMDS)
+                ]
                 revert_other_load_cmd = [
                     copy.deepcopy(c) for c in last_mat.revert.commands if isinstance(c, SPSetOtherMode)
                 ]
@@ -669,11 +671,11 @@ class BleedGfxLists:
             h: SPSetOtherMode = reset_cmd_dict.get("G_SETOTHERMODE_H")
             if l or h:  # should never be reached, but if we reach it we are prepared
                 if h and cmd.is_othermodeh:
-                    for existing_mode in [mode for mode in h.flagList if mode.startswith(cmd.mode_prefix)]:
+                    for existing_mode in [mode for mode in h.flagList if str(mode).startswith(cmd.mode_prefix)]:
                         h.flagList.remove(existing_mode)
                     h.flagList.add(cmd.mode)
                 if l and not cmd.is_othermodeh:
-                    for existing_mode in [mode for mode in l.flagList if mode.startswith(cmd.mode_prefix)]:
+                    for existing_mode in [mode for mode in l.flagList if str(mode).startswith(cmd.mode_prefix)]:
                         l.flagList.remove(existing_mode)
                     l.flagList.add(cmd.mode)
             else:
