@@ -1,5 +1,9 @@
 import bpy
+
+from pathlib import Path
 from bpy.utils import register_class, unregister_class
+
+from ..utility import PluginError
 
 from .scene.operators import scene_ops_register, scene_ops_unregister
 from .scene.properties import OOTBootupSceneOptions, scene_props_register, scene_props_unregister
@@ -98,6 +102,15 @@ class OOT_Properties(bpy.types.PropertyGroup):
             return "."
         else:
             return f"extracted/{self.oot_version if self.oot_version != 'Custom' else self.oot_version_custom}"
+
+    def is_globalh_present(self):
+        decomp_path = Path(bpy.context.scene.ootDecompPath).resolve()
+
+        if not decomp_path.exists():
+            raise PluginError(f"ERROR: invalid decomp path ('{decomp_path}').")
+
+        global_h_path = decomp_path / "include" / "global.h"
+        return global_h_path.exists()
 
     useDecompFeatures: bpy.props.BoolProperty(
         name="Use decomp for export", description="Use names and macros from decomp when exporting", default=True
