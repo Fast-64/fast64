@@ -509,7 +509,7 @@ def convertObjectToGeolayout(
             convertTextureData,
         )
         if is_actor and not meshGeolayout.has_data():
-            raise PluginError("No gfx data to export, gfx export cancelled")
+            raise PluginError("No gfx data to export, gfx export cancelled", PluginError.exc_warn)
     except Exception as e:
         raise Exception(str(e))
     finally:

@@ -123,7 +123,7 @@ class OOT_ImportDL(Operator):
             filedata = getImportData(paths)
             f3dContext = OOTF3DContext(get_F3D_GBI(), [name], basePath)
 
-            scale = getOOTScale(settings.actorScale)
+            scale = None
             if not isCustomImport:
                 filedata = ootGetIncludedAssetData(basePath, paths, filedata) + filedata
 
@@ -131,6 +131,9 @@ class OOT_ImportDL(Operator):
                     ootReadTextureArrays(basePath, overlayName, name, f3dContext, False, flipbookArrayIndex2D)
                 if settings.autoDetectActorScale:
                     scale = ootReadActorScale(basePath, overlayName, False)
+
+            if scale is None:
+                scale = getOOTScale(settings.actorScale)
 
             obj = importMeshC(
                 filedata,
