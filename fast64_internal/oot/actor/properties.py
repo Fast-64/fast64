@@ -8,6 +8,7 @@ from ..oot_constants import ootData, ootEnumCamTransition
 from ..oot_upgrade import upgradeActors
 from ..scene.properties import OOTAlternateSceneHeaderProperty
 from ..room.properties import OOTAlternateRoomHeaderProperty
+from ..collection_utility import drawAddButton, drawCollectionOps
 from .operators import (
     OOT_SearchActorIDEnumOperator,
     OOT_SearchChestContentEnumOperator,
@@ -17,8 +18,6 @@ from .operators import (
 from ..oot_utility import (
     getRoomObj,
     getEnumName,
-    drawAddButton,
-    drawCollectionOps,
     drawEnumWithCustom,
     getEvalParams,
     getEvalParamsInt,
