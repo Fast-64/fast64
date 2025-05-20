@@ -41,6 +41,13 @@ from .sm64_level_constants import (
     L_PLACE_MACRO_OBJECT,
     L_JET_STREAM,
 )
+from .sm64_constants import level_pointers
+
+
+def parse_level_binary(romfile, name: str):
+    if name == "Custom":
+        raise PluginError("Custom levels not supported for binary exports.")
+    return parseLevelAtPointer(romfile, level_pointers[name])
 
 
 def parseLevelAtPointer(romfile, pointerAddress):

@@ -11,7 +11,7 @@ from .sm64_geolayout_bone import getSwitchOptionBone, animatableBoneTypes
 from .sm64_camera import saveCameraSettingsToGeolayout
 from .sm64_f3d_writer import SM64Model, SM64GfxFormatter
 from .sm64_texscroll import modifyTexScrollFiles, modifyTexScrollHeadersGroup
-from .sm64_level_parser import parseLevelAtPointer
+from .sm64_level_parser import parse_level_binary
 from .sm64_rom_tweaks import ExtendBank0x04
 from .sm64_utility import export_rom_checks, starSelectWarning
 
@@ -51,11 +51,6 @@ from ..utility import (
     tempName,
     getAddressFromRAMAddress,
     prop_split,
-    customExportWarning,
-    decompFolderMessage,
-    makeWriteInfoBox,
-    writeBoxExportType,
-    enumExportHeaderType,
     geoNodeRotateOrder,
 )
 
@@ -99,7 +94,6 @@ from ..f3d.f3d_gbi import (
     DLFormat,
     SPEndDisplayList,
     SPDisplayList,
-    FMaterial,
 )
 
 from .sm64_geolayout_classes import (
@@ -127,14 +121,7 @@ from .sm64_geolayout_classes import (
     Geolayout,
 )
 
-from .sm64_constants import (
-    insertableBinaryTypes,
-    bank0Segment,
-    level_pointers,
-    defaultExtendSegment4,
-    level_enums,
-    enumLevelNames,
-)
+from .sm64_constants import insertableBinaryTypes, bank0Segment, defaultExtendSegment4
 
 
 def appendSecondaryGeolayout(geoDirPath, geoName1, geoName2, additionalNode=""):
@@ -2885,7 +2872,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                 romfileExport.close()
                 romfileOutput = open(bpy.path.abspath(tempROM), "rb+")
 
-                levelParsed = parseLevelAtPointer(romfileOutput, level_pointers[context.scene.levelGeoExport])
+                levelParsed = parse_level_binary(romfileOutput, props.level_name)
                 segmentData = levelParsed.segmentData
 
                 if context.scene.fast64.sm64.extend_bank_4:
@@ -3085,7 +3072,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                 romfileExport.close()
                 romfileOutput = open(bpy.path.abspath(tempROM), "rb+")
 
-                levelParsed = parseLevelAtPointer(romfileOutput, level_pointers[context.scene.levelGeoExport])
+                levelParsed = parse_level_binary(romfileOutput, props.level_name)
                 segmentData = levelParsed.segmentData
 
                 if context.scene.fast64.sm64.extend_bank_4:
@@ -3191,6 +3178,7 @@ class SM64_ExportGeolayoutPanel(SM64_Panel):
         col = self.layout.column()
         propsGeoE = col.operator(SM64_ExportGeolayoutArmature.bl_idname)
         propsGeoE = col.operator(SM64_ExportGeolayoutObject.bl_idname)
+        props = context.scene.fast64.sm64.combined_export
         if context.scene.fast64.sm64.export_type == "Insertable Binary":
             col.prop(context.scene, "geoInsertableBinaryPath")
         else:
@@ -3201,7 +3189,7 @@ class SM64_ExportGeolayoutPanel(SM64_Panel):
             if context.scene.geoUseBank0:
                 prop_split(col, context.scene, "geoRAMAddr", "RAM Address")
             else:
-                col.prop(context.scene, "levelGeoExport")
+                prop_split(col, props, "level_name", "Level")
 
             col.prop(context.scene, "overwriteModelLoad")
             if context.scene.overwriteModelLoad:
@@ -3234,7 +3222,6 @@ def sm64_geo_writer_register():
     for cls in sm64_geo_writer_classes:
         register_class(cls)
 
-    bpy.types.Scene.levelGeoExport = bpy.props.EnumProperty(items=level_enums, name="Level", default="HMC")
     bpy.types.Scene.geoExportStart = bpy.props.StringProperty(name="Start", default="11D8930")
     bpy.types.Scene.geoExportEnd = bpy.props.StringProperty(name="End", default="11FFF00")
 
@@ -3267,7 +3254,6 @@ def sm64_geo_writer_unregister():
     for cls in reversed(sm64_geo_writer_classes):
         unregister_class(cls)
 
-    del bpy.types.Scene.levelGeoExport
     del bpy.types.Scene.geoExportStart
     del bpy.types.Scene.geoExportEnd
     del bpy.types.Scene.overwriteModelLoad

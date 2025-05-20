@@ -38,75 +38,78 @@ commonGeolayoutPointers = {
 }
 
 
-level_enums = [
-    ("HH", "Big Boo's Haunt", "HH"),  # Originally Haunted House
-    ("CCM", "Cool Cool Mountain", "CCM"),
-    ("IC", "Inside Castle", "IC"),
-    ("HMC", "Hazy Maze Cave", "HMC"),
-    ("SSL", "Shifting Sand Land", "SSL"),
-    ("BOB", "Bob-Omb's Battlefield", "BOB"),
-    ("SML", "Snow Man's land", "SML"),
-    ("WDW", "Wet Dry World", "WDW"),
-    ("JRB", "Jolly Roger Bay", "JRB"),
-    ("THI", "Tiny Huge Island", "THI"),
-    ("TTC", "Tick Tock Clock", "TTC"),
-    ("RR", "Rainbow Ride", "RR"),
-    ("CG", "Castle Grounds", "CG"),
-    ("BFC", "Bowser First Course", "BFC"),
-    ("VC", "Vanish Cap", "VC"),
-    ("BFS", "Bowser's Fire Sea", "BFS"),
-    ("SA", "Secret Aquarium", "SA"),
-    ("BTC", "Bowser Third Course", "BTC"),
-    ("LLL", "Lethal Lava Land", "LLL"),
-    ("DDD", "Dire Dire Docks", "DDD"),
-    ("WF", "Whomp's Fortress", "WF"),
-    ("PIC", "Picture at the end", "PIC"),
-    ("CC", "Castle Courtyard", "CC"),
-    ("PSS", "Peach's Secret Slide", "PSS"),
-    ("MC", "Metal Cap", "MC"),
-    ("WC", "Wing Cap", "WC"),
-    ("BFB", "Bowser First Battle", "BFB"),
-    ("RC", "Rainbow Clouds", "RC"),
-    ("BSB", "Bowser Second Battle", "BSB"),
-    ("BTB", "Bowser Third Battle", "BTB"),
-    ("TTM", "Tall Tall Mountain", "TTM"),
+OLD_BINARY_LEVEL_ENUMS = [
+    "bbh",  # Big Boo's Haunt
+    "ccm",  # Cool Cool Mountain
+    "castle_inside",  # Inside Castle
+    "hmc",  # Hazy Maze Cave
+    "ssl",  # Shifting Sand Land
+    "bob",  # Bob-Omb's Battlefield
+    "sl",  # Snow Man's Land
+    "wdw",  # Wet Dry World
+    "jrb",  # Jolly Roger Bay
+    "thi",  # Tiny Huge Island
+    "ttc",  # Tick Tock Clock
+    "rr",  # Rainbow Ride
+    "castle_grounds",  # Castle Grounds
+    "bitdw",  # Bowser In The Dark World
+    "vcutm",  # Vanish Cap
+    "bitfs",  # Bowser's Fire Sea
+    "sa",  # Secret Aquarium
+    "bits",  # Bowser In The Sky
+    "lll",  # Lethal Lava Land
+    "ddd",  # Dire Dire Docks
+    "wf",  # Whomp's Fortress
+    "ending",  # Picture at the end
+    "castle_courtyard",  # Castle Courtyard
+    "pss",  # Peach's Secret Slide
+    "cotmc",  # Cavern Of The Metal Cap
+    "totwc",  # Tower Of The Wing Cap
+    "bowser_1",  # Bowser Battle 1
+    "wmotr",  # Wing Mario Over The Rainbow
+    "bowser_2",  # Bowser Battle 2
+    "bowser_3",  # Bowser Battle 3
+    "ttm",  # Tall Tall Mountain
 ]
 
 enumLevelNames = [
-    ("Custom", "Custom", "Custom"),
-    ("bbh", "Big Boo's Haunt", "Big Boo's Haunt"),
-    ("bitdw", "Bowser In The Dark World", "Bowser In The Dark World"),
-    ("bitfs", "Bowser In The Fire Sea", "Bowser In The Fire Sea"),
-    ("bits", "Bowser In The Sky", "Bowser In The Sky"),
-    ("bob", "Bob-omb Battlefield", "Bob-omb Battlefield"),
-    ("bowser_1", "Bowser 1", "Bowser 1"),
-    ("bowser_2", "Bowser 2", "Bowser 2"),
-    ("bowser_3", "Bowser 3", "Bowser 3"),
-    ("castle_courtyard", "Castle Courtyard", "Castle Courtyard"),
-    ("castle_grounds", "Castle Grounds", "Castle Grounds"),
-    ("castle_inside", "Castle Inside", "Castle Inside"),
-    ("ccm", "Cool Cool Mountain", "Cool Cool Mountain"),
-    ("cotmc", "Cavern Of The Metal Cap", "Cavern Of The Metal Cap"),
-    ("ddd", "Dire Dire Docks", "Dire Dire Docks"),
-    ("ending", "Ending", "Ending"),
-    ("hmc", "Hazy Maze Cave", "Hazy Maze Cave"),
-    ("intro", "Intro", "Intro"),
-    ("jrb", "Jolly Roger Bay", "Jolly Roger Bay"),
-    ("lll", "Lethal Lava Land", "Lethal Lava Land"),
-    ("menu", "Menu", "Menu"),
-    ("pss", "Peach's Secret Slide", "Peach's Secret Slide"),
-    ("rr", "Rainbow Ride", "Rainbow Ride"),
-    ("sa", "Secret Aquarium", "Secret Aquarium"),
-    ("sl", "Snowman's Land", "Snowman's Land"),
-    ("ssl", "Shifting Sand Land", "Shifting Sand Land"),
-    ("thi", "Tiny Huge Island", "Tiny Huge Island"),
-    ("totwc", "Tower Of The Wing Cap", "Tower Of The Wing Cap"),
-    ("ttc", "Tick Tock Clock", "Tick Tock Clock"),
-    ("ttm", "Tall Tall Mountain", "Tall Tall Mountain"),
-    ("vcutm", "Vanish Cap Under The Moat", "Vanish Cap Under The Moat"),
-    ("wdw", "Wet Dry World", "Wet Dry World"),
-    ("wf", "Whomp's Fortress", "Whomp's Fortress"),
-    ("wmotr", "Wing Mario Over The Rainbow", "Wing Mario Over The Rainbow"),
+    ("bob", "Bob-omb Battlefield", "Bob-omb Battlefield", 5),
+    ("wf", "Whomp's Fortress", "Whomp's Fortress", 32),
+    ("jrb", "Jolly Roger Bay", "Jolly Roger Bay", 18),
+    ("ccm", "Cool Cool Mountain", "Cool Cool Mountain", 12),
+    ("bbh", "Big Boo's Haunt", "Big Boo's Haunt", 1),
+    ("hmc", "Hazy Maze Cave", "Hazy Maze Cave", 16),
+    ("lll", "Lethal Lava Land", "Lethal Lava Land", 19),
+    ("ssl", "Shifting Sand Land", "Shifting Sand Land", 25),
+    ("ddd", "Dire Dire Docks", "Dire Dire Docks", 14),
+    ("sl", "Snowman's Land", "Snowman's Land", 24),
+    ("wdw", "Wet Dry World", "Wet Dry World", 31),
+    ("ttm", "Tall Tall Mountain", "Tall Tall Mountain", 29),
+    ("thi", "Tiny Huge Island", "Tiny Huge Island", 26),
+    ("ttc", "Tick Tock Clock", "Tick Tock Clock", 28),
+    ("rr", "Rainbow Ride", "Rainbow Ride", 22),
+    ("", "Castle", "", 34),
+    ("castle_courtyard", "Castle Courtyard", "Castle Courtyard", 9),
+    ("castle_grounds", "Castle Grounds", "Castle Grounds", 10),
+    ("castle_inside", "Castle Inside", "Castle Inside", 11),
+    ("", "Extra Courses", "", 35),
+    ("totwc", "Tower Of The Wing Cap", "Tower Of The Wing Cap", 27),
+    ("cotmc", "Cavern Of The Metal Cap", "Cavern Of The Metal Cap", 13),
+    ("vcutm", "Vanish Cap Under The Moat", "Vanish Cap Under The Moat", 30),
+    ("pss", "Peach's Secret Slide", "Peach's Secret Slide", 21),
+    ("sa", "Secret Aquarium", "Secret Aquarium", 23),
+    ("wmotr", "Wing Mario Over The Rainbow", "Wing Mario Over The Rainbow", 33),
+    ("bitdw", "Bowser In The Dark World", "Bowser In The Dark World", 2),
+    ("bowser_1", "Bowser Battle 1", "Bowser Battle 1", 6),
+    ("bitfs", "Bowser In The Fire Sea", "Bowser In The Fire Sea", 3),
+    ("bowser_2", "Bowser Battle 2", "Bowser Battle 2", 7),
+    ("bits", "Bowser In The Sky", "Bowser In The Sky", 4),
+    ("bowser_3", "Bowser Battle 3", "Bowser Battle 3", 8),
+    ("", "Special", "", 36),
+    ("Custom", "Custom", "Custom", 0),
+    ("intro", "Intro", "Intro", 17),
+    ("menu", "Menu", "Menu", 20),
+    ("ending", "Picture at the end", "Cake screen", 15),
 ]
 
 levelIDNames = {
@@ -264,37 +267,39 @@ sm64_character_data = {
 }
 
 level_pointers = {
-    "HH": 0x2AC094,
-    "CCM": 0x2AC0A8,
-    "IC": 0x2AC0BC,
-    "HMC": 0x2AC0D0,
-    "SSL": 0x2AC0E4,
-    "BOB": 0x2AC0F8,
-    "SML": 0x2AC10C,
-    "WDW": 0x2AC120,
-    "JRB": 0x2AC134,
-    "THI": 0x2AC148,
-    "TTC": 0x2AC15C,
-    "RR": 0x2AC170,
-    "CG": 0x2AC184,
-    "BFC": 0x2AC198,
-    "VC": 0x2AC1AC,
-    "BFS": 0x2AC1C0,
-    "SA": 0x2AC1D4,
-    "BTC": 0x2AC1E8,
-    "LLL": 0x2AC1FC,
-    "DDD": 0x2AC210,
-    "WF": 0x2AC224,
-    "PIC": 0x2AC238,
-    "CC": 0x2AC24C,
-    "PSS": 0x2AC260,
-    "MC": 0x2AC274,
-    "WC": 0x2AC288,
-    "BFB": 0x2AC29C,
-    "RC": 0x2AC2B0,
-    "BSB": 0x2AC2C4,
-    "BTB": 0x2AC2D8,
-    "TTM": 0x2AC2EC,
+    "bbh": 0x2AC094,
+    "ccm": 0x2AC0A8,
+    "castle_inside": 0x2AC0BC,
+    "hmc": 0x2AC0D0,
+    "ssl": 0x2AC0E4,
+    "bob": 0x2AC0F8,
+    "sl": 0x2AC10C,
+    "wdw": 0x2AC120,
+    "jrb": 0x2AC134,
+    "thi": 0x2AC148,
+    "ttc": 0x2AC15C,
+    "rr": 0x2AC170,
+    "castle_grounds": 0x2AC184,
+    "bitdw": 0x2AC198,
+    "vcutm": 0x2AC1AC,
+    "bitfs": 0x2AC1C0,
+    "sa": 0x2AC1D4,
+    "bits": 0x2AC1E8,
+    "lll": 0x2AC1FC,
+    "ddd": 0x2AC210,
+    "wf": 0x2AC224,
+    "ending": 0x2AC238,
+    "castle_courtyard": 0x2AC24C,
+    "pss": 0x2AC260,
+    "cotmc": 0x2AC274,
+    "totwc": 0x2AC288,
+    "bowser_1": 0x2AC29C,
+    "wmotr": 0x2AC2B0,
+    "bowser_2": 0x2AC2C4,
+    "bowser_3": 0x2AC2D8,
+    "ttm": 0x2AC2EC,
+    "menu": 0x2A6130,
+    "intro": 0x269EB0,
 }
 
 insertableBinaryTypes = {"Display List": 0, "Geolayout": 1, "Animation": 2, "Collision": 3}
