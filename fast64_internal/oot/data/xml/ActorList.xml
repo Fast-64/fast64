@@ -3542,6 +3542,7 @@ Z ROTATION +0x3F = Collectible Flag</Notes>
     <Item Key="msg_AB" Name="Link! Be careful! / Don't get swallowed by the / vortexes!" Value="0xAB"/>
   </List>
   <List Name="Collectibles">
+    <Item Key="item_none" Name="None" Value="0xFF"/>
     <Item Key="item_green_rupee" Name="Green Rupee" Value="0x00"/>
     <Item Key="item_blue_rupee" Name="Blue Rupee" Value="0x01"/>
     <Item Key="item_red_rupee" Name="Red Rupee" Value="0x02"/>
