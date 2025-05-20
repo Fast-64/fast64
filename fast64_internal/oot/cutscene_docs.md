@@ -8,7 +8,7 @@
 - "Seq": Sequence, it refers to the audio (most of the time it's the background music)
 
 ### Commands
-More detailed informations and commands' parameters can be found [here](https://github.com/zeldaret/oot/blob/master/include/z64cutscene_commands.h)
+More detailed informations and commands' parameters can be found [here](https://github.com/zeldaret/oot/blob/main/include/z64cutscene_commands.h)
 
 - ``CS_HEADER``: defines the length and the total number of command entries for a cutscene script
 - ``CS_END_OF_SCRIPT``: defines the end of a command list in a cutscene script 
@@ -17,7 +17,7 @@ More detailed informations and commands' parameters can be found [here](https://
 - ``CS_CAM_EYE_SPLINE``: declares a list of "eye" camera points that forms a spline
 - ``CS_CAM_AT_SPLINE``: declares a list of "at" camera points that forms a spline
 - ``CS_CAM_EYE_SPLINE_REL_TO_PLAYER`` and ``CS_CAM_AT_SPLINE_REL_TO_PLAYER``: same as the 2 above except these are relative to the player's position and yaw.
-- ``CS_MISC_LIST``: declares a list of various miscellaneous commands, they're all self-explanatory, you can find the list [here](https://github.com/zeldaret/oot/blob/master/include/z64cutscene.h#L167-L204)
+- ``CS_MISC_LIST``: declares a list of various miscellaneous commands, they're all self-explanatory, you can find the list [here](https://github.com/zeldaret/oot/blob/f7a270655bd974242a286856bd56b490a998ac44/include/z64cutscene.h#L156-L193)
 - ``CS_MISC``: defines a single misc command
 - ``CS_LIGHT_SETTING_LIST``: declares a list of light settings commands
 - ``CS_LIGHT_SETTING``: changes the light settings to the specified index, the lighting is defined in the scene
