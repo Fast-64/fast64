@@ -1,9 +1,13 @@
-from bpy.types import Object, PropertyGroup, UILayout
+import bpy
+
+from bpy.types import Object, PropertyGroup, UILayout, Scene
 from bpy.utils import register_class, unregister_class
 from bpy.props import EnumProperty, StringProperty, IntProperty, BoolProperty, CollectionProperty, PointerProperty
-from ...utility import PluginError, prop_split, label_split
+from bpy.app.handlers import persistent
+from ...utility import prop_split, label_split
 from ..oot_constants import ootData, ootEnumCamTransition
 from ..oot_upgrade import upgradeActors
+from ..oot_utility import updateHandlerTiedRoom
 from ..scene.properties import OOTAlternateSceneHeaderProperty
 from ..room.properties import OOTAlternateRoomHeaderProperty
 from .operators import (
@@ -591,6 +595,12 @@ classes = (
 )
 
 
+@persistent
+def actorHandler(scene: Scene):
+    updateHandlerTiedRoom(scene, "Transition Actor", "ootTransitionActorProperty", "fromRoom")
+    updateHandlerTiedRoom(scene, "Entrance", "ootEntranceProperty", "tiedRoom")
+
+
 def actor_props_register():
     for cls in classes:
         register_class(cls)
@@ -598,6 +608,8 @@ def actor_props_register():
     Object.ootActorProperty = PointerProperty(type=OOTActorProperty)
     Object.ootTransitionActorProperty = PointerProperty(type=OOTTransitionActorProperty)
     Object.ootEntranceProperty = PointerProperty(type=OOTEntranceProperty)
+
+    bpy.app.handlers.depsgraph_update_pre.append(actorHandler)
 
 
 def actor_props_unregister():
@@ -607,3 +619,6 @@ def actor_props_unregister():
 
     for cls in reversed(classes):
         unregister_class(cls)
+
+    if actorHandler in bpy.app.handlers.depsgraph_update_pre:
+        bpy.app.handlers.depsgraph_update_pre.remove(actorHandler)
