@@ -108,11 +108,12 @@ def get_flags(
         clear_modes.update(cmd.flagList)
         set_modes.difference_update(clear_modes)
     elif type(cmd) == SPLoadGeometryMode:
+        clear_modes.update(set_modes)
+        clear_modes.difference_update(cmd.flagList)
+        if default_clear is not None:
+            clear_modes.update(default_clear.flagList - cmd.flagList)
         set_modes.clear()
-        clear_modes.clear()
         set_modes.update(cmd.flagList)
-        if default_clear:
-            clear_modes.update(default_clear.flagList)
 
 
 class BleedGraphics:
