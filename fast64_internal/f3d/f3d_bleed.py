@@ -89,12 +89,12 @@ def get_geo_cmds(
     return (material, revert)
 
 
-WRITE_DIFF_GEO_CMDS = (SPGeometryMode, SPSetGeometryMode, SPClearGeometryMode)
+GEO_CMDS = (SPGeometryMode, SPSetGeometryMode, SPClearGeometryMode, SPLoadGeometryMode)
 WRITE_DIFF_OTHERMODE_CMDS = (SPSetOtherModeSub, DPSetRenderMode)
 
 
 def get_flags(
-    set_modes: set[str], clear_modes: set[str], cmd: SPGeometryMode | SPSetGeometryMode | SPClearGeometryMode
+    set_modes: set[str], clear_modes: set[str], cmd: GEO_CMDS, default_clear: SPClearGeometryMode | None = None
 ):
     if type(cmd) == SPGeometryMode:
         set_modes.update(cmd.setFlagList)
@@ -107,6 +107,12 @@ def get_flags(
     elif type(cmd) == SPClearGeometryMode:
         clear_modes.update(cmd.flagList)
         set_modes.difference_update(clear_modes)
+    elif type(cmd) == SPLoadGeometryMode:
+        set_modes.clear()
+        clear_modes.clear()
+        set_modes.update(cmd.flagList)
+        if default_clear:
+            clear_modes.update(default_clear.flagList)
 
 
 class BleedGraphics:
@@ -205,6 +211,47 @@ class BleedGraphics:
             for tri_list in fMesh.triangleGroups:
                 tri_list.triList.tag |= GfxListTag.NoExport
 
+    def add_reset_cmd(
+        self, f3d: F3D, cmd: GbiMacro, reset_cmd_dict: dict[GbiMacro], mat_write_method: GfxMatWriteMethod
+    ):
+        reset_cmd_list = (
+            SPLoadGeometryMode,
+            DPSetRenderMode,
+        )
+        if SPGeometryMode not in reset_cmd_dict:
+            if mat_write_method == GfxMatWriteMethod.WriteAll:
+                reset_cmd_dict[SPGeometryMode] = (
+                    self.default_set_geo.flagList.copy(),
+                    self.default_clear_geo.flagList.copy(),
+                )
+            else:
+                reset_cmd_dict[SPGeometryMode] = set(), set()
+        get_flags(*reset_cmd_dict[SPGeometryMode], cmd)
+        if isinstance(cmd, SPSetOtherModeSub):
+            l: SPSetOtherMode = reset_cmd_dict.get("G_SETOTHERMODE_L")
+            h: SPSetOtherMode = reset_cmd_dict.get("G_SETOTHERMODE_H")
+            if l or h:  # should never be reached, but if we reach it we are prepared
+                if h and cmd.is_othermodeh:
+                    for existing_mode in [mode for mode in h.flagList if str(mode).startswith(cmd.mode_prefix)]:
+                        h.flagList.remove(existing_mode)
+                    h.flagList.add(cmd.mode)
+                if l and not cmd.is_othermodeh:
+                    for existing_mode in [mode for mode in l.flagList if str(mode).startswith(cmd.mode_prefix)]:
+                        l.flagList.remove(existing_mode)
+                    l.flagList.add(cmd.mode)
+            else:
+                reset_cmd_dict[type(cmd)] = cmd
+
+        # separate other mode H and othermode L
+        elif type(cmd) == SPSetOtherMode:
+            if cmd.cmd in reset_cmd_dict:
+                reset_cmd_dict[cmd.cmd].add_other(f3d, cmd)
+            else:
+                reset_cmd_dict[cmd.cmd] = copy.deepcopy(cmd)
+
+        elif type(cmd) in reset_cmd_list:
+            reset_cmd_dict[type(cmd)] = cmd
+
     def bleed_fmesh(
         self,
         last_mat: FMaterial,
@@ -251,7 +298,7 @@ class BleedGraphics:
         cmd_list.commands.extend(fmesh_static_cmds)  # this is troublesome
         cmd_list.commands.append(SPEndDisplayList())
         self.optimize_syncs(cmd_list)  # some syncs may become redundant after bleeding
-        [bleed_gfx_lists.add_reset_cmd(self.f3d, cmd, reset_cmd_dict) for cmd in cmd_list.commands]
+        [self.add_reset_cmd(self.f3d, cmd, reset_cmd_dict, mat_write_method) for cmd in cmd_list.commands]
         self.bled_gfx_lists[id(cmd_list)] = cur_fmat
         return last_mat
 
@@ -321,10 +368,19 @@ class BleedGraphics:
         default_render_mode: list[str],
         bleed_state: int,
     ):
-        new_sets, new_clears = set(), set()
-        revert_sets, revert_clears = set(), set()
+        if mat_write_method == GfxMatWriteMethod.WriteAll:
+            new_sets, new_clears = self.default_set_geo.flagList.copy(), self.default_clear_geo.flagList.copy()
+            previous_sets, previous_clears = (
+                self.default_set_geo.flagList.copy(),
+                self.default_clear_geo.flagList.copy(),
+            )
+            revert_sets, revert_clears = self.default_set_geo.flagList.copy(), self.default_clear_geo.flagList.copy()
+        else:
+            new_sets, new_clears = set(), set()
+            previous_sets, previous_clears = set(), set()
+            revert_sets, revert_clears = set(), set()
         revert_other_diff_cmd, revert_other_load_cmd, othermode_diff_cmds, last_cmd_list = [], [], [], []
-        [get_flags(new_sets, new_clears, cmd) for cmd in cur_fmat.mat_only_DL.commands]
+        [get_flags(new_sets, new_clears, cmd, self.default_clear_geo) for cmd in cur_fmat.mat_only_DL.commands]
 
         if last_mat:
             gfx = cur_fmat.mat_only_DL
@@ -332,11 +388,12 @@ class BleedGraphics:
             commands_bled = copy.copy(gfx)
             commands_bled.commands = copy.copy(gfx.commands)  # copy the commands also
             last_cmd_list = last_mat.mat_only_DL.commands + start_cmds
+            [get_flags(previous_sets, previous_clears, cmd, self.default_clear_geo) for cmd in last_cmd_list]
 
             # handle write diff reverts
             othermode_diff_cmds = [c for c in commands_bled.commands if isinstance(c, WRITE_DIFF_OTHERMODE_CMDS)]
             if last_mat.revert:
-                [get_flags(revert_sets, revert_clears, cmd) for cmd in last_mat.revert.commands]
+                [get_flags(revert_sets, revert_clears, cmd, self.default_clear_geo) for cmd in last_mat.revert.commands]
                 revert_other_diff_cmd = [
                     c for c in last_mat.revert.commands if isinstance(c, WRITE_DIFF_OTHERMODE_CMDS)
                 ]
@@ -360,26 +417,33 @@ class BleedGraphics:
                 if not self.bleed_individual_cmd(commands_bled, cmd, last_cmd_list, default_render_mode)
             ]
         else:
+            [get_flags(previous_sets, previous_clears, cmd, self.default_clear_geo) for cmd in start_cmds]
             commands_bled = self.bleed_cmd_list(cur_fmat.mat_only_DL, default_render_mode, bleed_state)
 
-        # remove all write diff geo cmds to add later
-        commands_bled.commands = [cmd for cmd in commands_bled.commands if not isinstance(cmd, WRITE_DIFF_GEO_CMDS)]
+        # remove all geo cmds to add later
+        commands_bled.commands = [cmd for cmd in commands_bled.commands if not isinstance(cmd, GEO_CMDS)]
 
-        # get geo modes from start
-        start_sets, start_clears = set(), set()
-        [get_flags(start_sets, start_clears, cmd) for cmd in start_cmds]
+        if mat_write_method == GfxMatWriteMethod.WriteAll:
+            if previous_clears != new_clears or previous_sets != new_sets:
+                set_modes, clear_modes = new_sets | revert_sets, new_clears | revert_clears
+                # add back removed geo cmds, reverts and start cmds
+                for cmd in get_geo_cmds(clear_modes, set_modes, self.f3d.F3DEX_GBI_2, mat_write_method)[0]:
+                    commands_bled.commands.insert(0, cmd)
+        else:
+            # remove clears and sets from revert if they will be set later in start or this material
+            revert_clears, revert_sets = (
+                revert_clears - previous_clears - new_sets,
+                revert_sets - previous_sets - new_clears,
+            )
+            # remove clears and sets from the material if set in start
+            new_clears, new_sets = new_clears - previous_clears, new_sets - previous_sets
+            # combine
+            set_modes, clear_modes = new_sets | revert_sets, new_clears | revert_clears
+            clear_modes, set_modes = clear_modes - set_modes, set_modes - clear_modes
 
-        # remove clears and sets from revert if they will be set later in start or this material
-        revert_clears, revert_sets = revert_clears - start_sets - new_sets, revert_sets - start_clears - new_clears
-        # remove clears and sets from the material if set in start
-        new_clears, new_sets = new_clears - start_clears, new_sets - start_sets
-        # combine
-        set_modes, clear_modes = new_sets | revert_sets, new_clears | revert_clears
-        clear_modes, set_modes = clear_modes - set_modes, set_modes - clear_modes
-
-        # add back removed geo cmds, reverts and start cmds
-        for cmd in get_geo_cmds(clear_modes, set_modes, self.f3d.F3DEX_GBI_2, mat_write_method)[0]:
-            commands_bled.commands.insert(0, cmd)
+            # add back removed geo cmds and reverts
+            for cmd in get_geo_cmds(clear_modes, set_modes, self.f3d.F3DEX_GBI_2, mat_write_method)[0]:
+                commands_bled.commands.insert(0, cmd)
 
         # if there is no equivelent othermode cmd, it must be using the revert
         for revert_cmd in revert_other_diff_cmd:
@@ -657,39 +721,6 @@ class BleedGraphics:
 class BleedGfxLists:
     bled_mats: GfxList = field(default_factory=list)
     bled_tex: GfxList = field(default_factory=list)
-
-    def add_reset_cmd(self, f3d: F3D, cmd: GbiMacro, reset_cmd_dict: dict[GbiMacro]):
-        reset_cmd_list = (
-            SPLoadGeometryMode,
-            DPSetRenderMode,
-        )
-        if SPGeometryMode not in reset_cmd_dict:
-            reset_cmd_dict[SPGeometryMode] = set(), set()
-        get_flags(*reset_cmd_dict[SPGeometryMode], cmd)
-        if isinstance(cmd, SPSetOtherModeSub):
-            l: SPSetOtherMode = reset_cmd_dict.get("G_SETOTHERMODE_L")
-            h: SPSetOtherMode = reset_cmd_dict.get("G_SETOTHERMODE_H")
-            if l or h:  # should never be reached, but if we reach it we are prepared
-                if h and cmd.is_othermodeh:
-                    for existing_mode in [mode for mode in h.flagList if str(mode).startswith(cmd.mode_prefix)]:
-                        h.flagList.remove(existing_mode)
-                    h.flagList.add(cmd.mode)
-                if l and not cmd.is_othermodeh:
-                    for existing_mode in [mode for mode in l.flagList if str(mode).startswith(cmd.mode_prefix)]:
-                        l.flagList.remove(existing_mode)
-                    l.flagList.add(cmd.mode)
-            else:
-                reset_cmd_dict[type(cmd)] = cmd
-
-        # separate other mode H and othermode L
-        elif type(cmd) == SPSetOtherMode:
-            if cmd.cmd in reset_cmd_dict:
-                reset_cmd_dict[cmd.cmd].add_other(f3d, cmd)
-            else:
-                reset_cmd_dict[cmd.cmd] = copy.deepcopy(cmd)
-
-        elif type(cmd) in reset_cmd_list:
-            reset_cmd_dict[type(cmd)] = cmd
 
 
 # helper function used for sm64
