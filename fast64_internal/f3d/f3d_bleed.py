@@ -215,10 +215,7 @@ class BleedGraphics:
     def add_reset_cmd(
         self, f3d: F3D, cmd: GbiMacro, reset_cmd_dict: dict[GbiMacro], mat_write_method: GfxMatWriteMethod
     ):
-        reset_cmd_list = (
-            SPLoadGeometryMode,
-            DPSetRenderMode,
-        )
+        reset_cmd_list = (DPSetRenderMode,)
         if SPGeometryMode not in reset_cmd_dict:
             if mat_write_method == GfxMatWriteMethod.WriteAll:
                 reset_cmd_dict[SPGeometryMode] = (
@@ -424,6 +421,11 @@ class BleedGraphics:
         # remove all geo cmds to add later
         commands_bled.commands = [cmd for cmd in commands_bled.commands if not isinstance(cmd, GEO_CMDS)]
 
+        # remove clears and sets from revert if they will be set later in start or this material
+        revert_clears, revert_sets = (
+            revert_clears - previous_clears - new_sets,
+            revert_sets - previous_sets - new_clears,
+        )
         if mat_write_method == GfxMatWriteMethod.WriteAll:
             if previous_clears != new_clears or previous_sets != new_sets:
                 set_modes, clear_modes = new_sets | revert_sets, new_clears | revert_clears
@@ -431,11 +433,6 @@ class BleedGraphics:
                 for cmd in get_geo_cmds(clear_modes, set_modes, self.f3d.F3DEX_GBI_2, mat_write_method)[0]:
                     commands_bled.commands.insert(0, cmd)
         else:
-            # remove clears and sets from revert if they will be set later in start or this material
-            revert_clears, revert_sets = (
-                revert_clears - previous_clears - new_sets,
-                revert_sets - previous_sets - new_clears,
-            )
             # remove clears and sets from the material if set in start
             new_clears, new_sets = new_clears - previous_clears, new_sets - previous_sets
             # combine
@@ -573,18 +570,13 @@ class BleedGraphics:
         reset_cmds = []
         for cmd_type, cmd_use in reset_cmd_dict.items():
             if cmd_type == SPGeometryMode:  # revert cmd includes everything from the start
-                # First, figure out what needs to be cleared or set
-                reset_set, reset_clear = cmd_use
-                clear_list = reset_set - self.default_set_geo.flagList
-                set_list = reset_clear - self.default_clear_geo.flagList
-
-                reset_cmds.extend(
-                    get_geo_cmds(set_list, clear_list, self.f3d.F3DEX_GBI_2, mat_write_method)[1]
-                )  # safe to assume write diff here
-
-            if cmd_type == SPLoadGeometryMode and cmd_use != self.default_load_geo:
-                reset_cmds.append(self.default_load_geo)
-
+                set_list, clear_list = cmd_use
+                if mat_write_method == GfxMatWriteMethod.WriteDifferingAndRevert:
+                    clear_list = clear_list - self.default_clear_geo.flagList
+                    set_list = set_list - self.default_set_geo.flagList
+                    reset_cmds.extend(get_geo_cmds(clear_list, set_list, self.f3d.F3DEX_GBI_2, mat_write_method)[1])
+                elif clear_list != self.default_clear_geo.flagList or set_list != self.default_set_geo.flagList:
+                    reset_cmds.append(self.default_load_geo)
             elif cmd_type == "G_SETOTHERMODE_H":
                 if cmd_use != self.default_othermode_H:
                     reset_cmds.append(self.default_othermode_H)
