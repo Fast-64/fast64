@@ -8,7 +8,7 @@ from bpy.props import StringProperty, EnumProperty, IntProperty
 from bpy.types import Scene, Operator, Context
 from bpy.utils import register_class, unregister_class
 from ...utility import CData, PluginError, writeCData, raisePluginError
-from ..oot_utility import getCollection
+from ..collection_utility import getCollection
 from ..oot_constants import ootData
 from .constants import ootEnumCSTextboxType, ootEnumCSListType
 from .importer import importCutsceneData

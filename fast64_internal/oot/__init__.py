@@ -11,7 +11,8 @@ from .scene.panels import scene_panels_register, scene_panels_unregister
 
 from .props_panel_main import oot_obj_panel_register, oot_obj_panel_unregister, oot_obj_register, oot_obj_unregister
 from .skeleton.properties import OOTSkeletonImportSettings, OOTSkeletonExportSettings
-from .oot_utility import oot_utility_register, oot_utility_unregister, setAllActorsVisibility
+from .collection_utility import collections_register, collections_unregister
+from .oot_utility import setAllActorsVisibility
 from .file_settings import file_register, file_unregister
 from .collision.properties import OOTCollisionExportSettings
 
@@ -124,6 +125,12 @@ class OOT_Properties(bpy.types.PropertyGroup):
         default=False,
     )
 
+    use_new_actor_panel: bpy.props.BoolProperty(
+        name="Use newer actor panel",
+        description="Use the new actor panel which provides detailed informations to set actor parameters.",
+        default=True,
+    )
+
 
 oot_classes = (OOT_Properties,)
 
@@ -154,7 +161,7 @@ def oot_panel_unregister():
 
 def oot_register(registerPanels):
     oot_operator_register()
-    oot_utility_register()
+    collections_register()
     collision_ops_register()  # register first, so panel goes above mat panel
     collision_props_register()
     cutscene_props_register()
@@ -193,7 +200,7 @@ def oot_unregister(unregisterPanels):
         unregister_class(cls)
 
     oot_operator_unregister()
-    oot_utility_unregister()
+    collections_unregister()
     collision_ops_unregister()  # register first, so panel goes above mat panel
     collision_props_unregister()
     oot_obj_unregister()
