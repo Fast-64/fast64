@@ -3721,6 +3721,15 @@ class RDPSettings(PropertyGroup):
         yield from self.blend_color_inputs
         yield from self.blend_alpha_inputs
 
+    def get_rdp_othermode(self, prop: str, rdp_defaults: "RDPSettings" = None):
+        prop = f"g_mdsft_{prop}"
+        value = getattr(self, prop, "NONE")
+        if value == "NONE" or value == "":
+            if rdp_defaults is None:
+                rdp_defaults: RDPSettings = create_or_get_world(bpy.context.scene).rdp_defaults
+            value = getattr(rdp_defaults, prop)
+        return value
+
     def has_prop_in_ucode(self, prop: str) -> bool:
         return prop in geo_modes_in_ucode(bpy.context.scene.f3d_type).values()
 
@@ -3826,7 +3835,7 @@ class RDPSettings(PropertyGroup):
         data = {}
         if self.clip_ratio != 1.0:
             data["clipRatio"] = self.clip_ratio
-        if self.g_mdsft_textlod == "G_TL_LOD" and self.num_textures_mipmapped != 1:
+        if self.get_rdp_othermode("textlod") == "G_TL_LOD" and self.num_textures_mipmapped != 1:
             data["mipmapCount"] = self.num_textures_mipmapped
         return data
 
@@ -4671,13 +4680,7 @@ class F3DMaterialProperty(PropertyGroup):
     cel_shading: bpy.props.PointerProperty(type=CelShadingProperty)
 
     def get_rdp_othermode(self, prop: str, rdp_defaults: RDPSettings = None) -> str:
-        prop = f"g_mdsft_{prop}"
-        value = getattr(self.rdp_settings, prop, "NONE")
-        if value == "NONE" or value == "":
-            if rdp_defaults is None:
-                rdp_defaults: RDPSettings = create_or_get_world(bpy.context.scene).rdp_defaults
-            value = getattr(rdp_defaults, prop)
-        return value
+        return self.rdp_settings.get_rdp_othermode(prop, rdp_defaults)
 
     def get_tex_combiner_use(self, cycle_type: str = None) -> dict[int, bool]:
         if cycle_type is None:
