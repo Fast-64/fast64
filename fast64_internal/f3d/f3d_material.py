@@ -3185,12 +3185,16 @@ def ui_image(
             repeat_split = prop_input.split(factor=0.2)
             repeat_split.label(text="Repeats")
             repeat_split_right = repeat_split.split(factor=0.5, align=True)
-            draw_forced(
-                repeat_split_right, tex_prop.S, "repeats", not autoprop or not tex_prop.S.clamp, "", "Infinite", False
-            )
-            draw_forced(
-                repeat_split_right, tex_prop.T, "repeats", not autoprop or not tex_prop.T.clamp, "", "Infinite", False
-            )
+            for f in [tex_prop.S, tex_prop.T]:
+                draw_forced(
+                    repeat_split_right,
+                    f,
+                    "repeats",
+                    not autoprop or not f.clamp,
+                    "",
+                    "Infinite" if autoprop else "Ignored",
+                    False,
+                )
 
             if not hide_lowhigh:
                 draw_s_t_field(prop_input, "Translate", "low")
