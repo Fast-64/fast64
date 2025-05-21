@@ -2872,7 +2872,7 @@ class TextureProperty(PropertyGroup):
         name="Texture Reference",
         default="0x08000000",
     )
-    placeholder_slot: bpy.props.IntProperty(
+    tex_placeholder_slot: bpy.props.IntProperty(
         name="Placeholder Slot",
         default=1,
         min=1,
@@ -2897,6 +2897,13 @@ class TextureProperty(PropertyGroup):
         name="Reference",
         default=False,
         update=update_tex_values,
+    )
+    pal_placeholder_slot: bpy.props.IntProperty(
+        name="Placeholder Slot",
+        default=2,
+        min=1,
+        max=15,
+        description="Texture placeholder to load, equivalent to using a palette reference in F3D",
     )
     load_pal: bpy.props.BoolProperty(
         name="Load Palette",
@@ -2986,8 +2993,9 @@ class TextureProperty(PropertyGroup):
             self.use_tex_reference if texSet else None,
             self.use_pal_reference if texSet and isCI else None,
             self.tex_reference if texSet and useRef else None,
-            self.placeholder_slot if texSet and useRef else None,
+            self.tex_placeholder_slot if texSet and useRef else None,
             self.pal_reference if texSet and useRef and isCI else None,
+            self.pal_placeholder_slot if texSet and self.pal_reference else None,
             self.pal_reference_size if texSet and useRef and isCI else None,
             self.load_tex if texSet else None,
             self.load_pal if texSet and isCI else None,
@@ -3049,15 +3057,15 @@ def ui_image(
         has_texture = tex_prop.has_texture or always_load
 
         if not always_load:
-            if is_rdpq:
-                row = prop_input.row()
-                row.prop(tex_prop, "use_tex_reference", text="Placeholder")
-                if tex_prop.use_tex_reference:
-                    row.prop(tex_prop, "placeholder_slot", text="")
             row = prop_input.row()
             row.prop(tex_prop, "load_tex")
             if tex_prop.load_tex:
-                if not is_rdpq:
+                if is_rdpq:
+                    row = prop_input.row() if tex_prop.use_tex_reference else row
+                    row.prop(tex_prop, "use_tex_reference", text="Placeholder")
+                    if tex_prop.use_tex_reference:
+                        row.prop(tex_prop, "tex_placeholder_slot", text="")
+                else:
                     row.prop(tex_prop, "use_tex_reference", text="Reference")
                     if tex_prop.use_tex_reference:
                         prop_split(prop_input, tex_prop, "tex_reference", "Texture Reference")
@@ -3107,7 +3115,12 @@ def ui_image(
                 row = prop_input.row()
                 row.prop(tex_prop, "load_pal")
                 if tex_prop.load_pal:
-                    if not is_rdpq:
+                    if is_rdpq:
+                        row = prop_input.row() if tex_prop.use_pal_reference else row
+                        row.prop(tex_prop, "use_pal_reference", text="Placeholder")
+                        if tex_prop.use_pal_reference:
+                            row.prop(tex_prop, "pal_placeholder_slot", text="")
+                    else:
                         row.prop(tex_prop, "use_pal_reference")
                         if tex_prop.use_pal_reference and tex_prop.load_pal:
                             prop_split(prop_input, tex_prop, "pal_reference", "Palette Reference")
@@ -3115,9 +3128,7 @@ def ui_image(
                                 prop_split(prop_input, tex_prop, "pal_reference_size", "Palette Size")
                 else:
                     prop_split(prop_input, tex_prop, "pal_index", "Palette Index")
-                if (is_rdpq and (not tex_prop.load_tex or not tex_prop.load_pal)) or (
-                    not is_rdpq and not tex_prop.has_palette
-                ):
+                if not tex_prop.has_palette:
                     prop_input.template_ID(tex_prop, "pal", new="image.new", open="image.open")
                     if has_texture:
                         if tex_prop.pal:
