@@ -3185,10 +3185,10 @@ def ui_image(
             repeat_split.label(text="Repeats")
             repeat_split_right = repeat_split.split(factor=0.5, align=True)
             draw_forced(
-                repeat_split_right, tex_prop.S, "repeats", not autoprop or tex_prop.S.clamp, "", "Infinite", False
+                repeat_split_right, tex_prop.S, "repeats", not autoprop or not tex_prop.S.clamp, "", "Infinite", False
             )
             draw_forced(
-                repeat_split_right, tex_prop.T, "repeats", not autoprop or tex_prop.T.clamp, "", "Infinite", False
+                repeat_split_right, tex_prop.T, "repeats", not autoprop or not tex_prop.T.clamp, "", "Infinite", False
             )
 
             if not hide_lowhigh:
