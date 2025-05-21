@@ -1719,8 +1719,9 @@ def save_othermode_l(
     if rdp_settings.set_rendermode:
         flag_list, blender = getRenderModeFlagList(rdp_settings, f_mat)
     if mat_write_method == GfxMatWriteMethod.WriteAll:
-        baseLength = 3 if not rdp_settings.set_rendermode else 32
-        cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, baseLength - f3d.F3D_OLD_GBI, [])
+        cmd = SPSetOtherMode(
+            "G_SETOTHERMODE_L", 0, (3 if not rdp_settings.set_rendermode else 32) - f3d.F3D_OLD_GBI, []
+        )
         for key in OTHERMODE_L_TO_CMD_MAP:
             cmd.flagList.append(f3d_mat.get_rdp_othermode(key, defaults))
         if rdp_settings.set_rendermode:
@@ -1742,7 +1743,17 @@ def save_othermode_l(
         rdp_settings.rendermode_advanced_enabled
         or [rdp_settings.rendermode_preset_cycle_1, rdp_settings.rendermode_preset_cycle_2] != default_rm
     ):
-        f_mat.revert.commands.append(DPSetRenderMode(default_rm, None))
+        if mat_write_method == GfxMatWriteMethod.WriteAll:
+            f_mat.mat_only_DL.commands.append(
+                SPSetOtherMode(
+                    "G_SETOTHERMODE_L",
+                    0,
+                    32 - f3d.F3D_OLD_GBI,
+                    {*default_rm, defaults.g_mdsft_alpha_compare, defaults.g_mdsft_zsrcsel},
+                )
+            )
+        else:
+            f_mat.revert.commands.append(DPSetRenderMode(default_rm, None))
 
 
 def getRenderModeFlagList(settings, fMaterial) -> tuple[list[str], RendermodeBlender | None]:
