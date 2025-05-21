@@ -68,8 +68,8 @@ from .f3d_gbi import (
 def get_geo_cmds(
     clear_modes: set[str], set_modes: set[str], is_ex2: bool, matWriteMethod: GfxMatWriteMethod
 ) -> tuple[
-    list[SPLoadGeometryMode | SPGeometryMode | SPSetGeometryMode | SPClearGeometryMode]
-    | list[SPGeometryMode | SPSetGeometryMode | SPClearGeometryMode]
+    list[SPLoadGeometryMode | SPGeometryMode | SPSetGeometryMode | SPClearGeometryMode],
+    list[SPGeometryMode | SPSetGeometryMode | SPClearGeometryMode],
 ]:
     set_modes, clear_modes = set(set_modes), set(clear_modes)
     if len(clear_modes) == 0 and len(set_modes) == 0:
