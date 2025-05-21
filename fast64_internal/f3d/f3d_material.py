@@ -1925,13 +1925,14 @@ def trunc_10_2(val: float):
 
 
 def update_tex_values_field(self: Material, texProperty: "TextureProperty", tex_size: list[int], tex_index: int):
+    f3d = get_F3D_GBI()
     nodes = self.node_tree.nodes
     textureSettings: ShaderNodeGroup = nodes["TextureSettings"]
     inputs = textureSettings.inputs
 
     set_texture_size(self, tex_size, tex_index)
 
-    if texProperty.autoprop:
+    if texProperty.autoprop or f3d.RDPQ:
         setAutoProp(texProperty.S, tex_size[0])
         setAutoProp(texProperty.T, tex_size[1])
 
