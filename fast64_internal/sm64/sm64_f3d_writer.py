@@ -5,7 +5,7 @@ from math import ceil, log, radians
 from mathutils import Matrix, Vector
 from bpy.utils import register_class, unregister_class
 from ..panels import SM64_Panel
-from ..f3d.f3d_writer import exportF3DCommon, saveModeSetting
+from ..f3d.f3d_writer import exportF3DCommon, save_othermode
 from ..f3d.f3d_texture_writer import TexInfo
 from ..f3d.f3d_material import (
     TextureProperty,
@@ -309,21 +309,21 @@ def exportTexRectCommon(texProp, name, convertTextureData):
 
     # use_copy_mode is based on dl_hud_img_begin and dl_hud_img_end
     if use_copy_mode:
-        saveModeSetting(fMaterial, "G_CYC_COPY", defaults.g_mdsft_cycletype, DPSetCycleType)
+        save_othermode(fMaterial, "G_CYC_COPY", defaults, "g_mdsft_cycletype")
     else:
-        saveModeSetting(fMaterial, "G_CYC_1CYCLE", defaults.g_mdsft_cycletype, DPSetCycleType)
+        save_othermode(fMaterial, "G_CYC_1CYCLE", defaults, "g_mdsft_cycletype")
         fMaterial.mat_only_DL.commands.append(
             DPSetCombineMode(*fTexRect.f3d.G_CC_DECALRGBA, *fTexRect.f3d.G_CC_DECALRGBA)
         )
         fMaterial.revert.commands.append(DPSetCombineMode(*fTexRect.f3d.G_CC_SHADE, *fTexRect.f3d.G_CC_SHADE))
-    saveModeSetting(fMaterial, "G_TP_NONE", defaults.g_mdsft_textpersp, DPSetTexturePersp)
-    saveModeSetting(fMaterial, "G_AC_THRESHOLD", defaults.g_mdsft_alpha_compare, DPSetAlphaCompare)
+    save_othermode(fMaterial, "G_TP_NONE", defaults, "g_mdsft_textpersp")
+    save_othermode(fMaterial, "G_AC_THRESHOLD", defaults, "g_mdsft_alpha_compare")
     fMaterial.mat_only_DL.commands.append(DPSetBlendColor(0xFF, 0xFF, 0xFF, 0xFF))
 
     fMaterial.mat_only_DL.commands.append(DPSetRenderMode(["G_RM_AA_XLU_SURF", "G_RM_AA_XLU_SURF2"], None))
     fMaterial.revert.commands.append(DPSetRenderMode(["G_RM_AA_ZB_OPA_SURF", "G_RM_AA_ZB_OPA_SURF2"], None))
 
-    saveModeSetting(fMaterial, texProp.textlut, defaults.g_mdsft_textlut, DPSetTextureLUT)
+    save_othermode(fMaterial, texProp.textlut, defaults, "g_mdsft_textlut")
     ti = TexInfo()
     ti.fromProp(texProp, index=0, ignore_tex_set=True)
     ti.materialless_setup()

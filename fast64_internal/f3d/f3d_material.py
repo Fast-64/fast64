@@ -556,7 +556,7 @@ def ui_upper_mode(settings, dataHolder, layout: UILayout, useDropdown):
     if not useDropdown or dataHolder.menu_upper:
         auto_modes = {}
         if isinstance(dataHolder, F3DMaterialProperty):
-            auto_modes = dataHolder.get_othermode_h(True, True)
+            auto_modes = dataHolder.get_auto_othermode_h(True)
 
         for attr, mode in OTHERMODE_H_ATTRS.items():
             auto = auto_modes.get(attr)
@@ -4666,12 +4666,13 @@ class F3DMaterialProperty(PropertyGroup):
     use_cel_shading: bpy.props.BoolProperty(name="Use Cel Shading", update=update_cel_cutout_source)
     cel_shading: bpy.props.PointerProperty(type=CelShadingProperty)
 
-    def get_rdp_othermode(self, prop: str):
+    def get_rdp_othermode(self, prop: str, rdp_defaults: RDPSettings = None) -> str:
         prop = f"g_mdsft_{prop}"
         value = getattr(self.rdp_settings, prop, "NONE")
-        if value == "NONE":
-            settings: RDPSettings = create_or_get_world(bpy.context.scene).rdp_defaults
-            value = getattr(settings, prop)
+        if value == "NONE" or value == "":
+            if rdp_defaults is None:
+                rdp_defaults: RDPSettings = create_or_get_world(bpy.context.scene).rdp_defaults
+            value = getattr(rdp_defaults, prop)
         return value
 
     def get_tex_combiner_use(self, cycle_type: str = None) -> dict[int, bool]:
@@ -4716,14 +4717,14 @@ class F3DMaterialProperty(PropertyGroup):
     def is_multi_tex(self):
         return self.check_multi_tex()
 
-    def get_tlut_mode(self, only_auto=False, dont_raise=False):
+    def get_tlut_mode(self, only_auto=False, dont_raise=False, rdp_defaults: RDPSettings = None):
         if self.pseudo_format in {"IHQ", "SHQ"}:
             return "G_TT_NONE"
         tlut_modes = set(tex.textlut for tex in self.set_textures.values())
         if len(tlut_modes) == 1:
             return list(tlut_modes)[0]
         elif len(tlut_modes) == 0 or dont_raise:
-            return None if only_auto else self.get_rdp_othermode("textlut")
+            return None if only_auto else self.get_rdp_othermode("textlut", rdp_defaults)
         text = (
             "Can't mix CI and non-CI textures."
             if "G_TT_NONE" in tlut_modes
@@ -4758,19 +4759,19 @@ class F3DMaterialProperty(PropertyGroup):
     def gen_auto_mips(self) -> bool:
         return self.pseudo_fmt_can_mip and (self.gen_auto_mips_internal or self.forced_mipmap)
 
-    def get_tex_lod(self, only_auto=False) -> bool:
+    def get_tex_lod(self, only_auto=False, rdp_defaults: RDPSettings = None) -> bool:
         if self.gen_auto_mips:
             return "G_TL_LOD"
-        return None if only_auto else self.get_rdp_othermode("textlod")
+        return None if only_auto else self.get_rdp_othermode("textlod", rdp_defaults)
 
     @property
     def textlod(self) -> bool:
         return self.get_tex_lod(False)
 
-    def get_tex_detail(self, only_auto=False) -> bool:
+    def get_tex_detail(self, only_auto=False, rdp_defaults: RDPSettings = None) -> bool:
         if self.pseudo_format in {"IHQ"}:
             return "G_TD_DETAIL"
-        return None if only_auto else self.get_rdp_othermode("textdetail")
+        return None if only_auto else self.get_rdp_othermode("textdetail", rdp_defaults)
 
     @property
     def textdetail(self) -> bool:
@@ -4780,7 +4781,9 @@ class F3DMaterialProperty(PropertyGroup):
     def uses_mipmap(self) -> bool:
         return self.textlod == "G_TL_LOD"
 
-    def get_tex_convert(self, only_auto=False, dont_raise=False, tex_use: dict | None = None):
+    def get_tex_convert(
+        self, only_auto=False, dont_raise=False, tex_use: dict | None = None, rdp_defaults: RDPSettings = None
+    ):
         textures = self.get_set_textures(tex_use)
         fmts: set[str] = set(tex.tex_format for tex in textures.values())
         has_yuv = "YUV16" in fmts
@@ -4788,7 +4791,7 @@ class F3DMaterialProperty(PropertyGroup):
             return "G_TC_FILT"
         yuv_tex = next((i for i, tex in textures.items() if tex.tex_format == "YUV16"), -1)
         if len(fmts) == 1:
-            if self.get_rdp_othermode("text_filt") == "G_TF_POINT":
+            if self.get_rdp_othermode("text_filt", rdp_defaults) == "G_TF_POINT":
                 return "G_TC_CONV"
             if yuv_tex == 0 and not dont_raise:
                 raise PluginError(
@@ -4806,7 +4809,7 @@ class F3DMaterialProperty(PropertyGroup):
                 "Texture 0 is YUV and texture 1 is not YUV.\nCannot use G_TC_FILTCONV to bypass convert in texture 0."
             )
         elif not fmts:
-            return None if only_auto else self.get_rdp_othermode("textconv")
+            return None if only_auto else self.get_rdp_othermode("textconv", rdp_defaults)
         else:
             if dont_raise:
                 return None
@@ -4822,8 +4825,8 @@ class F3DMaterialProperty(PropertyGroup):
     def tex_convert(self):
         return self.get_tex_convert(dont_raise=True)
 
-    def get_cycle_type(self, only_auto=False, dont_raise=False):
-        cur_cycle_type = self.get_rdp_othermode("cycletype")
+    def get_cycle_type(self, only_auto=False, dont_raise=False, rdp_defaults: RDPSettings = None):
+        cur_cycle_type = self.get_rdp_othermode("cycletype", rdp_defaults)
         tex_use = self.get_tex_combiner_use(cur_cycle_type)
         if (
             self.uses_mipmap
@@ -4839,23 +4842,19 @@ class F3DMaterialProperty(PropertyGroup):
 
     def get_num_textures_mipmapped(self, only_auto=False):
         if self.gen_auto_mips:
-            return 2
+            return 2  # TODO: figure out mipmap count here or in texture exports?
         return None if only_auto else self.rdp_settings.num_textures_mipmapped
 
-    def get_othermode_h(self, only_auto=False, dont_raise=False):
+    def get_auto_othermode_h(self, dont_raise=False, rdp_defaults: RDPSettings = None):
+        if rdp_defaults is None:
+            rdp_defaults: RDPSettings = create_or_get_world(bpy.context.scene).rdp_defaults
         return {
-            "g_mdsft_textconv": self.get_tex_convert(only_auto, dont_raise=dont_raise),
-            "g_mdsft_textlut": self.get_tlut_mode(only_auto, dont_raise=dont_raise),
-            "g_mdsft_textlod": self.get_tex_lod(only_auto),
-            "g_mdsft_textdetail": self.get_tex_detail(only_auto),
-            "num_textures_mipmapped": self.get_num_textures_mipmapped(only_auto),
-            "g_mdsft_cycletype": self.get_cycle_type(only_auto, dont_raise=dont_raise),
-            "g_mdsft_alpha_dither": None if only_auto else self.get_rdp_othermode("alpha_dither"),
-            "g_mdsft_rgb_dither": None if only_auto else self.get_rdp_othermode("rgb_dither"),
-            "g_mdsft_combkey": None if only_auto else self.get_rdp_othermode("combkey"),
-            "g_mdsft_text_filt": None if only_auto else self.get_rdp_othermode("text_filt"),
-            "g_mdsft_textpersp": None if only_auto else self.get_rdp_othermode("textpersp"),
-            "g_mdsft_pipeline": None if only_auto else self.get_rdp_othermode("pipeline"),
+            "g_mdsft_textconv": self.get_tex_convert(True, dont_raise=dont_raise, rdp_defaults=rdp_defaults),
+            "g_mdsft_textlut": self.get_tlut_mode(True, dont_raise=dont_raise, rdp_defaults=rdp_defaults),
+            "g_mdsft_textlod": self.get_tex_lod(True, rdp_defaults),
+            "g_mdsft_textdetail": self.get_tex_detail(True, rdp_defaults),
+            "num_textures_mipmapped": self.get_num_textures_mipmapped(True),
+            "g_mdsft_cycletype": self.get_cycle_type(True, dont_raise=dont_raise, rdp_defaults=rdp_defaults),
         }
 
     def key(self) -> F3DMaterialHash:

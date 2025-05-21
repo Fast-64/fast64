@@ -7,7 +7,13 @@ from math import ceil
 from bpy.utils import register_class, unregister_class
 
 from .f3d_enums import *
-from .f3d_material import all_combiner_uses, getMaterialScrollDimensions, isTexturePointSampled, RDPSettings
+from .f3d_material import (
+    all_combiner_uses,
+    getMaterialScrollDimensions,
+    isTexturePointSampled,
+    F3DMaterialProperty,
+    RDPSettings,
+)
 from .f3d_texture_writer import MultitexManager, TileLoad, maybeSaveSingleLargeTextureSetup
 from .f3d_gbi import *
 from .f3d_bleed import BleedGraphics
@@ -1434,15 +1440,8 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
         defaultRM = fModel.getRenderMode(drawLayer)
     else:
         defaultRM = None
-    saveOtherModeHDefinition(
-        fMaterial,
-        f3dMat.rdp_settings,
-        f3dMat.get_tlut_mode(),
-        defaults,
-        fModel.matWriteMethod,
-        fModel.f3d,
-    )
-    saveOtherModeLDefinition(fMaterial, f3dMat.rdp_settings, defaults, defaultRM, fModel.matWriteMethod, fModel.f3d)
+    save_othermode_h(fMaterial, f3dMat, defaults, fModel.matWriteMethod, fModel.f3d)
+    save_othermode_l(fMaterial, f3dMat, defaults, defaultRM, fModel.matWriteMethod, fModel.f3d)
     saveOtherDefinition(fMaterial, f3dMat, defaults)
 
     # Set scale
@@ -1510,6 +1509,13 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
                 ),
             ]
         )
+
+    rdp_settings = f3dMat.rdp_settings
+    if rdp_settings.g_mdsft_zsrcsel == "G_ZS_PRIM":
+        depth, default_depth = rdp_settings.prim_depth, defaults.prim_depth
+        fMaterial.mat_only_DL.commands.append(DPSetPrimDepth(z=depth.z, dz=depth.dz))
+        if (depth.z, depth.dz) != (default_depth.z, default_depth.dz):
+            fMaterial.revert.commands.append(DPSetPrimDepth(default_depth.z, default_depth.dz))
 
     fModel.onMaterialCommandsBuilt(fMaterial, material, drawLayer)
 
@@ -1652,95 +1658,95 @@ def saveGeoModeDefinition(fMaterial, settings, defaults, matWriteMethod):
             fMaterial.revert.commands.append(SPSetGeometryMode(clearGeo.flagList))
 
 
-def saveModeSetting(fMaterial, value, defaultValue, cmdClass):
-    if value != defaultValue:
-        fMaterial.mat_only_DL.commands.append(cmdClass(value))
-        fMaterial.revert.commands.append(cmdClass(defaultValue))
+OTHERMODE_H_TO_CMD_MAP = {
+    "g_mdsft_textconv": DPSetTextureConvert,
+    "g_mdsft_textlut": DPSetTextureLUT,
+    "g_mdsft_textlod": DPSetTextureLOD,
+    "g_mdsft_textdetail": DPSetTextureDetail,
+    "g_mdsft_cycletype": DPSetCycleType,
+    "g_mdsft_alpha_dither": DPSetAlphaDither,
+    "g_mdsft_rgb_dither": DPSetColorDither,
+    "g_mdsft_combkey": DPSetCombineKey,
+    "g_mdsft_text_filt": DPSetTextureFilter,
+    "g_mdsft_textpersp": DPSetTexturePersp,
+    "g_mdsft_pipeline": DPPipelineMode,
+}
+OTHERMODE_L_TO_CMD_MAP = {"g_mdsft_alpha_compare": DPSetAlphaCompare, "g_mdsft_zsrcsel": DPSetDepthSource}
+
+OTHERMODE_CMD_MAP = OTHERMODE_H_TO_CMD_MAP | OTHERMODE_L_TO_CMD_MAP
 
 
-def saveOtherModeHDefinition(fMaterial, settings, tlut, defaults, matWriteMethod, f3d):
-    if matWriteMethod == GfxMatWriteMethod.WriteAll:
-        saveOtherModeHDefinitionAll(fMaterial, settings, tlut, defaults, f3d)
-    elif matWriteMethod == GfxMatWriteMethod.WriteDifferingAndRevert:
-        saveOtherModeHDefinitionIndividual(fMaterial, settings, tlut, defaults)
+def save_othermode(
+    f_mat: FMaterial, value: str, defaults: RDPSettings, key: str, auto_modes: dict[str, str | None] = None
+):
+    auto_modes = auto_modes or {}
+    auto_value = auto_modes.get(key)
+    if auto_value is not None:
+        if auto_value is not None and auto_value == getattr(defaults, key, None):
+            value = None
+        else:
+            value = auto_value
+    if value:
+        cmd = OTHERMODE_CMD_MAP[key]
+        f_mat.mat_only_DL.commands.append(cmd(value))
+        default_value = getattr(defaults, key, None)
+        if value != default_value:
+            f_mat.revert.commands.append(cmd(default_value))
+
+
+def save_othermode_h(
+    f_mat, f3d_mat: F3DMaterialProperty, defaults: RDPSettings, mat_write_method: GfxMatWriteMethod, f3d: F3D
+):
+    auto_modes = f3d_mat.get_auto_othermode_h()
+    rdp_settings = f3d_mat.rdp_settings
+    if mat_write_method == GfxMatWriteMethod.WriteAll:
+        cmd = SPSetOtherMode("G_SETOTHERMODE_H", 4, 20 - f3d.F3D_OLD_GBI, [])
+        for key in OTHERMODE_H_TO_CMD_MAP:
+            cmd.flagList.append(f3d_mat.get_rdp_othermode(key, defaults) or auto_modes.get(key))
+        f_mat.mat_only_DL.commands.append(cmd)
+    elif mat_write_method == GfxMatWriteMethod.WriteDifferingAndRevert:
+        for key, cmd in OTHERMODE_H_TO_CMD_MAP.items():
+            save_othermode(f_mat, getattr(rdp_settings, key, None), defaults, key, auto_modes)
     else:
-        raise PluginError("Unhandled material write method: " + str(matWriteMethod))
+        raise NotImplementedError(f"Unhandled material write method: {mat_write_method}")
 
 
-def saveOtherModeHDefinitionAll(fMaterial, settings, tlut, defaults, f3d):  # TODO
-    cmd = SPSetOtherMode("G_SETOTHERMODE_H", 4, 20 - f3d.F3D_OLD_GBI, [])
-    cmd.flagList.append(settings.g_mdsft_alpha_dither)
-    cmd.flagList.append(settings.g_mdsft_rgb_dither)
-    cmd.flagList.append(settings.g_mdsft_combkey)
-    cmd.flagList.append(settings.g_mdsft_textconv)
-    cmd.flagList.append(settings.g_mdsft_text_filt)
-    cmd.flagList.append(tlut)
-    cmd.flagList.append(settings.g_mdsft_textlod)
-    cmd.flagList.append(settings.g_mdsft_textdetail)
-    cmd.flagList.append(settings.g_mdsft_textpersp)
-    cmd.flagList.append(settings.g_mdsft_cycletype)
-    cmd.flagList.append(settings.g_mdsft_pipeline)
+def save_othermode_l(
+    f_mat,
+    f3d_mat: F3DMaterialProperty,
+    defaults: RDPSettings,
+    default_rm: tuple[str, str],
+    mat_write_method: GfxMatWriteMethod,
+    f3d: F3D,
+):
+    rdp_settings = f3d_mat.rdp_settings
+    if rdp_settings.set_rendermode:
+        flag_list, blender = getRenderModeFlagList(rdp_settings, f_mat)
+    if mat_write_method == GfxMatWriteMethod.WriteAll:
+        baseLength = 3 if not rdp_settings.set_rendermode else 32
+        cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, baseLength - f3d.F3D_OLD_GBI, [])
+        for key in OTHERMODE_L_TO_CMD_MAP:
+            cmd.flagList.append(f3d_mat.get_rdp_othermode(key, defaults))
+        if rdp_settings.set_rendermode:
+            cmd.flagList.extend(flag_list)
+            if blender is not None:
+                cmd.flagList.append(blender)
+        f_mat.mat_only_DL.commands.append(cmd)
+    elif mat_write_method == GfxMatWriteMethod.WriteDifferingAndRevert:
+        for key, cmd in OTHERMODE_L_TO_CMD_MAP.items():
+            save_othermode(f_mat, getattr(rdp_settings, key, None), defaults, key)
 
-    fMaterial.mat_only_DL.commands.append(cmd)
-
-
-def saveOtherModeHDefinitionIndividual(fMaterial, settings, tlut, defaults):  # TODO
-    saveModeSetting(fMaterial, settings.g_mdsft_alpha_dither, defaults.g_mdsft_alpha_dither, DPSetAlphaDither)
-    saveModeSetting(fMaterial, settings.g_mdsft_rgb_dither, defaults.g_mdsft_rgb_dither, DPSetColorDither)
-    saveModeSetting(fMaterial, settings.g_mdsft_combkey, defaults.g_mdsft_combkey, DPSetCombineKey)
-    saveModeSetting(fMaterial, settings.g_mdsft_textconv, defaults.g_mdsft_textconv, DPSetTextureConvert)
-    saveModeSetting(fMaterial, settings.g_mdsft_text_filt, defaults.g_mdsft_text_filt, DPSetTextureFilter)
-    saveModeSetting(fMaterial, tlut, defaults.g_mdsft_textlut, DPSetTextureLUT)
-    saveModeSetting(fMaterial, settings.g_mdsft_textlod, defaults.g_mdsft_textlod, DPSetTextureLOD)
-    saveModeSetting(fMaterial, settings.g_mdsft_textdetail, defaults.g_mdsft_textdetail, DPSetTextureDetail)
-    saveModeSetting(fMaterial, settings.g_mdsft_textpersp, defaults.g_mdsft_textpersp, DPSetTexturePersp)
-    saveModeSetting(fMaterial, settings.g_mdsft_cycletype, defaults.g_mdsft_cycletype, DPSetCycleType)
-    saveModeSetting(fMaterial, settings.g_mdsft_pipeline, defaults.g_mdsft_pipeline, DPPipelineMode)
-
-
-def saveOtherModeLDefinition(fMaterial, settings, defaults, defaultRenderMode, matWriteMethod, f3d):
-    if matWriteMethod == GfxMatWriteMethod.WriteAll:
-        saveOtherModeLDefinitionAll(fMaterial, settings, defaults, f3d)
-    elif matWriteMethod == GfxMatWriteMethod.WriteDifferingAndRevert:
-        saveOtherModeLDefinitionIndividual(fMaterial, settings, defaults, defaultRenderMode)
+        if rdp_settings.set_rendermode:
+            renderModeSet = DPSetRenderMode(flag_list, blender)
+            f_mat.mat_only_DL.commands.append(renderModeSet)
     else:
-        raise PluginError("Unhandled material write method: " + str(matWriteMethod))
+        raise NotImplementedError(f"Unhandled material write method: {mat_write_method}")
 
-
-def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaults, f3d):
-    baseLength = 3 if not settings.set_rendermode else 32
-    cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, baseLength - f3d.F3D_OLD_GBI, [])
-    cmd.flagList.append(settings.g_mdsft_alpha_compare)
-    cmd.flagList.append(settings.g_mdsft_zsrcsel)
-
-    if settings.set_rendermode:
-        flagList, blender = getRenderModeFlagList(settings, fMaterial)
-        cmd.flagList.extend(flagList)
-        if blender is not None:
-            cmd.flagList.append(blender)
-
-    fMaterial.mat_only_DL.commands.append(cmd)
-
-    if settings.g_mdsft_zsrcsel == "G_ZS_PRIM":
-        fMaterial.mat_only_DL.commands.append(DPSetPrimDepth(z=settings.prim_depth.z, dz=settings.prim_depth.dz))
-
-
-def saveOtherModeLDefinitionIndividual(fMaterial, settings, defaults, defaultRenderMode):
-    saveModeSetting(fMaterial, settings.g_mdsft_alpha_compare, defaults.g_mdsft_alpha_compare, DPSetAlphaCompare)
-
-    saveModeSetting(fMaterial, settings.g_mdsft_zsrcsel, defaults.g_mdsft_zsrcsel, DPSetDepthSource)
-
-    if settings.g_mdsft_zsrcsel == "G_ZS_PRIM":
-        fMaterial.mat_only_DL.commands.append(DPSetPrimDepth(z=settings.prim_depth.z, dz=settings.prim_depth.dz))
-        fMaterial.revert.commands.append(DPSetPrimDepth())
-
-    if settings.set_rendermode:
-        flagList, blender = getRenderModeFlagList(settings, fMaterial)
-        renderModeSet = DPSetRenderMode(flagList, blender)
-
-        fMaterial.mat_only_DL.commands.append(renderModeSet)
-        if defaultRenderMode is not None:
-            fMaterial.revert.commands.append(DPSetRenderMode(defaultRenderMode, None))
+    if default_rm is not None and (
+        rdp_settings.rendermode_advanced_enabled
+        or [rdp_settings.rendermode_preset_cycle_1, rdp_settings.rendermode_preset_cycle_2] != default_rm
+    ):
+        f_mat.revert.commands.append(DPSetRenderMode(default_rm, None))
 
 
 def getRenderModeFlagList(settings, fMaterial) -> tuple[list[str], RendermodeBlender | None]:
@@ -1790,7 +1796,6 @@ def getRenderModeFlagList(settings, fMaterial) -> tuple[list[str], RendermodeBle
             flagList.append("FORCE_BL")
 
         return flagList, RendermodeBlender(blender_cycle1, blender_cycle2)
-
 
 
 def saveOtherDefinition(fMaterial, material, defaults):
