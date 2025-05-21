@@ -76,7 +76,7 @@ def get_geo_cmds(
         return ([], [])
     if is_ex2:
         if matWriteMethod == GfxMatWriteMethod.WriteAll:
-            return ([SPLoadGeometryMode(set_modes)], tuple())
+            return ([SPLoadGeometryMode(set_modes)], [])
         elif len(set_modes) > 0 and len(clear_modes) > 0:
             return ([SPGeometryMode(clear_modes, set_modes)], [SPGeometryMode(set_modes, clear_modes)])
     material, revert = [], []
