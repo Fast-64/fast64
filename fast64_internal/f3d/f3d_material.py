@@ -554,13 +554,17 @@ def ui_upper_mode(settings, dataHolder, layout: UILayout, useDropdown):
             icon="TRIA_DOWN" if dataHolder.menu_upper else "TRIA_RIGHT",
         )
     if not useDropdown or dataHolder.menu_upper:
-        auto_modes = {}
+        auto_modes, use_lod = {}, settings.num_textures_mipmapped
         if isinstance(dataHolder, F3DMaterialProperty):
             auto_modes = dataHolder.get_auto_othermode_h(True)
+            use_lod = dataHolder.uses_mipmap
 
         for attr, mode in OTHERMODE_H_ATTRS.items():
             auto = auto_modes.get(attr)
             draw_forced(inputGroup, settings, attr, auto is not None, mode.name, auto)
+        if use_lod:
+            auto = auto_modes.get("num_textures_mipmapped")
+            draw_forced(inputGroup, settings, "num_textures_mipmapped", auto is not None, "Number of Mipmaps", auto)
 
 
 def ui_lower_mode(settings, dataHolder, layout: UILayout, useDropdown):

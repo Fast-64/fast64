@@ -600,7 +600,6 @@ OTHERMODE_H_ATTRS = {
     "g_mdsft_textconv": PropWithDefault("textureConvert", "G_TC_CONV", "Texture Convert"),
     "g_mdsft_text_filt": PropWithDefault("textureFilter", "G_TF_POINT", "Texture Filter"),
     "g_mdsft_textlut": PropWithDefault("lutFormat", "G_TT_NONE", "Texture LUT"),
-    "num_textures_mipmapped": PropWithDefault("numTexturesMipmapped", 2, "Number of Mipmaps"),
     "g_mdsft_textlod": PropWithDefault("textureLoD", "G_TL_TILE", "Texture LoD"),
     "g_mdsft_textdetail": PropWithDefault("textureDetail", "G_TD_CLAMP", "Texture Detail"),
     "g_mdsft_textpersp": PropWithDefault("perspectiveCorrection", "G_TP_NONE", "Texture Perspective Correction"),

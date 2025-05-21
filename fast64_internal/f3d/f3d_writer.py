@@ -1290,10 +1290,7 @@ def getTexDimensions(material):
 @wrap_func_with_error_message(lambda args: (f"In material '{args['material'].name}': "))
 def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     print(f"Writing material {material.name}")
-    if material.mat_ver > 3:
-        f3dMat = material.f3d_mat
-    else:
-        f3dMat = material
+    f3dMat: F3DMaterialProperty = material.f3d_mat
 
     areaKey = fModel.global_data.getCurrentAreaKey(f3dMat)
     areaIndex = fModel.global_data.current_area_index
@@ -1447,12 +1444,11 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     # Set scale
     s = int(min(round(f3dMat.tex_scale[0] * 0x10000), 0xFFFF))
     t = int(min(round(f3dMat.tex_scale[1] * 0x10000), 0xFFFF))
-    if f3dMat.rdp_settings.g_mdsft_textlod == "G_TL_LOD":
-        fMaterial.mat_only_DL.commands.append(
-            SPTexture(s, t, f3dMat.rdp_settings.num_textures_mipmapped - 1, fModel.f3d.G_TX_RENDERTILE, 1)
-        )
+    if f3dMat.get_rdp_othermode("textlod") == "G_TL_LOD":
+        mip_count = f3dMat.rdp_settings.num_textures_mipmapped - 1
     else:
-        fMaterial.mat_only_DL.commands.append(SPTexture(s, t, 0, fModel.f3d.G_TX_RENDERTILE, 1))
+        mip_count = 0
+    fMaterial.mat_only_DL.commands.append(SPTexture(s, t, mip_count, fModel.f3d.G_TX_RENDERTILE, 1))
 
     # Write textures
     multitexManager.writeAll(material, fMaterial, fModel, convertTextureData)
