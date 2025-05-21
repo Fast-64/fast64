@@ -4294,12 +4294,6 @@ class SPGeometryMode(GbiMacro):
     clearFlagList: set[str] = field(default_factory=set)
     setFlagList: set[str] = field(default_factory=set)
 
-    def extend(self, clear_list: set, set_list: set):
-        clear_list = self.clearFlagList | clear_list
-        set_list = self.setFlagList | set_list
-        self.setFlagList = set_list - clear_list
-        self.clearFlagList = clear_list - set_list
-
     def to_binary(self, f3d, segments):
         if f3d.F3DEX_GBI_2:
             wordClear = geoFlagListToWord(self.clearFlagList, f3d)

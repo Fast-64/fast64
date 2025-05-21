@@ -1673,14 +1673,14 @@ def saveOtherModeHDefinitionIndividual(fMaterial, settings, tlut, defaults):
 
 def saveOtherModeLDefinition(fMaterial, settings, defaults, defaultRenderMode, matWriteMethod, f3d):
     if matWriteMethod == GfxMatWriteMethod.WriteAll:
-        saveOtherModeLDefinitionAll(fMaterial, settings, defaultRenderMode, f3d)
+        saveOtherModeLDefinitionAll(fMaterial, settings, defaults, defaultRenderMode, f3d)
     elif matWriteMethod == GfxMatWriteMethod.WriteDifferingAndRevert:
         saveOtherModeLDefinitionIndividual(fMaterial, settings, defaults, defaultRenderMode)
     else:
         raise PluginError("Unhandled material write method: " + str(matWriteMethod))
 
 
-def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaultRenderMode, f3d):
+def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaults, defaultRenderMode, f3d):
     cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, (32 if settings.set_rendermode else 3) - f3d.F3D_OLD_GBI, set())
     cmd.flagList.add(settings.g_mdsft_alpha_compare)
     cmd.flagList.add(settings.g_mdsft_zsrcsel)
@@ -1690,8 +1690,12 @@ def saveOtherModeLDefinitionAll(fMaterial: FMaterial, settings, defaultRenderMod
 
     if settings.set_rendermode:
         if defaultRenderMode:
-            revert_cmd = copy.deepcopy(cmd)
-            revert_cmd.flagList.update(defaultRenderMode)
+            revert_cmd = SPSetOtherMode(
+                "G_SETOTHERMODE_L",
+                0,
+                32 - f3d.F3D_OLD_GBI,
+                {*defaultRenderMode, defaults.g_mdsft_alpha_compare, defaults.g_mdsft_zsrcsel},
+            )
             fMaterial.revert.commands.append(revert_cmd)
         flagList, blender = getRenderModeFlagList(settings, fMaterial)
         cmd.flagList.update(flagList)
