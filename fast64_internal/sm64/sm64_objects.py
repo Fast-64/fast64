@@ -1612,9 +1612,33 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
             PluginError("Could not find model_ids.h")
 
         model_id_lines = open(model_ids, "r").readlines()
-        export_model_id = f"#define {props.model_id_define: <34}{props.model_id + offset}\n"
         fast64_sig = "/* fast64 object exports get inserted here */"
 
+        # For hacker model ID enums add comma and no number
+        export_model_id = f"    {props.model_id_define},\n"
+
+        # Check if hacker version is "3.0" or greater
+        refresh_version = bpy.context.scene.fast64.sm64.refresh_version
+        if refresh_version.startswith("HackerSM64"):
+            major_version = int(refresh_version.split()[1].split(".")[0])
+            if major_version >= 3:
+                # Check if the ID already exists
+                if any(props.model_id_define in line for line in model_id_lines):
+                    print(f"Model ID '{props.model_id_define}' already exists. Skipping insertion.")
+                    return
+
+                # Look for MODEL_ID_COUNT line
+                model_id_count_line = next(
+                    (i for i, line in enumerate(model_id_lines) if "MODEL_ID_COUNT" in line), None
+                )
+                if model_id_count_line is not None:
+                    # Insert new ID above MODEL_ID_COUNT with a comma
+                    model_id_lines.insert(model_id_count_line, export_model_id)
+                    self.write_file_lines(model_ids, model_id_lines)
+                    return
+
+        # Default behavior if not enums
+        export_model_id_default = f"#define {props.model_id_define: <34}{props.model_id + offset}\n"
         match_line, sig_insert_line, default_line = self.find_export_lines(
             model_id_lines,
             match_str=f"#define {props.model_id_define} ",
@@ -1623,13 +1647,13 @@ class SM64_ExportCombinedObject(ObjectDataExporter):
         )
 
         if match_line:
-            model_id_lines[match_line] = export_model_id
+            model_id_lines[match_line] = export_model_id_default
         elif sig_insert_line:
-            model_id_lines.insert(sig_insert_line + 1, export_model_id)
+            model_id_lines.insert(sig_insert_line + 1, export_model_id_default)
         else:
             export_line = default_line + 1 if default_line else len(model_id_lines)
             model_id_lines.insert(export_line, f"\n{fast64_sig}\n")
-            model_id_lines.insert(export_line + 1, export_model_id)
+            model_id_lines.insert(export_line + 1, export_model_id_default)
 
         self.write_file_lines(model_ids, model_id_lines)
 
@@ -2142,6 +2166,7 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
             return name
 
     def draw_export_options(self, layout):
+        refresh_version = bpy.context.scene.fast64.sm64.refresh_version
         split = layout.row(align=True)
 
         box = split.box()
@@ -2162,7 +2187,14 @@ class SM64_CombinedObjectProperties(bpy.types.PropertyGroup):
             if not self.export_all_selected:
                 box.prop(self, "graphics_object", icon_only=True)
             if self.export_script_loads:
-                box.prop(self, "model_id", text="Model ID")
+                # Hide Model ID for HackerSM64 >= 3, show otherwise
+                if refresh_version.startswith("HackerSM64"):
+                    major_version = int(refresh_version.split()[1].split(".")[0])
+                    if major_version < 3:
+                        box.prop(self, "model_id", text="Model ID")
+                else:
+                    box.prop(self, "model_id", text="Model ID")
+
         col = layout.column()
         col.prop(self, "export_all_selected")
         col.prop(self, "use_name_filtering")
