@@ -118,7 +118,7 @@ class DefaultDefinition:
 
 
 DEFAULTS = [
-    DefaultDefinition(["NodeSocketFloat"], {"default_value": 0.0}),  # broken?
+    DefaultDefinition(["NodeSocketFloat"], {"default_value": 0.0}),
     DefaultDefinition(["NodeSocketInt"], {"default_value": 0}),
     DefaultDefinition(["NodeSocketVector", "NodeSocketVectorDirection"], {"default_value": (0.0, 0.0, 0.0)}),
     DefaultDefinition(["NodeSocketColor"], {"default_value": (0.0, 0.0, 0.0, 1.0)}),
@@ -271,6 +271,7 @@ def convert_to_3_2(owner: NodeSocket | Node):
     if bpy.app.version >= (4, 0, 0):
         if bl_idname == "NodeSocketVector" and getattr(owner, "subtype", "DIRECTION") == "DIRECTION":
             return "NodeSocketVectorDirection"
+    bl_idname = {"ShaderNodeMix": "ShaderNodeMixRGB"}.get(bl_idname, bl_idname)
     return bl_idname
 
 
@@ -283,6 +284,7 @@ def convert_from_3_2(bl_idname: str, data: dict):
         if bl_idname == "NodeSocketVectorDirection":
             data["subtype"] = "DIRECTION"
             return "NodeSocketVector"
+    bl_idname = {"ShaderNodeMixRGB": "ShaderNodeMix"}.get(bl_idname, bl_idname)
     return bl_idname
 
 
@@ -470,7 +472,9 @@ class SerializedNodeTree:
             for i, inp in enumerate(node.inputs):
                 serialized_node.inputs[i] = SerializedInputValue(get_attributes(inp, EXCLUDE_FROM_GROUP_INPUT_OUTPUT))
             for i, out in enumerate(node.outputs):
-                serialized_node.outputs[i] = serialized_out = SerializedOutputValue(get_attributes(out, EXCLUDE_FROM_GROUP_INPUT_OUTPUT))
+                serialized_node.outputs[i] = serialized_out = SerializedOutputValue(
+                    get_attributes(out, EXCLUDE_FROM_GROUP_INPUT_OUTPUT)
+                )
                 link: NodeLink
                 for link in out.links:
                     repeated_socket_name = any(
