@@ -1,5 +1,5 @@
 import logging
-import bpy, math, os
+import bpy, os
 from bpy.types import (
     Attribute,
     Context,
@@ -9,7 +9,6 @@ from bpy.types import (
     Material,
     Menu,
     Mesh,
-    NodeGroupOutput,
     NodeInputs,
     NodeLink,
     NodeSocket,
@@ -42,11 +41,7 @@ from .f3d_gbi import (
 )
 from .f3d_material_presets import *
 from ..utility import *
-from ..render_settings import (
-    Fast64RenderSettings_Properties,
-    update_scene_props_from_render_settings,
-    ManualUpdatePreviewOperator,
-)
+from ..render_settings import ManualUpdatePreviewOperator
 from .f3d_material_helpers import F3DMaterial_UpdateLock
 from .f3d_node_gen import create_f3d_nodes_in_material, update_f3d_materials
 from bpy.app.handlers import persistent
@@ -2510,12 +2505,11 @@ def add_f3d_mat_to_obj(obj: bpy.types.Object, material, index=None):
 def createF3DMat(obj: Object | None, preset="Shaded Solid", index=None):
     material = bpy.data.materials.new("f3d_material")
     try:
+        material.is_f3d = True
+        material.mat_ver = F3D_MAT_CUR_VERSION
         create_f3d_nodes_in_material(material)
         add_f3d_mat_to_obj(obj, material, index)
         update_preset_manual_v4(material, preset)
-
-        material.is_f3d = True
-        material.mat_ver = F3D_MAT_CUR_VERSION
         return material
     except Exception as exc:
         bpy.data.materials.remove(material)

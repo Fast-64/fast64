@@ -1,9 +1,9 @@
 import dataclasses
 import hashlib
 import json
-from pathlib import Path
 import time
 import traceback
+from pathlib import Path
 from typing import Any
 
 import bpy
@@ -22,12 +22,13 @@ from bpy.types import (
 from bpy.utils import register_class, unregister_class
 from mathutils import Color, Vector, Euler
 
+from ..render_settings import update_scene_props_from_render_settings
+
 from ..utility import PluginError, to_valid_file_name
 from ..operators import OperatorBase
 
 # Enable this to show the gather operator, this is a development feature
-SHOW_GATHER_OPERATOR = False
-INCLUDE_DEFAULT = True  # include default if link exists
+SHOW_GATHER_OPERATOR = True
 ALWAYS_RELOAD = False
 
 SERIALIZED_NODE_LIBRARY_PATH = Path(__file__).parent / "node_library" / "main.json"
@@ -145,7 +146,7 @@ def createOrUpdateSceneProperties():
                 group.outputs.remove(out)
         new_group = group
     else:
-        logger.info("Creating Scene Properties")
+        print("Creating Scene Properties")
         # create a group
         new_group = bpy.data.node_groups.new("SceneProperties", "ShaderNodeTree")
         # create group outputs
@@ -466,10 +467,7 @@ class SerializedNodeTree:
             self.nodes[node.name] = serialized_node
         for serialized_node, node in zip(self.nodes.values(), node_tree.nodes):
             for i, inp in enumerate(node.inputs):
-                exclude = EXCLUDE_FROM_GROUP_INPUT_OUTPUT
-                if not INCLUDE_DEFAULT and inp.links:
-                    exclude = exclude + ("default_value",)
-                serialized_node.inputs[i] = SerializedInputValue(get_attributes(inp, exclude))
+                serialized_node.inputs[i] = SerializedInputValue(get_attributes(inp, EXCLUDE_FROM_GROUP_INPUT_OUTPUT))
             for i, out in enumerate(node.outputs):
                 serialized_out = SerializedOutputValue(get_attributes(out, EXCLUDE_FROM_GROUP_INPUT_OUTPUT))
                 serialized_node.outputs[i] = serialized_out
@@ -753,13 +751,13 @@ def generate_f3d_node_groups():
 def create_f3d_nodes_in_material(material: Material):
     from .f3d_material import update_all_node_values
 
+    material.use_nodes = True
     generate_f3d_node_groups()
     new_nodes = create_nodes(material.node_tree, SERIALIZED_NODE_LIBRARY)
     set_values_and_create_links(material.node_tree, SERIALIZED_NODE_LIBRARY, new_nodes)
     createScenePropertiesForMaterial(material)
     with bpy.context.temp_override(material=material):
         update_all_node_values(material, bpy.context)
-    material.use_nodes = True
 
 
 def update_f3d_materials():
