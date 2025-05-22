@@ -1,5 +1,6 @@
 import bpy
 import math
+import struct
 
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
@@ -125,7 +126,14 @@ class CutsceneData:
             return hex(r & 0xFFFF)
 
         rotXYZ = [conv(obj.rotation_euler[0]), conv(obj.rotation_euler[2]), conv(obj.rotation_euler[1])]
-        return [f"DEG_TO_BINANG({(int(rot, base=16) * (180 / 0x8000)):.3f}f)" for rot in rotXYZ]
+
+        rotations = []
+        for rot in rotXYZ:
+            rot_float = int(rot, 16) * (180 / 0x8000)
+            rot_ieee = f"0x{struct.unpack('<I', struct.pack('<f', rot_float))[0]:X}"
+            rotations.append(f"CS_FLOAT({rot_ieee}, {rot_float:.3f}f)")
+
+        return rotations
 
     def getOoTPosition(self, pos):
         """Returns the converted Blender position"""
