@@ -50,7 +50,9 @@ def ootCutsceneIncludes(headerfilename):
             + '#include "sequence.h"\n'
             + '#include "z64math.h"\n'
             + '#include "z64cutscene.h"\n'
-            + '#include "z64cutscene_commands.h"\n\n'
+            + '#include "z64cutscene_commands.h"\n'
+            + '#include "z64ocarina.h"\n'
+            + '#include "z64player.h"\n\n'
         )
 
     if len(headerfilename) > 0:
