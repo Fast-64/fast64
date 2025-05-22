@@ -1,0 +1,147 @@
+{
+	"name": "ShiftValue",
+	"nodes": {
+		"Math.032": {
+			"bl_idname": "ShaderNodeMath",
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				-10.330159187316895,
+				121.18245697021484
+			],
+			"operation": "MULTIPLY",
+			"use_clamp": false,
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Group Output",
+							"socket": "Value"
+						}
+					]
+				}
+			}
+		},
+		"Math.025": {
+			"bl_idname": "ShaderNodeMath",
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				-188.5537109375,
+				143.35400390625
+			],
+			"operation": "POWER",
+			"use_clamp": false,
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 2.0
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Math.032",
+							"socket": 0
+						}
+					]
+				}
+			}
+		},
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"is_active_output": true,
+			"location": [
+				158.1840057373047,
+				121.12532806396484
+			],
+			"width": 140.0
+		},
+		"Group Input": {
+			"bl_idname": "NodeGroupInput",
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				-369.6804504394531,
+				42.9698486328125
+			],
+			"width": 140.0,
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Math.025",
+							"socket": 1
+						}
+					]
+				},
+				"1": {
+					"default_value": 0.5,
+					"links": [
+						{
+							"node": "Math.032",
+							"socket": 1
+						}
+					]
+				}
+			}
+		}
+	},
+	"inputs": [
+		{
+			"max_value": 2147483647,
+			"min_value": -2147483648,
+			"name": "Shift",
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"default_value": 0.5,
+			"max_value": 10000.0,
+			"min_value": -10000.0,
+			"name": "Value",
+			"bl_idname": "NodeSocketFloat"
+		}
+	],
+	"outputs": [
+		{
+			"name": "Value",
+			"bl_idname": "NodeSocketFloat"
+		}
+	],
+	"cached_hash": "cd664e4c67149e653d544eb716d14560"
+}

@@ -1,0 +1,318 @@
+{
+	"name": "CombinerInputs",
+	"nodes": {
+		"Group Input": {
+			"bl_idname": "NodeGroupInput",
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				53.06634521484375,
+				374.1952209472656
+			],
+			"width": 140.0,
+			"outputs": {
+				"0": {
+					"default_value": [
+						0.37967580556869507,
+						0.3347793221473694,
+						0.02971581742167473,
+						0.19903472065925598
+					],
+					"links": [
+						{
+							"node": "Group Output",
+							"socket": "Env Color"
+						}
+					]
+				},
+				"1": {
+					"links": [
+						{
+							"node": "Group Output",
+							"socket": "Env Alpha"
+						}
+					]
+				},
+				"2": {
+					"default_value": [
+						1.0,
+						1.0,
+						1.0,
+						1.0
+					],
+					"links": [
+						{
+							"node": "Group Output",
+							"socket": "Prim Color"
+						}
+					]
+				},
+				"3": {
+					"links": [
+						{
+							"node": "Group Output",
+							"socket": "Prim Alpha"
+						}
+					]
+				},
+				"4": {
+					"links": [
+						{
+							"node": "Group Output",
+							"socket": "Chroma Key Center"
+						}
+					]
+				},
+				"5": {
+					"links": [
+						{
+							"node": "Group Output",
+							"socket": "Chroma Key Scale"
+						}
+					]
+				},
+				"6": {
+					"links": [
+						{
+							"node": "Group Output",
+							"socket": "LOD Fraction"
+						}
+					]
+				},
+				"7": {
+					"links": [
+						{
+							"node": "Group Output",
+							"socket": "Prim LOD Fraction"
+						}
+					]
+				},
+				"8": {
+					"links": [
+						{
+							"node": "Group Output",
+							"socket": "YUVConvert K4"
+						}
+					]
+				},
+				"9": {
+					"links": [
+						{
+							"node": "Group Output",
+							"socket": "YUVConvert K5"
+						}
+					]
+				},
+				"10": {
+					"links": [
+						{
+							"node": "Group",
+							"socket": "RandomizationFactor"
+						}
+					]
+				}
+			}
+		},
+		"Group": {
+			"bl_idname": "ShaderNodeGroup",
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				234.44915771484375,
+				125.9739990234375
+			],
+			"node_tree": {
+				"serialized_type": "NodeTree",
+				"name": "F3DNoiseGeneration"
+			},
+			"width": 204.65713500976562,
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Group Output",
+							"socket": "Noise"
+						}
+					]
+				}
+			}
+		},
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"is_active_output": true,
+			"location": [
+				488.1629333496094,
+				395.643310546875
+			],
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 1.0,
+					"hide_value": true
+				},
+				"1": {
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					]
+				},
+				"3": {
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					]
+				}
+			}
+		}
+	},
+	"inputs": [
+		{
+			"default_value": [
+				0.37967580556869507,
+				0.3347793221473694,
+				0.02971581742167473,
+				0.19903472065925598
+			],
+			"name": "Env Color",
+			"bl_idname": "NodeSocketColor"
+		},
+		{
+			"name": "Env Alpha",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"default_value": [
+				1.0,
+				1.0,
+				1.0,
+				1.0
+			],
+			"name": "Prim Color",
+			"bl_idname": "NodeSocketColor"
+		},
+		{
+			"name": "Prim Alpha",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"default_value": [
+				1.0,
+				1.0,
+				1.0,
+				1.0
+			],
+			"name": "Chroma Key Center",
+			"bl_idname": "NodeSocketColor"
+		},
+		{
+			"name": "Chroma Key Scale",
+			"bl_idname": "NodeSocketColor"
+		},
+		{
+			"name": "LOD Fraction",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"name": "Prim LOD Fraction",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"name": "YUVConvert K4",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"name": "YUVConvert K5",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"name": "Noise Factor",
+			"bl_idname": "NodeSocketFloat"
+		}
+	],
+	"outputs": [
+		{
+			"default_value": 1.000100016593933,
+			"hide_value": true,
+			"max_value": 1.0,
+			"min_value": 1.0,
+			"name": "1",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"default_value": [
+				0.0,
+				0.0,
+				0.0,
+				0.0
+			],
+			"name": "Env Color",
+			"bl_idname": "NodeSocketColor"
+		},
+		{
+			"max_value": 0.0,
+			"min_value": 0.0,
+			"name": "Env Alpha",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"default_value": [
+				0.0,
+				0.0,
+				0.0,
+				0.0
+			],
+			"name": "Prim Color",
+			"bl_idname": "NodeSocketColor"
+		},
+		{
+			"max_value": 0.0,
+			"min_value": 0.0,
+			"name": "Prim Alpha",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"name": "Chroma Key Center",
+			"bl_idname": "NodeSocketColor"
+		},
+		{
+			"name": "Chroma Key Scale",
+			"bl_idname": "NodeSocketColor"
+		},
+		{
+			"name": "LOD Fraction",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"name": "Prim LOD Fraction",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"name": "YUVConvert K4",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"name": "YUVConvert K5",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"name": "Noise",
+			"bl_idname": "NodeSocketFloat"
+		}
+	],
+	"cached_hash": "d691f6529a14368bde81504f61afa1de"
+}

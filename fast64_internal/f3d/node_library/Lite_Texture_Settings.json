@@ -1,0 +1,455 @@
+{
+	"name": "Lite Texture Settings",
+	"nodes": {
+		"Math.003": {
+			"bl_idname": "ShaderNodeMath",
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				-277.6490783691406,
+				288.7588806152344
+			],
+			"operation": "MULTIPLY_ADD",
+			"use_clamp": false,
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": -1.0
+				},
+				"2": {
+					"default_value": 1.0
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Reroute",
+							"socket": "Input"
+						}
+					]
+				}
+			}
+		},
+		"Reroute.002": {
+			"bl_idname": "NodeReroute",
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				-108.689697265625,
+				55.29496383666992
+			],
+			"width": 16.0,
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Group.005",
+							"socket": "Tex Coordinate"
+						}
+					]
+				}
+			}
+		},
+		"Reroute": {
+			"bl_idname": "NodeReroute",
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				-108.68953704833984,
+				253.6821746826172
+			],
+			"width": 16.0,
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Reroute.002",
+							"socket": "Input"
+						}
+					]
+				}
+			}
+		},
+		"Combine XYZ": {
+			"bl_idname": "ShaderNodeCombineXYZ",
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				340.6651306152344,
+				381.339599609375
+			],
+			"width": 140.0,
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Group Output",
+							"socket": "UV"
+						}
+					]
+				}
+			}
+		},
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"is_active_output": true,
+			"location": [
+				497.1575622558594,
+				381.304443359375
+			],
+			"width": 140.0
+		},
+		"Reroute.026": {
+			"bl_idname": "NodeReroute",
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				315.945068359375,
+				299.7303771972656
+			],
+			"width": 16.0,
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Combine XYZ",
+							"socket": "Y"
+						}
+					]
+				}
+			}
+		},
+		"Reroute.027": {
+			"bl_idname": "NodeReroute",
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				315.945068359375,
+				322.0879821777344
+			],
+			"width": 16.0,
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Combine XYZ",
+							"socket": "X"
+						}
+					]
+				}
+			}
+		},
+		"Math.001": {
+			"bl_idname": "ShaderNodeMath",
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				146.7432403564453,
+				222.6727752685547
+			],
+			"operation": "MULTIPLY",
+			"use_clamp": false,
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": -1.0
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Reroute.003",
+							"socket": "Input"
+						}
+					]
+				}
+			}
+		},
+		"Reroute.003": {
+			"bl_idname": "NodeReroute",
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				315.9451599121094,
+				187.4403533935547
+			],
+			"width": 16.0,
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Reroute.026",
+							"socket": "Input"
+						}
+					]
+				}
+			}
+		},
+		"Group.005": {
+			"bl_idname": "ShaderNodeGroup",
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				-83.787109375,
+				143.541748046875
+			],
+			"node_tree": {
+				"serialized_type": "NodeTree",
+				"name": "TileSettings_Lite"
+			},
+			"width": 199.55996704101562,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"3": {
+					"default_value": 32.0
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Math.001",
+							"socket": 0
+						}
+					]
+				}
+			}
+		},
+		"Reroute.001": {
+			"bl_idname": "NodeReroute",
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				-427.7146301269531,
+				283.98052978515625
+			],
+			"width": 16.0,
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Math.003",
+							"socket": 0
+						}
+					]
+				}
+			}
+		},
+		"Group Input": {
+			"bl_idname": "NodeGroupInput",
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				-764.3580932617188,
+				406.41357421875
+			],
+			"width": 140.0,
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Group.006",
+							"socket": "Tex Coordinate"
+						}
+					]
+				},
+				"1": {
+					"links": [
+						{
+							"node": "Group.006",
+							"socket": "Clamp"
+						}
+					]
+				},
+				"2": {
+					"links": [
+						{
+							"node": "Group.006",
+							"socket": "Mirror"
+						}
+					]
+				},
+				"3": {
+					"links": [
+						{
+							"node": "Group.006",
+							"socket": "Length"
+						}
+					]
+				},
+				"4": {
+					"links": [
+						{
+							"node": "Reroute.001",
+							"socket": "Input"
+						}
+					]
+				},
+				"5": {
+					"links": [
+						{
+							"node": "Group.005",
+							"socket": "Clamp"
+						}
+					]
+				},
+				"6": {
+					"links": [
+						{
+							"node": "Group.005",
+							"socket": "Mirror"
+						}
+					]
+				},
+				"7": {
+					"links": [
+						{
+							"node": "Group.005",
+							"socket": "Length"
+						}
+					]
+				}
+			}
+		},
+		"Group.006": {
+			"bl_idname": "ShaderNodeGroup",
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				-86.1416015625,
+				461.908447265625
+			],
+			"node_tree": {
+				"serialized_type": "NodeTree",
+				"name": "TileSettings_Lite"
+			},
+			"width": 202.857666015625,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"3": {
+					"default_value": 32.0
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Reroute.027",
+							"socket": "Input"
+						}
+					]
+				}
+			}
+		}
+	},
+	"inputs": [
+		{
+			"name": "X",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"max_value": 1,
+			"min_value": 0,
+			"name": "S Clamp",
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"max_value": 1,
+			"min_value": 0,
+			"name": "S Mirror",
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"max_value": 2147483647,
+			"min_value": -2147483648,
+			"name": "Width",
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"name": "Y",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"max_value": 1,
+			"min_value": 0,
+			"name": "T Clamp",
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"max_value": 1,
+			"min_value": 0,
+			"name": "T Mirror",
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"max_value": 2147483647,
+			"min_value": -2147483648,
+			"name": "Height",
+			"bl_idname": "NodeSocketInt"
+		}
+	],
+	"outputs": [
+		{
+			"name": "UV",
+			"bl_idname": "NodeSocketVector"
+		}
+	],
+	"cached_hash": "845494e9c9b2cfb5e514f0aae49c6d11"
+}
