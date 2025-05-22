@@ -3,166 +3,153 @@
 	"nodes": {
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"is_active_output": true,
-				"location": [
-					-368.5321350097656,
-					-84.72103118896484
-				],
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": [
-							0.0,
-							0.0,
-							0.0,
-							0.0
-						],
-						"hide_value": true
-					}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"is_active_output": true,
+			"location": [
+				-368.5321350097656,
+				-84.72103118896484
+			],
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
+					"hide_value": true
 				},
-				{
-					"data": {
-						"default_value": 0.5,
-						"hide_value": true
-					}
-				},
-				{
-					"data": {}
+				"1": {
+					"default_value": 0.5,
+					"hide_value": true
 				}
-			]
+			}
 		},
 		"Group": {
 			"bl_idname": "ShaderNodeGroup",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"hide": true,
-				"location": [
-					-566.2080688476562,
-					-109.4384765625
-				],
-				"node_tree": {
-					"serialized_type": "NodeTree",
-					"name": "Gamma Correct Fast64"
-				},
-				"width": 168.2958984375
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": [
-							0.800000011920929,
-							0.800000011920929,
-							0.800000011920929,
-							1.0
-						]
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Group Output",
-						"socket": "Color"
-					}
-				]
-			]
+			"hide": true,
+			"location": [
+				-566.2080688476562,
+				-109.4384765625
+			],
+			"node_tree": {
+				"serialized_type": "NodeTree",
+				"name": "Gamma Correct Fast64"
+			},
+			"width": 168.2958984375,
+			"inputs": {
+				"0": {
+					"default_value": [
+						0.800000011920929,
+						0.800000011920929,
+						0.800000011920929,
+						1.0
+					]
+				}
+			},
+			"outputs": {
+				"0": {
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
+					"links": [
+						{
+							"node": "Group Output",
+							"socket": "Color"
+						}
+					]
+				}
+			}
 		},
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-736.4276733398438,
-					-84.4582290649414
-				],
-				"width": 140.0
-			},
-			"outputs": [
-				[
-					{
-						"node": "Group",
-						"socket": "Color"
-					}
-				],
-				[
-					{
-						"node": "Group Output",
-						"socket": "Alpha"
-					}
-				],
-				[]
-			]
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				-736.4276733398438,
+				-84.4582290649414
+			],
+			"width": 140.0,
+			"outputs": {
+				"0": {
+					"default_value": [
+						0.5,
+						0.5,
+						0.5,
+						1.0
+					],
+					"hide_value": true,
+					"links": [
+						{
+							"node": "Group",
+							"socket": "Color"
+						}
+					]
+				},
+				"1": {
+					"hide_value": true,
+					"links": [
+						{
+							"node": "Group Output",
+							"socket": "Alpha"
+						}
+					]
+				}
+			}
 		}
 	},
 	"inputs": [
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": [
-					0.5,
-					0.5,
-					0.5,
-					1.0
-				],
-				"hide_value": true
-			},
+			"default_value": [
+				0.5,
+				0.5,
+				0.5,
+				1.0
+			],
+			"hide_value": true,
 			"name": "Color",
 			"bl_idname": "NodeSocketColor"
 		},
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 0.0,
-				"hide_value": true,
-				"max_value": 3.4028234663852886e+38,
-				"min_value": -3.4028234663852886e+38
-			},
+			"hide_value": true,
 			"name": "Alpha",
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
 	"outputs": [
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": [
-					0.0,
-					0.0,
-					0.0,
-					0.0
-				],
-				"hide_value": true
-			},
+			"default_value": [
+				0.0,
+				0.0,
+				0.0,
+				0.0
+			],
+			"hide_value": true,
 			"name": "Color",
 			"bl_idname": "NodeSocketColor"
 		},
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 0.5,
-				"hide_value": true,
-				"max_value": 3.4028234663852886e+38,
-				"min_value": -3.4028234663852886e+38
-			},
+			"default_value": 0.5,
+			"hide_value": true,
 			"name": "Alpha",
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "d2e040248fa563debe8ed90f774c37ac"
+	"cached_hash": "708630c80aa6214e0fe67bbc37c45255"
 }

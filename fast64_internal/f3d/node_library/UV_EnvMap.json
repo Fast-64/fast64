@@ -3,180 +3,155 @@
 	"nodes": {
 		"Vector Transform": {
 			"bl_idname": "ShaderNodeVectorTransform",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"convert_from": "WORLD",
-				"convert_to": "CAMERA",
-				"location": [
-					13.42559814453125,
-					12.2403564453125
-				],
-				"vector_type": "NORMAL",
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": [
-							0.5,
-							0.5,
-							0.5
-						]
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Mapping",
-						"socket": "Vector"
-					}
-				]
-			]
+			"convert_from": "WORLD",
+			"convert_to": "CAMERA",
+			"location": [
+				13.42559814453125,
+				12.2403564453125
+			],
+			"vector_type": "NORMAL",
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": [
+						0.5,
+						0.5,
+						0.5
+					]
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Mapping",
+							"socket": "Vector"
+						}
+					]
+				}
+			}
 		},
 		"Mapping": {
 			"bl_idname": "ShaderNodeMapping",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					170.86309814453125,
-					62.3997802734375
-				],
-				"vector_type": "POINT",
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": [
-							0.0,
-							0.0,
-							0.0
-						]
-					}
-				},
-				{
-					"data": {
-						"default_value": [
-							0.5,
-							0.5,
-							0.0
-						]
-					}
-				},
-				{
-					"data": {
-						"default_value": [
-							0.0,
-							0.0,
-							0.0
-						]
-					}
-				},
-				{
-					"data": {
-						"default_value": [
-							0.5,
-							0.5,
-							1.0
-						]
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Group Output",
-						"socket": "Vector"
-					}
-				]
-			]
+			"location": [
+				170.86309814453125,
+				62.3997802734375
+			],
+			"vector_type": "POINT",
+			"width": 140.0,
+			"inputs": {
+				"1": {
+					"default_value": [
+						0.5,
+						0.5,
+						0.0
+					]
+				},
+				"2": {
+					"default_value": [
+						0.0,
+						0.0,
+						0.0
+					]
+				},
+				"3": {
+					"default_value": [
+						0.5,
+						0.5,
+						1.0
+					]
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Group Output",
+							"socket": "Vector"
+						}
+					]
+				}
+			}
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"is_active_output": true,
-				"location": [
-					360.86309814453125,
-					-0.0
-				],
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": [
-							0.0,
-							0.0,
-							0.0
-						]
-					}
-				},
-				{
-					"data": {}
-				}
-			]
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"is_active_output": true,
+			"location": [
+				360.86309814453125,
+				-0.0
+			],
+			"width": 140.0
 		},
 		"Geometry": {
 			"bl_idname": "ShaderNodeNewGeometry",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-149.798828125,
-					-93.01751708984375
-				],
-				"width": 140.0
-			},
-			"outputs": [
-				[],
-				[
-					{
-						"node": "Vector Transform",
-						"socket": "Vector"
-					}
-				],
-				[],
-				[],
-				[],
-				[],
-				[],
-				[],
-				[]
-			]
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				-149.798828125,
+				-93.01751708984375
+			],
+			"width": 140.0,
+			"outputs": {
+				"0": {
+					"hide": true
+				},
+				"1": {
+					"links": [
+						{
+							"node": "Vector Transform",
+							"socket": "Vector"
+						}
+					]
+				},
+				"2": {
+					"hide": true
+				},
+				"3": {
+					"hide": true
+				},
+				"4": {
+					"hide": true
+				},
+				"5": {
+					"hide": true
+				},
+				"6": {
+					"hide": true
+				},
+				"7": {
+					"hide": true
+				},
+				"8": {
+					"hide": true
+				}
+			}
 		}
 	},
 	"outputs": [
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": [
-					0.0,
-					0.0,
-					0.0
-				],
-				"max_value": 0.0,
-				"min_value": 0.0
-			},
+			"max_value": 0.0,
+			"min_value": 0.0,
 			"name": "Vector",
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "48a6d8ea2e8d26dc58c9d760e1de341f"
+	"cached_hash": "55704963ee67f7c316083c81338697bd"
 }

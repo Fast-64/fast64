@@ -3,302 +3,216 @@
 	"nodes": {
 		"Separate XYZ": {
 			"bl_idname": "ShaderNodeSeparateXYZ",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-182.27847290039062,
-					43.06315612792969
-				],
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": [
-							0.0,
-							0.0,
-							0.0
-						]
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Clamp.001",
-						"socket": "Value"
-					}
-				],
-				[
-					{
-						"node": "Clamp.002",
-						"socket": "Value"
-					}
-				],
-				[
-					{
-						"node": "Clamp.003",
-						"socket": "Value"
-					}
-				]
-			]
+			"location": [
+				-182.27847290039062,
+				43.06315612792969
+			],
+			"width": 140.0,
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Clamp.001",
+							"socket": "Value"
+						}
+					]
+				},
+				"1": {
+					"links": [
+						{
+							"node": "Clamp.002",
+							"socket": "Value"
+						}
+					]
+				},
+				"2": {
+					"links": [
+						{
+							"node": "Clamp.003",
+							"socket": "Value"
+						}
+					]
+				}
+			}
 		},
 		"Clamp.003": {
 			"bl_idname": "ShaderNodeClamp",
-			"data": {
-				"clamp_type": "MINMAX",
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"hide": true,
-				"location": [
-					0.4783935546875,
-					-56.46055603027344
-				],
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 1.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 1.0
-					}
-				}
+			"clamp_type": "MINMAX",
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Combine XYZ",
-						"socket": "Z"
-					}
-				]
-			]
+			"hide": true,
+			"location": [
+				0.4783935546875,
+				-56.46055603027344
+			],
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 1.0
+				},
+				"2": {
+					"default_value": 1.0
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Combine XYZ",
+							"socket": "Z"
+						}
+					]
+				}
+			}
 		},
 		"Combine XYZ": {
 			"bl_idname": "ShaderNodeCombineXYZ",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					182.2784423828125,
-					56.46055603027344
-				],
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Group Output",
-						"socket": "Vector"
-					}
-				]
-			]
+			"location": [
+				182.2784423828125,
+				56.46055603027344
+			],
+			"width": 140.0,
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Group Output",
+							"socket": "Vector"
+						}
+					]
+				}
+			}
 		},
 		"Clamp.002": {
 			"bl_idname": "ShaderNodeClamp",
-			"data": {
-				"clamp_type": "MINMAX",
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"hide": true,
-				"location": [
-					-0.478515625,
-					-15.311325073242188
-				],
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 1.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 1.0
-					}
-				}
+			"clamp_type": "MINMAX",
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Combine XYZ",
-						"socket": "Y"
-					}
-				]
-			]
+			"hide": true,
+			"location": [
+				-0.478515625,
+				-15.311325073242188
+			],
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 1.0
+				},
+				"2": {
+					"default_value": 1.0
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Combine XYZ",
+							"socket": "Y"
+						}
+					]
+				}
+			}
 		},
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-382.2784729003906,
-					-0.0
-				],
-				"width": 140.0
-			},
-			"outputs": [
-				[
-					{
-						"node": "Separate XYZ",
-						"socket": "Vector"
-					}
-				],
-				[]
-			]
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				-382.2784729003906,
+				-0.0
+			],
+			"width": 140.0,
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Separate XYZ",
+							"socket": "Vector"
+						}
+					]
+				}
+			}
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"is_active_output": true,
-				"location": [
-					372.2784423828125,
-					-0.0
-				],
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": [
-							0.0,
-							0.0,
-							0.0
-						]
-					}
-				},
-				{
-					"data": {}
-				}
-			]
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"is_active_output": true,
+			"location": [
+				372.2784423828125,
+				-0.0
+			],
+			"width": 140.0
 		},
 		"Clamp.001": {
 			"bl_idname": "ShaderNodeClamp",
-			"data": {
-				"clamp_type": "MINMAX",
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"hide": true,
-				"location": [
-					-0.47845458984375,
-					24.880935668945312
-				],
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 1.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 1.0
-					}
-				}
+			"clamp_type": "MINMAX",
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Combine XYZ",
-						"socket": "X"
-					}
-				]
-			]
+			"hide": true,
+			"location": [
+				-0.47845458984375,
+				24.880935668945312
+			],
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 1.0
+				},
+				"2": {
+					"default_value": 1.0
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Combine XYZ",
+							"socket": "X"
+						}
+					]
+				}
+			}
 		}
 	},
 	"inputs": [
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": [
-					0.0,
-					0.0,
-					0.0
-				],
-				"max_value": 10000.0,
-				"min_value": -10000.0
-			},
+			"max_value": 10000.0,
+			"min_value": -10000.0,
 			"name": "Vector",
 			"bl_idname": "NodeSocketVector"
 		}
 	],
 	"outputs": [
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": [
-					0.0,
-					0.0,
-					0.0
-				],
-				"max_value": 3.4028234663852886e+38,
-				"min_value": -3.4028234663852886e+38
-			},
 			"name": "Vector",
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "9604cb2edbbe8954cae4fbb65231524f"
+	"cached_hash": "0a560c0b249246c31cfd48dace89400a"
 }

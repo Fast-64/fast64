@@ -3,714 +3,498 @@
 	"nodes": {
 		"Combine XY": {
 			"bl_idname": "ShaderNodeCombineXYZ",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"label": "Combine XY",
-				"location": [
-					-323.8419494628906,
-					24.57234764099121
-				],
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Vector Math.001",
-						"socket": 0
-					}
-				]
-			]
+			"label": "Combine XY",
+			"location": [
+				-323.8419494628906,
+				24.57234764099121
+			],
+			"width": 140.0,
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Vector Math.001",
+							"socket": 0
+						}
+					]
+				}
+			}
 		},
 		"Vector Math.001": {
 			"bl_idname": "ShaderNodeVectorMath",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-150.3199920654297,
-					80.34188079833984
-				],
-				"operation": "MULTIPLY",
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": [
-							0.0,
-							0.0,
-							0.0
-						]
-					}
-				},
-				{
-					"data": {
-						"default_value": [
-							-1.0,
-							1.0,
-							1.0
-						]
-					}
-				},
-				{
-					"data": {
-						"default_value": [
-							0.0,
-							0.0,
-							0.0
-						],
-						"enabled": false
-					}
-				},
-				{
-					"data": {
-						"default_value": 1.0,
-						"enabled": false
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Vector Math",
-						"socket": 1
-					}
-				],
-				[]
-			]
+			"location": [
+				-150.3199920654297,
+				80.34188079833984
+			],
+			"operation": "MULTIPLY",
+			"width": 140.0,
+			"inputs": {
+				"1": {
+					"default_value": [
+						-1.0,
+						1.0,
+						1.0
+					]
+				},
+				"2": {
+					"enabled": false
+				},
+				"3": {
+					"default_value": 1.0,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Vector Math",
+							"socket": 1
+						}
+					]
+				},
+				"1": {
+					"enabled": false
+				}
+			}
 		},
 		"Vector Math.002": {
 			"bl_idname": "ShaderNodeVectorMath",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"label": "ShiftIfEnabled",
-				"location": [
-					296.125,
-					-10.29638671875
-				],
-				"operation": "MULTIPLY",
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": [
-							0.0,
-							0.0,
-							0.0
-						]
-					}
-				},
-				{
-					"data": {
-						"default_value": [
-							0.0,
-							0.0,
-							0.0
-						]
-					}
-				},
-				{
-					"data": {
-						"default_value": [
-							0.0,
-							0.0,
-							0.0
-						],
-						"enabled": false
-					}
-				},
-				{
-					"data": {
-						"default_value": 1.0,
-						"enabled": false
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Vector Math.003",
-						"socket": 1
-					}
-				],
-				[]
-			]
+			"label": "ShiftIfEnabled",
+			"location": [
+				296.125,
+				-10.29638671875
+			],
+			"operation": "MULTIPLY",
+			"width": 140.0,
+			"inputs": {
+				"2": {
+					"enabled": false
+				},
+				"3": {
+					"default_value": 1.0,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Vector Math.003",
+							"socket": 1
+						}
+					]
+				},
+				"1": {
+					"enabled": false
+				}
+			}
 		},
 		"Combine XYZ.001": {
 			"bl_idname": "ShaderNodeCombineXYZ",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"label": "Combine UV",
-				"location": [
-					-148.7408905029297,
-					-137.2626953125
-				],
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Vector Math.003",
-						"socket": 0
-					}
-				]
-			]
+			"label": "Combine UV",
+			"location": [
+				-148.7408905029297,
+				-137.2626953125
+			],
+			"width": 140.0,
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Vector Math.003",
+							"socket": 0
+						}
+					]
+				}
+			}
 		},
 		"Separate XYZ": {
 			"bl_idname": "ShaderNodeSeparateXYZ",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					669.2013549804688,
-					-9.090495109558105
-				],
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": [
-							0.0,
-							0.0,
-							0.0
-						]
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Group Output",
-						"socket": "X"
-					}
-				],
-				[
-					{
-						"node": "Group Output",
-						"socket": "Y"
-					}
-				],
-				[]
-			]
+			"location": [
+				669.2013549804688,
+				-9.090495109558105
+			],
+			"width": 140.0,
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Group Output",
+							"socket": "X"
+						}
+					]
+				},
+				"1": {
+					"links": [
+						{
+							"node": "Group Output",
+							"socket": "Y"
+						}
+					]
+				},
+				"2": {
+					"hide": true
+				}
+			}
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"is_active_output": true,
-				"location": [
-					831.0712890625,
-					-9.340962409973145
-				],
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				},
-				{
-					"data": {}
-				}
-			]
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"is_active_output": true,
+			"location": [
+				831.0712890625,
+				-9.340962409973145
+			],
+			"width": 140.0
 		},
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-579.4421997070312,
-					-0.0
-				],
-				"width": 140.0
-			},
-			"outputs": [
-				[
-					{
-						"node": "Combine XY",
-						"socket": "X"
-					}
-				],
-				[
-					{
-						"node": "Combine XY",
-						"socket": "Y"
-					}
-				],
-				[
-					{
-						"node": "Combine XYZ.001",
-						"socket": "X"
-					}
-				],
-				[
-					{
-						"node": "Combine XYZ.001",
-						"socket": "Y"
-					}
-				],
-				[
-					{
-						"node": "Vector Math.002",
-						"socket": 1
-					}
-				],
-				[
-					{
-						"node": "Reroute.001",
-						"socket": "Input"
-					}
-				],
-				[
-					{
-						"node": "Reroute.003",
-						"socket": "Input"
-					}
-				],
-				[]
-			]
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				-579.4421997070312,
+				-0.0
+			],
+			"width": 140.0,
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Combine XY",
+							"socket": "X"
+						}
+					]
+				},
+				"1": {
+					"links": [
+						{
+							"node": "Combine XY",
+							"socket": "Y"
+						}
+					]
+				},
+				"2": {
+					"links": [
+						{
+							"node": "Combine XYZ.001",
+							"socket": "X"
+						}
+					]
+				},
+				"3": {
+					"links": [
+						{
+							"node": "Combine XYZ.001",
+							"socket": "Y"
+						}
+					]
+				},
+				"4": {
+					"links": [
+						{
+							"node": "Vector Math.002",
+							"socket": 1
+						}
+					]
+				},
+				"5": {
+					"links": [
+						{
+							"node": "Reroute.001",
+							"socket": "Input"
+						}
+					]
+				},
+				"6": {
+					"links": [
+						{
+							"node": "Reroute.003",
+							"socket": "Input"
+						}
+					]
+				}
+			}
 		},
 		"Reroute.001": {
 			"bl_idname": "NodeReroute",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-379.3497619628906,
-					-144.1663360595703
-				]
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Reroute",
-						"socket": "Input"
-					}
-				]
-			]
+			"location": [
+				-379.3497619628906,
+				-144.1663360595703
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Reroute",
+							"socket": "Input"
+						}
+					]
+				}
+			}
 		},
 		"Reroute": {
 			"bl_idname": "NodeReroute",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-379.3497619628906,
-					97.2086181640625
-				]
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "TexelOffset",
-						"socket": "X"
-					}
-				]
-			]
+			"location": [
+				-379.3497619628906,
+				97.2086181640625
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "TexelOffset",
+							"socket": "X"
+						}
+					]
+				}
+			}
 		},
 		"Reroute.002": {
 			"bl_idname": "NodeReroute",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-353.6243591308594,
-					75.20430755615234
-				]
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "TexelOffset",
-						"socket": "Y"
-					}
-				]
-			]
+			"location": [
+				-353.6243591308594,
+				75.20430755615234
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "TexelOffset",
+							"socket": "Y"
+						}
+					]
+				}
+			}
 		},
 		"Reroute.003": {
 			"bl_idname": "NodeReroute",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-353.6243591308594,
-					-166.7247772216797
-				]
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Reroute.002",
-						"socket": "Input"
-					}
-				]
-			]
+			"location": [
+				-353.6243591308594,
+				-166.7247772216797
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Reroute.002",
+							"socket": "Input"
+						}
+					]
+				}
+			}
 		},
 		"TexelOffset": {
 			"bl_idname": "ShaderNodeCombineXYZ",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"label": "TexelOffset",
-				"location": [
-					-324.7933044433594,
-					156.8214569091797
-				],
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Vector Math",
-						"socket": 0
-					}
-				]
-			]
+			"label": "TexelOffset",
+			"location": [
+				-324.7933044433594,
+				156.8214569091797
+			],
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Vector Math",
+							"socket": 0
+						}
+					]
+				}
+			}
 		},
 		"Vector Math": {
 			"bl_idname": "ShaderNodeVectorMath",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					55.119873046875,
-					189.84930419921875
-				],
-				"operation": "DIVIDE",
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": [
-							1.0,
-							1.0,
-							1.0
-						]
-					}
-				},
-				{
-					"data": {
-						"default_value": [
-							0.0,
-							0.0,
-							0.0
-						]
-					}
-				},
-				{
-					"data": {
-						"default_value": [
-							0.0,
-							0.0,
-							0.0
-						],
-						"enabled": false
-					}
-				},
-				{
-					"data": {
-						"default_value": 1.0,
-						"enabled": false
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Vector Math.002",
-						"socket": 0
-					}
-				],
-				[]
-			]
+			"location": [
+				55.119873046875,
+				189.84930419921875
+			],
+			"operation": "DIVIDE",
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": [
+						1.0,
+						1.0,
+						1.0
+					]
+				},
+				"2": {
+					"enabled": false
+				},
+				"3": {
+					"default_value": 1.0,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Vector Math.002",
+							"socket": 0
+						}
+					]
+				},
+				"1": {
+					"enabled": false
+				}
+			}
 		},
 		"Vector Math.003": {
 			"bl_idname": "ShaderNodeVectorMath",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					498.9051818847656,
-					-58.02132034301758
-				],
-				"operation": "SUBTRACT",
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": [
-							0.0,
-							0.0,
-							0.0
-						]
-					}
-				},
-				{
-					"data": {
-						"default_value": [
-							0.0,
-							0.0,
-							0.0
-						]
-					}
-				},
-				{
-					"data": {
-						"default_value": [
-							0.0,
-							0.0,
-							0.0
-						],
-						"enabled": false
-					}
-				},
-				{
-					"data": {
-						"default_value": 1.0,
-						"enabled": false
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Separate XYZ",
-						"socket": "Vector"
-					}
-				],
-				[]
-			]
+			"location": [
+				498.9051818847656,
+				-58.02132034301758
+			],
+			"operation": "SUBTRACT",
+			"width": 140.0,
+			"inputs": {
+				"2": {
+					"enabled": false
+				},
+				"3": {
+					"default_value": 1.0,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Separate XYZ",
+							"socket": "Vector"
+						}
+					]
+				},
+				"1": {
+					"enabled": false
+				}
+			}
 		}
 	},
 	"inputs": [
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 0.0,
-				"max_value": 10000.0,
-				"min_value": -10000.0
-			},
+			"max_value": 10000.0,
+			"min_value": -10000.0,
 			"name": "Width",
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 0.0,
-				"max_value": 10000.0,
-				"min_value": -10000.0
-			},
+			"max_value": 10000.0,
+			"min_value": -10000.0,
 			"name": "Height",
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 0.0,
-				"max_value": 10000.0,
-				"min_value": -10000.0
-			},
+			"max_value": 10000.0,
+			"min_value": -10000.0,
 			"name": "X",
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 0.0,
-				"max_value": 10000.0,
-				"min_value": -10000.0
-			},
+			"max_value": 10000.0,
+			"min_value": -10000.0,
 			"name": "Y",
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 0.0,
-				"max_value": 3.4028234663852886e+38,
-				"min_value": -3.4028234663852886e+38
-			},
 			"name": "Enable",
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 0.0,
-				"max_value": 3.4028234663852886e+38,
-				"min_value": -3.4028234663852886e+38
-			},
 			"name": "TexelOffsetX",
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 0.0,
-				"max_value": 3.4028234663852886e+38,
-				"min_value": -3.4028234663852886e+38
-			},
 			"name": "TexelOffsetY",
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
 	"outputs": [
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 0.0,
-				"max_value": 3.4028234663852886e+38,
-				"min_value": -3.4028234663852886e+38
-			},
 			"name": "X",
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 0.0,
-				"max_value": 3.4028234663852886e+38,
-				"min_value": -3.4028234663852886e+38
-			},
 			"name": "Y",
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "09588c873b3e78e0bc19ecf7e58ce42e"
+	"cached_hash": "09aa44bab46cea7ef8716937cc2b252b"
 }

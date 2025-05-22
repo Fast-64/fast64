@@ -3,519 +3,432 @@
 	"nodes": {
 		"Math.006": {
 			"bl_idname": "ShaderNodeMath",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"hide": true,
-				"location": [
-					-225.00531005859375,
-					-11.522308349609375
-				],
-				"operation": "MULTIPLY",
-				"use_clamp": false,
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5,
-						"enabled": false
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Math.008",
-						"socket": 0
-					}
-				]
-			]
+			"hide": true,
+			"location": [
+				-225.00531005859375,
+				-11.522308349609375
+			],
+			"operation": "MULTIPLY",
+			"use_clamp": false,
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Math.008",
+							"socket": 0
+						}
+					]
+				}
+			}
 		},
 		"Math.008": {
 			"bl_idname": "ShaderNodeMath",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"hide": true,
-				"location": [
-					-43.98406982421875,
-					-12.43255615234375
-				],
-				"operation": "MULTIPLY",
-				"use_clamp": false,
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5,
-						"enabled": false
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Math.010",
-						"socket": 0
-					}
-				]
-			]
+			"hide": true,
+			"location": [
+				-43.98406982421875,
+				-12.43255615234375
+			],
+			"operation": "MULTIPLY",
+			"use_clamp": false,
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Math.010",
+							"socket": 0
+						}
+					]
+				}
+			}
 		},
 		"Math.007": {
 			"bl_idname": "ShaderNodeMath",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"hide": true,
-				"location": [
-					-225.00531005859375,
-					-51.092193603515625
-				],
-				"operation": "MULTIPLY",
-				"use_clamp": false,
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5,
-						"enabled": false
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Math.009",
-						"socket": 1
-					}
-				]
-			]
+			"hide": true,
+			"location": [
+				-225.00531005859375,
+				-51.092193603515625
+			],
+			"operation": "MULTIPLY",
+			"use_clamp": false,
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Math.009",
+							"socket": 1
+						}
+					]
+				}
+			}
 		},
 		"Math.009": {
 			"bl_idname": "ShaderNodeMath",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"hide": true,
-				"location": [
-					-44.893798828125,
-					-51.092193603515625
-				],
-				"operation": "MULTIPLY",
-				"use_clamp": false,
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5,
-						"enabled": false
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Math.011",
-						"socket": 0
-					}
-				]
-			]
+			"hide": true,
+			"location": [
+				-44.893798828125,
+				-51.092193603515625
+			],
+			"operation": "MULTIPLY",
+			"use_clamp": false,
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Math.011",
+							"socket": 0
+						}
+					]
+				}
+			}
 		},
 		"Reroute.025": {
 			"bl_idname": "NodeReroute",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-61.969482421875,
-					-41.290496826171875
-				]
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Math.008",
-						"socket": 1
-					},
-					{
-						"node": "Math.009",
-						"socket": 0
-					}
-				]
-			]
+			"location": [
+				-61.969482421875,
+				-41.290496826171875
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Math.008",
+							"socket": 1
+						},
+						{
+							"node": "Math.009",
+							"socket": 0
+						}
+					]
+				}
+			}
 		},
 		"Math.005": {
 			"bl_idname": "ShaderNodeMath",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"hide": true,
-				"label": "Alpha - 1",
-				"location": [
-					-226.44476318359375,
-					27.319366455078125
-				],
-				"operation": "SUBTRACT",
-				"use_clamp": false,
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 1.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5,
-						"enabled": false
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Reroute.025",
-						"socket": "Input"
-					}
-				]
-			]
+			"hide": true,
+			"label": "Alpha - 1",
+			"location": [
+				-226.44476318359375,
+				27.319366455078125
+			],
+			"operation": "SUBTRACT",
+			"use_clamp": false,
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 1.0
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Reroute.025",
+							"socket": "Input"
+						}
+					]
+				}
+			}
 		},
 		"Reroute.024": {
 			"bl_idname": "NodeReroute",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-252.79071044921875,
-					-42.937652587890625
-				]
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Math.006",
-						"socket": 1
-					},
-					{
-						"node": "Math.007",
-						"socket": 0
-					}
-				]
-			]
+			"location": [
+				-252.79071044921875,
+				-42.937652587890625
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Math.006",
+							"socket": 1
+						},
+						{
+							"node": "Math.007",
+							"socket": 0
+						}
+					]
+				}
+			}
 		},
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-457.64453125,
-					50.1907958984375
-				],
-				"width": 140.0
-			},
-			"outputs": [
-				[
-					{
-						"node": "Math.005",
-						"socket": 0
-					}
-				],
-				[
-					{
-						"node": "Reroute.024",
-						"socket": "Input"
-					}
-				],
-				[
-					{
-						"node": "Math.006",
-						"socket": 0
-					}
-				],
-				[
-					{
-						"node": "Math.007",
-						"socket": 1
-					}
-				],
-				[]
-			]
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				-457.64453125,
+				50.1907958984375
+			],
+			"width": 140.0,
+			"outputs": {
+				"0": {
+					"default_value": 0.5,
+					"links": [
+						{
+							"node": "Math.005",
+							"socket": 0
+						}
+					]
+				},
+				"1": {
+					"default_value": 1,
+					"hide_value": true,
+					"links": [
+						{
+							"node": "Reroute.024",
+							"socket": "Input"
+						}
+					]
+				},
+				"2": {
+					"default_value": 0.5,
+					"links": [
+						{
+							"node": "Math.006",
+							"socket": 0
+						}
+					]
+				},
+				"3": {
+					"default_value": 0.5,
+					"links": [
+						{
+							"node": "Math.007",
+							"socket": 1
+						}
+					]
+				}
+			}
 		},
 		"Math.010": {
 			"bl_idname": "ShaderNodeMath",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"hide": true,
-				"label": "+ 1",
-				"location": [
-					119.375244140625,
-					-18.771636962890625
-				],
-				"operation": "ADD",
-				"use_clamp": false,
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 1.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5,
-						"enabled": false
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Group Output",
-						"socket": "AO Amb Factor"
-					}
-				]
-			]
+			"hide": true,
+			"label": "+ 1",
+			"location": [
+				119.375244140625,
+				-18.771636962890625
+			],
+			"operation": "ADD",
+			"use_clamp": false,
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 1.0
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Group Output",
+							"socket": "AO Amb Factor"
+						}
+					]
+				}
+			}
 		},
 		"Math.011": {
 			"bl_idname": "ShaderNodeMath",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"hide": true,
-				"label": "+ 1",
-				"location": [
-					119.375244140625,
-					-58.39190673828125
-				],
-				"operation": "ADD",
-				"use_clamp": false,
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 1.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5,
-						"enabled": false
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Group Output",
-						"socket": "AO Dir Factor"
-					}
-				]
-			]
+			"hide": true,
+			"label": "+ 1",
+			"location": [
+				119.375244140625,
+				-58.39190673828125
+			],
+			"operation": "ADD",
+			"use_clamp": false,
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 1.0
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Group Output",
+							"socket": "AO Dir Factor"
+						}
+					]
+				}
+			}
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"is_active_output": true,
-				"location": [
-					296.982177734375,
-					-0.984130859375
-				],
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				},
-				{
-					"data": {}
-				}
-			]
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"is_active_output": true,
+			"location": [
+				296.982177734375,
+				-0.984130859375
+			],
+			"width": 140.0
 		}
 	},
 	"inputs": [
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 0.5,
-				"max_value": 10000.0,
-				"min_value": -10000.0
-			},
+			"default_value": 0.5,
+			"max_value": 10000.0,
+			"min_value": -10000.0,
 			"name": "Vertex Alpha",
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 1,
-				"hide_value": true,
-				"max_value": 1,
-				"min_value": 0
-			},
+			"default_value": 1,
+			"hide_value": true,
+			"max_value": 1,
+			"min_value": 0,
 			"name": "G_AMBOCCLUSION",
 			"bl_idname": "NodeSocketInt"
 		},
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 0.5,
-				"max_value": 10000.0,
-				"min_value": -10000.0
-			},
+			"default_value": 0.5,
+			"max_value": 10000.0,
+			"min_value": -10000.0,
 			"name": "AO Ambient",
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 0.5,
-				"max_value": 10000.0,
-				"min_value": -10000.0
-			},
+			"default_value": 0.5,
+			"max_value": 10000.0,
+			"min_value": -10000.0,
 			"name": "AO Directional",
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
 	"outputs": [
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 0.0,
-				"max_value": 3.4028234663852886e+38,
-				"min_value": -3.4028234663852886e+38
-			},
 			"name": "AO Amb Factor",
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 0.0,
-				"max_value": 3.4028234663852886e+38,
-				"min_value": -3.4028234663852886e+38
-			},
 			"name": "AO Dir Factor",
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "607670c3b2832913d06abd1e38deaa7e"
+	"cached_hash": "7d4257ef5e2c8793f78ba0e09e94d194"
 }

@@ -82,7 +82,7 @@ EXCLUDE_FROM_GROUP_INPUT_OUTPUT = GENERAL_EXCLUDE + (
     "default_input",  # poorly documented, what does it do?
 )
 
-DEFAULTS = {
+GLOBAL_DEFAULTS = {
     "hide": False,
     "mute": False,
     "show_preview": False,
@@ -98,6 +98,11 @@ DEFAULTS = {
     "text": None,
     "hide_value": False,
     "subtype": "NONE",
+    "default_value": 0.0,
+    "attribute_domain": "POINT",
+    "clamp": False,
+    "max_value": 3.4028234663852886e38,
+    "min_value": -3.4028234663852886e38,
     # unused in shader nodes
     "hide_in_modifier": False,
     "force_non_field": False,
@@ -106,10 +111,32 @@ DEFAULTS = {
 }
 
 
-def convert_to_3_2(prop: NodeSocket | Node):
-    bl_idname = getattr(prop, "bl_idname", None) or getattr(prop, "bl_socket_idname", None)
+class DefaultDefinition:
+    def __init__(self, names: list[str], defaults: dict[str, Any]):
+        self.names = names
+        self.defaults = GLOBAL_DEFAULTS | defaults
+
+
+DEFAULTS = [
+    DefaultDefinition(["NodeSocketVector", "NodeSocketVectorDirection"], {"default_value": (0.0, 0.0, 0.0)}),
+    DefaultDefinition(["NodeSocketColor"], {"default_value": (0.0, 0.0, 0.0, 1.0)}),
+]
+DEFAULTS = {name: definition.defaults for definition in DEFAULTS for name in definition.names}
+
+
+def get_bl_idname(owner: object):
+    return getattr(owner, "bl_idname", None) or getattr(owner, "bl_socket_idname", None)
+
+
+def get_defaults_bl_idname(owner: object):
+    bl_idname = get_bl_idname(owner)
+    return DEFAULTS.get(bl_idname, GLOBAL_DEFAULTS)
+
+
+def convert_to_3_2(owner: NodeSocket | Node):
+    bl_idname = get_bl_idname(owner)
     if bpy.app.version >= (4, 0, 0):
-        if bl_idname == "NodeSocketVector" and prop.subtype == "DIRECTION":
+        if bl_idname == "NodeSocketVector" and owner.subtype == "DIRECTION":
             return "NodeSocketVectorDirection"
     return bl_idname
 
@@ -122,35 +149,36 @@ def convert_from_3_2(bl_idname: str, data: dict):
     return bl_idname
 
 
-def get_attributes(prop, excludes=None):
+def get_attributes(owner: object, excludes=None):
     data = {}
     excludes = excludes or []
-    attributes = [attr.identifier for attr in prop.bl_rna.properties if attr.identifier not in excludes]
+    attributes = [attr.identifier for attr in owner.bl_rna.properties if attr.identifier not in excludes]
+    defaults = get_defaults_bl_idname(owner)
 
     for attr in attributes:
-        value = getattr(prop, attr)
-        if attr not in DEFAULTS or value != DEFAULTS[attr]:
-            serialized_value = value
-            if isinstance(value, (Color, Vector, Euler)) or (hasattr(value, "__iter__") and type(value) is not str):
-                serialized_value = tuple(value)
-            elif isinstance(value, ColorRamp):
-                serialized_value = {
-                    "serialized_type": "ColorRamp",
-                    "color_mode": value.color_mode,
-                    "elements": [
-                        {"alpha": e.alpha, "color": tuple(e.color), "position": e.position} for e in value.elements
-                    ],
-                    "hue_interpolation": value.hue_interpolation,
-                    "interpolation": value.interpolation,
-                }
-            elif isinstance(value, (ColorMapping, TexMapping)):
-                serialized_value = {"serialized_type": "Default", "data": get_attributes(value, excludes)}
-            elif isinstance(value, NodeTree):
-                serialized_value = {"serialized_type": "NodeTree", "name": value.name}
-            elif isinstance(value, Node):
-                serialized_value = {"serialized_type": "Node", "name": value.name}
-            elif isinstance(value, int) and not isinstance(value, bool):
-                serialized_value = int(value)
+        value = getattr(owner, attr)
+        serialized_value = value
+        if isinstance(value, (Color, Vector, Euler)) or (hasattr(value, "__iter__") and type(value) is not str):
+            serialized_value = tuple(value)
+        elif isinstance(value, ColorRamp):
+            serialized_value = {
+                "serialized_type": "ColorRamp",
+                "color_mode": value.color_mode,
+                "elements": [
+                    {"alpha": e.alpha, "color": tuple(e.color), "position": e.position} for e in value.elements
+                ],
+                "hue_interpolation": value.hue_interpolation,
+                "interpolation": value.interpolation,
+            }
+        elif isinstance(value, (ColorMapping, TexMapping)):
+            serialized_value = {"serialized_type": "Default", "data": get_attributes(value, excludes)}
+        elif isinstance(value, NodeTree):
+            serialized_value = {"serialized_type": "NodeTree", "name": value.name}
+        elif isinstance(value, Node):
+            serialized_value = {"serialized_type": "Node", "name": value.name}
+        elif isinstance(value, int) and not isinstance(value, bool):
+            serialized_value = int(value)
+        if attr not in defaults or serialized_value != defaults[attr]:
             data[attr] = serialized_value
     return dict(sorted(data.items()))
 
@@ -174,10 +202,10 @@ class SerializedInputValue:
     data: dict[str, object] = dataclasses.field(default_factory=dict)
 
     def to_json(self):
-        return {"data": self.data}
+        return self.data if self.data else {}
 
     def from_json(self, data: dict):
-        self.data = data.get("data")
+        self.data = data
         return self
 
 
@@ -190,9 +218,25 @@ class SerializedGroupInputValue(SerializedInputValue):
         return super().to_json() | {"name": self.name, "bl_idname": self.bl_idname}
 
     def from_json(self, data: dict):
+        self.name = data.pop("name", None)
+        self.bl_idname = data.pop("bl_idname", None)
         super().from_json(data)
-        self.name = data.get("name")
-        self.bl_idname = data.get("bl_idname")
+        return self
+
+
+@dataclasses.dataclass
+class SerializedOutputValue(SerializedInputValue):
+    links: list[SerializedLink] = dataclasses.field(default_factory=list)
+
+    def to_json(self):
+        data = super().to_json()
+        if self.links:
+            data["links"] = [link.to_json() for link in self.links]
+        return data
+
+    def from_json(self, data: dict):
+        self.links = [SerializedLink().from_json(link) for link in data.pop("links", [])]
+        super().from_json(data)
         return self
 
 
@@ -200,24 +244,26 @@ class SerializedGroupInputValue(SerializedInputValue):
 class SerializedNode:
     bl_idname: str = ""
     data: dict[str, object] = dataclasses.field(default_factory=dict)
-    inputs: list[SerializedInputValue] = dataclasses.field(default_factory=list)
-    outputs: list[list[SerializedLink]] = dataclasses.field(default_factory=list)
+    inputs: dict[int, SerializedInputValue] = dataclasses.field(default_factory=dict)
+    outputs: dict[int, SerializedOutputValue] = dataclasses.field(default_factory=dict)
 
     def to_json(self):
-        data = {"bl_idname": self.bl_idname, "data": self.data}
-        if self.inputs:
-            data["inputs"] = [inp.to_json() for inp in self.inputs]
-        if self.outputs:
-            data["outputs"] = [[out.to_json() for out in outs] for outs in self.outputs]
+        data = {"bl_idname": self.bl_idname}
+        if self.data:
+            data.update(self.data)
+        inputs = {i: inp.to_json() for i, inp in self.inputs.items() if inp.data}
+        if inputs:
+            data["inputs"] = inputs
+        outputs = {i: out.to_json() for i, out in self.outputs.items() if out.data or out.links}
+        if outputs:
+            data["outputs"] = outputs
         return data
 
     def from_json(self, data: dict):
-        self.bl_idname = data["bl_idname"]
-        self.data = data["data"]
-        if "inputs" in data:
-            self.inputs = [SerializedInputValue().from_json(inp) for inp in data["inputs"]]
-        if "outputs" in data:
-            self.outputs = [[SerializedLink().from_json(out) for out in outs] for outs in data["outputs"]]
+        self.bl_idname = data.pop("bl_idname", None)
+        self.inputs = {int(i): SerializedInputValue().from_json(inp) for i, inp in data.pop("inputs", {}).items()}
+        self.outputs = {int(i): SerializedOutputValue().from_json(out) for i, out in data.pop("outputs", {}).items()}
+        self.data = data
         return self
 
 
@@ -257,12 +303,9 @@ class SerializedNodeTree:
     def from_json(self, data: dict):
         self.name = data["name"]
         self.nodes = {name: SerializedNode().from_json(node) for name, node in data["nodes"].items()}
-        if "links" in data:
-            self.links = [SerializedLink().from_json(link) for link in data["links"]]
-        if "inputs" in data:
-            self.inputs = [SerializedGroupInputValue().from_json(inp) for inp in data["inputs"]]
-        if "outputs" in data:
-            self.outputs = [SerializedGroupInputValue().from_json(out) for out in data["outputs"]]
+        self.links = [SerializedLink().from_json(link) for link in data.get("links", [])]
+        self.inputs = [SerializedGroupInputValue().from_json(inp) for inp in data.get("inputs", [])]
+        self.outputs = [SerializedGroupInputValue().from_json(out) for out in data.get("outputs", [])]
         self.cached_hash = data["cached_hash"]
         return self
 
@@ -287,14 +330,14 @@ class SerializedNodeTree:
             serialized_node = SerializedNode(node.bl_idname, get_attributes(node, EXCLUDE_FROM_NODE))
             self.nodes[node.name] = serialized_node
         for serialized_node, node in zip(self.nodes.values(), node_tree.nodes):
-            for inp in node.inputs:
+            for i, inp in enumerate(node.inputs):
                 exclude = EXCLUDE_FROM_GROUP_INPUT_OUTPUT
                 if not INCLUDE_DEFAULT and inp.links:
                     exclude = exclude + ("default_value",)
-                serialized_node.inputs.append(SerializedInputValue(get_attributes(inp, exclude)))
-            for out in node.outputs:
-                serialized_outputs = []
-                serialized_node.outputs.append(serialized_outputs)
+                serialized_node.inputs[i] = SerializedInputValue(get_attributes(inp, exclude))
+            for i, out in enumerate(node.outputs):
+                serialized_out = SerializedOutputValue(get_attributes(out, EXCLUDE_FROM_GROUP_INPUT_OUTPUT))
+                serialized_node.outputs[i] = serialized_out
                 link: NodeLink
                 for link in out.links:
                     repeated_socket_name = any(
@@ -303,7 +346,7 @@ class SerializedNodeTree:
                     index = link.to_socket.name
                     if repeated_socket_name:
                         index = list(link.to_node.inputs).index(link.to_socket)
-                    serialized_outputs.append(SerializedLink(link.to_node.name, index))
+                    serialized_out.links.append(SerializedLink(link.to_node.name, index))
         return self
 
 
@@ -443,6 +486,27 @@ def set_node_prop(prop: object, attr: str, value: object, nodes):
         raise Exception(f"Failed to set {attr} of {prop.name} to {value}: {exc}") from exc
 
 
+def set_attrs(owner: object, attrs: dict[str, object], nodes: dict[str, Node], excludes: set[str]):
+    defaults = get_defaults_bl_idname(owner)
+    for attr, value in attrs.items():
+        try:
+            set_node_prop(owner, attr, value, nodes)
+        except Exception as exc:
+            print(f'Failed to set "{attr}" to "{value}": {exc}')
+    for key, value in defaults.items():
+        if hasattr(owner, key) and key not in attrs and key not in excludes:
+            try:
+                if isinstance(value, tuple):
+                    value = list(value)
+                elif isinstance(getattr(owner, key), int):
+                    value = int(value)
+                elif isinstance(getattr(owner, key), float):
+                    value = float(value)
+                set_node_prop(owner, key, value, nodes)
+            except Exception as exc:
+                print(f'Failed to set default value for "{key}" ("{value}"): {exc}')
+
+
 def set_values_and_create_links(
     node_tree: ShaderNodeTree, serialized_node_tree: SerializedNodeTree, new_nodes: list[Node]
 ):
@@ -450,37 +514,36 @@ def set_values_and_create_links(
 
     for node, serialized_node in zip(new_nodes, serialized_node_tree.nodes.values()):
         try:
-            for attr, value in serialized_node.data.items():
-                set_node_prop(node, attr, value, nodes)
+            set_attrs(node, serialized_node.data, nodes, EXCLUDE_FROM_NODE)
             node.update()
         except Exception as exc:
-            print(f"Failed to set values for node {node.name}: {exc}")
+            print(f'Failed to set values for node "{node.name}": {exc}')
     if hasattr(node_tree, "update"):
         node_tree.update()
     for serialized_node, node in zip(serialized_node_tree.nodes.values(), new_nodes):
-        for i, serialized_inp in enumerate(serialized_node.inputs):
+        for i, serialized_inp in serialized_node.inputs.items():
             name = str(i)
             try:
                 inp = node.inputs[i]
                 name = inp.name
-                for attr, value in serialized_inp.data.items():
-                    set_node_prop(inp, attr, value, nodes)
+                set_attrs(inp, serialized_inp.data, nodes, EXCLUDE_FROM_GROUP_INPUT_OUTPUT)
             except Exception as exc:
-                print(f"Failed to set default values for input {name} of node {node.name}: {exc}")
-        for i, serialized_outs in enumerate(serialized_node.outputs):
+                print(f'Failed to set default values for input "{name}" of node "{node.name}": {exc}')
+        for i, serialized_out in serialized_node.outputs.items():
+            name = str(i)
             try:
-                name = str(i)
                 out = node.outputs[i]
-                for serialized_out in serialized_outs:
+                name = out.name
+                set_attrs(out, serialized_out.data, nodes, EXCLUDE_FROM_GROUP_INPUT_OUTPUT)
+                for serialized_link in serialized_out.links:
                     try:
-                        name = out.name
-                        links.new(nodes[serialized_out.node].inputs[serialized_out.socket], out)
+                        links.new(nodes[serialized_link.node].inputs[serialized_link.socket], out)
                     except Exception as exc:
                         print(
-                            f"Failed to create links for output socket {name} of node {node.name} to node {serialized_out.node} with socket {serialized_out.socket}: {exc}"
+                            f'Failed to create links for output socket "{name}" of node "{node.name}" to node "{serialized_link.node}" with socket "{serialized_link.socket}": {exc}'
                         )
             except Exception as exc:
-                print(f"Failed to set links for output {name} of node {node.name}: {exc}")
+                print(f'Failed to set links for output socket "{name}" of node "{node.name}": {exc}')
 
 
 def add_input_output(node_tree: NodeTree | ShaderNodeTree, serialized_node_tree: SerializedNodeTree):

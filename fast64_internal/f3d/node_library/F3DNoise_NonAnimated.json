@@ -3,83 +3,60 @@
 	"nodes": {
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-541.859619140625,
-					-0.0
-				],
-				"width": 140.0
-			},
-			"outputs": [
-				[]
-			]
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				-541.859619140625,
+				-0.0
+			],
+			"width": 140.0
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"is_active_output": true,
-				"location": [
-					63.280029296875,
-					0.0
-				],
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				},
-				{
-					"data": {}
-				}
-			]
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"is_active_output": true,
+			"location": [
+				63.280029296875,
+				0.0
+			],
+			"width": 140.0
 		},
 		"Value": {
 			"bl_idname": "ShaderNodeValue",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-122.01680755615234,
-					-0.6305745244026184
-				],
-				"width": 140.0
-			},
-			"outputs": [
-				[
-					{
-						"node": "Group Output",
-						"socket": "Noise Factor"
-					}
-				]
-			]
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				-122.01680755615234,
+				-0.6305745244026184
+			],
+			"width": 140.0,
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Group Output",
+							"socket": "Noise Factor"
+						}
+					]
+				}
+			}
 		}
 	},
 	"outputs": [
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 0.0,
-				"max_value": 3.4028234663852886e+38,
-				"min_value": -3.4028234663852886e+38
-			},
 			"name": "Noise Factor",
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "76a7d36e95fb8a12002c9d0c70dbaed6"
+	"cached_hash": "50d76b74e0c9092fa8645fd2da68af6e"
 }

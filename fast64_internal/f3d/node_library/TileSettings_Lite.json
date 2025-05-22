@@ -3,1334 +3,1088 @@
 	"nodes": {
 		"no idea lmao.001": {
 			"bl_idname": "NodeFrame",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"height": 401.3333435058594,
-				"label": "Mirror or Repeat",
-				"label_size": 20,
-				"location": [
-					-901.4738159179688,
-					84.3203125
-				],
-				"shrink": true,
-				"width": 736.6666259765625
-			}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"height": 401.3333435058594,
+			"label": "Mirror or Repeat",
+			"label_size": 20,
+			"location": [
+				-901.4738159179688,
+				84.3203125
+			],
+			"shrink": true,
+			"width": 736.6666259765625
 		},
 		"Frame": {
 			"bl_idname": "NodeFrame",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"height": 289.32073974609375,
-				"label": "Length - 1 to UV Space",
-				"label_size": 20,
-				"location": [
-					-1838.25,
-					268.9523010253906
-				],
-				"shrink": true,
-				"width": 535.461669921875
-			}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"height": 289.32073974609375,
+			"label": "Length - 1 to UV Space",
+			"label_size": 20,
+			"location": [
+				-1838.25,
+				268.9523010253906
+			],
+			"shrink": true,
+			"width": 535.461669921875
 		},
 		"Math.023": {
 			"bl_idname": "ShaderNodeMath",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					9.0023193359375,
-					207.91485595703125
-				],
-				"operation": "MODULO",
-				"parent": {
-					"serialized_type": "Node",
-					"name": "no idea lmao.001"
-				},
-				"use_clamp": false,
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 1.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5,
-						"enabled": false
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Math.031",
-						"socket": 0
-					}
-				]
-			]
+			"location": [
+				9.0023193359375,
+				207.91485595703125
+			],
+			"operation": "MODULO",
+			"parent": {
+				"serialized_type": "Node",
+				"name": "no idea lmao.001"
+			},
+			"use_clamp": false,
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 1.0
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Math.031",
+							"socket": 0
+						}
+					]
+				}
+			}
 		},
 		"Clamp.003": {
 			"bl_idname": "ShaderNodeClamp",
-			"data": {
-				"clamp_type": "MINMAX",
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"label": "Clamp Blender Moment",
-				"location": [
-					338.0245361328125,
-					204.29031372070312
-				],
-				"parent": {
-					"serialized_type": "Node",
-					"name": "no idea lmao.001"
-				},
-				"width": 156.3069610595703
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 1.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 9.999999717180685e-10
-					}
-				},
-				{
-					"data": {
-						"default_value": 1.0
-					}
-				}
+			"clamp_type": "MINMAX",
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Reroute.017",
-						"socket": "Input"
-					}
-				]
-			]
+			"label": "Clamp Blender Moment",
+			"location": [
+				338.0245361328125,
+				204.29031372070312
+			],
+			"parent": {
+				"serialized_type": "Node",
+				"name": "no idea lmao.001"
+			},
+			"width": 156.3069610595703,
+			"inputs": {
+				"0": {
+					"default_value": 1.0
+				},
+				"1": {
+					"default_value": 9.999999717180685e-10
+				},
+				"2": {
+					"default_value": 1.0
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Reroute.017",
+							"socket": "Input"
+						}
+					]
+				}
+			}
 		},
 		"Math.031": {
 			"bl_idname": "ShaderNodeMath",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					175.68963623046875,
-					204.60842895507812
-				],
-				"operation": "WRAP",
-				"parent": {
-					"serialized_type": "Node",
-					"name": "no idea lmao.001"
-				},
-				"use_clamp": false,
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 1.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Clamp.003",
-						"socket": "Value"
-					}
-				]
-			]
+			"location": [
+				175.68963623046875,
+				204.60842895507812
+			],
+			"operation": "WRAP",
+			"parent": {
+				"serialized_type": "Node",
+				"name": "no idea lmao.001"
+			},
+			"use_clamp": false,
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 1.0
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Clamp.003",
+							"socket": "Value"
+						}
+					]
+				}
+			}
 		},
 		"Reroute.014": {
 			"bl_idname": "NodeReroute",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					492.6282958984375,
-					25.652427673339844
-				],
-				"parent": {
-					"serialized_type": "Node",
-					"name": "no idea lmao.001"
-				}
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Group.003",
-						"socket": "Fac"
-					}
-				]
-			]
+			"location": [
+				492.6282958984375,
+				25.652427673339844
+			],
+			"parent": {
+				"serialized_type": "Node",
+				"name": "no idea lmao.001"
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Group.003",
+							"socket": "Fac"
+						}
+					]
+				}
+			}
 		},
 		"Clamp.002": {
 			"bl_idname": "ShaderNodeClamp",
-			"data": {
-				"clamp_type": "MINMAX",
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"label": "Clamp Blender Moment",
-				"location": [
-					173.8095703125,
-					16.423622131347656
-				],
-				"parent": {
-					"serialized_type": "Node",
-					"name": "no idea lmao.001"
-				},
-				"width": 154.559814453125
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 1.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 9.999999717180685e-10
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.9999989867210388
-					}
-				}
+			"clamp_type": "MINMAX",
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Group.003",
-						"socket": "Input1"
-					}
-				]
-			]
+			"label": "Clamp Blender Moment",
+			"location": [
+				173.8095703125,
+				16.423622131347656
+			],
+			"parent": {
+				"serialized_type": "Node",
+				"name": "no idea lmao.001"
+			},
+			"width": 154.559814453125,
+			"inputs": {
+				"0": {
+					"default_value": 1.0
+				},
+				"1": {
+					"default_value": 9.999999717180685e-10
+				},
+				"2": {
+					"default_value": 0.9999989867210388
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Group.003",
+							"socket": "Input1"
+						}
+					]
+				}
+			}
 		},
 		"Math.021": {
 			"bl_idname": "ShaderNodeMath",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					8.2222900390625,
-					18.113525390625
-				],
-				"operation": "PINGPONG",
-				"parent": {
-					"serialized_type": "Node",
-					"name": "no idea lmao.001"
-				},
-				"use_clamp": false,
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 1.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.0,
-						"enabled": false
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Clamp.002",
-						"socket": "Value"
-					}
-				]
-			]
+			"location": [
+				8.2222900390625,
+				18.113525390625
+			],
+			"operation": "PINGPONG",
+			"parent": {
+				"serialized_type": "Node",
+				"name": "no idea lmao.001"
+			},
+			"use_clamp": false,
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 1.0
+				},
+				"2": {
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Clamp.002",
+							"socket": "Value"
+						}
+					]
+				}
+			}
 		},
 		"Reroute.015": {
 			"bl_idname": "NodeReroute",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					520.4818725585938,
-					3.7646484375
-				],
-				"parent": {
-					"serialized_type": "Node",
-					"name": "no idea lmao.001"
-				}
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Group.003",
-						"socket": "Input0"
-					}
-				]
-			]
+			"location": [
+				520.4818725585938,
+				3.7646484375
+			],
+			"parent": {
+				"serialized_type": "Node",
+				"name": "no idea lmao.001"
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Group.003",
+							"socket": "Input0"
+						}
+					]
+				}
+			}
 		},
 		"Reroute.017": {
 			"bl_idname": "NodeReroute",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					520.4818725585938,
-					169.1291046142578
-				],
-				"parent": {
-					"serialized_type": "Node",
-					"name": "no idea lmao.001"
-				}
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Reroute.015",
-						"socket": "Input"
-					}
-				]
-			]
+			"location": [
+				520.4818725585938,
+				169.1291046142578
+			],
+			"parent": {
+				"serialized_type": "Node",
+				"name": "no idea lmao.001"
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Reroute.015",
+							"socket": "Input"
+						}
+					]
+				}
+			}
 		},
 		"Reroute": {
 			"bl_idname": "NodeReroute",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-963.9983520507812,
-					109.58182525634766
-				]
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Reroute.003",
-						"socket": "Input"
-					},
-					{
-						"node": "Reroute.004",
-						"socket": "Input"
-					}
-				]
-			]
+			"location": [
+				-963.9983520507812,
+				109.58182525634766
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Reroute.003",
+							"socket": "Input"
+						},
+						{
+							"node": "Reroute.004",
+							"socket": "Input"
+						}
+					]
+				}
+			}
 		},
 		"Reroute.003": {
 			"bl_idname": "NodeReroute",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-963.9983520507812,
-					178.1183624267578
-				]
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Math.023",
-						"socket": 0
-					}
-				]
-			]
+			"location": [
+				-963.9983520507812,
+				178.1183624267578
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Math.023",
+							"socket": 0
+						}
+					]
+				}
+			}
 		},
 		"Reroute.004": {
 			"bl_idname": "NodeReroute",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-963.9983520507812,
-					-10.415730476379395
-				]
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Math.021",
-						"socket": 0
-					}
-				]
-			]
+			"location": [
+				-963.9983520507812,
+				-10.415730476379395
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Math.021",
+							"socket": 0
+						}
+					]
+				}
+			}
 		},
 		"Reroute.006": {
 			"bl_idname": "NodeReroute",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-1158.35009765625,
-					12.048054695129395
-				]
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Group",
-						"socket": "Input1"
-					}
-				]
-			]
+			"location": [
+				-1158.35009765625,
+				12.048054695129395
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Group",
+							"socket": "Input1"
+						}
+					]
+				}
+			}
 		},
 		"Reroute.007": {
 			"bl_idname": "NodeReroute",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-1070.3023681640625,
-					-106.45328521728516
-				]
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Reroute.058",
-						"socket": "Input"
-					}
-				]
-			]
+			"location": [
+				-1070.3023681640625,
+				-106.45328521728516
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Reroute.058",
+							"socket": "Input"
+						}
+					]
+				}
+			}
 		},
 		"Reroute.058": {
 			"bl_idname": "NodeReroute",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"label": "Mirror",
-				"location": [
-					-408.8455505371094,
-					-106.45328521728516
-				]
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Reroute.014",
-						"socket": "Input"
-					}
-				]
-			]
+			"label": "Mirror",
+			"location": [
+				-408.8455505371094,
+				-106.45328521728516
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Reroute.014",
+							"socket": "Input"
+						}
+					]
+				}
+			}
 		},
 		"Reroute.009": {
 			"bl_idname": "NodeReroute",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-1561.1260986328125,
-					117.76168060302734
-				]
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Math",
-						"socket": 0
-					}
-				]
-			]
+			"location": [
+				-1561.1260986328125,
+				117.76168060302734
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Math",
+							"socket": 0
+						}
+					]
+				}
+			}
 		},
 		"Reroute.002": {
 			"bl_idname": "NodeReroute",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-1521.896484375,
-					31.9847412109375
-				]
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Group",
-						"socket": "Input0"
-					},
-					{
-						"node": "Reroute.001",
-						"socket": "Input"
-					}
-				]
-			]
+			"location": [
+				-1521.896484375,
+				31.9847412109375
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Group",
+							"socket": "Input0"
+						},
+						{
+							"node": "Reroute.001",
+							"socket": "Input"
+						}
+					]
+				}
+			}
 		},
 		"Reroute.001": {
 			"bl_idname": "NodeReroute",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-1521.896484375,
-					241.447265625
-				]
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Clamp",
-						"socket": "Value"
-					}
-				]
-			]
+			"location": [
+				-1521.896484375,
+				241.447265625
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Clamp",
+							"socket": "Value"
+						}
+					]
+				}
+			}
 		},
 		"Clamp": {
 			"bl_idname": "ShaderNodeClamp",
-			"data": {
-				"clamp_type": "MINMAX",
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-1323.518310546875,
-					330.3102722167969
-				],
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 1.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 1.0
-					}
-				}
+			"clamp_type": "MINMAX",
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Reroute.005",
-						"socket": "Input"
-					}
-				]
-			]
+			"location": [
+				-1323.518310546875,
+				330.3102722167969
+			],
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 1.0
+				},
+				"2": {
+					"default_value": 1.0
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Reroute.005",
+							"socket": "Input"
+						}
+					]
+				}
+			}
 		},
 		"Reroute.005": {
 			"bl_idname": "NodeReroute",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-1158.35009765625,
-					295.3703918457031
-				]
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Reroute.006",
-						"socket": "Input"
-					}
-				]
-			]
+			"location": [
+				-1158.35009765625,
+				295.3703918457031
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Reroute.006",
+							"socket": "Input"
+						}
+					]
+				}
+			}
 		},
 		"Reroute.008": {
 			"bl_idname": "NodeReroute",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-1561.1260986328125,
-					-8.326741218566895
-				]
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Reroute.007",
-						"socket": "Input"
-					},
-					{
-						"node": "Reroute.009",
-						"socket": "Input"
-					}
-				]
-			]
+			"location": [
+				-1561.1260986328125,
+				-8.326741218566895
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Reroute.007",
+							"socket": "Input"
+						},
+						{
+							"node": "Reroute.009",
+							"socket": "Input"
+						}
+					]
+				}
+			}
 		},
 		"Reroute.012": {
 			"bl_idname": "NodeReroute",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-72.105224609375,
-					-80.92039489746094
-				],
-				"parent": {
-					"serialized_type": "Node",
-					"name": "Frame"
-				}
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Math.003",
-						"socket": 1
-					},
-					{
-						"node": "Math.002",
-						"socket": 0
-					}
-				]
-			]
+			"location": [
+				-72.105224609375,
+				-80.92039489746094
+			],
+			"parent": {
+				"serialized_type": "Node",
+				"name": "Frame"
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Math.003",
+							"socket": 1
+						},
+						{
+							"node": "Math.002",
+							"socket": 0
+						}
+					]
+				}
+			}
 		},
 		"Math": {
 			"bl_idname": "ShaderNodeMath",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-1490.0035400390625,
-					231.4824676513672
-				],
-				"operation": "ADD",
-				"use_clamp": false,
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 1.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5,
-						"enabled": false
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Clamp",
-						"socket": "Max"
-					}
-				]
-			]
+			"location": [
+				-1490.0035400390625,
+				231.4824676513672
+			],
+			"operation": "ADD",
+			"use_clamp": false,
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 1.0
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Clamp",
+							"socket": "Max"
+						}
+					]
+				}
+			}
 		},
 		"Group": {
 			"bl_idname": "ShaderNodeGroup",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"label": "Choose Clamped",
-				"location": [
-					-1128.2308349609375,
-					144.3476104736328
-				],
-				"node_tree": {
-					"serialized_type": "NodeTree",
-					"name": "MixValue"
-				},
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5,
-						"hide_value": true
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5,
-						"hide_value": true
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Reroute",
-						"socket": "Input"
-					}
-				]
-			]
+			"label": "Choose Clamped",
+			"location": [
+				-1128.2308349609375,
+				144.3476104736328
+			],
+			"node_tree": {
+				"serialized_type": "NodeTree",
+				"name": "MixValue"
+			},
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5,
+					"hide_value": true
+				},
+				"2": {
+					"default_value": 0.5,
+					"hide_value": true
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Reroute",
+							"socket": "Input"
+						}
+					]
+				}
+			}
 		},
 		"Group.003": {
 			"bl_idname": "ShaderNodeGroup",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					544.7423706054688,
-					114.23429870605469
-				],
-				"node_tree": {
-					"serialized_type": "NodeTree",
-					"name": "MixValue"
-				},
-				"parent": {
-					"serialized_type": "Node",
-					"name": "no idea lmao.001"
-				},
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5,
-						"hide_value": true
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5,
-						"hide_value": true
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Group Output",
-						"socket": "UV Coord"
-					}
-				]
-			]
+			"location": [
+				544.7423706054688,
+				114.23429870605469
+			],
+			"node_tree": {
+				"serialized_type": "NodeTree",
+				"name": "MixValue"
+			},
+			"parent": {
+				"serialized_type": "Node",
+				"name": "no idea lmao.001"
+			},
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5,
+					"hide_value": true
+				},
+				"2": {
+					"default_value": 0.5,
+					"hide_value": true
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Group Output",
+							"socket": "UV Coord"
+						}
+					]
+				}
+			}
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"is_active_output": true,
-				"location": [
-					-147.069091796875,
-					199.28895568847656
-				],
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				},
-				{
-					"data": {}
-				}
-			]
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"is_active_output": true,
+			"location": [
+				-147.069091796875,
+				199.28895568847656
+			],
+			"width": 140.0
 		},
 		"Math.003": {
 			"bl_idname": "ShaderNodeMath",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"hide": true,
-				"location": [
-					128.0926513671875,
-					-63.307098388671875
-				],
-				"operation": "DIVIDE",
-				"parent": {
-					"serialized_type": "Node",
-					"name": "Frame"
-				},
-				"use_clamp": false,
-				"width": 100.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5,
-						"enabled": false
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Math",
-						"socket": 1
-					}
-				]
-			]
+			"hide": true,
+			"location": [
+				128.0926513671875,
+				-63.307098388671875
+			],
+			"operation": "DIVIDE",
+			"parent": {
+				"serialized_type": "Node",
+				"name": "Frame"
+			},
+			"use_clamp": false,
+			"width": 100.0,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Math",
+							"socket": 1
+						}
+					]
+				}
+			}
 		},
 		"Math.004": {
 			"bl_idname": "ShaderNodeMath",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"hide": true,
-				"location": [
-					28.1341552734375,
-					-36.21403503417969
-				],
-				"operation": "CEIL",
-				"parent": {
-					"serialized_type": "Node",
-					"name": "Frame"
-				},
-				"use_clamp": false,
-				"width": 100.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.9999899864196777,
-						"enabled": false
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5,
-						"enabled": false
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Math.003",
-						"socket": 0
-					}
-				]
-			]
+			"hide": true,
+			"location": [
+				28.1341552734375,
+				-36.21403503417969
+			],
+			"operation": "CEIL",
+			"parent": {
+				"serialized_type": "Node",
+				"name": "Frame"
+			},
+			"use_clamp": false,
+			"width": 100.0,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.9999899864196777,
+					"enabled": false
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Math.003",
+							"socket": 0
+						}
+					]
+				}
+			}
 		},
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-2248.019775390625,
-					138.1776123046875
-				],
-				"width": 140.0
-			},
-			"outputs": [
-				[
-					{
-						"node": "Reroute.002",
-						"socket": "Input"
-					}
-				],
-				[
-					{
-						"node": "Reroute.010",
-						"socket": "Input"
-					}
-				],
-				[
-					{
-						"node": "Reroute.008",
-						"socket": "Input"
-					}
-				],
-				[
-					{
-						"node": "Reroute.011",
-						"socket": "Input"
-					}
-				],
-				[]
-			]
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				-2248.019775390625,
+				138.1776123046875
+			],
+			"width": 140.0,
+			"outputs": {
+				"0": {
+					"default_value": 0.5,
+					"links": [
+						{
+							"node": "Reroute.002",
+							"socket": "Input"
+						}
+					]
+				},
+				"1": {
+					"links": [
+						{
+							"node": "Reroute.010",
+							"socket": "Input"
+						}
+					]
+				},
+				"2": {
+					"links": [
+						{
+							"node": "Reroute.008",
+							"socket": "Input"
+						}
+					]
+				},
+				"3": {
+					"links": [
+						{
+							"node": "Reroute.011",
+							"socket": "Input"
+						}
+					]
+				}
+			}
 		},
 		"Reroute.010": {
 			"bl_idname": "NodeReroute",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-1866.7137451171875,
-					56.13277053833008
-				]
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Group",
-						"socket": "Fac"
-					}
-				]
-			]
+			"location": [
+				-1866.7137451171875,
+				56.13277053833008
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Group",
+							"socket": "Fac"
+						}
+					]
+				}
+			}
 		},
 		"Reroute.011": {
 			"bl_idname": "NodeReroute",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-241.878173828125,
-					-231.27305603027344
-				],
-				"parent": {
-					"serialized_type": "Node",
-					"name": "Frame"
-				}
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Reroute.013",
-						"socket": "Input"
-					}
-				]
-			]
+			"location": [
+				-241.878173828125,
+				-231.27305603027344
+			],
+			"parent": {
+				"serialized_type": "Node",
+				"name": "Frame"
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Reroute.013",
+							"socket": "Input"
+						}
+					]
+				}
+			}
 		},
 		"Reroute.013": {
 			"bl_idname": "NodeReroute",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-240.76220703125,
-					-73.76524353027344
-				],
-				"parent": {
-					"serialized_type": "Node",
-					"name": "Frame"
-				}
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Math.001",
-						"socket": 0
-					}
-				]
-			]
+			"location": [
+				-240.76220703125,
+				-73.76524353027344
+			],
+			"parent": {
+				"serialized_type": "Node",
+				"name": "Frame"
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Math.001",
+							"socket": 0
+						}
+					]
+				}
+			}
 		},
 		"Math.001": {
 			"bl_idname": "ShaderNodeMath",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"hide": true,
-				"label": "Fix clamping?",
-				"location": [
-					-216.465576171875,
-					-71.18222045898438
-				],
-				"operation": "ADD",
-				"parent": {
-					"serialized_type": "Node",
-					"name": "Frame"
-				},
-				"use_clamp": false,
-				"width": 125.24647521972656
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.0010000000474974513
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5,
-						"enabled": false
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Reroute.012",
-						"socket": "Input"
-					}
-				]
-			]
+			"hide": true,
+			"label": "Fix clamping?",
+			"location": [
+				-216.465576171875,
+				-71.18222045898438
+			],
+			"operation": "ADD",
+			"parent": {
+				"serialized_type": "Node",
+				"name": "Frame"
+			},
+			"use_clamp": false,
+			"width": 125.24647521972656,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.0010000000474974513
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Reroute.012",
+							"socket": "Input"
+						}
+					]
+				}
+			}
 		},
 		"Math.002": {
 			"bl_idname": "ShaderNodeMath",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"hide": true,
-				"location": [
-					-74.0640869140625,
-					-12.2532958984375
-				],
-				"operation": "SUBTRACT",
-				"parent": {
-					"serialized_type": "Node",
-					"name": "Frame"
-				},
-				"use_clamp": false,
-				"width": 100.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 1.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5,
-						"enabled": false
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Math.004",
-						"socket": 0
-					}
-				]
-			]
+			"hide": true,
+			"location": [
+				-74.0640869140625,
+				-12.2532958984375
+			],
+			"operation": "SUBTRACT",
+			"parent": {
+				"serialized_type": "Node",
+				"name": "Frame"
+			},
+			"use_clamp": false,
+			"width": 100.0,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 1.0
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Math.004",
+							"socket": 0
+						}
+					]
+				}
+			}
 		}
 	},
 	"inputs": [
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 0.5,
-				"max_value": 9999999827968.0,
-				"min_value": -1.0000000272564224e+16
-			},
+			"default_value": 0.5,
+			"max_value": 9999999827968.0,
+			"min_value": -1.0000000272564224e+16,
 			"name": "Tex Coordinate",
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 0.0,
-				"max_value": 3.4028234663852886e+38,
-				"min_value": -3.4028234663852886e+38
-			},
 			"name": "Clamp",
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 0.0,
-				"max_value": 3.4028234663852886e+38,
-				"min_value": -3.4028234663852886e+38
-			},
 			"name": "Mirror",
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 0.0,
-				"max_value": 3.4028234663852886e+38,
-				"min_value": -3.4028234663852886e+38
-			},
 			"name": "Length",
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
 	"outputs": [
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 0.0,
-				"max_value": 0.0,
-				"min_value": 0.0
-			},
+			"max_value": 0.0,
+			"min_value": 0.0,
 			"name": "UV Coord",
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "b42252dde3837d745bcf35f045a0d8be"
+	"cached_hash": "500f7a40cc7ee4683cb5f887676649a5"
 }

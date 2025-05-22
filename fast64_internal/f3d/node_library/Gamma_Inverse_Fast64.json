@@ -3,280 +3,257 @@
 	"nodes": {
 		"Combine RGB": {
 			"bl_idname": "ShaderNodeCombineColor",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					84.3359375,
-					82.74576568603516
-				],
-				"mode": "RGB",
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Group Output",
-						"socket": "Inverse Corrected Color"
-					}
-				]
-			]
+			"location": [
+				84.3359375,
+				82.74576568603516
+			],
+			"mode": "RGB",
+			"width": 140.0,
+			"outputs": {
+				"0": {
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
+					"links": [
+						{
+							"node": "Group Output",
+							"socket": "Inverse Corrected Color"
+						}
+					]
+				}
+			}
 		},
 		"Group.002": {
 			"bl_idname": "ShaderNodeGroup",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-239.1947479248047,
-					62.84004592895508
-				],
-				"node_tree": {
-					"serialized_type": "NodeTree",
-					"name": "Gamma Inverse Value"
-				},
-				"width": 238.14590454101562
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Combine RGB",
-						"socket": "Green"
-					}
-				]
-			]
+			"location": [
+				-239.1947479248047,
+				62.84004592895508
+			],
+			"node_tree": {
+				"serialized_type": "NodeTree",
+				"name": "Gamma Inverse Value"
+			},
+			"width": 238.14590454101562,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Combine RGB",
+							"socket": "Green"
+						}
+					]
+				}
+			}
 		},
 		"Group.003": {
 			"bl_idname": "ShaderNodeGroup",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-239.1947479248047,
-					-57.15995407104492
-				],
-				"node_tree": {
-					"serialized_type": "NodeTree",
-					"name": "Gamma Inverse Value"
-				},
-				"width": 238.14590454101562
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Combine RGB",
-						"socket": "Blue"
-					}
-				]
-			]
+			"location": [
+				-239.1947479248047,
+				-57.15995407104492
+			],
+			"node_tree": {
+				"serialized_type": "NodeTree",
+				"name": "Gamma Inverse Value"
+			},
+			"width": 238.14590454101562,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Combine RGB",
+							"socket": "Blue"
+						}
+					]
+				}
+			}
 		},
 		"Group.001": {
 			"bl_idname": "ShaderNodeGroup",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-239.1947479248047,
-					182.8400421142578
-				],
-				"node_tree": {
-					"serialized_type": "NodeTree",
-					"name": "Gamma Inverse Value"
-				},
-				"width": 238.14590454101562
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Combine RGB",
-						"socket": "Red"
-					}
-				]
-			]
+			"location": [
+				-239.1947479248047,
+				182.8400421142578
+			],
+			"node_tree": {
+				"serialized_type": "NodeTree",
+				"name": "Gamma Inverse Value"
+			},
+			"width": 238.14590454101562,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Combine RGB",
+							"socket": "Red"
+						}
+					]
+				}
+			}
 		},
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-656.75927734375,
-					-39.49348831176758
-				],
-				"width": 148.84893798828125
-			},
-			"outputs": [
-				[
-					{
-						"node": "Separate RGB",
-						"socket": "Color"
-					}
-				],
-				[]
-			]
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				-656.75927734375,
+				-39.49348831176758
+			],
+			"width": 148.84893798828125,
+			"outputs": {
+				"0": {
+					"default_value": [
+						0.800000011920929,
+						0.800000011920929,
+						0.800000011920929,
+						1.0
+					],
+					"links": [
+						{
+							"node": "Separate RGB",
+							"socket": "Color"
+						}
+					]
+				}
+			}
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"is_active_output": true,
-				"location": [
-					242.66552734375,
-					82.39444732666016
-				],
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": [
-							0.0,
-							0.0,
-							0.0,
-							0.0
-						]
-					}
-				},
-				{
-					"data": {}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"is_active_output": true,
+			"location": [
+				242.66552734375,
+				82.39444732666016
+			],
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					]
 				}
-			]
+			}
 		},
 		"Separate RGB": {
 			"bl_idname": "ShaderNodeSeparateColor",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-467.4729919433594,
-					29.77730369567871
-				],
-				"mode": "RGB",
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": [
-							0.800000011920929,
-							0.800000011920929,
-							0.800000011920929,
-							1.0
-						]
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Group.001",
-						"socket": "Gamma Corrected Value"
-					}
-				],
-				[
-					{
-						"node": "Group.002",
-						"socket": "Gamma Corrected Value"
-					}
-				],
-				[
-					{
-						"node": "Group.003",
-						"socket": "Gamma Corrected Value"
-					}
-				]
-			]
+			"location": [
+				-467.4729919433594,
+				29.77730369567871
+			],
+			"mode": "RGB",
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": [
+						0.800000011920929,
+						0.800000011920929,
+						0.800000011920929,
+						1.0
+					]
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Group.001",
+							"socket": "Gamma Corrected Value"
+						}
+					]
+				},
+				"1": {
+					"links": [
+						{
+							"node": "Group.002",
+							"socket": "Gamma Corrected Value"
+						}
+					]
+				},
+				"2": {
+					"links": [
+						{
+							"node": "Group.003",
+							"socket": "Gamma Corrected Value"
+						}
+					]
+				}
+			}
 		}
 	},
 	"inputs": [
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": [
-					0.800000011920929,
-					0.800000011920929,
-					0.800000011920929,
-					1.0
-				]
-			},
+			"default_value": [
+				0.800000011920929,
+				0.800000011920929,
+				0.800000011920929,
+				1.0
+			],
 			"name": "Gamma Corrected Color",
 			"bl_idname": "NodeSocketColor"
 		}
 	],
 	"outputs": [
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": [
-					0.0,
-					0.0,
-					0.0,
-					0.0
-				]
-			},
+			"default_value": [
+				0.0,
+				0.0,
+				0.0,
+				0.0
+			],
 			"name": "Inverse Corrected Color",
 			"bl_idname": "NodeSocketColor"
 		}
 	],
-	"cached_hash": "0fc07f3e56004523fba2973659b87d75"
+	"cached_hash": "7ca5f6f24a94f609d45b16ecf382f6ed"
 }

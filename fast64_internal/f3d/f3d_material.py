@@ -2303,6 +2303,8 @@ def update_tex_values_manual(material: Material, context, prop_path=None):
     elif texture_settings.mute:
         texture_settings.mute = False
 
+    set_texture_settings_node(material)
+
     # linear requires tex gen to be enabled as well
     isTexGen = f3dMat.rdp_settings.g_lighting and f3dMat.rdp_settings.g_tex_gen
 
@@ -2350,7 +2352,6 @@ def update_tex_values_manual(material: Material, context, prop_path=None):
 
     texture_inputs["3 Point"].default_value = int(f3dMat.rdp_settings.g_mdsft_text_filt == "G_TF_BILERP")
     uv_basis.inputs["EnableOffset"].default_value = int(f3dMat.rdp_settings.g_mdsft_text_filt != "G_TF_POINT")
-    set_texture_settings_node(material)
 
 
 def shift_num(num: int, amt: int):
@@ -2809,28 +2810,27 @@ def update_tex_field_prop(self: Property, context: Context):
         if not material:
             return
 
+        set_texture_settings_node(material)
         prop_path = self.path_from_id()
         tex_property, tex_index = get_tex_prop_from_path(material, prop_path)
         tex_size = tex_property.get_tex_size()
 
         if tex_size[0] > 0 and tex_size[1] > 0:
             update_tex_values_field(material, tex_property, tex_size, tex_index)
-        set_texture_settings_node(material)
 
 
 def toggle_auto_prop(self, context: Context):
     with F3DMaterial_UpdateLock(get_material_from_context(context)) as material:
         if not material:
             return
+        set_texture_settings_node(material)
 
         prop_path = self.path_from_id()
-        tex_property, tex_index = get_tex_prop_from_path(material, prop_path)
-        if tex_property.autoprop:
+        for i in range(2):
+            tex_property = getattr(material.f3d_mat, f"tex{i}")
             tex_size = tuple([s for s in tex_property.get_tex_size()])
             if tex_size[0] > 0 and tex_size[1] > 0:
-                update_tex_values_field(material, tex_property, tex_size, tex_index)
-
-        set_texture_settings_node(material)
+                update_tex_values_field(material, tex_property, tex_size, i)
 
 
 class TextureFieldProperty(PropertyGroup):

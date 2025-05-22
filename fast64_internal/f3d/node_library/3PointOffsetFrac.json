@@ -3,544 +3,461 @@
 	"nodes": {
 		"Math.006": {
 			"bl_idname": "ShaderNodeMath",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-155.5453643798828,
-					98.50439453125
-				],
-				"operation": "MULTIPLY",
-				"use_clamp": false,
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 19.099998474121094,
-						"enabled": false
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Reroute.007",
-						"socket": "Input"
-					}
-				]
-			]
+			"location": [
+				-155.5453643798828,
+				98.50439453125
+			],
+			"operation": "MULTIPLY",
+			"use_clamp": false,
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 19.099998474121094,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Reroute.007",
+							"socket": "Input"
+						}
+					]
+				}
+			}
 		},
 		"Value": {
 			"bl_idname": "ShaderNodeValue",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-460.3739013671875,
-					-438.9537048339844
-				],
-				"width": 140.0
-			},
-			"outputs": [
-				[]
-			]
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				-460.3739013671875,
+				-438.9537048339844
+			],
+			"width": 140.0,
+			"outputs": {
+				"0": {
+					"default_value": 1.0
+				}
+			}
 		},
 		"Value.001": {
 			"bl_idname": "ShaderNodeValue",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-450.556396484375,
-					-536.3670654296875
-				],
-				"width": 140.0
-			},
-			"outputs": [
-				[]
-			]
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				-450.556396484375,
+				-536.3670654296875
+			],
+			"width": 140.0,
+			"outputs": {
+				"0": {
+					"default_value": -1.0
+				}
+			}
 		},
 		"Group": {
 			"bl_idname": "ShaderNodeGroup",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"hide": true,
-				"location": [
-					-338.6462097167969,
-					-56.690673828125
-				],
-				"node_tree": {
-					"serialized_type": "NodeTree",
-					"name": "UnshiftValue"
-				},
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Math.006",
-						"socket": 1
-					}
-				]
-			]
+			"hide": true,
+			"location": [
+				-338.6462097167969,
+				-56.690673828125
+			],
+			"node_tree": {
+				"serialized_type": "NodeTree",
+				"name": "UnshiftValue"
+			},
+			"width": 140.0,
+			"inputs": {
+				"1": {
+					"default_value": 0.5
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Math.006",
+							"socket": 1
+						}
+					]
+				}
+			}
 		},
 		"Reroute.008": {
 			"bl_idname": "NodeReroute",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"hide": true,
-				"location": [
-					463.872314453125,
-					-99.29386138916016
-				]
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Math.016",
-						"socket": 1
-					}
-				]
-			]
+			"hide": true,
+			"location": [
+				463.872314453125,
+				-99.29386138916016
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Math.016",
+							"socket": 1
+						}
+					]
+				}
+			}
 		},
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					-640.8355712890625,
-					-18.05574607849121
-				],
-				"width": 140.0
-			},
-			"outputs": [
-				[
-					{
-						"node": "Math.006",
-						"socket": 0
-					}
-				],
-				[
-					{
-						"node": "Group",
-						"socket": "Shift"
-					}
-				],
-				[
-					{
-						"node": "Reroute.008",
-						"socket": "Input"
-					}
-				],
-				[
-					{
-						"node": "Group",
-						"socket": "Value"
-					}
-				],
-				[
-					{
-						"node": "Group.001",
-						"socket": "Fac"
-					}
-				],
-				[]
-			]
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"location": [
+				-640.8355712890625,
+				-18.05574607849121
+			],
+			"width": 140.0,
+			"outputs": {
+				"0": {
+					"default_value": 0.5,
+					"links": [
+						{
+							"node": "Math.006",
+							"socket": 0
+						}
+					]
+				},
+				"1": {
+					"links": [
+						{
+							"node": "Group",
+							"socket": "Shift"
+						}
+					]
+				},
+				"2": {
+					"default_value": 0.5,
+					"links": [
+						{
+							"node": "Reroute.008",
+							"socket": "Input"
+						}
+					]
+				},
+				"3": {
+					"default_value": 0.5,
+					"links": [
+						{
+							"node": "Group",
+							"socket": "Value"
+						}
+					]
+				},
+				"4": {
+					"links": [
+						{
+							"node": "Group.001",
+							"socket": "Fac"
+						}
+					]
+				}
+			}
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"is_active_output": true,
-				"location": [
-					1102.656005859375,
-					78.56453704833984
-				],
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				},
-				{
-					"data": {}
-				}
-			]
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"is_active_output": true,
+			"location": [
+				1102.656005859375,
+				78.56453704833984
+			],
+			"width": 140.0
 		},
 		"Math.007": {
 			"bl_idname": "ShaderNodeMath",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					927.9115600585938,
-					54.302001953125
-				],
-				"operation": "FRACT",
-				"use_clamp": true,
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 1.0,
-						"enabled": false
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.0,
-						"enabled": false
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Group Output",
-						"socket": "Value"
-					}
-				]
-			]
+			"location": [
+				927.9115600585938,
+				54.302001953125
+			],
+			"operation": "FRACT",
+			"use_clamp": true,
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 1.0,
+					"enabled": false
+				},
+				"2": {
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Group Output",
+							"socket": "Value"
+						}
+					]
+				}
+			}
 		},
 		"Reroute.007": {
 			"bl_idname": "NodeReroute",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"label": "Texel Space",
-				"location": [
-					29.96170997619629,
-					63.12699508666992
-				]
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.0
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Math",
-						"socket": 1
-					},
-					{
-						"node": "Group.001",
-						"socket": "Input1"
-					}
-				]
-			]
+			"label": "Texel Space",
+			"location": [
+				29.96170997619629,
+				63.12699508666992
+			],
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Math",
+							"socket": 1
+						},
+						{
+							"node": "Group.001",
+							"socket": "Input1"
+						}
+					]
+				}
+			}
 		},
 		"Math": {
 			"bl_idname": "ShaderNodeMath",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					127.235595703125,
-					70.28165435791016
-				],
-				"operation": "SUBTRACT",
-				"use_clamp": false,
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 1.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5,
-						"enabled": false
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Group.001",
-						"socket": "Input0"
-					}
-				]
-			]
+			"location": [
+				127.235595703125,
+				70.28165435791016
+			],
+			"operation": "SUBTRACT",
+			"use_clamp": false,
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 1.0
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Group.001",
+							"socket": "Input0"
+						}
+					]
+				}
+			}
 		},
 		"Group.001": {
 			"bl_idname": "ShaderNodeGroup",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					204.7742462158203,
-					325.324951171875
-				],
-				"node_tree": {
-					"serialized_type": "NodeTree",
-					"name": "MixValue"
-				},
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5,
-						"hide_value": true
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5,
-						"hide_value": true
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Math.016",
-						"socket": 0
-					}
-				]
-			]
+			"location": [
+				204.7742462158203,
+				325.324951171875
+			],
+			"node_tree": {
+				"serialized_type": "NodeTree",
+				"name": "MixValue"
+			},
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5,
+					"hide_value": true
+				},
+				"2": {
+					"default_value": 0.5,
+					"hide_value": true
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Math.016",
+							"socket": 0
+						}
+					]
+				}
+			}
 		},
 		"Math.016": {
 			"bl_idname": "ShaderNodeMath",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					545.8726196289062,
-					78.36368560791016
-				],
-				"operation": "ADD",
-				"use_clamp": false,
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5,
-						"enabled": false
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Math.001",
-						"socket": 0
-					}
-				]
-			]
+			"location": [
+				545.8726196289062,
+				78.36368560791016
+			],
+			"operation": "ADD",
+			"use_clamp": false,
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Math.001",
+							"socket": 0
+						}
+					]
+				}
+			}
 		},
 		"Math.001": {
 			"bl_idname": "ShaderNodeMath",
-			"data": {
-				"color": [
-					0.6079999804496765,
-					0.6079999804496765,
-					0.6079999804496765
-				],
-				"location": [
-					716.333251953125,
-					76.96142578125
-				],
-				"operation": "MULTIPLY",
-				"use_clamp": false,
-				"width": 140.0
-			},
-			"inputs": [
-				{
-					"data": {
-						"default_value": -1.0
-					}
-				},
-				{
-					"data": {
-						"default_value": -1.0
-					}
-				},
-				{
-					"data": {
-						"default_value": 0.5,
-						"enabled": false
-					}
-				}
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
 			],
-			"outputs": [
-				[
-					{
-						"node": "Math.007",
-						"socket": 0
-					}
-				]
-			]
+			"location": [
+				716.333251953125,
+				76.96142578125
+			],
+			"operation": "MULTIPLY",
+			"use_clamp": false,
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": -1.0
+				},
+				"1": {
+					"default_value": -1.0
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"links": [
+						{
+							"node": "Math.007",
+							"socket": 0
+						}
+					]
+				}
+			}
 		}
 	},
 	"inputs": [
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 0.5,
-				"max_value": 10000.0,
-				"min_value": -10000.0
-			},
+			"default_value": 0.5,
+			"max_value": 10000.0,
+			"min_value": -10000.0,
 			"name": "Value",
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 0,
-				"max_value": 2147483647,
-				"min_value": -2147483648
-			},
+			"max_value": 2147483647,
+			"min_value": -2147483648,
 			"name": "Shift",
 			"bl_idname": "NodeSocketInt"
 		},
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 0.5,
-				"max_value": 10000.0,
-				"min_value": -10000.0
-			},
+			"default_value": 0.5,
+			"max_value": 10000.0,
+			"min_value": -10000.0,
 			"name": "Low",
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 0.5,
-				"max_value": 10000.0,
-				"min_value": -10000.0
-			},
+			"default_value": 0.5,
+			"max_value": 10000.0,
+			"min_value": -10000.0,
 			"name": "Length",
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 0,
-				"max_value": 1,
-				"min_value": 0
-			},
+			"max_value": 1,
+			"min_value": 0,
 			"name": "IsT",
 			"bl_idname": "NodeSocketInt"
 		}
 	],
 	"outputs": [
 		{
-			"data": {
-				"attribute_domain": "POINT",
-				"default_value": 0.0,
-				"max_value": 3.4028234663852886e+38,
-				"min_value": -3.4028234663852886e+38
-			},
 			"name": "Value",
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "9fa8681e199701fa561133a991863d6a"
+	"cached_hash": "0fe198d5551bab0ee97f7ddd96cb827b"
 }
