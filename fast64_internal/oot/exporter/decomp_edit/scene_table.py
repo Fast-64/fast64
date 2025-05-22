@@ -57,7 +57,7 @@ class SceneTableEntry:
     def from_scene(scene_name: str, draw_config: str, title_card_name: str):
         return SceneTableEntry(
             scene_name if scene_name.endswith("_scene") else f"{scene_name}_scene",
-            title_card_name if len(title_card_name.strip()) > 0 else "none",
+            title_card_name if title_card_name.strip() else "none",
             get_scene_enum_from_name(scene_name),
             draw_config,
             "0",
