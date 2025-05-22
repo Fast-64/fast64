@@ -26,9 +26,9 @@ from ..utility import PluginError, to_valid_file_name
 from ..operators import OperatorBase
 
 # Enable this to show the gather operator, this is a development feature
-SHOW_GATHER_OPERATOR = True
+SHOW_GATHER_OPERATOR = False
 INCLUDE_DEFAULT = True  # include default if link exists
-ALWAYS_RELOAD = True
+ALWAYS_RELOAD = False
 
 SERIALIZED_NODE_LIBRARY_PATH = Path(__file__).parent / "node_library" / "main.json"
 
@@ -443,6 +443,8 @@ def load_f3d_nodes():
 
 
 def set_node_prop(prop: object, attr: str, value: object, nodes):
+    if not hasattr(prop, attr):
+        return
     if isinstance(value, dict) and "serialized_type" in value:
         if value["serialized_type"] == "Default":
             for key, val in value["data"].items():
