@@ -406,7 +406,7 @@ def getTileSize(value, f3d):
 
 def getTileClampMirror(value, f3d):
     data = math_eval(value, f3d)
-    return tuple((data & f3d.G_TX_CLAMP) != 0, (data & f3d.G_TX_MIRROR) != 0)
+    return ((data & f3d.G_TX_CLAMP) != 0, (data & f3d.G_TX_MIRROR) != 0)
 
 
 def getTileMask(value, f3d):
