@@ -123,6 +123,141 @@ DEFAULTS = [
 ]
 DEFAULTS = {name: definition.defaults for definition in DEFAULTS for name in definition.names}
 
+SCENE_PROPERTIES_VERSION = 2
+
+
+def createOrUpdateSceneProperties():
+    group = bpy.data.node_groups.get("SceneProperties")
+    upgrade_group = bool(group and group.get("version", -1) < SCENE_PROPERTIES_VERSION)
+
+    if group and not upgrade_group:
+        # Group is ready and up to date
+        return
+
+    if upgrade_group and group:
+        # Need to upgrade; remove old outputs
+        if bpy.app.version >= (4, 0, 0):
+            for item in group.interface.items_tree:
+                if item.item_type == "SOCKET" and item.in_out == "OUTPUT":
+                    group.interface.remove(item)
+        else:
+            for out in group.outputs:
+                group.outputs.remove(out)
+        new_group = group
+    else:
+        logger.info("Creating Scene Properties")
+        # create a group
+        new_group = bpy.data.node_groups.new("SceneProperties", "ShaderNodeTree")
+        # create group outputs
+        new_group.nodes.new("NodeGroupOutput")
+
+    new_group["version"] = SCENE_PROPERTIES_VERSION
+
+    # Create outputs
+    if bpy.app.version >= (4, 0, 0):
+        tree_interface = new_group.interface
+
+        _nodeFogEnable: NodeSocketFloat = tree_interface.new_socket(
+            "FogEnable", socket_type="NodeSocketFloat", in_out="OUTPUT"
+        )
+        _nodeFogColor: NodeSocketColor = tree_interface.new_socket(
+            "FogColor", socket_type="NodeSocketColor", in_out="OUTPUT"
+        )
+        _nodeF3D_NearClip: NodeSocketFloat = tree_interface.new_socket(
+            "F3D_NearClip", socket_type="NodeSocketFloat", in_out="OUTPUT"
+        )
+        _nodeF3D_FarClip: NodeSocketFloat = tree_interface.new_socket(
+            "F3D_FarClip", socket_type="NodeSocketFloat", in_out="OUTPUT"
+        )
+        _nodeBlender_Game_Scale: NodeSocketFloat = tree_interface.new_socket(
+            "Blender_Game_Scale", socket_type="NodeSocketFloat", in_out="OUTPUT"
+        )
+        _nodeFogNear: NodeSocketFloat = tree_interface.new_socket(
+            "FogNear", socket_type="NodeSocketFloat", in_out="OUTPUT"
+        )
+        _nodeFogFar: NodeSocketFloat = tree_interface.new_socket(
+            "FogFar", socket_type="NodeSocketFloat", in_out="OUTPUT"
+        )
+
+        _nodeAmbientColor: NodeSocketColor = tree_interface.new_socket(
+            "AmbientColor", socket_type="NodeSocketColor", in_out="OUTPUT"
+        )
+        _nodeLight0Color: NodeSocketColor = tree_interface.new_socket(
+            "Light0Color", socket_type="NodeSocketColor", in_out="OUTPUT"
+        )
+        _nodeLight0Dir: NodeSocketVector = tree_interface.new_socket(
+            "Light0Dir", socket_type="NodeSocketVector", in_out="OUTPUT"
+        )
+        _nodeLight0Size: NodeSocketFloat = tree_interface.new_socket(
+            "Light0Size", socket_type="NodeSocketFloat", in_out="OUTPUT"
+        )
+        _nodeLight1Color: NodeSocketColor = tree_interface.new_socket(
+            "Light1Color", socket_type="NodeSocketColor", in_out="OUTPUT"
+        )
+        _nodeLight1Dir: NodeSocketVector = tree_interface.new_socket(
+            "Light1Dir", socket_type="NodeSocketVector", in_out="OUTPUT"
+        )
+        _nodeLight1Size: NodeSocketFloat = tree_interface.new_socket(
+            "Light1Size", socket_type="NodeSocketFloat", in_out="OUTPUT"
+        )
+
+    else:
+        _nodeFogEnable: NodeSocketInt = new_group.outputs.new("NodeSocketInt", "FogEnable")
+        _nodeFogColor: NodeSocketColor = new_group.outputs.new("NodeSocketColor", "FogColor")
+        _nodeF3D_NearClip: NodeSocketFloat = new_group.outputs.new("NodeSocketFloat", "F3D_NearClip")
+        _nodeF3D_FarClip: NodeSocketFloat = new_group.outputs.new("NodeSocketFloat", "F3D_FarClip")
+        _nodeBlender_Game_Scale: NodeSocketFloat = new_group.outputs.new("NodeSocketFloat", "Blender_Game_Scale")
+        _nodeFogNear: NodeSocketInt = new_group.outputs.new("NodeSocketInt", "FogNear")
+        _nodeFogFar: NodeSocketInt = new_group.outputs.new("NodeSocketInt", "FogFar")
+
+        _nodeAmbientColor: NodeSocketColor = new_group.outputs.new("NodeSocketColor", "AmbientColor")
+        _nodeLight0Color: NodeSocketColor = new_group.outputs.new("NodeSocketColor", "Light0Color")
+        _nodeLight0Dir: NodeSocketVectorDirection = new_group.outputs.new("NodeSocketVectorDirection", "Light0Dir")
+        _nodeLight0Size: NodeSocketInt = new_group.outputs.new("NodeSocketInt", "Light0Size")
+        _nodeLight1Color: NodeSocketColor = new_group.outputs.new("NodeSocketColor", "Light1Color")
+        _nodeLight1Dir: NodeSocketVectorDirection = new_group.outputs.new("NodeSocketVectorDirection", "Light1Dir")
+        _nodeLight1Size: NodeSocketInt = new_group.outputs.new("NodeSocketInt", "Light1Size")
+
+    # Set outputs from render settings
+    sceneOutputs: NodeGroupOutput = new_group.nodes["Group Output"]
+    renderSettings: "Fast64RenderSettings_Properties" = bpy.context.scene.fast64.renderSettings
+
+    update_scene_props_from_render_settings(sceneOutputs, renderSettings)
+
+
+def createScenePropertiesForMaterial(material: Material):
+    node_tree = material.node_tree
+
+    # Either create or update SceneProperties if needed
+    createOrUpdateSceneProperties()
+
+    # create a new group node to hold the tree
+    scene_props = node_tree.nodes.new(type="ShaderNodeGroup")
+    scene_props.name = "SceneProperties"
+    scene_props.location = (-320, -23)
+    scene_props.node_tree = bpy.data.node_groups["SceneProperties"]
+
+    # Fog links to reroutes and the CalcFog block
+    node_tree.links.new(scene_props.outputs["FogEnable"], node_tree.nodes["FogEnable"].inputs[0])
+    node_tree.links.new(scene_props.outputs["FogColor"], node_tree.nodes["FogColor"].inputs[0])
+    node_tree.links.new(scene_props.outputs["F3D_NearClip"], node_tree.nodes["CalcFog"].inputs["F3D_NearClip"])
+    node_tree.links.new(scene_props.outputs["F3D_FarClip"], node_tree.nodes["CalcFog"].inputs["F3D_FarClip"])
+    node_tree.links.new(
+        scene_props.outputs["Blender_Game_Scale"], node_tree.nodes["CalcFog"].inputs["Blender_Game_Scale"]
+    )
+    node_tree.links.new(scene_props.outputs["FogNear"], node_tree.nodes["CalcFog"].inputs["FogNear"])
+    node_tree.links.new(scene_props.outputs["FogFar"], node_tree.nodes["CalcFog"].inputs["FogFar"])
+
+    # Lighting links to reroutes. The colors are connected to other reroutes for update_light_colors,
+    # the others go directly to the Shade Color block.
+    node_tree.links.new(scene_props.outputs["AmbientColor"], node_tree.nodes["AmbientColor"].inputs[0])
+    node_tree.links.new(scene_props.outputs["Light0Color"], node_tree.nodes["Light0Color"].inputs[0])
+    node_tree.links.new(scene_props.outputs["Light0Dir"], node_tree.nodes["Light0Dir"].inputs[0])
+    node_tree.links.new(scene_props.outputs["Light0Size"], node_tree.nodes["Light0Size"].inputs[0])
+    node_tree.links.new(scene_props.outputs["Light1Color"], node_tree.nodes["Light1Color"].inputs[0])
+    node_tree.links.new(scene_props.outputs["Light1Dir"], node_tree.nodes["Light1Dir"].inputs[0])
+    node_tree.links.new(scene_props.outputs["Light1Size"], node_tree.nodes["Light1Size"].inputs[0])
+
 
 def get_bl_idname(owner: object):
     return getattr(owner, "bl_idname", None) or getattr(owner, "bl_socket_idname", None)
@@ -596,7 +731,9 @@ def generate_f3d_node_groups():
             node_tree = bpy.data.node_groups[serialized_node_group.name]
             if node_tree.get("fast64_cached_hash", None) == serialized_node_group.cached_hash and not ALWAYS_RELOAD:
                 continue
-            print("Node group already exists, but serialized node group hash changed, updating")
+            print(
+                f'Node group "{serialized_node_group.name}" already exists, but serialized node group hash changed, updating'
+            )
         else:
             print(f"Creating node group {serialized_node_group.name}")
             node_tree = bpy.data.node_groups.new(serialized_node_group.name, "ShaderNodeTree")
@@ -614,10 +751,28 @@ def generate_f3d_node_groups():
 
 
 def create_f3d_nodes_in_material(material: Material):
+    from .f3d_material import update_all_node_values
+
     generate_f3d_node_groups()
-    material.use_nodes = True
     new_nodes = create_nodes(material.node_tree, SERIALIZED_NODE_LIBRARY)
     set_values_and_create_links(material.node_tree, SERIALIZED_NODE_LIBRARY, new_nodes)
+    createScenePropertiesForMaterial(material)
+    with bpy.context.temp_override(material=material):
+        update_all_node_values(material, bpy.context)
+    material.use_nodes = True
+
+
+def update_f3d_materials():
+    for material in bpy.data.materials:
+        try:
+            if (
+                material.is_f3d
+                and material.node_tree.get("fast64_cached_hash", None) != SERIALIZED_NODE_LIBRARY.cached_hash
+            ):
+                create_f3d_nodes_in_material(material)
+                material.node_tree["fast64_cached_hash"] = SERIALIZED_NODE_LIBRARY.cached_hash
+        except Exception as exc:
+            print(f"Failed to update material {material.name}: {exc}")
 
 
 if SHOW_GATHER_OPERATOR:
