@@ -242,6 +242,8 @@ class Scene:
                 '#include "z64environment.h"',
                 '#include "z64math.h"',
                 '#include "z64object.h"',
+                '#include "z64ocarina.h"',
+                '#include "z64player.h"',
                 '#include "z64room.h"',
                 '#include "z64scene.h"',
             ]
