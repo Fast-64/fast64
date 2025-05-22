@@ -33,7 +33,7 @@ class CutsceneCmdCamPoint(CutsceneCmdBase):
             raise PluginError("ERROR: Pos list is empty!")
 
         return indent * 3 + (
-            f"CS_CAM_POINT({self.continueFlag}, {self.camRoll}, {self.frame}, {self.viewAngle}f, "
+            f"CS_CAM_POINT({self.continueFlag}, {self.camRoll}, {self.frame}, DEG_TO_BINANG({self.viewAngle}f), "
             + "".join(f"{pos}, " for pos in self.pos)
             + "0),\n"
         )

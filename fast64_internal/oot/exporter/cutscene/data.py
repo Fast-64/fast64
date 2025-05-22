@@ -125,7 +125,7 @@ class CutsceneData:
             return hex(r & 0xFFFF)
 
         rotXYZ = [conv(obj.rotation_euler[0]), conv(obj.rotation_euler[2]), conv(obj.rotation_euler[1])]
-        return [f"DEG_TO_BINANG({(int(rot, base=16) * (180 / 0x8000)):.3f})" for rot in rotXYZ]
+        return [f"DEG_TO_BINANG({(int(rot, base=16) * (180 / 0x8000)):.3f}f)" for rot in rotXYZ]
 
     def getOoTPosition(self, pos):
         """Returns the converted Blender position"""
