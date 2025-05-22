@@ -168,6 +168,7 @@
 				"serialized_type": "Node",
 				"name": "no idea lmao.001"
 			},
+			"width": 16.0,
 			"outputs": {
 				"0": {
 					"links": [
@@ -274,6 +275,7 @@
 				"serialized_type": "Node",
 				"name": "no idea lmao.001"
 			},
+			"width": 16.0,
 			"outputs": {
 				"0": {
 					"links": [
@@ -300,6 +302,7 @@
 				"serialized_type": "Node",
 				"name": "no idea lmao.001"
 			},
+			"width": 16.0,
 			"outputs": {
 				"0": {
 					"links": [
@@ -322,6 +325,7 @@
 				-963.9983520507812,
 				109.58182525634766
 			],
+			"width": 16.0,
 			"outputs": {
 				"0": {
 					"links": [
@@ -348,6 +352,7 @@
 				-963.9983520507812,
 				178.1183624267578
 			],
+			"width": 16.0,
 			"outputs": {
 				"0": {
 					"links": [
@@ -370,6 +375,7 @@
 				-963.9983520507812,
 				-10.415730476379395
 			],
+			"width": 16.0,
 			"outputs": {
 				"0": {
 					"links": [
@@ -392,6 +398,7 @@
 				-1158.35009765625,
 				12.048054695129395
 			],
+			"width": 16.0,
 			"outputs": {
 				"0": {
 					"links": [
@@ -414,6 +421,7 @@
 				-1070.3023681640625,
 				-106.45328521728516
 			],
+			"width": 16.0,
 			"outputs": {
 				"0": {
 					"links": [
@@ -437,6 +445,7 @@
 				-408.8455505371094,
 				-106.45328521728516
 			],
+			"width": 16.0,
 			"outputs": {
 				"0": {
 					"links": [
@@ -459,6 +468,7 @@
 				-1561.1260986328125,
 				117.76168060302734
 			],
+			"width": 16.0,
 			"outputs": {
 				"0": {
 					"links": [
@@ -481,6 +491,7 @@
 				-1521.896484375,
 				31.9847412109375
 			],
+			"width": 16.0,
 			"outputs": {
 				"0": {
 					"links": [
@@ -507,6 +518,7 @@
 				-1521.896484375,
 				241.447265625
 			],
+			"width": 16.0,
 			"outputs": {
 				"0": {
 					"links": [
@@ -561,6 +573,7 @@
 				-1158.35009765625,
 				295.3703918457031
 			],
+			"width": 16.0,
 			"outputs": {
 				"0": {
 					"links": [
@@ -583,6 +596,7 @@
 				-1561.1260986328125,
 				-8.326741218566895
 			],
+			"width": 16.0,
 			"outputs": {
 				"0": {
 					"links": [
@@ -613,6 +627,7 @@
 				"serialized_type": "Node",
 				"name": "Frame"
 			},
+			"width": 16.0,
 			"outputs": {
 				"0": {
 					"links": [
@@ -782,7 +797,6 @@
 				"name": "Frame"
 			},
 			"use_clamp": false,
-			"width": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -824,7 +838,6 @@
 				"name": "Frame"
 			},
 			"use_clamp": false,
-			"width": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -908,6 +921,7 @@
 				-1866.7137451171875,
 				56.13277053833008
 			],
+			"width": 16.0,
 			"outputs": {
 				"0": {
 					"links": [
@@ -934,6 +948,7 @@
 				"serialized_type": "Node",
 				"name": "Frame"
 			},
+			"width": 16.0,
 			"outputs": {
 				"0": {
 					"links": [
@@ -960,6 +975,7 @@
 				"serialized_type": "Node",
 				"name": "Frame"
 			},
+			"width": 16.0,
 			"outputs": {
 				"0": {
 					"links": [
@@ -1032,7 +1048,6 @@
 				"name": "Frame"
 			},
 			"use_clamp": false,
-			"width": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -1086,5 +1101,5 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "500f7a40cc7ee4683cb5f887676649a5"
+	"cached_hash": "910bf8e8d3d120156418889dd59745ff"
 }

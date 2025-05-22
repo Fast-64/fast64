@@ -49,6 +49,7 @@
 				-12.9583740234375,
 				-28.894683837890625
 			],
+			"width": 16.0,
 			"outputs": {
 				"0": {
 					"links": [
@@ -270,5 +271,5 @@
 			"bl_idname": "NodeSocketShader"
 		}
 	],
-	"cached_hash": "12465a30117f1ac1c479d61849ac795a"
+	"cached_hash": "5fa50ad94a49ac408b4216b6d2164bc7"
 }

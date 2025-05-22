@@ -116,6 +116,8 @@
 				80.37525939941406
 			],
 			"noise_dimensions": "2D",
+			"noise_type": "FBM",
+			"normalize": true,
 			"show_texture": true,
 			"texture_mapping": {
 				"serialized_type": "Default",
@@ -170,6 +172,16 @@
 				},
 				"4": {
 					"default_value": 1.0
+				},
+				"5": {
+					"default_value": 2.0
+				},
+				"6": {
+					"enabled": false
+				},
+				"7": {
+					"default_value": 1.0,
+					"enabled": false
 				}
 			},
 			"outputs": {
@@ -320,5 +332,5 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "96cc491338ce72b1bcd23a59c78939b0"
+	"cached_hash": "6a5b2ad9e3b37ad1f0cdd6bf05e42b8e"
 }

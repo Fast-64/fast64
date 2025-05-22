@@ -104,6 +104,22 @@
 						0.5,
 						1.0
 					]
+				},
+				"8": {
+					"default_value": [
+						0.0,
+						0.0,
+						0.0
+					],
+					"enabled": false
+				},
+				"9": {
+					"default_value": [
+						0.0,
+						0.0,
+						0.0
+					],
+					"enabled": false
 				}
 			},
 			"outputs": {
@@ -126,6 +142,14 @@
 							"socket": "Color"
 						}
 					]
+				},
+				"3": {
+					"default_value": [
+						0.0,
+						0.0,
+						0.0
+					],
+					"enabled": false
 				}
 			}
 		},
@@ -226,5 +250,5 @@
 			"bl_idname": "NodeSocketColor"
 		}
 	],
-	"cached_hash": "b437c8a15cf4f24ffff9bb7efa3acf51"
+	"cached_hash": "c9fe4e978c272631aa659d31583207dd"
 }

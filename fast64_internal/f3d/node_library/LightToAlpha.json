@@ -12,6 +12,7 @@
 				82.74740600585938,
 				19.691207885742188
 			],
+			"width": 16.0,
 			"outputs": {
 				"0": {
 					"links": [
@@ -38,6 +39,7 @@
 				83.26840209960938,
 				-142.0116729736328
 			],
+			"width": 16.0,
 			"outputs": {
 				"0": {
 					"links": [
@@ -134,6 +136,22 @@
 						0.5,
 						1.0
 					]
+				},
+				"8": {
+					"default_value": [
+						0.0,
+						0.0,
+						0.0
+					],
+					"enabled": false
+				},
+				"9": {
+					"default_value": [
+						0.0,
+						0.0,
+						0.0
+					],
+					"enabled": false
 				}
 			},
 			"outputs": {
@@ -156,6 +174,14 @@
 							"socket": "Color"
 						}
 					]
+				},
+				"3": {
+					"default_value": [
+						0.0,
+						0.0,
+						0.0
+					],
+					"enabled": false
 				}
 			}
 		},
@@ -378,5 +404,5 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "0b56bbc24608a2eb1cd95235e8b62bc2"
+	"cached_hash": "43af0bf819445c4e72e24e43a9abe6ef"
 }

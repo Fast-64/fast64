@@ -105,6 +105,7 @@
 				-576.5393676757812,
 				18.89933204650879
 			],
+			"width": 16.0,
 			"outputs": {
 				"0": {
 					"links": [
@@ -127,6 +128,7 @@
 				-576.5393676757812,
 				-78.84098052978516
 			],
+			"width": 16.0,
 			"outputs": {
 				"0": {
 					"links": [
@@ -384,5 +386,5 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "aa22b863d99f3481fd04bcc3e9b073a2"
+	"cached_hash": "4eafba8583e6caeb545e0c252a4da83c"
 }

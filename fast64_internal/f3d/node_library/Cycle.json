@@ -12,6 +12,7 @@
 				-295.32550048828125,
 				-380.49853515625
 			],
+			"width": 16.0,
 			"outputs": {
 				"0": {
 					"links": [
@@ -146,6 +147,7 @@
 				290.0152893066406,
 				47.51708984375
 			],
+			"width": 16.0,
 			"outputs": {
 				"0": {
 					"links": [
@@ -243,7 +245,6 @@
 			"operation": "MULTIPLY_ADD",
 			"use_clamp": false,
 			"width": 140.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -344,6 +345,7 @@
 				293.8010559082031,
 				-266.547607421875
 			],
+			"width": 16.0,
 			"outputs": {
 				"0": {
 					"links": [
@@ -465,6 +467,7 @@
 				-295.32550048828125,
 				-359.494384765625
 			],
+			"width": 16.0,
 			"outputs": {
 				"0": {
 					"links": [
@@ -625,5 +628,5 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "769ddfe0f37370e393216a061232c7f4"
+	"cached_hash": "ec0c0f26726a68f5b0f9c727f231c577"
 }

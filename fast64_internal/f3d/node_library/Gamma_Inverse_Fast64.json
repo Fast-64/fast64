@@ -14,6 +14,17 @@
 			],
 			"mode": "RGB",
 			"width": 140.0,
+			"inputs": {
+				"0": {
+					"default_value": 0.0
+				},
+				"1": {
+					"default_value": 0.0
+				},
+				"2": {
+					"default_value": 0.0
+				}
+			},
 			"outputs": {
 				"0": {
 					"default_value": [
@@ -255,5 +266,5 @@
 			"bl_idname": "NodeSocketColor"
 		}
 	],
-	"cached_hash": "7ca5f6f24a94f609d45b16ecf382f6ed"
+	"cached_hash": "2d522540f5a1cac315f7b7d72575a26d"
 }

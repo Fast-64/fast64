@@ -170,7 +170,6 @@
 				84.67758178710938,
 				-15.485005378723145
 			],
-			"width": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 1.0
@@ -217,5 +216,5 @@
 			"bl_idname": "NodeSocketShader"
 		}
 	],
-	"cached_hash": "5ae713897902863feea5c3377f1ccedf"
+	"cached_hash": "fde89063ea82ef031093de992ef7b8e9"
 }

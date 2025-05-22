@@ -118,6 +118,7 @@
 				164.1135711669922,
 				-77.701171875
 			],
+			"width": 16.0,
 			"outputs": {
 				"0": {
 					"links": [
@@ -204,5 +205,5 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "bf551d723b5efd00c171fe92562fc12f"
+	"cached_hash": "debdcc8bab590cd8c739c34ed21a4fd6"
 }
