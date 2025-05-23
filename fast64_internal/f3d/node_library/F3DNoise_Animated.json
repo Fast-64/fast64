@@ -3,51 +3,61 @@
 	"nodes": {
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
+			"location": [
+				-541.8596,
+				-0.0
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-541.859619140625,
-				-0.0
-			],
-			"width": 140.0
+			"width": 140.0,
+			"outputs": {}
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
+			"location": [
+				63.28,
+				0.0
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
 			"is_active_output": true,
-			"location": [
-				63.280029296875,
-				0.0
-			],
-			"width": 140.0
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"name": "Noise Factor"
+				},
+				"1": {
+					"name": ""
+				}
+			}
 		},
 		"Value.002": {
 			"bl_idname": "ShaderNodeValue",
+			"location": [
+				-129.1255,
+				0.2018
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
 			"label": "NoiseDriver",
-			"location": [
-				-129.12548828125,
-				0.2017822265625
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
+					"name": "Value",
 					"default_value": 0.29054194688796997,
 					"links": [
 						{
 							"node": "Group Output",
-							"socket": "Noise Factor"
+							"index": 0
 						}
 					]
 				}
@@ -60,5 +70,5 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "a5ffcd816c099b1c1d57a028904addbb"
+	"cached_hash": "4d50b4f062fced889f95ff3022ddb683"
 }

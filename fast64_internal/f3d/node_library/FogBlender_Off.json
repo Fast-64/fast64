@@ -3,42 +3,47 @@
 	"nodes": {
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
+			"location": [
+				-128.7302,
+				-77.7192
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
 			"is_active_output": true,
-			"location": [
-				-128.73016357421875,
-				-77.71923828125
-			],
 			"width": 140.0,
 			"inputs": {
 				"0": {
+					"name": "Color",
 					"default_value": [
 						0.0,
 						0.0,
 						0.0,
 						0.0
 					]
+				},
+				"1": {
+					"name": ""
 				}
 			}
 		},
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
+			"location": [
+				-340.7661,
+				-81.033
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-340.76605224609375,
-				-81.032958984375
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
+					"name": "Color",
 					"default_value": [
 						0.5,
 						0.5,
@@ -49,11 +54,12 @@
 					"links": [
 						{
 							"node": "Group Output",
-							"socket": "Color"
+							"index": 0
 						}
 					]
 				},
 				"2": {
+					"name": "FogEnable",
 					"hide_value": true
 				}
 			}
@@ -61,8 +67,8 @@
 	},
 	"inputs": [
 		{
-			"hide_value": true,
 			"name": "Color",
+			"hide_value": true,
 			"bl_idname": "NodeSocketColor"
 		},
 		{
@@ -70,30 +76,30 @@
 			"bl_idname": "NodeSocketColor"
 		},
 		{
+			"name": "FogEnable",
 			"default_value": 1,
 			"hide_value": true,
 			"max_value": 1,
 			"min_value": 0,
-			"name": "FogEnable",
 			"bl_idname": "NodeSocketInt"
 		},
 		{
-			"min_value": 0.0,
 			"name": "FogAmount",
+			"min_value": 0.0,
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
 	"outputs": [
 		{
+			"name": "Color",
 			"default_value": [
 				0.0,
 				0.0,
 				0.0,
 				0.0
 			],
-			"name": "Color",
 			"bl_idname": "NodeSocketColor"
 		}
 	],
-	"cached_hash": "81b9d1a8e3352d4f2a63aaf1a78708d6"
+	"cached_hash": "5f96db1d3a1d55b8e23d6688a699f203"
 }

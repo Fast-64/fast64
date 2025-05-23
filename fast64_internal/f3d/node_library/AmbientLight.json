@@ -3,18 +3,19 @@
 	"nodes": {
 		"Vector Math.003": {
 			"bl_idname": "ShaderNodeVectorMath",
+			"location": [
+				-10.621,
+				53.1117
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-10.62103271484375,
-				53.1116943359375
-			],
 			"operation": "SCALE",
 			"width": 140.0,
 			"inputs": {
+				"0": {},
 				"1": {
 					"enabled": false
 				},
@@ -22,53 +23,58 @@
 					"enabled": false
 				},
 				"3": {
+					"name": "Scale",
 					"default_value": 1.0
 				}
 			},
 			"outputs": {
 				"0": {
+					"name": "Vector",
 					"links": [
 						{
 							"node": "Group Output",
-							"socket": "Light Level"
+							"index": 0
 						}
 					]
 				},
 				"1": {
+					"name": "Value",
 					"enabled": false
 				}
 			}
 		},
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
+			"location": [
+				-200.0,
+				-0.0
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-200.0,
-				-0.0
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
+					"name": "Ambient Color",
 					"links": [
 						{
 							"node": "Vector Math.003",
-							"socket": 0
+							"index": 0
 						}
 					]
 				},
 				"1": {
+					"name": "AO Ambient Factor",
 					"links": [
 						{
 							"node": "Vector Math.003",
-							"socket": 1
+							"index": 1
 						},
 						{
 							"node": "Vector Math.003",
-							"socket": "Scale"
+							"index": 3
 						}
 					]
 				}
@@ -76,17 +82,25 @@
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
+			"location": [
+				183.8044,
+				54.8822
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
 			"is_active_output": true,
-			"location": [
-				183.80438232421875,
-				54.8822021484375
-			],
-			"width": 140.0
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"name": "Light Level"
+				},
+				"1": {
+					"name": ""
+				}
+			}
 		}
 	},
 	"inputs": [
@@ -105,5 +119,5 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "8e642df3cd6d59e5768340f7b7a3ef5c"
+	"cached_hash": "7e5141915f0c6b0f73ca0e4e012488c2"
 }

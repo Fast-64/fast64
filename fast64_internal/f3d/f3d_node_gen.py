@@ -28,7 +28,7 @@ from ..utility import PluginError, to_valid_file_name
 from ..operators import OperatorBase
 
 # Enable this to show the gather operator, this is a development feature
-SHOW_GATHER_OPERATOR = True
+SHOW_GATHER_OPERATOR = False
 ALWAYS_RELOAD = False
 
 SERIALIZED_NODE_LIBRARY_PATH = Path(__file__).parent / "node_library" / "main.json"
@@ -47,6 +47,8 @@ GENERAL_EXCLUDE = (
     "bl_width_min",
     "bl_height_max",
     "bl_height_min",
+    "socket_idname",
+    "color_tag",
 )
 EXCLUDE_FROM_NODE = GENERAL_EXCLUDE + (
     "inputs",
@@ -58,6 +60,8 @@ EXCLUDE_FROM_NODE = GENERAL_EXCLUDE + (
     "image",
     "select",
     "name",
+    "location_absolute",
+    "location",
 )
 EXCLUDE_FROM_GROUP_INPUT_OUTPUT = GENERAL_EXCLUDE + (
     "bl_subtype_label",
@@ -103,6 +107,12 @@ GLOBAL_DEFAULTS = {
     "clamp": False,
     "max_value": 3.4028234663852886e38,
     "min_value": -3.4028234663852886e38,
+    "pin_gizmo": False,
+    "warning_propagation": "ALL",
+    "is_inspect_output": False,
+    "factor_mode": "UNIFORM",
+    "clamp_factor": True,
+    "clamp_result": False,
     # unused in shader nodes
     "hide_in_modifier": False,
     "force_non_field": False,
@@ -122,11 +132,17 @@ DEFAULTS = [
     DefaultDefinition(["NodeSocketInt"], {"default_value": 0}),
     DefaultDefinition(["NodeSocketVector", "NodeSocketVectorDirection"], {"default_value": (0.0, 0.0, 0.0)}),
     DefaultDefinition(["NodeSocketColor"], {"default_value": (0.0, 0.0, 0.0, 1.0)}),
+    DefaultDefinition(["ShaderNodeMixRGB"], {"data_type": "RGBA"}),
 ]
 DEFAULTS = {name: definition.defaults for definition in DEFAULTS for name in definition.names}
 
 
 SCENE_PROPERTIES_VERSION = 2
+
+
+def print_with_exc(message: str, exc: Exception):
+    print(message, ": ", exc)
+    print(traceback.format_exc())
 
 
 def createOrUpdateSceneProperties():
@@ -271,7 +287,8 @@ def convert_to_3_2(owner: NodeSocket | Node):
     if bpy.app.version >= (4, 0, 0):
         if bl_idname == "NodeSocketVector" and getattr(owner, "subtype", "DIRECTION") == "DIRECTION":
             return "NodeSocketVectorDirection"
-    bl_idname = {"ShaderNodeMix": "ShaderNodeMixRGB"}.get(bl_idname, bl_idname)
+        if bl_idname == "ShaderNodeMix" and getattr(owner, "data_type", "") == "RGBA":
+            return "ShaderNodeMixRGB"
     return bl_idname
 
 
@@ -284,7 +301,9 @@ def convert_from_3_2(bl_idname: str, data: dict):
         if bl_idname == "NodeSocketVectorDirection":
             data["subtype"] = "DIRECTION"
             return "NodeSocketVector"
-    bl_idname = {"ShaderNodeMixRGB": "ShaderNodeMix"}.get(bl_idname, bl_idname)
+        if bl_idname == "ShaderNodeMixRGB":
+            data["data_type"] = "RGBA"
+            return "ShaderNodeMix"
     return bl_idname
 
 
@@ -325,39 +344,49 @@ def get_attributes(owner: object, excludes=None):
 @dataclasses.dataclass
 class SerializedLink:
     node: str = ""
-    socket: str | int = ""  # when more than one socket with the same name, we still prefer str for readability
+    name: str | None = None
+    index: int = 0
 
     def to_json(self):
-        return {"node": self.node, "socket": self.socket}
+        data = {"node": self.node, "index": self.index}
+        if self.name:
+            data["name"] = self.name
+        return data
 
     def from_json(self, data: dict):
         self.node = data.get("node")
-        self.socket = data.get("socket")
+        self.name = data.get("name")
+        self.index = data.get("index")
         return self
 
 
 @dataclasses.dataclass
 class SerializedInputValue:
+    name: str | None = None
     data: dict[str, object] = dataclasses.field(default_factory=dict)
 
     def to_json(self):
-        return self.data if self.data else {}
+        data = {}
+        if self.name is not None:
+            data["name"] = self.name
+        if self.data:
+            data.update(self.data)
+        return data
 
     def from_json(self, data: dict):
+        self.name = data.pop("name", None)
         self.data = data
         return self
 
 
 @dataclasses.dataclass
 class SerializedGroupInputValue(SerializedInputValue):
-    name: str = ""
     bl_idname: str = ""
 
     def to_json(self):
-        return super().to_json() | {"name": self.name, "bl_idname": self.bl_idname}
+        return super().to_json() | {"bl_idname": self.bl_idname}
 
     def from_json(self, data: dict):
-        self.name = data.pop("name", None)
         self.bl_idname = data.pop("bl_idname", None)
         super().from_json(data)
         return self
@@ -382,24 +411,25 @@ class SerializedOutputValue(SerializedInputValue):
 @dataclasses.dataclass
 class SerializedNode:
     bl_idname: str = ""
+    location: tuple[float, float] = (0, 0)
     data: dict[str, object] = dataclasses.field(default_factory=dict)
     inputs: dict[int, SerializedInputValue] = dataclasses.field(default_factory=dict)
     outputs: dict[int, SerializedOutputValue] = dataclasses.field(default_factory=dict)
 
     def to_json(self):
         data = {"bl_idname": self.bl_idname}
+        data["location"] = self.location
         if self.data:
             data.update(self.data)
-        inputs = {i: inp.to_json() for i, inp in self.inputs.items() if inp.data}
-        if inputs:
-            data["inputs"] = inputs
-        outputs = {i: out.to_json() for i, out in self.outputs.items() if out.data or out.links}
-        if outputs:
-            data["outputs"] = outputs
+        if self.inputs:
+            data["inputs"] = {i: inp.to_json() for i, inp in self.inputs.items()}
+        if self.outputs:
+            data["outputs"] = {i: out.to_json() for i, out in self.outputs.items() if out.data or out.links}
         return data
 
     def from_json(self, data: dict):
         self.bl_idname = data.pop("bl_idname", None)
+        self.location = data.pop("location", (0, 0))
         self.inputs = {int(i): SerializedInputValue().from_json(inp) for i, inp in data.pop("inputs", {}).items()}
         self.outputs = {int(i): SerializedOutputValue().from_json(out) for i, out in data.pop("outputs", {}).items()}
         self.data = data
@@ -462,28 +492,45 @@ class SerializedNodeTree:
                 bl_idname = convert_to_3_2(socket)
                 self_prop.append(
                     SerializedGroupInputValue(
-                        get_attributes(socket, EXCLUDE_FROM_GROUP_INPUT_OUTPUT), socket.name, bl_idname
+                        socket.name, get_attributes(socket, EXCLUDE_FROM_GROUP_INPUT_OUTPUT), bl_idname
                     )
                 )
         for node in node_tree.nodes:
-            serialized_node = SerializedNode(convert_to_3_2(node), get_attributes(node, EXCLUDE_FROM_NODE))
+            if hasattr(node, "location_absolute"):
+                location = node.location_absolute
+            else:
+                location = node.location
+            serialized_node = SerializedNode(
+                convert_to_3_2(node), tuple(round(x, 4) for x in location), get_attributes(node, EXCLUDE_FROM_NODE)
+            )
             self.nodes[node.name] = serialized_node
         for serialized_node, node in zip(self.nodes.values(), node_tree.nodes):
             for i, inp in enumerate(node.inputs):
-                serialized_node.inputs[i] = SerializedInputValue(get_attributes(inp, EXCLUDE_FROM_GROUP_INPUT_OUTPUT))
+                name = None
+                if not any(other for other in node.inputs if other != inp and other.name == inp.name):
+                    name = inp.name
+                serialized_node.inputs[i] = SerializedInputValue(
+                    name, get_attributes(inp, EXCLUDE_FROM_GROUP_INPUT_OUTPUT)
+                )
             for i, out in enumerate(node.outputs):
+                name = None
+                if not any(other for other in node.outputs if other != out and other.name == out.name):
+                    name = out.name
                 serialized_node.outputs[i] = serialized_out = SerializedOutputValue(
-                    get_attributes(out, EXCLUDE_FROM_GROUP_INPUT_OUTPUT)
+                    name, get_attributes(out, EXCLUDE_FROM_GROUP_INPUT_OUTPUT)
                 )
                 link: NodeLink
                 for link in out.links:
-                    repeated_socket_name = any(
-                        s for s in link.to_node.inputs if s != link.to_socket and s.name == link.to_socket.name
+                    name = None
+                    if not any(
+                        other
+                        for other in link.to_node.inputs
+                        if other == link.to_socket and other.name == link.to_socket.name
+                    ):
+                        name = link.to_socket.name
+                    serialized_out.links.append(
+                        SerializedLink(link.to_node.name, name, list(link.to_node.inputs).index(link.to_socket))
                     )
-                    index = link.to_socket.name
-                    if repeated_socket_name:
-                        index = list(link.to_node.inputs).index(link.to_socket)
-                    serialized_out.links.append(SerializedLink(link.to_node.name, index))
         return self
 
 
@@ -493,6 +540,7 @@ class SerializedMaterialNodeTree(SerializedNodeTree):
 
     def to_json(self):
         data = super().to_json()
+        data["bpy_ver"] = bpy.app.version
         data["dependencies"] = [to_valid_file_name(name) for name in self.dependencies.keys()]
         return data
 
@@ -631,7 +679,7 @@ def set_attrs(owner: object, attrs: dict[str, object], nodes: dict[str, Node], e
         try:
             set_node_prop(owner, attr, value, nodes)
         except Exception as exc:
-            print(f'Failed to set "{attr}" to "{value}": {exc}')
+            print_with_exc(f'Failed to set "{attr}" to "{value}"', exc)
     for key, value in defaults.items():
         if hasattr(owner, key) and key not in attrs and key not in excludes:
             try:
@@ -639,12 +687,31 @@ def set_attrs(owner: object, attrs: dict[str, object], nodes: dict[str, Node], e
                     value = list(value)
                 set_node_prop(owner, key, value, nodes)
             except Exception as exc:
-                print(f'Failed to set default value for "{key}" ("{value}"): {exc}')
+                print_with_exc(f'Failed to set default value for "{key}" ("{value}")', exc)
+
+
+def try_name_then_index(collection, name: str | None, index: int):
+    if name is not None:
+        try:
+            return collection[name]
+        except (KeyError, IndexError):
+            pass
+    try:
+        return collection[index]
+    except (KeyError, IndexError):
+        return None
 
 
 def set_values_and_create_links(
     node_tree: ShaderNodeTree, serialized_node_tree: SerializedNodeTree, new_nodes: list[Node]
 ):
+    def get_name(i: int, inp: SerializedInputValue, socket: NodeSocket | None = None):
+        if socket is not None:
+            return socket.name
+        if inp.name is not None:
+            return inp.name
+        return f"Input {i}"
+
     links, nodes = node_tree.links, node_tree.nodes
 
     for node, serialized_node in zip(new_nodes, serialized_node_tree.nodes.values()):
@@ -652,33 +719,43 @@ def set_values_and_create_links(
             set_attrs(node, serialized_node.data, nodes, EXCLUDE_FROM_NODE)
             node.update()
         except Exception as exc:
-            print(f'Failed to set values for node "{node.name}": {exc}')
+            print_with_exc(f'Failed to set values for node "{node.name}"', exc)
     if hasattr(node_tree, "update"):
         node_tree.update()
     for serialized_node, node in zip(serialized_node_tree.nodes.values(), new_nodes):
-        for i, inp in enumerate(node.inputs):
+        for i, serialized_inp in serialized_node.inputs.items():
             try:
-                data = {}
-                if i in serialized_node.inputs:
-                    data = serialized_node.inputs[i].data
-                set_attrs(inp, data, nodes, EXCLUDE_FROM_GROUP_INPUT_OUTPUT)
+                inp = try_name_then_index(node.inputs, serialized_inp.name, i)
+                if inp is None:
+                    raise IndexError(f'Input "{get_name(i, serialized_inp)}" not found')
+                set_attrs(inp, serialized_inp.data, nodes, EXCLUDE_FROM_GROUP_INPUT_OUTPUT)
             except Exception as exc:
-                print(f'Failed to set default values for input "{inp.name}" of node "{node.name}": {exc}')
-        for i, out in enumerate(node.outputs):
+                print_with_exc(
+                    f'Failed to set default values for input "{get_name(i, serialized_inp, inp)}" of node "{node.name}"',
+                    exc,
+                )
+        for i, serialized_out in serialized_node.outputs.items():
             try:
-                data, serialized_links = {}, []
-                if i in serialized_node.outputs:
-                    data, serialized_links = serialized_node.outputs[i].data, serialized_node.outputs[i].links
-                set_attrs(out, data, nodes, EXCLUDE_FROM_GROUP_INPUT_OUTPUT)
-                for serialized_link in serialized_links:
+                out = try_name_then_index(node.outputs, serialized_out.name, i)
+                if out is None:
+                    raise IndexError(f'Output "{get_name(i, serialized_out)}" not found')
+                set_attrs(out, serialized_out.data, nodes, EXCLUDE_FROM_GROUP_INPUT_OUTPUT)
+                for serialized_link in serialized_out.links:
                     try:
-                        links.new(nodes[serialized_link.node].inputs[serialized_link.socket], out)
+                        link = try_name_then_index(
+                            nodes[serialized_link.node].inputs, serialized_link.name, serialized_link.index
+                        )
+                        links.new(link, out)
                     except Exception as exc:
-                        print(
-                            f'Failed to create links for output socket "{out.name}" of node "{node.name}" to node "{serialized_link.node}" with socket "{serialized_link.socket}": {exc}'
+                        print_with_exc(
+                            f'Failed to set links for output socket "{get_name(i, serialized_out, out)}" of node "{node.name}" to input socket {get_name(serialized_link.index, serialized_link, link)}" of node "{serialized_link.node}"',
+                            exc,
                         )
             except Exception as exc:
-                print(f'Failed to set links for output socket "{out.name}" of node "{node.name}": {exc}')
+                print_with_exc(
+                    f'Failed to set links for output socket "{get_name(i, serialized_out, out)}" of node "{node.name}"',
+                    exc,
+                )
 
 
 def add_input_output(node_tree: NodeTree | ShaderNodeTree, serialized_node_tree: SerializedNodeTree):
@@ -700,7 +777,7 @@ def add_input_output(node_tree: NodeTree | ShaderNodeTree, serialized_node_tree:
                 try:
                     set_node_prop(socket, attr, value, {})
                 except Exception as exc:
-                    print(f"Failed to set default values for {in_out} socket {socket.name}: {exc}")
+                    print_with_exc(f"Failed to set default values for {in_out} socket {socket.name}", exc)
     node_tree.interface_update(bpy.context)
     if hasattr(node_tree, "update"):
         node_tree.update()
@@ -713,6 +790,7 @@ def create_nodes(node_tree: NodeTree | ShaderNodeTree, serialized_node_tree: Ser
     for name, serialized_node in serialized_node_tree.nodes.items():
         node = nodes.new(convert_from_3_2(serialized_node.bl_idname, serialized_node.data))
         node.name = name
+        node.location = serialized_node.location
         new_nodes.append(node)
     add_input_output(node_tree, serialized_node_tree)
     return new_nodes
@@ -747,13 +825,13 @@ def generate_f3d_node_groups():
         try:
             new_node_trees.append((serialized_node_group, node_tree, create_nodes(node_tree, serialized_node_group)))
         except Exception as exc:
-            print(f"Failed on creating group {serialized_node_group.name}: {exc}")
+            print_with_exc(f"Failed on creating group {serialized_node_group.name}", exc)
     for serialized_node_group, node_tree, new_nodes in new_node_trees:
         try:
             set_values_and_create_links(node_tree, serialized_node_group, new_nodes)
             node_tree["fast64_cached_hash"] = serialized_node_group.cached_hash
         except Exception as exc:
-            print(f"Failed on group {serialized_node_group.name}: {exc}")
+            print_with_exc(f"Failed on group {serialized_node_group.name}", exc)
     return update_materials
 
 
@@ -779,7 +857,7 @@ def update_f3d_materials(force=False):
                 create_f3d_nodes_in_material(material)
                 material.node_tree["fast64_cached_hash"] = SERIALIZED_NODE_LIBRARY.cached_hash
         except Exception as exc:
-            print(f"Failed to update material {material.name}: {exc}")
+            print_with_exc(f"Failed to update material {material.name}", exc)
 
 
 if SHOW_GATHER_OPERATOR:

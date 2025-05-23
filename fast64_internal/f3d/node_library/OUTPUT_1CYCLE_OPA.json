@@ -3,42 +3,44 @@
 	"nodes": {
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
+			"location": [
+				-180.2261,
+				42.7965
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-180.22610473632812,
-				42.796539306640625
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
+					"name": "Cycle_C_1",
 					"links": [
 						{
 							"node": "Group",
-							"socket": "Gamma Corrected Color"
+							"index": 0
 						}
 					]
 				},
 				"1": {
+					"name": "Cycle_A_1",
 					"default_value": 0.5
 				}
 			}
 		},
 		"Group": {
 			"bl_idname": "ShaderNodeGroup",
+			"location": [
+				-7.8627,
+				17.9682
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
 			"hide": true,
-			"location": [
-				-7.8626708984375,
-				17.96820068359375
-			],
 			"node_tree": {
 				"serialized_type": "NodeTree",
 				"name": "Gamma Inverse Fast64"
@@ -46,6 +48,7 @@
 			"width": 234.19326782226562,
 			"inputs": {
 				"0": {
+					"name": "Gamma Corrected Color",
 					"default_value": [
 						0.800000011920929,
 						0.800000011920929,
@@ -56,6 +59,7 @@
 			},
 			"outputs": {
 				"0": {
+					"name": "Inverse Corrected Color",
 					"default_value": [
 						0.0,
 						0.0,
@@ -65,7 +69,7 @@
 					"links": [
 						{
 							"node": "Group Output",
-							"socket": "Shader"
+							"index": 0
 						}
 					]
 				}
@@ -73,17 +77,25 @@
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
+			"location": [
+				260.7855,
+				42.5168
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
 			"is_active_output": true,
-			"location": [
-				260.7855224609375,
-				42.51676559448242
-			],
-			"width": 140.0
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"name": "Shader"
+				},
+				"1": {
+					"name": ""
+				}
+			}
 		}
 	},
 	"inputs": [
@@ -92,10 +104,10 @@
 			"bl_idname": "NodeSocketColor"
 		},
 		{
+			"name": "Cycle_A_1",
 			"default_value": 0.5,
 			"max_value": 10000.0,
 			"min_value": -10000.0,
-			"name": "Cycle_A_1",
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
@@ -113,5 +125,5 @@
 			"bl_idname": "NodeSocketShader"
 		}
 	],
-	"cached_hash": "e989ab22f4b139ecf87c72121cd2971b"
+	"cached_hash": "bde85f7d6f594a789ab21c066c30dc16"
 }

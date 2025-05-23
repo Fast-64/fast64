@@ -3,38 +3,46 @@
 	"nodes": {
 		"Separate XYZ": {
 			"bl_idname": "ShaderNodeSeparateXYZ",
+			"location": [
+				-182.2785,
+				43.0632
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-182.27847290039062,
-				43.06315612792969
-			],
 			"width": 140.0,
+			"inputs": {
+				"0": {
+					"name": "Vector"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "X",
 					"links": [
 						{
 							"node": "Clamp.001",
-							"socket": "Value"
+							"index": 0
 						}
 					]
 				},
 				"1": {
+					"name": "Y",
 					"links": [
 						{
 							"node": "Clamp.002",
-							"socket": "Value"
+							"index": 0
 						}
 					]
 				},
 				"2": {
+					"name": "Z",
 					"links": [
 						{
 							"node": "Clamp.003",
-							"socket": "Value"
+							"index": 0
 						}
 					]
 				}
@@ -42,6 +50,10 @@
 		},
 		"Clamp.003": {
 			"bl_idname": "ShaderNodeClamp",
+			"location": [
+				0.4784,
+				-56.4606
+			],
 			"clamp_type": "MINMAX",
 			"color": [
 				0.6079999804496765,
@@ -49,25 +61,27 @@
 				0.6079999804496765
 			],
 			"hide": true,
-			"location": [
-				0.4783935546875,
-				-56.46055603027344
-			],
 			"width": 140.0,
 			"inputs": {
 				"0": {
+					"name": "Value",
 					"default_value": 1.0
 				},
+				"1": {
+					"name": "Min"
+				},
 				"2": {
+					"name": "Max",
 					"default_value": 1.0
 				}
 			},
 			"outputs": {
 				"0": {
+					"name": "Result",
 					"links": [
 						{
 							"node": "Combine XYZ",
-							"socket": "Z"
+							"index": 2
 						}
 					]
 				}
@@ -75,22 +89,34 @@
 		},
 		"Combine XYZ": {
 			"bl_idname": "ShaderNodeCombineXYZ",
+			"location": [
+				182.2784,
+				56.4606
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				182.2784423828125,
-				56.46055603027344
-			],
 			"width": 140.0,
+			"inputs": {
+				"0": {
+					"name": "X"
+				},
+				"1": {
+					"name": "Y"
+				},
+				"2": {
+					"name": "Z"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Vector",
 					"links": [
 						{
 							"node": "Group Output",
-							"socket": "Vector"
+							"index": 0
 						}
 					]
 				}
@@ -98,6 +124,10 @@
 		},
 		"Clamp.002": {
 			"bl_idname": "ShaderNodeClamp",
+			"location": [
+				-0.4785,
+				-15.3113
+			],
 			"clamp_type": "MINMAX",
 			"color": [
 				0.6079999804496765,
@@ -105,25 +135,27 @@
 				0.6079999804496765
 			],
 			"hide": true,
-			"location": [
-				-0.478515625,
-				-15.311325073242188
-			],
 			"width": 140.0,
 			"inputs": {
 				"0": {
+					"name": "Value",
 					"default_value": 1.0
 				},
+				"1": {
+					"name": "Min"
+				},
 				"2": {
+					"name": "Max",
 					"default_value": 1.0
 				}
 			},
 			"outputs": {
 				"0": {
+					"name": "Result",
 					"links": [
 						{
 							"node": "Combine XYZ",
-							"socket": "Y"
+							"index": 1
 						}
 					]
 				}
@@ -131,22 +163,23 @@
 		},
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
+			"location": [
+				-382.2785,
+				-0.0
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-382.2784729003906,
-				-0.0
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
+					"name": "Vector",
 					"links": [
 						{
 							"node": "Separate XYZ",
-							"socket": "Vector"
+							"index": 0
 						}
 					]
 				}
@@ -154,20 +187,32 @@
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
+			"location": [
+				372.2784,
+				-0.0
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
 			"is_active_output": true,
-			"location": [
-				372.2784423828125,
-				-0.0
-			],
-			"width": 140.0
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"name": "Vector"
+				},
+				"1": {
+					"name": ""
+				}
+			}
 		},
 		"Clamp.001": {
 			"bl_idname": "ShaderNodeClamp",
+			"location": [
+				-0.4785,
+				24.8809
+			],
 			"clamp_type": "MINMAX",
 			"color": [
 				0.6079999804496765,
@@ -175,25 +220,27 @@
 				0.6079999804496765
 			],
 			"hide": true,
-			"location": [
-				-0.47845458984375,
-				24.880935668945312
-			],
 			"width": 140.0,
 			"inputs": {
 				"0": {
+					"name": "Value",
 					"default_value": 1.0
 				},
+				"1": {
+					"name": "Min"
+				},
 				"2": {
+					"name": "Max",
 					"default_value": 1.0
 				}
 			},
 			"outputs": {
 				"0": {
+					"name": "Result",
 					"links": [
 						{
 							"node": "Combine XYZ",
-							"socket": "X"
+							"index": 0
 						}
 					]
 				}
@@ -202,9 +249,9 @@
 	},
 	"inputs": [
 		{
+			"name": "Vector",
 			"max_value": 10000.0,
 			"min_value": -10000.0,
-			"name": "Vector",
 			"bl_idname": "NodeSocketVector"
 		}
 	],
@@ -214,5 +261,5 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "0a560c0b249246c31cfd48dace89400a"
+	"cached_hash": "5b7237c8df32fc0409cbd843d6247e71"
 }

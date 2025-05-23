@@ -3,6 +3,10 @@
 	"nodes": {
 		"Vector Transform": {
 			"bl_idname": "ShaderNodeVectorTransform",
+			"location": [
+				13.4256,
+				12.2404
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
@@ -10,14 +14,11 @@
 			],
 			"convert_from": "WORLD",
 			"convert_to": "CAMERA",
-			"location": [
-				13.42559814453125,
-				12.2403564453125
-			],
 			"vector_type": "NORMAL",
 			"width": 140.0,
 			"inputs": {
 				"0": {
+					"name": "Vector",
 					"default_value": [
 						0.5,
 						0.5,
@@ -27,10 +28,11 @@
 			},
 			"outputs": {
 				"0": {
+					"name": "Vector",
 					"links": [
 						{
 							"node": "Mapping",
-							"socket": "Vector"
+							"index": 0
 						}
 					]
 				}
@@ -38,19 +40,23 @@
 		},
 		"Mapping": {
 			"bl_idname": "ShaderNodeMapping",
+			"location": [
+				170.8631,
+				62.3998
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				170.86309814453125,
-				62.3997802734375
-			],
 			"vector_type": "POINT",
 			"width": 140.0,
 			"inputs": {
+				"0": {
+					"name": "Vector"
+				},
 				"1": {
+					"name": "Location",
 					"default_value": [
 						0.5,
 						0.5,
@@ -58,6 +64,7 @@
 					]
 				},
 				"2": {
+					"name": "Rotation",
 					"default_value": [
 						0.0,
 						0.0,
@@ -65,6 +72,7 @@
 					]
 				},
 				"3": {
+					"name": "Scale",
 					"default_value": [
 						0.5,
 						0.5,
@@ -74,10 +82,11 @@
 			},
 			"outputs": {
 				"0": {
+					"name": "Vector",
 					"links": [
 						{
 							"node": "Group Output",
-							"socket": "Vector"
+							"index": 0
 						}
 					]
 				}
@@ -85,61 +94,78 @@
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
+			"location": [
+				360.8631,
+				-0.0
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
 			"is_active_output": true,
-			"location": [
-				360.86309814453125,
-				-0.0
-			],
-			"width": 140.0
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"name": "Vector"
+				},
+				"1": {
+					"name": ""
+				}
+			}
 		},
 		"Geometry": {
 			"bl_idname": "ShaderNodeNewGeometry",
+			"location": [
+				-149.7988,
+				-93.0175
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-149.798828125,
-				-93.01751708984375
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
+					"name": "Position",
 					"hide": true
 				},
 				"1": {
+					"name": "Normal",
 					"links": [
 						{
 							"node": "Vector Transform",
-							"socket": "Vector"
+							"index": 0
 						}
 					]
 				},
 				"2": {
+					"name": "Tangent",
 					"hide": true
 				},
 				"3": {
+					"name": "True Normal",
 					"hide": true
 				},
 				"4": {
+					"name": "Incoming",
 					"hide": true
 				},
 				"5": {
+					"name": "Parametric",
 					"hide": true
 				},
 				"6": {
+					"name": "Backfacing",
 					"hide": true
 				},
 				"7": {
+					"name": "Pointiness",
 					"hide": true
 				},
 				"8": {
+					"name": "Random Per Island",
 					"hide": true
 				}
 			}
@@ -147,11 +173,11 @@
 	},
 	"outputs": [
 		{
+			"name": "Vector",
 			"max_value": 0.0,
 			"min_value": 0.0,
-			"name": "Vector",
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "55704963ee67f7c316083c81338697bd"
+	"cached_hash": "91e0eaf464170e53dfeecb76dd592451"
 }

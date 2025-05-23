@@ -43,7 +43,7 @@ from .f3d_material_presets import *
 from ..utility import *
 from ..render_settings import ManualUpdatePreviewOperator
 from .f3d_material_helpers import F3DMaterial_UpdateLock
-from .f3d_node_gen import create_f3d_nodes_in_material, update_f3d_materials
+from .f3d_node_gen import create_f3d_nodes_in_material, update_f3d_materials, SHOW_GATHER_OPERATOR
 from bpy.app.handlers import persistent
 from typing import Generator, Optional, Tuple, Any, Dict, Union
 
@@ -2432,8 +2432,8 @@ def has_f3d_nodes(material: Material):
 
 @persistent
 def load_handler(dummy):
-    logger.info("Checking for base F3D material library.")
-    update_f3d_materials()
+    if not SHOW_GATHER_OPERATOR:
+        update_f3d_materials()
 
     for mat in bpy.data.materials:
         if mat is not None and mat.use_nodes and mat.is_f3d:

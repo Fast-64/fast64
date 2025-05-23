@@ -3,22 +3,28 @@
 	"nodes": {
 		"Reroute.003": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				-295.3255,
+				-380.4985
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-295.32550048828125,
-				-380.49853515625
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Math.001",
-							"socket": 2
+							"index": 2
 						}
 					]
 				}
@@ -26,19 +32,20 @@
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
+			"location": [
+				1119.4927,
+				-20.2579
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
 			"is_active_output": true,
-			"location": [
-				1119.49267578125,
-				-20.25787353515625
-			],
 			"width": 140.0,
 			"inputs": {
 				"0": {
+					"name": "Color",
 					"default_value": [
 						0.0,
 						0.0,
@@ -48,24 +55,29 @@
 					"hide_value": true
 				},
 				"1": {
+					"name": "Alpha",
 					"default_value": 1.0
+				},
+				"2": {
+					"name": ""
 				}
 			}
 		},
 		"Vector Math": {
 			"bl_idname": "ShaderNodeVectorMath",
+			"location": [
+				441.2433,
+				136.4
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				441.2432556152344,
-				136.3999786376953
-			],
 			"operation": "WRAP",
 			"width": 140.0,
 			"inputs": {
+				"0": {},
 				"1": {
 					"default_value": [
 						1.5,
@@ -81,34 +93,37 @@
 					]
 				},
 				"3": {
+					"name": "Scale",
 					"default_value": 1.0,
 					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
+					"name": "Vector",
 					"links": [
 						{
 							"node": "Group Output",
-							"socket": "Color"
+							"index": 0
 						}
 					]
 				},
 				"1": {
+					"name": "Value",
 					"enabled": false
 				}
 			}
 		},
 		"Math.002": {
 			"bl_idname": "ShaderNodeMath",
+			"location": [
+				444.0553,
+				-157.6101
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
-			],
-			"location": [
-				444.0553283691406,
-				-157.610107421875
 			],
 			"operation": "WRAP",
 			"use_clamp": false,
@@ -126,10 +141,11 @@
 			},
 			"outputs": {
 				"0": {
+					"name": "Value",
 					"links": [
 						{
 							"node": "Group Output",
-							"socket": "Alpha"
+							"index": 1
 						}
 					]
 				}
@@ -137,23 +153,29 @@
 		},
 		"Reroute": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				290.0153,
+				47.5171
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
 			"label": "Color Wrapping",
-			"location": [
-				290.0152893066406,
-				47.51708984375
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Vector Math",
-							"socket": 0
+							"index": 0
 						}
 					]
 				}
@@ -161,101 +183,115 @@
 		},
 		"Vector Math.001": {
 			"bl_idname": "ShaderNodeVectorMath",
+			"location": [
+				-245.604,
+				8.1128
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-245.60400390625,
-				8.11279296875
-			],
 			"operation": "SUBTRACT",
 			"width": 140.0,
 			"inputs": {
+				"0": {},
+				"1": {},
 				"2": {
 					"enabled": false
 				},
 				"3": {
+					"name": "Scale",
 					"default_value": 1.0,
 					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
+					"name": "Vector",
 					"links": [
 						{
 							"node": "Vector Math.002",
-							"socket": 0
+							"index": 0
 						}
 					]
 				},
 				"1": {
+					"name": "Value",
 					"enabled": false
 				}
 			}
 		},
 		"Vector Math.002": {
 			"bl_idname": "ShaderNodeVectorMath",
+			"location": [
+				-88.2811,
+				-20.5271
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-88.28108978271484,
-				-20.527099609375
-			],
 			"operation": "MULTIPLY",
 			"width": 140.0,
 			"inputs": {
+				"0": {},
+				"1": {},
 				"2": {
 					"enabled": false
 				},
 				"3": {
+					"name": "Scale",
 					"default_value": 1.0,
 					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
+					"name": "Vector",
 					"links": [
 						{
 							"node": "Vector Math.003",
-							"socket": 0
+							"index": 0
 						}
 					]
 				},
 				"1": {
+					"name": "Value",
 					"enabled": false
 				}
 			}
 		},
 		"Math.001": {
 			"bl_idname": "ShaderNodeMath",
+			"location": [
+				-67.8319,
+				-223.9897
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-67.83194732666016,
-				-223.98974609375
-			],
 			"operation": "MULTIPLY_ADD",
 			"use_clamp": false,
 			"width": 140.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
-				}
+				},
+				"1": {},
+				"2": {}
 			},
 			"outputs": {
 				"0": {
+					"name": "Value",
 					"links": [
 						{
 							"node": "Reroute.001",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				}
@@ -263,14 +299,14 @@
 		},
 		"Math": {
 			"bl_idname": "ShaderNodeMath",
+			"location": [
+				-232.0059,
+				-171.9814
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
-			],
-			"location": [
-				-232.005859375,
-				-171.9813690185547
 			],
 			"operation": "SUBTRACT",
 			"use_clamp": false,
@@ -288,10 +324,11 @@
 			},
 			"outputs": {
 				"0": {
+					"name": "Value",
 					"links": [
 						{
 							"node": "Math.001",
-							"socket": 0
+							"index": 0
 						}
 					]
 				}
@@ -299,59 +336,70 @@
 		},
 		"Vector Math.003": {
 			"bl_idname": "ShaderNodeVectorMath",
+			"location": [
+				70.991,
+				-47.4384
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				70.990966796875,
-				-47.43839645385742
-			],
 			"operation": "ADD",
 			"width": 140.0,
 			"inputs": {
+				"0": {},
+				"1": {},
 				"2": {
 					"enabled": false
 				},
 				"3": {
+					"name": "Scale",
 					"default_value": 1.0,
 					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
+					"name": "Vector",
 					"links": [
 						{
 							"node": "Reroute",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				},
 				"1": {
+					"name": "Value",
 					"enabled": false
 				}
 			}
 		},
 		"Reroute.001": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				293.8011,
+				-266.5476
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
 			"label": "Color Wrapping",
-			"location": [
-				293.8010559082031,
-				-266.547607421875
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Math.002",
-							"socket": 0
+							"index": 0
 						}
 					]
 				}
@@ -359,18 +407,19 @@
 		},
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
+			"location": [
+				-594.9968,
+				-64.8251
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-594.9967651367188,
-				-64.8250732421875
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
+					"name": "   A",
 					"default_value": [
 						0.5,
 						0.5,
@@ -381,20 +430,22 @@
 					"links": [
 						{
 							"node": "Vector Math.001",
-							"socket": 0
+							"index": 0
 						}
 					]
 				},
 				"1": {
+					"name": "-  B",
 					"hide_value": true,
 					"links": [
 						{
 							"node": "Vector Math.001",
-							"socket": 1
+							"index": 1
 						}
 					]
 				},
 				"2": {
+					"name": "* C",
 					"default_value": [
 						1.0,
 						1.0,
@@ -405,52 +456,57 @@
 					"links": [
 						{
 							"node": "Vector Math.004",
-							"socket": 0
+							"index": 0
 						}
 					]
 				},
 				"3": {
+					"name": "+D",
 					"hide_value": true,
 					"links": [
 						{
 							"node": "Vector Math.003",
-							"socket": 1
+							"index": 1
 						}
 					]
 				},
 				"4": {
+					"name": "   A a",
 					"hide_value": true,
 					"links": [
 						{
 							"node": "Math",
-							"socket": 0
+							"index": 0
 						}
 					]
 				},
 				"5": {
+					"name": "-  B a",
 					"hide_value": true,
 					"links": [
 						{
 							"node": "Math",
-							"socket": 1
+							"index": 1
 						}
 					]
 				},
 				"6": {
+					"name": "* C a",
 					"hide_value": true,
 					"links": [
 						{
 							"node": "Reroute.002",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				},
 				"7": {
+					"name": "+D a",
 					"hide_value": true,
 					"links": [
 						{
 							"node": "Reroute.003",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				}
@@ -458,22 +514,28 @@
 		},
 		"Reroute.002": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				-295.3255,
+				-359.4944
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-295.32550048828125,
-				-359.494384765625
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Math.003",
-							"socket": 0
+							"index": 0
 						}
 					]
 				}
@@ -481,6 +543,10 @@
 		},
 		"Vector Math.004": {
 			"bl_idname": "ShaderNodeVectorMath",
+			"location": [
+				-404.8988,
+				-131.011
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
@@ -488,13 +554,10 @@
 			],
 			"hide": true,
 			"label": "Sign Extension",
-			"location": [
-				-404.8988037109375,
-				-131.010986328125
-			],
 			"operation": "WRAP",
 			"width": 140.0,
 			"inputs": {
+				"0": {},
 				"1": {
 					"default_value": [
 						1.000100016593933,
@@ -510,26 +573,33 @@
 					]
 				},
 				"3": {
+					"name": "Scale",
 					"default_value": 1.0,
 					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
+					"name": "Vector",
 					"links": [
 						{
 							"node": "Vector Math.002",
-							"socket": 1
+							"index": 1
 						}
 					]
 				},
 				"1": {
+					"name": "Value",
 					"enabled": false
 				}
 			}
 		},
 		"Math.003": {
 			"bl_idname": "ShaderNodeMath",
+			"location": [
+				-253.1447,
+				-346.3527
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
@@ -537,10 +607,6 @@
 			],
 			"hide": true,
 			"label": "Sign Extension",
-			"location": [
-				-253.14471435546875,
-				-346.3526916503906
-			],
 			"operation": "WRAP",
 			"use_clamp": false,
 			"width": 140.0,
@@ -557,10 +623,11 @@
 			},
 			"outputs": {
 				"0": {
+					"name": "Value",
 					"links": [
 						{
 							"node": "Math.001",
-							"socket": 1
+							"index": 1
 						}
 					]
 				}
@@ -569,48 +636,49 @@
 	},
 	"inputs": [
 		{
-			"hide_value": true,
 			"name": "   A",
+			"hide_value": true,
 			"bl_idname": "NodeSocketColor"
 		},
 		{
-			"hide_value": true,
 			"name": "-  B",
+			"hide_value": true,
 			"bl_idname": "NodeSocketColor"
 		},
 		{
-			"hide_value": true,
 			"name": "* C",
+			"hide_value": true,
 			"bl_idname": "NodeSocketColor"
 		},
 		{
-			"hide_value": true,
 			"name": "+D",
+			"hide_value": true,
 			"bl_idname": "NodeSocketColor"
 		},
 		{
-			"hide_value": true,
 			"name": "   A a",
+			"hide_value": true,
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
-			"hide_value": true,
 			"name": "-  B a",
+			"hide_value": true,
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
-			"hide_value": true,
 			"name": "* C a",
+			"hide_value": true,
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
-			"hide_value": true,
 			"name": "+D a",
+			"hide_value": true,
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
 	"outputs": [
 		{
+			"name": "Color",
 			"default_value": [
 				0.0,
 				0.0,
@@ -618,15 +686,14 @@
 				0.0
 			],
 			"hide_value": true,
-			"name": "Color",
 			"bl_idname": "NodeSocketColor"
 		},
 		{
+			"name": "Alpha",
 			"max_value": 0.0,
 			"min_value": 0.0,
-			"name": "Alpha",
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "ec0c0f26726a68f5b0f9c727f231c577"
+	"cached_hash": "043c4fc68b978f3b70dd58350550a641"
 }

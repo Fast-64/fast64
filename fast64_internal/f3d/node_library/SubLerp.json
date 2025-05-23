@@ -3,124 +3,145 @@
 	"nodes": {
 		"Vector Math.007": {
 			"bl_idname": "ShaderNodeVectorMath",
+			"location": [
+				-94.0455,
+				-1.9878
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-94.0455322265625,
-				-1.9878082275390625
-			],
 			"operation": "SUBTRACT",
 			"width": 140.0,
 			"inputs": {
+				"0": {},
+				"1": {},
 				"2": {
 					"enabled": false
 				},
 				"3": {
+					"name": "Scale",
 					"default_value": 1.0,
 					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
+					"name": "Vector",
 					"links": [
 						{
 							"node": "Vector Math.008",
-							"socket": 0
+							"index": 0
 						}
 					]
 				},
 				"1": {
+					"name": "Value",
 					"enabled": false
 				}
 			}
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
+			"location": [
+				284.0454,
+				-0.0
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
 			"is_active_output": true,
-			"location": [
-				284.04541015625,
-				-0.0
-			],
-			"width": 140.0
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"name": "Vector"
+				},
+				"1": {
+					"name": ""
+				}
+			}
 		},
 		"Vector Math.008": {
 			"bl_idname": "ShaderNodeVectorMath",
+			"location": [
+				94.0454,
+				1.9878
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				94.04541015625,
-				1.9878082275390625
-			],
 			"operation": "MULTIPLY",
 			"width": 140.0,
 			"inputs": {
+				"0": {},
+				"1": {},
 				"2": {
 					"enabled": false
 				},
 				"3": {
+					"name": "Scale",
 					"default_value": 1.0,
 					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
+					"name": "Vector",
 					"links": [
 						{
 							"node": "Group Output",
-							"socket": "Vector"
+							"index": 0
 						}
 					]
 				},
 				"1": {
+					"name": "Value",
 					"enabled": false
 				}
 			}
 		},
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
+			"location": [
+				-294.0455,
+				-0.0
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-294.0455322265625,
-				-0.0
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
+					"name": "C1",
 					"links": [
 						{
 							"node": "Vector Math.007",
-							"socket": 0
+							"index": 0
 						}
 					]
 				},
 				"1": {
+					"name": "C2",
 					"links": [
 						{
 							"node": "Vector Math.007",
-							"socket": 1
+							"index": 1
 						}
 					]
 				},
 				"2": {
+					"name": "Fac",
 					"links": [
 						{
 							"node": "Vector Math.008",
-							"socket": 1
+							"index": 1
 						}
 					]
 				}
@@ -147,5 +168,5 @@
 			"bl_idname": "NodeSocketColor"
 		}
 	],
-	"cached_hash": "3cab0bb34efd78096c464f72bf7fe987"
+	"cached_hash": "165a4f269fb0a5183d1f63589c14de12"
 }

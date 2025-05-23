@@ -3,41 +3,53 @@
 	"nodes": {
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
+			"location": [
+				334.0443,
+				3.2077
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
 			"is_active_output": true,
-			"location": [
-				334.0443115234375,
-				3.207672119140625
-			],
-			"width": 140.0
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"name": "Shader"
+				},
+				"1": {
+					"name": ""
+				}
+			}
 		},
 		"Mix Shader": {
 			"bl_idname": "ShaderNodeMixShader",
+			"location": [
+				181.1692,
+				4.9553
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				181.16921997070312,
-				4.955322265625
-			],
 			"width": 140.0,
 			"inputs": {
 				"0": {
+					"name": "Fac",
 					"default_value": 0.5
-				}
+				},
+				"1": {},
+				"2": {}
 			},
 			"outputs": {
 				"0": {
+					"name": "Shader",
 					"links": [
 						{
 							"node": "Group Output",
-							"socket": "Shader"
+							"index": 0
 						}
 					]
 				}
@@ -45,19 +57,20 @@
 		},
 		"Transparent BSDF": {
 			"bl_idname": "ShaderNodeBsdfTransparent",
+			"location": [
+				2.5901,
+				-67.7904
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
 			"hide": true,
-			"location": [
-				2.5901031494140625,
-				-67.79043579101562
-			],
 			"width": 140.0,
 			"inputs": {
 				"0": {
+					"name": "Color",
 					"default_value": [
 						1.0,
 						1.0,
@@ -66,15 +79,17 @@
 					]
 				},
 				"1": {
+					"name": "Weight",
 					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
+					"name": "BSDF",
 					"links": [
 						{
 							"node": "Mix Shader",
-							"socket": 1
+							"index": 1
 						}
 					]
 				}
@@ -82,16 +97,16 @@
 		},
 		"Group": {
 			"bl_idname": "ShaderNodeGroup",
+			"location": [
+				2.4201,
+				-105.2821
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
 			"hide": true,
-			"location": [
-				2.420135498046875,
-				-105.28208923339844
-			],
 			"node_tree": {
 				"serialized_type": "NodeTree",
 				"name": "Gamma Inverse Fast64"
@@ -99,6 +114,7 @@
 			"width": 168.8801727294922,
 			"inputs": {
 				"0": {
+					"name": "Gamma Corrected Color",
 					"default_value": [
 						0.800000011920929,
 						0.800000011920929,
@@ -109,6 +125,7 @@
 			},
 			"outputs": {
 				"0": {
+					"name": "Inverse Corrected Color",
 					"default_value": [
 						0.0,
 						0.0,
@@ -118,7 +135,7 @@
 					"links": [
 						{
 							"node": "Mix Shader",
-							"socket": 2
+							"index": 2
 						}
 					]
 				}
@@ -126,38 +143,41 @@
 		},
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
+			"location": [
+				-171.8638,
+				6.4153
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-171.86375427246094,
-				6.41534423828125
-			],
 			"width": 140.0,
 			"outputs": {
 				"2": {
+					"name": "Cycle_C_2",
 					"links": [
 						{
 							"node": "Group",
-							"socket": "Gamma Corrected Color"
+							"index": 0
 						}
 					]
 				},
 				"3": {
+					"name": "Cycle_A_2",
 					"links": [
 						{
 							"node": "Math",
-							"socket": 0
+							"index": 0
 						}
 					]
 				},
 				"4": {
+					"name": "Alpha Threshold",
 					"links": [
 						{
 							"node": "Math",
-							"socket": 1
+							"index": 1
 						}
 					]
 				}
@@ -165,16 +185,16 @@
 		},
 		"Math": {
 			"bl_idname": "ShaderNodeMath",
+			"location": [
+				2.6008,
+				-36.379
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
 			"hide": true,
-			"location": [
-				2.600830078125,
-				-36.37904357910156
-			],
 			"operation": "GREATER_THAN",
 			"use_clamp": true,
 			"width": 140.0,
@@ -192,10 +212,11 @@
 			},
 			"outputs": {
 				"0": {
+					"name": "Value",
 					"links": [
 						{
 							"node": "Mix Shader",
-							"socket": "Fac"
+							"index": 0
 						}
 					]
 				}
@@ -208,8 +229,8 @@
 			"bl_idname": "NodeSocketColor"
 		},
 		{
-			"default_value": 0.5,
 			"name": "Cycle_A_1",
+			"default_value": 0.5,
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
@@ -217,15 +238,15 @@
 			"bl_idname": "NodeSocketColor"
 		},
 		{
+			"name": "Cycle_A_2",
 			"default_value": 0.5,
 			"max_value": 1.0,
 			"min_value": 0.0,
-			"name": "Cycle_A_2",
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
-			"default_value": 0.125,
 			"name": "Alpha Threshold",
+			"default_value": 0.125,
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
@@ -235,5 +256,5 @@
 			"bl_idname": "NodeSocketShader"
 		}
 	],
-	"cached_hash": "471472a07c761c14b6ad8859b97ef6d4"
+	"cached_hash": "34dcf1ea73fc9c5805547f1ee8b86739"
 }

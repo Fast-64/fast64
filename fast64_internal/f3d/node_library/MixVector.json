@@ -3,69 +3,89 @@
 	"nodes": {
 		"Vector Math.009": {
 			"bl_idname": "ShaderNodeVectorMath",
+			"location": [
+				150.4822,
+				123.9848
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				150.482177734375,
-				123.98480224609375
-			],
 			"operation": "MULTIPLY_ADD",
 			"width": 140.0,
 			"inputs": {
+				"0": {},
+				"1": {},
+				"2": {},
 				"3": {
+					"name": "Scale",
 					"default_value": 1.0,
 					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
+					"name": "Vector",
 					"links": [
 						{
 							"node": "Group Output",
-							"socket": "Vector"
+							"index": 0
 						}
 					]
 				},
 				"1": {
+					"name": "Value",
 					"enabled": false
 				}
 			}
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
+			"location": [
+				351.3011,
+				123.0141
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
 			"is_active_output": true,
-			"location": [
-				351.3011474609375,
-				123.01409912109375
-			],
-			"width": 140.0
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"name": "Vector"
+				},
+				"1": {
+					"name": ""
+				}
+			}
 		},
 		"Reroute.061": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				-73.7655,
+				11.796
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-73.7655029296875,
-				11.79595947265625
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Vector Math.009",
-							"socket": 1
+							"index": 1
 						}
 					]
 				}
@@ -73,26 +93,32 @@
 		},
 		"Reroute.005": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				-75.7326,
+				-10.8386
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-75.73260498046875,
-				-10.838623046875
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Vector Math.009",
-							"socket": 2
+							"index": 2
 						},
 						{
 							"node": "Vector Math.010",
-							"socket": 1
+							"index": 1
 						}
 					]
 				}
@@ -100,75 +126,83 @@
 		},
 		"Vector Math.010": {
 			"bl_idname": "ShaderNodeVectorMath",
+			"location": [
+				-27.4709,
+				55.4415
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
 			"hide": true,
-			"location": [
-				-27.470947265625,
-				55.44146728515625
-			],
 			"operation": "SUBTRACT",
 			"width": 140.0,
 			"inputs": {
+				"0": {},
+				"1": {},
 				"2": {
 					"enabled": false
 				},
 				"3": {
+					"name": "Scale",
 					"default_value": 1.0,
 					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
+					"name": "Vector",
 					"links": [
 						{
 							"node": "Vector Math.009",
-							"socket": 0
+							"index": 0
 						}
 					]
 				},
 				"1": {
+					"name": "Value",
 					"enabled": false
 				}
 			}
 		},
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
+			"location": [
+				-325.8933,
+				78.729
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-325.893310546875,
-				78.72900390625
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
+					"name": "Fac",
 					"links": [
 						{
 							"node": "Reroute.061",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				},
 				"1": {
+					"name": "Input0",
 					"links": [
 						{
 							"node": "Reroute.005",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				},
 				"2": {
+					"name": "Input1",
 					"links": [
 						{
 							"node": "Vector Math.010",
-							"socket": 0
+							"index": 0
 						}
 					]
 				}
@@ -195,5 +229,5 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "86a31d28210942cc0ad126f4ea3746d3"
+	"cached_hash": "ef1d46480567372b1b64d94a13ebdf71"
 }

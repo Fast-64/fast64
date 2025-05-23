@@ -3,14 +3,14 @@
 	"nodes": {
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
+			"location": [
+				-288.7444,
+				-0.0
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
-			],
-			"location": [
-				-288.74444580078125,
-				-0.0
 			],
 			"width": 140.0,
 			"outputs": {
@@ -19,7 +19,7 @@
 					"links": [
 						{
 							"node": "Math.002",
-							"socket": 0
+							"index": 0
 						}
 					]
 				},
@@ -28,7 +28,7 @@
 					"links": [
 						{
 							"node": "Math.002",
-							"socket": 1
+							"index": 1
 						}
 					]
 				}
@@ -36,14 +36,14 @@
 		},
 		"Math.002": {
 			"bl_idname": "ShaderNodeMath",
+			"location": [
+				-126.8846,
+				77.9513
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
-			],
-			"location": [
-				-126.88460540771484,
-				77.95133209228516
 			],
 			"operation": "ADD",
 			"use_clamp": false,
@@ -62,10 +62,11 @@
 			},
 			"outputs": {
 				"0": {
+					"name": "Value",
 					"links": [
 						{
 							"node": "Math.003",
-							"socket": 0
+							"index": 0
 						}
 					]
 				}
@@ -73,28 +74,36 @@
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
+			"location": [
+				229.4413,
+				79.0829
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
 			"is_active_output": true,
-			"location": [
-				229.4413299560547,
-				79.08292388916016
-			],
-			"width": 140.0
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"name": "Result"
+				},
+				"1": {
+					"name": ""
+				}
+			}
 		},
 		"Math.003": {
 			"bl_idname": "ShaderNodeMath",
+			"location": [
+				50.6043,
+				80.2145
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
-			],
-			"location": [
-				50.60432815551758,
-				80.21451568603516
 			],
 			"operation": "GREATER_THAN",
 			"use_clamp": false,
@@ -113,10 +122,11 @@
 			},
 			"outputs": {
 				"0": {
+					"name": "Value",
 					"links": [
 						{
 							"node": "Group Output",
-							"socket": "Result"
+							"index": 0
 						}
 					]
 				}
@@ -125,27 +135,27 @@
 	},
 	"inputs": [
 		{
+			"name": "Value",
 			"default_value": 0.5,
 			"max_value": 10000.0,
 			"min_value": -10000.0,
-			"name": "Value",
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
+			"name": "Value",
 			"default_value": 0.5,
 			"max_value": 10000.0,
 			"min_value": -10000.0,
-			"name": "Value",
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
 	"outputs": [
 		{
+			"name": "Result",
 			"max_value": 2147483647,
 			"min_value": -2147483648,
-			"name": "Result",
 			"bl_idname": "NodeSocketInt"
 		}
 	],
-	"cached_hash": "45f7916337372fea89721a84ef1ddae0"
+	"cached_hash": "ff12b062dc02d3d69b538148df454543"
 }

@@ -3,57 +3,71 @@
 	"nodes": {
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
+			"location": [
+				-293.9529,
+				-0.0
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-293.952880859375,
-				-0.0
-			],
-			"width": 140.0
+			"width": 140.0,
+			"outputs": {}
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
+			"location": [
+				283.9528,
+				-0.0
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
 			"is_active_output": true,
-			"location": [
-				283.95281982421875,
-				-0.0
-			],
-			"width": 140.0
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"name": "Normal"
+				},
+				"1": {
+					"name": "Incoming"
+				},
+				"2": {
+					"name": ""
+				}
+			}
 		},
 		"Geometry": {
 			"bl_idname": "ShaderNodeNewGeometry",
+			"location": [
+				84.8114,
+				39.71
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				84.8114013671875,
-				39.7099609375
-			],
 			"width": 140.0,
 			"outputs": {
 				"1": {
+					"name": "Normal",
 					"links": [
 						{
 							"node": "Group Output",
-							"socket": "Normal"
+							"index": 0
 						}
 					]
 				},
 				"4": {
+					"name": "Incoming",
 					"links": [
 						{
 							"node": "Group Output",
-							"socket": "Incoming"
+							"index": 1
 						}
 					]
 				}
@@ -70,5 +84,5 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "77a2a153e34279050e6650712e1029ff"
+	"cached_hash": "a9107e2d1d63d5c94589c40cb52b6a49"
 }

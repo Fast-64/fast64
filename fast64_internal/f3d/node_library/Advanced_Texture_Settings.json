@@ -3,22 +3,28 @@
 	"nodes": {
 		"Reroute.002": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				-108.6897,
+				-41.7827
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-108.689697265625,
-				-41.78269577026367
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Group.005",
-							"socket": "Tex Coordinate"
+							"index": 0
 						}
 					]
 				}
@@ -26,22 +32,28 @@
 		},
 		"Reroute": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				-108.6895,
+				156.6045
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-108.68953704833984,
-				156.6044921875
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Reroute.002",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				}
@@ -49,22 +61,34 @@
 		},
 		"Combine XYZ": {
 			"bl_idname": "ShaderNodeCombineXYZ",
+			"location": [
+				340.6651,
+				284.262
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				340.6651306152344,
-				284.261962890625
-			],
 			"width": 140.0,
+			"inputs": {
+				"0": {
+					"name": "X"
+				},
+				"1": {
+					"name": "Y"
+				},
+				"2": {
+					"name": "Z"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Vector",
 					"links": [
 						{
 							"node": "Group Output",
-							"socket": "UV"
+							"index": 0
 						}
 					]
 				}
@@ -72,36 +96,50 @@
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
+			"location": [
+				497.1576,
+				284.2268
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
 			"is_active_output": true,
-			"location": [
-				497.1575622558594,
-				284.226806640625
-			],
-			"width": 140.0
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"name": "UV"
+				},
+				"1": {
+					"name": ""
+				}
+			}
 		},
 		"Reroute.026": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				315.9451,
+				202.6528
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				315.945068359375,
-				202.6527557373047
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Combine XYZ",
-							"socket": "Y"
+							"index": 1
 						}
 					]
 				}
@@ -109,22 +147,28 @@
 		},
 		"Reroute.027": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				315.9451,
+				225.0103
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				315.945068359375,
-				225.0103302001953
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Combine XYZ",
-							"socket": "X"
+							"index": 0
 						}
 					]
 				}
@@ -132,22 +176,28 @@
 		},
 		"Reroute.003": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				315.9452,
+				90.3626
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				315.9451599121094,
-				90.36263275146484
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Reroute.026",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				}
@@ -155,14 +205,14 @@
 		},
 		"Group.006": {
 			"bl_idname": "ShaderNodeGroup",
+			"location": [
+				-86.1416,
+				461.9084
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
-			],
-			"location": [
-				-86.1416015625,
-				461.908447265625
 			],
 			"node_tree": {
 				"serialized_type": "NodeTree",
@@ -171,24 +221,41 @@
 			"width": 202.857666015625,
 			"inputs": {
 				"0": {
+					"name": "Tex Coordinate",
 					"default_value": 0.5
 				},
+				"1": {
+					"name": "Shift"
+				},
 				"2": {
+					"name": "Low",
 					"default_value": 0.5
 				},
 				"3": {
+					"name": "High",
 					"default_value": 0.5
 				},
+				"4": {
+					"name": "Mask"
+				},
 				"5": {
+					"name": "Tex Size",
 					"default_value": 0.5
+				},
+				"6": {
+					"name": "Clamp"
+				},
+				"7": {
+					"name": "Mirror"
 				}
 			},
 			"outputs": {
 				"0": {
+					"name": "UV Coord",
 					"links": [
 						{
 							"node": "Reroute.027",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				}
@@ -196,142 +263,158 @@
 		},
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
+			"location": [
+				-764.3581,
+				406.4136
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-764.3580932617188,
-				406.41357421875
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
+					"name": "X",
 					"links": [
 						{
 							"node": "Group.006",
-							"socket": "Tex Coordinate"
+							"index": 0
 						}
 					]
 				},
 				"1": {
+					"name": "S Shift",
 					"links": [
 						{
 							"node": "Group.006",
-							"socket": "Shift"
+							"index": 1
 						}
 					]
 				},
 				"2": {
+					"name": "S Low",
 					"links": [
 						{
 							"node": "Group.006",
-							"socket": "Low"
+							"index": 2
 						}
 					]
 				},
 				"3": {
+					"name": "S High",
 					"links": [
 						{
 							"node": "Group.006",
-							"socket": "High"
+							"index": 3
 						}
 					]
 				},
 				"4": {
+					"name": "S Mask",
 					"links": [
 						{
 							"node": "Group.006",
-							"socket": "Mask"
+							"index": 4
 						}
 					]
 				},
 				"5": {
+					"name": "S TexSize",
 					"links": [
 						{
 							"node": "Group.006",
-							"socket": "Tex Size"
+							"index": 5
 						}
 					]
 				},
 				"6": {
+					"name": "S Clamp",
 					"links": [
 						{
 							"node": "Group.006",
-							"socket": "Clamp"
+							"index": 6
 						}
 					]
 				},
 				"7": {
+					"name": "S Mirror",
 					"links": [
 						{
 							"node": "Group.006",
-							"socket": "Mirror"
+							"index": 7
 						}
 					]
 				},
 				"8": {
+					"name": "Y",
 					"links": [
 						{
 							"node": "Reroute.001",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				},
 				"9": {
+					"name": "T Shift",
 					"links": [
 						{
 							"node": "Group.005",
-							"socket": "Shift"
+							"index": 1
 						}
 					]
 				},
 				"10": {
+					"name": "T Low",
 					"links": [
 						{
 							"node": "Group.005",
-							"socket": "Low"
+							"index": 2
 						}
 					]
 				},
 				"11": {
+					"name": "T High",
 					"links": [
 						{
 							"node": "Group.005",
-							"socket": "High"
+							"index": 3
 						}
 					]
 				},
 				"12": {
+					"name": "T Mask",
 					"links": [
 						{
 							"node": "Group.005",
-							"socket": "Mask"
+							"index": 4
 						}
 					]
 				},
 				"13": {
+					"name": "T TexSize",
 					"links": [
 						{
 							"node": "Group.005",
-							"socket": "Tex Size"
+							"index": 5
 						}
 					]
 				},
 				"14": {
+					"name": "T Clamp",
 					"links": [
 						{
 							"node": "Group.005",
-							"socket": "Clamp"
+							"index": 6
 						}
 					]
 				},
 				"15": {
+					"name": "T Mirror",
 					"links": [
 						{
 							"node": "Group.005",
-							"socket": "Mirror"
+							"index": 7
 						}
 					]
 				}
@@ -339,14 +422,14 @@
 		},
 		"Math.001": {
 			"bl_idname": "ShaderNodeMath",
+			"location": [
+				146.7432,
+				125.5951
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
-			],
-			"location": [
-				146.7432403564453,
-				125.59513092041016
 			],
 			"operation": "MULTIPLY",
 			"use_clamp": false,
@@ -365,10 +448,11 @@
 			},
 			"outputs": {
 				"0": {
+					"name": "Value",
 					"links": [
 						{
 							"node": "Reroute.003",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				}
@@ -376,14 +460,14 @@
 		},
 		"Math.004": {
 			"bl_idname": "ShaderNodeMath",
+			"location": [
+				-279.6339,
+				189.7226
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
-			],
-			"location": [
-				-279.63385009765625,
-				189.7225799560547
 			],
 			"operation": "MULTIPLY_ADD",
 			"use_clamp": false,
@@ -401,10 +485,11 @@
 			},
 			"outputs": {
 				"0": {
+					"name": "Value",
 					"links": [
 						{
 							"node": "Reroute",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				}
@@ -412,22 +497,28 @@
 		},
 		"Reroute.001": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				-427.7146,
+				196.3708
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-427.7146301269531,
-				196.370849609375
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Math.004",
-							"socket": 0
+							"index": 0
 						}
 					]
 				}
@@ -435,14 +526,14 @@
 		},
 		"Group.005": {
 			"bl_idname": "ShaderNodeGroup",
+			"location": [
+				-83.7871,
+				46.4641
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
-			],
-			"location": [
-				-83.787109375,
-				46.46406936645508
 			],
 			"node_tree": {
 				"serialized_type": "NodeTree",
@@ -451,24 +542,41 @@
 			"width": 199.55996704101562,
 			"inputs": {
 				"0": {
+					"name": "Tex Coordinate",
 					"default_value": 0.5
 				},
+				"1": {
+					"name": "Shift"
+				},
 				"2": {
+					"name": "Low",
 					"default_value": 0.5
 				},
 				"3": {
+					"name": "High",
 					"default_value": 0.5
 				},
+				"4": {
+					"name": "Mask"
+				},
 				"5": {
+					"name": "Tex Size",
 					"default_value": 0.5
+				},
+				"6": {
+					"name": "Clamp"
+				},
+				"7": {
+					"name": "Mirror"
 				}
 			},
 			"outputs": {
 				"0": {
+					"name": "UV Coord",
 					"links": [
 						{
 							"node": "Math.001",
-							"socket": 0
+							"index": 0
 						}
 					]
 				}
@@ -493,9 +601,9 @@
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
+			"name": "S Mask",
 			"max_value": 7,
 			"min_value": 0,
-			"name": "S Mask",
 			"bl_idname": "NodeSocketInt"
 		},
 		{
@@ -503,15 +611,15 @@
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
+			"name": "S Clamp",
 			"max_value": 1,
 			"min_value": 0,
-			"name": "S Clamp",
 			"bl_idname": "NodeSocketInt"
 		},
 		{
+			"name": "S Mirror",
 			"max_value": 1,
 			"min_value": 0,
-			"name": "S Mirror",
 			"bl_idname": "NodeSocketInt"
 		},
 		{
@@ -531,9 +639,9 @@
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
+			"name": "T Mask",
 			"max_value": 7,
 			"min_value": 0,
-			"name": "T Mask",
 			"bl_idname": "NodeSocketInt"
 		},
 		{
@@ -541,15 +649,15 @@
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
+			"name": "T Clamp",
 			"max_value": 1,
 			"min_value": 0,
-			"name": "T Clamp",
 			"bl_idname": "NodeSocketInt"
 		},
 		{
+			"name": "T Mirror",
 			"max_value": 1,
 			"min_value": 0,
-			"name": "T Mirror",
 			"bl_idname": "NodeSocketInt"
 		}
 	],
@@ -559,5 +667,5 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "bfab299b282f0f4c7934cdcca29eb0f4"
+	"cached_hash": "d3aeefa6dd77123d715a520ac722f33e"
 }

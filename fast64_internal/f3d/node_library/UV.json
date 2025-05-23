@@ -3,43 +3,48 @@
 	"nodes": {
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
+			"location": [
+				360.8631,
+				-0.0
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
 			"is_active_output": true,
-			"location": [
-				360.86309814453125,
-				-0.0
-			],
 			"width": 140.0,
 			"inputs": {
 				"0": {
+					"name": "Vector",
 					"hide_value": true
+				},
+				"1": {
+					"name": ""
 				}
 			}
 		},
 		"UV Map": {
 			"bl_idname": "ShaderNodeUVMap",
+			"location": [
+				134.5782,
+				12.0172
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
 			"from_instancer": false,
-			"location": [
-				134.57823181152344,
-				12.01718521118164
-			],
 			"uv_map": "",
 			"width": 150.0,
 			"outputs": {
 				"0": {
+					"name": "UV",
 					"links": [
 						{
 							"node": "Group Output",
-							"socket": "Vector"
+							"index": 0
 						}
 					]
 				}
@@ -48,12 +53,12 @@
 	},
 	"outputs": [
 		{
+			"name": "Vector",
 			"hide_value": true,
 			"max_value": 0.0,
 			"min_value": 0.0,
-			"name": "Vector",
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "6879f4e8b63675b06aba8d4fd6dda34e"
+	"cached_hash": "75483046316fc4462cf0480cb7fdff6b"
 }

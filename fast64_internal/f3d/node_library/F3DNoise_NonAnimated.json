@@ -3,49 +3,59 @@
 	"nodes": {
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
+			"location": [
+				-541.8596,
+				-0.0
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-541.859619140625,
-				-0.0
-			],
-			"width": 140.0
+			"width": 140.0,
+			"outputs": {}
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
+			"location": [
+				63.28,
+				0.0
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
 			"is_active_output": true,
-			"location": [
-				63.280029296875,
-				0.0
-			],
-			"width": 140.0
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"name": "Noise Factor"
+				},
+				"1": {
+					"name": ""
+				}
+			}
 		},
 		"Value": {
 			"bl_idname": "ShaderNodeValue",
+			"location": [
+				-122.0168,
+				-0.6306
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-122.01680755615234,
-				-0.6305745244026184
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
+					"name": "Value",
 					"links": [
 						{
 							"node": "Group Output",
-							"socket": "Noise Factor"
+							"index": 0
 						}
 					]
 				}
@@ -58,5 +68,5 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "50d76b74e0c9092fa8645fd2da68af6e"
+	"cached_hash": "5c1aa4ca7cb6ba2df66f5221994c1e4f"
 }

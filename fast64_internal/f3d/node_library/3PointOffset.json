@@ -3,22 +3,28 @@
 	"nodes": {
 		"Reroute.012": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				-134.7241,
+				105.4123
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-134.72412109375,
-				105.41229248046875
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Reroute.016",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				}
@@ -26,26 +32,32 @@
 		},
 		"Reroute.013": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				-134.7241,
+				-46.7861
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-134.72412109375,
-				-46.7861328125
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Group.006",
-							"socket": "Width"
+							"index": 0
 						},
 						{
 							"node": "Reroute.012",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				}
@@ -53,26 +65,32 @@
 		},
 		"Reroute.014": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				-114.5542,
+				-68.2579
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-114.55419921875,
-				-68.2579345703125
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Group.006",
-							"socket": "Height"
+							"index": 1
 						},
 						{
 							"node": "Reroute.019",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				}
@@ -80,22 +98,28 @@
 		},
 		"Reroute.019": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				-114.5542,
+				81.6978
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-114.55419921875,
-				81.69775390625
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Reroute.015",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				}
@@ -103,26 +127,32 @@
 		},
 		"Reroute.001": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				128.2776,
+				29.448
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				128.27764892578125,
-				29.44801902770996
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Group.007",
-							"socket": "X"
+							"index": 2
 						},
 						{
 							"node": "Reroute.003",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				}
@@ -130,26 +160,32 @@
 		},
 		"Reroute": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				155.0163,
+				7.0767
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				155.01625061035156,
-				7.076680660247803
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Group.007",
-							"socket": "Y"
+							"index": 3
 						},
 						{
 							"node": "Reroute.002",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				}
@@ -157,22 +193,28 @@
 		},
 		"Reroute.003": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				128.2776,
+				226.8409
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				128.27764892578125,
-				226.8409423828125
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Reroute.005",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				}
@@ -180,22 +222,28 @@
 		},
 		"Reroute.002": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				155.0163,
+				205.3909
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				155.01625061035156,
-				205.3909149169922
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Reroute.004",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				}
@@ -203,22 +251,28 @@
 		},
 		"Reroute.015": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				81.7196,
+				81.3802
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				81.7196044921875,
-				81.38021087646484
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Group.007",
-							"socket": "Height"
+							"index": 1
 						}
 					]
 				}
@@ -226,22 +280,28 @@
 		},
 		"Reroute.016": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				81.7196,
+				105.0838
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				81.7196044921875,
-				105.08382415771484
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Group.007",
-							"socket": "Width"
+							"index": 0
 						}
 					]
 				}
@@ -249,22 +309,28 @@
 		},
 		"Reroute.004": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				331.3665,
+				204.7771
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				331.366455078125,
-				204.777099609375
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Group Output",
-							"socket": "Y"
+							"index": 1
 						}
 					]
 				}
@@ -272,22 +338,28 @@
 		},
 		"Reroute.005": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				331.3665,
+				225.3344
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				331.366455078125,
-				225.3343963623047
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Group Output",
-							"socket": "X"
+							"index": 0
 						}
 					]
 				}
@@ -295,22 +367,28 @@
 		},
 		"Reroute.017": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				118.955,
+				-15.3372
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				118.95503997802734,
-				-15.337239265441895
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Group.007",
-							"socket": "Enable"
+							"index": 4
 						}
 					]
 				}
@@ -318,22 +396,28 @@
 		},
 		"Reroute.010": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				145.2087,
+				-37.7594
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				145.2086639404297,
-				-37.75944137573242
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Group.007",
-							"socket": "TexelOffsetX"
+							"index": 5
 						}
 					]
 				}
@@ -341,22 +425,28 @@
 		},
 		"Reroute.009": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				167.6987,
+				-59.161
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				167.6986846923828,
-				-59.1610107421875
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Group.007",
-							"socket": "TexelOffsetY"
+							"index": 6
 						}
 					]
 				}
@@ -364,22 +454,28 @@
 		},
 		"Reroute.008": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				145.2087,
+				-255.1122
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				145.2086639404297,
-				-255.1121826171875
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Reroute.010",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				}
@@ -387,22 +483,28 @@
 		},
 		"Reroute.007": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				167.6987,
+				-386.8837
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				167.6986846923828,
-				-386.8836975097656
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Reroute.009",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				}
@@ -410,22 +512,28 @@
 		},
 		"Reroute.018": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				118.955,
+				-206.7242
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				118.95503997802734,
-				-206.72418212890625
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Reroute.017",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				}
@@ -433,28 +541,45 @@
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
+			"location": [
+				402.5118,
+				225.9913
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
 			"is_active_output": true,
-			"location": [
-				402.5118408203125,
-				225.9912872314453
-			],
-			"width": 140.0
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"name": "X"
+				},
+				"1": {
+					"name": "Y"
+				},
+				"2": {
+					"name": "Shifted X"
+				},
+				"3": {
+					"name": "Shifted Y"
+				},
+				"4": {
+					"name": ""
+				}
+			}
 		},
 		"Group.001": {
 			"bl_idname": "ShaderNodeGroup",
+			"location": [
+				-62.6314,
+				-352.1185
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
-			],
-			"location": [
-				-62.63140869140625,
-				-352.1185302734375
 			],
 			"node_tree": {
 				"serialized_type": "NodeTree",
@@ -462,16 +587,21 @@
 			},
 			"width": 140.0,
 			"inputs": {
+				"0": {
+					"name": "Shift"
+				},
 				"1": {
+					"name": "Value",
 					"default_value": 1.0
 				}
 			},
 			"outputs": {
 				"0": {
+					"name": "Value",
 					"links": [
 						{
 							"node": "Reroute.007",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				}
@@ -479,26 +609,32 @@
 		},
 		"Reroute.006": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				-96.3691,
+				-134.7885
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-96.3691177368164,
-				-134.7884979248047
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Reroute.011",
-							"socket": "Input"
+							"index": 0
 						},
 						{
 							"node": "Group.006",
-							"socket": "Enable"
+							"index": 4
 						}
 					]
 				}
@@ -506,22 +642,28 @@
 		},
 		"Reroute.011": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				-96.3692,
+				-206.7241
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-96.3691635131836,
-				-206.72412109375
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Reroute.018",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				}
@@ -529,22 +671,28 @@
 		},
 		"Reroute.021": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				-116.4083,
+				-157.0396
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-116.4083023071289,
-				-157.0396270751953
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Reroute.023",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				}
@@ -552,22 +700,28 @@
 		},
 		"Reroute.023": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				-116.4083,
+				-308.9042
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-116.4083023071289,
-				-308.9042053222656
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Group",
-							"socket": "Shift"
+							"index": 0
 						}
 					]
 				}
@@ -575,22 +729,28 @@
 		},
 		"Reroute.022": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				-135.4164,
+				-440.1133
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-135.41639709472656,
-				-440.1132507324219
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Group.001",
-							"socket": "Shift"
+							"index": 0
 						}
 					]
 				}
@@ -598,22 +758,28 @@
 		},
 		"Reroute.020": {
 			"bl_idname": "NodeReroute",
+			"location": [
+				-135.4164,
+				-178.902
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-135.41639709472656,
-				-178.9020233154297
-			],
 			"width": 16.0,
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
 			"outputs": {
 				"0": {
+					"name": "Output",
 					"links": [
 						{
 							"node": "Reroute.022",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				}
@@ -621,70 +787,77 @@
 		},
 		"Group Input": {
 			"bl_idname": "NodeGroupInput",
+			"location": [
+				-299.1567,
+				-11.9427
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-299.1567077636719,
-				-11.9427490234375
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
+					"name": "Width",
 					"links": [
 						{
 							"node": "Reroute.013",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				},
 				"1": {
+					"name": "Height",
 					"links": [
 						{
 							"node": "Reroute.014",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				},
 				"2": {
+					"name": "X",
 					"links": [
 						{
 							"node": "Group.006",
-							"socket": "X"
+							"index": 2
 						}
 					]
 				},
 				"3": {
+					"name": "Y",
 					"links": [
 						{
 							"node": "Group.006",
-							"socket": "Y"
+							"index": 3
 						}
 					]
 				},
 				"4": {
+					"name": "Enable 3 Point",
 					"links": [
 						{
 							"node": "Reroute.006",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				},
 				"5": {
+					"name": "S Shift",
 					"links": [
 						{
 							"node": "Reroute.021",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				},
 				"6": {
+					"name": "T Shift",
 					"links": [
 						{
 							"node": "Reroute.020",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				}
@@ -692,14 +865,14 @@
 		},
 		"Group": {
 			"bl_idname": "ShaderNodeGroup",
+			"location": [
+				-62.0488,
+				-220.461
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
-			],
-			"location": [
-				-62.04880905151367,
-				-220.4609832763672
 			],
 			"node_tree": {
 				"serialized_type": "NodeTree",
@@ -707,16 +880,21 @@
 			},
 			"width": 140.0,
 			"inputs": {
+				"0": {
+					"name": "Shift"
+				},
 				"1": {
+					"name": "Value",
 					"default_value": 1.0
 				}
 			},
 			"outputs": {
 				"0": {
+					"name": "Value",
 					"links": [
 						{
 							"node": "Reroute.008",
-							"socket": "Input"
+							"index": 0
 						}
 					]
 				}
@@ -724,49 +902,14 @@
 		},
 		"Group.006": {
 			"bl_idname": "ShaderNodeGroup",
+			"location": [
+				-60.7671,
+				63.8884
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
-			],
-			"location": [
-				-60.767059326171875,
-				63.88836669921875
-			],
-			"node_tree": {
-				"serialized_type": "NodeTree",
-				"name": "OffsetXY"
-			},
-			"width": 140.0,
-			"outputs": {
-				"0": {
-					"links": [
-						{
-							"node": "Reroute.001",
-							"socket": "Input"
-						}
-					]
-				},
-				"1": {
-					"links": [
-						{
-							"node": "Reroute",
-							"socket": "Input"
-						}
-					]
-				}
-			}
-		},
-		"Group.007": {
-			"bl_idname": "ShaderNodeGroup",
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"location": [
-				190.42919921875,
-				183.2676239013672
 			],
 			"node_tree": {
 				"serialized_type": "NodeTree",
@@ -774,24 +917,105 @@
 			},
 			"width": 140.0,
 			"inputs": {
+				"0": {
+					"name": "Width"
+				},
+				"1": {
+					"name": "Height"
+				},
+				"2": {
+					"name": "X"
+				},
+				"3": {
+					"name": "Y"
+				},
+				"4": {
+					"name": "Enable"
+				},
 				"5": {
-					"default_value": 0.5
+					"name": "TexelOffsetX"
+				},
+				"6": {
+					"name": "TexelOffsetY"
 				}
 			},
 			"outputs": {
 				"0": {
+					"name": "X",
 					"links": [
 						{
-							"node": "Group Output",
-							"socket": "Shifted X"
+							"node": "Reroute.001",
+							"index": 0
 						}
 					]
 				},
 				"1": {
+					"name": "Y",
+					"links": [
+						{
+							"node": "Reroute",
+							"index": 0
+						}
+					]
+				}
+			}
+		},
+		"Group.007": {
+			"bl_idname": "ShaderNodeGroup",
+			"location": [
+				190.4292,
+				183.2676
+			],
+			"color": [
+				0.6079999804496765,
+				0.6079999804496765,
+				0.6079999804496765
+			],
+			"node_tree": {
+				"serialized_type": "NodeTree",
+				"name": "OffsetXY"
+			},
+			"width": 140.0,
+			"inputs": {
+				"0": {
+					"name": "Width"
+				},
+				"1": {
+					"name": "Height"
+				},
+				"2": {
+					"name": "X"
+				},
+				"3": {
+					"name": "Y"
+				},
+				"4": {
+					"name": "Enable"
+				},
+				"5": {
+					"name": "TexelOffsetX",
+					"default_value": 0.5
+				},
+				"6": {
+					"name": "TexelOffsetY"
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "X",
 					"links": [
 						{
 							"node": "Group Output",
-							"socket": "Shifted Y"
+							"index": 2
+						}
+					]
+				},
+				"1": {
+					"name": "Y",
+					"links": [
+						{
+							"node": "Group Output",
+							"index": 3
 						}
 					]
 				}
@@ -799,27 +1023,28 @@
 		},
 		"Value": {
 			"bl_idname": "ShaderNodeValue",
+			"location": [
+				-341.0384,
+				-352.2887
+			],
 			"color": [
 				0.6079999804496765,
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"location": [
-				-341.0383605957031,
-				-352.2887268066406
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
+					"name": "Value",
 					"default_value": 1.0,
 					"links": [
 						{
 							"node": "Group",
-							"socket": "Value"
+							"index": 1
 						},
 						{
 							"node": "Group.001",
-							"socket": "Value"
+							"index": 1
 						}
 					]
 				}
@@ -836,33 +1061,33 @@
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
-			"max_value": 10000.0,
-			"min_value": -10000.0,
 			"name": "X",
-			"bl_idname": "NodeSocketFloat"
-		},
-		{
 			"max_value": 10000.0,
 			"min_value": -10000.0,
-			"name": "Y",
 			"bl_idname": "NodeSocketFloat"
 		},
 		{
-			"max_value": 2147483647,
-			"min_value": -2147483648,
+			"name": "Y",
+			"max_value": 10000.0,
+			"min_value": -10000.0,
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
 			"name": "Enable 3 Point",
+			"max_value": 2147483647,
+			"min_value": -2147483648,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
-			"max_value": 2147483647,
-			"min_value": -2147483648,
 			"name": "S Shift",
+			"max_value": 2147483647,
+			"min_value": -2147483648,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
+			"name": "T Shift",
 			"max_value": 2147483647,
 			"min_value": -2147483648,
-			"name": "T Shift",
 			"bl_idname": "NodeSocketInt"
 		}
 	],
@@ -884,5 +1109,5 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "f3435d9aaa51fa9c06a1fd0d27b4dfc7"
+	"cached_hash": "c63c22315639cceed68a79f753a0a82c"
 }
