@@ -571,7 +571,7 @@ class BleedGraphics:
                 tri_buffered, last_pipe = True, len(new_cmds)
                 new_cmds.append(DPPipeSync())
             elif not is_dp_cmd and isinstance(cmd, (SP2Triangles, SP1Triangle, SPLine3D, SPLineW3D)):
-                tri_buffered, last_pipe = False, None
+                tri_buffered, tex_buffered, last_pipe = False, False, None
             new_cmds.append(cmd)
 
     def create_reset_cmds(
