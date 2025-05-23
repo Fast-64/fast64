@@ -131,8 +131,6 @@
 				0.6079999804496765
 			],
 			"label": "Fresnel to Color",
-			"use_alpha": false,
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -520,5 +518,5 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "7ef9ef5b4a255e8496aa47dcca8652b2"
+	"cached_hash": "56f6de16ce8eac63e78492885bc5b899"
 }

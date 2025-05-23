@@ -113,6 +113,8 @@ GLOBAL_DEFAULTS = {
     "factor_mode": "UNIFORM",
     "clamp_factor": True,
     "clamp_result": False,
+    "use_alpha": False,
+    "use_clamp": False,
     # unused in shader nodes
     "hide_in_modifier": False,
     "force_non_field": False,
@@ -135,7 +137,6 @@ DEFAULTS = [
     DefaultDefinition(["ShaderNodeMixRGB"], {"data_type": "RGBA"}),
 ]
 DEFAULTS = {name: definition.defaults for definition in DEFAULTS for name in definition.names}
-
 
 SCENE_PROPERTIES_VERSION = 2
 
@@ -282,7 +283,7 @@ def get_bl_idname(owner: object):
     return getattr(owner, "bl_idname", None) or getattr(owner, "bl_socket_idname", None)
 
 
-def convert_to_3_2(owner: NodeSocket | Node):
+def convert_bl_idname_to_3_2(owner: NodeSocket | Node):
     bl_idname = get_bl_idname(owner)
     if bpy.app.version >= (4, 0, 0):
         if bl_idname == "NodeSocketVector" and getattr(owner, "subtype", "DIRECTION") == "DIRECTION":
@@ -293,10 +294,10 @@ def convert_to_3_2(owner: NodeSocket | Node):
 
 
 def get_defaults_bl_idname(owner: object):
-    return DEFAULTS.get(convert_to_3_2(owner), GLOBAL_DEFAULTS)
+    return DEFAULTS.get(convert_bl_idname_to_3_2(owner), GLOBAL_DEFAULTS)
 
 
-def convert_from_3_2(bl_idname: str, data: dict):
+def convert_bl_idname_from_3_2(bl_idname: str, data: dict):
     if bpy.app.version >= (4, 0, 0):
         if bl_idname == "NodeSocketVectorDirection":
             data["subtype"] = "DIRECTION"
@@ -305,6 +306,19 @@ def convert_from_3_2(bl_idname: str, data: dict):
             data["data_type"] = "RGBA"
             return "ShaderNodeMix"
     return bl_idname
+
+
+def convert_inp_i_to_3_2(i: int, node: Node):
+    if node.bl_idname == "ShaderNodeMix" and getattr(node, "data_type", "") == "RGBA" and i >= 6 and i <= 7:
+        return i - 5
+    return i
+
+
+def convert_out_i_from_3_2(i: int, serialized_node: "SerializedNode"):
+    if bpy.app.version >= (4, 0, 0):
+        if serialized_node.bl_idname == "ShaderNodeMixRGB" and i >= 1 and i <= 2:
+            return i + 5
+    return i
 
 
 def get_attributes(owner: object, excludes=None):
@@ -489,10 +503,11 @@ class SerializedNodeTree:
             else:
                 sockets = getattr(node_tree, prop)
             for socket in sockets:
-                bl_idname = convert_to_3_2(socket)
                 self_prop.append(
                     SerializedGroupInputValue(
-                        socket.name, get_attributes(socket, EXCLUDE_FROM_GROUP_INPUT_OUTPUT), bl_idname
+                        socket.name,
+                        get_attributes(socket, EXCLUDE_FROM_GROUP_INPUT_OUTPUT),
+                        convert_bl_idname_to_3_2(socket),
                     )
                 )
         for node in node_tree.nodes:
@@ -501,7 +516,9 @@ class SerializedNodeTree:
             else:
                 location = node.location
             serialized_node = SerializedNode(
-                convert_to_3_2(node), tuple(round(x, 4) for x in location), get_attributes(node, EXCLUDE_FROM_NODE)
+                convert_bl_idname_to_3_2(node),
+                tuple(round(x, 4) for x in location),
+                get_attributes(node, EXCLUDE_FROM_NODE),
             )
             self.nodes[node.name] = serialized_node
         for serialized_node, node in zip(self.nodes.values(), node_tree.nodes):
@@ -509,7 +526,7 @@ class SerializedNodeTree:
                 name = None
                 if not any(other for other in node.inputs if other != inp and other.name == inp.name):
                     name = inp.name
-                serialized_node.inputs[i] = SerializedInputValue(
+                serialized_node.inputs[convert_inp_i_to_3_2(i, node)] = SerializedInputValue(
                     name, get_attributes(inp, EXCLUDE_FROM_GROUP_INPUT_OUTPUT)
                 )
             for i, out in enumerate(node.outputs):
@@ -529,7 +546,11 @@ class SerializedNodeTree:
                     ):
                         name = link.to_socket.name
                     serialized_out.links.append(
-                        SerializedLink(link.to_node.name, name, list(link.to_node.inputs).index(link.to_socket))
+                        SerializedLink(
+                            link.to_node.name,
+                            name,
+                            convert_inp_i_to_3_2(list(link.to_node.inputs).index(link.to_socket), link.to_node),
+                        )
                     )
         return self
 
@@ -725,7 +746,7 @@ def set_values_and_create_links(
     for serialized_node, node in zip(serialized_node_tree.nodes.values(), new_nodes):
         for i, serialized_inp in serialized_node.inputs.items():
             try:
-                inp = try_name_then_index(node.inputs, serialized_inp.name, i)
+                inp = try_name_then_index(node.inputs, serialized_inp.name, convert_out_i_from_3_2(i, serialized_node))
                 if inp is None:
                     raise IndexError(f'Input "{get_name(i, serialized_inp)}" not found')
                 set_attrs(inp, serialized_inp.data, nodes, EXCLUDE_FROM_GROUP_INPUT_OUTPUT)
@@ -742,8 +763,11 @@ def set_values_and_create_links(
                 set_attrs(out, serialized_out.data, nodes, EXCLUDE_FROM_GROUP_INPUT_OUTPUT)
                 for serialized_link in serialized_out.links:
                     try:
+                        serialized_target_node = serialized_node_tree.nodes[serialized_link.node]
                         link = try_name_then_index(
-                            nodes[serialized_link.node].inputs, serialized_link.name, serialized_link.index
+                            nodes[serialized_link.node].inputs,
+                            serialized_link.name,
+                            convert_out_i_from_3_2(serialized_link.index, serialized_target_node),
                         )
                         links.new(link, out)
                     except Exception as exc:
@@ -768,7 +792,7 @@ def add_input_output(node_tree: NodeTree | ShaderNodeTree, serialized_node_tree:
         node_tree.outputs.clear()
     for in_out in ("INPUT", "OUTPUT"):
         for serialized in serialized_node_tree.inputs if in_out == "INPUT" else serialized_node_tree.outputs:
-            bl_idname = convert_from_3_2(serialized.bl_idname, serialized.data)
+            bl_idname = convert_bl_idname_from_3_2(serialized.bl_idname, serialized.data)
             if is_new:
                 socket = interface.new_socket(serialized.name, socket_type=bl_idname, in_out=in_out)
             else:
@@ -788,7 +812,7 @@ def create_nodes(node_tree: NodeTree | ShaderNodeTree, serialized_node_tree: Ser
     nodes.clear()
     new_nodes: list[Node] = []
     for name, serialized_node in serialized_node_tree.nodes.items():
-        node = nodes.new(convert_from_3_2(serialized_node.bl_idname, serialized_node.data))
+        node = nodes.new(convert_bl_idname_from_3_2(serialized_node.bl_idname, serialized_node.data))
         node.name = name
         node.location = serialized_node.location
         new_nodes.append(node)

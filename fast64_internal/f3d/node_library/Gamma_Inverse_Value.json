@@ -34,7 +34,6 @@
 				"serialized_type": "Node",
 				"name": "Frame"
 			},
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -76,7 +75,6 @@
 				"serialized_type": "Node",
 				"name": "Frame"
 			},
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -118,7 +116,6 @@
 				"serialized_type": "Node",
 				"name": "Frame"
 			},
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -156,7 +153,6 @@
 				0.6079999804496765
 			],
 			"operation": "DIVIDE",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -223,7 +219,6 @@
 				0.6079999804496765
 			],
 			"operation": "LESS_THAN",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -491,5 +486,5 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "3340894b3602eef52da011b9155ba4e3"
+	"cached_hash": "c034466a85d1aaaea7b5d612e7fb4a4d"
 }

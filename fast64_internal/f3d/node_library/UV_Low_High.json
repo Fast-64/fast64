@@ -82,7 +82,6 @@
 			"hide": true,
 			"label": "Frac of Low",
 			"operation": "FRACT",
-			"use_clamp": false,
 			"width": 113.50496673583984,
 			"inputs": {
 				"0": {
@@ -226,7 +225,6 @@
 			"hide": true,
 			"label": "1 / Size",
 			"operation": "DIVIDE",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -269,7 +267,6 @@
 			],
 			"label": "Clamp Correction",
 			"operation": "ADD",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -307,7 +304,6 @@
 				0.6079999804496765
 			],
 			"operation": "MULTIPLY",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -344,7 +340,6 @@
 				0.6079999804496765
 			],
 			"operation": "LESS_THAN",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -411,7 +406,6 @@
 				0.6079999804496765
 			],
 			"operation": "MULTIPLY_ADD",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -446,7 +440,6 @@
 				0.6079999804496765
 			],
 			"operation": "MULTIPLY",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -506,5 +499,5 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "43ef447c3ac3f334eb8a7c276d001305"
+	"cached_hash": "4f2d8f92144237f079158cbd16edcfec"
 }

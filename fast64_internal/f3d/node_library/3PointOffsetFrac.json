@@ -13,7 +13,6 @@
 				0.6079999804496765
 			],
 			"operation": "MULTIPLY",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -314,7 +313,6 @@
 				0.6079999804496765
 			],
 			"operation": "SUBTRACT",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -396,7 +394,6 @@
 				0.6079999804496765
 			],
 			"operation": "ADD",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -434,7 +431,6 @@
 				0.6079999804496765
 			],
 			"operation": "MULTIPLY",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -502,5 +498,5 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "ba12ebeae6d9675757ebf462bf73d4f3"
+	"cached_hash": "2b978c9a3a136e5bb0c1affb2baaf4e5"
 }

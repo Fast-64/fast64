@@ -126,7 +126,6 @@
 				0.6079999804496765
 			],
 			"operation": "WRAP",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -275,7 +274,6 @@
 				0.6079999804496765
 			],
 			"operation": "MULTIPLY_ADD",
-			"use_clamp": false,
 			"width": 140.0,
 			"width_hidden": 100.0,
 			"inputs": {
@@ -309,7 +307,6 @@
 				0.6079999804496765
 			],
 			"operation": "SUBTRACT",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -608,7 +605,6 @@
 			"hide": true,
 			"label": "Sign Extension",
 			"operation": "WRAP",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -695,5 +691,5 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "043c4fc68b978f3b70dd58350550a641"
+	"cached_hash": "97a18ec2d66a99c68d2a33f8369423a9"
 }

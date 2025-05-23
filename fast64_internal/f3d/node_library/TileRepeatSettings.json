@@ -48,7 +48,6 @@
 				0.6079999804496765
 			],
 			"operation": "PINGPONG",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -85,7 +84,6 @@
 				0.6079999804496765
 			],
 			"operation": "MAXIMUM",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -268,7 +266,6 @@
 				0.6079999804496765
 			],
 			"operation": "MINIMUM",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -335,7 +332,6 @@
 				0.6079999804496765
 			],
 			"operation": "ADD",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -407,7 +403,6 @@
 				0.6079999804496765
 			],
 			"operation": "FLOOR",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -446,7 +441,6 @@
 				0.6079999804496765
 			],
 			"operation": "WRAP",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -604,7 +598,6 @@
 				0.6079999804496765
 			],
 			"operation": "MAXIMUM",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -683,7 +676,6 @@
 				0.6079999804496765
 			],
 			"operation": "MINIMUM",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -720,7 +712,6 @@
 				0.6079999804496765
 			],
 			"operation": "PINGPONG",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -863,5 +854,5 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "bdc1e8cb95f41c2bce592204f8c533b1"
+	"cached_hash": "979322ec5929dc1be297405fd490eff9"
 }

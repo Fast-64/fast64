@@ -622,8 +622,6 @@
 				0.6079999804496765
 			],
 			"label": "No Packed Normals",
-			"use_alpha": false,
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -1105,8 +1103,6 @@
 				0.6079999804496765
 			],
 			"label": "Disable Lighting",
-			"use_alpha": false,
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -3455,5 +3451,5 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "befa246bb8c85eb8c2c9bee297629e67"
+	"cached_hash": "5a7f3bc05ff35e6cfc958c97bbfc6d8c"
 }

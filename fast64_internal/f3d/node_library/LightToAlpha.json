@@ -110,8 +110,6 @@
 				0.6079999804496765
 			],
 			"label": "L2A: Col = VtxCol",
-			"use_alpha": false,
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -394,5 +392,5 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "da77f1eeadae08a2b9048e0254c27346"
+	"cached_hash": "a94756b609257c1b7da112adeb3e3c9d"
 }

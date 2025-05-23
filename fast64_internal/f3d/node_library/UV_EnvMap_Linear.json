@@ -238,7 +238,6 @@
 				0.6079999804496765
 			],
 			"operation": "ARCCOSINE",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -277,7 +276,6 @@
 				0.6079999804496765
 			],
 			"operation": "ARCCOSINE",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -676,5 +674,5 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "aab65635bcf357b269ae66d0eed19490"
+	"cached_hash": "558468906fcbe9c701bdc724e00527ab"
 }

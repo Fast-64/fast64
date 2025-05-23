@@ -46,7 +46,6 @@
 				0.6079999804496765
 			],
 			"operation": "ADD",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -84,7 +83,6 @@
 				0.6079999804496765
 			],
 			"operation": "ADD",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -151,7 +149,6 @@
 				0.6079999804496765
 			],
 			"operation": "DIVIDE",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -391,5 +388,5 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "64e97c4ff4bd1470738cce844ecaea9d"
+	"cached_hash": "500fbe0ce2f1fb06f4aa72fc9f267942"
 }

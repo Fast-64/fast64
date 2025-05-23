@@ -154,7 +154,6 @@
 				0.6079999804496765
 			],
 			"operation": "LESS_THAN",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -236,7 +235,6 @@
 				0.6079999804496765
 			],
 			"operation": "MULTIPLY",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -278,7 +276,6 @@
 				"serialized_type": "Node",
 				"name": "Frame.001"
 			},
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -320,7 +317,6 @@
 				"serialized_type": "Node",
 				"name": "Frame.001"
 			},
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -362,7 +358,6 @@
 				"serialized_type": "Node",
 				"name": "Frame.001"
 			},
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -485,5 +480,5 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "f8578b251ae758df628b2cbad6aa773e"
+	"cached_hash": "9d6a1182db369638c8768cb533c6e95e"
 }

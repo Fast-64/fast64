@@ -13,7 +13,6 @@
 				0.6079999804496765
 			],
 			"operation": "MULTIPLY",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -82,7 +81,6 @@
 			],
 			"label": "S == -1 and T == 1",
 			"operation": "MULTIPLY_ADD",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -187,7 +185,6 @@
 			"hide": true,
 			"label": "Flip Range for S",
 			"operation": "MULTIPLY",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -226,7 +223,6 @@
 			],
 			"hide": true,
 			"operation": "FRACT",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -281,5 +277,5 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "686c9873406fbc91c8a1290391cc9b5c"
+	"cached_hash": "312efacac684d572e2a11705589e3043"
 }

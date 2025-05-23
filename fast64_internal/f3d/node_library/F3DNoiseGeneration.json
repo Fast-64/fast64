@@ -243,7 +243,6 @@
 			],
 			"hide": true,
 			"operation": "GREATER_THAN",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -353,5 +352,5 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "32242aef9d4f23f098782ed0751b314a"
+	"cached_hash": "fa0768df7bd57ea36f84a3f2c85a0ad2"
 }

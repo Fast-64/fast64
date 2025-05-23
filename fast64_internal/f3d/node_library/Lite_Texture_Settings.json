@@ -13,7 +13,6 @@
 				0.6079999804496765
 			],
 			"operation": "MULTIPLY_ADD",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -223,7 +222,6 @@
 				0.6079999804496765
 			],
 			"operation": "MULTIPLY",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -535,5 +533,5 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "4e5130832f8753af4860e53cc7791461"
+	"cached_hash": "f2f4cd77b16c732fc3a0fc48c92e24c7"
 }

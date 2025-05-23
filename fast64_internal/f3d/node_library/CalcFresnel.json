@@ -13,7 +13,6 @@
 				0.6079999804496765
 			],
 			"operation": "SUBTRACT",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -51,7 +50,6 @@
 				0.6079999804496765
 			],
 			"operation": "SUBTRACT",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -314,5 +312,5 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "12cf2f1980202c18c0ebe26ae99bb960"
+	"cached_hash": "1a2a9732f0d073b46898329fe4587ba1"
 }

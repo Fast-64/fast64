@@ -48,7 +48,6 @@
 			],
 			"hide": true,
 			"operation": "MULTIPLY",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -155,5 +154,5 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "9041bc8fdbb2a161a829ff7c4b0ba2e5"
+	"cached_hash": "f1b54d3866ab1e88d8361a938ae01472"
 }

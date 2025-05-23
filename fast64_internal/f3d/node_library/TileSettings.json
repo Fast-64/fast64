@@ -444,7 +444,6 @@
 				0.10799825191497803
 			],
 			"operation": "POWER",
-			"use_clamp": false,
 			"use_custom_color": true,
 			"width": 140.0,
 			"inputs": {
@@ -483,7 +482,6 @@
 				0.10799825191497803
 			],
 			"operation": "DIVIDE",
-			"use_clamp": false,
 			"use_custom_color": true,
 			"width": 140.0,
 			"inputs": {
@@ -556,7 +554,6 @@
 				"serialized_type": "Node",
 				"name": "Frame.002"
 			},
-			"use_clamp": false,
 			"width": 140.0,
 			"width_hidden": 100.0,
 			"inputs": {
@@ -599,7 +596,6 @@
 				"serialized_type": "Node",
 				"name": "Frame.002"
 			},
-			"use_clamp": false,
 			"width": 140.0,
 			"width_hidden": 100.0,
 			"inputs": {
@@ -642,7 +638,6 @@
 				"serialized_type": "Node",
 				"name": "Frame.002"
 			},
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -1204,7 +1199,6 @@
 				"serialized_type": "Node",
 				"name": "Frame.003"
 			},
-			"use_clamp": false,
 			"use_custom_color": true,
 			"width": 140.0,
 			"inputs": {
@@ -1248,7 +1242,6 @@
 				"serialized_type": "Node",
 				"name": "Frame.003"
 			},
-			"use_clamp": false,
 			"use_custom_color": true,
 			"width": 140.0,
 			"inputs": {
@@ -1292,7 +1285,6 @@
 				"serialized_type": "Node",
 				"name": "Frame.003"
 			},
-			"use_clamp": false,
 			"use_custom_color": true,
 			"width": 140.0,
 			"inputs": {
@@ -1673,7 +1665,6 @@
 				"serialized_type": "Node",
 				"name": "no idea lmao.001"
 			},
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -1714,7 +1705,6 @@
 				"serialized_type": "Node",
 				"name": "no idea lmao.001"
 			},
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -1789,7 +1779,6 @@
 				"serialized_type": "Node",
 				"name": "no idea lmao.001"
 			},
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -2068,7 +2057,6 @@
 				"serialized_type": "Node",
 				"name": "Frame"
 			},
-			"use_clamp": false,
 			"width": 219.35653686523438,
 			"inputs": {
 				"0": {
@@ -2136,7 +2124,6 @@
 			],
 			"label": "Adjust S Low",
 			"operation": "SUBTRACT",
-			"use_clamp": false,
 			"width": 140.0,
 			"width_hidden": 100.0,
 			"inputs": {
@@ -2244,5 +2231,5 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "ae72e8fec443673819595212c1a1bfdf"
+	"cached_hash": "a4f3f9b023596853b703d987709fc9de"
 }

@@ -62,7 +62,6 @@
 			],
 			"hide": true,
 			"operation": "MAXIMUM",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -147,7 +146,6 @@
 			],
 			"hide": true,
 			"operation": "MAXIMUM",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -188,5 +186,5 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "03d464086ae0605b8b677ce461194ff9"
+	"cached_hash": "bb36ff2b4d347f6e6994d53317e8792d"
 }

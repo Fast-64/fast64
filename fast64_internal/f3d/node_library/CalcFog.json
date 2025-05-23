@@ -561,7 +561,6 @@
 			],
 			"label": "n - f",
 			"operation": "SUBTRACT",
-			"use_clamp": false,
 			"use_custom_color": true,
 			"width": 140.0,
 			"inputs": {
@@ -602,7 +601,6 @@
 			],
 			"label": "((2 * n * f / z) - n - f) / (n - f)",
 			"operation": "DIVIDE",
-			"use_clamp": false,
 			"use_custom_color": true,
 			"width": 140.0,
 			"inputs": {
@@ -642,7 +640,6 @@
 			],
 			"label": "(2 * n * f / z) - n - f",
 			"operation": "SUBTRACT",
-			"use_clamp": false,
 			"use_custom_color": true,
 			"width": 140.0,
 			"inputs": {
@@ -682,7 +679,6 @@
 			],
 			"label": "(2 * n * f / z) - n",
 			"operation": "SUBTRACT",
-			"use_clamp": false,
 			"use_custom_color": true,
 			"width": 140.0,
 			"inputs": {
@@ -722,7 +718,6 @@
 			],
 			"label": "2 * n * f / z",
 			"operation": "DIVIDE",
-			"use_clamp": false,
 			"use_custom_color": true,
 			"width": 140.0,
 			"inputs": {
@@ -794,7 +789,6 @@
 			],
 			"label": "2 * n * f",
 			"operation": "MULTIPLY",
-			"use_clamp": false,
 			"use_custom_color": true,
 			"width": 140.0,
 			"inputs": {
@@ -834,7 +828,6 @@
 			],
 			"label": "n * f",
 			"operation": "MULTIPLY",
-			"use_clamp": false,
 			"use_custom_color": true,
 			"width": 140.0,
 			"inputs": {
@@ -873,7 +866,6 @@
 				0.6079999804496765
 			],
 			"operation": "MULTIPLY",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -1125,7 +1117,6 @@
 				0.6079999804496765
 			],
 			"operation": "DIVIDE",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -1225,7 +1216,6 @@
 				0.6079999804496765
 			],
 			"operation": "DIVIDE",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -1586,5 +1576,5 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "0f7bdf49e19d95c7e3a2b6d261b408d2"
+	"cached_hash": "0932775ff00c1fd23ce5cfa9f9faddd1"
 }

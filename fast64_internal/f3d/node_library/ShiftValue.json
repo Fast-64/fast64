@@ -13,7 +13,6 @@
 				0.6079999804496765
 			],
 			"operation": "MULTIPLY",
-			"use_clamp": false,
 			"width": 140.0,
 			"width_hidden": 100.0,
 			"inputs": {
@@ -52,7 +51,6 @@
 				0.6079999804496765
 			],
 			"operation": "POWER",
-			"use_clamp": false,
 			"width": 140.0,
 			"width_hidden": 100.0,
 			"inputs": {
@@ -157,5 +155,5 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "a63808ce28a643bdacb9794fde6f3a03"
+	"cached_hash": "ea9527cf7408e89a2b6993e6518cdb4f"
 }

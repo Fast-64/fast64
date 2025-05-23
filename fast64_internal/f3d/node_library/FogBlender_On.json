@@ -72,7 +72,6 @@
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"use_alpha": false,
 			"use_clamp": true,
 			"width": 140.0,
 			"inputs": {
@@ -151,7 +150,6 @@
 				0.6079999804496765
 			],
 			"operation": "MULTIPLY",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -213,5 +211,5 @@
 			"bl_idname": "NodeSocketColor"
 		}
 	],
-	"cached_hash": "caebdcf196245ce3e9c97fa15ab218a7"
+	"cached_hash": "5828f86fa823e1514f6ede1358766856"
 }

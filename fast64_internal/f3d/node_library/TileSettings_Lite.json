@@ -51,7 +51,6 @@
 				"serialized_type": "Node",
 				"name": "no idea lmao.001"
 			},
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -137,7 +136,6 @@
 				"serialized_type": "Node",
 				"name": "no idea lmao.001"
 			},
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -253,7 +251,6 @@
 				"serialized_type": "Node",
 				"name": "no idea lmao.001"
 			},
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -763,7 +760,6 @@
 				0.6079999804496765
 			],
 			"operation": "ADD",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -921,7 +917,6 @@
 				"serialized_type": "Node",
 				"name": "Frame"
 			},
-			"use_clamp": false,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -963,7 +958,6 @@
 				"serialized_type": "Node",
 				"name": "Frame"
 			},
-			"use_clamp": false,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -1154,7 +1148,6 @@
 				"serialized_type": "Node",
 				"name": "Frame"
 			},
-			"use_clamp": false,
 			"width": 125.24647521972656,
 			"inputs": {
 				"0": {
@@ -1197,7 +1190,6 @@
 				"serialized_type": "Node",
 				"name": "Frame"
 			},
-			"use_clamp": false,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -1252,5 +1244,5 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "dfebe532dec9ba55dd39ddb038bd56ac"
+	"cached_hash": "3cd023ba0605b1033cfd7eb179048bf5"
 }

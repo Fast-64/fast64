@@ -46,7 +46,6 @@
 				0.6079999804496765
 			],
 			"operation": "ADD",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -106,7 +105,6 @@
 				0.6079999804496765
 			],
 			"operation": "GREATER_THAN",
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -157,5 +155,5 @@
 			"bl_idname": "NodeSocketInt"
 		}
 	],
-	"cached_hash": "ff12b062dc02d3d69b538148df454543"
+	"cached_hash": "86dc5e9beaa03f5398ac9f11139bea3d"
 }

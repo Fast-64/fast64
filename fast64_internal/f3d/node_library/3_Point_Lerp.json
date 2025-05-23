@@ -56,7 +56,6 @@
 			],
 			"hide": true,
 			"operation": "ADD",
-			"use_clamp": false,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -94,7 +93,6 @@
 			],
 			"hide": true,
 			"operation": "ADD",
-			"use_clamp": false,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -311,7 +309,6 @@
 			],
 			"hide": true,
 			"operation": "ADD",
-			"use_clamp": false,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -349,7 +346,6 @@
 			],
 			"hide": true,
 			"operation": "ADD",
-			"use_clamp": false,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -1091,8 +1087,6 @@
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"use_alpha": false,
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -1365,8 +1359,6 @@
 				0.6079999804496765,
 				0.6079999804496765
 			],
-			"use_alpha": false,
-			"use_clamp": false,
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -3036,7 +3028,6 @@
 			"hide": true,
 			"label": "1 - Fac",
 			"operation": "SUBTRACT",
-			"use_clamp": false,
 			"inputs": {
 				"0": {
 					"default_value": 1.0
@@ -3117,7 +3108,6 @@
 			"hide": true,
 			"label": "1 - Fac",
 			"operation": "SUBTRACT",
-			"use_clamp": false,
 			"inputs": {
 				"0": {
 					"default_value": 1.0
@@ -3207,5 +3197,5 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "a0b5c08d955fdf7394a22d9c454cb5a8"
+	"cached_hash": "b7b11ef6df61796c2e4bc3960360320e"
 }
