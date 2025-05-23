@@ -548,7 +548,8 @@ class BleedGraphics:
         no_syncs_needed = {"DPSetPrimColor", "DPSetPrimDepth"}  # will not affect rdp
         syncs_needed = {"SPSetOtherMode", "SPTexture"}  # will affect rdp
 
-        tri_buffered, tex_buffered, last_pipe = False, False, None
+        tri_buffered = True
+        last_load_sync = None
         old_cmds = cmd_list.commands
         new_cmds = []
         cmd_list.commands = new_cmds
@@ -558,20 +559,20 @@ class BleedGraphics:
             is_dp_cmd = ("DP" in cmd_name and cmd_name not in no_syncs_needed) or cmd_name in syncs_needed
             if isinstance(cmd, (DPPipeSync, DPLoadSync, DPTileSync)):
                 continue
-            elif isinstance(cmd, (DPLoadBlock, DPLoadTile, DPLoadTLUTCmd)) and (not tri_buffered or not tex_buffered):
-                if last_pipe is not None:
-                    new_cmds[last_pipe] = DPLoadSync()
-                    last_pipe = None
+            elif isinstance(cmd, (DPLoadBlock, DPLoadTile, DPLoadTLUTCmd, DPSetTile, DPSetTileSize)) and tri_buffered:
+                last_load_sync = len(new_cmds)
+                new_cmds.append(DPLoadSync())
+                tri_buffered = False
+            elif tri_buffered and is_dp_cmd:
+                tri_buffered = False
+                if last_load_sync is not None:
+                    new_cmds[last_load_sync] = DPPipeSync()
+                    last_load_sync = None
                 else:
-                    new_cmds.append(DPLoadSync())
-                tri_buffered = tex_buffered = True
-                new_cmds.append(cmd)
-                continue
-            elif not tri_buffered and is_dp_cmd:
-                tri_buffered, last_pipe = True, len(new_cmds)
-                new_cmds.append(DPPipeSync())
+                    new_cmds.append(DPPipeSync())
             elif not is_dp_cmd and isinstance(cmd, (SP2Triangles, SP1Triangle, SPLine3D, SPLineW3D)):
-                tri_buffered, tex_buffered, last_pipe = False, False, None
+                tri_buffered = True
+                last_load_sync = None
             new_cmds.append(cmd)
 
     def create_reset_cmds(
