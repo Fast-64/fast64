@@ -1,6 +1,5 @@
 import bpy
 import math
-import struct
 
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
