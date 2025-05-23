@@ -52,6 +52,7 @@ from .f3d_gbi import (
     DPLoadSync,
     DPTileSync,
     DPSetTile,
+    DPSetTileSize,
     DPLoadTile,
     FModel,
     FMesh,
@@ -547,7 +548,7 @@ class BleedGraphics:
         no_syncs_needed = {"DPSetPrimColor", "DPSetPrimDepth"}  # will not affect rdp
         syncs_needed = {"SPSetOtherMode", "SPTexture"}  # will affect rdp
 
-        is_in_dp = False
+        tri_buffered, tex_buffered, last_pipe = False, False, None
         old_cmds = cmd_list.commands
         new_cmds = []
         cmd_list.commands = new_cmds
@@ -555,13 +556,22 @@ class BleedGraphics:
         for cmd in old_cmds:
             cmd_name = type(cmd).__name__
             is_dp_cmd = ("DP" in cmd_name and cmd_name not in no_syncs_needed) or cmd_name in syncs_needed
-            if cmd_name == "DPPipeSync":
+            if isinstance(cmd, (DPPipeSync, DPLoadSync, DPTileSync)):
                 continue
-            elif not is_in_dp and is_dp_cmd:
+            elif isinstance(cmd, (DPLoadBlock, DPLoadTile, DPLoadTLUTCmd)) and (not tri_buffered or not tex_buffered):
+                if last_pipe is not None:
+                    new_cmds[last_pipe] = DPLoadSync()
+                    last_pipe = None
+                else:
+                    new_cmds.append(DPLoadSync())
+                tri_buffered = tex_buffered = True
+                new_cmds.append(cmd)
+                continue
+            elif not tri_buffered and is_dp_cmd:
+                tri_buffered, last_pipe = True, len(new_cmds)
                 new_cmds.append(DPPipeSync())
-                is_in_dp = True
-            elif not is_dp_cmd and "Tri" in cmd_name:
-                is_in_dp = False
+            elif not is_dp_cmd and isinstance(cmd, (SP2Triangles, SP1Triangle, SPLine3D, SPLineW3D)):
+                tri_buffered, last_pipe = False, None
             new_cmds.append(cmd)
 
     def create_reset_cmds(
@@ -672,40 +682,6 @@ class BleedGraphics:
             last_size_cmd = last_cmd_list[last_cmd_list.index(cmd)]
             if last_size_cmd.tags == cmd.tags:
                 return True
-        return False
-
-    # At most, only one sync is needed after drawing tris. The f3d writer should
-    # already have placed the appropriate sync type required. If a second sync is
-    # detected between drawing cmds, then remove that sync. Remove the latest sync
-    # not the first seen sync.
-    def bleed_DPTileSync(self, cmd_list: GfxList, cmd: GbiMacro, last_cmd_list: GfxList = None):
-        if last_cmd_list is None:
-            return self.bleed_self_conflict
-        return self.bleed_between_tris(cmd_list, cmd, [DPLoadSync, DPPipeSync, DPTileSync])
-
-    def bleed_DPPipeSync(self, cmd_list: GfxList, cmd: GbiMacro, last_cmd_list: GfxList = None):
-        if last_cmd_list is None:
-            return self.bleed_self_conflict
-        return self.bleed_between_tris(cmd_list, cmd, [DPLoadSync, DPPipeSync, DPTileSync])
-
-    def bleed_DPLoadSync(self, cmd_list: GfxList, cmd: GbiMacro, last_cmd_list: GfxList = None):
-        if last_cmd_list is None:
-            return self.bleed_self_conflict
-        return self.bleed_between_tris(cmd_list, cmd, [DPLoadSync, DPPipeSync, DPTileSync])
-
-    def bleed_between_tris(self, cmd_list: GfxList, cmd: GbiMacro, conflict_cmds: list[GbiMacro]):
-        tri_buffered = False
-        for parse_cmd in cmd_list.commands:
-            if parse_cmd is cmd:
-                return tri_buffered
-            if type(parse_cmd) in [SP2Triangles, SP1Triangle, SPLine3D, SPLineW3D]:
-                tri_buffered = False
-                continue
-            if type(parse_cmd) in conflict_cmds:
-                if not tri_buffered:
-                    tri_buffered = True
-                else:
-                    return True
         return False
 
 
