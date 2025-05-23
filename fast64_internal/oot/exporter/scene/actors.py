@@ -1,3 +1,5 @@
+import bpy
+
 from dataclasses import dataclass, field
 from typing import Optional
 from mathutils import Matrix
@@ -90,7 +92,11 @@ class SceneTransitionActors:
 
                 transActor.pos = pos
                 transActor.rot = f"DEG_TO_BINANG({(rot[1] * (180 / 0x8000)):.3f})"  # TODO: Correct axis?
-                transActor.params = actorProp.params if actorProp.actor_id != "Custom" else actorProp.params_custom
+                transActor.params = (
+                    actorProp.params
+                    if bpy.context.scene.fast64.oot.use_new_actor_panel and actorProp.actor_id != "Custom"
+                    else actorProp.params_custom
+                )
                 transActor.roomFrom, transActor.cameraFront = front
                 transActor.roomTo, transActor.cameraBack = back
                 entries.append(transActor)
@@ -160,7 +166,11 @@ class SceneEntranceActors:
                 entranceActor.id = "ACTOR_PLAYER" if not entranceProp.customActor else actorProp.actor_id_custom
                 entranceActor.pos = pos
                 entranceActor.rot = ", ".join(f"DEG_TO_BINANG({(r * (180 / 0x8000)):.3f})" for r in rot)
-                entranceActor.params = actorProp.params if not entranceProp.customActor else actorProp.params_custom
+                entranceActor.params = (
+                    actorProp.params
+                    if bpy.context.scene.fast64.oot.use_new_actor_panel and not entranceProp.customActor
+                    else actorProp.params_custom
+                )
                 if entranceProp.tiedRoom is not None:
                     entranceActor.roomIndex = entranceProp.tiedRoom.ootRoomHeader.roomIndex
                 else:

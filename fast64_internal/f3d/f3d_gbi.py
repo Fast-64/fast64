@@ -2370,7 +2370,7 @@ class FModel:
             - an object containing info about the additional textures, or None
         """
         texProp = getattr(material.f3d_mat, f"tex{index}")
-        imDependencies = [] if texProp.tex is None else [texProp.tex]
+        imDependencies = set() if texProp.tex is None else {texProp.tex}
         return imDependencies, None
 
     def writeTexRefNonCITextures(self, obj, texFmt: str):
@@ -2390,7 +2390,7 @@ class FModel:
             - the palette to use (or None)
         """
         texProp = getattr(material.f3d_mat, f"tex{index}")
-        imDependencies = [] if texProp.tex is None else [texProp.tex]
+        imDependencies = set() if texProp.tex is None else {texProp.tex}
         return imDependencies, None, None
 
     def writeTexRefCITextures(

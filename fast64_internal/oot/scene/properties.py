@@ -13,14 +13,8 @@ from bpy.utils import register_class, unregister_class
 from ...render_settings import on_update_oot_render_settings
 from ...utility import prop_split, customExportWarning
 from ..cutscene.constants import ootEnumCSWriteType
-
-from ..oot_utility import (
-    onMenuTabChange,
-    onHeaderMenuTabChange,
-    drawCollectionOps,
-    drawEnumWithCustom,
-    drawAddButton,
-)
+from ..collection_utility import drawCollectionOps, drawAddButton
+from ..oot_utility import onMenuTabChange, onHeaderMenuTabChange, drawEnumWithCustom
 
 from ..oot_constants import (
     ootEnumMusicSeq,
@@ -315,6 +309,10 @@ class OOTSceneHeaderProperty(PropertyGroup):
         default=False,
     )
 
+    title_card_name: StringProperty(
+        name="Title Card", default="none", description="Segment name of the title card to use"
+    )
+
     def draw_props(self, layout: UILayout, dropdownLabel: str, headerIndex: int, objName: str):
         from .operators import OOT_SearchMusicSeqEnumOperator  # temp circular import fix
 
@@ -344,6 +342,9 @@ class OOTSceneHeaderProperty(PropertyGroup):
             drawEnumWithCustom(general, self, "naviCup", "Navi Hints", "")
             if headerIndex is None or headerIndex == 0:
                 self.sceneTableEntry.draw_props(general)
+                prop_split(general, self, "title_card_name", "Title Card")
+                if bpy.context.scene.ootSceneExportSettings.customExport:
+                    general.label(text="Custom Export Path enabled, title card will be ignored.", icon="INFO")
             general.prop(self, "appendNullEntrance")
 
             skyboxAndSound = layout.column()
