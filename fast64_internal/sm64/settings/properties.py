@@ -92,6 +92,10 @@ class SM64_Properties(PropertyGroup):
         name="Matstack Fix",
         description="Exports account for matstack fix requirements",
     )
+    write_all: BoolProperty(
+        name="Write All",
+        description="Write single load geo and set othermode commands instead of writting the difference to defaults. Can result in smaller displaylists but may introduce issues",
+    )
 
     @property
     def binary_export(self):
@@ -100,6 +104,12 @@ class SM64_Properties(PropertyGroup):
     @property
     def abs_decomp_path(self) -> Path:
         return Path(abspath(self.decomp_path))
+
+    @property
+    def gfx_write_method(self):
+        from ...f3d.f3d_gbi import GfxMatWriteMethod
+
+        return GfxMatWriteMethod.WriteAll if self.write_all else GfxMatWriteMethod.WriteDifferingAndRevert
 
     @staticmethod
     def upgrade_changed_props():
@@ -157,6 +167,7 @@ class SM64_Properties(PropertyGroup):
         data["force_extended_ram"] = self.force_extended_ram
         data["matstack_fix"] = self.matstack_fix
         data["custom_cmds"] = [preset.to_dict("PRESET_EDIT") for preset in self.custom_cmds]
+        data["write_all"] = self.write_all
         return data
 
     def from_repo_settings(self, data: dict):
@@ -168,6 +179,7 @@ class SM64_Properties(PropertyGroup):
         for preset_data in data.get("custom_cmds", []):
             self.custom_cmds.add()
             self.custom_cmds[-1].from_dict(preset_data)
+        set_prop_if_in_data(self, "write_all", data, "write_all")
 
     def draw_repo_settings(self, layout: UILayout):
         col = layout.column()
@@ -177,6 +189,7 @@ class SM64_Properties(PropertyGroup):
             prop_split(col, self, "refresh_version", "Refresh (Function Map)")
             col.prop(self, "force_extended_ram")
         col.prop(self, "matstack_fix")
+        col.prop(self, "write_all")
         draw_custom_cmd_presets(self, col.box())
 
     def draw_props(self, layout: UILayout, show_repo_settings: bool = True):

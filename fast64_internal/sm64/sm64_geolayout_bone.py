@@ -92,6 +92,15 @@ def drawGeoInfo(panel: Panel, context: Context):
 
     prop_split(col, bone, "geo_cmd", "Geolayout Command")
 
+    if bpy.context.scene.exportInlineF3D:
+        revert_split = col.split(factor=0.4)
+        revert_split.label(text="Revert Material")
+        revert_row = revert_split.row()
+        revert_row.prop(
+            bone_props,
+            "revert_before_func" if bone.geo_cmd in {"Function", "HeldObject"} else "revert_previous_mat",
+            text="Previous",
+        )
     if bone.geo_cmd in [
         "TranslateRotate",
         "Translate",
@@ -102,6 +111,8 @@ def drawGeoInfo(panel: Panel, context: Context):
         "DisplayListWithOffset",
     ]:
         drawLayerWarningBox(col, bone, "draw_layer")
+        if bpy.context.scene.exportInlineF3D:
+            revert_row.prop(bone_props, "revert_after_mat", text="After")
 
     if bone.geo_cmd == "Scale":
         prop_split(col, bone, "geo_scale", "Scale")
@@ -247,10 +258,10 @@ class GeolayoutObjectPanel(Panel):
             prop_split(col, geo_asm, "param", "Parameter")
         col.prop(obj, "ignore_render")
         col.prop(obj, "ignore_collision")
-        if bpy.context.scene.f3d_type == "F3DEX3":
-            box.prop(obj, "is_occlusion_planes")
-            if obj.is_occlusion_planes and (not obj.ignore_render or not obj.ignore_collision):
-                box.label(icon="INFO", text="Suggest Ignore Render & Ignore Collision.")
+        # if bpy.context.scene.f3d_type == "F3DEX3":
+        #    box.prop(obj, "is_occlusion_planes")
+        #    if obj.is_occlusion_planes and (not obj.ignore_render or not obj.ignore_collision):
+        #        box.label(icon="INFO", text="Suggest Ignore Render & Ignore Collision.")
         if context.scene.exportInlineF3D:
             col.prop(obj, "bleed_independently")
         if obj_scale_is_unified(obj) and len(obj.modifiers) == 0:
@@ -445,6 +456,15 @@ def getSwitchOptionBone(switchArmature):
 class SM64_BoneProperties(PropertyGroup):
     version: IntProperty(name="SM64_BoneProperties Version", default=0)
     custom: PointerProperty(type=SM64_CustomCmdProperties)
+    custom_geo_cmd_macro: StringProperty(name="Geo Command Macro", default="GEO_BONE")
+    custom_geo_cmd_args: StringProperty(name="Geo Command Args", default="")
+    revert_previous_mat: BoolProperty(name="Revert Previous Material", default=False)
+    revert_after_mat: BoolProperty(
+        name="Revert After Material",
+        default=False,
+        description="If disabled the last material of each layer will still be reverted at the end",
+    )
+    revert_before_func: BoolProperty(name="Revert Before Function", default=True)
 
     def upgrade_bone(self, bone):
         self.custom.upgrade_bone(bone)

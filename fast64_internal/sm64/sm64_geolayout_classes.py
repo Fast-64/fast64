@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import bpy
 from struct import pack
-from copy import copy
+from copy import copy, deepcopy
 
 from ..utility import (
     PluginError,
@@ -19,7 +19,7 @@ from ..utility import (
     geoNodeRotateOrder,
 )
 from ..f3d.f3d_bleed import BleedGraphics
-from ..f3d.f3d_gbi import FModel
+from ..f3d.f3d_gbi import FMaterial, FModel, GbiMacro, GfxList
 
 from .sm64_geolayout_constants import (
     nodeGroupCmds,
@@ -274,6 +274,9 @@ class TransformNode:
         self.parent = None
         self.skinned = False
         self.skinnedWithoutDL = False
+        # base behavior, can be changed with obj boolProp
+        self.revert_previous_mat = False
+        self.revert_after_mat = False
 
     def do_export_checks(self):
         if self.node is not None:
@@ -454,46 +457,93 @@ class JumpNode:
         return "GEO_BRANCH(" + ("1, " if self.storeReturn else "0, ") + geo_name + ")"
 
 
+LastMaterials = dict[int, tuple[FMaterial | None, list[tuple[GfxList, dict[type, GbiMacro]]]]]
+
+
 class GeoLayoutBleed(BleedGraphics):
     def bleed_geo_layout_graph(self, fModel: FModel, geo_layout_graph: GeolayoutGraph, use_rooms: bool = False):
-        last_materials = dict()  # last used material should be kept track of per layer
+        # last used material, last used cmd list and resets per layer
+        last_materials = {}
 
-        def walk(node, last_materials):
+        def copy_last(last_materials: LastMaterials) -> LastMaterials:
+            return {dl: [lm, [(c, deepcopy(r)) for c, r in lcr]] for dl, (lm, lcr) in last_materials.items()}
+
+        def reset_layer(last_materials: LastMaterials, draw_layer: int) -> LastMaterials:
+            _, cmds_resets = last_materials.get(draw_layer, (None, []))
+            for i, (cmd_list, reset_cmd_dict) in enumerate(copy(cmds_resets)):
+                # only discard reset if the reset was actually applied
+                if self.add_reset_cmds(
+                    cmd_list, reset_cmd_dict, fModel.matWriteMethod, fModel.getRenderMode(draw_layer)
+                ):
+                    cmds_resets[i] = None
+            cmds_resets = [cr for cr in cmds_resets if cr is not None]
+            if not cmds_resets:
+                last_materials.pop(draw_layer, 0)
+            return last_materials
+
+        def reset_all_layers(last_materials: LastMaterials) -> LastMaterials:
+            for draw_layer in copy(list(last_materials.keys())):
+                last_materials = reset_layer(last_materials, draw_layer)
+            return {}
+
+        def walk(node, last_materials: LastMaterials) -> LastMaterials:
+            last_materials = copy_last(last_materials)
             base_node = node.node
             if type(base_node) == JumpNode:
                 if base_node.geolayout:
                     for node in base_node.geolayout.nodes:
-                        last_materials = (
-                            walk(node, last_materials if not use_rooms else dict()) if not use_rooms else dict()
-                        )
-                else:
-                    last_materials = dict()
+                        last_materials = walk(node, last_materials)
+
             fMesh = getattr(base_node, "fMesh", None)
+            last_mat, last_cmds_resets = None, []
+            if fMesh is not None:
+                last_mat, last_cmds_resets = last_materials.get(base_node.drawLayer, (None, []))
+
+            if node.revert_previous_mat:
+                if fMesh is not None:
+                    # add reset commands to previous cmd lists, reset last mat and reset dict
+                    last_materials = reset_layer(last_materials, base_node.drawLayer)
+                else:
+                    last_materials = reset_all_layers(last_materials)
+                last_mat, last_cmds_resets = None, []
+
             if fMesh:
+                base_node: BaseDisplayListNode
                 cmd_list = fMesh.drawMatOverrides.get(base_node.override_hash, None) or fMesh.draw
-                last_mat = last_materials.get(base_node.drawLayer, None)
                 default_render_mode = fModel.getRenderMode(base_node.drawLayer)
+
+                reset_cmd_dict = {typ: cmd for _, reset_cmds in last_cmds_resets for typ, cmd in reset_cmds.items()}
                 last_mat = self.bleed_fmesh(
-                    fMesh,
-                    last_mat if not base_node.bleed_independently else None,
+                    last_mat,
+                    reset_cmd_dict,
                     cmd_list,
                     fModel.getAllMaterials().items(),
+                    fModel.matWriteMethod,
                     default_render_mode,
                 )
-                # if the mesh has culling, it can be culled, and create invalid combinations of f3d to represent the current full DL
-                if fMesh.cullVertexList:
-                    last_materials[base_node.drawLayer] = None
-                else:
-                    last_materials[base_node.drawLayer] = last_mat
-            # don't carry over last_mat if it is a switch node or geo asm node
+                last_materials[base_node.drawLayer] = [last_mat, [(cmd_list, reset_cmd_dict)]]
+                # if the mesh has culling, we must revert to avoid bleed issues
+                if fMesh.cullVertexList or node.revert_after_mat:
+                    last_materials = reset_layer(last_materials, base_node.drawLayer)
+            elif node.revert_after_mat:  # if no mesh but still forced revert, revert all
+                last_materials = reset_all_layers(last_materials)
+
+            cur_last_materials = copy_last(last_materials)
+            is_switch = type(base_node) in {SwitchNode}
             for child in node.children:
-                if type(base_node) in [SwitchNode, FunctionNode]:
-                    last_materials = dict()
-                last_materials = walk(child, last_materials)
+                if is_switch:  # parent node is switch or function
+                    new_materials = walk(child, cur_last_materials)  # last material info from current switch option
+                    # add switch option reverts, to either revert at the end or in the option itself
+                    for draw_layer, (last_mat, cmds_resets) in new_materials.items():
+                        last_materials.setdefault(draw_layer, [last_mat, []])[1].extend(cmds_resets)
+                        last_materials[draw_layer][0] = None  # reset last material
+                else:
+                    last_materials = walk(child, last_materials)
             return last_materials
 
         for node in geo_layout_graph.startGeolayout.nodes:
             last_materials = walk(node, last_materials)
+        reset_all_layers(last_materials)
         self.clear_gfx_lists(fModel)
 
 

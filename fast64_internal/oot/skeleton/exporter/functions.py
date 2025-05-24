@@ -1,4 +1,8 @@
-import mathutils, bpy, os
+import mathutils
+import bpy
+import os
+
+from pathlib import Path
 from ....f3d.f3d_gbi import DLFormat, FMesh, TextureExportSettings, ScrollMethod
 from ....f3d.f3d_writer import getInfoDict
 from ...oot_f3d_writer import ootProcessVertexGroup, writeTextureArraysNew, writeTextureArraysExisting
@@ -273,12 +277,21 @@ def ootConvertArmatureToC(
             limbList[i].lodDL = lodLimbList[i].DL
             limbList[i].isFlex |= lodLimbList[i].isFlex
 
+    header_filename = Path(filename).parts[-1]
     data = CData()
-    data.source += '#include "ultra64.h"\n#include "global.h"\n'
-    if not isCustomExport:
-        data.source += '#include "' + folderName + '.h"\n\n'
+
+    data.header = f"#ifndef {header_filename.upper()}_H\n" + f"#define {header_filename.upper()}_H\n\n"
+
+    if bpy.context.scene.fast64.oot.is_globalh_present():
+        data.header += '#include "ultra64.h"\n' + '#include "global.h"\n'
     else:
-        data.source += "\n"
+        data.header += '#include "ultra64.h"\n' + '#include "array_count.h"\n' + '#include "z64animation.h"\n'
+
+    data.source = f'#include "{header_filename}.h"\n\n'
+    if not isCustomExport:
+        data.header += f'#include "{folderName}.h"\n\n'
+    else:
+        data.header += "\n"
 
     path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, True, True)
     includeDir = settings.customAssetIncludeDir if settings.isCustom else f"assets/objects/{folderName}"
@@ -294,6 +307,7 @@ def ootConvertArmatureToC(
         textureArrayData = writeTextureArraysNew(fModel, flipbookArrayIndex2D)
         data.append(textureArrayData)
 
+    data.header += "\n#endif\n"
     writeCData(data, os.path.join(path, filename + ".h"), os.path.join(path, filename + ".c"))
 
     if not isCustomExport:
