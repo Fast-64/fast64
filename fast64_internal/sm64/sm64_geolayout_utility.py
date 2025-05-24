@@ -165,4 +165,4 @@ class BaseDisplayListNode:
         all_args = list(args)
         if self.hasDL:
             all_args.append(self.get_dl_name())
-        return f'{self.get_c_func_macro(base_cmd)}({", ".join(all_args)}),'
+        return f'{self.get_c_func_macro(base_cmd)}({", ".join(all_args)})'
