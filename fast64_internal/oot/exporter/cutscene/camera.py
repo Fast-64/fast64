@@ -1,3 +1,5 @@
+import struct
+
 from dataclasses import dataclass, field
 from ....utility import PluginError, indent
 from ...cutscene.motion.utility import getInteger
@@ -32,8 +34,9 @@ class CutsceneCmdCamPoint(CutsceneCmdBase):
         if len(self.pos) == 0:
             raise PluginError("ERROR: Pos list is empty!")
 
+        viewAngle_ieee = f"0x{struct.unpack('<I', struct.pack('<f', self.viewAngle))[0]:X}"
         return indent * 3 + (
-            f"CS_CAM_POINT({self.continueFlag}, {self.camRoll}, {self.frame}, {self.viewAngle}f, "
+            f"CS_CAM_POINT({self.continueFlag}, {self.camRoll}, {self.frame}, CS_FLOAT({viewAngle_ieee}, {self.viewAngle}f), "
             + "".join(f"{pos}, " for pos in self.pos)
             + "0),\n"
         )
