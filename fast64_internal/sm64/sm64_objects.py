@@ -1268,7 +1268,7 @@ class SM64ObjectPanel(bpy.types.Panel):
             obj.starGetCutscenes.draw(box)
 
         elif obj.sm64_obj_type == "Area Root":
-            area_props = props.area
+            area_props = obj_props.area
             # Code that used to be in area inspector
             prop_split(box, obj, "areaIndex", "Area Index")
             box.prop(obj, "noMusic", text="Disable Music")
