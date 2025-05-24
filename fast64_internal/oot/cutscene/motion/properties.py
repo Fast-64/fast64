@@ -231,8 +231,8 @@ class CutsceneCmdCameraShotPointProperty(PropertyGroup):
             row.prop(self, propName)
 
         row = box.row()
-        row.operator(CutsceneCmdMoveBone.bl_idname, text="Move up", icon="TRIA_UP").direction = "UP"
-        row.operator(CutsceneCmdMoveBone.bl_idname, text="Move down", icon="TRIA_DOWN").direction = "DOWN"
+        row.operator(CutsceneCmdMoveBone.bl_idname, text="Move Up", icon="TRIA_UP").direction = "UP"
+        row.operator(CutsceneCmdMoveBone.bl_idname, text="Move Down", icon="TRIA_DOWN").direction = "DOWN"
 
 
 class OOTCutsceneMotionProperty(PropertyGroup):
