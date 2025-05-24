@@ -139,14 +139,9 @@ class BaseDisplayListNode:
     """Base displaylist node with common helper functions dealing with displaylists"""
 
     dl_ext = "WITH_DL"  # add dl_ext to geo command if command has a displaylist
-    bleed_independently = False  # base behavior, can be changed with obj boolProp
 
     def get_dl_address(self):
-        if self.hasDL and self.dlRef is not None:
-            value = math_eval(self.dlRef, object())
-            if not isinstance(value, int):
-                raise PluginError(f'Displaylist reference "{self.dlRef}" is not a valid address.')
-            return value
+        assert self.dlRef is None, "dlRef not implemented in binary"
         if self.hasDL and self.DLmicrocode is not None:
             return self.DLmicrocode.startAddress
         return None
@@ -170,4 +165,4 @@ class BaseDisplayListNode:
         all_args = list(args)
         if self.hasDL:
             all_args.append(self.get_dl_name())
-        return f'{self.get_c_func_macro(base_cmd)}({", ".join(all_args)})'
+        return f'{self.get_c_func_macro(base_cmd)}({", ".join(all_args)}),'
