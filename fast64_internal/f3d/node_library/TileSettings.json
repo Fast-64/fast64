@@ -345,7 +345,6 @@
 			],
 			"operation": "POWER",
 			"use_custom_color": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 2.0
@@ -383,7 +382,6 @@
 			],
 			"operation": "DIVIDE",
 			"use_custom_color": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -442,7 +440,6 @@
 				"serialized_type": "Node",
 				"name": "Frame.002"
 			},
-			"width": 140.0,
 			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
@@ -479,7 +476,6 @@
 				"serialized_type": "Node",
 				"name": "Frame.002"
 			},
-			"width": 140.0,
 			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
@@ -515,7 +511,6 @@
 				"serialized_type": "Node",
 				"name": "Frame.002"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -862,7 +857,6 @@
 				"serialized_type": "Node",
 				"name": "Frame.003"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Value",
@@ -987,7 +981,6 @@
 				"name": "Frame.003"
 			},
 			"use_custom_color": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -1030,7 +1023,6 @@
 				"name": "Frame.003"
 			},
 			"use_custom_color": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -1073,7 +1065,6 @@
 				"name": "Frame.003"
 			},
 			"use_custom_color": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -1104,7 +1095,6 @@
 				1554.8485,
 				191.283
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "UV Coord"
@@ -1152,7 +1142,6 @@
 				"serialized_type": "Node",
 				"name": "Frame.003"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
@@ -1210,7 +1199,6 @@
 				-1386.619,
 				-24.8568
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Tex Coordinate",
@@ -1354,7 +1342,6 @@
 				"serialized_type": "Node",
 				"name": "no idea lmao.001"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
@@ -1394,7 +1381,6 @@
 				"serialized_type": "Node",
 				"name": "no idea lmao.001"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -1429,7 +1415,6 @@
 				"serialized_type": "Node",
 				"name": "no idea lmao.001"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -1492,7 +1477,6 @@
 				"serialized_type": "Node",
 				"name": "no idea lmao.001"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -1654,7 +1638,6 @@
 				"serialized_type": "Node",
 				"name": "Frame.003"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "High",
@@ -1786,7 +1769,6 @@
 			],
 			"label": "Adjust S Low",
 			"operation": "SUBTRACT",
-			"width": 140.0,
 			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
@@ -1887,7 +1869,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "e036acc8ace7be231f58fc40fbb35424",
+	"cached_hash": "706539621d598356f48228a25a3ed677",
 	"bpy_ver": [
 		3,
 		2,

@@ -110,7 +110,6 @@
 				-78.5068
 			],
 			"hide": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -141,7 +140,6 @@
 				232.3555,
 				-78.5068
 			],
-			"hide": true,
 			"width": 141.7603302001953,
 			"inputs": {
 				"0": {
@@ -180,7 +178,6 @@
 				-36.0021
 			],
 			"hide": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -284,7 +281,6 @@
 				801.3328,
 				-90.8818
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "UV00"
@@ -453,8 +449,6 @@
 				235.145,
 				-35.4262
 			],
-			"hide": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Vector"
@@ -1207,7 +1201,6 @@
 				-784.7543,
 				188.4501
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Width",
@@ -1692,26 +1685,18 @@
 		{
 			"name": "S Clamp",
 			"default_value": 1,
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
 			"name": "S Mirror",
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
 			"name": "T Clamp",
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
 			"name": "T Mirror",
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
@@ -1747,7 +1732,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "7a0448880db9ba8e8d782d7026026548",
+	"cached_hash": "2d74ff34f7dcef50a7f3c9cf19ba24f2",
 	"bpy_ver": [
 		3,
 		2,

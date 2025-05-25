@@ -7,10 +7,15 @@
 				-368.5321,
 				-84.721
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"hide_value": true
 				},
 				"1": {
@@ -49,6 +54,12 @@
 			"outputs": {
 				"0": {
 					"name": "Corrected Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"links": [
 						{
 							"node": "Group Output",
@@ -64,7 +75,6 @@
 				-736.4277,
 				-84.4582
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Color",
@@ -116,6 +126,12 @@
 	"outputs": [
 		{
 			"name": "Color",
+			"default_value": [
+				0.0,
+				0.0,
+				0.0,
+				0.0
+			],
 			"hide_value": true,
 			"bl_idname": "NodeSocketColor"
 		},
@@ -126,7 +142,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "0336a2d747271abb6d4d316c7e9d3031",
+	"cached_hash": "b795d351cd8f2f5098db71e9116782a1",
 	"bpy_ver": [
 		3,
 		2,

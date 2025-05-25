@@ -8,7 +8,6 @@
 				-11.5223
 			],
 			"hide": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -40,7 +39,6 @@
 				-12.4326
 			],
 			"hide": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -72,7 +70,6 @@
 				-51.0922
 			],
 			"hide": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -104,7 +101,6 @@
 				-51.0922
 			],
 			"hide": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -165,7 +161,6 @@
 			"hide": true,
 			"label": "Alpha - 1",
 			"operation": "SUBTRACT",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -223,7 +218,6 @@
 				-457.6445,
 				50.1908
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Vertex Alpha",
@@ -277,7 +271,6 @@
 			"hide": true,
 			"label": "+ 1",
 			"operation": "ADD",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -311,7 +304,6 @@
 			"hide": true,
 			"label": "+ 1",
 			"operation": "ADD",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -342,7 +334,6 @@
 				296.9822,
 				-0.9841
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "AO Amb Factor"
@@ -368,8 +359,6 @@
 			"name": "G_AMBOCCLUSION",
 			"default_value": 1,
 			"hide_value": true,
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
@@ -397,7 +386,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "14550c2e22c0dc8963cde155daa7935f",
+	"cached_hash": "51fc9039c16dab6c52c5163a8470ab7f",
 	"bpy_ver": [
 		3,
 		2,

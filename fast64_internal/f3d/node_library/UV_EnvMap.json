@@ -7,8 +7,6 @@
 				13.4256,
 				12.2404
 			],
-			"vector_type": "NORMAL",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -52,11 +50,7 @@
 				},
 				"2": {
 					"name": "Rotation",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0
-					]
+					"enabled": true
 				},
 				"3": {
 					"name": "Scale",
@@ -85,7 +79,6 @@
 				360.8631,
 				0.0
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Vector"
@@ -101,7 +94,6 @@
 				-149.7988,
 				-93.0175
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Position",
@@ -155,7 +147,7 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "fa9499a0cfc42c2697cbb5e8e05b7cfa",
+	"cached_hash": "02bfd3fb196cfaea88ecb3baccc196b4",
 	"bpy_ver": [
 		3,
 		2,

@@ -7,7 +7,6 @@
 				-541.8596,
 				0.0
 			],
-			"width": 140.0,
 			"outputs": {}
 		},
 		"Group Output": {
@@ -16,7 +15,6 @@
 				63.28,
 				0.0
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Noise Factor"
@@ -33,7 +31,6 @@
 				0.2018
 			],
 			"label": "NoiseDriver",
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Value",
@@ -54,7 +51,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "8c963483dbdad25da5275189dc5bc06a",
+	"cached_hash": "64de8cae15c067b823ed7abb88e6d859",
 	"bpy_ver": [
 		3,
 		2,

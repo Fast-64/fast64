@@ -7,7 +7,6 @@
 				-463.6024,
 				-23.266
 			],
-			"width": 140.0,
 			"outputs": {
 				"1": {
 					"name": "View Z Depth",
@@ -75,13 +74,18 @@
 			"width": 240.0,
 			"inputs": {
 				"0": {
-					"name": "Fac",
-					"default_value": 0.5
+					"name": "Fac"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"links": [
 						{
 							"node": "Gamma",
@@ -98,7 +102,6 @@
 				-36.6214
 			],
 			"operation": "MULTIPLY_ADD",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -128,7 +131,6 @@
 				207.226,
 				45.3343
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
@@ -140,11 +142,20 @@
 					]
 				},
 				"1": {
-					"name": "Gamma",
-					"default_value": 1.5
+					"name": "Gamma"
 				}
 			},
-			"outputs": {}
+			"outputs": {
+				"0": {
+					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					]
+				}
+			}
 		},
 		"ColorRamp.001": {
 			"bl_idname": "ShaderNodeValToRGB",
@@ -183,13 +194,18 @@
 			"width": 240.0,
 			"inputs": {
 				"0": {
-					"name": "Fac",
-					"default_value": 0.5
+					"name": "Fac"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"links": [
 						{
 							"node": "Gamma.001",
@@ -206,7 +222,6 @@
 				-254.0697
 			],
 			"operation": "MULTIPLY_ADD",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -236,7 +251,6 @@
 				207.226,
 				-172.114
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
@@ -248,13 +262,18 @@
 					]
 				},
 				"1": {
-					"name": "Gamma",
-					"default_value": 1.5
+					"name": "Gamma"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"links": [
 						{
 							"node": "Group Output",
@@ -271,10 +290,15 @@
 				-2.6611
 			],
 			"hide": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Color"
+					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					]
 				},
 				"1": {
 					"name": ""
@@ -285,10 +309,16 @@
 	"outputs": [
 		{
 			"name": "Color",
+			"default_value": [
+				0.0,
+				0.0,
+				0.0,
+				0.0
+			],
 			"bl_idname": "NodeSocketColor"
 		}
 	],
-	"cached_hash": "e67ad9dc59fb93229a08664f722ab39b",
+	"cached_hash": "8d8371dc27907d98e9c79f039a7f0f91",
 	"bpy_ver": [
 		3,
 		2,

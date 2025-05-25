@@ -43,7 +43,6 @@
 				-146.9997
 			],
 			"clamp": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Value",
@@ -283,7 +282,6 @@
 				-151.1972
 			],
 			"clamp": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Value",
@@ -470,7 +468,6 @@
 			"label": "n - f",
 			"operation": "SUBTRACT",
 			"use_custom_color": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -510,7 +507,6 @@
 			"label": "((2 * n * f / z) - n - f) / (n - f)",
 			"operation": "DIVIDE",
 			"use_custom_color": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -549,7 +545,6 @@
 			"label": "(2 * n * f / z) - n - f",
 			"operation": "SUBTRACT",
 			"use_custom_color": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -588,7 +583,6 @@
 			"label": "(2 * n * f / z) - n",
 			"operation": "SUBTRACT",
 			"use_custom_color": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -627,7 +621,6 @@
 			"label": "2 * n * f / z",
 			"operation": "DIVIDE",
 			"use_custom_color": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -698,7 +691,6 @@
 			],
 			"label": "2 * n * f",
 			"use_custom_color": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -736,7 +728,6 @@
 			],
 			"label": "n * f",
 			"use_custom_color": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -767,7 +758,6 @@
 				-620.1785,
 				-163.8423
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -890,7 +880,6 @@
 				-1721.0511,
 				31.6253
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "FogEnable",
@@ -978,7 +967,6 @@
 				162.5411
 			],
 			"operation": "DIVIDE",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -1060,7 +1048,6 @@
 				321.4056
 			],
 			"operation": "DIVIDE",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -1306,7 +1293,6 @@
 				-359.534,
 				-163.3271
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "FogAmount"
@@ -1360,7 +1346,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "f76771d675bce0ddc5311496f91fa86a",
+	"cached_hash": "402f5d0badef16a19ea9ac1813657118",
 	"bpy_ver": [
 		3,
 		2,

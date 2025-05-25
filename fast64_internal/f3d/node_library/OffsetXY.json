@@ -8,7 +8,6 @@
 				24.5723
 			],
 			"label": "Combine XY",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -38,7 +37,7 @@
 				-150.32,
 				80.3419
 			],
-			"width": 140.0,
+			"operation": "MULTIPLY",
 			"inputs": {
 				"0": {},
 				"1": {
@@ -80,7 +79,7 @@
 				-10.2964
 			],
 			"label": "ShiftIfEnabled",
-			"width": 140.0,
+			"operation": "MULTIPLY",
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -116,7 +115,6 @@
 				-137.2627
 			],
 			"label": "Combine UV",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -146,7 +144,7 @@
 				669.2014,
 				-9.0905
 			],
-			"width": 140.0,
+			"hide": false,
 			"inputs": {
 				"0": {
 					"name": "Vector"
@@ -183,7 +181,6 @@
 				831.0713,
 				-9.341
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -202,7 +199,6 @@
 				-579.4422,
 				0.0
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Width",
@@ -368,7 +364,6 @@
 				156.8215
 			],
 			"label": "TexelOffset",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "X",
@@ -401,7 +396,6 @@
 				189.8493
 			],
 			"operation": "DIVIDE",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": [
@@ -443,7 +437,6 @@
 				-58.0213
 			],
 			"operation": "SUBTRACT",
-			"width": 140.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -521,7 +514,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "a460177100f84f572acc21eacd55bd08",
+	"cached_hash": "8ab8594a7f2fb0e507b5574e49cddc76",
 	"bpy_ver": [
 		3,
 		2,

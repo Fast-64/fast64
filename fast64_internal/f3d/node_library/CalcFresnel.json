@@ -8,7 +8,6 @@
 				-29.8891
 			],
 			"operation": "SUBTRACT",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -40,7 +39,6 @@
 				133.0363
 			],
 			"operation": "SUBTRACT",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -73,7 +71,6 @@
 			],
 			"operation": "DIVIDE",
 			"use_clamp": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -154,7 +151,6 @@
 				514.3256,
 				128.7357
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Fresnel"
@@ -173,7 +169,6 @@
 			"hide": true,
 			"operation": "ABSOLUTE",
 			"use_clamp": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -205,7 +200,6 @@
 				-225.2952,
 				52.2073
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Normal dot Incoming",
@@ -269,7 +263,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "5de4745ea4ada07d4e6a45041c720edb",
+	"cached_hash": "8269366c85ad5242195ed10d749df2e4",
 	"bpy_ver": [
 		3,
 		2,

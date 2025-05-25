@@ -22,7 +22,6 @@
 				"serialized_type": "Node",
 				"name": "Frame"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -58,7 +57,6 @@
 				"serialized_type": "Node",
 				"name": "Frame"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -94,7 +92,6 @@
 				"serialized_type": "Node",
 				"name": "Frame"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -126,7 +123,6 @@
 				-139.301
 			],
 			"operation": "DIVIDE",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -181,7 +177,6 @@
 				252.6316
 			],
 			"operation": "LESS_THAN",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -258,7 +253,6 @@
 				288.4937,
 				93.5169
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
@@ -293,7 +287,6 @@
 				449.1997,
 				93.6814
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Value",
@@ -378,7 +371,6 @@
 				93.9077
 			],
 			"label": "Output",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Result"
@@ -404,7 +396,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "3c7155c497e7300f63d18b4fcca5dd31",
+	"cached_hash": "a98f93a15cbcb54caa3e5ea4dcfab45d",
 	"bpy_ver": [
 		3,
 		2,

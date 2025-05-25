@@ -7,7 +7,6 @@
 				-288.7444,
 				0.0
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"default_value": 0.5,
@@ -36,7 +35,6 @@
 				77.9513
 			],
 			"operation": "ADD",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -67,7 +65,6 @@
 				229.4413,
 				79.0829
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Result"
@@ -84,7 +81,6 @@
 				80.2145
 			],
 			"operation": "GREATER_THAN",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -134,7 +130,7 @@
 			"bl_idname": "NodeSocketInt"
 		}
 	],
-	"cached_hash": "178d9cbcb81f8068c78251a127fccb60",
+	"cached_hash": "b6b3f3743c9f24db75e5d8bd82f44978",
 	"bpy_ver": [
 		3,
 		2,

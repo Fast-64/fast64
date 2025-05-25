@@ -78,24 +78,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Tex0_I",
@@ -228,24 +216,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Reroute.038",
@@ -290,24 +266,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Tex1_I",
@@ -325,24 +289,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Reroute.048",
@@ -598,13 +550,11 @@
 					}
 				}
 			},
-			"hide": true,
 			"label": "Tex1 Sample 2",
 			"texture_mapping": {
 				"serialized_type": "Default",
 				"data": {}
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -614,6 +564,12 @@
 			"outputs": {
 				"0": {
 					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"links": [
 						{
 							"node": "3 Point Lerp.001",
@@ -671,13 +627,11 @@
 					}
 				}
 			},
-			"hide": true,
 			"label": "Tex1 Sample 3",
 			"texture_mapping": {
 				"serialized_type": "Default",
 				"data": {}
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -687,6 +641,12 @@
 			"outputs": {
 				"0": {
 					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"links": [
 						{
 							"node": "3 Point Lerp.001",
@@ -744,13 +704,11 @@
 					}
 				}
 			},
-			"hide": true,
 			"label": "Tex1 Sample 4",
 			"texture_mapping": {
 				"serialized_type": "Default",
 				"data": {}
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -760,6 +718,12 @@
 			"outputs": {
 				"0": {
 					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"links": [
 						{
 							"node": "3 Point Lerp.001",
@@ -789,52 +753,27 @@
 				"serialized_type": "NodeTree",
 				"name": "3 Point Lerp"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "C00",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "C00"
 				},
 				"1": {
 					"name": "A00"
 				},
 				"2": {
-					"name": "C01",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "C01"
 				},
 				"3": {
 					"name": "A01"
 				},
 				"4": {
-					"name": "C10",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "C10"
 				},
 				"5": {
 					"name": "A10"
 				},
 				"6": {
-					"name": "C11",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "C11"
 				},
 				"7": {
 					"name": "A11"
@@ -852,6 +791,12 @@
 			"outputs": {
 				"0": {
 					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"links": [
 						{
 							"node": "Reroute.046",
@@ -909,13 +854,11 @@
 					}
 				}
 			},
-			"hide": true,
 			"label": "Tex0 Sample 4",
 			"texture_mapping": {
 				"serialized_type": "Default",
 				"data": {}
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -925,6 +868,12 @@
 			"outputs": {
 				"0": {
 					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"links": [
 						{
 							"node": "3 Point Lerp",
@@ -982,13 +931,11 @@
 					}
 				}
 			},
-			"hide": true,
 			"label": "Tex0 Sample 3",
 			"texture_mapping": {
 				"serialized_type": "Default",
 				"data": {}
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -998,6 +945,12 @@
 			"outputs": {
 				"0": {
 					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"links": [
 						{
 							"node": "3 Point Lerp",
@@ -1055,13 +1008,11 @@
 					}
 				}
 			},
-			"hide": true,
 			"label": "Tex0 Sample 2",
 			"texture_mapping": {
 				"serialized_type": "Default",
 				"data": {}
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -1071,6 +1022,12 @@
 			"outputs": {
 				"0": {
 					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"links": [
 						{
 							"node": "3 Point Lerp",
@@ -1128,13 +1085,11 @@
 					}
 				}
 			},
-			"hide": true,
 			"label": "Tex0",
 			"texture_mapping": {
 				"serialized_type": "Default",
 				"data": {}
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -1144,6 +1099,12 @@
 			"outputs": {
 				"0": {
 					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"links": [
 						{
 							"node": "3 Point Lerp",
@@ -1201,14 +1162,12 @@
 					}
 				}
 			},
-			"hide": true,
 			"label": "Tex1",
 			"show_texture": true,
 			"texture_mapping": {
 				"serialized_type": "Default",
 				"data": {}
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -1218,6 +1177,12 @@
 			"outputs": {
 				"0": {
 					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"links": [
 						{
 							"node": "3 Point Lerp.001",
@@ -1269,24 +1234,12 @@
 			"label": "AmbientColor",
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Reroute.030",
@@ -1305,24 +1258,12 @@
 			"label": "Light0Color",
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Reroute.029",
@@ -1410,24 +1351,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Light0ColorOut",
@@ -1514,24 +1443,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "AmbientColorOut",
@@ -1649,26 +1566,10 @@
 			"label": "Combined_C",
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
-			"outputs": {
-				"0": {
-					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
-				}
-			}
+			"outputs": {}
 		},
 		"Combined_A": {
 			"bl_idname": "NodeReroute",
@@ -1692,24 +1593,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Combined_C",
@@ -1750,24 +1639,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Reroute.004",
@@ -1809,24 +1686,12 @@
 			"label": "Light1Color",
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Reroute.014",
@@ -1892,24 +1757,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Light1ColorOut",
@@ -1973,24 +1826,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "GlobalFogColor",
@@ -2078,24 +1919,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Reroute.024",
@@ -2140,24 +1969,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "FogBlender",
@@ -2919,12 +2736,6 @@
 				},
 				"4": {
 					"name": "Light1Color",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"hide_value": true
 				},
 				"5": {
@@ -3001,24 +2812,12 @@
 			"label": "FogColor",
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Reroute.007",
@@ -3110,24 +2909,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Reroute.025",
@@ -3146,26 +2933,10 @@
 			"label": "AmbientColorOut",
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
-			"outputs": {
-				"0": {
-					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
-				}
-			}
+			"outputs": {}
 		},
 		"Light0ColorOut": {
 			"bl_idname": "NodeReroute",
@@ -3181,26 +2952,10 @@
 			"label": "Light0ColorOut",
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
-			"outputs": {
-				"0": {
-					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
-				}
-			}
+			"outputs": {}
 		},
 		"Light1ColorOut": {
 			"bl_idname": "NodeReroute",
@@ -3211,26 +2966,10 @@
 			"label": "Light1ColorOut",
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
-			"outputs": {
-				"0": {
-					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
-				}
-			}
+			"outputs": {}
 		},
 		"Tex1_I": {
 			"bl_idname": "ShaderNodeGroup",
@@ -3263,6 +3002,12 @@
 			"outputs": {
 				"0": {
 					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"hide_value": true
 				},
 				"1": {
@@ -3283,7 +3028,6 @@
 				"serialized_type": "NodeTree",
 				"name": "Is not i"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
@@ -3303,6 +3047,12 @@
 			"outputs": {
 				"0": {
 					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"hide_value": true
 				},
 				"1": {
@@ -3323,52 +3073,27 @@
 				"serialized_type": "NodeTree",
 				"name": "3 Point Lerp"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "C00",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "C00"
 				},
 				"1": {
 					"name": "A00"
 				},
 				"2": {
-					"name": "C01",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "C01"
 				},
 				"3": {
 					"name": "A01"
 				},
 				"4": {
-					"name": "C10",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "C10"
 				},
 				"5": {
 					"name": "A10"
 				},
 				"6": {
-					"name": "C11",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "C11"
 				},
 				"7": {
 					"name": "A11"
@@ -3386,6 +3111,12 @@
 			"outputs": {
 				"0": {
 					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"links": [
 						{
 							"node": "Reroute.036",
@@ -3413,24 +3144,12 @@
 			"label": "GlobalFogColor",
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "FogBlender",
@@ -3450,7 +3169,6 @@
 				"serialized_type": "NodeTree",
 				"name": "FogBlender_Off"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
@@ -3483,6 +3201,12 @@
 			"outputs": {
 				"0": {
 					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"links": [
 						{
 							"node": "Reroute.020",
@@ -3529,22 +3253,10 @@
 					"name": "Prim Alpha"
 				},
 				"4": {
-					"name": "Chroma Key Center",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Chroma Key Center"
 				},
 				"5": {
-					"name": "Chroma Key Scale",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Chroma Key Scale"
 				},
 				"6": {
 					"name": "LOD Fraction"
@@ -3567,22 +3279,22 @@
 					"name": "1",
 					"hide_value": true
 				},
-				"5": {
-					"name": "Chroma Key Center",
+				"1": {
+					"name": "Env Color",
 					"default_value": [
 						0.0,
 						0.0,
 						0.0,
-						1.0
+						0.0
 					]
 				},
-				"6": {
-					"name": "Chroma Key Scale",
+				"3": {
+					"name": "Prim Color",
 					"default_value": [
 						0.0,
 						0.0,
 						0.0,
-						1.0
+						0.0
 					]
 				}
 			}
@@ -3598,46 +3310,21 @@
 				"serialized_type": "NodeTree",
 				"name": "Cycle"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "   A",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"hide_value": true
 				},
 				"1": {
 					"name": "-  B",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"hide_value": true
 				},
 				"2": {
 					"name": "* C",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"hide_value": true
 				},
 				"3": {
 					"name": "+D",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"hide_value": true
 				},
 				"4": {
@@ -3660,6 +3347,12 @@
 			"outputs": {
 				"0": {
 					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"hide_value": true,
 					"links": [
 						{
@@ -3687,24 +3380,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Cycle C 2",
@@ -3722,24 +3403,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Reroute.032",
@@ -3762,24 +3431,12 @@
 			"label": "Cycle C 2",
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "OUTPUT",
@@ -3800,46 +3457,21 @@
 				"serialized_type": "NodeTree",
 				"name": "Cycle"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "   A",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"hide_value": true
 				},
 				"1": {
 					"name": "-  B",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"hide_value": true
 				},
 				"2": {
 					"name": "* C",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"hide_value": true
 				},
 				"3": {
 					"name": "+D",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"hide_value": true
 				},
 				"4": {
@@ -3862,6 +3494,12 @@
 			"outputs": {
 				"0": {
 					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"hide_value": true,
 					"links": [
 						{
@@ -3921,26 +3559,14 @@
 			"width": 219.2171630859375,
 			"inputs": {
 				"0": {
-					"name": "Cycle_C_1",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Cycle_C_1"
 				},
 				"1": {
 					"name": "Cycle_A_1",
 					"default_value": 0.5
 				},
 				"2": {
-					"name": "Cycle_C_2",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Cycle_C_2"
 				},
 				"3": {
 					"name": "Cycle_A_2"
@@ -3959,7 +3585,7 @@
 			}
 		}
 	},
-	"cached_hash": "04eed03e8951911002b22a613ad06a5a",
+	"cached_hash": "0d8ece1e9d156a4792971729bab0da0d",
 	"bpy_ver": [
 		3,
 		2,

@@ -35,7 +35,6 @@
 				312.6501,
 				61.278
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "R"
@@ -50,6 +49,12 @@
 			"outputs": {
 				"0": {
 					"name": "Image",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"links": [
 						{
 							"node": "Group Output",
@@ -93,7 +98,6 @@
 				-352.4275,
 				61.278
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Image",
@@ -141,10 +145,15 @@
 				478.4247,
 				61.4522
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Corrected Color"
+					"name": "Corrected Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					]
 				},
 				"1": {
 					"name": ""
@@ -157,7 +166,6 @@
 				-520.4017,
 				-7.3613
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Color",
@@ -220,10 +228,16 @@
 	"outputs": [
 		{
 			"name": "Corrected Color",
+			"default_value": [
+				0.0,
+				0.0,
+				0.0,
+				0.0
+			],
 			"bl_idname": "NodeSocketColor"
 		}
 	],
-	"cached_hash": "4bd287591225b73f30ad3e58b87812a2",
+	"cached_hash": "5a85bdd3f8c832c5576b88e61c6dafad",
 	"bpy_ver": [
 		3,
 		2,

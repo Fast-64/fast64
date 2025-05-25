@@ -7,7 +7,6 @@
 				-465.6282,
 				0.0
 			],
-			"width": 140.0,
 			"outputs": {}
 		},
 		"Vector Transform": {
@@ -16,8 +15,6 @@
 				-59.7403,
 				17.7791
 			],
-			"vector_type": "NORMAL",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -47,7 +44,7 @@
 				-24.8058
 			],
 			"hide": true,
-			"width": 140.0,
+			"operation": "MULTIPLY",
 			"inputs": {
 				"0": {},
 				"1": {
@@ -88,8 +85,6 @@
 				114.5955,
 				-17.5179
 			],
-			"hide": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -108,17 +103,10 @@
 					"enabled": false
 				},
 				"3": {
-					"name": "Angle",
-					"default_value": -1.5707963705062866
+					"name": "Angle"
 				},
 				"4": {
-					"name": "Rotation",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0
-					],
-					"enabled": false
+					"name": "Rotation"
 				}
 			},
 			"outputs": {
@@ -139,8 +127,6 @@
 				-58.9216,
 				-151.7115
 			],
-			"vector_type": "NORMAL",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -170,7 +156,7 @@
 				-194.2964
 			],
 			"hide": true,
-			"width": 140.0,
+			"operation": "MULTIPLY",
 			"inputs": {
 				"0": {},
 				"1": {
@@ -211,8 +197,6 @@
 				115.4142,
 				-187.0085
 			],
-			"hide": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -231,17 +215,10 @@
 					"enabled": false
 				},
 				"3": {
-					"name": "Angle",
-					"default_value": -1.5707963705062866
+					"name": "Angle"
 				},
 				"4": {
-					"name": "Rotation",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0
-					],
-					"enabled": false
+					"name": "Rotation"
 				}
 			},
 			"outputs": {
@@ -262,7 +239,6 @@
 				-243.9189,
 				-120.1613
 			],
-			"width": 140.0,
 			"outputs": {
 				"1": {
 					"name": "Normal",
@@ -290,7 +266,6 @@
 				477.7317,
 				-59.772
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Normal"
@@ -314,7 +289,7 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "0878f151e932bbfde898990b7b7066d4",
+	"cached_hash": "569a854e9d7abe38afd55c61f6f59de1",
 	"bpy_ver": [
 		3,
 		2,

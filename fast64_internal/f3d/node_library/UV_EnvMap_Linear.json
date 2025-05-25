@@ -8,7 +8,6 @@
 				344.3111
 			],
 			"clamp": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Value",
@@ -85,7 +84,6 @@
 				84.9939
 			],
 			"clamp": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Value",
@@ -161,7 +159,6 @@
 				640.2026,
 				220.5324
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -191,7 +188,6 @@
 				803.3887,
 				220.6945
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Vector"
@@ -208,7 +204,6 @@
 				238.6412
 			],
 			"operation": "ARCCOSINE",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -241,7 +236,6 @@
 				-20.653
 			],
 			"operation": "ARCCOSINE",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -434,7 +428,7 @@
 				65.3822,
 				86.7655
 			],
-			"width": 140.0,
+			"hide": false,
 			"inputs": {
 				"0": {
 					"name": "Vector"
@@ -467,8 +461,6 @@
 				-91.8587,
 				18.0016
 			],
-			"vector_type": "NORMAL",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -497,7 +489,6 @@
 				-247.4622,
 				-85.4111
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Position",
@@ -574,7 +565,7 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "b0aa5f6327e9e61d73e06eaa286e00e3",
+	"cached_hash": "99e91dd986c5e29ce40d981fcccb09d9",
 	"bpy_ver": [
 		3,
 		2,

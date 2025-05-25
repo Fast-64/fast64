@@ -7,7 +7,7 @@
 				305.4264,
 				123.348
 			],
-			"width": 140.0,
+			"hide": false,
 			"inputs": {
 				"0": {
 					"name": "Vector"
@@ -52,7 +52,6 @@
 				"serialized_type": "NodeTree",
 				"name": "ScaleUVs"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "UV"
@@ -84,7 +83,6 @@
 				645.4555,
 				597.9528
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -116,7 +114,6 @@
 				406.6831
 			],
 			"operation": "MULTIPLY_ADD",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -145,7 +142,6 @@
 				314.1082
 			],
 			"operation": "SUBTRACT",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 1.0
@@ -175,7 +171,6 @@
 				1026.5479,
 				136.2331
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -273,7 +268,6 @@
 				-533.1231,
 				-137.0644
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "UV",
@@ -393,7 +387,6 @@
 				"serialized_type": "NodeTree",
 				"name": "ApplyFilterOffset"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "UV"
@@ -474,8 +467,6 @@
 		},
 		{
 			"name": "EnableOffset",
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		}
 	],
@@ -518,7 +509,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "752aa2f86d845331bdcb5fd3d81dde21",
+	"cached_hash": "644848c2110fd5877689e9e292b69e8c",
 	"bpy_ver": [
 		3,
 		2,

@@ -183,12 +183,43 @@ class DefaultDefinition:
 
 
 DEFAULTS = [
-    DefaultDefinition(["NodeSocketFloat", "NodeSocketFloatFactor"], {"default_value": 0.0}),
-    DefaultDefinition(["NodeSocketInt"], {"default_value": 0}),
+    DefaultDefinition(["NodeSocketInt"], {"default_value": 0, "max_value": 1, "min_value": 0}),
     DefaultDefinition(["NodeSocketVector", "NodeSocketRotation"], {"default_value": (0.0, 0.0, 0.0)}),
-    DefaultDefinition(["NodeSocketColor"], {"default_value": (0.0, 0.0, 0.0, 0.0)}),
-    DefaultDefinition(["ShaderNodeMixRGB"], {"data_type": "RGBA"}),
+    DefaultDefinition(["NodeSocketVectorEuler"], {"default_value": (0.0, 0.0, 0.0), "enabled": False}),
+    DefaultDefinition(["NodeSocketColor"], {"default_value": (0.0, 0.0, 0.0, 1.0)}),
+    DefaultDefinition(["ShaderNodeMixRGB"], {"data_type": "RGBA", "width": 140.0}),
     DefaultDefinition(["NodeSocketVectorDirection"], {"subtype": "DIRECTION", "default_value": (0.0, 0.0, 0.0)}),
+    DefaultDefinition(["ShaderNodeVectorTransform"], {"vector_type": "NORMAL", "width": 140.0}),
+    DefaultDefinition(
+        ["ShaderNodeVectorRotate", "ShaderNodeSeparateXYZ", "ShaderNodeBsdfTransparent", "ShaderNodeTexImage"],
+        {"hide": True, "width": 140.0},
+    ),
+    DefaultDefinition(["ShaderNodeVectorMath"], {"operation": "ADD", "width": 140.0}),
+    DefaultDefinition(["ShaderNodeTexNoise"], {"show_texture": True, "width": 140.0}),
+    DefaultDefinition(["NodeSocketFloatUnsigned"], {"default_value": 1.5}),
+    DefaultDefinition(["NodeSocketFloatFactor"], {"default_value": 0.5}),
+    DefaultDefinition(["NodeSocketFloatAngle"], {"default_value": -1.5707963705062866}),
+    DefaultDefinition(
+        [
+            "NodeGroupInput",
+            "NodeGroupOutput",
+            "ShaderNodeBsdfTransparent",
+            "ShaderNodeCameraData",
+            "ShaderNodeClamp",
+            "ShaderNodeCombineRGB",
+            "ShaderNodeCombineXYZ",
+            "ShaderNodeGamma",
+            "ShaderNodeGroup",
+            "ShaderNodeMapRange",
+            "ShaderNodeMath",
+            "ShaderNodeMixShader",
+            "ShaderNodeNewGeometry",
+            "ShaderNodeRGBToBW",
+            "ShaderNodeSeparateRGB",
+            "ShaderNodeValue",
+        ],
+        {"width": 140.0},
+    ),
 ]
 DEFAULTS = {name: definition.defaults for definition in DEFAULTS for name in definition.names}
 

@@ -30,10 +30,15 @@
 				1119.4927,
 				-20.2579
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"hide_value": true
 				},
 				"1": {
@@ -52,7 +57,6 @@
 				136.4
 			],
 			"operation": "WRAP",
-			"width": 140.0,
 			"inputs": {
 				"0": {},
 				"1": {
@@ -98,7 +102,6 @@
 				-157.6101
 			],
 			"operation": "WRAP",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -153,7 +156,6 @@
 				8.1128
 			],
 			"operation": "SUBTRACT",
-			"width": 140.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -188,7 +190,7 @@
 				-88.2811,
 				-20.5271
 			],
-			"width": 140.0,
+			"operation": "MULTIPLY",
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -224,7 +226,6 @@
 				-223.9897
 			],
 			"operation": "MULTIPLY_ADD",
-			"width": 140.0,
 			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
@@ -252,7 +253,6 @@
 				-171.9814
 			],
 			"operation": "SUBTRACT",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -282,8 +282,6 @@
 				70.991,
 				-47.4384
 			],
-			"operation": "ADD",
-			"width": 140.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -342,7 +340,6 @@
 				-594.9968,
 				-64.8251
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "   A",
@@ -362,12 +359,6 @@
 				},
 				"1": {
 					"name": "-  B",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"hide_value": true,
 					"links": [
 						{
@@ -394,12 +385,6 @@
 				},
 				"3": {
 					"name": "+D",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"hide_value": true,
 					"links": [
 						{
@@ -482,7 +467,6 @@
 			"hide": true,
 			"label": "Sign Extension",
 			"operation": "WRAP",
-			"width": 140.0,
 			"inputs": {
 				"0": {},
 				"1": {
@@ -530,7 +514,6 @@
 			"hide": true,
 			"label": "Sign Extension",
 			"operation": "WRAP",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -558,45 +541,21 @@
 	"inputs": [
 		{
 			"name": "   A",
-			"default_value": [
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
 			"hide_value": true,
 			"bl_idname": "NodeSocketColor"
 		},
 		{
 			"name": "-  B",
-			"default_value": [
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
 			"hide_value": true,
 			"bl_idname": "NodeSocketColor"
 		},
 		{
 			"name": "* C",
-			"default_value": [
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
 			"hide_value": true,
 			"bl_idname": "NodeSocketColor"
 		},
 		{
 			"name": "+D",
-			"default_value": [
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
 			"hide_value": true,
 			"bl_idname": "NodeSocketColor"
 		},
@@ -624,6 +583,12 @@
 	"outputs": [
 		{
 			"name": "Color",
+			"default_value": [
+				0.0,
+				0.0,
+				0.0,
+				0.0
+			],
 			"hide_value": true,
 			"bl_idname": "NodeSocketColor"
 		},
@@ -634,7 +599,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "3f006e96fc6366d10460dc36510dde1b",
+	"cached_hash": "96066ce9078ed201e1d0934b9fb7d7ab",
 	"bpy_ver": [
 		3,
 		2,

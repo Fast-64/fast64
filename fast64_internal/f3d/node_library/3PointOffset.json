@@ -437,7 +437,6 @@
 				402.5118,
 				225.9913
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -466,7 +465,6 @@
 				"serialized_type": "NodeTree",
 				"name": "ShiftValue"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Shift"
@@ -636,7 +634,6 @@
 				-299.1567,
 				-11.9427
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Width",
@@ -713,7 +710,6 @@
 				"serialized_type": "NodeTree",
 				"name": "ShiftValue"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Shift"
@@ -745,7 +741,6 @@
 				"serialized_type": "NodeTree",
 				"name": "OffsetXY"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Width"
@@ -800,7 +795,6 @@
 				"serialized_type": "NodeTree",
 				"name": "OffsetXY"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Width"
@@ -852,7 +846,6 @@
 				-341.0384,
 				-352.2887
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Value",
@@ -929,7 +922,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "c311983674c32bc7802dcfca7fbfbf35",
+	"cached_hash": "da4d6f8d85449e6af21376e7d0edd6e2",
 	"bpy_ver": [
 		3,
 		2,

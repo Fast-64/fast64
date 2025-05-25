@@ -8,7 +8,6 @@
 				-1.9878
 			],
 			"operation": "SUBTRACT",
-			"width": 140.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -43,16 +42,9 @@
 				284.0454,
 				0.0
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Vector",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Vector"
 				},
 				"1": {
 					"name": ""
@@ -65,7 +57,7 @@
 				94.0454,
 				1.9878
 			],
-			"width": 140.0,
+			"operation": "MULTIPLY",
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -100,16 +92,9 @@
 				-294.0455,
 				0.0
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "C1",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Vector Math.007",
@@ -119,12 +104,6 @@
 				},
 				"1": {
 					"name": "C2",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Vector Math.007",
@@ -147,22 +126,10 @@
 	"inputs": [
 		{
 			"name": "C1",
-			"default_value": [
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
 			"bl_idname": "NodeSocketColor"
 		},
 		{
 			"name": "C2",
-			"default_value": [
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
 			"bl_idname": "NodeSocketColor"
 		},
 		{
@@ -173,16 +140,10 @@
 	"outputs": [
 		{
 			"name": "Vector",
-			"default_value": [
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
 			"bl_idname": "NodeSocketColor"
 		}
 	],
-	"cached_hash": "07f74789474ab1ef9db170ddc3de6a05",
+	"cached_hash": "4860be9b9488e7d6ee5485a9158c0fca",
 	"bpy_ver": [
 		3,
 		2,

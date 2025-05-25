@@ -79,7 +79,6 @@
 			"hide": true,
 			"label": "Normal * Lt Dir",
 			"operation": "DOT_PRODUCT",
-			"width": 140.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -165,7 +164,6 @@
 				-98.891
 			],
 			"operation": "SUBTRACT",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 1.0
@@ -197,7 +195,6 @@
 				-98.891
 			],
 			"operation": "SUBTRACT",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 1.0
@@ -229,7 +226,6 @@
 				68.4655
 			],
 			"operation": "MULTIPLY_ADD",
-			"width": 140.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -308,7 +304,6 @@
 				590.7126,
 				-11.1313
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
@@ -344,7 +339,6 @@
 				121.1166
 			],
 			"operation": "SCALE",
-			"width": 140.0,
 			"inputs": {
 				"0": {},
 				"1": {
@@ -381,7 +375,6 @@
 				-46.7075
 			],
 			"hide": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Value",
@@ -413,7 +406,6 @@
 				1134.9746,
 				68.2318
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Light Level"
@@ -475,7 +467,6 @@
 				224.5627,
 				-98.891
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -520,12 +511,6 @@
 				},
 				"1": {
 					"name": "Light Color",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Vector Math.004",
@@ -591,12 +576,6 @@
 		},
 		{
 			"name": "Light Color",
-			"default_value": [
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
 			"bl_idname": "NodeSocketColor"
 		},
 		{
@@ -616,8 +595,6 @@
 			"name": "G_LIGHTING_SPECULAR",
 			"default_value": 1,
 			"hide_value": true,
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
@@ -637,7 +614,7 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "04fb6978e5fa6985e87c981bf1db8511",
+	"cached_hash": "5be3e41b9bb911e24af7f5c56db85527",
 	"bpy_ver": [
 		3,
 		2,

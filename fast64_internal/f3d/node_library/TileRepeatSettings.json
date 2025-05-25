@@ -7,7 +7,6 @@
 				1419.4938,
 				156.8046
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -38,7 +37,6 @@
 				-12.2871
 			],
 			"operation": "PINGPONG",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -69,7 +67,6 @@
 				-25.3512
 			],
 			"operation": "MAXIMUM",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -125,7 +122,6 @@
 				265.99,
 				-186.3034
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
@@ -164,7 +160,6 @@
 				630.3589,
 				-186.3034
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
@@ -199,7 +194,6 @@
 				1620.3417,
 				147.1939
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Vector"
@@ -216,7 +210,6 @@
 				-25.3512
 			],
 			"operation": "MINIMUM",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -271,7 +264,6 @@
 				575.1196
 			],
 			"operation": "ADD",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -331,7 +323,6 @@
 				395.8094
 			],
 			"operation": "FLOOR",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -364,7 +355,6 @@
 				610.2584
 			],
 			"operation": "WRAP",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -420,7 +410,6 @@
 				-497.9263,
 				50.5328
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "X",
@@ -505,7 +494,6 @@
 				785.7515
 			],
 			"operation": "MAXIMUM",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -533,7 +521,6 @@
 				1140.4752,
 				624.7993
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
@@ -569,7 +556,6 @@
 				710.9398
 			],
 			"operation": "MINIMUM",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -600,7 +586,6 @@
 				798.8156
 			],
 			"operation": "PINGPONG",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -630,7 +615,6 @@
 				776.1063,
 				624.7993
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
@@ -677,26 +661,18 @@
 		},
 		{
 			"name": "ClampX",
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
 			"name": "ClampY",
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
 			"name": "MirrorX",
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
 			"name": "MirrorY",
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
@@ -715,13 +691,11 @@
 		{
 			"name": "MaskX",
 			"max_value": 5,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
 			"name": "MaskY",
 			"max_value": 5,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		}
 	],
@@ -733,7 +707,7 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "b8e9655e05082071c97ba9ca55b8c71d",
+	"cached_hash": "e8c2c87c068c224eb6f477bb8290d360",
 	"bpy_ver": [
 		3,
 		2,

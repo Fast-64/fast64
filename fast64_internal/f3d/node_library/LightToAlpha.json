@@ -62,7 +62,6 @@
 				"serialized_type": "NodeTree",
 				"name": "MaxOfComponents"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Vector"
@@ -87,11 +86,9 @@
 				132.0775
 			],
 			"label": "L2A: Col = VtxCol",
-			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Fac",
-					"default_value": 0.5
+					"name": "Fac"
 				},
 				"1": {
 					"name": "Color1",
@@ -115,6 +112,12 @@
 			"outputs": {
 				"0": {
 					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"links": [
 						{
 							"node": "Group Output",
@@ -131,7 +134,6 @@
 				-51.7027
 			],
 			"label": "L2A: Alpha = Light",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
@@ -166,10 +168,15 @@
 				315.0667,
 				46.4286
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Color"
+					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					]
 				},
 				"1": {
 					"name": "Alpha"
@@ -185,7 +192,6 @@
 				-311.7134,
 				55.3042
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "G_LIGHTTOALPHA",
@@ -200,12 +206,6 @@
 				},
 				"1": {
 					"name": "Total Light",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Group.005",
@@ -257,7 +257,7 @@
 			],
 			"hide": true,
 			"label": "Light * VCol",
-			"width": 140.0,
+			"operation": "MULTIPLY",
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -292,18 +292,10 @@
 			"name": "G_LIGHTTOALPHA",
 			"default_value": 1,
 			"hide_value": true,
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
 			"name": "Total Light",
-			"default_value": [
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
 			"bl_idname": "NodeSocketColor"
 		},
 		{
@@ -328,6 +320,12 @@
 	"outputs": [
 		{
 			"name": "Color",
+			"default_value": [
+				0.0,
+				0.0,
+				0.0,
+				0.0
+			],
 			"bl_idname": "NodeSocketColor"
 		},
 		{
@@ -337,7 +335,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "528703b397f91cf2bf01abfbc2e52d5f",
+	"cached_hash": "d7732cb15f7a3a76311d382cc9cd1561",
 	"bpy_ver": [
 		3,
 		2,

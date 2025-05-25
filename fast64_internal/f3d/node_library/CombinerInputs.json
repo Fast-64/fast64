@@ -7,7 +7,6 @@
 				53.0663,
 				374.1952
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Env Color",
@@ -59,12 +58,6 @@
 				},
 				"4": {
 					"name": "Chroma Key Center",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Group Output",
@@ -74,12 +67,6 @@
 				},
 				"5": {
 					"name": "Chroma Key Scale",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Group Output",
@@ -168,7 +155,6 @@
 				488.1629,
 				395.6433
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "1",
@@ -176,34 +162,34 @@
 					"hide_value": true
 				},
 				"1": {
-					"name": "Env Color"
+					"name": "Env Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					]
 				},
 				"2": {
 					"name": "Env Alpha"
 				},
 				"3": {
-					"name": "Prim Color"
+					"name": "Prim Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					]
 				},
 				"4": {
 					"name": "Prim Alpha"
 				},
 				"5": {
-					"name": "Chroma Key Center",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Chroma Key Center"
 				},
 				"6": {
-					"name": "Chroma Key Scale",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Chroma Key Scale"
 				},
 				"7": {
 					"name": "LOD Fraction"
@@ -267,12 +253,6 @@
 		},
 		{
 			"name": "Chroma Key Scale",
-			"default_value": [
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
 			"bl_idname": "NodeSocketColor"
 		},
 		{
@@ -307,6 +287,12 @@
 		},
 		{
 			"name": "Env Color",
+			"default_value": [
+				0.0,
+				0.0,
+				0.0,
+				0.0
+			],
 			"bl_idname": "NodeSocketColor"
 		},
 		{
@@ -317,6 +303,12 @@
 		},
 		{
 			"name": "Prim Color",
+			"default_value": [
+				0.0,
+				0.0,
+				0.0,
+				0.0
+			],
 			"bl_idname": "NodeSocketColor"
 		},
 		{
@@ -327,22 +319,10 @@
 		},
 		{
 			"name": "Chroma Key Center",
-			"default_value": [
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
 			"bl_idname": "NodeSocketColor"
 		},
 		{
 			"name": "Chroma Key Scale",
-			"default_value": [
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
 			"bl_idname": "NodeSocketColor"
 		},
 		{
@@ -366,7 +346,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "dae3d48c3f7b9bf3a5bd44a9836026f4",
+	"cached_hash": "8db835ce4d1747028bed280dfed29da9",
 	"bpy_ver": [
 		3,
 		2,

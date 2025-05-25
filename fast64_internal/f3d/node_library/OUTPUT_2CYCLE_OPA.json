@@ -7,29 +7,13 @@
 				-232.1208,
 				1.8922
 			],
-			"width": 140.0,
 			"outputs": {
-				"0": {
-					"name": "Cycle_C_1",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
-				},
 				"1": {
 					"name": "Cycle_A_1",
 					"default_value": 0.5
 				},
 				"2": {
 					"name": "Cycle_C_2",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Group",
@@ -45,7 +29,6 @@
 				144.575,
 				-42.1142
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Shader"
@@ -81,6 +64,12 @@
 			"outputs": {
 				"0": {
 					"name": "Inverse Corrected Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"links": [
 						{
 							"node": "Group Output",
@@ -94,12 +83,6 @@
 	"inputs": [
 		{
 			"name": "Cycle_C_1",
-			"default_value": [
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
 			"bl_idname": "NodeSocketColor"
 		},
 		{
@@ -111,12 +94,6 @@
 		},
 		{
 			"name": "Cycle_C_2",
-			"default_value": [
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
 			"bl_idname": "NodeSocketColor"
 		},
 		{
@@ -130,7 +107,7 @@
 			"bl_idname": "NodeSocketShader"
 		}
 	],
-	"cached_hash": "564f9a8b45abc20b7a6ccc5fe7913fef",
+	"cached_hash": "76b5f4c423d4e763ba8d27890ae9217f",
 	"bpy_ver": [
 		3,
 		2,

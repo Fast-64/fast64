@@ -7,7 +7,6 @@
 				-155.5454,
 				98.5044
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -38,7 +37,6 @@
 				-460.3739,
 				-438.9537
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Value",
@@ -52,7 +50,6 @@
 				-450.5564,
 				-536.3671
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Value",
@@ -71,7 +68,6 @@
 				"serialized_type": "NodeTree",
 				"name": "UnshiftValue"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Shift"
@@ -123,7 +119,6 @@
 				-640.8356,
 				-18.0557
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Value",
@@ -181,7 +176,6 @@
 				1102.656,
 				78.5645
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Value"
@@ -199,7 +193,6 @@
 			],
 			"operation": "FRACT",
 			"use_clamp": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -259,7 +252,6 @@
 				70.2817
 			],
 			"operation": "SUBTRACT",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 1.0
@@ -290,7 +282,6 @@
 				204.7742,
 				325.325
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
@@ -326,7 +317,6 @@
 				78.3637
 			],
 			"operation": "ADD",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -357,7 +347,6 @@
 				716.3333,
 				76.9614
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": -1.0
@@ -413,8 +402,6 @@
 		},
 		{
 			"name": "IsT",
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		}
 	],
@@ -424,7 +411,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "a3ed6cb3e4540cbfed89473cb125fb0d",
+	"cached_hash": "6df93d41644767d72c7ae96305718365",
 	"bpy_ver": [
 		3,
 		2,

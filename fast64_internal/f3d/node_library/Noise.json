@@ -7,7 +7,6 @@
 				-320.272,
 				4.2201
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "View Vector",
@@ -26,8 +25,6 @@
 				-156.3826,
 				61.6369
 			],
-			"operation": "ADD",
-			"width": 140.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -95,12 +92,10 @@
 					}
 				}
 			},
-			"show_texture": true,
 			"texture_mapping": {
 				"serialized_type": "Default",
 				"data": {}
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -135,6 +130,15 @@
 							"index": 0
 						}
 					]
+				},
+				"1": {
+					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					]
 				}
 			}
 		},
@@ -145,7 +149,6 @@
 				-80.3752
 			],
 			"label": "FrameNum Driver",
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Value",
@@ -167,7 +170,6 @@
 			],
 			"label": "Snap 320x240",
 			"operation": "SNAP",
-			"width": 140.0,
 			"inputs": {
 				"0": {},
 				"1": {
@@ -210,7 +212,6 @@
 			],
 			"hide": true,
 			"operation": "GREATER_THAN",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -240,7 +241,6 @@
 				479.4075,
 				65.6406
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Value"
@@ -259,7 +259,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "659bca904fa85ea31a0bb41a4ba4017a",
+	"cached_hash": "b0502c726c0e63479db5de1d3ab5a077",
 	"bpy_ver": [
 		3,
 		2,

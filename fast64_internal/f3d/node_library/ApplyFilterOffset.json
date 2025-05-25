@@ -7,7 +7,7 @@
 				-15.2785,
 				67.3452
 			],
-			"width": 140.0,
+			"operation": "MULTIPLY",
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -42,8 +42,6 @@
 				164.9748,
 				30.5163
 			],
-			"operation": "ADD",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": [
@@ -84,7 +82,6 @@
 				327.3811,
 				30.8211
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "UV"
@@ -146,7 +143,6 @@
 				-760.3992,
 				53.0103
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "UV",
@@ -210,7 +206,6 @@
 				-382.7128,
 				78.5662
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -243,7 +238,6 @@
 				216.7719
 			],
 			"operation": "DIVIDE",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": [
@@ -284,7 +278,6 @@
 				-563.0628,
 				194.9688
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -315,7 +308,6 @@
 				344.3069
 			],
 			"operation": "DIVIDE",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": [
@@ -384,8 +376,6 @@
 		},
 		{
 			"name": "Apply Offset",
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		}
 	],
@@ -395,7 +385,7 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "98682f290a3c8722701038735e123905",
+	"cached_hash": "2f4fcceb03eb529a7c8b2934e04524ec",
 	"bpy_ver": [
 		3,
 		2,

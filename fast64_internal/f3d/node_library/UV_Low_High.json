@@ -116,7 +116,6 @@
 				850.0584,
 				18.0582
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "High"
@@ -135,7 +134,6 @@
 				-370.0122,
 				7.4765
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "High",
@@ -178,7 +176,6 @@
 			"hide": true,
 			"label": "1 / Size",
 			"operation": "DIVIDE",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 1.0
@@ -215,7 +212,6 @@
 			],
 			"label": "Clamp Correction",
 			"operation": "ADD",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -246,7 +242,6 @@
 				408.8061,
 				142.1312
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -277,7 +272,6 @@
 				297.9476
 			],
 			"operation": "LESS_THAN",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.10000000149011612
@@ -332,7 +326,6 @@
 				252.7998
 			],
 			"operation": "MULTIPLY_ADD",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -360,7 +353,6 @@
 				409.7428,
 				-57.7415
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -419,7 +411,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "a64c66533c6e858d20acda66d422bcab",
+	"cached_hash": "7ef17c6e63d40411c91172f4d6e8650b",
 	"bpy_ver": [
 		3,
 		2,

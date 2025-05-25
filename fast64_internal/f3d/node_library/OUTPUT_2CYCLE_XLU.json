@@ -7,29 +7,13 @@
 				-191.6254,
 				51.8902
 			],
-			"width": 140.0,
 			"outputs": {
-				"0": {
-					"name": "Cycle_C_1",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
-				},
 				"1": {
 					"name": "Cycle_A_1",
 					"default_value": 0.5
 				},
 				"2": {
 					"name": "Cycle_C_2",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Group",
@@ -54,7 +38,6 @@
 				-190.3567,
 				134.448
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
@@ -88,7 +71,6 @@
 				488.2988,
 				32.9936
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Shader"
@@ -104,11 +86,9 @@
 				333.0882,
 				32.4752
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Fac",
-					"default_value": 0.5
+					"name": "Fac"
 				},
 				"1": {},
 				"2": {}
@@ -151,6 +131,12 @@
 			"outputs": {
 				"0": {
 					"name": "Inverse Corrected Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"links": [
 						{
 							"node": "Mix Shader",
@@ -197,12 +183,6 @@
 	"inputs": [
 		{
 			"name": "Cycle_C_1",
-			"default_value": [
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
 			"bl_idname": "NodeSocketColor"
 		},
 		{
@@ -213,12 +193,6 @@
 		},
 		{
 			"name": "Cycle_C_2",
-			"default_value": [
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
 			"bl_idname": "NodeSocketColor"
 		},
 		{
@@ -232,7 +206,7 @@
 			"bl_idname": "NodeSocketShader"
 		}
 	],
-	"cached_hash": "18887a1bedd24571b51ab64d4dd06eb6",
+	"cached_hash": "8b2d4651ab5115dfd848a273009b9bb7",
 	"bpy_ver": [
 		3,
 		2,

@@ -7,7 +7,6 @@
 				84.3359,
 				82.7458
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "R"
@@ -22,6 +21,12 @@
 			"outputs": {
 				"0": {
 					"name": "Image",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"links": [
 						{
 							"node": "Group Output",
@@ -149,10 +154,15 @@
 				242.6655,
 				82.3944
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Inverse Corrected Color"
+					"name": "Inverse Corrected Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					]
 				},
 				"1": {
 					"name": ""
@@ -165,7 +175,6 @@
 				-467.473,
 				29.7773
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Image",
@@ -223,10 +232,16 @@
 	"outputs": [
 		{
 			"name": "Inverse Corrected Color",
+			"default_value": [
+				0.0,
+				0.0,
+				0.0,
+				0.0
+			],
 			"bl_idname": "NodeSocketColor"
 		}
 	],
-	"cached_hash": "5daaeef419e1a0200d0f93f5fe30eb56",
+	"cached_hash": "6fc8105d883b9a68e3b42046302f4db4",
 	"bpy_ver": [
 		3,
 		2,

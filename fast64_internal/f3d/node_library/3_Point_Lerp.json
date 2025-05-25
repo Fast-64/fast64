@@ -11,7 +11,6 @@
 				"serialized_type": "NodeTree",
 				"name": "SubLerpVal"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "V1",
@@ -191,7 +190,6 @@
 				"serialized_type": "NodeTree",
 				"name": "SubLerpVal"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "V1",
@@ -228,7 +226,6 @@
 				"serialized_type": "NodeTree",
 				"name": "SubLerpVal"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "V1",
@@ -428,7 +425,6 @@
 				194.1773
 			],
 			"hide": true,
-			"operation": "ADD",
 			"width": 100.0,
 			"inputs": {
 				"0": {},
@@ -465,7 +461,6 @@
 				176.9851
 			],
 			"hide": true,
-			"operation": "ADD",
 			"width": 100.0,
 			"inputs": {
 				"0": {},
@@ -505,25 +500,12 @@
 				"serialized_type": "NodeTree",
 				"name": "SubLerp"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "C1",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "C1"
 				},
 				"1": {
-					"name": "C2",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "C2"
 				},
 				"2": {
 					"name": "Fac"
@@ -532,12 +514,6 @@
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Vector Math.005",
@@ -555,24 +531,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Group.002",
@@ -590,24 +554,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Group.003",
@@ -625,24 +577,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Group.003",
@@ -660,24 +600,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Vector Math.006",
@@ -695,24 +623,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Group.002",
@@ -740,25 +656,12 @@
 				"serialized_type": "NodeTree",
 				"name": "SubLerp"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "C1",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "C1"
 				},
 				"1": {
-					"name": "C2",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "C2"
 				},
 				"2": {
 					"name": "Fac"
@@ -767,12 +670,6 @@
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Vector Math.003",
@@ -790,24 +687,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Group.004",
@@ -827,25 +712,12 @@
 				"serialized_type": "NodeTree",
 				"name": "SubLerp"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "C1",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "C1"
 				},
 				"1": {
-					"name": "C2",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "C2"
 				},
 				"2": {
 					"name": "Fac"
@@ -854,12 +726,6 @@
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Vector Math.003",
@@ -877,24 +743,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Group.005",
@@ -912,24 +766,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Vector Math.004",
@@ -957,25 +799,12 @@
 				"serialized_type": "NodeTree",
 				"name": "SubLerp"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "C1",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "C1"
 				},
 				"1": {
-					"name": "C2",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "C2"
 				},
 				"2": {
 					"name": "Fac"
@@ -984,12 +813,6 @@
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Vector Math.005",
@@ -1007,24 +830,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Reroute.019",
@@ -1046,24 +857,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Group.005",
@@ -1081,24 +880,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Reroute.017",
@@ -1118,10 +905,10 @@
 				807.0809,
 				464.7508
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Fac"
+					"name": "Fac",
+					"default_value": 0.0
 				},
 				"1": {
 					"name": "Color1",
@@ -1145,6 +932,12 @@
 			"outputs": {
 				"0": {
 					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"links": [
 						{
 							"node": "Reroute.055",
@@ -1184,7 +977,6 @@
 				581.4209
 			],
 			"hide": true,
-			"operation": "ADD",
 			"width": 100.0,
 			"inputs": {
 				"0": {},
@@ -1221,7 +1013,6 @@
 				560.6076
 			],
 			"hide": true,
-			"operation": "ADD",
 			"width": 100.0,
 			"inputs": {
 				"0": {},
@@ -1286,24 +1077,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Reroute.057",
@@ -1319,7 +1098,6 @@
 				807.0811,
 				-602.8484
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
@@ -1354,11 +1132,9 @@
 				1042.8486,
 				97.5535
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Fac",
-					"default_value": 0.5
+					"name": "Fac"
 				},
 				"1": {
 					"name": "Color1",
@@ -1382,6 +1158,12 @@
 			"outputs": {
 				"0": {
 					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"links": [
 						{
 							"node": "Reroute.063",
@@ -1399,24 +1181,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Mix",
@@ -1553,24 +1323,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Group Output",
@@ -1588,24 +1346,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Reroute.054",
@@ -1621,7 +1367,6 @@
 				1037.3618,
 				-327.937
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
@@ -1748,10 +1493,15 @@
 				1282.6998,
 				-122.6014
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Color"
+					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					]
 				},
 				"1": {
 					"name": "Alpha"
@@ -1772,7 +1522,6 @@
 				"serialized_type": "NodeTree",
 				"name": "Step"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -1855,24 +1604,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Reroute.033",
@@ -1890,24 +1627,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Reroute.032",
@@ -1925,24 +1650,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Reroute.034",
@@ -2329,24 +2042,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Reroute.003",
@@ -2433,24 +2134,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Reroute.016",
@@ -2468,24 +2157,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Reroute.008",
@@ -2503,24 +2180,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Reroute.009",
@@ -2538,24 +2203,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Reroute.031",
@@ -2725,16 +2378,9 @@
 				-848.5801,
 				0.0001
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "C00",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Reroute.023",
@@ -2753,12 +2399,6 @@
 				},
 				"2": {
 					"name": "C01",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Reroute.026",
@@ -2777,12 +2417,6 @@
 				},
 				"4": {
 					"name": "C10",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Reroute.028",
@@ -2801,12 +2435,6 @@
 				},
 				"6": {
 					"name": "C11",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Reroute.030",
@@ -2896,7 +2524,6 @@
 				"serialized_type": "NodeTree",
 				"name": "SubLerpVal"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "V1",
@@ -2961,12 +2588,6 @@
 	"inputs": [
 		{
 			"name": "C00",
-			"default_value": [
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
 			"bl_idname": "NodeSocketColor"
 		},
 		{
@@ -2975,12 +2596,6 @@
 		},
 		{
 			"name": "C01",
-			"default_value": [
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
 			"bl_idname": "NodeSocketColor"
 		},
 		{
@@ -2989,12 +2604,6 @@
 		},
 		{
 			"name": "C10",
-			"default_value": [
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
 			"bl_idname": "NodeSocketColor"
 		},
 		{
@@ -3003,12 +2612,6 @@
 		},
 		{
 			"name": "C11",
-			"default_value": [
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
 			"bl_idname": "NodeSocketColor"
 		},
 		{
@@ -3033,6 +2636,12 @@
 	"outputs": [
 		{
 			"name": "Color",
+			"default_value": [
+				0.0,
+				0.0,
+				0.0,
+				0.0
+			],
 			"bl_idname": "NodeSocketColor"
 		},
 		{
@@ -3040,7 +2649,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "3544fe1aaa29424b0edea8952a6bbfde",
+	"cached_hash": "3e97ee1764495af359856dddbe289461",
 	"bpy_ver": [
 		3,
 		2,

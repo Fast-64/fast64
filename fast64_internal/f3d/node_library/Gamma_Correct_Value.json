@@ -118,7 +118,6 @@
 				252.6318
 			],
 			"operation": "LESS_THAN",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -149,7 +148,6 @@
 				386.3471,
 				93.517
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
@@ -184,7 +182,6 @@
 				-298.1823,
 				-139.3009
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -220,7 +217,6 @@
 				"serialized_type": "Node",
 				"name": "Frame.001"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -255,7 +251,6 @@
 				"serialized_type": "Node",
 				"name": "Frame.001"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -291,7 +286,6 @@
 				"serialized_type": "Node",
 				"name": "Frame.001"
 			},
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -322,7 +316,6 @@
 				-553.735,
 				-26.262
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Non-Corrected Value",
@@ -341,7 +334,6 @@
 				547.0531,
 				93.6815
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Value",
@@ -373,7 +365,6 @@
 				711.9238,
 				93.5131
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Gamma Corrected Value"
@@ -396,7 +387,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "7a8f033734e65285e030d0eb9f6e1f08",
+	"cached_hash": "ba44b3f2318fa326c831a82d2774891f",
 	"bpy_ver": [
 		3,
 		2,

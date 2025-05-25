@@ -7,7 +7,6 @@
 				-445.9736,
 				34.8429
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -64,7 +63,6 @@
 			],
 			"label": "S == -1 and T == 1",
 			"operation": "MULTIPLY_ADD",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -94,7 +92,6 @@
 				123.7348,
 				-19.282
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Value"
@@ -110,7 +107,6 @@
 				-645.4055,
 				-22.6254
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Value",
@@ -151,7 +147,6 @@
 			],
 			"hide": true,
 			"label": "Flip Range for S",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -184,7 +179,6 @@
 			],
 			"hide": true,
 			"operation": "FRACT",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -227,8 +221,6 @@
 		},
 		{
 			"name": "IsT",
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		}
 	],
@@ -238,7 +230,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "b1cd31e39960f012b6c120d28fb8b1d8",
+	"cached_hash": "48291b4f51411da5f28f763b29c32015",
 	"bpy_ver": [
 		3,
 		2,

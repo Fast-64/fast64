@@ -8,7 +8,6 @@
 				53.1117
 			],
 			"operation": "SCALE",
-			"width": 140.0,
 			"inputs": {
 				"0": {},
 				"1": {
@@ -44,16 +43,9 @@
 				-200.0,
 				0.0
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Ambient Color",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Vector Math.003",
@@ -82,7 +74,6 @@
 				183.8044,
 				54.8822
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Light Level"
@@ -96,12 +87,6 @@
 	"inputs": [
 		{
 			"name": "Ambient Color",
-			"default_value": [
-				0.0,
-				0.0,
-				0.0,
-				1.0
-			],
 			"bl_idname": "NodeSocketColor"
 		},
 		{
@@ -115,7 +100,7 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "6a47f7a76bf251f0c8ea48c93dbc8835",
+	"cached_hash": "c3a06ca6e67e4e1b4633202b4b429c10",
 	"bpy_ver": [
 		3,
 		2,

@@ -7,7 +7,6 @@
 				360.8631,
 				0.0
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -49,7 +48,7 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "b286d1498567ee52d261a0ef8adbc088",
+	"cached_hash": "b6c31e7080bfca9aa5d759576054bb11",
 	"bpy_ver": [
 		3,
 		2,

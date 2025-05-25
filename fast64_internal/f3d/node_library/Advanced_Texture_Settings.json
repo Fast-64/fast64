@@ -53,7 +53,6 @@
 				340.6651,
 				284.262
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -83,7 +82,6 @@
 				497.1576,
 				284.2268
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "UV"
@@ -221,7 +219,6 @@
 				-764.3581,
 				406.4136
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "X",
@@ -375,7 +372,6 @@
 				146.7432,
 				125.5951
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": -1.0
@@ -407,7 +403,6 @@
 				189.7226
 			],
 			"operation": "MULTIPLY_ADD",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -528,7 +523,6 @@
 		{
 			"name": "S Mask",
 			"max_value": 7,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
@@ -537,14 +531,10 @@
 		},
 		{
 			"name": "S Clamp",
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
 			"name": "S Mirror",
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
@@ -566,7 +556,6 @@
 		{
 			"name": "T Mask",
 			"max_value": 7,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
@@ -575,14 +564,10 @@
 		},
 		{
 			"name": "T Clamp",
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
 			"name": "T Mirror",
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		}
 	],
@@ -592,7 +577,7 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "ee95ba246706b8b6500ebfc0b55dd179",
+	"cached_hash": "245bdf5fa391e30f07da45948dfbcf2d",
 	"bpy_ver": [
 		3,
 		2,

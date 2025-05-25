@@ -989,7 +989,6 @@
 				1046.3458,
 				158.4812
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "0_UV00"
@@ -1046,7 +1045,6 @@
 				-613.3323,
 				194.4752
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"hide_value": true,
@@ -1545,7 +1543,6 @@
 		{
 			"name": "0 S Mask",
 			"max_value": 15,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
@@ -1565,7 +1562,6 @@
 		{
 			"name": "0 T Mask",
 			"max_value": 15,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
@@ -1598,7 +1594,6 @@
 		{
 			"name": "1 S Mask",
 			"max_value": 15,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
@@ -1618,7 +1613,6 @@
 		{
 			"name": "1 T Mask",
 			"max_value": 15,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
@@ -1628,26 +1622,18 @@
 		},
 		{
 			"name": "0 ClampX",
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
 			"name": "0 ClampY",
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
 			"name": "0 MirrorX",
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
 			"name": "0 MirrorY",
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
@@ -1657,26 +1643,18 @@
 		},
 		{
 			"name": "1 ClampX",
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
 			"name": "1 ClampY",
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
 			"name": "1 MirrorX",
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
 			"name": "1 MirrorY",
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
@@ -1687,8 +1665,6 @@
 		{
 			"name": "3 Point",
 			"default_value": 1,
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		}
 	],
@@ -1752,7 +1728,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "1612dd7aeb262f0b24749b4a4bd17c4c",
+	"cached_hash": "86f94eb27fd916a4f6918692983e184f",
 	"bpy_ver": [
 		3,
 		2,

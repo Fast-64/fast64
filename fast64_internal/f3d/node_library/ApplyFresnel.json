@@ -8,7 +8,6 @@
 				10.0818
 			],
 			"label": "Fresnel to Alpha",
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
@@ -46,7 +45,6 @@
 			"label": "Color overrides Alpha",
 			"operation": "SUBTRACT",
 			"use_clamp": true,
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -105,11 +103,9 @@
 				193.8259
 			],
 			"label": "Fresnel to Color",
-			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Fac",
-					"default_value": 0.5
+					"name": "Fac"
 				},
 				"1": {
 					"name": "Color1",
@@ -133,6 +129,12 @@
 			"outputs": {
 				"0": {
 					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
 					"links": [
 						{
 							"node": "Group Output",
@@ -171,10 +173,15 @@
 				315.2231,
 				106.1039
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Color"
+					"name": "Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					]
 				},
 				"1": {
 					"name": "Alpha"
@@ -242,24 +249,12 @@
 			],
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					]
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						1.0
-					],
 					"links": [
 						{
 							"node": "Mix.001",
@@ -321,7 +316,6 @@
 				-318.6995,
 				-80.7069
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Color",
@@ -406,16 +400,12 @@
 		{
 			"name": "G_FRESNEL_ALPHA",
 			"hide_value": true,
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
 			"name": "G_FRESNEL_COLOR",
 			"default_value": 1,
 			"hide_value": true,
-			"max_value": 1,
-			"min_value": 0,
 			"bl_idname": "NodeSocketInt"
 		},
 		{
@@ -430,6 +420,12 @@
 	"outputs": [
 		{
 			"name": "Color",
+			"default_value": [
+				0.0,
+				0.0,
+				0.0,
+				0.0
+			],
 			"bl_idname": "NodeSocketColor"
 		},
 		{
@@ -439,7 +435,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "16d821f4cc4ecf89b44c49d94e6d3acf",
+	"cached_hash": "55143c5e536a1d75919d93a29588c823",
 	"bpy_ver": [
 		3,
 		2,

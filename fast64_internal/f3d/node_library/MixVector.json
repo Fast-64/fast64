@@ -8,7 +8,6 @@
 				123.9848
 			],
 			"operation": "MULTIPLY_ADD",
-			"width": 140.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -41,7 +40,6 @@
 				351.3011,
 				123.0141
 			],
-			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Vector"
@@ -109,7 +107,6 @@
 			],
 			"hide": true,
 			"operation": "SUBTRACT",
-			"width": 140.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -144,7 +141,6 @@
 				-325.8933,
 				78.729
 			],
-			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Fac",
@@ -196,7 +192,7 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "91fa98c71bd78c14add61262be627d75",
+	"cached_hash": "ad617f6f76b1b88f4c8a6b81042bdc05",
 	"bpy_ver": [
 		3,
 		2,
