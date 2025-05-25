@@ -240,7 +240,7 @@ class ErrorState:
 def print_with_exc(error_state: ErrorState, exc: Exception):
     message = "\n".join(error_state.error_message_queue)
     print(message + ":\n" + str(exc))
-    print(traceback.format_exc())
+    print(traceback.format_exception(exc))
     error_state.errors.append((message, exc))
 
 
