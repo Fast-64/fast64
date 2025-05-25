@@ -17,6 +17,7 @@
 				"0": {
 					"name": "V1",
 					"default_value": 0.5,
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.002",
@@ -27,6 +28,7 @@
 				"1": {
 					"name": "V2",
 					"default_value": 0.5,
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.002",
@@ -37,12 +39,17 @@
 				"2": {
 					"name": "Fac",
 					"default_value": 0.5,
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.003",
 							"index": 1
 						}
 					]
+				},
+				"3": {
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -61,19 +68,21 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"2": {
-					"default_value": 0.5,
-					"enabled": false
+					"default_value": 0.5
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -98,10 +107,12 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Value"
+					"name": "Value",
+					"enabled": true
 				},
 				"1": {
-					"name": ""
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -120,19 +131,21 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"2": {
-					"default_value": 0.5,
-					"enabled": false
+					"default_value": 0.5
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.003",
@@ -172,5 +185,10 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "63e76590b928273ae2fe241aefb093fe"
+	"cached_hash": "6ba8cc6e37c1396abec3a921250e33a1",
+	"bpy_ver": [
+		3,
+		2,
+		0
+	]
 }

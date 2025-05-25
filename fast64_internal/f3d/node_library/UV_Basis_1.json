@@ -15,12 +15,14 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Vector"
+					"name": "Vector",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "X",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.001",
@@ -34,6 +36,7 @@
 				},
 				"1": {
 					"name": "Y",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.003",
@@ -44,6 +47,10 @@
 							"index": 3
 						}
 					]
+				},
+				"2": {
+					"name": "Z",
+					"enabled": true
 				}
 			}
 		},
@@ -65,20 +72,24 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "UV"
+					"name": "UV",
+					"enabled": true
 				},
 				"1": {
 					"name": "S Scale",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": true
 				},
 				"2": {
 					"name": "T Scale",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "UV",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Separate XYZ",
@@ -103,19 +114,21 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"2": {
-					"default_value": 0.5,
-					"enabled": false
+					"default_value": 0.5
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -140,16 +153,21 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
-				"2": {}
+				"2": {
+					"enabled": true
+				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -174,18 +192,19 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": true
 				},
 				"1": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
-				"2": {
-					"enabled": false
-				}
+				"2": {}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.003",
@@ -209,26 +228,41 @@
 			"is_active_output": true,
 			"width": 140.0,
 			"inputs": {
-				"0": {},
-				"1": {},
-				"2": {},
-				"3": {},
+				"0": {
+					"enabled": true
+				},
+				"1": {
+					"enabled": true
+				},
+				"2": {
+					"enabled": true
+				},
+				"3": {
+					"enabled": true
+				},
 				"4": {
+					"enabled": true,
 					"hide_value": true
 				},
 				"5": {
-					"name": "0 S TexSize"
+					"name": "0 S TexSize",
+					"enabled": true
 				},
 				"6": {
-					"name": "0 T TexSize"
+					"name": "0 T TexSize",
+					"enabled": true
 				},
 				"7": {
-					"name": "1 S TexSize"
+					"name": "1 S TexSize",
+					"enabled": true
 				},
 				"8": {
-					"name": "1 T TexSize"
+					"name": "1 T TexSize",
+					"enabled": true
 				},
-				"9": {}
+				"9": {
+					"enabled": true
+				}
 			}
 		},
 		"Math.002": {
@@ -246,19 +280,21 @@
 			"width": 186.44256591796875,
 			"inputs": {
 				"0": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"2": {
-					"default_value": 0.5,
-					"enabled": false
+					"default_value": 0.5
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.004",
@@ -287,19 +323,21 @@
 			"width": 179.8277587890625,
 			"inputs": {
 				"0": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"2": {
-					"default_value": 0.5,
-					"enabled": false
+					"default_value": 0.5
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.001",
@@ -324,6 +362,7 @@
 			"outputs": {
 				"0": {
 					"name": "UV",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.001",
@@ -333,6 +372,7 @@
 				},
 				"1": {
 					"name": "0 S TexSize",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -346,6 +386,7 @@
 				},
 				"2": {
 					"name": "0 T TexSize",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -359,6 +400,7 @@
 				},
 				"3": {
 					"name": "1 S TexSize",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -376,6 +418,7 @@
 				},
 				"4": {
 					"name": "1 T TexSize",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -394,6 +437,7 @@
 				"5": {
 					"name": "S Scale",
 					"default_value": 1.0,
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group",
@@ -408,6 +452,7 @@
 				"6": {
 					"name": "T Scale",
 					"default_value": 1.0,
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group",
@@ -421,12 +466,17 @@
 				},
 				"7": {
 					"name": "EnableOffset",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.001",
 							"index": 5
 						}
 					]
+				},
+				"8": {
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -448,27 +498,34 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "UV"
+					"name": "UV",
+					"enabled": true
 				},
 				"1": {
-					"name": "S Width"
+					"name": "S Width",
+					"enabled": true
 				},
 				"2": {
-					"name": "T Height"
+					"name": "T Height",
+					"enabled": true
 				},
 				"3": {
-					"name": "S Scale"
+					"name": "S Scale",
+					"enabled": true
 				},
 				"4": {
-					"name": "T Scale"
+					"name": "T Scale",
+					"enabled": true
 				},
 				"5": {
-					"name": "Apply Offset"
+					"name": "Apply Offset",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "UV",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group",
@@ -570,5 +627,10 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "babe3e9168f3e683be0b5f43eb6532bf"
+	"cached_hash": "ac4f52d9ef84dda363a843df5d785c10",
+	"bpy_ver": [
+		3,
+		2,
+		0
+	]
 }

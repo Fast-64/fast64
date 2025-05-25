@@ -33,12 +33,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.010",
@@ -66,69 +68,64 @@
 			"inputs": {
 				"0": {
 					"name": "Value",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": true
 				},
-				"1": {},
+				"1": {
+					"enabled": true
+				},
 				"2": {
-					"default_value": 1000.0
+					"default_value": 1000.0,
+					"enabled": true
 				},
-				"3": {},
+				"3": {
+					"enabled": true
+				},
 				"4": {
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": true
 				},
 				"5": {
-					"default_value": 4.0,
-					"enabled": false
+					"default_value": 4.0
 				},
 				"6": {
 					"name": "Vector",
-					"enabled": false,
 					"hide_value": true
 				},
-				"7": {
-					"enabled": false
-				},
+				"7": {},
 				"8": {
 					"default_value": [
 						1.0,
 						1.0,
 						1.0
-					],
-					"enabled": false
+					]
 				},
-				"9": {
-					"enabled": false
-				},
+				"9": {},
 				"10": {
 					"default_value": [
 						1.0,
 						1.0,
 						1.0
-					],
-					"enabled": false
+					]
 				},
 				"11": {
 					"default_value": [
 						4.0,
 						4.0,
 						4.0
-					],
-					"enabled": false
+					]
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Result",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.003",
 							"index": 0
 						}
 					]
-				},
-				"1": {
-					"name": "Vector",
-					"enabled": false
 				}
 			}
 		},
@@ -147,12 +144,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.014",
@@ -176,12 +175,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Map Range.002",
@@ -205,12 +206,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Map Range.003",
@@ -234,12 +237,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.005",
@@ -263,12 +268,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.004",
@@ -292,12 +299,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Map Range.003",
@@ -322,12 +331,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.015",
@@ -355,71 +366,65 @@
 			"inputs": {
 				"0": {
 					"name": "Value",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": true
 				},
 				"1": {
-					"default_value": -1.0
+					"default_value": -1.0,
+					"enabled": true
 				},
 				"2": {
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": true
 				},
-				"3": {},
+				"3": {
+					"enabled": true
+				},
 				"4": {
-					"default_value": 1000.0
+					"default_value": 1000.0,
+					"enabled": true
 				},
 				"5": {
-					"default_value": 4.0,
-					"enabled": false
+					"default_value": 4.0
 				},
 				"6": {
 					"name": "Vector",
-					"enabled": false,
 					"hide_value": true
 				},
-				"7": {
-					"enabled": false
-				},
+				"7": {},
 				"8": {
 					"default_value": [
 						1.0,
 						1.0,
 						1.0
-					],
-					"enabled": false
+					]
 				},
-				"9": {
-					"enabled": false
-				},
+				"9": {},
 				"10": {
 					"default_value": [
 						1.0,
 						1.0,
 						1.0
-					],
-					"enabled": false
+					]
 				},
 				"11": {
 					"default_value": [
 						4.0,
 						4.0,
 						4.0
-					],
-					"enabled": false
+					]
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Result",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Map Range.003",
 							"index": 0
 						}
 					]
-				},
-				"1": {
-					"name": "Vector",
-					"enabled": false
 				}
 			}
 		},
@@ -438,12 +443,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.024",
@@ -471,12 +478,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.024",
@@ -504,12 +513,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.022",
@@ -533,12 +544,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.007",
@@ -565,20 +578,22 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
-					"default_value": 1000.0
+					"default_value": 1000.0,
+					"enabled": true
 				},
 				"2": {
 					"default_value": 0.5,
-					"enabled": false,
 					"hide": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.023",
@@ -605,19 +620,21 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
-					"default_value": 1000.0
+					"default_value": 1000.0,
+					"enabled": true
 				},
 				"2": {
-					"default_value": 0.5,
-					"enabled": false
+					"default_value": 0.5
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.016",
@@ -644,19 +661,21 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
-					"default_value": 1000.0
+					"default_value": 1000.0,
+					"enabled": true
 				},
 				"2": {
-					"default_value": 0.5,
-					"enabled": false
+					"default_value": 0.5
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.023",
@@ -683,19 +702,21 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
-					"default_value": 1000.0
+					"default_value": 1000.0,
+					"enabled": true
 				},
 				"2": {
-					"default_value": 0.5,
-					"enabled": false
+					"default_value": 0.5
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.022",
@@ -722,19 +743,21 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
-					"default_value": 2.0
+					"default_value": 2.0,
+					"enabled": true
 				},
 				"2": {
-					"default_value": 0.5,
-					"enabled": false
+					"default_value": 0.5
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.021",
@@ -759,10 +782,12 @@
 			"outputs": {
 				"0": {
 					"name": "View Vector",
+					"enabled": true,
 					"hide": true
 				},
 				"1": {
 					"name": "View Z Depth",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.002",
@@ -772,6 +797,7 @@
 				},
 				"2": {
 					"name": "View Distance",
+					"enabled": true,
 					"hide": true
 				}
 			}
@@ -793,19 +819,21 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
-					"default_value": 2.0
+					"default_value": 2.0,
+					"enabled": true
 				},
 				"2": {
-					"default_value": 0.5,
-					"enabled": false
+					"default_value": 0.5
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.002",
@@ -832,19 +860,21 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
-					"default_value": 2.0
+					"default_value": 2.0,
+					"enabled": true
 				},
 				"2": {
-					"default_value": 0.5,
-					"enabled": false
+					"default_value": 0.5
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math",
@@ -869,19 +899,21 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"2": {
-					"default_value": 0.5,
-					"enabled": false
+					"default_value": 0.5
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -905,12 +937,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.025",
@@ -934,12 +968,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.003",
@@ -963,12 +999,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.023",
@@ -992,12 +1030,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.024",
@@ -1022,6 +1062,7 @@
 			"outputs": {
 				"0": {
 					"name": "FogEnable",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.022",
@@ -1031,6 +1072,7 @@
 				},
 				"1": {
 					"name": "F3D_NearClip",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.020",
@@ -1040,6 +1082,7 @@
 				},
 				"2": {
 					"name": "F3D_FarClip",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.021",
@@ -1049,6 +1092,7 @@
 				},
 				"3": {
 					"name": "Blender_Game_Scale",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.019",
@@ -1058,6 +1102,7 @@
 				},
 				"4": {
 					"name": "FogNear",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.002",
@@ -1067,12 +1112,17 @@
 				},
 				"5": {
 					"name": "FogFar",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.003",
 							"index": 0
 						}
 					]
+				},
+				"6": {
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -1090,12 +1140,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.005",
@@ -1120,19 +1172,21 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"2": {
-					"default_value": 0.5,
-					"enabled": false
+					"default_value": 0.5
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.027",
@@ -1156,12 +1210,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.005",
@@ -1189,12 +1245,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.009",
@@ -1219,19 +1277,21 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"2": {
-					"default_value": 0.5,
-					"enabled": false
+					"default_value": 0.5
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.012",
@@ -1255,12 +1315,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.004",
@@ -1284,12 +1346,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.004",
@@ -1313,12 +1377,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.011",
@@ -1342,12 +1408,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.001",
@@ -1371,12 +1439,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.008",
@@ -1404,12 +1474,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.018",
@@ -1433,12 +1505,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.001",
@@ -1462,12 +1536,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.017",
@@ -1491,12 +1567,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute",
@@ -1525,10 +1603,12 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "FogAmount"
+					"name": "FogAmount",
+					"enabled": true
 				},
 				"1": {
-					"name": ""
+					"name": "",
+					"enabled": true
 				}
 			}
 		}
@@ -1576,5 +1656,10 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "0932775ff00c1fd23ce5cfa9f9faddd1"
+	"cached_hash": "79009f45c95e0a817c15859f2ccb1d03",
+	"bpy_ver": [
+		3,
+		2,
+		0
+	]
 }

@@ -16,18 +16,22 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
-					"default_value": -1.0
+					"default_value": -1.0,
+					"enabled": true
 				},
 				"2": {
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute",
@@ -51,12 +55,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.005",
@@ -80,12 +86,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.002",
@@ -109,18 +117,22 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "X"
+					"name": "X",
+					"enabled": true
 				},
 				"1": {
-					"name": "Y"
+					"name": "Y",
+					"enabled": true
 				},
 				"2": {
-					"name": "Z"
+					"name": "Z",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -145,10 +157,12 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "UV"
+					"name": "UV",
+					"enabled": true
 				},
 				"1": {
-					"name": ""
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -166,12 +180,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Combine XYZ",
@@ -195,12 +211,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Combine XYZ",
@@ -225,19 +243,21 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
-					"default_value": -1.0
+					"default_value": -1.0,
+					"enabled": true
 				},
 				"2": {
-					"default_value": 0.5,
-					"enabled": false
+					"default_value": 0.5
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.003",
@@ -261,12 +281,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.026",
@@ -295,22 +317,27 @@
 			"inputs": {
 				"0": {
 					"name": "Tex Coordinate",
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
-					"name": "Clamp"
+					"name": "Clamp",
+					"enabled": true
 				},
 				"2": {
-					"name": "Mirror"
+					"name": "Mirror",
+					"enabled": true
 				},
 				"3": {
 					"name": "Length",
-					"default_value": 32.0
+					"default_value": 32.0,
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "UV Coord",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.001",
@@ -334,12 +361,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.003",
@@ -364,6 +393,7 @@
 			"outputs": {
 				"0": {
 					"name": "X",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.006",
@@ -373,6 +403,7 @@
 				},
 				"1": {
 					"name": "S Clamp",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.006",
@@ -382,6 +413,7 @@
 				},
 				"2": {
 					"name": "S Mirror",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.006",
@@ -391,6 +423,7 @@
 				},
 				"3": {
 					"name": "Width",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.006",
@@ -400,6 +433,7 @@
 				},
 				"4": {
 					"name": "Y",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.001",
@@ -409,6 +443,7 @@
 				},
 				"5": {
 					"name": "T Clamp",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.005",
@@ -418,6 +453,7 @@
 				},
 				"6": {
 					"name": "T Mirror",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.005",
@@ -427,12 +463,17 @@
 				},
 				"7": {
 					"name": "Height",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.005",
 							"index": 3
 						}
 					]
+				},
+				"8": {
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -455,22 +496,27 @@
 			"inputs": {
 				"0": {
 					"name": "Tex Coordinate",
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
-					"name": "Clamp"
+					"name": "Clamp",
+					"enabled": true
 				},
 				"2": {
-					"name": "Mirror"
+					"name": "Mirror",
+					"enabled": true
 				},
 				"3": {
 					"name": "Length",
-					"default_value": 32.0
+					"default_value": 32.0,
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "UV Coord",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.027",
@@ -533,5 +579,10 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "f2f4cd77b16c732fc3a0fc48c92e24c7"
+	"cached_hash": "17a4702fb129763452a8856d6577b7f0",
+	"bpy_ver": [
+		3,
+		2,
+		0
+	]
 }

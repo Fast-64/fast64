@@ -19,12 +19,14 @@
 			"width": 213.19033813476562,
 			"inputs": {
 				"0": {
-					"name": "Non-Corrected Value"
+					"name": "Non-Corrected Value",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Gamma Corrected Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Combine RGB",
@@ -48,24 +50,22 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "R"
+					"name": "R",
+					"enabled": true
 				},
 				"1": {
-					"name": "G"
+					"name": "G",
+					"enabled": true
 				},
 				"2": {
-					"name": "B"
+					"name": "B",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Image",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						0.0
-					],
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -93,12 +93,14 @@
 			"width": 213.19033813476562,
 			"inputs": {
 				"0": {
-					"name": "Non-Corrected Value"
+					"name": "Non-Corrected Value",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Gamma Corrected Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Combine RGB",
@@ -128,12 +130,14 @@
 						0.800000011920929,
 						0.800000011920929,
 						1.0
-					]
+					],
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "R",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group",
@@ -143,6 +147,7 @@
 				},
 				"1": {
 					"name": "G",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.001",
@@ -152,6 +157,7 @@
 				},
 				"2": {
 					"name": "B",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.002",
@@ -177,15 +183,11 @@
 			"inputs": {
 				"0": {
 					"name": "Corrected Color",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						0.0
-					]
+					"enabled": true
 				},
 				"1": {
-					"name": ""
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -210,12 +212,17 @@
 						0.800000011920929,
 						1.0
 					],
+					"enabled": true,
 					"links": [
 						{
 							"node": "Separate RGB",
 							"index": 0
 						}
 					]
+				},
+				"1": {
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -237,12 +244,14 @@
 			"width": 213.19033813476562,
 			"inputs": {
 				"0": {
-					"name": "Non-Corrected Value"
+					"name": "Non-Corrected Value",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Gamma Corrected Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Combine RGB",
@@ -268,14 +277,13 @@
 	"outputs": [
 		{
 			"name": "Corrected Color",
-			"default_value": [
-				0.0,
-				0.0,
-				0.0,
-				0.0
-			],
 			"bl_idname": "NodeSocketColor"
 		}
 	],
-	"cached_hash": "65305497f32ec9f85a86b47d215e1fba"
+	"cached_hash": "ca4022acfce2ed7f50f435ab6b1b5561",
+	"bpy_ver": [
+		3,
+		2,
+		0
+	]
 }

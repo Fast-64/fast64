@@ -15,12 +15,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.016",
@@ -44,12 +46,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.006",
@@ -77,12 +81,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.006",
@@ -110,12 +116,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.015",
@@ -139,12 +147,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.007",
@@ -172,12 +182,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.007",
@@ -205,12 +217,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.005",
@@ -234,12 +248,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.004",
@@ -263,12 +279,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.007",
@@ -292,12 +310,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.007",
@@ -321,12 +341,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -350,12 +372,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -379,12 +403,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.007",
@@ -408,12 +434,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.007",
@@ -437,12 +465,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.007",
@@ -466,12 +496,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.010",
@@ -495,12 +527,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.009",
@@ -524,12 +558,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.017",
@@ -554,19 +590,24 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "X"
+					"name": "X",
+					"enabled": true
 				},
 				"1": {
-					"name": "Y"
+					"name": "Y",
+					"enabled": true
 				},
 				"2": {
-					"name": "Shifted X"
+					"name": "Shifted X",
+					"enabled": true
 				},
 				"3": {
-					"name": "Shifted Y"
+					"name": "Shifted Y",
+					"enabled": true
 				},
 				"4": {
-					"name": ""
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -588,16 +629,19 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Shift"
+					"name": "Shift",
+					"enabled": true
 				},
 				"1": {
 					"name": "Value",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.007",
@@ -621,12 +665,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.011",
@@ -654,12 +700,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.018",
@@ -683,12 +731,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.023",
@@ -712,12 +762,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group",
@@ -741,12 +793,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.001",
@@ -770,12 +824,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.022",
@@ -800,6 +856,7 @@
 			"outputs": {
 				"0": {
 					"name": "Width",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.013",
@@ -809,6 +866,7 @@
 				},
 				"1": {
 					"name": "Height",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.014",
@@ -818,6 +876,7 @@
 				},
 				"2": {
 					"name": "X",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.006",
@@ -827,6 +886,7 @@
 				},
 				"3": {
 					"name": "Y",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.006",
@@ -836,6 +896,7 @@
 				},
 				"4": {
 					"name": "Enable 3 Point",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.006",
@@ -845,6 +906,7 @@
 				},
 				"5": {
 					"name": "S Shift",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.021",
@@ -854,12 +916,17 @@
 				},
 				"6": {
 					"name": "T Shift",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.020",
 							"index": 0
 						}
 					]
+				},
+				"7": {
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -881,16 +948,19 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Shift"
+					"name": "Shift",
+					"enabled": true
 				},
 				"1": {
 					"name": "Value",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.008",
@@ -918,30 +988,38 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Width"
+					"name": "Width",
+					"enabled": true
 				},
 				"1": {
-					"name": "Height"
+					"name": "Height",
+					"enabled": true
 				},
 				"2": {
-					"name": "X"
+					"name": "X",
+					"enabled": true
 				},
 				"3": {
-					"name": "Y"
+					"name": "Y",
+					"enabled": true
 				},
 				"4": {
-					"name": "Enable"
+					"name": "Enable",
+					"enabled": true
 				},
 				"5": {
-					"name": "TexelOffsetX"
+					"name": "TexelOffsetX",
+					"enabled": true
 				},
 				"6": {
-					"name": "TexelOffsetY"
+					"name": "TexelOffsetY",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "X",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.001",
@@ -951,6 +1029,7 @@
 				},
 				"1": {
 					"name": "Y",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute",
@@ -978,31 +1057,39 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Width"
+					"name": "Width",
+					"enabled": true
 				},
 				"1": {
-					"name": "Height"
+					"name": "Height",
+					"enabled": true
 				},
 				"2": {
-					"name": "X"
+					"name": "X",
+					"enabled": true
 				},
 				"3": {
-					"name": "Y"
+					"name": "Y",
+					"enabled": true
 				},
 				"4": {
-					"name": "Enable"
+					"name": "Enable",
+					"enabled": true
 				},
 				"5": {
 					"name": "TexelOffsetX",
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"6": {
-					"name": "TexelOffsetY"
+					"name": "TexelOffsetY",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "X",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -1012,6 +1099,7 @@
 				},
 				"1": {
 					"name": "Y",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -1037,6 +1125,7 @@
 				"0": {
 					"name": "Value",
 					"default_value": 1.0,
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group",
@@ -1109,5 +1198,10 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "c63c22315639cceed68a79f753a0a82c"
+	"cached_hash": "b1a42ca74438352f112424917d535f37",
+	"bpy_ver": [
+		3,
+		2,
+		0
+	]
 }

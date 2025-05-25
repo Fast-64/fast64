@@ -16,12 +16,21 @@
 			"outputs": {
 				"0": {
 					"name": "View Vector",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.001",
 							"index": 0
 						}
 					]
+				},
+				"1": {
+					"name": "View Z Depth",
+					"enabled": true
+				},
+				"2": {
+					"name": "View Distance",
+					"enabled": true
 				}
 			}
 		},
@@ -39,30 +48,28 @@
 			"operation": "ADD",
 			"width": 140.0,
 			"inputs": {
-				"0": {},
-				"1": {},
-				"2": {
-					"enabled": false
+				"0": {
+					"enabled": true
 				},
+				"1": {
+					"enabled": true
+				},
+				"2": {},
 				"3": {
 					"name": "Scale",
-					"default_value": 1.0,
-					"enabled": false
+					"default_value": 1.0
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math",
 							"index": 0
 						}
 					]
-				},
-				"1": {
-					"name": "Value",
-					"enabled": false
 				}
 			}
 		},
@@ -86,7 +93,6 @@
 						0.800000011920929
 					],
 					"blend_factor": 0.0,
-					"blend_type": "MIX",
 					"brightness": 1.0,
 					"color_ramp": {
 						"serialized_type": "ColorRamp",
@@ -164,31 +170,36 @@
 			"inputs": {
 				"0": {
 					"name": "Vector",
+					"enabled": true,
 					"hide_value": true
 				},
 				"1": {
-					"name": "W",
-					"enabled": false
+					"name": "W"
 				},
 				"2": {
 					"name": "Scale",
-					"default_value": 1411.0
+					"default_value": 1411.0,
+					"enabled": true
 				},
 				"3": {
 					"name": "Detail",
-					"default_value": 16.0
+					"default_value": 16.0,
+					"enabled": true
 				},
 				"4": {
 					"name": "Roughness",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": true
 				},
 				"5": {
-					"name": "Distortion"
+					"name": "Distortion",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Fac",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math",
@@ -198,12 +209,7 @@
 				},
 				"1": {
 					"name": "Color",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						0.0
-					]
+					"enabled": true
 				}
 			}
 		},
@@ -224,6 +230,7 @@
 				"0": {
 					"name": "Value",
 					"default_value": 59.0,
+					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.001",
@@ -248,36 +255,33 @@
 			"operation": "SNAP",
 			"width": 140.0,
 			"inputs": {
-				"0": {},
+				"0": {
+					"enabled": true
+				},
 				"1": {
 					"default_value": [
 						0.0031250000465661287,
 						0.004166666883975267,
 						0.0
-					]
+					],
+					"enabled": true
 				},
-				"2": {
-					"enabled": false
-				},
+				"2": {},
 				"3": {
 					"name": "Scale",
-					"default_value": 1.0,
-					"enabled": false
+					"default_value": 1.0
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Noise Texture",
 							"index": 0
 						}
 					]
-				},
-				"1": {
-					"name": "Value",
-					"enabled": false
 				}
 			}
 		},
@@ -297,18 +301,19 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
-				"2": {
-					"enabled": false
-				}
+				"2": {}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -333,10 +338,12 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Value"
+					"name": "Value",
+					"enabled": true
 				},
 				"1": {
-					"name": ""
+					"name": "",
+					"enabled": true
 				}
 			}
 		}
@@ -349,5 +356,10 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "5b92c5adfacd96dbaef1bc75aaabe3af"
+	"cached_hash": "4997f54483e6211df8c968c61d035101",
+	"bpy_ver": [
+		3,
+		2,
+		0
+	]
 }

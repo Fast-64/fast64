@@ -15,24 +15,22 @@
 			"operation": "DOT_PRODUCT",
 			"width": 140.0,
 			"inputs": {
-				"0": {},
-				"1": {},
-				"2": {
-					"enabled": false
+				"0": {
+					"enabled": true
 				},
+				"1": {
+					"enabled": true
+				},
+				"2": {},
 				"3": {
 					"name": "Scale",
-					"default_value": 1.0,
-					"enabled": false
+					"default_value": 1.0
 				}
 			},
 			"outputs": {
-				"0": {
-					"name": "Vector",
-					"enabled": false
-				},
 				"1": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.011",
@@ -60,31 +58,27 @@
 			"operation": "SCALE",
 			"width": 140.0,
 			"inputs": {
-				"0": {},
-				"1": {
-					"enabled": false
+				"0": {
+					"enabled": true
 				},
-				"2": {
-					"enabled": false
-				},
+				"1": {},
+				"2": {},
 				"3": {
 					"name": "Scale",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.058",
 							"index": 0
 						}
 					]
-				},
-				"1": {
-					"name": "Value",
-					"enabled": false
 				}
 			}
 		},
@@ -103,12 +97,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.007",
@@ -132,12 +128,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.007",
@@ -166,18 +164,22 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Fac"
+					"name": "Fac",
+					"enabled": true
 				},
 				"1": {
-					"name": "Input0"
+					"name": "Input0",
+					"enabled": true
 				},
 				"2": {
-					"name": "Input1"
+					"name": "Input1",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -201,12 +203,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -231,13 +235,16 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Vec to Lt"
+					"name": "Vec to Lt",
+					"enabled": true
 				},
 				"1": {
-					"name": "Normal dot Incoming"
+					"name": "Normal dot Incoming",
+					"enabled": true
 				},
 				"2": {
-					"name": ""
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -257,6 +264,7 @@
 				"0": {
 					"name": "G_LIGHTING_SPECULAR",
 					"default_value": 1,
+					"enabled": true,
 					"hide_value": true,
 					"links": [
 						{
@@ -264,6 +272,10 @@
 							"index": 0
 						}
 					]
+				},
+				"1": {
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -282,12 +294,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute",
@@ -311,12 +325,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math",
@@ -340,12 +356,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.006",
@@ -374,12 +392,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.001",
@@ -403,30 +423,28 @@
 			"operation": "ADD",
 			"width": 140.0,
 			"inputs": {
-				"0": {},
-				"1": {},
-				"2": {
-					"enabled": false
+				"0": {
+					"enabled": true
 				},
+				"1": {
+					"enabled": true
+				},
+				"2": {},
 				"3": {
 					"name": "Scale",
-					"default_value": 1.0,
-					"enabled": false
+					"default_value": 1.0
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.060",
 							"index": 0
 						}
 					]
-				},
-				"1": {
-					"name": "Value",
-					"enabled": false
 				}
 			}
 		},
@@ -444,31 +462,27 @@
 			"operation": "SCALE",
 			"width": 140.0,
 			"inputs": {
-				"0": {},
-				"1": {
-					"enabled": false
+				"0": {
+					"enabled": true
 				},
-				"2": {
-					"enabled": false
-				},
+				"1": {},
+				"2": {},
 				"3": {
 					"name": "Scale",
-					"default_value": -1.0
+					"default_value": -1.0,
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.003",
 							"index": 1
 						}
 					]
-				},
-				"1": {
-					"name": "Value",
-					"enabled": false
 				}
 			}
 		},
@@ -486,31 +500,27 @@
 			"operation": "SCALE",
 			"width": 140.0,
 			"inputs": {
-				"0": {},
-				"1": {
-					"enabled": false
+				"0": {
+					"enabled": true
 				},
-				"2": {
-					"enabled": false
-				},
+				"1": {},
+				"2": {},
 				"3": {
 					"name": "Scale",
-					"default_value": 2.0
+					"default_value": 2.0,
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.003",
 							"index": 0
 						}
 					]
-				},
-				"1": {
-					"name": "Value",
-					"enabled": false
 				}
 			}
 		},
@@ -534,6 +544,7 @@
 			"outputs": {
 				"0": {
 					"name": "Normal",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.005",
@@ -551,6 +562,7 @@
 				},
 				"1": {
 					"name": "Incoming",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.002",
@@ -585,5 +597,10 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "7f0880dcc926c9b152b880accc7ba3ac"
+	"cached_hash": "6770e6218d8756c9a7f28261bce98ef3",
+	"bpy_ver": [
+		3,
+		2,
+		0
+	]
 }

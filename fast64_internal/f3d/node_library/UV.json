@@ -5,7 +5,7 @@
 			"bl_idname": "NodeGroupOutput",
 			"location": [
 				360.8631,
-				-0.0
+				0.0
 			],
 			"color": [
 				0.6079999804496765,
@@ -17,10 +17,12 @@
 			"inputs": {
 				"0": {
 					"name": "Vector",
+					"enabled": true,
 					"hide_value": true
 				},
 				"1": {
-					"name": ""
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -41,6 +43,7 @@
 			"outputs": {
 				"0": {
 					"name": "UV",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -60,5 +63,10 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "75483046316fc4462cf0480cb7fdff6b"
+	"cached_hash": "47c9a480ff807c450a9b9af8791af89b",
+	"bpy_ver": [
+		3,
+		2,
+		0
+	]
 }

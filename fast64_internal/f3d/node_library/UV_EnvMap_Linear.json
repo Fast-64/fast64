@@ -19,69 +19,64 @@
 			"inputs": {
 				"0": {
 					"name": "Value",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": true
 				},
-				"1": {},
+				"1": {
+					"enabled": true
+				},
 				"2": {
-					"default_value": 3.1415927410125732
+					"default_value": 3.1415927410125732,
+					"enabled": true
 				},
 				"3": {
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": true
 				},
-				"4": {},
+				"4": {
+					"enabled": true
+				},
 				"5": {
-					"default_value": 4.0,
-					"enabled": false
+					"default_value": 4.0
 				},
 				"6": {
 					"name": "Vector",
-					"enabled": false,
 					"hide_value": true
 				},
-				"7": {
-					"enabled": false
-				},
+				"7": {},
 				"8": {
 					"default_value": [
 						1.0,
 						1.0,
 						1.0
-					],
-					"enabled": false
+					]
 				},
-				"9": {
-					"enabled": false
-				},
+				"9": {},
 				"10": {
 					"default_value": [
 						1.0,
 						1.0,
 						1.0
-					],
-					"enabled": false
+					]
 				},
 				"11": {
 					"default_value": [
 						4.0,
 						4.0,
 						4.0
-					],
-					"enabled": false
+					]
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Result",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.005",
 							"index": 0
 						}
 					]
-				},
-				"1": {
-					"name": "Vector",
-					"enabled": false
 				}
 			}
 		},
@@ -103,69 +98,64 @@
 			"inputs": {
 				"0": {
 					"name": "Value",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": true
 				},
-				"1": {},
+				"1": {
+					"enabled": true
+				},
 				"2": {
-					"default_value": 3.1415927410125732
+					"default_value": 3.1415927410125732,
+					"enabled": true
 				},
 				"3": {
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": true
 				},
-				"4": {},
+				"4": {
+					"enabled": true
+				},
 				"5": {
-					"default_value": 4.0,
-					"enabled": false
+					"default_value": 4.0
 				},
 				"6": {
 					"name": "Vector",
-					"enabled": false,
 					"hide_value": true
 				},
-				"7": {
-					"enabled": false
-				},
+				"7": {},
 				"8": {
 					"default_value": [
 						1.0,
 						1.0,
 						1.0
-					],
-					"enabled": false
+					]
 				},
-				"9": {
-					"enabled": false
-				},
+				"9": {},
 				"10": {
 					"default_value": [
 						1.0,
 						1.0,
 						1.0
-					],
-					"enabled": false
+					]
 				},
 				"11": {
 					"default_value": [
 						4.0,
 						4.0,
 						4.0
-					],
-					"enabled": false
+					]
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Result",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.004",
 							"index": 0
 						}
 					]
-				},
-				"1": {
-					"name": "Vector",
-					"enabled": false
 				}
 			}
 		},
@@ -183,18 +173,22 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "X"
+					"name": "X",
+					"enabled": true
 				},
 				"1": {
-					"name": "Y"
+					"name": "Y",
+					"enabled": true
 				},
 				"2": {
-					"name": "Z"
+					"name": "Z",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -219,10 +213,12 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Vector"
+					"name": "Vector",
+					"enabled": true
 				},
 				"1": {
-					"name": ""
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -241,20 +237,20 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
-					"default_value": 0.5,
-					"enabled": false
+					"default_value": 0.5
 				},
 				"2": {
-					"default_value": 0.5,
-					"enabled": false
+					"default_value": 0.5
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Map Range",
@@ -279,20 +275,20 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
-					"default_value": 0.5,
-					"enabled": false
+					"default_value": 0.5
 				},
 				"2": {
-					"default_value": 0.5,
-					"enabled": false
+					"default_value": 0.5
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Map Range.001",
@@ -316,12 +312,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.006",
@@ -345,12 +343,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.007",
@@ -374,12 +374,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Combine XYZ",
@@ -403,12 +405,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Combine XYZ",
@@ -432,12 +436,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math",
@@ -461,12 +467,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.001",
@@ -490,12 +498,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.001",
@@ -519,12 +529,14 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Vector"
+					"name": "Vector",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "X",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute",
@@ -534,12 +546,17 @@
 				},
 				"1": {
 					"name": "Y",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.002",
 							"index": 0
 						}
 					]
+				},
+				"2": {
+					"name": "Z",
+					"enabled": true
 				}
 			}
 		},
@@ -565,12 +582,14 @@
 						0.5,
 						0.5,
 						0.5
-					]
+					],
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Separate XYZ",
@@ -595,10 +614,12 @@
 			"outputs": {
 				"0": {
 					"name": "Position",
+					"enabled": true,
 					"hide": true
 				},
 				"1": {
 					"name": "Normal",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Transform",
@@ -608,30 +629,37 @@
 				},
 				"2": {
 					"name": "Tangent",
+					"enabled": true,
 					"hide": true
 				},
 				"3": {
 					"name": "True Normal",
+					"enabled": true,
 					"hide": true
 				},
 				"4": {
 					"name": "Incoming",
+					"enabled": true,
 					"hide": true
 				},
 				"5": {
 					"name": "Parametric",
+					"enabled": true,
 					"hide": true
 				},
 				"6": {
 					"name": "Backfacing",
+					"enabled": true,
 					"hide": true
 				},
 				"7": {
 					"name": "Pointiness",
+					"enabled": true,
 					"hide": true
 				},
 				"8": {
 					"name": "Random Per Island",
+					"enabled": true,
 					"hide": true
 				}
 			}
@@ -650,12 +678,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.003",
@@ -674,5 +704,10 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "558468906fcbe9c701bdc724e00527ab"
+	"cached_hash": "7c793254662bbed7cb2de5730f06813d",
+	"bpy_ver": [
+		3,
+		2,
+		0
+	]
 }

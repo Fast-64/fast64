@@ -5,7 +5,7 @@
 			"bl_idname": "NodeGroupInput",
 			"location": [
 				-293.9529,
-				-0.0
+				0.0
 			],
 			"color": [
 				0.6079999804496765,
@@ -13,13 +13,18 @@
 				0.6079999804496765
 			],
 			"width": 140.0,
-			"outputs": {}
+			"outputs": {
+				"0": {
+					"name": "",
+					"enabled": true
+				}
+			}
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
 			"location": [
 				283.9528,
-				-0.0
+				0.0
 			],
 			"color": [
 				0.6079999804496765,
@@ -30,13 +35,16 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Normal"
+					"name": "Normal",
+					"enabled": true
 				},
 				"1": {
-					"name": "Incoming"
+					"name": "Incoming",
+					"enabled": true
 				},
 				"2": {
-					"name": ""
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -53,8 +61,13 @@
 			],
 			"width": 140.0,
 			"outputs": {
+				"0": {
+					"name": "Position",
+					"enabled": true
+				},
 				"1": {
 					"name": "Normal",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -62,14 +75,39 @@
 						}
 					]
 				},
+				"2": {
+					"name": "Tangent",
+					"enabled": true
+				},
+				"3": {
+					"name": "True Normal",
+					"enabled": true
+				},
 				"4": {
 					"name": "Incoming",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
 							"index": 1
 						}
 					]
+				},
+				"5": {
+					"name": "Parametric",
+					"enabled": true
+				},
+				"6": {
+					"name": "Backfacing",
+					"enabled": true
+				},
+				"7": {
+					"name": "Pointiness",
+					"enabled": true
+				},
+				"8": {
+					"name": "Random Per Island",
+					"enabled": true
 				}
 			}
 		}
@@ -84,5 +122,10 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "a9107e2d1d63d5c94589c40cb52b6a49"
+	"cached_hash": "98b8559a3a6d4f50bc2581fd28f5e621",
+	"bpy_ver": [
+		3,
+		2,
+		0
+	]
 }

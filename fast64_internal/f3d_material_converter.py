@@ -269,7 +269,7 @@ class MatUpdateConvert(bpy.types.Operator):
         try:
             if context.mode != "OBJECT":
                 raise PluginError("Operator can only be used in object mode.")
-
+            generate_f3d_node_groups()
             if self.update_conv_all:
                 upgrade_f3d_version_all_meshes()
             else:

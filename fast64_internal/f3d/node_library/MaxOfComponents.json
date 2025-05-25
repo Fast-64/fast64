@@ -16,12 +16,14 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Vector"
+					"name": "Vector",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "X",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.012",
@@ -31,6 +33,7 @@
 				},
 				"1": {
 					"name": "Y",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.012",
@@ -40,6 +43,7 @@
 				},
 				"2": {
 					"name": "Z",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.013",
@@ -65,19 +69,21 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"2": {
-					"default_value": 0.5,
-					"enabled": false
+					"default_value": 0.5
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.013",
@@ -91,7 +97,7 @@
 			"bl_idname": "NodeGroupInput",
 			"location": [
 				-356.9276,
-				-0.0
+				0.0
 			],
 			"color": [
 				0.6079999804496765,
@@ -102,12 +108,17 @@
 			"outputs": {
 				"0": {
 					"name": "Vector",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Separate XYZ",
 							"index": 0
 						}
 					]
+				},
+				"1": {
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -115,7 +126,7 @@
 			"bl_idname": "NodeGroupOutput",
 			"location": [
 				346.9276,
-				-0.0
+				0.0
 			],
 			"color": [
 				0.6079999804496765,
@@ -126,10 +137,12 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Value"
+					"name": "Value",
+					"enabled": true
 				},
 				"1": {
-					"name": ""
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -149,19 +162,21 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"2": {
-					"default_value": 0.5,
-					"enabled": false
+					"default_value": 0.5
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -186,5 +201,10 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "bb36ff2b4d347f6e6994d53317e8792d"
+	"cached_hash": "5ae871df485efb632dac6b21d1bf5e89",
+	"bpy_ver": [
+		3,
+		2,
+		0
+	]
 }

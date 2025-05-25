@@ -23,12 +23,14 @@
 						0.5,
 						0.5,
 						0.5
-					]
+					],
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Mapping",
@@ -53,7 +55,8 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Vector"
+					"name": "Vector",
+					"enabled": true
 				},
 				"1": {
 					"name": "Location",
@@ -61,7 +64,8 @@
 						0.5,
 						0.5,
 						0.0
-					]
+					],
+					"enabled": true
 				},
 				"2": {
 					"name": "Rotation",
@@ -69,7 +73,8 @@
 						0.0,
 						0.0,
 						0.0
-					]
+					],
+					"enabled": true
 				},
 				"3": {
 					"name": "Scale",
@@ -77,12 +82,14 @@
 						0.5,
 						0.5,
 						1.0
-					]
+					],
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -96,7 +103,7 @@
 			"bl_idname": "NodeGroupOutput",
 			"location": [
 				360.8631,
-				-0.0
+				0.0
 			],
 			"color": [
 				0.6079999804496765,
@@ -107,10 +114,12 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Vector"
+					"name": "Vector",
+					"enabled": true
 				},
 				"1": {
-					"name": ""
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -129,10 +138,12 @@
 			"outputs": {
 				"0": {
 					"name": "Position",
+					"enabled": true,
 					"hide": true
 				},
 				"1": {
 					"name": "Normal",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Transform",
@@ -142,30 +153,37 @@
 				},
 				"2": {
 					"name": "Tangent",
+					"enabled": true,
 					"hide": true
 				},
 				"3": {
 					"name": "True Normal",
+					"enabled": true,
 					"hide": true
 				},
 				"4": {
 					"name": "Incoming",
+					"enabled": true,
 					"hide": true
 				},
 				"5": {
 					"name": "Parametric",
+					"enabled": true,
 					"hide": true
 				},
 				"6": {
 					"name": "Backfacing",
+					"enabled": true,
 					"hide": true
 				},
 				"7": {
 					"name": "Pointiness",
+					"enabled": true,
 					"hide": true
 				},
 				"8": {
 					"name": "Random Per Island",
+					"enabled": true,
 					"hide": true
 				}
 			}
@@ -179,5 +197,10 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "91e0eaf464170e53dfeecb76dd592451"
+	"cached_hash": "9d5a982955d9b2e6032e8e8b06b05f07",
+	"bpy_ver": [
+		3,
+		2,
+		0
+	]
 }

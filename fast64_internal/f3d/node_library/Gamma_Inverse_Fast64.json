@@ -15,24 +15,22 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "R"
+					"name": "R",
+					"enabled": true
 				},
 				"1": {
-					"name": "G"
+					"name": "G",
+					"enabled": true
 				},
 				"2": {
-					"name": "B"
+					"name": "B",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Image",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						0.0
-					],
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -61,12 +59,14 @@
 			"inputs": {
 				"0": {
 					"name": "Gamma Corrected Value",
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Result",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Combine RGB",
@@ -95,12 +95,14 @@
 			"inputs": {
 				"0": {
 					"name": "Gamma Corrected Value",
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Result",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Combine RGB",
@@ -129,12 +131,14 @@
 			"inputs": {
 				"0": {
 					"name": "Gamma Corrected Value",
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Result",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Combine RGB",
@@ -165,12 +169,17 @@
 						0.800000011920929,
 						1.0
 					],
+					"enabled": true,
 					"links": [
 						{
 							"node": "Separate RGB",
 							"index": 0
 						}
 					]
+				},
+				"1": {
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -190,15 +199,11 @@
 			"inputs": {
 				"0": {
 					"name": "Inverse Corrected Color",
-					"default_value": [
-						0.0,
-						0.0,
-						0.0,
-						0.0
-					]
+					"enabled": true
 				},
 				"1": {
-					"name": ""
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -222,12 +227,14 @@
 						0.800000011920929,
 						0.800000011920929,
 						1.0
-					]
+					],
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "R",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.001",
@@ -237,6 +244,7 @@
 				},
 				"1": {
 					"name": "G",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.002",
@@ -246,6 +254,7 @@
 				},
 				"2": {
 					"name": "B",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.003",
@@ -271,14 +280,13 @@
 	"outputs": [
 		{
 			"name": "Inverse Corrected Color",
-			"default_value": [
-				0.0,
-				0.0,
-				0.0,
-				0.0
-			],
 			"bl_idname": "NodeSocketColor"
 		}
 	],
-	"cached_hash": "932202a9ff7ef4dbf161432b2b8bfd28"
+	"cached_hash": "b409f6a78699435227c54996fe22a59f",
+	"bpy_ver": [
+		3,
+		2,
+		0
+	]
 }

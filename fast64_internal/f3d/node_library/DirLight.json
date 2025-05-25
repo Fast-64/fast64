@@ -15,12 +15,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.004",
@@ -44,12 +46,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.002",
@@ -73,12 +77,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.006",
@@ -104,24 +110,22 @@
 			"operation": "DOT_PRODUCT",
 			"width": 140.0,
 			"inputs": {
-				"0": {},
-				"1": {},
-				"2": {
-					"enabled": false
+				"0": {
+					"enabled": true
 				},
+				"1": {
+					"enabled": true
+				},
+				"2": {},
 				"3": {
 					"name": "Scale",
-					"default_value": 1.0,
-					"enabled": false
+					"default_value": 1.0
 				}
 			},
 			"outputs": {
-				"0": {
-					"name": "Vector",
-					"enabled": false
-				},
 				"1": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.005",
@@ -149,12 +153,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.008",
@@ -178,12 +184,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.001",
@@ -208,19 +216,21 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": true
 				},
 				"1": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"2": {
-					"default_value": 0.5,
-					"enabled": false
+					"default_value": 0.5
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.001",
@@ -245,19 +255,21 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": true
 				},
 				"1": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"2": {
-					"default_value": 0.5,
-					"enabled": false
+					"default_value": 0.5
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group",
@@ -281,28 +293,30 @@
 			"operation": "MULTIPLY_ADD",
 			"width": 140.0,
 			"inputs": {
-				"0": {},
-				"1": {},
-				"2": {},
+				"0": {
+					"enabled": true
+				},
+				"1": {
+					"enabled": true
+				},
+				"2": {
+					"enabled": true
+				},
 				"3": {
 					"name": "Scale",
-					"default_value": 1.0,
-					"enabled": false
+					"default_value": 1.0
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
 							"index": 0
 						}
 					]
-				},
-				"1": {
-					"name": "Value",
-					"enabled": false
 				}
 			}
 		},
@@ -320,12 +334,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math",
@@ -349,12 +365,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.001",
@@ -383,22 +401,26 @@
 			"inputs": {
 				"0": {
 					"name": "Fac",
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
 					"name": "Input0",
 					"default_value": 0.5,
+					"enabled": true,
 					"hide_value": true
 				},
 				"2": {
 					"name": "Input1",
 					"default_value": 0.5,
+					"enabled": true,
 					"hide_value": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Clamp",
@@ -422,31 +444,27 @@
 			"operation": "SCALE",
 			"width": 140.0,
 			"inputs": {
-				"0": {},
-				"1": {
-					"enabled": false
+				"0": {
+					"enabled": true
 				},
-				"2": {
-					"enabled": false
-				},
+				"1": {},
+				"2": {},
 				"3": {
 					"name": "Scale",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math",
 							"index": 0
 						}
 					]
-				},
-				"1": {
-					"name": "Value",
-					"enabled": false
 				}
 			}
 		},
@@ -467,19 +485,23 @@
 			"inputs": {
 				"0": {
 					"name": "Value",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": true
 				},
 				"1": {
-					"name": "Min"
+					"name": "Min",
+					"enabled": true
 				},
 				"2": {
 					"name": "Max",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Result",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math",
@@ -504,10 +526,12 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Light Level"
+					"name": "Light Level",
+					"enabled": true
 				},
 				"1": {
-					"name": ""
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -525,12 +549,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group",
@@ -554,12 +580,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group",
@@ -584,19 +612,21 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"2": {
-					"default_value": 0.5,
-					"enabled": false
+					"default_value": 0.5
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.002",
@@ -621,6 +651,7 @@
 			"outputs": {
 				"0": {
 					"name": "Light Level",
+					"enabled": true,
 					"hide_value": true,
 					"links": [
 						{
@@ -631,6 +662,13 @@
 				},
 				"1": {
 					"name": "Light Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.004",
@@ -640,6 +678,7 @@
 				},
 				"2": {
 					"name": "Light Direction",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.001",
@@ -649,6 +688,7 @@
 				},
 				"3": {
 					"name": "Light Spec Size",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.007",
@@ -659,6 +699,7 @@
 				"4": {
 					"name": "G_LIGHTING_SPECULAR",
 					"default_value": 1,
+					"enabled": true,
 					"hide_value": true,
 					"links": [
 						{
@@ -669,6 +710,7 @@
 				},
 				"5": {
 					"name": "AO Dir Factor",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.003",
@@ -678,12 +720,17 @@
 				},
 				"6": {
 					"name": "Normal",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.001",
 							"index": 1
 						}
 					]
+				},
+				"7": {
+					"name": "",
+					"enabled": true
 				}
 			}
 		}
@@ -696,6 +743,12 @@
 		},
 		{
 			"name": "Light Color",
+			"default_value": [
+				0.0,
+				0.0,
+				0.0,
+				1.0
+			],
 			"bl_idname": "NodeSocketColor"
 		},
 		{
@@ -736,5 +789,10 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "a54626756476844cbdefa42c942fc9c6"
+	"cached_hash": "f1239684087457385b45f158410ff8a3",
+	"bpy_ver": [
+		3,
+		2,
+		0
+	]
 }

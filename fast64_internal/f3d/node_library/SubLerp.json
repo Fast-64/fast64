@@ -15,30 +15,28 @@
 			"operation": "SUBTRACT",
 			"width": 140.0,
 			"inputs": {
-				"0": {},
-				"1": {},
-				"2": {
-					"enabled": false
+				"0": {
+					"enabled": true
 				},
+				"1": {
+					"enabled": true
+				},
+				"2": {},
 				"3": {
 					"name": "Scale",
-					"default_value": 1.0,
-					"enabled": false
+					"default_value": 1.0
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.008",
 							"index": 0
 						}
 					]
-				},
-				"1": {
-					"name": "Value",
-					"enabled": false
 				}
 			}
 		},
@@ -46,7 +44,7 @@
 			"bl_idname": "NodeGroupOutput",
 			"location": [
 				284.0454,
-				-0.0
+				0.0
 			],
 			"color": [
 				0.6079999804496765,
@@ -57,10 +55,18 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Vector"
+					"name": "Vector",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"enabled": true
 				},
 				"1": {
-					"name": ""
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -78,30 +84,28 @@
 			"operation": "MULTIPLY",
 			"width": 140.0,
 			"inputs": {
-				"0": {},
-				"1": {},
-				"2": {
-					"enabled": false
+				"0": {
+					"enabled": true
 				},
+				"1": {
+					"enabled": true
+				},
+				"2": {},
 				"3": {
 					"name": "Scale",
-					"default_value": 1.0,
-					"enabled": false
+					"default_value": 1.0
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
 							"index": 0
 						}
 					]
-				},
-				"1": {
-					"name": "Value",
-					"enabled": false
 				}
 			}
 		},
@@ -109,7 +113,7 @@
 			"bl_idname": "NodeGroupInput",
 			"location": [
 				-294.0455,
-				-0.0
+				0.0
 			],
 			"color": [
 				0.6079999804496765,
@@ -120,6 +124,13 @@
 			"outputs": {
 				"0": {
 					"name": "C1",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.007",
@@ -129,6 +140,13 @@
 				},
 				"1": {
 					"name": "C2",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						1.0
+					],
+					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.007",
@@ -138,12 +156,17 @@
 				},
 				"2": {
 					"name": "Fac",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.008",
 							"index": 1
 						}
 					]
+				},
+				"3": {
+					"name": "",
+					"enabled": true
 				}
 			}
 		}
@@ -151,10 +174,22 @@
 	"inputs": [
 		{
 			"name": "C1",
+			"default_value": [
+				0.0,
+				0.0,
+				0.0,
+				1.0
+			],
 			"bl_idname": "NodeSocketColor"
 		},
 		{
 			"name": "C2",
+			"default_value": [
+				0.0,
+				0.0,
+				0.0,
+				1.0
+			],
 			"bl_idname": "NodeSocketColor"
 		},
 		{
@@ -165,8 +200,19 @@
 	"outputs": [
 		{
 			"name": "Vector",
+			"default_value": [
+				0.0,
+				0.0,
+				0.0,
+				1.0
+			],
 			"bl_idname": "NodeSocketColor"
 		}
 	],
-	"cached_hash": "165a4f269fb0a5183d1f63589c14de12"
+	"cached_hash": "5305aae333efd5cde2cb3d0e37a0dfe5",
+	"bpy_ver": [
+		3,
+		2,
+		0
+	]
 }

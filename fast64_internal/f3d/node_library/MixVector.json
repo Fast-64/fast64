@@ -15,28 +15,30 @@
 			"operation": "MULTIPLY_ADD",
 			"width": 140.0,
 			"inputs": {
-				"0": {},
-				"1": {},
-				"2": {},
+				"0": {
+					"enabled": true
+				},
+				"1": {
+					"enabled": true
+				},
+				"2": {
+					"enabled": true
+				},
 				"3": {
 					"name": "Scale",
-					"default_value": 1.0,
-					"enabled": false
+					"default_value": 1.0
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
 							"index": 0
 						}
 					]
-				},
-				"1": {
-					"name": "Value",
-					"enabled": false
 				}
 			}
 		},
@@ -55,10 +57,12 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Vector"
+					"name": "Vector",
+					"enabled": true
 				},
 				"1": {
-					"name": ""
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -76,12 +80,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.009",
@@ -105,12 +111,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.009",
@@ -139,30 +147,28 @@
 			"operation": "SUBTRACT",
 			"width": 140.0,
 			"inputs": {
-				"0": {},
-				"1": {},
-				"2": {
-					"enabled": false
+				"0": {
+					"enabled": true
 				},
+				"1": {
+					"enabled": true
+				},
+				"2": {},
 				"3": {
 					"name": "Scale",
-					"default_value": 1.0,
-					"enabled": false
+					"default_value": 1.0
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.009",
 							"index": 0
 						}
 					]
-				},
-				"1": {
-					"name": "Value",
-					"enabled": false
 				}
 			}
 		},
@@ -181,6 +187,7 @@
 			"outputs": {
 				"0": {
 					"name": "Fac",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.061",
@@ -190,6 +197,7 @@
 				},
 				"1": {
 					"name": "Input0",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.005",
@@ -199,12 +207,17 @@
 				},
 				"2": {
 					"name": "Input1",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.010",
 							"index": 0
 						}
 					]
+				},
+				"3": {
+					"name": "",
+					"enabled": true
 				}
 			}
 		}
@@ -229,5 +242,10 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "ef1d46480567372b1b64d94a13ebdf71"
+	"cached_hash": "c252b7b5d2c70e1749bedd1019100b2c",
+	"bpy_ver": [
+		3,
+		2,
+		0
+	]
 }

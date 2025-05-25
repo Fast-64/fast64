@@ -15,12 +15,14 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Vector"
+					"name": "Vector",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "X",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Clamp.001",
@@ -30,6 +32,7 @@
 				},
 				"1": {
 					"name": "Y",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Clamp.002",
@@ -39,6 +42,7 @@
 				},
 				"2": {
 					"name": "Z",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Clamp.003",
@@ -65,19 +69,23 @@
 			"inputs": {
 				"0": {
 					"name": "Value",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": true
 				},
 				"1": {
-					"name": "Min"
+					"name": "Min",
+					"enabled": true
 				},
 				"2": {
 					"name": "Max",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Result",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Combine XYZ",
@@ -101,18 +109,22 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "X"
+					"name": "X",
+					"enabled": true
 				},
 				"1": {
-					"name": "Y"
+					"name": "Y",
+					"enabled": true
 				},
 				"2": {
-					"name": "Z"
+					"name": "Z",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -139,19 +151,23 @@
 			"inputs": {
 				"0": {
 					"name": "Value",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": true
 				},
 				"1": {
-					"name": "Min"
+					"name": "Min",
+					"enabled": true
 				},
 				"2": {
 					"name": "Max",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Result",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Combine XYZ",
@@ -165,7 +181,7 @@
 			"bl_idname": "NodeGroupInput",
 			"location": [
 				-382.2785,
-				-0.0
+				0.0
 			],
 			"color": [
 				0.6079999804496765,
@@ -176,12 +192,17 @@
 			"outputs": {
 				"0": {
 					"name": "Vector",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Separate XYZ",
 							"index": 0
 						}
 					]
+				},
+				"1": {
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -189,7 +210,7 @@
 			"bl_idname": "NodeGroupOutput",
 			"location": [
 				372.2784,
-				-0.0
+				0.0
 			],
 			"color": [
 				0.6079999804496765,
@@ -200,10 +221,12 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Vector"
+					"name": "Vector",
+					"enabled": true
 				},
 				"1": {
-					"name": ""
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -224,19 +247,23 @@
 			"inputs": {
 				"0": {
 					"name": "Value",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": true
 				},
 				"1": {
-					"name": "Min"
+					"name": "Min",
+					"enabled": true
 				},
 				"2": {
 					"name": "Max",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Result",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Combine XYZ",
@@ -261,5 +288,10 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "5b7237c8df32fc0409cbd843d6247e71"
+	"cached_hash": "dcb5d82e84fa374c2d8c9ba0a04372d9",
+	"bpy_ver": [
+		3,
+		2,
+		0
+	]
 }

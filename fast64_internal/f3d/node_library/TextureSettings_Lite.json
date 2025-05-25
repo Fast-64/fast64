@@ -15,12 +15,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.004",
@@ -44,12 +46,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.004",
@@ -73,12 +77,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.004",
@@ -102,12 +108,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.004",
@@ -135,37 +143,47 @@
 			"width": 323.6924743652344,
 			"inputs": {
 				"0": {
-					"name": "Width"
+					"name": "Width",
+					"enabled": true
 				},
 				"1": {
-					"name": "Height"
+					"name": "Height",
+					"enabled": true
 				},
 				"2": {
-					"name": "X"
+					"name": "X",
+					"enabled": true
 				},
 				"3": {
-					"name": "Y"
+					"name": "Y",
+					"enabled": true
 				},
 				"4": {
 					"name": "S Clamp",
-					"default_value": 1
+					"default_value": 1,
+					"enabled": true
 				},
 				"5": {
-					"name": "S Mirror"
+					"name": "S Mirror",
+					"enabled": true
 				},
 				"6": {
-					"name": "T Clamp"
+					"name": "T Clamp",
+					"enabled": true
 				},
 				"7": {
-					"name": "T Mirror"
+					"name": "T Mirror",
+					"enabled": true
 				},
 				"8": {
-					"name": "Enable 3 Point"
+					"name": "Enable 3 Point",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "UV00",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -175,6 +193,7 @@
 				},
 				"1": {
 					"name": "UV01",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -184,6 +203,7 @@
 				},
 				"2": {
 					"name": "UV10",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -193,6 +213,7 @@
 				},
 				"3": {
 					"name": "UV11",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -202,6 +223,7 @@
 				},
 				"4": {
 					"name": "Lerp S",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -211,6 +233,7 @@
 				},
 				"5": {
 					"name": "Lerp T",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -235,19 +258,24 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "0_UV00"
+					"name": "0_UV00",
+					"enabled": true
 				},
 				"1": {
-					"name": "0_UV01"
+					"name": "0_UV01",
+					"enabled": true
 				},
 				"2": {
-					"name": "0_UV10"
+					"name": "0_UV10",
+					"enabled": true
 				},
 				"3": {
-					"name": "0_UV11"
+					"name": "0_UV11",
+					"enabled": true
 				},
 				"4": {
-					"name": "1_UV00"
+					"name": "1_UV00",
+					"enabled": true
 				},
 				"5": {
 					"name": "1_UV01",
@@ -255,31 +283,40 @@
 						12.19999885559082,
 						0.0,
 						0.0
-					]
+					],
+					"enabled": true
 				},
 				"6": {
-					"name": "1_UV10"
+					"name": "1_UV10",
+					"enabled": true
 				},
 				"7": {
-					"name": "1_UV11"
+					"name": "1_UV11",
+					"enabled": true
 				},
 				"8": {
-					"name": "3 Point"
+					"name": "3 Point",
+					"enabled": true
 				},
 				"9": {
-					"name": "0 Lerp S"
+					"name": "0 Lerp S",
+					"enabled": true
 				},
 				"10": {
-					"name": "0 Lerp T"
+					"name": "0 Lerp T",
+					"enabled": true
 				},
 				"11": {
-					"name": "1 Lerp S"
+					"name": "1 Lerp S",
+					"enabled": true
 				},
 				"12": {
-					"name": "1 Lerp T"
+					"name": "1 Lerp T",
+					"enabled": true
 				},
 				"13": {
-					"name": ""
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -297,12 +334,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.004",
@@ -326,12 +365,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.004",
@@ -355,12 +396,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.004",
@@ -384,12 +427,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.004",
@@ -413,12 +458,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.003",
@@ -442,12 +489,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.003",
@@ -471,12 +520,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.003",
@@ -500,12 +551,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.003",
@@ -529,12 +582,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.003",
@@ -558,12 +613,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.003",
@@ -587,12 +644,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.003",
@@ -616,12 +675,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.003",
@@ -645,12 +706,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.003",
@@ -674,12 +737,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -703,12 +768,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.005",
@@ -736,12 +803,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.002",
@@ -769,6 +838,7 @@
 			"width": 140.0,
 			"outputs": {
 				"0": {
+					"enabled": true,
 					"hide_value": true,
 					"links": [
 						{
@@ -778,6 +848,7 @@
 					]
 				},
 				"1": {
+					"enabled": true,
 					"hide_value": true,
 					"links": [
 						{
@@ -787,6 +858,7 @@
 					]
 				},
 				"2": {
+					"enabled": true,
 					"hide_value": true,
 					"links": [
 						{
@@ -796,6 +868,7 @@
 					]
 				},
 				"3": {
+					"enabled": true,
 					"hide_value": true,
 					"links": [
 						{
@@ -805,10 +878,12 @@
 					]
 				},
 				"4": {
+					"enabled": true,
 					"hide_value": true
 				},
 				"5": {
 					"name": "0 S TexSize",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.001",
@@ -818,6 +893,7 @@
 				},
 				"6": {
 					"name": "0 T TexSize",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute",
@@ -827,6 +903,7 @@
 				},
 				"7": {
 					"name": "1 S TexSize",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.015",
@@ -836,6 +913,7 @@
 				},
 				"8": {
 					"name": "1 T TexSize",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.016",
@@ -844,16 +922,84 @@
 					]
 				},
 				"9": {
+					"enabled": true,
 					"hide_value": true
+				},
+				"10": {
+					"name": "0 S Shift",
+					"enabled": true
+				},
+				"11": {
+					"name": "0 S Low",
+					"enabled": true
+				},
+				"12": {
+					"name": "0 S High",
+					"enabled": true
+				},
+				"13": {
+					"name": "0 S Mask",
+					"enabled": true
+				},
+				"14": {
+					"name": "0 T Shift",
+					"enabled": true
+				},
+				"15": {
+					"name": "0 T Low",
+					"enabled": true
+				},
+				"16": {
+					"name": "0 T High",
+					"enabled": true
+				},
+				"17": {
+					"name": "0 T Mask",
+					"enabled": true
 				},
 				"18": {
+					"enabled": true,
 					"hide_value": true
 				},
+				"19": {
+					"name": "1 S Shift",
+					"enabled": true
+				},
+				"20": {
+					"name": "1 S Low",
+					"enabled": true
+				},
+				"21": {
+					"name": "1 S High",
+					"enabled": true
+				},
+				"22": {
+					"name": "1 S Mask",
+					"enabled": true
+				},
+				"23": {
+					"name": "1 T Shift",
+					"enabled": true
+				},
+				"24": {
+					"name": "1 T Low",
+					"enabled": true
+				},
+				"25": {
+					"name": "1 T High",
+					"enabled": true
+				},
+				"26": {
+					"name": "1 T Mask",
+					"enabled": true
+				},
 				"27": {
+					"enabled": true,
 					"hide_value": true
 				},
 				"28": {
 					"name": "0 ClampX",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.035",
@@ -863,6 +1009,7 @@
 				},
 				"29": {
 					"name": "0 ClampY",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.036",
@@ -872,6 +1019,7 @@
 				},
 				"30": {
 					"name": "0 MirrorX",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.037",
@@ -881,6 +1029,7 @@
 				},
 				"31": {
 					"name": "0 MirrorY",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.034",
@@ -889,10 +1038,12 @@
 					]
 				},
 				"32": {
+					"enabled": true,
 					"hide_value": true
 				},
 				"33": {
 					"name": "1 ClampX",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.018",
@@ -902,6 +1053,7 @@
 				},
 				"34": {
 					"name": "1 ClampY",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.024",
@@ -911,6 +1063,7 @@
 				},
 				"35": {
 					"name": "1 MirrorX",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.019",
@@ -920,6 +1073,7 @@
 				},
 				"36": {
 					"name": "1 MirrorY",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.025",
@@ -928,16 +1082,21 @@
 					]
 				},
 				"37": {
+					"enabled": true,
 					"hide_value": true
 				},
 				"38": {
 					"name": "3 Point",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.009",
 							"index": 0
 						}
 					]
+				},
+				"39": {
+					"enabled": true
 				}
 			}
 		},
@@ -959,37 +1118,47 @@
 			"width": 320.1097717285156,
 			"inputs": {
 				"0": {
-					"name": "Width"
+					"name": "Width",
+					"enabled": true
 				},
 				"1": {
-					"name": "Height"
+					"name": "Height",
+					"enabled": true
 				},
 				"2": {
-					"name": "X"
+					"name": "X",
+					"enabled": true
 				},
 				"3": {
-					"name": "Y"
+					"name": "Y",
+					"enabled": true
 				},
 				"4": {
 					"name": "S Clamp",
-					"default_value": 1
+					"default_value": 1,
+					"enabled": true
 				},
 				"5": {
-					"name": "S Mirror"
+					"name": "S Mirror",
+					"enabled": true
 				},
 				"6": {
-					"name": "T Clamp"
+					"name": "T Clamp",
+					"enabled": true
 				},
 				"7": {
-					"name": "T Mirror"
+					"name": "T Mirror",
+					"enabled": true
 				},
 				"8": {
-					"name": "Enable 3 Point"
+					"name": "Enable 3 Point",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "UV00",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -999,6 +1168,7 @@
 				},
 				"1": {
 					"name": "UV01",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -1008,6 +1178,7 @@
 				},
 				"2": {
 					"name": "UV10",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -1017,6 +1188,7 @@
 				},
 				"3": {
 					"name": "UV11",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -1026,6 +1198,7 @@
 				},
 				"4": {
 					"name": "Lerp S",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -1035,6 +1208,7 @@
 				},
 				"5": {
 					"name": "Lerp T",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -1308,5 +1482,10 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "669d54b4b8cb7622d216354bffdc7491"
+	"cached_hash": "ec3f9a06b839198a2cfab8250b58953c",
+	"bpy_ver": [
+		3,
+		2,
+		0
+	]
 }

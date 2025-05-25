@@ -5,7 +5,7 @@
 			"bl_idname": "NodeGroupInput",
 			"location": [
 				-357.5402,
-				-0.0
+				0.0
 			],
 			"color": [
 				0.6079999804496765,
@@ -17,6 +17,7 @@
 				"0": {
 					"name": "Fac",
 					"default_value": 0.5,
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.004",
@@ -27,6 +28,7 @@
 				"1": {
 					"name": "Input0",
 					"default_value": 0.5,
+					"enabled": true,
 					"hide_value": true,
 					"links": [
 						{
@@ -42,6 +44,7 @@
 				"2": {
 					"name": "Input1",
 					"default_value": 0.5,
+					"enabled": true,
 					"hide_value": true,
 					"links": [
 						{
@@ -49,6 +52,10 @@
 							"index": 0
 						}
 					]
+				},
+				"3": {
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -67,18 +74,19 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
-				"2": {
-					"enabled": false
-				}
+				"2": {}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Math.004",
@@ -103,16 +111,21 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
-				"2": {}
+				"2": {
+					"enabled": true
+				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -137,10 +150,12 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Value"
+					"name": "Value",
+					"enabled": true
 				},
 				"1": {
-					"name": ""
+					"name": "",
+					"enabled": true
 				}
 			}
 		}
@@ -178,5 +193,10 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "ee34b2e6e66a6ab03448b90571e28fbd"
+	"cached_hash": "4fa79921d9fed377a50a433fe19e633b",
+	"bpy_ver": [
+		3,
+		2,
+		0
+	]
 }

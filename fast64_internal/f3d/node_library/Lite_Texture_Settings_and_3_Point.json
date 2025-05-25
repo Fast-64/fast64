@@ -51,12 +51,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.018",
@@ -80,12 +82,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.017",
@@ -109,12 +113,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Separate XYZ.002",
@@ -139,19 +145,23 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "X"
+					"name": "X",
+					"enabled": true
 				},
 				"1": {
-					"name": "Y"
+					"name": "Y",
+					"enabled": true
 				},
 				"2": {
 					"name": "Z",
+					"enabled": true,
 					"hide": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.025",
@@ -176,12 +186,14 @@
 			"width": 141.7603302001953,
 			"inputs": {
 				"0": {
-					"name": "Vector"
+					"name": "Vector",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "X",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Combine XYZ.003",
@@ -191,6 +203,7 @@
 				},
 				"1": {
 					"name": "Y",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Combine XYZ.002",
@@ -200,6 +213,7 @@
 				},
 				"2": {
 					"name": "Z",
+					"enabled": true,
 					"hide": true
 				}
 			}
@@ -219,19 +233,23 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "X"
+					"name": "X",
+					"enabled": true
 				},
 				"1": {
-					"name": "Y"
+					"name": "Y",
+					"enabled": true
 				},
 				"2": {
 					"name": "Z",
+					"enabled": true,
 					"hide": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.024",
@@ -255,12 +273,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -284,12 +304,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Separate XYZ.003",
@@ -317,12 +339,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -347,25 +371,32 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "UV00"
+					"name": "UV00",
+					"enabled": true
 				},
 				"1": {
-					"name": "UV01"
+					"name": "UV01",
+					"enabled": true
 				},
 				"2": {
-					"name": "UV10"
+					"name": "UV10",
+					"enabled": true
 				},
 				"3": {
-					"name": "UV11"
+					"name": "UV11",
+					"enabled": true
 				},
 				"4": {
-					"name": "Lerp S"
+					"name": "Lerp S",
+					"enabled": true
 				},
 				"5": {
-					"name": "Lerp T"
+					"name": "Lerp T",
+					"enabled": true
 				},
 				"6": {
-					"name": ""
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -383,12 +414,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -412,12 +445,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -441,12 +476,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -470,12 +507,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.023",
@@ -499,12 +538,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.022",
@@ -528,12 +569,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -558,12 +601,14 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Vector"
+					"name": "Vector",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "X",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Combine XYZ.002",
@@ -573,6 +618,7 @@
 				},
 				"1": {
 					"name": "Y",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Combine XYZ.003",
@@ -582,6 +628,7 @@
 				},
 				"2": {
 					"name": "Z",
+					"enabled": true,
 					"hide": true
 				}
 			}
@@ -600,12 +647,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.026",
@@ -633,12 +682,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.033",
@@ -662,12 +713,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.006",
@@ -691,12 +744,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.021",
@@ -720,12 +775,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.010",
@@ -749,12 +806,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.010",
@@ -778,12 +837,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.010",
@@ -807,12 +868,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.010",
@@ -840,12 +903,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.010",
@@ -873,12 +938,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.057",
@@ -902,12 +969,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.054",
@@ -931,12 +1000,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.008",
@@ -960,12 +1031,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.007",
@@ -989,12 +1062,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.008",
@@ -1022,12 +1097,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.037",
@@ -1051,12 +1128,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.062",
@@ -1080,12 +1159,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.007",
@@ -1118,34 +1199,43 @@
 			"width": 195.6847381591797,
 			"inputs": {
 				"0": {
-					"name": "X"
+					"name": "X",
+					"enabled": true
 				},
 				"1": {
 					"name": "S Clamp",
-					"default_value": 1
+					"default_value": 1,
+					"enabled": true
 				},
 				"2": {
-					"name": "S Mirror"
+					"name": "S Mirror",
+					"enabled": true
 				},
 				"3": {
-					"name": "Width"
+					"name": "Width",
+					"enabled": true
 				},
 				"4": {
-					"name": "Y"
+					"name": "Y",
+					"enabled": true
 				},
 				"5": {
-					"name": "T Clamp"
+					"name": "T Clamp",
+					"enabled": true
 				},
 				"6": {
-					"name": "T Mirror"
+					"name": "T Mirror",
+					"enabled": true
 				},
 				"7": {
-					"name": "Height"
+					"name": "Height",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "UV",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.063",
@@ -1169,12 +1259,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.045",
@@ -1198,12 +1290,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.044",
@@ -1227,12 +1321,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.020",
@@ -1256,12 +1352,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.019",
@@ -1285,12 +1383,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.002",
@@ -1318,12 +1418,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.002",
@@ -1351,12 +1453,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.002",
@@ -1384,12 +1488,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.002",
@@ -1417,12 +1523,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.006",
@@ -1450,12 +1558,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.006",
@@ -1484,6 +1594,7 @@
 			"outputs": {
 				"0": {
 					"name": "Width",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.010",
@@ -1493,6 +1604,7 @@
 				},
 				"1": {
 					"name": "Height",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.009",
@@ -1502,6 +1614,7 @@
 				},
 				"2": {
 					"name": "X",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.014",
@@ -1511,6 +1624,7 @@
 				},
 				"3": {
 					"name": "Y",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.013",
@@ -1521,6 +1635,7 @@
 				"4": {
 					"name": "S Clamp",
 					"default_value": 1,
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.008",
@@ -1530,6 +1645,7 @@
 				},
 				"5": {
 					"name": "S Mirror",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.007",
@@ -1539,6 +1655,7 @@
 				},
 				"6": {
 					"name": "T Clamp",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.002",
@@ -1548,6 +1665,7 @@
 				},
 				"7": {
 					"name": "T Mirror",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.001",
@@ -1557,12 +1675,17 @@
 				},
 				"8": {
 					"name": "Enable 3 Point",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute",
 							"index": 0
 						}
 					]
+				},
+				"9": {
+					"name": "",
+					"enabled": true
 				}
 			}
 		},
@@ -1580,12 +1703,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.016",
@@ -1613,12 +1738,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.005",
@@ -1642,12 +1769,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.006",
@@ -1671,12 +1800,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.015",
@@ -1704,12 +1835,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.006",
@@ -1733,12 +1866,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.002",
@@ -1762,12 +1897,14 @@
 			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input"
+					"name": "Input",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Group.002",
@@ -1796,30 +1933,38 @@
 			"width": 160.1077423095703,
 			"inputs": {
 				"0": {
-					"name": "Width"
+					"name": "Width",
+					"enabled": true
 				},
 				"1": {
-					"name": "Height"
+					"name": "Height",
+					"enabled": true
 				},
 				"2": {
-					"name": "X"
+					"name": "X",
+					"enabled": true
 				},
 				"3": {
-					"name": "Y"
+					"name": "Y",
+					"enabled": true
 				},
 				"4": {
-					"name": "Enable 3 Point"
+					"name": "Enable 3 Point",
+					"enabled": true
 				},
 				"5": {
-					"name": "S Shift"
+					"name": "S Shift",
+					"enabled": true
 				},
 				"6": {
-					"name": "T Shift"
+					"name": "T Shift",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "X",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.061",
@@ -1829,6 +1974,7 @@
 				},
 				"1": {
 					"name": "Y",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.060",
@@ -1838,6 +1984,7 @@
 				},
 				"2": {
 					"name": "Shifted X",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.038",
@@ -1847,6 +1994,7 @@
 				},
 				"3": {
 					"name": "Shifted Y",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.043",
@@ -1876,20 +2024,24 @@
 			"inputs": {
 				"0": {
 					"name": "Value",
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
 					"name": "Length",
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"2": {
 					"name": "IsT",
-					"default_value": 1
+					"default_value": 1,
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.035",
@@ -1919,19 +2071,23 @@
 			"inputs": {
 				"0": {
 					"name": "Value",
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"1": {
 					"name": "Length",
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": true
 				},
 				"2": {
-					"name": "IsT"
+					"name": "IsT",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.036",
@@ -1960,34 +2116,43 @@
 			"width": 195.6847381591797,
 			"inputs": {
 				"0": {
-					"name": "X"
+					"name": "X",
+					"enabled": true
 				},
 				"1": {
 					"name": "S Clamp",
-					"default_value": 1
+					"default_value": 1,
+					"enabled": true
 				},
 				"2": {
-					"name": "S Mirror"
+					"name": "S Mirror",
+					"enabled": true
 				},
 				"3": {
-					"name": "Width"
+					"name": "Width",
+					"enabled": true
 				},
 				"4": {
-					"name": "Y"
+					"name": "Y",
+					"enabled": true
 				},
 				"5": {
-					"name": "T Clamp"
+					"name": "T Clamp",
+					"enabled": true
 				},
 				"6": {
-					"name": "T Mirror"
+					"name": "T Mirror",
+					"enabled": true
 				},
 				"7": {
-					"name": "Height"
+					"name": "Height",
+					"enabled": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "UV",
+					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.027",
@@ -2077,5 +2242,10 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "70bdbd2acda158b1087a1a4a353ae6ff"
+	"cached_hash": "394282a4f9e9b096bd61771550ff8280",
+	"bpy_ver": [
+		3,
+		2,
+		0
+	]
 }
