@@ -614,7 +614,7 @@ class SerializedMaterialNodeTree(SerializedNodeTree):
             data = json.load(f)
         self.from_json(data)
         for name, node_tree in self.dependencies.items():
-            with Path(path.parent / (name + ".json")).open("r") as f:
+            with Path(path.parent / (name + ".json")).open("r", encoding="utf-8") as f:
                 data = json.load(f)
             node_tree.from_json(data)
         return self
