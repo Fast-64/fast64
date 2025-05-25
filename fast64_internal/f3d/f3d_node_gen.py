@@ -1012,13 +1012,13 @@ def create_f3d_nodes_in_material(material: Material, errors: ErrorState = None):
 
     errors = ErrorState() or errors
     assert is_f3d_mat(material), f"Material {material.name} is not an up to date f3d material"
+    material.use_nodes = True
     new_nodes = create_nodes(material.node_tree, SERIALIZED_NODE_LIBRARY, errors)
     set_values_and_create_links(material.node_tree, SERIALIZED_NODE_LIBRARY, new_nodes, errors)
     createScenePropertiesForMaterial(material)
     material.f3d_update_flag = False
     with bpy.context.temp_override(material=material):
         update_all_node_values(material, bpy.context)
-    material.use_nodes = True
 
 
 def update_f3d_materials(force=False):
