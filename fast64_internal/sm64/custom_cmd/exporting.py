@@ -153,7 +153,7 @@ class CustomCmd(BaseDisplayListNode):
                 rot_type = data["rot_type"]
                 rot = flatten(data.get(rot_type.lower()))
                 if round_to_sm64 and rot_type == "EULER":
-                    yield from run_eval((to_s16((x) % 360.0 / 360.0 * (2**16)) for x in rot), 16)
+                    yield from run_eval((to_s16(round(x)) for x in rot), 16)
                 else:
                     yield from run_eval(rot, 32)
             case "DL":
