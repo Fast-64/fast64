@@ -17,6 +17,7 @@ from bpy.types import (
     ColorMapping,
     TexMapping,
     Node,
+    NodeGroupOutput,
     Material,
 )
 from bpy.utils import register_class, unregister_class
@@ -273,68 +274,31 @@ def createOrUpdateSceneProperties():
 
     # Create outputs
     if bpy.app.version >= (4, 0, 0):
-        tree_interface = new_group.interface
 
-        _nodeFogEnable: NodeSocketFloat = tree_interface.new_socket(
-            "FogEnable", socket_type="NodeSocketFloat", in_out="OUTPUT"
-        )
-        _nodeFogColor: NodeSocketColor = tree_interface.new_socket(
-            "FogColor", socket_type="NodeSocketColor", in_out="OUTPUT"
-        )
-        _nodeF3D_NearClip: NodeSocketFloat = tree_interface.new_socket(
-            "F3D_NearClip", socket_type="NodeSocketFloat", in_out="OUTPUT"
-        )
-        _nodeF3D_FarClip: NodeSocketFloat = tree_interface.new_socket(
-            "F3D_FarClip", socket_type="NodeSocketFloat", in_out="OUTPUT"
-        )
-        _nodeBlender_Game_Scale: NodeSocketFloat = tree_interface.new_socket(
-            "Blender_Game_Scale", socket_type="NodeSocketFloat", in_out="OUTPUT"
-        )
-        _nodeFogNear: NodeSocketFloat = tree_interface.new_socket(
-            "FogNear", socket_type="NodeSocketFloat", in_out="OUTPUT"
-        )
-        _nodeFogFar: NodeSocketFloat = tree_interface.new_socket(
-            "FogFar", socket_type="NodeSocketFloat", in_out="OUTPUT"
-        )
-
-        _nodeAmbientColor: NodeSocketColor = tree_interface.new_socket(
-            "AmbientColor", socket_type="NodeSocketColor", in_out="OUTPUT"
-        )
-        _nodeLight0Color: NodeSocketColor = tree_interface.new_socket(
-            "Light0Color", socket_type="NodeSocketColor", in_out="OUTPUT"
-        )
-        _nodeLight0Dir: NodeSocketVector = tree_interface.new_socket(
-            "Light0Dir", socket_type="NodeSocketVector", in_out="OUTPUT"
-        )
-        _nodeLight0Size: NodeSocketFloat = tree_interface.new_socket(
-            "Light0Size", socket_type="NodeSocketFloat", in_out="OUTPUT"
-        )
-        _nodeLight1Color: NodeSocketColor = tree_interface.new_socket(
-            "Light1Color", socket_type="NodeSocketColor", in_out="OUTPUT"
-        )
-        _nodeLight1Dir: NodeSocketVector = tree_interface.new_socket(
-            "Light1Dir", socket_type="NodeSocketVector", in_out="OUTPUT"
-        )
-        _nodeLight1Size: NodeSocketFloat = tree_interface.new_socket(
-            "Light1Size", socket_type="NodeSocketFloat", in_out="OUTPUT"
-        )
+        def add_new_socket(socket_type: str, name: str, in_out: str = "OUTPUT"):
+            socket_type = convert_bl_idname_from_3_2(socket_type, {})
+            return new_group.interface.new_socket(name, socket_type=socket_type, in_out=in_out)
 
     else:
-        _nodeFogEnable: NodeSocketInt = new_group.outputs.new("NodeSocketInt", "FogEnable")
-        _nodeFogColor: NodeSocketColor = new_group.outputs.new("NodeSocketColor", "FogColor")
-        _nodeF3D_NearClip: NodeSocketFloat = new_group.outputs.new("NodeSocketFloat", "F3D_NearClip")
-        _nodeF3D_FarClip: NodeSocketFloat = new_group.outputs.new("NodeSocketFloat", "F3D_FarClip")
-        _nodeBlender_Game_Scale: NodeSocketFloat = new_group.outputs.new("NodeSocketFloat", "Blender_Game_Scale")
-        _nodeFogNear: NodeSocketInt = new_group.outputs.new("NodeSocketInt", "FogNear")
-        _nodeFogFar: NodeSocketInt = new_group.outputs.new("NodeSocketInt", "FogFar")
 
-        _nodeAmbientColor: NodeSocketColor = new_group.outputs.new("NodeSocketColor", "AmbientColor")
-        _nodeLight0Color: NodeSocketColor = new_group.outputs.new("NodeSocketColor", "Light0Color")
-        _nodeLight0Dir: NodeSocketVectorDirection = new_group.outputs.new("NodeSocketVectorDirection", "Light0Dir")
-        _nodeLight0Size: NodeSocketInt = new_group.outputs.new("NodeSocketInt", "Light0Size")
-        _nodeLight1Color: NodeSocketColor = new_group.outputs.new("NodeSocketColor", "Light1Color")
-        _nodeLight1Dir: NodeSocketVectorDirection = new_group.outputs.new("NodeSocketVectorDirection", "Light1Dir")
-        _nodeLight1Size: NodeSocketInt = new_group.outputs.new("NodeSocketInt", "Light1Size")
+        def add_new_socket(socket_type: str, name: str, in_out: str = "OUTPUT"):
+            return getattr(new_group, in_out.lower() + "s").new(socket_type, name)
+
+    _nodeFogEnable = add_new_socket("NodeSocketInt", "FogEnable")
+    _nodeFogColor: add_new_socket("NodeSocketColor", "FogColor")
+    _nodeF3D_NearClip: add_new_socket("NodeSocketFloat", "F3D_NearClip")
+    _nodeF3D_FarClip: add_new_socket("NodeSocketFloat", "F3D_FarClip")
+    _nodeBlender_Game_Scale: add_new_socket("NodeSocketFloat", "Blender_Game_Scale")
+    _nodeFogNear: add_new_socket("NodeSocketInt", "FogNear")
+    _nodeFogFar: add_new_socket("NodeSocketInt", "FogFar")
+
+    _nodeAmbientColor: add_new_socket("NodeSocketColor", "AmbientColor")
+    _nodeLight0Color: add_new_socket("NodeSocketColor", "Light0Color")
+    _nodeLight0Dir: add_new_socket("NodeSocketVectorDirection", "Light0Dir")
+    _nodeLight0Size: add_new_socket("NodeSocketInt", "Light0Size")
+    _nodeLight1Color: add_new_socket("NodeSocketColor", "Light1Color")
+    _nodeLight1Dir: add_new_socket("NodeSocketVectorDirection", "Light1Dir")
+    _nodeLight1Size: add_new_socket("NodeSocketInt", "Light1Size")
 
     # Set outputs from render settings
     sceneOutputs: NodeGroupOutput = new_group.nodes["Group Output"]
