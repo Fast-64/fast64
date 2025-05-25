@@ -117,6 +117,8 @@ GLOBAL_DEFAULTS = {
     "use_clamp": False,
     "normalize": True,
     "blend_type": "MIX",
+    "noise_type": "FBM",
+    "mode": "RGB",
     "enabled": False,  # this may seem like an odd default, but in versions with added inputs those would be set to False
     # unused in shader nodes
     "hide_in_modifier": False,
@@ -132,13 +134,12 @@ class DefaultDefinition:
 
 
 DEFAULTS = [
-    DefaultDefinition(["NodeSocketFloat"], {"default_value": 0.0}),
+    DefaultDefinition(["NodeSocketFloat", "NodeSocketFloatFactor"], {"default_value": 0.0}),
     DefaultDefinition(["NodeSocketInt"], {"default_value": 0}),
-    DefaultDefinition(
-        ["NodeSocketVector", "NodeSocketVectorDirection", "NodeSocketRotation"], {"default_value": (0.0, 0.0, 0.0)}
-    ),
+    DefaultDefinition(["NodeSocketVector", "NodeSocketRotation"], {"default_value": (0.0, 0.0, 0.0)}),
     DefaultDefinition(["NodeSocketColor"], {"default_value": (0.0, 0.0, 0.0, 0.0)}),
     DefaultDefinition(["ShaderNodeMixRGB"], {"data_type": "RGBA"}),
+    DefaultDefinition(["NodeSocketVectorDirection"], {"subtype": "DIRECTION", "default_value": (0.0, 0.0, 0.0)}),
 ]
 DEFAULTS = {name: definition.defaults for definition in DEFAULTS for name in definition.names}
 
@@ -307,6 +308,8 @@ def convert_bl_idname_to_3_2(owner: NodeSocket | Node):
             return "NodeSocketVectorDirection"
         if bl_idname == "ShaderNodeMix" and getattr(owner, "data_type", "") == "RGBA":
             return "ShaderNodeMixRGB"
+        if bl_idname == "ShaderNodeCombineColor" and getattr(owner, "mode", "") == "RGB":
+            return "ShaderNodeCombineRGB"
     return bl_idname
 
 
@@ -322,6 +325,9 @@ def convert_bl_idname_from_3_2(bl_idname: str, data: dict):
         elif bl_idname == "ShaderNodeMixRGB":
             data["data_type"] = "RGBA"
             return "ShaderNodeMix"
+        elif bl_idname == "ShaderNodeCombineRGB":
+            data["mode"] = "RGB"
+            return "ShaderNodeCombineColor"
         elif bl_idname == "NodeSocketInt":
             return "NodeSocketFloat"
     return bl_idname
@@ -367,8 +373,6 @@ def get_attributes(owner: object, excludes=None):
             serialized_value = {"serialized_type": "NodeTree", "name": value.name}
         elif isinstance(value, Node):
             serialized_value = {"serialized_type": "Node", "name": value.name}
-        elif isinstance(value, int) and not isinstance(value, bool):
-            serialized_value = int(value)
         if attr not in defaults or serialized_value != defaults[attr]:
             data[attr] = serialized_value
     return dict(sorted(data.items()))
