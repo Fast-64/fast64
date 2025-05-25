@@ -8,6 +8,7 @@ from bl_operators.presets import AddPresetBase
 
 
 def upgrade_f3d_version_all_meshes() -> None:
+    generate_f3d_node_groups()
     objs = [obj for obj in bpy.data.objects if obj.type == "MESH"]
 
     # Remove original v2 node groups so that they can be recreated.
@@ -145,11 +146,9 @@ def convertF3DtoNewVersion(obj: bpy.types.Object | bpy.types.Bone, index: int, m
         # Convert before node tree changes, as old materials store some values in the actual nodes
         if material.mat_ver <= 3:
             convertToNewMat(material)
-
-        create_f3d_nodes_in_material(material)
-
-        material.is_f3d, material.f3d_update_flag = True, False
+        material.is_f3d = True
         material.mat_ver = F3D_MAT_CUR_VERSION
+        create_f3d_nodes_in_material(material)
 
     except Exception as exc:
         print("Failed to upgrade", material.name)
@@ -269,7 +268,6 @@ class MatUpdateConvert(bpy.types.Operator):
         try:
             if context.mode != "OBJECT":
                 raise PluginError("Operator can only be used in object mode.")
-            generate_f3d_node_groups()
             if self.update_conv_all:
                 upgrade_f3d_version_all_meshes()
             else:
@@ -277,7 +275,7 @@ class MatUpdateConvert(bpy.types.Operator):
                     raise PluginError("Mesh not selected.")
                 elif type(context.selected_objects[0].data) is not bpy.types.Mesh:
                     raise PluginError("Mesh not selected.")
-
+                generate_f3d_node_groups()
                 obj = context.selected_objects[0]
                 upgradeF3DVersionOneObject(obj, {})
 

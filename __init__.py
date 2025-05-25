@@ -39,15 +39,15 @@ from .fast64_internal.f3d.f3d_writer import f3d_writer_register, f3d_writer_unre
 from .fast64_internal.f3d.f3d_parser import f3d_parser_register, f3d_parser_unregister
 from .fast64_internal.f3d.flipbook import flipbook_register, flipbook_unregister
 from .fast64_internal.f3d.op_largetexture import op_largetexture_register, op_largetexture_unregister, ui_oplargetexture
-from .fast64_internal.f3d.f3d_node_gen import f3d_node_gen_register, f3d_node_gen_unregister
+from .fast64_internal.f3d.f3d_node_gen import f3d_node_gen_register, f3d_node_gen_unregister, update_f3d_materials
 
 from .fast64_internal.f3d_material_converter import (
     MatUpdateConvert,
-    upgrade_f3d_version_all_meshes,
     bsdf_conv_register,
     bsdf_conv_unregister,
     bsdf_conv_panel_regsiter,
     bsdf_conv_panel_unregsiter,
+    upgrade_f3d_version_all_meshes,
 )
 
 from .fast64_internal.render_settings import (
@@ -376,7 +376,7 @@ def after_load(_a, _b):
     if any(mat.is_f3d for mat in bpy.data.materials):
         check_or_ask_color_management(bpy.context)
         if not settings.internal_fixed_4_2 and bpy.app.version >= (4, 2, 0):
-            upgrade_f3d_version_all_meshes()
+            update_f3d_materials()
     if bpy.app.version >= (4, 2, 0):
         settings.internal_fixed_4_2 = True
     upgrade_changed_props()
