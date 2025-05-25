@@ -28,7 +28,7 @@ from ..utility import PluginError, to_valid_file_name
 from ..operators import OperatorBase
 
 # Enable this to show the gather operator, this is a development feature
-SHOW_GATHER_OPERATOR = True
+SHOW_GATHER_OPERATOR = False
 ALWAYS_RELOAD = False
 
 SERIALIZED_NODE_LIBRARY_PATH = Path(__file__).parent / "node_library" / "main.json"
@@ -333,16 +333,31 @@ def convert_bl_idname_from_3_2(bl_idname: str, data: dict):
     return bl_idname
 
 
-def convert_inp_i_to_3_2(i: int, node: Node):
-    if node.bl_idname == "ShaderNodeMix" and getattr(node, "data_type", "") == "RGBA" and i >= 6 and i <= 7:
-        return i - 5
+def convert_inputs_to_3_2(node: Node, inputs: list):
+    inputs = list(inputs)
+    if node.bl_idname == "ShaderNodeMix" and getattr(node, "data_type", "") == "RGBA":
+        return inputs[0:1] + inputs[6:8]
+    return inputs
+
+
+def convert_outputs_to_3_2(node: Node, outputs: list):
+    outputs = list(outputs)
+    if node.bl_idname == "ShaderNodeMix" and getattr(node, "data_type", "") == "RGBA":
+        return outputs[2:3]
+    return outputs
+
+
+def convert_in_i_from_3_2(i: int, serialized_node: "SerializedNode"):
+    if bpy.app.version >= (4, 0, 0):
+        if serialized_node.bl_idname == "ShaderNodeMixRGB" and i >= 1 and i <= 2:
+            return i + 5
     return i
 
 
 def convert_out_i_from_3_2(i: int, serialized_node: "SerializedNode"):
     if bpy.app.version >= (4, 0, 0):
-        if serialized_node.bl_idname == "ShaderNodeMixRGB" and i >= 1 and i <= 2:
-            return i + 5
+        if serialized_node.bl_idname == "ShaderNodeMixRGB" and i == 0:
+            return 2
     return i
 
 
@@ -551,16 +566,18 @@ class SerializedNodeTree:
             )
             self.nodes[node.name] = serialized_node
         for serialized_node, node in zip(self.nodes.values(), node_tree.nodes):
-            for i, inp in enumerate(node.inputs):
+            inputs = convert_inputs_to_3_2(node, node.inputs)
+            for i, inp in enumerate(inputs):
                 name = None
-                if not any(other for other in node.inputs if other != inp and other.name == inp.name):
+                if not any(other for other in inputs if other != inp and other.name == inp.name):
                     name = inp.name
-                serialized_node.inputs[convert_inp_i_to_3_2(i, node)] = SerializedInputValue(
+                serialized_node.inputs[i] = SerializedInputValue(
                     name, get_attributes(inp, EXCLUDE_FROM_GROUP_INPUT_OUTPUT)
                 )
-            for i, out in enumerate(node.outputs):
+            outputs = convert_outputs_to_3_2(node, node.outputs)
+            for i, out in enumerate(outputs):
                 name = None
-                if not any(other for other in node.outputs if other != out and other.name == out.name):
+                if not any(other for other in outputs if other != out and other.name == out.name):
                     name = out.name
                 serialized_node.outputs[i] = serialized_out = SerializedOutputValue(
                     name, get_attributes(out, EXCLUDE_FROM_GROUP_INPUT_OUTPUT)
@@ -568,19 +585,12 @@ class SerializedNodeTree:
                 link: NodeLink
                 for link in out.links:
                     name = None
+                    inputs = convert_inputs_to_3_2(link.to_node, link.to_node.inputs)
                     if not any(
-                        other
-                        for other in link.to_node.inputs
-                        if other == link.to_socket and other.name == link.to_socket.name
+                        other for other in inputs if other == link.to_socket and other.name == link.to_socket.name
                     ):
                         name = link.to_socket.name
-                    serialized_out.links.append(
-                        SerializedLink(
-                            link.to_node.name,
-                            name,
-                            convert_inp_i_to_3_2(list(link.to_node.inputs).index(link.to_socket), link.to_node),
-                        )
-                    )
+                    serialized_out.links.append(SerializedLink(link.to_node.name, name, inputs.index(link.to_socket)))
         return self
 
 
@@ -706,20 +716,15 @@ def set_node_prop(prop: object, attr: str, value: object, nodes, errors: ErrorSt
             raise ValueError(f"Unknown serialized type {value['serialized_type']}")
         return
     existing_value = getattr(prop, attr, None)
-    as_list = value if isinstance(value, list) else [value]
-    if (
-        hasattr(existing_value, "__iter__")
-        and not isinstance(existing_value, str)
-        and len(existing_value) != len(as_list)
-    ):
-        new_value = list(existing_value)
-        for i, elem in enumerate(as_list):
-            new_value[i] = elem
-        value = new_value
     try:
         setattr(prop, attr, value)
     except Exception as exc:
-        print_with_exc(errors.copy(f'Failed to set "{attr}" to "{value}"'), exc)
+        print_with_exc(
+            errors.copy(
+                f'Failed to set "{attr}" ({existing_value}, {type(existing_value)}) to "{value}" ({type(value)})'
+            ),
+            exc,
+        )
 
 
 def set_attrs(owner: object, attrs: dict[str, object], nodes: dict[str, Node], excludes: set[str], errors: ErrorState):
@@ -775,13 +780,13 @@ def set_values_and_create_links(
     for serialized_node, node in zip(serialized_node_tree.nodes.values(), new_nodes):
         for i, serialized_inp in serialized_node.inputs.items():
             name = get_name(i, serialized_inp)
-            cur_errors = errors.copy(f'Failed to set values for input "{name}" of node "{node.label}"')
+            cur_errors = errors.copy(f'Failed to set values for input "{name}" of node "{node.label or node.name}"')
             try:
-                inp = try_name_then_index(node.inputs, serialized_inp.name, convert_out_i_from_3_2(i, serialized_node))
+                inp = try_name_then_index(node.inputs, serialized_inp.name, convert_in_i_from_3_2(i, serialized_node))
                 if inp is None:
                     raise IndexError("Socket not found")
                 cur_errors = errors.copy(
-                    f'Failed to set values for input "{inp.name}" (serialized has "{name}") of node "{node.label}"'
+                    f'Failed to set values for input "{inp.name}" (serialized has "{name}") of node "{node.label or node.name}"'
                 )
                 set_attrs(inp, serialized_inp.data, nodes, EXCLUDE_FROM_GROUP_INPUT_OUTPUT, cur_errors)
             except Exception as exc:
@@ -792,7 +797,7 @@ def set_values_and_create_links(
                 f'Failed to set values and links for output "{name}" of node "{node.label or node.name}"'
             )
             try:
-                out = try_name_then_index(node.outputs, serialized_out.name, i)
+                out = try_name_then_index(node.outputs, serialized_out.name, convert_out_i_from_3_2(i, serialized_node))
                 if out is None:
                     raise IndexError("Socket not found")
                 cur_errors = errors.copy(
@@ -815,7 +820,7 @@ def set_values_and_create_links(
                         link = try_name_then_index(
                             nodes[serialized_link.node].inputs,
                             serialized_link.name,
-                            convert_out_i_from_3_2(serialized_link.index, serialized_target_node),
+                            convert_in_i_from_3_2(serialized_link.index, serialized_target_node),
                         )
                         if link is None:
                             raise IndexError("Socket not found")
