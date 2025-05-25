@@ -60,7 +60,8 @@ sm64BoneUp = Vector([1, 0, 0])
 
 transform_mtx_blender_to_n64 = lambda: Matrix(((1, 0, 0, 0), (0, 0, 1, 0), (0, -1, 0, 0), (0, 0, 0, 1)))
 
-yUpToZUp = mathutils.Quaternion((1, 0, 0), math.radians(90.0)).to_matrix().to_4x4()
+y_up_to_z_up = mathutils.Quaternion((1, 0, 0), math.radians(90.0))
+yUpToZUp = y_up_to_z_up.to_matrix().to_4x4()
 
 axis_enums = [
     ("X", "X", "X"),

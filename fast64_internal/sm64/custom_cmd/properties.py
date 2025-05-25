@@ -20,6 +20,8 @@ from bpy.types import Object, Bone, UILayout, Context, PropertyGroup
 from ...utility import (
     Matrix4x4Property,
     PluginError,
+    y_up_to_z_up,
+    yUpToZUp,
     draw_and_check_tab,
     get_first_set_prop,
     multilineLabel,
@@ -270,6 +272,9 @@ class SM64_CustomArgProperties(PropertyGroup):
     )
     translation_scale: FloatVectorProperty(name="Translation", size=3, default=(0.0, 0.0, 0.0), subtype="XYZ")
     euler: FloatVectorProperty(name="Rotation", size=3, default=(0.0, 0.0, 0.0), subtype="EULER")
+    order: EnumProperty(
+        items=[("XYZ", "XYZ", "XYZ"), ("XZY", "XZY", "XZY"), ("YXZ", "YXZ", "YXZ"), ("YZX", "YZX", "YZX")]
+    )
     quaternion: FloatVectorProperty(name="Quaternion", size=4, default=(1.0, 0.0, 0.0, 0.0), subtype="QUATERNION")
     axis_angle: FloatVectorProperty(name="Axis Angle", size=4, default=((1.0), 0.0, 0.0, 0.0), subtype="AXISANGLE")
     matrix: PointerProperty(type=Matrix4x4Property)
@@ -305,6 +310,10 @@ class SM64_CustomArgProperties(PropertyGroup):
     @property
     def can_round_to_sm64(self):
         return self.arg_type in {"TRANSLATION", "COLOR"} or (self.arg_type == "ROTATION" and self.rot_type == "EULER")
+
+    @property
+    def has_order(self):
+        return self.arg_type in {"TRANSLATION", "SCALE"} or (self.arg_type == "ROTATION" and self.rot_type == "EULER")
 
     def show_eval_expression(self, custom_cmd: "SM64_CustomCmdProperties", is_binary: bool):
         if is_binary:
@@ -369,25 +378,39 @@ class SM64_CustomArgProperties(PropertyGroup):
                         @ rot.to_matrix().to_4x4()
                         @ mathutils.Matrix.Diagonal(scale).to_4x4()
                     )
-                return tuple(tuple(y for y in x) for x in matrix)
+                return tuple(tuple(y for y in x) for x in yUpToZUp @ matrix)
             case "TRANSLATION":
                 return tuple(
-                    mathutils.Vector(matrix.to_translation() if inherit else self.translation_scale) * blender_scale
+                    y_up_to_z_up
+                    @ getattr(
+                        matrix.to_translation()
+                        if inherit
+                        else mathutils.Vector(self.translation_scale * blender_scale),
+                        self.order.lower(),
+                    )
                 )
             case "ROTATION":
                 match self.rot_type:
                     case "EULER":
-                        rotation = matrix.to_euler("XYZ") if inherit else mathutils.Euler(self.euler)
-                        return tuple(math.degrees(x) for x in rotation)
+                        quat = (matrix if inherit else mathutils.Euler(self.euler)).to_quaternion()
+                        euler = (y_up_to_z_up @ quat).to_euler(self.order)
+                        return tuple(math.degrees(x) for x in euler)
                     case "QUATERNION":
-                        return tuple(matrix.to_quaternion() if inherit else self.quaternion)
+                        return tuple(y_up_to_z_up @ (matrix.to_quaternion() if inherit else self.quaternion))
                     case "AXIS_ANGLE":
-                        axis, angle = self.axis_angle[:3], self.axis_angle[3]
-                        if inherit:
-                            axis, angle = matrix.to_quaternion().to_axis_angle()
+                        quat = y_up_to_z_up @ (
+                            matrix.to_quaternion()
+                            if inherit
+                            else mathutils.Quaternion(self.axis_angle[:3], self.axis_angle[3])
+                        )
+                        axis, angle = quat.to_axis_angle()
                         return tuple((tuple(axis), math.degrees(angle)))
             case "SCALE":
-                return tuple(matrix.to_scale() if inherit else self.translation_scale)
+                return tuple(
+                    getattr(
+                        matrix.to_scale() if inherit else mathutils.Vector(self.translation_scale), self.order.lower()
+                    )
+                )
 
     def to_dict(
         self,
@@ -417,6 +440,8 @@ class SM64_CustomArgProperties(PropertyGroup):
             data["seg_addr"] = self.seg_addr
         if self.can_round_to_sm64:
             data["round_to_sm64"] = self.round_to_sm64
+        if self.has_order:
+            data["order"] = self.order
         match self.arg_type:
             case "NUMBER":
                 number_data, number_defaults = self.number.to_dict(conf_type)
@@ -460,6 +485,7 @@ class SM64_CustomArgProperties(PropertyGroup):
         self.apply_scale = data.get("apply_scale", True)
         self.round_to_sm64 = data.get("round_to_sm64", False)
         self.rot_type = data.get("rot_type", "EULER")
+        self.order = data.get("order", "XYZ")
         self.enum_options.clear()
         for option in data.get("enum_options", []):
             self.enum_options.add()
@@ -495,26 +521,22 @@ class SM64_CustomArgProperties(PropertyGroup):
             previous_arg_names.add(name)
             return ", ".join(toAlnum(name + arg).lower() for arg in args)
 
-        if self.arg_type == "ROTATION":
+        if self.has_order:
+            return add_name(tuple(f"_{x}" for x in self.order.lower()))
+        elif self.arg_type == "ROTATION":
             return add_name(
-                {
-                    "EULER": ("_x", "_y", "_z"),
-                    "QUATERNION": ("_w", "_x", "_y", "_z"),
-                    "AXIS_ANGLE": ("_x", "_y", "_z", "_a"),
-                }[self.rot_type]
+                {"QUATERNION": ("_w", "_x", "_y", "_z"), "AXIS_ANGLE": ("_x", "_y", "_z", "_a")}[self.rot_type]
             )
 
         match self.arg_type:
             case "MATRIX":
-                return add_name([f"_{x}_{y}" for x in range(4) for y in range(4)])
-            case "TRANSLATION" | "SCALE":
-                return add_name(["_x", "_y", "_z"])
+                return add_name(tuple(f"_{x}_{y}" for x in range(4) for y in range(4)))
             case "COLOR":
                 if self.round_to_sm64:
-                    return add_name([""])
-                return add_name(["_r", "_g", "_b", "_a"])
+                    return add_name(("",))
+                return add_name(("_r", "_g", "_b", "_a"))
             case "PARAMETER" | "LAYER" | "BOOLEAN" | "NUMBER" | "DL" | "ENUM":
-                return add_name([""])
+                return add_name(("",))
             case _:
                 raise PluginError(f"Unknown arg type {self.arg_type}")
 
@@ -535,6 +557,8 @@ class SM64_CustomArgProperties(PropertyGroup):
                 prop_split(col, self, "rot_type", "Rotation Type")
             if self.arg_type in {"TRANSLATION", "MATRIX"}:
                 col.prop(self, "apply_scale")
+            if self.has_order:
+                prop_split(col, self, "order", "Order")
         force_scale = conf_type == "PRESET_EDIT" and self.arg_type == "SCALE"
         if inherit and force_scale:
             inherit_info.label(text="Not supported in bones.", icon="INFO")
