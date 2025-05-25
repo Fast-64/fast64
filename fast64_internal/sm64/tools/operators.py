@@ -10,9 +10,9 @@ from ...utility import PluginError, decodeSegmentedAddr, encodeSegmentedAddr
 from ...f3d.f3d_material import getDefaultMaterialPreset, createF3DMat, add_f3d_mat_to_obj
 from ...utility import parentObject, intToHex, bytesToHex
 
-from ..sm64_constants import level_pointers, levelIDNames, level_enums
+from ..sm64_constants import levelIDNames, enumLevelNames
 from ..sm64_utility import import_rom_checks, int_from_str
-from ..sm64_level_parser import parseLevelAtPointer
+from ..sm64_level_parser import parse_level_binary
 from ..sm64_geolayout_utility import createBoneGroups
 from ..sm64_geolayout_parser import generateMetarig
 
@@ -31,7 +31,7 @@ class SM64_AddrConv(OperatorBase):
     rom: StringProperty(name="ROM", subtype="FILE_PATH")
     # Using an enum here looks cleaner when using this as an operator
     option: EnumProperty(name="Conversion type", items=enum_address_conversion_options)
-    level: EnumProperty(items=level_enums, name="Level", default="IC")
+    level: EnumProperty(items=enumLevelNames, name="Level", default="castle_inside")
     addr: StringProperty(name="Address")
     clipboard: BoolProperty(name="Copy to clipboard", default=True)
     result: StringProperty(name="Result")
@@ -41,7 +41,7 @@ class SM64_AddrConv(OperatorBase):
         import_rom_path = abspath(self.rom)
         import_rom_checks(import_rom_path)
         with open(import_rom_path, "rb") as romfile:
-            level_parsed = parseLevelAtPointer(romfile, level_pointers[self.level])
+            level_parsed = parse_level_binary(romfile, self.level)
             segment_data = level_parsed.segmentData
         if self.option == "TO_VIR":
             result = intToHex(decodeSegmentedAddr(addr.to_bytes(4, "big"), segment_data))
