@@ -2437,7 +2437,7 @@ def has_f3d_nodes(material: Material):
 @persistent
 def load_handler(dummy):
     if not SHOW_GATHER_OPERATOR:
-        generate_f3d_node_groups(forced=False)
+        generate_f3d_node_groups(False, False)
 
     for mat in bpy.data.materials:
         if mat is not None and mat.use_nodes and mat.is_f3d:
@@ -2612,7 +2612,7 @@ class RecreateF3DNodes(Operator):
         if material is None:
             self.report({"ERROR"}, "No active material.")
         else:
-            generate_f3d_node_groups()
+            generate_f3d_node_groups(False)
             create_f3d_nodes_in_material(material)
             self.report({"INFO"}, "Success!")
         return {"FINISHED"}

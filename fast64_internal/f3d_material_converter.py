@@ -3,7 +3,9 @@
 import bpy
 from bpy.utils import register_class, unregister_class
 from .f3d.f3d_material import *
+from .f3d.f3d_node_gen import update_f3d_material_nodes
 from .utility import *
+from .operators import OperatorBase
 from bl_operators.presets import AddPresetBase
 
 
@@ -148,7 +150,7 @@ def convertF3DtoNewVersion(obj: bpy.types.Object | bpy.types.Bone, index: int, m
             convertToNewMat(material)
         material.is_f3d = True
         material.mat_ver = F3D_MAT_CUR_VERSION
-        create_f3d_nodes_in_material(material)
+        update_f3d_material_nodes(material)
 
     except Exception as exc:
         print("Failed to upgrade", material.name)
@@ -287,6 +289,16 @@ class MatUpdateConvert(bpy.types.Operator):
         return {"FINISHED"}  # must return a set
 
 
+class RecreateAllF3DNodes(OperatorBase):
+    bl_idname = "scene.recreate_all_f3d_nodes"
+    bl_label = "Recreate All F3D Shader Nodes"
+    bl_options = {"REGISTER", "UNDO", "PRESET"}
+    bl_description = "Recreates the node tree for f3d materials, use if material preview is broken."
+
+    def execute_operator(self, context):
+        generate_f3d_node_groups(False, True)
+
+
 class F3DMaterialConverterPanel(bpy.types.Panel):
     bl_label = "F3D Material Converter"
     bl_idname = "MATERIAL_PT_F3D_Material_Converter"
@@ -308,12 +320,14 @@ class F3DMaterialConverterPanel(bpy.types.Panel):
         op = self.layout.operator(MatUpdateConvert.bl_idname)
         op.update_conv_all = context.scene.update_conv_all
         self.layout.prop(context.scene, "update_conv_all")
+        self.layout.operator(RecreateAllF3DNodes.bl_idname)
         self.layout.operator(ReloadDefaultF3DPresets.bl_idname)
 
 
 bsdf_conv_classes = (
     BSDFConvert,
     MatUpdateConvert,
+    RecreateAllF3DNodes,
 )
 
 bsdf_conv_panel_classes = (F3DMaterialConverterPanel,)

@@ -926,7 +926,12 @@ def is_f3d_mat(material: Material):
     return material.is_f3d and material.mat_ver >= F3D_MAT_CUR_VERSION
 
 
-def generate_f3d_node_groups(forced=True):
+def generate_f3d_node_groups(forced=True, ignore_hash=False, force_mat_update=False):
+    """
+    Forced generates node groups even if no f3d materials are present
+    Ignore hash will always regenerate existing group nodes.
+    Force mat update will always regenerate f3d material nodes
+    """
     if SERIALIZED_NODE_LIBRARY is None:
         raise PluginError(
             f"Failed to load f3d_nodes.json {str(NODE_LIBRARY_EXCEPTION)}, see console"
@@ -940,12 +945,15 @@ def generate_f3d_node_groups(forced=True):
         node_tree = None
         if serialized_node_group.name in bpy.data.node_groups:
             node_tree = bpy.data.node_groups[serialized_node_group.name]
-            if node_tree.get("fast64_cached_hash", None) == serialized_node_group.cached_hash and not ALWAYS_RELOAD:
+            if (
+                node_tree.get("fast64_cached_hash", None) == serialized_node_group.cached_hash
+                and not ALWAYS_RELOAD
+                and not ignore_hash
+            ):
                 continue
             if node_tree.type == "UNDEFINED":
                 bpy.data.node_groups.remove(node_tree, do_unlink=True)
                 node_tree = None
-                update_materials = True
         if node_tree:
             print(
                 f'Node group "{serialized_node_group.name}" already exists, but serialized node group hash changed, updating'
@@ -954,6 +962,7 @@ def generate_f3d_node_groups(forced=True):
             print(f'Creating node group "{serialized_node_group.name}"')
             node_tree = bpy.data.node_groups.new(serialized_node_group.name, "ShaderNodeTree")
             node_tree.use_fake_user = True
+        update_materials = True
         cur_errors = errors.copy(f'Failed to create node group "{serialized_node_group.name}"')
         try:
             new_node_trees.append(
@@ -968,7 +977,7 @@ def generate_f3d_node_groups(forced=True):
             node_tree["fast64_cached_hash"] = serialized_node_group.cached_hash
         except Exception as exc:
             print_with_exc(cur_errors, exc)
-    update_f3d_materials(force=update_materials)
+    update_f3d_materials_nodes(ignore_hash=update_materials or force_mat_update)
 
 
 def create_f3d_nodes_in_material(material: Material, errors: ErrorState = None):
@@ -985,18 +994,22 @@ def create_f3d_nodes_in_material(material: Material, errors: ErrorState = None):
         update_all_node_values(material, bpy.context)
 
 
-def update_f3d_materials(force=False):
+def update_f3d_material_nodes(material: Material, ignore_hash=False):
+    errors = ErrorState([f"Failed to update material {material.name}"])
+    try:
+        if is_f3d_mat(material) and (
+            material.node_tree.get("fast64_cached_hash", None) != SERIALIZED_NODE_LIBRARY.cached_hash or ignore_hash
+        ):
+            print(f'Updating material "{material.name}"\'s nodes')
+            create_f3d_nodes_in_material(material, errors)
+            material.node_tree["fast64_cached_hash"] = SERIALIZED_NODE_LIBRARY.cached_hash
+    except Exception as exc:
+        print_with_exc(errors, exc)
+
+
+def update_f3d_materials_nodes(ignore_hash=False):
     for material in bpy.data.materials:
-        errors = ErrorState([f"Failed to update material {material.name}"])
-        try:
-            if is_f3d_mat(material) and (
-                material.node_tree.get("fast64_cached_hash", None) != SERIALIZED_NODE_LIBRARY.cached_hash or force
-            ):
-                print(f'Updating material "{material.name}"\'s nodes')
-                create_f3d_nodes_in_material(material, errors)
-                material.node_tree["fast64_cached_hash"] = SERIALIZED_NODE_LIBRARY.cached_hash
-        except Exception as exc:
-            print_with_exc(errors, exc)
+        update_f3d_material_nodes(material, ignore_hash)
 
 
 if SHOW_GATHER_OPERATOR:
