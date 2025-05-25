@@ -159,7 +159,7 @@ class ErrorState:
 
 def print_with_exc(error_state: ErrorState, exc: Exception):
     message = "\n".join(error_state.error_message_queue)
-    print(message, ": ", exc)
+    print(message + ":\n" + str(exc))
     print(traceback.format_exc())
     error_state.errors.append((message, exc))
 
@@ -746,15 +746,10 @@ def set_attrs(owner: object, attrs: dict[str, object], nodes: dict[str, Node], e
 
 
 def try_name_then_index(collection, name: str | None, index: int):
-    if name is not None:
-        try:
-            return collection[name]
-        except (KeyError, IndexError):
-            pass
-    try:
+    if name is not None and name in collection:
+        return collection[name]
+    elif index < len(collection):
         return collection[index]
-    except (KeyError, IndexError):
-        return None
 
 
 def set_values_and_create_links(
@@ -762,10 +757,10 @@ def set_values_and_create_links(
 ):
     def get_name(i: int, inp: SerializedInputValue, socket: NodeSocket | None = None):
         if socket is not None:
-            return socket.name
+            return f'"{socket.name}"'
         if inp.name is not None:
-            return inp.name
-        return f"Input {i}"
+            return f'"{inp.name}"'
+        return str(i)
 
     links, nodes = node_tree.links, node_tree.nodes
 
@@ -775,18 +770,17 @@ def set_values_and_create_links(
             set_attrs(node, serialized_node.data, nodes, EXCLUDE_FROM_NODE, cur_errors)
         except Exception as exc:
             print_with_exc(cur_errors, exc)
-    if hasattr(node_tree, "update"):
-        node_tree.update()
+
     for serialized_node, node in zip(serialized_node_tree.nodes.values(), new_nodes):
         for i, serialized_inp in serialized_node.inputs.items():
             name = get_name(i, serialized_inp)
-            cur_errors = errors.copy(f'Failed to set values for input "{name}" of node "{node.label or node.name}"')
+            cur_errors = errors.copy(f'Failed to set values for input {name} of node "{node.label or node.name}"')
             try:
                 inp = try_name_then_index(node.inputs, serialized_inp.name, convert_in_i_from_3_2(i, serialized_node))
                 if inp is None:
                     raise IndexError("Socket not found")
                 cur_errors = errors.copy(
-                    f'Failed to set values for input "{inp.name}" (serialized has "{name}") of node "{node.label or node.name}"'
+                    f'Failed to set values for input "{inp.name}" (serialized has {name}) of node "{node.label or node.name}"'
                 )
                 set_attrs(inp, serialized_inp.data, nodes, EXCLUDE_FROM_GROUP_INPUT_OUTPUT, cur_errors)
             except Exception as exc:
@@ -794,14 +788,15 @@ def set_values_and_create_links(
         for i, serialized_out in serialized_node.outputs.items():
             name = get_name(i, serialized_out)
             cur_errors = errors.copy(
-                f'Failed to set values and links for output "{name}" of node "{node.label or node.name}"'
+                f'Failed to set values and links for output {name} of node "{node.label or node.name}"'
             )
             try:
-                out = try_name_then_index(node.outputs, serialized_out.name, convert_out_i_from_3_2(i, serialized_node))
+                out_index = convert_out_i_from_3_2(i, serialized_node)
+                out = try_name_then_index(node.outputs, serialized_out.name, out_index)
                 if out is None:
                     raise IndexError("Socket not found")
                 cur_errors = errors.copy(
-                    f'Failed to set values for output "{out.name}" (serialized has "{name}") of node "{node.label or node.name}"'
+                    f'Failed to set values for output "{out.name}" (serialized has {name}) of node "{node.label or node.name}"'
                 )
                 try:
                     set_attrs(out, serialized_out.data, nodes, EXCLUDE_FROM_GROUP_INPUT_OUTPUT, cur_errors)
@@ -809,22 +804,24 @@ def set_values_and_create_links(
                     print_with_exc(cur_errors, exc)
 
                 cur_errors = errors.copy(
-                    f'Failed to set links for output "{out.name}" (serialized has "{name}") of node "{node.label or node.name}"'
+                    f'Failed to set links for output "{out.name}" (serialized has {name}) of node "{node.label or node.name}"'
                 )
                 for serialized_link in serialized_out.links:
+                    # needed because modern blender (4.4) is written by monkeys and a type writer. god bless my never ending patience
+                    out = try_name_then_index(node.outputs, serialized_out.name, out_index)
                     link_errors = cur_errors.copy(
-                        f'Failed to set links to input socket "{get_name(serialized_link.index, serialized_link)}" of node "{serialized_link.name}"'
+                        f'Failed to set links to input socket {get_name(serialized_link.index, serialized_link)} of node "{serialized_link.name}"'
                     )
                     try:
                         serialized_target_node = serialized_node_tree.nodes[serialized_link.node]
-                        link = try_name_then_index(
+                        inp = try_name_then_index(
                             nodes[serialized_link.node].inputs,
                             serialized_link.name,
                             convert_in_i_from_3_2(serialized_link.index, serialized_target_node),
                         )
-                        if link is None:
+                        if inp is None:
                             raise IndexError("Socket not found")
-                        links.new(link, out)
+                        links.new(inp, out)
                     except Exception as exc:
                         print_with_exc(link_errors, exc)
             except Exception as exc:
