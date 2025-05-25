@@ -876,11 +876,10 @@ def exportLevelC(obj, transformMatrix, level_name, exportDir, savePNG, customExp
 
     level_data = LevelData(camera_data=f"struct CameraTrigger {levelCameraVolumeName}[] = {{\n")
 
-    inline = bpy.context.scene.exportInlineF3D
     fModel = SM64Model(
         level_name + "_dl",
         DLFormat,
-        GfxMatWriteMethod.WriteDifferingAndRevert if not inline else GfxMatWriteMethod.WriteAll,
+        bpy.context.scene.fast64.sm64.gfx_write_method,
     )
     childAreas = [child for child in obj.children if child.type == "EMPTY" and child.sm64_obj_type == "Area Root"]
     if len(childAreas) == 0:
