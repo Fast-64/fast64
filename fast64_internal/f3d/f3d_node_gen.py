@@ -229,7 +229,7 @@ SCENE_PROPERTIES_VERSION = 2
 class ErrorState:
     def __init__(self, error_message_queue: list[str] = None):
         self.error_message_queue = error_message_queue or []
-        self.errors = []
+        self.errors: list[tuple[str, Exception]] = []
 
     def copy(self, message: str = None):
         errors = ErrorState(self.error_message_queue.copy() + ([message] if message else []))
