@@ -1,11 +1,12 @@
 import dataclasses
 import math
 import struct
+import ast
 from io import StringIO
 from typing import Iterable, NamedTuple, Optional, TypeVar, Union
 
 from ...f3d.f3d_parser import math_eval
-from ...utility import PluginError, get_clean_color, quantize_color, to_s16, cast_integer, encodeSegmentedAddr
+from ...utility import PluginError, binOps, get_clean_color, quantize_color, to_s16, cast_integer, encodeSegmentedAddr
 
 from ..sm64_constants import SegmentData
 from ..sm64_geolayout_utility import BaseDisplayListNode
@@ -27,6 +28,52 @@ def flatten(iterable: Iterable[T]) -> tuple[T]:
         else:
             flat.append(x)
     return tuple(flat)
+
+
+def math_eval(s, holder: object):
+    if isinstance(s, int):
+        return s
+
+    s = s.strip()
+    node = ast.parse(s, mode="eval")
+
+    mappable_types = {ast.Tuple: tuple, ast.List: list, ast.Set: set, ast.Dict: dict}
+
+    def _eval(node):
+        if isinstance(node, ast.Expression):
+            return _eval(node.body)
+        elif isinstance(node, ast.Str):
+            return node.s
+        elif isinstance(node, ast.Name):
+            if hasattr(holder, node.id):
+                return getattr(holder, node.id)
+            elif hasattr(math, node.id):
+                return getattr(math, node.id)
+            else:
+                return {"round": round, "abs": abs}.get(node.id, node.id)
+        elif isinstance(node, ast.Num):
+            return node.n
+        elif isinstance(node, ast.UnaryOp):
+            if isinstance(node.op, ast.USub):
+                return -1 * _eval(node.operand)
+            elif isinstance(node.op, ast.Invert):
+                return ~_eval(node.operand)
+            else:
+                raise Exception("Unsupported type {}".format(node.op))
+        elif isinstance(node, ast.BinOp):
+            return binOps[type(node.op)](_eval(node.left), _eval(node.right))
+        elif isinstance(node, ast.Call):
+            args = list(map(_eval, node.args))
+            funcName = _eval(node.func)
+            return funcName(*args)
+        elif isinstance(node, tuple(mappable_types.keys())):
+            return mappable_types[type(node)](map(_eval, node.elts))
+        elif isinstance(node, ast.Subscript):
+            return _eval(node.value)[_eval(node.slice)]
+        else:
+            raise Exception("Unsupported type {}".format(node))
+
+    return _eval(node.body)
 
 
 class ArgExport(NamedTuple):
@@ -90,16 +137,18 @@ class CustomCmd(BaseDisplayListNode):
 
     def to_arg(self, data: dict, binary=False) -> Iterable[ArgExport]:
         def run_eval(value, bit_count=32, signed=True):
-            for value in flatten(value):
-                if (
-                    (not self.data["skip_eval"] or binary)
-                    and isinstance(value, (int, float, complex))
-                    and (not isinstance(value, bool) or binary)
-                    and "eval_expression" in data
-                ):
-                    yield ArgExport(math_eval(data["eval_expression"], ValueHolder(value)), bit_count, signed)
-                else:
-                    yield ArgExport(value, bit_count, signed)
+            if (
+                (not self.data["skip_eval"] or binary)
+                and isinstance(value, (int, float, complex, tuple))
+                and (not isinstance(value, bool) or binary)
+                and "eval_expression" in data
+            ):
+                yield from tuple(
+                    ArgExport(x, bit_count, signed)
+                    for x in flatten(math_eval(data["eval_expression"], ValueHolder(value)))
+                )
+            else:
+                yield from tuple(ArgExport(x, bit_count, signed) for x in flatten(value))
 
         arg_type = data.get("arg_type")
         round_to_sm64 = data.get("round_to_sm64", True)
@@ -144,16 +193,16 @@ class CustomCmd(BaseDisplayListNode):
             case "TRANSLATION":
                 translation = data["translation"]
                 if round_to_sm64:
-                    yield from run_eval((round(x) for x in translation), 16)
+                    yield from run_eval(tuple(round(x) for x in translation), 16)
                 else:
-                    yield from run_eval((x for x in translation), 32)
+                    yield from run_eval(tuple(x for x in translation), 32)
             case "SCALE" | "MATRIX":
                 yield from run_eval(data.get(arg_type.lower()))
             case "ROTATION":
                 rot_type = data["rot_type"]
-                rot = flatten(data.get(rot_type.lower()))
+                rot = data.get(rot_type.lower())
                 if round_to_sm64 and rot_type == "EULER":
-                    yield from run_eval((to_s16(round(x)) for x in rot), 16)
+                    yield from run_eval(tuple(to_s16(round(x)) for x in rot), 16)
                 else:
                     yield from run_eval(rot, 32)
             case "DL":
