@@ -11,6 +11,8 @@ from ..utility import (
     PluginError,
     CData,
     Vector,
+    yUpToZUp,
+    y_up_to_z_up,
     directory_ui_warnings,
     filepath_ui_warnings,
     toAlnum,
@@ -795,13 +797,32 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
     )
 
     # Hacky solution to handle Z-up to Y-up conversion
-    rotation = (originalRotation @ mathutils.Quaternion((1, 0, 0), math.radians(90.0))).to_euler("ZXY")
+    rotation = (originalRotation @ y_up_to_z_up).to_euler("ZXY")
 
     if obj.type == "EMPTY":
         if obj.sm64_obj_type == "Area Root" and obj.areaIndex != area.index:
             return
         obj_props: SM64_ObjectProperties = obj.fast64.sm64
-        if specialsOnly:
+        if obj.sm64_obj_type == "Custom" and (
+            (obj_props.custom.cmd_type == "Collision" and specialsOnly)
+            or ((obj_props.custom.cmd_type == "Level") and not specialsOnly)
+        ):
+            # HACK: alternatively we could just ignore transformMatrix since it only has the blender to sm64 scale
+            sm64_scale = bpy.context.scene.fast64.sm64.blender_to_sm64_scale
+            reverse = mathutils.Matrix.Diagonal((sm64_scale,) * 3).to_4x4().inverted()
+            local_matrix = reverse @ final_transform @ yUpToZUp
+            cmd = obj_props.custom.get_final_cmd(
+                obj,
+                bpy.context.scene.fast64.sm64.blender_to_sm64_scale,
+                reverse @ (transformMatrix @ obj.matrix_world) @ yUpToZUp,
+                local_matrix,
+                name=obj.name,
+            )
+            if specialsOnly:
+                area.specials.append(cmd)
+            else:
+                area.objects.append(cmd)
+        elif specialsOnly:
             if obj.sm64_obj_type == "Special":
                 preset = obj.sm64_special_enum if obj.sm64_special_enum != "Custom" else obj.sm64_obj_preset
                 area.specials.append(
@@ -817,10 +838,6 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
             elif obj.sm64_obj_type == "Water Box":
                 checkIdentityRotation(obj, rotation.to_quaternion(), False)
                 area.water_boxes.append(CollisionWaterBox(obj.waterBoxType, translation, scale, obj.empty_display_size))
-            elif obj.sm64_obj_type == "Custom" and obj_props.custom.cmd_type == "Collision":
-                area.specials.append(
-                    obj_props.custom.get_final_cmd(obj, bpy.context.scene.fast64.sm64.blender_to_sm64_scale)
-                )
         else:
             if obj.sm64_obj_type == "Object":
                 modelID = obj.sm64_model_enum if obj.sm64_model_enum != "Custom" else obj.sm64_obj_model
@@ -875,13 +892,6 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
                         rotation,
                         scale,
                         obj.empty_display_size,
-                    )
-                )
-
-            elif obj.sm64_obj_type == "Custom" and obj_props.custom.cmd_type == "Level":
-                area.objects.append(
-                    obj_props.custom.get_final_cmd(
-                        obj, bpy.context.scene.fast64.sm64.blender_to_sm64_scale, name=obj.name
                     )
                 )
 

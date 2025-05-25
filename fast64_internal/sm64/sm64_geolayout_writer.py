@@ -19,6 +19,7 @@ from .sm64_utility import export_rom_checks, starSelectWarning
 from ..utility import (
     PluginError,
     VertexWeightError,
+    z_up_to_y_up_matrix,
     setOrigin,
     raisePluginError,
     findStartBones,
@@ -433,6 +434,7 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, camera,
             obj,
             armatureObj,
             convertTransformMatrix,
+            None,
             None,
             None,
             None,
@@ -1322,11 +1324,18 @@ def processInlineGeoNode(
     elif inlineGeoConfig.name == "Geo Rotation Node":
         node = RotateNode(obj.draw_layer_static, obj.useDLReference, rotate, obj.dlReference)
     elif inlineGeoConfig.name == "Geo Scale":
-        node = ScaleNode(obj.draw_layer_static, scale, obj.useDLReference, obj.dlReference)
+        node = ScaleNode(obj.draw_layer_static, scale[0], obj.useDLReference, obj.dlReference)
     elif inlineGeoConfig.name == "Custom":
+        local_matrix = (
+            mathutils.Matrix.Translation(translate)
+            @ rotate.to_matrix().to_4x4()
+            @ mathutils.Matrix.Diagonal(scale).to_4x4()
+        )
         node = obj.fast64.sm64.custom.get_final_cmd(
             obj,
             bpy.context.scene.fast64.sm64.blender_to_sm64_scale,
+            z_up_to_y_up_matrix @ mathutils.Matrix(obj.get("original_mtx_world")) @ z_up_to_y_up_matrix.inverted(),
+            local_matrix,
             obj.draw_layer_static,
             obj.useDLReference,
             obj.dlReference,
@@ -1444,7 +1453,7 @@ def processMesh(
     else:
         if useInlineGeo and not processed_inline_geo:
             node, parentTransformNode = processInlineGeoNode(
-                inlineGeoConfig, obj, parentTransformNode, translate, rotate, scale[0]
+                inlineGeoConfig, obj, parentTransformNode, translate, rotate, scale
             )
             processed_inline_geo = True
 
@@ -1646,6 +1655,7 @@ def processBone(
     transformMatrix,
     lastTranslateName,
     lastRotateName,
+    last_scale_name,
     lastDeformName,
     parentTransformNode,
     materialOverrides,
@@ -1681,10 +1691,19 @@ def processBone(
         rotateParent = None
         rotate = bone.matrix_local.decompose()[1]
 
+    # Get scale
+    if last_scale_name is not None:
+        scaleParent = armatureObj.data.bones[last_scale_name]
+        scale = (scaleParent.matrix_local.inverted() @ bone.matrix_local).decompose()[2]
+    else:
+        scaleParent = None
+        scale = bone.matrix_local.decompose()[2]
+
     translation = mathutils.Matrix.Translation(translate)
     rotation = rotate.to_matrix().to_4x4()
     zeroTranslation = isZeroTranslation(translate)
     zeroRotation = isZeroRotation(rotate)
+    zero_scale = isZeroScaleChange(scale)
 
     # hasDL = bone.use_deform
     hasDL = True
@@ -1777,20 +1796,26 @@ def processBone(
         elif bone.geo_cmd == "StartRenderArea":
             node = StartRenderAreaNode(bone.culling_radius)
         elif bone.geo_cmd == "Custom":
-            node = bone.fast64.sm64.custom.get_final_cmd(
-                bone, bpy.context.scene.fast64.sm64.blender_to_sm64_scale, None, hasDL
+            local_matrix = mathutils.Matrix.LocRotScale(translate, rotate, scale)
+            world_matrix = z_up_to_y_up_matrix @ bone.matrix_local @ z_up_to_y_up_matrix.inverted()
+            node = bone_props.custom.get_final_cmd(
+                bone, bpy.context.scene.fast64.sm64.blender_to_sm64_scale, world_matrix, local_matrix, None, hasDL
             )
             types = {a["arg_type"] for a in node.data["args"]}
-            has_translation, has_rotation = "TRANSLATION" in types, "ROTATION" in types
-            if not has_translation or not has_rotation:
+            has_translation, has_rotation, has_scale = "TRANSLATION" in types, "ROTATION" in types, "SCALE" in types
+            if (not has_translation and not zeroTranslation) or (not has_rotation and not zeroRotation):
                 field = 0 if not (has_translation or has_rotation) else (1 if has_translation else 2)
                 parentTransformNode = addParentNode(
                     parentTransformNode, TranslateRotateNode(node.drawLayer, field, False, translate, rotate)
                 )
+            if not has_scale and not zero_scale:
+                parentTransformNode = addParentNode(parentTransformNode, ScaleNode(node.drawLayer, scale[0], False))
             if has_translation:
                 lastTranslateName = boneName
-            if has_rotation:
+            elif has_rotation:
                 lastRotateName = boneName
+            elif has_scale:
+                last_scale_name = boneName
         else:
             raise PluginError("Invalid geometry command: " + bone.geo_cmd)
 
@@ -1910,6 +1935,7 @@ def processBone(
                     final_transform,
                     lastTranslateName,
                     lastRotateName,
+                    last_scale_name,
                     lastDeformName,
                     transformNode,
                     materialOverrides,
@@ -1946,6 +1972,7 @@ def processBone(
                     final_transform,
                     lastTranslateName,
                     lastRotateName,
+                    last_scale_name,
                     lastDeformName,
                     nextStartNode,
                     materialOverrides,
@@ -2034,6 +2061,7 @@ def processBone(
                         optionObj,
                         optionArmature,
                         final_transform,
+                        optionBone.name,
                         optionBone.name,
                         optionBone.name,
                         optionBone.name,

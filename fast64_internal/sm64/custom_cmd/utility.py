@@ -4,6 +4,7 @@ from re import fullmatch
 import mathutils
 from bpy.types import Object, Bone, Context, SpaceView3D, Scene
 
+from ...utility import z_up_to_y_up_matrix
 from ..sm64_geolayout_utility import updateBone
 
 if TYPE_CHECKING:
@@ -106,11 +107,13 @@ def better_round(value: float):  # round, but handle inf
 
 def get_transforms(owner: Optional[AvailableOwners] = None):
     if isinstance(owner, Object):
-        return (owner.matrix_world, owner.matrix_local)
+        return tuple(
+            z_up_to_y_up_matrix @ x @ z_up_to_y_up_matrix.inverted() for x in [owner.matrix_world, owner.matrix_local]
+        )
     elif isinstance(owner, Bone):
         relative = owner.matrix_local
         if owner.parent is not None:
             relative = owner.parent.matrix_local.inverted() @ relative
-        return (owner.matrix_local, relative)
+        return tuple(z_up_to_y_up_matrix @ x @ z_up_to_y_up_matrix.inverted() for x in [owner.matrix_local, relative])
     else:
-        return (mathutils.Matrix.Identity(4),) * 2
+        return (z_up_to_y_up_matrix @ mathutils.Matrix.Identity(4) @ z_up_to_y_up_matrix.inverted(),) * 2

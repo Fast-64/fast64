@@ -20,7 +20,6 @@ from bpy.types import Object, Bone, UILayout, Context, PropertyGroup
 from ...utility import (
     Matrix4x4Property,
     PluginError,
-    z_up_to_y_up,
     draw_and_check_tab,
     get_first_set_prop,
     multilineLabel,
@@ -272,7 +271,14 @@ class SM64_CustomArgProperties(PropertyGroup):
     translation_scale: FloatVectorProperty(name="Translation", size=3, default=(0.0, 0.0, 0.0), subtype="XYZ")
     euler: FloatVectorProperty(name="Rotation", size=3, default=(0.0, 0.0, 0.0), subtype="EULER")
     order: EnumProperty(
-        items=[("XYZ", "XYZ", "XYZ"), ("XZY", "XZY", "XZY"), ("YXZ", "YXZ", "YXZ"), ("YZX", "YZX", "YZX")]
+        items=[
+            ("XYZ", "XYZ", "XYZ"),
+            ("XZY", "XZY", "XZY"),
+            ("YXZ", "YXZ", "YXZ"),
+            ("YZX", "YZX", "YZX"),
+            ("ZXY", "ZXY", "ZXY"),
+            ("ZYX", "ZYX", "ZYX"),
+        ],
     )
     quaternion: FloatVectorProperty(name="Quaternion", size=4, default=(1.0, 0.0, 0.0, 0.0), subtype="QUATERNION")
     axis_angle: FloatVectorProperty(name="Axis Angle", size=4, default=((1.0), 0.0, 0.0, 0.0), subtype="AXISANGLE")
@@ -360,11 +366,19 @@ class SM64_CustomArgProperties(PropertyGroup):
     def will_draw(self, owner: Optional[AvailableOwners], conf_type: CustomCmdConf):
         return self.shows_name(owner) or conf_type != "PRESET"
 
-    def get_transform(self, owner: Optional[AvailableOwners], blender_scale=1.0):
+    def get_transform(
+        self,
+        owner: Optional[AvailableOwners],
+        world_matrix: Optional[mathutils.Matrix],
+        local_matrix: Optional[mathutils.Matrix],
+        blender_scale=1.0,
+    ):
         inherit = self.inherits(owner)
         if inherit:
-            relative, world = get_transforms(owner)
-            matrix = relative if self.relative else world
+            world_matrix, local_matrix = world_matrix or mathutils.Matrix.Identity(
+                4
+            ), local_matrix or mathutils.Matrix.Identity(4)
+            matrix = local_matrix if self.relative else world_matrix
         if not self.apply_scale:
             blender_scale = 1.0
         match self.arg_type:
@@ -377,27 +391,24 @@ class SM64_CustomArgProperties(PropertyGroup):
                         @ rot.to_matrix().to_4x4()
                         @ mathutils.Matrix.Diagonal(scale).to_4x4()
                     )
-                return tuple(tuple(y for y in x) for x in z_up_to_y_up.to_matrix() @ matrix)
+                return tuple(tuple(y for y in x) for x in matrix)
             case "TRANSLATION":
                 return tuple(
-                    z_up_to_y_up
-                    @ getattr(
-                        matrix.to_translation()
-                        if inherit
-                        else mathutils.Vector(self.translation_scale * blender_scale),
+                    getattr(
+                        (matrix.to_translation() if inherit else mathutils.Vector(self.translation_scale))
+                        * blender_scale,
                         self.order.lower(),
                     )
                 )
             case "ROTATION":
                 match self.rot_type:
                     case "EULER":
-                        quat = (matrix if inherit else mathutils.Euler(self.euler)).to_quaternion()
-                        euler = (z_up_to_y_up @ quat).to_euler(self.order)
+                        euler = matrix.to_euler(self.order) if inherit else mathutils.Euler(self.euler, self.order)
                         return tuple(math.degrees(x) for x in euler)
                     case "QUATERNION":
-                        return tuple(z_up_to_y_up @ (matrix.to_quaternion() if inherit else self.quaternion))
+                        return tuple((matrix.to_quaternion() if inherit else self.quaternion))
                     case "AXIS_ANGLE":
-                        quat = z_up_to_y_up @ (
+                        quat = (
                             matrix.to_quaternion()
                             if inherit
                             else mathutils.Quaternion(self.axis_angle[:3], self.axis_angle[3])
@@ -415,6 +426,8 @@ class SM64_CustomArgProperties(PropertyGroup):
         self,
         conf_type: CustomCmdConf,
         owner: Optional[AvailableOwners] = None,
+        world_matrix: Optional[mathutils.Matrix] = None,
+        local_matrix: Optional[mathutils.Matrix] = None,
         blender_scale=1.0,
         include_defaults=True,
         is_export=False,
@@ -462,7 +475,7 @@ class SM64_CustomArgProperties(PropertyGroup):
                         data["rot_type"] = self.rot_type
                     if self.arg_type == "ROTATION":
                         name = self.rot_type.lower()
-                    defaults[name] = self.get_transform(owner, blender_scale=blender_scale)
+                    defaults[name] = self.get_transform(owner, world_matrix, local_matrix, blender_scale=blender_scale)
                 elif (not self.inherits_without_default(owner) or conf_type == "PRESET_EDIT") and hasattr(self, name):
                     defaults[name] = getattr(self, name)
         if defaults and include_defaults:
@@ -808,6 +821,8 @@ class SM64_CustomCmdProperties(PropertyGroup):
         self,
         conf_type: CustomCmdConf,
         owner: Optional[AvailableOwners] = None,
+        world_matrix: Optional[mathutils.Matrix] = None,
+        local_matrix: Optional[mathutils.Matrix] = None,
         blender_scale=1.0,
         include_defaults=True,
         is_export=False,
@@ -836,7 +851,10 @@ class SM64_CustomCmdProperties(PropertyGroup):
             if self.adds_dl_ext(owner):
                 data["dl_command"] = self.dl_command
         self.args: list[SM64_CustomArgProperties]
-        data["args"] = [arg.to_dict(conf_type, owner, blender_scale, include_defaults, is_export) for arg in self.args]
+        data["args"] = [
+            arg.to_dict(conf_type, owner, world_matrix, local_matrix, blender_scale, include_defaults, is_export)
+            for arg in self.args
+        ]
         return data
 
     def from_dict(self, data: dict, set_defaults=True):
@@ -864,6 +882,8 @@ class SM64_CustomCmdProperties(PropertyGroup):
         self,
         owner: Optional[AvailableOwners],
         blender_scale: float,
+        world_matrix: mathutils.Matrix,
+        local_matrix: mathutils.Matrix,
         layer: Optional[str | int] = None,
         has_dl=False,
         dl_ref: Optional[str] = None,
@@ -872,7 +892,13 @@ class SM64_CustomCmdProperties(PropertyGroup):
     ):
         if conf_type is None:
             conf_type = "NO_PRESET" if self.preset == "NONE" else "PRESET"
-        return CustomCmd(self.to_dict(conf_type, owner, blender_scale, is_export=True), layer, has_dl, dl_ref, name)
+        return CustomCmd(
+            self.to_dict(conf_type, owner, world_matrix, local_matrix, blender_scale, is_export=True),
+            layer,
+            has_dl,
+            dl_ref,
+            name,
+        )
 
     def example_macro_define(self, conf_type: CustomCmdConf = "NO_PRESET", use_dl_cmd=False, max_len=100):
         macro_define = StringIO()
@@ -895,13 +921,13 @@ class SM64_CustomCmdProperties(PropertyGroup):
     def get_examples(self, owner: Optional[AvailableOwners], conf_type: CustomCmdConf, blender_scale=100.0):
         cmd_examples = {
             "Without DL": (
-                self.get_final_cmd(owner, blender_scale, has_dl=False, conf_type=conf_type),
+                self.get_final_cmd(owner, blender_scale, *get_transforms(owner), has_dl=False, conf_type=conf_type),
                 self.example_macro_define(conf_type, False, 25),
             )
         }
         if self.adds_dl_ext(owner):
             cmd_examples["With DL"] = (
-                self.get_final_cmd(owner, blender_scale, has_dl=True, conf_type=conf_type),
+                self.get_final_cmd(owner, blender_scale, *get_transforms(owner), has_dl=True, conf_type=conf_type),
                 self.example_macro_define(conf_type, True, 25),
             )
         return cmd_examples

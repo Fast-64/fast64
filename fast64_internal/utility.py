@@ -64,6 +64,7 @@ y_up_to_z_up = mathutils.Quaternion((1, 0, 0), math.radians(90.0))
 yUpToZUp = y_up_to_z_up.to_matrix().to_4x4()
 
 z_up_to_y_up = mathutils.Quaternion((1, 0, 0), math.radians(-90.0))
+z_up_to_y_up_matrix = z_up_to_y_up.to_matrix().to_4x4()
 
 axis_enums = [
     ("X", "X", "X"),
@@ -832,6 +833,8 @@ def store_original_mtx():
         # scales will be applied to the transform for each object
         loc, rot, _scale = obj.matrix_local.decompose()
         obj["original_mtx"] = Matrix.LocRotScale(loc, rot, None)
+        loc, rot, scale = obj.matrix_world.decompose()
+        obj["original_mtx_world"] = Matrix.LocRotScale(loc, rot, scale)
 
 
 def rotate_bounds(bounds, mtx: mathutils.Matrix):
@@ -1062,6 +1065,8 @@ def cleanupTempMeshes():
                 del obj["instanced_mesh_name"]
             if obj.get("original_mtx"):
                 del obj["original_mtx"]
+            if obj.get("original_mtx_world"):
+                del obj["original_mtx_world"]
 
     for data in remove_data:
         data_type = type(data)
