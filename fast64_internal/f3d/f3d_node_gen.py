@@ -255,11 +255,11 @@ def createOrUpdateSceneProperties():
     if upgrade_group and group:
         # Need to upgrade; remove old outputs
         if bpy.app.version >= (4, 0, 0):
-            for item in group.interface.items_tree:
+            for item in list(group.interface.items_tree).copy():
                 if item.item_type == "SOCKET" and item.in_out == "OUTPUT":
                     group.interface.remove(item)
         else:
-            for out in group.outputs:
+            for out in list(group.outputs).copy():
                 group.outputs.remove(out)
         new_group = group
     else:
