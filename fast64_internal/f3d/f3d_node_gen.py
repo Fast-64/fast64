@@ -876,11 +876,19 @@ def create_nodes(node_tree: NodeTree | ShaderNodeTree, serialized_node_tree: Ser
     return new_nodes
 
 
-def generate_f3d_node_groups():
+def is_f3d_mat(material: Material):
+    from .f3d_material import F3D_MAT_CUR_VERSION
+
+    return material.is_f3d and material.mat_ver >= F3D_MAT_CUR_VERSION
+
+
+def generate_f3d_node_groups(forced=True):
     if SERIALIZED_NODE_LIBRARY is None:
         raise PluginError(
             f"Failed to load f3d_nodes.json {str(NODE_LIBRARY_EXCEPTION)}, see console"
         ) from NODE_LIBRARY_EXCEPTION
+    if not forced and not any(is_f3d_mat(material) for material in bpy.data.materials):
+        return
     errors = ErrorState()
     update_materials = False
     new_node_trees: list[tuple[NodeTree, list[Node]]] = []
@@ -916,14 +924,7 @@ def generate_f3d_node_groups():
             node_tree["fast64_cached_hash"] = serialized_node_group.cached_hash
         except Exception as exc:
             print_with_exc(cur_errors, exc)
-    if update_materials:
-        update_f3d_materials(force=True)
-
-
-def is_f3d_mat(material: Material):
-    from .f3d_material import F3D_MAT_CUR_VERSION
-
-    return material.is_f3d and material.mat_ver >= F3D_MAT_CUR_VERSION
+    update_f3d_materials(force=update_materials)
 
 
 def create_f3d_nodes_in_material(material: Material, errors: ErrorState = None):
@@ -938,12 +939,6 @@ def create_f3d_nodes_in_material(material: Material, errors: ErrorState = None):
     with bpy.context.temp_override(material=material):
         update_all_node_values(material, bpy.context)
     material.use_nodes = True
-
-
-def update_f3d_library():
-    if not any(is_f3d_mat(material) for material in bpy.data.materials):
-        return
-    generate_f3d_node_groups()
 
 
 def update_f3d_materials(force=False):

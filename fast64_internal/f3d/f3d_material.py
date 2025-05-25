@@ -46,7 +46,6 @@ from .f3d_material_helpers import F3DMaterial_UpdateLock
 from .f3d_node_gen import (
     create_f3d_nodes_in_material,
     generate_f3d_node_groups,
-    update_f3d_library,
     SHOW_GATHER_OPERATOR,
 )
 from bpy.app.handlers import persistent
@@ -2438,7 +2437,7 @@ def has_f3d_nodes(material: Material):
 @persistent
 def load_handler(dummy):
     if not SHOW_GATHER_OPERATOR:
-        update_f3d_library()
+        generate_f3d_node_groups(forced=False)
 
     for mat in bpy.data.materials:
         if mat is not None and mat.use_nodes and mat.is_f3d:
