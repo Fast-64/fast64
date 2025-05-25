@@ -20,8 +20,7 @@ from bpy.types import Object, Bone, UILayout, Context, PropertyGroup
 from ...utility import (
     Matrix4x4Property,
     PluginError,
-    y_up_to_z_up,
-    yUpToZUp,
+    z_up_to_y_up,
     draw_and_check_tab,
     get_first_set_prop,
     multilineLabel,
@@ -378,10 +377,10 @@ class SM64_CustomArgProperties(PropertyGroup):
                         @ rot.to_matrix().to_4x4()
                         @ mathutils.Matrix.Diagonal(scale).to_4x4()
                     )
-                return tuple(tuple(y for y in x) for x in yUpToZUp @ matrix)
+                return tuple(tuple(y for y in x) for x in z_up_to_y_up.to_matrix() @ matrix)
             case "TRANSLATION":
                 return tuple(
-                    y_up_to_z_up
+                    z_up_to_y_up
                     @ getattr(
                         matrix.to_translation()
                         if inherit
@@ -393,12 +392,12 @@ class SM64_CustomArgProperties(PropertyGroup):
                 match self.rot_type:
                     case "EULER":
                         quat = (matrix if inherit else mathutils.Euler(self.euler)).to_quaternion()
-                        euler = (y_up_to_z_up @ quat).to_euler(self.order)
+                        euler = (z_up_to_y_up @ quat).to_euler(self.order)
                         return tuple(math.degrees(x) for x in euler)
                     case "QUATERNION":
-                        return tuple(y_up_to_z_up @ (matrix.to_quaternion() if inherit else self.quaternion))
+                        return tuple(z_up_to_y_up @ (matrix.to_quaternion() if inherit else self.quaternion))
                     case "AXIS_ANGLE":
-                        quat = y_up_to_z_up @ (
+                        quat = z_up_to_y_up @ (
                             matrix.to_quaternion()
                             if inherit
                             else mathutils.Quaternion(self.axis_angle[:3], self.axis_angle[3])
