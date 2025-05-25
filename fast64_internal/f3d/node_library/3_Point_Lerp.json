@@ -1362,7 +1362,6 @@
 			"inputs": {
 				"0": {
 					"name": "Fac",
-					"default_value": 0.0,
 					"enabled": true
 				},
 				"1": {
@@ -3774,7 +3773,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "6973d68d8965dab9bc32aa2bfda3fa53",
+	"cached_hash": "d6bf7db9e7fa0b94e53cb87a376d2d0f",
 	"bpy_ver": [
 		3,
 		2,

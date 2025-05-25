@@ -154,7 +154,6 @@
 				},
 				"4": {
 					"name": "Roughness",
-					"default_value": 0.0,
 					"enabled": true
 				},
 				"5": {
@@ -363,7 +362,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "4639785cd5aa78b01952b8846680edfd",
+	"cached_hash": "33d0bada35617e673b9b678cbb39c96b",
 	"bpy_ver": [
 		3,
 		2,
