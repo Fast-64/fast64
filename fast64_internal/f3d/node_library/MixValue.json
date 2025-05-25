@@ -7,17 +7,11 @@
 				-357.5402,
 				0.0
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Fac",
 					"default_value": 0.5,
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.004",
@@ -28,7 +22,6 @@
 				"1": {
 					"name": "Input0",
 					"default_value": 0.5,
-					"enabled": true,
 					"hide_value": true,
 					"links": [
 						{
@@ -44,7 +37,6 @@
 				"2": {
 					"name": "Input1",
 					"default_value": 0.5,
-					"enabled": true,
 					"hide_value": true,
 					"links": [
 						{
@@ -52,10 +44,6 @@
 							"index": 0
 						}
 					]
-				},
-				"3": {
-					"name": "",
-					"enabled": true
 				}
 			}
 		},
@@ -65,28 +53,22 @@
 				-76.1189,
 				43.4761
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "SUBTRACT",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
-				"2": {}
+				"2": {
+					"enabled": false
+				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.004",
@@ -102,30 +84,20 @@
 				171.8792,
 				90.9843
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "MULTIPLY_ADD",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
-				"2": {
-					"enabled": true
-				}
+				"2": {}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -141,21 +113,13 @@
 				343.5534,
 				90.1504
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"is_active_output": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Value",
-					"enabled": true
+					"name": "Value"
 				},
 				"1": {
-					"name": "",
-					"enabled": true
+					"name": ""
 				}
 			}
 		}
@@ -193,7 +157,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "4fa79921d9fed377a50a433fe19e633b",
+	"cached_hash": "5cbdfd586967d0adee6372794412ab6d",
 	"bpy_ver": [
 		3,
 		2,

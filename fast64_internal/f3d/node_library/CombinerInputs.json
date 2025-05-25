@@ -7,11 +7,6 @@
 				53.0663,
 				374.1952
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
@@ -22,7 +17,6 @@
 						0.02971581742167473,
 						0.19903472065925598
 					],
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -32,7 +26,6 @@
 				},
 				"1": {
 					"name": "Env Alpha",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -48,7 +41,6 @@
 						1.0,
 						1.0
 					],
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -58,7 +50,6 @@
 				},
 				"3": {
 					"name": "Prim Alpha",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -74,7 +65,6 @@
 						0.0,
 						1.0
 					],
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -90,7 +80,6 @@
 						0.0,
 						1.0
 					],
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -100,7 +89,6 @@
 				},
 				"6": {
 					"name": "LOD Fraction",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -110,7 +98,6 @@
 				},
 				"7": {
 					"name": "Prim LOD Fraction",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -120,7 +107,6 @@
 				},
 				"8": {
 					"name": "YUVConvert K4",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -130,7 +116,6 @@
 				},
 				"9": {
 					"name": "YUVConvert K5",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -140,17 +125,12 @@
 				},
 				"10": {
 					"name": "Noise Factor",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group",
 							"index": 0
 						}
 					]
-				},
-				"11": {
-					"name": "",
-					"enabled": true
 				}
 			}
 		},
@@ -160,11 +140,6 @@
 				234.4492,
 				125.974
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"node_tree": {
 				"serialized_type": "NodeTree",
 				"name": "F3DNoiseGeneration"
@@ -172,14 +147,12 @@
 			"width": 204.65713500976562,
 			"inputs": {
 				"0": {
-					"name": "RandomizationFactor",
-					"enabled": true
+					"name": "RandomizationFactor"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Noise",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -195,35 +168,24 @@
 				488.1629,
 				395.6433
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"is_active_output": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "1",
 					"default_value": 1.0,
-					"enabled": true,
 					"hide_value": true
 				},
 				"1": {
-					"name": "Env Color",
-					"enabled": true
+					"name": "Env Color"
 				},
 				"2": {
-					"name": "Env Alpha",
-					"enabled": true
+					"name": "Env Alpha"
 				},
 				"3": {
-					"name": "Prim Color",
-					"enabled": true
+					"name": "Prim Color"
 				},
 				"4": {
-					"name": "Prim Alpha",
-					"enabled": true
+					"name": "Prim Alpha"
 				},
 				"5": {
 					"name": "Chroma Key Center",
@@ -232,8 +194,7 @@
 						0.0,
 						0.0,
 						1.0
-					],
-					"enabled": true
+					]
 				},
 				"6": {
 					"name": "Chroma Key Scale",
@@ -242,32 +203,25 @@
 						0.0,
 						0.0,
 						1.0
-					],
-					"enabled": true
+					]
 				},
 				"7": {
-					"name": "LOD Fraction",
-					"enabled": true
+					"name": "LOD Fraction"
 				},
 				"8": {
-					"name": "Prim LOD Fraction",
-					"enabled": true
+					"name": "Prim LOD Fraction"
 				},
 				"9": {
-					"name": "YUVConvert K4",
-					"enabled": true
+					"name": "YUVConvert K4"
 				},
 				"10": {
-					"name": "YUVConvert K5",
-					"enabled": true
+					"name": "YUVConvert K5"
 				},
 				"11": {
-					"name": "Noise",
-					"enabled": true
+					"name": "Noise"
 				},
 				"12": {
-					"name": "",
-					"enabled": true
+					"name": ""
 				}
 			}
 		}
@@ -412,7 +366,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "a2c0647932e55410275970d3ab8c6c70",
+	"cached_hash": "dae3d48c3f7b9bf3a5bd44a9836026f4",
 	"bpy_ver": [
 		3,
 		2,

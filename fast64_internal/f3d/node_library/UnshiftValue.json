@@ -7,16 +7,10 @@
 				-313.9069,
 				0.0
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Shift",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.017",
@@ -27,17 +21,12 @@
 				"1": {
 					"name": "Value",
 					"default_value": 0.5,
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.001",
 							"index": 1
 						}
 					]
-				},
-				"2": {
-					"name": "",
-					"enabled": true
 				}
 			}
 		},
@@ -47,31 +36,23 @@
 				-95.8656,
 				-29.4316
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"hide": true,
-			"operation": "MULTIPLY",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": -1.0,
-					"enabled": true
+					"default_value": -1.0
 				},
 				"2": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.001",
@@ -87,11 +68,6 @@
 				83.1698,
 				6.0405
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"node_tree": {
 				"serialized_type": "NodeTree",
 				"name": "ShiftValue"
@@ -99,19 +75,16 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Shift",
-					"enabled": true
+					"name": "Shift"
 				},
 				"1": {
 					"name": "Value",
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -127,21 +100,13 @@
 				245.7738,
 				6.0149
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"is_active_output": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Value",
-					"enabled": true
+					"name": "Value"
 				},
 				"1": {
-					"name": "",
-					"enabled": true
+					"name": ""
 				}
 			}
 		}
@@ -167,7 +132,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "2120a02934b7d6243f8fb91f5d11e741",
+	"cached_hash": "a69a3e9037f6e075a3d4f90649bedb3e",
 	"bpy_ver": [
 		3,
 		2,

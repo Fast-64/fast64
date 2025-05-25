@@ -7,11 +7,6 @@
 				-70.8038,
 				44.7347
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"node_tree": {
 				"serialized_type": "NodeTree",
 				"name": "Gamma Correct Value"
@@ -19,14 +14,12 @@
 			"width": 213.19033813476562,
 			"inputs": {
 				"0": {
-					"name": "Non-Corrected Value",
-					"enabled": true
+					"name": "Non-Corrected Value"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Gamma Corrected Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Combine RGB",
@@ -42,30 +35,21 @@
 				312.6501,
 				61.278
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "R",
-					"enabled": true
+					"name": "R"
 				},
 				"1": {
-					"name": "G",
-					"enabled": true
+					"name": "G"
 				},
 				"2": {
-					"name": "B",
-					"enabled": true
+					"name": "B"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Image",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -81,11 +65,6 @@
 				-70.8038,
 				-75.2653
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"node_tree": {
 				"serialized_type": "NodeTree",
 				"name": "Gamma Correct Value"
@@ -93,14 +72,12 @@
 			"width": 213.19033813476562,
 			"inputs": {
 				"0": {
-					"name": "Non-Corrected Value",
-					"enabled": true
+					"name": "Non-Corrected Value"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Gamma Corrected Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Combine RGB",
@@ -116,11 +93,6 @@
 				-352.4275,
 				61.278
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -130,14 +102,12 @@
 						0.800000011920929,
 						0.800000011920929,
 						1.0
-					],
-					"enabled": true
+					]
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "R",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group",
@@ -147,7 +117,6 @@
 				},
 				"1": {
 					"name": "G",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.001",
@@ -157,7 +126,6 @@
 				},
 				"2": {
 					"name": "B",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.002",
@@ -173,21 +141,13 @@
 				478.4247,
 				61.4522
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"is_active_output": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Corrected Color",
-					"enabled": true
+					"name": "Corrected Color"
 				},
 				"1": {
-					"name": "",
-					"enabled": true
+					"name": ""
 				}
 			}
 		},
@@ -196,11 +156,6 @@
 			"location": [
 				-520.4017,
 				-7.3613
-			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
 			],
 			"width": 140.0,
 			"outputs": {
@@ -212,17 +167,12 @@
 						0.800000011920929,
 						1.0
 					],
-					"enabled": true,
 					"links": [
 						{
 							"node": "Separate RGB",
 							"index": 0
 						}
 					]
-				},
-				"1": {
-					"name": "",
-					"enabled": true
 				}
 			}
 		},
@@ -232,11 +182,6 @@
 				-70.8038,
 				164.7347
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"node_tree": {
 				"serialized_type": "NodeTree",
 				"name": "Gamma Correct Value"
@@ -244,14 +189,12 @@
 			"width": 213.19033813476562,
 			"inputs": {
 				"0": {
-					"name": "Non-Corrected Value",
-					"enabled": true
+					"name": "Non-Corrected Value"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Gamma Corrected Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Combine RGB",
@@ -280,7 +223,7 @@
 			"bl_idname": "NodeSocketColor"
 		}
 	],
-	"cached_hash": "ca4022acfce2ed7f50f435ab6b1b5561",
+	"cached_hash": "4bd287591225b73f30ad3e58b87812a2",
 	"bpy_ver": [
 		3,
 		2,

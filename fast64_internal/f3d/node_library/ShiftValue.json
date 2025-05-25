@@ -7,31 +7,23 @@
 				-10.3302,
 				121.1825
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"operation": "MULTIPLY",
 			"width": 140.0,
 			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"2": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -47,31 +39,24 @@
 				-188.5537,
 				143.354
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "POWER",
 			"width": 140.0,
 			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
-					"default_value": 2.0,
-					"enabled": true
+					"default_value": 2.0
 				},
 				"1": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"2": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.032",
@@ -87,21 +72,13 @@
 				158.184,
 				121.1253
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"is_active_output": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Value",
-					"enabled": true
+					"name": "Value"
 				},
 				"1": {
-					"name": "",
-					"enabled": true
+					"name": ""
 				}
 			}
 		},
@@ -111,16 +88,10 @@
 				-369.6805,
 				42.9698
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Shift",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.025",
@@ -131,17 +102,12 @@
 				"1": {
 					"name": "Value",
 					"default_value": 0.5,
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.032",
 							"index": 1
 						}
 					]
-				},
-				"2": {
-					"name": "",
-					"enabled": true
 				}
 			}
 		}
@@ -167,7 +133,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "b9a91216013e12bc1a13e2a38460e6c0",
+	"cached_hash": "c89c380e4499acb73d7138537821dee7",
 	"bpy_ver": [
 		3,
 		2,

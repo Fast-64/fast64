@@ -7,18 +7,8 @@
 				-541.8596,
 				0.0
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
-			"outputs": {
-				"0": {
-					"name": "",
-					"enabled": true
-				}
-			}
+			"outputs": {}
 		},
 		"Group Output": {
 			"bl_idname": "NodeGroupOutput",
@@ -26,21 +16,13 @@
 				63.28,
 				0.0
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"is_active_output": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Noise Factor",
-					"enabled": true
+					"name": "Noise Factor"
 				},
 				"1": {
-					"name": "",
-					"enabled": true
+					"name": ""
 				}
 			}
 		},
@@ -50,16 +32,10 @@
 				-122.0168,
 				-0.6306
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -76,7 +52,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "6a1a9c828df1798131f56e8e70be1f0d",
+	"cached_hash": "bbc050a0d4f960ffb4ff0d59ca7cf28d",
 	"bpy_ver": [
 		3,
 		2,

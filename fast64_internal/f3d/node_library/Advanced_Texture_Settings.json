@@ -7,22 +7,14 @@
 				-108.6897,
 				-41.7827
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.005",
@@ -38,22 +30,14 @@
 				-108.6895,
 				156.6045
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.002",
@@ -69,30 +53,21 @@
 				340.6651,
 				284.262
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "X",
-					"enabled": true
+					"name": "X"
 				},
 				"1": {
-					"name": "Y",
-					"enabled": true
+					"name": "Y"
 				},
 				"2": {
-					"name": "Z",
-					"enabled": true
+					"name": "Z"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -108,21 +83,13 @@
 				497.1576,
 				284.2268
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"is_active_output": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "UV",
-					"enabled": true
+					"name": "UV"
 				},
 				"1": {
-					"name": "",
-					"enabled": true
+					"name": ""
 				}
 			}
 		},
@@ -132,22 +99,14 @@
 				315.9451,
 				202.6528
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Combine XYZ",
@@ -163,22 +122,14 @@
 				315.9451,
 				225.0103
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Combine XYZ",
@@ -194,22 +145,14 @@
 				315.9452,
 				90.3626
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.026",
@@ -225,11 +168,6 @@
 				-86.1416,
 				461.9084
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"node_tree": {
 				"serialized_type": "NodeTree",
 				"name": "TileSettings"
@@ -238,45 +176,36 @@
 			"inputs": {
 				"0": {
 					"name": "Tex Coordinate",
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"name": "Shift",
-					"enabled": true
+					"name": "Shift"
 				},
 				"2": {
 					"name": "Low",
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"3": {
 					"name": "High",
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"4": {
-					"name": "Mask",
-					"enabled": true
+					"name": "Mask"
 				},
 				"5": {
 					"name": "Tex Size",
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"6": {
-					"name": "Clamp",
-					"enabled": true
+					"name": "Clamp"
 				},
 				"7": {
-					"name": "Mirror",
-					"enabled": true
+					"name": "Mirror"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "UV Coord",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.027",
@@ -292,16 +221,10 @@
 				-764.3581,
 				406.4136
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "X",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.006",
@@ -311,7 +234,6 @@
 				},
 				"1": {
 					"name": "S Shift",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.006",
@@ -321,7 +243,6 @@
 				},
 				"2": {
 					"name": "S Low",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.006",
@@ -331,7 +252,6 @@
 				},
 				"3": {
 					"name": "S High",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.006",
@@ -341,7 +261,6 @@
 				},
 				"4": {
 					"name": "S Mask",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.006",
@@ -351,7 +270,6 @@
 				},
 				"5": {
 					"name": "S TexSize",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.006",
@@ -361,7 +279,6 @@
 				},
 				"6": {
 					"name": "S Clamp",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.006",
@@ -371,7 +288,6 @@
 				},
 				"7": {
 					"name": "S Mirror",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.006",
@@ -381,7 +297,6 @@
 				},
 				"8": {
 					"name": "Y",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.001",
@@ -391,7 +306,6 @@
 				},
 				"9": {
 					"name": "T Shift",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.005",
@@ -401,7 +315,6 @@
 				},
 				"10": {
 					"name": "T Low",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.005",
@@ -411,7 +324,6 @@
 				},
 				"11": {
 					"name": "T High",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.005",
@@ -421,7 +333,6 @@
 				},
 				"12": {
 					"name": "T Mask",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.005",
@@ -431,7 +342,6 @@
 				},
 				"13": {
 					"name": "T TexSize",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.005",
@@ -441,7 +351,6 @@
 				},
 				"14": {
 					"name": "T Clamp",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.005",
@@ -451,17 +360,12 @@
 				},
 				"15": {
 					"name": "T Mirror",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.005",
 							"index": 7
 						}
 					]
-				},
-				"16": {
-					"name": "",
-					"enabled": true
 				}
 			}
 		},
@@ -471,30 +375,22 @@
 				146.7432,
 				125.5951
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"operation": "MULTIPLY",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": -1.0,
-					"enabled": true
+					"default_value": -1.0
 				},
 				"1": {
-					"default_value": -1.0,
-					"enabled": true
+					"default_value": -1.0
 				},
 				"2": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.003",
@@ -510,31 +406,22 @@
 				-279.6339,
 				189.7226
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "MULTIPLY_ADD",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": -1.0,
-					"enabled": true
+					"default_value": -1.0
 				},
 				"2": {
-					"default_value": 1.0,
-					"enabled": true
+					"default_value": 1.0
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute",
@@ -550,22 +437,14 @@
 				-427.7146,
 				196.3708
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.004",
@@ -581,11 +460,6 @@
 				-83.7871,
 				46.4641
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"node_tree": {
 				"serialized_type": "NodeTree",
 				"name": "TileSettings"
@@ -594,45 +468,36 @@
 			"inputs": {
 				"0": {
 					"name": "Tex Coordinate",
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"name": "Shift",
-					"enabled": true
+					"name": "Shift"
 				},
 				"2": {
 					"name": "Low",
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"3": {
 					"name": "High",
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"4": {
-					"name": "Mask",
-					"enabled": true
+					"name": "Mask"
 				},
 				"5": {
 					"name": "Tex Size",
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"6": {
-					"name": "Clamp",
-					"enabled": true
+					"name": "Clamp"
 				},
 				"7": {
-					"name": "Mirror",
-					"enabled": true
+					"name": "Mirror"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "UV Coord",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.001",
@@ -727,7 +592,7 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "4853c4f25b5113a580ed3e26b65a9c1c",
+	"cached_hash": "ee95ba246706b8b6500ebfc0b55dd179",
 	"bpy_ver": [
 		3,
 		2,

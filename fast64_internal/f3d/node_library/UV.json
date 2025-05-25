@@ -7,22 +7,14 @@
 				360.8631,
 				0.0
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"is_active_output": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"hide_value": true
 				},
 				"1": {
-					"name": "",
-					"enabled": true
+					"name": ""
 				}
 			}
 		},
@@ -32,18 +24,12 @@
 				134.5782,
 				12.0172
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"from_instancer": false,
 			"uv_map": "",
 			"width": 150.0,
 			"outputs": {
 				"0": {
 					"name": "UV",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -63,7 +49,7 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "47c9a480ff807c450a9b9af8791af89b",
+	"cached_hash": "b286d1498567ee52d261a0ef8adbc088",
 	"bpy_ver": [
 		3,
 		2,

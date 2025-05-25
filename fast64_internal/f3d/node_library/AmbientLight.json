@@ -7,35 +7,34 @@
 				-10.621,
 				53.1117
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "SCALE",
 			"width": 140.0,
 			"inputs": {
-				"0": {
-					"enabled": true
+				"0": {},
+				"1": {
+					"enabled": false
 				},
-				"1": {},
-				"2": {},
+				"2": {
+					"enabled": false
+				},
 				"3": {
 					"name": "Scale",
-					"default_value": 1.0,
-					"enabled": true
+					"default_value": 1.0
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
 							"index": 0
 						}
 					]
+				},
+				"1": {
+					"name": "Value",
+					"enabled": false
 				}
 			}
 		},
@@ -44,11 +43,6 @@
 			"location": [
 				-200.0,
 				0.0
-			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
 			],
 			"width": 140.0,
 			"outputs": {
@@ -60,7 +54,6 @@
 						0.0,
 						1.0
 					],
-					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.003",
@@ -70,7 +63,6 @@
 				},
 				"1": {
 					"name": "AO Ambient Factor",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.003",
@@ -81,10 +73,6 @@
 							"index": 3
 						}
 					]
-				},
-				"2": {
-					"name": "",
-					"enabled": true
 				}
 			}
 		},
@@ -94,21 +82,13 @@
 				183.8044,
 				54.8822
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"is_active_output": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Light Level",
-					"enabled": true
+					"name": "Light Level"
 				},
 				"1": {
-					"name": "",
-					"enabled": true
+					"name": ""
 				}
 			}
 		}
@@ -135,7 +115,7 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "815428ebe2c41cd6046e528a33d59e80",
+	"cached_hash": "6a47f7a76bf251f0c8ea48c93dbc8835",
 	"bpy_ver": [
 		3,
 		2,

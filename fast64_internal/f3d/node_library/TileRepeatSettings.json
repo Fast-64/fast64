@@ -7,30 +7,21 @@
 				1419.4938,
 				156.8046
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "X",
-					"enabled": true
+					"name": "X"
 				},
 				"1": {
-					"name": "Y",
-					"enabled": true
+					"name": "Y"
 				},
 				"2": {
-					"name": "Z",
-					"enabled": true
+					"name": "Z"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -46,28 +37,22 @@
 				453.1531,
 				-12.2871
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "PINGPONG",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 1.0,
-					"enabled": true
+					"default_value": 1.0
 				},
-				"2": {}
+				"2": {
+					"enabled": false
+				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.002",
@@ -83,27 +68,20 @@
 				-101.5424,
 				-25.3512
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "MAXIMUM",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
-				"1": {
-					"enabled": true
-				},
-				"2": {}
+				"1": {},
+				"2": {
+					"enabled": false
+				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.004",
@@ -119,23 +97,15 @@
 				-262.2361,
 				-295.0883
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"label": "Y",
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.003",
@@ -155,39 +125,26 @@
 				265.99,
 				-186.3034
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"node_tree": {
-				"serialized_type": "NodeTree",
-				"name": "MixValue"
-			},
 			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
 					"name": "Input0",
 					"default_value": 0.5,
-					"enabled": true,
 					"hide_value": true
 				},
 				"2": {
 					"name": "Input1",
 					"default_value": 0.5,
-					"enabled": true,
 					"hide_value": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.002",
@@ -207,39 +164,26 @@
 				630.3589,
 				-186.3034
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"node_tree": {
-				"serialized_type": "NodeTree",
-				"name": "MixValue"
-			},
 			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
 					"name": "Input0",
 					"default_value": 0.5,
-					"enabled": true,
 					"hide_value": true
 				},
 				"2": {
 					"name": "Input1",
 					"default_value": 0.5,
-					"enabled": true,
 					"hide_value": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Combine XYZ",
@@ -255,21 +199,13 @@
 				1620.3417,
 				147.1939
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"is_active_output": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Vector",
-					"enabled": true
+					"name": "Vector"
 				},
 				"1": {
-					"name": "",
-					"enabled": true
+					"name": ""
 				}
 			}
 		},
@@ -279,28 +215,22 @@
 				55.0337,
 				-25.3512
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "MINIMUM",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 0.9998999834060669,
-					"enabled": true
+					"default_value": 0.9998999834060669
 				},
-				"2": {}
+				"2": {
+					"enabled": false
+				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.003",
@@ -316,23 +246,15 @@
 				-262.2361,
 				88.3516
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"label": "Y",
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.002",
@@ -348,30 +270,23 @@
 				43.0973,
 				575.1196
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "ADD",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"2": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.003",
@@ -387,23 +302,15 @@
 				-262.2361,
 				170.7375
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"label": "X",
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.006",
@@ -423,29 +330,24 @@
 				-176.9027,
 				395.8094
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "FLOOR",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": false
 				},
 				"2": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.007",
@@ -461,30 +363,20 @@
 				-269.8411,
 				610.2584
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "WRAP",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
-				"2": {
-					"enabled": true
-				}
+				"2": {}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.007",
@@ -500,23 +392,15 @@
 				306.9469,
 				385.2227
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"label": "X",
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math",
@@ -536,16 +420,10 @@
 				-497.9263,
 				50.5328
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "X",
-					"enabled": true,
 					"hide_value": true,
 					"links": [
 						{
@@ -556,7 +434,6 @@
 				},
 				"1": {
 					"name": "Y",
-					"enabled": true,
 					"hide_value": true,
 					"links": [
 						{
@@ -567,7 +444,6 @@
 				},
 				"2": {
 					"name": "ClampX",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group",
@@ -577,7 +453,6 @@
 				},
 				"3": {
 					"name": "ClampY",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.003",
@@ -587,7 +462,6 @@
 				},
 				"4": {
 					"name": "MirrorX",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.001",
@@ -597,7 +471,6 @@
 				},
 				"5": {
 					"name": "MirrorY",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.002",
@@ -607,7 +480,6 @@
 				},
 				"6": {
 					"name": "XHigh",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.002",
@@ -617,25 +489,12 @@
 				},
 				"7": {
 					"name": "YHigh",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.004",
 							"index": 1
 						}
 					]
-				},
-				"8": {
-					"name": "MaskX",
-					"enabled": true
-				},
-				"9": {
-					"name": "MaskY",
-					"enabled": true
-				},
-				"10": {
-					"name": "",
-					"enabled": true
 				}
 			}
 		},
@@ -645,27 +504,20 @@
 				408.5739,
 				785.7515
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "MAXIMUM",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
-				"1": {
-					"enabled": true
-				},
-				"2": {}
+				"1": {},
+				"2": {
+					"enabled": false
+				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.002",
@@ -681,39 +533,26 @@
 				1140.4752,
 				624.7993
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"node_tree": {
-				"serialized_type": "NodeTree",
-				"name": "MixValue"
-			},
 			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
 					"name": "Input0",
 					"default_value": 0.5,
-					"enabled": true,
 					"hide_value": true
 				},
 				"2": {
 					"name": "Input1",
 					"default_value": 0.5,
-					"enabled": true,
 					"hide_value": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Combine XYZ",
@@ -729,28 +568,22 @@
 				580.5505,
 				710.9398
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "MINIMUM",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 0.9998999834060669,
-					"enabled": true
+					"default_value": 0.9998999834060669
 				},
-				"2": {}
+				"2": {
+					"enabled": false
+				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group",
@@ -766,28 +599,22 @@
 				963.2695,
 				798.8156
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "PINGPONG",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 1.0,
-					"enabled": true
+					"default_value": 1.0
 				},
-				"2": {}
+				"2": {
+					"enabled": false
+				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.001",
@@ -803,39 +630,26 @@
 				776.1063,
 				624.7993
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"node_tree": {
-				"serialized_type": "NodeTree",
-				"name": "MixValue"
-			},
 			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
 					"name": "Input0",
 					"default_value": 0.5,
-					"enabled": true,
 					"hide_value": true
 				},
 				"2": {
 					"name": "Input1",
 					"default_value": 0.5,
-					"enabled": true,
 					"hide_value": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.001",
@@ -919,7 +733,7 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "06b6cfa23e1b5d41ad6b48cd05c28761",
+	"cached_hash": "b8e9655e05082071c97ba9ca55b8c71d",
 	"bpy_ver": [
 		3,
 		2,

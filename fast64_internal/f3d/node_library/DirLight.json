@@ -7,22 +7,14 @@
 				-163.1675,
 				6.8741
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.004",
@@ -38,22 +30,14 @@
 				-152.4481,
 				165.3704
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.002",
@@ -69,22 +53,14 @@
 				9.9973,
 				-60.7543
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.006",
@@ -100,32 +76,29 @@
 				-172.6133,
 				-63.2969
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"hide": true,
 			"label": "Normal * Lt Dir",
 			"operation": "DOT_PRODUCT",
 			"width": 140.0,
 			"inputs": {
-				"0": {
-					"enabled": true
+				"0": {},
+				"1": {},
+				"2": {
+					"enabled": false
 				},
-				"1": {
-					"enabled": true
-				},
-				"2": {},
 				"3": {
 					"name": "Scale",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": false
 				}
 			},
 			"outputs": {
+				"0": {
+					"name": "Vector",
+					"enabled": false
+				},
 				"1": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.005",
@@ -145,22 +118,14 @@
 				195.3546,
 				-15.8926
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.008",
@@ -176,22 +141,14 @@
 				201.4413,
 				-236.6227
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.001",
@@ -207,30 +164,23 @@
 				28.9572,
 				-98.891
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "SUBTRACT",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 1.0,
-					"enabled": true
+					"default_value": 1.0
 				},
 				"1": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"2": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.001",
@@ -246,30 +196,23 @@
 				411.3172,
 				-98.891
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "SUBTRACT",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 1.0,
-					"enabled": true
+					"default_value": 1.0
 				},
 				"1": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"2": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group",
@@ -285,38 +228,31 @@
 				963.5615,
 				68.4655
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "MULTIPLY_ADD",
 			"width": 140.0,
 			"inputs": {
-				"0": {
-					"enabled": true
-				},
-				"1": {
-					"enabled": true
-				},
-				"2": {
-					"enabled": true
-				},
+				"0": {},
+				"1": {},
+				"2": {},
 				"3": {
 					"name": "Scale",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
 							"index": 0
 						}
 					]
+				},
+				"1": {
+					"name": "Value",
+					"enabled": false
 				}
 			}
 		},
@@ -326,22 +262,14 @@
 				938.1433,
 				-68.3264
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math",
@@ -357,22 +285,14 @@
 				935.6873,
 				165.4883
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.001",
@@ -388,39 +308,26 @@
 				590.7126,
 				-11.1313
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"node_tree": {
-				"serialized_type": "NodeTree",
-				"name": "MixValue"
-			},
 			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
 					"name": "Input0",
 					"default_value": 0.5,
-					"enabled": true,
 					"hide_value": true
 				},
 				"2": {
 					"name": "Input1",
 					"default_value": 0.5,
-					"enabled": true,
 					"hide_value": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Clamp",
@@ -436,35 +343,34 @@
 				754.5358,
 				121.1166
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "SCALE",
 			"width": 140.0,
 			"inputs": {
-				"0": {
-					"enabled": true
+				"0": {},
+				"1": {
+					"enabled": false
 				},
-				"1": {},
-				"2": {},
+				"2": {
+					"enabled": false
+				},
 				"3": {
 					"name": "Scale",
-					"default_value": 1.0,
-					"enabled": true
+					"default_value": 1.0
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math",
 							"index": 0
 						}
 					]
+				},
+				"1": {
+					"name": "Value",
+					"enabled": false
 				}
 			}
 		},
@@ -474,34 +380,24 @@
 				762.7416,
 				-46.7075
 			],
-			"clamp_type": "MINMAX",
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"hide": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Value",
-					"default_value": 1.0,
-					"enabled": true
+					"default_value": 1.0
 				},
 				"1": {
-					"name": "Min",
-					"enabled": true
+					"name": "Min"
 				},
 				"2": {
 					"name": "Max",
-					"default_value": 1.0,
-					"enabled": true
+					"default_value": 1.0
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Result",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math",
@@ -517,21 +413,13 @@
 				1134.9746,
 				68.2318
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"is_active_output": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Light Level",
-					"enabled": true
+					"name": "Light Level"
 				},
 				"1": {
-					"name": "",
-					"enabled": true
+					"name": ""
 				}
 			}
 		},
@@ -541,22 +429,14 @@
 				567.6533,
 				-38.983
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group",
@@ -572,22 +452,14 @@
 				555.4879,
 				-61.5748
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group",
@@ -603,30 +475,22 @@
 				224.5627,
 				-98.891
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"operation": "MULTIPLY",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"2": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.002",
@@ -642,16 +506,10 @@
 				-358.9695,
 				85.8641
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 149.30996704101562,
 			"outputs": {
 				"0": {
 					"name": "Light Level",
-					"enabled": true,
 					"hide_value": true,
 					"links": [
 						{
@@ -668,7 +526,6 @@
 						0.0,
 						1.0
 					],
-					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.004",
@@ -678,7 +535,6 @@
 				},
 				"2": {
 					"name": "Light Direction",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.001",
@@ -688,7 +544,6 @@
 				},
 				"3": {
 					"name": "Light Spec Size",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.007",
@@ -699,7 +554,6 @@
 				"4": {
 					"name": "G_LIGHTING_SPECULAR",
 					"default_value": 1,
-					"enabled": true,
 					"hide_value": true,
 					"links": [
 						{
@@ -710,7 +564,6 @@
 				},
 				"5": {
 					"name": "AO Dir Factor",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.003",
@@ -720,17 +573,12 @@
 				},
 				"6": {
 					"name": "Normal",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.001",
 							"index": 1
 						}
 					]
-				},
-				"7": {
-					"name": "",
-					"enabled": true
 				}
 			}
 		}
@@ -789,7 +637,7 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "f1239684087457385b45f158410ff8a3",
+	"cached_hash": "04fb6978e5fa6985e87c981bf1db8511",
 	"bpy_ver": [
 		3,
 		2,

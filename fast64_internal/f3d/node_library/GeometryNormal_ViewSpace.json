@@ -7,18 +7,8 @@
 				-465.6282,
 				0.0
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
-			"outputs": {
-				"0": {
-					"name": "",
-					"enabled": true
-				}
-			}
+			"outputs": {}
 		},
 		"Vector Transform": {
 			"bl_idname": "ShaderNodeVectorTransform",
@@ -26,13 +16,6 @@
 				-59.7403,
 				17.7791
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"convert_from": "WORLD",
-			"convert_to": "CAMERA",
 			"vector_type": "NORMAL",
 			"width": 140.0,
 			"inputs": {
@@ -42,14 +25,12 @@
 						0.5,
 						0.5,
 						0.5
-					],
-					"enabled": true
+					]
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Rotate",
@@ -65,42 +46,39 @@
 				290.8167,
 				-24.8058
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"hide": true,
-			"operation": "MULTIPLY",
 			"width": 140.0,
 			"inputs": {
-				"0": {
-					"enabled": true
-				},
+				"0": {},
 				"1": {
 					"default_value": [
 						1.0,
 						1.0,
 						-1.0
-					],
-					"enabled": true
+					]
 				},
-				"2": {},
+				"2": {
+					"enabled": false
+				},
 				"3": {
 					"name": "Scale",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
 							"index": 0
 						}
 					]
+				},
+				"1": {
+					"name": "Value",
+					"enabled": false
 				}
 			}
 		},
@@ -110,24 +88,15 @@
 				114.5955,
 				-17.5179
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"hide": true,
-			"invert": false,
-			"rotation_type": "X_AXIS",
 			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"hide_value": true
 				},
 				"1": {
-					"name": "Center",
-					"enabled": true
+					"name": "Center"
 				},
 				"2": {
 					"name": "Axis",
@@ -135,12 +104,12 @@
 						1.0,
 						0.0,
 						0.0
-					]
+					],
+					"enabled": false
 				},
 				"3": {
 					"name": "Angle",
-					"default_value": -1.5707963705062866,
-					"enabled": true
+					"default_value": -1.5707963705062866
 				},
 				"4": {
 					"name": "Rotation",
@@ -148,13 +117,13 @@
 						0.0,
 						0.0,
 						0.0
-					]
+					],
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.002",
@@ -170,13 +139,6 @@
 				-58.9216,
 				-151.7115
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"convert_from": "WORLD",
-			"convert_to": "CAMERA",
 			"vector_type": "NORMAL",
 			"width": 140.0,
 			"inputs": {
@@ -186,14 +148,12 @@
 						0.5,
 						0.5,
 						0.5
-					],
-					"enabled": true
+					]
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Rotate.001",
@@ -209,42 +169,39 @@
 				291.6354,
 				-194.2964
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"hide": true,
-			"operation": "MULTIPLY",
 			"width": 140.0,
 			"inputs": {
-				"0": {
-					"enabled": true
-				},
+				"0": {},
 				"1": {
 					"default_value": [
 						1.0,
 						1.0,
 						-1.0
-					],
-					"enabled": true
+					]
 				},
-				"2": {},
+				"2": {
+					"enabled": false
+				},
 				"3": {
 					"name": "Scale",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
 							"index": 1
 						}
 					]
+				},
+				"1": {
+					"name": "Value",
+					"enabled": false
 				}
 			}
 		},
@@ -254,24 +211,15 @@
 				115.4142,
 				-187.0085
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"hide": true,
-			"invert": false,
-			"rotation_type": "X_AXIS",
 			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"hide_value": true
 				},
 				"1": {
-					"name": "Center",
-					"enabled": true
+					"name": "Center"
 				},
 				"2": {
 					"name": "Axis",
@@ -279,12 +227,12 @@
 						1.0,
 						0.0,
 						0.0
-					]
+					],
+					"enabled": false
 				},
 				"3": {
 					"name": "Angle",
-					"default_value": -1.5707963705062866,
-					"enabled": true
+					"default_value": -1.5707963705062866
 				},
 				"4": {
 					"name": "Rotation",
@@ -292,13 +240,13 @@
 						0.0,
 						0.0,
 						0.0
-					]
+					],
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.003",
@@ -314,20 +262,10 @@
 				-243.9189,
 				-120.1613
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"outputs": {
-				"0": {
-					"name": "Position",
-					"enabled": true
-				},
 				"1": {
 					"name": "Normal",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Transform",
@@ -335,39 +273,14 @@
 						}
 					]
 				},
-				"2": {
-					"name": "Tangent",
-					"enabled": true
-				},
-				"3": {
-					"name": "True Normal",
-					"enabled": true
-				},
 				"4": {
 					"name": "Incoming",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Transform.001",
 							"index": 0
 						}
 					]
-				},
-				"5": {
-					"name": "Parametric",
-					"enabled": true
-				},
-				"6": {
-					"name": "Backfacing",
-					"enabled": true
-				},
-				"7": {
-					"name": "Pointiness",
-					"enabled": true
-				},
-				"8": {
-					"name": "Random Per Island",
-					"enabled": true
 				}
 			}
 		},
@@ -377,25 +290,16 @@
 				477.7317,
 				-59.772
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"is_active_output": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Normal",
-					"enabled": true
+					"name": "Normal"
 				},
 				"1": {
-					"name": "Incoming",
-					"enabled": true
+					"name": "Incoming"
 				},
 				"2": {
-					"name": "",
-					"enabled": true
+					"name": ""
 				}
 			}
 		}
@@ -410,7 +314,7 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "645c3de7c18f9f290b70b02472161a2b",
+	"cached_hash": "0878f151e932bbfde898990b7b7066d4",
 	"bpy_ver": [
 		3,
 		2,

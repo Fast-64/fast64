@@ -7,31 +7,22 @@
 				-323.8419,
 				24.5723
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"label": "Combine XY",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "X",
-					"enabled": true
+					"name": "X"
 				},
 				"1": {
-					"name": "Y",
-					"enabled": true
+					"name": "Y"
 				},
 				"2": {
-					"name": "Z",
-					"enabled": true
+					"name": "Z"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.001",
@@ -47,41 +38,38 @@
 				-150.32,
 				80.3419
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"operation": "MULTIPLY",
 			"width": 140.0,
 			"inputs": {
-				"0": {
-					"enabled": true
-				},
+				"0": {},
 				"1": {
 					"default_value": [
 						-1.0,
 						1.0,
 						1.0
-					],
-					"enabled": true
+					]
 				},
-				"2": {},
+				"2": {
+					"enabled": false
+				},
 				"3": {
 					"name": "Scale",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math",
 							"index": 1
 						}
 					]
+				},
+				"1": {
+					"name": "Value",
+					"enabled": false
 				}
 			}
 		},
@@ -91,37 +79,33 @@
 				296.125,
 				-10.2964
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"label": "ShiftIfEnabled",
-			"operation": "MULTIPLY",
 			"width": 140.0,
 			"inputs": {
-				"0": {
-					"enabled": true
+				"0": {},
+				"1": {},
+				"2": {
+					"enabled": false
 				},
-				"1": {
-					"enabled": true
-				},
-				"2": {},
 				"3": {
 					"name": "Scale",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.003",
 							"index": 1
 						}
 					]
+				},
+				"1": {
+					"name": "Value",
+					"enabled": false
 				}
 			}
 		},
@@ -131,31 +115,22 @@
 				-148.7409,
 				-137.2627
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"label": "Combine UV",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "X",
-					"enabled": true
+					"name": "X"
 				},
 				"1": {
-					"name": "Y",
-					"enabled": true
+					"name": "Y"
 				},
 				"2": {
-					"name": "Z",
-					"enabled": true
+					"name": "Z"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.003",
@@ -171,22 +146,15 @@
 				669.2014,
 				-9.0905
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Vector",
-					"enabled": true
+					"name": "Vector"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "X",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -196,7 +164,6 @@
 				},
 				"1": {
 					"name": "Y",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -206,7 +173,6 @@
 				},
 				"2": {
 					"name": "Z",
-					"enabled": true,
 					"hide": true
 				}
 			}
@@ -217,25 +183,16 @@
 				831.0713,
 				-9.341
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"is_active_output": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "X",
-					"enabled": true
+					"name": "X"
 				},
 				"1": {
-					"name": "Y",
-					"enabled": true
+					"name": "Y"
 				},
 				"2": {
-					"name": "",
-					"enabled": true
+					"name": ""
 				}
 			}
 		},
@@ -245,16 +202,10 @@
 				-579.4422,
 				0.0
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Width",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Combine XY",
@@ -264,7 +215,6 @@
 				},
 				"1": {
 					"name": "Height",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Combine XY",
@@ -274,7 +224,6 @@
 				},
 				"2": {
 					"name": "X",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Combine XYZ.001",
@@ -284,7 +233,6 @@
 				},
 				"3": {
 					"name": "Y",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Combine XYZ.001",
@@ -294,7 +242,6 @@
 				},
 				"4": {
 					"name": "Enable",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.002",
@@ -304,7 +251,6 @@
 				},
 				"5": {
 					"name": "TexelOffsetX",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.001",
@@ -314,17 +260,12 @@
 				},
 				"6": {
 					"name": "TexelOffsetY",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.003",
 							"index": 0
 						}
 					]
-				},
-				"7": {
-					"name": "",
-					"enabled": true
 				}
 			}
 		},
@@ -334,22 +275,14 @@
 				-379.3498,
 				-144.1663
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute",
@@ -365,22 +298,14 @@
 				-379.3498,
 				97.2086
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "TexelOffset",
@@ -396,22 +321,14 @@
 				-353.6244,
 				75.2043
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "TexelOffset",
@@ -427,22 +344,14 @@
 				-353.6244,
 				-166.7248
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.002",
@@ -458,33 +367,24 @@
 				-324.7933,
 				156.8215
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"label": "TexelOffset",
 			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "X",
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
 					"name": "Y",
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"2": {
-					"name": "Z",
-					"enabled": true
+					"name": "Z"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math",
@@ -500,11 +400,6 @@
 				55.1199,
 				189.8493
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "DIVIDE",
 			"width": 140.0,
 			"inputs": {
@@ -513,28 +408,31 @@
 						1.0,
 						1.0,
 						1.0
-					],
-					"enabled": true
+					]
 				},
-				"1": {
-					"enabled": true
+				"1": {},
+				"2": {
+					"enabled": false
 				},
-				"2": {},
 				"3": {
 					"name": "Scale",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.002",
 							"index": 0
 						}
 					]
+				},
+				"1": {
+					"name": "Value",
+					"enabled": false
 				}
 			}
 		},
@@ -544,36 +442,33 @@
 				498.9052,
 				-58.0213
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "SUBTRACT",
 			"width": 140.0,
 			"inputs": {
-				"0": {
-					"enabled": true
+				"0": {},
+				"1": {},
+				"2": {
+					"enabled": false
 				},
-				"1": {
-					"enabled": true
-				},
-				"2": {},
 				"3": {
 					"name": "Scale",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Separate XYZ",
 							"index": 0
 						}
 					]
+				},
+				"1": {
+					"name": "Value",
+					"enabled": false
 				}
 			}
 		}
@@ -626,7 +521,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "4438f276e7dfc152a0df971f089c7423",
+	"cached_hash": "a460177100f84f572acc21eacd55bd08",
 	"bpy_ver": [
 		3,
 		2,

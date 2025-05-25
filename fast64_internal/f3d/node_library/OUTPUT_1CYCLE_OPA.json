@@ -7,11 +7,6 @@
 				-180.2261,
 				42.7965
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
@@ -22,7 +17,6 @@
 						0.0,
 						1.0
 					],
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group",
@@ -32,8 +26,7 @@
 				},
 				"1": {
 					"name": "Cycle_A_1",
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"2": {
 					"name": "Cycle_C_2",
@@ -42,16 +35,7 @@
 						0.0,
 						0.0,
 						1.0
-					],
-					"enabled": true
-				},
-				"3": {
-					"name": "Cycle_A_2",
-					"enabled": true
-				},
-				"4": {
-					"name": "",
-					"enabled": true
+					]
 				}
 			}
 		},
@@ -60,11 +44,6 @@
 			"location": [
 				-7.8627,
 				17.9682
-			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
 			],
 			"hide": true,
 			"node_tree": {
@@ -80,14 +59,12 @@
 						0.800000011920929,
 						0.800000011920929,
 						1.0
-					],
-					"enabled": true
+					]
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Inverse Corrected Color",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -103,21 +80,13 @@
 				260.7855,
 				42.5168
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"is_active_output": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Shader",
-					"enabled": true
+					"name": "Shader"
 				},
 				"1": {
-					"name": "",
-					"enabled": true
+					"name": ""
 				}
 			}
 		}
@@ -161,7 +130,7 @@
 			"bl_idname": "NodeSocketShader"
 		}
 	],
-	"cached_hash": "7916d0d557ae8227ce98679b57cd3e2f",
+	"cached_hash": "540e3c91c55a071ec97d2bff5555a69e",
 	"bpy_ver": [
 		3,
 		2,

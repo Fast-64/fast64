@@ -7,21 +7,13 @@
 				-128.7302,
 				-77.7192
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"is_active_output": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Color",
-					"enabled": true
+					"name": "Color"
 				},
 				"1": {
-					"name": "",
-					"enabled": true
+					"name": ""
 				}
 			}
 		},
@@ -30,11 +22,6 @@
 			"location": [
 				-340.7661,
 				-81.033
-			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
 			],
 			"width": 140.0,
 			"outputs": {
@@ -46,7 +33,6 @@
 						0.5,
 						1.0
 					],
-					"enabled": true,
 					"hide_value": true,
 					"links": [
 						{
@@ -62,21 +48,11 @@
 						0.0,
 						0.0,
 						1.0
-					],
-					"enabled": true
+					]
 				},
 				"2": {
 					"name": "FogEnable",
-					"enabled": true,
 					"hide_value": true
-				},
-				"3": {
-					"name": "FogAmount",
-					"enabled": true
-				},
-				"4": {
-					"name": "",
-					"enabled": true
 				}
 			}
 		}
@@ -123,7 +99,7 @@
 			"bl_idname": "NodeSocketColor"
 		}
 	],
-	"cached_hash": "51685ffd3831aad04dfdd767338b09f0",
+	"cached_hash": "69819fc3c7944865f5075b07d5c147a9",
 	"bpy_ver": [
 		3,
 		2,

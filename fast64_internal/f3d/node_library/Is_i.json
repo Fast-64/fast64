@@ -7,11 +7,6 @@
 				-471.4615,
 				-67.9132
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
@@ -22,7 +17,6 @@
 						0.5,
 						1.0
 					],
-					"enabled": true,
 					"hide_value": true,
 					"links": [
 						{
@@ -33,12 +27,7 @@
 				},
 				"1": {
 					"name": "Alpha",
-					"enabled": true,
 					"hide_value": true
-				},
-				"2": {
-					"name": "",
-					"enabled": true
 				}
 			}
 		},
@@ -47,11 +36,6 @@
 			"location": [
 				-308.4476,
 				-92.9209
-			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
 			],
 			"hide": true,
 			"node_tree": {
@@ -67,14 +51,12 @@
 						0.800000011920929,
 						0.800000011920929,
 						1.0
-					],
-					"enabled": true
+					]
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Corrected Color",
-					"enabled": true,
 					"links": [
 						{
 							"node": "RGB to BW",
@@ -90,28 +72,19 @@
 				212.5504,
 				-19.2124
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"is_active_output": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
-					"enabled": true,
 					"hide_value": true
 				},
 				"1": {
 					"name": "Alpha",
 					"default_value": 0.5,
-					"enabled": true,
 					"hide_value": true
 				},
 				"2": {
-					"name": "",
-					"enabled": true
+					"name": ""
 				}
 			}
 		},
@@ -121,22 +94,14 @@
 				164.1136,
 				-77.7012
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -156,11 +121,6 @@
 				-44.3312,
 				-43.2164
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -170,14 +130,12 @@
 						0.5,
 						0.5,
 						1.0
-					],
-					"enabled": true
+					]
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Val",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute",
@@ -219,7 +177,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "500973096058c0f6571cc009abbca28b",
+	"cached_hash": "a36b2633af4641d7e9cf795cb373d9bf",
 	"bpy_ver": [
 		3,
 		2,

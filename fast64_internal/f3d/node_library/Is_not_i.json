@@ -7,28 +7,19 @@
 				-368.5321,
 				-84.721
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"is_active_output": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
-					"enabled": true,
 					"hide_value": true
 				},
 				"1": {
 					"name": "Alpha",
 					"default_value": 0.5,
-					"enabled": true,
 					"hide_value": true
 				},
 				"2": {
-					"name": "",
-					"enabled": true
+					"name": ""
 				}
 			}
 		},
@@ -37,11 +28,6 @@
 			"location": [
 				-566.2081,
 				-109.4385
-			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
 			],
 			"hide": true,
 			"node_tree": {
@@ -57,14 +43,12 @@
 						0.800000011920929,
 						0.800000011920929,
 						1.0
-					],
-					"enabled": true
+					]
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Corrected Color",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -80,11 +64,6 @@
 				-736.4277,
 				-84.4582
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
@@ -95,7 +74,6 @@
 						0.5,
 						1.0
 					],
-					"enabled": true,
 					"hide_value": true,
 					"links": [
 						{
@@ -106,7 +84,6 @@
 				},
 				"1": {
 					"name": "Alpha",
-					"enabled": true,
 					"hide_value": true,
 					"links": [
 						{
@@ -114,10 +91,6 @@
 							"index": 1
 						}
 					]
-				},
-				"2": {
-					"name": "",
-					"enabled": true
 				}
 			}
 		}
@@ -153,7 +126,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "23d3ccbe50aa7540d57a26a0b5863a6e",
+	"cached_hash": "0336a2d747271abb6d4d316c7e9d3031",
 	"bpy_ver": [
 		3,
 		2,

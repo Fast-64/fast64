@@ -7,20 +7,10 @@
 				-463.6024,
 				-23.266
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"outputs": {
-				"0": {
-					"name": "View Vector",
-					"enabled": true
-				},
 				"1": {
 					"name": "View Z Depth",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math",
@@ -31,10 +21,6 @@
 							"index": 0
 						}
 					]
-				},
-				"2": {
-					"name": "View Distance",
-					"enabled": true
 				}
 			}
 		},
@@ -44,36 +30,19 @@
 				-157.067,
 				32.0329
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"label": "approx of 970 -> 1000 fog",
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
-			"outputs": {
-				"0": {
-					"name": "Output",
-					"enabled": true
-				}
-			}
+			"outputs": {}
 		},
 		"ColorRamp": {
 			"bl_idname": "ShaderNodeValToRGB",
 			"location": [
 				-72.3463,
 				23.266
-			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
 			],
 			"color_ramp": {
 				"serialized_type": "ColorRamp",
@@ -107,24 +76,18 @@
 			"inputs": {
 				"0": {
 					"name": "Fac",
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Color",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Gamma",
 							"index": 0
 						}
 					]
-				},
-				"1": {
-					"name": "Alpha",
-					"enabled": true
 				}
 			}
 		},
@@ -134,31 +97,22 @@
 				-272.0528,
 				-36.6214
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "MULTIPLY_ADD",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 0.013124999590218067,
-					"enabled": true
+					"default_value": 0.013124999590218067
 				},
 				"2": {
-					"default_value": -0.10000000149011612,
-					"enabled": true
+					"default_value": -0.10000000149011612
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "ColorRamp",
@@ -174,11 +128,6 @@
 				207.226,
 				45.3343
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -188,32 +137,20 @@
 						1.0,
 						1.0,
 						1.0
-					],
-					"enabled": true
+					]
 				},
 				"1": {
 					"name": "Gamma",
-					"default_value": 1.5,
-					"enabled": true
+					"default_value": 1.5
 				}
 			},
-			"outputs": {
-				"0": {
-					"name": "Color",
-					"enabled": true
-				}
-			}
+			"outputs": {}
 		},
 		"ColorRamp.001": {
 			"bl_idname": "ShaderNodeValToRGB",
 			"location": [
 				-72.3463,
 				-194.1823
-			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
 			],
 			"color_ramp": {
 				"serialized_type": "ColorRamp",
@@ -247,24 +184,18 @@
 			"inputs": {
 				"0": {
 					"name": "Fac",
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Color",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Gamma.001",
 							"index": 0
 						}
 					]
-				},
-				"1": {
-					"name": "Alpha",
-					"enabled": true
 				}
 			}
 		},
@@ -274,31 +205,22 @@
 				-272.0528,
 				-254.0697
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "MULTIPLY_ADD",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 0.013124999590218067,
-					"enabled": true
+					"default_value": 0.013124999590218067
 				},
 				"2": {
-					"default_value": -0.10000000149011612,
-					"enabled": true
+					"default_value": -0.10000000149011612
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "ColorRamp.001",
@@ -314,11 +236,6 @@
 				207.226,
 				-172.114
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"inputs": {
 				"0": {
@@ -328,19 +245,16 @@
 						1.0,
 						1.0,
 						1.0
-					],
-					"enabled": true
+					]
 				},
 				"1": {
 					"name": "Gamma",
-					"default_value": 1.5,
-					"enabled": true
+					"default_value": 1.5
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Color",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -356,22 +270,14 @@
 				408.0125,
 				-2.6611
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"hide": true,
-			"is_active_output": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Color",
-					"enabled": true
+					"name": "Color"
 				},
 				"1": {
-					"name": "",
-					"enabled": true
+					"name": ""
 				}
 			}
 		}
@@ -382,7 +288,7 @@
 			"bl_idname": "NodeSocketColor"
 		}
 	],
-	"cached_hash": "9203b2a170fb12cad03cfef420f6ce05",
+	"cached_hash": "e67ad9dc59fb93229a08664f722ab39b",
 	"bpy_ver": [
 		3,
 		2,

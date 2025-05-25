@@ -7,38 +7,31 @@
 				335.5294,
 				79.9224
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "MULTIPLY_ADD",
 			"width": 140.0,
 			"inputs": {
-				"0": {
-					"enabled": true
-				},
-				"1": {
-					"enabled": true
-				},
-				"2": {
-					"enabled": true
-				},
+				"0": {},
+				"1": {},
+				"2": {},
 				"3": {
 					"name": "Scale",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
 							"index": 0
 						}
 					]
+				},
+				"1": {
+					"name": "Value",
+					"enabled": false
 				}
 			}
 		},
@@ -48,16 +41,10 @@
 				-330.2278,
 				133.6254
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "UV",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math",
@@ -67,7 +54,6 @@
 				},
 				"1": {
 					"name": "S Scale",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Combine XYZ",
@@ -77,17 +63,12 @@
 				},
 				"2": {
 					"name": "T Scale",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Combine XYZ",
 							"index": 1
 						}
 					]
-				},
-				"3": {
-					"name": "",
-					"enabled": true
 				}
 			}
 		},
@@ -97,21 +78,13 @@
 				498.3517,
 				80.4327
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"is_active_output": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "UV",
-					"enabled": true
+					"name": "UV"
 				},
 				"1": {
-					"name": "",
-					"enabled": true
+					"name": ""
 				}
 			}
 		},
@@ -121,30 +94,21 @@
 				-55.1894,
 				15.1652
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "X",
-					"enabled": true
+					"name": "X"
 				},
 				"1": {
-					"name": "Y",
-					"enabled": true
+					"name": "Y"
 				},
 				"2": {
-					"name": "Z",
-					"enabled": true
+					"name": "Z"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.001",
@@ -164,48 +128,43 @@
 				153.0767,
 				-48.2458
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "MULTIPLY_ADD",
 			"width": 140.0,
 			"inputs": {
-				"0": {
-					"enabled": true
-				},
+				"0": {},
 				"1": {
 					"default_value": [
 						0.0,
 						-1.0,
 						0.0
-					],
-					"enabled": true
+					]
 				},
 				"2": {
 					"default_value": [
 						0.0,
 						1.0,
 						0.0
-					],
-					"enabled": true
+					]
 				},
 				"3": {
 					"name": "Scale",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math",
 							"index": 2
 						}
 					]
+				},
+				"1": {
+					"name": "Value",
+					"enabled": false
 				}
 			}
 		}
@@ -238,7 +197,7 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "095244b4ef275ccae34b364ccdc62f98",
+	"cached_hash": "c14bd28cf399e1ab6a576bd7d33ad0e5",
 	"bpy_ver": [
 		3,
 		2,

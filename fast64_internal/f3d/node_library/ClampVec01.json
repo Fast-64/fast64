@@ -7,22 +7,15 @@
 				-182.2785,
 				43.0632
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Vector",
-					"enabled": true
+					"name": "Vector"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "X",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Clamp.001",
@@ -32,7 +25,6 @@
 				},
 				"1": {
 					"name": "Y",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Clamp.002",
@@ -42,7 +34,6 @@
 				},
 				"2": {
 					"name": "Z",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Clamp.003",
@@ -58,34 +49,24 @@
 				0.4784,
 				-56.4606
 			],
-			"clamp_type": "MINMAX",
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"hide": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Value",
-					"default_value": 1.0,
-					"enabled": true
+					"default_value": 1.0
 				},
 				"1": {
-					"name": "Min",
-					"enabled": true
+					"name": "Min"
 				},
 				"2": {
 					"name": "Max",
-					"default_value": 1.0,
-					"enabled": true
+					"default_value": 1.0
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Result",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Combine XYZ",
@@ -101,30 +82,21 @@
 				182.2784,
 				56.4606
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "X",
-					"enabled": true
+					"name": "X"
 				},
 				"1": {
-					"name": "Y",
-					"enabled": true
+					"name": "Y"
 				},
 				"2": {
-					"name": "Z",
-					"enabled": true
+					"name": "Z"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -140,34 +112,24 @@
 				-0.4785,
 				-15.3113
 			],
-			"clamp_type": "MINMAX",
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"hide": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Value",
-					"default_value": 1.0,
-					"enabled": true
+					"default_value": 1.0
 				},
 				"1": {
-					"name": "Min",
-					"enabled": true
+					"name": "Min"
 				},
 				"2": {
 					"name": "Max",
-					"default_value": 1.0,
-					"enabled": true
+					"default_value": 1.0
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Result",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Combine XYZ",
@@ -183,26 +145,16 @@
 				-382.2785,
 				0.0
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Separate XYZ",
 							"index": 0
 						}
 					]
-				},
-				"1": {
-					"name": "",
-					"enabled": true
 				}
 			}
 		},
@@ -212,21 +164,13 @@
 				372.2784,
 				0.0
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"is_active_output": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Vector",
-					"enabled": true
+					"name": "Vector"
 				},
 				"1": {
-					"name": "",
-					"enabled": true
+					"name": ""
 				}
 			}
 		},
@@ -236,34 +180,24 @@
 				-0.4785,
 				24.8809
 			],
-			"clamp_type": "MINMAX",
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"hide": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Value",
-					"default_value": 1.0,
-					"enabled": true
+					"default_value": 1.0
 				},
 				"1": {
-					"name": "Min",
-					"enabled": true
+					"name": "Min"
 				},
 				"2": {
 					"name": "Max",
-					"default_value": 1.0,
-					"enabled": true
+					"default_value": 1.0
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Result",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Combine XYZ",
@@ -288,7 +222,7 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "dcb5d82e84fa374c2d8c9ba0a04372d9",
+	"cached_hash": "9c77c286227a7ca4e731b9e717f212c3",
 	"bpy_ver": [
 		3,
 		2,

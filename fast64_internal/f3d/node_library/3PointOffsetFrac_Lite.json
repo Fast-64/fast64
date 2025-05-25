@@ -7,30 +7,22 @@
 				-445.9736,
 				34.8429
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"operation": "MULTIPLY",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"2": {
-					"default_value": 19.099998474121094
+					"default_value": 19.099998474121094,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.007",
@@ -46,23 +38,15 @@
 				-260.4666,
 				-0.5345
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"label": "Texel Space",
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.008",
@@ -78,32 +62,23 @@
 				-447.2696,
 				-127.4688
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"label": "S == -1 and T == 1",
 			"operation": "MULTIPLY_ADD",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 2.0,
-					"enabled": true
+					"default_value": 2.0
 				},
 				"2": {
-					"default_value": -1.0,
-					"enabled": true
+					"default_value": -1.0
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.008",
@@ -119,21 +94,13 @@
 				123.7348,
 				-19.282
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"is_active_output": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Value",
-					"enabled": true
+					"name": "Value"
 				},
 				"1": {
-					"name": "",
-					"enabled": true
+					"name": ""
 				}
 			}
 		},
@@ -143,17 +110,11 @@
 				-645.4055,
 				-22.6254
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Value",
 					"default_value": 0.5,
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.006",
@@ -164,7 +125,6 @@
 				"1": {
 					"name": "Length",
 					"default_value": 0.5,
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.006",
@@ -174,17 +134,12 @@
 				},
 				"2": {
 					"name": "IsT",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math",
 							"index": 0
 						}
 					]
-				},
-				"3": {
-					"name": "",
-					"enabled": true
 				}
 			}
 		},
@@ -194,32 +149,24 @@
 				-209.5414,
 				-43.7441
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"hide": true,
 			"label": "Flip Range for S",
-			"operation": "MULTIPLY",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": -1.0,
-					"enabled": true
+					"default_value": -1.0
 				},
 				"2": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.007",
@@ -235,28 +182,24 @@
 				-43.5149,
 				-43.939
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"hide": true,
 			"operation": "FRACT",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": false
 				},
-				"2": {}
+				"2": {
+					"enabled": false
+				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -295,7 +238,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "69132087d96a4f4c987d480308752606",
+	"cached_hash": "b1cd31e39960f012b6c120d28fb8b1d8",
 	"bpy_ver": [
 		3,
 		2,

@@ -7,30 +7,16 @@
 				-320.272,
 				4.2201
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "View Vector",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.001",
 							"index": 0
 						}
 					]
-				},
-				"1": {
-					"name": "View Z Depth",
-					"enabled": true
-				},
-				"2": {
-					"name": "View Distance",
-					"enabled": true
 				}
 			}
 		},
@@ -40,36 +26,33 @@
 				-156.3826,
 				61.6369
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "ADD",
 			"width": 140.0,
 			"inputs": {
-				"0": {
-					"enabled": true
+				"0": {},
+				"1": {},
+				"2": {
+					"enabled": false
 				},
-				"1": {
-					"enabled": true
-				},
-				"2": {},
 				"3": {
 					"name": "Scale",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math",
 							"index": 0
 						}
 					]
+				},
+				"1": {
+					"name": "Value",
+					"enabled": false
 				}
 			}
 		},
@@ -79,21 +62,9 @@
 				163.122,
 				80.3753
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"color_mapping": {
 				"serialized_type": "Default",
 				"data": {
-					"blend_color": [
-						0.800000011920929,
-						0.800000011920929,
-						0.800000011920929
-					],
-					"blend_factor": 0.0,
-					"brightness": 1.0,
 					"color_ramp": {
 						"serialized_type": "ColorRamp",
 						"color_mode": "RGB",
@@ -121,95 +92,49 @@
 						],
 						"hue_interpolation": "NEAR",
 						"interpolation": "LINEAR"
-					},
-					"contrast": 1.0,
-					"saturation": 1.0,
-					"use_color_ramp": false
+					}
 				}
 			},
-			"noise_dimensions": "2D",
 			"show_texture": true,
 			"texture_mapping": {
 				"serialized_type": "Default",
-				"data": {
-					"mapping": "FLAT",
-					"mapping_x": "X",
-					"mapping_y": "Y",
-					"mapping_z": "Z",
-					"max": [
-						1.0,
-						1.0,
-						1.0
-					],
-					"min": [
-						0.0,
-						0.0,
-						0.0
-					],
-					"rotation": [
-						0.0,
-						0.0,
-						0.0
-					],
-					"scale": [
-						1.0,
-						1.0,
-						1.0
-					],
-					"translation": [
-						0.0,
-						0.0,
-						0.0
-					],
-					"use_max": false,
-					"use_min": false,
-					"vector_type": "POINT"
-				}
+				"data": {}
 			},
 			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"hide_value": true
 				},
 				"1": {
-					"name": "W"
+					"name": "W",
+					"enabled": false
 				},
 				"2": {
 					"name": "Scale",
-					"default_value": 1411.0,
-					"enabled": true
+					"default_value": 1411.0
 				},
 				"3": {
 					"name": "Detail",
-					"default_value": 16.0,
-					"enabled": true
+					"default_value": 16.0
 				},
 				"4": {
 					"name": "Roughness",
-					"default_value": 1.0,
-					"enabled": true
+					"default_value": 1.0
 				},
 				"5": {
-					"name": "Distortion",
-					"enabled": true
+					"name": "Distortion"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Fac",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math",
 							"index": 0
 						}
 					]
-				},
-				"1": {
-					"name": "Color",
-					"enabled": true
 				}
 			}
 		},
@@ -219,18 +144,12 @@
 				-154.9056,
 				-80.3752
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"label": "FrameNum Driver",
 			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Value",
 					"default_value": 59.0,
-					"enabled": true,
 					"links": [
 						{
 							"node": "Vector Math.001",
@@ -246,42 +165,40 @@
 				-1.845,
 				62.9756
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"label": "Snap 320x240",
 			"operation": "SNAP",
 			"width": 140.0,
 			"inputs": {
-				"0": {
-					"enabled": true
-				},
+				"0": {},
 				"1": {
 					"default_value": [
 						0.0031250000465661287,
 						0.004166666883975267,
 						0.0
-					],
-					"enabled": true
+					]
 				},
-				"2": {},
+				"2": {
+					"enabled": false
+				},
 				"3": {
 					"name": "Scale",
-					"default_value": 1.0
+					"default_value": 1.0,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Vector",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Noise Texture",
 							"index": 0
 						}
 					]
+				},
+				"1": {
+					"name": "Value",
+					"enabled": false
 				}
 			}
 		},
@@ -291,29 +208,23 @@
 				320.272,
 				46.2361
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"hide": true,
 			"operation": "GREATER_THAN",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
-				"2": {}
+				"2": {
+					"enabled": false
+				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -329,21 +240,13 @@
 				479.4075,
 				65.6406
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"is_active_output": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Value",
-					"enabled": true
+					"name": "Value"
 				},
 				"1": {
-					"name": "",
-					"enabled": true
+					"name": ""
 				}
 			}
 		}
@@ -356,7 +259,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "4997f54483e6211df8c968c61d035101",
+	"cached_hash": "659bca904fa85ea31a0bb41a4ba4017a",
 	"bpy_ver": [
 		3,
 		2,

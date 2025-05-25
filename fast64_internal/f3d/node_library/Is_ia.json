@@ -7,11 +7,6 @@
 				-736.4277,
 				-84.1609
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
@@ -22,7 +17,6 @@
 						0.5,
 						1.0
 					],
-					"enabled": true,
 					"hide_value": true,
 					"links": [
 						{
@@ -33,7 +27,6 @@
 				},
 				"1": {
 					"name": "Alpha",
-					"enabled": true,
 					"hide_value": true,
 					"links": [
 						{
@@ -41,10 +34,6 @@
 							"index": 1
 						}
 					]
-				},
-				"2": {
-					"name": "",
-					"enabled": true
 				}
 			}
 		},
@@ -53,11 +42,6 @@
 			"location": [
 				-364.3542,
 				-54.8081
-			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
 			],
 			"width": 140.0,
 			"inputs": {
@@ -68,14 +52,12 @@
 						0.5,
 						0.5,
 						1.0
-					],
-					"enabled": true
+					]
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Val",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -91,28 +73,19 @@
 				-157.7389,
 				-84.721
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"is_active_output": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
-					"enabled": true,
 					"hide_value": true
 				},
 				"1": {
 					"name": "Alpha",
 					"default_value": 0.5,
-					"enabled": true,
 					"hide_value": true
 				},
 				"2": {
-					"name": "",
-					"enabled": true
+					"name": ""
 				}
 			}
 		},
@@ -121,11 +94,6 @@
 			"location": [
 				-546.5447,
 				-103.7424
-			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
 			],
 			"hide": true,
 			"node_tree": {
@@ -141,14 +109,12 @@
 						0.800000011920929,
 						0.800000011920929,
 						1.0
-					],
-					"enabled": true
+					]
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Corrected Color",
-					"enabled": true,
 					"links": [
 						{
 							"node": "RGB to BW",
@@ -190,7 +156,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "ac5b25fd9e0df5130ebe09332b0f664e",
+	"cached_hash": "cc671717f792192408d7277d7e0f3919",
 	"bpy_ver": [
 		3,
 		2,

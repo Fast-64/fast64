@@ -7,15 +7,8 @@
 				-563.5526,
 				-414.8234
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"height": 408.0,
 			"label": "Shift",
-			"label_size": 20,
-			"shrink": true,
 			"width": 605.3812255859375
 		},
 		"Frame.003": {
@@ -24,14 +17,7 @@
 				-743.5212,
 				182.0188
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"height": 478.1737060546875,
-			"label_size": 20,
-			"shrink": true,
 			"width": 1042.607177734375
 		},
 		"no idea lmao.001": {
@@ -40,15 +26,8 @@
 				518.4754,
 				84.3203
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"height": 404.0,
 			"label": "Mirror or Repeat",
-			"label_size": 20,
-			"shrink": true,
 			"width": 736.0
 		},
 		"Frame": {
@@ -57,15 +36,8 @@
 				-92.4759,
 				-407.9362
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"height": 90.0,
 			"label": "Fixes clamp bleeding lines",
-			"label_size": 20,
-			"shrink": true,
 			"width": 346.6607360839844
 		},
 		"Reroute.002": {
@@ -74,22 +46,14 @@
 				-897.7939,
 				-170.7716
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "UV Space Low/High",
@@ -105,22 +69,14 @@
 				-897.7939,
 				-192.333
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "UV Space Low/High",
@@ -136,22 +92,14 @@
 				-930.9956,
 				-214.68
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "UV Space Low/High",
@@ -171,22 +119,14 @@
 				-930.9956,
 				256.063
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.027",
@@ -202,22 +142,14 @@
 				-963.3344,
 				292.0394
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.020",
@@ -233,22 +165,14 @@
 				-963.3344,
 				31.5398
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.024",
@@ -268,22 +192,14 @@
 				399.9999,
 				-11.1851
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.021",
@@ -303,22 +219,14 @@
 				400.0,
 				361.5235
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.012",
@@ -334,22 +242,14 @@
 				-942.762,
 				-659.1817
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.030",
@@ -365,22 +265,14 @@
 				-942.762,
 				-464.5771
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.005",
@@ -396,22 +288,14 @@
 				-1070.3025,
 				-288.4464
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.058",
@@ -427,26 +311,18 @@
 				-319.6187,
 				-386.3542
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"parent": {
 				"serialized_type": "Node",
 				"name": "Frame.002"
 			},
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.059",
@@ -472,21 +348,19 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 2.0,
-					"enabled": true
+					"default_value": 2.0
 				},
 				"1": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"2": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.027",
@@ -512,21 +386,19 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"2": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.011",
@@ -542,23 +414,15 @@
 				1011.1037,
 				-293.5129
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"label": "Mirror",
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.014",
@@ -574,12 +438,6 @@
 				-497.1657,
 				-351.3928
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"operation": "MULTIPLY",
 			"parent": {
 				"serialized_type": "Node",
 				"name": "Frame.002"
@@ -588,21 +446,19 @@
 			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"2": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.060",
@@ -618,11 +474,6 @@
 				-676.1253,
 				-485.8725
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "POWER",
 			"parent": {
 				"serialized_type": "Node",
@@ -632,21 +483,19 @@
 			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
-					"default_value": 2.0,
-					"enabled": true
+					"default_value": 2.0
 				},
 				"1": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"2": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.032",
@@ -662,12 +511,6 @@
 				-857.2168,
 				-545.3244
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"operation": "MULTIPLY",
 			"parent": {
 				"serialized_type": "Node",
 				"name": "Frame.002"
@@ -675,21 +518,19 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": -1.0,
-					"enabled": true
+					"default_value": -1.0
 				},
 				"2": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.025",
@@ -705,26 +546,18 @@
 				-66.0538,
 				101.4849
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"parent": {
 				"serialized_type": "Node",
 				"name": "Frame.003"
 			},
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.049",
@@ -740,26 +573,18 @@
 				-65.6654,
 				-215.3464
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"parent": {
 				"serialized_type": "Node",
 				"name": "Frame.003"
 			},
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.001",
@@ -775,26 +600,18 @@
 				-33.4099,
 				-171.1769
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"parent": {
 				"serialized_type": "Node",
 				"name": "Frame.003"
 			},
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.001",
@@ -810,27 +627,19 @@
 				-321.4289,
 				-194.844
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"label": "Shifted Coords",
 			"parent": {
 				"serialized_type": "Node",
 				"name": "Frame.003"
 			},
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.064",
@@ -850,26 +659,18 @@
 				-295.0379,
 				3.0807
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"parent": {
 				"serialized_type": "Node",
 				"name": "Frame.003"
 			},
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Clamp.001",
@@ -885,27 +686,19 @@
 				-295.0379,
 				-95.906
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"label": "UV Space High",
 			"parent": {
 				"serialized_type": "Node",
 				"name": "Frame.003"
 			},
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.063",
@@ -921,27 +714,19 @@
 				-268.4072,
 				-116.3432
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"label": "UV Space Low",
 			"parent": {
 				"serialized_type": "Node",
 				"name": "Frame.003"
 			},
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.032",
@@ -965,26 +750,18 @@
 				-268.4073,
 				24.9883
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"parent": {
 				"serialized_type": "Node",
 				"name": "Frame.003"
 			},
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Clamp.001",
@@ -1000,26 +777,18 @@
 				-676.617,
 				-30.1964
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"parent": {
 				"serialized_type": "Node",
 				"name": "Frame.003"
 			},
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.062",
@@ -1035,26 +804,18 @@
 				-676.617,
 				10.429
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"parent": {
 				"serialized_type": "Node",
 				"name": "Frame.003"
 			},
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.026",
@@ -1070,26 +831,18 @@
 				-321.4286,
 				47.8621
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"parent": {
 				"serialized_type": "Node",
 				"name": "Frame.003"
 			},
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Clamp.001",
@@ -1105,12 +858,6 @@
 				-236.7289,
 				135.8783
 			],
-			"clamp_type": "MINMAX",
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"parent": {
 				"serialized_type": "Node",
 				"name": "Frame.003"
@@ -1119,23 +866,19 @@
 			"inputs": {
 				"0": {
 					"name": "Value",
-					"default_value": 1.0,
-					"enabled": true
+					"default_value": 1.0
 				},
 				"1": {
-					"name": "Min",
-					"enabled": true
+					"name": "Min"
 				},
 				"2": {
 					"name": "Max",
-					"default_value": 1.0,
-					"enabled": true
+					"default_value": 1.0
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Result",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.052",
@@ -1151,26 +894,18 @@
 				-270.1501,
 				111.7035
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"parent": {
 				"serialized_type": "Node",
 				"name": "Frame.003"
 			},
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.055",
@@ -1186,26 +921,18 @@
 				-270.1501,
 				178.1737
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"parent": {
 				"serialized_type": "Node",
 				"name": "Frame.003"
 			},
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.051",
@@ -1221,26 +948,18 @@
 				-33.4099,
 				178.1737
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"parent": {
 				"serialized_type": "Node",
 				"name": "Frame.003"
 			},
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.057",
@@ -1271,21 +990,19 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"2": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.026",
@@ -1316,21 +1033,19 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"2": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.029",
@@ -1361,21 +1076,19 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"2": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.056",
@@ -1391,21 +1104,13 @@
 				1554.8485,
 				191.283
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"is_active_output": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "UV Coord",
-					"enabled": true
+					"name": "UV Coord"
 				},
 				"1": {
-					"name": "",
-					"enabled": true
+					"name": ""
 				}
 			}
 		},
@@ -1415,26 +1120,18 @@
 				-838.6072,
 				-30.1961
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"parent": {
 				"serialized_type": "Node",
 				"name": "Frame.003"
 			},
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.066",
@@ -1450,16 +1147,7 @@
 				-4.4502,
 				-82.943
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"label": "Pick Clamped",
-			"node_tree": {
-				"serialized_type": "NodeTree",
-				"name": "MixValue"
-			},
 			"parent": {
 				"serialized_type": "Node",
 				"name": "Frame.003"
@@ -1468,26 +1156,22 @@
 			"inputs": {
 				"0": {
 					"name": "Fac",
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
 					"name": "Input0",
 					"default_value": 0.5,
-					"enabled": true,
 					"hide_value": true
 				},
 				"2": {
 					"name": "Input1",
 					"default_value": 0.5,
-					"enabled": true,
 					"hide_value": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.006",
@@ -1503,22 +1187,14 @@
 				-919.2795,
 				-464.5771
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.032",
@@ -1534,17 +1210,11 @@
 				-1386.619,
 				-24.8568
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "Tex Coordinate",
 					"default_value": 0.5,
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.001",
@@ -1554,7 +1224,6 @@
 				},
 				"1": {
 					"name": "Shift",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute",
@@ -1565,7 +1234,6 @@
 				"2": {
 					"name": "Low",
 					"default_value": 0.5,
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.002",
@@ -1576,7 +1244,6 @@
 				"3": {
 					"name": "High",
 					"default_value": 0.5,
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.004",
@@ -1586,7 +1253,6 @@
 				},
 				"4": {
 					"name": "Mask",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.003",
@@ -1597,7 +1263,6 @@
 				"5": {
 					"name": "Tex Size",
 					"default_value": 0.5,
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.008",
@@ -1607,7 +1272,6 @@
 				},
 				"6": {
 					"name": "Clamp",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.053",
@@ -1617,17 +1281,12 @@
 				},
 				"7": {
 					"name": "Mirror",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.007",
 							"index": 0
 						}
 					]
-				},
-				"8": {
-					"name": "",
-					"enabled": true
 				}
 			}
 		},
@@ -1637,26 +1296,18 @@
 				1038.9573,
 				253.4494
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"parent": {
 				"serialized_type": "Node",
 				"name": "no idea lmao.001"
 			},
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.015",
@@ -1672,26 +1323,18 @@
 				1038.9573,
 				88.085
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"parent": {
 				"serialized_type": "Node",
 				"name": "no idea lmao.001"
 			},
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.003",
@@ -1707,15 +1350,6 @@
 				1063.2178,
 				198.5546
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"node_tree": {
-				"serialized_type": "NodeTree",
-				"name": "MixValue"
-			},
 			"parent": {
 				"serialized_type": "Node",
 				"name": "no idea lmao.001"
@@ -1724,26 +1358,22 @@
 			"inputs": {
 				"0": {
 					"name": "Fac",
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
 					"name": "Input0",
 					"default_value": 0.5,
-					"enabled": true,
 					"hide_value": true
 				},
 				"2": {
 					"name": "Input1",
 					"default_value": 0.5,
-					"enabled": true,
 					"hide_value": true
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -1759,11 +1389,6 @@
 				526.6977,
 				102.4338
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "PINGPONG",
 			"parent": {
 				"serialized_type": "Node",
@@ -1772,19 +1397,18 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
-				"2": {}
+				"2": {
+					"enabled": false
+				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Clamp.002",
@@ -1800,11 +1424,6 @@
 				527.4777,
 				292.2352
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "MODULO",
 			"parent": {
 				"serialized_type": "Node",
@@ -1813,21 +1432,19 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 1.0,
-					"enabled": true
+					"default_value": 1.0
 				},
 				"2": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.031",
@@ -1843,26 +1460,18 @@
 				1011.1037,
 				109.9727
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"parent": {
 				"serialized_type": "Node",
 				"name": "no idea lmao.001"
 			},
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.003",
@@ -1878,11 +1487,6 @@
 				694.165,
 				288.9287
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "WRAP",
 			"parent": {
 				"serialized_type": "Node",
@@ -1891,21 +1495,16 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 1.0,
-					"enabled": true
+					"default_value": 1.0
 				},
-				"2": {
-					"enabled": true
-				}
+				"2": {}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Clamp.003",
@@ -1921,12 +1520,6 @@
 				692.285,
 				100.7439
 			],
-			"clamp_type": "MINMAX",
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"label": "Clamp Blender Moment",
 			"parent": {
 				"serialized_type": "Node",
@@ -1936,24 +1529,20 @@
 			"inputs": {
 				"0": {
 					"name": "Value",
-					"default_value": 1.0,
-					"enabled": true
+					"default_value": 1.0
 				},
 				"1": {
 					"name": "Min",
-					"default_value": 9.999999717180685e-10,
-					"enabled": true
+					"default_value": 9.999999717180685e-10
 				},
 				"2": {
 					"name": "Max",
-					"default_value": 0.9999989867210388,
-					"enabled": true
+					"default_value": 0.9999989867210388
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Result",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.003",
@@ -1969,12 +1558,6 @@
 				858.6555,
 				288.0717
 			],
-			"clamp_type": "MINMAX",
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"label": "Clamp Blender Moment",
 			"parent": {
 				"serialized_type": "Node",
@@ -1984,24 +1567,20 @@
 			"inputs": {
 				"0": {
 					"name": "Value",
-					"default_value": 1.0,
-					"enabled": true
+					"default_value": 1.0
 				},
 				"1": {
 					"name": "Min",
-					"default_value": 9.999999717180685e-10,
-					"enabled": true
+					"default_value": 9.999999717180685e-10
 				},
 				"2": {
 					"name": "Max",
-					"default_value": 0.9999989867210388,
-					"enabled": true
+					"default_value": 0.9999989867210388
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Result",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.017",
@@ -2017,22 +1596,14 @@
 				399.9999,
 				154.8376
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.021",
@@ -2052,22 +1623,14 @@
 				400.0,
 				-354.2985
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.054",
@@ -2083,11 +1646,6 @@
 				-650.0882,
 				-60.9508
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"node_tree": {
 				"serialized_type": "NodeTree",
 				"name": "UV Low/High"
@@ -2100,24 +1658,20 @@
 			"inputs": {
 				"0": {
 					"name": "High",
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
 					"name": "Low",
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"2": {
 					"name": "Size",
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "High",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.067",
@@ -2127,7 +1681,6 @@
 				},
 				"1": {
 					"name": "Low",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.047",
@@ -2143,26 +1696,18 @@
 				-113.3042,
 				-448.285
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"parent": {
 				"serialized_type": "Node",
 				"name": "Frame"
 			},
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math",
@@ -2178,11 +1723,6 @@
 				-53.7061,
 				-445.2246
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"hide": true,
 			"label": "Subtract tiny number",
 			"operation": "SUBTRACT",
@@ -2193,21 +1733,19 @@
 			"width": 219.35653686523438,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 9.999999974752427e-07,
-					"enabled": true
+					"default_value": 9.999999974752427e-07
 				},
 				"2": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.028",
@@ -2223,22 +1761,14 @@
 				215.4565,
 				-433.1859
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.028",
@@ -2254,32 +1784,25 @@
 				234.2943,
 				-319.6717
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"label": "Adjust S Low",
 			"operation": "SUBTRACT",
 			"width": 140.0,
 			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"2": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.013",
@@ -2295,22 +1818,14 @@
 				215.6858,
 				-117.5033
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.065",
@@ -2372,7 +1887,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "09d446d838ae156f95cbb4cab9d73f57",
+	"cached_hash": "e036acc8ace7be231f58fc40fbb35424",
 	"bpy_ver": [
 		3,
 		2,

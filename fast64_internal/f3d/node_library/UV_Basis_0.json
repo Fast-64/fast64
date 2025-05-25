@@ -7,16 +7,10 @@
 				-683.1521,
 				-133.2773
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
 					"name": "UV",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.001",
@@ -26,7 +20,6 @@
 				},
 				"1": {
 					"name": "0 S TexSize",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -44,7 +37,6 @@
 				},
 				"2": {
 					"name": "0 T TexSize",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -62,7 +54,6 @@
 				},
 				"3": {
 					"name": "1 S TexSize",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -76,7 +67,6 @@
 				},
 				"4": {
 					"name": "1 T TexSize",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -90,7 +80,6 @@
 				},
 				"5": {
 					"name": "S Scale",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group",
@@ -104,7 +93,6 @@
 				},
 				"6": {
 					"name": "T Scale",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group",
@@ -118,17 +106,12 @@
 				},
 				"7": {
 					"name": "EnableOffset",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.001",
 							"index": 5
 						}
 					]
-				},
-				"8": {
-					"name": "",
-					"enabled": true
 				}
 			}
 		},
@@ -138,30 +121,22 @@
 				361.5455,
 				-166.6665
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"operation": "MULTIPLY",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"2": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -177,28 +152,22 @@
 				326.3477,
 				-574.2684
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "SUBTRACT",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 1.0,
-					"enabled": true
+					"default_value": 1.0
 				},
 				"1": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
-				"2": {}
+				"2": {
+					"enabled": false
+				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.003",
@@ -214,30 +183,20 @@
 				361.5456,
 				-357.9363
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "MULTIPLY_ADD",
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
-				"2": {
-					"enabled": true
-				}
+				"2": {}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -253,30 +212,23 @@
 				-4.9459,
 				-370.8936
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "DIVIDE",
 			"width": 186.44256591796875,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"2": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.004",
@@ -296,30 +248,23 @@
 				-0.5282,
 				-198.9168
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"operation": "DIVIDE",
 			"width": 179.8277587890625,
 			"inputs": {
 				"0": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"1": {
-					"default_value": 0.5,
-					"enabled": true
+					"default_value": 0.5
 				},
 				"2": {
-					"default_value": 0.5
+					"default_value": 0.5,
+					"enabled": false
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Value",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Math.001",
@@ -335,49 +280,28 @@
 				601.6118,
 				84.2049
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"is_active_output": true,
 			"width": 140.0,
 			"inputs": {
-				"0": {
-					"enabled": true
-				},
-				"1": {
-					"enabled": true
-				},
-				"2": {
-					"enabled": true
-				},
-				"3": {
-					"enabled": true
-				},
+				"0": {},
+				"1": {},
+				"2": {},
+				"3": {},
 				"4": {
-					"enabled": true,
 					"hide_value": true
 				},
 				"5": {
-					"name": "0 S TexSize",
-					"enabled": true
+					"name": "0 S TexSize"
 				},
 				"6": {
-					"name": "0 T TexSize",
-					"enabled": true
+					"name": "0 T TexSize"
 				},
 				"7": {
-					"name": "1 S TexSize",
-					"enabled": true
+					"name": "1 S TexSize"
 				},
 				"8": {
-					"name": "1 T TexSize",
-					"enabled": true
+					"name": "1 T TexSize"
 				},
-				"9": {
-					"enabled": true
-				}
+				"9": {}
 			}
 		},
 		"Separate XYZ": {
@@ -386,22 +310,15 @@
 				-47.2443,
 				63.1597
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "Vector",
-					"enabled": true
+					"name": "Vector"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "X",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -415,7 +332,6 @@
 				},
 				"1": {
 					"name": "Y",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -426,10 +342,6 @@
 							"index": 0
 						}
 					]
-				},
-				"2": {
-					"name": "Z",
-					"enabled": true
 				}
 			}
 		},
@@ -439,11 +351,6 @@
 				-224.5699,
 				-7.2958
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"node_tree": {
 				"serialized_type": "NodeTree",
 				"name": "ScaleUVs"
@@ -451,22 +358,18 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "UV",
-					"enabled": true
+					"name": "UV"
 				},
 				"1": {
-					"name": "S Scale",
-					"enabled": true
+					"name": "S Scale"
 				},
 				"2": {
-					"name": "T Scale",
-					"enabled": true
+					"name": "T Scale"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "UV",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Separate XYZ",
@@ -482,11 +385,6 @@
 				-394.2816,
 				82.4099
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"node_tree": {
 				"serialized_type": "NodeTree",
 				"name": "ApplyFilterOffset"
@@ -494,34 +392,27 @@
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "UV",
-					"enabled": true
+					"name": "UV"
 				},
 				"1": {
-					"name": "S Width",
-					"enabled": true
+					"name": "S Width"
 				},
 				"2": {
-					"name": "T Height",
-					"enabled": true
+					"name": "T Height"
 				},
 				"3": {
-					"name": "S Scale",
-					"enabled": true
+					"name": "S Scale"
 				},
 				"4": {
-					"name": "T Scale",
-					"enabled": true
+					"name": "T Scale"
 				},
 				"5": {
-					"name": "Apply Offset",
-					"enabled": true
+					"name": "Apply Offset"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "UV",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group",
@@ -623,7 +514,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "fef4dab6dfa4a89a21f10f95313799a0",
+	"cached_hash": "27682cd24c5e5636e5b758b195814971",
 	"bpy_ver": [
 		3,
 		2,

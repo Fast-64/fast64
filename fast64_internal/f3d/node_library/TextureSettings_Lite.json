@@ -7,22 +7,14 @@
 				326.0364,
 				-364.0017
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.004",
@@ -38,22 +30,14 @@
 				286.4957,
 				-408.7227
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.004",
@@ -69,22 +53,14 @@
 				307.0347,
 				-386.1069
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.004",
@@ -100,22 +76,14 @@
 				348.6143,
 				-343.0011
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.004",
@@ -131,11 +99,6 @@
 				397.1432,
 				-144.1212
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"node_tree": {
 				"serialized_type": "NodeTree",
 				"name": "Lite Texture Settings and 3 Point"
@@ -143,47 +106,37 @@
 			"width": 323.6924743652344,
 			"inputs": {
 				"0": {
-					"name": "Width",
-					"enabled": true
+					"name": "Width"
 				},
 				"1": {
-					"name": "Height",
-					"enabled": true
+					"name": "Height"
 				},
 				"2": {
-					"name": "X",
-					"enabled": true
+					"name": "X"
 				},
 				"3": {
-					"name": "Y",
-					"enabled": true
+					"name": "Y"
 				},
 				"4": {
 					"name": "S Clamp",
-					"default_value": 1,
-					"enabled": true
+					"default_value": 1
 				},
 				"5": {
-					"name": "S Mirror",
-					"enabled": true
+					"name": "S Mirror"
 				},
 				"6": {
-					"name": "T Clamp",
-					"enabled": true
+					"name": "T Clamp"
 				},
 				"7": {
-					"name": "T Mirror",
-					"enabled": true
+					"name": "T Mirror"
 				},
 				"8": {
-					"name": "Enable 3 Point",
-					"enabled": true
+					"name": "Enable 3 Point"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "UV00",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -193,7 +146,6 @@
 				},
 				"1": {
 					"name": "UV01",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -203,7 +155,6 @@
 				},
 				"2": {
 					"name": "UV10",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -213,7 +164,6 @@
 				},
 				"3": {
 					"name": "UV11",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -223,7 +173,6 @@
 				},
 				"4": {
 					"name": "Lerp S",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -233,7 +182,6 @@
 				},
 				"5": {
 					"name": "Lerp T",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -249,33 +197,22 @@
 				1046.3458,
 				158.4812
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"is_active_output": true,
 			"width": 140.0,
 			"inputs": {
 				"0": {
-					"name": "0_UV00",
-					"enabled": true
+					"name": "0_UV00"
 				},
 				"1": {
-					"name": "0_UV01",
-					"enabled": true
+					"name": "0_UV01"
 				},
 				"2": {
-					"name": "0_UV10",
-					"enabled": true
+					"name": "0_UV10"
 				},
 				"3": {
-					"name": "0_UV11",
-					"enabled": true
+					"name": "0_UV11"
 				},
 				"4": {
-					"name": "1_UV00",
-					"enabled": true
+					"name": "1_UV00"
 				},
 				"5": {
 					"name": "1_UV01",
@@ -283,40 +220,31 @@
 						12.19999885559082,
 						0.0,
 						0.0
-					],
-					"enabled": true
+					]
 				},
 				"6": {
-					"name": "1_UV10",
-					"enabled": true
+					"name": "1_UV10"
 				},
 				"7": {
-					"name": "1_UV11",
-					"enabled": true
+					"name": "1_UV11"
 				},
 				"8": {
-					"name": "3 Point",
-					"enabled": true
+					"name": "3 Point"
 				},
 				"9": {
-					"name": "0 Lerp S",
-					"enabled": true
+					"name": "0 Lerp S"
 				},
 				"10": {
-					"name": "0 Lerp T",
-					"enabled": true
+					"name": "0 Lerp T"
 				},
 				"11": {
-					"name": "1 Lerp S",
-					"enabled": true
+					"name": "1 Lerp S"
 				},
 				"12": {
-					"name": "1 Lerp T",
-					"enabled": true
+					"name": "1 Lerp T"
 				},
 				"13": {
-					"name": "",
-					"enabled": true
+					"name": ""
 				}
 			}
 		},
@@ -326,22 +254,14 @@
 				268.7016,
 				-432.3738
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.004",
@@ -357,22 +277,14 @@
 				243.0726,
 				-454.5351
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.004",
@@ -388,22 +300,14 @@
 				219.5551,
 				-474.9759
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.004",
@@ -419,22 +323,14 @@
 				187.8649,
 				-497.7192
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.004",
@@ -450,22 +346,14 @@
 				-15.6982,
 				74.2023
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.003",
@@ -481,22 +369,14 @@
 				9.5091,
 				52.1004
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.003",
@@ -512,22 +392,14 @@
 				54.724,
 				8.8103
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.003",
@@ -543,22 +415,14 @@
 				32.953,
 				30.799
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.003",
@@ -574,22 +438,14 @@
 				73.7157,
 				-13.6042
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.003",
@@ -605,22 +461,14 @@
 				98.6143,
 				-34.5173
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.003",
@@ -636,22 +484,14 @@
 				154.7109,
 				-85.2983
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.003",
@@ -667,22 +507,14 @@
 				124.9537,
 				-62.4537
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.003",
@@ -698,22 +530,14 @@
 				369.8691,
 				-100.9041
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group.003",
@@ -729,22 +553,14 @@
 				739.3364,
 				-561.6321
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -760,22 +576,14 @@
 				369.869,
 				-561.6321
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.005",
@@ -795,22 +603,14 @@
 				369.869,
 				-518.6503
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
-			"width": 16.0,
 			"inputs": {
 				"0": {
-					"name": "Input",
-					"enabled": true
+					"name": "Input"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "Output",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.002",
@@ -830,15 +630,9 @@
 				-613.3323,
 				194.4752
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"width": 140.0,
 			"outputs": {
 				"0": {
-					"enabled": true,
 					"hide_value": true,
 					"links": [
 						{
@@ -848,7 +642,6 @@
 					]
 				},
 				"1": {
-					"enabled": true,
 					"hide_value": true,
 					"links": [
 						{
@@ -858,7 +651,6 @@
 					]
 				},
 				"2": {
-					"enabled": true,
 					"hide_value": true,
 					"links": [
 						{
@@ -868,7 +660,6 @@
 					]
 				},
 				"3": {
-					"enabled": true,
 					"hide_value": true,
 					"links": [
 						{
@@ -878,12 +669,10 @@
 					]
 				},
 				"4": {
-					"enabled": true,
 					"hide_value": true
 				},
 				"5": {
 					"name": "0 S TexSize",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.001",
@@ -893,7 +682,6 @@
 				},
 				"6": {
 					"name": "0 T TexSize",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute",
@@ -903,7 +691,6 @@
 				},
 				"7": {
 					"name": "1 S TexSize",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.015",
@@ -913,7 +700,6 @@
 				},
 				"8": {
 					"name": "1 T TexSize",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.016",
@@ -922,84 +708,16 @@
 					]
 				},
 				"9": {
-					"enabled": true,
 					"hide_value": true
-				},
-				"10": {
-					"name": "0 S Shift",
-					"enabled": true
-				},
-				"11": {
-					"name": "0 S Low",
-					"enabled": true
-				},
-				"12": {
-					"name": "0 S High",
-					"enabled": true
-				},
-				"13": {
-					"name": "0 S Mask",
-					"enabled": true
-				},
-				"14": {
-					"name": "0 T Shift",
-					"enabled": true
-				},
-				"15": {
-					"name": "0 T Low",
-					"enabled": true
-				},
-				"16": {
-					"name": "0 T High",
-					"enabled": true
-				},
-				"17": {
-					"name": "0 T Mask",
-					"enabled": true
 				},
 				"18": {
-					"enabled": true,
 					"hide_value": true
 				},
-				"19": {
-					"name": "1 S Shift",
-					"enabled": true
-				},
-				"20": {
-					"name": "1 S Low",
-					"enabled": true
-				},
-				"21": {
-					"name": "1 S High",
-					"enabled": true
-				},
-				"22": {
-					"name": "1 S Mask",
-					"enabled": true
-				},
-				"23": {
-					"name": "1 T Shift",
-					"enabled": true
-				},
-				"24": {
-					"name": "1 T Low",
-					"enabled": true
-				},
-				"25": {
-					"name": "1 T High",
-					"enabled": true
-				},
-				"26": {
-					"name": "1 T Mask",
-					"enabled": true
-				},
 				"27": {
-					"enabled": true,
 					"hide_value": true
 				},
 				"28": {
 					"name": "0 ClampX",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.035",
@@ -1009,7 +727,6 @@
 				},
 				"29": {
 					"name": "0 ClampY",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.036",
@@ -1019,7 +736,6 @@
 				},
 				"30": {
 					"name": "0 MirrorX",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.037",
@@ -1029,7 +745,6 @@
 				},
 				"31": {
 					"name": "0 MirrorY",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.034",
@@ -1038,12 +753,10 @@
 					]
 				},
 				"32": {
-					"enabled": true,
 					"hide_value": true
 				},
 				"33": {
 					"name": "1 ClampX",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.018",
@@ -1053,7 +766,6 @@
 				},
 				"34": {
 					"name": "1 ClampY",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.024",
@@ -1063,7 +775,6 @@
 				},
 				"35": {
 					"name": "1 MirrorX",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.019",
@@ -1073,7 +784,6 @@
 				},
 				"36": {
 					"name": "1 MirrorY",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.025",
@@ -1082,21 +792,16 @@
 					]
 				},
 				"37": {
-					"enabled": true,
 					"hide_value": true
 				},
 				"38": {
 					"name": "3 Point",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Reroute.009",
 							"index": 0
 						}
 					]
-				},
-				"39": {
-					"enabled": true
 				}
 			}
 		},
@@ -1106,11 +811,6 @@
 				400.1252,
 				273.4589
 			],
-			"color": [
-				0.6079999804496765,
-				0.6079999804496765,
-				0.6079999804496765
-			],
 			"node_tree": {
 				"serialized_type": "NodeTree",
 				"name": "Lite Texture Settings and 3 Point"
@@ -1118,47 +818,37 @@
 			"width": 320.1097717285156,
 			"inputs": {
 				"0": {
-					"name": "Width",
-					"enabled": true
+					"name": "Width"
 				},
 				"1": {
-					"name": "Height",
-					"enabled": true
+					"name": "Height"
 				},
 				"2": {
-					"name": "X",
-					"enabled": true
+					"name": "X"
 				},
 				"3": {
-					"name": "Y",
-					"enabled": true
+					"name": "Y"
 				},
 				"4": {
 					"name": "S Clamp",
-					"default_value": 1,
-					"enabled": true
+					"default_value": 1
 				},
 				"5": {
-					"name": "S Mirror",
-					"enabled": true
+					"name": "S Mirror"
 				},
 				"6": {
-					"name": "T Clamp",
-					"enabled": true
+					"name": "T Clamp"
 				},
 				"7": {
-					"name": "T Mirror",
-					"enabled": true
+					"name": "T Mirror"
 				},
 				"8": {
-					"name": "Enable 3 Point",
-					"enabled": true
+					"name": "Enable 3 Point"
 				}
 			},
 			"outputs": {
 				"0": {
 					"name": "UV00",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -1168,7 +858,6 @@
 				},
 				"1": {
 					"name": "UV01",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -1178,7 +867,6 @@
 				},
 				"2": {
 					"name": "UV10",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -1188,7 +876,6 @@
 				},
 				"3": {
 					"name": "UV11",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -1198,7 +885,6 @@
 				},
 				"4": {
 					"name": "Lerp S",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -1208,7 +894,6 @@
 				},
 				"5": {
 					"name": "Lerp T",
-					"enabled": true,
 					"links": [
 						{
 							"node": "Group Output",
@@ -1482,7 +1167,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "ec3f9a06b839198a2cfab8250b58953c",
+	"cached_hash": "cb3abdf7488f3b1c847e87f083e81259",
 	"bpy_ver": [
 		3,
 		2,
