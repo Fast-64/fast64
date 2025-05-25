@@ -46,7 +46,7 @@ from .f3d_material_helpers import F3DMaterial_UpdateLock
 from .f3d_node_gen import (
     create_f3d_nodes_in_material,
     generate_f3d_node_groups,
-    SHOW_GATHER_OPERATOR,
+    DEBUG_MODE,
 )
 from bpy.app.handlers import persistent
 from typing import Generator, Optional, Tuple, Any, Dict, Union
@@ -2436,7 +2436,7 @@ def has_f3d_nodes(material: Material):
 
 @persistent
 def load_handler(dummy):
-    if not SHOW_GATHER_OPERATOR:
+    if not DEBUG_MODE:
         generate_f3d_node_groups(False, False)
 
     for mat in bpy.data.materials:
@@ -2506,13 +2506,13 @@ def add_f3d_mat_to_obj(obj: bpy.types.Object, material, index=None):
                 bpy.context.object.active_material_index = index
 
 
-def createF3DMat(obj: Object | None, preset="Shaded Solid", index=None):
+def createF3DMat(obj: Object | None, preset="Shaded Solid", index=None, editable=False):
     material = bpy.data.materials.new("f3d_material")
     try:
-        generate_f3d_node_groups()
-        material.is_f3d = True
+        generate_f3d_node_groups(editable=editable)
+        material.is_f3d = not editable
         material.mat_ver = F3D_MAT_CUR_VERSION
-        create_f3d_nodes_in_material(material)
+        create_f3d_nodes_in_material(material, editable=editable)
         add_f3d_mat_to_obj(obj, material, index)
         update_preset_manual_v4(material, preset)
         return material

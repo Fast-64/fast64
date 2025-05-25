@@ -28,9 +28,8 @@ from ..render_settings import update_scene_props_from_render_settings
 from ..utility import PluginError, to_valid_file_name
 from ..operators import OperatorBase
 
-# Enable this to show the gather operator, this is a development feature
-SHOW_GATHER_OPERATOR = False
-ALWAYS_RELOAD = False
+# Enable this to show the gather operator, show create editable, always reload, this is a development feature
+DEBUG_MODE = False
 
 SERIALIZED_NODE_LIBRARY_PATH = Path(__file__).parent / "node_library" / "main.json"
 
@@ -696,9 +695,24 @@ class GatherF3DNodes(OperatorBase):
         load_f3d_nodes()
 
 
+class CreateWorkableF3DNodes(OperatorBase):
+    bl_idname = "object.f3d_gather_f3d_nodes"
+    bl_label = "Create Editable F3D Nodes"
+    bl_options = {"REGISTER", "UNDO", "PRESET"}
+
+    @classmethod
+    def poll(cls, context):
+        return context.object is not None
+
+    def execute_operator(self, context):
+        from .f3d_material import createF3DMat
+
+        mat = createF3DMat(context.object, editable=True)
+
+
 class GatherF3DNodesPanel(Panel):
     bl_label = "Gather F3D Nodes"
-    bl_idname = "MATERIAL_PT_GatherF3DNodes"
+    bl_idname = "OBJECT_PT_GatherF3DNodes"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "material"
@@ -711,6 +725,7 @@ class GatherF3DNodesPanel(Panel):
     def draw(self, context):
         col = self.layout.column()
         col.operator(GatherF3DNodes.bl_idname)
+        col.operator(CreateWorkableF3DNodes.bl_idname)
 
 
 SERIALIZED_NODE_LIBRARY: SerializedMaterialNodeTree | None = None
@@ -926,12 +941,13 @@ def is_f3d_mat(material: Material):
     return material.is_f3d and material.mat_ver >= F3D_MAT_CUR_VERSION
 
 
-def generate_f3d_node_groups(forced=True, ignore_hash=False, force_mat_update=False):
+def generate_f3d_node_groups(forced=True, ignore_hash=False, force_mat_update=False, editable=False):
     """
     Forced generates node groups even if no f3d materials are present
     Ignore hash will always regenerate existing group nodes.
     Force mat update will always regenerate f3d material nodes
     """
+    ignore_hash = ignore_hash or editable
     if SERIALIZED_NODE_LIBRARY is None:
         raise PluginError(
             f"Failed to load f3d_nodes.json {str(NODE_LIBRARY_EXCEPTION)}, see console"
@@ -947,7 +963,7 @@ def generate_f3d_node_groups(forced=True, ignore_hash=False, force_mat_update=Fa
             node_tree = bpy.data.node_groups[serialized_node_group.name]
             if (
                 node_tree.get("fast64_cached_hash", None) == serialized_node_group.cached_hash
-                and not ALWAYS_RELOAD
+                and not DEBUG_MODE
                 and not ignore_hash
             ):
                 continue
@@ -961,7 +977,7 @@ def generate_f3d_node_groups(forced=True, ignore_hash=False, force_mat_update=Fa
         else:
             print(f'Creating node group "{serialized_node_group.name}"')
             node_tree = bpy.data.node_groups.new(serialized_node_group.name, "ShaderNodeTree")
-            node_tree.use_fake_user = True
+            node_tree.use_fake_user = not editable
         update_materials = True
         cur_errors = errors.copy(f'Failed to create node group "{serialized_node_group.name}"')
         try:
@@ -980,18 +996,19 @@ def generate_f3d_node_groups(forced=True, ignore_hash=False, force_mat_update=Fa
     update_f3d_materials_nodes(ignore_hash=update_materials or force_mat_update)
 
 
-def create_f3d_nodes_in_material(material: Material, errors: ErrorState = None):
+def create_f3d_nodes_in_material(material: Material, errors: ErrorState = None, editable=False):
     from .f3d_material import update_all_node_values
 
     errors = ErrorState() or errors
-    assert is_f3d_mat(material), f"Material {material.name} is not an up to date f3d material"
+    assert editable or is_f3d_mat(material), f"Material {material.name} is not an up to date f3d material"
     material.use_nodes = True
     new_nodes = create_nodes(material.node_tree, SERIALIZED_NODE_LIBRARY, errors)
     set_values_and_create_links(material.node_tree, SERIALIZED_NODE_LIBRARY, new_nodes, errors)
-    createScenePropertiesForMaterial(material)
-    material.f3d_update_flag = False
-    with bpy.context.temp_override(material=material):
-        update_all_node_values(material, bpy.context)
+    if not editable:
+        createScenePropertiesForMaterial(material)
+        material.f3d_update_flag = False
+        with bpy.context.temp_override(material=material):
+            update_all_node_values(material, bpy.context)
 
 
 def update_f3d_material_nodes(material: Material, ignore_hash=False):
@@ -1012,8 +1029,8 @@ def update_f3d_materials_nodes(ignore_hash=False):
         update_f3d_material_nodes(material, ignore_hash)
 
 
-if SHOW_GATHER_OPERATOR:
-    f3d_node_gen_classes = (GatherF3DNodes, GatherF3DNodesPanel)
+if DEBUG_MODE:
+    f3d_node_gen_classes = (GatherF3DNodes, CreateWorkableF3DNodes, GatherF3DNodesPanel)
 else:
     f3d_node_gen_classes = tuple()
 
