@@ -1,4 +1,3 @@
-import re
 import bpy
 
 from bpy.path import abspath
@@ -6,73 +5,12 @@ from bpy.ops import object
 from bpy.props import StringProperty, EnumProperty, IntProperty
 from bpy.types import Scene, Operator, Object
 from bpy.utils import register_class, unregister_class
-from ...utility import CData, PluginError, raisePluginError
+from ...utility import PluginError, raisePluginError
 from ..collection_utility import getCollection
 from ..oot_constants import ootData
 from .constants import ootEnumCSTextboxType, ootEnumCSListType
 from .importer import importCutsceneData
 from ..exporter.cutscene import Cutscene
-
-
-def insertCutsceneData(filePath: str, csName: str):
-    """Inserts the motion data in the cutscene and returns the new data"""
-    fileLines = []
-
-    # if the file is not found then it's likely a new file that needs to be created
-    try:
-        with open(filePath, "r") as inputFile:
-            fileLines = inputFile.readlines()
-    except FileNotFoundError:
-        fileLines = []
-
-    foundCutscene = False
-    # motionExporter = getNewCutsceneExport(csName)
-    beginIndex = 0
-
-    for i, line in enumerate(fileLines):
-        # skip commented lines and preprocessor directives
-        if not line.startswith("//") and not line.startswith("/*") and not line.startswith("#"):
-            if f"CutsceneData {csName}" in line:
-                foundCutscene = True
-
-            if foundCutscene:
-                if "CS_HEADER" in line:
-                    # save the index of the line that contains the entry total and the framecount for later use
-                    beginIndex = i
-
-                # looking at next line to see if we reached the end of the cs script
-                index = i + 1
-                if index < len(fileLines) and "CS_END_OF_SCRIPT" in fileLines[index]:
-                    # exporting first to get the new framecount and the total of entries values
-                    # fileLines.insert(index, motionExporter.getExportData())
-
-                    # update framecount and entry total values
-                    beginLine = fileLines[beginIndex]
-                    reMatch = re.search(r"\b\(([0-9a-fA-F, ]*)\b", beginLine)
-                    if reMatch is not None:
-                        params = reMatch[1].split(", ")
-                        entryTotal = int(params[0], base=0)
-                        frameCount = int(params[1], base=0)
-                        # entries = re.sub(
-                        #     r"\b\(([0-9a-fA-F]*)\b", f"({entryTotal + motionExporter.entryTotal}", beginLine
-                        # )
-                        # frames = re.sub(r"\b([0-9a-fA-F]*)\)", f"{frameCount + motionExporter.frameCount})", beginLine)
-                        # fileLines[beginIndex] = f"{entries.split(', ')[0]}, {frames.split(', ')[1]}"
-                    else:
-                        raise PluginError("ERROR: Can't find `CS_HEADER()` parameters!")
-                    break
-
-    fileData = CData()
-
-    if not foundCutscene:
-        print(f"WARNING: Can't find Cutscene ``{csName}``, inserting data at the end of the file.")
-        # motionExporter.addBeginEndCmds = True
-        csArrayName = f"CutsceneData {csName}[]"
-        # fileLines.append("\n" + csArrayName + " = {\n" + motionExporter.getExportData() + "};\n")
-        fileData.header = f"{csArrayName};\n"
-
-    fileData.source = "".join(line for line in fileLines)
-    return fileData
 
 
 class OOTCSTextAdd(Operator):
@@ -147,9 +85,6 @@ class OOT_ExportCutscene(Operator):
             if cs_obj.parent is not None:
                 raise PluginError("Cutscene object must not be parented to anything")
 
-            if context.scene.fast64.oot.exportMotionOnly:
-                raise PluginError("ERROR: Not implemented yet.")
-
             Cutscene.export(cs_obj)
 
             self.report({"INFO"}, "Successfully exported cutscene")
@@ -176,9 +111,6 @@ class OOT_ExportAllCutscenes(Operator):
                     if obj.parent is not None:
                         print(f"Parent: {obj.parent.name}, Object: {obj.name}")
                         raise PluginError("Cutscene object must not be parented to anything")
-
-                    if context.scene.fast64.oot.exportMotionOnly:
-                        raise PluginError("ERROR: Not implemented yet.")
 
                     cs_obj_list.append(obj)
 
