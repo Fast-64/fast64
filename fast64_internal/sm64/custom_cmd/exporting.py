@@ -6,7 +6,15 @@ import ast
 from io import StringIO
 from typing import Iterable, NamedTuple, Optional, TypeVar, Union
 
-from ...utility import PluginError, get_clean_color, quantize_color, to_s16, cast_integer, encodeSegmentedAddr
+from ...utility import (
+    PluginError,
+    get_clean_color,
+    quantize_color,
+    cast_integer,
+    to_s16,
+    cast_integer,
+    encodeSegmentedAddr,
+)
 
 from ..sm64_constants import SegmentData
 from ..sm64_geolayout_utility import BaseDisplayListNode
@@ -78,6 +86,7 @@ builtins_map = {
     "any": any,
     "enumerate": enumerate,
     "flatten": flatten,
+    "cast_integer": cast_integer,
 }
 collection_constructors = {ast.List: list, ast.Tuple: tuple, ast.Set: set}
 
