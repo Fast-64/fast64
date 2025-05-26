@@ -1,4 +1,9 @@
-import bpy, os, re
+import os
+import re
+import bpy
+
+from typing import Optional
+
 from ..utility import CData, getGroupIndexFromname, readFile, writeFile
 from ..f3d.flipbook import flipbook_to_c, flipbook_2d_to_c, flipbook_data_to_c
 from ..f3d.f3d_material import createF3DMat, F3DMaterial_UpdateLock, update_preset_manual
@@ -327,7 +332,7 @@ def writeTextureArraysExisting2D(data: str, flipbook: TextureFlipbook, flipbookA
 
 
 # Note this does not work well with actors containing multiple "parts". (z_en_honotrap)
-def ootReadActorScale(basePath: str, overlayName: str, isLink: bool) -> float:
+def ootReadActorScale(basePath: str, overlayName: str, isLink: bool) -> Optional[float]:
     if not isLink:
         actorData = ootGetActorData(basePath, overlayName)
     else:
@@ -347,4 +352,5 @@ def ootReadActorScale(basePath: str, overlayName: str, isLink: bool) -> float:
             scale = scale[:-1]
         return getOOTScale(1 / float(scale))
 
-    return getOOTScale(100)
+    print("WARNING: auto-detection failed, defaulting to this panel's actor scale property value")
+    return None

@@ -1,3 +1,5 @@
+import bpy
+
 from dataclasses import dataclass
 from mathutils import Matrix
 from bpy.types import Object
@@ -41,23 +43,36 @@ class Scene:
             True,
         )
 
-        mainHeader = SceneHeader.new(f"{name}_header{i:02}", sceneObj.ootSceneHeader, sceneObj, transform, i, useMacros)
+        try:
+            mainHeader = SceneHeader.new(
+                f"{name}_header{i:02}", sceneObj.ootSceneHeader, sceneObj, transform, i, useMacros
+            )
+        except Exception as exc:
+            raise PluginError(f"In main scene header: {exc}") from exc
         hasAlternateHeaders = False
         altHeader = SceneAlternateHeader(f"{name}_alternateHeaders")
         altProp = sceneObj.ootAlternateSceneHeaders
 
         for i, header in enumerate(altHeaderList, 1):
             altP: OOTSceneHeaderProperty = getattr(altProp, f"{header}Header")
-            if not altP.usePreviousHeader:
+            if altP.usePreviousHeader:
+                continue
+            try:
                 setattr(
                     altHeader, header, SceneHeader.new(f"{name}_header{i:02}", altP, sceneObj, transform, i, useMacros)
                 )
                 hasAlternateHeaders = True
+            except Exception as exc:
+                raise PluginError(f"In alternate scene header {header}: {exc}") from exc
 
-        altHeader.cutscenes = [
-            SceneHeader.new(f"{name}_header{i:02}", csHeader, sceneObj, transform, i, useMacros)
-            for i, csHeader in enumerate(altProp.cutsceneHeaders, 4)
-        ]
+        altHeader.cutscenes = []
+        for i, csHeader in enumerate(altProp.cutsceneHeaders, 4):
+            try:
+                altHeader.cutscenes.append(
+                    SceneHeader.new(f"{name}_header{i:02}", csHeader, sceneObj, transform, i, useMacros)
+                )
+            except Exception as exc:
+                raise PluginError(f"In alternate, cutscene header {i}: {exc}") from exc
 
         hasAlternateHeaders = True if len(altHeader.cutscenes) > 0 else hasAlternateHeaders
         altHeader = altHeader if hasAlternateHeaders else None
@@ -207,16 +222,32 @@ class Scene:
         sceneCutsceneData = self.getSceneCutscenesC()
         sceneTexturesData = self.getSceneTexturesC(textureExportSettings)
 
-        includes = (
-            "\n".join(
-                [
-                    '#include "ultra64.h"',
-                    '#include "macros.h"',
-                    '#include "z64.h"',
-                ]
-            )
-            + "\n\n\n"
-        )
+        if bpy.context.scene.fast64.oot.is_globalh_present():
+            includes = [
+                '#include "ultra64.h"',
+                '#include "macros.h"',
+                '#include "z64.h"',
+            ]
+        else:
+            includes = [
+                '#include "ultra64.h"',
+                '#include "romfile.h"',
+                '#include "array_count.h"',
+                '#include "sequence.h"',
+                '#include "z64actor_profile.h"',
+                '#include "z64bgcheck.h"',
+                '#include "z64camera.h"',
+                '#include "z64cutscene.h"',
+                '#include "z64cutscene_commands.h"',
+                '#include "z64environment.h"',
+                '#include "z64math.h"',
+                '#include "z64object.h"',
+                '#include "z64ocarina.h"',
+                '#include "z64path.h"',
+                '#include "z64player.h"',
+                '#include "z64room.h"',
+                '#include "z64scene.h"',
+            ]
 
         return SceneFile(
             self.name,
@@ -233,7 +264,7 @@ class Scene:
             (
                 f"#ifndef {self.name.upper()}_H\n"
                 + f"#define {self.name.upper()}_H\n\n"
-                + includes
+                + ("\n".join(includes) + "\n\n")
                 + sceneMainData.header
                 + "".join(cs.header for cs in sceneCutsceneData)
                 + sceneCollisionData.header

@@ -26,6 +26,7 @@ from .fast64_internal.oot.props_panel_main import OOT_ObjectProperties
 from .fast64_internal.utility_anim import utility_anim_register, utility_anim_unregister, ArmatureApplyWithMeshOperator
 
 from .fast64_internal.mk64 import MK64_Properties, mk64_register, mk64_unregister
+from .fast64_internal.mk64.mk64_constants import mk64_world_defaults
 
 from .fast64_internal.f3d.f3d_material import (
     F3D_MAT_CUR_VERSION,
@@ -406,6 +407,9 @@ def set_game_defaults(scene: bpy.types.Scene, set_ucode=True):
     if scene.gameEditorMode == "SM64":
         f3d_type = "F3D"
         world_defaults = sm64_world_defaults
+    elif scene.gameEditorMode == "MK64":
+        f3d_type = "F3DEX"
+        world_defaults = mk64_world_defaults
     elif scene.gameEditorMode == "OOT":
         f3d_type = "F3DEX2/LX2"
         world_defaults = oot_world_defaults

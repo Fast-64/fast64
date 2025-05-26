@@ -91,32 +91,35 @@ class SceneLighting:
     @staticmethod
     def new(name: str, props: OOTSceneHeaderProperty):
         envLightMode = Utility.getPropValue(props, "skyboxLighting")
-        lightList: list[OOTLightProperty] = []
+        lightList: dict[str, OOTLightProperty] = {}
         settings: list[EnvLightSettings] = []
 
         if envLightMode == "LIGHT_MODE_TIME":
             todLights = props.timeOfDayLights
-            lightList = [todLights.dawn, todLights.day, todLights.dusk, todLights.night]
+            lightList = {"Dawn": todLights.dawn, "Day": todLights.day, "Dusk": todLights.dusk, "Night": todLights.night}
         else:
-            lightList = props.lightList
+            lightList = {str(i): light for i, light in enumerate(props.lightList)}
 
-        for lightProp in lightList:
-            light1 = ootGetBaseOrCustomLight(lightProp, 0, True, True)
-            light2 = ootGetBaseOrCustomLight(lightProp, 1, True, True)
-            settings.append(
-                EnvLightSettings(
-                    envLightMode,
-                    exportColor(lightProp.ambient),
-                    light1[0],
-                    light1[1],
-                    light2[0],
-                    light2[1],
-                    exportColor(lightProp.fogColor),
-                    lightProp.fogNear,
-                    lightProp.z_far,
-                    lightProp.transitionSpeed,
+        for setting_name, lightProp in lightList.items():
+            try:
+                light1 = ootGetBaseOrCustomLight(lightProp, 0, True, True)
+                light2 = ootGetBaseOrCustomLight(lightProp, 1, True, True)
+                settings.append(
+                    EnvLightSettings(
+                        envLightMode,
+                        exportColor(lightProp.ambient),
+                        light1[0],
+                        light1[1],
+                        light2[0],
+                        light2[1],
+                        exportColor(lightProp.fogColor),
+                        lightProp.fogNear,
+                        lightProp.z_far,
+                        lightProp.transitionSpeed,
+                    )
                 )
-            )
+            except Exception as exc:
+                raise PluginError(f"In light settings {setting_name}: {exc}") from exc
         return SceneLighting(name, envLightMode, settings)
 
     def getCmd(self):
@@ -154,6 +157,7 @@ class SceneInfos:
     drawConfig: str
     appendNullEntrance: bool
     useDummyRoomList: bool
+    title_card_name: str
 
     ### Skybox And Sound ###
 
@@ -182,6 +186,7 @@ class SceneInfos:
             Utility.getPropValue(props.sceneTableEntry, "drawConfig"),
             props.appendNullEntrance,
             sceneObj.fast64.oot.scene.write_dummy_room_list,
+            Utility.getPropValue(props, "title_card_name"),
             Utility.getPropValue(props, "skyboxID"),
             Utility.getPropValue(props, "skyboxCloudiness"),
             Utility.getPropValue(props, "musicSeq"),

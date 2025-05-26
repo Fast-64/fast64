@@ -81,6 +81,10 @@ class SM64_Properties(PropertyGroup):
         name="Matstack Fix",
         description="Exports account for matstack fix requirements",
     )
+    write_all: BoolProperty(
+        name="Write All",
+        description="Write single load geo and set othermode commands instead of writting the difference to defaults. Can result in smaller displaylists but may introduce issues",
+    )
 
     @property
     def binary_export(self):
@@ -89,6 +93,12 @@ class SM64_Properties(PropertyGroup):
     @property
     def abs_decomp_path(self) -> Path:
         return Path(abspath(self.decomp_path))
+
+    @property
+    def gfx_write_method(self):
+        from ...f3d.f3d_gbi import GfxMatWriteMethod
+
+        return GfxMatWriteMethod.WriteAll if self.write_all else GfxMatWriteMethod.WriteDifferingAndRevert
 
     @staticmethod
     def upgrade_changed_props():
@@ -145,6 +155,7 @@ class SM64_Properties(PropertyGroup):
         data["compression_format"] = self.compression_format
         data["force_extended_ram"] = self.force_extended_ram
         data["matstack_fix"] = self.matstack_fix
+        data["write_all"] = self.write_all
         return data
 
     def from_repo_settings(self, data: dict):
@@ -152,6 +163,7 @@ class SM64_Properties(PropertyGroup):
         set_prop_if_in_data(self, "compression_format", data, "compression_format")
         set_prop_if_in_data(self, "force_extended_ram", data, "force_extended_ram")
         set_prop_if_in_data(self, "matstack_fix", data, "matstack_fix")
+        set_prop_if_in_data(self, "write_all", data, "write_all")
 
     def draw_repo_settings(self, layout: UILayout):
         col = layout.column()
@@ -161,6 +173,7 @@ class SM64_Properties(PropertyGroup):
             prop_split(col, self, "refresh_version", "Refresh (Function Map)")
             col.prop(self, "force_extended_ram")
         col.prop(self, "matstack_fix")
+        col.prop(self, "write_all")
 
     def draw_props(self, layout: UILayout, show_repo_settings: bool = True):
         col = layout.column()

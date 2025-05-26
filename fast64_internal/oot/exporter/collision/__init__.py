@@ -182,7 +182,7 @@ class CollisionUtility:
                             colProp.ignoreCameraCollision,
                             colProp.ignoreActorCollision,
                             colProp.ignoreProjectileCollision,
-                            useConveyor,
+                            colProp.conveyorOption == "Land",
                             normal,
                             distance,
                             useMacros,
@@ -282,9 +282,10 @@ class CollisionHeader:
             colPolyPtrLine = f"ARRAY_COUNT({self.collisionPoly.name}), {self.collisionPoly.name}"
 
         # build the C data of the collision header
+        headerData.append(colData)
 
         # .h
-        headerData.header = f"extern {varName};\n"
+        headerData.header += f"extern {varName};\n"
 
         # .c
         headerData.source += (
@@ -304,5 +305,4 @@ class CollisionHeader:
             + "\n};\n\n"
         )
 
-        headerData.append(colData)
         return headerData
