@@ -1,61 +1,17 @@
-import os
 import re
 import bpy
 
 from bpy.path import abspath
 from bpy.ops import object
 from bpy.props import StringProperty, EnumProperty, IntProperty
-from bpy.types import Scene, Operator, Context
+from bpy.types import Scene, Operator, Object
 from bpy.utils import register_class, unregister_class
-from ...utility import CData, PluginError, writeCData, raisePluginError
+from ...utility import CData, PluginError, raisePluginError
 from ..collection_utility import getCollection
 from ..oot_constants import ootData
 from .constants import ootEnumCSTextboxType, ootEnumCSListType
 from .importer import importCutsceneData
-from .exporter import getNewCutsceneExport
 from ..exporter.cutscene import Cutscene
-
-
-def checkGetFilePaths(context: Context):
-    cpath = abspath(context.scene.ootCutsceneExportPath)
-
-    if not cpath.endswith(".c"):
-        raise PluginError("Output file must end with .c")
-
-    hpath = cpath[:-1] + "h"
-    headerfilename = os.path.basename(hpath)
-
-    return cpath, hpath, headerfilename
-
-
-def ootCutsceneIncludes(headerfilename):
-    ret = CData()
-
-    ret.header = (
-        f"#ifndef {headerfilename.removesuffix('.h').upper()}_H\n"
-        + f"#define {headerfilename.removesuffix('.h').upper()}_H\n\n"
-    )
-
-    if bpy.context.scene.fast64.oot.is_globalh_present():
-        ret.header += (
-            '#include "ultra64.h"\n'
-            + '#include "z64.h"\n'
-            + '#include "macros.h"\n'
-            + '#include "command_macros_base.h"\n'
-            + '#include "z64cutscene_commands.h"\n\n'
-        )
-    else:
-        ret.header += (
-            '#include "ultra64.h"\n'
-            + '#include "sequence.h"\n'
-            + '#include "z64math.h"\n'
-            + '#include "z64cutscene.h"\n'
-            + '#include "z64cutscene_commands.h"\n\n'
-        )
-
-    if len(headerfilename) > 0:
-        ret.source = f'#include "{headerfilename}"\n\n'
-    return ret
 
 
 def insertCutsceneData(filePath: str, csName: str):
@@ -70,7 +26,7 @@ def insertCutsceneData(filePath: str, csName: str):
         fileLines = []
 
     foundCutscene = False
-    motionExporter = getNewCutsceneExport(csName)
+    # motionExporter = getNewCutsceneExport(csName)
     beginIndex = 0
 
     for i, line in enumerate(fileLines):
@@ -88,7 +44,7 @@ def insertCutsceneData(filePath: str, csName: str):
                 index = i + 1
                 if index < len(fileLines) and "CS_END_OF_SCRIPT" in fileLines[index]:
                     # exporting first to get the new framecount and the total of entries values
-                    fileLines.insert(index, motionExporter.getExportData())
+                    # fileLines.insert(index, motionExporter.getExportData())
 
                     # update framecount and entry total values
                     beginLine = fileLines[beginIndex]
@@ -97,11 +53,11 @@ def insertCutsceneData(filePath: str, csName: str):
                         params = reMatch[1].split(", ")
                         entryTotal = int(params[0], base=0)
                         frameCount = int(params[1], base=0)
-                        entries = re.sub(
-                            r"\b\(([0-9a-fA-F]*)\b", f"({entryTotal + motionExporter.entryTotal}", beginLine
-                        )
-                        frames = re.sub(r"\b([0-9a-fA-F]*)\)", f"{frameCount + motionExporter.frameCount})", beginLine)
-                        fileLines[beginIndex] = f"{entries.split(', ')[0]}, {frames.split(', ')[1]}"
+                        # entries = re.sub(
+                        #     r"\b\(([0-9a-fA-F]*)\b", f"({entryTotal + motionExporter.entryTotal}", beginLine
+                        # )
+                        # frames = re.sub(r"\b([0-9a-fA-F]*)\)", f"{frameCount + motionExporter.frameCount})", beginLine)
+                        # fileLines[beginIndex] = f"{entries.split(', ')[0]}, {frames.split(', ')[1]}"
                     else:
                         raise PluginError("ERROR: Can't find `CS_HEADER()` parameters!")
                     break
@@ -110,9 +66,9 @@ def insertCutsceneData(filePath: str, csName: str):
 
     if not foundCutscene:
         print(f"WARNING: Can't find Cutscene ``{csName}``, inserting data at the end of the file.")
-        motionExporter.addBeginEndCmds = True
+        # motionExporter.addBeginEndCmds = True
         csArrayName = f"CutsceneData {csName}[]"
-        fileLines.append("\n" + csArrayName + " = {\n" + motionExporter.getExportData() + "};\n")
+        # fileLines.append("\n" + csArrayName + " = {\n" + motionExporter.getExportData() + "};\n")
         fileData.header = f"{csArrayName};\n"
 
     fileData.source = "".join(line for line in fileLines)
@@ -183,36 +139,18 @@ class OOT_ExportCutscene(Operator):
             if context.mode != "OBJECT":
                 object.mode_set(mode="OBJECT")
 
-            activeObj = context.view_layer.objects.active
+            cs_obj = context.view_layer.objects.active
 
-            if activeObj is None or activeObj.type != "EMPTY" or activeObj.ootEmptyType != "Cutscene":
+            if cs_obj is None or cs_obj.type != "EMPTY" or cs_obj.ootEmptyType != "Cutscene":
                 raise PluginError("You must select a cutscene object")
 
-            if activeObj.parent is not None:
+            if cs_obj.parent is not None:
                 raise PluginError("Cutscene object must not be parented to anything")
 
-            cpath, hpath, headerfilename = checkGetFilePaths(context)
-            csdata = ootCutsceneIncludes(headerfilename)
-            cs_name = activeObj.name.removeprefix("Cutscene.")
-
             if context.scene.fast64.oot.exportMotionOnly:
-                # TODO: improve this
-                csdata.append(insertCutsceneData(cpath, cs_name))
-            else:
-                cutscene = Cutscene.new(
-                    cs_name,
-                    activeObj,
-                    context.scene.fast64.oot.useDecompFeatures,
-                    context.scene.fast64.oot.exportMotionOnly,
-                )
+                raise PluginError("ERROR: Not implemented yet.")
 
-                if cutscene is not None:
-                    csdata.append(cutscene.getC())
-                else:
-                    raise PluginError(f"ERROR: can't process cutscene '{cs_name}'.")
-
-            csdata.header += "\n#endif\n"
-            writeCData(csdata, hpath, cpath)
+            Cutscene.export(cs_obj)
 
             self.report({"INFO"}, "Successfully exported cutscene")
             return {"FINISHED"}
@@ -231,9 +169,7 @@ class OOT_ExportAllCutscenes(Operator):
             if context.mode != "OBJECT":
                 object.mode_set(mode="OBJECT")
 
-            cpath, hpath, headerfilename = checkGetFilePaths(context)
-            csdata = ootCutsceneIncludes(headerfilename)
-            count = 0
+            cs_obj_list: list[Object] = []
 
             for obj in context.view_layer.objects:
                 if obj.type == "EMPTY" and obj.ootEmptyType == "Cutscene":
@@ -243,27 +179,17 @@ class OOT_ExportAllCutscenes(Operator):
 
                     if context.scene.fast64.oot.exportMotionOnly:
                         raise PluginError("ERROR: Not implemented yet.")
-                    else:
-                        cs_name = obj.name.removeprefix("Cutscene.")
-                        cutscene = Cutscene.new(
-                            cs_name,
-                            obj,
-                            context.scene.fast64.oot.useDecompFeatures,
-                            context.scene.fast64.oot.exportMotionOnly,
-                        )
+                    
+                    cs_obj_list.append(obj)
 
-                        if cutscene is not None:
-                            csdata.append(cutscene.getC())
-                        else:
-                            raise PluginError(f"ERROR: can't process cutscene '{cs_name}'.")
-
-                    count += 1
+            for count, cs_obj in enumerate(cs_obj_list):
+                # skip the includes if this isn't the first cutscene
+                # skip the #endif directive if this isn't the last cutscene
+                Cutscene.export(cs_obj, count > 0, count < len(cs_obj_list) - 1)
 
             if count == 0:
                 raise PluginError("Could not find any cutscenes to export")
 
-            csdata.header += "\n#endif\n"
-            writeCData(csdata, hpath, cpath)
             self.report({"INFO"}, "Successfully exported " + str(count) + " cutscenes")
             return {"FINISHED"}
         except Exception as e:
