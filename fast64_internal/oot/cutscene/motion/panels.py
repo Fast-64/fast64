@@ -13,7 +13,12 @@ class OOT_CSMotionCameraShotPanel(OOT_Panel):
 
     @classmethod
     def poll(cls, context):
-        return context.scene.gameEditorMode == "OOT" and context.view_layer.objects.active is not None and context.view_layer.objects.active.type == "ARMATURE"
+        return (
+            context.scene.gameEditorMode == "OOT"
+            and context.view_layer.objects.active is not None
+            and context.view_layer.objects.active.type == "ARMATURE"
+        )
+
     def draw(self, context):
         obj = context.view_layer.objects.active
         col = self.layout.column()

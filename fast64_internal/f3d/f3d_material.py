@@ -618,8 +618,8 @@ def tmemUsageUI(layout, textureProp):
 # cycle type = 1 cycle
 class F3DPanel(Panel):
     bl_label = "F3D Material"
-    bl_idname = "MATERIAL_PT_F3D_Inspector"
     bl_parent_id = "EEVEE_MATERIAL_PT_context_material"
+    bl_idname = "MATERIAL_PT_F3D_Inspector"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "material"
@@ -941,7 +941,11 @@ class F3DPanel(Panel):
             if f3dMat.set_attroffs_z:
                 prop_split(inputGroup.row(), f3dMat, "attroffs_z", "Z Attr Offset")
 
-        if f3dMat.rdp_settings.using_fog:
+        if (
+            f3dMat.rdp_settings.g_fog
+            or does_blender_use_color(f3dMat.rdp_settings, "G_BL_CLR_FOG")
+            or does_blender_use_alpha(f3dMat.rdp_settings, "G_BL_A_FOG")
+        ):
             if showCheckBox or f3dMat.set_fog:
                 inputGroup = inputCol.column()
             if showCheckBox:
@@ -1241,7 +1245,6 @@ class F3DPanel(Panel):
         f3dMat = material.f3d_mat
         settings = f3dMat.rdp_settings
         layout.prop(context.scene, "f3d_simple", text="Show Simplified UI")
-        layout = layout.box()
 
         presetCol = layout.column()
         split = presetCol.split(factor=0.33)
@@ -1281,14 +1284,7 @@ def ui_tileScroll(tex, name, layout):
     row.prop(tex.tile_scroll, "interval", text="Interval:")
 
 
-def ui_procAnimVecEnum(material, procAnimVec, layout, name, vecType, useDropdown, useTex0, useTex1):
-    layout = layout.box()
-    box = layout.column()
-    if useDropdown:
-        layout.prop(procAnimVec, "menu", text=name, icon="TRIA_DOWN" if procAnimVec.menu else "TRIA_RIGHT")
-    else:
-        layout.box().label(text=name)
-
+def ui_procAnimVecEnum(material, procAnimVec, layout, vecType, useDropdown, useTex0, useTex1):
     if not useDropdown or procAnimVec.menu:
         box = layout.column()
         combinedOption = None
@@ -1311,8 +1307,6 @@ def ui_procAnimVecEnum(material, procAnimVec, layout, name, vecType, useDropdown
                 pass
 
     if useTex0 or useTex1:
-        layout.box().label(text="SM64 SetTileSize Texture Scroll")
-
         if useTex0:
             ui_tileScroll(material.tex0, "Texture 0 Speed", layout)
 
@@ -1352,8 +1346,8 @@ def ui_procAnimField(procAnimField, layout, name):
         split2.prop(procAnimField, "noiseAmplitude")
 
 
-def ui_procAnim(material, layout, useTex0, useTex1, title, useDropdown):
-    ui_procAnimVecEnum(material.f3d_mat, material.f3d_mat.UVanim0, layout, title, "UV", useDropdown, useTex0, useTex1)
+def ui_procAnim(material, layout, useTex0, useTex1, useDropdown):
+    ui_procAnimVecEnum(material.f3d_mat, material.f3d_mat.UVanim0, layout, "UV", useDropdown, useTex0, useTex1)
 
 
 def update_node_values(self, context, update_preset):
@@ -3375,7 +3369,6 @@ class RDPSettings(PropertyGroup):
 class DefaultRDPSettingsPanel(Panel):
     bl_label = "RDP Default Settings"
     bl_idname = "WORLD_PT_RDP_Default_Inspector"
-    bl_parent_id = "WORLD_PT_context_world"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "world"
@@ -3387,6 +3380,7 @@ class DefaultRDPSettingsPanel(Panel):
     def draw(self, context):
         world = context.scene.world
         layout = self.layout
+        layout.box().label(text="RDP Default Settings")
         layout.label(text="If a material setting is a same as a default setting, then it won't be set.")
         ui_geo_mode(world.rdp_defaults, world, layout, True)
         ui_upper_mode(world.rdp_defaults, world, layout, True)

@@ -1,3 +1,6 @@
+from bpy.utils import register_class, unregister_class
+from bpy.types import Panel
+
 from .settings import (
     settings_props_register,
     settings_props_unregister,
@@ -90,7 +93,28 @@ from .sm64_anim import (
 )
 
 
+class SM64_MaterialPanel(Panel):
+    bl_label = "SM64 Material"
+    bl_idname = "MATERIAL_PT_SM64_Material_Inspector"
+    bl_parent_id = "EEVEE_MATERIAL_PT_context_material"
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_context = "material"
+
+    @classmethod
+    def poll(cls, context):
+        return context.material is not None and context.material.is_f3d and context.scene.gameEditorMode == "SM64"
+
+    def draw(self, context):
+        pass
+
+
+panels = (SM64_MaterialPanel,)
+
+
 def sm64_panel_register():
+    for panel in panels:
+        register_class(panel)
     settings_panels_register()
     tools_panels_register()
     sm64_col_panel_register()
@@ -107,6 +131,8 @@ def sm64_panel_register():
 
 
 def sm64_panel_unregister():
+    for panel in panels:
+        unregister_class(panel)
     settings_panels_unregister()
     tools_panels_unregister()
     sm64_col_panel_unregister()

@@ -196,16 +196,12 @@ class Collision:
 
 
 class SM64CollisionPanel(bpy.types.Panel):
-    bl_label = "SM64 Collision Inspector"
+    bl_label = "Collision"
     bl_idname = "MATERIAL_PT_SM64_Collision_Inspector"
-    bl_parent_id = "EEVEE_MATERIAL_PT_context_material"
+    bl_parent_id = "MATERIAL_PT_SM64_Material_Inspector"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "material"
-
-    @classmethod
-    def poll(cls, context):
-        return context.scene.gameEditorMode == "SM64" and context.material is not None
 
     def paramInfo(self, layout):
         box = layout.box()
