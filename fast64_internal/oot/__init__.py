@@ -140,7 +140,7 @@ class OOT_Properties(bpy.types.PropertyGroup):
 
 
 class OOT_MaterialPanel(Panel):
-    bl_label = "OOT Material"
+    bl_label = "OOT Material Inspector"
     bl_idname = "MATERIAL_PT_OOT_Material_Inspector"
     bl_parent_id = "EEVEE_MATERIAL_PT_context_material"
     bl_space_type = "PROPERTIES"

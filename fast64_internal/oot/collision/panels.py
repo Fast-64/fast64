@@ -26,9 +26,9 @@ class OOT_CameraPosPanel(Panel):
 
 
 class OOT_CollisionPanel(Panel):
-    bl_label = "OOT Collision Inspector"
+    bl_label = "Collision"
     bl_idname = "MATERIAL_PT_OOT_Collision_Inspector"
-    bl_parent_id = "EEVEE_MATERIAL_PT_context_material"
+    bl_parent_id = "MATERIAL_PT_OOT_Material_Inspector"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "material"

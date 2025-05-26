@@ -274,9 +274,9 @@ def flipbookAnimHandler(dummy):
 
 
 class Flipbook_MaterialPanel(bpy.types.Panel):
-    bl_label = "OOT Flipbook Properties"
+    bl_label = "Flipbook Properties"
     bl_idname = "MATERIAL_PT_Flipbook_Material_Inspector"
-    bl_parent_id = "EEVEE_MATERIAL_PT_context_material"
+    bl_parent_id = "MATERIAL_PT_OOT_Material_Inspector"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "material"

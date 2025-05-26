@@ -3880,6 +3880,7 @@ def draw_rdp_world_defaults(layout: UILayout, scene: Scene):
 class DefaultRDPSettingsPanel(Panel):
     bl_label = "RDP Default Settings"
     bl_idname = "WORLD_PT_RDP_Default_Inspector"
+    bl_parent_id = "WORLD_PT_context_world"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "world"

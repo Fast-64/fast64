@@ -47,10 +47,10 @@ class OOT_DisplayListPanel(Panel):
         # box.prop(obj.ootDynamicTransform, "billboard")
 
 
-class OOT_MaterialPanel(Panel):
-    bl_label = "OOT Dynamic Material Properties"
-    bl_idname = "MATERIAL_PT_OOT_Material_Inspector"
-    bl_parent_id = "EEVEE_MATERIAL_PT_context_material"
+class OOT_DynamicPropertiesPanel(Panel):
+    bl_label = "Dynamic Properties"
+    bl_idname = "MATERIAL_PT_OOT_Dynamic_Properties"
+    bl_parent_id = "MATERIAL_PT_OOT_Material_Inspector"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "material"
@@ -83,9 +83,10 @@ class OOT_MaterialPanel(Panel):
 class OOT_DrawLayersPanel(Panel):
     bl_label = "OOT Default Render Modes"
     bl_idname = "WORLD_PT_OOT_Draw_Layers_Panel"
-    bl_parent_id = "EEVEE_MATERIAL_PT_context_material"
+    bl_parent_id = "WORLD_PT_context_world"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
+    bl_context = "world"
 
     @classmethod
     def poll(cls, context):
@@ -118,7 +119,7 @@ class OOT_ExportDLPanel(OOT_Panel):
 
 oot_dl_writer_panel_classes = (
     OOT_DisplayListPanel,
-    OOT_MaterialPanel,
+    OOT_DynamicPropertiesPanel,
     OOT_DrawLayersPanel,
     OOT_ExportDLPanel,
 )
