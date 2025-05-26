@@ -13,12 +13,12 @@ from .properties import (
 
 
 class OOT_DisplayListPanel(Panel):
-    bl_label = "Display List Inspector"
+    bl_label = "OOT Display List Inspector"
     bl_idname = "OBJECT_PT_OOT_DL_Inspector"
+    bl_parent_id = "OBJECT_PT_context_object"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "object"
-    bl_options = {"HIDE_HEADER"}
 
     @classmethod
     def poll(cls, context):
@@ -27,20 +27,19 @@ class OOT_DisplayListPanel(Panel):
         )
 
     def draw(self, context):
-        box = self.layout.box().column()
-        box.box().label(text="OOT DL Inspector")
+        col = self.layout.column()
         obj = context.object
 
         # prop_split(box, obj, "ootDrawLayer", "Draw Layer")
-        box.prop(obj, "ignore_render")
-        box.prop(obj, "ignore_collision")
+        col.prop(obj, "ignore_render")
+        col.prop(obj, "ignore_collision")
         if bpy.context.scene.f3d_type == "F3DEX3":
-            box.prop(obj, "is_occlusion_planes")
+            col.prop(obj, "is_occlusion_planes")
             if obj.is_occlusion_planes and (not obj.ignore_render or not obj.ignore_collision):
-                box.label(icon="INFO", text="Suggest Ignore Render & Ignore Collision.")
+                col.label(icon="INFO", text="Suggest Ignore Render & Ignore Collision.")
 
         if not (obj.parent is not None and isinstance(obj.parent.data, Armature)):
-            actorScaleBox = box.box().column()
+            actorScaleBox = col.box().column()
             prop_split(actorScaleBox, obj, "ootActorScale", "Actor Scale")
             actorScaleBox.label(text="This applies to actor exports only.", icon="INFO")
 
@@ -48,13 +47,13 @@ class OOT_DisplayListPanel(Panel):
         # box.prop(obj.ootDynamicTransform, "billboard")
 
 
-class OOT_MaterialPanel(Panel):
-    bl_label = "OOT Material"
-    bl_idname = "MATERIAL_PT_OOT_Material_Inspector"
+class OOT_DynamicPropertiesPanel(Panel):
+    bl_label = "Dynamic Properties"
+    bl_idname = "MATERIAL_PT_OOT_Dynamic_Properties"
+    bl_parent_id = "MATERIAL_PT_OOT_Material_Inspector"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "material"
-    bl_options = {"HIDE_HEADER"}
 
     @classmethod
     def poll(cls, context):
@@ -78,16 +77,16 @@ class OOT_MaterialPanel(Panel):
             drawLayer = mat.f3d_mat.draw_layer.oot
 
         dynMatProps: OOTDynamicMaterialProperty = mat.ootMaterial
-        dynMatProps.draw_props(col.box().column(), mat, drawLayer)
+        dynMatProps.draw_props(col, mat, drawLayer)
 
 
 class OOT_DrawLayersPanel(Panel):
-    bl_label = "OOT Draw Layers"
+    bl_label = "OOT Default Render Modes"
     bl_idname = "WORLD_PT_OOT_Draw_Layers_Panel"
+    bl_parent_id = "WORLD_PT_context_world"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "world"
-    bl_options = {"HIDE_HEADER"}
 
     @classmethod
     def poll(cls, context):
@@ -120,7 +119,7 @@ class OOT_ExportDLPanel(OOT_Panel):
 
 oot_dl_writer_panel_classes = (
     OOT_DisplayListPanel,
-    OOT_MaterialPanel,
+    OOT_DynamicPropertiesPanel,
     OOT_DrawLayersPanel,
     OOT_ExportDLPanel,
 )

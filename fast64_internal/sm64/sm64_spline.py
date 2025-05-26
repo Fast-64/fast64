@@ -121,10 +121,10 @@ class SM64_ExportSpline(bpy.types.Operator):
 class SM64SplinePanel(bpy.types.Panel):
     bl_label = "Spline Inspector"
     bl_idname = "OBJECT_PT_SM64_Spline_Inspector"
+    bl_parent_id = "OBJECT_PT_context_object"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "object"
-    bl_options = {"HIDE_HEADER"}
 
     @classmethod
     def poll(cls, context):
@@ -133,18 +133,17 @@ class SM64SplinePanel(bpy.types.Panel):
         )
 
     def draw(self, context):
-        box = self.layout.box()
-        box.box().label(text="SM64 Spline Inspector")
+        col = self.layout.column()
         curve = context.object.data
         if curve.splines[0].type != "NURBS":
-            box.label(text="Only NURBS curves are compatible.")
+            col.label(text="Only NURBS curves are compatible.")
         else:
-            prop_split(box, curve, "sm64_spline_type", "Spline Type")
+            prop_split(col, curve, "sm64_spline_type", "Spline Type")
             if curve.sm64_spline_type == "Cutscene" or curve.sm64_spline_type == "Vector":
                 pointIndex = 0
                 for point in curve.splines.active.points:
                     if point.select:
-                        prop_split(box.box(), point, "radius", "Point " + str(pointIndex) + " Speed")
+                        prop_split(col.box(), point, "radius", "Point " + str(pointIndex) + " Speed")
                     pointIndex += 1
 
 

@@ -157,14 +157,13 @@ class CutsceneCmdCameraShotProperty(PropertyGroup):
             return self.shotStartFrame + max(2, sum(frame for frame in boneFrameList)) + 1
         return -1
 
-    def draw_props(self, layout: UILayout, label: str):
-        box = layout.box()
-        box.label(text=label)
-        split = box.split(factor=0.5)
+    def draw_props(self, layout: UILayout):
+        col = layout.column()
+        split = col.split(factor=0.5)
         split.prop(self, "shotStartFrame")
         split.prop(self, "shotEndFrame")
-        box.row().prop(self, "shotCamMode", expand=True)
-        box.operator(CutsceneCmdAddBone.bl_idname)
+        col.row().prop(self, "shotCamMode", expand=True)
+        col.operator(CutsceneCmdAddBone.bl_idname)
 
 
 class CutsceneCmdCameraShotPointProperty(PropertyGroup):
@@ -224,13 +223,13 @@ class CutsceneCmdCameraShotPointProperty(PropertyGroup):
                 activeObj.data.bones.active = bone
 
     def draw_props(self, layout: UILayout):
-        box = layout.box()
-        box.label(text="Bone / Key point:")
-        row = box.row()
+        col = layout.column()
+        col.label(text="Bone / Key point:")
+        row = col.row()
         for propName in ["shotPointFrame", "shotPointViewAngle", "shotPointRoll"]:
             row.prop(self, propName)
 
-        row = box.row()
+        row = col.row()
         row.operator(CutsceneCmdMoveBone.bl_idname, text="Move Up", icon="TRIA_UP").direction = "UP"
         row.operator(CutsceneCmdMoveBone.bl_idname, text="Move Down", icon="TRIA_DOWN").direction = "DOWN"
 

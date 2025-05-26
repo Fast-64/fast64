@@ -43,12 +43,12 @@ backgroundValues = {
 
 
 class CameraSettingsPanel(bpy.types.Panel):
-    bl_label = "Camera Settings"
+    bl_label = "SM64 Camera Settings"
     bl_idname = "Camera_Inspector"
+    bl_parent_id = "DATA_PT_context_camera"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "data"
-    bl_options = {"HIDE_HEADER"}
 
     @classmethod
     def poll(cls, context):
