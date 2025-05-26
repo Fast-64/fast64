@@ -736,6 +736,7 @@ class SM64_CustomCmdProperties(PropertyGroup):
         name="DL Option",
         items=[
             ("NONE", "None", "No geometry will be inherited, deform will be off in bones"),
+            ("", "", ""),
             (
                 "OPTIONAL",
                 "Optional",
