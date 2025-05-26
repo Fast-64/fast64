@@ -182,10 +182,10 @@ class OOT_ExportAllCutscenes(Operator):
 
                     cs_obj_list.append(obj)
 
-            for count, cs_obj in enumerate(cs_obj_list):
+            for count, cs_obj in enumerate(cs_obj_list, 1):
                 # skip the includes if this isn't the first cutscene
                 # skip the #endif directive if this isn't the last cutscene
-                Cutscene.export(cs_obj, count > 0, count < len(cs_obj_list) - 1)
+                Cutscene.export(cs_obj, count > 1, count < len(cs_obj_list))
 
             if count == 0:
                 raise PluginError("Could not find any cutscenes to export")
