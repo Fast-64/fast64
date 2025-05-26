@@ -41,7 +41,7 @@ class Cutscene:
             return Cutscene(name, data, data.totalEntries, data.frameCount, useMacros, motionOnly)
 
         return None
-        
+
     @staticmethod
     def export(cs_obj: Object, skip_includes: bool = False, skip_endif: bool = False):
         # create the cutscene
@@ -130,7 +130,7 @@ class Cutscene:
             return csData
         else:
             raise PluginError("ERROR: CutsceneData not initialised!")
-    
+
     def get_file(self, filename: str, skip_includes: bool, skip_endif: bool):
         filedata = CData()
 

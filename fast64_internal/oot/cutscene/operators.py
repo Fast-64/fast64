@@ -179,7 +179,7 @@ class OOT_ExportAllCutscenes(Operator):
 
                     if context.scene.fast64.oot.exportMotionOnly:
                         raise PluginError("ERROR: Not implemented yet.")
-                    
+
                     cs_obj_list.append(obj)
 
             for count, cs_obj in enumerate(cs_obj_list):
