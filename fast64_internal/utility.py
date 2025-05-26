@@ -1,15 +1,31 @@
-import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operator
+from pathlib import Path
+import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operator, inspect
 from math import pi, ceil, degrees, radians, copysign
 from mathutils import *
 from .utility_anim import *
-from typing import Callable, Iterable, Any, Tuple, Union
-from bpy.types import UILayout
+from typing import Callable, Iterable, Any, Optional, Tuple, TypeVar, Union
+from bpy.types import UILayout, Scene, World
 
 CollectionProperty = Any  # collection prop as defined by using bpy.props.CollectionProperty
 
 
 class PluginError(Exception):
-    pass
+    # arguments for exception processing
+    exc_halt = "exc_halt"
+    exc_warn = "exc_warn"
+
+    """
+    because exceptions generally go through multiple funcs
+    and layers, the easiest way to check if we have an exception
+    of a certain type is to check for our input string
+    """
+
+    @classmethod
+    def check_exc_warn(self, exc):
+        for arg in exc.args:
+            if type(arg) is str and self.exc_warn in arg:
+                return True
+        return False
 
 
 class VertexWeightError(PluginError):
@@ -38,6 +54,24 @@ enumExportHeaderType = [
     ("Actor", "Actor Data", "Headers are written to a group in actors/"),
     ("Level", "Level Data", "Headers are written to a specific level in levels/"),
 ]
+
+# bpy.context.mode returns the keys here, while the values are required by bpy.ops.object.mode_set
+CONTEXT_MODE_TO_MODE_SET = {
+    "PAINT_VERTEX": "VERTEX_PAINT",
+    "PAINT_WEIGHT": "WEIGHT_PAINT",
+    "PAINT_TEXTURE": "TEXTURE_PAINT",
+    "PARTICLE": "PARTICLE_EDIT",
+    "EDIT_GREASE_PENCIL": "EDIT_GPENCIL",
+}
+
+
+def get_mode_set_from_context_mode(context_mode: str):
+    if context_mode in CONTEXT_MODE_TO_MODE_SET:
+        return CONTEXT_MODE_TO_MODE_SET[context_mode]
+    elif context_mode.startswith("EDIT"):
+        return "EDIT"
+    else:
+        return context_mode
 
 
 def isPowerOf2(n):
@@ -233,6 +267,8 @@ def get_attr_or_property(prop: dict | object, attr: str, newProp: dict | object)
                 # change type hint to proper type
                 newPropDef: bpy.types.EnumProperty = newPropDef
                 return newPropDef.enum_items[val].identifier
+            elif "Bool" in newPropDef.bl_rna.name:  # Should be "Boolean Definition"
+                return bool(val)
         except Exception as e:
             pass
     return val
@@ -256,15 +292,19 @@ def recursiveCopyOldPropertyGroup(oldProp, newProp):
         if sub_value_attr == "rna_type":
             continue
         sub_value = get_attr_or_property(oldProp, sub_value_attr, newProp)
+        new_value = get_attr_or_property(newProp, sub_value_attr, newProp)
 
-        if isinstance(sub_value, bpy.types.PropertyGroup) or type(sub_value).__name__ in (
+        if isinstance(new_value, bpy.types.PropertyGroup) or type(new_value).__name__ in (
             "bpy_prop_collection_idprop",
             "IDPropertyGroup",
         ):
             newCollection = getattr(newProp, sub_value_attr)
             recursiveCopyOldPropertyGroup(sub_value, newCollection)
         else:
-            setattr(newProp, sub_value_attr, sub_value)
+            try:
+                setattr(newProp, sub_value_attr, sub_value)
+            except Exception as e:
+                print(e)
 
 
 def propertyCollectionEquals(oldProp, newProp):
@@ -394,27 +434,17 @@ def extendedRAMLabel(layout):
     infoBox.label(text="Extended RAM prevents crashes.")
 
 
-def checkExpanded(filepath):
-    size = os.path.getsize(filepath)
-    if size < 9000000:  # check if 8MB
-        raise PluginError(
-            "ROM at "
-            + filepath
-            + " is too small. You may be using an unexpanded ROM. You can expand a ROM by opening it in SM64 Editor or ROM Manager."
-        )
-
-
-def getPathAndLevel(customExport, exportPath, levelName, levelOption):
-    if customExport:
-        exportPath = bpy.path.abspath(exportPath)
-        levelName = levelName
+def getPathAndLevel(is_custom_export, custom_export_path, custom_level_name, level_enum):
+    if is_custom_export:
+        export_path = bpy.path.abspath(custom_export_path)
+        level_name = custom_level_name
     else:
-        exportPath = bpy.path.abspath(bpy.context.scene.decompPath)
-        if levelOption == "custom":
-            levelName = levelName
+        export_path = str(bpy.context.scene.fast64.sm64.abs_decomp_path)
+        if level_enum == "Custom":
+            level_name = custom_level_name
         else:
-            levelName = levelOption
-    return exportPath, levelName
+            level_name = level_enum
+    return export_path, level_name
 
 
 def findStartBones(armatureObj):
@@ -468,8 +498,8 @@ def saveDataToFile(filepath, data):
 
 
 def applyBasicTweaks(baseDir):
-    enableExtendedRAM(baseDir)
-    return
+    if bpy.context.scene.fast64.sm64.force_extended_ram:
+        enableExtendedRAM(baseDir)
 
 
 def enableExtendedRAM(baseDir):
@@ -680,7 +710,7 @@ def writeBoxExportType(writeBox, headerType, name, levelName, levelOption):
     if headerType == "Actor":
         writeBox.label(text="actors/" + toAlnum(name))
     elif headerType == "Level":
-        if levelOption != "custom":
+        if levelOption != "Custom":
             levelName = levelOption
         writeBox.label(text="levels/" + toAlnum(levelName) + "/" + toAlnum(name))
 
@@ -694,11 +724,13 @@ def getExportDir(customExport, dirPath, headerType, levelName, texDir, dirName):
         elif headerType == "Level":
             dirPath = os.path.join(dirPath, "levels/" + levelName)
             texDir = "levels/" + levelName
+    elif not texDir:
+        texDir = (Path(dirPath).name / Path(dirName)).as_posix()
 
     return dirPath, texDir
 
 
-def overwriteData(headerRegex, name, value, filePath, writeNewBeforeString, isFunction):
+def overwriteData(headerRegex, name, value, filePath, writeNewBeforeString, isFunction, post_regex=""):
     if os.path.exists(filePath):
         dataFile = open(filePath, "r")
         data = dataFile.read()
@@ -707,7 +739,8 @@ def overwriteData(headerRegex, name, value, filePath, writeNewBeforeString, isFu
         matchResult = re.search(
             headerRegex
             + re.escape(name)
-            + ("\s*\((((?!\)).)*)\)\s*\{(((?!\}).)*)\}" if isFunction else "\[\]\s*=\s*\{(((?!;).)*);"),
+            + ("\s*\((((?!\)).)*)\)\s*\{(((?!\}).)*)\}" if isFunction else "\[\]\s*=\s*\{(((?!;).)*);")
+            + post_regex,
             data,
             re.DOTALL,
         )
@@ -774,7 +807,8 @@ def store_original_mtx():
     for obj in yield_children(active_obj):
         # negative scales produce a rotation, we need to remove that since
         # scales will be applied to the transform for each object
-        obj["original_mtx"] = Matrix.LocRotScale(obj.location, obj.rotation_euler, None)
+        loc, rot, _scale = obj.matrix_local.decompose()
+        obj["original_mtx"] = Matrix.LocRotScale(loc, rot, None)
 
 
 def rotate_bounds(bounds, mtx: mathutils.Matrix):
@@ -1197,6 +1231,85 @@ def multilineLabel(layout: UILayout, text: str, icon: str = "NONE"):
         r.scale_y = 0.75
 
 
+def draw_and_check_tab(
+    layout: UILayout, data, proprety: str, text: Optional[str] = None, icon: Optional[str] = None
+) -> bool:
+    row = layout.row(align=True)
+    tab = getattr(data, proprety)
+    tria_icon = "TRIA_DOWN" if tab else "TRIA_RIGHT"
+    if icon is not None:
+        row.prop(data, proprety, icon=tria_icon, text="")
+    row.prop(data, proprety, icon=tria_icon if icon is None else icon, text=text)
+    if tab:
+        layout.separator()
+    return tab
+
+
+def run_and_draw_errors(layout: UILayout, func, *args):
+    try:
+        func(*args)
+        return True
+    except Exception as e:
+        multilineLabel(layout.box(), str(e), "ERROR")
+        return False
+
+
+def path_checks(path: str, empty="Empty path.", doesnt_exist="Path {}does not exist.", include_path=True):
+    path_in_error = f'"{path}" ' if include_path else ""
+    if path == "":
+        raise PluginError(empty)
+    elif not os.path.exists(path):
+        raise FileNotFoundError(doesnt_exist.format(path_in_error))
+
+
+def path_ui_warnings(layout: bpy.types.UILayout, path: str, empty="Empty path.", doesnt_exist="Path does not exist."):
+    return run_and_draw_errors(layout, path_checks, path, empty, doesnt_exist, False)
+
+
+def directory_path_checks(
+    path: str,
+    empty="Empty path.",
+    doesnt_exist="Directory {}does not exist.",
+    not_a_directory="Path {}is not a folder.",
+    include_path=True,
+):
+    path_checks(path, empty, doesnt_exist, include_path)
+    if not os.path.isdir(path):
+        raise NotADirectoryError(not_a_directory.format(f'"{path}" ' if include_path else ""))
+
+
+def directory_ui_warnings(
+    layout: bpy.types.UILayout,
+    path: str,
+    empty="Empty path.",
+    doesnt_exist="Directory does not exist.",
+    not_a_directory="Path is not a folder.",
+):
+    return run_and_draw_errors(layout, directory_path_checks, path, empty, doesnt_exist, not_a_directory, False)
+
+
+def filepath_checks(
+    path: str,
+    empty="Empty path.",
+    doesnt_exist="File {}does not exist.",
+    not_a_file="Path {}is not a file.",
+    include_path=True,
+):
+    path_checks(path, empty, doesnt_exist, include_path)
+    if not os.path.isfile(path):
+        raise IsADirectoryError(not_a_file.format(f'"{path}" ' if include_path else ""))
+
+
+def filepath_ui_warnings(
+    layout: bpy.types.UILayout,
+    path: str,
+    empty="Empty path.",
+    doesnt_exist="File does not exist.",
+    not_a_file="Path is not a file.",
+):
+    return run_and_draw_errors(layout, filepath_checks, path, empty, doesnt_exist, not_a_file, False)
+
+
 def toAlnum(name, exceptions=[]):
     if name is None or name == "":
         return None
@@ -1228,6 +1341,12 @@ def gammaCorrect(linearColor):
     return list(mathutils.Color(linearColor[:3]).from_scene_linear_to_srgb())
 
 
+def s_rgb_alpha_1_tuple(linearColor):
+    s_rgb = gammaCorrect(linearColor)
+    s_rgb.append(1.0)
+    return tuple(s for s in s_rgb)
+
+
 def gammaCorrectValue(linearValue):
     # doesn't need to use `colorToLuminance` since all values are the same
     return mathutils.Color((linearValue, linearValue, linearValue)).from_scene_linear_to_srgb().v
@@ -1244,6 +1363,10 @@ def gammaInverseValue(sRGBValue):
 
 def exportColor(lightColor):
     return [scaleToU8(value) for value in gammaCorrect(lightColor)]
+
+
+def get_clean_color(srgb: list, include_alpha=False, round_color=True) -> list:
+    return [round(channel, 4) if round_color else channel for channel in list(srgb[: 4 if include_alpha else 3])]
 
 
 def printBlenderMessage(msgSet, message, blenderOp):
@@ -1307,7 +1430,10 @@ def readVectorFromShorts(command, offset):
 
 
 def readFloatFromShort(command, offset):
-    return int.from_bytes(command[offset : offset + 2], "big", signed=True) / bpy.context.scene.blenderToSM64Scale
+    return (
+        int.from_bytes(command[offset : offset + 2], "big", signed=True)
+        / bpy.context.scene.fast64.sm64.blender_to_sm64_scale
+    )
 
 
 def writeVectorToShorts(command, offset, values):
@@ -1317,13 +1443,13 @@ def writeVectorToShorts(command, offset, values):
 
 
 def writeFloatToShort(command, offset, value):
-    command[offset : offset + 2] = int(round(value * bpy.context.scene.blenderToSM64Scale)).to_bytes(
+    command[offset : offset + 2] = int(round(value * bpy.context.scene.fast64.sm64.blender_to_sm64_scale)).to_bytes(
         2, "big", signed=True
     )
 
 
 def convertFloatToShort(value):
-    return int(round((value * bpy.context.scene.blenderToSM64Scale)))
+    return int(round((value * bpy.context.scene.fast64.sm64.blender_to_sm64_scale)))
 
 
 def convertEulerFloatToShort(value):
@@ -1527,7 +1653,7 @@ def all_values_equal_x(vals: Iterable, test):
 def get_blender_to_game_scale(context):
     match context.scene.gameEditorMode:
         case "SM64":
-            return context.scene.blenderToSM64Scale
+            return context.scene.fast64.sm64.blender_to_sm64_scale
         case "OOT":
             return context.scene.ootBlenderScale
         case "F3D":
@@ -1552,7 +1678,9 @@ def lightDataToObj(lightData):
     for obj in bpy.context.scene.objects:
         if obj.data == lightData:
             return obj
-    raise PluginError("A material is referencing a light that is no longer in the scene (i.e. has been deleted).")
+    raise PluginError(
+        f'Referencing a light ("{lightData.name}") that is no longer in the scene (i.e. has been deleted).'
+    )
 
 
 def ootGetSceneOrRoomHeader(parent, idx, isRoom):
@@ -1587,16 +1715,19 @@ def ootGetBaseOrCustomLight(prop, idx, toExport: bool, errIfMissing: bool):
     # code without circular dependencies.
     assert idx in {0, 1}
     col = getattr(prop, "diffuse" + str(idx))
-    dir = (mathutils.Vector((1.0, 1.0, 1.0)) * (1.0 if idx == 0 else -1.0)).normalized()
+    dir = (mathutils.Vector((1.0, -1.0, 1.0)) * (1.0 if idx == 0 else -1.0)).normalized()
     if getattr(prop, "useCustomDiffuse" + str(idx)):
-        light = getattr(prop, "diffuse" + str(idx) + "Custom")
-        if light is None:
-            if errIfMissing:
-                raise PluginError("Error: Diffuse " + str(idx) + " light object not set in a scene lighting property.")
-        else:
-            col = light.color
-            lightObj = lightDataToObj(light)
-            dir = getObjDirectionVec(lightObj, toExport)
+        try:
+            light = getattr(prop, "diffuse" + str(idx) + "Custom")
+            if light is None:
+                if errIfMissing:
+                    raise PluginError("Light object not set in a scene lighting property.")
+            else:
+                col = tuple(c for c in light.color) + (1.0,)
+                lightObj = lightDataToObj(light)
+                dir = getObjDirectionVec(lightObj, toExport)
+        except Exception as exc:
+            raise PluginError(f"In custom diffuse {idx}: {exc}") from exc
     col = mathutils.Vector(tuple(c for c in col))
     if toExport:
         col, dir = exportColor(col), normToSigned8Vector(dir)
@@ -1607,6 +1738,21 @@ def getTextureSuffixFromFormat(texFmt):
     # if texFmt == "RGBA16":
     #     return "rgb5a1"
     return texFmt.lower()
+
+
+def removeComments(text: str):
+    # https://stackoverflow.com/a/241506
+
+    def replacer(match: re.Match[str]):
+        s = match.group(0)
+        if s.startswith("/"):
+            return " "  # note: a space and not an empty string
+        else:
+            return s
+
+    pattern = re.compile(r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"', re.DOTALL | re.MULTILINE)
+
+    return re.sub(pattern, replacer, text)
 
 
 binOps = {
@@ -1622,3 +1768,184 @@ binOps = {
     ast.BitAnd: operator.and_,
     ast.BitXor: operator.xor,
 }
+
+
+def prop_group_to_json(prop_group, blacklist: list[str] = None, whitelist: list[str] = None):
+    blacklist = ["rna_type", "name"] + (blacklist or [])
+
+    def prop_to_json(prop):
+        if isinstance(prop, list) or type(prop).__name__ == "bpy_prop_collection_idprop":
+            prop = list(prop)
+            for index, value in enumerate(prop):
+                prop[index] = prop_to_json(value)
+            return prop
+        elif isinstance(prop, Color):
+            return get_clean_color(prop)
+        elif hasattr(prop, "to_list"):  # for IDPropertyArray classes
+            return prop.to_list()
+        elif hasattr(prop, "to_dict"):
+            return prop.to_dict()
+        else:
+            return prop
+
+    data = {}
+    for prop in iter_prop(prop_group):
+        if prop in blacklist or (whitelist and prop not in whitelist):
+            continue
+        value = prop_to_json(getattr(prop_group, prop))
+        if value is not None:
+            data[prop] = value
+    return data
+
+
+def json_to_prop_group(prop_group, data: dict, blacklist: list[str] = None, whitelist: list[str] = None):
+    blacklist = ["rna_type", "name"] + (blacklist or [])
+    for prop in iter_prop(prop_group):
+        if prop in blacklist or (whitelist and prop not in whitelist):
+            continue
+        default = getattr(prop_group, prop)
+        if hasattr(default, "from_dict"):
+            default.from_dict(data.get(prop, None))
+        else:
+            setattr(prop_group, prop, data.get(prop, default))
+
+
+T = TypeVar("T")
+SetOrVal = T | list[T]
+
+
+def get_first_set_prop(old_loc, old_props: SetOrVal[str]):
+    """Pops all old props and returns the first one that is set"""
+
+    def as_set(val: SetOrVal[T]) -> set[T]:
+        if isinstance(val, Iterable) and not isinstance(val, str):
+            return set(val)
+        else:
+            return {val}
+
+    result = None
+    for old_prop in as_set(old_props):
+        old_value = old_loc.pop(old_prop, None)
+        if old_value is not None:
+            result = old_value
+    return result
+
+
+def upgrade_old_prop(
+    new_loc,
+    new_prop: str,
+    old_loc,
+    old_props: SetOrVal[str],
+    old_enum: list[str] = None,
+    fix_forced_base_16=False,
+):
+    try:
+        new_prop_def = new_loc.bl_rna.properties[new_prop]
+        new_prop_value = getattr(new_loc, new_prop)
+        assert not old_enum or new_prop_def.type == "ENUM"
+        assert not (old_enum and fix_forced_base_16)
+
+        old_value = get_first_set_prop(old_loc, old_props)
+        if old_value is None:
+            return False
+
+        if new_prop_def.type == "ENUM":
+            if isinstance(old_value, str):
+                new_enum_options = {enum_item.identifier for enum_item in new_prop_def.enum_items}
+                if old_value not in new_enum_options:
+                    return False
+            elif not isinstance(old_value, int):
+                raise ValueError(f"({old_value}) not an int, but {new_prop} is an enum")
+            elif old_enum:
+                if old_value >= len(old_enum):
+                    raise ValueError(f"({old_value}) not in {old_enum}")
+                old_value = old_enum[old_value]
+            else:
+                if old_value >= len(new_prop_def.enum_items):
+                    raise ValueError(f"({old_value}) not in {new_prop}´s enum items")
+                old_value = new_prop_def.enum_items[old_value].identifier
+        elif isinstance(new_prop_value, bpy.types.PropertyGroup):
+            recursiveCopyOldPropertyGroup(old_value, new_prop_value)
+            print(f"Upgraded {new_prop} from old location {old_loc} with props {old_props} via recursive group copy")
+            return True
+        elif isinstance(new_prop_value, bpy.types.Collection):
+            copyPropertyCollection(old_value, new_prop_value)
+            print(f"Upgraded {new_prop} from old location {old_loc} with props {old_props} via collection copy")
+            return True
+        elif fix_forced_base_16:
+            try:
+                if not isinstance(old_value, str):
+                    raise ValueError(f"({old_value}) not a string")
+                old_value = int(old_value, 16)
+                if new_prop_def.type == "STRING":
+                    old_value = intToHex(old_value)
+            except ValueError as exc:
+                raise ValueError(f"({old_value}) not a valid base 16 integer") from exc
+
+        if new_prop_def.type == "STRING":
+            old_value = str(old_value)
+        if getattr(new_loc, new_prop, None) == old_value:
+            return False
+        setattr(new_loc, new_prop, old_value)
+        print(f'{new_prop} set to "{getattr(new_loc, new_prop)}"')
+        return True
+    except Exception as exc:
+        print(f"Failed to upgrade {new_prop} from old location {old_loc} with props {old_props}")
+        traceback.print_exc()
+        return False
+
+
+WORLD_WARNING_COUNT = 0
+
+
+def create_or_get_world(scene: Scene) -> World:
+    """
+    Given a scene, this function will return:
+    - The world selected in the scene if the scene has a selected world.
+    - The first world in bpy.data.worlds if the current file has a world. (Which it almost always does because of the f3d nodes library)
+    - Create a world named "Fast64" and return it if no world exits.
+    This function does not assign any world to the scene.
+    """
+    global WORLD_WARNING_COUNT
+    if scene.world:
+        WORLD_WARNING_COUNT = 0
+        return scene.world
+    elif bpy.data.worlds:
+        world: World = bpy.data.worlds.values()[0]
+        if WORLD_WARNING_COUNT < 10:
+            print(f'No world selected in scene, selected the first one found in this file "{world.name}".')
+            WORLD_WARNING_COUNT += 1
+        return world
+    else:  # Almost never reached because the node library has its own world
+        WORLD_WARNING_COUNT = 0
+        print(f'No world in this file, creating world named "Fast64".')
+        return bpy.data.worlds.new("Fast64")
+
+
+def set_if_different(owner: object, prop: str, value):
+    if getattr(owner, prop) != value:
+        setattr(owner, prop, value)
+
+
+def set_prop_if_in_data(owner: object, prop_name: str, data: dict, data_name: str):
+    if data_name in data:
+        set_if_different(owner, prop_name, data[data_name])
+
+
+def wrap_func_with_error_message(error_message: Callable):
+    """Decorator for big, reused functions that need generic info in errors, such as material exports."""
+
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            # Get the argument names and values (positional and keyword)
+            sig = inspect.signature(func)
+            bound_args = sig.bind(*args, **kwargs)
+            bound_args.apply_defaults()
+            try:
+                return func(*args, **kwargs)
+            except Exception as exc:
+                raise PluginError(f"{error_message(bound_args.arguments)} {exc}") from exc
+
+        return wrapper
+
+    return decorator

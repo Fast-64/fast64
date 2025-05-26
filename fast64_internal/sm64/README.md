@@ -86,7 +86,10 @@ Basically, Mario's DMA table starts at 0x4EC000. There is an 8 byte header, and 
 Often times it is hard to rig an existing SM64 geolayout, as there are many intermediate non-deform bones and bones don't point to their children. To make this easier you can use the 'Create Animatable Metarig' operator in the SM64 Armature Tools header. This will generate a metarig which can be used with IK. The metarig bones will be placed on armature layers 3 and 4.
 
 ## Decomp
-To start, set your base decomp folder in SM64 File Settings. This allows the plugin to automatically add headers/includes to the correct locations. You can always choose to export to a custom location, although headers/includes won't be written.
+To start, set your base decomp folder in SM64 General Settings. This allows the plugin to automatically add headers/includes to the correct locations. You can always choose to export to a custom location, although headers/includes won't be written.
+
+## Repo settings
+Fast64 can save and load repo settings files. By default, they're named fast64.json. These files have RDP defaults, microcode, and more. They also have game-specific settings (OOT will support these in the future). Fast64 will set the path for the settings and auto-load them if auto-load is enabled as soon as the user picks an sm64 decomp path.
 
 ### Decomp Export Types
 Most exports will let you choose an export type. 
@@ -140,7 +143,7 @@ The draw function will be in the format "void myfunc(x, y, width, height, s, t)"
 
 ### Scrolling Textures in Decomp
 Scrolling texture settings can be found in the material properties window before the "Geomtry Mode Settings" tab.
-If you want to disable scrolling texture code generation, you can do so in the SM64 File Settings.
+If you want to disable scrolling texture code generation, you can do so in the SM64 General Settings.
 This is the process for how scrolling textures is implemented:
 
 - Add a sSegmentROMTable to src/game/memory.c/h in order to keep track of which ROM locations are loaded into memory. ROM locations will be stored in this table during segment loading function calls.

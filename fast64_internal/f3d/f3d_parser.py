@@ -189,9 +189,9 @@ def getPosition(vertexBuffer, index):
     yBytes = vertexBuffer[yStart : yStart + 2]
     zBytes = vertexBuffer[zStart : zStart + 2]
 
-    x = int.from_bytes(xBytes, "big", signed=True) / bpy.context.scene.blenderToSM64Scale
-    y = int.from_bytes(yBytes, "big", signed=True) / bpy.context.scene.blenderToSM64Scale
-    z = int.from_bytes(zBytes, "big", signed=True) / bpy.context.scene.blenderToSM64Scale
+    x = int.from_bytes(xBytes, "big", signed=True) / bpy.context.scene.fast64.sm64.blender_to_sm64_scale
+    y = int.from_bytes(yBytes, "big", signed=True) / bpy.context.scene.fast64.sm64.blender_to_sm64_scale
+    z = int.from_bytes(zBytes, "big", signed=True) / bpy.context.scene.fast64.sm64.blender_to_sm64_scale
 
     return (x, y, z)
 
@@ -406,7 +406,7 @@ def getTileSize(value, f3d):
 
 def getTileClampMirror(value, f3d):
     data = math_eval(value, f3d)
-    return [(data & f3d.G_TX_CLAMP) != 0, (data & f3d.G_TX_MIRROR) != 0]
+    return ((data & f3d.G_TX_CLAMP) != 0, (data & f3d.G_TX_MIRROR) != 0)
 
 
 def getTileMask(value, f3d):
@@ -463,6 +463,7 @@ class F3DContext:
         self.materialContext.f3d_update_flag = True  # Don't want visual updates while parsing
         # If this is not disabled, then tex_scale will auto-update on manual node update.
         self.materialContext.f3d_mat.scale_autoprop = False
+        self.draw_layer_prop: str | None = None
         self.initContext()
 
     # This is separate as we want to call __init__ in clearGeometry, but don't want same behaviour for child classes
@@ -495,7 +496,7 @@ class F3DContext:
 
         # This macro has all the tile setting properties, so we reuse it
         self.tileSettings: list[DPSetTile] = [
-            DPSetTile("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 5, 0, i, 0, [False, False], 0, 0, [False, False], 0, 0)
+            DPSetTile("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 5, 0, i, 0, (False, False), 0, 0, (False, False), 0, 0)
             for i in range(8)
         ]
         self.tileSizes: list[DPSetTileSize] = [DPSetTileSize(i, 0, 0, 32, 32) for i in range(8)]
@@ -540,6 +541,8 @@ class F3DContext:
         savedTlutAppliedTextures = self.tlutAppliedTextures
         savedImagesDontApplyTlut = self.imagesDontApplyTlut
         savedLightData = self.lightData
+        savedMatrixData = self.matrixData
+        savedLimbToBoneName = self.limbToBoneName
 
         self.initContext()
 
@@ -548,6 +551,8 @@ class F3DContext:
         self.tlutAppliedTextures = savedTlutAppliedTextures
         self.imagesDontApplyTlut = savedImagesDontApplyTlut
         self.lightData = savedLightData
+        self.matrixData = savedMatrixData
+        self.limbToBoneName = savedLimbToBoneName
 
     def clearMaterial(self):
         mat = self.mat()
@@ -574,7 +579,7 @@ class F3DContext:
         self.tmemDict = {}
 
         self.tileSettings = [
-            DPSetTile("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 5, 0, i, 0, [False, False], 0, 0, [False, False], 0, 0)
+            DPSetTile("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 5, 0, i, 0, (False, False), 0, 0, (False, False), 0, 0)
             for i in range(8)
         ]
 
@@ -1527,6 +1532,19 @@ class F3DContext:
         if invalidIndicesDetected:
             print("Invalid LUT Indices detected.")
 
+    def getVertexDataStart(self, vertexDataParam: str, f3d: F3D):
+        matchResult = re.search(r"\&?([A-Za-z0-9\_]*)\s*(\[([^\]]*)\])?\s*(\+(.*))?", vertexDataParam)
+        if matchResult is None:
+            raise PluginError("SPVertex param " + vertexDataParam + " is malformed.")
+
+        offset = 0
+        if matchResult.group(3):
+            offset += math_eval(matchResult.group(3), f3d)
+        if matchResult.group(5):
+            offset += math_eval(matchResult.group(5), f3d)
+
+        return matchResult.group(1), offset
+
     def processCommands(self, dlData: str, dlName: str, dlCommands: "list[ParsedMacro]"):
         callStack = [F3DParsedCommands(dlName, dlCommands, 0)]
         while len(callStack) > 0:
@@ -1540,7 +1558,7 @@ class F3DContext:
 
             # print(command.name + " " + str(command.params))
             if command.name == "gsSPVertex":
-                vertexDataName, vertexDataOffset = getVertexDataStart(command.params[0], self.f3d)
+                vertexDataName, vertexDataOffset = self.getVertexDataStart(command.params[0], self.f3d)
                 parseVertexData(dlData, vertexDataName, self)
                 self.addVertices(command.params[1], command.params[2], vertexDataName, vertexDataOffset)
             elif command.name == "gsSPMatrix":
@@ -1914,7 +1932,6 @@ def parseF3D(
     transformMatrix: mathutils.Matrix,
     limbName: str,
     boneName: str,
-    drawLayerPropName: str,
     drawLayer: str,
     f3dContext: F3DContext,
     callClearMaterial: bool,
@@ -1922,7 +1939,8 @@ def parseF3D(
     f3dContext.matrixData[limbName] = transformMatrix
     f3dContext.setCurrentTransform(limbName)
     f3dContext.limbToBoneName[limbName] = boneName
-    setattr(f3dContext.mat().draw_layer, drawLayerPropName, drawLayer)
+    if f3dContext.draw_layer_prop is not None:
+        setattr(f3dContext.mat().draw_layer, f3dContext.draw_layer_prop, drawLayer)
 
     # vertexGroup = getOrMakeVertexGroup(obj, boneName)
     # groupIndex = vertexGroup.index
@@ -1951,20 +1969,6 @@ def parseDLData(dlData: str, dlName: str):
     return dlCommands
 
 
-def getVertexDataStart(vertexDataParam: str, f3d: F3D):
-    matchResult = re.search(r"\&?([A-Za-z0-9\_]*)\s*(\[([^\]]*)\])?\s*(\+(.*))?", vertexDataParam)
-    if matchResult is None:
-        raise PluginError("SPVertex param " + vertexDataParam + " is malformed.")
-
-    offset = 0
-    if matchResult.group(3):
-        offset += math_eval(matchResult.group(3), f3d)
-    if matchResult.group(5):
-        offset += math_eval(matchResult.group(5), f3d)
-
-    return matchResult.group(1), offset
-
-
 def parseVertexData(dlData: str, vertexDataName: str, f3dContext: F3DContext):
     if vertexDataName in f3dContext.vertexData:
         return f3dContext.vertexData[vertexDataName]
@@ -1979,6 +1983,8 @@ def parseVertexData(dlData: str, vertexDataName: str, f3dContext: F3DContext):
     pathMatch = re.search(r'\#include\s*"([^"]*)"', data)
     if pathMatch is not None:
         path = pathMatch.group(1)
+        if bpy.context.scene.gameEditorMode == "OOT":
+            path = f"{bpy.context.scene.fast64.oot.get_extracted_path()}/{path}"
         data = readFile(f3dContext.getVTXPathFromInclude(path))
 
     f3d = f3dContext.f3d
@@ -2081,6 +2087,8 @@ def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, wi
     pathMatch = re.search(r'\#include\s*"(.*?)"', data, re.DOTALL)
     if pathMatch is not None:
         path = pathMatch.group(1)
+        if bpy.context.scene.gameEditorMode == "OOT":
+            path = f"{bpy.context.scene.fast64.oot.get_extracted_path()}/{path}"
         originalImage = bpy.data.images.load(f3dContext.getImagePathFromInclude(path))
         image = originalImage.copy()
         image.pack()
@@ -2272,10 +2280,9 @@ def importMeshC(
     obj = bpy.data.objects.new(name + "_mesh", mesh)
     bpy.context.collection.objects.link(obj)
 
-    f3dContext.mat().draw_layer.oot = drawLayer
     transformMatrix = mathutils.Matrix.Scale(1 / scale, 4)
 
-    parseF3D(data, name, transformMatrix, name, name, "oot", drawLayer, f3dContext, True)
+    parseF3D(data, name, transformMatrix, name, name, drawLayer, f3dContext, True)
     f3dContext.createMesh(obj, removeDoubles, importNormals, callClearMaterial)
 
     applyRotation([obj], math.radians(-90), "X")

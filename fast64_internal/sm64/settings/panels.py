@@ -1,57 +1,33 @@
 from bpy.utils import register_class, unregister_class
+from bpy.types import Context
 
-from ...utility import prop_split
 from ...panels import SM64_Panel
+from ...utility import draw_and_check_tab
 
-from .properties import SM64_Properties
 
+class SM64_GeneralSettingsPanel(SM64_Panel):
+    bl_idname = "SM64_PT_general_settings"
+    bl_label = "SM64 General Settings"
 
-class SM64_MenuVisibilityPanel(SM64_Panel):
-    bl_idname = "SM64_PT_menu_visibility_settings"
-    bl_label = "SM64 Menu Visibility Settings"
-    bl_options = set()  # default to open
-    bl_order = 0  # force to front
-
-    def draw(self, context):
+    def draw(self, context: Context):
         col = self.layout.column()
-        col.scale_y = 1.1  # extra padding
-        sm64Props: SM64_Properties = context.scene.fast64.sm64
+        scene = context.scene
+        sm64_props = scene.fast64.sm64
 
-        prop_split(col, sm64Props, "goal", "Export goal")
-        prop_split(col, sm64Props, "showImportingMenus", "Show Importing Options")
+        if sm64_props.export_type == "C":
+            # If the repo settings tab is open, we pass show_repo_settings as False
+            # because we want to draw those specfic properties in the repo settings box
+            box = col.box().column()
+            if draw_and_check_tab(box, sm64_props, "sm64_repo_settings_tab", icon="PROPERTIES"):
+                sm64_props.draw_repo_settings(box)
+                col.separator()
 
-
-class SM64_FileSettingsPanel(SM64_Panel):
-    bl_idname = "SM64_PT_file_settings"
-    bl_label = "SM64 File Settings"
-    bl_options = set()
-
-    def draw(self, context):
-        col = self.layout.column()
-        col.scale_y = 1.1  # extra padding
-        sm64Props: SM64_Properties = context.scene.fast64.sm64
-
-        prop_split(col, sm64Props, "exportType", "Export type")
-        prop_split(col, context.scene, "blenderToSM64Scale", "Blender To SM64 Scale")
-
-        if sm64Props.showImportingMenus:
-            col.prop(context.scene, "importRom")
-
-        if sm64Props.exportType == "Binary":
-            col.prop(context.scene, "exportRom")
-            col.prop(context.scene, "outputRom")
-            col.prop(context.scene, "extendBank4")
-        elif sm64Props.exportType == "C":
-            col.prop(context.scene, "disableScroll")
-            col.prop(context.scene, "decompPath")
-            prop_split(col, context.scene, "refreshVer", "Decomp Func Map")
-            prop_split(col, context.scene, "compressionFormat", "Compression Format")
+            sm64_props.draw_props(col, not sm64_props.sm64_repo_settings_tab or sm64_props.binary_export)
+        else:
+            sm64_props.draw_props(col, True)
 
 
-classes = (
-    SM64_MenuVisibilityPanel,
-    SM64_FileSettingsPanel,
-)
+classes = (SM64_GeneralSettingsPanel,)
 
 
 def settings_panels_register():

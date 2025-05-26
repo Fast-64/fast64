@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import bpy
 from struct import pack
-from copy import copy
-from .sm64_function_map import func_map
+from copy import copy, deepcopy
 
 from ..utility import (
     PluginError,
@@ -20,7 +19,7 @@ from ..utility import (
     geoNodeRotateOrder,
 )
 from ..f3d.f3d_bleed import BleedGraphics
-from ..f3d.f3d_gbi import FModel
+from ..f3d.f3d_gbi import FMaterial, FModel, GbiMacro, GfxList
 
 from .sm64_geolayout_constants import (
     nodeGroupCmds,
@@ -51,6 +50,7 @@ from .sm64_geolayout_constants import (
     GEO_SETUP_OBJ_RENDER,
     GEO_SET_BG,
 )
+from .sm64_utility import convert_addr_to_func
 
 drawLayerNames = {
     0: "LAYER_FORCE",
@@ -221,6 +221,12 @@ class Geolayout:
             addresses.extend(ptrs)
         return addresses
 
+    def has_data(self):
+        for node in self.nodes:
+            if node.has_data():
+                return True
+        return False
+
     def to_binary(self, segmentData):
         endCmd = GEO_END if self.isStartGeo else GEO_RETURN
         data = bytearray(0)
@@ -263,11 +269,11 @@ class BaseDisplayListNode:
     """Base displaylist node with common helper functions dealing with displaylists"""
 
     dl_ext = "WITH_DL"  # add dl_ext to geo command if command has a displaylist
-    bleed_independently = False  # base behavior, can be changed with obj boolProp
 
     def get_dl_address(self):
-        if self.hasDL and (self.dlRef or self.DLmicrocode is not None):
-            return self.dlRef or self.DLmicrocode.startAddress
+        assert self.dlRef is None, "dlRef not implemented in binary"
+        if self.hasDL and self.DLmicrocode is not None:
+            return self.DLmicrocode.startAddress
         return None
 
     def get_dl_name(self):
@@ -299,6 +305,9 @@ class TransformNode:
         self.parent = None
         self.skinned = False
         self.skinnedWithoutDL = False
+        # base behavior, can be changed with obj boolProp
+        self.revert_previous_mat = False
+        self.revert_after_mat = False
 
     def convertToDynamic(self):
         if self.node.hasDL:
@@ -331,12 +340,23 @@ class TransformNode:
             address += 4
         return address, addresses
 
+    def has_data(self):
+        if self.node is not None:
+            if getattr(self.node, "hasDL", False):
+                return True
+            if type(self.node) in (JumpNode, SwitchNode, FunctionNode, ShadowNode, CustomNode, CustomAnimatedNode):
+                return True
+        for child in self.children:
+            if child.has_data():
+                return True
+        return False
+
     def size(self):
         size = self.node.size() if self.node is not None else 0
         if len(self.children) > 0 and type(self.node) in nodeGroupClasses:
             size += 8  # node open/close
-            for child in self.children:
-                size += child.size()
+        for child in self.children:
+            size += child.size()
 
         return size
 
@@ -351,11 +371,11 @@ class TransformNode:
             if type(self.node) is FunctionNode:
                 raise PluginError("An FunctionNode cannot have children.")
 
-            if data[0] in nodeGroupCmds:
+            if type(self.node) in nodeGroupClasses:
                 data.extend(bytearray([GEO_NODE_OPEN, 0x00, 0x00, 0x00]))
             for child in self.children:
                 data.extend(child.to_binary(segmentData))
-            if data[0] in nodeGroupCmds:
+            if type(self.node) in nodeGroupClasses:
                 data.extend(bytearray([GEO_NODE_CLOSE, 0x00, 0x00, 0x00]))
         elif type(self.node) is SwitchNode:
             raise PluginError("A switch bone must have at least one child bone.")
@@ -394,11 +414,11 @@ class TransformNode:
         data += "\n"
 
         if len(self.children) > 0:
-            if len(command) == 0 or command[0] in nodeGroupCmds:
+            if type(self.node) in nodeGroupClasses:
                 data += "\t" * nodeLevel + "04 00 00 00\n"
             for child in self.children:
-                data += child.toTextDump(nodeLevel + 1, segmentData)
-            if len(command) == 0 or command[0] in nodeGroupCmds:
+                data += child.toTextDump(nodeLevel + (1 if type(self.node) in nodeGroupClasses else 0), segmentData)
+            if type(self.node) in nodeGroupClasses:
                 data += "\t" * nodeLevel + "05 00 00 00\n"
         elif type(self.node) is SwitchNode:
             raise PluginError("A switch bone must have at least one child bone.")
@@ -452,57 +472,94 @@ class JumpNode:
         return "GEO_BRANCH(" + ("1, " if self.storeReturn else "0, ") + geo_name + "),"
 
 
+LastMaterials = dict[int, tuple[FMaterial | None, list[tuple[GfxList, dict[type, GbiMacro]]]]]
+
+
 class GeoLayoutBleed(BleedGraphics):
     def bleed_geo_layout_graph(self, fModel: FModel, geo_layout_graph: GeolayoutGraph, use_rooms: bool = False):
-        last_materials = dict()  # last used material should be kept track of per layer
+        # last used material, last used cmd list and resets per layer
+        last_materials = {}
 
-        def walk(node, last_materials):
+        def copy_last(last_materials: LastMaterials) -> LastMaterials:
+            return {dl: [lm, [(c, deepcopy(r)) for c, r in lcr]] for dl, (lm, lcr) in last_materials.items()}
+
+        def reset_layer(last_materials: LastMaterials, draw_layer: int) -> LastMaterials:
+            _, cmds_resets = last_materials.get(draw_layer, (None, []))
+            for i, (cmd_list, reset_cmd_dict) in enumerate(copy(cmds_resets)):
+                # only discard reset if the reset was actually applied
+                if self.add_reset_cmds(
+                    cmd_list, reset_cmd_dict, fModel.matWriteMethod, fModel.getRenderMode(draw_layer)
+                ):
+                    cmds_resets[i] = None
+            cmds_resets = [cr for cr in cmds_resets if cr is not None]
+            if not cmds_resets:
+                last_materials.pop(draw_layer, 0)
+            return last_materials
+
+        def reset_all_layers(last_materials: LastMaterials) -> LastMaterials:
+            for draw_layer in copy(list(last_materials.keys())):
+                last_materials = reset_layer(last_materials, draw_layer)
+            return {}
+
+        def walk(node, last_materials: LastMaterials) -> LastMaterials:
+            last_materials = copy_last(last_materials)
             base_node = node.node
             if type(base_node) == JumpNode:
                 if base_node.geolayout:
                     for node in base_node.geolayout.nodes:
-                        last_materials = (
-                            walk(node, last_materials if not use_rooms else dict()) if not use_rooms else dict()
-                        )
-                else:
-                    last_materials = dict()
+                        last_materials = walk(node, last_materials)
+
             fMesh = getattr(base_node, "fMesh", None)
+            last_mat, last_cmds_resets = None, []
+            if fMesh is not None:
+                last_mat, last_cmds_resets = last_materials.get(base_node.drawLayer, (None, []))
+
+            if node.revert_previous_mat:
+                if fMesh is not None:
+                    # add reset commands to previous cmd lists, reset last mat and reset dict
+                    last_materials = reset_layer(last_materials, base_node.drawLayer)
+                else:
+                    last_materials = reset_all_layers(last_materials)
+                last_mat, last_cmds_resets = None, []
+
             if fMesh:
+                base_node: BaseDisplayListNode
                 cmd_list = fMesh.drawMatOverrides.get(base_node.override_hash, None) or fMesh.draw
-                last_mat = last_materials.get(base_node.drawLayer, None)
                 default_render_mode = fModel.getRenderMode(base_node.drawLayer)
+
+                reset_cmd_dict = {typ: cmd for _, reset_cmds in last_cmds_resets for typ, cmd in reset_cmds.items()}
                 last_mat = self.bleed_fmesh(
-                    fMesh,
-                    last_mat if not base_node.bleed_independently else None,
+                    last_mat,
+                    reset_cmd_dict,
                     cmd_list,
                     fModel.getAllMaterials().items(),
+                    fModel.matWriteMethod,
                     default_render_mode,
                 )
-                # if the mesh has culling, it can be culled, and create invalid combinations of f3d to represent the current full DL
-                if fMesh.cullVertexList:
-                    last_materials[base_node.drawLayer] = None
-                else:
-                    last_materials[base_node.drawLayer] = last_mat
-            # don't carry over last_mat if it is a switch node or geo asm node
+                last_materials[base_node.drawLayer] = [last_mat, [(cmd_list, reset_cmd_dict)]]
+                # if the mesh has culling, we must revert to avoid bleed issues
+                if fMesh.cullVertexList or node.revert_after_mat:
+                    last_materials = reset_layer(last_materials, base_node.drawLayer)
+            elif node.revert_after_mat:  # if no mesh but still forced revert, revert all
+                last_materials = reset_all_layers(last_materials)
+
+            cur_last_materials = copy_last(last_materials)
+            is_switch = type(base_node) in {SwitchNode}
             for child in node.children:
-                if type(base_node) in [SwitchNode, FunctionNode]:
-                    last_materials = dict()
-                last_materials = walk(child, last_materials)
+                if is_switch:  # parent node is switch or function
+                    new_materials = walk(child, cur_last_materials)  # last material info from current switch option
+                    # add switch option reverts, to either revert at the end or in the option itself
+                    for draw_layer, (last_mat, cmds_resets) in new_materials.items():
+                        last_materials.setdefault(draw_layer, [last_mat, []])[1].extend(cmds_resets)
+                        last_materials[draw_layer][0] = None  # reset last material
+                else:
+                    last_materials = walk(child, last_materials)
             return last_materials
 
         for node in geo_layout_graph.startGeolayout.nodes:
             last_materials = walk(node, last_materials)
+        reset_all_layers(last_materials)
         self.clear_gfx_lists(fModel)
-
-
-def convertAddrToFunc(addr):
-    if addr == "":
-        raise PluginError("Geolayout node cannot have an empty function name/address.")
-    refresh_func_map = func_map[bpy.context.scene.refreshVer]
-    if addr.lower() in refresh_func_map:
-        return refresh_func_map[addr.lower()]
-    else:
-        return toAlnum(addr)
 
 
 # We add Function commands to nonDeformTransformData because any skinned
@@ -525,7 +582,7 @@ class FunctionNode:
         return command
 
     def to_c(self):
-        return "GEO_ASM(" + str(self.func_param) + ", " + convertAddrToFunc(self.geo_func) + "),"
+        return "GEO_ASM(" + str(self.func_param) + ", " + convert_addr_to_func(self.geo_func) + "),"
 
 
 class HeldObjectNode:
@@ -553,7 +610,7 @@ class HeldObjectNode:
             + ", "
             + str(convertFloatToShort(self.translate[2]))
             + ", "
-            + convertAddrToFunc(self.geo_func)
+            + convert_addr_to_func(self.geo_func)
             + "),"
         )
 
@@ -610,7 +667,7 @@ class SwitchNode:
         return command
 
     def to_c(self):
-        return "GEO_SWITCH_CASE(" + str(self.defaultCase) + ", " + convertAddrToFunc(self.switchFunc) + "),"
+        return "GEO_SWITCH_CASE(" + str(self.defaultCase) + ", " + convert_addr_to_func(self.switchFunc) + "),"
 
 
 class TranslateRotateNode(BaseDisplayListNode):
@@ -1133,8 +1190,8 @@ class ZBufferNode:
 class CameraNode:
     def __init__(self, camType, position, lookAt):
         self.camType = camType
-        self.position = [int(round(value * bpy.context.scene.blenderToSM64Scale)) for value in position]
-        self.lookAt = [int(round(value * bpy.context.scene.blenderToSM64Scale)) for value in lookAt]
+        self.position = [int(round(value * bpy.context.scene.fast64.sm64.blender_to_sm64_scale)) for value in position]
+        self.lookAt = [int(round(value * bpy.context.scene.fast64.sm64.blender_to_sm64_scale)) for value in lookAt]
         self.geo_func = "80287D30"
         self.hasDL = False
 
@@ -1170,7 +1227,7 @@ class CameraNode:
             + ", "
             + str(self.lookAt[2])
             + ", "
-            + convertAddrToFunc(self.geo_func)
+            + convert_addr_to_func(self.geo_func)
             + "),"
         )
 
@@ -1214,7 +1271,7 @@ class BackgroundNode:
         if self.isColor:
             return "GEO_BACKGROUND_COLOR(0x" + format(self.backgroundValue, "04x").upper() + "),"
         else:
-            return "GEO_BACKGROUND(" + str(self.backgroundValue) + ", " + convertAddrToFunc(self.geo_func) + "),"
+            return "GEO_BACKGROUND(" + str(self.backgroundValue) + ", " + convert_addr_to_func(self.geo_func) + "),"
 
 
 class CustomNode:

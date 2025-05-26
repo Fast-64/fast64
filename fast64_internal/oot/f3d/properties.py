@@ -1,6 +1,9 @@
+import bpy
+
 from bpy.types import PropertyGroup, Object, World, Material, UILayout
 from bpy.props import PointerProperty, StringProperty, BoolProperty, EnumProperty, IntProperty, FloatProperty
 from bpy.utils import register_class, unregister_class
+from ...f3d.f3d_material import update_world_default_rendermode
 from ...f3d.f3d_parser import ootEnumDrawLayers
 from ...utility import prop_split
 
@@ -59,12 +62,13 @@ class OOTDLImportSettings(PropertyGroup):
     flipbookUses2DArray: BoolProperty(name="Has 2D Flipbook Array", default=False)
     flipbookArrayIndex2D: IntProperty(name="Index if 2D Array", default=0, min=0)
     autoDetectActorScale: BoolProperty(name="Auto Detect Actor Scale", default=True)
-    actorScale: FloatProperty(name="Actor Scale", min=0, default=100)
+    actorScale: FloatProperty(name="Actor Scale", min=0, default=10)
 
     def draw_props(self, layout: UILayout):
         prop_split(layout, self, "name", "DL")
         if self.isCustom:
             prop_split(layout, self, "customPath", "File")
+            prop_split(layout, self, "actorScale", "Actor Scale")
         else:
             prop_split(layout, self, "folder", "Object")
             prop_split(layout, self, "actorOverlayName", "Overlay (Optional)")
@@ -148,12 +152,13 @@ class OOTDynamicMaterialProperty(PropertyGroup):
 
 
 class OOTDefaultRenderModesProperty(PropertyGroup):
-    opaqueCycle1: StringProperty(default="G_RM_AA_ZB_OPA_SURF")
-    opaqueCycle2: StringProperty(default="G_RM_AA_ZB_OPA_SURF2")
-    transparentCycle1: StringProperty(default="G_RM_AA_ZB_XLU_SURF")
-    transparentCycle2: StringProperty(default="G_RM_AA_ZB_XLU_SURF2")
-    overlayCycle1: StringProperty(default="G_RM_AA_ZB_OPA_SURF")
-    overlayCycle2: StringProperty(default="G_RM_AA_ZB_OPA_SURF2")
+    expandTab: BoolProperty()
+    opaqueCycle1: StringProperty(default="G_RM_AA_ZB_OPA_SURF", update=update_world_default_rendermode)
+    opaqueCycle2: StringProperty(default="G_RM_AA_ZB_OPA_SURF2", update=update_world_default_rendermode)
+    transparentCycle1: StringProperty(default="G_RM_AA_ZB_XLU_SURF", update=update_world_default_rendermode)
+    transparentCycle2: StringProperty(default="G_RM_AA_ZB_XLU_SURF2", update=update_world_default_rendermode)
+    overlayCycle1: StringProperty(default="G_RM_AA_ZB_OPA_SURF", update=update_world_default_rendermode)
+    overlayCycle2: StringProperty(default="G_RM_AA_ZB_OPA_SURF2", update=update_world_default_rendermode)
 
     def draw_props(self, layout: UILayout):
         inputGroup = layout.column()

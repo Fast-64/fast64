@@ -8,12 +8,12 @@ from bpy.props import StringProperty, EnumProperty, IntProperty
 from bpy.types import Scene, Operator, Context
 from bpy.utils import register_class, unregister_class
 from ...utility import CData, PluginError, writeCData, raisePluginError
-from ..oot_utility import getCollection, getCutsceneName
+from ..collection_utility import getCollection
 from ..oot_constants import ootData
-from ..scene.exporter.to_c import getCutsceneC
 from .constants import ootEnumCSTextboxType, ootEnumCSListType
 from .importer import importCutsceneData
 from .exporter import getNewCutsceneExport
+from ..exporter.cutscene import Cutscene
 
 
 def checkGetFilePaths(context: Context):
@@ -30,29 +30,44 @@ def checkGetFilePaths(context: Context):
 
 def ootCutsceneIncludes(headerfilename):
     ret = CData()
-    ret.source = (
-        '#include "ultra64.h"\n'
-        + '#include "z64.h"\n'
-        + '#include "macros.h"\n'
-        + '#include "command_macros_base.h"\n'
-        + '#include "z64cutscene_commands.h"\n\n'
-        + '#include "'
-        + headerfilename
-        + '"\n\n'
+
+    ret.header = (
+        f"#ifndef {headerfilename.removesuffix('.h').upper()}_H\n"
+        + f"#define {headerfilename.removesuffix('.h').upper()}_H\n\n"
     )
+
+    if bpy.context.scene.fast64.oot.is_globalh_present():
+        ret.header += (
+            '#include "ultra64.h"\n'
+            + '#include "z64.h"\n'
+            + '#include "macros.h"\n'
+            + '#include "command_macros_base.h"\n'
+            + '#include "z64cutscene_commands.h"\n\n'
+        )
+    else:
+        ret.header += (
+            '#include "ultra64.h"\n'
+            + '#include "sequence.h"\n'
+            + '#include "z64math.h"\n'
+            + '#include "z64cutscene.h"\n'
+            + '#include "z64cutscene_commands.h"\n'
+            + '#include "z64ocarina.h"\n'
+            + '#include "z64player.h"\n\n'
+        )
+
+    if len(headerfilename) > 0:
+        ret.source = f'#include "{headerfilename}"\n\n'
     return ret
 
 
 def insertCutsceneData(filePath: str, csName: str):
     """Inserts the motion data in the cutscene and returns the new data"""
     fileLines = []
-    includes = ootCutsceneIncludes("").source.split("\n")
 
     # if the file is not found then it's likely a new file that needs to be created
     try:
         with open(filePath, "r") as inputFile:
             fileLines = inputFile.readlines()
-        fileLines = fileLines[len(includes) - 1 :]
     except FileNotFoundError:
         fileLines = []
 
@@ -61,19 +76,19 @@ def insertCutsceneData(filePath: str, csName: str):
     beginIndex = 0
 
     for i, line in enumerate(fileLines):
-        # skip commented lines
-        if not line.startswith("//") and not line.startswith("/*"):
+        # skip commented lines and preprocessor directives
+        if not line.startswith("//") and not line.startswith("/*") and not line.startswith("#"):
             if f"CutsceneData {csName}" in line:
                 foundCutscene = True
 
             if foundCutscene:
-                if "CS_BEGIN_CUTSCENE" in line:
+                if "CS_HEADER" in line:
                     # save the index of the line that contains the entry total and the framecount for later use
                     beginIndex = i
 
                 # looking at next line to see if we reached the end of the cs script
                 index = i + 1
-                if index < len(fileLines) and "CS_END" in fileLines[index]:
+                if index < len(fileLines) and "CS_END_OF_SCRIPT" in fileLines[index]:
                     # exporting first to get the new framecount and the total of entries values
                     fileLines.insert(index, motionExporter.getExportData())
 
@@ -90,7 +105,7 @@ def insertCutsceneData(filePath: str, csName: str):
                         frames = re.sub(r"\b([0-9a-fA-F]*)\)", f"{frameCount + motionExporter.frameCount})", beginLine)
                         fileLines[beginIndex] = f"{entries.split(', ')[0]}, {frames.split(', ')[1]}"
                     else:
-                        raise PluginError("ERROR: Can't find `CS_BEGIN_CUTSCENE()` parameters!")
+                        raise PluginError("ERROR: Can't find `CS_HEADER()` parameters!")
                     break
 
     fileData = CData()
@@ -141,8 +156,8 @@ class OOTCSListAdd(Operator):
 
 class OOT_ImportCutscene(Operator):
     bl_idname = "object.oot_import_cutscenes"
-    bl_label = "Import All Cutscenes"
-    bl_options = {"REGISTER", "UNDO", "PRESET"}
+    bl_label = "Import Cutscenes"
+    bl_options = {"REGISTER", "UNDO"}
 
     def execute(self, context):
         try:
@@ -150,7 +165,8 @@ class OOT_ImportCutscene(Operator):
                 object.mode_set(mode="OBJECT")
 
             path = abspath(context.scene.ootCutsceneImportPath)
-            context.scene.ootCSNumber = importCutsceneData(path, None)
+            csName = context.scene.ootCSImportName if len(context.scene.ootCSImportName) > 0 else None
+            context.scene.ootCSNumber = importCutsceneData(path, None, csName)
 
             self.report({"INFO"}, "Successfully imported cutscenes")
             return {"FINISHED"}
@@ -179,11 +195,25 @@ class OOT_ExportCutscene(Operator):
 
             cpath, hpath, headerfilename = checkGetFilePaths(context)
             csdata = ootCutsceneIncludes(headerfilename)
+            cs_name = activeObj.name.removeprefix("Cutscene.")
 
-            if context.scene.exportMotionOnly:
-                csdata.append(insertCutsceneData(cpath, activeObj.name.removeprefix("Cutscene.")))
+            if context.scene.fast64.oot.exportMotionOnly:
+                # TODO: improve this
+                csdata.append(insertCutsceneData(cpath, cs_name))
             else:
-                csdata.append(getCutsceneC(getCutsceneName(activeObj)))
+                cutscene = Cutscene.new(
+                    cs_name,
+                    activeObj,
+                    context.scene.fast64.oot.useDecompFeatures,
+                    context.scene.fast64.oot.exportMotionOnly,
+                )
+
+                if cutscene is not None:
+                    csdata.append(cutscene.getC())
+                else:
+                    raise PluginError(f"ERROR: can't process cutscene '{cs_name}'.")
+
+            csdata.header += "\n#endif\n"
             writeCData(csdata, hpath, cpath)
 
             self.report({"INFO"}, "Successfully exported cutscene")
@@ -213,15 +243,28 @@ class OOT_ExportAllCutscenes(Operator):
                         print(f"Parent: {obj.parent.name}, Object: {obj.name}")
                         raise PluginError("Cutscene object must not be parented to anything")
 
-                    if context.scene.exportMotionOnly:
+                    if context.scene.fast64.oot.exportMotionOnly:
                         raise PluginError("ERROR: Not implemented yet.")
                     else:
-                        csdata.append(getCutsceneC(getCutsceneName(obj)))
+                        cs_name = obj.name.removeprefix("Cutscene.")
+                        cutscene = Cutscene.new(
+                            cs_name,
+                            obj,
+                            context.scene.fast64.oot.useDecompFeatures,
+                            context.scene.fast64.oot.exportMotionOnly,
+                        )
+
+                        if cutscene is not None:
+                            csdata.append(cutscene.getC())
+                        else:
+                            raise PluginError(f"ERROR: can't process cutscene '{cs_name}'.")
+
                     count += 1
 
             if count == 0:
                 raise PluginError("Could not find any cutscenes to export")
 
+            csdata.header += "\n#endif\n"
             writeCData(csdata, hpath, cpath)
             self.report({"INFO"}, "Successfully exported " + str(count) + " cutscenes")
             return {"FINISHED"}
@@ -295,12 +338,16 @@ def cutscene_ops_register():
     Scene.ootCutsceneExportPath = StringProperty(name="File", subtype="FILE_PATH")
     Scene.ootCutsceneImportPath = StringProperty(name="File", subtype="FILE_PATH")
     Scene.ootCSNumber = IntProperty(default=1, min=0)
+    Scene.ootCSImportName = StringProperty(
+        name="CS Name", description="Used to import a single cutscene, can be ``None``"
+    )
 
 
 def cutscene_ops_unregister():
     for cls in reversed(oot_cutscene_classes):
         unregister_class(cls)
 
+    del Scene.ootCSImportName
     del Scene.ootCSNumber
     del Scene.ootCutsceneImportPath
     del Scene.ootCutsceneExportPath

@@ -13,6 +13,7 @@ from .operators import (
     CutsceneCmdCreateActorCuePreview,
     OOT_SearchActorCueCmdTypeEnumOperator,
     CutsceneCmdAddBone,
+    CutsceneCmdMoveBone,
     OOT_SearchPlayerCueIdEnumOperator,
 )
 
@@ -227,6 +228,10 @@ class CutsceneCmdCameraShotPointProperty(PropertyGroup):
         row = col.row()
         for propName in ["shotPointFrame", "shotPointViewAngle", "shotPointRoll"]:
             row.prop(self, propName)
+
+        row = box.row()
+        row.operator(CutsceneCmdMoveBone.bl_idname, text="Move Up", icon="TRIA_UP").direction = "UP"
+        row.operator(CutsceneCmdMoveBone.bl_idname, text="Move Down", icon="TRIA_DOWN").direction = "DOWN"
 
 
 class OOTCutsceneMotionProperty(PropertyGroup):

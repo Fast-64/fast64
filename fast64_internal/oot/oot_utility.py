@@ -3,12 +3,12 @@ import math
 import os
 import re
 
-from ast import parse, Expression, Num, UnaryOp, USub, Invert, BinOp
+from ast import parse, Expression, Constant, UnaryOp, USub, Invert, BinOp
 from mathutils import Vector
 from bpy.types import Object
-from bpy.utils import register_class, unregister_class
-from typing import Callable, Optional
+from typing import Callable, Optional, TYPE_CHECKING, List
 from .oot_constants import ootSceneIDToName
+from dataclasses import dataclass
 
 from ..utility import (
     PluginError,
@@ -19,10 +19,13 @@ from ..utility import (
     setOrigin,
     applyRotation,
     cleanupDuplicatedObjects,
-    ootGetSceneOrRoomHeader,
     hexOrDecInt,
     binOps,
 )
+
+if TYPE_CHECKING:
+    from .scene.properties import OOTBootupSceneOptions
+    from .actor.properties import OOTActorProperty
 
 
 def isPathObject(obj: bpy.types.Object) -> bool:
@@ -157,6 +160,7 @@ ootSceneTest_levels = [
     "testroom",
 ]
 
+# NOTE: the "extracted/VERSION/" part is added in ``getSceneDirFromLevelName`` when needed
 ootSceneDirs = {
     "assets/scenes/dungeons/": ootSceneDungeons,
     "assets/scenes/indoors/": ootSceneIndoors,
@@ -178,6 +182,43 @@ def getOOTScale(actorScale: float) -> float:
     return bpy.context.scene.ootBlenderScale * actorScale
 
 
+@dataclass
+class OOTEnum:
+    """
+    Represents a enum parsed from C code
+    """
+
+    name: str
+    vals: List[str]
+
+    @staticmethod
+    def fromMatch(m: re.Match):
+        return OOTEnum(m.group("name"), OOTEnum.parseVals(m.group("vals")))
+
+    @staticmethod
+    def parseVals(valsCode: str) -> List[str]:
+        return [entry.strip() for entry in ootStripComments(valsCode).split(",")]
+
+    def indexOrNone(self, valueorNone: str):
+        return self.vals.index(valueorNone) if valueorNone in self.vals else None
+
+
+def ootGetEnums(code: str) -> List["OOTEnum"]:
+    return [
+        OOTEnum.fromMatch(m)
+        for m in re.finditer(
+            r"(?<!extern)\s*"
+            + r"typedef\s*enum\s*(?P<name>[A-Za-z0-9\_]+)"  # doesn't start with extern (is defined here)
+            + r"\s*\{"  # typedef enum gDekukButlerLimb
+            + r"(?P<vals>[^\}]*)"  # opening curly brace
+            + r"\s*\}"  # values
+            + r"\s*\1"  # closing curly brace
+            + r"\s*;",  # name again  # end statement
+            code,
+        )
+    ]
+
+
 def replaceMatchContent(data: str, newContent: str, match: re.Match, index: int) -> str:
     return data[: match.start(index)] + newContent + data[match.end(index) :]
 
@@ -192,7 +233,11 @@ def addIncludeFilesExtension(objectName, objectPath, assetName, extension):
     if not os.path.exists(objectPath):
         raise PluginError(objectPath + " does not exist.")
     path = os.path.join(objectPath, objectName + "." + extension)
-    data = getDataFromFile(path)
+    if not os.path.exists(path):
+        # workaround for exporting to an object that doesn't exist in assets/
+        data = ""
+    else:
+        data = getDataFromFile(path)
 
     if include not in data:
         data += "\n" + include
@@ -201,20 +246,66 @@ def addIncludeFilesExtension(objectName, objectPath, assetName, extension):
     saveDataToFile(path, data)
 
 
-def getSceneDirFromLevelName(name):
+def getSceneDirFromLevelName(name: str, include_extracted: bool = False):
+    extracted = bpy.context.scene.fast64.oot.get_extracted_path() if include_extracted else "."
     for sceneDir, dirLevels in ootSceneDirs.items():
         if name in dirLevels:
-            return sceneDir + name
+            return f"{extracted}/" + sceneDir + name
     return None
 
 
+def ootStripComments(code: str) -> str:
+    code = re.sub(r"\/\*[^*]*\*+(?:[^/*][^*]*\*+)*\/", "", code)  # replace /* ... */ comments
+    # TODO: replace end of line (// ...) comments
+    return code
+
+
+@dataclass
 class ExportInfo:
-    def __init__(self, isCustomExport, exportPath, customSubPath, name):
-        self.isCustomExportPath = isCustomExport
-        self.exportPath = exportPath
-        self.customSubPath = customSubPath
-        self.name = name
-        self.option: Optional[str] = None
+    """Contains all parameters used for a scene export. Any new parameters for scene export should be added here."""
+
+    isCustomExportPath: bool
+    """Whether or not we are exporting to a known decomp repo"""
+
+    exportPath: str
+    """Either the decomp repo root, or a specified custom folder (if ``isCustomExportPath`` is true)"""
+
+    customSubPath: Optional[str]
+    """If ``isCustomExportPath``, then this is the relative path used for writing filepaths in files like spec.
+    For decomp repos, the relative path is automatically determined and thus this will be ``None``."""
+
+    name: str
+    """ The name of the scene, similar to the folder names of scenes in decomp.
+    If ``option`` is not "Custom", then this is usually overriden by the name derived from ``option`` before being passed in."""
+
+    option: str
+    """ The scene enum value that we are exporting to (can be Custom)"""
+
+    saveTexturesAsPNG: bool
+    """ Whether to write textures as C data or as .png files."""
+
+    isSingleFile: bool
+    """ Whether to export scene files as a single file or as multiple."""
+
+    useMacros: bool
+    """ Whether to use macros or numeric/binary representations of certain values."""
+
+    hackerootBootOption: "OOTBootupSceneOptions"
+    """ Options for setting the bootup scene in HackerOoT."""
+
+
+@dataclass
+class RemoveInfo:
+    """Contains all parameters used for a scene removal."""
+
+    exportPath: str
+    """The path to the decomp repo root"""
+
+    customSubPath: Optional[str]
+    """The relative path to the scene directory, if a custom scene is being removed"""
+
+    name: str
+    """The name of the level to remove"""
 
 
 class OOTObjectCategorizer:
@@ -247,7 +338,7 @@ class OOTObjectCategorizer:
 
 
 # This also sets all origins relative to the scene object.
-def ootDuplicateHierarchy(obj, ignoreAttr, includeEmpties, objectCategorizer):
+def ootDuplicateHierarchy(obj, ignoreAttr, includeEmpties, objectCategorizer) -> tuple[Object, list[Object]]:
     # Duplicate objects to apply scale / modifiers / linked data
     bpy.ops.object.select_all(action="DESELECT")
     ootSelectMeshChildrenOnly(obj, includeEmpties)
@@ -371,12 +462,34 @@ def checkEmptyName(name):
         raise PluginError("No name entered for the exporter.")
 
 
-def ootGetObjectPath(isCustomExport, exportPath, folderName):
+def ootGetObjectPath(isCustomExport: bool, exportPath: str, folderName: str, include_extracted: bool) -> str:
+    extracted = bpy.context.scene.fast64.oot.get_extracted_path() if include_extracted else "."
+
     if isCustomExport:
         filepath = exportPath
     else:
         filepath = os.path.join(
-            ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, False), folderName + ".c"
+            ootGetPath(
+                exportPath,
+                isCustomExport,
+                f"{extracted}/assets/objects/",
+                folderName,
+                False,
+                False,
+            ),
+            folderName + ".c",
+        )
+    return filepath
+
+
+def ootGetObjectHeaderPath(isCustomExport: bool, exportPath: str, folderName: str, include_extracted: bool) -> str:
+    extracted = bpy.context.scene.fast64.oot.get_extracted_path() if include_extracted else "."
+    if isCustomExport:
+        filepath = exportPath
+    else:
+        filepath = os.path.join(
+            ootGetPath(exportPath, isCustomExport, f"{extracted}/assets/objects/", folderName, False, False),
+            folderName + ".h",
         )
     return filepath
 
@@ -530,160 +643,6 @@ def getCutsceneName(obj):
     return name
 
 
-def getCollectionFromIndex(obj, prop, subIndex, isRoom):
-    header = ootGetSceneOrRoomHeader(obj, subIndex, isRoom)
-    return getattr(header, prop)
-
-
-# Operators cannot store mutable references (?), so to reuse PropertyCollection modification code we do this.
-# Save a string identifier in the operator, then choose the member variable based on that.
-# subIndex is for a collection within a collection element
-def getCollection(objName, collectionType, subIndex):
-    obj = bpy.data.objects[objName]
-    if collectionType == "Actor":
-        collection = obj.ootActorProperty.headerSettings.cutsceneHeaders
-    elif collectionType == "Transition Actor":
-        collection = obj.ootTransitionActorProperty.actor.headerSettings.cutsceneHeaders
-    elif collectionType == "Entrance":
-        collection = obj.ootEntranceProperty.actor.headerSettings.cutsceneHeaders
-    elif collectionType == "Room":
-        collection = obj.ootAlternateRoomHeaders.cutsceneHeaders
-    elif collectionType == "Scene":
-        collection = obj.ootAlternateSceneHeaders.cutsceneHeaders
-    elif collectionType == "Light":
-        collection = getCollectionFromIndex(obj, "lightList", subIndex, False)
-    elif collectionType == "Exit":
-        collection = getCollectionFromIndex(obj, "exitList", subIndex, False)
-    elif collectionType == "Object":
-        collection = getCollectionFromIndex(obj, "objectList", subIndex, True)
-    elif collectionType == "Curve":
-        collection = obj.ootSplineProperty.headerSettings.cutsceneHeaders
-    elif collectionType.startswith("CSHdr."):
-        # CSHdr.HeaderNumber[.ListType]
-        # Specifying ListType means uses subIndex
-        toks = collectionType.split(".")
-        assert len(toks) in [2, 3]
-        hdrnum = int(toks[1])
-        collection = getCollectionFromIndex(obj, "csLists", hdrnum, False)
-        if len(toks) == 3:
-            collection = getattr(collection[subIndex], toks[2])
-    elif collectionType.startswith("Cutscene."):
-        # Cutscene.ListType
-        toks = collectionType.split(".")
-        assert len(toks) == 2
-        collection = obj.ootCutsceneProperty.csLists
-        collection = getattr(collection[subIndex], toks[1])
-    elif collectionType == "Cutscene":
-        collection = obj.ootCutsceneProperty.csLists
-    elif collectionType == "extraCutscenes":
-        collection = obj.ootSceneHeader.extraCutscenes
-    elif collectionType == "BgImage":
-        collection = obj.ootRoomHeader.bgImageList
-    else:
-        raise PluginError("Invalid collection type: " + collectionType)
-
-    return collection
-
-
-def drawAddButton(layout, index, collectionType, subIndex, objName):
-    if subIndex is None:
-        subIndex = 0
-    addOp = layout.operator(OOTCollectionAdd.bl_idname)
-    addOp.option = index
-    addOp.collectionType = collectionType
-    addOp.subIndex = subIndex
-    addOp.objName = objName
-
-
-def drawCollectionOps(layout, index, collectionType, subIndex, objName, allowAdd=True, compact=False):
-    if subIndex is None:
-        subIndex = 0
-
-    if not compact:
-        buttons = layout.row(align=True)
-    else:
-        buttons = layout
-
-    if allowAdd:
-        addOp = buttons.operator(OOTCollectionAdd.bl_idname, text="Add" if not compact else "", icon="ADD")
-        addOp.option = index + 1
-        addOp.collectionType = collectionType
-        addOp.subIndex = subIndex
-        addOp.objName = objName
-
-    removeOp = buttons.operator(OOTCollectionRemove.bl_idname, text="Delete" if not compact else "", icon="REMOVE")
-    removeOp.option = index
-    removeOp.collectionType = collectionType
-    removeOp.subIndex = subIndex
-    removeOp.objName = objName
-
-    moveUp = buttons.operator(OOTCollectionMove.bl_idname, text="Up" if not compact else "", icon="TRIA_UP")
-    moveUp.option = index
-    moveUp.offset = -1
-    moveUp.collectionType = collectionType
-    moveUp.subIndex = subIndex
-    moveUp.objName = objName
-
-    moveDown = buttons.operator(OOTCollectionMove.bl_idname, text="Down" if not compact else "", icon="TRIA_DOWN")
-    moveDown.option = index
-    moveDown.offset = 1
-    moveDown.collectionType = collectionType
-    moveDown.subIndex = subIndex
-    moveDown.objName = objName
-
-
-class OOTCollectionAdd(bpy.types.Operator):
-    bl_idname = "object.oot_collection_add"
-    bl_label = "Add Item"
-    bl_options = {"REGISTER", "UNDO"}
-
-    option: bpy.props.IntProperty()
-    collectionType: bpy.props.StringProperty(default="Actor")
-    subIndex: bpy.props.IntProperty(default=0)
-    objName: bpy.props.StringProperty()
-
-    def execute(self, context):
-        collection = getCollection(self.objName, self.collectionType, self.subIndex)
-
-        collection.add()
-        collection.move(len(collection) - 1, self.option)
-        return {"FINISHED"}
-
-
-class OOTCollectionRemove(bpy.types.Operator):
-    bl_idname = "object.oot_collection_remove"
-    bl_label = "Remove Item"
-    bl_options = {"REGISTER", "UNDO"}
-
-    option: bpy.props.IntProperty()
-    collectionType: bpy.props.StringProperty(default="Actor")
-    subIndex: bpy.props.IntProperty(default=0)
-    objName: bpy.props.StringProperty()
-
-    def execute(self, context):
-        collection = getCollection(self.objName, self.collectionType, self.subIndex)
-        collection.remove(self.option)
-        return {"FINISHED"}
-
-
-class OOTCollectionMove(bpy.types.Operator):
-    bl_idname = "object.oot_collection_move"
-    bl_label = "Move Item"
-    bl_options = {"REGISTER", "UNDO"}
-
-    option: bpy.props.IntProperty()
-    offset: bpy.props.IntProperty()
-    subIndex: bpy.props.IntProperty(default=0)
-    objName: bpy.props.StringProperty()
-
-    collectionType: bpy.props.StringProperty(default="Actor")
-
-    def execute(self, context):
-        collection = getCollection(self.objName, self.collectionType, self.subIndex)
-        collection.move(self.option, self.option + self.offset)
-        return {"FINISHED"}
-
-
 def getHeaderSettings(actorObj: bpy.types.Object):
     itemType = actorObj.ootEmptyType
     if actorObj.type == "EMPTY":
@@ -701,23 +660,6 @@ def getHeaderSettings(actorObj: bpy.types.Object):
         headerSettings = None
 
     return headerSettings
-
-
-oot_utility_classes = (
-    OOTCollectionAdd,
-    OOTCollectionRemove,
-    OOTCollectionMove,
-)
-
-
-def oot_utility_register():
-    for cls in oot_utility_classes:
-        register_class(cls)
-
-
-def oot_utility_unregister():
-    for cls in reversed(oot_utility_classes):
-        unregister_class(cls)
 
 
 def getActiveHeaderIndex() -> int:
@@ -836,16 +778,16 @@ def onHeaderPropertyChange(self, context: bpy.types.Context, callback: Callable[
     bpy.context.scene.ootActiveHeaderLock = False
 
 
-def getEvalParams(input: str):
+def getEvalParamsInt(input: str):
     """Evaluates a string to an hexadecimal number"""
 
     # degrees to binary angle conversion
     if "DEG_TO_BINANG(" in input:
         input = input.strip().removeprefix("DEG_TO_BINANG(").removesuffix(")").strip()
-        return f"0x{round(float(input) * (0x8000 / 180)):X}"
+        return round(float(input) * (0x8000 / 180))
 
     if input is None or "None" in input:
-        return "0x0"
+        return 0
 
     # remove spaces
     input = input.strip()
@@ -855,10 +797,10 @@ def getEvalParams(input: str):
     except Exception as e:
         raise ValueError(f"Could not parse {input} as an AST.") from e
 
-    def _eval(node):
+    def _eval(node) -> int:
         if isinstance(node, Expression):
             return _eval(node.body)
-        elif isinstance(node, Num):
+        elif isinstance(node, Constant):
             return node.n
         elif isinstance(node, UnaryOp):
             if isinstance(node.op, USub):
@@ -872,7 +814,40 @@ def getEvalParams(input: str):
         else:
             raise ValueError(f"Unsupported AST node {node}")
 
-    return f"0x{_eval(node.body):X}"
+    try:
+        return _eval(node.body)
+    except:
+        return None
+
+
+def getEvalParams(input: str):
+    num = getEvalParamsInt(input)
+    return f"0x{num:X}" if num is not None else None
+
+
+def getShiftFromMask(mask: int):
+    """Returns the shift value from the mask"""
+
+    # make sure the mask is a mask
+    binaryMask = f"{mask:016b}"
+    assert set(f"{mask:b}".rstrip("0")) == {"1"}, binaryMask
+
+    # get the shift by subtracting the length of the mask
+    # converted in binary on 16 bits (since the mask can be on 16 bits) with
+    # that length but with the rightmost zeros stripped
+    return len(binaryMask) - len(binaryMask.rstrip("0"))
+
+
+def getFormattedParams(mask: int, value: int, isBool: bool):
+    """Returns the parameter with the correct format"""
+    shift = getShiftFromMask(mask)
+
+    if value == 0:
+        return None
+    elif not isBool:
+        return f"((0x{value:02X} << {shift}) & 0x{mask:04X})" if shift > 0 else f"(0x{value:02X} & 0x{mask:04X})"
+    else:
+        return f"(0x{value:02X} << {shift})" if shift > 0 else f"0x{value:02X}"
 
 
 def getNewPath(type: str, isClosedShape: bool):
@@ -940,3 +915,70 @@ def getNewPath(type: str, isClosedShape: bool):
     bpy.context.view_layer.active_layer_collection.collection.objects.link(newPath)
 
     return newPath
+
+
+def getObjectList(
+    objList: list[Object],
+    objType: str,
+    emptyType: Optional[str] = None,
+    splineType: Optional[str] = None,
+    parentObj: Optional[Object] = None,
+    room_index: Optional[int] = None,
+):
+    """
+    Returns a list containing objects matching ``objType``. Sorts by object name.
+
+    Parameters:
+    - `objList`: the list of objects to iterate through, usually ``obj.children_recursive``
+    - `objType`: the object's type (``EMPTY``, ``CURVE``, etc.)
+    - `emptyType`: optional, filters the object by the given empty type
+    - `splineType`: optional, filters the object by the given spline type
+    - `parentObj`: optional, checks if the found object is parented to ``parentObj``
+    - `room_index`: optional, the room index
+    """
+
+    ret: list[Object] = []
+    for obj in objList:
+        if obj.type == objType:
+            cond = True
+
+            if emptyType is not None:
+                cond = obj.ootEmptyType == emptyType
+            elif splineType is not None:
+                cond = obj.ootSplineProperty.splineType == splineType
+
+            if parentObj is not None:
+                if emptyType == "Actor" and obj.ootEmptyType == "Room" and obj.ootRoomHeader.roomIndex == room_index:
+                    for o in obj.children_recursive:
+                        if o.type == objType and o.ootEmptyType == emptyType and o not in ret:
+                            ret.append(o)
+                    continue
+                else:
+                    cond = cond and obj.parent is not None and obj.parent == parentObj
+
+            if cond and obj not in ret:
+                ret.append(obj)
+    ret.sort(key=lambda o: o.name)
+    return ret
+
+
+def get_actor_prop_from_obj(actor_obj: Object) -> "OOTActorProperty":
+    """
+    Returns the reference to `OOTActorProperty`
+
+    Parameters:
+    - `actor_obj`: the Blender object to use to find the actor properties
+    """
+
+    actor_prop = None
+
+    if actor_obj.ootEmptyType == "Actor":
+        actor_prop = actor_obj.ootActorProperty
+    elif actor_obj.ootEmptyType == "Transition Actor":
+        actor_prop = actor_obj.ootTransitionActorProperty.actor
+    elif actor_obj.ootEmptyType == "Entrance":
+        actor_prop = actor_obj.ootEntranceProperty.actor
+    else:
+        raise PluginError(f"ERROR: Empty type not supported: {actor_obj.ootEmptyType}")
+
+    return actor_prop
