@@ -8,20 +8,11 @@ from .operators import OOT_ImportSkeleton, OOT_ExportSkeleton
 
 class OOT_SkeletonPanel(Panel):
     bl_idname = "OOT_PT_skeleton"
-    bl_parent_id = "OBJECT_PT_context_object"
-    bl_label = "OOT Skeleton Properties"
+    bl_parent_id = "ARMATURE_PT_OOT_Inspector"
+    bl_label = "Skeleton Properties"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "object"
-
-    @classmethod
-    def poll(cls, context):
-        return (
-            context.scene.gameEditorMode == "OOT"
-            and hasattr(context, "object")
-            and context.object is not None
-            and isinstance(context.object.data, Armature)
-        )
 
     # called every frame
     def draw(self, context):

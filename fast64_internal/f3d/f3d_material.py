@@ -1462,11 +1462,11 @@ class F3DPanel(Panel):
 
 class F3DMeshPanel(Panel):
     bl_label = "F3D Mesh Inspector"
+    bl_parent_id = "OBJECT_PT_context_object"
     bl_idname = "F3D_PT_Mesh_Inspector"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "object"
-    bl_options = {"HIDE_HEADER"}
 
     @classmethod
     def poll(cls, context):
@@ -1474,8 +1474,7 @@ class F3DMeshPanel(Panel):
 
     def draw(self, context):
         new_gbi = not get_F3D_GBI().F3D_OLD_GBI
-        col = self.layout.box().column()
-        col.box().label(text=self.bl_label, icon="MESH_DATA")
+        col = self.layout.column()
         row = col.row()
         row.enabled = new_gbi
         row.prop(context.object, "use_f3d_culling")

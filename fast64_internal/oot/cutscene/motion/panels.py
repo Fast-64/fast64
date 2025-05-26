@@ -4,20 +4,12 @@ from .properties import CutsceneCmdCameraShotProperty, CutsceneCmdCameraShotPoin
 
 
 class OOT_CSMotionCameraShotPanel(OOT_Panel):
-    bl_label = "OOT Cutscene Motion Camera Shot Controls"
+    bl_label = "Cutscene Motion Camera Shot Controls"
     bl_idname = "OOT_PT_camera_shot_panel"
-    bl_parent_id = "OBJECT_PT_context_object"
+    bl_parent_id = "ARMATURE_PT_OOT_Inspector"
     bl_space_type = "PROPERTIES"
     bl_region_type = "WINDOW"
     bl_context = "object"
-
-    @classmethod
-    def poll(cls, context):
-        return (
-            context.scene.gameEditorMode == "OOT"
-            and context.view_layer.objects.active is not None
-            and context.view_layer.objects.active.type == "ARMATURE"
-        )
 
     def draw(self, context):
         obj = context.view_layer.objects.active

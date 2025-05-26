@@ -114,8 +114,8 @@ panels = (SM64_MaterialPanel,)
 
 
 def sm64_panel_register():
-    for panel in panels:
-        register_class(panel)
+    for cls in panels:
+        register_class(cls)
     settings_panels_register()
     tools_panels_register()
     sm64_col_panel_register()
@@ -131,8 +131,8 @@ def sm64_panel_register():
 
 
 def sm64_panel_unregister():
-    for panel in panels:
-        unregister_class(panel)
+    for cls in panels:
+        unregister_class(cls)
     settings_panels_unregister()
     tools_panels_unregister()
     sm64_col_panel_unregister()

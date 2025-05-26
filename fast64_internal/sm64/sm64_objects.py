@@ -1070,7 +1070,7 @@ class SearchSpecialEnumOperator(bpy.types.Operator):
 
 
 class SM64ObjectPanel(bpy.types.Panel):
-    bl_label = "SM64 Object Inspector"
+    bl_label = "SM64 Empty Inspector"
     bl_idname = "OBJECT_PT_SM64_Object_Inspector"
     bl_parent_id = "OBJECT_PT_context_object"
     bl_space_type = "PROPERTIES"
@@ -1172,12 +1172,11 @@ class SM64ObjectPanel(bpy.types.Panel):
             parent_box.separator()
 
     def draw(self, context):
-        prop_split(self.layout, context.scene, "gameEditorMode", "Game")
         col = self.layout.column()
         obj = context.object
         props = obj.fast64.sm64
 
-        prop_split(box, obj, "sm64_obj_type", "Object Type")
+        prop_split(col, obj, "sm64_obj_type", "Object Type")
         if obj.sm64_obj_type == "Object":
             prop_split(col, obj, "sm64_model_enum", "Model")
             if obj.sm64_model_enum == "Custom":
@@ -1385,7 +1384,7 @@ class SM64ObjectPanel(bpy.types.Panel):
             self.draw_inline_obj(col, obj)
 
         elif obj.sm64_obj_type == "None":
-            col.box().label(text="This can be used as an empty transform node in a geolayout hierarchy.")
+            multilineLabel(col, "This can be used as an empty transform\nnode in a geolayout hierarchy.", icon="INFO")
 
     def draw_acts(self, obj, layout):
         layout.label(text="Acts")

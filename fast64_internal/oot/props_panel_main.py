@@ -108,7 +108,7 @@ class OOT_ManualUpgrade(bpy.types.Operator):
 
 
 class OOTObjectPanel(bpy.types.Panel):
-    bl_label = "OOT Object Inspector"
+    bl_label = "OOT Empty Inspector"
     bl_idname = "OBJECT_PT_OOT_Object_Inspector"
     bl_parent_id = "OBJECT_PT_context_object"
     bl_space_type = "PROPERTIES"
@@ -120,7 +120,6 @@ class OOTObjectPanel(bpy.types.Panel):
         return context.scene.gameEditorMode == "OOT" and (context.object is not None and context.object.type == "EMPTY")
 
     def draw(self, context):
-        prop_split(self.layout, context.scene, "gameEditorMode", "Game")
         col = self.layout.column()
         obj = context.object
         objName = obj.name
@@ -134,7 +133,7 @@ class OOTObjectPanel(bpy.types.Panel):
 
         if obj.ootEmptyType == "Actor":
             actorProp: OOTActorProperty = obj.ootActorProperty
-            actorProp.draw_props(box, altRoomProp, obj)
+            actorProp.draw_props(col, altRoomProp, obj)
 
         elif obj.ootEmptyType == "Transition Actor":
             transActorProp: OOTTransitionActorProperty = obj.ootTransitionActorProperty

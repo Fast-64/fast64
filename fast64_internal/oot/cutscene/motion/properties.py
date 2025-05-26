@@ -229,7 +229,7 @@ class CutsceneCmdCameraShotPointProperty(PropertyGroup):
         for propName in ["shotPointFrame", "shotPointViewAngle", "shotPointRoll"]:
             row.prop(self, propName)
 
-        row = box.row()
+        row = col.row()
         row.operator(CutsceneCmdMoveBone.bl_idname, text="Move Up", icon="TRIA_UP").direction = "UP"
         row.operator(CutsceneCmdMoveBone.bl_idname, text="Move Down", icon="TRIA_DOWN").direction = "DOWN"
 

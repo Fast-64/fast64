@@ -1,4 +1,5 @@
 import bpy
+from bpy.types import Panel
 
 from pathlib import Path
 from bpy.utils import register_class, unregister_class
@@ -138,10 +139,47 @@ class OOT_Properties(bpy.types.PropertyGroup):
     )
 
 
+class OOT_MaterialPanel(Panel):
+    bl_label = "OOT Material"
+    bl_idname = "MATERIAL_PT_OOT_Material_Inspector"
+    bl_parent_id = "EEVEE_MATERIAL_PT_context_material"
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_context = "material"
+
+    @classmethod
+    def poll(cls, context):
+        return context.material is not None and context.material.is_f3d and context.scene.gameEditorMode == "OOT"
+
+    def draw(self, context):
+        pass
+
+
+class OOT_ArmaturePanel(Panel):
+    bl_label = "OOT Armature"
+    bl_idname = "ARMATURE_PT_OOT_Inspector"
+    bl_parent_id = "OBJECT_PT_context_object"
+    bl_space_type = "PROPERTIES"
+    bl_region_type = "WINDOW"
+    bl_context = "object"
+
+    @classmethod
+    def poll(cls, context):
+        return (
+            context.object is not None and context.object.type == "ARMATURE" and context.scene.gameEditorMode == "OOT"
+        )
+
+    def draw(self, context):
+        pass
+
+
+panels = (OOT_MaterialPanel, OOT_ArmaturePanel)
 oot_classes = (OOT_Properties,)
 
 
 def oot_panel_register():
+    for cls in panels:
+        register_class(cls)
     oot_operator_panel_register()
     cutscene_panels_register()
     scene_panels_register()
@@ -151,9 +189,12 @@ def oot_panel_register():
     spline_panels_register()
     anim_panels_register()
     skeleton_panels_register()
+    csMotion_panels_register()
 
 
 def oot_panel_unregister():
+    for cls in reversed(panels):
+        unregister_class(cls)
     oot_operator_panel_unregister()
     cutscene_panels_unregister()
     collision_panels_unregister()
@@ -163,6 +204,7 @@ def oot_panel_unregister():
     f3d_panels_unregister()
     anim_panels_unregister()
     skeleton_panels_unregister()
+    csMotion_panels_unregister()
 
 
 def oot_register(registerPanels):
@@ -190,7 +232,6 @@ def oot_register(registerPanels):
 
     csMotion_ops_register()
     csMotion_props_register()
-    csMotion_panels_register()
     csMotion_preview_register()
     cutscene_preview_register()
 
@@ -229,7 +270,6 @@ def oot_unregister(unregisterPanels):
 
     cutscene_preview_unregister()
     csMotion_preview_unregister()
-    csMotion_panels_unregister()
     csMotion_props_unregister()
     csMotion_ops_unregister()
 

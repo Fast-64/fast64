@@ -167,7 +167,7 @@ def drawGeoInfo(panel: Panel, bone: Bone):
 
 
 class GeolayoutBonePanel(Panel):
-    bl_label = "Geolayout Inspector"
+    bl_label = "SM64 Bone Inspector"
     bl_idname = "BONE_PT_SM64_Geolayout_Inspector"
     bl_parent_id = "BONE_PT_context_bone"
     bl_space_type = "PROPERTIES"
@@ -183,7 +183,7 @@ class GeolayoutBonePanel(Panel):
 
 
 class GeolayoutArmaturePanel(Panel):
-    bl_label = "SM64 Geolayout Armature Inspector"
+    bl_label = "SM64 Armature Inspector"
     bl_idname = "OBJECT_PT_SM64_Armature_Geolayout_Inspector"
     bl_parent_id = "OBJECT_PT_context_object"
     bl_space_type = "PROPERTIES"
