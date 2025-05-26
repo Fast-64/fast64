@@ -3995,10 +3995,6 @@ class CelLevelRemove(bpy.types.Operator):
         return {"FINISHED"}
 
 
-def getCurrentPresetDir():
-    return "f3d/" + bpy.context.scene.gameEditorMode.lower()
-
-
 class ApplyMaterialPresetOperator(Operator):
     bl_idname = "material.f3d_preset_apply"
     bl_label = "Apply F3D Material Preset"
@@ -4008,10 +4004,6 @@ class ApplyMaterialPresetOperator(Operator):
     def execute(self, context: Context):
         material_apply_preset(context.material, self.filepath)
         return {"FINISHED"}
-
-
-def getCurrentPresetDir():
-    return "f3d/" + bpy.context.scene.gameEditorMode.lower()
 
 
 # modules/bpy_types.py -> Menu
