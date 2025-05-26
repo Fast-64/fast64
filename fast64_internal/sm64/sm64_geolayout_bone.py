@@ -216,7 +216,7 @@ def drawLayerWarningBox(layout, prop, data):
 
 
 class GeolayoutObjectPanel(Panel):
-    bl_label = "SM64 Object Geolayout"
+    bl_label = "SM64 Geolayout"
     bl_idname = "OBJECT_PT_SM64_Geolayout"
     bl_parent_id = "OBJECT_PT_context_object"
     bl_space_type = "PROPERTIES"
