@@ -294,6 +294,8 @@ class CollisionHeader:
 
             source_path = base_path / f"{filename}.c"
             source_path.write_text(filedata.source, encoding="utf-8", newline="\n")
+        else:
+            raise PluginError("ERROR: exporting collision with ignore collision enabled!")
 
     def getCmd(self):
         """Returns the collision header scene command"""

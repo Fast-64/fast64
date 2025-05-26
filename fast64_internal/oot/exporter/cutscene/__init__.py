@@ -44,6 +44,8 @@ class Cutscene:
 
     @staticmethod
     def export(cs_obj: Object, skip_includes: bool = False, skip_endif: bool = False):
+        """Exports cutscene data as C files, this should be called to do a separate export from the scene."""
+
         # create the cutscene
         cutscene = Cutscene.new(
             cs_obj.name.removeprefix("Cutscene."),
