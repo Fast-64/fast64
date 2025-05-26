@@ -1,12 +1,12 @@
 import dataclasses
 import math
+import operator
 import struct
 import ast
 from io import StringIO
 from typing import Iterable, NamedTuple, Optional, TypeVar, Union
 
-from ...f3d.f3d_parser import math_eval
-from ...utility import PluginError, binOps, get_clean_color, quantize_color, to_s16, cast_integer, encodeSegmentedAddr
+from ...utility import PluginError, get_clean_color, quantize_color, to_s16, cast_integer, encodeSegmentedAddr
 
 from ..sm64_constants import SegmentData
 from ..sm64_geolayout_utility import BaseDisplayListNode
@@ -30,61 +30,149 @@ def flatten(iterable: Iterable[T]) -> tuple[T]:
     return tuple(flat)
 
 
-def math_eval(s, holder: object):
+bin_ops = {
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+    ast.Mod: operator.mod,
+    ast.LShift: operator.lshift,
+    ast.RShift: operator.rshift,
+    ast.BitOr: operator.or_,
+    ast.BitAnd: operator.and_,
+    ast.BitXor: operator.xor,
+    ast.Pow: operator.pow,
+    ast.FloorDiv: operator.floordiv,
+    ast.USub: operator.neg,
+    ast.UAdd: lambda a: a,
+    ast.Not: operator.not_,
+    ast.NotEq: operator.ne,
+    ast.And: operator.and_,
+    ast.Or: operator.or_,
+    ast.In: operator.contains,
+    ast.NotIn: lambda a, b: not operator.contains(a, b),
+    ast.Is: operator.is_,
+    ast.IsNot: operator.is_not,
+    ast.Eq: operator.eq,
+    ast.Lt: operator.lt,
+    ast.LtE: operator.le,
+    ast.Gt: operator.gt,
+    ast.GtE: operator.ge,
+    ast.Invert: operator.invert,
+}
+
+builtins_map = {
+    "round": round,
+    "abs": abs,
+    "tuple": tuple,
+    "list": list,
+    "set": set,
+    "dict": dict,
+    "len": len,
+    "range": range,
+    "min": min,
+    "max": max,
+    "sum": sum,
+    "sorted": sorted,
+    "all": all,
+    "any": any,
+    "enumerate": enumerate,
+    "flatten": flatten,
+}
+collection_constructors = {ast.List: list, ast.Tuple: tuple, ast.Set: set}
+
+
+def math_eval(s, start_scope: dict[str, object] | None = None):
+    if start_scope is None:
+        start_scope = {}
     if isinstance(s, int):
         return s
 
     s = s.strip()
     node = ast.parse(s, mode="eval")
 
-    mappable_types = {ast.Tuple: tuple, ast.List: list, ast.Set: set, ast.Dict: dict}
+    def _eval(node: ast.expr, scope: dict[str, object]):
+        scope = scope.copy()
 
-    def _eval(node):
-        if isinstance(node, ast.Expression):
-            return _eval(node.body)
-        elif isinstance(node, ast.Str):
-            return node.s
-        elif isinstance(node, ast.Name):
-            if hasattr(holder, node.id):
-                return getattr(holder, node.id)
+        def eval_comprehension(elt_node: ast.expr, generators: list[ast.comprehension], scope: dict[str, object]):
+            if not generators:
+                result = [_eval(elt_node, scope)]
+            else:
+                result = []
+                first_comp, rest_comps = generators[0], generators[1:]
+                for value in _eval(first_comp.iter, scope):
+                    new_scope = scope.copy()
+                    if isinstance(first_comp.target, ast.Name):
+                        new_scope[first_comp.target.id] = value
+                    elif isinstance(first_comp.target, (ast.Tuple, ast.List, ast.Set)):
+                        for i, elt in enumerate(first_comp.target.elts):
+                            new_scope[elt.id] = value[i]
+                    if all(_eval(if_node, new_scope) for if_node in first_comp.ifs):
+                        sub_results = eval_comprehension(elt_node, rest_comps, new_scope)
+                        result.extend(sub_results)
+            return result
+
+        if isinstance(node, ast.Name):
+            if node.id in scope:
+                return scope[node.id]
             elif hasattr(math, node.id):
                 return getattr(math, node.id)
             else:
-                return {"round": round, "abs": abs}.get(node.id, node.id)
-        elif isinstance(node, ast.Num):
-            return node.n
+                return builtins_map.get(node.id, node.id)
+        elif isinstance(node, ast.Constant):
+            return node.value
         elif isinstance(node, ast.UnaryOp):
-            if isinstance(node.op, ast.USub):
-                return -1 * _eval(node.operand)
-            elif isinstance(node.op, ast.Invert):
-                return ~_eval(node.operand)
-            else:
-                raise Exception("Unsupported type {}".format(node.op))
+            return bin_ops[type(node.op)](_eval(node.operand, scope))
         elif isinstance(node, ast.BinOp):
-            return binOps[type(node.op)](_eval(node.left), _eval(node.right))
+            return bin_ops[type(node.op)](_eval(node.left, scope), _eval(node.right, scope))
         elif isinstance(node, ast.Call):
-            args = list(map(_eval, node.args))
-            funcName = _eval(node.func)
+            args = [_eval(x, scope) for x in node.args]
+            funcName = _eval(node.func, scope)
             return funcName(*args)
-        elif isinstance(node, tuple(mappable_types.keys())):
-            return mappable_types[type(node)](map(_eval, node.elts))
+        elif isinstance(node, ast.ListComp):
+            return eval_comprehension(node.elt, node.generators, scope)
+        elif isinstance(node, ast.SetComp):
+            return set(eval_comprehension(node.elt, node.generators, scope))
+        elif isinstance(node, ast.GeneratorExp):
+            return eval_comprehension(node.elt, node.generators, scope)
+        elif isinstance(node, tuple(collection_constructors.keys())):
+            return collection_constructors[type(node)](_eval(x, scope) for x in node.elts)
+        elif isinstance(node, ast.Expression):
+            return _eval(node.body, scope)
         elif isinstance(node, ast.Subscript):
-            return _eval(node.value)[_eval(node.slice)]
+            return _eval(node.value, scope)[_eval(node.slice, scope)]
+        elif isinstance(node, ast.Slice):
+            lower, upper, step = 0, None, None
+            if node.lower is not None:
+                lower = _eval(node.lower, scope)
+            if node.upper is not None:
+                upper = _eval(node.upper, scope)
+            if node.step is not None:
+                step = _eval(node.step, scope)
+            return slice(lower, upper, step)
+        elif isinstance(node, ast.IfExp):
+            if _eval(node.test, scope):
+                return _eval(node.body, scope)
+            else:
+                return _eval(node.orelse, scope)
+        elif isinstance(node, ast.Compare):
+            left = _eval(node.left, scope)
+            for op, right in zip(node.ops, node.comparators):
+                right = _eval(right, scope)
+                if not bin_ops[type(op)](left, right):
+                    return False
+                left = right
+            return True
         else:
-            raise Exception("Unsupported type {}".format(node))
+            raise Exception(f"Unsupported AST node: {ast.dump(node)}")
 
-    return _eval(node.body)
+    return _eval(node.body, start_scope)
 
 
 class ArgExport(NamedTuple):
     value: float | int | bool | str
     bit_count: int = 32
     signed: bool = True
-
-
-class ValueHolder:
-    def __init__(self, value):
-        self.x = value
 
 
 @dataclasses.dataclass
@@ -143,10 +231,8 @@ class CustomCmd(BaseDisplayListNode):
                 and (not isinstance(value, bool) or binary)
                 and "eval_expression" in data
             ):
-                yield from tuple(
-                    ArgExport(x, bit_count, signed)
-                    for x in flatten(math_eval(data["eval_expression"], ValueHolder(value)))
-                )
+                evaluated = math_eval(data["eval_expression"], {"x": value})
+                yield from tuple(ArgExport(x, bit_count, signed) for x in flatten(evaluated))
             else:
                 yield from tuple(ArgExport(x, bit_count, signed) for x in flatten(value))
 
