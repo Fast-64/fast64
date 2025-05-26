@@ -150,6 +150,8 @@ class Cutscene:
                     '#include "z64math.h"',
                     '#include "z64cutscene.h"',
                     '#include "z64cutscene_commands.h"',
+                    '#include "z64ocarina.h"',
+                    '#include "z64player.h"',
                 ]
 
             filedata.header = (

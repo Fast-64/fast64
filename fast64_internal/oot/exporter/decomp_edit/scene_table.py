@@ -54,11 +54,10 @@ class SceneTableEntry:
             raise PluginError("ERROR: This line is not a scene table entry!")
 
     @staticmethod
-    def from_scene(scene_name: str, draw_config: str):
-        # TODO: Implement title cards
+    def from_scene(scene_name: str, draw_config: str, title_card_name: str):
         return SceneTableEntry(
             scene_name if scene_name.endswith("_scene") else f"{scene_name}_scene",
-            "none",
+            title_card_name if title_card_name.strip() else "none",
             get_scene_enum_from_name(scene_name),
             draw_config,
             "0",
@@ -264,13 +263,13 @@ class SceneTableUtility:
         raise PluginError(f"ERROR: Scene name {scene_name} not found in scene table.")
 
     @staticmethod
-    def edit_scene_table(export_path: str, export_name: str, draw_config: str):
+    def edit_scene_table(export_path: str, export_name: str, draw_config: str, title_card_name: str):
         """Update the scene table entry of the selected scene"""
         path = os.path.join(export_path, "include/tables/scene_table.h")
         scene_table = SceneTable.new(path)
         export_enum = get_scene_enum_from_name(export_name)
 
-        scene_table.update(SceneTableEntry.from_scene(export_name, draw_config), export_enum)
+        scene_table.update(SceneTableEntry.from_scene(export_name, draw_config, title_card_name), export_enum)
 
         # write the file with the final data
         writeFile(path, scene_table.to_c())

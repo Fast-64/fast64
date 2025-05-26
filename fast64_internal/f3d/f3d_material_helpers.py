@@ -48,6 +48,8 @@ EXCLUDE_FROM_NODE = (
     "texture_mapping",
     "color_mapping",
     "image_user",
+    "color_tag",
+    "bl_static_type",
 )
 EXCLUDE_FROM_INPUT_OUTPUT = (
     "rna_type",
