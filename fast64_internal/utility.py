@@ -685,14 +685,20 @@ def checkIdentityRotation(obj, rotation, allowYaw):
         )
 
 
-def setOrigin(target, obj):
-    bpy.ops.object.select_all(action="DESELECT")
-    obj.select_set(True)
-    bpy.context.view_layer.objects.active = obj
-    bpy.ops.object.transform_apply()
-    bpy.context.scene.cursor.location = target.location
-    bpy.ops.object.origin_set(type="ORIGIN_CURSOR")
-    bpy.ops.object.select_all(action="DESELECT")
+def setOrigin(obj: bpy.types.Object, target_loc: mathutils.Vector):
+    if not target_loc.is_frozen:
+        target_loc = target_loc.copy()
+    with bpy.context.temp_override(
+        selected_objects=[obj],
+        active_object=obj,
+    ):
+        obj.location += -target_loc
+        # Applying location puts the object origin at world origin
+        # (It is only needed to apply location to set the origin,
+        #  but historically this function has applied all transforms
+        #  so just keep doing that to not break anything)
+        bpy.ops.object.transform_apply()
+        obj.location = target_loc
 
 
 def checkIfPathExists(filePath):
@@ -1081,7 +1087,7 @@ def combineObjects(obj, includeChildren, ignoreAttr, areaIndex):
         joinedObj.select_set(True)
         meshList.remove(joinedObj.data)
         bpy.ops.object.join()
-        setOrigin(obj, joinedObj)
+        setOrigin(joinedObj, obj.location)
 
         bpy.ops.object.select_all(action="DESELECT")
         bpy.context.view_layer.objects.active = joinedObj
