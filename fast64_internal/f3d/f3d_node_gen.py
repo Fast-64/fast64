@@ -240,7 +240,7 @@ class ErrorState:
 def print_with_exc(error_state: ErrorState, exc: Exception):
     message = "\n".join(error_state.error_message_queue)
     print(message + ":\n" + str(exc))
-    print(traceback.format_exception(exc))
+    print("\n".join(traceback.format_exception(exc)))
     error_state.errors.append((message, exc))
 
 
@@ -283,21 +283,21 @@ def createOrUpdateSceneProperties():
         def add_new_socket(socket_type: str, name: str, in_out: str = "OUTPUT"):
             return getattr(new_group, in_out.lower() + "s").new(socket_type, name)
 
-    _nodeFogEnable = add_new_socket("NodeSocketInt", "FogEnable")
-    _nodeFogColor: add_new_socket("NodeSocketColor", "FogColor")
-    _nodeF3D_NearClip: add_new_socket("NodeSocketFloat", "F3D_NearClip")
-    _nodeF3D_FarClip: add_new_socket("NodeSocketFloat", "F3D_FarClip")
-    _nodeBlender_Game_Scale: add_new_socket("NodeSocketFloat", "Blender_Game_Scale")
-    _nodeFogNear: add_new_socket("NodeSocketInt", "FogNear")
-    _nodeFogFar: add_new_socket("NodeSocketInt", "FogFar")
+    add_new_socket("NodeSocketInt", "FogEnable")
+    add_new_socket("NodeSocketColor", "FogColor")
+    add_new_socket("NodeSocketFloat", "F3D_NearClip")
+    add_new_socket("NodeSocketFloat", "F3D_FarClip")
+    add_new_socket("NodeSocketFloat", "Blender_Game_Scale")
+    add_new_socket("NodeSocketInt", "FogNear")
+    add_new_socket("NodeSocketInt", "FogFar")
 
-    _nodeAmbientColor: add_new_socket("NodeSocketColor", "AmbientColor")
-    _nodeLight0Color: add_new_socket("NodeSocketColor", "Light0Color")
-    _nodeLight0Dir: add_new_socket("NodeSocketVectorDirection", "Light0Dir")
-    _nodeLight0Size: add_new_socket("NodeSocketInt", "Light0Size")
-    _nodeLight1Color: add_new_socket("NodeSocketColor", "Light1Color")
-    _nodeLight1Dir: add_new_socket("NodeSocketVectorDirection", "Light1Dir")
-    _nodeLight1Size: add_new_socket("NodeSocketInt", "Light1Size")
+    add_new_socket("NodeSocketColor", "AmbientColor")
+    add_new_socket("NodeSocketColor", "Light0Color")
+    add_new_socket("NodeSocketVectorDirection", "Light0Dir")
+    add_new_socket("NodeSocketInt", "Light0Size")
+    add_new_socket("NodeSocketColor", "Light1Color")
+    add_new_socket("NodeSocketVectorDirection", "Light1Dir")
+    add_new_socket("NodeSocketInt", "Light1Size")
 
     # Set outputs from render settings
     sceneOutputs: NodeGroupOutput = new_group.nodes["Group Output"]
