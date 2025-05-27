@@ -180,18 +180,26 @@ def checkObjectReference(obj, title):
         )
 
 
-def selectSingleObject(obj: bpy.types.Object):
-    bpy.ops.object.select_all(action="DESELECT")
+def setActiveObject(obj: bpy.types.Object):
     obj.select_set(True)
     bpy.context.view_layer.objects.active = obj
 
 
+def deselectAllObjects():
+    for obj in bpy.data.objects:
+        obj.select_set(False)
+
+
+def selectSingleObject(obj: bpy.types.Object):
+    deselectAllObjects()
+    setActiveObject(obj)
+
+
 def parentObject(parent, child):
-    bpy.ops.object.select_all(action="DESELECT")
+    deselectAllObjects()
 
     child.select_set(True)
-    parent.select_set(True)
-    bpy.context.view_layer.objects.active = parent
+    setActiveObject(parent)
     bpy.ops.object.parent_set(type="OBJECT", keep_transform=True)
 
 
@@ -655,11 +663,9 @@ def highlightWeightErrors(obj, elements, elementType):
     return  # Doesn't work currently
     if bpy.context.mode != "OBJECT":
         bpy.ops.object.mode_set(mode="OBJECT")
-    bpy.ops.object.select_all(action="DESELECT")
-    obj.select_set(True)
-    bpy.context.view_layer.objects.active = obj
+    selectSingleObject(obj)
     bpy.ops.object.mode_set(mode="EDIT")
-    bpy.ops.mesh.select_all(action="DESELECT")
+    deselectAllObjects()
     bpy.ops.mesh.select_mode(type=elementType)
     bpy.ops.object.mode_set(mode="OBJECT")
     print(elements)
@@ -918,25 +924,21 @@ def get_obj_temp_mesh(obj):
 def apply_objects_modifiers_and_transformations(allObjs: Iterable[bpy.types.Object]):
     # first apply modifiers so that any objects that affect each other are taken into consideration
     for selectedObj in allObjs:
-        bpy.ops.object.select_all(action="DESELECT")
-        selectedObj.select_set(True)
-        bpy.context.view_layer.objects.active = selectedObj
+        selectSingleObject(selectedObj)
 
         for modifier in selectedObj.modifiers:
             attemptModifierApply(modifier)
 
     # apply transformations now that world space changes are applied
     for selectedObj in allObjs:
-        bpy.ops.object.select_all(action="DESELECT")
-        selectedObj.select_set(True)
-        bpy.context.view_layer.objects.active = selectedObj
+        selectSingleObject(selectedObj)
 
         bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
 
 
 def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
     # Duplicate objects to apply scale / modifiers / linked data
-    bpy.ops.object.select_all(action="DESELECT")
+    deselectAllObjects()
     selectMeshChildrenOnly(obj, None, includeEmpties, areaIndex)
     obj.select_set(True)
     bpy.context.view_layer.objects.active = obj
@@ -952,9 +954,7 @@ def duplicateHierarchy(obj, ignoreAttr, includeEmpties, areaIndex):
         for selectedObj in allObjs:
             if ignoreAttr is not None and getattr(selectedObj, ignoreAttr):
                 for child in selectedObj.children:
-                    bpy.ops.object.select_all(action="DESELECT")
-                    child.select_set(True)
-                    bpy.context.view_layer.objects.active = child
+                    selectSingleObject(child)
                     bpy.ops.object.parent_clear(type="CLEAR_KEEP_TRANSFORM")
                     selectedObj.parent.select_set(True)
                     bpy.context.view_layer.objects.active = selectedObj.parent
@@ -1052,7 +1052,7 @@ def combineObjects(obj, includeChildren, ignoreAttr, areaIndex):
     obj.original_name = obj.name
 
     # Duplicate objects to apply scale / modifiers / linked data
-    bpy.ops.object.select_all(action="DESELECT")
+    deselectAllObjects()
     if includeChildren:
         selectMeshChildrenOnly(obj, ignoreAttr, False, areaIndex)
     else:
@@ -1068,7 +1068,7 @@ def combineObjects(obj, includeChildren, ignoreAttr, areaIndex):
 
         apply_objects_modifiers_and_transformations(allObjs)
 
-        bpy.ops.object.select_all(action="DESELECT")
+        deselectAllObjects()
 
         # Joining causes orphan data, so we remove it manually.
         meshList = []
@@ -1083,9 +1083,7 @@ def combineObjects(obj, includeChildren, ignoreAttr, areaIndex):
         bpy.ops.object.join()
         setOrigin(obj, joinedObj)
 
-        bpy.ops.object.select_all(action="DESELECT")
-        bpy.context.view_layer.objects.active = joinedObj
-        joinedObj.select_set(True)
+        selectSingleObject(joinedObj)
 
         # Need to clear parent transform in order to correctly apply transform.
         bpy.ops.object.parent_clear(type="CLEAR_KEEP_TRANSFORM")
@@ -1167,7 +1165,7 @@ def applyRotation(objList, angle, axis):
     bpy.context.scene.tool_settings.use_transform_pivot_point_align = False
     bpy.context.scene.tool_settings.use_transform_skip_children = False
 
-    bpy.ops.object.select_all(action="DESELECT")
+    deselectAllObjects()
     for obj in objList:
         obj.select_set(True)
     bpy.context.view_layer.objects.active = objList[0]
