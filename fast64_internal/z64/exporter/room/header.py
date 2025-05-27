@@ -168,7 +168,9 @@ class RoomActors:
     @staticmethod
     def get_rotation_values(actorProp: Z64_ActorProperty, blender_rot_values: list[int]):
         # Figure out which rotation to export, Blender's or the override
-        custom = "_custom" if actorProp.actor_id == "Custom" else ""
+        custom = (
+            "_custom" if not bpy.context.scene.fast64.oot.use_new_actor_panel or actorProp.actor_id == "Custom" else ""
+        )
         rot_values = [getattr(actorProp, f"rot_{rot}{custom}") for rot in ["x", "y", "z"]]
 
         if game_data.z64.is_oot():
@@ -176,7 +178,7 @@ class RoomActors:
         else:
             export_rot_values = [f"{round(rot * (180 / 0x8000))}" for rot in blender_rot_values]
 
-        if actorProp.actor_id == "Custom":
+        if not bpy.context.scene.fast64.oot.use_new_actor_panel or actorProp.actor_id == "Custom":
             export_rot_values = rot_values if actorProp.rot_override else export_rot_values
         else:
             for i, rot in enumerate(["X", "Y", "Z"]):
@@ -271,7 +273,7 @@ class RoomActors:
                 actor.pos = pos
 
                 # force custom params for MM (temp solution until the xml is documented properly)
-                if game_data.z64.is_oot() and actorProp.actor_id != "Custom":
+                if game_data.z64.is_oot() and bpy.context.scene.fast64.oot.use_new_actor_panel and actorProp.actor_id != "Custom":
                     actor.params = actorProp.params
                 else:
                     actor.params = actorProp.params_custom

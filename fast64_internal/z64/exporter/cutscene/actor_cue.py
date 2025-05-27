@@ -47,7 +47,7 @@ class CutsceneCmdActorCue(CutsceneCmdBase):
             + "".join(f"{rot}, " for rot in self.rot)
             + "".join(f"{pos}, " for pos in self.startPos)
             + "".join(f"{pos}, " for pos in self.endPos)
-            + "0.0f, 0.0f, 0.0f),\n"
+            + "CS_FLOAT(0, 0.0f), CS_FLOAT(0, 0.0f), CS_FLOAT(0, 0.0f)),\n"
         )
 
 

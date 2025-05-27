@@ -1,3 +1,5 @@
+import bpy
+
 from dataclasses import dataclass
 from mathutils import Matrix
 from bpy.types import Object
@@ -236,16 +238,40 @@ class Scene:
         sceneCutsceneData = self.getSceneCutscenesC()
         sceneTexturesData = self.getSceneTexturesC(textureExportSettings)
 
-        include_list = [
-            '#include "ultra64.h"',
-            '#include "macros.h"',
-            '#include "z64.h"',
-        ]
-
         if game_data.z64.is_mm():
-            include_list.append('#include "command_macros_base.h"')
-
-        includes = "\n".join(include_list) + "\n\n\n"
+            # temp solution until mm headers are split (or figure out which ones are required)
+            includes = [
+                '#include "ultra64.h"',
+                '#include "macros.h"',
+                '#include "z64.h"',
+                '#include "command_macros_base.h"',
+            ]
+        elif bpy.context.scene.fast64.oot.is_globalh_present():
+            includes = [
+                '#include "ultra64.h"',
+                '#include "macros.h"',
+                '#include "z64.h"',
+            ]
+        else:
+            includes = [
+                '#include "ultra64.h"',
+                '#include "romfile.h"',
+                '#include "array_count.h"',
+                '#include "sequence.h"',
+                '#include "z64actor_profile.h"',
+                '#include "z64bgcheck.h"',
+                '#include "z64camera.h"',
+                '#include "z64cutscene.h"',
+                '#include "z64cutscene_commands.h"',
+                '#include "z64environment.h"',
+                '#include "z64math.h"',
+                '#include "z64object.h"',
+                '#include "z64ocarina.h"',
+                '#include "z64path.h"',
+                '#include "z64player.h"',
+                '#include "z64room.h"',
+                '#include "z64scene.h"',
+            ]
 
         return SceneFile(
             self.name,
@@ -262,7 +288,7 @@ class Scene:
             (
                 f"#ifndef {self.name.upper()}_H\n"
                 + f"#define {self.name.upper()}_H\n\n"
-                + includes
+                + ("\n".join(includes) + "\n\n")
                 + sceneMainData.header
                 + "".join(cs.header for cs in sceneCutsceneData)
                 + sceneCollisionData.header

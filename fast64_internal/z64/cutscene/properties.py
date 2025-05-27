@@ -12,7 +12,8 @@ from bpy.props import (
 )
 from bpy.utils import register_class, unregister_class
 from ...utility import PluginError, prop_split
-from ..utility import OOTCollectionAdd, drawCollectionOps, getEnumName, is_oot_features
+from ..collection_utility import OOTCollectionAdd, drawCollectionOps
+from ..utility import getEnumName, is_oot_features
 from ...game_data import game_data
 from ..upgrade import upgradeCutsceneSubProps, upgradeCSListProps, upgradeCutsceneProperty
 from .operators import OOTCSTextAdd, OOT_SearchCSDestinationEnumOperator, OOTCSListAdd, OOT_SearchCSSeqOperator
@@ -436,6 +437,8 @@ class OOTCutscenePreviewSettingsProperty(PropertyGroup):
         default="link_adult",
     )
 
+    ignore_cs_misc_stop: BoolProperty(name="Ignore 'Stop Cutscene' Command", default=False)
+
     # internal only
     ootCSPreviewNodesReady: BoolProperty(default=False)
     ootCSPreviewCSObj: PointerProperty(type=Object)
@@ -464,6 +467,7 @@ class OOTCutscenePreviewSettingsProperty(PropertyGroup):
         prop_split(previewBox, self, "previewPlayerAge", "Player Age for Preview")
         previewBox.prop(self, "useWidescreen")
         previewBox.prop(self, "useOpaqueCamBg")
+        previewBox.prop(self, "ignore_cs_misc_stop")
 
 
 class OOTCutsceneProperty(PropertyGroup):

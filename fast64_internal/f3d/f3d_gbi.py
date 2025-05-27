@@ -2370,7 +2370,7 @@ class FModel:
             - an object containing info about the additional textures, or None
         """
         texProp = getattr(material.f3d_mat, f"tex{index}")
-        imDependencies = [] if texProp.tex is None else [texProp.tex]
+        imDependencies = set() if texProp.tex is None else {texProp.tex}
         return imDependencies, None
 
     def writeTexRefNonCITextures(self, obj, texFmt: str):
@@ -2390,7 +2390,7 @@ class FModel:
             - the palette to use (or None)
         """
         texProp = getattr(material.f3d_mat, f"tex{index}")
-        imDependencies = [] if texProp.tex is None else [texProp.tex]
+        imDependencies = set() if texProp.tex is None else {texProp.tex}
         return imDependencies, None, None
 
     def writeTexRefCITextures(
@@ -3416,7 +3416,7 @@ class GbiMacro:
             else:
                 return field.name
         if hasattr(field, "__iter__") and type(field) is not str:
-            return " | ".join(field) if len(field) else "0"
+            return " | ".join(map(str, field)) if len(field) else "0"
         if self._hex > 0 and isinstance(field, int):
             temp = field if field >= 0 else (1 << (self._hex * 4)) + field
             return f"{temp:#0{self._hex + 2}x}"  # + 2 for the 0x part
@@ -4275,9 +4275,9 @@ def gsSPGeometryMode_Non_F3DEX_GBI_2(word, f3d):
     return words[0].to_bytes(4, "big") + words[1].to_bytes(4, "big")
 
 
-def geoFlagListToWord(flagList, f3d):
+def geoFlagListToWord(flags: tuple, f3d: F3D):
     word = 0
-    for name in flagList:
+    for name in flags:
         if name in f3d.allGeomModeFlags:
             word += getattr(f3d, name)
         else:
@@ -4291,8 +4291,8 @@ def geoFlagListToWord(flagList, f3d):
 
 @dataclass(unsafe_hash=True)
 class SPGeometryMode(GbiMacro):
-    clearFlagList: list
-    setFlagList: list
+    clearFlagList: set[str] = field(default_factory=set)
+    setFlagList: set[str] = field(default_factory=set)
 
     def to_binary(self, f3d, segments):
         if f3d.F3DEX_GBI_2:
@@ -4306,7 +4306,7 @@ class SPGeometryMode(GbiMacro):
 
 @dataclass(unsafe_hash=True)
 class SPSetGeometryMode(GbiMacro):
-    flagList: list
+    flagList: set[str] = field(default_factory=set)
 
     def to_binary(self, f3d, segments):
         word = geoFlagListToWord(self.flagList, f3d)
@@ -4319,7 +4319,7 @@ class SPSetGeometryMode(GbiMacro):
 
 @dataclass(unsafe_hash=True)
 class SPClearGeometryMode(GbiMacro):
-    flagList: list
+    flagList: set[str] = field(default_factory=set)
 
     def to_binary(self, f3d, segments):
         word = geoFlagListToWord(self.flagList, f3d)
@@ -4332,7 +4332,7 @@ class SPClearGeometryMode(GbiMacro):
 
 @dataclass(unsafe_hash=True)
 class SPLoadGeometryMode(GbiMacro):
-    flagList: list
+    flagList: set[str]
 
     def to_binary(self, f3d, segments):
         word = geoFlagListToWord(self.flagList, f3d)
@@ -4351,11 +4351,53 @@ def gsSPSetOtherMode(cmd, sft, length, data, f3d):
 
 
 @dataclass(unsafe_hash=True)
+class RendermodeBlender:
+    cycle1: tuple
+    cycle2: tuple
+
+    def __str__(self):
+        return f"GBL_c1({', '.join(self.cycle1)}) | GBL_c2({', '.join(self.cycle2)})"
+
+    def to_c(self, _static=True):
+        return str(self)
+
+    def to_binary(self, f3d):
+        return GBL_c1(*[getattr(f3d, str(x), x) for x in self.cycle1]) | GBL_c2(
+            *[getattr(f3d, str(x), x) for x in self.cycle2]
+        )
+
+
+@dataclass(unsafe_hash=True)
 class SPSetOtherMode(GbiMacro):
     cmd: str
     sft: int
     length: int
-    flagList: list
+    flagList: set
+
+    def sets_rendermode(self, f3d):
+        return self.cmd == "G_SETOTHERMODE_L" and (self.sft + self.length) > (3 - f3d.F3D_OLD_GBI)
+
+    def extend(self, flags: Iterable | str):
+        flags = {flags} if isinstance(flags, str) else set(flags)
+        self.flagList = self.flagList | flags
+
+    def add_other(self, f3d, other: SPSetOtherMode):
+        min_max = min(self.sft, other.sft), max(self.sft + self.length, other.sft + other.length)
+        self.sft = min_max[0]
+        self.length = min_max[1] - min_max[0]
+
+        for flag in self.flagList.copy():  # remove any flag overriden by other
+            value = flag
+            if isinstance(flag, RendermodeBlender):
+                value = flag.to_binary(f3d)
+            elif isinstance(flag, str):
+                value = getattr(f3d, flag, None)
+                if value is None:
+                    raise ValueError(f"Flag {flag} not found in {f3d}")
+            if not value or value >> other.sft < (2**other.length):
+                self.flagList.remove(flag)
+        # add other's flags
+        self.extend(other.flagList)
 
     def to_binary(self, f3d, segments):
         data = 0
@@ -4367,10 +4409,27 @@ class SPSetOtherMode(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class DPPipelineMode(GbiMacro):
-    # mode is a string
+class SPSetOtherModeSub(GbiMacro):
     mode: str
+    is_othermodeh = False
 
+    @property
+    def mode_prefix(self):
+        return "_".join(self.mode.split("_")[:2])
+
+
+@dataclass(unsafe_hash=True)
+class SPSetOtherModeLSub(SPSetOtherModeSub):
+    is_othermodeh = False
+
+
+@dataclass(unsafe_hash=True)
+class SPSetOtherModeHSub(SPSetOtherModeSub):
+    is_othermodeh = True
+
+
+@dataclass(unsafe_hash=True)
+class DPPipelineMode(SPSetOtherModeHSub):
     def to_binary(self, f3d, segments):
         if self.mode == "G_PM_1PRIMITIVE":
             modeVal = f3d.G_PM_1PRIMITIVE
@@ -4380,10 +4439,7 @@ class DPPipelineMode(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class DPSetCycleType(GbiMacro):
-    # mode is a string
-    mode: str
-
+class DPSetCycleType(SPSetOtherModeHSub):
     def to_binary(self, f3d, segments):
         if self.mode == "G_CYC_1CYCLE":
             modeVal = f3d.G_CYC_1CYCLE
@@ -4397,10 +4453,7 @@ class DPSetCycleType(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class DPSetTexturePersp(GbiMacro):
-    # mode is a string
-    mode: str
-
+class DPSetTexturePersp(SPSetOtherModeHSub):
     def to_binary(self, f3d, segments):
         if self.mode == "G_TP_NONE":
             modeVal = f3d.G_TP_NONE
@@ -4410,10 +4463,7 @@ class DPSetTexturePersp(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class DPSetTextureDetail(GbiMacro):
-    # mode is a string
-    mode: str
-
+class DPSetTextureDetail(SPSetOtherModeHSub):
     def to_binary(self, f3d, segments):
         if self.mode == "G_TD_CLAMP":
             modeVal = f3d.G_TD_CLAMP
@@ -4425,10 +4475,7 @@ class DPSetTextureDetail(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class DPSetTextureLOD(GbiMacro):
-    # mode is a string
-    mode: str
-
+class DPSetTextureLOD(SPSetOtherModeHSub):
     def to_binary(self, f3d, segments):
         if self.mode == "G_TL_TILE":
             modeVal = f3d.G_TL_TILE
@@ -4438,10 +4485,7 @@ class DPSetTextureLOD(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class DPSetTextureLUT(GbiMacro):
-    # mode is a string
-    mode: str
-
+class DPSetTextureLUT(SPSetOtherModeHSub):
     def to_binary(self, f3d, segments):
         if self.mode == "G_TT_NONE":
             modeVal = f3d.G_TT_NONE
@@ -4455,10 +4499,7 @@ class DPSetTextureLUT(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class DPSetTextureFilter(GbiMacro):
-    # mode is a string
-    mode: str
-
+class DPSetTextureFilter(SPSetOtherModeHSub):
     def to_binary(self, f3d, segments):
         if self.mode == "G_TF_POINT":
             modeVal = f3d.G_TF_POINT
@@ -4470,10 +4511,7 @@ class DPSetTextureFilter(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class DPSetTextureConvert(GbiMacro):
-    # mode is a string
-    mode: str
-
+class DPSetTextureConvert(SPSetOtherModeHSub):
     def to_binary(self, f3d, segments):
         if self.mode == "G_TC_CONV":
             modeVal = f3d.G_TC_CONV
@@ -4485,10 +4523,7 @@ class DPSetTextureConvert(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class DPSetCombineKey(GbiMacro):
-    # mode is a string
-    mode: str
-
+class DPSetCombineKey(SPSetOtherModeHSub):
     def to_binary(self, f3d, segments):
         if self.mode == "G_CK_NONE":
             modeVal = f3d.G_CK_NONE
@@ -4498,10 +4533,7 @@ class DPSetCombineKey(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class DPSetColorDither(GbiMacro):
-    # mode is a string
-    mode: str
-
+class DPSetColorDither(SPSetOtherModeHSub):
     def to_binary(self, f3d, segments):
         if self.mode == "G_CD_MAGICSQ":
             modeVal = f3d.G_CD_MAGICSQ
@@ -4517,10 +4549,7 @@ class DPSetColorDither(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class DPSetAlphaDither(GbiMacro):
-    # mode is a string
-    mode: str
-
+class DPSetAlphaDither(SPSetOtherModeHSub):
     def to_binary(self, f3d, segments):
         if self.mode == "G_AD_PATTERN":
             modeVal = f3d.G_AD_PATTERN
@@ -4534,10 +4563,7 @@ class DPSetAlphaDither(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class DPSetAlphaCompare(GbiMacro):
-    # mask is a string
-    mode: str
-
+class DPSetAlphaCompare(SPSetOtherModeLSub):
     def to_binary(self, f3d, segments):
         if self.mode == "G_AC_NONE":
             maskVal = f3d.G_AC_NONE
@@ -4549,14 +4575,11 @@ class DPSetAlphaCompare(GbiMacro):
 
 
 @dataclass(unsafe_hash=True)
-class DPSetDepthSource(GbiMacro):
-    # src is a string
-    src: str
-
+class DPSetDepthSource(SPSetOtherModeLSub):
     def to_binary(self, f3d, segments):
-        if self.src == "G_ZS_PIXEL":
+        if self.mode == "G_ZS_PIXEL":
             srcVal = f3d.G_ZS_PIXEL
-        elif self.src == "G_ZS_PRIM":
+        elif self.mode == "G_ZS_PRIM":
             srcVal = f3d.G_ZS_PRIM
         return gsSPSetOtherMode(f3d.G_SETOTHERMODE_L, f3d.G_MDSFT_ZSRCSEL, 1, srcVal, f3d)
 
@@ -4579,37 +4602,20 @@ def GBL_c2(m1a, m1b, m2a, m2b):
 
 @dataclass(unsafe_hash=True)
 class DPSetRenderMode(GbiMacro):
+    flagList: set[str]
+    blender: Optional[RendermodeBlender] = None
     # bl0-3 are string for each blender enum
-    def __init__(self, flagList, blendList):
-        self.flagList = flagList
-        self.use_preset = blendList is None
-        if not self.use_preset:
-            self.bl00 = blendList[0]
-            self.bl01 = blendList[1]
-            self.bl02 = blendList[2]
-            self.bl03 = blendList[3]
-            self.bl10 = blendList[4]
-            self.bl11 = blendList[5]
-            self.bl12 = blendList[6]
-            self.bl13 = blendList[7]
 
-    def getGBL_c(self, f3d):
-        bl00 = getattr(f3d, self.bl00)
-        bl01 = getattr(f3d, self.bl01)
-        bl02 = getattr(f3d, self.bl02)
-        bl03 = getattr(f3d, self.bl03)
-        bl10 = getattr(f3d, self.bl10)
-        bl11 = getattr(f3d, self.bl11)
-        bl12 = getattr(f3d, self.bl12)
-        bl13 = getattr(f3d, self.bl13)
-        return GBL_c1(bl00, bl01, bl02, bl03) | GBL_c2(bl10, bl11, bl12, bl13)
+    @property
+    def use_preset(self):
+        return self.blender is None
 
     def to_binary(self, f3d, segments):
         flagWord = renderFlagListToWord(self.flagList, f3d)
 
         if not self.use_preset:
             return gsSPSetOtherMode(
-                f3d.G_SETOTHERMODE_L, f3d.G_MDSFT_RENDERMODE, 29, flagWord | self.getGBL_c(f3d), f3d
+                f3d.G_SETOTHERMODE_L, f3d.G_MDSFT_RENDERMODE, 29, flagWord | self.blender.to_binary(f3d), f3d
             )
         else:
             return gsSPSetOtherMode(f3d.G_SETOTHERMODE_L, f3d.G_MDSFT_RENDERMODE, 29, flagWord, f3d)
@@ -4618,25 +4624,7 @@ class DPSetRenderMode(GbiMacro):
         data = "gsDPSetRenderMode(" if static else "gDPSetRenderMode(glistp++, "
 
         if not self.use_preset:
-            data += (
-                "GBL_c1("
-                + self.bl00
-                + ", "
-                + self.bl01
-                + ", "
-                + self.bl02
-                + ", "
-                + self.bl03
-                + ") | GBL_c2("
-                + self.bl10
-                + ", "
-                + self.bl11
-                + ", "
-                + self.bl12
-                + ", "
-                + self.bl13
-                + "), "
-            )
+            data += self.blender.to_c(static) + ", "
             for name in self.flagList:
                 data += name + " | "
             return data[:-3] + ")"
@@ -4859,8 +4847,8 @@ class SPLightToFogColor(GbiMacro):
 
 @dataclass(unsafe_hash=True)
 class DPSetOtherMode(GbiMacro):
-    mode0: list
-    mode1: list
+    mode0: set[str]
+    mode1: set[str]
 
     def to_binary(self, f3d, segments):
         mode0 = mode1 = 0
@@ -4914,10 +4902,10 @@ class DPSetTile(GbiMacro):
     tmem: int
     tile: int
     palette: int
-    cmt: list
+    cmt: tuple[str, str]
     maskt: int
     shiftt: int
-    cms: list
+    cms: tuple[str, str]
     masks: int
     shifts: int
 
@@ -4982,8 +4970,8 @@ class DPLoadTextureBlock(GbiMacro):
     width: int
     height: int
     pal: int
-    cms: list
-    cmt: list
+    cms: tuple[str, str]
+    cmt: tuple[str, str]
     masks: int
     maskt: int
     shifts: int
@@ -5055,8 +5043,8 @@ class DPLoadTextureBlockYuv(GbiMacro):
     width: int
     height: int
     pal: int
-    cms: list
-    cmt: list
+    cms: tuple[str, str]
+    cmt: tuple[str, str]
     masks: int
     maskt: int
     shifts: int
@@ -5134,8 +5122,8 @@ class _DPLoadTextureBlock(GbiMacro):
     width: int
     height: int
     pal: int
-    cms: list
-    cmt: list
+    cms: tuple[str, str]
+    cmt: tuple[str, str]
     masks: int
     maskt: int
     shifts: int
@@ -5212,8 +5200,8 @@ class DPLoadTextureBlock_4b(GbiMacro):
     width: int
     height: int
     pal: int
-    cms: list
-    cmt: list
+    cms: tuple[str, str]
+    cmt: tuple[str, str]
     masks: int
     maskt: int
     shifts: int
@@ -5287,8 +5275,8 @@ class DPLoadTextureTile(GbiMacro):
     lrs: int
     lrt: int
     pal: int
-    cms: list
-    cmt: list
+    cms: tuple[str, str]
+    cmt: tuple[str, str]
     masks: int
     maskt: int
     shifts: int
@@ -5363,8 +5351,8 @@ class DPLoadTextureTile_4b(GbiMacro):
     lrs: int
     lrt: int
     pal: int
-    cms: list
-    cmt: list
+    cms: tuple[str, str]
+    cmt: tuple[str, str]
     masks: int
     maskt: int
     shifts: int

@@ -48,6 +48,7 @@ class Files:  # TODO: find a better name
             exportInfo.exportPath,
             exportInfo.name,
             scene.mainHeader.infos.drawConfig,
+            scene.mainHeader.infos.title_card_name,
         )
 
     @staticmethod

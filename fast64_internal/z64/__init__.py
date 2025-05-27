@@ -1,6 +1,9 @@
 import bpy
 
 from ..game_data import game_data
+from pathlib import Path
+
+from ..utility import PluginError
 
 from .scene.operators import scene_ops_register, scene_ops_unregister
 from .scene.properties import OOT_BootupSceneOptions, scene_props_register, scene_props_unregister
@@ -15,7 +18,8 @@ from .props_panel_main import (
     OOTSceneProperties,
 )
 from .skeleton.properties import OOTSkeletonImportSettings, OOTSkeletonExportSettings
-from .utility import oot_utility_register, oot_utility_unregister, setAllActorsVisibility
+from .collection_utility import collections_register, collections_unregister
+from .utility import setAllActorsVisibility
 from .file_settings import file_register, file_unregister
 from .collision.properties import OOTCollisionExportSettings
 
@@ -68,17 +72,23 @@ from .tools import (
 
 
 oot_versions_items = [
-    ("Custom", "Custom", "Custom"),
-    ("gc-jp", "gc-jp", "gc-jp"),
-    ("gc-jp-mq", "gc-jp-mq", "gc-jp-mq"),
-    ("gc-jp-ce", "gc-jp-ce", "gc-jp-ce"),
-    ("gc-us", "gc-us", "gc-us"),
-    ("gc-us-mq", "gc-us-mq", "gc-us-mq"),
-    ("gc-eu", "gc-eu", "gc-eu"),
-    ("gc-eu-mq", "gc-eu-mq", "gc-eu-mq"),
-    ("gc-eu-mq-dbg", "gc-eu-mq-dbg", "gc-eu-mq-dbg"),
-    ("hackeroot-mq", "HackerOoT", "hackeroot-mq"),  # TODO: force this value if HackerOoT features are enabled?
-    ("legacy", "Legacy", "Older Decomp Version"),
+    ("Custom", "Custom", "Custom", 0),
+    ("ntsc-1.0", "ntsc-1.0", "ntsc-1.0", 11),
+    ("ntsc-1.1", "ntsc-1.1", "ntsc-1.1", 12),
+    ("pal-1.0", "pal-1.0", "pal-1.0", 13),
+    ("ntsc-1.2", "ntsc-1.2", "ntsc-1.2", 14),
+    ("pal-1.1", "pal-1.1", "pal-1.1", 15),
+    ("gc-jp", "gc-jp", "gc-jp", 1),
+    ("gc-jp-mq", "gc-jp-mq", "gc-jp-mq", 2),
+    ("gc-us", "gc-us", "gc-us", 4),
+    ("gc-us-mq", "gc-us-mq", "gc-us-mq", 5),
+    ("gc-eu-mq-dbg", "gc-eu-mq-dbg", "gc-eu-mq-dbg", 8),
+    ("gc-eu", "gc-eu", "gc-eu", 6),
+    ("gc-eu-mq", "gc-eu-mq", "gc-eu-mq", 7),
+    ("gc-jp-ce", "gc-jp-ce", "gc-jp-ce", 3),
+    ("ique-cn", "ique-cn", "ique-cn", 16),
+    ("hackeroot-mq", "HackerOoT", "hackeroot-mq", 9),  # TODO: force this value if HackerOoT features are enabled?
+    ("legacy", "Legacy", "Older Decomp Version", 10),
 ]
 
 mm_versions_items = [
@@ -117,6 +127,15 @@ class OOT_Properties(bpy.types.PropertyGroup):
         else:
             return f"extracted/{version if version != 'Custom' else self.version_custom}"
 
+    def is_globalh_present(self):
+        decomp_path = Path(bpy.context.scene.ootDecompPath).resolve()
+
+        if not decomp_path.exists():
+            raise PluginError(f"ERROR: invalid decomp path ('{decomp_path}').")
+
+        global_h_path = decomp_path / "include" / "global.h"
+        return global_h_path.exists()
+
     useDecompFeatures: bpy.props.BoolProperty(
         name="Use decomp for export", description="Use names and macros from decomp when exporting", default=True
     )
@@ -128,6 +147,12 @@ class OOT_Properties(bpy.types.PropertyGroup):
             + "This will insert the data into the cutscene."
         ),
         default=False,
+    )
+
+    use_new_actor_panel: bpy.props.BoolProperty(
+        name="Use newer actor panel",
+        description="Use the new actor panel which provides detailed informations to set actor parameters.",
+        default=True,
     )
 
 
@@ -188,8 +213,9 @@ def oot_register(registerPanels: bool, register_ops: bool = True):
     from .actor.properties import actor_props_register
 
     oot_operator_register()
-    oot_utility_register()
-    collision_props_register()  # register first, so panel goes above mat panel
+    collections_register()
+    collision_ops_register()  # register first, so panel goes above mat panel
+    collision_props_register()
     cutscene_props_register()
     scene_props_register()
     room_props_register()
@@ -241,7 +267,8 @@ def oot_unregister(unregisterPanels: bool, unregister_ops: bool = True):
     actor_cs_unregister()
     animated_mats_unregister()
     oot_operator_unregister()
-    oot_utility_unregister()
+    collections_unregister()
+    collision_ops_unregister()  # register first, so panel goes above mat panel
     collision_props_unregister()
     oot_obj_unregister()
     cutscene_props_unregister()

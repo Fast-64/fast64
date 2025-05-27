@@ -121,7 +121,7 @@ class OOTModel(FModel):
         defaultRenderModes = create_or_get_world(bpy.context.scene).ootDefaultRenderModes
         cycle1 = getattr(defaultRenderModes, drawLayerUsed.lower() + "Cycle1")
         cycle2 = getattr(defaultRenderModes, drawLayerUsed.lower() + "Cycle2")
-        return [cycle1, cycle2]
+        return (cycle1, cycle2)
 
     def addFlipbookWithRepeatCheck(self, flipbook: TextureFlipbook):
         model = self.getFlipbookOwner()

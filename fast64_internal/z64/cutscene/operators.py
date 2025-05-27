@@ -8,7 +8,7 @@ from bpy.props import StringProperty, EnumProperty, IntProperty
 from bpy.types import Scene, Operator, Context
 from bpy.utils import register_class, unregister_class
 from ...utility import CData, PluginError, writeCData, raisePluginError
-from ..utility import getCollection
+from ..collection_utility import getCollection
 from ...game_data import game_data
 from .constants import ootEnumCSTextboxType
 from .importer import importCutsceneData
@@ -30,29 +30,44 @@ def checkGetFilePaths(context: Context):
 
 def ootCutsceneIncludes(headerfilename):
     ret = CData()
-    ret.source = (
-        '#include "ultra64.h"\n'
-        + '#include "z64.h"\n'
-        + '#include "macros.h"\n'
-        + '#include "command_macros_base.h"\n'
-        + '#include "z64cutscene_commands.h"\n\n'
-        + '#include "'
-        + headerfilename
-        + '"\n\n'
+
+    ret.header = (
+        f"#ifndef {headerfilename.removesuffix('.h').upper()}_H\n"
+        + f"#define {headerfilename.removesuffix('.h').upper()}_H\n\n"
     )
+
+    if bpy.context.scene.fast64.oot.is_globalh_present():
+        ret.header += (
+            '#include "ultra64.h"\n'
+            + '#include "z64.h"\n'
+            + '#include "macros.h"\n'
+            + '#include "command_macros_base.h"\n'
+            + '#include "z64cutscene_commands.h"\n\n'
+        )
+    else:
+        ret.header += (
+            '#include "ultra64.h"\n'
+            + '#include "sequence.h"\n'
+            + '#include "z64math.h"\n'
+            + '#include "z64cutscene.h"\n'
+            + '#include "z64cutscene_commands.h"\n'
+            + '#include "z64ocarina.h"\n'
+            + '#include "z64player.h"\n\n'
+        )
+
+    if len(headerfilename) > 0:
+        ret.source = f'#include "{headerfilename}"\n\n'
     return ret
 
 
 def insertCutsceneData(filePath: str, csName: str):
     """Inserts the motion data in the cutscene and returns the new data"""
     fileLines = []
-    includes = ootCutsceneIncludes("").source.split("\n")
 
     # if the file is not found then it's likely a new file that needs to be created
     try:
         with open(filePath, "r") as inputFile:
             fileLines = inputFile.readlines()
-        fileLines = fileLines[len(includes) - 1 :]
     except FileNotFoundError:
         fileLines = []
 
@@ -61,8 +76,8 @@ def insertCutsceneData(filePath: str, csName: str):
     beginIndex = 0
 
     for i, line in enumerate(fileLines):
-        # skip commented lines
-        if not line.startswith("//") and not line.startswith("/*"):
+        # skip commented lines and preprocessor directives
+        if not line.startswith("//") and not line.startswith("/*") and not line.startswith("#"):
             if f"CutsceneData {csName}" in line:
                 foundCutscene = True
 
@@ -198,6 +213,7 @@ class OOT_ExportCutscene(Operator):
                 else:
                     raise PluginError(f"ERROR: can't process cutscene '{cs_name}'.")
 
+            csdata.header += "\n#endif\n"
             writeCData(csdata, hpath, cpath)
 
             self.report({"INFO"}, "Successfully exported cutscene")
@@ -248,6 +264,7 @@ class OOT_ExportAllCutscenes(Operator):
             if count == 0:
                 raise PluginError("Could not find any cutscenes to export")
 
+            csdata.header += "\n#endif\n"
             writeCData(csdata, hpath, cpath)
             self.report({"INFO"}, "Successfully exported " + str(count) + " cutscenes")
             return {"FINISHED"}

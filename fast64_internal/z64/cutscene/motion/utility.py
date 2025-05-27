@@ -228,7 +228,6 @@ def getCameraShotBoneData(shotObj: Object, runChecks: bool):
             print("Camera armature bones are not allowed to have parent bones")
             return None
         boneDataList.append(BoneData(shotObj, bone))
-    boneDataList.sort(key=lambda b: b.name)
 
     if runChecks:
         if boneDataList is None:

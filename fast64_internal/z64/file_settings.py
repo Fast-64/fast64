@@ -35,6 +35,7 @@ class OOT_FileSettingsPanel(Z64_Panel):
         if not context.scene.fast64.oot.hackerFeaturesEnabled:
             col.prop(context.scene.fast64.oot, "useDecompFeatures")
         col.prop(context.scene.fast64.oot, "exportMotionOnly")
+        col.prop(context.scene.fast64.oot, "use_new_actor_panel")
 
         if context.scene.gameEditorMode == "OOT":
             col.prop(context.scene.fast64.oot, "mm_features")

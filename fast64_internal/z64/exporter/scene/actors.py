@@ -1,3 +1,5 @@
+import bpy
+
 from dataclasses import dataclass, field
 from typing import Optional
 from mathutils import Matrix
@@ -97,7 +99,7 @@ class SceneTransitionActors:
 
                 transActor.params = (
                     actorProp.params
-                    if game_data.z64.is_oot() and actorProp.actor_id != "Custom"
+                    if game_data.z64.is_oot() and bpy.context.scene.fast64.oot.use_new_actor_panel and actorProp.actor_id != "Custom"
                     else actorProp.params_custom
                 )
                 transActor.roomFrom, transActor.cameraFront = front
@@ -175,7 +177,7 @@ class SceneEntranceActors:
                     entranceActor.rot = ", ".join(f"SPAWN_ROT_FLAGS({round(r * (180 / 0x8000))}, 0x00)" for r in rot)
 
                 # force custom params for MM (temp solution until the xml is documented properly)
-                if game_data.z64.is_oot() and not entranceProp.customActor:
+                if game_data.z64.is_oot() and bpy.context.scene.fast64.oot.use_new_actor_panel and not entranceProp.customActor:
                     entranceActor.params = actorProp.params
                 else:
                     entranceActor.params = actorProp.params_custom

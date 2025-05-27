@@ -14,15 +14,8 @@ from ...render_settings import on_update_oot_render_settings
 from ...utility import prop_split, customExportWarning
 from ...game_data import game_data
 from ..cutscene.constants import ootEnumCSWriteType
-
-from ..utility import (
-    onMenuTabChange,
-    onHeaderMenuTabChange,
-    drawCollectionOps,
-    drawEnumWithCustom,
-    drawAddButton,
-    is_oot_features,
-)
+from ..collection_utility import drawCollectionOps, drawAddButton
+from ..utility import onMenuTabChange, onHeaderMenuTabChange, drawEnumWithCustom, is_oot_features
 
 from ..constants import (
     ootEnumSceneID,
@@ -393,6 +386,9 @@ class Z64_SceneHeaderProperty(PropertyGroup):
     mapLocationCustom: StringProperty(name="Skybox Lighting Custom", default="0x00")
     cameraMode: EnumProperty(name="Camera Mode", items=ootEnumCameraMode, default="0x00")
     cameraModeCustom: StringProperty(name="Camera Mode Custom", default="0x00")
+    title_card_name: StringProperty(
+        name="Title Card", default="none", description="Segment name of the title card to use"
+    )
 
     ## MM exclusive
 
@@ -449,6 +445,9 @@ class Z64_SceneHeaderProperty(PropertyGroup):
                 drawEnumWithCustom(general, self, "naviCup", "Navi Hints", "")
             if headerIndex is None or headerIndex == 0:
                 self.sceneTableEntry.draw_props(general)
+                prop_split(general, self, "title_card_name", "Title Card")
+                if bpy.context.scene.ootSceneExportSettings.customExport:
+                    general.label(text="Custom Export Path enabled, title card will be ignored.", icon="INFO")
 
             if not is_oot_features():
                 general.prop(self, "set_region_visited")

@@ -3,6 +3,8 @@ import bpy
 from bpy.types import Object, Operator, Armature
 from bpy.utils import register_class, unregister_class
 from bpy.props import StringProperty, EnumProperty, BoolProperty
+import mathutils
+from dataclasses import dataclass
 from ....utility import PluginError
 from ....game_data import game_data
 from ..classes import CutsceneObjectFactory
@@ -290,6 +292,126 @@ class CutsceneCmdCreateActorCueList(Operator):
             return {"CANCELLED"}
 
 
+@dataclass
+class SavedBone:
+    name: str
+    head: mathutils.Vector
+    tail: mathutils.Vector
+    shotPointFrame: int
+    shotPointViewAngle: float
+    shotPointRoll: int
+
+    @staticmethod
+    def from_bone(bone: bpy.types.Bone):
+        return SavedBone(
+            bone.name,
+            bone.head,
+            bone.tail,
+            bone.ootCamShotPointProp.shotPointFrame,
+            bone.ootCamShotPointProp.shotPointViewAngle,
+            bone.ootCamShotPointProp.shotPointRoll,
+        )
+
+    def to_edit_bone(self, edit_bone: bpy.types.EditBone):
+        edit_bone.name = self.name
+        edit_bone.head = self.head
+        edit_bone.tail = self.tail
+
+    def to_bone(self, bone: bpy.types.Bone):
+        bone.name = self.name
+        bone.ootCamShotPointProp.shotPointFrame = self.shotPointFrame
+        bone.ootCamShotPointProp.shotPointViewAngle = self.shotPointViewAngle
+        bone.ootCamShotPointProp.shotPointRoll = self.shotPointRoll
+
+
+class CutsceneCmdMoveBone(Operator):
+    bl_idname = "object.fast64_cs_move_bone"
+    bl_label = "Move bone"
+    bl_options = {"REGISTER", "UNDO"}
+
+    direction: EnumProperty(
+        items=(
+            ("UP", "Up", "Up"),
+            ("DOWN", "Down", "Down"),
+        )
+    )
+
+    @classmethod
+    def poll(cls, context: Context):
+        return (
+            context.object is not None
+            and context.object.type == "ARMATURE"
+            and context.object.mode in {"OBJECT", "EDIT"}
+            and context.active_bone is not None
+        )
+
+    def execute(self, context):
+        assert context.object is not None
+        assert context.active_bone is not None
+        armature = context.object.data
+        assert isinstance(armature, bpy.types.Armature)
+
+        if context.object.mode == "EDIT":
+            prev_mode = "EDIT"
+            bpy.ops.object.mode_set(mode="OBJECT")
+        else:
+            prev_mode = "OBJECT"
+
+        saved_bones = [SavedBone.from_bone(_b) for _b in armature.bones.values()]
+
+        target_bone_name = context.active_bone.name
+
+        i_bone_to_move = None
+        for i, sb in enumerate(saved_bones):
+            if sb.name == target_bone_name:
+                i_bone_to_move = i
+                break
+        assert i_bone_to_move is not None
+
+        if (i_bone_to_move == 0 and self.direction == "UP") or (
+            i_bone_to_move == len(saved_bones) - 1 and self.direction == "DOWN"
+        ):
+            # Can't move bone further
+            return {"FINISHED"}
+
+        if self.direction == "UP":
+            assert i_bone_to_move != 0
+            saved_bones_new_order = (
+                saved_bones[: i_bone_to_move - 1]
+                + [saved_bones[i_bone_to_move], saved_bones[i_bone_to_move - 1]]
+                + saved_bones[i_bone_to_move + 1 :]
+            )
+        elif self.direction == "DOWN":
+            assert i_bone_to_move != len(saved_bones) - 1
+            saved_bones_new_order = (
+                saved_bones[:i_bone_to_move]
+                + [saved_bones[i_bone_to_move + 1], saved_bones[i_bone_to_move]]
+                + saved_bones[i_bone_to_move + 2 :]
+            )
+        else:
+            assert False, self.direction
+
+        bpy.ops.object.mode_set(mode="EDIT")
+        while armature.edit_bones:
+            armature.edit_bones.remove(armature.edit_bones[0])
+        for sb in saved_bones_new_order:
+            edit_bone = armature.edit_bones.new(sb.name)
+            sb.to_edit_bone(edit_bone)
+
+            # If head==tail the edit_bone disappears when leaving edit mode
+            assert edit_bone.head != edit_bone.tail, edit_bone
+
+        bpy.ops.object.mode_set(mode="OBJECT")
+        for sb, bone in zip(saved_bones_new_order, armature.bones):
+            sb.to_bone(bone)
+
+        armature.bones[target_bone_name].select = True
+        armature.bones.active = armature.bones[target_bone_name]
+
+        bpy.ops.object.mode_set(mode=prev_mode)
+        return {"FINISHED"}
+
+
 class OOT_SearchActorCueCmdTypeEnumOperator(Operator):
     bl_idname = "object.oot_search_actorcue_cmdtype_enum_operator"
     bl_label = "Select Command Type"
@@ -342,6 +464,7 @@ classes = (
     CutsceneCmdCreateCameraShot,
     CutsceneCmdCreatePlayerCueList,
     CutsceneCmdCreateActorCueList,
+    CutsceneCmdMoveBone,
     OOT_SearchActorCueCmdTypeEnumOperator,
     OOT_SearchPlayerCueIdEnumOperator,
 )

@@ -165,6 +165,7 @@ class SceneInfos:
     drawConfig: str
     appendNullEntrance: bool
     useDummyRoomList: bool
+    title_card_name: str
 
     ### Skybox And Sound ###
 
@@ -203,6 +204,7 @@ class SceneInfos:
             Utility.getPropValue(props.sceneTableEntry, "drawConfig", enum_key="draw_config"),
             props.appendNullEntrance,
             sceneObj.fast64.oot.scene.write_dummy_room_list,
+            Utility.getPropValue(props, "title_card_name"),
             Utility.getPropValue(props, "skyboxID"),
             Utility.getPropValue(props, "skyboxCloudiness"),
             skybox_texture_id,
