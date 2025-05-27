@@ -199,7 +199,7 @@ def processCurrentFrame(csObj: Object, curFrame: float, useNodeFeatures: bool, c
                 bpy.context.scene.node_tree.nodes["CSTrans_RGB"].outputs[0].default_value = (0.0, 0.0, 0.0, 0.0)
                 break
 
-            if blur_cmd.type == "Unknown":
+            if trans_general_cmd.type == "Unknown":
                 print("ERROR: Unknown command!")
 
             if frameCur >= startFrame and endFrame >= frameCur:

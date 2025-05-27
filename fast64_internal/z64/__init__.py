@@ -268,7 +268,6 @@ def oot_unregister(unregisterPanels: bool, unregister_ops: bool = True):
     animated_mats_unregister()
     oot_operator_unregister()
     collections_unregister()
-    collision_ops_unregister()  # register first, so panel goes above mat panel
     collision_props_unregister()
     oot_obj_unregister()
     cutscene_props_unregister()
