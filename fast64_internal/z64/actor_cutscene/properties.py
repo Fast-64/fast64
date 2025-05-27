@@ -10,7 +10,8 @@ from bpy.props import (
 from bpy.utils import register_class, unregister_class
 from bpy.types import PropertyGroup, UILayout, Object
 from ...utility import prop_split
-from ..utility import drawCollectionOps, drawAddButton, get_list_tab_text
+from ..collection_utility import drawAddButton, drawCollectionOps
+from ..utility import get_list_tab_text
 from ..actor.properties import Z64_ActorHeaderProperty
 from ..scene.properties import Z64_AlternateSceneHeaderProperty
 

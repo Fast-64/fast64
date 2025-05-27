@@ -1,6 +1,6 @@
 import bpy
 
-from bpy.types import Object, Operator, Armature
+from bpy.types import Object, Operator, Armature, Context
 from bpy.utils import register_class, unregister_class
 from bpy.props import StringProperty, EnumProperty, BoolProperty
 import mathutils

@@ -214,8 +214,8 @@ def oot_register(registerPanels: bool, register_ops: bool = True):
 
     oot_operator_register()
     collections_register()
-    collision_ops_register()  # register first, so panel goes above mat panel
-    collision_props_register()
+
+    collision_props_register() # register first, so panel goes above mat panel
     cutscene_props_register()
     scene_props_register()
     room_props_register()

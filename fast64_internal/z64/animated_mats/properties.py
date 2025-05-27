@@ -10,7 +10,8 @@ from bpy.props import (
 from bpy.utils import register_class, unregister_class
 from bpy.types import PropertyGroup, UILayout, Object
 from ...utility import prop_split
-from ..utility import drawCollectionOps, drawAddButton, get_list_tab_text
+from ..collection_utility import drawAddButton, drawCollectionOps
+from ..utility import get_list_tab_text
 
 
 # no custom since we only need to know where to export the data
