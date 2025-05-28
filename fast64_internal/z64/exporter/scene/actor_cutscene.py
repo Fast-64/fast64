@@ -19,13 +19,6 @@ class ActorCutscene:
         self.index = index
         self.cam_info: Optional[CameraInfo] = None
 
-        if obj.ootEmptyType == "Actor" and not obj.ootActorProperty.use_global_actor_cs:
-            # 127 means "no cutscene", and 0-119 are all the valid array indices, any other number won't work
-            if index > 119 and index < 127:
-                raise PluginError("ERROR: the actor cutscene index must be between 0 to 119 or 127!")
-
-            obj.ootActorProperty.actor_cs_index = index
-
         if props.cs_cam_id == "Custom":
             self.cs_cam_id: str = props.cs_cam_id_custom
         elif props.cs_cam_id == "Camera":
@@ -113,7 +106,7 @@ class SceneActorCutscene:
             for obj in obj_list:
                 index = obj.ootActorProperty.actor_cs_index
 
-                if index > i:
+                if index > i and index < 127:
                     raise PluginError(f"ERROR: actor cutscene index out of bounds! ({index} for a total of {i + 1})")
 
         return entries

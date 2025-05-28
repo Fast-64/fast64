@@ -580,17 +580,17 @@ class Z64_ActorProperty(PropertyGroup):
                             drawAddButton(layout_halfday, len(self.halfday_bits), "Actor Halfday", None, owner.name)
         elif self.menu_tab == "Actor Cutscene":
             actorIDBox.prop(self, "use_global_actor_cs")
+            prop_split(actorIDBox, self, "actor_cs_index", "Actor CS Index")
+
+            if self.actor_cs_index > 119 and self.actor_cs_index < 127:
+                actorIDBox.label(text="The index can't be between 120 and 126!", icon="ERROR")
 
             if self.use_global_actor_cs:
-                prop_split(actorIDBox, self, "actor_cs_index", "Actor CS Index")
                 label_box = actorIDBox.box()
                 label_box.label(text="This should match the 'CutsceneEntry' array entry of", icon="INFO")
                 label_box.label(text="the actor cutscene you want to use. For instance with chests, ")
                 label_box.label(text="it should be the index of the entry where there's")
                 label_box.label(text="'CS_CAM_ID_GLOBAL_LONG_CHEST_OPENING'.")
-
-                if self.actor_cs_index > 119:
-                    label_box.label(text="The index can't be over 119!", icon="ERROR")
             else:
                 actor_cs_props.draw_props(actorIDBox, owner, alt_scene_props, False)
 
