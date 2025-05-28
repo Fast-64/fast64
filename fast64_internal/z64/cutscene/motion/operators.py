@@ -6,7 +6,7 @@ from bpy.props import StringProperty, EnumProperty, BoolProperty
 import mathutils
 from dataclasses import dataclass
 from ....utility import PluginError
-from ...oot_constants import ootData
+from ...constants import ootData
 from ..classes import CutsceneObjectFactory
 from ..constants import ootEnumCSActorCueListCommandType
 from ..preview import initFirstFrame, setupCompositorNodes

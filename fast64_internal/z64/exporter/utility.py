@@ -2,7 +2,7 @@ from math import radians
 from mathutils import Quaternion, Matrix
 from bpy.types import Object
 from ...utility import PluginError, indent
-from ..oot_utility import ootConvertTranslation, ootConvertRotation
+from ..utility import ootConvertTranslation, ootConvertRotation
 from ..actor.properties import OOTActorHeaderProperty
 
 

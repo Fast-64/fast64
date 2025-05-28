@@ -4,7 +4,7 @@ import bpy
 from dataclasses import dataclass, field
 from typing import Optional
 from ....utility import PluginError, writeFile
-from ...oot_constants import ootEnumSceneID, ootSceneNameToID
+from ...constants import ootEnumSceneID, ootSceneNameToID
 
 ADDED_SCENES_COMMENT = "// Added scenes"
 

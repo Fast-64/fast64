@@ -7,7 +7,7 @@ from ast import parse, Expression, Constant, UnaryOp, USub, Invert, BinOp
 from mathutils import Vector
 from bpy.types import Object
 from typing import Callable, Optional, TYPE_CHECKING, List
-from .oot_constants import ootSceneIDToName
+from .constants import ootSceneIDToName
 from dataclasses import dataclass
 
 from ..utility import (

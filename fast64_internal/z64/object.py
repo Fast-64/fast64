@@ -1,6 +1,6 @@
 from bpy.types import Object
 from ..utility import ootGetSceneOrRoomHeader
-from .oot_constants import ootData
+from .constants import ootData
 from .exporter.room.header import RoomHeader
 
 

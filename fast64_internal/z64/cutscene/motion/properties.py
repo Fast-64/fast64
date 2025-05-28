@@ -3,9 +3,9 @@ import bpy
 from bpy.types import PropertyGroup, Object, UILayout, Armature, Bone, Scene, EditBone
 from bpy.props import IntProperty, StringProperty, PointerProperty, EnumProperty, FloatProperty
 from bpy.utils import register_class, unregister_class
-from ...oot_upgrade import upgradeCutsceneMotion
-from ...oot_utility import getEnumName
-from ...oot_constants import ootData
+from ...upgrade import upgradeCutsceneMotion
+from ...utility import getEnumName
+from ...constants import ootData
 from ..constants import ootEnumCSMotionCamMode, ootEnumCSActorCueListCommandType
 
 from .operators import (

@@ -7,8 +7,8 @@ from typing import Optional
 from ..utility import CData, getGroupIndexFromname, readFile, writeFile
 from ..f3d.flipbook import flipbook_to_c, flipbook_2d_to_c, flipbook_data_to_c
 from ..f3d.f3d_material import createF3DMat, F3DMaterial_UpdateLock, update_preset_manual
-from .oot_utility import replaceMatchContent, getOOTScale
-from .oot_texture_array import TextureFlipbook
+from .utility import replaceMatchContent, getOOTScale
+from .texture_array import TextureFlipbook
 
 from ..f3d.f3d_writer import (
     checkForF3dMaterialInFaces,
@@ -17,7 +17,7 @@ from ..f3d.f3d_writer import (
     saveMeshByFaces,
 )
 
-from .oot_model_classes import (
+from .model_classes import (
     OOTTriangleConverterInfo,
     OOTModel,
     ootGetActorData,

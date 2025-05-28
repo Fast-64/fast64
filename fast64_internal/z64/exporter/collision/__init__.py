@@ -6,7 +6,7 @@ from bpy.types import Mesh, Object
 from bpy.ops import object
 from typing import Optional
 from ....utility import PluginError, CData, indent
-from ...oot_utility import convertIntTo2sComplement
+from ...utility import convertIntTo2sComplement
 from ..utility import Utility
 from .polygons import CollisionPoly, CollisionPolygons
 from .surface import SurfaceType, SurfaceTypes

@@ -4,7 +4,7 @@ import mathutils
 
 from ...utility import PluginError, hexOrDecInt, removeComments, yUpToZUp
 from ..actor.properties import OOTActorProperty, OOTActorHeaderProperty
-from ..oot_utility import ootParseRotation
+from ..utility import ootParseRotation
 from .constants import headerNames, actorsWithRotAsParam
 
 

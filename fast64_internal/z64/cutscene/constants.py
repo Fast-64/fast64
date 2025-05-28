@@ -1,4 +1,4 @@
-from ..oot_constants import ootData
+from ..constants import ootData
 from .classes import (
     CutsceneCmdActorCueList,
     CutsceneCmdActorCue,

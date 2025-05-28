@@ -4,7 +4,7 @@ from struct import unpack
 from bpy.types import Object, Bone, Context, EditBone, Armature
 from mathutils import Vector
 from ....utility import yUpToZUp
-from ...oot_utility import ootParseRotation
+from ...utility import ootParseRotation
 
 
 class BoneData:

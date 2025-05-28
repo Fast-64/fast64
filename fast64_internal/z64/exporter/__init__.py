@@ -4,8 +4,8 @@ import os
 from mathutils import Matrix
 from bpy.types import Object
 from ...f3d.f3d_gbi import DLFormat, TextureExportSettings
-from ..oot_model_classes import OOTModel
-from ..oot_f3d_writer import writeTextureArraysNew, writeTextureArraysExisting1D
+from ..model_classes import OOTModel
+from ..f3d_writer import writeTextureArraysNew, writeTextureArraysExisting1D
 from .scene import Scene
 from .decomp_edit import Files
 
@@ -19,7 +19,7 @@ from ...utility import (
     writeFile,
 )
 
-from ..oot_utility import (
+from ..utility import (
     ExportInfo,
     OOTObjectCategorizer,
     ootDuplicateHierarchy,

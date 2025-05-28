@@ -8,7 +8,7 @@ from .properties import OOTAnimExportSettingsProperty, OOTAnimImportSettingsProp
 from .exporter import ootExportLinkAnimation, ootExportNonLinkAnimation
 from .importer import ootImportLinkAnimationC, ootImportNonLinkAnimationC
 
-from ..oot_utility import (
+from ..utility import (
     ootGetPath,
     addIncludeFiles,
     checkEmptyName,

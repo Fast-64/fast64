@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from ....utility import PluginError, indent
-from ...oot_constants import ootData
+from ...constants import ootData
 from ...cutscene.motion.utility import getRotation, getInteger
 from .common import CutsceneCmdBase
 

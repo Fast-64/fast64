@@ -14,7 +14,7 @@ from ....utility_anim import (
     stashActionInArmature,
 )
 
-from ...oot_utility import (
+from ...utility import (
     checkForStartBone,
     getStartBone,
     getSortedChildren,

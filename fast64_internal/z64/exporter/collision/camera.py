@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from mathutils import Quaternion, Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
-from ...oot_utility import getObjectList
+from ...utility import getObjectList
 from ...collision.constants import decomp_compat_map_CameraSType
 from ...collision.properties import OOTCameraPositionProperty
 from ..utility import Utility

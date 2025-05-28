@@ -16,7 +16,7 @@ from .....utility import (
     toAlnum,
 )
 
-from ....oot_utility import (
+from ....utility import (
     OOTObjectCategorizer,
     addIncludeFiles,
     ootDuplicateHierarchy,

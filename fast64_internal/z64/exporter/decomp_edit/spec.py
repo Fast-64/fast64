@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 from ....utility import PluginError, writeFile, indent
-from ...oot_utility import ExportInfo, getSceneDirFromLevelName
+from ...utility import ExportInfo, getSceneDirFromLevelName
 from ..scene import Scene
 from ..file import SceneFile
 

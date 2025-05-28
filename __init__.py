@@ -20,7 +20,7 @@ from .fast64_internal.sm64.sm64_geolayout_bone import SM64_BoneProperties
 from .fast64_internal.sm64.sm64_objects import SM64_ObjectProperties
 
 from .fast64_internal.z64 import OOT_Properties, oot_register, oot_unregister
-from .fast64_internal.z64.oot_constants import oot_world_defaults
+from .fast64_internal.z64.constants import oot_world_defaults
 from .fast64_internal.z64.props_panel_main import OOT_ObjectProperties
 from .fast64_internal.z64.actor.properties import initOOTActorProperties
 from .fast64_internal.utility_anim import utility_anim_register, utility_anim_unregister, ArmatureApplyWithMeshOperator

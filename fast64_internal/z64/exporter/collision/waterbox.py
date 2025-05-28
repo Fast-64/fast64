@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from mathutils import Matrix
 from bpy.types import Object
-from ...oot_utility import getObjectList
+from ...utility import getObjectList
 from ....utility import CData, checkIdentityRotation, indent
 from ..utility import Utility
 

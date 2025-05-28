@@ -5,8 +5,8 @@ from bpy.types import Object
 from ....utility import PluginError, CData, indent
 from ....f3d.f3d_gbi import ScrollMethod, TextureExportSettings
 from ...room.properties import OOTRoomHeaderProperty
-from ...oot_object import addMissingObjectsToAllRoomHeaders
-from ...oot_model_classes import OOTModel, OOTGfxFormatter
+from ...object import addMissingObjectsToAllRoomHeaders
+from ...model_classes import OOTModel, OOTGfxFormatter
 from ..file import RoomFile
 from ..utility import Utility, altHeaderList
 from .header import RoomAlternateHeader, RoomHeader

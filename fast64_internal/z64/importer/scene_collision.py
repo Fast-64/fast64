@@ -7,8 +7,8 @@ from random import random
 from collections import OrderedDict
 from ...utility import PluginError, parentObject, hexOrDecInt, yUpToZUp
 from ..collision.properties import OOTMaterialCollisionProperty
-from ..oot_f3d_writer import getColliderMat
-from ..oot_utility import setCustomProperty, ootParseRotation
+from ..f3d_writer import getColliderMat
+from ..utility import setCustomProperty, ootParseRotation
 from .utility import getDataMatch, getBits, checkBit, createCurveFromPoints, stripName
 from .classes import SharedSceneData
 

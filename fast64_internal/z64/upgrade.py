@@ -6,8 +6,8 @@ import bpy
 from bpy.types import Object, CollectionProperty
 from ..utility import PluginError
 from .data import OoT_ObjectData
-from .oot_utility import getEvalParams, get_actor_prop_from_obj
-from .oot_constants import ootData
+from .utility import getEvalParams, get_actor_prop_from_obj
+from .constants import ootData
 from .cutscene.constants import ootEnumCSMotionCamMode
 
 if TYPE_CHECKING:

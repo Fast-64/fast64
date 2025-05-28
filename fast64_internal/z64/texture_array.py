@@ -2,7 +2,7 @@ import os, re
 from typing import Callable
 from ..utility import hexOrDecInt
 
-from .oot_model_classes import (
+from .model_classes import (
     OOTF3DContext,
     TextureFlipbook,
     ootGetActorData,
