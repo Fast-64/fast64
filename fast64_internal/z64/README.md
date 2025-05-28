@@ -227,3 +227,20 @@ The informations required are the following:
 - `Letterbox Size`: the size of the letterbox (the two black rectangles at the top and the bottom of the screen)
 
 If you want to use your own camera, add a camera object and enable "Is Actor CS Camera". Set the index, this is NOT the same order as normal scene cameras so choose 0 for the first actor cutscene camera you add. Finally, back in the actor cutscene entry, choose "Camera Object" as the value of `CS Cam ID` and select the camera you've just created. For the camera setting simply change that from the camera object you added.
+
+#### Three-Day Timer Actor Cutscenes
+
+This actor handles the day/night transitions (and going the "Dawn of the X Day" gamestates), to setup an actor cutscene for this actor, you need to know few things:
+- you need two different cameras
+- the cameras you will bind to the actor cutscene entry needs to use a "fixed" setting
+- you need two actor cutscene entries (one for the day, even though it's not used, and one for the night), the order doesn't really matter
+- you need to bind the `Actor CS Index` to the entry you will "use" for the day and it's required to set the `Additional CS ID` to the index of the night entry
+- it's also required to set the `Length` value, usually this is set to 90 frames, which corresponds to 4.5 seconds
+
+#### Treasure Chest Actor Cutscenes
+
+To achieve this you have two solutions:
+- enable `Use Global Actor Cutscene` and bind the `Actor CS Index` to a global entry
+- use actor-embedded actor cutscenes like the Three-Day Timer actor, but this is NOT recommended if you have several chests as it will increase the number of actor cutscene entries in the array
+
+For both cases the `CS Cam ID` of the actor cutscene entry need to be set to `Long Chest Opening` with a length of 135 frames (6.75 seconds) and the `Custom Value` need to be set to 1, the other parameters doesn't matter.
