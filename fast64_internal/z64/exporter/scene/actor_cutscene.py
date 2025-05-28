@@ -96,7 +96,7 @@ class SceneActorCutscene:
 
             for i, item in enumerate(obj.z64_actor_cs_property.entries, start):
                 if Utility.isCurrentHeaderValid(header_settings, header_index):
-                    index = obj.ootActorProperty.actor_cs_index if obj.ootActorProperty.use_global_actor_cs else i 
+                    index = obj.ootActorProperty.actor_cs_index if obj.ootActorProperty.use_global_actor_cs else i
                     new_entry = ActorCutscene(scene_obj, transform, item, name, index, obj)
 
                     if new_entry.cs_cam_id not in {"Custom", "Camera", "CS_CAM_ID_NONE"}:

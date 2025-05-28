@@ -135,11 +135,11 @@ class OOT_Properties(bpy.types.PropertyGroup):
 
         global_h_path = decomp_path / "include" / "global.h"
         return global_h_path.exists()
-    
+
     def can_use_new_actor_panel(self):
         if game_data.z64.is_mm():
             return False
-        
+
         return self.use_new_actor_panel
 
     useDecompFeatures: bpy.props.BoolProperty(
@@ -221,7 +221,7 @@ def oot_register(registerPanels: bool, register_ops: bool = True):
     oot_operator_register()
     collections_register()
 
-    collision_props_register() # register first, so panel goes above mat panel
+    collision_props_register()  # register first, so panel goes above mat panel
     cutscene_props_register()
     scene_props_register()
     room_props_register()

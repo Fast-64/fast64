@@ -509,16 +509,24 @@ class Z64_ActorProperty(PropertyGroup):
             split.label(text="Actor ID")
             split.label(text=getEnumName(game_data.z64.get_enum("actor_id"), self.actor_id))
 
-            if game_data.z64.is_oot() and bpy.context.scene.fast64.oot.can_use_new_actor_panel() and self.actor_id != "Custom":
+            if (
+                game_data.z64.is_oot()
+                and bpy.context.scene.fast64.oot.can_use_new_actor_panel()
+                and self.actor_id != "Custom"
+            ):
                 self.draw_params(actorIDBox, owner)
-            
+
             if self.actor_id == "Custom":
                 prop_split(actorIDBox, self, "actor_id_custom", "Actor ID Custom")
 
             paramBox = actorIDBox.box()
             paramBox.label(text="Actor Parameter")
 
-            if game_data.z64.is_oot() and bpy.context.scene.fast64.oot.can_use_new_actor_panel() and self.actor_id != "Custom":
+            if (
+                game_data.z64.is_oot()
+                and bpy.context.scene.fast64.oot.can_use_new_actor_panel()
+                and self.actor_id != "Custom"
+            ):
                 paramBox.prop(self, "eval_params")
                 paramBox.prop(self, "params", text="")
             else:
@@ -541,7 +549,9 @@ class Z64_ActorProperty(PropertyGroup):
 
             for rot in rotations_used:
                 custom = (
-                    "_custom" if not bpy.context.scene.fast64.oot.can_use_new_actor_panel() or self.actor_id == "Custom" else ""
+                    "_custom"
+                    if not bpy.context.scene.fast64.oot.can_use_new_actor_panel() or self.actor_id == "Custom"
+                    else ""
                 )
                 prop_split(paramBox, self, f"rot_{rot.lower()}{custom}", f"Rot {rot}")
 
@@ -628,7 +638,11 @@ class Z64_TransitionActorProperty(PropertyGroup):
 
         paramBox = actorIDBox.box()
         paramBox.label(text="Actor Parameter")
-        if is_oot_features() and bpy.context.scene.fast64.oot.can_use_new_actor_panel() and self.actor.actor_id != "Custom":
+        if (
+            is_oot_features()
+            and bpy.context.scene.fast64.oot.can_use_new_actor_panel()
+            and self.actor.actor_id != "Custom"
+        ):
             paramBox.prop(self.actor, "eval_params")
             paramBox.prop(self.actor, "params", text="")
         else:
