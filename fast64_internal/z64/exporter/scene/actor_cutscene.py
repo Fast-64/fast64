@@ -108,6 +108,14 @@ class SceneActorCutscene:
 
             start += i
 
+        # validate actor cs index
+        if empty_type == "Actor":
+            for obj in obj_list:
+                index = obj.ootActorProperty.actor_cs_index
+
+                if index > i:
+                    raise PluginError(f"ERROR: actor cutscene index out of bounds! ({index} for a total of {i + 1})")
+
         return entries
 
     @staticmethod
@@ -115,7 +123,7 @@ class SceneActorCutscene:
         entries = SceneActorCutscene.get_entries(name, scene_obj, transform, header_index, "Actor Cutscene", 0)
         entries.extend(SceneActorCutscene.get_entries(name, scene_obj, transform, header_index, "Actor", len(entries)))
 
-        # validate camera indices
+        # validate camera indices (TODO: improve)
         last_cam_index = -1
         for entry in entries:
             if entry.cam_info is not None:
