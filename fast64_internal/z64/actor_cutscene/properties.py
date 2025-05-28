@@ -108,10 +108,11 @@ class Z64_ActorCutscene(PropertyGroup):
 
     def draw_props(self, layout: UILayout, owner: Object, index: int):
         layout = layout.column()
+        entry_text_suffix = f" (Array Index {index})" if owner.ootEmptyType == "Actor Cutscene" else ""
         layout.prop(
             self,
             "show_item",
-            text=f"Entry No. {index + 1} (Array Index {index})",
+            text=f"Entry No. {index + 1}{entry_text_suffix}",
             icon="TRIA_DOWN" if self.show_item else "TRIA_RIGHT",
         )
 
