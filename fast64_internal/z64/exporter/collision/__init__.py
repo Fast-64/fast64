@@ -9,7 +9,7 @@ from bpy.ops import object
 from typing import Optional
 
 from ....utility import PluginError, CData, toAlnum, unhideAllAndGetHiddenState, restoreHiddenState, indent
-from ...oot_utility import (
+from ...utility import (
     OOTObjectCategorizer,
     convertIntTo2sComplement,
     ootDuplicateHierarchy,

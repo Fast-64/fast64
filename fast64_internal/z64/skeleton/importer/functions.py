@@ -3,11 +3,11 @@ from typing import List
 import mathutils, bpy, math
 from ....f3d.f3d_gbi import F3D, get_F3D_GBI
 from ....f3d.f3d_parser import getImportData, parseF3D
-from ....utility import hexOrDecInt, applyRotation, PluginError, deselectAllObjects, selectSingleObject
-from ...oot_f3d_writer import ootReadActorScale
-from ...oot_model_classes import OOTF3DContext, ootGetIncludedAssetData
-from ...oot_utility import OOTEnum, ootGetObjectPath, getOOTScale, ootGetObjectHeaderPath, ootGetEnums, ootStripComments
-from ...oot_texture_array import ootReadTextureArrays
+from ....utility import PluginError, hexOrDecInt, applyRotation, deselectAllObjects, selectSingleObject
+from ...f3d_writer import ootReadActorScale
+from ...model_classes import OOTF3DContext, ootGetIncludedAssetData
+from ...utility import OOTEnum, ootGetObjectPath, getOOTScale, ootGetObjectHeaderPath, ootGetEnums, ootStripComments
+from ...texture_array import ootReadTextureArrays
 from ..constants import ootSkeletonImportDict
 from ..properties import OOTSkeletonImportSettings
 from ..utility import ootGetLimb, ootGetLimbs, ootGetSkeleton, applySkeletonRestPose

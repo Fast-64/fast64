@@ -3,8 +3,8 @@ from bpy.props import StringProperty, PointerProperty, IntProperty, EnumProperty
 from bpy.types import PropertyGroup, Camera, Object, Material, UILayout
 from bpy.utils import register_class, unregister_class
 from ...utility import prop_split
-from ..oot_utility import drawEnumWithCustom
-from ..oot_constants import ootEnumSceneID
+from ..utility import drawEnumWithCustom
+from ..constants import ootEnumSceneID
 from .constants import (
     ootEnumFloorSetting,
     ootEnumWallSetting,

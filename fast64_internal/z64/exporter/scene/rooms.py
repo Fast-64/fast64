@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import PluginError, CData, indent
-from ...oot_utility import getObjectList
-from ...oot_model_classes import OOTModel
+from ...utility import getObjectList
+from ...model_classes import OOTModel
 from ..room import Room
 
 

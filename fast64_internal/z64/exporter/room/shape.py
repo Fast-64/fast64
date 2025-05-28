@@ -8,13 +8,13 @@ from ....utility import PluginError, CData, toAlnum, indent
 from ....f3d.f3d_gbi import SPDisplayList, SPEndDisplayList, GfxListTag, GfxList, DLFormat
 from ....f3d.f3d_writer import TriangleConverterInfo, saveStaticModel, getInfoDict
 from ...room.properties import OOTRoomHeaderProperty, OOTBGProperty
-from ...oot_model_classes import OOTModel
+from ...model_classes import OOTModel
 from ..utility import Utility
 from bpy.types import Object
 from mathutils import Matrix, Vector
 from ....f3d.occlusion_planes.exporter import addOcclusionQuads, OcclusionPlaneCandidatesList
 
-from ...oot_utility import (
+from ...utility import (
     CullGroup,
     checkUniformScale,
     ootConvertTranslation,

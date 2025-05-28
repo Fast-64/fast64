@@ -3,7 +3,7 @@ from bpy.types import Operator
 from bpy.props import EnumProperty, StringProperty
 from bpy.utils import register_class, unregister_class
 from ...utility import PluginError
-from ..oot_constants import ootData
+from ..constants import ootData
 
 
 class OOT_SearchChestContentEnumOperator(Operator):

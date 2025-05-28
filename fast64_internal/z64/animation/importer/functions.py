@@ -4,7 +4,7 @@ import re
 import math
 from ....utility import PluginError, hexOrDecInt
 from ....f3d.f3d_parser import getImportData
-from ...oot_model_classes import ootGetIncludedAssetData
+from ...model_classes import ootGetIncludedAssetData
 
 from ....utility_anim import (
     getTranslationRelativeToRest,
@@ -12,7 +12,7 @@ from ....utility_anim import (
     stashActionInArmature,
 )
 
-from ...oot_utility import (
+from ...utility import (
     getStartBone,
     getNextBone,
 )

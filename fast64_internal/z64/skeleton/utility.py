@@ -1,7 +1,7 @@
 import mathutils, bpy, os, re
 from ...utility_anim import armatureApplyWithMesh
-from ..oot_model_classes import OOTVertexGroupInfo
-from ..oot_utility import checkForStartBone, getStartBone, getNextBone, ootStripComments
+from ..model_classes import OOTVertexGroupInfo
+from ..utility import checkForStartBone, getStartBone, getNextBone, ootStripComments
 
 from ...utility import (
     PluginError,

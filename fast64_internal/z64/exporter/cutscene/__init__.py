@@ -6,7 +6,7 @@ from typing import Optional
 from bpy.types import Object
 
 from ....utility import PluginError, CData, indent
-from ...oot_utility import getCustomProperty
+from ...utility import getCustomProperty
 from ...scene.properties import OOTSceneHeaderProperty
 from .data import CutsceneData
 

@@ -7,7 +7,7 @@ from bpy.types import Scene, Operator, Object
 from bpy.utils import register_class, unregister_class
 from ...utility import PluginError, raisePluginError
 from ..collection_utility import getCollection
-from ..oot_constants import ootData
+from ..constants import ootData
 from .constants import ootEnumCSTextboxType, ootEnumCSListType
 from .importer import importCutsceneData
 from ..exporter.cutscene import Cutscene

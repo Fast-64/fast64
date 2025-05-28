@@ -4,7 +4,7 @@ from bpy.ops import object
 from mathutils import Matrix
 
 from ...utility import PluginError, raisePluginError
-from ..oot_utility import getOOTScale
+from ..utility import getOOTScale
 from ..exporter.collision import CollisionHeader
 from .properties import OOTCollisionExportSettings
 

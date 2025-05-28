@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 from ....utility import PluginError, indent
-from ...oot_constants import ootData
+from ...constants import ootData
 from ...cutscene.motion.utility import getInteger
 
 

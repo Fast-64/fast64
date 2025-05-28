@@ -12,7 +12,7 @@ from .scene.panels import scene_panels_register, scene_panels_unregister
 from .props_panel_main import oot_obj_panel_register, oot_obj_panel_unregister, oot_obj_register, oot_obj_unregister
 from .skeleton.properties import OOTSkeletonImportSettings, OOTSkeletonExportSettings
 from .collection_utility import collections_register, collections_unregister
-from .oot_utility import setAllActorsVisibility
+from .utility import setAllActorsVisibility
 from .file_settings import file_register, file_unregister
 from .collision.properties import OOTCollisionExportSettings
 
