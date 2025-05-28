@@ -287,9 +287,8 @@ class Z64_ActorProperty(PropertyGroup):
     halfday_all_dawns: BoolProperty(default=False)
     halfday_all_nights: BoolProperty(default=False)
     halfday_bits: CollectionProperty(type=Z64_HalfdayItem)
-
-    # internal
-    actor_cs_index: IntProperty(default=0x7F)
+    use_global_actor_cs: BoolProperty(name="Use Global Actor Cutscene", default=False)
+    actor_cs_index: IntProperty(min=0, max=127, default=127)
 
     @staticmethod
     def upgrade_object(obj: Object):
@@ -510,16 +509,16 @@ class Z64_ActorProperty(PropertyGroup):
             split.label(text="Actor ID")
             split.label(text=getEnumName(game_data.z64.get_enum("actor_id"), self.actor_id))
 
-            if game_data.z64.is_oot() and bpy.context.scene.fast64.oot.use_new_actor_panel and self.actor_id != "Custom":
+            if game_data.z64.is_oot() and bpy.context.scene.fast64.oot.can_use_new_actor_panel() and self.actor_id != "Custom":
                 self.draw_params(actorIDBox, owner)
             
-            if game_data.z64.is_mm() or self.actor_id == "Custom":
-                prop_split(actorIDBox, self, "actor_id_custom", "")
+            if self.actor_id == "Custom":
+                prop_split(actorIDBox, self, "actor_id_custom", "Actor ID Custom")
 
             paramBox = actorIDBox.box()
             paramBox.label(text="Actor Parameter")
 
-            if game_data.z64.is_oot() and bpy.context.scene.fast64.oot.use_new_actor_panel and self.actor_id != "Custom":
+            if game_data.z64.is_oot() and bpy.context.scene.fast64.oot.can_use_new_actor_panel() and self.actor_id != "Custom":
                 paramBox.prop(self, "eval_params")
                 paramBox.prop(self, "params", text="")
             else:
@@ -527,7 +526,7 @@ class Z64_ActorProperty(PropertyGroup):
 
             rotations_used = []
 
-            if bpy.context.scene.fast64.oot.use_new_actor_panel and self.actor_id != "Custom":
+            if bpy.context.scene.fast64.oot.can_use_new_actor_panel() and self.actor_id != "Custom":
                 if self.is_rotation_used("XRot"):
                     rotations_used.append("X")
                 if self.is_rotation_used("YRot"):
@@ -542,7 +541,7 @@ class Z64_ActorProperty(PropertyGroup):
 
             for rot in rotations_used:
                 custom = (
-                    "_custom" if not bpy.context.scene.fast64.oot.use_new_actor_panel or self.actor_id == "Custom" else ""
+                    "_custom" if not bpy.context.scene.fast64.oot.can_use_new_actor_panel() or self.actor_id == "Custom" else ""
                 )
                 prop_split(paramBox, self, f"rot_{rot.lower()}{custom}", f"Rot {rot}")
 
@@ -569,9 +568,21 @@ class Z64_ActorProperty(PropertyGroup):
                             for i, item in enumerate(self.halfday_bits):
                                 item.draw_props(layout_halfday, owner, i)
                             drawAddButton(layout_halfday, len(self.halfday_bits), "Actor Halfday", None, owner.name)
-
         elif self.menu_tab == "Actor Cutscene":
-            actor_cs_props.draw_props(actorIDBox, owner, alt_scene_props, False)
+            actorIDBox.prop(self, "use_global_actor_cs")
+
+            if self.use_global_actor_cs:
+                prop_split(actorIDBox, self, "actor_cs_index", "Actor CS Index")
+                label_box = actorIDBox.box()
+                label_box.label(text="This should match the 'CutsceneEntry' array entry of", icon="INFO")
+                label_box.label(text="the actor cutscene you want to use. For instance with chests, ")
+                label_box.label(text="it should be the index of the entry where there's")
+                label_box.label(text="'CS_CAM_ID_GLOBAL_LONG_CHEST_OPENING'.")
+
+                if self.actor_cs_index > 119:
+                    label_box.label(text="The index can't be over 119!", icon="ERROR")
+            else:
+                actor_cs_props.draw_props(actorIDBox, owner, alt_scene_props, False)
 
         headerProp: Z64_ActorHeaderProperty = self.headerSettings
         headerProp.draw_props(actorIDBox, "Actor", altRoomProp, owner.name)
@@ -609,7 +620,7 @@ class Z64_TransitionActorProperty(PropertyGroup):
         split.label(text="Actor ID")
         split.label(text=getEnumName(game_data.z64.get_enum("actor_id"), self.actor.actor_id))
 
-        if bpy.context.scene.fast64.oot.use_new_actor_panel and self.actor.actor_id != "Custom":
+        if bpy.context.scene.fast64.oot.can_use_new_actor_panel() and self.actor.actor_id != "Custom":
             self.actor.draw_params(actorIDBox, roomObj)
 
         if self.actor.actor_id == "Custom":
@@ -617,7 +628,7 @@ class Z64_TransitionActorProperty(PropertyGroup):
 
         paramBox = actorIDBox.box()
         paramBox.label(text="Actor Parameter")
-        if is_oot_features() and bpy.context.scene.fast64.oot.use_new_actor_panel and self.actor.actor_id != "Custom":
+        if is_oot_features() and bpy.context.scene.fast64.oot.can_use_new_actor_panel() and self.actor.actor_id != "Custom":
             paramBox.prop(self.actor, "eval_params")
             paramBox.prop(self.actor, "params", text="")
         else:
@@ -674,12 +685,12 @@ class Z64_EntranceProperty(PropertyGroup):
         prop_split(box, entranceProp, "tiedRoom", "Room")
         prop_split(box, entranceProp, "spawnIndex", "Spawn Index")
 
-        if bpy.context.scene.fast64.oot.use_new_actor_panel and not self.customActor:
+        if bpy.context.scene.fast64.oot.can_use_new_actor_panel() and not self.customActor:
             self.actor.draw_params(box, obj)
 
         paramBox = box.box()
         paramBox.label(text="Actor Parameter")
-        if is_oot_features() and bpy.context.scene.fast64.oot.use_new_actor_panel and not self.customActor:
+        if is_oot_features() and bpy.context.scene.fast64.oot.can_use_new_actor_panel() and not self.customActor:
             paramBox.prop(self.actor, "eval_params")
             paramBox.prop(self.actor, "params", text="")
         else:

@@ -19,7 +19,11 @@ class ActorCutscene:
         self.index = index
         self.cam_info: Optional[CameraInfo] = None
 
-        if obj.ootEmptyType == "Actor":
+        if obj.ootEmptyType == "Actor" and not obj.ootActorProperty.use_global_actor_cs:
+            # 127 means "no cutscene", and 0-119 are all the valid array indices, any other number won't work
+            if index > 119 and index < 127:
+                raise PluginError("ERROR: the actor cutscene index must be between 0 to 119 or 127!")
+
             obj.ootActorProperty.actor_cs_index = index
 
         if props.cs_cam_id == "Custom":
@@ -92,7 +96,8 @@ class SceneActorCutscene:
 
             for i, item in enumerate(obj.z64_actor_cs_property.entries, start):
                 if Utility.isCurrentHeaderValid(header_settings, header_index):
-                    new_entry = ActorCutscene(scene_obj, transform, item, name, i, obj)
+                    index = obj.ootActorProperty.actor_cs_index if obj.ootActorProperty.use_global_actor_cs else i 
+                    new_entry = ActorCutscene(scene_obj, transform, item, name, index, obj)
 
                     if new_entry.cs_cam_id not in {"Custom", "Camera", "CS_CAM_ID_NONE"}:
                         if new_entry.cs_cam_id not in processed:
