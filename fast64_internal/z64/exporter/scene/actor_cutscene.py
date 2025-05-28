@@ -2,9 +2,10 @@ from dataclasses import dataclass
 from bpy.types import Object
 from mathutils import Matrix
 from typing import Optional
-from ....utility import CData, PluginError, exportColor, scaleToU8, indent
+from ....utility import CData, PluginError, indent
 from ...utility import getObjectList, is_oot_features
-from ...actor_cutscene.properties import Z64_ActorCutsceneProperty, Z64_ActorCutscene
+from ...actor_cutscene.properties import Z64_ActorCutscene
+from ...actor.properties import Z64_ActorProperty
 from ..utility import Utility
 from ..collision.camera import BgCamInformations, CameraInfo
 
@@ -82,14 +83,16 @@ class SceneActorCutscene:
         i = 0
 
         for obj in obj_list:
+            actor_prop: Z64_ActorProperty = obj.ootActorProperty
+
             if empty_type == "Actor":
-                header_settings = obj.ootActorProperty.headerSettings
+                header_settings = actor_prop.headerSettings
             else:
                 header_settings = obj.z64_actor_cs_property.header_settings
 
             for i, item in enumerate(obj.z64_actor_cs_property.entries, start):
-                if Utility.isCurrentHeaderValid(header_settings, header_index):
-                    index = obj.ootActorProperty.actor_cs_index if obj.ootActorProperty.use_global_actor_cs else i
+                if Utility.isCurrentHeaderValid(header_settings, header_index) and not actor_prop.use_global_actor_cs:
+                    index = actor_prop.actor_cs_index if actor_prop.use_global_actor_cs else i
                     new_entry = ActorCutscene(scene_obj, transform, item, name, index, obj)
 
                     if new_entry.cs_cam_id not in {"Custom", "Camera", "CS_CAM_ID_NONE"}:
@@ -104,7 +107,7 @@ class SceneActorCutscene:
         # validate actor cs index
         if empty_type == "Actor":
             for obj in obj_list:
-                index = obj.ootActorProperty.actor_cs_index
+                index = actor_prop.actor_cs_index
 
                 if index > i and index < 127:
                     raise PluginError(f"ERROR: actor cutscene index out of bounds! ({index} for a total of {i + 1})")
