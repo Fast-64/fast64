@@ -1,6 +1,9 @@
-import os, re
+import os
+import re
+
 from typing import Callable
 from ..utility import hexOrDecInt
+from ..game_data import game_data
 
 from .model_classes import (
     OOTF3DContext,
@@ -143,29 +146,41 @@ def getTextureArrays(actorData: str, flipbookArrayIndex2D: int) -> dict[str, Tex
     flipbookList = {}  # {array name : TextureFlipbook}
 
     if flipbookArrayIndex2D is not None:
+        if game_data.z64.is_oot():
+            file_regex = r"void\s*\*\s*([0-9a-zA-Z\_]*)\s*\[\s*\]\s*\[[0-9a-zA-Z_]*\]\s*=\s*\{(.*?)\}\s*;"
+            array_regex = r"\{(((?!\}).)*)\}"
+        else:
+            file_regex = r"TexturePtr\s*([0-9a-zA-Z\_]*)\s*\[[0-9a-zA-Z_]*\]\s*=\s*\{(.*?)\}\s*;"
+            array_regex = r"(((?!\}).)*)"
+
         for texArray2DMatch in re.finditer(
-            r"void\s*\*\s*([0-9a-zA-Z\_]*)\s*\[\s*\]\s*\[[0-9a-zA-Z_]*\]\s*=\s*\{(.*?)\}\s*;",
+            file_regex,
             actorData,
-            flags=re.DOTALL,
+            flags=re.DOTALL | re.MULTILINE,
         ):
             arrayMatchData = [
                 arrayMatch.group(1)
-                for arrayMatch in re.finditer(r"\{(((?!\}).)*)\}", texArray2DMatch.group(2), flags=re.DOTALL)
+                for arrayMatch in re.finditer(array_regex, texArray2DMatch.group(2), flags=re.DOTALL)
             ]
 
             if flipbookArrayIndex2D >= len(arrayMatchData):
                 continue
 
             arrayName = texArray2DMatch.group(1).strip()
-            textureList = stripComments([item for item in arrayMatchData[flipbookArrayIndex2D].split(",")])
+            temp = [item for item in arrayMatchData[flipbookArrayIndex2D].split(",")]
+            textureList = stripComments(temp)
 
             # handle trailing comma
             if textureList[-1] == "":
                 textureList.pop()
             flipbookList[arrayName] = TextureFlipbook(arrayName, "Array", textureList)
     else:
+        array_type = "void" if game_data.z64.is_oot() else "TexturePtr"
+
         for texArrayMatch in re.finditer(
-            r"void\s*\*\s*([0-9a-zA-Z\_]*)\s*\[\s*\]\s*=\s*\{(((?!\}).)*)\}", actorData, flags=re.DOTALL
+            array_type + r"\s*\*\s*([0-9a-zA-Z\_]*)\s*\[\s*\]\s*=\s*\{(((?!\}).)*)\}",
+            actorData,
+            flags=re.DOTALL | re.MULTILINE,
         ):
             arrayName = texArrayMatch.group(1).strip()
             textureList = stripComments([item for item in texArrayMatch.group(2).split(",")])
@@ -193,18 +208,43 @@ def getSPSegmentCalls(actorData: str) -> list[tuple[tuple[int, str], str, re.Mat
     segmentCalls = []
 
     # find gSPSegment() calls that reference texture arrays
-    for spSegmentMatch in re.finditer(
-        r"gSPSegment\s*\(\s*POLY\_(OPA)?(XLU)?\_DISP\s*\+\+\s*,\s*([0-9a-fA-Fx]*)\s*,\s*SEGMENTED\_TO\_VIRTUAL\s*\(\s*(((?!;).)*)\)\s*\)\s*;",
-        actorData,
-        flags=re.DOTALL,
-    ):
-        # see ootEnumDrawLayers
-        drawLayer = "Transparent" if spSegmentMatch.group(2) else "Opaque"
-        segment = hexOrDecInt(spSegmentMatch.group(3))
-        flipbookKey = (segment, drawLayer)
-        segmentParam = spSegmentMatch.group(4).strip()
+    if game_data.z64.is_oot():
+        for spSegmentMatch in re.finditer(
+            r"gSPSegment\s*\(\s*POLY\_(OPA)?(XLU)?\_DISP\s*\+\+\s*,\s*([0-9a-fA-Fx]*)\s*,\s*SEGMENTED\_TO\_VIRTUAL\s*\(\s*(((?!;).)*)\)\s*\)\s*;",
+            actorData,
+            flags=re.DOTALL,
+        ):
+            # see ootEnumDrawLayers
+            drawLayer = "Transparent" if spSegmentMatch.group(2) else "Opaque"
+            segment = hexOrDecInt(spSegmentMatch.group(3))
+            flipbookKey = (segment, drawLayer)
+            segmentParam = spSegmentMatch.group(4).strip()
 
-        segmentCalls.append((flipbookKey, segmentParam, spSegmentMatch))
+            segmentCalls.append((flipbookKey, segmentParam, spSegmentMatch))
+    else:
+        for spSegmentMatch in re.finditer(
+            r"gSPSegment\((.*),\s*([0-9a-fA-Fx]*)\s*,\s*Lib\_SegmentedToVirtual\s*\(\s*(((?!;).)*)\)\s*\)\s*;",
+            actorData,
+            flags=re.MULTILINE,
+        ):
+            # see ootEnumDrawLayers
+            segment = hexOrDecInt(spSegmentMatch.group(2))
+            segmentParam = spSegmentMatch.group(3).strip()
+
+            ## find the disp by looking for the next POLY_XXX_DISP before the next CLOSE_DISPS
+
+            # get a string containing the end of the function we're reading
+            string_1 = actorData[actorData.index(spSegmentMatch.group(0)) :]
+            string_2 = string_1[: string_1.find("CLOSE_DISPS")]
+
+            # find the next disp usage
+            disp = re.search(
+                r"POLY\_(XLU)\_DISP\s*=\s[a-zA-Z0-9_,\n&;*\s\[\]=()]*CLOSE\_DISPS", string_2, re.DOTALL | re.MULTILINE
+            )
+            drawLayer = "Transparent" if disp is not None else "Opaque"
+
+            flipbookKey = (segment, drawLayer)
+            segmentCalls.append((flipbookKey, segmentParam, spSegmentMatch))
 
     return segmentCalls
 

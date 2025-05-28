@@ -548,7 +548,7 @@ mm_enum_cs_list_type = [
 # 3. Select skeleton, then run bpy.ops.object.oot_save_rest_pose()
 # 4. Copy array data from console into an OOTSkeletonImportInfo object
 #       - list of tuples, first is root position, rest are euler XYZ rotations
-# 5. Add object to ootSkeletonImportDict/mm_skeleton_dict
+# 5. Add object to oot_skeleton_dict/mm_skeleton_dict
 
 link_skeleton_names = {
     "gLinkAdultSkel",
@@ -559,6 +559,7 @@ link_skeleton_names = {
     "gLinkZoraSkel",
     "gLinkFierceDeitySkel",
 }
+
 
 # Link overlay will be "", since Link texture array data is handled as a special case.
 class OOTSkeletonImportInfo:
@@ -576,6 +577,7 @@ class OOTSkeletonImportInfo:
         self.flipbookArrayIndex2D = flipbookArrayIndex2D
         self.isLink = skeletonName in link_skeleton_names
         self.restPoseData = restPoseData
+
 
 oot_skeleton_dict = OrderedDict(
     {
@@ -653,7 +655,7 @@ mm_skeleton_dict = OrderedDict(
             "gLinkHumanSkel",
             "object_link_child",
             "",
-            1,
+            0,
             [
                 (0.0, 2.3559017181396484, 0.0),
                 (0.0, -0.0, 0.0),
@@ -683,7 +685,7 @@ mm_skeleton_dict = OrderedDict(
             "gLinkDekuSkel",
             "object_link_nuts",
             "",
-            1,
+            0,
             [
                 (0.0, 2.3559017181396484, 0.0),
                 (0.0, -0.0, 0.0),
@@ -712,8 +714,8 @@ mm_skeleton_dict = OrderedDict(
         "Goron Link": OOTSkeletonImportInfo(
             "gLinkGoronSkel",
             "object_link_goron",
-            "",
-            1,
+            None,  # "",
+            0,
             [
                 (0.0, 2.3559017181396484, 0.0),
                 (0.0, -0.0, 0.0),
@@ -742,8 +744,8 @@ mm_skeleton_dict = OrderedDict(
         "Zora Link": OOTSkeletonImportInfo(
             "gLinkZoraSkel",
             "object_link_zora",
-            "",
-            1,
+            None,  # "",
+            0,
             [
                 (0.0, 2.3559017181396484, 0.0),
                 (0.0, -0.0, 0.0),
