@@ -148,10 +148,8 @@ def getTextureArrays(actorData: str, flipbookArrayIndex2D: int) -> dict[str, Tex
     if flipbookArrayIndex2D is not None:
         if game_data.z64.is_oot():
             file_regex = r"void\s*\*\s*([0-9a-zA-Z\_]*)\s*\[\s*\]\s*\[[0-9a-zA-Z_]*\]\s*=\s*\{(.*?)\}\s*;"
-            array_regex = r"\{(((?!\}).)*)\}"
         else:
-            file_regex = r"TexturePtr\s*([0-9a-zA-Z\_]*)\s*\[[0-9a-zA-Z_]*\]\s*=\s*\{(.*?)\}\s*;"
-            array_regex = r"(((?!\}).)*)"
+            file_regex = r"TexturePtr\s*([0-9a-zA-Z\_]*)\s*\[[0-9a-zA-Z_]*\s*\]\s*\[[0-9a-zA-Z_]*\]\s*=\s*\{(.*?)\}\s*;"
 
         for texArray2DMatch in re.finditer(
             file_regex,
@@ -160,7 +158,7 @@ def getTextureArrays(actorData: str, flipbookArrayIndex2D: int) -> dict[str, Tex
         ):
             arrayMatchData = [
                 arrayMatch.group(1)
-                for arrayMatch in re.finditer(array_regex, texArray2DMatch.group(2), flags=re.DOTALL)
+                for arrayMatch in re.finditer(r"\{(((?!\}).)*)\}", texArray2DMatch.group(2), flags=re.DOTALL)
             ]
 
             if flipbookArrayIndex2D >= len(arrayMatchData):
@@ -168,11 +166,10 @@ def getTextureArrays(actorData: str, flipbookArrayIndex2D: int) -> dict[str, Tex
 
             arrayName = texArray2DMatch.group(1).strip()
             temp = [item for item in arrayMatchData[flipbookArrayIndex2D].split(",")]
-            textureList = stripComments(temp)
 
-            # handle trailing comma
-            if textureList[-1] == "":
-                textureList.pop()
+            # handle trailing comma and NULL pointers
+            textureList = [item for item in stripComments(temp) if item != "NULL" and item != ""]
+
             flipbookList[arrayName] = TextureFlipbook(arrayName, "Array", textureList)
     else:
         array_type = "void" if game_data.z64.is_oot() else "TexturePtr"

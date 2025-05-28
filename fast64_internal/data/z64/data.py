@@ -655,7 +655,7 @@ mm_skeleton_dict = OrderedDict(
             "gLinkHumanSkel",
             "object_link_child",
             "",
-            0,
+            4,
             [
                 (0.0, 2.3559017181396484, 0.0),
                 (0.0, -0.0, 0.0),
@@ -684,8 +684,8 @@ mm_skeleton_dict = OrderedDict(
         "Deku Link": OOTSkeletonImportInfo(
             "gLinkDekuSkel",
             "object_link_nuts",
-            "",
-            0,
+            None,
+            3,
             [
                 (0.0, 2.3559017181396484, 0.0),
                 (0.0, -0.0, 0.0),
@@ -714,8 +714,8 @@ mm_skeleton_dict = OrderedDict(
         "Goron Link": OOTSkeletonImportInfo(
             "gLinkGoronSkel",
             "object_link_goron",
-            None,  # "",
-            0,
+            "",
+            1,
             [
                 (0.0, 2.3559017181396484, 0.0),
                 (0.0, -0.0, 0.0),
@@ -744,8 +744,8 @@ mm_skeleton_dict = OrderedDict(
         "Zora Link": OOTSkeletonImportInfo(
             "gLinkZoraSkel",
             "object_link_zora",
-            None,  # "",
-            0,
+            "",
+            2,
             [
                 (0.0, 2.3559017181396484, 0.0),
                 (0.0, -0.0, 0.0),
@@ -774,7 +774,7 @@ mm_skeleton_dict = OrderedDict(
         "Fierce Deity Link": OOTSkeletonImportInfo(
             "gLinkFierceDeitySkel",
             "object_link_boy",
-            "",
+            None,
             0,
             [
                 (0.0, 3.6050000190734863, 0.0),
