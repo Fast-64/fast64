@@ -7,7 +7,7 @@ from ....f3d.f3d_gbi import DLFormat, FMesh, TextureExportSettings, ScrollMethod
 from ....f3d.f3d_writer import getInfoDict
 from ...f3d_writer import ootProcessVertexGroup, writeTextureArraysNew, writeTextureArraysExisting
 from ...model_classes import OOTModel, OOTGfxFormatter
-from ..constants import ootSkeletonImportDict
+from ....game_data import game_data
 from ..properties import OOTSkeletonExportSettings
 from ..utility import ootDuplicateArmatureAndRemoveRotations, getGroupIndices, ootRemoveSkeleton
 from .classes import OOTLimb, OOTSkeleton
@@ -220,7 +220,7 @@ def ootConvertArmatureToC(
     settings: OOTSkeletonExportSettings,
 ):
     if settings.mode != "Generic" and not settings.isCustom:
-        importInfo = ootSkeletonImportDict[settings.mode]
+        importInfo = game_data.z64.skeleton_dict[settings.mode]
         skeletonName = importInfo.skeletonName
         filename = skeletonName
         folderName = importInfo.folderName

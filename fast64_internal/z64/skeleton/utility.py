@@ -1,4 +1,8 @@
-import mathutils, bpy, os, re
+import mathutils
+import bpy
+import os
+import re
+
 from ...utility_anim import armatureApplyWithMesh
 from ..model_classes import OOTVertexGroupInfo
 from ..utility import checkForStartBone, getStartBone, getNextBone, ootStripComments

@@ -2,13 +2,13 @@ import re
 from typing import List
 import mathutils, bpy, math
 from ....f3d.f3d_gbi import F3D, get_F3D_GBI
-from ....f3d.f3d_parser import getImportData, parseF3D
+from ....f3d.f3d_parser import getImportData, parseF3D, parseMatrices
 from ....utility import hexOrDecInt, applyRotation, PluginError
 from ...f3d_writer import ootReadActorScale
 from ...model_classes import OOTF3DContext, ootGetIncludedAssetData
 from ...utility import OOTEnum, ootGetObjectPath, getOOTScale, ootGetObjectHeaderPath, ootGetEnums, ootStripComments
 from ...texture_array import ootReadTextureArrays
-from ..constants import ootSkeletonImportDict
+from ....game_data import game_data
 from ..properties import OOTSkeletonImportSettings
 from ..utility import ootGetLimb, ootGetLimbs, ootGetSkeleton, applySkeletonRestPose
 
@@ -235,12 +235,16 @@ def ootBuildSkeleton(
     return isLOD, armatureObj
 
 
+def parse_included_objects():
+    pass
+
+
 def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings):
     importPath = bpy.path.abspath(importSettings.customPath)
     isCustomImport = importSettings.isCustom
 
     if importSettings.mode != "Generic" and not importSettings.isCustom:
-        importInfo = ootSkeletonImportDict[importSettings.mode]
+        importInfo = game_data.z64.skeleton_dict[importSettings.mode]
         skeletonName = importInfo.skeletonName
         folderName = importInfo.folderName
         overlayName = importInfo.actorOverlayName
@@ -287,6 +291,8 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
 
     if actorScale is None:
         actorScale = getOOTScale(importSettings.actorScale)
+
+    parseMatrices(skeletonData, f3dContext, actorScale)
 
     # print(limbList)
     isLOD, armatureObj = ootBuildSkeleton(

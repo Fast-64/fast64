@@ -350,7 +350,10 @@ def ootReadActorScale(basePath: str, overlayName: str, isLink: bool) -> Optional
         scale = actorScaleMatch.group(1).strip()
         if scale[-1] == "f":
             scale = scale[:-1]
-        return getOOTScale(1 / float(scale))
+        try:
+            return getOOTScale(1 / float(scale))
+        except:
+            print(f"WARNING: the scale value read is not a float ({repr(scale)})")
 
     print("WARNING: auto-detection failed, defaulting to this panel's actor scale property value")
     return None

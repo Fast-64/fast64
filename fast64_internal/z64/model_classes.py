@@ -35,12 +35,14 @@ from ..f3d.f3d_gbi import (
 def ootGetIncludedAssetData(basePath: str, currentPaths: list[str], data: str) -> str:
     includeData = ""
     searchedPaths = currentPaths[:]
+    extracted_path = f"{bpy.context.scene.fast64.oot.get_extracted_path()}/"
 
     print("Included paths:")
 
     # search assets
     for includeMatch in re.finditer(r"\#include\s*\"(assets/objects/(.*?))\.h\"", data):
-        path = os.path.join(basePath, includeMatch.group(1) + ".c")
+        # TODO: use pathlib and check if the path exists
+        path = os.path.join(basePath, extracted_path + includeMatch.group(1) + ".c")
         if path in searchedPaths:
             continue
         searchedPaths.append(path)
@@ -49,7 +51,7 @@ def ootGetIncludedAssetData(basePath: str, currentPaths: list[str], data: str) -
         print(path)
 
         for subIncludeMatch in re.finditer(r"\#include\s*\"(((?![/\"]).)*)\.c\"", subIncludeData):
-            subPath = os.path.join(os.path.dirname(path), subIncludeMatch.group(1) + ".c")
+            subPath = os.path.join(os.path.dirname(path), extracted_path + subIncludeMatch.group(1) + ".c")
             if subPath in searchedPaths:
                 continue
             searchedPaths.append(subPath)
