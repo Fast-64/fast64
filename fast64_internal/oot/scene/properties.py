@@ -564,7 +564,6 @@ classes = (
     OOTExtraCutsceneProperty,
     OOTSceneHeaderProperty,
     OOTAlternateSceneHeaderProperty,
-    OOTBootupSceneOptions,
     OOTRemoveSceneSettingsProperty,
     OOTExportSceneSettingsProperty,
     OOTImportSceneSettingsProperty,

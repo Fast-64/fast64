@@ -9,7 +9,14 @@ from .scene.operators import scene_ops_register, scene_ops_unregister
 from .scene.properties import OOTBootupSceneOptions, scene_props_register, scene_props_unregister
 from .scene.panels import scene_panels_register, scene_panels_unregister
 
-from .props_panel_main import oot_obj_panel_register, oot_obj_panel_unregister, oot_obj_register, oot_obj_unregister
+from .props_panel_main import (
+    oot_obj_panel_register,
+    oot_obj_panel_unregister,
+    oot_obj_register,
+    oot_obj_unregister,
+    OOT_ObjectProperties,
+    OOTSceneProperties,
+)
 from .skeleton.properties import OOTSkeletonImportSettings, OOTSkeletonExportSettings
 from .collection_utility import collections_register, collections_unregister
 from .oot_utility import setAllActorsVisibility
@@ -18,9 +25,6 @@ from .collision.properties import OOTCollisionExportSettings
 
 from .room.operators import room_ops_register, room_ops_unregister
 from .room.properties import room_props_register, room_props_unregister
-
-from .actor.operators import actor_ops_register, actor_ops_unregister
-from .actor.properties import actor_props_register, actor_props_unregister
 
 from .f3d.operators import f3d_ops_register, f3d_ops_unregister
 from .f3d.properties import OOTDLExportSettings, OOTDLImportSettings, f3d_props_register, f3d_props_unregister
@@ -138,7 +142,19 @@ class OOT_Properties(bpy.types.PropertyGroup):
     )
 
 
-oot_classes = (OOT_Properties,)
+z64_register_on_enable = (
+    OOTBootupSceneOptions,
+    OOTDLExportSettings,
+    OOTDLImportSettings,
+    OOTSkeletonExportSettings,
+    OOTSkeletonImportSettings,
+    OOTAnimExportSettingsProperty,
+    OOTAnimImportSettingsProperty,
+    OOTCollisionExportSettings,
+    OOT_Properties,
+    OOTSceneProperties,
+    OOT_ObjectProperties,
+)
 
 
 def oot_panel_register():
@@ -165,7 +181,10 @@ def oot_panel_unregister():
     skeleton_panels_unregister()
 
 
-def oot_register(registerPanels):
+def oot_register(registerPanels: bool):
+    from .actor.operators import actor_ops_register
+    from .actor.properties import actor_props_register
+
     oot_operator_register()
     collections_register()
     collision_ops_register()  # register first, so panel goes above mat panel
@@ -194,16 +213,16 @@ def oot_register(registerPanels):
     csMotion_preview_register()
     cutscene_preview_register()
 
-    for cls in oot_classes:
-        register_class(cls)
-
     if registerPanels:
         oot_panel_register()
 
 
-def oot_unregister(unregisterPanels):
-    for cls in reversed(oot_classes):
-        unregister_class(cls)
+def oot_unregister(unregisterPanels: bool):
+    from .actor.operators import actor_ops_unregister
+    from .actor.properties import actor_props_unregister
+
+    if unregisterPanels:
+        oot_panel_unregister()
 
     oot_operator_unregister()
     collections_unregister()
@@ -232,6 +251,3 @@ def oot_unregister(unregisterPanels):
     csMotion_panels_unregister()
     csMotion_props_unregister()
     csMotion_ops_unregister()
-
-    if unregisterPanels:
-        oot_panel_unregister()

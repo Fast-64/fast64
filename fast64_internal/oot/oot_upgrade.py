@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 import bpy
 from bpy.types import Object, CollectionProperty
 from ..utility import PluginError
-from .data import OoT_ObjectData
+from ..data.oot import OoT_ObjectData
 from .oot_utility import getEvalParams, get_actor_prop_from_obj
 from .oot_constants import ootData
 from .cutscene.constants import ootEnumCSMotionCamMode
