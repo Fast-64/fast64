@@ -135,6 +135,12 @@ class OOT_Properties(bpy.types.PropertyGroup):
 
         global_h_path = decomp_path / "include" / "global.h"
         return global_h_path.exists()
+    
+    def can_use_new_actor_panel(self):
+        if game_data.z64.is_mm():
+            return False
+        
+        return self.use_new_actor_panel
 
     useDecompFeatures: bpy.props.BoolProperty(
         name="Use decomp for export", description="Use names and macros from decomp when exporting", default=True

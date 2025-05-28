@@ -57,7 +57,7 @@ class OOTCameraPositionProperty(PropertyGroup):
             layout.prop(self, "hasPositionData")
 
         layout.prop(self, "use_setting_default_fov")
-        if self.hasPositionData:
+        if not self.is_actor_cs_cam and self.hasPositionData:
             if not self.use_setting_default_fov:
                 prop_split(layout, cameraObj.data, "angle", "Field Of View")
             prop_split(layout, self, "bgImageOverrideIndex", "BG Index Override")

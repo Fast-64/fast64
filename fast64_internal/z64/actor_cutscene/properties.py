@@ -109,7 +109,7 @@ class Z64_ActorCutscene(PropertyGroup):
     def draw_props(self, layout: UILayout, owner: Object, index: int):
         layout = layout.column()
         layout.prop(
-            self, "show_item", text=f"Entry No. {index + 1}", icon="TRIA_DOWN" if self.show_item else "TRIA_RIGHT"
+            self, "show_item", text=f"Entry No. {index + 1} (Array Index {index})", icon="TRIA_DOWN" if self.show_item else "TRIA_RIGHT"
         )
 
         if self.show_item:
