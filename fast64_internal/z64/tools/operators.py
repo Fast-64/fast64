@@ -1,16 +1,17 @@
 import bpy
 
 from mathutils import Vector
-from bpy.ops import mesh, object, curve
+from bpy.ops import mesh, object
 from bpy.types import Operator, Object, Context
 from bpy.props import FloatProperty, StringProperty, EnumProperty, BoolProperty
+
 from ...operators import AddWaterBox, addMaterialByName
 from ...utility import parentObject, setOrigin
+from ...game_data import game_data
 from ..cutscene.motion.utility import setupCutscene, createNewCameraShot
 from ..utility import getNewPath, get_new_empty_object, is_oot_features
-from .quick_import import QuickImportAborted, quick_import_exec
 from ..actor_cutscene.properties import enum_end_cam, enum_end_sfx, enum_hud_visibility
-
+from .quick_import import QuickImportAborted, quick_import_exec
 
 class OOT_AddWaterBox(AddWaterBox):
     bl_idname = "object.oot_add_water_box"
@@ -98,6 +99,7 @@ class OOT_AddScene(Operator):
         roomObj = context.view_layer.objects.active
         roomObj.ootEmptyType = "Room"
         roomObj.name = "Room"
+        roomObj.ootRoomHeader.timeSpeed = game_data.z64.default_time_speed
         entranceObj.ootEntranceProperty.tiedRoom = roomObj
         parentObject(roomObj, planeObj)
 
@@ -129,6 +131,7 @@ class OOT_AddRoom(Operator):
         roomObj = context.view_layer.objects.active
         roomObj.ootEmptyType = "Room"
         roomObj.name = "Room"
+        roomObj.ootRoomHeader.timeSpeed = game_data.z64.default_time_speed
         sceneObj = context.scene.ootSceneExportObj
         if sceneObj is not None:
             indices = []

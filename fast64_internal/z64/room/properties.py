@@ -125,7 +125,7 @@ class Z64_RoomHeaderProperty(PropertyGroup):
     leaveTimeUnchanged: BoolProperty(name="Leave Time Unchanged", default=True)
     timeHours: IntProperty(name="Hours", default=0, min=0, max=23)  # 0xFFFE
     timeMinutes: IntProperty(name="Minutes", default=0, min=0, max=59)
-    timeSpeed: FloatProperty(name="Time Speed", default=1, min=-13, max=13)  # 0xA
+    timeSpeed: FloatProperty(name="Time Speed", default=1.0, min=-13.0, max=13.0)  # 0xA
 
     # SCENE_CMD_SKYBOX_DISABLES
     disableSkybox: BoolProperty(name="Disable Skybox")

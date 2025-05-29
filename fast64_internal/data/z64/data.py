@@ -884,6 +884,7 @@ class Z64_Data:
             self.ootEnumCSListType = ootEnumCSListType
             self.skeleton_dict = oot_skeleton_dict
             self.enum_skeleton_mode = oot_enum_skeleton_mode
+            self.default_time_speed = 1.0
         elif self.game == "MM":
             self.cs_index_start = 1
             self.cs_list_type_to_cmd["Transition"] = "CS_TRANSITION_LIST"
@@ -899,6 +900,7 @@ class Z64_Data:
             self.ootEnumCSListType = mm_enum_cs_list_type
             self.skeleton_dict = mm_skeleton_dict
             self.enum_skeleton_mode = mm_enum_skeleton_mode
+            self.default_time_speed = 0.3
         else:
             raise ValueError(f"ERROR: unsupported game {repr(self.game)}")
 
