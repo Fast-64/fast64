@@ -95,7 +95,7 @@ class SceneTransitionActors:
                 if is_oot_features():
                     transActor.rot = f"DEG_TO_BINANG({rot_deg:.3f})"  # TODO: Correct axis?
                 else:
-                    transActor.rot = f"((0x{round(rot_deg):04X} & 0x1FF) << 7) | ({transActorProp.cutscene_id} & 0x7F)"
+                    transActor.rot = f"((0x{round(rot_deg):04X} & 0x1FF) << 7) | ({actorProp.actor_cs_index} & 0x7F)"
 
                 transActor.params = (
                     actorProp.params

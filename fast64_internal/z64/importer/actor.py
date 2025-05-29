@@ -43,12 +43,12 @@ def parseTransActorList(
         position = tuple([hexOrDecInt(value) for value in params[5:8]])
 
         rot_y = getEvalParams(params[8]) if "DEG_TO_BINANG" in params[8] else params[8]
-        cutscene_id = "CS_ID_GLOBAL_END"
+        actor_cs_index = 0x7F
 
         if game_data.z64.is_mm():
             rotY_int = int(rot_y, base=0)
             rot_y = f"0x{(rotY_int >> 7) & 0x1FF:04X}"
-            cutscene_id = f"0x{rotY_int & 0x7F:02X}"
+            actor_cs_index = rotY_int & 0x7F
 
         rotation = tuple([0, hexOrDecInt(rot_y), 0])
 
@@ -68,13 +68,14 @@ def parseTransActorList(
             position,
             rotation,
             actorParam,
-            cutscene_id,
+            actor_cs_index,
         )
         if not sharedSceneData.addHeaderIfItemExists(actorHash, "Transition Actor", headerIndex):
             actorObj = createEmptyWithTransform(position, [0, 0, 0] if actorID in actorsWithRotAsParam else rotation)
             actorObj.ootEmptyType = "Transition Actor"
             actorObj.name = "Transition " + getDisplayNameFromActorID(params[4])
             transActorProp = actorObj.ootTransitionActorProperty
+            actorProp = transActorProp.actor
 
             sharedSceneData.transDict[actorHash] = actorObj
 
@@ -90,12 +91,11 @@ def parseTransActorList(
                 parentObject(toRoom, actorObj)
 
             if game_data.z64.is_mm():
-                transActorProp.cutscene_id = cutscene_id
+                actorProp.actor_cs_index = actor_cs_index
 
             setCustomProperty(transActorProp, "cameraTransitionFront", camFront, ootEnumCamTransition)
             setCustomProperty(transActorProp, "cameraTransitionBack", camBack, ootEnumCamTransition)
 
-            actorProp = transActorProp.actor
             setCustomProperty(
                 actorProp,
                 "actor_id",

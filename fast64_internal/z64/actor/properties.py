@@ -609,11 +609,6 @@ class Z64_TransitionActorProperty(PropertyGroup):
 
     actor: PointerProperty(type=Z64_ActorProperty)
 
-    # MM exclusive
-    cutscene_id: StringProperty(
-        name="Cutscene ID", default="CS_ID_GLOBAL_END", description="See the `CutsceneId` enum for more values"
-    )
-
     def isRoomEmptyObject(self, obj: Object):
         return obj.type == "EMPTY" and obj.ootEmptyType == "Room"
 
@@ -649,7 +644,7 @@ class Z64_TransitionActorProperty(PropertyGroup):
             paramBox.prop(self.actor, "params_custom", text="")
 
         if not is_oot_features():
-            prop_split(actorIDBox, self, "cutscene_id", "Cutscene ID")
+            prop_split(actorIDBox, self.actor, "actor_cs_index", "Actor CS Index")
 
         if roomObj is None:
             actorIDBox.label(text="This must be part of a Room empty's hierarchy.", icon="OUTLINER")

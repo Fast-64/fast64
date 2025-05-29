@@ -119,14 +119,14 @@ class SceneActorCutscene:
         entries = SceneActorCutscene.get_entries(name, scene_obj, transform, header_index, "Actor Cutscene", 0)
         entries.extend(SceneActorCutscene.get_entries(name, scene_obj, transform, header_index, "Actor", len(entries)))
 
-        # validate camera indices (TODO: improve)
-        last_cam_index = -1
+        # validate camera indices
+        known_camera_indices: list[int] = []
         for entry in entries:
             if entry.cam_info is not None:
-                if entry.cam_info.camIndex > last_cam_index:
-                    last_cam_index = entry.cam_info.camIndex
+                if entry.cam_info.camIndex not in known_camera_indices:
+                    known_camera_indices.append(entry.cam_info.camIndex)
                 else:
-                    raise PluginError("ERROR: the actor cs camera indices are not consecutives!")
+                    raise PluginError(f"ERROR: reapeated actor cutscene camera index! ({entry.cam_info.camIndex})")
 
         return SceneActorCutscene(name, f"{name}CameraInfo", f"{name}CameraData", header_index, entries)
 
@@ -170,11 +170,18 @@ class SceneActorCutscene:
         data.header = f"extern {array_name};\n"
 
         # .c
+
+        # sort the camera list as it might not end up in the right order
+        camera_list: list[CameraInfo] = []
+        for i, entry in enumerate(self.entries):
+            if entry.cam_info is not None:
+                camera_list.append(entry.cam_info)
+        camera_list.sort(key=lambda item: item.camIndex)
+
         data.source = array_name + " = {\n"
 
-        for entry in self.entries:
-            if entry.cam_info is not None:
-                data.source += entry.cam_info.data.getEntryC() + "\n"
+        for item in camera_list:
+            data.source += item.data.getEntryC() + "\n"
 
         data.source = data.source[:-1]  # remove extra newline
         data.source += "};\n\n"
@@ -191,12 +198,18 @@ class SceneActorCutscene:
         data.header = f"extern {array_name};\n"
 
         # .c
+
+        # sort the camera list as it might not end up in the right order
+        camera_list: list[CameraInfo] = []
+        for i, entry in enumerate(self.entries):
+            if entry.cam_info is not None:
+                camera_list.append(entry.cam_info)
+        camera_list.sort(key=lambda item: item.camIndex)
+
         data.source = (
             (array_name + " = {\n")
             + "".join(
-                entry.cam_info.getInfoEntryC(self.cam_data_array_name)
-                for i, entry in enumerate(self.entries)
-                if entry.cam_info is not None
+                item.getInfoEntryC(self.cam_data_array_name) for item in camera_list
             )
             + "};\n\n"
         )
