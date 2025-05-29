@@ -5,8 +5,8 @@ from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
 from ....utility import CData, indent
+from ....game_data import game_data
 from ...oot_utility import getObjectList
-from ...oot_constants import ootData
 from ...room.properties import OOTRoomHeaderProperty
 from ...actor.properties import OOTActorProperty
 from ..utility import Utility
@@ -99,7 +99,7 @@ class RoomObjects:
             if objProp.objectKey == "Custom":
                 objectList.append(objProp.objectIDCustom)
             else:
-                objectList.append(ootData.objectData.objectsByKey[objProp.objectKey].id)
+                objectList.append(game_data.z64.objects.objects_by_key[objProp.objectKey].id)
         return RoomObjects(name, objectList)
 
     def getDefineName(self):
@@ -191,7 +191,7 @@ class RoomActors:
                 actor.rot = ", ".join(RoomActors.get_rotation_values(actorProp, rot))
 
                 actor.name = (
-                    ootData.actorData.actorsByID[actorProp.actor_id].name.replace(
+                    game_data.z64.actors.actorsByID[actorProp.actor_id].name.replace(
                         f" - {actorProp.actor_id.removeprefix('ACTOR_')}", ""
                     )
                     if actorProp.actor_id != "Custom"

@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING
 import bpy
 from bpy.types import Object, CollectionProperty
 from ..utility import PluginError
-from .data import OoT_ObjectData
+from ..data import Z64_ObjectData
 from .oot_utility import getEvalParams, get_actor_prop_from_obj
-from .oot_constants import ootData
+from ..game_data import game_data
 from .cutscene.constants import ootEnumCSMotionCamMode
 
 if TYPE_CHECKING:
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 #####################################
 # Room Header
 #####################################
-def upgradeObjectList(objList: CollectionProperty, objData: OoT_ObjectData):
+def upgradeObjectList(objList: CollectionProperty, objData: Z64_ObjectData):
     """Transition to the XML object system"""
     for obj in objList:
         # In order to check whether the data in the current blend needs to be updated,
@@ -31,12 +31,12 @@ def upgradeObjectList(objList: CollectionProperty, objData: OoT_ObjectData):
             if objectID == "Custom":
                 obj.objectKey = objectID
             else:
-                obj.objectKey = objData.objectsByID[objectID].key
+                obj.objectKey = objData.objects_by_id[objectID].key
 
             del obj["objectID"]
 
 
-def upgradeRoomHeaders(roomObj: Object, objData: OoT_ObjectData):
+def upgradeRoomHeaders(roomObj: Object, objData: Z64_ObjectData):
     """Main upgrade logic for room headers"""
     altHeaders = roomObj.ootAlternateRoomHeaders
     for sceneLayer in [
@@ -180,12 +180,12 @@ def upgradeCutsceneSubProps(csListSubProp):
 
     subPropsToEnum = [
         # TextBox
-        Cutscene_UpgradeData("ocarinaSongAction", "ocarinaAction", ootData.enumData.ootEnumOcarinaSongActionId),
-        Cutscene_UpgradeData("type", "csTextType", ootData.enumData.ootEnumCsTextType),
+        Cutscene_UpgradeData("ocarinaSongAction", "ocarinaAction", game_data.z64.enums.enum_ocarina_song_action_id),
+        Cutscene_UpgradeData("type", "csTextType", game_data.z64.enums.enum_cs_text_type),
         # Seq
-        Cutscene_UpgradeData("value", "csSeqID", ootData.enumData.ootEnumSeqId),
+        Cutscene_UpgradeData("value", "csSeqID", game_data.z64.enums.enum_seq_id),
         # Misc
-        Cutscene_UpgradeData("operation", "csMiscType", ootData.enumData.ootEnumCsMiscType),
+        Cutscene_UpgradeData("operation", "csMiscType", game_data.z64.enums.enum_cs_misc_type),
     ]
 
     transferOldDataToNew(csListSubProp, subPropsOldToNew)
@@ -210,7 +210,7 @@ def upgradeCSListProps(csListProp):
 
     # both are enums but the item list is different (the old one doesn't have a "custom" entry)
     convertOldDataToEnumData(
-        csListProp, [Cutscene_UpgradeData("fxType", "transitionType", ootData.enumData.ootEnumCsTransitionType)]
+        csListProp, [Cutscene_UpgradeData("fxType", "transitionType", game_data.z64.enums.enum_cs_transition_type)]
     )
 
 
@@ -223,7 +223,7 @@ def upgradeCutsceneProperty(csProp: "OOTCutsceneProperty"):
 
     transferOldDataToNew(csProp, csPropOldToNew)
     convertOldDataToEnumData(
-        csProp, [Cutscene_UpgradeData("csTermIdx", "csDestination", ootData.enumData.ootEnumCsDestination)]
+        csProp, [Cutscene_UpgradeData("csTermIdx", "csDestination", game_data.z64.enums.enum_cs_destination)]
     )
 
 
@@ -242,8 +242,8 @@ def upgradeCutsceneMotion(csMotionObj: Object):
             if "actor_id" in legacyData:
                 index = legacyData["actor_id"]
                 if index >= 0:
-                    cmdEnum = ootData.enumData.enumByKey["csCmd"]
-                    cmdType = cmdEnum.itemByIndex.get(index)
+                    cmdEnum = game_data.z64.enums.enumByKey["cs_cmd"]
+                    cmdType = cmdEnum.item_by_index.get(index)
                     if cmdType is not None:
                         csMotionProp.actorCueListProp.commandType = cmdType.key
                     else:
@@ -263,10 +263,10 @@ def upgradeCutsceneMotion(csMotionObj: Object):
                 del legacyData["start_frame"]
 
             if "action_id" in legacyData:
-                playerEnum = ootData.enumData.enumByKey["csPlayerCueId"]
+                playerEnum = game_data.z64.enums.enumByKey["cs_player_cue_id"]
                 item = None
                 if isPlayer:
-                    item = playerEnum.itemByIndex.get(int(legacyData["action_id"], base=16))
+                    item = playerEnum.item_by_index.get(int(legacyData["action_id"], base=16))
 
                 if isPlayer and item is not None:
                     csMotionProp.actorCueProp.playerCueID = item.key
@@ -315,7 +315,7 @@ def upgradeActors(actorObj: Object):
         isCustom = actorObj.ootEntranceProperty.customActor
     else:
         if "actorID" in actorProp:
-            actorProp.actor_id = ootData.actorData.ootEnumActorID[actorProp["actorID"]][0]
+            actorProp.actor_id = game_data.z64.actors.ootEnumActorID[actorProp["actorID"]][0]
             del actorProp["actorID"]
 
         if "actorIDCustom" in actorProp:

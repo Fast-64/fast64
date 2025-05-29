@@ -4,7 +4,8 @@ import bpy
 from ...utility import parentObject, hexOrDecInt
 from ..scene.properties import OOTSceneHeaderProperty
 from ..oot_utility import setCustomProperty, getEvalParams
-from ..oot_constants import ootEnumCamTransition, ootData
+from ...game_data import game_data
+from ..oot_constants import ootEnumCamTransition
 from .classes import SharedSceneData
 from .constants import actorsWithRotAsParam
 
@@ -77,7 +78,7 @@ def parseTransActorList(
             setCustomProperty(transActorProp, "cameraTransitionBack", camBack, ootEnumCamTransition)
 
             actorProp = transActorProp.actor
-            setCustomProperty(actorProp, "actor_id", actorID, ootData.actorData.ootEnumActorID)
+            setCustomProperty(actorProp, "actor_id", actorID, game_data.z64.actors.ootEnumActorID)
             if actorProp.actor_id != "Custom":
                 actorProp.params = actorParam
             else:
@@ -157,7 +158,7 @@ def parseSpawnList(
             spawnProp.spawnIndex = spawnIndex
             spawnProp.customActor = actorID != "ACTOR_PLAYER"
             actorProp = spawnProp.actor
-            setCustomProperty(actorProp, "actor_id", actorID, ootData.actorData.ootEnumActorID)
+            setCustomProperty(actorProp, "actor_id", actorID, game_data.z64.actors.ootEnumActorID)
             if actorProp.actor_id != "Custom":
                 actorProp.params = actorParam
             else:
@@ -198,7 +199,7 @@ def parseActorList(
             actorObj.name = getDisplayNameFromActorID(actorID)
             actorProp = actorObj.ootActorProperty
 
-            setCustomProperty(actorProp, "actor_id", actorID, ootData.actorData.ootEnumActorID)
+            setCustomProperty(actorProp, "actor_id", actorID, game_data.z64.actors.ootEnumActorID)
             if actorProp.actor_id != "Custom":
                 actorProp.params = actorParam
             else:
