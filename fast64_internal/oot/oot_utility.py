@@ -3,6 +3,7 @@ import math
 import os
 import re
 
+from pathlib import Path
 from ast import parse, Expression, Constant, UnaryOp, USub, Invert, BinOp
 from mathutils import Vector
 from bpy.types import Object
@@ -982,3 +983,28 @@ def get_actor_prop_from_obj(actor_obj: Object) -> "OOTActorProperty":
         raise PluginError(f"ERROR: Empty type not supported: {actor_obj.ootEmptyType}")
 
     return actor_prop
+
+
+def get_include_data(include: str):
+    """
+    Returns the file data pointed by the include's path
+
+    Parameters:
+    - `include`: the line where the include directive is located
+    """
+
+    # remove the double quotes from the path
+    include = include.removeprefix("#include ").replace('"', "")
+
+    # get the extracted path
+    extracted = bpy.context.scene.fast64.oot.get_extracted_path()
+
+    # get the file's path
+    file_path = Path(f"{bpy.context.scene.ootDecompPath}/{extracted}/{include}").resolve()
+
+    # make sure the file exists
+    if not file_path.exists():
+        raise PluginError(f"ERROR: that file don't exist ({repr(file_path)})")
+
+    # return the data as a string
+    return file_path.read_text()

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Optional, TYPE_CHECKING
 from bpy.types import Object, Armature
 from ....utility import PluginError
+from ...oot_utility import get_include_data
 from ..motion.utility import setupCutscene, getBlenderPosition, getInteger
 
 if TYPE_CHECKING:
@@ -72,6 +73,30 @@ class CutsceneImport(CutsceneObjectFactory):
         params = self.getCmdParams(csData, "CS_HEADER", Cutscene.paramNumber)
         return Cutscene(name, getInteger(params[0]), getInteger(params[1]))
 
+    def parse_cs_lines(self, cs_name: str, cs_data: list[str]):
+        """
+        Returns a list of (stripped) lines containing each cutscene command
+
+        Parameters:
+        - `cs_name`: the name of the cutscene we're reading
+        - `cs_data`: the raw data of the cutscene (with newlines, identatio, etc...)
+        """
+        parsed_cs_lines: list[str] = []
+
+        for line in cs_data:
+            line = line.strip()
+            cs_cmd = line.split("(")[0]
+
+            if cs_cmd not in ootCutsceneCommandsC:
+                print(f"WARNING: unknown command found: {repr(cs_cmd)}")
+
+            # useless for data from an include but still required to support the older assets system
+            if line.startswith("CS_") and not line.startswith("CS_FLOAT"):
+                if self.csName is None or self.csName == cs_name:
+                    parsed_cs_lines.append(line)
+
+        return parsed_cs_lines
+
     def getParsedCutscenes(self):
         """Returns the parsed commands read from every cutscene we can find"""
 
@@ -104,8 +129,8 @@ class CutsceneImport(CutsceneObjectFactory):
             fileLines.append(line.strip())
 
         # parse cutscenes
-        csData = []
-        cutsceneList: list[list[str]] = []
+        cs_data_map: dict[str, list[str]] = {}
+        cs_list_map: dict[str, list[str]] = {}
         foundCutscene = False
         for line in fileLines:
             if not line.startswith("//") and not line.startswith("/*"):
@@ -115,48 +140,48 @@ class CutsceneImport(CutsceneObjectFactory):
                     if csName in existingCutsceneNames:
                         print(f"WARNING: Cutscene '{csName}' already exists in this blend's data.")
                     foundCutscene = True
+                    cs_data_map[csName] = []
                     print(f"INFO: Found cutscene '{csName}' in the file data.")
 
                 if foundCutscene:
-                    sLine = line.strip()
-                    csCmd = sLine.split("(")[0]
-                    if "CutsceneData " not in line and "};" not in line and csCmd not in ootCutsceneCommandsC:
-                        if len(csData) > 0:
-                            csData[-1] += line
+                    next_line = fileLines[fileLines.index(line) + 1]
+                    uses_include = "#include" in next_line
 
-                    if len(csData) == 0 or sLine.startswith("CS_") and not sLine.startswith("CS_FLOAT"):
-                        if self.csName is None or self.csName == csName:
-                            csData.append(line)
-
-                    if "};" in line:
+                    if uses_include:
+                        cs_data_map[csName] = get_include_data(next_line).split("\n")
                         foundCutscene = False
-                        if len(csData) > 0:
-                            cutsceneList.append(csData)
-                        csData = []
+                    else:
+                        s_line = line.strip()
 
-        if len(cutsceneList) == 0:
+                        if s_line.startswith("CS_") and not s_line.startswith("CS_FLOAT"):
+                            cs_data_map[csName].append(line)
+
+                        if "};" in line:
+                            foundCutscene = False
+
+        for cs_name, cs_data in cs_data_map.items():
+            cs_list_map[cs_name] = self.parse_cs_lines(cs_name, cs_data)
+
+        if len(cs_list_map) == 0:
             print("INFO: Found no cutscenes in this file!")
             return None
 
         # parse the commands from every cutscene we found
         parsedCutscenes: list[ParsedCutscene] = []
-        for cutscene in cutsceneList:
+        for cs_name, cutscene in cs_list_map.items():
             cmdListFound = False
             curCmdPrefix = None
             parsedCS = []
             parsedData = ""
-            csName = None
 
             for line in cutscene:
                 curCmd = line.strip().split("(")[0]
                 index = cutscene.index(line) + 1
                 nextCmd = cutscene[index].strip().split("(")[0] if index < len(cutscene) else None
                 line = line.strip()
-                if "CutsceneData" in line:
-                    csName = line.split(" ")[1][:-2]
 
                 # NOTE: ``CS_UNK_DATA()`` are commands that are completely useless, so we're ignoring those
-                if csName is not None and not "CS_UNK_DATA" in curCmd:
+                if "CS_UNK_DATA" not in curCmd:
                     if curCmd in ootCutsceneCommandsC:
                         line = line.removesuffix(",") + "\n"
 
@@ -179,8 +204,8 @@ class CutsceneImport(CutsceneObjectFactory):
                             if curCmdPrefix in curCmd:
                                 parsedData += line
                             elif not cmdListFound and curCmd in ootCSListEntryCommands:
-                                print(f"{csName}, command:\n{line}")
-                                raise PluginError(f"ERROR: Found a list entry outside a list inside ``{csName}``!")
+                                print(f"{cs_name}, command:\n{line}")
+                                raise PluginError(f"ERROR: Found a list entry outside a list inside ``{cs_name}``!")
 
                         if cmdListFound and nextCmd == "CS_END_OF_SCRIPT" or nextCmd in ootCSListAndSingleCommands:
                             cmdListFound = False
@@ -190,8 +215,8 @@ class CutsceneImport(CutsceneObjectFactory):
                         print(f"WARNING: Unknown command found: ``{curCmd}``")
                         cmdListFound = False
 
-            if csName is not None and len(parsedCS) > 0:
-                parsedCutscenes.append(ParsedCutscene(csName, parsedCS))
+            if cs_name is not None and len(parsedCS) > 0:
+                parsedCutscenes.append(ParsedCutscene(cs_name, parsedCS))
             else:
                 raise PluginError("ERROR: Something wrong happened during the parsing of the cutscene.")
 
