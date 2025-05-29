@@ -1002,7 +1002,11 @@ def get_include_data(include: str):
     # get the file's path
     file_path = Path(f"{bpy.context.scene.ootDecompPath}/{extracted}/{include}").resolve()
 
-    # make sure the file exists
+    # check if the extracted path exists
+    if not file_path.exists():
+        file_path = Path(f"{bpy.context.scene.ootDecompPath}/{include}").resolve()
+
+    # if it doesn't check if the normal path exists
     if not file_path.exists():
         raise PluginError(f"ERROR: that file don't exist ({repr(file_path)})")
 
