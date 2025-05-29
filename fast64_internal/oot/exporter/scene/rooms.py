@@ -29,6 +29,9 @@ class RoomEntries:
         original_room_list = getObjectList(original_scene_obj.children_recursive, "EMPTY", "Room")
         assert len(original_room_list) == len(roomObjs)
 
+        roomObjs.sort(key=lambda obj: obj.ootRoomHeader.roomIndex)
+        original_room_list.sort(key=lambda obj: obj.ootRoomHeader.roomIndex)
+
         if len(roomObjs) == 0:
             raise PluginError("ERROR: The scene has no child empties with the 'Room' empty type.")
 
