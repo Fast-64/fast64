@@ -239,7 +239,7 @@ class Z64_RoomHeaderProperty(PropertyGroup):
                 timeRow = skyboxAndTime.row()
                 timeRow.prop(self, "timeHours", text="Hours")
                 timeRow.prop(self, "timeMinutes", text="Minutes")
-            prop_split(skyboxAndTime, self, "timeSpeed", "Time Speed")
+            prop_split(skyboxAndTime, self, "timeSpeed", f"Time Speed (default: {game_data.z64.default_time_speed:.2f})")
 
             # Echo
             prop_split(skyboxAndTime, self, "echo", "Echo")
