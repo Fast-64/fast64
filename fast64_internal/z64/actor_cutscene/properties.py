@@ -1,3 +1,5 @@
+import bpy
+
 from bpy.props import (
     IntProperty,
     PointerProperty,
@@ -10,7 +12,7 @@ from bpy.props import (
 from bpy.utils import register_class, unregister_class
 from bpy.types import PropertyGroup, UILayout, Object
 from ...utility import prop_split
-from ..collection_utility import drawAddButton, drawCollectionOps
+from ..collection_utility import drawAddButton, drawCollectionOps, getCollection
 from ..utility import get_list_tab_text
 from ..actor.properties import Z64_ActorHeaderProperty
 from ..scene.properties import Z64_AlternateSceneHeaderProperty
@@ -106,13 +108,12 @@ class Z64_ActorCutscene(PropertyGroup):
     # ui only props
     show_item: BoolProperty()
 
-    def draw_props(self, layout: UILayout, owner: Object, index: int):
+    def draw_props(self, layout: UILayout, owner: Object, index: int, array_index: int):
         layout = layout.column()
-        entry_text_suffix = f" (Array Index {index})" if owner.ootEmptyType == "Actor Cutscene" else ""
         layout.prop(
             self,
             "show_item",
-            text=f"Entry No. {index + 1}{entry_text_suffix}",
+            text=f"Entry No. {array_index + 1}  (Array Index {array_index})",
             icon="TRIA_DOWN" if self.show_item else "TRIA_RIGHT",
         )
 
@@ -155,6 +156,17 @@ class Z64_ActorCutsceneProperty(PropertyGroup):
     # ui only props
     show_entries: BoolProperty(default=True)
 
+    def get_count(self, obj_name: str):
+        count = 0
+        for obj in bpy.data.objects:
+            if obj.ootEmptyType == "Actor" and not obj.ootActorProperty.use_global_actor_cs:
+                if obj.name == obj_name:
+                    break
+
+                count += len(getCollection(obj.name, "Actor CS", 0))
+
+        return count
+
     def draw_props(
         self,
         layout: UILayout,
@@ -170,8 +182,14 @@ class Z64_ActorCutsceneProperty(PropertyGroup):
         )
 
         if self.show_entries:
+            if owner.ootEmptyType == "Actor Cutscene":
+                start = 0
+            else:
+                global_actor_cs_count = bpy.context.scene.fast64.oot.global_actor_cs_count
+                start = global_actor_cs_count + self.get_count(owner.name)
+
             for i, actor_cs in enumerate(self.entries):
-                actor_cs.draw_props(layout_entries.box(), owner, i)
+                actor_cs.draw_props(layout_entries.box(), owner, i, start + i)
 
             drawAddButton(layout_entries, len(self.entries), "Actor CS", None, owner.name)
 

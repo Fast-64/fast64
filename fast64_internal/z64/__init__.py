@@ -119,6 +119,9 @@ class OOT_Properties(bpy.types.PropertyGroup):
     version_custom: bpy.props.StringProperty(name="Custom Version")
     mm_features: bpy.props.BoolProperty(name="Enable MM Features", default=False)
 
+    # internal
+    global_actor_cs_count: bpy.props.IntProperty(min=0, default=0)
+
     def get_extracted_path(self):
         version = self.oot_version if game_data.z64.is_oot() else self.mm_version
 

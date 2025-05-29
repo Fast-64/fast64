@@ -22,6 +22,11 @@ class OOTCollectionAdd(Operator):
 
         collection.add()
         collection.move(len(collection) - 1, self.option)
+
+        owner = bpy.data.objects[self.objName]
+        if self.collectionType == "Actor CS" and owner.ootEmptyType == "Actor Cutscene":
+            context.scene.fast64.oot.global_actor_cs_count = len(collection)
+
         return {"FINISHED"}
 
 
@@ -39,6 +44,11 @@ class OOTCollectionRemove(Operator):
     def execute(self, context):
         collection = getCollection(self.objName, self.collectionType, self.subIndex, self.collection_index)
         collection.remove(self.option)
+
+        owner = bpy.data.objects[self.objName]
+        if self.collectionType == "Actor CS" and owner.ootEmptyType == "Actor Cutscene":
+            context.scene.fast64.oot.global_actor_cs_count = len(collection)
+
         return {"FINISHED"}
 
 

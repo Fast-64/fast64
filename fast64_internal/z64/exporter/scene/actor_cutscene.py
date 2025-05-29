@@ -208,9 +208,7 @@ class SceneActorCutscene:
 
         data.source = (
             (array_name + " = {\n")
-            + "".join(
-                item.getInfoEntryC(self.cam_data_array_name) for item in camera_list
-            )
+            + "".join(item.getInfoEntryC(self.cam_data_array_name) for item in camera_list)
             + "};\n\n"
         )
 
