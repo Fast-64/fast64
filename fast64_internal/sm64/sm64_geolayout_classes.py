@@ -544,16 +544,28 @@ class GeoLayoutBleed(BleedGraphics):
                 last_materials = reset_all_layers(last_materials)
 
             cur_last_materials = copy_last(last_materials)
+            set_layers = set()
             is_switch = type(base_node) in {SwitchNode}
             for child in node.children:
                 if is_switch:  # parent node is switch or function
                     new_materials = walk(child, cur_last_materials)  # last material info from current switch option
                     # add switch option reverts, to either revert at the end or in the option itself
                     for draw_layer, (last_mat, cmds_resets) in new_materials.items():
+                        # resets were added or removed in the option, therefor the option can reset that layer
+                        if cmds_resets != cur_last_materials.get(draw_layer, (None, []))[1]:
+                            set_layers.add(draw_layer)
                         last_materials.setdefault(draw_layer, [last_mat, []])[1].extend(cmds_resets)
                         last_materials[draw_layer][0] = None  # reset last material
                 else:
                     last_materials = walk(child, last_materials)
+            if is_switch:
+                # if a switch took up the responsability of its reset, remove any previous reset of that layer
+                for draw_layer in set_layers:
+                    last_mat, cmds_resets = cur_last_materials.get(draw_layer, (None, []))
+                    for i, (cmd_list, reset_cmd_dict) in enumerate(cmds_resets):
+                        last_materials[draw_layer][1][i] = None
+                    while None in last_materials[draw_layer][1]:
+                        last_materials[draw_layer][1].remove(None)
             return last_materials
 
         for node in geo_layout_graph.startGeolayout.nodes:
