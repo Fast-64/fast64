@@ -180,7 +180,7 @@ for each sub element (of <Actor>) mentioned below:
   <Actor Index="27" ID="ACTOR_EN_ZL1" Key="en_zl1" ObjectKey="obj_zl1" Name="Child Zelda" Category=""></Actor>
   <Actor Index="28" ID="ACTOR_EN_VIEWER" Key="en_viewer" ObjectKey="gameplay_keep" Name="En_Viewer" Category=""></Actor>
   <Actor Index="29" ID="ACTOR_EN_BUBBLE" Key="en_bubble" ObjectKey="obj_bubble" Name="Shabom" Category=""></Actor>
-  <Actor Index="30" ID="ACTOR_DOOR_SHUTTER" Key="door_shutter" ObjectKey="gameplay_keep" Name="Dungeon Door" Category=""></Actor>
+  <Actor Index="30" ID="ACTOR_DOOR_SHUTTER" Key="door_shutter" ObjectKey="gameplay_keep" Name="Dungeon Door" Category="ACTORCAT_DOOR"></Actor>
   <Actor Index="32" ID="ACTOR_EN_BOOM" Key="en_boom" ObjectKey="gameplay_keep" Name="Zora Fins" Category=""></Actor>
   <Actor Index="33" ID="ACTOR_EN_TORCH2" Key="en_torch2" ObjectKey="gameplay_keep" Name="Elegy Statues" Category=""></Actor>
   <Actor Index="34" ID="ACTOR_EN_MINIFROG" Key="en_minifrog" ObjectKey="obj_fr" Name="Frog" Category=""></Actor>

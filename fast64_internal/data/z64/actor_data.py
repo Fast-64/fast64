@@ -129,7 +129,7 @@ class Z64_ActorData:
 
         # list of tuples used by Blender's enum properties
 
-        lastIndex = max(1, *(actor.index for actor in self.actorList))
+        lastIndex = max(1, *(actor.index for actor in self.actorList)) + 1
         self.ootEnumActorID = [("None", f"{i} (Deleted from the XML)", "None") for i in range(lastIndex)]
         self.ootEnumActorID.insert(0, ("Custom", "Custom Actor", "Custom"))
 
@@ -142,7 +142,7 @@ class Z64_ActorData:
 
         i = 1
         for actor in self.actorList:
-            self.ootEnumActorID[actor.index] = (actor.id, actor.name, actor.id)
+            self.ootEnumActorID[actor.index + 1] = (actor.id, actor.name, actor.id)
             if actor.category == "ACTORCAT_DOOR":
                 self.ootEnumTransitionActorID[i] = (actor.id, actor.name, actor.id)
                 i += 1
