@@ -28,10 +28,24 @@ class Scene:
     hasAlternateHeaders: bool
 
     @staticmethod
-    def new(name: str, sceneObj: Object, transform: Matrix, useMacros: bool, saveTexturesAsPNG: bool, model: OOTModel):
+    def new(
+        name: str,
+        original_scene_obj: Object,
+        sceneObj: Object,
+        transform: Matrix,
+        useMacros: bool,
+        saveTexturesAsPNG: bool,
+        model: OOTModel,
+    ):
         i = 0
         rooms = RoomEntries.new(
-            f"{name}_roomList", name.removesuffix("_scene"), model, sceneObj, transform, saveTexturesAsPNG
+            f"{name}_roomList",
+            name.removesuffix("_scene"),
+            model,
+            original_scene_obj,
+            sceneObj,
+            transform,
+            saveTexturesAsPNG,
         )
 
         colHeader = CollisionHeader.new(
