@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from bpy.types import Object
 from ....utility import PluginError, indent
-from ...oot_constants import ootData
+from ....game_data import game_data
 from ..constants import ootEnumCSListTypeListC
 
 if TYPE_CHECKING:
@@ -40,7 +40,7 @@ class CutsceneCmdToC:
     """This class contains functions to create the cutscene commands"""
 
     def getEnumValue(self, enumKey: str, owner, propName: str):
-        item = ootData.enumData.enumByKey[enumKey].itemByKey.get(getattr(owner, propName))
+        item = game_data.z64.enums.enumByKey[enumKey].item_by_key.get(getattr(owner, propName))
         return item.id if item is not None else getattr(owner, f"{propName}Custom")
 
     def getGenericListCmd(self, cmdName: str, entryTotal: int):
@@ -89,7 +89,7 @@ class CutsceneCmdToC:
         )
 
     def getDestinationCmd(self, csProp: "OOTCutsceneProperty"):
-        dest = self.getEnumValue("csDestination", csProp, "csDestination")
+        dest = self.getEnumValue("cs_destination", csProp, "csDestination")
         return indent * 2 + f"CS_DESTINATION({dest}, {csProp.csDestinationStartFrame}, 0),\n"
 
     def getActorCueListCmd(self, actorCueList: CutsceneCmdActorCueList, isPlayerActor: bool):
@@ -212,7 +212,7 @@ class CutsceneExport(CutsceneCmdToC):
             if commandType == "Custom":
                 commandType = obj.ootCSMotionProperty.actorCueListProp.commandTypeCustom
             elif self.useDecomp:
-                commandType = ootData.enumData.enumByKey["csCmd"].itemByKey[commandType].id
+                commandType = game_data.z64.enums.enumByKey["cs_cmd"].item_by_key[commandType].id
 
             # ignoring dummy cue
             actorCueList = CutsceneCmdActorCueList(None, entryTotal=entryTotal - 1, commandType=commandType)
@@ -227,7 +227,7 @@ class CutsceneExport(CutsceneCmdToC):
                     if isPlayer:
                         cueID = childObj.ootCSMotionProperty.actorCueProp.playerCueID
                         if cueID != "Custom":
-                            actionID = ootData.enumData.enumByKey["csPlayerCueId"].itemByKey[cueID].id
+                            actionID = game_data.z64.enums.enumByKey["cs_player_cue_id"].item_by_key[cueID].id
 
                     if actionID is None:
                         actionID = childObj.ootCSMotionProperty.actorCueProp.cueActionID
@@ -348,7 +348,7 @@ class CutsceneExport(CutsceneCmdToC):
                         textEntry.startFrame,
                         textEntry.endFrame,
                         textEntry.textID,
-                        self.getEnumValue("csTextType", textEntry, "csTextType"),
+                        self.getEnumValue("cs_text_type", textEntry, "csTextType"),
                         textEntry.topOptionTextID,
                         textEntry.bottomOptionTextID,
                     )
@@ -361,7 +361,7 @@ class CutsceneExport(CutsceneCmdToC):
                         None,
                         textEntry.startFrame,
                         textEntry.endFrame,
-                        self.getEnumValue("ocarinaSongActionId", textEntry, "ocarinaAction"),
+                        self.getEnumValue("ocarina_song_action_id", textEntry, "ocarinaAction"),
                         textEntry.ocarinaMessageId,
                     )
                 )
@@ -397,7 +397,7 @@ class CutsceneExport(CutsceneCmdToC):
                             None,
                             entry.transitionStartFrame,
                             entry.transitionEndFrame,
-                            self.getEnumValue("csTransitionType", entry, "transitionType"),
+                            self.getEnumValue("cs_transition_type", entry, "transitionType"),
                         )
                     )
                 case _:
@@ -423,7 +423,7 @@ class CutsceneExport(CutsceneCmdToC):
                                         None,
                                         elem.startFrame,
                                         elem.endFrame,
-                                        self.getEnumValue("csMiscType", elem, "csMiscType"),
+                                        self.getEnumValue("cs_misc_type", elem, "csMiscType"),
                                     )
                                 )
                             case "RumbleList":

@@ -3,7 +3,7 @@ from bpy.types import Operator
 from bpy.utils import register_class, unregister_class
 from bpy.props import EnumProperty, IntProperty, StringProperty
 from ...utility import ootGetSceneOrRoomHeader
-from ..oot_constants import ootData
+from ...game_data import game_data
 
 
 class OOT_SearchObjectEnumOperator(Operator):
@@ -12,7 +12,7 @@ class OOT_SearchObjectEnumOperator(Operator):
     bl_property = "objectKey"
     bl_options = {"REGISTER", "UNDO"}
 
-    objectKey: EnumProperty(items=ootData.objectData.ootEnumObjectKey, default="obj_human")
+    objectKey: EnumProperty(items=game_data.z64.objects.ootEnumObjectKey, default="obj_human")
     headerIndex: IntProperty(default=0, min=0)
     index: IntProperty(default=0, min=0)
     objName: StringProperty()
