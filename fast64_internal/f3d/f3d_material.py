@@ -232,7 +232,7 @@ def update_draw_layer(self, context):
         drawLayer = material.f3d_mat.draw_layer
         if context.scene.gameEditorMode == "SM64":
             drawLayer.oot = drawLayerSM64toOOT[drawLayer.sm64]
-        elif context.scene.gameEditorMode == "OOT":
+        elif context.scene.gameEditorMode in {"OOT", "MM"}:
             if material.f3d_mat.draw_layer.oot == "Opaque":
                 if int(material.f3d_mat.draw_layer.sm64) > 4:
                     material.f3d_mat.draw_layer.sm64 = "1"
@@ -253,7 +253,7 @@ def get_world_layer_defaults(scene, game_mode: str, layer: str):
             getattr(world, f"draw_layer_{layer}_cycle_1", ""),
             getattr(world, f"draw_layer_{layer}_cycle_2", ""),
         )
-    elif game_mode == "OOT":
+    elif game_mode in {"OOT", "MM"}:
         return (
             getattr(world.ootDefaultRenderModes, f"{layer.lower()}Cycle1", ""),
             getattr(world.ootDefaultRenderModes, f"{layer.lower()}Cycle2", ""),
@@ -1053,7 +1053,7 @@ class F3DPanel(Panel):
     def ui_draw_layer(self, material, layout, context):
         if context.scene.gameEditorMode == "SM64":
             prop_split(layout, material.f3d_mat.draw_layer, "sm64", "Draw Layer")
-        elif context.scene.gameEditorMode == "OOT":
+        elif context.scene.gameEditorMode in {"OOT", "MM"}:
             prop_split(layout, material.f3d_mat.draw_layer, "oot", "Draw Layer")
 
     def ui_misc(self, f3dMat: "F3DMaterialProperty", inputCol: UILayout, showCheckBox: bool) -> None:
@@ -3996,7 +3996,10 @@ class CelLevelRemove(bpy.types.Operator):
 
 
 def getCurrentPresetDir():
-    return "f3d/" + bpy.context.scene.gameEditorMode.lower()
+    if bpy.context.scene.gameEditorMode in {"OOT", "MM"}:
+        return f"f3d/oot"
+    else:
+        return f"f3d/{bpy.context.scene.gameEditorMode.lower()}"
 
 
 class ApplyMaterialPresetOperator(Operator):
@@ -4008,10 +4011,6 @@ class ApplyMaterialPresetOperator(Operator):
     def execute(self, context: Context):
         material_apply_preset(context.material, self.filepath)
         return {"FINISHED"}
-
-
-def getCurrentPresetDir():
-    return "f3d/" + bpy.context.scene.gameEditorMode.lower()
 
 
 # modules/bpy_types.py -> Menu

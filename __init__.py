@@ -1,4 +1,6 @@
 import bpy
+from .fast64_internal.game_data import game_data
+
 from bpy.utils import register_class, unregister_class
 from bpy.path import abspath
 
@@ -19,10 +21,10 @@ from .fast64_internal.sm64.settings.properties import SM64_Properties
 from .fast64_internal.sm64.sm64_geolayout_bone import SM64_BoneProperties
 from .fast64_internal.sm64.sm64_objects import SM64_ObjectProperties
 
-from .fast64_internal.oot import OOT_Properties, oot_register, oot_unregister
-from .fast64_internal.oot.oot_constants import oot_world_defaults
-from .fast64_internal.oot.props_panel_main import OOT_ObjectProperties
-from .fast64_internal.oot.actor.properties import initOOTActorProperties
+from .fast64_internal.z64 import OOT_Properties, oot_register, oot_unregister, z64_register_on_enable
+from .fast64_internal.z64.constants import oot_world_defaults
+from .fast64_internal.z64.props_panel_main import OOT_ObjectProperties
+from .fast64_internal.z64.utility import getObjectList
 from .fast64_internal.utility_anim import utility_anim_register, utility_anim_unregister, ArmatureApplyWithMeshOperator
 
 from .fast64_internal.mk64 import MK64_Properties, mk64_register, mk64_unregister
@@ -59,7 +61,7 @@ from .fast64_internal.render_settings import (
 # info about add on
 bl_info = {
     "name": "Fast64",
-    "version": (2, 3, 0),
+    "version": (2, 3, 1),
     "author": "kurethedead",
     "location": "3DView",
     "description": "Plugin for exporting F3D display lists and other game data related to Nintendo 64 games.",
@@ -70,6 +72,7 @@ bl_info = {
 gameEditorEnum = (
     ("SM64", "SM64", "Super Mario 64", 0),
     ("OOT", "OOT", "Ocarina Of Time", 1),
+    ("MM", "MM", "Majora's Mask", 4),
     ("MK64", "MK64", "Mario Kart 64", 3),
     ("Homebrew", "Homebrew", "Homebrew", 2),
 )
@@ -241,6 +244,9 @@ class Fast64_Properties(bpy.types.PropertyGroup):
     settings: bpy.props.PointerProperty(type=Fast64Settings_Properties, name="Fast64 Settings")
     renderSettings: bpy.props.PointerProperty(type=Fast64RenderSettings_Properties, name="Fast64 Render Settings")
 
+    def get_addon_version(self):
+        return bl_info["version"]
+
 
 class Fast64_BoneProperties(bpy.types.PropertyGroup):
     """
@@ -299,24 +305,6 @@ class UpgradeF3DMaterialsDialog(bpy.types.Operator):
         return {"FINISHED"}
 
 
-# def updateGameEditor(scene, context):
-# 	if scene.currentGameEditorMode == 'SM64':
-# 		sm64_panel_unregister()
-# 	elif scene.currentGameEditorMode == 'Z64':
-# 		oot_panel_unregister()
-# 	else:
-# 		raise PluginError("Unhandled game editor mode " + str(scene.currentGameEditorMode))
-#
-# 	if scene.gameEditorMode == 'SM64':
-# 		sm64_panel_register()
-# 	elif scene.gameEditorMode == 'Z64':
-# 		oot_panel_register()
-# 	else:
-# 		raise PluginError("Unhandled game editor mode " + str(scene.gameEditorMode))
-#
-# 	scene.currentGameEditorMode = scene.gameEditorMode
-
-
 class ExampleAddonPreferences(bpy.types.AddonPreferences, addon_updater_ops.AddonUpdaterPreferences):
     bl_idname = __package__
 
@@ -371,6 +359,8 @@ def upgrade_scene_props_node():
 
 @bpy.app.handlers.persistent
 def after_load(_a, _b):
+    game_data.update(bpy.context.scene.gameEditorMode)
+
     settings = bpy.context.scene.fast64.settings
     if any(mat.is_f3d for mat in bpy.data.materials):
         check_or_ask_color_management(bpy.context)
@@ -396,7 +386,7 @@ def set_game_defaults(scene: bpy.types.Scene, set_ucode=True):
     elif scene.gameEditorMode == "MK64":
         f3d_type = "F3DEX"
         world_defaults = mk64_world_defaults
-    elif scene.gameEditorMode == "OOT":
+    elif scene.gameEditorMode in {"OOT", "MM"}:
         f3d_type = "F3DEX2/LX2"
         world_defaults = oot_world_defaults
     elif scene.gameEditorMode == "MK64":
@@ -406,12 +396,24 @@ def set_game_defaults(scene: bpy.types.Scene, set_ucode=True):
         world_defaults = {}  # This will set some pretty bad defaults, but trust the user
     if set_ucode:
         scene.f3d_type = f3d_type
-    if scene.world is not None:
+    if scene.world is not None and world_defaults is not None:
         scene.world.rdp_defaults.from_dict(world_defaults)
 
 
 def gameEditorUpdate(scene: bpy.types.Scene, _context):
+    game_data.update(scene.gameEditorMode)
     set_game_defaults(scene)
+
+    # reset `currentCutsceneIndex` when switching games
+    if scene.gameEditorMode in {"OOT", "MM"}:
+        for scene_obj in bpy.data.objects:
+            scene_obj.ootAlternateSceneHeaders.currentCutsceneIndex = game_data.z64.cs_index_start
+
+            if scene_obj.type == "EMPTY" and scene_obj.ootEmptyType == "Scene":
+                room_obj_list = getObjectList(scene_obj.children_recursive, "EMPTY", "Room")
+
+                for room_obj in room_obj_list:
+                    room_obj.ootAlternateRoomHeaders.currentCutsceneIndex = game_data.z64.cs_index_start
 
 
 # called on add-on enabling
@@ -435,16 +437,18 @@ def register():
     register_class(ExampleAddonPreferences)
     addon_updater_ops.register(bl_info)
 
-    initOOTActorProperties()
     utility_anim_register()
     mat_register()
     render_engine_register()
     bsdf_conv_register()
     sm64_register(True)
-    oot_register(True)
+    oot_register(True, True)
     mk64_register(True)
 
     repo_settings_operators_register()
+
+    for cls in z64_register_on_enable:
+        register_class(cls)
 
     for cls in classes:
         register_class(cls)
@@ -488,7 +492,7 @@ def unregister():
     f3d_writer_unregister()
     f3d_parser_unregister()
     sm64_unregister(True)
-    oot_unregister(True)
+    oot_unregister(True, True)
     mk64_unregister(True)
     mat_unregister()
     bsdf_conv_unregister()
@@ -508,7 +512,10 @@ def unregister():
 
     repo_settings_operators_unregister()
 
-    for cls in classes:
+    for cls in reversed(classes):
+        unregister_class(cls)
+
+    for cls in reversed(z64_register_on_enable):
         unregister_class(cls)
 
     bpy.app.handlers.load_post.remove(after_load)

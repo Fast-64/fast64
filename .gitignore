@@ -5,3 +5,6 @@ __pycache__/
 fast64_updater/
 .python-version
 .idea
+
+# temp? just exporting my stuff in my fast64 clone because reasons
+export/

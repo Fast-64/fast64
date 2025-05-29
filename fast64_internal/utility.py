@@ -3,8 +3,11 @@ import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operato
 from math import pi, ceil, degrees, radians, copysign
 from mathutils import *
 from .utility_anim import *
-from typing import Callable, Iterable, Any, Optional, Tuple, TypeVar, Union
+from typing import Callable, Iterable, Any, Optional, Tuple, TypeVar, Union, TYPE_CHECKING
 from bpy.types import UILayout, Scene, World
+
+if TYPE_CHECKING:
+    from .f3d.f3d_material import F3DMaterialProperty
 
 CollectionProperty = Any  # collection prop as defined by using bpy.props.CollectionProperty
 
@@ -1683,29 +1686,34 @@ def lightDataToObj(lightData):
     )
 
 
-def ootGetSceneOrRoomHeader(parent, idx, isRoom):
+def ootGetSceneOrRoomHeader(parent: bpy.types.Object, idx: int, isRoom: bool):
+    from .game_data import game_data  # circular import fix
+
     # This should be in oot_utility.py, but it is needed in f3d_material.py
     # which creates a circular import. The real problem is that the F3D render
     # settings stuff should be in a place which can import both SM64 and OoT
     # code without circular dependencies.
     if idx < 0:
         raise PluginError("Alternate scene/room header index too low: " + str(idx))
+
     target = "Room" if isRoom else "Scene"
     altHeaders = getattr(parent, "ootAlternate" + target + "Headers")
+
     if idx == 0:
         return getattr(parent, "oot" + target + "Header")
-    elif 1 <= idx <= 3:
-        if idx == 1:
-            ret = altHeaders.childNightHeader
-        elif idx == 2:
-            ret = altHeaders.adultDayHeader
-        else:
-            ret = altHeaders.adultNightHeader
-        return None if ret.usePreviousHeader else ret
-    else:
-        if idx - 4 >= len(altHeaders.cutsceneHeaders):
-            return None
-        return altHeaders.cutsceneHeaders[idx - 4]
+    elif game_data.z64.is_oot():
+        if 1 <= idx <= (game_data.z64.cs_index_start - 1):
+            if idx == 1:
+                ret = altHeaders.childNightHeader
+            elif idx == 2:
+                ret = altHeaders.adultDayHeader
+            else:
+                ret = altHeaders.adultNightHeader
+            return None if ret.usePreviousHeader else ret
+
+    if idx - game_data.z64.cs_index_start >= len(altHeaders.cutsceneHeaders):
+        return None
+    return altHeaders.cutsceneHeaders[idx - game_data.z64.cs_index_start]
 
 
 def ootGetBaseOrCustomLight(prop, idx, toExport: bool, errIfMissing: bool):
@@ -1930,6 +1938,16 @@ def set_if_different(owner: object, prop: str, value):
 def set_prop_if_in_data(owner: object, prop_name: str, data: dict, data_name: str):
     if data_name in data:
         set_if_different(owner, prop_name, data[data_name])
+
+
+def get_prop_annotations(cls):
+    prop_annotations = getattr(cls, "__annotations__", None)
+
+    if prop_annotations is None:
+        setattr(cls, "__annotations__", dict())
+        prop_annotations = getattr(cls, "__annotations__")
+
+    return prop_annotations
 
 
 def wrap_func_with_error_message(error_message: Callable):

@@ -22,7 +22,7 @@ We have a Discord server for support as well as development [here](https://disco
 
 ### Links to Docs / Guides for Each Game
 1. [ Super Mario 64 ](/fast64_internal/sm64/README.md)
-2. [ Ocarina Of Time ](/fast64_internal/oot/README.md)
+2. [ Ocarina Of Time and Majora's Mask ](/fast64_internal/z64/README.md)
 
 ### Installation
 Download the repository as a zip file. In Blender, go to Edit -> Preferences -> Add-Ons and click the "Install" button to install the plugin from the zip file. Find the Fast64 addon in the addon list and enable it. If it does not show up, go to Edit -> Preferences -> Save&Load and make sure 'Auto Run Python Scripts' is enabled.
