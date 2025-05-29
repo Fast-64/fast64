@@ -6,7 +6,7 @@ from bpy.types import Operator, Object, Context
 from bpy.props import FloatProperty, StringProperty, EnumProperty, BoolProperty
 
 from ...operators import AddWaterBox, addMaterialByName
-from ...utility import parentObject, setOrigin
+from ...utility import PluginError, parentObject, setOrigin
 from ...game_data import game_data
 from ..cutscene.motion.utility import setupCutscene, createNewCameraShot
 from ..utility import getNewPath, get_new_empty_object, is_oot_features
@@ -317,6 +317,10 @@ class Z64_AddActorCutscenes(Operator):
             self.layout.label(text="Warning: This is only useful when using MM features.", icon="ERROR")
 
     def execute(self, context: Context):
+        for obj in bpy.data.objects:
+            if obj.type == "EMPTY" and obj.ootEmptyType == "Actor Cutscene":
+                raise PluginError(f"ERROR: an actor cutscene object already exists! ({repr(obj.name)})")
+
         actor_cs_obj = get_new_empty_object(self.obj_name)
         actor_cs_obj.ootEmptyType = "Actor Cutscene"
 

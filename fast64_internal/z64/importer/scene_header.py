@@ -472,6 +472,8 @@ def parse_actor_cs(scene_obj: Object, header_index: int, scene_data: str, list_n
                     new_entry.cs_cam_obj = obj
                     break
 
+    bpy.context.scene.fast64.oot.global_actor_cs_count = len(props.entries)
+
 
 def parseSceneCommands(
     sceneName: str | None,
