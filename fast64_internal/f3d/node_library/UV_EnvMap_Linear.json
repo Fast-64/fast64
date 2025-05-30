@@ -8,7 +8,6 @@
 				344.3111
 			],
 			"clamp": true,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Value",
@@ -85,7 +84,6 @@
 				84.9939
 			],
 			"clamp": true,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Value",
@@ -161,7 +159,6 @@
 				640.2026,
 				220.5324
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -208,7 +205,6 @@
 				238.6412
 			],
 			"operation": "ARCCOSINE",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -241,7 +237,6 @@
 				-20.653
 			],
 			"operation": "ARCCOSINE",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -273,8 +268,6 @@
 				598.8708,
 				309.2487
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -298,8 +291,6 @@
 				598.8708,
 				50.2324
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -323,8 +314,6 @@
 				598.8708,
 				161.2621
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -348,8 +337,6 @@
 				598.8708,
 				139.1357
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -373,8 +360,6 @@
 				232.3399,
 				125.2303
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -398,8 +383,6 @@
 				232.3399,
 				-134.0211
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -423,8 +406,6 @@
 				232.3399,
 				52.3496
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -449,7 +430,6 @@
 				86.7655
 			],
 			"hide": false,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Vector"
@@ -482,7 +462,6 @@
 				-91.8587,
 				18.0016
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -511,7 +490,6 @@
 				-247.4622,
 				-85.4111
 			],
-			"width_hidden": 100.0,
 			"outputs": {
 				"0": {
 					"name": "Position",
@@ -562,8 +540,6 @@
 				232.3399,
 				29.8204
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -582,7 +558,7 @@
 			}
 		}
 	},
-	"cached_hash": "12d7fe165090d1d086d11385269ba768",
+	"cached_hash": "cd916052b26677967dce106f376351fd",
 	"outputs": [
 		{
 			"name": "Vector",

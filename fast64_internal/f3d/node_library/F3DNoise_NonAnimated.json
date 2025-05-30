@@ -32,7 +32,6 @@
 				-122.0168,
 				-0.6306
 			],
-			"width_hidden": 100.0,
 			"outputs": {
 				"0": {
 					"name": "Value",
@@ -46,7 +45,7 @@
 			}
 		}
 	},
-	"cached_hash": "0634e84b6e5761e0da41db7f8baa504c",
+	"cached_hash": "9a5a42fe144725066d8cd33d885cfc89",
 	"outputs": [
 		{
 			"name": "Noise Factor",

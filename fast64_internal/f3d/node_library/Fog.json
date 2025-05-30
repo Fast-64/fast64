@@ -7,7 +7,6 @@
 				-463.6024,
 				-23.266
 			],
-			"width_hidden": 100.0,
 			"outputs": {
 				"1": {
 					"name": "View Z Depth",
@@ -31,8 +30,6 @@
 				32.0329
 			],
 			"label": "approx of 970 -> 1000 fog",
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -69,6 +66,16 @@
 							1.0
 						],
 						"position": 0.7863638401031494
+					},
+					{
+						"alpha": 1.0,
+						"color": [
+							1.0,
+							1.0,
+							1.0,
+							1.0
+						],
+						"position": 1.0
 					},
 					{
 						"alpha": 1.0,
@@ -136,7 +143,6 @@
 				-36.6214
 			],
 			"operation": "MULTIPLY_ADD",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -166,7 +172,6 @@
 				207.226,
 				45.3343
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
@@ -252,6 +257,16 @@
 							1.0
 						],
 						"position": 1.0
+					},
+					{
+						"alpha": 1.0,
+						"color": [
+							1.0,
+							1.0,
+							1.0,
+							1.0
+						],
+						"position": 1.0
 					}
 				],
 				"hue_interpolation": "NEAR",
@@ -289,7 +304,6 @@
 				-254.0697
 			],
 			"operation": "MULTIPLY_ADD",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -319,7 +333,6 @@
 				207.226,
 				-172.114
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
@@ -376,7 +389,7 @@
 			}
 		}
 	},
-	"cached_hash": "7f258170530afce84f401e6236cef7f8",
+	"cached_hash": "a093d31fca47861d12f23b1413ac3abe",
 	"outputs": [
 		{
 			"name": "Color",

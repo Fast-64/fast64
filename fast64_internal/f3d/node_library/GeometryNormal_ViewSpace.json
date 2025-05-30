@@ -16,7 +16,6 @@
 				-59.7403,
 				17.7791
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -47,7 +46,6 @@
 			],
 			"hide": true,
 			"operation": "MULTIPLY",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {
@@ -88,7 +86,6 @@
 				114.5955,
 				-17.5179
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -131,7 +128,6 @@
 				-58.9216,
 				-151.7115
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -162,7 +158,6 @@
 			],
 			"hide": true,
 			"operation": "MULTIPLY",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {
@@ -203,7 +198,6 @@
 				115.4142,
 				-187.0085
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -246,7 +240,6 @@
 				-243.9189,
 				-120.1613
 			],
-			"width_hidden": 100.0,
 			"outputs": {
 				"1": {
 					"name": "Normal",
@@ -288,7 +281,7 @@
 			}
 		}
 	},
-	"cached_hash": "8f6350ce238eb960998f9198f70c3788",
+	"cached_hash": "a2730c8802910e666d1e16411b1c646b",
 	"outputs": [
 		{
 			"name": "Normal",

@@ -7,7 +7,6 @@
 				-10.3302,
 				121.1825
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -39,7 +38,6 @@
 				143.354
 			],
 			"operation": "POWER",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 2.0
@@ -110,7 +108,7 @@
 			}
 		}
 	},
-	"cached_hash": "0c158dcb4e8b9b17af779ea4fe954d1e",
+	"cached_hash": "4258d967de2cf164c8d25022c13e1fc5",
 	"inputs": [
 		{
 			"name": "Shift",

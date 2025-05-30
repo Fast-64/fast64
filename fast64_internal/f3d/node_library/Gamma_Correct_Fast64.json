@@ -36,7 +36,6 @@
 				312.6501,
 				61.278
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "R"
@@ -101,7 +100,6 @@
 				-352.4275,
 				61.278
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Image",
@@ -220,7 +218,7 @@
 			}
 		}
 	},
-	"cached_hash": "a104f41970a10905f5d54391cc7bf881",
+	"cached_hash": "5ba3178fd0f85ae4919a5eb3b830681e",
 	"inputs": [
 		{
 			"name": "Color",

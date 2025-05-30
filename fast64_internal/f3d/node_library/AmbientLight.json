@@ -8,7 +8,6 @@
 				53.1117
 			],
 			"operation": "SCALE",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {
@@ -87,7 +86,7 @@
 			}
 		}
 	},
-	"cached_hash": "ae65a4654610027487cd408c2b843849",
+	"cached_hash": "c76945b1578e6506f3a0fd3623f3ef64",
 	"inputs": [
 		{
 			"name": "Ambient Color",

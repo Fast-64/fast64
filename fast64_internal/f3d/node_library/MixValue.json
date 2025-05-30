@@ -54,7 +54,6 @@
 				43.4761
 			],
 			"operation": "SUBTRACT",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -85,7 +84,6 @@
 				90.9843
 			],
 			"operation": "MULTIPLY_ADD",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -124,7 +122,7 @@
 			}
 		}
 	},
-	"cached_hash": "5f375d02afbfd321b9cb21796947d0b6",
+	"cached_hash": "653562e7e35aaba1be1c2ce85410760b",
 	"inputs": [
 		{
 			"name": "Fac",

@@ -7,7 +7,6 @@
 				84.3359,
 				82.7458
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "R"
@@ -181,7 +180,6 @@
 				-467.473,
 				29.7773
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Image",
@@ -224,7 +222,7 @@
 			}
 		}
 	},
-	"cached_hash": "bf521a85bd1f78bcceabdec08eaab7b6",
+	"cached_hash": "fde35ab6e47f947c3c80667a8da6a83e",
 	"inputs": [
 		{
 			"name": "Gamma Corrected Color",

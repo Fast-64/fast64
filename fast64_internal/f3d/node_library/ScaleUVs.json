@@ -8,7 +8,6 @@
 				79.9224
 			],
 			"operation": "MULTIPLY_ADD",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -94,7 +93,6 @@
 				-55.1894,
 				15.1652
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -129,7 +127,6 @@
 				-48.2458
 			],
 			"operation": "MULTIPLY_ADD",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {
@@ -169,7 +166,7 @@
 			}
 		}
 	},
-	"cached_hash": "d64350ead33e718493aa06597854a06a",
+	"cached_hash": "f6e076820d4057faf0342ba8906a50ea",
 	"inputs": [
 		{
 			"name": "UV",

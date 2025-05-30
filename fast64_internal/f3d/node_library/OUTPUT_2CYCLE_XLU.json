@@ -39,7 +39,6 @@
 				-190.3567,
 				134.448
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
@@ -89,7 +88,6 @@
 				333.0882,
 				32.4752
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Fac"
@@ -159,7 +157,6 @@
 			],
 			"hide": true,
 			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Value",
@@ -186,7 +183,7 @@
 			}
 		}
 	},
-	"cached_hash": "71975054ffbc15b987fd0b35eed3bb11",
+	"cached_hash": "734e9d09ec85e31ec24c832234c3d34c",
 	"inputs": [
 		{
 			"name": "Cycle_C_1",

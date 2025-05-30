@@ -8,7 +8,6 @@
 				24.5723
 			],
 			"label": "Combine XY",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -39,7 +38,6 @@
 				80.3419
 			],
 			"operation": "MULTIPLY",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {
@@ -82,7 +80,6 @@
 			],
 			"label": "ShiftIfEnabled",
 			"operation": "MULTIPLY",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -118,7 +115,6 @@
 				-137.2627
 			],
 			"label": "Combine UV",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -149,7 +145,6 @@
 				-9.0905
 			],
 			"hide": false,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Vector"
@@ -278,8 +273,6 @@
 				-379.3498,
 				-144.1663
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -303,8 +296,6 @@
 				-379.3498,
 				97.2086
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -328,8 +319,6 @@
 				-353.6244,
 				75.2043
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -353,8 +342,6 @@
 				-353.6244,
 				-166.7248
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -379,7 +366,6 @@
 				156.8215
 			],
 			"label": "TexelOffset",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "X",
@@ -412,7 +398,6 @@
 				189.8493
 			],
 			"operation": "DIVIDE",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": [
@@ -454,7 +439,6 @@
 				-58.0213
 			],
 			"operation": "SUBTRACT",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -484,7 +468,7 @@
 			}
 		}
 	},
-	"cached_hash": "ac40f97d69b2a56faba551d9aed0c972",
+	"cached_hash": "01a9fab2e3c2b5027ef0850af9f5d5a5",
 	"inputs": [
 		{
 			"name": "Width",

@@ -7,8 +7,6 @@
 				82.7474,
 				19.6912
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -36,8 +34,6 @@
 				83.2684,
 				-142.0117
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -91,7 +87,6 @@
 				132.0775
 			],
 			"label": "L2A: Col = VtxCol",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Fac"
@@ -267,7 +262,6 @@
 			"hide": true,
 			"label": "Light * VCol",
 			"operation": "MULTIPLY",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -297,7 +291,7 @@
 			}
 		}
 	},
-	"cached_hash": "5594ee1c59fd703e46a964e5bc6f7700",
+	"cached_hash": "3850bc4dccf5edc30d331fcca2bb6b28",
 	"inputs": [
 		{
 			"name": "G_LIGHTTOALPHA",

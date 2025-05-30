@@ -37,7 +37,6 @@
 				-29.4316
 			],
 			"hide": true,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -111,7 +110,7 @@
 			}
 		}
 	},
-	"cached_hash": "ad8a58d7bdd30d8b3c6b4e51dadc3856",
+	"cached_hash": "3c2001bdc3e20c467b8d3574bf86c05f",
 	"inputs": [
 		{
 			"name": "Shift",

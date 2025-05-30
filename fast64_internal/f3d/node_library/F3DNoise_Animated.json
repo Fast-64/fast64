@@ -33,7 +33,6 @@
 				0.2018
 			],
 			"label": "NoiseDriver",
-			"width_hidden": 100.0,
 			"outputs": {
 				"0": {
 					"name": "Value",
@@ -48,7 +47,7 @@
 			}
 		}
 	},
-	"cached_hash": "482f34af0ad061c9bac0ca831ee1057c",
+	"cached_hash": "04ecc44aca02d92be9a7ed68ed04e1c5",
 	"outputs": [
 		{
 			"name": "Noise Factor",

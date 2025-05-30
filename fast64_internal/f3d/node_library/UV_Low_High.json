@@ -9,8 +9,7 @@
 			],
 			"height": 44.99993896484375,
 			"label": "The reason for < and *+ is for float issues ",
-			"width": 427.2569580078125,
-			"width_hidden": 100.0
+			"width": 427.2569580078125
 		},
 		"Frame.001": {
 			"bl_idname": "NodeFrame",
@@ -20,8 +19,7 @@
 			],
 			"height": 44.99993896484375,
 			"label": "This is a hacky solution but seems to work well enough",
-			"width": 545.8851318359375,
-			"width_hidden": 100.0
+			"width": 545.8851318359375
 		},
 		"Reroute": {
 			"bl_idname": "NodeReroute",
@@ -29,8 +27,6 @@
 				-203.4064,
 				-49.2803
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -62,7 +58,6 @@
 			"label": "Frac of Low",
 			"operation": "FRACT",
 			"width": 113.50496673583984,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -98,8 +93,6 @@
 				-203.4064,
 				16.0607
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -185,7 +178,6 @@
 			"hide": true,
 			"label": "1 / Size",
 			"operation": "DIVIDE",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 1.0
@@ -222,7 +214,6 @@
 			],
 			"label": "Clamp Correction",
 			"operation": "ADD",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -253,7 +244,6 @@
 				408.8061,
 				142.1312
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -284,7 +274,6 @@
 				297.9476
 			],
 			"operation": "LESS_THAN",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.10000000149011612
@@ -315,8 +304,6 @@
 				-56.266,
 				184.9541
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -341,7 +328,6 @@
 				252.7998
 			],
 			"operation": "MULTIPLY_ADD",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -369,7 +355,6 @@
 				409.7428,
 				-57.7415
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -395,7 +380,7 @@
 			}
 		}
 	},
-	"cached_hash": "887a6c232e1729f08dfc119778e20881",
+	"cached_hash": "b1b747e16ee69a5e54589a0125f597cf",
 	"inputs": [
 		{
 			"name": "High",

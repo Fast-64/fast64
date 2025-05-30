@@ -11,8 +11,7 @@
 			"label": "((2 * n * f / z) - n - f) / (n - f)",
 			"label_size": 39,
 			"use_custom_color": true,
-			"width": 1035.71337890625,
-			"width_hidden": 100.0
+			"width": 1035.71337890625
 		},
 		"Reroute.021": {
 			"bl_idname": "NodeReroute",
@@ -20,8 +19,6 @@
 				-1537.126,
 				-47.0841
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -46,7 +43,6 @@
 				-146.9997
 			],
 			"clamp": true,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Value",
@@ -123,8 +119,6 @@
 				-112.4163
 			],
 			"hide": true,
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -148,8 +142,6 @@
 				-1203.4788,
 				-291.3871
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -173,8 +165,6 @@
 				-1013.8779,
 				-440.7935
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -198,8 +188,6 @@
 				-1187.3524,
 				-419.8951
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -223,8 +211,6 @@
 				-1187.3524,
 				-441.8951
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -248,8 +234,6 @@
 				-1013.7449,
 				-418.7934
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -274,8 +258,6 @@
 				-112.4162
 			],
 			"hide": true,
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -300,7 +282,6 @@
 				-151.1972
 			],
 			"clamp": true,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Value",
@@ -379,8 +360,6 @@
 				-71.1578
 			],
 			"mute": true,
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -408,8 +387,6 @@
 				-778.6177,
 				36.7251
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -437,8 +414,6 @@
 				-578.4153,
 				86.9955
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -462,8 +437,6 @@
 				-195.5156,
 				129.9737
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -495,7 +468,6 @@
 			"label": "n - f",
 			"operation": "SUBTRACT",
 			"use_custom_color": true,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -535,7 +507,6 @@
 			"label": "((2 * n * f / z) - n - f) / (n - f)",
 			"operation": "DIVIDE",
 			"use_custom_color": true,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -574,7 +545,6 @@
 			"label": "(2 * n * f / z) - n - f",
 			"operation": "SUBTRACT",
 			"use_custom_color": true,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -613,7 +583,6 @@
 			"label": "(2 * n * f / z) - n",
 			"operation": "SUBTRACT",
 			"use_custom_color": true,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -652,7 +621,6 @@
 			"label": "2 * n * f / z",
 			"operation": "DIVIDE",
 			"use_custom_color": true,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -690,7 +658,6 @@
 			],
 			"use_custom_color": true,
 			"width": 100.0,
-			"width_hidden": 100.0,
 			"outputs": {
 				"0": {
 					"name": "View Vector",
@@ -724,7 +691,6 @@
 			],
 			"label": "2 * n * f",
 			"use_custom_color": true,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -762,7 +728,6 @@
 			],
 			"label": "n * f",
 			"use_custom_color": true,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -793,7 +758,6 @@
 				-620.1785,
 				-163.8423
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -824,8 +788,6 @@
 				-645.0254,
 				-470.3472
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -849,8 +811,6 @@
 				-645.2181,
 				-300.6751
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -874,8 +834,6 @@
 				-1494.2568,
 				-3.2079
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -899,8 +857,6 @@
 				-1494.2351,
 				-470.5702
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -988,8 +944,6 @@
 				-1537.126,
 				48.3027
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1014,7 +968,6 @@
 				162.5411
 			],
 			"operation": "DIVIDE",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -1045,8 +998,6 @@
 				-1515.8048,
 				26.7123
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1074,8 +1025,6 @@
 				-1515.8048,
 				-69.3657
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1100,7 +1049,6 @@
 				321.4056
 			],
 			"operation": "DIVIDE",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -1131,8 +1079,6 @@
 				-1557.6958,
 				207.6679
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1156,8 +1102,6 @@
 				-1515.8048,
 				185.732
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1181,8 +1125,6 @@
 				-1557.6958,
 				-25.2947
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1206,8 +1148,6 @@
 				-1282.827,
 				36.7251
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1231,8 +1171,6 @@
 				-1282.827,
 				232.6317
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1260,8 +1198,6 @@
 				-1282.827,
 				286.7317
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1285,8 +1221,6 @@
 				-1311.0453,
 				210.1905
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1310,8 +1244,6 @@
 				-1311.0453,
 				-71.1578
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1335,8 +1267,6 @@
 				-1311.0453,
 				127.9143
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1375,7 +1305,7 @@
 			}
 		}
 	},
-	"cached_hash": "b6a75ff9edade38658f47d65f77ddc9a",
+	"cached_hash": "f4fe57d8a7c1187b2151285516b948c2",
 	"inputs": [
 		{
 			"name": "FogEnable",

@@ -7,8 +7,6 @@
 				-108.6897,
 				-41.7827
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -32,8 +30,6 @@
 				-108.6895,
 				156.6045
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -57,7 +53,6 @@
 				340.6651,
 				284.262
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -103,8 +98,6 @@
 				315.9451,
 				202.6528
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -128,8 +121,6 @@
 				315.9451,
 				225.0103
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -153,8 +144,6 @@
 				315.9452,
 				90.3626
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -386,7 +375,6 @@
 				146.7432,
 				125.5951
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": -1.0
@@ -418,7 +406,6 @@
 				189.7226
 			],
 			"operation": "MULTIPLY_ADD",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -448,8 +435,6 @@
 				-427.7146,
 				196.3708
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -522,7 +507,7 @@
 			}
 		}
 	},
-	"cached_hash": "f1f5e68e01b178ffe8bd7bc97fba2710",
+	"cached_hash": "277e2038faf3b9983b03c45720780ed4",
 	"inputs": [
 		{
 			"name": "X",

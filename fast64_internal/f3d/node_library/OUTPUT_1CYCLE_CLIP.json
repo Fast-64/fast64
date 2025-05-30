@@ -8,7 +8,6 @@
 				-67.7904
 			],
 			"hide": true,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
@@ -42,8 +41,6 @@
 				-12.9584,
 				-28.8947
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -67,7 +64,6 @@
 				181.1692,
 				4.9553
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Fac"
@@ -205,7 +201,6 @@
 			],
 			"operation": "GREATER_THAN",
 			"use_clamp": true,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -231,7 +226,7 @@
 			}
 		}
 	},
-	"cached_hash": "f01712e787488a83b445c315608f2fe1",
+	"cached_hash": "38556e51ebd885d52a5814959036c668",
 	"inputs": [
 		{
 			"name": "Cycle_C_1",

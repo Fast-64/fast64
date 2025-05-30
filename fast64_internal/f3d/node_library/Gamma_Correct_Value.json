@@ -9,8 +9,7 @@
 			],
 			"height": 212.0,
 			"label": "y = 1.055 * pow(u, (1 / 2.4)) - 0.055",
-			"width": 531.3333129882812,
-			"width_hidden": 100.0
+			"width": 531.3333129882812
 		},
 		"Reroute.038": {
 			"bl_idname": "NodeReroute",
@@ -18,8 +17,6 @@
 				-351.8496,
 				-252.6318
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -43,8 +40,6 @@
 				-351.8496,
 				139.1274
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -68,8 +63,6 @@
 				-351.8496,
 				-60.2462
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -101,8 +94,6 @@
 				233.1534,
 				-173.7572
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -127,7 +118,6 @@
 				252.6318
 			],
 			"operation": "LESS_THAN",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -193,7 +183,6 @@
 				-298.1823,
 				-139.3009
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -229,7 +218,6 @@
 				"serialized_type": "Node",
 				"name": "Frame.001"
 			},
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -264,7 +252,6 @@
 				"serialized_type": "Node",
 				"name": "Frame.001"
 			},
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -300,7 +287,6 @@
 				"serialized_type": "Node",
 				"name": "Frame.001"
 			},
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -350,7 +336,6 @@
 				547.0531,
 				93.6815
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Value",
@@ -393,7 +378,7 @@
 			}
 		}
 	},
-	"cached_hash": "8c6d4dc764cad1c7d88c4b4068e34c41",
+	"cached_hash": "5fb28fe0ecb5b5d45f7dd425720e63b2",
 	"inputs": [
 		{
 			"name": "Non-Corrected Value",

@@ -8,7 +8,6 @@
 				-1.9878
 			],
 			"operation": "SUBTRACT",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -60,7 +59,6 @@
 				1.9878
 			],
 			"operation": "MULTIPLY",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -127,7 +125,7 @@
 			}
 		}
 	},
-	"cached_hash": "bae2e4fddfd480dc76fb920d1c6812b7",
+	"cached_hash": "e6a2bb2f06fbe7d1e03288fbd33642bc",
 	"inputs": [
 		{
 			"name": "C1",

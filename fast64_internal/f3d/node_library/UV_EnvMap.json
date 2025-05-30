@@ -7,7 +7,6 @@
 				13.4256,
 				12.2404
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -37,7 +36,6 @@
 				62.3998
 			],
 			"width": 140.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Vector"
@@ -97,7 +95,6 @@
 				-149.7988,
 				-93.0175
 			],
-			"width_hidden": 100.0,
 			"outputs": {
 				"0": {
 					"name": "Position",
@@ -143,7 +140,7 @@
 			}
 		}
 	},
-	"cached_hash": "a88a9849fddb50443c9b0c0553a33905",
+	"cached_hash": "5d6282123a2badc9ab860e8775cd6a0e",
 	"outputs": [
 		{
 			"name": "Vector",

@@ -8,7 +8,6 @@
 				67.3452
 			],
 			"operation": "MULTIPLY",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -43,7 +42,6 @@
 				164.9748,
 				30.5163
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": [
@@ -100,8 +98,6 @@
 				-576.5394,
 				18.8993
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -125,8 +121,6 @@
 				-576.5394,
 				-78.841
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -214,7 +208,6 @@
 				-382.7128,
 				78.5662
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -247,7 +240,6 @@
 				216.7719
 			],
 			"operation": "DIVIDE",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": [
@@ -288,7 +280,6 @@
 				-563.0628,
 				194.9688
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -319,7 +310,6 @@
 				344.3069
 			],
 			"operation": "DIVIDE",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": [
@@ -355,7 +345,7 @@
 			}
 		}
 	},
-	"cached_hash": "f2b6d949f6516eb314acc1869c8543fd",
+	"cached_hash": "75535f7de8dd81ac4648837e0d967ccb",
 	"inputs": [
 		{
 			"name": "UV",

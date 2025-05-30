@@ -8,7 +8,6 @@
 				65.509
 			],
 			"operation": "DOT_PRODUCT",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -48,7 +47,6 @@
 				14.5778
 			],
 			"operation": "SCALE",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {
@@ -85,8 +83,6 @@
 				-17.4567
 			],
 			"label": "Specular dir",
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -110,8 +106,6 @@
 				-287.8699,
 				87.7018
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -170,8 +164,6 @@
 				658.3651,
 				153.9627
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -237,8 +229,6 @@
 				154.4673
 			],
 			"label": "Normal dot Incoming",
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -262,8 +252,6 @@
 				-214.0225,
 				-142.0041
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -287,8 +275,6 @@
 				-213.1592,
 				-120.1974
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -317,8 +303,6 @@
 				-20.9393
 			],
 			"label": "Projection",
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -342,7 +326,6 @@
 				273.7002,
 				-0.4189
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -378,7 +361,6 @@
 				-134.0832
 			],
 			"operation": "SCALE",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {
@@ -415,7 +397,6 @@
 				2.2366
 			],
 			"operation": "SCALE",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {
@@ -492,7 +473,7 @@
 			}
 		}
 	},
-	"cached_hash": "1749059763006d53098b39612bfde058",
+	"cached_hash": "bea39455edd112e681356a795bdfee34",
 	"inputs": [
 		{
 			"name": "G_LIGHTING_SPECULAR",

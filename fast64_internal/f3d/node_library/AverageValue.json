@@ -7,8 +7,6 @@
 				-279.1092,
 				-34.7839
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -37,7 +35,6 @@
 				78.7376
 			],
 			"operation": "ADD",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -69,7 +66,6 @@
 				55.9736
 			],
 			"operation": "ADD",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -100,8 +96,6 @@
 				257.5029,
 				19.0907
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -126,7 +120,6 @@
 				54.6606
 			],
 			"operation": "DIVIDE",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -192,8 +185,6 @@
 				257.5029,
 				-146.1411
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -217,8 +208,6 @@
 				-279.1092,
 				-123.1018
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -302,7 +291,7 @@
 			}
 		}
 	},
-	"cached_hash": "bbe4c9750777871e1525a9f90fb9ab01",
+	"cached_hash": "2852d7280b5f9fc4001128c4b91420ef",
 	"inputs": [
 		{
 			"name": "ValueSample1",

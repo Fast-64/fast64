@@ -35,7 +35,6 @@
 				84.8114,
 				39.71
 			],
-			"width_hidden": 100.0,
 			"outputs": {
 				"1": {
 					"name": "Normal",
@@ -58,7 +57,7 @@
 			}
 		}
 	},
-	"cached_hash": "0e4b20409fc80183f80c08ce31ff3e27",
+	"cached_hash": "ebeec0cf2717fd8937c76dc7f291f97c",
 	"outputs": [
 		{
 			"name": "Normal",

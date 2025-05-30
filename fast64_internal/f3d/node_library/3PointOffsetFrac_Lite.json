@@ -7,7 +7,6 @@
 				-445.9736,
 				34.8429
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -39,8 +38,6 @@
 				-0.5345
 			],
 			"label": "Texel Space",
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -66,7 +63,6 @@
 			],
 			"label": "S == -1 and T == 1",
 			"operation": "MULTIPLY_ADD",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -153,7 +149,6 @@
 			],
 			"hide": true,
 			"label": "Flip Range for S",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -186,7 +181,6 @@
 			],
 			"hide": true,
 			"operation": "FRACT",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -212,7 +206,7 @@
 			}
 		}
 	},
-	"cached_hash": "61935a7b24f11e5d8f883682f23b49af",
+	"cached_hash": "78ee13f33e90940fe3105571d103e5c3",
 	"inputs": [
 		{
 			"name": "Value",

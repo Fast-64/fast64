@@ -43,7 +43,6 @@
 				-364.3542,
 				-54.8081
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
@@ -138,7 +137,7 @@
 			}
 		}
 	},
-	"cached_hash": "3cef39840432b7ec32f00abc5b960668",
+	"cached_hash": "e8b362222414252e021688a5343b1ae3",
 	"inputs": [
 		{
 			"name": "Color",

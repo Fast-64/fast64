@@ -62,7 +62,6 @@
 				-0.7327
 			],
 			"use_clamp": true,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Fac"
@@ -126,7 +125,6 @@
 				-100.1417,
 				40.0667
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -152,7 +150,7 @@
 			}
 		}
 	},
-	"cached_hash": "2f1d44811de945fe862e6dba7d673ad7",
+	"cached_hash": "759abedb51be6e8b96208be04c88fd5b",
 	"inputs": [
 		{
 			"name": "Color",

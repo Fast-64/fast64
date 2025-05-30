@@ -7,8 +7,6 @@
 				326.0364,
 				-364.0017
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -32,8 +30,6 @@
 				286.4957,
 				-408.7227
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -57,8 +53,6 @@
 				307.0347,
 				-386.1069
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -82,8 +76,6 @@
 				348.6143,
 				-343.0011
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -263,8 +255,6 @@
 				268.7016,
 				-432.3738
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -288,8 +278,6 @@
 				243.0726,
 				-454.5351
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -313,8 +301,6 @@
 				219.5551,
 				-474.9759
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -338,8 +324,6 @@
 				187.8649,
 				-497.7192
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -363,8 +347,6 @@
 				-15.6982,
 				74.2023
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -388,8 +370,6 @@
 				9.5091,
 				52.1004
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -413,8 +393,6 @@
 				54.724,
 				8.8103
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -438,8 +416,6 @@
 				32.953,
 				30.799
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -463,8 +439,6 @@
 				73.7157,
 				-13.6042
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -488,8 +462,6 @@
 				98.6143,
 				-34.5173
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -513,8 +485,6 @@
 				154.7109,
 				-85.2983
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -538,8 +508,6 @@
 				124.9537,
 				-62.4537
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -563,8 +531,6 @@
 				369.8691,
 				-100.9041
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -588,8 +554,6 @@
 				739.3364,
 				-561.6321
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -613,8 +577,6 @@
 				369.869,
 				-561.6321
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -642,8 +604,6 @@
 				369.869,
 				-518.6503
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -946,7 +906,7 @@
 			}
 		}
 	},
-	"cached_hash": "dff671f24209ae6924c76f102e933490",
+	"cached_hash": "95869a5f8ed000b99151b75958688e75",
 	"inputs": [
 		{
 			"name": "X",

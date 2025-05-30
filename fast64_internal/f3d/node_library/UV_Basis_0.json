@@ -121,7 +121,6 @@
 				361.5455,
 				-166.6665
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -153,7 +152,6 @@
 				-574.2684
 			],
 			"operation": "SUBTRACT",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 1.0
@@ -184,7 +182,6 @@
 				-357.9363
 			],
 			"operation": "MULTIPLY_ADD",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -214,7 +211,6 @@
 			],
 			"operation": "DIVIDE",
 			"width": 186.44256591796875,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -251,7 +247,6 @@
 			],
 			"operation": "DIVIDE",
 			"width": 179.8277587890625,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -313,7 +308,6 @@
 				63.1597
 			],
 			"hide": false,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Vector"
@@ -426,7 +420,7 @@
 			}
 		}
 	},
-	"cached_hash": "d1e31fcfe3b3c2c84e2ccaf3eef7df3d",
+	"cached_hash": "89b1c6c9f8e2cc953e0a035caa2250e7",
 	"inputs": [
 		{
 			"name": "UV",

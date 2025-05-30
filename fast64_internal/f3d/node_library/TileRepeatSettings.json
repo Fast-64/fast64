@@ -7,7 +7,6 @@
 				1419.4938,
 				156.8046
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -38,7 +37,6 @@
 				-12.2871
 			],
 			"operation": "PINGPONG",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -69,7 +67,6 @@
 				-25.3512
 			],
 			"operation": "MAXIMUM",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -98,8 +95,6 @@
 				-295.0883
 			],
 			"label": "Y",
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -218,7 +213,6 @@
 				-25.3512
 			],
 			"operation": "MINIMUM",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -249,8 +243,6 @@
 				88.3516
 			],
 			"label": "Y",
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -275,7 +267,6 @@
 				575.1196
 			],
 			"operation": "ADD",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -307,8 +298,6 @@
 				170.7375
 			],
 			"label": "X",
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -337,7 +326,6 @@
 				395.8094
 			],
 			"operation": "FLOOR",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -370,7 +358,6 @@
 				610.2584
 			],
 			"operation": "WRAP",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -399,8 +386,6 @@
 				385.2227
 			],
 			"label": "X",
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -513,7 +498,6 @@
 				785.7515
 			],
 			"operation": "MAXIMUM",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -577,7 +561,6 @@
 				710.9398
 			],
 			"operation": "MINIMUM",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -608,7 +591,6 @@
 				798.8156
 			],
 			"operation": "PINGPONG",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -672,7 +654,7 @@
 			}
 		}
 	},
-	"cached_hash": "72c084f3d7e87f28da5038c39479df72",
+	"cached_hash": "4c0efaa5a0c7c642dd39113bef832754",
 	"inputs": [
 		{
 			"name": "X",

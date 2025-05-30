@@ -8,7 +8,6 @@
 				-29.8891
 			],
 			"operation": "SUBTRACT",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -40,7 +39,6 @@
 				133.0363
 			],
 			"operation": "SUBTRACT",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -73,7 +71,6 @@
 			],
 			"operation": "DIVIDE",
 			"use_clamp": true,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -104,8 +101,6 @@
 				126.025,
 				-4.4279
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -133,8 +128,6 @@
 				126.9346,
 				-167.3533
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -177,7 +170,6 @@
 			"hide": true,
 			"operation": "ABSOLUTE",
 			"use_clamp": true,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -244,7 +236,7 @@
 			}
 		}
 	},
-	"cached_hash": "42431aec06e0ba359de48662f0f40936",
+	"cached_hash": "68121717c39587ec28ef515c200ad9d0",
 	"inputs": [
 		{
 			"name": "Normal dot Incoming",

@@ -8,7 +8,6 @@
 				-11.5223
 			],
 			"hide": true,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -40,7 +39,6 @@
 				-12.4326
 			],
 			"hide": true,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -72,7 +70,6 @@
 				-51.0922
 			],
 			"hide": true,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -104,7 +101,6 @@
 				-51.0922
 			],
 			"hide": true,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -135,8 +131,6 @@
 				-61.9695,
 				-41.2905
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -167,7 +161,6 @@
 			"hide": true,
 			"label": "Alpha - 1",
 			"operation": "SUBTRACT",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -198,8 +191,6 @@
 				-252.7907,
 				-42.9377
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -281,7 +272,6 @@
 			"hide": true,
 			"label": "+ 1",
 			"operation": "ADD",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -315,7 +305,6 @@
 			"hide": true,
 			"label": "+ 1",
 			"operation": "ADD",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -360,7 +349,7 @@
 			}
 		}
 	},
-	"cached_hash": "816d32a34cb8a790d7c7e29419fdc938",
+	"cached_hash": "ed16f84c1583cb98dc4be307d117549e",
 	"inputs": [
 		{
 			"name": "Vertex Alpha",

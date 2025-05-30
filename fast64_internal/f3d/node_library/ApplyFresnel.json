@@ -46,7 +46,6 @@
 			"label": "Color overrides Alpha",
 			"operation": "SUBTRACT",
 			"use_clamp": true,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -77,8 +76,6 @@
 				85.1312,
 				-124.4681
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -107,7 +104,6 @@
 				193.8259
 			],
 			"label": "Fresnel to Color",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Fac"
@@ -155,8 +151,6 @@
 				84.1019,
 				37.3866
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -205,8 +199,6 @@
 				84.5865,
 				-204.1189
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -230,8 +222,6 @@
 				-105.215,
 				-182.8108
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -259,8 +249,6 @@
 				-141.0258,
 				60.5642
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -284,8 +272,6 @@
 				-138.7407,
 				-103.9636
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -309,8 +295,6 @@
 				-104.9713,
 				81.9426
 			],
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -397,7 +381,7 @@
 			}
 		}
 	},
-	"cached_hash": "49b633daf64a772ca25c8a4bad88848a",
+	"cached_hash": "600007d88f3dc8a3dbab039750e94e4d",
 	"inputs": [
 		{
 			"name": "Color",

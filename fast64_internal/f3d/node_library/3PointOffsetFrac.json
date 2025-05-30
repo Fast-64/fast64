@@ -7,7 +7,6 @@
 				-155.5454,
 				98.5044
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -38,7 +37,6 @@
 				-460.3739,
 				-438.9537
 			],
-			"width_hidden": 100.0,
 			"outputs": {
 				"0": {
 					"name": "Value",
@@ -52,7 +50,6 @@
 				-450.5564,
 				-536.3671
 			],
-			"width_hidden": 100.0,
 			"outputs": {
 				"0": {
 					"name": "Value",
@@ -100,8 +97,6 @@
 				-99.2939
 			],
 			"hide": true,
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -201,7 +196,6 @@
 			],
 			"operation": "FRACT",
 			"use_clamp": true,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -233,8 +227,6 @@
 				63.127
 			],
 			"label": "Texel Space",
-			"width": 100.0,
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -263,7 +255,6 @@
 				70.2817
 			],
 			"operation": "SUBTRACT",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 1.0
@@ -330,7 +321,6 @@
 				78.3637
 			],
 			"operation": "ADD",
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -361,7 +351,6 @@
 				716.3333,
 				76.9614
 			],
-			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": -1.0
@@ -387,7 +376,7 @@
 			}
 		}
 	},
-	"cached_hash": "d3f61f44fd58aff733906857f8dc4959",
+	"cached_hash": "8bd779b59a7f4d2060ede2dbc8045a55",
 	"inputs": [
 		{
 			"name": "Value",
