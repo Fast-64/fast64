@@ -2,7 +2,7 @@ import math
 import mathutils
 import bpy
 from ....utility import PluginError, toAlnum
-from ...skeleton.exporter import ootConvertArmatureToSkeletonWithoutMesh
+from ..skeleton import ootConvertArmatureToSkeletonWithoutMesh
 from .classes import OOTAnimation, OOTLinkAnimation
 
 from ....utility_anim import (

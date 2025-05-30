@@ -1,4 +1,5 @@
 import mathutils
+
 from ....f3d.f3d_writer import GfxList
 from ....utility import CData, toAlnum
 

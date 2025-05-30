@@ -2,9 +2,10 @@ from bpy.types import Operator
 from bpy.utils import register_class, unregister_class
 from bpy.ops import object
 from mathutils import Matrix
+
 from ...utility import PluginError, raisePluginError
 from ..oot_utility import getOOTScale
-from ..collision.exporter.to_c import exportCollisionToC
+from ..exporter.collision import CollisionHeader
 from .properties import OOTCollisionExportSettings
 
 
@@ -24,15 +25,13 @@ class OOT_ExportCollision(Operator):
         if obj.type != "MESH":
             raise PluginError("No mesh object selected.")
 
-        finalTransform = Matrix.Scale(getOOTScale(obj.ootActorScale), 4)
-
         try:
-            exportSettings: OOTCollisionExportSettings = context.scene.fast64.oot.collisionExportSettings
-            exportCollisionToC(obj, finalTransform, exportSettings)
+            transform = Matrix.Scale(getOOTScale(obj.ootActorScale), 4)
+            settings: OOTCollisionExportSettings = context.scene.fast64.oot.collisionExportSettings
+            CollisionHeader.export(obj, transform, settings)
 
             self.report({"INFO"}, "Success!")
             return {"FINISHED"}
-
         except Exception as e:
             if context.mode != "OBJECT":
                 object.mode_set(mode="OBJECT")
