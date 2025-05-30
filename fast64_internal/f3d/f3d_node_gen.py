@@ -29,7 +29,7 @@ from ..utility import PluginError, to_valid_file_name
 from ..operators import OperatorBase
 
 # Enable this to show the gather operator, show create editable, always reload, this is a development feature
-DEBUG_MODE = True
+DEBUG_MODE = False
 
 SERIALIZED_NODE_LIBRARY_PATH = Path(__file__).parent / "node_library" / "main.json"
 
