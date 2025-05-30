@@ -9,6 +9,7 @@ from bpy.types import Material
 from ...utility import PluginError, parentObject, hexOrDecInt, yUpToZUp
 from ..exporter.collision.surface import SurfaceType
 from ..exporter.collision.polygons import CollisionPoly
+from ..exporter.collision.waterbox import WaterBox
 from ..collision.properties import OOTMaterialCollisionProperty
 from ..oot_f3d_writer import getColliderMat
 from ..oot_utility import setCustomProperty, ootParseRotation, get_include_data
@@ -138,18 +139,12 @@ def parseWaterBoxes(
     waterBoxList = [value.replace("{", "").strip() for value in waterBoxListData.split("},") if value.strip() != ""]
 
     # orderIndex used for naming cameras in alphabetical order
-    orderIndex = 0
-    for waterBoxData in waterBoxList:
+    for orderIndex, waterBoxData in enumerate(waterBoxList):
         objName = f"{sceneObj.name}_waterBox_{format(orderIndex, '03')}"
-        params = [value.strip() for value in waterBoxData.split(",")]
-        topCorner = yUpToZUp @ mathutils.Vector(
-            [hexOrDecInt(value) / bpy.context.scene.ootBlenderScale for value in params[0:3] if value.strip() != ""]
-        )
-        dimensions = [
-            hexOrDecInt(value) / bpy.context.scene.ootBlenderScale for value in params[3:5] if value.strip() != ""
-        ]
-        properties = hexOrDecInt(params[5])
+        waterbox = WaterBox.from_data(waterBoxData, not bpy.context.scene.fast64.oot.is_globalh_present())
 
+        topCorner = waterbox.get_blender_position()
+        dimensions = waterbox.get_blender_scale()
         height = 1000 / bpy.context.scene.ootBlenderScale  # just to add volume
 
         location = mathutils.Vector([0, 0, 0])
@@ -166,15 +161,13 @@ def parseWaterBoxes(
 
         waterBoxObj.show_name = True
         waterBoxObj.ootEmptyType = "Water Box"
-        flag19 = checkBit(properties, 19)
-        roomIndex = getBits(properties, 13, 6)
-        waterBoxProp.lighting = getBits(properties, 8, 5)
-        waterBoxProp.camera = getBits(properties, 0, 8)
-        waterBoxProp.flag19 = flag19
+        roomIndex = hexOrDecInt(waterbox.roomIndexC)
+        waterBoxProp.lighting = waterbox.lightIndex
+        waterBoxProp.camera = waterbox.bgCamIndex
+        waterBoxProp.flag19 = waterbox.setFlag19C == "true"
 
         # 0x3F = -1 in 6bit value
-        parentObject(roomObjs[roomIndex] if roomIndex != 0x3F else sceneObj, waterBoxObj)
-        orderIndex += 1
+        parentObject(roomObjs[roomIndex] if len(roomObjs) > 0 and roomIndex != 0x3F else sceneObj, waterBoxObj)
 
 
 def parseSurfaceParams(
@@ -227,16 +220,16 @@ def parseSurfaces(surfaceList: list[str]):
                 hexOrDecInt(surface0[3]),  # unk18
                 surface0[4],
                 surface0[5],
-                True if surface0[6] == "true" else False,  # isSoft
-                True if surface0[7] == "true" else False,  # isHorseBlocked
+                surface0[6] == "true",  # isSoft
+                surface0[7] == "true",  # isHorseBlocked
                 surface1[0],
                 surface1[1],
                 hexOrDecInt(surface1[2]),  # lightSetting
                 hexOrDecInt(surface1[3]),  # echo
-                True if surface1[4] == "true" else False,  # canHookshot
+                surface1[4] == "true",  # canHookshot
                 surface1[5],
                 hexOrDecInt(surface1[6].removeprefix("CONVEYOR_DIRECTION_FROM_BINANG(").removesuffix(")")),
-                True if surface1[7] == "true" else False,  # unk27
+                surface1[7] == "true",  # unk27
                 bpy.context.scene.fast64.oot.useDecompFeatures,
             )
         else:
