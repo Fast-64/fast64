@@ -8,6 +8,7 @@ from typing import Optional
 
 from ...utility import PluginError, readFile, parentObject, hexOrDecInt, gammaInverse
 from ...f3d.f3d_parser import parseMatrices
+from ..exporter.scene.general import EnvLightSettings
 from ..oot_model_classes import OOTF3DContext
 from ..scene.properties import OOTSceneHeaderProperty, OOTLightProperty
 from ..oot_utility import getEvalParams, setCustomProperty
@@ -33,13 +34,11 @@ from ..oot_constants import (
 )
 
 
-def parseColor(values: tuple[str, str, str]) -> tuple[float, float, float]:
-    return tuple(gammaInverse([hexOrDecInt(value) / 0xFF for value in values]))
+def parseColor(values: tuple[int, int, int]) -> tuple[float, float, float]:
+    return tuple(gammaInverse([value / 0xFF for value in values]))
 
 
-def parseDirection(index: int, values: tuple[str, str, str]) -> tuple[float, float, float] | int:
-    values = [hexOrDecInt(value) for value in values]
-
+def parseDirection(index: int, values: tuple[int, int, int]) -> tuple[float, float, float] | int:
     if tuple(values) == (0, 0, 0):
         return "Zero"
     elif index == 0 and tuple(values) == (0x49, 0x49, 0x49):
@@ -86,7 +85,7 @@ def parseLightList(
     lightListName: str,
     headerIndex: int,
 ):
-    lightData = getDataMatch(sceneData, lightListName, ["LightSettings", "EnvLightSettings"], "light list")
+    lightData = getDataMatch(sceneData, lightListName, ["LightSettings", "EnvLightSettings"], "light list", strip=True)
 
     # I currently don't understand the light list format in respect to this lighting flag.
     # So we'll set it to custom instead.
@@ -95,45 +94,15 @@ def parseLightList(
         sceneHeader.skyboxLighting = "Custom"
     sceneHeader.lightList.clear()
 
-    # convert string to ZAPD format if using new Fast64 output
-    if "// Ambient Color" in sceneData:
-        i = 0
-        lightData = lightData.replace("{", "").replace("}", "").replace("\n", "").replace(" ", "").replace(",,", ",")
-        data = "{ "
-        for part in lightData.split(","):
-            if i < 20:
-                if i == 18:
-                    part = getEvalParams(part)
-                data += part + ", "
-                if i == 19:
-                    data = data[:-2]
-            else:
-                data += "},\n{ " + part + ", "
-                i = 0
-            i += 1
-        lightData = data[:-4]
+    lightList = EnvLightSettings.from_data(lightData, not bpy.context.scene.fast64.oot.is_globalh_present())
 
-    lightList = [
-        value.replace("{", "").replace("\n", "").replace(" ", "")
-        for value in lightData.split("},")
-        if value.strip() != ""
-    ]
-
-    index = 0
-    for lightEntry in lightList:
-        lightParams = [value.strip() for value in lightEntry.split(",")]
-
-        ambientColor = parseColor(lightParams[0:3])
-        diffuseDir0 = parseDirection(0, lightParams[3:6])
-        diffuseColor0 = parseColor(lightParams[6:9])
-        diffuseDir1 = parseDirection(1, lightParams[9:12])
-        diffuseColor1 = parseColor(lightParams[12:15])
-        fogColor = parseColor(lightParams[15:18])
-
-        blendFogShort = hexOrDecInt(lightParams[18])
-        fogNear = blendFogShort & ((1 << 10) - 1)
-        transitionSpeed = blendFogShort >> 10
-        z_far = hexOrDecInt(lightParams[19])
+    for index, lightEntry in enumerate(lightList):
+        ambientColor = parseColor(lightEntry.ambientColor)
+        diffuseDir0 = parseDirection(0, lightEntry.light1Dir)
+        diffuseColor0 = parseColor(lightEntry.light1Color)
+        diffuseDir1 = parseDirection(1, lightEntry.light2Dir)
+        diffuseColor1 = parseColor(lightEntry.light2Color)
+        fogColor = parseColor(lightEntry.fogColor)
 
         lightHeader = sceneHeader.lightList.add()
         lightHeader.ambient = ambientColor + (1,)
@@ -149,11 +118,9 @@ def parseLightList(
             lightObj1.location = [4 + headerIndex * 2, 2, -index * 2]
 
         lightHeader.fogColor = fogColor + (1,)
-        lightHeader.fogNear = fogNear
-        lightHeader.z_far = z_far
-        lightHeader.transitionSpeed = transitionSpeed
-
-        index += 1
+        lightHeader.fogNear = lightEntry.fogNear
+        lightHeader.z_far = lightEntry.zFar
+        lightHeader.transitionSpeed = lightEntry.blendRate
 
 
 def parseExitList(sceneHeader: OOTSceneHeaderProperty, sceneData: str, exitListName: str):
