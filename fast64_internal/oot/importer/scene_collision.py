@@ -171,7 +171,9 @@ def parseWaterBoxes(
         orderIndex += 1
 
 
-def parseSurfaceParams(surface_type: SurfaceType, collision_poly: CollisionPoly, col_props: OOTMaterialCollisionProperty):
+def parseSurfaceParams(
+    surface_type: SurfaceType, collision_poly: CollisionPoly, col_props: OOTMaterialCollisionProperty
+):
     col_props.eponaBlock = surface_type.isHorseBlocked
     col_props.decreaseHeight = surface_type.isSoft
     setCustomProperty(col_props, "floorSetting", surface_type.floorProperty, ootEnumFloorSetting)
@@ -206,30 +208,30 @@ def parseSurfaceParams(surface_type: SurfaceType, collision_poly: CollisionPoly,
 def parseSurfaces(surfaceList: list[str]):
     surfaces: list[SurfaceType] = []
 
-    for surfaceData in surfaceList: # SurfaceType
+    for surfaceData in surfaceList:  # SurfaceType
         if "SURFACETYPE0" in surfaceData:
             split = surfaceData.removeprefix("SURFACETYPE0(").split("SURFACETYPE1(")
             surface0 = split[0].replace(")", "").split(",")
             surface1 = split[1].replace(")", "").split(",")
 
             surface = SurfaceType(
-                hexOrDecInt(surface0[0]), # bgCamIndex
-                hexOrDecInt(surface0[1]), # exitIndex
+                hexOrDecInt(surface0[0]),  # bgCamIndex
+                hexOrDecInt(surface0[1]),  # exitIndex
                 surface0[2],
-                hexOrDecInt(surface0[3]), # unk18
+                hexOrDecInt(surface0[3]),  # unk18
                 surface0[4],
                 surface0[5],
-                True if surface0[6] == "true" else False, # isSoft
-                True if surface0[7] == "true" else False, # isHorseBlocked
+                True if surface0[6] == "true" else False,  # isSoft
+                True if surface0[7] == "true" else False,  # isHorseBlocked
                 surface1[0],
                 surface1[1],
-                hexOrDecInt(surface1[2]), # lightSetting
-                hexOrDecInt(surface1[3]), # echo
-                True if surface1[4] == "true" else False, # canHookshot
+                hexOrDecInt(surface1[2]),  # lightSetting
+                hexOrDecInt(surface1[3]),  # echo
+                True if surface1[4] == "true" else False,  # canHookshot
                 surface1[5],
                 hexOrDecInt(surface1[6].removeprefix("CONVEYOR_DIRECTION_FROM_BINANG(").removesuffix(")")),
-                True if surface1[7] == "true" else False, # unk27
-                bpy.context.scene.fast64.oot.useDecompFeatures
+                True if surface1[7] == "true" else False,  # unk27
+                bpy.context.scene.fast64.oot.useDecompFeatures,
             )
         else:
             params = [hexOrDecInt(value.strip()) for value in surfaceData.split(",")]
@@ -304,8 +306,14 @@ def parseCollision(
     sceneObj: bpy.types.Object, vertexListName: str, polygonListName: str, surfaceTypeListName: str, sceneData: str
 ):
     vertMatchData = getDataMatch(sceneData, vertexListName, "Vec3s", "vertex list").replace("\n", "").replace(" ", "")
-    polyMatchData = getDataMatch(sceneData, polygonListName, "CollisionPoly", "polygon list").replace("\n", "").replace(" ", "")
-    surfMatchData = getDataMatch(sceneData, surfaceTypeListName, "SurfaceType", "surface type list").replace("\n", "").replace(" ", "")
+    polyMatchData = (
+        getDataMatch(sceneData, polygonListName, "CollisionPoly", "polygon list").replace("\n", "").replace(" ", "")
+    )
+    surfMatchData = (
+        getDataMatch(sceneData, surfaceTypeListName, "SurfaceType", "surface type list")
+        .replace("\n", "")
+        .replace(" ", "")
+    )
 
     if bpy.context.scene.fast64.oot.is_globalh_present():
         poly_regex = r"\{(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*)\}"

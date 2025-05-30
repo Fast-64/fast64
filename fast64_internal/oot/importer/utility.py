@@ -85,7 +85,7 @@ def getDataMatch(
     if "#include" in data_match:
         return removeComments(get_include_data(data_match))
 
-    return data_match 
+    return data_match
 
 
 def stripName(name: str):
@@ -149,9 +149,9 @@ def get_array_count(shared_data: SharedSceneData, symbol: str):
         raise PluginError("ERROR: can't find scene header!")
 
     symbol = symbol.removeprefix("ARRAY_COUNT(").removesuffix(")")
-    match = re.search(fr"#define\s*LENGTH_{symbol}\s*([0-9]*)", header_path.read_text(), re.DOTALL)
+    match = re.search(rf"#define\s*LENGTH_{symbol}\s*([0-9]*)", header_path.read_text(), re.DOTALL)
 
     if match is None:
         raise PluginError(f"ERROR: can't find array count for {repr(symbol)}")
-    
+
     return hexOrDecInt(match.group(1))

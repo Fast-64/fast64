@@ -44,9 +44,10 @@ class CollisionPoly:
                     )
                 ),
                 hexOrDecInt(poly_data[7]),
-                use_macros
+                use_macros,
             )
         else:
+
             def get_normal(value: int):
                 return int.from_bytes(value.to_bytes(2, "big", signed=value < 0x8000), "big", signed=True) / 0x7FFF
 
@@ -75,7 +76,7 @@ class CollisionPoly:
                     )
                 ),
                 hexOrDecInt(poly_data[7]),
-                use_macros
+                use_macros,
             )
 
         new_poly.type = hexOrDecInt(poly_data[0])

@@ -35,23 +35,23 @@ class SurfaceType:
     @staticmethod
     def from_hex(surface0: int, surface1: int):
         return SurfaceType(
-            ((surface0 >>  0) & 0xFF),
-            ((surface0 >>  8) & 0x1F),
+            ((surface0 >> 0) & 0xFF),
+            ((surface0 >> 8) & 0x1F),
             ootData.enumData.enumByKey["floor_type"].itemByIndex[((surface0 >> 13) & 0x1F)].id,
             ((surface0 >> 18) & 0x07),
             ootData.enumData.enumByKey["wall_type"].itemByIndex[((surface0 >> 21) & 0x1F)].id,
             ootData.enumData.enumByKey["floor_property"].itemByIndex[((surface0 >> 26) & 0x0F)].id,
             True if ((surface0 >> 30) & 1) > 0 else False,
             True if ((surface0 >> 31) & 1) > 0 else False,
-            ootData.enumData.enumByKey["surface_material"].itemByIndex[((surface1 >>  0) & 0x0F)].id,
-            ootData.enumData.enumByKey["floor_effect"].itemByIndex[((surface1 >>  4) & 0x03)].id,
-            ((surface1 >>  6) & 0x1F),
+            ootData.enumData.enumByKey["surface_material"].itemByIndex[((surface1 >> 0) & 0x0F)].id,
+            ootData.enumData.enumByKey["floor_effect"].itemByIndex[((surface1 >> 4) & 0x03)].id,
+            ((surface1 >> 6) & 0x1F),
             ((surface1 >> 11) & 0x3F),
-            True if ((surface1 >> 17) &    1) > 0 else False,
+            True if ((surface1 >> 17) & 1) > 0 else False,
             ootData.enumData.enumByKey["conveyor_speed"].itemByIndex[((surface1 >> 18) & 0x07)].id,
             ((surface1 >> 21) & 0x3F),
-            True if ((surface1 >> 27) &    1) > 0 else False,
-            bpy.context.scene.fast64.oot.useDecompFeatures
+            True if ((surface1 >> 27) & 1) > 0 else False,
+            bpy.context.scene.fast64.oot.useDecompFeatures,
         )
 
     def getIsSoftC(self):
