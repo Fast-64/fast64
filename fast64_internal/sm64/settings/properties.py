@@ -48,6 +48,8 @@ class SM64_Properties(PropertyGroup):
     export_type: EnumProperty(items=enum_export_type, name="Export Type", default="C")
     goal: EnumProperty(items=enum_sm64_goal_type, name="Goal", default="All")
     combined_export: bpy.props.PointerProperty(type=SM64_CombinedObjectProperties)
+    animation: PointerProperty(type=SM64_AnimProperties)
+    address_converter: PointerProperty(type=SM64_AddrConvProperties)
 
     blender_to_sm64_scale: FloatProperty(
         name="Blender To SM64 Scale",
@@ -56,6 +58,7 @@ class SM64_Properties(PropertyGroup):
     )
     import_rom: StringProperty(name="Import ROM", subtype="FILE_PATH")
 
+    # binary
     export_rom: StringProperty(name="Export ROM", subtype="FILE_PATH")
     output_rom: StringProperty(name="Output ROM", subtype="FILE_PATH")
     extend_bank_4: BoolProperty(
@@ -65,7 +68,6 @@ class SM64_Properties(PropertyGroup):
         f"{hex(defaultExtendSegment4[1])}) and copies data from old bank",
     )
 
-    address_converter: PointerProperty(type=SM64_AddrConvProperties)
     # C
     decomp_path: StringProperty(
         name="Decomp Folder",
@@ -94,8 +96,10 @@ class SM64_Properties(PropertyGroup):
         name="Designated Initialization for Animation Tables",
         description="Extremely recommended but must be off when compiling with IDO. Included in Repo Setting file",
     )
-
-    animation: PointerProperty(type=SM64_AnimProperties)
+    write_all: BoolProperty(
+        name="Write All",
+        description="Write single load geo and set othermode commands instead of writting the difference to defaults. Can result in smaller displaylists but may introduce issues",
+    )
 
     @property
     def binary_export(self):
@@ -112,6 +116,12 @@ class SM64_Properties(PropertyGroup):
     @property
     def designated(self) -> bool:
         return self.designated_prop or self.hackersm64
+
+    @property
+    def gfx_write_method(self):
+        from ...f3d.f3d_gbi import GfxMatWriteMethod
+
+        return GfxMatWriteMethod.WriteAll if self.write_all else GfxMatWriteMethod.WriteDifferingAndRevert
 
     @staticmethod
     def upgrade_changed_props():
@@ -176,6 +186,7 @@ class SM64_Properties(PropertyGroup):
         data["compression_format"] = self.compression_format
         data["force_extended_ram"] = self.force_extended_ram
         data["matstack_fix"] = self.matstack_fix
+        data["write_all"] = self.write_all
         if not self.hackersm64:
             data["designated"] = self.designated_prop
         return data
@@ -185,6 +196,7 @@ class SM64_Properties(PropertyGroup):
         set_prop_if_in_data(self, "compression_format", data, "compression_format")
         set_prop_if_in_data(self, "force_extended_ram", data, "force_extended_ram")
         set_prop_if_in_data(self, "matstack_fix", data, "matstack_fix")
+        set_prop_if_in_data(self, "write_all", data, "write_all")
         set_prop_if_in_data(self, "designated_prop", data, "designated")
 
     def draw_repo_settings(self, layout: UILayout):
@@ -195,6 +207,7 @@ class SM64_Properties(PropertyGroup):
             prop_split(col, self, "refresh_version", "Refresh (Function Map)")
             col.prop(self, "force_extended_ram")
         col.prop(self, "matstack_fix")
+        col.prop(self, "write_all")
 
     def draw_props(self, layout: UILayout, show_repo_settings: bool = True):
         col = layout.column()
