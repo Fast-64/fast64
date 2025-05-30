@@ -4,8 +4,7 @@ import re
 from dataclasses import dataclass
 from typing import Optional, TYPE_CHECKING
 from bpy.types import Object, Armature
-from ....utility import PluginError
-from ...oot_utility import get_include_data
+from ....utility import PluginError, get_include_data
 from ..motion.utility import setupCutscene, getBlenderPosition, getInteger
 
 if TYPE_CHECKING:

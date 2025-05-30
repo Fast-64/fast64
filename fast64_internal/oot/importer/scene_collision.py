@@ -6,13 +6,13 @@ import mathutils
 from random import random
 from bpy.types import Material
 
-from ...utility import PluginError, parentObject, hexOrDecInt, yUpToZUp
+from ...utility import PluginError, parentObject, hexOrDecInt, get_include_data, yUpToZUp
 from ..exporter.collision.surface import SurfaceType
 from ..exporter.collision.polygons import CollisionPoly
 from ..exporter.collision.waterbox import WaterBox
 from ..collision.properties import OOTMaterialCollisionProperty
 from ..oot_f3d_writer import getColliderMat
-from ..oot_utility import setCustomProperty, ootParseRotation, get_include_data
+from ..oot_utility import setCustomProperty, ootParseRotation
 from .utility import getDataMatch, getBits, checkBit, createCurveFromPoints, stripName
 from .classes import SharedSceneData
 

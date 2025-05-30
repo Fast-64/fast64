@@ -985,32 +985,3 @@ def get_actor_prop_from_obj(actor_obj: Object) -> "OOTActorProperty":
         raise PluginError(f"ERROR: Empty type not supported: {actor_obj.ootEmptyType}")
 
     return actor_prop
-
-
-def get_include_data(include: str):
-    """
-    Returns the file data pointed by the include's path
-
-    Parameters:
-    - `include`: the line where the include directive is located
-    """
-
-    # remove the unwanted parts
-    include = include.replace("\n", "").removeprefix("#include ").replace('"', "")
-
-    # get the extracted path
-    extracted = bpy.context.scene.fast64.oot.get_extracted_path()
-
-    # get the file's path
-    file_path = Path(f"{bpy.context.scene.ootDecompPath}/{include}").resolve()
-
-    # check if the path exists
-    if not file_path.exists():
-        file_path = Path(f"{bpy.context.scene.ootDecompPath}/{extracted}/{include}").resolve()
-
-    # if it doesn't check if the extracted path exists
-    if not file_path.exists():
-        raise PluginError(f"ERROR: that file don't exist ({repr(include)})")
-
-    # return the data as a string
-    return file_path.read_text()

@@ -4,9 +4,9 @@ import mathutils
 
 from pathlib import Path
 
-from ...utility import PluginError, hexOrDecInt, removeComments, yUpToZUp
+from ...utility import PluginError, hexOrDecInt, removeComments, get_include_data, yUpToZUp
 from ..actor.properties import OOTActorProperty, OOTActorHeaderProperty
-from ..oot_utility import ootParseRotation, get_include_data
+from ..oot_utility import ootParseRotation
 from .constants import headerNames, actorsWithRotAsParam
 from .classes import SharedSceneData
 
@@ -94,9 +94,7 @@ def getDataMatch(
 def stripName(name: str):
     if "&" in name:
         name = name[name.index("&") + 1 :].strip()
-    if name[0] == "(" and name[-1] == ")":
-        name = name[1:-1].strip()
-    return name
+    return name.removeprefix("(").removesuffix(")")
 
 
 def createCurveFromPoints(points: list[tuple[float, float, float]], name: str):
