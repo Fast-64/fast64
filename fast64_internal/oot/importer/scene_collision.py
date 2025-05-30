@@ -4,11 +4,14 @@ import bpy
 import mathutils
 
 from random import random
-from collections import OrderedDict
+from bpy.types import Material
+
 from ...utility import PluginError, parentObject, hexOrDecInt, yUpToZUp
+from ..exporter.collision.surface import SurfaceType
+from ..exporter.collision.polygons import CollisionPoly
 from ..collision.properties import OOTMaterialCollisionProperty
 from ..oot_f3d_writer import getColliderMat
-from ..oot_utility import setCustomProperty, ootParseRotation
+from ..oot_utility import setCustomProperty, ootParseRotation, get_include_data
 from .utility import getDataMatch, getBits, checkBit, createCurveFromPoints, stripName
 from .classes import SharedSceneData
 
@@ -168,48 +171,71 @@ def parseWaterBoxes(
         orderIndex += 1
 
 
-def parseSurfaceParams(
-    surface: tuple[int, int], polygonParams: tuple[bool, bool, bool, bool], collision: OOTMaterialCollisionProperty
-):
-    params = surface
-    ignoreCamera, ignoreActor, ignoreProjectile, enableConveyor = polygonParams
+def parseSurfaceParams(surface_type: SurfaceType, collision_poly: CollisionPoly, col_props: OOTMaterialCollisionProperty):
+    col_props.eponaBlock = surface_type.isHorseBlocked
+    col_props.decreaseHeight = surface_type.isSoft
+    setCustomProperty(col_props, "floorSetting", surface_type.floorProperty, ootEnumFloorSetting)
+    setCustomProperty(col_props, "wallSetting", surface_type.wallType, ootEnumWallSetting)
+    setCustomProperty(col_props, "floorProperty", surface_type.floorType, ootEnumFloorProperty)
+    col_props.exitID = surface_type.exitIndex
+    col_props.cameraID = surface_type.bgCamIndex
+    col_props.isWallDamage = surface_type.isWallDamage
 
-    collision.eponaBlock = checkBit(params[0], 31)
-    collision.decreaseHeight = checkBit(params[0], 30)
-    setCustomProperty(collision, "floorSetting", str(getBits(params[0], 26, 4)), ootEnumFloorSetting)
-    setCustomProperty(collision, "wallSetting", str(getBits(params[0], 21, 5)), ootEnumWallSetting)
-    setCustomProperty(collision, "floorProperty", str(getBits(params[0], 13, 8)), ootEnumFloorProperty)
-    collision.exitID = getBits(params[0], 8, 5)
-    collision.cameraID = getBits(params[0], 0, 8)
-    collision.isWallDamage = checkBit(params[1], 27)
+    col_props.conveyorRotation = (surface_type.conveyorDirection / 0x3F) * (2 * math.pi)
+    col_props.conveyorSpeed = "Custom"
+    col_props.conveyorSpeedCustom = str(surface_type.conveyorSpeed)
 
-    collision.conveyorRotation = (getBits(params[1], 21, 6) / 0x3F) * (2 * math.pi)
-    collision.conveyorSpeed = "Custom"
-    collision.conveyorSpeedCustom = str(getBits(params[1], 18, 3))
-
-    if collision.conveyorRotation == 0 and collision.conveyorSpeedCustom == "0":
-        collision.conveyorOption = "None"
-    elif enableConveyor:
-        collision.conveyorOption = "Land"
+    if col_props.conveyorRotation == 0 and col_props.conveyorSpeedCustom == "0":
+        col_props.conveyorOption = "None"
+    elif collision_poly.isLandConveyor:
+        col_props.conveyorOption = "Land"
     else:
-        collision.conveyorOption = "Water"
+        col_props.conveyorOption = "Water"
 
-    collision.hookshotable = checkBit(params[1], 17)
-    collision.echo = str(getBits(params[1], 11, 6))
-    collision.lightingSetting = getBits(params[1], 6, 5)
-    setCustomProperty(collision, "terrain", str(getBits(params[1], 4, 2)), ootEnumCollisionTerrain)
-    setCustomProperty(collision, "sound", str(getBits(params[1], 0, 4)), ootEnumCollisionSound)
+    col_props.hookshotable = surface_type.canHookshot
+    col_props.echo = str(surface_type.echo)
+    col_props.lightingSetting = surface_type.lightSetting
+    setCustomProperty(col_props, "terrain", str(surface_type.floorEffect), ootEnumCollisionTerrain)
+    setCustomProperty(col_props, "sound", str(surface_type.material), ootEnumCollisionSound)
 
-    collision.ignoreCameraCollision = ignoreCamera
-    collision.ignoreActorCollision = ignoreActor
-    collision.ignoreProjectileCollision = ignoreProjectile
+    col_props.ignoreCameraCollision = collision_poly.ignoreCamera
+    col_props.ignoreActorCollision = collision_poly.ignoreEntity
+    col_props.ignoreProjectileCollision = collision_poly.ignoreProjectile
 
 
 def parseSurfaces(surfaceList: list[str]):
-    surfaces = []
-    for surfaceData in surfaceList:
-        params = [hexOrDecInt(value.strip()) for value in surfaceData.split(",")]
-        surfaces.append(tuple(params))
+    surfaces: list[SurfaceType] = []
+
+    for surfaceData in surfaceList: # SurfaceType
+        if "SURFACETYPE0" in surfaceData:
+            split = surfaceData.removeprefix("SURFACETYPE0(").split("SURFACETYPE1(")
+            surface0 = split[0].replace(")", "").split(",")
+            surface1 = split[1].replace(")", "").split(",")
+
+            surface = SurfaceType(
+                hexOrDecInt(surface0[0]), # bgCamIndex
+                hexOrDecInt(surface0[1]), # exitIndex
+                surface0[2],
+                hexOrDecInt(surface0[3]), # unk18
+                surface0[4],
+                surface0[5],
+                True if surface0[6] == "true" else False, # isSoft
+                True if surface0[7] == "true" else False, # isHorseBlocked
+                surface1[0],
+                surface1[1],
+                hexOrDecInt(surface1[2]), # lightSetting
+                hexOrDecInt(surface1[3]), # echo
+                True if surface1[4] == "true" else False, # canHookshot
+                surface1[5],
+                hexOrDecInt(surface1[6].removeprefix("CONVEYOR_DIRECTION_FROM_BINANG(").removesuffix(")")),
+                True if surface1[7] == "true" else False, # unk27
+                bpy.context.scene.fast64.oot.useDecompFeatures
+            )
+        else:
+            params = [hexOrDecInt(value.strip()) for value in surfaceData.split(",")]
+            surface = SurfaceType.from_hex(params[0], params[1])
+
+        surfaces.append(surface)
 
     return surfaces
 
@@ -224,41 +250,9 @@ def parseVertices(vertexList: list[str]):
     return vertices
 
 
-def parsePolygon(polygonData: str):
-    shorts = [
-        hexOrDecInt(value.strip()) if "COLPOLY_SNORMAL" not in value else value.strip()
-        for value in polygonData.split(",")
-    ]
-    vertIndices = [0, 0, 0]
-
-    # 00
-    surfaceIndex = shorts[0]
-
-    # 02
-    vertIndices[0] = shorts[1] & 0x1FFF
-    ignoreCamera = 1 & (shorts[1] >> 13) == 1
-    ignoreActor = 1 & (shorts[1] >> 14) == 1
-    ignoreProjectile = 1 & (shorts[1] >> 15) == 1
-
-    # 04
-    vertIndices[1] = shorts[2] & 0x1FFF
-    enableConveyor = 1 & (shorts[2] >> 13) == 1
-
-    # 06
-    vertIndices[2] = shorts[3] & 0x1FFF
-
-    # 08-0C
-    normal = []
-    for value in shorts[4:7]:
-        if isinstance(value, str) and "COLPOLY_SNORMAL" in value:
-            normal.append(float(value[value.index("(") + 1 : value.index(")")]))
-        else:
-            normal.append(int.from_bytes(value.to_bytes(2, "big", signed=value < 0x8000), "big", signed=True) / 0x7FFF)
-
-    # 0E
-    distance = shorts[7]
-
-    return (ignoreCamera, ignoreActor, ignoreProjectile, enableConveyor), surfaceIndex, vertIndices, normal
+def parsePolygon(polygonData: list[str]):
+    assert len(polygonData) == 8
+    return CollisionPoly.from_data(polygonData, not bpy.context.scene.fast64.oot.is_globalh_present())
 
 
 def parseCollisionHeader(
@@ -283,14 +277,13 @@ def parseCollisionHeader(
         if not match:
             raise PluginError(f"Could not find collision header {collisionHeaderName}.")
 
-        params = [value.strip() for value in match.group(1).split(",")]
-        minBounds = [hexOrDecInt(value.strip()) for value in params[0:3]]
-        maxBounds = [hexOrDecInt(value.strip()) for value in params[3:6]]
-        otherParams = [value.strip() for value in params[6:]]
-
+        if "#include" in match.group(1):
+            params = get_include_data(match.group(1)).splitlines()
+            otherParams = [value.strip().split(",")[0] for value in params[10:-1]]
+        else:
+            params = [value.strip() for value in match.group(1).split(",")]
+            otherParams = [value.strip() for value in params[6:]]
     else:
-        minBounds = [hexOrDecInt(value.strip()) for value in match.group(1).split(",")]
-        maxBounds = [hexOrDecInt(value.strip()) for value in match.group(2).split(",")]
         otherParams = [value.strip() for value in match.group(3).split(",")]
 
     vertexListName = stripName(otherParams[1])
@@ -310,27 +303,35 @@ def parseCollisionHeader(
 def parseCollision(
     sceneObj: bpy.types.Object, vertexListName: str, polygonListName: str, surfaceTypeListName: str, sceneData: str
 ):
-    vertMatchData = getDataMatch(sceneData, vertexListName, "Vec3s", "vertex list")
-    polyMatchData = getDataMatch(sceneData, polygonListName, "CollisionPoly", "polygon list")
-    surfMatchData = getDataMatch(sceneData, surfaceTypeListName, "SurfaceType", "surface type list")
+    vertMatchData = getDataMatch(sceneData, vertexListName, "Vec3s", "vertex list").replace("\n", "").replace(" ", "")
+    polyMatchData = getDataMatch(sceneData, polygonListName, "CollisionPoly", "polygon list").replace("\n", "").replace(" ", "")
+    surfMatchData = getDataMatch(sceneData, surfaceTypeListName, "SurfaceType", "surface type list").replace("\n", "").replace(" ", "")
+
+    if bpy.context.scene.fast64.oot.is_globalh_present():
+        poly_regex = r"\{(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*)\}"
+    else:
+        poly_regex = r"\{([0-9\-]*),\{(COLPOLY_VTX\([0-9\-]*,[a-zA-Z0-9\-_|\s]*\)),(COLPOLY_VTX\([0-9\-]*,[a-zA-Z0-9\-_|\s]*\)),(COLPOLY_VTX\([0-9]*,[0-9]*\)),\},\{(COLPOLY_SNORMAL\([0-9.\-]*\)),(COLPOLY_SNORMAL\([0-9.\-]*\)),(COLPOLY_SNORMAL\([0-9.\-]*\)),\},([0-9\-]*),\}"
 
     vertexList = [value.replace("{", "").strip() for value in vertMatchData.split("},") if value.strip() != ""]
-    polygonList = [value.replace("{", "").strip() for value in polyMatchData.split("},") if value.strip() != ""]
+    polygonList = [list(match.groups()) for match in re.finditer(poly_regex, polyMatchData, re.DOTALL)]
     surfaceList = [value.replace("{", "").strip() for value in surfMatchData.split("},") if value.strip() != ""]
 
-    # Although polygon params are geometry based, we will group them with surface.
-    collisionDict = OrderedDict()  # (surface, polygonParams) : list[triangles]
+    surface_map: dict[int, SurfaceType] = {}
+    collision_list: list[CollisionPoly] = []
 
     surfaces = parseSurfaces(surfaceList)
     vertices = parseVertices(vertexList)
 
     for polygonData in polygonList:
-        polygonParams, surfaceIndex, vertIndices, normal = parsePolygon(polygonData)
-        key = (surfaces[surfaceIndex], polygonParams)
-        if key not in collisionDict:
-            collisionDict[key] = []
+        collision_poly = parsePolygon(polygonData)
 
-        collisionDict[key].append((vertIndices, normal))
+        # it's impossible that this is set None but doesn't hurt to make sure
+        assert collision_poly.type is not None
+
+        if collision_poly.type not in surface_map:
+            surface_map[collision_poly.type] = surfaces[collision_poly.type]
+
+        collision_list.append(collision_poly)
 
     collisionName = f"{sceneObj.name}_collision"
     mesh = bpy.data.meshes.new(collisionName)
@@ -339,22 +340,28 @@ def parseCollision(
 
     triData = []
     triMatData = []
+    material_map: dict[int, Material] = {}
 
-    surfaceIndex = 0
-    for (surface, polygonParams), triList in collisionDict.items():
+    # create the materials from the surface types
+    for poly_type, _ in surface_map.items():
         randomColor = mathutils.Color((1, 1, 1))
         randomColor.hsv = (random(), 0.5, 0.5)
-        collisionMat = getColliderMat(f"oot_collision_mat_{surfaceIndex}", randomColor[:] + (0.5,))
-        collision = collisionMat.ootCollisionProperty
-        parseSurfaceParams(surface, polygonParams, collision)
-
+        collisionMat = getColliderMat(f"oot_collision_mat_{poly_type}", randomColor[:] + (0.5,))
         mesh.materials.append(collisionMat)
-        for j in range(len(triList)):
-            triData.append(triList[j][0])
-            triMatData += [surfaceIndex]
-        surfaceIndex += 1
+        material_map[poly_type] = collisionMat
 
+    # create the triangles based on the collision data
+    for collision_poly in collision_list:
+        assert collision_poly.type is not None
+        collision = material_map[collision_poly.type].ootCollisionProperty
+
+        # ideally this would be above but we need the surface type and the collision poly
+        parseSurfaceParams(surface_map[collision_poly.type], collision_poly, collision)
+
+        triData.append(collision_poly.indices)
+        triMatData += [collision_poly.type]
     mesh.from_pydata(vertices=vertices, edges=[], faces=triData)
+
     for i in range(len(mesh.polygons)):
         mesh.polygons[i].material_index = triMatData[i]
 
