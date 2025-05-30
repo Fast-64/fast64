@@ -298,7 +298,7 @@ def replaceDLReferenceInGeo(geoPath, pattern, replacement):
 
 def prepareGeolayoutExport(armatureObj, obj):
     # Make object and armature space the same.
-    setOrigin(armatureObj, obj)
+    setOrigin(obj, armatureObj.location)
 
     # Apply armature scale.
     bpy.ops.object.select_all(action="DESELECT")

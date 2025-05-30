@@ -220,7 +220,7 @@ def ootDuplicateArmatureAndRemoveRotations(originalArmatureObj: bpy.types.Object
 
     try:
         for obj in meshObjs:
-            setOrigin(armatureObj, obj)
+            setOrigin(obj, armatureObj.location)
 
         bpy.ops.object.select_all(action="DESELECT")
         armatureObj.select_set(True)
