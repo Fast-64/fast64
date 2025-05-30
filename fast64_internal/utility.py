@@ -1951,12 +1951,13 @@ def wrap_func_with_error_message(error_message: Callable):
     return decorator
 
 
-def oot_get_assets_path(base_path: str, check_exists: bool = True):
+def oot_get_assets_path(base_path: str, check_exists: bool = True, use_decomp_path: bool = True):
     # get the extracted path
     extracted = bpy.context.scene.fast64.oot.get_extracted_path()
+    decomp_path = bpy.context.scene.ootDecompPath if use_decomp_path else "."
 
     # get the file's path
-    file_path = Path(f"{bpy.context.scene.ootDecompPath}/{base_path}").resolve()
+    file_path = Path(f"{decomp_path}/{base_path}").resolve()
 
     # check if the path exists
     if not file_path.exists():

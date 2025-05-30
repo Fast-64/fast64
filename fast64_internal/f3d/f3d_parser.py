@@ -791,7 +791,10 @@ class F3DContext:
 
     # we only want to apply tlut to an existing image under specific conditions.
     # however we always want to record the changing tlut for texture references.
-    def applyTLUTToIndex(self, index):
+    def applyTLUTToIndex(self, index, ignore_tlut: bool = False):
+        if ignore_tlut:
+            return
+
         mat = self.mat()
         texProp = getattr(mat, "tex" + str(index))
         combinerUses = all_combiner_uses(mat)
@@ -835,8 +838,9 @@ class F3DContext:
                 print("Ignoring TLUT.")
 
     def addMaterial(self):
-        self.applyTLUTToIndex(0)
-        self.applyTLUTToIndex(1)
+        # disable TLUTs for OoT
+        self.applyTLUTToIndex(0, bpy.context.scene.gameEditorMode in {"OOT", "MM"})
+        self.applyTLUTToIndex(1, bpy.context.scene.gameEditorMode in {"OOT", "MM"})
 
         materialCopy = self.materialContext.copy()
 
@@ -857,16 +861,22 @@ class F3DContext:
         else:
             return getattr(self.f3d, self.f3d.IM_SIZ[size] + suffix)
 
-    def getImagePathFromInclude(self, path):
+    def getImagePathFromInclude(self, path, skip_base_path: bool = True):
         if self.basePath is None:
             raise PluginError("Cannot load texture from " + path + " without any provided base path.")
 
         imagePathRelative = path[:-5] + "png"
+
+        # OoT already got the full path so no need to do that
+        if skip_base_path:
+            return imagePathRelative
+
         imagePath = os.path.join(self.basePath, imagePathRelative)
 
         # handle custom imports, where relative paths don't make sense
         if not os.path.exists(imagePath):
             imagePath = os.path.join(self.basePath, os.path.basename(imagePathRelative))
+
         return imagePath
 
     def getVTXPathFromInclude(self, path):
@@ -1567,6 +1577,7 @@ class F3DContext:
         return matchResult.group(1), offset
 
     def processCommands(self, dlData: str, dlName: str, dlCommands: "list[ParsedMacro]"):
+        ignore_tlut = bpy.context.scene.gameEditorMode in {"OOT", "MM"}
         callStack = [F3DParsedCommands(dlName, dlCommands, 0)]
         while len(callStack) > 0:
             currentCommandList = callStack[-1]
@@ -1830,9 +1841,9 @@ class F3DContext:
                         self.loadMultiBlock(command.params[:7] + command.params[11:], dlData, False)
 
                 # TODO: Only handles palettes at tmem = 256
-                elif command.name == "gsDPLoadTLUT_pal16":
+                elif command.name == "gsDPLoadTLUT_pal16" and not ignore_tlut:
                     self.loadTLUTPal(command.params[1], dlData, 15)
-                elif command.name == "gsDPLoadTLUT_pal256":
+                elif command.name == "gsDPLoadTLUT_pal256" and not ignore_tlut:
                     self.loadTLUTPal(command.params[0], dlData, 255)
                 else:
                     pass
@@ -2113,9 +2124,10 @@ def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, wi
     pathMatch = re.search(r'\#include\s*"(.*?)"', data, re.DOTALL)
     if pathMatch is not None:
         path = pathMatch.group(1)
-        if bpy.context.scene.gameEditorMode == "OOT":
+        is_oot = bpy.context.scene.gameEditorMode == "OOT"
+        if is_oot:
             path = str(oot_get_assets_path(path, check_exists=False))
-        originalImage = bpy.data.images.load(f3dContext.getImagePathFromInclude(path))
+        originalImage = bpy.data.images.load(f3dContext.getImagePathFromInclude(path, is_oot))
         image = originalImage.copy()
         image.pack()
         image.filepath = ""

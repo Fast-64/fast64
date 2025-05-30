@@ -96,7 +96,7 @@ def parseMeshList(
             transparentDL = entryMatch.group(6).strip()
             position = yUpToZUp @ mathutils.Vector(
                 [
-                    hexOrDecInt(entryMatch.group(value).strip()) / bpy.context.scene.ootBlenderScale
+                    hexOrDecInt(entryMatch.group(value).strip().removesuffix(",")) / bpy.context.scene.ootBlenderScale
                     for value in range(1, 4)
                 ]
             )

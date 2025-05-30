@@ -40,7 +40,7 @@ def parseRoomCommands(
     headerIndex: int,
 ):
     # we need to access the header in `loadMultiBlock()` for the new assets system
-    if not bpy.context.scene.fast64.oot.is_globalh_present() and roomIndex == 0:
+    if not bpy.context.scene.fast64.oot.is_globalh_present():
         header_path = Path(sharedSceneData.scenePath).resolve() / f"{sharedSceneData.scene_name}.h"
         if not header_path.exists():
             raise PluginError("ERROR: scene file header not found!")
