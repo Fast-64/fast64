@@ -2436,11 +2436,8 @@ def has_f3d_nodes(material: Material):
 
 @persistent
 def load_handler(dummy):
-    if not DEBUG_MODE:
-        generate_f3d_node_groups(False, False)
-
     for mat in bpy.data.materials:
-        if mat is not None and mat.use_nodes and mat.is_f3d:
+        if mat is not None and mat.use_nodes and mat.is_f3d and mat.mat_ver >= F3D_MAT_CUR_VERSION:
             rendermode_preset_to_advanced(mat)
 
 

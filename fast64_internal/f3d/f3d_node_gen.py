@@ -985,7 +985,9 @@ def generate_f3d_node_groups(forced=True, ignore_hash=False, force_mat_update=Fa
             if node_tree.get("fast64_interface_hash", None) != serialized_node_group.interface_hash:
                 update_materials, keep_interface = True, False
                 node_tree["fast64_interface_hash"] = serialized_node_group.interface_hash
-        else:
+                bpy.data.node_groups.remove(node_tree, do_unlink=True)
+                node_tree = None
+        if not node_tree:
             print(f'Creating node group "{serialized_node_group.name}"')
             node_tree = bpy.data.node_groups.new(serialized_node_group.name, "ShaderNodeTree")
             node_tree.use_fake_user = not editable

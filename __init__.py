@@ -373,11 +373,11 @@ def upgrade_scene_props_node():
 @bpy.app.handlers.persistent
 def after_load(_a, _b):
     settings = bpy.context.scene.fast64.settings
+    post_4_2 = bpy.app.version >= (4, 2, 0)
     if any(mat.is_f3d for mat in bpy.data.materials):
         check_or_ask_color_management(bpy.context)
-        if not settings.internal_fixed_4_2 and bpy.app.version >= (4, 2, 0):
-            generate_f3d_node_groups(False, force_mat_update=True)
-    if bpy.app.version >= (4, 2, 0):
+        generate_f3d_node_groups(True, force_mat_update=(not settings.internal_fixed_4_2 and post_4_2))
+    if post_4_2:
         settings.internal_fixed_4_2 = True
     upgrade_changed_props()
     upgrade_scene_props_node()
