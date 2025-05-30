@@ -1026,6 +1026,7 @@ def create_f3d_nodes_in_material(material: Material, errors: ErrorState = None, 
         material.f3d_update_flag = False
         with bpy.context.temp_override(material=material):
             update_all_node_values(material, bpy.context)
+        material.node_tree["fast64_cached_hash"] = SERIALIZED_NODE_LIBRARY.cached_hash
 
 
 def update_f3d_material_nodes(material: Material, ignore_hash=False):
@@ -1036,7 +1037,6 @@ def update_f3d_material_nodes(material: Material, ignore_hash=False):
         ):
             print(f'Updating material "{material.name}"\'s nodes')
             create_f3d_nodes_in_material(material, errors)
-            material.node_tree["fast64_cached_hash"] = SERIALIZED_NODE_LIBRARY.cached_hash
     except Exception as exc:
         print_with_exc(errors, exc)
 
