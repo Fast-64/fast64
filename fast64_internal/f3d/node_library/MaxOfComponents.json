@@ -1,0 +1,166 @@
+{
+	"name": "MaxOfComponents",
+	"nodes": {
+		"Separate XYZ": {
+			"bl_idname": "ShaderNodeSeparateXYZ",
+			"location": [
+				-156.9276,
+				-3.1859
+			],
+			"inputs": {
+				"0": {
+					"name": "Vector"
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "X",
+					"links": [
+						{
+							"node": "Math.012",
+							"index": 0
+						}
+					]
+				},
+				"1": {
+					"name": "Y",
+					"links": [
+						{
+							"node": "Math.012",
+							"index": 1
+						}
+					]
+				},
+				"2": {
+					"name": "Z",
+					"links": [
+						{
+							"node": "Math.013",
+							"index": 1
+						}
+					]
+				}
+			}
+		},
+		"Math.012": {
+			"bl_idname": "ShaderNodeMath",
+			"location": [
+				-0.4549,
+				9.5576
+			],
+			"hide": true,
+			"operation": "MAXIMUM",
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Value",
+					"links": [
+						{
+							"node": "Math.013",
+							"index": 0
+						}
+					]
+				}
+			}
+		},
+		"Group Input": {
+			"bl_idname": "NodeGroupInput",
+			"location": [
+				-356.9276,
+				0.0
+			],
+			"width_hidden": 80.0,
+			"outputs": {
+				"0": {
+					"name": "Vector",
+					"links": [
+						{
+							"node": "Separate XYZ",
+							"index": 0
+						}
+					]
+				}
+			}
+		},
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"location": [
+				346.9276,
+				0.0
+			],
+			"width_hidden": 80.0,
+			"inputs": {
+				"0": {
+					"name": "Value"
+				},
+				"1": {
+					"name": ""
+				}
+			}
+		},
+		"Math.013": {
+			"bl_idname": "ShaderNodeMath",
+			"location": [
+				156.9276,
+				-9.5576
+			],
+			"hide": true,
+			"operation": "MAXIMUM",
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Value",
+					"links": [
+						{
+							"node": "Group Output",
+							"index": 0
+						}
+					]
+				}
+			}
+		}
+	},
+	"cached_hash": "75740109e0132b3f9a474be23ec79938",
+	"inputs": [
+		{
+			"name": "Vector",
+			"max_value": 10000.0,
+			"min_value": -10000.0,
+			"bl_idname": "NodeSocketVector"
+		}
+	],
+	"outputs": [
+		{
+			"name": "Value",
+			"bl_idname": "NodeSocketFloat"
+		}
+	],
+	"interface_hash": "f79f89b18fc4fa94c0f4f94db4b81a7c",
+	"bpy_ver": [
+		3,
+		2,
+		0
+	]
+}

@@ -1,0 +1,252 @@
+{
+	"name": "Gamma Correct Fast64",
+	"nodes": {
+		"Group.001": {
+			"bl_idname": "ShaderNodeGroup",
+			"location": [
+				-70.8038,
+				44.7347
+			],
+			"node_tree": {
+				"serialized_type": "NodeTree",
+				"name": "Gamma Correct Value"
+			},
+			"width": 213.19033813476562,
+			"width_hidden": 60.0,
+			"inputs": {
+				"0": {
+					"name": "Non-Corrected Value"
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Gamma Corrected Value",
+					"links": [
+						{
+							"node": "Combine RGB",
+							"index": 1
+						}
+					]
+				}
+			}
+		},
+		"Combine RGB": {
+			"bl_idname": "ShaderNodeCombineRGB",
+			"location": [
+				312.6501,
+				61.278
+			],
+			"inputs": {
+				"0": {
+					"name": "R"
+				},
+				"1": {
+					"name": "G"
+				},
+				"2": {
+					"name": "B"
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Image",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					],
+					"links": [
+						{
+							"node": "Group Output",
+							"index": 0
+						}
+					]
+				}
+			}
+		},
+		"Group.002": {
+			"bl_idname": "ShaderNodeGroup",
+			"location": [
+				-70.8038,
+				-75.2653
+			],
+			"node_tree": {
+				"serialized_type": "NodeTree",
+				"name": "Gamma Correct Value"
+			},
+			"width": 213.19033813476562,
+			"width_hidden": 60.0,
+			"inputs": {
+				"0": {
+					"name": "Non-Corrected Value"
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Gamma Corrected Value",
+					"links": [
+						{
+							"node": "Combine RGB",
+							"index": 2
+						}
+					]
+				}
+			}
+		},
+		"Separate RGB": {
+			"bl_idname": "ShaderNodeSeparateRGB",
+			"location": [
+				-352.4275,
+				61.278
+			],
+			"inputs": {
+				"0": {
+					"name": "Image",
+					"default_value": [
+						0.800000011920929,
+						0.800000011920929,
+						0.800000011920929,
+						1.0
+					]
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "R",
+					"links": [
+						{
+							"node": "Group",
+							"index": 0
+						}
+					]
+				},
+				"1": {
+					"name": "G",
+					"links": [
+						{
+							"node": "Group.001",
+							"index": 0
+						}
+					]
+				},
+				"2": {
+					"name": "B",
+					"links": [
+						{
+							"node": "Group.002",
+							"index": 0
+						}
+					]
+				}
+			}
+		},
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"location": [
+				478.4247,
+				61.4522
+			],
+			"width_hidden": 80.0,
+			"inputs": {
+				"0": {
+					"name": "Corrected Color",
+					"default_value": [
+						0.0,
+						0.0,
+						0.0,
+						0.0
+					]
+				},
+				"1": {
+					"name": ""
+				}
+			}
+		},
+		"Group Input": {
+			"bl_idname": "NodeGroupInput",
+			"location": [
+				-520.4017,
+				-7.3613
+			],
+			"width_hidden": 80.0,
+			"outputs": {
+				"0": {
+					"name": "Color",
+					"default_value": [
+						0.800000011920929,
+						0.800000011920929,
+						0.800000011920929,
+						1.0
+					],
+					"links": [
+						{
+							"node": "Separate RGB",
+							"index": 0
+						}
+					]
+				}
+			}
+		},
+		"Group": {
+			"bl_idname": "ShaderNodeGroup",
+			"location": [
+				-70.8038,
+				164.7347
+			],
+			"node_tree": {
+				"serialized_type": "NodeTree",
+				"name": "Gamma Correct Value"
+			},
+			"width": 213.19033813476562,
+			"width_hidden": 60.0,
+			"inputs": {
+				"0": {
+					"name": "Non-Corrected Value"
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Gamma Corrected Value",
+					"links": [
+						{
+							"node": "Combine RGB",
+							"index": 0
+						}
+					]
+				}
+			}
+		}
+	},
+	"cached_hash": "5ba3178fd0f85ae4919a5eb3b830681e",
+	"inputs": [
+		{
+			"name": "Color",
+			"default_value": [
+				0.800000011920929,
+				0.800000011920929,
+				0.800000011920929,
+				1.0
+			],
+			"bl_idname": "NodeSocketColor"
+		}
+	],
+	"outputs": [
+		{
+			"name": "Corrected Color",
+			"default_value": [
+				0.0,
+				0.0,
+				0.0,
+				0.0
+			],
+			"bl_idname": "NodeSocketColor"
+		}
+	],
+	"interface_hash": "701370ae5b827eb5648e9d3eaa6bfd0a",
+	"bpy_ver": [
+		3,
+		2,
+		0
+	]
+}
