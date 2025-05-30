@@ -2244,7 +2244,13 @@ def getImportData(filepaths):
 
 
 def parseMatrices(sceneData: str, f3dContext: F3DContext, importScale: float = 1):
-    for match in re.finditer(rf"Mtx\s*([a-zA-Z0-9\_]+)\s*=\s*\{{(.*?)\}}\s*;", sceneData, flags=re.DOTALL):
+    regex = rf"Mtx\s*([a-zA-Z0-9\_]+)\s*=\s*\{{(.*?)\}}\s*;"
+
+    # newer assets system
+    if not bpy.context.scene.fast64.oot.is_globalh_present():
+        regex = r"Mtx\s*([a-zA-Z0-9\_]+)\s*=\s*(.*?)\s*;"
+
+    for match in re.finditer(regex, sceneData, flags=re.DOTALL):
         name = "&" + match.group(1)
         values = [hexOrDecInt(value.strip()) for value in match.group(2).split(",") if value.strip() != ""]
         trueValues = []

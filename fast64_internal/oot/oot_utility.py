@@ -1000,15 +1000,15 @@ def get_include_data(include: str):
     extracted = bpy.context.scene.fast64.oot.get_extracted_path()
 
     # get the file's path
-    file_path = Path(f"{bpy.context.scene.ootDecompPath}/{extracted}/{include}").resolve()
+    file_path = Path(f"{bpy.context.scene.ootDecompPath}/{include}").resolve()
 
-    # check if the extracted path exists
+    # check if the path exists
     if not file_path.exists():
-        file_path = Path(f"{bpy.context.scene.ootDecompPath}/{include}").resolve()
+        file_path = Path(f"{bpy.context.scene.ootDecompPath}/{extracted}/{include}").resolve()
 
-    # if it doesn't check if the normal path exists
+    # if it doesn't check if the extracted path exists
     if not file_path.exists():
-        raise PluginError(f"ERROR: that file don't exist ({repr(file_path)})")
+        raise PluginError(f"ERROR: that file don't exist ({repr(include)})")
 
     # return the data as a string
     return file_path.read_text()
