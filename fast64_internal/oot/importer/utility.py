@@ -62,7 +62,7 @@ def handleActorWithRotAsParam(actorProp: OOTActorProperty, actorID: str, rotatio
 
 
 def getDataMatch(
-    sceneData: str, name: str, dataType: str | list[str], errorMessageID: str, isArray: bool = True
+    sceneData: str, name: str, dataType: str | list[str], errorMessageID: str, isArray: bool = True, strip: bool = False
 ) -> str:
     arrayText = rf"\[[\s0-9A-Za-z_]*\]\s*" if isArray else ""
 
@@ -83,7 +83,10 @@ def getDataMatch(
     data_match = removeComments(match.group(1))
 
     if "#include" in data_match:
-        return removeComments(get_include_data(data_match))
+        data_match = removeComments(get_include_data(data_match))
+
+    if strip:
+        data_match = data_match.replace("\n", "").replace(" ", "")
 
     return data_match
 

@@ -29,13 +29,13 @@ from ..collision.constants import (
 def parseCrawlSpaceData(
     setting: str, sceneData: str, posDataName: str, index: int, count: int, objName: str, orderIndex: str
 ):
-    camPosData = getDataMatch(sceneData, posDataName, "Vec3s", "camera position list")
+    camPosData = getDataMatch(sceneData, posDataName, "Vec3s", "camera position list", strip=True)
     camPosList = [value.replace("{", "").strip() for value in camPosData.split("},") if value.strip() != ""]
     posData = [camPosList[index : index + count][i] for i in range(0, count, 3)]
 
     points = []
     for posDataItem in posData:
-        points.append([hexOrDecInt(value.strip()) for value in posDataItem.split(",")])
+        points.append([hexOrDecInt(value.strip()) for value in posDataItem.split(",") if value.strip() != ""])
 
     # name is important for alphabetical ordering
     curveObj = createCurveFromPoints(points, objName)
@@ -49,13 +49,13 @@ def parseCrawlSpaceData(
 
 
 def parseCamDataList(sceneObj: bpy.types.Object, camDataListName: str, sceneData: str):
-    camMatchData = getDataMatch(sceneData, camDataListName, ["CamData", "BgCamInfo"], "camera data list")
+    camMatchData = getDataMatch(sceneData, camDataListName, ["CamData", "BgCamInfo"], "camera data list", strip=True)
     camDataList = [value.replace("{", "").strip() for value in camMatchData.split("},") if value.strip() != ""]
 
     # orderIndex used for naming cameras in alphabetical order
     orderIndex = 0
     for camEntry in camDataList:
-        setting, count, posDataName = [value.strip() for value in camEntry.split(",")]
+        setting, count, posDataName = [value.strip() for value in camEntry.split(",") if value.strip() != ""]
         index = None
 
         objName = f"{sceneObj.name}_camPos_{format(orderIndex, '03')}"
@@ -89,24 +89,28 @@ def parseCamPosData(setting: str, sceneData: str, posDataName: str, index: int, 
         camObj.location = [0, 0, 0]
         return camObj
 
-    camPosData = getDataMatch(sceneData, posDataName, "Vec3s", "camera position list")
+    camPosData = getDataMatch(sceneData, posDataName, "Vec3s", "camera position list", strip=True)
     camPosList = [value.replace("{", "").strip() for value in camPosData.split("},") if value.strip() != ""]
 
     posData = camPosList[index : index + 3]
     position = yUpToZUp @ mathutils.Vector(
-        [hexOrDecInt(value.strip()) / bpy.context.scene.ootBlenderScale for value in posData[0].split(",")]
+        [
+            hexOrDecInt(value.strip()) / bpy.context.scene.ootBlenderScale
+            for value in posData[0].split(",")
+            if value.strip() != ""
+        ]
     )
 
     # camera faces opposite direction
     rotation = (
         yUpToZUp.to_quaternion()
         @ mathutils.Euler(
-            ootParseRotation([hexOrDecInt(value.strip()) for value in posData[1].split(",")])
+            ootParseRotation([hexOrDecInt(value.strip()) for value in posData[1].split(",") if value.strip() != ""])
         ).to_quaternion()
         @ mathutils.Quaternion((0, 1, 0), math.radians(180.0))
     ).to_euler()
 
-    fov, bgImageOverrideIndex, unknown = [value.strip() for value in posData[2].split(",")]
+    fov, bgImageOverrideIndex, unknown = [value.strip() for value in posData[2].split(",") if value.strip() != ""]
 
     camObj.location = position
     camObj.rotation_euler = rotation
@@ -130,7 +134,7 @@ def parseWaterBoxes(
     sceneData: str,
     waterBoxListName: str,
 ):
-    waterBoxListData = getDataMatch(sceneData, waterBoxListName, "WaterBox", "water box list")
+    waterBoxListData = getDataMatch(sceneData, waterBoxListName, "WaterBox", "water box list", strip=True)
     waterBoxList = [value.replace("{", "").strip() for value in waterBoxListData.split("},") if value.strip() != ""]
 
     # orderIndex used for naming cameras in alphabetical order
@@ -139,9 +143,11 @@ def parseWaterBoxes(
         objName = f"{sceneObj.name}_waterBox_{format(orderIndex, '03')}"
         params = [value.strip() for value in waterBoxData.split(",")]
         topCorner = yUpToZUp @ mathutils.Vector(
-            [hexOrDecInt(value) / bpy.context.scene.ootBlenderScale for value in params[0:3]]
+            [hexOrDecInt(value) / bpy.context.scene.ootBlenderScale for value in params[0:3] if value.strip() != ""]
         )
-        dimensions = [hexOrDecInt(value) / bpy.context.scene.ootBlenderScale for value in params[3:5]]
+        dimensions = [
+            hexOrDecInt(value) / bpy.context.scene.ootBlenderScale for value in params[3:5] if value.strip() != ""
+        ]
         properties = hexOrDecInt(params[5])
 
         height = 1000 / bpy.context.scene.ootBlenderScale  # just to add volume
@@ -305,10 +311,9 @@ def parseCollisionHeader(
 def parseCollision(
     sceneObj: bpy.types.Object, vertexListName: str, polygonListName: str, surfaceTypeListName: str, sceneData: str
 ):
-    vertMatchData = getDataMatch(sceneData, vertexListName, "Vec3s", "vertex list").replace("\n", "").replace(" ", "")
-    polyMatchData = (
-        getDataMatch(sceneData, polygonListName, "CollisionPoly", "polygon list").replace("\n", "").replace(" ", "")
-    )
+    vertMatchData = getDataMatch(sceneData, vertexListName, "Vec3s", "vertex list", strip=True)
+    polyMatchData = getDataMatch(sceneData, polygonListName, "CollisionPoly", "polygon list", strip=True)
+
     surfMatchData = (
         getDataMatch(sceneData, surfaceTypeListName, "SurfaceType", "surface type list")
         .replace("\n", "")
