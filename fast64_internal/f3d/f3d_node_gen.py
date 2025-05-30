@@ -779,7 +779,8 @@ def set_node_prop(prop: object, attr: str, value: object, nodes, errors: ErrorSt
         return
     existing_value = getattr(prop, attr, None)
     try:
-        setattr(prop, attr, value)
+        if existing_value != value:
+            setattr(prop, attr, value)
     except Exception as exc:
         print_with_exc(
             errors.copy(
