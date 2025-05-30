@@ -915,8 +915,6 @@ def add_input_output(
             except Exception as exc:
                 print_with_exc(cur_errors, exc)
     node_tree.interface_update(bpy.context)
-    if hasattr(node_tree, "update"):
-        node_tree.update()
 
 
 def create_nodes(
