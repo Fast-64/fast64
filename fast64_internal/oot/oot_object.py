@@ -23,7 +23,7 @@ def addMissingObjectsToRoomHeader(roomObj: Object, curHeader: RoomHeader, header
                 for objKey in actor.tiedObjects:
                     if objKey not in ["obj_gameplay_keep", "obj_gameplay_field_keep", "obj_gameplay_dangeon_keep"]:
                         objID = ootData.objectData.objectsByKey[objKey].id
-                        if not (objID in curHeader.objects.objectList):
+                        if objID not in curHeader.objects.objectList:
                             curHeader.objects.objectList.append(objID)
                             addMissingObjectToProp(roomObj, headerIndex, objKey)
 
