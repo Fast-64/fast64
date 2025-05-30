@@ -290,12 +290,12 @@ def writeTextureArraysExisting2D(data: str, flipbook: TextureFlipbook, flipbookA
     array2DMatch = re.search(
         r"(static\s*)?void\s*\*\s*"
         + re.escape(flipbook.name)
-        + r"\s*\[\s*\]\s*\[\s*[0-9a-fA-Fx]*\s*\]\s*=\s*\{(.*?)\}\s*;",
+        + r"\s*\[\s*\]\s*\[\s*[0-9a-zA-Z_]*\s*\]\s*=\s*\{(.*?)\}\s*;",
         newData,
         flags=re.DOTALL,
     )
 
-    newArrayData = "{ " + flipbook_data_to_c(flipbook) + " }"
+    newArrayData = "{\n" + flipbook_data_to_c(flipbook) + " }"
 
     # build a list of arrays here
     # replace existing element if list is large enough
