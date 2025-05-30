@@ -1063,6 +1063,7 @@ def generate_overrides(
                 fModel,
                 node.DLmicrocode,
                 name,
+                node.override_hash,
                 override_node.material,
                 override_node.specificMat,
                 override_node.drawLayer,
@@ -2400,6 +2401,7 @@ def save_override_draw(
     fModel: FModel,
     draw: GfxList,
     prefix: str,
+    existing_hash,
     override_mat: bpy.types.Material | None,
     specific_mats: tuple[bpy.types.Material] | None,
     override_layer: int | None,
@@ -2423,7 +2425,7 @@ def save_override_draw(
     name = f"{fMesh.name}{prefix}"
     new_name = name
     override_index = -1
-    while new_name in fMesh.drawMatOverrides:
+    while new_name in [x.name for x in fMesh.drawMatOverrides.values()]:
         override_index += 1
         new_name = f"{name}_{override_index}"
     name = new_name
@@ -2435,6 +2437,7 @@ def save_override_draw(
     last_replaced = None
     command_index = 0
 
+    new_hash = [] if existing_hash is None else [*existing_hash]
     while command_index < len(new_dl_override.commands):
         command = new_dl_override.commands[command_index]
         if not isinstance(command, SPDisplayList):
@@ -2472,7 +2475,8 @@ def save_override_draw(
                         cur_bpy_material, fModel, None, new_layer, convert_texture_data
                     )[0]
                     new_mat.material = copy.copy(new_mat.material)  # so we can change the tag
-                    new_mat.material.tag |= GfxListTag.NoExport
+                    if override_mat is None:
+                        new_mat.material.tag |= GfxListTag.NoExport
                     fModel.layer_adapted_fmats[material_hash] = new_mat
             new_mat = fModel.layer_adapted_fmats.get(material_hash) or new_mat
 
@@ -2483,12 +2487,14 @@ def save_override_draw(
             # if layer ever changes the main material use new_mat here
             if should_modify and f_override_mat is not None:
                 save_mesh_override = True
+                new_hash.append((0, f_override_mat))
                 last_replaced = fmaterial
                 curMaterial = f_override_mat
                 command.displayList = f_override_mat.material
             # remove cmd if it is a repeat load
-            if prev_material == curMaterial:
+            if prev_material is not None and prev_material == curMaterial:
                 save_mesh_override = True
+                new_hash.append((1, curMaterial))
                 new_dl_override.commands.pop(command_index)
                 command_index -= 1
                 # if we added a revert for our material redundant load, remove that as well
@@ -2506,6 +2512,7 @@ def save_override_draw(
 
         # replace the revert if the override has a revert, otherwise remove the command
         if command.displayList.tag & GfxListTag.MaterialRevert and new_mat is not None:
+            new_hash.append((2, new_mat))
             save_mesh_override = True
             if new_mat.revert is not None:
                 command.displayList = new_mat.revert
@@ -2524,6 +2531,7 @@ def save_override_draw(
             and isinstance(prev_command, SPDisplayList)
             and (new_mat is not None and prev_command.displayList == new_mat.revert)
         ):
+            new_hash.append((3, new_mat))
             save_mesh_override = True
             new_dl_override.commands.pop(prev_index)
             command_index -= 1
@@ -2543,15 +2551,19 @@ def save_override_draw(
                 and next_command.displayList.tag & GfxListTag.Material
                 and next_command.displayList != prev_material.material
             ) or (isinstance(next_command, SPEndDisplayList)):
+                new_hash.append((4, new_mat))
                 save_mesh_override = True
                 new_dl_override.commands.insert(command_index + 1, SPDisplayList(new_mat.revert))
                 command_index += 1
         # iterate to the next cmd
         command_index += 1
 
+    new_hash = tuple(new_hash)
     if save_mesh_override:
-        fMesh.drawMatOverrides[name] = new_dl_override
-        return new_dl_override, name
+        if new_hash in fMesh.drawMatOverrides:
+            return fMesh.drawMatOverrides[new_hash], new_hash
+        fMesh.drawMatOverrides[new_hash] = new_dl_override
+        return new_dl_override, new_hash
     return None, None
 
 
