@@ -3,7 +3,7 @@ import bpy
 
 from ...utility import parentObject, hexOrDecInt
 from ..scene.properties import OOTSceneHeaderProperty
-from ..oot_utility import setCustomProperty, getEvalParams
+from ..oot_utility import setCustomProperty, getEvalParams, getEvalParamsInt
 from ..oot_constants import ootEnumCamTransition, ootData
 from .classes import SharedSceneData
 from .constants import actorsWithRotAsParam
@@ -115,7 +115,7 @@ def parseActorInfo(actorMatch: re.Match, nestedBrackets: bool) -> tuple[str, lis
         )
         rotation = tuple(
             [
-                hexOrDecInt(getEvalParams(value.strip()))
+                hexOrDecInt(getEvalParamsInt(value.strip()))
                 for value in actorMatch.group(3).split(",")
                 if value.strip() != ""
             ]
@@ -128,7 +128,7 @@ def parseActorInfo(actorMatch: re.Match, nestedBrackets: bool) -> tuple[str, lis
         rotation = tuple([hexOrDecInt(value) for value in params[4:7]])
         actorParam = params[7]
 
-    return actorID, position, rotation, actorParam
+    return actorID, position, rotation, actorParam.removesuffix(",")
 
 
 def parseSpawnList(
@@ -184,7 +184,7 @@ def getActorRegex(actorList: list[str]):
 def parseActorList(
     roomObj: bpy.types.Object, sceneData: str, actorListName: str, sharedSceneData: SharedSceneData, headerIndex: int
 ):
-    actorList = getDataMatch(sceneData, actorListName, "ActorEntry", "actor list")
+    actorList = getDataMatch(sceneData, actorListName, "ActorEntry", "actor list", strip=True)
     regex, nestedBrackets = getActorRegex(actorList)
 
     for actorMatch in re.finditer(regex, actorList, flags=re.DOTALL):

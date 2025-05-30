@@ -16,7 +16,7 @@ from .room_shape import parseMeshHeader
 
 
 def parseObjectList(roomHeader: OOTRoomHeaderProperty, sceneData: str, objectListName: str):
-    objectData = getDataMatch(sceneData, objectListName, "s16", "object list")
+    objectData = getDataMatch(sceneData, objectListName, "s16", "object list", strip=True)
     objects = [value.strip() for value in objectData.split(",") if value.strip() != ""]
 
     for object in objects:
@@ -39,6 +39,18 @@ def parseRoomCommands(
     sharedSceneData: SharedSceneData,
     headerIndex: int,
 ):
+    # we need to access the header in `loadMultiBlock()` for the new assets system
+    if not bpy.context.scene.fast64.oot.is_globalh_present() and roomIndex == 0:
+        header_path = Path(sharedSceneData.scenePath).resolve() / f"{sharedSceneData.scene_name}.h"
+        if not header_path.exists():
+            raise PluginError("ERROR: scene file header not found!")
+        sceneData += header_path.read_text()
+
+        header_path = Path(sharedSceneData.scenePath).resolve() / f"{roomName}.h"
+        if not header_path.exists():
+            raise PluginError("ERROR: room file header not found!")
+        sceneData += header_path.read_text()
+
     if roomObj is None:
         # Name set in parseRoomList()
         roomObj = bpy.data.objects.new(roomCommandsName, None)
@@ -59,18 +71,6 @@ def parseRoomCommands(
         while len(cutsceneHeaders) < headerIndex - 3:
             cutsceneHeaders.add()
         roomHeader = cutsceneHeaders[headerIndex - 4]
-
-    # we need to access the header in `loadMultiBlock()` for the new assets system
-    if not bpy.context.scene.fast64.oot.is_globalh_present():
-        header_path = Path(sharedSceneData.scenePath).resolve() / f"{sharedSceneData.scene_name}.h"
-        if not header_path.exists():
-            raise PluginError("ERROR: scene file header not found!")
-        sceneData += header_path.read_text()
-
-        header_path = Path(sharedSceneData.scenePath).resolve() / f"{roomName}.h"
-        if not header_path.exists():
-            raise PluginError("ERROR: room file header not found!")
-        sceneData += header_path.read_text()
 
     commands = getDataMatch(sceneData, roomCommandsName, ["SceneCmd", "SCmdBase"], "scene commands")
     cmd_map = parse_commands_data(commands)
@@ -135,9 +135,10 @@ def parseAlternateRoomHeaders(
 ):
     altHeadersData = getDataMatch(sceneData, altHeadersListName, ["SceneCmd*", "SCmdBase*"], "alternate header list")
     altHeadersList = [value.strip() for value in altHeadersData.split(",") if value.strip() != ""]
+    room_name = roomObj.name.split(".")[0]
 
     for i in range(len(altHeadersList)):
         if not (altHeadersList[i] == "NULL" or altHeadersList[i] == "0"):
             parseRoomCommands(
-                roomObj.name, roomObj, sceneData, altHeadersList[i], roomIndex, f3dContext, sharedSceneData, i + 1
+                room_name, roomObj, sceneData, altHeadersList[i], roomIndex, f3dContext, sharedSceneData, i + 1
             )
