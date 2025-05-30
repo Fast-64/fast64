@@ -142,29 +142,46 @@ def parseRoomList(
     sharedSceneData: SharedSceneData,
     headerIndex: int,
 ):
-    roomList = getDataMatch(sceneData, roomListName, "RomFile", "room list")
+    roomList = getDataMatch(sceneData, roomListName, "RomFile", "room list", strip=True)
     index = 0
     roomObjs = []
+    use_macros = "ROM_FILE" in roomList
+
+    if use_macros:
+        regex = r"ROM_FILE\((.*?)\)"
+    else:
+        regex = rf"\{{([\(\)\sA-Za-z0-9\_]*),([\(\)\sA-Za-z0-9\_]*)\}}\s*,"
 
     # Assumption that alternate scene headers all use the same room list.
-    for roomMatch in re.finditer(
-        rf"\{{([\(\)\sA-Za-z0-9\_]*),([\(\)\sA-Za-z0-9\_]*)\}}\s*,", roomList, flags=re.DOTALL
-    ):
-        roomName = roomMatch.group(1).strip().replace("SegmentRomStart", "")
-        if "(u32)" in roomName:
-            roomName = roomName[5:].strip()[1:]  # includes leading underscore
-        elif "(uintptr_t)" in roomName:
-            roomName = roomName[11:].strip()[1:]
+    for roomMatch in re.finditer(regex, roomList, flags=re.DOTALL):
+        if use_macros:
+            roomName = roomMatch.group(1)
         else:
-            roomName = roomName[1:]
+            roomName = roomMatch.group(1).strip().replace("SegmentRomStart", "")
+            if "(u32)" in roomName:
+                roomName = roomName[5:].strip()[1:]  # includes leading underscore
+            elif "(uintptr_t)" in roomName:
+                roomName = roomName[11:].strip()[1:]
+            else:
+                roomName = roomName[1:]
 
         roomPath = os.path.join(sharedSceneData.scenePath, f"{roomName}.c")
         roomData = readFile(roomPath)
         parseMatrices(roomData, f3dContext, 1 / bpy.context.scene.ootBlenderScale)
 
+        # roomCommandsName = f"{roomName}Commands"
+        # if roomCommandsName not in roomData:
+        #     roomCommandsName = f"{roomName}_header00"  # fast64 naming
+
         roomCommandsName = f"{roomName}Commands"
+
+        # newer assets system naming
         if roomCommandsName not in roomData:
-            roomCommandsName = f"{roomName}_header00"  # fast64 naming
+            roomCommandsName = roomName
+
+        # fast64 naming
+        if roomCommandsName not in roomData:
+            roomCommandsName = f"{roomName}_header00"
 
         # Assumption that any shared textures are stored after the CollisionHeader.
         # This is done to avoid including large collision data in regex searches.

@@ -20,7 +20,7 @@ def parseMeshHeader(
     sharedSceneData: SharedSceneData,
 ):
     roomHeader = roomObj.ootRoomHeader
-    meshData = getDataMatch(sceneData, meshHeaderName, "", "mesh header", False)
+    meshData = getDataMatch(sceneData, meshHeaderName, "", "mesh header", False, strip=True)
     meshData = meshData.replace("{", "").replace("}", "")
 
     meshParams = [value.strip() for value in meshData.split(",") if value.strip() != ""]
@@ -79,15 +79,15 @@ def parseMeshList(
     sharedSceneData: SharedSceneData,
 ):
     roomHeader = roomObj.ootRoomHeader
-    meshEntryData = getDataMatch(sceneData, meshListName, "", "mesh list", roomShape != 1)
+    meshEntryData = getDataMatch(sceneData, meshListName, "", "mesh list", roomShape != 1, strip=True)
 
     if roomShape == 2:
-        matchPattern = r"\{\s*\{(.*?),(.*?),(.*?)\}\s*,(.*?),(.*?),(.*?)\}\s*,"
+        matchPattern = r"\{\s*\{(.*?),(.*?),(.*?)\}\s*,(.*?),(.*?),(.*?)[,]\}\s*,"
         searchItems = re.finditer(matchPattern, meshEntryData, flags=re.DOTALL)
     elif roomShape == 1:
         searchItems = [meshEntryData]
     else:
-        matchPattern = r"\{(.*?),(.*?)\}\s*,"
+        matchPattern = r"\{(.*?),(.*?)[,]\}\s*,"
         searchItems = re.finditer(matchPattern, meshEntryData, flags=re.DOTALL)
 
     for entryMatch in searchItems:

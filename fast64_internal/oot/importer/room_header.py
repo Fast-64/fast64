@@ -1,12 +1,14 @@
 import bpy
 import re
 
-from ...utility import hexOrDecInt
+from pathlib import Path
+
+from ...utility import PluginError, hexOrDecInt
 from ..oot_utility import setCustomProperty
 from ..oot_model_classes import OOTF3DContext
 from ..room.properties import OOTRoomHeaderProperty
 from ..oot_constants import ootData, ootEnumLinkIdle, ootEnumRoomBehaviour
-from .utility import getDataMatch, stripName
+from .utility import getDataMatch, stripName, parse_commands_data
 from .classes import SharedSceneData
 from .constants import headerNames
 from .actor import parseActorList
@@ -58,10 +60,21 @@ def parseRoomCommands(
             cutsceneHeaders.add()
         roomHeader = cutsceneHeaders[headerIndex - 4]
 
+    # we need to access the header in `loadMultiBlock()` for the new assets system
+    if not bpy.context.scene.fast64.oot.is_globalh_present():
+        header_path = Path(sharedSceneData.scenePath).resolve() / f"{sharedSceneData.scene_name}.h"
+        if not header_path.exists():
+            raise PluginError("ERROR: scene file header not found!")
+        sceneData += header_path.read_text()
+
+        header_path = Path(sharedSceneData.scenePath).resolve() / f"{roomName}.h"
+        if not header_path.exists():
+            raise PluginError("ERROR: room file header not found!")
+        sceneData += header_path.read_text()
+
     commands = getDataMatch(sceneData, roomCommandsName, ["SceneCmd", "SCmdBase"], "scene commands")
-    for commandMatch in re.finditer(rf"(SCENE\_CMD\_[a-zA-Z0-9\_]*)\s*\((.*?)\)\s*,", commands, flags=re.DOTALL):
-        command = commandMatch.group(1)
-        args = [arg.strip() for arg in commandMatch.group(2).split(",")]
+    cmd_map = parse_commands_data(commands)
+    for command, args in cmd_map.items():
         if command == "SCENE_CMD_ALTERNATE_HEADER_LIST":
             altHeadersListName = stripName(args[0])
             parseAlternateRoomHeaders(roomObj, roomIndex, sharedSceneData, sceneData, altHeadersListName, f3dContext)
