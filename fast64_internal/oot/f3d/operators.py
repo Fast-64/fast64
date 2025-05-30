@@ -1,4 +1,7 @@
-import bpy, os, mathutils
+import bpy
+import os
+import mathutils
+
 from bpy.types import Operator, Mesh
 from bpy.ops import object
 from bpy.path import abspath
@@ -61,12 +64,18 @@ def ootConvertMeshToC(
         ootCleanupScene(originalObj, allObjs)
         raise Exception(str(e))
 
+    filename = settings.filename if settings.isCustomFilename else name
     data = CData()
-    data.source += '#include "ultra64.h"\n#include "global.h"\n'
+    data.header = f"#ifndef {filename.upper()}_H\n" + f"#define {filename.upper()}_H\n\n" + '#include "ultra64.h"\n'
+
+    if bpy.context.scene.fast64.oot.is_globalh_present():
+        data.header += '#include "global.h"\n'
+
+    data.source = f'#include "{filename}.h"\n\n'
     if not isCustomExport:
-        data.source += '#include "' + folderName + '.h"\n\n'
+        data.header += f'#include "{folderName}.h"\n\n'
     else:
-        data.source += "\n"
+        data.header += "\n"
 
     path = ootGetPath(exportPath, isCustomExport, "assets/objects/", folderName, False, True)
     includeDir = settings.customAssetIncludeDir if settings.isCustom else f"assets/objects/{folderName}"
@@ -80,7 +89,7 @@ def ootConvertMeshToC(
         textureArrayData = writeTextureArraysNew(fModel, flipbookArrayIndex2D)
         data.append(textureArrayData)
 
-    filename = settings.filename if settings.isCustomFilename else name
+    data.header += "\n#endif\n"
     writeCData(data, os.path.join(path, filename + ".h"), os.path.join(path, filename + ".c"))
 
     if not isCustomExport:
@@ -123,7 +132,7 @@ class OOT_ImportDL(Operator):
             filedata = getImportData(paths)
             f3dContext = OOTF3DContext(get_F3D_GBI(), [name], basePath)
 
-            scale = getOOTScale(settings.actorScale)
+            scale = None
             if not isCustomImport:
                 filedata = ootGetIncludedAssetData(basePath, paths, filedata) + filedata
 
@@ -131,6 +140,9 @@ class OOT_ImportDL(Operator):
                     ootReadTextureArrays(basePath, overlayName, name, f3dContext, False, flipbookArrayIndex2D)
                 if settings.autoDetectActorScale:
                     scale = ootReadActorScale(basePath, overlayName, False)
+
+            if scale is None:
+                scale = getOOTScale(settings.actorScale)
 
             obj = importMeshC(
                 filedata,
