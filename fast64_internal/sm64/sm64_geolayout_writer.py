@@ -340,7 +340,7 @@ def getCameraObj(camera):
     raise PluginError("The level camera " + camera.name + " is no longer in the scene.")
 
 
-def appendRevertToGeolayout(geolayoutGraph, fModel):
+def appendRevertToGeolayout(geolayoutGraph, fModel: FModel):
     materialRevert = GfxList(
         fModel.name + "_" + "material_revert_render_settings", GfxListTag.MaterialRevert, fModel.DLFormat
     )
@@ -349,7 +349,7 @@ def appendRevertToGeolayout(geolayoutGraph, fModel):
     # walk the geo layout graph to find the last used DL for each layer
     # each switch child will be considered a last used DL, unless subsequent
     # DL is drawn outside switch root
-    def walk(node, last_gfx_list: list[dict]):
+    def walk(node, last_gfx_list: list[dict[int, tuple[FMesh, GfxList, TransformNode]]]):
         base_node = node.node
         if type(base_node) == JumpNode:
             if base_node.geolayout:
@@ -357,9 +357,9 @@ def appendRevertToGeolayout(geolayoutGraph, fModel):
                     last_gfx_list = walk(node, last_gfx_list)
         fMesh = getattr(base_node, "fMesh", None)
         if fMesh:
-            cmd_list = fMesh.drawMatOverrides.get(base_node.override_hash, None) or fMesh.draw
+            last_draw = fMesh, fMesh.drawMatOverrides.get(base_node.override_hash, None) or fMesh.draw, node
             for draw_layer_dict in last_gfx_list:
-                draw_layer_dict[base_node.drawLayer] = cmd_list
+                draw_layer_dict[base_node.drawLayer] = last_draw
         switch_gfx_lists = []
         for child in node.children:
             if type(base_node) == SwitchNode:
@@ -381,15 +381,22 @@ def appendRevertToGeolayout(geolayoutGraph, fModel):
     # Revert settings in each unique draw layer
     reverted_gfx_lists = set()
     for draw_layer_dict in last_gfx_list:
-        for gfx_list in draw_layer_dict.values():
+        for draw_layer, (fmesh, gfx_list, node) in draw_layer_dict.items():
             if gfx_list in reverted_gfx_lists:
                 continue
-            # remove SPEndDisplayList from gfx_list, materialRevert has its own SPEndDisplayList cmd
-            while SPEndDisplayList() in gfx_list.commands:
-                gfx_list.commands.remove(SPEndDisplayList())
-
-            gfx_list.commands.extend(materialRevert.commands)
             reverted_gfx_lists.add(gfx_list)
+            if fmesh.cullVertexList:
+                fmesh = fModel.addMesh(f"final_revert_layer_{draw_layer}", fModel.name, draw_layer, False, None)
+                fmesh.draw = gfx_list = GfxList(fmesh.name, GfxListTag.Draw, fModel.DLFormat)
+                revert_node = DisplayListNode(draw_layer)
+                revert_node.DLmicrocode = gfx_list
+                revert_node.fMesh = fmesh
+                addParentNode(node, revert_node)
+            else:
+                # remove SPEndDisplayList from gfx_list, materialRevert has its own SPEndDisplayList cmd
+                while SPEndDisplayList() in gfx_list.commands:
+                    gfx_list.commands.remove(SPEndDisplayList())
+            gfx_list.commands.extend(materialRevert.commands)
 
 
 # Convert to Geolayout
