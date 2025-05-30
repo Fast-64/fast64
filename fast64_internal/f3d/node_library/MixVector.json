@@ -8,6 +8,7 @@
 				123.9848
 			],
 			"operation": "MULTIPLY_ADD",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -40,6 +41,7 @@
 				351.3011,
 				123.0141
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Vector"
@@ -55,6 +57,8 @@
 				-73.7655,
 				11.796
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -78,6 +82,8 @@
 				-75.7326,
 				-10.8386
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -107,6 +113,7 @@
 			],
 			"hide": true,
 			"operation": "SUBTRACT",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -141,6 +148,7 @@
 				-325.8933,
 				78.729
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "Fac",
@@ -172,6 +180,7 @@
 			}
 		}
 	},
+	"cached_hash": "359162626fcd3b9c73a965cb53835e4a",
 	"inputs": [
 		{
 			"name": "Fac",
@@ -192,7 +201,7 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "ad617f6f76b1b88f4c8a6b81042bdc05",
+	"interface_hash": "25551426b2465ae56f135925858e0c9d",
 	"bpy_ver": [
 		3,
 		2,

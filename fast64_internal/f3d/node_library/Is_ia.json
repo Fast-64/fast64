@@ -7,6 +7,7 @@
 				-736.4277,
 				-84.1609
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "Color",
@@ -42,6 +43,7 @@
 				-364.3542,
 				-54.8081
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
@@ -71,6 +73,7 @@
 				-157.7389,
 				-84.721
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
@@ -104,6 +107,7 @@
 				"name": "Gamma Correct Fast64"
 			},
 			"width": 167.0988006591797,
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
@@ -134,6 +138,7 @@
 			}
 		}
 	},
+	"cached_hash": "3cef39840432b7ec32f00abc5b960668",
 	"inputs": [
 		{
 			"name": "Color",
@@ -171,7 +176,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "713de6d8f3037d39550c2bdd49b85118",
+	"interface_hash": "fe4c592da9848bfe470c65acc9855c24",
 	"bpy_ver": [
 		3,
 		2,

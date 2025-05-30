@@ -8,6 +8,7 @@
 				67.3452
 			],
 			"operation": "MULTIPLY",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -42,6 +43,7 @@
 				164.9748,
 				30.5163
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": [
@@ -82,6 +84,7 @@
 				327.3811,
 				30.8211
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "UV"
@@ -97,6 +100,8 @@
 				-576.5394,
 				18.8993
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -120,6 +125,8 @@
 				-576.5394,
 				-78.841
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -143,6 +150,7 @@
 				-760.3992,
 				53.0103
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "UV",
@@ -206,6 +214,7 @@
 				-382.7128,
 				78.5662
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -238,6 +247,7 @@
 				216.7719
 			],
 			"operation": "DIVIDE",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": [
@@ -278,6 +288,7 @@
 				-563.0628,
 				194.9688
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -308,6 +319,7 @@
 				344.3069
 			],
 			"operation": "DIVIDE",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": [
@@ -343,6 +355,7 @@
 			}
 		}
 	},
+	"cached_hash": "f2b6d949f6516eb314acc1869c8543fd",
 	"inputs": [
 		{
 			"name": "UV",
@@ -385,7 +398,7 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "2f4fcceb03eb529a7c8b2934e04524ec",
+	"interface_hash": "598006d444fa91cd2fb1411287b76745",
 	"bpy_ver": [
 		3,
 		2,

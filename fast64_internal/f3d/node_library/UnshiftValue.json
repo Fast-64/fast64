@@ -7,6 +7,7 @@
 				-313.9069,
 				0.0
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "Shift",
@@ -36,6 +37,7 @@
 				-29.4316
 			],
 			"hide": true,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -70,6 +72,7 @@
 				"serialized_type": "NodeTree",
 				"name": "ShiftValue"
 			},
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Shift"
@@ -97,6 +100,7 @@
 				245.7738,
 				6.0149
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Value"
@@ -107,6 +111,7 @@
 			}
 		}
 	},
+	"cached_hash": "ad8a58d7bdd30d8b3c6b4e51dadc3856",
 	"inputs": [
 		{
 			"name": "Shift",
@@ -128,7 +133,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "d87b2b51dd54426e2078684c359c09d2",
+	"interface_hash": "6426508139668983dca234de1f93c685",
 	"bpy_ver": [
 		3,
 		2,

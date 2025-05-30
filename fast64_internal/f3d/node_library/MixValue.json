@@ -7,6 +7,7 @@
 				-357.5402,
 				0.0
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "Fac",
@@ -53,6 +54,7 @@
 				43.4761
 			],
 			"operation": "SUBTRACT",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -83,6 +85,7 @@
 				90.9843
 			],
 			"operation": "MULTIPLY_ADD",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -110,6 +113,7 @@
 				343.5534,
 				90.1504
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Value"
@@ -120,6 +124,7 @@
 			}
 		}
 	},
+	"cached_hash": "5f375d02afbfd321b9cb21796947d0b6",
 	"inputs": [
 		{
 			"name": "Fac",
@@ -153,7 +158,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "98aecc409e785c6991fb5b65539aefcd",
+	"interface_hash": "156e03c096a4b1b053e99c1d12a87120",
 	"bpy_ver": [
 		3,
 		2,

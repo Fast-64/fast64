@@ -7,6 +7,7 @@
 				-293.9529,
 				0.0
 			],
+			"width_hidden": 80.0,
 			"outputs": {}
 		},
 		"Group Output": {
@@ -15,6 +16,7 @@
 				283.9528,
 				0.0
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Normal"
@@ -33,6 +35,7 @@
 				84.8114,
 				39.71
 			],
+			"width_hidden": 100.0,
 			"outputs": {
 				"1": {
 					"name": "Normal",
@@ -55,6 +58,7 @@
 			}
 		}
 	},
+	"cached_hash": "0e4b20409fc80183f80c08ce31ff3e27",
 	"outputs": [
 		{
 			"name": "Normal",
@@ -65,7 +69,7 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "c09485e231ac068f1d1a3a64e5f14b90",
+	"interface_hash": "650774806e0e91b0cec445c85284366c",
 	"bpy_ver": [
 		3,
 		2,

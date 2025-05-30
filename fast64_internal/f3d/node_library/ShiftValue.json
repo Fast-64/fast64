@@ -70,6 +70,7 @@
 				158.184,
 				121.1253
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Value"
@@ -85,6 +86,7 @@
 				-369.6805,
 				42.9698
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "Shift",
@@ -108,6 +110,7 @@
 			}
 		}
 	},
+	"cached_hash": "0c158dcb4e8b9b17af779ea4fe954d1e",
 	"inputs": [
 		{
 			"name": "Shift",
@@ -129,7 +132,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "8529085b2e9e2567b2b95fa008d0d646",
+	"interface_hash": "6426508139668983dca234de1f93c685",
 	"bpy_ver": [
 		3,
 		2,

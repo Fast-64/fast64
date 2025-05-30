@@ -7,6 +7,8 @@
 				-279.1092,
 				-34.7839
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -35,6 +37,7 @@
 				78.7376
 			],
 			"operation": "ADD",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -66,6 +69,7 @@
 				55.9736
 			],
 			"operation": "ADD",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -96,6 +100,8 @@
 				257.5029,
 				19.0907
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -120,6 +126,7 @@
 				54.6606
 			],
 			"operation": "DIVIDE",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -150,6 +157,7 @@
 				292.1541,
 				-13.3694
 			],
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
@@ -184,6 +192,8 @@
 				257.5029,
 				-146.1411
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -207,6 +217,8 @@
 				-279.1092,
 				-123.1018
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -230,6 +242,7 @@
 				-450.6228,
 				0.0
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "ValueSample1",
@@ -278,6 +291,7 @@
 				450.9673,
 				-13.5289
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Value"
@@ -288,6 +302,7 @@
 			}
 		}
 	},
+	"cached_hash": "bbe4c9750777871e1525a9f90fb9ab01",
 	"inputs": [
 		{
 			"name": "ValueSample1",
@@ -323,7 +338,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "07eef72877ccf287c357427805c8ade4",
+	"interface_hash": "a3045d25a33ece8b2dc5dbdc5427ef18",
 	"bpy_ver": [
 		3,
 		2,

@@ -7,6 +7,8 @@
 				-1522.3707,
 				286.3088
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -30,6 +32,8 @@
 				-1542.6559,
 				263.6219
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -53,6 +57,8 @@
 				-1301.7417,
 				329.3955
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -76,6 +82,8 @@
 				-1280.8429,
 				351.201
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -99,6 +107,8 @@
 				-1788.3042,
 				134.9888
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -122,6 +132,8 @@
 				-1572.2717,
 				211.7775
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -149,6 +161,7 @@
 				"serialized_type": "NodeTree",
 				"name": "CalcFresnel"
 			},
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Normal dot Incoming",
@@ -181,6 +194,8 @@
 				-1521.5952,
 				166.9843
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -204,6 +219,8 @@
 				-1541.1616,
 				144.5011
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -227,6 +244,8 @@
 				-1571.4875,
 				105.7376
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -250,6 +269,8 @@
 				-1328.751,
 				243.9941
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -273,6 +294,8 @@
 				-111.593,
 				181.5826
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -297,6 +320,8 @@
 				381.0069
 			],
 			"label": "Total Light",
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -324,6 +349,8 @@
 				-75.5634,
 				226.5249
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -347,6 +374,8 @@
 				-55.026,
 				248.3994
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -371,6 +400,8 @@
 				459.6726
 			],
 			"label": "G_LIGHTTOALPHA",
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -394,6 +425,8 @@
 				-93.7028,
 				204.4446
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -421,6 +454,7 @@
 				"serialized_type": "NodeTree",
 				"name": "LightToAlpha"
 			},
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "G_LIGHTTOALPHA",
@@ -478,6 +512,8 @@
 				181.9626,
 				287.5107
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -502,6 +538,7 @@
 				399.1165
 			],
 			"label": "No Packed Normals",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Fac"
@@ -549,6 +586,8 @@
 				397.5989,
 				241.6896
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -573,6 +612,8 @@
 				417.5142
 			],
 			"label": "G_FRESNEL_ALPHA",
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -597,6 +638,8 @@
 				438.8208
 			],
 			"label": "G_FRESNEL_COLOR",
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -624,6 +667,7 @@
 				"serialized_type": "NodeTree",
 				"name": "ApplyFresnel"
 			},
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
@@ -687,6 +731,8 @@
 				376.7528,
 				219.8322
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -710,6 +756,8 @@
 				204.646,
 				220.6357
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -733,6 +781,8 @@
 				160.1116,
 				380.985
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -756,6 +806,8 @@
 				161.2356,
 				265.0642
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -779,6 +831,8 @@
 				652.8352,
 				542.7546
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -803,6 +857,8 @@
 				499.6646
 			],
 			"label": "G_LIGHTING",
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -827,6 +883,8 @@
 				522.5414
 			],
 			"label": "G_FOG",
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -850,6 +908,8 @@
 				611.7163,
 				407.2597
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -873,6 +933,8 @@
 				679.4336,
 				384.7707
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -897,6 +959,7 @@
 				518.7827
 			],
 			"label": "Disable Lighting",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Fac"
@@ -944,6 +1007,8 @@
 				635.7847,
 				240.8632
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -967,6 +1032,8 @@
 				658.2585,
 				197.1397
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -991,6 +1058,7 @@
 				330.8109
 			],
 			"label": "Replace A w Fog",
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
@@ -1025,6 +1093,8 @@
 				610.4702,
 				219.0124
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1048,6 +1118,7 @@
 				900.8262,
 				440.8631
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
@@ -1073,6 +1144,8 @@
 				479.4407
 			],
 			"label": "G_PACKED_NORMALS",
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1100,6 +1173,7 @@
 				"serialized_type": "NodeTree",
 				"name": "ClampVec01"
 			},
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Vector"
@@ -1129,6 +1203,7 @@
 				"name": "GetSpecularNormal"
 			},
 			"width": 170.023193359375,
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "G_LIGHTING_SPECULAR",
@@ -1163,6 +1238,8 @@
 				-1260.3784,
 				373.3571
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1186,6 +1263,8 @@
 				-1237.5736,
 				264.4097
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1214,6 +1293,7 @@
 				"name": "AOFactors"
 			},
 			"width": 152.7864990234375,
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Vertex Alpha",
@@ -1260,6 +1340,8 @@
 				-1259.2085,
 				242.1832
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1283,6 +1365,8 @@
 				-1300.6041,
 				197.7541
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1306,6 +1390,8 @@
 				-1280.1963,
 				220.3843
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1329,6 +1415,8 @@
 				-1027.7544,
 				284.1518
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1352,6 +1440,8 @@
 				-1027.4915,
 				262.0336
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1380,6 +1470,7 @@
 				"serialized_type": "NodeTree",
 				"name": "AmbientLight"
 			},
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Ambient Color"
@@ -1406,6 +1497,8 @@
 				-1789.1194,
 				395.9777
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1433,6 +1526,8 @@
 				-838.176,
 				196.2852
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1456,6 +1551,8 @@
 				-1034.066,
 				123.2127
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1479,6 +1576,8 @@
 				-1029.1858,
 				700.3717
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1506,6 +1605,7 @@
 			"hide": true,
 			"label": "VCol",
 			"width": 143.9135284423828,
+			"width_hidden": 100.0,
 			"outputs": {
 				"0": {
 					"name": "Color",
@@ -1546,6 +1646,7 @@
 			"hide": true,
 			"label": "Alpha VCol",
 			"width": 140.0,
+			"width_hidden": 100.0,
 			"outputs": {
 				"0": {
 					"name": "Color",
@@ -1584,6 +1685,7 @@
 			],
 			"hide": true,
 			"width": 102.71830749511719,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
@@ -1619,6 +1721,7 @@
 				"name": "Gamma Correct Fast64"
 			},
 			"width": 177.94418334960938,
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
@@ -1660,6 +1763,7 @@
 				"name": "Gamma Correct Fast64"
 			},
 			"width": 176.2003631591797,
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
@@ -1700,6 +1804,7 @@
 				"serialized_type": "NodeTree",
 				"name": "Gamma Inverse Value"
 			},
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Gamma Corrected Value"
@@ -1713,6 +1818,8 @@
 				-1236.4384,
 				767.8488
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1741,6 +1848,8 @@
 				812.9934
 			],
 			"label": "Vertex Color",
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1769,6 +1878,8 @@
 				765.6992
 			],
 			"label": "Vertex Alpha",
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1793,6 +1904,8 @@
 				814.2455
 			],
 			"label": "Vertex Color",
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1817,6 +1930,7 @@
 				738.6661
 			],
 			"width": 151.80078125,
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "AmbientColor",
@@ -2025,6 +2139,8 @@
 				-838.1842,
 				392.6108
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -2052,6 +2168,8 @@
 				-500.0568,
 				611.0577
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -2075,6 +2193,8 @@
 				-521.8881,
 				589.9742
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -2103,6 +2223,7 @@
 				"serialized_type": "NodeTree",
 				"name": "DirLight"
 			},
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Light Level",
@@ -2148,6 +2269,8 @@
 				-501.3141,
 				261.2294
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -2171,6 +2294,8 @@
 				-544.3807,
 				567.156
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -2194,6 +2319,8 @@
 				-522.0397,
 				239.1433
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -2217,6 +2344,8 @@
 				-543.8701,
 				217.344
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -2240,6 +2369,8 @@
 				-567.5297,
 				195.3045
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -2263,6 +2394,8 @@
 				-567.5297,
 				392.3401
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -2286,6 +2419,8 @@
 				-505.3148,
 				103.5826
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -2309,6 +2444,8 @@
 				-505.1049,
 				150.7649
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -2332,6 +2469,8 @@
 				-526.2999,
 				172.6951
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -2355,6 +2494,8 @@
 				-766.6425,
 				261.744
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -2378,6 +2519,8 @@
 				-791.2551,
 				239.614
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -2401,6 +2544,8 @@
 				-767.858,
 				679.328
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -2424,6 +2569,8 @@
 				-791.5898,
 				657.6923
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -2447,6 +2594,8 @@
 				-813.8499,
 				218.1056
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -2470,6 +2619,8 @@
 				-814.814,
 				634.78
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -2498,6 +2649,7 @@
 				"serialized_type": "NodeTree",
 				"name": "DirLight"
 			},
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Light Level",
@@ -2543,6 +2695,8 @@
 				-526.5988,
 				122.9206
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -2566,6 +2720,8 @@
 				-767.568,
 				151.8276
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -2589,6 +2745,8 @@
 				-767.1015,
 				104.1183
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -2616,6 +2774,8 @@
 				-789.9753,
 				173.8012
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -2639,6 +2799,8 @@
 				-790.235,
 				123.6342
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -2666,6 +2828,8 @@
 				-1328.7041,
 				82.2788
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -2689,6 +2853,8 @@
 				398.33,
 				197.7357
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -2712,6 +2878,8 @@
 				399.622,
 				79.7119
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -2730,6 +2898,7 @@
 			}
 		}
 	},
+	"cached_hash": "6c029830eee09e94a1b52f154a3c0522",
 	"inputs": [
 		{
 			"name": "AmbientColor",
@@ -2868,7 +3037,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "e04e3835ca1cd8e23549278a0320bafd",
+	"interface_hash": "f3c63df483165dcdea514e993da93efe",
 	"bpy_ver": [
 		3,
 		2,

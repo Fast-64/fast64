@@ -7,6 +7,7 @@
 				53.0663,
 				374.1952
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "Env Color",
@@ -132,6 +133,7 @@
 				"name": "F3DNoiseGeneration"
 			},
 			"width": 204.65713500976562,
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "RandomizationFactor"
@@ -155,6 +157,7 @@
 				488.1629,
 				395.6433
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "1",
@@ -212,6 +215,7 @@
 			}
 		}
 	},
+	"cached_hash": "cb7b21a7e41de764ae4f43df2dea37dd",
 	"inputs": [
 		{
 			"name": "Env Color",
@@ -346,7 +350,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "8db835ce4d1747028bed280dfed29da9",
+	"interface_hash": "e2573d14d7f0fc4bf7f0715aa95f3e9a",
 	"bpy_ver": [
 		3,
 		2,

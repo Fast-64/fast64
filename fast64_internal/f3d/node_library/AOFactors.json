@@ -8,6 +8,7 @@
 				-11.5223
 			],
 			"hide": true,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -39,6 +40,7 @@
 				-12.4326
 			],
 			"hide": true,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -70,6 +72,7 @@
 				-51.0922
 			],
 			"hide": true,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -101,6 +104,7 @@
 				-51.0922
 			],
 			"hide": true,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -131,6 +135,8 @@
 				-61.9695,
 				-41.2905
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -161,6 +167,7 @@
 			"hide": true,
 			"label": "Alpha - 1",
 			"operation": "SUBTRACT",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -191,6 +198,8 @@
 				-252.7907,
 				-42.9377
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -218,6 +227,7 @@
 				-457.6445,
 				50.1908
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "Vertex Alpha",
@@ -271,6 +281,7 @@
 			"hide": true,
 			"label": "+ 1",
 			"operation": "ADD",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -304,6 +315,7 @@
 			"hide": true,
 			"label": "+ 1",
 			"operation": "ADD",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -334,6 +346,7 @@
 				296.9822,
 				-0.9841
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "AO Amb Factor"
@@ -347,6 +360,7 @@
 			}
 		}
 	},
+	"cached_hash": "816d32a34cb8a790d7c7e29419fdc938",
 	"inputs": [
 		{
 			"name": "Vertex Alpha",
@@ -386,7 +400,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "51fc9039c16dab6c52c5163a8470ab7f",
+	"interface_hash": "804714ea5edbb8ad9e6372ad65a2891a",
 	"bpy_ver": [
 		3,
 		2,

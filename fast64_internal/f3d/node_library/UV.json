@@ -7,6 +7,7 @@
 				360.8631,
 				0.0
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -26,6 +27,7 @@
 			"from_instancer": false,
 			"uv_map": "",
 			"width": 150.0,
+			"width_hidden": 120.0,
 			"outputs": {
 				"0": {
 					"name": "UV",
@@ -39,6 +41,7 @@
 			}
 		}
 	},
+	"cached_hash": "f642a9aa0355e34ecccd65d9c781f658",
 	"outputs": [
 		{
 			"name": "Vector",
@@ -48,7 +51,7 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "b6c31e7080bfca9aa5d759576054bb11",
+	"interface_hash": "a9c1c15b8223a6be1ba239e62c7aa7df",
 	"bpy_ver": [
 		3,
 		2,

@@ -7,6 +7,7 @@
 				-326.8776,
 				-99.9946
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "Color",
@@ -61,6 +62,7 @@
 				-0.7327
 			],
 			"use_clamp": true,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Fac"
@@ -102,6 +104,7 @@
 				327.9848,
 				-0.7327
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
@@ -123,6 +126,7 @@
 				-100.1417,
 				40.0667
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -148,6 +152,7 @@
 			}
 		}
 	},
+	"cached_hash": "2f1d44811de945fe862e6dba7d673ad7",
 	"inputs": [
 		{
 			"name": "Color",
@@ -181,7 +186,7 @@
 			"bl_idname": "NodeSocketColor"
 		}
 	],
-	"cached_hash": "74453738c0592cfb6a268a587c81be58",
+	"interface_hash": "28c4d47b3312e151415e1eddb7bcc836",
 	"bpy_ver": [
 		3,
 		2,

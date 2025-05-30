@@ -8,6 +8,7 @@
 				53.1117
 			],
 			"operation": "SCALE",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {
@@ -43,6 +44,7 @@
 				-200.0,
 				0.0
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "Ambient Color",
@@ -74,6 +76,7 @@
 				183.8044,
 				54.8822
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Light Level"
@@ -84,6 +87,7 @@
 			}
 		}
 	},
+	"cached_hash": "ae65a4654610027487cd408c2b843849",
 	"inputs": [
 		{
 			"name": "Ambient Color",
@@ -100,7 +104,7 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "c3a06ca6e67e4e1b4633202b4b429c10",
+	"interface_hash": "e514b7b679d4ada3b7d1cfc1448b34a3",
 	"bpy_ver": [
 		3,
 		2,

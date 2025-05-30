@@ -7,6 +7,8 @@
 				-134.7241,
 				105.4123
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -30,6 +32,8 @@
 				-134.7241,
 				-46.7861
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -57,6 +61,8 @@
 				-114.5542,
 				-68.2579
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -84,6 +90,8 @@
 				-114.5542,
 				81.6978
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -107,6 +115,8 @@
 				128.2776,
 				29.448
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -134,6 +144,8 @@
 				155.0163,
 				7.0767
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -161,6 +173,8 @@
 				128.2776,
 				226.8409
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -184,6 +198,8 @@
 				155.0163,
 				205.3909
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -207,6 +223,8 @@
 				81.7196,
 				81.3802
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -230,6 +248,8 @@
 				81.7196,
 				105.0838
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -253,6 +273,8 @@
 				331.3665,
 				204.7771
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -276,6 +298,8 @@
 				331.3665,
 				225.3344
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -299,6 +323,8 @@
 				118.955,
 				-15.3372
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -322,6 +348,8 @@
 				145.2087,
 				-37.7594
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -345,6 +373,8 @@
 				167.6987,
 				-59.161
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -368,6 +398,8 @@
 				145.2087,
 				-255.1122
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -391,6 +423,8 @@
 				167.6987,
 				-386.8837
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -414,6 +448,8 @@
 				118.955,
 				-206.7242
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -437,6 +473,7 @@
 				402.5118,
 				225.9913
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -465,6 +502,7 @@
 				"serialized_type": "NodeTree",
 				"name": "ShiftValue"
 			},
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Shift"
@@ -492,6 +530,8 @@
 				-96.3691,
 				-134.7885
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -519,6 +559,8 @@
 				-96.3692,
 				-206.7241
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -542,6 +584,8 @@
 				-116.4083,
 				-157.0396
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -565,6 +609,8 @@
 				-116.4083,
 				-308.9042
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -588,6 +634,8 @@
 				-135.4164,
 				-440.1133
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -611,6 +659,8 @@
 				-135.4164,
 				-178.902
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -634,6 +684,7 @@
 				-299.1567,
 				-11.9427
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "Width",
@@ -710,6 +761,7 @@
 				"serialized_type": "NodeTree",
 				"name": "ShiftValue"
 			},
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Shift"
@@ -741,6 +793,7 @@
 				"serialized_type": "NodeTree",
 				"name": "OffsetXY"
 			},
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Width"
@@ -795,6 +848,7 @@
 				"serialized_type": "NodeTree",
 				"name": "OffsetXY"
 			},
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Width"
@@ -846,6 +900,7 @@
 				-341.0384,
 				-352.2887
 			],
+			"width_hidden": 100.0,
 			"outputs": {
 				"0": {
 					"name": "Value",
@@ -864,6 +919,7 @@
 			}
 		}
 	},
+	"cached_hash": "a4d162a2f4dffd3b1f28c71866b661d6",
 	"inputs": [
 		{
 			"name": "Width",
@@ -922,7 +978,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "da4d6f8d85449e6af21376e7d0edd6e2",
+	"interface_hash": "233356674686e46be077284310523ac6",
 	"bpy_ver": [
 		3,
 		2,

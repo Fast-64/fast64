@@ -7,6 +7,7 @@
 				-191.6254,
 				51.8902
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"1": {
 					"name": "Cycle_A_1",
@@ -38,6 +39,7 @@
 				-190.3567,
 				134.448
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
@@ -71,6 +73,7 @@
 				488.2988,
 				32.9936
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Shader"
@@ -86,6 +89,7 @@
 				333.0882,
 				32.4752
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Fac"
@@ -117,6 +121,7 @@
 				"name": "Gamma Inverse Fast64"
 			},
 			"width": 163.7135772705078,
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Gamma Corrected Color",
@@ -154,6 +159,7 @@
 			],
 			"hide": true,
 			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Value",
@@ -180,6 +186,7 @@
 			}
 		}
 	},
+	"cached_hash": "71975054ffbc15b987fd0b35eed3bb11",
 	"inputs": [
 		{
 			"name": "Cycle_C_1",
@@ -206,7 +213,7 @@
 			"bl_idname": "NodeSocketShader"
 		}
 	],
-	"cached_hash": "8b2d4651ab5115dfd848a273009b9bb7",
+	"interface_hash": "75892d4ec98018bd66b6e6a317a20e3f",
 	"bpy_ver": [
 		3,
 		2,

@@ -551,17 +551,19 @@ class SerializedNodeTree:
     outputs: list[SerializedGroupInputValue] = dataclasses.field(default_factory=list)
 
     cached_hash: str = ""
+    interface_hash: str = ""
 
     def to_json(self):
         print(f"Serializing node tree {self.name} to json")
         data = {"name": self.name, "nodes": {name: node.to_json() for name, node in self.nodes.items()}}
         if self.links:
             data["links"] = [link.to_json() for link in self.links]
+        data["cached_hash"] = dict_hash(data)
         if self.inputs:
             data["inputs"] = [inp.to_json() for inp in self.inputs]
         if self.outputs:
             data["outputs"] = [out.to_json() for out in self.outputs]
-        data["cached_hash"] = dict_hash(data)
+        data["interface_hash"] = dict_hash(data.get("inputs", []) + data.get("outputs", []))
         data["bpy_ver"] = bpy.app.version
         return data
 
@@ -571,7 +573,8 @@ class SerializedNodeTree:
         self.links = [SerializedLink().from_json(link) for link in data.get("links", [])]
         self.inputs = [SerializedGroupInputValue().from_json(inp) for inp in data.get("inputs", [])]
         self.outputs = [SerializedGroupInputValue().from_json(out) for out in data.get("outputs", [])]
-        self.cached_hash = data["cached_hash"]
+        self.cached_hash = data.get("cached_hash", "")
+        self.interface_hash = data.get("interface_hash", "")
         return self
 
     def from_node_tree(self, node_tree: NodeTree):
@@ -898,7 +901,8 @@ def add_input_output(
         node_tree.inputs.clear()
         node_tree.outputs.clear()
     for in_out in ("INPUT", "OUTPUT"):
-        for serialized in serialized_node_tree.inputs if in_out == "INPUT" else serialized_node_tree.outputs:
+        serialized_sockets = serialized_node_tree.inputs if in_out == "INPUT" else serialized_node_tree.outputs
+        for serialized in serialized_sockets:
             cur_errors = errors.copy(f'Failed to add "{in_out}" socket "{serialized.name}"')
             try:
                 bl_idname = convert_bl_idname_from_3_2(serialized.bl_idname, serialized.data)
@@ -906,6 +910,7 @@ def add_input_output(
                     socket = interface.new_socket(serialized.name, socket_type=bl_idname, in_out=in_out)
                 else:
                     socket = getattr(node_tree, in_out.lower() + "s").new(bl_idname, serialized.name)
+                cur_errors = errors.copy(f'Failed to set values for {in_out} socket "{serialized.name}"')
                 set_attrs(socket, serialized.data, node_tree.nodes, EXCLUDE_FROM_GROUP_INPUT_OUTPUT, cur_errors)
             except Exception as exc:
                 print_with_exc(cur_errors, exc)
@@ -914,7 +919,9 @@ def add_input_output(
         node_tree.update()
 
 
-def create_nodes(node_tree: NodeTree | ShaderNodeTree, serialized_node_tree: SerializedNodeTree, errors: ErrorState):
+def create_nodes(
+    node_tree: NodeTree | ShaderNodeTree, serialized_node_tree: SerializedNodeTree, keep_interface, errors: ErrorState
+):
     nodes = node_tree.nodes
     nodes.clear()
     new_nodes: list[Node] = []
@@ -929,7 +936,8 @@ def create_nodes(node_tree: NodeTree | ShaderNodeTree, serialized_node_tree: Ser
             print_with_exc(cur_errors, exc)
     cur_errors = errors.copy(f'Failed to add sockets for node group "{node_tree.name}"')
     try:
-        add_input_output(node_tree, serialized_node_tree, cur_errors)
+        if not keep_interface:
+            add_input_output(node_tree, serialized_node_tree, cur_errors)
     except Exception as exc:
         print_with_exc(cur_errors, exc)
     return new_nodes
@@ -959,6 +967,7 @@ def generate_f3d_node_groups(forced=True, ignore_hash=False, force_mat_update=Fa
     new_node_trees: list[tuple[NodeTree, list[Node]]] = []
     for serialized_node_group in SERIALIZED_NODE_LIBRARY.dependencies.values():
         node_tree = None
+        keep_interface = True
         if serialized_node_group.name in bpy.data.node_groups:
             node_tree = bpy.data.node_groups[serialized_node_group.name]
             if (
@@ -970,19 +979,27 @@ def generate_f3d_node_groups(forced=True, ignore_hash=False, force_mat_update=Fa
             if node_tree.type == "UNDEFINED":
                 bpy.data.node_groups.remove(node_tree, do_unlink=True)
                 node_tree = None
+                update_materials, keep_interface = True, False
         if node_tree:
             print(
                 f'Node group "{serialized_node_group.name}" already exists, but serialized node group hash changed, updating'
             )
+            if node_tree.get("fast64_interface_hash", None) != serialized_node_group.interface_hash:
+                update_materials, keep_interface = True, False
+                node_tree["fast64_interface_hash"] = serialized_node_group.interface_hash
         else:
             print(f'Creating node group "{serialized_node_group.name}"')
             node_tree = bpy.data.node_groups.new(serialized_node_group.name, "ShaderNodeTree")
             node_tree.use_fake_user = not editable
-        update_materials = True
+            update_materials, keep_interface = True, False
         cur_errors = errors.copy(f'Failed to create node group "{serialized_node_group.name}"')
         try:
             new_node_trees.append(
-                (serialized_node_group, node_tree, create_nodes(node_tree, serialized_node_group, cur_errors))
+                (
+                    serialized_node_group,
+                    node_tree,
+                    create_nodes(node_tree, serialized_node_group, keep_interface, cur_errors),
+                )
             )
         except Exception as exc:
             print_with_exc(cur_errors, exc)
@@ -1002,7 +1019,7 @@ def create_f3d_nodes_in_material(material: Material, errors: ErrorState = None, 
     errors = ErrorState() or errors
     assert editable or is_f3d_mat(material), f"Material {material.name} is not an up to date f3d material"
     material.use_nodes = True
-    new_nodes = create_nodes(material.node_tree, SERIALIZED_NODE_LIBRARY, errors)
+    new_nodes = create_nodes(material.node_tree, SERIALIZED_NODE_LIBRARY, False, errors)
     set_values_and_create_links(material.node_tree, SERIALIZED_NODE_LIBRARY, new_nodes, errors)
     if not editable:
         createScenePropertiesForMaterial(material)

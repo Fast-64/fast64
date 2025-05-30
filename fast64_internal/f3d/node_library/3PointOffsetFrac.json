@@ -7,6 +7,7 @@
 				-155.5454,
 				98.5044
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -37,6 +38,7 @@
 				-460.3739,
 				-438.9537
 			],
+			"width_hidden": 100.0,
 			"outputs": {
 				"0": {
 					"name": "Value",
@@ -50,6 +52,7 @@
 				-450.5564,
 				-536.3671
 			],
+			"width_hidden": 100.0,
 			"outputs": {
 				"0": {
 					"name": "Value",
@@ -68,6 +71,7 @@
 				"serialized_type": "NodeTree",
 				"name": "UnshiftValue"
 			},
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Shift"
@@ -96,6 +100,8 @@
 				-99.2939
 			],
 			"hide": true,
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -119,6 +125,7 @@
 				-640.8356,
 				-18.0557
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "Value",
@@ -176,6 +183,7 @@
 				1102.656,
 				78.5645
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Value"
@@ -193,6 +201,7 @@
 			],
 			"operation": "FRACT",
 			"use_clamp": true,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -224,6 +233,8 @@
 				63.127
 			],
 			"label": "Texel Space",
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -252,6 +263,7 @@
 				70.2817
 			],
 			"operation": "SUBTRACT",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 1.0
@@ -282,6 +294,7 @@
 				204.7742,
 				325.325
 			],
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
@@ -317,6 +330,7 @@
 				78.3637
 			],
 			"operation": "ADD",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -347,6 +361,7 @@
 				716.3333,
 				76.9614
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": -1.0
@@ -372,6 +387,7 @@
 			}
 		}
 	},
+	"cached_hash": "d3f61f44fd58aff733906857f8dc4959",
 	"inputs": [
 		{
 			"name": "Value",
@@ -411,7 +427,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "6df93d41644767d72c7ae96305718365",
+	"interface_hash": "5425e38d1e49b0d99e4d198e9f09fdba",
 	"bpy_ver": [
 		3,
 		2,

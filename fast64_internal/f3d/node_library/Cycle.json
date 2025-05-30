@@ -7,6 +7,8 @@
 				-295.3255,
 				-380.4985
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -30,6 +32,7 @@
 				1119.4927,
 				-20.2579
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
@@ -57,6 +60,7 @@
 				136.4
 			],
 			"operation": "WRAP",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {
@@ -102,6 +106,7 @@
 				-157.6101
 			],
 			"operation": "WRAP",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -132,6 +137,8 @@
 				47.5171
 			],
 			"label": "Color Wrapping",
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -156,6 +163,7 @@
 				8.1128
 			],
 			"operation": "SUBTRACT",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -191,6 +199,7 @@
 				-20.5271
 			],
 			"operation": "MULTIPLY",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -253,6 +262,7 @@
 				-171.9814
 			],
 			"operation": "SUBTRACT",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -282,6 +292,7 @@
 				70.991,
 				-47.4384
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -317,6 +328,8 @@
 				-266.5476
 			],
 			"label": "Color Wrapping",
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -340,6 +353,7 @@
 				-594.9968,
 				-64.8251
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "   A",
@@ -441,6 +455,8 @@
 				-295.3255,
 				-359.4944
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -467,6 +483,7 @@
 			"hide": true,
 			"label": "Sign Extension",
 			"operation": "WRAP",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {
@@ -514,6 +531,7 @@
 			"hide": true,
 			"label": "Sign Extension",
 			"operation": "WRAP",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -538,6 +556,7 @@
 			}
 		}
 	},
+	"cached_hash": "2528e4f3cae752a1e61d6ee51feaa8d0",
 	"inputs": [
 		{
 			"name": "   A",
@@ -599,7 +618,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "96066ce9078ed201e1d0934b9fb7d7ab",
+	"interface_hash": "398d637de3f1941722e5ba8320548927",
 	"bpy_ver": [
 		3,
 		2,

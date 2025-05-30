@@ -7,6 +7,8 @@
 				326.0364,
 				-364.0017
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -30,6 +32,8 @@
 				286.4957,
 				-408.7227
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -53,6 +57,8 @@
 				307.0347,
 				-386.1069
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -76,6 +82,8 @@
 				348.6143,
 				-343.0011
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -104,6 +112,7 @@
 				"name": "Lite Texture Settings and 3 Point"
 			},
 			"width": 323.6924743652344,
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Width"
@@ -197,6 +206,7 @@
 				1046.3458,
 				158.4812
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "0_UV00"
@@ -253,6 +263,8 @@
 				268.7016,
 				-432.3738
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -276,6 +288,8 @@
 				243.0726,
 				-454.5351
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -299,6 +313,8 @@
 				219.5551,
 				-474.9759
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -322,6 +338,8 @@
 				187.8649,
 				-497.7192
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -345,6 +363,8 @@
 				-15.6982,
 				74.2023
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -368,6 +388,8 @@
 				9.5091,
 				52.1004
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -391,6 +413,8 @@
 				54.724,
 				8.8103
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -414,6 +438,8 @@
 				32.953,
 				30.799
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -437,6 +463,8 @@
 				73.7157,
 				-13.6042
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -460,6 +488,8 @@
 				98.6143,
 				-34.5173
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -483,6 +513,8 @@
 				154.7109,
 				-85.2983
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -506,6 +538,8 @@
 				124.9537,
 				-62.4537
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -529,6 +563,8 @@
 				369.8691,
 				-100.9041
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -552,6 +588,8 @@
 				739.3364,
 				-561.6321
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -575,6 +613,8 @@
 				369.869,
 				-561.6321
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -602,6 +642,8 @@
 				369.869,
 				-518.6503
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -629,6 +671,7 @@
 				-613.3323,
 				194.4752
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"hide_value": true,
@@ -814,6 +857,7 @@
 				"name": "Lite Texture Settings and 3 Point"
 			},
 			"width": 320.1097717285156,
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Width"
@@ -902,6 +946,7 @@
 			}
 		}
 	},
+	"cached_hash": "dff671f24209ae6924c76f102e933490",
 	"inputs": [
 		{
 			"name": "X",
@@ -1143,7 +1188,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "715b52c88616588189c9119c7abacd25",
+	"interface_hash": "5afe16f88b816987ec77b5137e833bf5",
 	"bpy_ver": [
 		3,
 		2,

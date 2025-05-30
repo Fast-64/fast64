@@ -12,6 +12,7 @@
 				"name": "Gamma Correct Value"
 			},
 			"width": 213.19033813476562,
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Non-Corrected Value"
@@ -35,6 +36,7 @@
 				312.6501,
 				61.278
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "R"
@@ -75,6 +77,7 @@
 				"name": "Gamma Correct Value"
 			},
 			"width": 213.19033813476562,
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Non-Corrected Value"
@@ -98,6 +101,7 @@
 				-352.4275,
 				61.278
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Image",
@@ -145,6 +149,7 @@
 				478.4247,
 				61.4522
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Corrected Color",
@@ -166,6 +171,7 @@
 				-520.4017,
 				-7.3613
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "Color",
@@ -195,6 +201,7 @@
 				"name": "Gamma Correct Value"
 			},
 			"width": 213.19033813476562,
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Non-Corrected Value"
@@ -213,6 +220,7 @@
 			}
 		}
 	},
+	"cached_hash": "a104f41970a10905f5d54391cc7bf881",
 	"inputs": [
 		{
 			"name": "Color",
@@ -237,7 +245,7 @@
 			"bl_idname": "NodeSocketColor"
 		}
 	],
-	"cached_hash": "5a85bdd3f8c832c5576b88e61c6dafad",
+	"interface_hash": "701370ae5b827eb5648e9d3eaa6bfd0a",
 	"bpy_ver": [
 		3,
 		2,

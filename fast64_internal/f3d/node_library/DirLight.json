@@ -7,6 +7,8 @@
 				-163.1675,
 				6.8741
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -30,6 +32,8 @@
 				-152.4481,
 				165.3704
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -53,6 +57,8 @@
 				9.9973,
 				-60.7543
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -79,6 +85,7 @@
 			"hide": true,
 			"label": "Normal * Lt Dir",
 			"operation": "DOT_PRODUCT",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -117,6 +124,8 @@
 				195.3546,
 				-15.8926
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -140,6 +149,8 @@
 				201.4413,
 				-236.6227
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -164,6 +175,7 @@
 				-98.891
 			],
 			"operation": "SUBTRACT",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 1.0
@@ -195,6 +207,7 @@
 				-98.891
 			],
 			"operation": "SUBTRACT",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 1.0
@@ -226,6 +239,7 @@
 				68.4655
 			],
 			"operation": "MULTIPLY_ADD",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -258,6 +272,8 @@
 				938.1433,
 				-68.3264
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -281,6 +297,8 @@
 				935.6873,
 				165.4883
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -304,6 +322,7 @@
 				590.7126,
 				-11.1313
 			],
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
@@ -339,6 +358,7 @@
 				121.1166
 			],
 			"operation": "SCALE",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {
@@ -375,6 +395,7 @@
 				-46.7075
 			],
 			"hide": true,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Value",
@@ -406,6 +427,7 @@
 				1134.9746,
 				68.2318
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Light Level"
@@ -421,6 +443,8 @@
 				567.6533,
 				-38.983
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -444,6 +468,8 @@
 				555.4879,
 				-61.5748
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -467,6 +493,7 @@
 				224.5627,
 				-98.891
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -498,6 +525,7 @@
 				85.8641
 			],
 			"width": 149.30996704101562,
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "Light Level",
@@ -568,6 +596,7 @@
 			}
 		}
 	},
+	"cached_hash": "2117869cbd4ebceadcd69a689d86526c",
 	"inputs": [
 		{
 			"name": "Light Level",
@@ -614,7 +643,7 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "5be3e41b9bb911e24af7f5c56db85527",
+	"interface_hash": "667e4ffbf15e7c5eaa29c329701e027f",
 	"bpy_ver": [
 		3,
 		2,

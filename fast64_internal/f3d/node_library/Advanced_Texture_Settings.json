@@ -7,6 +7,8 @@
 				-108.6897,
 				-41.7827
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -30,6 +32,8 @@
 				-108.6895,
 				156.6045
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -53,6 +57,7 @@
 				340.6651,
 				284.262
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -82,6 +87,7 @@
 				497.1576,
 				284.2268
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "UV"
@@ -97,6 +103,8 @@
 				315.9451,
 				202.6528
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -120,6 +128,8 @@
 				315.9451,
 				225.0103
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -143,6 +153,8 @@
 				315.9452,
 				90.3626
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -171,6 +183,7 @@
 				"name": "TileSettings"
 			},
 			"width": 202.857666015625,
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Tex Coordinate",
@@ -219,6 +232,7 @@
 				-764.3581,
 				406.4136
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "X",
@@ -372,6 +386,7 @@
 				146.7432,
 				125.5951
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": -1.0
@@ -403,6 +418,7 @@
 				189.7226
 			],
 			"operation": "MULTIPLY_ADD",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -432,6 +448,8 @@
 				-427.7146,
 				196.3708
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -460,6 +478,7 @@
 				"name": "TileSettings"
 			},
 			"width": 199.55996704101562,
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Tex Coordinate",
@@ -503,6 +522,7 @@
 			}
 		}
 	},
+	"cached_hash": "f1f5e68e01b178ffe8bd7bc97fba2710",
 	"inputs": [
 		{
 			"name": "X",
@@ -577,7 +597,7 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "245bdf5fa391e30f07da45948dfbcf2d",
+	"interface_hash": "660fd0c074381754b5b78a35eebb675f",
 	"bpy_ver": [
 		3,
 		2,

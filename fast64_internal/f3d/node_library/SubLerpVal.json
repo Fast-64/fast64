@@ -7,6 +7,7 @@
 				-244.181,
 				33.8004
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "V1",
@@ -46,6 +47,7 @@
 				68.059,
 				90.2504
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -76,6 +78,7 @@
 				227.7747,
 				89.7458
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Value"
@@ -92,6 +95,7 @@
 				112.8277
 			],
 			"operation": "SUBTRACT",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -117,6 +121,7 @@
 			}
 		}
 	},
+	"cached_hash": "38be533da91f0c8e601e1bfb6f17f9ae",
 	"inputs": [
 		{
 			"name": "V1",
@@ -146,7 +151,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "ac822b39e4fd2037e7061a2093fc1f57",
+	"interface_hash": "dd6feb85eb9fc5dd71bb49ffc55c1a20",
 	"bpy_ver": [
 		3,
 		2,

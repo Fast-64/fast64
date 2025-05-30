@@ -15,7 +15,8 @@
 			"height": 44.99998092651367,
 			"label": "Create sample UVs for (X+1, Y) and (X, Y+1)",
 			"use_custom_color": true,
-			"width": 503.0043640136719
+			"width": 503.0043640136719,
+			"width_hidden": 100.0
 		},
 		"Frame.003": {
 			"bl_idname": "NodeFrame",
@@ -32,7 +33,8 @@
 			"label": "Get 3 Point Lerp Frac",
 			"label_size": 13,
 			"use_custom_color": true,
-			"width": 295.88427734375
+			"width": 295.88427734375,
+			"width_hidden": 100.0
 		},
 		"Reroute": {
 			"bl_idname": "NodeReroute",
@@ -40,6 +42,8 @@
 				-525.1768,
 				-198.3529
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -63,6 +67,8 @@
 				-574.6416,
 				279.4344
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -86,6 +92,8 @@
 				-550.9844,
 				258.0005
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -109,6 +117,8 @@
 				-525.1768,
 				236.4023
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -132,6 +142,8 @@
 				-429.9277,
 				-66.0522
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -159,6 +171,8 @@
 				-452.9911,
 				66.4532
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -186,6 +200,8 @@
 				-498.0605,
 				153.758
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -217,6 +233,8 @@
 				-477.3921,
 				132.5208
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -248,6 +266,8 @@
 				-346.5622,
 				-154.4249
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -275,6 +295,8 @@
 				-346.5622,
 				-132.124
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -302,6 +324,8 @@
 				-346.5622,
 				-110.1356
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -329,6 +353,8 @@
 				-346.5622,
 				-88.195
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -356,6 +382,8 @@
 				-346.5622,
 				-66.213
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -383,6 +411,8 @@
 				-346.5622,
 				-43.848
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -410,6 +440,8 @@
 				-346.5622,
 				0.4914
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -437,6 +469,8 @@
 				-346.5622,
 				66.3876
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -464,6 +498,8 @@
 				-346.5622,
 				-176.286
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -491,6 +527,8 @@
 				284.5578,
 				318.4106
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -518,6 +556,8 @@
 				-9.2238,
 				-181.2862
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -541,6 +581,8 @@
 				-31.0055,
 				-357.0798
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -564,6 +606,8 @@
 				-574.6416,
 				110.0638
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -587,6 +631,8 @@
 				-550.9844,
 				88.231
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -610,6 +656,8 @@
 				-452.9911,
 				214.2618
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -637,6 +685,8 @@
 				-429.9277,
 				191.897
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -664,6 +714,8 @@
 				-498.0605,
 				323.9492
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -691,6 +743,7 @@
 				-784.7543,
 				188.4501
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "Width",
@@ -855,6 +908,8 @@
 				-620.0515,
 				44.0092
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -882,6 +937,8 @@
 				-598.7181,
 				-88.0037
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -909,6 +966,8 @@
 				-477.3921,
 				302.5384
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -936,6 +995,8 @@
 				-477.5148,
 				494.3338
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -959,6 +1020,8 @@
 				-111.9065,
 				494.3338
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -982,6 +1045,8 @@
 				-598.8094,
 				504.9303
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1005,6 +1070,8 @@
 				-106.2716,
 				504.9303
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1028,6 +1095,8 @@
 				-429.5123,
 				516.5571
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1051,6 +1120,8 @@
 				-101.1563,
 				516.5571
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1074,6 +1145,8 @@
 				-105.0288,
 				541.4214
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1097,6 +1170,8 @@
 				-99.7,
 				551.4414
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1120,6 +1195,8 @@
 				-94.6143,
 				562.2375
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1143,6 +1220,8 @@
 				-452.9122,
 				562.2375
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1166,6 +1245,8 @@
 				-620.4841,
 				551.4414
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1189,6 +1270,8 @@
 				-498.2127,
 				541.4214
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1212,6 +1295,8 @@
 				284.5578,
 				-45.7056
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1236,6 +1321,7 @@
 				-78.5068
 			],
 			"hide": true,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -1267,6 +1353,7 @@
 				-78.5068
 			],
 			"width": 141.7603302001953,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Vector"
@@ -1304,6 +1391,7 @@
 				-36.0021
 			],
 			"hide": true,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -1334,6 +1422,8 @@
 				254.2271,
 				501.9275
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1357,6 +1447,8 @@
 				222.653,
 				444.0285
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1380,6 +1472,8 @@
 				222.6531,
 				-234.631
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1403,6 +1497,8 @@
 				264.8857,
 				-126.5774
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1430,6 +1526,8 @@
 				254.2271,
 				-210.7318
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1453,6 +1551,8 @@
 				849.4026,
 				318.552
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1476,6 +1576,7 @@
 				876.6541,
 				-90.8818
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "UV00"
@@ -1506,6 +1607,8 @@
 				794.7209,
 				-147.0134
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1529,6 +1632,8 @@
 				821.3632,
 				-169.5363
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1552,6 +1657,8 @@
 				794.7206,
 				-45.7768
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1575,6 +1682,8 @@
 				821.3632,
 				-88.8349
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1598,6 +1707,7 @@
 				310.4663,
 				-35.4262
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Vector"
@@ -1639,6 +1749,7 @@
 				"name": "Advanced Texture Settings"
 			},
 			"width": 195.6847381591797,
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -1708,6 +1819,8 @@
 				-346.5622,
 				-21.848
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1735,6 +1848,8 @@
 				-346.5622,
 				44.4054
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1762,6 +1877,8 @@
 				-346.5622,
 				22.4585
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1789,6 +1906,8 @@
 				849.4026,
 				-125.4229
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1812,6 +1931,8 @@
 				849.4026,
 				-191.6426
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1835,6 +1956,8 @@
 				-9.224,
 				400.6155
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1858,6 +1981,8 @@
 				-31.0055,
 				377.9384
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1881,6 +2006,8 @@
 				-228.2478,
 				443.7755
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1908,6 +2035,8 @@
 				-215.4478,
 				421.7145
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -1946,6 +2075,7 @@
 			},
 			"use_custom_color": true,
 			"width": 160.1077423095703,
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Width"
@@ -2019,6 +2149,7 @@
 				"serialized_type": "NodeTree",
 				"name": "3PointOffsetFrac"
 			},
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Value",
@@ -2062,6 +2193,7 @@
 				"serialized_type": "NodeTree",
 				"name": "3PointOffsetFrac"
 			},
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Value",
@@ -2106,6 +2238,7 @@
 				"name": "Advanced Texture Settings"
 			},
 			"width": 195.6847381591797,
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -2171,6 +2304,7 @@
 			}
 		}
 	},
+	"cached_hash": "1b4d22a2e71634027cd059c2f3006022",
 	"inputs": [
 		{
 			"name": "Width",
@@ -2277,7 +2411,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "dd13831ffd28a24495406e387f967b02",
+	"interface_hash": "f7cf83040f5cca859d54f66ff3d94736",
 	"bpy_ver": [
 		3,
 		2,
