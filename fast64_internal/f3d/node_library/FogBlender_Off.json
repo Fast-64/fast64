@@ -7,6 +7,7 @@
 				-128.7302,
 				-77.7192
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
@@ -28,6 +29,7 @@
 				-340.7661,
 				-81.033
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "Color",
@@ -52,6 +54,7 @@
 			}
 		}
 	},
+	"cached_hash": "dbdcd9f6663d7ee4d19fcdfb892ab3d3",
 	"inputs": [
 		{
 			"name": "Color",
@@ -86,7 +89,7 @@
 			"bl_idname": "NodeSocketColor"
 		}
 	],
-	"cached_hash": "74eff5169aafd3028bc18f85e808f8f0",
+	"interface_hash": "d33ae113cb1e99c1a98dbf3502421ebd",
 	"bpy_ver": [
 		3,
 		2,

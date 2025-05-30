@@ -7,6 +7,7 @@
 				-156.523,
 				-4.7369
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -67,6 +68,36 @@
 									1.0
 								],
 								"position": 1.0
+							},
+							{
+								"alpha": 1.0,
+								"color": [
+									1.0,
+									1.0,
+									1.0,
+									1.0
+								],
+								"position": 1.0
+							},
+							{
+								"alpha": 1.0,
+								"color": [
+									1.0,
+									1.0,
+									1.0,
+									1.0
+								],
+								"position": 1.0
+							},
+							{
+								"alpha": 1.0,
+								"color": [
+									1.0,
+									1.0,
+									1.0,
+									1.0
+								],
+								"position": 1.0
 							}
 						],
 						"hue_interpolation": "NEAR",
@@ -78,6 +109,7 @@
 				"serialized_type": "Default",
 				"data": {}
 			},
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -131,6 +163,7 @@
 			],
 			"label": "Snap 320x240",
 			"operation": "SNAP",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {
@@ -173,6 +206,7 @@
 			],
 			"hide": true,
 			"operation": "GREATER_THAN",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -202,6 +236,7 @@
 				-338.4824,
 				180.2002
 			],
+			"width_hidden": 100.0,
 			"outputs": {
 				"0": {
 					"name": "View Vector",
@@ -220,6 +255,7 @@
 				-541.8595,
 				0.0
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "RandomizationFactor",
@@ -238,6 +274,7 @@
 				531.8595,
 				0.0
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Noise"
@@ -248,6 +285,7 @@
 			}
 		}
 	},
+	"cached_hash": "eb73275c940418057beaaf8cf044dfe4",
 	"inputs": [
 		{
 			"name": "RandomizationFactor",
@@ -262,7 +300,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "fc2a87aeaa2ae5b8bd52b4c146b9ce94",
+	"interface_hash": "4ef2f3ec107b53a489eb0facf190c779",
 	"bpy_ver": [
 		3,
 		2,

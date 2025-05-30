@@ -8,6 +8,7 @@
 				10.0818
 			],
 			"label": "Fresnel to Alpha",
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
@@ -45,6 +46,7 @@
 			"label": "Color overrides Alpha",
 			"operation": "SUBTRACT",
 			"use_clamp": true,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -75,6 +77,8 @@
 				85.1312,
 				-124.4681
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -103,6 +107,7 @@
 				193.8259
 			],
 			"label": "Fresnel to Color",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Fac"
@@ -150,6 +155,8 @@
 				84.1019,
 				37.3866
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -173,6 +180,7 @@
 				315.2231,
 				106.1039
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
@@ -197,6 +205,8 @@
 				84.5865,
 				-204.1189
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -220,6 +230,8 @@
 				-105.215,
 				-182.8108
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -247,6 +259,8 @@
 				-141.0258,
 				60.5642
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -270,6 +284,8 @@
 				-138.7407,
 				-103.9636
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -293,6 +309,8 @@
 				-104.9713,
 				81.9426
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -316,6 +334,7 @@
 				-318.6995,
 				-80.7069
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "Color",
@@ -378,6 +397,7 @@
 			}
 		}
 	},
+	"cached_hash": "49b633daf64a772ca25c8a4bad88848a",
 	"inputs": [
 		{
 			"name": "Color",
@@ -435,7 +455,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "55143c5e536a1d75919d93a29588c823",
+	"interface_hash": "b4e678b6adbf9905879f8d1e7cd511d3",
 	"bpy_ver": [
 		3,
 		2,

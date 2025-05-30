@@ -8,6 +8,7 @@
 				79.9224
 			],
 			"operation": "MULTIPLY_ADD",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -40,6 +41,7 @@
 				-330.2278,
 				133.6254
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "UV",
@@ -76,6 +78,7 @@
 				498.3517,
 				80.4327
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "UV"
@@ -91,6 +94,7 @@
 				-55.1894,
 				15.1652
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -125,6 +129,7 @@
 				-48.2458
 			],
 			"operation": "MULTIPLY_ADD",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {
@@ -164,6 +169,7 @@
 			}
 		}
 	},
+	"cached_hash": "d64350ead33e718493aa06597854a06a",
 	"inputs": [
 		{
 			"name": "UV",
@@ -192,7 +198,7 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "66e993f6bdfec561fedfaa6b1ea51611",
+	"interface_hash": "cb5b9f78ddba87717e9b8cdb7074ac50",
 	"bpy_ver": [
 		3,
 		2,

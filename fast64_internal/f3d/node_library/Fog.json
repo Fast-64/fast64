@@ -7,6 +7,7 @@
 				-463.6024,
 				-23.266
 			],
+			"width_hidden": 100.0,
 			"outputs": {
 				"1": {
 					"name": "View Z Depth",
@@ -30,6 +31,8 @@
 				32.0329
 			],
 			"label": "approx of 970 -> 1000 fog",
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -66,12 +69,43 @@
 							1.0
 						],
 						"position": 0.7863638401031494
+					},
+					{
+						"alpha": 1.0,
+						"color": [
+							1.0,
+							1.0,
+							1.0,
+							1.0
+						],
+						"position": 1.0
+					},
+					{
+						"alpha": 1.0,
+						"color": [
+							1.0,
+							1.0,
+							1.0,
+							1.0
+						],
+						"position": 1.0
+					},
+					{
+						"alpha": 1.0,
+						"color": [
+							1.0,
+							1.0,
+							1.0,
+							1.0
+						],
+						"position": 1.0
 					}
 				],
 				"hue_interpolation": "NEAR",
 				"interpolation": "LINEAR"
 			},
 			"width": 240.0,
+			"width_hidden": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Fac"
@@ -102,6 +136,7 @@
 				-36.6214
 			],
 			"operation": "MULTIPLY_ADD",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -131,6 +166,7 @@
 				207.226,
 				45.3343
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
@@ -186,12 +222,43 @@
 							1.0
 						],
 						"position": 0.1636366993188858
+					},
+					{
+						"alpha": 1.0,
+						"color": [
+							1.0,
+							1.0,
+							1.0,
+							1.0
+						],
+						"position": 1.0
+					},
+					{
+						"alpha": 1.0,
+						"color": [
+							1.0,
+							1.0,
+							1.0,
+							1.0
+						],
+						"position": 1.0
+					},
+					{
+						"alpha": 1.0,
+						"color": [
+							1.0,
+							1.0,
+							1.0,
+							1.0
+						],
+						"position": 1.0
 					}
 				],
 				"hue_interpolation": "NEAR",
 				"interpolation": "EASE"
 			},
 			"width": 240.0,
+			"width_hidden": 140.0,
 			"inputs": {
 				"0": {
 					"name": "Fac"
@@ -222,6 +289,7 @@
 				-254.0697
 			],
 			"operation": "MULTIPLY_ADD",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -251,6 +319,7 @@
 				207.226,
 				-172.114
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
@@ -290,6 +359,7 @@
 				-2.6611
 			],
 			"hide": true,
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Color",
@@ -306,6 +376,7 @@
 			}
 		}
 	},
+	"cached_hash": "7f258170530afce84f401e6236cef7f8",
 	"outputs": [
 		{
 			"name": "Color",
@@ -318,7 +389,7 @@
 			"bl_idname": "NodeSocketColor"
 		}
 	],
-	"cached_hash": "8d8371dc27907d98e9c79f039a7f0f91",
+	"interface_hash": "fca3251c48c4d453a756578810efb46b",
 	"bpy_ver": [
 		3,
 		2,

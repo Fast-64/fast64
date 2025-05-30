@@ -7,6 +7,7 @@
 				-156.9276,
 				-3.1859
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Vector"
@@ -50,6 +51,7 @@
 			],
 			"hide": true,
 			"operation": "MAXIMUM",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -80,6 +82,7 @@
 				-356.9276,
 				0.0
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "Vector",
@@ -98,6 +101,7 @@
 				346.9276,
 				0.0
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Value"
@@ -115,6 +119,7 @@
 			],
 			"hide": true,
 			"operation": "MAXIMUM",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -140,6 +145,7 @@
 			}
 		}
 	},
+	"cached_hash": "e8322e159d3b4bfbd57182e726a21d7c",
 	"inputs": [
 		{
 			"name": "Vector",
@@ -154,7 +160,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "7c46e5c9caf5d33d2148af6d134f30bd",
+	"interface_hash": "f79f89b18fc4fa94c0f4f94db4b81a7c",
 	"bpy_ver": [
 		3,
 		2,

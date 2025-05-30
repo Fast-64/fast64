@@ -9,7 +9,8 @@
 			],
 			"height": 214.0,
 			"label": "y = ((u + 0.055) / 1.055) ** 2.4",
-			"width": 532.0
+			"width": 532.0,
+			"width_hidden": 100.0
 		},
 		"Math.002": {
 			"bl_idname": "ShaderNodeMath",
@@ -22,6 +23,7 @@
 				"serialized_type": "Node",
 				"name": "Frame"
 			},
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -57,6 +59,7 @@
 				"serialized_type": "Node",
 				"name": "Frame"
 			},
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -92,6 +95,7 @@
 				"serialized_type": "Node",
 				"name": "Frame"
 			},
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -123,6 +127,7 @@
 				-139.301
 			],
 			"operation": "DIVIDE",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -153,6 +158,8 @@
 				135.3001,
 				-173.7571
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -177,6 +184,7 @@
 				252.6316
 			],
 			"operation": "LESS_THAN",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -207,6 +215,8 @@
 				-449.1997,
 				139.1273
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -230,6 +240,8 @@
 				-449.1997,
 				-252.6316
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -253,6 +265,7 @@
 				288.4937,
 				93.5169
 			],
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
@@ -287,6 +300,7 @@
 				449.1997,
 				93.6814
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Value",
@@ -318,6 +332,8 @@
 				-449.1997,
 				-59.3129
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -351,6 +367,7 @@
 			],
 			"label": "Input",
 			"width": 167.04888916015625,
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "Gamma Corrected Value",
@@ -371,6 +388,7 @@
 				93.9077
 			],
 			"label": "Output",
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Result"
@@ -381,6 +399,7 @@
 			}
 		}
 	},
+	"cached_hash": "3ed56217dbd2f39007eee61eeefef519",
 	"inputs": [
 		{
 			"name": "Gamma Corrected Value",
@@ -396,7 +415,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "a98f93a15cbcb54caa3e5ea4dcfab45d",
+	"interface_hash": "160ca3b24b1fb4c7386f647f67863026",
 	"bpy_ver": [
 		3,
 		2,

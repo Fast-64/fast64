@@ -7,6 +7,7 @@
 				1419.4938,
 				156.8046
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "X"
@@ -37,6 +38,7 @@
 				-12.2871
 			],
 			"operation": "PINGPONG",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -67,6 +69,7 @@
 				-25.3512
 			],
 			"operation": "MAXIMUM",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -95,6 +98,8 @@
 				-295.0883
 			],
 			"label": "Y",
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -122,6 +127,7 @@
 				265.99,
 				-186.3034
 			],
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
@@ -160,6 +166,7 @@
 				630.3589,
 				-186.3034
 			],
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
@@ -194,6 +201,7 @@
 				1620.3417,
 				147.1939
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Vector"
@@ -210,6 +218,7 @@
 				-25.3512
 			],
 			"operation": "MINIMUM",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -240,6 +249,8 @@
 				88.3516
 			],
 			"label": "Y",
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -264,6 +275,7 @@
 				575.1196
 			],
 			"operation": "ADD",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -295,6 +307,8 @@
 				170.7375
 			],
 			"label": "X",
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -323,6 +337,7 @@
 				395.8094
 			],
 			"operation": "FLOOR",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -355,6 +370,7 @@
 				610.2584
 			],
 			"operation": "WRAP",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -383,6 +399,8 @@
 				385.2227
 			],
 			"label": "X",
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -410,6 +428,7 @@
 				-497.9263,
 				50.5328
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "X",
@@ -494,6 +513,7 @@
 				785.7515
 			],
 			"operation": "MAXIMUM",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -521,6 +541,7 @@
 				1140.4752,
 				624.7993
 			],
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
@@ -556,6 +577,7 @@
 				710.9398
 			],
 			"operation": "MINIMUM",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -586,6 +608,7 @@
 				798.8156
 			],
 			"operation": "PINGPONG",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -615,6 +638,7 @@
 				776.1063,
 				624.7993
 			],
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
@@ -648,6 +672,7 @@
 			}
 		}
 	},
+	"cached_hash": "72c084f3d7e87f28da5038c39479df72",
 	"inputs": [
 		{
 			"name": "X",
@@ -707,7 +732,7 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "e8c2c87c068c224eb6f477bb8290d360",
+	"interface_hash": "bb3517cd78ad8e79618208217c514c13",
 	"bpy_ver": [
 		3,
 		2,

@@ -7,6 +7,7 @@
 				-320.272,
 				4.2201
 			],
+			"width_hidden": 100.0,
 			"outputs": {
 				"0": {
 					"name": "View Vector",
@@ -25,6 +26,7 @@
 				-156.3826,
 				61.6369
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -85,6 +87,36 @@
 									1.0
 								],
 								"position": 1.0
+							},
+							{
+								"alpha": 1.0,
+								"color": [
+									1.0,
+									1.0,
+									1.0,
+									1.0
+								],
+								"position": 1.0
+							},
+							{
+								"alpha": 1.0,
+								"color": [
+									1.0,
+									1.0,
+									1.0,
+									1.0
+								],
+								"position": 1.0
+							},
+							{
+								"alpha": 1.0,
+								"color": [
+									1.0,
+									1.0,
+									1.0,
+									1.0
+								],
+								"position": 1.0
 							}
 						],
 						"hue_interpolation": "NEAR",
@@ -96,6 +128,7 @@
 				"serialized_type": "Default",
 				"data": {}
 			},
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -149,6 +182,7 @@
 				-80.3752
 			],
 			"label": "FrameNum Driver",
+			"width_hidden": 100.0,
 			"outputs": {
 				"0": {
 					"name": "Value",
@@ -170,6 +204,7 @@
 			],
 			"label": "Snap 320x240",
 			"operation": "SNAP",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {
@@ -212,6 +247,7 @@
 			],
 			"hide": true,
 			"operation": "GREATER_THAN",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -241,6 +277,7 @@
 				479.4075,
 				65.6406
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Value"
@@ -251,6 +288,7 @@
 			}
 		}
 	},
+	"cached_hash": "0f132e00061f0f0cccfb6ed502088381",
 	"outputs": [
 		{
 			"name": "Value",
@@ -259,7 +297,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "b0502c726c0e63479db5de1d3ab5a077",
+	"interface_hash": "f1280502d5f1bdd367610f0454a80e30",
 	"bpy_ver": [
 		3,
 		2,

@@ -7,6 +7,7 @@
 				-465.6282,
 				0.0
 			],
+			"width_hidden": 80.0,
 			"outputs": {}
 		},
 		"Vector Transform": {
@@ -15,6 +16,7 @@
 				-59.7403,
 				17.7791
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -45,6 +47,7 @@
 			],
 			"hide": true,
 			"operation": "MULTIPLY",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {
@@ -85,6 +88,7 @@
 				114.5955,
 				-17.5179
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -127,6 +131,7 @@
 				-58.9216,
 				-151.7115
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -157,6 +162,7 @@
 			],
 			"hide": true,
 			"operation": "MULTIPLY",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {
@@ -197,6 +203,7 @@
 				115.4142,
 				-187.0085
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Vector",
@@ -239,6 +246,7 @@
 				-243.9189,
 				-120.1613
 			],
+			"width_hidden": 100.0,
 			"outputs": {
 				"1": {
 					"name": "Normal",
@@ -266,6 +274,7 @@
 				477.7317,
 				-59.772
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Normal"
@@ -279,6 +288,7 @@
 			}
 		}
 	},
+	"cached_hash": "8f6350ce238eb960998f9198f70c3788",
 	"outputs": [
 		{
 			"name": "Normal",
@@ -289,7 +299,7 @@
 			"bl_idname": "NodeSocketVector"
 		}
 	],
-	"cached_hash": "569a854e9d7abe38afd55c61f6f59de1",
+	"interface_hash": "650774806e0e91b0cec445c85284366c",
 	"bpy_ver": [
 		3,
 		2,

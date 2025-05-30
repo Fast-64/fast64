@@ -9,7 +9,8 @@
 			],
 			"height": 401.3333435058594,
 			"label": "Mirror or Repeat",
-			"width": 736.6666259765625
+			"width": 736.6666259765625,
+			"width_hidden": 100.0
 		},
 		"Frame": {
 			"bl_idname": "NodeFrame",
@@ -19,7 +20,8 @@
 			],
 			"height": 289.32073974609375,
 			"label": "Length - 1 to UV Space",
-			"width": 535.461669921875
+			"width": 535.461669921875,
+			"width_hidden": 100.0
 		},
 		"Math.023": {
 			"bl_idname": "ShaderNodeMath",
@@ -32,6 +34,7 @@
 				"serialized_type": "Node",
 				"name": "no idea lmao.001"
 			},
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -68,6 +71,7 @@
 				"name": "no idea lmao.001"
 			},
 			"width": 156.3069610595703,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Value",
@@ -105,6 +109,7 @@
 				"serialized_type": "Node",
 				"name": "no idea lmao.001"
 			},
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -136,6 +141,8 @@
 				"serialized_type": "Node",
 				"name": "no idea lmao.001"
 			},
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -165,6 +172,7 @@
 				"name": "no idea lmao.001"
 			},
 			"width": 154.559814453125,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Value",
@@ -202,6 +210,7 @@
 				"serialized_type": "Node",
 				"name": "no idea lmao.001"
 			},
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -235,6 +244,8 @@
 				"serialized_type": "Node",
 				"name": "no idea lmao.001"
 			},
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -262,6 +273,8 @@
 				"serialized_type": "Node",
 				"name": "no idea lmao.001"
 			},
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -285,6 +298,8 @@
 				-963.9984,
 				109.5818
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -312,6 +327,8 @@
 				-963.9984,
 				178.1184
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -335,6 +352,8 @@
 				-963.9984,
 				-10.4157
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -358,6 +377,8 @@
 				-1158.3501,
 				12.0481
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -381,6 +402,8 @@
 				-1070.3024,
 				-106.4533
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -405,6 +428,8 @@
 				-106.4533
 			],
 			"label": "Mirror",
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -428,6 +453,8 @@
 				-1561.1261,
 				117.7617
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -451,6 +478,8 @@
 				-1521.8965,
 				31.9847
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -478,6 +507,8 @@
 				-1521.8965,
 				241.4473
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -501,6 +532,7 @@
 				-1323.5183,
 				330.3103
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Value",
@@ -532,6 +564,8 @@
 				-1158.3501,
 				295.3704
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -555,6 +589,8 @@
 				-1561.1261,
 				-8.3267
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -586,6 +622,8 @@
 				"serialized_type": "Node",
 				"name": "Frame"
 			},
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -614,6 +652,7 @@
 				231.4825
 			],
 			"operation": "ADD",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -645,6 +684,7 @@
 				144.3476
 			],
 			"label": "Choose Clamped",
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
@@ -683,6 +723,7 @@
 				"serialized_type": "Node",
 				"name": "no idea lmao.001"
 			},
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "Fac",
@@ -717,6 +758,7 @@
 				-147.0691,
 				199.289
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "UV Coord"
@@ -739,6 +781,7 @@
 				"name": "Frame"
 			},
 			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -776,6 +819,7 @@
 				"name": "Frame"
 			},
 			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -807,6 +851,7 @@
 				-2248.0198,
 				138.1776
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "Tex Coordinate",
@@ -853,6 +898,8 @@
 				-1866.7137,
 				56.1328
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -880,6 +927,8 @@
 				"serialized_type": "Node",
 				"name": "Frame"
 			},
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -907,6 +956,8 @@
 				"serialized_type": "Node",
 				"name": "Frame"
 			},
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -938,6 +989,7 @@
 				"name": "Frame"
 			},
 			"width": 125.24647521972656,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -975,6 +1027,7 @@
 				"name": "Frame"
 			},
 			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -1000,6 +1053,7 @@
 			}
 		}
 	},
+	"cached_hash": "7935cef68d07e9f537ad5015cd218225",
 	"inputs": [
 		{
 			"name": "Tex Coordinate",
@@ -1029,7 +1083,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "e26481243f92f83d6d7c6f4190546d2b",
+	"interface_hash": "467b27793d4dd8621fc5335984837e3f",
 	"bpy_ver": [
 		3,
 		2,

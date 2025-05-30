@@ -8,6 +8,7 @@
 				-1.9878
 			],
 			"operation": "SUBTRACT",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -42,6 +43,7 @@
 				284.0454,
 				0.0
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "Vector"
@@ -58,6 +60,7 @@
 				1.9878
 			],
 			"operation": "MULTIPLY",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -92,6 +95,7 @@
 				-294.0455,
 				0.0
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "C1",
@@ -123,6 +127,7 @@
 			}
 		}
 	},
+	"cached_hash": "bae2e4fddfd480dc76fb920d1c6812b7",
 	"inputs": [
 		{
 			"name": "C1",
@@ -143,7 +148,7 @@
 			"bl_idname": "NodeSocketColor"
 		}
 	],
-	"cached_hash": "4860be9b9488e7d6ee5485a9158c0fca",
+	"interface_hash": "20c8478f4ab019e682ef6fb65b777ebc",
 	"bpy_ver": [
 		3,
 		2,

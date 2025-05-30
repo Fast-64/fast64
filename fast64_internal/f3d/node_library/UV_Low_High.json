@@ -9,7 +9,8 @@
 			],
 			"height": 44.99993896484375,
 			"label": "The reason for < and *+ is for float issues ",
-			"width": 427.2569580078125
+			"width": 427.2569580078125,
+			"width_hidden": 100.0
 		},
 		"Frame.001": {
 			"bl_idname": "NodeFrame",
@@ -19,7 +20,8 @@
 			],
 			"height": 44.99993896484375,
 			"label": "This is a hacky solution but seems to work well enough",
-			"width": 545.8851318359375
+			"width": 545.8851318359375,
+			"width_hidden": 100.0
 		},
 		"Reroute": {
 			"bl_idname": "NodeReroute",
@@ -27,6 +29,8 @@
 				-203.4064,
 				-49.2803
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -58,6 +62,7 @@
 			"label": "Frac of Low",
 			"operation": "FRACT",
 			"width": 113.50496673583984,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -93,6 +98,8 @@
 				-203.4064,
 				16.0607
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -116,6 +123,7 @@
 				850.0584,
 				18.0582
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {
 					"name": "High"
@@ -134,6 +142,7 @@
 				-370.0122,
 				7.4765
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "High",
@@ -176,6 +185,7 @@
 			"hide": true,
 			"label": "1 / Size",
 			"operation": "DIVIDE",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 1.0
@@ -212,6 +222,7 @@
 			],
 			"label": "Clamp Correction",
 			"operation": "ADD",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -242,6 +253,7 @@
 				408.8061,
 				142.1312
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -272,6 +284,7 @@
 				297.9476
 			],
 			"operation": "LESS_THAN",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.10000000149011612
@@ -302,6 +315,8 @@
 				-56.266,
 				184.9541
 			],
+			"width": 100.0,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Input"
@@ -326,6 +341,7 @@
 				252.7998
 			],
 			"operation": "MULTIPLY_ADD",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -353,6 +369,7 @@
 				409.7428,
 				-57.7415
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -378,6 +395,7 @@
 			}
 		}
 	},
+	"cached_hash": "887a6c232e1729f08dfc119778e20881",
 	"inputs": [
 		{
 			"name": "High",
@@ -411,7 +429,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "7ef17c6e63d40411c91172f4d6e8650b",
+	"interface_hash": "5006e936bf4a31f84f4db972f1d0ebfb",
 	"bpy_ver": [
 		3,
 		2,

@@ -8,6 +8,7 @@
 				123.348
 			],
 			"hide": false,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"name": "Vector"
@@ -52,6 +53,7 @@
 				"serialized_type": "NodeTree",
 				"name": "ScaleUVs"
 			},
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "UV"
@@ -83,6 +85,7 @@
 				645.4555,
 				597.9528
 			],
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -114,6 +117,7 @@
 				406.6831
 			],
 			"operation": "MULTIPLY_ADD",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -142,6 +146,7 @@
 				314.1082
 			],
 			"operation": "SUBTRACT",
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 1.0
@@ -171,6 +176,7 @@
 				1026.5479,
 				136.2331
 			],
+			"width_hidden": 80.0,
 			"inputs": {
 				"0": {},
 				"1": {},
@@ -202,6 +208,7 @@
 			],
 			"operation": "DIVIDE",
 			"width": 186.44256591796875,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -238,6 +245,7 @@
 			],
 			"operation": "DIVIDE",
 			"width": 179.8277587890625,
+			"width_hidden": 100.0,
 			"inputs": {
 				"0": {
 					"default_value": 0.5
@@ -268,6 +276,7 @@
 				-533.1231,
 				-137.0644
 			],
+			"width_hidden": 80.0,
 			"outputs": {
 				"0": {
 					"name": "UV",
@@ -387,6 +396,7 @@
 				"serialized_type": "NodeTree",
 				"name": "ApplyFilterOffset"
 			},
+			"width_hidden": 60.0,
 			"inputs": {
 				"0": {
 					"name": "UV"
@@ -420,6 +430,7 @@
 			}
 		}
 	},
+	"cached_hash": "bbcc654d8e43d22280cdae3ea5c025c9",
 	"inputs": [
 		{
 			"name": "UV",
@@ -509,7 +520,7 @@
 			"bl_idname": "NodeSocketFloat"
 		}
 	],
-	"cached_hash": "644848c2110fd5877689e9e292b69e8c",
+	"interface_hash": "ec2a1d9194c3c71ad52cada7a5bb8f0c",
 	"bpy_ver": [
 		3,
 		2,
