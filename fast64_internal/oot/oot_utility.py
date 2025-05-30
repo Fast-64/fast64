@@ -993,8 +993,8 @@ def get_include_data(include: str):
     - `include`: the line where the include directive is located
     """
 
-    # remove the double quotes from the path
-    include = include.removeprefix("#include ").replace('"', "")
+    # remove the unwanted parts
+    include = include.replace("\n", "").removeprefix("#include ").replace('"', "")
 
     # get the extracted path
     extracted = bpy.context.scene.fast64.oot.get_extracted_path()

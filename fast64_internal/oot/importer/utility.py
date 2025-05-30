@@ -2,10 +2,13 @@ import re
 import bpy
 import mathutils
 
+from pathlib import Path
+
 from ...utility import PluginError, hexOrDecInt, removeComments, yUpToZUp
 from ..actor.properties import OOTActorProperty, OOTActorHeaderProperty
-from ..oot_utility import ootParseRotation
+from ..oot_utility import ootParseRotation, get_include_data
 from .constants import headerNames, actorsWithRotAsParam
+from .classes import SharedSceneData
 
 
 def checkBit(value: int, index: int) -> bool:
@@ -77,7 +80,12 @@ def getDataMatch(
         raise PluginError(f"Could not find {errorMessageID} {name}.")
 
     # return the match with comments removed
-    return removeComments(match.group(1))
+    data_match = removeComments(match.group(1))
+
+    if "#include" in data_match:
+        return removeComments(get_include_data(data_match))
+
+    return data_match 
 
 
 def stripName(name: str):
@@ -113,3 +121,37 @@ def createCurveFromPoints(points: list[tuple[float, float, float]], name: str):
     curve.dimensions = "3D"
 
     return curveObj
+
+
+def parse_commands_data(data: str):
+    lines = data.replace(" ", "").split("\n")
+    cmd_map: dict[str, list[str]] = {}
+
+    if lines[-1] == "":
+        lines.pop()
+
+    for line in lines:
+        match = re.search(r"SCENE\_CMD\_[a-zA-Z0-9\_]*", line, re.DOTALL)
+
+        if match is not None:
+            cmd = match.group(0)
+            cmd_map[cmd] = line.removeprefix(f"{cmd}(").removesuffix("),").split(",")
+        else:
+            raise PluginError(f"ERROR: no command found! ({repr(line)})")
+
+    return cmd_map
+
+
+def get_array_count(shared_data: SharedSceneData, symbol: str):
+    header_path = Path(shared_data.scenePath).resolve() / f"{shared_data.scene_name}.h"
+
+    if not header_path.exists():
+        raise PluginError("ERROR: can't find scene header!")
+
+    symbol = symbol.removeprefix("ARRAY_COUNT(").removesuffix(")")
+    match = re.search(fr"#define\s*LENGTH_{symbol}\s*([0-9]*)", header_path.read_text(), re.DOTALL)
+
+    if match is None:
+        raise PluginError(f"ERROR: can't find array count for {repr(symbol)}")
+    
+    return hexOrDecInt(match.group(1))

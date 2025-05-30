@@ -137,10 +137,18 @@ def parseScene(
     bpy.context.space_data.overlay.normals_length = 2
 
     sceneCommandsName = f"{sceneName}_sceneCommands"
+
+    # newer assets system naming
     if sceneCommandsName not in sceneData:
-        sceneCommandsName = f"{sceneName}_scene_header00"  # fast64 naming
+        sceneCommandsName = f"{sceneName}_scene"
+
+    # fast64 naming
+    if sceneCommandsName not in sceneData:
+        sceneCommandsName = f"{sceneName}_scene_header00"
+
     sharedSceneData = SharedSceneData(
         sceneFolderPath,
+        f"{sceneName}_scene",
         settings.includeMesh,
         settings.includeCollision,
         settings.includeActors,

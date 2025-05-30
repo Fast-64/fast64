@@ -7,6 +7,7 @@ class SharedSceneData:
     def __init__(
         self,
         scenePath: str,
+        scene_name: str,
         includeMesh: bool,
         includeCollision: bool,
         includeActors: bool,
@@ -23,6 +24,7 @@ class SharedSceneData:
         self.pathDict = {}  # path hash : blender object
 
         self.scenePath = scenePath
+        self.scene_name = scene_name
         self.includeMesh = includeMesh
         self.includeCollision = includeCollision
         self.includeActors = includeActors

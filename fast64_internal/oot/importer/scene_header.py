@@ -4,13 +4,15 @@ import re
 import bpy
 import mathutils
 
+from typing import Optional
+
 from ...utility import PluginError, readFile, parentObject, hexOrDecInt, gammaInverse
 from ...f3d.f3d_parser import parseMatrices
 from ..oot_model_classes import OOTF3DContext
 from ..scene.properties import OOTSceneHeaderProperty, OOTLightProperty
 from ..oot_utility import getEvalParams, setCustomProperty
 from .constants import headerNames
-from .utility import getDataMatch, stripName
+from .utility import getDataMatch, stripName, parse_commands_data
 from .classes import SharedSceneData
 from .room_header import parseRoomCommands
 from .actor import parseTransActorList, parseSpawnList, parseEntranceList
@@ -240,9 +242,9 @@ def parseAlternateSceneHeaders(
 
 
 def parseSceneCommands(
-    sceneName: str | None,
-    sceneObj: bpy.types.Object | None,
-    roomObjs: list[bpy.types.Object] | None,
+    sceneName: Optional[str],
+    sceneObj: Optional[bpy.types.Object],
+    roomObjs: Optional[list[bpy.types.Object]],
     sceneCommandsName: str,
     sceneData: str,
     f3dContext: OOTF3DContext,
@@ -268,11 +270,10 @@ def parseSceneCommands(
         sceneHeader = cutsceneHeaders[headerIndex - 4]
 
     commands = getDataMatch(sceneData, sceneCommandsName, ["SceneCmd", "SCmdBase"], "scene commands")
+    cmd_map = parse_commands_data(commands)
     entranceList = None
     altHeadersListName = None
-    for commandMatch in re.finditer(rf"(SCENE\_CMD\_[a-zA-Z0-9\_]*)\s*\((.*?)\)\s*,", commands, flags=re.DOTALL):
-        command = commandMatch.group(1)
-        args = [arg.strip() for arg in commandMatch.group(2).split(",")]
+    for command, args in cmd_map.items():
         if command == "SCENE_CMD_SOUND_SETTINGS":
             setCustomProperty(sceneHeader, "audioSessionPreset", args[0], ootEnumAudioSessionPreset)
             setCustomProperty(sceneHeader, "nightSeq", args[1], ootEnumNightSeq)
