@@ -89,7 +89,8 @@ class GeolayoutGraph:
     def __init__(self, name):
         self.startGeolayout = Geolayout(name, True)
         # dict of Object : Geolayout
-        self.secondaryGeolayouts = {}
+        self.secondary_geolayouts: list[Geolayout] = []
+        self.secondary_geolayouts_dict: dict[object, Geolayout] = {}
         # dict of Geolayout : Geolayout List (which geolayouts are called)
         self.geolayoutCalls = {}
         self.sortedList = []
@@ -98,6 +99,11 @@ class GeolayoutGraph:
     def checkListSorted(self):
         if not self.sortedListGenerated:
             raise PluginError("Must generate sorted geolayout list first " + "before calling this function.")
+
+    @property
+    def names(self):
+        for geolayout in [self.startGeolayout] + self.secondary_geolayouts:
+            yield geolayout.name
 
     def get_ptr_addresses(self):
         self.checkListSorted()
@@ -114,9 +120,17 @@ class GeolayoutGraph:
 
         return size
 
-    def addGeolayout(self, obj, name):
+    def addGeolayout(self, obj: object | None, start_name: str):
+        name, i = start_name, 0
+        while True:
+            if name not in self.names:
+                break
+            i += 1
+            name = f"{start_name}_{i}"
         geolayout = Geolayout(name, False)
-        self.secondaryGeolayouts[obj] = geolayout
+        self.secondary_geolayouts.append(geolayout)
+        if obj is not None:
+            self.secondary_geolayouts_dict[obj] = geolayout
         return geolayout
 
     def addJumpNode(self, parentNode, caller, callee, index=None):
@@ -194,7 +208,7 @@ class GeolayoutGraph:
 
     def getDrawLayers(self):
         drawLayers = self.startGeolayout.getDrawLayers()
-        for obj, geolayout in self.secondaryGeolayouts.items():
+        for geolayout in self.secondary_geolayouts:
             drawLayers |= geolayout.getDrawLayers()
 
         return drawLayers
@@ -442,6 +456,7 @@ class SwitchOverrideNode:
         self.drawLayer = drawLayer
         self.overrideType = overrideType
         self.texDimensions = texDimensions  # None implies a draw layer override
+        self.hasDL = False
 
 
 class JumpNode:

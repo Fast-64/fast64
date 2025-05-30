@@ -111,6 +111,7 @@ class SM64Model(FModel):
     def __init__(self, name, DLFormat, matWriteMethod):
         FModel.__init__(self, name, DLFormat, matWriteMethod)
         self.no_light_direction = bpy.context.scene.fast64.sm64.matstack_fix
+        self.layer_adapted_fmats = {}
 
     def getDrawLayerV3(self, obj):
         return int(obj.draw_layer_static)

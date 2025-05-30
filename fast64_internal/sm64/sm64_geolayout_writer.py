@@ -446,7 +446,8 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, camera,
             infoDict,
             convertTextureData,
         )
-    generateSwitchOptions(meshGeolayout.nodes[0], meshGeolayout, geolayoutGraph, name)
+    for node in meshGeolayout.nodes:
+        generate_overrides(fModel, node, [], meshGeolayout, geolayoutGraph, "")
     appendRevertToGeolayout(geolayoutGraph, fModel)
     geolayoutGraph.generateSortedList()
     if inline:
@@ -1031,190 +1032,72 @@ def geoWriteTextDump(textDumpFilePath, geolayoutGraph, levelData):
         openfile.close()
 
 
-# Switch Handling Process
-# When convert armature to geolayout node hierarchy, mesh switch options
-# are converted to switch node children, but material/draw layer options
-# are converted to SwitchOverrideNodes. During this process, any material
-# override geometry will be generated as well.
-
-
-# Afterward, the node hierarchy is traversed again, and any SwitchOverride
-# nodes are converted to actual geolayout node hierarchies.
-def generateSwitchOptions(transformNode, geolayout, geolayoutGraph, prefix):
-    if isinstance(transformNode.node, JumpNode):
-        for node in transformNode.node.geolayout.nodes:
-            generateSwitchOptions(node, transformNode.node.geolayout, geolayoutGraph, prefix)
-    overrideNodes = []
-    if isinstance(transformNode.node, SwitchNode):
-        switchName = transformNode.node.name
-        prefix += "_" + switchName
-        # prefix = switchName
-
-        materialOverrideTexDimensions = None
-
-        i = 0
-        while i < len(transformNode.children):
-            prefixName = prefix + "_opt" + str(i)
-            childNode = transformNode.children[i]
-            if isinstance(childNode.node, SwitchOverrideNode):
-                drawLayer = childNode.node.drawLayer
-                material = childNode.node.material
-                specificMat = childNode.node.specificMat
-                overrideType = childNode.node.overrideType
-                texDimensions = childNode.node.texDimensions
-                if (
-                    texDimensions is not None
-                    and materialOverrideTexDimensions is not None
-                    and materialOverrideTexDimensions != tuple(texDimensions)
-                ):
-                    raise PluginError(
-                        'In switch bone "'
-                        + switchName
-                        + '", some material '
-                        + "overrides \nhave textures with dimensions differing from the original material.\n"
-                        + "UV coordinates are in pixel units, so there will be UV errors in those overrides.\n "
-                        + "Make sure that all overrides have the same texture dimensions as the original material.\n"
-                        + "Note that materials with no textures default to dimensions of 32x32."
-                    )
-
-                if texDimensions is not None:
-                    materialOverrideTexDimensions = tuple(texDimensions)
-
-                # This should be a 0xB node
-                # copyNode = duplicateNode(transformNode.children[0],
-                # 	transformNode, transformNode.children.index(childNode))
-                index = transformNode.children.index(childNode)
-                transformNode.children.remove(childNode)
-
-                # Switch option bones should have unique names across all
-                # armatures.
-                optionGeolayout = geolayoutGraph.addGeolayout(childNode, prefixName)
-                geolayoutGraph.addJumpNode(transformNode, geolayout, optionGeolayout, index)
-                optionGeolayout.nodes.append(TransformNode(StartNode()))
-                copyNode = optionGeolayout.nodes[0]
-
-                # i -= 1
-                # Assumes first child is a start node, where option 0 is
-                # assumes overrideChild starts with a Start node
-                option0Nodes = [transformNode.children[0]]
-                if len(option0Nodes) == 1 and isinstance(option0Nodes[0].node, StartNode):
-                    for startChild in option0Nodes[0].children:
-                        generateOverrideHierarchy(
-                            copyNode,
-                            startChild,
-                            material,
-                            specificMat,
-                            overrideType,
-                            drawLayer,
-                            option0Nodes[0].children.index(startChild),
-                            optionGeolayout,
-                            geolayoutGraph,
-                            optionGeolayout.name,
-                        )
-                else:
-                    for overrideChild in option0Nodes:
-                        generateOverrideHierarchy(
-                            copyNode,
-                            overrideChild,
-                            material,
-                            specificMat,
-                            overrideType,
-                            drawLayer,
-                            option0Nodes.index(overrideChild),
-                            optionGeolayout,
-                            geolayoutGraph,
-                            optionGeolayout.name,
-                        )
-                if material is not None:
-                    overrideNodes.append(copyNode)
-            i += 1
-    for i in range(len(transformNode.children)):
-        childNode = transformNode.children[i]
-        if isinstance(transformNode.node, SwitchNode):
-            prefixName = prefix + "_opt" + str(i)
-        else:
-            prefixName = prefix
-
-        if childNode not in overrideNodes:
-            generateSwitchOptions(childNode, geolayout, geolayoutGraph, prefixName)
-
-
-def generateOverrideHierarchy(
-    parentCopyNode,
-    transformNode,
-    material,
-    specificMat,
-    overrideType,
-    drawLayer,
-    index,
-    geolayout,
-    geolayoutGraph,
-    switchOptionName,
+def generate_overrides(
+    fModel: FModel,
+    transform_node: TransformNode,
+    switch_stack: list[SwitchOverrideNode],
+    geolayout: Geolayout,
+    graph: GeolayoutGraph,
+    name: str = "",
 ):
-    # print(transformNode.node)
-    if isinstance(transformNode.node, SwitchOverrideNode) and material is not None:
-        return
-
-    copyNode = TransformNode(copy.copy(transformNode.node))
-    copyNode.parent = parentCopyNode
-    parentCopyNode.children.insert(index, copyNode)
-    if isinstance(transformNode.node, JumpNode):
-        jumpName = switchOptionName + "_jump_" + transformNode.node.geolayout.name
-        jumpGeolayout = geolayoutGraph.addGeolayout(transformNode, jumpName)
-        oldGeolayout = copyNode.node.geolayout
-        copyNode.node.geolayout = jumpGeolayout
-        geolayoutGraph.addGeolayoutCall(geolayout, jumpGeolayout)
-        startNode = TransformNode(StartNode())
-        jumpGeolayout.nodes.append(startNode)
-        if len(oldGeolayout.nodes) == 1 and isinstance(oldGeolayout.nodes[0].node, StartNode):
-            for node in oldGeolayout.nodes[0].children:
-                generateOverrideHierarchy(
-                    startNode,
-                    node,
-                    material,
-                    specificMat,
-                    overrideType,
-                    drawLayer,
-                    oldGeolayout.nodes[0].children.index(node),
-                    jumpGeolayout,
-                    geolayoutGraph,
-                    jumpName,
-                )
+    node = transform_node.node
+    children = transform_node.children
+    transform_node.children = []
+    if isinstance(node, JumpNode):
+        start_nodes, new_name = node.geolayout.nodes, name
+        if switch_stack:
+            new_name = f"{node.geolayout.name}{name}"
+            new_geolayout = graph.addGeolayout(transform_node, new_name)
+            node.geolayout = new_geolayout
+            graph.addGeolayoutCall(geolayout, new_geolayout)
         else:
-            for node in oldGeolayout.nodes:
-                generateOverrideHierarchy(
-                    startNode,
-                    node,
-                    material,
-                    specificMat,
-                    overrideType,
-                    drawLayer,
-                    oldGeolayout.nodes.index(node),
-                    jumpGeolayout,
-                    geolayoutGraph,
-                    jumpName,
-                )
-
-    elif not isinstance(copyNode.node, SwitchOverrideNode) and copyNode.node.hasDL:
-        if material is not None:
-            copyNode.node.DLmicrocode = copyNode.node.fMesh.drawMatOverrides[(material, specificMat, overrideType)]
-            copyNode.node.override_hash = (material, specificMat, overrideType)
-        if drawLayer is not None:
-            copyNode.node.drawLayer = drawLayer
-
-    for child in transformNode.children:
-        generateOverrideHierarchy(
-            copyNode,
-            child,
-            material,
-            specificMat,
-            overrideType,
-            drawLayer,
-            transformNode.children.index(child),
-            geolayout,
-            geolayoutGraph,
-            switchOptionName,
-        )
+            node.geolayout.nodes = []
+        for child in start_nodes:
+            child = copy.copy(child)
+            child.node = copy.copy(child.node)
+            node.geolayout.nodes.append(generate_overrides(fModel, child, switch_stack.copy(), geolayout, graph, name))
+    elif node.hasDL:
+        fMesh: FMesh = node.fMesh
+        for i, override_node in enumerate(switch_stack):
+            dl, override_hash = save_override_draw(
+                fModel,
+                node.DLmicrocode,
+                name,
+                override_node.material,
+                override_node.specificMat,
+                override_node.drawLayer,
+                override_node.overrideType,
+                fMesh,
+                node.drawLayer,
+                True,
+            )
+            if dl is not None and override_hash is not None:
+                node.DLmicrocode = dl
+                node.override_hash = override_hash
+            if override_node.drawLayer is not None:
+                node.drawLayer = override_node.drawLayer
+    for i, child in enumerate(children):
+        child = copy.copy(child)
+        child_node = child.node = copy.copy(child.node)
+        if isinstance(child_node, SwitchOverrideNode):
+            child.parent = None
+            assert i != 0, "Switch override must not be the first child of its parent"
+            override_switch_stack = [*switch_stack, child_node]
+            option0 = copy.copy(children[0])
+            new_name = toAlnum(f"{name}_opt_{i}")
+            new_geolayout = graph.addGeolayout(transform_node, geolayout.name + new_name)
+            graph.addGeolayoutCall(geolayout, new_geolayout)
+            new_geolayout.nodes.append(
+                generate_overrides(fModel, option0, override_switch_stack.copy(), new_geolayout, graph, new_name)
+            )
+            option_child = TransformNode(JumpNode(True, new_geolayout))
+            transform_node.children.append(option_child)
+            option_child.parent = transform_node
+        else:
+            child = generate_overrides(fModel, child, switch_stack.copy(), geolayout, graph, name)
+            transform_node.children.append(child)
+            child.parent = transform_node
+    return transform_node
 
 
 def addParentNode(parentTransformNode: TransformNode, geoNode):
@@ -1920,7 +1803,6 @@ def processBone(
                 # transformNode.children.append(childNode)
                 # childNode.parent = transformNode
 
-    # see generateSwitchOptions() for explanation.
     else:
         # print(boneGroup.name if boneGroup is not None else "Offset")
         if len(bone.children) > 0:
@@ -1979,8 +1861,8 @@ def processBone(
                         + str(switchIndex)
                         + ", the object provided is not an armature."
                     )
-                elif optionArmature in geolayoutGraph.secondaryGeolayouts:
-                    optionGeolayout = geolayoutGraph.secondaryGeolayouts[optionArmature]
+                elif optionArmature in geolayoutGraph.secondary_geolayouts_dict:
+                    optionGeolayout = geolayoutGraph.secondary_geolayouts_dict[optionArmature]
                     geolayoutGraph.addJumpNode(transformNode, geolayout, optionGeolayout)
                     continue
 
@@ -2056,7 +1938,7 @@ def processBone(
                         specificMat = tuple([matPtr.material for matPtr in switchOption.specificIgnoreArray])
                 else:
                     material = None
-                    specificMat = None
+                    specificMat = tuple()
                     drawLayer = int(switchOption.drawLayer)
 
                 texDimensions = getTexDimensions(material) if material is not None else None
@@ -2099,8 +1981,11 @@ def processSwitchBoneMatOverrides(materialOverrides, switchBone):
                             + " has a material ignore field that is None."
                         )
                 specificMat = tuple([matPtr.material for matPtr in switchOption.specificIgnoreArray])
-
-            materialOverrides.append((switchOption.materialOverride, specificMat, switchOption.materialOverrideType))
+            materialOverrides.append(
+                (switchOption.materialOverride, specificMat, None, switchOption.materialOverrideType)
+            )
+        elif switchOption.switchType == "Draw Layer":
+            materialOverrides.append((None, (), int(switchOption.drawLayer), "All"))
 
 
 def getGroupIndex(vert, armatureObj, obj):
@@ -2508,82 +2393,124 @@ def saveModelGivenVertexGroup(
             ]
         )
 
-    # Must be done after all geometry saved
-    for material, specificMat, overrideType in materialOverrides:
-        for drawLayer, fMesh in fMeshes.items():
-            saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, drawLayer, convertTextureData)
-        for drawLayer, fMesh in fSkinnedMeshes.items():
-            saveOverrideDraw(obj, fModel, material, specificMat, overrideType, fMesh, drawLayer, convertTextureData)
-
     return fMeshes, fSkinnedMeshes, usedDrawLayers
 
 
-def saveOverrideDraw(
-    obj: bpy.types.Object,
+def save_override_draw(
     fModel: FModel,
-    material: bpy.types.Material,
-    specificMat: tuple[bpy.types.Material],
-    overrideType: str,
+    draw: GfxList,
+    prefix: str,
+    override_mat: bpy.types.Material | None,
+    specific_mats: tuple[bpy.types.Material] | None,
+    override_layer: int | None,
+    override_type: str,
     fMesh: FMesh,
-    drawLayer: int,
-    convertTextureData: bool,
+    draw_layer: int,
+    convert_texture_data: bool,
 ):
-    fOverrideMat, texDimensions = saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData)
-    overrideIndex = str(len(fMesh.drawMatOverrides))
-    if (material, specificMat, overrideType) in fMesh.drawMatOverrides:
-        overrideIndex = fMesh.drawMatOverrides[(material, specificMat, overrideType)].name[-1]
-    meshMatOverride = GfxList(
-        fMesh.name + "_mat_override_" + toAlnum(material.name) + "_" + overrideIndex, GfxListTag.Draw, fModel.DLFormat
-    )
-    meshMatOverride.commands = [copy.copy(cmd) for cmd in fMesh.draw.commands]
-    fMesh.drawMatOverrides[(material, specificMat, overrideType)] = meshMatOverride
+    specific_mats = specific_mats or tuple()
+    f_override_mat = override_tex_dimensions = None
+    new_layer = draw_layer if override_layer is None else override_layer
+    material_hash = override_mat, new_layer, convert_texture_data
+    g_tex_gen = False
+
+    if override_mat is not None:
+        f_override_mat, override_tex_dimensions = saveOrGetF3DMaterial(
+            override_mat, fModel, None, new_layer, convert_texture_data
+        )
+        g_tex_gen = override_mat.f3d_mat.rdp_settings.g_tex_gen
+
+    name = f"{fMesh.name}{prefix}"
+    new_name = name
+    override_index = -1
+    while new_name in fMesh.drawMatOverrides:
+        override_index += 1
+        new_name = f"{name}_{override_index}"
+    name = new_name
+
+    new_dl_override = GfxList(name, GfxListTag.Draw, fModel.DLFormat)
+    new_dl_override.commands = [copy.copy(cmd) for cmd in draw.commands]
+    save_mesh_override = False
     prev_material = None
     last_replaced = None
     command_index = 0
 
-    while command_index < len(meshMatOverride.commands):
-        command = meshMatOverride.commands[command_index]
+    while command_index < len(new_dl_override.commands):
+        command = new_dl_override.commands[command_index]
         if not isinstance(command, SPDisplayList):
             command_index += 1
             continue
         # get the material referenced, and then check if it should be overriden
         # a material override will either have a list of mats it overrides, or a mask of mats it doesn't based on type
         bpy_material, fmaterial = find_material_from_jump_cmd(fModel.getAllMaterials().items(), command)
-        shouldModify = (overrideType == "Specific" and bpy_material in specificMat) or (
-            overrideType == "All" and bpy_material not in specificMat
+        should_modify = (override_type == "Specific" and bpy_material in specific_mats) or (
+            override_type == "All" and bpy_material not in specific_mats
         )
+
+        if should_modify and bpy_material is not None and override_tex_dimensions is not None and not g_tex_gen:
+            _, tex_dimensions = saveOrGetF3DMaterial(bpy_material, fModel, None, new_layer, convert_texture_data)
+            if tex_dimensions != override_tex_dimensions:
+                raise PluginError(
+                    f'Material "{bpy_material.name}" has a texture with dimensions of {tex_dimensions}\n'
+                    f'but is being overriden by material "{override_mat.name}" with dimensions of {override_tex_dimensions}.\n'
+                    + "UV coordinates are in pixel units, so there will be UV errors in those overrides.\n "
+                    + "Make sure that all overrides have the same texture dimensions as the original material.\n"
+                    + "Note that materials with no textures default to dimensions of 32x32."
+                )
+
+        new_mat: FMaterial = f_override_mat if should_modify else None
+        cur_bpy_material = override_mat if should_modify else bpy_material
+        if cur_bpy_material is not None:
+            material_hash = (cur_bpy_material, new_layer, convert_texture_data)
+            if material_hash not in fModel.layer_adapted_fmats:
+                fModel.layer_adapted_fmats[material_hash] = None
+                rdp = cur_bpy_material.f3d_mat.rdp_settings
+                preset = (rdp.rendermode_preset_cycle_1, rdp.rendermode_preset_cycle_2)
+                cur_preset = fModel.getRenderMode(new_layer)
+                if rdp.set_rendermode and (rdp.rendermode_advanced_enabled or preset != cur_preset):
+                    new_mat: FMaterial = saveOrGetF3DMaterial(
+                        cur_bpy_material, fModel, None, new_layer, convert_texture_data
+                    )[0]
+                    new_mat.material = copy.copy(new_mat.material)  # so we can change the tag
+                    new_mat.material.tag |= GfxListTag.NoExport
+                    fModel.layer_adapted_fmats[material_hash] = new_mat
+            new_mat = fModel.layer_adapted_fmats.get(material_hash) or new_mat
 
         # replace the material load if necessary
         # if we replaced the previous load with the same override, then remove the cmd to optimize DL
         if command.displayList.tag & GfxListTag.Material:
             curMaterial = fmaterial
-            if shouldModify:
+            # if layer ever changes the main material use new_mat here
+            if should_modify and f_override_mat is not None:
+                save_mesh_override = True
                 last_replaced = fmaterial
-                curMaterial = fOverrideMat
-                command.displayList = fOverrideMat.material
+                curMaterial = f_override_mat
+                command.displayList = f_override_mat.material
             # remove cmd if it is a repeat load
             if prev_material == curMaterial:
-                meshMatOverride.commands.pop(command_index)
+                save_mesh_override = True
+                new_dl_override.commands.pop(command_index)
                 command_index -= 1
                 # if we added a revert for our material redundant load, remove that as well
                 prevIndex = command_index - 1
-                prev_command = meshMatOverride.commands[prevIndex]
+                prev_command = new_dl_override.commands[prevIndex]
                 if (
                     prevIndex > 0
                     and isinstance(prev_command, SPDisplayList)
                     and prev_command.displayList == curMaterial.revert
                 ):
-                    meshMatOverride.commands.pop(prevIndex)
+                    new_dl_override.commands.pop(prevIndex)
                     command_index -= 1
             # update the last loaded material
             prev_material = curMaterial
 
         # replace the revert if the override has a revert, otherwise remove the command
-        if command.displayList.tag & GfxListTag.MaterialRevert and shouldModify:
-            if fOverrideMat.revert is not None:
-                command.displayList = fOverrideMat.revert
+        if command.displayList.tag & GfxListTag.MaterialRevert and new_mat is not None:
+            save_mesh_override = True
+            if new_mat.revert is not None:
+                command.displayList = new_mat.revert
             else:
-                meshMatOverride.commands.pop(command_index)
+                new_dl_override.commands.pop(command_index)
                 command_index -= 1
 
         if not command.displayList.tag & GfxListTag.Geometry:
@@ -2591,13 +2518,14 @@ def saveOverrideDraw(
             continue
         # If the previous command was a revert we added, remove it. All reverts must be followed by a load
         prev_index = command_index - 1
-        prev_command = meshMatOverride.commands[prev_index]
+        prev_command = new_dl_override.commands[prev_index]
         if (
             prev_index > 0
             and isinstance(prev_command, SPDisplayList)
-            and prev_command.displayList == fOverrideMat.revert
+            and (new_mat is not None and prev_command.displayList == new_mat.revert)
         ):
-            meshMatOverride.commands.pop(prev_index)
+            save_mesh_override = True
+            new_dl_override.commands.pop(prev_index)
             command_index -= 1
         # If the override material has a revert and the original material didn't, insert a revert after this command.
         # This is needed to ensure that override materials that need a revert get them.
@@ -2605,19 +2533,26 @@ def saveOverrideDraw(
         if (
             last_replaced
             and last_replaced.revert is None
-            and fOverrideMat.revert is not None
-            and prev_material == fOverrideMat
+            and new_mat is not None
+            and new_mat.revert is not None
+            and prev_material == new_mat
         ):
-            next_command = meshMatOverride.commands[command_index + 1]
+            next_command = new_dl_override.commands[command_index + 1]
             if (
                 isinstance(next_command, SPDisplayList)
                 and next_command.displayList.tag & GfxListTag.Material
                 and next_command.displayList != prev_material.material
             ) or (isinstance(next_command, SPEndDisplayList)):
-                meshMatOverride.commands.insert(command_index + 1, SPDisplayList(fOverrideMat.revert))
+                save_mesh_override = True
+                new_dl_override.commands.insert(command_index + 1, SPDisplayList(new_mat.revert))
                 command_index += 1
         # iterate to the next cmd
         command_index += 1
+
+    if save_mesh_override:
+        fMesh.drawMatOverrides[name] = new_dl_override
+        return new_dl_override, name
+    return None, None
 
 
 def findVertIndexInBuffer(loop, buffer, loopDict):
