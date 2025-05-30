@@ -2431,6 +2431,8 @@ def save_override_draw(
     name = new_name
 
     new_dl_override = GfxList(name, GfxListTag.Draw, fModel.DLFormat)
+    if name == "mario_000_displaylist_mesh_layer_2_opt_2":
+        print("HI")
     new_dl_override.commands = [copy.copy(cmd) for cmd in draw.commands]
     save_mesh_override = False
     prev_material = None
