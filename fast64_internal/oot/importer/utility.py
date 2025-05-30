@@ -133,6 +133,9 @@ def parse_commands_data(data: str):
     if lines[-1] == "":
         lines.pop()
 
+    if lines[0] == "":
+        lines.pop(0)
+
     for line in lines:
         match = re.search(r"SCENE\_CMD\_[a-zA-Z0-9\_]*", line, re.DOTALL)
 
