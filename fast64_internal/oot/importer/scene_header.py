@@ -157,7 +157,7 @@ def parseLightList(
 
 
 def parseExitList(sceneHeader: OOTSceneHeaderProperty, sceneData: str, exitListName: str):
-    exitData = getDataMatch(sceneData, exitListName, "u16", "exit list")
+    exitData = getDataMatch(sceneData, exitListName, ["u16", "s16"], "exit list", strip=True)
 
     # see also start position list
     exitList = [value.strip() for value in exitData.split(",") if value.strip() != ""]

@@ -240,7 +240,7 @@ class SceneExits(Utility):
         """Returns a ``CData`` containing the C data of the exit array"""
 
         exitListC = CData()
-        listName = f"u16 {self.name}[{len(self.exitList)}]"
+        listName = f"s16 {self.name}[{len(self.exitList)}]"
 
         # .h
         exitListC.header = f"extern {listName};\n"
