@@ -331,6 +331,9 @@ class OOTF3DContext(F3DContext):
         self.dlList = []  # in the order they are rendered
         self.isBillboard = False
         self.flipbooks = {}  # {(segment, draw layer) : TextureFlipbook}
+
+        # the new assets system extracts CI textures as PNGs with the TLUT already applied
+        # so we need to avoid reading TLUTs as the files don't exist outside the build folder
         self.ignore_tlut = False
 
         materialContext = createF3DMat(None, preset="oot_shaded_solid")
