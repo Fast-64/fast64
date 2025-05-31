@@ -37,8 +37,9 @@ class EnvLightSettings:
                     colors_and_dirs.append([hexOrDecInt(value) for value in match.group(2).split(",")])
 
                 blend_and_fogs = entry.split("},")[-1].split(",")
-                blend_raw = blend_and_fogs[0].split("|")[0]
-                fog_near = hexOrDecInt(blend_and_fogs[0].split("|")[1])
+                blend_split = blend_and_fogs[0].removeprefix("(").removesuffix(")").split("|")
+                blend_raw = blend_split[0]
+                fog_near = hexOrDecInt(blend_split[1])
                 z_far = hexOrDecInt(blend_and_fogs[1])
                 blend_rate = getEvalParamsInt(blend_raw)
                 assert blend_rate is not None

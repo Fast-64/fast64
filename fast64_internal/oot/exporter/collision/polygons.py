@@ -23,11 +23,13 @@ class CollisionPoly:
     @staticmethod
     def from_data(poly_data: list[str], use_macros: bool):
         if use_macros:
+            third_vtx_macro = "COLPOLY_VTX_INDEX(" if "COLPOLY_VTX_INDEX(" in poly_data[3] else "COLPOLY_VTX("
+
             # format: [ [vtxId, flags], [vtxId, flags], [vtxId, flags] ] (str)
             vtx = [
                 poly_data[1].removeprefix("COLPOLY_VTX(").removesuffix(")").split(","),
                 poly_data[2].removeprefix("COLPOLY_VTX(").removesuffix(")").split(","),
-                poly_data[3].removeprefix("COLPOLY_VTX(").removesuffix(")").split(","),
+                poly_data[3].removeprefix(third_vtx_macro).removesuffix(")").split(","),
             ]
 
             new_poly = CollisionPoly(

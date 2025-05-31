@@ -82,12 +82,12 @@ def parseMeshList(
     meshEntryData = getDataMatch(sceneData, meshListName, "", "mesh list", roomShape != 1, strip=True)
 
     if roomShape == 2:
-        matchPattern = r"\{\s*\{(.*?),(.*?),(.*?)\}\s*,(.*?),(.*?),(.*?),?\}\s*,"
+        matchPattern = r"\{\s*\{(.*?),(.*?),(.*?)\}\s*,(.*?),(.*?),(.*?),?\}\s*,?"
         searchItems = re.finditer(matchPattern, meshEntryData, flags=re.DOTALL)
     elif roomShape == 1:
         searchItems = [meshEntryData]
     else:
-        matchPattern = r"\{(.*?),(.*?),?\}\s*,"
+        matchPattern = r"\{(.*?),(.*?),?\}\s*,?"
         searchItems = re.finditer(matchPattern, meshEntryData, flags=re.DOTALL)
 
     for entryMatch in searchItems:

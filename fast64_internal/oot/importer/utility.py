@@ -77,7 +77,7 @@ def getDataMatch(
     match = re.search(regex, sceneData, flags=re.DOTALL)
 
     if not match:
-        raise PluginError(f"Could not find {errorMessageID} {name}.")
+        raise PluginError(f"ERROR: Could not find {errorMessageID} {name}. (regex used: '{regex}')")
 
     # return the match with comments removed
     data_match = removeComments(match.group(1))

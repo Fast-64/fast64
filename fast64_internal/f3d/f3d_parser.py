@@ -791,10 +791,7 @@ class F3DContext:
 
     # we only want to apply tlut to an existing image under specific conditions.
     # however we always want to record the changing tlut for texture references.
-    def applyTLUTToIndex(self, index, ignore_tlut: bool = False):
-        if ignore_tlut:
-            return
-
+    def applyTLUTToIndex(self, index):
         mat = self.mat()
         texProp = getattr(mat, "tex" + str(index))
         combinerUses = all_combiner_uses(mat)
@@ -839,8 +836,8 @@ class F3DContext:
 
     def addMaterial(self):
         # disable TLUTs for OoT
-        self.applyTLUTToIndex(0, bpy.context.scene.gameEditorMode in {"OOT", "MM"})
-        self.applyTLUTToIndex(1, bpy.context.scene.gameEditorMode in {"OOT", "MM"})
+        self.applyTLUTToIndex(0)
+        self.applyTLUTToIndex(1)
 
         materialCopy = self.materialContext.copy()
 
@@ -1577,7 +1574,6 @@ class F3DContext:
         return matchResult.group(1), offset
 
     def processCommands(self, dlData: str, dlName: str, dlCommands: "list[ParsedMacro]"):
-        ignore_tlut = bpy.context.scene.gameEditorMode in {"OOT", "MM"}
         callStack = [F3DParsedCommands(dlName, dlCommands, 0)]
         while len(callStack) > 0:
             currentCommandList = callStack[-1]
@@ -1841,9 +1837,9 @@ class F3DContext:
                         self.loadMultiBlock(command.params[:7] + command.params[11:], dlData, False)
 
                 # TODO: Only handles palettes at tmem = 256
-                elif command.name == "gsDPLoadTLUT_pal16" and not ignore_tlut:
+                elif command.name == "gsDPLoadTLUT_pal16":
                     self.loadTLUTPal(command.params[1], dlData, 15)
-                elif command.name == "gsDPLoadTLUT_pal256" and not ignore_tlut:
+                elif command.name == "gsDPLoadTLUT_pal256":
                     self.loadTLUTPal(command.params[0], dlData, 255)
                 else:
                     pass

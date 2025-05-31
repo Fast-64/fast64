@@ -4,6 +4,7 @@ import re
 import bpy
 import mathutils
 
+from pathlib import Path
 from typing import Optional
 
 from ...utility import PluginError, readFile, parentObject, hexOrDecInt, gammaInverse
@@ -84,6 +85,7 @@ def parseLightList(
     sceneData: str,
     lightListName: str,
     headerIndex: int,
+    sharedSceneData: SharedSceneData,
 ):
     lightData = getDataMatch(sceneData, lightListName, ["LightSettings", "EnvLightSettings"], "light list", strip=True)
 
@@ -94,7 +96,7 @@ def parseLightList(
         sceneHeader.skyboxLighting = "Custom"
     sceneHeader.lightList.clear()
 
-    lightList = EnvLightSettings.from_data(lightData, not bpy.context.scene.fast64.oot.is_globalh_present())
+    lightList = EnvLightSettings.from_data(lightData, sharedSceneData.use_macros)
 
     for index, lightEntry in enumerate(lightList):
         ambientColor = parseColor(lightEntry.ambientColor)
@@ -165,23 +167,33 @@ def parseRoomList(
             else:
                 roomName = roomName[1:]
 
-        roomPath = os.path.join(sharedSceneData.scenePath, f"{roomName}.c")
-        roomData = readFile(roomPath)
+        file_path = Path(sharedSceneData.scenePath) / f"{roomName}.c"
+
+        if not file_path.exists():
+            file_path = Path(sharedSceneData.scenePath).resolve() / f"{roomName}_main.c"
+
+        if not file_path.exists():
+            raise PluginError("ERROR: scene not found!")
+
+        roomData = file_path.read_text()
+
+        if not sharedSceneData.is_single_file:
+            # get the other room files for non-single file fast64 exports
+            for file in file_path.parent.rglob("*.c"):
+                if roomName in str(file) and f"{roomName}_main" not in str(file):
+                    roomData += file.read_text()
+
         parseMatrices(roomData, f3dContext, 1 / bpy.context.scene.ootBlenderScale)
 
-        # roomCommandsName = f"{roomName}Commands"
-        # if roomCommandsName not in roomData:
-        #     roomCommandsName = f"{roomName}_header00"  # fast64 naming
-
         roomCommandsName = f"{roomName}Commands"
-
-        # newer assets system naming
-        if roomCommandsName not in roomData:
-            roomCommandsName = roomName
 
         # fast64 naming
         if roomCommandsName not in roomData:
             roomCommandsName = f"{roomName}_header00"
+
+        # newer assets system naming
+        if roomCommandsName not in roomData:
+            roomCommandsName = roomName
 
         # Assumption that any shared textures are stored after the CollisionHeader.
         # This is done to avoid including large collision data in regex searches.
@@ -313,7 +325,7 @@ def parseSceneCommands(
         elif command == "SCENE_CMD_ENV_LIGHT_SETTINGS" and sharedSceneData.includeLights:
             if not (args[1] == "NULL" or args[1] == "0" or args[1] == "0x00"):
                 lightsListName = stripName(args[1])
-                parseLightList(sceneObj, sceneHeader, sceneData, lightsListName, headerIndex)
+                parseLightList(sceneObj, sceneHeader, sceneData, lightsListName, headerIndex, sharedSceneData)
         elif command == "SCENE_CMD_CUTSCENE_DATA" and sharedSceneData.includeCutscenes:
             sceneHeader.writeCutscene = True
             sceneHeader.csWriteType = "Object"

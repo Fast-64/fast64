@@ -134,6 +134,7 @@ def parseWaterBoxes(
     roomObjs: list[bpy.types.Object],
     sceneData: str,
     waterBoxListName: str,
+    sharedSceneData: SharedSceneData,
 ):
     waterBoxListData = getDataMatch(sceneData, waterBoxListName, "WaterBox", "water box list", strip=True)
     waterBoxList = [value.replace("{", "").strip() for value in waterBoxListData.split("},") if value.strip() != ""]
@@ -141,7 +142,7 @@ def parseWaterBoxes(
     # orderIndex used for naming cameras in alphabetical order
     for orderIndex, waterBoxData in enumerate(waterBoxList):
         objName = f"{sceneObj.name}_waterBox_{format(orderIndex, '03')}"
-        waterbox = WaterBox.from_data(waterBoxData, not bpy.context.scene.fast64.oot.is_globalh_present())
+        waterbox = WaterBox.from_data(waterBoxData, sharedSceneData.use_macros)
 
         topCorner = waterbox.get_blender_position()
         dimensions = waterbox.get_blender_scale()
@@ -167,7 +168,8 @@ def parseWaterBoxes(
         waterBoxProp.flag19 = waterbox.setFlag19C == "true"
 
         # 0x3F = -1 in 6bit value
-        parentObject(roomObjs[roomIndex] if len(roomObjs) > 0 and roomIndex != 0x3F else sceneObj, waterBoxObj)
+        parent = roomObjs[roomIndex] if roomObjs is not None and len(roomObjs) > 0 and roomIndex != 0x3F else sceneObj
+        parentObject(parent, waterBoxObj)
 
 
 def parseSurfaceParams(
@@ -251,9 +253,9 @@ def parseVertices(vertexList: list[str]):
     return vertices
 
 
-def parsePolygon(polygonData: list[str]):
+def parsePolygon(polygonData: list[str], sharedSceneData: SharedSceneData):
     assert len(polygonData) == 8
-    return CollisionPoly.from_data(polygonData, not bpy.context.scene.fast64.oot.is_globalh_present())
+    return CollisionPoly.from_data(polygonData, sharedSceneData.use_macros)
 
 
 def parseCollisionHeader(
@@ -294,15 +296,20 @@ def parseCollisionHeader(
     waterBoxListName = stripName(otherParams[7])
 
     if sharedSceneData.includeCollision:
-        parseCollision(sceneObj, vertexListName, polygonListName, surfaceTypeListName, sceneData)
+        parseCollision(sceneObj, vertexListName, polygonListName, surfaceTypeListName, sceneData, sharedSceneData)
     if sharedSceneData.includeCameras and camDataListName != "NULL" and camDataListName != "0":
         parseCamDataList(sceneObj, camDataListName, sceneData)
     if sharedSceneData.includeWaterBoxes and waterBoxListName != "NULL" and waterBoxListName != "0":
-        parseWaterBoxes(sceneObj, roomObjs, sceneData, waterBoxListName)
+        parseWaterBoxes(sceneObj, roomObjs, sceneData, waterBoxListName, sharedSceneData)
 
 
 def parseCollision(
-    sceneObj: bpy.types.Object, vertexListName: str, polygonListName: str, surfaceTypeListName: str, sceneData: str
+    sceneObj: bpy.types.Object,
+    vertexListName: str,
+    polygonListName: str,
+    surfaceTypeListName: str,
+    sceneData: str,
+    sharedSceneData: SharedSceneData,
 ):
     vertMatchData = getDataMatch(sceneData, vertexListName, "Vec3s", "vertex list", strip=True)
     polyMatchData = getDataMatch(sceneData, polygonListName, "CollisionPoly", "polygon list", strip=True)
@@ -313,10 +320,12 @@ def parseCollision(
         .replace(" ", "")
     )
 
-    if bpy.context.scene.fast64.oot.is_globalh_present():
-        poly_regex = r"\{(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*)\}"
-    else:
+    if sharedSceneData.is_fast64_data:
+        poly_regex = r"\{([0-9\-]*),(COLPOLY_VTX\([0-9\-]*,[a-zA-Z0-9\-_|\s]*\)),(COLPOLY_VTX\([0-9\-]*,[a-zA-Z0-9\-_|\s]*\)),(COLPOLY_VTX_INDEX\([0-9]*\)),\{(COLPOLY_SNORMAL\([0-9.\-e]*\)),(COLPOLY_SNORMAL\([0-9.\-e]*\)),(COLPOLY_SNORMAL\([0-9.\-e]*\)),?\},?([0-9\-]*),?\}"
+    elif sharedSceneData.use_macros:
         poly_regex = r"\{([0-9\-]*),\{(COLPOLY_VTX\([0-9\-]*,[a-zA-Z0-9\-_|\s]*\)),(COLPOLY_VTX\([0-9\-]*,[a-zA-Z0-9\-_|\s]*\)),(COLPOLY_VTX\([0-9]*,[0-9]*\)),\},\{(COLPOLY_SNORMAL\([0-9.\-]*\)),(COLPOLY_SNORMAL\([0-9.\-]*\)),(COLPOLY_SNORMAL\([0-9.\-]*\)),\},([0-9\-]*),\}"
+    else:
+        poly_regex = r"\{(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*)\}"
 
     vertexList = [value.replace("{", "").strip() for value in vertMatchData.split("},") if value.strip() != ""]
     polygonList = [list(match.groups()) for match in re.finditer(poly_regex, polyMatchData, re.DOTALL)]
@@ -329,7 +338,7 @@ def parseCollision(
     vertices = parseVertices(vertexList)
 
     for polygonData in polygonList:
-        collision_poly = parsePolygon(polygonData)
+        collision_poly = parsePolygon(polygonData, sharedSceneData)
 
         # it's impossible that this is set None but doesn't hurt to make sure
         assert collision_poly.type is not None

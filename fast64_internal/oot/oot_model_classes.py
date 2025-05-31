@@ -331,6 +331,7 @@ class OOTF3DContext(F3DContext):
         self.dlList = []  # in the order they are rendered
         self.isBillboard = False
         self.flipbooks = {}  # {(segment, draw layer) : TextureFlipbook}
+        self.ignore_tlut = False
 
         materialContext = createF3DMat(None, preset="oot_shaded_solid")
         # materialContext.f3d_mat.rdp_settings.g_mdsft_cycletype = "G_CYC_1CYCLE"
@@ -496,6 +497,14 @@ class OOTF3DContext(F3DContext):
                     self.tlutAppliedTextures.append(flipbookTexture.image)
         else:
             super().handleApplyTLUT(material, texProp, tlut, index)
+
+    def applyTLUTToIndex(self, index):
+        if not self.ignore_tlut:
+            super().applyTLUTToIndex(index)
+
+    def loadTLUTPal(self, name: str, dlData: str, count: int):
+        if not self.ignore_tlut:
+            super().loadTLUTPal(name, dlData, count)
 
 
 def clearOOTFlipbookProperty(flipbookProp):
