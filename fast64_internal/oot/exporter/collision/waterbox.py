@@ -65,7 +65,7 @@ class WaterBox:
         if use_macros:
             regex = r"(.*?)\s*,\s*WATERBOX_PROPERTIES\((.*?)\)"
         else:
-            regex = r"(.*?)\s*,\s*(0x.*),"
+            regex = r"(.*?)\s*,\s*(0x.*),?"
 
         match = re.search(regex, raw_data, re.DOTALL)
         assert match is not None

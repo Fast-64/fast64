@@ -113,6 +113,9 @@ class SceneTransitionActors:
             entries = raw_data.split("},")
 
         for entry in entries:
+            if entry == "":
+                continue
+
             params = entry.replace("{", "").replace("}", "").split(",")
 
             # trailing commas

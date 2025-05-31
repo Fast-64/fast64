@@ -92,10 +92,7 @@ class CutsceneImport(CutsceneObjectFactory):
             if cs_cmd not in ootCutsceneCommandsC:
                 print(f"WARNING: unknown command found: {repr(cs_cmd)}")
 
-            # useless for data from an include but still required to support the older assets system
-            if line.startswith("CS_") and not line.startswith("CS_FLOAT"):
-                if self.csName is None or self.csName == cs_name:
-                    parsed_cs_lines.append(line)
+            parsed_cs_lines.append(line)
 
         return parsed_cs_lines
 
@@ -147,16 +144,21 @@ class CutsceneImport(CutsceneObjectFactory):
 
                 if foundCutscene:
                     next_line = fileLines[fileLines.index(line) + 1]
-                    uses_include = "#include" in next_line
 
-                    if uses_include:
+                    if "#include" in next_line:
                         cs_data_map[csName] = get_include_data(next_line).split("\n")
                         foundCutscene = False
                     else:
                         s_line = line.strip()
+                        cs_cmd = s_line.split("(")[0]
+
+                        if "CutsceneData " not in line and "};" not in line and cs_cmd not in ootCutsceneCommandsC:
+                            if len(cs_data_map[csName]) > 0:
+                                cs_data_map[csName][-1] += line
 
                         if s_line.startswith("CS_") and not s_line.startswith("CS_FLOAT"):
-                            cs_data_map[csName].append(line)
+                            if self.csName is None or self.csName == cs_name:
+                                cs_data_map[csName].append(line)
 
                         if "};" in line:
                             foundCutscene = False
