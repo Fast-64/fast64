@@ -4,7 +4,6 @@ import os
 import re
 import traceback
 
-from pathlib import Path
 from ast import parse, Expression, Constant, UnaryOp, USub, Invert, BinOp
 from mathutils import Vector
 from bpy.types import Object
