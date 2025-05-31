@@ -86,6 +86,9 @@ class CutsceneImport(CutsceneObjectFactory):
             line = line.strip()
             cs_cmd = line.split("(")[0]
 
+            if cs_cmd == "":
+                continue
+
             if cs_cmd not in ootCutsceneCommandsC:
                 print(f"WARNING: unknown command found: {repr(cs_cmd)}")
 

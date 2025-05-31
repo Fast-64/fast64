@@ -96,12 +96,12 @@ class CutsceneCmdActorCueList(CutsceneCmdBase):
                 self.entryTotal = getInteger(self.params[0])
             else:
                 self.commandType = self.params[0]
-                if self.commandType.startswith("0x"):
+                if "CS_CMD_" in self.commandType:
+                    self.commandType = ootData.enumData.enumByKey["csCmd"].itemById[self.commandType].key
+                else:
                     # make it a 4 digit hex
                     self.commandType = self.commandType.removeprefix("0x")
                     self.commandType = "0x" + "0" * (4 - len(self.commandType)) + self.commandType
-                else:
-                    self.commandType = ootData.enumData.enumByKey["csCmd"].itemById[self.commandType].key
                 self.entryTotal = getInteger(self.params[1].strip())
 
 
