@@ -1987,8 +1987,10 @@ def get_include_data(include: str, strip: bool = False):
     else:
         raise PluginError(f"ERROR: game not supported ({bpy.context.scene.gameEditorMode})")
 
+    data = removeComments(file_path.read_text())
+
     if strip:
-        return file_path.read_text().replace("\n", "").replace(" ", "")
+        return data.replace("\n", "").replace(" ", "")
 
     # return the data as a string
-    return file_path.read_text()
+    return data
