@@ -1056,25 +1056,25 @@ def generate_overrides(
             child = copy.copy(child)
             child.node = copy.copy(child.node)
             node.geolayout.nodes.append(generate_overrides(fModel, child, switch_stack.copy(), geolayout, graph, name))
-    elif node.hasDL:
-        fMesh: FMesh = node.fMesh
+    elif node.hasDL or hasattr(node, "drawLayer"):
         for i, override_node in enumerate(switch_stack):
-            dl, override_hash = save_override_draw(
-                fModel,
-                node.DLmicrocode,
-                name,
-                node.override_hash,
-                override_node.material,
-                override_node.specificMat,
-                override_node.drawLayer,
-                override_node.overrideType,
-                fMesh,
-                node.drawLayer,
-                True,
-            )
-            if dl is not None and override_hash is not None:
-                node.DLmicrocode = dl
-                node.override_hash = override_hash
+            if node.hasDL:
+                dl, override_hash = save_override_draw(
+                    fModel,
+                    node.DLmicrocode,
+                    name,
+                    node.override_hash,
+                    override_node.material,
+                    override_node.specificMat,
+                    override_node.drawLayer,
+                    override_node.overrideType,
+                    node.fMesh,
+                    node.drawLayer,
+                    True,
+                )
+                if dl is not None and override_hash is not None:
+                    node.DLmicrocode = dl
+                    node.override_hash = override_hash
             if override_node.drawLayer is not None:
                 node.drawLayer = override_node.drawLayer
     for i, child in enumerate(children):
