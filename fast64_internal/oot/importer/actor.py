@@ -2,6 +2,7 @@ import re
 import bpy
 
 from ...utility import parentObject, hexOrDecInt
+from ..exporter.scene.actors import SceneTransitionActors
 from ..scene.properties import OOTSceneHeaderProperty
 from ..oot_utility import setCustomProperty, getEvalParams, getEvalParamsInt
 from ..oot_constants import ootEnumCamTransition, ootData
@@ -24,47 +25,27 @@ def parseTransActorList(
     sharedSceneData: SharedSceneData,
     headerIndex: int,
 ):
-    transitionActorList = getDataMatch(sceneData, transActorListName, "TransitionActorEntry", "transition actor list")
+    transitionActorList = getDataMatch(
+        sceneData, transActorListName, "TransitionActorEntry", "transition actor list", strip=True
+    )
+    scene_trans_actors = SceneTransitionActors.from_data(
+        transitionActorList, not bpy.context.scene.fast64.oot.is_globalh_present()
+    )
 
-    regex = r"(?:\{(.*?)\}\s*,)|(?:\{([a-zA-Z0-9\-_.,{}\s]*[^{]*)\},)"
-    for actorMatch in re.finditer(regex, transitionActorList):
-        actorMatch = actorMatch.group(0).replace(" ", "").replace("\n", "").replace("{", "").replace("}", "")
+    for i, actor in enumerate(scene_trans_actors.entries):
+        if not sharedSceneData.addHeaderIfItemExists((i, actor), "Transition Actor", headerIndex):
+            rotation = tuple([0, hexOrDecInt(actor.rot), 0])
 
-        params = [value.strip() for value in actorMatch.split(",") if value.strip() != ""]
-
-        position = tuple([hexOrDecInt(value) for value in params[5:8]])
-
-        rot_y = getEvalParams(params[8]) if "DEG_TO_BINANG" in params[8] else params[8]
-        rotation = tuple([0, hexOrDecInt(rot_y), 0])
-
-        roomIndexFront = hexOrDecInt(params[0])
-        camFront = params[1]
-        roomIndexBack = hexOrDecInt(params[2])
-        camBack = params[3]
-        actorID = params[4]
-        actorParam = params[9]
-
-        actorHash = (
-            roomIndexFront,
-            camFront,
-            roomIndexBack,
-            camBack,
-            actorID,
-            position,
-            rotation,
-            actorParam,
-        )
-        if not sharedSceneData.addHeaderIfItemExists(actorHash, "Transition Actor", headerIndex):
-            actorObj = createEmptyWithTransform(position, [0, 0, 0] if actorID in actorsWithRotAsParam else rotation)
+            actorObj = createEmptyWithTransform(actor.pos, [0, 0, 0] if actor.id in actorsWithRotAsParam else rotation)
             actorObj.ootEmptyType = "Transition Actor"
-            actorObj.name = "Transition " + getDisplayNameFromActorID(params[4])
+            actorObj.name = "Transition " + getDisplayNameFromActorID(actor.id)
             transActorProp = actorObj.ootTransitionActorProperty
 
-            sharedSceneData.transDict[actorHash] = actorObj
+            sharedSceneData.transDict[actor] = actorObj
 
-            fromRoom = roomObjs[roomIndexFront]
-            toRoom = roomObjs[roomIndexBack]
-            if roomIndexFront != roomIndexBack:
+            fromRoom = roomObjs[actor.roomFrom]
+            toRoom = roomObjs[actor.roomTo]
+            if actor.roomFrom != actor.roomTo:
                 parentObject(fromRoom, actorObj)
                 transActorProp.fromRoom = fromRoom
                 transActorProp.toRoom = toRoom
@@ -73,16 +54,16 @@ def parseTransActorList(
                 transActorProp.isRoomTransition = False
                 parentObject(toRoom, actorObj)
 
-            setCustomProperty(transActorProp, "cameraTransitionFront", camFront, ootEnumCamTransition)
-            setCustomProperty(transActorProp, "cameraTransitionBack", camBack, ootEnumCamTransition)
+            setCustomProperty(transActorProp, "cameraTransitionFront", actor.cameraFront, ootEnumCamTransition)
+            setCustomProperty(transActorProp, "cameraTransitionBack", actor.cameraBack, ootEnumCamTransition)
 
             actorProp = transActorProp.actor
-            setCustomProperty(actorProp, "actor_id", actorID, ootData.actorData.ootEnumActorID)
+            setCustomProperty(actorProp, "actor_id", actor.id, ootData.actorData.ootEnumActorID)
             if actorProp.actor_id != "Custom":
-                actorProp.params = actorParam
+                actorProp.params = actor.params
             else:
-                actorProp.params_custom = actorParam
-            handleActorWithRotAsParam(actorProp, actorID, rotation)
+                actorProp.params_custom = actor.params
+            handleActorWithRotAsParam(actorProp, actor.id, rotation)
             unsetAllHeadersExceptSpecified(actorProp.headerSettings, headerIndex)
 
 
