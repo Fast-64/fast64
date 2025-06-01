@@ -24,6 +24,13 @@ class OoT_ItemElement(OoT_BaseElement):
                 "csPlayerCueId": "PLAYER_CUEID",
                 "naviQuestHintType": "NAVI_QUEST_HINTS",
                 "ocarinaSongActionId": "OCARINA_ACTION",
+                "floor_type": "",
+                "wall_type": "",
+                "floor_property": "",
+                "surface_sfx_offset": "",
+                "surface_material": "",
+                "floor_effect": "",
+                "conveyor_speed": "",
             }
 
             self.name = self.id.removeprefix(f"{keyToPrefix[self.parentKey]}_")
@@ -96,6 +103,13 @@ class OoT_EnumData:
         self.ootEnumNaviQuestHintType: list[tuple[str, str, str]] = []
         self.ootEnumOcarinaSongActionId: list[tuple[str, str, str]] = []
         self.ootEnumSeqId: list[tuple[str, str, str]] = []
+        self.ootEnumFloorType: list[tuple[str, str, str]] = []
+        self.ootEnumWallType: list[tuple[str, str, str]] = []
+        self.ootEnumFloorProperty: list[tuple[str, str, str]] = []
+        self.ootEnumSurfaceSfxOffset: list[tuple[str, str, str]] = []
+        self.ootEnumSurfaceMaterial: list[tuple[str, str, str]] = []
+        self.ootEnumFloorEffect: list[tuple[str, str, str]] = []
+        self.ootEnumConveyorSpeed: list[tuple[str, str, str]] = []
 
         self.enumByID = {enum.id: enum for enum in self.enumDataList}
         self.enumByKey = {enum.key: enum for enum in self.enumDataList}

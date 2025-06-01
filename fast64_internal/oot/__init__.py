@@ -110,6 +110,10 @@ class OOT_Properties(bpy.types.PropertyGroup):
             return f"extracted/{self.oot_version if self.oot_version != 'Custom' else self.oot_version_custom}"
 
     def is_globalh_present(self):
+        # TODO: temp workaround
+        if self.oot_version == "hackeroot-mq":
+            return True
+
         decomp_path = Path(bpy.context.scene.ootDecompPath).resolve()
 
         if not decomp_path.exists():

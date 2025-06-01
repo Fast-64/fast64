@@ -1,8 +1,22 @@
+import bmesh
+import bpy
+import mathutils
+import re
+import math
+import traceback
+import ast
+
 from typing import Union, Optional, Callable, Any, TYPE_CHECKING
-import bmesh, bpy, mathutils, re, math, traceback
 from mathutils import Vector
 from bpy.utils import register_class, unregister_class
+
+# TODO: remove `import *`
+from ..utility import *
 from .f3d_gbi import *
+
+from .f3d_writer import BufferVertex, F3DVert
+from .f3d_material_helpers import F3DMaterial_UpdateLock
+
 from .f3d_material import (
     createF3DMat,
     update_preset_manual,
@@ -13,10 +27,6 @@ from .f3d_material import (
     update_node_values_of_material,
     F3DMaterialHash,
 )
-from .f3d_writer import BufferVertex, F3DVert
-from ..utility import *
-import ast
-from .f3d_material_helpers import F3DMaterial_UpdateLock
 
 if TYPE_CHECKING:
     from .f3d_material import RDPSettings
@@ -825,6 +835,7 @@ class F3DContext:
                 print("Ignoring TLUT.")
 
     def addMaterial(self):
+        # disable TLUTs for OoT
         self.applyTLUTToIndex(0)
         self.applyTLUTToIndex(1)
 
@@ -847,16 +858,22 @@ class F3DContext:
         else:
             return getattr(self.f3d, self.f3d.IM_SIZ[size] + suffix)
 
-    def getImagePathFromInclude(self, path):
+    def getImagePathFromInclude(self, path, skip_base_path: bool = True):
         if self.basePath is None:
             raise PluginError("Cannot load texture from " + path + " without any provided base path.")
 
         imagePathRelative = path[:-5] + "png"
+
+        # OoT already got the full path so no need to do that
+        if skip_base_path:
+            return imagePathRelative
+
         imagePath = os.path.join(self.basePath, imagePathRelative)
 
         # handle custom imports, where relative paths don't make sense
         if not os.path.exists(imagePath):
             imagePath = os.path.join(self.basePath, os.path.basename(imagePathRelative))
+
         return imagePath
 
     def getVTXPathFromInclude(self, path):
@@ -1363,7 +1380,18 @@ class F3DContext:
         self.tmemDict[tileSettings.tmem] = self.currentTextureName
         self.materialChanged = True
 
+    def get_file_macro_value(self, macro: str, filedata: str):
+        match = re.search(rf"#\s*define\s*{macro}\s*([0-9a-fA-FxX]*)", filedata, re.DOTALL)
+        assert match is not None, f"match is null for {macro}"
+        return match.group(1)
+
     def loadMultiBlock(self, params: "list[str | int]", dlData: str, is4bit: bool):
+        # handles OoT's macros
+        if "WIDTH" in params[5]:
+            params[5] = self.get_file_macro_value(params[5], dlData)
+        if "HEIGHT" in params[6]:
+            params[6] = self.get_file_macro_value(params[6], dlData)
+
         width = math_eval(params[5], self.f3d)
         height = math_eval(params[6], self.f3d)
         siz = params[4]
@@ -1961,6 +1989,9 @@ def parseDLData(dlData: str, dlName: str):
 
     dlCommandData = matchResult.group(1)
 
+    if "#include" in dlCommandData:
+        dlCommandData = get_include_data(dlCommandData, strip=True)
+
     # recursive regex not available in re
     # dlCommands = [(match.group(1), [param.strip() for param in match.group(2).split(",")]) for match in \
     # 	re.findall('(gs[A-Za-z0-9\_]*)\(((?>[^()]|(?R))*)\)', dlCommandData, re.DOTALL)]
@@ -1984,7 +2015,7 @@ def parseVertexData(dlData: str, vertexDataName: str, f3dContext: F3DContext):
     if pathMatch is not None:
         path = pathMatch.group(1)
         if bpy.context.scene.gameEditorMode == "OOT":
-            path = f"{bpy.context.scene.fast64.oot.get_extracted_path()}/{path}"
+            path = str(oot_get_assets_path(path, check_exists=False))
         data = readFile(f3dContext.getVTXPathFromInclude(path))
 
     f3d = f3dContext.f3d
@@ -2072,7 +2103,9 @@ def CI4toRGBA32(value):
 
 def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, width, isLUT, f3d):
     matchResult = re.search(
-        r"([A-Za-z0-9\_]+)\s*" + re.escape(textureName) + r"\s*\[\s*[0-9a-fA-Fx]*\s*\]\s*=\s*\{([^\}]*)\s*\}\s*;\s*",
+        r"([A-Za-z0-9\_]+)\s*"
+        + re.escape(textureName)
+        + r"\s*\[\s*[0-9a-zA-Z_\(\),\s]*\s*\]\s*=\s*\s*\{([^\}]*)\s*\}\s*;\s*",
         dlData,
         re.DOTALL,
     )
@@ -2087,9 +2120,10 @@ def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, wi
     pathMatch = re.search(r'\#include\s*"(.*?)"', data, re.DOTALL)
     if pathMatch is not None:
         path = pathMatch.group(1)
-        if bpy.context.scene.gameEditorMode == "OOT":
-            path = f"{bpy.context.scene.fast64.oot.get_extracted_path()}/{path}"
-        originalImage = bpy.data.images.load(f3dContext.getImagePathFromInclude(path))
+        is_oot = bpy.context.scene.gameEditorMode == "OOT"
+        if is_oot:
+            path = str(oot_get_assets_path(path, check_exists=False))
+        originalImage = bpy.data.images.load(f3dContext.getImagePathFromInclude(path, is_oot))
         image = originalImage.copy()
         image.pack()
         image.filepath = ""
@@ -2244,7 +2278,13 @@ def getImportData(filepaths):
 
 
 def parseMatrices(sceneData: str, f3dContext: F3DContext, importScale: float = 1):
-    for match in re.finditer(rf"Mtx\s*([a-zA-Z0-9\_]+)\s*=\s*\{{(.*?)\}}\s*;", sceneData, flags=re.DOTALL):
+    regex = rf"Mtx\s*([a-zA-Z0-9\_]+)\s*=\s*\{{(.*?)\}}\s*;"
+
+    # newer assets system
+    if not bpy.context.scene.fast64.oot.is_globalh_present():
+        regex = r"Mtx\s*([a-zA-Z0-9\_]+)\s*=\s*(.*?)\s*;"
+
+    for match in re.finditer(regex, sceneData, flags=re.DOTALL):
         name = "&" + match.group(1)
         values = [hexOrDecInt(value.strip()) for value in match.group(2).split(",") if value.strip() != ""]
         trueValues = []

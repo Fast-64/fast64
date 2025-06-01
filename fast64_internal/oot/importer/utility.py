@@ -2,10 +2,13 @@ import re
 import bpy
 import mathutils
 
-from ...utility import PluginError, hexOrDecInt, removeComments, yUpToZUp
+from pathlib import Path
+
+from ...utility import PluginError, hexOrDecInt, removeComments, get_include_data, yUpToZUp
 from ..actor.properties import OOTActorProperty, OOTActorHeaderProperty
 from ..oot_utility import ootParseRotation
 from .constants import headerNames, actorsWithRotAsParam
+from .classes import SharedSceneData
 
 
 def checkBit(value: int, index: int) -> bool:
@@ -59,7 +62,7 @@ def handleActorWithRotAsParam(actorProp: OOTActorProperty, actorID: str, rotatio
 
 
 def getDataMatch(
-    sceneData: str, name: str, dataType: str | list[str], errorMessageID: str, isArray: bool = True
+    sceneData: str, name: str, dataType: str | list[str], errorMessageID: str, isArray: bool = True, strip: bool = False
 ) -> str:
     arrayText = rf"\[[\s0-9A-Za-z_]*\]\s*" if isArray else ""
 
@@ -74,18 +77,24 @@ def getDataMatch(
     match = re.search(regex, sceneData, flags=re.DOTALL)
 
     if not match:
-        raise PluginError(f"Could not find {errorMessageID} {name}.")
+        raise PluginError(f"ERROR: Could not find {errorMessageID} {name}. (regex used: '{regex}')")
 
     # return the match with comments removed
-    return removeComments(match.group(1))
+    data_match = removeComments(match.group(1))
+
+    if "#include" in data_match:
+        data_match = removeComments(get_include_data(data_match))
+
+    if strip:
+        data_match = data_match.replace("\n", "").replace(" ", "")
+
+    return data_match
 
 
 def stripName(name: str):
     if "&" in name:
         name = name[name.index("&") + 1 :].strip()
-    if name[0] == "(" and name[-1] == ")":
-        name = name[1:-1].strip()
-    return name
+    return name.removeprefix("(").removesuffix(")")
 
 
 def createCurveFromPoints(points: list[tuple[float, float, float]], name: str):
@@ -113,3 +122,40 @@ def createCurveFromPoints(points: list[tuple[float, float, float]], name: str):
     curve.dimensions = "3D"
 
     return curveObj
+
+
+def parse_commands_data(data: str):
+    lines = data.replace(" ", "").split("\n")
+    cmd_map: dict[str, list[str]] = {}
+
+    if lines[-1] == "":
+        lines.pop()
+
+    if lines[0] == "":
+        lines.pop(0)
+
+    for line in lines:
+        match = re.search(r"SCENE\_CMD\_[a-zA-Z0-9\_]*", line, re.DOTALL)
+
+        if match is not None:
+            cmd = match.group(0)
+            cmd_map[cmd] = line.removeprefix(f"{cmd}(").removesuffix("),").split(",")
+        else:
+            raise PluginError(f"ERROR: no command found! ({repr(line)})")
+
+    return cmd_map
+
+
+def get_array_count(shared_data: SharedSceneData, symbol: str):
+    header_path = Path(shared_data.scenePath).resolve() / f"{shared_data.scene_name}.h"
+
+    if not header_path.exists():
+        raise PluginError("ERROR: can't find scene header!")
+
+    symbol = symbol.removeprefix("ARRAY_COUNT(").removesuffix(")")
+    match = re.search(rf"#define\s*LENGTH_{symbol}\s*([0-9]*)", header_path.read_text(), re.DOTALL)
+
+    if match is None:
+        raise PluginError(f"ERROR: can't find array count for {repr(symbol)}")
+
+    return hexOrDecInt(match.group(1))
