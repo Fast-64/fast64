@@ -343,11 +343,11 @@ def getCameraObj(camera):
 DrawLayerDict = dict[int, list[TransformNode]]
 
 
-def appendRevertToGeolayout(geolayoutGraph, fModel: FModel):
-    materialRevert = GfxList(
-        fModel.name + "_" + "material_revert_render_settings", GfxListTag.MaterialRevert, fModel.DLFormat
+def append_revert_to_geolayout(graph: GeolayoutGraph, f_model: SM64Model):
+    material_revert = GfxList(
+        f_model.name + "_" + "material_revert_render_settings", GfxListTag.MaterialRevert, f_model.DLFormat
     )
-    revertMatAndEndDraw(materialRevert, [DPSetEnvColor(0xFF, 0xFF, 0xFF, 0xFF), DPSetAlphaCompare("G_AC_NONE")])
+    revertMatAndEndDraw(material_revert, [DPSetEnvColor(0xFF, 0xFF, 0xFF, 0xFF), DPSetAlphaCompare("G_AC_NONE")])
 
     # walk the geo layout graph to find the last used DL for each layer
     # each switch child will be considered a last used DL, unless subsequent
@@ -378,25 +378,23 @@ def appendRevertToGeolayout(geolayoutGraph, fModel: FModel):
                     if draw_layer in option_resets:  # option overrides a previous draw layer
                         nodes.clear()
                         nodes.extend(option_resets[draw_layer])
-                    else:  # draw layer is not in every switch option
-                        draw_layer_dict[draw_layer].clear()
             else:
                 draw_layer_dict = walk(child, draw_layer_dict.copy())
         return draw_layer_dict
 
     draw_layer_dict: DrawLayerDict = {}
-    for node in geolayoutGraph.startGeolayout.nodes:
+    for node in graph.startGeolayout.nodes:
         draw_layer_dict = walk(node, draw_layer_dict.copy())
 
     def create_revert_node(draw_layer, node: DisplayListNode | None = None):
-        f_mesh = fModel.addMesh(f"final_revert_layer_{draw_layer}", fModel.name, draw_layer, False, None)
-        f_mesh.draw = gfx_list = GfxList(f_mesh.name, GfxListTag.Draw, fModel.DLFormat)
-        gfx_list.commands.extend(materialRevert.commands)
+        f_mesh = f_model.addMesh("final_revert", f_model.name, draw_layer, False, None)
+        f_mesh.draw = gfx_list = GfxList(f_mesh.name, GfxListTag.Draw, f_model.DLFormat)
+        gfx_list.commands.extend(material_revert.commands)
         revert_node = DisplayListNode(draw_layer)
         revert_node.DLmicrocode = gfx_list
         revert_node.fMesh = f_mesh
         if node is None:
-            geolayoutGraph.startGeolayout.nodes.append(TransformNode(revert_node))
+            graph.startGeolayout.nodes.append(TransformNode(revert_node))
         else:
             addParentNode(node, revert_node)
 
@@ -407,19 +405,57 @@ def appendRevertToGeolayout(geolayoutGraph, fModel: FModel):
         for transform_node in nodes:
             node = transform_node.node
             f_mesh: FMesh = node.fMesh
-            gfx_list: GfxList = node.DLmicrocode
+            cmd_list: GfxList = node.DLmicrocode
             if f_mesh.cullVertexList:
                 create_revert_node(draw_layer, transform_node)
             else:
-                if f_mesh.override_layer:
-                    node.DLmicrocode = gfx_list = copy.copy(gfx_list)
-                    gfx_list.name += "_with_revert"
-                    gfx_list.commands = gfx_list.commands.copy()
-                    f_mesh.drawMatOverrides[(5, node.override_hash)] = gfx_list
-                # remove SPEndDisplayList from gfx_list, materialRevert has its own SPEndDisplayList cmd
-                while SPEndDisplayList() in gfx_list.commands:
-                    gfx_list.commands.remove(SPEndDisplayList())
-                gfx_list.commands.extend(materialRevert.commands)
+                if (hasattr(f_mesh, "override_layer") and f_mesh.override_layer) or node.override_hash:
+                    draw_overrides = f_model.draw_overrides.setdefault(f_mesh, {})
+                    if node.override_hash is None:
+                        node.override_hash = (5, node.drawLayer)
+                    else:
+                        node.override_hash = (5, *node.override_hash)
+                    existing_cmd_list, existing_nodes = draw_overrides.get(node.override_hash, (None, []))
+                    if existing_cmd_list is not None:
+                        node.DLmicrocode = existing_cmd_list
+                        existing_nodes.append(node)
+                        continue
+                    else:
+                        node.DLmicrocode = cmd_list = copy.copy(cmd_list)
+                        if node.override_hash not in draw_overrides:
+                            cmd_list.name += f"_with_layer_{node.drawLayer}_revert"
+                        else:
+                            cmd_list.name += "_with_revert"
+                        cmd_list.commands = cmd_list.commands.copy()
+                        draw_overrides[node.override_hash] = (cmd_list, [node])
+                # remove SPEndDisplayList from gfx_list, material_revert has its own SPEndDisplayList cmd
+                while SPEndDisplayList() in cmd_list.commands:
+                    cmd_list.commands.remove(SPEndDisplayList())
+                cmd_list.commands.extend(material_revert.commands)
+
+
+def add_overrides_to_fmodel(f_model: SM64Model):
+    for f_mesh, draw_overrides in f_model.draw_overrides.items():
+        nodes = [node for _, nodes in draw_overrides.items() for node in nodes]
+        if all(node.override_hash is not None for _, (_, nodes) in draw_overrides.items() for node in nodes):
+            # all nodes use an override, make the first override the main draw
+            override_hash, cmd_list, nodes = next(
+                (override_hash, cmd_list, nodes)
+                for override_hash, (cmd_list, nodes) in draw_overrides.items()
+                if override_hash is not None and any(node.override_hash == override_hash for node in nodes)
+            )
+            for node in nodes:
+                if node.override_hash == override_hash:
+                    node.DLmicrocode = cmd_list
+                    node.override_hash = None
+            f_mesh.draw = cmd_list
+            draw_overrides.pop(override_hash)
+        for override_hash, (cmd_list, nodes) in draw_overrides.items():
+            # remove no longer used overrides
+            if all(node.override_hash is None or node.override_hash != override_hash for node in nodes):
+                continue
+            if cmd_list not in f_mesh.draw_overrides:
+                f_mesh.draw_overrides.append(cmd_list)
 
 
 # Convert to Geolayout
@@ -484,7 +520,8 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, camera,
         node.node = copy.copy(node.node)
         meshGeolayout.nodes.append(generate_overrides(fModel, node, [], meshGeolayout, geolayoutGraph))
 
-    appendRevertToGeolayout(geolayoutGraph, fModel)
+    append_revert_to_geolayout(geolayoutGraph, fModel)
+    add_overrides_to_fmodel(fModel)
     geolayoutGraph.generateSortedList()
     if inline:
         bleed_gfx = GeoLayoutBleed()
@@ -554,7 +591,8 @@ def convertObjectToGeolayout(
         rootObj.select_set(True)
         bpy.context.view_layer.objects.active = rootObj
 
-    appendRevertToGeolayout(geolayoutGraph, fModel)
+    append_revert_to_geolayout(geolayoutGraph, fModel)
+    add_overrides_to_fmodel(fModel)
     geolayoutGraph.generateSortedList()
     if inline:
         bleed_gfx = GeoLayoutBleed()
@@ -1069,7 +1107,7 @@ def geoWriteTextDump(textDumpFilePath, geolayoutGraph, levelData):
 
 
 def generate_overrides(
-    fModel: FModel,
+    fModel: SM64Model,
     transform_node: TransformNode,
     switch_stack: list[SwitchOverrideNode],
     geolayout: Geolayout,
@@ -1105,6 +1143,7 @@ def generate_overrides(
                     override_node.drawLayer,
                     override_node.overrideType,
                     node.fMesh,
+                    node,
                     node.drawLayer,
                     True,
                 )
@@ -1113,8 +1152,12 @@ def generate_overrides(
                     node.override_hash = override_hash
             if override_node.drawLayer is not None and node.drawLayer != override_node.drawLayer:
                 node.drawLayer = override_node.drawLayer
-                if node.hasDL:
+                if node.fMesh is not None:
                     node.fMesh.override_layer = True
+        if node.hasDL:
+            draw_overrides = fModel.draw_overrides.setdefault(node.fMesh, {})
+            _, nodes = draw_overrides.setdefault(node.override_hash, (node.DLmicrocode, []))
+            nodes.append(node)
     for i, child in enumerate(children):
         child = copy.copy(child)
         child_node = child.node = copy.copy(child.node)
@@ -2436,7 +2479,7 @@ def saveModelGivenVertexGroup(
 
 
 def save_override_draw(
-    fModel: FModel,
+    f_model: SM64Model,
     draw: GfxList,
     prefix: str,
     existing_hash,
@@ -2445,9 +2488,11 @@ def save_override_draw(
     override_layer: int | None,
     override_type: str,
     fMesh: FMesh,
+    obj: object,
     draw_layer: int,
     convert_texture_data: bool,
 ):
+    draw_overrides = f_model.draw_overrides.setdefault(fMesh, {})
     specific_mats = specific_mats or tuple()
     f_override_mat = override_tex_dimensions = None
     new_layer = draw_layer if override_layer is None else override_layer
@@ -2456,21 +2501,19 @@ def save_override_draw(
 
     if override_mat is not None:
         f_override_mat, override_tex_dimensions = saveOrGetF3DMaterial(
-            override_mat, fModel, None, new_layer, convert_texture_data
+            override_mat, f_model, None, new_layer, convert_texture_data
         )
         g_tex_gen = override_mat.f3d_mat.rdp_settings.g_tex_gen
 
     name = f"{fMesh.name}{prefix}"
     new_name = name
     override_index = -1
-    while new_name in [x.name for x in fMesh.drawMatOverrides.values()]:
+    while new_name in [x.name for x, _ in draw_overrides.values()]:
         override_index += 1
         new_name = f"{name}_{override_index}"
     name = new_name
 
-    new_dl_override = GfxList(name, GfxListTag.Draw, fModel.DLFormat)
-    if name == "mario_000_displaylist_mesh_layer_2_opt_2":
-        print("HI")
+    new_dl_override = GfxList(name, GfxListTag.Draw, f_model.DLFormat)
     new_dl_override.commands = [copy.copy(cmd) for cmd in draw.commands]
     save_mesh_override = False
     prev_material = None
@@ -2485,13 +2528,13 @@ def save_override_draw(
             continue
         # get the material referenced, and then check if it should be overriden
         # a material override will either have a list of mats it overrides, or a mask of mats it doesn't based on type
-        bpy_material, fmaterial = find_material_from_jump_cmd(fModel.getAllMaterials().items(), command)
+        bpy_material, fmaterial = find_material_from_jump_cmd(f_model.getAllMaterials().items(), command)
         should_modify = (override_type == "Specific" and bpy_material in specific_mats) or (
             override_type == "All" and bpy_material not in specific_mats
         )
 
         if should_modify and bpy_material is not None and override_tex_dimensions is not None and not g_tex_gen:
-            _, tex_dimensions = saveOrGetF3DMaterial(bpy_material, fModel, None, new_layer, convert_texture_data)
+            _, tex_dimensions = saveOrGetF3DMaterial(bpy_material, f_model, None, new_layer, convert_texture_data)
             if tex_dimensions != override_tex_dimensions:
                 raise PluginError(
                     f'Material "{bpy_material.name}" has a texture with dimensions of {tex_dimensions}\n'
@@ -2505,20 +2548,20 @@ def save_override_draw(
         cur_bpy_material = override_mat if should_modify else bpy_material
         if cur_bpy_material is not None:
             material_hash = (cur_bpy_material, new_layer, convert_texture_data)
-            if material_hash not in fModel.layer_adapted_fmats:
-                fModel.layer_adapted_fmats[material_hash] = None
+            if material_hash not in f_model.layer_adapted_fmats:
+                f_model.layer_adapted_fmats[material_hash] = None
                 rdp = cur_bpy_material.f3d_mat.rdp_settings
                 preset = (rdp.rendermode_preset_cycle_1, rdp.rendermode_preset_cycle_2)
-                cur_preset = fModel.getRenderMode(new_layer)
+                cur_preset = f_model.getRenderMode(new_layer)
                 if rdp.set_rendermode and (rdp.rendermode_advanced_enabled or preset != cur_preset):
                     new_mat: FMaterial = saveOrGetF3DMaterial(
-                        cur_bpy_material, fModel, None, new_layer, convert_texture_data
+                        cur_bpy_material, f_model, None, new_layer, convert_texture_data
                     )[0]
-                    new_mat.material = copy.copy(new_mat.material)  # so we can change the tag
                     if override_mat is None:
+                        new_mat.material = copy.copy(new_mat.material)  # so we can change the tag
                         new_mat.material.tag |= GfxListTag.NoExport
-                    fModel.layer_adapted_fmats[material_hash] = new_mat
-            new_mat = fModel.layer_adapted_fmats.get(material_hash) or new_mat
+                    f_model.layer_adapted_fmats[material_hash] = new_mat
+            new_mat = f_model.layer_adapted_fmats.get(material_hash) or new_mat
 
         # replace the material load if necessary
         # if we replaced the previous load with the same override, then remove the cmd to optimize DL
@@ -2600,9 +2643,8 @@ def save_override_draw(
 
     new_hash = tuple(new_hash)
     if save_mesh_override:
-        if new_hash in fMesh.drawMatOverrides:
-            return fMesh.drawMatOverrides[new_hash], new_hash
-        fMesh.drawMatOverrides[new_hash] = new_dl_override
+        new_dl_override, nodes = draw_overrides.setdefault(new_hash, (new_dl_override, []))
+        nodes.append(obj)
         return new_dl_override, new_hash
     return None, None
 

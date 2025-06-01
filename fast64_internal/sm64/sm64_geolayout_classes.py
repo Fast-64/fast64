@@ -283,6 +283,7 @@ class BaseDisplayListNode:
     """Base displaylist node with common helper functions dealing with displaylists"""
 
     dl_ext = "WITH_DL"  # add dl_ext to geo command if command has a displaylist
+    override_layer = False
 
     def get_dl_address(self):
         assert self.dlRef is None, "dlRef not implemented in binary"
@@ -539,7 +540,7 @@ class GeoLayoutBleed(BleedGraphics):
 
             if fMesh:
                 base_node: BaseDisplayListNode
-                cmd_list = fMesh.drawMatOverrides.get(base_node.override_hash, None) or fMesh.draw
+                cmd_list = base_node.DLmicrocode
                 default_render_mode = fModel.getRenderMode(base_node.drawLayer)
 
                 reset_cmd_dict = {typ: cmd for _, reset_cmds in last_cmds_resets for typ, cmd in reset_cmds.items()}

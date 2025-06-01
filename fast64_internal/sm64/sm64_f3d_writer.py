@@ -25,6 +25,7 @@ from ..f3d.f3d_bleed import BleedGraphics
 from ..f3d.f3d_gbi import (
     DPSetCombineMode,
     DPSetTextureLUT,
+    FMesh,
     get_F3D_GBI,
     GbiMacro,
     GfxTag,
@@ -112,7 +113,7 @@ class SM64Model(FModel):
         FModel.__init__(self, name, DLFormat, matWriteMethod)
         self.no_light_direction = bpy.context.scene.fast64.sm64.matstack_fix
         self.layer_adapted_fmats = {}
-        self.override_layer = False
+        self.draw_overrides: dict[FMesh, dict[tuple, tuple[GfxList, list["DisplayListNode"]]]] = {}
 
     def getDrawLayerV3(self, obj):
         return int(obj.draw_layer_static)
