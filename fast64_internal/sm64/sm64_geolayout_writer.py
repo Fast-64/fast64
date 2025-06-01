@@ -340,7 +340,10 @@ def getCameraObj(camera):
     raise PluginError("The level camera " + camera.name + " is no longer in the scene.")
 
 
-def appendRevertToGeolayout(geolayoutGraph, fModel):
+DrawLayerDict = dict[int, list[TransformNode]]
+
+
+def appendRevertToGeolayout(geolayoutGraph, fModel: FModel):
     materialRevert = GfxList(
         fModel.name + "_" + "material_revert_render_settings", GfxListTag.MaterialRevert, fModel.DLFormat
     )
@@ -349,47 +352,74 @@ def appendRevertToGeolayout(geolayoutGraph, fModel):
     # walk the geo layout graph to find the last used DL for each layer
     # each switch child will be considered a last used DL, unless subsequent
     # DL is drawn outside switch root
-    def walk(node, last_gfx_list: list[dict]):
+    def walk(node, draw_layer_dict: DrawLayerDict) -> DrawLayerDict:
         base_node = node.node
         if type(base_node) == JumpNode:
             if base_node.geolayout:
                 for node in base_node.geolayout.nodes:
-                    last_gfx_list = walk(node, last_gfx_list)
+                    draw_layer_dict = walk(node, draw_layer_dict.copy())
         fMesh = getattr(base_node, "fMesh", None)
         if fMesh:
-            cmd_list = fMesh.drawMatOverrides.get(base_node.override_hash, None) or fMesh.draw
-            for draw_layer_dict in last_gfx_list:
-                draw_layer_dict[base_node.drawLayer] = cmd_list
-        switch_gfx_lists = []
+            draw_layer_dict[base_node.drawLayer] = [node]
+
+        start_draw_layer_dict = draw_layer_dict.copy()
         for child in node.children:
             if type(base_node) == SwitchNode:
-                switch_gfx_lists.extend(walk(child, [dict()]))
+                option_resets = walk(child, {})
+                for (
+                    draw_layer,
+                    nodes,
+                ) in option_resets.items():  # add draw layers that are not already in draw_layer_dict
+                    if draw_layer not in start_draw_layer_dict:
+                        if draw_layer not in draw_layer_dict:
+                            draw_layer_dict[draw_layer] = []
+                        draw_layer_dict[draw_layer].extend(nodes)
+                for draw_layer, nodes in start_draw_layer_dict.items():
+                    if draw_layer in option_resets:  # option overrides a previous draw layer
+                        nodes.clear()
+                        nodes.extend(option_resets[draw_layer])
+                    else:  # draw layer is not in every switch option
+                        draw_layer_dict[draw_layer].clear()
             else:
-                last_gfx_list = walk(child, last_gfx_list)
-        # update the non switch nodes with the last switch node of each layer drawn
-        # that node will be overridden by at least one of the switch nodes
-        # for that layer, later items in the list will cover unique switch nodes
-        if switch_gfx_lists:
-            for draw_layer_dict in last_gfx_list:
-                draw_layer_dict.update(switch_gfx_lists[-1])
-            last_gfx_list.extend(switch_gfx_lists)
-        return last_gfx_list
+                draw_layer_dict = walk(child, draw_layer_dict.copy())
+        return draw_layer_dict
 
+    draw_layer_dict: DrawLayerDict = {}
     for node in geolayoutGraph.startGeolayout.nodes:
-        last_gfx_list = walk(node, [dict()])
+        draw_layer_dict = walk(node, draw_layer_dict.copy())
+
+    def create_revert_node(draw_layer, node: DisplayListNode | None = None):
+        f_mesh = fModel.addMesh(f"final_revert_layer_{draw_layer}", fModel.name, draw_layer, False, None)
+        f_mesh.draw = gfx_list = GfxList(f_mesh.name, GfxListTag.Draw, fModel.DLFormat)
+        gfx_list.commands.extend(materialRevert.commands)
+        revert_node = DisplayListNode(draw_layer)
+        revert_node.DLmicrocode = gfx_list
+        revert_node.fMesh = f_mesh
+        if node is None:
+            geolayoutGraph.startGeolayout.nodes.append(TransformNode(revert_node))
+        else:
+            addParentNode(node, revert_node)
 
     # Revert settings in each unique draw layer
-    reverted_gfx_lists = set()
-    for draw_layer_dict in last_gfx_list:
-        for gfx_list in draw_layer_dict.values():
-            if gfx_list in reverted_gfx_lists:
-                continue
-            # remove SPEndDisplayList from gfx_list, materialRevert has its own SPEndDisplayList cmd
-            while SPEndDisplayList() in gfx_list.commands:
-                gfx_list.commands.remove(SPEndDisplayList())
-
-            gfx_list.commands.extend(materialRevert.commands)
-            reverted_gfx_lists.add(gfx_list)
+    for draw_layer, nodes in draw_layer_dict.items():
+        if len(nodes) == 0:
+            create_revert_node(draw_layer)
+        for transform_node in nodes:
+            node = transform_node.node
+            f_mesh: FMesh = node.fMesh
+            gfx_list: GfxList = node.DLmicrocode
+            if f_mesh.cullVertexList:
+                create_revert_node(draw_layer, transform_node)
+            else:
+                if f_mesh.override_layer:
+                    node.DLmicrocode = gfx_list = copy.copy(gfx_list)
+                    gfx_list.name += "_with_revert"
+                    gfx_list.commands = gfx_list.commands.copy()
+                    f_mesh.drawMatOverrides[(5, node.override_hash)] = gfx_list
+                # remove SPEndDisplayList from gfx_list, materialRevert has its own SPEndDisplayList cmd
+                while SPEndDisplayList() in gfx_list.commands:
+                    gfx_list.commands.remove(SPEndDisplayList())
+                gfx_list.commands.extend(materialRevert.commands)
 
 
 # Convert to Geolayout
@@ -446,8 +476,14 @@ def convertArmatureToGeolayout(armatureObj, obj, convertTransformMatrix, camera,
             infoDict,
             convertTextureData,
         )
-    for node in meshGeolayout.nodes:
-        generate_overrides(fModel, node, [], meshGeolayout, geolayoutGraph, "")
+
+    children = meshGeolayout.nodes
+    meshGeolayout.nodes = []
+    for node in children:
+        node = copy.copy(node)
+        node.node = copy.copy(node.node)
+        meshGeolayout.nodes.append(generate_overrides(fModel, node, [], meshGeolayout, geolayoutGraph))
+
     appendRevertToGeolayout(geolayoutGraph, fModel)
     geolayoutGraph.generateSortedList()
     if inline:
@@ -1075,8 +1111,10 @@ def generate_overrides(
                 if dl is not None and override_hash is not None:
                     node.DLmicrocode = dl
                     node.override_hash = override_hash
-            if override_node.drawLayer is not None:
+            if override_node.drawLayer is not None and node.drawLayer != override_node.drawLayer:
                 node.drawLayer = override_node.drawLayer
+                if node.hasDL:
+                    node.fMesh.override_layer = True
     for i, child in enumerate(children):
         child = copy.copy(child)
         child_node = child.node = copy.copy(child.node)
