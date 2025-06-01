@@ -1,7 +1,7 @@
 import bpy
 import mathutils
 
-from ....utility import PluginError
+from ....utility import PluginError, selectSingleObject
 from ...oot_utility import convertIntTo2sComplement
 from .classes import OOTCollisionVertex, OOTCollisionPolygon, getPolygonType
 
@@ -83,8 +83,7 @@ def addCollisionTriangles(obj, collisionDict, includeChildren, transformMatrix, 
 
 # water boxes handled by level writer
 def exportCollisionCommon(collision, obj, transformMatrix, includeChildren, name):
-    bpy.ops.object.select_all(action="DESELECT")
-    obj.select_set(True)
+    selectSingleObject(obj)
 
     # dict of collisionType : faces
     collisionDict = {}
