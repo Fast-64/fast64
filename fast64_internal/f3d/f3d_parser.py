@@ -835,7 +835,6 @@ class F3DContext:
                 print("Ignoring TLUT.")
 
     def addMaterial(self):
-        # disable TLUTs for OoT
         self.applyTLUTToIndex(0)
         self.applyTLUTToIndex(1)
 
