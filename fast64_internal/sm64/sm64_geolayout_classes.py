@@ -507,7 +507,8 @@ class GeoLayoutBleed(BleedGraphics):
                     cmd_list, reset_cmd_dict, fModel.matWriteMethod, fModel.getRenderMode(draw_layer)
                 ):
                     cmds_resets[i] = None
-            cmds_resets = [cr for cr in cmds_resets if cr is not None]
+            while None in cmds_resets:
+                cmds_resets.remove(None)
             if not cmds_resets:
                 last_materials.pop(draw_layer, 0)
             return last_materials
@@ -515,7 +516,7 @@ class GeoLayoutBleed(BleedGraphics):
         def reset_all_layers(last_materials: LastMaterials) -> LastMaterials:
             for draw_layer in copy(list(last_materials.keys())):
                 last_materials = reset_layer(last_materials, draw_layer)
-            return {}
+            return last_materials
 
         def walk(node, last_materials: LastMaterials) -> LastMaterials:
             last_materials = copy_last(last_materials)
@@ -527,8 +528,6 @@ class GeoLayoutBleed(BleedGraphics):
 
             fMesh = getattr(base_node, "fMesh", None)
             last_mat, last_cmds_resets = None, []
-            if fMesh is not None:
-                last_mat, last_cmds_resets = last_materials.get(base_node.drawLayer, (None, []))
 
             if node.revert_previous_mat:
                 if fMesh is not None:
@@ -536,9 +535,10 @@ class GeoLayoutBleed(BleedGraphics):
                     last_materials = reset_layer(last_materials, base_node.drawLayer)
                 else:
                     last_materials = reset_all_layers(last_materials)
-                last_mat, last_cmds_resets = None, []
 
-            if fMesh:
+            if fMesh is not None:
+                last_mat, last_cmds_resets = last_materials.get(base_node.drawLayer, (None, []))
+
                 base_node: BaseDisplayListNode
                 cmd_list = base_node.DLmicrocode
                 default_render_mode = fModel.getRenderMode(base_node.drawLayer)
@@ -578,7 +578,7 @@ class GeoLayoutBleed(BleedGraphics):
                 # if a switch took up the responsability of its reset, remove any previous reset of that layer
                 for draw_layer in set_layers:
                     last_mat, cmds_resets = cur_last_materials.get(draw_layer, (None, []))
-                    for i, (cmd_list, reset_cmd_dict) in enumerate(cmds_resets):
+                    for i in range(len(cmds_resets)):
                         last_materials[draw_layer][1][i] = None
                     while None in last_materials[draw_layer][1]:
                         last_materials[draw_layer][1].remove(None)
