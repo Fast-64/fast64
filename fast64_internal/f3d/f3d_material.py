@@ -295,7 +295,7 @@ def getTmemMax(texFormat):
 # Necessary for UV half pixel offset (see 13.7.5.3)
 def isTexturePointSampled(material):
     f3dMat = material.f3d_mat
-    return f3dMat.get_rdp_othermode("text_filt") == "G_TF_POINT"
+    return f3dMat.get_rdp_othermode("g_mdsft_text_filt") == "G_TF_POINT"
 
 
 def F3DOrganizeLights(self, context):
@@ -1341,7 +1341,7 @@ class F3DPanel(Panel):
         row.operator(AddPresetF3D.bl_idname, text="", icon="ADD")
         row.operator(AddPresetF3D.bl_idname, text="", icon="REMOVE").remove_active = True
 
-        if f3dMat.get_rdp_othermode("alpha_compare") == "G_AC_THRESHOLD" and f3dMat.cycletype == "G_CYC_2CYCLE":
+        if f3dMat.get_rdp_othermode("g_mdsft_alpha_compare") == "G_AC_THRESHOLD" and f3dMat.cycletype == "G_CYC_2CYCLE":
             multilineLabel(
                 layout.box(),
                 "RDP silicon bug: Alpha compare in 2-cycle mode is broken.\n"
@@ -1997,7 +1997,7 @@ def toggle_texture_node_muting(material: Material, texIndex: int, isUsed: bool):
     if node_tex_color_conv and node_tex_color_conv.mute != shouldMute:
         node_tex_color_conv.mute = shouldMute
 
-    mute_3point = shouldMute or f3dMat.get_rdp_othermode("text_filt") != "G_TF_BILERP"
+    mute_3point = shouldMute or f3dMat.get_rdp_othermode("g_mdsft_text_filt") != "G_TF_BILERP"
     if node_3point and node_3point.mute != mute_3point:
         node_3point.mute = mute_3point
 
@@ -2021,7 +2021,9 @@ def set_texture_nodes_settings(
     for texNode in iter_tex_nodes(node_tree, texIndex):
         if texNode.image is not texProperty.tex:
             texNode.image = texProperty.tex
-        texNode.interpolation = "Linear" if f3dMat.get_rdp_othermode("text_filt") == "G_TF_AVERAGE" else "Closest"
+        texNode.interpolation = (
+            "Linear" if f3dMat.get_rdp_othermode("g_mdsft_text_filt") == "G_TF_AVERAGE" else "Closest"
+        )
 
         if texSize:
             continue
@@ -2235,8 +2237,8 @@ def update_tex_values_manual(material: Material, context, prop_path=None):
     if not prop_path or "tex1" in prop_path:
         update_tex_values_index(material, texProperty=f3dMat.tex1, texIndex=1, isUsed=tex1_used)
 
-    texture_inputs["3 Point"].default_value = int(f3dMat.get_rdp_othermode("text_filt") == "G_TF_BILERP")
-    uv_basis.inputs["EnableOffset"].default_value = int(f3dMat.get_rdp_othermode("text_filt") != "G_TF_POINT")
+    texture_inputs["3 Point"].default_value = int(f3dMat.get_rdp_othermode("g_mdsft_text_filt") == "G_TF_BILERP")
+    uv_basis.inputs["EnableOffset"].default_value = int(f3dMat.get_rdp_othermode("g_mdsft_text_filt") != "G_TF_POINT")
     set_texture_settings_node(material)
 
 
@@ -3722,7 +3724,6 @@ class RDPSettings(PropertyGroup):
         yield from self.blend_alpha_inputs
 
     def get_rdp_othermode(self, prop: str, rdp_defaults: "RDPSettings" = None):
-        prop = f"g_mdsft_{prop}"
         value = getattr(self, prop, "NONE")
         if value == "NONE" or value == "":
             if rdp_defaults is None:
@@ -3835,7 +3836,7 @@ class RDPSettings(PropertyGroup):
         data = {}
         if self.clip_ratio != 1.0:
             data["clipRatio"] = self.clip_ratio
-        if self.get_rdp_othermode("textlod") == "G_TL_LOD" and self.num_textures_mipmapped != 1:
+        if self.get_rdp_othermode("g_mdsft_textlod") == "G_TL_LOD" and self.num_textures_mipmapped != 1:
             data["mipmapCount"] = self.num_textures_mipmapped
         return data
 
@@ -4731,7 +4732,7 @@ class F3DMaterialProperty(PropertyGroup):
         if len(tlut_modes) == 1:
             return list(tlut_modes)[0]
         elif len(tlut_modes) == 0 or dont_raise:
-            return None if only_auto else self.get_rdp_othermode("textlut", rdp_defaults)
+            return None if only_auto else self.get_rdp_othermode("g_mdsft_textlut", rdp_defaults)
         text = (
             "Can't mix CI and non-CI textures."
             if "G_TT_NONE" in tlut_modes
@@ -4769,7 +4770,7 @@ class F3DMaterialProperty(PropertyGroup):
     def get_tex_lod(self, only_auto=False, rdp_defaults: RDPSettings = None) -> bool:
         if self.gen_auto_mips:
             return "G_TL_LOD"
-        return None if only_auto else self.get_rdp_othermode("textlod", rdp_defaults)
+        return None if only_auto else self.get_rdp_othermode("g_mdsft_textlod", rdp_defaults)
 
     @property
     def textlod(self) -> bool:
@@ -4778,7 +4779,7 @@ class F3DMaterialProperty(PropertyGroup):
     def get_tex_detail(self, only_auto=False, rdp_defaults: RDPSettings = None) -> bool:
         if self.pseudo_format in {"IHQ"}:
             return "G_TD_DETAIL"
-        return None if only_auto else self.get_rdp_othermode("textdetail", rdp_defaults)
+        return None if only_auto else self.get_rdp_othermode("g_mdsft_textdetail", rdp_defaults)
 
     @property
     def textdetail(self) -> bool:
@@ -4798,7 +4799,7 @@ class F3DMaterialProperty(PropertyGroup):
             return "G_TC_FILT"
         yuv_tex = next((i for i, tex in textures.items() if tex.tex_format == "YUV16"), -1)
         if len(fmts) == 1:
-            if self.get_rdp_othermode("text_filt", rdp_defaults) == "G_TF_POINT":
+            if self.get_rdp_othermode("g_mdsft_text_filt", rdp_defaults) == "G_TF_POINT":
                 return "G_TC_CONV"
             if yuv_tex == 0 and not dont_raise:
                 raise PluginError(
@@ -4816,7 +4817,7 @@ class F3DMaterialProperty(PropertyGroup):
                 "Texture 0 is YUV and texture 1 is not YUV.\nCannot use G_TC_FILTCONV to bypass convert in texture 0."
             )
         elif not fmts:
-            return None if only_auto else self.get_rdp_othermode("textconv", rdp_defaults)
+            return None if only_auto else self.get_rdp_othermode("g_mdsft_textconv", rdp_defaults)
         else:
             if dont_raise:
                 return None
@@ -4833,7 +4834,7 @@ class F3DMaterialProperty(PropertyGroup):
         return self.get_tex_convert(dont_raise=True)
 
     def get_cycle_type(self, only_auto=False, dont_raise=False, rdp_defaults: RDPSettings = None):
-        cur_cycle_type = self.get_rdp_othermode("cycletype", rdp_defaults)
+        cur_cycle_type = self.get_rdp_othermode("g_mdsft_cycletype", rdp_defaults)
         tex_use = self.get_tex_combiner_use(cur_cycle_type)
         if (
             self.uses_mipmap

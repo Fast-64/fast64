@@ -1441,7 +1441,7 @@ def saveOrGetF3DMaterial(material, fModel, obj, drawLayer, convertTextureData):
     # Set scale
     s = int(min(round(f3dMat.tex_scale[0] * 0x10000), 0xFFFF))
     t = int(min(round(f3dMat.tex_scale[1] * 0x10000), 0xFFFF))
-    if f3dMat.get_rdp_othermode("textlod") == "G_TL_LOD":
+    if f3dMat.get_rdp_othermode("g_mdsft_textlod") == "G_TL_LOD":
         mip_count = f3dMat.rdp_settings.num_textures_mipmapped - 1
     else:
         mip_count = 0
@@ -1663,9 +1663,9 @@ def save_othermode_h(
     auto_modes = f3d_mat.get_auto_othermode_h()
     rdp_settings = f3d_mat.rdp_settings
     if mat_write_method == GfxMatWriteMethod.WriteAll:
-        cmd = SPSetOtherMode("G_SETOTHERMODE_H", 4, 20 - f3d.F3D_OLD_GBI, [])
+        cmd = SPSetOtherMode("G_SETOTHERMODE_H", 4, 20 - f3d.F3D_OLD_GBI, set())
         for key in OTHERMODE_H_TO_CMD_MAP:
-            cmd.flagList.append(f3d_mat.get_rdp_othermode(key, defaults) or auto_modes.get(key))
+            cmd.flagList.add(f3d_mat.get_rdp_othermode(key, defaults) or auto_modes.get(key))
         f_mat.mat_only_DL.commands.append(cmd)
     elif mat_write_method == GfxMatWriteMethod.WriteDifferingAndRevert:
         for key, cmd in OTHERMODE_H_TO_CMD_MAP.items():
@@ -1687,7 +1687,7 @@ def save_othermode_l(
         flag_list, blender = getRenderModeFlagList(rdp_settings, f_mat)
     if mat_write_method == GfxMatWriteMethod.WriteAll:
         length = (3 if not rdp_settings.set_rendermode else 32) - f3d.F3D_OLD_GBI
-        cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, length, [])
+        cmd = SPSetOtherMode("G_SETOTHERMODE_L", 0, length, set())
         modes = set(f3d_mat.get_rdp_othermode(key, defaults) for key in OTHERMODE_L_TO_CMD_MAP)
         cmd.flagList.update(modes)
 
