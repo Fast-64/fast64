@@ -168,7 +168,7 @@ def parseScene(
 
     parseMatrices(sceneData, f3dContext, 1 / bpy.context.scene.ootBlenderScale)
     f3dContext.addMatrix("&gMtxClear", mathutils.Matrix.Scale(1 / bpy.context.scene.ootBlenderScale, 4))
-    f3dContext.addMatrix("&gIdentityMtx", mathutils.Matrix.Identity(4))
+    f3dContext.addMatrix("&gIdentityMtx", mathutils.Matrix.Scale(1 / bpy.context.scene.ootBlenderScale, 4))
 
     if not settings.isCustomDest:
         drawConfigName = SceneTableUtility.get_draw_config(sceneName)

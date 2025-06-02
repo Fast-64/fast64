@@ -2277,11 +2277,11 @@ def getImportData(filepaths):
 
 
 def parseMatrices(sceneData: str, f3dContext: F3DContext, importScale: float = 1):
-    finditer = re.finditer(rf"Mtx\s*([a-zA-Z0-9\_]+)\s*=\s*\{{(.*?)\}}\s*;", sceneData, flags=re.DOTALL)
+    finditer = list(re.finditer(rf"Mtx\s*([a-zA-Z0-9\_]+)\s*=\s*\{{(.*?)\}}\s*;", sceneData, flags=re.DOTALL))
 
     # newer assets system
-    if len(list(finditer)) == 0:
-        finditer = re.finditer(r"Mtx\s*([a-zA-Z0-9\_]+)\s*=\s*(.*?)\s*;", sceneData, flags=re.DOTALL)
+    if len(finditer) == 0:
+        finditer = list(re.finditer(r"Mtx\s*([a-zA-Z0-9\_]+)\s*=\s*(.*?)\s*;", sceneData, flags=re.DOTALL))
 
     for match in finditer:
         name = "&" + match.group(1)
