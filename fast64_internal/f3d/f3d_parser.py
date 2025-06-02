@@ -2294,7 +2294,7 @@ def parseMatrices(sceneData: str, f3dContext: F3DContext, importScale: float = 1
             raw_matrix = match.group(1).split(",")
             for i in range(4):
                 for j in range(4):
-                    matrix[j][i] = float(raw_matrix[i * 4 + j].removesuffix("f"))
+                    matrix[i][j] = float(raw_matrix[i * 4 + j].removesuffix("f"))
         else:
             values = [hexOrDecInt(value.strip()) for value in data.split(",") if value.strip() != ""]
 
