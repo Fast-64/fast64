@@ -857,7 +857,7 @@ class F3DContext:
         else:
             return getattr(self.f3d, self.f3d.IM_SIZ[size] + suffix)
 
-    def getImagePathFromInclude(self, path, skip_base_path: bool = True):
+    def getImagePathFromInclude(self, path, skip_base_path: bool = False):
         if self.basePath is None:
             raise PluginError("Cannot load texture from " + path + " without any provided base path.")
 
@@ -2104,7 +2104,7 @@ def parseTextureData(dlData, textureName, f3dContext, imageFormat, imageSize, wi
     matchResult = re.search(
         r"([A-Za-z0-9\_]+)\s*"
         + re.escape(textureName)
-        + r"\s*\[\s*[0-9a-zA-Z_\(\),\s]*\s*\]\s*=\s*\s*\{([^\}]*)\s*\}\s*;\s*",
+        + r"\s*\[\s*[0-9a-zA-Z_\(\),\s]*\s*\]\s*=\s*\{([^\}]*)\s*\}\s*;\s*",
         dlData,
         re.DOTALL,
     )
@@ -2277,30 +2277,41 @@ def getImportData(filepaths):
 
 
 def parseMatrices(sceneData: str, f3dContext: F3DContext, importScale: float = 1):
-    regex = rf"Mtx\s*([a-zA-Z0-9\_]+)\s*=\s*\{{(.*?)\}}\s*;"
+    finditer = re.finditer(rf"Mtx\s*([a-zA-Z0-9\_]+)\s*=\s*\{{(.*?)\}}\s*;", sceneData, flags=re.DOTALL)
 
     # newer assets system
-    if not bpy.context.scene.fast64.oot.is_globalh_present():
-        regex = r"Mtx\s*([a-zA-Z0-9\_]+)\s*=\s*(.*?)\s*;"
+    if len(list(finditer)) == 0:
+        finditer = re.finditer(r"Mtx\s*([a-zA-Z0-9\_]+)\s*=\s*(.*?)\s*;", sceneData, flags=re.DOTALL)
 
-    for match in re.finditer(regex, sceneData, flags=re.DOTALL):
+    for match in finditer:
         name = "&" + match.group(1)
-        values = [hexOrDecInt(value.strip()) for value in match.group(2).split(",") if value.strip() != ""]
-        trueValues = []
-        for n in range(8):
-            valueInt = int.from_bytes(values[n].to_bytes(4, "big", signed=True), "big", signed=False)
-            valueFrac = int.from_bytes(values[n + 8].to_bytes(4, "big", signed=True), "big", signed=False)
-            int1 = values[n] >> 16
-            int2 = int.from_bytes((valueInt & (2**16 - 1)).to_bytes(2, "big", signed=False), "big", signed=True)
-            frac1 = valueFrac >> 16
-            frac2 = valueFrac & (2**16 - 1)
-            trueValues.append(int1 + (frac1 / (2**16)))
-            trueValues.append(int2 + (frac2 / (2**16)))
-
+        data = match.group(2)
         matrix = mathutils.Matrix()
-        for i in range(4):
-            for j in range(4):
-                matrix[j][i] = trueValues[i * 4 + j]
+
+        if "#include" in data:
+            match = re.search(r".*\((.*?)\)", get_include_data(data, strip=True), re.DOTALL | re.MULTILINE)
+            assert match is not None
+            raw_matrix = match.group(1).split(",")
+            for i in range(4):
+                for j in range(4):
+                    matrix[j][i] = float(raw_matrix[i * 4 + j].removesuffix("f"))
+        else:
+            values = [hexOrDecInt(value.strip()) for value in data.split(",") if value.strip() != ""]
+
+            trueValues = []
+            for n in range(8):
+                valueInt = int.from_bytes(values[n].to_bytes(4, "big", signed=True), "big", signed=False)
+                valueFrac = int.from_bytes(values[n + 8].to_bytes(4, "big", signed=True), "big", signed=False)
+                int1 = values[n] >> 16
+                int2 = int.from_bytes((valueInt & (2**16 - 1)).to_bytes(2, "big", signed=False), "big", signed=True)
+                frac1 = valueFrac >> 16
+                frac2 = valueFrac & (2**16 - 1)
+                trueValues.append(int1 + (frac1 / (2**16)))
+                trueValues.append(int2 + (frac2 / (2**16)))
+
+            for i in range(4):
+                for j in range(4):
+                    matrix[j][i] = trueValues[i * 4 + j]
 
         f3dContext.addMatrix(name, mathutils.Matrix.Scale(importScale, 4) @ matrix)
 
