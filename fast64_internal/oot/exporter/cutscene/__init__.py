@@ -1,8 +1,10 @@
 import bpy
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Optional
 from bpy.types import Object
+
 from ....utility import PluginError, CData, indent
 from ...oot_utility import getCustomProperty
 from ...scene.properties import OOTSceneHeaderProperty
@@ -37,6 +39,43 @@ class Cutscene:
                 name = csObj.name.removeprefix("Cutscene.").replace(".", "_")
             data = CutsceneData.new(csObj, useMacros, motionOnly)
             return Cutscene(name, data, data.totalEntries, data.frameCount, useMacros, motionOnly)
+
+        return None
+
+    @staticmethod
+    def export(cs_obj: Object, skip_includes: bool = False, skip_endif: bool = False):
+        """Exports cutscene data as C files, this should be called to do a separate export from the scene."""
+
+        # create the cutscene
+        cutscene = Cutscene.new(
+            cs_obj.name.removeprefix("Cutscene."),
+            cs_obj,
+            bpy.context.scene.fast64.oot.useDecompFeatures,
+            bpy.context.scene.fast64.oot.exportMotionOnly,
+        )
+
+        # write file
+        source_path = Path(bpy.context.scene.ootCutsceneExportPath).resolve()
+
+        if source_path.suffix != ".c":
+            raise PluginError("ERROR: output file must end with '.c'")
+
+        header_path = source_path.with_suffix(".h")
+        filedata = cutscene.get_file(source_path.stem, skip_includes, skip_endif)
+
+        if not skip_includes:
+            # export the data in writing mode (single cutscene or first cutscene of the multiple export)
+
+            header_path.write_text(filedata.header, encoding="utf-8", newline="\n")
+            source_path.write_text(filedata.source, encoding="utf-8", newline="\n")
+        else:
+            # export the data in append mode (the other cutscenes of the multiple export)
+
+            with header_path.open("a", encoding="utf-8", newline="\n") as file:
+                file.write(filedata.header)
+
+            with source_path.open("a", encoding="utf-8", newline="\n") as file:
+                file.write(filedata.source)
 
     def getC(self):
         """Returns the cutscene data"""
@@ -93,6 +132,41 @@ class Cutscene:
             return csData
         else:
             raise PluginError("ERROR: CutsceneData not initialised!")
+
+    def get_file(self, filename: str, skip_includes: bool, skip_endif: bool):
+        filedata = CData()
+
+        if not skip_includes:
+            if bpy.context.scene.fast64.oot.is_globalh_present():
+                includes = [
+                    '#include "ultra64.h"',
+                    '#include "z64.h"',
+                    '#include "macros.h"',
+                    '#include "command_macros_base.h"',
+                    '#include "z64cutscene_commands.h"',
+                ]
+            else:
+                includes = [
+                    '#include "ultra64.h"',
+                    '#include "sequence.h"',
+                    '#include "z64math.h"',
+                    '#include "z64cutscene.h"',
+                    '#include "z64cutscene_commands.h"',
+                    '#include "z64ocarina.h"',
+                    '#include "z64player.h"',
+                ]
+
+            filedata.header = (
+                f"#ifndef {filename.upper()}_H\n" + f"#define {filename.upper()}_H\n\n" + "\n".join(includes) + "\n\n"
+            )
+            filedata.source = f'#include "{filename}.h"\n\n'
+
+        filedata.append(self.getC())
+
+        if not skip_endif:
+            filedata.header += "\n#endif\n"
+
+        return filedata
 
 
 @dataclass
