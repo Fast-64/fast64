@@ -284,8 +284,10 @@ def ootConvertArmatureToC(
 
     if bpy.context.scene.fast64.oot.is_globalh_present():
         data.header += '#include "ultra64.h"\n' + '#include "global.h"\n'
-    else:
+    elif bpy.context.scene.fast64.oot.is_z64sceneh_present():
         data.header += '#include "ultra64.h"\n' + '#include "array_count.h"\n' + '#include "z64animation.h"\n'
+    else:
+        data.header += '#include "ultra64.h"\n' + '#include "array_count.h"\n' + '#include "animation.h"\n'
 
     data.source = f'#include "{header_filename}.h"\n\n'
     if not isCustomExport:

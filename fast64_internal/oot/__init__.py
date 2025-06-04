@@ -118,6 +118,15 @@ class OOT_Properties(bpy.types.PropertyGroup):
         global_h_path = decomp_path / "include" / "global.h"
         return global_h_path.exists()
 
+    def is_z64sceneh_present(self):
+        decomp_path = Path(bpy.context.scene.ootDecompPath).resolve()
+
+        if not decomp_path.exists():
+            raise PluginError(f"ERROR: invalid decomp path ('{decomp_path}').")
+
+        global_h_path = decomp_path / "include" / "z64scene.h"
+        return global_h_path.exists()
+
     useDecompFeatures: bpy.props.BoolProperty(
         name="Use decomp for export", description="Use names and macros from decomp when exporting", default=True
     )
