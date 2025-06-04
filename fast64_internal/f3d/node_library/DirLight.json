@@ -1,0 +1,627 @@
+{
+	"name": "DirLight",
+	"nodes": {
+		"Reroute.003": {
+			"bl_idname": "NodeReroute",
+			"location": [
+				-163.1675,
+				6.8741
+			],
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Output",
+					"links": [
+						{
+							"node": "Vector Math.004",
+							"index": 3
+						}
+					]
+				}
+			}
+		},
+		"Reroute": {
+			"bl_idname": "NodeReroute",
+			"location": [
+				-152.4481,
+				165.3704
+			],
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Output",
+					"links": [
+						{
+							"node": "Reroute.002",
+							"index": 0
+						}
+					]
+				}
+			}
+		},
+		"Reroute.005": {
+			"bl_idname": "NodeReroute",
+			"location": [
+				9.9973,
+				-60.7543
+			],
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Output",
+					"links": [
+						{
+							"node": "Reroute.006",
+							"index": 0
+						}
+					]
+				}
+			}
+		},
+		"Vector Math.001": {
+			"bl_idname": "ShaderNodeVectorMath",
+			"location": [
+				-172.6133,
+				-63.2969
+			],
+			"hide": true,
+			"label": "Normal * Lt Dir",
+			"operation": "DOT_PRODUCT",
+			"inputs": {
+				"0": {},
+				"1": {},
+				"2": {
+					"enabled": false
+				},
+				"3": {
+					"name": "Scale",
+					"default_value": 1.0,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Vector",
+					"enabled": false
+				},
+				"1": {
+					"name": "Value",
+					"links": [
+						{
+							"node": "Reroute.005",
+							"index": 0
+						},
+						{
+							"node": "Math",
+							"index": 1
+						}
+					]
+				}
+			}
+		},
+		"Reroute.007": {
+			"bl_idname": "NodeReroute",
+			"location": [
+				195.3546,
+				-15.8926
+			],
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Output",
+					"links": [
+						{
+							"node": "Reroute.008",
+							"index": 0
+						}
+					]
+				}
+			}
+		},
+		"Reroute.008": {
+			"bl_idname": "NodeReroute",
+			"location": [
+				201.4413,
+				-236.6227
+			],
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Output",
+					"links": [
+						{
+							"node": "Math.001",
+							"index": 1
+						}
+					]
+				}
+			}
+		},
+		"Math": {
+			"bl_idname": "ShaderNodeMath",
+			"location": [
+				28.9572,
+				-98.891
+			],
+			"operation": "SUBTRACT",
+			"inputs": {
+				"0": {
+					"default_value": 1.0
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Value",
+					"links": [
+						{
+							"node": "Math.001",
+							"index": 0
+						}
+					]
+				}
+			}
+		},
+		"Math.002": {
+			"bl_idname": "ShaderNodeMath",
+			"location": [
+				411.3172,
+				-98.891
+			],
+			"operation": "SUBTRACT",
+			"inputs": {
+				"0": {
+					"default_value": 1.0
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Value",
+					"links": [
+						{
+							"node": "Group",
+							"index": 2
+						}
+					]
+				}
+			}
+		},
+		"Vector Math": {
+			"bl_idname": "ShaderNodeVectorMath",
+			"location": [
+				963.5615,
+				68.4655
+			],
+			"operation": "MULTIPLY_ADD",
+			"inputs": {
+				"0": {},
+				"1": {},
+				"2": {},
+				"3": {
+					"name": "Scale",
+					"default_value": 1.0,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Vector",
+					"links": [
+						{
+							"node": "Group Output",
+							"index": 0
+						}
+					]
+				},
+				"1": {
+					"name": "Value",
+					"enabled": false
+				}
+			}
+		},
+		"Reroute.001": {
+			"bl_idname": "NodeReroute",
+			"location": [
+				938.1433,
+				-68.3264
+			],
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Output",
+					"links": [
+						{
+							"node": "Vector Math",
+							"index": 2
+						}
+					]
+				}
+			}
+		},
+		"Reroute.002": {
+			"bl_idname": "NodeReroute",
+			"location": [
+				935.6873,
+				165.4883
+			],
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Output",
+					"links": [
+						{
+							"node": "Reroute.001",
+							"index": 0
+						}
+					]
+				}
+			}
+		},
+		"Group": {
+			"bl_idname": "ShaderNodeGroup",
+			"location": [
+				590.7126,
+				-11.1313
+			],
+			"width_hidden": 60.0,
+			"inputs": {
+				"0": {
+					"name": "Fac",
+					"default_value": 0.5
+				},
+				"1": {
+					"name": "Input0",
+					"default_value": 0.5,
+					"hide_value": true
+				},
+				"2": {
+					"name": "Input1",
+					"default_value": 0.5,
+					"hide_value": true
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Value",
+					"links": [
+						{
+							"node": "Clamp",
+							"index": 0
+						}
+					]
+				}
+			}
+		},
+		"Vector Math.004": {
+			"bl_idname": "ShaderNodeVectorMath",
+			"location": [
+				754.5358,
+				121.1166
+			],
+			"operation": "SCALE",
+			"inputs": {
+				"0": {},
+				"1": {
+					"enabled": false
+				},
+				"2": {
+					"enabled": false
+				},
+				"3": {
+					"name": "Scale",
+					"default_value": 1.0
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Vector",
+					"links": [
+						{
+							"node": "Vector Math",
+							"index": 0
+						}
+					]
+				},
+				"1": {
+					"name": "Value",
+					"enabled": false
+				}
+			}
+		},
+		"Clamp": {
+			"bl_idname": "ShaderNodeClamp",
+			"location": [
+				762.7416,
+				-46.7075
+			],
+			"hide": true,
+			"inputs": {
+				"0": {
+					"name": "Value",
+					"default_value": 1.0
+				},
+				"1": {
+					"name": "Min"
+				},
+				"2": {
+					"name": "Max",
+					"default_value": 1.0
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Result",
+					"links": [
+						{
+							"node": "Vector Math",
+							"index": 1
+						}
+					]
+				}
+			}
+		},
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"location": [
+				1134.9746,
+				68.2318
+			],
+			"width_hidden": 80.0,
+			"inputs": {
+				"0": {
+					"name": "Light Level"
+				},
+				"1": {
+					"name": ""
+				}
+			}
+		},
+		"Reroute.004": {
+			"bl_idname": "NodeReroute",
+			"location": [
+				567.6533,
+				-38.983
+			],
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Output",
+					"links": [
+						{
+							"node": "Group",
+							"index": 0
+						}
+					]
+				}
+			}
+		},
+		"Reroute.006": {
+			"bl_idname": "NodeReroute",
+			"location": [
+				555.4879,
+				-61.5748
+			],
+			"inputs": {
+				"0": {
+					"name": "Input"
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Output",
+					"links": [
+						{
+							"node": "Group",
+							"index": 1
+						}
+					]
+				}
+			}
+		},
+		"Math.001": {
+			"bl_idname": "ShaderNodeMath",
+			"location": [
+				224.5627,
+				-98.891
+			],
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Value",
+					"links": [
+						{
+							"node": "Math.002",
+							"index": 1
+						}
+					]
+				}
+			}
+		},
+		"Group Input": {
+			"bl_idname": "NodeGroupInput",
+			"location": [
+				-358.9695,
+				85.8641
+			],
+			"width": 149.30996704101562,
+			"width_hidden": 80.0,
+			"outputs": {
+				"0": {
+					"name": "Light Level",
+					"hide_value": true,
+					"links": [
+						{
+							"node": "Reroute",
+							"index": 0
+						}
+					]
+				},
+				"1": {
+					"name": "Light Color",
+					"links": [
+						{
+							"node": "Vector Math.004",
+							"index": 0
+						}
+					]
+				},
+				"2": {
+					"name": "Light Direction",
+					"links": [
+						{
+							"node": "Vector Math.001",
+							"index": 0
+						}
+					]
+				},
+				"3": {
+					"name": "Light Spec Size",
+					"links": [
+						{
+							"node": "Reroute.007",
+							"index": 0
+						}
+					]
+				},
+				"4": {
+					"name": "G_LIGHTING_SPECULAR",
+					"default_value": 1,
+					"hide_value": true,
+					"links": [
+						{
+							"node": "Reroute.004",
+							"index": 0
+						}
+					]
+				},
+				"5": {
+					"name": "AO Dir Factor",
+					"links": [
+						{
+							"node": "Reroute.003",
+							"index": 0
+						}
+					]
+				},
+				"6": {
+					"name": "Normal",
+					"links": [
+						{
+							"node": "Vector Math.001",
+							"index": 1
+						}
+					]
+				}
+			}
+		}
+	},
+	"cached_hash": "220da5160cca7917a073db69ff9572f2",
+	"inputs": [
+		{
+			"name": "Light Level",
+			"hide_value": true,
+			"bl_idname": "NodeSocketVector"
+		},
+		{
+			"name": "Light Color",
+			"bl_idname": "NodeSocketColor"
+		},
+		{
+			"name": "Light Direction",
+			"max_value": 10000.0,
+			"min_value": -10000.0,
+			"bl_idname": "NodeSocketVector"
+		},
+		{
+			"name": "Light Spec Size",
+			"default_value": 3,
+			"max_value": 255,
+			"min_value": 1,
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"name": "G_LIGHTING_SPECULAR",
+			"default_value": 1,
+			"hide_value": true,
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"name": "AO Dir Factor",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"name": "Normal",
+			"max_value": 10000.0,
+			"min_value": -10000.0,
+			"bl_idname": "NodeSocketVector"
+		}
+	],
+	"outputs": [
+		{
+			"name": "Light Level",
+			"bl_idname": "NodeSocketVector"
+		}
+	],
+	"interface_hash": "667e4ffbf15e7c5eaa29c329701e027f",
+	"bpy_ver": [
+		3,
+		2,
+		0
+	]
+}

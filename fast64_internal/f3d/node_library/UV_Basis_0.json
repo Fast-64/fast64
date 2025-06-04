@@ -1,0 +1,519 @@
+{
+	"name": "UV Basis 0",
+	"nodes": {
+		"Group Input": {
+			"bl_idname": "NodeGroupInput",
+			"location": [
+				-683.1521,
+				-133.2773
+			],
+			"width_hidden": 80.0,
+			"outputs": {
+				"0": {
+					"name": "UV",
+					"links": [
+						{
+							"node": "Group.001",
+							"index": 0
+						}
+					]
+				},
+				"1": {
+					"name": "0 S TexSize",
+					"links": [
+						{
+							"node": "Group Output",
+							"index": 5
+						},
+						{
+							"node": "Math",
+							"index": 0
+						},
+						{
+							"node": "Group.001",
+							"index": 1
+						}
+					]
+				},
+				"2": {
+					"name": "0 T TexSize",
+					"links": [
+						{
+							"node": "Group Output",
+							"index": 6
+						},
+						{
+							"node": "Math.002",
+							"index": 0
+						},
+						{
+							"node": "Group.001",
+							"index": 2
+						}
+					]
+				},
+				"3": {
+					"name": "1 S TexSize",
+					"links": [
+						{
+							"node": "Group Output",
+							"index": 7
+						},
+						{
+							"node": "Math",
+							"index": 1
+						}
+					]
+				},
+				"4": {
+					"name": "1 T TexSize",
+					"links": [
+						{
+							"node": "Group Output",
+							"index": 8
+						},
+						{
+							"node": "Math.002",
+							"index": 1
+						}
+					]
+				},
+				"5": {
+					"name": "S Scale",
+					"links": [
+						{
+							"node": "Group",
+							"index": 1
+						},
+						{
+							"node": "Group.001",
+							"index": 3
+						}
+					]
+				},
+				"6": {
+					"name": "T Scale",
+					"links": [
+						{
+							"node": "Group",
+							"index": 2
+						},
+						{
+							"node": "Group.001",
+							"index": 4
+						}
+					]
+				},
+				"7": {
+					"name": "EnableOffset",
+					"links": [
+						{
+							"node": "Group.001",
+							"index": 5
+						}
+					]
+				}
+			}
+		},
+		"Math.001": {
+			"bl_idname": "ShaderNodeMath",
+			"location": [
+				361.5455,
+				-166.6665
+			],
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Value",
+					"links": [
+						{
+							"node": "Group Output",
+							"index": 2
+						}
+					]
+				}
+			}
+		},
+		"Math.004": {
+			"bl_idname": "ShaderNodeMath",
+			"location": [
+				326.3477,
+				-574.2684
+			],
+			"operation": "SUBTRACT",
+			"inputs": {
+				"0": {
+					"default_value": 1.0
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Value",
+					"links": [
+						{
+							"node": "Math.003",
+							"index": 2
+						}
+					]
+				}
+			}
+		},
+		"Math.003": {
+			"bl_idname": "ShaderNodeMath",
+			"location": [
+				361.5456,
+				-357.9363
+			],
+			"operation": "MULTIPLY_ADD",
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {}
+			},
+			"outputs": {
+				"0": {
+					"name": "Value",
+					"links": [
+						{
+							"node": "Group Output",
+							"index": 3
+						}
+					]
+				}
+			}
+		},
+		"Math.002": {
+			"bl_idname": "ShaderNodeMath",
+			"location": [
+				-4.9459,
+				-370.8936
+			],
+			"operation": "DIVIDE",
+			"width": 186.44256591796875,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Value",
+					"links": [
+						{
+							"node": "Math.004",
+							"index": 1
+						},
+						{
+							"node": "Math.003",
+							"index": 1
+						}
+					]
+				}
+			}
+		},
+		"Math": {
+			"bl_idname": "ShaderNodeMath",
+			"location": [
+				-0.5282,
+				-198.9168
+			],
+			"operation": "DIVIDE",
+			"width": 179.8277587890625,
+			"inputs": {
+				"0": {
+					"default_value": 0.5
+				},
+				"1": {
+					"default_value": 0.5
+				},
+				"2": {
+					"default_value": 0.5,
+					"enabled": false
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "Value",
+					"links": [
+						{
+							"node": "Math.001",
+							"index": 1
+						}
+					]
+				}
+			}
+		},
+		"Group Output": {
+			"bl_idname": "NodeGroupOutput",
+			"location": [
+				601.6118,
+				84.2049
+			],
+			"width_hidden": 80.0,
+			"inputs": {
+				"0": {},
+				"1": {},
+				"2": {},
+				"3": {},
+				"4": {
+					"hide_value": true
+				},
+				"5": {
+					"name": "0 S TexSize"
+				},
+				"6": {
+					"name": "0 T TexSize"
+				},
+				"7": {
+					"name": "1 S TexSize"
+				},
+				"8": {
+					"name": "1 T TexSize"
+				},
+				"9": {}
+			}
+		},
+		"Separate XYZ": {
+			"bl_idname": "ShaderNodeSeparateXYZ",
+			"location": [
+				-47.2443,
+				63.1597
+			],
+			"hide": false,
+			"inputs": {
+				"0": {
+					"name": "Vector"
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "X",
+					"links": [
+						{
+							"node": "Group Output",
+							"index": 0
+						},
+						{
+							"node": "Math.001",
+							"index": 0
+						}
+					]
+				},
+				"1": {
+					"name": "Y",
+					"links": [
+						{
+							"node": "Group Output",
+							"index": 1
+						},
+						{
+							"node": "Math.003",
+							"index": 0
+						}
+					]
+				}
+			}
+		},
+		"Group": {
+			"bl_idname": "ShaderNodeGroup",
+			"location": [
+				-224.5699,
+				-7.2958
+			],
+			"node_tree": {
+				"serialized_type": "NodeTree",
+				"name": "ScaleUVs"
+			},
+			"width_hidden": 60.0,
+			"inputs": {
+				"0": {
+					"name": "UV"
+				},
+				"1": {
+					"name": "S Scale"
+				},
+				"2": {
+					"name": "T Scale"
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "UV",
+					"links": [
+						{
+							"node": "Separate XYZ",
+							"index": 0
+						}
+					]
+				}
+			}
+		},
+		"Group.001": {
+			"bl_idname": "ShaderNodeGroup",
+			"location": [
+				-394.2816,
+				82.4099
+			],
+			"node_tree": {
+				"serialized_type": "NodeTree",
+				"name": "ApplyFilterOffset"
+			},
+			"width_hidden": 60.0,
+			"inputs": {
+				"0": {
+					"name": "UV"
+				},
+				"1": {
+					"name": "S Width"
+				},
+				"2": {
+					"name": "T Height"
+				},
+				"3": {
+					"name": "S Scale"
+				},
+				"4": {
+					"name": "T Scale"
+				},
+				"5": {
+					"name": "Apply Offset"
+				}
+			},
+			"outputs": {
+				"0": {
+					"name": "UV",
+					"links": [
+						{
+							"node": "Group",
+							"index": 0
+						}
+					]
+				}
+			}
+		}
+	},
+	"cached_hash": "89b1c6c9f8e2cc953e0a035caa2250e7",
+	"inputs": [
+		{
+			"name": "UV",
+			"max_value": 10000.0,
+			"min_value": -10000.0,
+			"bl_idname": "NodeSocketVector"
+		},
+		{
+			"name": "0 S TexSize",
+			"max_value": 2147483647,
+			"min_value": -2147483648,
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"name": "0 T TexSize",
+			"max_value": 2147483647,
+			"min_value": -2147483648,
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"name": "1 S TexSize",
+			"max_value": 2147483647,
+			"min_value": -2147483648,
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"name": "1 T TexSize",
+			"max_value": 2147483647,
+			"min_value": -2147483648,
+			"bl_idname": "NodeSocketInt"
+		},
+		{
+			"name": "S Scale",
+			"default_value": 1.0,
+			"max_value": 1.0,
+			"min_value": 0.0,
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"name": "T Scale",
+			"default_value": 1.0,
+			"max_value": 1.0,
+			"min_value": 0.0,
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"name": "EnableOffset",
+			"bl_idname": "NodeSocketInt"
+		}
+	],
+	"outputs": [
+		{
+			"name": "X",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"name": "Y",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"name": "X",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"name": "Y",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"name": "",
+			"hide_value": true,
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"name": "0 S TexSize",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"name": "0 T TexSize",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"name": "1 S TexSize",
+			"bl_idname": "NodeSocketFloat"
+		},
+		{
+			"name": "1 T TexSize",
+			"bl_idname": "NodeSocketFloat"
+		}
+	],
+	"interface_hash": "ec2a1d9194c3c71ad52cada7a5bb8f0c",
+	"bpy_ver": [
+		3,
+		2,
+		0
+	]
+}
