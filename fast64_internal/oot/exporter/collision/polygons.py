@@ -21,8 +21,8 @@ class CollisionPoly:
     type: Optional[int] = field(init=False, default=None)
 
     @staticmethod
-    def from_data(poly_data: list[str], use_macros: bool):
-        if use_macros:
+    def from_data(poly_data: list[str], not_zapd_assets: bool):
+        if not_zapd_assets:
             third_vtx_macro = "COLPOLY_VTX_INDEX(" if "COLPOLY_VTX_INDEX(" in poly_data[3] else "COLPOLY_VTX("
 
             # format: [ [vtxId, flags], [vtxId, flags], [vtxId, flags] ] (str)
@@ -46,7 +46,7 @@ class CollisionPoly:
                     )
                 ),
                 hexOrDecInt(poly_data[7]),
-                use_macros,
+                not_zapd_assets,
             )
         else:
 
@@ -78,7 +78,7 @@ class CollisionPoly:
                     )
                 ),
                 hexOrDecInt(poly_data[7]),
-                use_macros,
+                not_zapd_assets,
             )
 
         new_poly.type = hexOrDecInt(poly_data[0])

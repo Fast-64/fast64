@@ -104,10 +104,10 @@ class SceneTransitionActors:
         return SceneTransitionActors(name, entries)
 
     @staticmethod
-    def from_data(raw_data: str, use_macros: bool):
+    def from_data(raw_data: str, not_zapd_assets: bool):
         actor_list = []
 
-        if use_macros:
+        if not_zapd_assets:
             entries = raw_data.removeprefix("{").removesuffix(",},").split(",},{")
         else:
             entries = raw_data.split("},")

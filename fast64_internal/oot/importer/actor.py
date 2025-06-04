@@ -28,7 +28,7 @@ def parseTransActorList(
     transitionActorList = getDataMatch(
         sceneData, transActorListName, "TransitionActorEntry", "transition actor list", strip=True
     )
-    scene_trans_actors = SceneTransitionActors.from_data(transitionActorList, sharedSceneData.use_macros)
+    scene_trans_actors = SceneTransitionActors.from_data(transitionActorList, sharedSceneData.not_zapd_assets)
 
     for i, actor in enumerate(scene_trans_actors.entries):
         if not sharedSceneData.addHeaderIfItemExists((i, actor), "Transition Actor", headerIndex):

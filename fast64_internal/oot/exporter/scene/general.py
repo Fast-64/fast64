@@ -25,13 +25,13 @@ class EnvLightSettings:
     blendRate: int
 
     @staticmethod
-    def from_data(raw_data: str, use_macros: bool):
+    def from_data(raw_data: str, not_zapd_assets: bool):
         lights: list[EnvLightSettings] = []
-        split_str = ",},{" if use_macros else "},{"
+        split_str = ",},{" if not_zapd_assets else "},{"
         entries = raw_data.removeprefix("{").removesuffix("},").split(split_str)
 
         for entry in entries:
-            if use_macros:
+            if not_zapd_assets:
                 colors_and_dirs = []
                 for match in re.finditer(r"(\{([0-9\-]*,[0-9\-]*,[0-9\-]*)\})", entry, re.DOTALL):
                     colors_and_dirs.append([hexOrDecInt(value) for value in match.group(2).split(",")])

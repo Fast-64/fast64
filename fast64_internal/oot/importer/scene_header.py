@@ -96,7 +96,7 @@ def parseLightList(
         sceneHeader.skyboxLighting = "Custom"
     sceneHeader.lightList.clear()
 
-    lightList = EnvLightSettings.from_data(lightData, sharedSceneData.use_macros)
+    lightList = EnvLightSettings.from_data(lightData, sharedSceneData.not_zapd_assets)
 
     for index, lightEntry in enumerate(lightList):
         ambientColor = parseColor(lightEntry.ambientColor)

@@ -142,7 +142,7 @@ def parseWaterBoxes(
     # orderIndex used for naming cameras in alphabetical order
     for orderIndex, waterBoxData in enumerate(waterBoxList):
         objName = f"{sceneObj.name}_waterBox_{format(orderIndex, '03')}"
-        waterbox = WaterBox.from_data(waterBoxData, sharedSceneData.use_macros)
+        waterbox = WaterBox.from_data(waterBoxData, sharedSceneData.not_zapd_assets)
 
         topCorner = waterbox.get_blender_position()
         dimensions = waterbox.get_blender_scale()
@@ -255,7 +255,7 @@ def parseVertices(vertexList: list[str]):
 
 def parsePolygon(polygonData: list[str], sharedSceneData: SharedSceneData):
     assert len(polygonData) == 8
-    return CollisionPoly.from_data(polygonData, sharedSceneData.use_macros)
+    return CollisionPoly.from_data(polygonData, sharedSceneData.not_zapd_assets)
 
 
 def parseCollisionHeader(
@@ -322,7 +322,7 @@ def parseCollision(
 
     if sharedSceneData.is_fast64_data:
         poly_regex = r"\{([0-9\-]*),(COLPOLY_VTX\([0-9\-]*,[a-zA-Z0-9\-_|\s]*\)),(COLPOLY_VTX\([0-9\-]*,[a-zA-Z0-9\-_|\s]*\)),(COLPOLY_VTX_INDEX\([0-9]*\)),\{(COLPOLY_SNORMAL\([0-9.\-e]*\)),(COLPOLY_SNORMAL\([0-9.\-e]*\)),(COLPOLY_SNORMAL\([0-9.\-e]*\)),?\},?([0-9\-]*),?\}"
-    elif sharedSceneData.use_macros:
+    elif sharedSceneData.not_zapd_assets:
         poly_regex = r"\{([0-9\-]*),\{(COLPOLY_VTX\([0-9\-]*,[a-zA-Z0-9\-_|\s]*\)),(COLPOLY_VTX\([0-9\-]*,[a-zA-Z0-9\-_|\s]*\)),(COLPOLY_VTX\([0-9]*,[0-9]*\)),\},\{(COLPOLY_SNORMAL\([0-9.\-]*\)),(COLPOLY_SNORMAL\([0-9.\-]*\)),(COLPOLY_SNORMAL\([0-9.\-]*\)),\},([0-9\-]*),\}"
     else:
         poly_regex = r"\{(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*),\s*(0x[0-9a-fA-F]*)\}"

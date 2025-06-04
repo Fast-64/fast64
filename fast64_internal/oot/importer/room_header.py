@@ -40,7 +40,7 @@ def parseRoomCommands(
     headerIndex: int,
 ):
     # we need to access the header in `loadMultiBlock()` for the new assets system
-    if not sharedSceneData.is_fast64_data and sharedSceneData.use_macros:
+    if not sharedSceneData.is_fast64_data and sharedSceneData.not_zapd_assets:
         header_path = Path(sharedSceneData.scenePath).resolve() / f"{sharedSceneData.scene_name}.h"
         if not header_path.exists():
             raise PluginError("ERROR: scene file header not found!")

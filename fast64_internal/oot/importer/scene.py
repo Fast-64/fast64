@@ -129,16 +129,16 @@ def parseScene(
         bpy.context.mode = "OBJECT"
 
     sceneCommandsName = f"{sceneName}_sceneCommands"
-    use_macros = False
+    not_zapd_assets = False
 
     # fast64 naming
     if sceneCommandsName not in sceneData:
-        use_macros = True
+        not_zapd_assets = True
         sceneCommandsName = f"{sceneName}_scene_header00"
 
     # newer assets system naming
     if sceneCommandsName not in sceneData:
-        use_macros = True
+        not_zapd_assets = True
         sceneCommandsName = f"{sceneName}_scene"
 
     sharedSceneData = SharedSceneData(
@@ -155,7 +155,7 @@ def parseScene(
         settings.includeCutscenes,
         is_single_file,
         f"{sceneName}_scene_header00" in sceneData,
-        use_macros,
+        not_zapd_assets,
     )
 
     # set scene default registers (see sDefaultDisplayList)
@@ -164,7 +164,7 @@ def parseScene(
     f3dContext.mat().env_color = (0.5, 0.5, 0.5, 0.5)
 
     # disable TLUTs only if we're trying to import a scene from the new assets system
-    f3dContext.ignore_tlut = sharedSceneData.use_macros and not sharedSceneData.is_fast64_data
+    f3dContext.ignore_tlut = sharedSceneData.not_zapd_assets and not sharedSceneData.is_fast64_data
 
     parseMatrices(sceneData, f3dContext, 1 / bpy.context.scene.ootBlenderScale)
     f3dContext.addMatrix("&gMtxClear", mathutils.Matrix.Scale(1 / bpy.context.scene.ootBlenderScale, 4))

@@ -61,8 +61,8 @@ class WaterBox:
         )
 
     @staticmethod
-    def from_data(raw_data: str, use_macros: bool):
-        if use_macros:
+    def from_data(raw_data: str, not_zapd_assets: bool):
+        if not_zapd_assets:
             regex = r"(.*?)\s*,\s*WATERBOX_PROPERTIES\((.*?)\)"
         else:
             regex = r"(.*?)\s*,\s*(0x.*),?"
@@ -72,7 +72,7 @@ class WaterBox:
 
         pos_scale = [hexOrDecInt(value) for value in match.group(1).split(",")]
 
-        if use_macros:
+        if not_zapd_assets:
             params = match.group(2).split(",")
             properties = [
                 hexOrDecInt(params[0]),
@@ -99,7 +99,7 @@ class WaterBox:
             pos_scale[2],
             pos_scale[3],
             pos_scale[4],
-            use_macros,
+            not_zapd_assets,
         )
 
     def get_blender_position(self):
