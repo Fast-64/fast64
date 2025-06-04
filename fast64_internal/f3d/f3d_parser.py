@@ -1380,7 +1380,7 @@ class F3DContext:
         self.materialChanged = True
 
     def get_file_macro_value(self, macro: str, filedata: str):
-        match = re.search(rf"#\s*define\s*{macro}\s*([0-9a-fA-FxX]*)", filedata, re.DOTALL)
+        match = re.search(rf"#\s*define\s+{macro}\s+([0-9a-fA-FxX]*)", filedata, re.DOTALL)
         assert match is not None, f"match is null for {macro}"
         return match.group(1)
 
