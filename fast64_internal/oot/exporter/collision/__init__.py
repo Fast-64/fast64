@@ -155,7 +155,9 @@ class CollisionUtility:
                         if colProp.conveyorSpeed == "Custom":
                             conveyorSpeed = colProp.conveyorSpeedCustom
                         else:
-                            conveyorSpeed = int(colProp.conveyorSpeed, base=16) + (4 if colProp.conveyorKeepMomentum else 0)
+                            conveyorSpeed = int(colProp.conveyorSpeed, base=16) + (
+                                4 if colProp.conveyorKeepMomentum else 0
+                            )
                     else:
                         conveyorSpeed = 0
 
