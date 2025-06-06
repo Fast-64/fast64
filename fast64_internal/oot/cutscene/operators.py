@@ -44,7 +44,7 @@ def ootCutsceneIncludes(headerfilename):
             + '#include "command_macros_base.h"\n'
             + '#include "z64cutscene_commands.h"\n\n'
         )
-    else:
+    elif bpy.context.scene.fast64.oot.is_z64sceneh_present():
         ret.header += (
             '#include "ultra64.h"\n'
             + '#include "sequence.h"\n'
@@ -53,6 +53,16 @@ def ootCutsceneIncludes(headerfilename):
             + '#include "z64cutscene_commands.h"\n'
             + '#include "z64ocarina.h"\n'
             + '#include "z64player.h"\n\n'
+        )
+    else:
+        ret.header += (
+            '#include "ultra64.h"\n'
+            + '#include "sequence.h"\n'
+            + '#include "z_math.h"\n'
+            + '#include "cutscene.h"\n'
+            + '#include "cutscene_commands.h"\n'
+            + '#include "ocarina.h"\n'
+            + '#include "player.h"\n\n'
         )
 
     if len(headerfilename) > 0:

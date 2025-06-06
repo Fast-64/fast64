@@ -307,12 +307,21 @@ def exportCollisionToC(
                         '#include "macros.h"',
                     ]
                 )
-            else:
+            elif bpy.context.scene.fast64.oot.is_z64sceneh_present():
                 includes.extend(
                     [
                         '#include "ultra64.h"',
                         '#include "z64math.h"',
                         '#include "z64bgcheck.h"',
+                        '#include "array_count.h"',
+                    ]
+                )
+            else:
+                includes.extend(
+                    [
+                        '#include "ultra64.h"',
+                        '#include "z_math.h"',
+                        '#include "bgcheck.h"',
                         '#include "array_count.h"',
                     ]
                 )
