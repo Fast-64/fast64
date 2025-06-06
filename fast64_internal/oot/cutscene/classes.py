@@ -49,7 +49,7 @@ class CutsceneCmdCamPoint(CutsceneCmdBase):
     def __post_init__(self):
         if self.params is not None:
             self.continueFlag = self.params[0]
-            self.camRoll = getInteger(self.params[1])
+            self.camRoll = getInteger(self.params[1], not bpy.context.scene.fast64.oot.is_globalh_present())
             self.frame = getInteger(self.params[2])
             self.viewAngle = cs_import_float(self.params[3])
             self.pos = [getInteger(self.params[4]), getInteger(self.params[5]), getInteger(self.params[6])]
@@ -96,12 +96,12 @@ class CutsceneCmdActorCueList(CutsceneCmdBase):
                 self.entryTotal = getInteger(self.params[0])
             else:
                 self.commandType = self.params[0]
-                if self.commandType.startswith("0x"):
+                if "CS_CMD_" in self.commandType:
+                    self.commandType = ootData.enumData.enumByKey["csCmd"].itemById[self.commandType].key
+                else:
                     # make it a 4 digit hex
                     self.commandType = self.commandType.removeprefix("0x")
                     self.commandType = "0x" + "0" * (4 - len(self.commandType)) + self.commandType
-                else:
-                    self.commandType = ootData.enumData.enumByKey["csCmd"].itemById[self.commandType].key
                 self.entryTotal = getInteger(self.params[1].strip())
 
 
