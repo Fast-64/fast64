@@ -2885,9 +2885,7 @@ class FMesh:
         self.triangleGroups: list[FTriGroup] = []
         # VtxList
         self.cullVertexList = None
-        # dict of (override Material, specified Material to override,
-        # overrideType, draw layer) : GfxList
-        self.drawMatOverrides = {}
+        self.draw_overrides: list[GfxList] = []
         self.DLFormat = DLFormat
 
         # Used to avoid consecutive calls to the same material if unnecessary
@@ -2910,8 +2908,8 @@ class FMesh:
         addresses = self.draw.get_ptr_addresses(f3d)
         for triGroup in self.triangleGroups:
             addresses.extend(triGroup.get_ptr_addresses(f3d))
-        for materialTuple, drawOverride in self.drawMatOverrides.items():
-            addresses.extend(drawOverride.get_ptr_addresses(f3d))
+        for cmd_list in self.draw_overrides:
+            addresses.extend(cmd_list.get_ptr_addresses(f3d))
         return addresses
 
     def tri_group_new(self, fMaterial):
@@ -2927,8 +2925,8 @@ class FMesh:
             addrRange = triGroup.set_addr(addrRange[1], f3d)
         if self.cullVertexList is not None:
             addrRange = self.cullVertexList.set_addr(addrRange[1])
-        for materialTuple, drawOverride in self.drawMatOverrides.items():
-            addrRange = drawOverride.set_addr(addrRange[1], f3d)
+        for cmd_list in self.draw_overrides:
+            addrRange = cmd_list.set_addr(addrRange[1], f3d)
         return startAddress, addrRange[1]
 
     def save_binary(self, romfile, f3d, segments):
@@ -2937,8 +2935,8 @@ class FMesh:
             triGroup.save_binary(romfile, f3d, segments)
         if self.cullVertexList is not None:
             self.cullVertexList.save_binary(romfile)
-        for materialTuple, drawOverride in self.drawMatOverrides.items():
-            drawOverride.save_binary(romfile, f3d, segments)
+        for cmd_list in self.draw_overrides:
+            cmd_list.save_binary(romfile, f3d, segments)
 
     def to_c(self, f3d, gfxFormatter):
         staticData = CData()
@@ -2947,8 +2945,8 @@ class FMesh:
         for triGroup in self.triangleGroups:
             staticData.append(triGroup.to_c(f3d, gfxFormatter))
         dynamicData = gfxFormatter.drawToC(f3d, self.draw)
-        for materialTuple, drawOverride in self.drawMatOverrides.items():
-            dynamicData.append(drawOverride.to_c(f3d))
+        for cmd_list in self.draw_overrides:
+            dynamicData.append(cmd_list.to_c(f3d))
         return staticData, dynamicData
 
 
