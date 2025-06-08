@@ -13,16 +13,29 @@ class RoomEntries:
     entries: list[Room]
 
     @staticmethod
-    def new(name: str, sceneName: str, model: OOTModel, sceneObj: Object, transform: Matrix, saveTexturesAsPNG: bool):
+    def new(
+        name: str,
+        sceneName: str,
+        model: OOTModel,
+        original_scene_obj: Object,
+        sceneObj: Object,
+        transform: Matrix,
+        saveTexturesAsPNG: bool,
+    ):
         """Returns the room list from empty objects with the type 'Room'"""
 
         roomDict: dict[int, Room] = {}
         roomObjs = getObjectList(sceneObj.children_recursive, "EMPTY", "Room")
+        original_room_list = getObjectList(original_scene_obj.children_recursive, "EMPTY", "Room")
+        assert len(original_room_list) == len(roomObjs)
+
+        roomObjs.sort(key=lambda obj: obj.ootRoomHeader.roomIndex)
+        original_room_list.sort(key=lambda obj: obj.ootRoomHeader.roomIndex)
 
         if len(roomObjs) == 0:
             raise PluginError("ERROR: The scene has no child empties with the 'Room' empty type.")
 
-        for roomObj in roomObjs:
+        for original_room_obj, roomObj in zip(original_room_list, roomObjs):
             roomHeader = roomObj.ootRoomHeader
             roomIndex = roomHeader.roomIndex
 
@@ -34,6 +47,7 @@ class RoomEntries:
                 roomName,
                 transform,
                 sceneObj,
+                original_room_obj,
                 roomObj,
                 roomHeader.roomShape,
                 model.addSubModel(
