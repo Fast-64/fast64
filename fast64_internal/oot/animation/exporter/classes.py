@@ -30,8 +30,10 @@ class OOTAnimation:
 
         if bpy.context.scene.fast64.oot.is_globalh_present():
             data.header += '#include "ultra64.h"\n' + '#include "global.h"\n\n'
-        else:
+        elif bpy.context.scene.fast64.oot.is_z64sceneh_present():
             data.header += '#include "ultra64.h"\n' + '#include "array_count.h"\n' + '#include "z64animation.h"\n\n'
+        else:
+            data.header += '#include "ultra64.h"\n' + '#include "array_count.h"\n' + '#include "animation.h"\n\n'
         data.source = f'#include "{self.filename}.h"\n\n'
 
         # values
@@ -102,10 +104,15 @@ class OOTLinkAnimation:
         if bpy.context.scene.fast64.oot.is_globalh_present():
             data.header = '#include "ultra64.h"\n' + '#include "global.h"\n\n'
             animHeaderData.header = '#include "ultra64.h"\n' + '#include "global.h"\n\n'
-        else:
+        elif bpy.context.scene.fast64.oot.is_z64sceneh_present():
             data.header = '#include "ultra64.h"\n' + '#include "array_count.h"\n' + '#include "z64animation.h"\n\n'
             animHeaderData.header = (
                 '#include "ultra64.h"\n' + '#include "array_count.h"\n' + '#include "z64animation.h"\n\n'
+            )
+        else:
+            data.header = '#include "ultra64.h"\n' + '#include "array_count.h"\n' + '#include "animation.h"\n\n'
+            animHeaderData.header = (
+                '#include "ultra64.h"\n' + '#include "array_count.h"\n' + '#include "animation.h"\n\n'
             )
 
         data.source = f'#include "{self.dataName()}.h"\n\n'

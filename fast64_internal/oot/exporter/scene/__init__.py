@@ -28,10 +28,24 @@ class Scene:
     hasAlternateHeaders: bool
 
     @staticmethod
-    def new(name: str, sceneObj: Object, transform: Matrix, useMacros: bool, saveTexturesAsPNG: bool, model: OOTModel):
+    def new(
+        name: str,
+        original_scene_obj: Object,
+        sceneObj: Object,
+        transform: Matrix,
+        useMacros: bool,
+        saveTexturesAsPNG: bool,
+        model: OOTModel,
+    ):
         i = 0
         rooms = RoomEntries.new(
-            f"{name}_roomList", name.removesuffix("_scene"), model, sceneObj, transform, saveTexturesAsPNG
+            f"{name}_roomList",
+            name.removesuffix("_scene"),
+            model,
+            original_scene_obj,
+            sceneObj,
+            transform,
+            saveTexturesAsPNG,
         )
 
         colHeader = CollisionHeader.new(
@@ -228,7 +242,7 @@ class Scene:
                 '#include "macros.h"',
                 '#include "z64.h"',
             ]
-        else:
+        elif bpy.context.scene.fast64.oot.is_z64sceneh_present():
             includes = [
                 '#include "ultra64.h"',
                 '#include "romfile.h"',
@@ -247,6 +261,26 @@ class Scene:
                 '#include "z64player.h"',
                 '#include "z64room.h"',
                 '#include "z64scene.h"',
+            ]
+        else:
+            includes = [
+                '#include "ultra64.h"',
+                '#include "romfile.h"',
+                '#include "array_count.h"',
+                '#include "sequence.h"',
+                '#include "actor_profile.h"',
+                '#include "bgcheck.h"',
+                '#include "camera.h"',
+                '#include "cutscene.h"',
+                '#include "cutscene_commands.h"',
+                '#include "environment.h"',
+                '#include "z_math.h"',
+                '#include "object.h"',
+                '#include "ocarina.h"',
+                '#include "path.h"',
+                '#include "player.h"',
+                '#include "room.h"',
+                '#include "scene.h"',
             ]
 
         return SceneFile(
