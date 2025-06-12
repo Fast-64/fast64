@@ -31,4 +31,5 @@ enum_refresh_versions = [
     ("Refresh 16", "Refresh 16", "Refresh 16"),
     ("", "HackerSM64", ""),
     ("HackerSM64 2.3.0", "HackerSM64 (v2.3.0)", "HackerSM64 (v2.3.0)"),
+    ("HackerSM64 3.0.0", "HackerSM64 (v3.0.0)", "HackerSM64 (v3.0.0)"),
 ]
