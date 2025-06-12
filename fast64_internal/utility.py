@@ -2,7 +2,7 @@ from pathlib import Path
 import bpy, random, string, os, math, traceback, re, os, mathutils, ast, operator, inspect
 from math import pi, ceil, degrees, radians, copysign
 from mathutils import *
-from .utility_anim import *
+
 from typing import Callable, Iterable, Any, Optional, Tuple, TypeVar, Union
 from bpy.types import UILayout, Scene, World
 
@@ -498,6 +498,7 @@ def saveDataToFile(filepath, data):
 
 
 def applyBasicTweaks(baseDir):
+    directory_path_checks(baseDir, "Empty directory path.")
     if bpy.context.scene.fast64.sm64.force_extended_ram:
         enableExtendedRAM(baseDir)
 
@@ -524,11 +525,6 @@ def enableExtendedRAM(baseDir):
         segmentFile = open(segmentPath, "w", newline="\n")
         segmentFile.write(segmentData)
         segmentFile.close()
-
-
-def writeMaterialHeaders(exportDir, matCInclude, matHInclude):
-    writeIfNotFound(os.path.join(exportDir, "src/game/materials.c"), "\n" + matCInclude, "")
-    writeIfNotFound(os.path.join(exportDir, "src/game/materials.h"), "\n" + matHInclude, "#endif")
 
 
 def writeMaterialFiles(
@@ -707,11 +703,17 @@ def makeWriteInfoBox(layout):
 
 
 def writeBoxExportType(writeBox, headerType, name, levelName, levelOption):
+    if not name:
+        writeBox.label(text="Empty actor name", icon="ERROR")
+        return
     if headerType == "Actor":
         writeBox.label(text="actors/" + toAlnum(name))
     elif headerType == "Level":
         if levelOption != "Custom":
             levelName = levelOption
+        if not name:
+            writeBox.label(text="Empty level name", icon="ERROR")
+            return
         writeBox.label(text="levels/" + toAlnum(levelName) + "/" + toAlnum(name))
 
 
@@ -761,40 +763,6 @@ def overwriteData(headerRegex, name, value, filePath, writeNewBeforeString, isFu
         raise PluginError(filePath + " does not exist.")
 
 
-def writeIfNotFound(filePath, stringValue, footer):
-    if os.path.exists(filePath):
-        fileData = open(filePath, "r")
-        fileData.seek(0)
-        stringData = fileData.read()
-        fileData.close()
-        if stringValue not in stringData:
-            if len(footer) > 0:
-                footerIndex = stringData.rfind(footer)
-                if footerIndex == -1:
-                    raise PluginError("Footer " + footer + " does not exist.")
-                stringData = stringData[:footerIndex] + stringValue + "\n" + stringData[footerIndex:]
-            else:
-                stringData += stringValue
-            fileData = open(filePath, "w", newline="\n")
-            fileData.write(stringData)
-        fileData.close()
-    else:
-        raise PluginError(filePath + " does not exist.")
-
-
-def deleteIfFound(filePath, stringValue):
-    if os.path.exists(filePath):
-        fileData = open(filePath, "r")
-        fileData.seek(0)
-        stringData = fileData.read()
-        fileData.close()
-        if stringValue in stringData:
-            stringData = stringData.replace(stringValue, "")
-            fileData = open(filePath, "w", newline="\n")
-            fileData.write(stringData)
-        fileData.close()
-
-
 def yield_children(obj: bpy.types.Object):
     yield obj
     if obj.children:
@@ -828,6 +796,13 @@ def translation_rotation_from_mtx(mtx: mathutils.Matrix):
 
 def scale_mtx_from_vector(scale: mathutils.Vector):
     return mathutils.Matrix.Diagonal(scale[0:3]).to_4x4()
+
+
+def attemptModifierApply(modifier):
+    try:
+        bpy.ops.object.modifier_apply(modifier=modifier.name)
+    except Exception as e:
+        print("Skipping modifier " + str(modifier.name))
 
 
 def copy_object_and_apply(obj: bpy.types.Object, apply_scale=False, apply_modifiers=False):
@@ -1381,15 +1356,15 @@ def bytesToInt(value):
 
 
 def bytesToHex(value, byteSize=4):
-    return format(bytesToInt(value), "#0" + str(byteSize * 2 + 2) + "x")
+    return format(bytesToInt(value), f"#0{(byteSize * 2 + 2)}x")
 
 
 def bytesToHexClean(value, byteSize=4):
-    return format(bytesToInt(value), "0" + str(byteSize * 2) + "x")
+    return format(bytesToInt(value), f"#0{(byteSize * 2)}x")
 
 
-def intToHex(value, byteSize=4):
-    return format(value, "#0" + str(byteSize * 2 + 2) + "x")
+def intToHex(value, byte_size=4, signed=True):
+    return format(value if signed else cast_integer(value, byte_size * 8, False), f"#0{(byte_size * 2 + 2)}x")
 
 
 def intToBytes(value, byteSize):
@@ -1624,6 +1599,10 @@ def bitMask(data, offset, amount):
     return (~(-1 << amount) << offset & data) >> offset
 
 
+def is_bit_active(x: int, index: int):
+    return ((x >> index) & 1) == 1
+
+
 def read16bitRGBA(data):
     r = bitMask(data, 11, 5) / ((2**5) - 1)
     g = bitMask(data, 6, 5) / ((2**5) - 1)
@@ -1740,9 +1719,11 @@ def getTextureSuffixFromFormat(texFmt):
     return texFmt.lower()
 
 
-def removeComments(text: str):
-    # https://stackoverflow.com/a/241506
+# https://stackoverflow.com/a/241506
+COMMENT_PATTERN = re.compile(r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"', re.DOTALL | re.MULTILINE)
 
+
+def removeComments(text: str):
     def replacer(match: re.Match[str]):
         s = match.group(0)
         if s.startswith("/"):
@@ -1750,9 +1731,7 @@ def removeComments(text: str):
         else:
             return s
 
-    pattern = re.compile(r'//.*?$|/\*.*?\*/|\'(?:\\.|[^\\\'])*\'|"(?:\\.|[^\\"])*"', re.DOTALL | re.MULTILINE)
-
-    return re.sub(pattern, replacer, text)
+    return re.sub(COMMENT_PATTERN, replacer, text)
 
 
 binOps = {
@@ -1922,6 +1901,10 @@ def create_or_get_world(scene: Scene) -> World:
         return bpy.data.worlds.new("Fast64")
 
 
+def as_posix(path: Path) -> str:
+    return path.as_posix().replace("\\", "/")  # Windows path sometimes still has backslashes?
+
+
 def set_if_different(owner: object, prop: str, value):
     if getattr(owner, prop) != value:
         setattr(owner, prop, value)
@@ -1949,3 +1932,10 @@ def wrap_func_with_error_message(error_message: Callable):
         return wrapper
 
     return decorator
+
+
+def to_valid_file_name(name: str):
+    """Replace any invalid characters with an underscore"""
+    valid_chars = set(string.ascii_letters + string.digits) | {"."}
+    valid_chars -= {"\\", "/", ":", "*", "?", '"', "'", "<", ">", "|", " "}
+    return "".join(c if c in valid_chars else "_" for c in name)

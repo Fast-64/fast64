@@ -25,3 +25,6 @@ extend-exclude = '''
 /addon_updater\.py | /addon_updater_ops\.py
 )$
 '''
+
+[tool.pyright]
+reportInvalidTypeForm = 'none'
