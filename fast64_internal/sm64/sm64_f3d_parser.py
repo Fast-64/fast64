@@ -7,9 +7,9 @@ from bpy.ops import object
 from bpy.props import StringProperty, EnumProperty, BoolProperty
 from ..panels import SM64_Panel
 from ..f3d.f3d_parser import F3DtoBlenderObject
-from .sm64_constants import level_enums, level_pointers
+from .sm64_constants import enumLevelNames
 from .sm64_utility import import_rom_checks
-from .sm64_level_parser import parseLevelAtPointer
+from .sm64_level_parser import parse_level_binary
 
 from ..utility import (
     PluginError,
@@ -40,7 +40,7 @@ class SM64_ImportDL(Operator):
         try:
             import_rom_checks(abspath(context.scene.fast64.sm64.import_rom))
             romfileSrc = open(abspath(context.scene.fast64.sm64.import_rom), "rb")
-            levelParsed = parseLevelAtPointer(romfileSrc, level_pointers[context.scene.levelDLImport])
+            levelParsed = parse_level_binary(romfileSrc, context.scene.levelDLImport)
             segmentData = levelParsed.segmentData
             start = (
                 decodeSegmentedAddr(int(context.scene.DLImportStart, 16).to_bytes(4, "big"), segmentData)
@@ -102,7 +102,7 @@ def sm64_dl_parser_register():
         register_class(cls)
 
     Scene.DLImportStart = StringProperty(name="Start Address", default="A3BE1C")
-    Scene.levelDLImport = EnumProperty(items=level_enums, name="Level", default="CG")
+    Scene.levelDLImport = EnumProperty(items=enumLevelNames, name="Level", default="castle_grounds")
     Scene.isSegmentedAddrDLImport = BoolProperty(name="Is Segmented Address", default=False)
 
 
