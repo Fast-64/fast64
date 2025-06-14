@@ -59,7 +59,7 @@ class OOT_AddDoor(Operator):
 
         parentObject(cubeObj, emptyObj)
 
-        setOrigin(emptyObj, cubeObj)
+        setOrigin(cubeObj, emptyObj.location)
 
         return {"FINISHED"}
 

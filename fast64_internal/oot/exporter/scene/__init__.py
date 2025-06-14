@@ -1,3 +1,5 @@
+import bpy
+
 from dataclasses import dataclass
 from mathutils import Matrix
 from bpy.types import Object
@@ -26,10 +28,24 @@ class Scene:
     hasAlternateHeaders: bool
 
     @staticmethod
-    def new(name: str, sceneObj: Object, transform: Matrix, useMacros: bool, saveTexturesAsPNG: bool, model: OOTModel):
+    def new(
+        name: str,
+        original_scene_obj: Object,
+        sceneObj: Object,
+        transform: Matrix,
+        useMacros: bool,
+        saveTexturesAsPNG: bool,
+        model: OOTModel,
+    ):
         i = 0
         rooms = RoomEntries.new(
-            f"{name}_roomList", name.removesuffix("_scene"), model, sceneObj, transform, saveTexturesAsPNG
+            f"{name}_roomList",
+            name.removesuffix("_scene"),
+            model,
+            original_scene_obj,
+            sceneObj,
+            transform,
+            saveTexturesAsPNG,
         )
 
         colHeader = CollisionHeader.new(
@@ -220,16 +236,52 @@ class Scene:
         sceneCutsceneData = self.getSceneCutscenesC()
         sceneTexturesData = self.getSceneTexturesC(textureExportSettings)
 
-        includes = (
-            "\n".join(
-                [
-                    '#include "ultra64.h"',
-                    '#include "macros.h"',
-                    '#include "z64.h"',
-                ]
-            )
-            + "\n\n\n"
-        )
+        if bpy.context.scene.fast64.oot.is_globalh_present():
+            includes = [
+                '#include "ultra64.h"',
+                '#include "macros.h"',
+                '#include "z64.h"',
+            ]
+        elif bpy.context.scene.fast64.oot.is_z64sceneh_present():
+            includes = [
+                '#include "ultra64.h"',
+                '#include "romfile.h"',
+                '#include "array_count.h"',
+                '#include "sequence.h"',
+                '#include "z64actor_profile.h"',
+                '#include "z64bgcheck.h"',
+                '#include "z64camera.h"',
+                '#include "z64cutscene.h"',
+                '#include "z64cutscene_commands.h"',
+                '#include "z64environment.h"',
+                '#include "z64math.h"',
+                '#include "z64object.h"',
+                '#include "z64ocarina.h"',
+                '#include "z64path.h"',
+                '#include "z64player.h"',
+                '#include "z64room.h"',
+                '#include "z64scene.h"',
+            ]
+        else:
+            includes = [
+                '#include "ultra64.h"',
+                '#include "romfile.h"',
+                '#include "array_count.h"',
+                '#include "sequence.h"',
+                '#include "actor_profile.h"',
+                '#include "bgcheck.h"',
+                '#include "camera.h"',
+                '#include "cutscene.h"',
+                '#include "cutscene_commands.h"',
+                '#include "environment.h"',
+                '#include "z_math.h"',
+                '#include "object.h"',
+                '#include "ocarina.h"',
+                '#include "path.h"',
+                '#include "player.h"',
+                '#include "room.h"',
+                '#include "scene.h"',
+            ]
 
         return SceneFile(
             self.name,
@@ -246,7 +298,7 @@ class Scene:
             (
                 f"#ifndef {self.name.upper()}_H\n"
                 + f"#define {self.name.upper()}_H\n\n"
-                + includes
+                + ("\n".join(includes) + "\n\n")
                 + sceneMainData.header
                 + "".join(cs.header for cs in sceneCutsceneData)
                 + sceneCollisionData.header

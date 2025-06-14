@@ -91,8 +91,7 @@ def F3DtoBlenderObject(romfile, startAddress, scene, newname, transformMatrix, s
     mesh.update()
 
     if shadeSmooth:
-        bpy.ops.object.select_all(action="DESELECT")
-        obj.select_set(True)
+        selectSingleObject(obj)
         bpy.ops.object.shade_smooth()
 
     return obj
@@ -406,7 +405,7 @@ def getTileSize(value, f3d):
 
 def getTileClampMirror(value, f3d):
     data = math_eval(value, f3d)
-    return [(data & f3d.G_TX_CLAMP) != 0, (data & f3d.G_TX_MIRROR) != 0]
+    return ((data & f3d.G_TX_CLAMP) != 0, (data & f3d.G_TX_MIRROR) != 0)
 
 
 def getTileMask(value, f3d):
@@ -496,7 +495,7 @@ class F3DContext:
 
         # This macro has all the tile setting properties, so we reuse it
         self.tileSettings: list[DPSetTile] = [
-            DPSetTile("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 5, 0, i, 0, [False, False], 0, 0, [False, False], 0, 0)
+            DPSetTile("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 5, 0, i, 0, (False, False), 0, 0, (False, False), 0, 0)
             for i in range(8)
         ]
         self.tileSizes: list[DPSetTileSize] = [DPSetTileSize(i, 0, 0, 32, 32) for i in range(8)]
@@ -579,7 +578,7 @@ class F3DContext:
         self.tmemDict = {}
 
         self.tileSettings = [
-            DPSetTile("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 5, 0, i, 0, [False, False], 0, 0, [False, False], 0, 0)
+            DPSetTile("G_IM_FMT_RGBA", "G_IM_SIZ_16b", 5, 0, i, 0, (False, False), 0, 0, (False, False), 0, 0)
             for i in range(8)
         ]
 
@@ -1885,9 +1884,7 @@ class F3DContext:
 
         if bpy.context.mode != "OBJECT":
             bpy.ops.object.mode_set(mode="OBJECT")
-        bpy.ops.object.select_all(action="DESELECT")
-        obj.select_set(True)
-        bpy.context.view_layer.objects.active = obj
+        selectSingleObject(obj)
 
         for material in self.materials:
             obj.data.materials.append(material)

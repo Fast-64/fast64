@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass
 from typing import Optional, TYPE_CHECKING
 from bpy.types import Object, Armature
-from ....utility import PluginError
+from ....utility import PluginError, deselectAllObjects
 from ..motion.utility import setupCutscene, getBlenderPosition, getInteger
 
 if TYPE_CHECKING:
@@ -113,8 +113,9 @@ class CutsceneImport(CutsceneObjectFactory):
                     # split with "[" just in case the array has a set size
                     csName = line.split(" ")[1].split("[")[0]
                     if csName in existingCutsceneNames:
-                        continue
+                        print(f"WARNING: Cutscene '{csName}' already exists in this blend's data.")
                     foundCutscene = True
+                    print(f"INFO: Found cutscene '{csName}' in the file data.")
 
                 if foundCutscene:
                     sLine = line.strip()
@@ -129,7 +130,8 @@ class CutsceneImport(CutsceneObjectFactory):
 
                     if "};" in line:
                         foundCutscene = False
-                        cutsceneList.append(csData)
+                        if len(csData) > 0:
+                            cutsceneList.append(csData)
                         csData = []
 
         if len(cutsceneList) == 0:
@@ -187,7 +189,11 @@ class CutsceneImport(CutsceneObjectFactory):
                     elif not "CutsceneData" in curCmd and not "};" in curCmd:
                         print(f"WARNING: Unknown command found: ``{curCmd}``")
                         cmdListFound = False
-            parsedCutscenes.append(ParsedCutscene(csName, parsedCS))
+
+            if csName is not None and len(parsedCS) > 0:
+                parsedCutscenes.append(ParsedCutscene(csName, parsedCS))
+            else:
+                raise PluginError("ERROR: Something wrong happened during the parsing of the cutscene.")
 
         return parsedCutscenes
 
@@ -199,6 +205,9 @@ class CutsceneImport(CutsceneObjectFactory):
         if parsedCutscenes is None:
             # if it's none then there's no cutscene in the file
             return None
+
+        if len(parsedCutscenes) == 0:
+            raise PluginError("ERROR: No cutscene was found.")
 
         cutsceneList: list[Cutscene] = []
 
@@ -486,6 +495,9 @@ class CutsceneImport(CutsceneObjectFactory):
             # if it's none then there's no cutscene in the file
             return csNumber
 
+        if len(cutsceneList) == 0:
+            raise PluginError("ERROR: No cutscene was found.")
+
         for i, cutscene in enumerate(cutsceneList, csNumber):
             print(f'Found Cutscene "{cutscene.name}"! Importing...')
             self.validateCameraData(cutscene)
@@ -544,7 +556,7 @@ class CutsceneImport(CutsceneObjectFactory):
 
             # Init camera + preview objects and setup the scene
             setupCutscene(csObj)
-            bpy.ops.object.select_all(action="DESELECT")
+            deselectAllObjects()
             print("Success!")
 
         # ``csNumber`` makes sure there's no duplicates

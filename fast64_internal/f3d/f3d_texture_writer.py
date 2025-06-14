@@ -204,7 +204,7 @@ def maybeSaveSingleLargeTextureSetup(
             # SL, SH is * 2 for 4 bit and * 4 otherwise, because actually loading
             # 8 bit pairs of texels. Also written using f3d.G_TEXTURE_IMAGE_FRAC.
             sm = 2 if is4bit else 4
-            nocm = ["G_TX_WRAP", "G_TX_NOMIRROR"]
+            nocm = ("G_TX_WRAP", "G_TX_NOMIRROR")
             if curImgSet != i:
                 gfxOut.commands.append(DPSetTextureImage(fmt, siz, wid, fImage))
 
@@ -972,7 +972,7 @@ def saveTextureLoadOnly(
 ):
     fmt = texFormatOf[texProp.tex_format]
     siz = texBitSizeF3D[texProp.tex_format]
-    nocm = ["G_TX_WRAP", "G_TX_NOMIRROR"]
+    nocm = ("G_TX_WRAP", "G_TX_NOMIRROR")
     SL, TL, SH, TH, sl, tl, sh, th = getTileSizeSettings(texProp, tileSettings, f3d)
 
     # LoadTile will pad rows to 64 bit word alignment, while
@@ -1042,8 +1042,8 @@ def saveTextureTile(
         mask_T = texProp.T.mask
         shift_S = texProp.S.shift
         shift_T = texProp.T.shift
-    cms = [("G_TX_CLAMP" if clamp_S else "G_TX_WRAP"), ("G_TX_MIRROR" if mirror_S else "G_TX_NOMIRROR")]
-    cmt = [("G_TX_CLAMP" if clamp_T else "G_TX_WRAP"), ("G_TX_MIRROR" if mirror_T else "G_TX_NOMIRROR")]
+    cms = (("G_TX_CLAMP" if clamp_S else "G_TX_WRAP"), ("G_TX_MIRROR" if mirror_S else "G_TX_NOMIRROR"))
+    cmt = (("G_TX_CLAMP" if clamp_T else "G_TX_WRAP"), ("G_TX_MIRROR" if mirror_T else "G_TX_NOMIRROR"))
     masks = mask_S
     maskt = mask_T
     shifts = shift_S if shift_S >= 0 else (shift_S + 16)
@@ -1083,7 +1083,7 @@ def savePaletteLoad(
 ):
     assert 0 <= palAddr < 256 and (palAddr & 0xF) == 0
     palFmt = texFormatOf[palFormat]
-    nocm = ["G_TX_WRAP", "G_TX_NOMIRROR"]
+    nocm = ("G_TX_WRAP", "G_TX_NOMIRROR")
     gfxOut.commands.extend(
         [
             DPSetTextureImage(palFmt, "G_IM_SIZ_16b", 1, fPalette),

@@ -1,10 +1,14 @@
 import bpy
 
 from math import isclose
+from typing import TYPE_CHECKING
 from bpy.types import Scene, Object, Node
 from bpy.app.handlers import persistent
 from ...utility import gammaInverse, hexOrDecInt
 from .motion.utility import getCutsceneCamera
+
+if TYPE_CHECKING:
+    from .properties import OOTCutscenePreviewSettingsProperty, OOTCutscenePreviewProperty
 
 
 def getLerp(max: float, min: float, val: float):
@@ -112,13 +116,14 @@ def initFirstFrame(csObj: Object, useNodeFeatures: bool, defaultCam: Object):
 def processCurrentFrame(csObj: Object, curFrame: float, useNodeFeatures: bool, cameraObjects: Object):
     """Execute the actions of each command to create the preview for the current frame"""
     # this function was partially adapted from ``z_demo.c``
+    previewProp: "OOTCutscenePreviewProperty" = csObj.ootCutsceneProperty.preview
+    preview_settings: "OOTCutscenePreviewSettingsProperty" = bpy.context.scene.ootPreviewSettingsProperty
 
     if curFrame == 0:
         initFirstFrame(csObj, useNodeFeatures, cameraObjects[1])
 
     if useNodeFeatures:
-        previewProp = csObj.ootCutsceneProperty.preview
-        for transitionCmd in csObj.ootCutsceneProperty.preview.transitionList:
+        for transitionCmd in previewProp.transitionList:
             startFrame = transitionCmd.startFrame
             endFrame = transitionCmd.endFrame
             frameCur = curFrame
@@ -168,7 +173,7 @@ def processCurrentFrame(csObj: Object, curFrame: float, useNodeFeatures: bool, c
                 color[3] = alpha
                 bpy.context.scene.node_tree.nodes["CSTrans_RGB"].outputs[0].default_value = color
 
-    for miscCmd in csObj.ootCutsceneProperty.preview.miscList:
+    for miscCmd in previewProp.miscList:
         startFrame = miscCmd.startFrame
         endFrame = miscCmd.endFrame
 
@@ -177,10 +182,9 @@ def processCurrentFrame(csObj: Object, curFrame: float, useNodeFeatures: bool, c
 
         if curFrame == startFrame:
             if miscCmd.type == "set_locked_viewpoint" and not None in cameraObjects:
-                bpy.context.scene.camera = cameraObjects[int(csObj.ootCutsceneProperty.preview.isFixedCamSet)]
-                csObj.ootCutsceneProperty.preview.isFixedCamSet ^= True
-
-            elif miscCmd.type == "stop_cutscene":
+                bpy.context.scene.camera = cameraObjects[int(previewProp.isFixedCamSet)]
+                previewProp.isFixedCamSet ^= True
+            elif not preview_settings.ignore_cs_misc_stop and miscCmd.type == "stop_cutscene":
                 # stop the playback and set the frame to 0
                 bpy.ops.screen.animation_cancel()
                 bpy.context.scene.frame_set(bpy.context.scene.frame_start)
@@ -219,7 +223,7 @@ def processCurrentFrame(csObj: Object, curFrame: float, useNodeFeatures: bool, c
 @persistent
 def cutscenePreviewFrameHandler(scene: Scene):
     """Preview frame handler, executes each frame when the cutscene is played"""
-    previewSettings = scene.ootPreviewSettingsProperty
+    previewSettings: "OOTCutscenePreviewSettingsProperty" = scene.ootPreviewSettingsProperty
     csObj: Object = previewSettings.ootCSPreviewCSObj
 
     if csObj is None or not csObj.type == "EMPTY" and not csObj.ootEmptyType == "Cutscene":

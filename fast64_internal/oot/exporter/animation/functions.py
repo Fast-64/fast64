@@ -2,7 +2,7 @@ import math
 import mathutils
 import bpy
 from ....utility import PluginError, toAlnum
-from ...skeleton.exporter import ootConvertArmatureToSkeletonWithoutMesh
+from ..skeleton import ootConvertArmatureToSkeletonWithoutMesh
 from .classes import OOTAnimation, OOTLinkAnimation
 
 from ....utility_anim import (
@@ -211,14 +211,14 @@ def ootConvertLinkAnimationData(anim, armatureObj, convertTransformMatrix, *, fr
     return frameData
 
 
-def ootExportNonLinkAnimation(armatureObj, convertTransformMatrix, skeletonName):
+def ootExportNonLinkAnimation(armatureObj, convertTransformMatrix, skeletonName, filename: str):
     if armatureObj.animation_data is None or armatureObj.animation_data.action is None:
         raise PluginError("No active animation selected.")
 
     anim = armatureObj.animation_data.action
     stashActionInArmature(armatureObj, anim)
 
-    ootAnim = OOTAnimation(toAlnum(skeletonName + anim.name.capitalize() + "Anim"))
+    ootAnim = OOTAnimation(toAlnum(skeletonName + anim.name.capitalize() + "Anim"), filename)
 
     skeleton = ootConvertArmatureToSkeletonWithoutMesh(armatureObj, convertTransformMatrix, skeletonName)
 

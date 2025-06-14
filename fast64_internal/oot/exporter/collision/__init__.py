@@ -1,12 +1,22 @@
+import bpy
 import math
 
+from pathlib import Path
 from dataclasses import dataclass
 from mathutils import Matrix, Vector
 from bpy.types import Mesh, Object
 from bpy.ops import object
 from typing import Optional
-from ....utility import PluginError, CData, indent
-from ...oot_utility import convertIntTo2sComplement
+
+from ....utility import PluginError, CData, toAlnum, unhideAllAndGetHiddenState, restoreHiddenState, indent
+from ...oot_utility import (
+    OOTObjectCategorizer,
+    convertIntTo2sComplement,
+    ootDuplicateHierarchy,
+    ootGetPath,
+    ootGetObjectPath,
+)
+from ...collision.properties import OOTCollisionExportSettings
 from ..utility import Utility
 from .polygons import CollisionPoly, CollisionPolygons
 from .surface import SurfaceType, SurfaceTypes
@@ -151,8 +161,16 @@ class CollisionUtility:
 
                     # get surface type and collision poly data
                     useConveyor = colProp.conveyorOption != "None"
-                    conveyorSpeed = int(Utility.getPropValue(colProp, "conveyorSpeed"), base=16) if useConveyor else 0
-                    shouldKeepMomentum = colProp.conveyorKeepMomentum if useConveyor else False
+                    if useConveyor:
+                        if colProp.conveyorSpeed == "Custom":
+                            conveyorSpeed = colProp.conveyorSpeedCustom
+                        else:
+                            conveyorSpeed = int(colProp.conveyorSpeed, base=16) + (
+                                4 if colProp.conveyorKeepMomentum else 0
+                            )
+                    else:
+                        conveyorSpeed = 0
+
                     surfaceType = SurfaceType(
                         colProp.cameraID,
                         colProp.exitID,
@@ -167,7 +185,7 @@ class CollisionUtility:
                         colProp.lightingSetting,
                         int(colProp.echo, base=16),
                         colProp.hookshotable,
-                        conveyorSpeed + (4 if shouldKeepMomentum else 0),
+                        conveyorSpeed,
                         int(colProp.conveyorRotation / (2 * math.pi) * 0x3F) if useConveyor else 0,
                         colProp.isWallDamage,
                         useMacros,
@@ -207,6 +225,8 @@ class CollisionHeader:
     name: str
     minBounds: tuple[int, int, int]
     maxBounds: tuple[int, int, int]
+    filename: Optional[str]
+    settings: Optional[OOTCollisionExportSettings]
     vertices: CollisionVertices
     collisionPoly: CollisionPolygons
     surfaceType: SurfaceTypes
@@ -221,6 +241,8 @@ class CollisionHeader:
         transform: Matrix,
         useMacros: bool,
         includeChildren: bool,
+        filename: Optional[str] = None,
+        settings: Optional[OOTCollisionExportSettings] = None,
     ):
         # Ideally everything would be separated but this is complicated since it's all tied together
         colBounds, vertexList, polyList, surfaceTypeList = CollisionUtility.getCollisionData(
@@ -231,12 +253,57 @@ class CollisionHeader:
             name,
             colBounds[0],
             colBounds[1],
+            filename,
+            settings,
             CollisionVertices(f"{sceneName}_vertices", vertexList),
             CollisionPolygons(f"{sceneName}_polygons", polyList),
             SurfaceTypes(f"{sceneName}_polygonTypes", surfaceTypeList),
             BgCamInformations.new(f"{sceneName}_bgCamInfo", f"{sceneName}_camPosData", dataHolder, transform),
             WaterBoxes.new(f"{sceneName}_waterBoxes", dataHolder, transform, useMacros),
         )
+
+    @staticmethod
+    def export(original_obj: Object, transform: Matrix, settings: OOTCollisionExportSettings):
+        """Exports collision data as C files, this should be called to do a separate export from the scene."""
+        name = toAlnum(original_obj.name)
+        filename = settings.filename if settings.isCustomFilename else f"{name}_collision"
+        exportPath = ootGetObjectPath(
+            settings.customExport, bpy.path.abspath(settings.exportPath), settings.folder, True
+        )
+
+        if bpy.context.scene.exportHiddenGeometry:
+            hiddenState = unhideAllAndGetHiddenState(bpy.context.scene)
+
+        # Don't remove ignore_render, as we want to resuse this for collision
+        obj, _ = ootDuplicateHierarchy(original_obj, None, True, OOTObjectCategorizer())
+
+        if bpy.context.scene.exportHiddenGeometry:
+            restoreHiddenState(hiddenState)
+
+        # write file
+        if not obj.ignore_collision:
+            # create the collision header
+            col_header = CollisionHeader.new(
+                f"{name}_collisionHeader",
+                name,
+                obj,
+                transform,
+                bpy.context.scene.fast64.oot.useDecompFeatures,
+                settings.includeChildren,
+            )
+
+            filedata = col_header.get_file(filename, settings)
+            base_path = Path(
+                ootGetPath(exportPath, settings.customExport, "assets/objects/", settings.folder, True, True)
+            ).resolve()
+
+            header_path = base_path / f"{filename}.h"
+            header_path.write_text(filedata.header, encoding="utf-8", newline="\n")
+
+            source_path = base_path / f"{filename}.c"
+            source_path.write_text(filedata.source, encoding="utf-8", newline="\n")
+        else:
+            raise PluginError("ERROR: exporting collision with ignore collision enabled!")
 
     def getCmd(self):
         """Returns the collision header scene command"""
@@ -282,9 +349,10 @@ class CollisionHeader:
             colPolyPtrLine = f"ARRAY_COUNT({self.collisionPoly.name}), {self.collisionPoly.name}"
 
         # build the C data of the collision header
+        headerData.append(colData)
 
         # .h
-        headerData.header = f"extern {varName};\n"
+        headerData.header += f"extern {varName};\n"
 
         # .c
         headerData.source += (
@@ -304,5 +372,43 @@ class CollisionHeader:
             + "\n};\n\n"
         )
 
-        headerData.append(colData)
         return headerData
+
+    def get_file(self, filename: str, settings: OOTCollisionExportSettings):
+        filedata = CData()
+
+        if bpy.context.scene.fast64.oot.is_globalh_present():
+            includes = [
+                '#include "ultra64.h"',
+                '#include "z64.h"',
+                '#include "macros.h"',
+            ]
+        elif bpy.context.scene.fast64.oot.is_z64sceneh_present():
+            includes = [
+                '#include "ultra64.h"',
+                '#include "z64math.h"',
+                '#include "z64bgcheck.h"',
+                '#include "array_count.h"',
+            ]
+        else:
+            includes = [
+                '#include "ultra64.h"',
+                '#include "z_math.h"',
+                '#include "bgcheck.h"',
+                '#include "array_count.h"',
+            ]
+
+        filedata.header = (
+            f"#ifndef {filename.upper()}_H\n" + f"#define {filename.upper()}_H\n\n" + "\n".join(includes) + "\n\n"
+        )
+        filedata.source = f'#include "{filename}.h"\n'
+
+        if not settings.customExport:
+            filedata.source += f'#include "{settings.folder}.h"\n\n'
+        else:
+            filedata.source += "\n"
+
+        filedata.append(self.getC())
+        filedata.header += "\n#endif\n"
+
+        return filedata
