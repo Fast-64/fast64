@@ -49,7 +49,9 @@ class CutsceneCmdCamPoint(CutsceneCmdBase):
     def __post_init__(self):
         if self.params is not None:
             self.continueFlag = self.params[0]
-            self.camRoll = getInteger(self.params[1], not bpy.context.scene.fast64.oot.is_globalh_present())
+            self.camRoll = getInteger(self.params[1])
+            if self.camRoll >= 0x80:
+                self.camRoll -= 0x100
             self.frame = getInteger(self.params[2])
             self.viewAngle = cs_import_float(self.params[3])
             self.pos = [getInteger(self.params[4]), getInteger(self.params[5]), getInteger(self.params[6])]
