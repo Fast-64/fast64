@@ -5,7 +5,7 @@ from bpy.utils import register_class, unregister_class
 from bpy.ops import object
 from ...utility import PluginError, toAlnum, writeCData, raisePluginError
 from .properties import OOTAnimExportSettingsProperty, OOTAnimImportSettingsProperty
-from .exporter import ootExportLinkAnimation, ootExportNonLinkAnimation
+from ..exporter.animation import ootExportLinkAnimation, ootExportNonLinkAnimation
 from .importer import ootImportLinkAnimationC, ootImportNonLinkAnimationC
 
 from ..oot_utility import (

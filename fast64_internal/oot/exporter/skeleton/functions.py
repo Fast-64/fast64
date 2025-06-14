@@ -7,9 +7,9 @@ from ....f3d.f3d_gbi import DLFormat, FMesh, TextureExportSettings, ScrollMethod
 from ....f3d.f3d_writer import getInfoDict
 from ...oot_f3d_writer import ootProcessVertexGroup, writeTextureArraysNew, writeTextureArraysExisting
 from ...oot_model_classes import OOTModel, OOTGfxFormatter
-from ..constants import ootSkeletonImportDict
-from ..properties import OOTSkeletonExportSettings
-from ..utility import ootDuplicateArmatureAndRemoveRotations, getGroupIndices, ootRemoveSkeleton
+from ...skeleton.constants import ootSkeletonImportDict
+from ...skeleton.properties import OOTSkeletonExportSettings
+from ...skeleton.utility import ootDuplicateArmatureAndRemoveRotations, getGroupIndices, ootRemoveSkeleton
 from .classes import OOTLimb, OOTSkeleton
 
 from ....utility import (

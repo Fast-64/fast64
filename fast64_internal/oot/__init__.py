@@ -130,10 +130,7 @@ class OOT_Properties(bpy.types.PropertyGroup):
 
     exportMotionOnly: bpy.props.BoolProperty(
         name="Export CS Motion Data Only",
-        description=(
-            "Export everything or only the camera and actor motion data.\n"
-            + "This will insert the data into the cutscene."
-        ),
+        description="Export everything (unchecked) or only the camera and actor motion data (checked).",
         default=False,
     )
 
