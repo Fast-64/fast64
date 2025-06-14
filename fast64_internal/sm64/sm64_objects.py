@@ -23,6 +23,7 @@ from ..utility import (
     multilineLabel,
     raisePluginError,
     enumExportHeaderType,
+    selectSingleObject,
 )
 
 from ..f3d.f3d_gbi import (
@@ -726,8 +727,7 @@ class PuppycamVolume:
 
 
 def exportAreaCommon(areaObj, transformMatrix, geolayout, collision, name):
-    bpy.ops.object.select_all(action="DESELECT")
-    areaObj.select_set(True)
+    selectSingleObject(areaObj)
 
     if not areaObj.noMusic:
         if areaObj.musicSeqEnum != "Custom":

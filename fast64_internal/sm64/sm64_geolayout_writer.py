@@ -58,6 +58,8 @@ from ..utility import (
     writeBoxExportType,
     enumExportHeaderType,
     geoNodeRotateOrder,
+    deselectAllObjects,
+    selectSingleObject,
 )
 
 from ..f3d.f3d_bleed import (
@@ -301,9 +303,7 @@ def prepareGeolayoutExport(armatureObj, obj):
     setOrigin(obj, armatureObj.location)
 
     # Apply armature scale.
-    bpy.ops.object.select_all(action="DESELECT")
-    armatureObj.select_set(True)
-    bpy.context.view_layer.objects.active = armatureObj
+    selectSingleObject(armatureObj)
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True, properties=False)
 
 
@@ -2950,9 +2950,7 @@ class SM64_ExportGeolayoutObject(ObjectDataExporter):
                     )
 
                 romfileOutput.close()
-                bpy.ops.object.select_all(action="DESELECT")
-                obj.select_set(True)
-                context.view_layer.objects.active = obj
+                selectSingleObject(obj)
 
                 if os.path.exists(bpy.path.abspath(context.scene.fast64.sm64.output_rom)):
                     os.remove(bpy.path.abspath(context.scene.fast64.sm64.output_rom))
@@ -3060,7 +3058,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
             applyRotation([armatureObj] + linkedArmatures, math.radians(90), "X")
 
             # You must ALSO apply object rotation after armature rotation.
-            bpy.ops.object.select_all(action="DESELECT")
+            deselectAllObjects()
             for linkedArmature, linkedMesh in linkedArmatureDict.items():
                 linkedMesh.select_set(True)
             obj.select_set(True)
@@ -3154,9 +3152,7 @@ class SM64_ExportGeolayoutArmature(bpy.types.Operator):
                     )
 
                 romfileOutput.close()
-                bpy.ops.object.select_all(action="DESELECT")
-                armatureObj.select_set(True)
-                context.view_layer.objects.active = armatureObj
+                selectSingleObject(armatureObj)
 
                 if os.path.exists(bpy.path.abspath(context.scene.fast64.sm64.output_rom)):
                     os.remove(bpy.path.abspath(context.scene.fast64.sm64.output_rom))

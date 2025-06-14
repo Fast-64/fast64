@@ -292,7 +292,7 @@ class CreateLargeTextureMesh(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO", "PRESET"}
 
     def execute(self, context):
-        bpy.ops.object.select_all(action="DESELECT")
+        deselectAllObjects()
         prop = context.scene.opLargeTextureProperty
         assert prop.mat is not None
         name = prop.mat.name + "Mesh"
