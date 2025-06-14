@@ -8,7 +8,15 @@ from typing import List
 
 from ....f3d.f3d_gbi import F3D, get_F3D_GBI
 from ....f3d.f3d_parser import getImportData, parseF3D
-from ....utility import PluginError, hexOrDecInt, applyRotation, deselectAllObjects, selectSingleObject, get_include_data, removeComments
+from ....utility import (
+    PluginError,
+    hexOrDecInt,
+    applyRotation,
+    deselectAllObjects,
+    selectSingleObject,
+    get_include_data,
+    removeComments,
+)
 from ...oot_f3d_writer import ootReadActorScale
 from ...oot_model_classes import OOTF3DContext, ootGetIncludedAssetData
 from ...oot_utility import OOTEnum, ootGetObjectPath, getOOTScale, ootGetObjectHeaderPath, ootGetEnums, ootStripComments
