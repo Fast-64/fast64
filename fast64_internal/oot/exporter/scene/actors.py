@@ -4,15 +4,16 @@ from dataclasses import dataclass, field
 from typing import Optional
 from mathutils import Matrix
 from bpy.types import Object
-from ....utility import PluginError, CData, indent
-from ...oot_utility import getObjectList
+
+from ....utility import PluginError, CData, hexOrDecInt, indent
+from ...oot_utility import getObjectList, getEvalParams
 from ...oot_constants import ootData
 from ...actor.properties import OOTActorProperty
 from ..utility import Utility
 from ..actor import Actor
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class TransitionActor(Actor):
     """Defines a Transition Actor"""
 
@@ -101,6 +102,42 @@ class SceneTransitionActors:
                 transActor.roomTo, transActor.cameraBack = back
                 entries.append(transActor)
         return SceneTransitionActors(name, entries)
+
+    @staticmethod
+    def from_data(raw_data: str, not_zapd_assets: bool):
+        actor_list = []
+
+        if not_zapd_assets:
+            entries = raw_data.removeprefix("{").removesuffix(",},").split(",},{")
+        else:
+            entries = raw_data.split("},")
+
+        for entry in entries:
+            if entry == "":
+                continue
+
+            params = entry.replace("{", "").replace("}", "").split(",")
+
+            # trailing commas
+            for p in params:
+                if p == "":
+                    params.remove(p)
+
+            assert len(params) == 10
+            trans_actor = TransitionActor()
+            trans_actor.name = "(unset)"
+            trans_actor.id = params[4]
+            trans_actor.pos = [hexOrDecInt(params[5]), hexOrDecInt(params[6]), hexOrDecInt(params[7])]
+            trans_actor.rot = getEvalParams(params[8]) if "DEG_TO_BINANG" in params[8] else params[8]
+            trans_actor.params = params[9]
+            trans_actor.roomFrom = hexOrDecInt(params[0])
+            trans_actor.roomTo = hexOrDecInt(params[2])
+            trans_actor.isRoomTransition = trans_actor.roomFrom != trans_actor.roomTo
+            trans_actor.cameraFront = params[1]
+            trans_actor.cameraBack = params[3]
+            actor_list.append(trans_actor)
+
+        return SceneTransitionActors("(unset)", actor_list)
 
     def getCmd(self):
         """Returns the transition actor list scene command"""

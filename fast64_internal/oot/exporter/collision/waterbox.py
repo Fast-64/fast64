@@ -1,8 +1,13 @@
+import bpy
+import re
+
+from mathutils import Vector
 from dataclasses import dataclass
 from mathutils import Matrix
 from bpy.types import Object
+
+from ....utility import CData, hexOrDecInt, checkIdentityRotation, indent, yUpToZUp
 from ...oot_utility import getObjectList
-from ....utility import CData, checkIdentityRotation, indent
 from ..utility import Utility
 
 
@@ -54,6 +59,56 @@ class WaterBox:
             zMax - zMin,
             useMacros,
         )
+
+    @staticmethod
+    def from_data(raw_data: str, not_zapd_assets: bool):
+        if not_zapd_assets:
+            regex = r"(.*?)\s*,\s*WATERBOX_PROPERTIES\((.*?)\)"
+        else:
+            regex = r"(.*?)\s*,\s*(0x.*),?"
+
+        match = re.search(regex, raw_data, re.DOTALL)
+        assert match is not None
+
+        pos_scale = [hexOrDecInt(value) for value in match.group(1).split(",")]
+
+        if not_zapd_assets:
+            params = match.group(2).split(",")
+            properties = [
+                hexOrDecInt(params[0]),
+                hexOrDecInt(params[1]),
+                params[2],
+                params[3],
+            ]
+        else:
+            params = hexOrDecInt(match.group(2))
+            properties = [
+                ((params >> 0) & 0xFF),  # bgCamIndex
+                ((params >> 8) & 0x1F),  # lightIndex
+                str(((params >> 13) & 0x3F)),  # room
+                str(((params >> 19) & 1) == 1).lower(),  # setFlag19
+            ]
+
+        return WaterBox(
+            properties[0],
+            properties[1],
+            properties[2],
+            properties[3],
+            pos_scale[0],
+            pos_scale[1],
+            pos_scale[2],
+            pos_scale[3],
+            pos_scale[4],
+            not_zapd_assets,
+        )
+
+    def get_blender_position(self):
+        pos = [self.xMin, self.ySurface, self.zMin]
+        return yUpToZUp @ Vector([value / bpy.context.scene.ootBlenderScale for value in pos])
+
+    def get_blender_scale(self) -> list[int]:
+        scale = [self.xLength, self.zLength]
+        return [value / bpy.context.scene.ootBlenderScale for value in scale]
 
     def getProperties(self):
         """Returns the waterbox properties"""

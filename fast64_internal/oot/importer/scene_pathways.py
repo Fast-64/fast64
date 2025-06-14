@@ -13,11 +13,13 @@ def parsePath(
     sharedSceneData: SharedSceneData,
     orderIndex: int,
 ):
-    pathData = getDataMatch(sceneData, pathName, "Vec3s", "path")
+    pathData = getDataMatch(sceneData, pathName, "Vec3s", "path", strip=True)
     pathPointsEntries = [value.replace("{", "").strip() for value in pathData.split("},") if value.strip() != ""]
     pathPointsInfo = []
     for pathPoint in pathPointsEntries:
-        pathPointsInfo.append(tuple([hexOrDecInt(value.strip()) for value in pathPoint.split(",")]))
+        pathPointsInfo.append(
+            tuple([hexOrDecInt(value.strip()) for value in pathPoint.split(",") if value.strip() != ""])
+        )
     pathPoints = tuple(pathPointsInfo)
 
     if sharedSceneData.addHeaderIfItemExists(pathPoints, "Curve", headerIndex):
@@ -40,7 +42,7 @@ def parsePathList(
     headerIndex: int,
     sharedSceneData: SharedSceneData,
 ):
-    pathData = getDataMatch(sceneData, pathListName, "Path", "path list")
+    pathData = getDataMatch(sceneData, pathListName, "Path", "path list", strip=True)
     pathList = [value.replace("{", "").strip() for value in pathData.split("},") if value.strip() != ""]
     for i, pathEntry in enumerate(pathList):
         numPoints, pathName = [value.strip() for value in pathEntry.split(",")]

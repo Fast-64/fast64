@@ -122,8 +122,11 @@ ootEnumCSMotionCamMode = [
     ("eyeOrAT", "Eye/AT Point", "Single Eye/AT point (not recommended)"),
 ]
 
+# Note: `CS_CMD_UNIMPLEMENTED_16` is an unused actor cue
 ootEnumCSActorCueListCommandType = [
-    item for item in ootData.enumData.ootEnumCsCmd if "actor_cue" in item[0] or "player_cue" in item[0]
+    item
+    for item in ootData.enumData.ootEnumCsCmd
+    if "actor_cue" in item[0] or "player_cue" in item[0] or item[0] == "unimplemented_16"
 ]
 ootEnumCSActorCueListCommandType.sort()
 ootEnumCSActorCueListCommandType.insert(0, ("Custom", "Custom", "Custom"))

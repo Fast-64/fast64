@@ -13,6 +13,8 @@ from ...utility import (
     getGroupNameFromIndex,
     attemptModifierApply,
     cleanupDuplicatedObjects,
+    get_include_data,
+    removeComments,
     yUpToZUp,
     deselectAllObjects,
     selectSingleObject,
@@ -24,7 +26,7 @@ def ootGetSkeleton(skeletonData, skeletonName, continueOnError):
     matchResult = re.search(
         "(Flex)?SkeletonHeader\s*"
         + re.escape(skeletonName)
-        + "\s*=\s*\{\s*\{?\s*([^,\s]*)\s*,\s*([^,\s\}]*)\s*\}?\s*(,\s*([^,\s]*))?\s*\}\s*;\s*",
+        + "\s*=\s*\{\s*\{?\s*([^,\s]*)\s*,?\s*([^,\s\}]*)\s*\}?\s*(,\s*([^,\s]*))?\s*\}\s*;\s*",
         skeletonData,
     )
     if matchResult is None:
@@ -50,7 +52,11 @@ def ootGetLimbs(skeletonData, limbsName, continueOnError):
 
 
 def ootGetLimb(skeletonData, limbName, continueOnError):
-    matchResult = re.search("([A-Za-z0-9\_]*)Limb\s*" + re.escape(limbName), skeletonData)
+    matchResult = re.search(
+        r"([A-Za-z0-9\_]*)Limb\s*" + re.escape(limbName) + r"\s*=\s*\{(.*?)\s*\}\s*;",
+        skeletonData,
+        re.DOTALL | re.MULTILINE,
+    )
 
     if matchResult is None:
         if continueOnError:
@@ -58,19 +64,21 @@ def ootGetLimb(skeletonData, limbName, continueOnError):
         else:
             raise PluginError("Cannot find skeleton limb named " + limbName)
 
+    result = matchResult.group(2)
+    if "#include" in result:
+        limb_data = removeComments(get_include_data(result))
+    else:
+        limb_data = result
+
     limbType = matchResult.group(1)
     if limbType == "Lod":
-        dlRegex = "\{\s*([^,\s]*)\s*,\s*([^,\s]*)\s*\}"
+        dlRegex = "\{\s*([^,\s]*)\s*,\s*([^,\s]*)\s*,?\}"
     else:
         dlRegex = "([^,\s]*)"
 
     matchResult = re.search(
-        "[A-Za-z0-9\_]*Limb\s*"
-        + re.escape(limbName)
-        + "\s*=\s*\{\s*\{\s*([^,\s]*)\s*,\s*([^,\s]*)\s*,\s*([^,\s]*)\s*\},\s*([^,]*)\s*,\s*([^,]*)\s*,\s*"
-        + dlRegex
-        + "\s*\}\s*;\s*",
-        skeletonData,
+        "\{([^,\s]*),([^,\s]*),([^,\s]*),?\},([^,]*),([^,]*),\{?" + dlRegex,
+        limb_data.replace("\n", "").replace(" ", ""),
         re.DOTALL,
     )
 
@@ -134,11 +142,13 @@ def ootRemoveSkeleton(filepath, objectName, skeletonName):
     skeletonDataH = readFile(headerPath)
     originalDataH = skeletonDataH
 
-    matchResult = ootGetSkeleton(skeletonDataC, skeletonName, True)
+    data = ootGetSkeleton(skeletonDataC, skeletonName, True)
+    matchResult = data[0]
+    limbsName = data[1]
+
     if matchResult is None:
         return
     skeletonDataC = skeletonDataC[: matchResult.start(0)] + skeletonDataC[matchResult.end(0) :]
-    limbsName = matchResult.group(2)
 
     headerMatch = getDeclaration(skeletonDataH, skeletonName)
     if headerMatch is not None:
