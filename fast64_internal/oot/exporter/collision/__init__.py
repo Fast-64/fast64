@@ -161,8 +161,16 @@ class CollisionUtility:
 
                     # get surface type and collision poly data
                     useConveyor = colProp.conveyorOption != "None"
-                    conveyorSpeed = int(Utility.getPropValue(colProp, "conveyorSpeed"), base=16) if useConveyor else 0
-                    shouldKeepMomentum = colProp.conveyorKeepMomentum if useConveyor else False
+                    if useConveyor:
+                        if colProp.conveyorSpeed == "Custom":
+                            conveyorSpeed = colProp.conveyorSpeedCustom
+                        else:
+                            conveyorSpeed = int(colProp.conveyorSpeed, base=16) + (
+                                4 if colProp.conveyorKeepMomentum else 0
+                            )
+                    else:
+                        conveyorSpeed = 0
+
                     surfaceType = SurfaceType(
                         colProp.cameraID,
                         colProp.exitID,
@@ -177,7 +185,7 @@ class CollisionUtility:
                         colProp.lightingSetting,
                         int(colProp.echo, base=16),
                         colProp.hookshotable,
-                        conveyorSpeed + (4 if shouldKeepMomentum else 0),
+                        conveyorSpeed,
                         int(colProp.conveyorRotation / (2 * math.pi) * 0x3F) if useConveyor else 0,
                         colProp.isWallDamage,
                         useMacros,
@@ -375,11 +383,18 @@ class CollisionHeader:
                 '#include "z64.h"',
                 '#include "macros.h"',
             ]
-        else:
+        elif bpy.context.scene.fast64.oot.is_z64sceneh_present():
             includes = [
                 '#include "ultra64.h"',
                 '#include "z64math.h"',
                 '#include "z64bgcheck.h"',
+                '#include "array_count.h"',
+            ]
+        else:
+            includes = [
+                '#include "ultra64.h"',
+                '#include "z_math.h"',
+                '#include "bgcheck.h"',
                 '#include "array_count.h"',
             ]
 

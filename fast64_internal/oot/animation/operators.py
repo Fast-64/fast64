@@ -18,10 +18,17 @@ from ..oot_utility import (
 
 
 def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSettingsProperty):
+    if settings.isCustom:
+        checkEmptyName(settings.customPath)
+    else:
+        checkEmptyName(settings.folderName)
+
+    if settings.isCustomFilename:
+        checkEmptyName(settings.filename)
+
     path = bpy.path.abspath(settings.customPath)
     exportPath = ootGetObjectPath(settings.isCustom, path, settings.folderName, False)
 
-    checkEmptyName(settings.folderName)
     checkEmptyName(armatureObj.name)
     name = toAlnum(armatureObj.name)
     filename = settings.filename if settings.isCustomFilename else name

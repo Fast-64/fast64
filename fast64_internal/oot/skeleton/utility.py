@@ -14,6 +14,8 @@ from ...utility import (
     attemptModifierApply,
     cleanupDuplicatedObjects,
     yUpToZUp,
+    deselectAllObjects,
+    selectSingleObject,
 )
 
 
@@ -204,7 +206,7 @@ def ootRemoveRotationsFromArmature(armatureObj: bpy.types.Object) -> None:
 
 def ootDuplicateArmatureAndRemoveRotations(originalArmatureObj: bpy.types.Object):
     # Duplicate objects to apply scale / modifiers / linked data
-    bpy.ops.object.select_all(action="DESELECT")
+    deselectAllObjects()
 
     for originalMeshObj in [obj for obj in originalArmatureObj.children if obj.type == "MESH"]:
         originalMeshObj.select_set(True)
@@ -220,17 +222,15 @@ def ootDuplicateArmatureAndRemoveRotations(originalArmatureObj: bpy.types.Object
 
     try:
         for obj in meshObjs:
-            setOrigin(armatureObj, obj)
+            setOrigin(obj, armatureObj.location)
 
-        bpy.ops.object.select_all(action="DESELECT")
-        armatureObj.select_set(True)
-        bpy.context.view_layer.objects.active = armatureObj
+        selectSingleObject(armatureObj)
         bpy.ops.object.transform_apply(location=False, rotation=False, scale=True, properties=False)
 
         ootRemoveRotationsFromArmature(armatureObj)
 
         # Apply modifiers/data to mesh objs
-        bpy.ops.object.select_all(action="DESELECT")
+        deselectAllObjects()
         for obj in meshObjs:
             obj.select_set(True)
             bpy.context.view_layer.objects.active = obj
@@ -238,16 +238,13 @@ def ootDuplicateArmatureAndRemoveRotations(originalArmatureObj: bpy.types.Object
         bpy.ops.object.make_single_user(obdata=True)
         bpy.ops.object.transform_apply(location=False, rotation=True, scale=True, properties=False)
         for selectedObj in meshObjs:
-            bpy.ops.object.select_all(action="DESELECT")
-            selectedObj.select_set(True)
-            bpy.context.view_layer.objects.active = selectedObj
+            selectSingleObject(selectedObj)
 
             for modifier in selectedObj.modifiers:
                 attemptModifierApply(modifier)
 
         # Apply new armature rest pose
-        bpy.ops.object.select_all(action="DESELECT")
-        bpy.context.view_layer.objects.active = armatureObj
+        selectSingleObject(armatureObj)
         bpy.ops.object.mode_set(mode="POSE")
         bpy.ops.pose.armature_apply()
         bpy.ops.object.mode_set(mode="OBJECT")
@@ -263,8 +260,7 @@ def ootDuplicateArmatureAndRemoveRotations(originalArmatureObj: bpy.types.Object
 def applySkeletonRestPose(boneData: list[tuple[float, float, float]], armatureObj: bpy.types.Object):
     if bpy.context.mode != "OBJECT":
         bpy.ops.object.mode_set(mode="OBJECT")
-    bpy.ops.object.select_all(action="DESELECT")
-    armatureObj.select_set(True)
+    selectSingleObject(armatureObj)
 
     bpy.ops.object.mode_set(mode="POSE")
 
