@@ -364,7 +364,7 @@ def ootDuplicateHierarchy(obj, ignoreAttr, includeEmpties, objectCategorizer) ->
             for modifier in selectedObj.modifiers:
                 attemptModifierApply(modifier)
         for selectedObj in meshObjs:
-            setOrigin(obj, selectedObj)
+            setOrigin(selectedObj, obj.location)
         if ignoreAttr is not None:
             for selectedObj in meshObjs:
                 if getattr(selectedObj, ignoreAttr):
