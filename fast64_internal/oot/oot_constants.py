@@ -1,7 +1,3 @@
-from .data import OoT_Data
-
-ootData = OoT_Data()
-
 ootEnumRoomShapeType = [
     # ("Custom", "Custom", "Custom"),
     ("ROOM_SHAPE_TYPE_NORMAL", "Normal", "Normal"),

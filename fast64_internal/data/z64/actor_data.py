@@ -1,11 +1,11 @@
 from os import path
 from dataclasses import dataclass
-from .oot_getters import getXMLRoot
-from .oot_data import OoT_BaseElement
+from pathlib import Path
+from .common import Z64_BaseElement, get_xml_root
 
 
 @dataclass
-class OoT_ParameterElement:
+class Z64_ParameterElement:
     type: str  # bool, enum, type, property, etc...
     index: int
     mask: int
@@ -18,34 +18,34 @@ class OoT_ParameterElement:
 
 
 @dataclass
-class OoT_ListElement:
+class Z64_ListElement:
     key: str
     name: str
     value: int
 
 
 @dataclass
-class OoT_ActorElement(OoT_BaseElement):
+class Z64_ActorElement(Z64_BaseElement):
     category: str
     tiedObjects: list[str]
-    params: list[OoT_ParameterElement]
+    params: list[Z64_ParameterElement]
 
 
-class OoT_ActorData:
+class Z64_ActorData:
     """Everything related to OoT Actors"""
 
-    def __init__(self):
+    def __init__(self, game: str):
         # Path to the ``ActorList.xml`` file
-        actorXML = path.dirname(path.abspath(__file__)) + "/xml/ActorList.xml"
-        actorRoot = getXMLRoot(actorXML)
+        xml_path = Path(f"{path.dirname(path.abspath(__file__))}/xml/{game.lower()}_actor_list.xml")
+        actor_root = get_xml_root(xml_path.resolve())
 
         # general actor list
-        self.actorList: list[OoT_ActorElement] = []
+        self.actorList: list[Z64_ActorElement] = []
 
         # list elements
-        self.chestItems: list[OoT_ListElement] = []
-        self.collectibleItems: list[OoT_ListElement] = []
-        self.messageItems: list[OoT_ListElement] = []
+        self.chestItems: list[Z64_ListElement] = []
+        self.collectibleItems: list[Z64_ListElement] = []
+        self.messageItems: list[Z64_ListElement] = []
 
         listNameToList = {
             "Chest Content": self.chestItems,
@@ -53,15 +53,15 @@ class OoT_ActorData:
             "Elf_Msg Message ID": self.messageItems,
         }
 
-        for elem in actorRoot.iterfind("List"):
+        for elem in actor_root.iterfind("List"):
             listName = elem.get("Name")
             if listName is not None:
                 for item in elem:
                     listNameToList[listName].append(
-                        OoT_ListElement(item.get("Key"), item.get("Name"), int(item.get("Value"), base=16))
+                        Z64_ListElement(item.get("Key"), item.get("Name"), int(item.get("Value"), base=16))
                     )
 
-        for actor in actorRoot.iterfind("Actor"):
+        for actor in actor_root.iterfind("Actor"):
             tiedObjects = []
             objKey = actor.get("ObjectKey")
             actorName = f"{actor.attrib['Name']} - {actor.attrib['ID'].removeprefix('ACTOR_')}"
@@ -70,7 +70,7 @@ class OoT_ActorData:
                 tiedObjects = objKey.split(",")
 
             # parameters
-            params: list[OoT_ParameterElement] = []
+            params: list[Z64_ParameterElement] = []
             for elem in actor:
                 elemType = elem.tag
                 if elemType != "Notes":
@@ -91,7 +91,7 @@ class OoT_ActorData:
                     defaultName = f"{elem.get('Type')} {elemType}"
                     valueRange = elem.get("ValueRange")
                     params.append(
-                        OoT_ParameterElement(
+                        Z64_ParameterElement(
                             elemType,
                             int(elem.get("Index", "1")),
                             int(elem.get("Mask", "0xFFFF"), base=16),
@@ -105,7 +105,7 @@ class OoT_ActorData:
                     )
 
             self.actorList.append(
-                OoT_ActorElement(
+                Z64_ActorElement(
                     actor.attrib["ID"],
                     actor.attrib["Key"],
                     actorName,

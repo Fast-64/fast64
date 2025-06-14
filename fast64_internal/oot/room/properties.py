@@ -2,6 +2,7 @@ import bpy
 from bpy.types import PropertyGroup, UILayout, Image, Object
 from bpy.utils import register_class, unregister_class
 from ...utility import prop_split
+from ...game_data import game_data
 from ..collection_utility import drawCollectionOps, drawAddButton
 from ..oot_utility import onMenuTabChange, onHeaderMenuTabChange, drawEnumWithCustom
 from ..oot_upgrade import upgradeRoomHeaders
@@ -19,7 +20,6 @@ from bpy.props import (
 )
 
 from ..oot_constants import (
-    ootData,
     ootEnumRoomBehaviour,
     ootEnumLinkIdle,
     ootEnumRoomShapeType,
@@ -37,21 +37,21 @@ ootEnumRoomMenu = ootEnumRoomMenuAlternate + [
 
 class OOTObjectProperty(PropertyGroup):
     expandTab: BoolProperty(name="Expand Tab")
-    objectKey: EnumProperty(items=ootData.objectData.ootEnumObjectKey, default="obj_human")
+    objectKey: EnumProperty(items=game_data.z64.objects.ootEnumObjectKey, default="obj_human")
     objectIDCustom: StringProperty(default="OBJECT_CUSTOM")
 
     @staticmethod
     def upgrade_object(obj: Object):
         print(f"Processing '{obj.name}'...")
-        upgradeRoomHeaders(obj, ootData.objectData)
+        upgradeRoomHeaders(obj, game_data.z64.objects)
 
     def draw_props(self, layout: UILayout, headerIndex: int, index: int, objName: str):
         isLegacy = True if "objectID" in self else False
 
         if isLegacy:
-            objectName = ootData.objectData.ootEnumObjectIDLegacy[self["objectID"]][1]
+            objectName = game_data.z64.objects.ootEnumObjectIDLegacy[self["objectID"]][1]
         elif self.objectKey != "Custom":
-            objectName = ootData.objectData.objectsByKey[self.objectKey].name
+            objectName = game_data.z64.objects.objects_by_key[self.objectKey].name
         else:
             objectName = self.objectIDCustom
 
