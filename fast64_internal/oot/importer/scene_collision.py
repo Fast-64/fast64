@@ -24,6 +24,7 @@ from ..collision.constants import (
     ootEnumCollisionSound,
     ootEnumCameraSType,
     ootEnumCameraCrawlspaceSType,
+    ootEnumConveyorSpeed,
 )
 
 
@@ -187,8 +188,14 @@ def parseSurfaceParams(
     col_props.conveyorRotation = (surface_type.conveyorDirection / 0x3F) * (2 * math.pi)
     col_props.conveyorSpeed = "Custom"
     col_props.conveyorSpeedCustom = str(surface_type.conveyorSpeed)
+    setCustomProperty(col_props, "conveyorSpeed", surface_type.conveyorSpeed, ootEnumConveyorSpeed)
 
-    if col_props.conveyorRotation == 0 and col_props.conveyorSpeedCustom == "0":
+    if isinstance(surface_type.conveyorSpeed, int):
+        speed_int = surface_type.conveyorSpeed
+    else:
+        speed_int = int(surface_type.conveyorSpeed, 16)
+
+    if col_props.conveyorRotation == 0 and speed_int == 0:
         col_props.conveyorOption = "None"
     elif collision_poly.isLandConveyor:
         col_props.conveyorOption = "Land"
@@ -209,6 +216,59 @@ def parseSurfaceParams(
 def parseSurfaces(surfaceList: list[str]):
     surfaces: list[SurfaceType] = []
 
+    # TODO: temporary fix to get the enums import properly
+    # a proper fix would be cleaning up current enums to use the names from decomp
+    new_names_to_old_names = {
+        "FLOOR_TYPE_0": "0x00",
+        "FLOOR_TYPE_1": "0x01",
+        "FLOOR_TYPE_2": "0x02",
+        "FLOOR_TYPE_3": "0x03",
+        "FLOOR_TYPE_4": "0x04",
+        "FLOOR_TYPE_5": "0x05",
+        "FLOOR_TYPE_6": "0x06",
+        "FLOOR_TYPE_7": "0x07",
+        "FLOOR_TYPE_8": "0x08",
+        "FLOOR_TYPE_9": "0x09",
+        "FLOOR_TYPE_10": "0x0A",
+        "FLOOR_TYPE_11": "0x0B",
+        "WALL_TYPE_0": "0x00",
+        "WALL_TYPE_1": "0x01",
+        "WALL_TYPE_2": "0x02",
+        "WALL_TYPE_3": "0x03",
+        "WALL_TYPE_4": "0x04",
+        "WALL_TYPE_5": "0x05",
+        "WALL_TYPE_6": "0x06",
+        "WALL_TYPE_7": "0x07",
+        "FLOOR_PROPERTY_0": "0x00",
+        "FLOOR_PROPERTY_5": "0x05",
+        "FLOOR_PROPERTY_6": "0x06",
+        "FLOOR_PROPERTY_8": "0x08",
+        "FLOOR_PROPERTY_9": "0x09",
+        "FLOOR_PROPERTY_11": "0x0B",
+        "FLOOR_PROPERTY_12": "0x0C",
+        "SURFACE_MATERIAL_DIRT": "0x00",
+        "SURFACE_MATERIAL_SAND": "0x01",
+        "SURFACE_MATERIAL_STONE": "0x02",
+        "SURFACE_MATERIAL_JABU": "0x03",
+        "SURFACE_MATERIAL_WATER_SHALLOW": "0x04",
+        "SURFACE_MATERIAL_WATER_DEEP": "0x05",
+        "SURFACE_MATERIAL_TALL_GRASS": "0x06",
+        "SURFACE_MATERIAL_LAVA": "0x07",
+        "SURFACE_MATERIAL_GRASS": "0x08",
+        "SURFACE_MATERIAL_BRIDGE": "0x09",
+        "SURFACE_MATERIAL_WOOD": "0x0A",
+        "SURFACE_MATERIAL_DIRT_SOFT": "0x0B",
+        "SURFACE_MATERIAL_ICE": "0x0C",
+        "SURFACE_MATERIAL_CARPET": "0x0D",
+        "FLOOR_EFFECT_0": "0x00",
+        "FLOOR_EFFECT_1": "0x01",
+        "FLOOR_EFFECT_2": "0x02",
+        "CONVEYOR_SPEED_DISABLED": "0x00",
+        "CONVEYOR_SPEED_SLOW": "0x01",
+        "CONVEYOR_SPEED_MEDIUM": "0x02",
+        "CONVEYOR_SPEED_FAST": "0x03",
+    }
+
     for surfaceData in surfaceList:  # SurfaceType
         if "SURFACETYPE0" in surfaceData:
             split = surfaceData.removeprefix("SURFACETYPE0(").split("SURFACETYPE1(")
@@ -218,18 +278,18 @@ def parseSurfaces(surfaceList: list[str]):
             surface = SurfaceType(
                 hexOrDecInt(surface0[0]),  # bgCamIndex
                 hexOrDecInt(surface0[1]),  # exitIndex
-                surface0[2],
+                new_names_to_old_names.get(surface0[2], surface0[2]),  # floorType
                 hexOrDecInt(surface0[3]),  # unk18
-                surface0[4],
-                surface0[5],
+                new_names_to_old_names.get(surface0[4], surface0[4]),  # wallType
+                new_names_to_old_names.get(surface0[5], surface0[5]),  # floorProperty
                 surface0[6] == "true",  # isSoft
                 surface0[7] == "true",  # isHorseBlocked
-                surface1[0],
-                surface1[1],
+                new_names_to_old_names.get(surface1[0], surface1[0]),  # material
+                new_names_to_old_names.get(surface1[1], surface1[1]),  # floorEffect
                 hexOrDecInt(surface1[2]),  # lightSetting
                 hexOrDecInt(surface1[3]),  # echo
                 surface1[4] == "true",  # canHookshot
-                surface1[5],
+                new_names_to_old_names.get(surface1[5], surface1[5]),  # conveyorSpeed
                 hexOrDecInt(surface1[6].removeprefix("CONVEYOR_DIRECTION_FROM_BINANG(").removesuffix(")")),
                 surface1[7] == "true",  # unk27
                 bpy.context.scene.fast64.oot.useDecompFeatures,
@@ -237,6 +297,13 @@ def parseSurfaces(surfaceList: list[str]):
         else:
             params = [hexOrDecInt(value.strip()) for value in surfaceData.split(",")]
             surface = SurfaceType.from_hex(params[0], params[1])
+
+            surface.floorType = new_names_to_old_names.get(surface.floorType, surface.floorType)
+            surface.wallType = new_names_to_old_names.get(surface.wallType, surface.wallType)
+            surface.floorProperty = new_names_to_old_names.get(surface.floorProperty, surface.floorProperty)
+            surface.material = new_names_to_old_names.get(surface.material, surface.material)
+            surface.floorEffect = new_names_to_old_names.get(surface.floorEffect, surface.floorEffect)
+            surface.conveyorSpeed = new_names_to_old_names.get(surface.conveyorSpeed, surface.conveyorSpeed)
 
         surfaces.append(surface)
 
