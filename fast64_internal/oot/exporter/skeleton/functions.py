@@ -7,9 +7,9 @@ from ....f3d.f3d_gbi import DLFormat, FMesh, TextureExportSettings, ScrollMethod
 from ....f3d.f3d_writer import getInfoDict
 from ...oot_f3d_writer import ootProcessVertexGroup, writeTextureArraysNew, writeTextureArraysExisting
 from ...oot_model_classes import OOTModel, OOTGfxFormatter
-from ..constants import ootSkeletonImportDict
-from ..properties import OOTSkeletonExportSettings
-from ..utility import ootDuplicateArmatureAndRemoveRotations, getGroupIndices, ootRemoveSkeleton
+from ...skeleton.constants import ootSkeletonImportDict
+from ...skeleton.properties import OOTSkeletonExportSettings
+from ...skeleton.utility import ootDuplicateArmatureAndRemoveRotations, getGroupIndices, ootRemoveSkeleton
 from .classes import OOTLimb, OOTSkeleton
 
 from ....utility import (
@@ -284,8 +284,10 @@ def ootConvertArmatureToC(
 
     if bpy.context.scene.fast64.oot.is_globalh_present():
         data.header += '#include "ultra64.h"\n' + '#include "global.h"\n'
-    else:
+    elif bpy.context.scene.fast64.oot.is_z64sceneh_present():
         data.header += '#include "ultra64.h"\n' + '#include "array_count.h"\n' + '#include "z64animation.h"\n'
+    else:
+        data.header += '#include "ultra64.h"\n' + '#include "array_count.h"\n' + '#include "animation.h"\n'
 
     data.source = f'#include "{header_filename}.h"\n\n'
     if not isCustomExport:

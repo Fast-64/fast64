@@ -29,6 +29,7 @@ class Room:
         name: str,
         transform: Matrix,
         sceneObj: Object,
+        original_room_obj: Object,
         roomObj: Object,
         roomShapeType: str,
         model: OOTModel,
@@ -90,7 +91,7 @@ class Room:
             headers.extend([altHeader.childNight, altHeader.adultDay, altHeader.adultNight])
             if len(altHeader.cutscenes) > 0:
                 headers.extend(altHeader.cutscenes)
-        addMissingObjectsToAllRoomHeaders(roomObj, headers)
+        addMissingObjectsToAllRoomHeaders(original_room_obj, headers)
 
         roomShape = RoomShapeUtility.create_shape(
             sceneName, name, roomShapeType, model, transform, sceneObj, roomObj, saveTexturesAsPNG, mainHeaderProps

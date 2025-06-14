@@ -5,7 +5,7 @@ from bpy.utils import register_class, unregister_class
 from bpy.ops import object
 from ...utility import PluginError, toAlnum, writeCData, raisePluginError
 from .properties import OOTAnimExportSettingsProperty, OOTAnimImportSettingsProperty
-from .exporter import ootExportLinkAnimation, ootExportNonLinkAnimation
+from ..exporter.animation import ootExportLinkAnimation, ootExportNonLinkAnimation
 from .importer import ootImportLinkAnimationC, ootImportNonLinkAnimationC
 
 from ..oot_utility import (
@@ -18,10 +18,17 @@ from ..oot_utility import (
 
 
 def exportAnimationC(armatureObj: bpy.types.Object, settings: OOTAnimExportSettingsProperty):
+    if settings.isCustom:
+        checkEmptyName(settings.customPath)
+    else:
+        checkEmptyName(settings.folderName)
+
+    if settings.isCustomFilename:
+        checkEmptyName(settings.filename)
+
     path = bpy.path.abspath(settings.customPath)
     exportPath = ootGetObjectPath(settings.isCustom, path, settings.folderName, False)
 
-    checkEmptyName(settings.folderName)
     checkEmptyName(armatureObj.name)
     name = toAlnum(armatureObj.name)
     filename = settings.filename if settings.isCustomFilename else name

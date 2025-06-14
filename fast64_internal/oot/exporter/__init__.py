@@ -72,6 +72,7 @@ class SceneExport:
             sceneName = f"{toAlnum(exportInfo.name)}_scene"
             newScene = Scene.new(
                 sceneName,
+                originalSceneObj,
                 sceneObj,
                 transform,
                 exportInfo.useMacros,
