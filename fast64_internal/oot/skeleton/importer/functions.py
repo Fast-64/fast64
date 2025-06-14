@@ -8,7 +8,7 @@ from typing import List
 
 from ....f3d.f3d_gbi import F3D, get_F3D_GBI
 from ....f3d.f3d_parser import getImportData, parseF3D
-from ....utility import hexOrDecInt, applyRotation, get_include_data, removeComments, PluginError
+from ....utility import PluginError, hexOrDecInt, applyRotation, deselectAllObjects, selectSingleObject, get_include_data, removeComments
 from ...oot_f3d_writer import ootReadActorScale
 from ...oot_model_classes import OOTF3DContext, ootGetIncludedAssetData
 from ...oot_utility import OOTEnum, ootGetObjectPath, getOOTScale, ootGetObjectHeaderPath, ootGetEnums, ootStripComments
@@ -27,8 +27,7 @@ class OOTDLEntry:
 def ootAddBone(armatureObj, boneName, parentBoneName, currentTransform, loadDL):
     if bpy.context.mode != "OBJECT":
         bpy.ops.object.mode_set(mode="OBJECT")
-    bpy.ops.object.select_all(action="DESELECT")
-    bpy.context.view_layer.objects.active = armatureObj
+    selectSingleObject(armatureObj)
     bpy.ops.object.mode_set(mode="EDIT")
     bone = armatureObj.data.edit_bones.new(boneName)
     bone.use_connect = False
@@ -218,9 +217,7 @@ def ootBuildSkeleton(
     armatureObj.location = bpy.context.scene.cursor.location
 
     # Set bone rotation mode.
-    bpy.ops.object.select_all(action="DESELECT")
-    armatureObj.select_set(True)
-    bpy.context.view_layer.objects.active = armatureObj
+    selectSingleObject(armatureObj)
     bpy.ops.object.mode_set(mode="POSE")
     for bone in armatureObj.pose.bones:
         bone.rotation_mode = "XYZ"
@@ -228,7 +225,7 @@ def ootBuildSkeleton(
     # Apply mesh to armature.
     if bpy.context.mode != "OBJECT":
         bpy.ops.object.mode_set(mode="OBJECT")
-    bpy.ops.object.select_all(action="DESELECT")
+    deselectAllObjects()
     obj.select_set(True)
     armatureObj.select_set(True)
     bpy.context.view_layer.objects.active = armatureObj

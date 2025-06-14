@@ -26,7 +26,7 @@ class SurfaceType:
     lightSetting: int
     echo: int
     canHookshot: bool
-    conveyorSpeed: int
+    conveyorSpeed: int | str
     conveyorDirection: int
     isWallDamage: bool  # unk27
 
