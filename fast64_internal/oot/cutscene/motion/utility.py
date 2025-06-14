@@ -84,7 +84,7 @@ def getBlenderPosition(pos: list[int], scale: int):
     return [float(pos[0]) / scale, -float(pos[2]) / scale, float(pos[1]) / scale]
 
 
-def getInteger(number: str, signed: bool = False):
+def getInteger(number: str):
     """Returns an int number (handles properly negative hex numbers)"""
 
     if number.startswith("0x"):
@@ -94,9 +94,6 @@ def getInteger(number: str, signed: bool = False):
         value = unpack("!i", bytes.fromhex("0" * (8 - len(number)) + number))[0]
     else:
         value = int(number)
-
-    if signed and value > 0x7F:
-        value -= 0x100
 
     return value
 
