@@ -5,7 +5,7 @@ from bpy.types import Object
 
 from ....utility import PluginError, CData, exportColor, ootGetBaseOrCustomLight, hexOrDecInt, indent
 from ...scene.properties import OOTSceneHeaderProperty, OOTLightProperty
-from ...oot_utility import getEvalParamsInt
+from ...utility import getEvalParamsInt
 from ..utility import Utility
 
 

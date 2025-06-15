@@ -3,7 +3,7 @@ import bpy
 from dataclasses import dataclass
 
 from ....utility import CData, indent
-from ...oot_constants import ootData
+from ...constants import ootData
 
 
 @dataclass(unsafe_hash=True)
