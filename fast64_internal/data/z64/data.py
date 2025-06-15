@@ -212,7 +212,7 @@ mm_enum_floor_property = [
     ("0x0D", "Trigger Void (runs `Player_Action_1`)", "FLOOR_PROPERTY_13"),
 ]
 
-ootEnumFloorProperty = [
+enum_floor_property = [
     ("Custom", "Custom", "Custom"),
     ("0x00", "Default", "Default"),
     ("0x01", "Haunted Wasteland Camera", "Haunted Wasteland Camera"),
@@ -879,7 +879,7 @@ class Z64_Data:
             self.ootEnumLinkIdle = ootEnumLinkIdle
             self.ootEnumRoomBehaviour = ootEnumRoomBehaviour
             self.ootEnumFloorSetting = ootEnumFloorSetting
-            self.ootEnumFloorProperty = ootEnumFloorProperty
+            self.enum_floor_property = enum_floor_property
             self.ootEnumCameraSType = ootEnumCameraSType
             self.ootEnumCSListType = ootEnumCSListType
             self.skeleton_dict = oot_skeleton_dict
@@ -894,7 +894,7 @@ class Z64_Data:
             self.ootEnumLinkIdle = mm_enum_environment_type
             self.ootEnumRoomBehaviour = mm_enum_room_type
             self.ootEnumFloorSetting = mm_enum_floor_property
-            self.ootEnumFloorProperty = mm_enum_floor_type
+            self.enum_floor_property = mm_enum_floor_type
             self.ootEnumCameraSType = mm_enum_camera_setting_type
             self.ootEnumCSListType = mm_enum_cs_list_type
             self.skeleton_dict = mm_skeleton_dict
@@ -933,7 +933,7 @@ class Z64_Data:
             "roomBehaviour": self.ootEnumRoomBehaviour,
             "linkIdleMode": self.ootEnumLinkIdle,
             "floorSetting": self.ootEnumFloorSetting,
-            "floorProperty": self.ootEnumFloorProperty,
+            "floorProperty": self.enum_floor_property,
             "camSType": self.ootEnumCameraSType,
             "cs_list_type": self.ootEnumCSListType,
             "skeleton_mode": self.enum_skeleton_mode,

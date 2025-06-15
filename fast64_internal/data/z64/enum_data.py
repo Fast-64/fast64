@@ -37,6 +37,12 @@ class Z64_ItemElement(Z64_BaseElement):
                 "draw_config": ("SCENE_DRAW_CFG" if self.game == "MM" else "SDC"),
                 "surface_material": "SURFACE_MATERIAL",
                 "global_object": "OBJECT",
+                "floor_type": "",
+                "wall_type": "",
+                "floor_property": "",
+                "surface_sfx_offset": "",
+                "floor_effect": "",
+                "conveyor_speed": "",
             }
 
             self.name = self.id.removeprefix(f"{keyToPrefix[self.parentKey]}_")
@@ -123,6 +129,13 @@ class Z64_EnumData:
         self.enum_draw_config: list[tuple[str, str, str]] = []
         self.enum_surface_material: list[tuple[str, str, str]] = []
         self.enum_global_object: list[tuple[str, str, str]] = []
+        self.enum_floor_type: list[tuple[str, str, str]] = []
+        self.enum_wall_type: list[tuple[str, str, str]] = []
+        self.enum_floor_property: list[tuple[str, str, str]] = []
+        self.enum_surface_sfx_offset: list[tuple[str, str, str]] = []
+        self.enum_surface_material: list[tuple[str, str, str]] = []
+        self.enum_floor_effect: list[tuple[str, str, str]] = []
+        self.enum_conveyor_speed: list[tuple[str, str, str]] = []
 
         self.enumByID = {enum.id: enum for enum in self.enumDataList}
         self.enumByKey = {enum.key: enum for enum in self.enumDataList}

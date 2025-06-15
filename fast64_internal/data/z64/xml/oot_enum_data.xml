@@ -598,6 +598,7 @@
     <Item Key="no_music" ID="NA_BGM_NO_MUSIC" Name="No Music" Index="127"/>
     <Item Key="nature_sfx_rain" ID="NA_BGM_NATURE_SFX_RAIN" Name="Nature Ambiance: Rain" Index="128"/>
   </Enum>
+<<<<<<<< HEAD:fast64_internal/data/z64/xml/oot_enum_data.xml
   <Enum Games="OoTMqDbg" Key="draw_config" ID="SceneDrawConfig">
     <Item Key="sdc_default" ID="SDC_DEFAULT" Name="Default" Index="0"/>
     <Item Key="sdc_hyrule_field" ID="SDC_HYRULE_FIELD" Name="Hyrule Field (Spot00)" Index="1"/>
@@ -735,5 +736,90 @@
       <Item Key="mod_ambience_2" ID="CS_MOD_AMBIENCE_2" Index="6"/>
       <Item Key="mod_seq_store" ID="CS_MOD_SEQ_STORE" Index="7"/>
       <Item Key="mod_seq_restore" ID="CS_MOD_SEQ_RESTORE" Index="8"/>
+  <Enum Key="floor_type" ID="FloorType">
+      <Item Key="floor_type_0" ID="FLOOR_TYPE_0" Index="0"/>
+      <Item Key="floor_type_1" ID="FLOOR_TYPE_1" Index="1"/>
+      <Item Key="floor_type_2" ID="FLOOR_TYPE_2" Index="2"/>
+      <Item Key="floor_type_3" ID="FLOOR_TYPE_3" Index="3"/>
+      <Item Key="floor_type_4" ID="FLOOR_TYPE_4" Index="4"/>
+      <Item Key="floor_type_5" ID="FLOOR_TYPE_5" Index="5"/>
+      <Item Key="floor_type_6" ID="FLOOR_TYPE_6" Index="6"/>
+      <Item Key="floor_type_7" ID="FLOOR_TYPE_7" Index="7"/>
+      <Item Key="floor_type_8" ID="FLOOR_TYPE_8" Index="8"/>
+      <Item Key="floor_type_9" ID="FLOOR_TYPE_9" Index="9"/>
+      <Item Key="floor_type_10" ID="FLOOR_TYPE_10" Index="10"/>
+      <Item Key="floor_type_11" ID="FLOOR_TYPE_11" Index="11"/>
+      <Item Key="floor_type_12" ID="FLOOR_TYPE_12" Index="12"/>
+  </Enum>
+  <Enum Key="wall_type" ID="WallType">
+      <Item Key="wall_type_0" ID="WALL_TYPE_0" Index="0"/>
+      <Item Key="wall_type_1" ID="WALL_TYPE_1" Index="1"/>
+      <Item Key="wall_type_2" ID="WALL_TYPE_2" Index="2"/>
+      <Item Key="wall_type_3" ID="WALL_TYPE_3" Index="3"/>
+      <Item Key="wall_type_4" ID="WALL_TYPE_4" Index="4"/>
+      <Item Key="wall_type_5" ID="WALL_TYPE_5" Index="5"/>
+      <Item Key="wall_type_6" ID="WALL_TYPE_6" Index="6"/>
+      <Item Key="wall_type_7" ID="WALL_TYPE_7" Index="7"/>
+      <Item Key="wall_type_8" ID="WALL_TYPE_8" Index="8"/>
+      <Item Key="wall_type_9" ID="WALL_TYPE_9" Index="9"/>
+      <Item Key="wall_type_10" ID="WALL_TYPE_10" Index="10"/>
+      <Item Key="wall_type_11" ID="WALL_TYPE_11" Index="11"/>
+      <Item Key="wall_type_12" ID="WALL_TYPE_12" Index="12"/>
+  </Enum>
+  <Enum Key="floor_property" ID="FloorProperty">
+      <Item Key="floor_property_0" ID="FLOOR_PROPERTY_0" Index="0"/>
+      <Item Key="floor_property_5" ID="FLOOR_PROPERTY_5" Index="5"/>
+      <Item Key="floor_property_6" ID="FLOOR_PROPERTY_6" Index="6"/>
+      <Item Key="floor_property_7" ID="FLOOR_PROPERTY_7" Index="7"/>
+      <Item Key="floor_property_8" ID="FLOOR_PROPERTY_8" Index="8"/>
+      <Item Key="floor_property_9" ID="FLOOR_PROPERTY_9" Index="9"/>
+      <Item Key="floor_property_11" ID="FLOOR_PROPERTY_11" Index="11"/>
+      <Item Key="floor_property_12" ID="FLOOR_PROPERTY_12" Index="12"/>
+  </Enum>
+  <Enum Key="surface_sfx_offset" ID="SurfaceSfxOffset">
+      <Item Key="surface_sfx_offset_dirt" ID="SURFACE_SFX_OFFSET_DIRT" Index="0"/>
+      <Item Key="surface_sfx_offset_sand" ID="SURFACE_SFX_OFFSET_SAND" Index="1"/>
+      <Item Key="surface_sfx_offset_stone" ID="SURFACE_SFX_OFFSET_STONE" Index="2"/>
+      <Item Key="surface_sfx_offset_jabu" ID="SURFACE_SFX_OFFSET_JABU" Index="3"/>
+      <Item Key="surface_sfx_offset_water_shallow" ID="SURFACE_SFX_OFFSET_WATER_SHALLOW" Index="4"/>
+      <Item Key="surface_sfx_offset_water_deep" ID="SURFACE_SFX_OFFSET_WATER_DEEP" Index="5"/>
+      <Item Key="surface_sfx_offset_tall_grass" ID="SURFACE_SFX_OFFSET_TALL_GRASS" Index="6"/>
+      <Item Key="surface_sfx_offset_lava" ID="SURFACE_SFX_OFFSET_LAVA" Index="7"/>
+      <Item Key="surface_sfx_offset_grass" ID="SURFACE_SFX_OFFSET_GRASS" Index="8"/>
+      <Item Key="surface_sfx_offset_carpet" ID="SURFACE_SFX_OFFSET_CARPET" Index="9"/>
+      <Item Key="surface_sfx_offset_wood" ID="SURFACE_SFX_OFFSET_WOOD" Index="10"/>
+      <Item Key="surface_sfx_offset_bridge" ID="SURFACE_SFX_OFFSET_BRIDGE" Index="11"/>
+      <Item Key="surface_sfx_offset_vine" ID="SURFACE_SFX_OFFSET_VINE" Index="12"/>
+      <Item Key="surface_sfx_offset_iron_boots" ID="SURFACE_SFX_OFFSET_IRON_BOOTS" Index="13"/>
+      <Item Key="surface_sfx_offset_unused" ID="SURFACE_SFX_OFFSET_UNUSED" Index="14"/>
+      <Item Key="surface_sfx_offset_ice" ID="SURFACE_SFX_OFFSET_ICE" Index="15"/>
+  </Enum>
+  <Enum Key="surface_material" ID="SurfaceMaterial">
+      <Item Key="surface_material_dirt" ID="SURFACE_MATERIAL_DIRT" Index="0"/>
+      <Item Key="surface_material_sand" ID="SURFACE_MATERIAL_SAND" Index="1"/>
+      <Item Key="surface_material_stone" ID="SURFACE_MATERIAL_STONE" Index="2"/>
+      <Item Key="surface_material_jabu" ID="SURFACE_MATERIAL_JABU" Index="3"/>
+      <Item Key="surface_material_water_shallow" ID="SURFACE_MATERIAL_WATER_SHALLOW" Index="4"/>
+      <Item Key="surface_material_water_deep" ID="SURFACE_MATERIAL_WATER_DEEP" Index="5"/>
+      <Item Key="surface_material_tall_grass" ID="SURFACE_MATERIAL_TALL_GRASS" Index="6"/>
+      <Item Key="surface_material_lava" ID="SURFACE_MATERIAL_LAVA" Index="7"/>
+      <Item Key="surface_material_grass" ID="SURFACE_MATERIAL_GRASS" Index="8"/>
+      <Item Key="surface_material_bridge" ID="SURFACE_MATERIAL_BRIDGE" Index="9"/>
+      <Item Key="surface_material_wood" ID="SURFACE_MATERIAL_WOOD" Index="10"/>
+      <Item Key="surface_material_dirt_soft" ID="SURFACE_MATERIAL_DIRT_SOFT" Index="11"/>
+      <Item Key="surface_material_ice" ID="SURFACE_MATERIAL_ICE" Index="12"/>
+      <Item Key="surface_material_carpet" ID="SURFACE_MATERIAL_CARPET" Index="13"/>
+  </Enum>
+  <Enum Key="floor_effect" ID="FloorEffect">
+      <Item Key="floor_effect_0" ID="FLOOR_EFFECT_0" Index="0"/>
+      <Item Key="floor_effect_1" ID="FLOOR_EFFECT_1" Index="1"/>
+      <Item Key="floor_effect_2" ID="FLOOR_EFFECT_2" Index="2"/>
+  </Enum>
+  <Enum Key="conveyor_speed" ID="ConveyorSpeed">
+      <Item Key="conveyor_speed_disabled" ID="CONVEYOR_SPEED_DISABLED" Index="0"/>
+      <Item Key="conveyor_speed_slow" ID="CONVEYOR_SPEED_SLOW" Index="1"/>
+      <Item Key="conveyor_speed_medium" ID="CONVEYOR_SPEED_MEDIUM" Index="2"/>
+      <Item Key="conveyor_speed_fast" ID="CONVEYOR_SPEED_FAST" Index="3"/>
+>>>>>>>> upstream/main:fast64_internal/z64/data/xml/EnumData.xml
   </Enum>
 </Table>
