@@ -598,144 +598,6 @@
     <Item Key="no_music" ID="NA_BGM_NO_MUSIC" Name="No Music" Index="127"/>
     <Item Key="nature_sfx_rain" ID="NA_BGM_NATURE_SFX_RAIN" Name="Nature Ambiance: Rain" Index="128"/>
   </Enum>
-<<<<<<<< HEAD:fast64_internal/data/z64/xml/oot_enum_data.xml
-  <Enum Games="OoTMqDbg" Key="draw_config" ID="SceneDrawConfig">
-    <Item Key="sdc_default" ID="SDC_DEFAULT" Name="Default" Index="0"/>
-    <Item Key="sdc_hyrule_field" ID="SDC_HYRULE_FIELD" Name="Hyrule Field (Spot00)" Index="1"/>
-    <Item Key="sdc_kakariko_village" ID="SDC_KAKARIKO_VILLAGE" Name="Kakariko Village (Spot01)" Index="2"/>
-    <Item Key="sdc_zoras_river" ID="SDC_ZORAS_RIVER" Name="Zora's River (Spot03)" Index="3"/>
-    <Item Key="sdc_kokiri_forest" ID="SDC_KOKIRI_FOREST" Name="Kokiri Forest (Spot04)" Index="4"/>
-    <Item Key="sdc_lake_hylia" ID="SDC_LAKE_HYLIA" Name="Lake Hylia (Spot06)" Index="5"/>
-    <Item Key="sdc_zoras_domain" ID="SDC_ZORAS_DOMAIN" Name="Zora's Domain (Spot07)" Index="6"/>
-    <Item Key="sdc_zoras_fountain" ID="SDC_ZORAS_FOUNTAIN" Name="Zora's Fountain (Spot08)" Index="7"/>
-    <Item Key="sdc_gerudo_valley" ID="SDC_GERUDO_VALLEY" Name="Gerudo Valley (Spot09)" Index="8"/>
-    <Item Key="sdc_lost_woods" ID="SDC_LOST_WOODS" Name="Lost Woods (Spot10)" Index="9"/>
-    <Item Key="sdc_desert_colossus" ID="SDC_DESERT_COLOSSUS" Name="Desert Colossus (Spot11)" Index="10"/>
-    <Item Key="sdc_gerudos_fortress" ID="SDC_GERUDOS_FORTRESS" Name="Gerudo's Fortress (Spot12)" Index="11"/>
-    <Item Key="sdc_haunted_wasteland" ID="SDC_HAUNTED_WASTELAND" Name="Haunted Wasteland (Spot13)" Index="12"/>
-    <Item Key="sdc_hyrule_castle" ID="SDC_HYRULE_CASTLE" Name="Hyrule Castle (Spot15)" Index="13"/>
-    <Item Key="sdc_death_mountain_trail" ID="SDC_DEATH_MOUNTAIN_TRAIL" Name="Death Mountain Trail (Spot16)" Index="14"/>
-    <Item Key="sdc_death_mountain_crater" ID="SDC_DEATH_MOUNTAIN_CRATER" Name="Death Mountain Crater (Spot17)" Index="15"/>
-    <Item Key="sdc_goron_city" ID="SDC_GORON_CITY" Name="Goron City (Spot18)" Index="16"/>
-    <Item Key="sdc_lon_lon_ranch" ID="SDC_LON_LON_RANCH" Name="Lon Lon Ranch (Spot20)" Index="17"/>
-    <Item Key="sdc_fire_temple" ID="SDC_FIRE_TEMPLE" Name="Fire Temple (Hidan)" Index="18"/>
-    <Item Key="sdc_deku_tree" ID="SDC_DEKU_TREE" Name="Inside the Deku Tree (Ydan)" Index="19"/>
-    <Item Key="sdc_dodongos_cavern" ID="SDC_DODONGOS_CAVERN" Name="Dodongo's Cavern (Ddan)" Index="20"/>
-    <Item Key="sdc_jabu_jabu" ID="SDC_JABU_JABU" Name="Inside Jabu Jabu's Belly (Bdan)" Index="21"/>
-    <Item Key="sdc_forest_temple" ID="SDC_FOREST_TEMPLE" Name="Forest Temple (Bmori1)" Index="22"/>
-    <Item Key="sdc_water_temple" ID="SDC_WATER_TEMPLE" Name="Water Temple (Mizusin)" Index="23"/>
-    <Item Key="sdc_shadow_temple_and_well" ID="SDC_SHADOW_TEMPLE_AND_WELL" Name="Shadow Temple (Hakadan)" Index="24"/>
-    <Item Key="sdc_spirit_temple" ID="SDC_SPIRIT_TEMPLE" Name="Spirit Temple (Jyasinzou)" Index="25"/>
-    <Item Key="sdc_inside_ganons_castle" ID="SDC_INSIDE_GANONS_CASTLE" Name="Inside Ganon's Castle (Ganontika)" Index="26"/>
-    <Item Key="sdc_gerudo_training_ground" ID="SDC_GERUDO_TRAINING_GROUND" Name="Gerudo Training Ground (Men)" Index="27"/>
-    <Item Key="sdc_deku_tree_boss" ID="SDC_DEKU_TREE_BOSS" Name="Gohma's Lair (Ydan Boss)" Index="28"/>
-    <Item Key="sdc_water_temple_boss" ID="SDC_WATER_TEMPLE_BOSS" Name="Morpha's Lair (Mizusin Bs)" Index="29"/>
-    <Item Key="sdc_temple_of_time" ID="SDC_TEMPLE_OF_TIME" Name="Temple of Time (Tokinoma)" Index="30"/>
-    <Item Key="sdc_grottos" ID="SDC_GROTTOS" Name="Grottos (Kakusiana)" Index="31"/>
-    <Item Key="sdc_chamber_of_the_sages" ID="SDC_CHAMBER_OF_THE_SAGES" Name="Chamber of the Sages (Kenjyanoma)" Index="32"/>
-    <Item Key="sdc_great_fairys_fountain" ID="SDC_GREAT_FAIRYS_FOUNTAIN" Name="Great Fairy Fountain" Index="33"/>
-    <Item Key="sdc_shooting_gallery" ID="SDC_SHOOTING_GALLERY" Name="Shooting Gallery (Syatekijyou)" Index="34"/>
-    <Item Key="sdc_castle_courtyard_guards" ID="SDC_CASTLE_COURTYARD_GUARDS" Name="Castle Hedge Maze (Day) (Hairal Niwa)" Index="35"/>
-    <Item Key="sdc_outside_ganons_castle" ID="SDC_OUTSIDE_GANONS_CASTLE" Name="Ganon's Castle Exterior (Ganon Tou)" Index="36"/>
-    <Item Key="sdc_ice_cavern" ID="SDC_ICE_CAVERN" Name="Ice Cavern (Ice Doukuto)" Index="37"/>
-    <Item Key="sdc_ganons_tower_collapse_exterior" ID="SDC_GANONS_TOWER_COLLAPSE_EXTERIOR" Name="Ganondorf's Death Scene (Tower Escape Exterior) (Ganon Final)" Index="38"/>
-    <Item Key="sdc_fairys_fountain" ID="SDC_FAIRYS_FOUNTAIN" Name="Fairy Fountain" Index="39"/>
-    <Item Key="sdc_thieves_hideout" ID="SDC_THIEVES_HIDEOUT" Name="Thieves' Hideout (Gerudoway)" Index="40"/>
-    <Item Key="sdc_bombchu_bowling_alley" ID="SDC_BOMBCHU_BOWLING_ALLEY" Name="Bombchu Bowling Alley (Bowling)" Index="41"/>
-    <Item Key="sdc_royal_familys_tomb" ID="SDC_ROYAL_FAMILYS_TOMB" Name="Royal Family's Tomb (Hakaana Ouke)" Index="42"/>
-    <Item Key="sdc_lakeside_laboratory" ID="SDC_LAKESIDE_LABORATORY" Name="Lakeside Laboratory (Hylia Labo)" Index="43"/>
-    <Item Key="sdc_lon_lon_buildings" ID="SDC_LON_LON_BUILDINGS" Name="Lon Lon Ranch House and Tower (Souko)" Index="44"/>
-    <Item Key="sdc_market_guard_house" ID="SDC_MARKET_GUARD_HOUSE" Name="Guard House (Miharigoya)" Index="45"/>
-    <Item Key="sdc_potion_shop_granny" ID="SDC_POTION_SHOP_GRANNY" Name="Granny's Potion Shop (Mahouya)" Index="46"/>
-    <Item Key="sdc_calm_water" ID="SDC_CALM_WATER" Name="Calm Water" Index="47"/>
-    <Item Key="sdc_grave_exit_light_shining" ID="SDC_GRAVE_EXIT_LIGHT_SHINING" Name="Grave Exit Light Shining" Index="48"/>
-    <Item Key="sdc_besitu" ID="SDC_BESITU" Name="Ganondorf Test Room (Besitu)" Index="49"/>
-    <Item Key="sdc_fishing_pond" ID="SDC_FISHING_POND" Name="Fishing Pond (Turibori)" Index="50"/>
-    <Item Key="sdc_ganons_tower_collapse_interior" ID="SDC_GANONS_TOWER_COLLAPSE_INTERIOR" Name="Ganon's Tower (Collapsing) (Ganon Sonogo)" Index="51"/>
-    <Item Key="sdc_inside_ganons_castle_collapse" ID="SDC_INSIDE_GANONS_CASTLE_COLLAPSE" Name="Inside Ganon's Castle (Collapsing) (Ganontika Sonogo)" Index="52"/>
-  </Enum>
-  <Enum Games="OoTMqDbg" Key="surface_material" ID="SurfaceMaterial">
-    <Item Key="surface_material_dirt" ID="SURFACE_MATERIAL_DIRT" Name="Dirt" Index="0"/>
-    <Item Key="surface_material_sand" ID="SURFACE_MATERIAL_SAND" Name="Sand" Index="1"/>
-    <Item Key="surface_material_stone" ID="SURFACE_MATERIAL_STONE" Name="Stone" Index="2"/>
-    <Item Key="surface_material_jabu" ID="SURFACE_MATERIAL_JABU" Name="Jabu" Index="3"/>
-    <Item Key="surface_material_water_shallow" ID="SURFACE_MATERIAL_WATER_SHALLOW" Name="Shallow Water" Index="4"/>
-    <Item Key="surface_material_water_deep" ID="SURFACE_MATERIAL_WATER_DEEP" Name="Deep Water" Index="5"/>
-    <Item Key="surface_material_tall_grass" ID="SURFACE_MATERIAL_TALL_GRASS" Name="Tall Grass" Index="6"/>
-    <Item Key="surface_material_lava" ID="SURFACE_MATERIAL_LAVA" Name="Lava" Index="7"/>
-    <Item Key="surface_material_grass" ID="SURFACE_MATERIAL_GRASS" Name="Grass" Index="8"/>
-    <Item Key="surface_material_bridge" ID="SURFACE_MATERIAL_BRIDGE" Name="Bridge" Index="9"/>
-    <Item Key="surface_material_wood" ID="SURFACE_MATERIAL_WOOD" Name="Wood" Index="10"/>
-    <Item Key="surface_material_dirt_soft" ID="SURFACE_MATERIAL_DIRT_SOFT" Name="Soft Dirt" Index="11"/>
-    <Item Key="surface_material_ice" ID="SURFACE_MATERIAL_ICE" Name="Ice" Index="12"/>
-    <Item Key="surface_material_carpet" ID="SURFACE_MATERIAL_CARPET" Name="Carpet" Index="13"/>
-  </Enum>
-  <Enum Games="OoTMqDbg" Key="global_object" ID="GlobalObjects">
-    <Item Key="object_gameplay_field_keep" ID="OBJECT_GAMEPLAY_FIELD_KEEP" Name="Overworld" Index="1"/>
-    <Item Key="object_gameplay_dangeon_keep" ID="OBJECT_GAMEPLAY_DANGEON_KEEP" Name="Dungeon" Index="2"/>
-    <Item Key="object_invalid" ID="OBJECT_INVALID" Name="None" Index="0"/>
-  </Enum>
-  <Enum Games="MM" Key="cs_spline_rel" ID="CutsceneCamRelativeTo">
-  <!-- https://github.com/zeldaret/mm/blob/5607eec18bae68e4cd38ef6d1fa69d7f1d84bfc8/include/z64cutscene.h#L754C14-L754-L760 -->
-  <Item Key="rel0" ID="CS_CAM_REL_0" Index="0"/>
-  <Item Key="rel1" ID="CS_CAM_REL_1" Index="1"/>
-  <Item Key="rel2" ID="CS_CAM_REL_2" Index="2"/>
-  <Item Key="rel3" ID="CS_CAM_REL_3" Index="3"/>
-  <Item Key="rel4" ID="CS_CAM_REL_4" Index="4"/>
-  <Item Key="rel5" ID="CS_CAM_REL_5" Index="5"/>
-</Enum>
-<Enum Games="MM" Key="cs_spline_interp_type" ID="CutsceneCamInterpType">
-  <!-- https://github.com/zeldaret/mm/blob/5607eec18bae68e4cd38ef6d1fa69d7f1d84bfc8/include/z64cutscene.h#L740-L751 -->
-  <Item Key="none" ID="CS_CAM_INTERP_NONE" Index="0"/>
-  <Item Key="set" ID="CS_CAM_INTERP_SET" Index="1"/>
-  <Item Key="linear" ID="CS_CAM_INTERP_LINEAR" Index="2"/>
-  <Item Key="scale" ID="CS_CAM_INTERP_SCALE" Index="3"/>
-  <Item Key="cubic" ID="CS_CAM_INTERP_MP_CUBIC" Index="4"/>
-  <Item Key="quad" ID="CS_CAM_INTERP_MP_QUAD" Index="5"/>
-  <Item Key="geo" ID="CS_CAM_INTERP_GEO" Index="6"/>
-  <Item Key="off" ID="CS_CAM_INTERP_OFF" Index="7"/>
-</Enum>
-  <Enum Games="MM" Key="cs_spawn_flag" ID="CS_SPAWN_FLAG">
-      <!-- https://github.com/zeldaret/mm/blob/0fdd63a350c47b5da87a58f00855bc95b6a32b47/include/z64cutscene.h#L583-L586 -->
-      <Item Key="flag_none" ID="CS_SPAWN_FLAG_NONE" Index="255"/>
-      <Item Key="flag_always" ID="CS_SPAWN_FLAG_ALWAYS" Index="254"/>
-  </Enum>
-  <Enum Games="MM" Key="actor_cs_end_sfx" ID="CutsceneEndSfx">
-      <!-- https://github.com/zeldaret/mm/blob/0fdd63a350c47b5da87a58f00855bc95b6a32b47/include/z64cutscene.h#L709-L714 -->
-      <Item Key="none" ID="CS_END_SFX_NONE" Index="0"/>
-      <Item Key="tre_box_appear" ID="CS_END_SFX_TRE_BOX_APPEAR" Index="1"/>
-      <Item Key="correct_chime" ID="CS_END_SFX_CORRECT_CHIME" Index="2"/>
-      <Item Key="none_alt" ID="CS_END_SFX_NONE_ALT" Index="255"/>
-  </Enum>
-    <Enum Games="MM" Key="cs_rumble_type" ID="CutsceneRumbleType">
-      <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L248-L251 -->
-      <Item Key="rumble_once" ID="CS_RUMBLE_ONCE" Index="1"/>
-      <Item Key="rumble_pulse" ID="CS_RUMBLE_PULSE" Index="2"/>
-  </Enum>
-  <Enum Games="MM" Key="cs_transition_general" ID="CsTransitionGeneralType">
-      <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L263-L266 -->
-      <Item Key="trans_general_fill_in" ID="CS_TRANS_GENERAL_FILL_IN" Index="1"/>
-      <Item Key="trans_general_fill_out" ID="CS_TRANS_GENERAL_FILL_OUT" Index="2"/>
-  </Enum>
-    <Enum Games="MM" Key="cs_motion_blur_type" ID="CsMotionBlurType">
-      <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L166-L169 -->
-      <Item Key="motion_blur_enable" ID="CS_MOTION_BLUR_ENABLE" Index="1"/>
-      <Item Key="motion_blur_disable" ID="CS_MOTION_BLUR_DISABLE" Index="2"/>
-  </Enum>
-    <Enum Games="MM" Key="cs_credits_scene_type" ID="CsChooseCreditsSceneType">
-      <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L143-L155 -->
-      <Item Key="credits_destination" ID="CS_CREDITS_DESTINATION" Index="1"/>
-  </Enum>
-    <Enum Games="MM" Key="cs_modify_seq_type" ID="CsModifySeqType">
-      <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L109-L118 -->
-      <Item Key="mod_seq_0" ID="CS_MOD_SEQ_0" Index="1"/>
-      <Item Key="mod_seq_1" ID="CS_MOD_SEQ_1" Index="2"/>
-      <Item Key="mod_seq_2" ID="CS_MOD_SEQ_2" Index="3"/>
-      <Item Key="mod_ambience_0" ID="CS_MOD_AMBIENCE_0" Index="4"/>
-      <Item Key="mod_ambience_1" ID="CS_MOD_AMBIENCE_1" Index="5"/>
-      <Item Key="mod_ambience_2" ID="CS_MOD_AMBIENCE_2" Index="6"/>
-      <Item Key="mod_seq_store" ID="CS_MOD_SEQ_STORE" Index="7"/>
-      <Item Key="mod_seq_restore" ID="CS_MOD_SEQ_RESTORE" Index="8"/>
   <Enum Key="floor_type" ID="FloorType">
       <Item Key="floor_type_0" ID="FLOOR_TYPE_0" Index="0"/>
       <Item Key="floor_type_1" ID="FLOOR_TYPE_1" Index="1"/>
@@ -820,6 +682,127 @@
       <Item Key="conveyor_speed_slow" ID="CONVEYOR_SPEED_SLOW" Index="1"/>
       <Item Key="conveyor_speed_medium" ID="CONVEYOR_SPEED_MEDIUM" Index="2"/>
       <Item Key="conveyor_speed_fast" ID="CONVEYOR_SPEED_FAST" Index="3"/>
->>>>>>>> upstream/main:fast64_internal/z64/data/xml/EnumData.xml
+  </Enum>
+  <Enum Games="OoTMqDbg" Key="draw_config" ID="SceneDrawConfig">
+    <Item Key="sdc_default" ID="SDC_DEFAULT" Name="Default" Index="0"/>
+    <Item Key="sdc_hyrule_field" ID="SDC_HYRULE_FIELD" Name="Hyrule Field (Spot00)" Index="1"/>
+    <Item Key="sdc_kakariko_village" ID="SDC_KAKARIKO_VILLAGE" Name="Kakariko Village (Spot01)" Index="2"/>
+    <Item Key="sdc_zoras_river" ID="SDC_ZORAS_RIVER" Name="Zora's River (Spot03)" Index="3"/>
+    <Item Key="sdc_kokiri_forest" ID="SDC_KOKIRI_FOREST" Name="Kokiri Forest (Spot04)" Index="4"/>
+    <Item Key="sdc_lake_hylia" ID="SDC_LAKE_HYLIA" Name="Lake Hylia (Spot06)" Index="5"/>
+    <Item Key="sdc_zoras_domain" ID="SDC_ZORAS_DOMAIN" Name="Zora's Domain (Spot07)" Index="6"/>
+    <Item Key="sdc_zoras_fountain" ID="SDC_ZORAS_FOUNTAIN" Name="Zora's Fountain (Spot08)" Index="7"/>
+    <Item Key="sdc_gerudo_valley" ID="SDC_GERUDO_VALLEY" Name="Gerudo Valley (Spot09)" Index="8"/>
+    <Item Key="sdc_lost_woods" ID="SDC_LOST_WOODS" Name="Lost Woods (Spot10)" Index="9"/>
+    <Item Key="sdc_desert_colossus" ID="SDC_DESERT_COLOSSUS" Name="Desert Colossus (Spot11)" Index="10"/>
+    <Item Key="sdc_gerudos_fortress" ID="SDC_GERUDOS_FORTRESS" Name="Gerudo's Fortress (Spot12)" Index="11"/>
+    <Item Key="sdc_haunted_wasteland" ID="SDC_HAUNTED_WASTELAND" Name="Haunted Wasteland (Spot13)" Index="12"/>
+    <Item Key="sdc_hyrule_castle" ID="SDC_HYRULE_CASTLE" Name="Hyrule Castle (Spot15)" Index="13"/>
+    <Item Key="sdc_death_mountain_trail" ID="SDC_DEATH_MOUNTAIN_TRAIL" Name="Death Mountain Trail (Spot16)" Index="14"/>
+    <Item Key="sdc_death_mountain_crater" ID="SDC_DEATH_MOUNTAIN_CRATER" Name="Death Mountain Crater (Spot17)" Index="15"/>
+    <Item Key="sdc_goron_city" ID="SDC_GORON_CITY" Name="Goron City (Spot18)" Index="16"/>
+    <Item Key="sdc_lon_lon_ranch" ID="SDC_LON_LON_RANCH" Name="Lon Lon Ranch (Spot20)" Index="17"/>
+    <Item Key="sdc_fire_temple" ID="SDC_FIRE_TEMPLE" Name="Fire Temple (Hidan)" Index="18"/>
+    <Item Key="sdc_deku_tree" ID="SDC_DEKU_TREE" Name="Inside the Deku Tree (Ydan)" Index="19"/>
+    <Item Key="sdc_dodongos_cavern" ID="SDC_DODONGOS_CAVERN" Name="Dodongo's Cavern (Ddan)" Index="20"/>
+    <Item Key="sdc_jabu_jabu" ID="SDC_JABU_JABU" Name="Inside Jabu Jabu's Belly (Bdan)" Index="21"/>
+    <Item Key="sdc_forest_temple" ID="SDC_FOREST_TEMPLE" Name="Forest Temple (Bmori1)" Index="22"/>
+    <Item Key="sdc_water_temple" ID="SDC_WATER_TEMPLE" Name="Water Temple (Mizusin)" Index="23"/>
+    <Item Key="sdc_shadow_temple_and_well" ID="SDC_SHADOW_TEMPLE_AND_WELL" Name="Shadow Temple (Hakadan)" Index="24"/>
+    <Item Key="sdc_spirit_temple" ID="SDC_SPIRIT_TEMPLE" Name="Spirit Temple (Jyasinzou)" Index="25"/>
+    <Item Key="sdc_inside_ganons_castle" ID="SDC_INSIDE_GANONS_CASTLE" Name="Inside Ganon's Castle (Ganontika)" Index="26"/>
+    <Item Key="sdc_gerudo_training_ground" ID="SDC_GERUDO_TRAINING_GROUND" Name="Gerudo Training Ground (Men)" Index="27"/>
+    <Item Key="sdc_deku_tree_boss" ID="SDC_DEKU_TREE_BOSS" Name="Gohma's Lair (Ydan Boss)" Index="28"/>
+    <Item Key="sdc_water_temple_boss" ID="SDC_WATER_TEMPLE_BOSS" Name="Morpha's Lair (Mizusin Bs)" Index="29"/>
+    <Item Key="sdc_temple_of_time" ID="SDC_TEMPLE_OF_TIME" Name="Temple of Time (Tokinoma)" Index="30"/>
+    <Item Key="sdc_grottos" ID="SDC_GROTTOS" Name="Grottos (Kakusiana)" Index="31"/>
+    <Item Key="sdc_chamber_of_the_sages" ID="SDC_CHAMBER_OF_THE_SAGES" Name="Chamber of the Sages (Kenjyanoma)" Index="32"/>
+    <Item Key="sdc_great_fairys_fountain" ID="SDC_GREAT_FAIRYS_FOUNTAIN" Name="Great Fairy Fountain" Index="33"/>
+    <Item Key="sdc_shooting_gallery" ID="SDC_SHOOTING_GALLERY" Name="Shooting Gallery (Syatekijyou)" Index="34"/>
+    <Item Key="sdc_castle_courtyard_guards" ID="SDC_CASTLE_COURTYARD_GUARDS" Name="Castle Hedge Maze (Day) (Hairal Niwa)" Index="35"/>
+    <Item Key="sdc_outside_ganons_castle" ID="SDC_OUTSIDE_GANONS_CASTLE" Name="Ganon's Castle Exterior (Ganon Tou)" Index="36"/>
+    <Item Key="sdc_ice_cavern" ID="SDC_ICE_CAVERN" Name="Ice Cavern (Ice Doukuto)" Index="37"/>
+    <Item Key="sdc_ganons_tower_collapse_exterior" ID="SDC_GANONS_TOWER_COLLAPSE_EXTERIOR" Name="Ganondorf's Death Scene (Tower Escape Exterior) (Ganon Final)" Index="38"/>
+    <Item Key="sdc_fairys_fountain" ID="SDC_FAIRYS_FOUNTAIN" Name="Fairy Fountain" Index="39"/>
+    <Item Key="sdc_thieves_hideout" ID="SDC_THIEVES_HIDEOUT" Name="Thieves' Hideout (Gerudoway)" Index="40"/>
+    <Item Key="sdc_bombchu_bowling_alley" ID="SDC_BOMBCHU_BOWLING_ALLEY" Name="Bombchu Bowling Alley (Bowling)" Index="41"/>
+    <Item Key="sdc_royal_familys_tomb" ID="SDC_ROYAL_FAMILYS_TOMB" Name="Royal Family's Tomb (Hakaana Ouke)" Index="42"/>
+    <Item Key="sdc_lakeside_laboratory" ID="SDC_LAKESIDE_LABORATORY" Name="Lakeside Laboratory (Hylia Labo)" Index="43"/>
+    <Item Key="sdc_lon_lon_buildings" ID="SDC_LON_LON_BUILDINGS" Name="Lon Lon Ranch House and Tower (Souko)" Index="44"/>
+    <Item Key="sdc_market_guard_house" ID="SDC_MARKET_GUARD_HOUSE" Name="Guard House (Miharigoya)" Index="45"/>
+    <Item Key="sdc_potion_shop_granny" ID="SDC_POTION_SHOP_GRANNY" Name="Granny's Potion Shop (Mahouya)" Index="46"/>
+    <Item Key="sdc_calm_water" ID="SDC_CALM_WATER" Name="Calm Water" Index="47"/>
+    <Item Key="sdc_grave_exit_light_shining" ID="SDC_GRAVE_EXIT_LIGHT_SHINING" Name="Grave Exit Light Shining" Index="48"/>
+    <Item Key="sdc_besitu" ID="SDC_BESITU" Name="Ganondorf Test Room (Besitu)" Index="49"/>
+    <Item Key="sdc_fishing_pond" ID="SDC_FISHING_POND" Name="Fishing Pond (Turibori)" Index="50"/>
+    <Item Key="sdc_ganons_tower_collapse_interior" ID="SDC_GANONS_TOWER_COLLAPSE_INTERIOR" Name="Ganon's Tower (Collapsing) (Ganon Sonogo)" Index="51"/>
+    <Item Key="sdc_inside_ganons_castle_collapse" ID="SDC_INSIDE_GANONS_CASTLE_COLLAPSE" Name="Inside Ganon's Castle (Collapsing) (Ganontika Sonogo)" Index="52"/>
+  </Enum>
+  <Enum Games="OoTMqDbg" Key="global_object" ID="GlobalObjects">
+    <Item Key="object_gameplay_field_keep" ID="OBJECT_GAMEPLAY_FIELD_KEEP" Name="Overworld" Index="1"/>
+    <Item Key="object_gameplay_dangeon_keep" ID="OBJECT_GAMEPLAY_DANGEON_KEEP" Name="Dungeon" Index="2"/>
+    <Item Key="object_invalid" ID="OBJECT_INVALID" Name="None" Index="0"/>
+  </Enum>
+  <Enum Games="MM" Key="cs_spline_rel" ID="CutsceneCamRelativeTo">
+  <!-- https://github.com/zeldaret/mm/blob/5607eec18bae68e4cd38ef6d1fa69d7f1d84bfc8/include/z64cutscene.h#L754C14-L754-L760 -->
+  <Item Key="rel0" ID="CS_CAM_REL_0" Index="0"/>
+  <Item Key="rel1" ID="CS_CAM_REL_1" Index="1"/>
+  <Item Key="rel2" ID="CS_CAM_REL_2" Index="2"/>
+  <Item Key="rel3" ID="CS_CAM_REL_3" Index="3"/>
+  <Item Key="rel4" ID="CS_CAM_REL_4" Index="4"/>
+  <Item Key="rel5" ID="CS_CAM_REL_5" Index="5"/>
+</Enum>
+<Enum Games="MM" Key="cs_spline_interp_type" ID="CutsceneCamInterpType">
+  <!-- https://github.com/zeldaret/mm/blob/5607eec18bae68e4cd38ef6d1fa69d7f1d84bfc8/include/z64cutscene.h#L740-L751 -->
+  <Item Key="none" ID="CS_CAM_INTERP_NONE" Index="0"/>
+  <Item Key="set" ID="CS_CAM_INTERP_SET" Index="1"/>
+  <Item Key="linear" ID="CS_CAM_INTERP_LINEAR" Index="2"/>
+  <Item Key="scale" ID="CS_CAM_INTERP_SCALE" Index="3"/>
+  <Item Key="cubic" ID="CS_CAM_INTERP_MP_CUBIC" Index="4"/>
+  <Item Key="quad" ID="CS_CAM_INTERP_MP_QUAD" Index="5"/>
+  <Item Key="geo" ID="CS_CAM_INTERP_GEO" Index="6"/>
+  <Item Key="off" ID="CS_CAM_INTERP_OFF" Index="7"/>
+</Enum>
+  <Enum Games="MM" Key="cs_spawn_flag" ID="CS_SPAWN_FLAG">
+      <!-- https://github.com/zeldaret/mm/blob/0fdd63a350c47b5da87a58f00855bc95b6a32b47/include/z64cutscene.h#L583-L586 -->
+      <Item Key="flag_none" ID="CS_SPAWN_FLAG_NONE" Index="255"/>
+      <Item Key="flag_always" ID="CS_SPAWN_FLAG_ALWAYS" Index="254"/>
+  </Enum>
+  <Enum Games="MM" Key="actor_cs_end_sfx" ID="CutsceneEndSfx">
+      <!-- https://github.com/zeldaret/mm/blob/0fdd63a350c47b5da87a58f00855bc95b6a32b47/include/z64cutscene.h#L709-L714 -->
+      <Item Key="none" ID="CS_END_SFX_NONE" Index="0"/>
+      <Item Key="tre_box_appear" ID="CS_END_SFX_TRE_BOX_APPEAR" Index="1"/>
+      <Item Key="correct_chime" ID="CS_END_SFX_CORRECT_CHIME" Index="2"/>
+      <Item Key="none_alt" ID="CS_END_SFX_NONE_ALT" Index="255"/>
+  </Enum>
+    <Enum Games="MM" Key="cs_rumble_type" ID="CutsceneRumbleType">
+      <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L248-L251 -->
+      <Item Key="rumble_once" ID="CS_RUMBLE_ONCE" Index="1"/>
+      <Item Key="rumble_pulse" ID="CS_RUMBLE_PULSE" Index="2"/>
+  </Enum>
+  <Enum Games="MM" Key="cs_transition_general" ID="CsTransitionGeneralType">
+      <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L263-L266 -->
+      <Item Key="trans_general_fill_in" ID="CS_TRANS_GENERAL_FILL_IN" Index="1"/>
+      <Item Key="trans_general_fill_out" ID="CS_TRANS_GENERAL_FILL_OUT" Index="2"/>
+  </Enum>
+    <Enum Games="MM" Key="cs_motion_blur_type" ID="CsMotionBlurType">
+      <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L166-L169 -->
+      <Item Key="motion_blur_enable" ID="CS_MOTION_BLUR_ENABLE" Index="1"/>
+      <Item Key="motion_blur_disable" ID="CS_MOTION_BLUR_DISABLE" Index="2"/>
+  </Enum>
+    <Enum Games="MM" Key="cs_credits_scene_type" ID="CsChooseCreditsSceneType">
+      <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L143-L155 -->
+      <Item Key="credits_destination" ID="CS_CREDITS_DESTINATION" Index="1"/>
+  </Enum>
+    <Enum Games="MM" Key="cs_modify_seq_type" ID="CsModifySeqType">
+      <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L109-L118 -->
+      <Item Key="mod_seq_0" ID="CS_MOD_SEQ_0" Index="1"/>
+      <Item Key="mod_seq_1" ID="CS_MOD_SEQ_1" Index="2"/>
+      <Item Key="mod_seq_2" ID="CS_MOD_SEQ_2" Index="3"/>
+      <Item Key="mod_ambience_0" ID="CS_MOD_AMBIENCE_0" Index="4"/>
+      <Item Key="mod_ambience_1" ID="CS_MOD_AMBIENCE_1" Index="5"/>
+      <Item Key="mod_ambience_2" ID="CS_MOD_AMBIENCE_2" Index="6"/>
+      <Item Key="mod_seq_store" ID="CS_MOD_SEQ_STORE" Index="7"/>
+      <Item Key="mod_seq_restore" ID="CS_MOD_SEQ_RESTORE" Index="8"/>
   </Enum>
 </Table>
