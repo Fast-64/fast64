@@ -3,7 +3,9 @@ import re
 import bpy
 import mathutils
 
-from ...utility import readFile, hexOrDecInt
+from pathlib import Path
+
+from ...utility import PluginError, readFile, hexOrDecInt
 from ...f3d.f3d_parser import parseMatrices
 from ...f3d.f3d_gbi import get_F3D_GBI
 from ...f3d.flipbook import TextureFlipbook
@@ -11,9 +13,9 @@ from ..oot_model_classes import OOTF3DContext
 from ..exporter.decomp_edit.scene_table import SceneTableUtility
 from ..scene.properties import OOTImportSceneSettingsProperty
 from ..oot_constants import ootEnumDrawConfig
+from ..cutscene.importer import importCutsceneData
 from .scene_header import parseSceneCommands
 from .classes import SharedSceneData
-from ..cutscene.importer import importCutsceneData
 
 from ..oot_utility import (
     getSceneDirFromLevelName,
@@ -104,43 +106,44 @@ def parseScene(
         False,
         True,
     )
-    filePath = os.path.join(sceneFolderPath, f"{sceneName}_scene.c")
-    sceneData = readFile(filePath)
 
-    # roomData = ""
-    # sceneFolderFiles = [f for f in listdir(sceneFolderPath) if isfile(join(sceneFolderPath, f))]
-    # for sceneFile in sceneFolderFiles:
-    #    if re.search(rf"{sceneName}_room_[0-9]+\.c", sceneFile):
-    #        roomPath = os.path.join(sceneFolderPath, sceneFile)
-    #        roomData += readFile(roomPath)
+    file_path = Path(sceneFolderPath).resolve() / f"{sceneName}_scene.c"
+    is_single_file = True
 
-    # sceneData += roomData
+    if not file_path.exists():
+        file_path = Path(sceneFolderPath).resolve() / f"{sceneName}_scene_main.c"
+        is_single_file = False
+
+    if not file_path.exists():
+        raise PluginError("ERROR: scene not found!")
+
+    sceneData = file_path.read_text()
+
+    if not is_single_file:
+        # get the other scene files for non-single file fast64 exports
+        for file in file_path.parent.rglob("*.c"):
+            if "_scene_main.c" not in str(file) and "_room_" not in str(file):
+                sceneData += file.read_text()
 
     if bpy.context.mode != "OBJECT":
         bpy.context.mode = "OBJECT"
 
-    # set scene default registers (see sDefaultDisplayList)
-    f3dContext = OOTF3DContext(get_F3D_GBI(), [], bpy.path.abspath(bpy.context.scene.ootDecompPath))
-    f3dContext.mat().prim_color = (0.5, 0.5, 0.5, 0.5)
-    f3dContext.mat().env_color = (0.5, 0.5, 0.5, 0.5)
-
-    parseMatrices(sceneData, f3dContext, 1 / bpy.context.scene.ootBlenderScale)
-    f3dContext.addMatrix("&gMtxClear", mathutils.Matrix.Scale(1 / bpy.context.scene.ootBlenderScale, 4))
-
-    if not settings.isCustomDest:
-        drawConfigName = SceneTableUtility.get_draw_config(sceneName)
-        drawConfigData = readFile(os.path.join(importPath, "src/code/z_scene_table.c"))
-        parseDrawConfig(drawConfigName, sceneData, drawConfigData, f3dContext)
-
-    bpy.context.space_data.overlay.show_relationship_lines = False
-    bpy.context.space_data.overlay.show_curve_normals = True
-    bpy.context.space_data.overlay.normals_length = 2
-
     sceneCommandsName = f"{sceneName}_sceneCommands"
+    not_zapd_assets = False
+
+    # fast64 naming
     if sceneCommandsName not in sceneData:
-        sceneCommandsName = f"{sceneName}_scene_header00"  # fast64 naming
+        not_zapd_assets = True
+        sceneCommandsName = f"{sceneName}_scene_header00"
+
+    # newer assets system naming
+    if sceneCommandsName not in sceneData:
+        not_zapd_assets = True
+        sceneCommandsName = f"{sceneName}_scene"
+
     sharedSceneData = SharedSceneData(
         sceneFolderPath,
+        f"{sceneName}_scene",
         settings.includeMesh,
         settings.includeCollision,
         settings.includeActors,
@@ -150,7 +153,31 @@ def parseScene(
         settings.includePaths,
         settings.includeWaterBoxes,
         settings.includeCutscenes,
+        is_single_file,
+        f"{sceneName}_scene_header00" in sceneData,
+        not_zapd_assets,
     )
+
+    # set scene default registers (see sDefaultDisplayList)
+    f3dContext = OOTF3DContext(get_F3D_GBI(), [], bpy.path.abspath(bpy.context.scene.ootDecompPath))
+    f3dContext.mat().prim_color = (0.5, 0.5, 0.5, 0.5)
+    f3dContext.mat().env_color = (0.5, 0.5, 0.5, 0.5)
+
+    # disable TLUTs only if we're trying to import a scene from the new assets system
+    f3dContext.ignore_tlut = sharedSceneData.not_zapd_assets and not sharedSceneData.is_fast64_data
+
+    parseMatrices(sceneData, f3dContext, 1 / bpy.context.scene.ootBlenderScale)
+    f3dContext.addMatrix("&gMtxClear", mathutils.Matrix.Scale(1 / bpy.context.scene.ootBlenderScale, 4))
+    f3dContext.addMatrix("&gIdentityMtx", mathutils.Matrix.Scale(1 / bpy.context.scene.ootBlenderScale, 4))
+
+    if not settings.isCustomDest:
+        drawConfigName = SceneTableUtility.get_draw_config(sceneName)
+        drawConfigData = readFile(os.path.join(importPath, "src/code/z_scene_table.c"))
+        parseDrawConfig(drawConfigName, sceneData, drawConfigData, f3dContext)
+
+    bpy.context.space_data.overlay.show_relationship_lines = False
+    bpy.context.space_data.overlay.show_curve_normals = True
+    bpy.context.space_data.overlay.normals_length = 2
 
     if settings.includeCutscenes:
         bpy.context.scene.ootCSNumber = importCutsceneData(None, sceneData)

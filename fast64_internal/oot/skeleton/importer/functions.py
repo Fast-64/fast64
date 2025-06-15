@@ -1,9 +1,22 @@
 import re
+import mathutils
+import bpy
+import math
+
+from pathlib import Path
 from typing import List
-import mathutils, bpy, math
+
 from ....f3d.f3d_gbi import F3D, get_F3D_GBI
 from ....f3d.f3d_parser import getImportData, parseF3D
-from ....utility import hexOrDecInt, applyRotation, PluginError, deselectAllObjects, selectSingleObject
+from ....utility import (
+    PluginError,
+    hexOrDecInt,
+    applyRotation,
+    deselectAllObjects,
+    selectSingleObject,
+    get_include_data,
+    removeComments,
+)
 from ...oot_f3d_writer import ootReadActorScale
 from ...oot_model_classes import OOTF3DContext, ootGetIncludedAssetData
 from ...oot_utility import OOTEnum, ootGetObjectPath, getOOTScale, ootGetObjectHeaderPath, ootGetEnums, ootStripComments
@@ -259,6 +272,24 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
         ootGetObjectHeaderPath(isCustomImport, importPath, folderName, True),
     ]
 
+    if isLink:
+        filepaths.append(ootGetObjectPath(isCustomImport, "", "gameplay_keep", True))
+        filepaths.append(ootGetObjectHeaderPath(isCustomImport, "", "gameplay_keep", True))
+
+        if not bpy.context.scene.fast64.oot.is_globalh_present():
+            filepaths.extend(
+                [
+                    ootGetObjectPath(isCustomImport, importPath, folderName, False),
+                    ootGetObjectHeaderPath(isCustomImport, importPath, folderName, False),
+                    f"{bpy.context.scene.ootDecompPath}/include/z64player.h",
+                ]
+            )
+
+    for path in filepaths:
+        p = Path(path)
+        if not p.exists():
+            filepaths.remove(path)
+
     removeDoubles = importSettings.removeDoubles
     importNormals = importSettings.importNormals
     drawLayer = importSettings.drawLayer
@@ -268,14 +299,25 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
         skeletonData = ootGetIncludedAssetData(basePath, filepaths, skeletonData) + skeletonData
 
     matchResult = ootGetSkeleton(skeletonData, skeletonName, False)
-    limbsName = matchResult.group(2)
+    if "#include" in matchResult.group(0):
+        split = get_include_data(matchResult.group(3), strip=True).replace("{", "").replace(",}", "").split(",")
+        limbsName = split[0]
+        ignore_tlut = True
+    else:
+        limbsName = matchResult.group(2)
+        ignore_tlut = False
 
     matchResult = ootGetLimbs(skeletonData, limbsName, False)
-    limbsData = matchResult.group(2)
+    if "#include" in matchResult.group(0):
+        limbsData = removeComments(get_include_data(matchResult.group(2)))
+    else:
+        limbsData = matchResult.group(2)
+
     limbList = [entry.strip()[1:] for entry in ootStripComments(limbsData).split(",") if entry.strip() != ""]
 
     f3dContext = OOTF3DContext(get_F3D_GBI(), limbList, basePath)
     f3dContext.mat().draw_layer.oot = drawLayer
+    f3dContext.ignore_tlut = ignore_tlut
 
     actorScale = None
 
