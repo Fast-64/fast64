@@ -7,7 +7,8 @@ from ...utility import PluginError, hexOrDecInt
 from ..utility import setCustomProperty
 from ..model_classes import OOTF3DContext
 from ..room.properties import OOTRoomHeaderProperty
-from ..constants import ootData, ootEnumLinkIdle, ootEnumRoomBehaviour
+from ...game_data import game_data
+from ..constants import ootEnumLinkIdle, ootEnumRoomBehaviour
 from .utility import getDataMatch, stripName, parse_commands_data
 from .classes import SharedSceneData
 from .constants import headerNames
@@ -21,7 +22,7 @@ def parseObjectList(roomHeader: OOTRoomHeaderProperty, sceneData: str, objectLis
 
     for object in objects:
         objectProp = roomHeader.objectList.add()
-        objByID = ootData.objectData.objectsByID.get(object)
+        objByID = game_data.z64.objects.objects_by_id.get(object)
 
         if objByID is not None:
             objectProp.objectKey = objByID.key

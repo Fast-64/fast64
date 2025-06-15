@@ -19,12 +19,12 @@ from .classes import SharedSceneData
 from ..collision.constants import (
     ootEnumFloorSetting,
     ootEnumWallSetting,
-    ootEnumFloorProperty,
+    enum_floor_property,
     ootEnumCollisionTerrain,
     ootEnumCollisionSound,
     ootEnumCameraSType,
     ootEnumCameraCrawlspaceSType,
-    ootEnumConveyorSpeed,
+    enum_conveyor_speed,
 )
 
 
@@ -180,7 +180,7 @@ def parseSurfaceParams(
     col_props.decreaseHeight = surface_type.isSoft
     setCustomProperty(col_props, "floorSetting", surface_type.floorProperty, ootEnumFloorSetting)
     setCustomProperty(col_props, "wallSetting", surface_type.wallType, ootEnumWallSetting)
-    setCustomProperty(col_props, "floorProperty", surface_type.floorType, ootEnumFloorProperty)
+    setCustomProperty(col_props, "floorProperty", surface_type.floorType, enum_floor_property)
     col_props.exitID = surface_type.exitIndex
     col_props.cameraID = surface_type.bgCamIndex
     col_props.isWallDamage = surface_type.isWallDamage
@@ -188,7 +188,7 @@ def parseSurfaceParams(
     col_props.conveyorRotation = (surface_type.conveyorDirection / 0x3F) * (2 * math.pi)
     col_props.conveyorSpeed = "Custom"
     col_props.conveyorSpeedCustom = str(surface_type.conveyorSpeed)
-    setCustomProperty(col_props, "conveyorSpeed", surface_type.conveyorSpeed, ootEnumConveyorSpeed)
+    setCustomProperty(col_props, "conveyorSpeed", surface_type.conveyorSpeed, enum_conveyor_speed)
 
     if isinstance(surface_type.conveyorSpeed, int):
         speed_int = surface_type.conveyorSpeed

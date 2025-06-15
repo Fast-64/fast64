@@ -3,7 +3,7 @@ import bpy
 from dataclasses import dataclass
 
 from ....utility import CData, indent
-from ...constants import ootData
+from ....game_data import game_data
 
 
 @dataclass(unsafe_hash=True)
@@ -37,18 +37,18 @@ class SurfaceType:
         return SurfaceType(
             ((surface0 >> 0) & 0xFF),
             ((surface0 >> 8) & 0x1F),
-            ootData.enumData.enumByKey["floor_type"].itemByIndex[((surface0 >> 13) & 0x1F)].id,
+            game_data.z64.enums.enumByKey["floor_type"].item_by_index[((surface0 >> 13) & 0x1F)].id,
             ((surface0 >> 18) & 0x07),
-            ootData.enumData.enumByKey["wall_type"].itemByIndex[((surface0 >> 21) & 0x1F)].id,
-            ootData.enumData.enumByKey["floor_property"].itemByIndex[((surface0 >> 26) & 0x0F)].id,
+            game_data.z64.enums.enumByKey["wall_type"].item_by_index[((surface0 >> 21) & 0x1F)].id,
+            game_data.z64.enums.enumByKey["floor_property"].item_by_index[((surface0 >> 26) & 0x0F)].id,
             ((surface0 >> 30) & 1) > 0,
             ((surface0 >> 31) & 1) > 0,
-            ootData.enumData.enumByKey["surface_material"].itemByIndex[((surface1 >> 0) & 0x0F)].id,
-            ootData.enumData.enumByKey["floor_effect"].itemByIndex[((surface1 >> 4) & 0x03)].id,
+            game_data.z64.enums.enumByKey["surface_material"].item_by_index[((surface1 >> 0) & 0x0F)].id,
+            game_data.z64.enums.enumByKey["floor_effect"].item_by_index[((surface1 >> 4) & 0x03)].id,
             ((surface1 >> 6) & 0x1F),
             ((surface1 >> 11) & 0x3F),
             ((surface1 >> 17) & 1) > 0,
-            ootData.enumData.enumByKey["conveyor_speed"].itemByIndex[((surface1 >> 18) & 0x07)].id,
+            game_data.z64.enums.enumByKey["conveyor_speed"].item_by_index[((surface1 >> 18) & 0x07)].id,
             ((surface1 >> 21) & 0x3F),
             ((surface1 >> 27) & 1) > 0,
             bpy.context.scene.fast64.oot.useDecompFeatures,

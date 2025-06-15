@@ -8,9 +8,9 @@ from ..constants import ootEnumSceneID
 from .constants import (
     ootEnumFloorSetting,
     ootEnumWallSetting,
-    ootEnumFloorProperty,
+    enum_floor_property,
     ootEnumConveyer,
-    ootEnumConveyorSpeed,
+    enum_conveyor_speed,
     ootEnumCollisionTerrain,
     ootEnumCollisionSound,
     ootEnumCameraSType,
@@ -72,13 +72,13 @@ class OOTMaterialCollisionProperty(PropertyGroup):
     wallSettingCustom: StringProperty(default="0x00")
     wallSetting: EnumProperty(items=ootEnumWallSetting, default="0x00")
     floorPropertyCustom: StringProperty(default="0x00")
-    floorProperty: EnumProperty(items=ootEnumFloorProperty, default="0x00")
+    floorProperty: EnumProperty(items=enum_floor_property, default="0x00")
     exitID: IntProperty(default=0, min=0)
     cameraID: IntProperty(default=0, min=0)
     isWallDamage: BoolProperty()
     conveyorOption: EnumProperty(items=ootEnumConveyer)
     conveyorRotation: FloatProperty(min=0, max=2 * math.pi, subtype="ANGLE")
-    conveyorSpeed: EnumProperty(items=ootEnumConveyorSpeed, default="0x00")
+    conveyorSpeed: EnumProperty(items=enum_conveyor_speed, default="0x00")
     conveyorSpeedCustom: StringProperty(default="0x00")
     conveyorKeepMomentum: BoolProperty()
     hookshotable: BoolProperty()

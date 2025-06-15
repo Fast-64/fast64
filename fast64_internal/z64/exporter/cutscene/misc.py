@@ -16,7 +16,7 @@ class CutsceneCmdMisc(CutsceneCmdBase):
     @staticmethod
     def from_params(params: list[str]):
         return CutsceneCmdMisc(
-            getInteger(params[1]), getInteger(params[2]), CutsceneCmdBase.getEnumValue("csMiscType", params[0])
+            getInteger(params[1]), getInteger(params[2]), CutsceneCmdBase.getEnumValue("cs_misc_type", params[0])
         )
 
     def getCmd(self):
@@ -200,7 +200,7 @@ class CutsceneCmdDestination(CutsceneCmdBase):
     @staticmethod
     def from_params(params: list[str]):
         return CutsceneCmdDestination(
-            getInteger(params[1]), None, CutsceneCmdBase.getEnumValue("csDestination", params[0])
+            getInteger(params[1]), None, CutsceneCmdBase.getEnumValue("cs_destination", params[0])
         )
 
     def getCmd(self):
@@ -220,7 +220,7 @@ class CutsceneCmdTransition(CutsceneCmdBase):
     @staticmethod
     def from_params(params: list[str]):
         return CutsceneCmdTransition(
-            getInteger(params[1]), getInteger(params[2]), CutsceneCmdBase.getEnumValue("csTransitionType", params[0])
+            getInteger(params[1]), getInteger(params[2]), CutsceneCmdBase.getEnumValue("cs_transition_type", params[0])
         )
 
     def getCmd(self):

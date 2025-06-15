@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 from ....utility import PluginError, indent
-from ...constants import ootData
+from ....game_data import game_data
 from ...cutscene.motion.utility import getInteger
 
 
@@ -20,13 +20,13 @@ class CutsceneCmdBase:
 
     @staticmethod
     def getEnumValue(enumKey: str, value: str, isSeqLegacy: bool = False):
-        enum = ootData.enumData.enumByKey[enumKey]
-        item = enum.itemById.get(value)
+        enum = game_data.z64.enums.enumByKey[enumKey]
+        item = enum.item_by_id.get(value)
         if item is None:
             setting = getInteger(value)
             if isSeqLegacy:
                 setting -= 1
-            item = enum.itemByIndex.get(setting)
+            item = enum.item_by_index.get(setting)
         return item.key if item is not None else value
 
     def getGenericListCmd(self, cmdName: str, entryTotal: int):
