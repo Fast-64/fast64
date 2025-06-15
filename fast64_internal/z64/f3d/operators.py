@@ -11,7 +11,7 @@ from ...utility import CData, PluginError, raisePluginError, writeCData, toAlnum
 from ...f3d.f3d_parser import importMeshC, getImportData
 from ...f3d.f3d_gbi import DLFormat, F3D, TextureExportSettings, ScrollMethod, get_F3D_GBI
 from ...f3d.f3d_writer import TriangleConverterInfo, removeDL, saveStaticModel, getInfoDict
-from ..utility import ootGetObjectPath, getOOTScale
+from ..utility import ootGetObjectPath, ootGetObjectHeaderPath, getOOTScale
 from ..model_classes import OOTF3DContext, ootGetIncludedAssetData
 from ..texture_array import ootReadTextureArrays
 from ..model_classes import OOTModel, OOTGfxFormatter
@@ -128,7 +128,11 @@ class OOT_ImportDL(Operator):
             flipbookUses2DArray = settings.flipbookUses2DArray
             flipbookArrayIndex2D = settings.flipbookArrayIndex2D if flipbookUses2DArray else None
 
-            paths = [ootGetObjectPath(isCustomImport, importPath, folderName, True)]
+            paths = [
+                ootGetObjectPath(isCustomImport, importPath, folderName, True),
+                ootGetObjectHeaderPath(isCustomImport, importPath, folderName, True),
+            ]
+
             filedata = getImportData(paths)
             f3dContext = OOTF3DContext(get_F3D_GBI(), [name], basePath)
 

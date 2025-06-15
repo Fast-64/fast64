@@ -2,6 +2,7 @@ import bpy
 import math
 import os
 import re
+import traceback
 
 from ast import parse, Expression, Constant, UnaryOp, USub, Invert, BinOp
 from mathutils import Vector
@@ -807,13 +808,14 @@ def getEvalParamsInt(input: str):
             else:
                 raise ValueError(f"Unsupported unary operator {node.op}")
         elif isinstance(node, BinOp):
-            return binOps[type(node.op)](_eval(node.left), _eval(node.right))
+            return binOps[type(node.op)](int(_eval(node.left)), int(_eval(node.right)))
         else:
             raise ValueError(f"Unsupported AST node {node}")
 
     try:
         return _eval(node.body)
     except:
+        print("WARNING: something wrong happened:", traceback.print_exc())
         return None
 
 

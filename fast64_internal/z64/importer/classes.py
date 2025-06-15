@@ -7,6 +7,7 @@ class SharedSceneData:
     def __init__(
         self,
         scenePath: str,
+        scene_name: str,
         includeMesh: bool,
         includeCollision: bool,
         includeActors: bool,
@@ -16,6 +17,9 @@ class SharedSceneData:
         includePaths: bool,
         includeWaterBoxes: bool,
         includeCutscenes: bool,
+        is_single_file: bool,
+        is_fast64_data: bool,
+        not_zapd_assets: bool,
     ):
         self.actorDict = {}  # actor hash : blender object
         self.entranceDict = {}  # actor hash : blender object
@@ -23,6 +27,7 @@ class SharedSceneData:
         self.pathDict = {}  # path hash : blender object
 
         self.scenePath = scenePath
+        self.scene_name = scene_name
         self.includeMesh = includeMesh
         self.includeCollision = includeCollision
         self.includeActors = includeActors
@@ -32,6 +37,9 @@ class SharedSceneData:
         self.includePaths = includePaths
         self.includeWaterBoxes = includeWaterBoxes
         self.includeCutscenes = includeCutscenes
+        self.is_single_file = is_single_file
+        self.is_fast64_data = is_fast64_data
+        self.not_zapd_assets = not_zapd_assets
 
     def addHeaderIfItemExists(self, hash, itemType: str, headerIndex: int):
         if itemType == "Actor":

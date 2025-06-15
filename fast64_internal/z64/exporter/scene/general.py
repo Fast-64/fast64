@@ -1,7 +1,11 @@
+import re
+
 from dataclasses import dataclass
 from bpy.types import Object
-from ....utility import PluginError, CData, exportColor, ootGetBaseOrCustomLight, indent
+
+from ....utility import PluginError, CData, exportColor, ootGetBaseOrCustomLight, hexOrDecInt, indent
 from ...scene.properties import OOTSceneHeaderProperty, OOTLightProperty
+from ...oot_utility import getEvalParamsInt
 from ..utility import Utility
 
 
@@ -19,6 +23,61 @@ class EnvLightSettings:
     fogNear: int
     zFar: int
     blendRate: int
+
+    @staticmethod
+    def from_data(raw_data: str, not_zapd_assets: bool):
+        lights: list[EnvLightSettings] = []
+        split_str = ",},{" if not_zapd_assets else "},{"
+        entries = raw_data.removeprefix("{").removesuffix("},").split(split_str)
+
+        for entry in entries:
+            if not_zapd_assets:
+                colors_and_dirs = []
+                for match in re.finditer(r"(\{([0-9\-]*,[0-9\-]*,[0-9\-]*)\})", entry, re.DOTALL):
+                    colors_and_dirs.append([hexOrDecInt(value) for value in match.group(2).split(",")])
+
+                blend_and_fogs = entry.split("},")[-1].split(",")
+                blend_split = blend_and_fogs[0].split("|")
+                blend_raw = blend_split[0]
+                fog_near = hexOrDecInt(blend_split[1])
+                z_far = hexOrDecInt(blend_and_fogs[1])
+                blend_rate = getEvalParamsInt(blend_raw)
+                assert blend_rate is not None
+
+                if "/" in blend_raw:
+                    blend_rate *= 4
+            else:
+                split = entry.split(",")
+
+                colors_and_dirs = [
+                    [hexOrDecInt(value) for value in split[0:3]],
+                    [hexOrDecInt(value) for value in split[3:6]],
+                    [hexOrDecInt(value) for value in split[6:9]],
+                    [hexOrDecInt(value) for value in split[9:12]],
+                    [hexOrDecInt(value) for value in split[12:15]],
+                    [hexOrDecInt(value) for value in split[15:18]],
+                ]
+
+                blend_rate = hexOrDecInt(split[18]) >> 10
+                fog_near = hexOrDecInt(split[18]) & 0x3FF
+                z_far = hexOrDecInt(split[19])
+
+            lights.append(
+                EnvLightSettings(
+                    "Custom",
+                    tuple(colors_and_dirs[0]),
+                    tuple(colors_and_dirs[1]),
+                    tuple(colors_and_dirs[2]),
+                    tuple(colors_and_dirs[3]),
+                    tuple(colors_and_dirs[4]),
+                    tuple(colors_and_dirs[5]),
+                    fog_near,
+                    z_far,
+                    blend_rate,
+                )
+            )
+
+        return lights
 
     def getBlendFogNear(self):
         """Returns the packed blend rate and fog near values"""
@@ -240,7 +299,7 @@ class SceneExits(Utility):
         """Returns a ``CData`` containing the C data of the exit array"""
 
         exitListC = CData()
-        listName = f"u16 {self.name}[{len(self.exitList)}]"
+        listName = f"s16 {self.name}[{len(self.exitList)}]"
 
         # .h
         exitListC.header = f"extern {listName};\n"

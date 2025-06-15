@@ -91,9 +91,11 @@ def getInteger(number: str):
         number = number.removeprefix("0x")
 
         # ``"0" * (8 - len(number)`` adds the missing zeroes (if necessary) to have a 8 digit hex number
-        return unpack("!i", bytes.fromhex("0" * (8 - len(number)) + number))[0]
+        value = unpack("!i", bytes.fromhex("0" * (8 - len(number)) + number))[0]
     else:
-        return int(number)
+        value = int(number)
+
+    return value
 
 
 def getRotation(data: str):

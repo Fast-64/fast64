@@ -4,13 +4,17 @@ import re
 import bpy
 import mathutils
 
+from pathlib import Path
+from typing import Optional
+
 from ...utility import PluginError, readFile, parentObject, hexOrDecInt, gammaInverse
 from ...f3d.f3d_parser import parseMatrices
+from ..exporter.scene.general import EnvLightSettings
 from ..model_classes import OOTF3DContext
 from ..scene.properties import OOTSceneHeaderProperty, OOTLightProperty
 from ..utility import getEvalParams, setCustomProperty
 from .constants import headerNames
-from .utility import getDataMatch, stripName
+from .utility import getDataMatch, stripName, parse_commands_data
 from .classes import SharedSceneData
 from .room_header import parseRoomCommands
 from .actor import parseTransActorList, parseSpawnList, parseEntranceList
@@ -31,13 +35,11 @@ from ..constants import (
 )
 
 
-def parseColor(values: tuple[str, str, str]) -> tuple[float, float, float]:
-    return tuple(gammaInverse([hexOrDecInt(value) / 0xFF for value in values]))
+def parseColor(values: tuple[int, int, int]) -> tuple[float, float, float]:
+    return tuple(gammaInverse([value / 0xFF for value in values]))
 
 
-def parseDirection(index: int, values: tuple[str, str, str]) -> tuple[float, float, float] | int:
-    values = [hexOrDecInt(value) for value in values]
-
+def parseDirection(index: int, values: tuple[int, int, int]) -> tuple[float, float, float] | int:
     if tuple(values) == (0, 0, 0):
         return "Zero"
     elif index == 0 and tuple(values) == (0x49, 0x49, 0x49):
@@ -83,8 +85,9 @@ def parseLightList(
     sceneData: str,
     lightListName: str,
     headerIndex: int,
+    sharedSceneData: SharedSceneData,
 ):
-    lightData = getDataMatch(sceneData, lightListName, ["LightSettings", "EnvLightSettings"], "light list")
+    lightData = getDataMatch(sceneData, lightListName, ["LightSettings", "EnvLightSettings"], "light list", strip=True)
 
     # I currently don't understand the light list format in respect to this lighting flag.
     # So we'll set it to custom instead.
@@ -93,45 +96,15 @@ def parseLightList(
         sceneHeader.skyboxLighting = "Custom"
     sceneHeader.lightList.clear()
 
-    # convert string to ZAPD format if using new Fast64 output
-    if "// Ambient Color" in sceneData:
-        i = 0
-        lightData = lightData.replace("{", "").replace("}", "").replace("\n", "").replace(" ", "").replace(",,", ",")
-        data = "{ "
-        for part in lightData.split(","):
-            if i < 20:
-                if i == 18:
-                    part = getEvalParams(part)
-                data += part + ", "
-                if i == 19:
-                    data = data[:-2]
-            else:
-                data += "},\n{ " + part + ", "
-                i = 0
-            i += 1
-        lightData = data[:-4]
+    lightList = EnvLightSettings.from_data(lightData, sharedSceneData.not_zapd_assets)
 
-    lightList = [
-        value.replace("{", "").replace("\n", "").replace(" ", "")
-        for value in lightData.split("},")
-        if value.strip() != ""
-    ]
-
-    index = 0
-    for lightEntry in lightList:
-        lightParams = [value.strip() for value in lightEntry.split(",")]
-
-        ambientColor = parseColor(lightParams[0:3])
-        diffuseDir0 = parseDirection(0, lightParams[3:6])
-        diffuseColor0 = parseColor(lightParams[6:9])
-        diffuseDir1 = parseDirection(1, lightParams[9:12])
-        diffuseColor1 = parseColor(lightParams[12:15])
-        fogColor = parseColor(lightParams[15:18])
-
-        blendFogShort = hexOrDecInt(lightParams[18])
-        fogNear = blendFogShort & ((1 << 10) - 1)
-        transitionSpeed = blendFogShort >> 10
-        z_far = hexOrDecInt(lightParams[19])
+    for index, lightEntry in enumerate(lightList):
+        ambientColor = parseColor(lightEntry.ambientColor)
+        diffuseDir0 = parseDirection(0, lightEntry.light1Dir)
+        diffuseColor0 = parseColor(lightEntry.light1Color)
+        diffuseDir1 = parseDirection(1, lightEntry.light2Dir)
+        diffuseColor1 = parseColor(lightEntry.light2Color)
+        fogColor = parseColor(lightEntry.fogColor)
 
         lightHeader = sceneHeader.lightList.add()
         lightHeader.ambient = ambientColor + (1,)
@@ -147,15 +120,13 @@ def parseLightList(
             lightObj1.location = [4 + headerIndex * 2, 2, -index * 2]
 
         lightHeader.fogColor = fogColor + (1,)
-        lightHeader.fogNear = fogNear
-        lightHeader.z_far = z_far
-        lightHeader.transitionSpeed = transitionSpeed
-
-        index += 1
+        lightHeader.fogNear = lightEntry.fogNear
+        lightHeader.z_far = lightEntry.zFar
+        lightHeader.transitionSpeed = lightEntry.blendRate
 
 
 def parseExitList(sceneHeader: OOTSceneHeaderProperty, sceneData: str, exitListName: str):
-    exitData = getDataMatch(sceneData, exitListName, "u16", "exit list")
+    exitData = getDataMatch(sceneData, exitListName, ["u16", "s16"], "exit list", strip=True)
 
     # see also start position list
     exitList = [value.strip() for value in exitData.split(",") if value.strip() != ""]
@@ -173,29 +144,56 @@ def parseRoomList(
     sharedSceneData: SharedSceneData,
     headerIndex: int,
 ):
-    roomList = getDataMatch(sceneData, roomListName, "RomFile", "room list")
+    roomList = getDataMatch(sceneData, roomListName, "RomFile", "room list", strip=True)
     index = 0
     roomObjs = []
+    use_macros = "ROM_FILE" in roomList
+
+    if use_macros:
+        regex = r"ROM_FILE\((.*?)\)"
+    else:
+        regex = rf"\{{([\(\)\sA-Za-z0-9\_]*),([\(\)\sA-Za-z0-9\_]*)\}}\s*,"
 
     # Assumption that alternate scene headers all use the same room list.
-    for roomMatch in re.finditer(
-        rf"\{{([\(\)\sA-Za-z0-9\_]*),([\(\)\sA-Za-z0-9\_]*)\}}\s*,", roomList, flags=re.DOTALL
-    ):
-        roomName = roomMatch.group(1).strip().replace("SegmentRomStart", "")
-        if "(u32)" in roomName:
-            roomName = roomName[5:].strip()[1:]  # includes leading underscore
-        elif "(uintptr_t)" in roomName:
-            roomName = roomName[11:].strip()[1:]
+    for roomMatch in re.finditer(regex, roomList, flags=re.DOTALL):
+        if use_macros:
+            roomName = roomMatch.group(1)
         else:
-            roomName = roomName[1:]
+            roomName = roomMatch.group(1).strip().replace("SegmentRomStart", "")
+            if "(u32)" in roomName:
+                roomName = roomName[5:].strip()[1:]  # includes leading underscore
+            elif "(uintptr_t)" in roomName:
+                roomName = roomName[11:].strip()[1:]
+            else:
+                roomName = roomName[1:]
 
-        roomPath = os.path.join(sharedSceneData.scenePath, f"{roomName}.c")
-        roomData = readFile(roomPath)
+        file_path = Path(sharedSceneData.scenePath) / f"{roomName}.c"
+
+        if not file_path.exists():
+            file_path = Path(sharedSceneData.scenePath).resolve() / f"{roomName}_main.c"
+
+        if not file_path.exists():
+            raise PluginError("ERROR: scene not found!")
+
+        roomData = file_path.read_text()
+
+        if not sharedSceneData.is_single_file:
+            # get the other room files for non-single file fast64 exports
+            for file in file_path.parent.rglob("*.c"):
+                if roomName in str(file) and f"{roomName}_main" not in str(file):
+                    roomData += file.read_text()
+
         parseMatrices(roomData, f3dContext, 1 / bpy.context.scene.ootBlenderScale)
 
         roomCommandsName = f"{roomName}Commands"
+
+        # fast64 naming
         if roomCommandsName not in roomData:
-            roomCommandsName = f"{roomName}_header00"  # fast64 naming
+            roomCommandsName = f"{roomName}_header00"
+
+        # newer assets system naming
+        if roomCommandsName not in roomData:
+            roomCommandsName = roomName
 
         # Assumption that any shared textures are stored after the CollisionHeader.
         # This is done to avoid including large collision data in regex searches.
@@ -240,9 +238,9 @@ def parseAlternateSceneHeaders(
 
 
 def parseSceneCommands(
-    sceneName: str | None,
-    sceneObj: bpy.types.Object | None,
-    roomObjs: list[bpy.types.Object] | None,
+    sceneName: Optional[str],
+    sceneObj: Optional[bpy.types.Object],
+    roomObjs: Optional[list[bpy.types.Object]],
     sceneCommandsName: str,
     sceneData: str,
     f3dContext: OOTF3DContext,
@@ -268,11 +266,10 @@ def parseSceneCommands(
         sceneHeader = cutsceneHeaders[headerIndex - 4]
 
     commands = getDataMatch(sceneData, sceneCommandsName, ["SceneCmd", "SCmdBase"], "scene commands")
+    cmd_map = parse_commands_data(commands)
     entranceList = None
     altHeadersListName = None
-    for commandMatch in re.finditer(rf"(SCENE\_CMD\_[a-zA-Z0-9\_]*)\s*\((.*?)\)\s*,", commands, flags=re.DOTALL):
-        command = commandMatch.group(1)
-        args = [arg.strip() for arg in commandMatch.group(2).split(",")]
+    for command, args in cmd_map.items():
         if command == "SCENE_CMD_SOUND_SETTINGS":
             setCustomProperty(sceneHeader, "audioSessionPreset", args[0], ootEnumAudioSessionPreset)
             setCustomProperty(sceneHeader, "nightSeq", args[1], ootEnumNightSeq)
@@ -328,7 +325,7 @@ def parseSceneCommands(
         elif command == "SCENE_CMD_ENV_LIGHT_SETTINGS" and sharedSceneData.includeLights:
             if not (args[1] == "NULL" or args[1] == "0" or args[1] == "0x00"):
                 lightsListName = stripName(args[1])
-                parseLightList(sceneObj, sceneHeader, sceneData, lightsListName, headerIndex)
+                parseLightList(sceneObj, sceneHeader, sceneData, lightsListName, headerIndex, sharedSceneData)
         elif command == "SCENE_CMD_CUTSCENE_DATA" and sharedSceneData.includeCutscenes:
             sceneHeader.writeCutscene = True
             sceneHeader.csWriteType = "Object"

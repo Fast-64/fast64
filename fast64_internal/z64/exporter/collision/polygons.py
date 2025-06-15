@@ -1,7 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Optional
 from mathutils import Vector
-from ....utility import PluginError, CData, indent
+
+from ....utility import PluginError, CData, hexOrDecInt, indent
 
 
 @dataclass
@@ -18,6 +19,70 @@ class CollisionPoly:
     useMacros: bool
 
     type: Optional[int] = field(init=False, default=None)
+
+    @staticmethod
+    def from_data(poly_data: list[str], not_zapd_assets: bool):
+        if not_zapd_assets:
+            third_vtx_macro = "COLPOLY_VTX_INDEX(" if "COLPOLY_VTX_INDEX(" in poly_data[3] else "COLPOLY_VTX("
+
+            # format: [ [vtxId, flags], [vtxId, flags], [vtxId, flags] ] (str)
+            vtx = [
+                poly_data[1].removeprefix("COLPOLY_VTX(").removesuffix(")").split(","),
+                poly_data[2].removeprefix("COLPOLY_VTX(").removesuffix(")").split(","),
+                poly_data[3].removeprefix(third_vtx_macro).removesuffix(")").split(","),
+            ]
+
+            new_poly = CollisionPoly(
+                [hexOrDecInt(vtx[0][0]), hexOrDecInt(vtx[1][0]), hexOrDecInt(vtx[2][0])],
+                "COLPOLY_IGNORE_CAMERA" in vtx[0][1],
+                "COLPOLY_IGNORE_ENTITY" in vtx[0][1],
+                "COLPOLY_IGNORE_PROJECTILES" in vtx[0][1],
+                "COLPOLY_IS_FLOOR_CONVEYOR" in vtx[1][1],
+                Vector(
+                    (
+                        float(poly_data[4].removeprefix("COLPOLY_SNORMAL(").removesuffix(")")),
+                        float(poly_data[5].removeprefix("COLPOLY_SNORMAL(").removesuffix(")")),
+                        float(poly_data[6].removeprefix("COLPOLY_SNORMAL(").removesuffix(")")),
+                    )
+                ),
+                hexOrDecInt(poly_data[7]),
+                not_zapd_assets,
+            )
+        else:
+
+            def get_normal(value: int):
+                return int.from_bytes(value.to_bytes(2, "big", signed=value < 0x8000), "big", signed=True) / 0x7FFF
+
+            vtx1 = hexOrDecInt(poly_data[1])
+            vtx2 = hexOrDecInt(poly_data[2])
+            vtx3 = hexOrDecInt(poly_data[3])
+
+            # format: [ [vtxId, flags], [vtxId, flags], [vtxId, flags] ] (int)
+            vtx = [
+                [vtx1 & 0x1FFF, (vtx1 >> 13) & 7],
+                [vtx2 & 0x1FFF, (vtx2 >> 13) & 7],
+                [vtx3 & 0x1FFF, (vtx3 >> 13) & 7],
+            ]
+
+            new_poly = CollisionPoly(
+                [vtx[0][0], vtx[1][0], vtx[2][0]],
+                ((vtx[0][1] >> (1 << 0)) & 1) == 1,
+                ((vtx[0][1] >> (1 << 1)) & 1) == 1,
+                ((vtx[0][1] >> (1 << 2)) & 1) == 1,
+                ((vtx[1][1] >> (1 << 0)) & 1) == 1,
+                Vector(
+                    (
+                        get_normal(hexOrDecInt(poly_data[4])),
+                        get_normal(hexOrDecInt(poly_data[5])),
+                        get_normal(hexOrDecInt(poly_data[6])),
+                    )
+                ),
+                hexOrDecInt(poly_data[7]),
+                not_zapd_assets,
+            )
+
+        new_poly.type = hexOrDecInt(poly_data[0])
+        return new_poly
 
     def __post_init__(self):
         for i, val in enumerate(self.normal):
