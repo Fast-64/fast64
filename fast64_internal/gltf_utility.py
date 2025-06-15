@@ -14,39 +14,33 @@ def find_glTF2_addon():
     raise ValueError("glTF2 addon not found")
 
 
-GLTF2_ADDDON = find_glTF2_addon()
-GLTF2_ADDON_VERSION = GLTF2_ADDDON.bl_info.get("version", (-1, -1, -1))
+CUR_GLTF2_ADDON = None
 
-if GLTF2_ADDON_VERSION >= (3, 6, 0):
-    if GLTF2_ADDON_VERSION:
-        from io_scene_gltf2.blender.exp.material.gltf2_blender_gather_image import (  # pylint: disable=import-error
-            __is_blender_image_a_webp,
-        )
-    from io_scene_gltf2.blender.exp.material.gltf2_blender_gather_image import (  # pylint: disable=import-error
-        __gather_name,
-        __make_image,
-        __gather_uri,
-        __gather_buffer_view,
-        __is_blender_image_a_jpeg,
-    )
-    from io_scene_gltf2.blender.exp.material.extensions.gltf2_blender_image import (  # pylint: disable=import-error
-        ExportImage,
-    )
-else:
-    from io_scene_gltf2.blender.exp.gltf2_blender_gather_image import (  # pylint: disable=import-error
-        __gather_name,
-        __make_image,
-        __gather_uri,
-        __gather_buffer_view,
-        __is_blender_image_a_jpeg,
-    )
-    from io_scene_gltf2.blender.exp.gltf2_blender_image import ExportImage  # pylint: disable=import-error
+
+def update_gltf2_addon():
+    global CUR_GLTF2_ADDON
+    CUR_GLTF2_ADDON = find_glTF2_addon()
+
+
+def get_version() -> tuple[int, int, int]:
+    global CUR_GLTF2_ADDON
+    if CUR_GLTF2_ADDON is None:
+        CUR_GLTF2_ADDON = find_glTF2_addon()
+    return CUR_GLTF2_ADDON.bl_info.get("version", (-1, -1, -1))
 
 
 def is_blender_image_a_webp(image: Image) -> bool:
-    if GLTF2_ADDON_VERSION < (3, 6, 5):
-        return False
-    return __is_blender_image_a_webp(image)
+    if get_version() >= (4, 3, 13):
+        from io_scene_gltf2.blender.exp.material.image import (  # type: ignore # pylint: disable=import-error, import-outside-toplevel
+            __is_blender_image_a_webp,
+        )
+    elif get_version() >= (3, 6, 5):
+        from io_scene_gltf2.blender.exp.material.gltf2_blender_gather_image import (  # type: ignore # pylint: disable=import-error, import-outside-toplevel
+            __is_blender_image_a_webp,
+        )
+
+        return __is_blender_image_a_webp(image)
+    return False
 
 
 def __get_mime_type_of_image(name: str, export_settings: dict):
@@ -57,6 +51,18 @@ def __get_mime_type_of_image(name: str, export_settings: dict):
         return "image/png"
 
     if export_settings["gltf_image_format"] == "AUTO":
+        if get_version() >= (4, 3, 13):
+            from io_scene_gltf2.blender.exp.material.image import (  # pylint: disable=import-error, import-outside-toplevel # type: ignore
+                __is_blender_image_a_jpeg,
+            )
+        elif get_version() >= (3, 6, 0):
+            from io_scene_gltf2.blender.exp.material.gltf2_blender_gather_image import (  # pylint: disable=import-error, import-outside-toplevel # type: ignore
+                __is_blender_image_a_jpeg,
+            )
+        else:
+            from io_scene_gltf2.blender.exp.gltf2_blender_gather_image import (  # pylint: disable=import-error, import-outside-toplevel # type: ignore
+                __is_blender_image_a_jpeg,
+            )
         if __is_blender_image_a_jpeg(image):
             return "image/jpeg"
         elif is_blender_image_a_webp(image):
@@ -68,6 +74,34 @@ def __get_mime_type_of_image(name: str, export_settings: dict):
 
 
 def get_gltf_image_from_blender_image(blender_image_name: str, export_settings: dict):
+    if get_version() >= (4, 3, 13):
+        from io_scene_gltf2.blender.exp.material.encode_image import (  # type: ignore # pylint: disable=import-error, import-outside-toplevel
+            ExportImage,
+        )
+        from io_scene_gltf2.blender.exp.material.image import (  # pylint: disable=import-error, import-outside-toplevel # type: ignore
+            __gather_name,
+            __make_image,
+            __gather_uri,
+            __gather_buffer_view,
+        )
+    elif get_version() >= (3, 6, 0):
+        from io_scene_gltf2.blender.exp.material.extensions.gltf2_blender_image import (  # type: ignore # pylint: disable=import-error, import-outside-toplevel
+            ExportImage,
+        )
+        from io_scene_gltf2.blender.exp.material.gltf2_blender_gather_image import (  # pylint: disable=import-error, import-outside-toplevel # type: ignore
+            __gather_name,
+            __make_image,
+            __gather_uri,
+            __gather_buffer_view,
+        )
+    else:
+        from io_scene_gltf2.blender.exp.gltf2_blender_image import ExportImage  # type: ignore # pylint: disable=import-error, import-outside-toplevel
+        from io_scene_gltf2.blender.exp.gltf2_blender_gather_image import (  # pylint: disable=import-error, import-outside-toplevel # type: ignore
+            __gather_name,
+            __make_image,
+            __gather_uri,
+            __gather_buffer_view,
+        )
     image_data = ExportImage.from_blender_image(bpy.data.images[blender_image_name])
 
     if bpy.app.version > (4, 1, 1):
@@ -79,7 +113,7 @@ def get_gltf_image_from_blender_image(blender_image_name: str, export_settings: 
     uri = __gather_uri(image_data, mime_type, name, export_settings)
     buffer_view = __gather_buffer_view(image_data, mime_type, name, export_settings)
 
-    if GLTF2_ADDON_VERSION >= (3, 3, 0):
+    if get_version() >= (3, 3, 0):
         buffer_view, _factor_buffer_view = buffer_view
         uri, _factor_uri = uri
 

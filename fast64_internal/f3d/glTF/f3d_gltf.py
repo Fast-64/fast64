@@ -4,10 +4,6 @@ import copy
 import bpy
 import numpy as np
 
-from io_scene_gltf2.io.com import gltf2_io  # pylint: disable=import-error
-from io_scene_gltf2.blender.imp.gltf2_blender_image import BlenderImage  # pylint: disable=import-error
-from io_scene_gltf2.io.com.gltf2_io_constants import TextureFilter, TextureWrap  # pylint: disable=import-error
-
 from bpy.types import NodeTree, Mesh, Material, Context, Panel, PropertyGroup, UILayout
 from bpy.props import BoolProperty
 
@@ -26,7 +22,7 @@ from ...gltf_utility import (
     is_import_context,
     swap_function,
     suffix_function,
-    GLTF2_ADDON_VERSION,
+    get_version,
 )
 from ..f3d_gbi import F3D, get_F3D_GBI
 from ..f3d_material import (
@@ -386,6 +382,16 @@ class F3DExtensions(GlTF2SubExtension):
             raise PluginError(f"Failed to import F3D node tree: {str(exc)}") from exc
 
     def sampler_from_f3d(self, f3d_mat: F3DMaterialProperty, f3d_tex: TextureProperty):
+        from io_scene_gltf2.io.com import gltf2_io  # pylint: disable=import-error
+
+        if get_version() >= (4, 3, 13):
+            from io_scene_gltf2.io.com.constants import TextureFilter, TextureWrap  # pylint: disable=import-error
+        else:
+            from io_scene_gltf2.io.com.gltf2_io_constants import (
+                TextureFilter,
+                TextureWrap,
+            )  # pylint: disable=import-error
+
         wrap = []
         for field in ["S", "T"]:
             field_prop = getattr(f3d_tex, field)
@@ -424,6 +430,8 @@ class F3DExtensions(GlTF2SubExtension):
         f3d_tex: TextureProperty,
         export_settings: dict,
     ):
+        from io_scene_gltf2.io.com import gltf2_io  # pylint: disable=import-error
+
         img = f3d_tex.tex
         if img is not None:
             source = get_gltf_image_from_blender_image(img.name, export_settings)
@@ -462,6 +470,15 @@ class F3DExtensions(GlTF2SubExtension):
         )
 
     def gltf2_to_f3d_texture(self, gltf2_texture, gltf, f3d_tex: TextureProperty):
+        if get_version() >= (4, 3, 13):
+            from io_scene_gltf2.blender.imp.image import (
+                BlenderImage,
+            )  # pylint: disable=import-error, import-outside-toplevel
+        else:
+            from io_scene_gltf2.blender.imp.gltf2_blender_image import (
+                BlenderImage,
+            )  # pylint: disable=import-error, import-outside-toplevel
+
         if gltf2_texture.sampler is not None:
             sampler = gltf.data.samplers[gltf2_texture.sampler]
             self.sampler_to_f3d(sampler, f3d_tex)
@@ -480,6 +497,8 @@ class F3DExtensions(GlTF2SubExtension):
         num: int,
         export_settings: dict,
     ):
+        from io_scene_gltf2.io.com import gltf2_io  # pylint: disable=import-error
+
         try:
             texture = self.f3d_to_gltf2_texture(f3d_mat, f3d_tex, export_settings)
         except Exception as exc:
@@ -904,15 +923,23 @@ def modify_f3d_nodes_for_export(use: bool):
             bsdf["f3d_gltf_owned"] = True
         bsdf.location = (1260, 900)
 
+        if get_version() < (4, 1, 0):
+            mix_name = "ShaderNodeMixRGB"
+        else:
+            mix_name = "ShaderNodeMix"
         # we need to use a mix node because 4.1
-        mix = next((node for node in nodes if node.bl_idname == "ShaderNodeMix" and node.get("f3d_gltf_owned")), None)
+        mix = next((node for node in nodes if node.bl_idname == mix_name and node.get("f3d_gltf_owned")), None)
         if mix is None:
-            mix = nodes.new("ShaderNodeMix")
+            mix = nodes.new(mix_name)
             mix["f3d_gltf_owned"] = True
         mix.location = (1075, 850)
         mix.blend_type = "MULTIPLY"
-        mix.inputs["Factor"].default_value = 1.0
-        mix.inputs["B"].default_value = 1.0
+        if get_version() >= (4, 1, 0):
+            mix.data_type = "RGBA"
+            mix.inputs[2].default_value = 1.0
+        else:
+            mix.inputs[2].default_value = [1.0, 1.0, 1.0, 1.0]
+        mix.inputs[0].default_value = 1.0
 
         vertex_color = next(
             (node for node in nodes if node.bl_idname == "ShaderNodeVertexColor" and node.get("f3d_gltf_owned")), None
@@ -932,8 +959,8 @@ def modify_f3d_nodes_for_export(use: bool):
             link_if_none_exist(
                 mat, vertex_color.outputs["Color"], bsdf.inputs.get("Color") or bsdf.inputs.get("Base Color")
             )
-            link_if_none_exist(mat, vertex_color.outputs["Alpha"], mix.inputs["A"])
-            link_if_none_exist(mat, mix.outputs["Result"], bsdf.inputs["Alpha"])
+            link_if_none_exist(mat, vertex_color.outputs["Alpha"], mix.inputs[1])
+            link_if_none_exist(mat, mix.outputs[0], bsdf.inputs["Alpha"])
             link_if_none_exist(mat, bsdf.outputs["BSDF"], material_output.inputs["Surface"])
 
 
@@ -976,28 +1003,6 @@ def pre_gather_mesh_hook(blender_mesh: Mesh, *_args):
     color_layer.foreach_set("color", color)
 
 
-# 3.2 hack
-
-if GLTF2_ADDON_VERSION == (3, 2, 40):
-    import io_scene_gltf2.blender.exp.gltf2_blender_extract as extract_primitives_owner  # pylint: disable=import-error
-    import io_scene_gltf2.blender.exp.gltf2_blender_gather_primitive_attributes as __gather_colors_owner  # pylint: disable=import-error
-    from io_scene_gltf2.blender.exp.gltf2_blender_extract import (  # pylint: disable=import-error
-        __get_positions,
-        __get_bone_data,
-        __get_normals,
-        __get_tangents,
-        __get_bitangent_signs,
-        __get_uvs,
-        __get_colors,
-        __calc_morph_tangents,
-    )
-    from io_scene_gltf2.blender.exp import gltf2_blender_export_keys  # pylint: disable=import-error
-    from io_scene_gltf2.io.com.gltf2_io_debug import print_console  # pylint: disable=import-error
-    from io_scene_gltf2.blender.exp import gltf2_blender_gather_skins  # pylint: disable=import-error
-    from io_scene_gltf2.io.com import gltf2_io, gltf2_io_constants  # pylint: disable=import-error
-    from io_scene_gltf2.io.exp import gltf2_io_binary_data  # pylint: disable=import-error
-
-
 def get_fast64_custom_colors(blender_mesh):
     color_layer = getColorLayer(blender_mesh, layer="Col")  # assume Col already has alpha from other hack
     colors = np.zeros(len(blender_mesh.loops) * 4, dtype=np.float32)
@@ -1020,6 +1025,22 @@ def extract_primitives_fast64(
 
     Extract primitives from a mesh.
     """
+    # FAST64 CHANGE: Local imports
+    from io_scene_gltf2.blender.exp.gltf2_blender_extract import (  # pylint: disable=import-error
+        __get_positions,
+        __get_bone_data,
+        __get_normals,
+        __get_tangents,
+        __get_bitangent_signs,
+        __get_uvs,
+        __get_colors,
+        __calc_morph_tangents,
+    )
+    from io_scene_gltf2.blender.exp import gltf2_blender_export_keys  # pylint: disable=import-error
+    from io_scene_gltf2.io.com.gltf2_io_debug import print_console  # pylint: disable=import-error
+    from io_scene_gltf2.blender.exp import gltf2_blender_gather_skins  # pylint: disable=import-error
+
+    # FAST64 END
     # FAST64 CHANGE: Use custom fast64 function or use original
     if not (get_settings().use_3_2_hacks and mesh_has_f3d_mat(blender_mesh)):
         return original_function(blender_mesh, uuid_for_skined_data, blender_vertex_groups, modifiers, export_settings)
@@ -1420,6 +1441,9 @@ def extract_primitives_fast64(
 
 
 def post__gather_colors(results, blender_primitive, _export_settings):
+    from io_scene_gltf2.io.com import gltf2_io, gltf2_io_constants  # pylint: disable=import-error
+    from io_scene_gltf2.io.exp import gltf2_io_binary_data  # pylint: disable=import-error
+
     attributes = blender_primitive["attributes"]
     colors = attributes.get("FAST64_COLOR", None)
     if colors is not None:
@@ -1446,10 +1470,15 @@ def post__gather_colors(results, blender_primitive, _export_settings):
     return results
 
 
-if GLTF2_ADDON_VERSION == (3, 2, 40):
-    extract_primitives_owner.extract_primitives = swap_function(
-        extract_primitives_owner.extract_primitives, extract_primitives_fast64
-    )
-    __gather_colors_owner.__gather_colors = suffix_function(__gather_colors_owner.__gather_colors, post__gather_colors)
-    del extract_primitives_owner
-    del __gather_colors_owner
+def add_3_2_hooks():
+    """3.2 hack for float colors"""
+    if get_version() == (3, 2, 40):
+        import io_scene_gltf2.blender.exp.gltf2_blender_gather_primitive_attributes as __gather_colors_owner  # pylint: disable=import-error, import-outside-toplevel
+        import io_scene_gltf2.blender.exp.gltf2_blender_extract as extract_primitives_owner  # pylint: disable=import-error, import-outside-toplevel
+
+        extract_primitives_owner.extract_primitives = swap_function(
+            extract_primitives_owner.extract_primitives, extract_primitives_fast64
+        )
+        __gather_colors_owner.__gather_colors = suffix_function(
+            __gather_colors_owner.__gather_colors, post__gather_colors
+        )
