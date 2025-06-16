@@ -850,7 +850,7 @@ class F3DGlTFSettings(PropertyGroup):
 
         col.box().label(text="See tooltips for more info", icon="INFO")
 
-        if GLTF2_ADDON_VERSION == (3, 2, 40):
+        if get_version() == (3, 2, 40):
             col.prop(self, "use_3_2_hacks_prop")
         col.prop(self, "apply_alpha_to_col")
 
