@@ -2529,8 +2529,9 @@ def save_override_draw(
         # get the material referenced, and then check if it should be overriden
         # a material override will either have a list of mats it overrides, or a mask of mats it doesn't based on type
         bpy_material, fmaterial = find_material_from_jump_cmd(f_model.getAllMaterials().items(), command)
-        should_modify = (override_type == "Specific" and bpy_material in specific_mats) or (
-            override_type == "All" and bpy_material not in specific_mats
+        should_modify = override_mat is not None and (
+            (override_type == "Specific" and bpy_material in specific_mats)
+            or (override_type == "All" and bpy_material not in specific_mats)
         )
 
         if should_modify and bpy_material is not None and override_tex_dimensions is not None and not g_tex_gen:
@@ -2548,6 +2549,7 @@ def save_override_draw(
         cur_bpy_material = override_mat if should_modify else bpy_material
         if cur_bpy_material is not None:
             material_hash = (cur_bpy_material, new_layer, convert_texture_data)
+            # generate a new material for the specific layer if rendermode is set
             if material_hash not in f_model.layer_adapted_fmats:
                 f_model.layer_adapted_fmats[material_hash] = None
                 rdp = cur_bpy_material.f3d_mat.rdp_settings
@@ -2568,7 +2570,7 @@ def save_override_draw(
         if command.displayList.tag & GfxListTag.Material:
             curMaterial = fmaterial
             # if layer ever changes the main material use new_mat here
-            if should_modify and f_override_mat is not None:
+            if should_modify:
                 save_mesh_override = True
                 new_hash.append((0, f_override_mat))
                 last_replaced = fmaterial
