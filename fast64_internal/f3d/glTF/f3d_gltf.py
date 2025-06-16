@@ -901,8 +901,6 @@ def modify_f3d_nodes_for_export(use: bool):
     We can´t have glTF interacting with the f3d nodes either, otherwise an infinite recursion occurs in texture gathering
     this is also called in gather_gltf_extensions_hook (glTF2_post_export_callback can fail)
     """
-    if not get_settings().use:
-        return
     for mat in bpy.data.materials:
         if not is_mat_f3d(mat):
             continue
