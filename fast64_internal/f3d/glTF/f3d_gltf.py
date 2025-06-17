@@ -921,7 +921,7 @@ def modify_f3d_nodes_for_export(use: bool):
             bsdf["f3d_gltf_owned"] = True
         bsdf.location = (1260, 900)
 
-        if get_version() < (4, 1, 0):
+        if bpy.data.version < (4, 1, 0):
             mix_name = "ShaderNodeMixRGB"
         else:
             mix_name = "ShaderNodeMix"
@@ -957,8 +957,12 @@ def modify_f3d_nodes_for_export(use: bool):
             link_if_none_exist(
                 mat, vertex_color.outputs["Color"], bsdf.inputs.get("Color") or bsdf.inputs.get("Base Color")
             )
-            link_if_none_exist(mat, vertex_color.outputs["Alpha"], mix.inputs[1])
-            link_if_none_exist(mat, mix.outputs[0], bsdf.inputs["Alpha"])
+            if bpy.app.version < (4, 1, 0):
+                link_if_none_exist(mat, vertex_color.outputs["Alpha"], mix.inputs[1])
+                link_if_none_exist(mat, mix.outputs[0], bsdf.inputs["Alpha"])
+            else:
+                link_if_none_exist(mat, vertex_color.outputs["Alpha"], mix.inputs["A"])
+                link_if_none_exist(mat, mix.outputs["Result"], bsdf.inputs["Alpha"])
             link_if_none_exist(mat, bsdf.outputs["BSDF"], material_output.inputs["Surface"])
 
 
