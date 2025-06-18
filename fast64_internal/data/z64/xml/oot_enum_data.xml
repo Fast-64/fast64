@@ -20,7 +20,7 @@
         - Player Cue Ids got their own enum but not regular Actor Cues.
           This is because Actor Cues are among cutscene commands (``csCmd``)
 -->
-  <Enum Games="OoTMqDbg" Key="cs_cmd" ID="CutsceneCmd">
+  <Enum Key="cs_cmd" ID="CutsceneCmd">
     <!-- https://github.com/zeldaret/oot/blob/7235af2249843fb68740111b70089bad827a4730/include/z64cutscene.h#L35-L165 -->
     <Item Key="cam_eye_spline" ID="CS_CMD_CAM_EYE_SPLINE" Index="1"/>
     <Item Key="cam_at_spline" ID="CS_CMD_CAM_AT_SPLINE" Index="2"/>
@@ -152,7 +152,7 @@
     <Item Key="destination" ID="CS_CMD_DESTINATION" Index="1000"/>
     <Item Key="end" ID="CS_CMD_END_OF_SCRIPT" Index="65535"/>
   </Enum>
-  <Enum Games="OoTMqDbg" Key="cs_misc_type" ID="CutsceneMiscType">
+  <Enum Key="cs_misc_type" ID="CutsceneMiscType">
     <!-- https://github.com/zeldaret/oot/blob/823e47a0f8e9fb9fab89bc61b57f45488ff6debe/include/z64cutscene.h#L167-L204 -->
     <Item Key="unimplemented_0" ID="CS_MISC_UNIMPLEMENTED_0" Index="0"/>
     <Item Key="rain" ID="CS_MISC_RAIN" Index="1"/>
@@ -191,7 +191,7 @@
     <Item Key="freeze_time" ID="CS_MISC_FREEZE_TIME" Index="34"/>
     <Item Key="long_scarecrow_song" ID="CS_MISC_LONG_SCARECROW_SONG" Index="35"/>
   </Enum>
-  <Enum Games="OoTMqDbg" Key="cs_text_type" ID="CutsceneTextType">
+  <Enum Key="cs_text_type" ID="CutsceneTextType">
     <!-- https://github.com/zeldaret/oot/blob/823e47a0f8e9fb9fab89bc61b57f45488ff6debe/include/z64cutscene.h#L206-L212 -->
     <Item Key="normal" ID="CS_TEXT_NORMAL" Index="0"/>
     <Item Key="choice" ID="CS_TEXT_CHOICE" Index="1"/>
@@ -199,12 +199,12 @@
     <Item Key="goron_ruby" ID="CS_TEXT_GORON_RUBY" Index="3"/>
     <Item Key="zora_sapphire" ID="CS_TEXT_ZORA_SAPPHIRE" Index="4"/>
   </Enum>
-  <Enum Games="OoTMqDbg" Key="cs_fade_out_seq_player" ID="CutsceneFadeOutSeqPlayer">
+  <Enum Key="cs_fade_out_seq_player" ID="CutsceneFadeOutSeqPlayer">
     <!-- https://github.com/zeldaret/oot/blob/7235af2249843fb68740111b70089bad827a4730/include/z64cutscene.h#L214-L217 -->
     <Item Key="fade_out_fanfare" ID="CS_FADE_OUT_FANFARE" Index="3"/>
     <Item Key="fade_out_bgm_main" ID="CS_FADE_OUT_BGM_MAIN" Index="4"/>
   </Enum>
-  <Enum Games="OoTMqDbg" Key="cs_transition_type" ID="CutsceneTransitionType">
+  <Enum Key="cs_transition_type" ID="CutsceneTransitionType">
     <!-- https://github.com/zeldaret/oot/blob/823e47a0f8e9fb9fab89bc61b57f45488ff6debe/include/z64cutscene.h#L219-233 -->
     <Item Key="gray_fill_in" ID="CS_TRANS_GRAY_FILL_IN" Index="1"/>
     <Item Key="blue_fill_in" ID="CS_TRANS_BLUE_FILL_IN" Index="2"/>
@@ -220,7 +220,7 @@
     <Item Key="black_fill_out_to_half" ID="CS_TRANS_BLACK_FILL_OUT_TO_HALF" Index="12"/>
     <Item Key="black_fill_in_from_half" ID="CS_TRANS_BLACK_FILL_IN_FROM_HALF" Index="13"/>
   </Enum>
-  <Enum Games="OoTMqDbg" Key="cs_destination" ID="CutsceneDestination">
+  <Enum Key="cs_destination" ID="CutsceneDestination">
     <!-- https://github.com/zeldaret/oot/blob/823e47a0f8e9fb9fab89bc61b57f45488ff6debe/include/z64cutscene.h#L235-356 -->
     <Item Key="unimplemented_0" ID="CS_DEST_UNIMPLEMENTED_0" Index="0"/>
     <Item Key="cutscene_map_ganon_horse" ID="CS_DEST_CUTSCENE_MAP_GANON_HORSE" Index="1"/>
@@ -343,7 +343,7 @@
     <Item Key="ganon_battle_tower_collapse" ID="CS_DEST_GANON_BATTLE_TOWER_COLLAPSE" Index="118"/>
     <Item Key="zeldas_courtyard_receive_letter" ID="CS_DEST_ZELDAS_COURTYARD_RECEIVE_LETTER" Index="119"/>
   </Enum>
-  <Enum Games="OoTMqDbg" Key="cs_player_cue_id" ID="PlayerCueId">
+  <Enum Key="cs_player_cue_id" ID="PlayerCueId">
     <!-- https://github.com/zeldaret/oot/blob/b3486b57ef41a284a366eb40ca07bf82bf4750d6/include/z64player.h#L462-L542 -->
     <Item Key="cueid_none" ID="PLAYER_CUEID_NONE" Index="0"/>
     <Item Key="cueid_1" ID="PLAYER_CUEID_1" Index="1"/>
@@ -424,13 +424,13 @@
     <Item Key="cueid_76" ID="PLAYER_CUEID_76" Index="76"/>
     <Item Key="cueid_77" ID="PLAYER_CUEID_77" Index="77"/>
   </Enum>
-  <Enum Games="OoTMqDbg" Key="navi_quest_hint_type" ID="NaviQuestHintFileId">
+  <Enum Key="navi_quest_hint_type" ID="NaviQuestHintFileId">
     <!-- https://github.com/zeldaret/oot/blob/107c0288cc46e378c67dc4ae2e39cfd2e5fcbc25/include/z64scene.h#L463-L467 -->
     <Item Key="hints_none" ID="NAVI_QUEST_HINTS_NONE" Index="0"/>
     <Item Key="hints_overworld" ID="NAVI_QUEST_HINTS_OVERWORLD" Index="1"/>
     <Item Key="hints_dungeon" ID="NAVI_QUEST_HINTS_DUNGEON" Index="2"/>
   </Enum>
-  <Enum Games="OoTMqDbg" Key="ocarina_song_action_id" ID="OcarinaSongActionId">
+  <Enum Key="ocarina_song_action_id" ID="OcarinaSongActionId">
     <!-- https://github.com/zeldaret/oot/blob/b3486b57ef41a284a366eb40ca07bf82bf4750d6/include/z64ocarina.h#L25-L76 -->
     <Item Key="unk_0" ID="OCARINA_ACTION_UNK_0" Index="0"/>
     <Item Key="free_play" ID="OCARINA_ACTION_FREE_PLAY" Index="1"/>
@@ -483,7 +483,7 @@
     <Item Key="check_nowarp" ID="OCARINA_ACTION_CHECK_NOWARP" Index="48"/>
     <Item Key="check_nowarp_done" ID="OCARINA_ACTION_CHECK_NOWARP_DONE" Index="49"/>
   </Enum>
-  <Enum Games="OoTMqDbg" Key="seq_id" ID="SeqId">
+  <Enum Key="seq_id" ID="SeqId">
     <!-- https://github.com/zeldaret/oot/blob/9f09505d34619883748a7dab05071883281c14fd/include/sequence.h#L4-L118 -->
     <Item Key="general_sfx" ID="NA_BGM_GENERAL_SFX" Name="General Sound Effects" Index="0"/>
     <Item Key="nature_ambience" ID="NA_BGM_NATURE_AMBIENCE" Name="Nature Ambiance" Index="1"/>
@@ -683,7 +683,7 @@
       <Item Key="conveyor_speed_medium" ID="CONVEYOR_SPEED_MEDIUM" Index="2"/>
       <Item Key="conveyor_speed_fast" ID="CONVEYOR_SPEED_FAST" Index="3"/>
   </Enum>
-  <Enum Games="OoTMqDbg" Key="draw_config" ID="SceneDrawConfig">
+  <Enum Key="draw_config" ID="SceneDrawConfig">
     <Item Key="sdc_default" ID="SDC_DEFAULT" Name="Default" Index="0"/>
     <Item Key="sdc_hyrule_field" ID="SDC_HYRULE_FIELD" Name="Hyrule Field (Spot00)" Index="1"/>
     <Item Key="sdc_kakariko_village" ID="SDC_KAKARIKO_VILLAGE" Name="Kakariko Village (Spot01)" Index="2"/>
@@ -738,12 +738,12 @@
     <Item Key="sdc_ganons_tower_collapse_interior" ID="SDC_GANONS_TOWER_COLLAPSE_INTERIOR" Name="Ganon's Tower (Collapsing) (Ganon Sonogo)" Index="51"/>
     <Item Key="sdc_inside_ganons_castle_collapse" ID="SDC_INSIDE_GANONS_CASTLE_COLLAPSE" Name="Inside Ganon's Castle (Collapsing) (Ganontika Sonogo)" Index="52"/>
   </Enum>
-  <Enum Games="OoTMqDbg" Key="global_object" ID="GlobalObjects">
+  <Enum Key="global_object" ID="GlobalObjects">
     <Item Key="object_gameplay_field_keep" ID="OBJECT_GAMEPLAY_FIELD_KEEP" Name="Overworld" Index="1"/>
     <Item Key="object_gameplay_dangeon_keep" ID="OBJECT_GAMEPLAY_DANGEON_KEEP" Name="Dungeon" Index="2"/>
     <Item Key="object_invalid" ID="OBJECT_INVALID" Name="None" Index="0"/>
   </Enum>
-  <Enum Games="MM" Key="cs_spline_rel" ID="CutsceneCamRelativeTo">
+  <Enum Key="cs_spline_rel" ID="CutsceneCamRelativeTo">
   <!-- https://github.com/zeldaret/mm/blob/5607eec18bae68e4cd38ef6d1fa69d7f1d84bfc8/include/z64cutscene.h#L754C14-L754-L760 -->
   <Item Key="rel0" ID="CS_CAM_REL_0" Index="0"/>
   <Item Key="rel1" ID="CS_CAM_REL_1" Index="1"/>
@@ -752,7 +752,7 @@
   <Item Key="rel4" ID="CS_CAM_REL_4" Index="4"/>
   <Item Key="rel5" ID="CS_CAM_REL_5" Index="5"/>
 </Enum>
-<Enum Games="MM" Key="cs_spline_interp_type" ID="CutsceneCamInterpType">
+<Enum Key="cs_spline_interp_type" ID="CutsceneCamInterpType">
   <!-- https://github.com/zeldaret/mm/blob/5607eec18bae68e4cd38ef6d1fa69d7f1d84bfc8/include/z64cutscene.h#L740-L751 -->
   <Item Key="none" ID="CS_CAM_INTERP_NONE" Index="0"/>
   <Item Key="set" ID="CS_CAM_INTERP_SET" Index="1"/>
@@ -763,38 +763,38 @@
   <Item Key="geo" ID="CS_CAM_INTERP_GEO" Index="6"/>
   <Item Key="off" ID="CS_CAM_INTERP_OFF" Index="7"/>
 </Enum>
-  <Enum Games="MM" Key="cs_spawn_flag" ID="CS_SPAWN_FLAG">
+  <Enum Key="cs_spawn_flag" ID="CS_SPAWN_FLAG">
       <!-- https://github.com/zeldaret/mm/blob/0fdd63a350c47b5da87a58f00855bc95b6a32b47/include/z64cutscene.h#L583-L586 -->
       <Item Key="flag_none" ID="CS_SPAWN_FLAG_NONE" Index="255"/>
       <Item Key="flag_always" ID="CS_SPAWN_FLAG_ALWAYS" Index="254"/>
   </Enum>
-  <Enum Games="MM" Key="actor_cs_end_sfx" ID="CutsceneEndSfx">
+  <Enum Key="actor_cs_end_sfx" ID="CutsceneEndSfx">
       <!-- https://github.com/zeldaret/mm/blob/0fdd63a350c47b5da87a58f00855bc95b6a32b47/include/z64cutscene.h#L709-L714 -->
       <Item Key="none" ID="CS_END_SFX_NONE" Index="0"/>
       <Item Key="tre_box_appear" ID="CS_END_SFX_TRE_BOX_APPEAR" Index="1"/>
       <Item Key="correct_chime" ID="CS_END_SFX_CORRECT_CHIME" Index="2"/>
       <Item Key="none_alt" ID="CS_END_SFX_NONE_ALT" Index="255"/>
   </Enum>
-    <Enum Games="MM" Key="cs_rumble_type" ID="CutsceneRumbleType">
+    <Enum Key="cs_rumble_type" ID="CutsceneRumbleType">
       <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L248-L251 -->
       <Item Key="rumble_once" ID="CS_RUMBLE_ONCE" Index="1"/>
       <Item Key="rumble_pulse" ID="CS_RUMBLE_PULSE" Index="2"/>
   </Enum>
-  <Enum Games="MM" Key="cs_transition_general" ID="CsTransitionGeneralType">
+  <Enum Key="cs_transition_general" ID="CsTransitionGeneralType">
       <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L263-L266 -->
       <Item Key="trans_general_fill_in" ID="CS_TRANS_GENERAL_FILL_IN" Index="1"/>
       <Item Key="trans_general_fill_out" ID="CS_TRANS_GENERAL_FILL_OUT" Index="2"/>
   </Enum>
-    <Enum Games="MM" Key="cs_motion_blur_type" ID="CsMotionBlurType">
+    <Enum Key="cs_motion_blur_type" ID="CsMotionBlurType">
       <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L166-L169 -->
       <Item Key="motion_blur_enable" ID="CS_MOTION_BLUR_ENABLE" Index="1"/>
       <Item Key="motion_blur_disable" ID="CS_MOTION_BLUR_DISABLE" Index="2"/>
   </Enum>
-    <Enum Games="MM" Key="cs_credits_scene_type" ID="CsChooseCreditsSceneType">
+    <Enum Key="cs_credits_scene_type" ID="CsChooseCreditsSceneType">
       <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L143-L155 -->
       <Item Key="credits_destination" ID="CS_CREDITS_DESTINATION" Index="1"/>
   </Enum>
-    <Enum Games="MM" Key="cs_modify_seq_type" ID="CsModifySeqType">
+    <Enum Key="cs_modify_seq_type" ID="CsModifySeqType">
       <!-- https://github.com/zeldaret/mm/blob/df800c74aecfb6b89ee976df8a2f11451f295e37/include/z64cutscene.h#L109-L118 -->
       <Item Key="mod_seq_0" ID="CS_MOD_SEQ_0" Index="1"/>
       <Item Key="mod_seq_1" ID="CS_MOD_SEQ_1" Index="2"/>
