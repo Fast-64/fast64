@@ -814,7 +814,7 @@ for name, info in mm_skeleton_dict.items():
 
 @dataclass
 class Z64_Data:
-    """Contains data related to OoT, like actors or objects"""
+    """Contains data related to OoT/MM, like actors or objects"""
 
     def __init__(self, game: str):
         self.game = game
