@@ -396,6 +396,19 @@ enumF3D = [
     ("T3D", "Tiny3D", "Custom libdragon microcode by HailToDodongo", 10),
 ]
 
+enumPackedNormalsAlgorithm = [
+    (
+        "565",
+        "565 (T3D, new EX3)",
+        "Packing algorithm by HailToDodongo used by Tiny3D and newer F3DEX3, simply concatenates 5, 6, and 5 bits of X, Y, Z",
+    ),
+    (
+        "Octahedral",
+        "Octahedral (old EX3)",
+        "Packing algorithm by Sauraen used in older F3DEX3, based on octahedral encoding",
+    ),
+]
+
 enumLargeEdges = [
     ("Clamp", "Clamp", "Clamp outside image bounds"),
     ("Wrap", "Wrap", "Wrap outside image bounds (more expensive)"),
