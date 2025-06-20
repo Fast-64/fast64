@@ -312,7 +312,11 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
                 [
                     ootGetObjectPath(isCustomImport, importPath, folderName, False),
                     ootGetObjectHeaderPath(isCustomImport, importPath, folderName, False),
-                    f"{bpy.context.scene.ootDecompPath}/include/z64player.h",
+                    (
+                        f"{bpy.context.scene.ootDecompPath}/include/z64player.h"
+                        if bpy.context.scene.fast64.oot.is_z64sceneh_present()
+                        else f"{bpy.context.scene.ootDecompPath}/include/player.h"
+                    ),
                 ]
             )
 
