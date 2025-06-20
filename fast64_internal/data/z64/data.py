@@ -12,7 +12,7 @@ from .actor_data import Z64_ActorData
 
 # TODO: get this from XML
 
-ootEnumNightSeq = [
+oot_enum_nature_id = [
     ("Custom", "Custom", "Custom"),
     ("0x00", "General Night", "NATURE_ID_GENERAL_NIGHT"),
     ("0x01", "Market Entrance", "NATURE_ID_MARKET_ENTRANCE"),
@@ -64,7 +64,7 @@ enum_ambiance_id = [
 
 # ---
 
-ootEnumSkybox = [
+oot_enum_skybox = [
     ("Custom", "Custom", "Custom"),
     ("0x00", "None", "None"),
     ("0x01", "Standard Sky", "Standard Sky"),
@@ -104,7 +104,7 @@ mm_enum_skybox = [
     ("SKYBOX_CUTSCENE_MAP", "Cutscene Map", "0x05"),
 ]
 
-ootEnumCloudiness = [
+oot_enum_skybox_config = [
     ("Custom", "Custom", "Custom"),
     ("0x00", "Sunny", "Sunny"),
     ("0x01", "Cloudy", "Cloudy"),
@@ -142,7 +142,7 @@ mm_enum_skybox_config = [
     ("SKYBOX_CONFIG_27", "SKYBOX_CONFIG_27", "0x1B"),
 ]
 
-ootEnumLinkIdle = [
+oot_enum_environment_type = [
     ("Custom", "Custom", "Custom"),
     ("0x00", "Default", "Default"),
     ("0x01", "Sneezing", "Sneezing"),
@@ -165,8 +165,7 @@ mm_enum_environment_type = [
     ("ROOM_ENV_UNK_STRETCH_3", "Unknown Stretch 3", "0x06"),
 ]
 
-# see RoomType enum
-ootEnumRoomBehaviour = [
+oot_enum_room_type = [
     ("Custom", "Custom", "Custom"),
     ("0x00", "Default", "Default"),
     ("0x01", "Dungeon Behavior (Z-Target, Sun's Song)", "Dungeon Behavior (Z-Target, Sun's Song)"),
@@ -186,7 +185,7 @@ mm_enum_room_type = [
     ("ROOM_TYPE_BOSS", "Boss", "0x05"),
 ]
 
-ootEnumFloorSetting = [
+oot_enum_floor_property = [
     ("Custom", "Custom", "Custom"),
     ("0x00", "Default", "Default"),
     ("0x05", "Trigger Respawn", "Trigger Respawn"),
@@ -212,7 +211,7 @@ mm_enum_floor_property = [
     ("0x0D", "Trigger Void (runs `Player_Action_1`)", "FLOOR_PROPERTY_13"),
 ]
 
-enum_floor_property = [
+oot_enum_floor_type = [
     ("Custom", "Custom", "Custom"),
     ("0x00", "Default", "Default"),
     ("0x01", "Haunted Wasteland Camera", "Haunted Wasteland Camera"),
@@ -256,7 +255,7 @@ enum_floor_effect = [
     ("0x02", "Walkable (Preserves Exit Flags)", "FLOOR_EFFECT_2"),
 ]
 
-ootEnumCameraSType = [
+oot_enum_camera_setting_type = [
     ("Custom", "Custom", "Custom"),
     ("CAM_SET_NONE", "None", "None"),
     ("CAM_SET_NORMAL0", "Normal0", "Normal0"),
@@ -506,7 +505,7 @@ mm_enum_camera_setting_type = [
 ]
 
 # order here sets order on the UI
-ootEnumCSListType = [
+oot_enum_cs_list_type = [
     # Col 1
     ("TextList", "Text List", "Textbox", "ALIGN_BOTTOM", 0),
     ("MiscList", "Misc List", "Misc", "OPTIONS", 7),
@@ -873,30 +872,30 @@ class Z64_Data:
             self.cs_index_start = 4
             self.cs_list_type_to_cmd["Transition"] = "CS_TRANSITION"
             self.cs_list_type_to_cmd["RumbleList"] = "CS_RUMBLE_CONTROLLER_LIST"
-            self.ootEnumNightSeq = ootEnumNightSeq
-            self.ootEnumSkybox = ootEnumSkybox
-            self.ootEnumCloudiness = ootEnumCloudiness
-            self.ootEnumLinkIdle = ootEnumLinkIdle
-            self.ootEnumRoomBehaviour = ootEnumRoomBehaviour
-            self.ootEnumFloorSetting = ootEnumFloorSetting
-            self.enum_floor_property = enum_floor_property
-            self.ootEnumCameraSType = ootEnumCameraSType
-            self.ootEnumCSListType = ootEnumCSListType
+            self.enum_nature_id = oot_enum_nature_id
+            self.enum_skybox = oot_enum_skybox
+            self.enum_skybox_config = oot_enum_skybox_config
+            self.enum_environment_type = oot_enum_environment_type
+            self.enum_room_type = oot_enum_room_type
+            self.enum_floor_property = oot_enum_floor_property
+            self.enum_floor_type = oot_enum_floor_type
+            self.enum_camera_setting_type = oot_enum_camera_setting_type
+            self.enum_cs_list_type = oot_enum_cs_list_type
             self.skeleton_dict = oot_skeleton_dict
             self.enum_skeleton_mode = oot_enum_skeleton_mode
         elif self.game == "MM":
             self.cs_index_start = 1
             self.cs_list_type_to_cmd["Transition"] = "CS_TRANSITION_LIST"
             self.cs_list_type_to_cmd["RumbleList"] = "CS_RUMBLE_LIST"
-            self.ootEnumNightSeq = enum_ambiance_id
-            self.ootEnumSkybox = mm_enum_skybox
-            self.ootEnumCloudiness = mm_enum_skybox_config
-            self.ootEnumLinkIdle = mm_enum_environment_type
-            self.ootEnumRoomBehaviour = mm_enum_room_type
-            self.ootEnumFloorSetting = mm_enum_floor_property
-            self.enum_floor_property = mm_enum_floor_type
-            self.ootEnumCameraSType = mm_enum_camera_setting_type
-            self.ootEnumCSListType = mm_enum_cs_list_type
+            self.enum_nature_id = enum_ambiance_id
+            self.enum_skybox = mm_enum_skybox
+            self.enum_skybox_config = mm_enum_skybox_config
+            self.enum_environment_type = mm_enum_environment_type
+            self.enum_room_type = mm_enum_room_type
+            self.enum_floor_property = mm_enum_floor_property
+            self.enum_floor_type = mm_enum_floor_type
+            self.enum_camera_setting_type = mm_enum_camera_setting_type
+            self.enum_cs_list_type = mm_enum_cs_list_type
             self.skeleton_dict = mm_skeleton_dict
             self.enum_skeleton_mode = mm_enum_skeleton_mode
         else:
@@ -927,15 +926,15 @@ class Z64_Data:
             "chest_content": self.actors.ootEnumChestContent,
             "navi_msg_id": self.actors.ootEnumNaviMessageData,
             "collectibles": self.actors.ootEnumCollectibleItems,
-            "skyboxID": self.ootEnumSkybox,
-            "skyboxCloudiness": self.ootEnumCloudiness,
-            "nightSeq": self.ootEnumNightSeq,
-            "roomBehaviour": self.ootEnumRoomBehaviour,
-            "linkIdleMode": self.ootEnumLinkIdle,
-            "floorSetting": self.ootEnumFloorSetting,
-            "floorProperty": self.enum_floor_property,
-            "camSType": self.ootEnumCameraSType,
-            "cs_list_type": self.ootEnumCSListType,
+            "skybox": self.enum_skybox,
+            "skybox_config": self.enum_skybox_config,
+            "nature_id": self.enum_nature_id,
+            "room_type": self.enum_room_type,
+            "environment_type": self.enum_environment_type,
+            "floor_property": self.enum_floor_property,
+            "floor_type": self.enum_floor_type,
+            "camera_setting_type": self.enum_camera_setting_type,
+            "cs_list_type": self.enum_cs_list_type,
             "skeleton_mode": self.enum_skeleton_mode,
         }
 

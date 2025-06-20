@@ -6,6 +6,7 @@ import mathutils
 from random import random
 from bpy.types import Material
 
+from ...game_data import game_data
 from ...utility import PluginError, parentObject, hexOrDecInt, get_include_data, yUpToZUp
 from ..exporter.collision.surface import SurfaceType
 from ..exporter.collision.polygons import CollisionPoly
@@ -17,12 +18,9 @@ from .utility import getDataMatch, getBits, checkBit, createCurveFromPoints, str
 from .classes import SharedSceneData
 
 from ..collision.constants import (
-    ootEnumFloorSetting,
     ootEnumWallSetting,
-    enum_floor_property,
     ootEnumCollisionTerrain,
     ootEnumCollisionSound,
-    ootEnumCameraSType,
     ootEnumCameraCrawlspaceSType,
     enum_conveyor_speed,
 )
@@ -80,7 +78,7 @@ def parseCamPosData(setting: str, sceneData: str, posDataName: str, index: int, 
     camObj = bpy.data.objects.new(objName, camera)
     bpy.context.scene.collection.objects.link(camObj)
     camProp = camObj.ootCameraPositionProperty
-    setCustomProperty(camProp, "camSType", setting, ootEnumCameraSType)
+    setCustomProperty(camProp, "camSType", setting, game_data.z64.get_enum("camera_setting_type"))
     camProp.hasPositionData = posDataName != "NULL" and posDataName != "0"
     camProp.index = orderIndex
 
@@ -178,9 +176,9 @@ def parseSurfaceParams(
 ):
     col_props.eponaBlock = surface_type.isHorseBlocked
     col_props.decreaseHeight = surface_type.isSoft
-    setCustomProperty(col_props, "floorSetting", surface_type.floorProperty, ootEnumFloorSetting)
+    setCustomProperty(col_props, "floorSetting", surface_type.floorProperty, game_data.z64.get_enum("floor_property"))
     setCustomProperty(col_props, "wallSetting", surface_type.wallType, ootEnumWallSetting)
-    setCustomProperty(col_props, "floorProperty", surface_type.floorType, enum_floor_property)
+    setCustomProperty(col_props, "floorProperty", surface_type.floorType, game_data.z64.get_enum("floor_type"))
     col_props.exitID = surface_type.exitIndex
     col_props.cameraID = surface_type.bgCamIndex
     col_props.isWallDamage = surface_type.isWallDamage
