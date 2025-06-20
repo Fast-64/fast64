@@ -76,30 +76,27 @@ def ootAddLimbRecursively(
 ):
     limbName = f3dContext.getLimbName(limbIndex)
     boneName = f3dContext.getBoneName(limbIndex)
-    matchResult = ootGetLimb(skeletonData, limbName, False)
+    limb_info = ootGetLimb(skeletonData, limbName, False)
+    assert limb_info is not None
 
-    isLOD = matchResult.lastindex > 6
-
-    if isLOD and useFarLOD:
-        dlName = matchResult.group(7)
+    if limb_info.is_lod and useFarLOD:
+        dlName = limb_info.far_dl_name
     else:
-        dlName = matchResult.group(6)
+        dlName = limb_info.dl_name
 
     # Animations override the root translation, so we just ignore importing them as well.
     if limbIndex == 0:
         translation = [0, 0, 0]
     else:
         translation = [
-            hexOrDecInt(matchResult.group(1)),
-            hexOrDecInt(matchResult.group(2)),
-            hexOrDecInt(matchResult.group(3)),
+            hexOrDecInt(limb_info.translationX_str),
+            hexOrDecInt(limb_info.translationY_str),
+            hexOrDecInt(limb_info.translationZ_str),
         ]
 
     LIMB_DONE = 0xFF
-    nextChildIndexStr = matchResult.group(4)
-    nextChildIndex = ootEvaluateLimbExpression(nextChildIndexStr, enums)
-    nextSiblingIndexStr = matchResult.group(5)
-    nextSiblingIndex = ootEvaluateLimbExpression(nextSiblingIndexStr, enums)
+    nextChildIndex = ootEvaluateLimbExpression(limb_info.nextChildIndex_str, enums)
+    nextSiblingIndex = ootEvaluateLimbExpression(limb_info.nextSiblingIndex_str, enums)
 
     # str(limbIndex) + " " + str(translation) + " " + str(nextChildIndex) + " " + \
     # 	str(nextSiblingIndex) + " " + str(dlName))
@@ -114,6 +111,8 @@ def ootAddLimbRecursively(
     # Therefore were delay F3D parsing until after skeleton is processed.
     if loadDL:
         f3dContext.dlList.append(OOTDLEntry(dlName, limbIndex))
+
+    isLOD = limb_info.is_lod
 
     if nextChildIndex != LIMB_DONE:
         isLOD |= ootAddLimbRecursively(
@@ -198,6 +197,38 @@ def ootBuildSkeleton(
 
     # Parse enums, which may be used to link bones by index
     enums = ootGetEnums(skeletonData)
+    if isLink:
+        # TODO parse this from player.h instead of hardcoding
+        enums.append(
+            OOTEnum(
+                "PlayerLimb",
+                [
+                    "PLAYER_LIMB_NONE",
+                    "PLAYER_LIMB_ROOT",
+                    "PLAYER_LIMB_WAIST",
+                    "PLAYER_LIMB_LOWER",
+                    "PLAYER_LIMB_R_THIGH",
+                    "PLAYER_LIMB_R_SHIN",
+                    "PLAYER_LIMB_R_FOOT",
+                    "PLAYER_LIMB_L_THIGH",
+                    "PLAYER_LIMB_L_SHIN",
+                    "PLAYER_LIMB_L_FOOT",
+                    "PLAYER_LIMB_UPPER",
+                    "PLAYER_LIMB_HEAD",
+                    "PLAYER_LIMB_HAT",
+                    "PLAYER_LIMB_COLLAR",
+                    "PLAYER_LIMB_L_SHOULDER",
+                    "PLAYER_LIMB_L_FOREARM",
+                    "PLAYER_LIMB_L_HAND",
+                    "PLAYER_LIMB_R_SHOULDER",
+                    "PLAYER_LIMB_R_FOREARM",
+                    "PLAYER_LIMB_R_HAND",
+                    "PLAYER_LIMB_SHEATH",
+                    "PLAYER_LIMB_TORSO",
+                    "PLAYER_LIMB_MAX",
+                ],
+            )
+        )
 
     if overlayName is not None:
         ootReadTextureArrays(basePath, overlayName, skeletonName, f3dContext, isLink, flipbookArrayIndex2D)
@@ -298,24 +329,16 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
     if overlayName is not None or isLink:
         skeletonData = ootGetIncludedAssetData(basePath, filepaths, skeletonData) + skeletonData
 
-    matchResult = ootGetSkeleton(skeletonData, skeletonName, False)
-    if "#include" in matchResult.group(0):
-        split = get_include_data(matchResult.group(3), strip=True).replace("{", "").replace(",}", "").split(",")
-        limbsName = split[0]
+    skel_info = ootGetSkeleton(skeletonData, skeletonName, False)
+    assert skel_info is not None
+    if skel_info.uses_include:
         ignore_tlut = True
     else:
-        limbsName = matchResult.group(2)
         ignore_tlut = False
 
-    matchResult = ootGetLimbs(skeletonData, limbsName, False)
-    if "#include" in matchResult.group(0):
-        limbsData = removeComments(get_include_data(matchResult.group(2)))
-    else:
-        limbsData = matchResult.group(2)
+    limbs_info = ootGetLimbs(skeletonData, skel_info.limbs_name, False)
 
-    limbList = [entry.strip()[1:] for entry in ootStripComments(limbsData).split(",") if entry.strip() != ""]
-
-    f3dContext = OOTF3DContext(get_F3D_GBI(), limbList, basePath)
+    f3dContext = OOTF3DContext(get_F3D_GBI(), limbs_info.limb_list, basePath)
     f3dContext.mat().draw_layer.oot = drawLayer
     f3dContext.ignore_tlut = ignore_tlut
 
