@@ -27,7 +27,7 @@ ootEnumWallSetting = [
     ("0x07", "Push Block", "Push Block"),
 ]
 
-ootEnumFloorProperty = [
+enum_floor_property = [
     ("Custom", "Custom", "Custom"),
     ("0x00", "None", "None"),
     ("0x01", "Haunted Wasteland Camera", "Haunted Wasteland Camera"),
@@ -69,7 +69,7 @@ ootEnumCollisionSound = [
     ("0x0D", "Carpet", "Carpet (aka Loose Earth)"),
 ]
 
-ootEnumConveyorSpeed = [
+enum_conveyor_speed = [
     ("Custom", "Custom", "Custom"),
     ("0x00", "None", "None"),
     ("0x01", "Slow", "Slow"),

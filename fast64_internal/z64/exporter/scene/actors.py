@@ -6,8 +6,8 @@ from mathutils import Matrix
 from bpy.types import Object
 
 from ....utility import PluginError, CData, hexOrDecInt, indent
+from ....game_data import game_data
 from ...utility import getObjectList, getEvalParams
-from ...constants import ootData
 from ...actor.properties import OOTActorProperty
 from ..utility import Utility
 from ..actor import Actor
@@ -84,7 +84,7 @@ class SceneTransitionActors:
                     transActor.id = actorProp.actor_id
 
                 transActor.name = (
-                    ootData.actorData.actorsByID[actorProp.actor_id].name.replace(
+                    game_data.z64.actors.actorsByID[actorProp.actor_id].name.replace(
                         f" - {actorProp.actor_id.removeprefix('ACTOR_')}", ""
                     )
                     if actorProp.actor_id != "Custom"
@@ -193,7 +193,7 @@ class SceneEntranceActors:
                 entranceActor = EntranceActor()
 
                 entranceActor.name = (
-                    ootData.actorData.actorsByID[actorProp.actor_id].name.replace(
+                    game_data.z64.actors.actorsByID[actorProp.actor_id].name.replace(
                         f" - {actorProp.actor_id.removeprefix('ACTOR_')}", ""
                     )
                     if actorProp.actor_id != "Custom"
