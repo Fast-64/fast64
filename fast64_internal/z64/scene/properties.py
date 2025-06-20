@@ -10,6 +10,8 @@ from bpy.props import (
     FloatVectorProperty,
 )
 from bpy.utils import register_class, unregister_class
+
+from ...game_data import game_data
 from ...render_settings import on_update_oot_render_settings
 from ...utility import prop_split, customExportWarning
 from ..cutscene.constants import ootEnumCSWriteType
@@ -21,12 +23,9 @@ from ..constants import (
     ootEnumSceneID,
     ootEnumGlobalObject,
     ootEnumNaviHints,
-    ootEnumSkybox,
-    ootEnumCloudiness,
     ootEnumSkyboxLighting,
     ootEnumMapLocation,
     ootEnumCameraMode,
-    ootEnumNightSeq,
     ootEnumAudioSessionPreset,
     ootEnumHeaderMenu,
     ootEnumDrawConfig,
@@ -259,9 +258,11 @@ class OOTSceneHeaderProperty(PropertyGroup):
     naviCup: EnumProperty(name="Navi Hints", default="0x00", items=ootEnumNaviHints)
     naviCupCustom: StringProperty(name="Navi Hints Custom", default="0x00")
 
-    skyboxID: EnumProperty(name="Skybox", items=ootEnumSkybox, default="0x01")
+    skyboxID: EnumProperty(name="Skybox", items=lambda self, context: game_data.z64.get_enum("skybox"), default=2)
     skyboxIDCustom: StringProperty(name="Skybox ID", default="0")
-    skyboxCloudiness: EnumProperty(name="Cloudiness", items=ootEnumCloudiness, default="0x00")
+    skyboxCloudiness: EnumProperty(
+        name="Cloudiness", items=lambda self, context: game_data.z64.get_enum("skybox_config"), default=1
+    )
     skyboxCloudinessCustom: StringProperty(name="Cloudiness ID", default="0x00")
     skyboxLighting: EnumProperty(
         name="Skybox Lighting",
@@ -280,7 +281,9 @@ class OOTSceneHeaderProperty(PropertyGroup):
 
     musicSeq: EnumProperty(name="Music Sequence", items=ootEnumMusicSeq, default="NA_BGM_FIELD_LOGIC")
     musicSeqCustom: StringProperty(name="Music Sequence ID", default="0x00")
-    nightSeq: EnumProperty(name="Nighttime SFX", items=ootEnumNightSeq, default="0x00")
+    nightSeq: EnumProperty(
+        name="Nighttime SFX", items=lambda self, context: game_data.z64.get_enum("nature_id"), default=1
+    )
     nightSeqCustom: StringProperty(name="Nighttime SFX ID", default="0x00")
     audioSessionPreset: EnumProperty(name="Audio Session Preset", items=ootEnumAudioSessionPreset, default="0x00")
     audioSessionPresetCustom: StringProperty(name="Audio Session Preset", default="0x00")

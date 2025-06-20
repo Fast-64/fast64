@@ -19,7 +19,6 @@ from .motion.operators import (
 
 from .constants import (
     ootEnumCSTextboxType,
-    ootEnumCSListType,
     ootEnumCSTextboxTypeIcons,
     ootCSSubPropToName,
     csListTypeToIcon,
@@ -190,7 +189,7 @@ class OOTCSRumbleProperty(OOTCutsceneCommon, PropertyGroup):
 class OOTCSListProperty(PropertyGroup):
     expandTab: BoolProperty(default=True)
 
-    listType: EnumProperty(items=ootEnumCSListType)
+    listType: EnumProperty(items=lambda self, context: game_data.z64.get_enum("cs_list_type"))
     textList: CollectionProperty(type=OOTCSTextProperty)
     lightSettingsList: CollectionProperty(type=OOTCSLightSettingsProperty)
     timeList: CollectionProperty(type=OOTCSTimeProperty)
@@ -205,7 +204,8 @@ class OOTCSListProperty(PropertyGroup):
 
     def draw_props(self, layout: UILayout, listIndex: int, objName: str, collectionType: str):
         box = layout.box().column()
-        enumName = getEnumName(ootEnumCSListType, self.listType)
+        enum_cs_list_type = game_data.z64.get_enum("cs_list_type")
+        enumName = getEnumName(enum_cs_list_type, self.listType)
 
         # Draw current command tab
         box.prop(
@@ -264,7 +264,7 @@ class OOTCSListProperty(PropertyGroup):
                 addOp.objName = objName
         else:
             addOp = box.operator(
-                OOTCollectionAdd.bl_idname, text="Add item to " + getEnumName(ootEnumCSListType, self.listType)
+                OOTCollectionAdd.bl_idname, text="Add item to " + getEnumName(enum_cs_list_type, self.listType)
             )
             addOp.option = len(data)
             addOp.collectionType = collectionType + "." + attrName
@@ -278,7 +278,7 @@ class OOTCSListProperty(PropertyGroup):
             p.draw_props(box, self, listIndex, i, objName, collectionType, enumName.removesuffix(" List"))
 
         if len(data) == 0:
-            box.label(text="No items in " + getEnumName(ootEnumCSListType, self.listType))
+            box.label(text="No items in " + getEnumName(enum_cs_list_type, self.listType))
 
 
 class OOTCutsceneCommandBase:
@@ -365,7 +365,7 @@ class OOTCutsceneProperty(PropertyGroup):
     csDestinationCustom: StringProperty(default="CS_DEST_CUSTOM")
     csDestinationStartFrame: IntProperty(name="Start Frame", min=0, default=99)
     csLists: CollectionProperty(type=OOTCSListProperty, name="Cutscene Lists")
-    menuTab: EnumProperty(items=ootEnumCSListType)
+    menuTab: EnumProperty(items=lambda self, context: game_data.z64.get_enum("cs_list_type"))
 
     preview: PointerProperty(type=OOTCutscenePreviewProperty)
 

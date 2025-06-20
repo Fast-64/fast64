@@ -20,8 +20,6 @@ from bpy.props import (
 )
 
 from ..constants import (
-    ootEnumRoomBehaviour,
-    ootEnumLinkIdle,
     ootEnumRoomShapeType,
     ootEnumHeaderMenu,
 )
@@ -93,11 +91,13 @@ class OOTRoomHeaderProperty(PropertyGroup):
     usePreviousHeader: BoolProperty(name="Use Previous Header", default=True)
 
     roomIndex: IntProperty(name="Room Index", default=0, min=0)
-    roomBehaviour: EnumProperty(items=ootEnumRoomBehaviour, default="0x00")
+    roomBehaviour: EnumProperty(items=lambda self, context: game_data.z64.get_enum("room_type"), default=1)
     roomBehaviourCustom: StringProperty(default="0x00")
     disableWarpSongs: BoolProperty(name="Disable Warp Songs")
     showInvisibleActors: BoolProperty(name="Show Invisible Actors")
-    linkIdleMode: EnumProperty(name="Link Idle Mode", items=ootEnumLinkIdle, default="0x00")
+    linkIdleMode: EnumProperty(
+        name="Link Idle Mode", items=lambda self, context: game_data.z64.get_enum("environment_type"), default=1
+    )
     linkIdleModeCustom: StringProperty(name="Link Idle Mode Custom", default="0x00")
     roomIsHot: BoolProperty(
         name="Use Hot Room Behavior",
