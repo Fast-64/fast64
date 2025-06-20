@@ -307,7 +307,7 @@ def ootImportSkeletonC(basePath: str, importSettings: OOTSkeletonImportSettings)
         filepaths.append(ootGetObjectPath(isCustomImport, "", "gameplay_keep", True))
         filepaths.append(ootGetObjectHeaderPath(isCustomImport, "", "gameplay_keep", True))
 
-        if not bpy.context.scene.fast64.oot.is_globalh_present():
+        if (Path(bpy.context.scene.ootDecompPath) / "assets/objects" / folderName).exists():
             filepaths.extend(
                 [
                     ootGetObjectPath(isCustomImport, importPath, folderName, False),
