@@ -285,6 +285,8 @@ def write_or_delete_if_found(
     always replace the file.
     error_if_no_header/error_if_no_footer will raise errors if the header/footer is not found.
     ignore_comments will ignore comments in the file, possibly breaking the search for matches.
+    header defines the start of a writable area in the file
+    footer defines the end of a writable area in the file after the header, the footer expects a header beforehand
 
     Returns True if the file was modified.
     """
