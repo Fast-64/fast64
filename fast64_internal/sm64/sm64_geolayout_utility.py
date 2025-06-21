@@ -139,6 +139,7 @@ class BaseDisplayListNode:
     """Base displaylist node with common helper functions dealing with displaylists"""
 
     dl_ext = "WITH_DL"  # add dl_ext to geo command if command has a displaylist
+    override_layer = False
 
     def get_dl_address(self):
         assert self.dlRef is None, "dlRef not implemented in binary"

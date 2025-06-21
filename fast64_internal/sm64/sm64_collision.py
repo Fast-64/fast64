@@ -40,6 +40,7 @@ from ..utility import (
     makeWriteInfoBox,
     writeBoxExportType,
     enumExportHeaderType,
+    selectSingleObject,
 )
 
 
@@ -378,8 +379,7 @@ def exportCollisionInsertableBinary(obj, transformMatrix, filepath, includeSpeci
 
 
 def exportCollisionCommon(obj, transformMatrix, includeSpecials, includeChildren, name, areaIndex):
-    bpy.ops.object.select_all(action="DESELECT")
-    obj.select_set(True)
+    selectSingleObject(obj)
 
     # dict of collisionType : faces
     collisionDict = {}
