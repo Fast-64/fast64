@@ -932,11 +932,8 @@ def modify_f3d_nodes_for_export(use: bool):
             mix["f3d_gltf_owned"] = True
         mix.location = (1075, 850)
         mix.blend_type = "MULTIPLY"
-        if get_version() >= (4, 1, 0):
-            mix.data_type = "RGBA"
-            mix.inputs[2].default_value = 1.0
-        else:
-            mix.inputs[2].default_value = [1.0, 1.0, 1.0, 1.0]
+        mix.data_type = "FLOAT"
+        mix.inputs["B" if bpy.data.version >= (4, 2, 0) else 2].default_value = 1.0
         mix.inputs[0].default_value = 1.0
 
         vertex_color = next(
@@ -957,7 +954,9 @@ def modify_f3d_nodes_for_export(use: bool):
             link_if_none_exist(
                 mat, vertex_color.outputs["Color"], bsdf.inputs.get("Color") or bsdf.inputs.get("Base Color")
             )
-            if bpy.app.version < (4, 1, 0):
+            if bpy.app.version >= (4, 4, 0):
+                link_if_none_exist(mat, vertex_color.outputs["Alpha"], bsdf.inputs["Alpha"])
+            elif bpy.app.version >= (4, 2, 1):
                 link_if_none_exist(mat, vertex_color.outputs["Alpha"], mix.inputs[1])
                 link_if_none_exist(mat, mix.outputs[0], bsdf.inputs["Alpha"])
             else:
