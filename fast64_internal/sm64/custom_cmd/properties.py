@@ -314,7 +314,9 @@ class SM64_CustomArgProperties(PropertyGroup):
 
     @property
     def can_round_to_sm64(self):
-        return self.arg_type in {"TRANSLATION", "COLOR"} or (self.arg_type == "ROTATION" and self.rot_type == "EULER")
+        return self.arg_type in {"TRANSLATION", "COLOR", "SCALE"} or (
+            self.arg_type == "ROTATION" and self.rot_type == "EULER"
+        )
 
     @property
     def has_order(self):
@@ -416,11 +418,12 @@ class SM64_CustomArgProperties(PropertyGroup):
                         axis, angle = quat.to_axis_angle()
                         return tuple((tuple(axis), math.degrees(angle)))
             case "SCALE":
-                return tuple(
-                    getattr(
-                        matrix.to_scale() if inherit else mathutils.Vector(self.translation_scale), self.order.lower()
-                    )
+                scale = getattr(
+                    matrix.to_scale() if inherit else mathutils.Vector(self.translation_scale), self.order.lower()
                 )
+                if self.round_to_sm64:
+                    return round((sum(x for x in scale) / 3) * 0x10000)
+                return tuple(scale)
 
     def to_dict(
         self,
@@ -534,6 +537,8 @@ class SM64_CustomArgProperties(PropertyGroup):
             return ", ".join(toAlnum(name + arg).lower() for arg in args)
 
         if self.has_order:
+            if self.arg_type == "SCALE" and self.round_to_sm64:
+                return add_name(("",))
             return add_name(tuple(f"_{x}" for x in self.order.lower()))
         elif self.arg_type == "ROTATION":
             return add_name(
