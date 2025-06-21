@@ -430,7 +430,7 @@ def update_actor_includes(
         )
 
     if write_includes_with_alternate(data_path, data_includes):
-        print(f"Updated data includes at {header_path}.")
+        print(f"Updated data includes at {data_path}.")
     if write_includes_with_alternate(header_path, header_includes, before_endif=True):
         print(f"Updated header includes at {header_path}.")
     if write_includes_with_alternate(geo_path, geo_includes):
