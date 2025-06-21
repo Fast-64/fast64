@@ -456,8 +456,6 @@ def getSwitchOptionBone(switchArmature):
 class SM64_BoneProperties(PropertyGroup):
     version: IntProperty(name="SM64_BoneProperties Version", default=0)
     custom: PointerProperty(type=SM64_CustomCmdProperties)
-    custom_geo_cmd_macro: StringProperty(name="Geo Command Macro", default="GEO_BONE")
-    custom_geo_cmd_args: StringProperty(name="Geo Command Args", default="")
     revert_previous_mat: BoolProperty(name="Revert Previous Material", default=False)
     revert_after_mat: BoolProperty(
         name="Revert After Material",
