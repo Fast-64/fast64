@@ -522,6 +522,7 @@ class SM64_Area:
         self.mario_start = None
         self.splines = []
         self.startDialog = startDialog
+        self.custom_cmds = []
 
     def macros_name(self):
         return self.name + "_macro_objs"
@@ -825,7 +826,10 @@ def process_sm64_objects(obj, area, rootMatrix, transformMatrix, specialsOnly):
             if specialsOnly:
                 area.specials.append(cmd)
             else:
-                area.objects.append(cmd)
+                if obj_props.custom.top_level and obj_props.custom.preset != "NONE":
+                    area.custom_cmds.append(cmd)
+                else:
+                    area.objects.append(cmd)
         elif specialsOnly:
             if obj.sm64_obj_type == "Special":
                 preset = obj.sm64_special_enum if obj.sm64_special_enum != "Custom" else obj.sm64_obj_preset

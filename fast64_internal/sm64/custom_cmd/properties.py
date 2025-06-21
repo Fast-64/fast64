@@ -692,9 +692,7 @@ def custom_cmd_change_preset(self: "SM64_CustomCmdProperties", context: Context)
         self.preset = "NONE"
         return
     self.saved_hash = ""
-    self.from_dict(
-        preset_cmd.to_dict("PRESET_EDIT", get_custom_prop(context).owner, include_defaults=True), set_defaults=True
-    )
+    self.from_dict(preset_cmd.to_dict("PRESET_EDIT", None, include_defaults=True), set_defaults=True)
     self.saved_hash = self.preset_hash
     custom_cmd_preset_update(self, context)
 
@@ -764,6 +762,11 @@ class SM64_CustomCmdProperties(PropertyGroup):
         name="Displaylist Command", default="GEO_CUSTOM_CMD_WITH_DL", update=custom_cmd_preset_update
     )
     is_animated: BoolProperty(name="Is Animated", update=custom_cmd_preset_update)
+
+    # Level
+    top_level: BoolProperty(
+        name="Top Level", description="Command runs before areas, like mario start", update=custom_cmd_preset_update
+    )
 
     args_tab: BoolProperty(default=True)
     args: CollectionProperty(type=SM64_CustomArgProperties)
@@ -852,13 +855,15 @@ class SM64_CustomCmdProperties(PropertyGroup):
             if can_have_mesh(owner):
                 if conf_type == "PRESET_EDIT" or preset_export:
                     data["children_requirements"] = self.children_requirements
-                if data.get("children_requirements") != "NONE":
-                    data["group_children"] = self.group_children
-                data["dl_option"] = self.dl_option
+                    if data.get("children_requirements") != "NONE":
+                        data["group_children"] = self.group_children
+                    data["dl_option"] = self.dl_option
+                if self.adds_dl_ext(owner):
+                    data["dl_command"] = self.dl_command
             if self.can_animate(owner):
                 data["is_animated"] = self.is_animated
-            if self.adds_dl_ext(owner):
-                data["dl_command"] = self.dl_command
+            if self.get_cmd_type(owner) == "Level":
+                data["top_level"] = self.top_level
         self.args: list[SM64_CustomArgProperties]
         data["args"] = [
             arg.to_dict(conf_type, owner, world_matrix, local_matrix, blender_scale, include_defaults, is_export)
@@ -880,6 +885,7 @@ class SM64_CustomCmdProperties(PropertyGroup):
             self.is_animated = data.get("is_animated", False)
             self.use_dl_cmd = "dl_command" in data
             self.dl_command = data.get("dl_command", "GEO_CUSTOM_CMD_WITH_DL")
+            self.top_level = data.get("top_level", False)
             self.args.clear()
             for i, arg in enumerate(data.get("args", [])):
                 self.args.add()
@@ -982,6 +988,7 @@ class SM64_CustomCmdProperties(PropertyGroup):
         blender_scale=100.0,
         command_index=-1,
     ):
+        cmd_type = self.get_cmd_type(owner)
         col = layout.column()
         if self.preset != "NONE":
             conf_type = "PRESET"
@@ -1015,6 +1022,8 @@ class SM64_CustomCmdProperties(PropertyGroup):
                         row.prop(self, "dl_command", text="")
             if self.can_animate(owner):
                 col.prop(self, "is_animated")
+            if conf_type == "PRESET_EDIT" and cmd_type == "Level":
+                col.prop(self, "top_level")
 
         if conf_type != "PRESET" and draw_and_check_tab(col, self, "args_tab", text=f"Arguments ({len(self.args)})"):
             SM64_CustomArgsOps.draw_row(col.row(), -1, command_index=command_index)
