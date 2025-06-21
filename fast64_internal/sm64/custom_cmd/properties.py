@@ -422,7 +422,7 @@ class SM64_CustomArgProperties(PropertyGroup):
                     matrix.to_scale() if inherit else mathutils.Vector(self.translation_scale), self.order.lower()
                 )
                 if self.round_to_sm64:
-                    return round((sum(x for x in scale) / 3) * 0x10000)
+                    return sum(x for x in scale) / 3
                 return tuple(scale)
 
     def to_dict(
@@ -513,7 +513,10 @@ class SM64_CustomArgProperties(PropertyGroup):
             defaults = data
         self.number.from_dict(data, defaults, set_defaults)
         self.enum_option = str(defaults.get("enum", 0))
-        self.translation_scale = defaults.get("translation", None) or defaults.get("scale", None) or [0, 0, 0]
+        if "scale" in defaults and self.round_to_sm64:
+            self.translation_scale = [defaults.get("scale", 0)] * 3
+        else:
+            self.translation_scale = defaults.get("translation", None) or defaults.get("scale", None) or [0, 0, 0]
         self.euler = [math.radians(x) for x in defaults.get("euler", [0, 0, 0])]
         self.quaternion = defaults.get("quaternion", [1, 0, 0, 0])
         axis_angle = defaults.get("axis_angle", [[0, 0, 0], 0])

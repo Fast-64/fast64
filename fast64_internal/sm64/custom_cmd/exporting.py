@@ -292,7 +292,10 @@ class CustomCmd(BaseDisplayListNode):
                 else:
                     yield from run_eval(tuple(x for x in translation), 32)
             case "SCALE" | "MATRIX":
-                yield from run_eval(data.get(arg_type.lower()))
+                scale_matrix = data.get(arg_type.lower())
+                if round_to_sm64 and arg_type == "SCALE":
+                    yield from run_eval(round(scale_matrix * 0x10000))
+                yield from run_eval(scale_matrix)
             case "ROTATION":
                 rot_type = data["rot_type"]
                 rot = data.get(rot_type.lower())
