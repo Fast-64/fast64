@@ -47,19 +47,6 @@ ootEnumCSWriteType = [
     ("Object", "Object", "Reference to Blender object representing cutscene", "", 2),
 ]
 
-# order here sets order on the UI
-ootEnumCSListType = [
-    ("TextList", "Text List", "Textbox", "ALIGN_BOTTOM", 0),
-    ("MiscList", "Misc List", "Misc", "OPTIONS", 7),
-    ("RumbleList", "Rumble List", "Rumble Controller", "OUTLINER_OB_FORCE_FIELD", 8),
-    ("Transition", "Transition", "Transition", "COLORSET_10_VEC", 1),
-    ("LightSettingsList", "Light Settings List", "Lighting", "LIGHT_SUN", 2),
-    ("TimeList", "Time List", "Time", "TIME", 3),
-    ("StartSeqList", "Start Seq List", "Play BGM", "PLAY", 4),
-    ("StopSeqList", "Stop Seq List", "Stop BGM", "SNAP_FACE", 5),
-    ("FadeOutSeqList", "Fade-Out Seq List", "Fade BGM", "IPO_EASE_IN_OUT", 6),
-]
-
 csListTypeToIcon = {
     "TextList": "ALIGN_BOTTOM",
     "Transition": "COLORSET_10_VEC",

@@ -7,6 +7,7 @@ import mathutils
 from pathlib import Path
 from typing import Optional
 
+from ...game_data import game_data
 from ...utility import PluginError, readFile, parentObject, hexOrDecInt, gammaInverse
 from ...f3d.f3d_parser import parseMatrices
 from ..exporter.scene.general import EnvLightSettings
@@ -23,14 +24,11 @@ from .scene_pathways import parsePathList
 
 from ..constants import (
     ootEnumAudioSessionPreset,
-    ootEnumNightSeq,
     ootEnumMusicSeq,
     ootEnumCameraMode,
     ootEnumMapLocation,
     ootEnumNaviHints,
     ootEnumGlobalObject,
-    ootEnumSkybox,
-    ootEnumCloudiness,
     ootEnumSkyboxLighting,
 )
 
@@ -272,7 +270,7 @@ def parseSceneCommands(
     for command, args in cmd_map.items():
         if command == "SCENE_CMD_SOUND_SETTINGS":
             setCustomProperty(sceneHeader, "audioSessionPreset", args[0], ootEnumAudioSessionPreset)
-            setCustomProperty(sceneHeader, "nightSeq", args[1], ootEnumNightSeq)
+            setCustomProperty(sceneHeader, "nightSeq", args[1], game_data.z64.get_enum("nature_id"))
             setCustomProperty(sceneHeader, "musicSeq", args[2], ootEnumMusicSeq)
         elif command == "SCENE_CMD_ROOM_LIST":
             # Assumption that all scenes use the same room list.
@@ -316,8 +314,8 @@ def parseSceneCommands(
                 entranceList = None
 
         elif command == "SCENE_CMD_SKYBOX_SETTINGS":
-            setCustomProperty(sceneHeader, "skyboxID", args[0], ootEnumSkybox)
-            setCustomProperty(sceneHeader, "skyboxCloudiness", args[1], ootEnumCloudiness)
+            setCustomProperty(sceneHeader, "skyboxID", args[0], game_data.z64.get_enum("skybox"))
+            setCustomProperty(sceneHeader, "skyboxCloudiness", args[1], game_data.z64.get_enum("skybox_config"))
             setCustomProperty(sceneHeader, "skyboxLighting", args[2], ootEnumSkyboxLighting)
         elif command == "SCENE_CMD_EXIT_LIST":
             exitListName = stripName(args[0])
